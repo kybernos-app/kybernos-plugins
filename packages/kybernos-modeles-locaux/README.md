@@ -35,7 +35,7 @@ ne s'installe pas tout seul — chaque téléchargement part d'un clic.
 
 ```bash
 curl -s http://127.0.0.1:3080/modeles-locaux/machine | head -c 400   # après relance
-node kybernos-sessions/garde.mjs --check                             # avant d'annoncer
+node packages/kybernos-sessions/garde.mjs --check                             # avant d'annoncer
 KB_SHOT=/tmp/kml-gui.png node scripts/check-modeles-locaux-live.mjs  # 10/10 — panneau rendu,
                                      # détection réelle, reco sur qwen3.5:9b (Chrome headless
                                      # éphémère + cookie de session posé via CDP)

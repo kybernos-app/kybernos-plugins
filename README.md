@@ -31,7 +31,6 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | `dsh-mermaid` | Renders mermaid fences as SVG |
 | `dsh-db-viewer` | SQLite viewer in the right sidebar |
 | `dsh-media-player` | Audio/video preview |
-| `messaging` | DSH ↔ messaging bridge (Telegram first) |
 | `kybernos-cloud` | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
 | `kybernos-composio` | Composio integration: MCP connection and app catalog |
 | `kybernos-flow` | Conversation flow without engine patches: auto-continue, queue-move |
@@ -41,6 +40,21 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | `kybernos-sessions` | Session and kyber memory status per folder |
 | `kybernos-skills` | Skills catalog backed by DSH's native skill registry |
 | `kybernos-slash` | Slash commands and message actions |
+
+`kybernos-install` links **all** of these bundles in one go. Switch any satellite on or off afterwards with `node scripts/dsh-lifecycle.mjs satellites --desactiver <name>` / `--activer <name>`; the socle (`kybernos-plugin`, `-hub`, `-theme`, `-sessions`, `-skills`) is always on.
+
+## Testing
+
+```bash
+for t in scripts/test-*.mjs; do node "$t"; done                                   # robot, layout, packaging, safe mode
+for t in packages/*/test*.mjs; do (cd "$(dirname "$t")" && node "$(basename "$t")"); done   # every plugin
+dsh web --no-open --port 3080 &                                                  # then, with the token it prints:
+node scripts/smoke-gui.mjs --token <token>                                       # real GUI: boot, host routes, panels (needs `npm i playwright`)
+```
+
+## Standalone tool
+
+[`packages/messaging`](packages/messaging) is **not** a DSH bundle: it is a separate daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder; its tests are `node --test test/*.test.mjs`.
 
 ## Contributing
 

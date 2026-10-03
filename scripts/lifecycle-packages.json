@@ -34,7 +34,8 @@
       "nom": "@local/kybernos-sessions"
     },
     {
-      "dir": "kybernos-auto"
+      "dir": "kybernos-auto",
+      "nom": "@local/kybernos-auto"
     },
     {
       "dir": "kybernos-relance",
@@ -55,6 +56,34 @@
     {
       "dir": "kybernos-maintenance",
       "nom": "@local/kybernos-maintenance"
+    },
+    {
+      "dir": "kybernos-bricks",
+      "nom": "@local/kybernos-bricks"
+    },
+    {
+      "dir": "kybernos-slides",
+      "nom": "@local/kybernos-slides"
+    },
+    {
+      "dir": "kybernos-modeleur",
+      "nom": "@local/kybernos-modeleur"
+    },
+    {
+      "dir": "kybernos-miniapps",
+      "nom": "@local/kybernos-miniapps"
+    },
+    {
+      "dir": "kybernos-computers",
+      "nom": "@local/kybernos-computers"
+    },
+    {
+      "dir": "kybernos-modeles-locaux",
+      "nom": "@local/kybernos-modeles-locaux"
+    },
+    {
+      "dir": "kybernos-refs",
+      "nom": "@local/kybernos-refs"
     },
     {
       "dir": "dsh-media-player",

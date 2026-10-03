@@ -15,7 +15,10 @@ const ok = (nom, cond, detail = '') => { total++; if (cond) console.log('  ✓ '
 const HOME = mkdtempSync(join(tmpdir(), 'kb-safe-'))
 const PROFIL = join(HOME, 'profiles', 'web')
 mkdirSync(PROFIL, { recursive: true })
-const paquets = JSON.parse(readFileSync(join(ICI, 'lifecycle-packages.json'), 'utf8')).packages.filter((p) => p.nom)
+// Every real bundle is managed now; the "unmanaged package" safety net is exercised with a synthetic one.
+const reels = JSON.parse(readFileSync(join(ICI, 'lifecycle-packages.json'), 'utf8')).packages.filter((p) => p.nom)
+const paquets = [...reels, { dir: 'kybernos-libre', nom: '@local/kybernos-libre' }]
+const FICHIER_PAQUETS = join(HOME, 'paquets-test.json')
 const sats = JSON.parse(readFileSync(join(REPO, 'docs/beta/satellites.json'), 'utf8'))
 const socle = sats.socle.bundles.map((b) => b.nom)
 const tous = [...sats.socle.bundles, ...sats.satellites.bundles].map((b) => b.nom)
@@ -24,14 +27,15 @@ writeFileSync(join(PROFIL, 'package.json'), JSON.stringify({
   dependencies: Object.fromEntries(paquets.map((p) => [p.nom, 'link:' + dossierBundle(REPO, p.dir)])),
   dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', ...paquets.map((p) => p.nom)] } }
 }, null, 2))
+writeFileSync(FICHIER_PAQUETS, JSON.stringify({ packages: paquets }))
 writeFileSync(join(PROFIL, 'pnpm-lock.yaml'), '# fake\n')
 writeFileSync(join(PROFIL, 'cordis.patch.yml'), '[]\n')
 
 const cli = (...a) => {
-  try { return { code: 0, out: execFileSync('node', [join(ICI, 'dsh-lifecycle.mjs'), 'safe-mode', ...a], { env: { ...process.env, DSH_HOME: HOME }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }) } } catch (e) { return { code: e.status ?? 1, out: String(e.stdout ?? '') + String(e.stderr ?? '') } }
+  try { return { code: 0, out: execFileSync('node', [join(ICI, 'dsh-lifecycle.mjs'), 'safe-mode', ...a], { env: { ...process.env, DSH_HOME: HOME, KYBERNOS_PACKAGES_FILE: FICHIER_PAQUETS }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }) } } catch (e) { return { code: e.status ?? 1, out: String(e.stdout ?? '') + String(e.stderr ?? '') } }
 }
 const cliSat = (...a) => {
-  try { return { code: 0, out: execFileSync('node', [join(ICI, 'dsh-lifecycle.mjs'), 'satellites', ...a], { env: { ...process.env, DSH_HOME: HOME }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }) } } catch (e) { return { code: e.status ?? 1, out: String(e.stdout ?? '') + String(e.stderr ?? '') } }
+  try { return { code: 0, out: execFileSync('node', [join(ICI, 'dsh-lifecycle.mjs'), 'satellites', ...a], { env: { ...process.env, DSH_HOME: HOME, KYBERNOS_PACKAGES_FILE: FICHIER_PAQUETS }, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000 }) } } catch (e) { return { code: e.status ?? 1, out: String(e.stdout ?? '') + String(e.stderr ?? '') } }
 }
 const profil = () => JSON.parse(readFileSync(join(PROFIL, 'package.json'), 'utf8'))
 const bundles = () => profil().dsh.profile.bundles
@@ -64,12 +68,12 @@ try {
   ok('an existing null in dsh.profile.bundles is cleaned', bundles().every((b) => typeof b === 'string'), JSON.stringify(bundles().filter((b) => typeof b !== 'string')))
   rmSync(join(HOME, 'kybernos', 'satellites-actives.json'), { force: true })
   const nonGeres = paquets.map((p) => p.nom).filter((n) => !tous.includes(n))
-  ok('fixture check: some packages are managed by neither socle nor satellites (kybernos-flow)', nonGeres.includes('@local/kybernos-flow'), nonGeres.join())
+  ok('fixture check: some packages are managed by neither socle nor satellites (kybernos-libre)', nonGeres.includes('@local/kybernos-libre'), nonGeres.join())
   console.log('── satellites --desactiver: one satellite, and the profile follows ──')
   r = cliSat('--desactiver', 'kybernos-language')
   ok('deactivating one satellite exits 0', r.code === 0, r.out)
   ok('it is out of the profile', !bundles().includes('@local/kybernos-language'))
-  ok('an unmanaged package (kybernos-flow) is NOT dropped when the activation file appears', bundles().includes('@local/kybernos-flow'), bundles().join())
+  ok('an unmanaged package (kybernos-libre) is NOT dropped when the activation file appears', bundles().includes('@local/kybernos-libre'), bundles().join())
   ok('no null entry in dsh.profile.bundles', bundles().every((b) => typeof b === 'string'))
   ok('the OTHER satellites stay (absent file used to mean "0 active")', tous.filter((n) => n !== '@local/kybernos-language').every((n) => bundles().includes(n)), bundles().join())
   ok('activation file lists all but that one', actives().length === tous.length - socle.length - 1 && !actives().includes('@local/kybernos-language'), JSON.stringify(actives()))
@@ -100,7 +104,7 @@ try {
   r = cli('off')
   ok('off exits 0', r.code === 0, r.out)
   ok('every satellite is back in the profile', tous.every((n) => bundles().includes(n)), bundles().join())
-  ok('safe-mode off also brings back the unmanaged packages (kybernos-flow)', nonGeres.every((n) => bundles().includes(n)), bundles().join())
+  ok('safe-mode off also brings back the unmanaged packages (kybernos-libre)', nonGeres.every((n) => bundles().includes(n)), bundles().join())
   ok('state is clean', etat().safe.actif === false && etat().demarrages.length === 0)
   r = cli('off')
   ok('off twice is a no-op', r.code === 0 && /not on/.test(r.out))

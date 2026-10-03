@@ -70,7 +70,8 @@ const CYCLE_DIR = join(DSH_HOME, 'lifecycle')
 const PHOTOS_DIR = join(CYCLE_DIR, 'photos')
 const JOURNAL = join(CYCLE_DIR, 'journal.jsonl')
 const PATCHES = JSON.parse(readFileSync(join(ICI, 'patches.json'), 'utf8'))
-const PACKAGES = JSON.parse(readFileSync(join(ICI, 'lifecycle-packages.json'), 'utf8')).packages
+// KYBERNOS_PACKAGES_FILE : crochet de test (liste de paquets de remplacement). Jamais posé en usage normal.
+const PACKAGES = JSON.parse(readFileSync(process.env.KYBERNOS_PACKAGES_FILE || join(ICI, 'lifecycle-packages.json'), 'utf8')).packages
 
 // ── Modèle 3 : activation des satellites ────────────────────────────────────
 // Un satellite est ACTIVÉ s'il est listé dans `~/.dsh/kybernos/satellites-actives.json`

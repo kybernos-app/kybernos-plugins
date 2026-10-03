@@ -40,5 +40,28 @@ for (const rel of ['scripts/patches.json', 'scripts/lifecycle-packages.json', 'd
 const declared = JSON.parse(readFileSync(join(REPO, 'scripts', 'lifecycle-packages.json'), 'utf8')).packages
 verifie('every lifecycle package dir exists under packages/', declared.every((p) => existsSync(join(REPO, BASE_BUNDLES, p.dir))), declared.filter((p) => !existsSync(join(REPO, BASE_BUNDLES, p.dir))).map((p) => p.dir).join(', '))
 
+// 4. every DSH bundle (package.json has a `dsh` field) is declared to the robot
+//    AND in the satellites manifest — otherwise it can never be installed.
+//    Packages without `dsh` (e.g. messaging, a standalone daemon) are not bundles.
+const sats = JSON.parse(readFileSync(join(REPO, 'docs', 'beta', 'satellites.json'), 'utf8'))
+const dansManifeste = new Set([...sats.socle.bundles, ...sats.satellites.bundles].map((b) => b.dir))
+const dansRobot = new Set(declared.filter((p) => typeof p.nom === 'string').map((p) => p.dir))
+const dsh = bundles.filter((d) => JSON.parse(readFileSync(join(REPO, BASE_BUNDLES, d, 'package.json'), 'utf8')).dsh !== undefined)
+verifie('every DSH bundle is declared to the robot with a name', dsh.every((d) => dansRobot.has(d)), dsh.filter((d) => !dansRobot.has(d)).join(', '))
+verifie('every DSH bundle is in satellites.json', dsh.every((d) => dansManifeste.has(d)), dsh.filter((d) => !dansManifeste.has(d)).join(', '))
+verifie('satellites.json lists only existing bundles', [...dansManifeste].every((d) => bundles.includes(d)))
+const ordre = new Set([...sats.ordre_montage.socle, ...sats.ordre_montage.satellites])
+const noms = [...sats.socle.bundles, ...sats.satellites.bundles].map((b) => b.nom)
+verifie('ordre_montage mounts every satellite', sats.satellites.bundles.map((b) => b.nom).every((n) => ordre.has(n)), sats.satellites.bundles.map((b) => b.nom).filter((n) => !ordre.has(n)).join(', '))
+
+// 5. the hot-file list of the session guard points at files that exist (relative to the repo root,
+//    which is also the git root: a stale flat path silently disables the guard).
+const garde = readFileSync(join(REPO, BASE_BUNDLES, 'kybernos-sessions', 'garde.mjs'), 'utf8')
+const bloc = garde.slice(garde.indexOf('export const FICHIERS_CHAUDS = ['), garde.indexOf(']', garde.indexOf('export const FICHIERS_CHAUDS = [')))
+const chauds = [...bloc.matchAll(/^\s*'([^']+)',/gm)].map((m) => m[1])
+verifie('garde: hot-file list is not empty', chauds.length >= 10, String(chauds.length))
+verifie('garde: every hot file exists', chauds.every((f) => existsSync(join(REPO, f))), chauds.filter((f) => !existsSync(join(REPO, f))).join(', '))
+verifie('garde: launchd plist points at an existing garde.mjs', existsSync(join(REPO, 'packages', 'kybernos-sessions', 'garde.mjs')) && /join\(racine, 'packages', 'kybernos-sessions', 'garde\.mjs'\)/.test(garde))
+
 console.log(`\nLAYOUT — ${total} checks, ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)

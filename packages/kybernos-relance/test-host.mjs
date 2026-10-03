@@ -214,8 +214,18 @@ async function main () {
   check('schéma de sortie `{}`', JSON.stringify(litt.output?.schema) === '{}')
   check('render rend du texte', litt.output.render({}, { coupe: true })[0]?.type === 'text')
   check('execute transmis', typeof litt.execute === 'function')
-  try {
-    const { defineTool } = await import('/opt/homebrew/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools/lib/index.js')
+  // Le vrai `defineTool` n'existe que là où DSH est installé. Absent (CI, bac
+  // vierge) : on le dit, la comparaison est SAUTÉE — elle n'est pas comptée verte.
+  const CHEMINS_TOOLS = [
+    process.env.DSH_TOOLS_PATH,
+    join(process.env.HOME ?? '', '.dsh', 'profiles', 'web', 'node_modules', '@deepseek-ai', 'dsh-tools', 'lib', 'index.js'),
+    '/opt/homebrew/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools/lib/index.js',
+    '/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-tools/lib/index.js',
+  ].filter((c) => typeof c === 'string' && c.length > 0 && existsSync(c))
+  if (CHEMINS_TOOLS.length === 0) {
+    console.log('  · defineTool réel absent de cette machine : comparaison avec le repli SAUTÉE (pas verte)')
+  } else try {
+    const { defineTool } = await import(CHEMINS_TOOLS[0])
     // On compile la MÊME intention par l'API officielle : le repli doit rendre la même forme.
     const compile = defineTool(specDefineTool(def))
     check('specDefineTool accepté par defineTool', compile.name === 'relancer_dsh')

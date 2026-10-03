@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const src = readFileSync(root + 'kybernos-plugin/index.js', 'utf8')
+const src = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8')
 const m = src.match(/\/\/ KB-PINS-CORE-BEGIN([\s\S]*?)\/\/ KB-PINS-CORE-END/)
 if (m === null) { console.error('BLOC KB-PINS-CORE INTROUVABLE dans index.js'); process.exit(1) }
 const mod = await import('data:text/javascript,' + encodeURIComponent(m[1]))

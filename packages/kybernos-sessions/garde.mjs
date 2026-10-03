@@ -104,32 +104,32 @@ export function decider (cheminCourant, sessionsHome, fenetreMs = 3600 * 1000, h
 // sans veille. Mesuré le 23/09/2026 : le bandeau de santé vit dans
 // `kybernos-sessions/client.js`, donc dans un fichier chaud, lui aussi.
 export const FICHIERS_CHAUDS = [
-  'kybernos-plugin/client.js',
-  'kybernos-plugin/index.js',
-  'kybernos-sessions/client.js',
-  'kybernos-models/client.js',
-  'kybernos-theme/client.js',
-  'kybernos-slash/client.js',
-  'kybernos-skills/client.js',
-  'kybernos-composio/client.js',
-  'kybernos-cloud/client.js',
-  'kybernos-maintenance/client.js',
-  'kybernos-relance/client.js',
-  'kybernos-flow/client.js',
+  'packages/kybernos-plugin/client.js',
+  'packages/kybernos-plugin/index.js',
+  'packages/kybernos-sessions/client.js',
+  'packages/kybernos-models/client.js',
+  'packages/kybernos-theme/client.js',
+  'packages/kybernos-slash/client.js',
+  'packages/kybernos-skills/client.js',
+  'packages/kybernos-composio/client.js',
+  'packages/kybernos-cloud/client.js',
+  'packages/kybernos-maintenance/client.js',
+  'packages/kybernos-relance/client.js',
+  'packages/kybernos-flow/client.js',
   // Ajouté le 24/09/2026 : le panneau « Briques » vit dans un bundle client
   // servi à chaud, comme les autres. Il manquait à cette liste — la garde
   // répondait « pas un fichier chaud connu », donc personne ne le réservait.
-  'kybernos-bricks/client.js',
+  'packages/kybernos-bricks/client.js',
   // Recette 03/10 : bundles clients apparus depuis — la suite worktrees (C1b)
   // les réclamait, la garde les ignorait (« pas un fichier chaud connu »).
-  'kybernos-auto/client.js',
-  'kybernos-computers/client.js',
-  'kybernos-language/client.js',
-  'kybernos-miniapps/client.js',
-  'kybernos-modeles-locaux/client.js',
-  'kybernos-modeleur/client.js',
-  'kybernos-refs/client.js',
-  'kybernos-slides/client.js',
+  'packages/kybernos-auto/client.js',
+  'packages/kybernos-computers/client.js',
+  'packages/kybernos-language/client.js',
+  'packages/kybernos-miniapps/client.js',
+  'packages/kybernos-modeles-locaux/client.js',
+  'packages/kybernos-modeleur/client.js',
+  'packages/kybernos-refs/client.js',
+  'packages/kybernos-slides/client.js',
 ]
 export const TTL_CLAIM_MS = 180 * 1000
 
@@ -290,7 +290,7 @@ export function plistVeille (racine, intervalle = 1000, noeud = process.execPath
   <key>ProgramArguments</key>
   <array>
     <string>${noeud}</string>
-    <string>${join(racine, 'kybernos-sessions', 'garde.mjs')}</string>
+    <string>${join(racine, 'packages', 'kybernos-sessions', 'garde.mjs')}</string>
     <string>--veille</string>
     <string>--interval</string>
     <string>${String(intervalle)}</string>

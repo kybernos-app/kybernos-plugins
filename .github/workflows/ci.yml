@@ -16,15 +16,17 @@ jobs:
       - name: Syntax check (all bundle sources)
         run: |
           find . -path ./.git -prune -o \( -name '*.mjs' -o -name '*.js' \) -type f -not -path '*/vendor/*' -not -path '*/src/plugin.js' -not -name '*.min.js' -print0 | xargs -0 -n1 node --check
-      - name: Lifecycle robot tests
+      - name: Repo-level tests (every scripts/test-*.mjs)
         run: |
-          node scripts/test-lifecycle-engine.mjs
-          node scripts/test-plateforme.mjs
-          node scripts/test-paquet.mjs
-          node scripts/test-racine-dsh.mjs
-          node scripts/test-layout.mjs
-          node scripts/test-safe-mode.mjs
-          node packages/kybernos-hub/test-boot-guard.mjs
-          node packages/kybernos-hub/test-host.mjs
-          node packages/kybernos-flow/test-host.mjs
-          node packages/kybernos-flow/test-client.mjs
+          for t in scripts/test-*.mjs; do
+            echo "== $t"
+            node "$t" || exit 1
+          done
+      - name: Plugin tests (every packages/*/test*.mjs)
+        run: |
+          for t in packages/*/test*.mjs; do
+            echo "== $t"
+            (cd "$(dirname "$t")" && node "$(basename "$t")") || exit 1
+          done
+      - name: messaging tests (standalone daemon)
+        run: cd packages/messaging && node --test test/*.test.mjs
