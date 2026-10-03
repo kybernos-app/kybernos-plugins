@@ -78,6 +78,10 @@
       "nom": "@local/kybernos-computers"
     },
     {
+      "dir": "kybernos-workers",
+      "nom": "@local/kybernos-workers"
+    },
+    {
       "dir": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux"
     },

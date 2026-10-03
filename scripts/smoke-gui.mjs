@@ -31,6 +31,8 @@ const ok = (nom, bon, detail = '') => { total++; if (bon) console.log('  ✓ ' +
 // [route, accepted statuses, what the body must contain]
 const ROUTES = [
   ['/kybernos-hub/state', [200], '"ok":true'],
+  ['/kybernos-hub/suite', [200], '"modules"'],
+  ['/kybernos-workers/state', [200], '"workers"'],
   ['/kybernos-maintenance/state', [200], '"global"'],
   ['/kybernos-sessions/state', [200], '"kybers"'],
   ['/kybernos-sessions/settings', [200], '"reglages"'],

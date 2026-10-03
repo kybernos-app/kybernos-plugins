@@ -1,0 +1,20 @@
+{
+  "name": "@local/kybernos-workers",
+  "version": "0.1.0",
+  "description": "Kybernos Workers: verified state of the external coding agents DSH can drive (Claude Code, Codex, ZCode) and the one policy DSH really exposes for them.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

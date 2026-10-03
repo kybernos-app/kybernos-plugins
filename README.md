@@ -22,6 +22,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | `kybernos-models` | Models catalog |
 | `kybernos-auto` | Auto mode: routes delegations by class |
 | `kybernos-computers` | Cloud computers for agents (E2B, bring your own key) |
+| `kybernos-workers` | Workers screen: verified state of Claude Code, Codex and ZCode, and the lead-exposure policy DSH really offers |
 | `kybernos-slides` | Slide decks driven by chat |
 | `kybernos-bricks` | Brick mockups driven by chat |
 | `kybernos-modeleur` | 2D/3D models driven by chat |

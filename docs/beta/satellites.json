@@ -28,6 +28,7 @@
       { "dir": "kybernos-modeleur", "nom": "@local/kybernos-modeleur", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau Modeleur : modèles 2D/3D pilotés par le chat, outil modeliser", "poids_ko": 168, "lib_vendor": null },
       { "dir": "kybernos-miniapps", "nom": "@local/kybernos-miniapps", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "« Install as app » : exporte un panneau de la barre droite en app native", "poids_ko": 276, "lib_vendor": null },
       { "dir": "kybernos-computers", "nom": "@local/kybernos-computers", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "ordinateurs cloud pour les agents (E2B, clé fournie par l'utilisateur)", "poids_ko": 128, "lib_vendor": null },
+      { "dir": "kybernos-workers", "nom": "@local/kybernos-workers", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "écran Workers : état vérifié de Claude Code, Codex et ZCode, et exposition au lead", "poids_ko": 56, "lib_vendor": null },
       { "dir": "kybernos-modeles-locaux", "nom": "@local/kybernos-modeles-locaux", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau modèles locaux : détecte la machine, installe un modèle Ollama", "poids_ko": 80, "lib_vendor": null },
       { "dir": "kybernos-refs", "nom": "@local/kybernos-refs", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "liens markdown des messages en pastilles de référence", "poids_ko": 28, "lib_vendor": null },
       { "dir": "dsh-mermaid", "nom": "@local/dsh-mermaid", "tier": 3, "obligatoire": false, "role": "rendu des fences ```mermaid en SVG", "poids_ko": 6042, "lib_vendor": "mermaid 11.14 + katex", "lib_poids_ko": 3072, "chargement": "paresseux" },
@@ -38,6 +39,6 @@
   "ordre_montage": {
     "commentaire": "Ordre de dsh.profile.bundles. Le socle d'abord, puis les satellites activés dans cet ordre. Un satellite désactivé est simplement omis de la liste.",
     "socle": ["@local/kybernos-theme", "@local/kybernos-models", "@local/kybernos-skills", "@local/kybernos-slash", "@local/kybernos-sessions", "@local/kybernos-relance", "@local/kybernos-composio", "@local/kybernos-cloud", "@local/kybernos"],
-    "satellites": ["@local/dsh-media-player", "@local/dsh-mermaid", "@local/dsh-db-viewer", "@local/kybernos-maintenance", "@local/kybernos-language", "@local/kybernos-flow", "@local/kybernos-auto", "@local/kybernos-bricks", "@local/kybernos-slides", "@local/kybernos-modeleur", "@local/kybernos-miniapps", "@local/kybernos-computers", "@local/kybernos-modeles-locaux", "@local/kybernos-refs"]
+    "satellites": ["@local/dsh-media-player", "@local/dsh-mermaid", "@local/dsh-db-viewer", "@local/kybernos-maintenance", "@local/kybernos-language", "@local/kybernos-flow", "@local/kybernos-auto", "@local/kybernos-bricks", "@local/kybernos-slides", "@local/kybernos-modeleur", "@local/kybernos-miniapps", "@local/kybernos-computers", "@local/kybernos-workers", "@local/kybernos-modeles-locaux", "@local/kybernos-refs"]
   }
 }

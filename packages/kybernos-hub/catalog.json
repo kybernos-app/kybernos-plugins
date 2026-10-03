@@ -330,6 +330,20 @@
       }
     },
     {
+      "id": "kybernos-workers",
+      "nom": "@local/kybernos-workers",
+      "famille": "connect",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 56,
+      "promesse": {
+        "fr": "État vérifié de Claude Code, Codex et ZCode, et exposition au lead.",
+        "en": "Verified state of Claude Code, Codex and ZCode, and exposure to the lead."
+      }
+    },
+    {
       "id": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux",
       "famille": "models",

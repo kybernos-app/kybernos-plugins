@@ -282,7 +282,7 @@ window.__ModuleLoader__.load({
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),
             h('div', { className: 'kbsu-banner', role: 'alert' }, h('strong', null, ic('alert'), kt('Le catalogue de la suite est injoignable.', 'The suite catalogue cannot be reached.')),
-              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relancez DSH, ou utilisez la section « Kybernos Plugins ».', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use the "Kybernos Plugins" section.'))),
+              h('span', null, kt('Le serveur DSH ne répond pas sur /kybernos-hub/suite. Relancez DSH, ou utilisez le gestionnaire de plugins natif de DSH.', 'The DSH server does not answer on /kybernos-hub/suite. Restart DSH, or use DSH’s native plugin manager.'))),
             h('div', null, h('button', { type: 'button', className: 'kbsu-btn ghost', onClick: () => { setCharge({ etat: 'loading', suite: null, bundles: null, maint: null }); recharger() } }, ic('refresh'), kt('Réessayer', 'Retry'))))
         }
 
