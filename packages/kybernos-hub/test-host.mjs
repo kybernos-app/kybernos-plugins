@@ -100,7 +100,7 @@ console.log('── index.js: apply() never throws and never blocks DSH ──')
   const ctx = { get: (n) => (n === 'webServer' ? { register: (r) => registered.push(r.path) } : undefined), effect: (fn) => fn(), inject: () => {} }
   let leve = false
   try { appliquer(ctx) } catch { leve = true }
-  ok('apply with a normal ctx mounts both routes', leve === false && registered.length === 2, registered.join())
+  ok('apply with a normal ctx mounts the boot routes AND the suite routes', leve === false && registered.length === 5 && registered.includes('/kybernos-hub/beacon') && registered.includes('/kybernos-hub/suite') && registered.includes('/kybernos-hub/module') && registered.includes('/kybernos-hub/relaunch'), registered.join())
   let leve2 = false
   try { appliquer({ get: () => { throw new Error('boom') }, effect: () => { throw new Error('boom') }, inject: () => { throw new Error('boom') } }) } catch { leve2 = true }
   ok('apply with a hostile ctx does not throw', leve2 === false)

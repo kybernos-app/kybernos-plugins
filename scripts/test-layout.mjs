@@ -63,5 +63,16 @@ verifie('garde: hot-file list is not empty', chauds.length >= 10, String(chauds.
 verifie('garde: every hot file exists', chauds.every((f) => existsSync(join(REPO, f))), chauds.filter((f) => !existsSync(join(REPO, f))).join(', '))
 verifie('garde: launchd plist points at an existing garde.mjs', existsSync(join(REPO, 'packages', 'kybernos-sessions', 'garde.mjs')) && /join\(racine, 'packages', 'kybernos-sessions', 'garde\.mjs'\)/.test(garde))
 
+// 6. the Suite catalogue shipped in the hub is DERIVED from the three sources of truth;
+//    a stale copy would show the wrong modules in the panel.
+{
+  const { catalogueDuDepot, FICHIER_CATALOGUE } = await import('./build-catalog.mjs')
+  let attendu = null
+  let erreur = ''
+  try { attendu = JSON.stringify(catalogueDuDepot(), null, 2) + '\n' } catch (e) { erreur = String(e.message) }
+  verifie('the Suite catalogue can be built from the repo (every bundle has a family and a promise)', attendu !== null, erreur)
+  verifie('packages/kybernos-hub/catalog.json is up to date (node scripts/build-catalog.mjs)', attendu !== null && existsSync(FICHIER_CATALOGUE) && readFileSync(FICHIER_CATALOGUE, 'utf8') === attendu)
+}
+
 console.log(`\nLAYOUT — ${total} checks, ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)

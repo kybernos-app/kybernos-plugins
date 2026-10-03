@@ -2,6 +2,7 @@
 // Everything here takes its I/O as arguments (state reader/writer, clock, id
 // generator) so test-host.mjs can play it without DSH, a disk or a browser.
 import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
+import { basculer, charge, installer } from './suite-host.mjs'
 
 /**
  * @param {{lire: () => unknown, ecrire: (etat: object) => void, maintenant: () => string, nouvelId: () => string}} io
@@ -106,4 +107,61 @@ export function monterRoutes (webServer, hub, liens = {}) {
     webServer.register({ kind: 'exact', path: '/kybernos-hub/beacon', handler: balise })
   }
   return typeof liens.effect === 'function' ? liens.effect(enregistrer, 'kybernos-hub: routes') : enregistrer()
+}
+
+/**
+ * Suite panel routes.
+ *   GET  /kybernos-hub/suite      → catalogue + what is switched on + boot verdict
+ *   POST /kybernos-hub/module     → { id, action: 'activer' | 'desactiver' | 'installer' }
+ *   POST /kybernos-hub/relaunch   → { confirm: true } — detached restart, ONLY on explicit confirmation
+ * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub }
+ */
+export function monterSuite (webServer, deps, liens = {}) {
+  let occupe = false
+  const lire = () => { try { return deps.lireActivation() } catch { return null } }
+  const suite = (req, res) => {
+    if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
+    if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
+    return envoyer(res, 200, charge({ catalogue: deps.catalogue, brut: lire(), etatHub: deps.hub.etat() }))
+  }
+  const corpsJson = async (req, res) => {
+    if (req.method !== 'POST') { envoyer(res, 405, { ok: false, error: 'method-not-allowed' }); return undefined }
+    if (sameOriginStrict(req) === false) { envoyer(res, 403, { ok: false, error: 'origin-refused' }); return undefined }
+    if (!String(req.headers?.['content-type'] ?? '').toLowerCase().startsWith('application/json')) { envoyer(res, 415, { ok: false, error: 'json-required' }); return undefined }
+    try { return (await lireCorps(req)) ?? {} } catch { envoyer(res, 400, { ok: false, error: 'bad-body' }); return undefined }
+  }
+  const module_ = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    const { id, action } = corps
+    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    occupe = true
+    try {
+      if (action === 'installer') {
+        const r = await installer({ catalogue: deps.catalogue, brut: lire(), id, ecrire: deps.ecrireActivation, executer: deps.executer })
+        return envoyer(res, r.ok ? 200 : (r.error === 'unknown-module' ? 404 : 500), r)
+      }
+      if (action === 'activer' || action === 'desactiver') {
+        const b = basculer({ catalogue: deps.catalogue, brut: lire(), id, actif: action === 'activer' })
+        if (!b.ok) return envoyer(res, b.error === 'unknown-module' ? 404 : 403, b)
+        try { deps.ecrireActivation(b.ecrit) } catch (e) { return envoyer(res, 500, { ok: false, error: 'activation-write-failed', detail: String(e?.message ?? e) }) }
+        return envoyer(res, 200, { ok: true })
+      }
+      return envoyer(res, 400, { ok: false, error: 'bad-action' })
+    } finally { occupe = false }
+  }
+  const relancer = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
+    let r
+    try { r = await deps.relancer() } catch (e) { return envoyer(res, 500, { ok: false, error: 'relaunch-failed', detail: String(e?.message ?? e) }) }
+    return envoyer(res, r?.ok === true ? 200 : 500, r?.ok === true ? { ok: true } : { ok: false, error: r?.error ?? 'relaunch-failed' })
+  }
+  const enregistrer = () => {
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/suite', handler: suite })
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/module', handler: module_ })
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/relaunch', handler: relancer })
+  }
+  return typeof liens.effect === 'function' ? liens.effect(enregistrer, 'kybernos-hub: suite routes') : enregistrer()
 }

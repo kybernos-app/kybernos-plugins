@@ -1,0 +1,403 @@
+{
+  "schema": 1,
+  "familles": [
+    {
+      "id": "base",
+      "fr": "Fondations",
+      "en": "Foundations",
+      "ligne": {
+        "fr": "Le socle, sur chaque poste.",
+        "en": "The base, on every machine."
+      },
+      "icone": "box"
+    },
+    {
+      "id": "models",
+      "fr": "Modèles",
+      "en": "Models",
+      "ligne": {
+        "fr": "N’importe quel modèle, y compris local.",
+        "en": "Any model, local ones included."
+      },
+      "icone": "cpu"
+    },
+    {
+      "id": "teams",
+      "fr": "Équipes d’agents",
+      "en": "Agent teams",
+      "ligne": {
+        "fr": "File d’attente, reprise, objectifs.",
+        "en": "Queue, resume, goals."
+      },
+      "icone": "users"
+    },
+    {
+      "id": "create",
+      "fr": "Créer dans le chat",
+      "en": "Create in the chat",
+      "ligne": {
+        "fr": "L’agent montre au lieu d’expliquer.",
+        "en": "The agent shows instead of explaining."
+      },
+      "icone": "layout"
+    },
+    {
+      "id": "connect",
+      "fr": "Connecteurs et machines",
+      "en": "Connectors and machines",
+      "ligne": {
+        "fr": "Vos outils, des ordinateurs pour l’agent.",
+        "en": "Your tools, computers for the agent."
+      },
+      "icone": "plug"
+    },
+    {
+      "id": "cloud",
+      "fr": "Cloud",
+      "en": "Cloud",
+      "ligne": {
+        "fr": "Compte, mémoire, modèles du proxy.",
+        "en": "Account, memory, proxy models."
+      },
+      "icone": "cloud"
+    }
+  ],
+  "modules": [
+    {
+      "id": "kybernos-plugin",
+      "nom": "@local/kybernos",
+      "famille": "base",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 8090,
+      "promesse": {
+        "fr": "Le cœur : équipes d’agents, ressources, réglages et préréglages.",
+        "en": "The core: agent teams, resources, settings and presets."
+      }
+    },
+    {
+      "id": "kybernos-hub",
+      "nom": "@local/kybernos-hub",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 28,
+      "promesse": {
+        "fr": "Ce panneau, la garde de démarrage et le mode sans échec.",
+        "en": "This panel, the boot guard and safe mode."
+      }
+    },
+    {
+      "id": "kybernos-theme",
+      "nom": "@local/kybernos-theme",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 230,
+      "promesse": {
+        "fr": "Thème, palettes, fond et police.",
+        "en": "Theme, palettes, background and font."
+      }
+    },
+    {
+      "id": "kybernos-language",
+      "nom": "@local/kybernos-language",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 44,
+      "promesse": {
+        "fr": "Langue de l’interface, traduction et sens de lecture.",
+        "en": "Interface language, translation and reading direction."
+      }
+    },
+    {
+      "id": "kybernos-models",
+      "nom": "@local/kybernos-models",
+      "famille": "models",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 320,
+      "promesse": {
+        "fr": "Catalogue de modèles : recherche, comparaison, prix.",
+        "en": "Model catalogue: search, compare, prices."
+      }
+    },
+    {
+      "id": "kybernos-skills",
+      "nom": "@local/kybernos-skills",
+      "famille": "base",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 172,
+      "promesse": {
+        "fr": "Compétences locales, créées par chat.",
+        "en": "Local skills, created by chat."
+      }
+    },
+    {
+      "id": "kybernos-slash",
+      "nom": "@local/kybernos-slash",
+      "famille": "base",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 248,
+      "promesse": {
+        "fr": "Commandes / et actions de message, créées par chat.",
+        "en": "Slash commands and message actions, created by chat."
+      }
+    },
+    {
+      "id": "kybernos-sessions",
+      "nom": "@local/kybernos-sessions",
+      "famille": "base",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": true,
+      "defaut": null,
+      "poids_ko": 372,
+      "promesse": {
+        "fr": "Sessions qui se nomment et se classent seules.",
+        "en": "Sessions that name and sort themselves."
+      }
+    },
+    {
+      "id": "kybernos-auto",
+      "nom": "@local/kybernos-auto",
+      "famille": "models",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 76,
+      "promesse": {
+        "fr": "Routage Auto : le moindre modèle qui passe votre seuil.",
+        "en": "Auto routing: the cheapest model that clears your bar."
+      }
+    },
+    {
+      "id": "kybernos-relance",
+      "nom": "@local/kybernos-relance",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.2.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 52,
+      "promesse": {
+        "fr": "Relancer DSH sans couper l’agent qui travaille.",
+        "en": "Restart DSH without cutting the working agent."
+      }
+    },
+    {
+      "id": "kybernos-flow",
+      "nom": "@local/kybernos-flow",
+      "famille": "teams",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 88,
+      "promesse": {
+        "fr": "Reprise des tours coupés, file d’attente réordonnable, barre Goal.",
+        "en": "Resume cut turns, reorderable queue, Goal bar."
+      }
+    },
+    {
+      "id": "kybernos-composio",
+      "nom": "@local/kybernos-composio",
+      "famille": "connect",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 536,
+      "promesse": {
+        "fr": "Des centaines de connecteurs en cartes prêtes pour l’agent.",
+        "en": "Hundreds of connectors as ready-made cards for the agent."
+      }
+    },
+    {
+      "id": "kybernos-cloud",
+      "nom": "@local/kybernos-cloud",
+      "famille": "cloud",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 328,
+      "promesse": {
+        "fr": "Compte Kybernos, modèles du proxy, mémoire du compte.",
+        "en": "Kybernos account, proxy models, account memory."
+      }
+    },
+    {
+      "id": "kybernos-maintenance",
+      "nom": "@local/kybernos-maintenance",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 68,
+      "promesse": {
+        "fr": "Versions, journal, état de santé de l’installation.",
+        "en": "Versions, journal, installation health."
+      }
+    },
+    {
+      "id": "kybernos-bricks",
+      "nom": "@local/kybernos-bricks",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 108,
+      "promesse": {
+        "fr": "Maquettes en briques, animées brique par brique.",
+        "en": "Brick mockups, animated brick by brick."
+      }
+    },
+    {
+      "id": "kybernos-slides",
+      "nom": "@local/kybernos-slides",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 776,
+      "promesse": {
+        "fr": "Decks écrits en direct dans la barre latérale.",
+        "en": "Decks written live in the sidebar."
+      }
+    },
+    {
+      "id": "kybernos-modeleur",
+      "nom": "@local/kybernos-modeleur",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 168,
+      "promesse": {
+        "fr": "Modèles 2D et 3D pilotés par le chat.",
+        "en": "2D and 3D models driven by the chat."
+      }
+    },
+    {
+      "id": "kybernos-miniapps",
+      "nom": "@local/kybernos-miniapps",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 276,
+      "promesse": {
+        "fr": "« Install as app » : un panneau devient une app native.",
+        "en": "\"Install as app\": a panel becomes a native app."
+      }
+    },
+    {
+      "id": "kybernos-computers",
+      "nom": "@local/kybernos-computers",
+      "famille": "connect",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 128,
+      "promesse": {
+        "fr": "Ordinateurs cloud pour les agents (votre clé E2B).",
+        "en": "Cloud computers for agents (your E2B key)."
+      }
+    },
+    {
+      "id": "kybernos-modeles-locaux",
+      "nom": "@local/kybernos-modeles-locaux",
+      "famille": "models",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 80,
+      "promesse": {
+        "fr": "Modèles locaux détectés et installés depuis les Réglages.",
+        "en": "Local models detected and installed from Settings."
+      }
+    },
+    {
+      "id": "kybernos-refs",
+      "nom": "@local/kybernos-refs",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 28,
+      "promesse": {
+        "fr": "Les liens des messages deviennent des pastilles de référence.",
+        "en": "Message links become reference chips."
+      }
+    },
+    {
+      "id": "dsh-media-player",
+      "nom": "@local/dsh-media-player",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 1126,
+      "promesse": {
+        "fr": "Lecteur audio et vidéo dans la barre latérale.",
+        "en": "Audio and video player in the sidebar."
+      }
+    },
+    {
+      "id": "dsh-mermaid",
+      "nom": "@local/dsh-mermaid",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 6042,
+      "promesse": {
+        "fr": "Diagrammes Mermaid rendus en SVG dans le chat.",
+        "en": "Mermaid diagrams rendered as SVG in the chat."
+      }
+    },
+    {
+      "id": "dsh-db-viewer",
+      "nom": "@local/dsh-db-viewer",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 2150,
+      "promesse": {
+        "fr": "Bases SQLite et Postgres, avec graphiques.",
+        "en": "SQLite and Postgres databases, with charts."
+      }
+    }
+  ]
+}
