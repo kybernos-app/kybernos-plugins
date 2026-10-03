@@ -1,7 +1,7 @@
 // ── Hub host: boot tracking + HTTP routes ───────────────────────────────────
 // Everything here takes its I/O as arguments (state reader/writer, clock, id
 // generator) so test-host.mjs can play it without DSH, a disk or a browser.
-import { noterChargement, noterDemarrage, noterSante, normaliser, recommandation } from './boot-guard.mjs'
+import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
 
 /**
  * @param {{lire: () => unknown, ecrire: (etat: object) => void, maintenant: () => string, nouvelId: () => string}} io
@@ -21,11 +21,16 @@ export function creerHub (io) {
     },
     bootId: () => bootId,
     /** Beacon from the browser. Returns {statut, corps}. */
-    balise ({ type, bootId: recu }) {
+    balise ({ type, bootId: recu, entries }) {
       if (bootId === null) return { statut: 503, corps: { ok: false, error: 'not-started' } }
       if (type === 'loading') {
         sauver(noterChargement(charger(), bootId))
         return { statut: 200, corps: { ok: true, bootId } }
+      }
+      if (type === 'broken') {
+        if (recu !== bootId) return { statut: 409, corps: { ok: false, error: 'stale-boot', bootId } }
+        sauver(noterCasse(charger(), bootId, entries))
+        return { statut: 200, corps: { ok: true, bootId, entries: nomsValides(entries) } }
       }
       if (type === 'alive') {
         if (recu !== bootId) return { statut: 409, corps: { ok: false, error: 'stale-boot', bootId } }
@@ -41,7 +46,7 @@ export function creerHub (io) {
         bootId,
         recommendation: recommandation(e, { exclure: bootId }),
         safe: { active: e.safe.actif, since: e.safe.depuis },
-        history: e.demarrages.slice(-5).map((d) => ({ id: d.id, date: d.date, gui: d.gui }))
+        history: e.demarrages.slice(-5).map((d) => ({ id: d.id, date: d.date, gui: d.gui, failed: d.echouees }))
       }
     }
   }
@@ -74,7 +79,7 @@ const envoyer = (res, statut, charge) => {
   } catch { /* socket closed */ }
 }
 
-const lireCorps = async (req, plafond = 1024) => {
+const lireCorps = async (req, plafond = 2048) => {
   let taille = 0
   const morceaux = []
   for await (const m of req) { taille += m.length; if (taille > plafond) throw new Error('too-large'); morceaux.push(m) }
@@ -93,7 +98,7 @@ export function monterRoutes (webServer, hub, liens = {}) {
     if (!String(req.headers?.['content-type'] ?? '').toLowerCase().startsWith('application/json')) return envoyer(res, 415, { ok: false, error: 'json-required' })
     let corps
     try { corps = await lireCorps(req) } catch { return envoyer(res, 400, { ok: false, error: 'bad-body' }) }
-    const { statut, corps: charge } = hub.balise({ type: corps?.type, bootId: corps?.bootId })
+    const { statut, corps: charge } = hub.balise({ type: corps?.type, bootId: corps?.bootId, entries: corps?.entries })
     return envoyer(res, statut, charge)
   }
   const enregistrer = () => {

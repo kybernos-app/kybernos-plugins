@@ -87,7 +87,11 @@ function lireSatellitesActives () {
     if (manifeste === null) return null
     // Le socle est toujours actif, même si le fichier ne le liste pas.
     const socle = (manifeste.socle?.bundles ?? []).map((b) => b.nom)
-    return [...new Set([...socle, ...liste])]
+    // Un paquet que satellites.json ne gère pas (kybernos-flow…) n'est ni socle ni
+    // satellite : il reste actif. Sans ça, créer le fichier d'activation le retirait.
+    const geres = new Set([...socle, ...(manifeste.satellites?.bundles ?? []).map((b) => b.nom)])
+    const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !geres.has(n))
+    return [...new Set([...socle, ...liste, ...nonGeres])]
   } catch (e) {
     return null
   }
@@ -672,15 +676,28 @@ if (ordre === 'satellites') {
   if (manifeste === null) quitter(1, '✗ docs/beta/satellites.json illisible')
   const tous = TOUS_LES_SATELLITES(REPO)
   const socle = (manifeste.socle?.bundles ?? []).map((b) => b.nom)
+  // An ABSENT activation file means "everything is active" (see lireSatellitesActives).
+  // Returning [] here made `--desactiver x` on a fresh install write "0 active": it
+  // switched EVERY satellite off instead of just x.
+  // Packages the manifest does not manage (neither socle nor satellite) stay on.
+  const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !tous.some((s) => s.nom === n) && !socle.includes(n))
   const lireActives = () => {
     try {
       const brut = JSON.parse(readFileSync(SATELLITES_ACTIVES_FICHIER, 'utf8'))
-      return Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : []
-    } catch (e) { return [] }
+      const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
+      if (liste !== null) return liste
+    } catch (e) { /* absent or unreadable: fall through */ }
+    return tous.map((s) => s.nom).filter((n) => !socle.includes(n))
   }
+  // Write the activation file AND bring the profile in line with it, otherwise the
+  // change only shows up at the next install/upgrade. Needs a DSH restart to apply.
   const ecrireActives = (liste) => {
     mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
     writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, maj: new Date().toISOString() }, null, 2) + '\n')
+    if (existsSync(join(PROFIL_DIR, 'package.json'))) {
+      alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: [...new Set([...socle, ...liste, ...nonGeres])] })
+      console.log('  Profile updated. Restart DSH to apply (a satellite never installed before needs ./kybernos-update to be linked).')
+    }
   }
   const argsSat = args.filter((a, i) => i > 0 && !a.startsWith('--') && args[i - 1] !== '--liste')
   if (args.includes('--liste') || args.length === 1) {
@@ -768,7 +785,16 @@ if (ordre === 'safe-mode') {
     console.log('Safe mode : ' + (etat.safe.actif ? 'ON since ' + etat.safe.depuis + ' (' + etat.safe.activesAvant.length + ' satellite(s) to restore)' : 'off'))
     console.log('Boots     : ' + (etat.demarrages.length === 0 ? 'none recorded yet' : etat.demarrages.slice(-5).map((d) => d.gui).join(' → ')))
     console.log('Verdict   : ' + reco.mode + ' — ' + reco.raison)
-    if (reco.mode === 'safe-recommande') console.log('→ run: node scripts/dsh-lifecycle.mjs safe-mode on')
+    // The browser names the bundles DSH failed to activate. Turn that into the most
+    // precise action: a failing satellite is switched off alone; a failing socle
+    // bundle cannot be set aside (it IS the socle), so the way back is the photo.
+    const suspects = reco.suspects ?? []
+    const enSocle = suspects.filter((n) => socle.includes(n))
+    const satellites = suspects.filter((n) => !socle.includes(n)).map((n) => tous.find((s) => s.nom === n)?.dir).filter(Boolean)
+    if (suspects.length > 0) console.log('Suspects  : ' + suspects.map((n) => n + (socle.includes(n) ? ' (socle)' : '')).join(', '))
+    if (satellites.length > 0) console.log('→ switch the failing satellite(s) off, nothing else: node scripts/dsh-lifecycle.mjs satellites --desactiver ' + satellites.join(' '))
+    if (enSocle.length > 0) console.log('→ a socle bundle is failing, safe mode cannot set it aside. Go back to the last safety photo: node scripts/dsh-lifecycle.mjs rollback')
+    if (reco.mode === 'safe-recommande' && suspects.length === 0) console.log('→ run: node scripts/dsh-lifecycle.mjs safe-mode on')
     process.exit(0)
   }
   if (sous === 'on') {
@@ -789,7 +815,8 @@ if (ordre === 'safe-mode') {
     const { etat: propre, aRestaurer } = sortirSafe(etat)
     if (opts.dry) quitter(0, 'DRY: would restore ' + aRestaurer.length + ' satellite(s).')
     ecrireActivesSafe(aRestaurer)
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: [...new Set([...socle, ...aRestaurer])] })
+    const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !tous.some((s) => s.nom === n) && !socle.includes(n))
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: [...new Set([...socle, ...aRestaurer, ...nonGeres])] })
     ecrireEtat(propre)
     journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'safe', vers: 'normal', resultat: 'succes', raison: 'safe-mode off (' + aRestaurer.length + ' satellite(s) restored)' })
     quitter(0, '✓ Safe mode OFF: ' + aRestaurer.length + ' satellite(s) restored.', '  Restart DSH to apply.')

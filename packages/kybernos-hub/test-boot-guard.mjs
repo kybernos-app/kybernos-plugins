@@ -1,6 +1,6 @@
 import {
   etatVide, normaliser, noterDemarrage, noterChargement, noterSante, verdict, echecsConsecutifs,
-  recommandation, entrerSafe, sortirSafe, MAX_HISTORIQUE, SEUIL_ECHECS
+  recommandation, entrerSafe, sortirSafe, MAX_HISTORIQUE, SEUIL_ECHECS, noterCasse, nomsValides
 } from './boot-guard.mjs'
 
 let total = 0; let echecs = 0
@@ -55,6 +55,26 @@ ok('exit: returns the list to restore', JSON.stringify(out.aRestaurer) === JSON.
 ok('exit: state is clean and history is reset', out.etat.safe.actif === false && out.etat.demarrages.length === 0)
 ok('exit from a non-safe state restores nothing', sortirSafe(etatVide()).aRestaurer.length === 0)
 ok('input states are never mutated', (() => { const e = boot(etatVide(), 'a', 'loading'); const snap = JSON.stringify(e); noterSante(e, 'a'); entrerSafe(e, { activesAvant: ['x'], date: 'd' }); return JSON.stringify(e) === snap })())
+
+console.log('── broken screen (bundles named by the browser) ──')
+const casse = (e, id, noms) => noterCasse(noterChargement(noterDemarrage(e, { id, date: 'd' }), id), id, noms)
+ok('broken counts as a failed boot', verdict(casse(etatVide(), 'a', ['@local/x']).demarrages[0]) === 'echec')
+ok('broken is recorded with the bundle names', casse(etatVide(), 'a', ['@local/x']).demarrages[0].echouees[0] === '@local/x')
+ok('alive never overrides broken', (() => { const e = noterSante(casse(etatVide(), 'a', ['@local/x']), 'a'); return e.demarrages[0].gui === 'broken' })())
+ok('broken overrides alive (a page can break after it looked fine)', (() => { const e = noterCasse(boot(etatVide(), 'a', 'alive'), 'a', ['@local/x']); return e.demarrages[0].gui === 'broken' })())
+ok('names from a browser are validated: junk, duplicates, long names dropped', JSON.stringify(nomsValides(['@local/a', '@local/a', 'pas un nom', '<script>', '@x/' + 'y'.repeat(100), 42, null])) === JSON.stringify(['@local/a']))
+ok('at most 8 names kept', nomsValides(Array.from({ length: 20 }, (_, i) => '@local/b' + i)).length === 8)
+ok('non-array → empty', nomsValides('x').length === 0 && nomsValides(undefined).length === 0)
+{
+  const e = casse(casse(etatVide(), 'a', ['@local/theme', '@local/x']), 'b', ['@local/theme'])
+  const r = recommandation(e)
+  ok('two broken boots → safe recommended', r.mode === 'safe-recommande' && r.echecs === 2)
+  ok('suspects = bundles named in EVERY failed boot', JSON.stringify(r.suspects) === JSON.stringify(['@local/theme']), JSON.stringify(r.suspects))
+  ok('the reason names the culprit', r.raison.includes('@local/theme'))
+  ok('one broken boot → normal, suspects already visible', (() => { const r1 = recommandation(casse(etatVide(), 'a', ['@local/theme'])); return r1.mode === 'normal' && r1.suspects[0] === '@local/theme' })())
+  ok('a boot that failed without naming anyone gives no suspects', recommandation(boot(boot(etatVide(), 'a', 'loading'), 'b', 'loading')).suspects.length === 0)
+  ok('old states (no echouees field) are read fine', normaliser({ demarrages: [{ id: 'a', gui: 'loading' }] }).demarrages[0].echouees.length === 0)
+}
 
 console.log(`\nBOOT GUARD — ${total} assertions, ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)

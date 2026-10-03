@@ -47,6 +47,17 @@ console.log('── hub: broken disk never throws ──')
   ok('read/write failures are swallowed', leve === false)
 }
 
+console.log('── hub: broken beacon ──')
+{
+  const io = memoire(); const hub = creerHub(io); hub.demarrer(); hub.balise({ type: 'loading' })
+  ok('broken with a stale boot id → 409', hub.balise({ type: 'broken', bootId: 'old', entries: ['@local/x'] }).statut === 409)
+  const r = hub.balise({ type: 'broken', bootId: hub.bootId(), entries: ['@local/theme', 'bad name', '<img>'] })
+  ok('broken → 200 and only well-formed names are kept', r.statut === 200 && JSON.stringify(r.corps.entries) === JSON.stringify(['@local/theme']), JSON.stringify(r.corps))
+  ok('disk says broken with the culprit', io.voir().demarrages[0].gui === 'broken' && io.voir().demarrages[0].echouees[0] === '@local/theme')
+  ok('a later alive cannot hide it', (hub.balise({ type: 'alive', bootId: hub.bootId() }), io.voir().demarrages[0].gui === 'broken'))
+  ok('state endpoint exposes the failed bundles', hub.etat().history[0].failed[0] === '@local/theme')
+}
+
 console.log('── routes ──')
 const reqFake = ({ method = 'GET', url = '/', origin, referer, host = '127.0.0.1:3080', port = 3080, type = 'application/json', corps } = {}) => {
   const r = new EventEmitter()
@@ -123,6 +134,24 @@ console.log('── client ──')
   let leve2 = false
   try { modele.apply({ effect: (fn) => fn() }); await new Promise((r) => setTimeout(r, 30)) } catch { leve2 = true }
   ok('an unreachable host never throws', leve2 === false)
+
+  console.log('── client: reading the failure screen ──')
+  const ECRAN = 'HARNESS\nFailed to load plugins\n@local/kybernos-theme\nweb boot: 1 entry did not activate\n@local/kybernos-theme: import failed: client-modules: could not load "@local/kybernos-theme": plugins/??@deepseek-ai/dsh-client-ui-open-in-app/client.js'
+  const T = modele.__test
+  ok('lireEchec reads the REAL screen captured from DSH 0.2.0-rc.2', JSON.stringify(T.lireEchec(ECRAN)) === JSON.stringify({ entrees: ['@local/kybernos-theme'] }), JSON.stringify(T.lireEchec(ECRAN)))
+  ok('lireEchec: a normal page → null', T.lireEchec('Kybernos\nNew chat\nAgent Teams') === null && T.lireEchec('') === null && T.lireEchec(null) === null)
+  ok('lireEchec: several bundles', T.lireEchec('Failed to load plugins\n@local/a\n@local/b\nweb boot: 2 entries did not activate').entrees.length === 2)
+  ok('lireEchec: junk lines are not taken for bundle names', T.lireEchec('Failed to load plugins\n<script>alert(1)</script>\nweb boot: 1 entry did not activate').entrees.length === 0)
+  {
+    const envois = []
+    globalThis.fetch = async (url, init) => { const c = JSON.parse(init.body); envois.push(c); return { json: async () => ({ ok: true, bootId: 'B9' }) } }
+    globalThis.document = { visibilityState: 'visible', body: { innerText: ECRAN } }
+    const effs = []
+    modele.apply({ effect: (fn) => { effs.push(fn()) } })
+    await new Promise((r) => setTimeout(r, T.TICK_MS + 400))
+    ok('on the failure screen the client sends "broken" with the bundle, never "alive"', envois.some((c) => c.type === 'broken' && c.entries[0] === '@local/kybernos-theme') && !envois.some((c) => c.type === 'alive'), JSON.stringify(envois))
+    effs.forEach((f) => f())
+  }
 }
 
 console.log(`\nHUB — ${total} assertions, ${echecs} failure(s)`)

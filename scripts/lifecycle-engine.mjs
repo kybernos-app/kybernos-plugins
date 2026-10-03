@@ -312,7 +312,13 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
   // dans cette liste. `null` = comportement historique (tout lier), pour ne pas
   // casser les appels existants. Un satellite désactivé n'est ni lié ni poussé
   // dans dsh.profile.bundles — il ne sera pas chargé au boot.
-  const aLier = actives === null ? packages : packages.filter((p) => actives.includes(p.nom))
+  // An entry without a `nom` cannot be linked: skip it. It used to push `undefined`,
+  // which JSON turned into a `null` in dsh.profile.bundles — DSH logged
+  // "skipping profile bundle null" at every boot.
+  // Profiles written before this fix may already carry a null: drop non-strings.
+  pkg.dsh.profile.bundles = (pkg.dsh.profile.bundles ?? []).filter((b) => typeof b === 'string')
+  const nommes = packages.filter((p) => typeof p.nom === 'string' && p.nom !== '')
+  const aLier = actives === null ? nommes : nommes.filter((p) => actives.includes(p.nom))
   for (const p of aLier) {
     const attendu = 'link:' + dossierBundle(repoDir, p.dir)
     const actuel = pkg.dependencies[p.nom]

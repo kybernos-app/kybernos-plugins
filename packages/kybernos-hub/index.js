@@ -43,7 +43,7 @@ export function apply (ctx) {
     if (verdict.mode === 'safe') dire('safe mode is ON — only the socle is loaded. To leave it: node scripts/dsh-lifecycle.mjs safe-mode off')
     else if (verdict.mode === 'safe-recommande') {
       dire('⚠ ' + verdict.raison + '.')
-      dire('  If the GUI is unusable, run:  node scripts/dsh-lifecycle.mjs safe-mode on')
+      dire('  See the exact action with:  node scripts/dsh-lifecycle.mjs safe-mode status')
     }
     const liens = { effect: (fn, etiquette) => ctx.effect(fn, etiquette) }
     const monter = (webServer) => {
