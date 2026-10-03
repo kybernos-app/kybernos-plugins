@@ -17,7 +17,7 @@ import {
   lireCompat, testerCompatibilite, comparerVersions, inspecterFraicheur, versionDuGlobal, etatDoctor, planUpgrade,
   photographier, restaurerPhoto, photoLaPlusRecente, journaliser, lireJournal,
   alignerPins, alignerLiens, verifierBundles, ecrireLisezMoi,
-  DEPUIS_VERS
+  DEPUIS_VERS, motifDeRetrait
 } from './lifecycle-engine.mjs'
 
 let ko = 0
@@ -369,6 +369,22 @@ ok('il passe AVANT moteurEpinglé dans racineGlobale',
 ok('les DEUX côtés sont résolus (piège /tmp vs /private/tmp)',
   CLI.includes('realpathSync(MOTEUR_DIR)') === true && CLI.includes('realpathSync(join(prefixe, \'bin\', nom))') === true)
 ok('le cache de racine tombe quand le moteur change', /RACINE_CACHE = null[\s\S]{0,120}dsh lié|dsh lié[\s\S]{0,200}RACINE_CACHE = null/.test(CLI) || CLI.includes('RACINE_CACHE = null') === true)
+
+
+// ── retouches retirées : partout, ou seulement à partir d'une version du moteur ──
+{
+  const partout = { id: 'x', retire: 'motif quelconque' }
+  const depuis = { id: 'y', retire_depuis_moteur: '0.2.0-rc.2', retire_motif: 'migrée dans le plugin, mesurée sur 0.2.0-rc.2' }
+  ok('motifDeRetrait : `retire` vaut pour tous les moteurs, même inconnu', motifDeRetrait(partout, '0.1.6-alpha.2') === 'motif quelconque' && motifDeRetrait(partout, null) === 'motif quelconque')
+  ok('motifDeRetrait : retirée sur le moteur du seuil (0.2.0-rc.2)', motifDeRetrait(depuis, '0.2.0-rc.2') === 'migrée dans le plugin, mesurée sur 0.2.0-rc.2')
+  ok('motifDeRetrait : retirée sur un moteur plus récent (0.2.0, 0.10.0)', motifDeRetrait(depuis, '0.2.0') !== null && motifDeRetrait(depuis, '0.10.0') !== null)
+  ok('motifDeRetrait : PAS retirée sur les moteurs plus anciens de la zone (0.1.6, 0.1.7, 0.1.7-rc.2)', ['0.1.6-alpha.2', '0.1.7-alpha.1', '0.1.7-rc.2'].every((v) => motifDeRetrait(depuis, v) === null))
+  ok('motifDeRetrait : comparaison par segments, pas alphabétique (0.1.10 est plus ancien que 0.2.0)', motifDeRetrait(depuis, '0.1.10') === null)
+  ok('motifDeRetrait : moteur inconnu (null, chaîne vide) → on ne retire rien, on ne devine pas', motifDeRetrait(depuis, null) === null && motifDeRetrait(depuis, '') === null)
+  ok('motifDeRetrait : sans motif écrit, un motif par défaut qui nomme la version', /0\.2\.0-rc\.2/.test(motifDeRetrait({ retire_depuis_moteur: '0.2.0-rc.2' }, '0.2.0-rc.2')))
+  ok('motifDeRetrait : une retouche ordinaire reste posée, une entrée invalide aussi', motifDeRetrait({ id: 'z' }, '0.2.0-rc.2') === null && motifDeRetrait(null, '0.2.0-rc.2') === null && motifDeRetrait(undefined, '0.2.0-rc.2') === null)
+  ok('motifDeRetrait : un seuil mal typé est ignoré', motifDeRetrait({ retire_depuis_moteur: 2 }, '0.2.0-rc.2') === null)
+}
 
 console.log(ko === 0 ? `\nMOTEUR DE CYCLE DE VIE — ${n} assertions, 0 échec` : `\n✗ ${ko} échec(s) sur ${n}`)
 process.exit(ko === 0 ? 0 : 1)

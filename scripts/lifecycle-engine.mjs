@@ -107,6 +107,25 @@ export function testerCompatibilite ({ cible, compat, force = false }) {
   }
 }
 
+/**
+ * Pure. Pourquoi une retouche n'est PLUS posée sur ce moteur, ou null si elle l'est.
+ * Deux formes dans `patches.json` :
+ *   · `retire: "motif"` — retirée partout (le robot la défait où elle traîne) ;
+ *   · `retire_depuis_moteur: "0.2.0-rc.2"` (+ `retire_motif`) — retirée seulement à
+ *     partir de cette version du moteur : les moteurs plus anciens de la zone de
+ *     compatibilité la gardent, car la migration vers le plugin n'y a pas été mesurée.
+ * Version moteur inconnue (null) : on ne retire rien, on ne devine pas.
+ */
+export function motifDeRetrait (entree, versionMoteur) {
+  if (entree === null || typeof entree !== 'object') return null
+  if (entree.retire !== undefined) return String(entree.retire)
+  const seuil = entree.retire_depuis_moteur
+  if (typeof seuil === 'string' && typeof versionMoteur === 'string' && versionMoteur !== '' && comparerVersions(versionMoteur, seuil) >= 0) {
+    return typeof entree.retire_motif === 'string' && entree.retire_motif !== '' ? entree.retire_motif : 'plus nécessaire depuis le moteur ' + seuil
+  }
+  return null
+}
+
 // ── 2. versions ───────────────────────────────────────────────────────────
 
 export async function versionDuGlobal ({ exec }) {

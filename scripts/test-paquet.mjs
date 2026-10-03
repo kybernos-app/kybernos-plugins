@@ -123,7 +123,14 @@ verifie('chaque retraite est motivée par une phrase',
 for (const x of retirees) verifie('le script d\'une retouche retirée reste sur le disque : ' + x.script, existsSync(join(REPO, 'scripts', x.script)))
 for (const x of retirees) verifie('le script d\'une retouche retirée voyage (rollback possible) : ' + x.script, contenu.includes('scripts/' + x.script))
 const moteur = readFileSync(join(REPO, 'scripts', 'dsh-lifecycle.mjs'), 'utf8')
-verifie('le moteur ne pose plus une retouche retirée', moteur.includes('if (p.retire !== undefined)'))
+verifie('le moteur ne pose plus une retouche retirée', moteur.includes('motifDeRetrait(p, versionMoteur)') && moteur.includes('if (motifRetrait !== null)'))
+const conditionnelles = patches.filter((x) => x.retire_depuis_moteur !== undefined)
+verifie('les retouches conditionnelles nomment la version du moteur et un motif sérieux',
+  conditionnelles.length >= 1 && conditionnelles.every((x) => /^\d+\.\d+\.\d+/.test(x.retire_depuis_moteur) && typeof x.retire_motif === 'string' && x.retire_motif.length >= 40))
+verifie('une retouche conditionnelle garde son script sur le disque et dans le paquet (moteurs anciens, rollback)',
+  conditionnelles.every((x) => existsSync(join(REPO, 'scripts', x.script)) && contenu.includes('scripts/' + x.script)))
+verifie('queue-move, workspace-pins et goal-affichage ne sont retirées qu\'à partir de 0.2.0-rc.2',
+  ['queue-move', 'workspace-pins', 'goal-affichage'].every((id) => patches.find((x) => x.id === id)?.retire_depuis_moteur === '0.2.0-rc.2'))
 verifie('le moteur la DÉFAIT là où elle traîne', moteur.includes("'--revert'") && moteur.includes('retire: true'))
 verifie('le doctor compte les retouches non retirées',
   moteur.includes('la retouche « ${p.id} » est retirée mais encore posée'))

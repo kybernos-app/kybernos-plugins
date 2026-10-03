@@ -3,7 +3,9 @@
     "id": "queue-move",
     "script": "patch-dsh-queue-move.mjs",
     "cible": "@deepseek-ai/dsh-api-session-controller",
-    "note": "mesure du 03/10/2026 en GUI reelle sur DSH 0.2.0-rc.2 : sans cette retouche, kybernos-flow suffit (3 messages en file, poignees, glisser C avant A, ordre C,A,B). NON mesure sur 0.1.6/0.1.7 : la retouche reste posee tant que la zone de compat les inclut."
+    "note": "Retirée seulement à partir du moteur 0.2.0-rc.2 (voir retire_depuis_moteur) : les moteurs plus anciens de la zone de compatibilité la gardent.",
+    "retire_depuis_moteur": "0.2.0-rc.2",
+    "retire_motif": "kybernos-flow suffit sur 0.2.0-rc.2 (mesuré en GUI réelle le 03/10/2026 : 3 messages en file, poignées, glisser C avant A, ordre C,A,B). Non mesuré sur 0.1.6/0.1.7 : la retouche y reste posée."
   },
   {
     "id": "model-search",
@@ -20,11 +22,15 @@
   {
     "id": "workspace-pins",
     "script": "patch-dsh-workspace-pins.mjs",
-    "cible": "@deepseek-ai/dsh-client-ui-workspace"
+    "cible": "@deepseek-ai/dsh-client-ui-workspace",
+    "retire_depuis_moteur": "0.2.0-rc.2",
+    "retire_motif": "migrée dans le plugin (section Pinned en DOM + entrée de menu par le slot natif) ; mesuré en GUI réelle le 03/10/2026 sur 0.2.0-rc.2, sans la retouche : la section Pinned s'affiche avec la session épinglée. Non mesuré sur 0.1.6/0.1.7 : la retouche y reste posée."
   },
   {
     "id": "goal-affichage",
     "script": "patch-dsh-goal-affichage.mjs",
-    "cible": "@deepseek-ai/dsh-client-ui-chat"
+    "cible": "@deepseek-ai/dsh-client-ui-chat",
+    "retire_depuis_moteur": "0.2.0-rc.2",
+    "retire_motif": "migrée dans le plugin : la surcharge CSS de la barre Goal est mesurée active en GUI réelle le 03/10/2026 sur 0.2.0-rc.2 ; la carte « Continuing goal » est migrée mais PAS mesurée en direct (exige un objectif actif). Non mesuré sur 0.1.6/0.1.7 : la retouche y reste posée."
   }
 ]

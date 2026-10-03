@@ -26,7 +26,7 @@ import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, i
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
   photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
-  planUpgrade, ecrireLisezMoi, inspecterFraicheur
+  planUpgrade, ecrireLisezMoi, inspecterFraicheur, motifDeRetrait
 } from './lifecycle-engine.mjs'
 // La vérification d'une archive reçue : le manifeste du paquet est la seule
 // autorité sur ce qui a été livré (voir scripts/paquet.mjs).
@@ -339,24 +339,26 @@ const annulerRetouches = async (resultats) => {
 
 const poserPatchs = async ({ tolerance = false } = {}) => {
   const resultats = []
+  const versionMoteur = await versionDuGlobal({ exec: execReel })
   for (const p of PATCHES) {
     // ── une retouche RETIRÉE ne se pose plus (P3) ──────────────────────────
     // Retirer une entrée de `patches.json` laisserait la retouche POSÉE sur les
     // machines où elle l'est déjà, sans que rien ne sache la défaire (le
     // rollback lit ce même fichier). On garde donc l'entrée, marquée `retire` :
     // le robot ne la pose plus, et il la défait là où elle traîne.
-    if (p.retire !== undefined) {
+    const motifRetrait = motifDeRetrait(p, versionMoteur)
+    if (motifRetrait !== null) {
       const racineRetiree = await racineQuiPorte(p.cible)
       if (racineRetiree !== null) {
         const verif = await execReel(['node', join(ICI, p.script), '--check', ...avecDsh(racineRetiree)], REPO)
         if (verif.code === 0) {
           await execReel(['node', join(ICI, p.script), '--revert', ...avecDsh(racineRetiree)], REPO)
-          console.log(`     ↩ ${p.id} — retirée (${p.retire})`)
+          console.log(`     ↩ ${p.id} — retirée (${motifRetrait})`)
         } else {
-          console.log(`     · ${p.id} — retirée, absente (${p.retire})`)
+          console.log(`     · ${p.id} — retirée, absente (${motifRetrait})`)
         }
       } else {
-        console.log(`     · ${p.id} — retirée, sans cible sur ce moteur (${p.retire})`)
+        console.log(`     · ${p.id} — retirée, sans cible sur ce moteur (${motifRetrait})`)
       }
       resultats.push({ id: p.id, conforme: true, applicable: false, retire: true, racine: racineRetiree, script: p.script })
       continue
@@ -834,12 +836,14 @@ if (ordre === 'doctor') {
   const verresPatchs = []
   const racine = await racineGlobale()
   const retirees = []
+  const versionMoteur = etat.global ?? await versionDuGlobal({ exec: execReel })
   for (const p of PATCHES) {
     const r = await execReel(['node', join(ICI, p.script), '--check', ...avecDsh(racine)], REPO)
     // Une retouche RETIRÉE est attendue ABSENTE : qu'elle soit encore posée est
     // un écart (l'installation n'a pas suivi), pas un succès à compter.
-    if (p.retire !== undefined) {
-      retirees.push({ id: p.id, motif: p.retire, encorePosee: r.code === 0 })
+    const motifRetrait = motifDeRetrait(p, versionMoteur)
+    if (motifRetrait !== null) {
+      retirees.push({ id: p.id, motif: motifRetrait, encorePosee: r.code === 0 })
       if (r.code === 0) etat.problemes.push(`la retouche « ${p.id} » est retirée mais encore posée dans le moteur — relance l'installation pour la retirer`)
       continue
     }
