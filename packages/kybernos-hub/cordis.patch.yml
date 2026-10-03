@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-hub
+      name: '@local/kybernos-hub'

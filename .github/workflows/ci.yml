@@ -22,3 +22,9 @@ jobs:
           node scripts/test-plateforme.mjs
           node scripts/test-paquet.mjs
           node scripts/test-racine-dsh.mjs
+          node scripts/test-layout.mjs
+          node scripts/test-safe-mode.mjs
+          node packages/kybernos-hub/test-boot-guard.mjs
+          node packages/kybernos-hub/test-host.mjs
+          node packages/kybernos-flow/test-host.mjs
+          node packages/kybernos-flow/test-client.mjs

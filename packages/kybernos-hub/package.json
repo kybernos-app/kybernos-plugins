@@ -1,0 +1,20 @@
+{
+  "name": "@local/kybernos-hub",
+  "version": "0.1.0",
+  "description": "Kybernos hub: boot health tracking (works even when the GUI is broken) and the base for the suite panel.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

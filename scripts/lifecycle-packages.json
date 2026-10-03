@@ -6,6 +6,10 @@
       "nom": "@local/kybernos"
     },
     {
+      "dir": "kybernos-hub",
+      "nom": "@local/kybernos-hub"
+    },
+    {
       "dir": "kybernos-theme",
       "nom": "@local/kybernos-theme"
     },

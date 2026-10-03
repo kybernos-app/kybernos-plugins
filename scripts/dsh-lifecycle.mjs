@@ -21,6 +21,7 @@ import { homedir } from 'node:os'
 import { basename, join, dirname, resolve, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from '../packages/kybernos-maintenance/surfaces.mjs'
+import { FICHIER_ETAT, normaliser as normaliserEtatBoot, entrerSafe, sortirSafe, recommandation as recommandationBoot } from '../packages/kybernos-hub/boot-guard.mjs'
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage } from './plateforme.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
@@ -398,7 +399,7 @@ const opts = {
   // npm un paquet nommé d'après un chemin de fichier.
   versionCible: (() => {
     const aParametre = new Set(['--source', '--port', '--photo', '--url', '--ref'])
-    const ordres = new Set(['doctor', 'install', 'upgrade', 'rollback', 'uninstall', 'verify', 'bootstrap', 'satellites'])
+    const ordres = new Set(['doctor', 'install', 'upgrade', 'rollback', 'uninstall', 'verify', 'bootstrap', 'satellites', 'safe-mode'])
     for (let i = 0; i < args.length; i++) {
       if (aParametre.has(args[i])) { i += 1; continue }
       if (args[i].startsWith('-')) continue
@@ -731,6 +732,69 @@ if (ordre === 'satellites') {
     process.exit(0)
   }
   quitter(1, 'Usage : satellites [--liste | --tout | --activer <nom>… | --desactiver <nom>…]')
+}
+
+if (ordre === 'safe-mode') {
+  // Safe mode = the socle only. Same activation file as `satellites`, plus a saved
+  // copy of what was active so `off` restores exactly that.
+  //   safe-mode            → status (same as `status`)
+  //   safe-mode on         → photo, keep only the socle, remember the previous list
+  //   safe-mode off        → restore the previous list
+  // Takes effect at the next DSH restart.
+  const manifeste = LIRE_SATELLITES(REPO)
+  if (manifeste === null) quitter(1, '✗ docs/beta/satellites.json unreadable')
+  const tous = TOUS_LES_SATELLITES(REPO)
+  const socle = (manifeste.socle?.bundles ?? []).map((b) => b.nom)
+  const fichierEtat = join(DSH_HOME, 'kybernos', FICHIER_ETAT)
+  const lireEtat = () => { try { return normaliserEtatBoot(JSON.parse(readFileSync(fichierEtat, 'utf8'))) } catch (e) { return normaliserEtatBoot(null) } }
+  const ecrireEtat = (etat) => { mkdirSync(dirname(fichierEtat), { recursive: true }); writeFileSync(fichierEtat, JSON.stringify(etat, null, 2) + '\n') }
+  const ecrireActivesSafe = (liste) => {
+    mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
+    writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, maj: new Date().toISOString() }, null, 2) + '\n')
+  }
+  // Absent file = everything active (historical behaviour), so "before" is the full list.
+  const activesCourantes = () => {
+    try {
+      const brut = JSON.parse(readFileSync(SATELLITES_ACTIVES_FICHIER, 'utf8'))
+      const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
+      if (liste !== null) return liste.filter((n) => !socle.includes(n))
+    } catch (e) { /* absent */ }
+    return tous.map((s) => s.nom).filter((n) => !socle.includes(n))
+  }
+  const sous = args[1] && !args[1].startsWith('-') ? args[1] : 'status'
+  const etat = lireEtat()
+  if (sous === 'status') {
+    const reco = recommandationBoot(etat)
+    console.log('Safe mode : ' + (etat.safe.actif ? 'ON since ' + etat.safe.depuis + ' (' + etat.safe.activesAvant.length + ' satellite(s) to restore)' : 'off'))
+    console.log('Boots     : ' + (etat.demarrages.length === 0 ? 'none recorded yet' : etat.demarrages.slice(-5).map((d) => d.gui).join(' → ')))
+    console.log('Verdict   : ' + reco.mode + ' — ' + reco.raison)
+    if (reco.mode === 'safe-recommande') console.log('→ run: node scripts/dsh-lifecycle.mjs safe-mode on')
+    process.exit(0)
+  }
+  if (sous === 'on') {
+    if (etat.safe.actif) quitter(0, 'Safe mode is already on.')
+    const avant = activesCourantes()
+    if (opts.dry) quitter(0, 'DRY: would keep only the socle (' + socle.length + ') and remember ' + avant.length + ' satellite(s).')
+    let plugin = 'unknown'
+    try { plugin = await versionDuPlugin({ exec: execReel, repoDir: REPO }) } catch (e) { /* best effort */ }
+    await photoAvantTout({ global: '(safe-mode)', plugin })
+    ecrireEtat(entrerSafe(etat, { activesAvant: avant, date: new Date().toISOString() }))
+    ecrireActivesSafe([])
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: socle })
+    journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'normal', vers: 'safe', resultat: 'succes', raison: 'safe-mode on (' + avant.length + ' satellite(s) set aside)' })
+    quitter(0, '✓ Safe mode ON: only the socle will load (' + socle.length + ' bundle(s)); ' + avant.length + ' satellite(s) set aside.', '  Restart DSH to apply. To come back: node scripts/dsh-lifecycle.mjs safe-mode off')
+  }
+  if (sous === 'off') {
+    if (!etat.safe.actif) quitter(0, 'Safe mode is not on.')
+    const { etat: propre, aRestaurer } = sortirSafe(etat)
+    if (opts.dry) quitter(0, 'DRY: would restore ' + aRestaurer.length + ' satellite(s).')
+    ecrireActivesSafe(aRestaurer)
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: [...new Set([...socle, ...aRestaurer])] })
+    ecrireEtat(propre)
+    journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'safe', vers: 'normal', resultat: 'succes', raison: 'safe-mode off (' + aRestaurer.length + ' satellite(s) restored)' })
+    quitter(0, '✓ Safe mode OFF: ' + aRestaurer.length + ' satellite(s) restored.', '  Restart DSH to apply.')
+  }
+  quitter(64, 'Usage: safe-mode [status | on | off] [--dry]')
 }
 
 if (ordre === 'doctor') {

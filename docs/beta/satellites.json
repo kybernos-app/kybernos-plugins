@@ -5,6 +5,7 @@
     "commentaire": "Toujours livré. Pas d'option d'activation : le master déclare les slots de ces bundles, il ne peut pas s'en passer.",
     "bundles": [
       { "dir": "kybernos-plugin", "nom": "@local/kybernos", "tier": 1, "obligatoire": true, "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_signaler_retour", "poids_ko": 8090 },
+      { "dir": "kybernos-hub", "nom": "@local/kybernos-hub", "tier": 1, "obligatoire": false, "role": "hub : suit si les démarrages mènent à une GUI utilisable, recommande le mode sans échec (reste actif en mode sans échec)", "poids_ko": 28 },
       { "dir": "kybernos-theme", "nom": "@local/kybernos-theme", "tier": 1, "obligatoire": true, "role": "thème (mode, palettes, fond, police) — la langue et le RTL sont dans le satellite kybernos-language", "poids_ko": 230 },
       { "dir": "kybernos-sessions", "nom": "@local/kybernos-sessions", "tier": 1, "obligatoire": true, "role": "sessions, garde des fichiers chauds, catégories", "poids_ko": 372 },
       { "dir": "kybernos-skills", "nom": "@local/kybernos-skills", "tier": 1, "obligatoire": true, "role": "skills, marketplace — slot 'main.kybernos-skills' déclaré par le master", "poids_ko": 172 }
