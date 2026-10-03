@@ -1,0 +1,12 @@
+# Réglages DSH pré-câblés pour l'agent embarqué : unique route provider
+# = proxy Kybernos, payé par la clé du client (KYBERNOS_API_KEY, env).
+llm-pi-ai:
+  providers:
+    kybernos:
+      displayName: Kybernos Cloud
+      api: openai-completions
+      baseURL: https://api.dev.kybernos.app/v1
+      apiKeyEnv: KYBERNOS_API_KEY
+      models:
+        - id: kybernos/doer
+          name: Doer (agent embarqué)

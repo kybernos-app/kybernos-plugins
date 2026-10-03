@@ -1,0 +1,2718 @@
+/* GÉNÉRÉ par scripts/build-shared-ui.mjs — ne pas éditer.
+ * Contrôles de @deepseek-ai/dsh-client-ui-primitives@0.1.7-alpha.1,
+ * préfixés par module. Plugin DSH uniquement. */
+/* Les jetons --dsw-alias-* sont injectés par l'application DSH elle-même. */
+/* ── Button — les actions (capsule h36 r18) ─────────────────────────────── */
+/* Capsule geometry from the figma Button component (1:155 instances:
+ * h36, pad 14/7, gap 4, r18; the wide New Session form is r24 at h38 —
+ * owners with the wide form set their own radius/width). */
+.kbm-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: none;
+  border-radius: 18px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  padding: 0 14px;
+}.kbm-btn:disabled{
+  cursor: not-allowed;
+  opacity: 0.4;
+}.kbm-btn-md{
+  height: 36px;
+}/* Compact height for dense rows; no dedicated figma node (Icon_container
+ * 28x28 is the icon-only form) — geometry is ours. */
+.kbm-btn-sm{
+  height: 28px;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0 10px;
+  border-radius: 14px;
+}.kbm-btn-primary{
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+}.kbm-btn-primary:hover:not(:disabled){
+  background: var(--dsw-alias-button-primary-hover);
+}.kbm-btn-ghost:hover:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-hover);
+}.kbm-btn-ghost:active:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-active);
+}/* Dialog Cancel (figma 451:18655): bordered capsule on transparent fill. */
+.kbm-btn-outline{
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  background: transparent;
+}.kbm-btn-outline:hover:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-hover);
+}.kbm-btn-toolbar{
+  background: var(--dsw-alias-button-tool-bar-fill);
+}.kbm-btn-toolbar:hover:not(:disabled){
+  background: var(--dsw-alias-button-tool-bar-hover);
+}.kbm-btn-icon{
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Input — le champ de saisie (wrap + icône + input) ─────────────────────────────── */
+.kbm-in-wrap{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+}.kbm-in-wrap:focus-within{
+  border-color: var(--dsw-alias-brand-primary);
+}.kbm-in-icon{
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-in-input{
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}.kbm-in-input::placeholder{
+  color: var(--dsw-alias-label-dimmed);
+}
+
+/* ── Pill — les puces de filtre sélectionnables ─────────────────────────────── */
+.kbm-pill{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+}.kbm-pill-interactive{
+  cursor: pointer;
+}.kbm-pill-interactive:hover{
+  background: var(--dsw-alias-interactive-bg-hover);
+}.kbm-pill-active{
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-button-ghost-active-fill);
+  box-shadow: inset 0 0 0 1px var(--dsw-alias-button-ghost-active-border);
+}
+
+/* ── Tag — les étiquettes en lecture seule (8 tons) ─────────────────────────────── */
+/* Capsule geometry is fixed: a tag reads as one size everywhere, and only its
+ * palette varies. Tone colors ride background/border/color so a render site can
+ * still position the tag with its own class without touching the palette. */
+.kbm-tag{
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  corner-shape: round;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 500;
+  white-space: nowrap;
+}.kbm-tag[data-tone='outline']{
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-tag[data-tone='solid']{
+  background: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-bg-layer-3);
+}.kbm-tag[data-tone='neutral']{
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-secondary);
+}.kbm-tag[data-tone='quiet']{
+  color: var(--dsw-alias-label-tertiary);
+}/* Status tones tint their own color for the fill, so a palette change moves
+ * fill and text together and neither needs a second token. The tint is 10%,
+ * except `warning`, which keeps the 12% the plugin inventory's conditional
+ * tag shipped with — matching it is what makes this a pure consolidation. */
+.kbm-tag[data-tone='success']{
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);
+  color: var(--dsw-alias-state-success-primary);
+}.kbm-tag[data-tone='info']{
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);
+  color: var(--dsw-alias-state-business-primary);
+}.kbm-tag[data-tone='warning']{
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent);
+  color: var(--dsw-alias-state-warn-primary);
+}.kbm-tag[data-tone='danger']{
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* ── StateDot — les pastilles d'état (done/warning/error/idle) ─────────────────────────────── */
+/* Solid states keep the 10px layout slot but paint one 6px currentColor core. */
+.kbm-dot{
+  position: relative;
+  display: inline-block;
+  flex: none;
+}.kbm-dot::after{
+  content: '';
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  corner-shape: round;
+  background: currentColor;
+}.kbm-dot[data-state='done']{
+  color: var(--dsw-alias-state-success-primary);
+}.kbm-dot[data-state='warning']{
+  color: var(--dsw-alias-state-warn-primary);
+}.kbm-dot[data-state='error']{
+  color: var(--dsw-alias-state-error-primary);
+}/* Idle is the absence of activity and uses the theme's neutral state step. */
+.kbm-dot[data-state='idle']{
+  color: var(--dsw-alias-state-idle-primary);
+}/* Ongoing is the sole non-dot state: a quiet full ring sits behind a centered
+ * breathing arc while the complete glyph rotates continuously. Both animations
+ * share one 1.5s period so pinning their start times aligns them together. */
+.kbm-dot-spinner{
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-dot-spinnerMotion{
+  transform-origin: center;
+  animation: kbm-dsh-state-dot-spin 1.5s linear infinite;
+}.kbm-dot-spinnerTrack,
+.kbm-dot-spinnerArc{
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}.kbm-dot-spinnerTrack{
+  opacity: 0.25;
+}.kbm-dot-spinnerArc{
+  stroke-dasharray: 12 150;
+  animation: kbm-dsh-state-dot-dash 1.5s ease-in-out infinite;
+}
+
+@keyframes kbm-dsh-state-dot-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes kbm-dsh-state-dot-dash {
+  0% {
+    stroke-dasharray: 12 150;
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dasharray: 24 150;
+    stroke-dashoffset: -6;
+  }
+
+  100% {
+    stroke-dasharray: 12 150;
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinnerMotion,
+  .spinnerArc {
+    animation: none;
+  }
+
+  .spinnerArc {
+    stroke-dasharray: 18 150;
+    stroke-dashoffset: -3;
+  }
+}
+
+.step { display: inline-flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%; corner-shape: round; border: 1.5px solid var(--dsw-alias-label-tertiary); color: var(--dsw-alias-label-primary-foreground); }
+.step[data-state='done'] { border-color: var(--dsw-alias-state-success-primary); background: var(--dsw-alias-state-success-primary); }
+.step[data-state='error'] { border-color: var(--dsw-alias-state-error-primary); background: var(--dsw-alias-state-error-primary); }
+.step[data-state='warning'] { border-color: var(--dsw-alias-state-warn-primary); }
+
+/* ── Switch — les bascules ─────────────────────────────── */
+/* The on/off appearance keys off aria-checked rather than a parallel class, so
+ * the visual state cannot disagree with the state assistive technology reads.
+ *
+ * The track is a capsule: its radius is half its height, so the corners consume
+ * the whole side and the global superellipse would square the ends off against
+ * the round thumb inside it. `corner-shape: round` opts the track out, the way
+ * every full-round radius does. The corner-shape spec does not catch this one —
+ * it recognizes 50%, 100%, and radii at or above 99px, not a radius that is
+ * full-round only relative to its own box. */
+.kbm-sw{
+  box-sizing: border-box;
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  padding: 2px;
+  border: 0;
+  border-radius: 10px;
+  corner-shape: round;
+  background: var(--dsw-alias-border-l3);
+  cursor: pointer;
+}.kbm-sw[aria-checked='true']{
+  background: var(--dsw-alias-brand-primary);
+}.kbm-sw:disabled{
+  cursor: default;
+  opacity: 0.5;
+}.kbm-sw:focus-visible{
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}.kbm-sw-thumb{
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-label-primary-foreground);
+  transition: transform 120ms ease;
+}.kbm-sw[aria-checked='true'] .kbm-sw-thumb{
+  transform: translateX(16px);
+}
+
+/* ── Checkbox — les cases à cocher ─────────────────────────────── */
+.kbm-ck{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}.kbm-ck input{
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+  cursor: inherit;
+}.kbm-ck input:focus-visible{
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
+}.kbm-ck:has(input:disabled){
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ── Menu — les menus déroulants ─────────────────────────────── */
+.kbm-menu-root{
+  position: relative;
+  display: inline-flex;
+}/* Compact translucent dropdown card shared by feature menus. */
+.kbm-menu-list,
+.kbm-menu-submenu{
+  /* min-widths below are the design's outer card widths — include the pad. */
+  box-sizing: border-box;
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--dsw-specific-menu);
+  backdrop-filter: var(--dsw-menu-backdrop-filter);
+  --dsw-elevation-stroke-color: var(--dsw-alias-border-l1);
+  box-shadow: var(--dsw-elevation-prominent);
+  /* Elevated surface: the scrollbar thumb takes the l2 elevation tokens. The
+     declaration sits on the card rather than on `.scrollable .viewport`
+     because the elevation is a property of this surface, and the custom
+     properties inherit down to whichever descendant actually scrolls (see
+     ui-theme styles/scrollbar.css for the rebinding contract). */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}/* Primary cards grow with their content between compact and readable bounds. */
+.kbm-menu-list{
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 144px;
+  max-width: 360px;
+}/* Portal mode: fixed in the viewport, coordinates supplied inline from the
+ * anchor rect (side/align resolved in JS, the in-place offset rules above
+ * don't apply). Portaled lists must layer above modal overlays (z 1000) —
+ * an anchor inside a dialog still expects its menu on top. */
+.kbm-menu-portal{
+  position: fixed;
+  top: auto;
+  left: auto;
+  z-index: 1100;
+}/* Open above the anchor (empty-state workspace chip: figma 122:9481). */
+.kbm-menu-sideTop{
+  top: auto;
+  bottom: calc(100% + 4px);
+}.kbm-menu-alignEnd{
+  left: auto;
+  right: 0;
+}/* Viewport fit: the card stops 12px short of the viewport's top/bottom edges
+ * (the portal MARGIN in Menu.tsx; the top side widens to the frame's published
+ * top clearance, the macOS window strip) and taller content scrolls inside
+ * .viewport, so a pinned .footer stays visible. Menus with submenu rows skip
+ * this class — the overflow clip would crop the side card, so they rely on
+ * staying short. */
+.kbm-menu-scrollable{
+  max-height: calc(100vh - 12px - max(12px, var(--dsh-frame-top-clearance, 12px)));
+}.kbm-menu-viewport{
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}.kbm-menu-scrollable .kbm-menu-viewport{
+  overflow-y: auto;
+}/* Pinned rows below the scroll region; l2 hairline (l1 is near-invisible on
+ * the menu surface) mirrors the .separator spacing. */
+.kbm-menu-footer{
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}.kbm-menu-itemWrap{
+  position: relative;
+}/* Menu cell: compact text, icon, and selection spacing. */
+.kbm-menu-item{
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+}.kbm-menu-item:hover:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-hover);
+}/* Arrow navigation moves real focus, so the row the keyboard is on carries the
+   same fill the pointer gets: the fill is the row's focus indication, and the
+   browser's default ring would double it. */
+.kbm-menu-item:focus-visible:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}.kbm-menu-denseList .kbm-menu-item{
+  min-height: 30px;
+  padding-block: 4px;
+}.kbm-menu-denseList .kbm-menu-label{
+  padding-block: 3px;
+}.kbm-menu-list.kbm-menu-compactList,
+.kbm-menu-submenu.kbm-menu-compactList{
+  min-width: 156px;
+  padding: 2px;
+  border-radius: 7px;
+}.kbm-menu-compactList .kbm-menu-item{
+  min-height: 24px;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  line-height: 17px;
+}.kbm-menu-compactList .kbm-menu-itemIcon{
+  width: 12px;
+  height: 12px;
+}.kbm-menu-compactList .kbm-menu-separator{
+  margin: 2px;
+}.kbm-menu-compactList .kbm-menu-label{
+  padding: 3px 6px;
+  font-size: 10px;
+  line-height: 15px;
+}.kbm-menu-item:disabled{
+  opacity: 0.4;
+  cursor: not-allowed;
+}.kbm-menu-itemIcon{
+  display: inline-flex;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-menu-itemIcon svg,
+.kbm-menu-check{
+  width: 14px;
+  height: 14px;
+}.kbm-menu-compactList .kbm-menu-itemIcon svg,
+.kbm-menu-compactList .kbm-menu-check{
+  width: 12px;
+  height: 12px;
+}.kbm-menu-itemLabel{
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}.kbm-menu-check{
+  flex: none;
+  color: var(--dsw-alias-label-primary);
+}/* Selected cell keeps the plain fill (marker is the trailing check); the
+ * class remains as a hook for owner-side emphasis. */
+.kbm-menu-selected{
+  background: transparent;
+}/* Fill-mode selection: the row holds the hover fill instead of a check. */
+.kbm-menu-selectedFill{
+  background: var(--dsw-alias-interactive-bg-hover);
+}/* Destructive row: error text/icon, danger hover fill. */
+.kbm-menu-danger{
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-menu-danger .kbm-menu-itemIcon{
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-menu-danger:hover:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+}.kbm-menu-danger:focus-visible:not(:disabled){
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  outline: none;
+}/* Heading row: non-interactive small grey text, padding aligned with items. */
+.kbm-menu-label{
+  padding: 6px 8px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--dsw-alias-label-tertiary);
+}/* Separator cell (figma 122:9481): py 4 / px 2 around the hairline. l2, not
+ * l1, for the same reason as .footer: l1 is near-invisible on this surface. */
+.kbm-menu-separator{
+  height: 0.5px;
+  margin: 3px 2px;
+  background: var(--dsw-alias-border-l2);
+}/* A data separator directly followed by a row that starts a group draws one
+ * line, not two; a group start on the list's first row draws none. */
+.kbm-menu-separator + .kbm-menu-separator,
+.kbm-menu-separator + .kbm-menu-itemWrap > .kbm-menu-separator:first-child,
+.kbm-menu-itemWrap:first-child > .kbm-menu-separator:first-child{
+  display: none;
+}/* Nested card to the right of the parent row.
+ * Bottom-aligned with the parent menu card (grows upward): itemWrap sits in
+ * .list's 3px pad, so bottom: -3px matches the list's outer bottom edge.
+ * Horizontal: list pad (3px) + 6px card gap = 9px past itemWrap.
+ * ::before bridges the full gap so the pointer can cross without mouseLeave. */
+.kbm-menu-submenu{
+  position: absolute;
+  top: auto;
+  bottom: -3px;
+  left: calc(100% + 9px);
+  z-index: 101;
+  min-width: 163px;
+}.kbm-menu-submenu::before{
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9px;
+  width: 9px;
+}
+
+/* ── Modal — la surface de détail ─────────────────────────────── */
+/* Full-viewport layer (figma Mask + Dialog 451:18655): mask + centered card.
+   24px of air on every side; the top/bottom widen to the frame's published
+   top clearance (the macOS window strip) so a tall card stays clear of it.
+   Cards size against this padding box: consumers cap growth with
+   `max-height: 100%`, never their own viewport calc. */
+.kbm-mdl-root{
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(24px, var(--dsh-frame-top-clearance, 24px)) 24px;
+}/* User/spec mask: rgba(0,0,0,0.24) + blur(2px) via --dsw-alias-bg-mask-1 /
+   --dsw-mask-blur (light); dark theme raises mask opacity. */
+.kbm-mdl-mask{
+  position: absolute;
+  inset: 0;
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
+}/* Dialog card: r24, elevation-prominent, layer-2 fill, pb 24. */
+.kbm-mdl-dialog{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: min(380px, 100%);
+  padding: 0 0 24px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 24px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
+}.kbm-mdl-content{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}/* Header row (figma Title row): pad l24/t22/r14/b12, SPACE_BETWEEN —
+ * title left, close button right. */
+.kbm-mdl-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 22px 14px 12px 24px;
+}.kbm-mdl-title{
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500; /* figma wt510, rendered 500 */
+  color: var(--dsw-alias-label-primary);
+}.kbm-mdl-close{
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+}.kbm-mdl-close:hover{
+  background: var(--dsw-alias-interactive-bg-hover);
+}/* Description and body share the 332px content column (24px side pads). */
+.kbm-mdl-description{
+  margin: 0;
+  padding: 0 24px;
+  font-size: 14px;
+  line-height: 22px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-primary);
+}.kbm-mdl-body{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-top: 20px;
+  padding: 0 24px;
+}.kbm-mdl-footer{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 24px;
+}
+
+/* ── Tooltip — les bulles d'aide ─────────────────────────────── */
+.kbm-tip-bubble{
+  position: fixed;
+  z-index: 100;
+  /* Fixed-position shrink-to-fit measures only the space from `left` to the
+     viewport edge, so anchors near the right edge would wrap early;
+     max-content sizes by the label alone, capped at half the viewport. */
+  width: max-content;
+  max-width: 50vw;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: var(--dsw-alias-tooltip-bg);
+  color: var(--dsw-static-neutral-bluish-00);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-line;
+  /* Unbreakable tokens (URLs, paths) must not push past max-width. */
+  overflow-wrap: break-word;
+  pointer-events: none;
+  animation: kbm-tooltip-in 150ms var(--ds-ease-in-out);
+}.kbm-tip-bubble[data-portal]{ z-index: 1100; }.kbm-tip-bubble[data-side='right']{
+  transform: translateY(-50%);
+}.kbm-tip-bubble[data-side='bottom']{
+  transform: translateX(-50%);
+}.kbm-tip-bubble[data-side='top']{
+  transform: translate(-50%, -100%);
+}/* End alignment: `left` carries the anchor's right edge, so the bubble sits
+   fully left of it instead of centering. */
+.kbm-tip-bubble[data-side='bottom'][data-align='end']{
+  transform: translateX(-100%);
+}.kbm-tip-bubble[data-side='top'][data-align='end']{
+  transform: translate(-100%, -100%);
+}
+
+@keyframes kbm-tooltip-in {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble {
+    animation: none;
+  }
+}
+
+/* ── DisclosureRow — la ligne dépliable ─────────────────────────────── */
+/* Shared disclosure header: [16px leading] gap 6 [title 13/24] at the default
+   size. The Settings font-size preference moves the row through the
+   body-published axis: title size follows the secondary tier
+   (--dsh-content-font-size-secondary: one step under the body — setting −1 at
+   ≤14, setting −2 above), and the row height, leading box, and glyph edge
+   shift by the body px delta so the icon keeps its optical share of the
+   line. */
+
+.kbm-dr-root{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}.kbm-dr-row{
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  height: calc(24px + var(--dsh-content-font-delta, 0px));
+  min-width: 0;
+}.kbm-dr-row[data-expandable]{
+  cursor: pointer;
+}.kbm-dr-leading{
+  position: relative;
+  flex: none;
+  width: calc(16px + var(--dsh-content-font-delta, 0px));
+  height: calc(16px + var(--dsh-content-font-delta, 0px));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+}/* Flow-row glyphs render at 14px inside the 16px box; the CSS edge overrides
+   each svg's own width/height attributes so every registered icon scales
+   without a per-callsite size prop. StateDot (its svg carries data-state)
+   stays at its fixed figma size — it is a status mark, not text furniture. */
+.kbm-dr-leading svg:not([data-state]){
+  width: calc(14px + var(--dsh-content-font-delta, 0px));
+  height: calc(14px + var(--dsh-content-font-delta, 0px));
+}button.kbm-dr-leading{
+  cursor: pointer;
+}.kbm-dr-iconIdle{
+  display: inline-flex;
+  opacity: 1;
+  transition: opacity 100ms ease;
+}.kbm-dr-chevronHover{
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+  transition: opacity 100ms ease;
+}.kbm-dr-row:hover .kbm-dr-iconIdle{
+  opacity: 0;
+}.kbm-dr-row:hover .kbm-dr-chevronHover{
+  opacity: 1;
+}.kbm-dr-title{
+  flex: none;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(24px + var(--dsh-content-font-delta, 0px));
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ── FileTypeIcon — les icônes de type de fichier ─────────────────────────────── */
+.kbm-fti{
+  /* The design platform has no violet token matching the supplied image/video artwork. */
+  --dsh-file-type-violet: rgb(139, 118, 246);
+
+  color: var(--dsh-file-type-icon-color, var(--dsh-file-type-default-color));
+}.kbm-fti-code{
+  --dsh-file-type-default-color: var(--dsw-static-deepseek-500);
+}.kbm-fti-excel{
+  --dsh-file-type-default-color: var(--dsw-static-green-500);
+}.kbm-fti-folder{
+  --dsh-file-type-default-color: var(--dsw-static-amber-400);
+}.kbm-fti-html{
+  --dsh-file-type-default-color: var(--dsw-static-deepseek-500);
+}.kbm-fti-image{
+  --dsh-file-type-default-color: var(--dsh-file-type-violet);
+}.kbm-fti-markdown{
+  --dsh-file-type-default-color: var(--dsw-static-deepseek-500);
+}.kbm-fti-other{
+  --dsh-file-type-default-color: var(--dsw-static-neutral-bluish-300);
+}.kbm-fti-pdf{
+  --dsh-file-type-default-color: var(--dsw-static-red-600);
+}.kbm-fti-ppt{
+  --dsh-file-type-default-color: var(--dsw-static-amber-500);
+}.kbm-fti-video{
+  --dsh-file-type-default-color: var(--dsh-file-type-violet);
+}.kbm-fti-word{
+  --dsh-file-type-default-color: var(--dsw-static-deepseek-450);
+}
+
+/* ── SegmentedControl — le contrôle segmenté ─────────────────────────────── */
+/* The track is the same translucent fill the hover state uses, so it reads as
+ * a place rather than a second button; the one raised part is the indicator,
+ * a white pill that slides under the selected segment. Its stroke rides inside
+ * the soft elevation shadow (border: 0), the way every elevated surface draws
+ * its edge, so the elevation gate keeps it off the alias-border set.
+ *
+ * Segments are equal-width grid tracks sized to the widest label, which is
+ * what lets one indicator be placed arithmetically: the tablist carries the
+ * segment count and the selected index as custom properties, and the indicator
+ * derives its width and offset from them instead of measuring the DOM. */
+.kbm-seg{
+  position: relative;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}.kbm-seg-indicator{
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc((100% - 6px - 2px * (var(--dsh-segment-count) - 1)) / var(--dsh-segment-count));
+  height: calc(100% - 6px);
+  border: 0;
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: var(--dsw-elevation-soft);
+  transform: translateX(calc(var(--dsh-segment-index) * (100% + 2px)));
+  transition: transform 160ms ease;
+  pointer-events: none;
+}.kbm-seg-tab{
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  height: 28px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 120ms ease;
+}.kbm-seg-tab:hover:not(:disabled),
+.kbm-seg-tab[aria-selected='true']{
+  color: var(--dsw-alias-label-primary);
+}.kbm-seg-tab:disabled{
+  cursor: default;
+  opacity: 0.4;
+}.kbm-seg-tab:focus-visible{
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator,
+  .tab {
+    transition: none;
+  }
+}
+
+/* ── SegmentedTabs — les onglets segmentés ─────────────────────────────── */
+.kbm-segtabs{
+  position: relative;
+  display: grid;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-module-platform);
+}.kbm-segtabs-indicator{
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  box-sizing: border-box;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+  transition: transform 180ms ease;
+  pointer-events: none;
+}.kbm-segtabs-tab{
+  position: relative;
+  justify-content: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  transition: color 180ms ease;
+}.kbm-segtabs-tab:hover,
+.kbm-segtabs-tab[aria-selected='true']{
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}.kbm-segtabs-tab[aria-selected='true']{
+  font-weight: 600;
+}.kbm-segtabs-tab:focus-visible{
+  outline: none;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator,
+  .tab {
+    transition: none;
+  }
+}
+
+/* ── Toast — les notifications toast ─────────────────────────────── */
+/* The fade delay comes from the component as `--dsh-toast-hold`, so one value
+   drives both the unmount timer and this animation; the fallback matches the
+   component's own default. The fade DURATION still has to agree with FADE_MS
+   in Toast.tsx, which no owner varies. */
+
+.kbm-toast{
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  /* Above the 1000 the image lightbox backdrop uses: a failure reported while
+     a preview is open must stay readable. */
+  z-index: 1100;
+  /* Announcements never intercept clicks. */
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Fixed boxes with `left` set shrink-to-fit against the space RIGHT of
+     `left` (the -50% translate happens after sizing), so an anchored banner
+     near the window edge would wrap early. max-content sizes the box from
+     its text alone, capped by the max-width below. */
+  width: max-content;
+  max-width: min(640px, calc(100vw - 48px));
+  padding: 12px 16px;
+  border-radius: 14px;
+  /* The design platform's toast surface is dark in BOTH themes (bluish-800
+     light / bluish-750 dark), so the label and the action text below stay
+     fixed instead of flipping with the theme. */
+  background: var(--dsw-alias-toast-bg);
+  color: var(--dsw-static-neutral-bluish-00);
+  font-size: 14px;
+  line-height: 22px;
+  box-shadow: var(--dsw-shadow-lv3);
+  transform: translateX(-50%);
+  animation:
+    kbm-dsh-toast-in 160ms ease-out,
+    kbm-dsh-toast-fade 1000ms ease var(--dsh-toast-hold, 3000ms) forwards;
+}.kbm-toast-icon{
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--dsw-alias-state-warn-label);
+}.kbm-toast-icon.kbm-toast-success{
+  color: var(--dsw-alias-state-success-primary);
+}.kbm-toast-text{
+  min-width: 0;
+}.kbm-toast-action{
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* deepseek-400, brightened at the designer's request, reads as the action
+     against the always-dark toast surface without an underline. */
+  color: var(--dsw-static-deepseek-400);
+  font: inherit;
+  cursor: pointer;
+  /* Breathing room where the action text meets the surrounding copy. */
+  margin-inline: 3px;
+  /* The banner surface stays click-through (`pointer-events: none` above);
+     only its action text takes the pointer. */
+  pointer-events: auto;
+}.kbm-toast-action:hover{
+  opacity: 0.8;
+}
+
+@keyframes kbm-dsh-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes kbm-dsh-toast-fade {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+/* Reduced motion drops the slide-in; the delayed fade (an opacity change,
+   not movement) still ends the banner before the timed unmount. */
+@media (prefers-reduced-motion: reduce) {
+  .toast {
+    animation: dsh-toast-fade 1000ms ease var(--dsh-toast-hold, 3000ms) forwards;
+  }
+}
+
+/* ── OnboardingSurface — la surface d'onboarding ─────────────────────────────── */
+/* First-run stage: keep the product top bar visible, then let onboarding own
+   the complete workspace instead of presenting another settings modal. */
+.kbm-onb-onboardingOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+}/* Mask */
+.kbm-onb-onboardingMask{
+  position: absolute;
+  left: 0px;
+  right: 0px;
+  top: 80px;
+  bottom: 0px;
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: var(--dsw-mask-blur);
+}.kbm-onb-onboardingStage{
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+/* ── HoverCard — la carte au survol ─────────────────────────────── */
+/* Block, not inline-flex: consumers wrap full-width list rows and an
+ * inline wrapper would shrink them; the card still measures this rect. */
+.kbm-hov-root{
+  position: relative;
+  display: block;
+}/* Preview card (figma session hover card): 244 wide, r12, pad 12/16, the
+ * menu card's elevation. Surface is #2C2C2E in both themes (figma value,
+ * light/dark identical), so a component-level variable, not a theme token.
+ * Hit-testable on purpose: resting the pointer on the card holds it open
+ * (HoverCard's grace close), which a `pointer-events: none` card cannot do. */
+.kbm-hov{
+  --dsw-hovercard-bg: #2C2C2E;
+  position: fixed;
+  z-index: 100;
+  box-sizing: border-box;
+  width: 244px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--dsw-hovercard-bg);
+  box-shadow: var(--dsw-shadow-lv3);
+}.kbm-hov-copyable{
+  cursor: pointer;
+}.kbm-hov-copyable:focus-visible{
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}.kbm-hov-feedback{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}.kbm-hov-copied{
+  color: #FFFFFF;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}.kbm-hov-status{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}.kbm-hov-preview{
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  box-shadow: var(--dsw-elevation-panel);
+  opacity: 1;
+  transition: opacity var(--dsh-hover-preview-fade) linear;
+}
+
+@starting-style {
+  .preview { opacity: 0; }
+}
+
+.preview[data-closing] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview { transition: none; }
+}
+
+/* ── RiskConfirmation — la confirmation de risque ─────────────────────────────── */
+.kbm-risk-confirmation{
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow: hidden;
+}.kbm-risk-confirmationContent{
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@supports (height: 100dvh) {
+  .confirmation {
+    max-height: calc(100dvh - 48px);
+  }
+}
+
+.warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.warning p {
+  margin: 0;
+}
+
+.warningIcon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  cursor: pointer;
+}
+
+.acknowledgement input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  accent-color: var(--dsw-alias-button-primary-fill);
+  cursor: pointer;
+}
+
+.acknowledgement input:focus-visible {
+  outline: 2px solid var(--dsw-alias-border-l4);
+  outline-offset: 2px;
+}
+
+.acknowledgement input:disabled {
+  cursor: default;
+}
+
+.modalAction {
+  min-width: 72px;
+}
+
+.confirmAction {
+  min-width: 136px;
+}
+
+/* ── SearchBlock — le bloc de recherche ─────────────────────────────── */
+.kbm-search{
+  --dsl-search-radius: 12px;
+  --dsl-search-line-height: 22px;
+
+  position: relative;
+  margin: 16px 0;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: var(--dsl-search-radius);
+}.kbm-search-header{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--dsw-alias-markdown-code-block-banner);
+  border-top-left-radius: var(--dsl-search-radius);
+  border-top-right-radius: var(--dsl-search-radius);
+}.kbm-search-summary{
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--dsw-font-xs-13);
+  color: var(--dsw-alias-label-secondary);
+}.kbm-search-copyButton{
+  flex: none;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: var(--dsw-font-xs-13);
+}.kbm-search-body{
+  padding: 8px 14px 12px 0;
+  font: var(--dsw-font-markdown-code-block);
+  overflow-x: auto;
+  overflow-y: hidden;
+}/* No wrapping: a match line or a path keeps its content on one row and scrolls
+   sideways instead of folding. */
+.kbm-search-line{
+  min-height: var(--dsl-search-line-height);
+  padding-left: 14px;
+  white-space: pre;
+}/* The 1-based line number ahead of a grep match line, dimmed so the match text
+   stays the salient content. */
+.kbm-search-lineNumber{
+  color: var(--dsw-alias-label-tertiary);
+}/* A file group's header: a bold path label plus its match count, the whole row
+   the collapse control. */
+.kbm-search-fileHeader{
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--dsl-search-line-height);
+  padding: 0 14px;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}.kbm-search-filePath{
+  min-width: 0;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  white-space: pre;
+}.kbm-search-fileCount{
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-search-expand{
+  display: block;
+  width: 100%;
+  padding: 0 14px;
+  border: none;
+  background-color: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}.kbm-search-expand:hover{
+  color: var(--dsw-alias-label-secondary);
+}.kbm-search-empty{
+  padding: 12px 14px;
+  font: var(--dsw-font-markdown-code-block);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── ReadBlock — le bloc de lecture ─────────────────────────────── */
+.kbm-read{
+  --dsl-read-radius: 12px;
+  --dsl-read-line-height: 22px;
+  /* Fixed-width gutter column for the line numbers, so the content edge stays
+     put down the whole window regardless of how wide the numbers grow. */
+  --dsl-read-gutter: 48px;
+
+  position: relative;
+  margin: 16px 0;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: var(--dsl-read-radius);
+}.kbm-read-banner{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--dsw-alias-markdown-code-block-banner);
+  border-top-left-radius: var(--dsl-read-radius);
+  border-top-right-radius: var(--dsl-read-radius);
+}.kbm-read-label{
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  line-height: 18px;
+}.kbm-read-action{
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 12px;
+}.kbm-read-count{
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}.kbm-read-lang{
+  color: var(--dsw-alias-label-tertiary);
+  font-family: var(--ds-font-family-code);
+  font-size: 12px;
+  line-height: 18px;
+}.kbm-read-copyButton{
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: var(--dsw-font-xs-13);
+}.kbm-read-body{
+  padding: 12px 0;
+  font: var(--dsw-font-markdown-code-block);
+  overflow-x: auto;
+  overflow-y: hidden;
+}/* One row per file line: a fixed gutter column, then the content. No wrapping —
+   a source line's leading whitespace is meaningful and scrolls sideways. */
+.kbm-read-line{
+  display: flex;
+  min-height: var(--dsl-read-line-height);
+  line-height: var(--dsl-read-line-height);
+  white-space: pre;
+}.kbm-read-gutter{
+  flex: none;
+  width: var(--dsl-read-gutter);
+  padding-right: 14px;
+  text-align: right;
+  color: var(--dsw-alias-label-tertiary);
+  /* The gutter is chrome, not content: keep it out of a text selection so a
+     copy of the visible rows carries the source, not the line numbers. */
+  user-select: none;
+}.kbm-read-content{
+  color: var(--dsw-alias-label-primary);
+}.kbm-read-expand{
+  display: block;
+  width: 100%;
+  padding: 0 0 0 var(--dsl-read-gutter);
+  border: none;
+  background-color: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}.kbm-read-expand:hover{
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ── DiffBlock — le bloc de diff ─────────────────────────────── */
+.kbm-diff{
+  --dsl-diff-radius: 12px;
+  --dsl-diff-line-height: 22px;
+
+  position: relative;
+  margin: 16px 0;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: var(--dsl-diff-radius);
+}/* The copy control floats in the top-right corner over the body, so the card
+   has no empty banner row above its first diff line (the TUI diff card has no
+   banner either — only the footer). The block is position: relative, so this
+   anchors to the card. */
+.kbm-diff-copyButton{
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  z-index: 1;
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: var(--dsw-font-xs-13);
+}.kbm-diff-body{
+  padding: 12px 14px;
+  font: var(--dsw-font-markdown-code-block);
+  overflow-x: auto;
+  overflow-y: hidden;
+}/* No wrapping, no word-break: a diff is read by its indentation. */
+.kbm-diff-line{
+  min-height: var(--dsl-diff-line-height);
+  white-space: pre;
+}/* A file header: the path in the primary tone, set apart by weight. The copy
+   button floats over this first row's top-right corner, so reserve space at the
+   line's end for it — a long path scrolls under the button otherwise, and the
+   button's hit area would eat clicks on the path's tail. */
+.kbm-diff-path{
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+  padding-right: 56px;
+}/* A same-file second hunk's separator (a scattered edit), in the dim tone. */
+.kbm-diff-gap{
+  color: var(--dsw-alias-label-tertiary);
+}/* The diff's own meaning-carrying colors: removed on the error token, added on
+   the success token. A `- `/`+ ` prefix is drawn here so a copied line and the
+   shown line agree, and so the sign reads without relying on color alone. */
+.kbm-diff-del::before{
+  content: '- ';
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-diff-del{
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-diff-add::before{
+  content: '+ ';
+  color: var(--dsw-alias-state-success-primary);
+}.kbm-diff-add{
+  color: var(--dsw-alias-state-success-primary);
+}.kbm-diff-context{
+  color: var(--dsw-alias-label-secondary);
+}.kbm-diff-context::before{
+  content: '  ';
+}.kbm-diff-expand{
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}.kbm-diff-expand:hover{
+  color: var(--dsw-alias-label-secondary);
+}/* The change summary, dim under the body: `└ +A -R · N file(s)`, the same
+   footer the TUI transcript's diff card draws. */
+.kbm-diff-footer{
+  padding: 0 14px 12px;
+  font: var(--dsw-font-markdown-code-block);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── WebBlock — le bloc web ─────────────────────────────── */
+.kbm-web{
+  --dsl-web-radius: 12px;
+
+  margin: 16px 0;
+  padding: 12px 14px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: var(--dsl-web-radius);
+}/* The provider answer reads as body prose above the citation list; its own
+   MarkdownText margins are trimmed so the list sits tight under it. */
+.kbm-web-answer{
+  margin-bottom: 8px;
+}.kbm-web-answer > :global(div) > :first-child{
+  margin-top: 0;
+}.kbm-web-answer > :global(div) > :last-child{
+  margin-bottom: 0;
+}/* The citation list: ordered so each source reads as a numbered reference. The
+   whole list — the sources the tool returned, matching what the model saw —
+   renders here; a max-height caps the card so a long list scrolls in place
+   rather than growing the card unbounded. The height is a design constant of the
+   card's geometry, not a deployment choice, so it lives here rather than a plugin
+   config field.
+
+   `overflow-y` makes this a scroll container, which also clips inline-start
+   overflow: a marker wider than `padding-left` loses its leading digits with no
+   way to scroll them back. Markers are right-aligned to the content edge, so the
+   padding must fit the widest one the list can produce. `searchMaxResults` is an
+   unbounded positive integer, so the padding is sized in `em` — against this
+   element's own font, the one a marker inherits — to hold a three-digit marker
+   (`999. ` measures 2.35em in the app font stack) plus the gap the one-digit
+   case already had. */
+.kbm-web-sources{
+  margin: 0;
+  padding-left: 2.5em;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+}.kbm-web-source{
+  min-width: 0;
+}.kbm-web-sourceLink{
+  color: var(--dsw-alias-link);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  word-break: break-word;
+  text-decoration: none;
+}/* Leading URL glyph inside source and fetch links; rides the link color.
+   1.1em follows each link's own font size. */
+.kbm-web-linkIcon{
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.25em;
+  margin-right: 5px;
+}.kbm-web-sourceLink:hover,
+.kbm-web-sourceLink:focus-visible{
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}.kbm-web-snippet{
+  margin-top: 2px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 19px;
+  word-break: break-word;
+}.kbm-web-published{
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}.kbm-web-truncated{
+  margin-top: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}.kbm-web-empty{
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}/* The fetch card is a compact summary: the URL over a status/truncation row. */
+.kbm-web-fetch{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}.kbm-web-fetchUrl{
+  color: var(--dsw-alias-link);
+  font-family: var(--ds-font-family-code);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 19px;
+  word-break: break-all;
+  text-decoration: none;
+}.kbm-web-fetchUrl:hover,
+.kbm-web-fetchUrl:focus-visible{
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}.kbm-web-fetchMeta{
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}.kbm-web-status{
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}/* The fetch card's truncation note sits inline beside the status, so it drops
+   the search card's top margin. */
+.kbm-web-fetch .kbm-web-truncated{
+  margin-top: 0;
+}
+
+/* ── TerminalBlock — le bloc terminal ─────────────────────────────── */
+.kbm-term{
+  --dsl-terminal-radius: 12px;
+  --dsl-terminal-line-height: 22px;
+  /* Rebindable by consumers (CodeBlock's --dsl-code-block-content-font
+     pattern): a surface wanting the smaller code size rebinds this together
+     with --dsl-terminal-line-height on its own container. */
+  --dsl-terminal-font: var(--dsw-font-markdown-code-block);
+  /* The card's own left inset, holding the run-state dot in a column of its own
+     so it never competes with the commands for horizontal space. */
+  --dsl-terminal-gutter: 30px;
+
+  position: relative;
+  margin: 16px 0;
+  /* The gutter is the card's OWN padding, not a margin: every consumer rewrites
+     `margin` wholesale (each render site sets its own indent), which silently
+     cancelled the reservation and let the dot fall outside the card into a
+     container that clips it. Owning the reservation here keeps the invariant
+     with the component that depends on it. */
+  padding-left: var(--dsl-terminal-gutter);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-markdown-code-block);
+  border-radius: var(--dsl-terminal-radius);
+  /* Clip the banner to the card's own radius: when a consumer adds a border,
+     the banner's equal corner radius no longer nests inside it and leaves a
+     notch at the corner. Nothing inside renders out of the box. */
+  overflow: hidden;
+}/* The status pill and copy control top-align to the FIRST prompt row (their
+   heights are capped to the prompt line, so on a multi-line command they sit
+   with the first command instead of floating mid-banner). */
+.kbm-term-header{
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  /* Pulled back across the card's gutter padding so the banner spans the FULL
+     surface, then re-inset by the same amount so the prompt text and the dot
+     keep their positions. The banner shares the card's own surface (no banner
+     token): the l2 divider below is the section boundary. */
+  margin-left: calc(-1 * var(--dsl-terminal-gutter));
+  padding: 9px 14px 9px var(--dsl-terminal-gutter);
+  border-top-left-radius: var(--dsl-terminal-radius);
+  border-top-right-radius: var(--dsl-terminal-radius);
+  /* A long multi-line command scrolls inside the banner (same cap as the
+     IN/OUT card's sections) instead of pushing the output off screen. */
+  max-height: 150px;
+  overflow-y: auto;
+}/* Banner scrollbar floats off the card edge like the output's. */
+.kbm-term-header::-webkit-scrollbar-thumb{
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}.kbm-term-header::-webkit-scrollbar-track{
+  margin: 6px;
+}/* Full-width l2 hairline between the command banner and the body — the same
+   divider the IN/OUT card draws between its sections. A banner-only card (a
+   running command that has printed nothing yet) draws none. */
+.kbm-term[data-body] .kbm-term-header{
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}/* One row per command line. The prompt column is the only element allowed to
+   shrink; the status pill and the copy control keep their intrinsic width. */
+.kbm-term-prompt{
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  font: var(--dsl-terminal-font);
+}.kbm-term-promptLine{
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  line-height: var(--dsl-terminal-line-height);
+}/* Out of flow inside the card's own gutter padding, so the reservation and the
+   dot move together and no consumer margin can pull them apart; the dot neither
+   indents its command nor depends on the command's text metrics to line up.
+   Centered against the row's line box, not the code font's baseline. */
+.kbm-term-runState{
+  position: absolute;
+  left: calc(-1 * var(--dsl-terminal-gutter) + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}/* The dot is aria-hidden; this is its text label for assistive technology. */
+.kbm-term-runStateLabel{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}.kbm-term-cwd{
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}/* Default `pre`, not `nowrap`: the prompt row renders the command verbatim,
+   and `nowrap` would collapse the repeated spaces, tabs, and alignment of an
+   indented continuation. Hosts opt into wrapping long commands by rebinding
+   the variable to `pre-wrap`; the ellipsis then simply never engages, and
+   overflow-wrap is inert while white-space stays `pre`. */
+.kbm-term-command{
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: var(--dsl-terminal-command-whitespace, pre);
+  overflow-wrap: anywhere;
+}/* Capped to the prompt's line height (Pill's own 24px height would exceed a
+   smaller-font prompt row and stretch the banner). Sticky against the
+   banner's own scroll so the pill and the copy control stay in reach while a
+   long command scrolls underneath. */
+.kbm-term-status{
+  flex: none;
+  position: sticky;
+  top: 0;
+  height: var(--dsl-terminal-line-height);
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-term-copyButton{
+  flex: none;
+  position: sticky;
+  top: 0;
+  /* Card surface, not transparent: the control is sticky over the banner's
+     own scroll, so scrolled command text must not bleed through it. */
+  background-color: var(--dsw-alias-markdown-code-block);
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  font: var(--dsw-font-xs-13);
+  line-height: var(--dsl-terminal-line-height);
+}/* Vertical scrolling lives on the OUTPUT, not the card root: a root scroller
+   would run its scrollbar over the banner (and the copy control), while here
+   the banner stays pinned and the bar sits inside the output's right padding.
+   Unset, the max-height is none and the auto overflow never engages. */
+.kbm-term-output{
+  max-height: var(--dsl-terminal-output-max-height, none);
+  padding: 12px 14px 12px 0;
+  font: var(--dsl-terminal-font);
+  overflow-x: auto;
+  overflow-y: auto;
+}/* Both output scrollbars (vertical cap, horizontal pre overflow) float 2px
+   off the card edge: a transparent border clips the thumb inward so it never
+   hugs the rounded corner. */
+.kbm-term-output::-webkit-scrollbar-thumb{
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 6px;
+}/* Track end-margins keep the thumb's travel out of the card's rounded
+   corners in both directions. */
+.kbm-term-output::-webkit-scrollbar-track{
+  margin: 6px;
+}/* Default `pre`: alignment is the payload of terminal output. Hosts opt
+   into wrapping long lines by rebinding the variable to `pre-wrap`, which
+   also keeps the output region from ever scrolling sideways; overflow-wrap
+   is inert while white-space stays `pre`. */
+.kbm-term-line{
+  min-height: var(--dsl-terminal-line-height);
+  white-space: var(--dsl-terminal-line-whitespace, pre);
+  overflow-wrap: anywhere;
+}.kbm-term-expand{
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}.kbm-term-expand:hover{
+  color: var(--dsw-alias-label-secondary);
+}.kbm-term-empty{
+  padding: 12px 14px 12px 0;
+  font: var(--dsl-terminal-font);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── JsonTree — l'arbre JSON ─────────────────────────────── */
+.kbm-json-root{
+  --json-tree-property: #881391;
+  --json-tree-string: #c41a16;
+  --json-tree-number: #1c00cf;
+  --json-tree-keyword: #1c00cf;
+  --json-tree-punctuation: #202124;
+  --json-tree-icon: #5f6368;
+  --json-tree-hover: rgb(60 64 67 / 4%);
+
+  min-width: 0;
+  overflow: auto;
+  position: relative;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  font: 12px/16px var(--ds-font-family-code);
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+}:global(body[data-ds-dark-theme]) .kbm-json-root{
+  --json-tree-property: #5db0d7;
+  --json-tree-string: #f28b82;
+  --json-tree-number: #99c8ff;
+  --json-tree-keyword: #99c8ff;
+  --json-tree-punctuation: #e8eaed;
+  --json-tree-icon: #9aa0a6;
+  --json-tree-hover: rgb(232 234 237 / 5%);
+}.kbm-json-container{
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 8px 8px 8px;
+  white-space: pre;
+}.kbm-json-expandedTopLevel{
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px 8px 14px;
+}.kbm-json-expandedTopLevel:has(> .kbm-json-topLevelBracket[data-json-root-row]:hover),
+.kbm-json-expandedTopLevel:has(> .kbm-json-topLevelBracket[data-json-root-row][data-json-copy-active]){
+  background: var(--json-tree-hover);
+}.kbm-json-expandedTopLevelContainer{
+  padding: 0;
+}.kbm-json-row.kbm-json-topLevelBracket{
+  margin-left: 0;
+  padding-left: 0;
+}.kbm-json-children{
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}.kbm-json-row{
+  position: relative;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 16px;
+  margin: 0;
+  padding: 0 0 0 10px;
+  list-style: none;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}.kbm-json-row:not(.kbm-json-topLevelBracket):hover:not(:has(.kbm-json-row:hover))::after,
+.kbm-json-row:not(.kbm-json-topLevelBracket)[data-json-copy-active]::after,
+.kbm-json-row:has(> .kbm-json-expander:focus-visible)::after{
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--json-tree-row-height, 16px);
+  background: var(--json-tree-hover);
+  content: '';
+  pointer-events: none;
+}.kbm-json-row > span:not(.kbm-json-expander, .kbm-json-copySlot){
+  position: relative;
+  z-index: 1;
+}.kbm-json-label{
+  margin-right: 3px;
+  color: var(--json-tree-property);
+  font-weight: 400;
+}.kbm-json-clickableLabel{
+  cursor: pointer;
+}.kbm-json-stringValue{
+  color: var(--json-tree-string);
+}.kbm-json-stringField{
+  position: relative;
+  z-index: 1;
+  display: flow-root;
+}.kbm-json-stringText{
+  display: block;
+  max-height: calc(var(--json-tree-collapsed-lines) * 16px);
+  padding-left: 12px;
+  overflow: hidden;
+  text-indent: -12px;
+  word-break: break-all;
+}.kbm-json-stringRaw{
+  margin: 4px 0 0 12px;
+  overflow: auto;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  overflow-wrap: normal;
+  white-space: pre;
+  word-break: normal;
+}.kbm-json-stringActions{
+  position: absolute;
+  top: 1px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  width: fit-content;
+  height: 16px;
+}.kbm-json-stringRaw[data-wrap='true']{
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-all;
+}.kbm-json-stringActions > .kbm-json-copySlot{
+  opacity: 1;
+  pointer-events: auto;
+}.kbm-json-stringToggleSlot{
+  display: flex;
+  float: right;
+  align-items: flex-end;
+  height: calc(var(--json-tree-collapsed-lines) * 16px);
+  margin-left: 2px;
+  shape-outside: inset(calc((var(--json-tree-collapsed-lines) - 1) * 16px) 0 0);
+  pointer-events: none;
+}.kbm-json-stringToggle{
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  font: inherit;
+  text-indent: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}.kbm-json-stringToggle:hover{
+  color: var(--dsw-alias-label-primary);
+}.kbm-json-stringToggle:focus-visible{
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}.kbm-json-row:has(> .kbm-json-stringField){
+  --json-tree-row-height: 100%;
+}.kbm-json-summary{
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}.kbm-json-numberValue{
+  color: var(--json-tree-number);
+}.kbm-json-keywordValue{
+  color: var(--json-tree-keyword);
+}.kbm-json-otherValue{
+  color: var(--dsw-alias-label-secondary);
+}.kbm-json-punctuation{
+  color: var(--json-tree-punctuation);
+}.kbm-json-preview{
+  color: var(--json-tree-punctuation);
+}.kbm-json-previewProperty{
+  color: var(--json-tree-punctuation);
+}.kbm-json-previewEllipsis{
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-json-copySlot{
+  display: inline-flex;
+  width: 20px;
+  height: 16px;
+  opacity: 0;
+  pointer-events: none;
+}.kbm-json-row > .kbm-json-copySlot{
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
+}.kbm-json-row:has(> .kbm-json-stringField) > .kbm-json-copySlot{
+  top: auto;
+  bottom: 0;
+}.kbm-json-row:has(> .kbm-json-copySlot) > .kbm-json-stringField .kbm-json-stringToggleSlot{
+  padding-right: 24px;
+}.kbm-json-row:hover:not(:has(.kbm-json-row:hover)) > .kbm-json-copySlot,
+.kbm-json-row[data-json-copy-active] > .kbm-json-copySlot,
+.kbm-json-copySlot:focus-within{
+  opacity: 1;
+  pointer-events: auto;
+}.kbm-json-actionButton{
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+}.kbm-json-actionButton:hover{
+  color: var(--dsw-alias-label-primary);
+}.kbm-json-actionButton[aria-pressed='true']{
+  color: var(--dsw-alias-state-business-primary);
+}.kbm-json-actionButton:focus-visible{
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+}.kbm-json-actionButton[data-state='failed']{
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-json-expander{
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+  width: 8px;
+  height: 16px;
+  margin: 0;
+  color: var(--json-tree-icon);
+  cursor: pointer;
+  user-select: none;
+}.kbm-json-expander::before{
+  width: 0;
+  height: 0;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid currentColor;
+  content: '';
+  transform: scale(0.75);
+  transform-origin: 33.333% center;
+}.kbm-json-collapseIcon::before{
+  transform: rotate(90deg) scale(0.75);
+}.kbm-json-expander:hover{
+  color: var(--dsw-alias-label-primary);
+}.kbm-json-expander:focus-visible{
+  outline: none;
+}.kbm-json-collapsedContent{
+  margin: 0 1px;
+  color: var(--json-tree-punctuation);
+  cursor: pointer;
+}.kbm-json-collapsedContent::after{
+  content: '…';
+}
+
+/* ── PathLabel — le label de chemin ─────────────────────────────── */
+/* Auto margin keeps fitting text at the left. On overflow it becomes zero,
+   so flex-end preserves the filename suffix at the right edge. */
+.kbm-path-path{
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  white-space: nowrap;
+}.kbm-path-path[data-path-clipped]{
+  mask-image: linear-gradient(to right, transparent, black 28px);
+}.kbm-path-text{
+  flex: none;
+  margin-right: auto;
+}.kbm-path-directory{
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-path-name{
+  color: var(--dsw-alias-label-primary);
+}
+
+/* ── TextShimmer — l'effet de scintillement ─────────────────────────────── */
+.kbm-shim-root[data-text-shimmer]{
+  background-image: linear-gradient(
+    90deg,
+    currentColor calc(50% - var(--dsh-text-shimmer-spread)),
+    color-mix(in oklab, currentColor 50%, transparent),
+    currentColor calc(50% + var(--dsh-text-shimmer-spread))
+  );
+  background-position: 100% center;
+  background-repeat: no-repeat;
+  background-size: 250% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: kbm-dsh-text-shimmer 1.5s cubic-bezier(0.33, 0, 0.67, 1) infinite;
+}
+
+@keyframes kbm-dsh-text-shimmer {
+  66.6667%, 100% { background-position: 0% center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root[data-text-shimmer] {
+    background-image: none;
+    -webkit-text-fill-color: currentColor;
+    animation: none;
+  }
+}
+
+/* ── markdown/MarkdownText — le texte markdown ─────────────────────────────── */
+/* Visual baseline: deepsuite `@deepseek/md` markdown.css, adapted to CSS
+   Modules. Cite pills and header anchors are absent (no matching DOM).
+   Token names match that sheet. */
+
+.kbm-md-markdown{
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: var(--dsw-font-markdown-base);
+  color: var(--dsw-alias-label-primary);
+}.kbm-md-markdown strong{
+  font-weight: 600;
+}.kbm-md-markdown h1{
+  font: var(--dsw-font-markdown-h1);
+  margin: 32px 0 16px;
+}.kbm-md-markdown h2{
+  font: var(--dsw-font-markdown-h2);
+  margin: 32px 0 16px;
+}.kbm-md-markdown h3{
+  font: var(--dsw-font-markdown-h3);
+  margin: 32px 0 16px;
+}.kbm-md-markdown h4{
+  font: var(--dsw-font-markdown-h4);
+  margin: 16px 0;
+}.kbm-md-markdown :where(h5, h6){
+  font: var(--dsw-font-markdown-base-strong);
+  margin: 16px 0;
+}.kbm-md-markdown :where(h1, h2, h3, h4, h5, h6) strong{
+  font-weight: inherit;
+}.kbm-md-markdown p{
+  margin: 16px 0;
+}/* Tighten h4–h6 against a following list (design: 8px gap). */
+.kbm-md-markdown :where(h4, h5, h6) + :where(ul, ol){
+  margin-top: 8px;
+}.kbm-md-markdown :where(h4, h5, h6):has(+ :where(ul, ol)){
+  margin-bottom: 8px;
+}.kbm-md-markdown a,
+.kbm-md-markdown .kbm-md-fileLink{
+  /* deepsuite markdown.css uses brand-text (blue in newDesign); this sheet
+     keeps design-platform brand-text as near-black, so links use the
+     dedicated link alias instead. */
+  color: var(--dsw-alias-link);
+  font-weight: 500;
+  transition: box-shadow var(--ds-transition-duration) var(--ds-ease-in-out);
+  position: relative;
+  text-decoration: none;
+  /* Transparent hit-area padding; literal zero-alpha only (no painted color). */
+  border-left: 3px solid rgb(255 255 255 / 0);
+  border-right: 3px solid rgb(255 255 255 / 0);
+  border-top: 2px solid rgb(255 255 255 / 0);
+  border-bottom: 2px solid rgb(255 255 255 / 0);
+  margin-left: -3px;
+  margin-right: -3px;
+}.kbm-md-markdown a:hover,
+.kbm-md-markdown a:focus{
+  outline: none;
+  text-decoration: underline dotted var(--dsw-alias-link);
+  text-underline-offset: 3px;
+}.kbm-md-markdown a:focus-visible,
+.kbm-md-fileMention:focus-visible{
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
+}/* Leading link-category glyph inside anchors, file mentions, and
+   URL-promoted inline code: outline glyphs ride the link's currentColor.
+   1.1em keeps the glyph proportional to the surrounding text's size (it
+   shrinks with the code chip's 0.875em); the small negative offset seats
+   its optical center on the cap height. */
+.kbm-md-linkIcon{
+  flex: none;
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: -0.25em;
+  margin-right: 5px;
+}.kbm-md-markdown :where(ul, ol){
+  margin: 16px 0;
+  padding-left: 18px;
+}.kbm-md-markdown li:not(:first-child){
+  margin-top: 6px;
+}.kbm-md-markdown li > :where(ul, ol){
+  margin-top: 4px;
+}.kbm-md-markdown li::marker{
+  line-height: 24px;
+  color: var(--dsw-alias-label-secondary);
+}/* Nested ol under ul/ol: markers inside (models sometimes emit this shape). */
+.kbm-md-markdown :where(ul, ol) ol{
+  list-style-position: inside;
+  padding-left: 0;
+}.kbm-md-markdown :where(ul, ol) ol li p{
+  display: inline;
+}.kbm-md-markdown li > p{
+  margin: 8px 0;
+}.kbm-md-markdown li > *:first-child{
+  margin-top: 0;
+}/* Keep list-nested code-block vertical margins (design: +4px vs other last children). */
+.kbm-md-markdown li > *:last-child:not(:global(.kbm-md-md-code-block)){
+  margin-bottom: 0;
+}.kbm-md-markdown hr{
+  display: block;
+  border: none;
+  height: 0.5px;
+  margin: 32px 0;
+  background: var(--dsw-alias-border-l2);
+}.kbm-md-markdown blockquote{
+  border-left: 2px solid var(--dsw-alias-label-caption);
+  margin: 16px 0 0;
+  padding-left: 14px;
+}.kbm-md-markdown pre{
+  margin: 16px 0;
+  font-family: var(--ds-font-family-code);
+  overflow: auto;
+}.kbm-md-markdown :not(pre) > code{
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  font: var(--dsw-font-markdown-code);
+  font-family: var(--ds-font-family-code);
+  font-size: 0.875em !important;
+  background-color: var(--dsw-alias-markdown-inline-code);
+  border: 0.5px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  padding: 0 5px;
+}.kbm-md-markdown :where(h1, h2, h3, h4, h5, h6) code{
+  font: inherit;
+  font-family: var(--ds-font-family-code);
+}.kbm-md-markdown :global(.kbm-md-katex-display){
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}.kbm-md-markdown input[type='checkbox']{
+  margin: 0 8px 0 0;
+  accent-color: var(--dsw-alias-label-secondary);
+}.kbm-md-tableScroll{
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}/* Wide tables reveal their horizontal bar on hover (or keyboard focus)
+   instead of keeping it painted. Chromium never repaints state-conditioned
+   scrollbar STYLES (neither hover-conditioned `::-webkit-scrollbar*` rules
+   nor a :hover `scrollbar-color` change reaches the painted bar), so the
+   toggle is `overflow-x` itself — a layout change repaints reliably. The
+   resting padding matches the themed bar's height on the WebKit scrollbar
+   path. There, `scroll` reserves that height even when the table fits.
+   Other engines and overlay scrollbars may reserve a different height.
+   Wheel and trackpad scrolling need the pointer over the table, which is
+   already the hover that re-enables scrolling. */
+.kbm-md-tableScroll:global(.kbm-md-md-table-wide){
+  overflow-x: hidden;
+  padding-bottom: var(--dsh-scrollbar-width, 5px);
+}.kbm-md-tableScroll:global(.kbm-md-md-table-wide):hover,
+.kbm-md-tableScroll:global(.kbm-md-md-table-wide):focus-visible{
+  overflow-x: scroll;
+  padding-bottom: 0;
+}/* Chromium keyboard-focuses scrollable containers by default; the ring uses
+   the sheet's link focus color. */
+.kbm-md-tableScroll:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-state-business-primary);
+}/* Many-column tables (the renderer's `md-table-wide` hook) keep their
+   natural width and scroll inside the wrapper; a hosting layout may widen
+   the wrapper through the hook (deepsuite chat TableWrapper parity). */
+.kbm-md-tableScroll table{
+  border-collapse: collapse;
+  width: max-content;
+  max-width: max-content;
+}/* Tables under four columns, and any table inside a blockquote, fill the
+   column instead: cells wrap down to their minimum readable width, and the
+   wrapper's scroll only remains for the below-floor case (deepsuite chat
+   parity: `.wrapper:not(:has(th:nth-child(4), td:nth-child(4)))`). */
+.kbm-md-tableFill table{
+  width: 100%;
+  max-width: none;
+}.kbm-md-tableScroll th{
+  text-align: start;
+  padding: 10px 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+  border-top: none;
+  font: var(--dsw-font-markdown-table-head);
+  max-width: 320px;
+  max-width: min(30vw, 320px);
+  min-width: 100px;
+}.kbm-md-tableScroll td{
+  padding: 10px 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  font: var(--dsw-font-markdown-table);
+  max-width: 320px;
+  max-width: min(30vw, 320px);
+  min-width: 100px;
+}.kbm-md-tableScroll th:first-child,
+.kbm-md-tableScroll td:first-child{
+  padding-left: 0;
+}.kbm-md-tableScroll td:last-child{
+  padding-right: 0;
+}.kbm-md-tableScroll table code{
+  font-size: 11px;
+}.kbm-md-markdown > *:first-child,
+.kbm-md-markdown p:first-child{
+  margin-top: 0 !important;
+}.kbm-md-markdown > *:last-child,
+.kbm-md-markdown p:last-child{
+  margin-bottom: 0 !important;
+}.kbm-md-imageAlt{
+  color: var(--dsw-alias-label-tertiary);
+  font-style: italic;
+}.kbm-md-image{
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+  object-fit: contain;
+}/* Inline file mention: the same link language this sheet gives anchors (and
+   thereby URL-promoted inline code) — link-blue at rest, dotted underline only
+   on hover/focus. An underline at rest reads badly inside the code chip, where
+   it collides with monospace descenders and the pill background. */
+.kbm-md-fileMention{
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--dsw-alias-link);
+  text-decoration: none;
+  cursor: pointer;
+}.kbm-md-fileLink{
+  max-width: 100%;
+  text-align: inherit;
+}.kbm-md-fileMention:hover,
+.kbm-md-fileMention:focus{
+  outline: none;
+  text-decoration: underline dotted var(--dsw-alias-link);
+  text-underline-offset: 3px;
+}.kbm-md-compact{
+  max-width: 100%;
+  font-size: var(--dsh-content-font-size-secondary, 13px);
+  line-height: calc(20px + var(--dsh-content-font-delta-secondary, 0px));
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-md-compact :is(h1, h2, h3, h4, h5, h6){
+  margin: 8px 0 4px;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+}.kbm-md-compact :is(p, ul, ol, blockquote){
+  margin: 4px 0;
+}.kbm-md-compact li:not(:first-child){
+  margin-top: 2px;
+}.kbm-md-compact li > p{
+  margin: 4px 0;
+}.kbm-md-compact li::marker{
+  line-height: inherit;
+  color: inherit;
+}.kbm-md-compact blockquote{
+  padding-left: 8px;
+}.kbm-md-compact hr{
+  margin: 8px 0;
+}.kbm-md-compact a,
+.kbm-md-compact .kbm-md-fileMention{
+  font-weight: inherit;
+  color: inherit;
+  text-decoration: underline dotted;
+}.kbm-md-compact a:hover,
+.kbm-md-compact a:focus,
+.kbm-md-compact .kbm-md-fileMention:hover,
+.kbm-md-compact .kbm-md-fileMention:focus{
+  text-decoration-color: currentColor;
+}.kbm-md-compact :not(pre) > code{
+  display: inline;
+  font: inherit;
+  font-family: var(--ds-font-family-code);
+  font-size: 1em !important;
+  border-radius: 4px;
+  padding: 0 3px;
+  box-decoration-break: clone;
+}.kbm-md-markdown.kbm-md-compact :global(.kbm-md-md-code-block){
+  margin: 4px 0;
+  color: inherit;
+}.kbm-md-compact :global(.kbm-md-md-code-block) > :has(> [data-code-block-banner]){
+  position: static;
+  z-index: auto;
+}.kbm-md-compact [data-code-block-banner]{
+  padding: 4px 8px;
+  font: inherit;
+}.kbm-md-compact [data-code-block-banner] > :first-child{
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}.kbm-md-compact pre{
+  margin: 4px 0;
+  padding: 8px;
+  font-size: inherit;
+  line-height: inherit;
+}/* Shiki writes token colors inline; compact code uses the surrounding text color. */
+.kbm-md-compact pre,
+.kbm-md-compact pre :is(code, span){
+  color: inherit !important;
+}.kbm-md-markdown.kbm-md-compact .kbm-md-tableScroll{
+  width: 100%;
+  max-width: 100%;
+  margin: 4px 0;
+  padding-left: 0;
+}.kbm-md-markdown.kbm-md-compact .kbm-md-tableScroll > table{
+  z-index: auto;
+}.kbm-md-compact :is(th, td){
+  padding: 4px 8px;
+  font: inherit;
+}.kbm-md-compact th{
+  font-weight: 600;
+}.kbm-md-compact :global(.kbm-md-katex){
+  font-size: 1em;
+}/* Keep KaTeX's inline baseline and scroll the containing block only when needed. */
+.kbm-md-compact :is(p, h1, h2, h3, h4, h5, h6, ul, ol):has(:global(.kbm-md-katex)){
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* KaTeX descenders can paint one pixel below a fractional line-box edge. */
+  padding-bottom: 1px;
+}.kbm-md-compact :global(.kbm-md-katex-display){
+  margin: 4px 0;
+}
+
+/* ── markdown/CodeBlock — le bloc de code ─────────────────────────────── */
+/* Visual baseline: deepsuite `@deepseek/md` code-block.css. Highlight colors
+   stay on the existing shiki `--shiki-*` sheet (not Prism highlight.css). */
+
+.kbm-code{
+  --dsl-code-block-banner-background-color: var(--dsw-alias-markdown-code-block-banner);
+  --dsl-code-block-border-radius: 12px;
+  /* Local 11/18 instead of the shared --dsw-font-xs-13: the banner scales
+     with the markdown 0.875 ladder without shrinking every other xs-13 use. */
+  --dsl-code-block-banner-font: 11px/18px var(--dsw-font-family);
+  --dsl-code-block-content-font: var(--dsw-font-markdown-code-block);
+  --dsl-code-block-background: var(--dsw-alias-markdown-code-block);
+
+  position: relative;
+  margin: 16px 0;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsl-code-block-background);
+  border-radius: var(--dsl-code-block-border-radius);
+}.kbm-code:not(:last-child){
+  margin-bottom: 11px;
+}.kbm-code-bannerWrap{
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background-color: var(--dsw-alias-bg-base);
+  border-top-left-radius: var(--dsl-code-block-border-radius);
+  border-top-right-radius: var(--dsl-code-block-border-radius);
+}.kbm-code-banner{
+  background: var(--dsl-code-block-banner-background-color);
+  padding: 9px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  font: var(--dsl-code-block-banner-font);
+  border-top-left-radius: var(--dsl-code-block-border-radius);
+  border-top-right-radius: var(--dsl-code-block-border-radius);
+}.kbm-code-infostring{
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--ds-font-family-code);
+  font-size: 11px;
+  line-height: 18px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}.kbm-code-action{
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}.kbm-code-copyButton{
+  background-color: rgb(255 255 255 / 0);
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}/* Consumers may turn the stable content node into a viewport without changing
+   the default CodeBlock layout. */
+.kbm-code-content{
+  display: contents;
+}.kbm-code :where(pre){
+  font: var(--dsl-code-block-content-font);
+  padding: 16px;
+  margin: 0 !important;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: var(--dsl-code-block-background);
+  /* Bottom radii live on <pre>: overflow:hidden on .block would kill the
+     sticky banner, and this opaque fill otherwise squares off the wrapper. */
+  border-bottom-left-radius: var(--dsl-code-block-border-radius);
+  border-bottom-right-radius: var(--dsl-code-block-border-radius);
+}/* Shiki inlines its theme background var; route it to the repo token. */
+.kbm-code :where(pre.kbm-code-shiki){
+  background: var(--dsl-code-block-background) !important;
+}.kbm-code :where(pre) code{
+  font: inherit;
+  background: none;
+  padding: 0;
+}.kbm-code-plain{
+  color: var(--dsw-alias-label-primary);
+}.kbm-code-numbered :where(pre) code{
+  display: block;
+  counter-reset: source-line;
+  white-space: normal;
+}.kbm-code-numbered :where(pre) code > :global(.kbm-code-line){
+  position: relative;
+  display: block;
+  min-height: 1lh;
+  padding-inline-start: calc(var(--dsl-code-block-line-number-width) + 12px);
+  counter-increment: source-line;
+  white-space: var(--dsl-code-block-line-white-space, pre-wrap);
+}.kbm-code-numbered :where(pre) code > :global(.kbm-code-line)::before{
+  position: absolute;
+  inset-inline-start: 0;
+  width: var(--dsl-code-block-line-number-width);
+  color: var(--dsw-alias-label-tertiary);
+  text-align: end;
+  content: counter(source-line);
+  user-select: none;
+}
+
+/* ── markdown/JsonBlock — le bloc JSON ─────────────────────────────── */
+.kbm-jsonb-root{
+  margin: 4px 0;
+}.kbm-jsonb-toggle{
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 6px;
+}.kbm-jsonb-toggle:hover{
+  background: var(--dsw-alias-interactive-bg-hover);
+}.kbm-jsonb-body{
+  margin: 4px 0 0;
+  padding: 8px;
+  max-height: 200px;
+  overflow: auto;
+  background: var(--dsw-alias-markdown-code-block);
+  border: 0.5px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  font-family: var(--ds-font-family-code);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* ── settings-form/SettingsForm — le formulaire de settings ─────────────────────────────── */
+/* Settings form: the controls a page shows under a plugin's title, and the save that writes them. */
+
+.kbm-setform{
+  display: flex;
+  flex-direction: column;
+}.kbm-setform-readOnly,
+.kbm-setform-unavailable{
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}.kbm-setform-footer{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+}.kbm-setform-failed{
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-setform-save{
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px 14px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  background: var(--dsw-alias-label-primary);
+  color: var(--dsw-alias-bg-layer-3);
+}.kbm-setform-save:disabled{
+  opacity: 0.4;
+  cursor: default;
+}.kbm-setform-save:focus-visible{
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+/* ── settings-form/fields — les champs de settings ─────────────────────────────── */
+/* Settings form fields: label, control, override badge, and hint. */
+
+.kbm-setfield{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 0;
+}.kbm-setfield + .kbm-setfield{
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}.kbm-setfield-head{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}.kbm-setfield-label{
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}.kbm-setfield-labelGroup{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}.kbm-setfield-labelGroup > .kbm-setfield-label{
+  flex: 0 1 auto;
+}.kbm-setfield-helpButton{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}.kbm-setfield-helpButton:hover,
+.kbm-setfield-helpButton[aria-expanded='true']{
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-secondary);
+}.kbm-setfield-helpButton:focus-visible{
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}.kbm-setfield-help{
+  padding: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--dsw-alias-label-secondary);
+}.kbm-setfield-help > p{
+  margin: 0;
+}.kbm-setfield-help > p + p{
+  margin-top: 8px;
+}.kbm-setfield-badges{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}.kbm-setfield-reset{
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}.kbm-setfield-reset:hover:not(:disabled){
+  color: var(--dsw-alias-label-primary);
+}.kbm-setfield-reset:disabled{
+  cursor: default;
+}.kbm-setfield-input{
+  height: 34px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-primary);
+}.kbm-setfield-input:focus-visible{
+  outline: none;
+  border-color: var(--dsw-alias-brand-primary);
+}.kbm-setfield-input:disabled{
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}.kbm-setfield-input[aria-invalid='true']{
+  border-color: var(--dsw-alias-state-error-primary);
+}.kbm-setfield-invalid{
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-state-error-primary);
+}.kbm-setfield-hint{
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── user-text — le texte utilisateur ─────────────────────────────── */
+/* Inline projection of sent user text: plain runs and reference chips flow in
+   the consumer's own line box (bubble or queue row); nothing here is block.
+   White-space policy stays with the consumer: the bubble wraps with pre-wrap,
+   the queue preview keeps its single nowrap/ellipsis line. */
+
+.kbm-utext-plainRun{
+  font-size: inherit;
+  line-height: inherit;
+}.kbm-utext-refChip{
+  /* Plain inline, NOT inline-flex: a flex container takes its baseline from
+     its first flex item — the icon svg, which has no text baseline — so the
+     chip's label rode ~3px above the surrounding text in both surfaces. An
+     inline chip shares the consumer's baseline by construction. */
+  display: inline;
+  margin: 0 2px;
+  color: var(--dsw-alias-state-business-primary);
+  font-weight: 500;
+  white-space: nowrap;
+}/* Skill and command tokens read as code: the theme's code family at the
+   consumer's own size and line height, so the chip sits on the bubble line
+   like the plain runs around it. `@` chips keep the body face — a file or
+   session name is a label, not code. */
+.kbm-utext-slashChip{
+  font-family: var(--dsw-font-markdown-code-font-family);
+}/* Inline reference glyphs (always ReferenceIcon svgs) ride the consumer's own
+   font: 1em keeps the glyph at the text's size in the bubble (14px + user
+   setting), the queue preview's fixed 13px line, and any future consumer — a
+   px+delta size followed only the bubble axis and left the glyph oversized in
+   the queue row. */
+.kbm-utext-refIcon{
+  width: 1em;
+  height: 1em;
+  margin-right: 4px;
+  /* Optical centering against the text: drops the glyph below the baseline by
+     a font-relative amount, so it holds across the font axis. */
+  vertical-align: -0.125em;
+}
+
+/* ── ConnectionIndicator — l'indicateur de connexion ─────────────────────────────── */
+.kbm-conn{
+  flex: none;
+  display: inline-grid;
+  grid-template-columns: 14px max-content;
+  align-items: center;
+  column-gap: 4px;
+  height: 28px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 13px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out,
+    border-color 160ms ease-out,
+    opacity 150ms ease-out;
+  animation: kbm-indicator-enter 150ms ease-out;
+}.kbm-conn-leaving{
+  opacity: 0;
+}
+
+@keyframes kbm-indicator-enter {
+  from {
+    opacity: 0;
+  }
+}
+
+.warning {
+  background: var(--dsw-alias-state-warn-tertiary);
+  color: var(--dsw-alias-state-warn-label);
+  border-color: color-mix(in srgb, var(--dsw-alias-state-warn-label) 20%, transparent);
+  cursor: pointer;
+}
+
+.warning:hover {
+  background: color-mix(
+    in srgb,
+    var(--dsw-alias-state-warn-tertiary),
+    var(--dsw-alias-state-warn-primary) 6%
+  );
+}
+
+.warning:active {
+  background: color-mix(
+    in srgb,
+    var(--dsw-alias-state-warn-tertiary),
+    var(--dsw-alias-state-warn-primary) 10%
+  );
+}
+
+.warning:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-warn-label);
+  outline-offset: 2px;
+}
+
+.success {
+  background: var(--dsw-alias-state-success-tertiary);
+  color: var(--dsw-alias-state-success-primary);
+  border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 20%, transparent);
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+}
+
+.label {
+  text-align: left;
+}
+
+.dots {
+  display: inline-block;
+  width: 1em;
+  text-align: left;
+}
+
+.secondDot {
+  animation: reveal-second-dot 1.5s step-end infinite;
+}
+
+.thirdDot {
+  animation: reveal-third-dot 1.5s step-end infinite;
+}
+
+@keyframes kbm-reveal-second-dot {
+  0%, 33.32% { opacity: 0; }
+  33.33%, 100% { opacity: 1; }
+}
+
+@keyframes kbm-reveal-third-dot {
+  0%, 66.65% { opacity: 0; }
+  66.66%, 100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator,
+  .secondDot,
+  .thirdDot {
+    animation: none;
+  }
+
+  .indicator {
+    transition: none;
+  }
+}

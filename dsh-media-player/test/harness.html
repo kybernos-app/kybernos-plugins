@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr" data-ds-theme-source="dark">
+  <head>
+    <meta charset="utf-8" />
+    <title>dsh-media-player — banc d'essai</title>
+    <!-- Jetons DSH minimaux : le renderer ne lit que ces variables, et le
+         repli doit rester lisible si elles manquent (hors application). -->
+    <style>
+      :root {
+        --dsw-alias-bg-base: #14161a;
+        --dsw-alias-bg-layer-1: #1a1d22;
+        --dsw-alias-bg-layer-2: #20242b;
+        --dsw-alias-border-l1: #2a2f37;
+        --dsw-alias-border-l2: #333942;
+        --dsw-alias-label-primary: #e9ecf1;
+        --dsw-alias-label-secondary: #b6bcc6;
+        --dsw-alias-label-tertiary: #8b929d;
+        --dsw-alias-brand-primary: #4d8dff;
+        --dsw-alias-link: #4d8dff;
+        --dsw-alias-state-warn-primary: #e2a03f;
+      }
+      body {
+        margin: 0;
+        padding: 20px;
+        width: 420px;
+        background: var(--dsw-alias-bg-base);
+        color: var(--dsw-alias-label-primary);
+        font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
+      }
+      .case {
+        margin-bottom: 18px;
+      }
+      .case > .label {
+        margin-bottom: 6px;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--dsw-alias-label-tertiary);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="case">
+      <div class="label">audio (wav valide)</div>
+      <div id="audio"></div>
+    </div>
+    <div class="case">
+      <div class="label">vidéo (octets illisibles)</div>
+      <div id="video"></div>
+    </div>
+    <div class="case">
+      <div class="label">contenu non binaire</div>
+      <div id="text"></div>
+    </div>
+
+    <!-- Faux chargeur : enregistre la fabrique, comme le fait le vrai chargeur
+         de modules DSH avant de matérialiser le plugin. -->
+    <script>
+      window.__ModuleLoader__ = {
+        load(definition) {
+          window.__PLUGIN__ = definition
+        }
+      }
+    </script>
+    <script src="../client/client.js"></script>
+    <script src="./harness.bundle.js"></script>
+  </body>
+</html>

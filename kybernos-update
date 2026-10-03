@@ -1,0 +1,26 @@
+#!/bin/sh
+# ── Kybernos : mise à jour ──────────────────────────────────────────────────
+#
+# À lancer DEPUIS le dossier de la NOUVELLE archive extraite :
+#
+#   ./kybernos-update                     # met à jour le plugin (et le moteur si besoin)
+#   ./kybernos-update 0.1.7-alpha.2       # épingle aussi une version du moteur
+#   ./kybernos-update --dry               # montre le plan, ne touche à RIEN
+#
+# Même contrat que l'installation : empreintes vérifiées, photo avant écriture,
+# démarrage vérifié, et retour à la photo si quoi que ce soit échoue.
+set -e
+ici=$(cd "$(dirname "$0")" && pwd)
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js est absent — voir https://nodejs.org/fr/download"
+  exit 1
+fi
+version_noeud=$(node --version 2>/dev/null || echo '?')
+if ! node --input-type=module -e "await import('node:child_process')" >/dev/null 2>&1; then
+  echo "Node $version_noeud ne sait pas exécuter le robot (modules ESM indisponibles)."
+  exit 1
+fi
+echo "Node $version_noeud"
+
+exec node "$ici/scripts/dsh-lifecycle.mjs" upgrade "$@" --source "$ici"

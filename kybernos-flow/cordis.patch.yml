@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-flow
+      name: '@local/kybernos-flow'

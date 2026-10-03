@@ -1,0 +1,36 @@
+{
+  "name": "@local/kybernos-slides",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Decks de slides pilotés par le chat : outil hôte `creer_slides` + panneau « Slides » dans la barre latérale droite — écriture en temps réel (machine à écrire), édition live par l'utilisateur (texte + pinceau), puis correction IA en direct.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@local/kybernos-messaging",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Pont DSH ↔ messageries : cœur générique + adaptateurs de canal (Telegram en premier).",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "daemon": "node bin/telegram-daemon.mjs",
+    "send": "node bin/telegram-send.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

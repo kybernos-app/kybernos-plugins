@@ -1,0 +1,38 @@
+{
+  "name": "@local/kybernos-miniapps",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "« Install as app » pour les mini-apps de la barre latérale droite : bouton App dans chaque panneau, export en app native macOS flottante (indépendante de DSH) avec démarrage automatique optionnel.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "template/miniapp.swift",
+    "template/template.app",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  }
+}

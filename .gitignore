@@ -1,0 +1,21 @@
+# OS / editor
+.DS_Store
+*.swp
+
+# Dependencies and build output
+node_modules/
+dist/
+*.tar.gz
+
+# Local tooling
+.playwright-mcp/
+.worktrees/
+.expo-run/
+*.bak-*
+*.kbq-bak
+__pycache__/
+
+# Secrets and local state — never commit
+.env
+.env.*
+*.env

@@ -1,0 +1,11 @@
+Kybernos
+Copyright 2026 Kybernos contributors
+
+This product includes software developed by Kybernos contributors.
+Licensed under the Apache License, Version 2.0. See the LICENSE file.
+
+Third-party components (see THIRD_PARTY_LICENSES for details):
+
+- LiteLLM (c) 2023 BerriAI — MIT License
+  kybernos-core encapsulates `litellm[proxy]` (core MIT distribution only,
+  not the proprietary `enterprise/` directory).

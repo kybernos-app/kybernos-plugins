@@ -1,0 +1,24 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Repository guard
+        run: node scripts/garde-depot.mjs
+      - name: Syntax check (all bundle sources)
+        run: |
+          find . -path ./.git -prune -o \( -name '*.mjs' -o -name '*.js' \) -type f -not -path '*/vendor/*' -not -path '*/src/plugin.js' -not -name '*.min.js' -print0 | xargs -0 -n1 node --check
+      - name: Lifecycle robot tests
+        run: |
+          node scripts/test-lifecycle-engine.mjs
+          node scripts/test-plateforme.mjs
+          node scripts/test-paquet.mjs
+          node scripts/test-racine-dsh.mjs

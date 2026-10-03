@@ -1,0 +1,3 @@
+- insert:
+    - id: kybernos-slash
+      name: '@local/kybernos-slash'

@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0-beta.1",
+  "date": "2026-09-24",
+  "dsh_cible": "0.1.7-alpha.1",
+  "note": "Les trois archives viennent du MEME arbre (seul le manifeste embarque differe). Le sha256 est l'empreinte du fichier livre : le comparer apres telechargement, c'est le seul controle qui dit que l'archive est intacte. La retouche models-header est retiree : doctor --json annonce 2 retouches posees. Installation mesuree sur macOS seulement.",
+  "archives": [
+    {
+      "plateforme": "mac",
+      "fichier": "kybernos-dsh-1.0.0-beta.1-mac.tar.gz",
+      "url": "https://kybernos.app/beta/kybernos-dsh-1.0.0-beta.1-mac.tar.gz",
+      "sha256": "3d4ec7fa73177b92e86a5c2c1a61097ea2ec416314da894122f8141bb4e07280",
+      "construite_le": "2026-09-23",
+      "depuis": "HEAD (33c7d46) dans un worktree propre /tmp/kb-propre3",
+      "taille_octets": 3023995,
+      "fichiers": 122,
+      "taille": 3790675
+    },
+    {
+      "plateforme": "linux",
+      "fichier": "kybernos-dsh-1.0.0-beta.1-linux.tar.gz",
+      "url": "https://kybernos.app/beta/kybernos-dsh-1.0.0-beta.1-linux.tar.gz",
+      "sha256": "22535d6b36ce780f6defa4dea862f43d2fa82bf1c940b1ddea81eb33b12605d3",
+      "construite_le": "2026-09-23",
+      "depuis": "HEAD (33c7d46) dans un worktree propre /tmp/kb-propre3",
+      "taille_octets": 3024034,
+      "fichiers": 122,
+      "taille": 3790612
+    },
+    {
+      "plateforme": "windows",
+      "fichier": "kybernos-dsh-1.0.0-beta.1-windows.tar.gz",
+      "url": "https://kybernos.app/beta/kybernos-dsh-1.0.0-beta.1-windows.tar.gz",
+      "sha256": "995394ca16000f538e160de9a90f41842656c2236f005057653ecc761fa1ac56",
+      "construite_le": "2026-09-23",
+      "depuis": "HEAD (33c7d46) dans un worktree propre /tmp/kb-propre3",
+      "taille_octets": 3023958,
+      "fichiers": 122,
+      "taille": 3790647
+    }
+  ],
+  "depuis": "HEAD (f871498) dans un worktree propre /tmp/kb-propre6 — correctifs Windows du 23-24/09 : lanceurs *.cmd en CRLF, npm.cmd via shell, dsh.cmd + shell pour la verification du boot, delai npm porte a 600 s"
+}

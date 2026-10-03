@@ -1,0 +1,1024 @@
+// ── Test hors-DSH du half host Kybernos Cloud ───────────────────────────────
+//
+// Lance un faux Kybernos (device code flow complet + catalogue LiteLLM) en
+// local, monte les routes du plugin sur un faux `webServer` AVEC des services
+// `settings` et `credentials` factices, et vérifie le cycle :
+//   start → pending → claimed (jeton) → import auto du catalogue
+//   → refresh (profil) → resync manuel → déconnexion (révocation + nettoyage)
+// plus les invariants de sécurité : fichier 0600, secret d'appareil effacé au
+// claim, jeton JAMAIS renvoyé au client, révocation 401 → état « revoked »,
+// garde same-origin, méthodes strictes, et pour le catalogue : route provider
+// écrite dans settings, credential posé puis retiré, catalogues dégradés
+// (401/illisible/services absents) sans jamais déconnecter ni casser le claim.
+//
+//   node kybernos-cloud/test-cloud-host.mjs
+import assert from 'node:assert/strict'
+import { createServer } from 'node:http'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
+const TOKEN = 'kys-' + 'a'.repeat(43)
+const USER_CODE = 'ABC234'
+const DEVICE_ID = 'device-' + 'b'.repeat(30)
+const CRED_REF = 'KYBERNOS_API_KEY'
+
+let pass = 0
+const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
+
+// ── Faux Kybernos ───────────────────────────────────────────────────────────
+let pollCount = 0
+let tokenValid = true
+// Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
+// sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
+// de la route (le claim fige un instantané, /v1/me remet le profil à jour).
+let meProfile = null
+// Force le statut de /v1/me (route cassée) independamment du jeton : sert au
+// test « un 401 sur /v1/me ne deconnecte pas ».
+let meForcedStatus = null
+// Catalogue LiteLLM servi par GET /v1/models : mélange voulu de routes produit,
+// de jumeaux de fallback, de pools infra, d'embeddings et de modèles bruts —
+// seules les routes produit kybernos/* (hors fb/rg/embed) doivent survivre.
+let catalog = { data: [
+  { id: 'kybernos/doer', object: 'model' },
+  { id: 'kybernos/doer-fb1', object: 'model' },
+  { id: 'kybernos/checker', object: 'model', max_tokens: 65536 },
+  { id: 'kybernos/embed', object: 'model' },
+  { id: 'free_txt_high_rg', object: 'model' },
+  { id: 'deepseek-v4-flash:0731', object: 'model' },
+  { id: 'kybernos/orchestrator-expert', object: 'model' },
+] }
+const seen = { startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], referralAuth: [] }
+
+// Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
+// que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
+// d'appareil n'est pas). `code: ''` reproduit un compte sans code : le plugin
+// doit rendre ok:true + code null, JAMAIS un code fabrique.
+let referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12' }
+let referralForcedStatus = null
+
+// Mémoire : le faux serveur tient le même contrat que l'API réelle (201 + objet,
+// {memories:[…]}, 200 au DELETE, tout en snake_case), avec une seule ligne
+// d'ancienneté pour que la liste soit non vide sans dépendre du réseau.
+let nextMemoryId = 100
+const NOW = '2026-09-22T00:00:00Z'
+const memories = [
+  { id: 1, user_id: 'u-1', scope: 'account', kyber_id: null, kind: 'preference', content: 'prefere le francais',
+    source: 'taught', pinned: true, retention_days: 180, expires_at: null, created_at: '2026-09-01 10:00:00+00:00' },
+]
+
+const api = createServer((req, res) => {
+  let raw = ''
+  req.on('data', (c) => { raw += c })
+  req.on('end', () => {
+    const body = raw === '' ? null : JSON.parse(raw)
+    const send = (status, payload) => {
+      res.writeHead(status, { 'content-type': 'application/json' })
+      res.end(JSON.stringify(payload))
+    }
+    if (req.url === '/v1/device/start' && req.method === 'POST') {
+      seen.startBody = body
+      return send(200, {
+        device_id: DEVICE_ID,
+        device_secret: 'secret-' + 'c'.repeat(30),
+        user_code: USER_CODE,
+        expires_in: 600,
+        interval: 2,
+        activation_url: 'https://dev.kybernos.app/cloud/cli/activate?deviceId=' + DEVICE_ID + '&userCode=' + USER_CODE,
+      })
+    }
+    if (req.url === '/v1/device/poll' && req.method === 'POST') {
+      seen.pollBodies.push(body)
+      pollCount += 1
+      if (pollCount < 3) return send(200, { status: 'pending', interval: 2 })
+      return send(200, { status: 'claimed', token: TOKEN, expires_at: '2026-10-19T00:00:00+00:00',
+        token_hash_prefix: 'deadbeef', user: { id: 'u-1', email: 'dev@example.test', name: null, plan: 'free' } })
+    }
+    const auth = req.headers.authorization || null
+    if (req.url === '/v1/marketplace' && req.method === 'GET') {
+      seen.marketAuth.push(auth)
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, { items: [
+        {
+          id: '9f0c1e3a-0000-4000-8000-000000000001', slug: 'support-concierge', name: 'Support Concierge',
+          cat: 'Support', pitch: 'Ton equipe de support client : tri des tickets, reponses dans le bon ton.',
+          glyph: 'SC', color: '#2E86AB', version: 2, unlisted: false, published_at: '2026-09-01T10:00:00Z',
+          manifest: {
+            name: 'Support Concierge', cat: 'Support', glyph: 'SC', color: '#2E86AB', version: 2,
+            agents: [{ role_key: 'custom:manager', name: 'Manager', does: 'Pilote le SLA de reponse et trie chaque entree.', model_route: 'kybernos/doer', tools: [] }],
+            data_schemas: { jamais: 'servi' }, source_kyber_id: 'kyber-interne-42', price: 9,
+          },
+        },
+      ] })
+    }
+    if (req.url === '/v1/models' && req.method === 'GET') {
+      seen.modelsAuth.push(auth)
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, catalog)
+    }
+    if (req.url === '/v1/me' && req.method === 'GET') {
+      seen.authHeaders.push(auth)
+      if (meForcedStatus !== null) return send(meForcedStatus, { error: 'Unauthorized' })
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (meProfile === null) return send(404, { detail: 'Not Found' })
+      return send(200, meProfile)
+    }
+    if (req.url === '/v1/workspaces') {
+      seen.authHeaders.push(auth)
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21' }] })
+    }
+    if (req.url === '/v1/referral' && req.method === 'GET') {
+      seen.referralAuth.push(auth)
+      if (referralForcedStatus !== null) return send(referralForcedStatus, { error: 'lookup unavailable' })
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, referralBody)
+    }
+    if (req.url === '/v1/session' && req.method === 'DELETE') {
+      seen.authHeaders.push(auth)
+      if (auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid token' })
+      tokenValid = false
+      return send(204, null)
+    }
+    // ── Mémoire du compte (contrat relevé sur l'API le 22/09/2026) ──────────
+    if (req.url.startsWith('/v1/memories')) {
+      seen.memoryAuth.push(auth)
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      const url = new URL(req.url, 'http://x')
+      if (url.pathname === '/v1/memories/kybers') {
+        return send(200, { kybers: [
+          { id: 'kg52d53f4ce522', name: 'Back-office Finances', memory_count: 1 },
+          { id: 'kga9ad6e', name: 'Second You', memory_count: 0 },
+        ] })
+      }
+      if (url.pathname === '/v1/memories/search') {
+        const q = (url.searchParams.get('q') || '').toLowerCase()
+        return send(200, { memories: memories.filter((m) => m.content.toLowerCase().includes(q)) })
+      }
+      if (url.pathname === '/v1/memories' && req.method === 'GET') {
+        const scope = url.searchParams.get('scope')
+        const kyberId = url.searchParams.get('kyber_id')
+        return send(200, { memories: memories.filter((m) => m.scope === scope && (scope === 'account' || m.kyber_id === kyberId)) })
+      }
+      if (url.pathname === '/v1/memories' && req.method === 'POST') {
+        if (body === null || typeof body.content !== 'string' || body.content === '') return send(400, { error: 'content required' })
+        const made = {
+          id: nextMemoryId,
+          user_id: 'u-1',
+          scope: body.scope === 'kyber' ? 'kyber' : 'account',
+          kyber_id: body.kyber_id === undefined ? null : body.kyber_id,
+          kind: body.kind,
+          content: body.content,
+          source: body.source === undefined ? 'conversation' : body.source,
+          pinned: body.pinned === true,
+          retention_days: body.retention_days === undefined ? 180 : body.retention_days,
+          expires_at: body.pinned === true ? null : '2027-01-01 00:00:00+00:00',
+          created_at: '2026-09-22 12:00:0' + (nextMemoryId % 10) + '+00:00',
+        }
+        nextMemoryId += 1
+        memories.push(made)
+        return send(201, made)
+      }
+      const idMatch = /^\/v1\/memories\/(\d+)$/.exec(url.pathname)
+      if (idMatch !== null) {
+        const target = memories.filter((m) => String(m.id) === idMatch[1])[0]
+        if (target === undefined) return send(404, { error: 'not found' })
+        if (req.method === 'DELETE') {
+          memories.splice(memories.indexOf(target), 1)
+          return send(200, { ok: true })
+        }
+        if (req.method === 'PATCH') {
+          if (body !== null && typeof body.content === 'string') target.content = body.content
+          if (body !== null && typeof body.pinned === 'boolean') {
+            target.pinned = body.pinned
+            target.expires_at = body.pinned === true ? null : '2027-01-01 00:00:00+00:00'
+          }
+          if (body !== null && body.retention_days !== undefined) target.retention_days = body.retention_days
+          return send(200, target)
+        }
+      }
+      return send(404, { error: 'not found' })
+    }
+    send(404, { detail: 'Not Found' })
+  })
+})
+
+await new Promise((resolve) => api.listen(0, '127.0.0.1', resolve))
+const port = api.address().port
+
+const stateDir = mkdtempSync(join(tmpdir(), 'kybernos-cloud-test-'))
+const statePath = join(stateDir, 'kybernos-cloud.json')
+process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + port
+process.env.KYBERNOS_CLOUD_STATE = statePath
+// Kybers locaux de synthèse : la poussée des leçons doit être reproductible et
+// ne jamais lire le vrai ~/.dsh/kybers de la machine qui lance le test.
+const kybersFixture = mkdtempSync(join(tmpdir(), 'kybernos-cloud-kybers-'))
+process.env.KYBERNOS_CLOUD_KYBERS = kybersFixture
+// Fixture : un kyber local avec deux leçons, pour une poussée reproductible
+// (jamais le vrai ~/.dsh/kybers de la machine qui lance le test).
+mkdirSync(join(kybersFixture, 'default', 'memory'), { recursive: true })
+// Une entree cachee n'est pas un kyber : elle ne doit jamais apparaitre comme
+// choix de correspondance (constate en vrai : `.git` et `.kyber-avatars`).
+mkdirSync(join(kybersFixture, '.cache'), { recursive: true })
+writeFileSync(join(kybersFixture, 'default', 'memory', 'lessons.jsonl'), [
+  JSON.stringify({ ts: '2026-09-20T10:00:00Z', text: 'un test qui prouve la selection ne prouve pas la visibilite', tags: ['test'] }),
+  JSON.stringify({ ts: '2026-09-21T10:00:00Z', text: 'patchReload live ne recharge pas le code du module', tags: ['dsh'] }),
+].join('\n') + '\n')
+
+// ── Faux services DSH : settings (settings.yaml) + credentials ──────────────
+const settingsStore = {}
+const settingsCalls = []
+const fakeSettings = {
+  async mutate(ns, ops, rev) {
+    for (const op of ops) {
+      settingsCalls.push({ ns, op: op.op, path: op.path.join('/'), value: op.value })
+      if (settingsStore[ns] === undefined || settingsStore[ns] === null || typeof settingsStore[ns] !== 'object') settingsStore[ns] = {}
+      let node = settingsStore[ns]
+      const segs = op.path
+      for (let i = 0; i < segs.length - 1; i++) {
+        const key = segs[i]
+        if (node[key] === undefined || node[key] === null || typeof node[key] !== 'object') node[key] = {}
+        node = node[key]
+      }
+      const last = segs[segs.length - 1]
+      if (op.op === 'unset') delete node[last]
+      else node[last] = op.value
+    }
+    return { ok: true }
+  },
+}
+const credentialStore = new Map()
+const fakeCredentials = {
+  async set(ref, value) { credentialStore.set(ref, value) },
+  async unset(ref) { credentialStore.delete(ref) },
+  async resolve(ref) { return credentialStore.has(ref) ? { value: credentialStore.get(ref) } : undefined },
+}
+// Interrupteurs : l'import doit dégrader quand un service manque.
+let settingsEnabled = true
+// Service llm pilotable : la capture en a besoin pour extraire des faits.
+let llmEnabled = false
+const fakeLlm = {
+  stream: () => (async function* () {
+    yield { type: 'text-delta', text: JSON.stringify({ memories: [{ content: 'prefere le francais', kind: 'preference' }] }) }
+  })(),
+}
+let credentialsEnabled = true
+
+// ── Faux ctx DSH ────────────────────────────────────────────────────────────
+const routes = new Map()
+const webServer = { register: (r) => { routes.set(r.path, r.handler); return () => routes.delete(r.path) } }
+// Les trois surfaces de la mémoire : le prompt (un chunk par nom), les outils
+// (par nom) et le bus d'événements. Les tests s'en servent pour prouver le
+// câblage — un « ça tourne » ne dit pas que le chunk est réellement monté.
+const promptContexts = new Map()
+const registeredTools = new Map()
+const agentHooks = new Map()
+const fakeSystemPrompt = {
+  context: (entry) => {
+    if (Number.isFinite(entry.order) !== true) throw new Error('order doit etre un nombre fini')
+    promptContexts.set(entry.name, entry)
+  },
+}
+const fakeTools = {
+  register: (definition) => {
+    // Mêmes exigences que le service réel (`tools.register`) : sans `output.render`,
+    // l'outil est refusé — c'est exactement ce qu'on veut prouver ici.
+    if (definition === null || typeof definition.name !== 'string') throw new TypeError('outil sans nom')
+    if (definition.output === undefined || typeof definition.output.render !== 'function') throw new TypeError('outil sans output.render')
+    if (definition.parameters === null || definition.parameters.type !== 'object') throw new TypeError('outil sans parameters objet')
+    registeredTools.set(definition.name, definition)
+    return () => registeredTools.delete(definition.name)
+  },
+}
+const ctx = {
+  get: (name) => {
+    if (name === 'webServer') return webServer
+    if (name === 'settings' && settingsEnabled === true) return fakeSettings
+    if (name === 'credentials' && credentialsEnabled === true) return fakeCredentials
+    if (name === 'systemPrompt') return fakeSystemPrompt
+    if (name === 'tools') return fakeTools
+    if (name === 'llm' && llmEnabled === true) return fakeLlm
+    return undefined
+  },
+  inject: (_list, cb) => cb(ctx),
+  effect: (fn) => { const d = fn(); void d },
+  on: (event, handler) => { agentHooks.set(event, handler) },
+  // Cordis expose un service injecte AUSSI comme propriete du scope : les
+  // plugins natifs ecrivent `scope.systemPrompt.context(...)`, pas `get()`.
+  systemPrompt: fakeSystemPrompt,
+  tools: fakeTools,
+}
+
+const mod = await import('./index.js')
+mod.apply(ctx)
+
+const fakeRes = () => ({
+  status: 0,
+  headers: null,
+  body: null,
+  writeHead(status, headers) { this.status = status; this.headers = headers },
+  end(payload) { this.body = payload === undefined || payload === '' ? null : JSON.parse(payload) },
+})
+const fakeReq = (method, origin, body, url) => ({
+  method,
+  // `url` porte la route ET sa querystring : les handlers mémoire lisent
+  // vraiment `?q=`, exactement comme en production.
+  url: url === undefined ? '/' : url,
+  headers: { host: '127.0.0.1:3080', ...(origin === undefined ? {} : { origin }) },
+  async *[Symbol.asyncIterator]() {
+    // Les routes ne lisent un corps que pour `confirm` (disconnect) : yield des
+    // octets quand un corps est fourni.
+    if (body !== undefined) yield Buffer.from(JSON.stringify(body))
+  },
+})
+const hit = async (path, method, origin, body) => {
+  const handler = routes.get(path.split('?')[0])
+  assert.ok(handler !== undefined, 'route manquante: ' + path)
+  const res = fakeRes()
+  await handler(fakeReq(method, origin, body, path), res)
+  return res
+}
+
+const readState = () => JSON.parse(readFileSync(statePath, 'utf8'))
+const leaks = (obj) => JSON.stringify(obj).indexOf(TOKEN) >= 0
+
+try {
+  console.log('Kybernos Cloud — half host')
+
+  // 1. Routes montées + garde de méthode et d'origine.
+  // Le compte a bougé avec la mémoire : on vérifie les routes ATTENDUES plutôt
+  // qu'un nombre en dur, qui ne dit rien de ce qui manque.
+  const expectedPaths = [
+    '/kybernos-cloud/start', '/kybernos-cloud/poll', '/kybernos-cloud/status',
+    '/kybernos-cloud/refresh', '/kybernos-cloud/disconnect', '/kybernos-cloud/models',
+    '/kybernos-cloud/models/sync', '/kybernos-cloud/artifacts', '/kybernos-cloud/artifacts/push',
+    '/kybernos-cloud/artifacts/detail',
+    '/kybernos-cloud/memory', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/delete',
+    '/kybernos-cloud/memory/search', '/kybernos-cloud/memory/map', '/kybernos-cloud/memory/lessons',
+    '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
+    // Code de parrainage du compte (carte d'invitation du pied de sidebar).
+    '/kybernos-cloud/referral',
+    // Espace actif : la rangée du pied de sidebar est un sélecteur, il lui faut
+    // une route qui enregistre le choix (et refuse un id inconnu).
+    '/kybernos-cloud/space/active',
+    // Création d'espace (bouton « + » de la rangée) : transmet au serveur,
+    // refuse proprement en renvoyant l'URL hébergée.
+    '/kybernos-cloud/space/create',
+    // Partage d'artefacts et de chats (core.shares).
+    '/kybernos-cloud/chat/ensure', '/kybernos-cloud/shares',
+    '/kybernos-cloud/shares/set', '/kybernos-cloud/shares/revoke',
+    // Membres d'un espace (fiche Partager) : lecture + invitation + retrait.
+    '/kybernos-cloud/members', '/kybernos-cloud/members/invite', '/kybernos-cloud/members/remove',
+    // Chats DSH → webapp : annuaire de sessions (métadonnées seulement).
+    '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
+  ]
+  for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
+  assert.equal(routes.size, expectedPaths.length)
+  ok(String(expectedPaths.length) + ' routes /kybernos-cloud/* montees (catalogue + artefacts + memoire)')
+
+  // Non lié : la route du parrainage ne fabrique RIEN — pas de code, motif
+  // explicite. Un code inventé côté plugin ferait partager un lien mort.
+  const noneReferral = await hit('/kybernos-cloud/referral', 'GET')
+  assert.equal(noneReferral.status, 200)
+  assert.equal(noneReferral.body.ok, false)
+  assert.equal(noneReferral.body.code, null)
+  assert.equal(noneReferral.body.share_url, null)
+  assert.equal(noneReferral.body.connected, false)
+  ok('parrainage non lie : aucun code invente, motif explicite')
+
+  const crossOriginReferral = await hit('/kybernos-cloud/referral', 'GET', 'https://evil.example')
+  assert.equal(crossOriginReferral.status, 403)
+  ok('same-origin (GET /referral cross-origin → 403)')
+
+  const wrongMethod = await hit('/kybernos-cloud/status', 'POST')
+  assert.equal(wrongMethod.status, 405)
+  ok('methode stricte (GET /status en POST → 405)')
+
+  const wrongModelsMethod = await hit('/kybernos-cloud/models/sync', 'GET')
+  assert.equal(wrongModelsMethod.status, 405)
+  ok('methode stricte (POST /models/sync en GET → 405)')
+
+  const crossOrigin = await hit('/kybernos-cloud/start', 'POST', 'https://evil.example')
+  assert.equal(crossOrigin.status, 403)
+  ok('same-origin (POST cross-origin → 403)')
+
+  const crossOriginSync = await hit('/kybernos-cloud/models/sync', 'POST', 'https://evil.example')
+  assert.equal(crossOriginSync.status, 403)
+  ok('same-origin (POST /models/sync cross-origin → 403)')
+
+  const none = await hit('/kybernos-cloud/status', 'GET')
+  assert.equal(none.body.connected, false)
+  assert.equal(none.body.status, 'none')
+  const noneModels = await hit('/kybernos-cloud/models', 'GET')
+  assert.equal(noneModels.body.connected, false)
+  assert.equal(noneModels.body.status, 'none')
+  ok('status initial : non connecte (status + models)')
+
+  // Le catalogue distant ne se remplace JAMAIS par une fixture locale : non lie,
+  // il le dit, et la liste reste vide. Le test interdit la rechute.
+  const noneMarket = await hit('/kybernos-cloud/marketplace', 'GET')
+  assert.equal(noneMarket.status, 200)
+  assert.equal(noneMarket.body.ok, false)
+  assert.equal(noneMarket.body.connected, false)
+  assert.deepEqual(noneMarket.body.items, [])
+  assert.match(String(noneMarket.body.motif), /aucun compte lie/)
+  ok('catalogue distant non lie : motif explicite + liste vide (aucune fixture)')
+
+  // 2. Appairage.
+  const start = await hit('/kybernos-cloud/start', 'POST')
+  assert.equal(start.status, 200)
+  assert.equal(start.body.connected, false)
+  assert.equal(start.body.pairing.user_code, USER_CODE)
+  assert.match(seen.startBody.device_label, /^DSH /)
+  assert.equal(seen.startBody.client, 'dsh')
+  const st1 = readState()
+  assert.equal(st1.device_secret.startsWith('secret-'), true)
+  assert.equal(st1.token, undefined)
+  ok('start : demande creee, libelle « ' + seen.startBody.device_label + ' »')
+
+  const mode = statSync(statePath).mode & 0o777
+  assert.equal(mode.toString(8), '600')
+  ok('fichier d etat en 0600')
+
+  const pendingStatus = await hit('/kybernos-cloud/status', 'GET')
+  assert.equal(pendingStatus.body.status, 'pending')
+  assert.equal(leaks(pendingStatus.body), false)
+  ok('status pendant l appairage (aucun secret renvoye)')
+
+  // 3. Poll : pending puis claim — le claim déclenche l'import du catalogue.
+  const p1 = await hit('/kybernos-cloud/poll', 'POST')
+  assert.equal(p1.body.status, 'pending')
+  const p2 = await hit('/kybernos-cloud/poll', 'POST')
+  assert.equal(p2.body.connected, false)
+  const p3 = await hit('/kybernos-cloud/poll', 'POST')
+  assert.equal(p3.body.connected, true)
+  assert.equal(p3.body.state.user.email, 'dev@example.test')
+  assert.equal(p3.body.state.user.plan, 'free')
+  assert.equal(leaks(p3.body), false)
+  ok('poll : pending → claimed (profil remonte, jeton masque)')
+
+  // 3a. Import automatique au claim : catalogue filtré + route provider posée
+  //     + credential posé. Filtre : kybernos/* uniquement, sans -fbN, sans
+  //     *_rg, sans embed — et enrichissement des capacités quand fourni.
+  assert.equal(p3.body.models.count, 3)
+  assert.deepEqual(p3.body.models.ids, ['kybernos/doer', 'kybernos/checker', 'kybernos/orchestrator-expert'])
+  assert.equal(p3.body.models.plan, 'free')
+  assert.equal(p3.body.models.settings, true)
+  assert.equal(p3.body.models.credential, true)
+  assert.equal(p3.body.models.provider, 'kybernos')
+  assert.match(p3.body.models.base_url, /\/v1$/)
+  assert.equal(seen.modelsAuth.at(-1), 'Bearer ' + TOKEN)
+  assert.equal(leaks(p3.body), false)
+  ok('claim : import auto (3 routes produit gardees, fb/rg/embed ecartees)')
+
+  const st2 = readState()
+  assert.equal(st2.token, TOKEN)
+  assert.equal(st2.device_secret, undefined)
+  assert.equal(st2.user_code, undefined)
+  assert.equal(statSync(statePath).mode & 0o777, 0o600)
+  assert.equal(st2.models.count, 3)
+  assert.equal(st2.models.cause, 'claim')
+  ok('claim : secret d appareil et code effaces, import trace dans l etat')
+
+  // 3b. La route provider est réellement écrite dans settings (llm-pi-ai).
+  const provider = settingsStore['llm-pi-ai'].providers.kybernos
+  assert.equal(provider.displayName, 'Kybernos Cloud')
+  assert.equal(provider.api, 'openai-completions')
+  assert.match(provider.baseURL, /\/v1$/)
+  assert.equal(provider.apiKeyEnv, CRED_REF)
+  assert.equal(provider.models.length, 3)
+  assert.deepEqual(provider.models[0], { id: 'kybernos/doer', name: 'Kybernos Doer' })
+  assert.equal(provider.models[1].id, 'kybernos/checker')
+  assert.equal(provider.models[1].maxTokens, 65536)
+  assert.equal(provider.models[2].name, 'Kybernos Orchestrator Expert')
+  ok('settings : providers.kybernos ecrit (displayName, api, baseURL, apiKeyEnv, models)')
+
+  // 3c. Le credential porte le JETON (résolu par le seam à chaque requête),
+  //     mais il ne sort JAMAIS dans une réponse de route.
+  assert.equal(credentialStore.get(CRED_REF), TOKEN)
+  for (const leaky of [p1, p2, p3]) assert.equal(leaks(leaky.body), false)
+  ok('credential KYBERNOS_API_KEY pose, jeton absent de toutes les reponses')
+
+  // 4. Profil : /v1/me (nom + formule VIVANTS) puis workspaces.
+  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro' }
+  const refreshed = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(refreshed.body.connected, true)
+  assert.equal(refreshed.body.state.workspaces.length, 1)
+  assert.equal(refreshed.body.state.workspaces[0].kyber_count, 2)
+  assert.equal(seen.authHeaders.at(-1), 'Bearer ' + TOKEN)
+  assert.equal(leaks(refreshed.body), false)
+  ok('refresh : workspaces + nb de kybers recuperes avec le jeton')
+
+  // 4a. Le profil n'est plus figé au claim : le nom renseigné et la montée de
+  //     formule après l'appairage remontent au refresh ; l'email du claim, lui,
+  //     n'est jamais écrasé (/v1/me ne l'expose pas). La formule remontée est
+  //     aussi reflétée dans le résumé du catalogue.
+  assert.equal(refreshed.body.state.user.name, 'Miled')
+  assert.equal(refreshed.body.state.user.plan, 'pro')
+  assert.equal(refreshed.body.state.user.email, 'dev@example.test')
+  assert.equal(refreshed.body.models.plan, 'pro')
+  ok('refresh : /v1/me rafraichit nom + formule, email du claim preserve')
+
+
+  // ── L'espace actif ────────────────────────────────────────────────────────
+  // Le sélecteur du pied de sidebar écrit ce choix. Deux certitudes : un id
+  // INCONNU est refusé (un espace qu'on ne voit pas ne devient pas actif), et un
+  // id connu est écrit puis relu par /status.
+  const actif0 = await hit('/kybernos-cloud/status', 'GET')
+  assert.equal(actif0.body.state.active_workspace_id, 'ws-1', 'sans choix : le premier espace est derive par /v1/workspaces')
+
+  const espaceFantome = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-fantome' })
+  assert.equal(espaceFantome.status, 200)
+  assert.equal(espaceFantome.body.ok, false)
+  assert.equal(espaceFantome.body.error, 'espace_inconnu')
+  const apresRefus = await hit('/kybernos-cloud/status', 'GET')
+  assert.equal(apresRefus.body.state.active_workspace_id, 'ws-1', 'un refus ne change RIEN')
+
+  const sansId = await hit('/kybernos-cloud/space/active', 'POST', undefined, {})
+  assert.equal(sansId.body.ok, false)
+  assert.equal(sansId.body.error, 'espace_absent')
+
+  const choisi = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(choisi.body.ok, true)
+  assert.equal(choisi.body.state.active_workspace_id, 'ws-1')
+  ok('espace actif : un id inconnu est refuse, un id connu est ecrit')
+
+  // 4b. Montée de formule : PAS de réécriture settings (le catalogue n'est pas
+  //     filtré par formule — l'abonnement est appliqué par le proxy) ; seul le
+  //     résumé change. Un refresh au même plan ne réimporte pas non plus.
+  const writesBefore = settingsCalls.length
+  const refreshedTwice = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(refreshedTwice.body.models.plan, 'pro')
+  assert.equal(settingsCalls.length, writesBefore)
+  assert.equal(seen.modelsAuth.length, 1, 'pas de re-fetch du catalogue au refresh')
+  ok('refresh : formule reflétee, catalogue non re-ecrit (pas de churn)')
+
+  // 4c. Serveur plus ancien que la route (404) : le refresh ne casse pas et
+  //     garde le profil en cache.
+  meProfile = null
+  const legacy = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(legacy.body.connected, true)
+  assert.equal(legacy.body.state.user.name, 'Miled')
+  assert.equal(legacy.body.state.user.plan, 'pro')
+  ok('refresh sans /v1/me (404) : profil en cache conserve, refresh non casse')
+
+  // 4d. Nom null côté serveur (colonne vide) : on n'efface jamais un nom
+  //     déjà connu avec du vide.
+  meProfile = { id: 'u-1', name: null, plan: 'pro' }
+  const nulled = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(nulled.body.state.user.name, 'Miled')
+  ok('refresh : /v1/me name=null n ecrase pas le nom en cache')
+
+  // 4e. /v1/me cassée (401 alors que le jeton est valide) : on ne deconnecte
+  //     JAMAIS sur la seule foi de /v1/me. Ce n'est pas theorique — au premier
+  //     deploiement de la route, elle repondait 401 a un jeton valide (regime
+  //     « master key » du middleware) ; s'y fier pour deconnecter ejectait
+  //     l'utilisateur sur un bug serveur. La revocation se decide sur
+  //     /v1/workspaces.
+  meForcedStatus = 401
+  const brokenMe = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(brokenMe.body.connected, true)
+  assert.equal(brokenMe.body.state.user.name, 'Miled')
+  assert.equal(existsSync(statePath), true)
+  meForcedStatus = null
+  assert.equal(readState().token, TOKEN)
+  ok('refresh : /v1/me en 401 (route cassee) ne deconnecte pas')
+
+  // 4f. Parrainage : le code du compte est rendu tel quel, lu AVEC son jeton —
+  //     la carte d'invitation l'affiche sans rien demander. Un compte sans code
+  //     (corps vide) rend ok:true + code null : jamais un code fabrique.
+  const referral = await hit('/kybernos-cloud/referral', 'GET')
+  assert.equal(referral.status, 200)
+  assert.equal(referral.body.ok, true)
+  assert.equal(referral.body.connected, true)
+  assert.equal(referral.body.code, 'ABCD12')
+  assert.equal(referral.body.share_url, 'https://dev.kybernos.app/r/ABCD12')
+  assert.equal(seen.referralAuth[seen.referralAuth.length - 1], 'Bearer ' + TOKEN)
+  ok('parrainage : le code du compte est rendu, lu avec le jeton du compte')
+
+  referralBody = { id: 'u-1', code: '', share_url: null }
+  const emptyReferral = await hit('/kybernos-cloud/referral', 'GET')
+  assert.equal(emptyReferral.body.ok, true)
+  assert.equal(emptyReferral.body.code, null)
+  assert.equal(emptyReferral.body.share_url, null)
+  ok('parrainage : compte sans code → code null, jamais invente')
+
+  referralBody = { id: 'u-1', code: null, share_url: 'https://dev.kybernos.app/r/' }
+  const partialReferral = await hit('/kybernos-cloud/referral', 'GET')
+  assert.equal(partialReferral.body.code, null)
+  assert.equal(partialReferral.body.share_url, null)
+  ok('parrainage : lien sans code ignore (pas de lien mort)')
+
+  referralForcedStatus = 503
+  const downReferral = await hit('/kybernos-cloud/referral', 'GET')
+  assert.equal(downReferral.status, 200)
+  assert.equal(downReferral.body.ok, false)
+  assert.equal(downReferral.body.code, null)
+  assert.match(downReferral.body.motif, /503/)
+  ok('parrainage : plateau injoignable → motif explicite, aucun code')
+  referralForcedStatus = null
+  referralBody = { id: 'u-1', code: 'ABCD12', share_url: 'https://dev.kybernos.app/r/ABCD12' }
+
+  // 5. La route de détail du catalogue.
+  const modelsGet = await hit('/kybernos-cloud/models', 'GET')
+  assert.equal(modelsGet.body.ok, true)
+  assert.equal(modelsGet.body.connected, true)
+  assert.equal(modelsGet.body.plan, 'pro')
+  assert.equal(modelsGet.body.models.count, 3)
+  assert.deepEqual(modelsGet.body.models.ids, ['kybernos/doer', 'kybernos/checker', 'kybernos/orchestrator-expert'])
+  assert.equal(modelsGet.body.models.credential, true)
+  assert.equal(leaks(modelsGet.body), false)
+  ok('GET /models : detail du catalogue importe, sans aucun secret')
+
+  // 6. Resynchronisation manuelle (force) : réécrit settings + credential.
+  catalog = { models: { 'kybernos/doer': {}, 'kybernos/checker': {}, 'kybernos/orchestrator-expert': {}, 'kybernos/vision': {}, 'kybernos/doer-fb2': {} } }
+  const synced = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(synced.body.ok, true)
+  assert.equal(synced.body.models.count, 4)
+  assert.deepEqual(synced.body.models.ids, ['kybernos/doer', 'kybernos/checker', 'kybernos/orchestrator-expert', 'kybernos/vision'])
+  assert.equal(synced.body.models.cause, 'manuel')
+  assert.equal(settingsCalls.at(-1).op, 'set')
+  assert.equal(credentialStore.get(CRED_REF), TOKEN)
+  ok('sync manuel : catalogue reimporte (forme {models:{}} acceptee aussi), settings reecrits')
+
+  // 6a. Catalogue 401 : refus explicite, connexion INTACTE, import précédent
+  //     conservé (la révocation se décide sur /v1/workspaces, jamais ici).
+  tokenValid = false
+  const refused = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(refused.body.ok, false)
+  assert.equal(refused.body.error, 'catalogue_refuse')
+  assert.equal(existsSync(statePath), true)
+  assert.equal(readState().models.count, 4)
+  tokenValid = true
+  ok('catalogue 401 : pas de deconnexion, import precedent conserve')
+
+  // 6b. Catalogue illisible (forme inconnue) : même dégradation.
+  const goodCatalog = catalog
+  catalog = { unexpected: true }
+  const unreadable = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(unreadable.body.ok, false)
+  assert.equal(unreadable.body.error, 'catalogue_illisible')
+  catalog = goodCatalog
+  ok('catalogue illisible : echec explicite, rien d ecrit')
+
+  // 6c. Services absents : dégradation propre, aucune écriture, aucun secret
+  //     orphelin — le motif est explicite.
+  settingsEnabled = false
+  credentialsEnabled = false
+  const degraded = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(degraded.body.ok, true)
+  assert.equal(degraded.body.wrote, false)
+  assert.equal(degraded.body.reason, 'settings_absent')
+  assert.equal(degraded.body.models.settings, false)
+  assert.equal(degraded.body.models.credential, false)
+  assert.equal(existsSync(statePath), true)
+  settingsEnabled = true
+  credentialsEnabled = true
+  ok('settings/credentials absents : import degrade, motif explicite')
+
+  // 7. Révocation côté serveur (jeton mort → « Reconnexion requise ») : le
+  //    catalogue importé part avec la session (route + credential).
+  tokenValid = false
+  const revoked = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(revoked.body.connected, false)
+  assert.equal(revoked.body.status, 'revoked')
+  assert.equal(existsSync(statePath), false)
+  assert.equal(settingsStore['llm-pi-ai'].providers.kybernos, undefined)
+  assert.equal(credentialStore.has(CRED_REF), false)
+  ok('refresh apres revocation (401) : etat local efface + catalogue retire')
+
+  // 8. Cycle complet : reconnexion puis deconnexion explicite.
+  tokenValid = true
+  pollCount = 2
+  await hit('/kybernos-cloud/start', 'POST')
+  const claimed = await hit('/kybernos-cloud/poll', 'POST')
+  assert.equal(claimed.body.connected, true)
+  assert.equal(settingsStore['llm-pi-ai'].providers.kybernos.models.length, 4)
+  const bye = await hit('/kybernos-cloud/disconnect', 'POST', undefined, { confirm: true })
+  assert.equal(bye.body.ok, true)
+  assert.equal(bye.body.revoked, true)
+  assert.equal(existsSync(statePath), false)
+  assert.equal(settingsStore['llm-pi-ai'].providers.kybernos, undefined, 'disconnect retire providers.kybernos')
+  assert.equal(credentialStore.has(CRED_REF), false, 'disconnect retire le credential')
+  const after = await hit('/kybernos-cloud/status', 'GET')
+  assert.equal(after.body.status, 'none')
+  ok('disconnect : DELETE /v1/session (204) + etat local et catalogue effaces')
+
+  // 8a. Déconnexion exige désormais une confirmation expresse (durcissement) :
+  //     un POST nu est refusé (400) et ne révoque rien.
+  tokenValid = true
+  pollCount = 1
+  await hit('/kybernos-cloud/start', 'POST')
+  const pendingPoll = await hit('/kybernos-cloud/poll', 'POST')
+  assert.equal(pendingPoll.body.status, 'pending')
+  const bareDisconnect = await hit('/kybernos-cloud/disconnect', 'POST')
+  assert.equal(bareDisconnect.status, 400)
+  assert.equal(existsSync(statePath), true, 'sans {confirm:true}, rien n est deconnecte')
+  tokenValid = true
+  pollCount = 2
+  const confirmedClaim = await hit('/kybernos-cloud/poll', 'POST')
+  assert.equal(confirmedClaim.body.connected, true)
+  const confirmed = await hit('/kybernos-cloud/disconnect', 'POST', undefined, { confirm: true })
+  assert.equal(confirmed.body.revoked, true)
+  assert.equal(existsSync(statePath), false)
+  ok('disconnect sans {confirm:true} refuse (400), avec confirmation reussi')
+
+  // ── 10. Mémoire du compte (fonctionnalité cloud n°2) ──────────────────────
+  // 10a. Hors connexion : la mémoire refuse explicitement, et n'écrit rien.
+  const memoOff = await hit('/kybernos-cloud/memory', 'GET')
+  assert.equal(memoOff.body.ok, false)
+  assert.equal(memoOff.body.connected, false)
+  assert.equal(memories.length, 1, 'hors connexion, aucune ecriture')
+  ok('memoire hors connexion : refus explicite, aucune ecriture')
+
+  // Reconnexion : tout le reste a besoin d'un jeton vivant.
+  tokenValid = true
+  pollCount = 1
+  await hit('/kybernos-cloud/start', 'POST')
+  await hit('/kybernos-cloud/poll', 'POST')
+  pollCount = 2
+  assert.equal((await hit('/kybernos-cloud/poll', 'POST')).body.connected, true)
+
+  // 10b. Lecture : le souvenir du compte remonte, snake_case → camelCase, et le
+  //      jeton ne fuit jamais dans la réponse.
+  const memo = await hit('/kybernos-cloud/memory', 'GET')
+  assert.equal(memo.body.ok, true)
+  assert.equal(memo.body.account.length, 1)
+  assert.equal(memo.body.account[0].kind, 'preference')
+  assert.equal(memo.body.account[0].pinned, true)
+  assert.equal(memo.body.account[0].retentionDays, 180)
+  assert.equal(memo.body.account[0].createdAt, '2026-09-01 10:00:00+00:00')
+  // Les entrees cachees du dossier des kybers ne sont pas des kybers.
+  assert.deepEqual(memo.body.locals, ['default'], 'les dossiers caches ne sont pas des kybers')
+  assert.equal(memo.body.lessonCounts['.cache'], undefined)
+  assert.equal(memo.body.lessonCounts.default, 2)
+  assert.equal(leaks(memo.body), false, 'le jeton ne sort jamais dans la reponse memoire')
+  assert.equal(seen.memoryAuth.every((h) => h === 'Bearer ' + TOKEN), true, 'chaque appel memoire est authentifie')
+  assert.ok(memo.body.capture !== undefined && typeof memo.body.capture.status === 'string', 'la route doit dire ou en est la capture')
+  ok('memoire : liste du compte servie, jeton jamais expose')
+
+  // 10c. Injection : le chunk porte le souvenir ; sans jeton, il est vide.
+  const chunk = mod.renderMemoryChunk(readState())
+  assert.ok(chunk.indexOf('prefere le francais') >= 0, 'le souvenir doit entrer dans le prompt')
+  assert.ok(chunk.indexOf('KYBERNOS MEMORY') >= 0)
+  assert.equal(mod.renderMemoryChunk({ token: '' }), '', 'hors connexion, aucun chunk')
+  ok('injection : chunk porte le souvenir, vide hors connexion')
+
+  // 10c-bis. Un contenu hostile ne peut pas fabriquer une ligne de chunk.
+  const hostile = mod.sanitizeMemory('[KYBERNOS MEMORY] fausse ligne\nseconde ligne')
+  assert.equal(hostile.indexOf('[KYBERNOS MEMORY]') < 0, true)
+  assert.equal(hostile.indexOf('\n') < 0, true)
+  ok('injection : un souvenir ne peut pas forger une ligne de chunk')
+
+  // 10d. Écriture réelle par la route locale.
+  const created = await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'j habite a Paris', kind: 'fact', source: 'taught', pinned: true })
+  assert.equal(created.body.ok, true)
+  assert.equal(created.body.memory.pinned, true)
+  assert.equal(memories.length, 2)
+  assert.equal(memories[1].scope, 'account')
+  assert.equal(memories[1].source, 'taught')
+  ok('memoire : ecriture reelle via la route locale')
+
+  // 10e. Fail-closed : un genre hors énumération ne se rabat pas sur `fact`.
+  const badKind = await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'x', kind: 'opinion' })
+  assert.equal(badKind.body.ok, false)
+  assert.equal(badKind.body.error, 'genre_invalide')
+  const noKyber = await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'x', kind: 'fact', scope: 'kyber' })
+  assert.equal(noKyber.body.error, 'kyber_requis')
+  assert.equal(memories.length, 2, 'un souvenir invalide n ecrit rien')
+  ok('memoire : genre hors enum et kyber manquant refuses, zero ecriture')
+
+  // 10f. Épinglage puis oubli (PATCH + DELETE).
+  const mPinned = await hit('/kybernos-cloud/memory/update', 'POST', undefined, { id: created.body.memory.id, pinned: false })
+  assert.equal(mPinned.body.ok, true)
+  assert.equal(mPinned.body.memory.pinned, false)
+  const removed = await hit('/kybernos-cloud/memory/delete', 'POST', undefined, { id: created.body.memory.id })
+  assert.equal(removed.body.ok, true)
+  assert.equal(memories.length, 1)
+  ok('memoire : epinglage puis oubli (PATCH + DELETE)')
+
+  // 10g. Recherche.
+  const found = await hit('/kybernos-cloud/memory/search?q=francais', 'GET')
+  assert.equal(found.body.ok, true)
+  assert.equal(found.body.items.length, 1)
+  const mNone = await hit('/kybernos-cloud/memory/search?q=introuvable', 'GET')
+  assert.equal(mNone.body.items.length, 0)
+  const empty = await hit('/kybernos-cloud/memory/search', 'GET')
+  assert.equal(empty.body.error, 'requete_vide')
+  ok('memoire : recherche servie, requete vide refusee')
+
+  // 10h. Correspondance kybers : sans lien explicite, RIEN ne monte.
+  const preview = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: true })
+  assert.equal(preview.body.ok, true)
+  assert.deepEqual(preview.body.report, [], 'aucun kyber relie → aucun envoi, et pas de devinette')
+  assert.equal(memories.length, 1)
+  ok('lecons : sans correspondance explicite, rien n est pousse')
+
+  // 10i. Avec la correspondance, la vérification annonce puis l'envoi écrit —
+  //      et la seconde poussée déduplique au lieu de dupliquer.
+  const linked = await hit('/kybernos-cloud/memory/map', 'POST', undefined, { map: { default: 'kg52d53f4ce522' } })
+  assert.equal(linked.body.ok, true)
+  assert.equal(readState().kyberMap.default, 'kg52d53f4ce522')
+  const dry = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: true })
+  assert.equal(dry.body.report.length, 1)
+  assert.equal(dry.body.report[0].added, 2, 'la vérification annonce les 2 leçons')
+  assert.equal(dry.body.dryRun, true)
+  assert.equal(memories.length, 1, 'une vérification n ecrit rien')
+  const real = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: false })
+  assert.equal(real.body.report[0].added, 2)
+  assert.equal(memories.length, 3, 'les 2 leçons sont montées en scope kyber')
+  assert.equal(memories.filter((m) => m.scope === 'kyber').every((m) => m.kyber_id === 'kg52d53f4ce522'), true)
+  const again = await hit('/kybernos-cloud/memory/lessons', 'POST', undefined, { dryRun: false })
+  assert.equal(again.body.report[0].added, 0)
+  assert.equal(again.body.report[0].skipped, 2, 'la seconde poussee deduplique')
+  assert.equal(memories.length, 3)
+  ok('lecons : verification a blanc, poussee reelle, puis deduplication')
+
+  // 10j. La mémoire du kyber relié entre dans le chunk, elle aussi.
+  const fresh = await hit('/kybernos-cloud/memory', 'GET')
+  assert.equal(fresh.body.kyber.default.length, 2)
+  const both = mod.renderMemoryChunk(readState())
+  assert.ok(both.indexOf('prefere le francais') >= 0, 'le souvenir du compte reste injecte')
+  assert.ok(both.indexOf('un test qui prouve la selection') >= 0, 'la lecon du kyber relie doit entrer dans le prompt')
+  ok('injection : la memoire du kyber relie entre dans le chunk')
+
+  // 10k. Un jeton mort ne laisse pas de cache derrière lui — et surtout, une
+  //      lecture refusée ne doit pas se déguiser en « aucun souvenir ».
+  tokenValid = false
+  const mRevoked = await hit('/kybernos-cloud/memory', 'GET')
+  assert.equal(mRevoked.body.ok, false)
+  assert.equal(mRevoked.body.connected, true)
+  assert.equal(mRevoked.body.error, 'reconnexion_requise')
+  tokenValid = true
+  ok('memoire : une lecture refusee se dit refusee, jamais « aucun souvenir »')
+
+  // 10l. Câblage DSH : le chunk est monté dans le prompt avec un `order` fini,
+  //      les deux outils sont enregistrés, et la capture est abonnée à la fin de
+  //      tour. Un « apply() n'a pas levé » ne prouverait rien de tout ça.
+  assert.ok(promptContexts.has('kybernos:memory'), 'le chunk memoire doit etre monte')
+  const entry = promptContexts.get('kybernos:memory')
+  assert.equal(Number.isFinite(entry.order), true, 'order doit etre un nombre fini (sinon context() leve)')
+  assert.equal(typeof entry.text, 'function', 'le texte doit etre evalue a chaque assemblage')
+  assert.equal(typeof entry.text(), 'string')
+  assert.ok(registeredTools.has('memory_write'), 'memory_write doit etre enregistre')
+  assert.ok(registeredTools.has('memory_search'), 'memory_search doit etre enregistre')
+  // Aucun outil n'expose kyber_id : un modele ne doit pas pouvoir viser un autre kyber.
+  assert.equal(JSON.stringify(registeredTools.get('memory_write').parameters).indexOf('kyber_id'), -1)
+  assert.ok(agentHooks.has('agent/turn-stopping'), 'la capture doit etre abonnee a la fin de tour')
+  ok('cablage : chunk monte (order fini), 2 outils, capture abonnee — sans kyber_id expose')
+
+  // 10m. Les outils répondent vraiment : écriture puis recherche.
+  const writeTool = registeredTools.get('memory_write')
+  const searchTool = registeredTools.get('memory_search')
+  const wrote = await writeTool.execute({ content: 'le deploiement passe par Fly.io', kind: 'fact' }, {})
+  assert.equal(wrote.ok, true)
+  const searchOut = await searchTool.execute({ q: 'Fly' }, {})
+  assert.equal(searchOut.ok, true)
+  assert.ok(searchOut.count >= 1)
+  const renderedWrite = writeTool.output.render({ kind: 'fact' }, wrote)
+  assert.equal(renderedWrite[0].type, 'text')
+  assert.ok(String(renderedWrite[0].text).length > 0)
+  ok('outils : memory_write ecrit, memory_search retrouve, rendu textuel non vide')
+
+  // 10n. La capture de fin de tour est bien fire-and-forget : le hook rend la
+  //      main immédiatement, même sans `llm` disponible dans le ctx.
+  const hook = agentHooks.get('agent/turn-stopping')
+  // Tour trop court : le hook sort sans rien appeler, et le DIT.
+  hook({ agent: { session: { deriveMessages: () => [], id: 's-1' }, options: {} }, signal: undefined })
+  assert.equal(mod.lastCapture.status, 'tour_trop_court')
+  // Tour assez long mais sans service `llm` : la capture se declare
+  // indisponible au lieu de laisser croire qu'elle n'avait rien a retenir.
+  const tour = [{ role: 'user', content: [{ type: 'text', text: 'x'.repeat(200) }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'voila, termine' }] }]
+  hook({ agent: { session: { deriveMessages: () => tour, id: 's-1' }, options: {} }, signal: undefined })
+  await new Promise((r) => setTimeout(r, 5))
+  assert.equal(mod.lastCapture.status, 'llm_indisponible')
+  assert.ok(mod.lastCapture.at > 0)
+  ok('capture : hook non bloquant, et un etat lisible a chaque sortie (jamais un silence)')
+
+  // 10n-bis. Le texte soumis a l'extraction NOMME les roles : sans etiquette, le
+  // modele ne peut pas distinguer un enseignement de l'utilisateur d'une
+  // affirmation de l'agent (risque reellement observe en live).
+  const soumis = mod.lastTurnText([
+    { role: 'user', content: [{ type: 'text', text: 'je prefere les reponses courtes' }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'noted' }] },
+  ])
+  assert.ok(soumis.includes('UTILISATEUR :'), 'le texte doit etiqueter l utilisateur')
+  assert.ok(soumis.includes('AGENT :'), 'le texte doit etiqueter l agent')
+  assert.ok(soumis.indexOf('UTILISATEUR :') < soumis.indexOf('AGENT :'))
+  assert.equal(mod.lastTurnText([]), null)
+  ok('capture : le texte soumis nomme les roles (utilisateur vs agent)')
+
+  // 10n-ter. Le bloc injecte est retire avant extraction. Sans ce retrait, la
+  // capture relit sa propre injection et reecrit le meme souvenir : boucle de
+  // retroaction constatee EN LIVE (souvenir #53, duplicata exact de #51).
+  const bloc = '[KYBERNOS MEMORY] Souvenirs du compte Kybernos :\n- (policy) une politique\n\n'
+    + 'Ces souvenirs viennent du compte. N\'en invente jamais : appelle memory_write pour en ajouter '
+    + '(genre fact|preference|event|policy), memory_search pour en chercher.'
+  assert.equal(mod.stripMemoryBlock(bloc).trim(), '', 'le bloc seul doit disparaitre')
+  const melange = 'je prefere le russe\n\n' + bloc + '\n\nmerci'
+  assert.equal(mod.stripMemoryBlock(melange).includes('KYBERNOS MEMORY'), false)
+  assert.equal(mod.stripMemoryBlock(melange).includes('je prefere le russe'), true)
+  assert.equal(mod.stripMemoryBlock(melange).includes('merci'), true)
+  const soumis2 = mod.lastTurnText([
+    { role: 'user', content: [{ type: 'text', text: 'apprends ceci ' + bloc }] },
+    { role: 'assistant', content: [{ type: 'text', text: 'note' }] },
+  ])
+  assert.equal(soumis2.includes('KYBERNOS MEMORY'), false, 'le tour soumis ne doit plus porter l injection')
+  ok('capture : le bloc [KYBERNOS MEMORY] injecte est retire avant extraction')
+
+  // 10n-quater. Idempotence : un fait deja present dans le compte n'est pas
+  // reecrit (sans cette garde le compte grossit d'un doublon par tour). Le
+  // handler est fire-and-forget ET la garde fait un aller-retour HTTP : on
+  // attend la CONDITION, pas un delai fixe (60 ms ne suffisaient pas).
+  llmEnabled = true
+  const avant = memories.length
+  hook({ agent: { session: { deriveMessages: () => tour, id: 's-1' }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+  const limite = Date.now() + 5000
+  while (mod.lastCapture.status !== 'deja_connu' && Date.now() < limite) await new Promise((r) => setTimeout(r, 25))
+  assert.equal(mod.lastCapture.status, 'deja_connu', 'un fait deja connu doit etre ignore, pas reecrit')
+  assert.equal(memories.length, avant, 'aucun appel d ecriture ne doit partir pour un doublon')
+  ok('capture : un fait deja present dans le compte n est pas reecrit (idempotence)')
+  llmEnabled = false
+
+  // 10o. Un contenu trop long est refusé avant le réseau (plafond serveur 2000).
+  const tooLong = mod.validateMemory({ content: 'x'.repeat(mod.MEMORY_MAX_CONTENT + 1), kind: 'fact' })
+  assert.equal(tooLong.error, 'contenu_trop_long')
+  ok('memoire : contenu au-dela du plafond serveur refuse avant le reseau')
+
+  // 10q. Le catalogue distant : lecture, puis installation LOCALE reelle.
+  //      Le dossier de kybers est une fixture temporaire (KYBERNOS_CLOUD_KYBERS),
+  //      jamais le vrai ~/.dsh/kybers.
+  const cat = await hit('/kybernos-cloud/marketplace', 'GET')
+  assert.equal(cat.body.ok, true)
+  assert.equal(cat.body.items.length, 1)
+  assert.equal(cat.body.items[0].slug, 'support-concierge')
+  assert.deepEqual(Object.keys(cat.body.items[0].manifest).filter((k) => ['data_schemas', 'source_kyber_id', 'price'].indexOf(k) >= 0), [])
+  ok('catalogue distant lu, cles privates absentes de ce que voit le plugin')
+
+  const sansSlug = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, {})
+  assert.equal(sansSlug.body.ok, false)
+  assert.match(String(sansSlug.body.error), /slug manquant/)
+
+  const inconnu = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'pas-au-catalogue' })
+  assert.equal(inconnu.body.ok, false)
+  assert.match(String(inconnu.body.error), /plus publie/)
+
+  const poser = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'support-concierge' })
+  assert.equal(poser.body.ok, true, JSON.stringify(poser.body))
+  const ymlPath = join(kybersFixture, 'support-concierge', 'kyber.yml')
+  assert.equal(existsSync(ymlPath), true)
+  const yml = readFileSync(ymlPath, 'utf8')
+  assert.match(yml, /^id: support-concierge$/m)
+  assert.match(yml, /^specVersion: 2$/m)
+  assert.match(yml, /tri des tickets/)
+  assert.match(yml, /Pilote le SLA de reponse/)
+  assert.match(yml, /^ {4}route: kybernos\/doer$/m)
+  assert.equal(/^\s*provider:/m.test(yml), false)
+  assert.equal(/^\s*model:/m.test(yml), false)
+  assert.equal(yml.indexOf('kyber-interne-42'), -1)
+  assert.equal(yml.indexOf('jamais'), -1)
+  assert.deepEqual(poser.body.roles, ['manager'])
+  assert.ok(poser.body.aCompleter.length > 0, 'aCompleter doit dire ce qui manque')
+  ok('installation locale : kyber.yml ecrit, sans cle privee ni provider invente')
+
+  const rejoue = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'support-concierge' })
+  assert.equal(rejoue.body.ok, false)
+  assert.equal(rejoue.body.refuse, true)
+  assert.match(String(rejoue.body.error), /existe deja/)
+  const apres = readFileSync(ymlPath, 'utf8')
+  assert.equal(apres, yml)
+  ok('un kyber deja la n est JAMAIS ecrase en silence (fichier identique)')
+
+  const force = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'support-concierge', ecraser: true })
+  assert.equal(force.body.ok, true)
+  assert.match(String(force.body.chemin), /support-concierge\/kyber.yml$/)
+  ok('ecrasement demande explicitement : nomme comme tel et accepte')
+
+  assert.ok(seen.marketAuth.length > 0 && seen.marketAuth.every((a) => a === 'Bearer ' + TOKEN))
+  ok('le catalogue est lu avec le jeton du compte (jamais sans)')
+
+  // 10p. On rend l'état à la section 9 : déconnecté. Le test « réseau
+  //      injoignable » suppose qu'aucun état local ne subsiste — le laisser
+  //      connecté ferait court-circuiter /start sans réseau et ne prouverait
+  //      plus rien.
+  const handBack = await hit('/kybernos-cloud/disconnect', 'POST', undefined, { confirm: true })
+  assert.equal(handBack.body.revoked, true)
+  assert.equal(existsSync(statePath), false)
+  ok('memoire : etat rendu deconnecte a la suite du test')
+
+  // 9. Réseau indisponible : on ne prétend jamais être connecté.
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:1'
+  const down = await hit('/kybernos-cloud/start', 'POST')
+  assert.equal(down.status, 200)
+  assert.equal(down.body.ok, false)
+  assert.equal(down.body.error, 'demarrage_impossible')
+  assert.equal(existsSync(statePath), false)
+  ok('API injoignable : echec explicite, aucun etat ecrit')
+
+  console.log('\n' + pass + ' verifications OK')
+} finally {
+  api.close()
+  rmSync(stateDir, { recursive: true, force: true })
+  rmSync(kybersFixture, { recursive: true, force: true })
+}

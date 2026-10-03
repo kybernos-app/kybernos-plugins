@@ -1,0 +1,38 @@
+{
+  "name": "@local/kybernos-relance",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Hôte : outil `relancer_dsh` (panneau d'approbation natif puis relance détachée qui réveille toutes les sessions). Client : recharge la page DSH une seule fois quand l'hôte redémarre, au lieu de laisser l'interface noire jusqu'au F5.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "test-client.mjs",
+    "test-host.mjs"
+  ],
+  "scripts": {
+    "check": "node --check client.js && node --check index.js",
+    "test": "node test-client.mjs && node test-host.mjs",
+    "test:host": "node test-host.mjs",
+    "test:client": "node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

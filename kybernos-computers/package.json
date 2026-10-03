@@ -1,0 +1,35 @@
+{
+  "name": "@local/kybernos-computers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ordinateurs cloud pour les agents : backend E2B (BYOK) — half host phase 1 (clé credential, cycle de vie sandboxes, TTL). Le client, le sélecteur composer et les outils agent viennent ensuite.",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "scripts": {
+    "check": "node --check index.js && node --check client.js",
+    "test": "node test-computers-host.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.4",
+    "@e2b/sdk": "^2.5.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-plugin-manager",
+        "@deepseek-ai/dsh-api-remotes"
+      ]
+    }
+  }
+}

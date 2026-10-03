@@ -1,0 +1,8 @@
+# Overlay passé par `dsh headless --patch` : l'agent embarqué démarre sur
+# la route kybernos (proxy du client), pas sur deepseek par défaut.
+# Format rangée de patch de profil : `- id: <plugin>` + config (mesuré :
+# `name:` est ignoré → MISSING_CREDENTIAL sur deepseek-official).
+- id: agent-default-model
+  config:
+    provider: kybernos
+    model: kybernos/doer

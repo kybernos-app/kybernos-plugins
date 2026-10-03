@@ -1,0 +1,33 @@
+{
+  "version": "1",
+  "commentaire": "Manifeste d'activation des satellites Kybernos. Un satellite = un bundle @local/* indépendant du socle. Le socle (tier 1) est toujours livré ; les tiers 2 et 3 sont optionnels et activables un par un. `obligatoire: true` = le socle en a besoin (slot déclaré par le master) ; `false` = débranchable sans casse.",
+  "socle": {
+    "commentaire": "Toujours livré. Pas d'option d'activation : le master déclare les slots de ces bundles, il ne peut pas s'en passer.",
+    "bundles": [
+      { "dir": "kybernos-plugin", "nom": "@local/kybernos", "tier": 1, "obligatoire": true, "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_signaler_retour", "poids_ko": 8090 },
+      { "dir": "kybernos-theme", "nom": "@local/kybernos-theme", "tier": 1, "obligatoire": true, "role": "thème (mode, palettes, fond, police) — la langue et le RTL sont dans le satellite kybernos-language", "poids_ko": 230 },
+      { "dir": "kybernos-sessions", "nom": "@local/kybernos-sessions", "tier": 1, "obligatoire": true, "role": "sessions, garde des fichiers chauds, catégories", "poids_ko": 372 },
+      { "dir": "kybernos-skills", "nom": "@local/kybernos-skills", "tier": 1, "obligatoire": true, "role": "skills, marketplace — slot 'main.kybernos-skills' déclaré par le master", "poids_ko": 172 }
+    ]
+  },
+  "satellites": {
+    "commentaire": "Débranchables. tier 2 = indépendants, tier 3 = modules de rendu lourds (libs tierces).",
+    "bundles": [
+      { "dir": "kybernos-language", "nom": "@local/kybernos-language", "tier": 2, "obligatoire": false, "role": "langue d'interface : choix, traduction LLM, dir/lang sur <html>", "poids_ko": 44, "lib_vendor": null },
+      { "dir": "kybernos-relance", "nom": "@local/kybernos-relance", "tier": 2, "obligatoire": false, "role": "relance DSH, outil relancer_dsh", "poids_ko": 52, "lib_vendor": null },
+      { "dir": "kybernos-composio", "nom": "@local/kybernos-composio", "tier": 2, "obligatoire": false, "role": "connecteurs Composio", "poids_ko": 536, "lib_vendor": null },
+      { "dir": "kybernos-cloud", "nom": "@local/kybernos-cloud", "tier": 2, "obligatoire": false, "role": "cloud, mémoire, outils memory_search/memory_write", "poids_ko": 328, "lib_vendor": null },
+      { "dir": "kybernos-models", "nom": "@local/kybernos-models", "tier": 2, "obligatoire": false, "role": "catalogue de modèles", "poids_ko": 320, "lib_vendor": null },
+      { "dir": "kybernos-slash", "nom": "@local/kybernos-slash", "tier": 2, "obligatoire": false, "role": "commandes / (slash)", "poids_ko": 248, "lib_vendor": null },
+      { "dir": "kybernos-maintenance", "nom": "@local/kybernos-maintenance", "tier": 2, "obligatoire": false, "role": "maintenance, outil install_bundle", "poids_ko": 68, "lib_vendor": null },
+      { "dir": "dsh-mermaid", "nom": "@local/dsh-mermaid", "tier": 3, "obligatoire": false, "role": "rendu des fences ```mermaid en SVG", "poids_ko": 6042, "lib_vendor": "mermaid 11.14 + katex", "lib_poids_ko": 3072, "chargement": "paresseux" },
+      { "dir": "dsh-db-viewer", "nom": "@local/dsh-db-viewer", "tier": 3, "obligatoire": false, "role": "visualisation de bases SQLite/Postgres", "poids_ko": 2150, "lib_vendor": "echarts", "lib_poids_ko": 2048, "chargement": "paresseux" },
+      { "dir": "dsh-media-player", "nom": "@local/dsh-media-player", "tier": 3, "obligatoire": false, "role": "lecteur audio/vidéo dans la barre latérale", "poids_ko": 1126, "lib_vendor": null, "chargement": "immediat" }
+    ]
+  },
+  "ordre_montage": {
+    "commentaire": "Ordre de dsh.profile.bundles. Le socle d'abord, puis les satellites activés dans cet ordre. Un satellite désactivé est simplement omis de la liste.",
+    "socle": ["@local/kybernos-theme", "@local/kybernos-models", "@local/kybernos-skills", "@local/kybernos-slash", "@local/kybernos-sessions", "@local/kybernos-relance", "@local/kybernos-composio", "@local/kybernos-cloud", "@local/kybernos"],
+    "satellites": ["@local/dsh-media-player", "@local/dsh-mermaid", "@local/dsh-db-viewer", "@local/kybernos-maintenance", "@local/kybernos-language"]
+  }
+}

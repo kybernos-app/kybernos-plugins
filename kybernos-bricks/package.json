@@ -1,0 +1,36 @@
+{
+  "name": "@local/kybernos-bricks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Maquettes en briques pilotées par le chat : outil hôte `animer_briques` + panneau « Briques » dans la barre latérale droite (rendu isométrique Canvas 2D, pose en direct brique par brique, relecture).",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  }
+}

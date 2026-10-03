@@ -1,0 +1,29 @@
+[
+  {
+    "id": "queue-move",
+    "script": "patch-dsh-queue-move.mjs",
+    "cible": "@deepseek-ai/dsh-api-session-controller"
+  },
+  {
+    "id": "model-search",
+    "script": "patch-dsh-model-search.mjs",
+    "cible": "@deepseek-ai/dsh-client-ui-model-selection",
+    "retire": "notre catalogue cherche déjà par nom, id, fournisseur ou type (mesuré : 65 → 6 modèles sur « glm »)"
+  },
+  {
+    "id": "models-header",
+    "script": "patch-dsh-models-header.mjs",
+    "cible": "@deepseek-ai/dsh-client-ui-settings-models",
+    "retire": "notre catalogue a sa propre surface depuis le 23/09/2026 — entree « Kybernos Models » dans la barre laterale et page principale a elle (SURFACE_ID identique des deux cotes), mesuree au navigateur : docs/handoff/lifecycle/preuves/p3b/. Le siege settings.models.header n'existe pas dans le paquet d'origine : la retouche disparait, la page Reglages → Models redevient native."
+  },
+  {
+    "id": "workspace-pins",
+    "script": "patch-dsh-workspace-pins.mjs",
+    "cible": "@deepseek-ai/dsh-client-ui-workspace"
+  },
+  {
+    "id": "goal-affichage",
+    "script": "patch-dsh-goal-affichage.mjs",
+    "cible": "@deepseek-ai/dsh-client-ui-chat"
+  }
+]

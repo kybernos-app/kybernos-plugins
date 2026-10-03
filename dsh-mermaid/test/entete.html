@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>dsh-mermaid — chargement depuis &lt;head&gt; (body encore nul)</title>
+<!--
+  Cas réel de la GUI : le chargeur de DSH évalue les bundles clients depuis
+  <head>, quand `document.body` est encore null. L'ancienne version observait
+  `document.body` → TypeError → « web boot: 1 entry did not activate » et plugin
+  inerte. Ce banc reproduit exactement cette chronologie : le bloc de code est
+  ajouté APRÈS le chargement du script (donc vu par l'observateur, pas par le
+  scan initial).
+-->
+<script>
+  window.__ModuleLoader__ = {
+    load({ id, factory }) {
+      const exports = factory(() => { throw new Error('require indisponible') })
+      window.__PLUGIN__ = { id, exports }
+      window.__BODY_AT_BOOT__ = document.body === null
+      if (exports && typeof exports.apply === 'function') {
+        try {
+          exports.apply({})
+          window.__APPLY_OK__ = true
+        } catch (error) {
+          window.__APPLY_ERR__ = String(error && error.message ? error.message : error)
+        }
+      }
+    }
+  }
+</script>
+<script src="../client/client.js"></script>
+</head>
+<body>
+<h1>Chargement depuis &lt;head&gt; — body nul à l'évaluation du bundle</h1>
+<div class="wrap">
+  <div class="md-code-block" id="valide">
+    <div data-code-block-banner><div class="infostring">mermaid</div></div>
+    <pre class="plain"><code>graph LR
+  A[Profil web] --&gt; B[Rendu SVG]</code></pre>
+  </div>
+</div>
+</body>
+</html>

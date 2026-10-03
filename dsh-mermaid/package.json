@@ -1,0 +1,35 @@
+{
+  "name": "@local/dsh-mermaid",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Rend les fences ```mermaid du GUI DSH en diagrammes SVG, thémés par les jetons --dsw-*.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --check client/client.js",
+    "test": "python3 test/verify.py"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

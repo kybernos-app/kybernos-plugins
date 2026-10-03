@@ -1,0 +1,68 @@
+{
+  "commentaire": "Paquets @local/* du dépôt que le cycle de vie lie au profil. Ordre = ordre des bundles.",
+  "packages": [
+    {
+      "dir": "kybernos-plugin",
+      "nom": "@local/kybernos"
+    },
+    {
+      "dir": "kybernos-theme",
+      "nom": "@local/kybernos-theme"
+    },
+    {
+      "dir": "kybernos-language",
+      "nom": "@local/kybernos-language"
+    },
+    {
+      "dir": "kybernos-models",
+      "nom": "@local/kybernos-models"
+    },
+    {
+      "dir": "kybernos-skills",
+      "nom": "@local/kybernos-skills"
+    },
+    {
+      "dir": "kybernos-slash",
+      "nom": "@local/kybernos-slash"
+    },
+    {
+      "dir": "kybernos-sessions",
+      "nom": "@local/kybernos-sessions"
+    },
+    {
+      "dir": "kybernos-auto"
+    },
+    {
+      "dir": "kybernos-relance",
+      "nom": "@local/kybernos-relance"
+    },
+    {
+      "dir": "kybernos-flow",
+      "nom": "@local/kybernos-flow"
+    },
+    {
+      "dir": "kybernos-composio",
+      "nom": "@local/kybernos-composio"
+    },
+    {
+      "dir": "kybernos-cloud",
+      "nom": "@local/kybernos-cloud"
+    },
+    {
+      "dir": "kybernos-maintenance",
+      "nom": "@local/kybernos-maintenance"
+    },
+    {
+      "dir": "dsh-media-player",
+      "nom": "@local/dsh-media-player"
+    },
+    {
+      "dir": "dsh-mermaid",
+      "nom": "@local/dsh-mermaid"
+    },
+    {
+      "dir": "dsh-db-viewer",
+      "nom": "@local/dsh-db-viewer"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+- insert:
+    # ── Composio : serveur MCP streamable-http pour les agents ────────────────
+    # La clé vient de COMPOSIO_API_KEY, chargée au boot depuis ~/.dsh/.env
+    # (couche user-env de dsh). Mesuré au boot 2026-09-17 : dans un contexte !!js,
+    # `require` et `env` sont UNDEFINED (seul `process` existe) — l'ancienne
+    # lecture via require('node:fs') jetait en silence et le header partait vide.
+    # Sans clé, la connexion échoue en silence (failOnStartupError: false).
+    - id: composio
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        transport: streamable-http
+        serverName: composio
+        url: https://connect.composio.dev/mcp
+        headers:
+          x-consumer-api-key: !!js "(process.env.COMPOSIO_API_KEY || '')"
+        toolCallTimeoutMs: 180000
+        failOnStartupError: false
+        reconnect:
+          enabled: true
+          maxAttempts: 10
+    # ── UI Connexions Composio (panneau client) ──────────────────────────────
+    - id: kybernos-composio
+      name: '@local/kybernos-composio'

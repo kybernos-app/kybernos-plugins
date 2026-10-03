@@ -1,0 +1,27 @@
+{
+  "name": "@local/kybernos-auto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mode Auto : routage des délégations par classe (règles + classifieur local tev1), whitelist bornée, état PAR SESSION, santé par modèle (latence, erreurs). Puce dans le composer + page Settings dédiée.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "check": "node --check client.js && node --check index.js",
+    "test": "node test-host.mjs && node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    }
+  }
+}
