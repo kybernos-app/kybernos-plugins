@@ -235,6 +235,14 @@ window.__ModuleLoader__.load({
         } catch (e) { /* none */ }
         return null
       }
+      // DSH's own plugin panel (install / uninstall any bundle). Settings is a modal overlay:
+      // close it first (same path as "Back to workspace"), then select the panel.
+      const ouvrirGestionnaire = (scope.layout && typeof scope.layout.selectPanel === 'function')
+        ? () => {
+            try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) } catch (e) { /* no document */ }
+            try { scope.layout.selectPanel('plugins') } catch (e) { /* panel unavailable */ }
+          }
+        : null
       const lireJson = (url) => fetch(url, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
 
       const Panneau = () => {
@@ -383,7 +391,9 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbsu-head' },
             h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
             h('div', { className: 'kbsu-headr' },
-              h('button', { type: 'button', className: 'kbsu-btn', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Actualiser', 'Refresh')),
+              h('span', { className: 'kbsu-right' },
+                ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
+                h('button', { type: 'button', className: 'kbsu-btn', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Actualiser', 'Refresh'))),
               h('div', { className: 'kbsu-meta' },
                 dshVersion !== null ? h('span', null, h('span', { className: 'kbsu-dot' + (horsZone ? ' warn' : '') }), 'DSH ' + dshVersion + (horsZone ? kt(' · hors de la zone testée', ' · outside the tested range') : kt(' · dans la zone testée', ' · inside the tested range'))) : null,
                 h('span', null, kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))),
@@ -432,7 +442,7 @@ window.__ModuleLoader__.load({
           return true
         } catch (e) { return repli === undefined ? false : repli() }
       }
-      demander(['slots', 'remote', 'remote.pluginManager'], () => demander(['slots', 'remote']))
+      demander(['slots', 'remote', 'remote.pluginManager', 'layout'], () => demander(['slots', 'remote', 'remote.pluginManager'], () => demander(['slots', 'remote'])))
     }
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }

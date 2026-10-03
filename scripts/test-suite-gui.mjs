@@ -82,7 +82,9 @@ window.__ModuleLoader__ = { load: (def) => { window.__def = def } }
 <script>${clientJs}</script>
 <script>
 const modele = window.__def.factory((nom) => { if (nom === 'react') return React; throw new Error('no ' + nom) })
-const ctx = { effect: (fn) => fn(), inject: (liste, cb) => cb({ slots, remote: { pluginManager: pm } }), remote: { pluginManager: pm } }
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') window.__calls.push(['escape']) })
+const layout = { selectPanel: (nom) => window.__calls.push(['panel', nom]) }
+const ctx = { effect: (fn) => fn(), inject: (liste, cb) => cb({ slots, layout: SCEN.sansLayout ? undefined : layout, remote: { pluginManager: pm } }), remote: { pluginManager: pm } }
 modele.apply(ctx)
 const s = window.__sections[0]
 if (s) ReactDOM.render(React.createElement(s.comp), document.getElementById('root'))
@@ -163,6 +165,18 @@ try {
     await p.click('[data-id="kybernos-composio"] button:has-text("Settings")')
     ok('clicking again folds it', (await p.$('#fake-composio-config')) === null)
     await p.close()
+  }
+
+  console.log('── the native plugin manager stays one click away ──')
+  {
+    const p = await ouvrir('en', scenarioBase())
+    await p.click('[data-kb="suite-native"]')
+    const a = await appels(p)
+    ok('"Native manager" closes Settings (Escape) then opens DSH\'s own plugin panel', a.some((c) => c[0] === 'escape') && a.some((c) => c[0] === 'panel' && c[1] === 'plugins') && a.findIndex((c) => c[0] === 'escape') < a.findIndex((c) => c[0] === 'panel'), JSON.stringify(a.filter((c) => c[0] === 'escape' || c[0] === 'panel')))
+    await p.close()
+    const q = await ouvrir('en', scenarioBase({ sansLayout: true }))
+    ok('without the layout service the button is simply absent, the panel still works', (await q.$('[data-kb="suite-native"]')) === null && (await cartes(q)).length === 24)
+    await q.close()
   }
 
   console.log('── filters and search ──')
