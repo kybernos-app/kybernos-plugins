@@ -108,6 +108,33 @@ try {
   ok('state is clean', etat().safe.actif === false && etat().demarrages.length === 0)
   r = cli('off')
   ok('off twice is a no-op', r.code === 0 && /not on/.test(r.out))
+
+  console.log('── a satellite added to the manifest after the activation file was written ──')
+  // Regression: a file written before kybernos-flow & co. were declared listed only the old
+  // satellites; the new ones were read as "off" and dropped from the user's profile.
+  const nouveaux = sats.satellites.bundles.filter((b) => b.defaut === 'actif').map((b) => b.nom)
+  const anciens = sats.satellites.bundles.filter((b) => b.defaut !== 'actif').map((b) => b.nom)
+  ok('fixture check: the manifest marks some satellites "actif par défaut"', nouveaux.length >= 9 && anciens.length >= 3, String(nouveaux.length))
+  const sansLanguage = anciens.filter((n) => n !== '@local/kybernos-language')
+  mkdirSync(join(HOME, 'kybernos'), { recursive: true })
+  writeFileSync(join(HOME, 'kybernos', 'satellites-actives.json'), JSON.stringify({ actives: sansLanguage, maj: 'legacy' }))   // no `desactives` key: written by an older robot
+  r = cliSat('--liste')
+  ok('legacy file: every new satellite reads as ACTIF', nouveaux.every((n) => new RegExp(n.replace(/[/@]/g, '.') + '\\s+tier \\d+\\s+ACTIF').test(r.out)), r.out.split('\n').filter((l) => /inactif/.test(l)).join(' | '))
+  ok('legacy file: a satellite the user left out stays inactif', /kybernos-language\s+tier \d+\s+inactif/.test(r.out), r.out)
+  r = cliSat('--desactiver', 'kybernos-slides')
+  ok('deactivating a default-on satellite works', r.code === 0, r.out)
+  const brutApres = JSON.parse(readFileSync(join(HOME, 'kybernos', 'satellites-actives.json'), 'utf8'))
+  ok('it is recorded in `desactives` (else the next read would switch it back on)', Array.isArray(brutApres.desactives) && brutApres.desactives.includes('@local/kybernos-slides'), JSON.stringify(brutApres.desactives))
+  r = cliSat('--liste')
+  ok('slides is inactif, the other new satellites are still ACTIF', /kybernos-slides\s+tier \d+\s+inactif/.test(r.out) && /kybernos-flow\s+tier \d+\s+ACTIF/.test(r.out), r.out)
+  ok('and slides is out of the profile while flow is in', !bundles().includes('@local/kybernos-slides') && bundles().includes('@local/kybernos-flow'), bundles().join())
+  r = cli('on'); const avantSafe = etat().safe.activesAvant
+  ok('safe mode keeps the exact list (flow in, slides out)', avantSafe.includes('@local/kybernos-flow') && !avantSafe.includes('@local/kybernos-slides'), JSON.stringify(avantSafe))
+  ok('safe mode leaves only the socle', bundles().filter((b) => b.startsWith('@local/')).every((b) => socle.includes(b) || b === '@local/kybernos-libre'), bundles().join())
+  r = cli('off')
+  ok('off brings flow back and leaves slides off', bundles().includes('@local/kybernos-flow') && !bundles().includes('@local/kybernos-slides'), bundles().join())
+  r = cliSat('--activer', 'kybernos-slides')
+  ok('re-activating slides puts it back', bundles().includes('@local/kybernos-slides'))
   r = cli('bogus')
   ok('unknown subcommand → exit 64 with usage', r.code === 64 && /Usage/.test(r.out), r.out)
 } finally {

@@ -25,7 +25,7 @@ import { FICHIER_ETAT, normaliser as normaliserEtatBoot, entrerSafe, sortirSafe,
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage } from './plateforme.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,
-  photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens,
+  photographier, restaurerPhoto, journaliser, lireJournal, alignerPins, alignerLiens, activesResolues, desactivesAEcrire,
   planUpgrade, ecrireLisezMoi, inspecterFraicheur
 } from './lifecycle-engine.mjs'
 // La vérification d'une archive reçue : le manifeste du paquet est la seule
@@ -82,17 +82,19 @@ const SATELLITES_ACTIVES_FICHIER = join(DSH_HOME, 'kybernos', 'satellites-active
 function lireSatellitesActives () {
   try {
     const brut = JSON.parse(readFileSync(SATELLITES_ACTIVES_FICHIER, 'utf8'))
-    const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
-    if (liste === null) return null
     const manifeste = LIRE_SATELLITES(REPO)
     if (manifeste === null) return null
     // Le socle est toujours actif, même si le fichier ne le liste pas.
     const socle = (manifeste.socle?.bundles ?? []).map((b) => b.nom)
-    // Un paquet que satellites.json ne gère pas (kybernos-flow…) n'est ni socle ni
-    // satellite : il reste actif. Sans ça, créer le fichier d'activation le retirait.
-    const geres = new Set([...socle, ...(manifeste.satellites?.bundles ?? []).map((b) => b.nom)])
+    const satellites = manifeste.satellites?.bundles ?? []
+    // Un satellite « actif par défaut » (arrivé après l'écriture du fichier) reste allumé.
+    const liste = activesResolues({ brut, satellites, socle })
+    if (liste === null) return null
+    // Un paquet que satellites.json ne gère pas n'est ni socle ni satellite : il
+    // reste actif. Sans ça, créer le fichier d'activation le retirait.
+    const geres = new Set([...socle, ...satellites.map((b) => b.nom)])
     const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !geres.has(n))
-    return [...new Set([...socle, ...liste, ...nonGeres])]
+    return [...new Set([...liste, ...nonGeres])]
   } catch (e) {
     return null
   }
@@ -687,8 +689,8 @@ if (ordre === 'satellites') {
   const lireActives = () => {
     try {
       const brut = JSON.parse(readFileSync(SATELLITES_ACTIVES_FICHIER, 'utf8'))
-      const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
-      if (liste !== null) return liste
+      const liste = activesResolues({ brut, satellites: manifeste.satellites?.bundles ?? [], socle })
+      if (liste !== null) return liste.filter((n) => !socle.includes(n))
     } catch (e) { /* absent or unreadable: fall through */ }
     return tous.map((s) => s.nom).filter((n) => !socle.includes(n))
   }
@@ -696,7 +698,7 @@ if (ordre === 'satellites') {
   // change only shows up at the next install/upgrade. Needs a DSH restart to apply.
   const ecrireActives = (liste) => {
     mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
-    writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, maj: new Date().toISOString() }, null, 2) + '\n')
+    writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, desactives: desactivesAEcrire({ liste, satellites: manifeste.satellites?.bundles ?? [] }), maj: new Date().toISOString() }, null, 2) + '\n')
     if (existsSync(join(PROFIL_DIR, 'package.json'))) {
       alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: [...new Set([...socle, ...liste, ...nonGeres])] })
       console.log('  Profile updated. Restart DSH to apply (a satellite never installed before needs ./kybernos-update to be linked).')
@@ -770,13 +772,13 @@ if (ordre === 'safe-mode') {
   const ecrireEtat = (etat) => { mkdirSync(dirname(fichierEtat), { recursive: true }); writeFileSync(fichierEtat, JSON.stringify(etat, null, 2) + '\n') }
   const ecrireActivesSafe = (liste) => {
     mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
-    writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, maj: new Date().toISOString() }, null, 2) + '\n')
+    writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, desactives: desactivesAEcrire({ liste, satellites: manifeste.satellites?.bundles ?? [] }), maj: new Date().toISOString() }, null, 2) + '\n')
   }
   // Absent file = everything active (historical behaviour), so "before" is the full list.
   const activesCourantes = () => {
     try {
       const brut = JSON.parse(readFileSync(SATELLITES_ACTIVES_FICHIER, 'utf8'))
-      const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
+      const liste = activesResolues({ brut, satellites: manifeste.satellites?.bundles ?? [], socle })
       if (liste !== null) return liste.filter((n) => !socle.includes(n))
     } catch (e) { /* absent */ }
     return tous.map((s) => s.nom).filter((n) => !socle.includes(n))

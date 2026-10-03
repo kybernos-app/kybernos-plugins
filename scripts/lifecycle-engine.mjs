@@ -356,3 +356,26 @@ export function verifierBundles ({ fs, profilDir, packages }) {
   const bundles = pkg.dsh?.profile?.bundles || []
   return packages.filter((p) => !bundles.includes(p.nom) || !(deps[p.nom] || '').startsWith('link:'))
 }
+// ── Activation des satellites : les nouveaux arrivent ALLUMÉS ───────────────
+// Le fichier `satellites-actives.json` ne liste que les satellites ACTIFS. Un
+// satellite ajouté au manifeste APRÈS l'écriture du fichier n'y figure donc pas,
+// et serait lu comme « désactivé » : c'est ce qui a débranché kybernos-flow (et
+// huit autres) chez le premier utilisateur qui avait déjà un fichier.
+// Règle : un satellite marqué `"defaut": "actif"` dans le manifeste est actif
+// SAUF s'il a été désactivé explicitement (liste `desactives` du fichier).
+// Rend null si le fichier est illisible ou absent (l'appelant garde alors son
+// comportement « tout actif »).
+export function activesResolues ({ brut, satellites, socle }) {
+  const liste = Array.isArray(brut) ? brut : Array.isArray(brut?.actives) ? brut.actives : null
+  if (liste === null) return null
+  const desactives = new Set(Array.isArray(brut?.desactives) ? brut.desactives : [])
+  const parDefaut = satellites.filter((s) => s.defaut === 'actif' && !desactives.has(s.nom)).map((s) => s.nom)
+  return [...new Set([...socle, ...liste, ...parDefaut])]
+}
+
+// Ce qu'il faut écrire dans `desactives` : les satellites « actif par défaut »
+// que l'on vient d'éteindre (sans ça, la lecture suivante les rallumerait).
+export function desactivesAEcrire ({ liste, satellites }) {
+  const actifs = new Set(liste)
+  return satellites.filter((s) => s.defaut === 'actif' && !actifs.has(s.nom)).map((s) => s.nom)
+}
