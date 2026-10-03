@@ -208,6 +208,32 @@ ok('alignerLiens : ne duplique pas un lien existant', pkgLiens.dsh.profile.bundl
   ok('alignerLiens : un lien vers un autre checkout est laissé tel quel', depsApres['@local/kybernos-theme'] === 'link:/home/dev/mon-checkout/kybernos-theme')
 }
 
+// ── 7c. explicit migration from an old repo (--migrer-depuis) ──
+{
+  const ANCIEN = '/home/dev/ancien-depot'
+  const pkgMig = JSON.stringify({
+    name: 'dsh-profile-web', private: true,
+    dependencies: {
+      '@local/kybernos-theme': 'link:' + join(ANCIEN, 'kybernos-theme'),
+      '@local/kybernos-models': 'link:' + join(ANCIEN, 'packages', 'kybernos-models'),
+      '@local/kybernos-slash': 'link:/home/dev/un-autre-checkout/kybernos-slash'
+    },
+    dsh: { profile: { bundles: ['@local/kybernos-theme', '@local/kybernos-models', '@local/kybernos-slash'] } }
+  })
+  const fsMig = { ...fsFixe, lire: (p) => (p.endsWith('package.json') && p.startsWith(PROFIL) ? pkgMig : fsFixe.lire(p)) }
+  const paquetsMig = [{ dir: 'kybernos-theme', nom: '@local/kybernos-theme' }, { dir: 'kybernos-models', nom: '@local/kybernos-models' }, { dir: 'kybernos-slash', nom: '@local/kybernos-slash' }]
+  ecrits = []
+  alignerLiens({ fs: fsMig, profilDir: PROFIL, repoDir: R, packages: paquetsMig })
+  let deps = JSON.parse(ecrits.find((e) => e.p === join(PROFIL, 'package.json')).c).dependencies
+  ok('sans --migrer-depuis, les liens de l\'ancien dépôt restent intacts (jamais silencieux)', deps['@local/kybernos-theme'] === 'link:' + join(ANCIEN, 'kybernos-theme') && deps['@local/kybernos-models'] === 'link:' + join(ANCIEN, 'packages', 'kybernos-models'))
+  ecrits = []
+  alignerLiens({ fs: fsMig, profilDir: PROFIL, repoDir: R, packages: paquetsMig, anciensDepots: [ANCIEN] })
+  deps = JSON.parse(ecrits.find((e) => e.p === join(PROFIL, 'package.json')).c).dependencies
+  ok('avec --migrer-depuis, un lien à plat de l\'ancien dépôt est ré-pointé', deps['@local/kybernos-theme'] === 'link:' + join(R, 'packages', 'kybernos-theme'))
+  ok('avec --migrer-depuis, un lien packages/ de l\'ancien dépôt aussi', deps['@local/kybernos-models'] === 'link:' + join(R, 'packages', 'kybernos-models'))
+  ok('avec --migrer-depuis, un lien vers un AUTRE checkout reste intact', deps['@local/kybernos-slash'] === 'link:/home/dev/un-autre-checkout/kybernos-slash')
+}
+
 // ── 8. LISEZ-MOI de rollback ──────────────────────────────────────────────
 const texte = ecrireLisezMoi({ photo: join(PHOTOS, 'x'), versions: { global: '0.1.6-alpha.2', plugin: 'abc' }, date: '2026-09-22' })
 ok('LISEZ-MOI : contient la commande rollback pointant sur la photo', texte.includes('rollback') && texte.includes('x'), texte.slice(0, 80))

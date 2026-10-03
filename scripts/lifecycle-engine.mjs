@@ -302,7 +302,7 @@ export function alignerPins ({ fs, profilDir, cible, disponibles = {} }) {
   return { pkg, alignes, retires, bundlesRetires }
 }
 
-export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null }) {
+export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null, anciensDepots = [] }) {
   const pkg = JSON.parse(fs.lire(join(profilDir, 'package.json')))
   pkg.dependencies = pkg.dependencies || {}
   pkg.dsh = pkg.dsh || {}
@@ -325,8 +325,13 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
     // Missing or non-link entry: set it. A link that is exactly the old flat
     // layout (`<repo>/<dir>`) is re-pointed to `<repo>/packages/<dir>`, otherwise
     // a profile installed before the move would break on update. Any other link
-    // (a developer's own checkout, say) is left alone.
-    const ancienLien = actuel === 'link:' + join(repoDir, p.dir)
+    // (a developer's own checkout, say) is left alone unless its repo is listed
+    // in `anciensDepots`.
+    // `anciensDepots` : checkouts d'où l'on MIGRE sur demande explicite (--migrer-depuis).
+    // Un lien vers l'un d'eux (à plat ou dans packages/) est re-pointé vers ce dépôt-ci ;
+    // sans cette demande, il reste intact — jamais de migration silencieuse.
+    const ancienLien = actuel === 'link:' + join(repoDir, p.dir) ||
+      anciensDepots.some((d) => actuel === 'link:' + join(d, p.dir) || actuel === 'link:' + join(d, 'packages', p.dir))
     if (!actuel || !actuel.startsWith('link:') || ancienLien) pkg.dependencies[p.nom] = attendu
     if (!pkg.dsh.profile.bundles.includes(p.nom)) pkg.dsh.profile.bundles.push(p.nom)
   }

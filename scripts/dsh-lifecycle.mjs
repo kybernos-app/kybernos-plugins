@@ -388,6 +388,8 @@ const poserPatchs = async ({ tolerance = false } = {}) => {
 }
 
 const args = process.argv.slice(2)
+// --migrer-depuis <checkout> : re-pointe les liens d'un ancien dépôt vers celui-ci (explicite, jamais silencieux).
+const ANCIENS_DEPOTS = args.flatMap((a, i) => (a === '--migrer-depuis' && typeof args[i + 1] === 'string' ? [resolve(args[i + 1])] : []))
 const ordre = args[0] || 'doctor'
 const opts = {
   force: args.includes('--force'),
@@ -403,7 +405,7 @@ const opts = {
   // n'en sont pas : sans ce saut, `--source dist/x.tar.gz` faisait chercher à
   // npm un paquet nommé d'après un chemin de fichier.
   versionCible: (() => {
-    const aParametre = new Set(['--source', '--port', '--photo', '--url', '--ref'])
+    const aParametre = new Set(['--source', '--port', '--photo', '--url', '--ref', '--migrer-depuis'])
     const ordres = new Set(['doctor', 'install', 'upgrade', 'rollback', 'uninstall', 'verify', 'bootstrap', 'satellites', 'safe-mode'])
     for (let i = 0; i < args.length; i++) {
       if (aParametre.has(args[i])) { i += 1; continue }
@@ -696,7 +698,7 @@ if (ordre === 'satellites') {
     mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
     writeFileSync(SATELLITES_ACTIVES_FICHIER, JSON.stringify({ actives: liste, maj: new Date().toISOString() }, null, 2) + '\n')
     if (existsSync(join(PROFIL_DIR, 'package.json'))) {
-      alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: [...new Set([...socle, ...liste, ...nonGeres])] })
+      alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: [...new Set([...socle, ...liste, ...nonGeres])] })
       console.log('  Profile updated. Restart DSH to apply (a satellite never installed before needs ./kybernos-update to be linked).')
     }
   }
@@ -807,7 +809,7 @@ if (ordre === 'safe-mode') {
     await photoAvantTout({ global: '(safe-mode)', plugin })
     ecrireEtat(entrerSafe(etat, { activesAvant: avant, date: new Date().toISOString() }))
     ecrireActivesSafe([])
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: socle })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: socle })
     journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'normal', vers: 'safe', resultat: 'succes', raison: 'safe-mode on (' + avant.length + ' satellite(s) set aside)' })
     quitter(0, '✓ Safe mode ON: only the socle will load (' + socle.length + ' bundle(s)); ' + avant.length + ' satellite(s) set aside.', '  Restart DSH to apply. To come back: node scripts/dsh-lifecycle.mjs safe-mode off')
   }
@@ -817,7 +819,7 @@ if (ordre === 'safe-mode') {
     if (opts.dry) quitter(0, 'DRY: would restore ' + aRestaurer.length + ' satellite(s).')
     ecrireActivesSafe(aRestaurer)
     const nonGeres = PACKAGES.map((p) => p.nom).filter((n) => typeof n === 'string' && !tous.some((s) => s.nom === n) && !socle.includes(n))
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: [...new Set([...socle, ...aRestaurer, ...nonGeres])] })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: [...new Set([...socle, ...aRestaurer, ...nonGeres])] })
     ecrireEtat(propre)
     journalOp({ date: new Date().toISOString(), quoi: 'safe-mode', de: 'safe', vers: 'normal', resultat: 'succes', raison: 'safe-mode off (' + aRestaurer.length + ' satellite(s) restored)' })
     quitter(0, '✓ Safe mode OFF: ' + aRestaurer.length + ' satellite(s) restored.', '  Restart DSH to apply.')
@@ -953,7 +955,7 @@ async function faireInstall () {
     await installerProfil()
   }
   console.log('  🔗 liaison des paquets du dépôt vers le profil…')
-  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: ACTIVES })
+  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES })
   console.log('  📦 installation du profil (pnpm)…')
   await installerProfil()
   // Les retouches touchent les paquets `@deepseek-ai/*` du PROFIL (l'installation
@@ -1064,7 +1066,7 @@ if (ordre === 'upgrade') {
       console.log(`     ⚠ ${r.nom} n'est pas publié en ${cible} (dernière : ${r.derniere ?? 'inconnue'}) — retiré du profil`)
     }
     for (const b of alignement.bundlesRetires) console.log(`       ↳ bundle retiré : ${b}`)
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, packages: PACKAGES, actives: ACTIVES })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES })
     console.log('  🧶 re-pose des retouches du moteur…')
     await poserPatchs()
     console.log('  📦 installation du profil (pnpm)…')
