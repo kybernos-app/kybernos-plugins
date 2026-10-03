@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync
 import { homedir } from 'node:os'
 import { basename, join, dirname, resolve, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { auditerSurfaces } from '../kybernos-maintenance/surfaces.mjs'
+import { auditerSurfaces } from '../packages/kybernos-maintenance/surfaces.mjs'
 import { pidSurPort, demarrageProcessus, famille, nomSuperviseur, planRelance, instructionsRedemarrage } from './plateforme.mjs'
 import {
   etatDoctor, testerCompatibilite, lireCompat, comparerVersions, versionDuGlobal, versionDuPlugin,

@@ -24,6 +24,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { famille } from './plateforme.mjs'
+import { dossierBundle, cheminBundle } from './bundles.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(ICI, '..')
@@ -191,7 +192,7 @@ export const listerContenu = (racine) => {
   // en le nommant (garde plus bas), pas disparaître en silence de l'archive.
   for (const dependance of dependancesDesPatchs(racine, patches)) liste.add(dependance)
   for (const p of paquets.packages) {
-    for (const chemin of cheminer(join(racine, p.dir))) liste.add(chemin)
+    for (const chemin of cheminer(dossierBundle(racine, p.dir))) liste.add(chemin)
   }
   return [...liste].sort().filter((chemin) => estBruit(chemin) === false)
 }
@@ -301,9 +302,9 @@ export const trouverSatellite = (racine, nomOuDir) => {
 /** Contenu d'un satellite : son dossier de bundle + ses patchs. Rien d'autre. */
 export const listerContenuSatellite = (racine, satellite) => {
   const liste = new Set()
-  for (const chemin of cheminer(join(racine, satellite.dir))) liste.add(chemin)
-  const patchPath = join(racine, satellite.dir, 'cordis.patch.yml')
-  if (existsSync(patchPath)) liste.add(satellite.dir + '/cordis.patch.yml')
+  for (const chemin of cheminer(dossierBundle(racine, satellite.dir))) liste.add(chemin)
+  const patchPath = join(dossierBundle(racine, satellite.dir), 'cordis.patch.yml')
+  if (existsSync(patchPath)) liste.add(cheminBundle(satellite.dir) + '/cordis.patch.yml')
   return [...liste].sort().filter((c) => estBruit(c) === false)
 }
 

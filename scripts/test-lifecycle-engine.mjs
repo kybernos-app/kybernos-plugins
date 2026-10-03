@@ -187,9 +187,26 @@ ok('alignerPins : les bundles sont préservés', nouveau.dsh.profile.bundles.inc
 ecrits = []
 alignerLiens({ fs: fsFixe, profilDir: PROFIL, repoDir: R, packages: [{ dir: 'kybernos-plugin', nom: '@local/kybernos' }, { dir: 'kybernos-maintenance', nom: '@local/kybernos-maintenance' }] })
 const pkgLiens = JSON.parse(ecrits.find((e) => e.p === join(PROFIL, 'package.json')).c)
-ok('alignerLiens : ajoute un @local manquant avec link:', pkgLiens.dependencies['@local/kybernos-maintenance'] === 'link:' + join(R, 'kybernos-maintenance'))
+ok('alignerLiens : ajoute un @local manquant avec link:', pkgLiens.dependencies['@local/kybernos-maintenance'] === 'link:' + join(R, 'packages', 'kybernos-maintenance'))
 ok('alignerLiens : le bundle suit le lien', pkgLiens.dsh.profile.bundles.includes('@local/kybernos-maintenance'))
 ok('alignerLiens : ne duplique pas un lien existant', pkgLiens.dsh.profile.bundles.filter((b) => b === '@local/kybernos').length === 1)
+// ── 7b. move to packages/: an old flat link is re-pointed, a foreign link is not ──
+{
+  const pkgAncien = JSON.stringify({
+    name: 'dsh-profile-web', private: true,
+    dependencies: {
+      '@local/kybernos-maintenance': 'link:' + join(R, 'kybernos-maintenance'),
+      '@local/kybernos-theme': 'link:/home/dev/mon-checkout/kybernos-theme'
+    },
+    dsh: { profile: { bundles: ['@local/kybernos-maintenance', '@local/kybernos-theme'] } }
+  })
+  const fsAncien = { ...fsFixe, lire: (p) => (p.endsWith('package.json') && p.startsWith(PROFIL) ? pkgAncien : fsFixe.lire(p)) }
+  ecrits = []
+  alignerLiens({ fs: fsAncien, profilDir: PROFIL, repoDir: R, packages: [{ dir: 'kybernos-maintenance', nom: '@local/kybernos-maintenance' }, { dir: 'kybernos-theme', nom: '@local/kybernos-theme' }] })
+  const depsApres = JSON.parse(ecrits.find((e) => e.p === join(PROFIL, 'package.json')).c).dependencies
+  ok('alignerLiens : un ancien lien à plat est ré-pointé vers packages/', depsApres['@local/kybernos-maintenance'] === 'link:' + join(R, 'packages', 'kybernos-maintenance'))
+  ok('alignerLiens : un lien vers un autre checkout est laissé tel quel', depsApres['@local/kybernos-theme'] === 'link:/home/dev/mon-checkout/kybernos-theme')
+}
 
 // ── 8. LISEZ-MOI de rollback ──────────────────────────────────────────────
 const texte = ecrireLisezMoi({ photo: join(PHOTOS, 'x'), versions: { global: '0.1.6-alpha.2', plugin: 'abc' }, date: '2026-09-22' })

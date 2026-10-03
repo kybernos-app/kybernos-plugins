@@ -9,7 +9,8 @@ const MAX_BYTES = 4 * 1024 * 1024
 const MEDIA = /\.(png|jpe?g|gif|webp|mp4|mov|wav|mp3|ttf|otf|pdf)$/i
 const SECRET = /(^|\/)(\.env(\..*)?|.*\.env|cles\.env|codes\.json|id_rsa.*)$/i
 const CODE = /\.(m?js|json|sh)$/
-const PERSONAL = /\/Users\/[A-Za-z0-9._-]+|\/opt\/homebrew/
+// /opt/homebrew is a platform default (Homebrew on Apple silicon), not a personal path.
+const PERSONAL = /\/Users\/(?!me\b|x\b)[A-Za-z0-9._-]+/
 
 const files = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean)
 const errors = []

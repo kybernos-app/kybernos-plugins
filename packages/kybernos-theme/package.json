@@ -1,0 +1,24 @@
+{
+  "name": "@local/kybernos-theme",
+  "version": "0.1.0",
+  "description": "Theme: design tokens, wallpaper and font, persisted in the browser.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  }
+}

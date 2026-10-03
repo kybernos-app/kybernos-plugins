@@ -12,6 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { join } from 'node:path'
+import { dossierBundle } from './bundles.mjs'
 
 export const DEPUIS_VERS = { obligatoire: true } // chaque journal dit « de X vers Y »
 
@@ -313,9 +314,14 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
   // dans dsh.profile.bundles — il ne sera pas chargé au boot.
   const aLier = actives === null ? packages : packages.filter((p) => actives.includes(p.nom))
   for (const p of aLier) {
-    if (!pkg.dependencies[p.nom] || !pkg.dependencies[p.nom].startsWith('link:')) {
-      pkg.dependencies[p.nom] = 'link:' + join(repoDir, p.dir)
-    }
+    const attendu = 'link:' + dossierBundle(repoDir, p.dir)
+    const actuel = pkg.dependencies[p.nom]
+    // Missing or non-link entry: set it. A link that is exactly the old flat
+    // layout (`<repo>/<dir>`) is re-pointed to `<repo>/packages/<dir>`, otherwise
+    // a profile installed before the move would break on update. Any other link
+    // (a developer's own checkout, say) is left alone.
+    const ancienLien = actuel === 'link:' + join(repoDir, p.dir)
+    if (!actuel || !actuel.startsWith('link:') || ancienLien) pkg.dependencies[p.nom] = attendu
     if (!pkg.dsh.profile.bundles.includes(p.nom)) pkg.dsh.profile.bundles.push(p.nom)
   }
   // Un satellite RETIRÉ de l'activation : on le sort aussi de dsh.profile.bundles
