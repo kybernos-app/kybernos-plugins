@@ -18,7 +18,8 @@ import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from './surfaces.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
-const REPO = resolve(ICI, '..')
+// bundles live in <repo>/packages/<name>: the repo root is two levels up
+const REPO = resolve(ICI, '..', '..')
 const DSH_HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
 const PROFIL_DIR = join(DSH_HOME, 'profiles', 'web')
 const CYCLE_DIR = join(DSH_HOME, 'lifecycle')
