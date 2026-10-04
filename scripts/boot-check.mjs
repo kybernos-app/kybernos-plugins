@@ -100,6 +100,8 @@ const ensureBrowser = async () => {
     const profile = mkdtempSync(join(tmpdir(), 'kb-boot-'))
     chrome = spawn(CHROME, [
       '--headless=new', '--remote-debugging-port=' + port, '--user-data-dir=' + profile,
+      // A throw-away profile must never reach for the macOS keychain (it pops "Keychain Not Found" on every run).
+      '--use-mock-keychain', '--password-store=basic',
       '--no-first-run', '--no-default-browser-check', '--window-size=1400,900', URL_,
     ], { stdio: 'ignore', detached: false })
     const base = 'http://127.0.0.1:' + port
