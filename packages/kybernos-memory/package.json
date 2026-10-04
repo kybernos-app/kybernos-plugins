@@ -2,6 +2,7 @@
   "name": "@local/kybernos-memory",
   "version": "0.1.0",
   "description": "Memory & Lessons learned: the settings page for the account memory and the lessons of each kyber, plus the lessons themselves — read, written and injected per kyber (compatible with memory.cjs), with on/off switches and tools for the agent.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {
