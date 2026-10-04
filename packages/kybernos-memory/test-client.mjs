@@ -26,7 +26,12 @@ let definition = null
 const errorsLogged = []
 const realError = console.error
 console.error = (...a) => { errorsLogged.push(a.join(' ')) }
-globalThis.window = { __ModuleLoader__: { load: (def) => { definition = def } } }
+const listeners = []
+globalThis.window = {
+  __ModuleLoader__: { load: (def) => { definition = def } },
+  addEventListener: (type, fn, capture) => { listeners.push({ type, fn, capture }) },
+  removeEventListener: (type, fn, capture) => { const i = listeners.findIndex((l) => l.type === type && l.fn === fn && l.capture === capture); if (i >= 0) listeners.splice(i, 1) },
+}
 let fetchImpl = async () => { throw new Error('offline') }
 globalThis.fetch = (...a) => fetchImpl(...a)
 const tags = []
@@ -131,6 +136,36 @@ check('every selector of the stylesheet carries the kbmem- prefix (prefixes are 
 const others = ['kybernos-plugin', 'kybernos-cloud', 'kybernos-sessions', 'kybernos-language', 'kybernos-theme', 'kybernos-models', 'kybernos-auto', 'kybernos-hub', 'kybernos-flow'].filter((d) => { try { return /kbmem-/.test(readFileSync(join(HERE, '..', d, 'client.js'), 'utf8')) } catch (e) { return false } })
 check('no other bundle uses the kbmem- prefix', others.length === 0, others)
 check('the page never calls a cloud URL directly: only same-origin local routes', !/https?:\/\//.test(SOURCE.replace(/\/\/.*$/gm, '').replace(/<path[^>]*>/g, '')) )
+
+// ── nav placement: DSH's Settings nav is grouped by label (kybernos-plugin); a label it does not know falls to the
+// bottom, under "Third Party Plugins" (seen on the real GUI). Ours is designed to sit right under Language.
+console.log('settings nav')
+{
+  const label = (/label: '(Memory & Lessons)'/.exec(SOURCE) || [])[1]
+  const nav = readFileSync(join(HERE, '..', 'kybernos-plugin', 'client.js'), 'utf8')
+  const row = /titre: kbt\('settings\.group\.settings'\), mots: \[([^\]]*)\]/.exec(nav)
+  const words = row === null ? [] : row[1].split(',').map((w) => w.trim().replace(/^'|'$/g, ''))
+  const at = words.indexOf((label || '').toLowerCase())
+  check('the nav label is the one the page registers', label === 'Memory & Lessons')
+  check('the Settings group of the shell lists it right after Language', at > 0 && words[at - 1] === 'language', words)
+  check('it has its own icon (else it wears the generic gear)', nav.indexOf("'memory & lessons': '<path") >= 0)
+}
+
+// ── Escape: the Settings dialog of DSH also closes on Escape, so the page must get there first and stop it
+console.log('escape')
+{
+  let closed = 0
+  const off = T.onEscape(() => { closed += 1 })
+  const l = listeners[listeners.length - 1]
+  let stopped = 0
+  l.fn({ key: 'a', stopPropagation: () => { stopped += 1 } })
+  check('another key does nothing', closed === 0 && stopped === 0)
+  l.fn({ key: 'Escape', stopPropagation: () => { stopped += 1 } })
+  check('Escape closes the menu AND is stopped (else DSH closes the whole Settings page)', closed === 1 && stopped === 1)
+  check('it listens on window in the capture phase (before the dialog\'s own listener)', l.type === 'keydown' && l.capture === true)
+  off()
+  check('the unsubscribe removes it (an Escape with nothing open must reach DSH)', listeners.length === 0)
+}
 
 console.error = realError
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')

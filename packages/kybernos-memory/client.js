@@ -136,6 +136,18 @@ window.__ModuleLoader__.load({
         return map[s] !== undefined ? map[s] : s
       }
 
+      /**
+       * Escape closes the page's own menu / side sheet. DSH's Settings dialog also listens for Escape
+       * (capture phase on the document), so we listen earlier (window, capture) and stop the event:
+       * otherwise one Escape would also close the whole Settings page. Only mounted while something is open,
+       * so an Escape with nothing open still reaches DSH. Returns the unsubscribe.
+       */
+      const onEscape = (close) => {
+        const h = (e) => { if (e.key === 'Escape') { e.stopPropagation(); close() } }
+        window.addEventListener('keydown', h, true)
+        return () => window.removeEventListener('keydown', h, true)
+      }
+
       /** Same-origin JSON call. Never throws: every failure is `{ ok:false, error }`. */
       const api = async (path, body) => {
         try {
@@ -469,19 +481,13 @@ window.__ModuleLoader__.load({
         useEffect(() => {
           if (!menu) return undefined
           const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target)) setMenu(false) }
-          const esc = (e) => { if (e.key === 'Escape') setMenu(false) }
           document.addEventListener('mousedown', away)
-          document.addEventListener('keydown', esc)
-          return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc) }
+          const unesc = onEscape(() => setMenu(false))
+          return () => { document.removeEventListener('mousedown', away); unesc() }
         }, [menu])
         // Escape also closes the side sheet.
         const sheetOpen = sheet !== null
-        useEffect(() => {
-          if (!sheetOpen) return undefined
-          const esc = (e) => { if (e.key === 'Escape') setSheet(null) }
-          document.addEventListener('keydown', esc)
-          return () => document.removeEventListener('keydown', esc)
-        }, [sheetOpen])
+        useEffect(() => (sheetOpen ? onEscape(() => setSheet(null)) : undefined), [sheetOpen])
         const list = useList(tab, { f, q: qd, page, size }, refreshKey)
         const [kybers, setKybers] = useState([])
         useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybers(r.kybers) }); return () => { live = false } }, [refreshKey])
@@ -649,7 +655,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { onEscape, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')

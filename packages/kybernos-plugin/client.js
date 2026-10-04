@@ -29320,7 +29320,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       }
       const GROUPES = [
         { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'apparence', 'appearance', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal'] },
-        { titre: kbt('settings.group.settings'), mots: ['general', 'langue', 'language', 'commandes', 'commands', 'mon espace', 'my workspace'] },
+        { titre: kbt('settings.group.settings'), mots: ['general', 'langue', 'language', 'memory & lessons', 'commandes', 'commands', 'mon espace', 'my workspace'] },
         { titre: kbt('settings.group.desktop'), mots: ['theme', 'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models', 'models', 'ollama local models', 'voix', 'voice', 'outils', 'tools', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'maintenance'] },
         { titre: kbt('settings.group.plugins'), mots: ['plugins', 'listing', 'built-in plugins'] },
       ]
@@ -29357,6 +29357,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'maintenance': '<path d="M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5" ' + trait + '/><path d="M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5" ' + trait + '/>',
         'langue': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
         'language': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
+        'memory & lessons': '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" ' + trait + '/><path d="M9 18h6" ' + trait + '/><path d="M10 22h4" ' + trait + '/>',
         'ollama local models': '<path d="M12 2 2 7l10 5 10-5-10-5z" ' + trait + '/><path d="M2 12l10 5 10-5" ' + trait + '/>',
         'plugins kybernos': '<rect x="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/>',
         'kybernos plugins': '<rect x="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/>',

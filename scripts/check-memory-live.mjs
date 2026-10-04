@@ -52,16 +52,21 @@ try {
   if (lesList === null || lesList.ok !== true) { console.error('○ inconclusive: /kybernos-memory/lessons does not answer'); await live.close(); process.exit(3) }
 
   console.log('settings → Memory & Lessons')
-  await click(140, 830); await sleep(1000)
+  // The account chip's place depends on the window height: find it by its label, never by coordinates.
+  const chip = await ev(`(() => { const e = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`)
+  if (chip === null) { console.error('○ inconclusive: the account chip was not found (is the GUI loaded?)'); await live.close(); process.exit(3) }
+  await click(JSON.parse(chip).x, JSON.parse(chip).y); await sleep(1000)
   await clickText(page, 'Settings'); await sleep(1800)
-  const navFound = await clickText(page, 'Memory & Lessons')
+  // The nav can be taller than the window: scroll the cell into view and click it directly (clickText only sees what is visible).
+  const navFound = await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === 'Memory & Lessons'); if (!c) return false; c.scrollIntoView({ block: 'center' }); (c.querySelector('button,[role=button]') || c).click(); return true })()`)
   if (navFound !== true) { console.error('○ inconclusive: no « Memory & Lessons » entry in the Settings nav (the client is only declared at boot: restart dsh web)'); await shot('no-nav'); await live.close(); process.exit(3) }
   check('the nav entry exists and opens the page', (await waitFor(page, `!!document.querySelector('.kbmem-page')`, 8000)) !== null)
   await sleep(1200)
   await shot('01-page')
 
   check('title', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
-  check('the section sits right after Language in the nav', (await ev(`(() => { const cells = [...document.querySelectorAll('[class*="navCell"]')].map(c => c.textContent.trim()); const i = cells.indexOf('Memory & Lessons'); return i > 0 && cells[i - 1] === 'Language' })()`)) === true)
+  // Visual order, not DOM order: the shell lays the nav out with CSS `order`.
+  check('the section sits right after Language in the nav (as drawn, not in DOM order)', (await ev(`(() => { const cells = [...document.querySelectorAll('[class*="navCell"]')].map(c => ({ t: c.textContent.trim(), y: c.getBoundingClientRect().top })).sort((a, b) => a.y - b.y); const i = cells.findIndex(c => c.t === 'Memory & Lessons'); return i > 0 && cells[i - 1].t === 'Language' })()`)) === true)
   check('data first: list rows, no switches on the first screen', (await count('.kbmem-r')) > 0 && (await count('.kbmem-srow')) === 0)
   if (memList !== null && memList.ok === true) {
     const tabs = await text('.kbmem-row2')
