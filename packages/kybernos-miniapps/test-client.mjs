@@ -58,5 +58,13 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
   ok('M-04 : serialiser échappe le titre piégé', html.includes('<title>&lt;/title&gt;') === true && html.includes('</title><script>') === false, html.slice(0, 90))
 }
 
+{
+  // kybernos-models' Settings page is `.kbm-root.kbmp`: it shares the `kbm-` prefix with the Modeleur and must not be taken for it.
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  ok("le Modeleur ne se reconnaît pas sur la page Réglages de kybernos-models (.kbm-root.kbmp)", src.includes("racine: '.kbm-root:not(.kbmp)'") && !/racine: '\.kbm-root'/.test(src))
+  const root = (cls) => ({ matches: (sel) => { const m = sel.match(/^\.([a-z-]+)(?::not\(\.([a-z]+)\))?$/); return m !== null && cls.includes(m[1]) && (m[2] === undefined || !cls.includes(m[2])) } })
+  ok('sélecteur : .kbm-root.kbmp (Réglages) est écarté, .kbm-root seul (Modeleur) est gardé', root(['kbm-root', 'kbmp']).matches('.kbm-root:not(.kbmp)') === false && root(['kbm-root']).matches('.kbm-root:not(.kbmp)') === true)
+}
+
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\n✗ ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

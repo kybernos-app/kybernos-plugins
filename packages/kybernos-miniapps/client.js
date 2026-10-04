@@ -62,7 +62,9 @@ window.__ModuleLoader__.load({
     // ── les panneaux reconnus : sélecteur racine + où poser le bouton ─────────
     const PANNEAUX = [
       { racine: '.kbb-root', id: 'briques', tete: '.kbb-head', defaut: 'Briques', l: 260, h: 380 },
-      { racine: '.kbm-root', id: 'modeleur', tete: '.kbm-head', defaut: 'Modeleur', l: 320, h: 420 },
+      // `.kbm-root` is shared with kybernos-models (its Settings page is `.kbm-root.kbmp`): without the `:not`, the
+      // "App ⤓" button landed twice on AI Provider & Models, a page that is not a mini-app.
+      { racine: '.kbm-root:not(.kbmp)', id: 'modeleur', tete: '.kbm-head', defaut: 'Modeleur', l: 320, h: 420 },
       { racine: '.kbs-root', id: 'slides', tete: '.kbs-head', defaut: 'Slides', l: 420, h: 340 },
     ]
 

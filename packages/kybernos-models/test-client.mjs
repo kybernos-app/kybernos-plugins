@@ -300,6 +300,19 @@ console.log('\n── provider writes: the actions, against a fake settings and 
   ok('delete: a stale parked copy of the same slug is forgotten too', kbPkRead(w.file).providers.acme === undefined)
 }
 
+console.log('\n── the models table: fixed capability slots ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { KB_MATRIX, kbMxSlots } = new Function(bl('KB-MX-PURE') + '\nreturn { KB_MATRIX, kbMxSlots }')()
+  ok('nine slots, always in the same order', KB_MATRIX.join() === 'textIn,vision,audioIn,video,imageGen,search,tools,s2s,reasoning')
+  const a1 = kbMxSlots(['textIn', 'textOut', 'vision', 'reasoning'])
+  ok('the lit slots follow the matrix order, not the order the model lists them in', a1.slots.join() === 'true,true,false,false,false,false,false,false,true' && kbMxSlots(['reasoning', 'vision', 'textIn']).slots.join() === a1.slots.join())
+  ok('text OUT is the baseline: it never counts as an extra', a1.extras.length === 0)
+  const a2 = kbMxSlots(['textIn', 'tts', 'structured', 'temperature', 'videoGen', 'textOut'])
+  ok('capabilities without a slot are counted, so nothing a model has is hidden', a2.extras.join() === 'tts,structured,temperature,videoGen')
+  ok('a model with nothing lights nothing and never throws', kbMxSlots([]).slots.every((x) => x === false) && kbMxSlots(null).extras.length === 0 && kbMxSlots(undefined).slots.length === 9)
+}
+
 console.log('\n── DSH’s native page: which menu cell to hide ──')
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
@@ -331,9 +344,10 @@ ok('the host calls go through the same-origin route, never a hard-coded host', h
 ok('no colour hard-coded in the new styles', !/kbmp-(sw|off)[^']*#[0-9a-fA-F]{3,6}\b/.test(src))
 
 ok('the panels are plain render calls: an inline component type would remount on every keystroke and drop focus', !/h\((Card|EditPanel|AddPanel|Dialogs|Switch|Combo), /.test(src))
+ok('a component that owns hooks is never called conditionally (React error #300 on the tab switch)', !/\? KybernosHero\(\)/.test(src))
 ok('edit, add and delete are reachable from the card (hover actions) and from the menu', has("'data-kbm': 'prov-edit'") && has("'data-kbm': 'prov-more'") && has("'data-kbm': 'prov-delete'") && has("'data-kbm': 'prov-add-model'"))
 ok('the delete dialog asks for the provider id before it enables the button', has("'data-kbm': 'prov-del-type'") && has('const okType = ui.typed.trim() === route') && has('disabled: !okType'))
-ok('the drawer closes on Escape and on a click outside', has("ev.key === 'Escape'") && has('onMouseDown: onClose'))
+ok('the drawer closes on Escape and on a click outside, and Escape is captured so DSH does not also close Settings', has("ev.key === 'Escape'") && has('onMouseDown: onClose') && has("document.addEventListener('keydown', key, true)") && has("document.addEventListener('keydown', touche, true)"))
 ok('the models.dev picker keeps its search, groups, arrow keys and Already-added rows', has("'data-kbm': 'prov-picker'") && has("ev.key === 'ArrowDown'") && has("m('kb.prov.add.deja')") && has("m('kb.prov.add.grp.free')") && has("m('kb.prov.add.pied'"))
 ok('the models.dev list closes on a press elsewhere without swallowing it (no full-screen backdrop)', has("document.addEventListener('mousedown', away)") && !has('kbpv-cb-fond'))
 ok('the picker still shows the free-models link for providers that have one', has('p.libre === true ? h(BadgeFree'))
@@ -342,6 +356,15 @@ ok('the native menu cell is hidden only while this plugin is healthy, and shown 
 ok('a crash on this page puts DSH’s native page back (error boundary)', has('class KbBoundary extends React.Component') && has('h(KbBoundary, null, h(Panel, null))') && has("componentDidCatch (e) { kbNatOwner = false; kbNatApply()"))
 ok('the native page gets a note and a way back, in its footer seat', has("slots.inject('settings.models.footer'") && has("'data-kbm': 'native-back'"))
 ok('Open DSH’s native page and Hide it from the menu are in the page menu', has("'data-kbm': 'native-open'") && has("'data-kbm': 'native-hide'"))
+ok('the table header sorts by model, provider and context, and filters by capability', has("'data-kbm': 'sort-' + key") && has("'data-kbm': 'mxfilter-' + k") && has("kbmSortHead('name'") && has("kbmSortHead('provider'") && has("kbmSortHead('context'"))
+ok('every row keeps its columns: model, provider, capabilities (list and matrix), context, source, actions', has("className: 'kbmp-c kbmp-cprov'") && has("className: 'kbmp-mx', 'data-kbm': 'row-matrix'") && has("'kbmp-c kbmp-cact'") && has("'kbmp-c kbmp-csrc'"))
+ok('the override count is a line in the Source cell, not a pill on every row', has("className: 'kbmp-ovline', 'data-kbm': 'ovpill'") && !has("className: 'kbmp-ovpill'"))
+ok('row actions show on hover and focus, and stay visible on touch screens', has('opacity:0;transition:opacity .12s') && has('@media (hover:none){.kbmp-c.kbmp-cact{opacity:1}}') && has('.kbmp-lig:hover .kbmp-cact,.kbmp-lig:focus-within .kbmp-cact'))
+ok('the provider column and the matrix appear from 860 px, the compact layout below', has('@container (min-width: 860px)') && has('@container (min-width: 620px)'))
+ok('the capability chips are hidden by default from 860 px (the header filters), always shown below, and one menu item turns them on', has("const KB_CHIPS_PREF = 'kb.models.capChips'") && has('kbmp-capsbar-on') && has('.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}') && has("'data-kbm': 'chips-toggle'"))
+ok('Restore, Sync all, the chips and DSH’s native page live in one ⋯ menu on the tab bar', has("'data-kbm': 'models-more'") && has("'data-kbm': 'models-menu'") && has("'data-kbm': 'restore'") && has("'data-kbm': 'fetch'"))
+ok('the Cloud card shows on the Providers tab only, and the old header block (intro, Live data pill, two buttons) is gone from Models', has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && !has("className: 'kbm-head'"))
+ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
 
 console.log('\n── strings: every new key in French and English ──')
