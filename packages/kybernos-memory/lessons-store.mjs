@@ -21,6 +21,7 @@ import { createHash } from 'node:crypto'
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { rank } from './relevance.mjs'
 
 export const LESSON_MAX_CHARS = 500
 export const LESSONS_MAX_COUNT = 50
@@ -127,7 +128,7 @@ export const ADDED_WINDOW_MIN = { '1m': 1, '1h': 60, today: 1440, '7d': 10080 }
 
 /**
  * Lessons of every kyber (or one), filtered and paginated. `used`: only lessons used
- * at least once. `added`: created within a window. `q`: every word must appear.
+ * at least once. `added`: created within a window. `q`: ranked by relevance (partial matches allowed).
  */
 export const listLessons = (options = {}) => {
   const now = Date.now()
@@ -138,9 +139,13 @@ export const listLessons = (options = {}) => {
   if (options.used === true) rows = rows.filter((r) => r.uses > 0)
   const window = ADDED_WINDOW_MIN[options.added]
   if (window !== undefined) rows = rows.filter((r) => r.ageMinutes !== null && r.ageMinutes <= window)
-  const words = normalize(options.q === undefined ? '' : options.q).split(' ').filter((w) => w !== '')
-  if (words.length > 0) rows = rows.filter((r) => { const hay = normalize(r.text + ' ' + r.tags.join(' ') + ' ' + r.kyber); return words.every((w) => hay.indexOf(w) >= 0) })
-  rows.sort(newestFirst)
+  const q = options.q === undefined ? '' : String(options.q).trim()
+  if (q !== '') {
+    // Ranked by relevance (relevance.mjs, the same module the memories use): best first, and each row says how many of
+    // the query's words it has. Tags and the kyber's name count as text.
+    rows = rank(rows.map((r) => ({ content: r.text + ' ' + r.tags.join(' ') + ' ' + r.kyber, createdAt: r.ts, row: r })), q)
+      .map((r) => ({ ...r.doc.row, matched: r.matched, of: r.of }))
+  } else rows.sort(newestFirst)
   const limit = Number.isFinite(options.limit) ? Math.min(200, Math.max(1, options.limit)) : 25
   const offset = Number.isFinite(options.offset) ? Math.max(0, options.offset) : 0
   return { total: rows.length, limit, offset, items: rows.slice(offset, offset + limit), counts }
@@ -239,21 +244,19 @@ export const markUsed = (id) => {
   return { ok: true, uses: lesson.uses }
 }
 
-/** Best matches first: most words found, then most used, then newest. */
+/**
+ * Best matches first (relevance.mjs: words found, how rare they are, accents and plurals ignored). Between equal
+ * matches a lesson that was already used comes first — the `pinned` slot of the ranking carries "used at least once".
+ */
 export const searchLessons = (q, options = {}) => {
-  const words = normalize(q).split(' ').filter((w) => w !== '')
-  if (words.length === 0) return []
+  if (String(q === undefined || q === null ? '' : q).trim() === '') return []
   const now = Date.now()
   const kybers = isKyberId(options.kyber) ? [options.kyber] : listKybers()
-  const hits = []
+  const docs = []
   for (const kyber of kybers) {
-    for (const lesson of readLessons(kyber)) {
-      const hay = normalize(lesson.text + ' ' + lesson.tags.join(' '))
-      const found = words.filter((w) => hay.indexOf(w) >= 0).length
-      if (found > 0) hits.push({ ...present(kyber, lesson, now), found })
-    }
+    for (const lesson of readLessons(kyber)) docs.push({ content: lesson.text + ' ' + lesson.tags.join(' '), createdAt: lesson.ts, pinned: lesson.uses > 0, row: present(kyber, lesson, now) })
   }
-  hits.sort((a, b) => b.found - a.found || b.uses - a.uses || newestFirst(a, b))
+  const hits = rank(docs, q).map((r) => ({ ...r.doc.row, found: r.matched }))
   return hits.slice(0, Number.isFinite(options.limit) ? options.limit : 10)
 }
 

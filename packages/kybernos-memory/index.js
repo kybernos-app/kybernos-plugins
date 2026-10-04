@@ -255,7 +255,7 @@ const lessonsListRoute = async (req) => {
   return {
     ok: true, ...listed,
     filters: { kyber: isKyberId(kyber) ? kyber : null, used: params.get('used') === '1', added: params.get('added') === null ? 'any' : params.get('added'), q: params.get('q') === null ? '' : params.get('q') },
-    search: { mode: 'exact', relevance: false },
+    search: { mode: 'relevance', relevance: true },
     injection: { scope: 'the kyber of the session, plus default', cap: plan.cap, defaultSent: plan.chosen.length, defaultOmitted: plan.omitted },
     settings: readSettings(),
   }
