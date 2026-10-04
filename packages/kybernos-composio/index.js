@@ -44,8 +44,9 @@ const STALE_MAX_MS = 30 * 60 * 1000
 export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000 }
 // A batch of 40 toolkits stays far below the measured batch (500 in about 760 ms).
 const MAX_TOOLKITS = 40
-// Deliberately strict grammar: a Composio slug is a flat identifier.
-const SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,40}$/
+// Deliberately strict grammar: a Composio slug is a flat identifier. It may start with an
+// underscore: `_1password`, `_21risk` and `_2chat` are real slugs (they used to be dropped).
+const SLUG_RE = /^[a-z0-9_][a-z0-9_-]{0,40}$/
 // Credential reference passed as a bare string: the credentialRef mark is erased at run
 // time (credentialRef('X') === 'X'), and a static import of @deepseek-ai/dsh-credentials
 // would break the hermetic tests outside the DSH tree.
@@ -200,7 +201,8 @@ function sendJson(res, status, body, extraHeaders) {
 function serveCatalog(req, res) {
   if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
   let entry = null
-  try { entry = loadCatalog() } catch (e) { return sendJson(res, 500, { ok: false, error: String((e && e.message) || e) }) }
+  // The error never carries a path (a failed read used to put the absolute path in the body).
+  try { entry = loadCatalog() } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the catalog cannot be read', e) }) }
   const headers = req.headers !== undefined && req.headers !== null ? req.headers : {}
   const inm = headers['if-none-match']
   if (typeof inm === 'string' && inm.indexOf(entry.etag) >= 0) {
@@ -230,16 +232,16 @@ function queryOf(req) {
 }
 
 /**
- * Extracts the requested toolkit list. Each slug is validated by SLUG_RE, duplicates are
- * dropped and the batch is capped at 40: a doubtful slug is ignored silently (never an
- * error: the page must not break over a parameter).
+ * Extracts the requested toolkit list. Each slug is lower-cased and validated by SLUG_RE,
+ * duplicates are dropped and the batch is capped at 40: a doubtful slug is ignored silently
+ * (never an error: the page must not break over a parameter).
  */
 function parseToolkits(raw) {
   if (typeof raw !== 'string' || raw.length === 0) return []
   const out = []
   const seen = {}
   for (const part of raw.split(',')) {
-    const slug = part.trim()
+    const slug = part.trim().toLowerCase()
     if (SLUG_RE.test(slug) !== true) continue
     if (seen[slug] === true) continue
     seen[slug] = true
@@ -249,14 +251,27 @@ function parseToolkits(raw) {
   return out
 }
 
-/** Reads COMPOSIO_API_KEY in the DSH .env: the fallback when the credentials service is missing. */
+/**
+ * Reads COMPOSIO_API_KEY in the DSH .env: the fallback when the credentials service is missing.
+ * The file is read the way DSH reads it (node:util parseEnv): an `export` prefix, quotes, an
+ * inline comment and a variable defined twice (the last line wins) all give the value DSH
+ * itself ends up with. The old regex took the first line and kept `ck_abc # work account`.
+ */
 function readEnvKey() {
   try {
     const text = readFileSync(join(DSH_HOME(), '.env'), 'utf8')
-    const match = /^[ \t]*COMPOSIO_API_KEY[ \t]*=[ \t]*(.+)$/m.exec(text)
-    if (match === null) return null
-    let value = match[1].trim()
-    if (value.length >= 2 && ((value[0] === '"' && value[value.length - 1] === '"') || (value[0] === "'" && value[value.length - 1] === "'"))) value = value.slice(1, -1).trim()
+    const parsed = parseEnvText(text)
+    let value = parsed !== null ? parsed.COMPOSIO_API_KEY : undefined
+    if (parsed === null) {
+      // No parseEnv (it exists in every Node DSH runs on): the plain rules, last line wins.
+      const all = Array.from(text.matchAll(/^[ \t]*(?:export[ \t]+)?COMPOSIO_API_KEY[ \t]*=[ \t]*(.*)$/gm))
+      if (all.length > 0) {
+        value = all[all.length - 1][1].trim()
+        const quoted = /^(["'`])(.*)\1/.exec(value)
+        value = quoted !== null ? quoted[2] : value.replace(/\s+#.*$/, '')
+      }
+    }
+    value = typeof value === 'string' ? value.trim() : ''
     return value.length === 0 ? null : { value: value, source: 'env-file' }
   } catch (e) { return null }
 }
@@ -503,9 +518,16 @@ async function readConnections(apiKey, slugs) {
  */
 async function serveConnections(ctx, req, res) {
   if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
-  const demandes = parseToolkits(queryOf(req).get('toolkits'))
+  const rawToolkits = queryOf(req).get('toolkits')
+  const demandes = parseToolkits(rawToolkits)
   const credential = await resolveComposioKey(ctx)
   if (credential === null) return sendJson(res, 200, { ok: true, configured: false, stale: false, error: 'no-credential', connections: [], summary: emptySummary(demandes.length) })
+  // A toolkits list was given but not one slug of it is valid (`Gmail` is fixed by the
+  // lower-casing; "google calendar" or `bash(git *)` are not slugs): answer for those, which is
+  // nothing. It used to fall through to the FULL account scan, a thousand probes for a typo.
+  if (demandes.length === 0 && typeof rawToolkits === 'string' && rawToolkits.trim().length > 0) {
+    return sendJson(res, 200, { ok: true, configured: true, stale: false, error: 'invalid-toolkits', connections: [], summary: emptySummary(0) })
+  }
   // No tool named: the page asks "what is ALREADY connected". The key only lives on the host and
   // the MCP has no "list everything", so the account is scanned here in batches, and only what
   // carries an account is returned.
@@ -521,12 +543,12 @@ async function serveConnections(ctx, req, res) {
   sendJson(res, 200, { ok: true, configured: true, stale: out.stale, error: out.error, connections: out.result.connections, summary: out.result.summary })
 }
 
-// ── connecteurs personnalisés (POST/GET/DELETE, écrit par le formulaire) ─────
-// Le formulaire de l'onglet Composio parle à CES routes ; l'utilisateur ne voit
-// jamais ni le YAML ni le .env. Source de vérité structurée : le sidecar JSON
-// (~/.dsh/kybernos/connecteurs.json) pour l'édition aller-retour ; le bloc
-// marqué dans cordis.patch.yml est le rendu dérivé que le loader DSH consomme.
-// Un connecteur écrit par la skill (bloc sans sidecar) reste listé en lecture.
+// ── custom connectors (POST/GET/DELETE, written by the form) ────────────────
+// The Composio tab's form talks to THESE routes; the user never sees the YAML or the .env.
+// The structured source of truth is the JSON sidecar (~/.dsh/kybernos/connecteurs.json),
+// for round-trip editing; the marked block in cordis.patch.yml is the derived rendering the
+// DSH loader consumes. A connector written by the skill (a block without a sidecar entry)
+// is still listed, read only.
 const CONNECTEURS_ROUTE = '/kybernos/composio/connecteurs'
 /**
  * The DSH home, the way DSH resolves it (dsh-home-paths) and kybernos-theme does: DSH_HOME
@@ -545,7 +567,11 @@ const DSH_HOME = () => resolveDshHome()
 const PATCH_PATH = () => join(DSH_HOME(), 'profiles', 'web', 'cordis.patch.yml')
 const SIDECAR_PATH = () => join(DSH_HOME(), 'kybernos', 'connecteurs.json')
 const ENV_PATH = () => join(DSH_HOME(), '.env')
-const NOM_RE = /^[a-z][a-z0-9-]{0,30}$/
+// 2 to 31 characters (the error message always said so; a single letter used to pass).
+const NOM_RE = /^[a-z][a-z0-9-]{1,30}$/
+// Names the connector form must not take: the bundle's own MCP entry is `composio` (id and
+// serverName), and dsh-mcp-client throws "serverName already in use" for a second one.
+const RESERVED_NAMES = ['composio']
 const SECRET_RE = /^[A-Z_][A-Z0-9_]{0,63}$/
 // Variable names DSH refuses in a `.env` file: at boot, loadLayeredEnv throws
 // "<file> sets <NAME>, which only the launching environment may set" and DSH does not
@@ -572,16 +598,16 @@ export function isBootstrapOnlyName(name) {
   return BOOTSTRAP_NAMES.has(upper) || BOOTSTRAP_PREFIXES.some((prefix) => upper.startsWith(prefix))
 }
 const bootstrapMessage = (nom) => 'secret ' + nom + ': DSH refuses this variable name in its .env file (only the launching environment may set it), so DSH would not start. Pick another name.'
+// The banner is written into the user's patch and looked for by its first words: it stays as
+// it was (French) so the files already on disk keep matching.
 const BANNER = '# ── CONNECTEURS PERSONNALISÉS (géré par le formulaire et la skill connecteur-personnalise) ────'
-// Token de secret dans une valeur de formulaire : « Bearer $TAVILY_API_KEY » →
-// la référence process.env est générée par le serveur, la valeur jamais stockée
-// dans le patch ni renvoyée par GET.
+// Secret token in a form value: "Bearer $TAVILY_API_KEY" -> the server generates the
+// process.env reference; the value is never stored in the patch nor returned by GET.
 const TOKEN_RE = /\$([A-Z_][A-Z0-9_]*)/g
 
-// ── K-01 : gardes sur les routes qui agissent ──────────────────────────────
-// Origine EXACTE de l'écoute réelle du socket (recette 2026-10 M-02/S-03) :
-// un POST cross-site (drive-by) ne doit jamais enregistrer un connecteur
-// stdio — il serait lancé au redémarrage de DSH.
+// ── K-01: guards on the routes that act ─────────────────────────────────────
+// EXACT origin of the real socket (2026-10 acceptance M-02/S-03): a cross-site (drive-by)
+// POST must never register a stdio connector, it would be launched when DSH restarts.
 function origineOK(req) {
   const o = String(req.headers.origin || '')
   if (o === '') return true
@@ -592,24 +618,23 @@ function origineOK(req) {
     return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
   } catch (e) { return false }
 }
-// Les POST qui écrivent exigent du JSON explicite : un text/plain cross-site
-// passe sans préflight — on le refuse.
+// POSTs that write require explicit JSON: a cross-site text/plain goes through without a
+// preflight, so it is refused.
 function jsonSeulement(req) {
   return String(req.headers['content-type'] || '').toLowerCase().includes('application/json')
 }
-// La commande stdio d'un connecteur doit être un exécutable SYSTÈME connu :
-// chemin absolu, existant, exécutable, sous une racine non inscriptible par
-// l'utilisateur. Un binaire posé dans le home (ou /tmp) n'est pas acceptable
-// via ce POST libre — passer par le setup validé (skill connecteur-personnalise).
-// Choix ASSUMÉ (contradicteur, K-01) : /usr/local/bin et /opt/homebrew/bin
-// sont inscriptibles par l'utilisateur local (brew). La menace visée est le
-// DRIVE-BY cross-site (bloqué par l'origine exacte + JSON) — un attaquant
-// local qui peut écrire dans /opt/homebrew/bin n'a pas besoin de cette
-// route pour exécuter du code. La liste ne change donc PAS.
+// The stdio command of a connector must be a known SYSTEM executable: an absolute path, an
+// existing executable file under a root the user cannot write to. A binary put in the home
+// (or /tmp) is not acceptable through this free POST: it goes through the validated setup
+// (skill connecteur-personnalise).
+// ASSUMED choice (K-01 review): /usr/local/bin and /opt/homebrew/bin are writable by the
+// local user (brew). The threat aimed at is the cross-site DRIVE-BY (blocked by the exact
+// origin + JSON): a local attacker who can write to /opt/homebrew/bin does not need this
+// route to run code. The list therefore does NOT change.
 const RACINES_STDIO_OK = ['/usr/bin', '/bin', '/usr/sbin', '/sbin', '/usr/local/bin', '/usr/local/sbin', '/opt/homebrew/bin', '/opt/homebrew/sbin']
 function commandStdioOK(command) {
   if (typeof command !== 'string' || command.length === 0) return false
-  if (/[\s\0-\x1f]/.test(command) === true) return false // ni espaces ni contrôle : un seul chemin propre
+  if (/[\s\0-\x1f]/.test(command) === true) return false // no whitespace or control character: one clean path
   if (command.startsWith('/') !== true) return false
   const sousRacine = RACINES_STDIO_OK.some((r) => command === r || command.startsWith(r + '/'))
   if (sousRacine !== true) return false
@@ -1160,11 +1185,56 @@ function normalizePairs(raw, label, foldCase) {
   return { pairs: pairs }
 }
 
+/**
+ * Splits an arguments line the way a shell would, for the quoting only: spaces separate
+ * arguments unless they are inside 'single' or "double" quotes. Inside double quotes `\"` and
+ * `\\` are the two escapes; everywhere else a backslash is a plain character (paths, regexes).
+ * A path with a space (`"/Users/Jane Doe/server.mjs"`) used to be cut in two. Returns
+ * { args } or { erreur } when a quote is not closed. Exported for test-host.mjs and the client test.
+ */
+export function splitArgs(text) {
+  const s = String(text === null || text === undefined ? '' : text)
+  const out = []
+  let cur = null
+  let quote = null
+  for (let i = 0; i < s.length; i += 1) {
+    const ch = s[i]
+    if (quote === "'") { if (ch === "'") quote = null; else cur += ch; continue }
+    if (quote === '"') {
+      if (ch === '"') quote = null
+      else if (ch === '\\' && (s[i + 1] === '"' || s[i + 1] === '\\')) { i += 1; cur += s[i] } else cur += ch
+      continue
+    }
+    if (/\s/.test(ch)) { if (cur !== null) { out.push(cur); cur = null } continue }
+    if (ch === "'" || ch === '"') { quote = ch; if (cur === null) cur = ''; continue }
+    cur = (cur === null ? '' : cur) + ch
+  }
+  if (quote !== null) return { erreur: 'args: a quote is opened and not closed' }
+  if (cur !== null) out.push(cur)
+  return { args: out }
+}
+
+const LOOPBACK_RE = /^(localhost|127(\.\d{1,3}){3}|\[::1\]|[^.]+\.localhost)$/i
+
+/**
+ * Whether `nom` is already the id or the serverName of another entry of the patch (outside the
+ * block of that connector): dsh-mcp-client throws "serverName already in use" at load, and
+ * the loader refuses a repeated id.
+ */
+function usedElsewhere(patchText, nom) {
+  const lines = String(patchText).split('\n')
+  const own = findBlocks(lines).filter((b) => b.nom === nom)
+  const esc = nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const re = new RegExp('^[ \\t]*(?:-[ \\t]+)?(?:id:[ \\t]*[\'"]?(?:mcp-client-)?' + esc + '|serverName:[ \\t]*[\'"]?' + esc + ')[\'"]?[ \\t]*(?:#.*)?$')
+  return lines.some((l, i) => re.test(l) && own.some((b) => i >= b.start && i < b.end) === false)
+}
+
 /** Validates the POST body: returns { erreur } or the normalized { connecteur }. */
 function normalizeConnecteur(body) {
   if (body === null || body === undefined || typeof body !== 'object') return { erreur: 'a JSON object is expected' }
   const nom = String(body.nom || '').trim()
   if (NOM_RE.test(nom) !== true) return { erreur: 'invalid name (lowercase letters, digits and dashes, starting with a letter, 2 to 31 characters): ' + nom.slice(0, 40) }
+  if (RESERVED_NAMES.indexOf(nom) >= 0) return { erreur: 'the name ' + nom + ' is reserved (it is the name of the bundle\'s own MCP entry); pick another' }
   const transport = body.transport === 'stdio' ? 'stdio' : (body.transport === 'streamable-http' ? 'streamable-http' : null)
   if (transport === null) return { erreur: 'invalid transport' }
   const c = { nom: nom, transport: transport, updatedAt: new Date().toISOString() }
@@ -1172,8 +1242,12 @@ function normalizeConnecteur(body) {
     const command = String(body.command || '').trim()
     if (commandStdioOK(command) !== true) return { erreur: 'command: a system executable is required (absolute path under /usr/bin, /bin, /opt/homebrew/bin..., an executable file); a binary elsewhere goes through the validated setup (connecteur-personnalise)' }
     c.command = command
-    c.args = Array.isArray(body.args) ? body.args.map((x) => String(x)).filter((x) => x.length > 0)
-      : String(body.args || '').split(' ').map((x) => x.trim()).filter((x) => x.length > 0)
+    if (Array.isArray(body.args)) c.args = body.args.map((x) => String(x)).filter((x) => x.length > 0)
+    else {
+      const split = splitArgs(body.args)
+      if (split.erreur !== undefined) return { erreur: split.erreur }
+      c.args = split.args.filter((x) => x.length > 0)
+    }
     if (c.args.some((a) => propre(a) !== true)) return { erreur: 'args: no line breaks or control characters (YAML escaping)' }
     // ASSUMED residual surface (K-01 review): the args stay free in content (legitimate
     // args carry paths, URLs, flags), so a same-origin attacker could set something like
@@ -1192,6 +1266,10 @@ function normalizeConnecteur(body) {
     let u = null
     try { u = new URL(String(body.url || '')) } catch (e) { u = null }
     if (u === null || (u.protocol !== 'https:' && u.protocol !== 'http:')) return { erreur: 'invalid url (http/https)' }
+    // user:password@ in a URL used to be dropped silently, and would have been stored in clear text.
+    if (u.username !== '' || u.password !== '') return { erreur: 'url: user:password@ in the address is not accepted; send it in a header with a $SECRET instead' }
+    // Plain http would send the headers (the API key) in clear text over the network.
+    if (u.protocol === 'http:' && LOOPBACK_RE.test(u.hostname) !== true) return { erreur: 'url: http is only accepted for this machine (localhost); use https' }
     c.url = u.origin + (u.pathname || '/') + (u.search || '')
     const headers = normalizePairs(body.headers, 'headers', true)
     if (headers.erreur !== undefined) return { erreur: headers.erreur }
@@ -1288,7 +1366,10 @@ async function serveConnecteurs(ctx, req, res) {
   if (req.method === 'POST') {
     if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
     let body = null
-    try { body = JSON.parse(await readBody(req)) } catch (e) { return sendJson(res, 400, { ok: false, error: 'a JSON body is expected' }) }
+    try { body = JSON.parse(await readBody(req)) } catch (e) {
+      if (e instanceof BodyTooLarge) return sendJson(res, 413, { ok: false, error: 'the request body is too large (' + MAX_BODY_BYTES + ' bytes at most)' })
+      return sendJson(res, 400, { ok: false, error: 'a JSON body is expected' })
+    }
     const n = normalizeConnecteur(body)
     if (n.erreur !== undefined) return sendJson(res, 400, { ok: false, error: n.erreur })
     const secretErreur = verifierSecrets(body)
@@ -1302,6 +1383,7 @@ async function serveConnecteurs(ctx, req, res) {
     let avant = ''
     try { avant = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
     const existait = existsSync(PATCH_PATH())
+    if (usedElsewhere(avant, c.nom)) return sendJson(res, 409, { ok: false, error: 'the name ' + c.nom + ' is already used by another entry of cordis.patch.yml (a repeated serverName makes dsh-mcp-client throw); pick another' })
     const apres = patchWithBlock(avant, c)
     const verdict = checkPatch(avant, apres, c.nom, 'present')
     if (verdict.ok !== true) return sendJson(res, verdict.status, { ok: false, error: verdict.error })
@@ -1358,28 +1440,51 @@ async function serveConnecteurs(ctx, req, res) {
   return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
 }
 
+// Largest request body read, in BYTES.
+const MAX_BODY_BYTES = 200000
+class BodyTooLarge extends Error {}
+
+/**
+ * Reads a request body as UTF-8. The chunks are collected as bytes and decoded once: decoding
+ * each chunk on its own turned a character split across two chunks into U+FFFD. Past the limit
+ * nothing more is kept (the buffering used to be unbounded) and the promise rejects with a
+ * BodyTooLarge, which the route answers with a 413.
+ */
 function readBody(req) {
   return new Promise((resolve, reject) => {
-    let data = ''
-    req.on('data', (chunk) => { data += chunk; if (data.length > 200000) reject(new Error('corps trop grand')) })
-    req.on('end', () => resolve(data))
+    const chunks = []
+    let size = 0
+    let tooLarge = false
+    req.on('data', (chunk) => {
+      if (tooLarge) return
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk))
+      size += bytes.length
+      if (size > MAX_BODY_BYTES) { tooLarge = true; chunks.length = 0; return }
+      chunks.push(bytes)
+    })
+    req.on('end', () => { if (tooLarge) reject(new BodyTooLarge('body too large')); else resolve(Buffer.concat(chunks).toString('utf8')) })
     req.on('error', reject)
   })
 }
 
 export function apply(ctx) {
-  const log = (message) => { try { if (ctx.logger !== undefined && ctx.logger !== null) ctx.logger.info(message) } catch (e) { /* logger optionnel */ } }
+  const log = (message) => { try { if (ctx.logger !== undefined && ctx.logger !== null) ctx.logger.info(message) } catch (e) { /* the logger is optional */ } }
+  // AGENTS.md rule 2: a bundle must never stop DSH from starting. Nothing below may throw out
+  // of apply(): a failure here only costs this bundle's routes.
+  try { mountRoutes(ctx, log) } catch (e) { log('[composio] routes not mounted: ' + fsMessage('error', e)) }
+}
 
-  // Filet ultime : la route de lecture ne doit jamais rejeter vers le serveur web,
-  // sinon une requête imprévue ferait tomber la page Connectors.
+function mountRoutes(ctx, log) {
+  // Last-resort net: the read route must never reject towards the web server, or an
+  // unexpected request would bring the Connectors page down.
   const serveConnectionsSafe = async (req, res) => {
     try { await serveConnections(ctx, req, res) } catch (e) {
       try {
         if (res.headersSent !== true) sendJson(res, 200, { ok: true, configured: true, stale: false, error: 'offline', connections: [], summary: emptySummary(0) })
-      } catch (e2) { /* socket déjà fermé */ }
+      } catch (e2) { /* socket already closed */ }
     }
   }
-  // Idem pour les connecteurs : une exception ne doit jamais casser la page.
+  // Same for the connectors: an exception must never break the page.
   const serveConnecteursSafe = async (req, res) => {
     try { await serveConnecteurs(ctx, req, res) } catch (e) {
       try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
@@ -1387,14 +1492,14 @@ export function apply(ctx) {
   }
   const mount = (webServerSvc) => {
     if (webServerSvc === null || webServerSvc === undefined || typeof webServerSvc.register !== 'function') return
-    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CATALOG_ROUTE, handler: serveCatalog }), 'kybernos-composio: route catalogue')
-    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTIONS_ROUTE, handler: serveConnectionsSafe }), 'kybernos-composio: route connexions')
-    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_ROUTE, handler: serveConnecteursSafe }), 'kybernos-composio: route connecteurs')
-    log('[composio] catalogue servi sur ' + CATALOG_ROUTE)
-    log('[composio] connexions reelles servies sur ' + CONNECTIONS_ROUTE)
-    log('[composio] connecteurs personnalises servis sur ' + CONNECTEURS_ROUTE)
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CATALOG_ROUTE, handler: serveCatalog }), 'kybernos-composio: catalog route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTIONS_ROUTE, handler: serveConnectionsSafe }), 'kybernos-composio: connections route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_ROUTE, handler: serveConnecteursSafe }), 'kybernos-composio: connectors route')
+    log('[composio] catalog served on ' + CATALOG_ROUTE)
+    log('[composio] real connections served on ' + CONNECTIONS_ROUTE)
+    log('[composio] custom connectors served on ' + CONNECTEURS_ROUTE)
   }
   if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
   else ctx.inject(['webServer'], (hostCtx) => mount(hostCtx.webServer))
-  log('[composio] attaché — actions client via MCP, lecture des connexions côté host')
+  log('[composio] attached: client actions go through MCP, connections are read on the host')
 }

@@ -9,7 +9,7 @@
 // the DSH engine of the machine, when there is one, is only read.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome, envTextWith, TIMEOUTS } from './index.js'
+import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome, envTextWith, TIMEOUTS, splitArgs } from './index.js'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, symlinkSync, statSync, chmodSync } from 'node:fs'
 import { parseEnv } from 'node:util'
 import { tmpdir, homedir } from 'node:os'
@@ -1068,6 +1068,188 @@ const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy'
     await connexions('')
     ok('C-10: ...a complete scan is cached (an empty account is a complete answer too)', nbOutils() === sondes)
   } finally { TIMEOUTS.slugsFailMs = sauve }
+}
+
+
+// ═══ C-16: the form's edges ═══════════════════════════════════════════════════
+{
+  // args: a path with a space, quoted, used to be cut in two
+  const sp = (s) => splitArgs(s)
+  ok('C-16: splitArgs: plain words', JSON.stringify(sp('--port 3000  --x').args) === '["--port","3000","--x"]')
+  ok('C-16: splitArgs: a double-quoted path with a space stays one argument', JSON.stringify(sp('"/Users/Jane Doe/server.mjs" --name "My App"').args) === '["/Users/Jane Doe/server.mjs","--name","My App"]')
+  ok('C-16: splitArgs: single quotes keep everything literal', JSON.stringify(sp("'a b' 'c\\d' \"e'f\"").args) === '["a b","c\\\\d","e\'f"]')
+  ok('C-16: splitArgs: \\" and \\\\ are the escapes inside double quotes only', JSON.stringify(sp('"a\\"b" "c\\\\d" e\\f').args) === '["a\\"b","c\\\\d","e\\\\f"]', JSON.stringify(sp('"a\\"b" "c\\\\d" e\\f').args))
+  ok('C-16: splitArgs: a quote glued to a word joins them (--name="My App")', JSON.stringify(sp('--name="My App"').args) === '["--name=My App"]')
+  ok('C-16: splitArgs: an unclosed quote is an error', sp('"abc def').erreur !== undefined && sp("x 'y").erreur !== undefined)
+  ok('C-16: splitArgs: empty and blank lines give no argument', sp('').args.length === 0 && sp('   \t ').args.length === 0 && sp(undefined).args.length === 0)
+  frais()
+  const typed = '"/Users/Jane Doe/server.mjs" --name "My App"'
+  const res = await POST({ nom: 'spaced', transport: 'stdio', command: '/usr/bin/touch', args: typed })
+  const saved = (await GET()).connecteurs.find((c) => c.nom === 'spaced')
+  ok('C-16: an args line with a quoted path with a space is saved as three arguments', res.code === 200 && JSON.stringify(saved.args) === '["/Users/Jane Doe/server.mjs","--name","My App"]', `code=${res.code} ${JSON.stringify(saved && saved.args)}`)
+  ok('C-16: ...and each one is one list item of the patch', (lire(PATCH_FILE) || '').includes('        - "/Users/Jane Doe/server.mjs"\n        - "--name"\n        - "My App"'))
+  const bad = await POST({ nom: 'spaced2', transport: 'stdio', command: '/usr/bin/touch', args: '"unclosed' })
+  ok('C-16: an unclosed quote in the args line is a 400', bad.code === 400 && /quote/.test(bad.corps))
+  const arr = await POST({ nom: 'spaced3', transport: 'stdio', command: '/usr/bin/touch', args: ['/Users/Jane Doe/server.mjs', '--x'] })
+  ok('C-16: an args ARRAY is used as it is (spaces kept)', arr.code === 200 && JSON.stringify((await GET()).connecteurs.find((c) => c.nom === 'spaced3').args) === '["/Users/Jane Doe/server.mjs","--x"]')
+  if (dshBoot !== null) ok('C-16: DSH loads that patch', bootPatch() === null)
+  // names
+  for (const nom of ['composio']) {
+    frais()
+    const r = await POST(http(nom))
+    ok(`C-16: the name ${nom} is reserved (dsh-mcp-client throws "serverName already in use")`, r.code === 400 && /reserved/.test(r.corps) && lire(PATCH_FILE) === null, `code=${r.code} ${r.corps.slice(0, 80)}`)
+  }
+  frais()
+  ok('C-16: a one-letter name is refused (the message always said 2 to 31)', (await POST(http('a'))).code === 400)
+  ok('C-16: a two-letter name is fine', (await POST(http('ab'))).code === 200)
+  ok('C-16: a 31-character name is fine and 32 is refused', (await POST(http('a'.repeat(31)))).code === 200 && (await POST(http('a'.repeat(32)))).code === 400)
+  // a name another entry of the patch already uses
+  frais()
+  writeFileSync(PATCH_FILE, '- insert:\n    - id: mcp-client-taken\n      name: \'@deepseek-ai/dsh-mcp-client\'\n      config:\n        serverName: taken\n        transport: stdio\n', 'utf8')
+  const dupe = await POST(http('taken'))
+  ok('C-16: a name that is the id or serverName of another entry is refused (409), nothing written', dupe.code === 409 && /already used/.test(dupe.corps) && lire(SIDECAR_FILE) === null)
+  writeFileSync(PATCH_FILE, '- insert:\n    - id: other\n      name: x\n      config:\n        serverName: "elsewhere"\n', 'utf8')
+  ok('C-16: a double-quoted serverName elsewhere counts too', (await POST(http('elsewhere'))).code === 409)
+  ok('C-16: a similar name does not', (await POST(http('elsewhere2'))).code === 200)
+  const again = await POST(http('elsewhere2', { url: 'https://mcp.example.test/v2' }))
+  ok('C-16: editing a connector does not collide with its own block', again.code === 200)
+  // urls
+  frais()
+  const u = (url) => POST(http('urls', { url }))
+  for (const [label, url] of [['user:password@ in the address', 'https://user:pw@mcp.example.test/mcp'], ['a user without a password', 'https://user@mcp.example.test/mcp'], ['plain http to a remote host', 'http://mcp.example.test/mcp'], ['plain http to a remote IP', 'http://192.168.1.20:3000/mcp'], ['plain http to a look-alike of localhost', 'http://localhost.evil.example/mcp']]) {
+    const r = await u(url)
+    ok(`C-16: ${label} is refused (400)`, r.code === 400 && r.corps.includes('pw') === false, `code=${r.code} ${r.corps.slice(0, 90)}`)
+  }
+  for (const url of ['http://localhost:3000/mcp', 'http://127.0.0.1:8080/mcp', 'http://[::1]:8080/mcp', 'http://app.localhost/mcp', 'https://mcp.example.test/mcp#frag']) {
+    const r = await u(url)
+    ok(`C-16: ${url} is accepted`, r.code === 200, `code=${r.code} ${r.corps.slice(0, 80)}`)
+  }
+  ok('C-16: a fragment is dropped (it is never sent to a server)', (await GET()).connecteurs.find((c) => c.nom === 'urls').url === 'https://mcp.example.test/mcp')
+}
+
+// ═══ C-17: toolkit slugs ═════════════════════════════════════════════════════
+{
+  frais(); poserCle('ck_c17')
+  avancer(3 * 3600e3)
+  stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({})))
+  const lots = () => mcp().filter((c) => methodeMcp(c) === 'tools/call').map((c) => nomsAppel(c))
+  const a = await connexions('?toolkits=_1password,_2chat,Gmail')
+  ok('C-17: slugs with a leading underscore are probed (they were dropped), and Gmail is lower-cased', a.error === null && JSON.stringify(lots()[0]) === '["_1password","_2chat","gmail"]', JSON.stringify(lots()))
+  appels.length = 0
+  const b = await connexions('?toolkits=' + encodeURIComponent('Google Calendar,bash(git *),foo/bar'))
+  ok('C-17: a list with no valid slug is answered, not turned into a full account scan', b.error === 'invalid-toolkits' && b.configured === true && b.scan !== true && b.connections.length === 0 && appels.length === 0, JSON.stringify({ error: b.error, scan: b.scan, calls: appels.length }))
+  const c = await connexions('?toolkits=%20,%20')
+  ok('C-17: blanks only are "no valid slug" as well', c.error === 'invalid-toolkits' && appels.length === 0)
+  poserCle('ck_c17b')
+  stubFetch(proxyOuMcp(() => { throw new Error('down') }, (r) => (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({}))))
+  const d = await connexions('')
+  const sondes = [].concat(...lots())
+  ok('C-17: the local fallback list of the scan carries the underscore slugs', d.partial === true && sondes.includes('_1password') && sondes.includes('_21risk') && sondes.includes('_2chat'), sondes.length + ' slugs')
+  const e = await connexions('?toolkits=')
+  ok('C-17: an EMPTY toolkits parameter is still the account scan', e.scan === true)
+  poserCle('ck_c17c')
+  const f = await connexions('')
+  ok('C-17: no parameter at all is the account scan', f.scan === true)
+  // no key: the same answer whatever the list
+  rmSync(join(DSH_DIR, '.env'))
+  const g = await connexions('?toolkits=' + encodeURIComponent('google calendar'))
+  ok('C-17: without a key the answer is still no-credential', g.configured === false && g.error === 'no-credential')
+}
+
+// ═══ C-18: the key is read like DSH reads .env ═════════════════════════════════
+{
+  const cas = [
+    ['an export prefix', 'export COMPOSIO_API_KEY=ck_abc123\n'],
+    ['an inline comment', 'COMPOSIO_API_KEY=ck_abc123 # work account\n'],
+    ['a variable defined twice (the last line wins in DSH)', 'COMPOSIO_API_KEY=ck_first\nOTHER=1\nCOMPOSIO_API_KEY=ck_abc123\n'],
+    ['double quotes', 'COMPOSIO_API_KEY="ck_abc123"\n'],
+    ['single quotes and a comment', "COMPOSIO_API_KEY='ck_abc123' # c\n"],
+    ['CRLF line ends', 'OTHER=1\r\nCOMPOSIO_API_KEY=ck_abc123\r\n'],
+    ['spaces around the equals sign', 'COMPOSIO_API_KEY = ck_abc123\n'],
+    ['no final newline', 'COMPOSIO_API_KEY=ck_abc123'],
+    ['a comment line that mentions the name', '# COMPOSIO_API_KEY=ck_old\nCOMPOSIO_API_KEY=ck_abc123\n'],
+  ]
+  let i = 0
+  for (const [label, texte] of cas) {
+    i += 1
+    frais()
+    writeFileSync(join(DSH_DIR, '.env'), texte, 'utf8')
+    avancer(1000)
+    stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({ gmail: { status: '', accounts: [] } })))
+    const out = await connexions('?toolkits=gmail' + 'x'.repeat(i))
+    const vu = appels.map((a) => a.headers['x-consumer-api-key'])
+    const dsh = parseEnv(texte).COMPOSIO_API_KEY
+    ok(`C-18: with ${label} the host sends ${JSON.stringify(dsh)}, the key DSH reads`, out.configured === true && vu.length > 0 && vu.every((k) => k === dsh) && dsh === 'ck_abc123', JSON.stringify({ dsh, vu }))
+  }
+  frais()
+  writeFileSync(join(DSH_DIR, '.env'), 'COMPOSIO_API_KEY=\nOTHER=1\n', 'utf8')
+  ok('C-18: an empty key is no key', (await connexions('?toolkits=gmail')).configured === false)
+}
+
+// ═══ C-19: request bodies ════════════════════════════════════════════════════
+{
+  const envoyer = async (morceaux, headers) => {
+    const res = reponse()
+    await routes['/kybernos/composio/connecteurs']({
+      method: 'POST', headers: Object.assign({ 'content-type': 'application/json' }, headers || {}), socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs',
+      on: (ev, fn) => { if (ev === 'data') for (const m of morceaux) fn(m); if (ev === 'end') setTimeout(() => fn(), 0) },
+    }, res)
+    return res
+  }
+  frais()
+  const json = Buffer.from(JSON.stringify(http('accent', { headers: [{ name: 'x-h', value: 'café résumé 日本語 😀' }] })))
+  const coupe = json.indexOf(Buffer.from('é')) + 1                 // inside the 2-byte sequence
+  const r1 = await envoyer([json.subarray(0, coupe), json.subarray(coupe)])
+  ok('C-19: a UTF-8 character split across two chunks is decoded intact', r1.code === 200 && (await GET()).connecteurs.find((c) => c.nom === 'accent').headers[0].value === 'café résumé 日本語 😀', `code=${r1.code}`)
+  const octets = Array.from(json).map((b) => Buffer.from([b]))
+  const r2 = await envoyer(octets)
+  ok('C-19: ...one byte per chunk as well', r2.code === 200)
+  const r3 = await envoyer([Buffer.alloc(300000, 0x61)])
+  ok('C-19: a body over the limit answers 413, not the generic 400', r3.code === 413 && /too large/.test(r3.corps), `code=${r3.code} ${r3.corps}`)
+  const r4 = await envoyer(Array.from({ length: 40 }, () => Buffer.alloc(10000, 0x61)))
+  ok('C-19: the limit counts bytes over all the chunks (40 x 10 kB)', r4.code === 413)
+  const gros = JSON.stringify(http('limit', { headers: [{ name: 'x-h', value: 'a'.repeat(100000) }] }))
+  const r5 = await envoyer([Buffer.from(gros)])
+  ok('C-19: a body under 200 kB is read (and judged on its content)', r5.code === 200 || r5.code === 400, `code=${r5.code}`)
+  const r6 = await envoyer([Buffer.from('not json')])
+  ok('C-19: a body that is not JSON is still a 400', r6.code === 400)
+  const r7 = await envoyer(['{"nom":"strs","transport":"streamable-http","url":"https://mcp.example.test/s"}'])
+  ok('C-19: string chunks are accepted too', r7.code === 200)
+}
+
+// ═══ C-21: the catalog route, errors without paths, apply() that cannot throw ═
+{
+  const get = async (headers, method) => { const res = reponse(); res.headers = {}; res.writeHead = (c, h) => { res.code = c; res.headers = h || {} }; await routes['/kybernos/composio/catalog']({ method: method || 'GET', headers: headers || {}, url: '/kybernos/composio/catalog', socket: {}, on: () => {} }, res); return res }
+  const a = await get()
+  ok('catalog route: 200 with an ETag and a JSON array of apps', a.code === 200 && typeof a.headers.etag === 'string' && Array.isArray(JSON.parse(a.corps)) && JSON.parse(a.corps).length > 50, `code=${a.code}`)
+  ok('catalog route: the max-age=3600 cache is declared (a corrected catalog reaches browsers within an hour)', /max-age=3600/.test(a.headers['cache-control']))
+  const b = await get({ 'if-none-match': a.headers.etag })
+  ok('catalog route: If-None-Match gives 304', b.code === 304)
+  ok('catalog route: POST is 405', (await get({}, 'POST')).code === 405)
+  if (typeof process.getuid === 'function' && process.getuid() !== 0) {
+    // a fresh copy of the module whose catalog.js cannot be read
+    const copie = mkdtempSync(join(tmpdir(), 'kb-composio-nocat-'))
+    try {
+      writeFileSync(join(copie, 'index.js'), readFileSync(new URL('./index.js', import.meta.url), 'utf8'))
+      writeFileSync(join(copie, 'catalog.js'), 'export const CATALOG = [];\n')
+      chmodSync(join(copie, 'catalog.js'), 0o000)
+      const mod = await import(join(copie, 'index.js') + '?nocat')
+      const rt = {}
+      mod.apply({ get: (n) => (n === 'webServer' ? { register: (r) => { rt[r.path] = r.handler } } : undefined), effect: (fn) => fn(), inject: (_n, fn) => fn(), logger: { info: () => {} } })
+      const res = reponse()
+      await rt['/kybernos/composio/catalog']({ method: 'GET', headers: {}, url: '/kybernos/composio/catalog', socket: {}, on: () => {} }, res)
+      ok('C-21: an unreadable catalog answers 500 without the absolute path', res.code === 500 && res.corps.includes(copie) === false && res.corps.includes('/') === false && /EACCES/.test(res.corps), `code=${res.code} ${res.corps}`)
+    } finally { try { chmodSync(join(copie, 'catalog.js'), 0o600) } catch (e) { /* gone */ } rmSync(copie, { recursive: true, force: true }) }
+  }
+  // AGENTS.md rule 2: nothing in apply() may throw out of it
+  const logs = []
+  let jete = null
+  try { apply({ get: () => { throw new Error('no such service') }, effect: () => { throw new Error('boom') }, inject: () => { throw new Error('boom') }, logger: { info: (m) => logs.push(m) } }) } catch (e) { jete = e }
+  ok('C-21: apply() never throws, whatever the host context does', jete === null, String(jete && jete.message))
+  ok('C-21: ...and says why the routes are not there', logs.some((m) => /not mounted/.test(m)))
+  let jete2 = null
+  try { apply({}) } catch (e) { jete2 = e }
+  ok('C-21: apply() with an empty context does not throw either', jete2 === null)
 }
 
 rmSync(HOME, { recursive: true, force: true })
