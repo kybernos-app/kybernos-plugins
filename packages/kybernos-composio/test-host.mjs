@@ -9,7 +9,7 @@
 // the DSH engine of the machine, when there is one, is only read.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome, envTextWith } from './index.js'
+import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome, envTextWith, TIMEOUTS } from './index.js'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, symlinkSync, statSync, chmodSync } from 'node:fs'
 import { parseEnv } from 'node:util'
 import { tmpdir, homedir } from 'node:os'
@@ -850,6 +850,224 @@ if (typeof process.getuid === 'function' && process.getuid() !== 0) {
   writeFileSync(PATCH_FILE, lire(PATCH_FILE) + "\n# hand entry\n- id: other\n  config:\n    token: !!js \"process.env.GAMMA_KEY\"\n", 'utf8')
   const d4 = await DELETE('gamma')
   ok('C-07: a secret that a hand-written patch entry still reads is kept, and so is COMPOSIO_API_KEY', d4.code === 200 && JSON.parse(d4.corps).secretsRemoved === 0 && /GAMMA_KEY=g/.test(env()) && /COMPOSIO_API_KEY=ck_x/.test(env()), JSON.stringify(env()))
+}
+
+
+// ═══ C-08 / C-09 / C-10: the connections routes ══════════════════════════════
+// Time is shifted by a skew so the caches (120 s, 5 min, 1 h) can expire without waiting.
+const horlogeReelle = Date.now.bind(Date)
+let decalage = 0
+Date.now = () => horlogeReelle() + decalage
+const avancer = (ms) => { decalage += ms }
+const poserCle = (k) => { mkdirSync(DSH_DIR, { recursive: true }); writeFileSync(join(DSH_DIR, '.env'), 'COMPOSIO_API_KEY=' + k + '\n', 'utf8') }
+const course = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r('TIMEOUT'), ms))])
+const mcp = () => appels.filter((c) => c.url.includes('connect.composio.dev'))
+const versProxy = () => appels.filter((c) => c.url.includes('kybernos-proxy'))
+const nbInit = () => mcp().filter((c) => methodeMcp(c) === 'initialize').length
+const nbOutils = () => mcp().filter((c) => methodeMcp(c) === 'tools/call').length
+const corpsStagnant = () => ({ ok: true, status: 200, headers: { get: () => null }, text: () => new Promise(() => {}) })
+const html200 = () => ({ ok: true, status: 200, headers: { get: () => null }, text: async () => '<html>captive portal</html>' })
+const compte = (id) => ({ status: 'active', accounts: [{ id, status: 'ACTIVE' }] })
+const appsProxy = (n) => resJson({ apps: Array.from({ length: n }, (_, i) => ({ slug: 'app' + i })) })
+const nomsAppel = (rec) => JSON.parse(rec.body).params.arguments.toolkits.map((x) => x.name)
+const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy') ? apps() : mcpHandler(r))
+
+// ── C-09: a stalled body must not hang the request, nor the ones behind it ──
+{
+  const sauve = TIMEOUTS.mcpMs
+  const sauveProxy = TIMEOUTS.proxyMs
+  TIMEOUTS.mcpMs = 150
+  TIMEOUTS.proxyMs = 150
+  try {
+    frais(); poserCle('ck_c09a')
+    stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : corpsStagnant()))      // headers arrive, the body never does
+    const a = await course(connexions('?toolkits=gmail'), 3000)
+    ok('C-09: a response whose body never arrives is cut by the timeout (the request returns)', a !== 'TIMEOUT' && a.error === 'timeout', a === 'TIMEOUT' ? 'still pending after 3 s' : JSON.stringify({ error: a.error, configured: a.configured }))
+    const b = await course(connexions('?toolkits=gmail'), 3000)
+    ok('C-09: ...and the next request is not stuck behind it', b !== 'TIMEOUT' && b.error === 'timeout')
+    frais(); poserCle('ck_c09b')
+    stubFetch(() => corpsStagnant())                                                       // even initialize stalls its body
+    const c = await course(connexions('?toolkits=slack'), 3000)
+    ok('C-09: a stalled initialize is cut too', c !== 'TIMEOUT' && c.error === 'timeout')
+    frais(); poserCle('ck_c09c')
+    stubFetch(() => new Promise(() => {}))                                                 // not even the headers, and the stub ignores the abort signal
+    const d = await course(connexions('?toolkits=notion'), 3000)
+    ok('C-09: a fetch that never settles is cut as well', d !== 'TIMEOUT' && d.error === 'timeout')
+    // the scan: the proxy list stalls -> the local catalog stands in; MCP stalls -> a timeout error
+    avancer(3 * 3600e3)
+    frais(); poserCle('ck_c09d')
+    stubFetch((r) => (r.url.includes('kybernos-proxy') ? corpsStagnant() : (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({}))))
+    const e = await course(connexions(''), 6000)
+    ok('C-09: a stalled proxy list falls back to the local catalog instead of hanging the scan', e !== 'TIMEOUT' && e.error === null && e.partial === true && e.scan === true)
+    stubFetch((r) => (r.url.includes('kybernos-proxy') ? appsProxy(5) : (methodeMcp(r) === 'initialize' ? rpcInit() : corpsStagnant())))
+    avancer(3 * 3600e3)
+    const f = await course(connexions(''), 6000)
+    ok('C-09: a scan with a stalled MCP body returns with a timeout error', f !== 'TIMEOUT' && f.error === 'timeout' && f.partial === true)
+  } finally { TIMEOUTS.mcpMs = sauve; TIMEOUTS.proxyMs = sauveProxy }
+}
+
+// ── C-08: a failure is reported as a failure, never as "no connection" ──────
+{
+  frais(); poserCle('ck_c08_bad')
+  avancer(3 * 3600e3)
+  stubFetch(proxyOuMcp(() => resJson({ apps: [{ slug: 'gmail' }, { slug: 'slack' }] }), () => resJson({ error: 'unauthorized' }, 401)))
+  const a = await connexions('')
+  ok('C-08: a scan with a rejected key reports 401, not a clean empty list', a.error === '401' && a.partial === true && a.connections.length === 0 && a.configured === true, JSON.stringify({ error: a.error, partial: a.partial }))
+  const avant = mcp().length
+  await connexions('')
+  ok('C-08: ...and a failed scan is not cached (the next one asks again)', mcp().length > avant)
+  const b = await connexions('?toolkits=gmail')
+  ok('C-08: the same on the toolkits route: error 401', b.error === '401' && b.configured === true)
+}
+{
+  // one batch fails (429), the others succeed: the answer says so, and is not cached as the whole account
+  frais(); poserCle('ck_c08_429')
+  avancer(3 * 3600e3)
+  let phase = 'rate'
+  let n = 0
+  stubFetch(proxyOuMcp(() => appsProxy(900), (r) => {
+    if (methodeMcp(r) === 'initialize') return rpcInit()
+    n += 1
+    if (phase === 'rate' && n === 2) return resJson({ error: 'rate' }, 429)
+    const results = {}
+    for (const nom of nomsAppel(r)) results[nom] = ['app3', 'app450', 'app850'].includes(nom) ? compte('ca_' + nom) : { status: 'initiated', accounts: [] }
+    return rpcTool(results)
+  }))
+  const a = await connexions('')
+  ok('C-08: a 429 on one batch is reported (error 429, partial)', a.error === '429' && a.partial === true, JSON.stringify({ error: a.error, partial: a.partial, got: a.connections.map((c) => c.toolkit) }))
+  ok('C-08: ...what the earlier batches found is kept', a.connections.map((c) => c.toolkit).join() === 'app3')
+  phase = 'ok'
+  const avant = nbOutils()
+  const b = await connexions('')
+  ok('C-08: the partial scan was not cached: the next scan asks again and is complete', nbOutils() > avant && b.error === null && b.partial === false && b.connections.map((c) => c.toolkit).sort().join() === 'app3,app450,app850', JSON.stringify({ error: b.error, got: b.connections.map((c) => c.toolkit) }))
+  const apres = nbOutils()
+  const c = await connexions('')
+  ok('C-08: a complete scan is cached', nbOutils() === apres && c.connections.length === 3 && c.error === null)
+}
+{
+  const cas = [
+    ['a tool error (isError)', () => resJson({ jsonrpc: '2.0', id: 2, result: { isError: true, content: [{ type: 'text', text: 'Something broke' }] } }), 'tool-error'],
+    ['a tool error that says the key is invalid', () => resJson({ jsonrpc: '2.0', id: 2, result: { isError: true, content: [{ type: 'text', text: 'Unauthorized: invalid API key' }] } }), '401'],
+    ['an HTML page with a 200', () => html200(), 'bad-response'],
+    ['a JSON-RPC error', () => resJson({ jsonrpc: '2.0', id: 2, error: { code: -32000, message: 'nope' } }), 'rpc-error'],
+    ['a text that is not JSON', () => resSse({ jsonrpc: '2.0', id: 2, result: { content: [{ type: 'text', text: 'hello' }] } }), 'bad-response'],
+    ['a successful:false payload', () => resSse({ jsonrpc: '2.0', id: 2, result: { content: [{ type: 'text', text: JSON.stringify({ successful: false, error: 'boom', data: {} }) }] } }), 'tool-error'],
+    ['a 500', () => resJson({}, 500), '500'],
+  ]
+  let i = 0
+  for (const [label, reponse2, code] of cas) {
+    i += 1
+    frais(); poserCle('ck_c08_c' + i)
+    stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : reponse2()))
+    const out = await connexions('?toolkits=gmail')
+    ok(`C-08: ${label} -> error ${code}, not an empty answer`, out.error === code && out.configured === true, JSON.stringify({ error: out.error }))
+  }
+  frais(); poserCle('ck_c08_init')
+  stubFetch((r) => (methodeMcp(r) === 'initialize' ? html200() : rpcTool({})))
+  const out = await connexions('?toolkits=gmail')
+  ok('C-08: an initialize answered with HTML -> bad-response', out.error === 'bad-response', JSON.stringify({ error: out.error }))
+  ok('C-08: ...and it does not go on to call the tool', nbOutils() === 0)
+  // the last good answer is served stale on a failure, then dropped when too old
+  frais(); poserCle('ck_c08_stale')
+  let marche = true
+  stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : (marche ? rpcTool({ gmail: compte('ca_old') }) : resJson({}, 500))))
+  const bon = await connexions('?toolkits=gmail')
+  ok('C-08: setup: a good answer', bon.error === null && bon.connections[0].accounts.length === 1)
+  marche = false
+  avancer(200 * 1000)
+  const vieux = await connexions('?toolkits=gmail')
+  ok('C-08: past the TTL, a failure serves the last good answer flagged stale, with the error', vieux.stale === true && vieux.error === '500' && vieux.connections[0].accounts.length === 1, JSON.stringify({ stale: vieux.stale, error: vieux.error }))
+  avancer(40 * 60 * 1000)
+  const perime = await connexions('?toolkits=gmail')
+  ok('C-08: after 30 minutes the stale answer is dropped: empty, not stale, with the error', perime.stale === false && perime.error === '500' && perime.connections.length === 0)
+}
+
+// ── C-10: caches and sessions belong to a KEY ───────────────────────────────
+{
+  frais(); poserCle('ck_A')
+  const parCle = (r) => {
+    if (methodeMcp(r) === 'initialize') return rpcInit()
+    return rpcTool({ gmail: r.headers['x-consumer-api-key'] === 'ck_A' ? compte('ca_A') : { status: '', accounts: [] } })
+  }
+  stubFetch(parCle)
+  const a = await connexions('?toolkits=gmail')
+  poserCle('ck_B')
+  const b = await connexions('?toolkits=gmail')
+  ok('C-10: after the key changes, the answer comes from the new account (not from the cache of the old one)', a.connections[0].accounts.length === 1 && b.connections[0].accounts.length === 0 && b.error === null, `A:${a.connections[0].accounts.length} B:${b.connections[0].accounts.length}`)
+  poserCle('ck_A')
+  const avant = mcp().length
+  const c = await connexions('?toolkits=gmail')
+  ok('C-10: switching back to the first key is served from its own cache', c.connections[0].accounts.length === 1 && mcp().length === avant)
+  // the scan
+  avancer(3 * 3600e3)
+  poserCle('ck_SA')
+  stubFetch(proxyOuMcp(() => resJson({ apps: [{ slug: 'gmail' }] }), (r) => (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({ gmail: r.headers['x-consumer-api-key'] === 'ck_SA' ? compte('ca_SA') : { status: '', accounts: [] } }))))
+  const s1 = await connexions('')
+  poserCle('ck_SB')
+  const s2 = await connexions('')
+  ok('C-10: scan: after the key changes, the list comes from the new account', s1.connections.length === 1 && s2.connections.length === 0 && s2.error === null, `A:${s1.connections.length} B:${s2.connections.length}`)
+}
+{
+  // each key has its own MCP session
+  frais()
+  avancer(3 * 3600e3)
+  stubFetch((r) => {
+    const cle = r.headers['x-consumer-api-key']
+    if (methodeMcp(r) === 'initialize') return rpcInitPour(cle)
+    if (r.headers['mcp-session-id'] !== 'sess-' + cle) return resJson({ error: 'wrong session' }, 404)
+    return rpcTool({ gmail: compte('ca_' + cle) })
+  })
+  const rpcInitPour = (cle) => resJson({ jsonrpc: '2.0', id: 1, result: {} }, 200, { 'mcp-session-id': 'sess-' + cle })
+  poserCle('ck_S1'); const a = await connexions('?toolkits=gmail')
+  poserCle('ck_S2'); const b = await connexions('?toolkits=slack')
+  poserCle('ck_S1'); const c = await connexions('?toolkits=notion')
+  ok('C-10: the MCP session is kept per key (interleaved keys never send each other\'s session)', a.error === null && b.error === null && c.error === null, JSON.stringify([a.error, b.error, c.error]))
+  ok('C-10: ...the first key did not initialize twice', mcp().filter((x) => methodeMcp(x) === 'initialize' && x.headers['x-consumer-api-key'] === 'ck_S1').length === 1)
+}
+{
+  // an expired session (404) is started again, once, in the same request
+  frais(); poserCle('ck_exp')
+  avancer(3 * 3600e3)
+  let init = 0
+  let expire = false
+  stubFetch((r) => {
+    if (methodeMcp(r) === 'initialize') { init += 1; return resJson({ jsonrpc: '2.0', id: 1, result: {} }, 200, { 'mcp-session-id': 'sess-' + init }) }
+    if (expire && r.headers['mcp-session-id'] === 'sess-1') return resJson({ error: 'session not found' }, 404)
+    return rpcTool({ gmail: compte('ca_exp') })
+  })
+  await connexions('?toolkits=gmail')
+  expire = true
+  const out = await connexions('?toolkits=slack')           // another slug: a cache miss
+  ok('C-10: after a 404 (expired session) the host initializes again and the request succeeds', out.error === null && init === 2 && out.connections[0].toolkit === 'slack', JSON.stringify({ error: out.error, init }))
+  const out2 = await connexions('?toolkits=notion')
+  ok('C-10: ...and goes on with the new session', out2.error === null && init === 2)
+  // a 404 that persists is reported, not retried forever
+  stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : resJson({}, 404)))
+  const out3 = await connexions('?toolkits=linear')
+  ok('C-10: a 404 that persists is reported once retried (error 404)', out3.error === '404' && nbInit() <= 2, JSON.stringify({ error: out3.error, inits: nbInit() }))
+}
+{
+  // a proxy blip: the local fallback stands in briefly, not for an hour
+  frais(); poserCle('ck_blip')
+  avancer(3 * 3600e3)
+  const sauve = TIMEOUTS.slugsFailMs
+  TIMEOUTS.slugsFailMs = 120
+  try {
+    let proxyUp = false
+    stubFetch(proxyOuMcp(() => { if (!proxyUp) throw new Error('ECONNRESET'); return appsProxy(1500) }, (r) => (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({}))))
+    const a = await connexions('')
+    ok('C-10: with the proxy down the scan runs on the local catalog and says it is partial', a.error === null && a.partial === true && a.scan === true)
+    const premier = versProxy().length
+    await connexions('')
+    ok('C-10: ...the proxy is not hammered while it is down (short negative cache)', versProxy().length === premier)
+    proxyUp = true
+    await new Promise((r) => setTimeout(r, 200))
+    const b = await connexions('')
+    ok('C-10: once the proxy is back (after the short delay) the scan uses the full list and is complete', versProxy().length > premier && b.partial === false && b.error === null, JSON.stringify({ partial: b.partial, probes: versProxy().length - premier }))
+    const sondes = nbOutils()
+    await connexions('')
+    ok('C-10: ...a complete scan is cached (an empty account is a complete answer too)', nbOutils() === sondes)
+  } finally { TIMEOUTS.slugsFailMs = sauve }
 }
 
 rmSync(HOME, { recursive: true, force: true })

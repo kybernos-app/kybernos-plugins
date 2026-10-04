@@ -1,21 +1,20 @@
-// Plugin host Composio.
+// Composio host plugin.
 //
-// Mesuré au boot 2026-09-17 : la clé ck_ n'ouvre que le serveur MCP
-// connect.composio.dev/mcp (backend.composio.dev/api/v3 répond 401), et ce
-// serveur autorise CORS depuis n'importe quelle origine. L'UI client (client.js)
-// parle donc AUSSI directement au MCP, avec la même clé — une seule source.
+// Measured at boot on 2026-09-17: the ck_ key only opens the MCP server
+// connect.composio.dev/mcp (backend.composio.dev/api/v3 answers 401), and that
+// server allows CORS from any origin. The client UI (client.js) therefore ALSO talks to
+// the MCP directly, with the same key: one source.
 //
-// Ce half host sert aussi le catalogue Composio (412 Ko) sur
-// GET /kybernos/composio/catalog : catalog.js reste la source de vérité sur
-// disque, lue à la demande et gardée en mémoire — même modèle que icons.json
-// côté kybernos-plugin. Le bundle client ne contient plus la donnée.
+// This host half also serves the Composio catalog (412 KB) on
+// GET /kybernos/composio/catalog: catalog.js stays the source of truth on disk, read on
+// demand and kept in memory, the same model as icons.json in kybernos-plugin. The client
+// bundle no longer carries the data.
 //
-// Il expose en plus, en LECTURE SEULE, les vraies connexions de l'utilisateur sur
-// GET /kybernos/composio/connections?toolkits=gmail,googlecalendar. Pourquoi côté
-// host plutôt que navigateur : l'onglet Connectors doit montrer la vérité Composio
-// sans dépendre d'une clé posée dans localStorage, sans PII (user_info jamais
-// recopié) et sans qu'une panne réseau ne casse la page. Les ACTIONS (add/remove)
-// restent, elles, pilotées par le client via MCP.
+// It also exposes, READ-ONLY, the user's real connections on
+// GET /kybernos/composio/connections?toolkits=gmail,googlecalendar. Why on the host rather
+// than in the browser: the Connectors tab must show what Composio says without depending on
+// a key kept in localStorage, without PII (user_info is never copied) and without a network
+// failure breaking the page. The ACTIONS (add/remove) stay driven by the client through MCP.
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, chmodSync, readdirSync, realpathSync, renameSync, rmSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
@@ -30,44 +29,66 @@ export const name = 'kybernos-composio'
 const CATALOG_PATH = fileURLToPath(new URL('./catalog.js', import.meta.url))
 const CATALOG_ROUTE = '/kybernos/composio/catalog'
 const CATALOG_CACHE_CONTROL = 'public, max-age=3600'
-// Cache mémoire: { body, etag }. catalog.js n'est lu qu'au premier appel.
+// In-memory cache: { body, etag }. catalog.js is only read on the first call.
 let catalogCache = null
 
-// ── connexions réelles (lecture seule) ───────────────────────────────────────
+// ── real connections (read only) ────────────────────────────────────────────
 const CONNECTIONS_ROUTE = '/kybernos/composio/connections'
 const MCP_URL = 'https://connect.composio.dev/mcp'
-// Ne jamais sonder Composio en boucle : 120 s de cache suffisent au confort de
-// l'onglet, et deux requêtes concurrentes partagent la même promesse (coalescing).
+// Never poll Composio in a loop: 120 s of cache is enough for the tab, and two concurrent
+// requests share one promise (coalescing).
 const CONNECTIONS_TTL_MS = 120 * 1000
-const MCP_TIMEOUT_MS = 12000
-// Un lot de 40 toolkits reste très en deçà du batch mesuré (500 en ~760 ms).
+// How long an old answer may still be served (flagged stale) when Composio fails.
+const STALE_MAX_MS = 30 * 60 * 1000
+// Adjustable: the tests shorten them. mcpMs covers a whole exchange, headers AND body.
+export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000 }
+// A batch of 40 toolkits stays far below the measured batch (500 in about 760 ms).
 const MAX_TOOLKITS = 40
-// Grammaire volontairement stricte : un slug Composio est un identifiant plat.
+// Deliberately strict grammar: a Composio slug is a flat identifier.
 const SLUG_RE = /^[a-z0-9][a-z0-9_-]{0,40}$/
-// Référence de credential passée en chaîne nue : la marque credentialRef est
-// effacée à l'exécution (credentialRef('X') === 'X'), et un import statique de
-// @deepseek-ai/dsh-credentials casserait les tests hermétiques hors arbre DSH.
+// Credential reference passed as a bare string: the credentialRef mark is erased at run
+// time (credentialRef('X') === 'X'), and a static import of @deepseek-ai/dsh-credentials
+// would break the hermetic tests outside the DSH tree.
 const COMPOSIO_KEY_REF = 'COMPOSIO_API_KEY'
 
-// Cache mémoire: { key, at, result } — result = { connections, summary }.
-let connectionsCache = null
-// Appel en vol partagé: { key, promise } — deux requêtes identiques = un fetch.
-let connectionsInFlight = null
-// Session MCP et initialize, rejoués seulement quand la clé change.
-let mcpSessionId = null
-let mcpInitPromise = null
-let mcpInitKey = null
+// What is cached is keyed by a hash of the API KEY as well as by what was asked: after a key
+// rotation (or a typo fixed) the old account's answers were served for up to 5 minutes.
+const CACHE_MAX = 80
+const keyId = (apiKey) => createHash('sha256').update(String(apiKey)).digest('hex').slice(0, 16)
+const digestOf = (slugs) => createHash('sha256').update(slugs.slice().sort().join(',')).digest('hex').slice(0, 16)
+/** Puts `value` last in `map` and drops the oldest entries beyond CACHE_MAX. */
+function remember(map, key, value) {
+  map.delete(key)
+  map.set(key, value)
+  while (map.size > CACHE_MAX) map.delete(map.keys().next().value)
+}
+// { at, result } by key + slugs. Entries are kept past their TTL so a failure can serve them stale.
+const connectionsCache = new Map()
+// Call in flight, shared: two identical requests = one fetch.
+const connectionsInFlight = new Map()
+// MCP sessions: one per API key, never shared between keys.
+const sessions = new Map()
+function sessionOf(apiKey) {
+  const id = keyId(apiKey)
+  let s = sessions.get(id)
+  if (s === undefined) {
+    s = { id: null, init: null }
+    sessions.set(id, s)
+    while (sessions.size > 4) sessions.delete(sessions.keys().next().value)
+  }
+  return s
+}
 
 /**
- * Lit catalog.js (source de vérité) et en extrait le tableau JSON tel quel, sans
- * le re-sérialiser: le corps servi est identique à l'octet près au littéral du
- * dépôt. Refuse de servir un corps illisible.
+ * Reads catalog.js (the source of truth) and extracts the JSON array as it is, without
+ * serializing it again: the body served is identical, byte for byte, to the literal in the
+ * repository. Refuses to serve an unreadable body.
  */
 function loadCatalog() {
   if (catalogCache !== null) return catalogCache
   const text = readFileSync(CATALOG_PATH, 'utf8')
   const match = /export const CATALOG = (\[[\s\S]*\]);/.exec(text)
-  if (match === null) throw new Error('CATALOG introuvable dans catalog.js')
+  if (match === null) throw new Error('CATALOG not found in catalog.js')
   const body = match[1]
   JSON.parse(body)
   const etag = '"' + createHash('sha256').update(body).digest('hex').slice(0, 32) + '"'
@@ -76,15 +97,17 @@ function loadCatalog() {
 }
 
 /**
- * Tous les slugs du catalogue local, dédupliqués. Sert au balayage « qu'est-ce
- * que ce compte a réellement connecté ? » : le MCP exige des noms et refuse une
- * liste vide (mesuré : « At least one toolkit is required »).
+ * Every slug the account scan asks about. The scan needs names (the MCP refuses an empty
+ * list: "At least one toolkit is required", measured). The PUBLIC catalog (proxy, about 1559
+ * apps) comes first; when the network fails, the local catalog (100 apps, key "s") stands in.
+ * That fallback is NOT the whole catalog: it is cached only briefly (a failure used to pin it
+ * for an hour) and a scan that used it is never reported as complete.
  */
 const PROXY_APPS_URL = 'https://kybernos-proxy-production.up.railway.app/v1/connections/apps'
 const SLUGS_TTL_MS = 60 * 60 * 1000
 let candidateCache = null
 
-/** Normalise une liste de slugs (dédupliquée, validée par SLUG_RE). */
+/** Normalizes a list of slugs (deduplicated, validated by SLUG_RE). */
 function slugsPropres(liste) {
   const out = []
   const seen = {}
@@ -97,62 +120,75 @@ function slugsPropres(liste) {
   return out
 }
 
-/**
- * Slugs candidats du balayage. Le catalogue PUBLIC (proxy, ~1559 apps) d'abord ;
- * en cas de panne réseau, repli sur le catalogue local (100 apps, clé « s »).
- */
+/** { slugs, complete }: complete is true when the list comes from the public catalog. */
 async function candidateSlugs() {
-  if (candidateCache !== null && Date.now() - candidateCache.at < SLUGS_TTL_MS) return candidateCache.slugs
+  if (candidateCache !== null && Date.now() - candidateCache.at < candidateCache.ttl) return candidateCache
   let slugs = []
   try {
-    const r = await fetch(PROXY_APPS_URL, { signal: AbortSignal.timeout(8000) })
-    const j = await r.json()
-    if (j !== null && j !== undefined && Array.isArray(j.apps) === true) slugs = slugsPropres(j.apps.map((a) => (a !== null && a !== undefined ? a.slug : '')))
+    const out = await exchange(PROXY_APPS_URL, { method: 'GET' }, TIMEOUTS.proxyMs)
+    if (out.res.ok === true) {
+      const j = JSON.parse(out.raw)
+      if (j !== null && j !== undefined && Array.isArray(j.apps) === true) slugs = slugsPropres(j.apps.map((a) => (a !== null && a !== undefined ? a.slug : '')))
+    }
   } catch (e) { slugs = [] }
-  if (slugs.length === 0) {
+  const complete = slugs.length > 0
+  if (complete === false) {
     let apps = []
     try { apps = JSON.parse(loadCatalog().body) } catch (e2) { apps = [] }
     slugs = slugsPropres(apps.map((a) => (a !== null && a !== undefined ? (a.s || a.slug) : '')))
   }
-  candidateCache = { at: Date.now(), slugs: slugs }
-  return slugs
+  candidateCache = { at: Date.now(), slugs: slugs, complete: complete, ttl: complete ? SLUGS_TTL_MS : TIMEOUTS.slugsFailMs }
+  return candidateCache
 }
 
-// Balayage du compte : ~1559 slugs par lots (mesuré : 4 lots de 400 en 3,5 s).
+// Account scan: about 1559 slugs in batches (measured: 4 batches of 400 in 3.5 s).
 const SCAN_BATCH = 400
 const SCAN_TTL_MS = 5 * 60 * 1000
-let scanCache = null
-let scanInFlight = null
+const scanCache = new Map()
+const scanInFlight = new Map()
 
 /**
- * Ce que le COMPTE a connecté : on ne garde que les toolkits qui portent au
- * moins un compte — un « initiated » sans compte n'est pas une connexion.
+ * What the ACCOUNT has connected: only the toolkits that carry at least one account are kept
+ * (an "initiated" toolkit without an account is not a connection). Returns
+ * { connections, summary, error, partial, stale }:
+ *  - error is the first failure code of a batch (401, 429, timeout...). The scan stops there:
+ *    the next batches would fail the same way, and a rejected key must not be asked 4 times;
+ *  - partial is true when the result is not the whole account (a batch failed, or the list
+ *    of apps came from the 100-app local fallback);
+ *  - only a complete scan is cached. A failed one serves the last complete scan of the SAME
+ *    key, flagged stale, when there is one.
  */
 async function scanAccountConnections(apiKey) {
-  if (scanCache !== null && Date.now() - scanCache.at < SCAN_TTL_MS) return scanCache
-  if (scanInFlight !== null) return scanInFlight
+  const id = keyId(apiKey)
+  const cached = scanCache.get(id)
+  if (cached !== undefined && Date.now() - cached.at < SCAN_TTL_MS) return cached.scan
+  const running = scanInFlight.get(id)
+  if (running !== undefined) return running
   const promise = (async () => {
-    const slugs = await candidateSlugs()
+    const candidates = await candidateSlugs()
     const gardees = []
-    for (let i = 0; i < slugs.length; i += SCAN_BATCH) {
-      const lot = slugs.slice(i, i + SCAN_BATCH)
-      const out = await readConnections(apiKey, lot)
+    let error = null
+    for (let i = 0; i < candidates.slugs.length; i += SCAN_BATCH) {
+      const out = await readConnections(apiKey, candidates.slugs.slice(i, i + SCAN_BATCH))
+      if (out.error !== null) { error = out.error; break }
       for (const c of out.result.connections) {
         if (c !== null && c !== undefined && Array.isArray(c.accounts) === true && c.accounts.length > 0) gardees.push(c)
       }
     }
     const actifs = gardees.filter((c) => String(c.status).toUpperCase() === 'ACTIVE').length
-    const resultat = {
+    const scan = {
       connections: gardees,
       summary: { totalToolkits: gardees.length, activeConnections: actifs, initiatedConnections: 0, failedConnections: gardees.length - actifs },
+      error: error,
+      partial: error !== null || candidates.complete !== true,
+      stale: false,
     }
-    // Un balayage vide n'est PAS mis en cache : un catalogue injoignable ne doit
-    // pas coller « aucune connexion » pendant cinq minutes.
-    if (gardees.length > 0) scanCache = Object.assign({ at: Date.now() }, resultat)
-    return resultat
+    if (scan.partial === false) { remember(scanCache, id, { at: Date.now(), scan: scan }); return scan }
+    if (error !== null && cached !== undefined && Date.now() - cached.at < STALE_MAX_MS) return Object.assign({}, cached.scan, { error: error, stale: true })
+    return scan
   })()
-  scanInFlight = promise
-  try { return await promise } finally { if (scanInFlight === promise) scanInFlight = null }
+  scanInFlight.set(id, promise)
+  try { return await promise } finally { if (scanInFlight.get(id) === promise) scanInFlight.delete(id) }
 }
 
 function sendJson(res, status, body, extraHeaders) {
@@ -162,7 +198,7 @@ function sendJson(res, status, body, extraHeaders) {
 }
 
 function serveCatalog(req, res) {
-  if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+  if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
   let entry = null
   try { entry = loadCatalog() } catch (e) { return sendJson(res, 500, { ok: false, error: String((e && e.message) || e) }) }
   const headers = req.headers !== undefined && req.headers !== null ? req.headers : {}
@@ -194,9 +230,9 @@ function queryOf(req) {
 }
 
 /**
- * Extrait la liste de toolkits demandée. Chaque slug est validé par SLUG_RE, les
- * doublons sont écartés et le lot est plafonné à 40 : un slug douteux est ignoré
- * en silence (jamais d'erreur — la page ne doit pas casser pour un paramètre).
+ * Extracts the requested toolkit list. Each slug is validated by SLUG_RE, duplicates are
+ * dropped and the batch is capped at 40: a doubtful slug is ignored silently (never an
+ * error: the page must not break over a parameter).
  */
 function parseToolkits(raw) {
   if (typeof raw !== 'string' || raw.length === 0) return []
@@ -213,7 +249,7 @@ function parseToolkits(raw) {
   return out
 }
 
-/** Lit COMPOSIO_API_KEY dans ~/.dsh/.env — repli quand le service de credentials manque. */
+/** Reads COMPOSIO_API_KEY in the DSH .env: the fallback when the credentials service is missing. */
 function readEnvKey() {
   try {
     const text = readFileSync(join(DSH_HOME(), '.env'), 'utf8')
@@ -226,11 +262,10 @@ function readEnvKey() {
 }
 
 /**
- * Résout la clé Composio à CHAQUE requête (jamais de cache du secret : une clé
- * changée doit prendre effet sans redémarrer le plugin). Le service de credentials
- * couvre déjà env/.env/store ; il est autoritaire — s'il ne résout rien, on ne
- * retombe pas sur le fichier. Le repli fichier n'existe que s'il est absent ou en
- * panne, et ne lève jamais.
+ * Resolves the Composio key at EVERY request (the secret is never cached: a changed key must
+ * take effect without restarting the plugin). The credentials service already covers
+ * env/.env/store; it is authoritative: when it resolves nothing we do not fall back on the
+ * file. The file fallback only exists when the service is absent or failing, and never throws.
  */
 async function resolveComposioKey(ctx) {
   let creds = undefined
@@ -245,66 +280,97 @@ async function resolveComposioKey(ctx) {
   return readEnvKey()
 }
 
-// ── transport MCP (même mécanique que client.js, sans localStorage) ─────────
+// ── MCP transport (same mechanics as client.js, without localStorage) ───────
 function mcpFailure(code) { const e = new Error(code); e.mcpCode = code; return e }
 
+/**
+ * Why a call failed, as a short code the page can show: 401 (key rejected), 429 (rate limited),
+ * another HTTP status, timeout, offline, bad-response (not a JSON-RPC answer: a captive
+ * portal, an HTML page), rpc-error (a JSON-RPC error object) or tool-error (the tool said it failed).
+ */
 function failureCode(e) { return e !== null && e !== undefined && typeof e.mcpCode === 'string' ? e.mcpCode : 'offline' }
 
 /**
- * Décode un corps JSON-RPC : JSON nu ou text/event-stream (`data: {...}`). Les
- * deux formes sont servies par connect.composio.dev selon l'accept négocié, donc
- * on essaie le SSE d'abord, puis le JSON brut, exactement comme le client.
+ * Decodes a JSON-RPC body: bare JSON or text/event-stream (`data: {...}`). Both forms are
+ * served by connect.composio.dev depending on the negotiated accept, so SSE is tried first,
+ * then raw JSON, exactly like the client.
  */
 function decodeRpc(raw) {
   let payload = null
   for (const line of String(raw).split('\n')) {
     if (line.indexOf('data:') !== 0) continue
-    try { payload = JSON.parse(line.slice(5).trim()) } catch (e) { /* bloc SSE partiel */ }
+    try { payload = JSON.parse(line.slice(5).trim()) } catch (e) { /* partial SSE block */ }
   }
   if (payload === null) { try { payload = JSON.parse(String(raw)) } catch (e) { payload = null } }
   return payload
 }
 
+/**
+ * One HTTP exchange under ONE deadline: the status, the headers AND the body must all arrive
+ * within `ms`. The timer used to be cleared as soon as the headers came, so a server that
+ * stalled the body hung the request, and every later one behind it (coalescing shares one
+ * promise). The body is only read when the status is ok. Returns { res, raw }; throws an
+ * mcpFailure ('timeout' or 'offline').
+ */
+async function exchange(url, init, ms) {
+  const controller = new AbortController()
+  const deadline = new Promise((_resolve, reject) => {
+    controller.signal.addEventListener('abort', () => reject(mcpFailure('timeout')), { once: true })
+  })
+  deadline.catch(() => { /* nothing races it any more */ })
+  const timer = setTimeout(() => controller.abort(), ms)
+  const failed = (e) => (e !== null && e !== undefined && typeof e.mcpCode === 'string' ? e
+    : mcpFailure(controller.signal.aborted === true || (e !== null && e !== undefined && e.name === 'AbortError') ? 'timeout' : 'offline'))
+  try {
+    let res = null
+    try { res = await Promise.race([fetch(url, Object.assign({}, init, { signal: controller.signal })), deadline]) } catch (e) { throw failed(e) }
+    if (res === null || res === undefined) throw mcpFailure('offline')
+    let raw = ''
+    if (res.ok === true) {
+      try { raw = await Promise.race([res.text(), deadline]) } catch (e) { throw failed(e) }
+    }
+    return { res: res, raw: String(raw) }
+  } finally { clearTimeout(timer) }
+}
+
 async function mcpPost(apiKey, body) {
+  const sess = sessionOf(apiKey)
   const headers = {
     'content-type': 'application/json',
     'accept': 'application/json, text/event-stream',
     'x-consumer-api-key': apiKey,
   }
-  if (mcpSessionId !== null) headers['mcp-session-id'] = mcpSessionId
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), MCP_TIMEOUT_MS)
-  let res = null
-  try {
-    res = await fetch(MCP_URL, { method: 'POST', headers: headers, body: JSON.stringify(body), signal: controller.signal })
-  } catch (e) {
-    // AbortSignal → 'timeout', tout le reste (DNS, TLS, coupure) → 'offline'.
-    throw mcpFailure(controller.signal.aborted === true || (e !== null && e !== undefined && e.name === 'AbortError') ? 'timeout' : 'offline')
-  } finally { clearTimeout(timer) }
-  if (res === null || res === undefined) throw mcpFailure('offline')
+  if (sess.id !== null) headers['mcp-session-id'] = sess.id
+  const out = await exchange(MCP_URL, { method: 'POST', headers: headers, body: JSON.stringify(body) }, TIMEOUTS.mcpMs)
+  const res = out.res
   const sid = res.headers !== null && res.headers !== undefined && typeof res.headers.get === 'function' ? res.headers.get('mcp-session-id') : null
-  if (typeof sid === 'string' && sid.length > 0) mcpSessionId = sid
+  if (typeof sid === 'string' && sid.length > 0) sess.id = sid
   if (res.status === 401) throw mcpFailure('401')
   if (res.status === 429) throw mcpFailure('429')
   if (res.ok !== true) throw mcpFailure(String(res.status))
-  let raw = ''
-  try { raw = await res.text() } catch (e) { throw mcpFailure('offline') }
-  return decodeRpc(raw)
+  return decodeRpc(out.raw)
 }
 
-/** initialize une seule fois par clé ; un échec est réessayable au prochain appel. */
+/** initialize once per key; a failure can be retried on the next call. */
 function mcpInitialize(apiKey) {
-  if (mcpInitPromise !== null && mcpInitKey === apiKey) return mcpInitPromise
-  mcpInitKey = apiKey
-  mcpSessionId = null
-  mcpInitPromise = mcpPost(apiKey, {
+  const sess = sessionOf(apiKey)
+  if (sess.init !== null) return sess.init
+  sess.id = null
+  const init = mcpPost(apiKey, {
     jsonrpc: '2.0', id: 1, method: 'initialize',
     params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kybernos-host', version: '1.0' } },
-  }).catch((e) => { mcpInitPromise = null; mcpInitKey = null; throw e })
-  return mcpInitPromise
+  }).then((reply) => {
+    if (reply === null || typeof reply !== 'object') throw mcpFailure('bad-response')
+    if (reply.error !== undefined && reply.error !== null) throw mcpFailure('rpc-error')
+    if (reply.result === undefined) throw mcpFailure('bad-response')
+    return reply
+  })
+  sess.init = init
+  init.catch(() => { if (sess.init === init) sess.init = null })
+  return init
 }
 
-/** tools/call renvoie le texte JSON dans result.content[].text (parfois structure). */
+/** tools/call returns the JSON text in result.content[].text (sometimes structured). */
 function toolPayload(result) {
   if (result === null || result === undefined) return null
   const content = Array.isArray(result.content) ? result.content : []
@@ -313,20 +379,51 @@ function toolPayload(result) {
   try { return JSON.parse(block.text) } catch (e) { return block.text }
 }
 
-async function mcpListConnections(apiKey, slugs) {
-  await mcpInitialize(apiKey)
-  const reply = await mcpPost(apiKey, {
-    jsonrpc: '2.0', id: 2, method: 'tools/call',
-    params: { name: 'COMPOSIO_MANAGE_CONNECTIONS', arguments: { toolkits: slugs.map((name) => ({ name: name, action: 'list' })) } },
-  })
-  if (reply !== null && reply !== undefined && reply.error !== undefined && reply.error !== null) throw mcpFailure('offline')
-  return toolPayload(reply === null || reply === undefined ? null : reply.result)
+// A tool error that says the key is the problem is a 401, whatever the transport said.
+const AUTH_TEXT_RE = /unauthori[sz]ed|invalid[^a-z]{0,3}(api[^a-z]{0,3})?key|not authenticated|authentication|forbidden/i
+const textOf = (result) => {
+  const block = (result !== null && result !== undefined && Array.isArray(result.content) ? result.content : []).find((x) => x !== null && x !== undefined && typeof x.text === 'string')
+  return block === undefined ? '' : block.text.slice(0, 400)
 }
 
 /**
- * Projette la réponse Composio sur le contrat figé du client Kybernos. Règle dure
- * de non-PII : seuls id, alias, status, accountType et isDefault sortent d'ici —
- * user_info et toute valeur de secret sont volontairement laissés de côté.
+ * Calls a tool. The session is initialized first (once per key); an expired session (the
+ * server answers 404) is started again, once, instead of failing every call until the next
+ * restart.
+ */
+async function mcpToolCall(apiKey, toolName, args) {
+  const attempt = async () => {
+    await mcpInitialize(apiKey)
+    return mcpPost(apiKey, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: toolName, arguments: args } })
+  }
+  try { return await attempt() } catch (e) {
+    if (failureCode(e) !== '404') throw e
+    const sess = sessionOf(apiKey)
+    sess.id = null
+    sess.init = null
+    return attempt()
+  }
+}
+
+async function mcpListConnections(apiKey, slugs) {
+  const reply = await mcpToolCall(apiKey, 'COMPOSIO_MANAGE_CONNECTIONS', { toolkits: slugs.map((name) => ({ name: name, action: 'list' })) })
+  // Every way the answer can be something other than a list of connections is a FAILURE with a
+  // code: an HTML page, a JSON-RPC error and a tool error used to read as "no connection".
+  if (reply === null || reply === undefined || typeof reply !== 'object') throw mcpFailure('bad-response')
+  if (reply.error !== undefined && reply.error !== null) throw mcpFailure('rpc-error')
+  const result = reply.result
+  if (result === null || result === undefined || typeof result !== 'object') throw mcpFailure('bad-response')
+  if (result.isError === true) throw mcpFailure(AUTH_TEXT_RE.test(textOf(result)) ? '401' : 'tool-error')
+  const payload = toolPayload(result)
+  if (payload === null || payload === undefined || typeof payload !== 'object') throw mcpFailure('bad-response')
+  if (payload.successful === false) throw mcpFailure(AUTH_TEXT_RE.test(String(payload.error || '')) ? '401' : 'tool-error')
+  return payload
+}
+
+/**
+ * Projects the Composio answer onto the frozen contract of the Kybernos client. Hard no-PII
+ * rule: only id, alias, status, accountType and isDefault leave here; user_info and any secret
+ * value are deliberately left out.
  */
 function normalizeConnections(payload, slugs) {
   const root = payload !== null && payload !== undefined && typeof payload === 'object' ? payload : {}
@@ -371,57 +468,53 @@ function normalizeConnections(payload, slugs) {
   }
 }
 
-/** Le cache n'est valable que pour la MÊME liste de slugs (clé = slugs triés). */
-function cachedConnections(key) { return connectionsCache !== null && connectionsCache.key === key ? connectionsCache : null }
-
 /**
- * Lit les connexions avec cache TTL et coalescing des appels concurrents. Une
- * panne ne propage JAMAIS d'exception : on rend le dernier bon résultat (stale)
- * ou une liste vide, avec un code d'erreur que l'UI peut afficher.
+ * Reads the connections with a TTL cache and coalescing of concurrent calls. A failure never
+ * propagates an exception: the last good result of the SAME key and slugs is returned (stale),
+ * or an empty list, with an error code the UI can show.
  */
 async function readConnections(apiKey, slugs) {
-  const cacheKey = slugs.slice().sort().join(',')
-  const fresh = cachedConnections(cacheKey)
-  if (fresh !== null && Date.now() - fresh.at < CONNECTIONS_TTL_MS) return { result: fresh.result, stale: false, error: null }
-  if (connectionsInFlight !== null && connectionsInFlight.key === cacheKey) {
-    try { return { result: await connectionsInFlight.promise, stale: false, error: null } }
-    catch (e) {
-      const prior = cachedConnections(cacheKey)
-      return { result: prior === null ? emptyConnections(slugs.length) : prior.result, stale: prior !== null, error: failureCode(e) }
-    }
+  const key = keyId(apiKey) + ':' + digestOf(slugs)
+  const kept = () => { const c = connectionsCache.get(key); return c !== undefined && Date.now() - c.at < STALE_MAX_MS ? c : null }
+  const fresh = connectionsCache.get(key)
+  if (fresh !== undefined && Date.now() - fresh.at < CONNECTIONS_TTL_MS) return { result: fresh.result, stale: false, error: null }
+  let promise = connectionsInFlight.get(key)
+  const owner = promise === undefined
+  if (owner) {
+    promise = mcpListConnections(apiKey, slugs).then((payload) => normalizeConnections(payload, slugs))
+    connectionsInFlight.set(key, promise)
   }
-  const promise = mcpListConnections(apiKey, slugs).then((payload) => normalizeConnections(payload, slugs))
-  connectionsInFlight = { key: cacheKey, promise: promise }
   try {
     const result = await promise
-    connectionsCache = { key: cacheKey, at: Date.now(), result: result }
+    if (owner) remember(connectionsCache, key, { at: Date.now(), result: result })
     return { result: result, stale: false, error: null }
   } catch (e) {
-    const prior = cachedConnections(cacheKey)
+    const prior = kept()
     return { result: prior === null ? emptyConnections(slugs.length) : prior.result, stale: prior !== null, error: failureCode(e) }
   } finally {
-    if (connectionsInFlight !== null && connectionsInFlight.promise === promise) connectionsInFlight = null
+    if (owner && connectionsInFlight.get(key) === promise) connectionsInFlight.delete(key)
   }
 }
 
 /**
- * GET /kybernos/composio/connections?toolkits=a,b — lecture seule, jamais 5xx :
- * une clé absente comme une panne MCP répondent 200 pour que la page survive.
+ * GET /kybernos/composio/connections?toolkits=a,b: read only, never a 5xx: a missing key and an
+ * MCP failure both answer 200 so the page survives. `error` says what failed ('no-credential',
+ * '401', '429', 'timeout'...): an empty list with an error is NOT "nothing connected".
  */
 async function serveConnections(ctx, req, res) {
-  if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+  if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
   const demandes = parseToolkits(queryOf(req).get('toolkits'))
   const credential = await resolveComposioKey(ctx)
   if (credential === null) return sendJson(res, 200, { ok: true, configured: false, stale: false, error: 'no-credential', connections: [], summary: emptySummary(demandes.length) })
-  // Aucun outil nommé : la page demande « ce qui est DÉJÀ connecté ». La clé ne
-  // vit que côté hôte et le MCP n'a pas de « liste tout » : on balaie ici le
-  // catalogue local par lots, et on ne rend que ce qui porte un compte.
+  // No tool named: the page asks "what is ALREADY connected". The key only lives on the host and
+  // the MCP has no "list everything", so the account is scanned here in batches, and only what
+  // carries an account is returned.
   if (demandes.length === 0) {
     try {
       const scan = await scanAccountConnections(credential.value)
-      return sendJson(res, 200, { ok: true, configured: true, stale: false, error: null, connections: scan.connections, summary: scan.summary, scan: true })
+      return sendJson(res, 200, { ok: true, configured: true, stale: scan.stale === true, error: scan.error, partial: scan.partial === true, connections: scan.connections, summary: scan.summary, scan: true })
     } catch (e) {
-      return sendJson(res, 200, { ok: true, configured: true, stale: false, error: failureCode(e), connections: [], summary: emptySummary(0), scan: true })
+      return sendJson(res, 200, { ok: true, configured: true, stale: false, error: failureCode(e), partial: true, connections: [], summary: emptySummary(0), scan: true })
     }
   }
   const out = await readConnections(credential.value, demandes)
