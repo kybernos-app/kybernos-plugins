@@ -48,7 +48,7 @@ let catalog = { data: [
   { id: 'deepseek-v4-flash:0731', object: 'model' },
   { id: 'kybernos/orchestrator-expert', object: 'model' },
 ] }
-const seen = { startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], referralAuth: [] }
+const seen = { startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], referralAuth: [], embedCalls: [], puts: [], searches: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -62,6 +62,29 @@ let referralForcedStatus = null
 // d'ancienneté pour que la liste soit non vide sans dépendre du réseau.
 let nextMemoryId = 100
 const NOW = '2026-09-22T00:00:00Z'
+// Recherche par le sens : le faux serveur tient le contrat des routes ajoutees cote proxy
+// (PUT /v1/memories/:id/embedding, POST /v1/memories/search, GET ?embedded=&limit=… avec `total`,
+// POST /v1/embeddings au format OpenAI). `semantic` simule trois serveurs : 'on', 'nopg' (503) et
+// 'old' (il ignore les parametres de page et repond 404 « Unknown memories route »).
+let semantic = 'on'
+let embedStatus = 200
+let embedShape = 'ok'
+let embedPlanBody = true
+// Ce que la vraie route repond a une cle `free` (mesure sur le tier dev, 2026-10-05).
+const PLAN_REFUSED = { error: { message: 'model-not-available-plan', type: 'permission_error', param: null, code: '403', provider_specific_fields: { error: 'model-not-available-plan', model: 'kybernos/embed', required_tier: 'solo', plan: 'free' } } }
+const embeddings = new Map()
+// Un « embedding » deterministe : sac de mots haches sur 1024 dimensions, norme 1.
+const vec = (text) => {
+  const v = new Array(1024).fill(0)
+  for (const w of String(text).toLowerCase().split(/[^a-zà-ÿ0-9]+/).filter(Boolean)) {
+    let h = 0
+    for (const c of w) h = (h * 31 + c.charCodeAt(0)) >>> 0
+    v[h % 1024] += 1
+  }
+  const n = Math.sqrt(v.reduce((a, x) => a + x * x, 0)) || 1
+  return v.map((x) => x / n)
+}
+const SEMANTIC_OFF = { error: 'semantic search is not available on this store', code: 'semantic_unavailable' }
 const memories = [
   { id: 1, user_id: 'u-1', scope: 'account', kyber_id: null, kind: 'preference', content: 'prefere le francais',
     source: 'taught', pinned: true, retention_days: 180, expires_at: null, created_at: '2026-09-01 10:00:00+00:00' },
@@ -140,6 +163,13 @@ const api = createServer((req, res) => {
       tokenValid = false
       return send(204, null)
     }
+    if (req.url === '/v1/embeddings' && req.method === 'POST') {
+      const a = req.headers.authorization
+      seen.embedCalls.push({ auth: a, model: body === null ? null : body.model, n: body !== null && Array.isArray(body.input) ? body.input.length : -1, input: body === null ? null : body.input })
+      if (tokenValid !== true || a !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (embedStatus !== 200) return send(embedStatus, embedStatus === 403 && embedPlanBody ? PLAN_REFUSED : { error: 'refused' })
+      return send(200, { object: 'list', data: body.input.map((t, i) => ({ object: 'embedding', index: i, embedding: embedShape === 'short' ? [1, 2, 3] : vec(t) })) })
+    }
     // ── Mémoire du compte (contrat relevé sur l'API le 22/09/2026) ──────────
     if (req.url.startsWith('/v1/memories')) {
       seen.memoryAuth.push(auth)
@@ -151,9 +181,41 @@ const api = createServer((req, res) => {
           { id: 'kga9ad6e', name: 'Second You', memory_count: 0 },
         ] })
       }
+      if (url.pathname === '/v1/memories/search' && req.method === 'POST') {
+        if (semantic === 'old') return send(404, { error: 'Unknown memories route: ' + url.pathname })
+        if (semantic === 'nopg') return send(503, SEMANTIC_OFF)
+        seen.searches.push(body)
+        const dot = (a, b) => a.reduce((acc, x, i) => acc + x * b[i], 0)
+        const hits = memories.filter((m) => m.scope === 'account' && embeddings.has(m.id))
+          .map((m) => ({ m, d: 1 - dot(body.embedding, embeddings.get(m.id)) })).sort((a, b) => a.d - b.d).slice(0, body.limit || 10)
+        return send(200, { mode: 'semantic', count: hits.length, memories: hits.map((h) => ({ ...h.m, distance: h.d })) })
+      }
+      const embPut = /^\/v1\/memories\/(\d+)\/embedding$/.exec(url.pathname)
+      if (embPut !== null && req.method === 'PUT') {
+        if (semantic === 'old') return send(404, { error: 'Unknown memories route: ' + url.pathname })
+        if (semantic === 'nopg') return send(503, SEMANTIC_OFF)
+        const t = memories.filter((m) => String(m.id) === embPut[1])[0]
+        if (t === undefined) return send(404, { error: "Memory '" + embPut[1] + "' not found" })
+        if (body === null || !Array.isArray(body.embedding) || body.embedding.length !== 1024) return send(400, { error: 'embedding requis (1024 nombres finis)' })
+        embeddings.set(t.id, body.embedding)
+        seen.puts.push({ id: t.id, model: body.model })
+        return send(200, { success: true, memory_id: t.id, dimensions: 1024 })
+      }
       if (url.pathname === '/v1/memories/search') {
         const q = (url.searchParams.get('q') || '').toLowerCase()
         return send(200, { memories: memories.filter((m) => m.content.toLowerCase().includes(q)) })
+      }
+      if (url.pathname === '/v1/memories' && req.method === 'GET' && semantic !== 'old'
+          && ['limit', 'offset', 'order', 'embedded'].some((k) => url.searchParams.has(k))) {
+        const emb = url.searchParams.get('embedded')
+        if (emb !== null && semantic === 'nopg') return send(503, SEMANTIC_OFF)
+        let rows = memories.filter((m) => m.scope === 'account')
+        if (emb === 'false') rows = rows.filter((m) => !embeddings.has(m.id))
+        if (emb === 'true') rows = rows.filter((m) => embeddings.has(m.id))
+        if (url.searchParams.get('order') === 'recent') rows = rows.slice().sort((a, b) => b.id - a.id)
+        const limit = Number(url.searchParams.get('limit') || 50)
+        const offset = Number(url.searchParams.get('offset') || 0)
+        return send(200, { memories: rows.slice(offset, offset + limit), total: rows.length, limit, offset, order: url.searchParams.get('order') || 'oldest' })
       }
       if (url.pathname === '/v1/memories' && req.method === 'GET') {
         const scope = url.searchParams.get('scope')
@@ -188,7 +250,7 @@ const api = createServer((req, res) => {
           return send(200, { ok: true })
         }
         if (req.method === 'PATCH') {
-          if (body !== null && typeof body.content === 'string') target.content = body.content
+          if (body !== null && typeof body.content === 'string') { target.content = body.content; embeddings.delete(target.id) }
           if (body !== null && typeof body.pinned === 'boolean') {
             target.pinned = body.pinned
             target.expires_at = body.pinned === true ? null : '2027-01-01 00:00:00+00:00'
@@ -361,6 +423,7 @@ try {
     '/kybernos-cloud/memory/search', '/kybernos-cloud/memory/map', '/kybernos-cloud/memory/lessons',
     // Page Memory & Lessons learned : liste paginee/filtree et reglages.
     '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
+    '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
     // Code de parrainage du compte (carte d'invitation du pied de sidebar).
     '/kybernos-cloud/referral',
@@ -968,7 +1031,7 @@ try {
   // 11a. Reglages : tous vrais par defaut (rien ne change pour qui n'y touche pas),
   //      refus en bloc d'une valeur ou d'une cle invalide, persistance a cote de l'etat.
   const set0 = await hit('/kybernos-cloud/memory/settings', 'GET')
-  assert.deepEqual(set0.body.settings, { memories: true, context: true, capture: true })
+  assert.deepEqual(set0.body.settings, { memories: true, context: true, capture: true, meaning: false }, 'la recherche par le sens est COUPEE par defaut (elle envoie le texte des souvenirs au modele d embedding)')
   assert.equal(typeof set0.body.capture.status, 'string', 'the settings route says where the capture stands')
   assert.ok(set0.body.capture.at >= 0 && set0.body.capture.facts >= 0)
   const badValue = await setSettings({ memories: 'non' })
@@ -976,9 +1039,9 @@ try {
   assert.equal(badValue.body.error, 'valeur_invalide')
   const badKey = await setSettings({ capture: false, couleur: true })
   assert.equal(badKey.body.error, 'cle_inconnue')
-  assert.deepEqual((await hit('/kybernos-cloud/memory/settings', 'GET')).body.settings, { memories: true, context: true, capture: true }, 'un patch refuse n applique RIEN, pas meme la partie valide')
+  assert.deepEqual((await hit('/kybernos-cloud/memory/settings', 'GET')).body.settings, { memories: true, context: true, capture: true, meaning: false }, 'un patch refuse n applique RIEN, pas meme la partie valide')
   const set1 = await setSettings({ context: false })
-  assert.deepEqual(set1.body.settings, { memories: true, context: false, capture: true })
+  assert.deepEqual(set1.body.settings, { memories: true, context: false, capture: true, meaning: false })
   assert.equal(existsSync(settingsFile), true, 'les reglages vivent a cote du fichier d etat')
   assert.equal((statSync(settingsFile).mode & 0o777), 0o600)
   assert.equal(leaks(set1.body), false)
@@ -1157,6 +1220,204 @@ try {
   assert.equal(sentRows.total, page1.body.budget.sent, 'le drapeau « sent » de la liste = la selection du prompt')
   assert.equal(leaks(page1.body), false, 'le jeton ne sort jamais')
   ok('liste : pagination, filtres (show/src/added/q) et compteurs ; « sent » = ce que le prompt envoie')
+
+  // 11h. Recherche par le sens (cote plugin). COUPEE par defaut : tant que l'interrupteur est
+  //      coupe, AUCUN texte de souvenir ne part vers le modele d'embedding, ni a l'ecriture, ni
+  //      a l'indexation, ni a la recherche. Allumee, chaque appel est explicite et facture au compte.
+  semantic = 'on'; embedStatus = 200; embedShape = 'ok'
+  embeddings.clear(); seen.embedCalls.length = 0; seen.puts.length = 0; seen.searches.length = 0
+  mod.meaningCache.unavailableAt = 0
+  const mkFake = (content) => {
+    const m = { id: nextMemoryId, user_id: 'u-1', scope: 'account', kyber_id: null, kind: 'fact', content, source: 'taught', pinned: false, retention_days: 180, expires_at: '2027-01-01 00:00:00+00:00', created_at: '2026-09-22 12:30:00+00:00' }
+    nextMemoryId += 1
+    memories.push(m)
+    return m
+  }
+  ;['aime le cafe noir sans sucre', 'travaille sur un projet python', 'prefere les reponses courtes', 'utilise docker sur macos', 'deteste les reunions du lundi'].forEach(mkFake)
+  for (let i = 0; i < 20; i++) mkFake('souvenir de remplissage numero ' + String(i))
+  await mod.refreshMemoryCache(readState(), true)
+  const accountTotal = memories.filter((m) => m.scope === 'account').length
+  const settleMs = (ms) => new Promise((r) => setTimeout(r, ms))
+  const eventually = async (test) => { for (let i = 0; i < 40 && !test(); i++) await settleMs(25); return test() }
+
+  assert.equal((await hit('/kybernos-cloud/memory/settings', 'GET')).body.settings.meaning, false)
+  const offRun = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {})
+  assert.equal(offRun.body.ok, false)
+  assert.equal(offRun.body.error, 'sens_desactive')
+  const offFind = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
+  assert.equal(offFind.body.search.mode, 'exact', 'coupe : retombe sur la recherche par mots')
+  assert.equal(offFind.body.search.fallback, 'sens_desactive')
+  assert.ok(offFind.body.items.some((i) => i.content.indexOf('cafe') >= 0), 'et la recherche par mots trouve quand meme')
+  await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'ecrit pendant que le sens est coupe', kind: 'fact' })
+  await settleMs(80)
+  assert.equal(seen.embedCalls.length, 0, 'interrupteur coupe : aucun texte ne part vers le modele d embedding')
+  ok('sens : coupe par defaut — ni indexation, ni recherche, ni ecriture n appellent le modele d embedding')
+
+  await setSettings({ meaning: true })
+  const accountTotal2 = accountTotal + 1
+  const st0 = await hit('/kybernos-cloud/memory/index', 'GET')
+  assert.equal(st0.body.enabled, true)
+  assert.equal(st0.body.available, true)
+  assert.equal(st0.body.remaining, accountTotal2)
+  assert.equal(st0.body.indexed, 0)
+  assert.equal(st0.body.total, accountTotal2)
+  assert.equal(seen.embedCalls.length, 0, 'lire l etat n embarque rien : c est de la lecture')
+  assert.equal(leaks(st0.body), false)
+  ok('sens : etat — active, serveur capable, combien restent a indexer, sans aucun appel d embedding')
+
+  const run1 = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, { max: 20 })
+  assert.equal(run1.body.ok, true)
+  assert.equal(run1.body.indexed, 20)
+  assert.deepEqual(seen.embedCalls.map((c) => c.n), [16, 4], 'par lots de 16 au plus')
+  assert.ok(seen.embedCalls.every((c) => c.model === 'kybernos/embed' && c.auth === 'Bearer ' + TOKEN), 'modele kybernos/embed, jeton du compte')
+  assert.equal(seen.puts.length, 20)
+  assert.ok(seen.puts.every((p) => p.model === 'kybernos/embed'))
+  assert.equal(seen.puts[0].id, Math.max(...memories.filter((m) => m.scope === 'account').map((m) => m.id)), 'les plus recents d abord')
+  assert.equal(run1.body.remaining, accountTotal2 - 20)
+  assert.equal(leaks(run1.body), false)
+  let guard = 0
+  let mn_last = run1.body
+  while (mn_last.remaining > 0 && guard < 5) { mn_last = (await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {})).body; guard += 1 }
+  assert.equal(mn_last.remaining, 0)
+  const mn_st1 = await hit('/kybernos-cloud/memory/index', 'GET')
+  assert.equal(mn_st1.body.indexed, accountTotal2)
+  assert.equal(mn_st1.body.remaining, 0)
+  const mn_again = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {})
+  assert.equal(mn_again.body.indexed, 0, 'rien a refaire : aucun appel inutile')
+  ok('sens : indexation par lots de 16, les plus recents d abord, jusqu a zero ; relancer ne refait rien')
+
+  const mn_callsBefore = seen.embedCalls.length
+  const byMeaning = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe%20noir', 'GET')
+  assert.equal(byMeaning.body.search.mode, 'meaning')
+  assert.equal(byMeaning.body.search.relevance, true)
+  assert.equal(byMeaning.body.items[0].content, 'aime le cafe noir sans sucre', 'le plus proche en premier')
+  assert.ok(byMeaning.body.items[0].closeness > byMeaning.body.items[byMeaning.body.items.length - 1].closeness)
+  assert.ok(byMeaning.body.items.every((i) => Number.isInteger(i.closeness) && i.closeness >= 0 && i.closeness <= 100))
+  assert.equal(seen.embedCalls.length, mn_callsBefore + 1, 'une recherche = un seul appel d embedding (la requete)')
+  assert.equal(seen.embedCalls[seen.embedCalls.length - 1].input[0], 'cafe noir')
+  assert.equal(seen.searches[seen.searches.length - 1].scope, 'account')
+  assert.equal(seen.searches[seen.searches.length - 1].limit, 50)
+  const mn_pinnedOnly = await hit('/kybernos-cloud/memory/list?mode=meaning&q=francais&show=pinned', 'GET')
+  assert.equal(mn_pinnedOnly.body.search.mode, 'meaning')
+  assert.ok(mn_pinnedOnly.body.items.length >= 1 && mn_pinnedOnly.body.items.every((i) => i.pinned === true), 'les filtres s appliquent aussi au resultat par le sens')
+  ok('sens : la recherche classe par proximite (closeness 0-100), un appel d embedding, filtres appliques ensuite')
+
+  // Ecrire / modifier : le vecteur suit, en arriere-plan ; epingler ne rappelle pas le modele.
+  const mn_created = await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'apprend le piano le soir', kind: 'fact' })
+  const newId = mn_created.body.memory.id
+  assert.equal(await eventually(() => embeddings.has(newId)), true, 'un souvenir ecrit recoit son vecteur')
+  await hit('/kybernos-cloud/memory/update', 'POST', undefined, { id: newId, content: 'apprend la guitare le matin' })
+  assert.equal(await eventually(() => embeddings.has(newId) && JSON.stringify(embeddings.get(newId)) === JSON.stringify(vec('apprend la guitare le matin'))), true, 'le texte change : le serveur retire le vecteur, le plugin en pose un nouveau')
+  const callsPin = seen.embedCalls.length
+  await hit('/kybernos-cloud/memory/update', 'POST', undefined, { id: newId, pinned: true })
+  await settleMs(80)
+  assert.equal(seen.embedCalls.length, callsPin, 'epingler ne change pas le texte : aucun appel')
+  ok('sens : un souvenir ecrit ou modifie recoit son vecteur en arriere-plan ; epingler n appelle pas le modele')
+
+  // Pannes : chacune a son mot, aucune ne casse la page (la liste retombe sur la recherche par mots).
+  embedStatus = 402
+  const noCredit = await mod.embedTexts(readState(), ['x'])
+  assert.deepEqual(noCredit, { ok: false, error: 'credits_epuises' })
+  embedStatus = 403
+  assert.deepEqual(await mod.embedTexts(readState(), ['x']), { ok: false, error: 'offre_requise', requiredTier: 'solo', plan: 'free' }, 'la vraie route de dev : model-not-available-plan, il faut Solo')
+  embedPlanBody = false
+  assert.deepEqual(await mod.embedTexts(readState(), ['x']), { ok: false, error: 'refus_403' }, 'un autre 403 garde ses mots generiques')
+  embedPlanBody = true
+  embedStatus = 401
+  assert.equal((await mod.embedTexts(readState(), ['x'])).error, 'reconnexion_requise')
+  embedStatus = 200; embedShape = 'short'
+  assert.equal((await mod.embedTexts(readState(), ['x'])).error, 'embedding_invalide', 'un vecteur de la mauvaise taille n est jamais envoye')
+  embedShape = 'ok'
+  const runFailed = await (async () => { embedStatus = 402; mod.meaningCache.unavailableAt = 0; mkFake('un souvenir de plus'); const r = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {}); embedStatus = 200; return r })()
+  assert.equal(runFailed.body.ok, false)
+  assert.equal(runFailed.body.error, 'credits_epuises')
+  ok('sens : credits epuises, offre insuffisante (Solo requis), 403 generique, session expiree, vecteur invalide — chacun nomme')
+
+  // Offre insuffisante (cle `free` sur le tier dev) : dit une fois, nomme le palier requis, et on ARRETE d'essayer.
+  mod.meaningCache.planBlockedAt = 0; mod.meaningCache.unavailableAt = 0
+  mkFake('un souvenir a indexer pour le test de l offre')
+  embedStatus = 403
+  const planBefore = seen.embedCalls.length
+  const planRun = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {})
+  assert.equal(planRun.body.ok, false)
+  assert.equal(planRun.body.error, 'offre_requise')
+  assert.equal(planRun.body.requiredTier, 'solo')
+  assert.equal(seen.embedCalls.length, planBefore + 1, 'un seul essai, puis on s arrete')
+  const planAgain = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {})
+  assert.equal(planAgain.body.error, 'offre_requise')
+  assert.equal(seen.embedCalls.length, planBefore + 1, 'pendant la pause, aucun appel de plus (un 403 ne se refait pas en boucle)')
+  const planList = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
+  assert.equal(planList.body.search.mode, 'exact')
+  assert.equal(planList.body.search.fallback, 'offre_requise')
+  assert.equal(planList.body.search.requiredTier, 'solo')
+  assert.ok(planList.body.items.length >= 1, 'la page garde ses resultats par mots')
+  assert.equal(seen.embedCalls.length, planBefore + 1)
+  await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'ecrit pendant la pause offre', kind: 'fact' })
+  await settleMs(80)
+  assert.equal(seen.embedCalls.length, planBefore + 1, 'une ecriture non plus ne rappelle pas le modele')
+  const planStatus = await hit('/kybernos-cloud/memory/index', 'GET')
+  assert.equal(planStatus.body.available, true, 'le serveur sait faire')
+  assert.equal(planStatus.body.allowed, false, 'mais l offre ne le permet pas')
+  assert.equal(planStatus.body.requiredTier, 'solo')
+  assert.equal(planStatus.body.plan, 'free')
+  assert.equal(seen.embedCalls.length, planBefore + 1, 'lire l etat n appelle pas le modele')
+  // Passer a Solo : une sonde (un seul texte de 2 lettres) leve la pause.
+  embedStatus = 200
+  const probeCallsBefore = seen.embedCalls.length
+  const probed = await hit('/kybernos-cloud/memory/index?probe=1', 'GET')
+  assert.equal(probed.body.allowed, true)
+  assert.equal(probed.body.requiredTier, null)
+  assert.equal(seen.embedCalls.length, probeCallsBefore + 1)
+  assert.deepEqual(seen.embedCalls[seen.embedCalls.length - 1].input, ['ok'], 'la sonde n embarque jamais le texte d un souvenir')
+  assert.equal(mod.meaningCache.planBlockedAt, 0)
+  // Une sonde demandee interrupteur COUPE n appelle rien.
+  await setSettings({ meaning: false })
+  const probeOff = seen.embedCalls.length
+  const probedOff = await hit('/kybernos-cloud/memory/index?probe=1', 'GET')
+  assert.equal(probedOff.body.allowed, null)
+  assert.equal(seen.embedCalls.length, probeOff, 'sans interrupteur, pas de sonde')
+  await setSettings({ meaning: true })
+  const neverTried = await hit('/kybernos-cloud/memory/index', 'GET')
+  assert.equal(neverTried.body.allowed, null, 'sans sonde ni essai, on ne pretend pas savoir')
+  assert.equal(leaks(planStatus.body) || leaks(probed.body), false)
+  ok('sens : offre insuffisante — Solo requis dit une fois, plus aucun appel pendant la pause, une sonde de 2 lettres la leve')
+
+  semantic = 'nopg'
+  mod.meaningCache.unavailableAt = 0
+  const noPg = await hit('/kybernos-cloud/memory/index', 'GET')
+  assert.equal(noPg.body.available, false)
+  assert.equal(noPg.body.reason, 'sens_indisponible')
+  const callsNoPg = seen.embedCalls.length
+  const fell = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
+  assert.equal(fell.body.search.mode, 'exact')
+  assert.equal(fell.body.search.fallback, 'sens_indisponible')
+  assert.ok(fell.body.items.length >= 1, 'la page montre quand meme des resultats')
+  const callsAfterFirst = seen.embedCalls.length
+  await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
+  assert.equal(seen.embedCalls.length, callsAfterFirst, 'serveur sans pgvector : on arrete d embarquer pendant 10 minutes (pas de requete perdue)')
+  assert.ok(callsAfterFirst - callsNoPg <= 1)
+  semantic = 'on'
+  assert.equal((await hit('/kybernos-cloud/memory/index', 'GET')).body.available, true)
+  assert.equal(mod.meaningCache.unavailableAt, 0, 'un etat reussi leve la pause')
+  ok('sens : serveur sans pgvector — raison nommee, la liste retombe sur les mots, pas de requetes d embedding en boucle')
+
+  semantic = 'old'
+  mod.meaningCache.unavailableAt = 0
+  const oldSrv = await hit('/kybernos-cloud/memory/index', 'GET')
+  assert.equal(oldSrv.body.available, false)
+  assert.equal(oldSrv.body.reason, 'serveur_ancien')
+  mkFake('et un autre pour le serveur ancien')
+  const oldRun = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, {})
+  assert.equal(oldRun.body.error, 'serveur_ancien')
+  semantic = 'on'; mod.meaningCache.unavailableAt = 0
+  ok('sens : un serveur qui ne connait pas encore les routes est reconnu comme tel')
+
+  const evilRun = await hit('/kybernos-cloud/memory/index/run', 'POST', 'https://evil.example', {})
+  assert.equal(evilRun.status, 403, 'un onglet tiers ne peut pas faire consommer des credits')
+  const evilStatus = await hit('/kybernos-cloud/memory/index', 'GET', 'https://evil.example')
+  assert.equal(evilStatus.status, 403)
+  ok('sens : routes d indexation same-origin (cross-origin → 403)')
+  await setSettings({ meaning: false })
 
   // 11g. Hors connexion, la liste et les reglages se comportent : refus explicite pour la liste, reglages lisibles.
   const savedState = readFileSync(statePath, 'utf8')
