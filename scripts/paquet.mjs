@@ -47,6 +47,11 @@ export const LANCEURS = ['kybernos-install', 'kybernos-update', 'kybernos-instal
 
 export const FICHIERS_DE_SERVICE = ['VERSION', 'manifest.json']
 
+// The Apache-2.0 licence asks that a redistribution carries the licence and the NOTICE, and the
+// third-party licence texts NOTICE points to. The archive redistributes the code and the vendored
+// libraries, so these travel with it (they used to be left out).
+export const FICHIERS_DE_LICENCE = ['LICENSE', 'NOTICE', 'THIRD_PARTY_LICENSES', 'TRADEMARK.md']
+
 // ── le manifeste, calculé sans toucher au disque (donc éprouvable) ──────────
 export const hacher = (tampon) => createHash('sha256').update(tampon).digest('hex')
 
@@ -184,7 +189,7 @@ export const listerContenu = (racine) => {
   // Le robot ET son graphe de modules : une entrée oubliée ne se voit que chez
   // le testeur, sur une machine neuve (mesuré par le pré-vol P7).
   const graphe = fermetureModules(racine, SCRIPTS_DU_ROBOT.filter((c) => c.endsWith('.mjs')))
-  const liste = new Set([...SCRIPTS_DU_ROBOT, ...LANCEURS, ...graphe])
+  const liste = new Set([...SCRIPTS_DU_ROBOT, ...LANCEURS, ...FICHIERS_DE_LICENCE, ...graphe])
   for (const patch of Array.isArray(patches) ? patches : patches.patches ?? []) {
     if (typeof patch.script === 'string') liste.add('scripts/' + basename(patch.script))
   }

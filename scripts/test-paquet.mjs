@@ -11,7 +11,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { join, dirname, resolve, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { construireManifest, verifierManifest, listerContenu, dependancesDesPatchs, fichiersSales, verdictArbrePropre, estBruit, exclureIgnores, importsRelatifs, fermetureModules, SCRIPTS_DU_ROBOT, FICHIERS_DE_SERVICE, LANCEURS } from './paquet.mjs'
+import { construireManifest, verifierManifest, listerContenu, dependancesDesPatchs, fichiersSales, verdictArbrePropre, estBruit, exclureIgnores, importsRelatifs, fermetureModules, SCRIPTS_DU_ROBOT, FICHIERS_DE_SERVICE, LANCEURS , FICHIERS_DE_LICENCE } from './paquet.mjs'
 
 const existeFichier = (racine, chemin) => {
   try { return statSync(join(racine, chemin)).isFile() === true } catch (e) { return false }
@@ -80,6 +80,8 @@ verifie('contenu : le robot est là', SCRIPTS_DU_ROBOT.every((c) => contenu.incl
 verifie('contenu : les quatre lanceurs sont là', LANCEURS.every((c) => contenu.includes(c)))
 verifie('contenu : un lanceur Unix et un lanceur Windows par geste', LANCEURS.length === 4 && LANCEURS.some((c) => c.endsWith('.cmd')))
 verifie('contenu : la compatibilité est là', contenu.includes('dsh-compat.json'))
+verifie('contenu : la licence, le NOTICE et les licences tierces voyagent avec le code', FICHIERS_DE_LICENCE.every((c) => contenu.includes(c)))
+verifie('contenu : ces fichiers existent sur le disque', FICHIERS_DE_LICENCE.every((c) => existsSync(join(REPO, c))))
 verifie('contenu : aucune maquette (171 Mo de docs) ne part', !contenu.some((c) => c.startsWith('docs/')))
 verifie('contenu : aucun test ne part', !contenu.some((c) => c.startsWith('scripts/test-')))
 verifie('contenu : ni node_modules ni .git', !contenu.some((c) => c.includes('node_modules') || c.startsWith('.git')))
