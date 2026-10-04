@@ -26,7 +26,7 @@
 
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
 /** La seule adresse qui répond à Jev (l'API de chat le refuse). */
 export const URL_DECISION = 'https://ai-gateway.vercel.sh/v1/evaluate'
@@ -40,9 +40,20 @@ export const MODELES_DECISION_CONNUS = [MODELE_DEFAUT]
 /** La valeur qui ÉTEINT le cerveau : les appelants gardent alors leur propre
  *  règle, au lieu de recevoir un classement qu'ils n'ont pas demandé. */
 export const MODELE_ETEINT = 'none'
+/** The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank
+ *  $DSH_HOME (trimmed, a leading ~ expanded), else <os home>/.dsh. Resolved at each use,
+ *  never cached: with DSH_HOME set, no default path below may point into the real ~/.dsh. */
+export const dshHome = (env = process.env, osHome = homedir) => {
+  const raw = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+  if (raw === '') return join(osHome(), '.dsh')
+  if (raw === '~') return osHome()
+  return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
+}
 /** Le fichier de réglages de Kybernos — celui que la page Paramètres écrit et
  *  que ce module relit pour savoir QUEL modèle de décision sert. */
-export const FICHIER_REGLAGES_DEFAUT = join(homedir(), '.dsh', 'kybernos', 'settings.json')
+const fichierReglagesDefaut = () => join(dshHome(), 'kybernos', 'settings.json')
+/** The harness's references file: it holds the gateway key. */
+const fichierCredentialsDefaut = () => join(dshHome(), '.credentials.yaml')
 /** Sous ce seuil, la réponse est `aucun` : une décision probabiliste ne se
  *  prend pas sur « le plus probable » quand il est à peine devant. */
 export const SEUIL_DEFAUT = 0.6
@@ -74,7 +85,7 @@ export const CATEGORIES = [
 export function lireCle ({ env = process.env, fichier } = {}) {
   const direct = env === undefined || env === null ? undefined : env.VERCEL_AI_GATEWAY_API_KEY
   if (typeof direct === 'string' && direct.trim() !== '') return direct.trim()
-  const chemin = typeof fichier === 'string' && fichier !== '' ? fichier : join(homedir(), '.dsh', '.credentials.yaml')
+  const chemin = typeof fichier === 'string' && fichier !== '' ? fichier : fichierCredentialsDefaut()
   let texte = null
   try { texte = readFileSync(chemin, 'utf8') } catch (e) { return null }
   const m = /^[ \t]+VERCEL_AI_GATEWAY_API_KEY[ \t]*:[ \t]*(.+?)[ \t]*$/m.exec(texte)
@@ -84,13 +95,13 @@ export function lireCle ({ env = process.env, fichier } = {}) {
 }
 
 /** Le modèle de décision tel que la page Paramètres l'a enregistré dans
- *  `~/.dsh/kybernos/settings.json` (clé `decisionBrain`). Rend TOUJOURS
+ *  `<DSH home>/kybernos/settings.json` (clé `decisionBrain`). Rend TOUJOURS
  *  `{eteint, modele}` : fichier absent, illisible ou tordu → le défaut. Un
  *  réglage ne doit jamais faire échouer un classement.
  *  Vide = défaut · `none` = éteint · sinon l'identifiant écrit là. */
 export function lireModeleDecision ({ fichier, defaut = MODELE_DEFAUT } = {}) {
   const modeleDefaut = typeof defaut === 'string' && defaut !== '' ? defaut : MODELE_DEFAUT
-  const chemin = typeof fichier === 'string' && fichier !== '' ? fichier : FICHIER_REGLAGES_DEFAUT
+  const chemin = typeof fichier === 'string' && fichier !== '' ? fichier : fichierReglagesDefaut()
   let brut = null
   try { brut = JSON.parse(readFileSync(chemin, 'utf8')) } catch (e) { return { eteint: false, modele: modeleDefaut } }
   const j = (brut !== null && typeof brut === 'object') ? brut : null
