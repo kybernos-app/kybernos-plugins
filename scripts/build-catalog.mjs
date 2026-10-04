@@ -49,7 +49,8 @@ const FICHE = {
   'kybernos-composio': ['connect', 'Des centaines de connecteurs en cartes prêtes pour l’agent.', 'Hundreds of connectors as ready-made cards for the agent.'],
   'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (votre clé E2B).', 'Cloud computers for agents (your E2B key).'],
   'kybernos-workers': ['connect', 'État vérifié de Claude Code, Codex et ZCode, et exposition au lead.', 'Verified state of Claude Code, Codex and ZCode, and exposure to the lead.'],
-  'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.']
+  'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
+  'kybernos-memory': ['cloud', 'Leçons apprises par kyber : relues, éditables, injectées dans le prompt, avec interrupteurs.', 'Lessons learned per kyber: re-read, editable, injected into the prompt, with on/off switches.']
 }
 
 /** Pure: assemble the catalogue from the three sources of truth. */

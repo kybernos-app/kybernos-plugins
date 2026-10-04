@@ -90,6 +90,10 @@
       "nom": "@local/kybernos-refs"
     },
     {
+      "dir": "kybernos-memory",
+      "nom": "@local/kybernos-memory"
+    },
+    {
       "dir": "dsh-media-player",
       "nom": "@local/dsh-media-player"
     },

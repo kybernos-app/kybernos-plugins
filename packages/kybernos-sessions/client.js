@@ -1811,7 +1811,7 @@ window.__ModuleLoader__.load({
     function Pills ({ sessionId }) {
       const [etat, setEtat] = React.useState(null)
       const [journal, setJournal] = React.useState(null)
-      const [ouverte, setOuverte] = React.useState(null) // 'local' | 'sync' | 'pr' | 'memory' | 'lessons' | null
+      const [ouverte, setOuverte] = React.useState(null) // 'local' | 'recap' | 'sync' | 'pr' | 'notes' | null
       const [kyberChoisi, setKyberChoisi] = React.useState(null)
 
       const charger = React.useCallback(() => {
@@ -1994,10 +1994,9 @@ window.__ModuleLoader__.load({
       }
 
       const pill = (id, icon, accent, label, badge, tip, act, calme) => {
-        // Les deux puces qui collent au bord droit ancrent bulle ET carte à
-        // droite : centrées, elles sortaient de la fenêtre (carte de memory à
-        // 902 px et de lessons à 960 px pour un viewport de 900 — mesuré).
-        const bordDroit = id === 'memory' || id === 'lessons' || id === 'notes'
+        // La puce qui colle au bord droit ancre bulle ET carte à droite : centrée,
+        // sa carte sortait de la fenêtre (960 px pour un viewport de 900 — mesuré).
+        const bordDroit = id === 'notes'
         const props = {
           className: 'kbs-pill' + (act === true ? ' kbs-pill--act' : '') + (calme === true ? ' kbs-pill--calme' : '') +
             (bordDroit ? ' kbs-pill--bordDroit' : ''),

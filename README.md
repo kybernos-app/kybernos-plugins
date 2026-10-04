@@ -38,6 +38,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | `kybernos-language` | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
 | `kybernos-modeles-locaux` | Local models panel: detects the machine, installs an Ollama model |
 | `kybernos-refs` | Markdown links become compact reference chips |
+| `kybernos-memory` | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |
 | `kybernos-sessions` | Session and kyber memory status per folder |
 | `kybernos-skills` | Skills catalog backed by DSH's native skill registry |
 | `kybernos-slash` | Slash commands and message actions |

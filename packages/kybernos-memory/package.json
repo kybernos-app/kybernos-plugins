@@ -1,0 +1,18 @@
+{
+  "name": "@local/kybernos-memory",
+  "version": "0.1.0",
+  "description": "Lessons learned: reads, writes and injects the lessons of each kyber (compatible with memory.cjs), with on/off switches, tools for the agent and routes for the Memory & Lessons page.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test-memory-host.mjs"
+  },
+  "exports": {
+    ".": "./index.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

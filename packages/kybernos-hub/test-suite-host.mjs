@@ -9,6 +9,9 @@ import * as moteur from '../../scripts/lifecycle-engine.mjs'
 
 const ICI = dirname(fileURLToPath(import.meta.url))
 const catalogue = JSON.parse(readFileSync(join(ICI, 'catalog.json'), 'utf8'))
+// How many modules there are is decided by the lifecycle's package list, not by this file:
+// a hard-coded count broke the suite for every bundle added (it said 25 until the 26th).
+const NB_MODULES = JSON.parse(readFileSync(join(ICI, '..', '..', 'scripts', 'lifecycle-packages.json'), 'utf8')).packages.length
 let echecs = 0
 let total = 0
 const ok = (nom, cond, detail) => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + detail : '')) } }
@@ -18,7 +21,7 @@ const satellites = catalogue.modules.filter((m) => !m.socle).map((m) => ({ nom: 
 const socle = catalogue.modules.filter((m) => m.socle).map((m) => m.nom)
 
 console.log('── catalogue ──')
-ok('25 modules, ids unique', catalogue.modules.length === 25 && new Set(catalogue.modules.map((m) => m.id)).size === 25)
+ok('one module per lifecycle package, ids unique', catalogue.modules.length === NB_MODULES && new Set(catalogue.modules.map((m) => m.id)).size === NB_MODULES)
 ok('every module belongs to a declared family', catalogue.modules.every((m) => catalogue.familles.some((f) => f.id === m.famille)))
 ok('every module has a promise in fr and en', catalogue.modules.every((m) => m.promesse.fr.length > 10 && m.promesse.en.length > 10))
 ok('hub and core are in the socle', catalogue.modules.find((m) => m.id === 'kybernos-hub').socle && catalogue.modules.find((m) => m.id === 'kybernos-plugin').socle)
@@ -33,7 +36,7 @@ console.log('── activation: same rule as the lifecycle robot ──')
   ok('activesResolues agrees with scripts/lifecycle-engine.mjs on 5 shapes of file', pareil)
   const liste = [nomDe('kybernos-models')]
   ok('desactivesAEcrire agrees with the robot', JSON.stringify(desactivesAEcrire({ liste, satellites })) === JSON.stringify(moteur.desactivesAEcrire({ liste, satellites })))
-  ok('no file → everything is on', lireActivation({ catalogue, brut: null }).actifs.length === 25)
+  ok('no file → everything is on', lireActivation({ catalogue, brut: null }).actifs.length === NB_MODULES)
   const legacy = lireActivation({ catalogue, brut: { actives: [nomDe('kybernos-models')] } }).actifs
   ok('legacy file (predates the new satellites): flow stays ON', legacy.includes(nomDe('kybernos-flow')))
 }
@@ -41,7 +44,7 @@ console.log('── activation: same rule as the lifecycle robot ──')
 console.log('── payload ──')
 {
   const p = charge({ catalogue, brut: { actives: [nomDe('kybernos-models')], desactives: [nomDe('kybernos-slides')] }, etatHub: { ok: true } })
-  ok('payload carries 25 modules', p.ok === true && p.modules.length === 25)
+  ok('payload carries every module', p.ok === true && p.modules.length === NB_MODULES)
   ok('a switched-off module reads voulu=false', p.modules.find((m) => m.id === 'kybernos-slides').voulu === false)
   ok('the socle always reads voulu=true', p.modules.filter((m) => m.socle).every((m) => m.voulu === true))
   ok('catalogue source is labelled as embedded', p.catalogue.source === 'embarque')
@@ -99,7 +102,7 @@ const faux = (methode, corps, entetes = {}) => {
 const appeler = async (chemin, methode, corps, entetes) => { const { req, res } = faux(methode, corps, entetes); await routes[chemin](req, res); return res }
 {
   const s = await appeler('/kybernos-hub/suite', 'GET')
-  ok('GET /suite answers 200 with the catalogue', s.code === 200 && s.body.modules.length === 25)
+  ok('GET /suite answers 200 with the catalogue', s.code === 200 && s.body.modules.length === NB_MODULES)
   ok('POST on /suite is refused', (await appeler('/kybernos-hub/suite', 'POST', {})).code === 405)
   ok('a foreign origin cannot switch a module', (await appeler('/kybernos-hub/module', 'POST', { id: 'kybernos-slides', action: 'desactiver' }, { origin: 'http://evil.example' })).code === 403)
   ok('a request with no origin cannot switch a module (strict)', (await appeler('/kybernos-hub/module', 'POST', { id: 'kybernos-slides', action: 'desactiver' }, { origin: undefined, referer: undefined })).code === 403)
