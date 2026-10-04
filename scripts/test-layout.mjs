@@ -32,7 +32,7 @@ const maint = readFileSync(join(REPO, BASE_BUNDLES, 'kybernos-maintenance', 'ind
 const m = maint.match(/const REPO = resolve\(ICI((?:\s*,\s*'\.\.')+)\)/)
 const niveaux = m ? (m[1].match(/'\.\.'/g) || []).length : -1
 verifie('kybernos-maintenance climbs two levels to the repo root', niveaux === 2, `found ${niveaux}`)
-for (const rel of ['scripts/patches.json', 'scripts/lifecycle-packages.json', 'dsh-compat.json']) {
+for (const rel of ['scripts/lifecycle-packages.json', 'dsh-compat.json', 'VERSION']) {
   verifie(`repo-root file exists: ${rel}`, existsSync(join(REPO, rel)))
 }
 

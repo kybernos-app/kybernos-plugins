@@ -1,19 +1,25 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// kybernos-maintenance — client. Page Réglages « Maintenance ».
+// kybernos-maintenance — client. Settings page « About » (À propos).
 //
-// Refonte 30/09 inspirée de la maquette « Maintenance DSH – refonte » (une
-// question par carte, états nommés, niveaux de compatibilité lisibles) :
-//   · HERO ÉTAT : pastille + libellé d'état, verdict, détail, versions,
-//     « Vérifier maintenant » + « Copier la commande » quand il y a à faire ;
-//   · 4 CARTES STAT : Moteur (↕ vs npm latest) · Plugin (hash + zone) ·
-//     Compatibilité (Parfaite/Compatible/Partielle/Hors zone + barre 4 crans)
-//     · Mise à jour (Aucune/Possible/Recommandée/Requise) ;
-//   · DERNIÈRE OPÉRATION en bandeau, procédure une commande par ligne ;
-//   · BASCULE Simple/Avancé : l'avancé ajoute le contrat du plugin, la
-//     matrice de compatibilité par version, le journal complet et les
-//     surfaces du moteur (audit).
-// Données : GET /kybernos-maintenance/state (host, lecture seule). Le client
-// n'invente rien : niveaux et notes sont calculés côté hôte.
+// The section id stays `kybernos-maintenance` (stored state and tests depend on
+// it); only the visible label changed. The page merges identity and
+// maintenance, one question per block:
+//   · IDENTITY   : the Kybernos wordmark (shared brand component, with a text
+//                  fallback), a « Version <x> · beta » line, « Check now » ;
+//   · STATUS     : one compact block — dot + state label + one-line verdict +
+//                  « Copy the command » when there is something to do ;
+//   · NUMBERS    : three tiles — DSH engine · Kybernos · Tested zone ;
+//   · LINKS      : licence, trademark policy, modules (plain text: there is no
+//                  safe in-app link to those files or to another Settings
+//                  section) ;
+//   · TECHNICAL DETAILS : ONE collapsed disclosure holding everything else —
+//                  the four stat cards (Engine, Plugin, Compatibility, Update),
+//                  the last operation, earlier updates, the update procedure,
+//                  the plugin contract, the per-version compatibility matrix
+//                  and the engine surfaces. Open/closed is remembered in
+//                  localStorage, closed by default.
+// Data: GET /kybernos-maintenance/state (host, read-only). The client invents
+// nothing: levels and notes are computed host side.
 // ═══════════════════════════════════════════════════════════════════════════
 
 window.__ModuleLoader__.load({
@@ -22,23 +28,26 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
-    // Langue : MÊME règle que kbt du plugin principal (« kybernos » + aucune clé
-    // kybernos.theme.lang + shell en anglais => anglais), lue via le résolveur qu'il expose.
-    // Toute langue autre que le français retombe sur l'anglais, comme kbt.
+    // Language: the SAME rule as kbt in the main plugin (« kybernos » + no
+    // kybernos.theme.lang key + English shell => English), read through the
+    // resolver it exposes. Any language other than French falls back to English,
+    // like kbt.
     const kbLang = () => {
-      try { if (typeof window.__KB_LANG_RESOLVE__ === 'function') return String(window.__KB_LANG_RESOLVE__()) } catch (e) { /* résolveur absent */ }
+      try { if (typeof window.__KB_LANG_RESOLVE__ === 'function') return String(window.__KB_LANG_RESOLVE__()) } catch (e) { /* resolver absent */ }
       try {
         const a = window.__KB_I18N_ACTIVE__
         if (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined && String(a.lang) !== '') return String(a.lang)
-      } catch (e) { /* hors navigateur */ }
+      } catch (e) { /* outside a browser */ }
       return 'kybernos'
     }
     const kbEn = () => { const l = kbLang(); return l !== 'kybernos' && l.slice(0, 2).toLowerCase() !== 'fr' }
-    // kbp(fr, en) : paire de libellés ; hs() : phrases mesurées par l'hôte (en français) ; nv() : niveaux.
+    // kbp(fr, en): a pair of labels; hs(): sentences measured by the host (in
+    // French); nv(): levels.
     const kbp = (fr, en) => (kbEn() ? en : fr)
     const NIV_EN = { Parfaite: 'Perfect', Compatible: 'Compatible', Partielle: 'Partial', 'Hors zone': 'Out of range', Inconnue: 'Unknown', Aucune: 'None', Possible: 'Possible', 'Recommandée': 'Recommended', Requise: 'Required' }
     const nv = (n) => (kbEn() && NIV_EN[n] !== undefined ? NIV_EN[n] : n)
     const HS_STATIC = {
+      'inconnu': 'unknown',
       'Le serveur a démarré avant la dernière mise à jour : il sert encore l\'ancien moteur. Redémarre DSH.': 'The server started before the last update: it is still serving the old engine. Restart DSH.',
       'Moteur hors de la zone supportée — reviens à la version testée ou attends un plugin adapté.': 'Engine outside the supported range — go back to the tested version or wait for a matching plugin.',
       'Registre npm injoignable — impossible de savoir si une mise à jour existe.': 'npm registry unreachable — cannot tell whether an update exists.',
@@ -83,29 +92,51 @@ window.__ModuleLoader__.load({
     }
 
     const CSS = `
-.kbmz-page{padding:0;max-width:720px;font-size:14px;line-height:normal;display:flex;flex-direction:column;gap:20px}
+.kbmz-page{padding:0;max-width:720px;font-size:14px;line-height:normal;display:flex;flex-direction:column;gap:18px}
 .kbmz-titre{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
-.kbmz-sous{margin:6px 0 0;max-width:720px;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
 [data-slot="settings.section"]:has(.kbmz-page){width:100%;max-width:none}
-/* Bascule Simple/Avancé (maquette 30/09) */
-.kbmz-haut{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-.kbmz-seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;flex:none}
-.kbmz-seg button{border:0;background:transparent;border-radius:8px;padding:5px 14px;font-size:13px;cursor:pointer;color:var(--dsw-alias-label-secondary);font-family:inherit}
-.kbmz-seg button[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-active,var(--dsw-alias-interactive-bg-active));color:var(--dsw-alias-label-primary);font-weight:600}
-/* Hero état : pastille + verdict + actions, bord teinté par l'état */
-.kbmz-hero{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:14px;border:1px solid var(--kbmz-ton,-);background:linear-gradient(0deg,var(--kbmz-tbg,transparent),var(--kbmz-tbg,transparent)),var(--dsw-alias-bg-layer-1)}
-.kbmz-dot{width:12px;height:12px;border-radius:6px;flex:none;margin-top:4px;background:var(--kbmz-tdot)}
-.kbmz-hero-txt{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
-.kbmz-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kbmz-tc)}
-.kbmz-hero-txt b{font-size:14px;color:var(--dsw-alias-label-primary)}
-.kbmz-hero-detail{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
-.kbmz-versions{color:var(--dsw-alias-label-secondary);font-size:13px;font-variant-numeric:tabular-nums}
-.kbmz-actions{display:flex;flex-direction:column;gap:8px;flex:none}
+/* Identity: wordmark + version on the left, « Check now » on the right */
+.kbmz-haut{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.kbmz-id{display:flex;flex-direction:column;gap:6px;min-width:0}
+.kbmz-marque{display:flex;align-items:center;line-height:1;color:var(--dsw-alias-label-primary)}
+.kbmz-version{font-size:13px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
 .kbmz-bouton{border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary)}
 .kbmz-bouton:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbmz-bouton[data-primaire="true"]{border-color:transparent;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
 .kbmz-bouton:disabled{opacity:.6;cursor:default}
-/* 4 cartes stat */
+.kbmz-bouton:focus-visible,.kbmz-toggle:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+/* Status: dot + state + one-line verdict + action, border tinted by the state */
+.kbmz-status{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;padding:12px 16px;border-radius:12px;border:1px solid var(--kbmz-ton);background:linear-gradient(0deg,var(--kbmz-tbg,transparent),var(--kbmz-tbg,transparent)),var(--dsw-alias-bg-layer-1)}
+.kbmz-dot{width:10px;height:10px;border-radius:5px;flex:none;margin-top:5px;background:var(--kbmz-tdot)}
+.kbmz-status-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
+.kbmz-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kbmz-tc)}
+.kbmz-verdict{font-size:14px;line-height:1.45;color:var(--dsw-alias-label-primary)}
+.kbmz-problemes{margin:4px 0 0;padding-inline-start:18px;font-size:13px;color:var(--dsw-alias-label-primary)}
+.kbmz-problemes li{margin:3px 0}
+.kbmz-status[data-tone="ok"]{--kbmz-ton:rgba(52,199,89,.35);--kbmz-tbg:rgba(52,199,89,.08);--kbmz-tc:#2fae52;--kbmz-tdot:#34c759}
+.kbmz-status[data-tone="info"]{--kbmz-ton:rgba(59,158,255,.38);--kbmz-tbg:rgba(59,158,255,.08);--kbmz-tc:#3b9eff;--kbmz-tdot:#3b9eff}
+.kbmz-status[data-tone="warn"]{--kbmz-ton:rgba(245,165,36,.4);--kbmz-tbg:rgba(245,165,36,.08);--kbmz-tc:#d98a0b;--kbmz-tdot:#f5a524}
+.kbmz-status[data-tone="bad"]{--kbmz-ton:rgba(255,92,92,.4);--kbmz-tbg:rgba(255,92,92,.08);--kbmz-tc:#e5484d;--kbmz-tdot:#ff5c5c}
+/* Three key numbers */
+.kbmz-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.kbmz-tuile{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);min-width:0}
+.kbmz-tuile-l{font-size:12px;color:var(--dsw-alias-label-secondary)}
+.kbmz-tuile-v{font-family:ui-monospace,Menlo,monospace;font-size:15px;font-weight:600;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbmz-nw{white-space:nowrap}
+/* Links row */
+.kbmz-liens{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px;color:var(--dsw-alias-label-secondary)}
+/* Technical details: ONE disclosure */
+.kbmz-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:12px 2px;border:0;border-top:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;text-align:start;cursor:pointer}
+.kbmz-toggle-h{font-weight:400;color:var(--dsw-alias-label-tertiary)}
+.kbmz-toggle:hover .kbmz-toggle-h{color:var(--dsw-alias-label-secondary)}
+.kbmz-chev{flex:none;color:var(--dsw-alias-label-secondary);transition:transform .15s ease}
+.kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:rotate(90deg)}
+html[dir="rtl"] .kbmz-chev{transform:scaleX(-1)}
+html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-1) rotate(90deg)}
+@media (prefers-reduced-motion:reduce){.kbmz-chev{transition:none}}
+.kbmz-panel{display:flex;flex-direction:column;gap:16px;padding-top:6px}
+.kbmz-panel[hidden]{display:none}
+/* Stat cards (inside the details) */
 .kbmz-cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
 .kbmz-stat{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1);min-width:0}
 .kbmz-stat-l{font-size:12px;color:var(--dsw-alias-label-secondary)}
@@ -116,7 +147,7 @@ window.__ModuleLoader__.load({
 .kbmz-fleche[data-dir="down"]{color:#ff9f0a}
 .kbmz-fleche[data-dir="same"]{color:var(--dsw-alias-label-tertiary)}
 .kbmz-stat-n{font-size:12px;line-height:1.45;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
-/* Badges de niveau + barre 4 crans */
+/* Level badges + 4-notch bar */
 .kbmz-badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.02em}
 .kbmz-badge[data-niveau="Parfaite"],.kbmz-badge[data-niveau="Aucune"],.kbmz-badge[data-niveau="réussi"]{background:rgba(52,199,89,.14);color:#2fae52}
 .kbmz-badge[data-niveau="Compatible"],.kbmz-badge[data-niveau="Possible"]{background:rgba(59,158,255,.14);color:#3b9eff}
@@ -126,11 +157,10 @@ window.__ModuleLoader__.load({
 .kbmz-bar{display:inline-flex;gap:4px}
 .kbmz-bar span{width:17px;height:6px;border-radius:3px;background:var(--dsw-alias-interactive-bg-active)}
 .kbmz-bar span[data-on="true"]{background:var(--kbmz-ton-bar,#34c759)}
-/* Cartes génériques + journal */
+/* Generic cards + journal */
 .kbmz-carte{border:1px solid var(--dsw-alias-border-l1);border-radius:14px;padding:14px 16px;background:var(--dsw-alias-bg-layer-1)}
 .kbmz-sec{margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:0;color:var(--dsw-alias-label-primary)}
-.kbmz-problemes{margin:0;padding-inline-start:18px;font-size:13px;color:var(--dsw-alias-label-primary)}
-.kbmz-problemes li{margin:3px 0}
+.kbmz-sub{margin:10px 0 2px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kbmz-ligne{display:flex;gap:12px;padding:9px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:13px;align-items:baseline}
 .kbmz-ligne:first-of-type{border-top:0;padding-top:2px}
 .kbmz-date{flex:none;width:120px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
@@ -138,16 +168,12 @@ window.__ModuleLoader__.load({
 .kbmz-vers{flex:1;min-width:0;overflow-wrap:anywhere}
 .kbmz-res{flex:none}
 .kbmz-vide{color:var(--dsw-alias-label-tertiary);font-size:13px;padding:6px 0}
-.kbmz-details{border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px}
-.kbmz-details summary{cursor:pointer;font-size:13px;color:var(--dsw-alias-label-secondary)}
-.kbmz-details summary:hover{color:var(--dsw-alias-label-primary)}
-.kbmz-details .kbmz-sec{margin-top:10px;font-weight:500;color:var(--dsw-alias-label-secondary)}
 .kbmz-proc{background:var(--dsw-alias-interactive-bg-hover);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
 .kbmz-cmd{display:flex;align-items:center;gap:8px;margin-top:6px}
 .kbmz-cmd code{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--dsw-alias-label-primary);flex:1;min-width:0;overflow-wrap:anywhere}
 .kbmz-cmd button{background:transparent;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:3px 10px;font-size:11px;cursor:pointer;color:var(--dsw-alias-label-secondary);flex:none}
 .kbmz-cmd button:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}
-/* Matrice de compatibilité (vue avancée) */
+/* Compatibility matrix */
 .kbmz-mat-tete,.kbmz-mat-ligne{display:grid;grid-template-columns:150px 120px minmax(0,1fr) 150px;gap:12px;align-items:center}
 .kbmz-mat-tete{padding:0 12px 6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
 .kbmz-mat-ligne{padding:11px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);margin-top:6px;font-size:13px;background:var(--dsw-alias-bg-layer-1)}
@@ -156,11 +182,6 @@ window.__ModuleLoader__.load({
 .kbmz-mat-ligne .kbmz-repere{text-align:right;color:var(--dsw-alias-label-tertiary);font-size:12px}
 .kbmz-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 16px;font-size:13px;color:var(--dsw-alias-label-secondary);margin-top:12px}
 .kbmz-legend span{display:inline-flex;align-items:center;gap:8px}
-/* Tonalités (ok / info / warn / bad) posées en variables locales */
-.kbmz-hero[data-tone="ok"]{--kbmz-ton:#34c759;--kbmz-tbg:rgba(52,199,89,.08);--kbmz-tc:#2fae52;--kbmz-tdot:#34c759;border-color:rgba(52,199,89,.35)}
-.kbmz-hero[data-tone="info"]{--kbmz-ton:#3b9eff;--kbmz-tbg:rgba(59,158,255,.08);--kbmz-tc:#3b9eff;--kbmz-tdot:#3b9eff;border-color:rgba(59,158,255,.38)}
-.kbmz-hero[data-tone="warn"]{--kbmz-ton:#ff9f0a;--kbmz-tbg:rgba(245,165,36,.08);--kbmz-tc:#d98a0b;--kbmz-tdot:#f5a524;border-color:rgba(245,165,36,.4)}
-.kbmz-hero[data-tone="bad"]{--kbmz-ton:#ff453a;--kbmz-tbg:rgba(255,92,92,.08);--kbmz-tc:#e5484d;--kbmz-tdot:#ff5c5c;border-color:rgba(255,92,92,.4)}
 `
 
     let cssPose = false
@@ -174,10 +195,15 @@ window.__ModuleLoader__.load({
     }
 
     const FR = {
-      titre: 'Maintenance',
-      'sous.titre': 'État du moteur et du plugin, compatibilité et mises à jour — ce que le robot mesure, ici affiché.',
-      vueSimple: 'Simple',
-      vueAvance: 'Avancé',
+      titre: 'À propos',
+      moteurDsh: 'Moteur DSH',
+      zoneTestee: 'Zone testée',
+      licence: 'Licence Apache-2.0',
+      marque: 'Politique de marque',
+      modules: 'Modules : Kybernos Suite',
+      details: 'Détails techniques',
+      detailsAide: 'compatibilité, dernière opération, journal',
+      indispo: 'État indisponible — le serveur DSH ne répond pas sur /kybernos-maintenance/state.',
       moteur: 'Moteur (harness)',
       plugin: 'Plugin Kybernos',
       compat: 'Compatibilité',
@@ -191,10 +217,9 @@ window.__ModuleLoader__.load({
       colNiveau: 'Niveau',
       colDetail: 'Détail',
       colReperes: 'Repères',
-      installee: 'installée',
       derniere: 'Dernière opération',
+      synchro: 'Synchronisé',
       ok: 'Tout va bien — moteur et plugin synchronisés',
-      detailOk: 'Le moteur installé est dans la zone supportée et au niveau de la version testée.',
       avancer: 'Moteur en avance',
       detailAvancer: 'Moteur plus récent que la version testée avec ce plugin — ça fonctionne, à valider ensemble.',
       partielle: 'Compatibilité partielle',
@@ -202,35 +227,35 @@ window.__ModuleLoader__.load({
       action: 'Action requise',
       detailAction: 'Le moteur est hors de la zone supportée par le plugin.',
       afaire: 'À vérifier',
-      detailAfaire: 'Le robot a relevé des écarts à corriger (voir la liste).',
+      detailInconnu: 'La compatibilité n’a pas pu être mesurée : la zone de compatibilité est absente du dépôt.',
       verifier: 'Vérifier maintenant',
-      verifie: 'Vérifié à l’instant',
       copierCmd: 'Copier la commande',
       copieCmd: 'Commande copiée ✓',
       contract: 'Contrat du plugin',
-      majRecentes: 'Mises à jour récentes',
+      majPrecedentes: 'Mises à jour précédentes',
       rien: 'Aucune mise à jour enregistrée pour l’instant.',
-      moteurMin: 'moteur',
-      pluginMot: 'plugin',
       procTitre: 'Pour mettre à jour (une commande, depuis un terminal)',
       procL1: 'cd <dossier du dépôt dsh-kybernos>',
       procL2: 'node scripts/dsh-lifecycle.mjs doctor     # état, ne change rien',
       procL3: 'node scripts/dsh-lifecycle.mjs upgrade    # photo + mise à jour + vérification',
       procL4: 'En cas d’échec, la machine revient toute seule à l’état d’avant.',
-      rafr: 'Vérifier',
       copier: 'Copier',
       copie: 'Copié ✓',
-      surfaces: 'Détails techniques : surfaces du moteur',
-      surfacesOuvert: 'Voir les surfaces du moteur, capacités natives et recoupements',
+      surfaces: 'Surfaces du moteur',
       natifs: 'Capacités natives livrées',
       doublons: 'Recoupements à arbitrer'
     }
 
     const EN = {
-      titre: 'Maintenance',
-      'sous.titre': 'Engine and plugin status, compatibility and updates — what the robot measures, shown here.',
-      vueSimple: 'Simple',
-      vueAvance: 'Advanced',
+      titre: 'About',
+      moteurDsh: 'DSH engine',
+      zoneTestee: 'Tested zone',
+      licence: 'License Apache-2.0',
+      marque: 'Trademark policy',
+      modules: 'Modules: Kybernos Suite',
+      details: 'Technical details',
+      detailsAide: 'compatibility, last operation, journal',
+      indispo: 'Status unavailable — the DSH server did not answer on /kybernos-maintenance/state.',
       moteur: 'Engine (harness)',
       plugin: 'Kybernos plugin',
       compat: 'Compatibility',
@@ -244,10 +269,9 @@ window.__ModuleLoader__.load({
       colNiveau: 'Level',
       colDetail: 'Detail',
       colReperes: 'Markers',
-      installee: 'installed',
       derniere: 'Last operation',
+      synchro: 'In sync',
       ok: 'All good — engine and plugin in sync',
-      detailOk: 'The installed engine is within the supported range and at the tested version level.',
       avancer: 'Engine ahead',
       detailAvancer: 'Engine newer than the version tested with this plugin — it works, to be validated together.',
       partielle: 'Partial compatibility',
@@ -255,73 +279,134 @@ window.__ModuleLoader__.load({
       action: 'Action required',
       detailAction: 'The engine is outside the range supported by the plugin.',
       afaire: 'To check',
-      detailAfaire: 'The robot found discrepancies to fix (see the list).',
+      detailInconnu: 'Compatibility could not be measured: the compatibility range is missing from the repository.',
       verifier: 'Check now',
-      verifie: 'Checked just now',
       copierCmd: 'Copy the command',
       copieCmd: 'Command copied ✓',
       contract: 'Plugin contract',
-      majRecentes: 'Recent updates',
+      majPrecedentes: 'Earlier updates',
       rien: 'No update recorded yet.',
-      moteurMin: 'engine',
-      pluginMot: 'plugin',
       procTitre: 'To update (one command, from a terminal)',
       procL1: 'cd <dsh-kybernos repository folder>',
       procL2: 'node scripts/dsh-lifecycle.mjs doctor     # status, changes nothing',
       procL3: 'node scripts/dsh-lifecycle.mjs upgrade    # snapshot + update + check',
       procL4: 'If it fails, the machine rolls back to its previous state by itself.',
-      rafr: 'Check',
       copier: 'Copy',
       copie: 'Copied ✓',
-      surfaces: 'Technical details: engine surfaces',
-      surfacesOuvert: 'Show engine surfaces, native capabilities and overlaps',
+      surfaces: 'Engine surfaces',
       natifs: 'Native capabilities shipped',
       doublons: 'Overlaps to arbitrate'
     }
+    const t = (k) => (kbEn() ? (EN[k] ?? FR[k]) : FR[k]) ?? k
 
-    // Étendue des niveaux pour la barre 4 crans (ordre croissant de santé).
+    // Scale of the levels for the 4-notch bar (increasing health).
     const ECHELLE = ['Hors zone', 'Partielle', 'Compatible', 'Parfaite']
     const TONE_PAR_NIVEAU = { Parfaite: 'ok', Compatible: 'info', Partielle: 'warn', 'Hors zone': 'bad' }
 
+    // ── pure logic (exposed through `__test`) ──────────────────────────────
+
+    // « 1.0.0-beta.1 » -> { core: '1.0.0', canal: 'beta', rang: '1' }; a stable
+    // « 1.0.0 » has an empty canal; anything that is not a semver (a git hash,
+    // « inconnu ») returns null and is shown as it is.
+    const decouperVersion = (v) => {
+      const m = /^(\d+\.\d+\.\d+)(?:-([A-Za-z]+)(?:[.-]?(\d+))?[0-9A-Za-z.-]*)?(?:\+[0-9A-Za-z.-]+)?$/.exec(typeof v === 'string' ? v : '')
+      return m === null ? null : { core: m[1], canal: m[2] || '', rang: m[3] || '' }
+    }
+    // The line under the wordmark: « Version 1.0.0 · beta 1 ». The exact string
+    // stays reachable (title attribute, Kybernos tile).
+    const ligneVersion = (v) => {
+      const d = decouperVersion(v)
+      if (d === null) return 'Version ' + hs(String(v))
+      return 'Version ' + d.core + (d.canal !== '' ? ' · ' + d.canal + (d.rang !== '' ? ' ' + d.rang : '') : '')
+    }
+    // The version the page shows for the plugin: the shipped semver when the
+    // host read one, else what the host state already had (the git hash).
+    const versionPlugin = (etat) => (typeof etat.version === 'string' && etat.version !== ''
+      ? etat.version
+      : (typeof etat.plugin === 'string' && etat.plugin !== '' ? etat.plugin : 'inconnu'))
+    const zoneTexte = (compat) => (compat !== null && compat !== undefined && compat.min !== null
+      ? compat.min + (compat.max ? ' → ' + compat.max : '') : '—')
+
+    // The status: the SAME computation as the old hero (tone: problems > level >
+    // green; label: out of range > problems > level), now returned as data.
+    const statutDe = (etat) => {
+      const problemes = Array.isArray(etat.problemes) ? etat.problemes : []
+      const niveau = etat.niveau || 'Inconnue'
+      const compat = etat.compat || null
+      const tone = problemes.length > 0
+        ? (compat !== null && compat.horsZone ? 'bad' : 'warn')
+        : (TONE_PAR_NIVEAU[niveau] || 'ok')
+      let cle = 'inconnu'
+      if (niveau === 'Hors zone') cle = 'action'
+      else if (problemes.length > 0) cle = 'afaire'
+      else if (niveau === 'Parfaite') cle = 'ok'
+      else if (niveau === 'Compatible') cle = 'avancer'
+      else if (niveau === 'Partielle') cle = 'partielle'
+      return { tone, cle, problemes }
+    }
+
+    // What the host answered is a state only when it carries the fields the page
+    // reads without a guard; a 500 answers { erreur } and must not crash the page.
+    const etatValide = (j) => j !== null && typeof j === 'object' && Array.isArray(j.problemes) && typeof j.global === 'string'
+
+    // « Technical details » open/closed, remembered per browser. Everything is
+    // guarded: storage can be absent or throw (private window, blocked data).
+    const CLE_DETAILS = 'kybernos.maintenance.details'
+    const stockage = () => { try { return window.localStorage } catch (e) { return null } }
+    const lireOuvert = (st) => { try { return st.getItem(CLE_DETAILS) === '1' } catch (e) { return false } }
+    const ecrireOuvert = (st, ouvert) => { try { st.setItem(CLE_DETAILS, ouvert ? '1' : '0') } catch (e) { /* storage unavailable */ } }
+    const ID_DETAILS = 'kbmz-details'
+
+    // ── the wordmark ───────────────────────────────────────────────────────
+    // It comes from the shared brand component of the main bundle
+    // (window.__KB_BRAND__ = { Wordmark, Mark }, React function components
+    // taking { size }). It may be absent (main bundle off, tests): plain text
+    // then. A boundary keeps a component that throws from taking the page down.
+    class Garde extends React.Component {
+      constructor (props) { super(props); this.state = { casse: false } }
+      static getDerivedStateFromError () { return { casse: true } }
+      render () { return this.state.casse ? this.props.repli : this.props.children }
+    }
+    const marque = (taille) => {
+      const repli = h('span', { style: { fontWeight: 700, fontSize: taille } }, 'Kybernos')
+      try {
+        const B = window.__KB_BRAND__
+        if (B && B.Wordmark) return h(Garde, { repli }, h(B.Wordmark, { size: taille }))
+      } catch (e) { /* brand component unreachable */ }
+      return repli
+    }
+
     function Page ({ etat, onRafraichir, charge }) {
-      const t = (k) => (kbEn() ? (EN[k] ?? FR[k]) : FR[k]) ?? k
       const resTexte = { reussi: kbp('✓ réussi', '✓ succeeded'), echec: kbp('✗ échec', '✗ failed'), 'retour-arriere': kbp('↩ retour arrière', '↩ rolled back') }
       const resCouleur = { reussi: 'reussi', echec: 'echec', 'retour-arriere': 'retour-arriere' }
       const [copie, setCopie] = React.useState(null)
-      const [vue, setVue] = React.useState('simple')
+      const [ouvert, setOuvert] = React.useState(() => lireOuvert(stockage()))
+      const basculer = () => { const n = !ouvert; setOuvert(n); ecrireOuvert(stockage(), n) }
       const copier = (txt, cle) => {
         try {
           navigator.clipboard.writeText(txt)
             .then(() => { setCopie(cle); setTimeout(() => setCopie(null), 1600) })
             .catch(() => {})
-        } catch (e) { /* presse-papiers indisponible */ }
+        } catch (e) { /* clipboard unavailable */ }
       }
       const CMD = 'node scripts/dsh-lifecycle.mjs '
 
-      // ── lecture de l'état mesuré par l'hôte ────────────────────────────────
+      // ── reading the state measured by the host ─────────────────────────────
       const compat = etat.compat || null
       const niveau = etat.niveau || 'Inconnue'
       const distant = etat.distant || { ok: false, latest: null }
       const maj = etat.maj || { niveau: 'Inconnue', cible: null, note: t('registreKo') }
-      const problemePrincipal = etat.problemes.length > 0
-      // Tonalité du hero : problèmes > niveau de compat > défaut vert.
-      const tone = problemePrincipal
-        ? (compat && compat.horsZone ? 'bad' : 'warn')
-        : (TONE_PAR_NIVEAU[niveau] || 'ok')
-      const hero = (() => {
-        if (niveau === 'Hors zone') return { kicker: t('action'), titre: t('action'), detail: problemePrincipal ? hs(etat.problemes[0]) : t('detailAction') }
-        if (problemePrincipal) return { kicker: t('afaire'), titre: hs(etat.problemes[0]), detail: etat.problemes.slice(1).map(hs).join(' ') || hs(maj.note) }
-        if (niveau === 'Parfaite') return { kicker: kbp('Synchronisé', 'In sync'), titre: t('ok'), detail: t('detailOk') }
-        if (niveau === 'Compatible') return { kicker: t('avancer'), titre: t('avancer'), detail: t('detailAvancer') }
-        if (niveau === 'Partielle') return { kicker: t('partielle'), titre: t('partielle'), detail: t('detailPartielle') }
-        if (niveau === 'Hors zone') return { kicker: t('action'), titre: t('action'), detail: t('detailAction') }
-        return { kicker: t('afaire'), titre: t('ok'), detail: t('detailAfaire') }
-      })()
-      const crans = ECHELLE.indexOf(niveau) === -1 ? 0 : ECHELLE.indexOf(niveau) + 1
+      const st = statutDe(etat)
+      const libelle = { ok: t('synchro'), avancer: t('avancer'), partielle: t('partielle'), action: t('action'), afaire: t('afaire'), inconnu: t('afaire') }[st.cle]
+      // One-line verdict: the first problem when there is one, else the sentence of the level.
+      const verdict = (st.cle === 'action' || st.cle === 'afaire')
+        ? (st.problemes.length > 0 ? hs(st.problemes[0]) : t('detailAction'))
+        : { ok: t('ok'), avancer: t('detailAvancer'), partielle: t('detailPartielle'), inconnu: t('detailInconnu') }[st.cle]
+      const autresProblemes = st.problemes.slice(1)
       const cmdMaj = maj.niveau !== 'Aucune' && maj.niveau !== 'Inconnue' && maj.cible !== null
         ? CMD + 'upgrade' : null
 
-      // Journal : la dernière opération en bandeau (simple), tout en avancé.
+      // Journal: the last operation in a banner, the earlier ones in their own card.
       const journal = etat.journal || []
       const ligneJournal = (e, i) => h('div', { className: 'kbmz-ligne', key: i },
         h('span', { className: 'kbmz-date' }, String(e.date || '').replace('T', ' ').slice(0, 16)),
@@ -329,50 +414,84 @@ window.__ModuleLoader__.load({
         h('span', { className: 'kbmz-vers' }, `${e.de} → ${e.vers}${e.raison ? ' — ' + e.raison : ''}`),
         h('span', { className: 'kbmz-res' }, h('span', { className: 'kbmz-badge', 'data-niveau': resCouleur[e.resultat] || '' }, resTexte[e.resultat] || e.resultat)))
 
-      // Surfaces du moteur (audit) — vue avancée uniquement.
+      // Engine surfaces (audit).
       const s = etat.surfaces || null
       const natifsNatifs = (s && s.natifs) || []
       const doublonsNatifs = (s && s.doublons) || []
-      const blocSurfaces = s === null ? null : h('details', { className: 'kbmz-details' },
-        h('summary', null, t('surfacesOuvert')),
+      const blocSurfaces = s === null ? null : h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-surfaces' },
+        h('div', { className: 'kbmz-sec' }, t('surfaces')),
         h('div', { className: 'kbmz-ligne' },
           h('span', { className: 'kbmz-vers' }, s.erreur !== undefined
             ? kbp('Audit impossible : ', 'Audit failed: ') + s.erreur
             : `${s.conformes}/${s.total} ` + kbp('contrats du moteur conformes', 'engine contracts compliant') +
               (s.mesureesSurVierge > 0 ? ` (${s.mesureesSurVierge} ` + kbp('mesurés sur une sauvegarde vierge', 'measured on a clean backup') + ')' : ''))),
-        natifsNatifs.length > 0 ? h('div', { className: 'kbmz-sec' }, t('natifs')) : null,
+        natifsNatifs.length > 0 ? h('div', { className: 'kbmz-sub' }, t('natifs')) : null,
         natifsNatifs.map((n, i) => h('div', { className: 'kbmz-ligne', key: 'n' + i },
           h('span', { className: 'kbmz-date' }, n.monte ? kbp('● montée', '● mounted') : n.livre ? kbp('○ non montée', '○ not mounted') : kbp('— absente', '— absent')),
           h('span', { className: 'kbmz-vers' }, `${n.paquet} — ${hs(n.quoi)}`))),
-        doublonsNatifs.length > 0 ? h('div', { className: 'kbmz-sec' }, t('doublons')) : null,
+        doublonsNatifs.length > 0 ? h('div', { className: 'kbmz-sub' }, t('doublons')) : null,
         doublonsNatifs.map((d, i) => h('div', { className: 'kbmz-ligne', key: 'd' + i },
           h('span', { className: 'kbmz-vers' }, hs(d)))))
 
-      // ── les 4 cartes stat ──────────────────────────────────────────────────
+      // ── identity block ─────────────────────────────────────────────────────
+      const versionBrute = versionPlugin(etat)
+      const entete = h('div', { className: 'kbmz-haut' },
+        h('div', { className: 'kbmz-id' },
+          h('div', { className: 'kbmz-marque', 'data-kb': 'maintenance-brand' }, marque(30)),
+          h('div', { className: 'kbmz-version', 'data-kb': 'maintenance-version', title: decouperVersion(versionBrute) !== null ? versionBrute : undefined }, ligneVersion(versionBrute))),
+        h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: onRafraichir, disabled: charge }, charge ? '…' : t('verifier')))
+
+      // ── status block ───────────────────────────────────────────────────────
+      const statut = h('div', { className: 'kbmz-status', 'data-tone': st.tone, 'data-kb': 'maintenance-status' },
+        h('span', { className: 'kbmz-dot', 'aria-hidden': 'true' }),
+        h('div', { className: 'kbmz-status-txt', role: 'status' },
+          h('span', { className: 'kbmz-kicker' }, libelle),
+          h('span', { className: 'kbmz-verdict' }, verdict),
+          autresProblemes.length > 0 ? h('ul', { className: 'kbmz-problemes' }, autresProblemes.map((p, i) => h('li', { key: i }, hs(p)))) : null),
+        cmdMaj !== null
+          ? h('button', { type: 'button', className: 'kbmz-bouton', 'data-primaire': 'true', 'data-kb': 'maintenance-copy-upgrade', onClick: () => copier(cmdMaj, 'maj') }, copie === 'maj' ? t('copieCmd') : t('copierCmd'))
+          : null)
+
+      // ── the three key numbers ──────────────────────────────────────────────
+      const tuile = (cle, libelleTuile, valeur) => h('div', { className: 'kbmz-tuile', 'data-kb': 'maintenance-tile-' + cle },
+        h('span', { className: 'kbmz-tuile-l' }, libelleTuile),
+        h('span', { className: 'kbmz-tuile-v' }, valeur))
+      const tuiles = h('div', { className: 'kbmz-tuiles', 'data-kb': 'maintenance-tiles' },
+        tuile('engine', t('moteurDsh'), hs(etat.global)),
+        tuile('kybernos', 'Kybernos', hs(versionBrute)),
+        tuile('zone', t('zoneTestee'), compat !== null && compat.min !== null
+          ? h(React.Fragment, null, h('span', { className: 'kbmz-nw' }, compat.min), compat.max ? ' → ' : null, compat.max ? h('span', { className: 'kbmz-nw' }, compat.max) : null)
+          : zoneTexte(compat)))
+
+      // ── links row (plain text, see the header) ─────────────────────────────
+      const liens = h('div', { className: 'kbmz-liens', 'data-kb': 'maintenance-links' },
+        h('span', null, t('licence')), h('span', null, t('marque')), h('span', null, t('modules')))
+
+      // ── technical details: the four stat cards ─────────────────────────────
       const carteMoteur = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-engine-card' },
         h('span', { className: 'kbmz-stat-l' }, t('moteur')),
         h('span', { className: 'kbmz-stat-v' },
-          h('code', null, etat.global),
+          h('code', null, hs(etat.global)),
           h('span', { className: 'kbmz-fleche', 'data-dir': etat.direction || 'same', title: distant.ok ? `latest ${distant.latest || '—'} · next ${distant.next || '—'} · alpha ${distant.alpha || '—'}` : t('registreKo') },
             etat.direction === 'up' ? '↑' : etat.direction === 'down' ? '↓' : '=')),
         h('span', { className: 'kbmz-stat-n' }, hs(distant.note) || t('registreKo')))
       const cartePlugin = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-plugin-card' },
         h('span', { className: 'kbmz-stat-l' }, t('plugin')),
-        h('span', { className: 'kbmz-stat-v' }, h('code', null, etat.plugin)),
+        h('span', { className: 'kbmz-stat-v' }, h('code', null, hs(etat.plugin))),
         h('span', { className: 'kbmz-stat-n' }, compat && compat.min !== null
-          ? `${t('zone')} : ${compat.min}${compat.max ? ' → ' + compat.max : ''}` : kbp('zone de compatibilité absente', 'compatibility range missing')))
+          ? `${t('zone')} : ${zoneTexte(compat)}` : kbp('zone de compatibilité absente', 'compatibility range missing')))
       const carteCompat = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-compat-card' },
         h('span', { className: 'kbmz-stat-l' }, t('compat')),
         h('span', { className: 'kbmz-stat-v' },
           h('span', { className: 'kbmz-badge', 'data-niveau': niveau }, nv(niveau)),
-          h('span', { className: 'kbmz-bar', style: { '--kbmz-ton-bar': tone === 'bad' ? '#ff453a' : tone === 'warn' ? '#ff9f0a' : tone === 'info' ? '#3b9eff' : '#34c759' }, 'aria-hidden': 'true' }, ECHELLE.map((n) => h('span', { key: n, 'data-on': ECHELLE.indexOf(niveau) >= ECHELLE.indexOf(n) && niveau !== 'Inconnue' ? 'true' : 'false' })))),
+          h('span', { className: 'kbmz-bar', style: { '--kbmz-ton-bar': st.tone === 'bad' ? '#ff453a' : st.tone === 'warn' ? '#ff9f0a' : st.tone === 'info' ? '#3b9eff' : '#34c759' }, 'aria-hidden': 'true' }, ECHELLE.map((n) => h('span', { key: n, 'data-on': ECHELLE.indexOf(niveau) >= ECHELLE.indexOf(n) && niveau !== 'Inconnue' ? 'true' : 'false' })))),
         h('span', { className: 'kbmz-stat-n' }, etat.testee ? kbp('testée avec le plugin : ', 'tested with the plugin: ') + etat.testee : kbp('aucune version testée déclarée', 'no tested version declared')))
       const carteMaj = h('div', { className: 'kbmz-stat', 'data-kb': 'maintenance-update-card' },
         h('span', { className: 'kbmz-stat-l' }, t('maj')),
         h('span', { className: 'kbmz-stat-v' }, h('span', { className: 'kbmz-badge', 'data-niveau': maj.niveau }, nv(maj.niveau))),
         h('span', { className: 'kbmz-stat-n' }, `${hs(maj.note)}${maj.cible ? ` → ${maj.cible}` : ''}`))
 
-      // ── vue avancée : contrat + matrice ────────────────────────────────────
+      // ── technical details: contract + matrix ───────────────────────────────
       const contrat = h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-contract-card' },
         h('div', { className: 'kbmz-sec' }, `${t('contract')} ${etat.plugin}`),
         h('div', { className: 'kbmz-ligne' },
@@ -399,77 +518,68 @@ window.__ModuleLoader__.load({
           h('span', { style: { color: 'var(--dsw-alias-label-secondary)' } }, hs(r.detail)),
           h('span', { className: 'kbmz-repere' }, String(r.repere).split(' · ').map(hs).join(' · ')))))
 
-      // ── assemblage selon la vue ────────────────────────────────────────────
-      return h('div', { className: 'kbmz-page' },
-        h('div', { className: 'kbmz-haut' },
-          h('div', null,
-            h('h1', { className: 'kbmz-titre' }, t('titre')),
-            h('p', { className: 'kbmz-sous' }, t('sous.titre'))),
-          h('div', { className: 'kbmz-seg', role: 'group', 'aria-label': kbp('Vue', 'View') },
-            h('button', { type: 'button', 'data-kb': 'maintenance-vue-simple', 'aria-pressed': vue === 'simple' ? 'true' : 'false', onClick: () => setVue('simple') }, t('vueSimple')),
-            h('button', { type: 'button', 'data-kb': 'maintenance-vue-avance', 'aria-pressed': vue === 'avance' ? 'true' : 'false', onClick: () => setVue('avance') }, t('vueAvance')))),
-        // HERO ÉTAT
-        h('div', { className: 'kbmz-hero', 'data-tone': tone, 'data-kb': 'maintenance-hero' },
-          h('span', { className: 'kbmz-dot', 'aria-hidden': 'true' }),
-          h('div', { className: 'kbmz-hero-txt' },
-            h('span', { className: 'kbmz-kicker' }, hero.kicker),
-            h('b', null, hero.titre),
-            hero.detail ? h('span', { className: 'kbmz-hero-detail' }, hero.detail) : null,
-            h('span', { className: 'kbmz-versions' }, `${kbp('Moteur', 'Engine')} ${etat.global} · Plugin ${etat.plugin}${distant.ok && distant.latest ? ` · npm latest ${distant.latest}` : ''}`)),
-          h('div', { className: 'kbmz-actions' },
-            cmdMaj !== null
-              ? h('button', { className: 'kbmz-bouton', 'data-primaire': 'true', 'data-kb': 'maintenance-copy-upgrade', onClick: () => copier(cmdMaj, 'maj') }, copie === 'maj' ? t('copieCmd') : t('copierCmd'))
-              : null,
-            h('button', { className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: onRafraichir, disabled: charge }, charge ? '…' : t('verifier')))),
-        problemePrincipal ? h('ul', { className: 'kbmz-problemes' }, etat.problemes.map((p, i) => h('li', { key: i }, hs(p)))) : null,
-        // 4 CARTES STAT
+      // ── technical details: the disclosure ──────────────────────────────────
+      const bascule = h('button', { type: 'button', className: 'kbmz-toggle', 'data-kb': 'maintenance-details-toggle', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-controls': ID_DETAILS, onClick: basculer },
+        h('svg', { className: 'kbmz-chev', width: 14, height: 14, viewBox: '0 0 16 16', 'aria-hidden': 'true', focusable: 'false' },
+          h('path', { d: 'M6 3.5 10.5 8 6 12.5', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' })),
+        h('span', null, t('details')),
+        h('span', { className: 'kbmz-toggle-h' }, t('detailsAide')))
+      const panneau = h('div', { id: ID_DETAILS, className: 'kbmz-panel', hidden: !ouvert, 'data-kb': 'maintenance-details' },
         h('div', { className: 'kbmz-cartes' }, carteMoteur, cartePlugin, carteCompat, carteMaj),
-        // VUE SIMPLE : dernière opération + procédure
-        vue === 'simple' ? h(React.Fragment, null,
-          h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-last-op' },
-            h('div', { className: 'kbmz-sec' }, t('derniere')),
-            journal.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien'))
-              : ligneJournal(journal[0], 0)),
-          h('div', { className: 'kbmz-carte' },
-            h('div', { className: 'kbmz-sec' }, t('procTitre')),
-            h('div', { className: 'kbmz-proc' },
-              h('div', { className: 'kbmz-cmd' }, h('code', null, t('procL1')),
-                h('button', { type: 'button', 'data-kb': 'maintenance-copy', onClick: () => copier(t('procL1'), 'l1') }, copie === 'l1' ? t('copie') : t('copier'))),
-              h('div', { className: 'kbmz-cmd' }, h('code', null, t('procL2')),
-                h('button', { type: 'button', 'data-kb': 'maintenance-copy', onClick: () => copier(t('procL2'), 'l2') }, copie === 'l2' ? t('copie') : t('copier'))),
-              h('div', { className: 'kbmz-cmd' }, h('code', null, t('procL3')),
-                h('button', { type: 'button', 'data-kb': 'maintenance-copy', onClick: () => copier(t('procL3'), 'l3') }, copie === 'l3' ? t('copie') : t('copier'))),
-              h('div', { className: 'kbmz-ligne', style: { borderTop: '0', color: 'inherit' } }, t('procL4')))))
-        // VUE AVANCÉE : contrat, matrice, journal complet, surfaces
-          : h(React.Fragment, null,
-            contrat,
-            matrice,
-            h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-journal' },
-              h('div', { className: 'kbmz-sec' }, t('majRecentes')),
-              journal.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien')) : journal.map(ligneJournal)),
-            h('div', { className: 'kbmz-carte' }, blocSurfaces)))
+        h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-last-op' },
+          h('div', { className: 'kbmz-sec' }, t('derniere')),
+          journal.length === 0 ? h('div', { className: 'kbmz-vide' }, t('rien')) : ligneJournal(journal[0], 0)),
+        journal.length > 1 ? h('div', { className: 'kbmz-carte', 'data-kb': 'maintenance-journal' },
+          h('div', { className: 'kbmz-sec' }, t('majPrecedentes')),
+          journal.slice(1).map((e, i) => ligneJournal(e, i))) : null,
+        h('div', { className: 'kbmz-carte' },
+          h('div', { className: 'kbmz-sec' }, t('procTitre')),
+          h('div', { className: 'kbmz-proc' },
+            h('div', { className: 'kbmz-cmd' }, h('code', null, t('procL1')),
+              h('button', { type: 'button', 'data-kb': 'maintenance-copy', onClick: () => copier(t('procL1'), 'l1') }, copie === 'l1' ? t('copie') : t('copier'))),
+            h('div', { className: 'kbmz-cmd' }, h('code', null, t('procL2')),
+              h('button', { type: 'button', 'data-kb': 'maintenance-copy', onClick: () => copier(t('procL2'), 'l2') }, copie === 'l2' ? t('copie') : t('copier'))),
+            h('div', { className: 'kbmz-cmd' }, h('code', null, t('procL3')),
+              h('button', { type: 'button', 'data-kb': 'maintenance-copy', onClick: () => copier(t('procL3'), 'l3') }, copie === 'l3' ? t('copie') : t('copier'))),
+            h('div', { className: 'kbmz-ligne', style: { borderTop: '0', color: 'inherit' } }, t('procL4')))),
+        contrat,
+        matrice,
+        blocSurfaces)
+
+      return h('div', { className: 'kbmz-page' },
+        h('h1', { className: 'kbmz-titre' }, t('titre')),
+        entete,
+        statut,
+        tuiles,
+        liens,
+        h('div', null, bascule, panneau))
     }
 
-    // Le conteneur : charge l'état mesuré par l'hôte (GET lecture seule) et
-    // recharge au besoin. Aucune invention côté client.
+    // The container: loads the state measured by the host (read-only GET) and
+    // reloads on demand. Nothing is invented client side.
     function Conteneur () {
-      const pair = React.useState(null)
-      const etat = pair[0]
-      const setEtat = pair[1]
-      const chargePair = React.useState(false)
-      const charge = chargePair[0]
-      const setCharge = chargePair[1]
+      const [etat, setEtat] = React.useState(null)
+      const [echec, setEchec] = React.useState(false)
+      const [charge, setCharge] = React.useState(false)
       const charger = React.useCallback(() => {
         setCharge(true)
         try {
           fetch('/kybernos-maintenance/state')
             .then((r) => r.json())
-            .then((j) => setEtat(j))
-            .catch(() => {})
+            .then((j) => { if (etatValide(j)) { setEtat(j); setEchec(false) } else setEchec(true) })
+            .catch(() => { setEchec(true) })
             .finally(() => setCharge(false))
-        } catch (e) { setCharge(false) }
+        } catch (e) { setEchec(true); setCharge(false) }
       }, [])
       React.useEffect(() => { poserCss(); charger() }, [charger])
+      if (etat === null && echec) {
+        return h('div', { className: 'kbmz-page' },
+          h('h1', { className: 'kbmz-titre' }, t('titre')),
+          h('div', { className: 'kbmz-status', 'data-tone': 'warn', 'data-kb': 'maintenance-status' },
+            h('span', { className: 'kbmz-dot', 'aria-hidden': 'true' }),
+            h('div', { className: 'kbmz-status-txt', role: 'status' }, h('span', { className: 'kbmz-verdict' }, t('indispo'))),
+            h('button', { type: 'button', className: 'kbmz-bouton', 'data-kb': 'maintenance-refresh', onClick: charger, disabled: charge }, charge ? '…' : t('verifier'))))
+      }
       if (etat === null) return h('div', { className: 'kbmz-page' }, '…')
       return h(Page, { etat, onRafraichir: charger, charge })
     }
@@ -705,23 +815,24 @@ window.__ModuleLoader__.load({
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - upd.last > KB_UPD_EVERY) void updCheck(false, false) })
     }
 
-    // Le contrat d'export d'une entrée cordis : les services que le contexte
-    // DOIT exposer. Sans `slots`, l'entrée resterait « loading » (contrat
-    // mesuré : kybernos-sessions/client.js, kybernos-theme/client.js).
+    // The export contract of a cordis entry: the services the context MUST
+    // expose. Without `slots`, the entry would stay « loading » (measured
+    // contract: kybernos-sessions/client.js, kybernos-theme/client.js).
     return {
       inject: ['slots'],
       apply (ctx) {
         const slots = ctx.slots
         if (slots === undefined || slots === null) {
-          try { console.error('[kybernos-maintenance] service slots indisponible: pas d interface') } catch (e) { /* */ }
+          try { console.error('[kybernos-maintenance] slots service unavailable: no interface') } catch (e) { /* */ }
           return
         }
         slots.inject('settings.section', () => slots.register(
-          { name: 'settings.section', id: 'kybernos-maintenance', order: 13, label: 'Maintenance' },
+          { name: 'settings.section', id: 'kybernos-maintenance', order: 13, label: kbp('À propos', 'About') },
           () => h(Conteneur)))
         // Update detection: never blocks startup.
         try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
-      }
+      },
+      __test: { decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }
   }
 })

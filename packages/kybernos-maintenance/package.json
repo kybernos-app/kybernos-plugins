@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Page Réglages « Maintenance · Kybernos » : indicateur vert/orange, versions moteur+plugin, journal des mises à jour (quoi, de → vers, résultat). Lecture seule.",
+  "description": "Settings page « About »: Kybernos identity and version, a green/orange status for the DSH engine and the plugin, and a collapsed Technical details section (compatibility matrix, update journal, engine surfaces). Read-only.",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
