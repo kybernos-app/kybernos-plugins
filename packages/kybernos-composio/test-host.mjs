@@ -9,7 +9,7 @@
 // the DSH engine of the machine, when there is one, is only read.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply, upsertEnvSecret, isBootstrapOnlyName } from './index.js'
+import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome } from './index.js'
 import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, symlinkSync } from 'node:fs'
 import { tmpdir, homedir } from 'node:os'
 import { join } from 'node:path'
@@ -579,6 +579,75 @@ const BLOC_WORKERS = [
   ok('C-03: deleting a block followed only by blank lines works', res.code === 200 && (lire(PATCH_FILE) === null || /^\s*$/.test(lire(PATCH_FILE)) === false))
 }
 
+
+
+// ═══ helpers for the connections routes: a stubbed fetch, never the network ═══
+const appels = []
+const stubFetch = (handler) => {
+  appels.length = 0
+  globalThis.fetch = async (url, init) => {
+    const u = String(url)
+    const o = init || {}
+    const rec = { url: u, method: o.method || 'GET', headers: Object.assign({}, o.headers || {}), body: o.body ? String(o.body) : null, signal: o.signal }
+    appels.push(rec)
+    if (!/^https:\/\/(connect\.composio\.dev|kybernos-proxy-production\.up\.railway\.app)\//.test(u)) throw new Error('STUB: unexpected URL ' + u)
+    return handler(rec)
+  }
+}
+const resJson = (obj, status = 200, headers = {}) => {
+  const h = Object.assign({ 'content-type': 'application/json' }, headers)
+  return { ok: status >= 200 && status < 300, status, headers: { get: (k) => (h[String(k).toLowerCase()] !== undefined ? h[String(k).toLowerCase()] : null) }, text: async () => JSON.stringify(obj), json: async () => obj }
+}
+const resSse = (obj, status = 200, headers = {}) => {
+  const h = Object.assign({ 'content-type': 'text/event-stream' }, headers)
+  return { ok: status >= 200 && status < 300, status, headers: { get: (k) => (h[String(k).toLowerCase()] !== undefined ? h[String(k).toLowerCase()] : null) }, text: async () => 'event: message\ndata: ' + JSON.stringify(obj) + '\n\n', json: async () => { throw new Error('not json') } }
+}
+const rpcInit = () => resJson({ jsonrpc: '2.0', id: 1, result: {} }, 200, { 'mcp-session-id': 'sess-1' })
+const rpcTool = (results) => resSse({ jsonrpc: '2.0', id: 2, result: { content: [{ type: 'text', text: JSON.stringify({ data: { results } }) }] } })
+const CONNEXIONS = '/kybernos/composio/connections'
+const connexions = async (query) => {
+  const res = reponse()
+  await routes[CONNEXIONS]({ method: 'GET', headers: {}, socket: { localPort: 3080 }, url: CONNEXIONS + (query || ''), on: () => {} }, res)
+  return JSON.parse(res.corps)
+}
+const methodeMcp = (rec) => { try { return JSON.parse(rec.body).method } catch (e) { return null } }
+
+// ═══ C-04: DSH_HOME moves everything the bundle reads and writes ══════════════
+{
+  const fakeOs = () => '/home/someone'
+  ok('C-04: no DSH_HOME -> <home>/.dsh', resolveDshHome({}, fakeOs) === '/home/someone/.dsh')
+  ok('C-04: a blank DSH_HOME is "not set"', resolveDshHome({ DSH_HOME: '   ' }, fakeOs) === '/home/someone/.dsh')
+  ok('C-04: DSH_HOME is trimmed', resolveDshHome({ DSH_HOME: '  /srv/dsh  ' }, fakeOs) === '/srv/dsh')
+  ok('C-04: DSH_HOME="~" is the home of the OS user', resolveDshHome({ DSH_HOME: '~' }, fakeOs) === '/home/someone')
+  ok('C-04: DSH_HOME="~/dsh-data" is expanded', resolveDshHome({ DSH_HOME: '~/dsh-data' }, fakeOs) === '/home/someone/dsh-data')
+  ok('C-04: DSH_HOME is normalized', resolveDshHome({ DSH_HOME: '/srv//dsh/../dsh2/' }, fakeOs) === '/srv/dsh2')
+  const ALT = mkdtempSync(join(tmpdir(), 'kb-composio-alt-'))
+  try {
+    frais() // the OS home has a .dsh too: it must stay untouched
+    writeFileSync(join(DSH_DIR, '.env'), 'COMPOSIO_API_KEY=ck_from_os_home\n', 'utf8')
+    process.env.DSH_HOME = ALT
+    mkdirSync(join(ALT, 'profiles', 'web'), { recursive: true })
+    const res = await POST(http('moved', { secrets: [{ name: 'MOVED_KEY', value: 'v1' }] }))
+    ok('C-04: with DSH_HOME set, a connector is saved (200)', res.code === 200, `code=${res.code} ${res.corps.slice(0, 80)}`)
+    ok('C-04: the secret goes to $DSH_HOME/.env', lire(join(ALT, '.env')) === 'MOVED_KEY=v1\n')
+    ok('C-04: the sidecar goes to $DSH_HOME/kybernos/connecteurs.json', (lire(join(ALT, 'kybernos', 'connecteurs.json')) || '').includes('"moved"'))
+    ok('C-04: the patch goes to $DSH_HOME/profiles/web/cordis.patch.yml', (lire(join(ALT, 'profiles', 'web', 'cordis.patch.yml')) || '').includes('# connecteur:moved'))
+    ok('C-04: the OS home .dsh is not touched', lire(join(DSH_DIR, '.env')) === 'COMPOSIO_API_KEY=ck_from_os_home\n' && lire(SIDECAR_FILE) === null && lire(PATCH_FILE) === null)
+    ok('C-04: GET lists it from $DSH_HOME', (await GET()).connecteurs.some((c) => c.nom === 'moved'))
+    // the fallback key reader looks in $DSH_HOME/.env too
+    writeFileSync(join(ALT, '.env'), 'COMPOSIO_API_KEY=ck_from_dsh_home\n', 'utf8')
+    stubFetch((r) => (methodeMcp(r) === 'initialize' ? rpcInit() : rpcTool({ gmail: { status: 'active', accounts: [] } })))
+    const out = await connexions('?toolkits=gmail')
+    const cles = appels.map((a) => a.headers['x-consumer-api-key'])
+    ok('C-04: the fallback key reader uses $DSH_HOME/.env (not the OS home one)', out.configured === true && cles.length > 0 && cles.every((k) => k === 'ck_from_dsh_home'), JSON.stringify(cles))
+    const del = await DELETE('moved')
+    ok('C-04: DELETE works in $DSH_HOME', del.code === 200 && JSON.parse(del.corps).removed === true && lire(join(ALT, 'profiles', 'web', 'cordis.patch.yml')) === null)
+  } finally {
+    delete process.env.DSH_HOME
+    rmSync(ALT, { recursive: true, force: true })
+  }
+  ok('C-04: with DSH_HOME unset again the OS home is used', resolveDshHome() === join(HOME, '.dsh'))
+}
 
 rmSync(HOME, { recursive: true, force: true })
 console.log(echecs === 0 ? '\nHost : tout est vert.' : `\n✗ ${echecs} échec(s)`)

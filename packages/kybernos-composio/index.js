@@ -21,7 +21,7 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { Script } from 'node:vm'
 
 export const name = 'kybernos-composio'
@@ -215,7 +215,7 @@ function parseToolkits(raw) {
 /** Lit COMPOSIO_API_KEY dans ~/.dsh/.env — repli quand le service de credentials manque. */
 function readEnvKey() {
   try {
-    const text = readFileSync(join(homedir(), '.dsh', '.env'), 'utf8')
+    const text = readFileSync(join(DSH_HOME(), '.env'), 'utf8')
     const match = /^[ \t]*COMPOSIO_API_KEY[ \t]*=[ \t]*(.+)$/m.exec(text)
     if (match === null) return null
     let value = match[1].trim()
@@ -434,7 +434,20 @@ async function serveConnections(ctx, req, res) {
 // marqué dans cordis.patch.yml est le rendu dérivé que le loader DSH consomme.
 // Un connecteur écrit par la skill (bloc sans sidecar) reste listé en lecture.
 const CONNECTEURS_ROUTE = '/kybernos/composio/connecteurs'
-const DSH_HOME = () => join(homedir(), '.dsh')
+/**
+ * The DSH home, the way DSH resolves it (dsh-home-paths) and kybernos-theme does: DSH_HOME
+ * when it is set and not blank (`~` expanded), else <home of the OS user>/.dsh. Everything
+ * this bundle reads or writes under the DSH home goes through here, so a person who moved
+ * the home (DSH_HOME) gets the key, the .env, the patch and the sidecar where DSH looks.
+ * Resolved at every call: nothing is cached, so a test or a restart-free change is honoured.
+ */
+export function resolveDshHome(env = process.env, osHome = homedir) {
+  const fromEnv = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+  if (fromEnv === '') return join(osHome(), '.dsh')
+  if (fromEnv === '~') return osHome()
+  return resolve(fromEnv.startsWith('~/') || fromEnv.startsWith('~\\') ? join(osHome(), fromEnv.slice(2)) : fromEnv)
+}
+const DSH_HOME = () => resolveDshHome()
 const PATCH_PATH = () => join(DSH_HOME(), 'profiles', 'web', 'cordis.patch.yml')
 const SIDECAR_PATH = () => join(DSH_HOME(), 'kybernos', 'connecteurs.json')
 const ENV_PATH = () => join(DSH_HOME(), '.env')
