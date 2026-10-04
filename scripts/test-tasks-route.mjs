@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Readable } from 'node:stream'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const dshHome = mkdtempSync(join(tmpdir(), 'kb-tasks-route-'))
@@ -16,6 +17,15 @@ process.env.HOME = dshHome
 process.env.DSH_HOME = dshHome
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
 const file = join(dshHome, 'kybernos', 'tasks.json')
+// DSH keeps one secret per machine and signs its browser cookie with it; the route checks that cookie.
+const b64u = (b) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+const machineSecret = randomBytes(32)
+writeFileSync(join(dshHome, '.credentials.yaml'), 'credentials:\n  - name: client-connection/browser-session\n    secret: ' + b64u(machineSecret) + '\n')
+const cookieFor = (authority, expiresAt, key) => {
+  const body = b64u(Buffer.from(JSON.stringify({ version: 1, authority, issuedAt: Date.now(), expiresAt })))
+  return 'dsh-auth-' + b64u(createHash('sha256').update(authority).digest()) + '=v1.' + body + '.' + b64u(createHmac('sha256', key || machineSecret).update(body).digest())
+}
+const goodCookie = cookieFor('127.0.0.1:3080', Date.now() + 86400000)
 
 // The tick is driven by hand: capture the 5 s and 30 s timers, and shrink the fixed 750 ms wait.
 const realSetTimeout = globalThis.setTimeout
@@ -53,7 +63,7 @@ const call = async (method, bodyText, headers, path) => {
   const url = path === undefined ? '/kybernos/tasks' : path
   const req = Readable.from(bodyText === undefined ? [] : [Buffer.from(bodyText)])
   req.method = method; req.url = url
-  req.headers = Object.assign({ origin: 'http://127.0.0.1:3080' }, headers || {})
+  req.headers = Object.assign({ origin: 'http://127.0.0.1:3080', cookie: goodCookie }, headers || {})
   req.socket = { localPort: 3080 }
   const res = { status: null, body: null, headers: null }
   const done = new Promise((resolve) => { res.end = (b) => { res.body = b; resolve() }; res.writeHead = (s, h) => { res.status = s; res.headers = h } })
@@ -71,6 +81,11 @@ const task = (o) => ({ name: 'Weekly report', prompt: 'Write the report', schedu
 eq('GET is refused', (await call('GET')).status, 405)
 eq('no Origin is refused', (await call('POST', '{"action":"list"}', { origin: '' })).status, 403)
 eq('foreign Origin is refused', (await call('POST', '{"action":"list"}', { origin: 'http://evil.example' })).status, 403)
+eq('no session cookie: 401, even with the right Origin', (await call('POST', '{"action":"list"}', { cookie: '' })).status, 401)
+eq('a cookie signed with another secret: 401', (await call('POST', '{"action":"list"}', { cookie: cookieFor('127.0.0.1:3080', Date.now() + 86400000, randomBytes(32)) })).status, 401)
+eq('an expired cookie: 401', (await call('POST', '{"action":"list"}', { cookie: cookieFor('127.0.0.1:3080', Date.now() - 1000) })).status, 401)
+eq('a cookie for another port: 401', (await call('POST', '{"action":"list"}', { cookie: cookieFor('127.0.0.1:3091', Date.now() + 86400000) })).status, 401)
+eq('the same cookie through "localhost" is accepted', (await call('POST', '{"action":"list"}', { origin: 'http://localhost:3080', cookie: cookieFor('localhost:3080', Date.now() + 86400000) })).status, 200)
 eq('empty store lists as empty', JSON.stringify((await api({ action: 'list' })).json), '{"ok":true,"tasks":[]}')
 const created = (await api({ action: 'create', task: task() })).json
 eq('create works', created.ok, true)
@@ -215,6 +230,31 @@ writeFileSync(file, good)
 }
 
 
+/* ── Webhook-only automations, and tasks written straight into the file ──── */
+{
+  sessions.failCreate = false
+  const w = (await api({ action: 'create', task: task({ name: 'only on webhook', schedule: { mode: 'webhook' } }) })).json
+  eq('a webhook-only automation is created active, with no next run', w.ok + ':' + w.task.active + ':' + w.task.nextRun + ':' + w.task.schedule.mode, 'true:true:null:webhook')
+  eq('...and carries no cron', w.task.schedule.cron, undefined)
+  const g = (await api({ action: 'hook-generate', id: w.task.id })).json
+  const n0 = sessions.created
+  await tick(); await tick()
+  eq('the scheduler never starts it by itself', sessions.created, n0)
+  const r = await call('POST', '{"x":1}', { origin: '', cookie: '', 'content-type': 'application/json' }, '/kybernos/hooks?hook=' + g.hookId + '&secret=' + g.secret)
+  eq('its webhook starts it (the hooks route needs no cookie: the secret is the credential)', r.status + ':' + (sessions.created === n0 + 1), '202:true')
+  eq('it can be paused and resumed', (await api({ action: 'toggle', id: w.task.id, active: false })).json.ok + ':' + (await api({ action: 'toggle', id: w.task.id, active: true })).json.ok, 'true:true')
+  const sw = (await api({ action: 'update', id: w.task.id, task: task({ name: 'only on webhook', schedule: { mode: 'cron', cron: '0 9 * * *' } }) })).json
+  eq('switching it to a cron works', sw.ok + ':' + typeof sw.task.nextRun, 'true:string')
+}
+{ // what the automation-creator skill does: it edits tasks.json itself and leaves nextRun null
+  const all = onDisk()
+  all.push({ id: 'st-skill-1', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), history: [], lastRun: null, nextRun: null, name: 'from the skill', prompt: 'p', schedule: { mode: 'cron', tz: 'Europe/Paris', cron: '0 8 * * 1' }, runsOn: 'local', active: true, approvals: 'ask', notify: [] })
+  writeFileSync(file, JSON.stringify(all, null, 2))
+  await tick()
+  const adopted = onDisk().find((x) => x.id === 'st-skill-1')
+  eq('a task added by hand with no next run is picked up by the next tick', typeof adopted.nextRun + ':' + (Date.parse(adopted.nextRun) > Date.now()), 'string:true')
+}
+
 /* ── Webhooks while no session service is mounted: the events wait for the page ── */
 {
   const noSession = { fs: {}, webServer: services.webServer, workspaceRegistry: services.workspaceRegistry }
@@ -235,6 +275,27 @@ writeFileSync(file, good)
   eq('...then nothing', (await api({ action: 'consume-fire', id: Q.id })).json.error, 'rien a consommer')
 }
 
+
+
+/* ── No cookie to read: the Origin rule alone, said once ──────────────────── */
+{
+  const other = mkdtempSync(join(tmpdir(), 'kb-tasks-route-nocred-'))
+  mkdirSync(join(other, 'kybernos'), { recursive: true })
+  const previous = process.env.DSH_HOME
+  process.env.DSH_HOME = other
+  const noCred = { fs: {}, webServer: services.webServer, workspaceRegistry: services.workspaceRegistry }
+  const e0 = console.error; const l0 = console.log; const seen = []
+  console.error = (...a) => seen.push(a.join(' ')); console.log = () => {}
+  mod.apply({ get: (n) => noCred[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: () => {}, scope: {} })
+  await new Promise((r) => realSetTimeout(r, 50))
+  const first = await call('POST', '{"action":"list"}', { cookie: '' })
+  const second = await call('POST', '{"action":"list"}', { cookie: '' })
+  console.error = e0; console.log = l0
+  process.env.DSH_HOME = previous
+  eq('secret unreadable: the page is not locked out (Origin rule only)', first.status + ':' + second.status, '200:200')
+  eq('...and the fallback is logged once', seen.filter((l) => l.includes('falling back to the Origin check')).length, 1)
+  rmSync(other, { recursive: true, force: true })
+}
 
 rmSync(dshHome, { recursive: true, force: true })
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')

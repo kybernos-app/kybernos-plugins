@@ -4,12 +4,13 @@
 // Usage: node scripts/test-scheduled-tasks-host.mjs   (exit 0 = everything passes)
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CORE-BEGIN([\s\S]*?)\/\/ KB-TASKS-CORE-END/)
 if (m === null) { console.error('KB-TASKS-CORE block not found in index.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -410,6 +411,57 @@ eq('binary content is not dumped into the prompt', pl('\u0000\u0001abc', 'applic
   eq('prompt: source and format are stated', p.includes('Source: webhook/stripe\nFormat: JSON\n{"x":1}'), true)
   eq('prompt: no source reads "webhook"', mod.kbHookPrompt('p', null, { kind: 'empty', text: '(empty body)' }, 'n').includes('Source: webhook\n'), true) }
 
+
+
+/* ── 8. Browser session cookie (the check the tasks route relies on) ──────── */
+{
+  const secret = randomBytes(32)
+  const b64u = (b) => b.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const cookie = (sec, authority, over, nameAuthority) => {
+    const body = b64u(Buffer.from(JSON.stringify(Object.assign({ version: 1, authority, issuedAt: Date.now(), expiresAt: Date.now() + 86400000 }, over || {}))))
+    return 'dsh-auth-' + b64u(createHash('sha256').update(nameAuthority || authority).digest()) + '=v1.' + body + '.' + b64u(createHmac('sha256', sec).update(body).digest())
+  }
+  const A = ['127.0.0.1:3080', 'localhost:3080', '[::1]:3080']
+  const ok = (header, sec) => mod.kbVerifySessionCookie(header, A, sec === undefined ? secret : sec, Date.now(), { createHash, createHmac, timingSafeEqual })
+  eq('a cookie signed with the machine secret is accepted', ok(cookie(secret, '127.0.0.1:3080')), true)
+  eq('...among other cookies, in any order', ok('a=1; ' + cookie(secret, 'localhost:3080') + '; b=2'), true)
+  eq('no cookie header: refused', ok(undefined) || ok('') || ok('a=1'), false)
+  eq('signed with another secret: refused', ok(cookie(randomBytes(32), '127.0.0.1:3080')), false)
+  eq('body altered after signing: refused', ok(cookie(secret, '127.0.0.1:3080').replace(/=v1\.[^.]+\./, '=v1.' + b64u(Buffer.from(JSON.stringify({ version: 1, authority: '127.0.0.1:3080', expiresAt: 9e15 }))) + '.')), false)
+  eq('expired: refused', ok(cookie(secret, '127.0.0.1:3080', { expiresAt: Date.now() - 1000 })), false)
+  eq('a cookie for another port: refused', ok(cookie(secret, '127.0.0.1:3091')), false)
+  eq('a cookie whose body claims another authority: refused', ok(cookie(secret, 'evil.example:3080', undefined, '127.0.0.1:3080')), false)
+  eq('wrong version: refused', ok(cookie(secret, '127.0.0.1:3080', { version: 2 })), false)
+  eq('garbage value: refused', ok('dsh-auth-' + b64u(createHash('sha256').update('127.0.0.1:3080').digest()) + '=v1.x.y'), false)
+  eq('an absurdly long header is refused without work', ok('a=' + 'x'.repeat(9000)), false)
+}
+{ // an active task with no next run is an error, unless it only runs from its webhook
+  const never = (mode, active, nx) => mod.kbNeverRuns({ active, schedule: { mode } }, nx)
+  eq('cron, active, no next run: error', never('cron', true, null), true)
+  eq('cron, paused, no next run: fine', never('cron', false, null), false)
+  eq('webhook-only, active, no next run: fine', never('webhook', true, null), false)
+  eq('cron, active, has a next run: fine', never('cron', true, 5), false)
+}
+{ // webhook-only schedules
+  const ok = mod.kbSanitizeTaskInput({ name: 'a', prompt: 'b', schedule: { mode: 'webhook', cron: '0 8 * * *', at: '2027-01-01T10:00', tz: 'UTC' } })
+  eq('webhook-only mode is accepted, with no cron and no date', JSON.stringify(ok.task.schedule), '{"mode":"webhook","tz":"UTC"}')
+  eq('webhook-only is never due by itself', String(mod.kbComputeNextRun({ active: true, schedule: { mode: 'webhook', tz: 'UTC' } }, Date.now())), 'null')
+}
+{ // the tick adopts a task written without a next run (the automation-creator skill edits the file directly)
+  const r = rig([dueTask({ id: 'skill', nextRun: null }), dueTask({ id: 'stale', nextRun: 'garbage' }), dueTask({ id: 'off', active: false, nextRun: null }),
+    dueTask({ id: 'hook', nextRun: null, schedule: { mode: 'webhook', tz: 'UTC' } }), dueTask({ id: 'past', nextRun: null, schedule: { mode: 'once', tz: 'UTC', at: '2020-01-01T08:00' } }),
+    dueTask({ id: 'later', nextRun: null, schedule: { mode: 'once', tz: 'UTC', at: '2026-10-05T09:30' } })])
+  const a = await r.trigger.tick()
+  const got = Object.fromEntries(JSON.parse(r.m.st.text).map((x) => [x.id, x.nextRun]))
+  eq('adoption starts nothing', a.fired, 0)
+  eq('a cron task without a next run gets one', got.skill, '2026-10-06T08:00:00.000Z')
+  eq('an unreadable next run is replaced', got.stale, '2026-10-06T08:00:00.000Z')
+  eq('a one-time task in the future gets its date', got.later, '2026-10-05T09:30:00.000Z')
+  eq('paused, webhook-only and past one-time tasks stay without one', [got.off, got.hook, got.past].map(String).join(','), 'null,null,null')
+  const writes = r.m.st.writes
+  await r.trigger.tick()
+  eq('a second tick changes nothing and writes nothing', r.m.st.writes, writes)
+}
 
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')
 process.exit(fails === 0 ? 0 : 1)

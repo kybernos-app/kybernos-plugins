@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, openSync, copyFileSync, renameSync, chmodSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
-import { createHash, createHmac, randomUUID } from 'node:crypto'
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 import { tmpdir, homedir, platform as osPlatform, release as osRelease } from 'node:os'
 import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
@@ -264,6 +264,7 @@ const kbComputeNextRun = (task, afterMs, tzFallback) => {
   return null
 }
 // Why an ACTIVE task has no next run: its one-time date has passed, or its cron can never match.
+const kbNeverRuns = (task, nextMs) => task.active === true && nextMs === null && !(task.schedule !== null && typeof task.schedule === 'object' && task.schedule.mode === 'webhook')
 const kbNoNextRunError = (task) => (task.schedule !== null && typeof task.schedule === 'object' && task.schedule.mode === 'once' ? 'that date is in the past' : 'this schedule never fires')
 // A string cut at `max` code units never ends on half of a surrogate pair.
 const kbClip = (value, max) => {
@@ -282,11 +283,13 @@ const kbSanitizeTaskInput = (raw) => {
   if (prompt.length === 0) return { ok: false, error: 'prompt required' }
   if (r.active !== undefined && typeof r.active !== 'boolean') return { ok: false, error: 'active must be true or false' }
   const sc = r.schedule !== null && typeof r.schedule === 'object' ? r.schedule : {}
-  const mode = sc.mode === 'once' ? 'once' : 'cron'
+  const mode = sc.mode === 'once' ? 'once' : (sc.mode === 'webhook' ? 'webhook' : 'cron')
   // No zone given: the machine's own, not a hard-coded one ("every day at 8" is 8 where the user is).
   if (sc.tz !== undefined && sc.tz !== null && sc.tz !== '' && kbIsValidTimeZone(sc.tz) === false) return { ok: false, error: 'unknown time zone' }
   const schedule = { mode, tz: kbIsValidTimeZone(sc.tz) === true ? sc.tz : kbMachineTimeZone() }
-  if (mode === 'cron') {
+  if (mode === 'webhook') {
+    // runs only when its webhook is called: no cron, no date, never due by itself
+  } else if (mode === 'cron') {
     // no cron given: the default rhythm of the mock-up, every day at 8 (the client form always sends one)
     if (sc.cron === undefined || sc.cron === null || sc.cron === '' || (typeof sc.cron === 'string' && sc.cron.trim() === '')) schedule.cron = '0 8 * * *'
     else if (typeof sc.cron !== 'string' || kbParseCron(sc.cron) === null) return { ok: false, error: 'cron invalide' }
@@ -384,9 +387,15 @@ const kbMakeTrigger = (deps) => {
         const out = []
         for (const t of tasks) {
           if (t === null || typeof t !== 'object' || t.active !== true) continue
-          if (typeof t.nextRun !== 'string') continue
+          // A task written without a next run (the automation-creator skill edits the file directly)
+          // is adopted here: its next run is computed now instead of waiting for an edit in the page.
+          if (typeof t.nextRun !== 'string' || Number.isFinite(Date.parse(t.nextRun)) === false) {
+            const first = kbComputeNextRun(t, nowMs)
+            t.nextRun = first === null ? null : new Date(first).toISOString()
+            continue
+          }
           const due = Date.parse(t.nextRun)
-          if (Number.isFinite(due) === false || due > nowMs) continue
+          if (due > nowMs) continue
           out.push(Object.assign({}, t))
           if (t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once') { t.active = false; t.nextRun = null }
           else {
@@ -444,6 +453,35 @@ const kbMakeTrigger = (deps) => {
     return { fired, failed }
   }
   return { tick }
+}
+// ── Browser session (pure) ──────────────────────────────────────────────────────────────
+// Plugin routes are served BEFORE DSH's own authentication (measured), and an Origin header is
+// forgeable by any local program, so a route that lists webhook secrets or starts agent sessions
+// must check the session itself. DSH signs its browser cookie with a secret it keeps for the machine:
+//   name  = "dsh-auth-" + b64url(sha256(authority))      authority = "127.0.0.1:<port>"
+//   value = "v1." + body + "." + b64url(hmac_sha256(secret, body))
+//   body  = b64url(JSON { version: 1, authority, issuedAt, expiresAt })
+// `crypto` is { createHash, createHmac, timingSafeEqual }, injected so tests can drive this.
+const kbVerifySessionCookie = (cookieHeader, authorities, secret, nowMs, crypto) => {
+  if (typeof cookieHeader !== 'string' || cookieHeader.length === 0 || cookieHeader.length > 8192) return false
+  const b64 = (buf) => buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const jar = new Map()
+  for (const part of cookieHeader.split(';')) {
+    const i = part.indexOf('=')
+    if (i > 0 && jar.has(part.slice(0, i).trim()) === false) jar.set(part.slice(0, i).trim(), part.slice(i + 1).trim())
+  }
+  for (const authority of authorities) {
+    const value = jar.get('dsh-auth-' + b64(crypto.createHash('sha256').update(authority).digest()))
+    const m = value === undefined ? null : /^v1\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)$/.exec(value)
+    if (m === null) continue
+    const want = Buffer.from(b64(crypto.createHmac('sha256', secret).update(m[1]).digest()))
+    const have = Buffer.from(m[2])
+    if (want.length !== have.length || crypto.timingSafeEqual(want, have) !== true) continue
+    let body = null
+    try { body = JSON.parse(Buffer.from(m[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')) } catch (e) { continue }
+    if (body !== null && typeof body === 'object' && body.version === 1 && body.authority === authority && Number.isFinite(body.expiresAt) && body.expiresAt > nowMs) return true
+  }
+  return false
 }
 // ── Webhook helpers (pure) ──────────────────────────────────────────────────────────────
 // Deliveries per hook per hour. Counting the task history instead could never work: it keeps
@@ -2390,7 +2428,7 @@ function boot(ctx) {
         const now = new Date().toISOString()
         const task = Object.assign({ id, createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task)
         const nx = kbComputeNextRun(task, Date.now())
-        if (task.active === true && nx === null) return { ok: false, error: kbNoNextRunError(task) }
+        if (kbNeverRuns(task, nx) === true) return { ok: false, error: kbNoNextRunError(task) }
         task.nextRun = nx === null ? null : new Date(nx).toISOString()
         await kbTasksMutate(async (tasks) => { tasks.push(task) })
         return { ok: true, task }
@@ -2408,7 +2446,7 @@ function boot(ctx) {
             if (t !== null && typeof t === 'object' && t.id === id) {
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
               const nx = kbComputeNextRun(merged, Date.now())
-              if (merged.active === true && nx === null) { refusal = kbNoNextRunError(merged); break }
+              if (kbNeverRuns(merged, nx) === true) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
               tasks[i] = merged
               updated = merged
@@ -2429,7 +2467,7 @@ function boot(ctx) {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
               const nx = kbComputeNextRun(Object.assign({}, t, { active: body.active }), Date.now())
-              if (body.active === true && nx === null) { refusal = kbNoNextRunError(t); break }
+              if (kbNeverRuns(Object.assign({}, t, { active: body.active }), nx) === true) { refusal = kbNoNextRunError(t); break }
               t.active = body.active
               t.updatedAt = new Date().toISOString()
               t.nextRun = nx === null ? null : new Date(nx).toISOString()
@@ -10329,9 +10367,38 @@ function boot(ctx) {
         sendJson(res, 200, { ok: true, trim: await kbTtsCacheTrim() })
       } }), 'kybernos: route tts/cache-trim')
       // ── Tâches planifiées (store ~/.dsh/kybernos/tasks.json) ─────────────
+      // This route lists webhook secrets and starts agent sessions, so besides the same-origin rule
+      // it needs DSH's signed browser-session cookie: an Origin header alone is forgeable by any
+      // local program. If the machine secret cannot be read (unusual install), it falls back to the
+      // Origin rule and says so once, rather than locking the page out.
+      let kbSecretCache = { at: 0, value: undefined }
+      let kbSecretWarned = false
+      const kbBrowserSessionSecret = async () => {
+        if (kbSecretCache.value !== undefined && Date.now() - kbSecretCache.at < (kbSecretCache.value === null ? 5000 : 30000)) return kbSecretCache.value
+        let value = null
+        try {
+          const home = await dshHome()
+          const raw = home === null || home === undefined ? '' : String(readFileSync(nodePathJoin(home, '.credentials.yaml'), 'utf8'))
+          const at = raw.indexOf('client-connection/browser-session')
+          const m = at < 0 ? null : raw.slice(at).match(/secret:\s*(\S+)/)
+          if (m !== null) { const buf = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64'); if (buf.byteLength === 32) value = buf }
+        } catch (e) { value = null }
+        kbSecretCache = { at: Date.now(), value }
+        return value
+      }
+      const kbTasksAuthorized = async (req) => {
+        const secret = await kbBrowserSessionSecret()
+        if (secret === null) {
+          if (kbSecretWarned === false) { kbSecretWarned = true; try { console.error('[kybers] tasks route: browser-session secret unreadable, falling back to the Origin check') } catch (e) { /* console unavailable */ } }
+          return true
+        }
+        const port = req.socket !== null && req.socket !== undefined && typeof req.socket.localPort === 'number' ? ':' + req.socket.localPort : ''
+        return kbVerifySessionCookie(req.headers.cookie, ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port], secret, Date.now(), { createHash, createHmac, timingSafeEqual })
+      }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
         let body = null
         try { body = await readJsonBody(req, 200000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
         if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
