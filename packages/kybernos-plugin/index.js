@@ -7,6 +7,7 @@ import { tmpdir, homedir, platform as osPlatform, release as osRelease } from 'n
 import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
+import { dshHomeSync } from './dsh-home.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -3130,15 +3131,13 @@ function boot(ctx) {
       return out
     }
     // ── GET /kybernos/calls: appels d'équipe dérivés du journal (plan Crew v2) ──
-    // Kybers déclarés : ids de `~/.dsh/kybers/<id>/kyber.yml` (la source que
+    // Kybers déclarés : ids de `<DSH home>/kybers/<id>/kyber.yml` (la source que
     // kyber-selection parcourt). Sert uniquement de préfixes de crew pour
     // rattacher un membre (`<kyberId>-<rôle>`) — jamais de donnée d'affichage.
     const declaredKyberIds = () => {
       const ids = []
       try {
-        const home = homedir()
-        if (typeof home !== 'string' || home.length === 0) return ids
-        const root = nodePathJoin(home, '.dsh', 'kybers')
+        const root = nodePathJoin(dshHomeSync(), 'kybers')
         const dirs = readdirSync(root, { withFileTypes: true })
         for (const d of dirs) {
           if (d.isDirectory() !== true) continue
@@ -10236,7 +10235,7 @@ function boot(ctx) {
       // ── Sens 2 : phrase en français -> kyber.yml proposé -> écriture cadrée ──
       // Le client fait le contrôle dur (lireKyberYml + valider) et montre
       // l'aller-retour AVANT l'écriture ; l'hôte ne fait que parler au modèle
-      // et écrire sous ~/.dsh/kybers/<id>/ avec sauvegarde .bak.
+      // et écrire sous <DSH home>/kybers/<id>/ avec sauvegarde .bak.
       const KB_YML_TOPOLOGIES = ['pool', 'pipeline', 'adversarial', 'mapreduce', 'loop']
       const kbYmlSystem = () => 'Tu transformes une description en francais d\'un workflow d\'equipe en un fichier kyber.yml VALIDE. Reponds UNIQUEMENT par le contenu YAML, sans balise de code, sans commentaire.\n'
         + 'Format:\n'
@@ -10301,9 +10300,7 @@ function boot(ctx) {
         if (yml.length === 0 || yml.length > 60000) return { ok: false, error: 'yml absent ou trop long' }
         if (yml.indexOf('topology:') !== 0) return { ok: false, error: 'yml refuse: doit commencer par topology:' }
         try {
-          const home = (typeof process !== 'undefined' && process.env !== undefined && typeof process.env.HOME === 'string' && process.env.HOME.length > 0) ? process.env.HOME : null
-          if (home === null) return { ok: false, error: 'HOME indisponible' }
-          const dossier = home + '/.dsh/kybers/' + kyberId
+          const dossier = nodePathJoin(dshHomeSync(), 'kybers', kyberId)
           mkdirSync(dossier, { recursive: true })
           const cible = dossier + '/kyber.yml'
           let backup = null
@@ -10430,7 +10427,7 @@ function boot(ctx) {
       // aucun etat lisible. On resout UNE fois, puis tout le bloc travaille en
       // synchrone sur `kbToolsHomeVal` (repli ~/.dsh tant qu il n est pas resolu).
       let kbToolsHomeVal = null
-      const kbToolsFallbackHome = () => { try { return joinPath(homedir(), '.dsh') } catch (e) { return null } }
+      const kbToolsFallbackHome = () => { try { return dshHomeSync() } catch (e) { return null } }
       const kbToolsHome = async () => {
         if (kbToolsHomeVal !== null) return kbToolsHomeVal
         let h = null
@@ -10525,7 +10522,7 @@ function boot(ctx) {
         // bloc ET reconnaître qu’il est déjà monté — sinon la page proposerait de
         // l’installer une seconde fois et le profil porterait deux entrées.
         { id: 'zcode', group: 'ext', label: 'ZCode', mcp: { id: 'mcp-client-zcode', serverName: 'zcode',
-            file: nodePathJoin(homedir(), '.dsh', 'mcp', 'zcode-mcp-server.mjs'), command: process.execPath, toolCallTimeoutMs: 600000 },
+            file: nodePathJoin(dshHomeSync(), 'mcp', 'zcode-mcp-server.mjs'), command: process.execPath, toolCallTimeoutMs: 600000 },
           prefix: 'mcp__zcode__', toolCount: 3,
           needs: 'L’application ZCode installée et connectée à un compte Z.ai — le connecteur lit son propre coffre de credentials, aucune clé n’est recopiée dans le patch.',
           why: 'Connecteur personnalisé (MCP) : pilote l’agent de code Z.ai — GLM-5.3 / GLM-5.3-Flash du forfait — par son app-server, le chemin « -p » échouant en 0.16.9.' },
@@ -10941,8 +10938,8 @@ const KB_FEEDBACK_API_DEFAULT = 'https://api.dev.kybernos.app'
 
 const kbFeedbackClip = (value, limit) => (typeof value === 'string' ? value.slice(0, limit) : '')
 
-/** Dossier de la boîte d'envoi locale (~/.dsh/beta-reports). Pur. */
-const kbFeedbackOutboxDir = (home) => joinPath(joinPath(String(home), '.dsh'), 'beta-reports')
+/** Local outbox folder (<DSH home>/beta-reports). Pure: takes the DSH home itself. */
+const kbFeedbackOutboxDir = (dsh) => joinPath(String(dsh), 'beta-reports')
 
 /** Corps envoyé au relais. Pur : tout ce qui vient de l'utilisateur est borné
  *  ici ; l'uuid (clé d'idempotence du relais) est fourni par l'appelant. */
@@ -11046,11 +11043,11 @@ const kbFeedbackReadHttp = (res) => {
 /** Jeton + base d'API : lus dans l'état 0600 du plugin Cloud, jamais dans le
  *  dépôt, jamais renvoyés au client. Même variable de surcharge que le plugin
  *  Cloud (KYBERNOS_CLOUD_STATE) pour pouvoir tester sans toucher au vrai. */
-const kbFeedbackCloudState = (home) => {
+const kbFeedbackCloudState = (dsh) => {
   const override = typeof process !== 'undefined' && process.env !== undefined ? str(process.env.KYBERNOS_CLOUD_STATE) : null
   const file = override !== null && override.trim() !== ''
     ? override
-    : joinPath(joinPath(String(home), '.dsh'), 'kybernos-cloud.json')
+    : joinPath(String(dsh), 'kybernos-cloud.json')
   try {
     const parsed = JSON.parse(readFileSync(file, 'utf8'))
     return parsed !== null && typeof parsed === 'object' ? parsed : null
@@ -11075,9 +11072,7 @@ const kbFeedbackPost = async (url, token, report) => {
 
 /** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. */
 const kbFeedbackExecute = async (args) => {
-  const home = (typeof process !== 'undefined' && process.env !== undefined && str(process.env.HOME) !== null)
-    ? String(process.env.HOME)
-    : String(homedir() || '')
+  const dsh = dshHomeSync()
   let osLabel = null
   try { osLabel = String(osPlatform()) + ' ' + String(osRelease()) } catch (e) { osLabel = null }
   const report = kbFeedbackReport(args, {
@@ -11093,14 +11088,14 @@ const kbFeedbackExecute = async (args) => {
   if (report.uuid === null) return fail('uuid_indisponible')
   if (report.title === '' || report.body === '') return fail('rapport_incomplet')
 
-  const dir = kbFeedbackOutboxDir(home)
+  const dir = kbFeedbackOutboxDir(dsh)
   const file = joinPath(dir, String(report.uuid) + '.json')
   const record = { created_at: nowIso(), status: 'en_attente', issue_url: null, error: null, report: report }
   const writeRecord = () => { try { writeFileSync(file, JSON.stringify(record, null, 2) + '\n') } catch (e) { /* trace = bonus */ } }
   try { mkdirSync(dir, { recursive: true }) } catch (e) { /* deja la */ }
   writeRecord()
 
-  const state = kbFeedbackCloudState(home)
+  const state = kbFeedbackCloudState(dsh)
   const token = state !== null && typeof state.token === 'string' ? state.token : ''
   if (token === '') {
     record.status = 'echec'; record.error = 'non_connecte'; writeRecord()
@@ -11173,7 +11168,7 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
   return true
 }
 
-/** Installe la skill `signaler-retour` dans ~/.dsh/skills. Sans elle, le bouton
+/** Installe la skill `signaler-retour` dans <DSH home>/skills. Sans elle, le bouton
  *  ouvrirait un chat sur une commande inconnue : le plugin pousse donc sa
  *  propre skill au démarrage (idempotent : on n'écrit que si le contenu
  *  diffère, donc une mise à jour du plugin met la skill à jour). */
@@ -11192,10 +11187,10 @@ const kbFeedbackSkillSource = () => {
   } catch (e) { /* import.meta indisponible */ }
   return null
 }
-const kbFeedbackEnsureSkill = (home) => {
+const kbFeedbackEnsureSkill = (dsh) => {
   const text = kbFeedbackSkillSource()
   if (text === null || typeof text !== 'string' || text.trim() === '') return false
-  const dir = joinPath(joinPath(joinPath(String(home), '.dsh'), 'skills'), KB_FEEDBACK_SKILL)
+  const dir = joinPath(joinPath(String(dsh), 'skills'), KB_FEEDBACK_SKILL)
   const file = joinPath(dir, 'SKILL.md')
   try { if (readFileSync(file, 'utf8') === text) return true } catch (e) { /* absente */ }
   try {
@@ -11292,14 +11287,11 @@ export function apply(ctx) {
             console.error('[kybers] outil signaler_retour indisponible', kbToolError)
         } catch (e3) { /* console indisponible */ }
     }
-    // La skill que ce bouton lance doit exister dans ~/.dsh/skills, sinon le
+    // La skill que ce bouton lance doit exister dans <DSH home>/skills, sinon le
     // chat neuf part sur une commande inconnue. Le plugin la pousse lui-même :
     // un testeur n'a rien à installer à la main.
     try {
-        const kbHome = (typeof process !== 'undefined' && process.env !== undefined && typeof process.env.HOME === 'string' && process.env.HOME !== '')
-            ? process.env.HOME
-            : String(homedir() || '')
-        if (kbHome !== '') kbFeedbackEnsureSkill(kbHome)
+        kbFeedbackEnsureSkill(dshHomeSync())
     } catch (kbSkillError) {
         try {
             console.error('[kybers] skill signaler-retour non installee', kbSkillError)
