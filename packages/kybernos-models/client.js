@@ -55,23 +55,8 @@ window.__ModuleLoader__.load({
         'kb.models.restore': { kybernos: 'Rétablir les défauts', en: 'Restore defaults' },
         'kb.prov.voir': { kybernos: 'Voir les modèles', en: 'View models' },
         'kb.prov.add': { kybernos: 'Ajouter un fournisseur', en: 'Add provider' },
-        'kb.prov.add.titre': { kybernos: 'Nouveau fournisseur OpenAI-compatible', en: 'New OpenAI-compatible provider' },
         'kb.prov.add.slug': { kybernos: 'Identifiant', en: 'Identifier' },
-        'kb.prov.add.baseurl': { kybernos: 'Base URL', en: 'Base URL' },
-        'kb.prov.add.keyenv': { kybernos: 'Variable d\u2019environnement (clé)', en: 'Environment variable (key)' },
-        'kb.prov.add.models': { kybernos: 'Modèles (séparés par des virgules)', en: 'Models (comma-separated)' },
-        'kb.prov.add.note': { kybernos: 'La clé se pose au flux natif « Add provider » (un seul chemin d\u2019écriture des secrets) ; ici on déclare la route.', en: 'The key itself goes through the native “Add provider” flow (one path writes secrets); here we declare the route.' },
-        'kb.prov.add.changer': { kybernos: 'Changer', en: 'Change' },
-        'kb.prov.add.avance': { kybernos: 'Modifier', en: 'Edit' },
-        'kb.prov.add.cle': { kybernos: 'Clé API (variable)', en: 'API key (variable)' },
-        'kb.prov.add.models.hint': { kybernos: 'Facultatif — laissez vide, puis « Récupérer les modèles disponibles ».', en: 'Optional — leave empty, then use “Fetch available models”.' },
-        'kb.prov.add.envoi': { kybernos: 'Ajout…', en: 'Adding…' },
-        'kb.prov.add.etape1': { kybernos: '1 · Choisissez un fournisseur', en: '1 · Pick a provider' },
-        'kb.prov.add.etape2': { kybernos: '2 · Vérifiez les détails', en: '2 · Check the details' },
         'kb.prov.add.fait': { kybernos: '{slug} est ajouté.', en: '{slug} was added.' },
-        'kb.prov.add.fait.cle': { kybernos: 'Dernière étape : posez votre clé API pour qu’il réponde.', en: 'Last step: add your API key so it can answer.' },
-        'kb.prov.add.fait.btn': { kybernos: 'Ajouter la clé', en: 'Add the key' },
-        'kb.prov.add.fait.fermer': { kybernos: 'Plus tard', en: 'Later' },
         'kb.prov.add.deja': { kybernos: 'Déjà ajouté', en: 'Already added' },
         'kb.prov.add.tab.cat': { kybernos: 'Fournisseur du catalogue', en: 'Catalog provider' },
         'kb.prov.add.tab.perso': { kybernos: 'API personnalisée', en: 'Custom API' },
@@ -85,10 +70,8 @@ window.__ModuleLoader__.load({
         'kb.prov.add.cle.voir': { kybernos: 'Afficher', en: 'Show' },
         'kb.prov.add.cle.cacher': { kybernos: 'Masquer', en: 'Hide' },
         'kb.prov.add.reglages': { kybernos: 'Réglages avancés', en: 'Advanced settings' },
-        'kb.prov.add.err.env': { kybernos: 'Indiquez un nom de variable (réglages avancés) pour ranger la clé.', en: 'Set a variable name (advanced settings) to store the key under.' },
         'kb.prov.add.fait.cleok': { kybernos: '{slug} est ajouté et sa clé est enregistrée.', en: '{slug} was added and its key saved.' },
         'kb.prov.add.fait.cleko': { kybernos: '{slug} est ajouté, mais la clé n’a pas pu être enregistrée — posez-la via le flux natif.', en: '{slug} was added, but its key could not be saved — add it through the native flow.' },
-        'kb.prov.add.fait.voir': { kybernos: 'Voir les modèles', en: 'View models' },
         'kb.prov.add.grp.free': { kybernos: 'Modèles gratuits (quota)', en: 'Free models (quota)' },
         'kb.prov.add.grp.pop': { kybernos: 'Populaires', en: 'Popular' },
         'kb.prov.add.grp.tous': { kybernos: 'Tous les fournisseurs', en: 'All providers' },
@@ -96,18 +79,9 @@ window.__ModuleLoader__.load({
         'kb.prov.add.resultatsN': { kybernos: '{n} résultats', en: '{n} results' },
         'kb.prov.add.aucun': { kybernos: 'Aucun fournisseur — essayez l’onglet « API personnalisée ».', en: 'No provider — try the “Custom API” tab.' },
         'kb.prov.add.pied': { kybernos: '{n} fournisseurs · models.dev · ↑↓ pour naviguer, Entrée pour choisir', en: '{n} providers · models.dev · ↑↓ to browse, Enter to pick' },
-        'kb.prov.add.doc': { kybernos: 'Documentation', en: 'Documentation' },
-        'kb.prov.add.err.urlmodele': { kybernos: 'Remplacez les ${…} par les valeurs de votre compte.', en: 'Replace the ${…} with your account’s values.' },
         'kb.prov.add.url.a.completer': { kybernos: 'URL propre à votre compte — à compléter dans les réglages avancés.', en: 'Account-specific URL — complete it in advanced settings.' },
-        'kb.prov.add.ok': { kybernos: 'Ajouter', en: 'Add' },
-        'kb.prov.add.annuler': { kybernos: 'Annuler', en: 'Cancel' },
-        'kb.prov.add.err.slug': { kybernos: 'Identifiant invalide — lettres minuscules, chiffres et tirets.', en: 'Invalid identifier — lowercase letters, digits and dashes.' },
-        'kb.prov.add.err.url': { kybernos: 'Base URL invalide — http(s) requis.', en: 'Invalid base URL — http(s) required.' },
-        'kb.prov.add.err.existe': { kybernos: 'Ce fournisseur existe déjà.', en: 'This provider already exists.' },
         'kb.prov.add.presets': { kybernos: 'Fournisseurs connus', en: 'Known providers' },
-        'kb.prov.add.custom': { kybernos: 'API de modèle personnalisée', en: 'Custom model API' },
         'kb.prov.add.chercher': { kybernos: 'Rechercher un fournisseur…', en: 'Search a provider…' },
-        'kb.prov.catalogue': { kybernos: 'Catalogue enrichi par models.dev', en: 'Catalog enriched from models.dev' },
         'kb.prov.free': { kybernos: 'Free models · quota', en: 'Free models · quota' },
         'kb.prov.free.titre': { kybernos: 'Ce fournisseur propose des modèles gratuits sous quota — voir sa collection « free ».', en: 'This provider offers free models under quota — see its “free” collection.' },
         'kb.prov.free.lien': { kybernos: 'Voir les modèles gratuits', en: 'See free models' },
@@ -232,10 +206,85 @@ window.__ModuleLoader__.load({
         'kb.models.f.weights': { kybernos: 'Poids', en: 'Weights' },
         'kb.models.tab.models': { kybernos: 'Modèles {n}', en: 'Models {n}' },
         'kb.models.tab.providers': { kybernos: 'Fournisseurs {n}', en: 'Providers {n}' },
-        'kb.models.prov.note': { kybernos: "Les clés et les URL de base se règlent dans Réglages ▸ Models, l'écran natif de DSH.", en: "Keys and base URLs are set in Settings ▸ Models, DSH's native screen." },
         'kb.models.prov.empty': { kybernos: 'Aucun fournisseur exposé pour le moment.', en: 'No provider exposed yet.' },
         'kb.models.prov.model1': { kybernos: 'modèle', en: 'model' },
         'kb.models.prov.modelN': { kybernos: 'modèles', en: 'models' },
+        'kb.prov.off.badge': { kybernos: 'Désactivé', en: 'Disabled' },
+        'kb.prov.off.disable': { kybernos: 'Désactiver {slug}', en: 'Disable {slug}' },
+        'kb.prov.off.enable': { kybernos: 'Réactiver {slug}', en: 'Enable {slug}' },
+        'kb.prov.off.locked': { kybernos: 'Défini par le profil : ne peut pas être désactivé ici.', en: 'Defined by the profile: it cannot be disabled here.' },
+        'kb.prov.off.managed': { kybernos: 'Géré par Kybernos Cloud : déconnectez le compte pour le retirer.', en: 'Managed by Kybernos Cloud: disconnect the account to remove it.' },
+        'kb.prov.off.dlg.title': { kybernos: 'Désactiver {slug} ?', en: 'Disable {slug}?' },
+        'kb.prov.off.dlg.body': { kybernos: 'Les sessions qui utilisent un modèle de {slug} ne pourront plus l’appeler. Le réactiver rétablit tout à l’identique : clé, modèles et réglages.', en: 'Sessions that use a {slug} model will no longer be able to call it. Enabling it again restores everything as it was: key, models and settings.' },
+        'kb.prov.off.dlg.ok': { kybernos: 'Désactiver', en: 'Disable' },
+        'kb.prov.off.dlg.cancel': { kybernos: 'Annuler', en: 'Cancel' },
+        'kb.prov.off.err': { kybernos: 'Impossible de désactiver {slug} : {raison}', en: 'Could not disable {slug}: {raison}' },
+        'kb.prov.on.err': { kybernos: 'Impossible de réactiver {slug} : {raison}', en: 'Could not enable {slug}: {raison}' },
+        'kb.nat.open': { kybernos: 'Ouvrir la page native de DSH', en: 'Open DSH’s native Models page' },
+        'kb.nat.note.t': { kybernos: 'Page native de DSH', en: 'DSH’s native page' },
+        'kb.nat.note.b': { kybernos: 'Tout ce qui se fait ici se fait aussi dans « Fournisseur IA & modèles », avec plus de détails. Les deux pages lisent et écrivent les mêmes réglages : elles restent synchronisées.', en: 'Everything done here can also be done in “AI Provider & Models”, with more detail. Both pages read and write the same settings, so they stay in sync.' },
+        'kb.nat.back': { kybernos: 'Ouvrir Fournisseur IA & modèles', en: 'Open AI Provider & Models' },
+        'kb.nat.hide': { kybernos: 'Masquer la page native du menu des Réglages', en: 'Hide DSH’s native page from the Settings menu' },
+        'kb.nat.show': { kybernos: 'Afficher cette page dans le menu des Réglages', en: 'Show this page in the Settings menu' },
+        'kb.nat.crash.t': { kybernos: 'Cette page n’a pas pu s’afficher.', en: 'This page could not be displayed.' },
+        'kb.nat.crash.b': { kybernos: 'La page native de DSH reste disponible.', en: 'DSH’s native Models page is still available.' },
+        'kb.pv.title.add': { kybernos: 'Ajouter un fournisseur de modèles', en: 'Add model provider' },
+        'kb.pv.diag': { kybernos: 'Config à réparer', en: 'Config error' },
+        'kb.pv.custom': { kybernos: 'Perso', en: 'Custom' },
+        'kb.pv.builtin': { kybernos: 'Intégré à DSH', en: 'Built into DSH' },
+        'kb.pv.builtin.edit': { kybernos: 'Se modifie sur la page native de DSH', en: 'Edited on DSH’s native page' },
+        'kb.pv.edit': { kybernos: 'Modifier {slug}', en: 'Edit {slug}' },
+        'kb.pv.more': { kybernos: 'Plus d’actions pour {slug}', en: 'More for {slug}' },
+        'kb.pv.more.page': { kybernos: 'Plus d’actions', en: 'More actions' },
+        'kb.pv.close': { kybernos: 'Fermer', en: 'Close' },
+        'kb.pv.menu.add': { kybernos: 'Ajouter un modèle…', en: 'Add model…' },
+        'kb.pv.menu.delete': { kybernos: 'Supprimer…', en: 'Delete…' },
+        'kb.pv.key.ok': { kybernos: 'Clé API configurée', en: 'API key configured' },
+        'kb.pv.key.missing': { kybernos: 'Clé API absente', en: 'API key missing' },
+        'kb.pv.key.unknown': { kybernos: 'État de la clé inconnu', en: 'Key state unknown' },
+        'kb.pv.key.ph.set': { kybernos: 'Configurée — saisissez une nouvelle valeur pour la remplacer', en: 'Configured — enter a new value to replace' },
+        'kb.pv.key.ph.blank': { kybernos: 'Saisissez une clé, ou laissez vide pour l’authentification par environnement', en: 'Enter an API key, or leave blank to use environment authentication' },
+        'kb.pv.customized': { kybernos: 'Réglages personnalisés', en: 'Customized settings' },
+        'kb.pv.name': { kybernos: 'Nom affiché', en: 'Display name' },
+        'kb.pv.url': { kybernos: 'URL de base', en: 'Base URL' },
+        'kb.pv.url.default': { kybernos: 'Défaut du fournisseur', en: 'Provider default' },
+        'kb.pv.proto': { kybernos: 'Protocole API', en: 'API protocol' },
+        'kb.pv.proto.chat': { kybernos: 'OpenAI Chat Completions', en: 'OpenAI Chat Completions' },
+        'kb.pv.proto.resp': { kybernos: 'OpenAI Responses', en: 'OpenAI Responses' },
+        'kb.pv.proto.msgs': { kybernos: 'Anthropic Messages', en: 'Anthropic Messages' },
+        'kb.pv.provider.id': { kybernos: 'Identifiant du fournisseur', en: 'Provider ID' },
+        'kb.pv.provider.id.hint': { kybernos: 'Identifiant en minuscules, commençant par une lettre, qui nomme ce fournisseur dans les requêtes et comme nom de son identifiant de clé.', en: 'Lowercase identifier, starting with a letter, that uniquely names this provider in requests and as its credential name.' },
+        'kb.pv.models': { kybernos: 'Modèles', en: 'Models' },
+        'kb.pv.model.id': { kybernos: 'Identifiant du modèle', en: 'Model ID' },
+        'kb.pv.model.name': { kybernos: 'Nom affiché', en: 'Display name' },
+        'kb.pv.model.del': { kybernos: 'Supprimer le modèle {n}', en: 'Delete model {n}' },
+        'kb.pv.model.add': { kybernos: 'Ajouter un modèle', en: 'Add model' },
+        'kb.pv.models.none': { kybernos: 'Aucun modèle ne sera proposé dans le sélecteur. Les identifiants non listés peuvent toujours être envoyés directement.', en: 'No models will be shown in the selector. Unlisted IDs can still be sent directly.' },
+        'kb.pv.models.catalog': { kybernos: 'Ce fournisseur utilise son catalogue. Ajoutez un modèle seulement pour en déclarer un de plus.', en: 'This provider uses its catalog. Add a model only to declare an extra one.' },
+        'kb.pv.apply': { kybernos: 'Appliquer', en: 'Apply' },
+        'kb.pv.cancel': { kybernos: 'Annuler', en: 'Cancel' },
+        'kb.pv.create': { kybernos: 'Créer le fournisseur', en: 'Create provider' },
+        'kb.pv.saved': { kybernos: 'Appliqué. Pris en compte à la prochaine requête, sans redémarrage.', en: 'Applied. It takes effect on the next request, no restart.' },
+        'kb.pv.saved.key.ko': { kybernos: 'Appliqué, mais la clé n’a pas pu être enregistrée.', en: 'Applied, but the key could not be saved.' },
+        'kb.pv.save.err': { kybernos: 'Impossible d’appliquer : {raison}', en: 'Could not apply: {raison}' },
+        'kb.pv.add.err': { kybernos: 'Impossible d’ajouter : {raison}', en: 'Could not add: {raison}' },
+        'kb.pv.del.title': { kybernos: 'Supprimer {slug} ?', en: 'Delete {slug}?' },
+        'kb.pv.del.body': { kybernos: 'Cela retire le fournisseur, ses {n} modèles, leurs surcharges et sa clé. Pour tout garder, désactivez-le plutôt.', en: 'This removes the provider, its {n} models, their overrides and its key. To keep them, disable it instead.' },
+        'kb.pv.del.type': { kybernos: 'Saisissez {slug} pour confirmer', en: 'Type {slug} to confirm' },
+        'kb.pv.del.ok': { kybernos: 'Supprimer le fournisseur', en: 'Delete provider' },
+        'kb.pv.del.instead': { kybernos: 'Désactiver plutôt', en: 'Disable instead' },
+        'kb.pv.del.err': { kybernos: 'Impossible de supprimer {slug} : {raison}', en: 'Could not delete {slug}: {raison}' },
+        'kb.pv.zone.off': { kybernos: 'Désactiver', en: 'Disable' },
+        'kb.pv.zone.off.d': { kybernos: 'Masque ses modèles et bloque les appels. Rien n’est supprimé.', en: 'Hides its models and blocks calls. Nothing is deleted.' },
+        'kb.pv.zone.del': { kybernos: 'Supprimer le fournisseur', en: 'Delete provider' },
+        'kb.pv.zone.del.d': { kybernos: 'Le retire avec ses modèles, ses surcharges et sa clé.', en: 'Removes it with its models, overrides and key.' },
+        'kb.pv.hostnote': { kybernos: 'Désactiver demande un redémarrage de DSH : les nouvelles routes de l’hôte ne sont pas encore chargées.', en: 'Disabling needs a DSH restart: the new host routes are not loaded yet.' },
+        'kb.pv.err.pick': { kybernos: 'Choisissez un fournisseur.', en: 'Choose a provider.' },
+        'kb.pv.err.slug': { kybernos: 'Identifiant invalide : minuscules, chiffres et tirets.', en: 'Invalid identifier: lowercase letters, digits and dashes.' },
+        'kb.pv.err.taken': { kybernos: 'Ce fournisseur existe déjà.', en: 'This provider already exists.' },
+        'kb.pv.err.url': { kybernos: 'URL de base invalide : http(s) requis.', en: 'Invalid base URL: http(s) required.' },
+        'kb.pv.err.models': { kybernos: 'Ajoutez au moins un modèle : rien ne peut le deviner.', en: 'Add at least one model: nothing can default it.' },
+        'kb.pv.err.template': { kybernos: 'Remplacez ${…} par les valeurs de votre compte.', en: 'Replace the ${…} with your account’s values.' },
         'kb.models.search': { kybernos: 'Rechercher par nom, id, fournisseur ou type', en: 'Search by name, id, provider or type' },
         'kb.models.allprov': { kybernos: 'Tous les fournisseurs', en: 'All providers' },
         'kb.models.alltypes': { kybernos: 'Tous les types', en: 'All types' },
@@ -404,6 +453,9 @@ window.__ModuleLoader__.load({
         tag: ['M20.59 13.41 12 22l-9-9V4a1 1 0 0 1 1-1h9l8.59 8.59a2 2 0 0 1 0 2.82z', 'M7 7h.01'],
         external: ['M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6', 'M15 3h6v6', 'M10 14 21 3'],
         plus: ['M12 5v14', 'M5 12h14'],
+        pencil: ['M12 20h9', 'M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z'],
+        more: ['M5 12h.01', 'M12 12h.01', 'M19 12h.01'],
+        x: ['M6 6l12 12', 'M18 6 6 18'],
         undo: ['M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8', 'M3 3v5h5'],
         // la carte Kybernos Cloud (maquette 2026-09-21) : flèche du CTA,
         // clé d'API personnelle, nuage (marque, tracé du plugin kybernos-cloud)
@@ -548,6 +600,15 @@ window.__ModuleLoader__.load({
         confirmRestore: false,
         restoredNote: null,
         models: [],
+        // Parked ("disabled") providers, from the host store; `parkHost` is false
+        // while the host half has not been restarted: no switch is shown then.
+        parked: [],
+        parkHost: false,
+        keys: {},
+        dir: {},
+        hasDeepseek: false,
+        userProviders: {},
+        baseProviders: {},
         // Les notes externes : l'instant global (pour dire la fraîcheur) et
         // l'état du relevé de fond (pour n'en déclencher qu'un à la fois).
         scoresAt: null,
@@ -1542,27 +1603,68 @@ window.__ModuleLoader__.load({
         return h('img', { className: 'kbmp-logo', src: 'https://cdn.simpleicons.org/' + slug, width: t, height: t, alt: '', loading: 'lazy', onError: () => setEchec(true) })
       }
 
-      // ── la liste des fournisseurs : CARTES (logo · route · compteur · voir) ─
-      // Plus un formulaire d'ajout replié : slug + baseURL + apiKeyEnv + liste
-      // de modèles → `providers.<slug>` dans le namespace llm-pi-ai (le même
-      // document que tout le reste). La CLÉ reste au flux natif (bouton
-      // « Ajouter la clé » — un seul chemin d'écriture des secrets).
-      const FORM0 = () => ({ ouvert: false, mode: 'catalogue', slug: '', url: '', env: '', modeles: '', cle: '', voir: false, err: null, envoi: false, sel: null, q: '', liste: false, act: 0, avance: false, envTouche: false, fin: null, finCle: null })
-      /** Ouvre le flux natif « Add provider » (seul chemin d’écriture des clés). */
-      const ouvrirCleNative = () => {
-        const chercher = () => Array.from(document.querySelectorAll('button'))
-          .filter((b) => /^add provider$/i.test((b.innerText || '').trim()))[0]
-        const btn = chercher()
-        if (btn) { btn.click(); return }
-        const nav = Array.from(document.querySelectorAll('a,button,[role=tab],[role=button],div'))
-          .filter((n) => n.children.length <= 2 && /^models$/i.test((n.innerText || '').trim()))[0]
-        if (nav) { nav.click(); setTimeout(() => { const b2 = chercher(); if (b2) b2.click() }, 450) }
+      // ═══ Providers tab ═══════════════════════════════════════════════════════════════
+      // Cards read at rest (logo, name, count, key dot, free-models link); the actions
+      // (switch, edit, more) appear on hover and focus, and stay visible on touch screens.
+      // Edit and Add open a side panel built like DSH's own editor: the key first, the rest
+      // folded under "Customized settings", models as two fields (id + display name).
+      const PV_PROTOS = [['openai-completions', 'kb.pv.proto.chat'], ['openai-responses', 'kb.pv.proto.resp'], ['anthropic-messages', 'kb.pv.proto.msgs']]
+      /** A hand-declared route: what the engine's directory says (`declared`), else whatever models.dev does not carry. */
+      const pvIsCustom = (route) => (kbPvIsObj(KBM.dir[route]) ? KBM.dir[route].declared === true : KB_CATALOGUE.every((p) => p.id !== route))
+      const pvLabel = (route) => {
+        const d = KBM.dir[route]
+        if (kbPvIsObj(d) && typeof d.name === 'string' && d.name.trim() !== '') return d.name
+        const prof = kbMOBJ(KBM.userProviders)[route]
+        return kbPvIsObj(prof) && typeof prof.displayName === 'string' && prof.displayName.trim() !== '' ? prof.displayName : route
       }
+      const pvEditDraft = (route) => {
+        const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
+        const rows = Array.isArray(prof.models) ? prof.models.filter((x) => kbPvIsObj(x)).map((x) => ({ id: String(x.id || ''), name: typeof x.name === 'string' ? x.name : '' })) : []
+        return { key: '', voir: false, adv: false, name: typeof prof.displayName === 'string' ? prof.displayName : '', url: typeof prof.baseURL === 'string' ? prof.baseURL : '',
+          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, touched: false, custom: pvIsCustom(route) }
+      }
+      const pvAddDraft = () => ({ tab: 'catalog', prov: null, id: '', name: '', url: '', proto: 'openai-completions', key: '', voir: false, models: [], adv: false, liste: true, q: '', act: 0 })
+
+      const PvField = (props) => h('div', { className: 'kbpv-fld' },
+        h('label', { className: 'kbpv-fl', htmlFor: props.id }, props.label),
+        props.children,
+        props.err ? h('span', { className: 'kbpv-err', role: 'alert' }, props.err) : (props.hint ? h('span', { className: 'kbpv-hint' }, props.hint) : null))
+
+      /** The models of a draft: two fields per row (id, display name), delete, add. */
+      const PvModels = ({ d, set, custom }) => {
+        const rows = d.models
+        const upd = (i, k, v) => set({ models: rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)), touched: true })
+        return h('div', { className: 'kbpv-fld', 'data-kbm': 'pv-models' },
+          h('div', { className: 'kbpv-mhead' }, h('span', { className: 'kbpv-fl' }, m('kb.pv.models'))),
+          rows.length === 0
+            ? h('p', { className: 'kbpv-hint' }, m(custom ? 'kb.pv.models.none' : 'kb.pv.models.catalog'))
+            : h('div', { className: 'kbpv-mrows' }, rows.map((r, i) => h('div', { className: 'kbpv-mrow', key: i, 'data-kbm': 'pv-model-row' },
+              h('input', { className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.model.id'), 'aria-label': m('kb.pv.model.id') + ' ' + String(i + 1), value: r.id, onChange: (ev) => upd(i, 'id', ev.target.value) }),
+              h('input', { className: 'kbm-in-input kbpv-in', placeholder: m('kb.pv.model.name'), 'aria-label': m('kb.pv.model.name') + ' ' + String(i + 1), value: r.name, onChange: (ev) => upd(i, 'name', ev.target.value) }),
+              h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'aria-label': m('kb.pv.model.del', { n: i + 1 }), title: m('kb.pv.model.del', { n: i + 1 }), onClick: () => set({ models: rows.filter((_, j) => j !== i), touched: true }) }, Ic('trash', 15))))),
+          h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'pv-model-add', onClick: () => set({ models: rows.concat([{ id: '', name: '' }]), touched: true }) }, Ic('plus', 13), m('kb.pv.model.add'))))
+      }
+
+      const PvDrawer = ({ label, onClose, children, footer, head }) => {
+        React.useEffect(() => {
+          const key = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); onClose() } }
+          document.addEventListener('keydown', key)
+          return () => document.removeEventListener('keydown', key)
+        }, [onClose])
+        return h('div', { className: 'kbpv-layer', 'data-kbm': 'pv-drawer' },
+          h('div', { className: 'kbpv-mask', onMouseDown: onClose }),
+          h('div', { className: 'kbpv-drawer', role: 'dialog', 'aria-modal': 'true', 'aria-label': label },
+            h('header', null, head, h('button', { type: 'button', className: 'kbpv-ib', 'aria-label': m('kb.pv.close'), onClick: onClose }, Ic('x', 16))),
+            h('div', { className: 'kbpv-body' }, children),
+            h('footer', null, footer)))
+      }
+
       const ProviderList = () => {
-        // `sel` : le preset du catalogue choisi (ou null = API personnalisée) ;
-        // `q` : le filtre du sélecteur de presets.
-        const [form, setForm] = React.useState(FORM0())
         const [, forcer] = React.useReducer((x) => x + 1, 0)
+        const [ui, setUi] = React.useState({ drawer: null, dlg: null, menu: null, busy: false, err: null, note: null, typed: '' })
+        const [dr, setDr] = React.useState(null)
+        const patch = (o) => setUi((u) => ({ ...u, ...o }))
+        const setD = (o) => setDr((d) => ({ ...d, ...o }))
         React.useEffect(() => {
           if (KB_CAT_CHARGE === true || KBM.live !== true) return undefined
           KB_CAT_CHARGE = true
@@ -1577,238 +1679,309 @@ window.__ModuleLoader__.load({
             .catch(() => { KB_CAT_CHARGE = false })
           return () => { mort = true }
         }, [])
-        const provs = uiProvs()
-        const poser = async () => {
-          const slug = form.slug.trim().toLowerCase()
-          const url = form.url.trim().replace(/\/+$/, '')
-          const env = form.env.trim()
-          const cle = form.cle.trim()
-          const api = kbMApi()
-          if (api === null || api.settings === null) { setForm((f) => ({ ...f, err: m('kb.models.error.remote') })); return }
-          if (KBM.writable !== true) { setForm((f) => ({ ...f, err: m('kb.models.error.readonly') })); return }
-          if (/^[a-z0-9][a-z0-9-]{0,40}$/.test(slug) !== true) { setForm((f) => ({ ...f, err: m('kb.prov.add.err.slug') })); return }
-          if (/^https?:\/\/.+/.test(url) !== true) { setForm((f) => ({ ...f, err: m('kb.prov.add.err.url') })); return }
-          if (provs.indexOf(slug) >= 0) { setForm((f) => ({ ...f, err: m('kb.prov.add.err.existe') })); return }
-          if (cle !== '' && env === '') { setForm((f) => ({ ...f, avance: true, err: m('kb.prov.add.err.env') })); return }
-          const modeles = form.modeles.split(/[\s,]+/).filter((x) => x.length > 0)
-          const cat = form.mode === 'catalogue' && form.sel !== null ? catDe(form.sel) : null
-          const prof = { ...(cat !== null ? { displayName: cat.nom } : {}), api: 'openai-completions', baseURL: url,
-            ...(env === '' ? {} : { apiKeyEnv: env }),
-            models: modeles.map((id) => ({ id })), modelOverrides: {}, retryPolicy: { attempts: 2, initialDelayMs: 500, maxDelayMs: 8000 } }
-          setForm((f) => ({ ...f, envoi: true, err: null }))
-          try {
-            const brut = await kbMTimeout(api.settings.mutate(KB_NS, [{ op: 'set', path: ['providers', slug], value: prof }], KBM.revision), 8000)
-            const resp = brut === null || brut === undefined ? { ok: false, error: { code: 'vide' } } : brut
-            if (resp.ok !== true) {
-              setForm((f) => ({ ...f, envoi: false, err: m('kb.models.error.refus') + ' : ' + String(resp.error && resp.error.code ? resp.error.code : 'refus') }))
-              return
+        React.useEffect(() => {
+          const close = () => { setUi((u) => (u.menu !== null ? { ...u, menu: null } : u)) }
+          document.addEventListener('click', close)
+          return () => document.removeEventListener('click', close)
+        }, [])
+        // The models.dev list closes when you press anywhere else, and that press still does its job
+        // (a full-screen backdrop would swallow it: the first click on a tab only closed the list).
+        const listOpen = dr !== null && dr.liste === true
+        React.useEffect(() => {
+          if (listOpen !== true) return undefined
+          const away = (ev) => {
+            const t = ev.target
+            if (t !== null && t !== undefined && typeof t.closest === 'function' && t.closest('.kbpv-cb') !== null) return
+            setDr((d) => (d !== null && d.liste === true ? { ...d, liste: false } : d))
+          }
+          document.addEventListener('mousedown', away)
+          return () => document.removeEventListener('mousedown', away)
+        }, [listOpen])
+        const routes = KBM.routes.slice()
+        const parkedShown = kbMParkedShown(KBM.parked, routes)
+        const taken = routes.concat(parkedShown.map((p) => p.slug))
+        const ro = KBM.writable !== true
+        const countOf = (route) => KBM.models.filter((mo) => mo.route === route).length
+        const keyOf = (route) => {
+          const prof = kbMOBJ(KBM.userProviders)[route]
+          const ref = kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' ? prof.apiKeyEnv : null
+          if (ref === null) return 'none'
+          const st = KBM.keys[ref]
+          return st === true ? 'ok' : (st === false ? 'missing' : 'unknown')
+        }
+        const closeAll = () => { setDr(null); setUi((u) => ({ ...u, drawer: null, dlg: null, menu: null, busy: false, err: null, typed: '' })) }
+        const openEdit = (route, addModel) => {
+          const d = pvEditDraft(route)
+          if (addModel === true) { d.adv = true; d.models = d.models.concat([{ id: '', name: '' }]); d.touched = true }
+          setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
+        }
+        const openAdd = () => { setDr(pvAddDraft()); patch({ drawer: { mode: 'add' }, menu: null, err: null, note: null }) }
+        const run = async (fn, errKey, slug) => {
+          patch({ busy: true, err: null })
+          try { const out = await fn(); return out }
+          catch (e) { patch({ busy: false, err: m(errKey, { slug: slug || '', raison: String(e && e.message ? e.message : e) }) }); return undefined }
+        }
+        const doSave = async (route) => {
+          const out = await run(() => kbPvSave(route, { ...dr, models: dr.touched === true ? dr.models : undefined }), 'kb.pv.save.err', route)
+          if (out === undefined) return
+          setDr(null); patch({ drawer: null, busy: false, note: m(out.keyOk === false ? 'kb.pv.saved.key.ko' : 'kb.pv.saved') })
+        }
+        const doCreate = async () => {
+          const d = { ...dr }
+          if (d.tab === 'catalog') { const p = catDe(d.prov); d.name = p !== null ? p.nom : d.id }
+          const out = await run(() => kbPvCreate(d), 'kb.pv.add.err', d.id)
+          if (out === undefined) return
+          setDr(null); uiSet('prov', out.slug)
+          patch({ drawer: null, busy: false, note: m(out.keyOk === false ? 'kb.prov.add.fait.cleko' : (out.keyOk === true ? 'kb.prov.add.fait.cleok' : 'kb.prov.add.fait'), { slug: out.slug }) })
+        }
+        const doDisable = async (route) => {
+          patch({ dlg: null })
+          const out = await run(() => kbMDisable(route).then(() => true), 'kb.prov.off.err', route)
+          if (out === true) patch({ busy: false, drawer: null })
+        }
+        const doEnable = async (slug) => {
+          const out = await run(() => kbMEnable(slug).then(() => true), 'kb.prov.on.err', slug)
+          if (out === true) patch({ busy: false })
+        }
+        const doDelete = async (route) => {
+          patch({ dlg: null })
+          const out = await run(() => kbPvDelete(route).then(() => true), 'kb.pv.del.err', route)
+          if (out === true) { setDr(null); patch({ busy: false, drawer: null, typed: '' }) }
+        }
+
+        // ── one card ──
+        const renderSwitch = ({ route, on, locked, why }) => h('button', {
+          type: 'button', role: 'switch', 'aria-checked': on ? 'true' : 'false', className: 'kbpv-sw' + (on ? ' on' : ''), 'data-kbm': 'prov-switch',
+          disabled: locked === true || ui.busy === true, title: why, 'aria-label': why,
+          onClick: (ev) => { ev.stopPropagation(); if (on) patch({ dlg: { type: 'off', id: route } }); else doEnable(route) },
+        }, h('span', { className: 'kbpv-sw-k' }))
+        const renderCard = ({ route, off }) => {
+          const label = off === true ? route : pvLabel(route)
+          const pk = KBM.parked.find((p) => p.slug === route)
+          const count = off === true ? (pk !== undefined ? pk.models.length : 0) : countOf(route)
+          const custom = pvIsCustom(route)
+          const bloc = off === true ? null : kbMParkBlock(route, KBM.userProviders, KBM.baseProviders)
+          const ks = off === true ? 'none' : keyOf(route)
+          const free = FREE_LINKS[route] !== undefined && off !== true
+          const hostOff = KBM.parkHost !== true
+          const swWhy = off === true ? m('kb.prov.off.enable', { slug: route }) : (bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })))
+          return h('div', { key: (off === true ? 'off-' : '') + route, className: 'kbpv-card' + (off === true ? ' kbpv-off' : ''), 'data-kbm': off === true ? 'prov-card-off' : 'prov-card', 'data-prov': route },
+            h('span', { className: 'kbpv-logo' }, h(LogoProv, { route, taille: 20 })),
+            h('div', { className: 'kbpv-cbody' },
+              h('span', { className: 'kbpv-nm' },
+                h('button', { type: 'button', className: 'kbpv-link', 'data-kbm': 'prov-voir', 'aria-label': m('kb.prov.voir') + ' · ' + label, onClick: () => { uiSet('prov', route); uiSet('tab', 'models') } }, label),
+                ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
+              h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' },
+                custom ? h('span', { className: 'kbpv-tag' }, m('kb.pv.custom')) : null,
+                off !== true && kbPvIsObj(KBM.dir[route]) && KBM.dir[route].error !== '' ? h('span', { className: 'kbpv-tag kbpv-tag-warn', title: KBM.dir[route].error, 'data-kbm': 'prov-diag' }, m('kb.pv.diag')) : null,
+                h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN'))),
+              free ? h(BadgeFree, { slug: route, petit: true }) : null),
+            h('div', { className: 'kbpv-right' },
+              off === true ? h('span', { className: 'kbpv-rest' }, h('span', { className: 'kbpv-tag', 'data-kbm': 'prov-off-badge' }, m('kb.prov.off.badge'))) : null,
+              h('div', { className: 'kbpv-acts' },
+                renderSwitch({ route, on: off !== true, locked: ro || hostOff || (off !== true && bloc !== null), why: ro ? m('kb.models.readonly') : (hostOff ? m('kb.pv.hostnote') : swWhy) }),
+                off === true ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro || bloc === 'managed', title: m('kb.pv.edit', { slug: route }), 'aria-label': m('kb.pv.edit', { slug: route }), onClick: (ev) => { ev.stopPropagation(); openEdit(route, false) } }, Ic('pencil', 15)),
+                off === true ? null : h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-more', 'aria-haspopup': 'menu', 'aria-expanded': ui.menu === route ? 'true' : 'false', title: m('kb.pv.more', { slug: route }), 'aria-label': m('kb.pv.more', { slug: route }), onClick: (ev) => { ev.stopPropagation(); patch({ menu: ui.menu === route ? null : route }) } }, Ic('more', 15)))),
+            ui.menu === route ? h('div', { className: 'kbpv-menu', role: 'menu', 'data-kbm': 'prov-menu', onClick: (ev) => ev.stopPropagation() },
+              h('button', { type: 'button', role: 'menuitem', onClick: () => { uiSet('prov', route); uiSet('tab', 'models') } }, Ic('chevron', 14), m('kb.prov.voir')),
+              h('button', { type: 'button', role: 'menuitem', disabled: ro || bloc !== null, 'data-kbm': 'prov-add-model', onClick: () => openEdit(route, true) }, Ic('plus', 14), m('kb.pv.menu.add')),
+              h('hr', null),
+              h('button', { type: 'button', role: 'menuitem', className: 'kbpv-danger', disabled: ro || bloc !== null, 'data-kbm': 'prov-delete', onClick: () => patch({ dlg: { type: 'del', id: route }, menu: null, typed: '' }) }, Ic('trash', 14), m('kb.pv.menu.delete'))) : null)
+        }
+
+        // ── Edit panel ──
+        const renderEdit = () => {
+          const route = ui.drawer.id
+          const label = pvLabel(route)
+          const bloc = kbMParkBlock(route, KBM.userProviders, KBM.baseProviders)
+          const ks = keyOf(route)
+          const urlBad = dr.url.trim() !== '' && !kbPvUrlOk(dr.url)
+          return h(PvDrawer, {
+            label: m('kb.pv.edit', { slug: route }), onClose: closeAll,
+            head: h('span', { className: 'kbpv-dh' }, h('span', { className: 'kbpv-logo' }, h(LogoProv, { route, taille: 20 })), h('span', { className: 'kbpv-dt' }, label)),
+            footer: [h('button', { key: 'c', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'pv-cancel', onClick: closeAll }, m('kb.pv.cancel')),
+              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'pv-apply', disabled: ui.busy === true || urlBad || ro, onClick: () => doSave(route) }, m('kb.pv.apply'))],
+          },
+          ui.err ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'pv-fail' }, ui.err) : null,
+          h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m('kb.prov.add.cle.note') },
+            h('span', { className: 'kbpv-keyrow' },
+              h('input', { id: 'pv-key', className: 'kbm-in-input kbpv-in', type: dr.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false, 'data-kbm': 'pv-key',
+                placeholder: m(ks === 'ok' ? 'kb.pv.key.ph.set' : 'kb.pv.key.ph.blank'), value: dr.key, onChange: (ev) => setD({ key: ev.target.value }) }),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', tabIndex: -1, onClick: () => setD({ voir: dr.voir !== true }) }, m(dr.voir === true ? 'kb.prov.add.cle.cacher' : 'kb.prov.add.cle.voir')))),
+          h('button', { type: 'button', className: 'kbpv-adv', 'data-kbm': 'pv-adv', 'aria-expanded': dr.adv === true ? 'true' : 'false', onClick: () => setD({ adv: dr.adv !== true }) }, Ic('chevron', 14), m('kb.pv.customized')),
+          dr.adv === true ? h('div', { className: 'kbpv-advbox', 'data-kbm': 'pv-advbox' },
+            dr.custom === true ? h(PvField, { id: 'pv-name', label: m('kb.pv.name') }, h('input', { id: 'pv-name', className: 'kbm-in-input kbpv-in', placeholder: route, value: dr.name, onChange: (ev) => setD({ name: ev.target.value }) })) : null,
+            h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: urlBad ? m('kb.pv.err.url') : null }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.url.default'), value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
+            dr.custom === true ? h(PvField, { id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))) : null,
+            h(PvModels, { d: dr, set: setD, custom: dr.custom === true })) : null,
+          h('div', { className: 'kbpv-zone' },
+            h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.off')), h('span', null, m('kb.pv.zone.off.d'))),
+              renderSwitch({ route, on: true, locked: ro || KBM.parkHost !== true || bloc !== null, why: KBM.parkHost !== true ? m('kb.pv.hostnote') : bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })) })),
+            h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.del')), h('span', null, m('kb.pv.zone.del.d'))),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline kbpv-danger', disabled: ro || bloc !== null, 'data-kbm': 'pv-delete', onClick: () => patch({ dlg: { type: 'del', id: route }, typed: '' }) }, m('kb.pv.menu.delete')))))
+        }
+
+        // ── Add panel: the catalog picker keeps its search, groups, icons and keyboard ──
+        const renderAdd = () => {
+          const catalog = dr.tab === 'catalog'
+          const q = dr.q.trim().toLowerCase()
+          const filtre = KB_CATALOGUE.filter((p) => q === '' || p.nom.toLowerCase().indexOf(q) >= 0 || p.id.indexOf(q) >= 0 || String(p.env).toLowerCase().indexOf(q) >= 0)
+          let sections
+          if (q !== '') sections = [{ id: 'res', titre: m(filtre.length === 1 ? 'kb.prov.add.resultat1' : 'kb.prov.add.resultatsN', { n: filtre.length }), items: filtre }]
+          else {
+            const last = (arr) => arr.filter((p) => taken.indexOf(p.id) < 0).concat(arr.filter((p) => taken.indexOf(p.id) >= 0))
+            const libres = filtre.filter((p) => p.libre === true)
+            const pop = POPULAIRES.map((id) => filtre.find((p) => p.id === id)).filter((p) => p !== undefined && p.libre !== true)
+            const vus = new Set(libres.concat(pop).map((p) => p.id))
+            const reste = filtre.filter((p) => !vus.has(p.id))
+            sections = [{ id: 'free', titre: m('kb.prov.add.grp.free'), items: last(libres) }, { id: 'pop', titre: m('kb.prov.add.grp.pop'), items: last(pop) },
+              { id: 'tous', titre: m('kb.prov.add.grp.tous') + ' · ' + String(reste.length), items: last(reste) }].filter((sec) => sec.items.length > 0)
+          }
+          const ordre = []
+          for (const sec of sections) for (const p of sec.items) if (taken.indexOf(p.id) < 0) ordre.push(p)
+          const preset = catalog && dr.prov ? catDe(dr.prov) : null
+          const choose = (p) => {
+            setDr((d) => ({ ...d, prov: p.id, id: p.id, url: p.url, adv: d.adv === true || p.modele === true || p.url === '', liste: false, q: '', act: 0 }))
+            setTimeout(() => { try { const el = document.getElementById('pv-key'); if (el) el.focus() } catch (e) { /* best-effort */ } }, 30)
+          }
+          const move = (delta) => {
+            if (ordre.length === 0) return
+            setDr((d) => ({ ...d, act: (((d.act || 0) + delta) % ordre.length + ordre.length) % ordre.length }))
+            setTimeout(() => { try { const el = document.querySelector('.kbpv-opt-act'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }) } catch (e) { /* best-effort */ } }, 0)
+          }
+          const block = kbPvAddBlock(dr, taken)
+          const hint = block === 'slug' || block === 'taken' || block === 'url' || block === 'template' ? m('kb.pv.err.' + block) : null
+          const renderCombo = () => h('div', { className: 'kbpv-cb' },
+            h('button', { type: 'button', className: 'kbpv-cb-btn', 'data-kbm': 'prov-combo', 'aria-haspopup': 'listbox', 'aria-expanded': dr.liste === true ? 'true' : 'false', onClick: () => setD({ liste: dr.liste !== true }) },
+              preset !== null
+                ? h('span', { className: 'kbpv-cb-val' }, h(LogoTile, { p: preset, taille: 14, tuile: 26 }), h('span', null, preset.nom), preset.libre === true ? h(BadgeFree, { slug: preset.id, petit: true }) : null)
+                : h('span', { className: 'kbpv-cb-ph' }, m('kb.prov.add.choisir')),
+              h('span', { className: 'kbpv-cb-chev' }, Ic('chevron', 14))),
+            dr.liste === true ? h('div', { className: 'kbpv-cb-pop', 'data-kbm': 'prov-picker' },
+              h('span', { className: 'kbm-in-wrap kbpv-cb-q' }, Loupe(),
+                h('input', { className: 'kbm-in-input', type: 'search', placeholder: m('kb.prov.add.chercher'), 'aria-label': m('kb.prov.add.chercher'), value: dr.q, autoFocus: true, autoComplete: 'off',
+                  onChange: (ev) => setD({ q: ev.target.value, act: 0 }),
+                  onKeyDown: (ev) => {
+                    if (ev.key === 'ArrowDown') { ev.preventDefault(); move(1) }
+                    else if (ev.key === 'ArrowUp') { ev.preventDefault(); move(-1) }
+                    else if (ev.key === 'Enter') { const pa = ordre[Math.min(dr.act || 0, ordre.length - 1)]; if (pa !== undefined) { ev.preventDefault(); ev.stopPropagation(); choose(pa) } }
+                    else if (ev.key === 'Escape') { ev.stopPropagation(); setD({ liste: false }) }
+                  } })),
+              h('div', { className: 'kbpv-cb-liste', role: 'listbox', 'aria-label': m('kb.prov.add.presets') },
+                sections.map((sec) => h('div', { key: sec.id },
+                  h('div', { className: 'kbpv-cb-grp' }, sec.titre),
+                  sec.items.map((p) => {
+                    const deja = taken.indexOf(p.id) >= 0
+                    const idx = ordre.indexOf(p)
+                    return h('div', { key: p.id, role: 'option', 'aria-selected': dr.prov === p.id ? 'true' : 'false', 'aria-disabled': deja ? 'true' : 'false', 'data-kbm': 'prov-preset', 'data-preset': p.id,
+                      className: 'kbpv-opt' + (deja ? ' kbpv-opt-deja' : '') + (idx >= 0 && idx === (dr.act || 0) ? ' kbpv-opt-act' : ''),
+                      onClick: deja ? undefined : () => choose(p), onMouseEnter: () => { if (idx >= 0 && idx !== dr.act) setD({ act: idx }) } },
+                    h(LogoTile, { p, taille: 16, tuile: 30 }),
+                    h('span', { className: 'kbpv-opt-c' }, h('span', { className: 'kbpv-opt-n' }, p.nom), h('span', { className: 'kbpv-opt-e' }, deja ? m('kb.prov.add.deja') : (p.env !== '' ? p.env : String(p.url).replace(/^https?:\/\//, '').replace(/\/+$/, '')))),
+                    p.libre === true ? h(BadgeFree, { slug: p.id, petit: true }) : null)
+                  }))),
+                sections.length === 0 ? h('span', { className: 'kbpv-cb-none' }, m('kb.prov.add.aucun')) : null),
+              h('span', { className: 'kbpv-cb-note' }, m('kb.prov.add.pied', { n: KB_CATALOGUE.length }))) : null)
+          const keyField = h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m('kb.prov.add.cle.note') },
+            h('span', { className: 'kbpv-keyrow' },
+              h('input', { id: 'pv-key', className: 'kbm-in-input kbpv-in', type: dr.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false, 'data-kbm': 'prov-key',
+                placeholder: m('kb.prov.add.cle.ph'), value: dr.key, onChange: (ev) => setD({ key: ev.target.value }) }),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', tabIndex: -1, onClick: () => setD({ voir: dr.voir !== true }) }, m(dr.voir === true ? 'kb.prov.add.cle.cacher' : 'kb.prov.add.cle.voir'))))
+          const tab = (id, key) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': dr.tab === id ? 'true' : 'false', className: 'kbpv-tab' + (dr.tab === id ? ' kbpv-tab-on' : ''), 'data-kbm': 'prov-mode-' + (id === 'catalog' ? 'catalogue' : 'perso'),
+            onClick: () => { if (dr.tab !== id) setDr({ ...pvAddDraft(), tab: id, liste: id === 'catalog' }) } }, m(key))
+          return h(PvDrawer, {
+            label: m('kb.pv.title.add'), onClose: closeAll,
+            head: h('span', { className: 'kbpv-dt' }, m('kb.pv.title.add')),
+            footer: [h('button', { key: 'c', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', onClick: closeAll }, m('kb.pv.cancel')),
+              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-ok', disabled: ui.busy === true || block !== null || ro, onClick: doCreate }, m(catalog ? 'kb.pv.apply' : 'kb.pv.create'))],
+          },
+          ui.err ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'pv-fail' }, ui.err) : null,
+          h('div', { className: 'kbpv-tabs', role: 'tablist', 'data-kbm': 'prov-mode' }, tab('catalog', 'kb.prov.add.tab.cat'), tab('custom', 'kb.prov.add.tab.perso')),
+          h('p', { className: 'kbpv-desc' }, m(catalog ? 'kb.prov.add.desc.cat' : 'kb.prov.add.desc.perso')),
+          catalog ? h('div', { className: 'kbpv-fld' }, h('span', { className: 'kbpv-fl' }, m('kb.prov.add.fournisseur')), renderCombo(),
+            preset !== null ? h('div', { className: 'kbpv-pinfo', 'data-kbm': 'prov-host' }, h(LogoTile, { p: preset, taille: 22, tuile: 40 }),
+              h('span', { className: 'kbpv-pinfo-c' }, h('span', { className: 'kbpv-pinfo-n' }, preset.nom, preset.libre === true ? h(BadgeFree, { slug: preset.id, petit: true }) : null),
+                h('span', { className: 'kbpv-pinfo-h' + (dr.url === '' || dr.url.indexOf('${') >= 0 ? ' kbpv-pinfo-warn' : '') }, dr.url === '' || dr.url.indexOf('${') >= 0 ? m('kb.prov.add.url.a.completer') : String(dr.url).replace(/^https?:\/\//, '').replace(/\/+$/, '')))) : null) : null,
+          catalog && preset === null ? null : keyFieldFor(),
+          null)
+          function keyFieldFor () {
+            if (catalog) {
+              return [keyField,
+                h('button', { key: 'adv', type: 'button', className: 'kbpv-adv', 'data-kbm': 'pv-adv', 'aria-expanded': dr.adv === true ? 'true' : 'false', onClick: () => setD({ adv: dr.adv !== true }) }, Ic('chevron', 14), m('kb.prov.add.reglages')),
+                dr.adv === true ? h('div', { key: 'box', className: 'kbpv-advbox' },
+                  h(PvField, { id: 'pv-slug', label: m('kb.prov.add.slug'), err: dr.id !== '' && (block === 'slug' || block === 'taken') ? m('kb.pv.err.' + block) : null }, h('input', { id: 'pv-slug', className: 'kbm-in-input kbpv-in kbpv-mono', value: dr.id, onChange: (ev) => setD({ id: ev.target.value.toLowerCase() }) })),
+                  h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: dr.url !== '' && (block === 'url' || block === 'template') ? m('kb.pv.err.' + block) : null }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) }))) : null]
             }
-            if (resp.value !== null && resp.value !== undefined && typeof resp.value.revision === 'number') KBM.revision = resp.value.revision
-            // La clé suit la route, par le MÊME service que le natif et la carte
-            // Cloud (`remote.credentials.set(ref, valeur)`) : jamais dans settings,
-            // jamais journalisée. Un échec ne défait pas la route — le bandeau
-            // renvoie alors au flux natif.
-            let cleOk = null
-            if (cle !== '') {
-              cleOk = false
-              const cr = api.credentials
-              if (cr !== null && typeof cr.set === 'function') {
-                try { const r = await kbMTimeout(cr.set(env, cle), 8000); cleOk = !(r !== null && r !== undefined && r.ok === false) } catch (e) { cleOk = false }
-              }
-            }
-            setForm({ ...FORM0(), fin: slug, finCle: cleOk })
-            uiSet('prov', slug)
-            kbMLoad()
-          } catch (e) {
-            setForm((f) => ({ ...f, envoi: false, err: m('kb.models.error.refus') + ' : ' + String(e && e.message ? e.message : e) }))
+            return [
+              h(PvField, { key: 'id', id: 'pv-slug', label: m('kb.pv.provider.id'), hint: m('kb.pv.provider.id.hint'), err: dr.id !== '' && (block === 'slug' || block === 'taken') ? m('kb.pv.err.' + block) : null },
+                h('input', { id: 'pv-slug', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: 'acme-gateway', autoComplete: 'off', value: dr.id, onChange: (ev) => setD({ id: ev.target.value.toLowerCase() }) })),
+              h(PvField, { key: 'nm', id: 'pv-name', label: m('kb.pv.name') }, h('input', { id: 'pv-name', className: 'kbm-in-input kbpv-in', placeholder: m('kb.pv.name'), value: dr.name, onChange: (ev) => setD({ name: ev.target.value }) })),
+              h(PvField, { key: 'url', id: 'pv-url', label: m('kb.pv.url'), err: dr.url !== '' && (block === 'url' || block === 'template') ? m('kb.pv.err.' + block) : null },
+                h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: 'https://gateway.example/v1', value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
+              h(PvField, { key: 'pr', id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))),
+              keyField,
+              h(PvModels, { key: 'mo', d: dr, set: setD, custom: true })]
           }
         }
-        if (provs.length === 0 && form.ouvert !== true) return h('div', { className: 'kbmp-empty', 'data-kbm': 'prov-empty' },
-          m('kb.models.prov.empty'),
-          h('div', { className: 'kbmp-prov-addct' },
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', onClick: () => setForm((f) => ({ ...FORM0(), ouvert: true, liste: true })) }, Ic('plus', 14), m('kb.prov.add'))))
-        // ── le formulaire (même ossature que le dialogue natif de DSH) ────────
-        // Deux onglets — fournisseur du catalogue / API personnalisée —, le
-        // fournisseur en liste déroulante cherchable, la clé collée ici (elle
-        // part au coffre du harnais), les réglages techniques repliés. Rien
-        // n'est écrit avant « Ajouter ».
-        const perso = form.mode === 'perso'
-        const q = form.q.trim().toLowerCase()
-        const filtre = KB_CATALOGUE.filter((p) => q === '' || p.nom.toLowerCase().indexOf(q) >= 0 || p.id.indexOf(q) >= 0 || String(p.env).toLowerCase().indexOf(q) >= 0)
-        let sections
-        if (q !== '') {
-          sections = [{ id: 'res', titre: m(filtre.length === 1 ? 'kb.prov.add.resultat1' : 'kb.prov.add.resultatsN', { n: filtre.length }), items: filtre }]
-        } else {
-          const dejaDernier = (arr) => arr.filter((p) => provs.indexOf(p.id) < 0).concat(arr.filter((p) => provs.indexOf(p.id) >= 0))
-          const libres = filtre.filter((p) => p.libre === true)
-          const pop = POPULAIRES.map((id) => filtre.find((p) => p.id === id)).filter((p) => p !== undefined && p.libre !== true)
-          const vus = new Set(libres.concat(pop).map((p) => p.id))
-          const reste = filtre.filter((p) => !vus.has(p.id))
-          sections = [
-            { id: 'free', titre: m('kb.prov.add.grp.free'), items: dejaDernier(libres) },
-            { id: 'pop', titre: m('kb.prov.add.grp.pop'), items: dejaDernier(pop) },
-            { id: 'tous', titre: m('kb.prov.add.grp.tous') + ' · ' + String(reste.length), items: dejaDernier(reste) },
-          ].filter((sec) => sec.items.length > 0)
+
+        // ── dialogs: disable (as before) and delete (typed confirmation) ──
+        const renderDialogs = () => {
+          if (ui.dlg === null) return null
+          const route = ui.dlg.id
+          const label = pvLabel(route)
+          const close = () => patch({ dlg: null, typed: '' })
+          if (ui.dlg.type === 'off') {
+            return h('div', { className: 'kbm-mdl-root', 'data-kbm': 'prov-off-dialog', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
+              h('div', { className: 'kbm-mdl-mask' }),
+              h('div', { className: 'kbm-mdl-dialog kbmp-mdl kbmp-off-dlg', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': m('kb.prov.off.dlg.title', { slug: route }) },
+                h('div', { className: 'kbm-mdl-header' }, h('div', { className: 'kbm-mdl-title' }, m('kb.prov.off.dlg.title', { slug: route }))),
+                h('div', { className: 'kbm-mdl-body kbmp-off-dlg-body' }, h('p', null, m('kb.prov.off.dlg.body', { slug: route })),
+                  h('div', { className: 'kbmp-off-dlg-act' },
+                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'prov-off-cancel', onClick: close }, m('kb.prov.off.dlg.cancel')),
+                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-off-ok', onClick: () => doDisable(route) }, m('kb.prov.off.dlg.ok'))))))
+          }
+          const n = countOf(route)
+          const okType = ui.typed.trim() === route
+          return h('div', { className: 'kbm-mdl-root', 'data-kbm': 'prov-del-dialog', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
+            h('div', { className: 'kbm-mdl-mask' }),
+            h('div', { className: 'kbm-mdl-dialog kbmp-mdl kbmp-off-dlg', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': m('kb.pv.del.title', { slug: label }) },
+              h('div', { className: 'kbm-mdl-header' }, h('div', { className: 'kbm-mdl-title' }, m('kb.pv.del.title', { slug: label }))),
+              h('div', { className: 'kbm-mdl-body kbmp-off-dlg-body' }, h('p', null, m('kb.pv.del.body', { n })),
+                h('label', { className: 'kbpv-fld' }, h('span', { className: 'kbpv-fl' }, m('kb.pv.del.type', { slug: route })),
+                  h('input', { className: 'kbm-in-input kbpv-in kbpv-mono', autoComplete: 'off', autoFocus: true, 'data-kbm': 'prov-del-type', value: ui.typed, onChange: (ev) => patch({ typed: ev.target.value }) })),
+                h('div', { className: 'kbmp-off-dlg-act' },
+                  h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'prov-del-instead', onClick: () => patch({ dlg: { type: 'off', id: route }, typed: '' }) }, m('kb.pv.del.instead')),
+                  h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'prov-del-cancel', onClick: close }, m('kb.prov.off.dlg.cancel')),
+                  h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbpv-danger-fill', 'data-kbm': 'prov-del-ok', disabled: !okType || ui.busy === true, onClick: () => doDelete(route) }, m('kb.pv.del.ok'))))))
         }
-        const ordre = []
-        for (const sec of sections) for (const p of sec.items) if (provs.indexOf(p.id) < 0) ordre.push(p)
-        const slugN = form.slug.trim().toLowerCase()
-        const slugOk = /^[a-z0-9][a-z0-9-]{0,40}$/.test(slugN)
-        const urlOk = /^https?:\/\/.+/.test(form.url.trim()) && form.url.indexOf('${') < 0
-        const dejaSlug = provs.indexOf(slugN) >= 0
-        const preset = perso || form.sel === null ? null : catDe(form.sel)
-        const pret = slugOk && urlOk && !dejaSlug && (perso || preset !== null)
-        const hoteDe = (u) => String(u).replace(/^https?:\/\//, '').replace(/\/+$/, '')
-        const annuler = () => setForm(FORM0())
-        const ouvrir = () => setForm((f) => (f.ouvert === true ? FORM0() : { ...FORM0(), ouvert: true, liste: true }))
-        const changerMode = (mode) => setForm((f) => (f.mode === mode ? f
-          : { ...f, mode, err: null, sel: null, slug: '', url: '', env: '', envTouche: false, avance: false, q: '', liste: mode === 'catalogue' }))
-        const choisir = (p) => {
-          setForm((f) => ({ ...f, sel: p.id, slug: p.id, url: p.url, env: p.env, envTouche: true, err: null, liste: false, q: '', act: 0,
-            avance: f.avance === true || p.modele === true || p.url === '' }))
-          setTimeout(() => { try { const el = document.querySelector('[data-kbm="prov-key"]'); if (el) el.focus() } catch (e) { /* focus best-effort */ } }, 30)
+
+        // ── the list ──
+        if (routes.length === 0 && parkedShown.length === 0 && KBM.hasDeepseek !== true && ui.drawer === null) {
+          return h('div', { className: 'kbmp-empty', 'data-kbm': 'prov-empty' }, m('kb.models.prov.empty'),
+            h('div', { className: 'kbmp-prov-addct' }, h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add'))))
         }
-        const bouger = (delta) => {
-          if (ordre.length === 0) return
-          setForm((f) => ({ ...f, act: (((f.act || 0) + delta) % ordre.length + ordre.length) % ordre.length }))
-          setTimeout(() => { try { const el = document.querySelector('.kbmp-cb-act'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }) } catch (e) { /* best-effort */ } }, 0)
-        }
-        const champ = (cle, label, input, hint, err) => h('label', { className: 'kbmp-champ', key: cle },
-          h('span', { className: 'kbmp-champ-l' }, label), input,
-          err ? h('span', { className: 'kbmp-form-hint kbmp-form-hint-err' }, err) : (hint ? h('span', { className: 'kbmp-form-hint' }, hint) : null))
-        const fSlug = champ('slug', m('kb.prov.add.slug'),
-          h('input', { className: 'kbm-in-input kbmp-form-in' + (form.slug !== '' && (!slugOk || dejaSlug) ? ' kbmp-in-err' : ''), value: form.slug, placeholder: 'mon-fournisseur', autoFocus: perso,
-            onChange: (ev) => { const v = ev.target.value; setForm((f) => ({ ...f, slug: v, err: null,
-              env: f.envTouche === true ? f.env : (v.trim() === '' ? '' : v.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_') + '_API_KEY') })) } }),
-          null, form.slug !== '' && !slugOk ? m('kb.prov.add.err.slug') : (form.slug !== '' && dejaSlug ? m('kb.prov.add.err.existe') : null))
-        const fUrl = champ('url', m('kb.prov.add.baseurl'),
-          h('input', { className: 'kbm-in-input kbmp-form-in' + (form.url !== '' && !urlOk ? ' kbmp-in-err' : ''), value: form.url, placeholder: 'https://api.fournisseur.com/v1',
-            onChange: (ev) => { const v = ev.target.value; setForm((f) => ({ ...f, url: v, err: null })) } }),
-          null, form.url !== '' && !urlOk ? m(form.url.indexOf('${') >= 0 ? 'kb.prov.add.err.urlmodele' : 'kb.prov.add.err.url') : null)
-        const fEnv = champ('env', m('kb.prov.add.keyenv'),
-          h('input', { className: 'kbm-in-input kbmp-form-in kbmp-mono', value: form.env, placeholder: 'MON_FOURNISSEUR_API_KEY',
-            onChange: (ev) => { const v = ev.target.value; setForm((f) => ({ ...f, env: v, envTouche: true })) } }))
-        const fModeles = champ('modeles', m('kb.prov.add.models'),
-          h('input', { className: 'kbm-in-input kbmp-form-in', value: form.modeles, placeholder: 'modele-a, modele-b',
-            onChange: (ev) => { const v = ev.target.value; setForm((f) => ({ ...f, modeles: v })) } }),
-          m('kb.prov.add.models.hint'))
-        const fCle = champ('cle', m('kb.prov.add.cle.label'),
-          h('span', { className: 'kbmp-cle' },
-            h('input', { className: 'kbm-in-input kbmp-form-in kbmp-cle-in', type: form.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false,
-              value: form.cle, placeholder: m('kb.prov.add.cle.ph'), 'data-kbm': 'prov-key',
-              onChange: (ev) => { const v = ev.target.value; setForm((f) => ({ ...f, cle: v, err: null })) } }),
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost kbmp-cle-oeil', 'data-kbm': 'prov-key-eye', tabIndex: -1,
-              onClick: (ev) => { ev.preventDefault(); setForm((f) => ({ ...f, voir: f.voir !== true })) } },
-              m(form.voir === true ? 'kb.prov.add.cle.cacher' : 'kb.prov.add.cle.voir'))),
-          m('kb.prov.add.cle.note'))
-        const Combo = () => h('div', { className: 'kbmp-cb' },
-          h('button', { type: 'button', className: 'kbmp-cb-btn' + (form.liste === true ? ' kbmp-cb-ouvert' : ''), 'data-kbm': 'prov-combo',
-            'aria-haspopup': 'listbox', 'aria-expanded': form.liste === true,
-            onClick: () => setForm((f) => ({ ...f, liste: f.liste !== true })) },
-            preset !== null
-              ? h('span', { className: 'kbmp-cb-val' }, h(LogoTile, { p: preset, taille: 14, tuile: 26 }),
-                h('span', { className: 'kbmp-cb-nom' }, preset.nom),
-                preset.libre === true ? h(BadgeFree, { slug: preset.id, petit: true }) : null)
-              : h('span', { className: 'kbmp-cb-ph' }, m('kb.prov.add.choisir')),
-            h('span', { className: 'kbmp-cb-chev', style: { transform: 'rotate(90deg)' } }, Ic('chevron', 14))),
-          form.liste === true ? h('button', { type: 'button', className: 'kbmp-cb-fond', tabIndex: -1, 'aria-hidden': 'true', onClick: () => setForm((f) => ({ ...f, liste: false })) }) : null,
-          form.liste === true ? h('div', { className: 'kbmp-cb-pop', 'data-kbm': 'prov-picker' },
-            h('span', { className: 'kbm-in-wrap kbmp-cb-q' }, Loupe(),
-              h('input', { className: 'kbm-in-input', type: 'search', placeholder: m('kb.prov.add.chercher'), 'aria-label': m('kb.prov.add.chercher'), value: form.q, autoFocus: true,
-                onChange: (ev) => { const v = ev.target.value; setForm((f) => ({ ...f, q: v, act: 0 })) },
-                onKeyDown: (ev) => {
-                  if (ev.key === 'ArrowDown') { ev.preventDefault(); bouger(1) }
-                  else if (ev.key === 'ArrowUp') { ev.preventDefault(); bouger(-1) }
-                  else if (ev.key === 'Enter') { const pa = ordre[Math.min(form.act || 0, ordre.length - 1)]; if (pa !== undefined) { ev.preventDefault(); ev.stopPropagation(); choisir(pa) } }
-                } })),
-            h('div', { className: 'kbmp-cb-liste', role: 'listbox', 'aria-label': m('kb.prov.add.presets') },
-              sections.map((sec) => h('div', { className: 'kbmp-cb-grp', key: sec.id },
-                h('div', { className: 'kbmp-cb-grp-t' }, sec.titre),
-                sec.items.map((p) => {
-                  const deja = provs.indexOf(p.id) >= 0
-                  const idx = ordre.indexOf(p)
-                  return h('button', {
-                    type: 'button', key: p.id, role: 'option', 'aria-selected': form.sel === p.id,
-                    className: 'kbmp-cb-opt' + (form.sel === p.id ? ' kbmp-preset-actif' : '') + (deja ? ' kbmp-preset-deja' : '') + (idx >= 0 && idx === (form.act || 0) ? ' kbmp-cb-act' : ''),
-                    'data-kbm': 'prov-preset', 'data-preset': p.id, disabled: deja,
-                    onClick: () => choisir(p), onMouseEnter: () => { if (idx >= 0 && idx !== form.act) setForm((f) => ({ ...f, act: idx })) },
-                  },
-                  h(LogoTile, { p: p, taille: 16, tuile: 30 }),
-                  h('span', { className: 'kbmp-preset-corps' },
-                    h('span', { className: 'kbmp-preset-nom' }, p.nom),
-                    h('span', { className: 'kbmp-preset-env' }, deja ? m('kb.prov.add.deja') : (p.env !== '' ? p.env : hoteDe(p.url)))),
-                  p.libre === true ? h(BadgeFree, { slug: p.id, petit: true }) : null)
-                }))),
-              sections.length === 0 ? h('span', { className: 'kbmp-picker-vide' }, m('kb.prov.add.aucun')) : null),
-            h('span', { className: 'kbmp-picker-note' }, m('kb.prov.add.pied', { n: KB_CATALOGUE.length }))) : null)
-        const segBtn = (id, cle) => h('button', { type: 'button', key: id, role: 'tab', 'aria-selected': form.mode === id,
-          className: 'kbmp-seg-btn' + (form.mode === id ? ' kbmp-seg-actif' : ''), 'data-kbm': 'prov-mode-' + id, onClick: () => changerMode(id) }, m(cle))
-        return h('div', { className: 'kbmp-provlist', 'data-kbm': 'prov-list' },
-          h('div', { className: 'kbmp-prov-tete' },
-            h('span', { className: 'kbmp-note', 'data-kbm': 'prov-note' }, m('kb.models.prov.note')),
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', onClick: ouvrir },
-              Ic('plus', 14), m('kb.prov.add'))),
-          form.ouvert === true
-            ? h('div', { className: 'kbmp-prov-form', 'data-kbm': 'prov-form',
-              onKeyDown: (ev) => {
-                if (ev.key === 'Escape') { ev.stopPropagation(); if (form.liste === true) setForm((f) => ({ ...f, liste: false })); else annuler(); return }
-                if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT' && ev.target.type !== 'search' && pret === true && form.envoi !== true) { ev.preventDefault(); poser() }
-              } },
-              h('div', { className: 'kbmp-seg', role: 'tablist', 'data-kbm': 'prov-mode' }, segBtn('catalogue', 'kb.prov.add.tab.cat'), segBtn('perso', 'kb.prov.add.tab.perso')),
-              h('span', { className: 'kbmp-form-desc' }, m(perso ? 'kb.prov.add.desc.perso' : 'kb.prov.add.desc.cat')),
-              perso ? null : h('div', { className: 'kbmp-champ' },
-                h('span', { className: 'kbmp-champ-l' }, m('kb.prov.add.fournisseur')),
-                h(Combo, null),
-                preset !== null ? h('div', { className: 'kbmp-pinfo', 'data-kbm': 'prov-host' },
-                  h(LogoTile, { p: preset, taille: 22, tuile: 40 }),
-                  h('span', { className: 'kbmp-pinfo-corps' },
-                    h('span', { className: 'kbmp-pinfo-nom' }, preset.nom, preset.libre === true ? h(BadgeFree, { slug: preset.id, petit: true }) : null),
-                    h('span', { className: 'kbmp-pinfo-host' + (form.url === '' || form.url.indexOf('${') >= 0 ? ' kbmp-pinfo-warn' : '') },
-                      form.url === '' || form.url.indexOf('${') >= 0 ? m('kb.prov.add.url.a.completer') : hoteDe(form.url))),
-                  preset.doc ? h('a', { className: 'kbmp-pinfo-doc', href: preset.doc, target: '_blank', rel: 'noreferrer' }, m('kb.prov.add.doc') + ' ↗') : null) : null),
-              perso ? h('div', { className: 'kbmp-form-rangee' }, fSlug, fUrl) : null,
-              fCle,
-              perso ? fModeles : null,
-              h('div', { className: 'kbmp-adv' },
-                h('button', { type: 'button', className: 'kbmp-adv-btn', 'data-kbm': 'prov-advanced', 'aria-expanded': form.avance === true,
-                  onClick: () => setForm((f) => ({ ...f, avance: f.avance !== true })) },
-                  h('span', { className: 'kbmp-adv-chev', style: { transform: form.avance === true ? 'rotate(90deg)' : 'none' } }, Ic('chevron', 14)),
-                  m('kb.prov.add.reglages')),
-                form.avance === true
-                  ? h('div', { className: 'kbmp-adv-corps', 'data-kbm': 'prov-adv-corps' },
-                    perso ? h('div', { className: 'kbmp-form-rangee' }, fEnv)
-                      : h('div', { className: 'kbmp-adv-corps-in' },
-                        h('div', { className: 'kbmp-form-rangee' }, fSlug, fUrl),
-                        h('div', { className: 'kbmp-form-rangee' }, fEnv, fModeles)))
-                  : null),
-              form.err !== null ? h('span', { className: 'kbmp-form-err', role: 'alert' }, form.err) : null,
-              h('div', { className: 'kbmp-form-actions' },
-                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-ghost', onClick: annuler }, m('kb.prov.add.annuler')),
-                h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-submit', disabled: form.envoi === true || pret !== true, onClick: poser },
-                  form.envoi === true ? m('kb.prov.add.envoi') : m('kb.prov.add.ok'))))
-            : null,
-          form.fin !== null ? h('div', { className: 'kbmp-ok' + (form.finCle === false ? ' kbmp-ok-warn' : ''), 'data-kbm': 'prov-ok', role: 'status' },
-            h('span', { className: 'kbmp-ok-corps' },
-              h('span', { className: 'kbmp-ok-t' }, form.finCle === true ? m('kb.prov.add.fait.cleok', { slug: form.fin }) : (form.finCle === false ? m('kb.prov.add.fait.cleko', { slug: form.fin }) : m('kb.prov.add.fait', { slug: form.fin }))),
-              form.finCle === true ? null : h('span', { className: 'kbmp-ok-s' }, m('kb.prov.add.fait.cle'))),
-            form.finCle === true
-              ? h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-ok-voir', onClick: () => { uiSet('prov', form.fin); uiSet('tab', 'models') } }, m('kb.prov.add.fait.voir'))
-              : h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-ok-key', onClick: ouvrirCleNative }, m('kb.prov.add.fait.btn')),
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-ghost', 'data-kbm': 'prov-ok-close', onClick: () => setForm((f) => ({ ...f, fin: null, finCle: null })) }, m('kb.prov.add.fait.fermer'))) : null,
-          h('div', { className: 'kbmp-cards', 'data-kbm': 'prov-cards' },
-            provs.map((route) => {
-              const n = KBM.models.filter((mo) => mo.route === route).length
-              return h('div', { key: route, className: 'kbmp-card' + (route === form.fin ? ' kbmp-card-new' : ''), 'data-kbm': 'prov-card', 'data-prov': route },
-                h('span', { className: 'kbmp-card-logo' }, h(LogoProv, { route: route, taille: 20 })),
-                h('span', { className: 'kbmp-card-corps' },
-                  h('span', { className: 'kbmp-card-nom', 'data-kbm': 'prov-name' }, route),
-                  h('span', { className: 'kbmp-card-meta' }, String(n) + ' ' + m(n === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')),
-                  FREE_LINKS[route] !== undefined ? h(BadgeFree, { slug: route, petit: true }) : null),
-                h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'prov-voir',
-                  onClick: () => { uiSet('prov', route); uiSet('tab', 'models') },
-                }, m('kb.prov.voir')))
-            })))
+        return h('div', { className: 'kbpv', 'data-kbm': 'prov-list' },
+          h('div', { className: 'kbpv-head' },
+            h('span', { className: 'kbpv-grow' }),
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, title: ro ? m('kb.models.readonly') : undefined, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add')),
+            h('span', { className: 'kbpv-menuwrap' },
+              h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-head-more', 'aria-haspopup': 'menu', 'aria-expanded': ui.menu === '__head' ? 'true' : 'false', 'aria-label': m('kb.pv.more.page'), title: m('kb.pv.more.page'), onClick: (ev) => { ev.stopPropagation(); patch({ menu: ui.menu === '__head' ? null : '__head' }) } }, Ic('more', 16)),
+              ui.menu === '__head' ? h('div', { className: 'kbpv-menu kbpv-menu-head', role: 'menu', onClick: (ev) => ev.stopPropagation() },
+                h('button', { type: 'button', role: 'menuitem', 'data-kbm': 'native-open', onClick: () => { patch({ menu: null }); kbNatOpen() } }, Ic('external', 14), m('kb.nat.open')),
+                h('button', { type: 'button', role: 'menuitem', 'aria-checked': kbNatPrefGet() === true ? 'true' : 'false', 'data-kbm': 'native-hide', onClick: () => { kbNatPrefSet(kbNatPrefGet() !== true); kbNatApply(); patch({ menu: null }) } }, Ic(kbNatPrefGet() === true ? 'check' : 'eye', 14), m('kb.nat.hide'))) : null)),
+          ui.note !== null ? h('div', { className: 'kbpv-note', role: 'status', 'data-kbm': 'prov-ok' }, h('span', null, ui.note), h('button', { type: 'button', className: 'kbpv-ib', 'aria-label': m('kb.pv.close'), onClick: () => patch({ note: null }) }, Ic('x', 14))) : null,
+          ui.err !== null && ui.drawer === null ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'prov-off-err' }, ui.err) : null,
+          KBM.parkHost !== true ? h('div', { className: 'kbpv-hostnote', role: 'status', 'data-kbm': 'park-host-note' }, Ic('info', 14), m('kb.pv.hostnote')) : null,
+          h('div', { className: 'kbpv-cards', 'data-kbm': 'prov-cards' },
+            KBM.hasDeepseek === true ? h('div', { className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': 'deepseek' },
+              h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
+              h('div', { className: 'kbpv-cbody' }, h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, 'DeepSeek')), h('span', { className: 'kbpv-meta' }, m('kb.pv.builtin'))),
+              h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' }, h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit-native', title: m('kb.pv.builtin.edit'), 'aria-label': m('kb.pv.builtin.edit'), onClick: () => { kbNatOpen() } }, Ic('pencil', 15))))) : null,
+            routes.map((route) => renderCard({ route })),
+            parkedShown.map((p) => renderCard({ route: p.slug, off: true }))),
+          ui.drawer !== null && ui.drawer.mode === 'edit' && dr !== null ? renderEdit() : null,
+          ui.drawer !== null && ui.drawer.mode === 'add' && dr !== null ? renderAdd() : null,
+          renderDialogs())
       }
       const ListView = () => {
         const rows = uiRows()
@@ -2034,7 +2207,7 @@ window.__ModuleLoader__.load({
               'aria-selected': UI.tab === 'providers',
               className: 'kbm-pill' + (UI.tab === 'providers' ? ' kbm-pill-active' : ' kbm-pill-interactive'),
               onClick: () => uiSet('tab', 'providers'),
-            }, m('kb.models.tab.providers', { n: uiProvs().length })),
+            }, m('kb.models.tab.providers', { n: KBM.routes.length + (KBM.hasDeepseek === true ? 1 : 0) })),
             h('button', {
               type: 'button', role: 'tab', 'data-kbm': 'tab-models',
               'aria-selected': UI.tab !== 'providers',
@@ -2105,93 +2278,142 @@ window.__ModuleLoader__.load({
         '.kbmp-pagenum{font-size:12px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;min-width:44px;text-align:center}',
         '.kbmp-empty{padding:22px 12px;text-align:center;font-size:13px;color:var(--dsw-alias-label-tertiary)}',
         // ── liste des fournisseurs (onglet Providers) ────────────────────────
-        '.kbmp-provlist{display:flex;flex-direction:column;gap:6px}',
-        '.kbmp-prov-tete{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}',
         /* cartes fournisseurs : grille 2 colonnes, logo + nom + compteur + voir */
-        '.kbmp-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}',
-        '.kbmp-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
-        '.kbmp-card:hover{border-color:var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-3)}',
-        '.kbmp-card-logo{flex:none;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--dsw-alias-bg-layer-1)}',
         '.kbmp-logo{display:inline-flex;border-radius:5px}',
         '.kbmp-logo-chip{align-items:center;justify-content:center;border-radius:7px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary);font-weight:600;line-height:1}',
-        '.kbmp-card-corps{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}',
-        '.kbmp-card-nom{font-family:ui-monospace,monospace;font-size:13px;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-        '.kbmp-card-meta{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-prov-addct{margin-top:10px}',
+        '[data-kb-native-nav]{display:none!important}',
+        '.kbpv{display:flex;flex-direction:column;gap:10px}',
+        '.kbpv-head{display:flex;align-items:center;gap:8px}',
+        '.kbpv-grow{flex:1}',
+        '.kbpv-menuwrap{position:relative}',
+        '.kbpv-ib{flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;border-radius:50%;color:var(--dsw-alias-label-secondary);cursor:pointer;padding:0}',
+        '.kbpv-ib:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}',
+        '.kbpv-ib:disabled{opacity:.35;cursor:not-allowed}',
+        '.kbpv-ib-danger:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover-danger);color:var(--dsw-alias-state-error-primary)}',
+        '.kbpv-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}',
+        '.kbpv-card{position:relative;display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
+        '.kbpv-card:hover,.kbpv-card:focus-within{border-color:var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-3)}',
+        '.kbpv-off{opacity:.62}',
+        '.kbpv-off:hover{opacity:.92}',
+        '.kbpv-logo{flex:none;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--dsw-alias-bg-layer-1)}',
+        '.kbpv-cbody{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}',
+        '.kbpv-cbody .kbmp-free{position:relative;z-index:1;align-self:flex-start;margin-top:3px}',
+        '.kbpv-nm{display:flex;align-items:center;min-width:0;font-family:ui-monospace,monospace;font-size:13px;color:var(--dsw-alias-label-primary)}',
+        '.kbpv-link{all:unset;cursor:pointer;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-link::after{content:"";position:absolute;inset:0;border-radius:14px}',
+        '.kbpv-link:focus-visible::after{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}',
+        '.kbpv-static{cursor:default}',
+        '.kbpv-static::after{display:none}',
+        '.kbpv-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-tag{font-size:11px;line-height:16px;padding:0 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);white-space:nowrap}',
+        '.kbpv-tag-warn{color:var(--dsw-alias-state-warn-primary);border-color:var(--dsw-alias-state-warn-primary)}',
+        '.kbpv-kd{flex:none;width:7px;height:7px;border-radius:50%;margin-left:8px;background:var(--dsw-alias-state-success-primary)}',
+        '.kbpv-kd-missing{background:var(--dsw-alias-state-error-primary)}',
+        '.kbpv-kd-unknown{background:var(--dsw-alias-border-l4)}',
+        '.kbpv-right{display:grid;flex:none;align-items:center;justify-items:end}',
+        '.kbpv-right>*{grid-area:1/1}',
+        '.kbpv-rest{display:flex;gap:6px;align-items:center;opacity:1;transition:opacity .12s}',
+        '.kbpv-card:hover .kbpv-rest,.kbpv-card:focus-within .kbpv-rest{opacity:0;pointer-events:none}',
+        '.kbpv-acts{display:flex;align-items:center;gap:2px;opacity:0;pointer-events:none;transition:opacity .12s;position:relative;z-index:1}',
+        '.kbpv-card:hover .kbpv-acts,.kbpv-card:focus-within .kbpv-acts,.kbpv-acts:focus-within{opacity:1;pointer-events:auto}',
+        '@media (hover:none){.kbpv-acts{opacity:1;pointer-events:auto}.kbpv-rest{display:none}}',
+        '@media (prefers-reduced-motion:reduce){.kbpv-acts,.kbpv-rest{transition:none}}',
+        '.kbpv-sw{position:relative;flex:none;width:34px;height:20px;margin-inline:4px;padding:0;border:.5px solid var(--dsw-alias-border-l3);border-radius:999px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;transition:background .15s}',
+        '.kbpv-sw.on{background:var(--dsw-alias-brand-primary);border-color:transparent}',
+        '.kbpv-sw:disabled{opacity:.45;cursor:not-allowed}',
+        '.kbpv-sw:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+        '.kbpv-sw-k{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--dsw-alias-label-secondary);transition:transform .15s,background .15s}',
+        '.kbpv-sw.on .kbpv-sw-k{transform:translateX(14px);background:var(--dsw-alias-label-primary-foreground)}',
+        '.kbpv-menu{position:absolute;z-index:20;right:10px;top:46px;min-width:190px;padding:4px;background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l4);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.3)}',
+        '.kbpv-menu-head{right:0;top:36px}',
+        '.kbpv-menu button{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;text-align:left;padding:7px 10px;border-radius:8px;font-size:13px;color:var(--dsw-alias-label-primary);cursor:pointer}',
+        '.kbpv-menu button:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbpv-menu button:disabled{opacity:.4;cursor:not-allowed}',
+        '.kbpv-menu hr{border:0;border-top:.5px solid var(--dsw-alias-border-l2);margin:4px 0}',
+        '.kbpv-danger{color:var(--dsw-alias-state-error-primary)!important}',
+        '.kbpv-danger-fill{background:var(--dsw-alias-state-error-primary);color:var(--dsw-alias-label-primary-foreground);border:0}',
+        '.kbpv-danger-fill:disabled{opacity:.4;cursor:not-allowed}',
+        '.kbpv-note{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 8px 8px 14px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent);font-size:13px}',
+        '.kbpv-fail{padding:8px 12px;border-radius:12px;border:.5px solid var(--dsw-alias-state-error-primary);color:var(--dsw-alias-state-error-primary);font-size:13px}',
+        '.kbpv-hostnote{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent);font-size:12px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-layer{position:fixed;inset:0;z-index:60}',
+        '.kbpv-mask{position:absolute;inset:0;background:var(--dsw-alias-bg-mask-1)}',
+        '.kbpv-drawer{position:absolute;top:0;right:0;bottom:0;width:min(460px,100%);display:flex;flex-direction:column;background:var(--dsw-alias-bg-base);border-left:.5px solid var(--dsw-alias-border-l3)}',
+        '.kbpv-drawer header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 14px;border-bottom:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-dh{display:flex;align-items:center;gap:12px;min-width:0}',
+        '.kbpv-dt{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-body{flex:1;overflow:auto;padding:16px 20px;display:flex;flex-direction:column;gap:16px}',
+        '.kbpv-drawer footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px 16px;border-top:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-fld{display:flex;flex-direction:column;gap:6px}',
+        '.kbpv-fl{font-size:12px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-hint{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary);margin:0}',
+        '.kbpv-err{font-size:12px;color:var(--dsw-alias-state-error-primary)}',
+        '.kbpv-in{width:100%;min-height:36px;padding:0 12px;border-radius:12px}',
+        '.kbm-in-input.kbpv-in{box-sizing:border-box;border:.5px solid var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}',
+        '.kbm-in-input.kbpv-in:focus{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+        '.kbpv-mono{font-family:ui-monospace,monospace;font-size:13px}',
+        '.kbpv-keyrow{display:flex;gap:6px}',
+        '.kbpv-keyrow .kbpv-in{flex:1}',
+        '.kbpv-adv{display:flex;align-items:center;gap:6px;width:100%;border:0;border-top:.5px solid var(--dsw-alias-border-l2);background:transparent;padding:10px 0 4px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}',
+        '.kbpv-adv svg{transition:transform .15s}',
+        '.kbpv-adv[aria-expanded="true"] svg{transform:rotate(90deg)}',
+        '.kbpv-advbox{display:flex;flex-direction:column;gap:14px}',
+        '.kbpv-mhead{display:flex;justify-content:space-between;align-items:center}',
+        '.kbpv-mrows{display:flex;flex-direction:column;gap:8px}',
+        '.kbpv-mrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center}',
+        '.kbpv-zone{margin-top:4px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px}',
+        '.kbpv-z{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px}',
+        '.kbpv-z+.kbpv-z{border-top:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-z b{display:block;font-weight:500}',
+        '.kbpv-z span{font-size:12px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-tabs{display:inline-flex;align-self:flex-start;padding:3px;border-radius:12px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-tab{border:0;background:transparent;padding:6px 12px;border-radius:9px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}',
+        '.kbpv-tab-on{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);box-shadow:0 0 0 .5px var(--dsw-alias-border-l3)}',
+        '.kbpv-desc{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-cb{position:relative}',
+        '.kbpv-cb-btn{display:flex;align-items:center;gap:10px;width:100%;min-height:48px;padding:6px 12px;border-radius:14px;border:.5px solid var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-1);text-align:left;cursor:pointer}',
+        '.kbpv-cb-btn[aria-expanded="true"]{border-color:var(--dsw-alias-border-l4)}',
+        '.kbpv-cb-val{flex:1;min-width:0;display:flex;align-items:center;gap:10px}',
+        '.kbpv-cb-ph{flex:1;color:var(--dsw-alias-label-tertiary);font-size:14px}',
+        '.kbpv-cb-chev{display:inline-flex;transform:rotate(90deg);color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-cb-pop{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:25;display:flex;flex-direction:column;overflow:hidden;background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l4);border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.4)}',
+        '.kbpv-cb-q{display:flex;align-items:center;gap:8px;padding:0 12px;height:42px;border-bottom:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-cb-liste{max-height:330px;overflow:auto;padding:4px}',
+        '.kbpv-cb-grp{padding:8px 10px 4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-opt{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:10px;cursor:pointer}',
+        '.kbpv-opt-act,.kbpv-opt:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbpv-opt-deja{opacity:.5;cursor:default}',
+        '.kbpv-opt-c{flex:1;min-width:0;display:flex;flex-direction:column}',
+        '.kbpv-opt-n{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-opt-e{font:11px/16px ui-monospace,monospace;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-opt-deja .kbpv-opt-e{font-family:inherit}',
+        '.kbpv-cb-none{display:block;padding:18px 12px;font-size:13px;text-align:center;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-cb-note{padding:8px 12px;font-size:11px;color:var(--dsw-alias-label-tertiary);border-top:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-pinfo{display:flex;align-items:center;gap:12px;margin-top:8px;padding:10px 12px;border-radius:14px;background:var(--dsw-alias-bg-layer-2);border:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-pinfo-c{min-width:0;display:flex;flex-direction:column;gap:2px}',
+        '.kbpv-pinfo-n{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:500}',
+        '.kbpv-pinfo-h{font:12px/16px ui-monospace,monospace;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-pinfo-warn{font-family:inherit;color:var(--dsw-alias-state-warn-primary)}',
+        '.kbpv-native{margin:16px 0 0;padding:14px 16px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2);display:flex;flex-direction:column;gap:8px}',
+        '.kbpv-native-t{font-weight:600;font-size:14px}',
+        '.kbpv-native p{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-native-act{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}',
+        '.kbpv-native-chk{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}',
+        /* disabled providers: greyed card + switch (the same pill as the Suite's) */
+        '.kbmp-off-dlg{max-width:440px}',
+        '.kbmp-off-dlg .kbm-mdl-body{margin-top:0}',
+        '.kbmp-off-dlg-body p{margin:0 0 16px;font-size:14px;line-height:22px;color:var(--dsw-alias-label-secondary)}',
+        '.kbmp-off-dlg-act{display:flex;justify-content:flex-end;gap:8px}',
         /* formulaire d'ajout de fournisseur */
-        '.kbmp-prov-form{display:flex;flex-direction:column;gap:10px;padding:12px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-2)}',
-        '.kbmp-form-titre{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
         // ── sélecteur de presets + badge « free models · quota » (02/10) ─────
-        '.kbmp-picker{display:flex;flex-direction:column;gap:8px}',
-        '.kbmp-picker-tete{display:flex;align-items:center;gap:8px;flex-wrap:wrap}',
-        '.kbmp-picker-q{flex:1;min-width:140px}',
-        '.kbmp-picker-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:6px;max-height:240px;overflow-y:auto;padding:2px}',
-        '.kbmp-preset{display:flex;align-items:center;gap:8px;padding:6px 8px;border:.5px solid var(--dsw-alias-border-l3);border-radius:10px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:start;min-width:0}',
-        '.kbmp-preset:hover{border-color:var(--dsw-alias-border-l4)}',
-        '.kbmp-preset-actif{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary) inset}',
-        '.kbmp-preset-deja{opacity:.45;cursor:not-allowed}',
-        '.kbmp-preset-logo{flex:none;display:inline-flex;align-items:center;justify-content:center}',
-        '.kbmp-preset-corps{display:flex;flex-direction:column;min-width:0;flex:1}',
-        '.kbmp-preset-nom{font-size:12.5px;line-height:16px;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-        '.kbmp-preset-env{font-size:10.5px;line-height:14px;color:var(--dsw-alias-label-tertiary);font-family:var(--ds-font-family-code,monospace);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-        '.kbmp-picker-vide{font-size:12px;color:var(--dsw-alias-label-secondary);padding:6px}',
-        '.kbmp-picker-note{font-size:11px;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-free{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 7px;border-radius:9px;font-size:10.5px;line-height:14px;font-weight:600;color:#0b7a3b;background:rgba(34,197,94,.16);white-space:nowrap}',
         '.kbmp-free-sm{height:16px;padding:0 6px;font-size:10px}',
         '.kbmp-free-lien{color:inherit;text-decoration:none;font-weight:700}',
         '.kbmp-free-lien:hover{text-decoration:underline}',
         '[dir="rtl"] .kbmp-free{direction:ltr}',
-        '.kbmp-form-etape{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-det{display:flex;flex-direction:column;gap:10px}',
-        '.kbmp-det-tete{display:flex;align-items:center;gap:8px}',
-        '.kbmp-det-nom{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);flex:1;min-width:0}',
-        '.kbmp-det-resume{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:8px 10px;border:.5px solid var(--dsw-alias-border-l3);border-radius:10px;background:var(--dsw-alias-bg-layer-1)}',
-        '.kbmp-det-kv{display:inline-flex;align-items:baseline;gap:6px;font-size:12px;min-width:0}',
-        '.kbmp-det-kv b{font-weight:500;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-det-kv code{font-family:var(--ds-font-family-code,monospace);color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:320px}',
-        '.kbmp-form-hint{font-size:11px;line-height:16px;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-form-hint-err{color:var(--dsw-alias-state-error-primary)}',
-        '.kbmp-in-err{border-color:var(--dsw-alias-state-error-primary)}',
-        '.kbmp-ok{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border:.5px solid var(--dsw-alias-state-success-primary,var(--dsw-alias-border-l4));border-radius:12px;background:var(--dsw-alias-bg-layer-2)}',
-        '.kbmp-ok-corps{display:flex;flex-direction:column;flex:1;min-width:200px}',
-        '.kbmp-ok-t{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}',
-        '.kbmp-ok-s{font-size:12px;color:var(--dsw-alias-label-secondary)}',
-        '.kbmp-card-new{border-color:var(--dsw-alias-brand-primary)}',
-        '.kbmp-prov-form{gap:14px;padding:16px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.16);animation:kbmpIn .16s ease-out}',
         '@keyframes kbmpIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}',
-        '.kbmp-seg{display:inline-flex;align-self:flex-start;gap:2px;padding:3px;border-radius:12px;background:var(--dsw-alias-bg-layer-1)}',
-        '.kbmp-seg-btn{height:30px;padding:0 14px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}',
-        '.kbmp-seg-btn:hover{color:var(--dsw-alias-label-primary)}',
-        '.kbmp-seg-actif{background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));color:var(--dsw-alias-label-primary);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.2)}',
-        '.kbmp-form-desc{font-size:13px;line-height:19px;color:var(--dsw-alias-label-secondary)}',
-        '.kbmp-champ{display:flex;flex-direction:column;gap:6px;min-width:0}',
-        '.kbmp-champ-l{font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary)}',
-        '.kbmp-mono{font-family:var(--ds-font-family-code,monospace)}',
-        '.kbmp-cb{position:relative}',
-        '.kbmp-cb-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:40px;padding:0 12px;border:.5px solid var(--dsw-alias-border-l4);border-radius:12px;background:var(--dsw-alias-bg-layer-1);font:inherit;font-size:14px;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:start}',
-        '.kbmp-cb-btn:hover,.kbmp-cb-ouvert{border-color:var(--dsw-alias-brand-primary)}',
-        '.kbmp-cb-val{display:inline-flex;align-items:center;gap:8px;min-width:0}',
-        '.kbmp-cb-nom{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-        '.kbmp-cb-ph{color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-cb-chev{flex:none;display:inline-flex;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-cb-fond{position:fixed;inset:0;z-index:40;border:0;background:transparent;cursor:default}',
-        '.kbmp-cb-pop{position:absolute;inset-inline:0;top:calc(100% + 6px);z-index:41;display:flex;flex-direction:column;gap:8px;padding:8px;border:.5px solid var(--dsw-alias-border-l3);border-radius:14px;background:var(--dsw-alias-bg-layer-2);box-shadow:0 16px 40px rgba(0,0,0,.28)}',
-        '.kbmp-cb-q{display:flex}',
-        '.kbmp-cb-liste{display:flex;flex-direction:column;gap:2px;max-height:280px;overflow-y:auto}',
-        '.kbmp-cb-opt{display:flex;align-items:center;gap:10px;padding:7px 8px;border:0;border-radius:9px;background:transparent;font:inherit;cursor:pointer;text-align:start;min-width:0}',
-        '.kbmp-cb-opt:hover:not(:disabled){background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-1))}',
-        '.kbmp-cb-opt.kbmp-preset-actif{box-shadow:none;background:var(--dsw-alias-bg-layer-1)}',
-        '.kbmp-cle{display:flex;align-items:center;gap:6px}',
-        '.kbmp-cle-in{flex:1;min-width:0;height:40px;border-radius:12px;padding:0 12px;font-size:14px}',
-        '.kbmp-cle-oeil{flex:none}',
-        '.kbmp-adv{display:flex;flex-direction:column;gap:10px;padding-top:10px;border-top:.5px solid var(--dsw-alias-border-l2)}',
-        '.kbmp-adv-btn{display:inline-flex;align-items:center;gap:6px;align-self:flex-start;padding:0;border:0;background:transparent;font:inherit;font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);cursor:pointer}',
-        '.kbmp-adv-btn:hover{color:var(--dsw-alias-label-primary)}',
-        '.kbmp-adv-chev{display:inline-flex;transition:transform .12s}',
-        '.kbmp-adv-corps,.kbmp-adv-corps-in{display:flex;flex-direction:column;gap:10px}',
-        '.kbmp-ok-warn{border-color:var(--dsw-alias-state-warn-primary)}',
         '.kbm-in-input.kbmp-form-in{flex:0 0 auto;width:100%;box-sizing:border-box;height:40px;padding:0 12px;border:.5px solid var(--dsw-alias-border-l4);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-size:14px;transition:border-color .12s,box-shadow .12s}',
-        '.kbmp-cle .kbm-in-input.kbmp-form-in{flex:1 1 0%;width:auto;min-width:0}',
         '.kbm-in-input.kbmp-form-in:hover{border-color:var(--dsw-alias-label-tertiary)}',
         '.kbm-in-input.kbmp-form-in:focus{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-brand-primary) 18%,transparent)}',
         '.kbm-in-input.kbmp-form-in::placeholder{color:var(--dsw-alias-label-tertiary);opacity:.75}',
@@ -2199,33 +2421,9 @@ window.__ModuleLoader__.load({
         '.kbmp-logo-mask{display:inline-block;flex:none;background-color:currentColor;color:var(--dsw-alias-label-primary);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;-webkit-mask-size:contain;mask-size:contain}',
         '.kbmp-tuile{flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:var(--dsw-alias-bg-layer-1);border:.5px solid var(--dsw-alias-border-l3);box-sizing:border-box}',
         '.kbmp-tuile-init{font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary)}',
-        '.kbmp-cb-btn{height:44px;border-radius:14px;padding:0 10px 0 8px}',
-        '.kbmp-cb-pop{padding:10px;border-radius:16px;gap:10px}',
-        '.kbmp-cb-liste{max-height:340px;gap:0;padding-inline-end:2px}',
-        '.kbmp-cb-grp{display:flex;flex-direction:column;gap:2px;padding-bottom:6px}',
-        '.kbmp-cb-grp-t{position:sticky;top:0;z-index:1;padding:6px 8px 4px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}',
-        '.kbmp-cb-opt{padding:5px 8px;border-radius:11px}',
-        '.kbmp-cb-act{background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-1))}',
-        '.kbmp-pinfo{display:flex;align-items:center;gap:12px;padding:10px 12px;border:.5px solid var(--dsw-alias-border-l3);border-radius:14px;background:var(--dsw-alias-bg-layer-1)}',
-        '.kbmp-pinfo-corps{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}',
-        '.kbmp-pinfo-nom{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}',
-        '.kbmp-pinfo-host{font-family:var(--ds-font-family-code,monospace);font-size:12px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-        '.kbmp-pinfo-warn{font-family:inherit;color:var(--dsw-alias-state-warn-primary);white-space:normal}',
-        '.kbmp-pinfo-doc{flex:none;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:none;padding:4px 8px;border-radius:8px}',
-        '.kbmp-pinfo-doc:hover{background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));color:var(--dsw-alias-label-primary)}',
         '.kbmp-card-logo .kbmp-logo-mask{color:var(--dsw-alias-label-primary)}',
-        '.kbmp-form-rangee{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
-        '.kbmp-form-rangee label{display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-form-in{height:32px;padding:0 8px;border:.5px solid var(--dsw-alias-border-l4);border-radius:8px;background:var(--dsw-alias-bg-layer-1);font-size:13px;color:var(--dsw-alias-label-primary)}',
-        '.kbmp-form-note{font-size:12px;line-height:18px;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-form-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}',
-        '.kbmp-form-actions{display:flex;justify-content:flex-end;gap:8px}',
         /* logo dans la ligne de modèle */
         '.kbmp-mcellroute{display:inline-flex;align-items:center;gap:5px;min-width:0}',
-        '@media (max-width:640px){.kbmp-cards{grid-template-columns:1fr}.kbmp-form-rangee{grid-template-columns:1fr}}',
-        '.kbmp-provrow{display:flex;align-items:center;gap:10px;padding:8px 12px;border:.5px solid var(--dsw-alias-border-l2);border-radius:10px;background:var(--dsw-alias-bg-layer-2);font-size:13px}',
-        '.kbmp-provname{font-family:ui-monospace,monospace;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}',
-        '.kbmp-provcount{flex:0 0 auto;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}',
         // ── les deux onglets, un contenu chacun ─────────────────────────────
         // Providers (défaut) : l'UX natif de DSH — les rangées sous notre
         // panneau restent la seule interface qui écrit clé et URL de base.
@@ -2346,7 +2544,6 @@ window.__ModuleLoader__.load({
         '.kbmp-mdlsub{margin-top:3px;font-size:12px;color:var(--dsw-alias-label-tertiary);font-family:var(--ds-font-family-code)}',
         '.kbmp-x{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:17px;line-height:1;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-mdlbody{overflow:auto}',
-        '.kbmp-plusgly{display:inline-flex;align-items:center;justify-content:center;width:14px;font-size:15px;line-height:1}',
         '.kbm-foot{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
         '.kbm-it{display:inline-flex;align-items:center;gap:6px}',
         '.kbm-foot [data-kbm="add"]{margin-left:auto}',
@@ -2765,15 +2962,21 @@ window.__ModuleLoader__.load({
           if (resp === null || resp.ok !== true) throw new Error(String(resp && resp.error ? resp.error.code || resp.error.message : 'describe'))
           KBM.writable = resp.value.writable === true
           const namespaces = Array.isArray(resp.value.namespaces) ? resp.value.namespaces : []
+          KBM.hasDeepseek = namespaces.some((n) => n.ns === 'llm-deepseek')
           const view = namespaces.filter((n) => n.ns === KB_NS)[0]
           if (view === undefined) throw new Error('namespace ' + KB_NS + ' absent')
           KBM.revision = typeof view.revision === 'number' ? view.revision : null
           const annotations = await kbMAnnotations()
           KBM.annotations = annotations === null || annotations.models === undefined ? {} : annotations.models
+          await kbMLoadParked()
           const valueProviders = kbMProviders(view.value)
           const userProviders = kbMProviders(view.user)
           const baseProviders = kbMProviders(view.base)
           const routes = Object.keys(valueProviders)
+          KBM.userProviders = userProviders
+          KBM.baseProviders = baseProviders
+          await kbMLoadKeys(api, userProviders)
+          await kbMLoadDirectory(api)
           const avant = KBM.models
           const rows = []
           for (const route of routes) {
@@ -2880,6 +3083,389 @@ window.__ModuleLoader__.load({
         const safe = kbMOBJ(layer)
         return kbMOBJ(safe.providers)
       }
+      // KB-PARK-PURE-BEGIN
+      /** Routes another Kybernos feature writes itself (kybernos-cloud sets `providers.kybernos` on
+       *  every sync): parking one would be undone by the next sync, so it is locked instead. */
+      const KB_MANAGED_ROUTES = ['kybernos']
+      /** Why a route cannot be disabled here: 'managed' (written by a Kybernos feature), 'profile'
+       *  (not in the user layer, or the base layer declares it too: an `unset` on the user layer
+       *  would just reveal the base copy), or null when it can be. Pure. */
+      const kbMParkBlock = (route, userProviders, baseProviders) => {
+        const own = (o, k) => o !== null && typeof o === 'object' && Object.prototype.hasOwnProperty.call(o, k)
+        if (KB_MANAGED_ROUTES.indexOf(route) >= 0) return 'managed'
+        const ok = own(userProviders, route) && !own(baseProviders, route) &&
+          userProviders[route] !== null && typeof userProviders[route] === 'object' && !Array.isArray(userProviders[route])
+        return ok ? null : 'profile'
+      }
+      const kbMParkable = (route, userProviders, baseProviders) => kbMParkBlock(route, userProviders, baseProviders) === null
+      /** The parked entries to show: those whose slug is not active (a stale copy left by an
+       *  interrupted enable is hidden, never auto-deleted). Pure. */
+      const kbMParkedShown = (parked, activeRoutes) =>
+        (Array.isArray(parked) ? parked : []).filter((p) => p !== null && typeof p === 'object' && typeof p.slug === 'string' && activeRoutes.indexOf(p.slug) < 0)
+      // KB-PARK-PURE-END
+
+      // KB-PARK-ACTIONS-BEGIN
+      /** The engine's own directory of configurable providers: display name, "declared" (a route only
+       *  configuration knows: a gateway, a self-hosted server) and a configuration diagnostic. */
+      const kbMLoadDirectory = async (api) => {
+        const dir = {}
+        const llm = api.llm
+        if (llm !== null && llm !== undefined && typeof llm.listConfigurableProviders === 'function') {
+          try {
+            const r = await kbMTimeout(llm.listConfigurableProviders(), 8000)
+            const rows = r !== null && r !== undefined && r.ok === true && Array.isArray(r.value) ? r.value : []
+            for (const e of rows) if (kbPvIsObj(e) && typeof e.provider === 'string' && e.settingsNs === KB_NS) dir[e.provider] = { declared: e.declared === true, name: typeof e.displayName === 'string' ? e.displayName : '', error: typeof e.error === 'string' ? e.error : '' }
+          } catch (e) { /* the heuristic below takes over */ }
+        }
+        KBM.dir = dir
+      }
+      /** Which referenced credentials exist (`credentials.describe`): one call for every provider that names one. */
+      const kbMLoadKeys = async (api, userProviders) => {
+        const refs = []
+        for (const route of Object.keys(kbMOBJ(userProviders))) {
+          const prof = kbMOBJ(userProviders)[route]
+          if (kbPvIsObj(prof) && typeof prof.apiKeyEnv === 'string' && refs.indexOf(prof.apiKeyEnv) < 0) refs.push(prof.apiKeyEnv)
+        }
+        const keys = {}
+        const cr = api.credentials
+        if (refs.length > 0 && cr !== null && cr !== undefined && typeof cr.describe === 'function') {
+          try {
+            const r = await kbMTimeout(cr.describe(refs), 8000)
+            const v = r !== null && r !== undefined && r.ok === true && kbPvIsObj(r.value) ? r.value : {}
+            for (const ref of refs) if (kbPvIsObj(v[ref]) && typeof v[ref].configured === 'boolean') keys[ref] = v[ref].configured
+          } catch (e) { /* a missing dot is better than a failed load */ }
+        }
+        KBM.keys = keys
+      }
+      /** Same-origin call to the host's parked-provider routes. Throws the host's error code. */
+      const kbMParkCall = async (path, body) => {
+        const res = await fetch('/kybernos-models/providers/' + path, body === undefined
+          ? { headers: { accept: 'application/json' } }
+          : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+        let out = null
+        try { out = await res.json() } catch (e) { out = null }
+        if (out === null || out.ok !== true) throw new Error(String(out !== null && out.error ? out.error : 'HTTP ' + String(res.status)))
+        return out
+      }
+      const kbMLoadParked = async () => {
+        try {
+          const b = await kbMParkCall('parked')
+          KBM.parked = Array.isArray(b.parked) ? b.parked : []
+          KBM.parkHost = true
+        } catch (e) { KBM.parked = []; KBM.parkHost = false }
+      }
+      /** One settings write; on a revision conflict reload once and retry. Returns the response. */
+      const kbMMutateRetry = async (api, ops) => {
+        for (let essai = 0; essai < 2; essai += 1) {
+          const raw = await kbMTimeout(api.settings.mutate(KB_NS, ops, KBM.revision), 8000)
+          const resp = raw === null || raw === undefined ? { ok: false, error: { code: 'vide', message: 'empty answer' } } : raw
+          if (resp.ok === true) { if (resp.value && typeof resp.value.revision === 'number') KBM.revision = resp.value.revision; return resp }
+          if (!(resp.error && resp.error.code === 'settings/conflict') || essai === 1) return resp
+          await kbMLoad()
+        }
+        return { ok: false, error: { code: 'refus' } }
+      }
+      const kbMErrText = (resp) => String(resp && resp.error ? (resp.error.message || resp.error.code) : 'refus')
+
+      /** Disable = park the user-layer profile on the host, THEN drop the route from the settings.
+       *  The profile is saved first: if the settings write fails the copy is forgotten and nothing
+       *  changed; if we crash in between, the provider is still active and the stale copy is hidden. */
+      const kbMDisable = async (route) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null || KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const bloc = kbMParkBlock(route, KBM.userProviders, KBM.baseProviders)
+        if (bloc !== null) throw new Error(m(bloc === 'managed' ? 'kb.prov.off.managed' : 'kb.prov.off.locked'))
+        const ids = KBM.models.filter((mo) => mo.route === route).map((mo) => mo.id).filter((x) => x !== '')
+        const body = { slug: route, profile: KBM.userProviders[route], models: ids }
+        try { await kbMParkCall('park', body) } catch (e) {
+          if (!(e && e.message === 'already-parked')) throw e
+          // The provider is active in the settings, which is the truth: replace the stale copy.
+          await kbMParkCall('forget', { slug: route })
+          await kbMParkCall('park', body)
+        }
+        const resp = await kbMMutateRetry(api, [{ op: 'unset', path: ['providers', route] }])
+        await kbMJournal({ niveau: 'settings', route, champ: 'provider', op: 'unset', chemin: ['providers', route], ok: resp.ok === true })
+        if (resp.ok !== true) {
+          try { await kbMParkCall('forget', { slug: route }) } catch (e) { /* the copy stays hidden while the route is active */ }
+          throw new Error(kbMErrText(resp))
+        }
+        await kbMLoad()
+      }
+      /** Enable = write the saved profile back, THEN forget the copy (never the other way round). */
+      const kbMEnable = async (slug) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null || KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const taken = await kbMParkCall('take', { slug })
+        if (KBM.routes.indexOf(slug) < 0) {
+          const resp = await kbMMutateRetry(api, [{ op: 'set', path: ['providers', slug], value: taken.profile }])
+          await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'set', chemin: ['providers', slug], ok: resp.ok === true })
+          if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        }
+        await kbMParkCall('forget', { slug })
+        await kbMLoad()
+      }
+      // KB-PARK-ACTIONS-END
+
+      // KB-NATIVE-PURE-BEGIN
+      // ── DSH's own Models page: hidden while this page owns the job, one click away ──
+      // The native page and this one read and write the SAME settings namespace and listen to
+      // the same invalidations, so they stay in sync by construction. The engine offers no way
+      // to unregister another plugin's Settings section, so the native menu entry is hidden in
+      // the DOM, only while this plugin is active and healthy, and the page stays reachable
+      // (`kbNatOpen`). Its label is read from DSH's own locale (`settings.models` / `nav`).
+      const KB_NAT_PREF = 'kb.models.hideNative'
+      /** Which cells of a menu to hide: the one carrying the native label, only in a list that
+       *  also carries our own label (so an unrelated "Models" button is never touched). Pure. */
+      const kbNatPick = (groups, nativeLabel, ownLabel) => {
+        const out = []
+        if (typeof nativeLabel !== 'string' || nativeLabel === '' || nativeLabel === ownLabel) return out
+        for (let g = 0; g < groups.length; g += 1) {
+          const texts = groups[g].map((c) => String(c).trim())
+          if (texts.length < 3 || texts.indexOf(ownLabel) < 0) continue
+          const i = texts.indexOf(nativeLabel)
+          if (i >= 0) out.push({ group: g, index: i })
+        }
+        return out
+      }
+      /** Whether the native cell is hidden when nothing is stored. Flip to `true` once this page does everything the
+       *  native one does (the Models tab, "Fetch available models", DeepSeek). */
+      const KB_NAT_DEFAULT_HIDDEN = false
+      /** The stored choice wins ('1' hide, '0' show); with none, the default above. Pure. */
+      const kbNatHidden = (stored, dflt) => (stored === '1' ? true : (stored === '0' ? false : dflt === true))
+      // KB-NATIVE-PURE-END
+      let kbNatOwner = false
+      const kbNatPrefGet = () => { try { return kbNatHidden(window.localStorage.getItem(KB_NAT_PREF), KB_NAT_DEFAULT_HIDDEN) } catch (e) { return KB_NAT_DEFAULT_HIDDEN } }
+      const kbNatPrefSet = (hide) => { try { window.localStorage.setItem(KB_NAT_PREF, hide === true ? '1' : '0') } catch (e) { /* per-viewer convenience */ } }
+      const kbNatLabel = () => {
+        try {
+          const loc = kbCtx !== null && kbCtx !== undefined && typeof kbCtx.get === 'function' ? kbCtx.get('locale') : null
+          if (loc === null || loc === undefined || typeof loc.bind !== 'function') return null
+          const v = loc.bind('settings.models')('nav')
+          return typeof v === 'string' && v !== '' && v !== 'nav' ? v : null
+        } catch (e) { return null }
+      }
+      /** The menu cells grouped by parent, with the native label and ours resolved. */
+      const kbNatScan = () => {
+        const nat = kbNatLabel()
+        const own = m('kb.models.surface.entry')
+        const parents = new Map()
+        for (const b of Array.from(document.querySelectorAll('button'))) {
+          const p = b.parentElement
+          if (p === null) continue
+          if (!parents.has(p)) parents.set(p, [])
+          parents.get(p).push(b)
+        }
+        const lists = Array.from(parents.values())
+        const picks = kbNatPick(lists.map((l) => l.map((b) => b.innerText || '')), nat, own)
+        return { cells: picks.map((p) => lists[p.group][p.index]), own, lists }
+      }
+      const kbNatApply = () => {
+        try {
+          const hide = kbNatOwner === true && kbNatPrefGet() === true
+          for (const el of Array.from(document.querySelectorAll('[data-kb-native-nav]'))) if (!hide) el.removeAttribute('data-kb-native-nav')
+          if (hide !== true) return
+          for (const el of kbNatScan().cells) if (!el.hasAttribute('data-kb-native-nav')) el.setAttribute('data-kb-native-nav', '1')
+        } catch (e) { /* a cosmetic guard never breaks the page */ }
+      }
+      /** Open DSH's native page: its menu cell may be hidden, a programmatic click still works. */
+      const kbNatOpen = () => {
+        try {
+          const cell = kbNatScan().cells[0] || document.querySelector('[data-kb-native-nav]')
+          if (cell === undefined || cell === null) return false
+          cell.click()
+          return true
+        } catch (e) { return false }
+      }
+      const kbNatOpenOurs = () => {
+        try {
+          const own = m('kb.models.surface.entry')
+          const cell = Array.from(document.querySelectorAll('button')).find((b) => (b.innerText || '').trim() === own && b.parentElement !== null && b.parentElement.querySelectorAll('button').length >= 3)
+          if (cell === undefined) return false
+          cell.click()
+          return true
+        } catch (e) { return false }
+      }
+      /** The note shown under DSH's native page (its `settings.models.footer` seat). */
+      const NativeNote = () => {
+        kbmUse()
+        const [hide, setHide] = React.useState(kbNatPrefGet())
+        if (kbNatOwner !== true) return null
+        return h('div', { className: 'kbpv-native', 'data-kbm': 'native-note', role: 'note' },
+          h('div', { className: 'kbpv-native-t' }, m('kb.nat.note.t')),
+          h('p', null, m('kb.nat.note.b')),
+          h('div', { className: 'kbpv-native-act' },
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'native-back', onClick: () => { kbNatOpenOurs() } }, m('kb.nat.back')),
+            h('label', { className: 'kbpv-native-chk' },
+              h('input', { type: 'checkbox', checked: hide !== true, 'data-kbm': 'native-show', onChange: (ev) => { const show = ev.target.checked === true; kbNatPrefSet(show !== true); setHide(show !== true); kbNatApply() } }),
+              m('kb.nat.show'))))
+      }
+      /** A page that fails to render must never cost the user DSH's native page. */
+      class KbBoundary extends React.Component {
+        constructor (props) { super(props); this.state = { failed: false } }
+        static getDerivedStateFromError () { return { failed: true } }
+        componentDidCatch (e) { kbNatOwner = false; kbNatApply(); try { console.error('[kybernos-models] page crashed:', e) } catch (e2) { /* console gone */ } }
+        render () {
+          if (this.state.failed !== true) return this.props.children
+          return h('div', { className: 'kbm-warn', 'data-kbm': 'crashed', role: 'alert' },
+            h('b', null, m('kb.nat.crash.t')), ' ', m('kb.nat.crash.b'), ' ',
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => { kbNatOpen() } }, m('kb.nat.open')))
+        }
+      }
+
+      // KB-PV-PURE-BEGIN
+      // ── Providers: the writes, in the shape the native Models page uses ────────
+      // Measured on DSH 0.2.0-rc.2 (dsh-client-ui-settings-models): a typed key goes to
+      // `credentials.set(ref, value)` and the profile records `apiKeyEnv`; a save writes
+      // only the keys that changed (`set`) or went away (`unset`); a delete removes the
+      // credential FIRST, then unsets the route. The page never asks for a variable name.
+      const KB_PV_SLUG = /^[a-z0-9][a-z0-9-]{0,40}$/
+      /** `<ROUTE>_API_KEY`, the reference the native page derives when the profile has none. Pure. */
+      const kbPvKeyRef = (slug) => String(slug).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') + '_API_KEY'
+      /** A parseable http(s) URL without an unfilled `${…}` template. Pure. */
+      const kbPvUrlOk = (url) => /^https?:\/\/[^\s]+$/.test(String(url).trim()) && String(url).indexOf('${') < 0
+      const kbPvIsObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+      /** Model rows (id + optional name) from a draft: drops blank ids, keeps the first of a duplicate. Pure. */
+      const kbPvRows = (rows) => {
+        const seen = new Set()
+        const out = []
+        for (const r of Array.isArray(rows) ? rows : []) {
+          const id = String(r && r.id !== undefined ? r.id : '').trim()
+          if (id === '' || seen.has(id)) continue
+          seen.add(id)
+          out.push({ id, name: String(r && r.name !== undefined ? r.name : '').trim() })
+        }
+        return out
+      }
+      /** Draft model rows → the profile's `models`, keeping every other field the existing entry carried. Pure. */
+      const kbPvMergeModels = (existing, rows) => {
+        const byId = new Map()
+        for (const e of Array.isArray(existing) ? existing : []) if (kbPvIsObj(e) && typeof e.id === 'string') byId.set(e.id, e)
+        return kbPvRows(rows).map((r) => {
+          const base = byId.has(r.id) ? { ...byId.get(r.id) } : { id: r.id }
+          if (r.name === '') delete base.name
+          else base.name = r.name
+          return base
+        })
+      }
+      /** The ops that turn `before` into `after` at `base`: a `set` per changed key, an `unset` per removed one. Pure. */
+      const kbPvDiffOps = (base, before, after) => {
+        const a = kbPvIsObj(before) ? before : {}
+        const b = kbPvIsObj(after) ? after : {}
+        const ops = []
+        for (const k of Object.keys(b)) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) ops.push({ op: 'set', path: [...base, k], value: b[k] })
+        for (const k of Object.keys(a)) if (!(k in b)) ops.push({ op: 'unset', path: [...base, k] })
+        return ops
+      }
+      /** Edit draft → the new profile. Display name / protocol only exist on hand-declared routes. Pure. */
+      const kbPvEditProfile = (slug, before, d, custom) => {
+        const next = { ...(kbPvIsObj(before) ? before : {}) }
+        const url = String(d.url || '').trim().replace(/\/+$/, '')
+        if (url === '') delete next.baseURL
+        else next.baseURL = url
+        if (custom === true) {
+          const name = String(d.name || '').trim()
+          if (name === '') delete next.displayName
+          else next.displayName = name
+          if (typeof d.proto === 'string' && d.proto !== '') next.api = d.proto
+        }
+        if (d.models !== undefined) {
+          const models = kbPvMergeModels(next.models, d.models)
+          if (models.length > 0 || Array.isArray(next.models)) next.models = models
+        }
+        if (String(d.key || '').trim() !== '' && typeof next.apiKeyEnv !== 'string') next.apiKeyEnv = kbPvKeyRef(slug)
+        return next
+      }
+      /** Add draft → the profile to create. Pure. */
+      const kbPvNewProfile = (d) => {
+        const slug = String(d.id || '').trim().toLowerCase()
+        const prof = { api: typeof d.proto === 'string' && d.proto !== '' ? d.proto : 'openai-completions', baseURL: String(d.url || '').trim().replace(/\/+$/, '') }
+        const name = String(d.name || '').trim()
+        if (name !== '') prof.displayName = name
+        if (String(d.key || '').trim() !== '') prof.apiKeyEnv = String(d.env || '').trim() !== '' ? String(d.env).trim() : kbPvKeyRef(slug)
+        // No `retryPolicy` and no empty `modelOverrides`: DSH 0.2.0-rc.2 rejects the old `{ attempts, … }` shape
+        // (measured: "retryPolicy expected { mode: \"normal\", maxRetries?, … }"), and the engine's own default
+        // (normal mode, bounded by the plugin's cap of 10) is what a new route should get.
+        const models = kbPvMergeModels([], d.models)
+        if (models.length > 0) prof.models = models
+        return prof
+      }
+      /** Why an add draft cannot be saved yet (a message key), or null. Pure. */
+      const kbPvAddBlock = (d, takenSlugs) => {
+        const slug = String(d.id || '').trim().toLowerCase()
+        if (d.tab === 'catalog' && !d.prov) return 'pick'
+        if (!KB_PV_SLUG.test(slug)) return 'slug'
+        if (d.tab === 'custom' && kbPvRows(d.models).length === 0) return 'models'
+        if (takenSlugs.indexOf(slug) >= 0) return 'taken'
+        if (!kbPvUrlOk(d.url)) return String(d.url || '').indexOf('${') >= 0 ? 'template' : 'url'
+        return null
+      }
+      // KB-PV-PURE-END
+
+      // KB-PV-ACTIONS-BEGIN
+      const kbPvCredential = async (api, ref, value) => {
+        const cr = api.credentials
+        if (cr === null || cr === undefined || typeof cr.set !== 'function') return false
+        try { const r = await kbMTimeout(cr.set(ref, value), 8000); return !(r !== null && r !== undefined && r.ok === false) } catch (e) { return false }
+      }
+      /** Create a provider. The key is stored after the route; a failed key never undoes the route. */
+      const kbPvCreate = async (d) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null) throw new Error(m('kb.models.error.remote'))
+        if (KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const slug = String(d.id || '').trim().toLowerCase()
+        const taken = KBM.routes.concat(KBM.parked.map((p) => p.slug))
+        const block = kbPvAddBlock(d, taken)
+        if (block !== null) throw new Error(m('kb.pv.err.' + block))
+        const prof = kbPvNewProfile(d)
+        const resp = await kbMMutateRetry(api, [{ op: 'set', path: ['providers', slug], value: prof }])
+        await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'set', chemin: ['providers', slug], ok: resp.ok === true })
+        if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        let keyOk = null
+        if (String(d.key || '').trim() !== '') keyOk = await kbPvCredential(api, prof.apiKeyEnv, String(d.key).trim())
+        await kbMLoad()
+        return { slug, keyOk }
+      }
+      /** Save an edit: only changed fields are written; a typed key goes to the credential store. */
+      const kbPvSave = async (slug, d) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null) throw new Error(m('kb.models.error.remote'))
+        if (KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const before = kbMOBJ(KBM.userProviders)[slug]
+        if (!kbPvIsObj(before)) throw new Error(m('kb.prov.off.locked'))
+        const custom = d.custom === true
+        if (String(d.url || '').trim() !== '' && !kbPvUrlOk(d.url)) throw new Error(m('kb.pv.err.url'))
+        const after = kbPvEditProfile(slug, before, d, custom)
+        const ops = kbPvDiffOps(['providers', slug], before, after)
+        if (ops.length > 0) {
+          const resp = await kbMMutateRetry(api, ops)
+          await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'edit', chemin: ['providers', slug], ok: resp.ok === true })
+          if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        }
+        let keyOk = null
+        if (String(d.key || '').trim() !== '') keyOk = await kbPvCredential(api, typeof after.apiKeyEnv === 'string' ? after.apiKeyEnv : kbPvKeyRef(slug), String(d.key).trim())
+        await kbMLoad()
+        return { changed: ops.length, keyOk }
+      }
+      /** Delete = credential first, then the route (the order the native page uses); a stale parked copy goes too. */
+      const kbPvDelete = async (slug) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null) throw new Error(m('kb.models.error.remote'))
+        if (KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const bloc = kbMParkBlock(slug, KBM.userProviders, KBM.baseProviders)
+        if (bloc !== null) throw new Error(m(bloc === 'managed' ? 'kb.prov.off.managed' : 'kb.prov.off.locked'))
+        const prof = kbMOBJ(KBM.userProviders)[slug]
+        if (typeof prof.apiKeyEnv === 'string' && api.credentials !== null && api.credentials !== undefined && typeof api.credentials.unset === 'function') {
+          let r = null
+          try { r = await kbMTimeout(api.credentials.unset(prof.apiKeyEnv), 8000) } catch (e) { r = { ok: false, error: { message: String(e && e.message ? e.message : e) } } }
+          if (r !== null && r !== undefined && r.ok === false) throw new Error(String(r.error && r.error.message ? r.error.message : 'credential'))
+        }
+        const resp = await kbMMutateRetry(api, [{ op: 'unset', path: ['providers', slug] }])
+        await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'delete', chemin: ['providers', slug], ok: resp.ok === true })
+        if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        if (KBM.parked.some((p) => p.slug === slug)) { try { await kbMParkCall('forget', { slug }) } catch (e) { /* the copy stays hidden */ } }
+        await kbMLoad()
+      }
+      // KB-PV-ACTIONS-END
       /** Une entrée `models[i]`/`modelOverrides.<id>` → les clés de contrôle du
        *  panneau. Seules les clés PRÉSENTES apparaissent : c'est ce qui fait
        *  qu'une surcharge se voit. */
@@ -3018,7 +3604,7 @@ window.__ModuleLoader__.load({
       h('div', { className: 'kbm-pagehead' },
         h('h1', { className: 'kbm-h1' }, m('kb.models.surface.entry')),
         h('div', { className: 'kbm-sub' }, m('kb.models.surface.hint'))),
-      h(Panel, null))
+      h(KbBoundary, null, h(Panel, null)))
       // (02/10) Plus de point de montage « Modèles locaux » ici : ce panneau
       // vit uniquement dans la section dédiée « Ollama Local Models ».
 
@@ -3075,6 +3661,16 @@ window.__ModuleLoader__.load({
             { name: 'settings.section', id: SURFACE_ID, order: 20,
               label: () => m('kb.models.surface.entry') },
             ModelsMain)), 'kybernos-models: section de Reglages')
+          // DSH's own Models page: footer note, and the menu cell hidden while this plugin is healthy.
+          try {
+            slots.inject('settings.models.footer', () => slots.register({ name: 'settings.models.footer', id: 'kybernos-native-note', order: 100 }, NativeNote))
+          } catch (e) { /* the seat is optional */ }
+          ctx.effect(() => {
+            kbNatOwner = true
+            kbNatApply()
+            const tick = setInterval(kbNatApply, 1200)
+            return () => { clearInterval(tick); kbNatOwner = false; kbNatApply() }
+          }, 'kybernos-models: native page menu cell')
           if (KBM.live === true) { try { kbMLoad() } catch (e) { /* chargement best-effort */ } }
           // Les mêmes invalidations que la page Models native : un fournisseur,
           // une clé ou un modèle ajouté AILLEURS (page native, autre écran, autre
