@@ -75,23 +75,24 @@ check('memory filters and the search are sent, trimmed', T.listUrl('memories', b
 check('lessons go to the lessons host, kyber/used/added/q', T.listUrl('lessons', base({ q: 'x y', f: { ...T.defaultFilters(), kyber: 'dev-team', status: 'used', added: 'today' } })) === '/kybernos-memory/lessons?limit=25&offset=0&added=today&q=x+y&kyber=dev-team&used=1')
 check('a memory-only filter never leaks into a lessons URL', !/show=|src=/.test(T.listUrl('lessons', base({ f: { ...T.defaultFilters(), show: 'pinned', src: 'agent' } }))))
 check('mode=meaning is sent only with a query, only for memories', T.listUrl('memories', base({ q: 'cafe', mode: 'meaning' })) === '/kybernos-cloud/memory/list?limit=25&offset=0&q=cafe&mode=meaning'
-  && !/mode=/.test(T.listUrl('memories', base({ mode: 'meaning' }))) && !/mode=/.test(T.listUrl('memories', base({ q: 'cafe', mode: 'words' }))) && !/mode=/.test(T.listUrl('lessons', base({ q: 'cafe', mode: 'meaning' }))))
+  && !/mode=/.test(T.listUrl('memories', base({ mode: 'meaning' }))) && !/mode=/.test(T.listUrl('memories', base({ q: 'cafe', mode: 'relevance' }))) && !/mode=/.test(T.listUrl('lessons', base({ q: 'cafe', mode: 'meaning' }))))
 
 console.log('search by meaning')
 check('every fallback reason has its own sentence', ['sens_desactive', 'offre_requise', 'sens_indisponible', 'serveur_ancien', 'credits_epuises', 'embedding_invalide'].every((c) => T.meaningWhy(c).length > 10 && T.meaningWhy(c).indexOf('Something went wrong') < 0))
 check('the plan reason names the tier the host sent, Solo by default', /Solo plan/.test(T.meaningWhy('offre_requise')) && /Team plan/.test(T.meaningWhy('offre_requise', 'team')) && /Solo plan/.test(T.meaningWhy('offre_requise', 'unheard-of')))
 check('the switch reason points to Options', /Options/.test(T.meaningWhy('sens_desactive')))
 check('an unknown code falls back to the generic words, never to undefined', typeof T.meaningWhy('zzz') === 'string' && /zzz/.test(T.meaningWhy('zzz')) && T.meaningWhy(undefined).length > 0)
+check('« N of M words » only when some of several words were missing', T.wordsLabel(2, 3) === '2 of 3 words' && T.wordsLabel(1, 2) === '1 of 2 words' && T.wordsLabel(3, 3) === null && T.wordsLabel(1, 1) === null && T.wordsLabel(undefined, undefined) === null && T.wordsLabel(0, 3) === null && T.wordsLabel('2', 3) === null)
 check('closeness is « NN% match », clamped, and only for a real number', T.closenessLabel(82) === '82% match' && T.closenessLabel(81.6) === '82% match' && T.closenessLabel(140) === '100% match' && T.closenessLabel(-3) === '0% match'
   && T.closenessLabel(null) === null && T.closenessLabel(undefined) === null && T.closenessLabel(NaN) === null && T.closenessLabel('82') === null)
 {
   const store = new Map()
   globalThis.window.localStorage = { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => { store.set(k, String(v)) } }
-  check('the search mode defaults to words, and the saved choice comes back', T.readMode() === 'words' && (T.writeMode('meaning'), T.readMode()) === 'meaning' && (T.writeMode('words'), T.readMode()) === 'words')
+  check('the search mode defaults to relevance, and the saved choice comes back', T.readMode() === 'relevance' && (T.writeMode('meaning'), T.readMode()) === 'meaning' && (T.writeMode('relevance'), T.readMode()) === 'relevance')
   store.set('kbmem.searchMode', 'garbage')
-  check('a garbage saved value is words', T.readMode() === 'words')
+  check('a garbage or legacy saved value is relevance', T.readMode() === 'relevance' && (store.set('kbmem.searchMode', 'words'), T.readMode()) === 'relevance')
   globalThis.window.localStorage = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
-  check('blocked storage (private window) never throws', T.readMode() === 'words' && T.writeMode('meaning') === undefined)
+  check('blocked storage (private window) never throws', T.readMode() === 'relevance' && T.writeMode('meaning') === undefined)
   delete globalThis.window.localStorage
 }
 check('a hostile search is encoded, not concatenated', T.listUrl('memories', base({ q: 'a&limit=9999#x' })).includes('q=a%26limit%3D9999%23x'))

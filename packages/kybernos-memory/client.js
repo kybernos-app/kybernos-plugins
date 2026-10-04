@@ -110,7 +110,7 @@ window.__ModuleLoader__.load({
 
       /** Search mode is a per-viewer preference, kept across tabs, options and visits. Storage can be blocked: never throw. */
       const MODE_KEY = 'kbmem.searchMode'
-      const readMode = () => { try { return window.localStorage.getItem(MODE_KEY) === 'meaning' ? 'meaning' : 'words' } catch (e) { return 'words' } }
+      const readMode = () => { try { return window.localStorage.getItem(MODE_KEY) === 'meaning' ? 'meaning' : 'relevance' } catch (e) { return 'relevance' } }
       const writeMode = (v) => { try { window.localStorage.setItem(MODE_KEY, v) } catch (e) { /* private window */ } }
 
       const TIER_NAME = { solo: 'Solo', team: 'Team', free: 'Free' }
@@ -124,6 +124,8 @@ window.__ModuleLoader__.load({
         if (c === 'embedding_invalide') return 'The embedding service sent back something unexpected.'
         return friendlyError(c)
       }
+      /** « 2 of 3 words » on a relevance match that did not find every word of the query; nothing when all were found. */
+      const wordsLabel = (matched, of) => (Number.isInteger(matched) && Number.isInteger(of) && of > 1 && matched >= 1 && matched < of ? String(matched) + ' of ' + String(of) + ' words' : null)
       /** « 82% match » — only for a number the host really computed. */
       const closenessLabel = (n) => (typeof n === 'number' && Number.isFinite(n) ? String(Math.max(0, Math.min(100, Math.round(n)))) + '% match' : null)
 
@@ -423,6 +425,7 @@ window.__ModuleLoader__.load({
         h('span', { className: 'kbmem-mt' },
           m.sent && ctxOn ? h('span', { className: 'kbmem-chip ok' }, 'Sent') : null,
           closenessLabel(m.closeness) !== null ? h('span', { className: 'kbmem-chip close', title: 'How close this memory is to your search, by meaning' }, closenessLabel(m.closeness)) : null,
+          wordsLabel(m.matched, m.of) !== null ? h('span', { className: 'kbmem-chip', 'data-chip': 'words', title: 'How many of the words you typed this memory has' }, wordsLabel(m.matched, m.of)) : null,
           m.pinned ? h('span', { title: 'Pinned' }, Ico('pin')) : null,
           h('span', null, ORIGIN_LABEL[m.origin] || m.origin),
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(m.ageMinutes))))
@@ -591,7 +594,7 @@ window.__ModuleLoader__.load({
             h('input', { 'aria-label': 'Search', placeholder: mems ? 'Search memories…' : 'Search lessons…', value: q, onChange: (e) => setQ(e.target.value) }),
             mems
               ? h('span', { className: 'kbmem-modes', role: 'group', 'aria-label': 'Search by' },
-                h('button', { type: 'button', className: mode === 'words' ? 'on' : '', 'aria-pressed': mode === 'words', 'data-mode': 'words', title: 'Looks for your words in the text of each memory.', onClick: () => setMode('words') }, 'Words'),
+                h('button', { type: 'button', className: mode === 'relevance' ? 'on' : '', 'aria-pressed': mode === 'relevance', 'data-mode': 'relevance', title: 'Ranks memories by how well they match your words (accents and plurals ignored). Nothing leaves this machine.', onClick: () => setMode('relevance') }, 'Relevance'),
                 h('button', { type: 'button', className: (mode === 'meaning' ? 'on' : '') + (canMeaning ? '' : ' locked'), 'aria-pressed': mode === 'meaning', 'data-mode': 'meaning',
                   title: canMeaning ? 'Finds memories that mean the same, even with other words.' : meaningWhy(meaningReason, meaning.requiredTier) + ' Click to open Options.',
                   onClick: () => (canMeaning || mode === 'meaning' ? setMode('meaning') : openOptions()) }, canMeaning ? null : Ico('lock'), 'Meaning'))
@@ -614,7 +617,7 @@ window.__ModuleLoader__.load({
         // A meaning search that could not be done shows word matches instead — and says why, with the way to fix it.
         const sr = mems && mode === 'meaning' && String(qd).trim() !== '' && list.ok && list.extra !== null && list.extra.search !== undefined ? list.extra.search : null
         if (sr !== null && sr.fallback !== undefined && sr.fallback !== null) {
-          notes.push(h('div', { key: 'nf', className: 'kbmem-note', 'data-note': 'fallback' }, Ico('search'), h('div', null, h('b', null, 'Showing word matches. '), meaningWhy(sr.fallback, sr.requiredTier), ' ',
+          notes.push(h('div', { key: 'nf', className: 'kbmem-note', 'data-note': 'fallback' }, Ico('search'), h('div', null, h('b', null, 'Showing relevance matches. '), meaningWhy(sr.fallback, sr.requiredTier), ' ',
             h('a', { className: 'kbmem-link', role: 'button', tabIndex: 0, 'data-act': 'note-options', onClick: openOptions }, 'Open Options'))))
         }
         const byMeaning = sr !== null && sr.mode === 'meaning'
@@ -625,7 +628,7 @@ window.__ModuleLoader__.load({
           h('h3', null, notFound ? (mems ? 'Memories are not available' : 'Lessons are not available') : 'Could not load'), h('div', null, friendlyError(list.error)))
         else if (list.items.length === 0) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(String(qd).trim() !== '' || active.length > 0 ? 'search' : (mems ? 'brain' : 'bulb'))),
           String(qd).trim() !== '' || active.length > 0
-            ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'Nothing matches ' + (String(qd).trim() !== '' ? '“' + qd + '”' : 'these filters') + (byMeaning ? '. Nothing is close enough in meaning.' : '. Search looks for your words.')), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, 'Clear filters') : null]
+            ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'Nothing matches ' + (String(qd).trim() !== '' ? '“' + qd + '”' : 'these filters') + (byMeaning ? '. Nothing is close enough in meaning.' : '. No memory has those words.')), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, 'Clear filters') : null]
             : (mems ? [h('h3', { key: 'h' }, 'Nothing remembered yet'), h('div', { key: 'd' }, 'Memories appear as you work: Kybernos can capture them at the end of a turn, an agent can save one, or you can add your own.')]
               : [h('h3', { key: 'h' }, 'No lesson yet'), h('div', { key: 'd' }, 'A lesson is written when an agent finds an expectation was contradicted. They are stored per kyber, on this machine.')]))
         else body = h('div', null,
@@ -775,7 +778,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { onEscape, meaningWhy, closenessLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
