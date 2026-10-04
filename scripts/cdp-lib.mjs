@@ -19,10 +19,12 @@ export async function connect(targetInfo) {
   let seq = 0
   const pending = new Map()
   const errs = []
+  const listeners = new Map() // protocol event name -> [fn(params)]
   ws.addEventListener('message', (ev) => {
     let m = null
     try { m = JSON.parse(ev.data) } catch (e) { return }
     if (m.id !== undefined && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id) }
+    if (m.method !== undefined && listeners.has(m.method)) for (const fn of listeners.get(m.method)) { try { fn(m.params || {}) } catch (e) { /* a listener must not stop the others */ } }
     if (m.method === 'Runtime.consoleAPICalled' && m.params && m.params.type === 'error') {
       const t = (m.params.args || []).map((a) => (a.value !== undefined ? String(a.value) : (a.description || ''))).join(' ')
       errs.push(t.slice(0, 240))
@@ -45,7 +47,9 @@ export async function connect(targetInfo) {
     if (r.result && r.result.data) { const fs = await import('node:fs'); fs.writeFileSync(path, Buffer.from(r.result.data, 'base64')); return true }
     return false
   }
-  return { info: targetInfo, send, evalJs, shot, errs, close: () => { try { ws.close() } catch (e) { /* fermé */ } } }
+  /** Subscribe to a protocol event (e.g. 'Fetch.requestPaused'). */
+  const on = (method, fn) => { if (!listeners.has(method)) listeners.set(method, []); listeners.get(method).push(fn) }
+  return { info: targetInfo, send, evalJs, shot, errs, on, close: () => { try { ws.close() } catch (e) { /* fermé */ } } }
 }
 
 // Cherche parmi les pages 3080 celle qui répond ET dont le client est à jour.

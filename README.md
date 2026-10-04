@@ -35,7 +35,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | `kybernos-cloud` | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
 | `kybernos-composio` | Composio integration: MCP connection and app catalog |
 | `kybernos-flow` | Conversation flow without engine patches: auto-continue, queue-move |
-| `kybernos-language` | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left |
+| `kybernos-language` | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
 | `kybernos-modeles-locaux` | Local models panel: detects the machine, installs an Ollama model |
 | `kybernos-refs` | Markdown links become compact reference chips |
 | `kybernos-sessions` | Session and kyber memory status per folder |

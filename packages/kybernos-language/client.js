@@ -13,6 +13,11 @@
 //   live translation ...................... settings pages written with hardcoded
 //                                           text are translated as they appear
 //   document direction and language ....... dir + lang on <html>
+//   disk copy ............................. every write below also reaches the user's
+//                                           disk (~/.dsh/kybernos/i18n/<lang>.json) through
+//                                           window.__KB_LANG_RUNTIME__.disk, which belongs
+//                                           to @local/kybernos and so works with this
+//                                           plugin off; the page states where they are kept
 //
 // Three sources feed a run, none of them guessed:
 //   1. window.__KB_T__ / window.__KB_FR_EN__ — published by @local/kybernos
@@ -276,6 +281,21 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       }
 
       // ── storage ──────────────────────────────────────────────────────────
+      // The browser's copy is what this page reads. The always-on runtime (@local/kybernos)
+      // keeps the copy on the user's DISK in step: every write below tells it which
+      // language changed (it pushes the difference a moment later), and a removal is
+      // passed on. Without the runtime, or without the host route, both are no-ops.
+      const diskRuntime = () => {
+        const rt = window.__KB_LANG_RUNTIME__
+        return rt !== undefined && rt !== null && rt.disk !== undefined && rt.disk !== null ? rt.disk : null
+      }
+      const diskTouch = (id) => { const d = diskRuntime(); if (d !== null) { try { d.touch(id) } catch (e) { /* the disk copy must never break the page */ } } }
+      // `kybernos.i18n.<id>`, `.meta.<id>`, `.dsh.<id>`, `.live.<id>` -> id; anything else (labels, registry, model…) -> null
+      const langOfKey = (key) => {
+        if (key.indexOf('kybernos.i18n.') !== 0) return null
+        const m = /^(?:meta\.|dsh\.|live\.)?([a-z]{2,3}(?:-[A-Za-z0-9]+)?)$/.exec(key.slice('kybernos.i18n.'.length))
+        return m === null ? null : m[1]
+      }
       const readJson = (key, dflt) => {
         try {
           const raw = localStorage.getItem(key)
@@ -287,7 +307,10 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       // false when the browser refused the write (quota, private mode): the
       // engine stops instead of reporting progress it cannot keep.
       const writeJson = (key, value) => {
-        try { localStorage.setItem(key, JSON.stringify(value)); return true } catch (e) { return false }
+        try { localStorage.setItem(key, JSON.stringify(value)) } catch (e) { return false }
+        const lid = langOfKey(key)
+        if (lid !== null) diskTouch(lid)
+        return true
       }
       const i18nRead = (lang) => readJson(I18N_STORE_PREFIX + lang, {})
       const dshRead = (lang) => readJson(I18N_DSH_PREFIX + lang, {})
@@ -301,6 +324,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         // selector by this name, with or without this plugin.
         const labels = readJson(I18N_LABELS_KEY, {})
         if (labels[id] === undefined) { labels[id] = langInfo(id).native; writeJson(I18N_LABELS_KEY, labels) }
+        diskTouch(id)
       }
       const dropLanguage = (id) => {
         try {
@@ -310,6 +334,9 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           delete labels[id]
           writeJson(I18N_LABELS_KEY, labels)
         } catch (e) { /* storage unavailable */ }
+        // The disk copy goes too — otherwise the next boot would bring the language back.
+        const d = diskRuntime()
+        if (d !== null) { try { d.remove(id) } catch (e) { /* the disk copy must never break the page */ } }
       }
 
       // Languages the page lists: the two built-ins, the ones the user added, and
@@ -445,6 +472,11 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         tipAddLang: ['Ajouter {name} ({code})', 'Add {name} ({code})'],
         tipModel: ['Le modèle qui écrit les traductions. N’importe quel modèle configuré dans DSH convient ; un modèle rapide suffit.', 'The model that writes the translations. Any model configured in DSH works; a fast one is enough.'],
         tipAdvanced: ['Choix du modèle de traduction.', 'Translation model choice.'],
+        diskOn: ['Traductions enregistrées sur cet ordinateur : {dir}', 'Translations saved on this computer: {dir}'],
+        diskOff: ['Traductions gardées dans ce navigateur seulement. Relancez DSH pour les enregistrer aussi sur le disque de cet ordinateur.', 'Translations kept in this browser only. Restart DSH to save them on this computer’s disk too.'],
+        diskErr: ['Enregistrement sur le disque impossible ({err}). Nouvel essai automatique.', 'Could not save to the disk ({err}). Trying again automatically.'],
+        tipDiskOn: ['Ce dossier contient une copie de chaque langue traduite. Elle reste disponible dans tous vos navigateurs, même si vous effacez les données de celui-ci. C’est ce dossier qu’il faut sauvegarder.', 'This folder holds a copy of every translated language. It stays available in all your browsers, even if you clear this one’s data. This is the folder to back up.'],
+        tipDiskOff: ['Le navigateur garde la traduction, mais effacer ses données ou changer de navigateur la ferait perdre. Après un redémarrage de DSH, elle est copiée sur le disque automatiquement.', 'The browser keeps the translation, but clearing its data or switching browser would lose it. After DSH restarts it is copied to the disk automatically.'],
         tipAgain: ['Efface cette traduction et recommence depuis zéro.', 'Discards this translation and starts over from scratch.'],
         tipRemove: ['Supprime cette langue et ses traductions de cet ordinateur.', 'Removes this language and its translations from this computer.'],
         tipChooseModel: ['Ouvre « Avancé » pour choisir un autre modèle.', 'Opens “Advanced” so you can pick another model.'],
@@ -1132,6 +1164,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const advRef = React.useRef(null)
 
         React.useEffect(() => { setSnap(run); return subscribeRun(setSnap) }, [])
+        // Where the translations are kept (disk or browser only) can change after the page opened.
+        React.useEffect(() => { const d = diskRuntime(); return d !== null ? d.watch(() => setTick((n) => n + 1)) : undefined }, [])
         React.useEffect(() => {
           let off = false
           fetchModels().then((res) => {
@@ -1155,6 +1189,17 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         }, [menuFor])
 
         const langs = getAvailableLangs()
+        // Where the translations are kept: on the disk (shared by every browser), or in this
+        // browser only (DSH not restarted since the disk copy was added, or the host is down).
+        const diskLine = () => {
+          const d = diskRuntime()
+          if (d === null) return null
+          const st = d.status()
+          if (st.state === 'on' && st.error === '') return h('div', { key: 'disk', className: 'kbth-note', 'data-disk': 'on', title: L('tipDiskOn') }, L('diskOn', { dir: st.dir }))
+          if (st.state === 'on') return h('div', { key: 'disk', className: 'kbth-note', 'data-disk': 'error', role: 'status', title: L('tipDiskOff') }, L('diskErr', { err: st.error }))
+          if (st.state === 'off' && st.error !== 'disabled') return h('div', { key: 'disk', className: 'kbth-note', 'data-disk': 'off', role: 'status', title: L('tipDiskOff') }, L('diskOff'))
+          return null
+        }
         const route = () => {
           const m = models.find((x) => x.id === selectedModel)
           return m !== undefined ? { provider: m.provider, model: m.model } : null
@@ -1334,7 +1379,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
                           onChange: (e) => { setSelectedModel(e.target.value); try { localStorage.setItem(I18N_MODEL_KEY, e.target.value) } catch (ex) { /* */ } },
                         }, models.map((m) => h('option', { key: m.id, value: m.id }, m.name + ' (' + m.provider + ')'))))
                     : null,
-                  h('div', { className: 'kbth-hint' }, models.length > 0 ? L('modelHint') : L('noModels')))))))
+                  h('div', { className: 'kbth-hint' }, models.length > 0 ? L('modelHint') : L('noModels')))),
+              diskLine())))
       }
 
       // Opens this page from anywhere in the settings: the nav entry is found by its
@@ -1368,7 +1414,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           kbSources, dshSources, buildPlan, runTranslation, hostTranslate, planBatches, isComplete, metaRead, i18nRead, dshRead, liveRead,
           startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate,
           managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage, heldBy,
-          setLocale: (svc) => { locSvc = svc; _dsh = null; _dshRev = null }, L, estimateMinutes, minutesLeft,
+          __writeJson: writeJson, setLocale: (svc) => { locSvc = svc; _dsh = null; _dshRev = null }, L, estimateMinutes, minutesLeft,
         },
         apply(ctx) {
           // (01/10) Label from the language state itself: an English shell reads

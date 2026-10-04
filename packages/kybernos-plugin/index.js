@@ -18,6 +18,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 import { poserPresetKybernos, choisirPresetParDefaut, ID_PRESET_KYBERNOS, SEUIL_COMPACTAGE, activerSubagentClaude } from './preset-compaction.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
+import { serveI18nStore } from './i18n-store.mjs'
 // ── Le plafond de retries (29/09/2026) ──────────────────────────────────────
 // Un subagent « ne répondait plus » des heures : maxRetries 500 × backoff 30 s.
 // Le moteur donne déjà un défaut sain (5 essais) aux fournisseurs sans
@@ -9996,6 +9997,11 @@ function boot(ctx) {
         if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         sendJson(res, 200, Object.assign({ ok: true }, await i18nModels()))
       } }), 'kybernos: route i18n-models')
+      // Translations saved on the user's disk (~/.dsh/kybernos/i18n/<lang>.json), shared by
+      // every browser: see i18n-store.mjs. The browser keeps a copy for first paint.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => serveI18nStore(req, res, {
+        home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
+      }) }), 'kybernos: route i18n-store')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-cap', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
         sendJson(res, 200, { ok: true, cap: readTeamCap() })

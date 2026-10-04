@@ -2175,6 +2175,8 @@ const kbLangActive = () => {
 //   kybernos.i18n.<id>      { key: text }        Kybernos dictionary (kbt/kbf)
 //   kybernos.i18n.dsh.<id>  { "ns::key": text }  DSH's own dictionaries
 //   kybernos.theme.lang     the active Kybernos language (also the first-paint cache)
+// The browser is only a COPY: the translations are also kept on the user's disk
+// (~/.dsh/kybernos/i18n/<lang>.json, host route /kybernos/i18n-store). See "Disk copy".
 // DSH's locale is the single source of truth for the active language (it is the
 // one DSH persists on the host); `kybernos.theme.lang` mirrors it. The runtime is
 // published as window.__KB_LANG_RUNTIME__ so the plugin can register a pack it has
@@ -2189,6 +2191,7 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
   const later = e.setTimeout || ((fn, ms) => setTimeout(fn, ms))
   const now = e.now || (() => Date.now())
   const ours = new Set() // languages WE registered in DSH (DSH-native ones are told apart)
+  const mounted = new Map() // id -> disposer of the registration that is live now
   const ID = /^[a-z]{2,3}(-[A-Za-z0-9]+)?$/
   const readJson = (key, dflt) => {
     try {
@@ -2245,12 +2248,16 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
       byNs[ns][wire.slice(at + 2)] = dict[wire]
     }
     for (const ns of Object.keys(byNs)) { try { dDicts.push(loc.register(ns, id, byNs[ns])) } catch (err) { /* namespace already has this language */ } }
-    return () => {
+    const dispose = () => {
       for (const d of dDicts) { try { d() } catch (err) { /* already disposed */ } }
       if (dLang !== null) { try { dLang() } catch (err) { /* already disposed */ } }
       ours.delete(id)
+      mounted.delete(id)
     }
+    mounted.set(id, dispose)
+    return dispose
   }
+  const unregisterPack = (id) => { const d = mounted.get(id); if (d !== undefined) d() }
   const stored = () => { try { const v = store.getItem('kybernos.theme.lang'); return v !== null && v !== '' ? v : null } catch (err) { return null } }
   // What Kybernos should become to match DSH's active language, or null to leave it.
   //  - one of our languages, or any other non-English DSH language (zh, the
@@ -2263,7 +2270,8 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
     return cur !== null && ours.has(cur) ? 'en' : null
   }
   const follow = (target) => {
-    try { store.setItem('kybernos.theme.lang', target) } catch (err) { /* quota */ }
+    // A choice the browser cannot keep would be followed again after the reload: no loop.
+    try { store.setItem('kybernos.theme.lang', target) } catch (err) { return }
     later(reload, 300)
   }
   // Has DSH finished reading its stored language from the host? Until then it sits on
@@ -2306,7 +2314,233 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
     }
     later(reconcile, KB_LANG_GRACE_MS)
   }
-  const runtime = { version: 1, registerPack, packIds, ours, wanted, reconcile }
+
+  // ── Disk copy ──────────────────────────────────────────────────────────────
+  // Translating costs minutes of model time, so the result must not depend on one
+  // browser's localStorage (cleared with the site data, absent from any other
+  // browser). The host keeps each language as a file; this browser keeps a copy
+  // because first paint reads it synchronously. At boot the two are reconciled:
+  // a language only the disk has is pulled (and registered in DSH, which then picks
+  // it up if it is the language DSH remembers), a language only this browser has is
+  // pushed (the migration of translations made before the disk copy existed), two
+  // different copies are merged. Afterwards every write the plugin makes is pushed as
+  // a delta, a removal at once (retried at the next boot when it could not reach the
+  // host). The browser's copy is never deleted because the disk lacks it: only a
+  // removal made on purpose after its last change (the host's tombstone) does that.
+  // Without the host route (DSH not restarted since the update) all of this is a no-op
+  // and the status says so.
+  const HOST_PATH = '/kybernos/i18n-store'
+  const OWED_KEY = 'kybernos.i18n.removing'
+  const PUSH_DELAY_MS = 1500
+  const RETRY_MS = 15000
+  const REPROBE_MS = 30000
+  const SECTIONS = ['kb', 'dsh', 'live']
+  const keyOf = (sec, id) => 'kybernos.i18n.' + (sec === 'kb' ? '' : sec + '.') + id
+  const hostFetch = e.fetch || ((url, init) => (typeof fetch === 'function' ? fetch(url, init) : Promise.reject(new Error('no fetch'))))
+  const onPulled = e.onPulled || (() => {})
+  const hostEnabled = () => win.__KB_I18N_HOST_STORE__ !== false
+  const status = { state: 'unknown', dir: '', error: '' } // state: unknown | on | off
+  const pendingPush = new Set()
+  const watchers = new Set()
+  const shadow = new Map() // id -> what the host is known to hold
+  const snapshot = () => ({ state: status.state, dir: status.dir, error: status.error, pending: pendingPush.size })
+  const setStatus = (patch) => {
+    Object.assign(status, patch)
+    for (const fn of Array.from(watchers)) { try { fn(snapshot()) } catch (err) { /* one watcher must not stop the others */ } }
+  }
+  // JSON answer of the host route, or null: route absent (404/HTML), host down, refused.
+  const call = async (body, query) => {
+    try {
+      const init = body === undefined
+        ? { credentials: 'same-origin' }
+        : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+      const res = await hostFetch(HOST_PATH + (query || ''), init)
+      const json = await res.json()
+      return json !== null && typeof json === 'object' ? json : null
+    } catch (err) { return null }
+  }
+  const nonEmpty = (o) => o !== null && typeof o === 'object' && Object.keys(o).length > 0
+  const same = (a, b) => { const ka = Object.keys(a); return ka.length === Object.keys(b).length && ka.every((k) => a[k] === b[k]) }
+  const stamp = (m) => { const n = Number(m && m.at); return Number.isFinite(n) ? n : 0 }
+  const readLocal = (id) => {
+    const l = readJson('kybernos.i18n.labels', {})[id]
+    return { kb: readJson(keyOf('kb', id), {}), dsh: readJson(keyOf('dsh', id), {}), live: readJson(keyOf('live', id), {}), meta: readJson(keyOf('meta', id), {}), label: typeof l === 'string' ? l : '' }
+  }
+  const hasContent = (p) => SECTIONS.some((sec) => nonEmpty(p[sec]))
+  // false when the browser refused (quota): nothing is then treated as pulled.
+  const writeLocal = (id, p) => {
+    try {
+      for (const sec of SECTIONS) if (nonEmpty(p[sec]) || store.getItem(keyOf(sec, id)) !== null) store.setItem(keyOf(sec, id), JSON.stringify(p[sec]))
+      if (nonEmpty(p.meta)) store.setItem(keyOf('meta', id), JSON.stringify(p.meta))
+      const reg = readJson('kybernos.i18n.langs', [])
+      const list = Array.isArray(reg) ? reg : []
+      if (list.indexOf(id) < 0) { list.push(id); store.setItem('kybernos.i18n.langs', JSON.stringify(list)) }
+      if (p.label) {
+        const labels = readJson('kybernos.i18n.labels', {})
+        if (labels[id] !== p.label) { labels[id] = p.label; store.setItem('kybernos.i18n.labels', JSON.stringify(labels)) }
+      }
+      return true
+    } catch (err) { return false }
+  }
+  const dropLocal = (id) => {
+    try {
+      for (const sec of ['kb', 'dsh', 'live', 'meta']) store.removeItem(keyOf(sec, id))
+      const reg = readJson('kybernos.i18n.langs', [])
+      store.setItem('kybernos.i18n.langs', JSON.stringify((Array.isArray(reg) ? reg : []).filter((x) => x !== id)))
+      const labels = readJson('kybernos.i18n.labels', {})
+      delete labels[id]
+      store.setItem('kybernos.i18n.labels', JSON.stringify(labels))
+    } catch (err) { /* storage unavailable */ }
+  }
+  const owed = () => { const q = readJson(OWED_KEY, []); return Array.isArray(q) ? q : [] }
+  const setOwed = (id, on) => {
+    const list = owed().filter((x) => x !== id)
+    if (on) list.push(id)
+    try { store.setItem(OWED_KEY, JSON.stringify(list)) } catch (err) { /* quota */ }
+  }
+
+  const bootSync = async () => {
+    if (!hostEnabled()) { setStatus({ state: 'off', error: 'disabled' }); return }
+    // Removals that did not reach the host last time go first — unless the language
+    // was made again since: that is then newer than the removal.
+    for (const id of owed()) {
+      if (hasContent(readLocal(id))) { setOwed(id, false); continue }
+      const r = await call({ id, remove: true })
+      if (r !== null && r.ok === true) setOwed(id, false)
+    }
+    const listing = await call()
+    if (listing === null || listing.ok !== true || !Array.isArray(listing.packs)) { setStatus({ state: 'off', error: 'unreachable' }); return }
+    setStatus({ state: 'on', dir: String(listing.dir || ''), error: '' })
+    const tomb = listing.removed !== null && typeof listing.removed === 'object' ? listing.removed : {}
+    const onHost = new Set()
+    const fresh = []
+    for (const hp of listing.packs) {
+      const id = hp === null || typeof hp !== 'object' ? '' : String(hp.id)
+      if (!ID.test(id) || id === 'en' || id === 'kybernos') continue
+      onHost.add(id)
+      const local = readLocal(id)
+      const hc = hp.counts || {}
+      if (hasContent(local) && SECTIONS.every((sec) => Object.keys(local[sec]).length === hc[sec]) && stamp(local.meta) === stamp(hp.meta)) { shadow.set(id, local); continue }
+      const got = await call(undefined, '?id=' + encodeURIComponent(id))
+      if (got === null || got.ok !== true || got.pack === null || typeof got.pack !== 'object') continue
+      const pack = got.pack
+      // Same text on both sides: the more recent translation run wins. The disk wins on a tie.
+      const localWins = stamp(local.meta) > stamp(pack.meta)
+      const merged = { meta: localWins ? local.meta : (nonEmpty(pack.meta) ? pack.meta : local.meta), label: local.label || pack.label || '' }
+      for (const sec of SECTIONS) {
+        const hostSec = pack[sec] || {}
+        merged[sec] = {}
+        for (const k of Object.keys(hostSec)) merged[sec][k] = hostSec[k]
+        for (const k of Object.keys(local[sec])) if (localWins || merged[sec][k] === undefined) merged[sec][k] = local[sec][k]
+      }
+      const isNew = !hasContent(local)
+      const changed = SECTIONS.some((sec) => !same(merged[sec], local[sec])) || JSON.stringify(merged.meta) !== JSON.stringify(local.meta) || merged.label !== local.label
+      if (changed && !writeLocal(id, merged)) continue
+      shadow.set(id, { kb: pack.kb || {}, dsh: pack.dsh || {}, live: pack.live || {}, meta: pack.meta || {}, label: pack.label || '' })
+      if (SECTIONS.some((sec) => !same(merged[sec], pack[sec] || {})) || (localWins && JSON.stringify(merged.meta) !== JSON.stringify(pack.meta || {}))) pendingPush.add(id)
+      if (changed) fresh.push({ id, isNew })
+    }
+    for (const id of packIds()) {
+      if (onHost.has(id)) continue
+      const local = readLocal(id)
+      if (!hasContent(local)) continue
+      // Removed on purpose, somewhere else, after this copy's last change: let it go.
+      if (tomb[id] !== undefined && stamp(local.meta) < Number(tomb[id])) { unregisterPack(id); dropLocal(id); continue }
+      pendingPush.add(id)
+    }
+    // A language this browser already had was registered in DSH at boot, from its older text:
+    // what the merge added reaches DSH's dictionaries at the next load (Kybernos' own, at once).
+    if (loc !== null && loc !== undefined) {
+      for (const f of fresh) if (f.isNew) ctx.effect(() => registerPack(f.id) || (() => {}), 'kybernos: DSH language pack ' + f.id)
+    }
+    for (const f of fresh) { try { onPulled(f.id) } catch (err) { /* a listener must not break the boot */ } }
+    if (pendingPush.size > 0) schedule(0)
+  }
+
+  // What changed locally since the host last had it: new or changed texts, and — when a
+  // text was taken away — the whole section, which the host then replaces.
+  const pushOne = async (id) => {
+    const local = readLocal(id)
+    if (!hasContent(local) && !nonEmpty(local.meta)) return true // gone from this browser: remove() owns that
+    const base = shadow.get(id) || null
+    const body = { id }
+    let any = false
+    const replace = base !== null && SECTIONS.some((sec) => Object.keys(base[sec] || {}).some((k) => local[sec][k] === undefined))
+    for (const sec of SECTIONS) {
+      if (replace) { body[sec] = local[sec]; any = true; continue }
+      const had = base !== null ? (base[sec] || {}) : {}
+      const delta = {}
+      for (const k of Object.keys(local[sec])) if (had[k] !== local[sec][k]) delta[k] = local[sec][k]
+      if (nonEmpty(delta)) { body[sec] = delta; any = true }
+    }
+    if (replace) body.replace = true
+    if (base === null || JSON.stringify(base.meta || {}) !== JSON.stringify(local.meta)) { if (nonEmpty(local.meta)) { body.meta = local.meta; any = true } }
+    if (local.label !== '' && (base === null || base.label !== local.label)) { body.label = local.label; any = true }
+    if (!any) return true
+    const r = await call(body)
+    if (r === null) { setStatus({ state: 'off', error: 'unreachable' }); return false }
+    if (r.ok !== true) { setStatus({ error: String(r.error || 'refused') }); return false }
+    shadow.set(id, local)
+    setStatus({ error: '' })
+    return true
+  }
+
+  let pushing = Promise.resolve()
+  let timer = false
+  let lastProbe = 0
+  const drain = async () => {
+    await booted
+    if (!hostEnabled()) return
+    if (status.state === 'off') {
+      // The route may exist now (DSH restarted since): look again, at most every 30 s.
+      if (now() - lastProbe < REPROBE_MS) return
+      lastProbe = now()
+      await bootSync() // as at boot: pull what the disk has, merge, queue what it lacks
+      if (status.state !== 'on') return
+    }
+    for (const id of Array.from(pendingPush)) {
+      if (await pushOne(id)) pendingPush.delete(id)
+      else break
+    }
+    setStatus({})
+    if (pendingPush.size > 0 && status.state === 'on') schedule(RETRY_MS)
+  }
+  const schedule = (ms) => {
+    if (timer) return
+    timer = true
+    later(() => { timer = false; pushing = pushing.then(drain, drain) }, ms === undefined ? PUSH_DELAY_MS : ms)
+  }
+  // The plugin wrote (a batch of translations, a label…): push it soon, as a delta.
+  const touch = (id) => {
+    if (!hostEnabled() || typeof id !== 'string' || !ID.test(id)) return
+    if (owed().indexOf(id) >= 0) setOwed(id, false) // made again: the earlier removal no longer applies
+    pendingPush.add(id)
+    schedule()
+  }
+  // The plugin removed the language from this browser: remove it from the disk too.
+  const removeFromDisk = async (id) => {
+    if (typeof id !== 'string' || !ID.test(id)) return false
+    pendingPush.delete(id)
+    shadow.delete(id)
+    if (!hostEnabled()) return false
+    setOwed(id, true)
+    await booted
+    if (status.state !== 'on') return false // stays owed: sent at the next boot
+    const r = await call({ id, remove: true })
+    if (r !== null && r.ok === true) { setOwed(id, false); return true }
+    return false
+  }
+  const booted = Promise.resolve().then(bootSync).catch(() => { setStatus({ state: 'off', error: 'unreachable' }) })
+  const disk = {
+    status: snapshot,
+    watch: (fn) => { watchers.add(fn); return () => { watchers.delete(fn) } },
+    touch,
+    remove: removeFromDisk,
+    // Resolves once the boot reconciliation and the pushes scheduled so far are done.
+    idle: async () => { await booted; await pushing },
+  }
+
+  const runtime = { version: 1, registerPack, packIds, ours, wanted, reconcile, disk }
   try { win.__KB_LANG_RUNTIME__ = runtime } catch (err) { /* no window */ }
   return runtime
 }
@@ -29468,7 +29702,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     }
     // Translated languages stay available — registered in DSH, followed from its
     // selector — even when the optional Language plugin is switched off.
-    try { kbLangRuntimeStart(ctx, localeSvc !== undefined ? localeSvc : null) } catch (e) { try { console.error('[kybernos] language runtime', e) } catch (e2) { /* */ } }
+    try { kbLangRuntimeStart(ctx, localeSvc !== undefined ? localeSvc : null, { onPulled: () => { kbI18nCache = { lang: null, dict: null } } }) } catch (e) { try { console.error('[kybernos] language runtime', e) } catch (e2) { /* */ } }
     slots.inject('tool.view.cordis', () => slots.register(
       { name: 'tool.view.cordis', key: 'self' },
       RunCard));

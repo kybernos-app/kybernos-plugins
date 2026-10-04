@@ -127,8 +127,99 @@ first module, so the simulation wraps the *property* (an accessor), not its valu
 
 Unit-level coverage (no browser): `packages/kybernos-language/test-client.mjs` (engine, page
 logic; it loads the real runtime from the core plugin), `packages/kybernos-plugin/test-lang-runtime.mjs`
-(the runtime in isolation: registration, following DSH's selector, the boot grace period) and,
-for the host route, `packages/kybernos-plugin/test-i18n-translate.mjs`.
+(the runtime in isolation: registration, following DSH's selector, the boot grace period, and the
+disk copy against the real store module), and, for the host, `packages/kybernos-plugin/test-i18n-translate.mjs`
+(the translation route) and `test-i18n-store.mjs` (the on-disk store and its route).
+
+## The disk copy of the translations: `scripts/check-language-disk-live.mjs`
+
+Translations are kept in the browser's localStorage **and** on the disk
+(`~/.dsh/kybernos/i18n/<lang>.json`, host route `/kybernos/i18n-store`, see
+`packages/kybernos-plugin/i18n-store.mjs`). The always-on runtime reconciles the two at boot
+and pushes later writes as deltas.
+
+```bash
+node scripts/check-language-disk-live.mjs
+```
+
+It runs the whole chain in a real browser: translate → the file appears; a browser with
+nothing gets the language back from the disk and DSH shows it; removing it removes the file
+(and leaves a tombstone); a host that is down or has no route leaves the browser copy intact
+and the page says so. The « disk » is a **throw-away folder** served by the REAL route code
+(`fakeDiskRoute` in `lib-language-flow.mjs`, requests intercepted over CDP): your `~/.dsh`
+is neither read nor written, and it works before DSH has been restarted with the route.
+Like the other language scripts it switches DSH's language and restores English.
+
+**Every other live script runs with the disk copy off.** `openLivePage` sets
+`window.__KB_I18N_HOST_STORE__ = false` in each page, because the stubbed model produces
+pseudo-translations (`⟦text⟧`): written to the real disk, they would replace a real
+translation. Only a script that passes `{ hostStore: true }` (and intercepts the route, as
+above) gets the copy.
+
+## The Theme page, end to end: `scripts/check-theme-live.mjs`
+
+```bash
+node scripts/check-theme-live.mjs --shots /tmp/shots      # screenshots of the main steps
+node scripts/check-theme-live.mjs --only skins,persist    # just those sections (the baseline always runs)
+```
+
+Nothing is stubbed: the page, real CDP mouse and key events, DSH's theme service, the token
+layer, the wallpaper `<div>`, the font style tag, the `kybernos.theme.v1` store and the reload at
+boot are all real, and the assertions read **computed styles** (the 17 `--dsw-*` tokens on
+`<body>`, the wallpaper's `opacity`/`filter`, `--dsw-font-family`), never the source. It checks:
+the page and its controls; every dark and mode-less theme (stored, tokens equal to the pack's
+palette, wallpaper, pill) and « DSH default » giving back the 17 native values; persistence (a
+reload applies theme, accent, wallpaper, font and text size **before Settings is opened**);
+accent dots, hex field (invalid input marks `.bad` and changes nothing), picker and reset;
+wallpaper categories, tiles, visibility / blur / tint, and whether it can actually be *seen*;
+the font selector (search without accents, arrows, Enter, Escape, click outside); the eight
+Advanced sub-tabs; Colors (what the page shows equals the applied tokens, token editor and its
+reset); Accessibility (contrast levels measured as WCAG ratios); « Reset all »; Sharing
+(export, copy, import). A console error from `[kybernos-theme]` or an uncaught exception from
+one of its functions fails the section it happened in (a second CDP connection listens).
+Exit code 0 / 1 / 3 (3 = no Chrome, no GUI, the Theme page unreachable, before any measure).
+
+Besides ✓ / ✗ it prints two blocks that are **not failures**: *KNOWN GAPS* — every Advanced
+control that calls `commit({ key })` with a key outside `DEF` is measured (stored in
+localStorage? restored after a reload? any change of the DOM?), plus the export / import
+limits — and *OBSERVATIONS*. A ✗ is a real defect: the check stays red until it is fixed.
+
+### ⚠ A theme can persist DSH's mode and font size — on your machine
+
+The plugin drives DSH's own theme service: every change calls `setTheme(mode)` and
+`setFontSize(px)`, which DSH stores in the profile (`ui-theme` in `cordis.patch.yml`), not in the
+throw-away browser. And a **boot** with no Theme state re-applies the default size, 15, over
+DSH's own. So the script:
+
+1. reads that file before it starts, and uses the stored mode as the one to keep;
+2. clicks only Dark and mode-less themes while that mode is Dark (only mode-less ones otherwise,
+   and it then skips « DSH default » and « Reset all », which force Dark); it never clicks a Light
+   theme, never uses « Surprise me », never touches the Mode buttons except to restore;
+3. before **every** click, key or colour pick, checks that DSH still reports that mode
+   (`html[data-ds-theme-source]`): if it moved — even by someone else — the run stops at once
+   and puts it back;
+4. moves the text size by +1 px for a few seconds and ends by putting back the size it found;
+5. in a `finally` (and on SIGINT / SIGTERM) verifies both values in the file, restores them
+   if needed and prints `!!! NOT RESTORED` if it cannot. A hard kill can still leave them moved:
+   set the mode in Settings › Theme and the size with the text-size slider.
+
+### Hooks and traps
+
+- Hooks are classes: `.kbth-skin`, `.kbth-dots .kbth-dot`, `.kbth-cat`, `.kbth-wp`, `.kbth-fsbtn` /
+  `.kbth-fssearch` / `.kbth-fsopt`, `.kbth-adv-tab`, `.kbth-adv-pane`, `.kbth-tok`,
+  `.kbth-adv-editor`, `.kbth-foot`. A slider has no id: find its `.kbth-sl` block by label (either
+  language). The Mode row is the segment reading System / Light / Dark.
+- Sliders are driven with real `Home` / `End` / arrow keys on the focused range input (exact and
+  deterministic); colour pickers by the native value setter plus an `input` event.
+- **`Escape` closes the whole Settings dialog**, font panel open or not. The check that wants it
+  to close only the panel is red for that reason.
+- The wallpaper `<div>` has `pointer-events: none`, so `elementsFromPoint` never lists it: to
+  know whether it is visible, look for an opaque element *above* each sampled point instead.
+- Tokens are read on `<body>` (that is where DSH and the layer declare them), not on `<html>`.
+- Only the Dark half of each `{ light, dark }` pair is exercised end to end; the Light half is
+  checked only through what the page displays, because the run must not switch DSH to Light.
+- Several agents may share one DSH: another session switching the real GUI to Light during the
+  run is caught by the mode guard above, and is not a failure of the page.
 
 ## Translation coverage: `scripts/audit-i18n-live.mjs`
 

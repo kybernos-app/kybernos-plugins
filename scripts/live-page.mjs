@@ -3,6 +3,7 @@
 //
 //   import { openLivePage } from './live-page.mjs'
 //   const live = await openLivePage()           // 127.0.0.1:3080 by default
+//   (the page never writes translations to the user's disk unless { hostStore: true } — see below)
 //   await live.page.evalJs('document.title')    // { val } or { err }
 //   await live.close()
 //
@@ -61,6 +62,10 @@ export async function openLivePage(opts = {}) {
 
   const page = await connect(target)
   await page.send('Page.enable', {})
+  // The language runtime keeps a copy of every translation on the user's DISK, through the
+  // host: a test must never write there (a pseudo-translation would replace a real one).
+  // Off in every page of the test browser, unless the test asks for it (opts.hostStore).
+  if (opts.hostStore !== true) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_HOST_STORE__ = false' })
   if (await poserCookie(page, authority) !== true) { page.close(); await close(); throw new Error('the browser refused the session cookie') }
   await page.send('Page.navigate', { url: 'http://' + authority + '/' })
   // The GUI is up once the DSH shell has rendered something.

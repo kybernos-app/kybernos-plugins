@@ -4,12 +4,16 @@
 // host's LLM (host routes `POST /kybernos/i18n-translate` and
 // `GET /kybernos/i18n-models`, served by @local/kybernos), the local cache
 // `kybernos.i18n.<lang>`, the Language page and the pointer under General › Language.
+// Translations are also kept on the user's disk (~/.dsh/kybernos/i18n/<lang>.json, host
+// route `/kybernos/i18n-store`, same module): the browser holds a copy for first paint.
 //
 // This bundle is a REMOVABLE satellite, and switching it off must not lose the
 // languages already translated: the part that keeps them working — registering each
 // translated language in DSH (its General › Language selector lists it) and keeping
 // Kybernos in step with that selector — is the always-on language runtime of
-// @local/kybernos (`window.__KB_LANG_RUNTIME__`). Without this bundle, a translated
-// language is still listed in DSH's selector and still applies; only translating,
-// pausing, resuming and removing languages (this page) and live translation are gone.
+// @local/kybernos (`window.__KB_LANG_RUNTIME__`), and so is the reconciliation of the
+// browser's copy with the disk's (a browser that has nothing gets its languages back from
+// the disk). Without this bundle, a translated language is still listed in DSH's selector
+// and still applies; only translating, pausing, resuming and removing languages (this page)
+// and live translation are gone.
 export function apply() {}

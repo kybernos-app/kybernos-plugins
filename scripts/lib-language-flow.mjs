@@ -239,3 +239,48 @@ export async function createFlow(page) {
 
   return { val, mouse, clickSel, click, typeInPicker, reload, openSettings, rowText, hasRow, waitReady, addLanguage, installStub, pseudoLanguage, restoreEnglish, shellReady, languagePlugin, dshLanguageRow, waitDshLanguageRow, openDshLanguageMenu, dshLanguageOptions, pickDshLanguage }
 }
+
+/**
+ * Stands in for the host route /kybernos/i18n-store inside the page, with the REAL route
+ * code (serveI18nStore) on a throw-away "DSH home": the browser asks, the real store
+ * module answers, and nothing of the user's ~/.dsh is read or written. The requests are
+ * intercepted at the network level (CDP Fetch), so the page code under test is untouched.
+ *
+ *   const disk = await fakeDiskRoute(page, home)
+ *   disk.mode = 'up' | 'down' (connection refused) | 'absent' (404 HTML: DSH not restarted)
+ *   disk.store    the store on that home — read it to see what reached the "disk"
+ *   disk.requests every request seen: { method, id, status }
+ */
+export async function fakeDiskRoute(page, home) {
+  const { createI18nStore, serveI18nStore } = await import('../packages/kybernos-plugin/i18n-store.mjs')
+  const disk = { mode: 'up', requests: [], store: createI18nStore({ dir: home + '/kybernos/i18n' }) }
+  const answer = async (p) => {
+    const url = new URL(p.request.url)
+    const method = p.request.method
+    const rec = { method, id: url.searchParams.get('id'), status: 0 }
+    disk.requests.push(rec)
+    if (disk.mode === 'down') { rec.status = -1; return page.send('Fetch.failRequest', { requestId: p.requestId, errorReason: 'ConnectionRefused' }) }
+    if (disk.mode === 'absent') {
+      rec.status = 404
+      return page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 404, responseHeaders: [{ name: 'content-type', value: 'text/html' }], body: Buffer.from('<!doctype html><title>404</title>').toString('base64') })
+    }
+    let out = { status: 500, body: { ok: false } }
+    await serveI18nStore({ method, query: url.search }, {}, {
+      home: async () => home,
+      sameOriginStrict: () => true,
+      sameOriginLax: () => true,
+      readJson: async () => { try { return JSON.parse(p.request.postData || '{}') } catch (e) { return {} } },
+      query: () => url.searchParams,
+      send: (res, status, body) => { out = { status, body } },
+    })
+    rec.status = out.status
+    return page.send('Fetch.fulfillRequest', {
+      requestId: p.requestId, responseCode: out.status,
+      responseHeaders: [{ name: 'content-type', value: 'application/json' }, { name: 'cache-control', value: 'no-store' }],
+      body: Buffer.from(JSON.stringify(out.body)).toString('base64'),
+    })
+  }
+  page.on('Fetch.requestPaused', (p) => { answer(p).catch(() => {}) })
+  await page.send('Fetch.enable', { patterns: [{ urlPattern: '*/kybernos/i18n-store*', requestStage: 'Request' }] })
+  return disk
+}
