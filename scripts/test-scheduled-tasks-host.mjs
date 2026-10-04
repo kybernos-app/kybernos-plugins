@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CORE-BEGIN([\s\S]*?)\/\/ KB-TASKS-CORE-END/)
-if (m === null) { console.error('BLOC KB-TASKS-CORE INTROUVABLE dans index.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger }'))
+if (m === null) { console.error('KB-TASKS-CORE block not found in index.js'); process.exit(1) }
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -24,25 +24,78 @@ eq('dom-or-dow Vixie OR (13th or friday)', new Date(mod.kbNextCronAfter('0 0 13 
 eq('invalid cron -> null', String(mod.kbNextCronAfter('99 99 99 99 99', now, 'UTC')), 'null')
 eq('dow 7 wraps to sunday', String(mod.kbParseCron('0 8 * * 7').dow.has(0)), 'true')
 
-/* ── 2. Time zones and clock changes (Europe/Paris 2026) ──────────────────── */
-// Bascule printemps : sam 28 mars, 01:00 UTC → 03:00 locale (02:00 inexistante).
-const springBefore = Date.UTC(2026, 2, 28, 5, 0) // samedi 05:00Z = 06:00 CET, avant 8h
-eq('daily 8am on switch day fires 07:00Z (=08:00 CEST)', new Date(mod.kbNextCronAfter('0 8 * * *', springBefore, 'Europe/Paris')).toISOString(), '2026-03-28T07:00:00.000Z')
-const gap = mod.kbNextCronAfter('30 2 * * *', springBefore, 'Europe/Paris')
-// Le 28 mars à Paris, le mur 02:30 N'EXISTE PAS (01:59 CET → 03:00 CEST), et le
-// 29 mars n'a pas non plus de 02:30 « +2 » : le premier vrai 02:30 est celui du
-// 30 mars, désormais en CEST (+2) = 00:30Z. Attendu mesuré, pas deviné.
-eq('impossible wall 02:30 skipped to first real occurrence', new Date(gap).toISOString(), '2026-03-30T00:30:00.000Z')
-// Bascule automne : dim 25 oct., 01:00 UTC → 02:00 CEST puis 02:00 CET (heure doublée).
-const fallBefore = Date.UTC(2026, 9, 25, 0, 0)
-eq('doubled 02:30 fires FIRST occurrence only', new Date(mod.kbNextCronAfter('30 2 * * *', fallBefore, 'Europe/Paris')).toISOString(), '2026-10-25T00:30:00.000Z')
+/* ── 2. Time zones and clock changes ─────────────────────────────────────── */
+const at = (cron, after, tz) => { const r = mod.kbNextCronAfter(cron, after, tz); return r === null ? 'null' : new Date(r).toISOString() }
+const Z = (y, mo, d, h, mi) => Date.UTC(y, mo - 1, d, h, mi)
+// Europe/Paris 2026: the clock jumps forward on SUNDAY 29 March (01:00Z, 02:00 -> 03:00) and
+// back on Sunday 25 October (01:00Z, 03:00 -> 02:00).
+eq('daily 08:00 on the Saturday before (CET, +1)', at('0 8 * * *', Z(2026, 3, 28, 5, 0), 'Europe/Paris'), '2026-03-28T07:00:00.000Z')
+eq('daily 08:00 on the day of the change (CEST, +2)', at('0 8 * * *', Z(2026, 3, 28, 12, 0), 'Europe/Paris'), '2026-03-29T06:00:00.000Z')
+eq('02:30 does not exist on 29 March: it runs when the clock jumps (03:00 CEST)', at('30 2 * * *', Z(2026, 3, 28, 5, 0), 'Europe/Paris'), '2026-03-29T01:00:00.000Z')
+eq('...and the next one is the next day, once', at('30 2 * * *', Z(2026, 3, 29, 1, 0), 'Europe/Paris'), '2026-03-30T00:30:00.000Z')
+eq('four times inside the skipped hour run once', at('*/15 2 * * *', Z(2026, 3, 28, 5, 0), 'Europe/Paris') + ' ' + at('*/15 2 * * *', Z(2026, 3, 29, 1, 0), 'Europe/Paris'), '2026-03-29T01:00:00.000Z 2026-03-30T00:00:00.000Z')
+eq('doubled 02:30 on 25 October runs the FIRST time', at('30 2 * * *', Z(2026, 10, 25, 0, 0), 'Europe/Paris'), '2026-10-25T00:30:00.000Z')
+eq('...and NOT a second time that night', at('30 2 * * *', Z(2026, 10, 25, 0, 30), 'Europe/Paris'), '2026-10-26T01:30:00.000Z')
+{ // a cron with a wildcard hour keeps its real rhythm through the repeated hour
+  let t = Z(2026, 10, 25, 0, 0); const seq = []
+  for (let i = 0; i < 6; i += 1) { t = mod.kbNextCronAfter('*/30 * * * *', t, 'Europe/Paris'); seq.push(new Date(t).toISOString().slice(11, 16)) }
+  eq('every 30 minutes through the fold', seq.join(' '), '00:30 01:00 01:30 02:00 02:30 03:00')
+}
+// Half-hour clock change: Australia/Lord_Howe jumps 02:00 -> 02:30 (local) on 4 October 2026 (15:30Z the day before).
+eq('Lord_Howe: 02:15 does not exist on 4 October, it runs at the jump', at('15 2 * * *', Z(2026, 10, 3, 0, 0), 'Australia/Lord_Howe'), '2026-10-03T15:30:00.000Z')
+eq('Kolkata +05:30', at('30 9 * * *', Z(2026, 10, 5, 0, 0), 'Asia/Kolkata'), '2026-10-05T04:00:00.000Z')
+eq('Kathmandu +05:45', at('45 6 * * *', Z(2026, 10, 5, 0, 0), 'Asia/Kathmandu'), '2026-10-05T01:00:00.000Z')
+
+/* ── 2b. Month-restricted crons, zones west of UTC, sparse dates ───────────── */
+// The jump to the next month used to add the zone offset instead of subtracting it: a zone west of
+// UTC looped forever (freezing the whole host), Paris lost anything due in the first hours of the 1st.
+eq('New York "0 9 1 3 *" from January (used to hang)', at('0 9 1 3 *', Z(2027, 1, 15, 0, 0), 'America/New_York'), '2027-03-01T14:00:00.000Z')
+eq('Los Angeles "0 9 * 6 *" from October', at('0 9 * 6 *', Z(2026, 10, 5, 0, 0), 'America/Los_Angeles'), '2027-06-01T16:00:00.000Z')
+eq('Paris "0 0 1 1 *" (was null)', at('0 0 1 1 *', Z(2026, 10, 5, 0, 0), 'Europe/Paris'), '2026-12-31T23:00:00.000Z')
+eq('Paris "30 0 1 3 *" (was null)', at('30 0 1 3 *', Z(2027, 1, 15, 0, 0), 'Europe/Paris'), '2027-02-28T23:30:00.000Z')
+eq('Paris "0 1 * 3 *" is the 1st, not the 2nd', at('0 1 * 3 *', Z(2027, 1, 15, 0, 0), 'Europe/Paris'), '2027-03-01T00:00:00.000Z')
+eq('Paris quarterly midnight (was null)', at('0 0 1 */3 *', Z(2027, 1, 15, 0, 0), 'Europe/Paris'), '2027-03-31T22:00:00.000Z')
+eq('29 February, three years ahead (was null)', at('0 0 29 2 *', Z(2026, 10, 5, 0, 0), 'Asia/Tokyo'), '2028-02-28T15:00:00.000Z')
+eq('29 February after 2096 waits until 2104', at('0 0 29 2 *', Z(2097, 1, 1, 0, 0), 'UTC'), '2104-02-29T00:00:00.000Z')
+for (const never of ['0 0 31 2 *', '0 0 30 2 *', '0 0 31 4 *', '0 0 31 4,6,9,11 *']) {
+  const t0 = Date.now()
+  const r = mod.kbNextCronAfter(never, Z(2026, 10, 5, 0, 0), 'Europe/Paris')
+  eq('"' + never + '" never fires: null, and fast', String(r) + ':' + (Date.now() - t0 < 250), 'null:true')
+  eq('"' + never + '" is not a valid schedule', mod.kbCronCanFire(never), false)
+}
+eq('Vixie: "*/2" day-of-month with a weekday is AND, like cron (Friday on an odd day)', at('0 0 */2 * 5', Z(2026, 10, 5, 0, 0), 'UTC'), '2026-10-09T00:00:00.000Z')
+eq('Vixie: two restricted day fields are OR', at('0 0 13 * 5', Z(2026, 9, 21, 6, 0), 'UTC'), '2026-09-25T00:00:00.000Z')
+{ const t0 = Date.now(); for (let i = 0; i < 300; i += 1) mod.kbNextCronAfter('0 9 1 * *', Z(2026, 10, 5, 0, 0) + i * 3600000, 'Europe/Paris'); eq('300 monthly computations stay fast (was 1.2 s each)', Date.now() - t0 < 1500, true) }
+eq('absurd "after" values return null without throwing', String(mod.kbNextCronAfter('0 8 * * *', 8.64e15, 'UTC')) + String(mod.kbNextCronAfter('0 8 * * *', 1e20, 'UTC')), 'nullnull')
+
+/* ── 2c. Parser: strict, no element read as a wildcard ───────────────────── */
+for (const bad of ['0 8 * * 1,', '0,30, 9 * * *', '5,  * * * *', ',5 * * * *', '1,,2 * * * *', '/5 * * * *', '5abc * * * *', '1-5-9 * * * *', '0x10 * * * *', '*/1e9 * * * *', '1#2 * * * *', '*/5/2 * * * *', '*/0 * * * *', '*/-1 * * * *', '22-2 * * * *', '* 24 * * *', '60 * * * *', '* * 0 * *', '* * 32 * *', '* * * 13 *', '* * * * 8', 'jan * * * *', '@daily', '* * * *', '* * * * * *']) {
+  eq('rejected: "' + bad + '"', String(mod.kbParseCron(bad)), 'null')
+}
+for (const good of ['*/15 * * * *', '5-59/10 * * * *', '0 0,12 * * *', '0 8 * * 1-5', '0 8 * * 7', '0 8 * * 5-7', '*/60 * * * *', '0 8 1,15 * *']) {
+  eq('accepted: "' + good + '"', mod.kbParseCron(good) !== null, true)
+}
+eq('Sunday is 0 and 7', mod.kbParseCron('0 8 * * 7').dow.has(0) && mod.kbParseCron('0 8 * * 0').dow.has(0), true)
 
 /* ── 3. One-time ─────────────────────────────────────────────────────────── */
-eq('past once -> null', String(mod.kbComputeNextRun({ active: true, schedule: { mode: 'once', at: '2026-09-20T10:00' } }, now)), 'null')
-eq('future once wall Paris (+2 CEST)', new Date(mod.kbComputeNextRun({ active: true, schedule: { mode: 'once', at: '2026-09-25T09:30' } }, now, 'Europe/Paris')).toISOString(), '2026-09-25T07:30:00.000Z')
-eq('future once explicit offset +05:00', new Date(mod.kbComputeNextRun({ active: true, schedule: { mode: 'once', at: '2026-09-25T09:30+05:00' } }, now)).toISOString(), '2026-09-25T04:30:00.000Z')
+const once = (at, now, tz) => { const r = mod.kbComputeNextRun({ active: true, schedule: { mode: 'once', at, tz } }, now, tz); return r === null ? 'null' : new Date(r).toISOString() }
+eq('past once -> null', once('2026-09-20T10:00', now), 'null')
+eq('future once wall Paris (+2 CEST)', once('2026-09-25T09:30', now, 'Europe/Paris'), '2026-09-25T07:30:00.000Z')
+eq('future once explicit offset +05:00', once('2026-09-25T09:30+05:00', now), '2026-09-25T04:30:00.000Z')
 eq('inactive task -> null', String(mod.kbComputeNextRun({ active: false, schedule: { mode: 'cron', cron: '* * * * *' } }, now)), 'null')
-eq('bad once date -> null', String(mod.kbComputeNextRun({ active: true, schedule: { mode: 'once', at: 'pas une date' } }, now)), 'null')
+eq('bad once date -> null', once('not a date', now), 'null')
+// The offset is the one in force AT THE DATE, not today's: a reminder made in summer for a winter date.
+eq('Paris: made in October (CEST) for 25 December (CET) -> 08:00Z, not 07:00Z', once('2026-12-25T09:00', Z(2026, 10, 5, 0, 0), 'Europe/Paris'), '2026-12-25T08:00:00.000Z')
+eq('Paris: made in January (CET) for 1 July (CEST) -> 07:00Z', once('2026-07-01T09:00', Z(2026, 1, 10, 0, 0), 'Europe/Paris'), '2026-07-01T07:00:00.000Z')
+eq('Sydney: made in October (AEDT) for June (AEST) -> 23:00Z the day before', once('2027-06-01T09:00', Z(2026, 10, 5, 0, 0), 'Australia/Sydney'), '2027-05-31T23:00:00.000Z')
+eq('Lord_Howe: half-hour clock change', once('2027-06-01T09:00', Z(2026, 10, 5, 0, 0), 'Australia/Lord_Howe'), '2027-05-31T22:30:00.000Z')
+eq('one-time inside the skipped hour runs at the jump', once('2027-03-28T02:30', Z(2027, 1, 1, 0, 0), 'Europe/Paris'), '2027-03-28T01:00:00.000Z')
+eq('one-time inside the repeated hour runs the first time', once('2026-10-25T02:30', Z(2026, 9, 1, 0, 0), 'Europe/Paris'), '2026-10-25T00:30:00.000Z')
+eq('dates that do not exist are refused (31 February)', String(mod.kbParseIsoLocal('2027-02-31T10:00')), 'null')
+eq('dates that do not exist are refused (31 April)', String(mod.kbParseIsoLocal('2027-04-31T10:00')), 'null')
+eq('29 February in a leap year is fine', mod.kbParseIsoLocal('2028-02-29T10:00') !== null, true)
+eq('offset outside +-14:00 refused', String(mod.kbParseIsoLocal('2027-01-01T10:00+99:99')) + String(mod.kbParseIsoLocal('2027-01-01T10:00+24:00')), 'nullnull')
+eq('milliseconds (toISOString) accepted', mod.kbParseIsoLocal('2027-01-01T10:00:00.000Z') !== null, true)
 
 /* ── 4. Form validation ────────────────────────────────────────────── */
 eq('missing name rejected', String(mod.kbSanitizeTaskInput({ name: '', prompt: 'p' }).error), 'name required')
@@ -54,6 +107,104 @@ eq('valid input normalized', okIn.task.schedule.cron, '0 8 * * 1-5')
 eq('runsOn forced local', okIn.task.runsOn, 'local')
 eq('approvals defaults ask', okIn.task.approvals, 'ask')
 eq('notify filtered', JSON.stringify(mod.kbSanitizeTaskInput({ name: 'a', prompt: 'b', notify: ['push', 'sms'] }).task.notify), '["push"]')
+
+/* ── 4b. Form validation: types, zones, dates ──────────────────────────── */
+const bad = (task) => String(mod.kbSanitizeTaskInput(task).error)
+const base = (o) => Object.assign({ name: 'a', prompt: 'b' }, o)
+eq('an object where a string is expected does not throw (name)', bad({ name: { toString: 1 }, prompt: 'p' }), 'name required')
+eq('an object where a string is expected does not throw (prompt)', bad({ name: 'a', prompt: { toString: 1 } }), 'prompt required')
+eq('an object where a string is expected does not throw (cron)', bad(base({ schedule: { mode: 'cron', cron: { toString: 1 } } })), 'cron invalide')
+eq('an object where a string is expected does not throw (tz)', bad(base({ schedule: { tz: { toString: 1 } } })), 'unknown time zone')
+eq('unknown zone refused', bad(base({ schedule: { tz: 'Mars/Phobos' } })), 'unknown time zone')
+eq('zone with a space refused', bad(base({ schedule: { tz: ' Europe/Paris' } })), 'unknown time zone')
+eq('no zone: the machine zone, not a hard-coded one', mod.kbSanitizeTaskInput(base({})).task.schedule.tz, mod.kbMachineTimeZone())
+eq('a given zone is kept', mod.kbSanitizeTaskInput(base({ schedule: { tz: 'America/New_York' } })).task.schedule.tz, 'America/New_York')
+eq('active must be a boolean', bad(base({ active: 'false' })) + bad(base({ active: 0 })) + bad(base({ active: null })), 'active must be true or falseactive must be true or falseactive must be true or false')
+eq('active false is kept', mod.kbSanitizeTaskInput(base({ active: false })).task.active, false)
+eq('zero-width-only name refused', bad({ name: '​​', prompt: 'p' }), 'name required')
+{ const n = mod.kbSanitizeTaskInput({ name: 'a'.repeat(119) + '\u{1F600}', prompt: 'p' }).task.name; eq('a name cut at 120 never ends on half an emoji', n.length === 119 && n.isWellFormed(), true) }
+eq('duplicate notify entries removed', JSON.stringify(mod.kbSanitizeTaskInput(base({ notify: ['push', 'push', 'email'] })).task.notify), '["push","email"]')
+eq('cron that never fires refused', bad(base({ schedule: { mode: 'cron', cron: '0 0 31 2 *' } })), 'this schedule never fires')
+eq('cron with an empty element refused', bad(base({ schedule: { mode: 'cron', cron: '0 8 * * 1,' } })), 'cron invalide')
+eq('31 February refused (one-time)', bad(base({ schedule: { mode: 'once', at: '2027-02-31T10:00' } })), 'date ponctuelle invalide')
+eq('absurdly long date refused', bad(base({ schedule: { mode: 'once', at: '2027-01-01T10:00' + ' '.repeat(200) } })), 'date ponctuelle invalide')
+eq('one-time date is trimmed', mod.kbSanitizeTaskInput(base({ schedule: { mode: 'once', at: ' 2027-01-01T10:00 ' } })).task.schedule.at, '2027-01-01T10:00')
+eq('prototype keys do not pollute', (() => { mod.kbSanitizeTaskInput(JSON.parse('{"name":"a","prompt":"b","__proto__":{"polluted":1},"schedule":{"__proto__":{"polluted":2}}}')); return ({}).polluted === undefined })(), true)
+
+/* ── 4c. Property test against an independent per-minute oracle ─────────── */
+// The oracle shares no code with the engine: it walks every real minute of a window, reads the
+// wall clock through Intl (offset sampled every 15 minutes, which is how zones change), and applies
+// the documented rules for clock changes by looking at the wall clock itself.
+{
+  let seed = 20261005
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296 }
+  const pick = (a) => a[Math.floor(rnd() * a.length)]
+  const zones = ['UTC', 'Europe/Paris', 'Europe/London', 'Asia/Kolkata', 'Asia/Kathmandu', 'Asia/Tokyo', 'Australia/Lord_Howe', 'Australia/Sydney', 'Pacific/Chatham', 'Pacific/Auckland', 'America/New_York', 'America/St_Johns', 'America/Los_Angeles', 'America/Sao_Paulo', 'America/Santiago']
+  const dtf = {}
+  const offAt = (tz, t) => {
+    const d = dtf[tz] || (dtf[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+    const o = {}; for (const p of d.formatToParts(t)) o[p.type] = p.value
+    return Math.round((Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour, +o.minute, +o.second) - t) / 60000)
+  }
+  const blockOff = {}
+  const off = (tz, t) => { const k = tz + '|' + Math.floor(t / 900000); return blockOff[k] !== undefined ? blockOff[k] : (blockOff[k] = offAt(tz, Math.floor(t / 900000) * 900000)) }
+  const fields = (tz, t) => { const w = new Date(t + off(tz, t) * 60000); return { w: t + off(tz, t) * 60000, mo: w.getUTCMonth() + 1, d: w.getUTCDate(), h: w.getUTCHours(), mi: w.getUTCMinutes(), wd: w.getUTCDay() } }
+  const matches = (f, x) => {
+    if (!f.mon.has(x.mo) || !f.hour.has(x.h) || !f.minute.has(x.mi)) return false
+    const domOk = f.domStar ? true : f.dom.has(x.d), dowOk = f.dowStar ? true : f.dow.has(x.wd)
+    return !f.domStar && !f.dowStar ? (domOk || dowOk) : (domOk && dowOk)
+  }
+  const oracle = (cron, after, tz, minutes) => {
+    const f = mod.kbParseCron(cron)
+    const start = Math.floor(after / 60000) * 60000 + 60000
+    for (let i = 0, t = start; i < minutes; i += 1, t += 60000) {
+      const x = fields(tz, t)
+      const prev = off(tz, t - 60000)
+      const o = off(tz, t)
+      if (o > prev) { // the clock just jumped forward: any skipped wall minute that matches runs now
+        for (let w = t - 60000 + prev * 60000 + 60000; w < t + o * 60000; w += 60000) {
+          const y = new Date(w)
+          if (matches(f, { mo: y.getUTCMonth() + 1, d: y.getUTCDate(), h: y.getUTCHours(), mi: y.getUTCMinutes(), wd: y.getUTCDay() })) return t
+        }
+      }
+      if (!matches(f, x)) continue
+      const shift = off(tz, t - 180 * 60000) - o
+      if (shift > 0 && f.hour.size < 24 && fields(tz, t - shift * 60000).w === x.w) continue // second pass through a repeated hour
+      return t
+    }
+    return null
+  }
+  const gen = (min, max, star) => {
+    const r = rnd()
+    if (r < star) return '*'
+    if (r < star + 0.12) return '*/' + (1 + Math.floor(rnd() * 6))
+    const a = min + Math.floor(rnd() * (max - min + 1)), b = Math.min(max, a + Math.floor(rnd() * 5))
+    return r < 0.7 ? String(a) : r < 0.85 ? a + '-' + b : a + ',' + b
+  }
+  // windows right around real clock changes, where the bugs live, and ordinary ones
+  const changes = []
+  for (const tz of zones) { let prev = off(tz, Date.UTC(2026, 0, 1)); for (let t = Date.UTC(2026, 0, 1); t < Date.UTC(2028, 0, 1); t += 3 * 3600000) { const o = off(tz, t); if (o !== prev) { changes.push({ tz, t }); prev = o } } }
+  let n = 0, bad2 = []
+  const t0 = Date.now()
+  while (n < 240 && Date.now() - t0 < 25000) {
+    const near = rnd() < 0.6
+    const c = near ? pick(changes) : null
+    const tz = near ? c.tz : pick(zones)
+    const after = near ? c.t - Math.floor(rnd() * 3 * 86400000) : Date.UTC(2026, 0, 1) + Math.floor(rnd() * 700) * 86400000 + Math.floor(rnd() * 86400000)
+    const monthly = !near && rnd() < 0.08
+    const cron = [gen(0, 59, 0.3), gen(0, 23, 0.35), gen(1, 28, 0.6), monthly ? String(1 + Math.floor(rnd() * 12)) : '*', gen(0, 7, 0.7)].join(' ')
+    if (mod.kbParseCron(cron) === null) continue
+    const win = monthly ? 60 * 24 * 400 : 60 * 24 * 9
+    const got = mod.kbNextCronAfter(cron, after, tz)
+    let want = oracle(cron, after, tz, win)
+    n += 1
+    if (monthly === false && want === null && got !== null && got >= after + win * 60000) continue // beyond the oracle window
+    if (monthly === true && want === null && got !== null && got >= after + win * 60000) continue
+    if (got !== want) bad2.push(cron + ' | ' + tz + ' | after ' + new Date(after).toISOString() + ' | got ' + got + ' (' + (got === null ? 'null' : new Date(got).toISOString()) + ') | want ' + want + ' (' + (want === null ? 'null' : new Date(want).toISOString()) + ')')
+  }
+  eq('engine = per-minute oracle on ' + n + ' random crons/zones (' + changes.length + ' real clock changes in the pool): ' + bad2.length + ' differences', bad2.length, 0)
+  for (const b of bad2.slice(0, 8)) console.log('   ', b)
+}
 
 /* ── 5. Store: a file that cannot be trusted is never overwritten ─────────── */
 // kbMakeTaskStore / kbMakeTrigger are the code production runs (index.js only gives them the

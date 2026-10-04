@@ -73,13 +73,17 @@ const kbUiMembersRead = (v) => {
 // de ce bloc balisé. Tout ce qui touche DSH (fs, sessions, minuterie) est câblé
 // plus bas dans boot(ctx).
 // KB-TASKS-CORE-BEGIN
-// Découpe "YYYY-MM-DDTHH:mm[:ss][Z|±hh:mm]" en champs + flag utc.
+const KB_HOUR_MS = 3600000
+const KB_DAY_MS = 86400000
+const kbDaysInMonth = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate()
+// Splits "YYYY-MM-DDTHH:mm[:ss[.mmm]][Z|±hh:mm]" into fields. Dates that do not exist
+// (31 February) and offsets outside ±14:00 are refused, not rolled over.
 const kbParseIsoLocal = (iso) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:?\d{2})?$/.exec(String(iso || '').trim())
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-]\d{2}:?\d{2})?$/.exec(String(iso || '').trim())
   if (m === null) return null
   const g = (i, d) => (m[i] === undefined || m[i] === '' ? d : parseInt(m[i], 10))
   const f = { y: g(1, 0), mo: g(2, 1), d: g(3, 1), h: g(4, 0), mi: g(5, 0), s: g(6, 0) }
-  if (f.mo < 1 || f.mo > 12 || f.d < 1 || f.d > 31 || f.h > 23 || f.mi > 59 || f.s > 59) return null
+  if (f.mo < 1 || f.mo > 12 || f.d < 1 || f.d > kbDaysInMonth(f.y, f.mo) || f.h > 23 || f.mi > 59 || f.s > 59) return null
   f.utc = false
   f.offsetMin = 0
   if (typeof m[7] === 'string' && m[7].length > 0) {
@@ -89,57 +93,91 @@ const kbParseIsoLocal = (iso) => {
       const sign = m[7].charAt(0) === '-' ? -1 : 1
       const digits = m[7].slice(1).replace(':', '')
       const oh = parseInt(digits.slice(0, 2), 10)
-      const om = digits.length >= 4 ? parseInt(digits.slice(2, 4), 10) : 0
-      if (!Number.isFinite(oh) || !Number.isFinite(om)) return null
+      const om = parseInt(digits.slice(2, 4), 10)
+      if (!Number.isFinite(oh) || !Number.isFinite(om) || oh > 14 || om > 59) return null
       f.offsetMin = sign * (oh * 60 + om)
     }
   }
   return f
 }
-// Instant (ms) d'un mur horaire local avec un décalage donné (minutes est+).
+// Instant (ms) of a wall time in a zone with a known offset (minutes, east positive).
 const kbWallToEpoch = (y, mo, d, h, mi, s, offsetMin) => Date.UTC(y, mo - 1, d, h, mi, s) - offsetMin * 60000
-// Décalage (minutes est+) du fuseau IANA à un instant, via Intl. Repli machine.
+// One Intl formatter per zone (building one costs far more than using it); null when the zone is unknown.
+const kbDtfCache = new Map()
+const kbDtfOf = (tz) => {
+  if (kbDtfCache.has(tz) === true) return kbDtfCache.get(tz)
+  let dtf = null
+  try { dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }) } catch (e) { dtf = null }
+  if (kbDtfCache.size > 200) kbDtfCache.clear()
+  kbDtfCache.set(tz, dtf)
+  return dtf
+}
+const kbIsValidTimeZone = (tz) => typeof tz === 'string' && tz.length > 0 && tz.length <= 64 && kbDtfOf(tz) !== null
+const kbMachineTimeZone = () => {
+  try { const z = new Intl.DateTimeFormat().resolvedOptions().timeZone; return typeof z === 'string' && z.length > 0 ? z : 'UTC' } catch (e) { return 'UTC' }
+}
+// Offset (minutes, east positive) of an IANA zone at an instant; an empty or unknown zone is the machine's.
 const kbZoneOffsetMinutes = (tz, atMs) => {
   const t = typeof atMs === 'number' && Number.isFinite(atMs) ? atMs : Date.now()
-  if (typeof tz !== 'string' || tz.length === 0) return -new Date(t).getTimezoneOffset()
+  const dtf = typeof tz === 'string' && tz.length > 0 ? kbDtfOf(tz) : null
+  if (dtf === null) return -new Date(t).getTimezoneOffset()
   try {
-    const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
     const parts = {}
     for (const p of dtf.formatToParts(t)) { if (p.type !== 'literal') parts[p.type] = p.value }
     const asUtc = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second)
-    // arrondi à la minute : les secondes de `t` ne doivent pas fuiter dans l'écart
+    // rounded to the minute: the seconds of `t` must not leak into the offset
     return Math.round((asUtc - Math.floor(t / 1000) * 1000) / 60000)
   } catch (e) {
     return -new Date(t).getTimezoneOffset()
   }
 }
-// Moteur cron 5 champs : minute heure jour-mois mois jour-semaine.
-// *, n, a-b, a,b, */n, a-b/n. Jour-semaine 0-7 (0 et 7 = dimanche). Si dom ET
-// dow sont contraints, semantics Vixie cron : l'un OU l'autre suffit.
+// Instants at which the wall clock of a zone reads `wall` (a wall time written as UTC ms): one
+// normally, two in the repeated hour of a clock change (ascending), none in the skipped hour,
+// where `gapAt` is the instant the clock jumps over it.
+const kbWallInstants = (tz, wall) => {
+  const o1 = kbZoneOffsetMinutes(tz, wall - 36 * KB_HOUR_MS)
+  const o2 = kbZoneOffsetMinutes(tz, wall + 36 * KB_HOUR_MS)
+  const instants = []
+  for (const o of o1 === o2 ? [o1] : [o1, o2]) {
+    const c = wall - o * 60000
+    if (kbZoneOffsetMinutes(tz, c) === o) instants.push(c)
+  }
+  instants.sort((a, b) => a - b)
+  if (instants.length > 0) return { instants, gapAt: null }
+  let lo = Math.floor((wall - Math.max(o1, o2) * 60000) / 60000) * 60000
+  let hi = Math.floor((wall - Math.min(o1, o2) * 60000) / 60000) * 60000 + 60000
+  const before = kbZoneOffsetMinutes(tz, lo)
+  while (hi - lo > 60000) {
+    const mid = lo + Math.floor((hi - lo) / 120000) * 60000
+    if (kbZoneOffsetMinutes(tz, mid) === before) lo = mid
+    else hi = mid
+  }
+  return { instants: [], gapAt: hi }
+}
+// A one-time wall time as an instant, with the offset in force THEN (not today's): the first
+// occurrence in a repeated hour, the moment the clock jumps for a skipped one.
+const kbWallToInstant = (tz, y, mo, d, h, mi, s) => {
+  const w = kbWallInstants(tz, Date.UTC(y, mo - 1, d, h, mi, s))
+  return w.instants.length > 0 ? w.instants[0] : w.gapAt
+}
+// 5-field cron: minute hour day-of-month month day-of-week. Each field is a comma list of
+// `*`, `n`, `a-b`, `*/n`, `a-b/n` or `a/n`, digits only (no names, no empty element, no `L`/`#`).
+// Day-of-week is 0-7 (0 and 7 are Sunday). As in Vixie cron, a field that STARTS with `*` counts
+// as unrestricted, and when both day fields are restricted either one is enough.
 const kbParseCronField = (spec, min, max, wrap7) => {
+  const body = String(spec).trim()
+  if (/^[0-9*,/-]+$/.test(body) === false) return null
   const set = new Set()
-  const body = String(spec).trim().toLowerCase()
-  if (body.length === 0) return null
   for (const piece of body.split(',')) {
-    let step = 1
-    let range = piece
-    const at = piece.indexOf('/')
-    if (at >= 0) {
-      range = piece.slice(0, at)
-      step = parseInt(piece.slice(at + 1), 10)
-      if (!Number.isFinite(step) || step <= 0) return null
-    }
+    const m = /^(?:(\*)|(\d+)(?:-(\d+))?)(?:\/(\d+))?$/.exec(piece)
+    if (m === null) return null
+    const step = m[4] === undefined ? 1 : parseInt(m[4], 10)
+    if (step <= 0) return null
     let lo = min
     let hi = max
-    if (range !== '*' && range.length > 0) {
-      const dash = range.indexOf('-')
-      if (dash >= 0) {
-        lo = parseInt(range.slice(0, dash), 10)
-        hi = parseInt(range.slice(dash + 1), 10)
-      } else {
-        lo = parseInt(range, 10)
-        hi = at >= 0 ? max : lo // "5/2" = de 5 jusqu'au max
-      }
+    if (m[1] !== '*') {
+      lo = parseInt(m[2], 10)
+      hi = m[3] !== undefined ? parseInt(m[3], 10) : (m[4] !== undefined ? max : lo) // "5/2" = from 5 to the max
     }
     if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo < min || hi > max || lo > hi) return null
     for (let v = lo; v <= hi; v += step) set.add(wrap7 === true && v === 7 ? 0 : v)
@@ -147,7 +185,9 @@ const kbParseCronField = (spec, min, max, wrap7) => {
   return set.size > 0 ? set : null
 }
 const kbParseCron = (expr) => {
-  const parts = String(expr || '').trim().split(/\s+/)
+  const text = String(expr || '').trim()
+  if (text.length > 200) return null
+  const parts = text.split(/\s+/)
   if (parts.length !== 5) return null
   const minute = kbParseCronField(parts[0], 0, 59, false)
   const hour = kbParseCronField(parts[1], 0, 23, false)
@@ -155,99 +195,114 @@ const kbParseCron = (expr) => {
   const mon = kbParseCronField(parts[3], 1, 12, false)
   const dow = kbParseCronField(parts[4], 0, 7, true)
   if (minute === null || hour === null || dom === null || mon === null || dow === null) return null
-  return { minute, hour, dom, mon, dow, domStar: parts[2].trim() === '*', dowStar: parts[4].trim() === '*' }
+  return { minute, hour, dom, mon, dow, domStar: parts[2].charAt(0) === '*', dowStar: parts[4].charAt(0) === '*' }
 }
-// Prochain instant (ms) strictement après afterMs pour un cron dans un fuseau.
-// Balayage minute par minute ; la lecture du mur horaire passe par
-// kbZoneOffsetMinutes à chaque candidate, ce qui absorbe les changements d'heure.
-// Deux garde-fous mesurés sur des cas réels :
-//  - l'instant candidat est arrondi à la minute (le décalage varie pendant la
-//    minute balayée et ferait rater une occurrence en bascule d'heure) ;
-//  - le mur lu est revérifié avec son PROPRE décalage : une heure murale double
-//    (retour d'heure) n'est déclenchée qu'à sa première occurrence absolue.
+// Next instant (ms) strictly after `afterMs` at which a cron fires in a zone, or null.
+// It walks calendar days, not minutes: days whose month, day-of-month or weekday cannot match are
+// skipped by plain arithmetic, and only a matching day has its hours and minutes expanded. A
+// day without a clock change is converted with one offset; a day with one is converted wall time
+// by wall time. Clock changes follow cron(8) and systemd:
+//  - a fixed time inside the hour that does not exist runs the moment the clock jumps over it;
+//  - in the repeated hour a fixed-hour cron runs once (the first time); a cron whose hour is
+//    `*` keeps running on every real minute or interval, like any other hour.
+// The search covers 8 years (the longest gap between two 29 Februaries is 8 years, over 2100).
 const kbNextCronAfter = (cronExpr, afterMs, tz) => {
   const f = kbParseCron(cronExpr)
   if (f === null) return null
   const base = typeof afterMs === 'number' && Number.isFinite(afterMs) ? afterMs : Date.now()
-  // ~400 jours de balayage : ms * s * min * h * jours. Un `* 60` manquant ici
-  // bornait la fenêtre à 6,7 jours et faisait rater tout cron hebdomadaire dont
-  // la prochaine occurrence tombait au-delà — mesuré sur « 0 8 * * 1 ».
-  const limit = base + 1000 * 60 * 60 * 24 * 400
-  let t = Math.floor(base / 60000) * 60000
-  while (t < limit) {
-    const off = kbZoneOffsetMinutes(tz, t)
-    const cand = Math.floor(t / 60000) * 60000 + off * 60000
-    const ld = new Date(cand) // mur horaire du fuseau à l'instant t
-    const mo = ld.getUTCMonth() + 1
+  if (Math.abs(base) > 8.4e15) return null
+  const zone = typeof tz === 'string' ? tz : ''
+  const hours = Array.from(f.hour).sort((a, b) => a - b)
+  const minutes = Array.from(f.minute).sort((a, b) => a - b)
+  const firstDay = Math.floor((base + kbZoneOffsetMinutes(zone, base) * 60000) / KB_DAY_MS)
+  const lastDay = firstDay + 366 * 8 + 2
+  for (let day = firstDay; day <= lastDay; day += 1) {
+    const dt = new Date(day * KB_DAY_MS)
+    const mo = dt.getUTCMonth() + 1
     if (f.mon.has(mo) === false) {
-      let ny = ld.getUTCFullYear(), nm = mo + 1
-      if (nm > 12) { nm = 1; ny += 1 }
-      t = Date.UTC(ny, nm - 1, 1, 0, 0) + off * 60000
+      day = Math.round(Date.UTC(mo === 12 ? dt.getUTCFullYear() + 1 : dt.getUTCFullYear(), mo === 12 ? 0 : mo, 1) / KB_DAY_MS) - 1
       continue
     }
-    const d = ld.getUTCDate(), h = ld.getUTCHours(), mi = ld.getUTCMinutes(), wd = ld.getUTCDay()
-    const domOk = f.domStar === true ? true : f.dom.has(d)
-    const dowOk = f.dowStar === true ? true : f.dow.has(wd)
+    const domOk = f.domStar === true ? true : f.dom.has(dt.getUTCDate())
+    const dowOk = f.dowStar === true ? true : f.dow.has(dt.getUTCDay())
     const dayMatch = f.domStar === false && f.dowStar === false ? (domOk || dowOk) : (domOk && dowOk)
-    if (dayMatch === true && f.hour.has(h) === true && f.minute.has(mi) === true && t > base) {
-      // vérification croisée : le mur de `t` relu avec son propre décalage doit
-      // retomber sur la même minute — sinon c'est la seconde occurrence d'une
-      // heure doublante, on la saute (elle a déjà tiré plus tôt).
-      const off2 = kbZoneOffsetMinutes(tz, t)
-      const check = new Date(Math.floor(t / 60000) * 60000 + off2 * 60000)
-      if (check.getUTCHours() !== h || check.getUTCMinutes() !== mi) { t += 60000; continue }
-      return t
+    if (dayMatch === false) continue
+    const midnight = day * KB_DAY_MS
+    const offset = kbZoneOffsetMinutes(zone, midnight - 14 * KB_HOUR_MS)
+    const calm = offset === kbZoneOffsetMinutes(zone, midnight + 36 * KB_HOUR_MS)
+    const found = []
+    for (const h of hours) {
+      for (const mi of minutes) {
+        const wall = midnight + (h * 60 + mi) * 60000
+        if (calm === true) { if (wall - offset * 60000 > base) found.push(wall - offset * 60000); continue }
+        const w = kbWallInstants(zone, wall)
+        if (w.instants.length === 0) { if (w.gapAt > base) found.push(w.gapAt); continue }
+        w.instants.forEach((t, i) => { if (t > base && (i === 0 || f.hour.size === 24)) found.push(t) })
+      }
     }
-    t += 60000
+    if (found.length > 0) return Math.min.apply(null, found)
   }
   return null
 }
-// Calcul générique nextRun (ms epoch) — une one-time déjà passée ne revient jamais.
+// Does this cron fire at all? ('0 0 31 2 *' never does; it must be refused, not stored as asleep.)
+const kbCronCanFire = (cronExpr) => kbNextCronAfter(cronExpr, Date.UTC(2024, 0, 1), 'UTC') !== null
+// Generic nextRun (ms epoch): a one-time date that has passed never comes back.
 const kbComputeNextRun = (task, afterMs, tzFallback) => {
   if (task === null || typeof task !== 'object') return null
   if (task.active !== true) return null
   const sc = task.schedule
   if (sc === null || typeof sc !== 'object') return null
   const nowMs = typeof afterMs === 'number' && Number.isFinite(afterMs) ? afterMs : Date.now()
-  const tz = typeof sc.tz === 'string' && sc.tz.length > 0 ? sc.tz : (typeof tzFallback === 'string' && tzFallback.length > 0 ? tzFallback : 'Europe/Paris')
+  const tz = kbIsValidTimeZone(sc.tz) === true ? sc.tz : (kbIsValidTimeZone(tzFallback) === true ? tzFallback : kbMachineTimeZone())
   if (sc.mode === 'once') {
     const f = kbParseIsoLocal(sc.at)
     if (f === null) return null
-    const ms = f.utc === true
-      ? Date.UTC(f.y, f.mo - 1, f.d, f.h, f.mi, f.s) - f.offsetMin * 60000
-      : kbWallToEpoch(f.y, f.mo, f.d, f.h, f.mi, f.s, kbZoneOffsetMinutes(tz, nowMs))
+    const ms = f.utc === true ? kbWallToEpoch(f.y, f.mo, f.d, f.h, f.mi, f.s, f.offsetMin) : kbWallToInstant(tz, f.y, f.mo, f.d, f.h, f.mi, f.s)
     return ms > nowMs ? ms : null
   }
   if (sc.mode === 'cron' && typeof sc.cron === 'string') return kbNextCronAfter(sc.cron, nowMs, tz)
   return null
 }
-// Validation d'une entrée de formulaire client → tâche stockable ou erreur.
+// Why an ACTIVE task has no next run: its one-time date has passed, or its cron can never match.
+const kbNoNextRunError = (task) => (task.schedule !== null && typeof task.schedule === 'object' && task.schedule.mode === 'once' ? 'that date is in the past' : 'this schedule never fires')
+// A string cut at `max` code units never ends on half of a surrogate pair.
+const kbClip = (value, max) => {
+  const out = value.slice(0, max)
+  const last = out.charCodeAt(out.length - 1)
+  return last >= 0xd800 && last <= 0xdbff ? out.slice(0, -1) : out
+}
+// Validates a form entry from the client: a storable task, or an error. Every field must be of
+// the right type: a JSON object where a string is expected is refused, never coerced.
 const kbSanitizeTaskInput = (raw) => {
   const r = raw !== null && typeof raw === 'object' ? raw : {}
-  const name = String(r.name || '').trim().slice(0, 120)
-  const prompt = String(r.prompt || '').trim().slice(0, 8000)
-  if (name.length === 0) return { ok: false, error: 'name required' }
+  const text = (v) => (typeof v === 'string' ? v : '')
+  const name = kbClip(text(r.name).trim(), 120)
+  const prompt = kbClip(text(r.prompt).trim(), 8000)
+  if (name.replace(/[​-‏⁠﻿]/g, '').length === 0) return { ok: false, error: 'name required' }
   if (prompt.length === 0) return { ok: false, error: 'prompt required' }
+  if (r.active !== undefined && typeof r.active !== 'boolean') return { ok: false, error: 'active must be true or false' }
   const sc = r.schedule !== null && typeof r.schedule === 'object' ? r.schedule : {}
   const mode = sc.mode === 'once' ? 'once' : 'cron'
-  const schedule = { mode, tz: String(sc.tz || 'Europe/Paris').slice(0, 64) }
+  // No zone given: the machine's own, not a hard-coded one ("every day at 8" is 8 where the user is).
+  if (sc.tz !== undefined && sc.tz !== null && sc.tz !== '' && kbIsValidTimeZone(sc.tz) === false) return { ok: false, error: 'unknown time zone' }
+  const schedule = { mode, tz: kbIsValidTimeZone(sc.tz) === true ? sc.tz : kbMachineTimeZone() }
   if (mode === 'cron') {
-    // sans cron fourni, on retombe sur le rythme par défaut de la maquette :
-    // tous les jours à 8 h (le formulaire client envoie toujours un cron).
-    if (sc.cron === undefined || sc.cron === null || String(sc.cron).trim() === '') schedule.cron = '0 8 * * *'
+    // no cron given: the default rhythm of the mock-up, every day at 8 (the client form always sends one)
+    if (sc.cron === undefined || sc.cron === null || sc.cron === '' || (typeof sc.cron === 'string' && sc.cron.trim() === '')) schedule.cron = '0 8 * * *'
     else if (typeof sc.cron !== 'string' || kbParseCron(sc.cron) === null) return { ok: false, error: 'cron invalide' }
-    else schedule.cron = String(sc.cron).trim().split(/\s+/).join(' ')
+    else if (kbCronCanFire(sc.cron) === false) return { ok: false, error: 'this schedule never fires' }
+    else schedule.cron = sc.cron.trim().split(/\s+/).join(' ')
   } else {
-    if (typeof sc.at !== 'string' || kbParseIsoLocal(sc.at) === null) return { ok: false, error: 'date ponctuelle invalide' }
-    schedule.at = sc.at
+    if (typeof sc.at !== 'string' || sc.at.length > 40 || kbParseIsoLocal(sc.at) === null) return { ok: false, error: 'date ponctuelle invalide' }
+    schedule.at = sc.at.trim()
   }
   const out = {
     name, prompt, schedule,
-    runsOn: 'local', // seul mode disponible : « cloud » reste grisé côté UI
+    runsOn: 'local', // the only mode available: « cloud » stays greyed out in the UI
     active: r.active !== false,
     approvals: r.approvals === 'auto' ? 'auto' : 'ask',
   }
-  if (Array.isArray(r.notify) === true) out.notify = r.notify.filter((x) => x === 'push' || x === 'email')
+  if (Array.isArray(r.notify) === true) out.notify = Array.from(new Set(r.notify.filter((x) => x === 'push' || x === 'email')))
   return { ok: true, task: out }
 }
 // ── Task store + trigger: pure, every side effect is injected, so the tests drive the code
@@ -2270,6 +2325,7 @@ function boot(ctx) {
         const now = new Date().toISOString()
         const task = Object.assign({ id, createdAt: now, updatedAt: now, history: [], lastRun: null }, clean.task)
         const nx = kbComputeNextRun(task, Date.now())
+        if (task.active === true && nx === null) return { ok: false, error: kbNoNextRunError(task) }
         task.nextRun = nx === null ? null : new Date(nx).toISOString()
         await kbTasksMutate(async (tasks) => { tasks.push(task) })
         return { ok: true, task }
@@ -2280,12 +2336,14 @@ function boot(ctx) {
         const clean = kbSanitizeTaskInput(body.task)
         if (clean.ok !== true) return { ok: false, error: clean.error }
         let updated = null
+        let refusal = null
         await kbTasksMutate(async (tasks) => {
           for (let i = 0; i < tasks.length; i += 1) {
             const t = tasks[i]
             if (t !== null && typeof t === 'object' && t.id === id) {
               const merged = Object.assign({}, t, clean.task, { id, createdAt: t.createdAt, updatedAt: new Date().toISOString(), history: Array.isArray(t.history) === true ? t.history : [] })
               const nx = kbComputeNextRun(merged, Date.now())
+              if (merged.active === true && nx === null) { refusal = kbNoNextRunError(merged); break }
               merged.nextRun = nx === null ? null : new Date(nx).toISOString()
               tasks[i] = merged
               updated = merged
@@ -2293,24 +2351,29 @@ function boot(ctx) {
             }
           }
         })
+        if (refusal !== null) return { ok: false, error: refusal }
         return updated === null ? { ok: false, error: 'tache introuvable' } : { ok: true, task: updated }
       }
       if (action === 'toggle') {
         const id = str(body.id)
         if (id === null) return { ok: false, error: 'id requis' }
+        if (typeof body.active !== 'boolean') return { ok: false, error: 'active must be true or false' }
         let found = null
+        let refusal = null
         await kbTasksMutate(async (tasks) => {
           for (const t of tasks) {
             if (t !== null && typeof t === 'object' && t.id === id) {
-              t.active = body.active !== false
+              const nx = kbComputeNextRun(Object.assign({}, t, { active: body.active }), Date.now())
+              if (body.active === true && nx === null) { refusal = kbNoNextRunError(t); break }
+              t.active = body.active
               t.updatedAt = new Date().toISOString()
-              const nx = kbComputeNextRun(t, Date.now())
               t.nextRun = nx === null ? null : new Date(nx).toISOString()
               found = t
               break
             }
           }
         })
+        if (refusal !== null) return { ok: false, error: refusal }
         return found === null ? { ok: false, error: 'tache introuvable' } : { ok: true, task: found }
       }
       if (action === 'delete') {
