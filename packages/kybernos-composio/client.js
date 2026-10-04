@@ -1615,7 +1615,9 @@ window.__ModuleLoader__.load({
 
     return {
       inject: ['timer', 'slots', 'locale'],
-      apply(ctx) { apply(ctx) },
+      // AGENTS.md rule 2: a bundle must never stop DSH from starting. The effects inside are guarded one by one;
+      // this net catches whatever else (a missing service) so the failure only costs this bundle's UI.
+      apply(ctx) { try { apply(ctx) } catch (e) { try { console.error('[kybernos-composio] client not mounted', e) } catch (e2) { /* console unavailable */ } } },
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.

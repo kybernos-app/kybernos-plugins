@@ -393,5 +393,14 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('client.js loads the catalog from the host route', src.indexOf("const CATALOG_URL = '/kybernos/composio/catalog'") >= 0)
 }
 
+// ── AGENTS.md rule 2: apply() cannot stop DSH from starting ─────────────────
+{
+  const errors = console.error
+  console.error = () => {}
+  let thrown = null
+  try { plugin.apply({}); plugin.apply({ get: () => { throw new Error('no such service') }, effect: () => { throw new Error('boom') } }) } catch (e) { thrown = e } finally { console.error = errors }
+  ok('client apply(): a missing service or a throwing host context does not throw', thrown === null, String(thrown && thrown.message))
+}
+
 console.log(echecs === 0 ? '\nClient: all green.' : `\n✗ ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)
