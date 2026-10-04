@@ -250,86 +250,143 @@ const kbSanitizeTaskInput = (raw) => {
   if (Array.isArray(r.notify) === true) out.notify = r.notify.filter((x) => x === 'push' || x === 'email')
   return { ok: true, task: out }
 }
-// Store JSON sur fs injecté : { resolve, readText, writeText } (testable en mémoire).
-const kbMakeTaskStore = (filePath, fsApi, nowFn) => {
-  const now = typeof nowFn === 'function' ? nowFn : () => Date.now()
-  const read = async () => {
-    try {
-      const target = await fsApi.resolve(filePath)
-      const parsed = JSON.parse(await fsApi.readText(target))
-      return Array.isArray(parsed) === true ? parsed : []
-    } catch (e) { return [] }
-  }
-  const write = async (tasks) => {
-    const target = await fsApi.resolve(filePath)
-    await fsApi.writeText(target, JSON.stringify(tasks, null, 2))
+// ── Task store + trigger: pure, every side effect is injected, so the tests drive the code
+// that production runs (there used to be a dead copy here that production did not use).
+//
+// A tasks.json that exists but cannot be parsed into a JSON array used to be read as an empty
+// list and overwritten by the next save, which destroyed every automation and every webhook
+// secret. It is now refused, never rewritten (same rule as kybernos-slash, commit 934563b).
+const kbTasksStoreError = (code, message) => Object.assign(new Error(message), { code })
+const kbParseTasksText = (text) => {
+  if (text === null) return { tasks: [] }
+  const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
+  let data = null
+  try { data = JSON.parse(body) } catch (e) { return { corrupt: true } }
+  return Array.isArray(data) === true ? { tasks: data } : { corrupt: true }
+}
+// io: { read() -> string | null (null = no file yet, a throw = unreadable),
+//       write(text) (atomic, mode 0600), keepCopy(text) (best effort copy of a corrupt file) }
+const kbMakeTaskStore = (io) => {
+  let chain = Promise.resolve()
+  const load = async (keep) => {
+    let text = null
+    try { text = await io.read() } catch (e) { throw kbTasksStoreError('tasks-unreadable', 'tasks.json cannot be read') }
+    const parsed = kbParseTasksText(text)
+    if (parsed.corrupt === true) {
+      if (keep === true) { try { await io.keepCopy(text) } catch (e) { /* a copy is a courtesy */ } }
+      throw kbTasksStoreError('tasks-corrupt', 'tasks.json is not a valid list: the file was left untouched')
+    }
+    return parsed.tasks
   }
   return {
-    list: read,
-    async mutate(fn) {
-      const tasks = await read()
-      const result = await fn(tasks)
-      await write(tasks)
-      return result
+    read: () => load(false),
+    // Serialized, so two mutations never start from the same snapshot, and silent when the
+    // callback changed nothing (the tick runs every 30 s and must not rewrite the file).
+    mutate(fn) {
+      const run = async () => {
+        const tasks = await load(true)
+        const before = JSON.stringify(tasks)
+        const result = await fn(tasks)
+        if (JSON.stringify(tasks) !== before) await io.write(JSON.stringify(tasks, null, 2))
+        return result
+      }
+      const next = chain.then(run, run)
+      chain = next.then(() => null, () => null)
+      return next
     },
-    genId: () => 'st-' + now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
-    now,
   }
 }
-// Machine à déclencher : tick() tire les tâches actives échues via fire(task),
-// recale nextRun, borne l'historique à 20. Une one-time tirée devient inactive.
-// En erreur aussi on recale (sinon le tick bourdonne sur la même tâche).
+// Tick: claim, then fire, then record.
+//  1. claim: under the store lock, every active task that is due, read fresh (so a task paused,
+//     deleted or rescheduled a moment ago is not fired), is moved to its next slot (cron) or
+//     deactivated (one-time), and that is written BEFORE anything starts. If the write fails
+//     nothing fires; a later bookkeeping failure can no longer start the same run every 30 s.
+//  2. fire: one session per claimed task, each bounded by fireTimeoutMs, so a session service
+//     that never answers cannot freeze every automation until the next restart.
+//  3. record: history and lastRun are merged into the fresh task, never its schedule or trigger.
+// A crash between 1 and 2 loses that run (at most once) instead of repeating it.
 const kbMakeTrigger = (deps) => {
   const store = deps.store
   const fire = deps.fire
+  const now = typeof deps.now === 'function' ? deps.now : () => Date.now()
   const onError = typeof deps.onError === 'function' ? deps.onError : () => {}
+  const fireTimeoutMs = Number.isFinite(deps.fireTimeoutMs) === true && deps.fireTimeoutMs > 0 ? deps.fireTimeoutMs : 90000
   let busy = false
+  let lastTickError = ''
+  const errMsg = (e) => String((e !== null && typeof e === 'object' && typeof e.message === 'string') ? e.message : e).slice(0, 200)
+  const withTimeout = (promise) => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timed out after ' + fireTimeoutMs + ' ms')), fireTimeoutMs)
+    promise.then((v) => { clearTimeout(timer); resolve(v) }, (e) => { clearTimeout(timer); reject(e) })
+  })
   const tick = async () => {
-    if (busy === true) return { fired: 0, skipped: 'busy' }
+    if (busy === true) return { fired: 0, failed: 0, skipped: 'busy' }
     busy = true
     let fired = 0
+    let failed = 0
     try {
-      fired = await store.mutate(async (tasks) => {
-        const nowMs = store.now()
-        let n = 0
+      const claimed = await store.mutate(async (tasks) => {
+        const nowMs = now()
+        const out = []
         for (const t of tasks) {
           if (t === null || typeof t !== 'object' || t.active !== true) continue
           if (typeof t.nextRun !== 'string') continue
           const due = Date.parse(t.nextRun)
-          if (!Number.isFinite(due) || due > nowMs) continue
-          const stamp = () => new Date(store.now()).toISOString()
-          const pushHist = (entry) => { t.history = Array.isArray(t.history) === true ? t.history.concat([entry]).slice(-20) : [entry] }
-          const onceMode = t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once'
-          try {
-            const res = await fire(t)
-            const at = stamp()
-            pushHist({ at, sessionId: (res !== null && typeof res === 'object' && typeof res.sessionId === 'string') ? res.sessionId : null, status: 'fired' })
-            t.lastRun = at
-            t.updatedAt = at
-            if (onceMode === true) { t.active = false; t.nextRun = null }
-            else {
-              const nx = kbComputeNextRun(t, nowMs)
-              t.nextRun = nx === null ? null : new Date(nx).toISOString()
-            }
-            n += 1
-          } catch (e) {
-            const at = stamp()
-            pushHist({ at, sessionId: null, status: 'error', error: String((e !== null && typeof e === 'object' && typeof e.message === 'string') ? e.message : e).slice(0, 200) })
-            t.updatedAt = at
-            const nx = onceMode === true ? null : kbComputeNextRun(t, nowMs)
-            if (nx === null) { if (onceMode === true) t.active = false; t.nextRun = null }
-            else t.nextRun = new Date(nx).toISOString()
-            onError('fire ' + String(t.id) + ': ' + String((e !== null && typeof e === 'object' && typeof e.message === 'string') ? e.message : e))
+          if (Number.isFinite(due) === false || due > nowMs) continue
+          out.push(Object.assign({}, t))
+          if (t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once') { t.active = false; t.nextRun = null }
+          else {
+            const nx = kbComputeNextRun(t, nowMs)
+            t.nextRun = nx === null ? null : new Date(nx).toISOString()
           }
         }
-        return n
+        return out
       })
+      lastTickError = ''
+      const results = []
+      for (const claim of claimed) {
+        try {
+          // Read again right before starting: a task deleted or paused since the claim (earlier
+          // tasks of this tick take about a second each) is left alone, and the run uses its
+          // latest definition. A one-time task is already inactive by its own claim.
+          const current = (await store.read()).find((x) => x !== null && typeof x === 'object' && x.id === claim.id)
+          if (current === undefined) continue
+          const once = current.schedule !== null && typeof current.schedule === 'object' && current.schedule.mode === 'once'
+          if (once === false && current.active !== true) continue
+          const res = await withTimeout(Promise.resolve().then(() => fire(Object.assign({}, current))))
+          results.push({ id: claim.id, ok: true, res })
+          fired += 1
+        } catch (e) {
+          results.push({ id: claim.id, ok: false, err: errMsg(e) })
+          failed += 1
+          onError('fire ' + String(claim.id) + ': ' + errMsg(e))
+        }
+      }
+      if (results.length > 0) {
+        try {
+          await store.mutate(async (fresh) => {
+            for (const r of results) {
+              const t = fresh.find((x) => x !== null && typeof x === 'object' && x.id === r.id)
+              if (t === undefined) continue // deleted while it was firing: respected
+              const at = new Date(now()).toISOString()
+              const sid = r.ok === true && r.res !== null && typeof r.res === 'object' && typeof r.res.sessionId === 'string' ? r.res.sessionId : null
+              const entry = r.ok === true
+                ? { at, sessionId: sid, status: r.res !== null && typeof r.res === 'object' && r.res.queued === true ? 'queued' : 'fired' }
+                : { at, sessionId: null, status: 'error', error: r.err }
+              t.history = (Array.isArray(t.history) === true ? t.history : []).concat([entry]).slice(-20)
+              t.lastRun = at
+              t.updatedAt = at
+            }
+          })
+        } catch (e) { onError('record: ' + errMsg(e)) }
+      }
     } catch (e) {
-      onError('tick: ' + String((e !== null && typeof e === 'object' && typeof e.message === 'string') ? e.message : e))
+      // Only reported when it changes: a corrupt file would otherwise log every 30 s.
+      const m = errMsg(e)
+      if (m !== lastTickError) { lastTickError = m; onError('tick: ' + m) }
     } finally {
       busy = false
     }
-    return { fired }
+    return { fired, failed }
   }
   return { tick }
 }
@@ -2079,28 +2136,46 @@ function boot(ctx) {
       if (typeof process !== 'undefined' && process.env !== undefined && typeof process.env.HOME === 'string' && process.env.HOME.length > 0) return joinPath(joinPath(process.env.HOME, '.dsh'), 'kybernos/tasks.json')
       return joinPath(pluginDir, '/../.dsh/kybernos/tasks.json')
     }
-    let kbTasksBusy = false
-    const kbTasksRead = async () => {
-      try {
+    // The store logic (corrupt-file refusal, serialized writes, no-op skipping) lives in the
+    // tested core block; this is only the file access it is given.
+    const kbTasksStore = kbMakeTaskStore({
+      read: async () => {
         const p = await kbTasksFileOf()
-        const parsed = JSON.parse(readFileSync(p, 'utf8'))
-        return Array.isArray(parsed) === true ? parsed : []
-      } catch (e) { return [] }
-    }
-    const kbTasksWrite = async (tasks) => {
-      const p = await kbTasksFileOf()
-      const dir = p.slice(0, p.lastIndexOf('/'))
-      try { mkdirSync(dir, { recursive: true }) } catch (e) { /* deja la */ }
-      writeFileSync(p, JSON.stringify(tasks, null, 2), 'utf8')
-      // H-05 : le store porte des secrets de webhook — 0600, pas 0644.
-      try { chmodSync(p, 0o600) } catch (e) { /* chmod best-effort */ }
-    }
-    const kbTasksMutate = async (fn) => {
-      const tasks = await kbTasksRead()
-      const out = await fn(tasks)
-      await kbTasksWrite(tasks)
-      return out
-    }
+        try { return readFileSync(p, 'utf8') } catch (e) {
+          if (e !== null && typeof e === 'object' && e.code === 'ENOENT') return null
+          throw e
+        }
+      },
+      // Atomic (temp file in the same directory, then rename) so a crash never leaves a
+      // half-written file; 0600 because the store carries webhook secrets (H-05).
+      write: async (text) => {
+        const p = await kbTasksFileOf()
+        try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* already there */ }
+        const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+        try {
+          writeFileSync(temp, text, { encoding: 'utf8', mode: 0o600 })
+          try { chmodSync(temp, 0o600) } catch (e) { /* best effort */ }
+          renameSync(temp, p)
+        } catch (e) {
+          try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+          throw e
+        }
+      },
+      // `tasks.json.corrupt-<hash of the content>`: the same content is kept once, at most five copies.
+      keepCopy: async (text) => {
+        const p = await kbTasksFileOf()
+        const dir = p.slice(0, p.lastIndexOf('/'))
+        const base = p.slice(p.lastIndexOf('/') + 1) + '.corrupt-'
+        let h = 0x811c9dc5
+        for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0 }
+        const target = p + '.corrupt-' + h.toString(16)
+        if (existsSync(target) === true) return
+        if (readdirSync(dir).filter((n) => n.startsWith(base)).length >= 5) return
+        writeFileSync(target, text, { encoding: 'utf8', mode: 0o600 })
+      },
+    })
+    const kbTasksRead = () => kbTasksStore.read()
+    const kbTasksMutate = (fn) => kbTasksStore.mutate(fn)
     const kbTaskId = () => 'st-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8)
     // Le tir : session neuve + prompt via le service sessionController quand il
     // est monté (create + prompt sideaux). Repli honnête : pendingFire consommé
@@ -2173,61 +2248,14 @@ function boot(ctx) {
       if (ack !== null && typeof ack === 'object' && ack.ok === false) throw new Error(ack.error !== null && ack.error !== undefined && ack.error.message !== undefined ? String(ack.error.message) : 'prompt refusé')
       return { sessionId }
     }
-    const kbTasksTick = async () => {
-      if (kbTasksBusy === true) return { fired: 0, skipped: 'busy' }
-      kbTasksBusy = true
-      let fired = 0
-      try {
-        // H-05 : le fire (session + tour LLM) ne vit PLUS dans la mutation.
-        // Avant, la liste lue au début du tick était réécrite ENTIÈRE à la
-        // fin — une révocation/édition concurrente (hook-revoke pendant le
-        // tour) était écrasée et le secret webhook REVENAIT. Désormais :
-        // 1) lecture des tâches dues, 2) fires hors mutation, 3) écriture
-        // par RELECTURE + fusion ciblée (history/lastRun/nextRun/active
-        // uniquement — jamais trigger, jamais le reste).
-        const nowMs = Date.now()
-        const dues = (await kbTasksRead()).filter((t) =>
-          t !== null && typeof t === 'object' && t.active === true &&
-          typeof t.nextRun === 'string' && Number.isFinite(Date.parse(t.nextRun)) &&
-          Date.parse(t.nextRun) <= nowMs)
-        const resultats = []
-        for (const t of dues) {
-          try {
-            const res = await kbFireTask(t)
-            resultats.push({ id: t.id, ok: true, res })
-          } catch (e) {
-            resultats.push({ id: t.id, ok: false, err: errText(e).slice(0, 200) })
-            try { console.error('[kybers] fire tache ' + String(t.id) + ' ratee:', errText(e)) } catch (e2) { /* console indisponible */ }
-          }
-        }
-        await kbTasksMutate(async (fresh) => {
-          const maintenant = Date.now()
-          for (const r of resultats) {
-            const t = fresh.find((x) => x !== null && typeof x === 'object' && x.id === r.id)
-            if (t === undefined) continue // supprimée pendant le fire : on respecte
-            const at = new Date().toISOString()
-            const entry = r.ok === true
-              ? { at, sessionId: str(r.res && r.res.sessionId) || null, status: r.res && r.res.queued === true ? 'queued' : 'fired' }
-              : { at, sessionId: null, status: 'error', error: r.err }
-            t.history = (Array.isArray(t.history) === true ? t.history : []).concat([entry]).slice(-20)
-            t.lastRun = at
-            t.updatedAt = at
-            const onceMode = t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'once'
-            if (onceMode === true) { t.active = false; t.nextRun = null }
-            else {
-              const nx = kbComputeNextRun(t, maintenant)
-              t.nextRun = nx === null ? null : new Date(nx).toISOString()
-            }
-            fired += 1
-          }
-        })
-      } catch (e) {
-        try { console.error('[kybers] tick taches planifiees:', errText(e)) } catch (e2) { /* console indisponible */ }
-      } finally {
-        kbTasksBusy = false
-      }
-      return { fired }
-    }
+    // The tick itself (claim, fire, record) is the tested core; this only gives it the real
+    // store and the real session start.
+    const kbTasksTrigger = kbMakeTrigger({
+      store: kbTasksStore,
+      fire: (task) => kbFireTask(task),
+      onError: (m) => { try { console.error('[kybers] scheduled tasks: ' + m) } catch (e) { /* console unavailable */ } },
+    })
+    const kbTasksTick = () => kbTasksTrigger.tick()
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
     const kbTasksHandle = async (body) => {
       const action = str(body.action)
@@ -10173,8 +10201,19 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-        const body = await readJsonBody(req, 200000)
-        sendJson(res, 200, await kbTasksHandle(body))
+        let body = null
+        try { body = await readJsonBody(req, 200000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        if (body === null || typeof body !== 'object' || Array.isArray(body) === true) return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
+        try {
+          sendJson(res, 200, await kbTasksHandle(body))
+        } catch (e) {
+          // A store that cannot be trusted is a normal answer the page can show (the client only
+          // reads JSON on a 200); anything else is an internal error whose text stays in the log.
+          const code = e !== null && typeof e === 'object' ? e.code : undefined
+          if (code === 'tasks-corrupt' || code === 'tasks-unreadable') return sendJson(res, 200, { ok: false, code, error: String(e.message) })
+          try { console.error('[kybers] tasks route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
       } }), 'kybernos: route tasks')
       // ══════════════════════════════════════════════════════════════════════
       // OUTILS (onglet « Outils ») — etat reel et activation cadree.
