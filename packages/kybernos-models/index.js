@@ -188,6 +188,144 @@ const kbJournalRead = () => {
   return out
 }
 
+// ── Parked providers: "disabled" without deleting ───────────────────────────
+// The engine has no per-provider off switch (measured on DSH 0.2.0-rc.2: no
+// `enabled`/`disabled` in dsh-llm or dsh-llm-pi-ai). What it does have: a route
+// exists only while its profile sits in `llm-pi-ai.providers`, and profiles are
+// re-read on every request. So "disable" = move the profile out of the settings
+// into this file, "enable" = put it back. While parked the provider is not
+// routable and its models are gone from every picker: a hard block, no engine
+// patch. The profile holds an env-var NAME (`apiKeyEnv`), never a key; it may
+// hold `headers`, so the file is 0600 and only the same-origin page reads it.
+export const PARKED_VERSION = 1
+const PARKED_FILE = join(STORE_DIR, 'providers-parked.json')
+const PARKED_SLUG = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
+const PARKED_MAX_PROFILE_CHARS = 200000
+const PARKED_MAX_MODELS = 5000
+
+const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+
+/** Read the store; anything unreadable or malformed reads as "nothing parked". */
+export const kbPkRead = (file = PARKED_FILE) => {
+  const raw = readJson(file, {})
+  const src = isPlainObject(raw) && isPlainObject(raw.providers) ? raw.providers : {}
+  const providers = {}
+  for (const slug of Object.keys(src)) {
+    const e = src[slug]
+    if (PARKED_SLUG.test(slug) !== true || !isPlainObject(e) || !isPlainObject(e.profile)) continue
+    providers[slug] = {
+      parkedAt: typeof e.parkedAt === 'string' ? e.parkedAt : null,
+      models: Array.isArray(e.models) ? e.models.filter((x) => typeof x === 'string').slice(0, PARKED_MAX_MODELS) : [],
+      profile: e.profile,
+    }
+  }
+  return { version: PARKED_VERSION, providers }
+}
+
+const kbPkWrite = (file, providers) => {
+  mkdirSync(dirname(file), { recursive: true })
+  const tmp = file + '.tmp-' + String(process.pid)
+  writeFileSync(tmp, JSON.stringify({ version: PARKED_VERSION, providers }, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 })
+  renameSync(tmp, file)
+}
+
+/** What the page may list without ever receiving a profile (headers can carry tokens). */
+export const kbPkPublic = (store) => Object.keys(store.providers).map((slug) => {
+  const e = store.providers[slug]
+  return {
+    slug,
+    parkedAt: e.parkedAt,
+    displayName: typeof e.profile.displayName === 'string' ? e.profile.displayName : null,
+    models: e.models,
+  }
+})
+
+/** Park a profile. Refuses a slug already parked: never overwrite a saved profile. */
+export const kbPkPark = (slug, profile, models, file = PARKED_FILE) => {
+  if (typeof slug !== 'string' || PARKED_SLUG.test(slug) !== true) return { ok: false, error: 'bad-slug' }
+  if (!isPlainObject(profile)) return { ok: false, error: 'bad-profile' }
+  let size = 0
+  try { size = JSON.stringify(profile).length } catch (e) { return { ok: false, error: 'bad-profile' } }
+  if (size > PARKED_MAX_PROFILE_CHARS) return { ok: false, error: 'profile-too-large' }
+  const store = kbPkRead(file)
+  if (store.providers[slug] !== undefined) return { ok: false, error: 'already-parked' }
+  const ids = Array.isArray(models) ? models.filter((x) => typeof x === 'string' && x.length > 0 && x.length <= 300).slice(0, PARKED_MAX_MODELS) : []
+  store.providers[slug] = { parkedAt: new Date().toISOString(), models: ids, profile }
+  try { kbPkWrite(file, store.providers) } catch (e) { return { ok: false, error: 'write-failed', detail: String(e && e.message ? e.message : e) } }
+  return { ok: true, slug }
+}
+
+/** The saved profile, left in place: the caller deletes it only after the settings write succeeded. */
+export const kbPkTake = (slug, file = PARKED_FILE) => {
+  if (typeof slug !== 'string' || PARKED_SLUG.test(slug) !== true) return { ok: false, error: 'bad-slug' }
+  const e = kbPkRead(file).providers[slug]
+  return e === undefined ? { ok: false, error: 'not-parked' } : { ok: true, slug, profile: e.profile, models: e.models }
+}
+
+export const kbPkForget = (slug, file = PARKED_FILE) => {
+  if (typeof slug !== 'string' || PARKED_SLUG.test(slug) !== true) return { ok: false, error: 'bad-slug' }
+  const store = kbPkRead(file)
+  if (store.providers[slug] === undefined) return { ok: true, slug, removed: false }
+  delete store.providers[slug]
+  try { kbPkWrite(file, store.providers) } catch (e) { return { ok: false, error: 'write-failed', detail: String(e && e.message ? e.message : e) } }
+  return { ok: true, slug, removed: true }
+}
+
+/** Strict same-origin (Origin, else Referer, required; host compared with the socket's real
+ *  listening address, never the forgeable Host header). Same rule as `sameOriginStrict` in
+ *  kybernos-plugin: plugin routes are served before DSH's own auth. */
+export const kbSameOriginStrict = (req) => {
+  try {
+    const h = (req && req.headers) || {}
+    const source = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' && h.referer !== '' ? h.referer : null)
+    if (source === null) return false
+    const u = new URL(source)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    const port = req.socket && typeof req.socket.localPort === 'number' ? ':' + req.socket.localPort : ''
+    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
+  } catch (e) { return false }
+}
+
+/** Mount the four parked-provider routes on a webServer-like `{ register }`. */
+export const kbPkMount = (register, file = PARKED_FILE) => {
+  const guard = (req, res, method) => {
+    if (req.method !== method) { sendJson(res, 405, { ok: false, error: 'method' }); return false }
+    if (kbSameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return false }
+    return true
+  }
+  const post = async (req, res) => {
+    if (guard(req, res, 'POST') !== true) return null
+    const body = await readBody(req)
+    if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return null }
+    return body
+  }
+  register({ kind: 'exact', path: '/kybernos-models/providers/parked', handler: async (req, res) => {
+    if (req.method !== 'GET') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+    // Listing carries no profile; a foreign Origin is still refused (DNS rebinding), no Origin passes.
+    const o = req.headers && (req.headers.origin || req.headers.referer)
+    if (o && kbSameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+    sendJson(res, 200, { ok: true, version: PARKED_VERSION, parked: kbPkPublic(kbPkRead(file)) })
+  } })
+  register({ kind: 'exact', path: '/kybernos-models/providers/park', handler: async (req, res) => {
+    const b = await post(req, res)
+    if (b === null) return
+    const r = kbPkPark(b.slug, b.profile, b.models, file)
+    sendJson(res, r.ok === true ? 200 : (r.error === 'already-parked' ? 409 : 400), r)
+  } })
+  register({ kind: 'exact', path: '/kybernos-models/providers/take', handler: async (req, res) => {
+    const b = await post(req, res)
+    if (b === null) return
+    const r = kbPkTake(b.slug, file)
+    sendJson(res, r.ok === true ? 200 : (r.error === 'not-parked' ? 404 : 400), r)
+  } })
+  register({ kind: 'exact', path: '/kybernos-models/providers/forget', handler: async (req, res) => {
+    const b = await post(req, res)
+    if (b === null) return
+    const r = kbPkForget(b.slug, file)
+    sendJson(res, r.ok === true ? 200 : (r.error === 'write-failed' ? 500 : 400), r)
+  } })
+}
+
 // ── Index models.dev : un fetch pour tous, cache disque 6 h ──────────────────
 /** Le cache disque vit sous la forme `{ at, data }` ; les fichiers écrits par
  *  une version antérieure portaient l'index à la racine. On lit les deux. */
@@ -764,6 +902,9 @@ export function apply(ctx) {
           sendJson(res, 500, { ok: false, error: 'write-failed', detail: String(e && e.message ? e.message : e) })
         }
       }}), 'kybernos-models: annotations (ecriture)')
+
+      // Parked ("disabled") providers: list, park, take, forget.
+      kbPkMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
 
       // Journal des écritures : chaque tentative du panneau (champ réel ou
       // annotation) y laisse une ligne, avec la réponse du harnais. C'est la
