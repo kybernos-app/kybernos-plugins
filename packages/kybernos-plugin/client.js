@@ -2137,6 +2137,158 @@ const kbLangActive = () => {
   try { const l = localStorage.getItem('kybernos.theme.lang'); if (l !== null && l !== '') return String(l) } catch (e) { /* localStorage indisponible */ }
   return null
 }
+// <kb-lang-runtime>
+// ── Language runtime: always on, in the core ─────────────────────────────────
+// The Language plugin (@local/kybernos-language) is OPTIONAL: it translates and
+// manages languages, and a user may switch it off. What a translated language
+// needs to KEEP WORKING must not vanish with it, so it lives here: registering
+// each translated language in DSH's own locale service (DSH's screens — and its
+// General › Language selector — then list and use it), and keeping Kybernos in
+// step with that selector. Kybernos' own dictionary is already read by kbt/kbf
+// above, straight from localStorage, with or without the plugin.
+//
+// Contract with the plugin — everything in localStorage, written by it, read here:
+//   kybernos.i18n.langs     ["es", …]            languages the user added
+//   kybernos.i18n.labels    { "es": "Español" }  their native names
+//   kybernos.i18n.<id>      { key: text }        Kybernos dictionary (kbt/kbf)
+//   kybernos.i18n.dsh.<id>  { "ns::key": text }  DSH's own dictionaries
+//   kybernos.theme.lang     the active Kybernos language (also the first-paint cache)
+// DSH's locale is the single source of truth for the active language (it is the
+// one DSH persists on the host); `kybernos.theme.lang` mirrors it. The runtime is
+// published as window.__KB_LANG_RUNTIME__ so the plugin can register a pack it has
+// just built, and tell whether the runtime is there at all.
+const KB_LANG_GRACE_MS = 5000
+const KB_LANG_SETTLE_MAX_MS = 30000
+const kbLangRuntimeStart = (ctx, loc, env) => {
+  const e = env || {}
+  const store = e.storage || localStorage
+  const win = e.window || (typeof window !== 'undefined' ? window : {})
+  const reload = e.reload || (() => { try { location.reload() } catch (err) { /* no page */ } })
+  const later = e.setTimeout || ((fn, ms) => setTimeout(fn, ms))
+  const now = e.now || (() => Date.now())
+  const ours = new Set() // languages WE registered in DSH (DSH-native ones are told apart)
+  const ID = /^[a-z]{2,3}(-[A-Za-z0-9]+)?$/
+  const readJson = (key, dflt) => {
+    try {
+      const raw = store.getItem(key)
+      if (raw === null) return dflt
+      const parsed = JSON.parse(raw)
+      return parsed !== null && typeof parsed === 'object' ? parsed : dflt
+    } catch (err) { return dflt }
+  }
+  const labelOf = (id) => {
+    const saved = readJson('kybernos.i18n.labels', {})[id]
+    if (typeof saved === 'string' && saved !== '') return saved
+    try {
+      const n = new Intl.DisplayNames([id], { type: 'language' }).of(id)
+      if (typeof n === 'string' && n !== '' && n.toLowerCase() !== id) return n.charAt(0).toLocaleUpperCase() + n.slice(1)
+    } catch (err) { /* no locale data */ }
+    return id
+  }
+  // Translated languages: the ones the user added, plus any cached dictionary
+  // (older versions kept no registry). "kybernos"/"en" are built in, not packs.
+  const packIds = () => {
+    const ids = []
+    const add = (id) => { if (typeof id === 'string' && ID.test(id) && id !== 'en' && id !== 'kybernos' && ids.indexOf(id) < 0) ids.push(id) }
+    const reg = readJson('kybernos.i18n.langs', [])
+    if (Array.isArray(reg)) reg.forEach(add)
+    try {
+      for (let i = 0; i < store.length; i++) {
+        const k = store.key(i)
+        if (k !== null && k.indexOf('kybernos.i18n.') === 0) add(k.slice('kybernos.i18n.'.length))
+      }
+    } catch (err) { /* storage unavailable */ }
+    return ids
+  }
+  const dshNative = (id) => {
+    try { return !ours.has(id) && loc.getLocale().locales.some((l) => String(l.id).toLowerCase() === id) } catch (err) { return false }
+  }
+  // ONE language registered in DSH: one addLanguage, one register per namespace.
+  // Returns the disposer, or null when there is nothing to do: no DSH dictionary
+  // for it, DSH already ships it (zh — registering would throw), or already done.
+  const registerPack = (id) => {
+    if (loc === null || loc === undefined || typeof loc.addLanguage !== 'function' || typeof loc.register !== 'function') return null
+    const dict = readJson('kybernos.i18n.dsh.' + id, {})
+    if (Object.keys(dict).length === 0 || ours.has(id) || dshNative(id)) return null
+    let dLang = null
+    const dDicts = []
+    try { dLang = loc.addLanguage({ id, label: labelOf(id), fallback: 'en' }) } catch (err) { return null }
+    ours.add(id)
+    const byNs = {}
+    for (const wire of Object.keys(dict)) {
+      const at = wire.indexOf('::')
+      if (at <= 0) continue
+      const ns = wire.slice(0, at)
+      if (byNs[ns] === undefined) byNs[ns] = {}
+      byNs[ns][wire.slice(at + 2)] = dict[wire]
+    }
+    for (const ns of Object.keys(byNs)) { try { dDicts.push(loc.register(ns, id, byNs[ns])) } catch (err) { /* namespace already has this language */ } }
+    return () => {
+      for (const d of dDicts) { try { d() } catch (err) { /* already disposed */ } }
+      if (dLang !== null) { try { dLang() } catch (err) { /* already disposed */ } }
+      ours.delete(id)
+    }
+  }
+  const stored = () => { try { const v = store.getItem('kybernos.theme.lang'); return v !== null && v !== '' ? v : null } catch (err) { return null } }
+  // What Kybernos should become to match DSH's active language, or null to leave it.
+  //  - one of our languages, or any other non-English DSH language (zh, the
+  //    « kybernos » entry): follow it;
+  //  - English: follow it only away from one of OUR languages — « kybernos »
+  //    (French) keeps DSH in English by design, so English there is no change.
+  const wanted = (active, cur) => {
+    if (active === cur) return null
+    if (active !== 'en') return active
+    return cur !== null && ours.has(cur) ? 'en' : null
+  }
+  const follow = (target) => {
+    try { store.setItem('kybernos.theme.lang', target) } catch (err) { /* quota */ }
+    later(reload, 300)
+  }
+  // Has DSH finished reading its stored language from the host? Until then it sits on
+  // a PROVISIONAL language (the browser's) that must never be taken for a choice —
+  // and on a busy machine the read can take well over the boot grace period. DSH
+  // keeps its host scope on the locale runtime, whose snapshot has a value once the
+  // read is done. That field is not public API (like the dictionaries read by the
+  // Language plugin), so "unknown" (null) is a legal answer.
+  const settled = () => {
+    try {
+      const host = loc.host
+      if (host !== undefined && host !== null && typeof host.getSnapshot === 'function') return host.getSnapshot().value !== undefined
+    } catch (err) { /* unknown */ }
+    return null
+  }
+  const bootAt = now()
+  let waiting = false
+  const reconcile = () => {
+    try {
+      const ready = settled()
+      if (ready === false) {
+        // Not yet: look again in a second — for a while, then leave things as they are.
+        if (!waiting && now() - bootAt < KB_LANG_SETTLE_MAX_MS) { waiting = true; later(() => { waiting = false; reconcile() }, 1000) }
+        return
+      }
+      const active = String(loc.getLocale().active)
+      let target = wanted(active, stored())
+      // Settled status unknown: an English DSH could be the browser's provisional
+      // default as well as a stored choice — only act on a non-English language.
+      if (ready === null && active === 'en') target = null
+      if (target !== null) follow(target)
+    } catch (err) { /* locale service in flux */ }
+  }
+  if (loc !== null && loc !== undefined) {
+    for (const id of packIds()) ctx.effect(() => registerPack(id) || (() => {}), 'kybernos: DSH language pack ' + id)
+    // Nothing is followed during boot; after the grace period one reconcile (once DSH
+    // has settled), and every later change is a user's choice.
+    if (typeof loc.subscribe === 'function') {
+      ctx.effect(() => loc.subscribe(() => { if (now() - bootAt >= KB_LANG_GRACE_MS) reconcile() }), 'kybernos: follow the DSH language selector')
+    }
+    later(reconcile, KB_LANG_GRACE_MS)
+  }
+  const runtime = { version: 1, registerPack, packIds, ours, wanted, reconcile }
+  try { win.__KB_LANG_RUNTIME__ = runtime } catch (err) { /* no window */ }
+  return runtime
+}
+// </kb-lang-runtime>
 let kbI18nCache = { lang: null, dict: null }
 const kbI18nDict = (lang) => {
   if (lang === null || lang === undefined) return null
@@ -2893,6 +3045,9 @@ const kbf = (fr) => {
   }
   return KB_FR_EN[fr] !== undefined ? KB_FR_EN[fr] : fr
 }
+// Source strings for the language plugin's translation engine (kybernos-language
+// reads them instead of scraping this file's source).
+try { if (typeof window !== 'undefined') { window.__KB_T__ = KB_T; window.__KB_FR_EN__ = KB_FR_EN } } catch (e) { /* outside a browser */ }
 
 // ── icônes Lucide (SVG inline, aucune dépendance) ───────────────────────────
 const LUCIDE = {
@@ -28765,7 +28920,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       ctx.effect(() => {
         let dLang = null
         let dDict = null
-        try { dLang = localeSvc.addLanguage({ id: 'kybernos', label: kbt('kbui.kybernos'), fallback: 'en' }) } catch (e) { /* déjà enregistrée (course de mise à jour) */ }
+        // Listed in DSH's own General › Language selector: named for what it does (Kybernos in French; DSH itself has no French).
+        try { dLang = localeSvc.addLanguage({ id: 'kybernos', label: 'Français', fallback: 'en' }) } catch (e) { /* already registered (update race) */ }
         try { dDict = localeSvc.register('conversation', 'kybernos', {
           'hero.headline': kbt('kbui.kybernos'),
           'hero.preview': 'avec vos kybers',
@@ -28778,6 +28934,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         }
       }, 'kybers: langue kybernos')
     }
+    // Translated languages stay available — registered in DSH, followed from its
+    // selector — even when the optional Language plugin is switched off.
+    try { kbLangRuntimeStart(ctx, localeSvc !== undefined ? localeSvc : null) } catch (e) { try { console.error('[kybernos] language runtime', e) } catch (e2) { /* */ } }
     slots.inject('tool.view.cordis', () => slots.register(
       { name: 'tool.view.cordis', key: 'self' },
       RunCard));

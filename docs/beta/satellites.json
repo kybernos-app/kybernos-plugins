@@ -14,7 +14,7 @@
   "satellites": {
     "commentaire": "Débranchables. tier 2 = indépendants, tier 3 = modules de rendu lourds (libs tierces).",
     "bundles": [
-      { "dir": "kybernos-language", "nom": "@local/kybernos-language", "tier": 2, "obligatoire": false, "role": "langue d'interface : choix, traduction LLM, dir/lang sur <html>", "poids_ko": 44, "lib_vendor": null },
+      { "dir": "kybernos-language", "nom": "@local/kybernos-language", "tier": 2, "obligatoire": false, "role": "langue d'interface : liste ISO, traduction LLM de Kybernos et des écrans DSH, dir/lang sur <html>", "poids_ko": 80, "lib_vendor": null },
       { "dir": "kybernos-relance", "nom": "@local/kybernos-relance", "tier": 2, "obligatoire": false, "role": "relance DSH, outil relancer_dsh", "poids_ko": 52, "lib_vendor": null },
       { "dir": "kybernos-composio", "nom": "@local/kybernos-composio", "tier": 2, "obligatoire": false, "role": "connecteurs Composio", "poids_ko": 536, "lib_vendor": null },
       { "dir": "kybernos-cloud", "nom": "@local/kybernos-cloud", "tier": 2, "obligatoire": false, "role": "cloud, mémoire, outils memory_search/memory_write", "poids_ko": 328, "lib_vendor": null },

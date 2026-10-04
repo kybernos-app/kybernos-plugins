@@ -258,7 +258,6 @@ window.__ModuleLoader__.load({
         accPhotoUp: 'Importer une photo',
         accPhotoDel: 'Retirer la photo',
         accPhotoErr: 'Image illisible.',
-        accLanguage: 'Langue',
         accInstructions: 'Instructions personnalisées — comment tous les Kybers vous traitent',
         accInstructionsPh: 'Soyez direct. Phrases courtes…',
         accSave: 'Enregistrer',
@@ -480,7 +479,6 @@ window.__ModuleLoader__.load({
         accPhotoUp: 'Upload photo',
         accPhotoDel: 'Remove photo',
         accPhotoErr: 'Unreadable image.',
-        accLanguage: 'Language',
         accInstructions: 'Custom instructions — how all Kybers treat you',
         accInstructionsPh: 'Be direct. Short sentences…',
         accSave: 'Save',
@@ -923,7 +921,7 @@ window.__ModuleLoader__.load({
     // de réseau. Le jour où une route serveur les rend, seul ceReadWrite
     // change.
     const KB_ACC_KEY = 'kb8.account-profile'
-    const kbAccVide = () => ({ name: '', birth: '', location: '', language: '', instructions: '', color: '', photo: '', tz: '' })
+    const kbAccVide = () => ({ name: '', birth: '', location: '', instructions: '', color: '', photo: '', tz: '' })
     const kbAccRead = () => {
       try {
         const j = JSON.parse(window.localStorage.getItem(KB_ACC_KEY) || 'null')
@@ -2647,14 +2645,6 @@ window.__ModuleLoader__.load({
                   h('select', champNat('tz'),
                     h('option', { value: '' }, fuseau !== '' ? t('accAutoTz') + ' · ' + fuseau : t('accAutoTz')),
                     zones.map((z) => h('option', { key: z, value: z }, z)))),
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('accLanguage'))),
-                  h('select', champNat('language'),
-                    h('option', { value: '' }, '—'),
-                    h('option', { value: 'Français' }, 'Français'),
-                    h('option', { value: 'English' }, 'English'),
-                    h('option', { value: 'العربية' }, 'العربية'))),
                 h('div', { className: 'kbm-setfield' },
                   h('div', { className: 'kbm-setfield-head' },
                     h('span', { className: 'kbm-setfield-label' }, t('accInstructions'))),

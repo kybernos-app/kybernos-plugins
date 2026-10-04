@@ -28,7 +28,7 @@ const FICHE = {
   'kybernos-plugin': ['base', 'Le cœur : équipes d’agents, ressources, réglages et préréglages.', 'The core: agent teams, resources, settings and presets.'],
   'kybernos-hub': ['base', 'Ce panneau, la garde de démarrage et le mode sans échec.', 'This panel, the boot guard and safe mode.'],
   'kybernos-theme': ['base', 'Thème, palettes, fond et police.', 'Theme, palettes, background and font.'],
-  'kybernos-language': ['base', 'Langue de l’interface, traduction et sens de lecture.', 'Interface language, translation and reading direction.'],
+  'kybernos-language': ['base', 'Langue de l’interface : toutes les langues ISO, traduction de Kybernos et de DSH, sens de lecture.', 'Interface language: every ISO language, translation of Kybernos and DSH, reading direction.'],
   'kybernos-sessions': ['base', 'Sessions qui se nomment et se classent seules.', 'Sessions that name and sort themselves.'],
   'kybernos-maintenance': ['base', 'Versions, journal, état de santé de l’installation.', 'Versions, journal, installation health.'],
   'kybernos-skills': ['base', 'Compétences locales, créées par chat.', 'Local skills, created by chat.'],

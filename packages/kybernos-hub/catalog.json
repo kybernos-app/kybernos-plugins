@@ -113,10 +113,10 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": null,
-      "poids_ko": 44,
+      "poids_ko": 80,
       "promesse": {
-        "fr": "Langue de l’interface, traduction et sens de lecture.",
-        "en": "Interface language, translation and reading direction."
+        "fr": "Langue de l’interface : toutes les langues ISO, traduction de Kybernos et de DSH, sens de lecture.",
+        "en": "Interface language: every ISO language, translation of Kybernos and DSH, reading direction."
       }
     },
     {
