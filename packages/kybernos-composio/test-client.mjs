@@ -148,6 +148,54 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const logos = CATALOG.filter((a) => typeof a.l === 'string' && a.l.length > 0)
   const active = logos.filter((a) => /<script|<foreignObject|<iframe|<object|<embed|\son\w+\s*=|javascript:/i.test(a.l)).map((a) => a.s)
   ok(`catalog: ${logos.length} logos carry no script, event handler, javascript: or embedded document`, logos.length > 0 && active.length === 0, active.join(','))
+  // structural defects: a logo is raw HTML in the page, so mangled markup is not cosmetic
+  const { svgProblems, repairSvg } = await import(new URL('./scripts/svg-check.mjs', import.meta.url).href)
+  const broken = logos.map((a) => [a.s, svgProblems(a.l)]).filter(([, p]) => p.length > 0)
+  ok(`catalog: ${logos.length} logos are well formed (known elements, no dangling url(#id) or href, no relative image URL)`, broken.length === 0, broken.slice(0, 3).map(([s, p]) => s + ': ' + p[0]).join(' | '))
+  const gcal = CATALOG.find((a) => a.s === 'googlecalendar')
+  ok('catalog: the Google Calendar logo has its gradients and filter (it had unknown <linearGradientid=...> elements)', gcal !== undefined && typeof gcal.l === 'string' && gcal.l.includes('<linearGradient id="lgb-googlecalendar-') && gcal.l.includes('<feFlood flood-opacity="0"') && gcal.l.includes('<linearGradientid') === false && /id="[^"]*""/.test(gcal.l) === false)
+  ok('catalog: an app whose logo cannot be rebuilt has none (the page draws its initial), not a broken one', CATALOG.find((a) => a.s === 'airparser').l === null && CATALOG.every((a) => a.l === null || /href="(?!#|data:)/.test(a.l) === false))
+
+  // the checker itself: each shape of the defects found in the data, and what must stay legal
+  const svg = (inner, root) => '<svg viewBox="0 0 10 10"' + (root || '') + '>' + inner + '</svg>'
+  const bad = [
+    ['a tag name glued to its first attribute', svg('<defs><linearGradientid="a"x1="1"></linearGradientid></defs>')],
+    ['an unknown element', svg('<blink/>')],
+    ['a script element', svg('<script>alert(1)</script>')],
+    ['a foreignObject', svg('<foreignObject><p>x</p></foreignObject>')],
+    ['a split tag name', svg('<defs><line arGradient id="a"></line></defs>')],
+    ['an attribute without a space before it', svg('<rect width="1"height="2"/>')],
+    ['a doubled closing quote on the root', svg('<rect/>', ' id="a"" xmlns="http://www.w3.org/2000/svg"')],
+    ['an attribute without a value', svg('<rect fill/>')],
+    ['a url(#id) to a missing id', svg('<rect fill="url(#nope)"/>')],
+    ['an href to a missing id', svg('<use href="#nope"/>')],
+    ['a relative image href', svg('<image href="kyb-x-a-dataimagepng"/>')],
+    ['a remote image href', svg('<image href="https://example.com/a.png"/>')],
+    ['a javascript: href', svg('<image href="javascript:alert(1)"/>')],
+    ['an unclosed element', svg('<g>')],
+    ['a closing tag that does not match', svg('<g></defs>')],
+    ['two roots', svg('') + svg('')],
+    ['text outside the root', 'x' + svg('')],
+    ['a repeated id', svg('<g id="a"/><g id="a"/>')],
+  ]
+  for (const [label, s] of bad) ok(`svg check: ${label} is a defect`, svgProblems(s).length > 0, JSON.stringify(svgProblems(s)))
+  const good = [
+    ['a plain shape', svg('<path d="M0 0h1z"/>')],
+    ['a gradient used by a fill', svg('<defs><linearGradient id="a" x1="0"><stop offset="0"/></linearGradient></defs><rect fill="url(#a)"/>')],
+    ['an href to an existing id', svg('<defs><path id="p" d="M0 0"/></defs><use href="#p"/><use xlink:href="#p"/>')],
+    ['an inline PNG', svg('<image href="data:image/png;base64,iVBORw0KGgo+/AA=="/>')],
+    ['an empty attribute value', svg('<rect fill=""/>')],
+    ['single-quoted attributes', svg("<rect fill='#fff'/>")],
+    ['a title', svg('<title>Name</title>')],
+  ]
+  for (const [label, s] of good) ok(`svg check: ${label} passes`, svgProblems(s).length === 0, JSON.stringify(svgProblems(s)))
+  // the repair: the shapes found in the data are fixed, and a sound SVG is not touched
+  const fixed = repairSvg('<svg viewBox="0 0 10 10" id="a"" xmlns="http://www.w3.org/2000/svg"><defs><linearGradientid="g"x1="1"x2="2" gradientUnits="userSpaceOnUse"><stop offset="0"/></linearGradient><filter id="f"><feFloodflood -opacity="0" result="r"/><feBlendi n="SourceGraphic"in2="r" mode="normal"/><feGaussianBlurresul t="e" stdDeviation="6"/></filter></defs><rect fill="url(#g)" filter="url(#f)"/></svg>')
+  ok('svg repair: the mangled gradient, filter and root are repaired into a passing SVG', svgProblems(fixed).length === 0 && fixed.includes('<linearGradient id="g" x1="1" x2="2"') && fixed.includes('<feFlood flood-opacity="0"') && fixed.includes('<feBlend in="SourceGraphic" in2="r"') && fixed.includes('<feGaussianBlur result="e"'), JSON.stringify(svgProblems(fixed)))
+  const sound = svg('<g id="a"><path d="M0 0" fill=""/></g><rect fill="url(#a)" id="b"/>')
+  ok('svg repair: a sound SVG is returned unchanged (empty attribute values included)', repairSvg(sound) === sound)
+  ok('svg repair: it is idempotent', repairSvg(repairSvg(fixed)) === repairSvg(fixed))
+  ok('svg repair: what it cannot fix is still reported', svgProblems(repairSvg(svg('<rect fill="url(#nope)"/><image href="x"/>'))).length >= 2)
 }
 
 // ── the minimal MCP client (kbCpCall) ───────────────────────────────────────
