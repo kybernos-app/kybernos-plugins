@@ -1,18 +1,18 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// @local/kybernos-composio — client : page Connections (catalogue riche,
-// logos SVG, multi-connexions par app) + paramètre clé sur la page du bundle.
+// @local/kybernos-composio — client: Connections page (rich catalog,
+// SVG logos, several connections per app) + key setting on the bundle page.
 //
-// Architecture (mesurée 2026-09-17) :
-// - La clé ck_ n'ouvre QUE le MCP connect.composio.dev/mcp (backend REST 401).
-// - Le MCP n'expose AUCUN catalogue : resources/list → -32601, et
-//   COMPOSIO_SEARCH_TOOLS ne renvoie que 4-6 tools par requête. La grille
-//   s'appuie donc sur CATALOG (100 apps, 99 logos SVG réels), servi par le host
-//   sur GET /kybernos/composio/catalog et chargé à la demande (catalog.js).
-// - COMPOSIO_MANAGE_CONNECTIONS action "list" en LOT : 500 toolkits en ~760 ms,
-//   sans effet de bord (vérifié 2× : status "initiated", accounts [] stables).
-//   C'est le mécanisme de découverte des connexions déjà existantes.
-// - CORS : le MCP renvoie `access-control-allow-origin: *` mais les
-//   NOTIFICATIONS (sans id) répondent 202 SANS header → ne jamais envoyer
+// Architecture (measured 2026-09-17):
+// - The ck_ key ONLY opens the MCP connect.composio.dev/mcp (the REST backend answers 401).
+// - The MCP exposes NO catalog: resources/list -> -32601, and
+//   COMPOSIO_SEARCH_TOOLS only returns 4-6 tools per request. The grid is therefore built
+//   on CATALOG (100 apps, 98 real SVG logos), served by the host
+//   on GET /kybernos/composio/catalog and loaded on demand (catalog.js).
+// - COMPOSIO_MANAGE_CONNECTIONS action "list" in a BATCH: 500 toolkits in ~760 ms,
+//   with no side effect (checked twice: status "initiated", accounts [] stable).
+//   It is the mechanism for discovering the connections that already exist.
+// - CORS: the MCP returns `access-control-allow-origin: *` but
+//   NOTIFICATIONS (no id) answer 202 WITHOUT that header -> never send
 //   notifications/initialized.
 // ═══════════════════════════════════════════════════════════════════════════
 window.__ModuleLoader__.load({
@@ -22,19 +22,19 @@ window.__ModuleLoader__.load({
     const h = React.createElement
     let localeSvc = { current: () => 'kybernos' }
 
-    // ── catalogue Composio : chargé à la demande depuis le host ───────────────
-    // Les 412 Ko du catalogue ne sont plus inlinés dans ce bundle : le navigateur
-    // ne les télécharge qu'en ouvrant Composio. catalog.js reste la source de
-    // vérité, servie par GET /kybernos/composio/catalog (cache mémoire côté host).
+    // ── Composio catalog: loaded on demand from the host ──────────────────────
+    // The 412 KB of the catalog are no longer inlined in this bundle: the browser only
+    // downloads them when Composio is opened. catalog.js stays the source of
+    // truth, served by GET /kybernos/composio/catalog (in-memory cache on the host).
     const CATALOG_URL = '/kybernos/composio/catalog'
     let CATALOG = []
     let CAT_BY_SLUG = {}
     let catalogLoad = null
-    // catOk : vrai SEULEMENT après chargement d'un catalogue NON VIDE valide.
-    // Un 200 + [] est une issue terminale valide (ready → true) mais laisse
-    // catOk à false : c'est ce gate qui autorise la reprise opt-in de refresh.
+    // catOk: true ONLY after a valid, NON-EMPTY catalog has loaded.
+    // A 200 + [] is a valid terminal outcome (ready -> true) but leaves
+    // catOk at false: that gate is what allows the opt-in retry of refresh.
     let catOk = false
-    /** Charge le catalogue une seule fois (mémoire d'abord), puis le garde. */
+    /** Loads the catalog once (memory first), then keeps it. */
     const kbCpCatalog = () => {
       if (CATALOG.length > 0) return Promise.resolve(CATALOG)
       if (catalogLoad !== null) return catalogLoad
@@ -44,11 +44,11 @@ window.__ModuleLoader__.load({
           return res.json()
         })
         .then((list) => {
-          // 'catalogue invalide' est réservé au NON-tableau : un 200 + [] est
-          // une issue terminale valide, qui résout [] sans peupler CATALOG.
+          // 'invalid catalog' is reserved for a NON-array: a 200 + [] is
+          // a valid terminal outcome, which resolves [] without filling CATALOG.
           if (Array.isArray(list) !== true) throw new Error('invalid catalog')
-          // Vide-valide : on invalide catalogLoad, sinon la promesse résolue []
-          // serait resservie par :36 et la reprise ne re-fetcherait jamais.
+          // Valid-empty: catalogLoad is reset, otherwise the resolved promise []
+          // would be served again by the check above and the retry would never refetch.
           if (list.length === 0) { catalogLoad = null; return [] }
           CATALOG = list
           const m = {}
@@ -61,11 +61,11 @@ window.__ModuleLoader__.load({
       return catalogLoad
     }
 
-    // ── clé + client MCP minimal (streamable-http, JSON-RPC over POST) ───────
+    // ── key + minimal MCP client (streamable-http, JSON-RPC over POST) ────────
     const MCP_URL = 'https://connect.composio.dev/mcp'
     const KB_CP_KEY = 'composio.apiKey'
-    // (01/10) réglage Local (gratuit, clé ck_ personnelle) vs Cloud (compte
-    // Composio Platform payant — dashboard.composio.dev). Défaut : local.
+    // (01/10) Local setting (free, personal ck_ key) vs Cloud (paid Composio
+    // Platform account, dashboard.composio.dev). Default: local.
     const KB_CP_MODE = 'composio.mode'
     const kbCpKey = () => { try { return localStorage.getItem(KB_CP_KEY) || '' } catch (e) { return '' } }
     const kbCpHas = () => kbCpKey().indexOf('ck_') === 0
@@ -93,9 +93,9 @@ window.__ModuleLoader__.load({
       } catch (e) { return null }
     }
 
-    // Liens d'autorisation persistants par toolkit (rouvrables tant que non ACTIVE).
-    // Composio annonce une expiration à 10 minutes : on stocke l'horodatage et on
-    // masque le lien périmé (sinon une bannière morte reste affichée pour toujours).
+    // Persistent authorization links per toolkit (reopenable until ACTIVE).
+    // Composio announces a 10-minute expiry: the timestamp is stored and the
+    // expired link is hidden (otherwise a dead banner would stay on screen forever).
     // The stored value is re-checked on read: localStorage is writable by anything
     // running on this origin, so what it holds is not trusted either.
     const KB_CP_LINKS = 'composio.authLinks'
@@ -191,18 +191,18 @@ window.__ModuleLoader__.load({
       try { return JSON.parse(first.text) } catch (e) { return first.text }
     }
 
-    // ── helpers catalogue / comptes ──────────────────────────────────────────
-    // CAT_BY_SLUG est (re)construit à l'arrivée du catalogue (kbCpCatalog).
+    // ── catalog / account helpers ─────────────────────────────────────────────
+    // CAT_BY_SLUG is (re)built when the catalog arrives (kbCpCatalog).
     const catOf = (slug) => CAT_BY_SLUG[slug] || null
     const nameOf = (slug) => { const c = catOf(slug); return c ? c.n : slug }
     const logoOf = (slug) => { const c = catOf(slug); return c ? c.l : null }
 
-    /** Normalise la réponse de COMPOSIO_MANAGE_CONNECTIONS en { slug: {status, accounts[]} }. */
+    /** Normalizes the COMPOSIO_MANAGE_CONNECTIONS answer into { slug: {status, accounts[]} }. */
     /**
-     * Libellé lisible d'un compte. L'API renvoie `user_info` avec, selon le
-     * toolkit : `summary` (Google Calendar → l'email), `email`, `name`,
-     * `username`, `screen_name`… On prend le premier disponible, sinon
-     * l'alias posé par l'utilisateur, sinon l'id brut (dernier recours).
+     * Readable label of an account. The API returns `user_info` with, depending on the
+     * toolkit: `summary` (Google Calendar -> the email), `email`, `name`,
+     * `username`, `screen_name`... The first one available is taken, else the alias set by
+     * the user, else the raw id (last resort).
      */
     const accountLabel = (a) => {
       const ui = (a && a.user_info && typeof a.user_info === 'object') ? a.user_info : {}
@@ -235,7 +235,7 @@ window.__ModuleLoader__.load({
       return out
     }
 
-    /** Interroge un lot de toolkits (action list). Batch mesuré : 500 en ~760 ms. */
+    /** Queries a batch of toolkits (action list). Measured batch: 500 in ~760 ms. */
     const listBatch = async (slugs) => {
       const res = await kbCpCall('COMPOSIO_MANAGE_CONNECTIONS', { toolkits: slugs.map((name) => ({ name, action: 'list' })) })
       return parseAccounts(kbCpText(res))
@@ -265,7 +265,7 @@ window.__ModuleLoader__.load({
       'kb.cp.search': { fr: 'Chercher une app — Slack, GitHub, facturation…', en: 'Search an app — Slack, GitHub, billing…' },
       'kb.cp.chipall': { fr: 'Toutes', en: 'All' },
       'kb.cp.chipconn': { fr: 'Connectées', en: 'Connected' },
-      // (29/09) l'onglet Plugins a quitté la page Ressources : on vise Réglages.
+      // (29/09) the Plugins tab left the Resources page: Settings is the target.
       'kb.cp.nokey': { fr: "Ajoutez votre clé Composio dans Réglages → Plugins → kybernos-composio pour activer les connexions.", en: 'Add your Composio key under Settings → Plugins → kybernos-composio to enable connections.' },
       'kb.cp.connected': { fr: 'Connecté', en: 'Connected' },
       'kb.cp.pend': { fr: 'En attente', en: 'Pending' },
@@ -300,6 +300,8 @@ window.__ModuleLoader__.load({
       'kb.cp.form.secretname': { fr: 'NOM (ex. TAVILY_API_KEY)', en: 'NAME (e.g. TAVILY_API_KEY)' },
       'kb.cp.form.secretvalue': { fr: 'valeur — enregistrée dans ~/.dsh/.env, jamais dans la config', en: 'value — stored in ~/.dsh/.env, never in the config' },
       'kb.cp.form.tokenhint': { fr: "Astuce : dans un en-tête ou une variable, écris $NOM pour référencer le secret NOM (ex. « Bearer $TAVILY_API_KEY »).", en: 'Tip: in a header or env value, write $NAME to reference secret NAME (e.g. "Bearer $TAVILY_API_KEY").' },
+      'kb.cp.form.envname': { fr: 'NOM', en: 'NAME' },
+      'kb.cp.form.envvalue': { fr: 'valeur ou $SECRET', en: 'value or $SECRET' },
       'kb.cp.form.addrow': { fr: 'Ajouter une ligne', en: 'Add row' },
       'kb.cp.form.save': { fr: 'Enregistrer le connecteur', en: 'Save connector' },
       'kb.cp.form.saved': { fr: 'Connecteur enregistré — il sera actif au prochain démarrage de DSH.', en: 'Connector saved — it will be active the next time DSH starts.' },
@@ -318,7 +320,7 @@ window.__ModuleLoader__.load({
       'kb.cp.help.title': { fr: 'Connecteurs locaux — mode d’emploi', en: 'Local Connectors — how it works' },
       'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Kybers, plus vos connecteurs personnalisés (MCP). Découvrir : le catalogue complet, connexion en un clic. Les agents du chat lisent la même clé côté hôte (~/.dsh/.env).', en: 'Yours: apps already linked to your Kybers, plus your custom connectors (MCP). Discover: the full catalog, one-click connect. Chat agents read the same host-side key (~/.dsh/.env).' },
       'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue vous attend.', en: 'No app connected yet — the catalog is waiting for you.' },
-      // (POC) pilule « Kybernos » de la page Plugins du moteur.
+      // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
       'kb.cp.yours.go': { fr: 'Parcourir le catalogue', en: 'Browse the catalog' },
       'kb.cp.err.catalog': { fr: 'Catalogue', en: 'Catalog' },
@@ -351,17 +353,17 @@ window.__ModuleLoader__.load({
       if (row === null || row === undefined) return key
       let lang = 'kybernos'
       try { if (localeSvc !== null && localeSvc !== undefined && typeof localeSvc.current === 'function') lang = String(localeSvc.current() || '') } catch (e) { }
-      // (01/10) « kybernos » est le DÉFAUT du thème, pas un choix : sans langue
-      // explicite (clé kybernos.theme.lang absente) et sous un shell anglais,
-      // servir l'anglais — même politique que kybernos-plugin (kbLangActive),
-      // sinon la page Ressources mélange titres anglais et corps français.
+      // (01/10) "kybernos" is the theme's DEFAULT, not a choice: with no explicit
+      // language (key kybernos.theme.lang absent) and under an English shell,
+      // serve English, the same policy as kybernos-plugin (kbLangActive),
+      // otherwise the Resources page mixes English titles and French bodies.
       if (lang === 'kybernos') {
         try {
           if (localStorage.getItem('kybernos.theme.lang') === null && localeSvc !== null && localeSvc !== undefined && typeof localeSvc.getLocale === 'function') {
             const snap = localeSvc.getLocale()
             if (snap !== null && snap !== undefined && String(snap.active) === 'en') lang = 'en'
           }
-        } catch (e) { /* storage ou service indisponible : défaut */ }
+        } catch (e) { /* storage or service unavailable: default */ }
       }
       if (lang !== 'kybernos' && lang !== 'fr') {
         const tag = lang.slice(0, 2).toLowerCase()
@@ -437,7 +439,7 @@ window.__ModuleLoader__.load({
       return { level: 'warn', key: 'composio.hosterr' }
     }
 
-    // ── icônes Lucide (SVG inline) ────────────────────────────────────────────
+    // ── Lucide icons (inline SVG) ─────────────────────────────────────────────
     const LUCIDE = {
       key: ['M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-3.9-3.9L2 18Z', 'M16.5 7.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z'],
       check: ['M20 6 9 17l-5-5'],
@@ -458,7 +460,7 @@ window.__ModuleLoader__.load({
         d.map((p, i) => h('path', { d: p, key: i })))
     }
 
-    // ── logo d'app : SVG réel embarqué, fallback tuile initiale ──────────────
+    // ── app logo: the real embedded SVG, initial tile as a fallback ───────────
     // Tile colours for an app with no logo. Only `cal` can reach it: it is not in the local catalog
     // but is in the full public list. (Ten more entries were here; every one of those apps has a
     // real logo in the catalog, so their tile was never drawn.)
@@ -471,8 +473,8 @@ window.__ModuleLoader__.load({
         return h('div', {
           className: 'kb7-applogo',
           style: { width: size, height: size, borderRadius: 10, background: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', overflow: 'hidden', border: '1px solid rgba(128,128,128,.18)' },
-          // SVG embarqué (width/height retirés à la génération, ids préfixés).
-          // La règle .kb7-applogo svg le dimensionne à 74 % du conteneur.
+          // Embedded SVG (width/height removed at generation, ids prefixed).
+          // The .kb7-applogo svg rule sizes it at 74 % of the container.
           dangerouslySetInnerHTML: { __html: svg },
         })
       }
@@ -493,10 +495,10 @@ window.__ModuleLoader__.load({
 .kbcp-btn.primary{background:#635bff;border-color:#635bff;color:#fff}
 .kbcp-btn.primary:hover{filter:brightness(1.08)}
 .kbcp-btn:disabled{opacity:.5;cursor:default}
-/* (POC filtre Kybernos) Pilule dans la barre d’en-tête de la page Plugins du
-   moteur (dsh-client-ui-plugin-manager) : masque les groupes/cartes non
-   Kybernos quand elle est active. Sélecteurs par data-plugin-* — contrat
-   public du panneau, stable malgré les classes hachées. */
+/* (Kybernos filter POC) Pill in the header bar of the engine's Plugins page
+   (dsh-client-ui-plugin-manager): hides the non-Kybernos groups/cards when it is
+   active. Selectors by data-plugin-*: the panel's public contract,
+   stable despite the hashed classes. */
 .kbcp-kbfpill{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .kbcp-kbfpill:hover{background:rgba(128,128,128,.12)}
 .kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#fff;font-weight:600}
@@ -509,8 +511,8 @@ window.__ModuleLoader__.load({
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
 .kbcp-dot.bad{background:#ef4444}
-/* réglage Local/Cloud : deux pilules dans une kbcp-row (valeurs kb7-chip) ;
-   le violet #635bff est celui du bouton primary — lisible clair ET sombre */
+/* Local/Cloud setting: two pills in a kbcp-row (kb7-chip values);
+   the purple #635bff is the primary button's: readable light AND dark */
 .kbcp-modepill{height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 .kbcp-modepill:hover{background:rgba(128,128,128,.12)}
 .kbcp-modepill.on{background:#635bff;border-color:#635bff;color:#fff}
@@ -565,12 +567,12 @@ window.__ModuleLoader__.load({
 .kb7-accst.pend{color:#facc15}
 .kb7-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .kb7-close{position:absolute;top:12px;right:14px}
-/* Repli du bouton dédié « Create with AI » : le bundle kybernos porte la vraie
-   règle .kb-createai ; celle-ci, scopée à cette page, garantit le même rendu
-   (mêmes couleurs, même forme) même si son CSS n'est pas inséré ici. */
+/* Fallback of the dedicated "Create with AI" button: the kybernos bundle carries the real
+   .kb-createai rule; this one, scoped to this page, guarantees the same rendering
+   (same colors, same shape) even when its CSS is not inserted here. */
 .kb7-root .kb-createai{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border:none;border-radius:9px;background:#e5484d;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap}
 .kb7-root .kb-createai:hover{background:#d63b40}
-/* Connecteurs personnalisés : section de liste + formulaire modal. */
+/* Custom connectors: list section + modal form. */
 .kb7-cxsec{display:flex;flex-direction:column;gap:8px;max-width:1180px}
 .kb7-cxtitle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:6px 0 0}
 .kb7-cxcount{font-size:11px;font-weight:600;opacity:.6}
@@ -579,8 +581,8 @@ window.__ModuleLoader__.load({
 .kb7-cxpath{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.55;word-break:break-all}
 .kb7-cxtype{font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:999px;background:rgba(99,91,255,.16);color:#8b85ff;white-space:nowrap}
 .kb7-cxtype.http{background:rgba(34,197,94,.14);color:#22c55e}
-/* (29/09) Sous-onglets Vos connexions / Découvrir + aide ⓘ — même langage que
-   kb4-tab (barre d'onglets de page), posé ici pour rester montable hors plugin. */
+/* (29/09) Sub-tabs Yours / Discover + help (i): same language as
+   kb4-tab (page tab bar), set here so the page can be mounted without the plugin. */
 .kb7-titlerow{display:flex;align-items:center;gap:8px}
 .kb7-infobtn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;opacity:.65;cursor:pointer;flex:none}
 .kb7-infobtn:hover,.kb7-infobtn.on{opacity:1;border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
@@ -588,21 +590,21 @@ window.__ModuleLoader__.load({
 .kb7-helptitle{font-weight:700;font-size:12.5px}
 .kb7-help .kb7-helptext{margin:0;opacity:.75}
 .kb7-ctlrow{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;min-height:44px}
-/* (01/10) Chargement, vide et erreurs occupent TOUJOURS la même place : une boîte au gabarit des cartes,
-   pas un texte nu qui fait sauter la page quand les données arrivent. */
+/* (01/10) Loading, empty and errors ALWAYS take the same place: a box the size of the cards,
+   not a bare text that makes the page jump when the data arrive. */
 .kb7-emptybox{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;min-height:132px;padding:24px;border:1px dashed var(--dsw-alias-border-l2);border-radius:14px;text-align:center;max-width:1180px}
 .kb7-emptybox .kb7-empty{opacity:.7}
 .kb7-panel>*{max-width:1180px}
-/* La barre recherche/filtre reste sur UNE ligne, calée à droite, sous la largeur des sous-onglets : jamais de retour à la ligne
-   (le champ de recherche qui s'ouvre ne doit pas pousser le contenu). */
+/* The search/filter bar stays on ONE line, right-aligned, under the width of the sub-tabs: never a line break
+   (the search field that opens must not push the content). */
 .kb7-ctlrow .kb6-toolbar{flex:1 1 0;min-width:0;display:flex;justify-content:flex-end}
 .kb7-ctlrow .kb6-tb-row{flex-wrap:nowrap;justify-content:flex-end;min-width:0}
 .kb7-ctlrow .kb6-tb-tools{flex-wrap:nowrap;width:auto;justify-content:flex-end}
 .kb7-ctlrow .kb6-tb-tools{margin-inline-start:auto}
 .kb7-ctlrow .kb6-tb-trailing{margin-inline-start:8px;gap:8px}
 .kb7-ctlrow .kb6-tb-trailing:empty{display:none}
-/* Sous-onglets en groupe pilule (maquette « Resources » 29/09) : conteneur
-   discret, bouton actif en carte blanche surélevée, compteur mono. */
+/* Sub-tabs as a pill group ("Resources" mockup 29/09): quiet container,
+   active button as a raised white card, mono counter. */
 .kb7-subtabs{display:inline-flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
 .kb7-subtab{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 16px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:0;background:transparent;color:var(--dsw-alias-label-secondary)}
 .kb7-subtab:hover{color:var(--dsw-alias-label-primary)}
@@ -623,7 +625,7 @@ window.__ModuleLoader__.load({
 .kb7-fhint{font-size:11px;opacity:.6;line-height:1.5}
 .kb7-fok{font-size:12px;color:#22c55e}
 .kb7-ferr{font-size:12px;color:#f87171}
-/* ── cartes de ressources dans le chat (bloc clôturé kybernos-carte) ──── */
+/* ── resource cards in the chat (fenced kybernos-carte block) ──────────── */
 .kbcp-cartes{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .kbcp-carte{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--dsw-alias-markdown-code-block,#1b1b1c);border:1px solid var(--dsw-alias-border-l2,#ffffff1f);box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #fff3),var(--dsw-shadow-lv1,0 2px 4px 0 #0000000d)}
 .kbcp-carte-logo{width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;background:var(--dsw-alias-border-l1,#ffffff0f);overflow:hidden}
@@ -646,13 +648,13 @@ window.__ModuleLoader__.load({
 .kbcp-etat-inconnu{color:var(--dsw-alias-state-idle-primary,#545557)}
 .kbcp-carte-action{flex-shrink:0;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:8px;border:1px solid transparent;background:var(--dsw-alias-button-primary-fill,#f9fafb);color:var(--dsw-alias-label-primary-foreground,#18181b);font-size:12.5px;font-weight:600;text-decoration:none;cursor:pointer}
 .kbcp-carte-action:hover{filter:brightness(.96)}
-/* le markdown peint ses liens en bleu (regle ._markdown_ a) : doubler la
-   specificite pour que le bouton garde sa paire native (fond + libelle) */
+/* the markdown paints its links blue (rule ._markdown_ a): double the
+   specificity so the button keeps its native pair (fill + label) */
 [class*="_markdown_"] a.kbcp-carte-action{color:var(--dsw-alias-label-primary-foreground,#18181b);text-decoration:none}
 .kbcp-carte-ghost{flex-shrink:0;display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:7px;border:1px solid var(--dsw-alias-border-l3,#ffffff29);color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:11.5px}
 `
 
-    // ── Config clé (page du bundle, Plugins) ─────────────────────────────────
+    // ── Key config (bundle page, Plugins) ────────────────────────────────────
     const ComposioKeyConfig = () => {
       const p1 = React.useState('')
       const v = p1[0]
@@ -694,8 +696,8 @@ window.__ModuleLoader__.load({
         }
       }
       const clear = () => { try { localStorage.removeItem(KB_CP_KEY) } catch (e) { } setHas(false); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
-      // (01/10) réglage Local (gratuit) / Cloud (payant) — maquette composio-cloud v3 :
-      // seul ajout au bloc, tout le reste de la page est inchangé.
+      // (01/10) Local (free) / Cloud (paid) setting, composio-cloud v3 mockup:
+      // the only addition to the block, the rest of the page is unchanged.
       const p4 = React.useState(kbCpMode())
       const mode = p4[0]
       const setMode = p4[1]
@@ -734,9 +736,9 @@ window.__ModuleLoader__.load({
           h('a', { className: 'kbcp-btn primary', href: DASH, target: '_blank', rel: 'noopener' }, kbt('composio.modelier'))))
     }
 
-    // ── formulaire « connecteur personnalisé » (parle à la route host) ────────
-    // Le serveur écrit lui-même la config et le .env : l'utilisateur ne voit
-    // jamais le YAML. Une valeur de champ peut référencer un secret par $NOM.
+    // ── "custom connector" form (talks to the host route) ────────────────────
+    // The server writes the config and the .env itself: the user never sees
+    // the YAML. A field value can reference a secret as $NAME.
     const EMPTY_FORM = () => ({ nom: '', transport: 'streamable-http', url: '', command: '', args: '', cwd: '', headers: [], env: [], secrets: [] })
     const ConnecteurForm = (props) => {
       const p0 = React.useState(() => {
@@ -813,7 +815,7 @@ window.__ModuleLoader__.load({
                   h('input', { className: 'kb7-finput', value: f.args, placeholder: '/path/to/server.mjs --port 3000', onChange: (e) => up({ args: e.target.value }), autoComplete: 'off', spellCheck: false }),
                   h('label', { className: 'kb7-flabel', style: { marginTop: 8 } }, kbt('kb.cp.form.cwd')),
                   h('input', { className: 'kb7-finput', value: f.cwd, onChange: (e) => up({ cwd: e.target.value }), autoComplete: 'off', spellCheck: false }),
-                  rows('env', kbt('kb.cp.form.env'), 'NOM', 'valeur ou $SECRET', false)),
+                  rows('env', kbt('kb.cp.form.env'), kbt('kb.cp.form.envname'), kbt('kb.cp.form.envvalue'), false)),
             rows('secrets', kbt('kb.cp.form.secrets'), kbt('kb.cp.form.secretname'), kbt('kb.cp.form.secretvalue'), true),
             h('div', { className: 'kb7-fhint' }, kbt('kb.cp.form.tokenhint')),
             ferr !== null ? h('div', { className: 'kb7-ferr' }, ferr) : null,
@@ -824,19 +826,19 @@ window.__ModuleLoader__.load({
     // ── page Connections ─────────────────────────────────────────────────────
     const PAGE = 24
     const ComposioPage = (props) => {
-      // Barre unifiée (gabarit 28/09) : le plugin passe KbToolbar + useToolbarState
-      // en props (bundles séparés, un seul React). Sans plugin, repli gracieux sur
-      // l'input + la rangée de chips d'origine — la page reste montable seule.
+      // Unified bar (28/09 template): the plugin passes KbToolbar + useToolbarState
+      // as props (separate bundles, a single React). Without the plugin, graceful fallback to
+      // the original input + chip row: the page can be mounted on its own.
       const kbTools = (props !== null && props !== undefined && props.toolbar !== null && typeof props.toolbar === 'object') ? props.toolbar : null
       const kbTb = (kbTools !== null && typeof kbTools.KbToolbar === 'function' && typeof kbTools.useToolbarState === 'function') ? kbTools : null
-      // Hook du plugin : la présence de kbTb est constante pour un montage donné,
-      // l'ordre des hooks reste donc stable d'un rendu à l'autre.
+      // Plugin hook: whether kbTb is there is constant for a given mount,
+      // so the order of the hooks stays stable from one render to the next.
       const tbPair = kbTb !== null ? kbTb.useToolbarState('composio', { sort: 'name', viewMode: 'cards' }) : null
       const tbState = tbPair !== null ? tbPair[0] : null
       const p1 = React.useState('')
       const p2 = React.useState('all')
-      // Recherche + facette : état de la barre unifiée quand le plugin l'a passée,
-      // états locaux d'origine en repli (page montée hors plugin).
+      // Search + facet: state of the unified bar when the plugin passed it,
+      // original local states as a fallback (page mounted without the plugin).
       const q = tbState !== null ? String(tbState.query || '') : p1[0]
       const setQFb = p1[1]
       const chipFb = p2[0]
@@ -872,7 +874,7 @@ window.__ModuleLoader__.load({
       const p11 = React.useState({})
       const authLinks = p11[0]
       const setAuthLinks = p11[1]
-      // Connecteurs personnalisés (route host /kybernos/composio/connecteurs).
+      // Custom connectors (host route /kybernos/composio/connecteurs).
       const p12 = React.useState([])
       const cx = p12[0]
       const setCx = p12[1]
@@ -882,8 +884,8 @@ window.__ModuleLoader__.load({
       const p14 = React.useState(null)
       const cxNote = p14[0]
       const setCxNote = p14[1]
-      // (29/09) Sous-onglet courant : « yours » (Vos connexions) par défaut,
-      // « discover » (Découvrir) pour le catalogue. Aide ⓘ : repliée au repos.
+      // (29/09) Current sub-tab: "yours" (Yours) by default,
+      // "discover" (Discover) for the catalog. Help (i): collapsed at rest.
       const p15 = React.useState('yours')
       const vtab = p15[0]
       const setVtab = p15[1]
@@ -928,23 +930,23 @@ window.__ModuleLoader__.load({
         loadConnecteurs()
       }
 
-      /** Rafraîchit les connexions des apps affichées (batch list). */
+      /** Refreshes the connections of the apps shown (batch list). */
       const refresh = React.useCallback(async (list, retry) => {
         setHasKey(kbCpHas())
-        // Reprise OPT-IN : seul le clic Rafraîchir (:587) passe retry = true.
-        // Le catalogue hôte ne dépend pas de la clé ck_, donc la reprise précède
-        // le garde kbCpHas() ; le gate catOk évite tout fetch catalogue si un
-        // catalogue non vide est déjà acquis.
+        // OPT-IN retry: only the Refresh click passes retry = true.
+        // The host catalog does not depend on the ck_ key, so the retry comes before
+        // the kbCpHas() guard; the catOk gate avoids any catalog fetch when a
+        // non-empty catalog is already held.
         if (retry === true && catOk === false) {
           try {
             const fresh = await kbCpCatalog()
-            // Reprise RÉUSSIE : l'erreur catalogue est levée AVANT tout retour
-            // anticipé (sinon une bannière rouge survivrait au rechargement).
+            // SUCCESSFUL retry: the catalog error is cleared BEFORE any early
+            // return (otherwise a red banner would survive the reload).
             setErr(null)
-            // La liste d'appelant NON VIDE n'est jamais écrasée : le refetch ne
-            // sert qu'à repeupler CATALOG/catOk (loadAll a pu peupler apps/conns).
-            // Liste vide : on adopte la liste fraîche et on repeuple la grille,
-            // comme le fait le montage.
+            // A NON-EMPTY caller list is never overwritten: the refetch only
+            // serves to refill CATALOG/catOk (loadAll may have filled apps/conns).
+            // Empty list: the fresh list is adopted and the grid refilled,
+            // as the mount does.
             if (!list || list.length === 0) {
               list = fresh
               if (fresh.length > 0) setApps(fresh)
@@ -955,11 +957,11 @@ window.__ModuleLoader__.load({
             return
           }
         }
-        // La cle ck_ peut vivre côté HÔTE sans être dans le navigateur : exiger
-        // kbCpHas() ici rendait « Connectées » vide alors que le compte porte
-        // des connexions réelles (mesuré : 401 sans clé sur le MCP public, mais
-        // la route hôte /kybernos/composio/connections répond, elle, avec
-        // COMPOSIO_API_KEY). Sans clé navigateur on lit donc la route hôte.
+        // The ck_ key can live on the HOST without being in the browser: requiring
+        // kbCpHas() here left "Connected" empty while the account holds
+        // real connections (measured: 401 without a key on the public MCP, but
+        // the host route /kybernos/composio/connections answers, with
+        // COMPOSIO_API_KEY). Without a browser key the host route is read.
         if (kbCpHas() === false) {
           setBusy(true)
           setErr(null)
@@ -1015,7 +1017,7 @@ window.__ModuleLoader__.load({
           setErr(kbCpErrOf(e))
         } finally { setBusy(false) }
       }, [])
-      // Le catalogue vient du host, à la demande : premier besoin = ouverture de la page.
+      // The catalog comes from the host, on demand: first need = opening the page.
       React.useEffect(() => {
         let alive = true
         kbCpCatalog().then((list) => {
@@ -1032,7 +1034,7 @@ window.__ModuleLoader__.load({
         return () => { try { window.removeEventListener('kbcp-key', on) } catch (e2) { } }
       }, [refresh, apps])
 
-      /** Charge les apps du catalogue public Kybernos (slug+nom+catégories). */
+      /** Loads the apps of the public Kybernos catalog (slug + name + categories). */
       const loadAll = async () => {
         setLoadingAll(true)
         setErr(null)
@@ -1050,7 +1052,7 @@ window.__ModuleLoader__.load({
         } finally { setLoadingAll(false) }
       }
 
-      /** Connexion : crée un compte + lien OAuth (action add). */
+      /** Connect: creates an account + OAuth link (action add). */
       const connect = async (slug) => {
         setErr(null)
         setBusy(true)
@@ -1071,11 +1073,11 @@ window.__ModuleLoader__.load({
           } else if (typeof given === 'string' && given.length > 0) {
             setErr('Authorization link refused: it is not an http(s) address.')
           }
-          // Le compte apparaît en "initializing" : on l'affiche tout de suite.
+          // The account shows up as "initializing": it is displayed right away.
           if (info && Array.isArray(info.accounts)) {
             setConns((prev) => Object.assign({}, prev, { [slug]: { status: 'initiated', accounts: info.accounts.map((a) => ({ id: String(a.id || ''), label: accountLabel(a), status: String(a.status || '').toUpperCase() })) } }))
           }
-          // Sonde jusqu'à ACTIVE (2 min 30).
+          // Probe until ACTIVE (2 min 30).
           const deadline = Date.now() + 150000
           const poll = async () => {
             while (Date.now() < deadline) {
@@ -1097,7 +1099,7 @@ window.__ModuleLoader__.load({
         } finally { setBusy(false) }
       }
 
-      /** Supprime UN compte précis (action remove + account_id). */
+      /** Removes ONE given account (action remove + account_id). */
       const removeAccount = async (slug, accountId) => {
         setErr(null)
         try {
@@ -1109,9 +1111,8 @@ window.__ModuleLoader__.load({
         }
       }
 
-      /** Connecteur personnalisé : ouvre le FORMULAIRE (route host). L'ancien
-        * chemin conversationnel (skill) reste disponible via le chat : le draft
-        * stays available through the chat. */
+      /** Custom connector: opens the FORM (host route). The old conversational
+        * path (skill) stays available through the chat. */
       const openConnectorWizard = () => {
         setCxForm({ initial: null })
       }
@@ -1124,9 +1125,9 @@ window.__ModuleLoader__.load({
       }
       const cats = []
       for (const a of apps) for (const c of (a.c || [])) if (cats.indexOf(c) < 0) cats.push(c)
-      // Facette multi-choix côté barre, sémantique chip simple côté page : le
-      // premier type coché filtre, la sélection vide vaut « Toutes » (même
-      // convention que la vue Teams, qui lit aussi types[0]).
+      // Multi-choice facet on the bar side, single-chip semantics on the page side: the
+      // first type ticked filters, an empty selection means "All" (same
+      // convention as the Teams view, which also reads types[0]).
       const chip = tbState === null ? chipFb : (Array.isArray(tbState.types) === true && tbState.types.length > 0 ? String(tbState.types[0]) : 'all')
       const qn = q.trim().toLowerCase()
       const matchQuery = (a) => kbCpMatch(a, qn)
@@ -1135,20 +1136,20 @@ window.__ModuleLoader__.load({
         if (chip !== 'all') return (a.c || []).indexOf(chip) >= 0
         return true
       }).filter(matchQuery)
-      // Sens nominal A → Z tant que dirTouched n'est pas posé (règle gabarit) ;
-      // sans barre (repli hors plugin), l'ordre du catalogue est conservé.
+      // Nominal A -> Z direction until dirTouched is set (template rule);
+      // without a bar (fallback outside the plugin), the catalog order is kept.
       const cpDir = tbState !== null ? ((tbState.dirTouched === true) ? (tbState.dir === 'asc' ? 'asc' : 'desc') : 'asc') : null
       if (cpDir !== null) {
         const m = cpDir === 'asc' ? 1 : -1
         list = list.slice().sort((a, b) => String(a.n).localeCompare(String(b.n), 'fr') * m)
       }
-      // Compteurs de facette calculés SUR LE RESTE des filtres (recherche seule,
-      // facette type écartée) — même convention que kbFacetCounts du plugin.
+      // Facet counters computed ON THE REST of the filters (search only,
+      // type facet set aside): same convention as the plugin's kbFacetCounts.
       const facetPool = apps.filter(matchQuery)
       const facetOptions = [{ id: 'connected', label: kbt('kb.cp.chipconn'), count: facetPool.filter((a) => accOf(a.s).length > 0).length }]
       for (const c of cats.slice(0, 14)) facetOptions.push({ id: c, label: c, count: facetPool.filter((a) => (a.c || []).indexOf(c) >= 0).length })
-      // Mise à jour de la barre : reset de la pagination dès que la recherche ou
-      // la facette bougent, et pose de dirTouched dès qu'un sens est exprimé.
+      // Bar update: pagination reset as soon as the search or the facet moves,
+      // and dirTouched set as soon as a direction is expressed.
       const onCpUpdate = (patch) => {
         if (patch === null || typeof patch !== 'object') return
         if (patch.query !== undefined || patch.types !== undefined) setPage(1)
@@ -1197,8 +1198,8 @@ window.__ModuleLoader__.load({
           ))
       }
 
-      // (29/09) Carte d'app partagée par « Vos connexions » et « Découvrir » —
-      // un seul rendu, plus de carte clone qui dérive.
+      // (29/09) App card shared by "Yours" and "Discover":
+      // one single rendering, no clone card that drifts.
       const appCard = (a) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
@@ -1213,10 +1214,10 @@ window.__ModuleLoader__.load({
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : h('span', null),
             accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
       }
-      // « Vos connexions » : apps reliées (au moins un compte), A → Z, sans
-      // hériter de la recherche/facette propre à « Découvrir ».
-      // (01/10) La barre recherche / filtre / tri est la MÊME sur les deux onglets : « Vos connexions »
-      // la partage (recherche + catégorie + sens), au lieu d'ignorer tout filtre.
+      // "Yours": linked apps (at least one account), A -> Z, without
+      // inheriting the search/facet that belongs to "Discover".
+      // (01/10) The search / filter / sort bar is the SAME on both tabs: "Yours"
+      // shares it (search + category + direction), instead of ignoring every filter.
       const yoursPool = apps.filter((a) => accOf(a.s).length > 0)
       const yoursCats = []
       for (const a of yoursPool) for (const c of (a.c || [])) if (yoursCats.indexOf(c) < 0) yoursCats.push(c)
@@ -1230,27 +1231,27 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'kb7-root' },
         h('div', { className: 'kb7-head', style: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 } },
           h('div', { style: { flex: 1, minWidth: 0 } },
-            // (29/09) h2 : la page porte déjà son titre (kb6-title) — un seul
-            // niveau de titre par page, l'intertitre de section reste un h2.
+            // (29/09) h2: the page already carries its title (kb6-title): a single
+            // heading level per page, the section subtitle stays an h2.
             h('div', { className: 'kb7-titlerow' },
               h('h2', { className: 'kb7-h1' }, kbt('kb.cp.title')),
               h('button', { type: 'button', className: 'kb7-infobtn' + (helpOpen === true ? ' on' : ''), 'aria-label': kbt('kb.cp.info'), title: kbt('kb.cp.info'), 'aria-expanded': helpOpen === true ? 'true' : 'false', 'data-kb': 'connectors-help', onClick: () => setHelpOpen(!helpOpen) }, Icon('info', 14))),
             h('p', { className: 'kb7-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
-          // Bouton dédié, même langage visuel que « Create with AI » des autres
-          // pages (classe kb-createai du bundle kybernos ; règle de repli dans
-          // le CSS kb7 ci-dessous si ce bundle n'a pas inséré la sienne).
+          // Dedicated button, same visual language as "Create with AI" on the other
+          // pages (class kb-createai of the kybernos bundle; fallback rule in
+          // the kb7 CSS below if that bundle has not inserted its own).
           h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, title: kbt('kb.cp.custom.hint'), 'aria-label': kbt('kb.cp.custom'), onClick: openConnectorWizard }, Icon('plus', 16), kbt('kb.cp.create'))),
-        // Rangée de contrôle (maquette « Resources » 29/09) : sous-onglets en
-        // pilule À GAUCHE, bloc recherche/filtres/tri À DROITE — même design
-        // et même position que les autres pages, le contenu varie par onglet.
+        // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
+        // search/filters/sort block on the RIGHT: same design
+        // and same position as the other pages, the content varies by tab.
         h('div', { className: 'kb7-ctlrow' },
           h('div', { className: 'kb7-subtabs', role: 'tablist' },
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'yours' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'yours' ? ' on' : ''), 'data-kb': 'subtab-yours', onClick: () => setVtab('yours') },
               kbt('kb.cp.tab.yours'), totalConn > 0 ? h('span', { className: 'kb7-cxcount' }, String(totalConn)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'discover' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'discover' ? ' on' : ''), 'data-kb': 'subtab-discover', onClick: () => setVtab('discover') },
               kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null)),
-          // Barre unifiée à DROITE de la rangée (maquette) — visible sur
-          // « Découvrir » seulement ; Rafraîchir / Charger tout en trailing.
+          // Unified bar on the RIGHT of the row (mockup): visible on
+          // "Discover" only; Refresh / Load all as trailing items.
           (kbTb !== null ? h(kbTb.KbToolbar, {
             state: Object.assign({}, tbState, { dir: cpDir }),
             onUpdate: onCpUpdate,
@@ -1266,10 +1267,10 @@ window.__ModuleLoader__.load({
               apps.length <= CATALOG.length ? h('button', { type: 'button', key: 'more', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null,
             ] : [],
           }) : null)),
-        // (01/10) Les bandeaux d'état passent SOUS la rangée de contrôle : leur
-        // apparition ne décale plus le titre ni la rangée (parité d'onglets).
-        // (29/09) petit help « Connecteurs locaux » : replié au repos, le bouton
-        // ⓘ le déplie (mêmes valeurs pour fr/en via kbt).
+        // (01/10) The status banners go UNDER the control row: their
+        // appearance no longer moves the title or the row (tab parity).
+        // (29/09) small "Local Connectors" help: collapsed at rest, the (i) button
+        // unfolds it (same values for fr/en through kbt).
         helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
           h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
           h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
@@ -1283,7 +1284,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
                 yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading'))))
             : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a))),
-          // Connecteurs personnalisés : liste hors catalogue, gérée par formulaire.
+          // Custom connectors: off-catalog list, managed by the form.
           h('div', { className: 'kb7-cxsec' },
             h('div', { className: 'kb7-cxtitle' }, Icon('link', 14), ' ' + kbt('kb.cp.list.title'), cx.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length)) : null),
             cxShown.length === 0 ? h('div', { className: 'kb7-empty' }, cx.length === 0 ? kbt('kb.cp.list.empty') : kbt('kb.cp.empty')) : cxShown.map((c) => h('div', { className: 'kb7-cxrow', key: c.nom },
@@ -1295,10 +1296,10 @@ window.__ModuleLoader__.load({
               c.horsFormulaire === true ? null : h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.form.edit'), onClick: () => setCxForm({ initial: c }) }, Icon('pencil', 13)),
               h('button', { type: 'button', className: 'kbcp-btn', onClick: () => removeConnecteur(c.nom) }, Icon('trash', 13)))))
         ) : null,
-        // ── Découvrir ───────────────────────────────────────────────────────
+        // ── Discover ────────────────────────────────────────────────────────
         vtab === 'discover' ? h('div', { className: 'kb7-panel' },
-          // La barre unifiée vit dans la rangée de contrôle ci-dessus ;
-          // repli sans plugin : champ de recherche + chips ici.
+          // The unified bar lives in the control row above;
+          // fallback without the plugin: search field + chips here.
           kbTb !== null ? null : h('input', { className: 'kb7-search', value: q, placeholder: kbt('kb.cp.search'), onChange: (e) => { setQFb(e.target.value); setPage(1) } }),
           kbTb !== null ? null : h('div', { className: 'kb7-chips' },
             h('button', { type: 'button', className: 'kb7-chip' + (chip === 'all' ? ' on' : ''), onClick: () => { setChipFb('all'); setPage(1) } }, kbt('kb.cp.chipall') + ' · ' + apps.length),
@@ -1338,7 +1339,7 @@ window.__ModuleLoader__.load({
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
     const carteEtat = (e) => (e !== null && typeof e === 'string' && CARTE_ETATS[e] === 1) ? e : 'inconnu'
-    function carteIcône(item) {
+    function carteIcon(item) {
       const slug = String(item.slug === null || item.slug === undefined ? '' : item.slug)
       if (slug !== '' && CAT_BY_SLUG[slug] !== null && CAT_BY_SLUG[slug] !== undefined && CAT_BY_SLUG[slug].l) {
         return { svg: CAT_BY_SLUG[slug].l }
@@ -1372,7 +1373,7 @@ window.__ModuleLoader__.load({
     // test can read it without a DOM.
     function carteHtml(item) {
       const etat = carteEtat(item.etat)
-      const ic = carteIcône(item)
+      const ic = carteIcon(item)
       const logoHtml = ic.svg !== undefined ? ic.svg : carteEsc(ic.txt)
       const action = carteActionHtml(item)
       const KB_CP_ICONE_GRILLE = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'
@@ -1435,14 +1436,14 @@ window.__ModuleLoader__.load({
     }
     function carteScanner(root) {
       const r = root || document
-      // 1) structure réelle du renderer DSH : div.md-code-block avec bannière
-      //    [data-code-block-banner] (texte = nom du langage + bouton Copy).
+      // 1) real structure of the DSH renderer: div.md-code-block with a banner
+      //    [data-code-block-banner] (text = language name + Copy button).
       const banners = r.querySelectorAll('[data-code-block-banner]:not([data-kbcp-fait])')
       for (const b of banners) {
         b.setAttribute('data-kbcp-fait', '1')
-        // l'attribut data-code-block-banner ne vaut que "true" (drapeau) :
-        // le nom du langage est dans l'infostring, sinon dans tout le texte
-        // de la bannière (langage + bouton Copy).
+        // the data-code-block-banner attribute is only "true" (a flag):
+        // the language name is in the infostring, otherwise in the whole text
+        // of the banner (language + Copy button).
         const info = b.querySelector('[class*="infostring"]')
         const brut = String(info !== null && info.textContent !== '' ? info.textContent : b.textContent)
         const lang = brut.replace(/copy$/i, '').trim().toLowerCase()
@@ -1452,7 +1453,7 @@ window.__ModuleLoader__.load({
         const code = block.querySelector('code')
         if (code === null) continue
         const items = carteParse(code.textContent || '')
-        if (items === null) continue // JSON invalide : le bloc de code reste lisible
+        if (items === null) continue // invalid JSON: the code block stays readable
         const wrap = document.createElement('div')
         wrap.className = 'kbcp-cartes'
         wrap.setAttribute('data-kbcp-cartes', '1')
@@ -1462,7 +1463,7 @@ window.__ModuleLoader__.load({
         }
         if (pose === true) block.replaceWith(wrap)
       }
-      // 2) chemin générique de secours : <pre data-language> ou <code.language-*>
+      // 2) generic fallback path: <pre data-language> or <code.language-*>
       const pres = r.querySelectorAll('pre:not([data-kbcp-fait])')
       for (const pre of pres) {
         pre.setAttribute('data-kbcp-fait', '1')
@@ -1471,12 +1472,12 @@ window.__ModuleLoader__.load({
         const lang = pre.getAttribute('data-language') || ((code.className.match(/language-([a-zA-Z-]+)/) || [])[1] || '')
         if (lang !== CARTE_LANG) continue
         const items = carteParse(code.textContent || '')
-        if (items === null) continue // JSON invalide : le bloc de code reste lisible
+        if (items === null) continue // invalid JSON: the code block stays readable
         carteRemplace(pre, items)
       }
     }
-    // Le catalogue charge en async : quand il arrive, repeupler les logos des
-    // cartes déjà posées qui n'ont qu'un emoji en attendant leur vrai logo.
+    // The catalog loads asynchronously: when it arrives, fill in the logos of the
+    // cards already placed that only have an emoji while waiting for their real logo.
     function cartePeuplerLogos(slug) {
       const entry = CAT_BY_SLUG[slug]
       if (entry === null || entry === undefined || !entry.l) return
@@ -1486,19 +1487,19 @@ window.__ModuleLoader__.load({
         el.innerHTML = entry.l
       }
     }
-    // ── POC : pilule « Kybernos » sur la page Plugins du moteur ─────────────
-    // La page Plugins (dsh-client-ui-plugin-manager, React) rend deux groupes
-    // (data-plugin-group="official" / "bundles") ; chaque carte bundle porte
-    // data-plugin-package. On pose une pilule dans la barre d’en-tête qui,
-    // active, ne laisse visibles que les bundles @local/kybernos-* (CSS pur,
-    // la classe vit sur [data-plugin-panel] — React peut re-rendre, l’état
-    // survit car la pilule est ré-injectée par l’observateur).
+    // ── POC: "Kybernos" pill on the engine's Plugins page ───────────────────
+    // The Plugins page (dsh-client-ui-plugin-manager, React) renders two groups
+    // (data-plugin-group="official" / "bundles"); each bundle card carries
+    // data-plugin-package. A pill is placed in the header bar that, when
+    // active, leaves only the @local/kybernos-* bundles visible (pure CSS,
+    // the class lives on [data-plugin-panel]: React can re-render, the state
+    // survives because the pill is re-injected by the observer).
     const KBF_STORE = 'kybernos.pluginsFilter'
     function kbfActive() {
       try { return window.localStorage.getItem(KBF_STORE) === 'on' } catch (e) { return false }
     }
     function kbfSet(on) {
-      try { window.localStorage.setItem(KBF_STORE, on ? 'on' : 'off') } catch (e) { /* silencieux */ }
+      try { window.localStorage.setItem(KBF_STORE, on ? 'on' : 'off') } catch (e) { /* silent */ }
     }
     function kbfPoser(panel) {
       const head = panel.querySelector('header')
@@ -1510,7 +1511,7 @@ window.__ModuleLoader__.load({
         return
       }
       const n = panel.querySelectorAll('[data-plugin-group="bundles"] li[data-plugin-package^="@local/kybernos"]').length
-      if (n === 0) return // pas de bundle Kybernos installé : rien à filtrer
+      if (n === 0) return // no Kybernos bundle installed: nothing to filter
       const pill = document.createElement('button')
       pill.type = 'button'
       pill.className = 'kbcp-kbfpill'
@@ -1533,8 +1534,8 @@ window.__ModuleLoader__.load({
       pill.setAttribute('aria-pressed', on ? 'true' : 'false')
       const n = panel.querySelectorAll('[data-plugin-group="bundles"] li[data-plugin-package^="@local/kybernos"]').length
       pill.textContent = ''
-      // propre nom, pas de clé i18n : « Kybernos » est identique dans toutes
-      // les langues (règle : appellations toujours en anglais).
+      // own name, no i18n key: "Kybernos" is the same in every
+      // language (rule: product names always in English).
       pill.append('Kybernos', Object.assign(document.createElement('span'), { className: 'kbcp-kbfbadge', textContent: String(n) }))
     }
     function kbfRafraichir(panel) {
@@ -1550,7 +1551,7 @@ window.__ModuleLoader__.load({
             try {
               const panel = document.querySelector('[data-plugin-panel]')
               if (panel !== null) kbfPoser(panel)
-            } catch (e) { /* silencieux */ }
+            } catch (e) { /* silent */ }
           }
           const planifier = () => { if (raf === 0) raf = requestAnimationFrame(balayer) }
           balayer()
@@ -1566,12 +1567,12 @@ window.__ModuleLoader__.load({
           let raf = 0
           const balayer = () => {
             raf = 0
-            try { carteScanner(document) } catch (e) { /* silencieux : le chat ne doit jamais casser */ }
+            try { carteScanner(document) } catch (e) { /* silent: the chat must never break */ }
           }
           const planifier = () => { if (raf === 0) raf = requestAnimationFrame(balayer) }
           balayer()
-          // actions internes « kb:<onglet> » : ouvrir la page Ressources du
-          // plugin Kybernos (pont kb-open-resources) au lieu de naviguer.
+          // internal actions "kb:<tab>": open the Resources page of the
+          // Kybernos plugin (bridge kb-open-resources) instead of navigating.
           const auClic = (ev) => {
             const t = (ev.target !== null && ev.target !== undefined && typeof ev.target.closest === 'function') ? ev.target : null
             const a = (t !== null) ? t.closest('a.kbcp-carte-action') : null
@@ -1589,13 +1590,13 @@ window.__ModuleLoader__.load({
             }
             if (href.slice(0, 3) !== 'kb:') return
             ev.preventDefault()
-            try { window.dispatchEvent(new CustomEvent('kb-open-resources', { detail: { tab: href.slice(3) || 'composio' } })) } catch (e) { /* silencieux */ }
+            try { window.dispatchEvent(new CustomEvent('kb-open-resources', { detail: { tab: href.slice(3) || 'composio' } })) } catch (e) { /* silent */ }
           }
           document.addEventListener('click', auClic, true)
           kbCpCatalog().then(() => {
             const slugs = new Set(Array.from(document.querySelectorAll('.kbcp-carte[data-kbcp-slug]')).map((el) => el.getAttribute('data-kbcp-slug')))
             for (const s of slugs) cartePeuplerLogos(s)
-          }).catch(() => { /* pas de catalogue : les emojis restent */ })
+          }).catch(() => { /* no catalog: the emojis stay */ })
           const obs = new MutationObserver(planifier)
           obs.observe(document.body, { childList: true, subtree: true })
           return () => { obs.disconnect(); document.removeEventListener('click', auClic, true); if (raf !== 0) cancelAnimationFrame(raf) }

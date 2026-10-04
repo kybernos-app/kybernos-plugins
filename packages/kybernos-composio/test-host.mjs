@@ -422,13 +422,13 @@ for (const valeur of VALUES) {
 // the whole resulting file is checked with js-yaml before it is written
 if (yaml !== null) {
   frais()
-  const cassé = '- insert:\n    - id: a\n      id: b\n'          // a duplicated key: DSH would not start
-  writeFileSync(PATCH_FILE, cassé, 'utf8')
+  const broken = '- insert:\n    - id: a\n      id: b\n'          // a duplicated key: DSH would not start
+  writeFileSync(PATCH_FILE, broken, 'utf8')
   const res = await POST(http('after-broken'))
   ok('C-02: a patch that is already broken is not built upon (409)', res.code === 409 && /not valid YAML/.test(res.corps) && /duplicated mapping key/.test(res.corps), `code=${res.code} ${res.corps.slice(0, 120)}`)
-  ok('C-02: ...the file, the sidecar and the .env are untouched', lire(PATCH_FILE) === cassé && lire(SIDECAR_FILE) === null && lire(join(DSH_DIR, '.env')) === null)
+  ok('C-02: ...the file, the sidecar and the .env are untouched', lire(PATCH_FILE) === broken && lire(SIDECAR_FILE) === null && lire(join(DSH_DIR, '.env')) === null)
   const del = await DELETE('after-broken')
-  ok('C-02: deleting a connector that has no block changes nothing in a broken patch', del.code === 200 && JSON.parse(del.corps).removed === false && lire(PATCH_FILE) === cassé)
+  ok('C-02: deleting a connector that has no block changes nothing in a broken patch', del.code === 200 && JSON.parse(del.corps).removed === false && lire(PATCH_FILE) === broken)
   // a delete that leaves the file broken is refused; one that repairs it goes through
   frais()
   await POST(http('mine'))
@@ -1076,22 +1076,22 @@ const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy'
   // args: a path with a space, quoted, used to be cut in two
   const sp = (s) => splitArgs(s)
   ok('C-16: splitArgs: plain words', JSON.stringify(sp('--port 3000  --x').args) === '["--port","3000","--x"]')
-  ok('C-16: splitArgs: a double-quoted path with a space stays one argument', JSON.stringify(sp('"/Users/Jane Doe/server.mjs" --name "My App"').args) === '["/Users/Jane Doe/server.mjs","--name","My App"]')
+  ok('C-16: splitArgs: a double-quoted path with a space stays one argument', JSON.stringify(sp('"/Users/me/Jane Doe/server.mjs" --name "My App"').args) === '["/Users/me/Jane Doe/server.mjs","--name","My App"]')
   ok('C-16: splitArgs: single quotes keep everything literal', JSON.stringify(sp("'a b' 'c\\d' \"e'f\"").args) === '["a b","c\\\\d","e\'f"]')
   ok('C-16: splitArgs: \\" and \\\\ are the escapes inside double quotes only', JSON.stringify(sp('"a\\"b" "c\\\\d" e\\f').args) === '["a\\"b","c\\\\d","e\\\\f"]', JSON.stringify(sp('"a\\"b" "c\\\\d" e\\f').args))
   ok('C-16: splitArgs: a quote glued to a word joins them (--name="My App")', JSON.stringify(sp('--name="My App"').args) === '["--name=My App"]')
   ok('C-16: splitArgs: an unclosed quote is an error', sp('"abc def').erreur !== undefined && sp("x 'y").erreur !== undefined)
   ok('C-16: splitArgs: empty and blank lines give no argument', sp('').args.length === 0 && sp('   \t ').args.length === 0 && sp(undefined).args.length === 0)
   frais()
-  const typed = '"/Users/Jane Doe/server.mjs" --name "My App"'
+  const typed = '"/Users/me/Jane Doe/server.mjs" --name "My App"'
   const res = await POST({ nom: 'spaced', transport: 'stdio', command: '/usr/bin/touch', args: typed })
   const saved = (await GET()).connecteurs.find((c) => c.nom === 'spaced')
-  ok('C-16: an args line with a quoted path with a space is saved as three arguments', res.code === 200 && JSON.stringify(saved.args) === '["/Users/Jane Doe/server.mjs","--name","My App"]', `code=${res.code} ${JSON.stringify(saved && saved.args)}`)
-  ok('C-16: ...and each one is one list item of the patch', (lire(PATCH_FILE) || '').includes('        - "/Users/Jane Doe/server.mjs"\n        - "--name"\n        - "My App"'))
+  ok('C-16: an args line with a quoted path with a space is saved as three arguments', res.code === 200 && JSON.stringify(saved.args) === '["/Users/me/Jane Doe/server.mjs","--name","My App"]', `code=${res.code} ${JSON.stringify(saved && saved.args)}`)
+  ok('C-16: ...and each one is one list item of the patch', (lire(PATCH_FILE) || '').includes('        - "/Users/me/Jane Doe/server.mjs"\n        - "--name"\n        - "My App"'))
   const bad = await POST({ nom: 'spaced2', transport: 'stdio', command: '/usr/bin/touch', args: '"unclosed' })
   ok('C-16: an unclosed quote in the args line is a 400', bad.code === 400 && /quote/.test(bad.corps))
-  const arr = await POST({ nom: 'spaced3', transport: 'stdio', command: '/usr/bin/touch', args: ['/Users/Jane Doe/server.mjs', '--x'] })
-  ok('C-16: an args ARRAY is used as it is (spaces kept)', arr.code === 200 && JSON.stringify((await GET()).connecteurs.find((c) => c.nom === 'spaced3').args) === '["/Users/Jane Doe/server.mjs","--x"]')
+  const arr = await POST({ nom: 'spaced3', transport: 'stdio', command: '/usr/bin/touch', args: ['/Users/me/Jane Doe/server.mjs', '--x'] })
+  ok('C-16: an args ARRAY is used as it is (spaces kept)', arr.code === 200 && JSON.stringify((await GET()).connecteurs.find((c) => c.nom === 'spaced3').args) === '["/Users/me/Jane Doe/server.mjs","--x"]')
   if (dshBoot !== null) ok('C-16: DSH loads that patch', bootPatch() === null)
   // names
   for (const nom of ['composio']) {
@@ -1253,5 +1253,5 @@ const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy'
 }
 
 rmSync(HOME, { recursive: true, force: true })
-console.log(echecs === 0 ? '\nHost : tout est vert.' : `\n✗ ${echecs} échec(s)`)
+console.log(echecs === 0 ? '\nHost: all green.' : `\n✗ ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)

@@ -329,7 +329,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const { splitArgs } = await import(new URL('./index.js', import.meta.url).href)
   // the args field: what the form shows is read back by the host exactly
   ok('joinArgs: plain arguments are joined by a space', joinArgs(['--port', '3000']) === '--port 3000')
-  ok('joinArgs: an argument with a space is quoted (a path with a space)', joinArgs(['/Users/Jane Doe/server.mjs', '--x']) === '"/Users/Jane Doe/server.mjs" --x')
+  ok('joinArgs: an argument with a space is quoted (a path with a space)', joinArgs(['/Users/me/Jane Doe/server.mjs', '--x']) === '"/Users/me/Jane Doe/server.mjs" --x')
   let seed = 7
   const rand = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n }
   const alphabet = ['a', 'b', '-', '/', ' ', ' ', '"', "'", '\\', '=', '$', '#', 'é', '.', '0']

@@ -805,13 +805,13 @@ function writeSidecar(list) {
   writeFileAtomic(p, JSON.stringify(list, null, 2) + '\n', 0o600)
 }
 
-// ── H-09 : échappement YAML ──────────────────────────────────────────────────
+// ── H-09: YAML escaping ──────────────────────────────────────────────────────
 // Every value written to cordis.patch.yml is a JSON-quoted scalar (yamlScalaire), and
 // line breaks are refused upstream: a multi-line arg or env used to inject arbitrary
 // KEYS (autoApprove: true) into the loader configuration.
 const sansMultiLigne = (v) => /[\r\n\0]/.test(String(v)) !== true
 
-/** Rend le texte du bloc marqué pour un connecteur structuré. */
+/** Renders the marked block text for a structured connector. */
 function renderBlock(c) {
   const ind = (n) => ' '.repeat(n)
   const L = ['# connecteur:' + c.nom, '- insert:', ind(2) + '- id: mcp-client-' + c.nom, ind(4) + "name: '@deepseek-ai/dsh-mcp-client'", ind(4) + 'config:']
@@ -1189,7 +1189,7 @@ function normalizePairs(raw, label, foldCase) {
  * Splits an arguments line the way a shell would, for the quoting only: spaces separate
  * arguments unless they are inside 'single' or "double" quotes. Inside double quotes `\"` and
  * `\\` are the two escapes; everywhere else a backslash is a plain character (paths, regexes).
- * A path with a space (`"/Users/Jane Doe/server.mjs"`) used to be cut in two. Returns
+ * A path with a space (`"/Users/me/Jane Doe/server.mjs"`) used to be cut in two. Returns
  * { args } or { erreur } when a quote is not closed. Exported for test-host.mjs and the client test.
  */
 export function splitArgs(text) {
