@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Pont DSH ↔ messageries : cœur générique + adaptateurs de canal (Telegram en premier).",
+  "license": "Apache-2.0",
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "daemon": "node bin/telegram-daemon.mjs",

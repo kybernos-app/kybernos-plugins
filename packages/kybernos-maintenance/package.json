@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Settings page « About »: Kybernos identity and version, a green/orange status for the DSH engine and the plugin, and a collapsed Technical details section (compatibility matrix, update journal, engine surfaces). Read-only.",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

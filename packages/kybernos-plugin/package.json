@@ -2,6 +2,7 @@
   "name": "@local/kybernos",
   "version": "1.0.0",
   "description": "Core Kybernos plugin: crew and journal views, settings sections, tools catalog, host routes and a compaction safety net.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {

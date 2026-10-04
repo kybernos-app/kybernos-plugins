@@ -2,6 +2,7 @@
   "name": "@local/kybernos-language",
   "version": "0.1.0",
   "description": "Language page: ISO 639-1 picker, AI translation of Kybernos and of DSH's own screens (registered as a real DSH language), live translation of hardcoded settings text, right-to-left support. Removable satellite.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {

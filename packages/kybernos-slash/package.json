@@ -2,6 +2,7 @@
   "name": "@local/kybernos-slash",
   "version": "1.0.0",
   "description": "Slash commands and message actions: a CRUD route the client reads and the creator skill writes.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {

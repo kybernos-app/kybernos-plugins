@@ -2,6 +2,7 @@
   "name": "@local/kybernos-models",
   "version": "1.0.0",
   "description": "Custom models catalog layered on Settings > Models: prefills model characteristics from models.dev and lets the user override them.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {

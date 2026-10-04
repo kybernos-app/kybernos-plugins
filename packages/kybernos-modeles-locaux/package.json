@@ -2,6 +2,7 @@
   "name": "@local/kybernos-modeles-locaux",
   "version": "1.0.0",
   "description": "Local models panel: detects the machine, installs an Ollama model, follows the download and wires the local route into DSH.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {

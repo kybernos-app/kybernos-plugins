@@ -2,6 +2,7 @@
   "name": "@local/kybernos-sessions",
   "version": "1.0.0",
   "description": "Session status per folder (recent sessions, git state) and kyber memory status (lessons, ledger runs, members).",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {

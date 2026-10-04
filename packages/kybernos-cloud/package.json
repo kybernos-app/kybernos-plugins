@@ -2,6 +2,7 @@
   "name": "@local/kybernos-cloud",
   "version": "1.0.0",
   "description": "Pairs DSH with a Kybernos Cloud account by device code, shows the profile, and imports the cloud model catalog into the harness. The device secret stays out of the browser and the repo.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "scripts": {

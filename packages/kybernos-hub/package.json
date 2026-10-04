@@ -2,6 +2,7 @@
   "name": "@local/kybernos-hub",
   "version": "0.1.0",
   "description": "Kybernos hub: boot health tracking (works even when the GUI is broken) and the base for the suite panel.",
+  "license": "Apache-2.0",
   "private": true,
   "type": "module",
   "exports": {
