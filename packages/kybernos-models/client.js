@@ -205,6 +205,29 @@ window.__ModuleLoader__.load({
         'kb.models.f.weights': { kybernos: 'Poids', en: 'Weights' },
         'kb.models.tab.models': { kybernos: 'Modèles {n}', en: 'Models {n}' },
         'kb.models.tab.providers': { kybernos: 'Fournisseurs {n}', en: 'Providers {n}' },
+        'kb.health.aria': { kybernos: 'Santé des modèles', en: 'Model health' },
+        'kb.health.chip.one': { kybernos: '1 modèle ne répond pas', en: '1 model not answering' },
+        'kb.health.chip.many': { kybernos: '{n} modèles ne répondent pas', en: '{n} models not answering' },
+        'kb.health.chip.all': { kybernos: 'Aucun modèle ne répond', en: 'No model is answering' },
+        'kb.health.title.one': { kybernos: '1 modèle sur {total} ne répond plus', en: '1 of {total} models is not answering' },
+        'kb.health.title.many': { kybernos: '{n} modèles sur {total} ne répondent plus', en: '{n} of {total} models are not answering' },
+        'kb.health.title.all': { kybernos: 'Aucun modèle configuré ne répond', en: 'No configured model is answering' },
+        'kb.health.all.detail': { kybernos: 'Rien n’a répondu sur les {total} modèles vérifiés — la panne ressemble à la connexion ou aux clés API, pas à un modèle.', en: 'Nothing answered across {total} checked models — this looks like the connection or the API keys, not one model.' },
+        'kb.health.impact': { kybernos: 'Les fonctions qui les emploient ne tourneront pas tant qu’ils ne répondent pas. Changez de modèle, ou corrigez leurs clés API.', en: 'Features that use them cannot run until they answer. Change the model, or fix their API keys.' },
+        'kb.health.cause.key': { kybernos: 'inaccessible avec la clé actuelle', en: 'not accessible with the current key' },
+        'kb.health.cause.gone': { kybernos: 'disparu chez le fournisseur', en: 'gone from the provider' },
+        'kb.health.cause.refused': { kybernos: 'refusé par le fournisseur', en: 'refused by the provider' },
+        'kb.health.cause.text': { kybernos: 'ne prend pas de requête texte', en: 'unable to take a text request' },
+        'kb.health.cause.silent': { kybernos: 'muet (aucune réponse)', en: 'silent (no answer)' },
+        'kb.health.cause.other': { kybernos: 'échec pour une autre raison', en: 'fails for another reason' },
+        'kb.health.more': { kybernos: '+ {n} autres', en: '+ {n} more' },
+        'kb.health.fixkey': { kybernos: 'Corriger la clé', en: 'Fix key' },
+        'kb.health.fixkey.t': { kybernos: 'Ouvrir {slug} pour changer sa clé API', en: 'Open {slug} to change its API key' },
+        'kb.health.recheck': { kybernos: 'Revérifier', en: 'Recheck' },
+        'kb.health.checking': { kybernos: 'Vérification…', en: 'Checking…' },
+        'kb.health.show': { kybernos: 'Les afficher', en: 'Show them' },
+        'kb.health.hide': { kybernos: 'Masquer 1 h', en: 'Hide for 1 hour' },
+        'kb.models.statut.down': { kybernos: 'Ne répondent pas', en: 'Not answering' },
         'kb.models.prov.empty': { kybernos: 'Aucun fournisseur exposé pour le moment.', en: 'No provider exposed yet.' },
         'kb.models.prov.model1': { kybernos: 'modèle', en: 'model' },
         'kb.models.prov.modelN': { kybernos: 'modèles', en: 'models' },
@@ -451,6 +474,7 @@ window.__ModuleLoader__.load({
         clock: ['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z', 'M12 7v5l3 2'],
         check: ['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z', 'M8 12l3 3 5-6'],
         info: ['M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z', 'M12 8h.01', 'M11 12h1v4h1'],
+        alert: ['M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', 'M12 9v4', 'M12 17h.01'],
         link: ['M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71', 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'],
         tag: ['M20.59 13.41 12 22l-9-9V4a1 1 0 0 1 1-1h9l8.59 8.59a2 2 0 0 1 0 2.82z', 'M7 7h.01'],
         external: ['M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6', 'M15 3h6v6', 'M10 14 21 3'],
@@ -1195,7 +1219,7 @@ window.__ModuleLoader__.load({
       // change. L'état d'écran (onglet, recherche, filtres, tri) ne se persiste
       // pas et n'écrit rien.
 
-      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', caps: {}, menu: null, page: 1 }
+      const UI = { tab: 'providers', q: '', prov: 'all', type: 'all', statut: 'any', tri: 'name', caps: {}, menu: null, page: 1, edit: null }
       // Changer un filtre (ou d'onglet) ramène à la première page : rester à
       // une page qui n'existe plus afficherait une liste vide.
       const uiSet = (k, v) => { UI[k] = v; if (k !== 'page') UI.page = 1; kbmNotify() }
@@ -1229,12 +1253,14 @@ window.__ModuleLoader__.load({
       const uiRows = () => {
         const cherche = UI.q.trim().toLowerCase()
         const caps = CAPS.filter((c) => UI.caps[c.k] === true)
+        const down = UI.statut === 'down' ? kbHealthDown(kbHealthGet()) : null
         const rows = KBM.models.filter((mo) => {
           if (UI.prov !== 'all' && mo.route !== UI.prov) return false
           if (UI.type !== 'all' && String(kbmVal(mo, 'type')) !== UI.type) return false
           if (UI.statut === 'ov' && kbmCountOv(mo) === 0) return false
           if (UI.statut === 'sync' && mo.synced !== true) return false
           if (UI.statut === 'pending' && mo.synced === true) return false
+          if (down !== null && down[mo.route + '/' + mo.id] !== true) return false
           for (const c of caps) if (kbmVal(mo, c.k) !== true) return false
           if (cherche !== '') {
             const foin = (mo.id + ' ' + mo.name + ' ' + mo.route + ' ' + String(kbmVal(mo, 'type'))).toLowerCase()
@@ -1273,7 +1299,8 @@ window.__ModuleLoader__.load({
         { v: 'ov', t: m('kb.models.statut.ov') },
         { v: 'sync', t: m('kb.models.statut.sync') },
         { v: 'pending', t: m('kb.models.statut.pending') },
-      ]
+        // Offered while the health chip has something to say (and while it is the active choice, so the menu never shows a value it lacks).
+      ].concat(kbHealthGet() !== null || UI.statut === 'down' ? [{ v: 'down', t: m('kb.models.statut.down') }] : [])
       const OPT_TRI = () => [
         { v: 'name', t: m('kb.models.tri.name') },
         { v: 'context', t: m('kb.models.tri.context') },
@@ -1723,6 +1750,16 @@ window.__ModuleLoader__.load({
           setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
         }
         const openAdd = () => { setDr(pvAddDraft()); patch({ drawer: { mode: 'add' }, menu: null, err: null, note: null }) }
+        // The health chip asks for a provider's Edit panel ("Fix key"): done once the list is on screen. A provider that
+        // cannot be edited here (read-only page, managed route, unknown route) shows its models instead.
+        React.useEffect(() => {
+          if (UI.edit === null) return undefined
+          const route = UI.edit
+          UI.edit = null
+          if (KBM.routes.indexOf(route) >= 0 && KBM.writable === true && kbMParkBlock(route, KBM.userProviders, KBM.baseProviders) !== 'managed') openEdit(route, false)
+          else { UI.prov = route; UI.tab = 'models'; kbmNotify() }
+          return undefined
+        })
         const run = async (fn, errKey, slug) => {
           patch({ busy: true, err: null })
           try { const out = await fn(); return out }
@@ -2247,6 +2284,7 @@ window.__ModuleLoader__.load({
               className: 'kbm-pill' + (UI.tab !== 'providers' ? ' kbm-pill-active' : ' kbm-pill-interactive'),
               onClick: () => uiSet('tab', 'models'),
             }, m('kb.models.tab.models', { n: KBM.models.length })),
+            h(HealthChip, null),
             UI.tab !== 'providers' ? h('span', { className: 'kbmp-tabsend' },
               h(Tip, { text: m('kb.models.sub') + ' · ' + (KBM.live === true ? m('kb.models.phase.live') : m('kb.models.phase.sample')) + ' · ' + m('kb.models.mark.wire') + ' · ' + m('kb.models.mark.note') },
                 h('span', { className: 'kbmp-info', 'data-kbm': 'phase', tabIndex: 0, role: 'img', 'aria-label': m('kb.models.sub') }, Ic('info', 15))),
@@ -2299,7 +2337,7 @@ window.__ModuleLoader__.load({
         '.kbm-warn{margin-top:8px;font-size:12px;color:var(--dsw-alias-state-warn-primary)}',
         '.kbm-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
         '.kbmp-armed{border-color:var(--dsw-alias-state-warn-primary)!important;color:var(--dsw-alias-state-warn-primary)}',
-        '.kbmp-tabs{display:flex;gap:8px;align-items:center}',
+        '.kbmp-tabs{position:relative;display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
         '.kbmp-tabs .kbm-pill{height:28px;padding:0 12px;font-size:13px;cursor:pointer}',
         '.kbmp-note{font-size:12px;color:var(--dsw-alias-label-tertiary);margin-left:8px}',
         '.kbmp-vide{color:var(--dsw-alias-label-tertiary)}',
@@ -2336,6 +2374,26 @@ window.__ModuleLoader__.load({
         '.kbmp-grow{flex:1}',
         '.kbmp-link{border:0;background:transparent;padding:2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
         '.kbmp-tabsend{margin-left:auto;display:inline-flex;align-items:center;gap:4px}',
+        // Model health chip (the alert of the study model), on the tab bar: small at rest, the detail in a popover. The popover is
+        // anchored to the tab bar (not to the chip), so it fits at any width.
+        '.kbhc{display:inline-flex}',
+        '.kbhc-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;border:.5px solid var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 12%,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;cursor:pointer}',
+        '.kbhc-chip svg{color:var(--dsw-alias-state-warn-primary);flex:none}',
+        '.kbhc-chip:hover{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 20%,transparent)}',
+        '.kbhc-chip:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+        '.kbhc-pop{position:absolute;z-index:25;left:0;top:calc(100% + 6px);box-sizing:border-box;width:min(430px,100%);display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:var(--dsw-alias-bg-layer-3);border:.5px solid var(--dsw-alias-border-l4);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.3)}',
+        '.kbhc-title{font-size:13px;font-weight:600;line-height:18px;color:var(--dsw-alias-label-primary)}',
+        '.kbhc-detail{font-size:12px;line-height:17px;color:var(--dsw-alias-label-secondary)}',
+        '.kbhc-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:200px;overflow:auto}',
+        '.kbhc-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1px 10px;font-size:12px;color:var(--dsw-alias-label-secondary)}',
+        '.kbhc-list code{justify-self:start;max-width:100%;overflow-wrap:anywhere;font-size:11.5px;padding:1px 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}',
+        '.kbhc-cause{grid-column:1;min-width:0}',
+        '.kbhc-list .kbhc-btn{grid-column:2;grid-row:1 / span 2;align-self:center}',
+        '.kbhc-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:2px}',
+        '.kbhc-btn{height:26px;padding:0 11px;border:.5px solid var(--dsw-alias-border-l2);border-radius:999px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12px;cursor:pointer}',
+        '.kbhc-btn:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbhc-btn[disabled]{opacity:.55;cursor:default}',
+        '.kbhc-btn-quiet{border-color:transparent;color:var(--dsw-alias-label-secondary);margin-left:auto}',
         '.kbmp-info{display:inline-flex;color:var(--dsw-alias-label-tertiary);cursor:help}',
         '.kbmp-info:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:50%}',
         '.kbmp-prov-addct{margin-top:10px}',
@@ -3258,6 +3316,100 @@ window.__ModuleLoader__.load({
         await kbMLoad()
       }
       // KB-PARK-ACTIONS-END
+
+      // KB-HEALTH-PURE-BEGIN
+      // ── Model health chip ──
+      // kybernos-sessions probes the configured models and publishes the verdict on a small public contract
+      // (`window.__kybernosHealth` and a `kybernos-health` event on `window`); this page only DRAWS it, on the tab
+      // bar. The rules below are pure so the tests can run them as written.
+      const KB_HEALTH_CAUSES = ['key', 'gone', 'refused', 'text', 'silent', 'other']
+      /** What `get()` returned, checked: a view with at least one failing model, or null (nothing to say). Anything
+       *  unexpected reads as null — the chip must never throw into the page. Pure. */
+      const kbHealthView = (raw) => {
+        if (raw === null || typeof raw !== 'object' || !Array.isArray(raw.alertes)) return null
+        const alertes = []
+        for (const a of raw.alertes) {
+          if (a === null || typeof a !== 'object' || typeof a.cle !== 'string' || a.cle === '') continue
+          const cut = a.cle.indexOf('/')
+          alertes.push({
+            cle: a.cle,
+            route: typeof a.route === 'string' && a.route !== '' ? a.route : (cut < 0 ? a.cle : a.cle.slice(0, cut)),
+            cause: KB_HEALTH_CAUSES.indexOf(a.cause) >= 0 ? a.cause : 'other'
+          })
+        }
+        if (alertes.length === 0) return null
+        const total = Number(raw.total)
+        return { alertes, total: total >= alertes.length ? total : alertes.length, tousEnEchec: raw.tousEnEchec === true, checking: raw.checking === true }
+      }
+      /** [{ cause, n }] in the fixed order above (the actionable key problems first); causes nobody has are left out. Pure. */
+      const kbHealthCauses = (alertes) => KB_HEALTH_CAUSES.map((c) => ({ cause: c, n: alertes.filter((a) => a.cause === c).length })).filter((c) => c.n > 0)
+      /** The rows to list: at most `max`, key problems first, then by key; `more` counts the rest. Pure. */
+      const kbHealthRows = (alertes, max) => {
+        const sorted = alertes.slice().sort((a, b) => (KB_HEALTH_CAUSES.indexOf(a.cause) - KB_HEALTH_CAUSES.indexOf(b.cause)) || (a.cle < b.cle ? -1 : (a.cle > b.cle ? 1 : 0)))
+        return { rows: sorted.slice(0, max), more: Math.max(0, sorted.length - max) }
+      }
+      /** The failing models as a lookup by "route/id" (what the Models tab filters on). Pure. */
+      const kbHealthDown = (vue) => {
+        const out = {}
+        if (vue !== null) for (const a of vue.alertes) out[a.cle] = true
+        return out
+      }
+      // KB-HEALTH-PURE-END
+      /** The published view, or null: no bundle, no study model, nothing failing, or the hour of silence is running. */
+      const kbHealthGet = () => {
+        try {
+          const bus = window.__kybernosHealth
+          return bus !== null && bus !== undefined && typeof bus.get === 'function' ? kbHealthView(bus.get()) : null
+        } catch (e) { return null }
+      }
+      const kbHealthCall = (name) => {
+        try {
+          const bus = window.__kybernosHealth
+          if (bus !== null && bus !== undefined && typeof bus[name] === 'function') bus[name]()
+        } catch (e) { /* the chip is a convenience: a dead bus changes nothing else */ }
+      }
+      const HealthChip = () => {
+        kbmUse()
+        const [, tick] = React.useState(0)
+        React.useEffect(() => {
+          const on = () => tick((n) => n + 1)
+          window.addEventListener('kybernos-health', on)
+          return () => window.removeEventListener('kybernos-health', on)
+        }, [])
+        const vue = kbHealthGet()
+        if (vue === null) return null
+        const open = UI.menu === '__health'
+        const n = vue.alertes.length
+        const all = vue.tousEnEchec === true
+        const label = all ? m('kb.health.chip.all') : (n === 1 ? m('kb.health.chip.one') : m('kb.health.chip.many', { n }))
+        const lines = kbHealthRows(vue.alertes, 6)
+        const showThem = () => { UI.menu = null; UI.tab = 'models'; UI.q = ''; UI.prov = 'all'; UI.type = 'all'; UI.caps = {}; UI.statut = 'down'; UI.page = 1; kbmNotify() }
+        const hide = () => { kbHealthCall('hide'); UI.menu = null; if (UI.statut === 'down') UI.statut = 'any'; kbmNotify() }
+        const fixKey = (route) => { UI.menu = null; UI.tab = 'providers'; UI.edit = route; kbmNotify() }
+        return h('span', { className: 'kbhc', 'data-kbm': 'health' },
+          h('button', {
+            type: 'button', className: 'kbhc-chip', 'data-kbm': 'health-chip', 'aria-haspopup': 'dialog', 'aria-expanded': open ? 'true' : 'false',
+            'aria-label': m('kb.health.aria') + ' — ' + label, title: m('kb.health.aria'),
+            onClick: (ev) => { ev.stopPropagation(); uiSet('menu', open ? null : '__health') },
+          }, Ic('alert', 14), label),
+          open ? h('div', { className: 'kbhc-pop', role: 'dialog', 'aria-label': m('kb.health.aria'), 'data-kbm': 'health-pop', onClick: (ev) => ev.stopPropagation() },
+            h('div', { className: 'kbhc-title' }, all ? m('kb.health.title.all') : (n === 1 ? m('kb.health.title.one', { total: vue.total }) : m('kb.health.title.many', { n, total: vue.total }))),
+            all
+              ? h('div', { className: 'kbhc-detail', 'data-kbm': 'health-all' }, m('kb.health.all.detail', { total: vue.total }))
+              : [
+                h('div', { key: 'c', className: 'kbhc-detail', 'data-kbm': 'health-causes' }, kbHealthCauses(vue.alertes).map((c) => String(c.n) + ' ' + m('kb.health.cause.' + c.cause)).join(' · ')),
+                h('ul', { key: 'l', className: 'kbhc-list', 'data-kbm': 'health-list' },
+                  lines.rows.map((a) => h('li', { key: a.cle, 'data-kbm': 'health-row', 'data-kbm-key': a.cle },
+                    h('code', { title: a.cle }, a.cle),
+                    h('span', { className: 'kbhc-cause' }, m('kb.health.cause.' + a.cause)),
+                    a.cause === 'key' ? h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-fix', title: m('kb.health.fixkey.t', { slug: a.route }), onClick: () => fixKey(a.route) }, m('kb.health.fixkey')) : null)),
+                  lines.more > 0 ? h('li', { key: 'more', className: 'kbhc-detail' }, m('kb.health.more', { n: lines.more })) : null),
+                h('div', { key: 'i', className: 'kbhc-detail' }, m('kb.health.impact'))],
+            h('div', { className: 'kbhc-acts' },
+              h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-recheck', disabled: vue.checking === true, onClick: () => kbHealthCall('recheck') }, vue.checking === true ? m('kb.health.checking') : m('kb.health.recheck')),
+              h('button', { type: 'button', className: 'kbhc-btn', 'data-kbm': 'health-show', onClick: showThem }, m('kb.health.show')),
+              h('button', { type: 'button', className: 'kbhc-btn kbhc-btn-quiet', 'data-kbm': 'health-hide', onClick: hide }, m('kb.health.hide')))) : null)
+      }
 
       // KB-NATIVE-PURE-BEGIN
       // ── DSH's own Models page: hidden while this page owns the job, one click away ──
