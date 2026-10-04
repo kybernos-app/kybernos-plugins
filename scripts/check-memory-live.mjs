@@ -52,16 +52,30 @@ try {
   if (lesList === null || lesList.ok !== true) { console.error('○ inconclusive: /kybernos-memory/lessons does not answer'); await live.close(); process.exit(3) }
 
   console.log('settings → Memory & Lessons')
-  // The account chip's place depends on the window height: find it by its label, never by coordinates.
-  const chip = await ev(`(() => { const e = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`)
-  if (chip === null) { console.error('○ inconclusive: the account chip was not found (is the GUI loaded?)'); await live.close(); process.exit(3) }
-  await click(JSON.parse(chip).x, JSON.parse(chip).y); await sleep(1000)
-  await clickText(page, 'Settings'); await sleep(1800)
+  await waitFor(page, `document.readyState === 'complete'`, 15000); await sleep(2500)
+  // The GUI may still be hydrating when the page opens, and the account chip's place depends on the window
+  // height: find the chip by its label (never by coordinates), and retry the whole opening a few times.
+  const chipJs = `(() => { const e = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`
+  const navCellJs = `[...document.querySelectorAll('[class*="navCell"]')].some(e => e.textContent.trim() === 'Memory & Lessons')`
+  let settingsOpen = false
+  for (let attempt = 1; attempt <= 4 && settingsOpen !== true; attempt += 1) {
+    if ((await waitFor(page, `${chipJs} !== null`, 15000)) === null) break
+    const chip = JSON.parse(await ev(chipJs))
+    await click(chip.x, chip.y); await sleep(1000)
+    await clickText(page, 'Settings')
+    settingsOpen = (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 0`, 6000)) !== null
+    if (settingsOpen !== true) { console.log('  … Settings did not open (attempt ' + String(attempt) + '), retrying'); await page.send('Page.reload', { ignoreCache: true }); await sleep(3500) }
+  }
+  if (settingsOpen !== true) { console.error('○ inconclusive: the Settings dialog did not open (is the GUI loaded?)'); await shot('no-settings'); await live.close(); process.exit(3) }
+  // Plugin sections register a moment after the shell's own cells: wait for ours, not for a fixed delay.
+  await waitFor(page, navCellJs, 12000)
   // The nav can be taller than the window: scroll the cell into view and click it directly (clickText only sees what is visible).
   const navFound = await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === 'Memory & Lessons'); if (!c) return false; c.scrollIntoView({ block: 'center' }); (c.querySelector('button,[role=button]') || c).click(); return true })()`)
   if (navFound !== true) { console.error('○ inconclusive: no « Memory & Lessons » entry in the Settings nav (the client is only declared at boot: restart dsh web)'); await shot('no-nav'); await live.close(); process.exit(3) }
   check('the nav entry exists and opens the page', (await waitFor(page, `!!document.querySelector('.kbmem-page')`, 8000)) !== null)
-  await sleep(1200)
+  // The first screen is data: wait for the title and for the first rows instead of a fixed delay (a cold GUI is slower).
+  await waitFor(page, `!!document.querySelector('.kbmem-h1') && document.querySelectorAll('.kbmem-r').length > 0`, 15000)
+  await sleep(400)
   await shot('01-page')
 
   check('title', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
