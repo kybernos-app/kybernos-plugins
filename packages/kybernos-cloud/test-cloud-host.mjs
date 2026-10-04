@@ -969,6 +969,8 @@ try {
   //      refus en bloc d'une valeur ou d'une cle invalide, persistance a cote de l'etat.
   const set0 = await hit('/kybernos-cloud/memory/settings', 'GET')
   assert.deepEqual(set0.body.settings, { memories: true, context: true, capture: true })
+  assert.equal(typeof set0.body.capture.status, 'string', 'the settings route says where the capture stands')
+  assert.ok(set0.body.capture.at >= 0 && set0.body.capture.facts >= 0)
   const badValue = await setSettings({ memories: 'non' })
   assert.equal(badValue.body.ok, false)
   assert.equal(badValue.body.error, 'valeur_invalide')

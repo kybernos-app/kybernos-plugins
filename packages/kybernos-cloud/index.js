@@ -1726,7 +1726,9 @@ const memoryMapRoute = async (req, body) => {
 
 // ── Réglages + liste paginée (page « Memory & Lessons learned ») ─────────────
 
-const memorySettingsRoute = async () => ({ ok: true, settings: readMemorySettings() })
+// `capture` rides along: the page shows « last capture: … » in the options, and the full
+// `/kybernos-cloud/memory` route that also carries it re-reads the whole account from the API.
+const memorySettingsRoute = async () => ({ ok: true, settings: readMemorySettings(), capture: lastCapture })
 
 const memorySettingsSetRoute = async (req, body) => {
   const incoming = body !== null && typeof body === 'object' && Array.isArray(body) === false ? body : null

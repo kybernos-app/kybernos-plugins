@@ -379,10 +379,10 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 68,
+      "poids_ko": 140,
       "promesse": {
-        "fr": "Leçons apprises par kyber : relues, éditables, injectées dans le prompt, avec interrupteurs.",
-        "en": "Lessons learned per kyber: re-read, editable, injected into the prompt, with on/off switches."
+        "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par kyber, filtres, interrupteurs.",
+        "en": "The Memory & Lessons learned page: account memory and lessons per kyber, filters, on/off switches."
       }
     },
     {

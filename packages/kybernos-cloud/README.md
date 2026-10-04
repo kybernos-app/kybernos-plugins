@@ -130,7 +130,7 @@ Routes locales (mêmes gardes same-origin et méthode stricte que les autres) :
 | `/kybernos-cloud/memory/map` | POST | écrit la correspondance kyber local → kyber cloud |
 | `/kybernos-cloud/memory/lessons` | POST | pousse les leçons locales (`dryRun` par défaut) |
 | `/kybernos-cloud/memory/list` | GET | liste **paginée et filtrée** du compte (`limit`, `offset`, `show`, `src`, `added`, `q`) |
-| `/kybernos-cloud/memory/settings` | GET | les interrupteurs `memories`, `context`, `capture` |
+| `/kybernos-cloud/memory/settings` | GET | les interrupteurs `memories`, `context`, `capture`, et `capture` : où en est la dernière capture (en mémoire seulement) |
 | `/kybernos-cloud/memory/settings/set` | POST | pose un ou plusieurs interrupteurs (booléens ; refus en bloc sinon) |
 
 Chaque chemin est **distinct** : le routeur indexe par chemin, donc deux routes

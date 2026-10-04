@@ -1,7 +1,31 @@
-# kybernos-memory — lessons learned
+# kybernos-memory — Memory & Lessons learned
 
-Host half of the **Memory & Lessons learned** feature, for the lessons (the account memory
-stays in [`kybernos-cloud`](../kybernos-cloud/README.md): it needs the account token, lessons do not).
+The **Memory & Lessons learned** feature: the settings page (browser half, `client.js`) and the
+lessons (host half, `index.js`). The account memory itself stays in
+[`kybernos-cloud`](../kybernos-cloud/README.md) — it needs the account token, lessons do not — and the
+page reaches it through that plugin's routes; the account token never leaves the host.
+
+## The page
+
+Settings → **Memory & Lessons** (right after Language). It opens straight on the data; the switches live
+one click away.
+
+- **Memories** (account): list, search by words, filters (Show: all / pinned / sent to the model ·
+  Source: auto-capture / agent / you / sync · Added: last minute / hour / today / 7 days), pages of 25,
+  50 or 100, add, edit (text, retention, pinned) and forget with an Undo.
+- **Lessons learned** (every kyber, local files): list, filters (kyber, used at least once, added),
+  pages, edit (text, tags) and delete — a deleted lesson goes to the kyber's `lessons.archive.jsonl`.
+- **Options**: a classic settings page (breadcrumb + rows like General's) with the two switch groups —
+  Memories / Memory system context / Automatic capture, and Lessons learned / Lessons system context —
+  each dependent row locks with the reason when its parent is off. The last capture's outcome is shown.
+- **Not drawn as if it existed**: the Map needs a search index that does not exist yet (the button is
+  disabled and says so), relevance search likewise (the field says « By words »), and team lessons are
+  not built (the Team scope and « Share lessons with your team » say so). Nothing on the page claims
+  a plan gate it does not enforce: memory itself is not limited by plan today.
+- The under-composer **Memory pill** lives in `kybernos-sessions` (it needs the chat's journal): it shows
+  what the model receives (« 25 of 637 ») and what this chat wrote, with a card that links here.
+
+Everything is same-origin calls to local routes; CSS classes are all `kbmem-`-prefixed (a test pins it).
 
 A lesson is one line of `<kybers>/<kyber>/memory/lessons.jsonl`:
 `{ ts, text (≤ 500 chars), tags (≤ 5), uses, lastUsed }`. The file is written by
@@ -37,4 +61,12 @@ no `..`), and a typo never creates a kyber.
 
 ```bash
 node packages/kybernos-memory/test-memory-host.mjs   # real files in a temp folder, real memory.cjs if present
+node packages/kybernos-memory/test-client.mjs        # the page's pure pieces, mounting contract, source guards
+node scripts/check-memory-live.mjs --shots /tmp/mem  # the REAL GUI, read-only (needs dsh web restarted once)
 ```
+
+The page itself (React) was driven end to end in a real browser while it was built — filters, pages,
+add / edit / forget / undo, lessons edit / delete, both switch groups, not-connected, revoked session —
+over the REAL host modules on temporary files with a fake Kybernos API behind them. That harness is
+not in the repo (it needs a React build this repo does not depend on); `check-memory-live.mjs` is the
+repo's own, read-only, check against the running GUI.

@@ -44,6 +44,14 @@ window.__ModuleLoader__.load({
    harnais continuent de le lire mot pour mot. */
 .kbs-lib{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
   clip-path:inset(50%);white-space:nowrap;border:0}
+/* The Memory & Lessons pill states its name (the others are icon + count): it is the one people could
+   not tell apart. Under 760 px the word goes back to the screen-reader-only form. */
+.kbs-meter{height:6px;border-radius:3px;background:var(--dsw-alias-bg-layer-3,rgba(255,255,255,.12));overflow:hidden;margin:2px 0 8px}
+.kbs-meter i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.kbs-lib--vis{position:static;width:auto;height:auto;margin:0;overflow:visible;clip-path:none}
+.kbs-pill .kbs-pillsep{width:1px;height:12px;background:var(--dsw-alias-border-l3,rgba(255,255,255,.16))}
+.kbs-pill .kbs-d{font-weight:600;font-variant-numeric:tabular-nums;color:var(--dsw-alias-state-success-primary,#22c55e)}
+@media (max-width:760px){.kbs-lib--vis{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%)}}
 .kbs-pill .kbs-n{font-size:12.5px;line-height:1}
 .kbs-pill:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
 .kbs-pill:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
@@ -78,7 +86,7 @@ window.__ModuleLoader__.load({
 .kbs-pill--bordDroit .kbs-tip{left:auto;right:0;transform:none}
 /* P4 — une carte « Notes » à deux sections (Memory puis Lessons) : la carte
    remplace les deux anciennes, le contenu est intact. */
-.kbs-notes{display:flex;flex-direction:column;gap:12px}
+.kbs-memwrap{display:flex;flex-direction:column;gap:12px}
 .kbs-note-sec{display:flex;flex-direction:column;gap:6px}
 .kbs-note-t{margin:0;font-size:11px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;
   color:var(--dsw-alias-label-tertiary,#8a9096)}
@@ -108,7 +116,7 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-tertiary,#8a9096);display:flex;align-items:center;justify-content:center;
   cursor:pointer;margin-right:-8px;padding:0}
 .kbs-x:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
-.kbs-title{margin:10px 0 4px;font-size:18px;font-weight:700;line-height:1.25;
+.kbs-cartetitre{margin:10px 0 4px;font-size:18px;font-weight:700;line-height:1.25;
   color:var(--dsw-alias-label-primary,#e8eaec);text-wrap:balance}
 .kbs-text{margin:0;font-size:14px;line-height:1.45;color:var(--dsw-alias-label-secondary,#cfd3d6);
   text-wrap:pretty}
@@ -161,12 +169,12 @@ window.__ModuleLoader__.load({
   color:var(--dsw-alias-label-secondary,#cfd3d6);background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06));
   border-radius:6px;padding:1px 8px;overflow-wrap:anywhere}
 .kbs-plan .kbs-btn{margin-top:6px}
-.kbs-err{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-state-error-primary,#ef4444);
+.kbs-erreur{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-state-error-primary,#ef4444);
   overflow-wrap:anywhere}
 .kbs-done{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-state-success-primary,#22c55e)}
 
 /* pied + détails */
-.kbs-foot{margin-top:12px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07));padding-top:2px}
+.kbs-pied{margin-top:12px;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07));padding-top:2px}
 .kbs-more{display:flex;align-items:center;gap:6px;width:100%;min-height:32px;padding:0;border:0;
   background:none;color:var(--dsw-alias-label-tertiary,#8a9096);font:inherit;font-size:13px;cursor:pointer}
 .kbs-more svg{transition:transform .15s}
@@ -175,8 +183,8 @@ window.__ModuleLoader__.load({
 .kbs-kv{display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px;font-size:12.5px;line-height:1.45}
 .kbs-kv dt{color:var(--dsw-alias-label-tertiary,#8a9096);overflow-wrap:anywhere}
 .kbs-kv dd{margin:0;color:var(--dsw-alias-label-primary,#e8eaec);overflow-wrap:anywhere}
-.kbs-link{color:var(--acc);text-decoration:none;font-size:12.5px}
-.kbs-link:hover{text-decoration:underline}
+.kbs-lien{color:var(--acc);text-decoration:none;font-size:12.5px}
+.kbs-lien:hover{text-decoration:underline}
 
 /* memory & lessons */
 .kbs-kybers{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 0}
@@ -201,14 +209,13 @@ window.__ModuleLoader__.load({
 .kbs-tag{font-size:10.5px;padding:1px 7px;border-radius:999px;
   background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06));
   color:var(--dsw-alias-label-secondary,#cfd3d6)}
-.kbs-empty{margin-top:10px;padding:16px 12px;border:1px dashed var(--dsw-alias-border-l2,rgba(255,255,255,.10));
+.kbs-vide{margin-top:10px;padding:16px 12px;border:1px dashed var(--dsw-alias-border-l2,rgba(255,255,255,.10));
   border-radius:10px;text-align:center;color:var(--dsw-alias-label-tertiary,#8a9096);font-size:12.5px}
 .kbs-minirow{display:flex;align-items:center;gap:8px;margin-top:10px}
 .kbs-minibtn{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));
   background:transparent;color:var(--dsw-alias-label-secondary,#cfd3d6);font:inherit;font-size:11.5px;cursor:pointer}
 .kbs-minibtn:hover{background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
 .kbs-copie{font-size:11px;color:var(--dsw-alias-state-success-primary,#22c55e)}
-.kbs-cmdhint{margin:0;font:10.5px/1.6 ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-tertiary,#8a9096)}
 /* gestes de mémoire de CETTE session (record / lesson / used) */
 .kbs-memo{margin-top:8px;display:flex;flex-direction:column}
 .kbs-memo-row{padding:8px 0;border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
@@ -235,7 +242,7 @@ window.__ModuleLoader__.load({
 [data-kbv="0"]{display:none!important}
 /* Récapitulatif de session : fait / pas fait / clôturable, et le geste local
    (commit & merge sur la machine, sans envoi GitHub). */
-.kbs-recap{margin-top:10px;display:flex;flex-direction:column;gap:2px}
+.kbs-bilan{margin-top:10px;display:flex;flex-direction:column;gap:2px}
 .kbs-recap-row{display:flex;gap:10px;align-items:baseline;padding:7px 0;
   border-top:1px solid var(--dsw-alias-border-l1,rgba(255,255,255,.07))}
 .kbs-recap-row:first-child{border-top:0}
@@ -356,6 +363,7 @@ window.__ModuleLoader__.load({
       cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
       pr: '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/>',
       book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      brain: '<path d="M9.5 3A3.5 3.5 0 0 0 6 6.5c0 .4.1.8.2 1.1A3.5 3.5 0 0 0 4 10.8c0 1 .5 2 1.2 2.6A3.5 3.5 0 0 0 7 19a3 3 0 0 0 5-1V4.5A1.5 1.5 0 0 0 9.5 3z"/><path d="M14.5 3A3.5 3.5 0 0 1 18 6.5c0 .4-.1.8-.2 1.1A3.5 3.5 0 0 1 20 10.8c0 1-.5 2-1.2 2.6A3.5 3.5 0 0 1 17 19a3 3 0 0 1-5-1V4.5A1.5 1.5 0 0 1 14.5 3z"/>',
       bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
       check: '<path d="M20 6 9 17l-5-5"/>',
       alert: '<path d="M12 6v8"/><path d="M12 19h.01"/>',
@@ -851,12 +859,31 @@ window.__ModuleLoader__.load({
           ok: resultats.get(d.callId) !== 'echec'
         })
       }
+      // The two tools of the memory plugins write the same things as memory.cjs, by another door: a
+      // lesson (`lesson_write`, @local/kybernos-memory) joins the lessons of this chat; an account memory
+      // (`memory_write`, @local/kybernos-cloud) is listed apart — it is not a kyber ledger entry.
+      const souvenirs = []
+      for (let i = 0; i < events.length; i++) {
+        const e = events[i]
+        if (e.type !== 'tool/call') continue
+        const d = e.data || {}
+        const nom = String(d.name || '')
+        if (nom !== 'lesson_write' && nom !== 'memory_write') continue
+        const a = argsAppel(d)
+        const ts = e.time ? new Date(e.time).toISOString() : null
+        if (nom === 'lesson_write') {
+          entrees.push({ type: 'lesson', ts, kyber: typeof a.kyber === 'string' && a.kyber !== '' ? a.kyber : 'default', role: '', outcome: '', note: '', text: String(a.text || ''),
+            tags: Array.isArray(a.tags) ? a.tags.map((t) => String(t)) : [], index: null, ok: resultats.get(d.callId) !== 'echec' })
+        } else {
+          souvenirs.push({ ts, kind: String(a.kind || ''), text: String(a.content || ''), pinned: a.pinned === true })
+        }
+      }
       const kybers = []
       for (let i = 0; i < entrees.length; i++) {
         if (entrees[i].kyber !== '' && kybers.indexOf(entrees[i].kyber) === -1) kybers.push(entrees[i].kyber)
       }
       const garde = (t) => entrees.filter((x) => x.type === t && x.ok === true)
-      return { entrees, kybers, records: garde('record'), lessons: garde('lesson'), used: garde('used') }
+      return { entrees, kybers, records: garde('record'), lessons: garde('lesson'), used: garde('used'), souvenirs }
     }
 
     // ── journal de la session courante (ce que CETTE session a fait) ───────
@@ -1330,7 +1357,7 @@ window.__ModuleLoader__.load({
         st === null || echec
           ? h('button', { className: 'kbs-btn', onClick: () => lancer(false) }, label)
           : null,
-        echec ? h('p', { className: 'kbs-err' }, st.erreur || 'refused') : null,
+        echec ? h('p', { className: 'kbs-erreur' }, st.erreur || 'refused') : null,
         sec
           ? h('div', { className: 'kbs-plan' },
               (st.commandes || []).map((c, i) => h('code', { className: 'kbs-cmd', key: i }, c)),
@@ -1371,13 +1398,13 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kbs-pop-head' },
           h('span', { className: 'kbs-pop-name' }, svg(icon, 15), name),
           h('button', { className: 'kbs-x', 'aria-label': 'Close', onClick: onClose }, svg('close', 15))),
-        h('h3', { className: 'kbs-title' }, titre),
+        h('h3', { className: 'kbs-cartetitre' }, titre),
         texte ? h('p', { className: 'kbs-text' }, texte) : null,
         nav || null,
         visuel,
         action,
         details
-          ? h('div', { className: 'kbs-foot' },
+          ? h('div', { className: 'kbs-pied' },
               h('button', { className: 'kbs-more', 'aria-expanded': String(det), onClick: () => setDet(!det) },
                 'Details', svg('chev', 14)))
           : null,
@@ -1671,7 +1698,7 @@ window.__ModuleLoader__.load({
       const ligne = (k, v) => h('div', { className: 'kbs-recap-row' },
         h('span', { className: 'kbs-recap-k' }, k), h('span', { className: 'kbs-recap-v' }, v))
       const actionnable = git && (nonSauvees > 0 || nonFusionnes > 0)
-      return h('div', { className: 'kbs-recap' },
+      return h('div', { className: 'kbs-bilan' },
         ligne('Done', fait),
         ligne('Not done', reste),
         ligne('Closing', ferme),
@@ -1772,7 +1799,7 @@ window.__ModuleLoader__.load({
         Ligne('Branch', h('code', { className: 'kbs-code-in' }, pr.branche || '—'), 'br'),
         Ligne('Checks', { pass: 'passed ✓', fail: 'failed ✗', running: 'running…', none: 'none' }[pr.checks] || pr.checks, 'ck'),
         Ligne('Review', { approved: 'approved ✓', changes_requested: 'changes asked', review_required: 'waiting for a teammate' }[pr.revue] || pr.revue, 'rv'),
-        pr.url ? Ligne('On GitHub', h('a', { className: 'kbs-link', href: pr.url, target: '_blank', rel: 'noreferrer' }, 'open the review request ↗'), 'url') : null
+        pr.url ? Ligne('On GitHub', h('a', { className: 'kbs-lien', href: pr.url, target: '_blank', rel: 'noreferrer' }, 'open the review request ↗'), 'url') : null
       ]
       if (pr.etat === 'merged') return { accent: ACC.success, label: 'Merged',
         titre: 'Your work is in the project',
@@ -1813,6 +1840,28 @@ window.__ModuleLoader__.load({
       const [journal, setJournal] = React.useState(null)
       const [ouverte, setOuverte] = React.useState(null) // 'local' | 'recap' | 'sync' | 'pr' | 'notes' | null
       const [kyberChoisi, setKyberChoisi] = React.useState(null)
+      const [onglet, setOnglet] = React.useState('mem') // 'mem' | 'les' : l'onglet de la carte Memory & Lessons
+      // Ce que le modèle reçoit du compte (X sur N), lu aux routes du plugin cloud — deux appels sans réseau
+      // distant (le cache de l'hôte). `null` quand le plugin cloud est absent ou le compte déconnecté : la
+      // pastille retombe alors sur ce que le journal de CE chat sait.
+      const [memInfo, setMemInfo] = React.useState(null)
+      const lireMem = React.useCallback(async () => {
+        try {
+          const [l, r] = await Promise.all([
+            fetch('/kybernos-cloud/memory/list?limit=1').then((x) => x.json()),
+            fetch('/kybernos-cloud/memory/settings').then((x) => x.json())
+          ])
+          setMemInfo(l && l.ok === true && l.budget && l.counts
+            ? { sent: l.budget.sent, total: l.counts.all, used: l.budget.used, cap: l.budget.cap, capture: r && r.capture ? r.capture : null,
+                actif: !r || !r.settings || (r.settings.memories === true && r.settings.context === true) }
+            : null)
+        } catch (e) { setMemInfo(null) }
+      }, [])
+      React.useEffect(() => {
+        lireMem()
+        const t = setInterval(lireMem, 30000)
+        return () => clearInterval(t)
+      }, [lireMem])
 
       const charger = React.useCallback(() => {
         fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1')
@@ -1841,7 +1890,7 @@ window.__ModuleLoader__.load({
       const travail = journal !== null ? classerJournal(journal.events, journal.cwd) : null
       const memoire = journal !== null
         ? memoireDuJournal(journal.events)
-        : { entrees: [], kybers: [], records: [], lessons: [], used: [] }
+        : { entrees: [], kybers: [], records: [], lessons: [], used: [], souvenirs: [] }
       const kybers = memoire.kybers
       const kyber = (kyberChoisi !== null && kybers.indexOf(kyberChoisi) >= 0) ? kyberChoisi : (kybers[0] || null)
       const bascule = (id) => { setOuverte(ouverte === id ? null : id); charger(); lireJournal() }
@@ -1924,50 +1973,69 @@ window.__ModuleLoader__.load({
         (l.tags && l.tags.length) ? h('div', { className: 'kbs-tags' },
           l.tags.map((t, j) => h('span', { className: 'kbs-tag', key: j }, t))) : null)
 
-      // P4 — une seule puce « Notes » pour memory + lessons : deux compteurs du
-      // même sujet (ce que ce chat a laissé), et deux capsules au même nombre
-      // (3 et 3) qui coûtaient 92 px à la rangée. Deux sections, une carte.
-      const notesBadge = memFaites.length === 0 && leconsSession.length === 0
-        ? null
-        : (memFaites.length > 0 && leconsSession.length > 0
-            ? memFaites.length + '·' + leconsSession.length
-            : String(memFaites.length || leconsSession.length))
-      const notesAccent = memFaites.length > 0 ? ACC.teal : (leconsSession.length > 0 ? ACC.pink : ACC.idle)
-      const memDits = memFaites.length === 0 ? 'no memory entry' : memFaites.length + ' memor' + (memFaites.length === 1 ? 'y entry' : 'y entries')
-      const lesDits = leconsSession.length === 0 ? 'no lesson' : leconsSession.length + ' lesson' + pl(leconsSession.length, '', 's')
-      const notesTip = [
-        'Notes', memDits + ' · ' + lesDits + ' from this chat',
-        memFaites.length > 0
-          ? libelleMemo(memFaites[memFaites.length - 1]) + ' · ' + (memFaites[memFaites.length - 1].kyber || '?')
-          : (leconsSession.length > 0
-              ? 'Latest: ' + libelleMemo(leconsSession[0])
-              : 'The ledger may hold other chats — this card only shows this one.')
-      ]
+      // ── Memory & Lessons : une pastille qui dit son nom ───────────────────
+      // Avant : « Notes », un livre sans mot (P4 : une puce pour deux sujets), qui ne comptait que ce que CE chat
+      // avait écrit et ne menait nulle part. Maintenant : le mot, ce que le modèle reçoit du compte, ce que ce chat
+      // a laissé, et le lien vers la page des Réglages. Les compteurs ne se mélangent pas : à gauche la mémoire du
+      // compte (envoyée au modèle), à droite les leçons de ce chat ; « +N » = ce que CE chat a écrit.
+      const ecritsMem = memoire.souvenirs.length
+      const nbLecons = leconsSession.length
+      const ecritsLecons = leconsSession.filter((l) => l.type === 'lesson').length
+      const delta = ecritsMem + ecritsLecons
+      const rien = ecritsMem === 0 && nbLecons === 0 && memFaites.length === 0
+      const notesAccent = ecritsMem > 0 || memFaites.length > 0 ? ACC.teal : (nbLecons > 0 ? ACC.pink : ACC.idle)
+      const memBadge = memInfo !== null ? memInfo.sent : (memFaites.length > 0 ? memFaites.length : null)
+      const memDit = memInfo !== null ? memInfo.sent + ' of ' + memInfo.total + ' memories sent to the model' : 'Account memory unavailable (connect Kybernos Cloud)'
+      const lesDit = nbLecons === 0 ? 'no lesson in this chat' : nbLecons + ' lesson' + pl(nbLecons, '', 's') + ' in this chat'
+      const notesTip = ['Memory', memDit, lesDit, delta > 0 ? delta + ' written by this chat' : 'Nothing written by this chat yet']
       const sectionNote = (titre, corps) => h('section', { className: 'kbs-note-sec', key: titre },
         h('h4', { className: 'kbs-note-t' }, titre), corps)
-      const notesPop = h(Pop, { idCarte: 'notes', name: 'Notes', icon: 'book', accent: notesAccent,
-        titre: memDits + ' · ' + lesDits + ' from this chat',
-        texte: 'Memory and lessons are written by memory.cjs. Only what THIS chat recorded or learned is shown — another chat’s entries never appear here.',
-        visuel: h('div', { className: 'kbs-notes' },
-          sectionNote('Memory', memFaites.length === 0
-            ? h('div', { className: 'kbs-empty' }, 'Nothing recorded by this chat yet.')
-            : h('div', { className: 'kbs-memo' }, memFaites.slice(-4).map(ligneMemo))),
-          sectionNote('Lessons', leconsSession.length === 0
-            ? h('div', { className: 'kbs-empty' }, 'Nothing learned in this chat yet.')
-            : h('div', { className: 'kbs-lessons' }, leconsSession.slice(0, 3).map(ligneLecon)))),
-        nav: switcher,
+      const MOTS_CAPTURE = { jamais: 'has not run since DSH started', hors_connexion: 'not connected', desactivee: 'switched off', sans_session: 'no session',
+        tour_trop_court: 'turn too short', llm_indisponible: 'no model available', rien_a_retenir: 'nothing worth keeping', deja_connu: 'already known', erreur: 'failed' }
+      const ditCapture = (c) => c === null || c === undefined || c.status === undefined ? null
+        : (c.status === 'ecrit' ? 'wrote ' + c.facts + (c.facts === 1 ? ' memory' : ' memories') : (MOTS_CAPTURE[c.status] || String(c.status)))
+      const ligneSouvenir = (x, i) => h('div', { className: 'kbs-memo-row', key: 'sv' + i },
+        h('div', { className: 'kbs-memo-head' }, h('span', { className: 'kbs-memo-kind' }, 'memory saved'), h('span', null, (x.kind || '?') + (x.pinned ? ' · pinned' : '') + (x.ts ? ' · ' + court(x.ts) : ''))),
+        h('p', null, x.text || '—'))
+      const pct = memInfo !== null && memInfo.total > 0 ? Math.max(2, Math.round(memInfo.sent / memInfo.total * 100)) : 0
+      const visuelMem = h('div', { className: 'kbs-memwrap' },
+        memInfo === null
+          ? h('div', { className: 'kbs-vide' }, 'The account memory is not available here: connect Kybernos Cloud, or switch its plugin on.')
+          : h('div', null,
+              h('div', { className: 'kbs-meter', role: 'img', 'aria-label': memInfo.sent + ' of ' + memInfo.total }, h('i', { style: { width: pct + '%' } })),
+              h('p', { className: 'kbs-note-line' }, memInfo.actif === false
+                ? 'Memory is switched off: nothing is sent to the model.'
+                : memInfo.sent + ' of ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' characters · newest first, pinned ones reserved a share'),
+              ditCapture(memInfo.capture) !== null ? h('p', { className: 'kbs-note-line' }, 'Auto-capture: ' + ditCapture(memInfo.capture)) : null),
+        sectionNote('Written by this chat', ecritsMem === 0 && memFaites.length === 0
+          ? h('div', { className: 'kbs-vide' }, 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.')
+          : h('div', { className: 'kbs-memo' }, memoire.souvenirs.slice(-3).map(ligneSouvenir).concat(memFaites.slice(-3).map(ligneMemo)))))
+      const visuelLecons = h('div', { className: 'kbs-memwrap' },
+        sectionNote('Lessons in this chat', nbLecons === 0
+          ? h('div', { className: 'kbs-vide' }, 'Nothing learned or reused in this chat yet.')
+          : h('div', { className: 'kbs-lessons' }, leconsSession.slice(0, 3).map(ligneLecon))))
+      const notesPop = h(Pop, { idCarte: 'notes', name: 'Memory & Lessons', icon: 'brain', accent: notesAccent,
+        titre: onglet === 'mem' ? memDit : lesDit.charAt(0).toUpperCase() + lesDit.slice(1),
+        texte: onglet === 'mem'
+          ? 'What the account remembers about you, and what reaches the model on each turn. Only what THIS chat wrote is listed — other chats never appear here.'
+          : 'Lessons are written by an agent when an expectation was contradicted. Only this chat’s are listed.',
+        nav: h('div', { className: 'kbs-kybers', role: 'tablist', 'aria-label': 'Memory and lessons' },
+          [['mem', 'Memory'], ['les', 'Lessons']].map((t) => h('button', { key: t[0], role: 'tab', 'aria-selected': String(onglet === t[0]), 'data-kbs-tab': t[0],
+            className: 'kbs-kyb' + (onglet === t[0] ? ' on' : ''), onClick: () => setOnglet(t[0]) }, t[1]))),
+        visuel: h('div', null, onglet === 'mem' ? visuelMem : visuelLecons, onglet === 'les' ? switcher : null),
+        action: h('div', { className: 'kbs-minirow' },
+          h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection('Memory & Lessons') } }, 'Open Memory & Lessons ›')),
         onClose: () => fermer('notes'),
         details: h('div', null,
-          sectionNote('Memory', h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
+          sectionNote('Kyber ledger', h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
           h('dl', { style: { margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 9 } },
             Ligne('Runs recorded', String(memoire.records.length), 'rb'),
             Ligne('Lessons written', String(memoire.lessons.length), 'lb'),
             Ligne('Lessons reused', String(memoire.used.length), 'ub'),
+            Ligne('Memories saved', String(memoire.souvenirs.length), 'mb'),
             Ligne('Storage', h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
-          h(Copier, { key: 'cpm', texte: 'memory written in this chat\n' + memFaites.map((x) => '- ' + libelleMemo(x) + ' [' + (x.kyber || '?') + '] ' + (texteMemo(x) || '')).join('\n') }),
-          sectionNote('Lessons', h('div', { className: 'kbs-lessons' }, leconsSession.map(ligneLecon))),
-          h(Copier, { key: 'cpl', texte: (kyber || 'kyber') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') }),
-          h('p', { className: 'kbs-cmdhint' }, 'Commands: /lesson · /memory')) })
+          h(Copier, { key: 'cpm', texte: 'memory written in this chat\n' + memoire.souvenirs.map((x) => '- memory saved [' + (x.kind || '?') + '] ' + x.text).concat(memFaites.map((x) => '- ' + libelleMemo(x) + ' [' + (x.kyber || '?') + '] ' + (texteMemo(x) || ''))).join('\n') }),
+          h(Copier, { key: 'cpl', texte: (kyber || 'kyber') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
 
       const carte = (id) => {
         if (id === 'local') return h(Pop, { idCarte: 'local', name: 'Local', icon: 'laptop', accent: w.accent, titre: w.titre, texte: w.texte,
@@ -1993,7 +2061,7 @@ window.__ModuleLoader__.load({
         return notesPop
       }
 
-      const pill = (id, icon, accent, label, badge, tip, act, calme) => {
+      const pill = (id, icon, accent, label, badge, tip, act, calme, opts) => {
         // La puce qui colle au bord droit ancre bulle ET carte à droite : centrée,
         // sa carte sortait de la fenêtre (960 px pour un viewport de 900 — mesuré).
         const bordDroit = id === 'notes'
@@ -2021,10 +2089,11 @@ window.__ModuleLoader__.load({
         return h('span', { className: 'kbs-popwrap' + (bordDroit ? ' kbs-bordDroit' : ''), key: id },
           h('button', props,
             h('span', { className: 'kbs-ico' }, svg(icon, 15)),
-            h('span', { className: 'kbs-lib' }, label),
+            h('span', { className: 'kbs-lib' + (opts && opts.libelleVisible === true ? ' kbs-lib--vis' : '') }, label),
             badge !== null && badge !== undefined
               ? h('span', { className: 'kbs-n' }, String(badge))
               : null,
+            opts && opts.extra ? opts.extra : null,
             h('span', { className: 'kbs-tip kbm-tip-bubble', role: 'tooltip' }, lignes.join('\n'))),
           ouverte === id ? carte(id) : null)
       }
@@ -2041,7 +2110,9 @@ window.__ModuleLoader__.load({
         pill('recap', 'merge', rec.accent, rec.label, null, rec.tip, rec.act, calme(rec, null)),
         v ? pill('sync', 'cloud', v.accent, v.label, vBadge, vTip, false, calme(v, vBadge)) : null,
         r ? pill('pr', 'pr', r.accent, r.label, null, rTip, false, calme(r, null)) : null,
-        pill('notes', 'book', notesAccent, 'Notes', notesBadge, notesTip, false, notesBadge === null))
+        pill('notes', 'brain', notesAccent, 'Memory', memBadge, notesTip, false, rien,
+          { libelleVisible: true, extra: h(React.Fragment, null, h('span', { className: 'kbs-pillsep' }), svg('bulb', 15), h('span', { className: 'kbs-n' }, String(nbLecons)),
+            delta > 0 ? h('span', { className: 'kbs-d' }, '+' + delta) : null) }))
     }
 
     // ── page « Kybernos Settings » (popup Paramètres) ──────────────────────
@@ -2611,6 +2682,26 @@ window.__ModuleLoader__.load({
       return false
     }
 
+    /** Opens Settings on the section whose nav label is `libelle` (« Memory & Lessons »). If the nav is already
+     *  showing, only the cell is clicked — clicking the trigger again would close Settings. Same two anchors as
+     *  the cloud plugin's account menu and the model-health banner: the trigger, then the nav cell BY ITS LABEL
+     *  (the hashed class names change at every build). `false` when the trigger or the cell never shows up. */
+    const ouvrirReglagesSection = async (libelle) => {
+      const navVisible = () => { const nav = document.querySelector('[class*="navList"]'); return nav !== null && nav.offsetParent !== null }
+      const trouver = () => Array.prototype.slice.call(document.querySelectorAll('[class*="navCell"]')).filter((x) => String(x.textContent || '').trim() === libelle)[0]
+      if (!navVisible()) {
+        const declencheur = document.querySelector('[class*="settingsArea"] button[class*="trigger"]') || document.querySelector('button[aria-label="Settings"]')
+        if (declencheur === null) return false
+        declencheur.click()
+      }
+      for (let i = 0; i < 40; i += 1) {
+        const cellule = trouver()
+        if (cellule !== undefined) { (cellule.querySelector('button,[role="button"]') || cellule).click(); return true }
+        await new Promise((r) => setTimeout(r, 100))
+      }
+      return false
+    }
+
     /** Où poser le bandeau. Règle utilisateur du 26/09/2026 : l'alerte santé
      *  des modèles (« N of M models are not answering ») ne vit QUE dans
      *  l'onglet « AI Provider & Models » des Paramètres — plus dans les autres
@@ -2855,6 +2946,8 @@ window.__ModuleLoader__.load({
       // DOIT exposer. Sans `slots`, le garde de ctx refuse `ctx.slots` et
       // l'entrée reste « loading » (même contrat que kybernos/kybernos-theme).
       inject: ['slots'],
+      // Pure pieces, exposed for test-journal.mjs.
+      __test: { memoireDuJournal },
       apply
     }
   }
