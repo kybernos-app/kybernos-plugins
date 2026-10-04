@@ -167,29 +167,96 @@ Nothing is stubbed: the page, real CDP mouse and key events, DSH's theme service
 layer, the wallpaper `<div>`, the font style tag, the `kybernos.theme.v1` store and the reload at
 boot are all real, and the assertions read **computed styles** (the 17 `--dsw-*` tokens on
 `<body>`, the wallpaper's `opacity`/`filter`, `--dsw-font-family`), never the source. It checks:
-the page and its controls; every dark and mode-less theme (stored, tokens equal to the pack's
+the page (no Simple/Advanced switch: seven vertical tabs, « Essentiel » open after every load)
+and its controls; every dark and mode-less theme (stored, tokens equal to the pack's
 palette, wallpaper, pill) and « DSH default » giving back the 17 native values; persistence (a
-reload applies theme, accent, wallpaper, font and text size **before Settings is opened**);
-accent dots, hex field (invalid input marks `.bad` and changes nothing), picker and reset;
-wallpaper categories, tiles, visibility / blur / tint, and whether it can actually be *seen*;
-the font selector (search without accents, arrows, Enter, Escape, click outside); the eight
-Advanced sub-tabs; Colors (what the page shows equals the applied tokens, token editor and its
-reset); Accessibility (contrast levels measured as WCAG ratios); « Reset all »; Sharing
-(export, copy, import). A console error from `[kybernos-theme]` or an uncaught exception from
-one of its functions fails the section it happened in (a second CDP connection listens).
+reload applies theme, accent, wallpaper, font and DSH's text size **before Settings is opened**);
+accent dots (a near-invisible accent is lightened to 3:1), hex field (invalid input marks `.bad`
+and changes nothing), picker and reset; wallpaper categories, the « None » tile, tiles, visibility
+/ blur / tint, and whether it can actually be *seen*; the font selector (search without accents,
+arrows, Enter, Escape, click outside) and the text size; the seven tabs; Colors (what the page
+shows equals the applied tokens, token editor, footer count, reset); Accessibility (contrast
+levels measured as WCAG ratios); « Reset all » (it *replaces* the state); Sharing (export, copy,
+import: only a `.json` is accepted, anything else is refused with a visible note); the « Animation » tab
+and the thinking animation in DSH's bottom status line (below). A console error from `[kybernos-theme]`
+or an uncaught exception from one of its functions fails the section it happened in (a second CDP
+connection listens).
 Exit code 0 / 1 / 3 (3 = no Chrome, no GUI, the Theme page unreachable, before any measure).
 
-Besides ✓ / ✗ it prints two blocks that are **not failures**: *KNOWN GAPS* — every Advanced
-control that calls `commit({ key })` with a key outside `DEF` is measured (stored in
-localStorage? restored after a reload? any change of the DOM?), plus the export / import
-limits — and *OBSERVATIONS*. A ✗ is a real defect: the check stays red until it is fixed.
+The controls of the tabs after « Essentiel » used to be partly dead (they wrote keys nothing read).
+They are all wired now, and the `gaps` section **asserts** it: every control is moved with a real click
+or key, then measured as *persisted* (its position is back after a reload) and *applied* (a fingerprint
+of the page — custom properties, attributes, a hash of the plugin's own CSS, text metrics, the
+wallpaper's style — changes); it prints a `control | persisted | applied` table that must read all
+`yes`. The same wiring is measured in detail, on computed styles, by `verre` (wallpaper visible, glass,
+transparency tokens, image filter, fit, mirror, the preview), `forme` (ligatures, radius tokens, logo),
+`access` (reduced motion, focus ring with a real Tab key, 44 px, link underline, colour-blind palette),
+`boot` (every new key applied before Settings opens; « Reset all » removes the effects) and `sharing`
+(three real export formats, the copy argument, the CSS export’s 17 × 2 tokens, a JSON round trip).
+`light` measures the contrast of **every visible text** of the page, its picker and its word pack in the
+Light scheme, **without touching the preference** (see the trap below), and checks that Dark kept its
+colours; `french` fails on any French an English interface still shows (see the trap below).
+
+Besides ✓ / ✗ it prints two blocks that are **not failures**: *KNOWN GAPS* (empty when there is
+none) and *OBSERVATIONS*. A ✗ is a real defect: the check stays red until it is fixed.
+
+### The « Animation » tab and the bottom status line
+
+Three sections (`animation`, `runtime`, `disk`) cover the « Animation » tab. The tab's settings live in their own key,
+`kybernos.theme.loader.v1` (the theme page's « Reset all » must not touch it); a second half of the
+feature writes imported animations and the user's word pack **to the disk through a host route**
+(`/kybernos-theme/loader-store`). The script therefore sets `window.__KB_THEME_HOST_STORE__ = false` in
+every document (`Page.addScriptToEvaluateOnNewDocument`) and clears both loader keys with every fresh
+start: nothing of the tab can reach `~/.dsh`. (The very first document is loaded inside `openLivePage`,
+before the flag can be installed; it can only GET a route.) The yellow « the disk does not answer »
+banner is hidden by that flag, so one step turns it back on **and blocks the route in the browser**
+(`Network.setBlockedURLs`, verified with a `fetch` that must fail) before looking for the banner.
+
+- `animation` drives the page for real: four blocks and nothing of the library until the picker opens;
+  the picker (14 examples, rotation capped at 4, filters, `Escape`, focus returned, `Tab` kept inside);
+  the ambiance select (13 entries, accent-insensitive search, arrows, `Escape` that must not close
+  Settings); the word pack; persistence of the choice and of speed / delay / size across a reload;
+  « Rétablir ces réglages »; imports through a `DataTransfer` set on the file input (a good SVG that
+  must animate as a CSS mask — checked by comparing pixel samples of the card, with the catalogue's
+  spinning ring as the control of that measure —, a hostile SVG that must be cleaned, a 210 KB file,
+  a `.exe`, a JSON that is not Lottie). Lottie itself is not tested: its engine comes from the host route.
+- `runtime` cannot trigger a model run, so it **builds a faithful copy** of DSH's running block in the
+  live page and lets the plugin's own `MutationObserver` decorate it. The copy uses DSH's real hashed
+  classes, read from its loaded stylesheets (`ChatView.module.css`; the TextShimmer module, which lives in
+  the global `assets/index-*.css`), and DSH's real structure: the label is a **text node** in the base copy
+  but only a **`data-shimmer-text` attribute** painted by `::after` in the decoration copy, and a
+  `setInterval` rewrites both once a second, as React does. The settings are read at page load, so each
+  scenario writes the loader key and reloads. It checks the loader is the first child of the running
+  content, the whale is hidden, size 14 / 24 / 40 px, delay, mono colour = the running text's colour (or the
+  accent), order mode, a re-mount within a second, `keep` off, and that **both** copies and the painted
+  `::after` content carry the replaced word after three rewrites. A screenshot goes to the OS temp folder
+  (path printed), never into git.
+- `disk` runs the **real host half** (`packages/kybernos-theme/loader-store.mjs`) against a temp folder used as
+  the DSH home, without restarting `dsh web` and without touching `~/.dsh`. The browser's requests to
+  `*/kybernos-theme/loader-store*` and `*/kybernos-theme/vendor/lottie.js*` are paused with CDP
+  `Fetch.enable` and answered from node (`serveLoaderStore` for the first, the vendored `lottie_light.min.js`
+  for the second). The handler never lets a request through — after the section it fails them — and a probe
+  GET must be answered by it before the page is allowed to talk (otherwise the section aborts). For this
+  section only, the flag script is removed (`Page.removeScriptToEvaluateOnNewDocument`) so the plugin's host
+  mode is ON; the `finally` sets the flag again in the live page and in every future document, waits for
+  the debounced push, stops the interception and deletes the temp folder. It checks: settings reach
+  `loader-settings.json` within ~1 s and come back in a profile with cleared localStorage; a good SVG becomes
+  `loaders/<id>.json` (svg / mono / ≤ 200 KB), is listed after a reload, selectable, deletable (file gone); a
+  hostile SVG reaches the disk already cleaned, and a record that still holds `<script`, POSTed through the
+  page's own `fetch`, is refused as a normal HTTP 200 `{ok:false,error}` (so no red « Failed to load
+  resource » line in the console) and no file is written — malformed requests stay HTTP 400; a bare `loaders/<name>.svg` dropped by hand
+  appears as a Skill card within one poll (4 s) while an invalid one is only listed in `skipped`;
+  `loading-text.json` makes « Mon pack » selectable; a real Lottie loads the engine and animates, one with an
+  external image is refused by the host with a red banner; a 500 or an invalid JSON from the GET leaves the
+  yellow « disk does not answer » banner without breaking the page. The yellow banner and the yellow import
+  note share a class: tell them apart by `[data-kb=ld-note]`.
 
 ### ⚠ A theme can persist DSH's mode and font size — on your machine
 
 The plugin drives DSH's own theme service: every change calls `setTheme(mode)` and
 `setFontSize(px)`, which DSH stores in the profile (`ui-theme` in `cordis.patch.yml`), not in the
-throw-away browser. And a **boot** with no Theme state re-applies the default size, 15, over
-DSH's own. So the script:
+throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's; it now
+*adopts* DSH's size into the store, and a check pins that.) So the script:
 
 1. reads that file before it starts, and uses the stored mode as the one to keep;
 2. clicks only Dark and mode-less themes while that mode is Dark (only mode-less ones otherwise,
@@ -198,7 +265,8 @@ DSH's own. So the script:
 3. before **every** click, key or colour pick, checks that DSH still reports that mode
    (`html[data-ds-theme-source]`): if it moved — even by someone else — the run stops at once
    and puts it back;
-4. moves the text size by +1 px for a few seconds and ends by putting back the size it found;
+4. moves the text size by +1 px for a few seconds and puts back the size it found (« Reset all »
+   also sets it to the default, 15: the final check catches that too);
 5. in a `finally` (and on SIGINT / SIGTERM) verifies both values in the file, restores them
    if needed and prints `!!! NOT RESTORED` if it cannot. A hard kill can still leave them moved:
    set the mode in Settings › Theme and the size with the text-size slider.
@@ -206,20 +274,47 @@ DSH's own. So the script:
 ### Hooks and traps
 
 - Hooks are classes: `.kbth-skin`, `.kbth-dots .kbth-dot`, `.kbth-cat`, `.kbth-wp`, `.kbth-fsbtn` /
-  `.kbth-fssearch` / `.kbth-fsopt`, `.kbth-adv-tab`, `.kbth-adv-pane`, `.kbth-tok`,
-  `.kbth-adv-editor`, `.kbth-foot`. A slider has no id: find its `.kbth-sl` block by label (either
+  `.kbth-fssearch` / `.kbth-fsopt`, `.kbth-adv-tab` (`.on` = open), `.kbth-adv-pane`, `.kbth-tok`,
+  `.kbth-adv-editor`, `.kbth-foot`, and `[data-kb=theme-import-note]` for the import result. A slider has no id: find its `.kbth-sl` block by label (either
   language). The Mode row is the segment reading System / Light / Dark.
 - Sliders are driven with real `Home` / `End` / arrow keys on the focused range input (exact and
   deterministic); colour pickers by the native value setter plus an `input` event.
-- **`Escape` closes the whole Settings dialog**, font panel open or not. The check that wants it
-  to close only the panel is red for that reason.
+- **`Escape` closes the whole Settings dialog** unless the font search is focused: the plugin stops
+  the key with a *native* listener on that field, and the check presses a real key on it. A React
+  `onKeyDown` alone would not do — the dialog listens natively.
+- The first tile of every wallpaper category is « None »: real tiles start at index 1.
+- The tabs are indexed (`TAB` in the script): Essentiel, Verre et fond, Couleurs, Texte et forme,
+  **Animation**, Accessibilité, Partage (« Conversation » and « Terminal » are gone). A tab inserted in the middle moves every
+  index after it; the `advanced` section checks the names in order, so a shift is reported there first.
 - The wallpaper `<div>` has `pointer-events: none`, so `elementsFromPoint` never lists it: to
   know whether it is visible, look for an opaque element *above* each sampled point instead.
 - Tokens are read on `<body>` (that is where DSH and the layer declare them), not on `<html>`.
-- Only the Dark half of each `{ light, dark }` pair is exercised end to end; the Light half is
-  checked only through what the page displays, because the run must not switch DSH to Light.
+- The Light scheme is measured **without pressing Mode / Light**: the `light` section removes
+  `data-ds-dark-theme` from `<body>` in the page only (client-side, never persisted; the guard keeps
+  watching `html[data-ds-theme-source]`, and the attribute is put back in a `finally`). In each of 18
+  views (the seven tabs, the font list and the ambiance list with no match, the settings disclosure,
+  the picker's three tabs, the rotation filled and played in order, the word pack empty and with two
+  words) it walks **every text node** of `.kbth-page`, `[data-kb=ld-picker]` and `[data-kb=ld-pack]` and
+  computes the WCAG ratio from the computed colour over the first opaque background ancestor; any text
+  under 4.5:1 fails the check. The selector list of the plugin's « small texts in Light » rule is read
+  from `client.js` itself (so a new selector is measured without editing the test); each one must have
+  been on screen at least once, and in Dark it must still compute DSH's tertiary or caption colour (the
+  rule is inert there). The « Aa » samples of the contrast table are skipped: both of their colours are
+  the pair under test, set inline from the plugin's own model. Everything else is exercised in Dark
+  only. Light screenshots (`kb-theme-light-{essentiel,verre,animation,picker,pack,access}.png`) go to
+  the OS temp folder (paths printed).
+- Under an English interface the `french` section reads each tab (and the picker's three tabs, the word
+  pack, the ambiance list, the settings disclosure) with the same collector as
+  `audit-i18n-live.mjs --baseline`, re-reading each view until nothing changes any more, and **fails**
+  on any French left except the export's file content (its YAML header comment is the file's own text).
+  The two live translators (`kybernos-plugin` `passe()`, `kybernos-language` `LIVE_ROOTS`) run on timers, which
+  the throw-away headless Chrome sometimes has throttled for seconds: before reading a view the check adds a canary
+  text (« Copier ») and waits until it reads « Copy », so a late translation is not mistaken for a missing one. A
+  string that is French in a window's `aria-label` shows up here but not on screen: it is a leftover.
 - Several agents may share one DSH: another session switching the real GUI to Light during the
-  run is caught by the mode guard above, and is not a failure of the page.
+  run is caught by the mode guard above, and is not a failure of the page. A switch of DSH's
+  *language* reloads every open page and flips labels mid-run: each section compares `<html lang>` at its
+  start and end and prints `! the interface language changed…` — read the failures of that section as invalid.
 
 ## Translation coverage: `scripts/audit-i18n-live.mjs`
 

@@ -1,7 +1,7 @@
 {
   "name": "@local/kybernos-theme",
   "version": "0.1.0",
-  "description": "Theme: design tokens, wallpaper and font, persisted in the browser.",
+  "description": "Theme: design tokens, wallpaper and font, plus the thinking animation and status text (rotation of up to 4 loaders, trade ambiances, own animations). Browser state; imported files live on the DSH disk.",
   "private": true,
   "type": "module",
   "exports": {

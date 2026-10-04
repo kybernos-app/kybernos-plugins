@@ -1,33 +1,43 @@
-# Attribution des palettes — `kybernos-theme/vendor/palettes/`
+# Third-party notices: `kybernos-theme/vendor/`
 
-Kyberos · Theme n'invente aucune couleur de base : il **compile** des palettes
-publiées par leurs auteurs. Ce dossier contient une copie figée de leurs sources
-canoniques, pour que la compilation soit reproductible hors ligne et vérifiable.
+One third-party file lives here. (A frozen copy of Catppuccin, Rosé Pine and Selenized palettes used to be
+here for a colour compiler that was never wired in; it was removed as dead code and is recoverable from
+git history, with its licenses, if the compiler is ever built.)
 
-| Fichier local | Source amont | Licence | Copie figée |
+## Lottie runtime: `lottie_light.min.js`
+
+| Local file | Upstream source | License | Version |
 |---|---|---|---|
-| `catppuccin.json` | https://github.com/catppuccin/palette — `palette.json` | MIT | 4 saveurs × 26 couleurs (+ OKLCH amont) |
-| `rose-pine.json` | https://github.com/rose-pine/rose-pine-palette — `palette.json` | MIT | 3 variantes (`main`, `moon`, `dawn`) |
-| `selenized-{dark,light,black,white}.json` | https://github.com/jan-warchol/selenized — `terminals/tilix/` | MIT | 4 variantes, schéma Tilix |
+| `lottie_light.min.js` | https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie_light.min.js (build of https://github.com/airbnb/lottie-web) | MIT | lottie-web 5.12.2, unmodified |
 
-Les palettes **Nord**, **Gruvbox**, **Tokyo Night**, **Solarized** et **Flexoki**
-sont définies par des constantes documentées dans `scripts/gen-kybernos-theme-mockup.mjs` :
-leurs dépôts amont n'exposent pas de fichier JSON canonique unique, et une copie
-figée d'un fichier de configuration d'éditeur serait plus fragile qu'une table
-explicite. Chaque entrée y porte sa source et sa licence.
+SHA-256: `23cd2c01be3d4da8bb664645d03afaff40879c62dc5f8dfe075ab3aa35c108f3`
 
-## Palettes volontairement exclues
+It plays the Lottie animations a user imports as thinking loaders. The light build has no
+expression engine, so an imported file cannot run code. It is served by the host plugin at
+`/kybernos-theme/vendor/lottie.js`; nothing is fetched from a CDN at run time.
 
-- **Monokai** — aucun dépôt officiel, aucun fichier de licence retrouvé. Trois
-  plugins de l'écosystème DSH redistribuent pourtant ses valeurs ; nous ne le
-  faisons pas, faute de titularité identifiable.
-- **VS Code Material Theme** — les deux dépôts amont (`equinusocio/vsc-material-theme`,
-  `material-theme/vsc-material-theme`) répondent 404 : le projet amont n'est plus
-  distribué. Les jetons Material 3 (`material-foundation/material-tokens`,
-  Apache-2.0) couvrent le même besoin avec une licence claire.
+License text, as published with lottie-web 5.12.2 (`LICENSE.md`):
 
-## Règle
+```
+The MIT License (MIT)
 
-Toute palette ajoutée ici **doit** avoir : une source amont citable, une licence
-identifiable, et une entrée dans ce fichier. Une palette sans licence n'entre pas,
-même si sa popularité est grande.
+Copyright (c) 2015 Bodymovin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
