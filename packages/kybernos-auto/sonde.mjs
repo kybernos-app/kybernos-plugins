@@ -1,46 +1,16 @@
-// Sonde de santé des modèles — ce que fait le « modèle d'étude » (brain).
+// One real, tiny call to a model, and what its outcome means: the probe `kybernos-auto` runs before it routes.
 //
-// La règle (réglage `brain` de Kybernos Settings) : le modèle d'étude surveille
-// les modèles configurés et, quand l'un d'eux ne répond plus, un bandeau en haut
-// du chat nomme le fautif et invite à le changer. Réglage vide = personne ne
-// surveille : aucune sonde, aucun bandeau.
-//
-// La mesure est un appel RÉEL par modèle, minuscule (un « ping », un jeton de
-// sortie). C'est la seule mesure honnête ici : un catalogue qui liste un modèle
-// ne dit pas qu'il répond, et une clé absente ne se voit qu'en appelant.
-//
-// Cinq issues, et UNE SEULE mérite une alerte :
-//   · ok      — le modèle a parlé (même tronqué à un jeton : il a répondu) ;
-//   · muet    — rien, ou trop tard (délai dépassé) ;
-//   · erreur  — refus net : clé absente, modèle inconnu, adaptateur manquant ;
-//   · limite  — débit ou quota : le modèle existe et répond, il est à court de
-//               crédit à cet instant. Alerter ferait clignoter le bandeau pour
-//               rien — ce n'est PAS une alerte ;
-//   · reseau  — transport ou serveur : la panne n'est pas celle du modèle.
-//               Si TOUS les modèles en sont là, c'est le réseau (ou le service)
-//               qu'il faut regarder, pas cinquante-six modèles.
-//
-// Et une sixième, ajoutée le 23/09/2026 :
-//   · hors-jeu — le modèle a REFUSÉ d'être un modèle de langage. Mesuré sur
-//               `vercel-ai-gateway/typesafe-ai/jev` : « Model 'typesafe-ai/jev'
-//               is an evaluation model, not a language model. » C'est un modèle
-//               de DÉCISION (verdicts typés sur /v1/evaluate), il ne répondra
-//               jamais à un ping de chat — le compter comme « ne répond pas »
-//               ferait un faux témoin permanent dans le bandeau. Il est donc
-//               relevé À PART, et n'alerte pas.
+// The block between KB-PROBE-BEGIN and KB-PROBE-END is a verbatim copy of the one in
+// packages/kybernos-sessions/brain-health.mjs (the Study-model health probe): the two bundles ship one by one and
+// cannot import each other, so the text is duplicated and a test (test-resilience.mjs) fails if the copies differ.
+// A fix to the probe is made in both places.
 
 import { randomUUID } from 'node:crypto'
 
-/** Délai par modèle : au-delà, il est « muet ». */
+/** Per-model timeout: beyond it the model is "silent". */
 export const DELAI_DEFAUT = 8000
-/** Modèles sondés en parallèle. Mesuré : au-delà, on se fait limiter soi-même. */
-export const CONCURRENCE_DEFAUT = 4
-/** Durée de validité d'un relevé — cinq heures. Un relevé réel coûte un appel
- *  par modèle : le garder long est ce qui rend la surveillance gratuite. Le host
- *  le règle par `KB_BRAIN_TTL`. */
-export const TTL_DEFAUT = 18000000
 
-// KB-PROBE-BEGIN — the SAME text lives in packages/kybernos-auto/sonde.mjs (bundles ship one by one and cannot
+// KB-PROBE-BEGIN — the SAME text lives in packages/kybernos-sessions/brain-health.mjs (bundles ship one by one and cannot
 // import each other); packages/kybernos-auto/test-resilience.mjs fails if the two copies differ.
 /** Échecs qui ne sont pas la faute du modèle (il répond, ou rien ne passe). */
 const CODES_LIMITE = ['RATE_LIMIT', 'QUOTA', 'OVERLOADED']
@@ -162,70 +132,3 @@ export async function sonderUn (llm, cle, delaiMs, horloge) {
   }
 }
 // KB-PROBE-END
-
-/** La sonde : un relevé à la fois, mis en cache le temps du TTL. */
-export function creerSonde ({ llm, delaiMs = DELAI_DEFAUT, concurrence = CONCURRENCE_DEFAUT, ttlMs = TTL_DEFAUT, horloge = () => Date.now() } = {}) {
-  let cache = null
-  let enCours = null
-
-  const dernier = () => (cache === null ? null : cache.resultat)
-
-  const sonder = async (modeles, opts = {}) => {
-    const brain = typeof opts.brain === 'string' ? opts.brain : ''
-    // Réglage vide : personne ne surveille. On le DIT, on ne sonde pas.
-    if (brain === '') return { ok: true, actif: false, raison: 'aucun-modele-detude', brain: '' }
-    if (llm === null || llm === undefined || typeof llm.stream !== 'function') {
-      return { ok: false, actif: true, brain, erreur: 'service llm indisponible' }
-    }
-    const liste = normaliserListe(modeles)
-    const signature = liste.join(',')
-    const force = opts.force === true
-    if (!force && cache !== null && cache.signature === signature && (horloge() - cache.quand) < ttlMs) {
-      return { ...cache.resultat, cache: true }
-    }
-    // Deux appels simultanés ne sondent pas deux fois : ils partagent la course.
-    if (enCours !== null && enCours.signature === signature) return enCours.promesse
-    const promesse = (async () => {
-      const debut = horloge()
-      const resultats = await enParallele(liste, concurrence, (cle) => sonderUn(llm, cle, delaiMs, horloge))
-      const sains = resultats.filter((r) => r.etat === 'ok')
-      const alertes = resultats.filter((r) => r.etat === 'erreur' || r.etat === 'muet')
-      const limites = resultats.filter((r) => r.etat === 'limite')
-      const reseau = resultats.filter((r) => r.etat === 'reseau')
-      // Les modèles de décision sont relevés, pas jugés : ils ne peuvent pas
-      // répondre à un ping de chat, et leur refus ne dit rien sur la santé.
-      const horsJeu = resultats.filter((r) => r.etat === 'hors-jeu')
-      // Aucun modèle ne répond : ce n'est pas cinquante-six coupables, c'est une
-      // panne d'ensemble — le bandeau ne doit pas accuser les modèles. Et un
-      // relevé qui ne contient QUE des modèles hors-jeu n'est pas une panne :
-      // c'est une liste où il n'y a personne à interroger.
-      const juges = resultats.filter((r) => r.etat !== 'hors-jeu')
-      const tousEnEchec = juges.length > 0 && sains.length === 0
-      const resultat = {
-        ok: true,
-        actif: true,
-        brain,
-        verifieA: new Date(horloge()).toISOString(),
-        dureeMs: horloge() - debut,
-        total: resultats.length,
-        sains: sains.length,
-        alertes,
-        limites: limites.map((r) => ({ cle: r.cle, code: r.code, message: r.message })),
-        reseau: reseau.map((r) => ({ cle: r.cle, code: r.code, message: r.message })),
-        horsJeu: horsJeu.map((r) => ({ cle: r.cle, code: r.code, message: r.message })),
-        tousEnEchec,
-        modeles: resultats
-      }
-      cache = { signature, resultat, quand: horloge() }
-      return resultat
-    })()
-    enCours = { signature, promesse }
-    try {
-      return await promesse
-    } finally {
-      if (enCours !== null && enCours.promesse === promesse) enCours = null
-    }
-  }
-
-  return { sonder, dernier }
-}

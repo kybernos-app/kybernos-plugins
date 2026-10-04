@@ -13,8 +13,8 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "check": "node --check client.js && node --check index.js",
-    "test": "node test-host.mjs && node test-client.mjs"
+    "check": "node --check client.js && node --check index.js && node --check sonde.mjs && node --check resilience.mjs",
+    "test": "node test-host.mjs && node test-client.mjs && node test-resilience.mjs"
   },
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
