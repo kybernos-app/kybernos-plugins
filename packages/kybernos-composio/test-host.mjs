@@ -9,8 +9,9 @@
 // the DSH engine of the machine, when there is one, is only read.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome } from './index.js'
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, symlinkSync } from 'node:fs'
+import { apply, upsertEnvSecret, isBootstrapOnlyName, resolveDshHome, envTextWith } from './index.js'
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, symlinkSync, statSync, chmodSync } from 'node:fs'
+import { parseEnv } from 'node:util'
 import { tmpdir, homedir } from 'node:os'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
@@ -241,10 +242,15 @@ const frais = (avecYaml = true) => {
   }
 }
 // What DSH does to the files: restore process.env afterwards, loadLayeredEnv sets variables.
-const bootEnv = () => {
+const bootEnv = (lire) => {
   const avant = Object.assign({}, process.env)
   const cwd = mkdtempSync(join(tmpdir(), 'kb-composio-cwd-'))
-  try { dshBoot.loadLayeredEnv('dsh', cwd, () => {}); return null } catch (e) { return String(e.message).replace(HOME, '<home>').slice(0, 160) } finally {
+  try {
+    dshBoot.loadLayeredEnv('dsh', cwd, () => {})
+    // `lire`: the variables whose value DSH ends up with, handed back in this object
+    if (lire !== undefined) for (const k of Object.keys(lire)) lire[k] = process.env[k]
+    return null
+  } catch (e) { return String(e.message).replace(HOME, '<home>').slice(0, 160) } finally {
     for (const k of Object.keys(process.env)) if (!(k in avant)) delete process.env[k]
     rmSync(cwd, { recursive: true, force: true })
   }
@@ -647,6 +653,203 @@ const methodeMcp = (rec) => { try { return JSON.parse(rec.body).method } catch (
     rmSync(ALT, { recursive: true, force: true })
   }
   ok('C-04: with DSH_HOME unset again the OS home is used', resolveDshHome() === join(HOME, '.dsh'))
+}
+
+
+// ═══ C-12: a corrupt connecteurs.json is never silently overwritten ══════════
+// (same rule as the slash entries.json, commit 934563b)
+{
+  const copies = () => readdirSync(join(DSH_DIR, 'kybernos')).filter((n) => n.startsWith('connecteurs.json.corrupt-'))
+  frais()
+  await POST(http('one'))
+  await POST(http('two'))
+  const bon = lire(SIDECAR_FILE)
+  const abime = bon.slice(0, bon.length - 40)               // truncated JSON: a crash mid-write, a hand edit
+  writeFileSync(SIDECAR_FILE, abime, 'utf8')
+  const patchAvant = lire(PATCH_FILE)
+  const res = await POST(http('three'))
+  ok('C-12: POST over a corrupt sidecar is refused (409)', res.code === 409 && /not a valid list/.test(res.corps) && JSON.parse(res.corps).state === 'corrupt', `code=${res.code} ${res.corps.slice(0, 100)}`)
+  ok('C-12: ...the corrupt file is left as it is', lire(SIDECAR_FILE) === abime)
+  ok('C-12: ...the patch and the .env are untouched too', lire(PATCH_FILE) === patchAvant && lire(join(DSH_DIR, '.env')) === null)
+  ok('C-12: ...a copy of the corrupt file is kept', copies().length === 1 && lire(join(DSH_DIR, 'kybernos', copies()[0])) === abime)
+  await POST(http('three'))
+  ok('C-12: a second attempt reuses the copy (one per content)', copies().length === 1)
+  const del = await DELETE('one')
+  ok('C-12: DELETE is refused too (409), nothing changes', del.code === 409 && lire(SIDECAR_FILE) === abime && lire(PATCH_FILE) === patchAvant)
+  const lu = await GET()
+  ok('C-12: GET still lists the blocks of the patch, and says why the sidecar is not used', lu.ok === true && lu.state === 'corrupt' && /not a valid list/.test(lu.error) && lu.connecteurs.map((c) => c.nom).sort().join() === 'one,two' && lu.connecteurs.every((c) => c.horsFormulaire === true), JSON.stringify(lu).slice(0, 160))
+  const nbCopies = copies().length
+  await GET()
+  ok('C-12: a plain read writes no copy', copies().length === nbCopies)
+  // the copies are capped
+  for (let i = 0; i < 8; i += 1) { writeFileSync(SIDECAR_FILE, abime + ' ' + i, 'utf8'); await POST(http('cap')) }
+  ok('C-12: at most 5 copies are kept', copies().length === 5, `${copies().length}`)
+  // repaired by hand: it works again
+  writeFileSync(SIDECAR_FILE, bon, 'utf8')
+  ok('C-12: once the file is repaired a save goes through', (await POST(http('three'))).code === 200)
+  // other kinds of "not a list of connectors"
+  for (const [label, contenu] of [['an object', '{"nom":"x"}'], ['a list with a string in it', '["x"]'], ['a list with an entry without a name', '[{"transport":"stdio"}]'], ['null', 'null']]) {
+    writeFileSync(SIDECAR_FILE, contenu, 'utf8')
+    const r = await POST(http('four'))
+    ok(`C-12: ${label} is refused, not read as an empty list`, r.code === 409 && lire(SIDECAR_FILE) === contenu, `code=${r.code}`)
+  }
+  writeFileSync(SIDECAR_FILE, '  \n', 'utf8')
+  ok('C-12: a blank file is an empty list', (await POST(http('five'))).code === 200)
+  rmSync(SIDECAR_FILE, { force: true })
+  mkdirSync(SIDECAR_FILE)                                   // present, cannot be read as a file
+  const r = await POST(http('six'))
+  ok('C-12: a sidecar that cannot be read is refused too', r.code === 409 && JSON.parse(r.corps).state === 'unreadable' && /EISDIR/.test(r.corps), `code=${r.code} ${r.corps.slice(0, 100)}`)
+  ok('C-12: ...and the reply carries no path', r.corps.includes(HOME) === false)
+}
+
+// ═══ C-06: files are private, written atomically, and a failure rolls back ═══
+const mode = (f) => (statSync(f).mode & 0o777).toString(8)
+{
+  frais()
+  await POST(http('perm', { secrets: [{ name: 'PERM_KEY', value: 'v' }] }))
+  ok('C-06: a new .env is created 0600', mode(join(DSH_DIR, '.env')) === '600', mode(join(DSH_DIR, '.env')))
+  ok('C-06: a new connecteurs.json is created 0600', mode(SIDECAR_FILE) === '600', mode(SIDECAR_FILE))
+  ok('C-06: its folder is created 0700', mode(join(DSH_DIR, 'kybernos')) === '700', mode(join(DSH_DIR, 'kybernos')))
+  ok('C-06: a new cordis.patch.yml is created 0600', mode(PATCH_FILE) === '600', mode(PATCH_FILE))
+  ok('C-06: no temp file is left in any of the folders', [DSH_DIR, join(DSH_DIR, 'kybernos'), join(DSH_DIR, 'profiles', 'web')].every((d) => readdirSync(d).every((n) => n.includes('.tmp-') === false)))
+  // an existing file keeps the mode its owner gave it
+  chmodSync(join(DSH_DIR, '.env'), 0o640)
+  chmodSync(PATCH_FILE, 0o644)
+  await POST(http('perm2', { secrets: [{ name: 'PERM_KEY', value: 'v2' }] }))
+  ok('C-06: an existing .env keeps its mode', mode(join(DSH_DIR, '.env')) === '640')
+  ok('C-06: an existing patch keeps its mode', mode(PATCH_FILE) === '644')
+  // a symlinked patch stays a symlink: the target is replaced
+  const cible = join(DSH_DIR, 'real-patch.yml')
+  writeFileSync(cible, lire(PATCH_FILE), 'utf8')
+  rmSync(PATCH_FILE)
+  symlinkSync(cible, PATCH_FILE)
+  await POST(http('perm3'))
+  ok('C-06: a symlinked patch stays a symlink and its target gets the change', statSync(PATCH_FILE).isFile() && lire(cible).includes('connecteur:perm3') && existsSync(PATCH_FILE) && readdirSync(join(DSH_DIR, 'profiles', 'web')).includes('cordis.patch.yml'))
+  // upsertEnvSecret on its own: 0600 for a new file as well
+  rmSync(join(DSH_DIR, '.env'))
+  upsertEnvSecret('SOLO_KEY', 'v')
+  ok('C-06: upsertEnvSecret creates the .env 0600', mode(join(DSH_DIR, '.env')) === '600')
+}
+{
+  // the patch cannot be written (no profile folder): nothing else is left behind, and the reply has no path
+  rmSync(DSH_DIR, { recursive: true, force: true })
+  mkdirSync(DSH_DIR, { recursive: true })
+  const res = await POST(http('half', { headers: [{ name: 'a', value: '$HALF_KEY' }], secrets: [{ name: 'HALF_KEY', value: 'half-secret' }] }))
+  ok('C-06: a failed patch write answers 500, and says nothing was changed', res.code === 500 && /nothing was changed/.test(res.corps), `code=${res.code} ${res.corps.slice(0, 120)}`)
+  ok('C-06: ...no .env and no sidecar are left, so GET does not list the connector', lire(join(DSH_DIR, '.env')) === null && lire(SIDECAR_FILE) === null && (await GET()).connecteurs.length === 0)
+  ok('C-06: ...and the 500 carries no path and no secret', res.corps.includes(HOME) === false && res.corps.includes('half-secret') === false)
+}
+if (typeof process.getuid === 'function' && process.getuid() !== 0) {
+  // the sidecar cannot be written (read-only folder): the patch and the .env written before it are put back
+  frais()
+  await POST(http('keep', { secrets: [{ name: 'KEEP_KEY', value: 'k1' }] }))
+  const patch0 = lire(PATCH_FILE)
+  const env0 = lire(join(DSH_DIR, '.env'))
+  const side0 = lire(SIDECAR_FILE)
+  chmodSync(join(DSH_DIR, 'kybernos'), 0o500)
+  try {
+    const res = await POST(http('lost', { secrets: [{ name: 'LOST_KEY', value: 'k2' }, { name: 'KEEP_KEY', value: 'k3' }] }))
+    ok('C-06: a failed sidecar write answers 500', res.code === 500 && /connectors list/.test(res.corps), `code=${res.code} ${res.corps.slice(0, 120)}`)
+    ok('C-06: ...the patch is put back', lire(PATCH_FILE) === patch0)
+    ok('C-06: ...the .env is put back (no new secret, the old one unchanged)', lire(join(DSH_DIR, '.env')) === env0)
+    ok('C-06: ...the sidecar is unchanged', lire(SIDECAR_FILE) === side0)
+    const del = await DELETE('keep')
+    ok('C-06: a failed delete puts back the patch and the .env too', del.code === 500 && lire(PATCH_FILE) === patch0 && lire(join(DSH_DIR, '.env')) === env0 && lire(SIDECAR_FILE) === side0, `code=${del.code} ${del.corps.slice(0, 100)}`)
+  } finally { chmodSync(join(DSH_DIR, 'kybernos'), 0o700) }
+} else console.log('- skipped, running as root: C-06 rollback on a read-only folder')
+
+// ═══ C-07: a secret written to .env is read back by DSH exactly as typed ═════
+{
+  const CORPUS = [
+    ['plain', 'ck_abcDEF123'], ['hash with a space', 'abc #def'], ['hash without a space', 'abc#def'], ['double quotes around', '"abc"'], ['single quotes around', "'abc'"],
+    ['inner double quote', 'ab"cd'], ['inner single quote', "ab'cd"], ['backtick', 'ab`cd'], ['leading space', ' lead'], ['trailing space', 'trail '], ['trailing tab', 'trail\t'],
+    ['equals signs', 'a=b=c'], ['base64 padding', 'YWJjZA=='], ['starts with a quote only', '"abc'], ['backslash-n text', 'a\\nb'], ['backslash', 'a\\b'], ['dollar brace', 'a${HOME}b'],
+    ['unicode', 'clé-éà'], ['BOM prefix', '﻿ck_abc'], ['NBSP at the edge', ' ck_abc'], ['both quote kinds', 'it\'s "x"'], ['a hash and quotes', "a#'b\"c"], ['dollar', '$&$1$$'],
+  ]
+  for (const [label, valeur] of CORPUS) {
+    const texte = envTextWith('KEEP=1\n', 'MY_KEY', valeur)
+    const lu = parseEnv(texte)
+    ok(`C-07: ${label} is read back exactly by parseEnv (the parser DSH uses)`, lu.MY_KEY === valeur && lu.KEEP === '1' && Object.keys(lu).length === 2, JSON.stringify(texte))
+  }
+  // a property check: random values from a hostile alphabet are either stored exactly, or refused when no quote kind can hold them
+  const alphabet = ['a', 'b', 'Z', '0', ' ', '\t', '#', "'", '"', '`', '\\', 'n', '=', '$', '{', '}', 'é', ' ', '=', '-', '_', '.', '/']
+  let seed = 12345
+  const rand = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n }
+  let stockes = 0
+  let refuses = 0
+  let ecarts = []
+  for (let i = 0; i < 3000; i += 1) {
+    let v = ''
+    for (let k = rand(12) + 1; k > 0; k -= 1) v += alphabet[rand(alphabet.length)]
+    let texte = null
+    try { texte = envTextWith('A=1\nB=two\n', 'MY_KEY', v) } catch (e) { refuses += 1; if (!(v.includes("'") && v.includes('`') && (v.includes('"') || v.includes('\\')))) ecarts.push('refused ' + JSON.stringify(v)); continue }
+    stockes += 1
+    const lu = parseEnv(texte)
+    if (lu.MY_KEY !== v || lu.A !== '1' || lu.B !== 'two') ecarts.push(JSON.stringify(v) + ' -> ' + JSON.stringify(texte))
+  }
+  ok('C-07: 3000 random hostile values: stored exactly, or refused only when every quote kind is taken', ecarts.length === 0 && stockes > 2000, `${stockes} stored, ${refuses} refused; ${ecarts.slice(0, 2).join(' | ')}`)
+  let message = null
+  try { envTextWith('', 'MY_KEY', 'a #\'"`') } catch (e) { message = String(e.message) }
+  ok('C-07: a value no quote kind can hold is refused, the error does not carry it', message !== null && /every kind of quote/.test(message) && message.includes('a #') === false, String(message))
+}
+{
+  // DSH's own loader reads back what the route wrote
+  if (dshBoot !== null) {
+    frais()
+    const typed = { SEC_HASH: 'abc#def', SEC_QUOTED: '"abc"', SEC_SPACE: 'a b  c', SEC_BS: 'a\\nb', SEC_PLAIN: 'ck_123', SEC_BOTH: 'it\'s "x"', SEC_DOLLAR: 'a$&b$1' }
+    const res = await POST(http('roundtrip', { secrets: Object.keys(typed).map((n) => ({ name: n, value: typed[n] })) }))
+    const lus = {}
+    for (const n of Object.keys(typed)) lus[n] = undefined
+    const err = bootEnv(lus)
+    ok('C-07: the route accepts them and DSH boots', res.code === 200 && err === null, `code=${res.code} ${err}`)
+    for (const n of Object.keys(typed)) ok(`C-07: DSH reads ${n} exactly as typed`, lus[n] === typed[n], `typed ${JSON.stringify(typed[n])}, DSH has ${JSON.stringify(lus[n])}`)
+  } else skipped('C-07 DSH loadLayeredEnv reads back the secrets the route wrote')
+  // values are trimmed at the route; an all-quote value is a 400
+  frais()
+  const r1 = await POST(http('trim', { secrets: [{ name: 'TRIM_KEY', value: '  tvly-1 \t' }, { name: 'BLANK_KEY', value: '   ' }] }))
+  ok('C-07: a secret typed with edge spaces is stored trimmed', r1.code === 200 && lire(join(DSH_DIR, '.env')) === 'TRIM_KEY=tvly-1\n' && JSON.parse(r1.corps).secretsWritten === 1, `${r1.code} ${JSON.stringify(lire(join(DSH_DIR, '.env')))}`)
+  frais()
+  const r2 = await POST(http('allq', { secrets: [{ name: 'OK_KEY', value: 'fine' }, { name: 'Q_KEY', value: 'a #\'"`' }] }))
+  ok('C-07: a value no quote kind can hold is a 400 before anything is written', r2.code === 400 && /every kind of quote/.test(r2.corps) && lire(join(DSH_DIR, '.env')) === null && lire(SIDECAR_FILE) === null && lire(PATCH_FILE) === null)
+  // rotation: every line that defines the name is replaced, `export` included, the other variables stay
+  for (const [label, avant] of [['a variable defined twice', 'TAV_KEY=old1\nOTHER=1\nTAV_KEY=old2\n'], ['an `export` line', 'export TAV_KEY=old\nOTHER=1\n'], ['spaces around the equals sign', 'OTHER=1\n  TAV_KEY = old\n'], ['no final newline', 'OTHER=1\nTAV_KEY=old'], ['CRLF line ends', 'OTHER=1\r\nTAV_KEY=old\r\n']]) {
+    frais()
+    writeFileSync(join(DSH_DIR, '.env'), avant, 'utf8')
+    upsertEnvSecret('TAV_KEY', 'NEW value')
+    const apres = lire(join(DSH_DIR, '.env'))
+    const lu = parseEnv(apres)
+    ok(`C-07: rotating a secret with ${label}: DSH sees the new value once, the other variables are intact`, lu.TAV_KEY === 'NEW value' && lu.OTHER === '1' && (apres.match(/TAV_KEY/g) || []).length === 1, JSON.stringify(apres))
+  }
+  frais()
+  writeFileSync(join(DSH_DIR, '.env'), 'A=1\r\nB=2\r\n', 'utf8')
+  upsertEnvSecret('NEW_KEY', 'v')
+  ok('C-07: a new line follows the line ends of the file (CRLF)', lire(join(DSH_DIR, '.env')) === 'A=1\r\nB=2\r\nNEW_KEY=v\r\n')
+}
+{
+  // DELETE takes the connector's secrets away, unless something else still uses them
+  const env = () => lire(join(DSH_DIR, '.env'))
+  frais()
+  writeFileSync(join(DSH_DIR, '.env'), 'KEEP_ME=1\n', 'utf8')
+  await POST(http('alpha', { headers: [{ name: 'authorization', value: 'Bearer $ALPHA_KEY' }], secrets: [{ name: 'ALPHA_KEY', value: 'a1' }, { name: 'SHARED_KEY', value: 's1' }] }))
+  await POST(http('beta', { headers: [{ name: 'x-k', value: '$SHARED_KEY' }] }))
+  ok('C-07: setup: the sidecar records the NAMES of the secrets written for a connector, never a value', JSON.stringify((await GET()).connecteurs.find((c) => c.nom === 'alpha').secrets) === '["ALPHA_KEY","SHARED_KEY"]' && (lire(SIDECAR_FILE) || '').includes('a1') === false && (lire(SIDECAR_FILE) || '').includes('s1') === false)
+  const del = await DELETE('alpha')
+  ok('C-07: DELETE removes the secret nothing else uses, keeps the shared one and the others', del.code === 200 && JSON.parse(del.corps).secretsRemoved === 1 && env() === 'KEEP_ME=1\nSHARED_KEY=s1\n', JSON.stringify(env()))
+  const del2 = await DELETE('beta')
+  ok('C-07: deleting the other user of the shared secret removes nothing (the record belongs to alpha)', del2.code === 200 && JSON.parse(del2.corps).secretsRemoved === 0 && env() === 'KEEP_ME=1\nSHARED_KEY=s1\n')
+  // a connector saved before the record (no `secrets` field) keeps its secrets
+  frais()
+  writeFileSync(join(DSH_DIR, '.env'), 'OLD_KEY=1\n', 'utf8')
+  mkdirSync(join(DSH_DIR, 'kybernos'), { recursive: true })
+  await POST(http('legacy', { headers: [{ name: 'a', value: '$OLD_KEY' }] }))
+  const d3 = await DELETE('legacy')
+  ok('C-07: a connector without a record of secrets leaves the .env alone', d3.code === 200 && env() === 'OLD_KEY=1\n')
+  // a name another entry of the patch reads is not removed, and neither is the Composio key
+  frais()
+  await POST(http('gamma', { secrets: [{ name: 'GAMMA_KEY', value: 'g' }, { name: 'COMPOSIO_API_KEY', value: 'ck_x' }] }))
+  writeFileSync(PATCH_FILE, lire(PATCH_FILE) + "\n# hand entry\n- id: other\n  config:\n    token: !!js \"process.env.GAMMA_KEY\"\n", 'utf8')
+  const d4 = await DELETE('gamma')
+  ok('C-07: a secret that a hand-written patch entry still reads is kept, and so is COMPOSIO_API_KEY', d4.code === 200 && JSON.parse(d4.corps).secretsRemoved === 0 && /GAMMA_KEY=g/.test(env()) && /COMPOSIO_API_KEY=ck_x/.test(env()), JSON.stringify(env()))
 }
 
 rmSync(HOME, { recursive: true, force: true })

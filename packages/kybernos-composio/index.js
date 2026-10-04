@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { Script } from 'node:vm'
+import * as nodeUtil from 'node:util'
 
 export const name = 'kybernos-composio'
 
@@ -618,15 +619,72 @@ function blockSummary(lines) {
   }
 }
 
-function readSidecar() {
-  try { const j = JSON.parse(readFileSync(SIDECAR_PATH(), 'utf8')); return Array.isArray(j) ? j : [] } catch (e) { return [] }
+// ── the connectors sidecar (~/.dsh/kybernos/connecteurs.json) ───────────────
+const CORRUPT_SUFFIX = '.corrupt-'
+const CORRUPT_COPIES_MAX = 5
+
+/**
+ * The sidecar on disk, in one of three shapes:
+ *   - `{ list }`               a JSON array of connectors; a MISSING or blank file is an empty list
+ *   - `{ corrupt: true, text }` present but not such an array (truncated, hand-edited)
+ *   - `{ unreadable: code }`   present but cannot be read (permissions, a directory...)
+ * Only the first shape may be written over: the other two would lose the saved connectors
+ * (a corrupt file used to be read as an empty list and overwritten by the next save).
+ */
+function readSidecarState() {
+  let text = null
+  try { text = readFileSync(SIDECAR_PATH(), 'utf8') } catch (e) {
+    if (e !== null && e !== undefined && e.code === 'ENOENT') return { list: [], text: null }
+    return { unreadable: e && e.code ? String(e.code) : 'unknown error' }
+  }
+  if (text.trim() === '') return { list: [], text: text }
+  let data = null
+  try { data = JSON.parse(text) } catch (e) { return { corrupt: true, text: text } }
+  const plain = (x) => x !== null && typeof x === 'object' && Array.isArray(x) === false && typeof x.nom === 'string'
+  return Array.isArray(data) && data.every(plain) ? { list: data, text: text } : { corrupt: true, text: text }
+}
+
+/**
+ * Keeps a copy of a corrupt file next to it as <name>.corrupt-<time>. A copy with the same
+ * content is reused and there are never more than CORRUPT_COPIES_MAX, so repeated attempts
+ * do not pile up files. Returns the copy's path or null.
+ */
+function keepCorruptCopy(file, text) {
+  try {
+    const folder = dirname(file)
+    const prefix = basename(file) + CORRUPT_SUFFIX
+    const copies = readdirSync(folder).filter((n) => n.startsWith(prefix))
+    for (const n of copies) {
+      try { if (readFileSync(join(folder, n), 'utf8') === text) return join(folder, n) } catch (e) { /* unreadable copy: ignored */ }
+    }
+    if (copies.length >= CORRUPT_COPIES_MAX) return null
+    const base = join(folder, prefix + Date.now())
+    for (let i = 0; i < CORRUPT_COPIES_MAX; i += 1) {
+      const copy = i === 0 ? base : base + '-' + i
+      try { writeFileSync(copy, text, { mode: 0o600, flag: 'wx' }); return copy } catch (e) { if (!(e && e.code === 'EEXIST')) return null }
+    }
+    return null
+  } catch (e) { return null }
+}
+
+/**
+ * Why the sidecar must NOT be used (listed as empty, or written over), or null when it can.
+ * `saving` says whether a write was asked for: only then is a copy of a corrupt file kept, so
+ * a plain read never writes anything.
+ */
+function sidecarProblem(state, saving) {
+  if (state.list !== undefined) return null
+  const name = basename(SIDECAR_PATH())
+  const tail = saving === true ? 'so nothing was saved' : 'so the saved connectors cannot be listed from it'
+  if (state.unreadable !== undefined) return name + ' cannot be read (' + state.unreadable + '), ' + tail + '. Check its permissions, then try again.'
+  const copy = saving === true ? keepCorruptCopy(SIDECAR_PATH(), state.text) : null
+  return name + ' is not a valid list of connectors, ' + tail + (copy === null ? '' : ' (a copy is kept as ' + basename(copy) + ')') + '. Fix or remove the file, then try again.'
 }
 
 function writeSidecar(list) {
   const p = SIDECAR_PATH()
-  const dir = p.slice(0, p.lastIndexOf('/'))
-  try { if (existsSync(dir) === false) mkdirSync(dir, { recursive: true }) } catch (e) { /* déjà là */ }
-  writeFileSync(p, JSON.stringify(list, null, 2) + '\n', 'utf8')
+  mkdirSync(dirname(p), { recursive: true, mode: 0o700 })
+  writeFileAtomic(p, JSON.stringify(list, null, 2) + '\n', 0o600)
 }
 
 // ── H-09 : échappement YAML ──────────────────────────────────────────────────
@@ -851,11 +909,83 @@ function writePatch(avant, apres, empty) {
   writeFileAtomic(path, apres, 0o600)
 }
 
+// ── the DSH .env (secrets typed in the connector form) ──────────────────────
+// DSH reads this file with node:util parseEnv, which is NOT a round trip for what a user can
+// type: `abc#def` is cut at the `#`, a value wrapped in quotes loses them, edge spaces are
+// trimmed, and `\n` inside double quotes becomes a line break. A value is therefore written
+// in the first form that parseEnv reads back EXACTLY (bare, 'single', `backtick`, "double"),
+// and the edit is refused when none does or when it would change any other variable.
+const parseEnvText = (text) => (typeof nodeUtil.parseEnv === 'function' ? nodeUtil.parseEnv(String(text)) : null)
+const envLineRe = (nom) => new RegExp('^[ \\t]*(?:export[ \\t]+)?' + nom + '[ \\t]*=')
+
+/** The ways `valeur` can follow NAME=, each one read back exactly by parseEnv. */
+function envRenderings(valeur) {
+  const out = []
+  for (const q of ['', "'", '`', '"']) {
+    const text = q + valeur + q
+    const parsed = parseEnvText('K=' + text + '\n')
+    // Without parseEnv (it exists in every Node DSH runs on) fall back to the plain rules.
+    const fits = parsed !== null ? parsed.K === valeur
+      : (q === '' ? /#|^\s|\s$|^['"`]/.test(valeur) === false : (valeur.indexOf(q) === -1 && (q !== '"' || valeur.indexOf('\\') === -1)))
+    if (fits) out.push(text)
+  }
+  return out
+}
+
+class EnvEditError extends Error {}
+
+/** Whether the edit of `nom` left every other variable as it was, and `nom` as wanted (null: cannot tell). */
+function envEditOk(before, after, nom, valeur) {
+  if (before === null || after === null) return true
+  if (valeur === undefined ? after[nom] !== undefined : after[nom] !== valeur) return false
+  for (const k of Object.keys(before)) if (k !== nom && after[k] !== before[k]) return false
+  for (const k of Object.keys(after)) if (k !== nom && before[k] === undefined) return false
+  return true
+}
+
 /**
- * Writes NAME=value into ~/.dsh/.env (updates the existing line). Returns false
- * when no value is given. Throws when the name is not a valid variable name or
- * the value holds a line break (CR, LF or NUL): a second line would define an
- * arbitrary extra variable. The error never carries the value.
+ * The .env text with NAME set to `valeur`: the first line that defines NAME (with or without
+ * `export`) is replaced and the other lines that define it are removed, or the line is added at
+ * the end. Pure. Throws an EnvEditError (its message never carries the value) when the value
+ * cannot be stored or the edit would change another variable. Exported for test-host.mjs.
+ */
+export function envTextWith(text, nom, valeur) {
+  const renderings = envRenderings(valeur)
+  if (renderings.length === 0) throw new EnvEditError('secret ' + nom + ': the value holds every kind of quote (single, double and backtick), which a .env file cannot store')
+  const re = envLineRe(nom)
+  const before = parseEnvText(text)
+  for (const r of renderings) {
+    const lines = String(text).split('\n')
+    const hits = []
+    lines.forEach((l, i) => { if (re.test(l)) hits.push(i) })
+    let next = null
+    if (hits.length === 0) {
+      const crlf = String(text).indexOf('\r\n') >= 0
+      next = (text.length > 0 && text.endsWith('\n') === false ? text + (crlf ? '\r\n' : '\n') : text) + nom + '=' + r + (crlf ? '\r\n' : '\n')
+    } else {
+      lines[hits[0]] = nom + '=' + r + (lines[hits[0]].endsWith('\r') ? '\r' : '')
+      for (let k = hits.length - 1; k >= 1; k -= 1) lines.splice(hits[k], 1)
+      next = lines.join('\n')
+    }
+    if (envEditOk(before, parseEnvText(next), nom, valeur)) return next
+  }
+  throw new EnvEditError('the .env file cannot be edited safely for ' + nom + ' (another variable would change); edit it by hand')
+}
+
+/** The .env text without any line that defines `nom`, or null when that cannot be done without touching another variable. Pure. */
+function envTextWithout(text, nom) {
+  const re = envLineRe(nom)
+  const lines = String(text).split('\n')
+  if (lines.some((l) => re.test(l)) === false) return String(text)
+  const next = lines.filter((l) => re.test(l) === false).join('\n')
+  return envEditOk(parseEnvText(text), parseEnvText(next), nom, undefined) ? next : null
+}
+
+/**
+ * Writes NAME=value into the DSH .env (replacing every line that defines NAME). Returns false
+ * when no value is given. Throws when the name is not a valid variable name, is one DSH
+ * refuses, or the value holds a line break (CR, LF or NUL) or cannot be stored: a second line
+ * would define an arbitrary extra variable. The error never carries the value.
  * Exported for test-host.mjs.
  */
 export function upsertEnvSecret(nom, valeur) {
@@ -866,30 +996,38 @@ export function upsertEnvSecret(nom, valeur) {
   const path = ENV_PATH()
   let text = ''
   try { text = existsSync(path) ? readFileSync(path, 'utf8') : '' } catch (e) { text = '' }
-  const re = new RegExp('^[ \\t]*' + nom + '[ \\t]*=.*$', 'm')
-  const line = nom + '=' + valeur
-  // A replacer FUNCTION: a string would expand `$&`, `$1`, `$$`, `$\`` and `$'`
-  // inside the secret and corrupt it.
-  if (re.test(text) === true) writeFileSync(path, text.replace(re, () => line), 'utf8')
-  else writeFileSync(path, (text.length > 0 && text.endsWith('\n') === false ? text + '\n' : text) + line + '\n', 'utf8')
+  writeFileAtomic(path, envTextWith(text, nom, valeur), 0o600)
   return true
 }
 
 /**
- * Checks the secrets of a POST body BEFORE any file is written, so a bad one
- * cannot leave a half-applied request behind. Returns an error message (never
- * containing a value) or null. Entries with an invalid name are skipped, as
- * storeSecrets skips them.
+ * The secrets of a POST body: [{ nom, valeur }] for every entry with a valid name and a
+ * value. The value is trimmed (a pasted key often carries a trailing space). An entry with an
+ * invalid name is skipped.
  */
-function verifierSecrets(body) {
-  if (Array.isArray(body.secrets) === false) return null
+function secretsOf(body) {
+  const out = []
+  if (Array.isArray(body.secrets) === false) return out
   for (const s of body.secrets) {
     if (s === null || s === undefined) continue
     const nom = String(s.name || '').trim()
     if (SECRET_RE.test(nom) !== true) continue
-    // An empty value is "no value": nothing is written, so the name does no harm.
-    if (String(s.value || '').length > 0 && isBootstrapOnlyName(nom) === true) return bootstrapMessage(nom)
-    if (sansMultiLigne(String(s.value || '')) !== true) return 'secret ' + nom + ': the value must not contain line breaks'
+    out.push({ nom: nom, valeur: String(s.value === null || s.value === undefined ? '' : s.value).trim() })
+  }
+  return out
+}
+
+/**
+ * Checks the secrets of a POST body BEFORE any file is written, so a bad one cannot leave a
+ * half-applied request behind. Returns an error message (never containing a value) or null.
+ * An entry with an empty value is "no value": nothing is written, so it is not judged.
+ */
+function verifierSecrets(body) {
+  for (const s of secretsOf(body)) {
+    if (s.valeur.length === 0) continue
+    if (isBootstrapOnlyName(s.nom) === true) return bootstrapMessage(s.nom)
+    if (sansMultiLigne(s.valeur) !== true) return 'secret ' + s.nom + ': the value must not contain line breaks'
+    if (envRenderings(s.valeur).length === 0) return 'secret ' + s.nom + ': the value holds every kind of quote (single, double and backtick), which a .env file cannot store'
   }
   return null
 }
@@ -969,34 +1107,90 @@ function normalizeConnecteur(body) {
   return { connecteur: c }
 }
 
-/** The NAME=value secrets of the body (the form's password fields) go to the DSH .env. */
-function storeSecrets(body) {
-  if (Array.isArray(body.secrets) === false) return 0
-  let n = 0
-  for (const s of body.secrets) {
-    if (s === null || s === undefined) continue
-    const nom = String(s.name || '').trim()
-    if (SECRET_RE.test(nom) !== true) continue
-    if (upsertEnvSecret(nom, String(s.value || '')) === true) n += 1
+/** The secret names a connector refers to: its tokens ($NAME in header and env values) and the ones the form wrote for it. */
+function secretNamesOf(c) {
+  const names = new Set(Array.isArray(c.secrets) ? c.secrets.filter((n) => typeof n === 'string') : [])
+  for (const e of [].concat(Array.isArray(c.headers) ? c.headers : [], Array.isArray(c.env) ? c.env : [])) {
+    if (e === null || typeof e !== 'object') continue
+    const re = new RegExp(TOKEN_RE.source, 'g')
+    let m
+    while ((m = re.exec(String(e.value))) !== null) names.add(m[1])
   }
-  return n
+  return names
+}
+
+/**
+ * The secrets a deleted connector leaves behind that nothing else uses: the ones the form wrote
+ * for it (recorded by name in the sidecar; connectors saved before that record keep theirs),
+ * minus every name another connector or any entry of the patch still refers to, and never the
+ * Composio key itself.
+ */
+function orphanSecrets(old, others, patchText) {
+  if (old === undefined || Array.isArray(old.secrets) === false) return []
+  const used = new Set()
+  for (const o of others) for (const n of secretNamesOf(o)) used.add(n)
+  const re = /process\.env\.([A-Z_][A-Z0-9_]*)/g
+  let m
+  while ((m = re.exec(String(patchText))) !== null) used.add(m[1])
+  return old.secrets.filter((n) => typeof n === 'string' && SECRET_RE.test(n) && n !== COMPOSIO_KEY_REF && used.has(n) === false)
+}
+
+/** Puts a file back as it was: `previous` is its text, or null when it did not exist. Returns whether it worked. */
+function restoreFile(path, previous) {
+  try {
+    if (previous === null) rmSync(path, { force: true })
+    else writeFileAtomic(path, previous, 0o600)
+    return true
+  } catch (e) { return false }
+}
+
+/**
+ * Writes the three files of a change in a fixed order (the patch first: it is the one DSH
+ * refuses to start on), and puts back the ones already written when a later step fails, so a
+ * failure never leaves a connector listed without its patch block or a secret half applied.
+ * `plan`: { patch: { avant, apres, empty, existait }, env: { avant, apres }, sidecar: { liste } }.
+ * Returns null on success, or a message that carries no path.
+ */
+function applyPlan(plan) {
+  const done = []
+  let stage = 'patch'
+  try {
+    if (plan.patch.apres !== plan.patch.avant) { writePatch(plan.patch.avant, plan.patch.apres, plan.patch.empty); done.push(['patch', PATCH_PATH(), plan.patch.existait ? plan.patch.avant : null]) }
+    stage = 'secrets'
+    if (plan.env.apres !== plan.env.avant) { writeFileAtomic(ENV_PATH(), plan.env.apres, 0o600); done.push(['env', ENV_PATH(), plan.env.avant]) }
+    stage = 'connectors list'
+    if (plan.sidecar.liste !== null) writeSidecar(plan.sidecar.liste)
+    return null
+  } catch (e) {
+    let restored = true
+    for (const d of done.reverse()) if (restoreFile(d[1], d[2]) !== true) restored = false
+    return fsMessage('the ' + stage + ' could not be written', e) + (restored ? ', so nothing was changed' : ', and an earlier file could not be put back: check ' + done.map((d) => d[0]).join(' and '))
+  }
 }
 
 async function serveConnecteurs(ctx, req, res) {
   // K-01: reads are reserved to the machine (exact origin); writes also need explicit JSON.
   if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  const readFail = (what, e) => sendJson(res, 500, { ok: false, error: fsMessage(what + ' cannot be read', e) })
   if (req.method === 'GET') {
-    const sidecar = readSidecar()
+    const state = readSidecarState()
+    const problem = sidecarProblem(state, false)
+    // A sidecar that is there but unusable is NOT an empty list: the blocks of the patch are
+    // still listed (that is what DSH loads), and the problem is reported next to them.
+    const sidecar = problem === null ? state.list : []
     const seen = {}
     for (const c of sidecar) { seen[c.nom] = true }
     const fromPatch = []
-    const blocks = patchBlocks(readPatchText())
+    let patchText = ''
+    try { patchText = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
+    const blocks = patchBlocks(patchText)
     for (const nom of Object.keys(blocks)) {
       if (seen[nom] === true) continue
       fromPatch.push(Object.assign({ nom: nom, horsFormulaire: true }, blockSummary(blocks[nom])))
     }
     // Never a secret value here: only names and labels leave.
-    return sendJson(res, 200, { ok: true, connecteurs: sidecar.concat(fromPatch) })
+    return sendJson(res, 200, Object.assign({ ok: true, connecteurs: sidecar.concat(fromPatch) },
+      problem === null ? {} : { state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem }))
   }
   if (req.method === 'POST') {
     if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
@@ -1007,37 +1201,66 @@ async function serveConnecteurs(ctx, req, res) {
     const secretErreur = verifierSecrets(body)
     if (secretErreur !== null) return sendJson(res, 400, { ok: false, error: secretErreur })
     const c = n.connecteur
-    // The patch is built and checked BEFORE any file is written: a refusal leaves everything untouched.
+    // Everything is read, built and checked BEFORE any file is written: a refusal leaves
+    // all of them untouched.
+    const state = readSidecarState()
+    const problem = sidecarProblem(state, true)
+    if (problem !== null) return sendJson(res, 409, { ok: false, state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem })
     let avant = ''
-    try { avant = readPatchText() } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be read', e) }) }
+    try { avant = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
+    const existait = existsSync(PATCH_PATH())
     const apres = patchWithBlock(avant, c)
     const verdict = checkPatch(avant, apres, c.nom, 'present')
     if (verdict.ok !== true) return sendJson(res, verdict.status, { ok: false, error: verdict.error })
-    const secretsWritten = storeSecrets(body)
-    const list = readSidecar().filter((x) => x.nom !== c.nom)
+    let envAvant = null
+    try { envAvant = existsSync(ENV_PATH()) ? readFileSync(ENV_PATH(), 'utf8') : null } catch (e) { return readFail('the .env file', e) }
+    const secrets = secretsOf(body).filter((s) => s.valeur.length > 0)
+    let envApres = envAvant
+    try { for (const s of secrets) envApres = envTextWith(envApres === null ? '' : envApres, s.nom, s.valeur) } catch (e) {
+      return sendJson(res, e instanceof EnvEditError ? 409 : 500, { ok: false, error: e instanceof EnvEditError ? e.message : fsMessage('the secrets could not be prepared', e) })
+    }
+    const previous = state.list.find((x) => x.nom === c.nom)
+    const names = new Set((previous !== undefined && Array.isArray(previous.secrets) ? previous.secrets : []).concat(secrets.map((s) => s.nom)))
+    if (names.size > 0) c.secrets = Array.from(names).sort()
+    const list = state.list.filter((x) => x.nom !== c.nom)
     list.push(c)
     list.sort((a, b) => (a.nom < b.nom ? -1 : 1))
-    writeSidecar(list)
-    try { writePatch(avant, apres, verdict.empty) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be written', e) }) }
-    return sendJson(res, 200, { ok: true, connecteur: c, secretsWritten: secretsWritten, needRestart: true, validated: verdict.validated })
+    const failure = applyPlan({ patch: { avant: avant, apres: apres, empty: verdict.empty, existait: existait }, env: { avant: envAvant, apres: envApres }, sidecar: { liste: list } })
+    if (failure !== null) return sendJson(res, 500, { ok: false, error: failure })
+    return sendJson(res, 200, { ok: true, connecteur: c, secretsWritten: secrets.length, needRestart: true, validated: verdict.validated })
   }
   if (req.method === 'DELETE') {
     const nom = queryOf(req).get('nom') || ''
     if (NOM_RE.test(nom) !== true) return sendJson(res, 400, { ok: false, error: 'invalid name' })
+    const state = readSidecarState()
+    const problem = sidecarProblem(state, true)
+    if (problem !== null) return sendJson(res, 409, { ok: false, state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem })
     let avant = ''
-    try { avant = readPatchText() } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be read', e) }) }
+    try { avant = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
+    const existait = existsSync(PATCH_PATH())
     const apres = patchWithoutBlock(avant, nom)
-    let verdict = null
+    let verdict = { empty: false }
     if (apres !== null) {
       verdict = checkPatch(avant, apres, nom, 'absent')
       if (verdict.ok !== true) return sendJson(res, verdict.status, { ok: false, error: verdict.error })
     }
-    writeSidecar(readSidecar().filter((x) => x.nom !== nom))
-    if (apres !== null) {
-      try { writePatch(avant, apres, verdict.empty) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be written', e) }) }
+    // The secrets this connector brought and nothing else uses leave the .env with it.
+    let envAvant = null
+    try { envAvant = existsSync(ENV_PATH()) ? readFileSync(ENV_PATH(), 'utf8') : null } catch (e) { return readFail('the .env file', e) }
+    let envApres = envAvant
+    let secretsRemoved = 0
+    if (envAvant !== null) {
+      const orphans = orphanSecrets(state.list.find((x) => x.nom === nom), state.list.filter((x) => x.nom !== nom), apres === null ? avant : apres)
+      for (const name of orphans) {
+        const next = envTextWithout(envApres, name)
+        if (next !== null && next !== envApres) { envApres = next; secretsRemoved += 1 }
+      }
     }
+    const had = state.list.some((x) => x.nom === nom)
+    const failure = applyPlan({ patch: { avant: avant, apres: apres === null ? avant : apres, empty: verdict.empty, existait: existait }, env: { avant: envAvant, apres: envApres }, sidecar: { liste: had ? state.list.filter((x) => x.nom !== nom) : null } })
+    if (failure !== null) return sendJson(res, 500, { ok: false, error: failure })
     const removed = apres !== null
-    return sendJson(res, 200, { ok: true, removed: removed, needRestart: removed })
+    return sendJson(res, 200, { ok: true, removed: removed, needRestart: removed, secretsRemoved: secretsRemoved })
   }
   return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
 }
