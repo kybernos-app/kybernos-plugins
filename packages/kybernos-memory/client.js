@@ -698,6 +698,17 @@ window.__ModuleLoader__.load({
           control: h(YesNo, { name: 'Search by meaning', value: on, onChange: onToggle }) })
       }
 
+      /** « Pick by relevance »: besides the pinned and the newest, the memories that clearly match what the user just asked. Local. */
+      const RelevantRow = ({ cloud, mem, onToggle }) => {
+        const stale = mem !== null && typeof mem.relevant !== 'boolean'   // a host that predates the switch
+        const off = !cloud || mem === null || mem.memories !== true || mem.context !== true || stale
+        return h(SettingRow, { label: 'Pick by relevance',
+          desc: 'Besides the pinned and the newest memories, also send the ones that clearly match what you just asked, even old ones. Worked out on this machine: nothing extra is sent anywhere.',
+          locked: off,
+          why: !cloud ? 'Connect a Kybernos Cloud account first.' : (stale ? 'The cloud plugin was updated: restart DSH to use this.' : (mem !== null && (mem.memories !== true || mem.context !== true) ? 'Turn on Memories and Memory system context first.' : null)),
+          control: h(YesNo, { name: 'Pick by relevance', value: !off && mem.relevant === true, onChange: onToggle }) })
+      }
+
       const OptionsView = ({ status, settings, back, notify, refresh, refreshKey }) => {
         const cloud = status.connected
         const mem = settings.memory
@@ -723,6 +734,7 @@ window.__ModuleLoader__.load({
             h(SettingRow, { label: 'Memory system context', desc: 'Include saved memories in the system context.', locked: !cloud || memUnavailable || (mem !== null && mem.memories !== true),
               why: mem !== null && mem.memories !== true && cloud ? 'Turn on Memories first.' : null,
               control: h(YesNo, { name: 'Memory system context', value: mem !== null && mem.context === true && mem.memories === true && cloud, onChange: (v) => setMem({ context: v }) }) }),
+            h(RelevantRow, { cloud, mem, onToggle: (v) => setMem({ relevant: v }) }),
             h(SettingRow, { label: 'Automatic capture', desc: 'At the end of a turn, let the model note what is worth keeping.', live: lastCapture, locked: !cloud || memUnavailable || (mem !== null && mem.memories !== true),
               why: mem !== null && mem.memories !== true && cloud ? 'Turn on Memories first.' : null,
               control: h(YesNo, { name: 'Automatic capture', value: mem !== null && mem.capture === true && mem.memories === true && cloud, onChange: (v) => setMem({ capture: v }) }) }),

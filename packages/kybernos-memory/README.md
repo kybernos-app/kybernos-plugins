@@ -25,6 +25,16 @@ one click away.
   It cannot link words that share no letters ("voiture" / "bagnole") nor French and English: that is
   what search by meaning is for. The ranking is `packages/kybernos-cloud/relevance.mjs` (pure, 3 ms over
   2000 memories).
+- **Pick by relevance** (Options, on by default, local): besides the pinned and the newest memories, the
+  prompt also carries the memories that clearly match what the user just asked, even old ones — on a
+  640-memory account the one about Docker on this Mac is nine days old and the base selection never sends it.
+  The question is the human's latest message of the session (`agent/inbox/claimed`, `source.kind: 'user'`),
+  judged by its 12 rarest words that can match something; a memory is picked when it has 2+ of them covering
+  a quarter of the question's rarity (or 1 word that is half of it), never less than half of the best match,
+  at most 6, within 40 % of the memories budget, and only if the question is selective (not when dozens of
+  memories match equally). It costs nothing to the history: the engine appends a new « runtime context »
+  snapshot whenever the text changes, so the pick is made once per message, kept while the topic is the
+  same, and not changed again for 3 turns. The page's counts and « Sent » chips stay the base selection.
 - **Search by meaning** (memories only, **off until you turn it on**: it sends the text of each memory
   to the Kybernos embedding model). The search field offers *Relevance | Meaning* (the choice is saved per
   browser). Turning the switch on checks, once, what your plan and server allow (one 2-letter embedding,

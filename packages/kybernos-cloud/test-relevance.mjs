@@ -70,7 +70,7 @@ assert.deepEqual(ids(frag).sort(), [3, 4], 'a fragment of 3+ letters finds it to
 // within ONE query the same word is worth the same, so the kind of match decides: exact > prefix > fragment
 const kinds = [mk(1, 'fichier undocumented', { createdAt: '2026-09-09 10:00:00+00:00' }), mk(2, 'fichier dockerfile', { createdAt: '2026-09-08 10:00:00+00:00' }), mk(3, 'fichier doc', { createdAt: '2026-09-01 10:00:00+00:00' })]
 assert.deepEqual(ids(rank(kinds, 'doc')), [3, 2, 1], 'exact word, then prefix, then fragment — even though the fragment is the newest')
-assert.deepEqual(ids(rank(docs, 'do')), [], 'two letters are too little to match as a fragment')
+assert.deepEqual(ids(rank(docs, 'ck')), [], 'two letters are too little to match as a fragment')
 ok('a prefix or a fragment (3+ letters) matches, always under an exact word')
 
 // Seen on the real account: « utilisateur communique » returned memories that only had « com » (from yopmail.com)
@@ -80,6 +80,23 @@ assert.deepEqual(ids(rank([mk(1, 'ouvre un com')], 'communique')), [], 'a short 
 assert.deepEqual(ids(rank([mk(1, 'le fichier dockerfile')], 'docker')), [1], 'the user typing the start of a word still matches (docker → dockerfile)')
 assert.deepEqual(ids(rank([mk(1, 'utilise docker')], 'dockerfile')), [1], 'a memory word that is most of the query word matches (dockerfile → docker)')
 ok('a short word that only begins the query word is not a match; a typed start or most of the word is')
+
+console.log('asking, not searching')
+assert.deepEqual(tokens("peux-tu m'expliquer la différence entre pnpm et npm ?"), ['expliquer', 'difference', 'pnpm', 'npm'], 'the verbs and pronouns people use to ASK are not what they ask about')
+assert.deepEqual(tokens('Can you please fix the settings nav'), ['fix', 'setting', 'nav'], 'folded: settings → setting')
+const asked = rank([mk(1, 'Utilise pnpm pour les installs'), mk(2, 'Fuseau horaire Europe/Paris'), mk(3, 'Prefers short answers')], 'peux-tu me dire la difference entre pnpm et npm ?')
+assert.deepEqual(ids(asked), [1], 'a question is judged by its distinctive words')
+// maxTerms: a pasted paragraph is judged by its rarest words; coverage says how much of THEM a memory has
+const para = 'voici un long texte avec plein de mots courants et un seul mot rare: ollama, et aussi docker'
+const corpus = [mk(1, 'Utilise Ollama en local avec Docker'), ...Array.from({ length: 30 }, (_, i) => mk(100 + i, 'texte courant avec des mots courants numero ' + i))]
+const fullRank = rank(corpus, para, { maxTerms: 3 })
+assert.equal(fullRank[0].doc.id, 1)
+assert.equal(fullRank[0].of, 3, 'only the 3 rarest words were kept')
+assert.ok(fullRank[0].coverage > 0.8 && fullRank[0].coverage <= 1 && fullRank[0].matched >= 2, 'it has the distinctive words: coverage close to 1 (' + fullRank[0].coverage.toFixed(2) + ')')
+assert.ok(rank(corpus, para)[0].coverage > 0 && rank(corpus, para)[0].of > 3, 'without maxTerms every word counts')
+assert.ok(rank([mk(1, 'rien en commun')], 'ollama docker').length === 0)
+assert.ok(rank([mk(1, 'ollama seulement')], 'ollama docker')[0].coverage > 0 && rank([mk(1, 'ollama seulement')], 'ollama docker')[0].coverage < 1, 'half the words: coverage between 0 and 1')
+ok('questions are judged by their distinctive words; maxTerms keeps the rarest; coverage says how much of them a memory has')
 
 console.log('order is stable and fair')
 const t1 = [mk(1, 'meme sujet', { createdAt: '2026-09-01 10:00:00+00:00' }), mk(2, 'meme sujet', { createdAt: '2026-09-09 10:00:00+00:00' }), mk(3, 'meme sujet', { createdAt: '2026-09-05 10:00:00+00:00', pinned: true })]
