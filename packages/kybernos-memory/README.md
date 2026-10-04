@@ -19,13 +19,19 @@ one click away.
   Memories / Memory system context / Automatic capture / Search by meaning, and Lessons learned /
   Lessons system context — each dependent row locks with the reason when its parent is off. The last
   capture's outcome is shown.
+- **Search ranks by relevance, locally** (the default, any plan, nothing leaves the machine): accents,
+  case and plurals are ignored, stop words do not count, rare words weigh more than common ones, a prefix
+  or fragment matches under an exact word, and a row says « 2 of 3 words » when it lacks some of yours.
+  It cannot link words that share no letters ("voiture" / "bagnole") nor French and English: that is
+  what search by meaning is for. The ranking is `packages/kybernos-cloud/relevance.mjs` (pure, 3 ms over
+  2000 memories).
 - **Search by meaning** (memories only, **off until you turn it on**: it sends the text of each memory
-  to the Kybernos embedding model). The search field offers *Words | Meaning* (the choice is saved per
+  to the Kybernos embedding model). The search field offers *Relevance | Meaning* (the choice is saved per
   browser). Turning the switch on checks, once, what your plan and server allow (one 2-letter embedding,
   never a memory); then « Index my memories » embeds them in batches and the rows show « NN% match ».
   When it cannot be done — switch off, plan too low (the embeddings model needs the Solo plan on the
   dev tier: `model-not-available-plan`), a server without pgvector or that predates the routes, no
-  credits — the page shows the word matches and says why, with a link to Options.
+  credits — the page shows the relevance matches and says why, with a link to Options.
 - **Not drawn as if it existed**: the Map needs 2-D positions of the vectors, which nothing computes
   yet (the button is disabled and says so), and team lessons are not built (the Team scope and
   « Share lessons with your team » say so). The only plan gate shown is the one the server enforces
@@ -59,7 +65,7 @@ no `..`), and a typo never creates a kyber.
 ## Limits, said plainly
 
 - Search by meaning needs the server half (`GET/PUT/POST /v1/memories…` embeddings, with pgvector on the
-  Supabase store) and a plan that includes the embeddings model; until then it falls back to words
+  Supabase store) and a plan that includes the embeddings model; until then it falls back to the local relevance ranking
   (`search.fallback` says why). It ranks at most 50 memories, newest account scope only.
 - The lessons are local to this machine. Sharing with a team is not built yet.
 - It only governs this bundle's tools and chunk. An agent can still run `memory.cjs lesson` through

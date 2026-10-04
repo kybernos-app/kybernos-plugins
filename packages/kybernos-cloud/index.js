@@ -39,6 +39,7 @@ import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writ
 import { homedir, hostname } from 'node:os'
 import { dirname, join } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
+import { rank as rankByRelevance } from './relevance.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 
 const STATE_DIR = join(homedir(), '.dsh')
@@ -1990,7 +1991,8 @@ const memoryListRoute = async (req) => {
   const show = ['pinned', 'sent'].indexOf(params.get('show')) >= 0 ? params.get('show') : 'all'
   const src = ['capture', 'agent', 'you', 'sync'].indexOf(params.get('src')) >= 0 ? params.get('src') : 'any'
   const added = ADDED_WINDOW_MIN[params.get('added')] !== undefined ? params.get('added') : 'any'
-  const q = String(params.get('q') || '').trim().toLowerCase()
+  const qRaw = String(params.get('q') || '').trim()
+  const q = qRaw.toLowerCase()
   const wantMeaning = params.get('mode') === 'meaning' && q !== ''
 
   const plan = planInjection(state)
@@ -2017,7 +2019,10 @@ const memoryListRoute = async (req) => {
   if (show === 'sent') list = list.filter((r) => r.sent)
   if (src !== 'any') list = list.filter((r) => (src === 'you' ? youOrigin(r) : r.origin === src))
   if (added !== 'any') list = list.filter((r) => r.ageMinutes !== null && r.ageMinutes <= ADDED_WINDOW_MIN[added])
-  let search = { mode: 'exact', relevance: false }
+  // The words search ranks by relevance, locally (relevance.mjs): no model, no network, any plan. The order is
+  // best first, and each item says how many of the query's words it matched.
+  const byRelevance = (items) => rankByRelevance(items, qRaw).map((r) => ({ ...r.doc, matched: r.matched, of: r.of }))
+  let search = { mode: 'relevance', relevance: true }
   if (wantMeaning) {
     // Search by meaning: the server ranks, we only decorate and filter. Any failure falls back to the words
     // search below, with the reason, so the page always shows something and says why it is not by meaning.
@@ -2035,11 +2040,11 @@ const memoryListRoute = async (req) => {
       if (added !== 'any') list = list.filter((r) => r.ageMinutes !== null && r.ageMinutes <= ADDED_WINDOW_MIN[added])
       search = { mode: 'meaning', relevance: true }
     } else {
-      search = { mode: 'exact', relevance: false, fallback: found.error, requiredTier: found.requiredTier === undefined ? null : found.requiredTier }
-      list = list.filter((r) => String(r.content).toLowerCase().indexOf(q) >= 0)
+      search = { mode: 'relevance', relevance: true, fallback: found.error, requiredTier: found.requiredTier === undefined ? null : found.requiredTier }
+      list = byRelevance(list)
     }
   } else if (q !== '') {
-    list = list.filter((r) => String(r.content).toLowerCase().indexOf(q) >= 0)
+    list = byRelevance(list)
   }
   return {
     ok: true, connected: true,

@@ -1208,8 +1208,8 @@ try {
   assert.equal(lastHour.body.total, 10)
   const found42 = await hit('/kybernos-cloud/memory/list?q=FLY', 'GET')
   assert.deepEqual(found42.body.items.map((r) => r.id), [1042], 'recherche textuelle, insensible a la casse')
-  assert.equal(found42.body.search.mode, 'exact')
-  assert.equal(found42.body.search.relevance, false, 'la pertinence n est pas annoncee tant qu elle n existe pas')
+  assert.equal(found42.body.search.mode, 'relevance')
+  assert.equal(found42.body.search.relevance, true, 'la recherche par mots classe maintenant par pertinence, en local')
   const combined = await hit('/kybernos-cloud/memory/list?added=1h&show=pinned&limit=100', 'GET')
   assert.equal(combined.body.total, 5, 'les filtres se combinent')
   const c = page1.body.counts
@@ -1220,6 +1220,41 @@ try {
   assert.equal(sentRows.total, page1.body.budget.sent, 'le drapeau « sent » de la liste = la selection du prompt')
   assert.equal(leaks(page1.body), false, 'le jeton ne sort jamais')
   ok('liste : pagination, filtres (show/src/added/q) et compteurs ; « sent » = ce que le prompt envoie')
+
+  // 11f'. La recherche par mots classe par PERTINENCE, en local : meilleur d'abord, accents et pluriels
+  //       ignores, et chaque ligne dit combien des mots de la requete elle porte. Aucun appel reseau.
+  const relKeptAccount = mod.memoryCache.account
+  const relMem = (id, createdAt, content) => ({ id, scope: 'account', kyberId: null, kind: 'fact', content, source: 'taught', pinned: false, retentionDays: 180, expiresAt: null, createdAt })
+  mod.memoryCache.account = [
+    relMem(2001, '2026-09-02 10:00:00+00:00', 'Déteste les réunions du lundi matin'),
+    relMem(2002, '2026-09-03 10:00:00+00:00', 'Utilise Docker Desktop sur macOS'),
+    relMem(2003, '2026-09-04 10:00:00+00:00', 'Utilise Ollama en local avec Docker'),
+    relMem(2004, '2026-09-01 10:00:00+00:00', 'Prefers short answers, in French'),
+    relMem(2005, '2026-09-05 10:00:00+00:00', 'Rapport de réunion du mardi'),
+  ]
+  mod.memoryCache.at = Date.now()
+  const netBefore = { embed: seen.embedCalls.length, search: seen.searches.length, memoryReads: seen.memoryAuth.length }
+  const relOne = await hit('/kybernos-cloud/memory/list?q=reunion', 'GET')
+  assert.equal(relOne.body.search.mode, 'relevance')
+  assert.deepEqual(relOne.body.items.map((r) => r.id).sort(), [2001, 2005], 'sans accent, au singulier : trouve « réunions » et « réunion »')
+  const relTwo = await hit('/kybernos-cloud/memory/list?q=R%C3%89UNIONS%20LUNDI', 'GET')
+  assert.deepEqual(relTwo.body.items.map((r) => [r.id, r.matched, r.of]), [[2001, 2, 2], [2005, 1, 2]], 'les deux mots d abord, et la ligne dit 2 sur 2 puis 1 sur 2')
+  const relDocker = await hit('/kybernos-cloud/memory/list?q=docker%20ollama', 'GET')
+  assert.deepEqual(relDocker.body.items.map((r) => [r.id, r.matched, r.of]), [[2003, 2, 2], [2002, 1, 2]], 'celui qui porte les deux mots passe devant')
+  const relEn = await hit('/kybernos-cloud/memory/list?q=short%20answer', 'GET')
+  assert.deepEqual(relEn.body.items.map((r) => r.id), [2004], 'l anglais marche aussi, singulier pour pluriel')
+  const relStop = await hit('/kybernos-cloud/memory/list?q=du', 'GET')
+  assert.deepEqual(relStop.body.items.map((r) => r.id).sort(), [2001, 2005], 'une requete faite que de mots vides retombe sur « contient »')
+  const relNone = await hit('/kybernos-cloud/memory/list?q=zzzz', 'GET')
+  assert.equal(relNone.body.total, 0)
+  const relNoQuery = await hit('/kybernos-cloud/memory/list', 'GET')
+  assert.equal(relNoQuery.body.items.every((r) => r.matched === undefined), true, 'sans requete : pas de « matched », l ordre reste le plus recent d abord')
+  const relPinned = await hit('/kybernos-cloud/memory/list?q=docker&show=pinned', 'GET')
+  assert.equal(relPinned.body.total, 0, 'les filtres s appliquent avant le classement')
+  assert.deepEqual({ embed: seen.embedCalls.length, search: seen.searches.length, memoryReads: seen.memoryAuth.length }, netBefore, 'la recherche par mots ne fait AUCUN appel reseau : ni embedding, ni serveur')
+  assert.equal(leaks(relTwo.body), false)
+  mod.memoryCache.account = relKeptAccount
+  ok('mots : classement par pertinence en local — accents et pluriels ignores, mots trouves comptes, filtres avant, zero appel reseau')
 
   // 11h. Recherche par le sens (cote plugin). COUPEE par defaut : tant que l'interrupteur est
   //      coupe, AUCUN texte de souvenir ne part vers le modele d'embedding, ni a l'ecriture, ni
@@ -1245,7 +1280,7 @@ try {
   assert.equal(offRun.body.ok, false)
   assert.equal(offRun.body.error, 'sens_desactive')
   const offFind = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
-  assert.equal(offFind.body.search.mode, 'exact', 'coupe : retombe sur la recherche par mots')
+  assert.equal(offFind.body.search.mode, 'relevance', 'coupe : retombe sur la recherche par pertinence locale')
   assert.equal(offFind.body.search.fallback, 'sens_desactive')
   assert.ok(offFind.body.items.some((i) => i.content.indexOf('cafe') >= 0), 'et la recherche par mots trouve quand meme')
   await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'ecrit pendant que le sens est coupe', kind: 'fact' })
@@ -1347,7 +1382,7 @@ try {
   assert.equal(planAgain.body.error, 'offre_requise')
   assert.equal(seen.embedCalls.length, planBefore + 1, 'pendant la pause, aucun appel de plus (un 403 ne se refait pas en boucle)')
   const planList = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
-  assert.equal(planList.body.search.mode, 'exact')
+  assert.equal(planList.body.search.mode, 'relevance')
   assert.equal(planList.body.search.fallback, 'offre_requise')
   assert.equal(planList.body.search.requiredTier, 'solo')
   assert.ok(planList.body.items.length >= 1, 'la page garde ses resultats par mots')
@@ -1389,7 +1424,7 @@ try {
   assert.equal(noPg.body.reason, 'sens_indisponible')
   const callsNoPg = seen.embedCalls.length
   const fell = await hit('/kybernos-cloud/memory/list?mode=meaning&q=cafe', 'GET')
-  assert.equal(fell.body.search.mode, 'exact')
+  assert.equal(fell.body.search.mode, 'relevance')
   assert.equal(fell.body.search.fallback, 'sens_indisponible')
   assert.ok(fell.body.items.length >= 1, 'la page montre quand meme des resultats')
   const callsAfterFirst = seen.embedCalls.length
