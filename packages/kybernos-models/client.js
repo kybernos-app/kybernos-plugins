@@ -45,7 +45,6 @@ window.__ModuleLoader__.load({
       let kbCtx = null
       let kbLocaleRead = () => 'en'
       const KB_M_T = {
-        'kb.models.title': { kybernos: 'Modèles', en: 'Models' },
         'kb.models.surface.entry': { kybernos: 'Fournisseur IA & modèles', en: 'AI Provider & Models' },
         'kb.models.surface.hint': { kybernos: 'Vos fournisseurs et leurs modèles, au même endroit.', en: 'Your providers and their models, in one place.' },
         'kb.models.sub': { kybernos: 'Catalogue de modèles personnalisé — prefill models.dev, surcharge par champ.', en: 'Customized model catalog — models.dev prefill, per-field override.' },
@@ -85,7 +84,6 @@ window.__ModuleLoader__.load({
         'kb.prov.free': { kybernos: 'Free models · quota', en: 'Free models · quota' },
         'kb.prov.free.titre': { kybernos: 'Ce fournisseur propose des modèles gratuits sous quota — voir sa collection « free ».', en: 'This provider offers free models under quota — see its “free” collection.' },
         'kb.prov.free.lien': { kybernos: 'Voir les modèles gratuits', en: 'See free models' },
-        'kb.models.add': { kybernos: 'Ajouter un modèle', en: 'Add model' },
         'kb.models.details': { kybernos: 'Détails du modèle', en: 'Model details' },
         'kb.models.id': { kybernos: 'ID du modèle', en: 'Model ID' },
         'kb.models.name': { kybernos: "Nom affiché", en: 'Display name' },
@@ -105,10 +103,6 @@ window.__ModuleLoader__.load({
         'kb.models.ov.src': { kybernos: 'surcharge de vous', en: 'overridden by you' },
         'kb.models.legend.sync': { kybernos: 'models.dev', en: 'models.dev' },
         'kb.models.legend.ov': { kybernos: 'surcharge', en: 'Override' },
-        'kb.models.legend.wire': { kybernos: 'appliqué au harnais', en: 'applied to the harness' },
-        'kb.models.legend.note': { kybernos: 'annotation Kybernos', en: 'Kybernos annotation' },
-        'kb.models.foot.wired': { kybernos: '{n} contrôles appliqués — 5 champs de llm-pi-ai', en: '{n} controls applied — 5 llm-pi-ai fields' },
-        'kb.models.foot.note': { kybernos: '{n} annotations Kybernos', en: '{n} Kybernos annotations' },
         'kb.models.mark.wire': { kybernos: 'Écrit dans settings.yaml — appliqué aux appels suivants', en: 'Written to settings.yaml — applied to later calls' },
         'kb.models.mark.note': { kybernos: "Annotation Kybernos — n'affecte pas les appels de modèle", en: 'Kybernos annotation — does not affect model calls' },
         'kb.models.wire.note': { kybernos: 'Marqueur : maillon = écrit dans settings.yaml (effet réel) · étiquette = annotation locale.', en: 'Marker: link = written to settings.yaml (real effect) · tag = local annotation.' },
@@ -162,8 +156,6 @@ window.__ModuleLoader__.load({
         'kb.models.scores.reload': { kybernos: 'Relire', en: 'Re-read' },
         'kb.models.scores.reload.all': { kybernos: 'Relever les catalogues', en: 'Refresh catalogues' },
         'kb.models.scores.refreshing': { kybernos: 'Relevé en cours…', en: 'Refreshing…' },
-        'kb.models.scores.refreshed': { kybernos: 'Catalogues relevés', en: 'Catalogues refreshed' },
-        'kb.models.scores.fresh': { kybernos: 'déjà à jour', en: 'already up to date' },
         'kb.models.scores.stale': { kybernos: 'relevé du {d}', en: 'read on {d}' },
         'kb.models.cat.agentic': { kybernos: 'Agentique', en: 'Agentic' },
         'kb.models.cat.coding': { kybernos: 'Code', en: 'Coding' },
@@ -205,6 +197,25 @@ window.__ModuleLoader__.load({
         'kb.models.f.weights': { kybernos: 'Poids', en: 'Weights' },
         'kb.models.tab.models': { kybernos: 'Modèles {n}', en: 'Models {n}' },
         'kb.models.tab.providers': { kybernos: 'Fournisseurs {n}', en: 'Providers {n}' },
+        'kb.fetch.btn': { kybernos: 'Récupérer les modèles disponibles', en: 'Fetch available models' },
+        'kb.fetch.busy': { kybernos: 'Interrogation du fournisseur…', en: 'Asking the provider…' },
+        'kb.fetch.needsurl': { kybernos: 'Renseignez d’abord l’URL de base, puis récupérez.', en: 'Enter the base URL first, then fetch.' },
+        'kb.fetch.empty': { kybernos: 'Le fournisseur n’a listé aucun modèle. Ajoutez-les à la main.', en: 'The provider listed no models. Add them by hand.' },
+        'kb.fetch.unavailable': { kybernos: 'Cette version de DSH ne sait pas interroger un fournisseur.', en: 'This DSH version cannot ask a provider for its models.' },
+        'kb.fetch.timeout': { kybernos: 'Le fournisseur n’a pas répondu à temps.', en: 'The provider did not answer in time.' },
+        'kb.fetch.err': { kybernos: 'Récupération impossible : {raison}', en: 'Could not fetch: {raison}' },
+        'kb.fetch.title': { kybernos: 'Choisir les modèles à ajouter', en: 'Choose models to add' },
+        'kb.fetch.desc': { kybernos: 'Voici les modèles que ce fournisseur propose. Cochez ceux à ajouter.', en: 'These are the models this provider has available. Choose the ones to add.' },
+        'kb.fetch.replaces': { kybernos: 'La liste que vous gardez remplace celle de {slug} : les modèles non cochés ne seront plus proposés. « Rétablir les modèles par défaut » ramène la liste d’origine.', en: 'The list you keep replaces {slug}’s built-in one: models you leave unchecked will no longer be offered. “Restore default models” brings the built-in list back.' },
+        'kb.fetch.search': { kybernos: 'Rechercher un modèle', en: 'Search models' },
+        'kb.fetch.all': { kybernos: 'Tout cocher', en: 'Select all' },
+        'kb.fetch.none': { kybernos: 'Tout décocher', en: 'Deselect all' },
+        'kb.fetch.nomatch': { kybernos: 'Aucun modèle ne correspond.', en: 'No matching models.' },
+        'kb.fetch.known': { kybernos: 'Déjà ajouté', en: 'Already added' },
+        'kb.fetch.count': { kybernos: '{n} sur {total} cochés', en: '{n} of {total} selected' },
+        'kb.fetch.adopt': { kybernos: 'Ajouter la sélection', en: 'Add selected' },
+        'kb.fetch.restore': { kybernos: 'Rétablir les modèles par défaut', en: 'Restore default models' },
+        'kb.fetch.restored': { kybernos: 'Les modèles par défaut reviendront quand vous appliquerez.', en: 'The built-in models come back when you apply.' },
         'kb.health.aria': { kybernos: 'Santé des modèles', en: 'Model health' },
         'kb.health.chip.one': { kybernos: '1 modèle ne répond pas', en: '1 model not answering' },
         'kb.health.chip.many': { kybernos: '{n} modèles ne répondent pas', en: '{n} models not answering' },
@@ -333,10 +344,8 @@ window.__ModuleLoader__.load({
         'kb.models.reset': { kybernos: 'Réinitialiser les filtres', en: 'Reset filters' },
         'kb.models.count': { kybernos: '{a} sur {b} modèles', en: '{a} of {b} models' },
         'kb.models.syncN': { kybernos: 'Synchroniser {n} depuis models.dev', en: 'Sync {n} from models.dev' },
-        'kb.models.capsfilter': { kybernos: 'Capacités', en: 'CAPABILITIES' },
         'kb.models.col.model': { kybernos: 'Modèle', en: 'MODEL' },
         'kb.models.col.prov': { kybernos: 'Fournisseur', en: 'PROVIDER' },
-        'kb.models.col.type': { kybernos: 'Type', en: 'TYPE' },
         'kb.models.col.caps': { kybernos: 'Capacités', en: 'CAPABILITIES' },
         'kb.models.col.context': { kybernos: 'Contexte', en: 'CONTEXT' },
         'kb.models.col.price': { kybernos: 'Prix entrée / sortie', en: 'PRICE IN / OUT' },
@@ -375,12 +384,6 @@ window.__ModuleLoader__.load({
         'kb.models.empty.live': { kybernos: 'aucun modèle configuré dans llm-pi-ai', en: 'no model configured in llm-pi-ai' },
         'kb.models.route': { kybernos: 'route', en: 'route' },
         // ── bloc d'en-tête « AI Provider & Models » (settings.models.header) ──
-        'kb.head.title': { kybernos: 'AI Provider & Models', en: 'AI Provider & Models' },
-        'kb.head.pitch': { kybernos: 'Utilisez notre liste d\u2019LLM sélectionnés, avec replis automatiques et routage automatique — un seul abonnement.', en: 'Use our curated list of LLMs, with automatic fallbacks, auto-routing — one subscription.' },
-        'kb.head.count': { kybernos: '{n} modèles de votre abonnement — le catalogue détaillé vit dans l\u2019onglet « Liste des modèles ».', en: '{n} model(s) from your subscription — the detailed catalog lives in the Model list tab.' },
-        'kb.head.more': { kybernos: '+{n} autres', en: '+{n} more' },
-        'kb.head.less': { kybernos: 'Réduire', en: 'Show less' },
-        'kb.head.pair': { kybernos: 'Aucun modèle Kybernos pour l\u2019instant — couplez Kybernos Cloud pour importer les modèles inclus dans votre abonnement.', en: 'No Kybernos models yet — pair Kybernos Cloud to import the models your subscription includes.' },
         // ── carte Kybernos Cloud (refonte du 2026-09-21, d'après la maquette) ─
         // L'anglais reprend la maquette au mot près ; le français la traduit.
         'kb.hero.badge': { kybernos: 'Recommandé', en: 'Recommended' },
@@ -393,8 +396,6 @@ window.__ModuleLoader__.load({
         'kb.hero.f.fallback.tip': { kybernos: 'Si un modèle est indisponible, le modèle sélectionné suivant prend le relais tout seul.', en: 'If a model is unavailable, the next curated model takes over automatically.' },
         'kb.hero.f.guard': { kybernos: 'Garde-fous pour protéger vos données', en: 'Guardrails to protect your data' },
         'kb.hero.f.guard.tip': { kybernos: 'Les requêtes restent sous les politiques de Kybernos Cloud — vos clés ne sortent jamais du coffre local.', en: 'Requests stay under Kybernos Cloud policies — your keys never leave the local vault.' },
-        'kb.hero.f.models': { kybernos: '{n} modèles sélectionnés', en: '{n} curated models' },
-        'kb.hero.f.models.tip': { kybernos: 'Le catalogue Kybernos Cloud inclus dans votre formule — importé dans DSH sans clé à saisir.', en: 'The Kybernos Cloud catalog included with your plan — imported into DSH with no key to type.' },
         'kb.hero.connect': { kybernos: 'Connecter Kybernos Cloud', en: 'Connect to Kybernos Cloud' },
         'kb.hero.manage': { kybernos: 'Gérer Kybernos Cloud', en: 'Manage Kybernos Cloud' },
         'kb.hero.connect.tip': { kybernos: 'Ouvre la carte Kybernos Cloud (appairage, profil, import des modèles).', en: 'Opens the Kybernos Cloud card (pairing, profile, model import).' },
@@ -403,8 +404,6 @@ window.__ModuleLoader__.load({
         'kb.hero.addkey.tip': { kybernos: 'Ouvre l\u2019ajout de fournisseur natif — votre propre clé, votre propre route ; la carte n\u2019écrit rien.', en: 'Opens the native Add provider flow — your own key, your own route; the card writes nothing.' },
         'kb.models.local': { kybernos: 'ligne locale — non déclarée dans settings.yaml', en: 'local row — not declared in settings.yaml' },
         'kb.models.readonly': { kybernos: 'Le harnais est en LECTURE SEULE : aucune écriture possible.', en: 'The harness is READ-ONLY: no write is possible.' },
-        'kb.models.contract.ok': { kybernos: 'contrat host confirmé (compat hors panneau)', en: 'host contract confirmed (compat outside the panel)' },
-        'kb.models.contract.ko': { kybernos: 'CONTRAT HOST DIVERGENT', en: 'HOST CONTRACT DIVERGES' },
         'kb.models.error.remote': { kybernos: 'remotes indisponibles', en: 'remotes unavailable' },
         'kb.models.error.readonly': { kybernos: 'harnais en lecture seule', en: 'harness is read-only' },
         'kb.models.error.nokey': { kybernos: 'renseignez la route et l identifiant', en: 'set the route and the model id' },
@@ -1654,7 +1653,7 @@ window.__ModuleLoader__.load({
         const prof = kbPvIsObj(kbMOBJ(KBM.userProviders)[route]) ? KBM.userProviders[route] : {}
         const rows = Array.isArray(prof.models) ? prof.models.filter((x) => kbPvIsObj(x)).map((x) => ({ id: String(x.id || ''), name: typeof x.name === 'string' ? x.name : '' })) : []
         return { key: '', voir: false, adv: false, name: typeof prof.displayName === 'string' ? prof.displayName : '', url: typeof prof.baseURL === 'string' ? prof.baseURL : '',
-          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, touched: false, custom: pvIsCustom(route) }
+          proto: typeof prof.api === 'string' ? prof.api : 'openai-completions', models: rows, hadModels: Array.isArray(prof.models), touched: false, custom: pvIsCustom(route) }
       }
       const pvAddDraft = () => ({ tab: 'catalog', prov: null, id: '', name: '', url: '', proto: 'openai-completions', key: '', voir: false, models: [], adv: false, liste: true, q: '', act: 0 })
 
@@ -1663,19 +1662,84 @@ window.__ModuleLoader__.load({
         props.children,
         props.err ? h('span', { className: 'kbpv-err', role: 'alert' }, props.err) : (props.hint ? h('span', { className: 'kbpv-hint' }, props.hint) : null))
 
-      /** The models of a draft: two fields per row (id, display name), delete, add. */
-      const PvModels = ({ d, set, custom }) => {
+      /** The models of a draft: id and display name per row, delete, add — and "Fetch available models", which asks the
+       *  engine what the provider serves and lets the user tick the ones to add (the native page's picker). */
+      const PvModels = ({ d, set, custom, probe, blocked, slug }) => {
         const rows = d.models
-        const upd = (i, k, v) => set({ models: rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)), touched: true })
+        const [fp, setFp] = React.useState({ busy: false, err: null, cands: null, picked: {}, q: '' })
+        const setRows = (next) => set({ models: next, touched: true, restoreModels: false })
+        const upd = (i, k, v) => setRows(rows.map((r, j) => (j === i ? { ...r, [k]: v } : r)))
+        const askable = kbFetchAskable(probe)
+        const close = () => setFp((st) => ({ ...st, cands: null, picked: {}, q: '' }))
+        const open = fp.cands !== null
+        React.useEffect(() => {
+          if (open !== true) return undefined
+          // Escape closes the picker and nothing else: window capture runs before the drawer's own document capture.
+          const key = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); close() } }
+          window.addEventListener('keydown', key, true)
+          return () => window.removeEventListener('keydown', key, true)
+        }, [open])
+        const ask = async () => {
+          setFp((st) => ({ ...st, busy: true, err: null }))
+          const out = await kbFetchRun(kbMApi(), probe)
+          if (out.kind === 'refused') {
+            setFp((st) => ({ ...st, busy: false, err: out.unavailable === true ? m('kb.fetch.unavailable') : (out.timeout === true ? m('kb.fetch.timeout') : m('kb.fetch.err', { raison: out.message !== '' ? out.message : '—' })) }))
+            return
+          }
+          if (out.models.length === 0) { setFp((st) => ({ ...st, busy: false, err: m('kb.fetch.empty') })); return }
+          setFp({ busy: false, err: null, cands: out.models, picked: kbFetchPreselect(out.models, rows), q: '' })
+        }
+        const renderPicker = () => {
+          const shown = kbFetchFilter(fp.cands, fp.q)
+          const have = new Set(rows.map((r) => String(r.id).trim()))
+          const free = shown.filter((c) => !have.has(c.id))
+          const allOn = free.length > 0 && free.every((c) => fp.picked[c.id] === true)
+          const n = fp.cands.filter((c) => fp.picked[c.id] === true && !have.has(c.id)).length
+          const tick = (ids, on) => setFp((st) => { const picked = { ...st.picked }; for (const id of ids) { if (on) picked[id] = true; else delete picked[id] } return { ...st, picked } })
+          return h('div', { className: 'kbm-mdl-root', 'data-kbm': 'fetch-dialog', onMouseDown: (ev) => { if (ev.target === ev.currentTarget) close() } },
+            h('div', { className: 'kbm-mdl-mask' }),
+            h('div', { className: 'kbm-mdl-dialog kbmp-mdl kbpv-fetch', role: 'dialog', 'aria-modal': 'true', 'aria-label': m('kb.fetch.title') },
+              h('div', { className: 'kbm-mdl-header' }, h('div', { className: 'kbm-mdl-title' }, m('kb.fetch.title'))),
+              h('div', { className: 'kbm-mdl-body kbpv-fetch-body' },
+                h('p', { className: 'kbpv-fetch-desc' }, m('kb.fetch.desc')),
+                custom === true ? null : h('p', { className: 'kbpv-fetch-note', 'data-kbm': 'fetch-replaces' }, m('kb.fetch.replaces', { slug: slug || '' })),
+                h('div', { className: 'kbpv-fetch-bar' },
+                  h('input', { type: 'search', className: 'kbm-in-input kbpv-in', 'data-kbm': 'fetch-search', autoFocus: true, placeholder: m('kb.fetch.search'), 'aria-label': m('kb.fetch.search'), value: fp.q, onChange: (ev) => { const q = ev.target.value; setFp((st) => ({ ...st, q })) } }),
+                  h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', 'data-kbm': 'fetch-all', disabled: free.length === 0, onClick: () => tick(free.map((c) => c.id), !allOn) }, allOn ? m('kb.fetch.none') : m('kb.fetch.all'))),
+                shown.length === 0
+                  ? h('p', { className: 'kbpv-hint', role: 'status', 'data-kbm': 'fetch-nomatch' }, m('kb.fetch.nomatch'))
+                  : h('ul', { className: 'kbpv-fetch-list', 'data-kbm': 'fetch-list' }, shown.map((c) => {
+                    const known = have.has(c.id)
+                    const meta = known ? m('kb.fetch.known') : [c.contextWindow !== undefined ? kbFetchSize(c.contextWindow) : null, c.input !== undefined && !(c.input.length === 1 && c.input[0] === 'text') ? c.input.join(' · ') : null].filter(Boolean).join(' · ')
+                    return h('li', { key: c.id, 'data-kbm': 'fetch-row', 'data-kbm-id': c.id },
+                      h('label', { className: 'kbpv-fetch-lab' + (known ? ' kbpv-fetch-known' : '') },
+                        h('input', { type: 'checkbox', checked: known || fp.picked[c.id] === true, disabled: known, onChange: () => tick([c.id], fp.picked[c.id] !== true) }),
+                        h('span', { className: 'kbpv-fetch-id', title: c.name !== undefined ? c.name : c.id }, c.id),
+                        c.name !== undefined && c.name !== c.id ? h('span', { className: 'kbpv-fetch-nm' }, c.name) : null,
+                        meta !== '' ? h('span', { className: 'kbpv-fetch-meta' }, meta) : null))
+                  })),
+                h('div', { className: 'kbpv-fetch-foot' },
+                  h('span', { className: 'kbpv-hint', 'data-kbm': 'fetch-count' }, m('kb.fetch.count', { n, total: fp.cands.length })),
+                  h('span', { className: 'kbpv-fetch-act' },
+                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'fetch-cancel', onClick: close }, m('kb.pv.cancel')),
+                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'fetch-adopt', disabled: n === 0, onClick: () => { setRows(kbFetchApply(rows, fp.cands, fp.picked)); close() } }, m('kb.fetch.adopt') + ' (' + String(n) + ')'))))))
+        }
+        const canRestore = custom !== true && d.restoreModels !== true && (d.hadModels === true || rows.length > 0)
         return h('div', { className: 'kbpv-fld', 'data-kbm': 'pv-models' },
-          h('div', { className: 'kbpv-mhead' }, h('span', { className: 'kbpv-fl' }, m('kb.pv.models'))),
+          h('div', { className: 'kbpv-mhead' }, h('span', { className: 'kbpv-fl' }, m('kb.pv.models')),
+            h('span', { className: 'kbpv-mact' },
+              canRestore ? h('button', { type: 'button', className: 'kbpv-lnk', 'data-kbm': 'fetch-restore', onClick: () => set({ models: [], touched: true, restoreModels: true }) }, m('kb.fetch.restore')) : null,
+              h('button', { type: 'button', className: 'kbpv-lnk', 'data-kbm': 'fetch-open', disabled: fp.busy === true || blocked !== null || !askable,
+                title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined), onClick: ask }, fp.busy === true ? m('kb.fetch.busy') : m('kb.fetch.btn')))),
+          fp.err !== null ? h('span', { className: 'kbpv-err', role: 'alert', 'data-kbm': 'fetch-err' }, fp.err) : null,
           rows.length === 0
-            ? h('p', { className: 'kbpv-hint' }, m(custom ? 'kb.pv.models.none' : 'kb.pv.models.catalog'))
+            ? h('p', { className: 'kbpv-hint', 'data-kbm': d.restoreModels === true ? 'fetch-restored' : undefined }, m(d.restoreModels === true ? 'kb.fetch.restored' : (custom ? 'kb.pv.models.none' : 'kb.pv.models.catalog')))
             : h('div', { className: 'kbpv-mrows' }, rows.map((r, i) => h('div', { className: 'kbpv-mrow', key: i, 'data-kbm': 'pv-model-row' },
               h('input', { className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.model.id'), 'aria-label': m('kb.pv.model.id') + ' ' + String(i + 1), value: r.id, onChange: (ev) => upd(i, 'id', ev.target.value) }),
               h('input', { className: 'kbm-in-input kbpv-in', placeholder: m('kb.pv.model.name'), 'aria-label': m('kb.pv.model.name') + ' ' + String(i + 1), value: r.name, onChange: (ev) => upd(i, 'name', ev.target.value) }),
-              h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'aria-label': m('kb.pv.model.del', { n: i + 1 }), title: m('kb.pv.model.del', { n: i + 1 }), onClick: () => set({ models: rows.filter((_, j) => j !== i), touched: true }) }, Ic('trash', 15))))),
-          h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'pv-model-add', onClick: () => set({ models: rows.concat([{ id: '', name: '' }]), touched: true }) }, Ic('plus', 13), m('kb.pv.model.add'))))
+              h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'aria-label': m('kb.pv.model.del', { n: i + 1 }), title: m('kb.pv.model.del', { n: i + 1 }), onClick: () => setRows(rows.filter((_, j) => j !== i)) }, Ic('trash', 15))))),
+          h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'pv-model-add', onClick: () => setRows(rows.concat([{ id: '', name: '' }])) }, Ic('plus', 13), m('kb.pv.model.add'))),
+          open ? renderPicker() : null)
       }
 
       const PvDrawer = ({ label, onClose, children, footer, head }) => {
@@ -1857,7 +1921,7 @@ window.__ModuleLoader__.load({
             dr.custom === true ? h(PvField, { id: 'pv-name', label: m('kb.pv.name') }, h('input', { id: 'pv-name', className: 'kbm-in-input kbpv-in', placeholder: route, value: dr.name, onChange: (ev) => setD({ name: ev.target.value }) })) : null,
             h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: urlBad ? m('kb.pv.err.url') : null }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.url.default'), value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
             dr.custom === true ? h(PvField, { id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))) : null,
-            h(PvModels, { d: dr, set: setD, custom: dr.custom === true })) : null,
+            h(PvModels, { d: dr, set: setD, custom: dr.custom === true, probe: kbFetchProbe(route, dr), blocked: urlBad ? m('kb.pv.err.url') : null, slug: route })) : null,
           h('div', { className: 'kbpv-zone' },
             h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.off')), h('span', null, m('kb.pv.zone.off.d'))),
               renderSwitch({ route, on: true, locked: ro || KBM.parkHost !== true || bloc !== null, why: KBM.parkHost !== true ? m('kb.pv.hostnote') : bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })) })),
@@ -1964,7 +2028,7 @@ window.__ModuleLoader__.load({
                 h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: 'https://gateway.example/v1', value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
               h(PvField, { key: 'pr', id: 'pv-proto', label: m('kb.pv.proto') }, h('select', { id: 'pv-proto', className: 'kbm-in-input kbpv-in', value: dr.proto, onChange: (ev) => setD({ proto: ev.target.value }) }, PV_PROTOS.map((x) => h('option', { key: x[0], value: x[0] }, m(x[1]))))),
               keyField,
-              h(PvModels, { key: 'mo', d: dr, set: setD, custom: true })]
+              h(PvModels, { key: 'mo', d: dr, set: setD, custom: true, probe: kbFetchProbe(null, dr), blocked: dr.url.trim() !== '' && !kbPvUrlOk(dr.url) ? m('kb.pv.err.url') : null, slug: null })]
           }
         }
 
@@ -2474,7 +2538,30 @@ window.__ModuleLoader__.load({
         '.kbpv-adv svg{transition:transform .15s}',
         '.kbpv-adv[aria-expanded="true"] svg{transform:rotate(90deg)}',
         '.kbpv-advbox{display:flex;flex-direction:column;gap:14px}',
-        '.kbpv-mhead{display:flex;justify-content:space-between;align-items:center}',
+        '.kbpv-mhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}',
+        '.kbpv-mact{display:inline-flex;align-items:center;gap:14px;flex-wrap:wrap}',
+        '.kbpv-lnk{border:0;background:transparent;padding:2px 0;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+        '.kbpv-lnk:hover:not([disabled]){color:var(--dsw-alias-label-primary)}',
+        '.kbpv-lnk:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}',
+        '.kbpv-lnk[disabled]{opacity:.5;cursor:default;text-decoration:none}',
+        // "Fetch available models": the picker is a dialog above the drawer (kbm-mdl-root sits at z-index 1000).
+        '.kbpv-fetch{width:min(520px,100%);gap:6px}',
+        '.kbpv-fetch-body{display:flex;flex-direction:column;gap:12px;padding:0 24px;margin-top:0}',
+        '.kbpv-fetch-desc{margin:0;font-size:13px;line-height:20px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-fetch-note{margin:0;padding:8px 10px;border-radius:10px;border:.5px solid var(--dsw-alias-state-warn-primary);font-size:12px;line-height:17px;color:var(--dsw-alias-label-secondary)}',
+        '.kbpv-fetch-bar{display:flex;gap:8px;align-items:center}',
+        '.kbpv-fetch-bar input{flex:1;min-width:0}',
+        '.kbpv-fetch-list{list-style:none;margin:0;padding:0;max-height:min(340px,45vh);overflow:auto;border:.5px solid var(--dsw-alias-border-l2);border-radius:12px}',
+        '.kbpv-fetch-list li+li{border-top:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-fetch-lab{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:center;padding:8px 12px;cursor:pointer}',
+        '.kbpv-fetch-lab:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbpv-fetch-lab input{grid-row:1 / span 2;margin:0}',
+        '.kbpv-fetch-id{grid-column:2;font-family:ui-monospace,monospace;font-size:12px;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-fetch-nm{grid-column:2;grid-row:2;font-size:11.5px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        '.kbpv-fetch-meta{grid-column:3;grid-row:1 / span 2;font-size:11.5px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}',
+        '.kbpv-fetch-known{opacity:.55;cursor:default}',
+        '.kbpv-fetch-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}',
+        '.kbpv-fetch-act{display:inline-flex;gap:8px}',
         '.kbpv-mrows{display:flex;flex-direction:column;gap:8px}',
         '.kbpv-mrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center}',
         '.kbpv-zone{margin-top:4px;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px}',
@@ -3537,7 +3624,12 @@ window.__ModuleLoader__.load({
           const id = String(r && r.id !== undefined ? r.id : '').trim()
           if (id === '' || seen.has(id)) continue
           seen.add(id)
-          out.push({ id, name: String(r && r.name !== undefined ? r.name : '').trim() })
+          const row = { id, name: String(r && r.name !== undefined ? r.name : '').trim() }
+          // What "Fetch available models" disclosed (capacities, input types) rides along on a new row.
+          if (Number.isInteger(r.contextWindow) && r.contextWindow > 0) row.contextWindow = r.contextWindow
+          if (Number.isInteger(r.maxTokens) && r.maxTokens > 0) row.maxTokens = r.maxTokens
+          if (Array.isArray(r.input) && r.input.length > 0 && r.input.every((x) => typeof x === 'string')) row.input = r.input.slice()
+          out.push(row)
         }
         return out
       }
@@ -3546,7 +3638,14 @@ window.__ModuleLoader__.load({
         const byId = new Map()
         for (const e of Array.isArray(existing) ? existing : []) if (kbPvIsObj(e) && typeof e.id === 'string') byId.set(e.id, e)
         return kbPvRows(rows).map((r) => {
+          // An entry that already exists keeps every field it carried (the user may have tuned them); a new one takes
+          // what the endpoint disclosed.
           const base = byId.has(r.id) ? { ...byId.get(r.id) } : { id: r.id }
+          if (!byId.has(r.id)) {
+            if (r.contextWindow !== undefined) base.contextWindow = r.contextWindow
+            if (r.maxTokens !== undefined) base.maxTokens = r.maxTokens
+            if (r.input !== undefined) base.input = r.input
+          }
           if (r.name === '') delete base.name
           else base.name = r.name
           return base
@@ -3573,7 +3672,8 @@ window.__ModuleLoader__.load({
           else next.displayName = name
           if (typeof d.proto === 'string' && d.proto !== '') next.api = d.proto
         }
-        if (d.models !== undefined) {
+        if (d.restoreModels === true) delete next.models // back to the adapter's built-in list
+        else if (d.models !== undefined) {
           const models = kbPvMergeModels(next.models, d.models)
           if (models.length > 0 || Array.isArray(next.models)) next.models = models
         }
@@ -3671,6 +3771,92 @@ window.__ModuleLoader__.load({
         await kbMLoad()
       }
       // KB-PV-ACTIONS-END
+      // KB-FETCH-PURE-BEGIN
+      // ── Fetch available models: ask the engine which models a provider serves ──
+      // Measured on DSH 0.2.0-rc.2 (`llm.discoverModels(settingsNs, request)`, the call the native page makes): a route
+      // the adapter's own catalog describes is answered from that catalog with no network call; a gateway or a
+      // self-hosted server is asked over the wire, with the typed key for this call alone (never stored). Every
+      // field but the id is optional. Nothing is written until the user applies the panel.
+      /** The request for a draft. An edit names its route; an add (custom) names the endpoint the form shows. Pure. */
+      const kbFetchProbe = (route, d) => {
+        const p = {}
+        const url = String(d.url || '').trim().replace(/\/+$/, '')
+        if (typeof route === 'string' && route !== '') p.provider = route
+        if (url !== '') p.baseURL = url
+        if ((d.custom === true || d.tab === 'custom') && typeof d.proto === 'string' && d.proto !== '') p.api = d.proto
+        if (String(d.key || '').trim() !== '') p.apiKey = String(d.key).trim()
+        return p
+      }
+      /** Whether there is anything to ask: a route to name, or an endpoint. Pure. */
+      const kbFetchAskable = (p) => typeof p.provider === 'string' || (typeof p.baseURL === 'string' && p.baseURL !== '')
+      /** The well-formed candidates of an answer: a string id, the first of a duplicate, typed optional fields. Pure. */
+      const kbFetchCandidates = (list) => {
+        const seen = new Set()
+        const out = []
+        for (const c of Array.isArray(list) ? list : []) {
+          if (c === null || typeof c !== 'object' || typeof c.id !== 'string' || c.id.trim() === '' || seen.has(c.id)) continue
+          seen.add(c.id)
+          const one = { id: c.id }
+          if (typeof c.name === 'string' && c.name.trim() !== '') one.name = c.name.trim()
+          if (Number.isInteger(c.contextWindow) && c.contextWindow > 0) one.contextWindow = c.contextWindow
+          if (Number.isInteger(c.maxTokens) && c.maxTokens > 0) one.maxTokens = c.maxTokens
+          if (Array.isArray(c.inputModalities) && c.inputModalities.every((x) => typeof x === 'string')) one.input = c.inputModalities.slice()
+          out.push(one)
+        }
+        return out
+      }
+      /** The engine's answer as found / refused, never a throw. A timeout is told apart (its own message). Pure. */
+      const kbFetchOutcome = (r) => {
+        if (r !== null && typeof r === 'object' && r.ok === true && Array.isArray(r.value)) return { kind: 'found', models: kbFetchCandidates(r.value) }
+        const e = r !== null && typeof r === 'object' && r.error !== null && typeof r.error === 'object' ? r.error : {}
+        return { kind: 'refused', timeout: e.code === 'timeout', message: typeof e.message === 'string' ? e.message : '' }
+      }
+      /** A candidate as a draft row: id and name, plus the capacities the endpoint disclosed. Pure. */
+      const kbFetchAdopt = (c) => {
+        const row = { id: c.id, name: c.name !== undefined ? c.name : '' }
+        if (c.contextWindow !== undefined) row.contextWindow = c.contextWindow
+        if (c.maxTokens !== undefined) row.maxTokens = c.maxTokens
+        if (c.input !== undefined) row.input = c.input.slice()
+        return row
+      }
+      /** The ids ticked on opening: those not already in the draft (a model already there has nothing to adopt). Pure. */
+      const kbFetchPreselect = (cands, rows) => {
+        const have = new Set((Array.isArray(rows) ? rows : []).map((r) => String(r && r.id !== undefined ? r.id : '').trim()))
+        const picked = {}
+        for (const c of cands) if (!have.has(c.id)) picked[c.id] = true
+        return picked
+      }
+      /** Search over id and display name, case-insensitive. Pure. */
+      const kbFetchFilter = (cands, q) => {
+        const t = String(q || '').trim().toLowerCase()
+        return t === '' ? cands : cands.filter((c) => c.id.toLowerCase().indexOf(t) >= 0 || (c.name !== undefined && c.name.toLowerCase().indexOf(t) >= 0))
+      }
+      /** The draft rows plus the ticked candidates. A row already there is kept exactly as it is (it may be tuned);
+       *  the empty placeholder rows of the form go. Pure. */
+      const kbFetchApply = (rows, cands, picked) => {
+        const kept = (Array.isArray(rows) ? rows : []).filter((r) => String(r && r.id !== undefined ? r.id : '').trim() !== '' || String(r && r.name !== undefined ? r.name : '').trim() !== '')
+        const have = new Set(kept.map((r) => String(r.id).trim()))
+        const out = kept.slice()
+        for (const c of cands) if (picked[c.id] === true && !have.has(c.id)) out.push(kbFetchAdopt(c))
+        return out
+      }
+      /** 262144 → "256K", 1048576 → "1M", anything else as it is. Pure. */
+      const kbFetchSize = (n) => {
+        if (n >= 1048576 && n % 1048576 === 0) return String(n / 1048576) + 'M'
+        if (n >= 1024 && n % 1024 === 0) return String(n / 1024) + 'K'
+        if (n >= 1000 && n % 1000 === 0) return String(n / 1000) + 'K'
+        return String(n)
+      }
+      // KB-FETCH-PURE-END
+      // KB-FETCH-ACTIONS-BEGIN
+      /** Ask the engine. Never throws: a service this DSH lacks, a refusal and a timeout all come back as `refused`. */
+      const kbFetchRun = async (api, probe) => {
+        const llm = api === null ? null : api.llm
+        if (llm === null || llm === undefined || typeof llm.discoverModels !== 'function') return { kind: 'refused', timeout: false, message: '', unavailable: true }
+        try { return kbFetchOutcome(await kbMTimeout(llm.discoverModels(KB_NS, probe), 30000)) }
+        catch (e) { return { kind: 'refused', timeout: false, message: String(e && e.message ? e.message : e) } }
+      }
+      // KB-FETCH-ACTIONS-END
       /** Une entrée `models[i]`/`modelOverrides.<id>` → les clés de contrôle du
        *  panneau. Seules les clés PRÉSENTES apparaissent : c'est ce qui fait
        *  qu'une surcharge se voit. */
