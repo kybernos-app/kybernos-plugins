@@ -26070,7 +26070,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
     // pour tous : les pages natives (Models, Agent presets, Built-in plugins) et les pages Kybernos.
     ctx.effect(() => styles.insert(`
 [class$="_options"] :is(h2[class*="_title"],h2[class*="_heading"],.kb6-title,.kbsl-h1,.kbth-title,.kbt2-h1,.kbmz-titre,.kbm-h1){font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;margin:0}
-[class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kb8-sub,.kbt2-sub,.kbmz-sous,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
+[class$="_options"] :is(p[class*="_intro"],.kbsl-sub,.kbth-sub,.kb8-sub,.kbt2-sub,.kbm-pagehead .kbm-sub){font-size:13px;font-weight:400;line-height:1.5;color:var(--dsw-alias-label-secondary);margin:6px 0 0;max-width:none}
 /* ── Gabarit unique des pages Réglages (02/10) ──────────────────────────────
    · Largeur : toute section = colonne de 720 px MAX, alignée à gauche (avant : 606 / 680 / 794 / 960).
    · En-tête : titre 18/600, sous-titre 13 à 6 px du titre, premier bloc à 20 px du sous-titre.
@@ -28426,36 +28426,209 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 @media (max-width:600px){.kbsp-inv{flex-wrap:wrap}.kbsp-in{flex-basis:100%}.kbsp-sel{flex:1;max-width:none}}
 `), 'kybers: styles maquette v7')
 
-    // ── header de la sidebar : marque Kybernos (losange ◆ + nom) à la place de deepseek HARNESS ──
-    const KB_LOGO_RED = '#f2372a'
-    const KybernosLogo = (props) => {
-      const size = props !== null && props !== undefined && typeof props.size === 'number' && props.size > 0 ? props.size : 24
-      return h('svg', {
-        width: size, height: size, viewBox: '0 0 100 102',
-        style: { overflow: 'visible', display: 'block', flex: 'none' },
-        'aria-hidden': 'true',
-      },
-        h('circle', { cx: 47, cy: 47, r: 47, fill: KB_LOGO_RED }),
-        h('polygon', { points: '56,73 94,101 64,101', fill: KB_LOGO_RED }),
-        h('rect', { x: 29, y: 21, width: 15.5, height: 56, fill: '#ffffff' }),
-        h('polygon', { points: '60,21 74,21 45.5,53 45.5,41', fill: '#ffffff' }),
-        h('polygon', { points: '44.5,49 56,49 91,91 80,100', fill: '#ffffff' }))
+    // ── Brand: the K pastille, the "Kybernos" wordmark, the tab icon and title ─────────────
+    // The mark is a red pastille holding a white K, with a small chat-bubble tail at the
+    // bottom-left. The K is the logo AND the favicon. In the wordmark the pastille is the first
+    // letter: "<pastille>ybernos". The geometry lives in ONE string (KB_BRAND_INNER) that feeds
+    // both the React mark and the favicon data URI. The block between the markers is pure (no DOM,
+    // no React) and is run as-is by scripts/test-brand.mjs.
+    // KB-BRAND-CORE-BEGIN
+    const KB_BRAND_NAME = 'Kybernos'
+    const KB_BRAND_RED = '#f2372a'
+    // The K is 36 units high (y 14..50) and sits in a 41.5 x 49 body: ~6.5 units of padding.
+    const KB_BRAND_VIEWBOX = '6 6 49 57'
+    const KB_BRAND_RATIO = 49 / 57
+    const KB_BRAND_INNER =
+      '<rect x="11.5" y="7.5" width="41.5" height="49" rx="8" fill="' + KB_BRAND_RED + '"/>' +
+      '<polygon points="12.5,52 9.5,61 24,56.5" fill="' + KB_BRAND_RED + '" stroke="' + KB_BRAND_RED + '" stroke-width="1.4" stroke-linejoin="round"/>' +
+      '<g fill="#fff" stroke="#fff" stroke-width="1.4" stroke-linejoin="round">' +
+      '<rect x="18" y="14" width="9" height="36"/><polygon points="35,14 45,14 27,42.3 27,26.6"/>' +
+      '<polygon points="27,36 36,50 46.5,50 34.3,30.8 27,30.8"/></g>'
+    // Wordmark metrics as fractions of the font size: the pastille is .98f wide and 1.14f high
+    // and dips .26f under the baseline, so the K (cap height .72f) stands on the baseline.
+    const KB_WORDMARK = { width: 0.98, height: 1.14, drop: 0.26 }
+    const KB_BRAND_LOGO_RE = /^data:image\/(?:png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/
+    const KB_BRAND_LOGO_MAX = 262144
+    const KB_BRAND_NAME_MAX = 40
+
+    const kbBrandFaviconHref = () => 'data:image/svg+xml,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + KB_BRAND_VIEWBOX + '">' + KB_BRAND_INNER + '</svg>')
+
+    // A Team module may rename and re-logo the product. Only a name and a data-URI logo are
+    // accepted (an image in <img> cannot run script); anything else is dropped. "Powered by
+    // Kybernos" is NOT part of the override: the shell adds it whenever an override is active.
+    const kbBrandSanitize = (raw) => {
+      if (raw === null || raw === undefined || typeof raw !== 'object') return null
+      const clean = typeof raw.name === 'string' ? raw.name.replace(/[\u0000-\u001f\u007f]/g, '').trim() : ''
+      const name = Array.from(clean).slice(0, KB_BRAND_NAME_MAX).join('')
+      const logo = typeof raw.logo === 'string' && raw.logo.length <= KB_BRAND_LOGO_MAX && KB_BRAND_LOGO_RE.test(raw.logo) ? raw.logo : null
+      if (name === '' && logo === null) return null
+      return { name: name === '' ? KB_BRAND_NAME : name, logo }
     }
+
+    // DSH titles its tab "DeepSeek Harness". Swap that for the brand name; when the name
+    // changes (an override is set or cleared), swap the previous name too.
+    const kbBrandRetitle = (title, name, previous) => {
+      if (typeof title !== 'string' || typeof name !== 'string' || name === '') return title
+      let out = title.replace(/DeepSeek Harness/gi, name)
+      if (typeof previous === 'string' && previous !== '' && previous !== name) out = out.split(previous).join(name)
+      return out
+    }
+    // KB-BRAND-CORE-END
+
+    let kbBrandOverride = null
+    const kbBrandListeners = new Set()
+    const kbBrandSubscribe = (fn) => { kbBrandListeners.add(fn); return () => { kbBrandListeners.delete(fn) } }
+    const kbBrandGet = () => kbBrandOverride
+    const kbBrandName = () => (kbBrandOverride !== null ? kbBrandOverride.name : KB_BRAND_NAME)
+    const kbBrandSet = (raw) => {
+      kbBrandOverride = kbBrandSanitize(raw)
+      kbBrandListeners.forEach((fn) => { try { fn() } catch (e) { /* one listener must not break the others */ } })
+      return kbBrandOverride
+    }
+    const useBrandOverride = () => React.useSyncExternalStore(kbBrandSubscribe, kbBrandGet, kbBrandGet)
+
+    // The mark alone, by pixel height (hero, About, rail).
     const KybernosMark = (props) => {
-      const size = props !== null && props !== undefined && typeof props.size === 'number' && props.size > 0 ? props.size : 24
-      return h(KybernosLogo, { size: Math.min(size, 26) })
+      const height = props !== null && props !== undefined && typeof props.height === 'number' && props.height > 0 ? props.height : 24
+      return h('svg', {
+        width: height * KB_BRAND_RATIO, height, viewBox: KB_BRAND_VIEWBOX,
+        style: { display: 'block', flex: 'none', overflow: 'visible' },
+        'aria-hidden': 'true',
+        dangerouslySetInnerHTML: { __html: KB_BRAND_INNER },
+      })
     }
-    const KybernosName = () => h('span', {
-      style: { fontWeight: 800, fontSize: '15px', letterSpacing: '.02em', color: 'var(--dsw-alias-label-primary)', whiteSpace: 'nowrap' },
-    }, kbt('kbui.kybernos'))
+    // The full wordmark, by font size. Always left-to-right: it is a Latin brand name.
+    const KybernosWordmark = (props) => {
+      const f = props !== null && props !== undefined && typeof props.size === 'number' && props.size > 0 ? props.size : 17
+      return h('span', {
+        dir: 'ltr', role: 'img', 'aria-label': KB_BRAND_NAME,
+        style: { display: 'inline-flex', alignItems: 'baseline', fontSize: f + 'px', fontWeight: 700, letterSpacing: '.01em', lineHeight: 1, whiteSpace: 'nowrap', color: 'inherit', unicodeBidi: 'isolate' },
+      },
+        h('svg', {
+          width: f * KB_WORDMARK.width, height: f * KB_WORDMARK.height, viewBox: KB_BRAND_VIEWBOX,
+          style: { flex: 'none', position: 'relative', top: f * KB_WORDMARK.drop + 'px' },
+          'aria-hidden': 'true',
+          dangerouslySetInnerHTML: { __html: KB_BRAND_INNER },
+        }),
+        h('span', { 'aria-hidden': 'true' }, 'ybernos'))
+    }
+    const KybernosPoweredBy = () => h('span', {
+      style: { display: 'inline-flex', alignItems: 'baseline', gap: '4px', fontSize: '11px', lineHeight: 1.3, color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' },
+    }, 'Powered by', h(KybernosWordmark, { size: 11 }))
+
+    // Sidebar brand row. DSH renders the mark and the name as two sibling boxes of a flex row
+    // with an 8px gap (measured on 0.2.0-rc.2: brandIdentity, 24px high, align-items:center), and
+    // renders the SAME mark slot in the collapsed rail — so the mark slot holds the pastille alone
+    // and the name slot holds "ybernos", pulled back over the gap so the pastille touches the
+    // word like any other letter. The pastille is nudged down so the K stands on the text baseline.
+    const KB_SIDEBAR_FONT = 19
+    const KB_SIDEBAR_ROW_GAP = 8
+    const KB_SIDEBAR_MARK_NUDGE = 1.1
+    const KybernosSidebarMark = () => {
+      const ov = useBrandOverride()
+      if (ov !== null && ov.logo !== null) {
+        return h('img', { src: ov.logo, alt: '', width: 24, height: 24, style: { display: 'block', flex: 'none', objectFit: 'contain', borderRadius: '6px' } })
+      }
+      return h('span', { style: { display: 'flex', position: 'relative', top: ov === null ? KB_SIDEBAR_MARK_NUDGE + 'px' : 0 } },
+        h(KybernosMark, { height: KB_SIDEBAR_FONT * KB_WORDMARK.height }))
+    }
+    const KybernosSidebarName = () => {
+      const ov = useBrandOverride()
+      const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
+      const base = { fontWeight: 700, fontSize: KB_SIDEBAR_FONT + 'px', letterSpacing: '.01em', color: 'var(--dsw-alias-label-primary)', whiteSpace: 'nowrap' }
+      if (ov !== null) {
+        return h('span', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.15, minWidth: 0 } },
+          h('span', { style: Object.assign({}, base, { fontSize: '16px', overflow: 'hidden', textOverflow: 'ellipsis' }) }, ov.name),
+          h(KybernosPoweredBy))
+      }
+      // Right-to-left rows put the mark on the right: the letters would read backwards, so the
+      // name is written in full there and the pastille stays a plain badge.
+      if (rtl) return h('span', { dir: 'ltr', style: Object.assign({}, base, { fontWeight: 800, fontSize: '15px' }) }, KB_BRAND_NAME)
+      return h('span', { dir: 'ltr', style: Object.assign({}, base, { lineHeight: 1, marginInlineStart: -(KB_SIDEBAR_ROW_GAP - 0.08 * KB_SIDEBAR_FONT) + 'px' }) }, 'ybernos')
+    }
     // Single slots: the native brand registers at priority 0, and the lowest
     // priority renders — so shadow it at -1 to replace the DSH wordmark.
     ctx.effect(() => slots.inject('sidebar.brand.mark', () => slots.register(
-      { name: 'sidebar.brand.mark', priority: -1 }, KybernosMark)), 'kybers: marque kybernos')
+      { name: 'sidebar.brand.mark', priority: -1 }, KybernosSidebarMark)), 'kybers: marque kybernos')
     ctx.effect(() => slots.inject('sidebar.brand.name', () => slots.register(
-      { name: 'sidebar.brand.name', priority: -1 }, KybernosName)), 'kybers: nom kybernos')
+      { name: 'sidebar.brand.name', priority: -1 }, KybernosSidebarName)), 'kybers: nom kybernos')
     ctx.effect(() => slots.inject('conversation.hero.brand.mark', () => slots.register(
-      { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosLogo, { size: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')
+      { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosMark, { height: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')
+
+    // Tab icon: DSH links its own favicon.svg / favicon-dark.svg. Point every icon link at the
+    // pastille (all of them, so the light/dark media variants agree) and put it back on dispose.
+    // Re-applied when DSH swaps the link, which it may do on a theme change.
+    ctx.effect(() => {
+      const originals = new Map()
+      const apply = () => {
+        try {
+          const href = kbBrandFaviconHref()
+          const links = Array.from(document.querySelectorAll('link[rel~="icon"]'))
+          if (links.length === 0) {
+            const link = document.createElement('link')
+            link.rel = 'icon'; link.type = 'image/svg+xml'; link.href = href
+            originals.set(link, null)
+            document.head.appendChild(link)
+            return
+          }
+          links.forEach((link) => {
+            if (link.getAttribute('href') === href) return
+            if (!originals.has(link)) originals.set(link, { href: link.getAttribute('href'), type: link.getAttribute('type') })
+            link.setAttribute('type', 'image/svg+xml')
+            link.setAttribute('href', href)
+          })
+        } catch (e) { /* no document */ }
+      }
+      apply()
+      let observer = null
+      try {
+        observer = new MutationObserver(apply)
+        observer.observe(document.head, { childList: true, subtree: true, attributes: true, attributeFilter: ['href', 'rel'] })
+      } catch (e) { /* no MutationObserver */ }
+      return () => {
+        try { if (observer !== null) observer.disconnect() } catch (e) { /* already gone */ }
+        originals.forEach((was, link) => {
+          try {
+            if (was === null) { link.remove(); return }
+            if (was.href === null) link.removeAttribute('href'); else link.setAttribute('href', was.href)
+            if (was.type === null) link.removeAttribute('type'); else link.setAttribute('type', was.type)
+          } catch (e) { /* link already removed */ }
+        })
+      }
+    }, 'kybers: favicon kybernos')
+
+    // Tab title: "DeepSeek Harness" becomes the brand name (and follows an override).
+    ctx.effect(() => {
+      let last = null
+      const apply = () => {
+        try {
+          const name = kbBrandName()
+          const next = kbBrandRetitle(document.title, name, last)
+          last = name
+          if (next !== document.title) document.title = next
+        } catch (e) { /* no document */ }
+      }
+      apply()
+      let observer = null
+      try {
+        const el = document.querySelector('title')
+        if (el !== null) {
+          observer = new MutationObserver(apply)
+          observer.observe(el, { childList: true, characterData: true, subtree: true })
+        }
+      } catch (e) { /* no MutationObserver */ }
+      const off = kbBrandSubscribe(apply)
+      return () => { off(); try { if (observer !== null) observer.disconnect() } catch (e) { /* already gone */ } }
+    }, 'kybers: titre de l\'onglet')
+
+    // Contract for the other bundles (About) and for a Team module: components to draw the brand,
+    // and the override seam. A bundle must treat every member as optional.
+    try {
+      if (typeof window !== 'undefined') {
+        window.__KB_BRAND__ = { Mark: KybernosMark, Wordmark: KybernosWordmark, PoweredBy: KybernosPoweredBy, getOverride: kbBrandGet, setOverride: kbBrandSet, subscribe: kbBrandSubscribe, faviconHref: kbBrandFaviconHref }
+      }
+    } catch (e) { /* outside a browser */ }
 
     // ── invitation : un CADEAU dans la rangee d'icones du pied, juste a droite
     //    du (i) « Help & docs ». La carte pleine largeur (titre + sous-titre +
@@ -29321,7 +29494,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       const GROUPES = [
         { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'apparence', 'appearance', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal'] },
         { titre: kbt('settings.group.settings'), mots: ['general', 'langue', 'language', 'memory & lessons', 'commandes', 'commands', 'mon espace', 'my workspace'] },
-        { titre: kbt('settings.group.desktop'), mots: ['theme', 'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models', 'models', 'ollama local models', 'voix', 'voice', 'outils', 'tools', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'maintenance'] },
+        { titre: kbt('settings.group.desktop'), mots: ['theme', 'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models', 'models', 'ollama local models', 'voix', 'voice', 'outils', 'tools', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
         { titre: kbt('settings.group.plugins'), mots: ['plugins', 'listing', 'built-in plugins'] },
       ]
       // Icônes VARIÉES du nav (maquette « Settings Menu ») : tracés Lucide
@@ -29354,7 +29527,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'outils': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'tools': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'agent presets': '<rect x="4" y="8" width="16" height="12" rx="2" ' + trait + '/><line x1="12" y1="8" x2="12" y2="5" ' + trait + '/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/><line x1="2" y1="13" x2="4" y2="13" ' + trait + '/><line x1="20" y1="13" x2="22" y2="13" ' + trait + '/>',
-        'maintenance': '<path d="M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5" ' + trait + '/><path d="M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5" ' + trait + '/>',
+        'about': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
+        'a propos': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
         'langue': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
         'language': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M2 12h20" ' + trait + '/><path d="M12 2a15 15 0 0 1 0 20a15 15 0 0 1 0-20z" ' + trait + '/>',
         'memory & lessons': '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" ' + trait + '/><path d="M9 18h6" ' + trait + '/><path d="M10 22h4" ' + trait + '/>',

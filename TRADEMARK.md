@@ -30,6 +30,23 @@ and it does not rely on non-OSI license clauses (no Commons Clause, no SSPL/BSL)
    service names that compete with the Kybernos project's own offerings, or
    that misrepresent the relationship between your product and Kybernos.
 
+## Team branding
+
+The product can show an organisation's own name and logo (a "Team brand") in
+place of the Kybernos name and logo, for example in the sidebar and in the
+browser tab title. This is permitted, and does not need written permission,
+when all of the following hold:
+
+1. The mention **Powered by Kybernos**, with the Kybernos wordmark, stays
+   visible next to the Team brand in the sidebar. The Team brand cannot remove,
+   hide or alter it: the application adds it whenever a Team brand is active.
+2. The browser tab icon stays the Kybernos "K". A Team brand does not replace it.
+3. The Team brand does not claim, or suggest, that the organisation is the
+   Kybernos project or is endorsed by it (rule 3 above still applies).
+
+Offering a hosted or managed service under the Kybernos name is still covered
+by rule 2 above, with or without a Team brand.
+
 ## Enforcement
 
 This policy is enforced at the sole discretion of the trademark owner. If you
