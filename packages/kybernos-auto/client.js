@@ -322,7 +322,8 @@ window.__ModuleLoader__.load({
         setSondage(true)
         setMsg('')
         fetch('/kybernos-auto/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
-          .then((r) => r.json())
+          // A DSH started before the probe route existed answers 404: say what to do instead of a JSON parse error.
+          .then((r) => (r.status === 404 ? Promise.reject(new Error(kt('Le serveur DSH n’a pas encore chargé cette version : redémarrez-le.', 'The DSH server has not loaded this version yet: restart it.'))) : r.json()))
           .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.') })
           .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }
