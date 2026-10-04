@@ -12,3 +12,5 @@ Kybernos plugins for DSH. Open core: this repo is Apache-2.0; paid modules live 
 7. **No secrets.** Never commit `.env`, tokens, tester codes.
 
 Before pushing: `node scripts/garde-depot.mjs && node scripts/test-lifecycle-engine.mjs && node scripts/test-paquet.mjs`.
+
+Testing what a user sees (a page, a translation, a layout) needs the real GUI: `docs/dev/live-testing.md` explains the sign-in (signed session cookie, not the stale token URL) and the helpers (`scripts/live-page.mjs`, `scripts/audit-i18n-live.mjs`).
