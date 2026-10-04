@@ -29619,6 +29619,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'listing': '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" ' + trait + '/>',
         'built-in plugins': '<path d="M21 8l-9-5-9 5v8l9 5 9-5z" ' + trait + '/><path d="M3 8l9 5 9-5" ' + trait + '/><path d="M12 13v8" ' + trait + '/>',
       }
+      // Libellés (normalisés) qui ferment le menu des Réglages, quelle que soit leur place dans GROUPES.
+      const FIN_DE_LISTE = ['about', 'a propos']
       const rang = (libelle) => {
         const n = norm(libelle)
         for (let g = 0; g < GROUPES.length; g++) {
@@ -29646,6 +29648,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           liste.dataset.kbSig = signature
           Array.from(tetes).forEach((e) => e.remove())
           Array.from(liste.querySelectorAll('[data-kb="settings-divider"]')).forEach((e) => e.remove())
+          liste.dataset.kbSettings = '1'
           let vus = [false, false, false, false]
           cellules.forEach((cellule, idx) => {
             const n = norm(cellule.textContent)
@@ -29677,6 +29680,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             // ordre INTRA-groupe : la position du mot dans la liste du
             // groupe (l'ordre de la maquette), pas l'index d'origine.
             cellule.style.order = String(g * 100 + 10 + wi)
+            // « About » ferme la liste, après les pages que les plugins ajoutent (qui tombent à 450+).
+            if (FIN_DE_LISTE.indexOf(n) !== -1) cellule.style.order = '9000'
             // icône VARIÉE : le svg natif de la cellule reçoit le tracé du
             // libellé (plusieurs items partageaient la même icône shell).
             const icone = ICONES[n]
@@ -29704,6 +29709,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
    intertitre discret, jetons du shell, hors pointer-events. */
 [class*="navList"] [data-kb="settings-group"]{padding:10px 12px 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-tertiary);pointer-events:none}
 [class*="navList"] [data-kb="settings-group"]:first-child{padding-top:2px}
+/* Menu des Réglages seulement (posé par organiser) : de l'air sous le dernier onglet, noms d'onglets un cran plus petits. */
+[class*="navList"][data-kb-settings]{padding-bottom:32px}
+[class*="navList"][data-kb-settings] [class*="navCell"]{font-size:13px}
 [class*="navList"] [data-kb="settings-divider"]{margin:14px 4px 0;padding:14px 8px 0;border-top:1px solid var(--dsw-alias-border-l1);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--dsw-alias-label-secondary);pointer-events:none}
 `), 'kybers: styles groupes menu reglages')
 
