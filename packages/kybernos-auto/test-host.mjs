@@ -76,12 +76,12 @@ r = reponse()
 await routes['/kybernos-auto/router'](fabriqueRequete('POST', '/kybernos-auto/router', { demande: 'corrige ce bug', sessionId: 's3' }), r)
 ok('global on → disjoncteur : même s3 devient active', r.corps.actif === true, r.corps)
 
-console.log('\n── santé : compteur écrit au routage, down exclu ──')
-ok('compteur posé (calls≥1)', (lireSante(santePath)['deepseek-official/deepseek-chat']?.calls || 0) >= 1, lireSante(santePath))
+console.log('\n── santé : le routage seul n’écrit rien (un modèle choisi n’a encore rien fait) ──')
+ok('aucun compteur posé par un routage', lireSante(santePath)['deepseek-official/deepseek-chat'] === undefined, lireSante(santePath))
 r = reponse()
 await routes['/kybernos-auto/state'](requete('GET', '/kybernos-auto/state'), r)
 const santeChat = r.corps.sante.find((s) => s.modele === 'deepseek-official/deepseek-chat')
-ok('vue santé : ok, erreurPct 0', santeChat && santeChat.etat === 'ok' && santeChat.calls >= 1, r.corps.sante)
+ok('vue santé : « jamais » vu, disjoncteur fermé, donc disponible', santeChat && santeChat.etat === 'jamais' && santeChat.disjoncteur === 'closed' && r.corps.disponibles === 2, r.corps.sante)
 
 console.log('\n── settings : disjoncteur global ──')
 r = reponse()
@@ -110,10 +110,10 @@ for (let i = 0; i < 4; i++) {
   await routes['/kybernos-auto/report'](fabriqueRequete('POST', '/kybernos-auto/report', { modele: modeleRapport, latenceMs: 9000, erreur: true }), r)
 }
 sc = r.corps.sante.find((x) => x.modele === modeleRapport)
-ok('erreurs répétées → « down », 1 modèle disponible sur 2', sc.etat === 'down' && r.corps.disponibles === 1, sc)
+ok('trois échecs de suite → disjoncteur ouvert (« down »), 1 modèle disponible sur 2', sc.etat === 'down' && sc.disjoncteur === 'open' && sc.jusqua > Date.now() && r.corps.disponibles === 1, sc)
 r = reponse()
 await routes['/kybernos-auto/router'](fabriqueRequete('POST', '/kybernos-auto/router', { demande: 'corrige ce bug', sessionId: 's2' }), r)
-ok('router : seul candidat code « down » → écarté, modèle de session conservé (modele null)', r.corps.actif === true && r.corps.modele === null && /hors service/.test(r.corps.raison), r.corps)
+ok('router : seul candidat code en pause → écarté (avec sa raison), modèle de session conservé (modele null)', r.corps.actif === true && r.corps.modele === null && /paused|did not answer/.test(r.corps.raison) && r.corps.ecartes.length === 1 && r.corps.ecartes[0].modele === 'deepseek-official/deepseek-chat', r.corps)
 writeFileSync(santePath, JSON.stringify({}))
 
 console.log('\n── router : classifieur hors ligne → repli chat, sans crash ──')

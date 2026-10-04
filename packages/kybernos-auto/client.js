@@ -23,6 +23,22 @@ window.__ModuleLoader__.load({
       try { const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__(); return String(l || '').split(/[-_]/)[0] } catch { return 'fr' }
     }
     const kt = (fr, en) => lang() === 'en' ? en : fr
+    // Why a model is skipped, in the words of the Models tab's health chip (the host keeps the cause with the outcome).
+    const CAUSES_TXT = {
+      key: ['clé refusée', 'key refused'], gone: ['retiré chez le fournisseur', 'gone from the provider'],
+      refused: ['refusé par le fournisseur', 'refused by the provider'], text: ['ne prend pas de requête texte', 'cannot take a text request'],
+      silent: ['ne répond pas', 'not answering'], limit: ['limite de débit', 'rate limited'],
+      'not-chat': ['pas un modèle de langage', 'not a language model'], other: ['échec', 'failing']
+    }
+    const causeTxt = (c) => { const t = CAUSES_TXT[c] || CAUSES_TXT.other; return kt(t[0], t[1]) }
+    const heureTxt = (ts) => { try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { return '' } }
+    const statutTxt = (s, maintenant) => {
+      if (s.etat === 'jamais') return kt('pas encore vérifié', 'not checked yet')
+      if (s.etat === 'down') return kt('En pause · ', 'Paused · ') + causeTxt(s.cause) + (s.jusqua ? kt(' · réessai à ', ' · retry at ') + heureTxt(s.jusqua) : '')
+      if (s.etat === 'degrade') return kt('À l’essai · ', 'On trial · ') + causeTxt(s.cause)
+      const age = s.sonde && s.sonde.at ? Math.max(0, Math.round((maintenant - s.sonde.at) / 1000)) : null
+      return kt('Sain', 'Healthy') + (age !== null ? kt(' · a répondu il y a ', ' · answered ') + age + (lang() === 'en' ? ' s ago' : ' s') : '')
+    }
 
     // L'app ne met PAS l'id de session dans l'URL : elle le garde dans
     // localStorage « dsh.sessions.current ». L'URL ne sert que de repli.
@@ -190,7 +206,7 @@ window.__ModuleLoader__.load({
           dot.className = 'kaa-dot ' + (v.etat === 'ok' ? 'ok' : (v.etat === 'down' ? 'down' : (v.etat === 'degrade' ? 'warn' : 'idle')))
           nom.append(dot, document.createTextNode(' ' + v.modele.split('/').pop()))
           const etatL = document.createElement('small')
-          etatL.textContent = v.etat === 'ok' ? kt('Sain', 'Healthy') : (v.etat === 'down' ? kt('Hors service · écarté', 'Down · excluded') : (v.etat === 'degrade' ? kt('Dégradé · écarté', 'Degraded · skipped') : kt('Jamais routé', 'Never routed')))
+          etatL.textContent = statutTxt(v, Date.now())
           nom.append(etatL)
           const lat = document.createElement('span')
           lat.className = 'kaa-sm-num'
@@ -279,6 +295,9 @@ window.__ModuleLoader__.load({
       const maintenantPair = React.useState(Date.now())
       const maintenant = maintenantPair[0]
       const setMaintenant = maintenantPair[1]
+      const sondagePair = React.useState(false)
+      const sondage = sondagePair[0]
+      const setSondage = sondagePair[1]
       const lire = () => lireEtat('').then((j) => { if (j && j.ok === true) setEtat(j) })
       // Relecture toutes les 60 s (intervalS) + horloge d'une seconde pour « Last check N s ago ».
       React.useEffect(() => {
@@ -296,6 +315,16 @@ window.__ModuleLoader__.load({
         }).then((r) => r.json()).then((j) => {
           if (j && j.ok === true) { setEtat(j); setMsg('') } else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.')
         }).catch((e) => setMsg(String(e && e.message ? e.message : e)))
+      }
+      // "Check now": the host asks every whitelist model a real, tiny question (the verdict cache is bypassed); a model whose
+      // problem was fixed (a key, say) comes back at once instead of waiting for its pause to end.
+      const sonder = () => {
+        setSondage(true)
+        setMsg('')
+        fetch('/kybernos-auto/probe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+          .then((r) => r.json())
+          .then((j) => { setSondage(false); if (j && j.ok === true) setEtat(j); else setMsg(j && j.erreur ? String(j.erreur) : 'Rejected.') })
+          .catch((e) => { setSondage(false); setMsg(String(e && e.message ? e.message : e)) })
       }
       const retirer = (m) => ecrire({ autoWhitelist: etat.whitelist.filter((x) => x !== m) })
       const ajouterModele = () => {
@@ -327,7 +356,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kaa-ligne' },
           h('div', { className: 'kaa-ligne-txt' },
             h('b', null, kt('Whitelist', 'Whitelist')),
-            h('span', null, kt('Les SEULS modèles qu\'Auto peut choisir. Un modèle « down » (santé) est écarté jusqu\'à retour.', 'The ONLY models Auto may pick. A "down" model (health) is skipped until it recovers.'))),
+            h('span', null, kt('Les SEULS modèles qu\'Auto peut choisir. Un modèle qui ne répond plus est mis en pause (disjoncteur) puis réessayé ; l\'ordre de la liste est l\'ordre de repli.', 'The ONLY models Auto may pick. A model that stops answering is paused (circuit breaker) and tried again later; the list order is the fallback order.'))),
           h('div', { className: 'kaa-chips-col' },
             h('div', { className: 'kaa-chips', 'data-kb': 'auto-whitelist-chips' },
               etat.whitelist.length === 0
@@ -366,11 +395,12 @@ window.__ModuleLoader__.load({
                   h('span', { className: 'kaa-dot ' + (s.etat === 'down' ? 'down' : (s.etat === 'degrade' ? 'warn' : 'ok')) }),
                   ' ', s.modele.split('/').pop(),
                   etat.chaud === s.modele ? h('span', { className: 'kaa-warm', 'data-kb': 'auto-warm-cache' }, kt('cache chaud', 'warm cache')) : null,
-                  h('small', null,
-                    s.etat === 'jamais' ? kt('jamais routé', 'never routed')
-                      : (s.etat === 'down' ? kt('Hors service · écarté', 'Down · excluded')
-                        : (s.etat === 'degrade' ? kt('Dégradé', 'Degraded') : kt('Sain', 'Healthy'))),
-                    s.calls > 0 ? ' · ' + s.calls + ' ' + (s.calls > 1 ? kt('appels', 'calls') : kt('appel', 'call')) : '')),
+                  h('small', { 'data-kb': 'auto-health-status' },
+                    statutTxt(s, maintenant),
+                    s.calls > 0 ? ' · ' + s.calls + ' ' + (s.calls > 1 ? kt('appels', 'calls') : kt('appel', 'call')) : ''),
+                  s.etat !== 'ok' && s.etat !== 'jamais' && s.lastError && s.lastError.message
+                    ? h('small', { className: 'kaa-why', 'data-kb': 'auto-health-why', title: s.lastError.message }, s.lastError.code + ' — ' + s.lastError.message)
+                    : null),
                 h('td', null, s.lastLatencyMs !== null && s.lastLatencyMs !== undefined ? (s.lastLatencyMs / 1000).toFixed(1) + ' s' : '—'),
                 h('td', null, s.erreurPct !== null ? s.erreurPct + '%' : '—'),
                 h('td', null, s.cacheHitPct !== null && s.cacheHitPct !== undefined
@@ -380,10 +410,10 @@ window.__ModuleLoader__.load({
             h('span', { 'data-kb': 'auto-last-check' }, kt('Dernière lecture il y a ', 'Last check '),
               Math.max(0, Math.round((maintenant - (etat.checkedAt || maintenant)) / 1000)) + ' s',
               kt(' · toutes les ', ' ago · every '), (etat.intervalS || 60) + ' s'),
-            h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-recheck', onClick: lire }, kt('Relire maintenant', 'Re-check now'))),
+            h('button', { type: 'button', className: 'kaa-recheck', 'data-kb': 'auto-health-recheck', disabled: sondage, onClick: sonder }, sondage ? kt('Vérification…', 'Checking…') : kt('Vérifier maintenant', 'Check now'))),
           h('p', { className: 'kaa-note' }, kt(
-            'Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue (POST /kybernos-auto/report) ; « — » tant qu’aucune n’a rapporté.',
-            'Latency, errors and cache hit come from delegations that report their outcome (POST /kybernos-auto/report); "—" until one has.')),
+            'Avant de choisir, Auto interroge les candidats (une vraie question minuscule, verdict gardé ' + (etat.ttlSondeS || 60) + ' s) et ne propose que des modèles qui répondent, avec jusqu’à ' + (etat.plafond || 10) + ' replis ordonnés. Latence, erreurs et cache hit viennent des délégations qui rapportent leur issue (POST /kybernos-auto/report) ; « — » tant qu’aucune n’a rapporté.',
+            'Before choosing, Auto asks the candidates a real, tiny question (the verdict is kept for ' + (etat.ttlSondeS || 60) + ' s) and only offers models that answer, with up to ' + (etat.plafond || 10) + ' ordered fallbacks. Latency, errors and cache hit come from delegations that report their outcome (POST /kybernos-auto/report); "—" until one has.')),
           h('div', { className: 'kaa-foot' }, h('code', null, 'scope: session'))),
         msg !== '' ? h('p', { className: 'kaa-err' }, msg) : null)
     }
@@ -445,6 +475,8 @@ window.__ModuleLoader__.load({
       '.kaa-sante-tete{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}',
       '.kaa-sante-tete b{font-size:14px;font-weight:600}',
       '.kaa-recheck{border:0;background:none;color:var(--dsw-alias-brand-primary);cursor:pointer;font:inherit;font-size:12.5px;padding:0}',
+      '.kaa-recheck:disabled{opacity:.6;cursor:default}',
+      '.kaa-table small.kaa-why{font-family:ui-monospace,Menlo,monospace;font-size:11px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
       '.kaa-table{width:100%;border-collapse:collapse;font-size:13px}',
       '.kaa-table th{text-align:start;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--dsw-alias-label-tertiary);',
       'padding:0 8px 6px 0;border-bottom:0.5px solid var(--dsw-alias-border-l2);font-weight:500}',
