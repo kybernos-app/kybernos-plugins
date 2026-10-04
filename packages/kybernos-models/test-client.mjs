@@ -317,7 +317,7 @@ console.log('\n── DSH’s native page: which menu cell to hide ──')
 {
   const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
   const { kbNatPick, kbNatHidden } = new Function(bl('KB-NATIVE-PURE') + '\nreturn { kbNatPick, kbNatHidden }')()
-  ok('the default is visible until this page does everything the native one does', /const KB_NAT_DEFAULT_HIDDEN = false/.test(src))
+  ok('the native cell is hidden by default (this page does everything the native one does); a stored choice still wins', /const KB_NAT_DEFAULT_HIDDEN = true/.test(src) && new Function(src.slice(src.indexOf('// KB-NATIVE-PURE-BEGIN'), src.indexOf('// KB-NATIVE-PURE-END')) + '\nreturn kbNatHidden')()(null, true) === true && new Function(src.slice(src.indexOf('// KB-NATIVE-PURE-BEGIN'), src.indexOf('// KB-NATIVE-PURE-END')) + '\nreturn kbNatHidden')()('0', true) === false)
   const nav = ['Theme', 'AI Provider & Models', 'Models', 'Ollama Local Models', 'Voice']
   ok('the native cell is found beside ours', JSON.stringify(kbNatPick([nav], 'Models', 'AI Provider & Models')) === JSON.stringify([{ group: 0, index: 2 }]))
   ok('only the exact label matches, never "Ollama Local Models"', kbNatPick([nav], 'Models', 'AI Provider & Models').length === 1)
@@ -351,7 +351,7 @@ ok('the drawer closes on Escape and on a click outside, and Escape is captured s
 ok('the models.dev picker keeps its search, groups, arrow keys and Already-added rows', has("'data-kbm': 'prov-picker'") && has("ev.key === 'ArrowDown'") && has("m('kb.prov.add.deja')") && has("m('kb.prov.add.grp.free')") && has("m('kb.prov.add.pied'"))
 ok('the models.dev list closes on a press elsewhere without swallowing it (no full-screen backdrop)', has("document.addEventListener('mousedown', away)") && !has('kbpv-cb-fond'))
 ok('the picker still shows the free-models link for providers that have one', has('p.libre === true ? h(BadgeFree'))
-ok('the DeepSeek card edits on DSH’s page (its namespace is not ours)', has("'data-kbm': 'prov-edit-native'") && has("KBM.hasDeepseek === true ? h('div'"))
+ok('the DeepSeek cards edit here, in a panel of the page (see the DeepSeek section)', has("'data-prov': c.provider") && has('openDs(c.ns)') && !has("'data-kbm': 'prov-edit-native'"))
 ok('the native menu cell is hidden only while this plugin is healthy, and shown again on dispose', has('kbNatOwner = true') && has('kbNatOwner = false; kbNatApply()') && has('hide = kbNatOwner === true && kbNatPrefGet() === true'))
 ok('a crash on this page puts DSH’s native page back (error boundary)', has('class KbBoundary extends React.Component') && has('h(KbBoundary, null, h(Panel, null))') && has("componentDidCatch (e) { kbNatOwner = false; kbNatApply()"))
 ok('the native page gets a note and a way back, in its footer seat', has("slots.inject('settings.models.footer'") && has("'data-kbm': 'native-back'"))
@@ -366,6 +366,125 @@ ok('Restore, Sync all, the chips and DSH’s native page live in one ⋯ menu on
 ok('the Cloud card shows on the Providers tab only, and the old header block (intro, Live data pill, two buttons) is gone from Models', has("UI.tab === 'providers' ? h(KybernosHero, null) : null") && !has("className: 'kbm-head'"))
 ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
+
+console.log('\n── DeepSeek: the two adapters outside llm-pi-ai, edited here ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const ds = new Function(bl('KB-DS-PURE') + '\nreturn { KB_DS_NS, kbDsParseCapacity, kbDsFormatCapacity, kbDsRows, kbDsValidate, kbDsCleanRows, kbDsHasImage, kbDsSetImage, kbDsEditProfile, kbDsKeyRef }')()
+  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvDiffOps }')()
+  ok('two namespaces: the official adapter and the account one', ds.KB_DS_NS.join() === 'llm-deepseek,llm-deepseek-account')
+
+  console.log('  — capacities')
+  const P = ds.kbDsParseCapacity
+  ok('"256K", "1M", "131072" and decimals read like the native page; blank inherits; junk is NaN', P('256K') === 256000 && P('1M') === 1e6 && P('131072') === 131072 && P('1.5k') === 1500 && P('  64k ') === 64000 && P('') === undefined && P('   ') === undefined && Number.isNaN(P('12x')) && Number.isNaN(P('-5')) && Number.isNaN(P('1,000')))
+  ok('spelling round-trips: whole millions, whole thousands, else the plain count', ds.kbDsFormatCapacity(1000000) === '1M' && ds.kbDsFormatCapacity(256000) === '256K' && ds.kbDsFormatCapacity(131072) === '131072' && ds.kbDsFormatCapacity(8192) === '8192' && [1000000, 256000, 131072, 1500].every((n) => P(ds.kbDsFormatCapacity(n)) === n))
+
+  console.log('  — validation (the adapter’s own rules)')
+  const V = ds.kbDsValidate
+  ok('a clean catalog is valid', V([{ id: 'a', name: 'A', contextWindow: 1000, maxTokens: 10 }, { id: 'b' }]) === null && V([]) === null)
+  ok('a blank id is refused, with its row', JSON.stringify(V([{ id: 'a' }, { id: '  ' }])) === JSON.stringify({ index: 1, key: 'kb.ds.err.id' }) && V([{ name: 'x' }]).key === 'kb.ds.err.id')
+  ok('a duplicate id is refused', JSON.stringify(V([{ id: 'a' }, { id: ' a ' }])) === JSON.stringify({ index: 1, key: 'kb.ds.err.dup' }))
+  ok('an empty display name is refused; an absent one is fine', V([{ id: 'a', name: '' }]).key === 'kb.ds.err.name' && V([{ id: 'a' }]) === null)
+  ok('a context window or max tokens that is not a positive integer is refused (NaN, 0, 1.5, negative)', ['contextWindow', 'maxTokens'].every((f) => [NaN, 0, 1.5, -1, '5'].every((bad) => V([{ id: 'a', [f]: bad }]) !== null)) && V([{ id: 'a', contextWindow: NaN }]).key === 'kb.ds.err.ctx' && V([{ id: 'a', maxTokens: NaN }]).key === 'kb.ds.err.max')
+
+  console.log('  — what is written')
+  const base = [{ id: 'deepseek-flash', name: 'Flash', contextWindow: 1000000, inputModalities: ['text', 'image'], systemPromptUpdate: 'in-history', toolUpdate: 'addition-only' }, { id: 'deepseek-v4-pro', description: 'Stronger…', contextWindow: 1000000 }]
+  const rows = ds.kbDsRows(base)
+  ok('rows are copies of the full records: nothing the page does not show is lost, and the source is not touched', rows[0].systemPromptUpdate === 'in-history' && rows[1].description === 'Stronger…' && rows[0] !== base[0] && (rows[0].name = 'x', base[0].name === 'Flash'))
+  rows[0].name = 'Flash'
+  const edited = rows.map((r, i) => (i === 1 ? { ...r, maxTokens: 64000, name: undefined } : r))
+  const cleaned = ds.kbDsCleanRows([{ id: ' a ', name: '', contextWindow: undefined, maxTokens: 5, keep: 'me' }])
+  ok('writing trims ids, drops an empty name and an unset capacity, keeps every other field', JSON.stringify(cleaned) === JSON.stringify([{ id: 'a', maxTokens: 5, keep: 'me' }]), cleaned)
+  const img = ds.kbDsSetImage({ id: 'p', inputModalities: ['text'] }, true)
+  ok('image input on adds it next to text, off removes only it; a row with no modalities starts from text', img.inputModalities.join() === 'text,image' && ds.kbDsSetImage(img, false).inputModalities.join() === 'text' && ds.kbDsSetImage({ id: 'x' }, true).inputModalities.join() === 'text,image' && ds.kbDsHasImage(img) === true && ds.kbDsHasImage({ id: 'x' }) === false)
+  const user = { baseURL: 'https://old', streamIdleTimeoutMs: 1000 }
+  const e1 = ds.kbDsEditProfile(user, { url: 'https://proxy.example/v1/', touched: false, restoreModels: false, rows })
+  ok('official: the base URL is written (trailing slash trimmed); untouched models stay inherited; other keys untouched', e1.baseURL === 'https://proxy.example/v1' && !('models' in e1) && e1.streamIdleTimeoutMs === 1000)
+  ok('an empty URL removes the override', !('baseURL' in ds.kbDsEditProfile(user, { url: '  ', touched: false, rows })))
+  ok('the account adapter has no endpoint: url undefined leaves baseURL alone', ds.kbDsEditProfile(user, { url: undefined, touched: false, rows }).baseURL === 'https://old')
+  const e2 = ds.kbDsEditProfile({}, { url: undefined, touched: true, rows: edited })
+  ok('a touched catalog is written whole (the first edit materializes every row), hidden fields included', e2.models.length === 2 && e2.models[0].systemPromptUpdate === 'in-history' && e2.models[1].maxTokens === 64000 && e2.models[1].description === 'Stronger…' && !('name' in e2.models[1]), e2)
+  ok('Restore removes the override instead of copying defaults into it', !('models' in ds.kbDsEditProfile({ models: base, baseURL: 'x' }, { url: undefined, restoreModels: true, touched: false, rows })) && ds.kbDsEditProfile({ models: base, baseURL: 'x' }, { url: undefined, restoreModels: true, rows }).baseURL === 'x')
+  const ops = pv.kbPvDiffOps([], { baseURL: 'old' }, ds.kbDsEditProfile({ baseURL: 'old' }, { url: 'https://new', touched: true, rows: [{ id: 'a' }] }))
+  ok('the ops are path-addressed against the namespace root: a set per changed key', ops.map((o) => o.op + ':' + o.path.join('.')).sort().join() === 'set:baseURL,set:models')
+  ok('the credential reference is the profile’s own (DEEPSEEK_API_KEY by default in the real catalog), else the derived one', ds.kbDsKeyRef({ apiKeyEnv: 'MY_KEY' }) === 'MY_KEY' && ds.kbDsKeyRef({ apiKeyEnv: '' }) === 'DEEPSEEK_OFFICIAL_API_KEY' && ds.kbDsKeyRef(undefined) === 'DEEPSEEK_OFFICIAL_API_KEY')
+
+  console.log('  — the save, against a fake settings and credential store')
+  const world = (o = {}) => {
+    const log = []
+    const state = { 'llm-deepseek': { user: o.user || {}, revision: 3 }, 'llm-deepseek-account': { user: {}, revision: 8 } }
+    const creds = {}
+    const KBM = { writable: o.writable !== false, revision: 1, ds: {}, dsDir: [] }
+    const sync = () => { for (const ns of Object.keys(state)) KBM.ds[ns] = { ns, user: state[ns].user, base: { models: base }, value: { models: base, defaultContextWindow: 1000000, maxTokens: 256000, apiKeyEnv: 'DEEPSEEK_API_KEY' }, revision: state[ns].revision } }
+    sync()
+    const api = {
+      settings: { mutate: async (ns, ops, rev) => {
+        log.push(['settings', ns, String(rev), ops.map((x) => x.op + ':' + x.path.join('.')).join(',')])
+        if (o.conflictOnce === true && log.filter((l) => l[0] === 'settings').length === 1) return { ok: false, error: { code: 'settings/conflict', message: 'stale' } }
+        if (rev !== state[ns].revision) return { ok: false, error: { code: 'settings/conflict', message: 'stale' } }
+        if (o.refuse) return { ok: false, error: { code: 'settings/invalid', message: 'refused by schema' } }
+        for (const op of ops) { if (op.op === 'set') state[ns].user[op.path[0]] = op.value; else delete state[ns].user[op.path[0]] }
+        state[ns].revision += 1
+        return { ok: true, value: { revision: state[ns].revision } }
+      } },
+      credentials: { set: async (ref, value) => { log.push(['cred.set', ref]); if (o.failCred) return { ok: false, error: { message: 'vault' } }; creds[ref] = value; return { ok: true } } }
+    }
+    const kbMLoad = async () => { log.push(['load']); sync() }
+    const body = bl('KB-PARK-ACTIONS') + '\n' + bl('KB-PV-PURE') + '\n' + bl('KB-PV-ACTIONS') + '\n' + bl('KB-DS-PURE') + '\n' + bl('KB-DS-ACTIONS') + '\nreturn { kbDsSave, kbDsCardsOf, kbMLoadDsKey }'
+    const fns = new Function('m', 'kbMApi', 'KBM', 'KB_NS', 'kbMLoad', 'kbMJournal', 'kbMTimeout', 'fetch', 'kbMOBJ', body)(
+      (k, v) => k + (v === undefined ? '' : JSON.stringify(v)), () => api, KBM, 'llm-pi-ai', kbMLoad, async () => {}, (p) => p, async () => ({ status: 404 }), (v) => v)
+    return { fns, KBM, state, creds, log }
+  }
+  const rejects = async (fn) => { try { await fn(); return null } catch (e) { return String(e && e.message ? e.message : e) } }
+  const steps = (w) => w.log.map((l) => l.join(':')).join(' > ')
+  let w = world()
+  let r = await w.fns.kbDsSave('llm-deepseek', { url: 'https://proxy/v1', key: '', rows: ds.kbDsRows(base), touched: false, restoreModels: false })
+  ok('official: only the base URL is written, in ITS namespace, with ITS revision (3, not the models page’s)', r.changed === 1 && /settings:llm-deepseek:3:set:baseURL > load/.test(steps(w)) && w.state['llm-deepseek'].user.baseURL === 'https://proxy/v1' && w.state['llm-deepseek-account'].revision === 8, steps(w))
+  w = world()
+  r = await w.fns.kbDsSave('llm-deepseek', { url: '', key: 'sk-ds', rows: ds.kbDsRows(base), touched: false })
+  ok('a typed key goes to the credential store under the profile’s reference, never to settings', w.creds.DEEPSEEK_API_KEY === 'sk-ds' && r.keyOk === true && r.changed === 0 && steps(w).indexOf('settings') < 0, steps(w))
+  w = world({ failCred: true })
+  r = await w.fns.kbDsSave('llm-deepseek', { url: '', key: 'sk', rows: [], touched: false })
+  ok('a failed key save is reported (keyOk=false), not thrown', r.keyOk === false)
+  w = world()
+  r = await w.fns.kbDsSave('llm-deepseek-account', { url: undefined, key: 'ignored', rows: edited, touched: true })
+  ok('account: the catalog is written in the account namespace; a typed key is ignored (it signs in with the account)', /settings:llm-deepseek-account:8:set:models/.test(steps(w)) && w.state['llm-deepseek-account'].user.models.length === 2 && w.log.every((l) => l[0] !== 'cred.set') && Object.keys(w.state['llm-deepseek'].user).length === 0, steps(w))
+  w = world({ user: { models: base, baseURL: 'https://x' } })
+  r = await w.fns.kbDsSave('llm-deepseek', { url: 'https://x', key: '', rows: [], touched: false, restoreModels: true })
+  ok('Restore unsets `models` and nothing else', w.state['llm-deepseek'].user.models === undefined && w.state['llm-deepseek'].user.baseURL === 'https://x' && /unset:models/.test(steps(w)), steps(w))
+  w = world()
+  let err = await rejects(() => w.fns.kbDsSave('llm-deepseek', { url: '', rows: [{ id: 'a' }, { id: '' }], touched: true }))
+  ok('an invalid catalog is refused before anything is written, naming the row', /kb\.ds\.err\.row/.test(err) && /"n":2/.test(err) && w.log.length === 0, err)
+  w = world()
+  err = await rejects(() => w.fns.kbDsSave('llm-deepseek', { url: 'not a url', rows: [], touched: false }))
+  ok('a bad URL is refused before anything is written', err === 'kb.pv.err.url' && w.log.length === 0, err)
+  w = world({ writable: false })
+  err = await rejects(() => w.fns.kbDsSave('llm-deepseek', { url: 'https://a', rows: [], touched: false }))
+  ok('read-only settings are refused', err === 'kb.models.error.readonly' && w.log.length === 0, err)
+  w = world({ refuse: true })
+  err = await rejects(() => w.fns.kbDsSave('llm-deepseek', { url: 'https://a', key: 'sk', rows: [], touched: false }))
+  ok('a refused write stores no key and says why', /refused by schema/.test(err) && w.log.every((l) => l[0] !== 'cred.set'), err + ' ' + steps(w))
+  w = world({ conflictOnce: true })
+  r = await w.fns.kbDsSave('llm-deepseek', { url: 'https://a', rows: [], touched: false })
+  ok('a revision conflict reloads once and retries', r.changed === 1 && w.log.filter((l) => l[0] === 'settings').length === 2 && w.log.some((l) => l[0] === 'load'), steps(w))
+  const cards = w.fns.kbDsCardsOf(w.KBM.ds, [{ ns: 'llm-deepseek', provider: 'deepseek-official', name: 'DeepSeek' }])
+  ok('two cards, named by the engine’s directory when it has them, else by default', cards.length === 2 && cards[0].provider === 'deepseek-official' && cards[1].provider === 'deepseek-account' && cards[1].name === 'DeepSeek Account' && w.fns.kbDsCardsOf({}, []).length === 0 && w.fns.kbDsCardsOf({ 'llm-deepseek': {} }, []).length === 1)
+  const kw = world()
+  kw.KBM.ds['llm-deepseek'].value.apiKeyEnv = 'MY_DS_KEY'
+  const api2 = { credentials: { describe: async (refs) => ({ ok: true, value: { [refs[0]]: { configured: true } } }) } }
+  const fn2 = new Function('m', 'KBM', 'kbMTimeout', bl('KB-DS-PURE') + '\n' + bl('KB-DS-ACTIONS') + '\nreturn { kbMLoadDsKey }')((k) => k, kw.KBM, (p) => p)
+  await fn2.kbMLoadDsKey(api2)
+  ok('the key state is read through credentials.describe, under the profile’s reference', kw.KBM.dsKey.ref === 'MY_DS_KEY' && kw.KBM.dsKey.configured === true, kw.KBM.dsKey)
+
+  console.log('  — wiring')
+  const w2 = (frag) => src.includes(frag)
+  ok('each namespace has its own revision in the mutate helper', w2('ns === KB_NS ? KBM.revision : (KBM.ds[ns] !== undefined ? KBM.ds[ns].revision : null)'))
+  ok('the DeepSeek namespaces are read in kbMLoad, and the key state after the directory', w2('for (const ns of KB_DS_NS)') && w2('await kbMLoadDsKey(api)'))
+  ok('both cards edit in a panel: key (official only) folded under Customized settings with the URL and the catalog; the account shows its catalog directly', w2("'data-prov': c.provider") && w2("official ? h('button', { type: 'button', className: 'kbpv-adv'") && w2("'data-kbm': 'ds-account-note'"))
+  ok('the catalog editor: id, name, context window, max tokens, image input, add, delete, restore; Apply is disabled while a row is invalid', w2("'data-kbm': 'ds-ctx'") && w2("'data-kbm': 'ds-max'") && w2("'data-kbm': 'ds-img'") && w2("'data-kbm': 'ds-model-add'") && w2("'data-kbm': 'ds-restore'") && w2('disabled: ui.busy === true || urlBad || rowsBad || ro'))
+  ok('the Providers count includes both DeepSeek cards', w2('kbDsCardsOf(KBM.ds, KBM.dsDir).length'))
+  ok('no colour hard-coded in the DeepSeek styles', !/\.kbpv-ds[a-z-]*\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
+}
 
 console.log('\n── Fetch available models (the engine lists what a provider serves; the user ticks) ──')
 {
@@ -482,11 +601,11 @@ console.log('\n── the model health chip (the alert of the study model, on th
 }
 
 console.log('\n── strings: every new key in French and English ──')
-const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
+const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+|ds\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
 ok('the new keys are all declared', keys.length >= 70, keys.length)
 ok('each has a French and an English text', keys.every((k) => k[2].length > 0 && k[3].length > 0))
 ok('placeholders match between French and English', keys.every((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() === (k[3].match(/\{[a-z]+\}/g) || []).sort().join()), keys.filter((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() !== (k[3].match(/\{[a-z]+\}/g) || []).sort().join()).map((k) => k[1]).join())
-ok('every kb.prov.off/on, kb.pv, kb.nat, kb.health and kb.fetch key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
+ok('every kb.prov.off/on, kb.pv, kb.nat, kb.health, kb.fetch and kb.ds key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+|ds\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

@@ -53,5 +53,4 @@ Open DSH's native Models page. *Sync N from models.dev* stays on the results bar
 
 ## Not done yet
 
-- DeepSeek editing here (it lives in `llm-deepseek`; its card opens DSH's native page).
-- Flip `KB_NAT_DEFAULT_HIDDEN` once that is done (*Fetch available models* is in: see `providers-page.md`).
+- Nothing known: the native Models page is hidden by default (`KB_NAT_DEFAULT_HIDDEN = true`) and stays one click away.

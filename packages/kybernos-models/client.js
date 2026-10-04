@@ -197,6 +197,17 @@ window.__ModuleLoader__.load({
         'kb.models.f.weights': { kybernos: 'Poids', en: 'Weights' },
         'kb.models.tab.models': { kybernos: 'Modèles {n}', en: 'Models {n}' },
         'kb.models.tab.providers': { kybernos: 'Fournisseurs {n}', en: 'Providers {n}' },
+        'kb.ds.ctx': { kybernos: 'Fenêtre de contexte', en: 'Context window' },
+        'kb.ds.max': { kybernos: 'Tokens de sortie max', en: 'Max output tokens' },
+        'kb.ds.image': { kybernos: 'Images en entrée', en: 'Image input' },
+        'kb.ds.url.hint': { kybernos: 'Laisser vide pour le point d’accès officiel de DeepSeek.', en: 'Leave empty for DeepSeek’s official endpoint.' },
+        'kb.ds.account.note': { kybernos: 'Ce fournisseur se connecte avec votre compte DeepSeek : pas de clé ici, seulement le catalogue de modèles.', en: 'This provider signs in with your DeepSeek account: no key here, only the model catalog.' },
+        'kb.ds.err.row': { kybernos: 'Modèle {n} : {why}', en: 'Model {n}: {why}' },
+        'kb.ds.err.id': { kybernos: 'l’identifiant est requis', en: 'the model ID is required' },
+        'kb.ds.err.dup': { kybernos: 'identifiant en double', en: 'duplicate model ID' },
+        'kb.ds.err.name': { kybernos: 'le nom ne peut pas être vide', en: 'the display name cannot be empty' },
+        'kb.ds.err.ctx': { kybernos: 'la fenêtre de contexte doit être un nombre positif (131072, 256K, 1M)', en: 'the context window must be a positive count (131072, 256K, 1M)' },
+        'kb.ds.err.max': { kybernos: 'les tokens de sortie doivent être un nombre positif (8192, 64K, 1M)', en: 'max output tokens must be a positive count (8192, 64K, 1M)' },
         'kb.fetch.btn': { kybernos: 'Récupérer les modèles disponibles', en: 'Fetch available models' },
         'kb.fetch.busy': { kybernos: 'Interrogation du fournisseur…', en: 'Asking the provider…' },
         'kb.fetch.needsurl': { kybernos: 'Renseignez d’abord l’URL de base, puis récupérez.', en: 'Enter the base URL first, then fetch.' },
@@ -268,7 +279,6 @@ window.__ModuleLoader__.load({
         'kb.pv.diag': { kybernos: 'Config à réparer', en: 'Config error' },
         'kb.pv.custom': { kybernos: 'Perso', en: 'Custom' },
         'kb.pv.builtin': { kybernos: 'Intégré à DSH', en: 'Built into DSH' },
-        'kb.pv.builtin.edit': { kybernos: 'Se modifie sur la page native de DSH', en: 'Edited on DSH’s native page' },
         'kb.pv.edit': { kybernos: 'Modifier {slug}', en: 'Edit {slug}' },
         'kb.pv.more': { kybernos: 'Plus d’actions pour {slug}', en: 'More for {slug}' },
         'kb.pv.more.page': { kybernos: 'Plus d’actions', en: 'More actions' },
@@ -643,6 +653,9 @@ window.__ModuleLoader__.load({
         keys: {},
         dir: {},
         hasDeepseek: false,
+        ds: {},
+        dsDir: [],
+        dsKey: { ref: '', configured: null },
         userProviders: {},
         baseProviders: {},
         // Les notes externes : l'instant global (pour dire la fraîcheur) et
@@ -1742,6 +1755,40 @@ window.__ModuleLoader__.load({
           open ? renderPicker() : null)
       }
 
+      /** The catalog of a DeepSeek adapter: id, display name, context window, max output tokens, image input, delete. The rows are
+       *  the full records, so what this page does not show (description, system-prompt and tool update modes) travels with them. */
+      const DsModels = ({ d, set, inherited, defaults }) => {
+        const rows = d.rows
+        const bad = d.touched === true && d.restoreModels !== true ? kbDsValidate(rows) : null
+        const setRows = (next) => set({ rows: next, touched: true, restoreModels: false })
+        const upd = (i, patch) => setRows(rows.map((r, j) => (j === i ? { ...r, ...patch } : r)))
+        const cap = (i, field) => {
+          const key = String(i) + ':' + field
+          if (d.buf !== undefined && d.buf[key] !== undefined) return d.buf[key]
+          return rows[i][field] === undefined ? '' : kbDsFormatCapacity(rows[i][field])
+        }
+        const setCap = (i, field, text) => set({ rows: rows.map((r, j) => (j === i ? { ...r, [field]: kbDsParseCapacity(text) } : r)), buf: { ...(d.buf || {}), [String(i) + ':' + field]: text }, touched: true, restoreModels: false })
+        const canRestore = d.restoreModels !== true && (d.overridden === true || d.touched === true)
+        return h('div', { className: 'kbpv-fld', 'data-kbm': 'ds-models' },
+          h('div', { className: 'kbpv-mhead' }, h('span', { className: 'kbpv-fl' }, m('kb.pv.models')),
+            h('span', { className: 'kbpv-mact' },
+              canRestore ? h('button', { type: 'button', className: 'kbpv-lnk', 'data-kbm': 'ds-restore', onClick: () => set({ rows: kbDsRows(inherited), buf: {}, touched: false, restoreModels: true }) }, m('kb.fetch.restore')) : null)),
+          d.restoreModels === true ? h('p', { className: 'kbpv-hint', 'data-kbm': 'ds-restored' }, m('kb.fetch.restored')) : null,
+          bad !== null ? h('span', { className: 'kbpv-err', role: 'alert', 'data-kbm': 'ds-err' }, m('kb.ds.err.row', { n: bad.index + 1, why: m(bad.key) })) : null,
+          h('div', { className: 'kbpv-mrows' }, rows.map((r, i) => h('div', { className: 'kbpv-dsrow', key: i, 'data-kbm': 'ds-row' },
+            h('input', { className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: m('kb.pv.model.id'), 'aria-label': m('kb.pv.model.id') + ' ' + String(i + 1), value: typeof r.id === 'string' ? r.id : '', onChange: (ev) => upd(i, { id: ev.target.value }) }),
+            h('input', { className: 'kbm-in-input kbpv-in', placeholder: m('kb.pv.model.name'), 'aria-label': m('kb.pv.model.name') + ' ' + String(i + 1), value: typeof r.name === 'string' ? r.name : '', onChange: (ev) => upd(i, { name: ev.target.value === '' ? undefined : ev.target.value }) }),
+            h('button', { type: 'button', className: 'kbpv-ib kbpv-ib-danger', 'aria-label': m('kb.pv.model.del', { n: i + 1 }), title: m('kb.pv.model.del', { n: i + 1 }), onClick: () => set({ rows: rows.filter((_, j) => j !== i), buf: {}, touched: true, restoreModels: false }) }, Ic('trash', 15)),
+            h('div', { className: 'kbpv-dsopts' },
+              h('label', { className: 'kbpv-dscap' }, h('span', null, m('kb.ds.ctx')),
+                h('input', { className: 'kbm-in-input kbpv-in', 'data-kbm': 'ds-ctx', placeholder: defaults.ctx, value: cap(i, 'contextWindow'), onChange: (ev) => setCap(i, 'contextWindow', ev.target.value) })),
+              h('label', { className: 'kbpv-dscap' }, h('span', null, m('kb.ds.max')),
+                h('input', { className: 'kbm-in-input kbpv-in', 'data-kbm': 'ds-max', placeholder: defaults.max, value: cap(i, 'maxTokens'), onChange: (ev) => setCap(i, 'maxTokens', ev.target.value) })),
+              h('label', { className: 'kbpv-dsimg' },
+                h('input', { type: 'checkbox', 'data-kbm': 'ds-img', checked: kbDsHasImage(r), onChange: (ev) => upd(i, kbDsSetImage(r, ev.target.checked)) }), h('span', null, m('kb.ds.image'))))))),
+          h('div', null, h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'ds-model-add', onClick: () => setRows(rows.concat([{ id: '', inputModalities: ['text'] }])) }, Ic('plus', 13), m('kb.pv.model.add'))))
+      }
+
       const PvDrawer = ({ label, onClose, children, footer, head }) => {
         React.useEffect(() => {
           // Captured first so that DSH, which also listens for Escape, does not close Settings under the panel.
@@ -1814,6 +1861,20 @@ window.__ModuleLoader__.load({
           setDr(d); patch({ drawer: { mode: 'edit', id: route }, menu: null, err: null, note: null })
         }
         const openAdd = () => { setDr(pvAddDraft()); patch({ drawer: { mode: 'add' }, menu: null, err: null, note: null }) }
+        const dsCards = kbDsCardsOf(KBM.ds, KBM.dsDir)
+        // DeepSeek (the two adapters outside llm-pi-ai): the draft holds the catalog rows as full records.
+        const openDs = (ns) => {
+          const v = KBM.ds[ns]
+          if (v === undefined) return
+          const overridden = Array.isArray(v.user.models)
+          setDr({ ds: true, ns, key: '', voir: false, adv: ns === 'llm-deepseek' ? false : true, url: ns === 'llm-deepseek' ? (typeof v.user.baseURL === 'string' ? v.user.baseURL : '') : undefined, rows: kbDsRows(v.value.models), buf: {}, overridden, touched: false, restoreModels: false })
+          patch({ drawer: { mode: 'ds', id: ns }, menu: null, err: null, note: null })
+        }
+        const doDsSave = async (ns) => {
+          const out = await run(() => kbDsSave(ns, dr), 'kb.pv.save.err', ns)
+          if (out === undefined) return
+          setDr(null); patch({ drawer: null, busy: false, note: m(out.keyOk === false ? 'kb.pv.saved.key.ko' : 'kb.pv.saved') })
+        }
         // The health chip asks for a provider's Edit panel ("Fix key"): done once the list is on screen. A provider that
         // cannot be edited here (read-only page, managed route, unknown route) shows its models instead.
         React.useEffect(() => {
@@ -1927,6 +1988,37 @@ window.__ModuleLoader__.load({
               renderSwitch({ route, on: true, locked: ro || KBM.parkHost !== true || bloc !== null, why: KBM.parkHost !== true ? m('kb.pv.hostnote') : bloc === 'managed' ? m('kb.prov.off.managed') : (bloc === 'profile' ? m('kb.prov.off.locked') : m('kb.prov.off.disable', { slug: route })) })),
             h('div', { className: 'kbpv-z' }, h('div', null, h('b', null, m('kb.pv.zone.del')), h('span', null, m('kb.pv.zone.del.d'))),
               h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline kbpv-danger', disabled: ro || bloc !== null, 'data-kbm': 'pv-delete', onClick: () => patch({ dlg: { type: 'del', id: route }, typed: '' }) }, m('kb.pv.menu.delete')))))
+        }
+
+        // ── DeepSeek panel: key (official only), then the folded custom settings; the account adapter shows its catalog directly ──
+        const renderDsEdit = () => {
+          const ns = ui.drawer.id
+          const card = dsCards.filter((c) => c.ns === ns)[0]
+          const v = KBM.ds[ns]
+          if (card === undefined || v === undefined) return null
+          const official = ns === 'llm-deepseek'
+          const urlBad = official && dr.url !== undefined && dr.url.trim() !== '' && !kbPvUrlOk(dr.url)
+          const rowsBad = dr.touched === true && dr.restoreModels !== true && kbDsValidate(dr.rows) !== null
+          const inherited = Array.isArray(v.base.models) ? v.base.models : v.value.models
+          const defaults = { ctx: Number.isInteger(v.value.defaultContextWindow) ? kbDsFormatCapacity(v.value.defaultContextWindow) : '', max: Number.isInteger(v.value.maxTokens) ? kbDsFormatCapacity(v.value.maxTokens) : '' }
+          const stored = KBM.dsKey.configured
+          const catalog = h(DsModels, { d: dr, set: setD, inherited, defaults })
+          return h(PvDrawer, {
+            label: m('kb.pv.edit', { slug: card.provider }), onClose: closeAll,
+            head: h('span', { className: 'kbpv-dh' }, h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })), h('span', { className: 'kbpv-dt' }, card.name)),
+            footer: [h('button', { key: 'c', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'pv-cancel', onClick: closeAll }, m('kb.pv.cancel')),
+              h('button', { key: 'a', type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'pv-apply', disabled: ui.busy === true || urlBad || rowsBad || ro, onClick: () => doDsSave(ns) }, m('kb.pv.apply'))],
+          },
+          ui.err ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'pv-fail' }, ui.err) : null,
+          official ? h(PvField, { id: 'pv-key', label: m('kb.prov.add.cle.label'), hint: m('kb.prov.add.cle.note') },
+            h('span', { className: 'kbpv-keyrow' },
+              h('input', { id: 'pv-key', className: 'kbm-in-input kbpv-in', type: dr.voir === true ? 'text' : 'password', autoComplete: 'off', spellCheck: false, 'data-kbm': 'pv-key',
+                placeholder: m(stored === true ? 'kb.pv.key.ph.set' : 'kb.pv.key.ph.blank'), value: dr.key, onChange: (ev) => setD({ key: ev.target.value }) }),
+              h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', tabIndex: -1, onClick: () => setD({ voir: dr.voir !== true }) }, m(dr.voir === true ? 'kb.prov.add.cle.cacher' : 'kb.prov.add.cle.voir')))) : h('p', { className: 'kbpv-hint', 'data-kbm': 'ds-account-note' }, m('kb.ds.account.note')),
+          official ? h('button', { type: 'button', className: 'kbpv-adv', 'data-kbm': 'pv-adv', 'aria-expanded': dr.adv === true ? 'true' : 'false', onClick: () => setD({ adv: dr.adv !== true }) }, Ic('chevron', 14), m('kb.pv.customized')) : null,
+          official ? (dr.adv === true ? h('div', { className: 'kbpv-advbox', 'data-kbm': 'pv-advbox' },
+            h(PvField, { id: 'pv-url', label: m('kb.pv.url'), err: urlBad ? m('kb.pv.err.url') : null, hint: urlBad ? null : m('kb.ds.url.hint') }, h('input', { id: 'pv-url', className: 'kbm-in-input kbpv-in kbpv-mono', placeholder: 'https://api.deepseek.com', value: dr.url, onChange: (ev) => setD({ url: ev.target.value }) })),
+            catalog) : null) : catalog)
         }
 
         // ── Add panel: the catalog picker keeps its search, groups, icons and keyboard ──
@@ -2081,14 +2173,24 @@ window.__ModuleLoader__.load({
           ui.err !== null && ui.drawer === null ? h('div', { className: 'kbpv-fail', role: 'alert', 'data-kbm': 'prov-off-err' }, ui.err) : null,
           KBM.parkHost !== true ? h('div', { className: 'kbpv-hostnote', role: 'status', 'data-kbm': 'park-host-note' }, Ic('info', 14), m('kb.pv.hostnote')) : null,
           h('div', { className: 'kbpv-cards', 'data-kbm': 'prov-cards' },
-            KBM.hasDeepseek === true ? h('div', { className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': 'deepseek' },
-              h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
-              h('div', { className: 'kbpv-cbody' }, h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, 'DeepSeek')), h('span', { className: 'kbpv-meta' }, m('kb.pv.builtin'))),
-              h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' }, h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit-native', title: m('kb.pv.builtin.edit'), 'aria-label': m('kb.pv.builtin.edit'), onClick: () => { kbNatOpen() } }, Ic('pencil', 15))))) : null,
+            dsCards.map((c) => {
+              const official = c.ns === 'llm-deepseek'
+              const count = Array.isArray(KBM.ds[c.ns].value.models) ? KBM.ds[c.ns].value.models.length : 0
+              const ks = official ? (KBM.dsKey.configured === true ? 'ok' : (KBM.dsKey.configured === false ? 'missing' : 'unknown')) : 'none'
+              return h('div', { key: c.ns, className: 'kbpv-card', 'data-kbm': 'prov-card', 'data-prov': c.provider },
+                h('span', { className: 'kbpv-logo' }, h(LogoProv, { route: 'deepseek', taille: 20 })),
+                h('div', { className: 'kbpv-cbody' },
+                  h('span', { className: 'kbpv-nm' }, h('span', { className: 'kbpv-link kbpv-static' }, c.name),
+                    ks === 'none' ? null : h('i', { className: 'kbpv-kd kbpv-kd-' + ks, title: m(ks === 'ok' ? 'kb.pv.key.ok' : (ks === 'missing' ? 'kb.pv.key.missing' : 'kb.pv.key.unknown')) })),
+                  h('span', { className: 'kbpv-meta', 'data-kbm': 'prov-name' }, h('span', { className: 'kbpv-tag' }, m('kb.pv.builtin')), h('span', null, String(count) + ' ' + m(count === 1 ? 'kb.models.prov.model1' : 'kb.models.prov.modelN')))),
+                h('div', { className: 'kbpv-right' }, h('div', { className: 'kbpv-acts' },
+                  h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-edit', disabled: ro, title: m('kb.pv.edit', { slug: c.provider }), 'aria-label': m('kb.pv.edit', { slug: c.provider }), onClick: (ev) => { ev.stopPropagation(); openDs(c.ns) } }, Ic('pencil', 15)))))
+            }),
             routes.map((route) => renderCard({ route })),
             parkedShown.map((p) => renderCard({ route: p.slug, off: true }))),
           ui.drawer !== null && ui.drawer.mode === 'edit' && dr !== null ? renderEdit() : null,
           ui.drawer !== null && ui.drawer.mode === 'add' && dr !== null ? renderAdd() : null,
+          ui.drawer !== null && ui.drawer.mode === 'ds' && dr !== null ? renderDsEdit() : null,
           renderDialogs())
       }
       /** A column header that sorts the list (the same sort the Sort menu drives). */
@@ -2341,7 +2443,7 @@ window.__ModuleLoader__.load({
               'aria-selected': UI.tab === 'providers',
               className: 'kbm-pill' + (UI.tab === 'providers' ? ' kbm-pill-active' : ' kbm-pill-interactive'),
               onClick: () => uiSet('tab', 'providers'),
-            }, m('kb.models.tab.providers', { n: KBM.routes.length + (KBM.hasDeepseek === true ? 1 : 0) })),
+            }, m('kb.models.tab.providers', { n: KBM.routes.length + kbDsCardsOf(KBM.ds, KBM.dsDir).length })),
             h('button', {
               type: 'button', role: 'tab', 'data-kbm': 'tab-models',
               'aria-selected': UI.tab !== 'providers',
@@ -2540,6 +2642,11 @@ window.__ModuleLoader__.load({
         '.kbpv-advbox{display:flex;flex-direction:column;gap:14px}',
         '.kbpv-mhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}',
         '.kbpv-mact{display:inline-flex;align-items:center;gap:14px;flex-wrap:wrap}',
+        // DeepSeek catalog rows: id, name and delete on the first line, the three options under them.
+        '.kbpv-dsrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;gap:6px;align-items:center;padding-bottom:10px;border-bottom:.5px solid var(--dsw-alias-border-l2)}',
+        '.kbpv-dsopts{grid-column:1 / -1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px 10px;align-items:end}',
+        '.kbpv-dscap{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbpv-dsimg{display:inline-flex;align-items:center;gap:6px;height:36px;font-size:12px;color:var(--dsw-alias-label-secondary);cursor:pointer;white-space:nowrap}',
         '.kbpv-lnk{border:0;background:transparent;padding:2px 0;font:inherit;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
         '.kbpv-lnk:hover:not([disabled]){color:var(--dsw-alias-label-primary)}',
         '.kbpv-lnk:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}',
@@ -3160,7 +3267,13 @@ window.__ModuleLoader__.load({
           if (resp === null || resp.ok !== true) throw new Error(String(resp && resp.error ? resp.error.code || resp.error.message : 'describe'))
           KBM.writable = resp.value.writable === true
           const namespaces = Array.isArray(resp.value.namespaces) ? resp.value.namespaces : []
-          KBM.hasDeepseek = namespaces.some((n) => n.ns === 'llm-deepseek')
+          // The two DeepSeek adapters live in their own namespaces; the page edits both (see KB-DS-PURE).
+          KBM.ds = {}
+          for (const ns of KB_DS_NS) {
+            const v = namespaces.filter((n) => n.ns === ns)[0]
+            if (v !== undefined) KBM.ds[ns] = { ns, user: kbMOBJ(v.user), base: kbMOBJ(v.base), value: kbMOBJ(v.value), revision: typeof v.revision === 'number' ? v.revision : null }
+          }
+          KBM.hasDeepseek = Object.keys(KBM.ds).length > 0
           const view = namespaces.filter((n) => n.ns === KB_NS)[0]
           if (view === undefined) throw new Error('namespace ' + KB_NS + ' absent')
           KBM.revision = typeof view.revision === 'number' ? view.revision : null
@@ -3175,6 +3288,7 @@ window.__ModuleLoader__.load({
           KBM.baseProviders = baseProviders
           await kbMLoadKeys(api, userProviders)
           await kbMLoadDirectory(api)
+          await kbMLoadDsKey(api)
           const avant = KBM.models
           const rows = []
           for (const route of routes) {
@@ -3312,6 +3426,7 @@ window.__ModuleLoader__.load({
           try {
             const r = await kbMTimeout(llm.listConfigurableProviders(), 8000)
             const rows = r !== null && r !== undefined && r.ok === true && Array.isArray(r.value) ? r.value : []
+            KBM.dsDir = rows.filter((e) => kbPvIsObj(e) && typeof e.provider === 'string' && KB_DS_NS.indexOf(e.settingsNs) >= 0).map((e) => ({ ns: e.settingsNs, provider: e.provider, name: typeof e.displayName === 'string' ? e.displayName : '' }))
             for (const e of rows) if (kbPvIsObj(e) && typeof e.provider === 'string' && e.settingsNs === KB_NS) dir[e.provider] = { declared: e.declared === true, name: typeof e.displayName === 'string' ? e.displayName : '', error: typeof e.error === 'string' ? e.error : '' }
           } catch (e) { /* the heuristic below takes over */ }
         }
@@ -3353,11 +3468,16 @@ window.__ModuleLoader__.load({
         } catch (e) { KBM.parked = []; KBM.parkHost = false }
       }
       /** One settings write; on a revision conflict reload once and retry. Returns the response. */
-      const kbMMutateRetry = async (api, ops) => {
+      const kbMMutateRetry = async (api, ops, ns = KB_NS) => {
         for (let essai = 0; essai < 2; essai += 1) {
-          const raw = await kbMTimeout(api.settings.mutate(KB_NS, ops, KBM.revision), 8000)
+          // Each namespace has its own revision: the models' (llm-pi-ai) or a DeepSeek adapter's.
+          const rev = ns === KB_NS ? KBM.revision : (KBM.ds[ns] !== undefined ? KBM.ds[ns].revision : null)
+          const raw = await kbMTimeout(api.settings.mutate(ns, ops, rev), 8000)
           const resp = raw === null || raw === undefined ? { ok: false, error: { code: 'vide', message: 'empty answer' } } : raw
-          if (resp.ok === true) { if (resp.value && typeof resp.value.revision === 'number') KBM.revision = resp.value.revision; return resp }
+          if (resp.ok === true) {
+            if (resp.value && typeof resp.value.revision === 'number') { if (ns === KB_NS) KBM.revision = resp.value.revision; else if (KBM.ds[ns] !== undefined) KBM.ds[ns].revision = resp.value.revision }
+            return resp
+          }
           if (!(resp.error && resp.error.code === 'settings/conflict') || essai === 1) return resp
           await kbMLoad()
         }
@@ -3519,9 +3639,10 @@ window.__ModuleLoader__.load({
         }
         return out
       }
-      /** Whether the native cell is hidden when nothing is stored. Flip to `true` once this page does everything the
-       *  native one does (the Models tab, "Fetch available models", DeepSeek). */
-      const KB_NAT_DEFAULT_HIDDEN = false
+      /** Whether the native cell is hidden when nothing is stored. `true` since this page does everything the native one
+       *  does (providers, the models tab, "Fetch available models", both DeepSeek adapters); the native page stays one click
+       *  away (⋯ menu, and the note on the native page itself). */
+      const KB_NAT_DEFAULT_HIDDEN = true
       /** The stored choice wins ('1' hide, '0' show); with none, the default above. Pure. */
       const kbNatHidden = (stored, dflt) => (stored === '1' ? true : (stored === '0' ? false : dflt === true))
       // KB-NATIVE-PURE-END
@@ -3857,6 +3978,126 @@ window.__ModuleLoader__.load({
         catch (e) { return { kind: 'refused', timeout: false, message: String(e && e.message ? e.message : e) } }
       }
       // KB-FETCH-ACTIONS-END
+      // KB-DS-PURE-BEGIN
+      // ── DeepSeek: the two adapters that live outside llm-pi-ai ──
+      // Measured on DSH 0.2.0-rc.2 (dsh-client-ui-settings-models): `deepseek-official` is the namespace `llm-deepseek` (an API
+      // key under the profile's own `apiKeyEnv`, default DEEPSEEK_API_KEY; a base URL; a model catalog) and `deepseek-account`
+      // is `llm-deepseek-account` (the catalog only: it signs in with the user's account). The namespace IS the profile (its
+      // settings path is empty). The catalog `models` is replaced as ONE array: the first edit materializes every inherited row
+      // into a user override, with the fields this page does not show (description, systemPromptUpdate, toolUpdate…), and
+      // Restore removes the override instead of copying the defaults into it.
+      const KB_DS_NS = ['llm-deepseek', 'llm-deepseek-account']
+      const kbDsObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
+      const kbDsScale = { k: 1e3, m: 1e6 }
+      /** "256K", "1M", "131072" → a count; blank → undefined (inherit); anything else → NaN. Decimal suffixes, like the native page. Pure. */
+      const kbDsParseCapacity = (text) => {
+        const t = String(text === undefined || text === null ? '' : text).trim()
+        if (t === '') return undefined
+        const m = /^(\d+(?:\.\d+)?)([km])?$/i.exec(t)
+        if (m === null) return NaN
+        const scaled = Number(m[1]) * (m[2] === undefined ? 1 : kbDsScale[m[2].toLowerCase()])
+        const rounded = Math.round(scaled)
+        return Math.abs(scaled - rounded) < 1e-6 ? rounded : scaled
+      }
+      /** The shortest spelling that survives a round trip through the parser. Pure. */
+      const kbDsFormatCapacity = (n) => {
+        if (!Number.isInteger(n) || n <= 0) return String(n)
+        if (n % 1e6 === 0) return String(n / 1e6) + 'M'
+        if (n % 1e3 === 0) return String(n / 1e3) + 'K'
+        return String(n)
+      }
+      /** Catalog rows as records, every field kept. Pure. */
+      const kbDsRows = (value) => (Array.isArray(value) ? value.map((e) => (kbDsObj(e) ? { ...e } : {})) : [])
+      /** The first invalid row — { index, key } — by the adapter's own rules, or null. Pure. */
+      const kbDsValidate = (rows) => {
+        const seen = new Set()
+        const list = Array.isArray(rows) ? rows : []
+        for (let index = 0; index < list.length; index += 1) {
+          const r = list[index]
+          const id = typeof r.id === 'string' ? r.id.trim() : ''
+          if (id === '') return { index, key: 'kb.ds.err.id' }
+          if (seen.has(id)) return { index, key: 'kb.ds.err.dup' }
+          seen.add(id)
+          if (r.name !== undefined && (typeof r.name !== 'string' || r.name === '')) return { index, key: 'kb.ds.err.name' }
+          if (r.contextWindow !== undefined && !(Number.isInteger(r.contextWindow) && r.contextWindow > 0)) return { index, key: 'kb.ds.err.ctx' }
+          if (r.maxTokens !== undefined && !(Number.isInteger(r.maxTokens) && r.maxTokens > 0)) return { index, key: 'kb.ds.err.max' }
+        }
+        return null
+      }
+      /** Rows as they are written: ids trimmed, an empty name or an unset capacity removed, every other field untouched. Pure. */
+      const kbDsCleanRows = (rows) => (Array.isArray(rows) ? rows : []).map((r) => {
+        const o = { ...r, id: String(r.id).trim() }
+        for (const k of ['name', 'contextWindow', 'maxTokens']) if (o[k] === undefined || o[k] === '') delete o[k]
+        return o
+      })
+      const kbDsHasImage = (r) => Array.isArray(r.inputModalities) && r.inputModalities.indexOf('image') >= 0
+      /** Image input on or off; text stays. Pure. */
+      const kbDsSetImage = (r, on) => {
+        const base = Array.isArray(r.inputModalities) && r.inputModalities.length > 0 ? r.inputModalities.filter((x) => x !== 'image') : ['text']
+        return { ...r, inputModalities: on === true ? base.concat(['image']) : base }
+      }
+      /** The user layer after the edit. `d.url` is undefined for the account adapter (it has no endpoint to set). Pure. */
+      const kbDsEditProfile = (user, d) => {
+        const next = { ...(kbDsObj(user) ? user : {}) }
+        if (d.url !== undefined) {
+          const url = String(d.url).trim().replace(/\/+$/, '')
+          if (url === '') delete next.baseURL
+          else next.baseURL = url
+        }
+        if (d.restoreModels === true) delete next.models
+        else if (d.touched === true) next.models = kbDsCleanRows(d.rows)
+        return next
+      }
+      /** The credential reference of the official adapter: the one its profile names, else the derived one. Pure. */
+      const kbDsKeyRef = (value) => (kbDsObj(value) && typeof value.apiKeyEnv === 'string' && value.apiKeyEnv !== '' ? value.apiKeyEnv : 'DEEPSEEK_OFFICIAL_API_KEY')
+      // KB-DS-PURE-END
+      // KB-DS-ACTIONS-BEGIN
+      /** The two DeepSeek cards: [{ ns, provider, name }], from the engine's directory when it has them, else the defaults. */
+      const kbDsCardsOf = (ds, dir) => {
+        const defaults = { 'llm-deepseek': { provider: 'deepseek-official', name: 'DeepSeek' }, 'llm-deepseek-account': { provider: 'deepseek-account', name: 'DeepSeek Account' } }
+        return KB_DS_NS.filter((ns) => ds[ns] !== undefined).map((ns) => {
+          const e = (Array.isArray(dir) ? dir : []).filter((x) => x.ns === ns)[0]
+          return { ns, provider: e !== undefined && e.provider !== '' ? e.provider : defaults[ns].provider, name: e !== undefined && e.name !== '' ? e.name : defaults[ns].name }
+        })
+      }
+      /** Save a DeepSeek edit: only changed keys are written, against that namespace's own revision; a typed key goes to the
+       *  credential store under the profile's reference (official adapter only). */
+      const kbDsSave = async (ns, d) => {
+        const api = kbMApi()
+        if (api === null || api.settings === null) throw new Error(m('kb.models.error.remote'))
+        if (KBM.writable !== true) throw new Error(m('kb.models.error.readonly'))
+        const view = KBM.ds[ns]
+        if (view === undefined) throw new Error(m('kb.models.error.remote'))
+        if (d.restoreModels !== true && d.touched === true) {
+          const bad = kbDsValidate(d.rows)
+          if (bad !== null) throw new Error(m('kb.ds.err.row', { n: bad.index + 1, why: m(bad.key) }))
+        }
+        if (d.url !== undefined && String(d.url).trim() !== '' && !kbPvUrlOk(d.url)) throw new Error(m('kb.pv.err.url'))
+        const next = kbDsEditProfile(view.user, d)
+        const ops = kbPvDiffOps([], view.user, next)
+        if (ops.length > 0) {
+          const resp = await kbMMutateRetry(api, ops, ns)
+          await kbMJournal({ niveau: 'settings', route: ns, champ: 'deepseek', op: 'edit', chemin: [ns], ok: resp.ok === true })
+          if (resp.ok !== true) throw new Error(kbMErrText(resp))
+        }
+        let keyOk = null
+        if (ns === 'llm-deepseek' && String(d.key || '').trim() !== '') keyOk = await kbPvCredential(api, kbDsKeyRef(view.value), String(d.key).trim())
+        await kbMLoad()
+        return { changed: ops.length, keyOk }
+      }
+      /** Is the official adapter's key stored? One `credentials.describe`; a missing dot is better than a failed load. */
+      const kbMLoadDsKey = async (api) => {
+        const view = KBM.ds['llm-deepseek']
+        KBM.dsKey = { ref: view === undefined ? '' : kbDsKeyRef(view.value), configured: null }
+        const cr = api.credentials
+        if (view === undefined || cr === null || cr === undefined || typeof cr.describe !== 'function') return
+        try {
+          const r = await kbMTimeout(cr.describe([KBM.dsKey.ref]), 8000)
+          const v = r !== null && r !== undefined && r.ok === true && kbDsObj(r.value) ? r.value : {}
+          if (kbDsObj(v[KBM.dsKey.ref]) && typeof v[KBM.dsKey.ref].configured === 'boolean') KBM.dsKey.configured = v[KBM.dsKey.ref].configured
+        } catch (e) { /* unknown stays unknown */ }
+      }
+      // KB-DS-ACTIONS-END
       /** Une entrée `models[i]`/`modelOverrides.<id>` → les clés de contrôle du
        *  panneau. Seules les clés PRÉSENTES apparaissent : c'est ce qui fait
        *  qu'une surcharge se voit. */
