@@ -3,7 +3,7 @@
 //
 // A lesson is one JSON line in `<kybers>/<kyber>/memory/lessons.jsonl`:
 //   { ts, text (≤ 500 chars), tags (≤ 5), uses, lastUsed [, from] }
-// The file is written by `~/.dsh/kybers/memory.cjs` (the agent runs it through bash
+// The file is written by `<DSH home>/kybers/memory.cjs` (the agent runs it through bash
 // after a contradicted expectation) AND, from now on, by this module. Both must
 // agree, so the rules below are the CLI's rules, not new ones:
 //   · text over 500 chars is cut and ends with "…" (never rejected);
@@ -20,7 +20,7 @@
 import { createHash } from 'node:crypto'
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { rank } from './relevance.mjs'
 
 export const LESSON_MAX_CHARS = 500
@@ -35,12 +35,23 @@ const TAG = /^[\p{L}\p{N}][\p{L}\p{N}_-]{0,31}$/u
 
 export const isKyberId = (value) => typeof value === 'string' && KYBER_ID.test(value) && value.indexOf('..') < 0
 
+/**
+ * The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank
+ * $DSH_HOME (trimmed, a leading ~ expanded), else <os home>/.dsh. The switches file and
+ * the lessons both go through it, so they can never end up in two different homes.
+ */
+export const dshHome = (env = process.env, osHome = homedir) => {
+  const raw = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+  if (raw === '') return join(osHome(), '.dsh')
+  if (raw === '~') return osHome()
+  return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
+}
+
 /** Root of the local kybers. Overridable so the tests never touch the real one. */
 export const kybersRoot = () => {
   const own = process.env.KYBERNOS_MEMORY_KYBERS
   if (typeof own === 'string' && own.trim() !== '') return own.trim()
-  const home = process.env.DSH_HOME
-  return join(typeof home === 'string' && home.trim() !== '' ? home.trim() : join(homedir(), '.dsh'), 'kybers')
+  return join(dshHome(), 'kybers')
 }
 
 const memoryDir = (kyber) => join(kybersRoot(), kyber, 'memory')

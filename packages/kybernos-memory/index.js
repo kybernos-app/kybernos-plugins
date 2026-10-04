@@ -3,12 +3,12 @@
 //
 // Host half. What it does, and what it does not:
 //   · the lessons live in `<kybers>/<kyber>/memory/lessons.jsonl` (see
-//     lessons-store.mjs — same rules as `~/.dsh/kybers/memory.cjs`);
+//     lessons-store.mjs — same rules as `<DSH home>/kybers/memory.cjs`);
 //   · it injects the lessons of the kyber a session runs (plus `default`) into the
 //     system prompt, in a small bounded chunk — never the lessons of every kyber;
 //   · it gives the agent two tools, `lesson_write` and `lesson_search`;
 //   · it serves the routes of the "Memory & Lessons learned" page;
-//   · two switches, `lessons` and `context`, persisted in `kybernos-memory.json`.
+//   · two switches, `lessons` and `context`, persisted in `<DSH home>/kybernos-memory.json`.
 // The account memory (cloud) stays in `@local/kybernos-cloud`: it needs the account
 // token, lessons do not — they keep working offline and without an account.
 //
@@ -19,9 +19,8 @@
 // ═════════════════════════════════════════════════════════════════════════════
 
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
+import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
 import { findDuplicateGroups } from './dedupe.mjs'
 
 export const name = 'kybernos-memory'
@@ -34,9 +33,10 @@ const say = (message) => console.log('[kybernos-memory] ' + message)
 // switches existed, so nothing changes for whoever never touches them.
 const SETTING_KEYS = ['lessons', 'context']
 
+// <DSH home>/kybernos-memory.json, in the same home as the lessons (lessons-store.mjs).
 const settingsFile = () => {
   const own = process.env.KYBERNOS_MEMORY_SETTINGS
-  return typeof own === 'string' && own.trim() !== '' ? own.trim() : join(homedir(), '.dsh', 'kybernos-memory.json')
+  return typeof own === 'string' && own.trim() !== '' ? own.trim() : join(dshHome(), 'kybernos-memory.json')
 }
 
 /** Read at every prompt assembly (a tiny file): no cache to invalidate when another process writes. */
