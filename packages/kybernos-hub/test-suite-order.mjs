@@ -104,11 +104,11 @@ console.log('── moveBy under a filter: relative to the VISIBLE neighbour ─
   const installes = new Map(modules.filter((m) => m.nom.startsWith('@local/kybernos')).map((m) => [m.nom, { name: m.nom, version: m.version, enabled: true }]))
   const complet = T.effectiveOrder(modules, [])
   const visibles = T.filtrer({ modules: T.applyOrder(modules, []), filtre: 'available', requete: '', installes }).map((m) => m.id)
-  ok('the "available" filter shows only a few of the 25 modules', visibles.length > 0 && visibles.length < 25, String(visibles.length))
+  ok('the "available" filter shows only a few of the modules', visibles.length > 0 && visibles.length < modules.length, String(visibles.length))
   const apres = T.moveBy(complet, visibles, visibles[1], -1)
   const vuApres = T.filtrer({ modules: T.applyOrder(modules, apres), filtre: 'available', requete: '', installes }).map((m) => m.id)
   ok('with the real filter, one click up swaps the two visible rows', vuApres[0] === visibles[1] && vuApres[1] === visibles[0], vuApres.join())
-  ok('the full order still lists every module exactly once', apres.length === 25 && new Set(apres).size === 25)
+  ok('the full order still lists every module exactly once', apres.length === modules.length && new Set(apres).size === modules.length)
   ok('filtrer keeps the order it is given (the custom order shows through a filter)', eq(T.filtrer({ modules: mods('c', 'a', 'b'), filtre: 'all', requete: '', installes: new Map() }).map((m) => m.id), ['c', 'a', 'b']))
 }
 
@@ -180,9 +180,10 @@ console.log('── the real catalogue ──')
 {
   const modules = catalogue.modules
   const reel = T.effectiveOrder(modules, [])
-  ok('default order = catalogue order, 25 modules', reel.length === 25 && eq(reel, modules.map((m) => m.id)))
-  const deplace = T.moveTo(reel, modules[24].id, modules[0].id, true)
-  ok('moving the last module to the top puts it first and keeps 25 distinct ids', deplace[0] === modules[24].id && deplace.length === 25 && new Set(deplace).size === 25)
+  ok('default order = catalogue order, every module', reel.length === modules.length && eq(reel, modules.map((m) => m.id)))
+  const dernier = modules[modules.length - 1].id
+  const deplace = T.moveTo(reel, dernier, modules[0].id, true)
+  ok('moving the last module to the top puts it first and keeps every id once', deplace[0] === dernier && deplace.length === modules.length && new Set(deplace).size === modules.length)
   ok('inside a family the saved order shows through (cards are filtered from the ordered list)', (() => {
     const famille = modules[0].famille
     const dedans = T.applyOrder(modules, deplace).filter((m) => m.famille === famille).map((m) => m.id)
