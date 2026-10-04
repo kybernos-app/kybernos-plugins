@@ -115,32 +115,70 @@ window.__ModuleLoader__.load({
     }
     const kbCpDropLink = (slug) => { try { const all = JSON.parse(localStorage.getItem(KB_CP_LINKS) || '{}'); delete all[slug]; localStorage.setItem(KB_CP_LINKS, JSON.stringify(all)) } catch (e) { } }
 
-    let mcpSessionId = null
+    // ── minimal MCP client ───────────────────────────────────────────────────
+    // One session at a time, remembered WITH the key it was opened for. It used to be
+    // memoised for good, a failure included: a mistyped key (401) kept failing after the
+    // right one was saved, until the page was reloaded, and the old Mcp-Session-Id was sent
+    // with the new key. Now a new key, a failed initialize or an expired session (404) starts
+    // a new session, and every exchange is bounded by ONE deadline (headers and body).
+    const MCP_TIMEOUT = { ms: 20000 }
+    let mcpSession = { key: null, id: null, ready: null }
+    const mcpFail = (code, message) => { const e = new Error(message || code); e.code = code; return e }
+    const mcpSessionFor = (key) => {
+      if (mcpSession.key !== key) mcpSession = { key: key, id: null, ready: null }
+      return mcpSession
+    }
     const mcpRpc = async (method, params) => {
+      const key = kbCpKey()
+      const sess = mcpSessionFor(key)
       const headers = {
         'Content-Type': 'application/json',
         'Accept': 'application/json, text/event-stream',
-        'x-consumer-api-key': kbCpKey(),
+        'x-consumer-api-key': key,
       }
-      if (mcpSessionId !== null) headers['Mcp-Session-Id'] = mcpSessionId
-      const r = await fetch(MCP_URL, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: Date.now() % 1e9, method, params }) })
-      const sid = r.headers.get('mcp-session-id')
-      if (sid) mcpSessionId = sid
-      const raw = await r.text()
-      let payload = null
-      for (const line of raw.split('\n')) {
-        if (line.indexOf('data:') === 0) { try { payload = JSON.parse(line.slice(5).trim()) } catch (e) { } }
-      }
-      if (payload === null) { try { payload = JSON.parse(raw) } catch (e) { } }
-      if (r.ok !== true) throw new Error((payload && payload.error && payload.error.message) || ('HTTP ' + r.status))
-      if (payload && payload.error) throw new Error(payload.error.message || 'erreur MCP')
-      return payload ? payload.result : null
+      if (sess.id !== null) headers['Mcp-Session-Id'] = sess.id
+      const controller = new AbortController()
+      const deadline = new Promise((_resolve, reject) => { controller.signal.addEventListener('abort', () => reject(mcpFail('timeout', 'timeout')), { once: true }) })
+      deadline.catch(() => { /* nothing races it any more */ })
+      const timer = setTimeout(() => controller.abort(), MCP_TIMEOUT.ms)
+      const failed = (e) => (e !== null && e !== undefined && typeof e.code === 'string' ? e : mcpFail(controller.signal.aborted === true ? 'timeout' : 'offline', String((e && e.message) || e)))
+      try {
+        let r = null
+        try { r = await Promise.race([fetch(MCP_URL, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: Date.now() % 1e9, method, params }), signal: controller.signal }), deadline]) } catch (e) { throw failed(e) }
+        const sid = r.headers.get('mcp-session-id')
+        if (sid && mcpSession === sess) sess.id = sid
+        let raw = ''
+        try { raw = await Promise.race([r.text(), deadline]) } catch (e) { throw failed(e) }
+        let payload = null
+        for (const line of raw.split('\n')) {
+          if (line.indexOf('data:') === 0) { try { payload = JSON.parse(line.slice(5).trim()) } catch (e) { } }
+        }
+        if (payload === null) { try { payload = JSON.parse(raw) } catch (e) { } }
+        if (r.ok !== true) throw mcpFail(String(r.status), (payload && payload.error && payload.error.message) || ('HTTP ' + r.status))
+        if (payload && payload.error) throw mcpFail('rpc-error', payload.error.message || 'MCP error')
+        return payload ? payload.result : null
+      } finally { clearTimeout(timer) }
     }
-    const mcpReady = (() => { let p = null; return () => (p ??= mcpRpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kybernos-harness', version: '1.0' } })) })()
+    const mcpReady = () => {
+      const sess = mcpSessionFor(kbCpKey())
+      if (sess.ready === null) {
+        sess.ready = mcpRpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kybernos-harness', version: '1.0' } })
+          .catch((e) => { if (sess.ready !== null && mcpSession === sess) sess.ready = null; throw e })
+      }
+      return sess.ready
+    }
     const kbCpCall = async (tool, args) => {
       if (kbCpHas() === false) throw new Error('nokey')
-      await mcpReady()
-      return mcpRpc('tools/call', { name: tool, arguments: args })
+      const attempt = async () => {
+        await mcpReady()
+        return mcpRpc('tools/call', { name: tool, arguments: args })
+      }
+      try { return await attempt() } catch (e) {
+        if (e === null || e === undefined || e.code !== '404') throw e
+        // The server forgot the session: start a new one, once.
+        mcpSession = { key: kbCpKey(), id: null, ready: null }
+        return attempt()
+      }
     }
     const kbCpText = (res) => {
       const c = res && Array.isArray(res.content) ? res.content : []
@@ -204,8 +242,8 @@ window.__ModuleLoader__.load({
       'composio.keydesc': { fr: "Collez votre clé Composio (elle commence par ck_). Elle pilote cet onglet ET les agents (MCP) — une seule clé.", en: 'Paste your Composio key (starts with ck_). It drives this tab AND the agents (MCP) — one single key.' },
       'composio.keysave': { fr: 'Enregistrer', en: 'Save' },
       'composio.keyclear': { fr: 'Effacer', en: 'Clear' },
-      'composio.keyok': { fr: 'clé configurée', en: 'key configured' },
-      'composio.keymissing': { fr: 'clé non configurée', en: 'no key configured' },
+      'composio.keyok': { fr: 'clé enregistrée dans ce navigateur', en: 'key saved in this browser' },
+      'composio.keymissing': { fr: 'aucune clé dans ce navigateur', en: 'no key in this browser' },
       'composio.modelabel': { fr: 'Clé & mode Composio', en: 'Composio key & mode' },
       'composio.modelocal': { fr: 'Local · gratuit', en: 'Local · free' },
       'composio.modecloud': { fr: 'Cloud · local + cloud', en: 'Cloud · local + cloud' },
@@ -285,6 +323,21 @@ window.__ModuleLoader__.load({
       // (POC) pilule « Kybernos » de la page Plugins du moteur.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
       'kb.cp.yours.go': { fr: 'Parcourir le catalogue', en: 'Browse the catalog' },
+      // What a failed call says, by code (the host and the MCP client use the same codes).
+      'kb.cp.err.401': { fr: 'Composio a refusé la clé API (401). Vérifiez-la dans ~/.dsh/.env ou dans le panneau de la clé.', en: 'Composio rejected the API key (401). Check it in ~/.dsh/.env or in the key panel.' },
+      'kb.cp.err.429': { fr: 'Composio limite le débit (429) : réessayez dans un instant.', en: 'Composio is rate limiting requests (429): try again in a moment.' },
+      'kb.cp.err.timeout': { fr: 'Composio n’a pas répondu à temps.', en: 'Composio did not answer in time.' },
+      'kb.cp.err.offline': { fr: 'Composio est injoignable (réseau).', en: 'Composio cannot be reached (network).' },
+      'kb.cp.err.other': { fr: 'Composio a répondu par une erreur ({code}).', en: 'Composio answered with an error ({code}).' },
+      // Key panel: what the HOST (the agents) sees, as opposed to this browser.
+      'composio.hostok': { fr: 'Agents : clé trouvée côté hôte', en: 'Agents: key found on the host' },
+      'composio.hostmissing': { fr: 'Agents : aucune clé côté hôte — copiez-la dans ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) puis redémarrez dsh.', en: 'Agents: no key on the host — copy it into ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) then restart dsh.' },
+      'composio.hostbad': { fr: 'Agents : la clé côté hôte est refusée par Composio', en: 'Agents: the key on the host is rejected by Composio' },
+      'composio.hosterr': { fr: 'Agents : clé côté hôte trouvée, mais Composio ne répond pas bien', en: 'Agents: key found on the host, but Composio is not answering well' },
+      'composio.hostunknown': { fr: 'Agents : état côté hôte inconnu (plugin hôte injoignable)', en: 'Agents: state on the host unknown (host plugin unreachable)' },
+      // Card button that sends text into the conversation: the text is shown first.
+      'kb.cp.accept.confirm': { fr: 'Envoyer ce message dans la conversation ?', en: 'Send this message in the conversation?' },
+      'kb.cp.accept.toolong': { fr: 'Ce message est trop long pour être envoyé d’un clic : il n’a pas été envoyé.', en: 'This message is too long to send with one click: it was not sent.' },
     }
     const kbt = (key) => {
       const row = STR[key]
@@ -308,6 +361,32 @@ window.__ModuleLoader__.load({
         if (row[tag] !== null && row[tag] !== undefined) return row[tag]
       }
       return row.fr !== null && row.fr !== undefined ? row.fr : row.en
+    }
+
+    /** A failure code (host route or MCP client) as a sentence the user can act on. */
+    const kbCpErrText = (code) => {
+      const c = String(code === null || code === undefined ? '' : code)
+      if (c === '401' || c === '403') return kbt('kb.cp.err.401')
+      if (c === '429') return kbt('kb.cp.err.429')
+      if (c === 'timeout') return kbt('kb.cp.err.timeout')
+      if (c === 'offline') return kbt('kb.cp.err.offline')
+      return kbt('kb.cp.err.other').replace('{code}', c.length > 0 ? c : '?')
+    }
+    /** The text for an error thrown by the MCP client: its code when it has one, else its message. */
+    const kbCpErrOf = (e) => (e !== null && e !== undefined && typeof e.code === 'string' && e.code.length > 0 ? kbCpErrText(e.code) : String((e && e.message) || e))
+    /**
+     * What the key panel says about the HOST, from GET /kybernos/composio/connections. The panel
+     * used to read only the browser's copy of the key and show green while the agents, which
+     * read process.env.COMPOSIO_API_KEY from ~/.dsh/.env, had no key at all. null = the reply
+     * is unusable (the host plugin is not there).
+     */
+    const kbCpHostState = (reply) => {
+      if (reply === null || reply === undefined || typeof reply !== 'object' || reply.ok !== true) return { level: 'unknown', key: 'composio.hostunknown' }
+      if (reply.configured !== true) return { level: 'warn', key: 'composio.hostmissing' }
+      const err = reply.error === undefined || reply.error === null ? null : String(reply.error)
+      if (err === null) return { level: 'ok', key: 'composio.hostok' }
+      if (err === '401' || err === '403') return { level: 'bad', key: 'composio.hostbad' }
+      return { level: 'warn', key: 'composio.hosterr' }
     }
 
     // ── icônes Lucide (SVG inline) ────────────────────────────────────────────
@@ -383,6 +462,7 @@ window.__ModuleLoader__.load({
 .kbcp-dot{width:8px;height:8px;border-radius:99px;background:rgba(128,128,128,.5)}
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
+.kbcp-dot.bad{background:#ef4444}
 /* réglage Local/Cloud : deux pilules dans une kbcp-row (valeurs kb7-chip) ;
    le violet #635bff est celui du bouton primary — lisible clair ET sombre */
 .kbcp-modepill{height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
@@ -541,7 +621,21 @@ window.__ModuleLoader__.load({
       React.useEffect(() => {
         if (kbCpHas() === false) { setProbe(null); return undefined }
         let dead = false
-        mcpReady().then(() => { if (dead === false) setProbe('ok') }).catch((e) => { if (dead === false) setProbe('HTTP ' + (e.message || 'err')) })
+        mcpReady().then(() => { if (dead === false) setProbe('ok') }).catch((e) => { if (dead === false) setProbe(e !== null && e !== undefined && typeof e.code === 'string' ? e.code : 'err') })
+        return () => { dead = true }
+      }, [has])
+      // What the HOST sees. The agents read COMPOSIO_API_KEY from ~/.dsh/.env, not this browser's
+      // copy, so the key being saved here proves nothing about them.
+      const pH = React.useState(null)
+      const hostState = pH[0]
+      const setHostState = pH[1]
+      React.useEffect(() => {
+        let dead = false
+        let reply = null
+        Promise.resolve().then(() => fetch('/kybernos/composio/connections?toolkits=gmail', { credentials: 'same-origin' }))
+          .then((r) => (r.ok === true ? r.json() : null))
+          .catch(() => null)
+          .then((j) => { reply = j; if (dead === false) setHostState(kbCpHostState(reply)) })
         return () => { dead = true }
       }, [has])
       const save = () => {
@@ -573,6 +667,10 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'kbcp-btn primary', onClick: save }, kbt('composio.keysave')),
           h('button', { type: 'button', className: 'kbcp-btn', onClick: clear }, kbt('composio.keyclear')),
           has === true ? h('span', { className: 'kbcp-code' }, probe === 'ok' ? 'MCP ✓' : (probe === null ? '…' : 'MCP ✗ ' + probe)) : null) : null,
+        local && hostState !== null ? h('div', { className: 'kbcp-row' },
+          h('span', { className: 'kbcp-state', 'data-kb': 'composio-host-state' },
+            h('span', { className: 'kbcp-dot' + (hostState.level === 'ok' ? ' on' : (hostState.level === 'bad' ? ' bad' : ' warn')) }),
+            kbt(hostState.key))) : null,
         local ? h('details', { className: 'kbcp-help' },
           h('summary', null, kbt('composio.modehelpq')),
           h('ol', null,
@@ -741,6 +839,11 @@ window.__ModuleLoader__.load({
       const p16 = React.useState(false)
       const helpOpen = p16[0]
       const setHelpOpen = p16[1]
+      // True once the host reported that it has a key (the one the agents use): then the missing
+      // browser key is not a reason to say "add your key".
+      const p17 = React.useState(false)
+      const hostCfg = p17[0]
+      const setHostCfg = p17[1]
 
       const loadConnecteurs = React.useCallback(async () => {
         try {
@@ -801,11 +904,17 @@ window.__ModuleLoader__.load({
             const sl = (list || CATALOG).map((a) => a && a.s).filter((x) => typeof x === 'string' && x.length > 0)
             if (sl.length === 0) { setConns({}); return }
             const acc = {}
+            // The first failure the host reports (401, 429, timeout...) is shown: an empty list
+            // that comes with an error is NOT "no app connected".
+            let failure = null
+            let hostKey = null
             for (let i = 0; i < sl.length; i += 40) {
               const q = sl.slice(i, i + 40).join(',')
               const r = await fetch('/kybernos/composio/connections?toolkits=' + encodeURIComponent(q))
               if (r.ok !== true) throw new Error('HTTP ' + r.status)
               const j = await r.json()
+              if (j !== null && j !== undefined && j.configured === true) hostKey = true
+              if (failure === null && j !== null && j !== undefined && j.configured === true && typeof j.error === 'string' && j.error.length > 0) failure = j.error
               const rows = Array.isArray(j && j.connections) ? j.connections : []
               for (const c of rows) {
                 const key = String((c && c.toolkit) || '').toLowerCase()
@@ -822,6 +931,8 @@ window.__ModuleLoader__.load({
               }
             }
             setConns(acc)
+            setHostCfg(hostKey === true)
+            if (failure !== null) setErr(kbCpErrText(failure))
           } catch (e) {
             setErr(String((e && e.message) || e))
             setConns({})
@@ -838,7 +949,7 @@ window.__ModuleLoader__.load({
           }
           setConns(acc)
         } catch (e) {
-          setErr(String((e && e.message) || e))
+          setErr(kbCpErrOf(e))
         } finally { setBusy(false) }
       }, [])
       // Le catalogue vient du host, à la demande : premier besoin = ouverture de la page.
@@ -1099,14 +1210,14 @@ window.__ModuleLoader__.load({
         helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
           h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
           h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
-        (ready === true && hasKey === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
+        (ready === true && hasKey === false && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null ? h('div', { className: 'kb7-err' }, err) : null,
         // ── Vos connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
           cxNote !== null ? h('div', { className: 'kb7-fok' }, cxNote) : null,
           yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
-                h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : kbt('kb.cp.yours.empty')),
+                h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
                 yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading'))))
             : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a))),
           // Connecteurs personnalisés : liste hors catalogue, gérée par formulaire.
@@ -1212,6 +1323,23 @@ window.__ModuleLoader__.load({
           (item.note ? '<span class="kbcp-carte-note">' + carteEsc(item.note) + '</span>' : '') +
           (item.type === 'connecteur' ? '<a class="kbcp-carte-lien" href="kb:connecteurs">' + KB_CP_ICONE_GRILLE + 'Tous les connecteurs</a>' : '') +
         '</span>' + action
+    }
+    // Longest text a card may send with one click. A longer one is refused rather than shown
+    // truncated: the confirmation must show everything that would be sent.
+    const CARTE_ACCEPT_MAX = 2000
+    /**
+     * The click on an `kb:accept:<text>` action. Returns true when `href` is such an action (the
+     * click is then handled, never navigated), after asking `confirmer(text)` with the exact text
+     * that would be sent; `envoyer(text)` runs only when it answers true. Pure apart from the
+     * three callbacks, so a node test can drive it.
+     */
+    function carteAccepter(href, confirmer, envoyer, refuser) {
+      if (typeof href !== 'string' || href.slice(0, 10) !== 'kb:accept:') return false
+      let texte = href.slice(10)
+      try { texte = decodeURIComponent(texte) } catch (e) { /* raw when it is not encoded */ }
+      if (texte.length > CARTE_ACCEPT_MAX) { if (typeof refuser === 'function') refuser(texte); return true }
+      if (confirmer(texte) === true) envoyer(texte)
+      return true
     }
     function carteEl(item) {
       const d = document.createElement('div')
@@ -1386,14 +1514,14 @@ window.__ModuleLoader__.load({
             const a = (t !== null) ? t.closest('a.kbcp-carte-action') : null
             if (a === null) return
             const href = a.getAttribute('href') || ''
-            // « kb:accept:<texte encodé> » : acceptation directe — le texte
-            // part dans la conversation courante (pont kb-accept-text,
-            // detail.direct) ; le clic sur Accepter vaut consentement.
-            if (href.slice(0, 10) === 'kb:accept:') {
+            // `kb:accept:<encoded text>`: the text is sent into the current conversation (bridge
+            // kb-accept-text, detail.direct) AS THE USER'S MESSAGE. The card is model output (it
+            // can be built from a mail the agent read), so a click on a label must not send hidden
+            // text: carteAccepter shows the exact text and sends it only once it is confirmed.
+            if (carteAccepter(href, (texte) => { try { return window.confirm(kbt('kb.cp.accept.confirm') + '\n\n' + texte) === true } catch (e2) { return false } },
+              (texte) => { try { window.dispatchEvent(new CustomEvent('kb-accept-text', { detail: { text: texte, direct: true } })) } catch (e3) { /* silent */ } },
+              () => { try { window.alert(kbt('kb.cp.accept.toolong')) } catch (e4) { /* silent */ } })) {
               ev.preventDefault()
-              let texte = href.slice(10)
-              try { texte = decodeURIComponent(texte) } catch (e) { /* brut si non encodé */ }
-              try { window.dispatchEvent(new CustomEvent('kb-accept-text', { detail: { text: texte, direct: true } })) } catch (e) { /* silencieux */ }
               return
             }
             if (href.slice(0, 3) !== 'kb:') return
@@ -1426,10 +1554,10 @@ window.__ModuleLoader__.load({
     return {
       inject: ['timer', 'slots', 'locale'],
       apply(ctx) { apply(ctx) },
-      // exposé pour l'onglet Ressources du bundle kybernos ; webUrl and
-      // carteHtml (the pure URL rule and the card renderer) are exposed so
-      // test-client.mjs can reach them without a DOM.
-      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml },
+      // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
+      // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
+      // reach them without a DOM.
+      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, errText: kbCpErrText, hostState: kbCpHostState, mcpTimeout: MCP_TIMEOUT },
     }
   },
 })

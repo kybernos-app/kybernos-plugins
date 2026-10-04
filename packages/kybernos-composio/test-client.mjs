@@ -150,5 +150,130 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok(`catalog: ${logos.length} logos carry no script, event handler, javascript: or embedded document`, logos.length > 0 && active.length === 0, active.join(','))
 }
 
+// ── the minimal MCP client (kbCpCall) ───────────────────────────────────────
+// It talks to connect.composio.dev with the key kept in localStorage. Everything below runs
+// against a stubbed fetch: no network.
+{
+  const { call, errText, hostState, mcpTimeout, carteAccepter } = plugin.composio
+  const appels = []
+  const stubFetch = (handler) => {
+    appels.length = 0
+    globalThis.fetch = async (url, init) => {
+      const rec = { url: String(url), headers: Object.assign({}, init.headers), body: JSON.parse(init.body), signal: init.signal }
+      appels.push(rec)
+      if (rec.url !== 'https://connect.composio.dev/mcp') throw new Error('STUB: unexpected URL ' + rec.url)
+      return handler(rec)
+    }
+  }
+  const rep = (obj, status = 200, headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: { get: (k) => (headers[String(k).toLowerCase()] !== undefined ? headers[String(k).toLowerCase()] : null) }, text: async () => JSON.stringify(obj) })
+  const init = (sid) => rep({ jsonrpc: '2.0', id: 1, result: {} }, 200, sid === undefined ? {} : { 'mcp-session-id': sid })
+  const outil = (texte) => rep({ jsonrpc: '2.0', id: 2, result: { content: [{ type: 'text', text: texte }] } })
+  const cle = (k) => { store.set('composio.apiKey', k) }
+  const echec = async (p) => { try { await p; return null } catch (e) { return e } }
+  const course = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r('TIMEOUT'), ms))])
+  const methode = (rec) => rec.body.method
+  const nbInit = () => appels.filter((c) => methode(c) === 'initialize').length
+
+  store.clear()
+  const e0 = await echec(call('T', {}))
+  ok('mcp: a call without a key is refused before any request', e0 !== null && e0.message === 'nokey')
+
+  // a mistyped key (401), then the right one: it must work without reloading the page
+  cle('ck_typo')
+  stubFetch((r) => (r.headers['x-consumer-api-key'] === 'ck_right' ? (methode(r) === 'initialize' ? init('S-right') : outil('"fine"')) : rep({ error: { message: 'Unauthorized' } }, 401)))
+  const e1 = await echec(call('T', {}))
+  ok('mcp: a rejected key fails with code 401', e1 !== null && e1.code === '401' && /Unauthorized/.test(e1.message), e1 && e1.message)
+  cle('ck_right')
+  const r1 = await echec(call('T', {}))
+  ok('mcp: after the key is fixed the next call works (the failure was not memoised)', r1 === null, String(r1 && r1.message))
+  ok('mcp: ...it initialized again with the right key', appels.filter((c) => methode(c) === 'initialize' && c.headers['x-consumer-api-key'] === 'ck_right').length === 1)
+
+  // a failed initialize with the SAME key is retried by the next call
+  cle('ck_retry')
+  let n = 0
+  stubFetch((r) => { if (methode(r) === 'initialize') { n += 1; return n === 1 ? rep({}, 500) : init('S-retry') } return outil('1') })
+  const e2 = await echec(call('T', {}))
+  const e3 = await echec(call('T', {}))
+  ok('mcp: a failed initialize is retried on the next call (same key)', e2 !== null && e2.code === '500' && e3 === null && n === 2, `${e2 && e2.code} ${e3 && e3.message} n=${n}`)
+
+  // the session belongs to a key
+  cle('ck_one')
+  stubFetch((r) => { const k = r.headers['x-consumer-api-key']; return methode(r) === 'initialize' ? init('S-' + k) : (r.headers['Mcp-Session-Id'] === 'S-' + k ? outil('1') : rep({}, 404)) })
+  await call('T', {})
+  cle('ck_two')
+  const e4 = await echec(call('T', {}))
+  cle('ck_one')
+  const e5 = await echec(call('T', {}))
+  ok('mcp: the old Mcp-Session-Id is never sent with another key', e4 === null && e5 === null, `${e4 && e4.message} ${e5 && e5.message}`)
+  ok('mcp: the first initialize of a new key carries no session id', appels.filter((c) => methode(c) === 'initialize').every((c) => c.headers['Mcp-Session-Id'] === undefined))
+
+  // an expired session (404) is started again, once
+  cle('ck_exp')
+  let ini = 0
+  let expirer = false
+  stubFetch((r) => {
+    if (methode(r) === 'initialize') { ini += 1; return init('S' + ini) }
+    return expirer && r.headers['Mcp-Session-Id'] === 'S1' ? rep({ error: { message: 'session not found' } }, 404) : outil('"ok"')
+  })
+  await call('T', {})
+  expirer = true
+  const e6 = await echec(call('T', {}))
+  ok('mcp: a 404 (expired session) starts a new session and the call succeeds', e6 === null && ini === 2, `${e6 && e6.message} ini=${ini}`)
+  stubFetch((r) => (methode(r) === 'initialize' ? init('S-x') : rep({ error: { message: 'gone' } }, 404)))
+  cle('ck_exp2')
+  const e7 = await echec(call('T', {}))
+  ok('mcp: a 404 that persists is reported after one retry', e7 !== null && e7.code === '404' && nbInit() === 2, `${e7 && e7.code} inits=${nbInit()}`)
+
+  // deadlines: headers and body
+  const ms0 = mcpTimeout.ms
+  mcpTimeout.ms = 120
+  try {
+    cle('ck_slow')
+    stubFetch(() => new Promise(() => {}))
+    const t1 = await course(echec(call('T', {})), 2000)
+    ok('mcp: a fetch that never answers is cut by the timeout (code timeout)', t1 !== 'TIMEOUT' && t1 !== null && t1.code === 'timeout', String(t1 && t1.code))
+    stubFetch((r) => (methode(r) === 'initialize' ? init('S-slow') : { ok: true, status: 200, headers: { get: () => null }, text: () => new Promise(() => {}) }))
+    const t2 = await course(echec(call('T', {})), 2000)
+    ok('mcp: a body that never arrives is cut as well', t2 !== 'TIMEOUT' && t2 !== null && t2.code === 'timeout', String(t2 && t2.code))
+    stubFetch((r) => (methode(r) === 'initialize' ? init('S-slow2') : outil('1')))
+    const t3 = await course(echec(call('T', {})), 2000)
+    ok('mcp: ...and the next call is not stuck behind it', t3 === null)
+    stubFetch(() => { throw new TypeError('Failed to fetch') })
+    cle('ck_off')
+    const t4 = await echec(call('T', {}))
+    ok('mcp: a network failure has code offline', t4 !== null && t4.code === 'offline', String(t4 && t4.code))
+  } finally { mcpTimeout.ms = ms0 }
+
+  // what a failure says
+  ok('errText: 401 and 403 say the key was rejected', /401/.test(errText('401')) && errText('403') === errText('401'))
+  ok('errText: 429, timeout and offline each have their own sentence', new Set([errText('429'), errText('timeout'), errText('offline'), errText('401')]).size === 4)
+  ok('errText: any other code is carried in the sentence', errText('bad-response').includes('bad-response') && errText(undefined).includes('?'))
+  // the key panel: what the host says
+  ok('hostState: a key on the host and no error is ok', hostState({ ok: true, configured: true, error: null }).level === 'ok')
+  ok('hostState: no key on the host is a warning, whatever the browser holds', hostState({ ok: true, configured: false, error: 'no-credential' }).level === 'warn' && hostState({ ok: true, configured: false }).key === 'composio.hostmissing')
+  ok('hostState: a key the host has but Composio rejects is bad', hostState({ ok: true, configured: true, error: '401' }).level === 'bad')
+  ok('hostState: another failure is a warning, not a green light', hostState({ ok: true, configured: true, error: 'timeout' }).level === 'warn')
+  ok('hostState: an unusable reply (plugin not there) is unknown', hostState(null).level === 'unknown' && hostState({ ok: false }).level === 'unknown' && hostState('x').level === 'unknown')
+
+  // C-14: a card action that sends text into the conversation shows it first
+  const envoi = []
+  const enc = (s) => 'kb:accept:' + encodeURIComponent(s)
+  ok('accept: a click that is not an accept action is not handled', carteAccepter('https://x.test/', () => true, (x) => envoi.push(x)) === false && carteAccepter('kb:composio', () => true, (x) => envoi.push(x)) === false && carteAccepter(undefined, () => true, (x) => envoi.push(x)) === false && envoi.length === 0)
+  let montre = null
+  ok('accept: the confirmation gets the exact decoded text', carteAccepter(enc('Oui, résilie le contrat 42 & envoie-le'), (x) => { montre = x; return false }, (x) => envoi.push(x)) === true && montre === 'Oui, résilie le contrat 42 & envoie-le')
+  ok('accept: nothing is sent when the user declines', envoi.length === 0)
+  carteAccepter(enc('Send it'), () => true, (x) => envoi.push(x))
+  ok('accept: the confirmed text is sent, and only that', envoi.length === 1 && envoi[0] === 'Send it')
+  carteAccepter(enc('Maybe'), () => undefined, (x) => envoi.push(x))
+  carteAccepter(enc('Maybe'), () => 'yes', (x) => envoi.push(x))
+  ok('accept: only a true answer counts as consent', envoi.length === 1)
+  let confirme = false
+  let refus = null
+  const longTexte = 'x'.repeat(2001)
+  ok('accept: a text over 2000 characters is handled but refused, never confirmed nor sent', carteAccepter(enc(longTexte), () => { confirme = true; return true }, (x) => envoi.push(x), (x) => { refus = x.length }) === true && confirme === false && envoi.length === 1 && refus === 2001)
+  ok('accept: 2000 characters is still allowed', carteAccepter(enc('y'.repeat(2000)), () => true, (x) => envoi.push(x)) === true && envoi.length === 2)
+  ok('accept: a malformed %-escape is passed on as it is (and shown as it is)', carteAccepter('kb:accept:100%', (x) => { montre = x; return true }, (x) => envoi.push(x)) === true && montre === '100%')
+}
+
 console.log(echecs === 0 ? '\nClient: all green.' : `\n✗ ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)
