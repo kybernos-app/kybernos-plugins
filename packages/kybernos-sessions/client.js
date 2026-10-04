@@ -1848,11 +1848,11 @@ window.__ModuleLoader__.load({
       const lireMem = React.useCallback(async () => {
         try {
           const [l, r] = await Promise.all([
-            fetch('/kybernos-cloud/memory/list?limit=1').then((x) => x.json()),
+            fetch('/kybernos-cloud/memory/list?limit=1&session=' + encodeURIComponent(sessionId || '')).then((x) => x.json()),
             fetch('/kybernos-cloud/memory/settings').then((x) => x.json())
           ])
           setMemInfo(l && l.ok === true && l.budget && l.counts
-            ? { sent: l.budget.sent, total: l.counts.all, used: l.budget.used, cap: l.budget.cap, capture: r && r.capture ? r.capture : null,
+            ? { sent: l.budget.sent, total: l.counts.all, used: l.budget.used, cap: l.budget.cap, picked: l.picked && l.picked.count > 0 ? l.picked.count : 0, capture: r && r.capture ? r.capture : null,
                 actif: !r || !r.settings || (r.settings.memories === true && r.settings.context === true) }
             : null)
         } catch (e) { setMemInfo(null) }
@@ -2006,6 +2006,7 @@ window.__ModuleLoader__.load({
               h('p', { className: 'kbs-note-line' }, memInfo.actif === false
                 ? 'Memory is switched off: nothing is sent to the model.'
                 : memInfo.sent + ' of ' + memInfo.total + ' · ' + memInfo.used + ' / ' + memInfo.cap + ' characters · newest first, pinned ones reserved a share'),
+              memInfo.picked > 0 && memInfo.actif !== false ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked' }, 'Picked for your latest message: ' + memInfo.picked + (memInfo.picked === 1 ? ' memory' : ' memories') + ' that match it') : null,
               ditCapture(memInfo.capture) !== null ? h('p', { className: 'kbs-note-line' }, 'Auto-capture: ' + ditCapture(memInfo.capture)) : null),
         sectionNote('Written by this chat', ecritsMem === 0 && memFaites.length === 0
           ? h('div', { className: 'kbs-vide' }, 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.')

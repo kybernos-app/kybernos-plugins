@@ -1186,10 +1186,12 @@ const writeSide = (suffix, value) => {
  * pour qui ne les touche pas. Lus à chaque assemblage de prompt (fichier minuscule,
  * lecture synchrone) — pas de cache à invalider quand un autre processus écrit.
  */
-const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning']
+const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning', 'relevant']
 // `meaning` (search by meaning) is OFF until the user turns it on: it sends the text of a memory to the
 // embedding model of the Kybernos cloud, which nothing else in this plugin does outside a chat turn.
-const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false }
+// `relevant` (pick the memories that match the current question, on top of the pinned and the newest) is ON: it is
+// local, nothing goes anywhere extra, and the page lets the user turn it off.
+const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false, relevant: true }
 const readMemorySettings = () => {
   const raw = readSide('memory', {})
   const out = {}
@@ -1508,6 +1510,87 @@ const newestFirst = (a, b) => {
   return Number(b.id) - Number(a.id)
 }
 
+// ── The memories that matter to THIS question ───────────────────────────────
+// The base selection (pinned, then the newest) cannot know what the user is asking: on a 640-memory account the one
+// about Docker on this Mac is 9 days old and never goes. So the human's latest message of each session is kept here
+// and ranked against the memories (relevance.mjs, local: nothing is sent anywhere), and the ones that clearly match
+// are added to what goes to the model.
+//
+// Cost: the engine appends a new "runtime context" snapshot to the history whenever this text CHANGES (and keeps the
+// older ones), so the pick is made to stay put: it is computed once per user message, kept while the topic is the same
+// (overlap), and not changed again for a few turns. Never per step, never per tool call.
+const RELEVANCE_TUNING = {
+  maxTerms: 12,           // judge the question by its 12 rarest words that can match something
+  minCoverage: 0.25,      // ≥ 2 words matched and a quarter of the question's rarity …
+  strongCoverage: 0.5,    // … or 1 word that is half of it (a rare word: « tev1 »)
+  relative: 0.5,          // and never less than this fraction of the best match's coverage (the tail of a long list is noise)
+  maxPicked: 6,           // at most this many memories picked
+  maxCandidates: 15,      // … and only when the question is SELECTIVE: if more than this many memories qualify, none stands out
+  share: 0.4,             // … and at most this share of the memories budget
+  keepOverlap: 0.6,       // a new pick that overlaps the last one this much changes nothing
+  minTurnsBetweenChanges: 3,
+  queryChars: 1200,
+  sessions: 64,
+}
+const sessionQuery = new Map()   // sessionId -> { key, text, turn }
+const sessionPick = new Map()    // sessionId -> { key, ids, turn }
+
+const forgetOldest = (map) => { while (map.size > RELEVANCE_TUNING.sessions) map.delete(map.keys().next().value) }
+
+/** The text of a HUMAN prompt (source.kind 'user'); injected context, file notices, skills and goal rounds are not a question. */
+const userPromptText = (message) => {
+  if (message === null || typeof message !== 'object') return ''
+  const kind = message.source !== null && typeof message.source === 'object' ? message.source.kind : undefined
+  if (kind !== 'user') return ''
+  const blocks = Array.isArray(message.content) ? message.content : []
+  return stripMemoryBlock(blocks.filter((b) => b !== null && typeof b === 'object' && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n')).trim()
+}
+
+const noteUserTurn = (sessionId, message, turn) => {
+  try {
+    const text = userPromptText(message)
+    if (typeof sessionId !== 'string' || sessionId === '' || text === '') return
+    const cut = text.slice(0, RELEVANCE_TUNING.queryChars)
+    sessionQuery.delete(sessionId)
+    sessionQuery.set(sessionId, { key: String(Number.isFinite(turn) ? turn : 0) + ':' + String(text.length) + ':' + cut.slice(0, 40), text: cut, turn: Number.isFinite(turn) ? turn : 0 })
+    forgetOldest(sessionQuery)
+  } catch (e) { /* never break a turn */ }
+}
+
+const overlapOf = (a, b) => {
+  if (a.length === 0 && b.length === 0) return 1
+  const set = new Set(a)
+  let both = 0
+  for (const id of b) if (set.has(id)) both += 1
+  return both / (a.length + b.length - both)
+}
+
+/** The memories of `candidates` that match this session's latest question, best first; [] when nothing clearly does. */
+const pickRelevant = (sessionId, candidates) => {
+  const q = sessionQuery.get(sessionId)
+  if (q === undefined) return []
+  const byId = new Map(candidates.map((m) => [String(m.id), m]))
+  const prev = sessionPick.get(sessionId)
+  if (prev !== undefined && prev.key === q.key) return prev.ids.map((id) => byId.get(id)).filter((m) => m !== undefined)   // same message, next step: byte-identical
+  const T = RELEVANCE_TUNING
+  const ranked = rankByRelevance(candidates.map((m) => ({ content: m.content, createdAt: m.createdAt, pinned: false, mem: m })), q.text, { maxTerms: T.maxTerms })
+  const passing = ranked.filter((r) => (r.matched >= 2 && r.coverage >= T.minCoverage) || (r.matched >= 1 && r.coverage >= T.strongCoverage))
+  const best = passing.reduce((top, r) => Math.max(top, r.coverage), 0)
+  const strong = passing.filter((r) => r.coverage >= best * T.relative)
+  // "kybernos" or "note" matches hundreds of memories equally: that is not a question about any of them.
+  const ids = strong.length > T.maxCandidates ? [] : strong.slice(0, T.maxPicked).map((r) => String(r.doc.mem.id))
+  let next = ids
+  let turn = q.turn
+  if (prev !== undefined) {
+    const spaced = q.turn - prev.turn >= T.minTurnsBetweenChanges
+    if (overlapOf(ids, prev.ids) >= T.keepOverlap || !spaced) { next = prev.ids; turn = prev.turn }
+  }
+  sessionPick.delete(sessionId)
+  sessionPick.set(sessionId, { key: q.key, ids: next, turn })
+  forgetOldest(sessionPick)
+  return next.map((id) => byId.get(id)).filter((m) => m !== undefined)
+}
+
 /**
  * CHOIX de ce qui part au modèle dans un budget de caractères. La sélection se
  * fait par fraîcheur (épinglés d'abord, plafonnés à `pinnedShare` du budget,
@@ -1517,7 +1600,7 @@ const newestFirst = (a, b) => {
  * seuls 12 épinglés entraient, et rien de ce que le modèle venait d'apprendre.
  * Un souvenir trop long pour le reste du budget est sauté (on essaie plus petit).
  */
-const selectForPrompt = (items, budget, pinnedShare) => {
+const selectForPrompt = (items, budget, pinnedShare, preferred = [], preferredShare = 0) => {
   const cost = (m) => memoryLine(m).length + 1
   const chosen = new Set()
   let used = 0
@@ -1531,6 +1614,15 @@ const selectForPrompt = (items, budget, pinnedShare) => {
   const loose = items.filter((m) => m.pinned !== true).sort(newestFirst)
   const pinCap = Math.floor(budget * pinnedShare)
   pinned.forEach((m) => take(m, pinCap))
+  // What matches the current question comes right after the pinned and BEFORE the newest, within its own share.
+  let relevantUsed = 0
+  const relevantCap = Math.floor(budget * preferredShare)
+  for (const m of preferred) {
+    const c = cost(m)
+    if (chosen.has(m) || relevantUsed + c > relevantCap || used + c > budget) continue
+    take(m, budget)
+    relevantUsed += c
+  }
   loose.forEach((m) => take(m, budget))
   // Du budget resté libre (peu de souvenirs libres) : on y remet des épinglés.
   pinned.forEach((m) => take(m, budget))
@@ -1542,7 +1634,7 @@ const selectForPrompt = (items, budget, pinnedShare) => {
  * compteur « 12 of 631 » de la page et le drapeau `sent` de chaque ligne en
  * sortent tous. Sinon l'écran peut annoncer autre chose que ce que le modèle lit.
  */
-const planInjection = (state) => {
+const planInjection = (state, info) => {
   const empty = { account: { chosen: [], used: 0, omitted: 0 }, kyber: {}, used: 0, budget: MEMORY_MAX_INJECT_CHARS }
   if (isConnected(state) !== true) return empty
   const cfg = readMemorySettings()
@@ -1550,7 +1642,11 @@ const planInjection = (state) => {
   const kyberKeys = Object.keys(memoryCache.kyber).filter((k) => memoryCache.kyber[k].length > 0)
   const lineBudget = Math.max(0, MEMORY_MAX_INJECT_CHARS - MEMORY_FRAME_CHARS - MEMORY_KYBER_FRAME_CHARS * kyberKeys.length)
   const accountBudget = kyberKeys.length > 0 ? Math.floor(lineBudget * (1 - MEMORY_KYBER_SHARE)) : lineBudget
-  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE)
+  // `info.sessionId` is only given by the prompt itself: the page's counts and « sent » flags stay the base selection.
+  const preferred = cfg.relevant === true && info !== undefined && typeof info.sessionId === 'string'
+    ? pickRelevant(info.sessionId, memoryCache.account.filter((m) => m.pinned !== true))
+    : []
+  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE, preferred, RELEVANCE_TUNING.share)
   const kyber = {}
   let used = account.used
   const left = lineBudget - used
@@ -1566,10 +1662,10 @@ const planInjection = (state) => {
  * Le texte injecté. Rendu à chaque assemblage : il doit être synchrone et ne
  * jamais lever — d'où le `try` total et le retour de chaîne vide en cas de doute.
  */
-const renderMemoryChunk = (state) => {
+const renderMemoryChunk = (state, info) => {
   try {
     if (isConnected(state) !== true) return ''
-    const plan = planInjection(state)
+    const plan = planInjection(state, info)
     const parts = []
     if (plan.account.chosen.length > 0) {
       parts.push(MEMORY_MARKER + ' Souvenirs du compte Kybernos de l\'utilisateur (partagés avec tous ses agents) :')
@@ -1606,12 +1702,12 @@ const MEMORY_OFF_MARKER = '[KYBERNOS MEMORY OFF] Saved memories are not included
  * switched memories / their context off, or nothing (no account, or nothing to send yet — the proxy
  * may then still add its own copy, which is the safety net on a cold start).
  */
-const renderMemoryPrompt = (state) => {
+const renderMemoryPrompt = (state, info) => {
   try {
     if (isConnected(state) !== true) return ''
     const cfg = readMemorySettings()
     if (cfg.memories !== true || cfg.context !== true) return MEMORY_OFF_MARKER
-    return renderMemoryChunk(state)
+    return renderMemoryChunk(state, info)
   } catch (e) {
     return ''
   }
@@ -2046,11 +2142,15 @@ const memoryListRoute = async (req) => {
   } else if (q !== '') {
     list = byRelevance(list)
   }
+  // The chat this page is open next to (`?session=`): how many memories were picked for its latest message.
+  const sid = String(params.get('session') || '')
+  const pick = sid === '' ? undefined : (sessionPick.get(sid) || sessionPick.get(sid.replace(/^session-/, '')))
+  const picked = pick === undefined ? null : { count: pick.ids.length, turn: pick.turn }
   return {
     ok: true, connected: true,
     total: list.length, limit, offset, items: list.slice(offset, offset + limit),
     counts, filters: { show, src, added, q },
-    search,
+    search, picked,
     budget: { cap: plan.budget, used: renderMemoryChunk(state).length, sent: plan.account.chosen.length, omitted: plan.account.omitted },
     settings: readMemorySettings(),
     cache: { at: memoryCache.at, error: memoryCache.error },
@@ -2321,6 +2421,10 @@ const captureTurn = async (ctx, agent, signal) => {
   }
 }
 
+const sessionIdOfContext = (context) => {
+  try { return context.agent.session.id } catch (e) { return undefined }
+}
+
 const mountMemoryPrompt = (ctx) => {
   // `inject` (et non `get`) : c'est la forme des plugins natifs, et elle
   // donne un scope ou `scope.systemPrompt` est le service. Sans lui, rien.
@@ -2328,8 +2432,12 @@ const mountMemoryPrompt = (ctx) => {
     scope.systemPrompt.context({
       name: 'kybernos:memory',
       order: MEMORY_INJECT_ORDER,
-      text: () => renderMemoryPrompt(readState()),
+      text: (context) => renderMemoryPrompt(readState(), { sessionId: sessionIdOfContext(context) }),
     })
+  })
+  // The human's message of each turn, to pick the memories that match it (see « The memories that matter »).
+  ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => {
+    try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ }
   })
   const state = readState()
   if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true) }, 1500)
@@ -2581,7 +2689,7 @@ export {
   resolveApi, stateFile, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
-  sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER,
+  sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
