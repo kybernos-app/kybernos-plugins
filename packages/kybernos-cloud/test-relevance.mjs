@@ -24,7 +24,9 @@ assert.equal(stem('bus'), 'bus', 'a short word is left alone')
 assert.equal(stem('is'), 'is')
 ok('stem: plurals and -ing / -ed fold, a short word is never eaten')
 assert.deepEqual(tokens('Le chat DE la maison, the cat of a house'), ['chat', 'maison', 'cat', 'house'])
-assert.deepEqual(tokens('a b c ok'), ['ok'], 'a 1-letter word never counts')
+assert.deepEqual(tokens('a b c ok'), ['ok'], 'a lone letter never counts')
+assert.deepEqual(tokens('lesson 3 and 12'), ['lesson', '3', '12'], 'a single digit does ("lesson 3")')
+assert.deepEqual(ids(rank([mk(1, 'lesson 30: x'), mk(2, 'lesson 3: y'), mk(3, 'lesson 13: z')], 'lesson 3')), [2, 1, 3], 'lesson 3 finds lesson 3 first, not lesson 30 or 13')
 ok('tokens: stop words (FR and EN) and 1-letter words are out')
 
 console.log('ranking')
@@ -70,6 +72,14 @@ const kinds = [mk(1, 'fichier undocumented', { createdAt: '2026-09-09 10:00:00+0
 assert.deepEqual(ids(rank(kinds, 'doc')), [3, 2, 1], 'exact word, then prefix, then fragment — even though the fragment is the newest')
 assert.deepEqual(ids(rank(docs, 'do')), [], 'two letters are too little to match as a fragment')
 ok('a prefix or a fragment (3+ letters) matches, always under an exact word')
+
+// Seen on the real account: « utilisateur communique » returned memories that only had « com » (from yopmail.com)
+const addr = [mk(1, "L'utilisateur utilise le compte milou7@yopmail.com"), mk(2, "L'utilisateur communique en français"), mk(3, 'Le plugin communique avec la console')]
+assert.deepEqual(rank(addr, 'utilisateur communique').map((r) => [r.doc.id, r.matched]), [[2, 2], [3, 1], [1, 1]], 'a 3-letter word that merely begins the query word ("com") is not a match')
+assert.deepEqual(ids(rank([mk(1, 'ouvre un com')], 'communique')), [], 'a short memory word never matches a long query word it only begins')
+assert.deepEqual(ids(rank([mk(1, 'le fichier dockerfile')], 'docker')), [1], 'the user typing the start of a word still matches (docker → dockerfile)')
+assert.deepEqual(ids(rank([mk(1, 'utilise docker')], 'dockerfile')), [1], 'a memory word that is most of the query word matches (dockerfile → docker)')
+ok('a short word that only begins the query word is not a match; a typed start or most of the word is')
 
 console.log('order is stable and fair')
 const t1 = [mk(1, 'meme sujet', { createdAt: '2026-09-01 10:00:00+00:00' }), mk(2, 'meme sujet', { createdAt: '2026-09-09 10:00:00+00:00' }), mk(3, 'meme sujet', { createdAt: '2026-09-05 10:00:00+00:00', pinned: true })]

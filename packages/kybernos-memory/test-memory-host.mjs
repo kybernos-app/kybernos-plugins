@@ -239,10 +239,10 @@ try {
   assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?used=1')).total, 1)
   assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?added=1m&limit=50')).total, 2, 'last minute')
   assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?added=1h&limit=50')).total, 6 + 1, 'last hour (default ones + the dev-team one)')
-  assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?q=DEPLOY&limit=50')).total, 2, 'every word must match, case-insensitive')
+  assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?q=DEPLOY&limit=50')).total, 2, 'one word, case-insensitive')
   assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?kyber=../etc')).total, 31, 'a bad kyber filter is ignored, never used in a path')
   assert.equal(page1.counts.all, 31)
-  assert.equal(page1.search.relevance, false, 'relevance is not announced while it does not exist')
+  assert.deepEqual([page1.search.mode, page1.search.relevance], ['relevance', true], 'the lessons search ranks by relevance, locally')
   assert.deepEqual((await call('/kybernos-memory/kybers')).kybers.map((k) => k.id), ['audit', 'default', 'dev-team'])
   ok('routes: list paginates and filters (kyber, used, added, q), bad filters ignored')
 
@@ -291,6 +291,47 @@ try {
   assert.doesNotThrow(() => mod.apply({ get: () => undefined, inject: () => { throw new Error('no service') }, effect: () => {} }), 'a missing service never stops DSH from starting')
   assert.doesNotThrow(() => mod.apply({ get: () => { throw new Error('boom') }, inject: () => {}, effect: () => {} }))
   ok('wiring: every route mounted once, method and same-origin guards, a failing ctx never throws')
+
+  // ── Relevance: the lessons are ranked like the memories, by the SAME module ──────────
+  const cloudSrc = join(new URL('.', import.meta.url).pathname, '..', 'kybernos-cloud', 'relevance.mjs')
+  if (existsSync(cloudSrc)) {
+    assert.equal(readFileSync(join(new URL('.', import.meta.url).pathname, 'relevance.mjs'), 'utf8'), readFileSync(cloudSrc, 'utf8'), 'relevance.mjs is one module, copied into each bundle: the two copies must stay byte-identical')
+    ok('relevance: kybernos-memory/relevance.mjs is byte-identical to kybernos-cloud/relevance.mjs')
+  }
+  mkKyber('rel-a'); mkKyber('rel-b')
+  put('rel-a', [
+    L('Les déploiements du vendredi cassent la production', { ts: iso(500), tags: ['deploy'] }),
+    L('Always run the tests before a deployment', { ts: iso(400) }),
+    L('Use pnpm, never npm install', { ts: iso(300) }),
+  ])
+  put('rel-b', [
+    L('Les tests de déploiement tournent sur staging', { ts: iso(200), uses: 3 }),
+    L('Nettoyer le cache après une migration', { ts: iso(100) }),
+  ])
+  const relList = store.listLessons({ q: 'déploiement tests', limit: 50, kyber: undefined })
+  const relTop = relList.items.filter((r) => r.kyber.startsWith('rel-')).map((r) => [r.text.slice(0, 22), r.matched, r.of])
+  assert.equal(relTop[0][0], 'Les tests de déploieme', 'the lesson with both words first (accents and plurals ignored)')
+  assert.deepEqual(relTop.map((r) => r[1]), [2, 1, 1], 'then the ones with a single word, kept and marked 1 of 2 (« deployment » is not « déploiement »: synonyms and languages are not linked)')
+  assert.ok(relTop.every((r) => r[2] === 2))
+  assert.equal(store.listLessons({ q: 'zzzzqq' }).total, 0)
+  assert.equal(store.listLessons({ q: 'pnpm' }).items[0].text, 'Use pnpm, never npm install')
+  assert.equal(store.listLessons({ q: 'MIGRATION', kyber: 'rel-b' }).items[0].matched, 1)
+  assert.deepEqual(store.listLessons({ kyber: 'rel-a' }).items.map((r) => r.matched), [undefined, undefined, undefined], 'no query: no « matched », newest first')
+  const viaRoute = await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?q=deploiement%20tests&kyber=rel-b')
+  assert.equal(viaRoute.items[0].text, 'Les tests de déploiement tournent sur staging')
+  assert.deepEqual([viaRoute.items[0].matched, viaRoute.items[0].of], [2, 2])
+  const relFound = store.searchLessons('déploiements', { kyber: 'rel-a' })
+  assert.deepEqual(relFound.map((l) => l.text.slice(0, 12)), ['Les déploiem'], 'the tool finds across plural and accents')
+  const relTie = store.searchLessons('tests', {})
+  assert.ok(relTie.length >= 2 && relTie[0].uses >= relTie[1].uses, 'between equal matches a lesson that was already used comes first')
+  mkKyber('rel-c')
+  put('rel-c', [L('même texte exactement', { ts: iso(10), uses: 0 }), L('même texte exactement', { ts: iso(900), uses: 2 }), L('rien à voir ici', { tags: ['release'] })])
+  const same = store.searchLessons('exactement', { kyber: 'rel-c' })
+  assert.deepEqual(same.map((l) => l.uses), [2, 0], 'equal text, equal score: the lesson that was used comes first even though it is older')
+  assert.equal(store.searchLessons('release', { kyber: 'rel-c' }).length, 1, 'a tag counts as text')
+  assert.equal(store.listLessons({ q: 'release', kyber: 'rel-c' }).total, 1, 'in the list too')
+  assert.deepEqual(store.searchLessons('   ').length, 0)
+  ok('relevance: lessons list and lesson_search rank by words found, rarity, accents and plurals; used lessons win ties')
 
   console.log('\n' + String(pass) + ' verifications OK')
 } finally {

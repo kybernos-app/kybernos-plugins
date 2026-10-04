@@ -434,6 +434,7 @@ window.__ModuleLoader__.load({
         h('span', { className: 'kbmem-kd lesson' }),
         h('span', { className: 'kbmem-tx' }, l.text),
         h('span', { className: 'kbmem-mt' },
+          wordsLabel(l.matched, l.of) !== null ? h('span', { className: 'kbmem-chip', 'data-chip': 'words', title: 'How many of the words you typed this lesson has' }, wordsLabel(l.matched, l.of)) : null,
           h('span', null, l.kyber),
           l.uses > 0 ? h('span', null, 'Used ' + l.uses + '×') : null,
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(l.ageMinutes))))
@@ -598,7 +599,7 @@ window.__ModuleLoader__.load({
                 h('button', { type: 'button', className: (mode === 'meaning' ? 'on' : '') + (canMeaning ? '' : ' locked'), 'aria-pressed': mode === 'meaning', 'data-mode': 'meaning',
                   title: canMeaning ? 'Finds memories that mean the same, even with other words.' : meaningWhy(meaningReason, meaning.requiredTier) + ' Click to open Options.',
                   onClick: () => (canMeaning || mode === 'meaning' ? setMode('meaning') : openOptions()) }, canMeaning ? null : Ico('lock'), 'Meaning'))
-              : h('span', { className: 'kbmem-mode', title: 'Lessons are searched by their words.' }, 'By words')),
+              : h('span', { className: 'kbmem-mode', title: 'Ranks lessons by how well they match your words (accents and plurals ignored). Nothing leaves this machine.' }, 'By relevance')),
           h('div', { className: 'kbmem-menuwrap', ref: wrap },
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'aria-haspopup': 'true', 'aria-expanded': menu, 'data-act': 'filter', onClick: () => setMenu(!menu) }, Ico('filter'), 'Filter',
               active.length > 0 ? h('span', { className: 'kbmem-badge' }, active.length) : null),
@@ -628,7 +629,7 @@ window.__ModuleLoader__.load({
           h('h3', null, notFound ? (mems ? 'Memories are not available' : 'Lessons are not available') : 'Could not load'), h('div', null, friendlyError(list.error)))
         else if (list.items.length === 0) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(String(qd).trim() !== '' || active.length > 0 ? 'search' : (mems ? 'brain' : 'bulb'))),
           String(qd).trim() !== '' || active.length > 0
-            ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'Nothing matches ' + (String(qd).trim() !== '' ? '“' + qd + '”' : 'these filters') + (byMeaning ? '. Nothing is close enough in meaning.' : '. No memory has those words.')), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, 'Clear filters') : null]
+            ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'Nothing matches ' + (String(qd).trim() !== '' ? '“' + qd + '”' : 'these filters') + (byMeaning ? '. Nothing is close enough in meaning.' : (mems ? '. No memory has those words.' : '. No lesson has those words.'))), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, 'Clear filters') : null]
             : (mems ? [h('h3', { key: 'h' }, 'Nothing remembered yet'), h('div', { key: 'd' }, 'Memories appear as you work: Kybernos can capture them at the end of a turn, an agent can save one, or you can add your own.')]
               : [h('h3', { key: 'h' }, 'No lesson yet'), h('div', { key: 'd' }, 'A lesson is written when an agent finds an expectation was contradicted. They are stored per kyber, on this machine.')]))
         else body = h('div', null,
