@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "« Install as app » pour les mini-apps de la barre latérale droite : bouton App dans chaque panneau, export en app native macOS flottante (indépendante de DSH) avec démarrage automatique optionnel.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

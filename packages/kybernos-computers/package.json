@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Ordinateurs cloud pour les agents : backend E2B (BYOK) — half host phase 1 (clé credential, cycle de vie sandboxes, TTL). Le client, le sélecteur composer et les outils agent viennent ensuite.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js"

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Visualiseur de bases SQLite des kybers dans la sidebar droite DSH — onglets Diagramme (style drawdb), Données et SQL.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

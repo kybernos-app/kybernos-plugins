@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Lecteur de média universel pour l'aperçu de documents DSH : audio et vidéo dans la barre latérale.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

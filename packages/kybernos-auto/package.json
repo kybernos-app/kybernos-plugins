@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Mode Auto : routage des délégations par classe (règles + classifieur local tev1), whitelist bornée, état PAR SESSION, santé par modèle (latence, erreurs). Puce dans le composer + page Settings dédiée.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Decks de slides pilotés par le chat : outil hôte `creer_slides` + panneau « Slides » dans la barre latérale droite — écriture en temps réel (machine à écrire), édition live par l'utilisateur (texte + pinceau), puis correction IA en direct.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

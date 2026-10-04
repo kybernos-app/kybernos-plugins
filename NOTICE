@@ -9,3 +9,34 @@ Third-party components (see THIRD_PARTY_LICENSES for details):
 - LiteLLM (c) 2023 BerriAI — MIT License
   kybernos-core encapsulates `litellm[proxy]` (core MIT distribution only,
   not the proprietary `enterprise/` directory).
+
+- Mermaid 11.14.0 (c) 2014-2022 Knut Sveidqvist — MIT License
+  dsh-mermaid bundles mermaid and its npm dependencies (`vendor/mermaid.iife.js`,
+  inlined in `client/client.js`), among them KaTeX 0.16.45
+  (c) 2013-2020 Khan Academy and other contributors — MIT License;
+  DOMPurify 3.4.2 (c) 2025-2026 Dr.-Ing. Mario Heiderich, Cure53 —
+  MPL-2.0 OR Apache-2.0, used here under Apache-2.0;
+  Cytoscape.js 3.33.3 (c) 2016-2026 The Cytoscape Consortium — MIT License;
+  Chevrotain — Apache License 2.0; d3 (c) 2010-2023 Mike Bostock — ISC License;
+  d3-sankey (c) 2015 Mike Bostock — BSD 3-Clause License.
+  Full list with copyright lines: `packages/dsh-mermaid/vendor/NOTICES.md`.
+
+- Apache ECharts 5.6.0 — Apache License 2.0
+  dsh-db-viewer ships the official `echarts.min.js` as published
+  (`packages/dsh-db-viewer/vendor/`). Upstream NOTICE: "Apache ECharts.
+  Copyright 2017-2024 The Apache Software Foundation. This product includes
+  software developed at The Apache Software Foundation
+  (https://www.apache.org/)." The file also embeds ZRender 5.6.1
+  (c) 2013 Baidu Inc. — BSD 3-Clause License, and tslib helpers
+  (c) Microsoft Corporation — 0BSD; their banners are kept in the file.
+
+- TipTap 2.27.3 (c) 2025 Tiptap GmbH — MIT License
+  kybernos-slides bundles @tiptap/core, @tiptap/starter-kit and
+  @tiptap/extension-underline with ProseMirror (prosemirror-*, orderedmap,
+  rope-sequence, w3c-keyname) (c) 2015-2017 Marijn Haverbeke and others —
+  MIT License (`packages/kybernos-slides/vendor/`).
+
+- perfect-freehand 1.2.2 (c) 2021 Stephen Ruiz Ltd — MIT License
+  Rough.js 4.6.6 (c) 2019 Preet Shihn — MIT License
+  kybernos-modeleur inlines both in `client.js` (Rough.js is also bundled
+  by mermaid).

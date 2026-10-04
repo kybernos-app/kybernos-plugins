@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Modèles 2D et 3D pilotés par le chat : outil hôte `modeliser` + panneau « Modeleur » dans la barre latérale droite (dessin 2D à l'échelle, solides 3D orbitables, pose en direct objet par objet, relecture).",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
