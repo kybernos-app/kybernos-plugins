@@ -17,31 +17,32 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 
 | Bundle | What it does |
 |---|---|
-| `kybernos-plugin` | Core: crew, journal, settings, tools catalog |
-| `kybernos-theme` | Theme |
-| `kybernos-models` | Models catalog |
-| `kybernos-auto` | Auto mode: routes delegations by class |
-| `kybernos-computers` | Cloud computers for agents (E2B, bring your own key) |
-| `kybernos-workers` | Workers screen: verified state of Claude Code, Codex and ZCode, and the lead-exposure policy DSH really offers |
-| `kybernos-slides` | Slide decks driven by chat |
-| `kybernos-bricks` | Brick mockups driven by chat |
-| `kybernos-modeleur` | 2D/3D models driven by chat |
-| `kybernos-miniapps` | "Install as app" for right-sidebar mini-apps |
-| `kybernos-maintenance` | Maintenance page: versions, update log |
-| `kybernos-relance` | Approved restart of DSH |
-| `dsh-mermaid` | Renders mermaid fences as SVG |
-| `dsh-db-viewer` | SQLite viewer in the right sidebar |
-| `dsh-media-player` | Audio/video preview |
-| `kybernos-cloud` | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
-| `kybernos-composio` | Composio integration: MCP connection and app catalog |
-| `kybernos-flow` | Conversation flow without engine patches: auto-continue, queue-move |
-| `kybernos-language` | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
-| `kybernos-modeles-locaux` | Local models panel: detects the machine, installs an Ollama model |
-| `kybernos-refs` | Markdown links become compact reference chips |
-| `kybernos-memory` | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |
-| `kybernos-sessions` | Session and kyber memory status per folder |
-| `kybernos-skills` | Skills catalog backed by DSH's native skill registry |
-| `kybernos-slash` | Slash commands and message actions |
+| [`kybernos-plugin`](packages/kybernos-plugin/README.md) | Core: crew, journal, settings, tools catalog |
+| [`kybernos-hub`](packages/kybernos-hub/README.md) | Boot guard and the Kybernos Suite panel: switch, install and update modules |
+| [`kybernos-theme`](packages/kybernos-theme/README.md) | Theme |
+| [`kybernos-models`](packages/kybernos-models/README.md) | Models catalog |
+| [`kybernos-auto`](packages/kybernos-auto/README.md) | Auto mode: routes delegations by class |
+| [`kybernos-computers`](packages/kybernos-computers/README.md) | Cloud computers for agents (E2B, bring your own key) |
+| [`kybernos-workers`](packages/kybernos-workers/README.md) | Workers screen: verified state of Claude Code, Codex and ZCode, and the lead-exposure policy DSH really offers |
+| [`kybernos-slides`](packages/kybernos-slides/README.md) | Slide decks driven by chat |
+| [`kybernos-bricks`](packages/kybernos-bricks/README.md) | Brick mockups driven by chat |
+| [`kybernos-modeleur`](packages/kybernos-modeleur/README.md) | 2D/3D models driven by chat |
+| [`kybernos-miniapps`](packages/kybernos-miniapps/README.md) | "Install as app" for right-sidebar mini-apps |
+| [`kybernos-maintenance`](packages/kybernos-maintenance/README.md) | About page: version, compatibility with DSH, update log |
+| [`kybernos-relance`](packages/kybernos-relance/README.md) | Approved restart of DSH |
+| [`dsh-mermaid`](packages/dsh-mermaid/README.md) | Renders mermaid fences as SVG |
+| [`dsh-db-viewer`](packages/dsh-db-viewer/README.md) | SQLite viewer in the right sidebar |
+| [`dsh-media-player`](packages/dsh-media-player/README.md) | Audio/video preview |
+| [`kybernos-cloud`](packages/kybernos-cloud/README.md) | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
+| [`kybernos-composio`](packages/kybernos-composio/README.md) | Composio integration: MCP connection and app catalog |
+| [`kybernos-flow`](packages/kybernos-flow/README.md) | Conversation flow without engine patches: auto-continue, queue-move |
+| [`kybernos-language`](packages/kybernos-language/README.md) | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
+| [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
+| [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
+| [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |
+| [`kybernos-sessions`](packages/kybernos-sessions/README.md) | Session and kyber memory status per folder |
+| [`kybernos-skills`](packages/kybernos-skills/README.md) | Skills catalog backed by DSH's native skill registry |
+| [`kybernos-slash`](packages/kybernos-slash/README.md) | Slash commands and message actions |
 
 `kybernos-install` links **all** of these bundles in one go. Switch any satellite on or off afterwards with `node scripts/dsh-lifecycle.mjs satellites --desactiver <name>` / `--activer <name>`; the socle (`kybernos-plugin`, `-hub`, `-theme`, `-sessions`, `-skills`) is always on.
 
