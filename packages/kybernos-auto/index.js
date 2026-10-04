@@ -15,14 +15,94 @@
 // reste autonome pour l'agent ; l'hôte sert la page et la puce du composer.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 
 export const name = 'kybernos-auto'
 
 const OLLAMA = process.env.AUTO_ROUTER_OLLAMA || 'http://127.0.0.1:11434'
 const CLASSES = ['chat', 'code', 'vision', 'media', 'agent-task']
+
+// ── settings.json is SHARED (the core reads pairingToken, gatewayBase, wsAdminKey; the
+// sessions bundle writes its own keys): a save merges, never replaces, is atomic, and
+// never overwrites a file it cannot read as a JSON object. ───────────────────────────
+// KB-SETTINGS-FILE-BEGIN — the SAME text lives in packages/kybernos-sessions/index.js and
+// packages/kybernos-auto/index.js (bundles ship one by one and cannot import each other);
+// packages/kybernos-sessions/test-reglages.mjs fails if the two copies differ.
+const CORRUPT_COPY_SUFFIX = '.corrupt-'
+const CORRUPT_COPIES_MAX = 5
+
+/** The raw object on disk: `{ raw }` (a missing or empty file is an empty object),
+ *  `{ corrupt, text }` (present but not a JSON object) or `{ error }` (present but
+ *  unreadable). */
+function readRawSettings (file) {
+  let text
+  try { text = readFileSync(file, 'utf8') } catch (e) {
+    if (e !== null && e !== undefined && e.code === 'ENOENT') return { raw: {} }
+    return { error: 'settings.json cannot be read (' + (e && e.code ? e.code : 'unknown error') + '), so nothing was saved' }
+  }
+  if (text.trim() === '') return { raw: {} }
+  let value
+  try { value = JSON.parse(text) } catch (e) { return { corrupt: true, text } }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { corrupt: true, text }
+  return { raw: value }
+}
+
+/** Keep a copy of a corrupt settings file next to it. A copy with the same content is
+ *  reused, and there are never more than CORRUPT_COPIES_MAX copies, so repeated saves
+ *  do not pile up files. Returns the copy's path or null. */
+function keepCorruptCopy (file, text) {
+  try {
+    const folder = dirname(file)
+    const prefix = basename(file) + CORRUPT_COPY_SUFFIX
+    const copies = readdirSync(folder).filter((name) => name.startsWith(prefix))
+    for (const name of copies) {
+      try { if (readFileSync(join(folder, name), 'utf8') === text) return join(folder, name) } catch (e) { /* unreadable copy: ignored */ }
+    }
+    if (copies.length >= CORRUPT_COPIES_MAX) return null
+    // Exclusive create ('wx'): two copies made in the same millisecond must never
+    // overwrite each other, so a name that is taken gets a counter.
+    const base = join(folder, prefix + Date.now())
+    for (let i = 0; i < CORRUPT_COPIES_MAX; i += 1) {
+      const copy = i === 0 ? base : base + '-' + i
+      try { writeFileSync(copy, text, { mode: 0o600, flag: 'wx' }); return copy } catch (e) { if (!(e && e.code === 'EEXIST')) return null }
+    }
+    return null
+  } catch (e) { return null }
+}
+
+/** Write `text` to `file` atomically, keeping an existing file's permissions (0600 for
+ *  a new one). A symlinked settings.json stays a symlink: the target is replaced, not
+ *  the link. Throws on failure, after removing its temp file. */
+function writeFileAtomically (file, text) {
+  let target = file
+  try { target = realpathSync(file) } catch (e) { /* new file */ }
+  let mode = 0o600
+  try { mode = statSync(target).mode & 0o777 } catch (e) { /* new file: private by default */ }
+  mkdirSync(dirname(target), { recursive: true })
+  const temp = join(dirname(target), '.' + basename(target) + '.tmp-' + process.pid + '-' + Date.now())
+  try {
+    writeFileSync(temp, text, { mode })
+    chmodSync(temp, mode) // the mode given to writeFileSync is masked by the umask
+    renameSync(temp, target)
+  } catch (e) {
+    try { rmSync(temp, { force: true }) } catch (e2) { /* nothing left to clean */ }
+    throw e
+  }
+}
+
+/** The error to give back when the file on disk must NOT be overwritten (unreadable, or
+ *  present but not a JSON object: a copy of it is kept), or null when writing is safe. */
+function settingsFileBlocked (read, file) {
+  if (read.error !== undefined) return read.error
+  if (read.corrupt !== true) return null
+  const copy = keepCorruptCopy(file, read.text)
+  return 'settings.json is not a valid JSON object, so nothing was saved' +
+    (copy === null ? '' : ' (a copy is kept as ' + basename(copy) + ')') +
+    '. Fix or remove the file, then save again.'
+}
+// KB-SETTINGS-FILE-END
 
 // ── réglages (whitelist + classifieur) : mêmes clés que settings.json ───────
 export function lireReglagesAuto (fichier) {
@@ -255,10 +335,9 @@ export function monterRoutes (webServerSvc, opts = {}) {
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
     const corps = await lireCorps(req)
-    // Whitelist et classifieur : mêmes clés globales que settings.json — la
-    // page dédiée devient leur écrivain principal.
-    let brut = {}
-    try { brut = JSON.parse(readFileSync(reglagesFichier, 'utf8')) } catch { brut = {} }
+    // Whitelist and classifier: the same global keys as settings.json — the
+    // dedicated page is their main writer. Validate first, touch the disk after.
+    const maj = {}
     if (corps.autoWhitelist !== undefined) {
       const valide = Array.isArray(corps.autoWhitelist) && corps.autoWhitelist.length <= 64 &&
         corps.autoWhitelist.every((x) => typeof x === 'string' && x.length <= 200) &&
@@ -266,22 +345,24 @@ export function monterRoutes (webServerSvc, opts = {}) {
       if (valide !== true) {
         envoyer(res, 400, { ok: false, erreur: 'autoWhitelist : tableau d identifiants sans doublon attendu' }); return
       }
-      brut.autoWhitelist = corps.autoWhitelist
+      maj.autoWhitelist = corps.autoWhitelist
     }
     if (corps.autoRouting !== undefined) {
       // Disjoncteur GLOBAL hérité : true force Auto sur toutes les sessions.
       if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting : booléen attendu' }); return }
-      brut.autoRouting = corps.autoRouting
+      maj.autoRouting = corps.autoRouting
     }
     if (corps.autoClassifier !== undefined) {
       if (typeof corps.autoClassifier !== 'string' || corps.autoClassifier.length > 200) {
         envoyer(res, 400, { ok: false, erreur: 'autoClassifier : chaîne attendue' }); return
       }
-      brut.autoClassifier = corps.autoClassifier
+      maj.autoClassifier = corps.autoClassifier
     }
+    const lu = readRawSettings(reglagesFichier)
+    const bloque = settingsFileBlocked(lu, reglagesFichier)
+    if (bloque !== null) { envoyer(res, 500, { ok: false, erreur: bloque }); return }
     try {
-      mkdirSync(dirname(reglagesFichier), { recursive: true })
-      writeFileSync(reglagesFichier, JSON.stringify(brut, null, 2) + '\n')
+      writeFileAtomically(reglagesFichier, JSON.stringify({ ...lu.raw, ...maj }, null, 2) + '\n')
       envoyer(res, 200, etatComplet(''))
     } catch (e) {
       envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })

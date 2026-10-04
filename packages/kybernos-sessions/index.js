@@ -36,7 +36,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile } from 'node:child_process'
-import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, rmSync, realpathSync } from 'node:fs'
+import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, rmSync, realpathSync, renameSync, chmodSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, basename, dirname } from 'node:path'
 import { creerSonde } from './brain-health.mjs'
@@ -258,26 +258,118 @@ const brainValide = (v) => typeof v === 'string' && v.length <= 200
  *  `none`, qui ÉTEINT le cerveau sans le confondre avec « prends le défaut ». */
 const decisionValide = (v) => (typeof v === 'string' && v === 'none') || brainValide(v)
 
-// Lecture tolérante : fichier absent, illisible ou tordu → défauts. Un réglage
-// ne doit JAMAIS faire échouer la page qui l'affiche.
+// The seven keys this page owns, normalised: anything missing or invalid falls
+// back to its default.
+const normalizeSettings = (j) => ({
+  renameAfterRecap: j.renameAfterRecap !== false,
+  brain: brainValide(j.brain) === true ? j.brain : '',
+  voiceInput: voiceSourceValide(j.voiceInput) === true ? j.voiceInput : REGLAGES_DEFAUT.voiceInput,
+  decisionBrain: decisionValide(j.decisionBrain) === true ? j.decisionBrain : '',
+  autoRouting: j.autoRouting === true,
+  autoWhitelist: whitelistValide(j.autoWhitelist) === true ? j.autoWhitelist : [],
+  autoClassifier: brainValide(j.autoClassifier) === true ? j.autoClassifier : ''
+})
+
+// Tolerant read: a missing, unreadable or mangled file gives the defaults. A
+// setting must NEVER make the page that shows it fail.
 export function lireReglages (fichier) {
   let brut = null
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch (e) { brut = null }
-  const j = (brut !== null && typeof brut === 'object') ? brut : {}
-  return {
-    renameAfterRecap: j.renameAfterRecap !== false,
-    brain: brainValide(j.brain) === true ? j.brain : '',
-    voiceInput: voiceSourceValide(j.voiceInput) === true ? j.voiceInput : REGLAGES_DEFAUT.voiceInput,
-    decisionBrain: decisionValide(j.decisionBrain) === true ? j.decisionBrain : '',
-    autoRouting: j.autoRouting === true,
-    autoWhitelist: whitelistValide(j.autoWhitelist) === true ? j.autoWhitelist : [],
-    autoClassifier: brainValide(j.autoClassifier) === true ? j.autoClassifier : ''
+  return normalizeSettings((brut !== null && typeof brut === 'object') ? brut : {})
+}
+
+// ── Safe writer for settings.json ──────────────────────────────────────────
+// The file is SHARED. Besides the seven keys written here, the core bundle reads
+// `pairingToken`, `gatewayBase` and `wsAdminKey` from it, kybernos-auto writes its
+// own keys, and other bundles may add more. So a save is a MERGE, never a
+// replace: read what is on disk, overlay the keys this page owns, keep every
+// other key as it is. The write is atomic (temp file in the same directory, then
+// rename), so a crash cannot leave half a file, and the file's permissions are
+// kept: it holds secrets, so a file created here is 0600. If the file exists but
+// is not a JSON object, nothing is written: a copy is kept next to it and the
+// caller gets an error.
+
+// KB-SETTINGS-FILE-BEGIN — the SAME text lives in packages/kybernos-sessions/index.js and
+// packages/kybernos-auto/index.js (bundles ship one by one and cannot import each other);
+// packages/kybernos-sessions/test-reglages.mjs fails if the two copies differ.
+const CORRUPT_COPY_SUFFIX = '.corrupt-'
+const CORRUPT_COPIES_MAX = 5
+
+/** The raw object on disk: `{ raw }` (a missing or empty file is an empty object),
+ *  `{ corrupt, text }` (present but not a JSON object) or `{ error }` (present but
+ *  unreadable). */
+function readRawSettings (file) {
+  let text
+  try { text = readFileSync(file, 'utf8') } catch (e) {
+    if (e !== null && e !== undefined && e.code === 'ENOENT') return { raw: {} }
+    return { error: 'settings.json cannot be read (' + (e && e.code ? e.code : 'unknown error') + '), so nothing was saved' }
+  }
+  if (text.trim() === '') return { raw: {} }
+  let value
+  try { value = JSON.parse(text) } catch (e) { return { corrupt: true, text } }
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return { corrupt: true, text }
+  return { raw: value }
+}
+
+/** Keep a copy of a corrupt settings file next to it. A copy with the same content is
+ *  reused, and there are never more than CORRUPT_COPIES_MAX copies, so repeated saves
+ *  do not pile up files. Returns the copy's path or null. */
+function keepCorruptCopy (file, text) {
+  try {
+    const folder = dirname(file)
+    const prefix = basename(file) + CORRUPT_COPY_SUFFIX
+    const copies = readdirSync(folder).filter((name) => name.startsWith(prefix))
+    for (const name of copies) {
+      try { if (readFileSync(join(folder, name), 'utf8') === text) return join(folder, name) } catch (e) { /* unreadable copy: ignored */ }
+    }
+    if (copies.length >= CORRUPT_COPIES_MAX) return null
+    // Exclusive create ('wx'): two copies made in the same millisecond must never
+    // overwrite each other, so a name that is taken gets a counter.
+    const base = join(folder, prefix + Date.now())
+    for (let i = 0; i < CORRUPT_COPIES_MAX; i += 1) {
+      const copy = i === 0 ? base : base + '-' + i
+      try { writeFileSync(copy, text, { mode: 0o600, flag: 'wx' }); return copy } catch (e) { if (!(e && e.code === 'EEXIST')) return null }
+    }
+    return null
+  } catch (e) { return null }
+}
+
+/** Write `text` to `file` atomically, keeping an existing file's permissions (0600 for
+ *  a new one). A symlinked settings.json stays a symlink: the target is replaced, not
+ *  the link. Throws on failure, after removing its temp file. */
+function writeFileAtomically (file, text) {
+  let target = file
+  try { target = realpathSync(file) } catch (e) { /* new file */ }
+  let mode = 0o600
+  try { mode = statSync(target).mode & 0o777 } catch (e) { /* new file: private by default */ }
+  mkdirSync(dirname(target), { recursive: true })
+  const temp = join(dirname(target), '.' + basename(target) + '.tmp-' + process.pid + '-' + Date.now())
+  try {
+    writeFileSync(temp, text, { mode })
+    chmodSync(temp, mode) // the mode given to writeFileSync is masked by the umask
+    renameSync(temp, target)
+  } catch (e) {
+    try { rmSync(temp, { force: true }) } catch (e2) { /* nothing left to clean */ }
+    throw e
   }
 }
 
-// Écriture ciblée de champs connus — jamais un objet venu du réseau tel quel.
+/** The error to give back when the file on disk must NOT be overwritten (unreadable, or
+ *  present but not a JSON object: a copy of it is kept), or null when writing is safe. */
+function settingsFileBlocked (read, file) {
+  if (read.error !== undefined) return read.error
+  if (read.corrupt !== true) return null
+  const copy = keepCorruptCopy(file, read.text)
+  return 'settings.json is not a valid JSON object, so nothing was saved' +
+    (copy === null ? '' : ' (a copy is kept as ' + basename(copy) + ')') +
+    '. Fix or remove the file, then save again.'
+}
+// KB-SETTINGS-FILE-END
+export { readRawSettings }
+
+// Targeted write of known fields: never an object from the network as it is, and
+// never a replacement of the keys other bundles keep in the same file.
 export function ecrireReglages (fichier, patch) {
-  const avant = lireReglages(fichier)
   const p = (patch !== null && typeof patch === 'object') ? patch : {}
   // Un modèle d'étude refusé se DIT : l'ignorer en silence ferait croire à la
   // page que le choix est enregistré alors que le fichier garde l'ancien.
@@ -293,6 +385,10 @@ export function ecrireReglages (fichier, patch) {
   if (p.autoWhitelist !== undefined && whitelistValide(p.autoWhitelist) !== true) {
     return { ok: false, erreur: 'autoWhitelist : tableau d identifiants « route/id » sans doublon attendu' }
   }
+  const lu = readRawSettings(fichier)
+  const bloque = settingsFileBlocked(lu, fichier)
+  if (bloque !== null) return { ok: false, erreur: bloque }
+  const avant = normalizeSettings(lu.raw)
   const apres = {
     renameAfterRecap: p.renameAfterRecap === undefined
       ? avant.renameAfterRecap
@@ -305,8 +401,8 @@ export function ecrireReglages (fichier, patch) {
     autoClassifier: p.autoClassifier === undefined ? avant.autoClassifier : p.autoClassifier
   }
   try {
-    mkdirSync(dirname(fichier), { recursive: true })
-    writeFileSync(fichier, JSON.stringify(apres, null, 2) + '\n')
+    // Merge: every key already on disk stays, the seven above are overlaid.
+    writeFileAtomically(fichier, JSON.stringify({ ...lu.raw, ...apres }, null, 2) + '\n')
   } catch (e) { return { ok: false, erreur: String(e && e.message ? e.message : e) } }
   return { ok: true, reglages: apres }
 }
@@ -1020,11 +1116,22 @@ const envoyer = (res, code, obj) => {
   res.end(JSON.stringify(obj))
 }
 
-const origineOK = (req) => {
-  // Recette 2026-10 (M-02/S-03) : hôte EXACT de l'écoute réelle du socket,
-  // jamais un préfixe (« localhost.evil.example » passait).
-  const o = String(req.headers.origin || '')
-  if (o === '') return true
+// Same-origin guard. DSH serves plugin routes BEFORE its own authentication (measured on
+// 0.2.0-rc.2: `/` answers 401 without a cookie, `/kybernos-sessions/settings` answers 200), so
+// each plugin guards itself. The origin is compared with the REAL listening address of the
+// socket, never with the client-supplied Host header, and never by prefix
+// (« localhost.evil.example » used to pass: recette 2026-10, M-02/S-03).
+// A request that changes state (anything but GET, HEAD, OPTIONS) MUST carry an Origin, or
+// failing that a Referer: a browser always sends an Origin on a POST, so its absence means a
+// caller that is not a browser. Reads tolerate its absence (direct navigation) but still
+// refuse a foreign origin, which DNS rebinding always sends. Same rule as `sameOriginStrict`
+// and `sameOriginLax` in the core bundle.
+const METHODES_LECTURE = ['GET', 'HEAD', 'OPTIONS']
+export const origineOK = (req) => {
+  const headers = (req !== null && req !== undefined && req.headers !== null && req.headers !== undefined) ? req.headers : {}
+  const lecture = METHODES_LECTURE.indexOf(String((req && req.method) || 'GET').toUpperCase()) !== -1
+  const o = String(headers.origin || headers.referer || '')
+  if (o === '') return lecture
   try {
     const u = new URL(o)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false

@@ -49,13 +49,22 @@ const sendJson = (res, status, payload) => {
   } catch (e) { try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket ferme */ } }
 }
 
+// Same-origin guard for the POST routes. DSH serves plugin routes BEFORE its own authentication
+// (measured on 0.2.0-rc.2: `/` answers 401 without a cookie, plugin routes answer 200), so the
+// plugin guards itself. A POST MUST carry an Origin, or failing that a Referer: a browser always
+// sends an Origin on a POST, so a request with neither is not from a browser. The origin is
+// compared with the REAL listening address of the socket, never with the client-supplied Host
+// header (`curl -H 'Host: attacker.example'` controls that one). Same rule as `sameOriginStrict`
+// in the core bundle.
 const sameOrigin = (req) => {
   try {
-    const origin = str(req.headers && req.headers.origin)
-    const hostHeader = str(req.headers && req.headers.host)
-    if (origin === null || hostHeader === null) return true
-    const u = new URL(origin)
-    return u.host === hostHeader
+    const headers = (req !== null && req !== undefined && req.headers !== null && req.headers !== undefined) ? req.headers : {}
+    const source = str(headers.origin) ?? str(headers.referer)
+    if (source === null) return false
+    const u = new URL(source)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    const port = (req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
+    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
   } catch (e) { return false }
 }
 
@@ -1196,7 +1205,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── exports nommes pour le harnais (testabilite : chemins explicites, rien de cable) + apply ────────────────
-export { catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, indexStatus, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK }
+export { catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, indexStatus, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
 
 export function apply(ctx) {
   // Filet miroir de kybernos-plugin/index.js:2876-2884 (base) : une erreur de montage ne doit pas

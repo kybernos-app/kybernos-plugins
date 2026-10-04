@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Harnais hôte de kybernos-auto : routes sur un webServer FACTICE, home
  *  temporaire — aucun réseau, aucune écriture hors du home de test. */
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync, chmodSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { monterRoutes, lireSessions, lireSante } from './index.js'
@@ -120,6 +120,44 @@ console.log('\n── router : classifieur hors ligne → repli chat, sans crash
 r = reponse()
 await routes['/kybernos-auto/router'](fabriqueRequete('POST', '/kybernos-auto/router', { demande: 'analyse la stratégie de prix', sessionId: 's2' }), r)
 ok('repli chat (whitelist sans média non applicable → chat modèle texte)', r.corps.actif === true && r.corps.modele !== null, r.corps)
+
+console.log('\n── settings.json partagé : fusion, fichier corrompu, écriture atomique ──')
+{
+  const SECRETS = { pairingToken: 'pt-secret', gatewayBase: 'https://gateway.example', wsAdminKey: 'wk-secret' }
+  const dossier = join(reglagesPath, '..')
+  const autour = () => readdirSync(dossier)
+  const lireDisque = () => JSON.parse(readFileSync(reglagesPath, 'utf8'))
+  writeFileSync(reglagesPath, JSON.stringify({ ...SECRETS, renameAfterRecap: true, brain: 'a/b' }))
+  chmodSync(reglagesPath, 0o644)
+  r = reponse()
+  await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: false, autoClassifier: 'ollama/qwen' }), r)
+  let disque = lireDisque()
+  ok('save : les clés des autres bundles survivent (pairingToken, gatewayBase, wsAdminKey, renameAfterRecap, brain)', disque.pairingToken === SECRETS.pairingToken && disque.gatewayBase === SECRETS.gatewayBase && disque.wsAdminKey === SECRETS.wsAdminKey && disque.renameAfterRecap === true && disque.brain === 'a/b', disque)
+  ok('save : les clés d\'Auto sont écrites', disque.autoRouting === false && disque.autoClassifier === 'ollama/qwen', disque)
+  ok('save : le mode du fichier est conservé (0644, jamais élargi ni durci)', (statSync(reglagesPath).mode & 0o777) === 0o644, (statSync(reglagesPath).mode & 0o777).toString(8))
+  ok('save : aucun fichier temporaire ne reste', autour().every((nom) => !nom.includes('.tmp-')), autour())
+
+  const tordu = '{ "pairingToken": "pt-secret", "autoWhitelist": '
+  writeFileSync(reglagesPath, tordu)
+  r = reponse()
+  await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: 'oui' }), r)
+  ok('corrompu + corps invalide : refus de validation, aucune copie créée', r.corps.ok === false && autour().filter((nom) => nom.startsWith('settings.json.corrupt-')).length === 0, autour())
+  r = reponse()
+  await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: true }), r)
+  ok('corrompu : l\'enregistrement est refusé avec un message clair', r.corps.ok === false && /nothing was saved/.test(r.corps.erreur), r.corps)
+  ok('corrompu : le fichier reste tel quel, octet pour octet', readFileSync(reglagesPath, 'utf8') === tordu)
+  const copies = autour().filter((nom) => nom.startsWith('settings.json.corrupt-'))
+  ok('corrompu : une copie est gardée, identique (le jeton est récupérable)', copies.length === 1 && readFileSync(join(dossier, copies[0]), 'utf8') === tordu, copies)
+  r = reponse()
+  await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: true }), r)
+  ok('corrompu : répéter n\'empile pas les copies', autour().filter((nom) => nom.startsWith('settings.json.corrupt-')).length === 1, autour())
+
+  writeFileSync(reglagesPath, JSON.stringify({ ...SECRETS }))
+  r = reponse()
+  await routes['/kybernos-auto/settings'](fabriqueRequete('POST', '/kybernos-auto/settings', { autoRouting: true }), r)
+  ok('réparé : l\'enregistrement repasse et garde les secrets', r.corps.ok === true && lireDisque().pairingToken === SECRETS.pairingToken && lireDisque().autoRouting === true, r.corps)
+  writeFileSync(reglagesPath, JSON.stringify({ autoRouting: true, autoWhitelist: ['deepseek-official/deepseek-chat', 'token-plan/wan2.7-image'] }))
+}
 
 console.log('\n── origin garde ──')
 let brut403 = null
