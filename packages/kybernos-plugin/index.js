@@ -17,6 +17,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 // le modèle de session — c'est là que le compactage meurt.)
 import { poserPresetKybernos, choisirPresetParDefaut, ID_PRESET_KYBERNOS, SEUIL_COMPACTAGE, activerSubagentClaude } from './preset-compaction.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
+import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 // ── Le plafond de retries (29/09/2026) ──────────────────────────────────────
 // Un subagent « ne répondait plus » des heures : maxRetries 500 × backoff 30 s.
 // Le moteur donne déjà un défaut sain (5 essais) aux fournisseurs sans
@@ -2472,6 +2473,7 @@ function boot(ctx) {
               const input = Array.isArray(m.input) ? m.input.filter((x) => typeof x === 'string') : []
               models.push({
                 id,
+                name: str(m.name),
                 image: input.indexOf('image') >= 0,
                 contextWindow: typeof m.contextWindow === 'number' ? m.contextWindow : null,
               })
@@ -4281,81 +4283,19 @@ function boot(ctx) {
       const borne = mode === 'complete' ? list.slice(0, manque) : list.slice(0, KB_BRAIN_TARGET)
       return { ok: true, mode: mode, source: source, provider: provider, model: model, starters: borne }
     }
-    // ── Traduction i18n (chantier RTL/arabe, 2026-09-25) ─────────────────────
-    // Le client thème traduisait en appelant le provider DEPUIS LE NAVIGATEUR :
-    // CORS bloquait la plupart des hébergeurs et la clé API vit dans l'env de
-    // l'hôte, pas du navigateur — la « traduction » retombait en français sans
-    // rien dire. La route hôte résout modèle (réglage brain, à défaut le
-    // défaut du catalogue, à défaut provider/model demandé) et clé, puis
-    // répond `{ ok, translations }`. Un lot = ≤ 40 paires clé→français.
-    const KB_I18N_LANG_NAMES = {
-      ar: 'en arabe (العربية, sens de lecture droite-à-gauche)',
-      es: 'en espagnol', de: 'en allemand', it: 'en italien', pt: 'en portugais',
-      nl: 'en néerlandais', ja: 'en japonais', ko: 'en coréen', zh: 'en chinois',
-      he: 'en hébreu (sens droite-à-gauche)', fa: 'en persan (sens droite-à-gauche)',
-      ur: 'en ourdou (sens droite-à-gauche)', ru: 'en russe', tr: 'en turc', hi: 'en hindi',
-    }
-    const i18nTranslate = async (args) => {
-      const req = args !== null && args !== undefined && typeof args === 'object' ? args : {}
-      const lang = typeof req.lang === 'string' ? req.lang.trim().toLowerCase().slice(0, 10) : ''
-      if (/^[a-z]{2,3}([-_][a-z0-9]{2,8})?$/.test(lang) !== true || lang === 'kybernos') return { ok: false, error: 'code de langue invalide' }
-      const batchIn = req.batch !== null && req.batch !== undefined && typeof req.batch === 'object' ? req.batch : null
-      if (batchIn === null) return { ok: false, error: 'lot batch manquant' }
-      const pairs = Object.entries(batchIn)
-        .filter(([k, v]) => typeof k === 'string' && k.length > 0 && k.length <= 200 && typeof v === 'string' && v.length > 0)
-        .slice(0, 40)
-      if (pairs.length === 0) return { ok: true, translations: {} }
-      const llmSvc = ctx.get('llm')
-      if (llmSvc === null || llmSvc === undefined || typeof llmSvc.stream !== 'function') return { ok: false, error: 'service llm indisponible dans ce profil' }
-      const reg = await kbBrainSettings()
-      const brain = kbBrainSplit(reg.brain)
-      const catalog = readCatalog()
-      const def = catalog !== null && catalog !== undefined && catalog.default !== null && typeof catalog.default === 'object' ? catalog.default : null
-      const demP = typeof req.provider === 'string' ? req.provider.trim() : ''
-      const demM = typeof req.model === 'string' ? req.model.trim() : ''
-      // Ordre de choix : modèle demandé s'il existe, sinon brain, sinon défaut
-      // du catalogue. (starters-suggest fait brain puis défaut : la demande du
-      // panneau thème passe avant, c'est elle que l'utilisateur a choisie.)
-      let provider = demP !== '' ? demP : (brain !== null ? brain.provider : (def === null ? null : (typeof def.provider === 'string' ? def.provider : null)))
-      let model = demM !== '' ? demM : (brain !== null ? brain.model : (def === null ? null : (typeof def.model === 'string' ? def.model : null)))
-      if (provider === null || model === null) return { ok: false, error: 'aucun modele disponible (reglage brain vide et catalogue sans defaut)' }
-      const cible = KB_I18N_LANG_NAMES[lang] || ('vers la langue « ' + lang + ' »')
-      const prompt = [
-        'Tu es un traducteur professionnel d’interface logicielle.',
-        'Traduis chaque valeur du français ' + cible + '.',
-        'Registre : interface utilisateur, libellés courts, ton direct. Ne traduis PAS les clés.',
-        'Réponds UNIQUEMENT par un objet JSON : { clé: traduction, ... }. Aucun markdown, aucune explication.',
-        'Objet à traduire :',
-        JSON.stringify(Object.fromEntries(pairs)),
-      ].join('\n')
-      let raw = ''
-      const control = new AbortController()
-      const timer = setTimeout(() => { try { control.abort() } catch (e) { /* déjà terminé */ } }, 120000)
-      try {
-        const params = {
-          provider: provider, model: model,
-          messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
-          // Budget de sortie adapté : 40 libellés courts tiennent dans 4k, un
-          // lot de longs paragraphes (descriptions kbui.*) peut dépasser — un
-          // JSON tronqué serait rejeté entier par kbJsonBetween.
-          maxTokens: pairs.reduce((n, [, v]) => n + v.length, 0) > 3000 ? 16000 : 4000,
-          temperature: 0.2,
-          purpose: 'kybernos-i18n-translate', signal: control.signal,
-        }
-        for await (const chunk of llmSvc.stream(params)) {
-          if (chunk === null || chunk === undefined || typeof chunk !== 'object') continue
-          if (chunk.type === 'text-delta' && typeof chunk.text === 'string') raw += chunk.text
-        }
-      } catch (e) { return { ok: false, error: 'appel llm échoué: ' + errText(e) } } finally { clearTimeout(timer) }
-      const parsed = kbJsonBetween(raw)
-      if (parsed === null) return { ok: false, error: 'réponse du modèle inexploitable', raw: raw.slice(0, 400).replace(/\s+/g, ' ') }
-      const translations = {}
-      for (const [k] of pairs) {
-        const v = parsed[k]
-        if (typeof v === 'string' && v.trim().length > 0) translations[k] = v.trim()
-      }
-      return { ok: true, lang: lang, provider: provider, model: model, translations: translations }
-    }
+    // ── Interface translation (RTL/Arabic work, 2026-09-25) ──────────────────
+    // The language page used to call the provider FROM THE BROWSER: CORS blocked
+    // most hosts and the API key lives in the host's environment, so the
+    // "translation" silently stayed French. The route resolves model and key on
+    // the host and answers `{ ok, translations }`; one batch = up to 40
+    // key -> French pairs. Logic lives in i18n-translate.mjs (testable).
+    const i18nTranslate = async (args) => i18nTranslateBatch(args, {
+      llm: ctx.get('llm'),
+      brainKey: (await kbBrainSettings()).brain,
+      catalog: readCatalog(),
+      jsonBetween: kbJsonBetween,
+    })
+    const i18nModels = async () => i18nModelList({ catalog: readCatalog(), brainKey: (await kbBrainSettings()).brain })
     // Index complet (sans filtre ni limite): seules les sessions a runCount >= 1 sont gardees.
     const buildRunsIndex = async () => {
       const listing = await listIndexJournals()
@@ -10042,7 +9982,7 @@ function boot(ctx) {
         try { body = await readJsonBody(req, 65536) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
         sendJson(res, 200, await startersSuggest(body))
       } }), 'kybernos: route starters-suggest')
-      // Traduction d'interface (lot ≤ 40 chaînes) : cf. i18nTranslate.
+      // Interface translation (batch <= 40 strings): see i18nTranslate.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-translate', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
@@ -10050,6 +9990,12 @@ function boot(ctx) {
         try { body = await readJsonBody(req, 262144) } catch (e) { return sendJson(res, 413, { ok: false, error: 'corps de requete trop volumineux' }) }
         sendJson(res, 200, await i18nTranslate(body))
       } }), 'kybernos: route i18n-translate')
+      // Models the language page can offer: the configured catalog, not a guess.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-models', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        if (sameOriginLax(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        sendJson(res, 200, Object.assign({ ok: true }, await i18nModels()))
+      } }), 'kybernos: route i18n-models')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-cap', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
         sendJson(res, 200, { ok: true, cap: readTeamCap() })
