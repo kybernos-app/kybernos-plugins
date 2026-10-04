@@ -972,7 +972,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       // footer (the account menu and the mobile-app button are rendered by another
       // plugin, with its own French/English table). Dialogs are left out on
       // purpose: they quote session and file names.
-      const LIVE_ROOTS = '[data-slot="settings.section"],[role="menu"],[data-slot="sidebar.footer.action"]'
+      const LIVE_ROOTS = '[data-slot="settings.section"],[role="menu"],[data-slot="sidebar.footer.action"],[data-kb="ld-picker"],[data-kb="ld-pack"]'
       const LIVE_BATCH = 30
       const LIVE_DELAY_MS = 500
       // Two calls in flight: a settings page can carry 100+ new strings.
