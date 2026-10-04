@@ -16,12 +16,20 @@ one click away.
 - **Lessons learned** (every kyber, local files): list, filters (kyber, used at least once, added),
   pages, edit (text, tags) and delete — a deleted lesson goes to the kyber's `lessons.archive.jsonl`.
 - **Options**: a classic settings page (breadcrumb + rows like General's) with the two switch groups —
-  Memories / Memory system context / Automatic capture, and Lessons learned / Lessons system context —
-  each dependent row locks with the reason when its parent is off. The last capture's outcome is shown.
-- **Not drawn as if it existed**: the Map needs a search index that does not exist yet (the button is
-  disabled and says so), relevance search likewise (the field says « By words »), and team lessons are
-  not built (the Team scope and « Share lessons with your team » say so). Nothing on the page claims
-  a plan gate it does not enforce: memory itself is not limited by plan today.
+  Memories / Memory system context / Automatic capture / Search by meaning, and Lessons learned /
+  Lessons system context — each dependent row locks with the reason when its parent is off. The last
+  capture's outcome is shown.
+- **Search by meaning** (memories only, **off until you turn it on**: it sends the text of each memory
+  to the Kybernos embedding model). The search field offers *Words | Meaning* (the choice is saved per
+  browser). Turning the switch on checks, once, what your plan and server allow (one 2-letter embedding,
+  never a memory); then « Index my memories » embeds them in batches and the rows show « NN% match ».
+  When it cannot be done — switch off, plan too low (the embeddings model needs the Solo plan on the
+  dev tier: `model-not-available-plan`), a server without pgvector or that predates the routes, no
+  credits — the page shows the word matches and says why, with a link to Options.
+- **Not drawn as if it existed**: the Map needs 2-D positions of the vectors, which nothing computes
+  yet (the button is disabled and says so), and team lessons are not built (the Team scope and
+  « Share lessons with your team » say so). The only plan gate shown is the one the server enforces
+  (embeddings); memory itself is not limited by plan today.
 - The under-composer **Memory pill** lives in `kybernos-sessions` (it needs the chat's journal): it shows
   what the model receives (« 25 of 637 ») and what this chat wrote, with a card that links here.
 
@@ -50,7 +58,9 @@ no `..`), and a typo never creates a kyber.
 
 ## Limits, said plainly
 
-- Search is by words, not by meaning (`search.relevance: false`). Relevance needs an index.
+- Search by meaning needs the server half (`GET/PUT/POST /v1/memories…` embeddings, with pgvector on the
+  Supabase store) and a plan that includes the embeddings model; until then it falls back to words
+  (`search.fallback` says why). It ranks at most 50 memories, newest account scope only.
 - The lessons are local to this machine. Sharing with a team is not built yet.
 - It only governs this bundle's tools and chunk. An agent can still run `memory.cjs lesson` through
   bash; `lessons = off` asks it not to, it cannot forbid it.

@@ -10,7 +10,7 @@
 //   Options page ............................ the switches of both, as a classic settings page
 //
 // Nothing here talks to the cloud directly: the account token never leaves the host half.
-// What is not built is not drawn as if it were: the map and relevance search need an index
+// What is not built is not drawn as if it were: the map needs an index
 // that does not exist yet (the Map button says so), team lessons are not built (the Team scope
 // says so), and the list search is by words.
 //
@@ -99,12 +99,33 @@ window.__ModuleLoader__.load({
         if (tab === 'memories') {
           if (f.show !== 'all') q.set('show', f.show)
           if (f.src !== 'any') q.set('src', f.src)
+          // Meaning only matters with a query; the host falls back to words, and says why, when it cannot.
+          if (state.mode === 'meaning' && String(state.q || '').trim() !== '') q.set('mode', 'meaning')
           return '/kybernos-cloud/memory/list?' + q.toString()
         }
         if (f.kyber !== '') q.set('kyber', f.kyber)
         if (f.status === 'used') q.set('used', '1')
         return '/kybernos-memory/lessons?' + q.toString()
       }
+
+      /** Search mode is a per-viewer preference, kept across tabs, options and visits. Storage can be blocked: never throw. */
+      const MODE_KEY = 'kbmem.searchMode'
+      const readMode = () => { try { return window.localStorage.getItem(MODE_KEY) === 'meaning' ? 'meaning' : 'words' } catch (e) { return 'words' } }
+      const writeMode = (v) => { try { window.localStorage.setItem(MODE_KEY, v) } catch (e) { /* private window */ } }
+
+      const TIER_NAME = { solo: 'Solo', team: 'Team', free: 'Free' }
+      /** Why a meaning search is not being done (host codes of /memory/index and of the list's `search.fallback`), as a sentence. */
+      const meaningWhy = (code, tier) => {
+        const c = String(code === undefined || code === null ? '' : code)
+        if (c === 'sens_desactive') return 'Search by meaning is off. Turn it on in Options.'
+        if (c === 'offre_requise') return 'Search by meaning needs the ' + (TIER_NAME[tier] || 'Solo') + ' plan.'
+        if (c === 'sens_indisponible' || c === 'serveur_ancien') return 'Your Kybernos server cannot search by meaning yet.'
+        if (c === 'credits_epuises') return 'You are out of credits.'
+        if (c === 'embedding_invalide') return 'The embedding service sent back something unexpected.'
+        return friendlyError(c)
+      }
+      /** « 82% match » — only for a number the host really computed. */
+      const closenessLabel = (n) => (typeof n === 'number' && Number.isFinite(n) ? String(Math.max(0, Math.min(100, Math.round(n)))) + '% match' : null)
 
       /** What a host error code means to a person. */
       const friendlyError = (code) => {
@@ -203,6 +224,13 @@ window.__ModuleLoader__.load({
 .kbmem-field{flex-basis:200px}
 .kbmem-field{display:flex;gap:8px;align-items:center;flex:1;min-width:0;height:36px;padding:0 12px;border-radius:var(--m-r-md);background:var(--m-fill);color:var(--m-muted)}
 .kbmem-field input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--m-ink);font:inherit}
+.kbmem-modes{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:var(--m-surf);flex:none}
+.kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
+.kbmem-modes button.on{background:var(--m-primary);color:var(--m-primary-ink)}
+.kbmem-modes button.locked{color:var(--m-muted)}
+.kbmem-modes .kbmem-ico{width:11px;height:11px}
+.kbmem-chip.close{color:var(--m-acc);border-color:var(--m-acc)}
+.kbmem-idx{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
 .kbmem-mode{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:600;background:var(--m-surf);color:var(--m-ink2);white-space:nowrap}
 .kbmem-menuwrap{position:relative}
 .kbmem-menu{position:absolute;top:calc(100% + 6px);inset-inline-end:0;min-width:240px;max-height:70vh;overflow:auto;padding:6px;border-radius:var(--m-r-md);background:var(--m-toast);box-shadow:var(--kb-elev,0 8px 24px rgba(0,0,0,.35));z-index:30}
@@ -332,6 +360,22 @@ window.__ModuleLoader__.load({
       }
 
       /** One list (memories or lessons), reloaded when its query changes. A stale answer never overwrites a newer one. */
+      /** Search by meaning: is it on, can the server, does the plan allow it, how much is indexed. Reads only (a probe is asked for explicitly). */
+      const useMeaning = (enabled, refreshKey, probe) => {
+        const [m, setM] = useState({ loaded: false })
+        const probed = useRef(false)
+        useEffect(() => {
+          if (!enabled) { probed.current = false; setM({ loaded: true, enabled: false }); return undefined }
+          let live = true
+          // The probe (one 2-letter embedding) happens once each time the switch comes on, never on a later re-read.
+          const withProbe = probe === true && probed.current !== true
+          if (withProbe) probed.current = true
+          api('/kybernos-cloud/memory/index' + (withProbe ? '?probe=1' : '')).then((r) => { if (live) setM(Object.assign({ loaded: true }, r)) })
+          return () => { live = false }
+        }, [enabled, refreshKey, probe])
+        return m
+      }
+
       const useList = (tab, state, refreshKey) => {
         const [d, setD] = useState({ loading: true, ok: false, error: null, total: 0, items: [], counts: null, extra: null })
         const seq = useRef(0)
@@ -378,6 +422,7 @@ window.__ModuleLoader__.load({
         h('span', { className: 'kbmem-tx' }, m.content),
         h('span', { className: 'kbmem-mt' },
           m.sent && ctxOn ? h('span', { className: 'kbmem-chip ok' }, 'Sent') : null,
+          closenessLabel(m.closeness) !== null ? h('span', { className: 'kbmem-chip close', title: 'How close this memory is to your search, by meaning' }, closenessLabel(m.closeness)) : null,
           m.pinned ? h('span', { title: 'Pinned' }, Ico('pin')) : null,
           h('span', null, ORIGIN_LABEL[m.origin] || m.origin),
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(m.ageMinutes))))
@@ -476,6 +521,8 @@ window.__ModuleLoader__.load({
         const [size, setSize] = useState(PAGE_SIZES[0])
         const [menu, setMenu] = useState(false)
         const [sheet, setSheet] = useState(null)
+        const [mode, setModeState] = useState(readMode)
+        const setMode = (v) => { setModeState(v); writeMode(v); setPage(1) }
         const wrap = useRef(null)
         useEffect(() => { const t = setTimeout(() => { setQd(q); setPage(1) }, 250); return () => clearTimeout(t) }, [q])
         useEffect(() => {
@@ -488,7 +535,8 @@ window.__ModuleLoader__.load({
         // Escape also closes the side sheet.
         const sheetOpen = sheet !== null
         useEffect(() => (sheetOpen ? onEscape(() => setSheet(null)) : undefined), [sheetOpen])
-        const list = useList(tab, { f, q: qd, page, size }, refreshKey)
+        const meaning = useMeaning(settings.memory !== null && settings.memory.meaning === true, refreshKey, false)
+        const list = useList(tab, { f, q: qd, page, size, mode }, refreshKey)
         const [kybers, setKybers] = useState([])
         useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybers(r.kybers) }); return () => { live = false } }, [refreshKey])
         const [otherCount, setOtherCount] = useState(null)
@@ -501,6 +549,11 @@ window.__ModuleLoader__.load({
 
         const mems = tab === 'memories'
         const connected = status.connected
+        const memSwitches = settings.memory
+        // Why « Meaning » is not available right now: the switch, the server, or the plan — in that order.
+        const meaningReason = memSwitches === null || memSwitches.meaning !== true ? 'sens_desactive'
+          : meaning.loaded !== true ? null : meaning.available === false ? meaning.reason : meaning.allowed === false ? 'offre_requise' : null
+        const canMeaning = memSwitches !== null && memSwitches.meaning === true && meaning.loaded === true && meaning.available === true && meaning.allowed !== false
         const memOn = settings.memory === null ? true : settings.memory.memories === true
         const ctxOn = mems ? (settings.memory === null ? true : settings.memory.context === true) : (settings.lessons === null ? true : settings.lessons.context === true)
         const lesOn = settings.lessons === null ? true : settings.lessons.lessons === true
@@ -536,7 +589,13 @@ window.__ModuleLoader__.load({
         const tools = h('div', { className: 'kbmem-tools' },
           h('label', { className: 'kbmem-field' }, Ico('search'),
             h('input', { 'aria-label': 'Search', placeholder: mems ? 'Search memories…' : 'Search lessons…', value: q, onChange: (e) => setQ(e.target.value) }),
-            h('span', { className: 'kbmem-mode', title: 'Search looks for your words. Search by meaning needs an index that does not exist yet.' }, Ico('lock'), 'By words')),
+            mems
+              ? h('span', { className: 'kbmem-modes', role: 'group', 'aria-label': 'Search by' },
+                h('button', { type: 'button', className: mode === 'words' ? 'on' : '', 'aria-pressed': mode === 'words', 'data-mode': 'words', title: 'Looks for your words in the text of each memory.', onClick: () => setMode('words') }, 'Words'),
+                h('button', { type: 'button', className: (mode === 'meaning' ? 'on' : '') + (canMeaning ? '' : ' locked'), 'aria-pressed': mode === 'meaning', 'data-mode': 'meaning',
+                  title: canMeaning ? 'Finds memories that mean the same, even with other words.' : meaningWhy(meaningReason, meaning.requiredTier) + ' Click to open Options.',
+                  onClick: () => (canMeaning || mode === 'meaning' ? setMode('meaning') : openOptions()) }, canMeaning ? null : Ico('lock'), 'Meaning'))
+              : h('span', { className: 'kbmem-mode', title: 'Lessons are searched by their words.' }, 'By words')),
           h('div', { className: 'kbmem-menuwrap', ref: wrap },
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'aria-haspopup': 'true', 'aria-expanded': menu, 'data-act': 'filter', onClick: () => setMenu(!menu) }, Ico('filter'), 'Filter',
               active.length > 0 ? h('span', { className: 'kbmem-badge' }, active.length) : null),
@@ -552,13 +611,21 @@ window.__ModuleLoader__.load({
         else if (mems && !memOn) notes.push(h('div', { key: 'n2', className: 'kbmem-note warn' }, Ico('alert'), h('div', null, h('b', null, 'Memories is off. '), 'Nothing new is saved or used. What you already have stays here. ', h('a', { onClick: openOptions }, 'Open options'))))
         else if (!mems && !lesOn) notes.push(h('div', { key: 'n3', className: 'kbmem-note warn' }, Ico('alert'), h('div', null, h('b', null, 'Lessons learned is off. '), 'Agents are told not to record lessons, and none is injected. ', h('a', { onClick: openOptions }, 'Open options'))))
 
+        // A meaning search that could not be done shows word matches instead — and says why, with the way to fix it.
+        const sr = mems && mode === 'meaning' && String(qd).trim() !== '' && list.ok && list.extra !== null && list.extra.search !== undefined ? list.extra.search : null
+        if (sr !== null && sr.fallback !== undefined && sr.fallback !== null) {
+          notes.push(h('div', { key: 'nf', className: 'kbmem-note', 'data-note': 'fallback' }, Ico('search'), h('div', null, h('b', null, 'Showing word matches. '), meaningWhy(sr.fallback, sr.requiredTier), ' ',
+            h('a', { className: 'kbmem-link', role: 'button', tabIndex: 0, 'data-act': 'note-options', onClick: openOptions }, 'Open Options'))))
+        }
+        const byMeaning = sr !== null && sr.mode === 'meaning'
+
         let body
         if (list.loading && list.items.length === 0 && list.ok === false && list.error === null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
         else if (!list.ok && list.error !== null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(mems ? 'cloud' : 'alert')),
           h('h3', null, notFound ? (mems ? 'Memories are not available' : 'Lessons are not available') : 'Could not load'), h('div', null, friendlyError(list.error)))
         else if (list.items.length === 0) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(String(qd).trim() !== '' || active.length > 0 ? 'search' : (mems ? 'brain' : 'bulb'))),
           String(qd).trim() !== '' || active.length > 0
-            ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'Nothing matches ' + (String(qd).trim() !== '' ? '“' + qd + '”' : 'these filters') + '. Search looks for your words.'), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, 'Clear filters') : null]
+            ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'Nothing matches ' + (String(qd).trim() !== '' ? '“' + qd + '”' : 'these filters') + (byMeaning ? '. Nothing is close enough in meaning.' : '. Search looks for your words.')), active.length > 0 ? h('button', { key: 'b', type: 'button', className: 'kbmem-btn ghost', onClick: clearFilters }, 'Clear filters') : null]
             : (mems ? [h('h3', { key: 'h' }, 'Nothing remembered yet'), h('div', { key: 'd' }, 'Memories appear as you work: Kybernos can capture them at the end of a turn, an agent can save one, or you can add your own.')]
               : [h('h3', { key: 'h' }, 'No lesson yet'), h('div', { key: 'd' }, 'A lesson is written when an agent finds an expectation was contradicted. They are stored per kyber, on this machine.')]))
         else body = h('div', null,
@@ -575,7 +642,59 @@ window.__ModuleLoader__.load({
           sheet !== null ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify }) : null)
       }
 
-      const OptionsView = ({ status, settings, back, notify, refresh }) => {
+      /**
+       * « Search by meaning »: the switch (off by default: it sends the text of each memory to the embedding
+       * model), what the server and the plan allow, and the indexing. Opening it with the switch on spends ONE
+       * 2-letter embedding to learn the plan; indexing is only ever started by the button.
+       */
+      const MeaningRow = ({ cloud, mem, onToggle, refreshKey, refresh }) => {
+        // The page is served live but the host half only loads at the next `dsh web` start: a host that predates
+        // this switch does not report it at all. Say so instead of offering a switch that would be refused.
+        const stale = mem !== null && typeof mem.meaning !== 'boolean'
+        const locked = !cloud || mem === null || mem.memories !== true || stale
+        const on = !locked && mem.meaning === true
+        const idx = useMeaning(on, refreshKey, true)
+        const [run, setRun] = useState({ running: false, done: 0, error: null, tier: null })
+        const stop = useRef(false)
+        useEffect(() => () => { stop.current = true }, [])
+        const index = async () => {
+          stop.current = false
+          setRun({ running: true, done: 0, error: null, tier: null })
+          let done = 0
+          for (let guard = 0; guard < 200 && !stop.current; guard++) {
+            const r = await api('/kybernos-cloud/memory/index/run', { max: 64 })
+            if (r.ok !== true) { setRun({ running: false, done, error: r.error === undefined ? 'indisponible' : r.error, tier: r.requiredTier === undefined ? null : r.requiredTier }); refresh(); return }
+            done += r.indexed
+            setRun({ running: true, done, error: null, tier: null })
+            if (r.remaining === 0 || r.indexed === 0) break
+          }
+          setRun({ running: false, done, error: null, tier: null })
+          refresh()
+        }
+        let live = null
+        if (on) {
+          if (idx.loaded !== true || idx.ok === false) live = h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, idx.ok === false ? friendlyError(idx.error) : 'Checking what your plan and server allow…')
+          else if (idx.available === false) live = h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-meaning': 'unavailable' }, meaningWhy(idx.reason))
+          else if (idx.allowed === false) live = h('div', { className: 'kbmem-tiny', style: { marginTop: 6 }, 'data-meaning': 'plan' }, meaningWhy('offre_requise', idx.requiredTier) + (idx.plan ? ' You are on ' + (TIER_NAME[idx.plan] || idx.plan) + '.' : ''))
+          else {
+            const left = idx.remaining === null || idx.remaining === undefined ? null : idx.remaining
+            live = h('div', { className: 'kbmem-tiny kbmem-idx', style: { marginTop: 6 }, 'data-meaning': 'ready' },
+              h('span', { 'data-idx': 'count' }, idx.indexed === null || idx.total === null ? 'Index status unknown' : 'Indexed ' + idx.indexed + ' of ' + idx.total),
+              run.running ? h('span', null, ' · indexing… ' + run.done + ' done') : null,
+              run.error ? h('span', { 'data-idx': 'error' }, ' · ' + (run.error === 'offre_requise' ? meaningWhy('offre_requise', run.tier) : meaningWhy(run.error))) : null,
+              ' ',
+              run.running
+                ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'index-stop', onClick: () => { stop.current = true } }, 'Stop')
+                : h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'index', disabled: left === 0, onClick: index }, left === 0 ? 'All indexed' : 'Index my memories'))
+          }
+        }
+        return h(SettingRow, { label: 'Search by meaning', desc: 'Find a memory with other words than it was written with. The text of each memory is sent to the Kybernos embedding model to place it by meaning, so this is off until you turn it on.',
+          chip: on && idx.loaded === true && idx.allowed === false ? PlanChip(TIER_NAME[idx.requiredTier] || 'Solo') : null, locked, live,
+          why: !cloud ? 'Connect a Kybernos Cloud account first.' : (stale ? 'The cloud plugin was updated: restart DSH to use this.' : (mem !== null && mem.memories !== true ? 'Turn on Memories first.' : null)),
+          control: h(YesNo, { name: 'Search by meaning', value: on, onChange: onToggle }) })
+      }
+
+      const OptionsView = ({ status, settings, back, notify, refresh, refreshKey }) => {
         const cloud = status.connected
         const mem = settings.memory
         const les = settings.lessons
@@ -584,7 +703,7 @@ window.__ModuleLoader__.load({
         const setLes = async (patch) => { const r = await api('/kybernos-memory/settings/set', patch); if (r.ok !== true) notify(friendlyError(r.error)); refresh() }
         const note = !cloud
           ? h('div', { className: 'kbmem-note warn' }, Ico('cloud'), h('div', null, h('b', null, 'Not connected. '), 'Memories live in your Kybernos Cloud account, so they cannot be changed here. Lessons are stored on this machine and keep working.'))
-          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, 'Your plan: ', h('b', null, PLAN_NAME[plan]), '. ', plan === 'team' ? 'Team lessons are not built yet.' : 'Relevance search, the map and team lessons are not built yet; they will need Solo or Team.'))
+          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, 'Your plan: ', h('b', null, PLAN_NAME[plan]), '. ', plan === 'team' ? 'Team lessons are not built yet.' : 'The map and team lessons are not built yet.'))
         const memUnavailable = mem === null
         const lesUnavailable = les === null
         const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, 'Last capture: ' + captureWords(settings.capture))
@@ -602,7 +721,8 @@ window.__ModuleLoader__.load({
               control: h(YesNo, { name: 'Memory system context', value: mem !== null && mem.context === true && mem.memories === true && cloud, onChange: (v) => setMem({ context: v }) }) }),
             h(SettingRow, { label: 'Automatic capture', desc: 'At the end of a turn, let the model note what is worth keeping.', live: lastCapture, locked: !cloud || memUnavailable || (mem !== null && mem.memories !== true),
               why: mem !== null && mem.memories !== true && cloud ? 'Turn on Memories first.' : null,
-              control: h(YesNo, { name: 'Automatic capture', value: mem !== null && mem.capture === true && mem.memories === true && cloud, onChange: (v) => setMem({ capture: v }) }) })),
+              control: h(YesNo, { name: 'Automatic capture', value: mem !== null && mem.capture === true && mem.memories === true && cloud, onChange: (v) => setMem({ capture: v }) }) }),
+            h(MeaningRow, { cloud, mem, onToggle: (v) => setMem({ meaning: v }), refreshKey, refresh })),
           h('section', { className: 'kbmem-sec' }, h('h2', null, 'Lessons learned', h('small', null, 'about your work')),
             h(SettingRow, { label: 'Lessons learned', desc: 'Allow agents to save a lesson when an expectation was contradicted.', locked: lesUnavailable, why: lesUnavailable ? 'The lessons plugin is not available.' : null,
               control: h(YesNo, { name: 'Lessons learned', value: les !== null && les.lessons === true, onChange: (v) => setLes({ lessons: v }) }) }),
@@ -630,7 +750,7 @@ window.__ModuleLoader__.load({
         useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
         return h('div', { className: 'kbmem-page', 'data-kbmem': view },
           view === 'options'
-            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump })
+            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey })
             : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey }),
           toast !== null ? h('div', { className: 'kbmem-toast', role: 'status', 'aria-live': 'polite' }, toast.message,
             toast.undo ? h('button', { type: 'button', 'data-act': 'undo', onClick: () => { const u = toast.undo; setToast(null); u() } }, 'Undo') : null) : null)
@@ -655,7 +775,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { onEscape, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { onEscape, meaningWhy, closenessLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
