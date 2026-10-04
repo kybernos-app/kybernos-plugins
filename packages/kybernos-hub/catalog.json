@@ -185,8 +185,8 @@
       "defaut": "actif",
       "poids_ko": 76,
       "promesse": {
-        "fr": "Routage Auto : le moindre modèle qui passe votre seuil.",
-        "en": "Auto routing: the cheapest model that clears your bar."
+        "fr": "Routage Auto : choisit un modèle de votre liste selon la classe de la demande.",
+        "en": "Auto routing: picks a model from your list by request class."
       }
     },
     {
@@ -255,8 +255,8 @@
       "defaut": null,
       "poids_ko": 68,
       "promesse": {
-        "fr": "Versions, journal, état de santé de l’installation.",
-        "en": "Versions, journal, installation health."
+        "fr": "Page À propos : version, compatibilité avec DSH, journal des mises à jour.",
+        "en": "About page: version, DSH compatibility, update log."
       }
     },
     {
@@ -423,8 +423,8 @@
       "defaut": null,
       "poids_ko": 2150,
       "promesse": {
-        "fr": "Bases SQLite et Postgres, avec graphiques.",
-        "en": "SQLite and Postgres databases, with charts."
+        "fr": "Visionneuse SQLite en lecture seule, avec graphiques.",
+        "en": "Read-only SQLite viewer, with charts."
       }
     }
   ]
