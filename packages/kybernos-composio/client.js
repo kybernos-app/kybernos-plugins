@@ -40,13 +40,13 @@ window.__ModuleLoader__.load({
       if (catalogLoad !== null) return catalogLoad
       catalogLoad = fetch(CATALOG_URL, { credentials: 'same-origin' })
         .then((res) => {
-          if (res === null || res === undefined || res.ok !== true) throw new Error('catalogue indisponible (' + String(res && res.status) + ')')
+          if (res === null || res === undefined || res.ok !== true) throw new Error('catalog unavailable (' + String(res && res.status) + ')')
           return res.json()
         })
         .then((list) => {
           // 'catalogue invalide' est réservé au NON-tableau : un 200 + [] est
           // une issue terminale valide, qui résout [] sans peupler CATALOG.
-          if (Array.isArray(list) !== true) throw new Error('catalogue invalide')
+          if (Array.isArray(list) !== true) throw new Error('invalid catalog')
           // Vide-valide : on invalide catalogLoad, sinon la promesse résolue []
           // serait resservie par :36 et la reprise ne re-fetcherait jamais.
           if (list.length === 0) { catalogLoad = null; return [] }
@@ -69,10 +69,14 @@ window.__ModuleLoader__.load({
     const KB_CP_MODE = 'composio.mode'
     const kbCpKey = () => { try { return localStorage.getItem(KB_CP_KEY) || '' } catch (e) { return '' } }
     const kbCpHas = () => kbCpKey().indexOf('ck_') === 0
-    const kbCpMode = () => (localStorage.getItem(KB_CP_MODE) === 'cloud' ? 'cloud' : 'local')
+    // Browser storage can be unavailable or throw (private window, blocked site data): every
+    // access is guarded and the page then works with what it has in memory.
+    const kbCpMode = () => { try { return localStorage.getItem(KB_CP_MODE) === 'cloud' ? 'cloud' : 'local' } catch (e) { return 'local' } }
     const kbCpSetMode = (m) => {
-      if (m === 'cloud') localStorage.setItem(KB_CP_MODE, 'cloud')
-      else localStorage.removeItem(KB_CP_MODE)
+      try {
+        if (m === 'cloud') localStorage.setItem(KB_CP_MODE, 'cloud')
+        else localStorage.removeItem(KB_CP_MODE)
+      } catch (e) { /* not stored: the mode lasts until the page closes */ }
       try { window.dispatchEvent(new Event('kbcp-mode')) } catch (e) { }
     }
 
@@ -206,7 +210,7 @@ window.__ModuleLoader__.load({
       for (const c of cands) {
         if (typeof c === 'string' && c.trim().length > 0 && c.trim() !== 'undefined') return c.trim()
       }
-      return String((a && (a.id || a.connectedAccountId)) || '(compte)')
+      return String((a && (a.id || a.connectedAccountId)) || kbt('kb.cp.account'))
     }
 
     const parseAccounts = (raw) => {
@@ -217,7 +221,8 @@ window.__ModuleLoader__.load({
       if (results === null) return out
       for (const [slug, info] of Object.entries(results)) {
         const key = String(slug).toLowerCase()
-        const accounts = Array.isArray(info && info.accounts) ? info.accounts : []
+        // A null entry in the account list used to throw here and break the whole page.
+        const accounts = (Array.isArray(info && info.accounts) ? info.accounts : []).filter((a) => a !== null && typeof a === 'object')
         out[key] = {
           status: String((info && info.status) || '').toLowerCase(),
           accounts: accounts.map((a) => ({
@@ -238,8 +243,6 @@ window.__ModuleLoader__.load({
 
     // ── i18n ──────────────────────────────────────────────────────────────────
     const STR = {
-      'composio.keylabel': { fr: 'Clé API Composio', en: 'Composio API key' },
-      'composio.keydesc': { fr: "Collez votre clé Composio (elle commence par ck_). Elle pilote cet onglet ET les agents (MCP) — une seule clé.", en: 'Paste your Composio key (starts with ck_). It drives this tab AND the agents (MCP) — one single key.' },
       'composio.keysave': { fr: 'Enregistrer', en: 'Save' },
       'composio.keyclear': { fr: 'Effacer', en: 'Clear' },
       'composio.keyok': { fr: 'clé enregistrée dans ce navigateur', en: 'key saved in this browser' },
@@ -266,25 +269,21 @@ window.__ModuleLoader__.load({
       'kb.cp.nokey': { fr: "Ajoutez votre clé Composio dans Réglages → Plugins → kybernos-composio pour activer les connexions.", en: 'Add your Composio key under Settings → Plugins → kybernos-composio to enable connections.' },
       'kb.cp.connected': { fr: 'Connecté', en: 'Connected' },
       'kb.cp.pend': { fr: 'En attente', en: 'Pending' },
-      'kb.cp.connect': { fr: 'Connecter', en: 'Connect' },
       'kb.cp.empty': { fr: 'Aucune app ne correspond.', en: 'No matching app.' },
       'kb.cp.openlink': { fr: 'Ouvrir la page d’autorisation', en: 'Open the authorization page' },
       'kb.cp.wait': { fr: 'Autorisation en cours — terminez dans l’onglet ouvert, puis attendez la confirmation…', en: 'Authorizing — finish in the opened tab, then wait for confirmation…' },
       'kb.cp.accounts': { fr: 'compte(s)', en: 'account(s)' },
-      'kb.cp.manage': { fr: 'Gérer les connexions', en: 'Manage connections' },
       'kb.cp.addconn': { fr: 'Ajouter une connexion', en: 'Add a connection' },
       'kb.cp.remove': { fr: 'Supprimer', en: 'Remove' },
       'kb.cp.noacc': { fr: 'Aucun compte connecté pour cette app.', en: 'No account connected for this app.' },
-      'kb.cp.loadall': { fr: 'Charger le catalogue complet (1547 apps)', en: 'Load the full catalog (1547 apps)' },
+      'kb.cp.loadall': { fr: 'Charger le catalogue complet', en: 'Load the full catalog' },
       'kb.cp.loading': { fr: 'Chargement…', en: 'Loading…' },
       'kb.cp.close': { fr: 'Fermer', en: 'Close' },
       'kb.cp.active': { fr: 'ACTIF', en: 'ACTIVE' },
-      'kb.cp.alias': { fr: 'Alias (optionnel)', en: 'Alias (optional)' },
       'kb.cp.dismiss': { fr: 'Écarter ce lien', en: 'Dismiss this link' },
       'kb.cp.create': { fr: 'Créer', en: 'Create' },
       'kb.cp.custom': { fr: 'Connecteur personnalisé', en: 'Add custom connector' },
       'kb.cp.custom.hint': { fr: 'Ajouter un serveur MCP hors catalogue — serveur HTTP distant ou commande locale (stdio).', en: 'Add an off-catalog MCP server — remote HTTP server or local command (stdio).' },
-      'kb.cp.custom.draft': { fr: "/skill-connecteur-personnalise Je veux ajouter un connecteur personnalisé (serveur MCP stdio ou HTTP, hors catalogue Composio). Commence l'entretien par ta première question.", en: "/skill-connecteur-personnalise I want to add a custom connector (stdio or HTTP MCP server, off the Composio catalog). Start the interview with your first question." },
       'kb.cp.form.title': { fr: 'Nouveau connecteur', en: 'New connector' },
       'kb.cp.form.edit': { fr: 'Modifier le connecteur', en: 'Edit connector' },
       'kb.cp.form.name': { fr: 'Nom (kebab-case, ex. tavily)', en: 'Name (kebab-case, e.g. tavily)' },
@@ -293,7 +292,7 @@ window.__ModuleLoader__.load({
       'kb.cp.form.stdio': { fr: 'Commande locale (stdio)', en: 'Local command (stdio)' },
       'kb.cp.form.url': { fr: 'URL du serveur MCP (https://…)', en: 'MCP server URL (https://…)' },
       'kb.cp.form.command': { fr: 'Commande — chemin ABSOLU (ex. /opt/homebrew/bin/node)', en: 'Command — absolute path (e.g. /opt/homebrew/bin/node)' },
-      'kb.cp.form.args': { fr: 'Arguments (séparés par des espaces)', en: 'Arguments (space-separated)' },
+      'kb.cp.form.args': { fr: 'Arguments (séparés par des espaces ; entre "guillemets" s’il y a un espace)', en: 'Arguments (space-separated; put "quotes" around one that has a space)' },
       'kb.cp.form.cwd': { fr: 'Répertoire de travail (optionnel)', en: 'Working directory (optional)' },
       'kb.cp.form.headers': { fr: 'En-têtes', en: 'Headers' },
       'kb.cp.form.env': { fr: "Variables d'environnement", en: 'Environment variables' },
@@ -306,7 +305,6 @@ window.__ModuleLoader__.load({
       'kb.cp.form.saved': { fr: 'Connecteur enregistré — il sera actif au prochain démarrage de DSH.', en: 'Connector saved — it will be active the next time DSH starts.' },
       'kb.cp.form.saving': { fr: 'Enregistrement…', en: 'Saving…' },
       'kb.cp.list.title': { fr: 'Connecteurs personnalisés', en: 'Custom connectors' },
-      'kb.cp.list.tools': { fr: 'outils', en: 'tools' },
       'kb.cp.list.offform': { fr: 'hors formulaire', en: 'not from form' },
       'kb.cp.list.empty': { fr: 'Aucun connecteur personnalisé pour l’instant.', en: 'No custom connectors yet.' },
       'kb.cp.list.confirm': { fr: 'Supprimer ce connecteur du profil ?', en: 'Remove this connector from the profile?' },
@@ -323,6 +321,15 @@ window.__ModuleLoader__.load({
       // (POC) pilule « Kybernos » de la page Plugins du moteur.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
       'kb.cp.yours.go': { fr: 'Parcourir le catalogue', en: 'Browse the catalog' },
+      'kb.cp.err.catalog': { fr: 'Catalogue', en: 'Catalog' },
+      'kb.cp.err.fullcatalog': { fr: 'Catalogue complet indisponible', en: 'Full catalog unavailable' },
+      'kb.cp.err.remove': { fr: 'Suppression impossible', en: 'Could not remove' },
+      'kb.cp.err.removecx': { fr: 'Le connecteur n’a pas pu être supprimé', en: 'The connector could not be removed' },
+      'kb.cp.account': { fr: '(compte)', en: '(account)' },
+      'kb.cp.card.available': { fr: 'dispo', en: 'available' },
+      'kb.cp.card.open': { fr: 'Ouvrir', en: 'Open' },
+      'kb.cp.card.resource': { fr: 'Ressource', en: 'Resource' },
+      'kb.cp.card.all': { fr: 'Tous les connecteurs', en: 'All connectors' },
       // What a failed call says, by code (the host and the MCP client use the same codes).
       'kb.cp.err.401': { fr: 'Composio a refusé la clé API (401). Vérifiez-la dans ~/.dsh/.env ou dans le panneau de la clé.', en: 'Composio rejected the API key (401). Check it in ~/.dsh/.env or in the key panel.' },
       'kb.cp.err.429': { fr: 'Composio limite le débit (429) : réessayez dans un instant.', en: 'Composio is rate limiting requests (429): try again in a moment.' },
@@ -359,9 +366,50 @@ window.__ModuleLoader__.load({
       if (lang !== 'kybernos' && lang !== 'fr') {
         const tag = lang.slice(0, 2).toLowerCase()
         if (row[tag] !== null && row[tag] !== undefined) return row[tag]
+        // A locale this bundle has no text for (de, es...) gets English, not French.
+        if (row.en !== null && row.en !== undefined) return row.en
       }
       return row.fr !== null && row.fr !== undefined ? row.fr : row.en
     }
+
+    // Words people type for what a category calls something else. The search box promises "billing",
+    // and no app has that word in its name, description or categories.
+    const SEARCH_ALIASES = {
+      billing: ['accounting', 'payment', 'tax'], invoice: ['accounting', 'payment', 'tax'], invoicing: ['accounting', 'payment', 'tax'],
+      facturation: ['accounting', 'payment', 'tax'], facture: ['accounting', 'payment', 'tax'], factures: ['accounting', 'payment', 'tax'],
+    }
+    const kbCpSquash = (s) => String(s === null || s === undefined ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, '')
+    /**
+     * Whether app `a` ({ s: slug, n: name, d: description, c: categories }) matches what was typed:
+     * a text in the name, description or a category; the slug or the name without spaces and dashes
+     * ("googlecalendar", "google-calendar"); or a word from SEARCH_ALIASES (a prefix of at least 3
+     * letters) whose categories the app has. Under 2 characters everything matches. Pure.
+     */
+    const kbCpMatch = (a, query) => {
+      const qn = String(query === null || query === undefined ? '' : query).trim().toLowerCase()
+      if (qn.length < 2) return true
+      const has = (s) => String(s === null || s === undefined ? '' : s).toLowerCase().indexOf(qn) >= 0
+      if (has(a.n) || has(a.d) || (a.c || []).some((c) => has(c))) return true
+      const sq = kbCpSquash(qn)
+      if (sq.length >= 2 && (kbCpSquash(a.s).indexOf(sq) >= 0 || kbCpSquash(a.n).indexOf(sq) >= 0)) return true
+      if (qn.length >= 3) {
+        for (const word of Object.keys(SEARCH_ALIASES)) {
+          if (word.indexOf(qn) === 0 && (a.c || []).some((c) => SEARCH_ALIASES[word].some((k) => String(c).toLowerCase().indexOf(k) >= 0))) return true
+        }
+      }
+      return false
+    }
+
+    /**
+     * The arguments list as the one text field of the form shows it: an argument with a space, a
+     * quote or nothing in it is wrapped in double quotes (with \\ and \" escaped), so that the
+     * host's splitArgs reads back exactly the same list. Without that a path with a space was cut in
+     * two on the way back, and saving the form unchanged corrupted the connector.
+     */
+    const kbCpJoinArgs = (list) => list.map((a) => {
+      const s = String(a)
+      return s.length > 0 && /[\s'"]/.test(s) === false ? s : '"' + s.replace(/[\\"]/g, '\\$&') + '"'
+    }).join(' ')
 
     /** A failure code (host route or MCP client) as a sentence the user can act on. */
     const kbCpErrText = (code) => {
@@ -411,13 +459,11 @@ window.__ModuleLoader__.load({
     }
 
     // ── logo d'app : SVG réel embarqué, fallback tuile initiale ──────────────
+    // Tile colours for an app with no logo. Only `cal` can reach it: it is not in the local catalog
+    // but is in the full public list. (Ten more entries were here; every one of those apps has a
+    // real logo in the catalog, so their tile was never drawn.)
     const APP_TILES = {
-      gmail: { bg: '#ffffff', color: '#EA4335', border: true }, slack: { bg: '#4A154B', color: '#fff' },
-      notion: { bg: '#ffffff', color: '#111', border: true }, github: { bg: '#111', color: '#fff' },
-      linear: { bg: '#5e6ad2', color: '#fff' }, googledrive: { bg: '#fff', color: '#1FA463', border: true },
-      cal: { bg: '#fff', color: '#1A73E8', border: true }, googlesheets: { bg: '#fff', color: '#0F9D58', border: true },
-      whatsapp: { bg: '#25D366', color: '#fff' }, airtable: { bg: '#fff', color: '#fcb400', border: true },
-      calendly: { bg: '#fff', color: '#006bff', border: true },
+      cal: { bg: '#fff', color: '#1A73E8', border: true },
     }
     const AppLogo = (slug, size) => {
       const svg = logoOf(slug)
@@ -640,9 +686,14 @@ window.__ModuleLoader__.load({
       }, [has])
       const save = () => {
         const val = String(v).trim()
-        if (val.length > 6 && val.indexOf('ck_') === 0) { localStorage.setItem(KB_CP_KEY, val); setHas(true); setV(''); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
+        if (val.length > 6 && val.indexOf('ck_') === 0) {
+          let stored = true
+          try { localStorage.setItem(KB_CP_KEY, val) } catch (e) { stored = false }
+          // Storage refused: nothing is claimed saved (the panel would say "key saved" for a key that is gone on reload).
+          if (stored === true) { setHas(true); setV(''); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
+        }
       }
-      const clear = () => { localStorage.removeItem(KB_CP_KEY); setHas(false); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
+      const clear = () => { try { localStorage.removeItem(KB_CP_KEY) } catch (e) { } setHas(false); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
       // (01/10) réglage Local (gratuit) / Cloud (payant) — maquette composio-cloud v3 :
       // seul ajout au bloc, tout le reste de la page est inchangé.
       const p4 = React.useState(kbCpMode())
@@ -694,7 +745,7 @@ window.__ModuleLoader__.load({
         return {
           nom: String(it.nom || ''), transport: it.transport === 'stdio' ? 'stdio' : 'streamable-http',
           url: String(it.url || ''), command: String(it.command || ''),
-          args: Array.isArray(it.args) ? it.args.join(' ') : String(it.args || ''),
+          args: Array.isArray(it.args) ? kbCpJoinArgs(it.args) : String(it.args || ''),
           cwd: String(it.cwd || ''),
           headers: Array.isArray(it.headers) ? it.headers.map((x) => ({ name: String(x.name || ''), value: String(x.value || '') })) : [],
           env: Array.isArray(it.env) ? it.env.map((x) => ({ name: String(x.name || ''), value: String(x.value || '') })) : [],
@@ -759,7 +810,7 @@ window.__ModuleLoader__.load({
                   h('label', { className: 'kb7-flabel' }, kbt('kb.cp.form.command')),
                   h('input', { className: 'kb7-finput', value: f.command, placeholder: '/opt/homebrew/bin/node', onChange: (e) => up({ command: e.target.value }), autoComplete: 'off', spellCheck: false }),
                   h('label', { className: 'kb7-flabel', style: { marginTop: 8 } }, kbt('kb.cp.form.args')),
-                  h('input', { className: 'kb7-finput', value: f.args, placeholder: '/chemin/serveur.mjs --port 3000', onChange: (e) => up({ args: e.target.value }), autoComplete: 'off', spellCheck: false }),
+                  h('input', { className: 'kb7-finput', value: f.args, placeholder: '/path/to/server.mjs --port 3000', onChange: (e) => up({ args: e.target.value }), autoComplete: 'off', spellCheck: false }),
                   h('label', { className: 'kb7-flabel', style: { marginTop: 8 } }, kbt('kb.cp.form.cwd')),
                   h('input', { className: 'kb7-finput', value: f.cwd, onChange: (e) => up({ cwd: e.target.value }), autoComplete: 'off', spellCheck: false }),
                   rows('env', kbt('kb.cp.form.env'), 'NOM', 'valeur ou $SECRET', false)),
@@ -850,7 +901,9 @@ window.__ModuleLoader__.load({
           const res = await fetch('/kybernos/composio/connecteurs')
           const j = await res.json()
           setCx(Array.isArray(j && j.connecteurs) === true ? j.connecteurs : [])
-        } catch (e) { /* la liste reste silencieuse si la route est en panne */ }
+          // The host says why when its connectors file cannot be used (corrupt, unreadable).
+          if (j !== null && j !== undefined && typeof j.error === 'string' && j.error.length > 0) setErr(j.error)
+        } catch (e) { /* the list stays silent when the route is down */ }
       }, [])
       React.useEffect(() => { loadConnecteurs() }, [loadConnecteurs])
 
@@ -858,10 +911,20 @@ window.__ModuleLoader__.load({
         let ok = false
         try { ok = window.confirm(kbt('kb.cp.list.confirm')) } catch (e) { ok = false }
         if (ok !== true) return
+        // A refusal (409 on a corrupt sidecar, 500 when a file cannot be written) used to be shown
+        // as "Connector removed": the answer is read now.
+        setErr(null)
         try {
-          await fetch('/kybernos/composio/connecteurs?nom=' + encodeURIComponent(nom), { method: 'DELETE' })
-          setCxNote(kbt('kb.cp.list.removed'))
-        } catch (e) { /* silencieux : la liste ne casse jamais la page */ }
+          const res = await fetch('/kybernos/composio/connecteurs?nom=' + encodeURIComponent(nom), { method: 'DELETE' })
+          const j = await res.json().catch(() => null)
+          if (res.ok !== true || j === null || j === undefined || j.ok !== true) {
+            setCxNote(null)
+            setErr(kbt('kb.cp.err.removecx') + (j !== null && j !== undefined && typeof j.error === 'string' ? ' — ' + j.error : ' (HTTP ' + res.status + ')'))
+          } else setCxNote(kbt('kb.cp.list.removed'))
+        } catch (e) {
+          setCxNote(null)
+          setErr(kbt('kb.cp.err.removecx') + ' — ' + String((e && e.message) || e))
+        }
         loadConnecteurs()
       }
 
@@ -887,7 +950,7 @@ window.__ModuleLoader__.load({
               if (fresh.length > 0) setApps(fresh)
             }
           } catch (e) {
-            setErr('catalogue: ' + String((e && e.message) || e))
+            setErr(kbt('kb.cp.err.catalog') + ': ' + String((e && e.message) || e))
             if (kbCpHas() === false) setConns({})
             return
           }
@@ -960,7 +1023,7 @@ window.__ModuleLoader__.load({
           setReady(true)
           setApps((prev) => (prev.length > list.length ? prev : list))
           refresh(list)
-        }).catch((e2) => { if (alive === true) { setReady(true); setErr('catalogue: ' + String((e2 && e2.message) || e2)) } })
+        }).catch((e2) => { if (alive === true) { setReady(true); setErr(kbt('kb.cp.err.catalog') + ': ' + String((e2 && e2.message) || e2)) } })
         return () => { alive = false }
       }, [refresh])
       React.useEffect(() => {
@@ -969,7 +1032,7 @@ window.__ModuleLoader__.load({
         return () => { try { window.removeEventListener('kbcp-key', on) } catch (e2) { } }
       }, [refresh, apps])
 
-      /** Charge les 1547 apps du catalogue public Kybernos (slug+nom+catégories). */
+      /** Charge les apps du catalogue public Kybernos (slug+nom+catégories). */
       const loadAll = async () => {
         setLoadingAll(true)
         setErr(null)
@@ -977,13 +1040,13 @@ window.__ModuleLoader__.load({
           const r = await fetch('https://kybernos-proxy-production.up.railway.app/v1/connections/apps')
           const j = await r.json()
           const list = Array.isArray(j && j.apps) ? j.apps : []
-          if (list.length === 0) throw new Error('catalogue vide')
+          if (list.length === 0) throw new Error('empty catalog')
           const merged = list.map((a) => ({ s: a.slug, n: a.name, c: a.categories || [], d: '', l: logoOf(a.slug) }))
           setApps(merged)
           setReady(true)
           refresh(merged)
         } catch (e) {
-          setErr('catalogue complet indisponible: ' + String((e && e.message) || e))
+          setErr(kbt('kb.cp.err.fullcatalog') + ': ' + String((e && e.message) || e))
         } finally { setLoadingAll(false) }
       }
 
@@ -1030,7 +1093,7 @@ window.__ModuleLoader__.load({
           }
           poll()
         } catch (e) {
-          setErr(String((e && e.message) || e))
+          setErr(kbCpErrOf(e))
         } finally { setBusy(false) }
       }
 
@@ -1042,13 +1105,13 @@ window.__ModuleLoader__.load({
           const acc = await listBatch([slug])
           setConns((prev) => Object.assign({}, prev, acc))
         } catch (e) {
-          setErr('suppression: ' + String((e && e.message) || e))
+          setErr(kbt('kb.cp.err.remove') + ': ' + kbCpErrOf(e))
         }
       }
 
       /** Connecteur personnalisé : ouvre le FORMULAIRE (route host). L'ancien
         * chemin conversationnel (skill) reste disponible via le chat : le draft
-        * kb.cp.custom.draft est conservé dans STR. */
+        * stays available through the chat. */
       const openConnectorWizard = () => {
         setCxForm({ initial: null })
       }
@@ -1066,7 +1129,7 @@ window.__ModuleLoader__.load({
       // convention que la vue Teams, qui lit aussi types[0]).
       const chip = tbState === null ? chipFb : (Array.isArray(tbState.types) === true && tbState.types.length > 0 ? String(tbState.types[0]) : 'all')
       const qn = q.trim().toLowerCase()
-      const matchQuery = (a) => qn.length < 2 || a.n.toLowerCase().indexOf(qn) >= 0 || (a.d || '').toLowerCase().indexOf(qn) >= 0 || (a.c || []).some((c) => c.toLowerCase().indexOf(qn) >= 0)
+      const matchQuery = (a) => kbCpMatch(a, qn)
       let list = apps.filter((a) => {
         if (chip === 'connected') return accOf(a.s).length > 0
         if (chip !== 'all') return (a.c || []).indexOf(chip) >= 0
@@ -1102,7 +1165,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kb7-acc', key: a.id || Math.random() },
           h('span', { style: { width: 9, height: 9, borderRadius: 5, background: on ? '#22c55e' : '#facc15', flex: 'none' } }),
           h('div', { style: { flex: 1, minWidth: 0 } },
-            h('div', { className: 'kb7-accname' }, a.label || a.id || '(compte)'),
+            h('div', { className: 'kb7-accname' }, a.label || a.id || kbt('kb.cp.account')),
             h('div', { className: 'kb7-accid' }, a.id),
             h('div', { className: 'kb7-accst ' + (on ? 'on' : 'pend') }, on ? kbt('kb.cp.active') : kbt('kb.cp.pend'))),
           h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.remove'), onClick: (e) => { e.stopPropagation(); removeAccount(slug, a.id) } }, Icon('trash', 13)))
@@ -1300,10 +1363,10 @@ window.__ModuleLoader__.load({
     // without an action shows).
     function carteActionHtml(item) {
       const link = carteActionHref(item.actionUrl)
-      if (link === null) return '<span class="kbcp-carte-ghost">' + carteEsc(item.actionLabel || 'dispo') + '</span>'
+      if (link === null) return '<span class="kbcp-carte-ghost">' + carteEsc(item.actionLabel || kbt('kb.cp.card.available')) + '</span>'
       return '<a class="kbcp-carte-action" href="' + carteEsc(link.href) + '"'
         + (link.internal ? '' : ' target="_blank" rel="noreferrer noopener"') + '>'
-        + carteEsc(item.actionLabel || 'Ouvrir') + '</a>'
+        + carteEsc(item.actionLabel || kbt('kb.cp.card.open')) + '</a>'
     }
     // The whole inner HTML of a card. Pure (string in, string out), so a node
     // test can read it without a DOM.
@@ -1315,13 +1378,13 @@ window.__ModuleLoader__.load({
       const KB_CP_ICONE_GRILLE = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'
       return '<span class="kbcp-carte-logo">' + logoHtml + '</span>' +
         '<span class="kbcp-carte-corps">' +
-          '<span class="kbcp-carte-titre"><span class="kbcp-carte-nom">' + carteEsc(item.titre || 'Ressource') + '</span>' +
+          '<span class="kbcp-carte-titre"><span class="kbcp-carte-nom">' + carteEsc(item.titre || kbt('kb.cp.card.resource')) + '</span>' +
             (item.type ? ' <span class="kbcp-carte-type">' + carteEsc(item.type) + '</span>' : '') +
             (item.etatLabel ? ' <span class="kbcp-carte-etat kbcp-etat-' + etat + '"><span class="kbcp-carte-pt"></span>' + carteEsc(item.etatLabel) + '</span>' : '') +
           '</span>' +
           (item.desc ? '<span class="kbcp-carte-desc">' + carteEsc(item.desc) + '</span>' : '') +
           (item.note ? '<span class="kbcp-carte-note">' + carteEsc(item.note) + '</span>' : '') +
-          (item.type === 'connecteur' ? '<a class="kbcp-carte-lien" href="kb:connecteurs">' + KB_CP_ICONE_GRILLE + 'Tous les connecteurs</a>' : '') +
+          (item.type === 'connecteur' ? '<a class="kbcp-carte-lien" href="kb:connecteurs">' + KB_CP_ICONE_GRILLE + carteEsc(kbt('kb.cp.card.all')) + '</a>' : '') +
         '</span>' + action
     }
     // Longest text a card may send with one click. A longer one is refused rather than shown
@@ -1557,7 +1620,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, errText: kbCpErrText, hostState: kbCpHostState, mcpTimeout: MCP_TIMEOUT },
+      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, match: kbCpMatch, joinArgs: kbCpJoinArgs, mode: kbCpMode, setMode: kbCpSetMode, t: kbt, errText: kbCpErrText, hostState: kbCpHostState, mcpTimeout: MCP_TIMEOUT },
     }
   },
 })

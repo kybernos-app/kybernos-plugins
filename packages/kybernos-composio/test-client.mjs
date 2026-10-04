@@ -323,5 +323,75 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('accept: a malformed %-escape is passed on as it is (and shown as it is)', carteAccepter('kb:accept:100%', (x) => { montre = x; return true }, (x) => envoi.push(x)) === true && montre === '100%')
 }
 
+// ── C-16 / C-20: the form, the search, storage that throws, other locales ───
+{
+  const { joinArgs, match, parse, mode, setMode, has, t } = plugin.composio
+  const { splitArgs } = await import(new URL('./index.js', import.meta.url).href)
+  // the args field: what the form shows is read back by the host exactly
+  ok('joinArgs: plain arguments are joined by a space', joinArgs(['--port', '3000']) === '--port 3000')
+  ok('joinArgs: an argument with a space is quoted (a path with a space)', joinArgs(['/Users/Jane Doe/server.mjs', '--x']) === '"/Users/Jane Doe/server.mjs" --x')
+  let seed = 7
+  const rand = (n) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n }
+  const alphabet = ['a', 'b', '-', '/', ' ', ' ', '"', "'", '\\', '=', '$', '#', 'é', '.', '0']
+  let ecarts = []
+  for (let i = 0; i < 2000; i += 1) {
+    const list = []
+    for (let k = rand(4) + 1; k > 0; k -= 1) { let s = ''; for (let m = rand(8) + 1; m > 0; m -= 1) s += alphabet[rand(alphabet.length)]; list.push(s) }
+    const wanted = list.filter((s) => s.length > 0)
+    const back = splitArgs(joinArgs(wanted))
+    if (back.args === undefined || JSON.stringify(back.args) !== JSON.stringify(wanted)) ecarts.push(JSON.stringify(wanted) + ' -> ' + joinArgs(wanted) + ' -> ' + JSON.stringify(back))
+  }
+  ok('joinArgs/splitArgs: 2000 random argument lists with spaces, quotes and backslashes survive the round trip', ecarts.length === 0, ecarts.slice(0, 2).join(' | '))
+  // the search
+  const { CATALOG } = await import(new URL('./catalog.js', import.meta.url).href)
+  const named = (q) => CATALOG.filter((a) => match(a, q)).map((a) => a.s)
+  ok('search: "billing", "invoice" and "facturation" find the accounting and payment apps (the placeholder promises it)', ['billing', 'invoice', 'facturation', 'Facture'].every((q) => ['quickbooks', 'stripe'].every((s) => named(q).includes(s))), JSON.stringify(named('billing')))
+  ok('search: ...and not everything', named('billing').length < 10)
+  ok('search: the slug without spaces finds the app (googlecalendar, google-calendar, google calendar)', ['googlecalendar', 'google-calendar', 'Google Calendar'].every((q) => named(q).includes('googlecalendar')))
+  ok('search: a name still matches, case aside', named('SLACK').includes('slack'))
+  ok('search: under 2 characters everything matches', CATALOG.every((a) => match(a, 'a')) && CATALOG.every((a) => match(a, '')))
+  ok('search: nonsense matches nothing', named('zzzzqqqq').length === 0)
+  ok('search: an alias needs 3 letters (a "bi" is not billing)', named('bi').every((s) => { const a = CATALOG.find((x) => x.s === s); return JSON.stringify(a).toLowerCase().includes('bi') }))
+  // a null in the account list used to throw
+  let jete = null
+  let parsed = null
+  try { parsed = parse({ data: { results: { gmail: { status: 'active', accounts: [null, { id: 'ca_1', status: 'ACTIVE' }, 'x', undefined] }, slack: null } } }) } catch (e) { jete = e }
+  ok('parse: a null or non-object account does not throw (it is skipped)', jete === null && parsed.gmail.accounts.length === 1 && parsed.gmail.accounts[0].id === 'ca_1', String(jete && jete.message))
+  // storage that throws (private window, blocked site data)
+  const realStorage = globalThis.localStorage
+  globalThis.localStorage = { getItem() { throw new Error('denied') }, setItem() { throw new Error('denied') }, removeItem() { throw new Error('denied') } }
+  try {
+    let e1 = null
+    let m = null
+    try { m = mode() } catch (e) { e1 = e }
+    ok('storage that throws: reading the mode does not throw (local)', e1 === null && m === 'local')
+    let e2 = null
+    try { setMode('cloud'); setMode('local') } catch (e) { e2 = e }
+    ok('storage that throws: setting the mode does not throw', e2 === null)
+    let e3 = null
+    let h = null
+    try { h = has() } catch (e) { e3 = e }
+    ok('storage that throws: has() is false, not an exception', e3 === null && h === false)
+  } finally { globalThis.localStorage = realStorage }
+  // locales: fr stays French, en English, any other locale English (it used to fall back to French)
+  const tin = (lang) => {
+    plugin.apply({ get: (n) => (n === 'locale' ? { current: () => lang } : (n === 'slots' ? { inject: () => {}, register: () => {} } : undefined)), effect: () => {} })
+    return t('kb.cp.chipall')
+  }
+  ok('i18n: fr gives French', tin('fr') === 'Toutes')
+  ok('i18n: en gives English', tin('en') === 'All')
+  ok('i18n: de and es give English, not French', tin('de') === 'All' && tin('es-MX') === 'All' && tin('ja') === 'All')
+  ok('i18n: the Kybernos default stays French', tin('kybernos') === 'Toutes')
+  ok('i18n: an unknown key is returned as it is', t('no.such.key') === 'no.such.key')
+}
+
+// ── the client keeps the catalog out of its bundle (replaces scripts/inject-catalog.mjs) ──
+{
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  ok('client.js carries no inline catalog and no generation marker', src.indexOf('const CATALOG = [') < 0 && src.indexOf('CATALOG-START') < 0 && src.indexOf('KBCP-CATALOG-PLACEHOLDER') < 0)
+  ok('client.js loads the catalog from the host route', src.indexOf("const CATALOG_URL = '/kybernos/composio/catalog'") >= 0)
+}
+
 console.log(echecs === 0 ? '\nClient: all green.' : `\n✗ ${echecs} failure(s)`)
 process.exit(echecs === 0 ? 0 : 1)
