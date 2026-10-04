@@ -295,24 +295,6 @@ window.__ModuleLoader__.load({
 .kbr-err{margin:10px 0 0;font-size:12px;color:var(--dsw-alias-state-error-primary,#ef4444)}
 .kbr-warn{display:block;margin-top:4px;font-size:12px;color:var(--dsw-alias-state-warn-primary,#f59e0b)}
 /* ── routage Auto (02/10) : puces de la whitelist + menu de choix ── */
-/* ── bandeau de santé des modèles — en tête de l'onglet « AI Provider & Models » ── */
-.kbr-sante{flex:none;display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;padding:10px 12px;
-  border:1px solid var(--dsw-alias-state-warn-primary,rgba(245,158,11,.55));border-radius:10px;
-  background:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 12%,transparent);
-  color:var(--dsw-alias-label-primary,#e8eaec)}
-.kbr-sante-ico{flex:none;display:inline-flex;margin-top:1px;color:var(--dsw-alias-state-warn-primary,#f59e0b)}
-.kbr-sante-corps{flex:1;min-width:0}
-.kbr-sante-titre{font-size:13px;font-weight:600;line-height:18px}
-.kbr-sante-detail{margin-top:2px;font-size:12px;line-height:17px;color:var(--dsw-alias-label-secondary,#cfd3d6)}
-.kbr-sante-detail code{font-size:11.5px;padding:1px 5px;border-radius:5px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary,#e8eaec)}
-.kbr-sante-actions{display:flex;align-items:center;gap:8px;margin-top:8px}
-.kbr-sante-btn{height:24px;padding:0 10px;border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.10));
-  border-radius:999px;background:transparent;color:var(--dsw-alias-label-primary,#e8eaec);
-  font:inherit;font-size:12px;cursor:pointer}
-.kbr-sante-btn:hover:not([disabled]){background:var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))}
-.kbr-sante-btn[disabled]{opacity:.55;cursor:default}
-.kbr-sante-fermer{flex:none;display:inline-flex;border:0;background:transparent;color:var(--dsw-alias-label-tertiary,#8a9096);
-  cursor:pointer;padding:2px}
 `
     let cssPose = false
     const poserCss = () => {
@@ -2480,7 +2462,7 @@ window.__ModuleLoader__.load({
             h('div', { className: natif ? natif.title : undefined }, 'Study model (brain)'),
             h('div', { className: natif ? natif.desc : undefined }, brain.length === 0
               ? 'None: no model is watched, and no health warning is raised. Pick the model that should report on the others.'
-              : 'The brain checks every configured model; when one stops answering, a warning at the top of the chat says which features can no longer be used and invites you to change that model.')),
+              : 'The brain checks every configured model; when one stops answering, a chip on the AI Provider & Models tab says which ones, why, and lets you fix the key or change the model.')),
           h('select', {
             className: natif && natif.sel ? natif.sel : 'kbr-select',
             // Recette 2026-10 (C-13/B6) : 160px tronquait les noms de modèles
@@ -2540,63 +2522,47 @@ window.__ModuleLoader__.load({
         // (carte État : « Moteur X · Plugin Y ») — plus de doublon ici.
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // Bandeau de santé des modèles — ce que le « modèle d'étude » rapporte.
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Model health — what the "study model" reports.
     //
-    // Le réglage `brain` (Kybernos Settings) désigne le modèle d'étude. Quand il
-    // est renseigné, les modèles configurés sont sondés côté hôte (un appel réel,
-    // minuscule, chacun) ; si l'un ne répond plus, un bandeau en haut du chat le
-    // nomme et invite à le changer. Réglage vide = personne ne surveille : aucun
-    // bandeau, même si l'hôte se tait — on ne crie pas pour une surveillance
-    // qu'on n'a pas demandée.
+    // The `brain` setting (Kybernos Settings) names the study model. When it is set, the configured models are
+    // probed on the host (one real, tiny call each); a model that no longer answers is reported. Setting empty =
+    // nobody is watching: no alert, even when the host is silent — we do not shout about a watch nobody asked for.
     //
-    // Le bandeau vit dans le DOM, pas dans un slot : le shell n'expose aucun slot
-    // entre son en-tête et les messages, et `conversation.header` est une grille
-    // à deux colonnes où un plein-largeur écraserait le titre. Depuis la règle du
-    // 23/09/2026 (« ajoute-le uniquement quand je vais sur Settings »), il ne
-    // s'ancre QUE dans Paramètres : `[data-slot="settings.section"]` et son
-    // parent, qui font partie du contrat public du shell — contrairement aux
-    // classes hachées qui changent à chaque construction.
-    // ═══════════════════════════════════════════════════════════════════════
-    const SANTE_ID = 'kybernos-sante-modeles'
-    const SANTE_INTERVALLE = 18000000 // re-sonde toutes les 5 heures
-    let santeEtat = null // dernier verdict de l'hôte
-    let santeEnCours = null // une sonde à la fois, partagée
-    // « Hide » vaut pour une heure, et survit à un rechargement : sans ça, un
-    // simple rafraîchissement de page rappellerait l'alerte qu'on vient d'écarter.
+    // This bundle owns the PROBE and the state, and draws nothing. The alert lives in the AI Provider & Models tab
+    // only (user rule, 26/09/2026): kybernos-models renders it there, as a chip on the tab bar. The two bundles
+    // meet on a small public contract, so neither imports the other:
+    //   · `window.__kybernosHealth` = { version: 1, get(), recheck(), hide() } — `get()` is the view below, or
+    //     `null` when there is nothing to say; `recheck()` forces a new probe; `hide()` silences it for one hour;
+    //   · a `kybernos-health` event on `window`, fired after every change (read `get()` again).
+    // Either bundle may be absent: without the chip nothing is drawn, without this bus the chip stays hidden.
+    // ═══════════════════════════════════════════════════════════════════════════
+    const SANTE_INTERVALLE = 18000000 // re-probe every 5 hours
+    let santeEtat = null // last verdict from the host
+    let santeEnCours = null // one probe at a time, shared
+    let santeVerifie = false // a forced re-check is running
+    // "Hide" lasts one hour and survives a reload: without that, a page refresh would bring back the alert that
+    // was just dismissed.
     const SANTE_SILENCE_MS = 3600000
     const SANTE_CLE_SILENCE = 'kb-sante-silence'
     let santePrevue = false
 
-    /** Ce que le code d'échec veut dire, en clair. Mesuré sur le profil réel :
-     *  sans ça, le bandeau jette dix-neuf noms à l'écran sans dire POURQUOI. */
-    const SANTE_CAUSES = [
-      ['UNKNOWN_MODEL', 'gone from the provider'],
-      ['INVALID_REQUEST', 'refused by the provider'],
-      ['PI_AI_ERROR', 'refused by the provider'],
-      ['AUTH', 'not accessible with the current key'],
-      ['CONTEXT_WINDOW_EXCEEDED', 'unable to take a text request'],
-      ['TIMEOUT', 'silent (no answer)'],
-      ['SANS-REPONSE', 'silent (no answer)'],
-      ['ABORTED', 'silent (no answer)']
-    ]
-    const santeCause = (code) => {
-      for (let i = 0; i < SANTE_CAUSES.length; i += 1) if (SANTE_CAUSES[i][0] === code) return SANTE_CAUSES[i][1]
-      return 'fail for another reason'
+    /** Failure code → cause id; the chip words each cause. Measured on the real profile: without it the alert lists
+     *  nineteen names without saying WHY. */
+    const SANTE_CAUSES = {
+      UNKNOWN_MODEL: 'gone',
+      INVALID_REQUEST: 'refused',
+      PI_AI_ERROR: 'refused',
+      AUTH: 'key',
+      CONTEXT_WINDOW_EXCEEDED: 'text',
+      TIMEOUT: 'silent',
+      'SANS-REPONSE': 'silent',
+      ABORTED: 'silent'
     }
-    const santeCauses = (alertes) => {
-      const ordre = []
-      const compte = {}
-      for (let i = 0; i < alertes.length; i += 1) {
-        const c = santeCause(String(alertes[i].code || ''))
-        if (compte[c] === undefined) { compte[c] = 0; ordre.push(c) }
-        compte[c] += 1
-      }
-      return ordre.map((c) => String(compte[c]) + ' ' + c).join(' · ')
-    }
+    const santeCause = (code) => (Object.prototype.hasOwnProperty.call(SANTE_CAUSES, code) ? SANTE_CAUSES[code] : 'other')
 
-    /** Fin du silence demandé par « Hide » (0 si aucun). Persisté : un
-     *  rechargement de page ne doit pas rappeler ce qu'on vient d'écarter. */
+    /** End of the silence asked for by "Hide" (0 if none). Persisted: a page reload must not bring back what was
+     *  just dismissed. */
     const santeSilenceFin = () => {
       try {
         const v = parseInt(String(window.localStorage.getItem(SANTE_CLE_SILENCE) || '0'), 10)
@@ -2611,14 +2577,47 @@ window.__ModuleLoader__.load({
       try { window.localStorage.removeItem(SANTE_CLE_SILENCE) } catch (e) {}
     }
 
-    const santeAAlerte = () => santeEtat !== null && santeEtat.actif === true &&
-      Array.isArray(santeEtat.alertes) && santeEtat.alertes.length > 0
+    /** What the chip shows, from a host verdict. `null` = nothing to say: nobody is watching, no model is failing,
+     *  or the hour of silence is running. A pure function: the tests run it without a browser. */
+    const santeVue = (etat, silenceFin, maintenant) => {
+      if (etat === null || etat === undefined || etat.actif !== true) return null
+      if (!Array.isArray(etat.alertes) || etat.alertes.length === 0) return null
+      if (silenceFin > maintenant) return null
+      const alertes = etat.alertes.map((a) => {
+        const cle = String(a.cle)
+        const coupe = cle.indexOf('/')
+        const code = String(a.code || '')
+        return {
+          cle,
+          route: typeof a.route === 'string' && a.route !== '' ? a.route : (coupe < 0 ? cle : cle.slice(0, coupe)),
+          id: typeof a.modele === 'string' && a.modele !== '' ? a.modele : (coupe < 0 ? '' : cle.slice(coupe + 1)),
+          code,
+          cause: santeCause(code)
+        }
+      })
+      return {
+        total: Number(etat.total) > 0 ? Number(etat.total) : alertes.length,
+        // Nothing answered at all: not N guilty models but a general failure (connection, keys) — the chip says so
+        // instead of accusing the models, which would send the user to the wrong place.
+        tousEnEchec: etat.tousEnEchec === true,
+        verifieA: typeof etat.verifieA === 'string' ? etat.verifieA : null,
+        alertes
+      }
+    }
 
-    /** Sonde l'hôte. Rend `null` quand il n'y a rien à dire (pas de modèle
-     *  d'étude, service muet, liste illisible) — jamais une exception. */
+    const santeAvertir = () => {
+      try {
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+          window.dispatchEvent(new CustomEvent('kybernos-health'))
+        }
+      } catch (e) { /* no event support: the chip reads get() when it mounts */ }
+    }
+
+    /** Probes the host. Resolves `null` when there is nothing to say (no study model, silent service, unreadable
+     *  list) — never an exception. */
     const kbSanteSonde = (force) => {
-      // Taire vaut aussi pour la sonde : une heure sans alerte est une heure
-      // sans appels réels — le relevé coûte des jetons et du débit.
+      // Hiding also stops the probe: an hour without an alert is an hour without real calls — a reading costs
+      // tokens and rate limit.
       if (force !== true && santeEstTaise()) return Promise.resolve(null)
       if (santeEnCours !== null) return santeEnCours
       santeEnCours = (async () => {
@@ -2627,18 +2626,15 @@ window.__ModuleLoader__.load({
           if (!lire.ok) return null
           const reg = await lire.json()
           const brain = (reg !== null && typeof reg === 'object' && reg.reglages !== undefined && typeof reg.reglages.brain === 'string') ? reg.reglages.brain : ''
-          if (brain === '') return null // personne ne surveille : on ne sonde pas
+          if (brain === '') return null // nobody is watching: no probe
           const tous = await kbModeles()
           if (tous === null || tous.length === 0) return null
-          // Seuls les modèles qui peuvent répondre à un message TEXTE sont
-          // sondés : un modèle d'image, d'audio ou de vidéo déclaré sans entrée
-          // texte ne peut pas répondre à un ping, et son silence ne dirait rien
-          // d'utile — le compter comme « ne répond pas » serait un faux témoin.
-          // Liste VIDE = modalité non déclarée (mesuré : les 14 modèles texte du
-          // profil Groq/zai/ollama ne déclarent pas `input`, le harnais les rend
-          // en tableau vide). « Non déclaré » n'est pas « pas de texte » : on
-          // sonde. Seul un modèle qui déclare EXPLICITEMENT des modalités sans
-          // texte (image, audio, vidéo) est écarté.
+          // Only models that can answer a TEXT message are probed: an image, audio or video model declared without
+          // text input cannot answer a ping, and its silence would say nothing useful — counting it as "not
+          // answering" would be a false witness. An EMPTY list = modality not declared (measured: the 14 text
+          // models of the Groq/zai/ollama profile do not declare `input`; the harness renders them as an empty
+          // array). "Not declared" is not "no text": we probe. Only a model that EXPLICITLY declares modalities
+          // without text (image, audio, video) is left out.
           const modeles = tous.filter((m) => m.entree === null || m.entree === undefined ||
             m.entree.length === 0 || m.entree.includes('text'))
           if (modeles.length === 0) return null
@@ -2657,35 +2653,36 @@ window.__ModuleLoader__.load({
       return santeEnCours
     }
 
-    /** Enregistre un verdict et redessine. Un verdict neuf ne lève PAS le
-     *  silence : seule l'heure écoulée, ou « Recheck », le lèvent. */
+    /** Stores a verdict and tells whoever listens. A fresh verdict does NOT lift the silence: only the elapsed
+     *  hour, or a re-check, does. */
     const santeAppliquer = (etat) => {
       santeEtat = etat
-      santeDessiner()
+      santeAvertir()
     }
 
-    /** Ouvre Paramètres ▸ Models — là où un modèle se change. Chemin par le
-     *  libellé, jamais par la classe (hachée à chaque construction). */
-    const santeOuvrirModels = async () => {
-      const bouton = document.querySelector('button[aria-label="Settings"]')
-      if (bouton === null) return false
-      bouton.click()
-      for (let i = 0; i < 40; i += 1) {
-        await new Promise((r) => setTimeout(r, 100))
-        const cellule = Array.prototype.slice.call(document.querySelectorAll('[class*="navCell"]'))
-          .filter((x) => /^\s*Models\b/.test(String(x.textContent || '').trim()))[0]
-        if (cellule !== undefined) {
-          const cible = cellule.querySelector('button,[role="button"]') || cellule
-          cible.click()
-          return true
-        }
+    const santeBus = {
+      version: 1,
+      get: () => {
+        const vue = santeVue(santeEtat, santeSilenceFin(), Date.now())
+        return vue === null ? null : { ...vue, checking: santeVerifie }
+      },
+      recheck: () => {
+        if (santeVerifie) return Promise.resolve()
+        santeVerifie = true
+        santeOublierTaire() // asking for a check is wanting the alert
+        santeAvertir()
+        const fin = () => { santeVerifie = false; santeAvertir() }
+        return kbSanteSonde(true).then((etat) => { if (etat !== null) santeEtat = etat }).then(fin, fin)
+      },
+      hide: () => {
+        santeTaire() // one hour without the alert, and without probing
+        santeAvertir()
       }
-      return false
     }
 
     /** Opens Settings on the section whose nav label is `libelle` (« Memory & Lessons »). If the nav is already
      *  showing, only the cell is clicked — clicking the trigger again would close Settings. Same two anchors as
-     *  the cloud plugin's account menu and the model-health banner: the trigger, then the nav cell BY ITS LABEL
+     *  the cloud plugin's account menu: the trigger, then the nav cell BY ITS LABEL
      *  (the hashed class names change at every build). `false` when the trigger or the cell never shows up. */
     const ouvrirReglagesSection = async (libelle) => {
       const navVisible = () => { const nav = document.querySelector('[class*="navList"]'); return nav !== null && nav.offsetParent !== null }
@@ -2703,151 +2700,16 @@ window.__ModuleLoader__.load({
       return false
     }
 
-    /** Où poser le bandeau. Règle utilisateur du 26/09/2026 : l'alerte santé
-     *  des modèles (« N of M models are not answering ») ne vit QUE dans
-     *  l'onglet « AI Provider & Models » des Paramètres — plus dans les autres
-     *  onglets (règle précédente du 23/09/2026 : Paramètres seul). On l'ancre
-     *  donc DANS la section models elle-même, en tête : la section n'est
-     *  montée que quand cet onglet est ouvert, donc hors de lui la fonction
-     *  rend `null` et les appelants RETIRENT le nœud au lieu de le laisser en
-     *  place. Aucun ancrage n'emploie de classe hachée : les `data-slot` sont
-     *  le contrat public du shell. */
-    const santeAncrage = () => {
-      const tete = document.querySelector('[data-slot="kybernos-models-header"]')
-      if (tete === null) return null
-      const section = tete.closest('[data-slot="settings.section"]')
-      if (section === null) return null
-      return { parent: section, avant: section.firstElementChild }
-    }
-
-    /** Dessine (ou retire) le bandeau, sur la surface réellement regardée. */
-    const santeDessiner = () => {
-      if (typeof document === 'undefined') return
-      const ancre = santeAncrage()
-      const existant = document.getElementById(SANTE_ID)
-      const visible = santeAAlerte() && !santeEstTaise()
-      if (ancre === null || !visible) {
-        if (existant !== null) existant.remove()
-        return
-      }
-      const etat = santeEtat
-      const alertes = etat.alertes
-      const boite = existant !== null ? existant : document.createElement('div')
-      boite.id = SANTE_ID
-      boite.className = 'kbr-sante'
-      boite.setAttribute('role', 'alert')
-      while (boite.firstChild !== null) boite.removeChild(boite.firstChild)
-
-      const icone = document.createElement('span')
-      icone.className = 'kbr-sante-ico'
-      icone.setAttribute('aria-hidden', 'true')
-      icone.innerHTML = SVG_GLYPHE('alert', 16)
-      boite.appendChild(icone)
-
-      const corps = document.createElement('div')
-      corps.className = 'kbr-sante-corps'
-      const titre = document.createElement('div')
-      titre.className = 'kbr-sante-titre'
-      // Aucun modèle ne répond : ce n'est pas N coupables, c'est une panne
-      // d'ensemble — accuser les modèles enverrait l'utilisateur au mauvais
-      // endroit.
-      const ensemble = etat.tousEnEchec === true
-      // Bilingue selon la langue posée par DSH sur <html> — le traducteur à la
-      // demande ne touche pas cette bannière (DOM régénéré à chaque relevé).
-      const fr = String(document.documentElement.lang || '').toLowerCase().indexOf('fr') === 0
-      const nAl = String(alertes.length)
-      const nTot = String(etat.total)
-      titre.textContent = ensemble
-        ? (fr ? 'Aucun modèle configuré ne répond' : 'No configured model is answering')
-        : (fr
-          ? nAl + ' modèle' + F(alertes.length) + ' sur ' + nTot + ' ne r' + (alertes.length > 1 ? 'épondent' : 'épond') + ' plus'
-          : nAl + (etat.total > 1 ? ' of ' + nTot + ' models' : '') + (alertes.length === 1 ? ' is not answering' : ' are not answering'))
-      corps.appendChild(titre)
-
-      const detail = document.createElement('div')
-      detail.className = 'kbr-sante-detail'
-      if (ensemble) {
-        detail.appendChild(document.createTextNode(fr
-          ? "Rien n'a répondu sur les " + nTot + ' modèles vérifiés — la panne ressemble à la connexion ou aux clés API, pas à un modèle. '
-          : 'Nothing answered across ' + nTot + ' checked model' + F(etat.total) +
-            ' — this looks like the connection or the API keys, not one model. '))
-      } else {
-        const montrer = alertes.slice(0, 4)
-        for (let i = 0; i < montrer.length; i += 1) {
-          const code = document.createElement('code')
-          code.textContent = String(montrer[i].cle)
-          detail.appendChild(code)
-          detail.appendChild(document.createTextNode(' '))
-        }
-        if (alertes.length > montrer.length) {
-          detail.appendChild(document.createTextNode(fr
-            ? '+ ' + String(alertes.length - montrer.length) + ' autres '
-            : '+ ' + String(alertes.length - montrer.length) + ' more '))
-        }
-        detail.appendChild(document.createTextNode(fr
-          ? "— les fonctions qui l'emploient ne tourneront pas tant qu'" + (alertes.length > 1 ? 'ils ne répondent plus. Changez de modèle, ou corrigez leurs clés API.'
-                                                                              : 'il ne répond plus. Changez de modèle, ou corrigez sa clé API.')
-          : '— features that use ' + (alertes.length > 1 ? 'them' : 'it') +
-            ' cannot run until ' + (alertes.length > 1 ? 'they answer' : 'it answers') +
-            '. Change the model, or fix its API key.'))
-      }
-      corps.appendChild(detail)
-      if (ensemble === false && alertes.length > 1) {
-        const causes = document.createElement('div')
-        causes.className = 'kbr-sante-detail'
-        causes.setAttribute('data-kbr', 'sante-causes')
-        causes.textContent = 'By cause: ' + santeCauses(alertes) + '.'
-        corps.appendChild(causes)
-      }
-
-      const actions = document.createElement('div')
-      actions.className = 'kbr-sante-actions'
-      const bouton = (libelle, data, faire) => {
-        const b = document.createElement('button')
-        b.type = 'button'
-        b.className = 'kbr-sante-btn'
-        b.setAttribute('data-kbr', data)
-        b.textContent = libelle
-        b.addEventListener('click', faire)
-        actions.appendChild(b)
-        return b
-      }
-      const revalider = bouton('Recheck', 'sante-recheck', () => {
-        revalider.disabled = true
-        revalider.textContent = 'Checking…'
-        santeOublierTaire() // demander une vérification, c'est la vouloir
-        kbSanteSonde(true).then((res) => {
-          if (res !== null) santeAppliquer(res)
-          else santeDessiner()
-        }, () => { santeDessiner() })
-      })
-      bouton('Open Models', 'sante-models', () => { santeOuvrirModels() })
-      bouton('Hide', 'sante-masquer', () => {
-        santeTaire() // une heure sans le rappeler, et sans sonder
-        santeDessiner()
-      })
-      corps.appendChild(actions)
-      boite.appendChild(corps)
-
-      // Re-ancrage : quand la surface change (chat ↔ Paramètres), on REPOSE le
-      // bandeau au bon endroit au lieu de le laisser sous la surcouche.
-      if (existant === null || existant.parentElement !== ancre.parent) {
-        ancre.parent.insertBefore(boite, ancre.avant)
-      }
-    }
-
-    /** Surveillance : au chargement, toutes les 10 minutes, et après un
-     *  changement du modèle du chat (règle : « à l'ouverture de session et
-     *  après un changement de modèle »). */
+    /** Watching: on load, every 5 hours, and after the chat's model changes (rule: "when a session opens and after
+     *  a model change"). */
     const suivreSante = () => {
-      // Même garde que `suivreTitres` : sans DOM ni MutationObserver (harnais
-      // hors navigateur), on ne pose ni minuteur ni observateur.
-      if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') return () => {}
+      // Same guard as `suivreTitres`: without a DOM (test harness) neither the bus nor a timer is set.
+      if (typeof document === 'undefined' || typeof window === 'undefined') return () => {}
       const lancer = (force) => {
         santePrevue = false
         kbSanteSonde(force).then((etat) => {
           if (etat !== null) santeAppliquer(etat)
-          else santeDessiner()
+          else santeAvertir() // the hour of silence may have ended: let the chip re-read
         })
       }
       const planifier = (force) => {
@@ -2855,10 +2717,10 @@ window.__ModuleLoader__.load({
         santePrevue = true
         setTimeout(() => lancer(force === true), 300)
       }
-      setTimeout(() => planifier(false), 2000)
+      const premier = setTimeout(() => planifier(false), 2000)
       const minuteur = setInterval(() => planifier(false), SANTE_INTERVALLE)
-      // Après un changement de modèle du chat : le bouton du composeur porte le
-      // modèle courant dans son aria-label, et c'est la seule trace stable.
+      // After a change of the chat's model: the composer button carries the current model in its aria-label, and
+      // that is the only stable trace.
       let modeleVu = null
       const surveillerModele = () => {
         const b = document.querySelector('button[aria-label^="Select model"]')
@@ -2868,46 +2730,12 @@ window.__ModuleLoader__.load({
         modeleVu = vu
       }
       const minuteurModele = setInterval(surveillerModele, 5000)
-      // Le bandeau suit la surface, dans un seul sens : il APPARAÎT quand
-      // l'onglet « AI Provider & Models » des Paramètres s'ouvre, et il
-      // DISPARAÎT dès qu'on le quitte (règle du 26/09/2026 : uniquement dans
-      // cet onglet). L'observateur voit passer chaque
-      // mutation du shell (le texte qui s'écrit…) : on le limite à deux
-      // vérifications par seconde, et seulement quand il y a une alerte à placer
-      // ou un nœud à retirer.
-      // Le contrôle est REPPORTÉ à la fin de la fenêtre, jamais jeté : un
-      // événement tombé dans les 500 ms doit être rejoué, sinon l'ouverture de
-      // Paramètres (qui suit d'autres mutations) passe à la trappe. Constaté :
-      // un passage sur deux échouait.
-      let santeVuLe = 0
-      let santeReport = null
-      const verifierPlacement = () => {
-        santeVuLe = Date.now()
-        if (santeReport !== null) { clearTimeout(santeReport); santeReport = null }
-        const ancre = santeAncrage()
-        // Hors Paramètres — ou alerte éteinte, ou silence d'une heure : le nœud
-        // ne doit pas survivre. C'est le cœur de la règle : aucun bandeau dans
-        // le chat.
-        if (ancre === null || !santeAAlerte() || santeEstTaise()) {
-          const reste = document.getElementById(SANTE_ID)
-          if (reste !== null) reste.remove()
-          return
-        }
-        const noeud = document.getElementById(SANTE_ID)
-        if (noeud === null || noeud.parentElement !== ancre.parent) santeDessiner()
-      }
-      const observateur = new MutationObserver(() => {
-        const reste = 500 - (Date.now() - santeVuLe)
-        if (reste <= 0) { verifierPlacement(); return }
-        if (santeReport === null) {
-          santeReport = setTimeout(() => { santeReport = null; verifierPlacement() }, reste)
-        }
-      })
-      observateur.observe(document.body, { childList: true, subtree: true })
+      window.__kybernosHealth = santeBus
       return () => {
-        observateur.disconnect()
-        if (santeReport !== null) clearTimeout(santeReport)
-        if (typeof clearInterval === 'function') { clearInterval(minuteur); clearInterval(minuteurModele) }
+        clearTimeout(premier)
+        clearInterval(minuteur)
+        clearInterval(minuteurModele)
+        if (window.__kybernosHealth === santeBus) delete window.__kybernosHealth
       }
     }
 
@@ -2938,9 +2766,8 @@ window.__ModuleLoader__.load({
       ctx.effect(() => orchestrerReglages(), 'kybernos-sessions: orchestrateur de la modale Réglages')
       // Indépendant du slot : la liste des sessions vit dans le shell.
       ctx.effect(() => suivreTitres(), 'kybernos-sessions: icône de catégorie devant le titre')
-      // Le bandeau de santé des modèles (réglage `brain`) : indépendant des slots
-      // lui aussi, il s'ancre sur l'en-tête du chat.
-      ctx.effect(() => suivreSante(), 'kybernos-sessions: bandeau de santé des modèles')
+      // Model health (the `brain` setting): the probe and the public bus the Models tab chip reads.
+      ctx.effect(() => suivreSante(), 'kybernos-sessions: model health probe and bus')
     }
     return {
       // Le contrat d'export d'une entrée cordis : les services que le contexte
@@ -2948,7 +2775,7 @@ window.__ModuleLoader__.load({
       // l'entrée reste « loading » (même contrat que kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs.
-      __test: { memoireDuJournal },
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante },
       apply
     }
   }

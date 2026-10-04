@@ -16,7 +16,8 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 - **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Rename Chat session
   after each recap*, *Study model (brain)*, *Decision Brain*. The bundle also reorders the native Settings navigation into a
   "Kybernos" and a "DSH" group and hides the native Appearance and Font-size rows and the version footer, by position.
-- **Model-health alert** at the top of Settings ▸ AI Provider & Models when a study model is set; "Hide" silences it for 1 h.
+- **Model-health alert** when a study model is set: this bundle probes and publishes the verdict (`window.__kybernosHealth` and a `kybernos-health`
+  event); `kybernos-models` draws it as a chip on the AI Provider & Models tab bar. "Hide" silences it for 1 h.
 
 ## Host routes
 
@@ -81,8 +82,8 @@ and that its LaunchAgent path is right; `node packages/kybernos-sessions/garde.m
   (or a `Referer`) from this machine on every request that changes state, compared with the socket's real listening address, and
   refuses a foreign origin on reads too; a read without one still passes. It cannot stop a local process that forges an `Origin`:
   only authentication would.
-- The health alert anchors on `data-slot="kybernos-models-header"`, painted by `kybernos-models`: with that satellite off it
-  never shows; the Study-model help text still says "top of the chat". Settings reordering assumes 13 native nav buttons.
+- The health alert is drawn by `kybernos-models` (see `docs/dev/model-health.md`): with that satellite off it never shows.
+  Settings reordering assumes 13 native nav buttons.
 - The client factory has no top-level try/catch (theme, skills and core do), against `AGENTS.md` rule 2.
 - Stale: the header lists an older pill set; comments cite files absent here (`docs/handoff/session-status/`,
   `scripts/build-model-catalog-css.mjs`, `scripts/test-kybernos-sessions-host.mjs`); nothing imports `dsh-css.js`.

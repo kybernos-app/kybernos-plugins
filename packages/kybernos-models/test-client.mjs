@@ -367,12 +367,60 @@ ok('the Cloud card shows on the Providers tab only, and the old header block (in
 ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
 
+console.log('\n── the model health chip (the alert of the study model, on the tab bar) ──')
+{
+  const hb = src.indexOf('// KB-HEALTH-PURE-BEGIN')
+  const he = src.indexOf('// KB-HEALTH-PURE-END')
+  ok('the health block is delimited', hb > 0 && he > hb)
+  const { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown } = new Function(src.slice(hb, he) + '\nreturn { KB_HEALTH_CAUSES, kbHealthView, kbHealthCauses, kbHealthRows, kbHealthDown }')()
+  const raw = (over) => ({ total: 9, tousEnEchec: false, checking: false, alertes: [{ cle: 'groq/a', route: 'groq', id: 'a', cause: 'key' }], ...over })
+  ok('anything that is not a view reads as nothing to say, never a throw', kbHealthView(null) === null && kbHealthView(undefined) === null && kbHealthView('x') === null && kbHealthView({}) === null && kbHealthView({ alertes: 'x' }) === null)
+  ok('no failing model: nothing to say', kbHealthView(raw({ alertes: [] })) === null)
+  ok('entries without a key are dropped; none left means nothing to say', kbHealthView(raw({ alertes: [null, {}, { cle: '' }, { cle: 3 }] })) === null)
+  const v = kbHealthView(raw())
+  ok('a view keeps the failing models, the total and the flags', v.alertes.length === 1 && v.total === 9 && v.tousEnEchec === false && v.checking === false, v)
+  ok('the provider comes from the key when the bus omits it (a model id may hold slashes)', kbHealthView(raw({ alertes: [{ cle: 'vercel-ai-gateway/typesafe-ai/jev', cause: 'refused' }] })).alertes[0].route === 'vercel-ai-gateway')
+  ok('a cause the page has no words for is "other"', kbHealthView(raw({ alertes: [{ cle: 'a/b', cause: 'martian' }, { cle: 'a/c' }] })).alertes.every((a) => a.cause === 'other'))
+  ok('a total below the failing count is repaired', kbHealthView(raw({ total: 0 })).total === 1 && kbHealthView(raw({ total: 'x' })).total === 1)
+  ok('"nothing answered" and "checking" are carried', kbHealthView(raw({ tousEnEchec: true, checking: true })).tousEnEchec === true && kbHealthView(raw({ checking: true })).checking === true)
+
+  const mixed = [{ cle: 'b/1', cause: 'silent' }, { cle: 'a/2', cause: 'gone' }, { cle: 'a/1', cause: 'key' }, { cle: 'c/1', cause: 'key' }, { cle: 'd/1', cause: 'silent' }]
+  ok('causes are counted in a fixed order, key problems first, empty ones left out', JSON.stringify(kbHealthCauses(mixed)) === JSON.stringify([{ cause: 'key', n: 2 }, { cause: 'gone', n: 1 }, { cause: 'silent', n: 2 }]), kbHealthCauses(mixed))
+  const r = kbHealthRows(mixed, 3)
+  ok('rows: key problems first, then by key, capped, the rest counted', r.rows.map((a) => a.cle).join() === 'a/1,c/1,a/2' && r.more === 2, r)
+  ok('rows under the cap list everyone and count nothing more', kbHealthRows(mixed, 10).rows.length === 5 && kbHealthRows(mixed, 10).more === 0)
+  ok('the rows are a copy: the view is not reordered', mixed[0].cle === 'b/1')
+  const down = kbHealthDown(kbHealthView(raw({ alertes: [{ cle: 'groq/a' }, { cle: 'zai/glm-4' }] })))
+  ok('the failing models are a lookup by route/id, for the Models tab filter', down['groq/a'] === true && down['zai/glm-4'] === true && down['groq/b'] === undefined)
+  ok('no view: nobody is failing', Object.keys(kbHealthDown(null)).length === 0)
+
+  // The contract with kybernos-sessions: the cause ids it publishes are the ones this page has words for.
+  const sessions = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'kybernos-sessions', 'client.js'), 'utf8')
+  const table = sessions.slice(sessions.indexOf('const SANTE_CAUSES = {'), sessions.indexOf('const santeCause'))
+  const published = [...new Set([...table.matchAll(/:\s*'([a-z]+)'/g)].map((x) => x[1]).concat(['other']))].sort()
+  ok('the cause ids kybernos-sessions publishes are exactly the ones this page words', published.join() === KB_HEALTH_CAUSES.slice().sort().join(), published)
+  ok('each cause has a French and an English text', KB_HEALTH_CAUSES.every((c) => new RegExp("'kb\\.health\\.cause\\." + c + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src)))
+  ok('the bus name and the event are the ones kybernos-sessions publishes', src.includes('window.__kybernosHealth') && sessions.includes('window.__kybernosHealth = santeBus') && src.includes("'kybernos-health'") && sessions.includes("new CustomEvent('kybernos-health')"))
+
+  const has2 = (frag) => src.includes(frag)
+  ok('the chip sits on the tab bar, after the two tabs, and listens for the bus event (and lets go of it)', has2('h(HealthChip, null),') && has2("window.addEventListener('kybernos-health', on)") && has2("window.removeEventListener('kybernos-health', on)"))
+  ok('the chip hooks come before the early return (hook order)', src.indexOf('const [, tick] = React.useState(0)') < src.indexOf('if (vue === null) return null'))
+  ok('Recheck, Show them and Hide are there; Hide also leaves the "not answering" filter', has2("'data-kbm': 'health-recheck'") && has2("'data-kbm': 'health-show'") && has2("'data-kbm': 'health-hide'") && has2("if (UI.statut === 'down') UI.statut = 'any'"))
+  ok('Fix key opens the provider’s Edit panel, only for key problems', has2("a.cause === 'key' ? h('button'") && has2("'data-kbm': 'health-fix'") && has2('UI.edit = route') && has2('if (UI.edit === null) return undefined'))
+  ok('a provider that cannot be edited here shows its models instead of failing silently', has2("else { UI.prov = route; UI.tab = 'models'; kbmNotify() }"))
+  ok('the Models tab can filter on the failing models, and offers the choice only while there is something to filter', has2("if (down !== null && down[mo.route + '/' + mo.id] !== true) return false") && has2("kbHealthGet() !== null || UI.statut === 'down'"))
+  ok('the popover closes like the other menus: it lives in UI.menu, so a press elsewhere and Escape (captured) close it', has2("UI.menu === '__health'") && has2("'data-kbm': 'health-pop', onClick: (ev) => ev.stopPropagation()"))
+  ok('no colour hard-coded in the chip styles', !/\.kbhc[a-z-]*\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
+  const sess = (frag) => sessions.includes(frag)
+  ok('kybernos-sessions no longer draws anything: no banner node, no anchor, no styles', !sessions.includes('kbr-sante') && !sessions.includes('santeDessiner') && !sessions.includes('santeAncrage'))
+}
+
 console.log('\n── strings: every new key in French and English ──')
-const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
+const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
 ok('the new keys are all declared', keys.length >= 70, keys.length)
 ok('each has a French and an English text', keys.every((k) => k[2].length > 0 && k[3].length > 0))
 ok('placeholders match between French and English', keys.every((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() === (k[3].match(/\{[a-z]+\}/g) || []).sort().join()), keys.filter((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() !== (k[3].match(/\{[a-z]+\}/g) || []).sort().join()).map((k) => k[1]).join())
-ok('every kb.prov.off/on, kb.pv and kb.nat key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
+ok('every kb.prov.off/on, kb.pv, kb.nat and kb.health key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)

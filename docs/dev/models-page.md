@@ -53,8 +53,6 @@ Open DSH's native Models page. *Sync N from models.dev* stays on the results bar
 
 ## Not done yet
 
-- The health banner ("N of M models are not answering") is drawn by `kybernos-sessions`, not by this bundle; it is
-  still the five-line banner above the page. Turning it into a chip is a change in that bundle.
 - *Fetch available models* (endpoint discovery, `llm.discoverModels`) in the Add and Edit panels.
 - DeepSeek editing here (it lives in `llm-deepseek`; its card opens DSH's native page).
 - Flip `KB_NAT_DEFAULT_HIDDEN` once those are done.

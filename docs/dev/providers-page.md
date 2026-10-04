@@ -72,4 +72,4 @@ invalidations, so they stay in sync by construction.
 
 - *Fetch available models* (the endpoint picker, `llm.discoverModels`) in the add and edit panels.
 - DeepSeek editing here.
-- The Models tab is described in `models-page.md`.
+- The Models tab is described in `models-page.md`, the health chip in `model-health.md`.
