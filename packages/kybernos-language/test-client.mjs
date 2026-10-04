@@ -211,6 +211,33 @@ reset(); setSource()
   reset(); setSource()
 }
 
+// ── an older installation: a dictionary and no bilan ──────────────────────
+console.log('\n── ancienne installation (dictionnaire sans bilan) ──')
+{
+  reset(); setSource()
+  const plan = T.buildPlan('ar')
+  const kbItems = plan.items.filter((i) => i.store === 'kb')
+  // What the previous engine left: Kybernos' tables only — no meta, no registry, no DSH half.
+  const legacy = {}
+  for (const it of kbItems) legacy[it.id] = 'AR:' + it.text
+  localStorage.setItem('kybernos.i18n.ar', JSON.stringify(legacy))
+  const held = T.heldBy('ar', plan)
+  check('la traduction n’a pas disparu : on compte ce que le stockage contient réellement', held.done === kbItems.length && held.done > 0, held)
+  check('… sans bilan, la ligne ne dit plus « 0 % » : environ la moitié est faite (Kybernos oui, DSH non)', held.done / plan.total > 0.4 && held.done / plan.total < 0.99, held.done / plan.total)
+  check('… la langue est repérée par son cache seul (aucun registre)', T.managedIds().includes('ar') && T.metaRead('ar').done === undefined)
+  check('l’essentiel n’est PAS annoncé tant que l’essentiel de DSH manque', held.essentials === false)
+  check('mémoïsé tant que le stockage ne bouge pas', T.heldBy('ar', plan) === held)
+  const dshCore = plan.items.filter((i) => i.store === 'dsh' && i.area === 'core')
+  const dshDict = {}
+  for (const it of dshCore) dshDict[it.id] = 'AR:' + it.text
+  localStorage.setItem('kybernos.i18n.dsh.ar', JSON.stringify(dshDict))
+  const held2 = T.heldBy('ar', plan)
+  check('dès que le cœur de DSH est traduit aussi, l’essentiel est prêt (bouton « Use now »)', held2.essentials === true && held2.done === held.done + dshCore.length, held2)
+  check('un plan absent (source indisponible) ne plante pas', T.heldBy('ar', null) === null)
+}
+check('une langue en cours d’usage mais incomplète garde un bouton pour la terminer', /if \(inUse\) \{[\s\S]{0,400}if \(!complete && !running\) acts\.push\(goButton\(\)\)/.test(SOURCE))
+check('une langue qui contient des traductions peut être utilisée telle quelle (« Use anyway »)', /else if \(done > 0\) acts\.push\(h\('button', \{ key: 'any'/.test(SOURCE))
+
 // ── engine: success ───────────────────────────────────────────────────────
 console.log('\n── moteur : succès ──')
 {

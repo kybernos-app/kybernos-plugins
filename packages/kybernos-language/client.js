@@ -432,6 +432,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         tipRetry: ['Ne retraduit que les textes qui ont échoué.', 'Translates only the texts that failed.'],
         tipPause: ['S’arrête après les textes en cours. Rien n’est perdu : « Reprendre » continue.', 'Stops after the texts in progress. Nothing is lost: Resume continues.'],
         tipUse: ['Passe Kybernos et DSH dans cette langue. La page se recharge.', 'Switches Kybernos and DSH to this language. The page reloads.'],
+        tipUseAnyway: ['Utilise la langue telle quelle : les textes pas encore traduits s’affichent en anglais. Vous pourrez reprendre la traduction plus tard.', 'Uses the language as it is: texts not translated yet show in English. You can resume the translation later.'],
         tipUseNow: ['L’essentiel est traduit : utilisez la langue maintenant, le reste continue en arrière-plan.', 'The essentials are translated: use the language now while the rest continues in the background.'],
         tipInUse: ['La langue que Kybernos et DSH utilisent en ce moment.', 'The language Kybernos and DSH are using right now.'],
         tipRtl: ['Cette langue se lit de droite à gauche : toute la mise en page est inversée.', 'This language reads right to left: the whole layout is mirrored.'],
@@ -561,6 +562,33 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         for (const a of AREAS) areas[a] = { total: 0 }
         for (const it of items) areas[it.area].total += 1
         return { items, total: items.length, areas, dshAvailable: dsh !== null, dshNative: dshNative(lang) }
+      }
+
+      // What a language already HOLDS, counted from the stores themselves. The
+      // bilan (`meta`) is only as old as the engine that wrote it: an installation
+      // from before it existed has a dictionary and no meta, and must not read as
+      // "0 % translated" — that would look like the translation had vanished.
+      // Memoized on the size of the stores, since a page render calls it per row.
+      const _held = new Map()
+      const heldBy = (lang, plan) => {
+        if (plan === null) return null
+        let rawKb = ''
+        let rawDsh = ''
+        try { rawKb = localStorage.getItem(I18N_STORE_PREFIX + lang) || ''; rawDsh = localStorage.getItem(I18N_DSH_PREFIX + lang) || '' } catch (e) { /* storage unavailable */ }
+        const key = rawKb.length + ':' + rawDsh.length + ':' + plan.total
+        const hit = _held.get(lang)
+        if (hit !== undefined && hit.key === key) return hit.value
+        const kb = i18nRead(lang)
+        const dsh = dshRead(lang)
+        let done = 0
+        let coreMissing = 0
+        for (const it of plan.items) {
+          if (typeof (it.store === 'kb' ? kb : dsh)[it.id] === 'string') done += 1
+          else if (it.area === 'core') coreMissing += 1
+        }
+        const value = { done, essentials: coreMissing === 0 }
+        _held.set(lang, { key, value })
+        return value
       }
 
       // A language is usable as is when it is built in, or when a finished run
@@ -1149,14 +1177,13 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           const inUse = activeLang === id
           const st = isRun ? snap.state : null
           const running = st === 'running' || st === 'pausing'
-          const staticDone = typeof meta.done === 'number' ? meta.done : 0
+          const held = typeof meta.done === 'number' || isBuiltIn(id) ? null : heldBy(id, plan)
+          const staticDone = typeof meta.done === 'number' ? meta.done : (held !== null ? held.done : 0)
           const total = running ? (snap.total || (plan !== null ? plan.total : 0)) : (plan !== null ? plan.total : (typeof meta.total === 'number' ? meta.total : 0))
           const done = isRun ? snap.done : staticDone
           const pct = total > 0 ? Math.min(100, Math.floor(done / total * 100)) : 0
-          // `meta.done` is written with every save; only a cache from before it
-          // existed needs its dictionary read to know whether it holds anything.
-          const hasProgress = !complete && !isBuiltIn(id) && (done > 0 || (typeof meta.done !== 'number' && Object.keys(i18nRead(id)).length > 0))
-          const essentialsOk = isRun ? (snap.essentials === true) : (meta.essentials === true)
+          const hasProgress = !complete && !isBuiltIn(id) && done > 0
+          const essentialsOk = isRun ? (snap.essentials === true) : (typeof meta.essentials === 'boolean' ? meta.essentials : (held !== null && held.essentials))
           const canUseNow = !isBuiltIn(id) && !complete && essentialsOk && !inUse
 
           // status line
@@ -1172,16 +1199,21 @@ html[dir="rtl"] .kbth-page{direction:rtl}
 
           // actions
           const acts = []
-          if (inUse) acts.push(h('span', { key: 'use', className: 'kbth-pill ok', 'data-act': 'in-use', title: L('tipInUse') }, L('inUse')))
+          const goButton = () => h('button', { key: 'go', className: 'kbth-btn primary', type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
+              st === 'partial' ? L('retryMissing') : (hasProgress || st === 'paused' || st === 'failed') ? L('resume') : L('start'))
+          if (inUse) {
+            acts.push(h('span', { key: 'use', className: 'kbth-pill ok', 'data-act': 'in-use', title: L('tipInUse') }, L('inUse')))
+            // In use but not finished (an older translation, a paused run): it can still be completed.
+            if (!complete && !running) acts.push(goButton())
+          }
           else if (running) {
             if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L('useNow')))
             acts.push(h('button', { key: 'pause', className: 'kbth-btn', type: 'button', 'data-act': 'pause', title: L('tipPause'), disabled: st === 'pausing', onClick: pauseRun }, L(st === 'pausing' ? 'pausing' : 'pause')))
           } else if (complete || st === 'done') acts.push(h('button', { key: 'use', className: 'kbth-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
           else {
             if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L(st === 'partial' ? 'useAnyway' : 'useNow')))
-            else if (st === 'partial') acts.push(h('button', { key: 'any', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L('useAnyway')))
-            acts.push(h('button', { key: 'go', className: 'kbth-btn primary', type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
-              st === 'partial' ? L('retryMissing') : (hasProgress || st === 'paused' || st === 'failed') ? L('resume') : L('start')))
+            else if (done > 0) acts.push(h('button', { key: 'any', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
+            acts.push(goButton())
           }
           if (!isBuiltIn(id) && !running) {
             acts.push(h('div', { key: 'menu', className: 'kbth-menu' },
@@ -1335,7 +1367,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         __test: {
           kbSources, dshSources, buildPlan, runTranslation, hostTranslate, planBatches, isComplete, metaRead, i18nRead, dshRead, liveRead,
           startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate,
-          managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage,
+          managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage, heldBy,
           setLocale: (svc) => { locSvc = svc; _dsh = null; _dshRev = null }, L, estimateMinutes, minutesLeft,
         },
         apply(ctx) {

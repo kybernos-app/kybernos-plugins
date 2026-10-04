@@ -217,6 +217,45 @@ try {
   await clickSel('[data-lang="de"] [data-act="confirm-remove"]'); await sleep(800)
   check('la langue disparaît, ses caches aussi', !(await hasRow('de')) && (await val(`localStorage.getItem('kybernos.i18n.de') === null && localStorage.getItem('kybernos.i18n.dsh.de') === null`)) === true)
 
+  // ═══ 5b. an older installation: the translation is not lost ═══════════════
+  console.log('\n── ancienne installation : la traduction n’a pas disparu ──')
+  // What the previous engine left behind: Kybernos' tables only — no bilan, no registry, no DSH half.
+  const legacyN = Number(await val(`(() => {
+    const T = window.__KB_T__, P = window.__KB_FR_EN__, d = {}
+    for (const k of Object.keys(T)) d[k] = '⟦' + ((T[k] && T[k].kybernos) || k) + '⟧'
+    for (const p of Object.keys(P)) if (d[p] === undefined) d[p] = '⟦' + p + '⟧'
+    localStorage.setItem('kybernos.i18n.sw', JSON.stringify(d))
+    return Object.keys(d).length
+  })()`))
+  await openSettings(LANGUAGE)
+  await sleep(1200)
+  const sw = String(await rowText('sw'))
+  const swPct = Number((/(\d+)% translated/.exec(sw) || [])[1])
+  check('une ancienne traduction (dictionnaire sans bilan, sans registre) est retrouvée et listée', await hasRow('sw'), sw)
+  check('… sa ligne dit la vraie avancée (≈ la moitié : Kybernos oui, DSH non), pas « 0 % »', swPct > 30 && swPct < 80, sw)
+  check('… elle propose « Use anyway » (telle quelle) et « Resume translation » (la terminer)', (await val(`(() => { const a = Array.from(document.querySelectorAll('[data-lang="sw"] [data-act]')).map((b) => b.dataset.act); return a.includes('use-now') && a.includes('start') && !a.includes('use') })()`)) === true, sw)
+  check('… et rien n’a été retiré du stockage', Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.sw'))).length`)) === legacyN)
+  await clickSel('[data-lang="sw"] [data-act="use-now"]')
+  await sleep(2500)
+  await waitFor(page, `document.documentElement.lang === 'sw'`, 20000)
+  await reload()
+  await openSettings(LANGUAGE)
+  const swOn = String(await rowText('sw'))
+  check('« Use anyway » active la langue ; incomplète, elle garde un bouton pour la terminer', /In use/.test(swOn) && /Resume translation/.test(swOn), swOn)
+  await clickSel('[data-lang="sw"] [data-act="start"]')
+  await waitFor(page, `(() => { const r = document.querySelector('[data-lang="sw"]'); return !!r && /Ready ·/.test(r.innerText) })()`, 90000)
+  const swSent = Number(await val(`window.__KB_TEST__.batches.reduce((a, b) => a + b.n, 0)`))
+  check('la reprise ne renvoie QUE ce qui manquait (la moitié DSH), pas les textes Kybernos déjà traduits', swSent > 1500 && swSent < legacyN + 200 && swSent < 3200, { swSent, legacyN })
+  check('les traductions d’origine sont conservées telles quelles', Number(await val(`Object.values(JSON.parse(localStorage.getItem('kybernos.i18n.sw'))).filter((v) => /^⟦/.test(v)).length`)) >= legacyN)
+  await clickSel('[data-lang="en"] [data-act="use"]')
+  await sleep(2500)
+  await waitFor(page, `document.documentElement.lang === 'en'`, 20000)
+  await openSettings(LANGUAGE)
+  await clickSel('[data-lang="sw"] [data-act="menu"]'); await sleep(400)
+  await clickSel('[data-lang="sw"] [data-act="remove"]'); await sleep(400)
+  await clickSel('[data-lang="sw"] [data-act="confirm-remove"]'); await sleep(600)
+  check('(nettoyage) la langue d’essai est supprimée', !(await hasRow('sw')))
+
   // ═══ 6. a right-to-left language (prepared now, used last) ═══════════════
   console.log('\n── une langue de droite à gauche ──')
   await addLanguage('ar', null)
