@@ -37,6 +37,11 @@ for a base URL. Every field but the id is optional (`name`, `contextWindow`, `ma
   empty list, i.e. no model offered.
 - A refusal, a dead endpoint, a timeout (30 s) or a DSH without the service show a plain message under the header.
 - Nothing is written until *Apply*; the picker only edits the draft.
+- Verified with a real write (one throwaway provider, settings backed up first, a local HTTP endpoint serving an
+  OpenAI-style listing): DSH 0.2.0-rc.2 accepts the adopted list; the capacities the endpoint disclosed
+  (`contextWindow`, `maxTokens`; the wire listing carries no input types, and a missing name falls back to the id) land
+  in the profile; a later Edit keeps a tuned row (name, capacities) and adds only the new one; the typed key goes to the
+  endpoint for that call and to the credential store on Create, never to settings.
 
 ## The writes (the same ones the native page makes)
 
@@ -92,5 +97,4 @@ invalidations, so they stay in sync by construction.
 ## Not done yet
 
 - DeepSeek editing here (it lives in `llm-deepseek`).
-- A live write of an adopted list (the shape is the native `adopt`'s, but it has been exercised only against fakes).
 - The Models tab is described in `models-page.md`, the health chip in `model-health.md`.
