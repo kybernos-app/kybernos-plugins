@@ -1185,11 +1185,14 @@ const writeSide = (suffix, value) => {
  * pour qui ne les touche pas. Lus à chaque assemblage de prompt (fichier minuscule,
  * lecture synchrone) — pas de cache à invalider quand un autre processus écrit.
  */
-const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture']
+const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning']
+// `meaning` (search by meaning) is OFF until the user turns it on: it sends the text of a memory to the
+// embedding model of the Kybernos cloud, which nothing else in this plugin does outside a chat turn.
+const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false }
 const readMemorySettings = () => {
   const raw = readSide('memory', {})
   const out = {}
-  for (const key of MEMORY_SETTING_KEYS) out[key] = typeof raw[key] === 'boolean' ? raw[key] : true
+  for (const key of MEMORY_SETTING_KEYS) out[key] = typeof raw[key] === 'boolean' ? raw[key] : MEMORY_SETTING_DEFAULTS[key]
   return out
 }
 
@@ -1325,6 +1328,7 @@ const createMemory = async (state, body, origin) => {
   afterMemoryWrite()
   const memory = res.body !== null && typeof res.body === 'object' ? asMemory(res.body) : null
   if (memory !== null && origin !== undefined) noteOrigins([memory.id], origin)
+  indexOneInBackground(state, memory)
   return { ok: true, memory }
 }
 
@@ -1348,7 +1352,10 @@ const patchMemory = async (state, body) => {
   const failure = memoryFailure(res)
   if (failure !== null) return { ok: false, error: failure, status: res.status }
   afterMemoryWrite()
-  return { ok: true, memory: res.body !== null && typeof res.body === 'object' ? asMemory(res.body) : null }
+  const patched = res.body !== null && typeof res.body === 'object' ? asMemory(res.body) : null
+  // The server drops the vector of a memory whose text changed: give it a new one.
+  if (sets.content !== undefined) indexOneInBackground(state, patched)
+  return { ok: true, memory: patched }
 }
 
 const deleteMemory = async (state, body) => {
@@ -1786,6 +1793,184 @@ const intParam = (raw, fallback, min, max) => {
   return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
 }
 
+// ── Search by meaning (client half; server half: GET/PUT/POST /v1/memories… embeddings) ─────────
+// The plugin embeds the text itself with the Kybernos embeddings route (kybernos/embed = bge-m3, 1024
+// dimensions, free tier, billed to the account like chat) and sends the vector; the server only stores
+// and ranks. EVERYTHING here is behind the `meaning` switch and never runs on its own at start-up.
+
+const EMBED_MODEL = 'kybernos/embed'
+const EMBED_DIM = 1024
+const EMBED_BATCH = 16
+const INDEX_BATCH_MAX = 64
+const MEANING_BACKOFF_MS = 10 * 60 * 1000
+// What we last learned, so a write or a search does not hammer a server (or a plan) that already said no.
+const meaningCache = { unavailableAt: 0, planBlockedAt: 0, requiredTier: null, plan: null, lastError: null, lastIndexedAt: 0 }
+
+/** Why we are not even trying right now ('sens_indisponible' | 'offre_requise'), or null. Both lift after 10 minutes or on a good status probe. */
+const meaningPaused = () => {
+  const now = Date.now()
+  if (now - meaningCache.planBlockedAt < MEANING_BACKOFF_MS) return 'offre_requise'
+  if (now - meaningCache.unavailableAt < MEANING_BACKOFF_MS) return 'sens_indisponible'
+  return null
+}
+
+/**
+ * The embeddings route is gated by plan: on the dev tier a `free` key gets
+ * 403 { error: { provider_specific_fields: { error: 'model-not-available-plan', required_tier: 'solo', plan: 'free' } } }.
+ * 402 = no credits left. Everything else keeps the generic words.
+ */
+const embedFailure = (res) => {
+  if (res.status === 402) return { error: 'credits_epuises' }
+  if (res.status === 403) {
+    const f = res.body !== null && res.body.error !== null && typeof res.body.error === 'object' ? res.body.error.provider_specific_fields : null
+    if (f !== null && typeof f === 'object' && f.error === 'model-not-available-plan') {
+      return { error: 'offre_requise', requiredTier: typeof f.required_tier === 'string' ? f.required_tier : null, plan: typeof f.plan === 'string' ? f.plan : null }
+    }
+    return { error: 'refus_403' }
+  }
+  const generic = memoryFailure(res)
+  return generic === null ? null : { error: generic }
+}
+
+/** Remembers a refusal: the plan one stops us trying for 10 minutes and says which tier is needed. */
+const noteEmbedFailure = (failure) => {
+  meaningCache.lastError = failure.error
+  if (failure.error === 'offre_requise') {
+    meaningCache.planBlockedAt = Date.now()
+    meaningCache.requiredTier = failure.requiredTier === undefined ? null : failure.requiredTier
+    meaningCache.plan = failure.plan === undefined ? null : failure.plan
+  }
+}
+
+/** Vectors for `texts`, in order. Never throws; every failure is `{ ok:false, error }` (+ requiredTier / plan for 'offre_requise'). */
+const embedTexts = async (state, texts) => {
+  if (!Array.isArray(texts) || texts.length === 0) return { ok: true, vectors: [] }
+  const res = await apiCall('/v1/embeddings', { method: 'POST', token: state.token, body: { model: EMBED_MODEL, input: texts } })
+  const failure = embedFailure(res)
+  if (failure !== null) return { ok: false, ...failure }
+  const data = res.body !== null && Array.isArray(res.body.data) ? res.body.data.slice() : []
+  data.sort((a, b) => (Number(a && a.index) || 0) - (Number(b && b.index) || 0))
+  const vectors = data.map((d) => (d !== null && typeof d === 'object' ? d.embedding : null))
+  const sane = vectors.length === texts.length && vectors.every((v) => Array.isArray(v) && v.length === EMBED_DIM && v.every((x) => typeof x === 'number' && Number.isFinite(x)))
+  if (sane !== true) return { ok: false, error: 'embedding_invalide' }
+  meaningCache.planBlockedAt = 0
+  return { ok: true, vectors }
+}
+
+/** Stores one vector on a memory. 503 = this server cannot (no pgvector); 404 = gone (or an older server). */
+const putEmbedding = async (state, id, vector) => {
+  const res = await apiCall('/v1/memories/' + encodeURIComponent(String(id)) + '/embedding', { method: 'PUT', token: state.token, body: { embedding: vector, model: EMBED_MODEL } })
+  if (res.status === 200) return { ok: true }
+  if (res.status === 503) return { ok: false, error: 'sens_indisponible' }
+  if (res.status === 404) {
+    const unknownRoute = res.body !== null && typeof res.body.error === 'string' && res.body.error.indexOf('Unknown memories route') >= 0
+    return { ok: false, error: unknownRoute ? 'serveur_ancien' : 'souvenir_introuvable' }
+  }
+  return { ok: false, error: memoryFailure(res) || 'refus_' + String(res.status) }
+}
+
+const noteMeaningUnavailable = (error) => {
+  meaningCache.lastError = error
+  if (error === 'sens_indisponible' || error === 'serveur_ancien') meaningCache.unavailableAt = Date.now()
+}
+
+/** One page of the account's memories as the server filters it (`embedded=false|true`). */
+const serverPage = async (state, query) => apiCall('/v1/memories?scope=account&' + query, { token: state.token })
+
+/**
+ * What this server can do, whether the plan allows it, and how much is indexed.
+ * `available`: true / false (no pgvector, or a server that predates the routes) / null (could not tell).
+ * `allowed`: true / false (the plan does not include the embeddings model; `requiredTier` says which does) / null
+ * (never tried). `probe` spends ONE embedding call (a 2-letter text) to find out, only when asked.
+ */
+const meaningStatus = async (state, options) => {
+  const settings = readMemorySettings()
+  const base = { ok: true, enabled: settings.meaning, available: null, allowed: null, requiredTier: null, plan: null, reason: null, total: null, indexed: null, remaining: null, last: meaningCache.lastError }
+  const todo = await serverPage(state, 'embedded=false&limit=1')
+  if (todo.status === 503) return { ...base, available: false, reason: 'sens_indisponible' }
+  const failure = memoryFailure(todo)
+  if (failure !== null) return { ...base, reason: failure }
+  if (todo.body === null || typeof todo.body.total !== 'number') return { ...base, available: false, reason: 'serveur_ancien' }
+  const done = await serverPage(state, 'embedded=true&limit=1')
+  const indexed = done.body !== null && typeof done.body.total === 'number' ? done.body.total : null
+  const remaining = todo.body.total
+  meaningCache.unavailableAt = 0
+  if (options !== undefined && options.probe === true) {
+    const probe = await embedTexts(state, ['ok'])
+    if (probe.ok !== true) noteEmbedFailure(probe)
+  }
+  const blocked = Date.now() - meaningCache.planBlockedAt < MEANING_BACKOFF_MS
+  const probed = options !== undefined && options.probe === true
+  return {
+    ...base, available: true,
+    allowed: blocked ? false : (probed ? true : null),
+    requiredTier: blocked ? meaningCache.requiredTier : null, plan: blocked ? meaningCache.plan : null,
+    total: indexed === null ? null : indexed + remaining, indexed, remaining, last: meaningCache.lastError,
+  }
+}
+
+/** Indexes up to `max` (≤ INDEX_BATCH_MAX) memories that have no vector yet, newest first. */
+const indexMemories = async (state, max) => {
+  if (readMemorySettings().meaning !== true) return { ok: false, error: 'sens_desactive', indexed: 0 }
+  const paused = meaningPaused()
+  if (paused !== null) return { ok: false, error: paused, indexed: 0, requiredTier: paused === 'offre_requise' ? meaningCache.requiredTier : undefined }
+  const cap = Math.min(INDEX_BATCH_MAX, Math.max(1, Number.isFinite(max) ? Math.floor(max) : INDEX_BATCH_MAX))
+  let indexed = 0
+  let remaining = null
+  while (indexed < cap) {
+    const want = Math.min(EMBED_BATCH, cap - indexed)
+    const page = await serverPage(state, 'embedded=false&order=recent&limit=' + String(want))
+    if (page.status === 503) { noteMeaningUnavailable('sens_indisponible'); return { ok: false, error: 'sens_indisponible', indexed } }
+    const failure = memoryFailure(page)
+    if (failure !== null) return { ok: false, error: failure, indexed }
+    if (page.body === null || typeof page.body.total !== 'number') { noteMeaningUnavailable('serveur_ancien'); return { ok: false, error: 'serveur_ancien', indexed } }
+    const rows = Array.isArray(page.body.memories) ? page.body.memories : []
+    remaining = Math.max(0, page.body.total - rows.length)
+    if (rows.length === 0) break
+    const emb = await embedTexts(state, rows.map((r) => String(r.content)))
+    if (emb.ok !== true) { noteEmbedFailure(emb); return { ok: false, error: emb.error, requiredTier: emb.requiredTier, indexed } }
+    for (let i = 0; i < rows.length; i++) {
+      const put = await putEmbedding(state, rows[i].id, emb.vectors[i])
+      if (put.ok !== true && put.error !== 'souvenir_introuvable') { noteMeaningUnavailable(put.error); return { ok: false, error: put.error, indexed } }
+      if (put.ok === true) indexed += 1
+    }
+  }
+  meaningCache.lastError = null
+  meaningCache.lastIndexedAt = Date.now()
+  return { ok: true, indexed, remaining: remaining === null ? 0 : remaining }
+}
+
+/** Fire-and-forget: a memory that was just written or edited gets its vector. A miss is fine: the next indexing run covers it. */
+const indexOneInBackground = (state, memory) => {
+  try {
+    if (memory === null || memory === undefined || readMemorySettings().meaning !== true) return
+    if (meaningPaused() !== null) return
+    void (async () => {
+      const emb = await embedTexts(state, [String(memory.content)])
+      if (emb.ok !== true) { noteEmbedFailure(emb); return }
+      const put = await putEmbedding(state, memory.id, emb.vectors[0])
+      if (put.ok !== true) noteMeaningUnavailable(put.error)
+    })().catch(() => {})
+  } catch (e) { /* never break a write */ }
+}
+
+/** The memories nearest to `q` by meaning: `{ ok, items:[{…memory, distance}] }`. */
+const findByMeaning = async (state, q, limit) => {
+  const settings = readMemorySettings()
+  if (settings.meaning !== true) return { ok: false, error: 'sens_desactive' }
+  const paused = meaningPaused()
+  if (paused !== null) return { ok: false, error: paused, requiredTier: paused === 'offre_requise' ? meaningCache.requiredTier : undefined }
+  const emb = await embedTexts(state, [q])
+  if (emb.ok !== true) { noteEmbedFailure(emb); return { ok: false, error: emb.error, requiredTier: emb.requiredTier } }
+  const res = await apiCall('/v1/memories/search', { method: 'POST', token: state.token, body: { embedding: emb.vectors[0], scope: 'account', limit } })
+  if (res.status === 503) { noteMeaningUnavailable('sens_indisponible'); return { ok: false, error: 'sens_indisponible' } }
+  if (res.status === 404 || res.status === 405) { noteMeaningUnavailable('serveur_ancien'); return { ok: false, error: 'serveur_ancien' } }
+  const failure = memoryFailure(res)
+  if (failure !== null) return { ok: false, error: failure }
+  const raw = res.body !== null && Array.isArray(res.body.memories) ? res.body.memories : []
+  return { ok: true, items: raw.map((m) => ({ ...asMemory(m), distance: typeof m.distance === 'number' ? m.distance : null })) }
+}
+
 /**
  * Liste paginée et filtrée des souvenirs du COMPTE. Tout est calculé ici, sur le
  * cache : le serveur ne pagine pas encore (`GET /v1/memories` renvoie tout), donc
@@ -1806,6 +1991,7 @@ const memoryListRoute = async (req) => {
   const src = ['capture', 'agent', 'you', 'sync'].indexOf(params.get('src')) >= 0 ? params.get('src') : 'any'
   const added = ADDED_WINDOW_MIN[params.get('added')] !== undefined ? params.get('added') : 'any'
   const q = String(params.get('q') || '').trim().toLowerCase()
+  const wantMeaning = params.get('mode') === 'meaning' && q !== ''
 
   const plan = planInjection(state)
   const sentIds = new Set(plan.account.chosen.map((m) => String(m.id)))
@@ -1831,16 +2017,57 @@ const memoryListRoute = async (req) => {
   if (show === 'sent') list = list.filter((r) => r.sent)
   if (src !== 'any') list = list.filter((r) => (src === 'you' ? youOrigin(r) : r.origin === src))
   if (added !== 'any') list = list.filter((r) => r.ageMinutes !== null && r.ageMinutes <= ADDED_WINDOW_MIN[added])
-  if (q !== '') list = list.filter((r) => String(r.content).toLowerCase().indexOf(q) >= 0)
+  let search = { mode: 'exact', relevance: false }
+  if (wantMeaning) {
+    // Search by meaning: the server ranks, we only decorate and filter. Any failure falls back to the words
+    // search below, with the reason, so the page always shows something and says why it is not by meaning.
+    const found = await findByMeaning(state, String(params.get('q')).trim(), 50)
+    if (found.ok === true) {
+      const byId = new Map(rows.map((r) => [String(r.id), r]))
+      list = found.items.map((m) => {
+        const known = byId.get(String(m.id))
+        const base = known !== undefined ? known : { id: m.id, kind: m.kind, content: m.content, source: m.source, origin: 'sync', originKnown: false, pinned: m.pinned, sent: false, createdAt: m.createdAt, expiresAt: m.expiresAt, retentionDays: m.retentionDays, ageMinutes: null }
+        return { ...base, closeness: typeof m.distance === 'number' ? Math.max(0, Math.min(100, Math.round((1 - m.distance) * 100))) : null }
+      })
+      if (show === 'pinned') list = list.filter((r) => r.pinned)
+      if (show === 'sent') list = list.filter((r) => r.sent)
+      if (src !== 'any') list = list.filter((r) => (src === 'you' ? youOrigin(r) : r.origin === src))
+      if (added !== 'any') list = list.filter((r) => r.ageMinutes !== null && r.ageMinutes <= ADDED_WINDOW_MIN[added])
+      search = { mode: 'meaning', relevance: true }
+    } else {
+      search = { mode: 'exact', relevance: false, fallback: found.error, requiredTier: found.requiredTier === undefined ? null : found.requiredTier }
+      list = list.filter((r) => String(r.content).toLowerCase().indexOf(q) >= 0)
+    }
+  } else if (q !== '') {
+    list = list.filter((r) => String(r.content).toLowerCase().indexOf(q) >= 0)
+  }
   return {
     ok: true, connected: true,
     total: list.length, limit, offset, items: list.slice(offset, offset + limit),
     counts, filters: { show, src, added, q },
-    search: { mode: 'exact', relevance: false },
+    search,
     budget: { cap: plan.budget, used: renderMemoryChunk(state).length, sent: plan.account.chosen.length, omitted: plan.account.omitted },
     settings: readMemorySettings(),
     cache: { at: memoryCache.at, error: memoryCache.error },
   }
+}
+
+/** Search by meaning: is it on, can this server do it, how much is indexed. Two light reads, no embedding call. */
+const memoryIndexStatusRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  let probe = false
+  try { probe = new URL(req.url, 'http://localhost').searchParams.get('probe') === '1' } catch (e) { probe = false }
+  // A probe embeds a 2-letter text: only when the switch is on, never on its own.
+  return await meaningStatus(state, { probe: probe && readMemorySettings().meaning === true })
+}
+
+/** Indexes one batch (≤ 64) of the memories without a vector. The page calls it again until `remaining` is 0. */
+const memoryIndexRunRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const max = body !== null && typeof body === 'object' && body.max !== undefined ? Number(body.max) : INDEX_BATCH_MAX
+  return await indexMemories(state, max)
 }
 
 const memoryLessonsRoute = async (req, body) => {
@@ -2292,6 +2519,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
   { path: '/kybernos-cloud/memory/settings', method: 'GET', guarded: true, run: memorySettingsRoute },
   { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, body: true, run: memorySettingsSetRoute },
+  // Search by meaning (off by default): status, then one indexing batch per POST — each batch calls the embeddings route.
+  { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
+  { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryIndexRunRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {
@@ -2347,6 +2577,7 @@ export {
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER,
+  embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
