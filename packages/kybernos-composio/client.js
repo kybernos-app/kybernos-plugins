@@ -76,9 +76,24 @@ window.__ModuleLoader__.load({
       try { window.dispatchEvent(new Event('kbcp-mode')) } catch (e) { }
     }
 
+    // ── URL rule for everything the user can click or the page can open ──────
+    // Card JSON is model output and `redirect_url` is a remote server's reply, so
+    // neither is trusted. Only an absolute http(s) URL may become a link: a
+    // `javascript:`, `data:` or `vbscript:` scheme, a relative or a malformed
+    // value never does. Returns the normalised href (URL.href) or null.
+    const kbCpWebUrl = (raw) => {
+      if (typeof raw !== 'string') return null
+      try {
+        const u = new URL(raw)
+        return (u.protocol === 'https:' || u.protocol === 'http:') ? u.href : null
+      } catch (e) { return null }
+    }
+
     // Liens d'autorisation persistants par toolkit (rouvrables tant que non ACTIVE).
     // Composio annonce une expiration à 10 minutes : on stocke l'horodatage et on
     // masque le lien périmé (sinon une bannière morte reste affichée pour toujours).
+    // The stored value is re-checked on read: localStorage is writable by anything
+    // running on this origin, so what it holds is not trusted either.
     const KB_CP_LINKS = 'composio.authLinks'
     const LINK_TTL_MS = 10 * 60 * 1000
     const kbCpGetLink = (slug) => {
@@ -90,10 +105,14 @@ window.__ModuleLoader__.load({
         const at = typeof e === 'string' ? 0 : e.at
         if (typeof url !== 'string' || url.length === 0) return null
         if (at && Date.now() - at > LINK_TTL_MS) return null
-        return url
+        return kbCpWebUrl(url)
       } catch (e2) { return null }
     }
-    const kbCpSaveLink = (slug, url) => { try { const all = JSON.parse(localStorage.getItem(KB_CP_LINKS) || '{}'); all[slug] = { url, at: Date.now() }; localStorage.setItem(KB_CP_LINKS, JSON.stringify(all)) } catch (e) { } }
+    const kbCpSaveLink = (slug, url) => {
+      const safe = kbCpWebUrl(url)
+      if (safe === null) return
+      try { const all = JSON.parse(localStorage.getItem(KB_CP_LINKS) || '{}'); all[slug] = { url: safe, at: Date.now() }; localStorage.setItem(KB_CP_LINKS, JSON.stringify(all)) } catch (e) { }
+    }
     const kbCpDropLink = (slug) => { try { const all = JSON.parse(localStorage.getItem(KB_CP_LINKS) || '{}'); delete all[slug]; localStorage.setItem(KB_CP_LINKS, JSON.stringify(all)) } catch (e) { } }
 
     let mcpSessionId = null
@@ -134,7 +153,6 @@ window.__ModuleLoader__.load({
     // CAT_BY_SLUG est (re)construit à l'arrivée du catalogue (kbCpCatalog).
     const catOf = (slug) => CAT_BY_SLUG[slug] || null
     const nameOf = (slug) => { const c = catOf(slug); return c ? c.n : slug }
-    const descOf = (slug) => { const c = catOf(slug); return c ? (c.d || '') : '' }
     const logoOf = (slug) => { const c = catOf(slug); return c ? c.l : null }
 
     /** Normalise la réponse de COMPOSIO_MANAGE_CONNECTIONS en { slug: {status, accounts[]} }. */
@@ -869,11 +887,15 @@ window.__ModuleLoader__.load({
             ? data.data.results
             : (data && data.results && typeof data.results === 'object' ? data.results : null)
           const info = results ? results[slug] : null
-          const url = (info && (info.redirect_url || info.redirectUrl)) || kbCpGetLink(slug) || null
-          if (typeof url === 'string' && url.length > 0) {
+          // The server's redirect URL is opened in a new window: it must be http(s).
+          const given = info ? (info.redirect_url || info.redirectUrl) : null
+          const url = kbCpWebUrl(given) || kbCpGetLink(slug)
+          if (url !== null) {
             kbCpSaveLink(slug, url)
             window.open(url, '_blank', 'noopener')
             setAuthLinks((prev) => Object.assign({}, prev, { [slug]: url }))
+          } else if (typeof given === 'string' && given.length > 0) {
+            setErr('Authorization link refused: it is not an http(s) address.')
           }
           // Le compte apparaît en "initializing" : on l'affiche tout de suite.
           if (info && Array.isArray(info.accounts)) {
@@ -921,7 +943,6 @@ window.__ModuleLoader__.load({
       }
 
       const accOf = (slug) => (conns[slug] || {}).accounts || []
-      const activeOf = (slug) => accOf(slug).filter((a) => String(a.status).toUpperCase() === 'ACTIVE')
       const statusOf = (slug) => {
         const list = accOf(slug)
         if (list.length === 0) return null
@@ -980,7 +1001,7 @@ window.__ModuleLoader__.load({
         if (open === null) return null
         const a = open
         const accs = accOf(a.s)
-        const link = authLinks[a.s] || kbCpGetLink(a.s)
+        const link = kbCpWebUrl(authLinks[a.s]) || kbCpGetLink(a.s)
         return h('div', { className: 'kb7-overlay', onClick: () => setOpen(null) },
           h('div', { className: 'kb7-modal', onClick: (e) => e.stopPropagation() },
             h('div', { className: 'kb7-mhead' },
@@ -1127,13 +1148,16 @@ window.__ModuleLoader__.load({
         }) : null)
     }
 
-    // ── cartes de ressources dans le chat ────────────────────────────────────
-    // L'agent écrit dans sa réponse un bloc clôturé ```kybernos-carte contenant
-    // un JSON : soit une carte {slug,type,titre,desc,etat,etatLabel,actionLabel,
-    // actionUrl,note}, soit un objet {titre,items:[cartes…]} pour une pile.
-    // Ce composant remplace le bloc par une carte visuelle — vrai logo Composio
-    // quand le slug existe au catalogue. Sans plugin (ou JSON invalide), le bloc
-    // reste un bloc de code lisible : dégradation gracieuse, jamais une erreur.
+    // ── resource cards in the chat ───────────────────────────────────────────
+    // The agent writes a fenced ```kybernos-carte block holding JSON: either one
+    // card {slug,type,titre,desc,etat,etatLabel,actionLabel,actionUrl,note} or an
+    // object {titre,items:[cards…]} for a stack. This code replaces the block with
+    // a visual card, using the real Composio logo when the slug is in the
+    // catalogue. Without the plugin (or on invalid JSON) the block stays a
+    // readable code block: it degrades gracefully and never throws.
+    // The JSON is model output, so every value is untrusted: text goes through
+    // carteEsc, and the action URL through carteActionHref (http(s) or an
+    // internal kb: command only, see below).
     const CARTE_LANG = 'kybernos-carte'
     const CARTE_ETATS = { ok: 1, off: 1, inconnu: 1, alerte: 1 }
     const carteEsc = (s) => String(s === null || s === undefined ? '' : s)
@@ -1148,21 +1172,37 @@ window.__ModuleLoader__.load({
       const fb = item.icon || (item.type === 'skill' ? '⚡' : item.type === 'kyber' ? '🤖' : item.type === 'outil' ? '🧰' : '🔌')
       return { txt: String(fb) }
     }
-    function carteEl(item) {
-      const d = document.createElement('div')
-      d.className = 'kbcp-carte'
-      d.setAttribute('data-kbcp-carte', '1')
-      const slug = String(item.slug === null || item.slug === undefined ? '' : item.slug)
-      if (slug !== '') d.setAttribute('data-kbcp-slug', slug)
+    // What a card action may point to: an absolute http(s) URL, or an internal
+    // `kb:` command. The click listener in carteMontre intercepts every `kb:`
+    // action (`kb:accept:<text>`, `kb:<tab>`) and calls preventDefault, so those
+    // never navigate. `kb:` is matched exactly as that listener matches it
+    // (lowercase prefix); anything else (`javascript:`, `data:`, relative,
+    // malformed, not a string) yields null and the card shows no link.
+    function carteActionHref(raw) {
+      if (typeof raw !== 'string') return null
+      if (raw.startsWith('kb:')) return { href: raw, internal: true }
+      const web = kbCpWebUrl(raw)
+      return web === null ? null : { href: web, internal: false }
+    }
+    // The action part of a card: a link when the URL passes the rule above,
+    // otherwise the label as escaped plain text (the same ghost chip a card
+    // without an action shows).
+    function carteActionHtml(item) {
+      const link = carteActionHref(item.actionUrl)
+      if (link === null) return '<span class="kbcp-carte-ghost">' + carteEsc(item.actionLabel || 'dispo') + '</span>'
+      return '<a class="kbcp-carte-action" href="' + carteEsc(link.href) + '"'
+        + (link.internal ? '' : ' target="_blank" rel="noreferrer noopener"') + '>'
+        + carteEsc(item.actionLabel || 'Ouvrir') + '</a>'
+    }
+    // The whole inner HTML of a card. Pure (string in, string out), so a node
+    // test can read it without a DOM.
+    function carteHtml(item) {
       const etat = carteEtat(item.etat)
       const ic = carteIcône(item)
       const logoHtml = ic.svg !== undefined ? ic.svg : carteEsc(ic.txt)
-      const action = (item.actionUrl !== null && item.actionUrl !== undefined && item.actionUrl !== '')
-        ? '<a class="kbcp-carte-action" href="' + carteEsc(item.actionUrl) + '" target="_blank" rel="noreferrer">' + carteEsc(item.actionLabel || 'Ouvrir') + '</a>'
-        : '<span class="kbcp-carte-ghost">' + carteEsc(item.actionLabel || 'dispo') + '</span>'
+      const action = carteActionHtml(item)
       const KB_CP_ICONE_GRILLE = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>'
-      d.innerHTML =
-        '<span class="kbcp-carte-logo">' + logoHtml + '</span>' +
+      return '<span class="kbcp-carte-logo">' + logoHtml + '</span>' +
         '<span class="kbcp-carte-corps">' +
           '<span class="kbcp-carte-titre"><span class="kbcp-carte-nom">' + carteEsc(item.titre || 'Ressource') + '</span>' +
             (item.type ? ' <span class="kbcp-carte-type">' + carteEsc(item.type) + '</span>' : '') +
@@ -1172,6 +1212,14 @@ window.__ModuleLoader__.load({
           (item.note ? '<span class="kbcp-carte-note">' + carteEsc(item.note) + '</span>' : '') +
           (item.type === 'connecteur' ? '<a class="kbcp-carte-lien" href="kb:connecteurs">' + KB_CP_ICONE_GRILLE + 'Tous les connecteurs</a>' : '') +
         '</span>' + action
+    }
+    function carteEl(item) {
+      const d = document.createElement('div')
+      d.className = 'kbcp-carte'
+      d.setAttribute('data-kbcp-carte', '1')
+      const slug = String(item.slug === null || item.slug === undefined ? '' : item.slug)
+      if (slug !== '') d.setAttribute('data-kbcp-slug', slug)
+      d.innerHTML = carteHtml(item)
       return d
     }
     function carteParse(txt) {
@@ -1378,8 +1426,10 @@ window.__ModuleLoader__.load({
     return {
       inject: ['timer', 'slots', 'locale'],
       apply(ctx) { apply(ctx) },
-      // exposé pour l'onglet Ressources du bundle kybernos
-      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key' },
+      // exposé pour l'onglet Ressources du bundle kybernos ; webUrl and
+      // carteHtml (the pure URL rule and the card renderer) are exposed so
+      // test-client.mjs can reach them without a DOM.
+      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml },
     }
   },
 })

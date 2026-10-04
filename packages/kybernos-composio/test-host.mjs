@@ -10,9 +10,9 @@
 // des routes et vérifie les refus (aucune écriture n'a lieu sur un refus).
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply } from './index.js'
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { apply, upsertEnvSecret } from './index.js'
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { tmpdir, homedir } from 'node:os'
 import { join } from 'node:path'
 
 let echecs = 0
@@ -139,6 +139,66 @@ const jouer = async (headers, corps) => { const res = reponse(); await routes['/
   ok('K-01 : /usr/bin/touch passe la validation de commande', refuseCommande === false, `code=${res.code}`)
   // ⚠ ce cas a pu ÉCRIRE le sidecar du home factice — nettoyage :
   try { rmSync(join(HOME, '.dsh'), { recursive: true, force: true }) } catch (e) { /* rien */ }
+}
+
+// ── secrets: ~/.dsh/.env writes (temp HOME only) ────────────────────────────
+// upsertEnvSecret used to pass the secret as the REPLACEMENT STRING of
+// String.replace, which expands `$&`, `$1`, `$$`... inside it, and it accepted a
+// line break, which defines an arbitrary second variable. Every write below goes
+// to the temp HOME; refuse to run if homedir() does not point there.
+if (homedir() !== HOME) { console.error(`✗ homedir() is ${homedir()}, not the temp HOME: refusing to write`); process.exit(1) }
+const ENV_FILE = join(HOME, '.dsh', '.env')
+const lireEnv = () => { try { return readFileSync(ENV_FILE, 'utf8') } catch (e) { return null } }
+const poserEnv = (texte) => { mkdirSync(join(HOME, '.dsh'), { recursive: true }); writeFileSync(ENV_FILE, texte, 'utf8') }
+// DSH itself creates ~/.dsh; upsertEnvSecret does not (it only writes the file).
+const viderDsh = () => { rmSync(join(HOME, '.dsh'), { recursive: true, force: true }); mkdirSync(join(HOME, '.dsh'), { recursive: true }) }
+const dangereux = ['a$&b', 'k$1v', 'x$$y', 'p$`q', "r$'s", 'n$<name>m', '$&$1$$$`$\'', 'plain-ck_0123456789']
+for (const secret of dangereux) {
+  // 1. no line yet: the append path
+  viderDsh()
+  upsertEnvSecret('MY_KEY', secret)
+  ok(`secret ${JSON.stringify(secret)} is written unchanged (new line)`, lireEnv() === `MY_KEY=${secret}\n`)
+  // 2. a line already there: the replace path, between two other lines
+  poserEnv('BEFORE=1\nMY_KEY=old-value\nAFTER=2\n')
+  upsertEnvSecret('MY_KEY', secret)
+  ok(`secret ${JSON.stringify(secret)} is written unchanged (existing line), neighbours untouched`, lireEnv() === `BEFORE=1\nMY_KEY=${secret}\nAFTER=2\n`)
+}
+{
+  poserEnv('KEEP=1\n')
+  const avant = lireEnv()
+  for (const [label, valeur] of [['LF', 'abc\nNODE_OPTIONS=--require /tmp/x'], ['CR', 'abc\rNODE_OPTIONS=x'], ['CRLF', 'abc\r\nX=1'], ['NUL', 'abc\0def'], ['trailing LF', 'abc\n']]) {
+    let message = null
+    try { upsertEnvSecret('MY_KEY', valeur) } catch (e) { message = String(e.message) }
+    ok(`secret with a ${label} is refused`, message !== null && /line breaks/.test(message), String(message))
+    ok(`secret with a ${label}: the error never carries the value`, message !== null && message.includes('abc') === false && message.includes('NODE_OPTIONS') === false, String(message))
+    ok(`secret with a ${label}: nothing is written`, lireEnv() === avant)
+  }
+  let nomRefuse = false
+  try { upsertEnvSecret('bad name(', 'v') } catch (e) { nomRefuse = true }
+  ok('an invalid variable name is refused (it is built into a RegExp)', nomRefuse === true && lireEnv() === avant)
+  ok('an empty value is "no value": false, nothing written', upsertEnvSecret('MY_KEY', '') === false && lireEnv() === avant)
+  rmSync(join(HOME, '.dsh'), { recursive: true, force: true })
+}
+// The same through the route: 400 before ANY write, and the value is never echoed.
+{
+  viderDsh()
+  const corps = (secrets) => ({ nom: 'sec-test', transport: 'streamable-http', url: 'https://ex.example/mcp', secrets })
+  const res = await jouer({}, corps([{ name: 'GOOD_KEY', value: 'fine' }, { name: 'BAD_KEY', value: 'x\nNODE_OPTIONS=--require /tmp/evil' }]))
+  ok('route: a secret with a newline → 400', res.code === 400 && /BAD_KEY/.test(res.corps) && /line breaks/.test(res.corps), `code=${res.code} ${res.corps.slice(0, 90)}`)
+  ok('route: the 400 never echoes the value', res.corps.includes('NODE_OPTIONS') === false && res.corps.includes('/tmp/evil') === false)
+  ok('route: nothing is written on that 400 (not even the valid secret before it)', lireEnv() === null)
+  let sidecar = true
+  try { readFileSync(join(HOME, '.dsh', 'kybernos', 'connecteurs.json')) } catch (e) { sidecar = false }
+  ok('route: no connector is saved on that 400', sidecar === false)
+}
+{
+  viderDsh()
+  mkdirSync(join(HOME, '.dsh', 'profiles', 'web'), { recursive: true }) // so the patch write succeeds and the reply is a 200
+  const res = await jouer({}, { nom: 'sec-test', transport: 'streamable-http', url: 'https://ex.example/mcp', secrets: [{ name: 'MY_KEY', value: 'a$&b$1c' }] })
+  ok('route: a secret with `$&` and `$1` is accepted', res.code === 200, `code=${res.code} ${res.corps.slice(0, 90)}`)
+  ok('route: that secret lands in .env unchanged', lireEnv() === 'MY_KEY=a$&b$1c\n')
+  ok('route: the reply never carries the value', res.corps.includes('a$&b$1c') === false)
+  rmSync(join(HOME, '.dsh'), { recursive: true, force: true })
 }
 
 rmSync(HOME, { recursive: true, force: true })

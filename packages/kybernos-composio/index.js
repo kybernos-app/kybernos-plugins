@@ -623,17 +623,44 @@ function removePatchBlock(nom) {
   return true
 }
 
-/** Écrit NOM=valeur dans ~/.dsh/.env (met à jour la ligne existante). Renvoie false si aucune valeur fournie. */
-function upsertEnvSecret(nom, valeur) {
+/**
+ * Writes NAME=value into ~/.dsh/.env (updates the existing line). Returns false
+ * when no value is given. Throws when the name is not a valid variable name or
+ * the value holds a line break (CR, LF or NUL): a second line would define an
+ * arbitrary extra variable. The error never carries the value.
+ * Exported for test-host.mjs.
+ */
+export function upsertEnvSecret(nom, valeur) {
+  if (SECRET_RE.test(nom) !== true) throw new Error('secret name is not a valid variable name')
   if (typeof valeur !== 'string' || valeur.length === 0) return false
+  if (sansMultiLigne(valeur) !== true) throw new Error('secret ' + nom + ': the value must not contain line breaks')
   const path = ENV_PATH()
   let text = ''
   try { text = existsSync(path) ? readFileSync(path, 'utf8') : '' } catch (e) { text = '' }
   const re = new RegExp('^[ \\t]*' + nom + '[ \\t]*=.*$', 'm')
   const line = nom + '=' + valeur
-  if (re.test(text) === true) writeFileSync(path, text.replace(re, line), 'utf8')
+  // A replacer FUNCTION: a string would expand `$&`, `$1`, `$$`, `$\`` and `$'`
+  // inside the secret and corrupt it.
+  if (re.test(text) === true) writeFileSync(path, text.replace(re, () => line), 'utf8')
   else writeFileSync(path, (text.length > 0 && text.endsWith('\n') === false ? text + '\n' : text) + line + '\n', 'utf8')
   return true
+}
+
+/**
+ * Checks the secrets of a POST body BEFORE any file is written, so a bad one
+ * cannot leave a half-applied request behind. Returns an error message (never
+ * containing a value) or null. Entries with an invalid name are skipped, as
+ * storeSecrets skips them.
+ */
+function verifierSecrets(body) {
+  if (Array.isArray(body.secrets) === false) return null
+  for (const s of body.secrets) {
+    if (s === null || s === undefined) continue
+    const nom = String(s.name || '').trim()
+    if (SECRET_RE.test(nom) !== true) continue
+    if (sansMultiLigne(String(s.value || '')) !== true) return 'secret ' + nom + ': the value must not contain line breaks'
+  }
+  return null
 }
 
 /** Valide le corps POST ; renvoie { erreur } ou { connecteur } normalisé. */
@@ -729,6 +756,8 @@ async function serveConnecteurs(ctx, req, res) {
     try { body = JSON.parse(await readBody(req)) } catch (e) { return sendJson(res, 400, { ok: false, error: 'corps JSON attendu' }) }
     const n = normalizeConnecteur(body)
     if (n.erreur !== undefined) return sendJson(res, 400, { ok: false, error: n.erreur })
+    const secretErreur = verifierSecrets(body)
+    if (secretErreur !== null) return sendJson(res, 400, { ok: false, error: secretErreur })
     const c = n.connecteur
     const secretsWritten = storeSecrets(body)
     const list = readSidecar().filter((x) => x.nom !== c.nom)
