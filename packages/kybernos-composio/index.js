@@ -16,11 +16,13 @@
 // sans dépendre d'une clé posée dans localStorage, sans PII (user_info jamais
 // recopié) et sans qu'une panne réseau ne casse la page. Les ACTIONS (add/remove)
 // restent, elles, pilotées par le client via MCP.
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, chmodSync, readdirSync, realpathSync, renameSync, rmSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
+import { Script } from 'node:vm'
 
 export const name = 'kybernos-composio'
 
@@ -432,9 +434,10 @@ async function serveConnections(ctx, req, res) {
 // marqué dans cordis.patch.yml est le rendu dérivé que le loader DSH consomme.
 // Un connecteur écrit par la skill (bloc sans sidecar) reste listé en lecture.
 const CONNECTEURS_ROUTE = '/kybernos/composio/connecteurs'
-const PATCH_PATH = () => join(homedir(), '.dsh', 'profiles', 'web', 'cordis.patch.yml')
-const SIDECAR_PATH = () => join(homedir(), '.dsh', 'kybernos', 'connecteurs.json')
-const ENV_PATH = () => join(homedir(), '.dsh', '.env')
+const DSH_HOME = () => join(homedir(), '.dsh')
+const PATCH_PATH = () => join(DSH_HOME(), 'profiles', 'web', 'cordis.patch.yml')
+const SIDECAR_PATH = () => join(DSH_HOME(), 'kybernos', 'connecteurs.json')
+const ENV_PATH = () => join(DSH_HOME(), '.env')
 const NOM_RE = /^[a-z][a-z0-9-]{0,30}$/
 const SECRET_RE = /^[A-Z_][A-Z0-9_]{0,63}$/
 // Variable names DSH refuses in a `.env` file: at boot, loadLayeredEnv throws
@@ -539,31 +542,66 @@ function renderValue(raw) {
 
 function readPatchText() { return existsSync(PATCH_PATH()) ? readFileSync(PATCH_PATH(), 'utf8') : '' }
 
-/** Blocs du patch : de « # connecteur:<nom> » au prochain marqueur ou à la fin. */
-function patchBlocks(text) {
-  const lines = String(text).split('\n')
-  const out = {}
-  let cur = null
-  for (const line of lines) {
-    const m = /^# connecteur:([a-z0-9-]+)\s*$/.exec(line)
-    if (m !== null) { cur = m[1]; out[cur] = [line]; continue }
-    if (cur !== null) {
-      if (/^# connecteur:/.test(line) === true) { cur = null; continue }
-      out[cur].push(line)
+const MARKER_RE = /^# connecteur:([a-z0-9-]+)\s*$/
+
+/**
+ * The marked blocks of the patch, as line ranges { nom, start, end } (end excluded).
+ * A block starts at its `# connecteur:<nom>` marker and takes the lines that belong to
+ * it: its own `- insert:` line and every blank or indented line after it. It ends at
+ * the first other top-level line (a comment, or the `- insert:` of a block that another
+ * writer appended: kybernos-workers and the Outils tab append such blocks) or at the next
+ * marker. Trailing blank lines are not part of it. It used to run to the next marker or
+ * to the end of the file, so editing or deleting a connector ate everything after it.
+ * Blocks written before this rule have the same shape, so they are read the same way.
+ */
+function findBlocks(lines) {
+  const out = []
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = MARKER_RE.exec(lines[i])
+    if (m === null) continue
+    let end = i + 1
+    let head = false
+    for (let j = i + 1; j < lines.length; j += 1) {
+      const l = lines[j]
+      if (l.trim() === '') continue
+      if (/^[ \t]/.test(l)) { end = j + 1; continue }
+      if (head === false && end === i + 1 && /^-[ \t]/.test(l)) { head = true; end = j + 1; continue }
+      break
     }
+    out.push({ nom: m[1], start: i, end: end })
   }
   return out
 }
 
-/** Extraction minimale d'un bloc (nom, transport, serverName, url|command). */
+/** The text of each marked block, by connector name (the first one when a name is repeated). */
+function patchBlocks(text) {
+  const lines = String(text).split('\n')
+  const out = {}
+  for (const b of findBlocks(lines)) if (out[b.nom] === undefined) out[b.nom] = lines.slice(b.start, b.end)
+  return out
+}
+
+/** The value of `key:` on a block line, whether bare, 'single' or "double" quoted. */
+function scalarOf(lines, key) {
+  const re = new RegExp('^[ \\t]+' + key + ':[ ]*(?:"((?:[^"\\\\]|\\\\.)*)"|\'((?:[^\']|\'\')*)\'|([^\\s\'"#]+))')
+  for (const l of lines) {
+    const m = re.exec(l)
+    if (m === null) continue
+    if (m[1] !== undefined) { try { return JSON.parse('"' + m[1] + '"') } catch (e) { return null } }
+    if (m[2] !== undefined) return m[2].replace(/''/g, "'")
+    return m[3]
+  }
+  return null
+}
+
+/** Minimal read of a block (transport, serverName, url or command). */
 function blockSummary(lines) {
-  const pick = (re) => { for (const l of lines) { const m = re.exec(l); if (m !== null) return m[1] } return null }
-  const transport = pick(/^[ \t]+transport:[ ]*([a-z-]+)/)
+  const transport = scalarOf(lines, 'transport')
   return {
     transport: transport === 'streamable-http' ? 'streamable-http' : 'stdio',
-    serverName: pick(/^[ \t]+serverName:[ ]*([^\s'#]+)/),
-    url: pick(/^[ \t]+url:[ ]*([^\s'#]+)/),
-    command: pick(/^[ \t]+command:[ ]*([^\s'#]+)/),
+    serverName: scalarOf(lines, 'serverName'),
+    url: scalarOf(lines, 'url'),
+    command: scalarOf(lines, 'command'),
   }
 }
 
@@ -617,43 +655,187 @@ function renderBlock(c) {
   return L.join('\n')
 }
 
-/** Réécrit le patch : remplace/insère le bloc marqué, pose le bandeau si absent. */
-function upsertPatchBlock(c) {
-  const path = PATCH_PATH()
-  const text = readPatchText()
-  const rendered = renderBlock(c)
-  const blocks = patchBlocks(text)
-  if (blocks[c.nom] !== undefined) {
-    const old = blocks[c.nom].join('\n')
-    writeFileSync(path, text.replace(old, rendered), 'utf8')
-    return
-  }
-  const hasBanner = text.indexOf('CONNECTEURS PERSONNALISÉS') >= 0
-  const add = (hasBanner ? '' : (text.endsWith('\n') || text.length === 0 ? '' : '\n') + '\n' + BANNER + '\n')
-    + '\n' + rendered + '\n'
-  writeFileSync(path, text + add, 'utf8')
+/** Removes the lines of block `b`, and the blank line the insertion put before it. */
+function dropBlock(lines, b) {
+  let from = b.start
+  if (from > 0 && lines[from - 1].trim() === '') from -= 1
+  lines.splice(from, b.end - from)
+  if (from > 0 && from < lines.length && lines[from - 1].trim() === '' && lines[from].trim() === '') lines.splice(from, 1)
+  // At the end of the file, keep one final newline: ['a', ''] is "a\n".
+  while (lines.length > 1 && lines[lines.length - 1] === '' && lines[lines.length - 2].trim() === '') lines.pop()
 }
 
-function removePatchBlock(nom) {
-  const text = readPatchText()
-  const blocks = patchBlocks(text)
-  const b = blocks[nom]
-  if (b === undefined) return false
-  const old = b.join('\n')
-  const at = text.indexOf(old)
-  if (at === -1) return false
-  let head = text.slice(0, at)
-  const tail = text.slice(at + old.length)
-  // L'insertion pose le bloc precede d'une ligne vide (« \n » + rendered) :
-  // le retrait doit reprendre CETTE ligne. Sans ça, chaque aller-retour
-  // POST puis DELETE laissait une ligne vide de plus dans le patch — mesure
-  // du 23/09/2026 sur la route reelle : 677a678, un saut ajoute a chaque cycle.
-  if (head.endsWith('\n\n') === true) head = head.slice(0, -1)
-  const out = tail.length === 0
-    ? (head + tail).replace(/\n+$/, '\n')
-    : (head + tail).replace(/\n{3,}/g, '\n\n')
-  writeFileSync(PATCH_PATH(), out, 'utf8')
-  return true
+/**
+ * The patch text with the block of `c` replaced (or added, with its banner when the file
+ * has none). Pure: nothing is written. A repeated block of the same name is dropped.
+ */
+function patchWithBlock(text, c) {
+  const rendered = renderBlock(c).split('\n')
+  const lines = String(text).split('\n')
+  const found = findBlocks(lines).filter((b) => b.nom === c.nom)
+  if (found.length > 0) {
+    for (let k = found.length - 1; k >= 1; k -= 1) dropBlock(lines, found[k])
+    // A replacer is a list of lines here, never a string: `$&`, `$'` and `$$` in the
+    // connector's url or args cannot be expanded (String.replace used to do that).
+    lines.splice(found[0].start, found[0].end - found[0].start, ...rendered)
+    return lines.join('\n')
+  }
+  // An empty list (`[]`) cannot be followed by a block sequence: it makes way for the block.
+  const base = withoutEntries(text) ? String(text).split('\n').filter((l) => l.trim() !== '[]').join('\n') : String(text)
+  const hasBanner = base.indexOf('CONNECTEURS PERSONNALISÉS') >= 0
+  const add = (hasBanner ? '' : (base.endsWith('\n') || base.length === 0 ? '' : '\n') + '\n' + BANNER + '\n')
+    + '\n' + rendered.join('\n') + '\n'
+  return base + add
+}
+
+/** The patch text without the block `nom`, or null when it has none. Pure. */
+function patchWithoutBlock(text, nom) {
+  const lines = String(text).split('\n')
+  const found = findBlocks(lines).filter((b) => b.nom === nom)
+  if (found.length === 0) return null
+  for (let k = found.length - 1; k >= 0; k -= 1) dropBlock(lines, found[k])
+  return lines.join('\n')
+}
+
+// ── checking the patch before it is written ─────────────────────────────────
+// DSH reads cordis.patch.yml at boot with js-yaml and "fails loud": a file that does not
+// parse stops DSH from starting. So the WHOLE text we are about to write is parsed the way
+// DSH parses it (JSON schema plus the `!!js` tag) first. js-yaml ships with DSH: it is looked
+// up from the profile folder, the DSH home, this plugin and the launcher. When none is
+// reachable the check is skipped (the reply says `validated: false`) and the text is
+// still safe by construction: every scalar is a JSON string and names are deduplicated.
+const here = dirname(fileURLToPath(import.meta.url))
+function findYaml() {
+  const dirs = [dirname(PATCH_PATH()), DSH_HOME(), here]
+  try { dirs.push(dirname(realpathSync(process.argv[1]))) } catch (e) { /* no launcher path */ }
+  for (const d of dirs) {
+    try {
+      const lib = createRequire(join(d, 'package.json'))('js-yaml')
+      if (lib === null || lib === undefined || typeof lib.load !== 'function' || lib.JSON_SCHEMA === undefined) continue
+      const jsExpr = new lib.Type('tag:yaml.org,2002:js', { kind: 'scalar', resolve: (s) => typeof s === 'string', construct: (s) => ({ __jsExpr: s }) })
+      const schema = lib.JSON_SCHEMA.extend(jsExpr)
+      return { load: (text) => lib.load(text, { schema: schema }) }
+    } catch (e) { /* not reachable from this folder */ }
+  }
+  return null
+}
+
+/** Every `!!js` expression under `node`. */
+function jsExpressions(node, out) {
+  if (node === null || typeof node !== 'object') return out
+  if (typeof node.__jsExpr === 'string') { out.push(node.__jsExpr); return out }
+  for (const k of Object.keys(node)) jsExpressions(node[k], out)
+  return out
+}
+
+/** Entries (at any depth of the `insert` lists) whose id is `id`. */
+function entriesWithId(node, id, out) {
+  if (node === null || typeof node !== 'object') return out
+  if (Array.isArray(node) === false && node.id === id) out.push(node)
+  for (const k of Object.keys(node)) entriesWithId(node[k], id, out)
+  return out
+}
+
+/** True when the text holds nothing but comments, blank lines and `[]`. */
+const withoutEntries = (text) => String(text).split('\n').every((l) => l.trim() === '' || l.trim().startsWith('#') || l.trim() === '[]')
+/** Nothing but comments and blank lines: DSH refuses such a file ("must be a top-level YAML array"). */
+const emptyPatch = (text) => withoutEntries(text) && String(text).split('\n').every((l) => l.trim() !== '[]')
+
+/**
+ * Loads `text` like DSH does. Returns { doc } when it loads, { problem } (one line) when
+ * it does not, { skipped: true } when no js-yaml is reachable.
+ */
+function loadLikeDsh(text) {
+  const lib = findYaml()
+  if (lib === null) return { skipped: true }
+  let doc
+  try { doc = lib.load(text) } catch (e) { return { problem: String((e && e.message) || e).split('\n')[0] } }
+  if (Array.isArray(doc) === false) return { problem: 'it must be a top-level YAML list of loader entries' }
+  const nonMapping = doc.findIndex((x) => x === null || typeof x !== 'object' || Array.isArray(x))
+  if (nonMapping >= 0) return { problem: 'entry ' + (nonMapping + 1) + ' is not a mapping' }
+  return { doc: doc }
+}
+
+/**
+ * Whether going from `avant` to `apres` leaves DSH able to boot, for the connector `nom`
+ * that is being added or replaced (`present`) or removed (`absent`). A result that does
+ * not load is refused with a status and a message; one that loads is allowed even when the
+ * file was already broken (a delete can repair it). The entry of `nom` must then be there
+ * exactly once, or not at all, and its `!!js` expressions must compile (compiled, never run).
+ */
+function checkPatch(avant, apres, nom, expect) {
+  if (emptyPatch(apres)) return { ok: true, validated: true, empty: true }
+  const after = loadLikeDsh(apres)
+  if (after.skipped === true) return { ok: true, validated: false, empty: false }
+  if (after.problem !== undefined) {
+    const before = emptyPatch(avant) ? { doc: [] } : loadLikeDsh(avant)
+    if (before.problem !== undefined) return { ok: false, status: 409, error: 'cordis.patch.yml is not valid YAML (' + before.problem + '), so it was left alone. Fix or restore it, then try again.' }
+    return { ok: false, status: 500, error: 'the generated cordis.patch.yml would not load in DSH (' + after.problem + '), so nothing was saved' }
+  }
+  const mine = entriesWithId(after.doc, 'mcp-client-' + nom, [])
+  if (mine.length !== (expect === 'present' ? 1 : 0)) return { ok: false, status: 500, error: 'the connector entry would not be written as expected, so nothing was changed' }
+  for (const expr of jsExpressions(mine, [])) {
+    try { new Script(expr) } catch (e) { return { ok: false, status: 500, error: 'a header or env value of ' + nom + ' would not compile in the loader, so nothing was saved' } }
+  }
+  return { ok: true, validated: true, empty: false }
+}
+
+// ── writing files: backup, temp file and rename ─────────────────────────────
+const BACKUPS_KEPT = 10
+const stamp = () => new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').replace('Z', '')
+
+/**
+ * Atomic write: a temp file next to the target, then a rename, so a crash never leaves a
+ * truncated file. An existing file keeps its permissions (a new one gets `mode`), and a
+ * symlinked file stays a symlink: its target is replaced.
+ */
+function writeFileAtomic(path, data, mode) {
+  let target = path
+  try { target = realpathSync(path) } catch (e) { target = path }
+  let perms = mode
+  try { perms = statSync(target).mode & 0o777 } catch (e) { /* new file: the default mode */ }
+  const tmp = join(dirname(target), '.' + basename(target) + '.tmp-' + process.pid + '-' + Date.now())
+  try {
+    writeFileSync(tmp, data, { encoding: 'utf8', mode: perms, flag: 'wx' })
+    chmodSync(tmp, perms)
+    renameSync(tmp, target)
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch (e2) { /* nothing left to clean */ }
+    throw e
+  }
+}
+
+/** Copies `text` (the current content) next to `path` as <name>.bak-composio-<time>; keeps the newest BACKUPS_KEPT. */
+function keepBackup(path, text) {
+  const dir = dirname(path)
+  const prefix = basename(path) + '.bak-composio-'
+  const base = join(dir, prefix + stamp())
+  for (let i = 0; i < 20; i += 1) {
+    try { writeFileSync(i === 0 ? base : base + '-' + i, text, { encoding: 'utf8', mode: 0o600, flag: 'wx' }); break } catch (e) {
+      if (!(e && e.code === 'EEXIST') || i === 19) throw e
+    }
+  }
+  try {
+    const old = readdirSync(dir).filter((n) => n.startsWith(prefix)).sort()
+    for (const n of old.slice(0, Math.max(0, old.length - BACKUPS_KEPT))) rmSync(join(dir, n), { force: true })
+  } catch (e) { /* pruning is best effort */ }
+}
+
+/** A filesystem error as a short message that carries no path. */
+const fsMessage = (what, e) => what + (e !== null && e !== undefined && typeof e.code === 'string' ? ' (' + e.code + ')' : '')
+
+/**
+ * Writes the new patch: a backup of the old one first, then the atomic write. A text with
+ * no entry left (the last connector was deleted from a file that held nothing else) is
+ * not written as an empty file, which DSH refuses at boot ("must be a top-level YAML
+ * array"): the file is removed instead, and the backup keeps its content.
+ */
+function writePatch(avant, apres, empty) {
+  const path = PATCH_PATH()
+  if (avant === apres) return
+  if (existsSync(path) && avant.length > 0) keepBackup(path, avant)
+  if (empty === true) { rmSync(path, { force: true }); return }
+  writeFileAtomic(path, apres, 0o600)
 }
 
 /**
@@ -699,64 +881,82 @@ function verifierSecrets(body) {
   return null
 }
 
-/** Valide le corps POST ; renvoie { erreur } ou { connecteur } normalisé. */
+// Characters a value must not carry into the YAML patch: every control character
+// except TAB (CR, LF and NUL among them), DEL, the C1 controls, and the Unicode line and
+// paragraph separators. Lone surrogates are refused too: they are not text.
+const CONTROL_RE = /[\x00-\x08\x0a-\x1f\x7f-\x9f\u2028\u2029]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/
+const propre = (v) => CONTROL_RE.test(String(v)) !== true
+
+// H-09: the NAME of an env/header pair is a YAML KEY once rendered, so it must be a
+// plain identifier (letters, digits, _ . -): never a line break, a ':' or a quote.
+// `X: 1\n  autoApprove` used to inject an arbitrary KEY into cordis.patch.yml.
+const NAME_PAILLE_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/
+
+/**
+ * The env or header pairs of a body. A row without a name is a blank form row and is
+ * dropped; every other row must have a plain name, a value without control characters,
+ * and a name not used before (YAML refuses a repeated key at boot: "duplicated mapping
+ * key"). Header names are compared without case, as HTTP does.
+ */
+function normalizePairs(raw, label, foldCase) {
+  if (Array.isArray(raw) === false) return { pairs: [] }
+  const pairs = []
+  const seen = {}
+  for (const p of raw) {
+    if (p === null || p === undefined || typeof p.name !== 'string' || p.name.trim().length === 0) continue
+    const name = p.name.trim()
+    if (NAME_PAILLE_RE.test(name) !== true) return { erreur: label + ': a name must be a simple identifier (letters, digits, _ . -)' }
+    const value = String(p.value === null || p.value === undefined ? '' : p.value)
+    if (propre(value) !== true) return { erreur: label + ' ' + name + ': the value must not contain line breaks or control characters (YAML escaping)' }
+    const key = foldCase === true ? name.toLowerCase() : name
+    if (seen[key] === true) return { erreur: label + ': the name ' + name + ' is used twice' }
+    seen[key] = true
+    pairs.push({ name: name, value: value })
+  }
+  return { pairs: pairs }
+}
+
+/** Validates the POST body: returns { erreur } or the normalized { connecteur }. */
 function normalizeConnecteur(body) {
-  if (body === null || body === undefined || typeof body !== 'object') return { erreur: 'corps attendu' }
+  if (body === null || body === undefined || typeof body !== 'object') return { erreur: 'a JSON object is expected' }
   const nom = String(body.nom || '').trim()
-  if (NOM_RE.test(nom) !== true) return { erreur: "nom invalide (kebab-case, 2-31 caractères) : " + nom }
+  if (NOM_RE.test(nom) !== true) return { erreur: 'invalid name (lowercase letters, digits and dashes, starting with a letter, 2 to 31 characters): ' + nom.slice(0, 40) }
   const transport = body.transport === 'stdio' ? 'stdio' : (body.transport === 'streamable-http' ? 'streamable-http' : null)
-  if (transport === null) return { erreur: 'transport invalide' }
+  if (transport === null) return { erreur: 'invalid transport' }
   const c = { nom: nom, transport: transport, updatedAt: new Date().toISOString() }
   if (transport === 'stdio') {
     const command = String(body.command || '').trim()
-    if (commandStdioOK(command) !== true) return { erreur: 'command : exécutable système requis (chemin absolu sous /usr/bin, /bin, /opt/homebrew/bin…, fichier exécutable) — un binaire ailleurs passe par le setup validé (connecteur-personnalise)' }
+    if (commandStdioOK(command) !== true) return { erreur: 'command: a system executable is required (absolute path under /usr/bin, /bin, /opt/homebrew/bin..., an executable file); a binary elsewhere goes through the validated setup (connecteur-personnalise)' }
     c.command = command
     c.args = Array.isArray(body.args) ? body.args.map((x) => String(x)).filter((x) => x.length > 0)
       : String(body.args || '').split(' ').map((x) => x.trim()).filter((x) => x.length > 0)
-    if (c.args.some((a) => sansMultiLigne(a) !== true)) return { erreur: 'args : pas de retours ligne (échappement YAML)' }
-    // Surface résiduelle ASSUMÉE (contradicteur, K-01) : les args restent
-    // libres en contenu (des args légitimes portent des chemins, des URL,
-    // des drapeaux) — un attaquant same-origin pourrait poser un args du
-    // genre « --config /chemin ». La défense de ce vecteur est l'ORIGINE
-    // exacte + JSON requis sur ce POST : un drive-by cross-site ne passe
-    // plus ; un attaquant same-origin a déjà la main sur la machine. On
-    // borne la LONGUEUR et le NOMBRE pour contenir l'exfiltration.
-    if (c.args.length > 8) return { erreur: 'args : 8 arguments maximum' }
-    if (c.args.some((a) => a.length > 200)) return { erreur: 'args : 200 caractères maximum par argument' }
+    if (c.args.some((a) => propre(a) !== true)) return { erreur: 'args: no line breaks or control characters (YAML escaping)' }
+    // ASSUMED residual surface (K-01 review): the args stay free in content (legitimate
+    // args carry paths, URLs, flags), so a same-origin attacker could set something like
+    // "--config /path". That vector is defended by the EXACT origin and the required JSON
+    // on this POST: a cross-site drive-by no longer gets through, and a same-origin
+    // attacker already controls the machine. The COUNT and the LENGTH are bounded to
+    // contain exfiltration.
+    if (c.args.length > 8) return { erreur: 'args: 8 arguments at most' }
+    if (c.args.some((a) => a.length > 200)) return { erreur: 'args: 200 characters at most per argument' }
     if (typeof body.cwd === 'string' && body.cwd.trim().length > 0) c.cwd = body.cwd.trim()
-    if (c.cwd !== undefined && sansMultiLigne(c.cwd) !== true) return { erreur: 'cwd : pas de retours ligne (échappement YAML)' }
-    // H-09 (rebond contradicteur 03/10) : les NAMES multi-lignes permettent
-    // d'injecter des clés YAML — on filtre name ET value, et le compteur
-    // ci-dessous détecte alors l'écart (400).
-    c.env = pairsOf(body.env).filter((e) => sansMultiLigne(e.value) === true && sansMultiLigne(e.name) === true)
-    if ((body.env || []).length > 0 && c.env.length !== (body.env || []).filter((p) => p !== null && p !== undefined && typeof p.name === 'string' && p.name.trim().length > 0).length) return { erreur: 'env : name doit être un identifiant simple, value sans retours ligne (échappement YAML)' }
+    if (c.cwd !== undefined && propre(c.cwd) !== true) return { erreur: 'cwd: no line breaks or control characters (YAML escaping)' }
+    const env = normalizePairs(body.env, 'env', false)
+    if (env.erreur !== undefined) return { erreur: env.erreur }
+    c.env = env.pairs
   } else {
     let u = null
     try { u = new URL(String(body.url || '')) } catch (e) { u = null }
-    if (u === null || (u.protocol !== 'https:' && u.protocol !== 'http:')) return { erreur: 'url invalide (http/https)' }
+    if (u === null || (u.protocol !== 'https:' && u.protocol !== 'http:')) return { erreur: 'invalid url (http/https)' }
     c.url = u.origin + (u.pathname || '/') + (u.search || '')
-    c.headers = pairsOf(body.headers).filter((e) => sansMultiLigne(e.value) === true && sansMultiLigne(e.name) === true)
-    if ((body.headers || []).length > 0 && c.headers.length !== (body.headers || []).filter((p) => p !== null && p !== undefined && typeof p.name === 'string' && p.name.trim().length > 0).length) return { erreur: 'headers : name doit être un identifiant simple, value sans retours ligne (échappement YAML)' }
+    const headers = normalizePairs(body.headers, 'headers', true)
+    if (headers.erreur !== undefined) return { erreur: headers.erreur }
+    c.headers = headers.pairs
   }
   return { connecteur: c }
 }
 
-// H-09 (reboucle) : le NAME d'une paire env/header est une CLÉ YAML au
-// rendu — il doit être un identifiant simple (lettres, chiffres, _ . -),
-// jamais de retour ligne, de ':' ni de quote : `X: 1\n  autoApprove`
-// injectait une CLÉ arbitraire dans cordis.patch.yml.
-const NAME_PAILLE_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,63}$/
-function paireNameValide(p) {
-  return p !== null && p !== undefined && typeof p.name === 'string' && NAME_PAILLE_RE.test(p.name.trim()) === true
-}
-function pairsOf(raw) {
-  if (Array.isArray(raw) === false) return []
-  return raw
-    .filter(paireNameValide)
-    .map((p) => ({ name: p.name.trim(), value: String(p.value === null || p.value === undefined ? '' : p.value) }))
-}
-
-/** Secrets NOM=valeur du corps (champ password du formulaire) → ~/.dsh/.env. */
+/** The NAME=value secrets of the body (the form's password fields) go to the DSH .env. */
 function storeSecrets(body) {
   if (Array.isArray(body.secrets) === false) return 0
   let n = 0
@@ -770,9 +970,8 @@ function storeSecrets(body) {
 }
 
 async function serveConnecteurs(ctx, req, res) {
-  // K-01 : lecture réservée à la machine (origine exacte), écriture en plus
-  // cantonnée au JSON explicite.
-  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+  // K-01: reads are reserved to the machine (exact origin); writes also need explicit JSON.
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
   if (req.method === 'GET') {
     const sidecar = readSidecar()
     const seen = {}
@@ -783,34 +982,51 @@ async function serveConnecteurs(ctx, req, res) {
       if (seen[nom] === true) continue
       fromPatch.push(Object.assign({ nom: nom, horsFormulaire: true }, blockSummary(blocks[nom])))
     }
-    // Jamais de valeur de secret ici : seuls les noms et les libellés sortent.
+    // Never a secret value here: only names and labels leave.
     return sendJson(res, 200, { ok: true, connecteurs: sidecar.concat(fromPatch) })
   }
   if (req.method === 'POST') {
-    if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json attendu' })
+    if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
     let body = null
-    try { body = JSON.parse(await readBody(req)) } catch (e) { return sendJson(res, 400, { ok: false, error: 'corps JSON attendu' }) }
+    try { body = JSON.parse(await readBody(req)) } catch (e) { return sendJson(res, 400, { ok: false, error: 'a JSON body is expected' }) }
     const n = normalizeConnecteur(body)
     if (n.erreur !== undefined) return sendJson(res, 400, { ok: false, error: n.erreur })
     const secretErreur = verifierSecrets(body)
     if (secretErreur !== null) return sendJson(res, 400, { ok: false, error: secretErreur })
     const c = n.connecteur
+    // The patch is built and checked BEFORE any file is written: a refusal leaves everything untouched.
+    let avant = ''
+    try { avant = readPatchText() } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be read', e) }) }
+    const apres = patchWithBlock(avant, c)
+    const verdict = checkPatch(avant, apres, c.nom, 'present')
+    if (verdict.ok !== true) return sendJson(res, verdict.status, { ok: false, error: verdict.error })
     const secretsWritten = storeSecrets(body)
     const list = readSidecar().filter((x) => x.nom !== c.nom)
     list.push(c)
     list.sort((a, b) => (a.nom < b.nom ? -1 : 1))
     writeSidecar(list)
-    try { upsertPatchBlock(c) } catch (e) { return sendJson(res, 500, { ok: false, error: 'écriture config: ' + String((e && e.message) || e) }) }
-    return sendJson(res, 200, { ok: true, connecteur: c, secretsWritten: secretsWritten, needRestart: true })
+    try { writePatch(avant, apres, verdict.empty) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be written', e) }) }
+    return sendJson(res, 200, { ok: true, connecteur: c, secretsWritten: secretsWritten, needRestart: true, validated: verdict.validated })
   }
   if (req.method === 'DELETE') {
     const nom = queryOf(req).get('nom') || ''
-    if (NOM_RE.test(nom) !== true) return sendJson(res, 400, { ok: false, error: 'nom invalide' })
+    if (NOM_RE.test(nom) !== true) return sendJson(res, 400, { ok: false, error: 'invalid name' })
+    let avant = ''
+    try { avant = readPatchText() } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be read', e) }) }
+    const apres = patchWithoutBlock(avant, nom)
+    let verdict = null
+    if (apres !== null) {
+      verdict = checkPatch(avant, apres, nom, 'absent')
+      if (verdict.ok !== true) return sendJson(res, verdict.status, { ok: false, error: verdict.error })
+    }
     writeSidecar(readSidecar().filter((x) => x.nom !== nom))
-    const removed = removePatchBlock(nom)
+    if (apres !== null) {
+      try { writePatch(avant, apres, verdict.empty) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be written', e) }) }
+    }
+    const removed = apres !== null
     return sendJson(res, 200, { ok: true, removed: removed, needRestart: removed })
   }
-  return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE attendus' })
+  return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
 }
 
 function readBody(req) {
@@ -837,7 +1053,7 @@ export function apply(ctx) {
   // Idem pour les connecteurs : une exception ne doit jamais casser la page.
   const serveConnecteursSafe = async (req, res) => {
     try { await serveConnecteurs(ctx, req, res) } catch (e) {
-      try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: String((e && e.message) || e) }) } catch (e2) { /* socket fermé */ }
+      try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
     }
   }
   const mount = (webServerSvc) => {
