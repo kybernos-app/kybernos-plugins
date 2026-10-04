@@ -63,8 +63,8 @@ let kbLocaleRead = () => 'en'
       // retombait sur « Plus recents » alors que le menu cochait « Plus de fils ».
       'tb.summary.threads.few': { kybernos: 'Moins de fils', en: 'Fewest threads' },
       'tb.summary.threads.most': { kybernos: 'Plus de fils', en: 'Most threads' },
-      'tb.summary.deliv.few': { kybernos: 'Moins de livrables', en: 'Fewest deliverables' },
-      'tb.summary.deliv.most': { kybernos: 'Plus de livrables', en: 'Most deliverables' },
+      'tb.summary.deliv.few': { kybernos: 'Moins de créations', en: 'Fewest creations' },
+      'tb.summary.deliv.most': { kybernos: 'Plus de créations', en: 'Most creations' },
       // Critères de la page Automations (barre unifiée) : sans elles, le bandeau
       // du tri retombait sur « Plus récents » quel que soit le critère coché.
       'tb.summary.sessions.few': { kybernos: 'Moins de sessions', en: 'Fewest sessions' },
@@ -74,8 +74,8 @@ let kbLocaleRead = () => 'en'
       // Pastilles des cartes de projet (l'anglais etait en dur : « 1 DELIVERABLES »).
       'kbui.pill.thread.one': { kybernos: 'FIL', en: 'THREAD' },
       'kbui.pill.thread.many': { kybernos: 'FILS', en: 'THREADS' },
-      'kbui.pill.deliv.one': { kybernos: 'LIVRABLE', en: 'DELIVERABLE' },
-      'kbui.pill.deliv.many': { kybernos: 'LIVRABLES', en: 'DELIVERABLES' },
+      'kbui.pill.deliv.one': { kybernos: 'CRÉATION', en: 'CREATION' },
+      'kbui.pill.deliv.many': { kybernos: 'CRÉATIONS', en: 'CREATIONS' },
       'tb.count.of': { kybernos: 'sur', en: 'of' },
       'tb.empty.title': { kybernos: 'Aucun résultat', en: 'No results' },
       'tb.empty.hint': { kybernos: 'Aucun élément ne correspond à cette recherche avec les filtres actuels.', en: 'Nothing matches this search with the current filters.' },
@@ -126,13 +126,16 @@ let kbLocaleRead = () => 'en'
       'tasks.new': { kybernos: 'Nouvelle tâche', en: 'New task' },
       // ── Deliverables : tuiles de type, bandeau, actions rapides, Create with AI ──
       'deliv.createAI': { kybernos: 'Créer avec l\'IA', en: 'Create with AI' },
-      'deliv.create.prompt': { kybernos: 'Crée un livrable de type « {type} » à partir du contexte de cette conversation. Propose-le-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Create a "{type}" deliverable from this conversation\'s context. Show me a draft before writing it to the workspace.' },
+      'deliv.create.prompt': { kybernos: 'Imagine une création de type « {type} » à partir du contexte de cette conversation. Propose-la-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Come up with a "{type}" creation from this conversation\'s context. Show me a draft before writing it to the workspace.' },
       'deliv.schedule.cta': { kybernos: 'Planifier une tâche', en: 'Schedule task' },
       'deliv.tasks.desc': { kybernos: 'Sessions qui partent toutes seules à l\'heure choisie.', en: 'Sessions that start on their own at the chosen time.' },
       'deliv.qa.1': { kybernos: 'Crée un {type} à partir de la conversation en cours.', en: 'Create a {type} from the current conversation.' },
       'deliv.qa.2': { kybernos: 'Propose un plan de {type} pour ce projet.', en: 'Propose a {type} plan for this project.' },
       'deliv.qa.3': { kybernos: 'Améliore le dernier {type} produit par l\'équipe.', en: 'Improve the latest {type} produced by the team.' },
-      'deliv.type.word': { kybernos: 'livrable', en: 'deliverable' },
+      // With no type chosen ("All"): "a {type}" does not agree with "creation".
+      'deliv.qa.1.any': { kybernos: 'Imagine une création à partir de la conversation en cours.', en: 'Come up with a creation from the current conversation.' },
+      'deliv.qa.2.any': { kybernos: 'Propose un plan de création pour ce projet.', en: 'Propose a creation plan for this project.' },
+      'deliv.qa.3.any': { kybernos: 'Améliore la dernière création produite par l\'équipe.', en: 'Improve the latest creation produced by the team.' },
       // Sélection multi-types + panneau « Choisir les types affichés » (29/09).
       'deliv.multihint': { kybernos: 'Sélectionnez un ou plusieurs types — ils se combinent.', en: 'Select one or more types — they combine.' },
       'deliv.clearsel': { kybernos: 'Effacer la sélection', en: 'Clear selection' },
@@ -334,15 +337,15 @@ let kbLocaleRead = () => 'en'
       'tasks.fire.now': { kybernos: 'maintenant', en: 'now' },
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
-      'deliverables.title': { kybernos: 'Livrables', en: 'Deliverables' },
+      'deliverables.title': { kybernos: 'Créations', en: 'Creations' },
       'deliverables.desc': { kybernos: 'Tout ce que vos Kybers ont produit — pages, scripts, docs et decks. Ouvrez-en un pour le visualiser.', en: 'Everything your Kybers produced — pages, scripts, docs and decks. Open one to view it.' },
-      'deliverables.empty': { kybernos: 'Aucun livrable généré pour l\'instant.', en: 'No deliverables yet.' },
+      'deliverables.empty': { kybernos: 'Aucune création générée pour l\'instant.', en: 'No creations yet.' },
       'deliverables.view': { kybernos: 'Visualiser', en: 'View' },
       'deliverables.share': { kybernos: 'Partager', en: 'Share' },
       'deliverables.copied': { kybernos: 'Chemin copié', en: 'Path copied' },
       'deliverables.all': { kybernos: 'Tous', en: 'All' },
       'deliverables.back': { kybernos: 'Retour', en: 'Back' },
-      'deliverables.search': { kybernos: 'Rechercher un livrable…', en: 'Search a deliverable…' },
+      'deliverables.search': { kybernos: 'Rechercher une création…', en: 'Search a creation…' },
       'deliverables.pinned': { kybernos: 'Épinglés', en: 'Pinned' },
       'deliverables.sortby': { kybernos: 'Trier', en: 'Sort' },
       'deliverables.sort.date': { kybernos: 'Date', en: 'Date' },
@@ -382,8 +385,7 @@ let kbLocaleRead = () => 'en'
       'menu.crewmodel': { kybernos: 'Exécution modèle', en: 'Model Execution' },
       'menu.runs': { kybernos: 'Runs', en: 'Runs' },
       'menu.projects': { kybernos: 'Workspaces', en: 'Workspaces' },
-      'menu.deliverables': { kybernos: 'Livrables', en: 'Deliverables' },
-      'menu.resources': { kybernos: 'Ressources', en: 'Resources' },
+      'menu.deliverables': { kybernos: 'Créations', en: 'Creations' },
       'menu.hosted': { kybernos: 'Kybernos Hosted', en: 'Kybernos Hosted' },
       'menu.newchat': { kybernos: 'New chat', en: 'New chat' },
       'menu.newchat.sub': { kybernos: 'avec vos kybers', en: 'with your kybers' },
@@ -702,7 +704,7 @@ let kbLocaleRead = () => 'en'
       'ui.subsession': { kybernos: 'Sous-session', en: 'Sub-session' },
       'ui.attempts.sub': { kybernos: ' pour ce rôle dans ce run', en: ' for this role in this run' },
       'ui.noworkspace': { kybernos: 'Aucun workspace pour l\'instant.', en: 'No workspace yet.' },
-      'ui.nodeliverable': { kybernos: 'Aucun livrable dans ce projet.', en: 'No deliverable in this project.' },
+      'ui.nodeliverable': { kybernos: 'Aucune création dans ce projet.', en: 'No creation in this project.' },
       'runs.noroute': { kybernos: 'route absente — rechargez le plugin (Settings > Plugins) ou redémarrez DSH', en: 'route missing — reload the plugin (Settings > Plugins) or restart DSH' },
       'runs.withruns': { kybernos: ' avec runs', en: ' with runs' },
       'runs.localstore': { kybernos: ' (store local)', en: ' (local store)' },
@@ -838,7 +840,7 @@ let kbLocaleRead = () => 'en'
       'art.sending': { kybernos: 'Envoi en cours…', en: 'Sending…' },
       'art.generate': { kybernos: ' Générer ', en: ' Generate ' },
       'art.prompt.build': { kybernos: ' Crée un ', en: ' Create a ' },
-      'deliv.create.prompt.any': { kybernos: 'Crée un livrable à partir du contexte de cette conversation. Propose-le-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Create a deliverable from this conversation\'s context. Show me a draft before writing it to the workspace.' },
+      'deliv.create.prompt.any': { kybernos: 'Imagine une création à partir du contexte de cette conversation. Propose-la-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Come up with a creation from this conversation\'s context. Show me a draft before writing it to the workspace.' },
       'kbui.feedback.flash': { kybernos: 'Retours — dites-nous ce qui a cassé.', en: 'Feedback — tell us what broke.' },
       'kbui.feedback.draft': { kybernos: '/skill-signaler-retour Je veux signaler un problème ou proposer une amélioration. Commence l\'entretien par ta première question.', en: '/skill-signaler-retour I want to report a problem or suggest an improvement. Start the interview with your first question.' },
       'kbui.help.flash': { kybernos: 'Aide · raccourcis · journal des versions.', en: 'Help · shortcuts · release notes.' },
@@ -923,7 +925,7 @@ let kbLocaleRead = () => 'en'
       'kbui.uploadimage': { kybernos: ' Importer une image', en: ' Upload image' },
       'kbui.useicon': { kybernos: ' Utiliser une icône', en: ' Use icon' },
       'kbui.guidedchat': { kybernos: 'Un chat guidé — il demande ce que le kyber doit faire', en: 'A guided chat — it asks what the kyber should do' },
-      'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et livrables. Ouvrez-le pour voir ce que les Kybers y ont produit.', en: 'A project holds its own chats, documents, goals and deliverables. Open one to see what the Kybers produced there.' },
+      'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et créations. Ouvrez-le pour voir ce que les Kybers y ont produit.', en: 'A project holds its own chats, documents, goals and creations. Open one to see what the Kybers produced there.' },
       'kbui.sort.az': { kybernos: 'A → Z', en: 'A → Z' },
       'kbui.apps.askfor': { kybernos: 'APPLICATIONS DEMANDÉES', en: 'APPS IT WILL ASK FOR' },
       'kbui.actions': { kybernos: 'Actions', en: 'Actions' },
@@ -1072,7 +1074,7 @@ let kbLocaleRead = () => 'en'
       'kbui.masquer': { kybernos: 'Masquer', en: 'Hide' },
       'kbui.mission': { kybernos: 'Mission', en: 'Mission' },
       'kbui.sort.mostagents': { kybernos: 'Plus d’agents', en: 'Most agents' },
-      'kbui.sort.mostdeliverables': { kybernos: 'Plus de livrables', en: 'Most deliverables' },
+      'kbui.sort.mostdeliverables': { kybernos: 'Plus de créations', en: 'Most creations' },
       'kbui.sort.mostthreads': { kybernos: 'Plus de fils', en: 'Most threads' },
       'kbui.move.team': { kybernos: 'Transférer une équipe en un clic', en: 'Move a team over in one click' },
       'kbui.new.kyber': { kybernos: 'Nouveau Kyber', en: 'New Kyber' },
@@ -1145,20 +1147,36 @@ let kbLocaleRead = () => 'en'
       'kbui.action.export': { kybernos: 'Exporter', en: 'Export' },
       'kbui.action.clone.suffix': { kybernos: ' (copie)', en: ' (copy)' },
       'kbui.action.clone.word': { kybernos: 'copie', en: 'copy' },
-      'kbui.ressources': { kybernos: 'Ressources', en: 'Resources' },
       // (29/09) « Composio » → « Connecteurs locaux » : libellé kbt, plus de
       // marque nue dans la barre d'onglets.
-      'kbui.res.connectors': { kybernos: 'Connecteurs locaux', en: 'Local Connectors' },
       'kbui.run': { kybernos: 'Exécuter', en: 'Run' },
       'kbui.run.dot': { kybernos: 'Run · ', en: 'Run · ' },
       'kbui.runs.unavailable': { kybernos: 'Runs indisponibles', en: 'Runs unavailable' },
-      'kbui.hosted.same': { kybernos: 'Mêmes équipes, mêmes chats, mêmes livrables — déplacés hors de votre machine.', en: 'Same teams, same chats, same deliverables — moved off your hardware.' },
+      'kbui.hosted.same': { kybernos: 'Mêmes équipes, mêmes chats, mêmes créations — déplacées hors de votre machine.', en: 'Same teams, same chats, same creations — moved off your hardware.' },
       'kbui.save.now': { kybernos: 'Enregistrer maintenant', en: 'Save now' },
       'kbui.search': { kybernos: 'Rechercher ', en: 'Search ' },
       'kbui.icons.suffix': { kybernos: ' icônes…', en: ' icons…' },
       'kbui.search.everywhere': { kybernos: 'Rechercher partout…', en: 'Search everywhere…' },
       'kbui.search.parser': { kybernos: 'Rechercher — parser, CRM, scraping…', en: 'Search — parser, CRM, scraping…' },
       'kbui.send.feedback': { kybernos: 'Envoyer un retour', en: 'Send feedback' },
+      // ── "Help" box of the account menu (04/10) ──
+      'kbui.help.title': { kybernos: 'Aide', en: 'Help' },
+      'kbui.help.sub': { kybernos: 'L’essentiel pour s’y retrouver.', en: 'The essentials to find your way around.' },
+      'kbui.help.start': { kybernos: 'Pour démarrer', en: 'Getting started' },
+      'kbui.help.s1': { kybernos: '« Nouveau chat » ouvre une conversation ; choisissez l’équipe d’agents à côté du bouton.', en: '“New chat” opens a conversation; pick the Agent Team next to the button.' },
+      'kbui.help.s2': { kybernos: 'Tapez / pour les commandes, @ pour citer un fichier ou une session.', en: 'Type / for commands, @ to mention a file or a session.' },
+      'kbui.help.s3': { kybernos: 'Tout ce que vos Kybers produisent arrive dans Créations.', en: 'Everything your Kybers produce lands in Creations.' },
+      'kbui.help.map': { kybernos: 'La barre latérale', en: 'The sidebar' },
+      'kbui.help.d.teams': { kybernos: 'vos équipes d’agents', en: 'your crews of agents' },
+      'kbui.help.d.ws': { kybernos: 'vos projets et leurs conversations', en: 'your projects and their chats' },
+      'kbui.help.d.creations': { kybernos: 'les fichiers produits par vos Kybers', en: 'the files your Kybers produced' },
+      'kbui.help.d.auto': { kybernos: 'des sessions qui partent à l’heure choisie', en: 'sessions that start at a chosen time' },
+      'kbui.help.d.skills': { kybernos: 'des consignes réutilisables pour vos agents', en: 'reusable instructions for your agents' },
+      'kbui.help.d.conn': { kybernos: 'les applications que vos Kybers peuvent utiliser', en: 'the apps your Kybers can use' },
+      'kbui.help.more': { kybernos: 'Besoin d’un coup de main ?', en: 'Need a hand?' },
+      'kbui.help.updates': { kybernos: 'Rechercher une mise à jour', en: 'Check for updates' },
+      'kbui.help.website': { kybernos: 'Site web', en: 'Website' },
+      'kbui.help.close': { kybernos: 'Fermer', en: 'Close' },
       // Carte de notation 5 étoiles (remplace les pouces Quality Score).
       // Libellés portés depuis la maquette validée (docs/handoff/notation-agent/
       // maquette-v2) : les libellés EN sont ceux de la source Manus.
@@ -1324,7 +1342,7 @@ let kbLocaleRead = () => 'en'
       'kbui.item': { kybernos: ' élément', en: ' item' },
       'kbui.root.installed': { kybernos: 'Installés · dossier DSH', en: 'Installed · DSH home' },
       'kbui.root.workspace': { kybernos: 'Dépôt · espace de travail', en: 'Repository · workspace' },
-      'kbui.project.sub': { kybernos: 'Un projet est un espace de travail à part entière — les chats, documents, objectifs et livrables qui appartiennent à un même travail.', en: 'A project is a workspace of its own — the chats, documents, goals and deliverables that belong to one piece of work.' },
+      'kbui.project.sub': { kybernos: 'Un projet est un espace de travail à part entière — les chats, documents, objectifs et créations qui appartiennent à un même travail.', en: 'A project is a workspace of its own — the chats, documents, goals and creations that belong to one piece of work.' },
       'kbui.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'kbui.copylink.hosted': { kybernos: 'Copier le lien (Hosted uniquement)', en: 'Copy link (Hosted only)' },
       'kbui.createteam.chat': { kybernos: 'Créer l’équipe et ouvrir le chat', en: 'Create team and open the chat' },
@@ -1364,7 +1382,7 @@ let kbLocaleRead = () => 'en'
       'kbsd.personal.short': { kybernos: 'Espace personnel : un seul membre, invitations indisponibles.', en: 'Personal space: a single member, invitations unavailable.' },
       'kbsd.whats': { kybernos: 'Qu’est-ce qui est partagé ?', en: 'What’s shared?' },
       'kbsd.shared.h': { kybernos: 'Partagé avec tous les membres', en: 'Shared with all members' },
-      'kbsd.shared.b': { kybernos: 'Instructions, fichiers, kybers rattachés et livrables du projet.', en: 'Instructions, files, attached kybers and the project’s deliverables.' },
+      'kbsd.shared.b': { kybernos: 'Instructions, fichiers, kybers rattachés et créations du projet.', en: 'Instructions, files, attached kybers and the project’s creations.' },
       'kbsd.personal.h': { kybernos: 'Reste personnel', en: 'Stays personal' },
       'kbsd.personal.b': { kybernos: 'Identifiants des connecteurs, tâches planifiées et consommation de crédits.', en: 'Connector credentials, scheduled tasks and credit usage.' },
       'kbsd.email.ph': { kybernos: 'Adresses e-mail', en: 'Enter email addresses' },
@@ -1388,8 +1406,8 @@ let kbLocaleRead = () => 'en'
       'kbsd.ok.role': { kybernos: 'Rôle mis à jour', en: 'Role updated' },
       'kbsd.ok.removed': { kybernos: 'Membre retiré', en: 'Member removed' },
       'kbsd.err.save': { kybernos: 'Enregistrement refusé : {m}', en: 'Save refused: {m}' },
-      'kbsd.err.nopath': { kybernos: 'Chemin du livrable inconnu', en: 'Unknown deliverable path' },
-      'kbsd.err.read': { kybernos: 'Livrable illisible : {m}', en: 'Deliverable unreadable: {m}' },
+      'kbsd.err.nopath': { kybernos: 'Chemin de la création inconnu', en: 'Unknown creation path' },
+      'kbsd.err.read': { kybernos: 'Création illisible : {m}', en: 'Creation unreadable: {m}' },
       'kbsd.err.push': { kybernos: 'Hébergement refusé : {m}', en: 'Hosting refused: {m}' },
       'kbsd.err.share': { kybernos: 'Partage refusé : {m}', en: 'Sharing refused: {m}' },
       'kbsd.err.norevoke': { kybernos: 'État du lien non confirmé par le Cloud : révocation impossible pour l’instant.', en: 'Link state not confirmed by the Cloud: revocation is not possible right now.' },
@@ -1428,7 +1446,7 @@ let kbLocaleRead = () => 'en'
       'kbui.search.kyber': { kybernos: 'Rechercher un Kyber, une catégorie, un objectif…', en: 'Search a Kyber, a category, a goal…' },
       'kbui.search.template': { kybernos: 'Rechercher un modèle, une catégorie, une mission…', en: 'Search a template, a category, a mission…' },
       'kbui.search.project': { kybernos: 'Rechercher un projet par nom ou description…', en: 'Search a project by name or description…' },
-      'kbui.search.deliverable': { kybernos: 'Rechercher un livrable…', en: 'Search a deliverable…' },
+      'kbui.search.deliverable': { kybernos: 'Rechercher une création…', en: 'Search a creation…' },
       'kbui.search.task': { kybernos: 'Rechercher une automation…', en: 'Search an automation…' },
       'kbui.stop': { kybernos: 'Arrêter', en: 'Stop' },
       'kbui.synthesising': { kybernos: 'Synthèse…', en: 'Synthesising…' },
@@ -1455,7 +1473,7 @@ let kbLocaleRead = () => 'en'
       'kbui.frag.inproject': { kybernos: ' dans ce projet…', en: ' in this project…' },
       'kbui.frag.digitalclone': { kybernos: ' est votre Clone Numérique — il ne peut pas être supprimé.', en: ' is your Digital Clone — it cannot be deleted.' },
       'kbui.frag.of4': { kybernos: ' sur 4 · ', en: ' of 4 · ' },
-      'kbui.frag.removed': { kybernos: ' sera supprimé avec ses chats, sa mémoire et ses livrables.', en: ' will be removed with its chats, memory and deliverables.' },
+      'kbui.frag.removed': { kybernos: ' sera supprimé avec ses chats, sa mémoire et ses créations.', en: ' will be removed with its chats, memory and creations.' },
       'kbui.frag.crew': { kybernos: 'Équipe · ', en: 'Crew · ' },
       'kbui.frag.running': { kybernos: 'En cours · ', en: 'Running · ' },
       'kbui.frag.skills': { kybernos: 'Compétences · ', en: 'Skills · ' },
@@ -1705,6 +1723,10 @@ let kbLocaleRead = () => 'en'
       'kbui.ws.row.t': { kybernos: 'Console du workspace', en: 'Workspace console' },
       'kbui.ws.row.d': { kybernos: 'Gérez les membres, quotas, abonnements Stripe et clés — dans Kybernos Cloud.', en: 'Manage members, quotas, Stripe subscriptions and keys — in Kybernos Cloud.' },
       'kbui.ws.open': { kybernos: 'Ouvrir', en: 'Open' },
+      'kbui.ws.down.t': { kybernos: 'Console indisponible', en: 'Console unavailable' },
+      'kbui.ws.down.d': { kybernos: 'Impossible de joindre la console du workspace ({host}). Vérifiez votre connexion, puis réessayez.', en: 'Could not reach the workspace console ({host}). Check your connection, then try again.' },
+      'kbui.ws.retry': { kybernos: 'Réessayer', en: 'Try again' },
+      'kbui.ws.openbrowser': { kybernos: 'Ouvrir dans le navigateur', en: 'Open in browser' },
       'kbui.ins.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
       'kbui.ins.save.err': { kybernos: 'Réglages non enregistrés', en: 'Settings not saved' },
       'kbui.ins.empty': { kybernos: 'Équipe introuvable', en: 'Team not found' },
@@ -1991,7 +2013,7 @@ let kbLocaleRead = () => 'en'
       'kbws.comp.chat': { kybernos: 'Chats', en: 'Chats' },
       'kbws.comp.chat.d': { kybernos: 'Un envoi à la fois, après un manifeste', en: 'One send at a time, after a manifest' },
       'kbws.comp.art': { kybernos: 'Artifacts', en: 'Artifacts' },
-      'kbws.comp.art.d': { kybernos: 'Livrables générés', en: 'Generated deliverables' },
+      'kbws.comp.art.d': { kybernos: 'Créations générées', en: 'Generated creations' },
       'kbws.comp.prj': { kybernos: 'Projets', en: 'Projects' },
       'kbws.comp.prj.d': { kybernos: 'Structure et métadonnées', en: 'Structure and metadata' },
       'kbws.comp.skill': { kybernos: 'Skills', en: 'Skills' },
@@ -2498,7 +2520,7 @@ const KB_FR_EN = {
   'Accès micro refusé — autorisez le micro pour cette page': 'Microphone access denied — allow the mic for this page',
   'Afficher le détail': 'Show the detail',
   'Afficher les points': 'Show the points',
-  'Aperçu de maquette — ce livrable sera ouvrable une fois produit par un Kyber.': 'Mockup preview — this deliverable becomes openable once a Kyber produces it.',
+  'Aperçu de maquette — cette création sera ouvrable une fois produite par un Kyber.': 'Mockup preview — this creation becomes openable once a Kyber produces it.',
   'Aucun bloc `budget:` dans les kyber.yml du projet.': 'No `budget:` block in the project kyber.yml files.',
   'Aucun budget déclaré par les kybers de ce projet (bloc budget: du kyber.yml).': 'No budget declared by this project’s kybers (budget: block of kyber.yml).',
   'Aucun budget déclaré pour y rapporter cette dépense.': 'No declared budget to report this spend against.',
@@ -2515,6 +2537,12 @@ const KB_FR_EN = {
   'Instructions envoyées à l’agent': 'Instructions sent to the agent',
   'Épingler': 'Pin',
   'Détacher': 'Unpin',
+  'Désépingler la conversation': 'Unpin session',
+  'Renommer': 'Rename',
+  'Bifurquer la conversation': 'Fork session',
+  'Archiver la conversation': 'Archive session',
+  'Actions de la conversation': 'Session actions',
+  'Cette conversation est en cours. L’arrêter et l’archiver ?': 'This session is still running. Stop it and archive it?',
   'Épinglés': 'Pinned',
   'Replier les épinglés': 'Collapse Pinned',
   'Déplier les épinglés': 'Expand Pinned',
@@ -2710,16 +2738,16 @@ const KB_FR_EN = {
   'Lecture de \`kybers/quality\` impossible (hôte sans la route ? relance DSH pour la charger).': 'Cannot read \`kybers/quality\` (host without the route? restart DSH to load it).',
   'réponse invalide du host': 'invalid host response',
   'réponse vide du modèle': 'empty model response',
-  'Livrable illisible : ': 'Unreadable deliverable: ',
+  'Création illisible : ': 'Unreadable creation: ',
   'raison inconnue': 'unknown reason',
   'Hébergement refusé : ': 'Hosting refused: ',
   'Partage refusé : ': 'Sharing refused: ',
   'Partager ce projet': 'Share this project',
   'Privé': 'Private',
   'Lien public': 'Public link',
-  'Partager ce livrable': 'Share this deliverable',
+  'Partager cette création': 'Share this creation',
   'Partager ce kyber': 'Share this kyber',
-  'Livrable': 'Deliverable',
+  'Création': 'Creation',
   'Kyber': 'Kyber',
   'Visible uniquement par vous': 'Only you can see it',
   'Espace ': 'Space ',
@@ -4706,10 +4734,7 @@ const CSS = `
 .kb4-item:hover{background:var(--dsw-alias-bg-layer-1)}
 .kb4-item.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-brand-primary)}
 .kb4-item.on .kb4-lab{font-weight:700}
-.kb4-ico{flex:none;width:16px;height:16px;display:flex;align-items:center;justify-content:center;transition:transform .22s cubic-bezier(.34,1.56,.64,1)}
-.kb4-item:hover .kb4-ico{transform:translateY(-2px) rotate(-6deg) scale(1.22)}
-.kb4-item.on .kb4-ico{transform:none}
-@media (prefers-reduced-motion:reduce){.kb4-ico,.kb4-item:hover .kb4-ico{transition:none;transform:none}}
+.kb4-ico{flex:none;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
 .kb4-lab{flex:1;text-align:left}
 .kb4-badge{font-size:13px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
 [class*="collapsed"] .kb4-menu .kb4-lab,[class*="collapsed"] .kb4-menu .kb4-badge,[class*="collapsed"] .kb4-menu .kb4-ncol,[class*="collapsed"] .kb4-menu .kb4-chev{display:none !important}
@@ -4914,6 +4939,9 @@ const CSS = `
 .kb6-frame{width:100%;height:520px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-document-preview, var(--dsw-alias-bg-base))}
 .kb6-pre{margin:0;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:16px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.55;color:var(--dsw-alias-label-primary);overflow:auto;max-height:560px;white-space:pre}
 .kb6-head{margin:0 0 16px}
+/* Skills page: the page title is the sidebar's; the Skills component
+   (another bundle) carries its own "Skills" right below — we hide it. */
+.kbg-root[data-kb-page=skills] .kbs-h1{display:none}
 /* (28/09, audit) margin:0 — le h1 gardait la marge UA (17,4px) que le div
    de Livrables n'a pas : 15px d'écart de hauteur de titre entre pages. */
 .kb6-title{margin:0;font-size:26px;font-weight:800;color:var(--dsw-alias-label-primary);letter-spacing:-.01em;line-height:1.25}
@@ -5405,6 +5433,72 @@ const kbGoalCard = () => {
   obs.observe(document.body, { childList: true, subtree: true, characterData: true })
 }
 
+// ── "Help" box (account menu) ──────────────────────────────────────────────────
+// A modal box in plain DOM: it must open even if the panel's React tree
+// is not mounted. Esc / click outside close it; focus returns to where it was.
+const kbHelpOpen = () => {
+  if (typeof document === 'undefined' || document.querySelector('.kbhelp-scrim') !== null) return
+  if (document.querySelector('style[data-kybernos="kbhelp-css"]') === null) {
+    const st = document.createElement('style')
+    st.dataset.kybernos = 'kbhelp-css'
+    st.textContent = [
+      '.kbhelp-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5)}',
+      '.kbhelp-dlg{box-sizing:border-box;width:100%;max-width:480px;max-height:calc(100vh - 32px);overflow:auto;padding:22px;border-radius:20px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 24px 64px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}',
+      '.kbhelp-h{margin:0;font-size:18px;font-weight:650;letter-spacing:-.01em}',
+      '.kbhelp-sub{margin:2px 0 0;color:var(--dsw-alias-label-secondary)}',
+      '.kbhelp-sec{margin:18px 0 6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
+      '.kbhelp-ul{margin:0;padding:0;list-style:none}',
+      '.kbhelp-ul li{position:relative;margin:0 0 6px;padding-inline-start:16px}',
+      '.kbhelp-ul li::before{content:"";position:absolute;inset-inline-start:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--dsw-alias-label-tertiary)}',
+      '.kbhelp-map{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0}',
+      '.kbhelp-map dt{font-weight:600}',
+      '.kbhelp-map dd{margin:0;color:var(--dsw-alias-label-secondary)}',
+      '.kbhelp-foot{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}',
+      '.kbhelp-b{display:inline-flex;align-items:center;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:550;text-decoration:none;cursor:pointer}',
+      '.kbhelp-b:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbhelp-b.main{margin-inline-start:auto;border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}',
+    ].join('')
+    document.head.appendChild(st)
+  }
+  const el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined) e.textContent = txt; return e }
+  const prev = document.activeElement
+  const scrim = el('div', 'kbhelp-scrim')
+  const dlg = el('div', 'kbhelp-dlg')
+  dlg.setAttribute('role', 'dialog')
+  dlg.setAttribute('aria-modal', 'true')
+  dlg.setAttribute('aria-label', kbt('kbui.help.title'))
+  const close = () => { scrim.remove(); document.removeEventListener('keydown', onKey, true); try { if (prev && prev.focus) prev.focus() } catch (e) { /* unmounted */ } }
+  const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() } }
+  document.addEventListener('keydown', onKey, true)
+  scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) close() })
+  const btn = (label, cls, fn) => { const b = el('button', 'kbhelp-b' + (cls ? ' ' + cls : ''), label); b.type = 'button'; b.addEventListener('click', fn); return b }
+  dlg.appendChild(el('h2', 'kbhelp-h', kbt('kbui.help.title')))
+  dlg.appendChild(el('p', 'kbhelp-sub', kbt('kbui.help.sub')))
+  dlg.appendChild(el('div', 'kbhelp-sec', kbt('kbui.help.start')))
+  const ul = el('ul', 'kbhelp-ul')
+  for (const k of ['kbui.help.s1', 'kbui.help.s2', 'kbui.help.s3']) ul.appendChild(el('li', null, kbt(k)))
+  dlg.appendChild(ul)
+  dlg.appendChild(el('div', 'kbhelp-sec', kbt('kbui.help.map')))
+  const dl = el('dl', 'kbhelp-map')
+  for (const [name, desc] of [['menu.aiteams', 'kbui.help.d.teams'], ['menu.projects', 'kbui.help.d.ws'], ['menu.deliverables', 'kbui.help.d.creations'], ['menu.tasks', 'kbui.help.d.auto'], ['kbui.skills', 'kbui.help.d.skills'], ['kbui.connecteurs', 'kbui.help.d.conn']]) {
+    dl.appendChild(el('dt', null, kbt(name)))
+    dl.appendChild(el('dd', null, kbt(desc)))
+  }
+  dlg.appendChild(dl)
+  dlg.appendChild(el('div', 'kbhelp-sec', kbt('kbui.help.more')))
+  const foot = el('div', 'kbhelp-foot')
+  foot.appendChild(btn(kbt('kbui.send.feedback'), '', () => { close(); try { window.dispatchEvent(new Event('kybernos:menu:feedback')) } catch (e) { /* Event missing */ } }))
+  foot.appendChild(btn(kbt('kbui.help.updates'), '', () => { close(); try { window.dispatchEvent(new Event('kybernos:update:check')) } catch (e) { /* Event missing */ } }))
+  const site = el('a', 'kbhelp-b', kbt('kbui.help.website'))
+  site.href = 'https://kybernos.app'; site.target = '_blank'; site.rel = 'noopener noreferrer'
+  foot.appendChild(site)
+  foot.appendChild(btn(kbt('kbui.help.close'), 'main', close))
+  dlg.appendChild(foot)
+  scrim.appendChild(dlg)
+  document.body.appendChild(scrim)
+  try { dlg.querySelector('.kbhelp-b.main').focus() } catch (e) { /* focus */ }
+}
+
 // ── Épingles de la sidebar : migration plugin du patch moteur (04/10) ─────────
 // L'ancien `patch-dsh-workspace-pins.mjs` réécrivait le bundle
 // `dsh-client-ui-workspace` (section Pinned dans l'arbre React, entrées de menu,
@@ -5486,72 +5580,385 @@ const kbPinsFetch = async () => {
   kbPinsEmit()
 }
 
-/** Une bascule : optimiste à l'écran, l'hôte tranche (contrat {kind, id, pinned}
- *  — pour une SESSION il délègue à l'épinglage NATIF de DSH, notre fichier ne
- *  porte que l'ordre), puis l'état rendu par l'hôte fait foi. */
+/** Writes to the host (contract {kind, id, pinned} or {kind, order}) then adopts the state
+ *  it returns: it is authoritative. Silent if the host does not answer (the mirror holds the state). */
+const kbPinsPost = (body) => fetch('/kybernos/pins', {
+  method: 'POST', headers: { 'content-type': 'application/json' },
+  body: JSON.stringify(body),
+}).then((r) => (r.ok === true ? r.json() : null)).then((j) => {
+  const p = (j !== null && typeof j === 'object' && j.pins !== null && typeof j.pins === 'object') ? j.pins : null
+  if (p !== null) {
+    kbPinsState.workspaces = kbPinsIds(p.workspaces)
+    kbPinsState.sessions = kbPinsIds(p.sessions)
+    kbPinsMirrorWrite()
+    kbPinsEmit()
+  }
+}).catch(() => { /* host silent: the mirror holds the local state */ })
+
+/** A toggle: optimistic on screen, the host decides (for a SESSION it delegates
+ *  to DSH's NATIVE pinning, our file only holds the order). Returns the
+ *  promise of the write. */
 const kbPinsToggle = (kind, id, pinned) => {
   const champ = kind === 'workspace' ? 'workspaces' : 'sessions'
   const sans = kbPinsState[champ].filter((x) => x !== id)
-  kbPinsState[champ] = pinned === true ? [...sans, id] : sans
+  // DSH moves a new pin to the top of the list: the optimistic update does the same.
+  kbPinsState[champ] = pinned === true ? [id, ...sans] : sans
   kbPinsMirrorWrite()
   kbPinsEmit()
-  fetch('/kybernos/pins', {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ kind, id, pinned }),
-  }).then((r) => (r.ok === true ? r.json() : null)).then((j) => {
-    const p = (j !== null && typeof j === 'object' && j.pins !== null && typeof j.pins === 'object') ? j.pins : null
-    if (p !== null) {
-      kbPinsState.workspaces = kbPinsIds(p.workspaces)
-      kbPinsState.sessions = kbPinsIds(p.sessions)
-      kbPinsMirrorWrite()
-      kbPinsEmit()
-    }
-  }).catch(() => { /* hôte muet : le miroir tient l'état local */ })
+  return kbPinsPost({ kind, id, pinned })
+}
+
+/** Reorders the session pins (`order` = the complete desired list). */
+const kbPinsReorder = (order) => {
+  kbPinsState.sessions = order
+  kbPinsMirrorWrite()
+  kbPinsEmit()
+  return kbPinsPost({ kind: 'session', order })
+}
+
+/** `order` with `id` moved: before/after the `cible` row, or 'top' / 'end'. */
+const kbPinsPlaced = (order, id, cible, apres) => {
+  const rest = order.filter((x) => x !== id)
+  let i = rest.length
+  if (cible === 'top') i = 0
+  else if (typeof cible === 'string' && cible !== 'end') {
+    const at = rest.indexOf(cible)
+    if (at >= 0) i = at + (apres === true ? 1 : 0)
+  }
+  return rest.slice(0, i).concat([id], rest.slice(i))
+}
+
+/** Dropping a session on the section: already pinned → we move it; otherwise we
+ *  pin it (the host puts it on top) then slide it to the targeted spot. */
+const kbPinsDropSession = (id, cible, apres) => {
+  if (cible === id) return
+  const place = () => {
+    const next = kbPinsPlaced(kbPinsState.sessions, id, cible, apres)
+    if (next.join(',') !== kbPinsState.sessions.join(',')) kbPinsReorder(next)
+  }
+  if (kbPinsState.sessions.includes(id) === true) place()
+  else kbPinsToggle('session', id, true).then(place)
 }
 
 /** Résout titres et conteneurs depuis le service uiWorkspace (best effort). */
 const kbPinsSnapshots = () => {
   const svc = kbPinsSvc()
-  if (svc === null || svc === undefined) return { items: [], byId: {} }
+  if (svc === null || svc === undefined) return { items: [], byId: {}, pinned: null, archived: [] }
   try {
     const w = (svc.workspaces && svc.workspaces.list && typeof svc.workspaces.list.getSnapshot === 'function') ? svc.workspaces.list.getSnapshot() : null
     const s = (svc.sessions && svc.sessions.list && typeof svc.sessions.list.getSnapshot === 'function') ? svc.sessions.list.getSnapshot() : null
     return {
       items: (w !== null && Array.isArray(w.items) === true) ? w.items : [],
-      byId: (s !== null && s !== null && s.byId && typeof s.byId === 'object') ? s.byId : {},
+      byId: (s !== null && s.byId && typeof s.byId === 'object') ? s.byId : {},
+      // The session pins held by DSH (0.1.7+); `null` = engine without native pinning.
+      pinned: (w !== null && Array.isArray(w.pinnedSessionIds) === true) ? w.pinnedSessionIds.map(String) : null,
+      archived: (w !== null && Array.isArray(w.archivedSessionIds) === true) ? w.archivedSessionIds.map(String) : [],
     }
-  } catch (e) { return { items: [], byId: {} } }
+  } catch (e) { return { items: [], byId: {}, pinned: null, archived: [] } }
 }
+
+/** DSH remains the owner of session pins: a pin made through ITS menu or
+ *  through the row icon must reach the section without waiting for a re-fetch.
+ *  We only take over MEMBERSHIP (the order comes from the host): pins that
+ *  are gone are removed, new ones go on top, as in DSH. */
+const kbPinsAdoptNative = () => {
+  const { pinned } = kbPinsSnapshots()
+  if (pinned === null) return
+  const bare = (id) => id.replace(/^session-/, '')
+  const cur = kbPinsState.sessions
+  const keep = cur.filter((id) => pinned.some((p) => bare(p) === bare(id)))
+  const added = pinned.filter((p) => cur.some((id) => bare(id) === bare(p)) !== true)
+  const next = added.concat(keep)
+  if (next.join(',') === cur.join(',')) return
+  kbPinsState.sessions = next
+  kbPinsMirrorWrite()
+  kbPinsEmit()
+}
+
+/** Icons: pin and archive reuse the 16 px paths of DSH's native rows;
+ *  the others come from LUCIDE. */
+const KB_PINS_GLYPHS = {
+  pin: { stroke: ['M9.96976 1.70572L13.1554 3.93629L10.9019 8.12317L11.5158 11.605L10.7192 12.7427L2.52767 7.00693L3.3243 5.86922L6.80612 5.25528L9.96976 1.70572Z'], fill: ['M6.05285 9.47511C6.27284 9.16094 6.70586 9.08458 7.02003 9.30457C7.3342 9.52455 7.41055 9.95757 7.19057 10.2717L3.98587 14.4708L3.21223 13.9291L6.05285 9.47511Z'] },
+  archive: { stroke: ['M13.5 2.5H2.5a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-1a1 1 0 0 0-1-1Z', 'M2.5 5.5v8a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-8', 'M6.5 8.5h3'], fill: [] },
+}
+const kbPinsIcon = (name, size) => {
+  const NS = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(NS, 'svg')
+  const own = KB_PINS_GLYPHS[name]
+  const lucide = own === undefined ? LUCIDE[name] : null
+  const set = (el, attrs) => { for (const k of Object.keys(attrs)) el.setAttribute(k, attrs[k]) }
+  set(svg, { width: String(size), height: String(size), viewBox: own !== undefined ? '0 0 16 16' : '0 0 24 24', fill: 'none', 'aria-hidden': 'true' })
+  const path = (d, attrs) => { const el = document.createElementNS(NS, 'path'); set(el, Object.assign({ d }, attrs)); svg.appendChild(el) }
+  if (own !== undefined) {
+    for (const d of own.stroke) path(d, { stroke: 'currentColor', 'stroke-width': '1', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+    for (const d of own.fill) path(d, { fill: 'currentColor' })
+  } else if (Array.isArray(lucide) === true) {
+    for (const d of lucide) path(d, { stroke: 'currentColor', 'stroke-width': name === 'more' ? '2.6' : '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+  }
+  return svg
+}
+
+const kbPinsOpen = (id) => {
+  const svc = kbPinsSvc()
+  if (svc !== null && svc !== undefined && typeof svc.openSession === 'function') {
+    try { svc.openSession(id) } catch (e) { /* navigation unavailable */ }
+  }
+}
+
+/** Duplicate: the native service (same call as the "Fork session" entry). */
+const kbPinsFork = (id) => {
+  const svc = kbPinsSvc()
+  if (svc === null || svc === undefined || typeof svc.forkSession !== 'function') return
+  try { Promise.resolve(svc.forkSession(id)).catch(() => { /* refused: nothing to undo */ }) } catch (e) { /* unavailable */ }
+}
+
+/** Archive: the native service; a running session asks for confirmation
+ *  (DSH refuses with `workspace/session-active`, like its own box). */
+const kbPinsArchive = (id) => {
+  const svc = kbPinsSvc()
+  if (svc === null || svc === undefined || typeof svc.archiveSession !== 'function') return
+  const done = () => { try { if (typeof svc.notify === 'function') svc.notify({ kind: 'archived', sessionId: id }) } catch (e) { /* toast best effort */ } }
+  const run = (options) => { try { return Promise.resolve(svc.archiveSession(id, options)) } catch (e) { return Promise.reject(e) } }
+  run({}).then(done, (reason) => {
+    const active = reason instanceof Error && reason.name === 'WorkspaceArchiveError' && reason.rpcError !== undefined && reason.rpcError.code === 'workspace/session-active'
+    if (active !== true) { try { console.warn('[kybers] archive refused', reason) } catch (e) { /* console */ } return }
+    if (typeof window.confirm === 'function' && window.confirm(kbf('Cette conversation est en cours. L’arrêter et l’archiver ?')) === true) run({ stopActivity: true }).then(done, () => { /* refused: nothing to undo */ })
+  })
+}
+
+/** Rename: same call as the native box (`session.rename` via the sessions service). */
+const kbPinsRenameCall = async (id, title) => {
+  const sessions = kbPinsCtx !== null ? kbPinsCtx.get('sessions') : undefined
+  if (sessions === undefined || sessions === null || typeof sessions.using !== 'function') throw new Error('sessions service unavailable')
+  const result = await sessions.using(id, { source: 'workspaceOperation' }, (reference) => reference.binding.session.rename(title))
+  if (result !== null && typeof result === 'object' && result.ok === false) throw new Error((result.error && result.error.message) || 'rename refused')
+}
+
+let kbPinsEditing = null
+/** Inline title editing: Enter confirms, Esc cancels, losing focus confirms. */
+const kbPinsRename = (row, id, titre) => {
+  const open = row.querySelector('.kbpin_open')
+  if (open === null || kbPinsEditing !== null) return
+  kbPinsEditing = id
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.className = 'kbpin_edit'
+  input.value = titre
+  input.setAttribute('aria-label', kbf('Renommer'))
+  let fini = false
+  const finish = (commit) => {
+    if (fini === true) return
+    fini = true
+    const value = input.value.trim()
+    kbPinsEditing = null
+    input.remove()
+    open.style.display = ''
+    if (commit === true && value !== '' && value !== titre) {
+      kbPinsRenameCall(id, value).catch((e) => { try { console.warn('[kybers] rename refused', e) } catch (e2) { /* console */ } }).then(() => kbPinsEmit())
+    }
+    kbPinsEmit()
+  }
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true) } else if (e.key === 'Escape') { e.preventDefault(); finish(false) }
+    e.stopPropagation()
+  })
+  input.addEventListener('blur', () => finish(true))
+  input.addEventListener('click', (e) => e.stopPropagation())
+  open.style.display = 'none'
+  open.after(input)
+  input.focus()
+  input.select()
+}
+
+/** The "…" menu of a row: same actions as the native menu (unpin,
+ *  rename, duplicate, archive). Placed on the body: theme tokens resolve
+ *  there, and it is never clipped by the sidebar. */
+let kbPinsMenu = null
+const kbPinsMenuClose = () => {
+  if (kbPinsMenu === null) return
+  const m = kbPinsMenu
+  kbPinsMenu = null
+  m.off()
+  m.el.remove()
+  if (m.row !== null) m.row.removeAttribute('data-kbpin-menu')
+}
+const kbPinsMenuOpen = (anchor, row, id, titre) => {
+  const reouvre = kbPinsMenu !== null && kbPinsMenu.row === row
+  kbPinsMenuClose()
+  if (reouvre === true) return
+  const el = document.createElement('div')
+  el.className = 'kbpin_menu'
+  el.setAttribute('role', 'menu')
+  const items = [
+    { icon: 'pin', label: kbf('Désépingler la conversation'), run: () => kbPinsToggle('session', id, false) },
+    { icon: 'pencil', label: kbf('Renommer'), run: () => setTimeout(() => kbPinsRename(row, id, titre), 0) },
+    { icon: 'gitBranch', label: kbf('Bifurquer la conversation'), run: () => kbPinsFork(id) },
+    { icon: 'archive', label: kbf('Archiver la conversation'), run: () => kbPinsArchive(id) },
+  ]
+  for (const it of items) {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'kbpin_mi'
+    b.setAttribute('role', 'menuitem')
+    const ico = document.createElement('span')
+    ico.className = 'kbpin_mi_ico'
+    ico.appendChild(kbPinsIcon(it.icon, 16))
+    const lab = document.createElement('span')
+    lab.textContent = it.label
+    b.appendChild(ico)
+    b.appendChild(lab)
+    b.addEventListener('click', () => { kbPinsMenuClose(); it.run() })
+    el.appendChild(b)
+  }
+  document.body.appendChild(el)
+  const a = anchor.getBoundingClientRect()
+  const w = el.offsetWidth
+  const h = el.offsetHeight
+  let left = Math.min(Math.max(8, a.right - w), window.innerWidth - w - 8)
+  let top = a.bottom + 4
+  if (top + h > window.innerHeight - 8) top = Math.max(8, a.top - h - 4)
+  el.style.left = left + 'px'
+  el.style.top = top + 'px'
+  const onDown = (e) => { if (el.contains(e.target) !== true && anchor.contains(e.target) !== true) kbPinsMenuClose() }
+  const onKey = (e) => {
+    const btns = Array.from(el.querySelectorAll('.kbpin_mi'))
+    const i = btns.indexOf(document.activeElement)
+    if (e.key === 'Escape') { e.preventDefault(); kbPinsMenuClose(); try { anchor.focus() } catch (e2) { /* focus */ } }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); btns[(i + 1) % btns.length].focus() }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); btns[(i - 1 + btns.length) % btns.length].focus() }
+  }
+  const onFar = () => kbPinsMenuClose()
+  document.addEventListener('pointerdown', onDown, true)
+  document.addEventListener('keydown', onKey, true)
+  window.addEventListener('resize', onFar)
+  window.addEventListener('blur', onFar)
+  document.addEventListener('scroll', onFar, true)
+  row.setAttribute('data-kbpin-menu', 'true')
+  kbPinsMenu = {
+    el, row,
+    off: () => {
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('keydown', onKey, true)
+      window.removeEventListener('resize', onFar)
+      window.removeEventListener('blur', onFar)
+      document.removeEventListener('scroll', onFar, true)
+    },
+  }
+  const first = el.querySelector('.kbpin_mi')
+  if (first !== null) first.focus()
+}
+
+// ── Drag and drop ─────────────────────────────────────────────────────────────
+// Two sources: a row of OUR section (reorder) and a conversation from
+// DSH's native tree (pin it at the targeted spot). During `dragover` the
+// browser does not let us read `dataTransfer`: so we track the source at
+// `dragstart` (document, capture) instead of reading `text/plain`.
+let kbPinsDragId = null
+let kbPinsNativeDrag = null
+const kbPinsDragActive = () => kbPinsDragId !== null || kbPinsNativeDrag !== null
 
 const kbPinsRow = (kind, id, titre) => {
   const row = document.createElement('div')
   row.className = 'kbpin_row'
   row.setAttribute('data-kbpin-kind', kind)
-  const btn = document.createElement('button')
-  btn.type = 'button'
-  btn.className = 'kbpin_open'
-  btn.textContent = titre
-  btn.title = titre
-  btn.addEventListener('click', () => {
-    const svc = kbPinsSvc()
-    if (kind === 'session' && svc !== null && typeof svc.openSession === 'function') {
-      try { svc.openSession(id) } catch (e) { /* navigation indisponible */ }
-    }
+  row.setAttribute('data-kbpin-id', id)
+  row.draggable = true
+  row.addEventListener('dragstart', (e) => {
+    if (kbPinsEditing !== null) { e.preventDefault(); return }
+    kbPinsDragId = id
+    kbPinsMenuClose()
+    if (e.dataTransfer !== null) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id) }
+    requestAnimationFrame(() => row.classList.add('kbpin_dragging'))
   })
-  row.appendChild(btn)
-  const un = document.createElement('button')
-  un.type = 'button'
-  un.className = 'kbpin_unpin'
-  un.setAttribute('aria-label', kbf('Détacher'))
-  un.textContent = '×'
-  un.addEventListener('click', () => kbPinsToggle(kind, id, false))
-  row.appendChild(un)
+  row.addEventListener('dragend', () => { kbPinsDragId = null; row.classList.remove('kbpin_dragging'); kbPinsEmit() })
+  const open = document.createElement('div')
+  open.className = 'kbpin_open'
+  open.setAttribute('role', 'button')
+  open.tabIndex = 0
+  open.textContent = titre
+  open.title = titre
+  open.addEventListener('click', () => { if (kind === 'session') kbPinsOpen(id) })
+  open.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && kind === 'session') { e.preventDefault(); kbPinsOpen(id) } })
+  open.addEventListener('dblclick', (e) => { e.stopPropagation(); if (kind === 'session') kbPinsRename(row, id, titre) })
+  row.appendChild(open)
+  const acts = document.createElement('span')
+  acts.className = 'kbpin_actions'
+  const act = (cls, label, icon, size, fn) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.className = 'kbpin_act ' + cls
+    b.setAttribute('aria-label', label)
+    b.title = label
+    b.appendChild(kbPinsIcon(icon, size))
+    b.addEventListener('click', (e) => { e.stopPropagation(); fn(b) })
+    acts.appendChild(b)
+    return b
+  }
+  const more = act('kbpin_more', kbf('Actions de la conversation') + ' · ' + titre, 'more', 16, (b) => kbPinsMenuOpen(b, row, id, titre))
+  more.setAttribute('aria-haspopup', 'menu')
+  act('kbpin_archive', kbf('Archiver la conversation'), 'archive', 14, () => kbPinsArchive(id))
+  act('kbpin_unpin', kbf('Désépingler la conversation'), 'pin', 14, () => kbPinsToggle(kind, id, false))
+  row.appendChild(acts)
   return row
 }
 
-/** Re-rend la section depuis l'état courant (titres résolus au moment du rendu). */
-const kbPinsSectionRender = (section) => {
-  const { items, byId } = kbPinsSnapshots()
+/** Where a drop would land: before/after the hovered row, otherwise at the top (header) or at the end. */
+const kbPinsDropTarget = (section, e) => {
+  const t = e.target
+  const row = (t !== null && t.nodeType === 1 && typeof t.closest === 'function') ? t.closest('.kbpin_row') : null
+  if (row !== null && section.contains(row) === true) {
+    const r = row.getBoundingClientRect()
+    return { cible: row.getAttribute('data-kbpin-id'), apres: e.clientY > r.top + r.height / 2, row }
+  }
+  const head = (t !== null && t.nodeType === 1 && typeof t.closest === 'function') ? t.closest('.kbpin_header') : null
+  return { cible: head !== null ? 'top' : 'end', apres: head === null, row: null }
+}
+const kbPinsClearMarks = (section) => {
+  section.removeAttribute('data-kbpin-drop')
+  for (const el of Array.from(section.querySelectorAll('[data-kbpin-drop]'))) el.removeAttribute('data-kbpin-drop')
+}
+const kbPinsMarks = (section, tgt) => {
+  kbPinsClearMarks(section)
+  const rows = Array.from(section.querySelectorAll('.kbpin_row'))
+  if (tgt.row !== null) tgt.row.setAttribute('data-kbpin-drop', tgt.apres === true ? 'after' : 'before')
+  else if (rows.length === 0) section.setAttribute('data-kbpin-drop', 'empty')
+  else if (tgt.cible === 'top') rows[0].setAttribute('data-kbpin-drop', 'before')
+  else rows[rows.length - 1].setAttribute('data-kbpin-drop', 'after')
+}
+/** Wires the drop onto a section. `stopPropagation`: without it the native tree's
+ *  React handlers would see a drop that is not meant for them. */
+const kbPinsWireDrop = (section) => {
+  section.addEventListener('dragover', (e) => {
+    if (kbPinsDragActive() !== true) return
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer !== null) e.dataTransfer.dropEffect = 'move'
+    kbPinsMarks(section, kbPinsDropTarget(section, e))
+  })
+  section.addEventListener('dragleave', (e) => {
+    if (e.relatedTarget === null || section.contains(e.relatedTarget) !== true) kbPinsClearMarks(section)
+  })
+  section.addEventListener('drop', (e) => {
+    if (kbPinsDragActive() !== true) return
+    e.preventDefault()
+    e.stopPropagation()
+    const id = kbPinsDragId !== null ? kbPinsDragId : kbPinsNativeDrag
+    const tgt = kbPinsDropTarget(section, e)
+    kbPinsClearMarks(section)
+    kbPinsDragId = null
+    kbPinsNativeDrag = null
+    kbPinsDropSession(id, tgt.cible, tgt.apres)
+    kbPinsEmit()
+  })
+}
+
+/** What the section displays, titles resolved: used for rendering AND for its signature.
+ *  Rebuilding an identical DOM on every mutation made clicks get lost
+ *  (mousedown and mouseup landed on two different nodes). */
+const kbPinsModel = () => {
+  const { items, byId, archived } = kbPinsSnapshots()
+  const bare = (id) => id.replace(/^session-/, '')
+  const archivees = new Set(archived.map(bare))
   const wsById = new Map(items.map((it) => [it.workspaceId, it]))
   const sessionTitle = (sid) => {
     // 1) le store (clé UUID nu ou préfixé — mesuré : les deux formes coexistent)
@@ -5579,16 +5986,64 @@ const kbPinsSectionRender = (section) => {
     }
     return null
   }
+  // pinned folders first (their pinned sessions inside), then pinned sessions
+  // outside a pinned folder
+  const groups = []
+  const byWid = new Map()
+  for (const wid of kbPinsState.workspaces) {
+    const it = wsById.get(wid)
+    const group = { title: (it !== null && it !== undefined && typeof it.title === 'string' && it.title !== '') ? it.title : wid.slice(0, 8) + '…', rows: [] }
+    byWid.set(wid, group)
+    groups.push(group)
+  }
+  let libres = null
+  for (const sid of kbPinsState.sessions) {
+    if (archivees.has(bare(sid)) === true) continue // archived: the row leaves the section
+    const it = wsDe(sid)
+    let group = (it !== null && byWid.has(it.workspaceId) === true) ? byWid.get(it.workspaceId) : null
+    if (group === null) {
+      if (libres === null) { libres = { title: null, rows: [] }; groups.push(libres) }
+      group = libres
+    }
+    group.rows.push({ id: sid, titre: sessionTitle(sid) })
+  }
+  return groups
+}
+
+/** Collapse chevron: a real path (the span was empty — nothing showed that the
+ *  section collapses). Rotates -90° when collapsed (see `.kbpin_chevron`). */
+const kbPinsChevron = () => {
+  const NS = 'http://www.w3.org/2000/svg'
+  const svg = document.createElementNS(NS, 'svg')
+  for (const [k, v] of [['width', '12'], ['height', '12'], ['viewBox', '0 0 24 24'], ['fill', 'none'], ['stroke', 'currentColor'], ['stroke-width', '2.5'], ['stroke-linecap', 'round'], ['stroke-linejoin', 'round'], ['aria-hidden', 'true']]) svg.setAttribute(k, v)
+  const path = document.createElementNS(NS, 'path')
+  path.setAttribute('d', 'm6 9 6 6 6-6')
+  svg.appendChild(path)
+  return svg
+}
+
+/** Re-renders the section from the current state — unless nothing changed. */
+const kbPinsSectionRender = (section) => {
+  // No rebuild under the user's fingers: a title edit or a drag in progress
+  // (the last `emit` catches up at the end of the gesture).
+  if (kbPinsEditing !== null || kbPinsDragActive() === true) return
   const replie = kbPinsReplie()
+  const groups = kbPinsModel()
+  const total = kbPinsState.workspaces.length + kbPinsState.sessions.length
+  const sig = JSON.stringify([replie, kbf('Épinglés'), groups])
+  if (section.getAttribute('data-kbpin-sig') === sig) return
+  section.setAttribute('data-kbpin-sig', sig)
   section.replaceChildren()
   const head = document.createElement('button')
   head.type = 'button'
   head.className = 'kbpin_header'
+  head.setAttribute('aria-expanded', String(replie !== true))
   head.setAttribute('aria-label', replie === true ? kbf('Déplier les épinglés') : kbf('Replier les épinglés'))
   head.addEventListener('click', () => { kbPinsSetReplie(!kbPinsReplie()); kbPinsSectionRender(section) })
   const chevron = document.createElement('span')
   chevron.className = 'kbpin_chevron'
   chevron.setAttribute('data-kbpin-replie', String(replie === true))
+  chevron.appendChild(kbPinsChevron())
   const label = document.createElement('span')
   label.className = 'kbpin_label'
   label.textContent = kbf('Épinglés')
@@ -5599,37 +6054,24 @@ const kbPinsSectionRender = (section) => {
   const rows = document.createElement('div')
   rows.className = 'kbpin_rows'
   rows.setAttribute('aria-label', kbf('Épinglés'))
-  // dossiers épinglés d'abord (leurs sessions épinglées dedans), puis sessions
-  // épinglées hors dossier épinglé
-  const vues = new Map()
-  for (const wid of kbPinsState.workspaces) {
-    const it = wsById.get(wid)
+  for (const g of groups) {
     const grp = document.createElement('div')
     grp.className = 'kbpin_group'
-    const fold = document.createElement('button')
-    fold.type = 'button'
-    fold.className = 'kbpin_folder'
-    fold.textContent = (it !== null && it !== undefined && typeof it.title === 'string' && it.title !== '') ? it.title : wid.slice(0, 8) + '…'
-    grp.appendChild(fold)
-    const threads = document.createElement('div')
-    threads.className = 'kbpin_threads'
-    grp.appendChild(threads)
-    vues.set(wid, threads)
+    let hote = grp
+    if (g.title !== null) {
+      const fold = document.createElement('button')
+      fold.type = 'button'
+      fold.className = 'kbpin_folder'
+      fold.textContent = g.title
+      grp.appendChild(fold)
+      hote = document.createElement('div')
+      hote.className = 'kbpin_threads'
+      grp.appendChild(hote)
+    }
+    for (const r of g.rows) hote.appendChild(kbPinsRow('session', r.id, r.titre))
     rows.appendChild(grp)
   }
-  let libres = null
-  for (const sid of kbPinsState.sessions) {
-    const it = wsDe(sid)
-    const conteneur = (it !== null && vues.has(it.workspaceId) === true) ? vues.get(it.workspaceId) : null
-    if (conteneur === null && libres === null) {
-      libres = document.createElement('div')
-      libres.className = 'kbpin_group'
-      rows.appendChild(libres)
-    }
-    const hote = conteneur !== null ? conteneur : libres
-    if (hote !== null) hote.appendChild(kbPinsRow('session', sid, sessionTitle(sid)))
-  }
-  if (kbPinsState.workspaces.length + kbPinsState.sessions.length === 0) {
+  if (total === 0) {
     const vide = document.createElement('div')
     vide.className = 'kbpin_empty'
     vide.textContent = kbf('Aucune épingle — épingle une conversation depuis son menu « … ».')
@@ -5643,6 +6085,7 @@ const kbPinsSectionRender = (section) => {
  *  conteneur à tout moment (navigation, recherche, re-render). */
 const kbPinsScan = () => {
   if (typeof document === 'undefined' || document.body === null) return
+  kbPinsWatchNative()
   for (const el of Array.from(document.querySelectorAll('[class*="_listArea"]'))) {
     if (/(^|\s)[A-Za-z0-9_-]+_listArea(\s|$)/.test(el.className || '') !== true) continue
     if (el.getAttribute(KB_PINS_ATTR) === 'done') {
@@ -5657,9 +6100,45 @@ const kbPinsScan = () => {
     section.className = 'kbpin_section'
     section.setAttribute('data-kbpin-owner', 'kybernos-plugin')
     el.insertBefore(section, el.firstChild)
+    kbPinsWireDrop(section)
     kbPinsSectionRender(section)
-    kbPinsListeners.add(() => kbPinsSectionRender(section))
+    const fn = () => {
+      // container recreated by React: this section is detached, we step away
+      if (section.isConnected !== true) { kbPinsListeners.delete(fn); return }
+      kbPinsSectionRender(section)
+    }
+    kbPinsListeners.add(fn)
   }
+}
+
+/** Subscription to the native workspaces store (the service may arrive after
+ *  boot: we retry on every scan until `subscribe` exists). */
+let kbPinsNativeWatched = false
+const kbPinsWatchNative = () => {
+  if (kbPinsNativeWatched === true) return
+  const svc = kbPinsSvc()
+  const list = (svc !== null && svc !== undefined && svc.workspaces !== undefined && svc.workspaces !== null) ? svc.workspaces.list : null
+  if (list === null || list === undefined || typeof list.subscribe !== 'function') return
+  try {
+    // Pinned / archived: membership follows DSH, the section refreshes.
+    list.subscribe(() => { kbPinsAdoptNative(); kbPinsEmit() })
+    // Titles: a rename (here or elsewhere) changes `displayTitle` in this store.
+    // It changes often (running sessions): we batch the refreshes.
+    const sl = (svc.sessions !== undefined && svc.sessions !== null) ? svc.sessions.list : null
+    if (sl !== null && sl !== undefined && typeof sl.subscribe === 'function') {
+      let pendu = null
+      sl.subscribe(() => { if (pendu !== null) return; pendu = setTimeout(() => { pendu = null; kbPinsEmit() }, 250) })
+    }
+    kbPinsNativeWatched = true
+    kbPinsAdoptNative()
+  } catch (e) { /* retried on the next scan */ }
+}
+
+/** A mutation made inside OUR section must not trigger a scan: the
+ *  render mutated itself and rebuilt ~3 times per second. */
+const kbPinsInside = (node) => {
+  const el = (node !== null && node.nodeType === 1) ? node : (node !== null ? node.parentElement : null)
+  return el !== null && typeof el.closest === 'function' && el.closest('.kbpin_section, .kbpin_menu') !== null
 }
 
 const kbPinsEnsureCss = () => {
@@ -5668,26 +6147,38 @@ const kbPinsEnsureCss = () => {
   const style = document.createElement('style')
   style.dataset.kybernos = 'kybernos-pins-css'
   style.textContent = [
-    '.kbpin_section{display:flex;flex-direction:column;margin-bottom:6px;padding-bottom:6px;border-bottom:0.5px solid var(--dsw-alias-border-l2)}',
-    '.kbpin_section[data-kbpin-collapsed=true] .kbpin_rows{display:none}',
-    '.kbpin_header{box-sizing:border-box;display:flex;align-items:center;gap:4px;width:100%;height:28px;padding:0 8px;color:var(--dsw-alias-label-tertiary);background:0 0;border:none;border-radius:6px;cursor:pointer;text-align:left;font-size:13px;line-height:20px;font-family:inherit}',
+    '.kbpin_section{display:flex;flex-direction:column;min-width:0;margin-bottom:6px;padding-bottom:6px;border-bottom:0.5px solid var(--dsw-alias-border-l2)}',
+    '.kbpin_header{box-sizing:border-box;display:flex;align-items:center;gap:4px;width:calc(100% - 18px);height:28px;padding:0 8px;color:var(--dsw-alias-label-tertiary);background:0 0;border:none;border-radius:6px;cursor:pointer;text-align:left;font-size:13px;line-height:20px;font-family:inherit}',
     '.kbpin_header:hover{color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-interactive-bg-hover)}',
     '.kbpin_chevron{display:flex;flex:0 0 auto;align-items:center;transition:transform .12s ease}',
     '.kbpin_chevron[data-kbpin-replie=true]{transform:rotate(-90deg)}',
     '.kbpin_label{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
-    '.kbpin_rows{display:flex;flex-direction:column}',
+    '.kbpin_rows{display:flex;flex-direction:column;margin-inline-end:18px}',
     '.kbpin_rows>*+*{margin-top:2px}',
     '.kbpin_group{display:flex;flex-direction:column}',
     '.kbpin_group+.kbpin_group{margin-top:4px}',
     '.kbpin_threads{display:flex;flex-direction:column}',
     '.kbpin_threads>*+*{margin-top:2px}',
     '.kbpin_folder{display:flex;width:100%;height:26px;align-items:center;padding:0 8px;border:none;background:0 0;color:var(--dsw-alias-label-secondary);font:var(--dsw-font-xs-13);text-align:start;border-radius:6px;cursor:default;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}',
-    '.kbpin_row{position:relative;display:flex;align-items:center;border-radius:8px}',
+    '.kbpin_row{position:relative;display:flex;align-items:center;min-width:0;border-radius:8px}',
+    '.kbpin_row.kbpin_dragging{opacity:.4}',
+    '.kbpin_row[data-kbpin-drop=before]::before,.kbpin_row[data-kbpin-drop=after]::after{content:"";position:absolute;left:8px;right:8px;height:2px;border-radius:1px;background:var(--dsw-alias-state-business-primary,#6b8cff);pointer-events:none;z-index:1}',
+    '.kbpin_row[data-kbpin-drop=before]::before{top:-2px}',
+    '.kbpin_row[data-kbpin-drop=after]::after{bottom:-2px}',
+    '.kbpin_section[data-kbpin-drop=empty]{outline:1px dashed var(--dsw-alias-state-business-primary,#6b8cff);outline-offset:-2px;border-radius:8px}',
     '.kbpin_row:hover{background:var(--dsw-alias-interactive-bg-hover)}',
-    '.kbpin_open{flex:1 1 auto;min-width:0;display:flex;align-items:center;height:28px;padding:0 26px 0 12px;border:none;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);text-align:start;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:8px}',
-    '.kbpin_unpin{position:absolute;inset-inline-end:6px;display:none;height:20px;min-width:20px;padding:0 4px;border:none;border-radius:6px;background:0 0;color:var(--dsw-alias-label-tertiary);font-size:14px;line-height:1;cursor:pointer}',
-    '.kbpin_row:hover .kbpin_unpin{display:block}',
-    '.kbpin_unpin:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}',
+    '.kbpin_open{flex:1 1 auto;min-width:0;display:block;box-sizing:border-box;height:28px;line-height:28px;padding:0 12px;border:none;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);text-align:start;cursor:pointer;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-radius:8px}',
+    '.kbpin_row:hover .kbpin_open,.kbpin_row:focus-within .kbpin_open,.kbpin_row[data-kbpin-menu=true] .kbpin_open{padding-inline-end:84px}',
+    '.kbpin_open:focus-visible{outline:var(--dsw-focus-ring-width,2px) solid var(--dsw-focus-ring-color,var(--dsw-alias-state-business-primary,#6b8cff));outline-offset:-2px}',
+    '.kbpin_edit{flex:1 1 auto;min-width:0;box-sizing:border-box;height:28px;margin:0 4px;padding:0 8px;border:.5px solid var(--dsw-alias-border-l4);border-radius:8px;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);outline:none}',
+    '.kbpin_actions{position:absolute;inset-inline-end:6px;display:none;align-items:center;gap:2px}',
+    '.kbpin_row:hover .kbpin_actions,.kbpin_row:focus-within .kbpin_actions,.kbpin_row[data-kbpin-menu=true] .kbpin_actions{display:flex}',
+    '.kbpin_act{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;padding:0;border:none;border-radius:6px;background:0 0;color:var(--dsw-alias-label-tertiary);cursor:pointer}',
+    '.kbpin_act:hover,.kbpin_act:focus-visible{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-interactive-bg-hover)}',
+    '.kbpin_menu{position:fixed;z-index:2147483000;min-width:200px;box-sizing:border-box;padding:4px;border-radius:16px;background:var(--dsw-alias-bg-layer-2,#2b2b2d);box-shadow:0 0 0 .5px rgba(255,255,255,.16),0 3px 8px rgba(0,0,0,.25),0 0 20px rgba(0,0,0,.2)}',
+    '.kbpin_mi{display:flex;align-items:center;gap:6px;width:100%;height:34px;padding:6px 8px;border:none;border-radius:12px;background:0 0;color:var(--dsw-alias-label-primary);font:var(--dsw-font-xs-13);text-align:start;cursor:pointer}',
+    '.kbpin_mi_ico{display:inline-flex;width:16px;height:16px;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary)}',
+    '.kbpin_mi:hover,.kbpin_mi:focus-visible{background:var(--dsw-alias-interactive-bg-hover);outline:none}',
     '.kbpin_empty{padding:4px 12px;color:var(--dsw-alias-label-tertiary);font:var(--dsw-font-xxs-12)}',
     '.kbpin_menuitem{display:flex;align-items:center;gap:8px;width:100%;padding:6px 10px;border:none;background:0 0;color:inherit;font:inherit;text-align:start;cursor:pointer;border-radius:6px}',
     '.kbpin_menuitem:hover{background:var(--dsw-alias-interactive-bg-hover)}',
@@ -5701,6 +6192,20 @@ const kbPinsBoot = () => {
   kbPinsEnsureCss()
   kbPinsFetch()
   kbPinsScan()
+  // Source of a drag coming from the native tree: the row carries `data-row-key="session:<id>"`.
+  try {
+    document.addEventListener('dragstart', (e) => {
+      const t = e.target
+      const row = (t !== null && t.nodeType === 1 && typeof t.closest === 'function') ? t.closest('[data-row-key^="session:"]') : null
+      kbPinsNativeDrag = (row !== null && row.closest('.kbpin_section') === null) ? row.getAttribute('data-row-key').slice('session:'.length) : null
+    }, true)
+    document.addEventListener('dragend', () => {
+      const actif = kbPinsDragActive()
+      kbPinsNativeDrag = null
+      kbPinsDragId = null
+      if (actif === true) kbPinsEmit()
+    }, true)
+  } catch (e) { /* listeners best effort */ }
   // Une épingle posée ailleurs (autre onglet, autre session) doit rejoindre la
   // section au retour sur cet onglet : re-fetch léger au focus.
   try {
@@ -5711,7 +6216,10 @@ const kbPinsBoot = () => {
     if (pendu !== null) return
     pendu = setTimeout(() => { pendu = null; kbPinsScan() }, 300)
   }
-  const obs = new MutationObserver(relance)
+  const obs = new MutationObserver((records) => {
+    if (records.every((m) => kbPinsInside(m.target) === true)) return
+    relance()
+  })
   obs.observe(document.body, { childList: true, subtree: true })
 }
 
@@ -5858,6 +6366,9 @@ return {
       const KbPinsMenuPin = (props) => {
         const sid = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
         if (sid === null) return null
+        // DSH 0.1.7+ already has its "Pin session" entry: ours would be a duplicate (measured
+        // 04/10 — two entries in the "…" menu). Fallback only without native pinning.
+        if (kbPinsSnapshots().pinned !== null) return null
         const epingle = kbPinsState.sessions.includes(sid)
         const fermer = () => {
           const useMenuOpenState = props !== null && props !== undefined ? props.useMenuOpenState : null
@@ -5978,13 +6489,15 @@ return {
         if (t.length > 0) kbStartChatText(t)
       })
     } catch (e) { /* pas de window (hors navigateur) */ }
-    // Pont inter-bundles (suite) : une carte du chat (kybernos-composio,
-    // actionUrl « kb:<onglet> ») ouvre la page Ressources sur l'onglet demandé.
+    // Cross-bundle bridge (continued): a chat card (kybernos-composio,
+    // actionUrl "kb:<tab>") opens the requested page: Skills, Documents, otherwise
+    // Connectors (the tab name from before the split: composio, connecteurs…).
     try {
       window.addEventListener('kb-open-resources', (ev) => {
         const d = (ev !== null && ev !== undefined) ? ev.detail : null
         const tab = (d !== null && d !== undefined && typeof d.tab === 'string' && d.tab.length > 0) ? d.tab : 'composio'
-        try { set({ view: 'resources', resourcesTab: tab }) } catch (e2) { /* store indisponible */ }
+        const view = /^(skills?|comp[eé]tences)$/i.test(tab) ? 'skills' : (/^(docs?|documents?)$/i.test(tab) ? 'documents' : 'connectors')
+        try { set({ view }) } catch (e2) { /* store unavailable */ }
         try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybers') } catch (e2) { /* panneau indisponible */ }
       })
     } catch (e) { /* pas de window (hors navigateur) */ }
@@ -11076,7 +11589,7 @@ return {
       const pillTOn = Object.assign({}, pillT, { borderColor: 'var(--dsw-alias-state-success-primary)', color: 'var(--dsw-alias-state-success-primary)' })
       const toolbar = h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' } },
         h('input', { value: tsq, onChange: (e) => setTsq(e.target.value), placeholder: kbf('Chercher une compétence…'), 'data-kb': 'team-skills-search', style: Object.assign({}, field2, { flex: 1, minWidth: '220px' }) }),
-        h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'team-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'resources', resourcesTab: 'skills' }) } catch (e) { /* store indisponible */ } } }, '+ ' + kbt('kbui.skills.browse')))
+        h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'team-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } }, '+ ' + kbt('kbui.skills.browse')))
       if (teamRows.length === 0) {
         return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
           toolbar,
@@ -13698,7 +14211,9 @@ return {
       const inner = (() => {
         if (s.view === 'gallery' || s.view === 'marketplace' || s.view === undefined) return h(TeamsHub, props)
         if (s.view === 'artifacts') return h(ArtifactsPage, props)
-        if (s.view === 'resources') return h(ResourcesPage, props)
+        if (s.view === 'skills') return h(KbSkillsView, props)
+        if (s.view === 'connectors') return h(KbConnectorsView, props)
+        if (s.view === 'documents') return h(KbDocumentsView, props)
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
         if (s.view === 'projects') return h(ProjectsHub, props)
         if (s.view === 'workspace') return h(KbWorkspacePanel, props)
@@ -14681,7 +15196,7 @@ return {
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' } },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px' }, 'data-kb': 'project-skills-hint' },
                 kbt('kbui.skills.hint') + ' (' + countLabel + ')'),
-              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'resources', resourcesTab: 'skills' }) } catch (e) { /* store indisponible */ } } },
+              h('button', { type: 'button', className: 'kb8-primary', style: { padding: '8px 14px', height: 'auto' }, 'data-kb': 'project-skills-browse', title: kbt('kbui.skill.repo'), onClick: () => { try { set({ view: 'skills' }) } catch (e) { /* store unavailable */ } } },
                 '+ ' + kbt('kbui.skills.browse'))),
             (skillsErr !== null ? h('div', { role: 'alert', className: 'kb8-sub', style: { color: 'var(--dsw-alias-state-error-primary)', marginBottom: '8px' }, 'data-kb': 'project-skills-error' }, kbt('kbui.skills.savefail') + skillsErr) : null),
             pagerTop(skillsVp),
@@ -14827,7 +15342,7 @@ return {
               (typeof wsUi.desc === 'string' && wsUi.desc.length > 0)
                 ? wsUi.desc
                 : kbt('kbui.project.sub')))),
-        h('div', { className: 'kb8-tabs' }, TABS.map((t) => h('button', { type: 'button', key: t, className: 'kb8-tab' + (tab === t ? ' on' : ''), 'data-kb': 'project-tab-' + t.toLowerCase(), onClick: () => { setTab(t); try { set({ projectTab: t }) } catch (e) { /* store indisponible */ } } }, t))),
+        h('div', { className: 'kb8-tabs' }, TABS.map((t) => h('button', { type: 'button', key: t, className: 'kb8-tab' + (tab === t ? ' on' : ''), 'data-kb': 'project-tab-' + t.toLowerCase(), onClick: () => { setTab(t); try { set({ projectTab: t }) } catch (e) { /* store unavailable */ } } }, t === 'Deliverables' ? kbt('menu.deliverables') : t))),
         ((tab === kbt('kbui.budget') || tab === kbt('kbui.details')) ? null : h('div', { className: 'kb8-search' }, Icon('search', 15), h('input', { value: q, onChange: (e) => setQ(e.target.value), placeholder: kbt('kbui.search') + tab.toLowerCase() + kbt('kbui.frag.inproject') }))),
         pane)
     }
@@ -17392,7 +17907,7 @@ function renderFit(canvas, model, cam, opts){
         const hasType = (selT !== null && selT !== undefined) || selF !== null
         // Type « All » : le gabarit typé produisait « Create a "deliverable"
         // deliverable… » — on prend la variante sans type (constat D6).
-        const sel = (selF !== null) ? kbt('deliv.fam.' + selF.id).toLowerCase() : (hasType ? String(selT.label).toLowerCase() : kbt('deliv.type.word'))
+        const sel = (selF !== null) ? kbt('deliv.fam.' + selF.id).toLowerCase() : (hasType ? String(selT.label).toLowerCase() : '')
         try { kbStartChatText(kbt(hasType ? 'deliv.create.prompt' : 'deliv.create.prompt.any').replace('{type}', sel)) } catch (e) { /* composer indisponible */ }
       }
       const typed = arts.map((a) => Object.assign({}, a, { type: kbArtType(a.name) }))
@@ -17506,7 +18021,7 @@ function renderFit(canvas, model, cam, opts){
             setNote('Partage…')
             const lu = await host.call('kybers/art-read', { path: a.path })
             if (lu === null || lu === undefined || lu.ok !== true) {
-              setNote(kbf('Livrable illisible : ') + ((lu !== null && lu !== undefined && lu.error) ? lu.error : kbf('raison inconnue')))
+              setNote(kbf('Création illisible : ') + ((lu !== null && lu !== undefined && lu.error) ? lu.error : kbf('raison inconnue')))
               return
             }
             const pousse = await fetch('/kybernos-cloud/artifacts/push', {
@@ -17544,7 +18059,7 @@ function renderFit(canvas, model, cam, opts){
           try {
             const dl = document.createElement('a')
             dl.href = '/kybernos/art-raw?path=' + encodeURIComponent(a.path)
-            dl.download = a.name || 'livrable'
+            dl.download = a.name || 'creation'
             document.body.appendChild(dl)
             dl.click()
             dl.remove()
@@ -17595,7 +18110,7 @@ function renderFit(canvas, model, cam, opts){
       if (openPath !== null && openPath !== undefined) return withPopup(h('div', { className: 'kbg-root' },
         h('button', { type: 'button', className: 'kbg-back', onClick: () => setOpenPath(null) }, '← ' + kbt('deliverables.back')),
         h('div', { className: 'kb4-pagehead' }, openName || openPath),
-        h('div', { className: 'kbg-empty' }, kbf('Aperçu de maquette — ce livrable sera ouvrable une fois produit par un Kyber.'))))
+        h('div', { className: 'kbg-empty' }, kbf('Aperçu de maquette — cette création sera ouvrable une fois produite par un Kyber.'))))
       return withPopup(h('div', { className: 'kbg-root' },
         h('div', { className: 'kb6-headrow' },
           h('div', { className: 'kb6-headcol' },
@@ -17612,7 +18127,8 @@ function renderFit(canvas, model, cam, opts){
           const selF = KB_ART_FAMILIES.filter((f) => f.id === filter)[0] || null
           const selLabel = (selF !== null) ? kbt('deliv.fam.' + selF.id) : ((selT !== null && selT !== undefined) ? selT.label : kbt('deliverables.all'))
           const selDesc = (selF !== null) ? kbt('deliv.fam.' + selF.id + '.desc') : ((selT !== null && selT !== undefined) ? kbt('deliv.type.' + selT.id + '.desc') : kbt('deliverables.desc'))
-          const selLow = (selF !== null) ? kbt('deliv.fam.' + selF.id).toLowerCase() : ((selT !== null && selT !== undefined) ? String(selT.label).toLowerCase() : kbt('deliv.type.word'))
+          const selLow = (selF !== null) ? kbt('deliv.fam.' + selF.id).toLowerCase() : ((selT !== null && selT !== undefined) ? String(selT.label).toLowerCase() : '')
+          const qaKey = (i) => 'deliv.qa.' + i + ((selF === null && (selT === null || selT === undefined)) ? '.any' : '')
           const tuile = (d) => {
             const on = selTypes.indexOf(d.id) >= 0
             return h('button', { type: 'button', key: d.id, 'aria-pressed': on === true ? 'true' : 'false', className: 'kb-type' + (on === true ? ' kb-type-sel' : ''), style: on === true ? { borderColor: d.color } : {}, title: d.desc, onClick: () => toggleSel(d.id) },
@@ -17660,9 +18176,9 @@ function renderFit(canvas, model, cam, opts){
             // La description ne parle que du cas « Tous »/mono : en sélection
             // multiple, les chips de la barre portent déjà la sélection.
             (selTypes.length <= 1 ? h('div', { className: 'kb-typedesc' }, h('b', null, selLabel), ((selF !== null) || (selT !== null && selT !== undefined)) ? ' — ' : null, ((selF !== null) || (selT !== null && selT !== undefined)) ? selDesc : null) : null),
-            h('div', { className: 'kb-qa-row' }, ['1', '2', '3'].map((i) => h('button', { type: 'button', key: i, className: 'kb-qa', title: kbt('deliv.qa.' + i).replace('{type}', selLow), onClick: () => { try { kbStartChatText(kbt('deliv.qa.' + i).replace('{type}', selLow)) } catch (e) { /* composer indisponible */ } } },
+            h('div', { className: 'kb-qa-row' }, ['1', '2', '3'].map((i) => h('button', { type: 'button', key: i, className: 'kb-qa', title: kbt(qaKey(i)).replace('{type}', selLow), onClick: () => { try { kbStartChatText(kbt(qaKey(i)).replace('{type}', selLow)) } catch (e) { /* composer unavailable */ } } },
               h('span', { className: 'kb-qa-ico' }, Icon('sparkles', 13)),
-              h('span', { className: 'kb-qa-txt' }, kbt('deliv.qa.' + i).replace('{type}', selLow))))))
+              h('span', { className: 'kb-qa-txt' }, kbt(qaKey(i)).replace('{type}', selLow))))))
         })(),
         (note !== null ? h('div', { className: 'kb8-sub', style: { padding: '4px 2px' } }, note) : null),
         (vp.mode === 'list' ? h('div', { className: 'kb6-lrows', 'data-kb': 'art-list' }, shown.map((a) => {
@@ -18530,7 +19046,7 @@ function renderFit(canvas, model, cam, opts){
 
     const KB_MOCK_HOSTED = [
       ['Kybers, not one assistant', 'Several agents under a manager, each with its own memory, budget and role — they hand work to each other instead of to you.'],
-      ['A workspace for humans too', 'Invite your colleagues: shared projects, threads and deliverables, roles and seats, comments on the work.'],
+      ['A workspace for humans too', 'Invite your colleagues: shared projects, threads and creations, roles and seats, comments on the work.'],
       ['One document library', 'Files live once and feed every project, thread and team. Versioned, searchable, never re-uploaded.'],
       ['Shared resources', kbf('Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.')],
       ['Realtime speech to speech', 'Talk over your work: sub-second voice, interruption-friendly, with the same context as the thread.'],
@@ -18602,7 +19118,7 @@ function renderFit(canvas, model, cam, opts){
         skills: ['kyber-memory', 'kyber-routing'],
         roles: [
           { id: 'curator', kind: 'scout', provider: 'ollama-cloud', model: 'deepseek-v4.1-flash', prompt: 'Reçois les documents de cours ou connecte le Drive, range par matière et par chapitre, puis déclenche la production par lots. Tu organises et tu vérifies : tu ne rédiges pas les artefacts toi-même. Dis ce que tu n’as pas pu lire au lieu de le deviner.' },
-          { id: 'maker', kind: 'doer', provider: 'anthropic', model: 'claude-sonnet-4.6', prompt: 'Transforme chaque chapitre en un lot d’artefacts rejouables — quiz, flashcards, résumé, fiche — au contrat d’artefact partagé : un kind, un titre, des items, un payload par item. Nomme chaque fichier d’après son genre (`<sujet>-quiz.json`, `<sujet>-cards.json`, `<sujet>-resume.json`, `<sujet>-fiche.json`) : Livrables lit le genre dans le nom, pas dans le fichier, et un artefact mal nommé s’affiche en JSON brut. Rien qui ne vienne d’un document réellement lu : un quiz inventé s’apprend par cœur.' },
+          { id: 'maker', kind: 'doer', provider: 'anthropic', model: 'claude-sonnet-4.6', prompt: 'Transforme chaque chapitre en un lot d’artefacts rejouables — quiz, flashcards, résumé, fiche — au contrat d’artefact partagé : un kind, un titre, des items, un payload par item. Nomme chaque fichier d’après son genre (`<sujet>-quiz.json`, `<sujet>-cards.json`, `<sujet>-resume.json`, `<sujet>-fiche.json`) : Créations lit le genre dans le nom, pas dans le fichier, et un artefact mal nommé s’affiche en JSON brut. Rien qui ne vienne d’un document réellement lu : un quiz inventé s’apprend par cœur.' },
           { id: 'tutor', kind: 'checker', provider: 'zhipu', model: 'glm-5.3', prompt: 'Aide en méthode socratique : jamais la réponse d’emblée, une question ciblée à la fois. Quand l’élève bute deux fois sur la même notion, demande au Fabricant un artefact ciblé plutôt que de répéter l’explication.' },
           { id: 'planner', kind: 'doer', provider: 'openai', model: 'gpt-5.2-mini', prompt: 'Découpe la charge en sessions de 25 à 45 minutes à objectif unique, ordonne par échéance et par faiblesse, et programme la répétition espacée à J+1, J+3, J+7 en rappel actif. Un artefact jamais rejoué n’est pas une notion acquise.' },
           { id: 'coach', kind: 'checker', provider: 'moonshot', model: 'kimi-k3', prompt: 'Installe une seule habitude à la fois, seuil d’entrée minuscule, déclencheur fixe. Demande des faits (durées, sessions faites) plutôt que des intentions, et traite une rupture de série comme un accident à analyser, pas comme un échec.' },
@@ -21069,56 +21585,25 @@ function renderFit(canvas, model, cam, opts){
       return h(SkillsPage, { sessionId: sid })
     }
 
-    const ResourcesPage = (props) => {
-      const s = useStore()
-      // « Parcourir le dépôt » depuis la fiche projet pose `resourcesTab` dans
-      // le store : si la valeur demandée est un onglet valide, on l'honore au
-      // montage ; sinon comportement historique (Composio en tête quand le
-      // plugin est là, sinon Skills).
-      const wantedTab = (typeof s.resourcesTab === 'string') ? s.resourcesTab : null
-      const pair = React.useState(() => {
-        // (29/09) onglet « plugins » retiré : une valeur stockée obsolète replie
-        // sur l'onglet par défaut au lieu d'une barre fantôme.
-        const valid = ['composio', 'skills', 'docs']
-        if (wantedTab !== null && valid.indexOf(wantedTab) >= 0) return wantedTab
-        return KB_CP === true ? 'composio' : 'skills'
-      })
-      const tab = pair[0]
-      const setTab = pair[1]
-      // Session affichée par l'hôte (même source que KybersMain) : elle suit la sélection de
-      // session, donc l'onglet se recharge sur le bon projet quand on change de session.
+    // ── Skills and Connectors: one page each ─────────────────────────────────
+    // They shared the "Resources" page and its tab selector; they are
+    // now two sidebar entries. Fixed page title (28/09 template:
+    // `.kb6-head` carries the common top margin, like Creations).
+    // "Documents" stays hidden by KB_SHOW_DOCS: its page and its entry
+    // only exist if the flag is raised.
+    const kbPageHead = (title) => h('div', { className: 'kb6-head' }, h('div', { className: 'kb6-title' }, title))
+    const KbSkillsView = (props) => {
+      // Session displayed by the host (same source as KybersMain): it follows the
+      // session selection, so the page reloads on the right project.
       const us = (props !== null && props !== undefined) ? props.useSessions : null
       const sid = (typeof us === 'function') ? us((st) => (st.ids && st.ids.length ? st.ids[0] : null)) : null
-      // L'onglet « Connecteurs » (catalogue statique dupliqué) a été retiré :
-      // l'onglet Composio lit les vrais comptes via le MCP et couvre le même besoin.
-      // « Documents » est masqué par KB_SHOW_DOCS : la liste et la branche de
-      // rendu ci-dessous restent intactes, seule l'entrée de la barre disparaît.
-      // (29/09, homogénéité + demande) « Plugins » quitte la barre — la section
-      // reste entière dans Réglages (kb:section plugins settings), un seul
-      // inventaire, une seule entrée. « Composio » devient « Connecteurs
-      // locaux » : libellé passé par kbt, plus de marque nue dans la barre.
-      const tabs = (KB_CP === true ? [['composio', kbt('kbui.res.connectors')], ['skills', kbt('kbui.skills')], ['docs', kbt('kbui.documents')]] : [['skills', kbt('kbui.skills')], ['docs', kbt('kbui.documents')]])
-        .filter((t) => KB_SHOW_DOCS === true || t[0] !== 'docs')
-      const kids = [
-        // (28/09, gabarit) Titre de page fixe « Ressources » : même traitement
-        // que Livrables (.kb6-head porte la marge haute commune), les onglets
-        // restent un sélecteur, jamais un titre.
-        h('div', { className: 'kb6-head' }, h('div', { className: 'kb6-title' }, kbt('kbui.ressources'))),
-        h('div', { className: 'kb6-utabs' }, tabs.map((t) => h('button', { type: 'button', key: t[0], className: 'kb6-utab' + (tab === t[0] ? ' on' : ''), onClick: () => setTab(t[0]) }, t[1])))
-      ]
-      if (tab === 'composio') {
-        // Barre unifiée (gabarit 28/09) : le bundle composio est un module
-        // séparé qui ne voit pas KbToolbar — on lui passe les outils en props.
-        kids.push(h(ComposioPage, { toolbar: { KbToolbar: KbToolbar, useToolbarState: useToolbarState } }))
-        return h('div', { className: 'kbg-root' }, kids)
-      }
-      if (tab === 'docs') {
-        kids.push(h(DocumentsPage, null))
-        return h('div', { className: 'kbg-root' }, kids)
-      }
-      kids.push(h(SkillsMount, { sessionId: sid }))
-      return h('div', { className: 'kbg-root' }, kids)
+      return h('div', { className: 'kbg-root', 'data-kb-page': 'skills' }, kbPageHead(kbt('kbui.skills')), h(SkillsMount, { sessionId: sid }))
     }
+    // Unified bar (28/09 template): the composio bundle is a separate module that
+    // cannot see KbToolbar — we pass it the tools as props.
+    const KbConnectorsView = () => h('div', { className: 'kbg-root' }, kbPageHead(kbt('kbui.connecteurs')),
+      h(ComposioPage, { toolbar: { KbToolbar: KbToolbar, useToolbarState: useToolbarState } }))
+    const KbDocumentsView = () => h('div', { className: 'kbg-root' }, kbPageHead(kbt('kbui.documents')), h(DocumentsPage, null))
     // ── équipes embarquées : les kybers réellement installés ────────────────
     // Rien de maquette ici : la liste vient de `data.roots[].kybers`, donc de
     // ~/.dsh/kybers. Un kyber sans `ui.name` s'affiche sous son id.
@@ -21558,7 +22043,9 @@ function renderFit(canvas, model, cam, opts){
         // « Mon espace » retiré du menu (demande du 26/09/2026) : la page et sa
         // section Réglages restent en place, seule l'entrée de la barre disparaît.
         row('tasks', Icon('zap', 15), kbt('menu.tasks'), (KB_TASKS_COUNT !== null && KB_TASKS_COUNT !== undefined) ? KB_TASKS_COUNT : 0, s.view === 'tasks', () => openPage({ view: 'tasks' })),
-        row('resources', Icon('library', 15), kbt('menu.resources'), c.docs + c.skills, s.view === 'resources', () => openPage({ view: 'resources' })),
+        row('skills', Icon('sparkles', 15), kbt('kbui.skills'), c.skills, s.view === 'skills', () => openPage({ view: 'skills' })),
+        (KB_CP === true ? row('connectors', Icon('plug', 15), kbt('kbui.connecteurs'), 0, s.view === 'connectors', () => openPage({ view: 'connectors' })) : null),
+        (KB_SHOW_DOCS === true ? row('documents', Icon('fileText', 15), kbt('kbui.documents'), c.docs, s.view === 'documents', () => openPage({ view: 'documents' })) : null),
         // ── Barre de progression des objectifs ──────────────────────────
         h(KbProgressBar, null),
         // « Kybernos Hosted » est masqué pour le moment (KB_SHOW_HOSTED) : la
@@ -25139,12 +25626,19 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
     // URL de la console et gateway : configurables (localStorage `kybernos.ws.console.url` /
     // `kybernos.ws.gateway`, ou window.KYBERNOS_WS_CONSOLE_URL / KYBERNOS_WS_GATEWAY) ; le défaut
     // reste l'environnement de dev. Plus rien d'obligatoirement codé en dur pour un autre poste.
+    // (04/10) The default was `http://localhost:8081/…`: the SaaS dev server,
+    // which only exists on the machine of whoever runs it — elsewhere "Teams settings"
+    // opened a blank page (the browser's sad face). The default is
+    // now the HOSTED console (same host as the store and the cloud plugin);
+    // a machine that runs the SaaS locally keeps `kybernos.ws.console.url` to
+    // point at it. And the page checks that the console answers BEFORE mounting
+    // the iframe: otherwise it says why and offers to retry.
     const kbWsCfg = (k, g, def) => {
       try { const v = window.localStorage.getItem(k); if (typeof v === 'string' && v.trim() !== '') return v.trim() } catch (e) { /* stockage bloqué */ }
       try { const w = window[g]; if (typeof w === 'string' && w.trim() !== '') return w.trim() } catch (e) { /* pas de window */ }
       return def
     }
-    const KB_WS_CONSOLE = kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', 'http://localhost:8081/workspace-console.html')
+    const KB_WS_CONSOLE = kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', 'https://dev.kybernos.app/workspace-console')
       + '?gw=' + encodeURIComponent(kbWsCfg('kybernos.ws.gateway', 'KYBERNOS_WS_GATEWAY', 'https://api.dev2.kybernos.app'))
     const kbWsOrigin = () => { try { return new URL(KB_WS_CONSOLE).origin } catch (e) { return '*' } }
     // ── Le thème de DSH SUIT l'iframe (02/10) ─────────────────────────────
@@ -25241,6 +25735,34 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           })
         return () => { vivant = false }
       }, [])
+      // Does the console answer? A no-cors `fetch` is enough (opaque response = reachable;
+      // connection refused or offline = exception). Without this an unreachable console
+      // shows up as a blank page, without a word.
+      const reachPair = React.useState('checking')
+      const reach = reachPair[0]
+      const setReach = reachPair[1]
+      const probe = React.useCallback(() => {
+        setReach('checking')
+        const ctl = new AbortController()
+        const minuteur = setTimeout(() => ctl.abort(), 7000)
+        fetch(KB_WS_CONSOLE, { mode: 'no-cors', cache: 'no-store', signal: ctl.signal })
+          .then(() => setReach('ok'), () => setReach('down'))
+          .then(() => clearTimeout(minuteur))
+      }, [])
+      React.useEffect(() => { probe() }, [])
+      if (reach !== 'ok') {
+        let hote = KB_WS_CONSOLE
+        try { hote = new URL(KB_WS_CONSOLE).host } catch (e) { /* unreadable URL: we display it as is */ }
+        return h('div', { className: 'kbwsif' },
+          reach === 'checking'
+            ? h('div', { className: 'kbwsif-wait', 'aria-busy': 'true' })
+            : h('div', { className: 'kbwsif-down', role: 'alert' },
+                h('div', { className: 'kbwsif-downt' }, kbt('kbui.ws.down.t')),
+                h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.down.d').replace('{host}', hote)),
+                h('div', { className: 'kbwsif-downa' },
+                  h('button', { type: 'button', className: 'kb8-primary', onClick: probe }, kbt('kbui.ws.retry')),
+                  h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark), target: '_blank', rel: 'noopener noreferrer' }, kbt('kbui.ws.openbrowser')))))
+      }
       return h('div', { className: 'kbwsif' },
         // Plus AUCUNE barre au-dessus de l'iframe (02/10, demande) : le haut de
         // la console (lien retour, fil d'Ariane, titre, sous-titre) est masqué,
@@ -25255,7 +25777,13 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         }))
     }
     ctx.effect(() => styles.insert(`.kbwsif{display:flex;flex-direction:column;gap:0;min-height:100%;padding-block-end:0}
-.kbwsif iframe{border-radius:0!important;box-shadow:none}`), 'kybers: styles mon espace console')
+.kbwsif iframe{border-radius:0!important;box-shadow:none}
+.kbwsif-wait{flex:1 1 auto;min-height:240px}
+.kbwsif-down{margin:64px auto 0;max-width:420px;padding:0 20px;text-align:center}
+.kbwsif-downt{font-size:17px;font-weight:650;color:var(--dsw-alias-label-primary)}
+.kbwsif-downd{margin:8px 0 0;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbwsif-downa{display:flex;justify-content:center;gap:10px;margin-top:18px}
+.kbwsif-downa a{text-decoration:none;display:inline-flex;align-items:center}`), 'kybers: styles mon espace console')
     // ── La page « Réglage de l'espace » (02/10) ────────────────────────────
     // Même composant que l'ancienne section Réglages (retirée du panneau le
     // 02/10) : il est désormais peint par `KybersMain` sous la vue
@@ -28069,8 +28597,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           if (typeof kbOpenFeedbackChat === 'function') { kbOpenFeedbackChat(kbt('kbui.feedback.draft')); return }
         } catch (e) { /* on ne flash pas depuis le menu */ }
       }
+      // "Help": a simple box (getting started, the sidebar, a helping hand) instead of
+      // opening the site — the menu's "Website" entry already does that, help was a duplicate.
       const surAide = () => {
-        try { window.open('https://kybernos.app', '_blank', 'noopener') } catch (e) { /* ouverture impossible */ }
+        try { kbHelpOpen() } catch (e) { /* cosmetic: never blocking */ }
       }
       window.addEventListener('kybernos:menu:theme', surTheme)
       window.addEventListener('kybernos:menu:feedback', surFeedback)
@@ -28316,7 +28846,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     // (les aperçus Clair/Sombre prennent les échelles statiques --dsw-static-neutral-*).
     // Mot de passe, 2FA et sessions se gèrent sur le compte Kybernos Cloud : on ouvre Cloud dans
     // le navigateur (URL configurable `kybernos.cloud.url`), DSH ne saisit ni ne stocke rien.
-    const kbacCloudBase = () => kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', 'http://localhost:8081').replace(/\/+$/, '')
+    // (04/10) Default = the hosted SaaS, like the workspace console: `localhost:8081` only exists
+    // on the machine that runs the SaaS in dev (the Security / Legal notices links were dead elsewhere).
+    const kbacCloudBase = () => kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', 'https://dev.kybernos.app').replace(/\/+$/, '')
     // Ouvre une autre section des Réglages en cliquant sa cellule du nav (le shell reste maître du DOM).
     const kbOpenSettingsSection = (noms) => {
       try {

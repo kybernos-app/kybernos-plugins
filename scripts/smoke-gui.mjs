@@ -86,7 +86,7 @@ try {
   const texte = await p.locator('body').innerText()
   ok('no « Failed to load plugins » screen', !/Failed to load plugins/.test(texte), texte.split('\n').filter(Boolean).slice(0, 4).join(' | '))
   ok('no uncaught page error at boot', erreurs.length === 0, JSON.stringify(erreurs.slice(0, 3)))
-  ok('Kybernos sidebar is there', /Agent Teams/.test(texte) && /Deliverables/.test(texte))
+  ok('Kybernos sidebar is there', /Agent Teams/.test(texte) && /Creations/.test(texte))
 
   console.log('── host routes (same-origin, read-only) ──')
   const reponses = await p.evaluate(async (routes) => {

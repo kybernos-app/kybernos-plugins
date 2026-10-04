@@ -34,6 +34,15 @@ export const ID_PRESET_KYBERNOS = 'kybernos-standard'
 // le renommer).
 export const NOM_PRESET_KYBERNOS = 'Kybernos'
 
+// Text shown under the name in the mode picker. A preset that names itself
+// also carries its own description (DSH only translates its own); without it
+// the picker shows "No description." (observed on 04/10/2026). The threshold
+// comes from the same value as the one set in the clone (engine default: 80%).
+export const descriptionPresetKybernos = (seuil) =>
+  'Standard mode tuned for long sessions: the conversation is compacted at ' +
+  Math.round((seuil ?? 0.8) * 100) +
+  '% of the context window by a pinned summary model, and the Claude Code sub-agent is enabled.'
+
 // Le VRAI levier du filet, corrigé le 23/09/2026 après lecture du script de
 // patch : `patch-dsh-compaction-net.mjs` n'écrit pas le seuil, il ÉPINGLE le
 // modèle de résumé. Mesuré dans `resolveConfig` : sans config,
@@ -149,11 +158,11 @@ export async function activerSubagentClaude(ctx) {
  * Clone une définition de preset en y posant le filet : le modèle de résumé est
  * épinglé. La source n'est jamais modifiée.
  * @param {object} source définition du preset source (telle que le registre la tient)
- * @param {{id?: string, provider?: string, modele?: string, seuil?: number, nom?: string}} [options]
+ * @param {{id?: string, provider?: string, modele?: string, seuil?: number, nom?: string, description?: string}} [options]
  * @returns {{ok: true, definition: object, retouches: number, provider: string, modele: string, seuil?: number} | {ok: false, raison: string}}
  */
 export function clonerPresetFilet(source, options = {}) {
-  const { id = ID_PRESET_KYBERNOS, provider = PROVIDER_FILET, modele = MODELE_FILET, seuil, nom } = options
+  const { id = ID_PRESET_KYBERNOS, provider = PROVIDER_FILET, modele = MODELE_FILET, seuil, nom, description } = options
   if (source === null || typeof source !== 'object') {
     return { ok: false, raison: 'définition source absente' }
   }
@@ -178,6 +187,7 @@ export function clonerPresetFilet(source, options = {}) {
   // activée — les sessions sur notre preset voient `subagent_claude_code`.
   for (const rangée of rangerSubagentClaude(definition)) rangée.disabled = false
   definition.id = id
+  definition.description = typeof description === 'string' && description !== '' ? description : descriptionPresetKybernos(seuil)
   if (nom !== undefined) definition.name = nom
   else if (typeof source.name === 'string' && source.name !== '') definition.name = source.name + ' · Kybernos'
   if (typeof definition.order !== 'number') definition.order = 0
