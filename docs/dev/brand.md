@@ -57,7 +57,7 @@ fall back to plain text.
 
 ## Team brand
 
-A Team module (not in this repo) can call `window.__KB_BRAND__.setOverride({ name, logo })`:
+Besides Kybernos Cloud (below), a Team module (not in this repo) can call `window.__KB_BRAND__.setOverride({ name, logo })`:
 
 - `name`: control characters stripped, trimmed, 40 characters at most;
 - `logo`: only `data:image/(png|jpeg|webp|svg+xml);base64,…`, 256 KB at most (an `<img>` cannot run script);
@@ -66,6 +66,28 @@ A Team module (not in this repo) can call `window.__KB_BRAND__.setOverride({ nam
 While an override is active the sidebar shows the Team logo and name, with **Powered by Kybernos** under the
 name. The override cannot touch that line, nor the tab icon, which stays the Kybernos K. The rules are in
 [TRADEMARK.md](../../TRADEMARK.md#team-branding).
+
+### From Kybernos Cloud
+
+The core bundle asks `/kybernos-cloud/status` shortly after start (3 s, never on the boot path), every 10 minutes and
+when the tab comes back after that long, and applies the brand of the **active workspace**. The Cloud API contract:
+
+```json
+GET /v1/workspaces
+{ "workspaces": [ { "id": "…", "name": "…", "plan": "…",
+                    "brand": { "name": "Acme AI", "logo": "data:image/png;base64,…" } } ] }
+```
+
+- `brand` is optional and only sent for the workspaces entitled to it (the Team plan): **the server decides**, the page
+  does not look at the plan.
+- `name` and `logo` follow the rules above: anything else is dropped, a malformed brand never reaches the page.
+- The cloud bundle stores workspaces as received and `/kybernos-cloud/status` hands them to the page, under
+  `state.workspaces` (`{ ok, connected, state: { workspaces, active_workspace_id } }`): no host change was needed.
+- A workspace without a brand, a disconnect or a switch to a personal workspace puts the Kybernos brand back. The last
+  brand is kept in `localStorage` (`kybernos.brand.team.v1`) so a reload shows it at once; the next answer confirms or
+  clears it. A brand set by another module through `setOverride` is never cleared by this: only what the cloud set.
+- The sidebar row is fixed at 24 px by DSH and its button clips what overflows, so while a brand is active a rule
+  (`html[data-kb-team-brand]`) lets the row grow to fit the second line. Checked on DSH 0.2.0-rc.2.
 
 ## Checking it on the real GUI
 

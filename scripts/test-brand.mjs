@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/client.js', 'utf8')
 const m = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-END/)
 if (m === null) { console.error('BLOCK KB-BRAND-CORE NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_BRAND_NAME, KB_BRAND_RED, KB_BRAND_VIEWBOX, KB_BRAND_RATIO, KB_BRAND_INNER, KB_WORDMARK, KB_BRAND_LOGO_MAX, KB_BRAND_NAME_MAX, kbBrandFaviconHref, kbBrandSanitize, kbBrandRetitle'
+const names = 'KB_BRAND_NAME, KB_BRAND_RED, KB_BRAND_VIEWBOX, KB_BRAND_RATIO, KB_BRAND_INNER, KB_WORDMARK, KB_BRAND_LOGO_MAX, KB_BRAND_NAME_MAX, kbBrandFaviconHref, kbBrandSanitize, kbBrandRetitle, kbBrandFromCloud, kbBrandSame'
 const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -75,12 +75,43 @@ eq('clearing the override puts the brand back', T('Acme AI', 'Kybernos', 'Acme A
 eq('a title that is not a string passes through', T(undefined, 'Kybernos'), undefined)
 eq('an empty name changes nothing', T('DeepSeek Harness', ''), 'DeepSeek Harness')
 
-/* ── 5. The client really wires the block in (static) ─────────────────────── */
+/* ── 5. Team brand from Kybernos Cloud: the active workspace's `brand` ───── */
+const C = mod.kbBrandFromCloud
+const PNGB = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+// The real answer of GET /kybernos-cloud/status (shape read from the live route): workspaces live under `state`.
+const cs = (workspaces, active, connected = true) => ({ ok: true, connected, state: { connected, workspaces, active_workspace_id: active } })
+const ws = (id, brand) => ({ id, name: 'Space ' + id, plan: 'team', ...(brand === undefined ? {} : { brand }) })
+eq('nothing, junk or a string -> null', [C(null), C(undefined), C('x'), C(42)].every((v) => v === null), true)
+eq('not connected -> null (even with a brand in the data)', C(cs([ws('a', { name: 'Acme' })], 'a', false)), null)
+eq('connected, no workspaces -> null', C(cs([])), null)
+eq('workspaces that is not an array -> null', C({ ok: true, connected: true, state: { workspaces: 'oops' } }), null)
+eq('a workspace without a brand -> null', C(cs([ws('a')], 'a')), null)
+eq('the active workspace brand is used', JSON.stringify(C(cs([ws('p'), ws('t', { name: 'Acme AI', logo: PNGB })], 't'))), JSON.stringify({ name: 'Acme AI', logo: PNGB }))
+eq('a brand on a workspace that is NOT active is ignored', C(cs([ws('p'), ws('t', { name: 'Acme AI' })], 'p')), null)
+eq('with no active id the first workspace counts (the host does the same)', C(cs([ws('t', { name: 'Acme AI' }), ws('p')], undefined)).name, 'Acme AI')
+eq('an unknown active id falls back to the first workspace', C(cs([ws('t', { name: 'Acme AI' })], 'gone')).name, 'Acme AI')
+eq('the name is cleaned (control characters, 40 characters)', C(cs([ws('t', { name: 'A\u0000cme\n' + 'x'.repeat(80) })], 't')).name.length, 40)
+eq('a hostile logo is dropped, the name is kept', JSON.stringify(C(cs([ws('t', { name: 'Acme AI', logo: 'javascript:alert(1)' })], 't'))), JSON.stringify({ name: 'Acme AI', logo: null }))
+eq('an https logo URL is dropped (only data URIs), name kept', C(cs([ws('t', { name: 'Acme AI', logo: 'https://evil.example/x.png' })], 't')).logo, null)
+eq('a brand that is not an object -> null', [C(cs([ws('t', 'Acme AI')], 't')), C(cs([ws('t', 12)], 't'))].every((v) => v === null), true)
+eq('null entries among the workspaces do not throw', C(cs([null, 7, ws('t', { name: 'Acme AI' })], 't')).name, 'Acme AI')
+eq('a flat shape (workspaces at the top level) is read too', C({ connected: true, workspaces: [ws('t', { name: 'Acme AI' })], active_workspace_id: 't' }).name, 'Acme AI')
+eq('same brand: equal', mod.kbBrandSame({ name: 'A', logo: null }, { name: 'A', logo: null }), true)
+eq('same brand: null and null', mod.kbBrandSame(null, null), true)
+eq('same brand: different name', mod.kbBrandSame({ name: 'A', logo: null }, { name: 'B', logo: null }), false)
+eq('same brand: null against a brand', mod.kbBrandSame(null, { name: 'A', logo: null }), false)
+
+/* ── 6. The client really wires the block in (static) ─────────────────────── */
 eq('the old circle logo is gone', src.includes('KB_LOGO_RED') || src.includes('KybernosLogo'), false)
 eq('the sidebar mark slot is shadowed', /name: 'sidebar\.brand\.mark', priority: -1 \}, KybernosSidebarMark/.test(src), true)
 eq('the sidebar name slot is shadowed', /name: 'sidebar\.brand\.name', priority: -1 \}, KybernosSidebarName/.test(src), true)
 eq('the contract for other bundles is published', src.includes('window.__KB_BRAND__ = {'), true)
 eq('"Powered by" is added by the shell whenever an override is active', /if \(ov !== null\) \{[\s\S]{0,400}h\(KybernosPoweredBy\)/.test(src), true)
+
+eq('the cloud brand effect asks /kybernos-cloud/status', /fetch\('\/kybernos-cloud\/status', \{ cache: 'no-store' \}\)/.test(src), true)
+eq('it only clears a brand it set itself (source tracking)', /else if \(kbBrandSource === 'cloud'\) kbBrandSet\(null\)/.test(src), true)
+eq('a brand set by another module is tagged "api" by default', /typeof source === 'string' \? source : 'api'/.test(src), true)
+eq('it stops its timers when disposed', /clearTimeout\(first\); clearInterval\(timer\)/.test(src), true)
 
 console.log(fails === 0 ? '\nbrand: all checks pass' : '\nbrand: ' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)

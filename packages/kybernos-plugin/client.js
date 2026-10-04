@@ -28474,15 +28474,34 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       if (typeof previous === 'string' && previous !== '' && previous !== name) out = out.split(previous).join(name)
       return out
     }
+
+    // The Team brand of the ACTIVE Kybernos Cloud workspace. Contract with the Cloud API: a workspace of
+    // GET /v1/workspaces may carry `brand: { name, logo }`; the server decides who gets one (the Team plan).
+    // The cloud bundle keeps workspaces as received and /kybernos-cloud/status hands them to the page, so
+    // this needs no host change. The route answers `{ ok, connected, state: { workspaces, active_workspace_id, … } }`
+    // (checked on the real page: the workspaces sit under `state`); a flat shape is read too. With no active id
+    // chosen the first workspace counts, like the host does. Everything goes through kbBrandSanitize: a hostile
+    // or malformed brand never gets past it.
+    const kbBrandFromCloud = (status) => {
+      if (status === null || status === undefined || typeof status !== 'object' || status.connected !== true) return null
+      const state = status.state !== null && status.state !== undefined && typeof status.state === 'object' ? status.state : status
+      const spaces = Array.isArray(state.workspaces) ? state.workspaces : []
+      const active = spaces.find((w) => w !== null && typeof w === 'object' && w.id === state.active_workspace_id) || spaces[0]
+      if (active === undefined || active === null || typeof active !== 'object') return null
+      return kbBrandSanitize(active.brand)
+    }
+    const kbBrandSame = (x, y) => (x === null && y === null) || (x !== null && y !== null && x.name === y.name && x.logo === y.logo)
     // KB-BRAND-CORE-END
 
     let kbBrandOverride = null
+    let kbBrandSource = null // who set it: 'cloud' (the effect below) or anything else (a Team module)
     const kbBrandListeners = new Set()
     const kbBrandSubscribe = (fn) => { kbBrandListeners.add(fn); return () => { kbBrandListeners.delete(fn) } }
     const kbBrandGet = () => kbBrandOverride
     const kbBrandName = () => (kbBrandOverride !== null ? kbBrandOverride.name : KB_BRAND_NAME)
-    const kbBrandSet = (raw) => {
+    const kbBrandSet = (raw, source) => {
       kbBrandOverride = kbBrandSanitize(raw)
+      kbBrandSource = kbBrandOverride === null ? null : (typeof source === 'string' ? source : 'api')
       kbBrandListeners.forEach((fn) => { try { fn() } catch (e) { /* one listener must not break the others */ } })
       return kbBrandOverride
     }
@@ -28514,7 +28533,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         h('span', { 'aria-hidden': 'true' }, 'ybernos'))
     }
     const KybernosPoweredBy = () => h('span', {
-      style: { display: 'inline-flex', alignItems: 'baseline', gap: '4px', fontSize: '11px', lineHeight: 1.3, color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' },
+      style: { display: 'inline-flex', alignItems: 'baseline', gap: '4px', fontSize: '11px', fontWeight: 400, letterSpacing: 'normal', lineHeight: 1.3, color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' },
     }, 'Powered by', h(KybernosWordmark, { size: 11 }))
 
     // Sidebar brand row. DSH renders the mark and the name as two sibling boxes of a flex row
@@ -28538,7 +28557,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       const rtl = typeof document !== 'undefined' && document.documentElement.dir === 'rtl'
       const base = { fontWeight: 700, fontSize: KB_SIDEBAR_FONT + 'px', letterSpacing: '.01em', color: 'var(--dsw-alias-label-primary)', whiteSpace: 'nowrap' }
       if (ov !== null) {
-        return h('span', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.15, minWidth: 0 } },
+        return h('span', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', textAlign: 'start', lineHeight: 1.15, minWidth: 0 } },
           h('span', { style: Object.assign({}, base, { fontSize: '16px', overflow: 'hidden', textOverflow: 'ellipsis' }) }, ov.name),
           h(KybernosPoweredBy))
       }
@@ -28621,6 +28640,67 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       const off = kbBrandSubscribe(apply)
       return () => { off(); try { if (observer !== null) observer.disconnect() } catch (e) { /* already gone */ } }
     }, 'kybers: titre de l\'onglet')
+
+    // A Team brand adds a second line ("Powered by Kybernos") under the name, but DSH fixes the brand row at
+    // 24px and its button clips what overflows (measured on 0.2.0-rc.2: logoRow 60px, the button is
+    // 24px high with overflow:hidden and centres its text). While a Team brand is active the row may grow
+    // (there are 36px under it) and the text is left-aligned. The attribute follows the brand, so the default
+    // look is untouched.
+    const KB_TEAM_BRAND_CSS = 'html[data-kb-team-brand] button:has(> [class*="brandIdentity"]){height:auto;min-height:24px;overflow:visible}' +
+      'html[data-kb-team-brand] [class*="brandIdentity"],html[data-kb-team-brand] [class*="brandName"]{height:auto;min-height:24px}' +
+      'html[data-kb-team-brand] [class*="brandName"]{text-align:start}'
+    ctx.effect(() => {
+      const sync = () => {
+        try { document.documentElement.toggleAttribute('data-kb-team-brand', kbBrandOverride !== null) } catch (e) { /* no document */ }
+      }
+      try { kbStyleOnce('kb-team-brand-css', KB_TEAM_BRAND_CSS) } catch (e) { /* no document */ }
+      sync()
+      const off = kbBrandSubscribe(sync)
+      return () => { off(); try { document.documentElement.removeAttribute('data-kb-team-brand') } catch (e) { /* no document */ } }
+    }, 'kybers: mise en page de la marque d\'equipe')
+
+    // Team brand from Kybernos Cloud: the active workspace's `brand` (see kbBrandFromCloud). It is asked for
+    // shortly after start (never on the boot path), again every 10 minutes and when the tab comes back after
+    // that long. The last brand is kept in localStorage so a reload shows it at once instead of flashing the
+    // Kybernos one; the answer of the next fetch confirms or clears it. A brand set by another module is
+    // never cleared from here: only what this effect set itself.
+    ctx.effect(() => {
+      const KEY = 'kybernos.brand.team.v1'
+      const EVERY = 10 * 60 * 1000
+      let last = 0
+      let stop = false
+      try {
+        const kept = window.localStorage.getItem(KEY)
+        if (kept !== null && kbBrandOverride === null) kbBrandSet(JSON.parse(kept), 'cloud')
+      } catch (e) { /* storage blocked or not JSON: start with the default brand */ }
+      const remember = () => {
+        try {
+          if (kbBrandSource === 'cloud' && kbBrandOverride !== null) window.localStorage.setItem(KEY, JSON.stringify(kbBrandOverride))
+          else if (kbBrandSource === null) window.localStorage.removeItem(KEY)
+        } catch (e) { /* storage blocked: the next fetch still applies it */ }
+      }
+      const refresh = async () => {
+        if (stop) return
+        last = Date.now()
+        try {
+          const r = await fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          if (r.ok !== true) return // host down or route missing: keep what is shown
+          const brand = kbBrandFromCloud(await r.json())
+          if (brand !== null) { if (!kbBrandSame(brand, kbBrandOverride)) kbBrandSet(brand, 'cloud') }
+          else if (kbBrandSource === 'cloud') kbBrandSet(null)
+          remember()
+        } catch (e) { /* offline or not JSON: keep what is shown */ }
+      }
+      const onVisible = () => { try { if (document.visibilityState === 'visible' && Date.now() - last > EVERY) refresh() } catch (e) { /* no document */ } }
+      const first = setTimeout(refresh, 3000)
+      const timer = setInterval(refresh, EVERY)
+      try { document.addEventListener('visibilitychange', onVisible) } catch (e) { /* no document */ }
+      return () => {
+        stop = true
+        clearTimeout(first); clearInterval(timer)
+        try { document.removeEventListener('visibilitychange', onVisible) } catch (e) { /* no document */ }
+      }
+    }, 'kybers: marque d\'equipe (Kybernos Cloud)')
 
     // Contract for the other bundles (About) and for a Team module: components to draw the brand,
     // and the override seam. A bundle must treat every member as optional.
