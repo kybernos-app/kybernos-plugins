@@ -442,14 +442,12 @@ window.__ModuleLoader__.load({
     // ── Lucide icons (inline SVG) ─────────────────────────────────────────────
     const LUCIDE = {
       key: ['M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-3.9-3.9L2 18Z', 'M16.5 7.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z'],
-      check: ['M20 6 9 17l-5-5'],
       refresh: ['M21 12a9 9 0 1 1-2.6-6.3', 'M21 3v6h-6'],
       plus: ['M12 5v14', 'M5 12h14'],
       link: ['M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7', 'M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'],
       ext: ['M15 3h6v6', 'M10 14 21 3', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'],
       trash: ['M3 6h18', 'M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2', 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6'],
       x: ['M18 6 6 18', 'M6 6l12 12'],
-      sparkles: ['M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L13.664 8.5A2 2 0 0 0 15.1 9.937l6.135 1.581a.5.5 0 0 1 0 .962L15.1 13.664a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z', 'M20 3v4', 'M22 5h-4', 'M4 17v2', 'M5 18H3'],
       pencil: ['M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'],
       info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-5', 'M12 8h.01'],
     }
@@ -566,7 +564,6 @@ window.__ModuleLoader__.load({
 .kb7-accst.on{color:#22c55e}
 .kb7-accst.pend{color:#facc15}
 .kb7-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.kb7-close{position:absolute;top:12px;right:14px}
 /* Fallback of the dedicated "Create with AI" button: the kybernos bundle carries the real
    .kb-createai rule; this one, scoped to this page, guarantees the same rendering
    (same colors, same shape) even when its CSS is not inserted here. */
@@ -610,8 +607,6 @@ window.__ModuleLoader__.load({
 .kb7-subtab:hover{color:var(--dsw-alias-label-primary)}
 .kb7-subtab.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kb7-panel{display:flex;flex-direction:column;gap:12px}
-.kb7-yoursempty{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:18px 0}
-.kb7-cxspacer{flex:1;min-width:8px}
 .kb7-form{display:flex;flex-direction:column;gap:10px}
 .kb7-flabel{font-size:11.5px;font-weight:600;opacity:.75;display:block;margin-bottom:4px}
 .kb7-finput{width:100%;height:34px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 11px;font-size:13px;box-sizing:border-box}
@@ -1043,7 +1038,10 @@ window.__ModuleLoader__.load({
           const j = await r.json()
           const list = Array.isArray(j && j.apps) ? j.apps : []
           if (list.length === 0) throw new Error('empty catalog')
-          const merged = list.map((a) => ({ s: a.slug, n: a.name, c: a.categories || [], d: '', l: logoOf(a.slug) }))
+          // Whatever the list holds, an entry gets a string name and string categories: a missing
+          // name or an object in `categories` would throw in the search and in the facets.
+          const merged = list.filter((a) => a !== null && typeof a === 'object' && typeof a.slug === 'string' && a.slug.length > 0)
+            .map((a) => ({ s: a.slug, n: String(a.name || a.slug), c: Array.isArray(a.categories) ? a.categories.filter((x) => typeof x === 'string') : [], d: '', l: logoOf(a.slug) }))
           setApps(merged)
           setReady(true)
           refresh(merged)
