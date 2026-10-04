@@ -71,5 +71,5 @@ invalidations, so they stay in sync by construction.
 ## Not done yet
 
 - *Fetch available models* (the endpoint picker, `llm.discoverModels`) in the add and edit panels.
-- The Models tab redesign (table in columns, filters, pagination), and the health chip.
 - DeepSeek editing here.
+- The Models tab is described in `models-page.md`.
