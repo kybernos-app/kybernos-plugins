@@ -47,7 +47,7 @@ window.__ModuleLoader__.load({
       const KB_M_T = {
         'kb.models.title': { kybernos: 'Modèles', en: 'Models' },
         'kb.models.surface.entry': { kybernos: 'Fournisseur IA & modèles', en: 'AI Provider & Models' },
-        'kb.models.surface.hint': { kybernos: "Notre catalogue vit ici, sur sa propre page : la page Réglages ▸ Models du harnais reste native, et rien n'est masqué.", en: 'Our catalog lives here, on its own page: the harness Settings → Models page stays native, and nothing is hidden.' },
+        'kb.models.surface.hint': { kybernos: 'Vos fournisseurs et leurs modèles, au même endroit.', en: 'Your providers and their models, in one place.' },
         'kb.models.sub': { kybernos: 'Catalogue de modèles personnalisé — prefill models.dev, surcharge par champ.', en: 'Customized model catalog — models.dev prefill, per-field override.' },
         'kb.models.page.info': { kybernos: '{a}–{b} sur {n} modèles', en: '{a}–{b} of {n} models' },
         'kb.models.page.prev': { kybernos: 'Page précédente', en: 'Previous page' },
@@ -85,7 +85,6 @@ window.__ModuleLoader__.load({
         'kb.prov.free': { kybernos: 'Free models · quota', en: 'Free models · quota' },
         'kb.prov.free.titre': { kybernos: 'Ce fournisseur propose des modèles gratuits sous quota — voir sa collection « free ».', en: 'This provider offers free models under quota — see its “free” collection.' },
         'kb.prov.free.lien': { kybernos: 'Voir les modèles gratuits', en: 'See free models' },
-        'kb.models.fetch': { kybernos: 'Récupérer les modèles disponibles', en: 'Fetch available models' },
         'kb.models.add': { kybernos: 'Ajouter un modèle', en: 'Add model' },
         'kb.models.details': { kybernos: 'Détails du modèle', en: 'Model details' },
         'kb.models.id': { kybernos: 'ID du modèle', en: 'Model ID' },
@@ -228,6 +227,9 @@ window.__ModuleLoader__.load({
         'kb.nat.show': { kybernos: 'Afficher cette page dans le menu des Réglages', en: 'Show this page in the Settings menu' },
         'kb.nat.crash.t': { kybernos: 'Cette page n’a pas pu s’afficher.', en: 'This page could not be displayed.' },
         'kb.nat.crash.b': { kybernos: 'La page native de DSH reste disponible.', en: 'DSH’s native Models page is still available.' },
+        'kb.models.menu.sync': { kybernos: 'Synchroniser tous les modèles avec models.dev', en: 'Sync all models with models.dev' },
+        'kb.models.menu.chips': { kybernos: 'Afficher les puces de capacités sous la recherche', en: 'Show capability filter chips under the search' },
+        'kb.models.mx.filter': { kybernos: 'cliquer pour filtrer', en: 'click to filter' },
         'kb.pv.title.add': { kybernos: 'Ajouter un fournisseur de modèles', en: 'Add model provider' },
         'kb.pv.diag': { kybernos: 'Config à réparer', en: 'Config error' },
         'kb.pv.custom': { kybernos: 'Perso', en: 'Custom' },
@@ -519,6 +521,17 @@ window.__ModuleLoader__.load({
         { k: 'structured', t: 'kb.models.f.structured', icon: 'braces', tint: '#8b5cf6', sec: 'caps' },
         { k: 'temperature', t: 'kb.models.f.temperature', icon: 'thermometer', tint: '#ef4444', sec: 'caps' },
       ]
+      // KB-MX-PURE-BEGIN
+      // The capability columns of the models table: nine fixed slots, always in this order, so a column reads
+      // top to bottom ("which models see images?"). Every other active capability (tts, video out, structured
+      // output, temperature) has no slot and is counted in a "+N" cell; text OUT is the baseline and never counted.
+      const KB_MATRIX = ['textIn', 'vision', 'audioIn', 'video', 'imageGen', 'search', 'tools', 's2s', 'reasoning']
+      /** `activeKeys` (the capabilities a model has) → which slots are lit and which extras are left. Pure. */
+      const kbMxSlots = (activeKeys) => {
+        const act = Array.isArray(activeKeys) ? activeKeys : []
+        return { slots: KB_MATRIX.map((k) => act.indexOf(k) >= 0), extras: act.filter((k) => KB_MATRIX.indexOf(k) < 0 && k !== 'textOut') }
+      }
+      // KB-MX-PURE-END
       const TYPES = [
         { id: 'chat', t: 'kb.models.t.chat', icon: 'chat', tint: '#6366f1' },
         { id: 'embedding', t: 'kb.models.t.embedding', icon: 'layers', tint: '#10b981' },
@@ -1334,67 +1347,60 @@ window.__ModuleLoader__.load({
         const prix = uiPrix(mo)
         const ctx = String(kbmVal(mo, 'context') === null || kbmVal(mo, 'context') === undefined ? '' : kbmVal(mo, 'context'))
         const colonnes = []
-        // ── MODEL : le nom, puis une ligne de contexte (id · route · type ·
-        //    prix). Portée par la cellule du nom à l'écran étroit : c'est ce
-        //    qui rend la table lisible à 556 px sans colonnes vides ni
-        //    troncature du nom (l'ancienne grille ne laissait que ~139 px au
-        //    modèle, d'où « Claude Sonnet 4.5 (O… »).
+        const label = mo.route === '' ? '—' : (KBM.live === true ? pvLabel(mo.route) : mo.route)
+        const mx = kbMxSlots(caps.map((c) => c.k))
+        const capIcon = (c, size) => h(Tip, { key: c.k, text: kbmCapTip(c) }, h('span', { className: 'kbmp-capi', style: { color: c.tint } }, Ic(c.icon, size)))
+        // ── MODEL : name, then "id · type · price". Narrow containers also show the provider and the capability
+        //    icons on that line (the dedicated columns appear from 860 px).
         colonnes.push(h('div', { className: 'kbmp-c kbmp-cmodel', key: 'm' },
           h('div', { className: 'kbmp-nameline' },
             h('input', Object.assign({
               className: 'kbm-in-input kbmp-nom', 'aria-label': m('kb.models.name'), 'data-kbm': 'model-name',
               title: mo.name || mo.id,
-            }, draft)),
-            nOv > 0
-              ? h(Tip, {
-                key: 'ov',
-                text: m(nOv > 1 ? 'kb.models.ovline' : 'kb.models.ovline1', { n: nOv, m: kept }) + ' — ' + m('kb.models.ovtip', { n: nOv, m: kept }),
-              },
-              h('span', {
-                className: 'kbmp-ovpill', 'data-kbm': 'ovpill',
-              }, m(nOv > 1 ? 'kb.models.ovpill' : 'kb.models.ovpill1', { n: nOv })))
-              : null),
+            }, draft))),
           h('div', { className: 'kbmp-metaline' },
             h('input', {
               className: 'kbm-in-input kbmp-id', value: mo.id, 'aria-label': m('kb.models.id'),
               'data-kbm': 'model-id', readOnly: KBM.live === true && mo.route !== '',
               title: mo.id, onChange: (ev) => { mo.id = ev.target.value; kbmNotify() },
             }),
-            KBM.live === true
-              ? h('span', { className: 'kbmp-msep' }, '·')
-              : null,
-            KBM.live === true
-              ? h('span', { className: 'kbmp-mcellroute' },
-                mo.route === '' ? null : h(LogoProv, { route: mo.route, taille: 14 }),
-                h('span', { className: 'kbmp-mroute', 'data-kbm': 'row-route', title: m('kb.models.route') + ' ' + mo.route }, mo.route === '' ? '—' : mo.route))
-              : h('span', { className: 'kbmp-mroute' }, mo.route === '' ? '—' : mo.route),
-            h('span', { className: 'kbmp-mcaps' },
-              caps.length === 0
-                ? null
-                : h('span', { className: 'kbmp-caprow' }, visibles.map((c) => h(Tip, { key: c.k, text: kbmCapTip(c) }, h('span', { className: 'kbmp-capi', style: { color: c.tint } }, Ic(c.icon, 16)))),
-                  reste > 0 ? h('span', { className: 'kbmp-plus' }, m('kb.models.more', { n: reste })) : null)),
-            type === null
-              ? null
-              : h('span', { className: 'kbmp-mtype' }, h('span', { className: 'kbmp-tyi', style: { color: type.tint } }, Ic(type.icon, 12)), m(type.t)),
-            prix === null ? null : h('span', { className: 'kbmp-mprix' }, prix))))
-        // ── CAPABILITIES : la colonne des icônes, sur les écrans larges.
+            type === null ? null : h('span', { className: 'kbmp-msep kbmp-sep2', key: 'st' }, '·'),
+            type === null ? null : h('span', { className: 'kbmp-mtype', key: 'ty' }, h('span', { className: 'kbmp-tyi', style: { color: type.tint } }, Ic(type.icon, 12)), m(type.t)),
+            prix === null ? null : h('span', { className: 'kbmp-msep kbmp-sep2', key: 'sp' }, '·'),
+            prix === null ? null : h('span', { className: 'kbmp-mprix', key: 'pr', title: m('kb.models.col.price') }, prix),
+            h('span', { className: 'kbmp-nar', key: 'nar' },
+              KBM.live === true ? h('span', { className: 'kbmp-msep' }, '·') : null,
+              KBM.live === true ? h('span', { className: 'kbmp-mcellroute' }, mo.route === '' ? null : h(LogoProv, { route: mo.route, taille: 14 }), h('span', { className: 'kbmp-mroute', title: m('kb.models.route') + ' ' + mo.route }, label)) : null,
+              caps.length === 0 ? null : h('span', { className: 'kbmp-caprow' }, visibles.map((c) => capIcon(c, 16)), reste > 0 ? h('span', { className: 'kbmp-plus' }, m('kb.models.more', { n: reste })) : null)))))
+        // ── PROVIDER: its icon and its whole name (no more "ant…").
+        colonnes.push(h('div', { className: 'kbmp-c kbmp-cprov', key: 'p' },
+          mo.route === '' ? h('span', { className: 'kbmp-vide' }, '—')
+            : [h(LogoProv, { route: mo.route, taille: 16, key: 'l' }), h('span', { className: 'kbmp-provname', key: 'n', 'data-kbm': 'row-route', title: m('kb.models.route') + ' ' + mo.route }, label)]))
+        // ── CAPABILITIES: the compact list (narrow) and the fixed-slot matrix (wide); CSS shows one.
         colonnes.push(h('div', { className: 'kbmp-c kbmp-ccaps', key: 'c' },
           caps.length === 0
-            ? h('span', { className: 'kbmp-vide' }, '—')
-            : h('span', { className: 'kbmp-caprow' },
-              caps.slice(0, 4).map((c) => h(Tip, { key: c.k, text: kbmCapTip(c) }, h('span', { className: 'kbmp-capi', style: { color: c.tint } }, Ic(c.icon, 16)))),
+            ? h('span', { className: 'kbmp-vide kbmp-capsl' }, '—')
+            : h('span', { className: 'kbmp-caprow kbmp-capsl' },
+              caps.slice(0, 4).map((c) => capIcon(c, 16)),
               (caps.length - 4 > 0 || (caps.length === 2 && caps[0].k === 'textIn' && caps[1].k === 'textOut'))
                 ? h('span', { className: 'kbmp-txtonly' }, m('kb.models.textonly'))
                 : null,
-              caps.length - 4 > 0 ? h('span', { className: 'kbmp-plus' }, m('kb.models.more', { n: caps.length - 4 })) : null)))
+              caps.length - 4 > 0 ? h('span', { className: 'kbmp-plus' }, m('kb.models.more', { n: caps.length - 4 })) : null),
+          h('span', { className: 'kbmp-mx', 'data-kbm': 'row-matrix' },
+            KB_MATRIX.map((k, i) => h('span', { className: 'kbmp-mxc', key: k }, mx.slots[i] === true ? capIcon(CAPS.filter((c) => c.k === k)[0], 15) : h('span', { className: 'kbmp-mxoff', 'aria-hidden': 'true' }))),
+            h('span', { className: 'kbmp-mxc', key: 'x' }, mx.extras.length === 0 ? null
+              : h(Tip, { text: mx.extras.map((k) => m(CAPS.filter((c) => c.k === k)[0].t)).join(' · ') }, h('span', { className: 'kbmp-plus' }, '+' + String(mx.extras.length)))))))
         colonnes.push(h('div', { className: 'kbmp-c kbmp-cctx', key: 'x' },
           ctx === '' ? h('span', { className: 'kbmp-vide' }, '—') : h('span', null, pretty(ctx) === '' ? ctx : pretty(ctx))))
-        // ── SOURCE : la provenance seule. La pastille ambre des surcharges vit
-        //    sur la ligne du nom : elle décrit le modèle, pas la source, et
-        //    « 5 overrides · 0 applied » débordait de ces 96 px.
+        // ── SOURCE: where the values come from, then how many are yours (amber text, only when there are some:
+        //    a pill on every row said nothing).
         colonnes.push(h('div', { className: 'kbmp-c kbmp-csrc', key: 's' },
           h('span', { className: 'kbmp-sy ' + sy.cls, title: sy.txt }, h('span', { className: 'kbmp-point' }), sy.txt),
-          avis === null ? null : h('span', { className: 'kbmp-avis', title: avis }, avis)))
+          avis === null ? null : h('span', { className: 'kbmp-avis', title: avis }, avis),
+          nOv > 0
+            ? h(Tip, { text: m(nOv > 1 ? 'kb.models.ovline' : 'kb.models.ovline1', { n: nOv, m: kept }) + ' — ' + m('kb.models.ovtip', { n: nOv, m: kept }) },
+              h('span', { className: 'kbmp-ovline', 'data-kbm': 'ovpill' }, m(nOv > 1 ? 'kb.models.ovpill' : 'kb.models.ovpill1', { n: nOv })))
+            : null))
         colonnes.push(h('div', { className: 'kbmp-c kbmp-cact', key: 'a' },
           h('button', {
             type: 'button', className: 'kbm-btn kbm-btn-icon kbm-btn-ghost', 'data-kbm': 'expand',
@@ -1647,9 +1653,10 @@ window.__ModuleLoader__.load({
 
       const PvDrawer = ({ label, onClose, children, footer, head }) => {
         React.useEffect(() => {
+          // Captured first so that DSH, which also listens for Escape, does not close Settings under the panel.
           const key = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); onClose() } }
-          document.addEventListener('keydown', key)
-          return () => document.removeEventListener('keydown', key)
+          document.addEventListener('keydown', key, true)
+          return () => document.removeEventListener('keydown', key, true)
         }, [onClose])
         return h('div', { className: 'kbpv-layer', 'data-kbm': 'pv-drawer' },
           h('div', { className: 'kbpv-mask', onMouseDown: onClose }),
@@ -1983,6 +1990,16 @@ window.__ModuleLoader__.load({
           ui.drawer !== null && ui.drawer.mode === 'add' && dr !== null ? renderAdd() : null,
           renderDialogs())
       }
+      /** A column header that sorts the list (the same sort the Sort menu drives). */
+      const kbmSortHead = (key, label) => {
+        const on = UI.tri === key
+        return h('button', { type: 'button', className: 'kbmp-thb' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false', 'data-kbm': 'sort-' + key,
+          title: m('kb.models.sort') + ' · ' + label, onClick: () => uiSet('tri', key) }, label, on ? h('span', { className: 'kbmp-thar' }, Ic('chevron', 10)) : null)
+      }
+      const KB_CHIPS_PREF = 'kb.models.capChips'
+      /** Capability filter chips under the search bar. From 860 px the column headers filter too, so the chips are off
+       *  there unless asked for; below that there are no header filters and the chips always show. */
+      const kbmChipsOn = () => { try { return window.localStorage.getItem(KB_CHIPS_PREF) === '1' } catch (e) { return false } }
       const ListView = () => {
         const rows = uiRows()
         const pages = Math.max(1, Math.ceil(rows.length / ROWS_PAR_PAGE))
@@ -2006,27 +2023,40 @@ window.__ModuleLoader__.load({
               h(Menu, { id: 'type', field: 'type', defaut: 'all', label: m('kb.models.filter.type'), options: optsType }),
               h(Menu, { id: 'statut', field: 'statut', defaut: 'any', label: m('kb.models.filter.statut'), options: OPT_STATUT() }),
               h(Menu, { id: 'tri', field: 'tri', defaut: 'name', label: m('kb.models.sort'), options: OPT_TRI() }))),
-          h('div', { className: 'kbmp-capsbar' },
-            h('span', { className: 'kbmp-caps' }, capFiltres
-              .map((k) => CAPS.filter((c) => c.k === k)[0])
-              .filter((c) => c !== undefined)
-              .map((c) => h(CapFiltre, { def: c, key: c.k }))),
-            h('span', { className: 'kbmp-compteur' },
-              h('span', { 'data-kbm': 'count' }, m('kb.models.count', { a: rows.length, b: toutes.length })),
-              h('button', {
-                type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-ghost kbmp-reset', 'data-kbm': 'reset',
-                disabled: uiFiltre() !== true, onClick: uiReset,
-              }, m('kb.models.reset')),
-              h('button', {
-                type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'sync-list',
-                onClick: () => { for (const mo of rows) kbmSync(mo.key) },
-              }, Ic('download', 14), h('span', null, m('kb.models.syncN', { n: rows.length }))))),
+          h('div', { className: 'kbmp-capsbar' + (kbmChipsOn() === true ? ' kbmp-capsbar-on' : '') }, h('span', { className: 'kbmp-caps' }, capFiltres
+            .map((k) => CAPS.filter((c) => c.k === k)[0])
+            .filter((c) => c !== undefined)
+            .map((c) => h(CapFiltre, { def: c, key: c.k })))),
+          h('div', { className: 'kbmp-resbar' },
+            h('span', { 'data-kbm': 'count' }, m('kb.models.count', { a: rows.length, b: toutes.length })),
+            uiFiltre() === true
+              ? h('button', { type: 'button', className: 'kbmp-link', 'data-kbm': 'reset', onClick: uiReset }, m('kb.models.reset'))
+              : null,
+            h('span', { className: 'kbmp-grow' }),
+            h('button', {
+              type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'sync-list',
+              onClick: () => { for (const mo of rows) kbmSync(mo.key) },
+            }, Ic('download', 13), h('span', null, m('kb.models.syncN', { n: rows.length })))),
           h('div', { className: 'kbmp-table', 'data-kbm': 'list' },
             // Les colonnes du modèle vivent dans la cellule MODEL (nom + ligne
             // id · route · type · prix) : la table n'a donc que cinq colonnes,
             // et aucune ne se tronque à 556 px.
             h('div', { className: 'kbmp-thead' },
-              ['model', 'caps', 'context', 'source'].map((c) => h('div', { className: 'kbmp-th kbmp-c-' + c, key: c }, m('kb.models.col.' + c))),
+              h('div', { className: 'kbmp-th kbmp-c-model', key: 'model' }, kbmSortHead('name', m('kb.models.col.model'))),
+              h('div', { className: 'kbmp-th kbmp-c-prov', key: 'prov' }, kbmSortHead('provider', m('kb.models.col.prov'))),
+              h('div', { className: 'kbmp-th kbmp-c-caps', key: 'caps' },
+                h('span', { className: 'kbmp-thl' }, m('kb.models.col.caps')),
+                h('span', { className: 'kbmp-mx kbmp-mxh', 'data-kbm': 'matrix-head' },
+                  KB_MATRIX.map((k) => {
+                    const def = CAPS.filter((c) => c.k === k)[0]
+                    const on = UI.caps[k] === true
+                    return h('button', { type: 'button', key: k, className: 'kbmp-mxc kbmp-mxbtn' + (on ? ' on' : ''), 'aria-pressed': on ? 'true' : 'false',
+                      'data-kbm': 'mxfilter-' + k, title: m(def.t) + ' — ' + m('kb.models.mx.filter'), 'aria-label': m('kb.models.mx.filter') + ': ' + m(def.t),
+                      onClick: () => uiCap(k) }, h('span', { className: 'kbmp-capi', style: on ? undefined : { color: def.tint } }, Ic(def.icon, 14)))
+                  }),
+                  h('span', { className: 'kbmp-mxc', key: 'x' }))),
+              h('div', { className: 'kbmp-th kbmp-c-context', key: 'context' }, kbmSortHead('context', m('kb.models.col.context'))),
+              h('div', { className: 'kbmp-th kbmp-c-source', key: 'source' }, m('kb.models.col.source')),
               h('div', { className: 'kbmp-th kbmp-c-act', key: 'act' })),
             toutes.length === 0 && KBM.loading !== true
               ? h('div', { className: 'kbmp-vide kbmp-empty' }, KBM.live === true ? m('kb.models.empty.live') : m('kb.models.empty'))
@@ -2175,22 +2205,25 @@ window.__ModuleLoader__.load({
         })
         React.useEffect(() => {
           const fermerMenu = () => { if (UI.menu !== null) { UI.menu = null; kbmNotify() } }
+          // Escape closes the menu or the details sheet and nothing else: capturing it first, and stopping it when we
+          // used it, keeps DSH from also closing Settings under the sheet.
           const touche = (ev) => {
             if (ev.key !== 'Escape') return
-            if (UI.menu !== null) { UI.menu = null; kbmNotify(); return }
+            if (UI.menu !== null) { UI.menu = null; kbmNotify(); ev.stopPropagation(); return }
             let ferme = false
             for (const mo of KBM.models) if (mo.open === true) { mo.open = false; ferme = true }
-            if (ferme === true) kbmNotify()
+            if (ferme === true) { kbmNotify(); ev.stopPropagation() }
           }
           document.addEventListener('click', fermerMenu)
-          document.addEventListener('keydown', touche)
+          document.addEventListener('keydown', touche, true)
           return () => {
             document.removeEventListener('click', fermerMenu)
-            document.removeEventListener('keydown', touche)
+            document.removeEventListener('keydown', touche, true)
           }
         }, [])
         return h('div', { className: 'kbm-root kbmp', 'data-slot': 'kybernos-models-header' },
-          KybernosHero(),
+          // A component, not a call: KybernosHero owns hooks, and a conditional call would change the hook order of Panel.
+          UI.tab === 'providers' ? h(KybernosHero, null) : null,
           KBM.live === true && KBM.loading === true ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
             m('kb.models.loaderror') + ' : ' + String(KBM.loadError),
@@ -2213,29 +2246,24 @@ window.__ModuleLoader__.load({
               'aria-selected': UI.tab !== 'providers',
               className: 'kbm-pill' + (UI.tab !== 'providers' ? ' kbm-pill-active' : ' kbm-pill-interactive'),
               onClick: () => uiSet('tab', 'models'),
-            }, m('kb.models.tab.models', { n: KBM.models.length }))),
-          // Le catalogue de modèles (description, état « Live data », Restore defaults,
-          // Fetch available models) ne concerne que l'onglet Models : il vit sous les onglets.
-          UI.tab !== 'providers' ? (
-          h('div', { className: 'kbm-head' },
-            h('div', { className: 'kbm-headleft' },
-              h('div', { className: 'kbm-sub', 'data-kbm': 'sub' }, m('kb.models.sub')),
-              h('div', {
-                className: 'kbm-phase' + (KBM.live === true ? ' live' : ''),
-                'data-kbm': 'phase',
-                title: m('kb.models.mark.wire') + ' · ' + m('kb.models.mark.note'),
-              }, KBM.live === true ? m('kb.models.phase.live') : m('kb.models.phase.sample')),
-              KBM.live === true && KBM.writable === false ? h('div', { className: 'kbm-warn', 'data-kbm': 'readonly' }, m('kb.models.readonly')) : null),
-            h('div', { className: 'kbm-acts' },
-              h('button', {
-                type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline' + (KBM.confirmRestore === true ? ' kbmp-armed' : ''),
-                'data-kbm': 'restore', onClick: kbmRestoreAll,
-              }, Ic('undo', 14), h('span', null, KBM.confirmRestore === true ? m('kb.models.restore.arm') : m('kb.models.restore'))),
-              h('button', {
-                type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', 'data-kbm': 'fetch',
-                onClick: () => { for (const mo of KBM.models) kbmSync(mo.key) },
-              }, Ic('download', 14), h('span', null, m('kb.models.fetch')))))
-          ) : null,
+            }, m('kb.models.tab.models', { n: KBM.models.length })),
+            UI.tab !== 'providers' ? h('span', { className: 'kbmp-tabsend' },
+              h(Tip, { text: m('kb.models.sub') + ' · ' + (KBM.live === true ? m('kb.models.phase.live') : m('kb.models.phase.sample')) + ' · ' + m('kb.models.mark.wire') + ' · ' + m('kb.models.mark.note') },
+                h('span', { className: 'kbmp-info', 'data-kbm': 'phase', tabIndex: 0, role: 'img', 'aria-label': m('kb.models.sub') }, Ic('info', 15))),
+              h('span', { className: 'kbpv-menuwrap' },
+                h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'models-more', 'aria-haspopup': 'menu', 'aria-expanded': UI.menu === '__page' ? 'true' : 'false', 'aria-label': m('kb.pv.more.page'), title: m('kb.pv.more.page'),
+                  onClick: (ev) => { ev.stopPropagation(); uiSet('menu', UI.menu === '__page' ? null : '__page') } }, Ic('more', 16)),
+                UI.menu === '__page' ? h('div', { className: 'kbpv-menu kbpv-menu-head', role: 'menu', 'data-kbm': 'models-menu', onClick: (ev) => ev.stopPropagation() },
+                  h('button', { type: 'button', role: 'menuitem', 'data-kbm': 'fetch', onClick: () => { UI.menu = null; for (const mo of KBM.models) kbmSync(mo.key); kbmNotify() } }, Ic('download', 14), m('kb.models.menu.sync')),
+                  h('button', { type: 'button', role: 'menuitem', className: 'kbpv-danger' + (KBM.confirmRestore === true ? ' kbmp-armed' : ''), 'data-kbm': 'restore',
+                    onClick: () => { kbmRestoreAll(); if (KBM.confirmRestore !== true) UI.menu = null; kbmNotify() } }, Ic('undo', 14), KBM.confirmRestore === true ? m('kb.models.restore.arm') : m('kb.models.restore')),
+                  h('hr', null),
+                  h('button', { type: 'button', role: 'menuitem', 'aria-checked': kbmChipsOn() ? 'true' : 'false', 'data-kbm': 'chips-toggle',
+                    onClick: () => { try { window.localStorage.setItem(KB_CHIPS_PREF, kbmChipsOn() ? '0' : '1') } catch (e) { /* per-viewer convenience */ } UI.menu = null; kbmNotify() } }, Ic(kbmChipsOn() ? 'check' : 'tag', 14), m('kb.models.menu.chips')),
+                  h('button', { type: 'button', role: 'menuitem', 'data-kbm': 'native-open', onClick: () => { UI.menu = null; kbmNotify(); kbNatOpen() } }, Ic('external', 14), m('kb.nat.open'))) : null)) : null),
+          // The catalog's description, the "Live data" state, Restore defaults and Fetch used to stack four
+          // bands above the search: they are now an info icon and one ⋯ menu on the tab bar.
+          UI.tab !== 'providers' && KBM.live === true && KBM.writable === false ? h('div', { className: 'kbm-warn', 'data-kbm': 'readonly' }, m('kb.models.readonly')) : null,
           UI.tab !== 'providers' ? (
           KBM.restoredNote !== null && KBM.restoredNote !== undefined
             ? h('div', { className: 'kbmp-note', 'data-kbm': 'restored' }, m('kb.models.restore.note') + String(KBM.restoredNote))
@@ -2259,6 +2287,8 @@ window.__ModuleLoader__.load({
         '.kbm-sub{font-size:12.5px;color:var(--dsw-alias-label-tertiary);max-width:62ch}',
         // En-tête de page (gabarit Réglages 02/10) : titre 18/600, sous-titre 13 à 6 px, bloc suivant à 20 px.
         '.kbm-page{box-sizing:border-box;width:100%;max-width:720px}',
+        // The core plugin caps every child of a Settings section at 720 px; this page, with a table and a card grid, uses the room it has.
+        '[class$="_options"] [data-slot="settings.section"]>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}',
         '.kbm-h1{margin:0;font-size:18px;line-height:1.3;font-weight:600;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}',
         '.kbm-pagehead{margin:0 0 20px}',
         '.kbm-pagehead .kbm-sub{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:none}',
@@ -2281,6 +2311,33 @@ window.__ModuleLoader__.load({
         /* cartes fournisseurs : grille 2 colonnes, logo + nom + compteur + voir */
         '.kbmp-logo{display:inline-flex;border-radius:5px}',
         '.kbmp-logo-chip{align-items:center;justify-content:center;border-radius:7px;background:var(--dsw-alias-bg-module-platform);color:var(--dsw-alias-label-secondary);font-weight:600;line-height:1}',
+        '.kbmp-c.kbmp-cprov{flex-direction:row;align-items:center;gap:8px}',
+        '.kbmp-cols .kbmp-mx,.kbmp-thead .kbmp-mx,.kbmp-sep2{display:none}',
+        // Below 860 px the provider and the capability icons sit on a line of their own under the id: whole, never "ant…".
+        '.kbmp-metaline{flex-wrap:wrap}',
+        '.kbmp-nar{display:flex;flex:1 0 100%;align-items:center;gap:6px;min-width:0}',
+        '.kbmp-nar .kbmp-mroute{max-width:none}',
+        // From 860 px the table reads in columns: the provider in full, and nine fixed capability slots (a column of
+        // eyes answers "which models see images?" at a glance; the header icons filter).
+        '@container (min-width: 860px){.kbmp-table .kbmp-thead,.kbmp-table .kbmp-cols{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) 236px 64px 118px 56px;gap:14px;padding:0 16px}.kbmp-table .kbmp-thead .kbmp-c-prov,.kbmp-table .kbmp-cols .kbmp-cprov{display:flex}.kbmp-table .kbmp-cols .kbmp-nar{display:none}.kbmp-table .kbmp-cols .kbmp-capsl,.kbmp-table .kbmp-thead .kbmp-thl{display:none}.kbmp-table .kbmp-cols .kbmp-mx,.kbmp-table .kbmp-thead .kbmp-mx{display:grid;grid-template-columns:repeat(10,22px);justify-content:space-between;align-items:center}.kbmp-table .kbmp-cols .kbmp-cctx{text-align:right}.kbmp-table .kbmp-thead .kbmp-c-context{justify-content:flex-end}.kbmp-capsbar:not(.kbmp-capsbar-on){display:none}}',
+        '.kbmp-provname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-secondary);font-size:13px}',
+        '.kbmp-mxc{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px}',
+        '.kbmp-mxoff{width:3px;height:3px;border-radius:50%;background:var(--dsw-alias-border-l4)}',
+        '.kbmp-mxbtn{border:0;background:transparent;border-radius:7px;padding:0;cursor:pointer;opacity:.7}',
+        '.kbmp-mxbtn:hover{opacity:1;background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbmp-mxbtn.on{opacity:1;background:var(--dsw-alias-bg-layer-3);box-shadow:0 0 0 .5px var(--dsw-alias-border-l4)}',
+        '.kbmp-mxbtn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}',
+        '.kbmp-thb{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}',
+        '.kbmp-thb:hover,.kbmp-thb.on{color:var(--dsw-alias-label-primary)}',
+        '.kbmp-thb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:4px}',
+        '.kbmp-thar{display:inline-flex;transform:rotate(90deg)}',
+        '.kbmp-ovline{font-size:11px;color:var(--dsw-alias-state-warn-primary);white-space:nowrap}',
+        '.kbmp-resbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--dsw-alias-label-tertiary)}',
+        '.kbmp-grow{flex:1}',
+        '.kbmp-link{border:0;background:transparent;padding:2px 4px;font-size:12px;color:var(--dsw-alias-label-secondary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+        '.kbmp-tabsend{margin-left:auto;display:inline-flex;align-items:center;gap:4px}',
+        '.kbmp-info{display:inline-flex;color:var(--dsw-alias-label-tertiary);cursor:help}',
+        '.kbmp-info:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:50%}',
         '.kbmp-prov-addct{margin-top:10px}',
         '[data-kb-native-nav]{display:none!important}',
         '.kbpv{display:flex;flex-direction:column;gap:10px}',
@@ -2458,24 +2515,21 @@ window.__ModuleLoader__.load({
         '.kbmp-cap .kbmp-capi{display:inline-flex}',
         '.kbmp-cap.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
         '.kbmp-cap.on .kbmp-capi{color:currentColor!important}',
-        '.kbmp-compteur{margin-left:auto;display:flex;align-items:center;gap:8px}',
-        '.kbmp-compteur [data-kbm="count"]{font-size:12px;color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-reset{color:var(--dsw-alias-label-tertiary)}',
-        '.kbmp-reset:disabled{opacity:.45;cursor:default}',
         // La table du panneau vit dans une colonne de 556 ou 720 px (la boîte
         // Réglages) : cinq colonnes, dont une seule se partage la place. Le
         // modèle porte nom + « id · route · type · prix » — plus aucune
         // colonne vide, plus aucun nom tronqué.
         '.kbmp-table{display:flex;flex-direction:column;border:.5px solid var(--dsw-alias-border-l2);border-radius:14px;overflow:hidden;background:var(--dsw-alias-bg-layer-2)}',
         '.kbmp-thead,.kbmp-cols{display:grid;grid-template-columns:minmax(0,1fr) 52px 84px 44px;gap:8px;align-items:center;padding:0 10px}',
-        '.kbmp-thead .kbmp-c-caps,.kbmp-cols .kbmp-ccaps{display:none}',
-        '.kbmp-mcaps{display:inline-flex;align-items:center;gap:5px;flex:none}',
-        '@container (min-width: 620px){.kbmp-thead,.kbmp-cols{grid-template-columns:minmax(0,1fr) 88px 58px 104px 46px}.kbmp-thead .kbmp-c-caps,.kbmp-cols .kbmp-ccaps{display:flex}.kbmp-mcaps{display:none}.kbmp-mtype,.kbmp-mprix{display:inline-flex;align-items:center;gap:4px}}',
+        '.kbmp-thead .kbmp-c-caps,.kbmp-cols .kbmp-ccaps,.kbmp-thead .kbmp-c-prov,.kbmp-cols .kbmp-cprov{display:none}',
+        '@container (min-width: 620px){.kbmp-thead,.kbmp-cols{grid-template-columns:minmax(0,1fr) 88px 58px 104px 46px}.kbmp-thead .kbmp-c-caps,.kbmp-cols .kbmp-ccaps{display:flex}.kbmp-nar .kbmp-caprow{display:none}.kbmp-mtype,.kbmp-mprix,.kbmp-sep2{display:inline-flex;align-items:center;gap:4px}}',
         '.kbmp-mtype,.kbmp-mprix{display:none}',
         // Les deux actions de la ligne : une zone de 24 px, alignées SUR la
         // même ligne (la règle `.kbmp-c{flex-direction:column}` passerait
         // sinon devant un simple `.kbmp-cact`).
-        '.kbmp-c.kbmp-cact{flex-direction:row;align-items:center;justify-content:flex-end;gap:2px;opacity:.55}',
+        '.kbmp-c.kbmp-cact{flex-direction:row;align-items:center;justify-content:flex-end;gap:2px;opacity:0;transition:opacity .12s}',
+        '@media (hover:none){.kbmp-c.kbmp-cact{opacity:1}}',
+        '@media (prefers-reduced-motion:reduce){.kbmp-c.kbmp-cact{transition:none}}',
         '.kbmp-c.kbmp-cact .kbm-btn{width:24px;height:24px;padding:0;border-radius:8px}',
         '.kbmp-thead{height:32px;border-bottom:.5px solid var(--dsw-alias-border-l2);font-size:10px;letter-spacing:.03em;color:var(--dsw-alias-label-tertiary)}',        '.kbmp-th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
         '.kbmp-lig{border-bottom:.5px solid var(--dsw-alias-border-l1)}',
@@ -2518,7 +2572,6 @@ window.__ModuleLoader__.load({
         // La pastille des surcharges : discrète (bordure ambrée, pas de
         // remplissage) — 69 modèles importés en portent presque tous, un
         // aplat orange sur chaque ligne criait plus fort que la table.
-        '.kbmp-ovpill{display:inline-flex;align-items:center;height:17px;padding:0 6px;border-radius:999px;flex:none;border:.5px solid var(--dsw-alias-state-warn-secondary);color:var(--dsw-alias-state-warn-primary);font-size:10.5px;font-weight:500;white-space:nowrap;opacity:.85}',
         // ── l'infobulle du kit : placée au-dessus de l'ancre, révélée au
         //    survol et au focus clavier ; le style visuel vient de
         //    .kbm-tip-bubble (kit DSH), ici on ne règle que la place.
