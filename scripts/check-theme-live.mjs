@@ -37,11 +37,12 @@
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive (no Chrome, no GUI, the Theme
 // page cannot be reached).
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openLivePage } from './live-page.mjs'
 import { createFlow } from './lib-language-flow.mjs'
+import { profilePatch } from './dsh-home.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -123,8 +124,8 @@ const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (M
 // ── what the user's DSH has STORED (ui-theme in the profile's cordis.patch.yml) ───────
 const storedUi = () => {
   try {
-    const profile = process.env.KB_PROFILE || 'web'
-    const yml = readFileSync(join(homedir(), '.dsh', 'profiles', profile, 'cordis.patch.yml'), 'utf8')
+    const yml = profilePatch()
+    if (yml === null) return null
     const at = yml.indexOf('- id: ui-theme')
     if (at < 0) return null
     const rest = yml.slice(at + 1)

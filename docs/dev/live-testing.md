@@ -12,7 +12,7 @@ repo gives you, and the traps.
 | Way | Where it comes from | Lifetime | Use it for |
 |---|---|---|---|
 | **Token URL** | `~/.dsh/logs/dsh-web.url` (`http://127.0.0.1:3080/?token=…`), written when `dsh web` was started by the relance script | until `dsh web` restarts | opening the GUI by hand |
-| **Signed session cookie** | derived from the *persistent* secret `client-connection/browser-session` in `~/.dsh/.credentials.yaml` | 24 h, and it survives restarts | scripts and automated tests |
+| **Signed session cookie** | derived from the *persistent* secret `client-connection/browser-session` in `.credentials.yaml` of the DSH home (`$DSH_HOME`, else `~/.dsh`) | 24 h, and it survives restarts | scripts and automated tests |
 
 **Prefer the cookie.** The token in `dsh-web.url` ages badly: as soon as `dsh web`
 is restarted by hand (it then runs in a terminal and no longer rewrites the
