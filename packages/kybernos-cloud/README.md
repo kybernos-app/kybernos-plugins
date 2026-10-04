@@ -76,13 +76,22 @@ donc là où ils sont déjà modélisés : la table `kybernos.memories` de son c
 Quand le compte est connecté, ce half fait trois choses :
 
 1. **Il lit** `GET /v1/memories?scope=account` (et `?scope=kyber&kyber_id=` pour
-   chaque kyber relié) avec le jeton du compte, et remplit un cache de 60 s.
+   chaque kyber relié) avec le jeton du compte, et remplit un cache. Le cache est **rechargé** quand il a plus de 60 s (minuteur du plugin, libéré avec lui), juste après toute écriture (outil, capture, carte) et à l'ouverture de la page ; une lecture qui échoue **garde** l'ancien contenu et remonte l'erreur au lieu de vider le prompt.
 2. **Il injecte** le résultat dans le prompt, à chaque assemblage, via
    `ctx.systemPrompt.context({ name: 'kybernos:memory', order: 130, text })`.
    Le texte est **synchrone** (il lit le cache — jamais le réseau dans un
-   assemblage), borné à 6 000 caractères, dans l'ordre **déterministe** que la
-   spec serveur impose : `pinned DESC, created_at ASC, id ASC` (un ordre instable
-   casse le prompt caching du proxy). Le contenu est neutralisé : un souvenir ne
+   assemblage), borné à 6 000 caractères **cadre compris**. La
+   **sélection** se fait par fraîcheur : les épinglés d'abord (plafonnés à 60 % du
+   budget, les plus récents d'abord), puis les souvenirs libres les plus récents, et
+   un souvenir trop long pour ce qui reste est sauté. Le **rendu** garde l'ordre
+   déterministe de la spec serveur (`pinned DESC, created_at ASC, id ASC`, un ordre
+   instable casse le prompt caching du proxy). L'ancien tri « du plus ancien au plus
+   récent, coupe au premier dépassement » ne gardait que les plus vieux : sur un compte
+   à 631 souvenirs, seuls 12 épinglés entraient et rien de ce que le modèle venait
+   d'apprendre. Quand des souvenirs restent dehors, le chunk le dit et renvoie à
+   `memory_search`. Les kybers reliés ont leur part (30 %) pour qu'un groupe n'affame
+   pas l'autre. C'est une étape **provisoire** : la vraie réponse est une recherche par
+   pertinence côté serveur. Le contenu est neutralisé : un souvenir ne
    peut pas fabriquer une ligne de chunk.
 3. **Il laisse écrire** : deux outils (`memory_write`, `memory_search`) et une
    **capture automatique en fin de tour** (`agent/turn-stopping`) qui demande au
@@ -103,8 +112,8 @@ Quand le compte est connecté, ce half fait trois choses :
    normalisée). Sans le second, un même fait s'écrit à chaque tour qui le porte.
 
    La capture est *fail-open* par construction, donc **observable** : chaque
-   sortie écrit un état (`hors_connexion`, `tour_trop_court`, `llm_indisponible`,
-   `rien_a_retenir`, `ecrit`, `erreur`) que la route et la carte affichent. Sans
+   sortie écrit un état (`hors_connexion`, `desactivee`, `sans_session`,
+   `tour_trop_court`, `llm_indisponible`, `rien_a_retenir`, `deja_connu`, `ecrit`, `erreur`) que la route et la carte affichent. Sans
    ça, « rien à retenir » et « le service LLM manque » se ressembleraient
    exactement — c'est le même angle mort que « le panneau est sélectionné » sans
    « le panneau est visible ».
@@ -120,9 +129,33 @@ Routes locales (mêmes gardes same-origin et méthode stricte que les autres) :
 | `/kybernos-cloud/memory/search` | GET | cherche (`?q=`) |
 | `/kybernos-cloud/memory/map` | POST | écrit la correspondance kyber local → kyber cloud |
 | `/kybernos-cloud/memory/lessons` | POST | pousse les leçons locales (`dryRun` par défaut) |
+| `/kybernos-cloud/memory/list` | GET | liste **paginée et filtrée** du compte (`limit`, `offset`, `show`, `src`, `added`, `q`) |
+| `/kybernos-cloud/memory/settings` | GET | les interrupteurs `memories`, `context`, `capture` |
+| `/kybernos-cloud/memory/settings/set` | POST | pose un ou plusieurs interrupteurs (booléens ; refus en bloc sinon) |
 
 Chaque chemin est **distinct** : le routeur indexe par chemin, donc deux routes
 sur `/memory` se masqueraient l'une l'autre (défaut trouvé par la suite host).
+
+### Réglages, origine des écritures, liste paginée
+
+- **Interrupteurs** (`memories`, `context`, `capture`, tous vrais par défaut) : fichier
+  `kybernos-cloud-memory.json`, **à côté** de l'état (0600) et pas dedans, car l'état
+  disparaît à la déconnexion alors qu'un « Mémoire : non » doit survivre à une
+  reconnexion. `context=non` : aucun chunk ; `memories=non` : aucun chunk, outils
+  refusés (`memoire_desactivee`), pas de capture ; `capture=non` : la capture ne coûte
+  ni appel réseau ni jeton (état `desactivee`). Ces interrupteurs gouvernent **ce
+  plugin** : le proxy Kybernos injecte aussi un bloc mémoire pour les requêtes qui
+  passent par lui, et ne les connaît pas encore.
+- **Origine** : le serveur marque la capture, l'outil d'un agent et la poussée de
+  leçons du même `source` (`conversation`). Le plugin note donc localement qui a écrit
+  quoi (`kybernos-cloud-memory-origins.json`, 5 000 ids max) : `capture`, `agent`,
+  `taught` (la carte), `sync`. Pour un souvenir écrit ailleurs, l'origine est déduite
+  de `source` et la liste porte `originKnown: false`.
+- **Liste** : `GET /kybernos-cloud/memory/list` calcule sur le cache, car
+  `GET /v1/memories` renvoie tout et ne pagine pas encore. Chaque ligne porte `sent`,
+  qui vient de la **même** sélection que le prompt : l'écran ne peut pas annoncer autre
+  chose que ce que lit le modèle. La recherche est textuelle (`search.mode: exact`,
+  `relevance: false`).
 
 ### Correspondance des kybers
 
@@ -137,7 +170,8 @@ plafond de 40 coupe.
 ### Invariants
 
 - hors connexion : aucun chunk, les outils refusent, **aucune requête réseau**,
-  et surtout pas le cache du compte précédent (`emptyMemoryCache()`) ;
+  et surtout pas le cache du compte précédent (`emptyMemoryCache()`, appelé aussi par
+  `disconnect` — un test le vérifie) ;
 - une lecture refusée (401) **se dit refusée** — elle ne se déguise jamais en
   « aucun souvenir » (une liste vide et un jeton mort ne se ressemblent pas) ;
 - `kyber_id` n'est **pas exposé au modèle** : un modèle ne doit pas pouvoir viser

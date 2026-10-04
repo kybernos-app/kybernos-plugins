@@ -310,6 +310,10 @@ const ctx = {
 }
 
 const mod = await import('./index.js')
+// Aucun minuteur ne doit tirer sur le faux serveur en arriere-plan : un
+// rechargement non demande fausserait les compteurs de requetes des tests.
+mod.MEMORY_TUNING.writeRefreshMs = -1
+mod.MEMORY_TUNING.tickMs = 3600000
 mod.apply(ctx)
 
 const fakeRes = () => ({
@@ -355,6 +359,8 @@ try {
     '/kybernos-cloud/artifacts/detail',
     '/kybernos-cloud/memory', '/kybernos-cloud/memory/add', '/kybernos-cloud/memory/update', '/kybernos-cloud/memory/delete',
     '/kybernos-cloud/memory/search', '/kybernos-cloud/memory/map', '/kybernos-cloud/memory/lessons',
+    // Page Memory & Lessons learned : liste paginee/filtree et reglages.
+    '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
     // Code de parrainage du compte (carte d'invitation du pied de sidebar).
     '/kybernos-cloud/referral',
@@ -718,7 +724,13 @@ try {
   pollCount = 2
   const confirmedClaim = await hit('/kybernos-cloud/poll', 'POST')
   assert.equal(confirmedClaim.body.connected, true)
+  // Le cache memoire du compte precedent ne survit pas a la deconnexion.
+  mod.memoryCache.account = [{ id: 7, kind: 'fact', content: 'ancien compte', pinned: false, createdAt: '2026-09-01 10:00:00+00:00' }]
+  mod.memoryCache.kyber = { default: [{ id: 8, kind: 'fact', content: 'ancien kyber', pinned: false, createdAt: '2026-09-01 10:00:00+00:00' }] }
+  mod.memoryCache.at = Date.now()
   const confirmed = await hit('/kybernos-cloud/disconnect', 'POST', undefined, { confirm: true })
+  assert.equal(mod.memoryCache.account.length, 0, 'deconnexion : le cache du compte est vide')
+  assert.deepEqual(mod.memoryCache.kyber, {}, 'deconnexion : le cache des kybers est vide')
   assert.equal(confirmed.body.revoked, true)
   assert.equal(existsSync(statePath), false)
   ok('disconnect sans {confirm:true} refuse (400), avec confirmation reussi')
@@ -945,6 +957,187 @@ try {
   const tooLong = mod.validateMemory({ content: 'x'.repeat(mod.MEMORY_MAX_CONTENT + 1), kind: 'fact' })
   assert.equal(tooLong.error, 'contenu_trop_long')
   ok('memoire : contenu au-dela du plafond serveur refuse avant le reseau')
+
+
+  // ── 11. Page « Memory & Lessons learned » : réglages, sélection, cache, origines, liste ──
+  const settingsFile = statePath.replace(/\.json$/, '') + '-memory.json'
+  const originsFile = statePath.replace(/\.json$/, '') + '-memory-origins.json'
+  const setSettings = (patch) => hit('/kybernos-cloud/memory/settings/set', 'POST', undefined, patch)
+  const mkMem = (id, pinned, createdAt, content) => ({ id, scope: 'account', kyberId: null, kind: 'fact', content: content === undefined ? 'x'.repeat(100) : content, source: 'conversation', pinned, retentionDays: 180, expiresAt: null, createdAt })
+
+  // 11a. Reglages : tous vrais par defaut (rien ne change pour qui n'y touche pas),
+  //      refus en bloc d'une valeur ou d'une cle invalide, persistance a cote de l'etat.
+  const set0 = await hit('/kybernos-cloud/memory/settings', 'GET')
+  assert.deepEqual(set0.body.settings, { memories: true, context: true, capture: true })
+  const badValue = await setSettings({ memories: 'non' })
+  assert.equal(badValue.body.ok, false)
+  assert.equal(badValue.body.error, 'valeur_invalide')
+  const badKey = await setSettings({ capture: false, couleur: true })
+  assert.equal(badKey.body.error, 'cle_inconnue')
+  assert.deepEqual((await hit('/kybernos-cloud/memory/settings', 'GET')).body.settings, { memories: true, context: true, capture: true }, 'un patch refuse n applique RIEN, pas meme la partie valide')
+  const set1 = await setSettings({ context: false })
+  assert.deepEqual(set1.body.settings, { memories: true, context: false, capture: true })
+  assert.equal(existsSync(settingsFile), true, 'les reglages vivent a cote du fichier d etat')
+  assert.equal((statSync(settingsFile).mode & 0o777), 0o600)
+  assert.equal(leaks(set1.body), false)
+  ok('reglages : vrais par defaut, patch invalide refuse en bloc, persistes en 0600 a cote de l etat')
+
+  // 11b. Ils sont HONORES : contexte coupe → aucun chunk ; memoire coupee → les
+  //      outils refusent et rien n'est ecrit ; capture coupee → zero appel LLM/reseau.
+  mod.memoryCache.account = [mkMem(1, true, '2026-09-01 10:00:00+00:00', 'prefere le francais')]
+  mod.memoryCache.at = Date.now()
+  assert.equal(mod.renderMemoryChunk(readState()), '', 'contexte = non : rien ne part au modele')
+  await setSettings({ context: true })
+  assert.ok(mod.renderMemoryChunk(readState()).indexOf('prefere le francais') >= 0)
+  await setSettings({ memories: false })
+  assert.equal(mod.renderMemoryChunk(readState()), '', 'memoire = non : rien ne part non plus')
+  const writtenBefore = memories.length
+  const refusedWrite = await registeredTools.get('memory_write').execute({ content: 'ne doit pas partir', kind: 'fact' }, {})
+  assert.equal(refusedWrite.ok, false)
+  assert.equal(refusedWrite.error, 'memoire_desactivee')
+  assert.equal((await registeredTools.get('memory_search').execute({ q: 'x' }, {})).error, 'memoire_desactivee')
+  assert.equal(memories.length, writtenBefore, 'un refus n ecrit rien')
+  await setSettings({ memories: true, capture: false })
+  llmEnabled = true
+  const callsBefore = seen.memoryAuth.length
+  agentHooks.get('agent/turn-stopping')({ agent: { session: { deriveMessages: () => tour, id: 's-2' }, options: { provider: 'p', model: 'm' } }, signal: undefined })
+  await new Promise((r) => setTimeout(r, 30))
+  assert.equal(mod.lastCapture.status, 'desactivee', 'capture = non : l etat le dit')
+  assert.equal(seen.memoryAuth.length, callsBefore, 'capture = non : aucun appel reseau')
+  llmEnabled = false
+  await setSettings({ capture: true })
+  ok('reglages : contexte, memoire et capture sont honores (aucun chunk, outils refuses, capture muette)')
+
+  // 11c. Selection : les plus RECENTS gagnent, les epingles sont plafonnes, le
+  //      budget n'est jamais depasse, le rendu garde l'ordre stable.
+  const pinnedAll = Array.from({ length: 40 }, (_, i) => mkMem(i + 1, true, '2026-08-' + String(10 + (i % 18)).padStart(2, '0') + ' 10:00:00+00:00'))
+  const looseAll = Array.from({ length: 200 }, (_, i) => mkMem(100 + i, false, '2026-09-' + String(1 + Math.floor(i / 10)).padStart(2, '0') + ' 1' + (i % 10) + ':00:00+00:00'))
+  const sel = mod.selectForPrompt(pinnedAll.concat(looseAll), 5000, 0.6)
+  const chosenIds = new Set(sel.chosen.map((m) => m.id))
+  assert.ok(sel.used <= 5000, 'le budget n est jamais depasse')
+  assert.equal(sel.omitted, 240 - sel.chosen.length)
+  assert.equal(chosenIds.has(299), true, 'le souvenir libre le plus recent est envoye')
+  assert.equal(chosenIds.has(100), false, 'le plus ancien des libres ne l est pas')
+  assert.ok(sel.chosen.filter((m) => m.pinned).length > 0 && sel.chosen.filter((m) => m.pinned).length < 40, 'des epingles, mais plafonnes')
+  assert.ok(sel.chosen.filter((m) => m.pinned).reduce((n, m) => n + mod.sanitizeMemory(m.content).length + 20, 0) <= 5000 * 0.6 + 40 * 8, 'les epingles tiennent dans leur part')
+  const firstLoose = sel.chosen.findIndex((m) => !m.pinned)
+  assert.ok(sel.chosen.slice(0, firstLoose).every((m) => m.pinned) && sel.chosen.slice(firstLoose).every((m) => !m.pinned), 'rendu : epingles d abord')
+  const ascending = (list) => list.every((m, i) => i === 0 || String(list[i - 1].createdAt) <= String(m.createdAt))
+  assert.ok(ascending(sel.chosen.slice(0, firstLoose)) && ascending(sel.chosen.slice(firstLoose)), 'rendu : ordre stable du plus ancien au plus recent')
+  // Un souvenir trop long pour ce qui reste est SAUTE, il ne bloque pas les plus petits.
+  const big = [mkMem(1, false, '2026-09-03 10:00:00+00:00', 'g'.repeat(1900)), mkMem(2, false, '2026-09-02 10:00:00+00:00', 'petit'), mkMem(3, false, '2026-09-01 10:00:00+00:00', 'petit aussi')]
+  const selBig = mod.selectForPrompt(big, 300, 0.6)
+  assert.deepEqual(selBig.chosen.map((m) => m.id).sort(), [2, 3], 'le trop long est saute, les petits passent')
+  // Le chunk reel tient dans MEMORY_MAX_INJECT_CHARS, cadre compris.
+  mod.memoryCache.account = pinnedAll.concat(looseAll)
+  mod.memoryCache.kyber = {}
+  mod.memoryCache.at = Date.now()
+  const real600 = mod.renderMemoryChunk(readState())
+  assert.ok(real600.length <= mod.MEMORY_MAX_INJECT_CHARS, 'le chunk (cadre compris) tient dans ' + mod.MEMORY_MAX_INJECT_CHARS + ' : ' + real600.length)
+  assert.ok(real600.indexOf('autres souvenirs non envoyés') >= 0, 'le modele est prevenu que d autres souvenirs existent')
+  ok('selection : les plus recents entrent, epingles plafonnes, budget et ordre respectes')
+
+  // 11d. Le cache : une lecture refusee GARDE l'ancien contenu (et le dit) ; le TTL
+  //      est respecte ; une ecriture programme un rechargement.
+  await mod.refreshMemoryCache(readState(), true)
+  const known = mod.memoryCache.account.length
+  assert.ok(known >= 1 && mod.memoryCache.error === null)
+  tokenValid = false
+  await mod.refreshMemoryCache(readState(), true)
+  assert.equal(mod.memoryCache.error, 'reconnexion_requise', 'l erreur est dite')
+  assert.equal(mod.memoryCache.account.length, known, 'une lecture refusee ne vide pas le cache')
+  assert.ok(mod.renderMemoryChunk(readState()).length > 0, 'le prompt garde le dernier etat connu')
+  tokenValid = true
+  await mod.refreshMemoryCache(readState(), true)
+  assert.equal(mod.memoryCache.error, null)
+  const hitsA = seen.memoryAuth.length
+  await mod.refreshMemoryCache(readState(), false)
+  assert.equal(seen.memoryAuth.length, hitsA, 'dans le TTL, aucun appel reseau')
+  mod.memoryCache.at = Date.now() - 61000
+  await mod.refreshMemoryCache(readState(), false)
+  assert.ok(seen.memoryAuth.length > hitsA, 'TTL echu : le cache est recharge')
+  mod.MEMORY_TUNING.writeRefreshMs = 15
+  const cachedBefore = mod.memoryCache.account.length
+  const viaTool = await registeredTools.get('memory_write').execute({ content: 'souvenir qui doit arriver tout seul dans le prompt', kind: 'fact' }, {})
+  assert.equal(viaTool.ok, true)
+  const until = Date.now() + 3000
+  while (mod.memoryCache.account.length === cachedBefore && Date.now() < until) await new Promise((r) => setTimeout(r, 15))
+  assert.equal(mod.memoryCache.account.length, cachedBefore + 1, 'une ecriture est visible du prompt sans redemarrage')
+  assert.ok(mod.renderMemoryChunk(readState()).indexOf('souvenir qui doit arriver tout seul') >= 0)
+  mod.MEMORY_TUNING.writeRefreshMs = -1
+  ok('cache : lecture refusee gardee, TTL respecte, une ecriture se retrouve dans le prompt')
+
+  // 11e. Origines : qui a ecrit quoi (le serveur marque tout « conversation »).
+  const viaRoute = await hit('/kybernos-cloud/memory/add', 'POST', undefined, { content: 'ecrit depuis la carte', kind: 'preference', source: 'taught' })
+  const viaCapture = await mod.createMemory(readState(), { scope: 'account', kind: 'fact', content: 'ecrit par la capture', source: 'conversation' }, 'capture')
+  const ledger = JSON.parse(readFileSync(originsFile, 'utf8'))
+  assert.equal(ledger[String(viaTool.id)], 'agent')
+  assert.equal(ledger[String(viaRoute.body.memory.id)], 'taught')
+  assert.equal(ledger[String(viaCapture.memory.id)], 'capture')
+  assert.equal((statSync(originsFile).mode & 0o777), 0o600)
+  assert.equal(mod.originOf({ id: 1, source: 'taught' }, {}).originKnown, false, 'ce qui n a pas ete ecrit d ici est deduit et marque inconnu')
+  assert.equal(mod.originOf({ id: 1, source: 'taught' }, {}).origin, 'taught')
+  assert.equal(mod.originOf({ id: 5, source: 'conversation' }, { 5: 'agent' }).origin, 'agent')
+  ok('origines : capture, agent et carte sont distingues localement (le serveur ne le fait pas)')
+
+  // 11f. Liste paginee et filtree, calculee sur un cache connu (aucun reseau).
+  const nowTs = Date.now()
+  const stamp = (minAgo) => new Date(nowTs - minAgo * 60000).toISOString().replace('T', ' ').replace('Z', '+00:00')
+  const rows = []
+  for (let i = 0; i < 60; i += 1) rows.push(mkMem(1000 + i, i < 5, stamp(i < 3 ? 0.5 : i < 10 ? 30 : 60 * 24 * 3 + i), 'ligne numero ' + String(i) + (i === 42 ? ' deploiement Fly' : '')))
+  mod.memoryCache.account = rows
+  mod.memoryCache.kyber = {}
+  mod.memoryCache.at = Date.now()
+  writeFileSync(originsFile, JSON.stringify({ 1001: 'agent', 1002: 'agent', 1003: 'capture', 1004: 'taught' }))
+  const page1 = await hit('/kybernos-cloud/memory/list?limit=10&offset=0', 'GET')
+  assert.equal(page1.body.ok, true)
+  assert.equal(page1.body.total, 60)
+  assert.equal(page1.body.items.length, 10)
+  assert.equal(page1.body.limit, 10)
+  const page2 = await hit('/kybernos-cloud/memory/list?limit=10&offset=10', 'GET')
+  assert.equal(page2.body.items.length, 10)
+  assert.equal(page1.body.items.some((r) => page2.body.items.some((q) => q.id === r.id)), false, 'deux pages ne se recouvrent pas')
+  const ageOrder = page1.body.items.map((r) => r.ageMinutes)
+  assert.ok(ageOrder.every((v, i) => i === 0 || ageOrder[i - 1] <= v), 'les plus recents d abord')
+  assert.equal((await hit('/kybernos-cloud/memory/list?limit=10&offset=55', 'GET')).body.items.length, 5, 'derniere page partielle')
+  assert.equal((await hit('/kybernos-cloud/memory/list?limit=9999', 'GET')).body.limit, 200, 'la taille de page est plafonnee')
+  const pinnedOnly = await hit('/kybernos-cloud/memory/list?show=pinned&limit=100', 'GET')
+  assert.equal(pinnedOnly.body.total, 5)
+  const agentOnly = await hit('/kybernos-cloud/memory/list?src=agent&limit=100', 'GET')
+  assert.deepEqual(agentOnly.body.items.map((r) => r.id).sort(), [1001, 1002])
+  assert.ok(agentOnly.body.items.every((r) => r.originKnown === true))
+  const lastMinute = await hit('/kybernos-cloud/memory/list?added=1m&limit=100', 'GET')
+  assert.equal(lastMinute.body.total, 3, 'fenetre « derniere minute »')
+  const lastHour = await hit('/kybernos-cloud/memory/list?added=1h&limit=100', 'GET')
+  assert.equal(lastHour.body.total, 10)
+  const found42 = await hit('/kybernos-cloud/memory/list?q=FLY', 'GET')
+  assert.deepEqual(found42.body.items.map((r) => r.id), [1042], 'recherche textuelle, insensible a la casse')
+  assert.equal(found42.body.search.mode, 'exact')
+  assert.equal(found42.body.search.relevance, false, 'la pertinence n est pas annoncee tant qu elle n existe pas')
+  const combined = await hit('/kybernos-cloud/memory/list?added=1h&show=pinned&limit=100', 'GET')
+  assert.equal(combined.body.total, 5, 'les filtres se combinent')
+  const c = page1.body.counts
+  assert.equal(c.all, 60); assert.equal(c.pinned, 5); assert.equal(c.agent, 2); assert.equal(c.capture >= 1, true); assert.equal(c.you >= 1, true)
+  assert.equal(page1.body.budget.cap, mod.MEMORY_MAX_INJECT_CHARS)
+  assert.ok(page1.body.budget.sent >= 1 && page1.body.budget.used <= page1.body.budget.cap)
+  const sentRows = (await hit('/kybernos-cloud/memory/list?show=sent&limit=200', 'GET')).body
+  assert.equal(sentRows.total, page1.body.budget.sent, 'le drapeau « sent » de la liste = la selection du prompt')
+  assert.equal(leaks(page1.body), false, 'le jeton ne sort jamais')
+  ok('liste : pagination, filtres (show/src/added/q) et compteurs ; « sent » = ce que le prompt envoie')
+
+  // 11g. Hors connexion, la liste et les reglages se comportent : refus explicite pour la liste, reglages lisibles.
+  const savedState = readFileSync(statePath, 'utf8')
+  rmSync(statePath)
+  const listOff = await hit('/kybernos-cloud/memory/list', 'GET')
+  assert.equal(listOff.body.ok, false)
+  assert.equal(listOff.body.connected, false)
+  assert.equal((await hit('/kybernos-cloud/memory/settings', 'GET')).body.ok, true, 'les reglages se lisent hors connexion')
+  assert.equal((await setSettings({ capture: false })).body.ok, true, 'et s ecrivent hors connexion')
+  await setSettings({ capture: true })
+  writeFileSync(statePath, savedState, { mode: 0o600 })
+  ok('liste refusee hors connexion ; reglages lisibles et ecrivibles sans compte')
+  mod.emptyMemoryCache()
+  await mod.refreshMemoryCache(readState(), true)
 
   // 10q. Le catalogue distant : lecture, puis installation LOCALE reelle.
   //      Le dossier de kybers est une fixture temporaire (KYBERNOS_CLOUD_KYBERS),

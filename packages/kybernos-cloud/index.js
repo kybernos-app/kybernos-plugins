@@ -37,7 +37,7 @@
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
 import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 
@@ -357,6 +357,9 @@ const disconnect = async () => {
   // (removeImportedCatalog a besoin de l'état pour savoir ce qu'il a posé).
   await removeImportedCatalog(state)
   clearState()
+  // Le cache du compte précédent ne doit jamais survivre à la déconnexion : après
+  // une re-connexion à un AUTRE compte, il aurait été servi dans le prompt.
+  emptyMemoryCache()
   if (token === null) return { ok: true, revoked: false, status: 0 }
   const res = await apiCall('/v1/session', { method: 'DELETE', token })
   return { ok: true, revoked: res.status === 204 || res.status === 200, status: res.status }
@@ -1138,6 +1141,88 @@ const MEMORY_INJECT_ORDER = 130
 const MEMORY_PUSH_MAX = 40
 const CAPTURE_MAX_TOKENS = 300
 const CAPTURE_MIN_CHARS = 60
+// Part du budget d'injection réservée aux souvenirs épinglés, et part laissée
+// à la mémoire des kybers reliés quand il y en a : sans ces plafonds, un seul
+// groupe peut affamer tous les autres (constaté : 47 épinglés = tout le budget,
+// donc aucun des 543 souvenirs captés n'arrivait jamais au modèle).
+const MEMORY_PINNED_SHARE = 0.6
+const MEMORY_KYBER_SHARE = 0.3
+// Le CADRE du chunk (en-tête, ligne « autres souvenirs », consigne finale) compte dans
+// le plafond : MEMORY_MAX_INJECT_CHARS borne le texte injecté en entier, pas seulement
+// les lignes de souvenirs (mesuré : l'ancien rendu dépassait 6 000 de plus de 130).
+const MEMORY_FRAME_CHARS = 450
+const MEMORY_KYBER_FRAME_CHARS = 120
+// Réglages de rafraîchissement, exportés pour que la suite host puisse les
+// couper (un minuteur qui tire sur un faux serveur pendant un test le fausse).
+const MEMORY_TUNING = { writeRefreshMs: 400, tickMs: 30000 }
+
+// ── Fichiers voisins de l'état ──────────────────────────────────────────────
+// Réglages et origines vivent À CÔTÉ du fichier d'état (même dossier, mêmes
+// permissions) mais PAS dedans : le fichier d'état disparaît à la déconnexion
+// (clearState), alors qu'un interrupteur « Mémoire : non » doit survivre à une
+// reconnexion — et qu'on doit pouvoir le poser hors connexion.
+const sideFile = (suffix) => stateFile().replace(/\.json$/, '') + '-' + suffix + '.json'
+
+const readSide = (suffix, fallback) => {
+  try {
+    const parsed = JSON.parse(readFileSync(sideFile(suffix), 'utf8'))
+    return parsed !== null && typeof parsed === 'object' ? parsed : fallback
+  } catch (e) {
+    return fallback
+  }
+}
+
+const writeSide = (suffix, value) => {
+  const file = sideFile(suffix)
+  try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* deja la */ }
+  writeFileSync(file, JSON.stringify(value) + '\n', { mode: 0o600 })
+  try { chmodSync(file, 0o600) } catch (e) { /* FS exotique (Windows) */ }
+}
+
+/**
+ * Interrupteurs de la page « Memory & Lessons learned ». Tous vrais par défaut :
+ * c'est le comportement d'avant l'existence des réglages, donc rien ne change
+ * pour qui ne les touche pas. Lus à chaque assemblage de prompt (fichier minuscule,
+ * lecture synchrone) — pas de cache à invalider quand un autre processus écrit.
+ */
+const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture']
+const readMemorySettings = () => {
+  const raw = readSide('memory', {})
+  const out = {}
+  for (const key of MEMORY_SETTING_KEYS) out[key] = typeof raw[key] === 'boolean' ? raw[key] : true
+  return out
+}
+
+/**
+ * Origine d'un souvenir : le serveur ne distingue que `source` (conversation,
+ * taught…), et la capture automatique, l'outil d'un agent et la poussée de
+ * leçons écrivent TOUS `conversation` — indiscernables côté compte. Le plugin
+ * note donc localement qui a écrit quoi ; ce qui n'a pas été écrit d'ici est
+ * déduit de `source` et marqué « non connu » (`originKnown: false`).
+ */
+const MEMORY_ORIGINS = ['capture', 'agent', 'taught', 'sync']
+const MEMORY_ORIGINS_MAX = 5000
+
+const noteOrigins = (ids, origin) => {
+  if (MEMORY_ORIGINS.indexOf(origin) < 0) return
+  try {
+    const map = readSide('memory-origins', {})
+    for (const id of ids) map[String(id)] = origin
+    const keys = Object.keys(map)
+    // Les ids sont croissants : au-delà du plafond on oublie les plus anciens.
+    if (keys.length > MEMORY_ORIGINS_MAX) {
+      keys.sort((a, b) => Number(a) - Number(b)).slice(0, keys.length - MEMORY_ORIGINS_MAX).forEach((k) => { delete map[k] })
+    }
+    writeSide('memory-origins', map)
+  } catch (e) { /* le journal d'origine est un confort : jamais bloquant */ }
+}
+
+const originOf = (m, ledger) => {
+  const known = ledger[String(m.id)]
+  if (MEMORY_ORIGINS.indexOf(known) >= 0) return { origin: known, originKnown: true }
+  const derived = (m.source === 'taught' || m.source === 'correction' || m.source === 'admin') ? 'taught' : m.source === 'call' ? 'agent' : 'capture'
+  return { origin: derived, originKnown: false }
+}
 
 /** Cache d'injection : lu par le prompt (synchrone), rempli par le réseau. */
 const memoryCache = { at: 0, account: [], kyber: {}, error: null }
@@ -1149,9 +1234,29 @@ const emptyMemoryCache = () => {
   memoryCache.error = null
 }
 
-/** Marque le cache périmé : le prochain assemblage (ou refresh) le rechargera. */
+/** Marque le cache périmé ; `scheduleMemoryRefresh` le recharge juste après. */
 const bumpMemoryCache = () => {
   memoryCache.at = 0
+}
+
+// Un assemblage de prompt ne lit QUE le cache (jamais le réseau). Sans rechargement
+// programmé, un souvenir écrit — par l'outil, la capture ou la carte — restait
+// absent du prompt jusqu'au prochain redémarrage : le TTL ne servait à rien
+// parce que tous les appelants forçaient. Une écriture déclenche donc un
+// rechargement court (regroupé), et un minuteur rafraîchit le cache périmé.
+let memoryRefreshTimer = null
+const scheduleMemoryRefresh = () => {
+  if (memoryRefreshTimer !== null || MEMORY_TUNING.writeRefreshMs < 0) return
+  memoryRefreshTimer = setTimeout(() => {
+    memoryRefreshTimer = null
+    void refreshMemoryCache(readState(), false)
+  }, MEMORY_TUNING.writeRefreshMs)
+  if (typeof memoryRefreshTimer.unref === 'function') memoryRefreshTimer.unref()
+}
+
+const afterMemoryWrite = () => {
+  bumpMemoryCache()
+  scheduleMemoryRefresh()
 }
 
 const asMemory = (m) => ({
@@ -1211,14 +1316,16 @@ const validateMemory = (body) => {
   return { error: null, payload }
 }
 
-const createMemory = async (state, body) => {
+const createMemory = async (state, body, origin) => {
   const checked = validateMemory(body)
   if (checked.error !== null) return { ok: false, error: checked.error }
   const res = await apiCall('/v1/memories', { method: 'POST', token: state.token, body: checked.payload })
   const failure = memoryFailure(res)
   if (failure !== null) return { ok: false, error: failure, status: res.status }
-  bumpMemoryCache()
-  return { ok: true, memory: res.body !== null && typeof res.body === 'object' ? asMemory(res.body) : null }
+  afterMemoryWrite()
+  const memory = res.body !== null && typeof res.body === 'object' ? asMemory(res.body) : null
+  if (memory !== null && origin !== undefined) noteOrigins([memory.id], origin)
+  return { ok: true, memory }
 }
 
 const patchMemory = async (state, body) => {
@@ -1240,7 +1347,7 @@ const patchMemory = async (state, body) => {
   const res = await apiCall('/v1/memories/' + encodeURIComponent(id), { method: 'PATCH', token: state.token, body: sets })
   const failure = memoryFailure(res)
   if (failure !== null) return { ok: false, error: failure, status: res.status }
-  bumpMemoryCache()
+  afterMemoryWrite()
   return { ok: true, memory: res.body !== null && typeof res.body === 'object' ? asMemory(res.body) : null }
 }
 
@@ -1250,7 +1357,7 @@ const deleteMemory = async (state, body) => {
   const res = await apiCall('/v1/memories/' + encodeURIComponent(id), { method: 'DELETE', token: state.token })
   const failure = memoryFailure(res)
   if (failure !== null) return { ok: false, error: failure, status: res.status }
-  bumpMemoryCache()
+  afterMemoryWrite()
   return { ok: true }
 }
 
@@ -1352,7 +1459,7 @@ const pushLessons = async (state, options = {}) => {
       if (text === '') continue
       if (known.has(text) === true) { row.skipped = row.skipped + 1; continue }
       if (dry === true) { row.added = row.added + 1; continue }
-      const made = await createMemory(state, { scope: 'kyber', kyberId: cloud, kind: 'policy', content: text, source: 'conversation' })
+      const made = await createMemory(state, { scope: 'kyber', kyberId: cloud, kind: 'policy', content: text, source: 'conversation' }, 'sync')
       if (made.ok === true) row.added = row.added + 1
       else { row.error = made.error; break }
     }
@@ -1375,7 +1482,7 @@ const sanitizeMemory = (text) => String(text)
   .replace(/\[\s*MEMORY/gi, '[MEMORY-')
   .slice(0, MEMORY_MAX_CONTENT)
 
-/** Ordre imposé par la spec : épinglés d'abord, puis du plus ancien au plus récent. */
+/** Ordre de RENDU imposé par la spec : épinglés d'abord, puis du plus ancien au plus récent (stable pour le cache de prompt du proxy). */
 const sortMemories = (items) => items.slice().sort((a, b) => {
   if (a.pinned !== b.pinned) return a.pinned === true ? -1 : 1
   const ka = String(a.createdAt === null || a.createdAt === undefined ? '' : a.createdAt)
@@ -1386,6 +1493,67 @@ const sortMemories = (items) => items.slice().sort((a, b) => {
 
 const memoryLine = (m) => '- (' + String(m.kind) + (m.pinned === true ? ', épinglé' : '') + ') ' + sanitizeMemory(m.content)
 
+const newestFirst = (a, b) => {
+  const ka = String(a.createdAt === null || a.createdAt === undefined ? '' : a.createdAt)
+  const kb = String(b.createdAt === null || b.createdAt === undefined ? '' : b.createdAt)
+  if (ka !== kb) return ka < kb ? 1 : -1
+  return Number(b.id) - Number(a.id)
+}
+
+/**
+ * CHOIX de ce qui part au modèle dans un budget de caractères. La sélection se
+ * fait par fraîcheur (épinglés d'abord, plafonnés à `pinnedShare` du budget,
+ * puis les plus récents), le RENDU reste dans l'ordre stable de `sortMemories`.
+ * Le tri « du plus ancien au plus récent + coupe au premier dépassement » que
+ * faisait ce code gardait toujours les plus vieux : sur un compte à 631 souvenirs
+ * seuls 12 épinglés entraient, et rien de ce que le modèle venait d'apprendre.
+ * Un souvenir trop long pour le reste du budget est sauté (on essaie plus petit).
+ */
+const selectForPrompt = (items, budget, pinnedShare) => {
+  const cost = (m) => memoryLine(m).length + 1
+  const chosen = new Set()
+  let used = 0
+  const take = (m, cap) => {
+    const c = cost(m)
+    if (chosen.has(m) || used + c > cap) return
+    chosen.add(m)
+    used += c
+  }
+  const pinned = items.filter((m) => m.pinned === true).sort(newestFirst)
+  const loose = items.filter((m) => m.pinned !== true).sort(newestFirst)
+  const pinCap = Math.floor(budget * pinnedShare)
+  pinned.forEach((m) => take(m, pinCap))
+  loose.forEach((m) => take(m, budget))
+  // Du budget resté libre (peu de souvenirs libres) : on y remet des épinglés.
+  pinned.forEach((m) => take(m, budget))
+  return { chosen: sortMemories(items.filter((m) => chosen.has(m))), used, omitted: items.length - chosen.size }
+}
+
+/**
+ * Le plan d'injection — UNE seule source de vérité : le texte du prompt, le
+ * compteur « 12 of 631 » de la page et le drapeau `sent` de chaque ligne en
+ * sortent tous. Sinon l'écran peut annoncer autre chose que ce que le modèle lit.
+ */
+const planInjection = (state) => {
+  const empty = { account: { chosen: [], used: 0, omitted: 0 }, kyber: {}, used: 0, budget: MEMORY_MAX_INJECT_CHARS }
+  if (isConnected(state) !== true) return empty
+  const cfg = readMemorySettings()
+  if (cfg.memories !== true || cfg.context !== true) return empty
+  const kyberKeys = Object.keys(memoryCache.kyber).filter((k) => memoryCache.kyber[k].length > 0)
+  const lineBudget = Math.max(0, MEMORY_MAX_INJECT_CHARS - MEMORY_FRAME_CHARS - MEMORY_KYBER_FRAME_CHARS * kyberKeys.length)
+  const accountBudget = kyberKeys.length > 0 ? Math.floor(lineBudget * (1 - MEMORY_KYBER_SHARE)) : lineBudget
+  const account = selectForPrompt(memoryCache.account, accountBudget, MEMORY_PINNED_SHARE)
+  const kyber = {}
+  let used = account.used
+  const left = lineBudget - used
+  for (const local of kyberKeys) {
+    const sel = selectForPrompt(memoryCache.kyber[local], Math.max(0, Math.floor(left / Math.max(1, kyberKeys.length))), MEMORY_PINNED_SHARE)
+    kyber[local] = sel
+    used += sel.used
+  }
+  return { account, kyber, used, budget: MEMORY_MAX_INJECT_CHARS }
+}
+
 /**
  * Le texte injecté. Rendu à chaque assemblage : il doit être synchrone et ne
  * jamais lever — d'où le `try` total et le retour de chaîne vide en cas de doute.
@@ -1393,31 +1561,18 @@ const memoryLine = (m) => '- (' + String(m.kind) + (m.pinned === true ? ', épin
 const renderMemoryChunk = (state) => {
   try {
     if (isConnected(state) !== true) return ''
+    const plan = planInjection(state)
     const parts = []
-    let budget = MEMORY_MAX_INJECT_CHARS
-    const account = sortMemories(memoryCache.account)
-    const push = (lines) => {
-      for (const line of lines) {
-        if (line.length + 1 > budget) return false
-        parts.push(line)
-        budget = budget - line.length - 1
-      }
-      return true
+    if (plan.account.chosen.length > 0) {
+      parts.push('[KYBERNOS MEMORY] Souvenirs du compte Kybernos de l\'utilisateur (partagés avec tous ses agents) :')
+      plan.account.chosen.forEach((m) => parts.push(memoryLine(m)))
+      if (plan.account.omitted > 0) parts.push('- … (' + String(plan.account.omitted) + ' autres souvenirs non envoyés ce tour : memory_search pour les retrouver)')
     }
-    if (account.length > 0) {
-      push(['[KYBERNOS MEMORY] Souvenirs du compte Kybernos de l\'utilisateur (partagés avec tous ses agents) :'])
-      const whole = push(account.map(memoryLine))
-      if (whole === false) parts.push('- … (tronqué : trop de souvenirs pour ce tour)')
-    }
-    const map = stateKyberMap(state)
-    for (const local of Object.keys(memoryCache.kyber)) {
-      const items = sortMemories(memoryCache.kyber[local])
-      if (items.length === 0) continue
-      const cloud = map[local]
-      const name = typeof cloud === 'string' ? local : local
-      push(['', 'Mémoire du kyber « ' + name + ' » :'])
-      const whole = push(items.map(memoryLine))
-      if (whole === false) parts.push('- … (tronqué)')
+    for (const local of Object.keys(plan.kyber)) {
+      if (plan.kyber[local].chosen.length === 0) continue
+      parts.push('', 'Mémoire du kyber « ' + local + ' » :')
+      plan.kyber[local].chosen.forEach((m) => parts.push(memoryLine(m)))
+      if (plan.kyber[local].omitted > 0) parts.push('- … (' + String(plan.kyber[local].omitted) + ' autres non envoyés)')
     }
     if (parts.length === 0) return ''
     parts.push('', 'Ces souvenirs viennent du compte de l\'utilisateur. N\'en invente jamais : appelle memory_write pour en ajouter (genre fact|preference|event|policy), memory_search pour en chercher.')
@@ -1427,12 +1582,15 @@ const renderMemoryChunk = (state) => {
   }
 }
 
-/** Recharge le cache depuis l'API. Best-effort : une erreur laisse l'ancien. */
+/** Recharge le cache depuis l'API. Best-effort : une lecture qui échoue GARDE l'ancien contenu. */
 const refreshMemoryCache = async (state, force) => {
   try {
     if (isConnected(state) !== true) { emptyMemoryCache(); return }
     if (force !== true && Date.now() - memoryCache.at < MEMORY_CACHE_MS) return
     const account = await listMemories(state, 'account', null)
+    // Une lecture refusée (401, réseau coupé) ne vide JAMAIS le cache : le prompt
+    // continue de porter le dernier état connu, et l'erreur remonte par la route.
+    if (account.ok !== true) { memoryCache.error = account.error; return }
     const kyber = {}
     const map = stateKyberMap(state)
     const seen = new Set()
@@ -1442,10 +1600,11 @@ const refreshMemoryCache = async (state, force) => {
       seen.add(cloud)
       const got = await listMemories(state, 'kyber', cloud)
       if (got.ok === true) kyber[local] = got.items
+      else if (memoryCache.kyber[local] !== undefined) kyber[local] = memoryCache.kyber[local]
     }
     memoryCache.account = account.items
     memoryCache.kyber = kyber
-    memoryCache.error = account.error
+    memoryCache.error = null
     memoryCache.at = Date.now()
   } catch (e) {
     memoryCache.error = 'interne'
@@ -1526,7 +1685,7 @@ const marketplaceInstallRoute = async (req, body) => {
 const memoryCreateRoute = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  return await createMemory(state, body === null ? {} : body)
+  return await createMemory(state, body === null ? {} : body, 'taught')
 }
 
 const memoryUpdateRoute = async (req, body) => {
@@ -1563,6 +1722,96 @@ const memoryMapRoute = async (req, body) => {
   bumpMemoryCache()
   void refreshMemoryCache(readState(), true)
   return { ok: true, map: clean }
+}
+
+// ── Réglages + liste paginée (page « Memory & Lessons learned ») ─────────────
+
+const memorySettingsRoute = async () => ({ ok: true, settings: readMemorySettings() })
+
+const memorySettingsSetRoute = async (req, body) => {
+  const incoming = body !== null && typeof body === 'object' && Array.isArray(body) === false ? body : null
+  if (incoming === null) return { ok: false, error: 'corps_invalide' }
+  const next = readMemorySettings()
+  for (const key of Object.keys(incoming)) {
+    // Fail-closed : une clé inconnue ou une valeur qui n'est pas un booléen est
+    // refusée en bloc — on n'applique jamais « à moitié » un réglage.
+    if (MEMORY_SETTING_KEYS.indexOf(key) < 0) return { ok: false, error: 'cle_inconnue', key }
+    if (typeof incoming[key] !== 'boolean') return { ok: false, error: 'valeur_invalide', key }
+    next[key] = incoming[key]
+  }
+  writeSide('memory', next)
+  return { ok: true, settings: next }
+}
+
+/** Date serveur (`2026-09-22 18:57:52.777496+00:00`) → ms ; NaN si illisible. */
+const parseWhen = (value) => {
+  if (typeof value !== 'string' || value === '') return NaN
+  const iso = value.replace(' ', 'T').replace(/(\.\d{3})\d+/, '$1')
+  return Date.parse(iso)
+}
+
+const ADDED_WINDOW_MIN = { '1m': 1, '1h': 60, today: 1440, '7d': 10080 }
+
+const intParam = (raw, fallback, min, max) => {
+  const n = parseInt(raw, 10)
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
+}
+
+/**
+ * Liste paginée et filtrée des souvenirs du COMPTE. Tout est calculé ici, sur le
+ * cache : le serveur ne pagine pas encore (`GET /v1/memories` renvoie tout), donc
+ * la page ne doit pas recevoir 631 lignes pour en afficher 25. `sent` vient de
+ * `planInjection` — la même sélection que le prompt. La recherche est textuelle
+ * (`mode: exact`) : la pertinence demandera un index côté serveur.
+ */
+const memoryListRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  await refreshMemoryCache(state, false)
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
+  let params = new URLSearchParams('')
+  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* requete sans query */ }
+  const limit = intParam(params.get('limit'), 25, 1, 200)
+  const offset = intParam(params.get('offset'), 0, 0, 1000000)
+  const show = ['pinned', 'sent'].indexOf(params.get('show')) >= 0 ? params.get('show') : 'all'
+  const src = ['capture', 'agent', 'you', 'sync'].indexOf(params.get('src')) >= 0 ? params.get('src') : 'any'
+  const added = ADDED_WINDOW_MIN[params.get('added')] !== undefined ? params.get('added') : 'any'
+  const q = String(params.get('q') || '').trim().toLowerCase()
+
+  const plan = planInjection(state)
+  const sentIds = new Set(plan.account.chosen.map((m) => String(m.id)))
+  const ledger = readSide('memory-origins', {})
+  const now = Date.now()
+  const rows = memoryCache.account.slice().sort(newestFirst).map((m) => {
+    const o = originOf(m, ledger)
+    const when = parseWhen(m.createdAt)
+    return {
+      id: m.id, kind: m.kind, content: m.content, source: m.source, origin: o.origin, originKnown: o.originKnown,
+      pinned: m.pinned === true, sent: sentIds.has(String(m.id)), createdAt: m.createdAt, expiresAt: m.expiresAt, retentionDays: m.retentionDays,
+      ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null,
+    }
+  })
+  const youOrigin = (r) => r.origin === 'taught'
+  const counts = {
+    all: rows.length, pinned: rows.filter((r) => r.pinned).length, sent: rows.filter((r) => r.sent).length,
+    capture: rows.filter((r) => r.origin === 'capture').length, agent: rows.filter((r) => r.origin === 'agent').length,
+    you: rows.filter(youOrigin).length, sync: rows.filter((r) => r.origin === 'sync').length,
+  }
+  let list = rows
+  if (show === 'pinned') list = list.filter((r) => r.pinned)
+  if (show === 'sent') list = list.filter((r) => r.sent)
+  if (src !== 'any') list = list.filter((r) => (src === 'you' ? youOrigin(r) : r.origin === src))
+  if (added !== 'any') list = list.filter((r) => r.ageMinutes !== null && r.ageMinutes <= ADDED_WINDOW_MIN[added])
+  if (q !== '') list = list.filter((r) => String(r.content).toLowerCase().indexOf(q) >= 0)
+  return {
+    ok: true, connected: true,
+    total: list.length, limit, offset, items: list.slice(offset, offset + limit),
+    counts, filters: { show, src, added, q },
+    search: { mode: 'exact', relevance: false },
+    budget: { cap: plan.budget, used: renderMemoryChunk(state).length, sent: plan.account.chosen.length, omitted: plan.account.omitted },
+    settings: readMemorySettings(),
+    cache: { at: memoryCache.at, error: memoryCache.error },
+  }
 }
 
 const memoryLessonsRoute = async (req, body) => {
@@ -1615,13 +1864,14 @@ const memoryWriteTool = () => ({
   async execute(args) {
     const state = readState()
     if (isConnected(state) !== true) return { ok: false, error: 'compte_kybernos_non_connecte' }
+    if (readMemorySettings().memories !== true) return { ok: false, error: 'memoire_desactivee' }
     const made = await createMemory(state, {
       scope: 'account',
       kind: args.kind,
       content: args.content,
       source: typeof args.source === 'string' ? args.source : 'conversation',
       pinned: args.pinned === true,
-    })
+    }, 'agent')
     return made.ok === true ? { ok: true, id: made.memory === null ? 0 : Number(made.memory.id) } : { ok: false, error: made.error }
   },
 })
@@ -1654,6 +1904,7 @@ const memorySearchTool = () => ({
   async execute(args) {
     const state = readState()
     if (isConnected(state) !== true) return { ok: false, error: 'compte_kybernos_non_connecte' }
+    if (readMemorySettings().memories !== true) return { ok: false, error: 'memoire_desactivee' }
     const found = await searchMemories(state, args.q)
     if (found.ok !== true) return { ok: false, error: found.error }
     const lines = sortMemories(found.items).slice(0, 10).map((m) => '#' + String(m.id) + ' (' + String(m.kind) + (m.scope === 'kyber' ? ', kyber' : '') + ') ' + String(m.content))
@@ -1769,6 +2020,10 @@ const captureTurn = async (ctx, agent, signal) => {
   try {
     const state = readState()
     if (isConnected(state) !== true) return noteCapture('hors_connexion', 0)
+    // Les interrupteurs passent AVANT tout appel réseau ou LLM : « Capture : non »
+    // ne doit pas coûter un seul jeton.
+    const cfg = readMemorySettings()
+    if (cfg.memories !== true || cfg.capture !== true) return noteCapture('desactivee', 0)
     if (agent === undefined || agent === null || agent.session === undefined) return noteCapture('sans_session', 0)
     const messages = typeof agent.session.deriveMessages === 'function' ? agent.session.deriveMessages() : []
     const text = lastTurnText(messages)
@@ -1785,13 +2040,18 @@ const captureTurn = async (ctx, agent, signal) => {
     const known = new Set(existing.ok === true ? existing.items.map((m) => normalizeMemory(m.content)) : [])
     let written = 0
     let skipped = 0
+    let failed = 0
     for (const fact of facts) {
       const key = normalizeMemory(fact.content)
       if (key === '' || known.has(key) === true) { skipped += 1; continue }
       known.add(key)
-      const made = await createMemory(state, { scope: 'account', kind: fact.kind, content: fact.content, source: 'conversation' })
-      if (made.ok === true) { written += 1; bumpMemoryCache() }
+      const made = await createMemory(state, { scope: 'account', kind: fact.kind, content: fact.content, source: 'conversation' }, 'capture')
+      if (made.ok === true) written += 1
+      else failed += 1
     }
+    // Rien d'écrit parce que TOUT a échoué n'est pas « écrit : 0 » : la carte
+    // doit pouvoir dire que la capture est en panne.
+    if (written === 0 && failed > 0) return noteCapture('erreur', 0)
     if (written === 0 && skipped > 0) return noteCapture('deja_connu', 0)
     noteCapture('ecrit', written)
   } catch (e) {
@@ -1819,6 +2079,19 @@ const mountMemoryTools = (ctx) => {
     scope.tools.register(memoryWriteTool())
     scope.tools.register(memorySearchTool())
   })
+}
+
+/**
+ * Rafraîchit le cache dès qu'il est périmé. `force` reste faux : le TTL est
+ * enfin respecté (avant, tous les appelants forçaient et il ne servait à rien).
+ * Le minuteur est libéré avec le plugin et ne retient pas le processus.
+ */
+const mountMemoryRefresh = (ctx) => {
+  ctx.effect(() => {
+    const timer = setInterval(() => { void refreshMemoryCache(readState(), false) }, MEMORY_TUNING.tickMs)
+    if (typeof timer.unref === 'function') timer.unref()
+    return () => clearInterval(timer)
+  }, 'kybernos-cloud: rafraichissement memoire')
 }
 
 const mountMemoryCapture = (ctx) => {
@@ -1985,6 +2258,11 @@ const ROUTES = [
   // `dryRun` par défaut : la poussée des leçons écrit dans le compte, elle ne
   // part jamais sans un corps qui dit explicitement `{"dryRun":false}`.
   { path: '/kybernos-cloud/memory/lessons', method: 'POST', guarded: true, body: true, run: memoryLessonsRoute },
+  // Page « Memory & Lessons learned » : liste paginée/filtrée et réglages. Chemins
+  // distincts (GET et POST ne peuvent pas partager un chemin).
+  { path: '/kybernos-cloud/memory/list', method: 'GET', guarded: true, run: memoryListRoute },
+  { path: '/kybernos-cloud/memory/settings', method: 'GET', guarded: true, run: memorySettingsRoute },
+  { path: '/kybernos-cloud/memory/settings/set', method: 'POST', guarded: true, body: true, run: memorySettingsSetRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {
@@ -2029,6 +2307,7 @@ export function apply(ctx) {
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
+  try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
   autoImportAtBoot(ctx)
 }
 
@@ -2042,5 +2321,6 @@ export {
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
-  MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS,
+  MEMORY_MAX_CONTENT, MEMORY_MAX_INJECT_CHARS, MEMORY_TUNING,
+  selectForPrompt, planInjection, readMemorySettings, noteOrigins, originOf, scheduleMemoryRefresh, parseWhen,
 }
