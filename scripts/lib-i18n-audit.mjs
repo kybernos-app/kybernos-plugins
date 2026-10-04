@@ -1,4 +1,4 @@
-// Shared by audit-i18n-live.mjs and test-language-live.mjs: what counts as visible
+// Shared by audit-i18n-live.mjs and check-language-live.mjs: what counts as visible
 // interface text on the live GUI, and how a leftover is told from a translation.
 // Pseudo-localisation marks a translated string with ⟦…⟧ (see audit-i18n-live.mjs).
 

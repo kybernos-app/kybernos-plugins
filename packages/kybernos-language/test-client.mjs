@@ -6,7 +6,7 @@
 //   node test-client.mjs
 //
 // The page itself (React) is covered against the real GUI by
-// scripts/test-language-live.mjs; this file pins everything that can break
+// scripts/check-language-live.mjs; this file pins everything that can break
 // without a browser. What the first versions got wrong, and what stays pinned:
 //  - a failed batch counted as translated (the bar reached 100 % with nothing
 //    translated, then the language was activated empty);

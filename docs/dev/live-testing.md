@@ -82,10 +82,10 @@ language. If a run is killed hard (SIGKILL, power loss) and the check says
 English, or run the snippet in `scripts/lib-language-flow.mjs` (`restoreEnglish`).
 The profile name defaults to `web` (`KB_PROFILE`).
 
-## The Language page, end to end: `scripts/test-language-live.mjs`
+## The Language page, end to end: `scripts/check-language-live.mjs`
 
 ```bash
-node scripts/test-language-live.mjs --shots /tmp/shots   # screenshots of every step
+node scripts/check-language-live.mjs --shots /tmp/shots   # screenshots of every step
 ```
 
 The LLM is replaced by a stub in the page (each string comes back as `⟦text⟧`), so
@@ -158,6 +158,11 @@ user wrote are data, not copy). Exit code is `0` (it measures, it does not gate)
 `3` when inconclusive.
 
 ## Traps
+
+- **These scripts are deliberately NOT named `test-*.mjs`.** CI runs every
+  `scripts/test-*.mjs` on a runner with no `dsh web`: a live script named that way would
+  exit 3 ("inconclusive") there and fail the build. Live checks are `check-*` / `audit-*`,
+  run by hand; the offline tests stay `test-*`.
 
 - **Host code is not hot-reloaded.** A change in `packages/*/index.js` or in an
   `.mjs` the host imports (e.g. `i18n-translate.mjs`) needs `dsh web` restarted. A

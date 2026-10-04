@@ -1,4 +1,4 @@
-// Drives the Language page of the REAL GUI: shared by test-language-live.mjs (the
+// Drives the Language page of the REAL GUI: shared by check-language-live.mjs (the
 // end-to-end test) and audit-i18n-live.mjs (the coverage audit, which needs a real
 // translated language to measure).
 //

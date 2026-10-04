@@ -2,7 +2,7 @@
 // End-to-end test of the Language page and of what a translated language does to
 // the REAL GUI — signed in through docs/dev/live-testing.md.
 //
-//   node scripts/test-language-live.mjs [--shots <dir>]
+//   node scripts/check-language-live.mjs [--shots <dir>]
 //
 // The LLM is replaced by a stub inside the page (every string comes back as
 // ⟦text⟧ after a short delay), so the run is free, fast and deterministic, and
