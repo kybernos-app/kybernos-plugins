@@ -218,6 +218,7 @@ window.__ModuleLoader__.load({
         menuPlanCta: 'Passer à Pro',
         menuWebsite: 'Site web',
         menuHelp: 'Aide',
+        menuUpdate: 'Mise à jour disponible',
         menuFeedback: 'Envoyer un retour',
         menuSettingsApp: 'Paramètres',
         menuTeamsSettings: 'Réglages d\'équipe',
@@ -262,6 +263,20 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Soyez direct. Phrases courtes…',
         accSave: 'Enregistrer',
         accSaved: 'Enregistré ✓',
+        accAbout: 'À propos de vous',
+        accPrefs: 'Préférences',
+        accBirthPh: 'Choisir une date',
+        accClear: 'Effacer',
+        accPrevMonth: 'Mois précédent',
+        accNextMonth: 'Mois suivant',
+        accMonth: 'Mois',
+        accYear: 'Année',
+        accTzPh: 'Rechercher une ville, un pays, un fuseau…',
+        accTzNone: 'Aucun fuseau trouvé',
+        accTzUseAuto: 'Utiliser le fuseau détecté',
+        accUnsaved: 'Modifications non enregistrées',
+        accDiscard: 'Annuler',
+        accRefreshing: 'Actualisation…',
         accLocalNote: 'Ces champs restent sur cet appareil — la page profil de la webapp les garde, elle aussi, côté navigateur : le serveur ne les sert pas.',
         themeLight: 'Clair',
         themeDark: 'Sombre',
@@ -441,6 +456,7 @@ window.__ModuleLoader__.load({
         menuPlanCta: 'Upgrade to Pro',
         menuWebsite: 'Website',
         menuHelp: 'Help',
+        menuUpdate: 'Update available',
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
         menuTeamsSettings: 'Teams settings',
@@ -483,6 +499,20 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Be direct. Short sentences…',
         accSave: 'Save',
         accSaved: 'Saved ✓',
+        accAbout: 'About you',
+        accPrefs: 'Preferences',
+        accBirthPh: 'Pick a date',
+        accClear: 'Clear',
+        accPrevMonth: 'Previous month',
+        accNextMonth: 'Next month',
+        accMonth: 'Month',
+        accYear: 'Year',
+        accTzPh: 'Search a city, a country, a time zone…',
+        accTzNone: 'No time zone found',
+        accTzUseAuto: 'Use detected time zone',
+        accUnsaved: 'Unsaved changes',
+        accDiscard: 'Discard',
+        accRefreshing: 'Refreshing…',
         accLocalNote: 'These fields stay on this device — the webapp profile page keeps them browser-side too: the server does not serve them.',
         themeLight: 'Light',
         themeDark: 'Dark',
@@ -685,11 +715,14 @@ window.__ModuleLoader__.load({
 .kbfp-cardsub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-ico{flex:none;width:36px;height:36px;padding:0;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbfp-ico:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.kbfp-bellwrap{position:relative;display:flex}
-/* Le popover de la cloche : ancré À DROITE de son bouton (left:auto) —
-   ancré à gauche il débordait de la colonne de sidebar et était rogné
-   (30/09 soir). Il tient tout entier dans la largeur de la colonne. */
-.kbfp-bellpop{width:230px;left:auto;right:0}
+.kbfp-bellwrap{display:flex}
+/* The bell popover matches the CARD WIDTH (like the menu): the containing
+   block is .kbfp-card (the bell wrap is no longer positioned).
+   Anchored to the button with a fixed width of 248 px, it overflowed the left
+   edge of the window whenever the sidebar is narrow (04/10) and its empty text
+   overflowed the frame for lack of inner padding. */
+.kbfp-bellpop{left:0;right:0;width:auto;box-sizing:border-box;max-width:100%}
+.kbfp-bellpop .kbc-note{margin:0;padding:2px 10px 8px;overflow-wrap:anywhere}
 /* Le menu : ancré au-dessus de la carte, gabarit de la maquette (276 px,
    rayon 16, ombre portée haute). Il défile en place si la fenêtre est basse. */
 /* Largeur BORNÉE à la colonne du pied (30/09 soir) : un menu de 276 px posé
@@ -711,7 +744,10 @@ window.__ModuleLoader__.load({
 .kbfp-mheadname{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-mheadsub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary)}
 .kbfp-mhead svg{flex:none;color:var(--dsw-alias-label-tertiary)}
-.kbfp-mplan{margin:0 0 4px;box-sizing:border-box;padding:2px 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
+.kbfp-tile{position:relative}
+.kbfp-tile[data-update=true]::after{content:"";position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:#f5a524;border:2px solid var(--dsw-alias-bg-layer-1)}
+.kbfp-mtail{flex:none;margin-inline-start:auto;white-space:nowrap;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.kbfp-mplan{margin:4px 0;box-sizing:border-box;padding:2px 10px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-mplanline{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px}
 .kbfp-mplanname{font-size:16px;font-weight:600;letter-spacing:-.01em;text-transform:capitalize}
 .kbfp-mcta{flex:none;height:28px;padding:0 12px;border:none;border-radius:10px;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
@@ -758,12 +794,102 @@ window.__ModuleLoader__.load({
    est redevenu un empilement simple, la carte est le dernier élément visible
    (l'engrenage natif est masqué, son panneau s'ouvre depuis le menu). */
 .kbfp-cardwrap{position:relative;width:100%;min-width:0;display:flex;justify-content:flex-start}
-/* Onglet Account des Réglages : les champs du design system (kbm-setfield)
-   prennent toute la largeur de la carte — un <select> sans width se rétracte
-   à son option la plus courte (mesuré ~130 px) — et le textarea garde sa
-   hauteur propre (le gabarit fixe 34 px pour les inputs d'une ligne). */
-[data-kb="settings-account"] .kbm-setfield-input{width:100%;box-sizing:border-box}
-[data-kb="settings-account"] textarea.kbm-setfield-input{height:auto;min-height:72px;padding:8px 12px;resize:vertical}
+/* Account tab of Settings (revamp 04/10): cards, custom fields, calendar
+   and time zone picker. All in design-system tokens, nothing hard-coded
+   except the avatar palette. */
+.kbax{display:flex;flex-direction:column;gap:14px;max-width:720px;position:relative}
+.kbax-card{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
+.kbax-hero{flex-direction:row;align-items:center;gap:18px}
+.kbax-avwrap{position:relative;flex:none}
+.kbax-avatar{display:flex;align-items:center;justify-content:center;width:76px;height:76px;border-radius:22px;color:#fff;font-family:ui-monospace,monospace;font-weight:700;font-size:26px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.kbax-avcam{position:absolute;right:-6px;bottom:-6px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;border:2px solid var(--dsw-alias-bg-layer-1);background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);cursor:pointer}
+.kbax-avcam:hover{transform:scale(1.08)}
+.kbax-herotxt{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.kbax-heroname{display:flex;align-items:center;gap:8px;min-width:0}
+.kbax-heroname b{font-size:17px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbax-heromail{font-size:13px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbax-swatches{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.kbax-row{display:flex;flex-direction:column;gap:7px}
+.kbax-label{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbax-anchor{position:relative;min-width:0}
+.kbax-field{display:flex;align-items:center;gap:9px;box-sizing:border-box;width:100%;min-height:38px;padding:0 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;transition:border-color .12s ease,box-shadow .12s ease}
+.kbax-field:hover{border-color:var(--dsw-alias-border-l3)}
+.kbax-field:focus-within,.kbax-fieldbtn:focus-visible,.kbax-field.open{outline:none;border-color:var(--dsw-alias-state-business-primary,#6b8cff);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-business-primary,#6b8cff) 22%,transparent)}
+.kbax-input{padding:0 12px}
+.kbax-field svg{flex:none;color:var(--dsw-alias-label-tertiary)}
+.kbax-fieldbtn{cursor:pointer;text-align:start}
+.kbax-fieldbtn.empty .kbax-fieldtxt{color:var(--dsw-alias-label-tertiary)}
+.kbax-fieldtxt{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbax-clearx{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer}
+.kbax-clearx:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.kbax-bare,.kbax-comboinput{flex:1 1 auto;min-width:0;height:36px;padding:0;border:none;outline:none;background:transparent;color:inherit;font:inherit}
+.kbax-bare::placeholder,.kbax-comboinput::placeholder,.kbax-field input::placeholder,.kbax-area::placeholder{color:var(--dsw-alias-label-tertiary)}
+.kbax-input{height:38px;font:inherit}
+.kbax-inline{display:flex;gap:8px}
+.kbax-inline .kbax-field{flex:1 1 auto}
+.kbax-area{display:block;height:auto;min-height:104px;padding:10px 12px;resize:vertical;line-height:1.5}
+.kbax-count{align-self:flex-end;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbax-btn{flex:none;height:38px;padding:0 14px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:550;cursor:pointer}
+.kbax-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
+.kbax-btn:disabled{opacity:.5;cursor:default}
+.kbax-primary{border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
+.kbax-primary:hover:not(:disabled){background:var(--dsw-alias-label-primary);opacity:.9}
+.kbax-link{border:none;background:transparent;padding:2px 4px;color:var(--dsw-alias-link,var(--dsw-alias-label-secondary));font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.kbax-link:disabled{opacity:.4;cursor:default;text-decoration:none}
+.kbax-below{align-self:flex-start;margin-top:2px}
+.kbax-seg{display:inline-flex;gap:3px;padding:3px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);align-self:flex-start;max-width:100%;flex-wrap:wrap}
+.kbax-seg button{height:30px;padding:0 14px;border:none;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;cursor:pointer}
+.kbax-seg button:hover{color:var(--dsw-alias-label-primary)}
+.kbax-seg button.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-weight:600}
+.kbax-savebar{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 12px 10px 16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.kbax-savemsg{margin-inline-end:auto;font-size:13px;display:flex;align-items:center;gap:8px}
+.kbax-savemsg.dirty::before{content:"";width:8px;height:8px;border-radius:50%;background:#f5a524}
+.kbax-savemsg.ok{color:var(--dsw-alias-state-success-primary)}
+.kbax-savebar .kbax-btn{height:34px}
+.kbax-skel{border-radius:10px;background:var(--dsw-alias-bg-skeleton,rgba(127,127,127,.18));animation:kbax-pulse 1.4s ease-in-out infinite}
+.kbax-skel-head{height:76px;border-radius:18px}
+.kbax-skel-line{height:12px;width:40%}
+.kbax-skel-line.short{width:22%}
+.kbax-skel-field{height:38px;border-radius:11px}
+@keyframes kbax-pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.kbax-skel{animation:none}}
+/* Popovers attached to <body>: calendar and time zone list. */
+.kbax-pop{z-index:2147483000;box-sizing:border-box;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:0 18px 44px rgba(0,0,0,.45);color:var(--dsw-alias-label-primary);font-size:13px}
+.kbax-cal{width:296px;padding:10px}
+.kbax-cal-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.kbax-cal-sel{display:flex;flex:1 1 auto;gap:6px;min-width:0}
+.kbax-minisel{flex:1 1 auto;min-width:0;height:32px;padding:0 8px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;text-transform:capitalize;cursor:pointer}
+.kbax-minisel:last-child{flex:0 0 76px}
+.kbax-iconbtn{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border:none;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbax-iconbtn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
+.kbax-iconbtn:disabled{opacity:.3;cursor:default}
+.kbax-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.kbax-cal-wd{display:flex;align-items:center;justify-content:center;height:26px;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
+.kbax-day{display:flex;align-items:center;justify-content:center;height:34px;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer}
+.kbax-day.out{color:var(--dsw-alias-label-tertiary);opacity:.55}
+.kbax-day:hover:not(:disabled):not(.sel){background:var(--dsw-alias-interactive-bg-hover)}
+.kbax-day:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#6b8cff);outline-offset:-2px}
+.kbax-day.today{box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l3)}
+.kbax-day.sel{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-weight:700;opacity:1}
+.kbax-day:disabled{opacity:.25;cursor:default}
+.kbax-cal-foot{display:flex;justify-content:flex-end;margin-top:6px;padding-top:6px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbax-tzpop{padding:6px;max-width:calc(100vw - 16px)}
+.kbax-tzlist{max-height:300px;overflow-y:auto;overscroll-behavior:contain}
+.kbax-combo .kbax-comboinput{cursor:text}
+.kbax-tzbadge{flex:none;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
+.kbax-chev{display:flex;flex:none}
+.kbax-tzgroup{position:sticky;top:0;z-index:1;padding:8px 10px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}
+.kbax-tzrow{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;cursor:pointer}
+.kbax-tzrow.active{background:var(--dsw-alias-interactive-bg-hover)}
+.kbax-tzrow.sel b{color:var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary))}
+.kbax-tzico{display:flex;color:var(--dsw-alias-label-tertiary)}
+.kbax-tzmain{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;line-height:1.3}
+.kbax-tzmain b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbax-tzsub{font-size:11.5px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbax-tzoff{flex:none;font-size:12px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
+.kbax-tick{flex:none;color:var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary));font-weight:700}
+.kbax-tzempty{padding:14px 10px;text-align:center;color:var(--dsw-alias-label-tertiary)}
+@media (max-width:560px){.kbax-hero{flex-direction:column;align-items:flex-start}}
 /* Avatar (initiales & couleur, comme la webapp) : pastille de Gabarit +
    nuancier DATA (couleurs d'entité, pas des jetons de thème — mêmes
    valeurs que la webapp, IDENTITY_SWATCH_COLORS). */
@@ -835,8 +961,9 @@ window.__ModuleLoader__.load({
       h('path', { key: 'b', d: 'M12 8v13M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
 
-    const ShieldIcon = (props) => svgIcon(() => [
-      h('path', { key: 'a', d: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+    const UpdateIcon = (props) => svgIcon(() => [
+      h('circle', { key: 'a', cx: 12, cy: 12, r: 9, stroke: 'currentColor', strokeWidth: 1.75 }),
+      h('path', { key: 'b', d: 'M12 7.5v8M8.5 12.5l3.5 3.5 3.5-3.5', stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round' }),
     ], props)
 
     const SunMenuIcon = (props) => svgIcon(() => [
@@ -1823,6 +1950,12 @@ window.__ModuleLoader__.load({
         // rebranche un geste RÉEL : la page profil, la carte de parrainage et
         // le thème vivent dans les autres bundles et sont déclenchés par
         // événements fenêtre ; rien de fictif n'est affiché.
+        const lireMaj = () => {
+          try {
+            const m = window.__kbUpdate
+            return m !== null && m !== undefined && typeof m === 'object' && typeof m.cible === 'string' && m.cible !== '' ? m : null
+          } catch (e) { return null }
+        }
         const UserMenu = (props) => {
           React.useEffect(() => {
             const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
@@ -1879,6 +2012,16 @@ window.__ModuleLoader__.load({
             }
             return undefined
           }, [switchOpen === true])
+          // Update available: published by kybernos-maintenance
+          // (`window.__kbUpdate` + `kybernos:update` event, null = up to date).
+          const majPair = React.useState(() => lireMaj())
+          const maj = majPair[0]
+          const setMaj = majPair[1]
+          React.useEffect(() => {
+            const sur = () => setMaj(lireMaj())
+            window.addEventListener('kybernos:update', sur)
+            return () => window.removeEventListener('kybernos:update', sur)
+          }, [])
           // Schéma ACTIF : attribut publié par le plugin Kybernos, événement
           // fenêtre à chaque changement — le segment suit le thème réel.
           const schemaPair = React.useState(() => {
@@ -1926,13 +2069,22 @@ window.__ModuleLoader__.load({
               action(ev)
             },
           }, icone, h('span', { className: 'kbfp-mlab' }, label),
+            opts !== undefined && typeof opts.tail === 'string' ? h('span', { className: 'kbfp-mtail' }, opts.tail) : null,
             opts !== undefined && opts.ext === true ? h('span', { className: 'kbfp-mext', 'aria-hidden': 'true' }, h(ExtIcon, { size: 16 })) : null)
 
           const ouvrirWeb = () => { try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
           const envoyer = (nom) => { try { window.dispatchEvent(new Event('kybernos:menu:' + nom)) } catch (e) { /* Event absent */ } }
 
-          // Trois BLOCS séparés par un filet : Teams · Account · Links (+ Log out).
+          // Blocks separated by a rule: Teams (space, plan, team settings) ·
+          // Account · Links, then Log out. An available update goes first.
+          // "Security" is no longer in the menu (04/10); the plan moves up under
+          // the space selector, just before "Teams settings".
           return h('div', { className: 'kbfp-menu', ref: popRef, role: 'menu', 'aria-label': t('wsPageTitle') },
+            maj !== null
+              ? h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-update' },
+                  entree('update', h(UpdateIcon, { size: 18 }), t('menuUpdate'), () => envoyer('update'), { amber: true, tail: (maj.kind === 'moteur' ? 'DSH ' : '') + (typeof maj.version === 'string' ? maj.version : maj.cible) }),
+                  h('div', { className: 'kbfp-msep' }))
+              : null,
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-teams' },
               h('button', {
                 type: 'button', className: 'kbfp-mhead', 'data-kb': 'menu-switch',
@@ -1944,16 +2096,16 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbfp-mheadname' }, nomEspace),
                 h('span', { className: 'kbfp-mheadsub' }, t('wsSwitchTitle'))),
               h(SwapIcon, { size: 18 })),
-              // « Teams settings » = l'ancien « Workspace settings » (même action).
-              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
-            h('div', { className: 'kbfp-msep' }),
-            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
               h('div', { className: 'kbfp-mplan' },
                 h('div', { className: 'kbfp-mplanline' },
                   h('span', { className: 'kbfp-mplanname' }, plan),
                   h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')))),
+              // "Teams settings" = the former "Workspace settings" (same action).
+              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
+            h('div', { className: 'kbfp-msep' }),
+            h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
-              // Parrainage / Sécurité : ouvrent la section correspondante des Réglages.
+              // Referral: opens the matching Settings section.
               entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), () => { if (typeof props.onSection === 'function') props.onSection(t('profParrain')) }, { amber: true }),
               // Apparence : une RANGÉE à segment (pas un bouton) — le choix est immédiat.
               h('div', { className: 'kbfp-mitem', role: 'group', 'aria-label': t('profApparence'), 'data-kb': 'menu-appearance' },
@@ -1968,7 +2120,6 @@ window.__ModuleLoader__.load({
                     type: 'button', 'aria-label': t('themeDark'), 'aria-pressed': schema === 'dark' ? 'true' : 'false',
                     className: schema === 'dark' ? 'on' : '', onClick: () => choisirSchema('dark'),
                   }, h(MoonMenuIcon, { size: 15 })))),
-              entree('security', h(ShieldIcon, { size: 18 }), t('profSecurite'), () => { if (typeof props.onSection === 'function') props.onSection(t('profSecurite')) }),
               // Paramètres de l'APP : clic programmatique sur le déclencheur natif (masqué).
               entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), () => {
                 try {
@@ -1979,7 +2130,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-links' },
               entree('website', h(GlobeIcon, { size: 18 }), t('menuWebsite'), ouvrirWeb, { ext: true }),
-              entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => envoyer('help'), { ext: true }),
+              entree('help', h(HelpIcon, { size: 18 }), t('menuHelp'), () => envoyer('help')),
               entree('feedback', h(MsgMenuIcon, { size: 18 }), t('menuFeedback'), () => envoyer('feedback'))),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems' },
@@ -2132,6 +2283,14 @@ window.__ModuleLoader__.load({
           const [notifOpen, setNotifOpen] = React.useState(false)
           const [newOpen, setNewOpen] = React.useState(false)
           const [mobileOpen, setMobileOpen] = React.useState(false)
+          // Update available: an amber dot on the card tile, the discreet
+          // reminder that stays visible with the menu closed (kybernos-maintenance signal).
+          const [majDispo, setMajDispo] = React.useState(() => lireMaj() !== null)
+          React.useEffect(() => {
+            const sur = () => setMajDispo(lireMaj() !== null)
+            window.addEventListener('kybernos:update', sur)
+            return () => window.removeEventListener('kybernos:update', sur)
+          }, [])
           // Largeur RÉELLE du créneau : en rail replié la rangée doit changer de
           // forme, sinon elle déborde (mesuré : 167 px dans un rail de 60 px).
           const racineRef = React.useRef(null)
@@ -2343,7 +2502,7 @@ window.__ModuleLoader__.load({
                 'aria-expanded': menuOpen === true ? 'true' : 'false',
                 onClick: () => { setNotifOpen(false); setMenuOpen(menuOpen !== true) },
               },
-              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true' }, initiales(nomEspace, '')),
+              h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, initiales(nomEspace, '')),
               h('span', { className: 'kbfp-cardtxt' },
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
                 h('span', { className: 'kbfp-cardsub' }, qui + ' · ' + planEspace))),
@@ -2449,25 +2608,457 @@ window.__ModuleLoader__.load({
         // (/profiles?section=profile) : identité, formule, teams, espace
         // actif, appareil, session — lues des routes locales, jamais
         // inventées. Le lien « Ouvrir dans Kybernos » pointe la page web.
+        // ── Account page pickers (04/10) ────────────────────────────────────────
+        // Date of birth: a custom calendar (the native <input type=date> is
+        // unreadable in dark theme and forces going back month by month for a
+        // birth date). Time zone: a filterable list with autocompletion
+        // (city, region, country, abbreviation, offset) instead of a <select> of
+        // 420 lines. No network: everything comes from `Intl`.
+        const kbPad = (n) => (n < 10 ? '0' : '') + String(n)
+        const kbIso = (c) => String(c.y) + '-' + kbPad(c.m) + '-' + kbPad(c.d)
+        const kbParseIso = (v) => {
+          const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof v === 'string' ? v : '')
+          if (m === null) return null
+          const y = Number(m[1]); const mo = Number(m[2]); const d = Number(m[3])
+          const dt = new Date(Date.UTC(y, mo - 1, d))
+          return (dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d) ? { y: y, m: mo, d: d } : null
+        }
+        const kbDaysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate()
+        const kbDow = (c) => new Date(Date.UTC(c.y, c.m - 1, c.d)).getUTCDay()
+        const kbToday = () => { const n = new Date(); return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() } }
+        const kbCmp = (a, b) => (a.y - b.y) || (a.m - b.m) || (a.d - b.d)
+        const kbShiftDays = (c, n) => { const dt = new Date(Date.UTC(c.y, c.m - 1, c.d + n)); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() } }
+        const kbShiftMonths = (c, n) => {
+          const total = c.y * 12 + (c.m - 1) + n
+          const y = Math.floor(total / 12)
+          const m = total - y * 12 + 1
+          return { y: y, m: m, d: Math.min(c.d, kbDaysIn(y, m)) }
+        }
+        const kbClamp = (c, min, max) => (kbCmp(c, min) < 0 ? min : (kbCmp(c, max) > 0 ? max : c))
+
+        /** Popover anchored to a trigger: attached to <body> (the Settings page
+         *  scrolls and would clip an absolute list), placed as fixed, flipped
+         *  upward if there is no room below, repositioned on scroll. */
+        const kbUsePopover = (anchorRef, popRef, open, close, dep) => {
+          const posPair = React.useState(null)
+          const pos = posPair[0]
+          const setPos = posPair[1]
+          React.useLayoutEffect(() => {
+            if (open !== true) { setPos(null); return undefined }
+            const place = () => {
+              const a = anchorRef.current
+              const p = popRef.current
+              if (a === null || a === undefined || p === null || p === undefined) return
+              const r = a.getBoundingClientRect()
+              const ph = p.offsetHeight
+              const pw = p.offsetWidth
+              const below = window.innerHeight - r.bottom
+              const up = below < ph + 12 && r.top > below
+              setPos({
+                left: Math.max(8, Math.min(r.left, window.innerWidth - pw - 8)),
+                top: up ? Math.max(8, r.top - ph - 6) : r.bottom + 6,
+                width: r.width,
+              })
+            }
+            place()
+            const onDown = (e) => {
+              const a = anchorRef.current
+              const p = popRef.current
+              if ((a !== null && a !== undefined && a.contains(e.target)) || (p !== null && p !== undefined && p.contains(e.target))) return
+              close()
+            }
+            const onScroll = (e) => {
+              const p = popRef.current
+              if (p !== null && p !== undefined && p.contains(e.target)) return
+              place()
+            }
+            document.addEventListener('mousedown', onDown, true)
+            window.addEventListener('resize', place)
+            window.addEventListener('scroll', onScroll, true)
+            return () => {
+              document.removeEventListener('mousedown', onDown, true)
+              window.removeEventListener('resize', place)
+              window.removeEventListener('scroll', onScroll, true)
+            }
+          }, [open, dep])
+          return pos
+        }
+        const kbPopStyle = (pos, extra) => Object.assign(
+          pos === null ? { position: 'fixed', left: 0, top: 0, visibility: 'hidden' } : { position: 'fixed', left: pos.left + 'px', top: pos.top + 'px' },
+          extra === undefined ? {} : extra)
+
+        const CalendarIcon = (props) => svgIcon(() => [
+          h('rect', { key: 'a', x: 3.5, y: 5, width: 17, height: 15, rx: 3, stroke: 'currentColor', strokeWidth: 1.7 }),
+          h('path', { key: 'b', d: 'M3.5 10h17M8 3v4M16 3v4', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }),
+        ], props)
+        const ChevronIcon = (props) => svgIcon(() => [
+          h('path', { key: 'a', d: props !== undefined && props.dir === 'left' ? 'M14.5 6l-6 6 6 6' : (props !== undefined && props.dir === 'down' ? 'M6 9.5l6 6 6-6' : 'M9.5 6l6 6-6 6'), stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+        ], props)
+        const CloseXIcon = (props) => svgIcon(() => [
+          h('path', { key: 'a', d: 'M7 7l10 10M17 7L7 17', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' }),
+        ], props)
+        const PinIcon = (props) => svgIcon(() => [
+          h('path', { key: 'a', d: 'M12 21s6.5-5.6 6.5-11a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21z', stroke: 'currentColor', strokeWidth: 1.7, strokeLinejoin: 'round' }),
+          h('circle', { key: 'b', cx: 12, cy: 10, r: 2.4, stroke: 'currentColor', strokeWidth: 1.7 }),
+        ], props)
+        const ClockIcon = (props) => svgIcon(() => [
+          h('circle', { key: 'a', cx: 12, cy: 12, r: 9, stroke: 'currentColor', strokeWidth: 1.7 }),
+          h('path', { key: 'b', d: 'M12 7v5l3 2', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }),
+        ], props)
+        const CameraIcon = (props) => svgIcon(() => [
+          h('path', { key: 'a', d: 'M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z', stroke: 'currentColor', strokeWidth: 1.7, strokeLinejoin: 'round' }),
+          h('circle', { key: 'b', cx: 12, cy: 12.5, r: 3.2, stroke: 'currentColor', strokeWidth: 1.7 }),
+        ], props)
+
+        const KbDatePicker = (props) => {
+          const locale = props.locale
+          const min = props.min
+          const max = props.max
+          const value = kbParseIso(props.value)
+          const openPair = React.useState(false)
+          const open = openPair[0]
+          const setOpen = openPair[1]
+          const cursorPair = React.useState(() => value !== null ? value : kbClamp({ y: max.y - 30, m: max.m, d: 1 }, min, max))
+          const cursor = cursorPair[0]
+          const setCursor = cursorPair[1]
+          const focusRef = React.useRef(false)
+          const anchorRef = React.useRef(null)
+          const popRef = React.useRef(null)
+          const triggerRef = React.useRef(null)
+          const close = () => { setOpen(false); focusRef.current = false }
+          const pos = kbUsePopover(anchorRef, popRef, open, close)
+          const fmt = React.useMemo(() => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }), [locale])
+          const monthNames = React.useMemo(() => {
+            const f = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' })
+            const out = []
+            for (let i = 0; i < 12; i += 1) out.push(f.format(new Date(Date.UTC(2000, i, 1))))
+            return out
+          }, [locale])
+          const weekdays = React.useMemo(() => {
+            const f = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' })
+            const out = []
+            // 2023-01-02 is a Monday: week starting on Monday.
+            for (let i = 0; i < 7; i += 1) out.push(f.format(new Date(Date.UTC(2023, 0, 2 + i))))
+            return out
+          }, [locale])
+          const openIt = () => {
+            if (value !== null) setCursor(value)
+            focusRef.current = true
+            setOpen(true)
+          }
+          const choose = (c) => {
+            if (kbCmp(c, min) < 0 || kbCmp(c, max) > 0) return
+            props.onChange(kbIso(c))
+            close()
+            try { triggerRef.current.focus() } catch (e) { /* trigger unmounted */ }
+          }
+          const moveTo = (c) => { focusRef.current = true; setCursor(kbClamp(c, min, max)) }
+          const peek = (c) => { setCursor(kbClamp(c, min, max)) }
+          const onGridKey = (e) => {
+            const k = e.key
+            let next = null
+            if (k === 'ArrowLeft') next = kbShiftDays(cursor, -1)
+            else if (k === 'ArrowRight') next = kbShiftDays(cursor, 1)
+            else if (k === 'ArrowUp') next = kbShiftDays(cursor, -7)
+            else if (k === 'ArrowDown') next = kbShiftDays(cursor, 7)
+            else if (k === 'Home') next = kbShiftDays(cursor, -((kbDow(cursor) + 6) % 7))
+            else if (k === 'End') next = kbShiftDays(cursor, 6 - ((kbDow(cursor) + 6) % 7))
+            else if (k === 'PageUp') next = kbShiftMonths(cursor, e.shiftKey ? -12 : -1)
+            else if (k === 'PageDown') next = kbShiftMonths(cursor, e.shiftKey ? 12 : 1)
+            else if (k === 'Enter' || k === ' ') { e.preventDefault(); choose(cursor); return }
+            else return
+            e.preventDefault()
+            moveTo(next)
+          }
+          React.useEffect(() => {
+            if (open !== true) return undefined
+            const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); try { triggerRef.current.focus() } catch (e2) { /* unmounted */ } } }
+            document.addEventListener('keydown', onKey, true)
+            return () => document.removeEventListener('keydown', onKey, true)
+          }, [open])
+          // Focus only follows the keyboard (and opening): arrow keys and the
+          // header lists must not steal it from the control in use.
+          // It is set AFTER the popover is placed (invisible before: an element
+          // with `visibility:hidden` refuses focus).
+          React.useEffect(() => {
+            if (open !== true || pos === null || focusRef.current !== true || popRef.current === null) return
+            const b = popRef.current.querySelector('.kbax-day[tabindex="0"]')
+            if (b !== null) { focusRef.current = false; try { b.focus() } catch (e) { /* off screen */ } }
+          }, [open, pos === null, cursor.y, cursor.m, cursor.d])
+
+          const today = kbToday()
+          const first = { y: cursor.y, m: cursor.m, d: 1 }
+          const lead = (kbDow(first) + 6) % 7
+          const cells = []
+          for (let i = 0; i < 42; i += 1) cells.push(kbShiftDays(first, i - lead))
+          const years = []
+          for (let y = max.y; y >= min.y; y -= 1) years.push(y)
+          const same = (a, b) => b !== null && kbCmp(a, b) === 0
+          const label = value !== null ? fmt.format(new Date(Date.UTC(value.y, value.m - 1, value.d))) : null
+
+          const popover = open === true ? ReactDOM.createPortal(h('div', {
+            ref: popRef, className: 'kbax-pop kbax-cal', role: 'dialog', 'aria-label': props.label, style: kbPopStyle(pos),
+          },
+          h('div', { className: 'kbax-cal-head' },
+            h('button', {
+              type: 'button', className: 'kbax-iconbtn', 'aria-label': props.prevLabel,
+              disabled: kbCmp(kbShiftMonths({ y: cursor.y, m: cursor.m, d: 1 }, -1), { y: min.y, m: min.m, d: 1 }) < 0,
+              onClick: () => peek(kbShiftMonths(cursor, -1)),
+            }, h(ChevronIcon, { size: 16, dir: 'left' })),
+            h('span', { className: 'kbax-cal-sel' },
+              h('select', {
+                className: 'kbax-minisel', 'aria-label': props.monthLabel, value: cursor.m,
+                onChange: (e) => peek({ y: cursor.y, m: Number(e.target.value), d: Math.min(cursor.d, kbDaysIn(cursor.y, Number(e.target.value))) }),
+              }, monthNames.map((n, i) => h('option', { key: n, value: i + 1 }, n))),
+              h('select', {
+                className: 'kbax-minisel', 'aria-label': props.yearLabel, value: cursor.y,
+                onChange: (e) => peek({ y: Number(e.target.value), m: cursor.m, d: Math.min(cursor.d, kbDaysIn(Number(e.target.value), cursor.m)) }),
+              }, years.map((y) => h('option', { key: y, value: y }, y)))),
+            h('button', {
+              type: 'button', className: 'kbax-iconbtn', 'aria-label': props.nextLabel,
+              disabled: kbCmp(kbShiftMonths({ y: cursor.y, m: cursor.m, d: 1 }, 1), { y: max.y, m: max.m, d: 1 }) > 0,
+              onClick: () => peek(kbShiftMonths(cursor, 1)),
+            }, h(ChevronIcon, { size: 16, dir: 'right' }))),
+          h('div', { className: 'kbax-cal-grid', role: 'group', 'aria-label': monthNames[cursor.m - 1] + ' ' + String(cursor.y), onKeyDown: onGridKey },
+            weekdays.map((w, i) => h('span', { key: 'w' + i, className: 'kbax-cal-wd', 'aria-hidden': 'true' }, w.replace('.', '').slice(0, 2))),
+            cells.map((c) => {
+              const out = c.m !== cursor.m
+              const disabled = kbCmp(c, min) < 0 || kbCmp(c, max) > 0
+              const isCursor = same(c, cursor)
+              return h('button', {
+                key: kbIso(c), type: 'button',
+                tabIndex: isCursor ? 0 : -1, disabled: disabled,
+                'aria-pressed': same(c, value) ? 'true' : 'false',
+                'aria-current': same(c, today) ? 'date' : undefined,
+                className: 'kbax-day' + (out ? ' out' : '') + (same(c, value) ? ' sel' : '') + (same(c, today) ? ' today' : ''),
+                onClick: () => choose(c),
+              }, String(c.d))
+            })),
+          h('div', { className: 'kbax-cal-foot' },
+            h('button', { type: 'button', className: 'kbax-link', disabled: value === null, onClick: () => { props.onChange(''); close(); try { triggerRef.current.focus() } catch (e) { /* unmounted */ } } }, props.clearLabel))),
+          document.body) : null
+
+          return h('div', { className: 'kbax-anchor', ref: anchorRef },
+            h('button', {
+              type: 'button', ref: triggerRef, className: 'kbax-field kbax-fieldbtn' + (value === null ? ' empty' : ''),
+              'aria-haspopup': 'dialog', 'aria-expanded': open === true ? 'true' : 'false',
+              onClick: () => { if (open === true) close(); else openIt() },
+            },
+            h(CalendarIcon, { size: 16 }),
+            h('span', { className: 'kbax-fieldtxt' }, label !== null ? label : props.placeholder),
+            value !== null ? null : h(ChevronIcon, { size: 14, dir: 'down' })),
+            value !== null
+              ? h('button', { type: 'button', className: 'kbax-clearx', 'aria-label': props.clearLabel, title: props.clearLabel, onClick: () => props.onChange('') }, h(CloseXIcon, { size: 13 }))
+              : null,
+            popover)
+        }
+
+        // ── Time zones ───────────────────────────────────────────────────────
+        // Common countries/cities → time zone: "france" must find Europe/Paris,
+        // which the IANA name alone does not allow.
+        const KB_TZ_ALIAS = {
+          france: 'Europe/Paris', 'royaume uni': 'Europe/London', 'united kingdom': 'Europe/London', uk: 'Europe/London', angleterre: 'Europe/London', england: 'Europe/London',
+          allemagne: 'Europe/Berlin', germany: 'Europe/Berlin', espagne: 'Europe/Madrid', spain: 'Europe/Madrid', italie: 'Europe/Rome', italy: 'Europe/Rome',
+          portugal: 'Europe/Lisbon', belgique: 'Europe/Brussels', belgium: 'Europe/Brussels', suisse: 'Europe/Zurich', switzerland: 'Europe/Zurich',
+          'pays bas': 'Europe/Amsterdam', netherlands: 'Europe/Amsterdam', irlande: 'Europe/Dublin', ireland: 'Europe/Dublin', grece: 'Europe/Athens', greece: 'Europe/Athens',
+          turquie: 'Europe/Istanbul', turkey: 'Europe/Istanbul', russie: 'Europe/Moscow', russia: 'Europe/Moscow', pologne: 'Europe/Warsaw', poland: 'Europe/Warsaw',
+          maroc: 'Africa/Casablanca', morocco: 'Africa/Casablanca', algerie: 'Africa/Algiers', algeria: 'Africa/Algiers', tunisie: 'Africa/Tunis', tunisia: 'Africa/Tunis',
+          egypte: 'Africa/Cairo', egypt: 'Africa/Cairo', senegal: 'Africa/Dakar', 'cote d ivoire': 'Africa/Abidjan', 'ivory coast': 'Africa/Abidjan',
+          'afrique du sud': 'Africa/Johannesburg', 'south africa': 'Africa/Johannesburg', nigeria: 'Africa/Lagos', kenya: 'Africa/Nairobi',
+          'etats unis': 'America/New_York', usa: 'America/New_York', 'united states': 'America/New_York', canada: 'America/Toronto', bresil: 'America/Sao_Paulo', brazil: 'America/Sao_Paulo',
+          mexique: 'America/Mexico_City', mexico: 'America/Mexico_City', argentine: 'America/Argentina/Buenos_Aires', argentina: 'America/Argentina/Buenos_Aires',
+          inde: 'Asia/Kolkata', india: 'Asia/Kolkata', chine: 'Asia/Shanghai', china: 'Asia/Shanghai', japon: 'Asia/Tokyo', japan: 'Asia/Tokyo',
+          'coree du sud': 'Asia/Seoul', 'south korea': 'Asia/Seoul', 'emirats arabes unis': 'Asia/Dubai', uae: 'Asia/Dubai', 'arabie saoudite': 'Asia/Riyadh', 'saudi arabia': 'Asia/Riyadh',
+          israel: 'Asia/Jerusalem', liban: 'Asia/Beirut', lebanon: 'Asia/Beirut', singapour: 'Asia/Singapore', singapore: 'Asia/Singapore', thailande: 'Asia/Bangkok', thailand: 'Asia/Bangkok',
+          australie: 'Australia/Sydney', australia: 'Australia/Sydney', 'nouvelle zelande': 'Pacific/Auckland', 'new zealand': 'Pacific/Auckland',
+        }
+        const kbNorm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[_/'’-]+/g, ' ').replace(/\s+/g, ' ').trim()
+        const kbTzState = { list: null, abbr: {}, fmt: {} }
+        const kbTzList = () => {
+          if (kbTzState.list !== null) return kbTzState.list
+          let zones = []
+          try { zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [] } catch (e) { zones = [] }
+          if (zones.indexOf('UTC') < 0) zones = zones.concat(['UTC'])
+          kbTzState.list = zones.map((z) => {
+            const parts = z.split('/')
+            return {
+              z: z,
+              city: (parts.length > 1 ? parts.slice(1).join(' / ') : parts[0]).replace(/_/g, ' '),
+              region: parts.length > 1 ? parts[0].replace(/_/g, ' ') : '',
+              hay: kbNorm(z),
+            }
+          })
+          return kbTzState.list
+        }
+        /** Offset and local time of a time zone, at instant `now`. */
+        const kbTzNow = (z, now) => {
+          try {
+            if (kbTzState.fmt[z] === undefined) kbTzState.fmt[z] = new Intl.DateTimeFormat('en-US', { timeZone: z, timeZoneName: 'longOffset', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+            const parts = kbTzState.fmt[z].formatToParts(now)
+            const get = (type) => { const p = parts.filter((x) => x.type === type)[0]; return p !== undefined ? p.value : '' }
+            let off = get('timeZoneName').replace('GMT', 'UTC')
+            if (off === 'UTC') off = 'UTC+00:00'
+            return { off: off, time: get('hour') + ':' + get('minute') }
+          } catch (e) { return { off: '', time: '' } }
+        }
+        const kbTzAbbr = (z) => {
+          if (kbTzState.abbr[z] !== undefined) return kbTzState.abbr[z]
+          let a = ''
+          try {
+            const p = new Intl.DateTimeFormat('en-US', { timeZone: z, timeZoneName: 'short' }).formatToParts(new Date()).filter((x) => x.type === 'timeZoneName')[0]
+            a = p !== undefined ? p.value.toLowerCase() : ''
+          } catch (e) { a = '' }
+          kbTzState.abbr[z] = a
+          return a
+        }
+        /** Filter + ranking: 0 city starts with · 1 word/alias/abbreviation · 2 contains · 3 offset. */
+        const kbTzSearch = (query, zones, now) => {
+          const q = kbNorm(query)
+          if (q === '') return zones.map((e) => ({ e: e, score: 0 }))
+          // "+2", "utc-5", "gmt+05:30": we search by offset, not by text.
+          const off = /^(?:utc|gmt)?([+-])(\d{1,2})(?::?(\d{2}))?$/.exec(String(query).toLowerCase().replace(/\s+/g, ''))
+          if (off !== null) {
+            const want = 'UTC' + off[1] + kbPad(Number(off[2])) + ':' + (off[3] !== undefined ? off[3] : '')
+            return zones.filter((e) => kbTzNow(e.z, now).off.indexOf(want) === 0).map((e) => ({ e: e, score: 3 })).sort((a, b) => a.e.city.localeCompare(b.e.city))
+          }
+          const aliasHit = Object.keys(KB_TZ_ALIAS).filter((k) => k.indexOf(q) === 0).map((k) => KB_TZ_ALIAS[k])
+          const out = []
+          for (const e of zones) {
+            const city = kbNorm(e.city)
+            let score = -1
+            if (aliasHit.indexOf(e.z) >= 0) score = 0
+            else if (city.indexOf(q) === 0) score = 0
+            else if (e.hay.split(' ').some((w) => w.indexOf(q) === 0)) score = 1
+            else if (kbTzAbbr(e.z) === q) score = 1
+            else if (e.hay.indexOf(q) >= 0) score = 2
+            if (score >= 0) out.push({ e: e, score: score })
+          }
+          out.sort((a, b) => (a.score - b.score) || a.e.city.localeCompare(b.e.city))
+          return out
+        }
+
+        const KbTzCombo = (props) => {
+          const zones = kbTzList()
+          const openPair = React.useState(false)
+          const open = openPair[0]
+          const setOpen = openPair[1]
+          const queryPair = React.useState('')
+          const query = queryPair[0]
+          const setQuery = queryPair[1]
+          const activePair = React.useState(0)
+          const active = activePair[0]
+          const setActive = activePair[1]
+          const anchorRef = React.useRef(null)
+          const popRef = React.useRef(null)
+          const inputRef = React.useRef(null)
+          const listRef = React.useRef(null)
+          const close = () => { setOpen(false); setQuery('') }
+          const now = React.useMemo(() => new Date(), [open])
+          const hits = React.useMemo(() => (open === true ? kbTzSearch(query, zones, now) : []), [open, query])
+          // Row 0 = "Automatic (detected)" (value ''), then the time zones.
+          const showAuto = kbNorm(query) === '' || kbNorm(props.autoLabel).indexOf(kbNorm(query)) >= 0 || kbNorm(props.detected).indexOf(kbNorm(query)) >= 0
+          const rows = (showAuto === true ? [{ auto: true }] : []).concat(hits.slice(0, 400).map((x) => ({ e: x.e })))
+          const pos = kbUsePopover(anchorRef, popRef, open, close, rows.length)
+          const current = props.value === '' ? null : zones.filter((e) => e.z === props.value)[0] || { z: props.value, city: props.value, region: '', hay: kbNorm(props.value) }
+          const pick = (row) => {
+            props.onChange(row.auto === true ? '' : row.e.z)
+            close()
+            try { inputRef.current.blur() } catch (e) { /* unmounted */ }
+          }
+          React.useEffect(() => { setActive(0) }, [query, open])
+          React.useEffect(() => {
+            if (open !== true || listRef.current === null) return
+            const el = listRef.current.querySelector('[data-active="true"]')
+            if (el !== null) el.scrollIntoView({ block: 'nearest' })
+          }, [active, open, pos === null])
+          const onKey = (e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); if (open !== true) setOpen(true); else setActive(Math.min(rows.length - 1, active + 1)) }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(0, active - 1)) }
+            else if (e.key === 'Home' && open === true) { e.preventDefault(); setActive(0) }
+            else if (e.key === 'End' && open === true) { e.preventDefault(); setActive(Math.max(0, rows.length - 1)) }
+            else if (e.key === 'Enter') { if (open === true && rows[active] !== undefined) { e.preventDefault(); pick(rows[active]) } }
+            else if (e.key === 'Escape') { if (open === true) { e.preventDefault(); e.stopPropagation(); close() } }
+            else if (e.key === 'Tab') close()
+          }
+          const shown = open === true ? query : (current !== null ? current.z.replace(/_/g, ' ') : props.autoLabel + (props.detected !== '' ? ' · ' + props.detected.replace(/_/g, ' ') : ''))
+          const cur = current !== null ? kbTzNow(current.z, now) : (props.detected !== '' ? kbTzNow(props.detected, now) : { off: '', time: '' })
+          const lastRegion = { v: null }
+          const listbox = open === true ? ReactDOM.createPortal(h('div', {
+            ref: popRef, className: 'kbax-pop kbax-tzpop', style: kbPopStyle(pos, { width: (anchorRef.current !== null ? anchorRef.current.offsetWidth : 360) + 'px' }),
+          },
+          h('div', { id: 'kbax-tzlist', ref: listRef, role: 'listbox', className: 'kbax-tzlist', 'aria-label': props.label },
+            rows.length === 0 ? h('div', { className: 'kbax-tzempty' }, props.noneLabel) : null,
+            rows.map((row, i) => {
+              if (row.auto === true) {
+                return h('div', {
+                  key: 'auto', id: 'kbax-tz-' + i, role: 'option', 'aria-selected': props.value === '' ? 'true' : 'false', 'data-active': i === active ? 'true' : 'false',
+                  className: 'kbax-tzrow auto' + (i === active ? ' active' : '') + (props.value === '' ? ' sel' : ''),
+                  onMouseEnter: () => setActive(i), onMouseDown: (e) => e.preventDefault(), onClick: () => pick(row),
+                }, h('span', { className: 'kbax-tzico' }, h(ClockIcon, { size: 15 })),
+                h('span', { className: 'kbax-tzmain' }, h('b', null, props.autoLabel), h('span', { className: 'kbax-tzsub' }, props.detected !== '' ? props.detected.replace(/_/g, ' ') : '')),
+                props.value === '' ? h('span', { className: 'kbax-tick' }, '✓') : null)
+              }
+              const e = row.e
+              const n = kbTzNow(e.z, now)
+              const head = (kbNorm(query) === '' && e.region !== lastRegion.v) ? (lastRegion.v = e.region, h('div', { key: 'h-' + e.region, className: 'kbax-tzgroup' }, e.region || 'UTC')) : null
+              return [head, h('div', {
+                key: e.z, id: 'kbax-tz-' + i, role: 'option', 'aria-selected': props.value === e.z ? 'true' : 'false', 'data-active': i === active ? 'true' : 'false',
+                className: 'kbax-tzrow' + (i === active ? ' active' : '') + (props.value === e.z ? ' sel' : ''),
+                onMouseEnter: () => setActive(i), onMouseDown: (ev) => ev.preventDefault(), onClick: () => pick(row),
+              },
+              h('span', { className: 'kbax-tzmain' }, h('b', null, e.city), e.region !== '' ? h('span', { className: 'kbax-tzsub' }, e.region) : null),
+              h('span', { className: 'kbax-tzoff' }, (n.off !== '' ? n.off : '') + (n.time !== '' ? ' · ' + n.time : '')))]
+            }))),
+          document.body) : null
+
+          return h('div', { className: 'kbax-anchor', ref: anchorRef },
+            h('div', { className: 'kbax-field kbax-combo' + (open === true ? ' open' : '') },
+              h(ClockIcon, { size: 16 }),
+              h('input', {
+                ref: inputRef, type: 'text', className: 'kbax-comboinput', role: 'combobox', autoComplete: 'off', spellCheck: false,
+                'aria-label': props.label, 'aria-expanded': open === true ? 'true' : 'false', 'aria-controls': 'kbax-tzlist', 'aria-autocomplete': 'list',
+                'aria-activedescendant': open === true && rows[active] !== undefined ? 'kbax-tz-' + active : undefined,
+                placeholder: open === true ? props.searchPlaceholder : undefined,
+                value: shown,
+                onFocus: (e) => { setOpen(true); try { e.target.select() } catch (e2) { /* selection */ } },
+                onClick: () => { if (open !== true) setOpen(true) },
+                onChange: (e) => { if (open !== true) setOpen(true); setQuery(e.target.value) },
+                onKeyDown: onKey,
+              }),
+              open === true ? null : h('span', { className: 'kbax-tzbadge' }, cur.off !== '' ? cur.off : ''),
+              h('span', { className: 'kbax-chev', 'aria-hidden': 'true' }, h(ChevronIcon, { size: 14, dir: 'down' }))),
+            props.value !== '' && open !== true
+              ? h('button', { type: 'button', className: 'kbax-link kbax-below', onClick: () => props.onChange('') }, props.useAutoLabel + (props.detected !== '' ? ' (' + props.detected.replace(/_/g, ' ') + ')' : ''))
+              : null,
+            listbox)
+        }
+
+        // ── Account page ───────────────────────────────────────────────────────
         const AccountSection = () => {
           const vuePair = React.useState({ phase: 'loading' })
           const vue = vuePair[0]
           const setVue = vuePair[1]
+          const refreshPair = React.useState(false)
+          const refreshing = refreshPair[0]
+          const setRefreshing = refreshPair[1]
           const liveRef = React.useRef(true)
           React.useEffect(() => () => { liveRef.current = false }, [])
+          // Cache first (the page appears right away), the refresh afterwards
+          // in the background: no more "Sign in" screen while the data
+          // is read, no more emptied page on every click on Refresh.
           const charger = React.useCallback(async () => {
-            setVue({ phase: 'loading' })
             let status = null
             try { status = await callLocal('/status', 'GET') } catch (e) { status = null }
             if (liveRef.current !== true) return
             if (status !== null && status.connected === true) {
-              let st = status.state !== undefined && status.state !== null ? status.state : {}
+              const cache = status.state !== undefined && status.state !== null ? status.state : {}
+              setVue({ phase: 'connected', state: cache })
+              setRefreshing(true)
               try {
                 const fresh = await callLocal('/refresh', 'POST')
-                if (fresh !== null && fresh.connected === true && fresh.state !== undefined) st = fresh.state
+                if (liveRef.current === true && fresh !== null && fresh.connected === true && fresh.state !== undefined) setVue({ phase: 'connected', state: fresh.state })
               } catch (e) { /* on garde le cache */ }
-              if (liveRef.current !== true) return
-              setVue({ phase: 'connected', state: st })
+              if (liveRef.current === true) setRefreshing(false)
               return
             }
             setVue({ phase: status !== null && status.status === 'pending' ? 'pairing' : 'disconnected' })
@@ -2475,6 +3066,7 @@ window.__ModuleLoader__.load({
           React.useEffect(() => { void charger() }, [charger])
           const seDeconnecter = async () => {
             try { await callLocal('/disconnect', 'POST', { confirm: true }) } catch (e) { /* déjà parti */ }
+            setVue({ phase: 'loading' })
             void charger()
           }
 
@@ -2482,9 +3074,12 @@ window.__ModuleLoader__.load({
           const profilPair = React.useState(kbAccRead)
           const profil = profilPair[0]
           const setProfil = profilPair[1]
-          const sauvePair = React.useState(false)
-          const sauve = sauvePair[0]
-          const setSauve = sauvePair[1]
+          const savedPair = React.useState(kbAccRead)
+          const saved = savedPair[0]
+          const setSaved = savedPair[1]
+          const flashPair = React.useState(false)
+          const flash = flashPair[0]
+          const setFlash = flashPair[1]
           const detecPair = React.useState('')
           const detec = detecPair[0]
           const setDetec = detecPair[1]
@@ -2492,6 +3087,8 @@ window.__ModuleLoader__.load({
           const photoErrPair = React.useState(false)
           const photoErr = photoErrPair[0]
           const setPhotoErr = photoErrPair[1]
+          const dirty = JSON.stringify(profil) !== JSON.stringify(saved)
+          const maj = (patch) => { setProfil((p) => Object.assign({}, p, patch)); setFlash(false) }
           // Photo : recadrée carré 256 px, JPEG, gardée en data URI sur l'appareil.
           const chargerPhoto = (fichier) => {
             if (fichier === undefined || fichier === null) return
@@ -2507,19 +3104,18 @@ window.__ModuleLoader__.load({
                   c.width = 256; c.height = 256
                   const cote = Math.min(img.width, img.height)
                   c.getContext('2d').drawImage(img, (img.width - cote) / 2, (img.height - cote) / 2, cote, cote, 0, 0, 256, 256)
-                  setProfil((p) => Object.assign({}, p, { photo: c.toDataURL('image/jpeg', 0.85) }))
-                  setSauve(false)
+                  maj({ photo: c.toDataURL('image/jpeg', 0.85) })
                 } catch (e) { setPhotoErr(true) }
               }
               img.src = String(lecteur.result || '')
             }
             lecteur.readAsDataURL(fichier)
           }
-          const champ = (cle) => ({
-            value: profil[cle],
-            onChange: (e) => { setProfil(Object.assign({}, profil, { [cle]: e.target.value })); setSauve(false) },
-          })
-          const enregistrer = () => { kbAccWrite(profil); setSauve(true) }
+          const enregistrer = () => {
+            if (dirty !== true) return
+            if (kbAccWrite(profil) === true) { setSaved(profil); setFlash(true) }
+          }
+          const annuler = () => { setProfil(saved); setFlash(false) }
           const detecter = () => {
             if (typeof navigator === 'undefined' || navigator.geolocation === undefined || navigator.geolocation === null) { setDetec('err'); return }
             setDetec('busy')
@@ -2531,135 +3127,127 @@ window.__ModuleLoader__.load({
                     const a = j.address !== undefined && j.address !== null ? j.address : {}
                     const ville = a.city || a.town || a.village || a.county || a.municipality
                     const loc = ville ? ville + ', ' + a.country : (a.country || '')
-                    if (loc !== '') { setProfil(Object.assign({}, profil, { location: loc })); setSauve(false) }
+                    if (loc !== '') maj({ location: loc })
                     setDetec('')
                   })
                   .catch(() => { setDetec('err') })
               }, () => { setDetec('err') }, { timeout: 8000 })
             } catch (e) { setDetec('err') }
           }
+          React.useEffect(() => {
+            if (flash !== true) return undefined
+            const id = window.setTimeout(() => setFlash(false), 2600)
+            return () => window.clearTimeout(id)
+          }, [flash])
           let fuseau = ''
           try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || '' } catch (e) { fuseau = '' }
-          // Ligne d'info : le gabarit NATIF des formulaires Réglages (kbm-setfield)
-          const ligne = (k, v, hint) => h('div', { className: 'kbm-setfield' },
-            h('div', { className: 'kbm-setfield-head' },
-              h('span', { className: 'kbm-setfield-label' }, k),
-              h('span', {
-                title: hint,
-                style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)', fontStyle: hint !== undefined ? 'italic' : 'normal' },
-              }, v)))
-          let zones = []
-          try { zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [] } catch (e) { zones = [] }
-          if (zones.length === 0 && fuseau !== '') zones = [fuseau]
-          const champNat = (cle, extras) => Object.assign({
-            className: 'kbm-setfield-input',
-            value: profil[cle],
-            onChange: (e) => { setProfil(Object.assign({}, profil, { [cle]: e.target.value })); setSauve(false) },
-          }, extras === undefined ? {} : extras)
+          const locale = lang() === 'en' ? 'en-GB' : 'fr-FR'
+          const aujourdhui = kbToday()
 
+          // Not signed in: a skeleton while reading (never the "Sign in" button
+          // before we know), the button only if we really are not signed in.
+          if (vue.phase === 'loading') {
+            return h('div', { className: 'kbax', 'data-kb': 'settings-account', 'aria-busy': 'true', 'aria-label': t('loading') },
+              h('div', { className: 'kbax-card' }, h('div', { className: 'kbax-skel kbax-skel-head' })),
+              h('div', { className: 'kbax-card' },
+                h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' }),
+                h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' }),
+                h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' })))
+          }
           if (vue.phase !== 'connected') {
-            const indice = vue.phase === 'pairing' ? t('footPairing') : (vue.phase === 'loading' ? t('loading') : t('footHint'))
-            return h('div', { className: 'kbp-card', 'data-kb': 'settings-account', style: { maxWidth: '560px' } },
-              h('p', { className: 'kbf-hint' }, indice),
-              h('button', {
-                type: 'button', className: 'kbf-connect', style: { marginTop: '10px' },
-                onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event absent */ } },
-              }, h(EnterIcon, { size: 15 }), h('span', null, t('footConnect'))))
+            return h('div', { className: 'kbax', 'data-kb': 'settings-account' },
+              h('div', { className: 'kbax-card' },
+                h('p', { className: 'kbf-hint', style: { margin: 0 } }, vue.phase === 'pairing' ? t('footPairing') : t('footHint')),
+                h('button', {
+                  type: 'button', className: 'kbf-connect', style: { marginTop: '10px' },
+                  onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event missing */ } },
+                }, h(EnterIcon, { size: 15 }), h('span', null, t('footConnect')))))
           }
 
           const st = vue.state
           const user = st.user !== undefined && st.user !== null ? st.user : {}
-          const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
-          const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
-          const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
           const shownName = displayName(user)
           const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
           const plan = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
-          const device = typeof st.device_label === 'string' && st.device_label.trim() !== '' ? st.device_label.trim() : t('none')
-          const expire = fmtDate(st.expires_at) !== null ? fmtDate(st.expires_at) : t('none')
           const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
-          const nbKybers = courant !== null && typeof courant.kyber_count === 'number' ? courant.kyber_count : 0
-
           const couleurAvatar = profil.color !== '' ? profil.color : '#4b4fe0'
           const glyphAvatar = initiales(profil.name !== '' ? profil.name : qui, user.email)
           const stylePhoto = profil.photo !== '' ? { backgroundImage: 'url(' + profil.photo + ')', backgroundSize: 'cover', backgroundPosition: 'center' } : {}
           const SWATCHES = ['#4b4fe0', '#2f6f5e', '#a4553a', '#7a4a86', '#8a6b2f', '#16181c', '#9a6b3f']
-          return h('div', { 'data-kb': 'settings-account', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
-            h('div', { className: 'kbp-card' },
-              h('div', { className: 'kbs-head' },
-                h('span', { className: 'kbs-who' },
-                  h('span', {
-                    className: 'kbf-avatar', 'aria-hidden': 'true',
-                    style: Object.assign({ width: '42px', height: '42px', borderRadius: '10px', fontSize: '15px', background: couleurAvatar }, stylePhoto),
-                  }, profil.photo !== '' ? null : glyphAvatar),
-                  h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0 } },
-                    h('b', { style: { fontSize: '16px' } }, qui),
-                    user.email ? h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary)' } }, user.email) : null)),
-                h('span', { className: 'kbf-plan', style: { maxWidth: '90px' } }, plan))),
-            h('div', { className: 'kbp-card' },
-              h('div', { className: 'kbs-sect' }, t('accProfileTitle')),
-              h('div', { className: 'kbm-setform' },
-                // Avatar : initiales (du nom) + couleur, comme la webapp
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('accAvatar'))),
-                  h('div', { className: 'kbfp-swrow' },
-                    h('span', { className: 'kbfp-avat', 'aria-hidden': 'true', style: Object.assign({ background: couleurAvatar }, stylePhoto) }, profil.photo !== '' ? null : glyphAvatar),
-                    h('span', { className: 'kbfp-swrow', role: 'radiogroup', 'aria-label': t('accAvatar'), style: { marginLeft: '6px' } },
-                      SWATCHES.map((c) => h('button', {
-                        type: 'button', key: c, className: 'kbfp-sw' + (profil.color === c ? ' on' : ''),
-                        role: 'radio', 'aria-checked': profil.color === c ? 'true' : 'false',
-                        'aria-label': c, title: c,
-                        style: { background: c },
-                        onClick: () => { setProfil(Object.assign({}, profil, { color: profil.color === c ? '' : c })); setSauve(false) },
-                      })))),
-                  h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' } },
-                    h('input', {
-                      ref: fichierRef, type: 'file', accept: 'image/*', style: { display: 'none' },
-                      onChange: (e) => { const f = e.target.files && e.target.files[0]; chargerPhoto(f); e.target.value = '' },
-                    }),
-                    h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => { if (fichierRef.current) fichierRef.current.click() } }, t('accPhotoUp')),
-                    profil.photo !== '' ? h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => { setProfil(Object.assign({}, profil, { photo: '' })); setSauve(false) } }, t('accPhotoDel')) : null,
-                    photoErr ? h('span', { className: 'kbm-setfield-invalid' }, t('accPhotoErr')) : null)),
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('name'))),
-                  h('input', champNat('name', { type: 'text', placeholder: t('accNamePh') }))),
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('accBirth'))),
-                  h('input', champNat('birth', { type: 'date' }))),
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('accLocation'))),
-                  h('div', { style: { display: 'flex', gap: '6px' } },
-                    h('input', champNat('location', { type: 'text', placeholder: 'Paris, France', style: { flex: '1 1 auto' } })),
-                    h('button', {
-                      type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', style: { flex: '0 0 auto' },
-                      disabled: detec === 'busy', onClick: detecter,
-                    }, detec === 'busy' ? t('accDetecting') : t('accDetect'))),
-                  detec === 'err' ? h('p', { className: 'kbm-setfield-invalid' }, t('accDetectErr')) : null),
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('accTimezone'))),
-                  h('select', champNat('tz'),
-                    h('option', { value: '' }, fuseau !== '' ? t('accAutoTz') + ' · ' + fuseau : t('accAutoTz')),
-                    zones.map((z) => h('option', { key: z, value: z }, z)))),
-                h('div', { className: 'kbm-setfield' },
-                  h('div', { className: 'kbm-setfield-head' },
-                    h('span', { className: 'kbm-setfield-label' }, t('accInstructions'))),
-                  h('textarea', champNat('instructions', { rows: 3, placeholder: t('accInstructionsPh') }))),
-                h('div', { className: 'kbm-setform-footer' },
-                  h('button', { type: 'button', className: 'kbm-setform-save', onClick: enregistrer }, t('accSave')),
-                  sauve === true ? h('span', { style: { fontSize: '12px', color: 'var(--dsw-alias-state-success-primary)' } }, t('accSaved')) : null),
-                h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, t('accLocalNote')))),
-            h('div', { className: 'kbs-actions' },
-              h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', onClick: () => { void charger() } }, t('refresh')),
-              h('a', {
-                className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { textDecoration: 'none' },
-                href: web + '/profiles?section=profile', target: '_blank', rel: 'noreferrer',
-              }, t('wsOpenHosted')),
-              h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { color: 'var(--dsw-alias-state-error-primary)' }, onClick: () => { void seDeconnecter() } }, t('disconnect'))))
+          const INSTR_MAX = 2000
+          const champ = (label, contenu, hint) => h('div', { className: 'kbax-row' },
+            h('span', { className: 'kbax-label' }, label), contenu, hint !== undefined && hint !== null ? hint : null)
+          return h('div', {
+            className: 'kbax', 'data-kb': 'settings-account',
+            onKeyDown: (e) => { if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 's') { e.preventDefault(); enregistrer() } },
+          },
+          // ── Identity ──
+          h('div', { className: 'kbax-card kbax-hero' },
+            h('div', { className: 'kbax-avwrap' },
+              h('span', { className: 'kbax-avatar', 'aria-hidden': 'true', style: Object.assign({ background: couleurAvatar }, stylePhoto) }, profil.photo !== '' ? null : glyphAvatar),
+              h('input', {
+                ref: fichierRef, type: 'file', accept: 'image/*', style: { display: 'none' },
+                onChange: (e) => { const f = e.target.files && e.target.files[0]; chargerPhoto(f); e.target.value = '' },
+              }),
+              h('button', { type: 'button', className: 'kbax-avcam', title: t('accPhotoUp'), 'aria-label': t('accPhotoUp'), onClick: () => { if (fichierRef.current) fichierRef.current.click() } }, h(CameraIcon, { size: 15 }))),
+            h('div', { className: 'kbax-herotxt' },
+              h('div', { className: 'kbax-heroname' }, h('b', null, qui), h('span', { className: 'kbf-plan', style: { maxWidth: '90px' } }, plan)),
+              user.email ? h('span', { className: 'kbax-heromail' }, user.email) : null,
+              h('div', { className: 'kbax-swatches', role: 'radiogroup', 'aria-label': t('accAvatar') },
+                SWATCHES.map((c) => h('button', {
+                  type: 'button', key: c, className: 'kbfp-sw' + (profil.color === c ? ' on' : ''),
+                  role: 'radio', 'aria-checked': profil.color === c ? 'true' : 'false', 'aria-label': c, title: c, style: { background: c },
+                  onClick: () => maj({ color: profil.color === c ? '' : c }),
+                })),
+                profil.photo !== '' ? h('button', { type: 'button', className: 'kbax-link', onClick: () => maj({ photo: '' }) }, t('accPhotoDel')) : null,
+                photoErr ? h('span', { className: 'kbm-setfield-invalid' }, t('accPhotoErr')) : null))),
+          // ── About you ──
+          h('div', { className: 'kbax-card' },
+            h('div', { className: 'kbs-sect' }, t('accAbout')),
+            champ(t('name'), h('input', { type: 'text', className: 'kbax-field kbax-input', value: profil.name, placeholder: t('accNamePh'), onChange: (e) => maj({ name: e.target.value }) })),
+            champ(t('accBirth'), h(KbDatePicker, {
+              value: profil.birth, onChange: (v) => maj({ birth: v }), locale: locale,
+              min: { y: 1900, m: 1, d: 1 }, max: aujourdhui,
+              placeholder: t('accBirthPh'), label: t('accBirth'), clearLabel: t('accClear'),
+              prevLabel: t('accPrevMonth'), nextLabel: t('accNextMonth'), monthLabel: t('accMonth'), yearLabel: t('accYear'),
+            })),
+            champ(t('accLocation'), h('div', { className: 'kbax-inline' },
+              h('span', { className: 'kbax-field kbax-withicon' },
+                h(PinIcon, { size: 16 }),
+                h('input', { type: 'text', className: 'kbax-bare', value: profil.location, placeholder: 'Paris, France', onChange: (e) => maj({ location: e.target.value }) })),
+              h('button', { type: 'button', className: 'kbax-btn', disabled: detec === 'busy', onClick: detecter }, detec === 'busy' ? t('accDetecting') : t('accDetect'))),
+            detec === 'err' ? h('p', { className: 'kbm-setfield-invalid', style: { margin: '4px 0 0' } }, t('accDetectErr')) : null)),
+          // ── Preferences ──
+          h('div', { className: 'kbax-card' },
+            h('div', { className: 'kbs-sect' }, t('accPrefs')),
+            champ(t('accTimezone'), h(KbTzCombo, {
+              value: profil.tz, onChange: (v) => maj({ tz: v }), detected: fuseau,
+              label: t('accTimezone'), autoLabel: t('accAutoTz'), searchPlaceholder: t('accTzPh'), noneLabel: t('accTzNone'), useAutoLabel: t('accTzUseAuto'),
+            }))),
+          // ── Instructions ──
+          h('div', { className: 'kbax-card' },
+            h('div', { className: 'kbs-sect' }, t('accInstructions')),
+            h('textarea', {
+              className: 'kbax-field kbax-area', rows: 5, maxLength: INSTR_MAX, value: profil.instructions, placeholder: t('accInstructionsPh'),
+              onChange: (e) => maj({ instructions: e.target.value }),
+            }),
+            h('div', { className: 'kbax-count' }, String(profil.instructions.length) + ' / ' + String(INSTR_MAX)),
+            h('p', { className: 'kbm-setform-unavailable', style: { margin: '2px 0 0' } }, t('accLocalNote'))),
+          // ── Account ──
+          h('div', { className: 'kbs-actions', style: { marginTop: 0 } },
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: refreshing, onClick: () => { void charger() } }, refreshing ? t('accRefreshing') : t('refresh')),
+            h('a', {
+              className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { textDecoration: 'none' },
+              href: web + '/profiles?section=profile', target: '_blank', rel: 'noreferrer',
+            }, t('wsOpenHosted')),
+            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { color: 'var(--dsw-alias-state-error-primary)' }, onClick: () => { void seDeconnecter() } }, t('disconnect'))),
+          // ── Save bar: stuck to the bottom, visible only when there is something to keep ──
+          (dirty === true || flash === true)
+            ? h('div', { className: 'kbax-savebar', role: 'status' },
+                h('span', { className: 'kbax-savemsg' + (dirty === true ? ' dirty' : ' ok') }, dirty === true ? t('accUnsaved') : t('accSaved')),
+                dirty === true ? h('button', { type: 'button', className: 'kbax-btn', onClick: annuler }, t('accDiscard')) : null,
+                dirty === true ? h('button', { type: 'button', className: 'kbax-btn kbax-primary', onClick: enregistrer }, t('accSave')) : null)
+            : null)
         }
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
           { name: 'settings.section', id: 'kybernos-account', order: 11, label: t('profCompte') }, AccountSection)),
