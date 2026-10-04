@@ -53,6 +53,5 @@ Open DSH's native Models page. *Sync N from models.dev* stays on the results bar
 
 ## Not done yet
 
-- *Fetch available models* (endpoint discovery, `llm.discoverModels`) in the Add and Edit panels.
 - DeepSeek editing here (it lives in `llm-deepseek`; its card opens DSH's native page).
-- Flip `KB_NAT_DEFAULT_HIDDEN` once those are done.
+- Flip `KB_NAT_DEFAULT_HIDDEN` once that is done (*Fetch available models* is in: see `providers-page.md`).

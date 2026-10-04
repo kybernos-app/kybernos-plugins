@@ -367,6 +367,72 @@ ok('the Cloud card shows on the Providers tab only, and the old header block (in
 ok('the page uses the room it has (1120 px, against the core plugin’s 720 cap, with more specificity)', has('>.kbm-page:has(.kbm-root.kbmp){max-width:1120px}'))
 ok('no colour hard-coded in the new Providers styles', !/kbpv-[a-z-]+\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
 
+console.log('\n── Fetch available models (the engine lists what a provider serves; the user ticks) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  ok('the fetch blocks are delimited', bl('KB-FETCH-PURE').length > 100 && bl('KB-FETCH-ACTIONS').length > 100)
+  const fx = new Function(bl('KB-FETCH-PURE') + '\nreturn { kbFetchProbe, kbFetchAskable, kbFetchCandidates, kbFetchOutcome, kbFetchAdopt, kbFetchPreselect, kbFetchFilter, kbFetchApply, kbFetchSize }')()
+  const pv = new Function(bl('KB-PV-PURE') + '\nreturn { kbPvRows, kbPvMergeModels, kbPvEditProfile, kbPvNewProfile }')()
+
+  console.log('  — the request')
+  ok('an edit names its route; the endpoint is the one the form shows (trailing slash trimmed)', JSON.stringify(fx.kbFetchProbe('acme', { url: 'https://gw.example/v1/', custom: true, proto: 'anthropic-messages', key: '' })) === JSON.stringify({ provider: 'acme', baseURL: 'https://gw.example/v1', api: 'anthropic-messages' }))
+  ok('a catalog route sends no protocol (the adapter knows it)', !('api' in fx.kbFetchProbe('groq', { url: '', custom: false, proto: 'openai-completions', key: '' })))
+  ok('an add (custom) has no route to name, only the endpoint and protocol', JSON.stringify(fx.kbFetchProbe(null, { tab: 'custom', url: 'https://a/v1', proto: 'openai-completions', key: '' })) === JSON.stringify({ baseURL: 'https://a/v1', api: 'openai-completions' }))
+  ok('a typed key travels for this call (trimmed); an empty one is not sent', fx.kbFetchProbe('a', { url: '', key: ' sk-1 ' }).apiKey === 'sk-1' && !('apiKey' in fx.kbFetchProbe('a', { url: '', key: '   ' })))
+  ok('there is something to ask with a route, or an endpoint; nothing without either', fx.kbFetchAskable({ provider: 'a' }) === true && fx.kbFetchAskable({ baseURL: 'https://a' }) === true && fx.kbFetchAskable({}) === false && fx.kbFetchAskable({ baseURL: '' }) === false)
+
+  console.log('  — the answer')
+  const found = fx.kbFetchOutcome({ ok: true, value: [{ id: 'a', name: ' A ', contextWindow: 262144, maxTokens: 32000, inputModalities: ['text', 'image'] }, { id: 'a' }, { id: '' }, null, { name: 'no id' }, { id: 'b', contextWindow: -5, maxTokens: 1.5, inputModalities: 'x' }] })
+  ok('well-formed candidates only: first of a duplicate, ids required, optional fields typed', found.kind === 'found' && found.models.length === 2 && found.models[0].name === 'A' && found.models[0].contextWindow === 262144 && found.models[0].input.join() === 'text,image' && JSON.stringify(found.models[1]) === JSON.stringify({ id: 'b' }), found)
+  ok('a refusal carries the engine’s own message', JSON.stringify(fx.kbFetchOutcome({ ok: false, error: { code: 'llm/model-discovery-rejected', message: 'HTTP 401' } })) === JSON.stringify({ kind: 'refused', timeout: false, message: 'HTTP 401' }))
+  ok('a timeout is told apart', fx.kbFetchOutcome({ ok: false, error: { code: 'timeout', message: 'x' } }).timeout === true)
+  ok('anything unreadable is a refusal, never a throw', fx.kbFetchOutcome(null).kind === 'refused' && fx.kbFetchOutcome(undefined).kind === 'refused' && fx.kbFetchOutcome({ ok: true, value: 'x' }).kind === 'refused' && fx.kbFetchOutcome({ ok: false }).message === '')
+
+  console.log('  — the picker')
+  const cands = fx.kbFetchCandidates([{ id: 'gpt-a', name: 'GPT A', contextWindow: 131072 }, { id: 'gpt-b' }, { id: 'claude-x', name: 'Claude X', inputModalities: ['text', 'image'] }])
+  ok('already-listed models are not ticked on opening; the rest are', JSON.stringify(Object.keys(fx.kbFetchPreselect(cands, [{ id: 'gpt-a' }, { id: ' ' }]))) === JSON.stringify(['gpt-b', 'claude-x']))
+  ok('search matches the id and the display name, case-insensitive', fx.kbFetchFilter(cands, 'GPT').length === 2 && fx.kbFetchFilter(cands, 'claude x').length === 1 && fx.kbFetchFilter(cands, '  ').length === 3 && fx.kbFetchFilter(cands, 'zzz').length === 0)
+  const rows = [{ id: 'gpt-a', name: 'Mine', contextWindow: 999 }, { id: '', name: '' }]
+  const applied = fx.kbFetchApply(rows, cands, { 'gpt-a': true, 'claude-x': true })
+  ok('adopting appends the ticked models, keeps a row already there exactly as it was, drops the empty placeholder', applied.length === 2 && applied[0].name === 'Mine' && applied[0].contextWindow === 999 && applied[1].id === 'claude-x' && applied[1].name === 'Claude X' && applied[1].input.join() === 'text,image', applied)
+  ok('nothing ticked adds nothing', fx.kbFetchApply([{ id: 'x', name: '' }], cands, {}).length === 1)
+  ok('sizes read the way the native page writes them', fx.kbFetchSize(262144) === '256K' && fx.kbFetchSize(1048576) === '1M' && fx.kbFetchSize(131072) === '128K' && fx.kbFetchSize(200000) === '200K' && fx.kbFetchSize(8192) === '8K' && fx.kbFetchSize(1500) === '1500')
+
+  console.log('  — what lands in the profile')
+  const written = pv.kbPvMergeModels([{ id: 'old', name: 'Old', contextWindow: 8000 }], applied.concat([{ id: 'old', name: 'Old' }]))
+  ok('a model adopted from the endpoint carries its capacities into the profile', written.some((e) => e.id === 'claude-x' && e.name === 'Claude X' && e.input.join() === 'text,image'), written)
+  const edited = pv.kbPvMergeModels([{ id: 'gpt-a', name: 'Old', contextWindow: 8000, maxTokens: 100, input: ['text'] }], [{ id: 'gpt-a', name: 'New', contextWindow: 131072, maxTokens: 5, input: ['image'] }])
+  ok('a model that already exists keeps ITS values, whatever the row says (the user may have tuned them)', edited[0].contextWindow === 8000 && edited[0].maxTokens === 100 && edited[0].input.join() === 'text' && edited[0].name === 'New')
+  ok('rows drop invalid capacities instead of writing them', JSON.stringify(pv.kbPvRows([{ id: 'a', name: '', contextWindow: -1, maxTokens: 'x', input: [1] }])) === JSON.stringify([{ id: 'a', name: '' }]))
+  const withModels = { api: 'openai-completions', baseURL: 'https://g/v1', models: [{ id: 'm1' }] }
+  const restored = pv.kbPvEditProfile('groq', withModels, { url: 'https://g/v1', key: '', models: [], restoreModels: true }, false)
+  ok('Restore default models removes the models list altogether (the adapter’s own list is back), it does not write an empty one', !('models' in restored) && restored.baseURL === 'https://g/v1')
+  const emptied = pv.kbPvEditProfile('groq', withModels, { url: 'https://g/v1', key: '', models: [] }, false)
+  ok('whereas emptying the rows writes an empty list (no model offered), as before', Array.isArray(emptied.models) && emptied.models.length === 0)
+
+  console.log('  — the call')
+  let seen = null
+  const run = new Function('kbMTimeout', 'KB_NS', bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + '\nreturn { kbFetchRun }')((p) => Promise.resolve(p), 'llm-pi-ai').kbFetchRun
+  const good = await run({ llm: { discoverModels: async (ns, req) => { seen = { ns, req }; return { ok: true, value: [{ id: 'm' }] } } } }, { provider: 'a' })
+  ok('it asks the engine in the models namespace with the request as built, and returns the candidates', good.kind === 'found' && good.models[0].id === 'm' && seen.ns === 'llm-pi-ai' && seen.req.provider === 'a', [good, seen])
+  ok('a DSH without the service is reported, not thrown', (await run(null, {})).unavailable === true && (await run({ llm: {} }, {})).unavailable === true && (await run({ llm: null }, {})).unavailable === true)
+  ok('a call that throws becomes a refusal with its message', (await run({ llm: { discoverModels: async () => { throw new Error('socket closed') } } }, {})).message === 'socket closed')
+  ok('a refusal from the engine comes through', (await run({ llm: { discoverModels: async () => ({ ok: false, error: { message: 'HTTP 401' } }) } }, {})).message === 'HTTP 401')
+  const slow = new Function('kbMTimeout', 'KB_NS', bl('KB-FETCH-PURE') + bl('KB-FETCH-ACTIONS') + '\nreturn { kbFetchRun }')(() => Promise.resolve({ ok: false, error: { code: 'timeout', message: 'x' } }), 'llm-pi-ai').kbFetchRun
+  ok('a timeout is told apart from a refusal', (await slow({ llm: { discoverModels: () => new Promise(() => {}) } }, {})).timeout === true)
+
+  console.log('  — wiring')
+  const w = (frag) => src.includes(frag)
+  ok('the button sits in the models header of both panels, disabled with a reason until there is something to ask', w("'data-kbm': 'fetch-open'") && w("title: blocked !== null ? blocked : (!askable ? m('kb.fetch.needsurl') : undefined)") && w('probe: kbFetchProbe(route, dr)') && w('probe: kbFetchProbe(null, dr)'))
+  ok('the picker is the native one: search, Select all / Deselect all, Add selected, Cancel', w("'data-kbm': 'fetch-search'") && w("'data-kbm': 'fetch-all'") && w("'data-kbm': 'fetch-adopt'") && w("'data-kbm': 'fetch-cancel'"))
+  ok('models already in the list are shown, ticked and disabled — never overwritten', w("checked: known || fp.picked[c.id] === true, disabled: known"))
+  ok('Escape closes the picker only: window capture runs before the drawer’s document capture', w("window.addEventListener('keydown', key, true)") && w('Escape closes the picker and nothing else'))
+  ok('a catalog route warns that the kept list replaces the built-in one, and can restore it', w("'data-kbm': 'fetch-replaces'") && w("'data-kbm': 'fetch-restore'") && w('d.restoreModels === true) delete next.models'))
+  ok('editing the rows afterwards cancels a pending "restore"', w('set({ models: next, touched: true, restoreModels: false })'))
+  ok('the picker is the page’s own dialog, above the drawer', w("className: 'kbm-mdl-root', 'data-kbm': 'fetch-dialog'") && w('kbm-mdl-root sits at z-index 1000'))
+  ok('no colour hard-coded in the picker styles', !/\.kbpv-(fetch|lnk|mact)[a-z-]*\{[^}']*#[0-9a-fA-F]{3,8}\b/.test(src))
+}
+
 console.log('\n── the model health chip (the alert of the study model, on the tab bar) ──')
 {
   const hb = src.indexOf('// KB-HEALTH-PURE-BEGIN')
@@ -416,11 +482,11 @@ console.log('\n── the model health chip (the alert of the study model, on th
 }
 
 console.log('\n── strings: every new key in French and English ──')
-const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
+const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
 ok('the new keys are all declared', keys.length >= 70, keys.length)
 ok('each has a French and an English text', keys.every((k) => k[2].length > 0 && k[3].length > 0))
 ok('placeholders match between French and English', keys.every((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() === (k[3].match(/\{[a-z]+\}/g) || []).sort().join()), keys.filter((k) => (k[2].match(/\{[a-z]+\}/g) || []).sort().join() !== (k[3].match(/\{[a-z]+\}/g) || []).sort().join()).map((k) => k[1]).join())
-ok('every kb.prov.off/on, kb.pv, kb.nat and kb.health key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
+ok('every kb.prov.off/on, kb.pv, kb.nat, kb.health and kb.fetch key used in the code is declared (a trailing dot is a computed key: kb.pv.err.<reason>)', [...src.matchAll(/m\('(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+))'/g)].filter((u) => !u[1].endsWith('.')).every((u) => keys.some((k) => k[1] === u[1])) && ['pick', 'slug', 'taken', 'url', 'template', 'models'].every((r) => keys.some((k) => k[1] === 'kb.pv.err.' + r)))
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)
