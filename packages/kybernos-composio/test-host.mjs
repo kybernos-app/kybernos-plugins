@@ -450,7 +450,10 @@ if (yaml !== null) {
 {
   frais(false)
   const res = await POST(http('nocheck'))
-  ok('C-02: without js-yaml the connector is still written, and the reply says it was not checked', res.code === 200 && JSON.parse(res.corps).validated === false && lire(PATCH_FILE) !== null)
+  // Whether js-yaml can be found from where the host looks (profile folder, DSH home, the plugin, the launcher):
+  // on a machine that happens to have one installed globally the reply is true, so the expectation follows.
+  const joignable = [join(DSH_DIR, 'profiles', 'web'), DSH_DIR, new URL('.', import.meta.url).pathname, (() => { try { return join(process.argv[1], '..') } catch (e) { return DSH_DIR } })()].some((d) => { try { createRequire(join(d, 'package.json'))('js-yaml'); return true } catch (e) { return false } })
+  ok('C-02: without js-yaml the connector is still written, and the reply says it was not checked', res.code === 200 && JSON.parse(res.corps).validated === joignable && lire(PATCH_FILE) !== null, `validated=${JSON.parse(res.corps).validated} reachable=${joignable}`)
 }
 {
   frais()

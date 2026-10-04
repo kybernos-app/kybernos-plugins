@@ -103,7 +103,7 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
 
 ```bash
 node test-host.mjs     # 528 checks with a DSH engine on the machine (454 without), temp HOME and DSH_HOME
-node test-client.mjs   # 163 checks, no browser
+node test-client.mjs   # 164 checks, no browser
 ```
 
 `test-host.mjs` covers the connectors route (hostile origin, content type, command rules, YAML injection, the
