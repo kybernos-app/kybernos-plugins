@@ -37,7 +37,7 @@ const run = (cmd, cwd) => new Promise((res) => {
 // comparaison alphabétique ferait dire « dans la zone » à la page Réglages pour
 // une version que le robot refuse (0.1.10 est postérieur à 0.1.7, pas
 // l'inverse). Dupliqué à dessein : ce plugin se lit seul, sans import croisé.
-function comparerVersions (a, b) {
+export function comparerVersions (a, b) {
   const decouper = (v) => {
     const [noyau, ...reste] = String(v).split('-')
     return { nombres: noyau.split('.').map((x) => parseInt(x, 10) || 0), pre: reste.join('-') }
@@ -99,6 +99,63 @@ async function lireRegistre () {
   }
   CACHE_REGISTRE = { quand: Date.now(), valeur }
   return valeur
+}
+
+// ── update available? (04/10) ────────────────────────────────────────────────
+// Two sources, a single answer for the GUI:
+//   · the Kybernos PACK: installed `VERSION` against the `VERSION` published on
+//     the public repo's main branch (no release is tagged, the branch is
+//     authoritative) — cached for 1 h, never blocking;
+//   · the DSH ENGINE: the same measure as the Maintenance page (`maj`).
+// The client decides when to ask (at launch, then regularly) and how to
+// notify; the host only measures, read-only.
+const VERSION_DISTANTE = process.env.KYBERNOS_VERSION_URL || 'https://raw.githubusercontent.com/platonai-net/kybernos-plugins/main/VERSION'
+const DEPOT_URL = process.env.KYBERNOS_REPO_URL || 'https://github.com/platonai-net/kybernos-plugins'
+const FORME_VERSION = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/
+let CACHE_PACK = null
+export async function lirePackDistant (force) {
+  if (force !== true && CACHE_PACK !== null && Date.now() - CACHE_PACK.quand < 3600000) return CACHE_PACK.valeur
+  let valeur
+  const ctl = new AbortController()
+  const minuteur = setTimeout(() => ctl.abort(), 6000)
+  try {
+    const res = await fetch(VERSION_DISTANTE, { signal: ctl.signal, headers: { 'cache-control': 'no-cache' } })
+    const texte = String(await res.text()).trim()
+    valeur = res.ok && FORME_VERSION.test(texte) ? { joignable: true, latest: texte } : { joignable: false, latest: null }
+  } catch (e) { valeur = { joignable: false, latest: null } } finally { clearTimeout(minuteur) }
+  CACHE_PACK = { quand: Date.now(), valeur }
+  return valeur
+}
+function lireVersionPack () {
+  try {
+    const v = readFileSync(join(REPO, 'VERSION'), 'utf8').trim()
+    return FORME_VERSION.test(v) ? v : null
+  } catch (e) { return null }
+}
+/** Builds the response: pure, so testable without network or DSH. `pending` =
+ *  what the GUI must announce (null = nothing to do): a new pack version
+ *  first, otherwise a RECOMMENDED engine upgrade (never a version outside the
+ *  supported range: the robot's gate would refuse it). */
+export function composerMaj ({ pack, installee, etat, git, quand }) {
+  const dispo = installee !== null && pack.latest !== null && comparerVersions(installee, pack.latest) < 0
+  const maj = (etat && etat.maj) || { niveau: 'Inconnue', cible: null, note: '' }
+  let pending = null
+  if (dispo) pending = { kind: 'kybernos', cible: pack.latest, installee, requis: false, note: '' }
+  else if (maj.cible && ['Requise', 'Recommandée', 'Possible'].indexOf(maj.niveau) >= 0) {
+    pending = { kind: 'moteur', cible: maj.cible, installee: etat.global, requis: maj.niveau === 'Requise', note: maj.note || '' }
+  }
+  return {
+    ok: true,
+    checkedAt: quand,
+    pack: { installee, latest: pack.latest, disponible: dispo, joignable: pack.joignable, depot: DEPOT_URL, git: git === true },
+    moteur: { installee: etat ? etat.global : null, latest: etat && etat.distant ? etat.distant.derniere : null, niveau: maj.niveau, cible: maj.cible || null, note: maj.note || '' },
+    pending
+  }
+}
+async function mesurerMaj (force) {
+  if (force === true) CACHE_REGISTRE = null
+  const [pack, etat] = await Promise.all([lirePackDistant(force), mesurerEtat()])
+  return composerMaj({ pack, installee: lireVersionPack(), etat, git: existsSync(join(REPO, '.git')), quand: new Date().toISOString() })
 }
 
 async function mesurerEtat () {
@@ -294,7 +351,15 @@ export function apply (ctx) {
       try { envoyer(res, 200, await mesurerEtat()) }
       catch (e) { envoyer(res, 500, { erreur: String(e && e.message ? e.message : e) }) }
     } })
-    console.log('[kybernos-maintenance] route webServer /kybernos-maintenance/state enregistree (lecture seule)')
+    hostCtx.webServer.register({ kind: 'exact', path: '/kybernos-maintenance/update', handler: async (req, res) => {
+      if (req.method !== 'GET') { res.writeHead(405); res.end(); return }
+      if (!origineOK(req)) { res.writeHead(403); res.end(); return }
+      try {
+        const force = String(req.url || '').indexOf('force=1') >= 0
+        envoyer(res, 200, await mesurerMaj(force))
+      } catch (e) { envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) }) }
+    } })
+    console.log('[kybernos-maintenance] routes webServer /kybernos-maintenance/state et /update enregistrees (lecture seule)')
   }
   if (ctx.get('webServer') !== undefined) demarrer(ctx)
   else ctx.inject(['webServer'], demarrer)

@@ -474,6 +474,237 @@ window.__ModuleLoader__.load({
       return h(Page, { etat, onRafraichir: charger, charge })
     }
 
+
+    // ═══ Update available: detection + prompt (04/10) ═══════════════════════════
+    // The account menu, a card at launch and the "Update" dialog share a single
+    // state: `window.__kbUpdate` (null = up to date) + the `kybernos:update`
+    // event. The host measures (GET /kybernos-maintenance/update: pack version
+    // against the published VERSION, DSH engine like the Maintenance page); here
+    // we decide WHEN to ask and HOW to notify without being intrusive:
+    //   · a check ~15 s after startup, then every 6 h, and on returning to the
+    //     tab if the last one is more than 6 h old;
+    //   · a discreet card at launch, only once per version and per session;
+    //     "Later" postpones it by 24 h, "Skip this version" silences it
+    //     (unless the engine is below the minimum: then it stays);
+    //   · the menu keeps the "Update available" line until it is applied —
+    //     this is the reminder that never goes away.
+    // Nothing installs by itself: the update goes through the lifecycle robot
+    // (snapshot first, automatic rollback on failure); the dialog gives the
+    // exact command to copy.
+    const KB_UPD_SNOOZE = 'kybernos.update.snooze'
+    const KB_UPD_SKIP = 'kybernos.update.skip'
+    const KB_UPD_EVERY = 6 * 3600 * 1000
+    const lsGet = (k) => { try { return window.localStorage.getItem(k) } catch (e) { return null } }
+    const lsSet = (k, v) => { try { window.localStorage.setItem(k, v) } catch (e) { /* storage blocked: the card will come back */ } }
+    const upd = { info: null, last: 0, busy: false, cardUp: false }
+
+    const updLabel = (p) => (p.kind === 'kybernos' ? 'Kybernos ' : 'DSH ') + p.cible
+    // The signal for the menu and the dot on the card: a SKIPPED version disappears (unless
+    // it is required); a postponed version ("Later") stays flagged —
+    // this is the reminder that never goes away.
+    const updSignal = () => {
+      const info = upd.info
+      const p = info !== null && info.pending !== null && info.pending !== undefined ? info.pending : null
+      const ignoree = p !== null && p.requis !== true && lsGet(KB_UPD_SKIP) === p.cible
+      try { window.__kbUpdate = p === null || ignoree ? null : { kind: p.kind, cible: updLabel(p), version: p.cible, installee: p.installee, requis: p.requis === true } } catch (e) { /* outside a browser */ }
+      try { window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* Event missing */ }
+    }
+    const updPublish = (info) => { upd.info = info; updSignal() }
+    const updFetch = async (force) => {
+      const r = await fetch('/kybernos-maintenance/update' + (force === true ? '?force=1' : ''), { cache: 'no-store' })
+      if (r.ok !== true) throw new Error('HTTP ' + String(r.status))
+      const j = await r.json()
+      if (j === null || typeof j !== 'object' || j.ok !== true) throw new Error('réponse inattendue')
+      return j
+    }
+    const updMuted = (p) => {
+      if (p.requis === true) return false
+      if (lsGet(KB_UPD_SKIP) === p.cible) return true
+      try {
+        const z = JSON.parse(lsGet(KB_UPD_SNOOZE) || 'null')
+        return z !== null && z.cible === p.cible && typeof z.until === 'number' && z.until > Date.now()
+      } catch (e) { return false }
+    }
+
+    const upEl = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt !== undefined && txt !== null) e.textContent = txt; return e }
+    const upBtn = (label, cls, fn) => { const b = upEl('button', cls, label); b.type = 'button'; b.addEventListener('click', fn); return b }
+    const upCss = () => {
+      if (document.querySelector('style[data-kybernos="kbup-css"]') !== null) return
+      const st = document.createElement('style')
+      st.dataset.kybernos = 'kbup-css'
+      st.textContent = [
+        '.kbup-card{position:fixed;left:12px;bottom:84px;z-index:2147482000;box-sizing:border-box;width:256px;padding:14px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 16px 40px rgba(0,0,0,.45);font-size:13px;line-height:1.45;animation:kbup-in .18s ease-out}',
+        '@keyframes kbup-in{from{opacity:0;transform:translateY(8px)}}@media (prefers-reduced-motion:reduce){.kbup-card{animation:none}}',
+        '.kbup-head{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px}',
+        '.kbup-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f5a524}',
+        '.kbup-sub{margin:6px 0 0;color:var(--dsw-alias-label-secondary)}',
+        '.kbup-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}',
+        '.kbup-b{height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:550;cursor:pointer}',
+        '.kbup-b:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbup-b.main{border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}',
+        '.kbup-b.main:hover{opacity:.9;background:var(--dsw-alias-label-primary)}',
+        '.kbup-link{border:none;background:none;padding:0;color:var(--dsw-alias-label-tertiary);font:inherit;font-size:12px;text-decoration:underline;text-underline-offset:2px;cursor:pointer}',
+        '.kbup-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:16px}',
+        '.kbup-dlg{box-sizing:border-box;width:100%;max-width:460px;max-height:calc(100vh - 32px);overflow:auto;padding:20px;border-radius:20px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2,#26262a);color:var(--dsw-alias-label-primary);box-shadow:0 24px 64px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}',
+        '.kbup-title{display:flex;align-items:center;gap:10px;margin:0;font-size:17px;font-weight:650;letter-spacing:-.01em}',
+        '.kbup-ico{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:10px;background:var(--dsw-alias-interactive-bg-hover)}',
+        '.kbup-rows{display:flex;flex-direction:column;gap:6px;margin:14px 0 0;padding:10px 12px;border-radius:12px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.2))}',
+        '.kbup-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}',
+        '.kbup-row span:first-child{color:var(--dsw-alias-label-secondary)}',
+        '.kbup-row b{font-variant-numeric:tabular-nums;font-weight:600;text-align:end}',
+        '.kbup-note{margin:12px 0 0;color:var(--dsw-alias-label-secondary)}',
+        '.kbup-steps{margin:14px 0 0;padding:0;list-style:none;counter-reset:s}',
+        '.kbup-steps li{position:relative;margin:0 0 8px;padding-inline-start:26px;counter-increment:s}',
+        '.kbup-steps li::before{content:counter(s);position:absolute;inset-inline-start:0;top:1px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-interactive-bg-hover);font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center}',
+        '.kbup-cmd{display:flex;align-items:center;gap:8px;margin-top:6px;padding:7px 8px 7px 10px;border-radius:10px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.25));font-family:ui-monospace,Menlo,monospace;font-size:12px}',
+        '.kbup-cmd code{flex:1 1 auto;min-width:0;overflow-x:auto;white-space:nowrap}',
+        '.kbup-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}',
+        '.kbup-foot .grow{flex:1 1 auto}',
+      ].join('')
+      document.head.appendChild(st)
+    }
+    const updCloseCard = () => { const c = document.querySelector('.kbup-card'); if (c !== null) c.remove(); upd.cardUp = false }
+    const updCopy = (txt, btn) => {
+      const done = () => { const o = btn.textContent; btn.textContent = kbp('Copié ✓', 'Copied ✓'); setTimeout(() => { btn.textContent = o }, 1400) }
+      try { navigator.clipboard.writeText(txt).then(done, () => { /* clipboard denied: the command stays visible */ }) } catch (e) { /* no clipboard */ }
+    }
+
+    /** The dialog: versions, what changes, the steps to follow — or "you are up to date". */
+    const updDialog = (info, opts) => {
+      upCss()
+      updCloseCard()
+      const old = document.querySelector('.kbup-scrim')
+      if (old !== null) old.remove()
+      const p = info !== null && info.pending !== null && info.pending !== undefined ? info.pending : null
+      const prevFocus = document.activeElement
+      const scrim = upEl('div', 'kbup-scrim')
+      const dlg = upEl('div', 'kbup-dlg')
+      dlg.setAttribute('role', 'dialog')
+      dlg.setAttribute('aria-modal', 'true')
+      const close = () => { scrim.remove(); document.removeEventListener('keydown', onKey, true); try { if (prevFocus && prevFocus.focus) prevFocus.focus() } catch (e) { /* unmounted */ } }
+      const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() } }
+      document.addEventListener('keydown', onKey, true)
+      scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) close() })
+
+      const title = upEl('h2', 'kbup-title')
+      dlg.setAttribute('aria-label', p !== null ? kbp('Mise à jour disponible', 'Update available') : kbp('Vous êtes à jour', 'You are up to date'))
+      const ico = upEl('span', 'kbup-ico', p !== null ? '↓' : '✓')
+      ico.setAttribute('aria-hidden', 'true')
+      title.appendChild(ico)
+      title.appendChild(document.createTextNode(p !== null ? kbp('Mise à jour disponible', 'Update available') : kbp('Vous êtes à jour', 'You are up to date')))
+      dlg.appendChild(title)
+
+      const rows = upEl('div', 'kbup-rows')
+      const row = (k, v) => { const r = upEl('div', 'kbup-row'); r.appendChild(upEl('span', null, k)); r.appendChild(upEl('b', null, v)); rows.appendChild(r) }
+      if (info !== null) {
+        const pk = info.pack || {}
+        row('Kybernos', pk.installee === null || pk.installee === undefined ? kbp('inconnue', 'unknown')
+          : (pk.disponible === true ? pk.installee + '  →  ' + pk.latest : pk.installee + (pk.joignable === true ? ' · ' + kbp('à jour', 'up to date') : ' · ' + kbp('dépôt injoignable', 'repository unreachable'))))
+        const m = info.moteur || {}
+        const mv = m.installee === null || m.installee === undefined || m.installee === 'inconnu' ? kbp('inconnu', 'unknown')
+          : (m.cible ? m.installee + '  →  ' + m.cible : m.installee + (m.latest && m.latest !== m.installee ? ' · ' + kbp('plus récente publiée : ', 'latest published: ') + m.latest : ' · ' + kbp('à jour', 'up to date')))
+        row('DSH', mv)
+      }
+      dlg.appendChild(rows)
+
+      if (p !== null) {
+        if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbup-note', hs(p.note)))
+        if (p.requis === true) dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette mise à jour est requise : le moteur installé est sous le minimum que ce plugin supporte.', 'This update is required: the installed engine is below the minimum this plugin supports.')))
+        const steps = upEl('ol', 'kbup-steps')
+        const step = (txt, cmd) => {
+          const li = upEl('li'); li.appendChild(upEl('span', null, txt))
+          if (cmd !== undefined) {
+            const c = upEl('div', 'kbup-cmd'); c.appendChild(upEl('code', null, cmd))
+            const b = upBtn(kbp('Copier', 'Copy'), 'kbup-b', () => updCopy(cmd, b)); c.appendChild(b); li.appendChild(c)
+          }
+          steps.appendChild(li)
+        }
+        const pk = info.pack || {}
+        if (p.kind === 'kybernos' && pk.git !== true) {
+          step(kbp('Téléchargez la dernière archive du dépôt et décompressez-la.', 'Download the latest archive of the repository and extract it.'))
+          step(kbp('Dans un terminal, depuis le dossier décompressé :', 'In a terminal, from the extracted folder:'), './kybernos-update')
+        } else if (p.kind === 'kybernos') {
+          step(kbp('Dans le dépôt, récupérez la dernière version :', 'In the repository, fetch the latest version:'), 'git pull')
+          step(kbp('Puis lancez la mise à jour :', 'Then run the update:'), 'node scripts/dsh-lifecycle.mjs upgrade')
+        } else {
+          step(kbp('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
+        }
+        step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
+        dlg.appendChild(steps)
+      } else if (info !== null && info.checkedAt) {
+        let quand = ''
+        try { quand = new Date(info.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { quand = '' }
+        dlg.appendChild(upEl('p', 'kbup-note', kbp('Dernière vérification à ', 'Last checked at ') + quand + '.'))
+      } else {
+        dlg.appendChild(upEl('p', 'kbup-note', kbp('La vérification n’a pas abouti. Réessayez dans un instant.', 'The check did not complete. Try again in a moment.')))
+      }
+
+      const foot = upEl('div', 'kbup-foot')
+      if (p !== null && p.requis !== true) {
+        foot.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); close() }))
+        foot.appendChild(upBtn(kbp('Ignorer cette version', 'Skip this version'), 'kbup-b', () => { lsSet(KB_UPD_SKIP, p.cible); updSignal(); close() }))
+      }
+      const grow = upEl('span', 'grow'); foot.appendChild(grow)
+      const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
+      foot.appendChild(again)
+      if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
+        const a = upEl('a', 'kbup-b main', kbp('Ouvrir la page de téléchargement', 'Open the download page'))
+        a.href = info.pack.depot; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.textDecoration = 'none'; a.style.display = 'inline-flex'; a.style.alignItems = 'center'
+        foot.appendChild(a)
+      } else {
+        foot.appendChild(upBtn(kbp('Fermer', 'Close'), 'kbup-b main', close))
+      }
+      dlg.appendChild(foot)
+      scrim.appendChild(dlg)
+      document.body.appendChild(scrim)
+      try { (dlg.querySelector('.kbup-b.main') || dlg).focus() } catch (e) { /* focus */ }
+      void opts
+    }
+
+    /** The launch card: discreet, once per version and per session. */
+    const updCard = (info) => {
+      const p = info.pending
+      if (upd.cardUp === true || document.querySelector('.kbup-scrim') !== null) return
+      let vue = null
+      try { vue = window.sessionStorage.getItem('kybernos.update.card') } catch (e) { vue = null }
+      if (vue === p.cible) return
+      try { window.sessionStorage.setItem('kybernos.update.card', p.cible) } catch (e) { /* no session: at worst, the card comes back at the next check */ }
+      upCss()
+      upd.cardUp = true
+      const card = upEl('div', 'kbup-card')
+      card.setAttribute('role', 'status')
+      const head = upEl('div', 'kbup-head'); head.appendChild(upEl('span', 'kbup-dot')); head.appendChild(document.createTextNode(kbp('Mise à jour disponible', 'Update available')))
+      card.appendChild(head)
+      card.appendChild(upEl('p', 'kbup-sub', updLabel(p) + ' — ' + kbp('vous avez ', 'you have ') + p.installee + '.'))
+      const acts = upEl('div', 'kbup-actions')
+      acts.appendChild(upBtn(kbp('Voir comment', 'See how'), 'kbup-b main', () => updDialog(upd.info)))
+      if (p.requis !== true) acts.appendChild(upBtn(kbp('Plus tard', 'Later'), 'kbup-b', () => { lsSet(KB_UPD_SNOOZE, JSON.stringify({ cible: p.cible, until: Date.now() + 24 * 3600 * 1000 })); updCloseCard() }))
+      card.appendChild(acts)
+      document.body.appendChild(card)
+    }
+
+    /** One check. `manual`: the user asked for it (we always answer, even
+     *  "up to date"); otherwise we stay silent unless there is news not postponed. */
+    const updCheck = async (force, manual) => {
+      if (upd.busy === true) return
+      upd.busy = true
+      let info = null
+      try { info = await updFetch(force) } catch (e) { info = null }
+      upd.busy = false
+      upd.last = Date.now()
+      if (info !== null) updPublish(info)
+      if (manual === true) { updDialog(info); return }
+      if (info !== null && info.pending !== null && info.pending !== undefined && updMuted(info.pending) !== true) updCard(info)
+    }
+    const updBoot = () => {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return
+      window.addEventListener('kybernos:menu:update', () => { if (upd.info !== null) updDialog(upd.info); else void updCheck(false, true) })
+      window.addEventListener('kybernos:update:check', () => { void updCheck(true, true) })
+      setTimeout(() => { void updCheck(false, false) }, 15000)
+      setInterval(() => { void updCheck(false, false) }, KB_UPD_EVERY)
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && Date.now() - upd.last > KB_UPD_EVERY) void updCheck(false, false) })
+    }
+
     // Le contrat d'export d'une entrée cordis : les services que le contexte
     // DOIT exposer. Sans `slots`, l'entrée resterait « loading » (contrat
     // mesuré : kybernos-sessions/client.js, kybernos-theme/client.js).
@@ -488,6 +719,8 @@ window.__ModuleLoader__.load({
         slots.inject('settings.section', () => slots.register(
           { name: 'settings.section', id: 'kybernos-maintenance', order: 13, label: 'Maintenance' },
           () => h(Conteneur)))
+        // Update detection: never blocks startup.
+        try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
       }
     }
   }
