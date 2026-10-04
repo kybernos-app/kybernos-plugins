@@ -85,6 +85,8 @@ window.__ModuleLoader__.load({
     // A Settings section "Kybernos Suite": which modules exist (catalogue shipped in
     // this bundle), which are installed (DSH's native plugin manager), switch them,
     // install one (the lifecycle robot, on the host), open a module's own settings.
+    // Two views of the same list (grid of cards by family, or one flat list) and a
+    // user-defined order, both kept in this browser's localStorage only.
     // Nothing here may stop the boot beacon above: every entry point is wrapped.
 
     const lang = () => {
@@ -124,7 +126,7 @@ window.__ModuleLoader__.load({
       return bundle.enabled === true ? 'active' : 'off'
     }
 
-    /** Pure. Filter + search; keeps the catalogue order. `installes` is a Map name → bundle. */
+    /** Pure. Filter + search; keeps the order it is given. `installes` is a Map name → bundle. */
     const filtrer = ({ modules, filtre, requete, installes }) => {
       const q = String(requete || '').trim().toLowerCase()
       return modules.filter((m) => {
@@ -140,12 +142,101 @@ window.__ModuleLoader__.load({
       })
     }
 
+    // ── Order and view: pure helpers first, then a thin, total storage layer ─────────
+    // The order is one list of module ids covering the WHOLE catalogue. It applies to
+    // both views: inside each family in the grid, globally in the list.
+    const ORDER_KEY = 'kybernos.suite.order.v1'
+    const VIEW_KEY = 'kybernos.suite.view.v1'
+
+    /** Pure. Same ids in the same sequence? */
+    const sameIds = (a, b) => a.length === b.length && a.every((id, i) => id === b[i])
+
+    /** Pure. Stored text → array of unique non-empty ids. null, corrupt JSON or a wrong shape → []. */
+    const parseOrder = (raw) => {
+      try {
+        const v = JSON.parse(raw)
+        if (!Array.isArray(v)) return []
+        return [...new Set(v.filter((id) => typeof id === 'string' && id !== ''))]
+      } catch (e) { return [] }
+    }
+
+    /**
+     * Pure. The ids of `modules` in display order: the saved ids that are still in the
+     * catalogue (first occurrence wins), then every module the saved list does not know
+     * (a new module), in catalogue order. Ids that left the catalogue are ignored.
+     */
+    const effectiveOrder = (modules, saved) => {
+      const known = new Set(modules.map((m) => m.id))
+      const seen = new Set()
+      const head = []
+      for (const id of (Array.isArray(saved) ? saved : [])) {
+        if (known.has(id) && !seen.has(id)) { seen.add(id); head.push(id) }
+      }
+      return [...head, ...modules.filter((m) => !seen.has(m.id)).map((m) => m.id)]
+    }
+
+    /** Pure. The same module objects, sorted by effectiveOrder. The input is left alone. */
+    const applyOrder = (modules, saved) => {
+      const parId = new Map(modules.map((m) => [m.id, m]))
+      return effectiveOrder(modules, saved).map((id) => parId.get(id))
+    }
+
+    /** Pure. Does the effective order differ from the catalogue order? */
+    const isCustomOrder = (modules, saved) => !sameIds(effectiveOrder(modules, saved), modules.map((m) => m.id))
+
+    /**
+     * Pure. What to persist for `order`: the full id list, or null when it is just the
+     * catalogue order (the key is then removed, so users who never customised keep
+     * following the catalogue when a release reorders it).
+     */
+    const storableOrder = (modules, order) => (isCustomOrder(modules, order) ? effectiveOrder(modules, order) : null)
+
+    /**
+     * Pure. A new list with `id` placed just before (`before`) or just after `target`.
+     * `order` is the FULL order, so rows hidden by a filter keep their place relative to
+     * each other. Unknown ids, or id === target: the order comes back unchanged.
+     */
+    const moveTo = (order, id, target, before) => {
+      if (id === target || order.indexOf(id) < 0 || order.indexOf(target) < 0) return order.slice()
+      const rest = order.filter((x) => x !== id)
+      rest.splice(rest.indexOf(target) + (before ? 0 : 1), 0, id)
+      return rest
+    }
+
+    /**
+     * Pure. Up (step -1) or down (+1) by one VISIBLE row. Choice made for filtered lists:
+     * the row jumps over its visible neighbour, not over the rows the filter hides, so
+     * the click always has a visible effect; hidden rows stay where they were relative to
+     * everything else. At either end of the visible list nothing moves.
+     * `visible` = the ids currently shown, in display order.
+     */
+    const moveBy = (order, visible, id, step) => {
+      const i = visible.indexOf(id)
+      const neighbour = i < 0 ? undefined : visible[i + step]
+      return neighbour === undefined ? order.slice() : moveTo(order, id, neighbour, step < 0)
+    }
+
+    // localStorage can be absent, blocked or throw (private window, site data cleared):
+    // every access is wrapped and the panel works without it. `store` is injectable for tests.
+    const browserStore = () => { try { return window.localStorage || null } catch (e) { return null } }
+    const readOrder = (store) => { try { return store ? parseOrder(store.getItem(ORDER_KEY)) : [] } catch (e) { return [] } }
+    /** @returns {boolean} whether the write (null = remove the key) went through. */
+    const writeOrder = (store, ids) => {
+      try {
+        if (!store) return false
+        if (ids === null) store.removeItem(ORDER_KEY); else store.setItem(ORDER_KEY, JSON.stringify(ids))
+        return true
+      } catch (e) { return false }
+    }
+    const readView = (store) => { try { return store && store.getItem(VIEW_KEY) === 'list' ? 'list' : 'grid' } catch (e) { return 'grid' } }
+    const writeView = (store, view) => { try { if (!store) return false; store.setItem(VIEW_KEY, view === 'list' ? 'list' : 'grid'); return true } catch (e) { return false } }
+
     const post = (chemin, corps) => fetch(chemin, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps)
     }).then((r) => r.json().catch(() => ({ ok: false, error: 'bad-response' }))).catch(() => ({ ok: false, error: 'network' }))
 
     const CSS = [
-      '.kbsu{display:flex;flex-direction:column;gap:16px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary)}',
+      '.kbsu{position:relative;display:flex;flex-direction:column;gap:16px;max-width:980px;font-size:13.5px;color:var(--dsw-alias-label-primary)}',
       '.kbsu button{font:inherit;cursor:pointer}',
       '.kbsu button:disabled{opacity:.5;cursor:default}',
       '.kbsu-head{display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:flex-start}',
@@ -199,6 +290,36 @@ window.__ModuleLoader__.load({
       '.kbsu-note{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;white-space:pre-line}',
       '.kbsu-cfg{border-top:1px solid var(--dsw-alias-border-l1);padding-top:12px}',
       '.kbsu-empty{padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary);border:1px dashed var(--dsw-alias-border-l2);border-radius:12px}',
+      // view toggle, order line, screen-reader announcements
+      '.kbsu-seg.view button{display:inline-flex;align-items:center;gap:6px}',
+      '.kbsu-subbar{display:flex;flex-wrap:wrap;gap:4px 16px;justify-content:space-between;align-items:baseline}',
+      '.kbsu-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+      // list view: one flat list, one row per module
+      '.kbsu-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}',
+      '.kbsu-row{position:relative;min-width:0;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
+      '.kbsu-row.dim{opacity:.85}.kbsu-row.dragging{opacity:.45}',
+      '.kbsu-row.drop-before::before,.kbsu-row.drop-after::after{content:"";position:absolute;inset-inline:8px;height:3px;border-radius:3px;background:#ff7a1a;pointer-events:none}',
+      '.kbsu-row.drop-before::before{top:-6px}.kbsu-row.drop-after::after{bottom:-6px}',
+      '.kbsu-rowmain{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:9px 12px}',
+      '.kbsu-grip{display:grid;place-items:center;flex:none;width:18px;height:34px;color:var(--dsw-alias-label-tertiary);cursor:grab}',
+      '.kbsu-grip:hover{color:var(--dsw-alias-label-secondary)}.kbsu-grip:active{cursor:grabbing}',
+      '.kbsu-rowname{flex:1 1 200px;min-width:0}',
+      '.kbsu-rowname b{display:block;font:500 13px ui-monospace,Menlo,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.kbsu-rowname .kbsu-promise{display:block;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.kbsu-famcol{flex:0 0 150px;min-width:0;display:flex}',
+      '.kbsu-famtag{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+      '.kbsu-row .kbsu-st{flex:0 0 150px}',
+      '.kbsu-rowact{flex:0 0 auto;min-width:128px;justify-content:flex-end}',
+      '.kbsu-mv{display:inline-flex;gap:4px;flex:none}',
+      '.kbsu-ib{display:grid;place-items:center;width:28px;height:28px;padding:0;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary)}',
+      '.kbsu-ib:hover:not(:disabled){background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
+      '.kbsu-row .kbsu-note{margin:0 12px 10px}',
+      '.kbsu-row .kbsu-cfg{margin:0 12px 12px}',
+      // A row is one line while the list is wide enough. Narrower (the list's own width, not the
+      // viewport's: Settings has a sidebar), it takes two: grip, tile, name and move buttons, then
+      // family, status and actions (an empty ::after forces the break).
+      '.kbsu-list{container-type:inline-size}',
+      '@container (max-width:860px){.kbsu-rowmain{row-gap:4px}.kbsu-rowmain::after{content:"";order:1;flex:0 0 100%;height:0}.kbsu-rowname{flex-basis:120px}.kbsu-mv{order:1}.kbsu-famcol{order:2;flex:0 1 auto}.kbsu-row .kbsu-st{order:2;flex:1 1 auto}.kbsu-rowact{order:2;min-width:0}}',
       '@media (max-width:520px){.kbsu-headr{align-items:flex-start}.kbsu-meta{justify-content:flex-start}}'
     ].join('\n')
 
@@ -212,7 +333,13 @@ window.__ModuleLoader__.load({
       check: 'M20 6 9 17l-5-5',
       alert: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4M12 17h.01',
       refresh: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5',
-      search: 'M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM21 21l-4.3-4.3'
+      search: 'M11 3a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM21 21l-4.3-4.3',
+      grid: 'M3 3h7v7H3ZM14 3h7v7h-7ZM14 14h7v7h-7ZM3 14h7v7H3Z',
+      list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01',
+      grip: 'M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01',
+      up: 'm18 15-6-6-6 6',
+      down: 'm6 9 6 6 6-6',
+      reset: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5'
     }
 
     const construirePanneau = (React, scope, ctx) => {
@@ -257,6 +384,33 @@ window.__ModuleLoader__.load({
         const [verifie, setVerifie] = React.useState(false)
         const [confirmerRelance, setConfirmerRelance] = React.useState(false)
         const [relance, setRelance] = React.useState('idle')
+        // View and order: read once per mount, written on every change (see the helpers above).
+        const [view, setView] = React.useState(() => readView(browserStore()))
+        const [order, setOrder] = React.useState(() => readOrder(browserStore()))
+        const [orderSaved, setOrderSaved] = React.useState(true)
+        const [announce, setAnnounce] = React.useState('')
+        const [dragId, setDragId] = React.useState(null)
+        const [dropAt, setDropAt] = React.useState(null)
+        const dragRef = React.useRef(null)
+        const refocus = React.useRef(null)
+        const rootRef = React.useRef(null)
+
+        // A move re-orders the DOM and can drop keyboard focus: put it back on the button
+        // that was just used (or its twin when that one is now disabled at an end). A layout
+        // effect, so focus is back before the browser paints or the next key press.
+        React.useLayoutEffect(() => {
+          const w = refocus.current
+          if (w === null) return
+          refocus.current = null
+          try {
+            const rows = rootRef.current ? rootRef.current.querySelectorAll('[data-kb="suite-row"]') : []
+            const row = Array.prototype.find.call(rows, (r) => r.dataset.id === w.id)
+            if (!row) return
+            let btn = row.querySelector('[data-kb="suite-' + w.dir + '"]')
+            if (btn && btn.disabled) btn = row.querySelector('[data-kb="suite-' + (w.dir === 'up' ? 'down' : 'up') + '"]')
+            if (btn && !btn.disabled) btn.focus()
+          } catch (e) { /* focus is a courtesy */ }
+        })
 
         const recharger = React.useCallback(async () => {
           const mgr = gestionnaire()
@@ -295,7 +449,9 @@ window.__ModuleLoader__.load({
         const reco = hub.recommendation || {}
         const compat = charge.maint && charge.maint.compat ? charge.maint.compat : null
         const horsZone = compat !== null && compat.horsZone === true
-        const visibles = filtrer({ modules, filtre, requete, installes })
+        const fullOrder = effectiveOrder(modules, order)
+        const custom = isCustomOrder(modules, order)
+        const visibles = filtrer({ modules: applyOrder(modules, order), filtre, requete, installes })
         const nbInstalles = modules.filter((m) => installes.has(m.nom)).length
         const nbMaj = modules.filter((m) => { const b = installes.get(m.nom); return b !== undefined && typeof b.version === 'string' && comparerVersions(b.version, m.version) < 0 }).length
         const nbEnAttente = Object.keys(enAttente).length
@@ -348,34 +504,118 @@ window.__ModuleLoader__.load({
           setResume(kt('Catalogue livré avec la suite : à jour. Pas de catalogue en ligne pour l’instant.', 'Catalogue shipped with the suite: up to date. No online catalogue yet.'))
         }
 
-        const carte = (m) => {
+        // What one module shows, shared by the grid card and the list row so both views use
+        // the same states, strings, buttons and switch rules. `compact` = the one-line row.
+        const cardParts = (m, compact) => {
           const bundle = installes.get(m.nom) || null
           const etat = etatCarte({ module: m, bundle, occupe: occupes[m.id] === true, enAttente: enAttente[m.id] === true, securite: safe })
           const fam = suite.catalogue.familles.find((f) => f.id === m.famille) || { icone: 'box' }
           const verrou = m.socle === true || (bundle !== null && bundle.readOnly === true)
           const comp = bundle !== null && bundle.enabled === true ? composantReglages(m.nom) : null
           const estOuvert = ouvert === m.id && comp !== null
-          let pied
-          if (etat === 'busy') pied = h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Installation en cours : photo de sécurité, liaison, contrôle du démarrage. Quelques minutes.', 'Installing: safety snapshot, link, boot check. A few minutes.'))
-          else if (etat === 'pending') pied = h('span', { className: 'kbsu-st ok' }, ic('check'), kt('Actif après relance', 'Active after restart'))
-          else if (etat === 'available') pied = [h('span', { key: 's', className: 'kbsu-st' }, kt('Non installé', 'Not installed')), h('button', { key: 'b', type: 'button', className: 'kbsu-btn sm', onClick: () => installer(m) }, kt('Installer', 'Install'))]
-          else if (etat === 'update') pied = [h('span', { key: 's', className: 'kbsu-st warn' }, ic('refresh'), kt('Version ', 'Version ') + m.version + kt(' disponible', ' available')), h('button', { key: 'b', type: 'button', className: 'kbsu-btn sm accent', onClick: () => installer(m) }, kt('Mettre à jour', 'Update'))]
-          else {
+          const parts = { bundle, etat, fam, comp, estOuvert, statut: null, install: null, reglages: null, sw: null }
+          if (etat === 'busy') {
+            const long = kt('Installation en cours : photo de sécurité, liaison, contrôle du démarrage. Quelques minutes.', 'Installing: safety snapshot, link, boot check. A few minutes.')
+            parts.statut = h('span', { className: 'kbsu-st', title: compact ? long : undefined }, ic('refresh', 'spin'), compact ? kt('Installation…', 'Installing…') : long)
+          } else if (etat === 'pending') {
+            parts.statut = h('span', { className: 'kbsu-st ok' }, ic('check'), kt('Actif après relance', 'Active after restart'))
+          } else if (etat === 'available') {
+            parts.statut = h('span', { className: 'kbsu-st' }, kt('Non installé', 'Not installed'))
+            parts.install = h('button', { type: 'button', className: 'kbsu-btn sm', onClick: () => installer(m) }, kt('Installer', 'Install'))
+          } else if (etat === 'update') {
+            parts.statut = h('span', { className: 'kbsu-st warn' }, ic('refresh'), kt('Version ', 'Version ') + m.version + kt(' disponible', ' available'))
+            parts.install = h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => installer(m) }, kt('Mettre à jour', 'Update'))
+          } else {
             const actif = etat === 'active'
-            pied = [
-              h('span', { key: 's', className: 'kbsu-st ' + (actif ? 'ok' : etat === 'safe' ? 'warn' : '') }, actif ? [ic('check'), kt('Actif', 'Active')] : etat === 'safe' ? [ic('alert'), kt('Désactivé par le mode sans échec', 'Off in safe mode')] : kt('Désactivé', 'Off')),
-              h('span', { key: 'r', className: 'kbsu-right' },
-                comp !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'aria-expanded': estOuvert ? 'true' : 'false', onClick: () => setOuvert(estOuvert ? null : m.id) }, kt('Paramètres', 'Settings')) : null,
-                h('button', { type: 'button', className: 'kbsu-sw' + (actif ? ' on' : ''), role: 'switch', 'aria-checked': actif ? 'true' : 'false', 'aria-label': (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + m.id, title: verrou ? kt('Socle : toujours actif', 'Base: always on') : '', disabled: verrou || mgr === null, onClick: () => basculer(m, bundle) }, h('i')))
-            ]
+            // The row says "Base" for an active base module (the card keeps "Active" + its BASE badge).
+            const libelle = actif ? (compact && m.socle === true ? kt('Socle', 'Base') : kt('Actif', 'Active')) : etat === 'safe' ? kt('Désactivé par le mode sans échec', 'Off in safe mode') : kt('Désactivé', 'Off')
+            parts.statut = h('span', { className: 'kbsu-st ' + (actif ? 'ok' : etat === 'safe' ? 'warn' : '') }, actif ? ic('check') : etat === 'safe' ? ic('alert') : null, libelle)
+            if (comp !== null) parts.reglages = h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'aria-expanded': estOuvert ? 'true' : 'false', onClick: () => setOuvert(estOuvert ? null : m.id) }, kt('Paramètres', 'Settings'))
+            parts.sw = h('button', { type: 'button', className: 'kbsu-sw' + (actif ? ' on' : ''), role: 'switch', 'aria-checked': actif ? 'true' : 'false', 'aria-label': (actif ? kt('Désactiver ', 'Turn off ') : kt('Activer ', 'Turn on ')) + m.id, title: verrou ? kt('Socle : toujours actif', 'Base: always on') : '', disabled: verrou || mgr === null, onClick: () => basculer(m, bundle) }, h('i'))
           }
-          return h('article', { key: m.id, className: 'kbsu-card' + (estOuvert ? ' open' : '') + (etat === 'safe' ? ' dim' : ''), 'data-kb': 'suite-card', 'data-id': m.id, 'data-etat': etat },
-            h('div', { className: 'kbsu-top' }, h('div', { className: 'kbsu-ico' }, ic(fam.icone)), h('div', { className: 'kbsu-name' }, h('b', null, m.id), h('small', null, 'v' + (bundle !== null && typeof bundle.version === 'string' ? bundle.version : m.version)))),
+          return parts
+        }
+
+        const carte = (m) => {
+          const p = cardParts(m, false)
+          return h('article', { key: m.id, className: 'kbsu-card' + (p.estOuvert ? ' open' : '') + (p.etat === 'safe' ? ' dim' : ''), 'data-kb': 'suite-card', 'data-id': m.id, 'data-etat': p.etat },
+            h('div', { className: 'kbsu-top' }, h('div', { className: 'kbsu-ico' }, ic(p.fam.icone)), h('div', { className: 'kbsu-name' }, h('b', null, m.id), h('small', null, 'v' + (p.bundle !== null && typeof p.bundle.version === 'string' ? p.bundle.version : m.version)))),
             h('p', { className: 'kbsu-promise' }, kt(m.promesse.fr, m.promesse.en)),
             h('div', { className: 'kbsu-badges' }, h('span', { className: 'kbsu-b' }, m.socle ? kt('SOCLE', 'BASE') : 'CORE')),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
-            h('div', { className: 'kbsu-foot' }, pied),
-            estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(comp, { key: m.nom })) : null)
+            h('div', { className: 'kbsu-foot' }, p.statut, p.install, p.reglages !== null || p.sw !== null ? h('span', { className: 'kbsu-right' }, p.reglages, p.sw) : null),
+            p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null)
+        }
+
+        // ── Reordering (list view). The order is saved after every change, in this browser only.
+        const visibleIds = visibles.map((m) => m.id)
+        const saveOrder = (next, id) => {
+          setOrder(next)
+          setOrderSaved(writeOrder(browserStore(), storableOrder(modules, next)))
+          const shown = next.filter((x) => visibleIds.indexOf(x) >= 0)
+          setAnnounce(kt('« ' + id + ' » : position ' + (shown.indexOf(id) + 1) + ' sur ' + shown.length, '“' + id + '” moved to position ' + (shown.indexOf(id) + 1) + ' of ' + shown.length))
+        }
+        const moveRow = (id, step) => {
+          const next = moveBy(fullOrder, visibleIds, id, step)
+          if (sameIds(next, fullOrder)) return
+          refocus.current = { id, dir: step < 0 ? 'up' : 'down' }
+          saveOrder(next, id)
+        }
+        const resetOrder = () => {
+          setOrder([]); setOrderSaved(true); writeOrder(browserStore(), null)
+          setAnnounce(kt('Ordre par défaut rétabli', 'Default order restored'))
+        }
+        const chooseView = (v) => { setView(v); writeView(browserStore(), v) }
+
+        // HTML5 drag and drop. The drag starts on the row (when its settings are closed) or on
+        // its grip; the drop target is another row, and the pointer's half of that row says
+        // whether the dragged row lands before or after it (the orange line shows it).
+        const dragEnd = () => { dragRef.current = null; setDragId(null); setDropAt(null) }
+        const dropBefore = (e) => { const main = e.currentTarget.firstElementChild || e.currentTarget; const r = main.getBoundingClientRect(); return e.clientY < r.top + r.height / 2 }
+        const rowDragStart = (e, id) => {
+          // A draggable element inside an open settings panel is not ours.
+          if (e.target !== e.currentTarget && !(e.target.dataset && e.target.dataset.kb === 'suite-grip')) return
+          dragRef.current = id
+          try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id) } catch (er) { /* some browsers refuse */ }
+          try { e.dataTransfer.setDragImage(e.currentTarget, 16, 16) } catch (er) { /* default ghost */ }
+          // Styling the source in the same tick would also fade the drag image.
+          setTimeout(() => { if (dragRef.current === id) setDragId(id) }, 0)
+        }
+        const rowDragOver = (e, id) => {
+          if (dragRef.current === null) return
+          e.preventDefault()
+          try { e.dataTransfer.dropEffect = 'move' } catch (er) { /* ignore */ }
+          const before = dropBefore(e)
+          const next = id === dragRef.current ? null : { id, before }
+          setDropAt((d) => ((d === null && next === null) || (d !== null && next !== null && d.id === next.id && d.before === next.before) ? d : next))
+        }
+        const rowDragLeave = (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropAt(null) }
+        const rowDrop = (e, id) => {
+          const src = dragRef.current
+          if (src === null) return
+          e.preventDefault()
+          const before = dropBefore(e)
+          dragEnd()
+          const next = moveTo(fullOrder, src, id, before)
+          if (!sameIds(next, fullOrder)) saveOrder(next, src)
+        }
+
+        const row = (m, i, n) => {
+          const p = cardParts(m, true)
+          const cls = 'kbsu-row' + (p.estOuvert ? ' open' : '') + (p.etat === 'safe' ? ' dim' : '') + (dragId === m.id ? ' dragging' : '') + (dropAt !== null && dropAt.id === m.id ? (dropAt.before ? ' drop-before' : ' drop-after') : '')
+          return h('li', { key: m.id, className: cls, 'data-kb': 'suite-row', 'data-id': m.id, 'data-etat': p.etat, draggable: !p.estOuvert, onDragStart: (e) => rowDragStart(e, m.id), onDragOver: (e) => rowDragOver(e, m.id), onDragLeave: rowDragLeave, onDrop: (e) => rowDrop(e, m.id), onDragEnd: dragEnd },
+            h('div', { className: 'kbsu-rowmain' },
+              h('span', { className: 'kbsu-grip', draggable: true, 'data-kb': 'suite-grip', 'aria-hidden': 'true', title: kt('Glisser pour réordonner', 'Drag to reorder') }, ic('grip')),
+              h('div', { className: 'kbsu-ico' }, ic(p.fam.icone)),
+              h('div', { className: 'kbsu-rowname' }, h('b', { title: m.id }, m.id), h('span', { className: 'kbsu-promise', title: kt(m.promesse.fr, m.promesse.en) }, kt(m.promesse.fr, m.promesse.en))),
+              h('span', { className: 'kbsu-famcol' }, h('span', { className: 'kbsu-b kbsu-famtag', title: p.fam.fr ? kt(p.fam.fr, p.fam.en) : undefined }, p.fam.fr ? kt(p.fam.fr, p.fam.en) : '')),
+              p.statut,
+              h('span', { className: 'kbsu-right kbsu-rowact' }, p.install, p.reglages, p.sw),
+              h('span', { className: 'kbsu-mv' },
+                h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-up', disabled: i === 0, 'aria-label': kt('Monter ', 'Move up ') + m.id, title: kt('Monter', 'Move up'), onClick: () => moveRow(m.id, -1) }, ic('up')),
+                h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-down', disabled: i === n - 1, 'aria-label': kt('Descendre ', 'Move down ') + m.id, title: kt('Descendre', 'Move down'), onClick: () => moveRow(m.id, 1) }, ic('down')))),
+            notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
+            p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null)
         }
 
         const familles = suite.catalogue.familles.map((f) => {
@@ -387,7 +627,11 @@ window.__ModuleLoader__.load({
         const segment = (id, libelle, n) => h('button', { key: id, type: 'button', 'aria-pressed': filtre === id ? 'true' : 'false', onClick: () => { setFiltre(id); setResume('') } }, libelle, h('span', { className: 'c' }, n))
         const dshVersion = charge.maint && charge.maint.global ? charge.maint.global : null
 
-        return h('div', { className: 'kbsu', 'data-kb': 'suite' },
+        const viewButton = (id, libelle, court, icone) => h('button', { key: id, type: 'button', 'data-kb': 'suite-view-' + id, 'aria-pressed': view === id ? 'true' : 'false', 'aria-label': libelle, title: libelle, onClick: () => chooseView(id) }, ic(icone), court)
+        const aucun = h('div', { className: 'kbsu-empty' }, kt('Aucun module ne correspond.', 'No module matches.'))
+        const orderLine = custom ? (orderSaved ? kt('Ordre personnalisé, enregistré dans ce navigateur', 'Custom order, saved in this browser') : kt('Ordre personnalisé, non enregistré (stockage du navigateur indisponible)', 'Custom order, not saved (browser storage unavailable)')) : kt('Ordre par défaut', 'Default order')
+
+        return h('div', { className: 'kbsu', 'data-kb': 'suite', ref: rootRef },
           h('div', { className: 'kbsu-head' },
             h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
             h('div', { className: 'kbsu-headr' },
@@ -411,9 +655,18 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },
               segment('all', kt('Tous', 'All'), modules.length), segment('installed', kt('Installés', 'Installed'), nbInstalles), segment('available', kt('Disponibles', 'Available'), modules.length - nbInstalles), segment('updates', kt('Mises à jour', 'Updates'), nbMaj)),
-            h('label', { className: 'kbsu-search' }, ic('search'), h('input', { type: 'search', value: requete, placeholder: kt('Rechercher un module…', 'Search a module…'), 'aria-label': kt('Rechercher un module', 'Search a module'), onChange: (e) => { setRequete(e.target.value); setResume('') } }))),
-          h('div', { className: 'kbsu-summary', role: 'status', 'aria-live': 'polite' }, resume || (nbInstalles + kt(' installés · ', ' installed · ') + (modules.length - nbInstalles) + kt(' disponibles', ' available') + (nbMaj > 0 ? ' · ' + nbMaj + kt(' mise(s) à jour', ' update(s)') : ''))),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 22 } }, familles.some((f) => f !== null) ? familles : h('div', { className: 'kbsu-empty' }, kt('Aucun module ne correspond.', 'No module matches.'))))
+            h('label', { className: 'kbsu-search' }, ic('search'), h('input', { type: 'search', value: requete, placeholder: kt('Rechercher un module…', 'Search a module…'), 'aria-label': kt('Rechercher un module', 'Search a module'), onChange: (e) => { setRequete(e.target.value); setResume('') } })),
+            h('span', { className: 'kbsu-right' },
+              h('div', { className: 'kbsu-seg view', role: 'group', 'aria-label': kt('Affichage', 'View') },
+                viewButton('grid', kt('Vue en grille', 'Grid view'), kt('Grille', 'Grid'), 'grid'), viewButton('list', kt('Vue en liste', 'List view'), kt('Liste', 'List'), 'list')),
+              custom ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-order-reset', onClick: resetOrder }, ic('reset'), kt('Réinitialiser l’ordre', 'Reset order')) : null)),
+          h('div', { className: 'kbsu-subbar' },
+            h('div', { className: 'kbsu-summary', role: 'status', 'aria-live': 'polite' }, resume || (nbInstalles + kt(' installés · ', ' installed · ') + (modules.length - nbInstalles) + kt(' disponibles', ' available') + (nbMaj > 0 ? ' · ' + nbMaj + kt(' mise(s) à jour', ' update(s)') : ''))),
+            h('span', { className: 'kbsu-st' + (custom && !orderSaved ? ' warn' : ''), 'data-kb': 'suite-order-status' }, orderLine)),
+          h('div', { className: 'kbsu-sr', role: 'status', 'aria-live': 'polite' }, announce),
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 22 } }, view === 'list'
+            ? (visibles.length > 0 ? h('ul', { className: 'kbsu-list', role: 'list', 'data-kb': 'suite-list' }, visibles.map((m, i) => row(m, i, visibles.length))) : aucun)
+            : (familles.some((f) => f !== null) ? familles : aucun)))
       }
       return Panneau
     }
@@ -447,6 +700,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView } }
   }
 })
