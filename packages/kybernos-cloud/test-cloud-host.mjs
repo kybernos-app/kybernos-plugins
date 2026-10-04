@@ -991,6 +991,37 @@ try {
   assert.equal(mod.renderMemoryChunk(readState()), '', 'contexte = non : rien ne part au modele')
   await setSettings({ context: true })
   assert.ok(mod.renderMemoryChunk(readState()).indexOf('prefere le francais') >= 0)
+  // 11b'. Le prompt dit AUSSI au proxy de ne pas ajouter sa propre copie : la memoire porte
+  //       [KYBERNOS MEMORY], un interrupteur coupe porte [KYBERNOS MEMORY OFF] (sinon le serveur
+  //       repasserait par-dessus le « non » de l'utilisateur ou enverrait les souvenirs deux fois).
+  assert.equal(mod.MEMORY_MARKER, '[KYBERNOS MEMORY]')
+  assert.equal(mod.MEMORY_OFF_MARKER.indexOf('[KYBERNOS MEMORY OFF]'), 0)
+  assert.equal(mod.MEMORY_OFF_MARKER.indexOf(mod.MEMORY_MARKER), -1, 'les deux jetons ne s incluent pas l un l autre')
+  const withMemories = mod.renderMemoryPrompt(readState())
+  assert.equal(withMemories.indexOf('[KYBERNOS MEMORY]'), 0, 'les souvenirs partent sous le jeton « deja injecte »')
+  assert.equal(withMemories.indexOf('[KYBERNOS MEMORY OFF]'), -1)
+  assert.equal(promptContexts.get('kybernos:memory').text(), withMemories, 'ce qui est MONTE dans le prompt est ce rendu-la, pas le chunk brut')
+  await setSettings({ context: false })
+  assert.equal(mod.renderMemoryPrompt(readState()).indexOf('[KYBERNOS MEMORY OFF]'), 0, 'contexte = non : on le dit au proxy')
+  assert.equal(promptContexts.get('kybernos:memory').text().indexOf('[KYBERNOS MEMORY OFF]'), 0, 'le chunk monte dit « coupe » au proxy')
+  assert.equal(mod.renderMemoryChunk(readState()), '', '… sans que le chunk de souvenirs ne parte')
+  await setSettings({ context: true, memories: false })
+  assert.equal(mod.renderMemoryPrompt(readState()).indexOf('[KYBERNOS MEMORY OFF]'), 0, 'memoire = non : idem')
+  await setSettings({ memories: true })
+  assert.equal(mod.renderMemoryPrompt({ token: '' }), '', 'hors connexion : rien (pas de compte, pas de proxy utilisateur)')
+  const keptAccount = mod.memoryCache.account
+  const keptKyber = mod.memoryCache.kyber
+  mod.memoryCache.account = []
+  mod.memoryCache.kyber = {}
+  assert.equal(mod.renderMemoryPrompt(readState()), '', 'rien a envoyer : aucun jeton, le proxy garde son filet de securite')
+  mod.memoryCache.kyber = { solo: [mkMem(9, false, '2026-09-02 10:00:00+00:00', 'seulement dans le kyber')] }
+  const kyberOnly = mod.renderMemoryPrompt(readState())
+  assert.equal(kyberOnly.indexOf('[KYBERNOS MEMORY]'), 0, 'meme un chunk qui ne porte que de la memoire de kyber commence par le jeton')
+  assert.ok(kyberOnly.indexOf('seulement dans le kyber') >= 0)
+  mod.memoryCache.account = keptAccount
+  mod.memoryCache.kyber = keptKyber
+  await setSettings({ context: true, memories: true })
+  ok('prompt : jeton de memoire deja envoyee, jeton « coupe », rien quand il n y a rien — le proxy n ajoute pas de doublon')
   await setSettings({ memories: false })
   assert.equal(mod.renderMemoryChunk(readState()), '', 'memoire = non : rien ne part non plus')
   const writtenBefore = memories.length

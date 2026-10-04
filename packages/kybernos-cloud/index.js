@@ -1564,7 +1564,7 @@ const renderMemoryChunk = (state) => {
     const plan = planInjection(state)
     const parts = []
     if (plan.account.chosen.length > 0) {
-      parts.push('[KYBERNOS MEMORY] Souvenirs du compte Kybernos de l\'utilisateur (partagés avec tous ses agents) :')
+      parts.push(MEMORY_MARKER + ' Souvenirs du compte Kybernos de l\'utilisateur (partagés avec tous ses agents) :')
       plan.account.chosen.forEach((m) => parts.push(memoryLine(m)))
       if (plan.account.omitted > 0) parts.push('- … (' + String(plan.account.omitted) + ' autres souvenirs non envoyés ce tour : memory_search pour les retrouver)')
     }
@@ -1575,8 +1575,35 @@ const renderMemoryChunk = (state) => {
       if (plan.kyber[local].omitted > 0) parts.push('- … (' + String(plan.kyber[local].omitted) + ' autres non envoyés)')
     }
     if (parts.length === 0) return ''
+    // The proxy looks for this exact token to avoid adding its own copy: it must lead every non-empty chunk,
+    // including one that only carries kyber memories.
+    if (parts[0].indexOf(MEMORY_MARKER) !== 0) parts.unshift(MEMORY_MARKER + ' Mémoire du compte Kybernos de l\'utilisateur :')
     parts.push('', 'Ces souvenirs viennent du compte de l\'utilisateur. N\'en invente jamais : appelle memory_write pour en ajouter (genre fact|preference|event|policy), memory_search pour en chercher.')
     return parts.join('\n')
+  } catch (e) {
+    return ''
+  }
+}
+
+/**
+ * Tokens the Kybernos proxy reads in the system prompt (core/middleware/kybernos/_hook.py, server repo):
+ * with either one present it does NOT add its own MEMORY chunk, so the model never gets the memories
+ * twice and a user who switched them off is not overruled server-side. Keep both strings in step with it.
+ */
+const MEMORY_MARKER = '[KYBERNOS MEMORY]'
+const MEMORY_OFF_MARKER = '[KYBERNOS MEMORY OFF] Saved memories are not included in this request.'
+
+/**
+ * What the prompt really gets: the memories (they carry MEMORY_MARKER), or the off marker when the user
+ * switched memories / their context off, or nothing (no account, or nothing to send yet — the proxy
+ * may then still add its own copy, which is the safety net on a cold start).
+ */
+const renderMemoryPrompt = (state) => {
+  try {
+    if (isConnected(state) !== true) return ''
+    const cfg = readMemorySettings()
+    if (cfg.memories !== true || cfg.context !== true) return MEMORY_OFF_MARKER
+    return renderMemoryChunk(state)
   } catch (e) {
     return ''
   }
@@ -2069,7 +2096,7 @@ const mountMemoryPrompt = (ctx) => {
     scope.systemPrompt.context({
       name: 'kybernos:memory',
       order: MEMORY_INJECT_ORDER,
-      text: () => renderMemoryChunk(readState()),
+      text: () => renderMemoryPrompt(readState()),
     })
   })
   const state = readState()
@@ -2319,7 +2346,8 @@ export {
   resolveApi, stateFile, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
-  sanitizeMemory, sortMemories, renderMemoryChunk, refreshMemoryCache, memoryCache,
+  sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER,
+  refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,
   captureTurn, lastCapture, extractFacts, stripMemoryBlock, normalizeMemory,
