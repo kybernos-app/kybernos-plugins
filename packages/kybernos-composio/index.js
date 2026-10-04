@@ -437,6 +437,31 @@ const SIDECAR_PATH = () => join(homedir(), '.dsh', 'kybernos', 'connecteurs.json
 const ENV_PATH = () => join(homedir(), '.dsh', '.env')
 const NOM_RE = /^[a-z][a-z0-9-]{0,30}$/
 const SECRET_RE = /^[A-Z_][A-Z0-9_]{0,63}$/
+// Variable names DSH refuses in a `.env` file: at boot, loadLayeredEnv throws
+// "<file> sets <NAME>, which only the launching environment may set" and DSH does not
+// start at all. A secret with one of these names must never reach ~/.dsh/.env.
+// Hard-coded copy of BOOTSTRAP_NAMES / BOOTSTRAP_PREFIXES in @deepseek-ai/dsh-app-boot
+// (lib/index.js), identical in every engine we validated (0.1.7-alpha.1 to 0.2.0-rc.2).
+// The proxy names are refused too although DSH tolerates them in the home `.env`: a
+// connector form has no business choosing the route of every request.
+const BOOTSTRAP_NAMES = new Set([
+  'PATH', 'HOME', 'USERPROFILE', 'SHELL', 'NODE_OPTIONS', 'NODE_PATH', 'NODE_EXTRA_CA_CERTS',
+  'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT', 'BASH_ENV', 'ENV', 'SHELLOPTS', 'BASHOPTS',
+  'PERL5OPT', 'PERL5LIB', 'PYTHONSTARTUP', 'PYTHONPATH', 'RUBYOPT', 'RUBYLIB',
+  'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS', 'PYTHONHOME',
+  'GIT_SSH', 'GIT_SSH_COMMAND', 'GIT_EXTERNAL_DIFF', 'GIT_PAGER', 'GIT_EDITOR', 'GIT_ASKPASS', 'SSH_ASKPASS',
+  'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_COUNT', 'EDITOR', 'VISUAL', 'PAGER', 'BROWSER',
+  'DEEPSEEK_BASE_URL', 'DEEPSEEK_SEARCH_BASE_URL', 'SSL_CERT_FILE', 'SSL_CERT_DIR',
+  'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE', 'NODE_TLS_REJECT_UNAUTHORIZED',
+])
+const BOOTSTRAP_PREFIXES = ['DSH_', 'XDG_', 'DYLD_', 'BASH_FUNC_']
+
+/** True when DSH would refuse `name` in a `.env` file (see BOOTSTRAP_NAMES above). Exported for test-host.mjs. */
+export function isBootstrapOnlyName(name) {
+  const upper = String(name).toUpperCase()
+  return BOOTSTRAP_NAMES.has(upper) || BOOTSTRAP_PREFIXES.some((prefix) => upper.startsWith(prefix))
+}
+const bootstrapMessage = (nom) => 'secret ' + nom + ': DSH refuses this variable name in its .env file (only the launching environment may set it), so DSH would not start. Pick another name.'
 const BANNER = '# ── CONNECTEURS PERSONNALISÉS (géré par le formulaire et la skill connecteur-personnalise) ────'
 // Token de secret dans une valeur de formulaire : « Bearer $TAVILY_API_KEY » →
 // la référence process.env est générée par le serveur, la valeur jamais stockée
@@ -484,22 +509,32 @@ function commandStdioOK(command) {
   } catch (e) { return false }
 }
 
-/** Rend une valeur de formulaire en expression !!js si elle porte un $NOM. */
+// A YAML double-quoted scalar. JSON.stringify output is valid YAML: every escape it
+// writes (\" \\ \n \r \t \b \f \uXXXX) exists in YAML, so a value can neither end its
+// scalar early nor carry a raw control character, whatever it holds.
+const yamlScalaire = (v) => JSON.stringify(String(v === null || v === undefined ? '' : v))
+
+/**
+ * Renders a form value as a YAML scalar. A value without a valid `$NAME` token is a
+ * plain quoted string, `$` included (a password like "pa$$word" stays as typed). A value
+ * with tokens becomes a `!!js` expression made of JSON string literals joined to
+ * `(process.env.NAME || '')` references: the secret is read at load time and never
+ * stored in the patch. The expression is itself JSON-quoted as the YAML scalar.
+ */
 function renderValue(raw) {
   const v = String(raw === null || raw === undefined ? '' : raw)
-  if (v.indexOf('$') === -1) return { yaml: "'" + v.replace(/'/g, "''") + "'" }
-  let expr = "'"
+  const parts = []
   let last = 0
   let m
-  TOKEN_RE.lastIndex = 0
-  while ((m = TOKEN_RE.exec(v)) !== null) {
-    expr += v.slice(last, m.index).replace(/'/g, "\\'") + "' + (process.env." + m[1] + " || '') + '"
+  const re = new RegExp(TOKEN_RE.source, 'g')
+  while ((m = re.exec(v)) !== null) {
+    if (m.index > last) parts.push(JSON.stringify(v.slice(last, m.index)))
+    parts.push("(process.env." + m[1] + " || '')")
     last = m.index + m[0].length
   }
-  expr += v.slice(last).replace(/'/g, "\\'") + "'"
-  expr = expr.replace(/ \+ ''/g, '').replace(/'' \+/g, '').trim()
-  if (expr.charAt(0) === "'" && expr.charAt(expr.length - 1) === "'" && expr.indexOf('+') === -1) expr = expr.slice(1, -1)
-  return { yaml: '!!js "' + expr.replace(/"/g, '\\"') + '"', secrets: true }
+  if (parts.length === 0) return yamlScalaire(v)
+  if (last < v.length) parts.push(JSON.stringify(v.slice(last)))
+  return '!!js ' + JSON.stringify(parts.join(' + '))
 }
 
 function readPatchText() { return existsSync(PATCH_PATH()) ? readFileSync(PATCH_PATH(), 'utf8') : '' }
@@ -544,11 +579,9 @@ function writeSidecar(list) {
 }
 
 // ── H-09 : échappement YAML ──────────────────────────────────────────────────
-// Toute valeur posée dans cordis.patch.yml est un scalaire QUOTÉ simple (les
-// ' doublés), et les retours ligne sont refusés en amont : un arg ou un env
-// multi-lignes injectait des CLÉS arbitraires (autoApprove: true) dans la
-// configuration du loader.
-const yamlScalaire = (v) => "'" + String(v === null || v === undefined ? '' : v).replace(/'/g, "''") + "'"
+// Every value written to cordis.patch.yml is a JSON-quoted scalar (yamlScalaire), and
+// line breaks are refused upstream: a multi-line arg or env used to inject arbitrary
+// KEYS (autoApprove: true) into the loader configuration.
 const sansMultiLigne = (v) => /[\r\n\0]/.test(String(v)) !== true
 
 /** Rend le texte du bloc marqué pour un connecteur structuré. */
@@ -566,14 +599,14 @@ function renderBlock(c) {
     const envs = c.env || []
     if (envs.length > 0) {
       L.push(ind(6) + 'env:')
-      for (const e of envs) L.push(ind(8) + yamlScalaire(e.name) + ': ' + renderValue(e.value).yaml)
+      for (const e of envs) L.push(ind(8) + yamlScalaire(e.name) + ': ' + renderValue(e.value))
     }
   } else {
     L.push(ind(6) + 'url: ' + yamlScalaire(c.url))
     const hs = c.headers || []
     if (hs.length > 0) {
       L.push(ind(6) + 'headers:')
-      for (const e of hs) L.push(ind(8) + yamlScalaire(e.name) + ': ' + renderValue(e.value).yaml)
+      for (const e of hs) L.push(ind(8) + yamlScalaire(e.name) + ': ' + renderValue(e.value))
     }
   }
   L.push(ind(6) + 'toolCallTimeoutMs: 180000')
@@ -633,6 +666,7 @@ function removePatchBlock(nom) {
 export function upsertEnvSecret(nom, valeur) {
   if (SECRET_RE.test(nom) !== true) throw new Error('secret name is not a valid variable name')
   if (typeof valeur !== 'string' || valeur.length === 0) return false
+  if (isBootstrapOnlyName(nom) === true) throw new Error(bootstrapMessage(nom))
   if (sansMultiLigne(valeur) !== true) throw new Error('secret ' + nom + ': the value must not contain line breaks')
   const path = ENV_PATH()
   let text = ''
@@ -658,6 +692,8 @@ function verifierSecrets(body) {
     if (s === null || s === undefined) continue
     const nom = String(s.name || '').trim()
     if (SECRET_RE.test(nom) !== true) continue
+    // An empty value is "no value": nothing is written, so the name does no harm.
+    if (String(s.value || '').length > 0 && isBootstrapOnlyName(nom) === true) return bootstrapMessage(nom)
     if (sansMultiLigne(String(s.value || '')) !== true) return 'secret ' + nom + ': the value must not contain line breaks'
   }
   return null

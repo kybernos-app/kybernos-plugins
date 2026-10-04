@@ -1,19 +1,19 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Tests de kybernos-composio — moitié HÔTE (cas hostiles K-01).
+// Tests for kybernos-composio: HOST half.
 //
-//   node kybernos-composio/test-host.mjs
+//   node test-host.mjs
 //
-// K-01 : la route des connecteurs personnalisés acceptait un stdio arbitraire
-// depuis n'importe quelle origine en n'importe quel Content-Type. Désormais :
-// origine EXACTE du socket, JSON explicite, commande = exécutable système.
-// Ce harnais ne touche NI le sidecar NI le patch : il intercepte au niveau
-// des routes et vérifie les refus (aucune écriture n'a lieu sur un refus).
+// Covers the custom-connectors route (K-01 hostile cases, H-09 YAML injection), what
+// that route writes to ~/.dsh/.env, ~/.dsh/kybernos/connecteurs.json and
+// cordis.patch.yml, and the connections routes. All writes go to a temp HOME;
+// the DSH engine of the machine, when there is one, is only read.
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { apply, upsertEnvSecret } from './index.js'
-import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { apply, upsertEnvSecret, isBootstrapOnlyName } from './index.js'
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { tmpdir, homedir } from 'node:os'
 import { join } from 'node:path'
+import { createRequire } from 'node:module'
 
 let echecs = 0
 const ok = (label, cond, detail) => {
@@ -21,13 +21,36 @@ const ok = (label, cond, detail) => {
   else { console.error(`✗ ${label}${detail === undefined ? '' : ` — ${detail}`}`); echecs += 1 }
 }
 
-// Home factice pour ne pas toucher ~/.dsh réel du poste.
+// The real DSH home of the person running the tests. It is only ever READ (to find the
+// DSH engine, see below); every write goes to the temp HOME that follows.
+const REAL_HOME = homedir()
+// A DSH_HOME in the caller's environment would send the writes to a real home.
+delete process.env.DSH_HOME
+// Fake home so ~/.dsh of the machine is never touched. The module reads homedir() at
+// call time, so setting HOME after the import is enough.
 const HOME = mkdtempSync(join(tmpdir(), 'kb-composio-test-'))
 process.env.HOME = HOME
-// ⚠ les chemins PATCH_PATH/SIDECAR_PATH sont des fermetures sur homedir() du
-// module : on ne peut pas les déplacer après import. On teste donc UNIQUEMENT
-// les gardes qui refusent AVANT toute écriture (403/415/400 de validation) —
-// aucun cas n'atteint writeSidecar/upsertPatchBlock.
+
+// ── the DSH engine, when this machine has one (read only) ───────────────────
+// DSH's own boot code is the judge of what we write: loadLayeredEnv refuses the .env
+// names that only the launching environment may set, and loadOverlayPatches parses
+// cordis.patch.yml and "fails loud". Both run on the files our routes produced. CI has
+// no engine: those checks are then reported as skipped, and the engine-free checks
+// still run.
+const engineDirs = () => {
+  const found = []
+  const root = join(REAL_HOME, '.dsh', 'kybernos', 'moteur')
+  try {
+    for (const v of readdirSync(root).sort().reverse()) found.push(join(root, v, 'node_modules'))
+  } catch (e) { /* no engine here */ }
+  found.push('/opt/homebrew/lib/node_modules/@deepseek-ai/dsh/node_modules')
+  return found.filter((d) => existsSync(join(d, '@deepseek-ai', 'dsh-app-boot', 'lib', 'index.js')))
+}
+const ENGINE = engineDirs()[0] || null
+const dshBoot = ENGINE === null ? null : await import(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'lib', 'index.js'))
+const yaml = ENGINE === null ? null : createRequire(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'package.json'))('js-yaml')
+console.log(ENGINE === null ? '(no DSH engine found: the checks that run DSH\'s own loaders are skipped)' : '(DSH engine used as the judge: ' + ENGINE.replace(REAL_HOME, '~') + ')')
+const skipped = (label) => console.log(`- skipped, no DSH engine: ${label}`)
 
 const routes = {}
 const ctx = {
@@ -199,6 +222,132 @@ for (const secret of dangereux) {
   ok('route: that secret lands in .env unchanged', lireEnv() === 'MY_KEY=a$&b$1c\n')
   ok('route: the reply never carries the value', res.corps.includes('a$&b$1c') === false)
   rmSync(join(HOME, '.dsh'), { recursive: true, force: true })
+}
+
+
+// ═══ helpers shared by the writer tests below ═══════════════════════════════
+const DSH_DIR = join(HOME, '.dsh')
+const PATCH_FILE = join(DSH_DIR, 'profiles', 'web', 'cordis.patch.yml')
+const SIDECAR_FILE = join(DSH_DIR, 'kybernos', 'connecteurs.json')
+const lire = (f) => { try { return readFileSync(f, 'utf8') } catch (e) { return null } }
+// A fresh DSH home with the profile folder, like a real install.
+const frais = () => { rmSync(DSH_DIR, { recursive: true, force: true }); mkdirSync(join(DSH_DIR, 'profiles', 'web'), { recursive: true }) }
+// What DSH does to the files: restore process.env afterwards, loadLayeredEnv sets variables.
+const bootEnv = () => {
+  const avant = Object.assign({}, process.env)
+  const cwd = mkdtempSync(join(tmpdir(), 'kb-composio-cwd-'))
+  try { dshBoot.loadLayeredEnv('dsh', cwd, () => {}); return null } catch (e) { return String(e.message).replace(HOME, '<home>').slice(0, 160) } finally {
+    for (const k of Object.keys(process.env)) if (!(k in avant)) delete process.env[k]
+    rmSync(cwd, { recursive: true, force: true })
+  }
+}
+const bootPatch = () => {
+  try { dshBoot.loadOverlayPatches('dsh', PATCH_FILE); return null } catch (e) { return String(e.message).replace(HOME, '<home>').split('\n')[0].slice(0, 200) }
+}
+const POST = (corps) => jouer({}, corps)
+const DELETE = async (nom) => {
+  const res = reponse()
+  await routes['/kybernos/composio/connecteurs']({ method: 'DELETE', headers: {}, socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs?nom=' + nom, on: () => {} }, res)
+  return res
+}
+const GET = async () => {
+  const res = reponse()
+  await routes['/kybernos/composio/connecteurs']({ method: 'GET', headers: {}, socket: { localPort: 3080 }, url: '/kybernos/composio/connecteurs', on: () => {} }, res)
+  return JSON.parse(res.corps)
+}
+const http = (nom, extra) => Object.assign({ nom, transport: 'streamable-http', url: 'https://mcp.example.test/' + nom }, extra || {})
+
+// ═══ C-01: DSH refuses some .env names at boot; the secrets box must not write them ═══
+// DSH_*, HOME, PATH, EDITOR, BROWSER, ENV, XDG_*, DYLD_*, NODE_OPTIONS... make
+// loadLayeredEnv throw at the next start: "which only the launching environment may set".
+const REFUSED_NAMES = ['DSH_TAVILY_KEY', 'DSH_HOME', 'HOME', 'PATH', 'EDITOR', 'VISUAL', 'BROWSER', 'ENV', 'XDG_DATA_HOME', 'DYLD_INSERT_LIBRARIES', 'BASH_FUNC_FOO', 'NODE_OPTIONS', 'SHELL', 'LD_PRELOAD', 'HTTPS_PROXY', 'GIT_SSH_COMMAND', 'NODE_TLS_REJECT_UNAUTHORIZED']
+const FINE_NAMES = ['TAVILY_API_KEY', 'MY_KEY', 'HOMEPAGE_TOKEN', 'MYHOME', 'PATH2', 'DSHX_KEY', 'XDG', 'ENVIRONMENT', 'BROWSER_KEY', '_PRIVATE']
+for (const nom of REFUSED_NAMES) {
+  frais()
+  const res = await POST(http('sec-boot', { secrets: [{ name: nom, value: 'v-123' }] }))
+  ok(`C-01: secret ${nom} -> 400`, res.code === 400 && res.corps.includes(nom), `code=${res.code} ${res.corps.slice(0, 80)}`)
+  ok(`C-01: secret ${nom}: the 400 never echoes the value`, res.corps.includes('v-123') === false)
+  ok(`C-01: secret ${nom}: nothing is written`, lire(join(DSH_DIR, '.env')) === null && lire(SIDECAR_FILE) === null && lire(PATCH_FILE) === null)
+  let lance = null
+  try { upsertEnvSecret(nom, 'v') } catch (e) { lance = String(e.message) }
+  ok(`C-01: upsertEnvSecret refuses ${nom}`, lance !== null && lance.includes('v-123') === false && lire(join(DSH_DIR, '.env')) === null)
+  ok(`C-01: isBootstrapOnlyName(${nom})`, isBootstrapOnlyName(nom) === true)
+}
+for (const nom of FINE_NAMES) ok(`C-01: ${nom} is a name DSH accepts`, isBootstrapOnlyName(nom) === false)
+{
+  frais()
+  const res = await POST(http('sec-empty', { secrets: [{ name: 'PATH', value: '' }, { name: 'TAVILY_API_KEY', value: 'tvly-1' }] }))
+  ok('C-01: a refused name with an EMPTY value writes nothing, so it is not refused', res.code === 200, `code=${res.code} ${res.corps.slice(0, 120)}`)
+  ok('C-01: ...and the other secret is written', lire(join(DSH_DIR, '.env')) === 'TAVILY_API_KEY=tvly-1\n')
+}
+if (dshBoot !== null) {
+  // DSH's own loader on the .env our route writes: every fine name must boot, every
+  // refused one must have been stopped before the write (so the boot stays clean).
+  for (const nom of FINE_NAMES.filter((n) => n !== 'XDG')) {
+    frais()
+    const res = await POST(http('sec-boot', { secrets: [{ name: nom, value: 'v' }] }))
+    const err = bootEnv()
+    ok(`C-01: with a ${nom} secret (route ${res.code}) DSH can still read its .env`, res.code === 200 && err === null, err === null ? undefined : err)
+  }
+  for (const nom of REFUSED_NAMES) {
+    frais()
+    await POST(http('sec-boot', { secrets: [{ name: nom, value: 'v' }] }))
+    const err = bootEnv()
+    ok(`C-01: after a refused ${nom} secret DSH boots`, err === null, err === null ? undefined : err)
+  }
+  // The control: DSH really does refuse these names, so the check above proves something.
+  writeFileSync(join(DSH_DIR, '.env'), 'HOME=/tmp/x\n', 'utf8')
+  ok('C-01 (control): DSH\'s loader does throw on a HOME line', bootEnv() !== null)
+  // Parity with the engine's own list, read from its source: any name it refuses that
+  // we do not know about fails here, which is the compat gate to update the list.
+  const source = readFileSync(join(ENGINE, '@deepseek-ai', 'dsh-app-boot', 'lib', 'index.js'), 'utf8')
+  const names = [...(/BOOTSTRAP_NAMES = new Set\(\[([\s\S]*?)\]\)/.exec(source) || [, ''])[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
+  const prefixes = [...(/BOOTSTRAP_PREFIXES = \[([\s\S]*?)\]/.exec(source) || [, ''])[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
+  ok('C-01: the engine list was found in the engine source', names.length > 40 && prefixes.length >= 4, `${names.length} names, ${prefixes.length} prefixes`)
+  const unknown = names.filter((n) => isBootstrapOnlyName(n) !== true).concat(prefixes.filter((p) => isBootstrapOnlyName(p + 'X') !== true))
+  ok('C-01: every name and prefix the engine refuses is refused here too', unknown.length === 0, unknown.join(', '))
+} else skipped('C-01 DSH loadLayeredEnv on the .env our route writes')
+
+// ═══ C-05 / C-02: a form value becomes a safe YAML scalar ════════════════════
+// A "$" without a valid $NAME ("pa$$word", "price $5") used to become a bare JS
+// expression in the patch (loader ReferenceError/SyntaxError, the connector silently never
+// loaded, the route said 200); a value with ' or \ AND a $TOKEN gave an unknown YAML
+// escape (DSH fails loud at boot). Values are now JSON string literals.
+//
+// The patch is read back WITHOUT a YAML library (the scalars are JSON by construction,
+// so CI can check them) and evaluated the way the loader does: `with (ctx) { eval(expr) }`.
+const lireScalaires = (texte) => {
+  const out = {}
+  for (const l of texte.split('\n')) {
+    const m = /^ {8}("(?:[^"\\]|\\.)*"): (!!js )?("(?:[^"\\]|\\.)*")$/.exec(l)
+    if (m !== null) out[JSON.parse(m[1])] = { js: m[2] !== undefined, text: JSON.parse(m[3]) }
+  }
+  return out
+}
+const SECRETS_ENV = { TOK: 'S3CRET', K: 'KKK', L: 'LLL', TAVILY_API_KEY: 'tvly' }
+const attendu = (v) => v.replace(/\$([A-Z_][A-Z0-9_]*)/g, (m, n) => (SECRETS_ENV[n] !== undefined ? SECRETS_ENV[n] : ''))
+const evalLoader = (expr, proc) => new Function('ctx', 'expr', 'with (ctx) { return eval(expr) }')({ process: proc }, expr)
+const VALUES = ['Bearer $TAVILY_API_KEY', 'plain-literal', 'abc$def', 'price $5', 'pa$$word', 'Basic dXNlcjpwYXNz$', 'C:\\dir\\file $TOK', 'Bearer $TOK\\', "it's $K", '"quoted" $K', '$K$L', "x\\'; process.exitCode = 7; '$K", 'a $& $\' $` b', 'tab\tinside', 'unicode é 😀 $K', '$', '$$', '${K}', '$k']
+for (const valeur of VALUES) {
+  frais()
+  const res = await POST(http('vals', { headers: [{ name: 'x-h', value: valeur }] }))
+  const texte = lire(PATCH_FILE) || ''
+  const s = lireScalaires(texte)['x-h']
+  const proc = { env: SECRETS_ENV, exitCode: undefined }
+  let obtenu = null
+  let erreur = null
+  try { obtenu = s === undefined ? undefined : (s.js ? evalLoader(s.text, proc) : s.text) } catch (e) { erreur = e.name + ': ' + e.message }
+  ok(`C-05: header value ${JSON.stringify(valeur)} is sent as typed ($NAME read from the environment)`, res.code === 200 && erreur === null && obtenu === attendu(valeur) && proc.exitCode === undefined, erreur !== null ? erreur : `route ${res.code}, got ${JSON.stringify(obtenu)}`)
+  ok(`C-05: header value ${JSON.stringify(valeur)}: a plain value has no !!js, a token value has one`, s !== undefined && s.js === /\$[A-Z_][A-Z0-9_]*/.test(valeur))
+  if (dshBoot !== null) { const err = bootPatch(); ok(`C-05: DSH's patch loader accepts the file for ${JSON.stringify(valeur)}`, err === null, err === null ? undefined : err) }
+}
+{
+  // env values of a stdio connector go through the same renderer
+  frais()
+  const res = await POST({ nom: 'envvals', transport: 'stdio', command: '/usr/bin/touch', env: [{ name: 'PW', value: 'pa$$word' }, { name: 'TOKEN', value: "it's \\ $TOK" }] })
+  const s = lireScalaires(lire(PATCH_FILE) || '')
+  ok('C-05: stdio env values: literal $ stays literal, token with quote and backslash is read from the environment', res.code === 200 && s.PW && s.PW.js === false && s.PW.text === 'pa$$word' && s.TOKEN && evalLoader(s.TOKEN.text, { env: SECRETS_ENV }) === "it's \\ S3CRET", `code=${res.code}`)
+  if (dshBoot !== null) { const err = bootPatch(); ok('C-05: DSH accepts the stdio connector file', err === null, err === null ? undefined : err) }
 }
 
 rmSync(HOME, { recursive: true, force: true })
