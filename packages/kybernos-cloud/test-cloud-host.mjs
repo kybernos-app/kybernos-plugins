@@ -486,7 +486,7 @@ try {
     '/kybernos-cloud/memory/search', '/kybernos-cloud/memory/map', '/kybernos-cloud/memory/lessons',
     // Page Memory & Lessons learned : liste paginee/filtree et reglages.
     '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
-    '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run',
+    '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run', '/kybernos-cloud/memory/meaning-map',
     '/kybernos-cloud/team/status', '/kybernos-cloud/team/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/review', '/kybernos-cloud/team/lessons/retire', '/kybernos-cloud/team/lessons/delete',
     '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/tidy/settings',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
@@ -2184,6 +2184,154 @@ try {
   ok('liste refusee hors connexion ; reglages lisibles et ecrivibles sans compte')
   mod.emptyMemoryCache()
   await mod.refreshMemoryCache(readState(), true)
+
+  // 11n. The meaning map (mapproj.mjs): the positions are worked out here from the embedding vectors of a sample of memories.
+  //      Behind the same switch as the search by meaning (a text goes to the embeddings model), vectors kept in a side file
+  //      by hash of the text, shared by two simultaneous openings, filled by the indexing, never wasted on a refused plan.
+  const vecFile = statePath.replace(/\.json$/, '') + '-memory-vectors.json'
+  const dropVectors = () => rmSync(vecFile, { force: true })
+  const mapGet = (query) => hit('/kybernos-cloud/memory/meaning-map' + (query || ''), 'GET')
+  const texts = () => seen.embedCalls.flatMap((c) => c.input)
+  semantic = 'on'; embedStatus = 200; embedShape = 'ok'
+  mod.meaningCache.unavailableAt = 0; mod.meaningCache.planBlockedAt = 0
+  dropVectors()
+  seen.embedCalls.length = 0
+  await setSettings({ meaning: false })
+  const mapOff = await mapGet()
+  assert.deepEqual(mapOff.body, { ok: false, error: 'sens_desactive' })
+  assert.equal(seen.embedCalls.length, 0, 'switch off: no text goes anywhere')
+  const mapEvil = await hit('/kybernos-cloud/memory/meaning-map', 'GET', 'https://evil.example')
+  assert.equal(mapEvil.status, 403, 'another origin cannot make the account pay for embeddings')
+  assert.equal(seen.embedCalls.length, 0)
+  const mapOffline = await (async () => { const saved = readFileSync(statePath, 'utf8'); rmSync(statePath); const r = await mapGet(); writeFileSync(statePath, saved, { mode: 0o600 }); return r })()
+  assert.deepEqual(mapOffline.body, { ok: false, connected: false, error: 'non connecte' })
+  ok('map: off by default (no text sent), same-origin only, explicit when signed out')
+
+  await setSettings({ meaning: true })
+  const memTotal = (await hit('/kybernos-cloud/memory/list?limit=1', 'GET')).body.total
+  assert.ok(memTotal >= 20 && memTotal <= 150, 'the fixture has a few dozen memories (' + String(memTotal) + ')')
+  const map1 = await mapGet()
+  assert.equal(map1.body.ok, true)
+  assert.equal(map1.body.total, memTotal)
+  assert.equal(map1.body.shown, memTotal)
+  assert.equal(map1.body.embedded, memTotal)
+  assert.equal(map1.body.nodes.length, memTotal)
+  assert.deepEqual(seen.embedCalls.map((c) => c.n), Array.from({ length: Math.ceil(memTotal / 16) }, (_, i) => Math.min(16, memTotal - i * 16)), 'batches of 16')
+  assert.ok(seen.embedCalls.every((c) => c.model === 'kybernos/embed' && c.auth === 'Bearer ' + TOKEN), 'the account\'s own token and the embeddings model')
+  assert.ok(map1.body.nodes.every((n) => n.x > 0 && n.x < 1 && n.y > 0 && n.y < 1 && Number.isInteger(n.cl) && typeof n.content === 'string' && n.content !== '' && typeof n.kind === 'string' && typeof n.pinned === 'boolean' && typeof n.sent === 'boolean'))
+  assert.equal(new Set(map1.body.nodes.map((n) => n.id)).size, memTotal, 'each memory once')
+  assert.ok(map1.body.clusters.length >= 2 && map1.body.clusters.reduce((a, c) => a + c.size, 0) === memTotal)
+  assert.ok(map1.body.links.every(([a, b]) => a < b && b < memTotal))
+  assert.ok(map1.body.nodes.every((n) => memories.some((m) => m.id === n.id && m.content === n.content)), 'the text of a dot is the memory\'s')
+  const listRow = (await hit('/kybernos-cloud/memory/list?limit=200', 'GET')).body.items.find((i) => i.id === map1.body.nodes[0].id)
+  const { x: _x, y: _y, cl: _cl, ...dot } = map1.body.nodes[0]
+  assert.deepEqual(dot, listRow, 'a dot carries the memory exactly as the list shows it (the page opens it the same way)')
+  assert.equal(leaks(map1.body), false)
+  ok('map: opening it embeds the sample in batches of 16 with the account\'s token, and answers positions, clusters and links')
+
+  const raw = readFileSync(vecFile, 'utf8')
+  const side = JSON.parse(raw)
+  assert.equal(side.model, 'kybernos/embed')
+  assert.equal(side.dim, 1024)
+  assert.equal(Object.keys(side.v).length, memTotal)
+  assert.ok(Object.values(side.v).every((p) => typeof p.q === 'string' && typeof p.s === 'number'))
+  assert.ok(memories.filter((m) => m.scope === 'account').every((m) => raw.indexOf(m.content) < 0), 'the side file holds no memory text, only hashes and int8 vectors')
+  assert.equal(raw.indexOf(TOKEN), -1)
+  assert.equal(statSync(vecFile).mode & 0o777, 0o600)
+  assert.ok(raw.length < memTotal * 2200, 'about 1.4 KB a vector (' + String(raw.length) + ' bytes)')
+  ok('map: the vectors are kept in a private side file by hash of the text (no memory text, no token)')
+
+  const before = seen.embedCalls.length
+  const map2 = await mapGet()
+  assert.equal(seen.embedCalls.length, before, 'the second opening costs nothing')
+  assert.equal(map2.body.embedded, 0)
+  assert.deepEqual(map2.body.nodes.map((n) => [n.id, n.x, n.y, n.cl]), map1.body.nodes.map((n) => [n.id, n.x, n.y, n.cl]), 'and gives the same picture')
+  mkFake('a brand new memory about gardening tomatoes')
+  await mod.refreshMemoryCache(readState(), true)
+  const map3 = await mapGet()
+  assert.equal(map3.body.embedded, 1)
+  assert.deepEqual(texts().slice(-1), ['a brand new memory about gardening tomatoes'], 'only the new memory is embedded')
+  const gardening = memories.find((m) => m.content === 'a brand new memory about gardening tomatoes')
+  gardening.content = 'a brand new memory about growing peppers'
+  await mod.refreshMemoryCache(readState(), true)
+  const map4 = await mapGet()
+  assert.equal(map4.body.embedded, 1, 'an edited text is a new key: one embedding')
+  assert.equal(Object.keys(JSON.parse(readFileSync(vecFile, 'utf8')).v).length, memTotal + 1, 'and the old text\'s vector is dropped from the file')
+  ok('map: a second opening is free and identical; a new or edited memory costs one embedding; stale vectors are dropped')
+
+  const pinnedIds = memories.filter((m) => m.scope === 'account' && m.pinned).map((m) => m.id)
+  const mapSmall = await mapGet('?limit=10')
+  assert.equal(mapSmall.body.shown, 10)
+  assert.equal(mapSmall.body.total, memTotal + 1)
+  assert.ok(pinnedIds.length === 0 || pinnedIds.slice(0, 10).every((id) => mapSmall.body.nodes.some((n) => n.id === id)), 'the pinned memories are in the sample')
+  assert.equal(new Set(mapSmall.body.nodes.map((n) => n.id)).size, 10)
+  assert.equal((await mapGet('?limit=5')).body.shown, 10, 'never fewer than 10')
+  assert.equal((await mapGet('?limit=9999')).body.shown, memTotal + 1, 'never more than the sample cap (' + '150' + ')')
+  ok('map: a smaller sample keeps the pinned memories first, never fewer than 10 or more than the cap')
+
+  dropVectors()
+  seen.embedCalls.length = 0
+  const [first, second] = await Promise.all([mapGet(), mapGet()])
+  assert.equal(first.body.ok && second.body.ok, true)
+  assert.equal(texts().length, memTotal + 1, 'two openings at once embed each text once')
+  assert.deepEqual(first.body.nodes.map((n) => n.id), second.body.nodes.map((n) => n.id))
+  writeFileSync(vecFile, '{ not json', { mode: 0o600 })
+  seen.embedCalls.length = 0
+  assert.equal((await mapGet()).body.ok, true)
+  assert.equal(texts().length, memTotal + 1, 'a damaged side file is ignored and rebuilt')
+  writeFileSync(vecFile, JSON.stringify({ model: 'another/model', dim: 1024, v: JSON.parse(readFileSync(vecFile, 'utf8')).v }), { mode: 0o600 })
+  seen.embedCalls.length = 0
+  assert.equal((await mapGet()).body.ok, true)
+  assert.equal(texts().length, memTotal + 1, 'vectors of another model are never mixed in')
+  ok('map: simultaneous openings share one computation; a damaged or foreign side file is rebuilt, not trusted')
+
+  // The indexing already pays for the vectors: the map reuses them.
+  dropVectors()
+  await setSettings({ meaning: true })
+  seen.embedCalls.length = 0
+  embeddings.clear()
+  const idx = await hit('/kybernos-cloud/memory/index/run', 'POST', undefined, { max: 16 })
+  assert.equal(idx.body.indexed, 16)
+  const embeddedByIndex = texts().length
+  const mapAfterIndex = await mapGet()
+  assert.equal(mapAfterIndex.body.embedded, memTotal + 1 - 16, 'the 16 just indexed are not embedded again')
+  assert.equal(texts().length, embeddedByIndex + memTotal + 1 - 16)
+  ok('map: what the indexing already embedded is reused')
+
+  // Refusals: named, nothing wasted, and a refused plan is not asked again.
+  dropVectors()
+  seen.embedCalls.length = 0
+  mod.meaningCache.planBlockedAt = 0
+  embedStatus = 403
+  const mapPlan = await mapGet()
+  assert.equal(mapPlan.body.ok, false)
+  assert.equal(mapPlan.body.error, 'offre_requise')
+  assert.equal(mapPlan.body.requiredTier, 'solo')
+  assert.equal(seen.embedCalls.length, 1, 'one try, then it stops')
+  assert.equal(existsSync(vecFile), false, 'nothing kept from a refusal')
+  const mapPlanAgain = await mapGet()
+  assert.equal(mapPlanAgain.body.error, 'offre_requise')
+  assert.equal(seen.embedCalls.length, 1, 'the pause holds: a 403 is not repeated')
+  embedStatus = 200; mod.meaningCache.planBlockedAt = 0
+  embedStatus = 402
+  assert.equal((await mapGet()).body.error, 'credits_epuises')
+  embedStatus = 401
+  assert.equal((await mapGet()).body.error, 'reconnexion_requise')
+  embedStatus = 200; embedShape = 'short'
+  assert.equal((await mapGet()).body.error, 'embedding_invalide', 'a vector of the wrong size never reaches the picture')
+  embedShape = 'ok'
+  assert.equal(existsSync(vecFile), false, 'and none of those leaves a half-written file')
+  semantic = 'old'
+  assert.equal((await mapGet()).body.ok, true, 'the map needs no server route: a server that predates the meaning routes does not matter')
+  semantic = 'on'
+  assert.equal(leaks(mapPlan.body), false)
+  ok('map: a refused plan (Solo needed), no credits, an expired session and a bad vector are each named; nothing is kept or repeated')
+
+  await setSettings({ meaning: false })
+  dropVectors()
+  embeddings.clear()
+  seen.embedCalls.length = 0
+  mod.meaningCache.planBlockedAt = 0; mod.meaningCache.unavailableAt = 0
 
   // 10q. Le catalogue distant : lecture, puis installation LOCALE reelle.
   //      Le dossier de kybers est une fixture temporaire (KYBERNOS_CLOUD_KYBERS),

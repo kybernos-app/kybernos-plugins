@@ -69,10 +69,25 @@ one click away.
   it — their text only, never the whole list — and it answers « same » (with a merged wording), « replaces » (the
   newer one makes the older outdated) or « different »; its answers are only ever suggestions, never merged by
   itself. See *Tidy up* below.
-- **Not drawn as if it existed**: the Map needs 2-D positions of the vectors, which nothing computes
-  yet (the button is disabled and says so), and team lessons are not built (the Team scope and
-  « Share lessons with your team » say so). The only plan gate shown is the one the server enforces
-  (embeddings); memory itself is not limited by plan today.
+- **Map** (Memories → View *List | Map*): each dot is a memory, close dots mean close meaning, the clusters are named by
+  the words that set them apart, and each dot links to its nearest neighbours. It draws a sample of at most 150 (the pinned
+  ones, then the ones sent to the model, then the newest) and says so. Look around: hover for the text, click for a card
+  with *Open* (the same side sheet as the list), « Light up what matches » dims the rest, drag to move, scroll or the
+  buttons to zoom, *Fit* to come back; every dot also works from the keyboard. Rings mark what is sent each turn.
+  The page only draws; the positions come from the cloud host (`GET /kybernos-cloud/memory/meaning-map`, same-origin
+  guarded), which works them out on this machine from the embedding vectors (`packages/kybernos-cloud/mapproj.mjs`: the first two
+  principal components, dots spread so none sits on another, k-means for the clusters, deterministic: the same memories
+  give the same picture). It needs **Search by meaning** (Options): the vectors are the same embeddings, so turning the
+  switch on is what lets the text of the memories drawn go to the Kybernos embedding model; with it off, or on a plan
+  without the embeddings model, the Map view says so in words and offers Options or the list. The vectors are kept in a
+  private side file next to the cloud state (`kybernos-cloud-memory-vectors.json`: int8 + a scale, keyed by a hash of the
+  text, no memory text, at most 800, dropped when the memory goes), filled by the indexing too, so opening the map is usually
+  free and an edited memory costs one embedding. No server route is involved. The choice List | Map is kept in the
+  browser, but only once a map was really drawn. The lessons have no map: they stay on this machine and drawing
+  them would send them to the embedding model.
+- **Not drawn as if it existed**: what is not there is said, not faked. The plan gates shown are the ones that are real:
+  the embeddings (the server enforces them) and the Team scope (the plugin enforces it, see « Team lessons »); memory itself
+  is not limited by plan today.
 - The under-composer **Memory pill** lives in `kybernos-sessions` (it needs the chat's journal): it shows
   what the model receives (« 25 of 637 ») and what this chat wrote, with a card that links here.
 
@@ -195,6 +210,7 @@ Tests: `node packages/kybernos-cloud/test-team-lessons.mjs` (the pure half), `no
 node packages/kybernos-memory/test-memory-host.mjs   # real files in a temp folder, real memory.cjs if present
 node packages/kybernos-memory/test-client.mjs        # the page's pure pieces, mounting contract, source guards
 node packages/kybernos-cloud/test-dedupe.mjs         # near-duplicate detection (pure)
+node packages/kybernos-cloud/test-mapproj.mjs        # the map's positions, clusters and names (pure)
 node packages/kybernos-cloud/test-tidy.mjs           # settings, schedule, auto line, Study-model question/answer (fake llm)
 node scripts/check-memory-live.mjs --shots /tmp/mem  # the REAL GUI, read-only (needs dsh web restarted once)
 ```

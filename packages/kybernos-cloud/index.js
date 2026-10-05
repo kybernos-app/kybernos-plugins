@@ -41,6 +41,7 @@ import { dirname, join, resolve } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
@@ -2045,6 +2046,7 @@ const indexMemories = async (state, max) => {
     if (rows.length === 0) break
     const emb = await embedTexts(state, rows.map((r) => String(r.content)))
     if (emb.ok !== true) { noteEmbedFailure(emb); return { ok: false, error: emb.error, requiredTier: emb.requiredTier, indexed } }
+    rememberVectors(rows.map((r) => String(r.content)), emb.vectors)
     for (let i = 0; i < rows.length; i++) {
       const put = await putEmbedding(state, rows[i].id, emb.vectors[i])
       if (put.ok !== true && put.error !== 'souvenir_introuvable') { noteMeaningUnavailable(put.error); return { ok: false, error: put.error, indexed } }
@@ -2064,6 +2066,7 @@ const indexOneInBackground = (state, memory) => {
     void (async () => {
       const emb = await embedTexts(state, [String(memory.content)])
       if (emb.ok !== true) { noteEmbedFailure(emb); return }
+      rememberVectors([String(memory.content)], emb.vectors)
       const put = await putEmbedding(state, memory.id, emb.vectors[0])
       if (put.ok !== true) noteMeaningUnavailable(put.error)
     })().catch(() => {})
@@ -2085,6 +2088,103 @@ const findByMeaning = async (state, q, limit) => {
   if (failure !== null) return { ok: false, error: failure }
   const raw = res.body !== null && Array.isArray(res.body.memories) ? res.body.memories : []
   return { ok: true, items: raw.map((m) => ({ ...asMemory(m), distance: typeof m.distance === 'number' ? m.distance : null })) }
+}
+
+// ── The map: memories placed by meaning ─────────────────────────────────────────────────────────────────
+// Close dots mean close meaning. The positions are worked out HERE (mapproj.mjs) from the embedding vectors of a sample of memories
+// (pinned first, then the ones sent to the model, then the newest). The vectors come from the same route as the search by meaning and
+// sit behind the same `meaning` switch (the text of a memory goes to the embeddings model, nothing else); they are kept in a side file
+// next to the state (`memory-vectors`: int8 + scale, keyed by a hash of the text, so an edited memory is simply a new key), which also
+// fills while the memories are indexed, so opening the map is usually free. No server route is involved.
+
+const MAP_VECTORS_MAX = 800
+const MAP_TEXT_MAX = 1000
+let mapInFlight = null
+
+const readVectorCache = () => {
+  const raw = readSide('memory-vectors', {})
+  if (raw.model !== EMBED_MODEL || raw.dim !== EMBED_DIM || raw.v === null || typeof raw.v !== 'object' || Array.isArray(raw.v)) return {}
+  return raw.v
+}
+
+const writeVectorCache = (cache, keep) => {
+  let keys = Object.keys(cache)
+  if (keep !== undefined) keys = keys.filter((k) => keep.has(k))
+  if (keys.length > MAP_VECTORS_MAX) keys = keys.slice(keys.length - MAP_VECTORS_MAX)
+  const v = {}
+  for (const k of keys) v[k] = cache[k]
+  try { writeSide('memory-vectors', { model: EMBED_MODEL, dim: EMBED_DIM, v }) } catch (e) { /* the map just recomputes next time */ }
+}
+
+/** Keeps vectors that were just paid for (indexing, a new memory) so the map does not ask for them again. Never throws. */
+const rememberVectors = (texts, vectors) => {
+  try {
+    const cache = readVectorCache()
+    texts.forEach((t, i) => { if (Array.isArray(vectors[i]) && vectors[i].length === EMBED_DIM) cache[textHash(String(t).slice(0, MAP_TEXT_MAX))] = packVector(vectors[i]) })
+    writeVectorCache(cache)
+  } catch (e) { /* a cache, nothing more */ }
+}
+
+/** At most `limit` memories: the pinned ones, then the ones sent to the model, then the newest. */
+const mapSample = (rows, limit) => {
+  if (rows.length <= limit) return rows
+  const out = []
+  const seen = new Set()
+  const add = (r) => { if (out.length < limit && !seen.has(r.id)) { seen.add(r.id); out.push(r) } }
+  rows.filter((r) => r.pinned).forEach(add)
+  rows.filter((r) => r.sent).forEach(add)
+  rows.forEach(add)
+  return out
+}
+
+const buildMemoryMap = async (state, limit) => {
+  if (readMemorySettings().meaning !== true) return { ok: false, error: 'sens_desactive' }
+  const paused = meaningPaused()
+  if (paused !== null) return { ok: false, error: paused, requiredTier: paused === 'offre_requise' ? meaningCache.requiredTier : undefined, plan: paused === 'offre_requise' ? meaningCache.plan : undefined }
+  await refreshMemoryCache(state, false)
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
+  const { rows: all } = accountRows(state)
+  const rows = all.map((r) => ({ ...r, text: String(r.content).slice(0, MAP_TEXT_MAX) }))
+  const sample = mapSample(rows, limit)
+  const cache = readVectorCache()
+  const vectors = new Array(sample.length).fill(null)
+  const missing = []
+  sample.forEach((r, i) => {
+    const hit = cache[textHash(r.text)]
+    const v = hit === undefined ? null : unpackVector(hit, EMBED_DIM)
+    if (v !== null) vectors[i] = v; else missing.push(i)
+  })
+  let changed = false
+  for (let at = 0; at < missing.length; at += EMBED_BATCH) {
+    const part = missing.slice(at, at + EMBED_BATCH)
+    const emb = await embedTexts(state, part.map((i) => sample[i].text))
+    if (emb.ok !== true) {
+      noteEmbedFailure(emb)
+      if (changed) writeVectorCache(cache)   // what was paid for is kept: the next try goes on from here
+      return { ok: false, error: emb.error, requiredTier: emb.requiredTier, plan: emb.plan }
+    }
+    part.forEach((i, k) => { cache[textHash(sample[i].text)] = packVector(emb.vectors[k]); vectors[i] = unpackVector(cache[textHash(sample[i].text)], EMBED_DIM); changed = true })
+  }
+  if (changed) writeVectorCache(cache, new Set(rows.map((r) => textHash(r.text))))
+  meaningCache.lastError = null
+  const map = buildMap(sample.map((r) => ({ id: r.id, text: r.text })), vectors)
+  return {
+    ok: true, total: rows.length, shown: sample.length, embedded: missing.length,
+    // each dot carries the memory as the list shows it, so the page can open it as it does from the list
+    nodes: sample.map((r, i) => { const { text, ...memory } = r; return { ...memory, x: map.nodes[i].x, y: map.nodes[i].y, cl: map.nodes[i].cl } }),
+    clusters: map.clusters, links: map.links,
+  }
+}
+
+const memoryMeaningMapRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  let params = new URLSearchParams('')
+  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* requete sans query */ }
+  const limit = intParam(params.get('limit'), MAP_TUNING.sample, 10, MAP_TUNING.sample)
+  // two openings at once (the page remounts) share one computation, so the texts are embedded once
+  if (mapInFlight === null) mapInFlight = buildMemoryMap(state, limit).finally(() => { mapInFlight = null })
+  return await mapInFlight
 }
 
 // ── Tidy up: near-duplicates among the account's memories (dedupe.mjs, local, no model) ─────────────────
@@ -2578,6 +2678,24 @@ const teamDeleteRoute = async (req, body) => {
  * `planInjection` — la même sélection que le prompt. La recherche est textuelle
  * (`mode: exact`) : la pertinence demandera un index côté serveur.
  */
+/** The account's memories as the page shows them (newest first, with what is sent to the model), and the injection plan they were measured against. */
+const accountRows = (state) => {
+  const plan = planInjection(state)
+  const sentIds = new Set(plan.account.chosen.map((m) => String(m.id)))
+  const ledger = readSide('memory-origins', {})
+  const now = Date.now()
+  const rows = memoryCache.account.slice().sort(newestFirst).map((m) => {
+    const o = originOf(m, ledger)
+    const when = parseWhen(m.createdAt)
+    return {
+      id: m.id, kind: m.kind, content: m.content, source: m.source, origin: o.origin, originKnown: o.originKnown,
+      pinned: m.pinned === true, sent: sentIds.has(String(m.id)), createdAt: m.createdAt, expiresAt: m.expiresAt, retentionDays: m.retentionDays,
+      ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null,
+    }
+  })
+  return { plan, rows }
+}
+
 const memoryListRoute = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
@@ -2594,19 +2712,7 @@ const memoryListRoute = async (req) => {
   const q = qRaw.toLowerCase()
   const wantMeaning = params.get('mode') === 'meaning' && q !== ''
 
-  const plan = planInjection(state)
-  const sentIds = new Set(plan.account.chosen.map((m) => String(m.id)))
-  const ledger = readSide('memory-origins', {})
-  const now = Date.now()
-  const rows = memoryCache.account.slice().sort(newestFirst).map((m) => {
-    const o = originOf(m, ledger)
-    const when = parseWhen(m.createdAt)
-    return {
-      id: m.id, kind: m.kind, content: m.content, source: m.source, origin: o.origin, originKnown: o.originKnown,
-      pinned: m.pinned === true, sent: sentIds.has(String(m.id)), createdAt: m.createdAt, expiresAt: m.expiresAt, retentionDays: m.retentionDays,
-      ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null,
-    }
-  })
+  const { plan, rows } = accountRows(state)
   const youOrigin = (r) => r.origin === 'taught'
   const counts = {
     all: rows.length, pinned: rows.filter((r) => r.pinned).length, sent: rows.filter((r) => r.sent).length,
@@ -3164,6 +3270,7 @@ const ROUTES = [
   // Search by meaning (off by default): status, then one indexing batch per POST — each batch calls the embeddings route.
   { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
   { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryIndexRunRoute },
+  { path: '/kybernos-cloud/memory/meaning-map', method: 'GET', guarded: true, run: memoryMeaningMapRoute },
   // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
   { path: '/kybernos-cloud/team/status', method: 'GET', guarded: true, run: teamStatusRoute },
   { path: '/kybernos-cloud/team/lessons', method: 'GET', guarded: true, run: teamListRoute },
