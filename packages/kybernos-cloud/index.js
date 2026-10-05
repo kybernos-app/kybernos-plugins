@@ -45,6 +45,7 @@ import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapp
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
+import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 
 /**
  * The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank
@@ -58,30 +59,33 @@ const dshHome = (env = process.env, osHome = homedir) => {
   if (raw === '~') return osHome()
   return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
 }
-const defaultStateFile = () => join(dshHome(), 'kybernos-cloud.json')
+const serversFile = () => {
+  const raw = typeof process.env.KYBERNOS_SERVERS_FILE === 'string' ? process.env.KYBERNOS_SERVERS_FILE.trim() : ''
+  return raw === '' ? join(dshHome(), 'kybernos', 'servers.json') : raw
+}
+/** The server this DSH talks to (server-profile.mjs): read at each use, like the state, so a registry written by the
+ *  Select server module is seen without a restart. */
+const server = () => activeServer({ env: process.env, registryFile: serversFile() })
+const defaultStateFile = (profile = server().profile) => join(dshHome(), stateFileName(profile))
+const appliedFile = () => join(dshHome(), 'kybernos', 'server-applied.json')
 const sessionsHome = () => join(dshHome(), 'sessions')
 const categoriesFile = () => join(dshHome(), 'kybernos', 'categories.json')
-const DEFAULT_API = 'https://api.dev.kybernos.app'
-/** Web du même tier que l'API (api.dev.… → dev.…) : c'est là que vit la page
- *  de l'espace, et le plugin n'a pas à recopier l'hôte dans son coin. */
-const DEFAULT_WEB = DEFAULT_API.replace('//api.', '//')
 const CLIENT_VERSION = '0.1.0'
 const CLIENT_NAME = 'dsh'
 const REQUEST_TIMEOUT_MS = 15000
 const MAX_LABEL = 64
 
-/** Base d'API : dev par défaut, surchargée par KYBERNOS_CLOUD_API. */
-const resolveApi = () => {
-  const raw = process.env.KYBERNOS_CLOUD_API
-  const value = typeof raw === 'string' ? raw.trim() : ''
-  return value === '' ? DEFAULT_API : value.replace(/\/+$/, '')
-}
+/** Base d'API du serveur actif (Kybernos Cloud par défaut ; KYBERNOS_CLOUD_API ou le registre des serveurs la remplacent). */
+const resolveApi = () => server().profile.api
+/** Web du serveur actif : c'est là que vit la page de l'espace. */
+const resolveWeb = () => server().profile.web
 
-/** State file: <DSH home>/kybernos-cloud.json, overridable by KYBERNOS_CLOUD_STATE (tests, multi-profile). */
-const stateFile = () => {
+/** State file: <DSH home>/kybernos-cloud.json for the built-in server, kybernos-cloud-<id>.json for another one (each server
+ *  keeps its own connection), overridable by KYBERNOS_CLOUD_STATE (tests, multi-profile). */
+const stateFile = (profile) => {
   const raw = process.env.KYBERNOS_CLOUD_STATE
   const value = typeof raw === 'string' ? raw.trim() : ''
-  return value === '' ? defaultStateFile() : value
+  return value === '' ? defaultStateFile(profile) : value
 }
 
 /** Libellé d'appareil tel qu'il apparaîtra dans « Sécurité → Sessions ». */
@@ -127,7 +131,8 @@ const publicState = (state) => ({
   // premier espace (le perso, créé à la connexion) sans rien écrire : un défaut
   // dérivé n'est pas un choix, et l'écrire ferait croire à une décision.
   active_workspace_id: espaceActif(state),
-  web_url: DEFAULT_WEB,
+  web_url: resolveWeb(),
+  server: { id: server().profile.id, name: server().profile.name },
   device_label: state.device_label !== undefined ? state.device_label : null,
   expires_at: state.expires_at !== undefined ? state.expires_at : null,
   refreshed_at: state.refreshed_at !== undefined ? state.refreshed_at : null,
@@ -166,12 +171,12 @@ const setActiveSpace = (req, body) => {
  *  l'app pour que la création se fasse là où elle est réellement décidée. */
 const createSpace = async (req, body) => {
   const state = readState()
-  if (!isConnected(state)) return { ok: false, error: 'non_connecte', web_url: DEFAULT_WEB }
+  if (!isConnected(state)) return { ok: false, error: 'non_connecte', web_url: resolveWeb() }
   const nom = body !== null && typeof body === 'object' && typeof body.name === 'string' ? body.name.trim().slice(0, 60) : ''
   if (nom === '') return { ok: false, error: 'nom_absent' }
   const res = await apiCall('/v1/workspaces', { method: 'POST', token: state.token, body: { name: nom } })
   if (res.status !== 200 && res.status !== 201) {
-    return { ok: false, error: 'creation_refusee', status: res.status, web_url: DEFAULT_WEB }
+    return { ok: false, error: 'creation_refusee', status: res.status, web_url: resolveWeb() }
   }
   const brut = res.body !== null && typeof res.body === 'object' ? (res.body.workspace !== undefined && res.body.workspace !== null ? res.body.workspace : res.body) : null
   const id = brut !== null && typeof brut.id === 'string' ? brut.id : null
@@ -215,7 +220,7 @@ const apiCall = async (path, options = {}) => {
   try {
     const headers = { 'content-type': 'application/json' }
     if (token !== null) headers.authorization = 'Bearer ' + token
-    const res = await fetch(resolveApi() + path, {
+    const res = await fetch((typeof options.base === 'string' ? options.base : resolveApi()) + path, {
       method,
       headers,
       signal: ctrl.signal,
@@ -432,6 +437,10 @@ const userPlan = (state) => {
 /** Base OpenAI-compatible du proxy : l'API Kybernos + /v1 (chat completions,
  *  models). Le swap kys→sk du serveur couvre ces routes natives. */
 const baseUrl = (state) => {
+  const profile = server().profile
+  // The profile names its LLM service when it has a separate one (DSH never deduces it from the account address); a server
+  // with no LLM has no base at all, and importCatalog() does not reach this.
+  if (typeof profile.services.llm === 'string') return llmBase(profile)
   const api = state !== null && typeof state.api === 'string' && state.api !== '' ? state.api : resolveApi()
   return api.replace(/\/+$/, '') + '/v1'
 }
@@ -507,7 +516,9 @@ const parseCatalogIds = (body) => {
 }
 
 const fetchCatalog = async (state) => {
-  const res = await apiCall('/v1/models', { token: state.token })
+  // The catalogue is read where the route will point: the profile's LLM service when it has one, else the account API.
+  const llm = server().profile.services.llm
+  const res = await apiCall('/v1/models', { token: state.token, base: typeof llm === 'string' ? llm : undefined })
   if (res.status === 401 || res.status === 403) return { ok: false, error: 'catalogue_refuse', status: res.status }
   if (res.status !== 200 || res.body === null) {
     return { ok: false, error: res.status === 0 ? 'reseau' : 'catalogue_indisponible', status: res.status }
@@ -539,6 +550,11 @@ const catalogFingerprint = (state, entries, plan) => JSON.stringify([
 const importCatalog = async (cause, options = {}) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: true, connected: false, status: 'none' }
+  if (server().profile.services.llm === false) {
+    const gone = await removeImportedCatalog(state)
+    if (gone.removed === true) { const next = Object.assign({}, state); delete next.models; writeState(next) }
+    return { ok: true, connected: true, no_llm: true, summary: null }
+  }
   const cat = await fetchCatalog(state)
   if (cat.ok !== true) {
     // Un 401 du catalogue ne déconnecte PAS (même leçon que /v1/me) : la
@@ -555,6 +571,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
     && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan) === catalogFingerprint(state, cat.models, plan)) {
+    if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
   const settingsOut = await writeProviderRoute(state, cat.models)
@@ -573,6 +590,7 @@ const importCatalog = async (cause, options = {}) => {
     reason: settingsOut.wrote === true ? null : (settingsOut.reason || 'settings_absent'),
   }
   writeState(Object.assign({}, state, { models }))
+  if (settingsOut.wrote === true) markApplied()
   return {
     ok: true,
     connected: true,
@@ -650,10 +668,57 @@ const publicModels = (models) => {
 /** Import au démarrage de DSH quand la session est déjà vivante : sans ça, un
  *  harnais relancé n'aurait les modèles qu'après une ouverture de carte. */
 const autoImportAtBoot = (ctx) => {
-  if (isConnected(readState()) !== true) return
-  const kick = () => { void importCatalog('boot').catch(() => {}) }
+  // The registry may have changed while DSH was down: then the previous server's route must go, connected or not.
+  const changed = appliedServerId() !== null && appliedServerId() !== server().profile.id
+  if (changed !== true && isConnected(readState()) !== true) return
+  const kick = () => { void (changed === true ? serverApply() : importCatalog('boot')).catch(() => {}) }
   if (ctx.get('settings') !== undefined && ctx.get('credentials') !== undefined) kick()
   else ctx.inject(['settings', 'credentials'], kick)
+}
+
+/** Which server owns the « kybernos » model route now: the one whose catalogue was imported last. */
+const markApplied = () => {
+  try {
+    mkdirSync(dirname(appliedFile()), { recursive: true, mode: 0o700 })
+    writeFileSync(appliedFile(), JSON.stringify({ id: server().profile.id, at: new Date().toISOString() }) + '\n', { mode: 0o600 })
+  } catch (e) { /* the marker is a convenience: the next apply just cleans nothing */ }
+}
+
+const appliedServerId = () => {
+  try {
+    const marker = JSON.parse(readFileSync(appliedFile(), 'utf8'))
+    return marker !== null && typeof marker === 'object' && typeof marker.id === 'string' ? marker.id : null
+  } catch (e) { return null }
+}
+
+/** GET /kybernos-cloud/server: the active server and the others the registry names. Nothing secret lives in a profile. */
+const serverRoute = async () => {
+  const active = server()
+  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id }, x)), rejected: active.rejected }
+}
+
+/** POST /kybernos-cloud/server/apply: the registry changed (the Select server module wrote it): make DSH follow. What the
+ *  previous server left (the « kybernos » model route and its credential) is removed FIRST, so chat never keeps talking to a
+ *  server the user left; then the new server's catalogue is imported if this DSH is connected to it. Idempotent. */
+const serverApply = async () => {
+  const active = server()
+  const previousId = appliedServerId()
+  let cleaned = false
+  if (previousId !== null && previousId !== active.profile.id) {
+    try {
+      const before = JSON.parse(readFileSync(join(dshHome(), stateFileName({ id: previousId })), 'utf8'))
+      cleaned = (await removeImportedCatalog(before)).removed === true
+    } catch (e) { /* no connection file for it: nothing was imported */ }
+  }
+  markApplied()
+  const out = { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, cleaned, connected: isConnected(readState()) }
+  if (out.connected === true) {
+    const imported = await importCatalog('server', { force: true })
+    out.models = imported.summary !== undefined ? imported.summary : null
+    if (imported.no_llm === true) out.no_llm = true
+    if (imported.ok !== true) out.import_error = imported.error
+  }
+  return out
 }
 
 const modelsRoute = async () => {
@@ -3286,6 +3351,8 @@ const ROUTES = [
   // requis pour la route locale : la liaison est verifiee cote plugin).
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
+  { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
+  { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
   { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, run: modelsSyncRoute },
   // Code de parrainage du compte lié (carte d'invitation du pied de sidebar) :
@@ -3406,7 +3473,7 @@ export function apply(ctx) {
 // Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre
 // surface publique n'est promise.
 export {
-  dshHome, resolveApi, stateFile, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
+  dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).

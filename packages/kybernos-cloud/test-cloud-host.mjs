@@ -505,6 +505,8 @@ try {
     '/kybernos-cloud/members', '/kybernos-cloud/members/invite', '/kybernos-cloud/members/remove',
     // Chats DSH → webapp : annuaire de sessions (métadonnées seulement).
     '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
+    // Console Team: the read-only relay (test-relay.mjs) and the active server (test-server-switch.mjs).
+    '/kybernos-cloud/relay', '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)

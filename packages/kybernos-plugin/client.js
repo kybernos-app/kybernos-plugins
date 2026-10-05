@@ -7041,9 +7041,28 @@ return {
       engine: 'engine', quiz: 'quiz', cards: 'cards', flashcards: 'cards',
       deck: 'deck', exam: 'exam', pdf: 'pdf', sketchnote: 'sketch',
     }
-    // L'app web qui porte la visionneuse. Le plugin est branché sur dev
-    // aujourd'hui (cf. le lien de parrainage) ; prod reste distinguable.
-    const kbStoreWeb = () => 'https://dev.kybernos.app'
+    // The server this DSH talks to (Select server): its web app, its console, its gateway. The built-in Kybernos Cloud is the
+    // answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
+    // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
+    const kbServer = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app' }
+    const kbServerLoad = () => {
+      if (typeof fetch !== 'function') return Promise.resolve(kbServer)
+      return fetch('/kybernos-cloud/server', { credentials: 'same-origin' })
+        .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+        .then((j) => {
+          if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object') {
+            const sv = j.server
+            if (typeof sv.name === 'string' && sv.name !== '') kbServer.name = sv.name
+            if (typeof sv.web === 'string' && sv.web !== '') kbServer.web = sv.web
+            if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
+            kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
+          }
+          return kbServer
+        })
+    }
+    try { void kbServerLoad() } catch (e) { /* no network layer: the defaults stand */ }
+    // The web app that carries the viewer.
+    const kbStoreWeb = () => kbServer.web
 
     const kbStoreArtifacts = async () => {
       try {
@@ -26039,9 +26058,11 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       try { const w = window[g]; if (typeof w === 'string' && w.trim() !== '') return w.trim() } catch (e) { /* pas de window */ }
       return def
     }
-    const KB_WS_CONSOLE = kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', 'https://dev.kybernos.app/workspace-console')
-      + '?gw=' + encodeURIComponent(kbWsCfg('kybernos.ws.gateway', 'KYBERNOS_WS_GATEWAY', 'https://api.dev2.kybernos.app'))
-    const kbWsOrigin = () => { try { return new URL(KB_WS_CONSOLE).origin } catch (e) { return '*' } }
+    // The console of the ACTIVE server, read at each use (the server may change between two openings). `gw` is the admin
+    // gateway of the console's key mode, which goes away with the key hand-off: a server that names none gets none.
+    const kbWsConsole = () => kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)
+      + '?gw=' + encodeURIComponent(kbWsCfg('kybernos.ws.gateway', 'KYBERNOS_WS_GATEWAY', kbServer.gateway))
+    const kbWsOrigin = () => { try { return new URL(kbWsConsole()).origin } catch (e) { return '*' } }
     // ── Le thème de DSH SUIT l'iframe (02/10) ─────────────────────────────
     // La console IGNORAIT le thème (aucun `theme` dans son HTML) : sans ce
     // pont elle reste claire au milieu d'un DSH sombre. Le signal est
@@ -26069,7 +26090,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       } catch (e) { /* document indisponible */ }
       return false
     }
-    const kbConsoleUrl = (dark) => KB_WS_CONSOLE + '&theme=' + (dark === true ? 'dark' : 'light')
+    const kbConsoleUrl = (dark) => kbWsConsole() + '&theme=' + (dark === true ? 'dark' : 'light')
     // La clé admin vient de la route hôte same-origin (settings.json, champ
     // wsAdminKey) — jamais codée en dur ici. Sans clé, l'iframe se charge
     // quand même ; le pont de données ne prompt qu'au 401 réel.
@@ -26163,14 +26184,16 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         setReach('checking')
         const ctl = new AbortController()
         const minuteur = setTimeout(() => ctl.abort(), 7000)
-        fetch(KB_WS_CONSOLE, { mode: 'no-cors', cache: 'no-store', signal: ctl.signal })
+        fetch(kbWsConsole(), { mode: 'no-cors', cache: 'no-store', signal: ctl.signal })
           .then(() => setReach('ok'), () => setReach('down'))
           .then(() => clearTimeout(minuteur))
       }, [])
-      React.useEffect(() => { probe() }, [])
+      // Ask the cloud plugin which server is active BEFORE probing its console: opening « Teams settings » after a server switch
+      // must reach the new server's console, not the one loaded at startup.
+      React.useEffect(() => { kbServerLoad().then(() => probe()) }, [])
       if (reach !== 'ok') {
-        let hote = KB_WS_CONSOLE
-        try { hote = new URL(KB_WS_CONSOLE).host } catch (e) { /* unreadable URL: we display it as is */ }
+        let hote = kbWsConsole()
+        try { hote = new URL(kbWsConsole()).host } catch (e) { /* unreadable URL: we display it as is */ }
         return h('div', { className: 'kbwsif' },
           reach === 'checking'
             ? h('div', { className: 'kbwsif-wait', 'aria-busy': 'true' })
@@ -29524,7 +29547,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     // le navigateur (URL configurable `kybernos.cloud.url`), DSH ne saisit ni ne stocke rien.
     // (04/10) Default = the hosted SaaS, like the workspace console: `localhost:8081` only exists
     // on the machine that runs the SaaS in dev (the Security / Legal notices links were dead elsewhere).
-    const kbacCloudBase = () => kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', 'https://dev.kybernos.app').replace(/\/+$/, '')
+    const kbacCloudBase = () => kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', kbServer.web).replace(/\/+$/, '')
     // Ouvre une autre section des Réglages en cliquant sa cellule du nav (le shell reste maître du DOM).
     const kbOpenSettingsSection = (noms) => {
       try {

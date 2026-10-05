@@ -72,7 +72,7 @@ console.log('the wiring (drift tests)')
   check('the helper is imported from the module next to it', host.indexOf("from './ws-console-key.mjs'") > 0)
   check('the page posts the key to the console\'s exact origin, not to *', page.indexOf('postMessage({ kbConsoleKey: keyRef.current }, kbWsOrigin())') > 0 && !/kbConsoleKey[^\n]{0,80}'\*'/.test(page))
   check('the page only accepts the console\'s ready signal from its own iframe', page.indexOf('ev.source !== fr.contentWindow') > 0)
-  const urlLine = page.slice(page.indexOf("const KB_WS_CONSOLE = "), page.indexOf("const kbWsOrigin"))
+  const urlLine = page.slice(page.indexOf("const kbWsConsole = "), page.indexOf("const kbWsOrigin"))
   check('the console URL carries the gateway and no key', urlLine.indexOf('?gw=') > 0 && !/[?&]key=/.test(urlLine))
   check('the page asks the route with same-origin credentials only', page.indexOf("fetch('/kybernos/ws-console-key', { credentials: 'same-origin' })") > 0)
 }
