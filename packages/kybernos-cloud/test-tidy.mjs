@@ -145,6 +145,23 @@ setTimeout(() => outer.abort(), 20)
 assert.equal((await askModel(slow, 'a/b', 'q', { timeoutMs: 5000, signal: outer.signal })).error, 'modele_en_erreur', 'the caller can stop it')
 ok('a call is bounded, never throws, splits route/id, names its purpose and reports every failure by a code')
 
+// the engine is case-sensitive about model ids
+const caseSensitive = (calls) => ({ stream: (o) => (async function* () { calls.push(o.provider + '/' + o.model); if (o.model !== o.model.toLowerCase()) { yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UNKNOWN_MODEL', message: 'pi-ai provider "' + o.provider + '" has no configured model "' + o.model + '"' } } }; return } yield text('{"ok":1}'); yield fin('stop') })() })
+const seenIds = []
+const lowered = await askModel(caseSensitive(seenIds), 'zai-coding-cn/GLM-5.3-Flash', 'q')
+assert.deepEqual([lowered.text, lowered.usedModel, seenIds], ['{"ok":1}', 'zai-coding-cn/glm-5.3-flash', ['zai-coding-cn/GLM-5.3-Flash', 'zai-coding-cn/glm-5.3-flash']], 'an id the engine does not know is retried once, in lower case')
+const seenAlready = []
+const stillUnknown = await askModel({ stream: (o) => (async function* () { seenAlready.push(o.model); yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UNKNOWN_MODEL', message: 'no model ' + o.model } } } })() }, 'zai/glm-9', 'q')
+assert.deepEqual([stillUnknown.error, seenAlready.length], ['modele_en_erreur', 1], 'an id that is already lower case is not retried')
+const seenBoth = []
+const noLuck = await askModel({ stream: (o) => (async function* () { seenBoth.push(o.model); yield { type: 'finish', reason: { kind: 'error', failure: { code: 'UNKNOWN_MODEL', message: 'no model ' + o.model } } } })() }, 'zai/GLM-9', 'q')
+assert.deepEqual([noLuck.error, seenBoth], ['modele_en_erreur', ['GLM-9', 'glm-9']], 'one retry only, and the first failure is the one reported')
+assert.match(noLuck.detail, /UNKNOWN_MODEL/)
+const seenOther = []
+await askModel({ stream: (o) => (async function* () { seenOther.push(o.model); yield { type: 'finish', reason: { kind: 'error', failure: { code: 'SERVER', message: 'boom' } } } })() }, 'zai/GLM-9', 'q')
+assert.equal(seenOther.length, 1, 'only an unknown model is retried, never a server error')
+ok('an UNKNOWN_MODEL answer is retried once with the id in lower case, nothing else is retried')
+
 console.log('judging pairs')
 const mk = (id, content, extra = {}) => ({ id, content, createdAt: '2026-09-10 10:00:00+00:00', pinned: false, bucket: 'fact', ...extra })
 const items = [
