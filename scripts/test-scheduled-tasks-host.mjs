@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CORE-BEGIN([\s\S]*?)\/\/ KB-TASKS-CORE-END/)
 if (m === null) { console.error('KB-TASKS-CORE block not found in index.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger, kbPickAskPreset }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger, kbPickAskPreset, kbMcpGate }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -504,6 +504,55 @@ eq('binary content is not dumped into the prompt', pl('\u0000\u0001abc', 'applic
   eq('ask: a spec that is not an object is skipped', mod.kbPickAskPreset({ names: ['x'], resolve: () => null }), null)
   eq('ask: a service with no names gives null instead of throwing', mod.kbPickAskPreset({ resolve: () => std['workspace-write'] }), null)
   eq('ask: a throwing names getter gives null', mod.kbPickAskPreset({ get names() { throw new Error('boom') }, resolve: () => std['workspace-write'] }), null)
+}
+
+/* ── Which MCP calls "Ask me first" has to stop ────────────────────────────── */
+{
+  const g = (name, args) => mod.kbMcpGate(name, args)
+  const multi = (...slugs) => ({ sync_response_to_workbench: false, thought: 't', tools: slugs.map((s) => ({ tool_slug: s, arguments: { x: 1 } })) })
+  const composio = 'mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL'
+
+  // What the live sessions of 2026-10-05 actually called
+  eq('gate: Composio calendar list is a read', g(composio, multi('GOOGLECALENDAR_EVENTS_LIST')), null)
+  eq('gate: Composio gmail labels is a read', g(composio, multi('GMAIL_LIST_LABELS')), null)
+  eq('gate: Stripe read is a read', g('mcp__stripe__stripe_api_read', {}), null)
+  eq('gate: Stripe write is gated', g('mcp__stripe__stripe_api_write', {}).what, 'stripe / stripe_api_write')
+
+  // Composio: judged on the actions it carries
+  eq('gate: GMAIL_SEND_EMAIL is gated and named', g(composio, multi('GMAIL_SEND_EMAIL')).what, 'GMAIL_SEND_EMAIL')
+  eq('gate: one write among reads gates the call and names only the writes', g(composio, multi('GMAIL_LIST_LABELS', 'GMAIL_SEND_EMAIL', 'GMAIL_DELETE_MESSAGE')).what, 'GMAIL_SEND_EMAIL, GMAIL_DELETE_MESSAGE')
+  for (const slug of ['GMAIL_CREATE_EMAIL_DRAFT', 'GMAIL_REPLY_TO_THREAD', 'GMAIL_SEND_DRAFT', 'GMAIL_DELETE_MESSAGE', 'GMAIL_MODIFY_THREAD_LABELS', 'GOOGLECALENDAR_CREATE_EVENT', 'GOOGLECALENDAR_DELETE_EVENT', 'GOOGLESHEETS_BATCH_UPDATE', 'GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND', 'SLACK_SEND_MESSAGE', 'GITHUB_CREATE_AN_ISSUE', 'GOOGLEDRIVE_DELETE_FILE', 'NOTION_UPDATE_PAGE', 'STRIPE_CREATE_REFUND']) {
+    eq('gate: ' + slug + ' is gated', g(composio, multi(slug)) !== null, true)
+  }
+  for (const slug of ['GMAIL_FETCH_EMAILS', 'GMAIL_GET_PROFILE', 'GMAIL_LIST_THREADS', 'GOOGLECALENDAR_GET_CURRENT_DATE_TIME', 'GOOGLECALENDAR_FIND_FREE_SLOTS', 'GOOGLESHEETS_BATCH_GET', 'GOOGLESHEETS_GET_SPREADSHEET_INFO', 'GOOGLEDRIVE_FIND_FILE', 'AIRTABLE_LIST_BASES', 'OUTLOOK_QUERY_EMAILS', 'SLACK_FIND_CHANNELS']) {
+    eq('gate: ' + slug + ' passes as a read', g(composio, multi(slug)), null)
+  }
+  eq('gate: an action name with no known word is not a read', g(composio, multi('FOO_BAR_BAZ')) !== null, true)
+  eq('gate: a write word beats a read word (get-or-create)', g(composio, multi('X_GET_OR_CREATE_THING')) !== null, true)
+  eq('gate: a read word with a longer write word next to it is still a write (UPDATE_LIST)', g(composio, multi('X_UPDATE_LIST')) !== null, true)
+  eq('gate: arguments as a JSON string are read too', g(composio, JSON.stringify(multi('GMAIL_SEND_EMAIL'))).what, 'GMAIL_SEND_EMAIL')
+  eq('gate: a single-call variant with tool_slug is judged on it', g('mcp__composio__COMPOSIO_EXECUTE_TOOL', { tool_slug: 'GMAIL_SEND_EMAIL' }).what, 'GMAIL_SEND_EMAIL')
+  eq('gate: unreadable arguments are gated, not allowed', g(composio, null) !== null && g(composio, 'not json') !== null && g(composio, {}) !== null && g(composio, { tools: [] }) !== null && g(composio, { tools: [{}] }) !== null && g(composio, { tools: [{ tool_slug: 7 }] }) !== null, true)
+  eq('gate: the unreadable case says so', g(composio, {}).what, 'COMPOSIO_MULTI_EXECUTE_TOOL (its actions could not be read)')
+  for (const t of ['COMPOSIO_SEARCH_TOOLS', 'COMPOSIO_GET_TOOL_SCHEMAS', 'COMPOSIO_SEARCH_SKILLS', 'COMPOSIO_USE_SKILL', 'COMPOSIO_WAIT_FOR_CONNECTIONS']) eq('gate: ' + t + ' passes', g('mcp__composio__' + t, {}), null)
+  for (const t of ['COMPOSIO_REMOTE_BASH_TOOL', 'COMPOSIO_REMOTE_WORKBENCH', 'COMPOSIO_MANAGE_CONNECTIONS', 'COMPOSIO_MANAGE_SKILL', 'COMPOSIO_SUBMIT_FEEDBACK']) eq('gate: ' + t + ' is gated', g('mcp__composio__' + t, {}).what, t)
+
+  // Other servers: by tool name
+  for (const [n, want] of [['mcp__stripe__stripe_api_search', null], ['mcp__stripe__stripe_api_details', null], ['mcp__stripe__get_stripe_account_info', null], ['mcp__stripe__search_stripe_documentation', null], ['mcp__stripe__stripe_analytics', null], ['mcp__stripe__stripe_implementation_planner', null],
+    ['mcp__horloge__now', null], ['mcp__lsp__lsp_hover', null], ['mcp__lsp__lsp_diagnostics', null], ['mcp__zcode__zcode_models', null], ['mcp__zcode__zcode_status', null],
+    ['mcp__stripe__send_stripe_feedback', 'stripe / send_stripe_feedback'], ['mcp__lsp__lsp_format', 'lsp / lsp_format'], ['mcp__zcode__zcode_run', 'zcode / zcode_run'],
+    ['mcp__playwright-mcp__browser_click', 'playwright-mcp / browser_click'], ['mcp__playwright-mcp__browser_fill_form', 'playwright-mcp / browser_fill_form'], ['mcp__playwright-mcp__browser_evaluate', 'playwright-mcp / browser_evaluate'],
+    ['mcp__playwright-mcp__browser_navigate', 'playwright-mcp / browser_navigate'], ['mcp__horloge__secret_probe', 'horloge / secret_probe']]) {
+    const got = g(n, {})
+    eq('gate: ' + n, got === null ? null : got.what, want)
+  }
+  eq('gate: camelCase tool names are split (createIssue)', g('mcp__x__createIssue', {}) !== null, true)
+  eq('gate: camelCase read (getIssue)', g('mcp__x__getIssue', {}), null)
+  eq('gate: a server name with a dash and a tool with several underscores', g('mcp__my-server__list_all_items', {}), null)
+
+  // Not MCP: the sandbox's business
+  for (const n of ['bash', 'str_replace_editor', 'read_file', 'web_fetch', 'mcp_not_really', 'mcp__', 'mcp__onlyserver', '', undefined, null, 42]) eq('gate: ' + String(n) + ' is not an MCP tool, left alone', g(n, {}), null)
+  eq('gate: never throws on hostile arguments', (() => { const o = {}; Object.defineProperty(o, 'tools', { get() { throw new Error('boom') } }); return g(composio, o) !== null })(), true)
 }
 
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')

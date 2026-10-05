@@ -569,6 +569,75 @@ const kbPickAskPreset = (presets) => {
   }
   return first
 }
+// What "ask" has to stop: an MCP tool call that may change something outside the session (send,
+// write, delete, pay). DSH does not gate MCP calls and its MCP client gives no read-only hint
+// (measured: a Stripe write ran under `ask` with no request), so an automation set to `ask` is
+// guarded here, by name. A call goes through only when it is provably a read; a write, or a name
+// this does not understand, waits for approval. Both tables are lower-case words of the tool name.
+const KB_MCP_READ_WORDS = new Set(['get', 'list', 'read', 'search', 'find', 'fetch', 'query', 'lookup', 'count', 'describe', 'details',
+  'detail', 'info', 'status', 'view', 'show', 'inspect', 'retrieve', 'preview', 'now', 'schema', 'schemas', 'docs', 'documentation',
+  'analytics', 'whoami', 'hover', 'definition', 'definitions', 'references', 'symbols', 'diagnostics', 'models', 'check', 'snapshot',
+  'screenshot', 'plan', 'planner'])
+const KB_MCP_WRITE_WORDS = new Set(['send', 'create', 'update', 'delete', 'remove', 'write', 'post', 'put', 'patch', 'add', 'append',
+  'insert', 'upsert', 'move', 'rename', 'trash', 'untrash', 'archive', 'unarchive', 'label', 'unlabel', 'reply', 'forward', 'share',
+  'unshare', 'invite', 'upload', 'publish', 'unpublish', 'pay', 'charge', 'refund', 'cancel', 'close', 'reopen', 'merge', 'edit',
+  'modify', 'set', 'apply', 'execute', 'exec', 'run', 'click', 'fill', 'type', 'press', 'drag', 'drop', 'submit', 'select', 'import',
+  'export', 'copy', 'duplicate', 'clear', 'reset', 'revoke', 'grant', 'assign', 'approve', 'reject', 'confirm', 'schedule', 'book',
+  'order', 'buy', 'sell', 'transfer', 'capture', 'void', 'sync', 'install', 'uninstall', 'enable', 'disable', 'activate', 'deactivate',
+  'subscribe', 'unsubscribe', 'mark', 'star', 'unstar', 'pin', 'unpin', 'snooze', 'block', 'unblock', 'report', 'empty', 'purge',
+  'restore', 'rollback', 'deploy', 'start', 'stop', 'kill', 'restart', 'evaluate', 'format', 'save', 'store', 'commit', 'push'])
+// Composio's own tools: the ones that only look things up. Everything else of its (connections, skills, feedback, and above all the
+// remote bash and workbench, which run code with the connected accounts) is gated; EXECUTE is judged on the action it carries.
+const KB_COMPOSIO_READ_META = new Set(['COMPOSIO_SEARCH_TOOLS', 'COMPOSIO_GET_TOOL_SCHEMAS', 'COMPOSIO_SEARCH_SKILLS', 'COMPOSIO_USE_SKILL', 'COMPOSIO_WAIT_FOR_CONNECTIONS'])
+const kbNameWords = (name) => String(name).replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/).filter((w) => w !== '')
+// A write word anywhere wins; with none, one read word is enough; no known word at all is not a read.
+const kbIsReadName = (name) => {
+  let read = false
+  for (const w of kbNameWords(name)) {
+    if (KB_MCP_WRITE_WORDS.has(w) === true) return false
+    if (KB_MCP_READ_WORDS.has(w) === true) read = true
+  }
+  return read
+}
+// The Composio actions a (multi-)execute call carries, or null when they cannot be read.
+const kbComposioSlugs = (args) => {
+  let a = args
+  if (typeof a === 'string') { try { a = JSON.parse(a) } catch (e) { return null } }
+  if (a === null || typeof a !== 'object') return null
+  const slugs = []
+  if (Array.isArray(a.tools) === true) {
+    for (const t of a.tools) {
+      if (t === null || typeof t !== 'object' || typeof t.tool_slug !== 'string' || t.tool_slug === '') return null
+      slugs.push(t.tool_slug)
+    }
+  }
+  if (a.tool_slug !== undefined) {
+    if (typeof a.tool_slug !== 'string' || a.tool_slug === '') return null
+    slugs.push(a.tool_slug)
+  }
+  return slugs.length === 0 ? null : slugs
+}
+// null: let it through (not an MCP tool, or provably a read). Otherwise { what }: what to ask about.
+// Never throws: a call this cannot read is a call to ask about.
+const kbMcpGate = (toolName, args) => {
+  try {
+    const m = /^mcp__(.+?)__(.+)$/.exec(String(toolName))
+    if (m === null) return null // a built-in tool: the sandbox decides
+    const server = m[1]
+    const tool = m[2]
+    if (tool.indexOf('COMPOSIO_') === 0) {
+      if (KB_COMPOSIO_READ_META.has(tool) === true) return null
+      if (tool.indexOf('EXECUTE') >= 0) {
+        const slugs = kbComposioSlugs(args)
+        if (slugs === null) return { what: tool + ' (its actions could not be read)' }
+        const writes = slugs.filter((x) => kbIsReadName(x) === false)
+        return writes.length === 0 ? null : { what: writes.join(', ') }
+      }
+      return { what: tool }
+    }
+    return kbIsReadName(tool) === true ? null : { what: server + ' / ' + tool }
+  } catch (e) { return { what: String(toolName) } }
+}
 // KB-TASKS-CORE-END
 
 // ── minimal YAML readers (only the fields this view needs) ──────────────────
@@ -2389,6 +2458,40 @@ function boot(ctx) {
         return first !== null && typeof first === 'object' ? (str(first.id) || str(first.workspaceId)) : null
       } catch (e) { return null }
     }
+    // The sessions this plugin started for an automation set to `ask`: the MCP gate below applies to them
+    // and to the sub-agents they spawn (a child session records its parent in `header.parentSession`),
+    // never to a session a person opened.
+    // Kept in memory: a run does not outlive a restart. Capped so a long-lived host cannot grow it without end.
+    const kbAskSessions = new Set()
+    const kbRememberAskSession = (id) => { kbAskSessions.add(id); if (kbAskSessions.size > 500) kbAskSessions.delete(kbAskSessions.values().next().value) }
+    const kbIsAskAgent = (agent) => {
+      if (agent === undefined || agent === null) return false
+      const store = ctx.get('sessions')
+      let id = agent.id
+      for (let i = 0; i < 8 && typeof id === 'string'; i += 1) {
+        if (kbAskSessions.has(id) === true) return true
+        const session = store !== undefined && store !== null && typeof store.get === 'function' ? store.get(id) : undefined
+        id = session !== undefined && session !== null && session.header !== undefined && session.header !== null ? session.header.parentSession : undefined
+      }
+      return false
+    }
+    try {
+      if (typeof ctx.on === 'function') {
+        ctx.on('tools/pre-execute', async (exec, next) => {
+          let gate = null
+          try { gate = kbAskSessions.size > 0 && exec !== null && typeof exec === 'object' && kbIsAskAgent(exec.agent) === true ? kbMcpGate(exec.name, exec.arguments) : null } catch (e) { gate = null }
+          if (gate === null) return next()
+          return {
+            kind: 'ask',
+            reason: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
+            displayReason: {
+              en: 'Automation run: ' + gate.what + ' may change something outside this session (send, write, delete, pay). Allow it?',
+              fr: 'Automation : ' + gate.what + ' peut modifier quelque chose en dehors de cette session (envoyer, écrire, supprimer, payer). Autoriser ?',
+            },
+          }
+        })
+      }
+    } catch (e) { console.error('[kybers] automations: MCP approval gate not installed (' + String((e && e.message) || e) + ')') }
     const kbFireTask = async (task) => {
       const sc = ctx.get('sessionController')
       if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') {
@@ -2455,6 +2558,7 @@ function boot(ctx) {
           throw new Error('approvals "ask" could not be applied (' + (askPreset === null ? 'no permission preset asks for approval' : 'session not found') + '): the run was not started')
         }
         presetsSvc.set(liveSession, askPreset)
+        kbRememberAskSession(sessionId)
       }
       // Laisse la sélection durable se propager avant l'assemblage du tour.
       await new Promise((resolve) => setTimeout(resolve, 750))

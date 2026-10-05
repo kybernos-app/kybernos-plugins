@@ -99,9 +99,17 @@ derivation, widget bridge, gateway watcher, voice and TTS, tools catalog, preset
 
 - **Automation approvals.** An automation set to `ask` (the default; anything but an explicit `auto`) starts its session on the first configured
   permission preset that asks for approval (`workspace-write` in the stock table), set before the prompt is sent; if the host cannot do that
-  the run is not started and the reason is on the run. `auto` leaves the profile default, so it never widens permissions. What DSH gates
-  is the sandbox (a write outside the workspace, a sandbox escape): measured live, an MCP tool call (a Stripe write, and so a Composio
-  `GMAIL_SEND_EMAIL`) is **not** asked about, even under `ask`. An automation that must not send or spend has to say so in its prompt.
+  the run is not started and the reason is on the run. `auto` leaves the profile default, so it never widens permissions. DSH itself gates only
+  the sandbox: it does not ask before an MCP tool acts (measured: a Stripe write ran under `ask` with no request). So the plugin adds a
+  `tools/pre-execute` listener for the sessions it started for an `ask` automation and for their sub-agents (a child session records its
+  parent in `header.parentSession`); a session a person opened is never touched. The listener turns an MCP call into an approval request
+  unless the call is provably a read (`kbMcpGate`, in the tested core block): the engine gives no read-only hint for MCP tools, so it works on
+  names. A name with a write word (send, create, delete, update, pay, click...) is gated, one with only read words (get, list, search, find...) goes
+  through, and a name it does not understand is gated. Composio is judged on the actions inside `COMPOSIO_MULTI_EXECUTE_TOOL`
+  (`GMAIL_SEND_EMAIL` asks, `GMAIL_LIST_LABELS` does not); its remote bash and workbench, which run code with the connected accounts, always ask.
+  The request names the action and never carries the arguments (they can hold personal data). The run then **waits** in its session until
+  someone answers (the DSH sidebar shows "Waiting for approval"; Reject makes the agent see "the user rejected tool"); nothing times it out.
+  Not covered: built-in tools (the sandbox owns them), and any tool whose name hides what it does.
 - **Public surface.** DSH serves plugin routes before its own auth (comment in `index.js`). `widget.js`, `widget/api/config`
   (GET), `message`, `account` and `history-delete` are public with CORS `*`; with a widget enabled, visitor text becomes a
   `session/prompt` in a live DSH session (5 s bridge tick). The webhook secret travels in the query string, and `ws-console-key`

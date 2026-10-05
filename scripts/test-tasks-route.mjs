@@ -51,7 +51,8 @@ const permissionPresets = {
   resolve: (n) => { if (perm.table[n] === undefined) throw new Error('unknown preset'); return perm.table[n] },
   set: (session, name) => { if (perm.failSet === true) throw new Error('preset refused'); perm.log.push('set:' + session.id + ':' + name) },
 }
-const liveSessions = { get: (id) => (id.indexOf('sess-') === 0 ? { id } : undefined) }
+const parents = {} // child session id -> parent session id, what a sub-agent's header records
+const liveSessions = { get: (id) => (id.indexOf('sess-') === 0 || parents[id] !== undefined ? { id, header: { id, parentSession: parents[id] } } : undefined) }
 const services = {
   fs: {},
   webServer: { register: (r) => { routes[r.path] = r.handler; return () => {} } },
@@ -67,7 +68,8 @@ const services = {
 const quiet = []
 const realErr = console.error; const realLog = console.log
 console.error = (...a) => quiet.push(a.join(' ')); console.log = (...a) => quiet.push(a.join(' '))
-mod.apply({ get: (n) => services[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: () => {}, scope: {} })
+const listeners = {}
+mod.apply({ get: (n) => services[n], inject: () => {}, effect: (fn) => { try { return fn() } catch (e) { return undefined } }, on: (name, fn) => { (listeners[name] = listeners[name] || []).push(fn); return () => {} }, scope: {} })
 await new Promise((r) => realSetTimeout(r, 50))
 console.error = realErr; console.log = realLog
 
@@ -336,6 +338,52 @@ writeFileSync(file, good)
   const rh = await call('POST', '{"type":"x"}', { origin: '', 'content-type': 'application/json' }, '/kybernos/hooks?hook=' + g.hookId + '&secret=' + g.secret)
   eq('a webhook run of an ask task also gets the preset before the prompt', rh.status + ':' + perm.log.join(' > '), '202:set:' + rh.json.sessionId + ':workspace-write > prompt:' + rh.json.sessionId)
   reset()
+}
+
+/* ── The MCP gate: only the sessions of an ask automation, and their sub-agents ── */
+{
+  eq('the plugin installs one tools/pre-execute listener', (listeners['tools/pre-execute'] || []).length, 1)
+  const gate = listeners['tools/pre-execute'][0]
+  const ALLOW = { kind: 'allow' }
+  const run = (agent, name, args) => gate({ name, arguments: args, agent, callId: 'c1' }, async () => ALLOW)
+  const write = ['mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL', { tools: [{ tool_slug: 'GMAIL_SEND_EMAIL', arguments: {} }] }]
+  const read = ['mcp__composio__COMPOSIO_MULTI_EXECUTE_TOOL', { tools: [{ tool_slug: 'GMAIL_LIST_LABELS', arguments: {} }] }]
+  const mkTask = async (name, approvals) => (await api({ action: 'create', task: task({ name, approvals, active: false, schedule: { mode: 'webhook', tz: 'Europe/Paris' } }) })).json.task
+
+  eq('before any ask run, nothing is gated', (await run({ id: 'sess-x' }, ...write)).kind, 'allow')
+
+  const ask = await mkTask('gated ask task', 'ask')
+  const r = await api({ action: 'run-now', id: ask.id })
+  const sid = r.json.sessionId
+  const d = await run({ id: sid }, ...write)
+  eq('an ask run: an MCP write is turned into an approval request', d.kind, 'ask')
+  eq('...that names the action and has a French text', d.reason.includes('GMAIL_SEND_EMAIL') && d.displayReason.en === d.reason && d.displayReason.fr.includes('GMAIL_SEND_EMAIL'), true)
+  eq('...and carries no arguments, which can hold personal data', JSON.stringify(d).includes('arguments'), false)
+  eq('an ask run: an MCP read goes through', (await run({ id: sid }, ...read)).kind, 'allow')
+  eq('an ask run: a built-in tool is not this gate\'s business', (await run({ id: sid }, 'bash', { command: 'ls' })).kind, 'allow')
+  eq('a sub-agent of the ask run is gated too (parentSession)', (parents['child-1'] = sid, await run({ id: 'child-1' }, ...write)).kind, 'ask')
+  eq('...and a grandchild', (parents['child-2'] = 'child-1', await run({ id: 'child-2' }, ...write)).kind, 'ask')
+  eq('a session nobody started for an automation is never gated', (await run({ id: 'sess-person' }, ...write)).kind, 'allow')
+  eq('a sub-agent of such a session is not gated either', (parents.c = 'sess-person', await run({ id: 'c' }, ...write)).kind, 'allow')
+  eq('a call with no agent is left alone', (await run(undefined, ...write)).kind, 'allow')
+  eq('a hostile exec does not throw', (await gate(null, async () => ALLOW)).kind, 'allow')
+  eq('a parentSession loop stops', (parents.loopa = 'loopb', parents.loopb = 'loopa', await run({ id: 'loopa' }, ...write)).kind, 'allow')
+
+  const auto = await mkTask('gated auto task', 'auto')
+  const ra = await api({ action: 'run-now', id: auto.id })
+  eq('an auto run is never gated', (await run({ id: ra.json.sessionId }, ...write)).kind, 'allow')
+
+  // A run that could not get its preset never started, so it must not be remembered either
+  perm.failSet = true
+  const rf = await api({ action: 'run-now', id: ask.id })
+  perm.failSet = false
+  eq('a refused ask run did not start', rf.json.ok, false)
+  eq('...and its session is not remembered', (await run({ id: 'sess-' + sessions.created }, ...write)).kind, 'allow')
+
+  // Several runs in a row: each new ask session is remembered
+  let last = null
+  for (let i = 0; i < 3; i += 1) last = (await api({ action: 'run-now', id: ask.id })).json.sessionId
+  eq('the latest ask session is gated', (await run({ id: last }, ...write)).kind, 'ask')
 }
 
 /* ── Webhooks while no session service is mounted: the events wait for the page ── */
