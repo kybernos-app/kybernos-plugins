@@ -326,8 +326,17 @@ const fakeCredentials = {
 let settingsEnabled = true
 // Service llm pilotable : la capture en a besoin pour extraire des faits.
 let llmEnabled = false
+// When `llmScript` is set it answers the tidy-up's questions (purpose « kybernos-tidy ») and records them.
+let llmScript = null
+const llmCalls = []
 const fakeLlm = {
-  stream: () => (async function* () {
+  stream: (o) => (async function* () {
+    if (llmScript !== null && o !== undefined && o.purpose === 'kybernos-tidy') {
+      llmCalls.push(o)
+      yield { type: 'text-delta', text: llmScript(o.messages[0].content[0].text) }
+      yield { type: 'finish', reason: { kind: 'stop' } }
+      return
+    }
     yield { type: 'text-delta', text: JSON.stringify({ memories: [{ content: 'prefere le francais', kind: 'preference' }] }) }
   })(),
 }
@@ -431,7 +440,7 @@ try {
     // Page Memory & Lessons learned : liste paginee/filtree et reglages.
     '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
     '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run',
-    '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo',
+    '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/tidy/settings',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
     // Code de parrainage du compte (carte d'invitation du pied de sidebar).
     '/kybernos-cloud/referral',
@@ -1370,6 +1379,8 @@ try {
 
   const noScan = await hit('/kybernos-cloud/memory/tidy', 'GET')
   assert.deepEqual([noScan.body.ok, noScan.body.groups, noScan.body.scannedAt], [true, [], null], 'before any scan: nothing to show')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy', 'GET')).body.settings.mode, 'auto', 'by default a run merges the close matches by itself')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/settings', 'POST', undefined, { mode: 'ask' })).body.settings.mode, 'ask', 'this section looks first: ask mode')
   const td_writesBefore = seen.writes.length
   const scanned = await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
   assert.equal(scanned.body.ok, true)
@@ -1507,6 +1518,193 @@ try {
   memories.splice(0, memories.length, ...tidyKept)
   await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
   ok('tidy : l archive de plus de 30 jours est oubliee, une demande de plus de 50 suppressions est refusee en bloc')
+
+  // 11k. Tidy up, second half : les reglages, ce qui se fait SANS demander (>= 80 %), le planificateur, et le Study model.
+  const tk_url = (suffix) => '/kybernos-cloud/memory/tidy' + suffix
+  const tk_settingsFile = join(stateDir, 'kybernos-settings.json')
+  process.env.KYBERNOS_SETTINGS_FILE = tk_settingsFile
+  const tk_sideFile = statePath.replace(/\.json$/, '') + '-tidy.json'
+  const tk_mem = (content, extra = {}) => tm(content, extra)
+  const tk_ids = () => memories.map((m) => m.id)
+  const tk_deleted = (from) => seen.writes.slice(from).filter((w) => w.method === 'DELETE').map((w) => Number(w.id))
+
+  // settings: validated, all or nothing, private
+  assert.deepEqual((await hit(tk_url('/settings'), 'POST', undefined, { mode: 'auto', schedule: 'weekly', brain: false })).body.settings, { mode: 'auto', schedule: 'weekly', brain: false })
+  for (const bad of [{ mode: 'yolo' }, { schedule: 'hourly' }, { brain: 'yes' }, { mode: 'ask', other: 1 }, {}, null]) assert.equal((await hit(tk_url('/settings'), 'POST', undefined, bad)).body.ok, false, JSON.stringify(bad))
+  assert.equal((await hit(tk_url('/settings'), 'POST', undefined, { mode: 'ask', brain: 'yes' })).body.error, 'valeur_invalide')
+  assert.equal((await hit(tk_url(''), 'GET')).body.settings.mode, 'auto', 'a refused patch changed nothing')
+  assert.equal(statSync(tk_sideFile).mode & 0o777, 0o600, 'the settings sit in the tidy state, private')
+  assert.equal((await hit(tk_url('/settings'), 'GET')).status, 405)
+  assert.equal((await hit(tk_url('/settings'), 'POST', 'https://evil.example', { mode: 'ask' })).status, 403)
+  ok('tidy : reglages valides ou refuses en bloc, prives, meme origine')
+
+  // without asking: the local groups at 80 % and over, only
+  memories.splice(0)
+  const tk_a1 = tk_mem("Fuseau horaire de l'utilisateur : Europe/Paris (à utiliser pour interpréter les dates et heures non qualifiées)", { created_at: '2026-09-01 10:00:00+00:00' })
+  const tk_a2 = tk_mem("Fuseau horaire de l'utilisateur : Europe/Paris (interpréter les dates et heures non qualifiées dans ce fuseau).", { created_at: '2026-09-05 10:00:00+00:00' })
+  const tk_a3 = tk_mem("Fuseau horaire de l'utilisateur : Europe/Paris (interpréter les dates/heures non qualifiées dans ce fuseau)", { created_at: '2026-09-09 10:00:00+00:00' })
+  const tk_c1 = tk_mem('Never commit the env files of the project to the repository because secrets leak from there', { created_at: '2026-09-02 10:00:00+00:00' })
+  const tk_c2 = tk_mem('Never commit the env files of the project to the repository', { created_at: '2026-09-03 10:00:00+00:00' })
+  const tk_p1 = tk_mem('The dev server listens on port 3000 for the whole project', { created_at: '2026-08-01 10:00:00+00:00' })
+  const tk_p2 = tk_mem('The dev server listens on port 3080 for the whole project', { created_at: '2026-09-20 10:00:00+00:00' })
+  const tk_n1 = tk_mem('Do not commit .env files to the repository', { created_at: '2026-08-02 10:00:00+00:00' })
+  const tk_n2 = tk_mem('Commit .env files to the repository', { created_at: '2026-09-01 10:00:00+00:00' })
+  const tk_lone = tk_mem('Prefers short answers in French')
+  assert.equal((await hit(tk_url('/settings'), 'POST', undefined, { mode: 'ask' })).body.settings.mode, 'ask')
+  const tk_w0 = seen.writes.length
+  const tk_asked = await hit(tk_url('/scan'), 'POST')
+  assert.equal(tk_asked.body.auto.groups, 0, 'ask mode: a scan merges nothing')
+  assert.equal(seen.writes.length, tk_w0)
+  assert.equal(tk_asked.body.groups.length, 2, 'the timezones, and the one-inside-the-other pair')
+  assert.equal(tk_asked.body.unclear, 2, 'the port and the negation are left for judgement, not grouped')
+  assert.deepEqual([tk_asked.body.groups.some((g) => g.score < 80), tk_asked.body.groups.some((g) => g.score >= 80)], [true, true])
+  assert.equal((await hit(tk_url('/settings'), 'POST', undefined, { mode: 'auto' })).body.settings.mode, 'auto')
+  const tk_w1 = seen.writes.length
+  const tk_auto = await hit(tk_url('/scan'), 'POST')
+  assert.deepEqual([tk_auto.body.ok, tk_auto.body.auto.groups, tk_auto.body.auto.removed, tk_auto.body.auto.failed], [true, 1, 2, 0], 'auto mode: the 80 %+ group is merged by the scan itself')
+  assert.deepEqual(tk_deleted(tk_w1).sort((x, y) => x - y), [tk_a2.id, tk_a3.id].sort((x, y) => x - y), 'the two shorter rewordings went')
+  assert.ok(tk_ids().includes(tk_a1.id), 'the most complete one stays')
+  assert.deepEqual(tk_ids().filter((id) => [tk_c1.id, tk_c2.id, tk_p1.id, tk_p2.id, tk_n1.id, tk_n2.id, tk_lone.id].includes(id)).length, 7, 'nothing else was touched: not the containment pair, not the port, not the negation')
+  assert.equal(tk_auto.body.groups.length, 1, 'what is left for the review: the weaker group')
+  assert.equal(tk_auto.body.log[0].by, 'auto', 'the log says it was automatic')
+  assert.equal(tk_auto.body.last.trigger, 'manual')
+  assert.equal(tk_auto.body.last.autoGroups, 1)
+  assert.equal(tk_auto.body.last.total, 8, 'the count after the merge: 10 - 2')
+  const tk_runId = tk_auto.body.auto.runs[0]
+  assert.ok(readArchive().runs[tk_runId], 'an automatic merge is archived like any other')
+  const tk_undo = await hit(tk_url('/undo'), 'POST', undefined, { run: tk_runId })
+  assert.equal(tk_undo.body.ok, true)
+  assert.equal(memories.filter((m) => /Fuseau horaire/.test(m.content)).length, 3, 'and Undo brings the three back')
+  ok('tidy : en mode auto un scan fusionne seul les groupes a 80 % et plus (archive, log « auto », Undo) et laisse le reste, la negation et le nombre')
+
+  // a pair the user kept apart is never merged by itself
+  assert.equal((await hit(tk_url('/settings'), 'POST', undefined, { mode: 'ask' })).body.ok, true)
+  const tk_scan2 = await hit(tk_url('/scan'), 'POST')
+  const tk_tz = tk_scan2.body.groups.find((g) => g.score >= 80)
+  await hit(tk_url('/dismiss'), 'POST', undefined, { groups: [tk_tz.id] })
+  await hit(tk_url('/settings'), 'POST', undefined, { mode: 'auto' })
+  const tk_w2 = seen.writes.length
+  const tk_scan3 = await hit(tk_url('/scan'), 'POST')
+  assert.equal(tk_scan3.body.auto.groups, 0, 'kept apart: not merged by itself')
+  assert.equal(seen.writes.length, tk_w2)
+  await hit(tk_url('/dismiss'), 'POST', undefined, { groups: [tk_tz.id], restore: true })
+  ok('tidy : un groupe garde « tel quel » n est jamais fusionne automatiquement')
+
+  // too big for one request: refused, counted, nothing removed
+  memories.splice(0)
+  const tk_big = Array.from({ length: 62 }, (_, i) => tk_mem('Shared sentence about the topic alpha beta gamma delta ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'zz', { created_at: '2026-09-01 10:00:00+00:00' }))
+  const tk_w3 = seen.writes.length
+  const tk_bigScan = await hit(tk_url('/scan'), 'POST')
+  assert.deepEqual([tk_bigScan.body.auto.groups, tk_bigScan.body.auto.failed], [0, 1], 'a group over 50 removals is not merged by itself, and the run says so')
+  assert.equal(seen.writes.length, tk_w3)
+  assert.equal(tk_bigScan.body.groups.length, 1, 'it stays in the review')
+  ok('tidy : un groupe de plus de 50 suppressions n est pas fusionne seul, il reste a revoir')
+
+  // the schedule
+  memories.splice(0)
+  const tk_s1 = tk_mem('Run the lifecycle tests before every push to the repository', { created_at: '2026-09-01 10:00:00+00:00' })
+  const tk_s2 = tk_mem('Always run the lifecycle tests before every push to the repository', { created_at: '2026-09-02 10:00:00+00:00' })
+  const tk_s3 = tk_mem('Prefers short answers in French')
+  const T0 = Date.now() + 10 * 86400000   // the schedule is judged on an injected clock, ahead of the manual runs above
+  await hit(tk_url('/settings'), 'POST', undefined, { mode: 'auto', schedule: 'off' })
+  mod.tidyFlags.retryAt = 0; mod.tidyFlags.bootDone = false
+  assert.deepEqual(await mod.tidyTick(T0), { ran: false, why: 'pas_echu' }, 'off: never')
+  await hit(tk_url('/settings'), 'POST', undefined, { schedule: 'daily' })
+  await hit('/kybernos-cloud/memory/settings/set', 'POST', undefined, { memories: false })
+  assert.deepEqual(await mod.tidyTick(T0), { ran: false, why: 'hors_connexion' }, 'with Memories switched off, nothing runs')
+  await hit('/kybernos-cloud/memory/settings/set', 'POST', undefined, { memories: true })
+  const tk_t1 = await mod.tidyTick(T0)
+  assert.equal(tk_t1.ran, true, 'never run, daily: due')
+  assert.equal(tk_t1.auto.groups, 1, 'and it merged the close match by itself')
+  const tk_view1 = (await hit(tk_url(''), 'GET')).body
+  assert.equal(tk_view1.last.trigger, 'schedule')
+  assert.equal(tk_view1.next.kind, 'at', 'the page can say when the next one is')
+  assert.deepEqual(await mod.tidyTick(T0 + 3600000), { ran: false, why: 'pas_echu' }, 'an hour later: not due')
+  assert.equal((await mod.tidyTick(T0 + 25 * 3600000)).ran, true, 'a day later: due')
+  await hit(tk_url('/settings'), 'POST', undefined, { schedule: 'weekly' })
+  assert.equal((await mod.tidyTick(T0 + 26 * 3600000)).ran, false, 'weekly: not after a day')
+  assert.equal((await mod.tidyTick(T0 + 33 * 86400000)).ran, true, 'but after a week')
+  ok('tidy : planificateur (off, hors-connexion, jour, semaine) — il lance, fusionne seul, et dit quand sera le suivant')
+
+  // a failed run waits an hour; start runs once per launch; every 50 new counts
+  await hit(tk_url('/settings'), 'POST', undefined, { schedule: 'daily' })
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:1'
+  mod.emptyMemoryCache()
+  const tk_f0 = T0 + 100 * 86400000
+  const tk_fail = await mod.tidyTick(tk_f0)
+  assert.equal(tk_fail.ran, false)
+  assert.notEqual(tk_fail.why, 'pas_echu', 'it tried, and failed')
+  process.env.KYBERNOS_CLOUD_API = 'http://127.0.0.1:' + port
+  assert.deepEqual(await mod.tidyTick(tk_f0 + 600000), { ran: false, why: 'pas_echu' }, 'after a failure the next attempt waits')
+  assert.equal((await mod.tidyTick(tk_f0 + 3700000)).ran, true, 'an hour later it tries again, and now works')
+  await hit(tk_url('/settings'), 'POST', undefined, { schedule: 'start' })
+  mod.tidyFlags.bootDone = false
+  assert.equal((await mod.tidyTick(tk_f0 + 4 * 86400000)).ran, true, 'start: after 3 days, at the first look of this launch')
+  assert.equal((await mod.tidyTick(tk_f0 + 9 * 86400000)).ran, false, 'and not again before the next launch')
+  await hit(tk_url('/settings'), 'POST', undefined, { schedule: 'n50' })
+  for (let i = 0; i < 49; i++) tk_mem('Filler note number alpha ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + ' unrelated words about completely different subjects ' + String(i * 7919) + ' ' + 'zq'.repeat(i % 5 + 1))
+  await mod.refreshMemoryCache(readState(), true)
+  assert.equal((await mod.tidyTick(tk_f0 + 10 * 86400000)).ran, false, 'fewer than 50 new since the last run')
+  for (let i = 0; i < 3; i++) tk_mem('Another wholly separate remark about ' + ['kitchens', 'violins', 'glaciers'][i] + ' and nothing else in common ' + String.fromCharCode(113 + i) + 'x')
+  await mod.refreshMemoryCache(readState(), true)
+  assert.equal((await mod.tidyTick(tk_f0 + 10 * 86400000)).ran, true, '50 more than at the last run: due')
+  ok('tidy : un echec attend une heure, « au demarrage » une fois par lancement, « tous les 50 » compte les nouveaux')
+
+  // the Study model: opt-in, only the unclear pairs leave, a verdict is a suggestion
+  memories.splice(0)
+  const tk_b1 = tk_mem('The dev server listens on port 3000 for the whole project', { created_at: '2026-08-01 10:00:00+00:00' })
+  const tk_b2 = tk_mem('The dev server listens on port 3080 for the whole project', { created_at: '2026-09-20 10:00:00+00:00' })
+  const tk_b3 = tk_mem('Project A deploys on Vercel from the dev branch', { created_at: '2026-09-01 10:00:00+00:00' })
+  const tk_b4 = tk_mem('Project B deploys on Railway from the dev branch', { created_at: '2026-09-02 10:00:00+00:00' })
+  const tk_b5 = tk_mem('Do not commit .env files to the repository', { created_at: '2026-08-02 10:00:00+00:00' })
+  const tk_b6 = tk_mem('Commit .env files to the repository', { created_at: '2026-09-01 10:00:00+00:00' })
+  const tk_secret = tk_mem('The wifi password of the office is hunter2 and nothing else matters here')
+  await hit(tk_url('/settings'), 'POST', undefined, { mode: 'auto', schedule: 'off', brain: false })
+  llmEnabled = true
+  llmScript = (prompt) => JSON.stringify({ verdicts: prompt.split('\n\n').slice(1).map((b, i) => (/port 3000/.test(b) ? { n: i + 1, verdict: 'replaces', why: 'the port changed' } : /\.env/.test(b) ? { n: i + 1, verdict: 'different', why: 'opposite rules' } : { n: i + 1, verdict: 'same', why: 'same deploy rule', merged: 'Both projects deploy from the dev branch.' })) })
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))   // a Study model IS set: only the switch keeps the text home
+  llmCalls.length = 0
+  const tk_off = await hit(tk_url('/scan'), 'POST')
+  assert.equal(llmCalls.length, 0, 'brain off: nothing is sent to any model')
+  assert.equal(tk_off.body.unclear, 3, 'the unclear pairs are counted, so the page can say what a Study model could judge')
+  assert.deepEqual(tk_off.body.groups, [])
+  await hit(tk_url('/settings'), 'POST', undefined, { brain: true })
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: '' }))
+  const tk_nomodel = await hit(tk_url('/scan'), 'POST')
+  assert.deepEqual([llmCalls.length, tk_nomodel.body.brain.error], [0, 'pas_de_modele_detude'], 'no Study model set: no call, and it says why')
+  writeFileSync(tk_settingsFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
+  llmEnabled = false
+  assert.equal((await hit(tk_url('/scan'), 'POST')).body.brain.error, 'llm_indisponible', 'no llm service: no call, and it says why')
+  llmEnabled = true
+  const tk_w4 = seen.writes.length
+  const tk_judged = await hit(tk_url('/scan'), 'POST')
+  assert.equal(llmCalls.length, 1, 'one question for all the pairs')
+  assert.equal(llmCalls[0].provider + '/' + llmCalls[0].model, 'zai-coding-cn/GLM-5.3-Flash', 'the Study model of Kybernos Settings')
+  assert.ok(!/hunter2/.test(llmCalls[0].messages[0].content[0].text), 'a memory that is in no pair never leaves the machine')
+  assert.ok(/port 3000/.test(llmCalls[0].messages[0].content[0].text) && /Vercel/.test(llmCalls[0].messages[0].content[0].text))
+  assert.deepEqual([tk_judged.body.brain.asked, tk_judged.body.brain.error], [3, null])
+  assert.equal(seen.writes.length, tk_w4, 'a verdict is a suggestion: even in auto mode the model deletes nothing')
+  const tk_outdated = tk_judged.body.groups.find((g) => g.type === 'outdated')
+  const tk_same = tk_judged.body.groups.find((g) => g.type === 'merge')
+  assert.deepEqual([tk_outdated.by, tk_outdated.keeperId, tk_outdated.verdict, tk_outdated.score], ['brain', tk_b2.id, 'the port changed', null])
+  assert.equal(tk_same.merged, 'Both projects deploy from the dev branch.')
+  assert.equal(tk_judged.body.groups.length, 2, 'the « different » pair makes no suggestion')
+  await hit(tk_url('/scan'), 'POST')
+  assert.equal(llmCalls.length, 1, 'a pair that was judged is not asked again')
+  const tk_apply = await hit(tk_url('/apply'), 'POST', undefined, { confirm: true, groups: [{ id: tk_outdated.id }] })
+  assert.equal(tk_apply.body.ok, true)
+  assert.deepEqual(tk_ids().includes(tk_b1.id), false, 'the older, outdated one is removed on the user\'s click')
+  assert.equal(tk_apply.body.view.log[0].by, 'you')
+  const tk_apply2 = await hit(tk_url('/apply'), 'POST', undefined, { confirm: true, groups: [{ id: tk_same.id, edit: tk_same.merged }] })
+  assert.equal(tk_apply2.body.ok, true)
+  assert.ok(memories.some((m) => m.content === 'Both projects deploy from the dev branch.'), 'the suggested merged text is what stays')
+  ok('tidy : le Study model est opt-in, ne recoit que les paires incertaines, ne supprime rien seul, et chaque verdict n est demande qu une fois')
+  await hit(tk_url('/settings'), 'POST', undefined, { brain: false })
+  llmScript = null; llmEnabled = false
+  delete process.env.KYBERNOS_SETTINGS_FILE
+  memories.splice(0, memories.length, ...tidyKept)
+  await hit(tk_url('/settings'), 'POST', undefined, { mode: 'ask', schedule: 'off', brain: false })
+  await hit(tk_url('/scan'), 'POST')
 
   // 11h. Recherche par le sens (cote plugin). COUPEE par defaut : tant que l'interrupteur est
   //      coupe, AUCUN texte de souvenir ne part vers le modele d'embedding, ni a l'ecriture, ni

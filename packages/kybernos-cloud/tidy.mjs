@@ -94,6 +94,21 @@ export const pickAuto = (groups, settings, max = AUTO_MAX_REMOVALS) => {
   return out
 }
 
+/** Groups cut into requests of at most `max` removals each (a host refuses more in one go); a group over the limit goes alone. */
+export const removalChunks = (groups, max = 50) => {
+  const out = []
+  let cur = []
+  let n = 0
+  for (const g of groups) {
+    const r = Math.max(0, g.items.length - 1)
+    if (cur.length > 0 && n + r > max) { out.push(cur); cur = []; n = 0 }
+    cur.push(g)
+    n += r
+  }
+  if (cur.length > 0) out.push(cur)
+  return out
+}
+
 // ── The Study model ──────────────────────────────────────────────────────────────────────────────────────
 const STUDY_MODEL = /^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:-]+$/
 

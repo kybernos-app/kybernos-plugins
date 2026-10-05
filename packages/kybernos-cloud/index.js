@@ -40,7 +40,8 @@ import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
-import { findDuplicateGroups } from './dedupe.mjs'
+import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 
 /**
@@ -2101,9 +2102,23 @@ const tidyState = () => {
     scan: raw.scan !== null && typeof raw.scan === 'object' ? raw.scan : null,
     dismissed: Array.isArray(raw.dismissed) ? raw.dismissed.map(String) : [],
     log: Array.isArray(raw.log) ? raw.log : [],
+    settings: normalizeTidySettings(raw.settings),
+    last: raw.last !== null && typeof raw.last === 'object' && typeof raw.last.at === 'string' ? raw.last : null,
+    judged: raw.judged !== null && typeof raw.judged === 'object' && !Array.isArray(raw.judged) ? raw.judged : {},
   }
 }
-const writeTidy = (t) => writeSide('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX) })
+const writeTidy = (t) => writeSide('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX), settings: t.settings, last: t.last, judged: t.judged })
+
+// The Study model (Kybernos Settings → `brain`, « route/id ») and the `llm` service that can talk to it.
+const kybernosSettingsFile = () => {
+  const own = process.env.KYBERNOS_SETTINGS_FILE
+  return typeof own === 'string' && own.trim() !== '' ? own.trim() : join(dshHome(), 'kybernos', 'settings.json')
+}
+const studyModel = () => readStudyModel(() => readFileSync(kybernosSettingsFile(), 'utf8'))
+const tidyLlm = () => { try { return hostCtx === null ? undefined : hostCtx.get('llm') } catch (e) { return undefined } }
+// A run that starts by itself, and the process-wide flags it needs.
+const TIDY_TUNING = { firstMs: 90000, tickMs: 600000 }
+const tidyFlags = { running: false, bootDone: false, retryAt: 0 }
 const tidyArchive = () => { const raw = readSide('tidy-archive', {}); return { runs: raw.runs !== null && typeof raw.runs === 'object' ? raw.runs : {} } }
 const writeTidyArchive = (a) => writeSide('tidy-archive', a)
 
@@ -2128,18 +2143,101 @@ const tidyView = () => {
     ok: true, scannedAt: t.scan === null ? null : t.scan.at, total: t.scan === null ? null : t.scan.total, groups,
     saves: groups.reduce((n, g) => n + g.saves, 0),
     log: t.log.slice(0, 20).map((l) => ({ ...l, canUndo: l.undone !== true && a.runs[l.id] !== undefined })),
+    settings: t.settings, last: t.last,
+    next: tidyNext({ schedule: t.settings.schedule, last: t.last, now, total: memoryCache.account.length > 0 ? memoryCache.account.length : null, bootDone: tidyFlags.bootDone }),
+    brain: { model: studyModel(), llm: tidyLlm() !== undefined },
+    unclear: t.scan === null || !Number.isFinite(t.scan.unclear) ? 0 : t.scan.unclear,
   }
 }
 
-const tidyScan = async (state) => {
-  await refreshMemoryCache(state, true)
-  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: memoryCache.error }
-  const items = memoryCache.account.map((m) => ({ id: m.id, content: m.content, createdAt: m.createdAt, pinned: m.pinned === true, bucket: m.kind }))
-  const groups = findDuplicateGroups(items)
+/**
+ * One run: look (local detection, and — when the user allowed it and a Study model is set — its judgement of the pairs
+ * the word count cannot decide), then, in `auto` mode, merge by itself the local groups at or above the line. Anything
+ * else is left for the review. A run that was started by the schedule is `trigger: 'schedule'`.
+ */
+const tidyRun = async (state, trigger, now = Date.now()) => {
+  if (tidyFlags.running) return { ok: false, error: 'deja_en_cours' }
+  tidyFlags.running = true
+  try {
+    await refreshMemoryCache(state, true)
+    if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: memoryCache.error }
+    const items = memoryCache.account.map((m) => ({ id: m.id, content: m.content, createdAt: m.createdAt, pinned: m.pinned === true, bucket: m.kind }))
+    const t = tidyState()
+    const local = findDuplicateGroups(items)
+    const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
+    let suggestions = []
+    let unclear = 0
+    const brain = { asked: 0, error: null, model: '' }
+    if (t.settings.brain === true) {
+      brain.model = studyModel()
+      const llm = tidyLlm()
+      const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: MEMORY_MAX_CONTENT, noun: 'memories' })
+      suggestions = judged.groups
+      unclear = judged.unclear
+      brain.asked = judged.asked
+      brain.error = brain.model === '' ? 'pas_de_modele_detude' : (llm === undefined ? 'llm_indisponible' : judged.error)
+      t.judged = judged.judged
+    } else {
+      unclear = unclearPairs(items, { taken }).filter((p) => t.dismissed.indexOf(p.id) < 0).length
+    }
+    t.scan = { at: new Date(now).toISOString(), total: items.length, unclear, groups: [...local, ...suggestions] }
+    writeTidy(t)
+    // 2. what the user allowed to be merged without asking
+    const auto = { groups: 0, removed: 0, runs: [], failed: 0 }
+    const picked = pickAuto(local.filter((g) => t.dismissed.indexOf(g.id) < 0), t.settings)
+    for (const chunk of removalChunks(picked, TIDY_MAX_REMOVALS)) {
+      const done = await applyGroups(state, chunk.map((g) => ({ id: g.id })), 'auto')
+      if (done.error !== undefined) { auto.failed += chunk.length; continue }
+      for (const r of done.results) {
+        if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
+      }
+    }
+    const after = tidyState()
+    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, brainAsked: brain.asked, brainError: brain.error, ok: true }
+    writeTidy(after)
+    return { ...tidyView(), auto, brain }
+  } finally {
+    tidyFlags.running = false
+  }
+}
+const tidyScan = (state) => tidyRun(state, 'manual')
+
+const tidySettings = (body) => {
   const t = tidyState()
-  t.scan = { at: new Date().toISOString(), total: items.length, groups }
+  const patched = patchTidySettings(t.settings, body)
+  if (patched.ok !== true) return patched
+  t.settings = patched.settings
   writeTidy(t)
-  return tidyView()
+  return { ok: true, settings: t.settings, view: tidyView() }
+}
+
+/** One look at whether a scheduled run is due; a run that fails waits an hour. Never throws, never runs offline. */
+const tidyTick = async (now = Date.now()) => {
+  try {
+    const state = readState()
+    if (isConnected(state) !== true || readMemorySettings().memories !== true) return { ran: false, why: 'hors_connexion' }
+    const t = tidyState()
+    const total = memoryCache.account.length > 0 ? memoryCache.account.length : null
+    const due = tidyDue({ schedule: t.settings.schedule, last: t.last, now, total, bootDone: tidyFlags.bootDone, retryAt: tidyFlags.retryAt })
+    if (t.settings.schedule === 'start') tidyFlags.bootDone = true
+    if (!due) return { ran: false, why: 'pas_echu' }
+    const res = await tidyRun(state, 'schedule', now)
+    if (res.ok !== true) { tidyFlags.retryAt = now + 3600000; return { ran: false, why: res.error } }
+    return { ran: true, auto: res.auto }
+  } catch (e) {
+    tidyFlags.retryAt = now + 3600000
+    return { ran: false, why: 'erreur' }
+  }
+}
+
+const mountTidySchedule = (ctx) => {
+  ctx.effect(() => {
+    const first = setTimeout(() => { void tidyTick() }, TIDY_TUNING.firstMs)
+    const timer = setInterval(() => { void tidyTick() }, TIDY_TUNING.tickMs)
+    if (typeof first.unref === 'function') first.unref()
+    if (typeof timer.unref === 'function') timer.unref()
+    return () => { clearTimeout(first); clearInterval(timer) }
+  }, 'kybernos-cloud: nettoyage planifie')
 }
 
 const tidyDismiss = (body) => {
@@ -2160,10 +2258,17 @@ const tidyApply = async (state, body) => {
   if (body === null || typeof body !== 'object' || body.confirm !== true) return { ok: false, error: 'confirmation_requise' }
   const asked = Array.isArray(body.groups) ? body.groups : []
   if (asked.length === 0) return { ok: false, error: 'groupes_manquants' }
+  const done = await applyGroups(state, asked, 'you')
+  if (done.error !== undefined) return { ok: false, error: done.error, ...(done.max === undefined ? {} : { max: done.max, wanted: done.wanted }) }
+  return { ok: done.results.every((r) => r.ok === true), results: done.results, view: tidyView() }
+}
+
+/** The work of an apply, for the user's click (`by: 'you'`) and for a run that merges by itself (`by: 'auto'`). */
+const applyGroups = async (state, asked, by) => {
   const t = tidyState()
-  if (t.scan === null) return { ok: false, error: 'aucun_scan' }
+  if (t.scan === null) return { error: 'aucun_scan', results: [] }
   await refreshMemoryCache(state, true)
-  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: memoryCache.error }
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { error: memoryCache.error, results: [] }
   const live = new Map(memoryCache.account.map((m) => [String(m.id), m]))
   // plan first (nothing is written until every group is judged): a request that would remove too much is refused whole
   const plan = []
@@ -2189,7 +2294,7 @@ const tidyApply = async (state, body) => {
     removals += removed.length
     plan.push({ group, keeper, removed, edit: edit !== null && edit !== keeper.content ? edit : null })
   }
-  if (removals > TIDY_MAX_REMOVALS) return { ok: false, error: 'trop_de_suppressions', max: TIDY_MAX_REMOVALS, wanted: removals }
+  if (removals > TIDY_MAX_REMOVALS) return { error: 'trop_de_suppressions', max: TIDY_MAX_REMOVALS, wanted: removals, results: [] }
   const log = []
   for (const step of plan) {
     const runId = 't' + Date.now().toString(36) + step.group.id
@@ -2217,7 +2322,7 @@ const tidyApply = async (state, body) => {
     if (!edited) kept.runs[runId].edited = []
     if (kept.runs[runId].removed.length === 0 && kept.runs[runId].edited.length === 0) delete kept.runs[runId]
     writeTidyArchive(kept)
-    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by: 'local', groupId: step.group.id, kept: step.keeper.id, removed: gone.length, edited, partial: failure !== null, undone: false })
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by, groupId: step.group.id, kept: step.keeper.id, removed: gone.length, edited, partial: failure !== null, undone: false })
     results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
   }
   const after = tidyState()
@@ -2225,7 +2330,7 @@ const tidyApply = async (state, body) => {
   if (after.scan !== null) after.scan.groups = after.scan.groups.filter((g) => !done.has(g.id))
   after.log = [...log.reverse(), ...after.log]
   writeTidy(after)
-  return { ok: results.every((r) => r.ok === true), results, view: tidyView() }
+  return { results }
 }
 
 /** Puts a run back: the removed memories come back as NEW memories (new ids), the edited keeper gets its old text. */
@@ -2383,6 +2488,7 @@ const memoryTidyApplyRoute = async (req, body) => {
   return await tidyApply(state, body)
 }
 const memoryTidyDismissRoute = async (req, body) => tidyDismiss(body)
+const memoryTidySettingsRoute = async (req, body) => tidySettings(body)
 const memoryTidyUndoRoute = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
@@ -2856,6 +2962,7 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
   { path: '/kybernos-cloud/memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: memoryTidyDismissRoute },
   { path: '/kybernos-cloud/memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidyUndoRoute },
+  { path: '/kybernos-cloud/memory/tidy/settings', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidySettingsRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {
@@ -2901,6 +3008,7 @@ export function apply(ctx) {
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
+  try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
   autoImportAtBoot(ctx)
 }
 
@@ -2912,7 +3020,7 @@ export {
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
-  tidyScan, tidyApply, tidyUndo, tidyDismiss, tidyView, TIDY_MAX_REMOVALS,
+  tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,

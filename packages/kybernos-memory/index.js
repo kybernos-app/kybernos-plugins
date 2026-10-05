@@ -21,7 +21,8 @@
 import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
-import { findDuplicateGroups } from './dedupe.mjs'
+import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 
 export const name = 'kybernos-memory'
 
@@ -315,9 +316,26 @@ const tidyState = () => {
     scan: raw.scan !== null && typeof raw.scan === 'object' && Array.isArray(raw.scan.groups) ? raw.scan : null,
     dismissed: Array.isArray(raw.dismissed) ? raw.dismissed.map(String) : [],
     log: Array.isArray(raw.log) ? raw.log : [],
+    settings: normalizeTidySettings(raw.settings),
+    last: raw.last !== null && typeof raw.last === 'object' && typeof raw.last.at === 'string' ? raw.last : null,
+    judged: raw.judged !== null && typeof raw.judged === 'object' && !Array.isArray(raw.judged) ? raw.judged : {},
   }
 }
-const writeTidy = (t) => writeTidyFile('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX) })
+const writeTidy = (t) => writeTidyFile('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX), settings: t.settings, last: t.last, judged: t.judged })
+
+// The Study model (Kybernos Settings → `brain`, « route/id ») and the `llm` service that can talk to it.
+const kybernosSettingsFile = () => {
+  const own = process.env.KYBERNOS_SETTINGS_FILE
+  if (typeof own === 'string' && own.trim() !== '') return own.trim()
+  const home = process.env.DSH_HOME
+  return join(typeof home === 'string' && home.trim() !== '' ? home.trim() : join(homedir(), '.dsh'), 'kybernos', 'settings.json')
+}
+const studyModel = () => readStudyModel(() => readFileSync(kybernosSettingsFile(), 'utf8'))
+let hostCtx = null
+const tidyLlm = () => { try { return hostCtx === null ? undefined : hostCtx.get('llm') } catch (e) { return undefined } }
+// A run that starts by itself, and the process-wide flags it needs.
+export const TIDY_TUNING = { firstMs: 90000, tickMs: 600000 }
+export const tidyFlags = { running: false, bootDone: false, retryAt: 0 }
 const tidyArchive = () => { const raw = readTidyFile('tidy-archive', {}); return { runs: raw.runs !== null && typeof raw.runs === 'object' ? raw.runs : {} } }
 const writeTidyArchive = (a) => writeTidyFile('tidy-archive', a)
 
@@ -355,16 +373,97 @@ const tidyView = () => {
     ok: true, scannedAt: t.scan === null ? null : t.scan.at, total: t.scan === null ? null : t.scan.total, groups,
     saves: groups.reduce((n, g) => n + g.saves, 0),
     log: t.log.slice(0, 20).map((l) => ({ ...l, canUndo: l.undone !== true && a.runs[l.id] !== undefined })),
+    settings: t.settings, last: t.last,
+    next: tidyNext({ schedule: t.settings.schedule, last: t.last, now, total: live.size > 0 ? live.size : null, bootDone: tidyFlags.bootDone }),
+    brain: { model: studyModel(), llm: tidyLlm() !== undefined },
+    unclear: t.scan === null || !Number.isFinite(t.scan.unclear) ? 0 : t.scan.unclear,
   }
 }
 
-const tidyScan = () => {
-  const items = []
-  for (const [id, { kyber, lesson }] of liveLessons()) items.push({ id, content: lesson.text, createdAt: lesson.ts, pinned: false, bucket: kyber })
+/**
+ * One run: look (local detection, and — when the user allowed it and a Study model is set — its judgement of the pairs
+ * the word count cannot decide), then, in `auto` mode, merge by itself the local groups at or above the line.
+ */
+const tidyRun = async (trigger, now = Date.now()) => {
+  if (tidyFlags.running) return { ok: false, error: 'deja_en_cours' }
+  tidyFlags.running = true
+  try {
+    const items = []
+    for (const [id, { kyber, lesson }] of liveLessons()) items.push({ id, content: lesson.text, createdAt: lesson.ts, pinned: false, bucket: kyber })
+    const t = tidyState()
+    const local = findDuplicateGroups(items)
+    const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
+    let suggestions = []
+    let unclear = 0
+    const brain = { asked: 0, error: null, model: '' }
+    if (t.settings.brain === true) {
+      brain.model = studyModel()
+      const llm = tidyLlm()
+      const judged = await brainGroups({ items, taken, judged: t.judged, dismissed: t.dismissed, llm: brain.model === '' ? null : llm, model: brain.model, maxMerged: LESSON_MAX_CHARS, noun: 'lessons' })
+      suggestions = judged.groups
+      unclear = judged.unclear
+      brain.asked = judged.asked
+      brain.error = brain.model === '' ? 'pas_de_modele_detude' : (llm === undefined ? 'llm_indisponible' : judged.error)
+      t.judged = judged.judged
+    } else {
+      unclear = unclearPairs(items, { taken }).filter((p) => t.dismissed.indexOf(p.id) < 0).length
+    }
+    t.scan = { at: new Date(now).toISOString(), total: items.length, unclear, groups: [...local, ...suggestions] }
+    writeTidy(t)
+    const auto = { groups: 0, removed: 0, runs: [], failed: 0 }
+    const picked = pickAuto(local.filter((g) => t.dismissed.indexOf(g.id) < 0), t.settings)
+    for (const chunk of removalChunks(picked, TIDY_MAX_REMOVALS)) {
+      const done = applyGroups(chunk.map((g) => ({ id: g.id })), 'auto')
+      if (done.error !== undefined) { auto.failed += chunk.length; continue }
+      for (const r of done.results) {
+        if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
+      }
+    }
+    const after = tidyState()
+    after.last = { at: new Date(now).toISOString(), trigger, total: items.length - auto.removed, found: local.length + suggestions.length, autoGroups: auto.groups, autoRemoved: auto.removed, brainAsked: brain.asked, brainError: brain.error, ok: true }
+    writeTidy(after)
+    return { ...tidyView(), auto, brain }
+  } finally {
+    tidyFlags.running = false
+  }
+}
+const tidyScan = () => tidyRun('manual')
+
+const tidySettings = (body) => {
   const t = tidyState()
-  t.scan = { at: new Date().toISOString(), total: items.length, groups: findDuplicateGroups(items) }
+  const patched = patchTidySettings(t.settings, body)
+  if (patched.ok !== true) return patched
+  t.settings = patched.settings
   writeTidy(t)
-  return tidyView()
+  return { ok: true, settings: t.settings, view: tidyView() }
+}
+
+/** One look at whether a scheduled run is due; a run that fails waits an hour. Never throws. */
+export const tidyTick = async (now = Date.now()) => {
+  try {
+    if (readSettings().lessons !== true) return { ran: false, why: 'lecons_desactivees' }
+    const t = tidyState()
+    const count = liveLessons().size
+    const due = tidyDue({ schedule: t.settings.schedule, last: t.last, now, total: count > 0 ? count : null, bootDone: tidyFlags.bootDone, retryAt: tidyFlags.retryAt })
+    if (t.settings.schedule === 'start') tidyFlags.bootDone = true
+    if (!due) return { ran: false, why: 'pas_echu' }
+    const res = await tidyRun('schedule', now)
+    if (res.ok !== true) { tidyFlags.retryAt = now + 3600000; return { ran: false, why: res.error } }
+    return { ran: true, auto: res.auto }
+  } catch (e) {
+    tidyFlags.retryAt = now + 3600000
+    return { ran: false, why: 'erreur' }
+  }
+}
+
+const mountTidySchedule = (ctx) => {
+  ctx.effect(() => {
+    const first = setTimeout(() => { void tidyTick() }, TIDY_TUNING.firstMs)
+    const timer = setInterval(() => { void tidyTick() }, TIDY_TUNING.tickMs)
+    if (typeof first.unref === 'function') first.unref()
+    if (typeof timer.unref === 'function') timer.unref()
+    return () => { clearTimeout(first); clearInterval(timer) }
+  }, 'kybernos-memory: scheduled tidy-up')
 }
 
 const tidyDismiss = (body) => {
@@ -388,8 +487,15 @@ const tidyApply = (body) => {
   if (body === null || typeof body !== 'object' || body.confirm !== true) return { ok: false, error: 'confirmation_requise' }
   const asked = Array.isArray(body.groups) ? body.groups : []
   if (asked.length === 0) return { ok: false, error: 'groupes_manquants' }
+  const done = applyGroups(asked, 'you')
+  if (done.error !== undefined) return { ok: false, error: done.error, ...(done.max === undefined ? {} : { max: done.max, wanted: done.wanted }) }
+  return { ok: done.results.every((r) => r.ok === true), results: done.results, view: tidyView() }
+}
+
+/** The work of an apply, for the user's click (`by: 'you'`) and for a run that merges by itself (`by: 'auto'`). */
+const applyGroups = (asked, by) => {
   const t = tidyState()
-  if (t.scan === null) return { ok: false, error: 'aucun_scan' }
+  if (t.scan === null) return { error: 'aucun_scan', results: [] }
   const live = liveLessons()
   const plan = []
   const results = []
@@ -413,7 +519,7 @@ const tidyApply = (body) => {
     removals += removed.length
     plan.push({ group, keepId, keeper, removed, edit: edit !== null && edit !== keeper.lesson.text ? edit : null })
   }
-  if (removals > TIDY_MAX_REMOVALS) return { ok: false, error: 'trop_de_suppressions', max: TIDY_MAX_REMOVALS, wanted: removals }
+  if (removals > TIDY_MAX_REMOVALS) return { error: 'trop_de_suppressions', max: TIDY_MAX_REMOVALS, wanted: removals, results: [] }
   const log = []
   for (const step of plan) {
     const runId = 't' + Date.now().toString(36) + step.group.id
@@ -449,7 +555,7 @@ const tidyApply = (body) => {
     if (!edited) kept.runs[runId].edited = []
     if (gone.length === 0 && !edited) delete kept.runs[runId]
     writeTidyArchive(kept)
-    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by: 'local', groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false })
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by, groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false })
     results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
   }
   const after = tidyState()
@@ -457,7 +563,7 @@ const tidyApply = (body) => {
   if (after.scan !== null) after.scan.groups = after.scan.groups.filter((g) => !done.has(g.id))
   after.log = [...log.reverse(), ...after.log]
   writeTidy(after)
-  return { ok: results.every((r) => r.ok === true), results, view: tidyView() }
+  return { results }
 }
 
 /** Puts a run back exactly: removed lessons return as they were (ts, tags, uses…), the kept one gets its old fields. */
@@ -492,6 +598,7 @@ const tidyRoute = async () => tidyView()
 const tidyScanRoute = async () => tidyScan()
 const tidyApplyRoute = async (req, body) => tidyApply(body)
 const tidyDismissRoute = async (req, body) => tidyDismiss(body)
+const tidySettingsRoute = async (req, body) => tidySettings(body)
 const tidyUndoRoute = async (req, body) => tidyUndo(body)
 
 const settingsRoute = async () => ({ ok: true, settings: readSettings() })
@@ -524,6 +631,7 @@ export const ROUTES = [
   { path: '/kybernos-memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: tidyApplyRoute },
   { path: '/kybernos-memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: tidyDismissRoute },
   { path: '/kybernos-memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: tidyUndoRoute },
+  { path: '/kybernos-memory/tidy/settings', method: 'POST', guarded: true, body: true, cap: 4096, run: tidySettingsRoute },
   { path: '/kybernos-memory/settings', method: 'GET', guarded: true, run: settingsRoute },
   { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, body: true, run: settingsSetRoute },
 ]
@@ -566,7 +674,9 @@ export function apply(ctx) {
   } catch (e) { say('routes not mounted: ' + String((e && e.message) || e)) }
   try { mountPrompt(ctx) } catch (e) { say('prompt chunk not mounted: ' + String((e && e.message) || e)) }
   try { mountTools(ctx) } catch (e) { say('tools not mounted: ' + String((e && e.message) || e)) }
+  hostCtx = ctx
+  try { mountTidySchedule(ctx) } catch (e) { say('scheduled tidy-up not mounted: ' + String((e && e.message) || e)) }
 }
 
 // Exported for the host suite (test-memory-host.mjs): nothing else is promised.
-export { lessonWriteTool, lessonSearchTool, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS }
+export { lessonWriteTool, lessonSearchTool, sanitize, CHUNK_NAME, CHUNK_ORDER, CHUNK_MAX_CHARS, tidyRun, tidySettings, studyModel }

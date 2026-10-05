@@ -8,7 +8,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   TIDY_DEFAULTS, normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, AUTO_MAX_REMOVALS, readStudyModel, textHash,
-  brainPrompt, parseVerdicts, askModel, brainGroups, BRAIN_BATCH, BRAIN_MAX_PAIRS, TIDY_N_NEW, AUTO_MIN_SCORE,
+  removalChunks, brainPrompt, parseVerdicts, askModel, brainGroups, BRAIN_BATCH, BRAIN_MAX_PAIRS, TIDY_N_NEW, AUTO_MIN_SCORE,
 } from './tidy.mjs'
 
 let pass = 0
@@ -75,6 +75,13 @@ const huge = [G('h1', 100, 60), G('h2', 100, 60), G('h3', 100, 3)]
 assert.deepEqual(pickAuto(huge, { mode: 'auto' }, 100).map((g) => g.id), ['h1', 'h3'], 'a run removes at most ' + String(AUTO_MAX_REMOVALS) + ' by itself; what does not fit waits')
 for (const bad of [null, undefined, 'x', [null, 3, {}], [{ items: 'no' }]]) assert.doesNotThrow(() => pickAuto(bad, { mode: 'auto' }))
 ok('auto picks the local groups at 80 % and over, within the cap; ask mode, brain verdicts and weaker groups wait for a click')
+
+const sizes = (chunks) => chunks.map((c) => c.reduce((n, g) => n + g.items.length - 1, 0))
+const rc = removalChunks([G('a', 100, 31), G('b', 100, 21), G('c', 100, 11), G('d', 100, 11), G('e', 100, 3)], 50)
+assert.ok(sizes(rc).every((n) => n <= 50) && rc.flat().map((g) => g.id).join('') === 'abcde' && rc.length === 2, 'requests of at most 50 removals, in order, no group lost')
+assert.deepEqual(sizes(removalChunks([G('a', 100, 5), G('big', 100, 60), G('c', 100, 5)], 50)), [4, 59, 4], 'a group over the limit goes alone')
+assert.deepEqual(removalChunks([], 50), [])
+ok('removals are cut into requests of at most 50, a group over the limit alone')
 
 console.log('the Study model setting')
 assert.equal(readStudyModel(() => JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' })), 'zai-coding-cn/GLM-5.3-Flash')
