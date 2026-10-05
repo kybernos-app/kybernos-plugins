@@ -41,6 +41,7 @@ ok('Installed and Available still split the catalogue', T.filtrer({ modules: mod
 
 console.log('wiring')
 const has = (f) => source.includes(f)
+ok('a catalogue with no featured module opens on All, not on an empty page', has("filtreChoisi === 'featured' && !modules.some((m) => typeof m.vedette === 'number') ? 'all' : filtreChoisi"))
 ok('Featured is the first tab and the default', has("React.useState('featured')") && has("segment('featured', kt('À la une', 'Featured'), nbVedettes), segment('all'"))
 ok('one flat grid, no family heading any more: the chips filter', !has('kbsu-fam h5') && !has('const familles =') && has("'data-kb': 'suite-grid'") && has("'kbsu-fams'"))
 ok('every card and row opens the module’s page on a click, Enter or Space; a control inside it does not', has('onClick: ouvrirFiche(m.id), onKeyDown: clavierFiche(m.id)') && (source.match(/onClick: ouvrirFiche\(m\.id\)/g) || []).length === 2 && has("closest('button,a,input,select,textarea,[role=\"switch\"],.kbsu-cfg')"))

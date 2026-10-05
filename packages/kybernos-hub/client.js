@@ -459,7 +459,7 @@ window.__ModuleLoader__.load({
 
       const Panneau = () => {
         const [charge, setCharge] = React.useState({ etat: 'loading', suite: null, bundles: null, maint: null })
-        const [filtre, setFiltre] = React.useState('featured')
+        const [filtreChoisi, setFiltre] = React.useState('featured')
         const [famille, setFamille] = React.useState('')
         const [detail, setDetail] = React.useState(null)
         const [ongletFiche, setOngletFiche] = React.useState('description')
@@ -537,6 +537,8 @@ window.__ModuleLoader__.load({
         const reco = hub.recommendation || {}
         const compat = charge.maint && charge.maint.compat ? charge.maint.compat : null
         const horsZone = compat !== null && compat.horsZone === true
+        // A host that predates the featured sheets serves a catalogue with none: Featured would be an empty page, so the panel opens on All.
+        const filtre = filtreChoisi === 'featured' && !modules.some((m) => typeof m.vedette === 'number') ? 'all' : filtreChoisi
         const fullOrder = effectiveOrder(modules, order)
         const custom = isCustomOrder(modules, order)
         const visibles = filtrer({ modules: applyOrder(modules, order), filtre, requete, installes, famille })
