@@ -12,7 +12,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile } from 'node:child_process'
-import { readFileSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -156,9 +156,10 @@ export function composerMaj ({ pack, installee, etat, git, quand }) {
     pending
   }
 }
-async function mesurerMaj (force) {
+/** `dep.etat` lets a test stand in for the engine measure (it runs `dsh` and asks npm); everything else is the real path. */
+export async function mesurerMaj (force, dep = {}) {
   if (force === true) CACHE_REGISTRE = null
-  const [pack, etat] = await Promise.all([lirePackDistant(force), mesurerEtat()])
+  const [pack, etat] = await Promise.all([lirePackDistant(force), (dep.etat ?? mesurerEtat)()])
   return composerMaj({ pack, installee: lireVersionPack(), etat, git: existsSync(join(REPO, '.git')), quand: new Date().toISOString() })
 }
 
