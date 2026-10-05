@@ -13,7 +13,7 @@ let statut = 200
 const serveur = createServer((req, res) => { res.writeHead(statut, { 'content-type': 'text/plain' }); res.end(corps) })
 await new Promise((r) => serveur.listen(0, '127.0.0.1', r))
 process.env.KYBERNOS_VERSION_URL = 'http://127.0.0.1:' + serveur.address().port + '/VERSION'
-const { composerMaj, lirePackDistant, comparerVersions } = await import('./index.js')
+const { composerMaj, lirePackDistant, comparerVersions, mesurerMaj } = await import('./index.js')
 
 console.log('reading the published VERSION')
 let p = await lirePackDistant(true)
@@ -56,6 +56,17 @@ const moteurHors = { global: '0.2.0-rc.2', distant: { derniere: '0.2.1-alpha.1' 
 r = composerMaj({ pack: { joignable: true, latest: '1.0.0-beta.1' }, installee: '1.0.0-beta.1', etat: moteurHors, git: false, quand: 'T' })
 verifie('engine published OUTSIDE the supported range: never offered', r.pending === null && r.moteur.latest === '0.2.1-alpha.1', r)
 verifie('comparerVersions : beta.10 > beta.2', comparerVersions('1.0.0-beta.2', '1.0.0-beta.10') < 0)
+
+console.log('the route\'s measure, end to end (engine measure stubbed, everything else real)')
+// A regression guard: `existsSync` was used here without being imported, so GET /kybernos-maintenance/update answered 500 on every
+// machine and no update was ever announced. The pure composition above never reaches that line; this does.
+const serveur2 = createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('99.0.0\n') })
+await new Promise((r) => serveur2.listen(0, '127.0.0.1', r))
+process.env.KYBERNOS_VERSION_URL = 'http://127.0.0.1:' + serveur2.address().port + '/VERSION'
+const mesure = await mesurerMaj(true, { etat: async () => moteurRien }).catch((e) => ({ ok: false, erreur: String(e && e.message) }))
+verifie('mesurerMaj answers instead of throwing', mesure.ok === true, mesure)
+verifie('it reads this checkout\'s VERSION and says whether a git checkout', typeof mesure.pack?.installee === 'string' && typeof mesure.pack?.git === 'boolean', mesure.pack)
+serveur2.close()
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗')
 process.exit(ko === 0 ? 0 : 1)
