@@ -43,13 +43,24 @@ const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; 
 const mod = await import(root + 'packages/kybernos-plugin/index.js')
 const routes = {}
 const sessions = { created: 0, prompts: [], failCreate: false }
+// The two engine services the fire path uses to make "Ask me first" real. `log` is the order of events
+// across the session service and the permission service, to prove the preset lands BEFORE the prompt.
+const perm = { log: [], failSet: false, table: { 'workspace-write': { sandbox: 'workspace-write', approval: 'ask' }, 'danger-full-access': { sandbox: 'danger-full-access', approval: 'never' } } }
+const permissionPresets = {
+  get names() { return Object.keys(perm.table) },
+  resolve: (n) => { if (perm.table[n] === undefined) throw new Error('unknown preset'); return perm.table[n] },
+  set: (session, name) => { if (perm.failSet === true) throw new Error('preset refused'); perm.log.push('set:' + session.id + ':' + name) },
+}
+const liveSessions = { get: (id) => (id.indexOf('sess-') === 0 ? { id } : undefined) }
 const services = {
   fs: {},
   webServer: { register: (r) => { routes[r.path] = r.handler; return () => {} } },
   workspaceRegistry: { list: () => [{ id: 'ws1' }] },
+  permissionPresets,
+  sessions: liveSessions,
   sessionController: {
     async create() { sessions.created += 1; if (sessions.failCreate === true) throw new Error('session service refused'); return { ok: true, value: { sessionId: 'sess-' + sessions.created } } },
-    async prompt(a) { sessions.prompts.push(a); return { ok: true } },
+    async prompt(a) { sessions.prompts.push(a); perm.log.push('prompt:' + a.sessionId); return { ok: true } },
     async selectModel() { return { ok: true } },
   },
 }
@@ -254,6 +265,77 @@ writeFileSync(file, good)
   await tick()
   const adopted = onDisk().find((x) => x.id === 'st-skill-1')
   eq('a task added by hand with no next run is picked up by the next tick', typeof adopted.nextRun + ':' + (Date.parse(adopted.nextRun) > Date.now()), 'string:true')
+}
+
+/* ── "Ask me first" reaches the session it starts ────────────────────────── */
+{
+  const mkTask = async (name, approvals) => (await api({ action: 'create', task: task({ name, approvals, active: false, schedule: { mode: 'webhook', tz: 'Europe/Paris' } }) })).json.task
+  const last = (id) => { const h = onDisk().find((x) => x.id === id).history; return h[h.length - 1] }
+  const reset = () => { perm.log.length = 0; sessions.prompts.length = 0; perm.failSet = false }
+
+  reset()
+  const ask = await mkTask('ask task', 'ask')
+  const r1 = await api({ action: 'run-now', id: ask.id })
+  eq('ask: the run starts', r1.json.ok, true)
+  eq('ask: the permission preset is set, then the prompt is sent (in that order, same session)', perm.log.join(' > '), 'set:' + r1.json.sessionId + ':workspace-write > prompt:' + r1.json.sessionId)
+
+  reset()
+  const dflt = await mkTask('default task')
+  eq('the default is ask', dflt.approvals, 'ask')
+  const r2 = await api({ action: 'run-now', id: dflt.id })
+  eq('default: set then prompt', perm.log.join(' > '), 'set:' + r2.json.sessionId + ':workspace-write > prompt:' + r2.json.sessionId)
+
+  reset()
+  const legacy = await mkTask('legacy task')
+  const all = onDisk(); delete all.find((x) => x.id === legacy.id).approvals; writeFileSync(file, JSON.stringify(all, null, 2))
+  const r3 = await api({ action: 'run-now', id: legacy.id })
+  eq('a task stored without the field counts as ask', perm.log[0], 'set:' + r3.json.sessionId + ':workspace-write')
+
+  reset()
+  const auto = await mkTask('auto task', 'auto')
+  const r4 = await api({ action: 'run-now', id: auto.id })
+  eq('auto: the session keeps the profile default (no preset change), the prompt is sent', perm.log.join(' > '), 'prompt:' + r4.json.sessionId)
+
+  reset()
+  const real = services.permissionPresets
+  services.permissionPresets = undefined
+  const r5 = await api({ action: 'run-now', id: ask.id })
+  eq('permission service missing: refused, no prompt sent', r5.json.ok + ':' + sessions.prompts.length, 'false:0')
+  eq('...and the reason is on the run', /could not be applied/.test(last(ask.id).error || '') && last(ask.id).status === 'error', true)
+  const r5b = await api({ action: 'run-now', id: auto.id })
+  eq('...but an auto task does not need it and still starts', r5b.json.ok, true)
+  services.permissionPresets = real
+
+  reset()
+  const realSessions = services.sessions
+  services.sessions = undefined
+  const r6 = await api({ action: 'run-now', id: ask.id })
+  eq('session store missing: refused, no prompt sent', r6.json.ok + ':' + sessions.prompts.length, 'false:0')
+  services.sessions = { get: () => undefined }
+  const r6b = await api({ action: 'run-now', id: ask.id })
+  eq('session not found in the store: refused, no prompt sent', r6b.json.ok + ':' + sessions.prompts.length, 'false:0')
+  services.sessions = realSessions
+
+  reset()
+  perm.failSet = true
+  const r7 = await api({ action: 'run-now', id: ask.id })
+  eq('the host refuses the preset: no prompt sent, the error is on the run', r7.json.ok + ':' + sessions.prompts.length + ':' + /preset refused/.test(last(ask.id).error || ''), 'false:0:true')
+  perm.failSet = false
+
+  reset()
+  const savedTable = perm.table
+  perm.table = { 'danger-full-access': savedTable['danger-full-access'] }
+  const r8 = await api({ action: 'run-now', id: ask.id })
+  eq('no preset that asks: refused, no prompt sent', r8.json.ok + ':' + sessions.prompts.length + ':' + /no permission preset asks/.test(last(ask.id).error || ''), 'false:0:true')
+  perm.table = savedTable
+
+  reset()
+  const hookTask = await mkTask('hook ask task', 'ask')
+  const g = (await api({ action: 'hook-generate', id: hookTask.id })).json
+  const all2 = onDisk(); all2.find((x) => x.id === hookTask.id).active = true; writeFileSync(file, JSON.stringify(all2, null, 2))
+  const rh = await call('POST', '{"type":"x"}', { origin: '', 'content-type': 'application/json' }, '/kybernos/hooks?hook=' + g.hookId + '&secret=' + g.secret)
+  eq('a webhook run of an ask task also gets the preset before the prompt', rh.status + ':' + perm.log.join(' > '), '202:set:' + rh.json.sessionId + ':workspace-write > prompt:' + rh.json.sessionId)
+  reset()
 }
 
 /* ── Webhooks while no session service is mounted: the events wait for the page ── */

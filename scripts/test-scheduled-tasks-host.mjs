@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/index.js', 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CORE-BEGIN([\s\S]*?)\/\/ KB-TASKS-CORE-END/)
 if (m === null) { console.error('KB-TASKS-CORE block not found in index.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { kbVerifySessionCookie, kbNeverRuns, kbMakeRateLimiter, kbHookSource, kbHookPayload, kbHookPrompt, kbCronCanFire, kbIsValidTimeZone, kbWallInstants, kbWallToEpoch, kbMachineTimeZone, kbClip, kbParseTasksText, kbParseCron, kbNextCronAfter, kbComputeNextRun, kbSanitizeTaskInput, kbParseIsoLocal, kbZoneOffsetMinutes, kbMakeTaskStore, kbMakeTrigger, kbPickAskPreset }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -489,6 +489,21 @@ eq('binary content is not dumped into the prompt', pl('\u0000\u0001abc', 'applic
   const writes = r.m.st.writes
   await r.trigger.tick()
   eq('a second tick changes nothing and writes nothing', r.m.st.writes, writes)
+}
+
+/* ── Which preset "Ask me first" maps to ───────────────────────────────────── */
+{
+  const presets = (table, names) => ({ names: names || Object.keys(table), resolve: (n) => { if (table[n] === undefined) throw new Error('unknown preset ' + n); return table[n] } })
+  const std = { 'workspace-write': { sandbox: 'workspace-write', approval: 'ask' }, 'danger-full-access': { sandbox: 'danger-full-access', approval: 'never' } }
+  eq('ask: the stock table gives workspace-write', mod.kbPickAskPreset(presets(std)), 'workspace-write')
+  eq('ask: workspace-write wins even when listed after another asking preset', mod.kbPickAskPreset(presets({ 'read-only': { sandbox: 'read-only', approval: 'ask' }, ...std })), 'workspace-write')
+  eq('ask: without workspace-write the first asking preset is used', mod.kbPickAskPreset(presets({ full: { sandbox: 'danger-full-access', approval: 'never' }, careful: { sandbox: 'read-only', approval: 'ask' }, other: { sandbox: 'workspace-write', approval: 'ask' } })), 'careful')
+  eq('ask: the Auto review entry is not an "ask me" mode', mod.kbPickAskPreset(presets({ ...std, auto: { sandbox: 'danger-full-access', approval: 'ask' } }, ['danger-full-access', 'auto'])), null)
+  eq('ask: a table with nothing that asks gives null', mod.kbPickAskPreset(presets({ 'danger-full-access': std['danger-full-access'] })), null)
+  eq('ask: a name that does not resolve is skipped', mod.kbPickAskPreset(presets(std, ['ghost', 'workspace-write'])), 'workspace-write')
+  eq('ask: a spec that is not an object is skipped', mod.kbPickAskPreset({ names: ['x'], resolve: () => null }), null)
+  eq('ask: a service with no names gives null instead of throwing', mod.kbPickAskPreset({ resolve: () => std['workspace-write'] }), null)
+  eq('ask: a throwing names getter gives null', mod.kbPickAskPreset({ get names() { throw new Error('boom') }, resolve: () => std['workspace-write'] }), null)
 }
 
 console.log(fails === 0 ? '\nALL PASS' : '\n' + fails + ' FAILURES')

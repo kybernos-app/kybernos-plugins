@@ -551,6 +551,24 @@ const kbHookPrompt = (taskPrompt, source, payload, nonce) => String(taskPrompt |
   '\nFormat: ' + payload.kind +
   '\n' + payload.text +
   '\n--- END EVENT ' + nonce + ' ---'
+// "Ask me first" on an automation has to reach the session it starts: the profile's default
+// permission may be one that never asks. This picks the configured preset that asks for approval
+// (the plain `workspace-write` one when it exists). `auto` is the review integration, not an
+// "ask me" mode, so it is skipped. Null when the host has no such preset.
+const kbPickAskPreset = (presets) => {
+  let names = []
+  try { names = Array.from(presets.names) } catch (e) { return null }
+  let first = null
+  for (const name of names) {
+    if (name === 'auto') continue
+    let spec = null
+    try { spec = presets.resolve(name) } catch (e) { continue }
+    if (spec === null || typeof spec !== 'object' || spec.approval !== 'ask') continue
+    if (name === 'workspace-write') return name
+    if (first === null) first = name
+  }
+  return first
+}
 // KB-TASKS-CORE-END
 
 // ── minimal YAML readers (only the fields this view needs) ──────────────────
@@ -2420,6 +2438,23 @@ function boot(ctx) {
         } catch (e) {
           console.error('[kybers] tache ' + String(task.id) + ' : selection modele ' + taskModel + ' refusee (' + String((e && e.message) || e) + ') — tir au modele par defaut')
         }
+      }
+      // Approvals: only `ask` (the default, anything that is not an explicit `auto`) is enforced. The
+      // session otherwise keeps the profile's default permission: this never widens what a
+      // session may do. If the host cannot apply it, the run does not start: the prompt is not
+      // sent, and the failure is recorded on the run like any other.
+      if (task.approvals !== 'auto') {
+        const presetsSvc = ctx.get('permissionPresets')
+        const sessionsSvc = ctx.get('sessions')
+        if (presetsSvc === undefined || presetsSvc === null || typeof presetsSvc.set !== 'function' || sessionsSvc === undefined || sessionsSvc === null || typeof sessionsSvc.get !== 'function') {
+          throw new Error('approvals "ask" could not be applied (permission service unavailable): the run was not started')
+        }
+        const askPreset = kbPickAskPreset(presetsSvc)
+        const liveSession = sessionsSvc.get(sessionId)
+        if (askPreset === null || liveSession === undefined || liveSession === null) {
+          throw new Error('approvals "ask" could not be applied (' + (askPreset === null ? 'no permission preset asks for approval' : 'session not found') + '): the run was not started')
+        }
+        presetsSvc.set(liveSession, askPreset)
       }
       // Laisse la sélection durable se propager avant l'assemblage du tour.
       await new Promise((resolve) => setTimeout(resolve, 750))
