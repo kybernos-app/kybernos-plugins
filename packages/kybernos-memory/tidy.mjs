@@ -172,8 +172,22 @@ export const parseVerdicts = (raw, count, maxMerged) => {
   return out
 }
 
-/** One real call to the Study model: the answer text, or { error }. Never throws, always bounded in time. */
-export const askModel = async (llm, model, prompt, { timeoutMs = BRAIN_TIMEOUT_MS, maxTokens = 2000, signal, id } = {}) => {
+/**
+ * One real call to the Study model: the answer text, or { error }. Never throws, always bounded in time.
+ * The engine looks model ids up case-sensitively while a setting is often typed or copied with capitals
+ * (« zai-coding-cn/GLM-5.3-Flash » for the configured « glm-5.3-flash »): an UNKNOWN_MODEL answer is retried ONCE with the id in lower case.
+ */
+export const askModel = async (llm, model, prompt, options = {}) => {
+  const first = await askModelOnce(llm, model, prompt, options)
+  if (first.error === undefined || !/UNKNOWN_MODEL/.test(String(first.detail || ''))) return first
+  const slash = String(model).indexOf('/')
+  const lower = slash > 0 ? model.slice(0, slash) + '/' + model.slice(slash + 1).toLowerCase() : model
+  if (lower === model) return first
+  const second = await askModelOnce(llm, lower, prompt, options)
+  return second.error === undefined ? { ...second, usedModel: lower } : first
+}
+
+const askModelOnce = async (llm, model, prompt, { timeoutMs = BRAIN_TIMEOUT_MS, maxTokens = 2000, signal, id } = {}) => {
   if (llm === null || llm === undefined || typeof llm.stream !== 'function') return { error: 'llm_indisponible' }
   const slash = String(model).indexOf('/')
   if (slash <= 0) return { error: 'modele_invalide' }
