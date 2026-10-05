@@ -97,13 +97,19 @@ derivation, widget bridge, gateway watcher, voice and TTS, tools catalog, preset
 
 ## Known limits
 
+- **Automation approvals.** An automation set to `ask` (the default; anything but an explicit `auto`) starts its session on the first configured
+  permission preset that asks for approval (`workspace-write` in the stock table), set before the prompt is sent; if the host cannot do that
+  the run is not started and the reason is on the run. `auto` leaves the profile default, so it never widens permissions. What DSH gates
+  is the sandbox (a write outside the workspace, a sandbox escape): measured live, an MCP tool call (a Stripe write, and so a Composio
+  `GMAIL_SEND_EMAIL`) is **not** asked about, even under `ask`. An automation that must not send or spend has to say so in its prompt.
 - **Public surface.** DSH serves plugin routes before its own auth (comment in `index.js`). `widget.js`, `widget/api/config`
   (GET), `message`, `account` and `history-delete` are public with CORS `*`; with a widget enabled, visitor text becomes a
   `session/prompt` in a live DSH session (5 s bridge tick). The webhook secret travels in the query string, and `ws-console-key`
   hands `wsAdminKey` to the page, which passes it as `?key=` to an iframe.
 - Legacy engine patches `workspace-pins` and `goal-affichage` (`scripts/patches.json`) are still applied below DSH 0.2.0-rc.2;
   on 0.2.0-rc.2 the plugin does the job (the Goal-card part was not measured live).
-- Dead or stale: `shared-ui.js` (imported nowhere, `__dirname` in ESM, build script missing); `kb-places.sample.json` (no
-  reference); `technique/workflow-traducteur.mjs` is also pasted into `client.js`, contract test missing; `docs/handoff/*` cited in
+- Dead or stale: `shared-ui.css` (86 KB, read by nothing: `scripts/build-shared-ui.mjs`, which is meant to inline it into `SHARED_UI_CSS` in
+  `client.js`, is missing; kept because dropping the design-system input is the owner's call, not provable by grep);
+  `technique/workflow-traducteur.mjs` is also pasted into `client.js`, contract test missing; `docs/handoff/*` cited in
   comments is absent. `client.js` is 2.4 MB (repo guard: no personal-path scan above 2 MB, fails at 4 MB). The scheduler runs only
   while DSH runs; catch-up after downtime is not verified.

@@ -62,7 +62,10 @@ First write the specification to a temporary JSON file, for example
   it only runs when its URL is called).
 - `tz` is an IANA name (`Europe/Paris`, `America/New_York`). Leave it out for the
   machine's zone.
-- `approvals` is `ask` or `auto`. `notify` may hold `push` and `email`.
+- `approvals` is `ask` or `auto`. `ask` runs the session in a sandbox that asks before it
+  leaves its workspace. It does NOT ask before a connected app acts (an email, a payment, a
+  calendar change): that has to be written into the prompt. `notify` may hold `push` and
+  `email`.
 - `webhook: true` adds a webhook URL to a `cron` or `once` automation. A `webhook`
   schedule always has one.
 - `prompt` is the numbered steps, at most 8000 characters. Never put a password, a key
@@ -225,7 +228,9 @@ restart the interview.
 
 - One automation per run of the script. Several automations are several approved drafts.
 - Never save an automation that sends or spends without the user's explicit approval of
-  that, and keep `approvals` on `ask` unless they chose `auto`.
+  that, and keep `approvals` on `ask` unless they chose `auto`. Because `ask` does not stop a
+  connected app, write "read-only: never send, create, change or delete anything" into the
+  prompt of every automation that should only look.
 - A schedule that fires every minute is almost never what someone means: confirm it.
 - If a value cannot be validated (a zone you are unsure of, a date that may be in the
   past), ask instead of guessing.
