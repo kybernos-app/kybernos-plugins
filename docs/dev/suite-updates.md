@@ -60,7 +60,7 @@ key, no release or nothing newer, the host's own answer stands (the `VERSION` pu
 
 A bug hid all of this until 2026-10-05: `GET /kybernos-maintenance/update` answered 500 on every machine (`existsSync` was not imported), so no update
 was ever announced. `test-update.mjs` now runs the route's measure for real. **Installs of 1.0.0-beta.2 carry that bug**: they only learn of a newer suite
-through *Check for updates* in the Suite panel, once; the first release that carries the fix announces the next ones by itself.
+through *Check for updates* in the Suite panel, once; `1.0.0-beta.3` is the first release that carries the fix and announces the next ones by itself.
 
 How it was checked on the real GUI, with nothing of the user's touched: a throwaway DSH home (APFS clone of the profile, bundles linked to an extracted
 archive, `DSH_HOME` and `HOME` isolated, own port) running the suite from the archive, the signed release served by a local https server (self-signed
@@ -81,7 +81,7 @@ All POSTs are strict same-origin JSON. One operation at a time: while the update
 
 ## Not done
 
-- The key pair exists (id `e69d1ec06bf2`, public half in `catalog-pubkey.json`); the first real release is `1.0.0-beta.2`. The update was exercised end to end
+- The key pair exists (id `e69d1ec06bf2`, public half in `catalog-pubkey.json`); the first real release is `1.0.0-beta.2` (and `1.0.0-beta.3` the first whose notification works). The update was exercised end to end
   with a real archive, a signed release and a local server in a throwaway DSH home, with the robot in `--dry`; see the release notes for what ran on a real install.
 - Per-module DSH ranges (the verdict still comes from the suite-wide `dsh-compat.json`).
 
