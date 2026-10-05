@@ -318,6 +318,7 @@ try {
         res.crumbs = txt('#crumbs')
         res.pageIds = Array.from(document.querySelectorAll('[data-nav]')).map((b) => b.getAttribute('data-nav'))
         go('plan')
+        res.rule = txt('#ruleArea') + ' | ' + q('#ruleActions').children.length
         res.cols = Array.from(document.querySelectorAll('#t-plan .cols2 > .card')).map((c) => { const b = c.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top) } })
         res.planOrder = ['.idrow', '#t-plan > .card', '#t-plan .cols2'].map((sel) => Math.round(q(sel).getBoundingClientRect().top))
         const ib = q('#copyTeamId').getBoundingClientRect()
@@ -347,6 +348,7 @@ try {
       check('Billing shows the Stripe invoice and the card', r && r.billing.includes('#IN-abc123456') && r.billing.includes('4242'), r && r.billing)
       check('the banner says what it is: live and read-only for now', r && /read-only/i.test(r.banner), r && r.banner)
       check('the crumbs name the real workspace, not the sample team', r && r.crumbs.startsWith('Acme Team'), r && r.crumbs)
+      check('the auto-recharge card does not pass the mockup\'s sample rule off as the workspace\'s: it says it is not shown here yet, with no controls', r && /Not shown here yet/.test(r.rule) && !/IF balance/.test(r.rule) && /\| 0$/.test(r.rule), r && r.rule)
       check('there is no Team Settings page any more: Plan & Credits comes first', r && !r.pageIds.includes('team') && r.pageIds[0] === 'plan', r && r.pageIds)
       check('the Plan page: identity row, then the plan block, then credits and auto-recharge SIDE BY SIDE (the mockup\'s layout)', r && r.planOrder[0] < r.planOrder[1] && r.planOrder[1] < r.planOrder[2] && r.cols.length === 2 && r.cols[0].y === r.cols[1].y && r.cols[1].x > r.cols[0].x, r && JSON.stringify([r.planOrder, r.cols]))
       check('the workspace ID is a discreet circled « ID » (24 px at most), labelled for screen readers', r && r.idico.text === 'ID' && r.idico.w <= 24 && r.idico.h <= 24 && r.idico.label === 'Copy workspace ID', r && JSON.stringify(r.idico))
@@ -384,13 +386,14 @@ try {
         const q = (s) => document.querySelector(s), go = (id) => q('[data-nav=' + id + ']').click(), res = {}
         const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
         res.banner = txt('#kbKeyBanner')
-        go('plan'); res.plan = txt('#curName') + ' | ' + txt('#curMeta') + ' | ' + txt('#balance') + ' | side=' + txt('#sidePlan')
+        go('plan'); res.plan = txt('#curName') + ' | ' + txt('#curMeta') + ' | ' + txt('#balance') + ' | side=' + txt('#sidePlan'); res.rule = txt('#ruleArea')
         go('usage'); res.usage = txt('#pUsed') + ' | ' + txt('#pBal')
         go('members'); res.members = document.querySelectorAll('#memberBody tr').length
         go('providers'); res.cards = document.querySelectorAll('#provGrid .pcard').length
         return res`))).val
       check('LLM service down: the banner says credits, usage and billing could not be loaded, and that members and providers are live', d && /Credits, usage and billing could not be loaded/.test(d.banner) && /live/.test(d.banner), d && d.banner)
       check('the plan is not guessed: a dash, « Not available right now », no balance of zero, no plan in the sidebar', d && d.plan === '— | Not available right now | — | side=', d && d.plan)
+      check('LLM service down: the auto-recharge card says « Not available right now », not a sample rule', d && /Not available right now/.test(d.rule) && !/IF balance/.test(d.rule), d && d.rule)
       check('Usage shows dashes, not zero amounts', d && d.usage.startsWith('— |'), d && d.usage)
       check('members are still the real ones, and the team\'s own provider stays while the Kybernos card goes (its catalogue is the LLM service\'s)', d && d.members === 2 && d.cards === 1, d && JSON.stringify([d.members, d.cards]))
 
