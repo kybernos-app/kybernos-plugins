@@ -5,7 +5,7 @@
 //   node scripts/check-memory-live.mjs [--shots <dir>] [--session "<start of a chat title>"]
 //
 // READ-ONLY by design: it opens Settings, opens the page, looks, opens the filter menu and the Options
-// page, looks for near-duplicates (« Clean up now » only scans: the scan record is the one thing it writes),
+// page, looks for near-duplicates (only when the mode is « Ask me first »: « Clean up now » then only scans),
 // and takes screenshots. It never clicks a Yes/No, Save, Forget or Add — your memories, your lessons
 // and your switches are not touched (a test that must write picks its own throw-away data; this one
 // does not need to). The headless browser is its own: nothing it stores reaches yours.
@@ -153,12 +153,15 @@ try {
   const hostHasTidy = tidyLes0 !== null && tidyLes0.ok === true
   await ev(`document.querySelector('[data-act=options]').click()`); await sleep(900)
   check('Options has the Tidy up and the Recent tidy-ups sections', (await count('[data-sec=tidy]')) === 1 && (await count('[data-sec=tidy-log]')) === 1)
-  check('« Run automatically » and « Study model » are locked and say « Coming next »', (await ev(`[...document.querySelectorAll('[data-sec=tidy] .kbmem-srow.locked')].filter(r => /Coming next/.test(r.textContent)).length`)) === 2)
+  const cfgNow = tidyLes0 !== null && tidyLes0.ok === true && tidyLes0.settings !== undefined ? tidyLes0.settings : null
+  check('Options offer the three settings, and show what the host has stored', (await count('[data-sec=tidy] [data-act=tidy-mode] button')) === 2 && (await count('[data-sec=tidy] [data-act=tidy-schedule] button')) === 5 && (await count('[data-sec=tidy] [data-act=tidy-brain] button')) === 2 && (cfgNow === null || ((await text('[data-act=tidy-mode] button.on')) === (cfgNow.mode === 'auto' ? 'Merge close matches by itself' : 'Ask me first') && (await text('[data-act=tidy-brain] button.on')) === (cfgNow.brain === true ? 'Yes' : 'No'))), cfgNow)
   await ev(`document.querySelector('[data-sec=tidy]').scrollIntoView()`); await sleep(200)
   await shot('03b-options-tidy')
   if (!hostHasTidy) {
     check('this DSH predates the tidy routes: the page says to restart it and offers no scan', /restart DSH/.test((await text('[data-act=tidy-now]')) || '') && (await ev(`document.querySelector('[data-act=tidy-scan]').disabled`)) === true)
     console.log('  – SKIP the scan: restart dsh web to load the tidy routes')
+  } else if (cfgNow !== null && cfgNow.mode !== 'ask') {
+    console.log('  – SKIP the scan: the mode is « merge close matches by itself », so a scan would change your data, and this check never does (set « Ask me first » to try it)')
   } else {
     const memTotal0 = await local('/kybernos-cloud/memory/list?limit=1')
     const lesTotal0 = await local('/kybernos-memory/lessons?limit=1')
