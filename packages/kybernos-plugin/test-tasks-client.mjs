@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const src = readFileSync(fileURLToPath(new URL('./client.js', import.meta.url)), 'utf8')
 const m = src.match(/\/\/ KB-TASKS-CLIENT-BEGIN([\s\S]*?)\/\/ KB-TASKS-CLIENT-END/)
 if (m === null) { console.error('KB-TASKS-CLIENT block not found in client.js'); process.exit(1) }
-const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbOnceLabel, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, KB_TASK_ERRORS }'))
+const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { KB_ROUTES_WITH_LOCAL_FALLBACK, kbRemoteOutcome, kbMachineTz, kbCronHuman, kbOnceLabel, kbFmtWhen, kbTasksList, kbExportTask, kbCloneDefinition, kbTaskError, kbTaskTriggerCode, kbTriggerParts, kbListState, KB_TASK_ERRORS }'))
 
 let fails = 0
 const eq = (label, got, want) => { const ok = got === want; if (!ok) { fails++; console.log('FAIL', label, '| got', got, '| want', want) } else console.log('ok  ', label) }
@@ -90,6 +90,29 @@ eq('code view: a one-time trigger is a date (it printed cron: "")', mod.kbTaskTr
 eq('code view: a webhook-only trigger', mod.kbTaskTriggerCode({ mode: 'webhook' }), '  trigger: webhook(),')
 eq('code view: quotes in a value cannot break the line', mod.kbTaskTriggerCode({ mode: 'cron', cron: 'a"b', tz: 'UTC' }).includes('\\"'), true)
 
+/* ── What the list shows, and the trigger on two lines ───────────────────── */
+eq('loading: nothing answered yet', mod.kbListState(null, null), 'loading')
+eq('the host could not answer: the reason, not "create your first automation"', mod.kbListState(null, 'Session expired'), 'error')
+eq('an answered empty list is empty', mod.kbListState([], null), 'empty')
+eq('a list holding only invalid entries is empty', mod.kbListState([null, 'x'], null), 'empty')
+eq('a list with an automation', mod.kbListState([{ id: 'a' }], null), 'list')
+eq('a later failed poll never hides a list that was loaded', mod.kbListState([{ id: 'a' }], 'HTTP 500'), 'list')
+{
+  const cronHook = mod.kbTriggerParts({ schedule: { mode: 'cron', cron: '0 9 * * 1-5' }, trigger: { type: 'webhook' } }, en)
+  eq('schedule + webhook: the label is the schedule alone, the webhook is a second fact', cronHook.label + '|' + cronHook.hooked, 'Weekdays, 09:00|true')
+  const only = mod.kbTriggerParts({ schedule: { mode: 'webhook' }, trigger: { type: 'webhook' } }, en)
+  eq('webhook-only: its label already says it, no second line', only.label + '|' + only.hooked, 'External webhook|false')
+  eq('one-time without a webhook', JSON.stringify(mod.kbTriggerParts({ schedule: { mode: 'once', at: '2026-12-15T09:00' } }, en)).startsWith('{"label":"One time \u00b7 15/12 09:00"'), true)
+  eq('no schedule at all does not throw', typeof mod.kbTriggerParts({}, en).label, 'string')
+}
+eq('a paused webhook test is explained', mod.kbTaskError('automation paused', en), 'Resume the automation before testing its webhook.')
+{
+  const keys = ['tasks.trigger.plushook', 'tasks.delete.title', 'tasks.delete.body', 'tasks.delete', 'tasks.deleted', 'tasks.load.error.title', 'tasks.loading', 'tasks.retry', 'tasks.preset.webhook', 'tasks.webhook.hint', 'tasks.hook.regen.title', 'tasks.hook.regen.body', 'tasks.hook.revoke.title', 'tasks.hook.revoke.body', 'tasks.hook.regen', 'tasks.hook.revokeBtn', 'tasks.cancel', 'tasks.err.paused']
+  const missing = keys.filter((k) => table[k] === undefined || !table[k].en || !table[k].kybernos)
+  eq('every translation key of the delete, confirm, state and webhook screens exists in both languages', missing.join(',') || 'none', 'none')
+  eq('the delete text names the automation', en('tasks.delete.title').replace('{name}', 'Quarterly board deck'), 'Delete \u201cQuarterly board deck\u201d?')
+}
+
 /* ── Every key the page uses exists, in both languages ───────────────────── */
 {
   const keys = new Set(Object.values(mod.KB_TASK_ERRORS))
@@ -111,6 +134,13 @@ eq('code view: quotes in a value cannot break the line', mod.kbTaskTriggerCode({
   eq('the clone goes through kbCloneDefinition', page.indexOf('kbCloneDefinition(t, nom)') >= 0, true)
   eq('the French placeholder is gone from the page', page.indexOf("placeholder: 'Rapport hebdo") < 0, true)
   eq('the list is filtered through kbTasksList', page.indexOf('const list = kbTasksList(tasks)') >= 0, true)
+  eq('an automation can be deleted, from the row and from its page, always after a confirmation', (page.match(/askDelete\(/g) || []).length === 2 && page.indexOf('KbConfirm, {') >= 0 && page.indexOf('await act(\'delete\', id)') >= 0, true)
+  eq('the confirmation is rendered by the list view AND by the page of an automation', (page.match(/h\(KbConfirm, \{/g) || []).length === 2, true)
+  eq('regenerating and revoking a webhook ask first', page.indexOf('tasks.hook.regen.title') >= 0 && page.indexOf('tasks.hook.revoke.title') >= 0 && page.indexOf('onClick: genHook }, kbt(\'tasks.hook.regen\')') < 0 && page.indexOf('onClick: revokeHook }') < 0, true)
+  eq('the list has a loading state and an error state with a retry', page.indexOf('kbaSkeleton()') >= 0 && page.indexOf('kbaLoadError()') >= 0 && page.indexOf('tasks-retry') >= 0, true)
+  eq('the form offers a webhook-only choice and opens the webhook tab after saving it', page.indexOf('pr.id === \'webhook\'') >= 0 && page.indexOf('openWebhookOf') >= 0, true)
+  eq('a failed run shows its reason', page.indexOf('className: \'kba-reason\'') >= 0, true)
+  eq('the confirmation closes on Escape without closing what is behind it', /KbConfirm = [\s\S]{0,700}e\.key === \'Escape\'\) \{ e\.stopPropagation\(\)/.test(page), true)
   eq('the on/off switches are reachable with the keyboard', (page.match(/className: 'kba-toggle'[^\n]*tabIndex: 0/g) || []).length, 2)
 }
 

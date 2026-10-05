@@ -324,6 +324,19 @@ let kbLocaleRead = () => 'en'
       'tasks.onetime': { kybernos: 'Une seule fois', en: 'One time' },
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
+      'tasks.trigger.plushook': { kybernos: '+ webhook', en: '+ webhook' },
+      'tasks.delete.title': { kybernos: 'Supprimer « {name} » ?', en: 'Delete “{name}”?' },
+      'tasks.delete.body': { kybernos: 'Son planning, son URL de webhook et son historique sont supprimés. Les chats déjà lancés sont conservés. Cette action est définitive.', en: 'Its schedule, its webhook URL and its run history are removed. Chats it already started are kept. This cannot be undone.' },
+      'tasks.load.error.title': { kybernos: 'Impossible de charger vos automations', en: 'Your automations could not be loaded' },
+      'tasks.loading': { kybernos: 'Chargement des automations', en: 'Loading automations' },
+      'tasks.retry': { kybernos: 'Réessayer', en: 'Retry' },
+      'tasks.preset.webhook': { kybernos: 'Webhook seul', en: 'Webhook only' },
+      'tasks.webhook.hint': { kybernos: 'Ne démarre que lorsque son URL est appelée par un autre service (Stripe, GitHub, un formulaire…). L’URL et son secret sont créés à l’enregistrement, sur l’écran suivant.', en: 'Runs only when its URL is called by another service (Stripe, GitHub, a form…). The URL and its secret are created when you save, on the next screen.' },
+      'tasks.hook.regen.title': { kybernos: 'Régénérer l’URL du webhook ?', en: 'Regenerate the webhook URL?' },
+      'tasks.hook.regen.body': { kybernos: 'L’URL actuelle cesse de fonctionner immédiatement. Mettez à jour le service qui l’appelle (Stripe, GitHub…) avec la nouvelle.', en: 'The current URL stops working immediately. Update the service that calls it (Stripe, GitHub…) with the new one.' },
+      'tasks.hook.revoke.title': { kybernos: 'Révoquer le webhook ?', en: 'Revoke the webhook?' },
+      'tasks.hook.revoke.body': { kybernos: 'Son URL cesse de fonctionner immédiatement et ne peut pas être récupérée. L’automation ne pourra plus être déclenchée par un service externe.', en: 'Its URL stops working immediately and cannot be recovered. The automation can no longer be started by an external service.' },
+      'tasks.err.paused': { kybernos: 'Reprenez l’automation avant de tester son webhook.', en: 'Resume the automation before testing its webhook.' },
       'tasks.name.placeholder': { kybernos: 'Rapport hebdo…', en: 'Weekly report…' },
       'tasks.err.cron': { kybernos: 'Planning invalide : vérifiez l’expression cron.', en: 'Invalid schedule: check the cron expression.' },
       'tasks.err.date': { kybernos: 'Date invalide.', en: 'Invalid date.' },
@@ -4805,12 +4818,28 @@ const kbTaskTriggerCode = (sc) => {
   if (s.mode === 'once') return '  trigger: once({ at: ' + JSON.stringify(String(s.at || '')) + ', tz: ' + tz + ' }),'
   return '  trigger: schedule({ cron: ' + JSON.stringify(String(s.cron || '')) + ', tz: ' + tz + ' }),'
 }
+// The trigger of an automation as two facts: what it runs on (schedule, date or webhook alone) and
+// whether a webhook can also start it. The list shows the second one on its own line instead of
+// cutting a long sentence in half.
+const kbTriggerParts = (t, tr) => {
+  const sc = t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule : {}
+  const label = sc.mode === 'webhook' ? tr('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, tr) : kbCronHuman(sc.cron || '', tr))
+  const hooked = t !== null && typeof t === 'object' && t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook' && sc.mode !== 'webhook'
+  return { label, hooked }
+}
+// What the list shows. Only a list the host actually answered can be "empty": while it loads there is a
+// skeleton, and when the host could not answer there is the reason with a retry (both used to show
+// "create your first automation", as if the user had none).
+const kbListState = (tasks, loadError) => {
+  if (tasks === null || tasks === undefined) return loadError !== null && loadError !== undefined ? 'error' : 'loading'
+  return kbTasksList(tasks).length === 0 ? 'empty' : 'list'
+}
 // The host answers in a fixed set of messages; the page shows them in its own language.
 const KB_TASK_ERRORS = {
   'name required': 'tasks.needname', 'prompt required': 'tasks.needprompt', 'cron invalide': 'tasks.err.cron',
   'date ponctuelle invalide': 'tasks.err.date', 'unknown time zone': 'tasks.err.tz', 'that date is in the past': 'tasks.err.past',
   'this schedule never fires': 'tasks.err.never', 'sign-in required': 'tasks.err.signin', 'request body too large': 'tasks.err.large',
-  'tache introuvable': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active',
+  'tache introuvable': 'tasks.err.notfound', 'active must be true or false': 'tasks.err.active', 'automation paused': 'tasks.err.paused',
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
@@ -18532,10 +18561,8 @@ function renderFit(canvas, model, cam, opts){
     // c'est CETTE page qui consomme le drapeau : startSession + draft prérempli.
     // The label helpers live in the tested block at the top of the file; these read a task.
     const kbScheduleLabel = (t, withHook) => {
-      const sc = t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule : {}
-      const base = sc.mode === 'webhook' ? kbt('tasks.trigger.webhook') : (sc.mode === 'once' ? kbOnceLabel(sc.at, kbt) : kbCronHuman(sc.cron || '', kbt))
-      const hooked = t !== null && typeof t === 'object' && t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook'
-      return withHook === true && hooked === true && sc.mode !== 'webhook' ? base + ' + ' + kbt('tasks.trigger.webhook') : base
+      const p = kbTriggerParts(t, kbt)
+      return withHook === true && p.hooked === true ? p.label + ' + ' + kbt('tasks.trigger.webhook') : p.label
     }
     const kbWhenOf = (iso, t) => kbFmtWhen(iso, t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule.tz : undefined)
     const KbTaskModal = (propsM) => {
@@ -18582,6 +18609,7 @@ function renderFit(canvas, model, cam, opts){
         { id: 'daily', cron: '0 8 * * *', label: kbt('tasks.preset.daily') },
         { id: 'fri', cron: '0 16 * * 5', label: kbt('tasks.preset.fri') },
         { id: 'once', cron: null, label: kbt('tasks.preset.once') },
+        { id: 'webhook', cron: null, label: kbt('tasks.preset.webhook') },
       ]
       const submit = async () => {
         if (busy === true) return
@@ -18602,11 +18630,17 @@ function renderFit(canvas, model, cam, opts){
             ? { action: 'update', id: t0.id, task }
             : { action: 'create', task })
           if (r !== null && r !== undefined && r.ok === true) {
-            propsM.onSaved(t0.id !== null && t0.id !== undefined ? kbt('tasks.updated') : kbt('tasks.saved'))
+            // A new webhook-only automation has no schedule: its URL is the next thing it needs, so it is
+            // created now and the page opens on it.
+            let openWebhookOf
+            if (mode === 'webhook' && (t0.id === null || t0.id === undefined) && r.task !== null && r.task !== undefined && typeof r.task.id === 'string') {
+              try { const g = await host.call('kybers/tasks', { action: 'hook-generate', id: r.task.id }); if (g !== null && g !== undefined && g.ok === true) openWebhookOf = r.task.id } catch (e3) { /* the URL can be created from the page */ }
+            }
+            propsM.onSaved(t0.id !== null && t0.id !== undefined ? kbt('tasks.updated') : kbt('tasks.saved'), openWebhookOf !== undefined ? { openWebhookOf } : undefined)
           } else { setBusy(false); setErr((r !== null && r !== undefined && typeof r.error === 'string') ? kbTaskError(r.error, kbt) : 'error') }
         } catch (e) { setBusy(false); setErr(String((e !== null && typeof e === 'object' && e.message !== undefined) ? e.message : e)) }
       }
-      const presetOn = (pr) => (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && cron === pr.cron))
+      const presetOn = (pr) => (pr.id === 'webhook' ? mode === 'webhook' : (pr.id === 'once' ? mode === 'once' : (mode === 'cron' && cron === pr.cron)))
       return h('div', { className: 'kb-task-modal-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget && typeof propsM.onClose === 'function') propsM.onClose() } },
         h('div', { className: 'kb-task-modal', role: 'dialog', 'aria-modal': 'true' },
           h('h3', null, Icon('calendar-clock', 16), t0.id !== null && t0.id !== undefined ? kbt('tasks.edit') : kbt('tasks.form.title')),
@@ -18618,9 +18652,9 @@ function renderFit(canvas, model, cam, opts){
             h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que le Kyber doit faire à chaque déclenchement…') })),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.repeats')),
-            h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(pr.cron) } } }, pr.label)))),
+            h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'webhook') { setMode('webhook') } else if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(pr.cron) } } }, pr.label)))),
           (mode === 'webhook'
-            ? h('div', { className: 'kb-task-row' }, h('span', { className: 'kb-task-muted' }, kbt('tasks.trigger.webhook')))
+            ? h('div', { className: 'kb-task-hint' }, kbt('tasks.webhook.hint'))
             : mode === 'cron'
             ? h('div', { className: 'kb-task-row' },
                 h('span', { className: 'kb-task-muted' }, kbCronHuman(cron, kbt)),
@@ -18722,6 +18756,29 @@ function renderFit(canvas, model, cam, opts){
       out.push('  },', '});')
       return out
     }
+    // A confirmation for what cannot be undone: deleting an automation, regenerating or revoking its webhook URL.
+    const KbConfirm = (p) => {
+      const busyPair = React.useState(false)
+      const busy = busyPair[0]; const setBusy = busyPair[1]
+      React.useEffect(() => {
+        const onKey = (e) => { if (e !== null && e.key === 'Escape') { e.stopPropagation(); p.onClose() } }
+        document.addEventListener('keydown', onKey, true)
+        return () => { document.removeEventListener('keydown', onKey, true) }
+      }, [])
+      const go = async () => {
+        if (busy === true) return
+        setBusy(true)
+        try { await p.onConfirm() } catch (e) { /* the action reports its own failure */ }
+        p.onClose()
+      }
+      return h('div', { className: 'kb-task-modal-scrim', onMouseDown: (e) => { if (e !== null && e.target === e.currentTarget) p.onClose() } },
+        h('div', { className: 'kb-task-modal kb-task-confirm', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'kb-confirm-title' },
+          h('h3', { id: 'kb-confirm-title' }, p.title),
+          h('p', { className: 'kb-task-body' }, p.body),
+          h('div', { className: 'kb-task-foot' },
+            h('button', { type: 'button', className: 'kb-task-btn', autoFocus: true, onClick: p.onClose }, kbt('tasks.cancel')),
+            h('button', { type: 'button', className: 'kb-task-btn danger', disabled: busy === true, onClick: go }, p.confirmLabel))))
+    }
     const ScheduledTasksPage = () => {
       const tasksPair = React.useState(null)
       const tasks = tasksPair[0]
@@ -18755,6 +18812,12 @@ function renderFit(canvas, model, cam, opts){
       const detailPair = React.useState(null)
       const detail = detailPair[0]
       const setDetail = detailPair[1]
+      const confirmPair = React.useState(null)
+      const confirmAsk = confirmPair[0]
+      const setConfirm = confirmPair[1]
+      const loadErrPair = React.useState(null)
+      const loadErr = loadErrPair[0]
+      const setLoadErr = loadErrPair[1]
       const tabPair = React.useState('sessions')
       const tab = tabPair[0]
       const setTab = tabPair[1]
@@ -18795,17 +18858,21 @@ function renderFit(canvas, model, cam, opts){
           if (r !== null && r !== undefined && r.ok === true) {
             const list = Array.isArray(r.tasks) === true ? r.tasks : []
             setTasks(list)
+            setLoadErr(null)
             KB_TASKS_COUNT = kbTasksList(list).length
-          }
-        } catch (e) { /* host pas encore monté : on réessaiera au tick */ }
+          } else setLoadErr(r !== null && r !== undefined && typeof r.error === 'string' ? kbTaskError(r.error, kbt) : 'HTTP error')
+        } catch (e) { setLoadErr(errText(e)) /* the next poll retries */ }
       }
       React.useEffect(() => {
         deadRef.current = false
         const consume = async () => {
           let r = null
-          try { r = await host.call('kybers/tasks', { action: 'list' }) } catch (e) { return }
-          if (deadRef.current === true || r === null || r === undefined || r.ok !== true || Array.isArray(r.tasks) !== true) return
+          try { r = await host.call('kybers/tasks', { action: 'list' }) } catch (e) { if (deadRef.current === false) setLoadErr(errText(e)); return }
+          if (deadRef.current === true) return
+          // A list the host could not give is reported (and the next poll retries); it used to be ignored.
+          if (r === null || r === undefined || r.ok !== true || Array.isArray(r.tasks) !== true) { setLoadErr(r !== null && r !== undefined && typeof r.error === 'string' ? kbTaskError(r.error, kbt) : 'HTTP error'); return }
           setTasks(r.tasks)
+          setLoadErr(null)
           KB_TASKS_COUNT = kbTasksList(r.tasks).length
           for (const t of r.tasks) {
             if (t === null || typeof t !== 'object' || t.pendingFire !== true) continue
@@ -18873,6 +18940,18 @@ function renderFit(canvas, model, cam, opts){
       }
 
       const list = kbTasksList(tasks)
+      const askDelete = (id, name) => setConfirm({
+        title: kbt('tasks.delete.title').replace('{name}', String(name)),
+        body: kbt('tasks.delete.body'),
+        confirmLabel: kbt('tasks.delete'),
+        onConfirm: async () => { await act('delete', id); if (detail === id) setDetail(null) },
+      })
+      const kbaSkeleton = () => h('div', { className: 'kba-card', 'aria-busy': 'true', 'aria-label': kbt('tasks.loading') },
+        [0, 1, 2, 3].map((i) => h('div', { key: i, className: 'kba-skelrow' }, [70, 78, 60, 46, 70, 20, 44].map((w, j) => h('span', { key: j, className: 'kba-skel', style: { width: w + '%' } })))))
+      const kbaLoadError = () => h('div', { className: 'kba-card' },
+        h('div', { className: 'kba-banner', role: 'alert' },
+          h('div', { style: { flex: 1, minWidth: 0 } }, h('b', null, kbt('tasks.load.error.title')), h('span', null, String(loadErr))),
+          h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'tasks-retry', onClick: () => { setLoadErr(null); setTasks(null); refresh() } }, kbt('tasks.retry'))))
       const items = list.map((t) => {
         const hist = Array.isArray(t.history) === true ? t.history : []
         const last = hist.length > 0 ? hist[hist.length - 1] : null
@@ -18884,7 +18963,7 @@ function renderFit(canvas, model, cam, opts){
         else if (t.lastRun !== null && t.lastRun !== undefined) { lastLabel = kbWhenOf(t.lastRun, t) + ' \u00b7 ok'; lastCls = 'ok' }
         const isHook = t.trigger !== null && t.trigger !== undefined && t.trigger.type === 'webhook'
         return {
-          id: t.id, name: t.name || t.id, team: t.notify && t.notify.length > 0 ? kbt('tasks.notify.on') : '', trigger: kbScheduleLabel(t, true), active: t.active !== false,
+          id: t.id, name: t.name || t.id, team: t.notify && t.notify.length > 0 ? kbt('tasks.notify.on') : '', trigger: kbTriggerParts(t, kbt).label, hooked: kbTriggerParts(t, kbt).hooked, active: t.active !== false,
           sessions: hist.length, lastLabel: lastLabel, lastCls: lastCls, failed: failed === true || t.pendingFire === true, _t: t,
         }
       })
@@ -18968,7 +19047,8 @@ function renderFit(canvas, model, cam, opts){
             h('span', { role: 'switch', 'aria-checked': (t.active !== false) ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (t.active !== false ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', t.id, { active: t.active === false }) } }, onClick: () => act('toggle', t.id, { active: t.active === false }) },
               h('span', { className: 'kba-toggle-knob' })),
             h('button', { type: 'button', className: 'kba-btn', onClick: () => act('run-now', t.id) }, Icon('play', 13), ' ', kbt('tasks.runnow')),
-            h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched'))),
+            h('button', { type: 'button', className: 'kba-btn', onClick: () => setModal(t) }, Icon('calendar-clock', 13), ' ', kbt('tasks.editsched')),
+            h('button', { type: 'button', className: 'kba-btn kba-trash', 'data-kb': 'detail-delete', onClick: () => askDelete(t.id, t.name || t.id) }, Icon('trash', 13), ' ', kbt('tasks.delete'))),
           h('div', { className: 'kba-tabs' },
             h('button', { type: 'button', className: 'kba-tab' + (tab === 'sessions' ? ' on' : ''), onClick: () => setTab('sessions') }, kbt('tasks.tab.sessions').replace('{n}', String(hist.length))),
             h('button', { type: 'button', className: 'kba-tab' + (tab === 'flow' ? ' on' : ''), onClick: () => setTab('flow') }, kbt('tasks.tab.workflow')),
@@ -18993,7 +19073,7 @@ function renderFit(canvas, model, cam, opts){
                   if (hookUrl === '') return
                   fetch(hookUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ test: true, at: new Date().toISOString() }) })
                     .then((r) => r.json())
-                    .then((j) => { toast(j !== null && j.ok === true ? kbt('tasks.hook.tested') : kbt('tasks.hook.err')) })
+                    .then((j) => { toast(j !== null && j.ok === true ? kbt('tasks.hook.tested') : (j !== null && typeof j.error === 'string' ? kbTaskError(j.error, kbt) : kbt('tasks.hook.err'))) })
                     .catch(() => toast(kbt('tasks.hook.err')))
                 }
                 const copyUrl = () => {
@@ -19022,8 +19102,8 @@ function renderFit(canvas, model, cam, opts){
                           h('span', { style: { fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } }, kbt('tasks.hook.local')),
                           h('div', { style: { display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 } },
                             h('button', { type: 'button', className: 'kba-btn pri', 'data-kb': 'hook-test', onClick: testHook }, kbt('tasks.hook.test')),
-                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-regen', onClick: genHook }, kbt('tasks.hook.regen')),
-                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-revoke', onClick: revokeHook }, kbt('tasks.hook.revokeBtn'))))))
+                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-regen', onClick: () => setConfirm({ title: kbt('tasks.hook.regen.title'), body: kbt('tasks.hook.regen.body'), confirmLabel: kbt('tasks.hook.regen'), onConfirm: async () => { genHook() } }) }, kbt('tasks.hook.regen')),
+                            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'hook-revoke', onClick: () => setConfirm({ title: kbt('tasks.hook.revoke.title'), body: kbt('tasks.hook.revoke.body'), confirmLabel: kbt('tasks.hook.revokeBtn'), onConfirm: async () => { revokeHook() } }) }, kbt('tasks.hook.revokeBtn'))))))
                 )
               })()
               : tab === 'sessions'
@@ -19033,7 +19113,7 @@ function renderFit(canvas, model, cam, opts){
                   onClick: () => { if (typeof e.sessionId === 'string' && e.sessionId.length > 0) { try { uiWorkspaceSvc.openSession(e.sessionId) } catch (er) { /* navigation indisponible */ } } },
                 },
                   h('span', { className: 'kba-kdot ' + (e.status === 'error' ? 'fail' : e.status === 'queued' ? 'wait' : 'ok') }),
-                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at, t)),
+                  h('span', { className: 'kba-ell', style: { fontWeight: 600 } }, kbt('tasks.session.run') + ' \u00b7 ' + kbWhenOf(e.at, t), e.status === 'error' && typeof e.error === 'string' && e.error.length > 0 ? h('span', { className: 'kba-reason' }, e.error) : null),
                   h('span', { className: 'kba-ell dim kba-moboff' }, (typeof e.sessionId === 'string' && e.sessionId.length > 0) ? e.sessionId.slice(0, 14) : '\u2014'),
                   h('span', { className: 'dim', title: e.status === 'error' && typeof e.error === 'string' ? e.error : undefined }, e.status === 'error' ? kbt('tasks.status.error') : e.status === 'queued' ? kbt('tasks.status.queued') : kbt('tasks.status.fired')),
                   h('span', null, (typeof e.sessionId === 'string' && e.sessionId.length > 0)
@@ -19147,6 +19227,7 @@ function renderFit(canvas, model, cam, opts){
                               h('span', null, l.trim()))
                           })))))))),
           (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
+          (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
           (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m) => { setModal(null); toast(m); refresh() } }) : null))
       }
 
@@ -19306,7 +19387,7 @@ function renderFit(canvas, model, cam, opts){
         // Toutes / Actives / Attention requise deviennent la facette `type`
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
         // barre. Pas de contrôle cartes/liste ici : une seule mise en page.
-        ((list.length === 0 || filtered.length === 0)
+        (kbListState(tasks, loadErr) === 'loading' ? kbaSkeleton() : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
@@ -19324,16 +19405,18 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kb-favbtn' + (auFavOf(a) === true ? ' on' : ''), 'data-kb': 'favorite-star', 'data-scope': 'automations', 'data-id': a.id, title: kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), 'aria-label': kbt(auFavOf(a) === true ? 'kbui.unfav' : 'kbui.fav'), style: { marginInlineStart: '10px' }, onClick: (e2) => { e2.stopPropagation(); auFavToggle(a.id) } }, Icon('star', 13)),
               h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-clone', title: kbt('kbui.action.clone'), 'aria-label': kbt('kbui.action.clone'), onClick: (e2) => { e2.stopPropagation(); cloneTask(a) } }, Icon('copy', 13)),
               h('button', { type: 'button', className: 'kb-favbtn', 'data-kb': 'action-export', title: kbt('kbui.action.export'), 'aria-label': kbt('kbui.action.export'), onClick: (e2) => { e2.stopPropagation(); exportTask(a) } }, Icon('download', 13)),
+              h('button', { type: 'button', className: 'kb-favbtn kba-trash', 'data-kb': 'action-delete', title: kbt('tasks.delete'), 'aria-label': kbt('tasks.delete'), onClick: (e2) => { e2.stopPropagation(); askDelete(a.id, a.name) } }, Icon('trash', 13)),
               h('button', { type: 'button', className: 'kba-rowbtn', onClick: () => { setDetail(a.id); setTab('sessions'); setNodeSel(null) } },
                 h('span', { className: 'kba-name' }, a.name, h('span', { className: 'kba-team' }, a.team)),
-                h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-ell' }, a.trigger)),
+                h('span', { className: 'kba-trgcell' }, h('span', { className: 'kba-trigger-icon' }, Icon('zap', 12)), h('span', { className: 'kba-trg-stack' }, h('span', { className: 'kba-ell' }, a.trigger), a.hooked === true ? h('span', { className: 'kba-team' }, kbt('tasks.trigger.plushook')) : null)),
                 h('span', null, h('span', { className: 'kba-origin-badge' }, kbt('tasks.origin.manual'))),
                 h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell' }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
               h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
                 h('span', { className: 'kba-toggle-knob' })))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
-        (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m) => { setModal(null); toast(m); refresh() } }) : null))
+        (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
+        (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m, extra) => { setModal(null); toast(m); refresh(); if (extra !== null && extra !== undefined && typeof extra.openWebhookOf === 'string') { setDetail(extra.openWebhookOf); setTab('hook') } } }) : null))
     }
 
     const KB_MOCK_SKILLS = [
@@ -28026,7 +28109,20 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
 .kba-rowbtn{flex:1;padding:12px 16px;border:0;background:transparent;text-align:left;font:inherit;font-size:13.5px;color:var(--dsw-alias-label-primary);cursor:pointer;min-width:0}
 .kba-rowbtn:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kba-name{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kba-team{font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kba-team{display:block;font-size:11px;color:var(--dsw-alias-label-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kba-trg-stack{display:flex;flex-direction:column;min-width:0}
+.kba-reason{display:block;margin-top:3px;font-size:12px;font-weight:400;color:var(--dsw-alias-state-error-primary);white-space:normal}
+.kba-trash:hover{color:var(--dsw-alias-state-error-primary)}
+.kba-skelrow{display:grid;grid-template-columns:120px 2.2fr 1.6fr 1fr 1.4fr .6fr 70px;gap:16px;align-items:center;padding:22px 16px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kba-skel{height:14px;border-radius:7px;background:var(--dsw-alias-bg-layer-3);animation:kba-pulse 1.3s ease-in-out infinite}
+@keyframes kba-pulse{0%,100%{opacity:.35}50%{opacity:.8}}
+@media (prefers-reduced-motion:reduce){.kba-skel{animation:none;opacity:.5}}
+.kba-banner{display:flex;gap:14px;align-items:center;padding:16px 18px;margin:14px;border:1px solid var(--dsw-alias-state-error-primary);border-radius:12px}
+.kba-banner b{display:block;margin-bottom:2px}
+.kba-banner span{color:var(--dsw-alias-label-secondary);font-size:13px}
+.kb-task-confirm{width:440px}
+.kb-task-body{margin:6px 0 0;color:var(--dsw-alias-label-secondary);font-size:14px;line-height:1.5}
+.kb-task-hint{padding:10px 12px;border-radius:10px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.45}
 .kba-trgcell{display:flex;align-items:center;gap:10px;color:var(--dsw-alias-label-secondary);min-width:0}
 .kba-trigger-icon{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-state-warn-primary);font-size:11px;flex:none}
 .kba-ell{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
