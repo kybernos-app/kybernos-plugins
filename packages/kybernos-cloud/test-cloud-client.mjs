@@ -130,8 +130,10 @@ ok('factory(require) renvoie un plugin Cordis (apply + inject slots)')
 // ── Montage sur un faux ctx : capture de l'enregistrement de slot ───────────
 const registrations = []
 let registered = null
+const injectedSlots = []
 const slots = {
-  inject: (name, cb) => { assert.equal(name, 'sidebar.footer.action'); cb(); return () => {} },
+  // The client now fills more than the footer (the Account section of Settings, the full-page panels): record every slot it asks to inject into.
+  inject: (name, cb) => { injectedSlots.push(name); cb(); return () => {} },
   register: (options, component) => {
     registrations.push({ options, component })
     if (options !== null && options !== undefined && options.name === 'sidebar.footer.action') registered = { options, component }
@@ -157,7 +159,10 @@ assert.ok(page !== undefined, 'la page de l espace doit etre enregistree dans le
 assert.equal(page.options.key, 'kybernos-cloud-space')
 assert.equal(typeof page.component, 'function')
 assert.equal(source.includes("selectPanel('kybernos-cloud-space')"), true, 'l engrenage doit ouvrir le panneau main')
-assert.equal(source.includes('kbc-scrim', source.indexOf('const SpaceMain')), false, 'la page ne doit PAS etre une surcouche')
+// Only the page's own body counts: the profile card, defined further down, legitimately owns a scrim.
+const spaceBody = source.slice(source.indexOf('const SpaceMain'), source.indexOf('SpaceMain.__testTabs'))
+assert.ok(spaceBody.length > 200, 'le corps de la page de l espace doit etre trouve')
+assert.equal(spaceBody.includes('kbc-scrim'), false, 'la page ne doit PAS etre une surcouche')
 ok('page de l espace enregistree dans le slot main (selectPanel, pas de surcouche)')
 
 assert.equal(inserted.length, 1)
@@ -171,7 +176,8 @@ ok('CSS injecte via styles.insert')
 // ici (les deux autres états sont couverts par le CSS et le câblage ci-dessous).
 const html = renderToStaticMarkup(React.createElement(registered.component, null))
 assert.ok(html.includes('<button'), 'la rangee de pied doit rendre un bouton')
-assert.ok(html.includes('kbf-connect'), 'le CTA de connexion est rendu tant que l etat est inconnu')
+assert.ok(html.includes('kbf-off') && html.includes('kbm-btn-primary'), 'le CTA de connexion est rendu tant que l etat est inconnu')
+assert.ok(html.includes('kbf-gear'), 'les Reglages restent atteignables meme deconnecte (le declencheur natif est masque)')
 assert.ok(html.includes('<svg'), 'icone de connexion presente')
 // La carte n'est pas ouverte au premier rendu : le scrim ne doit pas exister.
 assert.equal(html.includes('kbc-scrim'), false)
@@ -308,23 +314,28 @@ await act(async () => {
   await new Promise((r) => setTimeout(r, 0))
 })
 const htmlConnecte = htmlDe(racineEl)
-// La maquette : le menu user est CONSERVÉ, et une rangée d'espace SÉPARÉE vient
-// au-dessus. PAS d'engrenage dans la rangée : DSH en affiche déjà un juste à
-// droite (deux engrenages voisins se lisaient comme un doublon) — le réglage de
-// l'espace vit dans le sélecteur.
-assert.ok(htmlConnecte.includes('My workspace'), 'la carte d espace montre l espace ACTIF')
-assert.ok(htmlConnecte.includes('kbf-wscard'), 'la carte d espace est là (clic = changer d espace)')
-assert.equal(htmlConnecte.includes('kbf-wsgear'), false, 'aucun engrenage DANS la rangée du pied')
-assert.ok(htmlConnecte.includes('switch'), 'la carte annonce le geste : formule · switch')
-assert.ok(htmlConnecte.includes('kbf-profile'), 'le menu USER est conserve, sous la rangee d espace')
-assert.ok(/kbf-name[^>]*>\s*[A-Za-z]/.test(htmlConnecte), 'le menu user porte le NOM en TEXTE (pas seulement en title)')
-ok('rangee d espace (carte seule, sans engrenage) AU-DESSUS du menu user conserve')
+// The unified card (04/10): ONE card carries the active space, "who · plan", the phone and the bell; a click opens the
+// account menu. No gear inside the row (DSH shows its own right beside it) and no menu until it is opened.
+assert.ok(htmlConnecte.includes('data-kb="workspace-card"'), 'la carte unifiee est la (un clic ouvre le menu)')
+assert.ok(htmlConnecte.includes('kbfp-cardname">My workspace<'), 'la carte montre l espace ACTIF')
+assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>MW<'), 'tuile d initiales de l espace')
+assert.ok(htmlConnecte.includes('dev · free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
+assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')
+assert.equal(htmlConnecte.includes('kbfp-menu'), false, 'le menu n est pas rendu tant qu il n est pas ouvert')
+assert.equal(htmlConnecte.includes('kbf-wsgear'), false, 'aucun engrenage DANS la rangee du pied')
+assert.ok(htmlConnecte.includes('title="Notifications"'), 'la cloche est dans la carte')
+ok('carte unifiee : espace actif, qui · formule, mobile et cloche, menu ferme, aucun engrenage')
 
-// Le réglage de l'espace est une ENTRÉE NOMMÉE du sélecteur, pas une icône.
-assert.ok(source.includes("h('span', { className: 'kbs-name' }, t('wsSettingsTitle'))"),
-  'le selecteur doit porter une entree nommee pour le reglage de l espace')
-assert.ok(source.includes('onSettings: () => {'), 'la couture onSettings doit exister')
-ok('reglage de l espace : entree nommee du selecteur, ouvrant la page plein cadre')
+
+// « Teams settings » is a NAMED entry of the account menu. It opens the console through a bridge the core plugin exposes,
+// then falls back to the rich space page, then to the local page: degrade, never break.
+assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)"),
+  'le menu doit porter une entree nommee pour les reglages de la team')
+for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace', "selectPanel('kybernos-cloud-space')"]) {
+  assert.ok(source.includes(needle), 'repli de l entree Teams settings manquant: ' + needle)
+}
+assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSettings doit exister en fr ET en')
+ok('Teams settings : entree nommee du menu, pont vers la console puis deux replis, fr/en')
 
 // Le câblage de la page : la liste des espaces, la route du choix, les cinq
 // directions inertes, et le lien vers la page hébergée.
