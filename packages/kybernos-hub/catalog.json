@@ -42,6 +42,16 @@
       "icone": "layout"
     },
     {
+      "id": "data",
+      "fr": "Données",
+      "en": "Data",
+      "ligne": {
+        "fr": "Vos bases, lues et tracées dans le chat.",
+        "en": "Your databases, read and charted in the chat."
+      },
+      "icone": "database"
+    },
+    {
       "id": "connect",
       "fr": "Connecteurs et machines",
       "en": "Connectors and machines",
@@ -416,7 +426,7 @@
     {
       "id": "dsh-db-viewer",
       "nom": "@local/dsh-db-viewer",
-      "famille": "create",
+      "famille": "data",
       "palier": "core",
       "version": "0.1.0",
       "socle": false,

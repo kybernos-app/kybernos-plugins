@@ -19,6 +19,7 @@ export const FAMILLES = [
   { id: 'models', fr: 'Modèles', en: 'Models', ligne: { fr: 'N’importe quel modèle, y compris local.', en: 'Any model, local ones included.' }, icone: 'cpu' },
   { id: 'teams', fr: 'Équipes d’agents', en: 'Agent teams', ligne: { fr: 'File d’attente, reprise, objectifs.', en: 'Queue, resume, goals.' }, icone: 'users' },
   { id: 'create', fr: 'Créer dans le chat', en: 'Create in the chat', ligne: { fr: 'L’agent montre au lieu d’expliquer.', en: 'The agent shows instead of explaining.' }, icone: 'layout' },
+  { id: 'data', fr: 'Données', en: 'Data', ligne: { fr: 'Vos bases, lues et tracées dans le chat.', en: 'Your databases, read and charted in the chat.' }, icone: 'database' },
   { id: 'connect', fr: 'Connecteurs et machines', en: 'Connectors and machines', ligne: { fr: 'Vos outils, des ordinateurs pour l’agent.', en: 'Your tools, computers for the agent.' }, icone: 'plug' },
   { id: 'cloud', fr: 'Cloud', en: 'Cloud', ligne: { fr: 'Compte, mémoire, modèles du proxy.', en: 'Account, memory, proxy models.' }, icone: 'cloud' }
 ]
@@ -44,7 +45,7 @@ const FICHE = {
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
-  'dsh-db-viewer': ['create', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],
+  'dsh-db-viewer': ['data', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],
   'dsh-media-player': ['create', 'Lecteur audio et vidéo dans la barre latérale.', 'Audio and video player in the sidebar.'],
   'kybernos-composio': ['connect', 'Des centaines de connecteurs en cartes prêtes pour l’agent.', 'Hundreds of connectors as ready-made cards for the agent.'],
   'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (votre clé E2B).', 'Cloud computers for agents (your E2B key).'],
