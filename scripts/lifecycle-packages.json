@@ -94,6 +94,10 @@
       "nom": "@local/kybernos-memory"
     },
     {
+      "dir": "kybernos-atlas",
+      "nom": "@local/kybernos-atlas"
+    },
+    {
       "dir": "dsh-media-player",
       "nom": "@local/dsh-media-player"
     },
