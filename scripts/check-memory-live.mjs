@@ -132,10 +132,14 @@ try {
       await ev(`(() => { const i = document.querySelector('.kbmem-field input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ''); i.dispatchEvent(new Event('input', { bubbles: true })) })()`); await sleep(1200)
     } else console.log('  – SKIP lessons search: the first lesson has fewer than two words of 5+ letters')
   }
+  // Mine | Team: Team is live on a Team workspace and otherwise locked, the chip saying why. It is never opened here: that would call the team API.
+  const scope = await ev(`JSON.stringify([...document.querySelectorAll('.kbmem-seg[aria-label=Scope] button')].map(b => ({ t: b.textContent.trim(), off: b.disabled, why: b.title })))`)
+  const scopeBtns = JSON.parse(scope || '[]')
+  check('the Scope control offers Mine and Team', scopeBtns.length === 2 && /^Mine/.test(scopeBtns[0].t) && /^Team/.test(scopeBtns[1].t), scope)
+  check('Team is either available, or locked with the reason', scopeBtns.length === 2 && (scopeBtns[1].off === false || (scopeBtns[1].off === true && /Team|Connect|Kybernos Cloud/.test(scopeBtns[1].t) && scopeBtns[1].why !== '')), scope)
   await ev(`document.querySelector('[data-act=filter]').click()`); await sleep(300)
   const groups = await ev(`JSON.stringify([...document.querySelectorAll('.kbmem-mg')].map(e => e.textContent.trim()))`)
-  check('filter menu offers Scope, Status and Added (plus Kyber when kybers exist)', ['Scope', 'Status', 'Added'].every((g) => (groups || '').indexOf(g) >= 0), groups)
-  check('Team scope is shown as not built', /Team · soon/.test((await text('.kbmem-menu')) || ''))
+  check('filter menu offers Status and Added (plus Kyber when kybers exist)', ['Status', 'Added'].every((g) => (groups || '').indexOf(g) >= 0) && (groups || '').indexOf('Scope') < 0, groups)
   await shot('02-lessons-filter')
   await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`); await sleep(200)
 
