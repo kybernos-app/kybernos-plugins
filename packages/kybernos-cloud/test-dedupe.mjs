@@ -2,7 +2,7 @@
 // Near-duplicate detection (dedupe.mjs): what is grouped, what is kept, and what is deliberately left alone.
 //   node packages/kybernos-cloud/test-dedupe.mjs
 import assert from 'node:assert/strict'
-import { findDuplicateGroups, likeness, sameFact, DEDUPE_TUNING } from './dedupe.mjs'
+import { findDuplicateGroups, likeness, sameFact, DEDUPE_TUNING, AUTO_MIN_SCORE, negates, numbersOf, clash, pairKey, unclearPairs } from './dedupe.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -49,8 +49,8 @@ ok('only items of the same kind (or the same kyber) are compared')
 console.log('stars, not chains')
 const base = ['alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta', 'theta', 'iota', 'kappa', 'lambda']
 const wA = base                                              // 10 words
-const wB = [...base.slice(0, 9), 'xx1']                      // 9 shared with A  → alike (0.82)
-const wC = [...base.slice(0, 8), 'xx1', 'yy2']               // 8 shared with A (0.67), 9 shared with B (0.82)
+const wB = [...base.slice(0, 9), 'xxone']                      // 9 shared with A  → alike (0.82)
+const wC = [...base.slice(0, 8), 'xxone', 'yytwo']               // 8 shared with A (0.67), 9 shared with B (0.82)
 assert.ok(sameFact(new Set(wA), new Set(wB)) && sameFact(new Set(wB), new Set(wC)) && !sameFact(new Set(wA), new Set(wC)), 'sanity: A~B, B~C, A≁C')
 const text = (w) => w.join(' ')
 // A is the keeper (newest): B joins it, C does NOT (C is only alike to B)
@@ -89,5 +89,65 @@ const big = findDuplicateGroups(many)
 const ms = performance.now() - t0
 assert.ok(ms < 3000, '1500 items took ' + ms.toFixed(0) + ' ms')
 ok('1500 items scanned in ' + ms.toFixed(0) + ' ms (' + String(big.length) + ' groups)')
+
+console.log('negations and numbers')
+assert.equal(negates('Do not commit .env files'), true)
+assert.equal(negates("Don't commit .env files"), true)
+assert.equal(negates('Ne jamais committer les fichiers .env'), true)
+assert.equal(negates('Toujours committer les fichiers .env'), false)
+assert.equal(negates('Run the tests'), false)
+assert.equal(negates('Nothing else to check'), true)
+assert.equal(negates('The notebook runs on nodes'), false, 'a word that merely contains « no » is not a negation')
+assert.equal(numbersOf('Port 3080 and 2/3 of the 4.5 budget'), '2,3,3080,4.5')
+assert.equal(clash('Do not commit .env files to the repository', 'Commit .env files to the repository'), 'negation')
+assert.equal(clash('The dev server listens on port 3000 for the whole project', 'The dev server listens on port 3080 for the whole project'), 'number')
+assert.equal(clash('Run the tests before pushing', 'Always run the tests before pushing'), null)
+assert.equal(clash('After a rollback the doctor may count a missing touch-up (2/3)', 'After a rollback the doctor can count a missing touch-up (ex. 2/3)'), null, 'the same numbers, written differently')
+const notDup = findDuplicateGroups([mk(1, 'Do not commit .env files to the repository'), mk(2, 'Commit .env files to the repository')])
+assert.equal(notDup.length, 0, '« do not X » and « X » have the same words and are opposites')
+const portDup = findDuplicateGroups([mk(1, 'The dev server listens on port 3000 for the whole project'), mk(2, 'The dev server listens on port 3080 for the whole project')])
+assert.equal(portDup.length, 0, 'a value that changed is not a duplicate: a newer fact replaces an older one, which is a judgement')
+const french = findDuplicateGroups([mk(1, 'Ne jamais committer les fichiers .env dans le dépôt'), mk(2, 'Toujours committer les fichiers .env dans le dépôt')])
+assert.equal(french.length, 0)
+ok('a negation or another number is not a duplicate, however many words are shared; the same numbers written differently still are')
+
+console.log('auto rule')
+assert.equal(AUTO_MIN_SCORE, 80)
+assert.ok(findDuplicateGroups(tz).every((g) => g.score >= AUTO_MIN_SCORE), 'the plain rewordings of the fixture are above the auto line')
+const containment = findDuplicateGroups([mk(1, 'Never commit the env files of the project to the repository because secrets leak from there'), mk(2, 'Never commit the env files of the project to the repository')])
+assert.equal(containment.length, 1)
+assert.ok(containment[0].score < AUTO_MIN_SCORE, 'a group found only by containment is below the line: it is asked, not applied (' + String(containment[0].score) + ')')
+ok('plain rewordings reach the auto line, a one-inside-the-other group does not')
+
+console.log('unclear pairs')
+const unc = unclearPairs([
+  mk(1, 'Do not commit .env files to the repository', { createdAt: '2026-09-01 10:00:00+00:00' }),
+  mk(2, 'Commit .env files to the repository', { createdAt: '2026-09-05 10:00:00+00:00' }),
+  mk(3, 'The dev server listens on port 3000 for the whole project', { createdAt: '2026-08-01 10:00:00+00:00' }),
+  mk(4, 'The dev server listens on port 3080 for the whole project', { createdAt: '2026-09-20 10:00:00+00:00' }),
+  mk(5, 'Project A deploys on Vercel from the dev branch'),
+  mk(6, 'Project B deploys on Railway from the dev branch'),
+  mk(7, 'Prefers short answers in French'),
+  mk(8, 'Run the lifecycle tests before every push to the repository'),
+  mk(9, 'Always run the lifecycle tests before every push to the repository'),
+])
+const why = Object.fromEntries(unc.map((u) => [[u.a.id, u.b.id].sort().join('-'), u.why]))
+assert.equal(why['1-2'], 'negation')
+assert.equal(why['3-4'], 'number')
+assert.equal(why['5-6'], 'close', 'two projects that look alike are an unclear pair')
+assert.equal(why['8-9'], undefined, 'a real duplicate belongs to findDuplicateGroups, not here')
+assert.equal(unc.find((u) => u.why === 'number').a.id, 3, 'a is the older of the two')
+assert.ok(unc.every((u) => u.id === pairKey(u.a.id, u.b.id) && pairKey(u.a.id, u.b.id) === pairKey(u.b.id, u.a.id)), 'a pair id does not depend on the order')
+assert.deepEqual(unc.map((u) => u.like), [...unc.map((u) => u.like)].sort((x, y) => y - x), 'best first')
+assert.equal(unclearPairs([mk(1, 'Do not commit .env files to the repository'), mk(2, 'Commit .env files to the repository')], { taken: new Set([1]) }).length, 0, 'items already in a group are left out')
+assert.equal(unclearPairs([mk(1, 'Project A deploys on Vercel from the dev branch', { pinned: true }), mk(2, 'Project B deploys on Vercel from the dev branch', { pinned: true })]).length, 0, 'two pinned items are never paired')
+assert.equal(unclearPairs([mk(1, 'Project A deploys on Vercel from the dev branch', { bucket: 'x' }), mk(2, 'Project B deploys on Vercel from the dev branch', { bucket: 'y' })]).length, 0, 'only inside one bucket')
+const crowd = Array.from({ length: 40 }, (_, i) => mk(i, 'Shared stem sentence about topic alpha beta gamma ' + ['one', 'two', 'three', 'four'][i % 4] + ' ' + String.fromCharCode(97 + i)))
+const capped = unclearPairs(crowd, { max: 5 })
+assert.ok(capped.length <= 5, 'at most `max` pairs')
+const perItem = new Map(); for (const u of unclearPairs(crowd, { max: 100 })) { perItem.set(u.a.id, (perItem.get(u.a.id) || 0) + 1); perItem.set(u.b.id, (perItem.get(u.b.id) || 0) + 1) }
+assert.ok([...perItem.values()].every((n) => n <= 2), 'an item is in at most 2 pairs')
+for (const bad of [null, undefined, [], [null, 3], 'x']) assert.doesNotThrow(() => unclearPairs(bad))
+ok('negation, number and look-alike pairs are listed best first, older first, once each, capped; duplicates, pinned pairs and other buckets are not')
 
 console.log('\n' + pass + ' verifications OK')

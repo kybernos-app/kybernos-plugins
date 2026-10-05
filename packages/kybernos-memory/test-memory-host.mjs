@@ -484,7 +484,7 @@ try {
   ok('tidy: undo refuses with kyber_plein when the 50-lesson cap would be exceeded, and works once there is room')
 
   // too many removals in one request: refused whole
-  put('td-c', Array.from({ length: 52 }, (_, i) => L('Shared sentence about the topic alpha beta gamma number ' + String(i), { ts: iso(100 + i) })))
+  put('td-c', Array.from({ length: 52 }, (_, i) => L('Shared sentence about the topic alpha beta gamma delta ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'zz', { ts: iso(100 + i) })))
   const gBig = (await call('/kybernos-memory/tidy/scan', null)).groups.find((x) => x.kyber === 'td-c')
   assert.equal(gBig.saves, 51, 'fifty-two near-identical lessons form one group')
   const big = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: gBig.id }] })
