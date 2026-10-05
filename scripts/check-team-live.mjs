@@ -179,8 +179,11 @@ try {
     for (const i of tabs) {
       await page.evalJs(`document.querySelectorAll('#t-${id} .subtabs button')[${i}].click()`)
       await sleep(350)
-      const t = await page.evalJs(`${COUNT_FN}; ${LABELS_FN}; (() => { const root = document.getElementById('t-${id}'); return { n: __kbCount(root), l: __kbLabels(root) } })()`)
-      if (t.val) { t.val.l.forEach((x) => labels.add(x)); extraControls = Math.max(extraControls, t.val.n) }
+      const t = await page.evalJs(`${COUNT_FN}; ${LABELS_FN}; (() => { const root = document.getElementById('t-${id}'); const bad = []; for (const e of [root, ...root.querySelectorAll('*')]) { if (e.scrollWidth > e.clientWidth + 2 && getComputedStyle(e).overflowX !== 'visible' && e.clientWidth > 0) bad.push(e.scrollWidth - e.clientWidth) } return { n: __kbCount(root), l: __kbLabels(root), over: bad.length ? Math.max.apply(null, bad) : 0, name: document.querySelectorAll('#t-${id} .subtabs button')[${i}].innerText.replace(/\\s+/g, ' ').trim() } })()`)
+      if (t.val) {
+        t.val.l.forEach((x) => labels.add(x)); extraControls = Math.max(extraControls, t.val.n)
+        check('page ' + id + ', tab « ' + t.val.name + ' »: nothing wider than its column', t.val.over === 0, t.val.over + ' px hidden to the right')
+      }
     }
     if (tabs.length > 0) await page.evalJs(`document.querySelectorAll('#t-${id} .subtabs button')[0].click()`)
     for (const [opener, scope, closer] of (DIALOGS[id] || [])) {
