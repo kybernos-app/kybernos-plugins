@@ -3,7 +3,7 @@
 The Suite panel can ask an online catalogue whether a newer suite exists, show what changed per module, and install it. Three decisions
 shape it: the unit of update is the **whole suite** (the lifecycle robot already installs a complete, hash-verified archive with a safety
 snapshot, a boot check and a rollback; there is no second, riskier install path), the catalogue and archives are **GitHub Releases** of
-the open-core repo, and the catalogue is **signed with Ed25519**, the private key kept off the repo by the maintainer.
+the open-core repo (a normal release, not a pre-release: `releases/latest/download/` skips pre-releases), and the catalogue is **signed with Ed25519**, the private key kept off the repo by the maintainer.
 
 ## The trust chain
 
@@ -24,7 +24,7 @@ The pure half of the publishing CLI (`catalogue-publication.mjs`: key pair, rele
 
 ```bash
 node scripts/catalog-release.mjs keygen --out ~/keys/kybernos-catalog.key --embed   # once: the private key stays OUTSIDE the repo
-node scripts/paquet.mjs --construire --plateforme mac                               # the archive(s)
+node scripts/paquet.mjs --construire --plateforme mac                               # the archive(s); repeat for linux and windows
 node scripts/catalog-release.mjs build --key ~/keys/kybernos-catalog.key --out dist/release \
   --archive mac=dist/kybernos-1.1.0-mac.tar.gz=https://github.com/<org>/<repo>/releases/download/v1.1.0/kybernos-1.1.0-mac.tar.gz
 ```
@@ -60,8 +60,8 @@ All POSTs are strict same-origin JSON. One operation at a time: while the update
 
 ## Not done
 
-- A real release has never been published: the key pair has not been generated, so `catalog-pubkey.json` is absent and the online catalogue is inert.
-  The update has been exercised end to end only with injected fakes (and a real `tar` and a local server for the downloads), never against a real archive.
+- The key pair exists (id `e69d1ec06bf2`, public half in `catalog-pubkey.json`); the first real release is `1.0.0-beta.2`. The update was exercised end to end
+  with a real archive, a signed release and a local server in a throwaway DSH home, with the robot in `--dry`; see the release notes for what ran on a real install.
 - Per-module DSH ranges (the verdict still comes from the suite-wide `dsh-compat.json`).
 
 ## Tests
