@@ -4,6 +4,7 @@
 //   const host = await startRelayHost({ consoleHtml })      // { url, asked, refused, close() }
 //   open host.url + '/parent.html'                          // the console in an iframe, no key anywhere
 //   open host.url + '/parent.html?offline=1'                // the account is not signed in
+//   open host.url + '/parent.html?llm=down'                 // signed in, but the LLM service is not configured (503 on /llm/*)
 //
 // What is real here, so that a drift is caught instead of copied:
 //   - the broker in the parent page is the code shipped in packages/kybernos-plugin/client.js, cut out of the source;
@@ -74,6 +75,8 @@ export async function startRelayHost ({ consoleHtml }) {
       const verdict = relayCheck(target, { workspaces: [{ id: FAKE_TEAM_ID }] })
       if (verdict.ok !== true) { refused.push(target); return send(200, 'application/json', JSON.stringify({ ok: false, error: verdict.error })) }
       asked.push(verdict.path)
+      // ?llm=down: the main API answers, the LLM service behind its relay is not configured (what the deployed API says today).
+      if (req.headers.referer?.includes('llm=down') && verdict.path.includes('/llm/')) return send(200, 'application/json', JSON.stringify({ ok: false, status: 503, body: { error: 'LLM service not configured' } }))
       const body = answerFor(verdict.path)
       return send(200, 'application/json', JSON.stringify(body === null ? { ok: false, status: 404, body: null } : { ok: true, status: 200, body }))
     }
