@@ -4,6 +4,7 @@
 //   const host = await startRelayHost({ consoleHtml })      // { url, asked, refused, close() }
 //   open host.url + '/parent.html'                          // the console in an iframe, no key anywhere
 //   open host.url + '/parent.html?offline=1'                // the account is not signed in
+//   open host.url + '/parent.html?ws=<id>'                  // the app has THIS workspace active: the console opens on it
 //   open host.url + '/parent.html?llm=down'                 // signed in, but the LLM service is not configured (503 on /llm/*)
 //
 // What is real here, so that a drift is caught instead of copied:
@@ -19,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { FAKE_TEAM_ID, ROUTES } from './lib-fake-team-gateway.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
+export const SECOND_TEAM_ID = '22222222-2222-4222-8222-222222222222'
 export const OWNER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 export const BEA_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
@@ -33,7 +35,7 @@ const brokerSnippet = () => {
 
 const ANSWERS = {
   me: () => ({ id: OWNER_ID, name: 'Owner Person', plan: 'studio' }),
-  workspaces: () => ({ workspaces: [{ id: FAKE_TEAM_ID, name: 'Acme Team', kyber_count: 0, created_at: '2026-08-01 10:00:00+00:00' }] }),
+  workspaces: () => ({ workspaces: [{ id: FAKE_TEAM_ID, name: 'Acme Team', kyber_count: 0, created_at: '2026-08-01 10:00:00+00:00' }, { id: SECOND_TEAM_ID, name: 'Beta Team', kyber_count: 0, created_at: '2026-08-15 10:00:00+00:00' }] }),
   members: () => ({ members: [{ user_id: OWNER_ID, role: 'owner', status: 'active', created_at: '2026-08-01 10:00:00+00:00' }, { user_id: BEA_ID, role: 'member', status: 'active', created_at: '2026-08-02 10:00:00+00:00' }] }),
   budget: () => ({ plan: { pack: 'full', monthly_usd: 50, min_members: 2 }, shared_remaining: 12.5, members: [{ user_ref: OWNER_ID }, { user_ref: BEA_ID }] }),
   usage: () => ({ usage: [{ ts: '2026-09-01T10:00:00Z', team_id: FAKE_TEAM_ID, user_ref: OWNER_ID, model: 'claude-x', credits: 1.2 }, { ts: '2026-09-02T10:00:00Z', team_id: FAKE_TEAM_ID, user_ref: BEA_ID, model: 'glm-y', credits: 0.4 }] }),
@@ -61,18 +63,18 @@ export async function startRelayHost ({ consoleHtml }) {
   const snippet = brokerSnippet()
   const asked = []
   const refused = []
-  const parentPage = (origin) => '<!doctype html><meta charset="utf-8"><title>host</title><div class="kbwsif" style="height:100vh"><iframe src="/workspace-console.html?gw=' + encodeURIComponent('https://gateway.invalid') + '&theme=dark" style="width:100%;height:100%;border:0"></iframe></div><script>\n' +
+  const parentPage = (origin, ws) => '<!doctype html><meta charset="utf-8"><title>host</title><div class="kbwsif" style="height:100vh"><iframe src="/workspace-console.html?gw=' + encodeURIComponent('https://gateway.invalid') + '&theme=dark' + (ws ? '&ws=' + encodeURIComponent(ws) : '') + '" style="width:100%;height:100%;border:0"></iframe></div><script>\n' +
     'const kbWsOrigin = () => ' + JSON.stringify(origin) + '\nconst envoyerCle = () => {}\n' + snippet + "\nwindow.addEventListener('message', sur)\n</script>"
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://x')
     const send = (status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body) }
     if (url.pathname === '/workspace-console.html') return send(200, 'text/html; charset=utf-8', consoleHtml)
-    if (url.pathname === '/parent.html') return send(200, 'text/html; charset=utf-8', parentPage('http://127.0.0.1:' + server.address().port))
+    if (url.pathname === '/parent.html') return send(200, 'text/html; charset=utf-8', parentPage('http://127.0.0.1:' + server.address().port, url.searchParams.get('ws')))
     if (url.pathname === '/kybernos-cloud/relay') {
       // The real host route's contract: { ok, status, body }, or { ok: false, connected: false } when not signed in.
       if (url.searchParams.get('offline') === '1' || req.headers.referer?.includes('offline=1')) return send(200, 'application/json', JSON.stringify({ ok: false, connected: false, status: 'none', error: 'non connecte' }))
       const target = url.searchParams.get('p') || ''
-      const verdict = relayCheck(target, { workspaces: [{ id: FAKE_TEAM_ID }] })
+      const verdict = relayCheck(target, { workspaces: [{ id: FAKE_TEAM_ID }, { id: SECOND_TEAM_ID }] })
       if (verdict.ok !== true) { refused.push(target); return send(200, 'application/json', JSON.stringify({ ok: false, error: verdict.error })) }
       asked.push(verdict.path)
       // ?llm=down: the main API answers, the LLM service behind its relay is not configured (what the deployed API says today).

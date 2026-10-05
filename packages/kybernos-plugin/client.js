@@ -7044,21 +7044,24 @@ return {
     // The server this DSH talks to (Select server): its web app, its console, its gateway. The built-in Kybernos Cloud is the
     // answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
-    const kbServer = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app' }
+    const kbServer = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app', workspace: '' }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
-      return fetch('/kybernos-cloud/server', { credentials: 'same-origin' })
-        .then((r) => (r.ok ? r.json() : null)).catch(() => null)
-        .then((j) => {
-          if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object') {
-            const sv = j.server
-            if (typeof sv.name === 'string' && sv.name !== '') kbServer.name = sv.name
-            if (typeof sv.web === 'string' && sv.web !== '') kbServer.web = sv.web
-            if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
-            kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
-          }
-          return kbServer
-        })
+      const get = (url) => fetch(url, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+      // The server, and which workspace this DSH has active: the console opens on THAT one, so the two selectors agree.
+      return Promise.all([get('/kybernos-cloud/server'), get('/kybernos-cloud/status')]).then((both) => {
+        const j = both[0]
+        const st = both[1]
+        if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object') {
+          const sv = j.server
+          if (typeof sv.name === 'string' && sv.name !== '') kbServer.name = sv.name
+          if (typeof sv.web === 'string' && sv.web !== '') kbServer.web = sv.web
+          if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
+          kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
+        }
+        kbServer.workspace = st !== null && st !== undefined && st.state !== null && typeof st.state === 'object' && typeof st.state.active_workspace_id === 'string' ? st.state.active_workspace_id : ''
+        return kbServer
+      })
     }
     try { void kbServerLoad() } catch (e) { /* no network layer: the defaults stand */ }
     // The web app that carries the viewer.
@@ -26062,6 +26065,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
     // gateway of the console's key mode, which goes away with the key hand-off: a server that names none gets none.
     const kbWsConsole = () => kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)
       + '?gw=' + encodeURIComponent(kbWsCfg('kybernos.ws.gateway', 'KYBERNOS_WS_GATEWAY', kbServer.gateway))
+      + (kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')
     const kbWsOrigin = () => { try { return new URL(kbWsConsole()).origin } catch (e) { return '*' } }
     // ── Le thème de DSH SUIT l'iframe (02/10) ─────────────────────────────
     // La console IGNORAIT le thème (aucun `theme` dans son HTML) : sans ce

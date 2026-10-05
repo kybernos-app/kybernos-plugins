@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:http'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { startFakeTeamGateway } from './lib-fake-team-gateway.mjs'
-import { startRelayHost, OWNER_ID } from './lib-fake-relay-host.mjs'
+import { startRelayHost, OWNER_ID, SECOND_TEAM_ID } from './lib-fake-relay-host.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const LABELS_FILE = join(HERE, 'team-console-labels.json')
@@ -275,13 +275,13 @@ try {
       const before = errors.length
       const u = new URL(consoleBase); u.searchParams.set('gw', gw.url); u.searchParams.set('theme', 'dark'); u.searchParams.set('key', 'stand-in-key')
       await page.send('Page.navigate', { url: u.toString() })
-      const ok = await waitFor(page, `document.querySelectorAll('[data-nav]').length >= 5 && document.querySelector('#t-team') && !document.getElementById('kbKeyBanner')`, 20000)
+      const ok = await waitFor(page, `document.querySelectorAll('[data-nav]').length >= 5 && document.querySelector('#t-plan') && !document.getElementById('kbKeyBanner')`, 20000)
       await sleep(1500)
       check('with a key the « connect key » banner is gone', ok !== null)
       const r = (await page.evalJs(`(() => {
         const q = (s) => document.querySelector(s), go = (id) => q('[data-nav=' + id + ']').click(), res = {}
         const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ')
-        go('team'); res.team = txt('#t-team')
+        go('plan'); res.team = txt('.idrow') + ' | ' + q('#tdId').textContent
         go('plan'); res.plan = txt('#curName') + ' | ' + txt('#balance')
         go('members'); res.members = Array.from(document.querySelectorAll('#memberBody tr')).map((x) => x.innerText.replace(/\\s+/g, ' '))
         const open = q('#memberBody tr:nth-child(2) [data-open]'); if (open) open.click(); res.panel = !q('#memDrawer').classList.contains('hidden') ? q('#drTitle').textContent : null
@@ -316,7 +316,20 @@ try {
         const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ')
         res.banner = txt('#kbKeyBanner')
         res.crumbs = txt('#crumbs')
-        go('team'); res.team = txt('#t-team')
+        res.pageIds = Array.from(document.querySelectorAll('[data-nav]')).map((b) => b.getAttribute('data-nav'))
+        go('plan')
+        res.cols = Array.from(document.querySelectorAll('#t-plan .cols2 > .card')).map((c) => { const b = c.getBoundingClientRect(); return { x: Math.round(b.left), y: Math.round(b.top) } })
+        res.planOrder = ['.idrow', '#t-plan > .card', '#t-plan .cols2'].map((sel) => Math.round(q(sel).getBoundingClientRect().top))
+        const ib = q('#copyTeamId').getBoundingClientRect()
+        res.idico = { label: q('#copyTeamId').getAttribute('aria-label'), w: Math.round(ib.width), h: Math.round(ib.height), text: q('#copyTeamId').textContent.trim() }
+        let copied = null
+        Object.defineProperty(frameWindow.navigator, 'clipboard', { value: { writeText: (t) => { copied = t; return Promise.resolve() } }, configurable: true })
+        q('#copyTeamId').click(); await new Promise((r) => setTimeout(r, 300))
+        res.copied = copied; res.toast = txt('#toast')
+        res.selFixed = q('.tswrap').classList.contains('fixed')
+        q('#teamSel').click(); res.menuOpen = !q('#tsMenu').classList.contains('hidden')
+        res.switcher = txt('#tsName')
+        go('plan'); res.team = txt('.idrow') + ' | ' + q('#tdId').textContent
         go('plan'); res.plan = txt('#curName') + ' | ' + txt('#balance')
         go('members'); res.members = Array.from(document.querySelectorAll('#memberBody tr')).map((x) => x.innerText.replace(/\\s+/g, ' '))
         go('providers'); res.cards = Array.from(document.querySelectorAll('#provGrid .pcard')).map((x) => x.innerText.replace(/\\s+/g, ' ').trim())
@@ -334,6 +347,11 @@ try {
       check('Billing shows the Stripe invoice and the card', r && r.billing.includes('#IN-abc123456') && r.billing.includes('4242'), r && r.billing)
       check('the banner says what it is: live and read-only for now', r && /read-only/i.test(r.banner), r && r.banner)
       check('the crumbs name the real workspace, not the sample team', r && r.crumbs.startsWith('Acme Team'), r && r.crumbs)
+      check('there is no Team Settings page any more: Plan & Credits comes first', r && !r.pageIds.includes('team') && r.pageIds[0] === 'plan', r && r.pageIds)
+      check('the Plan page: identity row, then the plan block, then credits and auto-recharge SIDE BY SIDE (the mockup\'s layout)', r && r.planOrder[0] < r.planOrder[1] && r.planOrder[1] < r.planOrder[2] && r.cols.length === 2 && r.cols[0].y === r.cols[1].y && r.cols[1].x > r.cols[0].x, r && JSON.stringify([r.planOrder, r.cols]))
+      check('the workspace ID is a discreet circled « ID » (24 px at most), labelled for screen readers', r && r.idico.text === 'ID' && r.idico.w <= 24 && r.idico.h <= 24 && r.idico.label === 'Copy workspace ID', r && JSON.stringify(r.idico))
+      check('clicking it copies the full workspace id and says « Workspace ID copied »', r && r.copied === '11111111-1111-4111-8111-111111111111' && /Workspace ID copied/.test(r.toast), r && JSON.stringify([r.copied, r.toast]))
+      check('inside the app the console\'s workspace selector only SHOWS the workspace (the app\'s own selector changes it): no menu opens', r && r.selFixed === true && r.menuOpen === false, r && JSON.stringify([r.selFixed, r.menuOpen]))
       check('no sample invitation is counted as pending', r && /· 0 pending ·/.test(r.team), r && r.team.slice(0, 200))
       check('the console called no gateway of its own (everything went through the relay)', r && r.network === 0, r && String(r.network))
       check('every path the console asked for is on the host route\'s allowlist', host.refused.length === 0, JSON.stringify(host.refused))
@@ -347,6 +365,16 @@ try {
       check('a write is refused in the console, with a plain sentence, before it leaves the page', w && w.post.status === 405 && /read-only/i.test(String(w.post.json && w.post.json.error)), JSON.stringify(w && w.post))
       check('a route the console has no translation for is refused in the page too', w && w.keys.status === 404 && host.asked.length === askedBefore, JSON.stringify(w && w.keys))
       check('no script error through the relay', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 160))
+
+      // The app has another workspace active (`ws` in the iframe URL): the console opens on THAT one, so the two selectors agree.
+      await page.send('Page.navigate', { url: host.url + '/parent.html?ws=' + SECOND_TEAM_ID })
+      await waitFor(page, frame(`return !!document.querySelector('#kbKeyBanner') && /Live data/.test(document.querySelector('#kbKeyBanner').innerText) && document.querySelectorAll('#navList [data-nav]').length >= 5`), 20000)
+      await sleep(1200)
+      const w2 = (await page.evalJs(frame(`
+        const q = (s) => document.querySelector(s)
+        const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
+        return { switcher: txt('#tsName'), identity: txt('.idrow'), id: q('#tdId').textContent }`))).val
+      check('with `ws` the console opens on the workspace the app has active, not on the first one', w2 && w2.switcher === 'Beta Team' && w2.identity.includes('Beta Team') && w2.id === SECOND_TEAM_ID, w2 && JSON.stringify(w2))
 
       // Signed in, but the LLM service behind the relay is not configured: members and providers are live, nothing about credits is guessed.
       await page.send('Page.navigate', { url: host.url + '/parent.html?llm=down' })

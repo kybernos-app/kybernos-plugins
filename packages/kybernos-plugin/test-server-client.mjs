@@ -32,9 +32,20 @@ console.log('what the active server changes')
   check('the built-in server keeps today\'s addresses', def.web === 'https://dev.kybernos.app' && def.gateway === 'https://api.dev2.kybernos.app')
 }
 
+console.log('which workspace the console opens on')
+{
+  const byUrl = (map) => (url) => Promise.resolve({ ok: true, json: () => Promise.resolve(map[url]) })
+  const s = load(byUrl({ '/kybernos-cloud/server': { ok: true, server: { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app' } }, '/kybernos-cloud/status': { ok: true, connected: true, state: { active_workspace_id: 'w-active-1' } } }))
+  check('the workspace this DSH has active is carried to the console, so the two selectors agree', (await s.kbServerLoad()).workspace === 'w-active-1')
+  const none = load(byUrl({ '/kybernos-cloud/server': { ok: true, server: { name: 'X', web: 'https://x.example', console: 'https://x.example/c' } }, '/kybernos-cloud/status': { ok: true, connected: false } }))
+  check('not signed in: no workspace, the console picks its own first one', (await none.kbServerLoad()).workspace === '')
+  const odd = load(byUrl({ '/kybernos-cloud/status': { state: { active_workspace_id: 42 } } }))
+  check('a workspace id that is not a string is ignored', (await odd.kbServerLoad()).workspace === '')
+}
+
 console.log('what a failure leaves alone')
 {
-  const defaults = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app' }
+  const defaults = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app', workspace: '' }
   for (const [label, stub] of [['a refused request', () => Promise.reject(new Error('offline'))], ['a non-OK status', answer({}, false)], ['an answer that is not ours', answer({ hello: 'world' })], ['an answer with an invalid server', answer({ ok: true, server: 'text' })], ['no fetch at all', undefined]]) {
     const s = load(stub)
     const out = await s.kbServerLoad()
@@ -44,6 +55,7 @@ console.log('what a failure leaves alone')
 
 console.log('the shipped code')
 check('the loader asks the cloud plugin, same-origin', snippet.indexOf("'/kybernos-cloud/server'") > 0 && snippet.indexOf("credentials: 'same-origin'") > 0)
+check('the console URL carries `ws` only when a workspace is known', source.indexOf("(kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')") > 0)
 check('the console, the cloud page and the store read the loaded server, not a literal', source.indexOf("kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)") > 0 && source.indexOf("kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', kbServer.web)") > 0 && source.indexOf('const kbStoreWeb = () => kbServer.web') > 0)
 check('opening « Teams settings » asks for the active server before probing its console', source.indexOf('kbServerLoad().then(() => probe())') > 0)
 
