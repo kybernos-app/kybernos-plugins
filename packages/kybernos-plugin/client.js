@@ -29745,7 +29745,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       }
       const GROUPES = [
         { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'apparence', 'appearance', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal'] },
-        { titre: kbt('settings.group.settings'), mots: ['general', 'langue', 'language', 'memory & lessons', 'commandes', 'commands', 'mon espace', 'my workspace'] },
+        { titre: kbt('settings.group.settings'), mots: ['general', 'langue', 'language', 'memory & lessons', 'commandes', 'commands', 'mon espace', 'my workspace', 'atlas'] },
         { titre: kbt('settings.group.desktop'), mots: ['theme', 'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models', 'models', 'ollama local models', 'voix', 'voice', 'outils', 'tools', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
         { titre: kbt('settings.group.plugins'), mots: ['plugins', 'listing', 'built-in plugins'] },
       ]
@@ -29770,6 +29770,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'commands': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
         'theme': '<circle cx="12" cy="12" r="9" ' + trait + '/><path d="M12 3v18M12 3a9 9 0 0 1 0 18z" ' + trait + '/>',
         'mon espace': '<path d="M4 21V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v16M14 10h5a1 1 0 0 1 1 1v10M2 21h20M8 8h2M8 12h2M8 16h2" ' + trait + '/>',
+        'atlas': '<polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" ' + trait + '/><line x1="9" y1="3" x2="9" y2="18" ' + trait + '/><line x1="15" y1="6" x2="15" y2="21" ' + trait + '/>',
         'fournisseur ia & modeles': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
         'ai provider & models': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',
         'ai providers & models': '<path d="M12 3l2 6 6 3-6 3-2 6-2-6-6-3 6-3z" ' + trait + '/>',

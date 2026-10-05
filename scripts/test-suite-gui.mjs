@@ -33,8 +33,12 @@ let echecs = 0
 let total = 0
 const ok = (nom, cond, detail) => { total++; if (cond) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail !== undefined ? ' — ' + detail : '')) } }
 
-// DSH as the user has it: the 22 kybernos-* bundles installed, the 3 dsh-* not.
+// DSH as the user has it: every kybernos-* bundle installed, the dsh-* ones not.
 const INSTALLES = catalogue.modules.filter((m) => m.nom.startsWith('@local/kybernos'))
+const N_ALL = catalogue.modules.length
+const N_IN = INSTALLES.length
+const N_OUT = N_ALL - N_IN
+const N_SOCLE = INSTALLES.filter((m) => m.socle).length
 const page = (lang, scenario) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{--dsw-alias-label-primary:#ececee;--dsw-alias-label-secondary:#b4b4bb;--dsw-alias-label-tertiary:#8b8b93;--dsw-alias-label-primary-foreground:#111;
@@ -126,11 +130,11 @@ try {
     ok('registers ONE settings section "kybernos-suite" before the old Plugins page (order 29 < 30)', sec.length === 1 && sec[0].id === 'kybernos-suite' && sec[0].order === 29 && sec[0].name === 'settings.section', JSON.stringify(sec))
     ok('the boot beacon still fires when the panel is there', (await appels(p)).some((c) => c[0] === 'post' && c[1] === '/kybernos-hub/beacon' && c[2].type === 'loading'))
     const cs = await cartes(p)
-    ok('25 cards: 22 installed + 3 not', cs.length === 25, String(cs.length))
-    ok('the 22 kybernos-* modules read active, the 3 dsh-* read available', cs.filter((c) => c.etat === 'active').length === 22 && cs.filter((c) => c.etat === 'available').length === 3, JSON.stringify(cs.filter((c) => c.etat !== 'active').map((c) => c.id + ':' + c.etat)))
+    ok(N_ALL + ' cards: ' + N_IN + ' installed + ' + N_OUT + ' not', cs.length === N_ALL, String(cs.length))
+    ok('the kybernos-* modules read active, the dsh-* read available', cs.filter((c) => c.etat === 'active').length === N_IN && cs.filter((c) => c.etat === 'available').length === N_OUT, JSON.stringify(cs.filter((c) => c.etat !== 'active').map((c) => c.id + ':' + c.etat)))
     const fam = await p.$$eval('.kbsu-fam h5', (e) => e.map((x) => x.firstChild.textContent))
     ok('six families, in the catalogue order', fam.join('|') === 'Foundations|Models|Agent teams|Create in the chat|Connectors and machines|Cloud', fam.join('|'))
-    ok('the summary counts installed and available', (await p.textContent('.kbsu-summary')).startsWith('22 installed · 3 available'))
+    ok('the summary counts installed and available', (await p.textContent('.kbsu-summary')).startsWith(N_IN + ' installed · ' + N_OUT + ' available'))
     ok('the header shows the DSH version, inside the tested range', (await p.textContent('.kbsu-meta')).includes('DSH 0.2.0-rc.2 · inside the tested range'))
     ok('no JS error while rendering', p.erreurs.length === 0, p.erreurs.join(' | '))
     await montrer(p, 'suite-en-1000'); await p.close()
@@ -175,7 +179,7 @@ try {
     ok('"Native manager" closes Settings (Escape) then opens DSH\'s own plugin panel', a.some((c) => c[0] === 'escape') && a.some((c) => c[0] === 'panel' && c[1] === 'plugins') && a.findIndex((c) => c[0] === 'escape') < a.findIndex((c) => c[0] === 'panel'), JSON.stringify(a.filter((c) => c[0] === 'escape' || c[0] === 'panel')))
     await p.close()
     const q = await ouvrir('en', scenarioBase({ sansLayout: true }))
-    ok('without the layout service the button is simply absent, the panel still works', (await q.$('[data-kb="suite-native"]')) === null && (await cartes(q)).length === 25)
+    ok('without the layout service the button is simply absent, the panel still works', (await q.$('[data-kb="suite-native"]')) === null && (await cartes(q)).length === N_ALL)
     await q.close()
   }
 
@@ -185,7 +189,7 @@ try {
     await p.click('.kbsu-seg button:has-text("Available")')
     ok('Available lists the 3 dsh-* modules', (await cartes(p)).map((c) => c.id).sort().join() === 'dsh-db-viewer,dsh-media-player,dsh-mermaid')
     await p.click('.kbsu-seg button:has-text("Installed")')
-    ok('Installed lists 22', (await cartes(p)).length === 22)
+    ok('Installed lists every installed module', (await cartes(p)).length === N_IN)
     await p.click('.kbsu-seg button:has-text("All")')
     await p.fill('.kbsu-search input', 'slides')
     ok('searching "slides" keeps only kybernos-slides', (await cartes(p)).map((c) => c.id).join() === 'kybernos-slides')
@@ -232,7 +236,7 @@ try {
     const p = await ouvrir('en', scenarioBase({ eteints, suite: charge({ catalogue, brut: null, etatHub: { ok: true, recommendation: { mode: 'safe' }, safe: { active: true, since: 'x' } } }) }))
     const cs = await cartes(p)
     ok('safe mode: the banner explains and gives the exit command', (await p.textContent('.kbsu-banner')).includes('Safe mode is on') && (await p.textContent('.kbsu-banner')).includes('safe-mode off'))
-    ok('safe mode: switched-off satellites read "safe", the socle stays active', cs.filter((c) => c.etat === 'safe').length === 17 && cs.filter((c) => c.etat === 'active').length === 5, JSON.stringify(cs.filter((c) => c.etat === 'safe').length))
+    ok('safe mode: switched-off satellites read "safe", the socle stays active', cs.filter((c) => c.etat === 'safe').length === N_IN - N_SOCLE && cs.filter((c) => c.etat === 'active').length === N_SOCLE, JSON.stringify(cs.filter((c) => c.etat === 'safe').length))
     await montrer(p, 'suite-mode-sans-echec'); await p.close()
   }
 
