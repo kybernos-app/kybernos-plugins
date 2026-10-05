@@ -51,8 +51,27 @@ Anyone can edit the file by hand. What the paid module sells is the management o
 
 | Route | Answer |
 |---|---|
-| `GET /kybernos-cloud/server` | `{ ok, server: { id, name, api, web, console, llm, gateway }, source, error?, servers: [{ id, name, active }], rejected }`. No secret lives in a profile. |
+| `GET /kybernos-cloud/server` | `{ ok, server: { id, name, api, web, console, llm, gateway }, source, error?, servers: [{ id, name, api, llm, active, connected }], rejected }`. `connected` = this DSH holds a sign-in for that server (its own connection file); nothing of the token is returned. No secret lives in a profile. |
 | `POST /kybernos-cloud/server/apply` | Make DSH follow the registry: clean the previous server's route, mark the new one, import its catalogue if connected. Idempotent. `{ ok, server, cleaned, connected, models?, no_llm?, import_error? }`. Same-origin guarded. |
+
+## The discovery document a company server serves
+
+A user types ONE address; the module reads `GET <address>/.well-known/kybernos-server.json` (200 JSON, no redirect, under 64 KB):
+
+```json
+{ "schema": 1, "name": "Acme Corp", "version": "1.4.0", "dsh_min": "0.1.6",
+  "api": "https://kb.acme.example", "web": "https://kb.acme.example/app",
+  "console": "https://kb.acme.example/app/workspace-console",
+  "services": { "llm": "https://llm.acme.example" } }
+```
+
+`api` is required, everything else is optional (`web` and `console` are derived, `services.llm` is a URL, absent = same host as the API, or `false` =
+no Kybernos LLM). The addresses inside are where the account's token will go: the user is shown them before anything is added, and the open
+half refuses a profile with an insecure or malformed one. A server that cannot publish this file can still be used by writing its profile
+into the registry by hand.
+
+The Settings nav lists a page labelled « Servers » / « Serveurs » in the Account group (a one-line entry in `GROUPES`, so the paid module's page
+lands where the mockup puts it instead of under « Third Party Plugins »).
 
 ## What the paid module does (private repo)
 

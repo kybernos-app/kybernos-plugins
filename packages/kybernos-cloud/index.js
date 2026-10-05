@@ -694,7 +694,13 @@ const appliedServerId = () => {
 /** GET /kybernos-cloud/server: the active server and the others the registry names. Nothing secret lives in a profile. */
 const serverRoute = async () => {
   const active = server()
-  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id }, x)), rejected: active.rejected }
+  // `connected`: this DSH holds a sign-in for that server (its own connection file), never anything of the token itself.
+  // The active server's own file is whatever stateFile() says (KYBERNOS_CLOUD_STATE included); the others have the usual name.
+  const connectedTo = (id) => {
+    if (id === active.profile.id) return isConnected(readState())
+    try { return isConnected(JSON.parse(readFileSync(join(dshHome(), stateFileName({ id })), 'utf8'))) } catch (e) { return false }
+  }
+  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected }
 }
 
 /** POST /kybernos-cloud/server/apply: the registry changed (the Select server module wrote it): make DSH follow. What the
