@@ -15,6 +15,8 @@ one click away.
   50 or 100, add, edit (text, retention, pinned) and forget with an Undo.
 - **Lessons learned** (every kyber, local files): list, filters (kyber, used at least once, added),
   pages, edit (text, tags) and delete — a deleted lesson goes to the kyber's `lessons.archive.jsonl`.
+- **Team lessons** (Lessons learned → *Team*, on a Team workspace only; locked with the reason otherwise): the lessons an owner or
+  admin of the workspace approved, which every agent of the team reads. See « Team lessons » below.
 - **Options**: a classic settings page (breadcrumb + rows like General's) with the two switch groups —
   Memories / Memory system context / Automatic capture / Search by meaning, and Lessons learned /
   Lessons system context — each dependent row locks with the reason when its parent is off. The last
@@ -102,7 +104,8 @@ no `..`), and a typo never creates a kyber.
 - Search by meaning needs the server half (`GET/PUT/POST /v1/memories…` embeddings, with pgvector on the
   Supabase store) and a plan that includes the embeddings model; until then it falls back to the local relevance ranking
   (`search.fallback` says why). It ranks at most 50 memories, newest account scope only.
-- The lessons are local to this machine. Sharing with a team is not built yet.
+- The personal lessons are local to this machine. What a team shares is a separate list (see « Team lessons »); it needs the
+  server half and a Team workspace, and an agent never reads a personal lesson of someone else.
 - It only governs this bundle's tools and chunk. An agent can still run `memory.cjs lesson` through
   bash; `lessons = off` asks it not to, it cannot forbid it.
 - Concurrent writers (the CLI appends, this bundle rewrites atomically) can lose an append in a
@@ -152,6 +155,39 @@ Both hosts: `apply` needs `confirm: true`, checks every group against what is st
 makes its group `a_change`, never a guess), writes the archive before the first delete and refuses a request that
 removes more than 50 items. `dismiss` remembers a pair the user kept apart (`restore: true` takes it back).
 Same-origin guard, POST for everything that writes.
+
+## Team lessons
+
+A personal lesson is a sentence on this machine. A **team lesson** is a sentence an owner or admin of a **Team workspace** approved:
+every agent of the workspace reads it, like a house rule. It is a third thing, apart from the personal lessons (local files) and
+from the platform's own lessons (server-side, global).
+
+- **Who may use it**: a connected account whose plan starts with `team` and whose active workspace is in its list. The plugin
+  decides this (`packages/kybernos-cloud/team-lessons.mjs`, `teamWorkspace`); the server only enforces membership. Anyone else sees the
+  Team scope and the two Options rows locked, with the reason (« Team plan », « Team workspace », « Connect a Kybernos Cloud account »).
+- **Propose, approve**: a member proposes a lesson (the *Propose a lesson* button, or *Propose to team* on a personal lesson, which
+  fills the sheet). Until an owner or admin decides, nobody else can read it — the proposer sees it under *My proposals*, « Waiting for
+  review », and a rejection comes back with its reason. An owner or admin sees a banner with the number waiting and a review queue
+  (approve, *Edit, then approve*, or *Reject…* with a reason), can add a lesson directly, and can retire or delete an approved one.
+  The proposer can withdraw their own. Decisions are the server's and final; the names shown (« Proposed by Sara M. ») are what the
+  client sent and are informational only.
+- **What agents read**: an approved lesson goes into the system prompt as the block `[KYBERNOS TEAM LESSONS]`
+  (`ctx.inject`, chunk `kybernos:team-lessons`, order 136, right after the personal lessons). It holds the lessons for the kyber of the
+  chat and the general ones — never another kyber's — inside about 760 characters, newest first; the ones that match the latest
+  message (same picker as the lessons' relevance, within half of that budget) come first. The list is re-read at most every 5 minutes
+  and a failed read keeps the last good list (it is tried again a minute later), so a network error never empties the block or stops a turn;
+  only a workspace that no longer exists empties it. It is off when *Use your
+  team's lessons* is off, when Lessons system context is off, or when the account is not on a Team workspace.
+- **Options**: *Use your team's lessons* (`team_use`) and *Share lessons with your team* (`team_share`, hides the Propose entries when
+  off). Both are kept by the cloud plugin next to the memory switches (`GET /kybernos-cloud/memory/settings`).
+- **The Memory pill** (Sessions) adds « From your team: 3 lessons sent (1 that match your latest message) » to its Lessons tab.
+- **The server half**: `GET/POST /v1/workspaces/{id}/lessons[/…]` over the table `kybernos.team_lessons` (a proposal is
+  `proposed`, then `approved` or `rejected`; an approved one can be `retired`). The plugin calls them with the account's own key; a
+  server that predates them makes the Team tab say it could not load and nothing else.
+
+Tests: `node packages/kybernos-cloud/test-team-lessons.mjs` (the pure half), `node packages/kybernos-cloud/test-cloud-host.mjs`
+(sections « team »: routes, cache, prompt block, switches, kyber, relevance), `node packages/kybernos-memory/test-client.mjs`
+(the page's pure pieces).
 
 ## Tests
 

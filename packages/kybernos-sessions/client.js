@@ -1852,11 +1852,20 @@ window.__ModuleLoader__.load({
           setLesPicked(l && l.ok === true && l.picked && l.picked.count > 0 ? l.picked.count : 0)
         } catch (e) { setLesPicked(0) }
       }, [])
+      // What the team's approved lessons add to this chat (the cloud plugin keeps it per session). Nothing when the account has no Team workspace.
+      const [teamSent, setTeamSent] = React.useState(null)
+      const lireEquipe = React.useCallback(async () => {
+        try {
+          const t = await fetch('/kybernos-cloud/team/status?session=' + encodeURIComponent(sessionId || '')).then((x) => x.json())
+          setTeamSent(t && t.ok === true && t.sent && t.sent.count > 0 ? { count: t.sent.count, picked: t.sent.picked > 0 ? t.sent.picked : 0 } : null)
+        } catch (e) { setTeamSent(null) }
+      }, [])
       React.useEffect(() => {
         lireLecons()
-        const t = setInterval(lireLecons, 30000)
+        lireEquipe()
+        const t = setInterval(() => { lireLecons(); lireEquipe() }, 30000)
         return () => clearInterval(t)
-      }, [lireLecons])
+      }, [lireLecons, lireEquipe])
 
       const charger = React.useCallback(() => {
         fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1')
@@ -2008,6 +2017,7 @@ window.__ModuleLoader__.load({
           : h('div', { className: 'kbs-memo' }, memoire.souvenirs.slice(-3).map(ligneSouvenir).concat(memFaites.slice(-3).map(ligneMemo)))))
       const visuelLecons = h('div', { className: 'kbs-memwrap' },
         lesPicked > 0 ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked-lessons' }, 'Picked for your latest message: ' + lesPicked + (lesPicked === 1 ? ' lesson' : ' lessons') + ' that match it') : null,
+        teamSent !== null ? h('p', { className: 'kbs-note-line', 'data-kbs': 'team-lessons' }, 'From your team: ' + teamSent.count + (teamSent.count === 1 ? ' lesson' : ' lessons') + ' sent' + (teamSent.picked > 0 ? ' (' + teamSent.picked + ' that match your latest message)' : '')) : null,
         sectionNote('Lessons in this chat', nbLecons === 0
           ? h('div', { className: 'kbs-vide' }, 'Nothing learned or reused in this chat yet.')
           : h('div', { className: 'kbs-lessons' }, leconsSession.slice(0, 3).map(ligneLecon))))
