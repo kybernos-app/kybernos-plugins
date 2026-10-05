@@ -39,6 +39,18 @@ ok('a family and Featured combine; a family with no featured module is empty', T
 ok('search finds a module by its human title, not only by its id', T.filtrer({ modules: mods, filtre: 'all', requete: 'Auto routing', installes }).map((m) => m.id).join() === 'kybernos-auto' && T.filtrer({ modules: mods, filtre: 'all', requete: '3d modeller', installes }).map((m) => m.id).join() === 'kybernos-modeleur')
 ok('Installed and Available still split the catalogue', T.filtrer({ modules: mods, filtre: 'installed', requete: '', installes }).length === 20 && T.filtrer({ modules: mods, filtre: 'available', requete: '', installes }).length === mods.length - 20)
 
+console.log('the words of the online catalogue and of the update')
+{
+  const mc = T.messageCatalogue
+  ok('a new signed release, an up-to-date one, in both languages', /1\.1\.0/.test(mc({ ok: true, etat: 'nouveau', suite: '1.1.0', publieLe: '2026-10-05T12:00:00Z' })[0]) && /2026-10-05/.test(mc({ ok: true, etat: 'nouveau', suite: '1.1.0', publieLe: '2026-10-05T12:00:00Z' })[1]) && /à jour/.test(mc({ ok: true, etat: 'a-jour', suite: '1.1.0' })[0]) && /up to date/.test(mc({ ok: true, etat: 'a-jour', suite: '1.1.0' })[1]))
+  ok('every refusal the host can give has its own sentence, in French and English', ['pas-de-cle', 'url', 'reseau', 'signature', 'plus-ancien', 'forme', 'taille', 'cache', 'busy'].every((e) => { const m = mc({ ok: false, erreur: e }); return m.length === 2 && m[0].length > 15 && m[1].length > 15 && !m[0].includes('refusé (') && m[0] !== m[1] }))
+  ok('an unknown refusal still says something; an unreadable answer does not throw', /zzz/.test(mc({ ok: false, erreur: 'zzz' })[1]) && mc(null).length === 2 && mc(undefined).length === 2)
+  const rm = T.raisonMiseAJour
+  ok('an update that can be applied has no reason; one that cannot says why', rm({ miseAJour: { possible: true } }) === null && rm(null) === null && rm({}) === null && /git/.test(rm({ miseAJour: { possible: false, raison: 'development-checkout' } })[1]) && /archive/.test(rm({ miseAJour: { possible: false, raison: 'no-archive-for-platform' } })[1]) && rm({ miseAJour: { possible: false, raison: 'odd' } })[0] === 'odd')
+  const mm = T.messageMiseAJour
+  ok('each step of the update has a line; the end says to restart; a failure says nothing was installed or that it was rolled back', ['telechargement', 'extraction', 'installation'].every((e) => mm({ etat: e }).length === 2) && /Relancez/.test(mm({ etat: 'termine', version: '1.1.0' })[0]) && /Restart/.test(mm({ etat: 'termine', version: '1.1.0' })[1]) && /rien n’a été installé/.test(mm({ etat: 'echec', erreur: 'digest-mismatch' })[0]) && /rolled back/.test(mm({ etat: 'echec', erreur: 'robot-refused' })[1]) && mm({ etat: 'idle' }) === null && mm(null) === null)
+}
+
 console.log('wiring')
 const has = (f) => source.includes(f)
 ok('a catalogue with no featured module opens on All, not on an empty page', has("filtreChoisi === 'featured' && !modules.some((m) => typeof m.vedette === 'number') ? 'all' : filtreChoisi"))
@@ -48,6 +60,10 @@ ok('every card and row opens the module’s page on a click, Enter or Space; a c
 ok('the module’s page: back link, header with its actions, Description and Compatibility tabs, a details column', has("'data-kb': 'suite-retour'") && has("onglet('description'") && has("onglet('compat'") && has("'data-kb': 'suite-fiche'") && has('kbsu-side'))
 ok('the page shows nothing the catalogue does not say: no screenshots, no banner, no changelog tab', !/screenshot|capture d.écran|changelog|journal des changements/i.test(source.slice(source.indexOf('const fiche = '), source.indexOf('// ── Reordering'))))
 ok('the artwork is the glyph on a family-coloured tile, in cards and rows', has('const artwork = ') && (source.match(/artwork\(m, p\.fam/g) || []).length === 3 && !has('ic(p.fam.icone)'))
+ok('Check for updates asks the online catalogue first, then reloads', has("post('/kybernos-hub/catalogue/refresh', {})") && has("kt('Rechercher des mises à jour', 'Check for updates')"))
+ok('the update banner shows only for a verified newer suite, explains when it cannot apply, asks once more before it starts', has("suite.distant && suite.distant.plusRecent === true") && has("'data-kb': 'suite-maj-ask'") && has("'data-kb': 'suite-maj-go'") && has("post('/kybernos-hub/update', { confirm: true })") && has("lireJson('/kybernos-hub/update/status')"))
+ok('a module’s Update button opens that confirmation when a verified newer suite exists, and keeps the old install otherwise', has("suite.distant && suite.distant.plusRecent === true ? setConfirmerMaj(true) : installer(m)"))
+ok('a finished update becomes a pending restart (the existing banner), the catalogue source and release notes are shown', has('__suite: true') && has("'data-kb': 'suite-source'") && has("Array.isArray(m.notes) && m.notes.length > 0"))
 ok('compatibility only speaks up on a card when something is wrong', has("chipCompat(false)") && has("verdict === 'hors'"))
 ok('the family icons nothing draws any more are gone', !/\n      (cpu|users|layout|cloud|database): '/.test(source.slice(source.indexOf('const ICONES = {'), source.indexOf('const construirePanneau'))))
 ok('no hard-coded colour in the new styles except the DSH orange the page already uses', !/kbsu-(fb|chip|hero|panel|ticks|dl|side|vedette)[^']*#[0-9a-fA-F]{3,8}\b/.test(source))
