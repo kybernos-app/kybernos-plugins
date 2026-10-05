@@ -3,8 +3,8 @@
 // périmé. Exporte : findPage(), evalJs(), shot().
 import { readFileSync } from 'node:fs'
 import { createHash, createHmac } from 'node:crypto'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { dshHome } from './dsh-home.mjs'
 
 const CDP = process.env.KB_CDP || 'http://127.0.0.1:9333'
 
@@ -109,7 +109,7 @@ const b64url = (b) => Buffer.from(b).toString('base64').replaceAll('+', '-').rep
  *  doit pouvoir dire « mesure impossible » au lieu de tomber. */
 export function cookieDeSession (autorite) {
   try {
-    const brut = readFileSync(join(homedir(), '.dsh', '.credentials.yaml'), 'utf8')
+    const brut = readFileSync(join(dshHome(), '.credentials.yaml'), 'utf8')
     const at = brut.indexOf('client-connection/browser-session')
     if (at < 0) return null
     const m = brut.slice(at).match(/secret:\s*(\S+)/)

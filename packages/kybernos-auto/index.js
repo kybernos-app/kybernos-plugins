@@ -2,11 +2,11 @@
 // kybernos-auto — moitié hôte.
 //
 // Le mode Auto, dans UN bundle dédié (02/10/2026, décision utilisateur) :
-//   • état PAR SESSION   → ~/.dsh/kybernos/auto-sessions.json
-//   • whitelist/classifieur (globaux) → ~/.dsh/kybernos/settings.json
+//   • état PAR SESSION   → <DSH home>/kybernos/auto-sessions.json  (~/.dsh par défaut)
+//   • whitelist/classifieur (globaux) → <DSH home>/kybernos/settings.json
 //     (mêmes clés que la première itération : autoRouting* y restent lisibles,
 //     la page Settings dédiée du bundle les écrit désormais)
-//   • santé par modèle   → ~/.dsh/kybernos/auto-health.json (compteurs locaux
+//   • santé par modèle   → <DSH home>/kybernos/auto-health.json (compteurs locaux
 //     écrits à chaque routage : appels, erreurs, dernière latence)
 //   • le routeur lui-même (règles → classifieur local tev1 → whitelist)
 //
@@ -17,11 +17,24 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, dirname, join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
 import { TTL_SONDE_MS, apresIssue, issueDeRapport, plafondEssais, resoudre, triCandidats, vueModele } from './resilience.mjs'
 
 export const name = 'kybernos-auto'
+
+/**
+ * The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank $DSH_HOME
+ * (trimmed, a leading ~ expanded), else <os home>/.dsh. Resolved at each use, never cached.
+ * DSH_HOME IS the DSH folder: the default used to be join(DSH_HOME || homedir(), '.dsh'), which
+ * is $DSH_HOME/.dsh (a second, empty folder) as soon as DSH_HOME is set.
+ */
+export const dshHome = (env = process.env, osHome = homedir) => {
+  const raw = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+  if (raw === '') return join(osHome(), '.dsh')
+  if (raw === '~') return osHome()
+  return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
+}
 
 const OLLAMA = process.env.AUTO_ROUTER_OLLAMA || 'http://127.0.0.1:11434'
 const CLASSES = ['chat', 'code', 'vision', 'media', 'agent-task']
@@ -318,7 +331,7 @@ const lireCorps = (req) => new Promise((res) => {
 })
 
 export function monterRoutes (webServerSvc, opts = {}) {
-  const home = opts.home || join(process.env.DSH_HOME || homedir(), '.dsh')
+  const home = opts.home || dshHome()
   const reglagesFichier = opts.reglagesPath || join(home, 'kybernos', 'settings.json')
   const sessionsFichier = opts.sessionsAutoPath || join(home, 'kybernos', 'auto-sessions.json')
   const santeFichier = opts.santePath || join(home, 'kybernos', 'auto-health.json')
@@ -503,7 +516,7 @@ export function apply (ctx) {
           return svc === null || svc === undefined || typeof svc.stream !== 'function' ? undefined : svc.stream.bind(svc)
         }
       }
-      monterRoutes(hostCtx.webServer, { home: process.env.DSH_HOME || join(homedir(), '.dsh'), llm: llmParesseux })
+      monterRoutes(hostCtx.webServer, { llm: llmParesseux })
       console.log('[kybernos-auto] routes /kybernos-auto/* enregistrees (state, session, settings, router, report, probe)')
     }
     if (ctx.get('webServer') !== undefined) monter(ctx)

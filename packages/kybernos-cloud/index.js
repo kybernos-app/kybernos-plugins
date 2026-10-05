@@ -3,7 +3,7 @@
 // Ce half fait trois choses :
 //   1. parler à l'API Kybernos (https://api.dev.kybernos.app par défaut) ;
 //   2. garder le secret d'appareil HORS du navigateur et HORS du dépôt, dans
-//      ~/.dsh/kybernos-cloud.json (mode 0600) ;
+//      <DSH home>/kybernos-cloud.json (~/.dsh by default, mode 0600) ;
 //   3. quand l'utilisateur est connecté, importer AUTOMATIQUEMENT le catalogue
 //      de modèles du proxy Kybernos LiteLLM (glm, deepseek…) dans le harnais :
 //      route provider `kybernos` de settings.yaml + credential KYBERNOS_API_KEY.
@@ -37,14 +37,27 @@
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
 import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
 import { findDuplicateGroups } from './dedupe.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 
-const STATE_DIR = join(homedir(), '.dsh')
-const STATE_FILE = join(STATE_DIR, 'kybernos-cloud.json')
+/**
+ * The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank
+ * $DSH_HOME (trimmed, a leading ~ expanded), else <os home>/.dsh. Resolved at each use,
+ * never cached: with DSH_HOME set (a second profile, an isolated instance, CI) every path
+ * below must stay inside it and leave the user's real ~/.dsh alone.
+ */
+const dshHome = (env = process.env, osHome = homedir) => {
+  const raw = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+  if (raw === '') return join(osHome(), '.dsh')
+  if (raw === '~') return osHome()
+  return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
+}
+const defaultStateFile = () => join(dshHome(), 'kybernos-cloud.json')
+const sessionsHome = () => join(dshHome(), 'sessions')
+const categoriesFile = () => join(dshHome(), 'kybernos', 'categories.json')
 const DEFAULT_API = 'https://api.dev.kybernos.app'
 /** Web du même tier que l'API (api.dev.… → dev.…) : c'est là que vit la page
  *  de l'espace, et le plugin n'a pas à recopier l'hôte dans son coin. */
@@ -61,11 +74,11 @@ const resolveApi = () => {
   return value === '' ? DEFAULT_API : value.replace(/\/+$/, '')
 }
 
-/** Fichier d'état : surchargeable par KYBERNOS_CLOUD_STATE (tests, multi-profil). */
+/** State file: <DSH home>/kybernos-cloud.json, overridable by KYBERNOS_CLOUD_STATE (tests, multi-profile). */
 const stateFile = () => {
   const raw = process.env.KYBERNOS_CLOUD_STATE
   const value = typeof raw === 'string' ? raw.trim() : ''
-  return value === '' ? STATE_FILE : value
+  return value === '' ? defaultStateFile() : value
 }
 
 /** Libellé d'appareil tel qu'il apparaîtra dans « Sécurité → Sessions ». */
@@ -86,7 +99,8 @@ const readState = () => {
 
 const writeState = (state) => {
   const file = stateFile()
-  try { mkdirSync(STATE_DIR, { recursive: true, mode: 0o700 }) } catch (e) { /* deja la */ }
+  // The folder of the file actually written: with KYBERNOS_CLOUD_STATE set, creating the default folder would touch ~/.dsh for nothing.
+  try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* already there */ }
   writeFileSync(file, JSON.stringify(state, null, 2) + '\n', { mode: 0o600 })
   // writeFileSync ne resserre pas un fichier existant : on force le 0600.
   try { chmodSync(file, 0o600) } catch (e) { /* FS exotique (Windows) */ }
@@ -813,12 +827,11 @@ const shareError = (res, fallback) => {
 }
 
 // ── Chats DSH → webapp (annuaire de sessions) ────────────────────────────────
-// Pousse la LISTE des sessions locales (~/.dsh/sessions) vers
+// Pousse la LISTE des sessions locales (<DSH home>/sessions) vers
 // POST /v1/dsh/sessions — MÉTADONNÉES SEULEMENT (id de session, projet, date,
 // rien du contenu des conversations : les .jsonl.zstd ne sont jamais ouverts).
 // La webapp lit la même liste (GET /v1/dsh/sessions) pour afficher
 // « Conversations DSH ». Idempotent : le serveur upsert par (user, dsh_id).
-const SESSIONS_HOME = join(homedir(), '.dsh', 'sessions')
 const CHATS_PUSH_MAX = 100
 
 const projetDuSlug = (slug) => {
@@ -830,17 +843,18 @@ const projetDuSlug = (slug) => {
 
 const chatsScan = () => {
   const items = []
+  const sessions = sessionsHome()
   let slugs = []
   try {
-    slugs = readdirSync(SESSIONS_HOME)
+    slugs = readdirSync(sessions)
   } catch (e) {
     return { items, error: 'sessions illisibles' }
   }
-  // Titres réels des sessions renommées (~/.dsh/kybernos/categories.json,
+  // Titres réels des sessions renommées (<DSH home>/kybernos/categories.json,
   // tenu par le plugin kybernos-sessions) — repli : nom du projet du slug.
   let titres = {}
   try {
-    titres = JSON.parse(readFileSync(join(homedir(), '.dsh', 'kybernos', 'categories.json'), 'utf8')) || {}
+    titres = JSON.parse(readFileSync(categoriesFile(), 'utf8')) || {}
   } catch (e) { /* pas de renommages : projet du slug pour tous */ }
   const titreDe = (sessionId, projet) => {
     const t = titres[sessionId] && typeof titres[sessionId].titre === 'string' ? titres[sessionId].titre.trim() : ''
@@ -849,13 +863,13 @@ const chatsScan = () => {
   for (const slug of slugs) {
     let sessionDirs = []
     try {
-      sessionDirs = readdirSync(join(SESSIONS_HOME, slug))
+      sessionDirs = readdirSync(join(sessions, slug))
     } catch (e) {
       continue
     }
     for (const dir of sessionDirs) {
       if (!dir.startsWith('session-')) continue
-      const dossier = join(SESSIONS_HOME, slug, dir)
+      const dossier = join(sessions, slug, dir)
       let dernierMtimeMs = 0
       try {
         for (const f of readdirSync(dossier)) {
@@ -1404,8 +1418,8 @@ const localKybers = () => {
   }
 }
 
-/** Racine des kybers locaux : surchargeable pour que la suite host soit déterministe. */
-const kybersDir = () => (typeof process.env.KYBERNOS_CLOUD_KYBERS === 'string' && process.env.KYBERNOS_CLOUD_KYBERS !== '' ? process.env.KYBERNOS_CLOUD_KYBERS : join(homedir(), '.dsh', 'kybers'))
+/** Root of the local kybers: <DSH home>/kybers, overridable so the host suite stays deterministic. */
+const kybersDir = () => (typeof process.env.KYBERNOS_CLOUD_KYBERS === 'string' && process.env.KYBERNOS_CLOUD_KYBERS !== '' ? process.env.KYBERNOS_CLOUD_KYBERS : join(dshHome(), 'kybers'))
 
 const readJsonl = (path) => {
   try {
@@ -1768,7 +1782,7 @@ const memoryRoute = async (req) => {
 }
 
 /**
- * Installe un kyber publie dans la racine locale `~/.dsh/kybers/`.
+ * Installe un kyber publie dans la racine locale `<DSH home>/kybers/`.
  * On ne remplace JAMAIS un kyber du testeur : si l'id est pris, la route
  * refuse et le dit, sauf `ecraser: true` demande explicitement.
  * La reponse porte `aCompleter` : ce que le catalogue ne publie pas (route de
@@ -2671,7 +2685,7 @@ const mountMemoryCapture = (ctx) => {
 
 // ── Détail d'un chat DSH — LECTURE LOCALE EXCLUSIVE ─────────────────────────
 // Le contenu d'une conversation ne quitte JAMAIS la machine : la route lit le
-// journal de session sur disque (~/.dsh/sessions/<slug>/<id>/session.v4.jsonl.zstd)
+// journal de session sur disque (<DSH home>/sessions/<slug>/<id>/session.v4.jsonl.zstd)
 // et répond directement. Rien ne passe par Supabase, contrairement au push
 // métadonnées (titre + projet + date seulement). CORS restreint aux origines
 // de la webapp en dev (localhost:8081) — jamais « * » : une page web arbitraire
@@ -2723,9 +2737,10 @@ const chatsDetail = (req) => {
   const dshId = String(url.searchParams.get('dsh_id') || '').trim()
   if (!/^[\w-]{8,80}$/.test(dshId)) return { ok: false, error: 'dsh_id manquant' }
   let dossier = null
+  const sessions = sessionsHome()
   try {
-    for (const slug of readdirSync(SESSIONS_HOME)) {
-      const candidat = join(SESSIONS_HOME, slug, dshId)
+    for (const slug of readdirSync(sessions)) {
+      const candidat = join(sessions, slug, dshId)
       try {
         if (statSync(candidat).isDirectory()) { dossier = candidat; break }
       } catch { /* pas ce slug */ }
@@ -2762,7 +2777,7 @@ const chatsDetail = (req) => {
   }
   let titre = ''
   try {
-    const cats = JSON.parse(readFileSync(join(homedir(), '.dsh', 'kybernos', 'categories.json'), 'utf8'))
+    const cats = JSON.parse(readFileSync(categoriesFile(), 'utf8'))
     if (cats[dshId] && typeof cats[dshId].titre === 'string') titre = cats[dshId].titre
   } catch { /* pas de renommage */ }
   return { ok: true, dsh_id: dshId, title: titre, messages, tronque: messages.length >= DSH_DETAIL_MAX_MESSAGES }
@@ -2892,7 +2907,7 @@ export function apply(ctx) {
 // Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre
 // surface publique n'est promise.
 export {
-  resolveApi, stateFile, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
+  dshHome, resolveApi, stateFile, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,

@@ -13,10 +13,8 @@
 // must `restoreEnglish()` in a `finally`, and `assertEnglishStored()` first: a
 // run refuses to start if DSH's stored language is not « en », so it can never
 // overwrite a choice of yours. See docs/dev/live-testing.md.
-import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { join } from 'node:path'
 import { clickText, waitFor } from './live-page.mjs'
+import { profilePatch } from './dsh-home.mjs'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -74,12 +72,10 @@ export const DISABLE_SWITCH = `(() => {
 
 /** The language DSH has STORED for this profile (null when the file can't be read). */
 export const storedLocale = () => {
-  try {
-    const profile = process.env.KB_PROFILE || 'web'
-    const yml = readFileSync(join(homedir(), '.dsh', 'profiles', profile, 'cordis.patch.yml'), 'utf8')
-    const m = /-\s+id:\s+locale\s*\n\s+name:[^\n]*\n\s+config:\s*\n\s+preference:\s*(\S+)/.exec(yml)
-    return m === null ? null : m[1]
-  } catch (e) { return null }
+  const yml = profilePatch()
+  if (yml === null) return null
+  const m = /-\s+id:\s+locale\s*\n\s+name:[^\n]*\n\s+config:\s*\n\s+preference:\s*(\S+)/.exec(yml)
+  return m === null ? null : m[1]
 }
 
 /** Exits 3 (inconclusive) unless DSH's stored language is « en » — see the warning above. */

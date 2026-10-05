@@ -21,7 +21,7 @@
 //   POST /kybernos-skills/reconnect : renouvelle le jeton OIDC par le CLI vercel, puis vide le cache
 //   POST /kybernos-skills/toggle    : bascule active/inactif par RENOMMAGE
 //                                     SKILL.md <-> SKILL.md.disabled, uniquement dans
-//                                     ~/.dsh/skills et ~/.agents/skills (decision gelee).
+//                                     <DSH home>/skills (~/.dsh/skills) et ~/.agents/skills (decision gelee).
 //   POST /kybernos-skills/create    : ecrit un SKILL.md valide dans une racine inscriptible.
 //   POST /kybernos-skills/install   : telecharge une archive GitHub et copie le skill demande.
 //
@@ -35,7 +35,7 @@
 import { existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, chmodSync, realpathSync, mkdirSync, mkdtempSync, rmdirSync, rmSync, cpSync, createReadStream } from 'node:fs'
 import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
-import { join, dirname, basename, sep, isAbsolute } from 'node:path'
+import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 // ── helpers locaux (miroir semantique de kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
@@ -100,15 +100,24 @@ const UNKNOWN_RANK = 999
 
 // LES DEUX SEULES RACINES INSCRIPTIBLES (decision gelee). C'est notre POLITIQUE D'ECRITURE,
 // pas une regle de decouverte : le registre peut lire vingt racines, on n'ecrit que la-dedans.
-const writableRootsOf = (home) => [join(home, '.dsh', 'skills'), join(home, '.agents', 'skills')]
+const writableRootsOf = (cfg) => [join(cfg.dsh, 'skills'), join(cfg.home, '.agents', 'skills')]
 
-const sourceOfRootPath = (rootPath, home) => {
-  if (rootPath === join(home, '.dsh', 'skills')) return 'user-dsh'
-  if (rootPath === join(home, '.agents', 'skills')) return 'user-agents'
+const sourceOfRootPath = (rootPath, cfg) => {
+  if (rootPath === join(cfg.dsh, 'skills')) return 'user-dsh'
+  if (rootPath === join(cfg.home, '.agents', 'skills')) return 'user-agents'
   return 'custom'
 }
 
 // ── configuration : le home reste parametrable (harnais, testabilite), le cwd aussi ──────────────────────────
+// The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank $DSH_HOME
+// (trimmed, a leading ~ expanded), else <os home>/.dsh. Resolved at each use, never cached.
+const dshHome = (env = process.env, osHome = homedir) => {
+  const raw = typeof env.DSH_HOME === 'string' ? env.DSH_HOME.trim() : ''
+  if (raw === '') return join(osHome(), '.dsh')
+  if (raw === '~') return osHome()
+  return resolvePath(raw.startsWith('~/') || raw.startsWith('~\\') ? join(osHome(), raw.slice(2)) : raw)
+}
+
 const findProjectRoot = (cwd) => { // miroir dsh-skill-filesystem/lib/index.js:807-815
   let dir = cwd
   for (;;) {
@@ -119,12 +128,22 @@ const findProjectRoot = (cwd) => { // miroir dsh-skill-filesystem/lib/index.js:8
   }
 }
 
-const normalizeConfig = (config = {}) => ({
-  home: typeof config.home === 'string' && isAbsolute(config.home) ? config.home : homedir(),
-  cwd: typeof config.cwd === 'string' && isAbsolute(config.cwd) ? config.cwd : process.cwd()
-})
+// `home` is the OS home (it holds `.agents`); `dsh` is the DSH home (skills, journal, featured list,
+// token cache, sessions). A harness that passes a `home` gets its own `<home>/.dsh`; with neither,
+// `dsh` follows DSH_HOME, so an isolated instance never reaches into the user's real ~/.dsh.
+// Idempotent: the routes hand an already normalised config to functions that normalise it again,
+// so a `dsh` that is given must survive.
+const normalizeConfig = (config = {}) => {
+  const given = typeof config.home === 'string' && isAbsolute(config.home) ? config.home : null
+  const dsh = typeof config.dsh === 'string' && isAbsolute(config.dsh) ? config.dsh : (given !== null ? join(given, '.dsh') : dshHome())
+  return {
+    home: given !== null ? given : homedir(),
+    dsh,
+    cwd: typeof config.cwd === 'string' && isAbsolute(config.cwd) ? config.cwd : process.cwd()
+  }
+}
 
-const configOf = ({ home, cwd } = {}) => normalizeConfig({ home, cwd })
+const configOf = ({ home, dsh, cwd } = {}) => normalizeConfig({ home, dsh, cwd })
 
 // ── layout : ou vit un skill a partir du chemin de son fichier markdown ──────────────────────────────────────
 //   <racine>/<dossier>/SKILL.md          -> folder=<racine>/<dossier>, root=<racine>
@@ -193,7 +212,7 @@ const frontmatterOf = (file) => {
 // ── VUE DES DESACTIVES : ce que le registre ne peut pas voir ─────────────────────────────────────────────────
 // `SKILL.md.disabled` n'est pas `SKILL.md`, donc discoverRoot l'ignore et le skill sort du catalogue.
 // On balaie les DEUX racines inscriptibles pour retrouver ces marqueurs. Lecture seule, aucun cache.
-const disabledInRoot = (rootPath, home) => {
+const disabledInRoot = (rootPath, cfg) => {
   const out = []
   if (!existsSync(rootPath)) return out
   let entries
@@ -216,9 +235,9 @@ const disabledInRoot = (rootPath, home) => {
     out.push({
       name,
       root: rootPath,
-      source: sourceOfRootPath(rootPath, home),
-      rank: SOURCE_RANK[sourceOfRootPath(rootPath, home)] ?? UNKNOWN_RANK,
-      writable: writableRootFor(folder, writableRootsOf(home)) !== null,
+      source: sourceOfRootPath(rootPath, cfg),
+      rank: SOURCE_RANK[sourceOfRootPath(rootPath, cfg)] ?? UNKNOWN_RANK,
+      writable: writableRootFor(folder, writableRootsOf(cfg)) !== null,
       active: false,
       description: typeof fm.description === 'string' ? fm.description : '',
       whenToUse: typeof fm.whenToUse === 'string' ? fm.whenToUse : '',
@@ -323,24 +342,20 @@ const enteteDeSession = (chemin) => new Promise((resolve) => {
   flux.pipe(zstd)
 })
 
-const cwdDeSession = async (home, wanted) => {
-  if (typeof home !== 'string' || home === '' || typeof wanted !== 'string' || wanted === '') return null
-  // Le magasin vit sous le DSH home (`~/.dsh/sessions`). `DSH_HOME` peut le deplacer : on essaie
-  // les deux, dans l'ordre, et on s'arrete au premier magasin qui porte la session.
-  const bases = []
-  if (typeof process.env.DSH_HOME === 'string' && process.env.DSH_HOME !== '') bases.push(join(process.env.DSH_HOME, 'sessions'))
-  bases.push(join(home, '.dsh', 'sessions'))
-  for (const base of bases) {
-    let projets = []
-    try { projets = readdirSync(base) } catch (e) { continue }
-    for (const projet of projets) {
-      const repertoire = join(base, projet, wanted)
-      let fichiers = []
-      try { fichiers = readdirSync(repertoire) } catch (e) { continue }
-      const fichier = fichiers.find((n) => /^session\..*jsonl\.zstd$/.test(n))
-      if (fichier === undefined) continue
-      return await enteteDeSession(join(repertoire, fichier))
-    }
+const cwdDeSession = async (cfg, wanted) => {
+  if (typeof wanted !== 'string' || wanted === '') return null
+  // The store lives under the DSH home (`<DSH home>/sessions`): that one home only, never the
+  // other one (a session of the user's real ~/.dsh is not a session of an isolated instance).
+  const base = join(cfg.dsh, 'sessions')
+  let projets = []
+  try { projets = readdirSync(base) } catch (e) { return null }
+  for (const projet of projets) {
+    const repertoire = join(base, projet, wanted)
+    let fichiers = []
+    try { fichiers = readdirSync(repertoire) } catch (e) { continue }
+    const fichier = fichiers.find((n) => /^session\..*jsonl\.zstd$/.test(n))
+    if (fichier === undefined) continue
+    return await enteteDeSession(join(repertoire, fichier))
   }
   return null
 }
@@ -353,7 +368,7 @@ const scopeOf = async (ctx, cfg, wanted) => {
   //    agent vivant. C'est la panne reelle du 20/09 : une session au repos heritait du projet d'une
   //    autre session, et ses propres skills de projet n'apparaissaient jamais.
   if (typeof wanted === 'string' && wanted !== '') {
-    const cwdSession = await cwdDeSession(cfg.home, wanted)
+    const cwdSession = await cwdDeSession(cfg, wanted)
     if (cwdSession !== null) return { scope: await cleDeMontage(ctx), live: undefined, cwd: cwdSession }
   }
   // 3. Sans session (ou session inconnue) : le dernier agent vivant, comportement d'origine.
@@ -400,7 +415,7 @@ const invalidateSkills = (ctx, wanted) => {
 // ── LE CATALOGUE : registre DSH (actifs) + marqueurs desactives (les notres) ─────────────────────────────────
 const catalogueOf = async (ctx, config, sessionId) => {
   const cfg = normalizeConfig(config)
-  const wRoots = writableRootsOf(cfg.home)
+  const wRoots = writableRootsOf(cfg)
 
   // 1. les skills ACTIFS, du registre de DSH : deja fusionnes par nom selon la precedence.
   //    On VERIFIE que le fichier existe encore : le registre garde un catalogue en cache et
@@ -439,7 +454,7 @@ const catalogueOf = async (ctx, config, sessionId) => {
   }
 
   // 2. les skills DESACTIVES : invisibles du registre, retrouves par marqueur dans les racines inscriptibles.
-  for (const rootPath of wRoots) skills.push(...disabledInRoot(rootPath, cfg.home))
+  for (const rootPath of wRoots) skills.push(...disabledInRoot(rootPath, cfg))
 
   // 3. collisions par nom : deux entrees de meme nom (un actif et un desactive dans deux portees).
   const byName = new Map()
@@ -460,7 +475,7 @@ const catalogueOf = async (ctx, config, sessionId) => {
   }
   for (const rootPath of wRoots) {
     if (!byRoot.has(rootPath)) {
-      const source = sourceOfRootPath(rootPath, cfg.home)
+      const source = sourceOfRootPath(rootPath, cfg)
       byRoot.set(rootPath, { path: rootPath, source, rank: SOURCE_RANK[source], writable: true, exists: existsSync(rootPath), count: 0 })
     }
   }
@@ -495,13 +510,13 @@ const resolveInRoot = (rootPath, name) => {
 }
 
 // ── bascule par renommage UNIQUEMENT (decision gelee ; table ARB-3) ──────────────────────────────────────────
-const journalPath = (home) => join(home, '.dsh', 'kybernos-skills.json')
+const journalPath = (cfg) => join(cfg.dsh, 'kybernos-skills.json')
 
 // Journal d'audit : ecrit a chaque bascule REELLE, LU PAR PERSONNE. Ce n'est PAS une source de
 // verite — l'etat actif/inactif vit dans le systeme de fichiers (presence de SKILL.md) et nulle
 // part ailleurs. Best-effort : une ecriture impossible ne fait jamais echouer la bascule.
-const appendJournal = (home, entry) => {
-  const path = journalPath(home)
+const appendJournal = (cfg, entry) => {
+  const path = journalPath(cfg)
   try {
     let toggles = []
     try {
@@ -517,19 +532,19 @@ const appendJournal = (home, entry) => {
 }
 
 // ── Featured : mise en avant CONTROLÉE PAR L'UTILISATEUR (liste manuelle) ────────────────────
-// Source de vérité : ~/.dsh/kybernos/skills-featured.json — un tableau d'items {name, why,
+// Source de vérité : <DSH home>/kybernos/skills-featured.json — un tableau d'items {name, why,
 // addedAt} dans l'ORDRE d'affichage. Rien d'automatique : la rangée montre exactement ce que
 // l'utilisateur y a mis (l'étoile de la fiche écrit ici). Un nom absent du registre reste dans
 // le fichier mais est rendu `found:false` — l'interface le saute sans l'effacer.
 const FEATURED_VERSION = 1
-const featuredPath = (home) => join(home, '.dsh', 'kybernos', 'skills-featured.json')
-const featuredCoversDir = (home) => join(home, '.dsh', 'kybernos', 'skills-featured')
+const featuredPath = (cfg) => join(cfg.dsh, 'kybernos', 'skills-featured.json')
+const featuredCoversDir = (cfg) => join(cfg.dsh, 'kybernos', 'skills-featured')
 const COVER_EXTS = ['png', 'webp', 'jpg', 'jpeg', 'svg']
 const COVER_TYPES = { png: 'image/png', webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg', svg: 'image/svg+xml' }
 
-const readFeatured = (home) => {
+const readFeatured = (cfg) => {
   try {
-    const parsed = JSON.parse(readFileSync(featuredPath(home), 'utf8'))
+    const parsed = JSON.parse(readFileSync(featuredPath(cfg), 'utf8'))
     if (parsed === null || typeof parsed !== 'object' || !Array.isArray(parsed.items)) return []
     return parsed.items
       .filter((it) => it !== null && typeof it === 'object' && typeof it.name === 'string' && SKILL_NAME_RE.test(it.name))
@@ -537,8 +552,8 @@ const readFeatured = (home) => {
   } catch (e) { return [] } // absent ou corrompu => liste vide, jamais une panne de l'onglet
 }
 
-const writeFeatured = (home, items) => {
-  const path = featuredPath(home)
+const writeFeatured = (cfg, items) => {
+  const path = featuredPath(cfg)
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, JSON.stringify({ version: FEATURED_VERSION, updatedAt: new Date().toISOString(), items }, null, 2) + '\n')
   try { chmodSync(path, 0o600) } catch (e) { /* best-effort, comme le journal */ }
@@ -546,9 +561,9 @@ const writeFeatured = (home, items) => {
 
 // Une pochette par skill, cherchée dans le dossier cache : <name>.png|webp|jpg|jpeg|svg.
 // Le NOM est la seule variable (garde A1 : aucune sous-chaîne de chemin ne passe la regex).
-const coverFileOf = (home, name) => {
+const coverFileOf = (cfg, name) => {
   if (SKILL_NAME_RE.test(name) === false) return null
-  const dir = featuredCoversDir(home)
+  const dir = featuredCoversDir(cfg)
   for (const ext of COVER_EXTS) {
     const p = join(dir, name + '.' + ext)
     if (existsSync(p)) return p
@@ -556,8 +571,8 @@ const coverFileOf = (home, name) => {
   return null
 }
 
-const skillEntryOf = (rootPath, home, resolved) => {
-  const source = sourceOfRootPath(rootPath, home)
+const skillEntryOf = (rootPath, cfg, resolved) => {
+  const source = sourceOfRootPath(rootPath, cfg)
   const { folder, activeFile, disabledFile, hasActive } = resolved
   const carrier = hasActive ? activeFile : disabledFile
   const fm = frontmatterOf(carrier)
@@ -570,7 +585,7 @@ const skillEntryOf = (rootPath, home, resolved) => {
     root: rootPath,
     source,
     rank: SOURCE_RANK[source] ?? UNKNOWN_RANK,
-    writable: writableRootFor(folder, writableRootsOf(home)) !== null,
+    writable: writableRootFor(folder, writableRootsOf(cfg)) !== null,
     active: hasActive,
     description: typeof fm.description === 'string' ? fm.description : '',
     whenToUse: typeof fm.whenToUse === 'string' ? fm.whenToUse : '',
@@ -581,7 +596,7 @@ const skillEntryOf = (rootPath, home, resolved) => {
 
 const toggleSkill = async ({ ctx, root, name, active, config, sessionId }) => {
   const cfg = normalizeConfig(config)
-  const wRoots = writableRootsOf(cfg.home)
+  const wRoots = writableRootsOf(cfg)
 
   // La racine doit etre EXACTEMENT l'une des DEUX racines inscriptibles (decisions 2 et 4 gelees).
   if (typeof root !== 'string' || wRoots.includes(root) === false) return { ok: false, error: 'racine absente ou non inscriptible' }
@@ -627,9 +642,9 @@ const toggleSkill = async ({ ctx, root, name, active, config, sessionId }) => {
 
   // Entree recalee APRES renommage eventuel.
   const after = resolveInRoot(root, name)
-  const skill = after.length === 1 ? skillEntryOf(root, cfg.home, after[0]) : null
+  const skill = after.length === 1 ? skillEntryOf(root, cfg, after[0]) : null
   if (changed) {
-    appendJournal(cfg.home, { root, name, active, at: new Date().toISOString() })
+    appendJournal(cfg, { root, name, active, at: new Date().toISOString() })
     // Ce paquet est le SEUL ecrivain des racines inscriptibles : on previent donc le registre que
     // son cache est perime, au lieu de payer une verification d'existence par skill a chaque
     // lecture. Sans cela, la lecture suivante resservirait le skill a son ancien emplacement : il
@@ -711,7 +726,7 @@ const queryParam = (req, key) => {
 }
 
 // ── JETON OIDC : lu, jamais journalise, renouvele par le CLI ──────────────────────────────────────────────
-const tokenDir = (cfg) => join(cfg.home, '.dsh', 'kybernos-skills-index')
+const tokenDir = (cfg) => join(cfg.dsh, 'kybernos-skills-index')
 const tokenPath = (cfg) => join(tokenDir(cfg), TOKEN_FILE)
 
 // L'environnement passe avant le fichier : ca permet de brancher un jeton ephemere sans toucher au disque.
@@ -946,8 +961,8 @@ const countFiles = (dir) => {
 
 const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
   const cfg = normalizeConfig(config)
-  const wRoots = writableRootsOf(cfg.home)
-  const dest = typeof root === 'string' && root !== '' ? root : join(cfg.home, '.dsh', 'skills')
+  const wRoots = writableRootsOf(cfg)
+  const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
   if (wRoots.includes(dest) === false) return { ok: false, error: 'racine absente ou non inscriptible' }
   if (typeof source !== 'string' || !SOURCE_RE.test(source)) {
     // Une source `well-known` est un domaine : elle est legitime DANS L'INDEX, mais son contenu n'est
@@ -998,7 +1013,7 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
     return {
       ok: true,
       files: countFiles(target),
-      skill: skillEntryOf(dest, cfg.home, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
+      skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
     }
   } finally {
     try { rmSync(tmp, { recursive: true, force: true }) } catch (e) { /* bac temporaire : nettoyage au mieux */ }
@@ -1012,8 +1027,8 @@ const yamlQuoted = (v) => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '
 
 const createSkill = async ({ ctx, root, name, description, whenToUse, body, modelInvocable, config, sessionId }) => {
   const cfg = normalizeConfig(config)
-  const wRoots = writableRootsOf(cfg.home)
-  const dest = typeof root === 'string' && root !== '' ? root : join(cfg.home, '.dsh', 'skills')
+  const wRoots = writableRootsOf(cfg)
+  const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
   if (wRoots.includes(dest) === false) return { ok: false, error: 'racine absente ou non inscriptible' }
   if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'nom invalide : minuscules, chiffres et tirets, sans accent' }
   if (typeof description !== 'string' || description.trim() === '') return { ok: false, error: 'description requise' }
@@ -1039,7 +1054,7 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
   invalidateSkills(ctx, sessionId)
   return {
     ok: true,
-    skill: skillEntryOf(dest, cfg.home, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
+    skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
   }
 }
 
@@ -1096,7 +1111,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 
   GET('/kybernos-skills/status', 'kybernos-skills: route status', async (req) => {
     const cfg = configOf()
-    const roots = writableRootsOf(cfg.home).map((p) => ({ path: p, source: sourceOfRootPath(p, cfg.home), exists: existsSync(p) }))
+    const roots = writableRootsOf(cfg).map((p) => ({ path: p, source: sourceOfRootPath(p, cfg), exists: existsSync(p) }))
     // Diagnostic de la VUE. Le 20/09, un catalogue vide a l'ecran pendant que la session annoncait
     // sept skills n'etait diagnosticable nulle part : `scope` dit ici, en une ligne, si la portee a
     // ete trouvee et quelle instance repond. Sans lui il fallait redemarrer pour savoir.
@@ -1148,18 +1163,18 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     const cfg = configOf()
     const catalogue = await catalogueOf(ctx, cfg, queryParam(req, 'sessionId'))
     const byName = new Map(catalogue.skills.map((s) => [s.name, s]))
-    const items = readFeatured(cfg.home).map((it) => {
+    const items = readFeatured(cfg).map((it) => {
       const s = byName.get(it.name)
       return {
         ...it,
         found: s !== undefined,
-        cover: coverFileOf(cfg.home, it.name) !== null ? '/kybernos-skills/cover/' + it.name : null,
+        cover: coverFileOf(cfg, it.name) !== null ? '/kybernos-skills/cover/' + it.name : null,
         ...(s !== undefined
           ? { description: s.description, whenToUse: s.whenToUse, source: s.source, root: s.root, modifiedAt: s.modifiedAt, active: s.active, writable: s.writable }
           : {})
       }
     })
-    return { ok: true, items, path: featuredPath(cfg.home) }
+    return { ok: true, items, path: featuredPath(cfg) }
   })
 
   // Étoile de la fiche / des cartes : {name, action?:'toggle'|'add'|'remove', why?}. Seul un skill
@@ -1173,7 +1188,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     const catalogue = await catalogueOf(ctx, cfg, body.sessionId)
     if (catalogue.skills.some((s) => s.name === name) === false) return { ok: false, error: 'skill introuvable dans le registre' }
     const action = body.action === 'add' || body.action === 'remove' ? body.action : 'toggle'
-    const items = readFeatured(cfg.home)
+    const items = readFeatured(cfg)
     const at = items.findIndex((it) => it.name === name)
     const removed = at !== -1
     if (action === 'add' && removed === false) items.push({ name, why: typeof body.why === 'string' ? body.why : '', addedAt: new Date().toISOString() })
@@ -1182,7 +1197,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
       if (removed) items.splice(at, 1)
       else items.push({ name, why: typeof body.why === 'string' ? body.why : '', addedAt: new Date().toISOString() })
     }
-    writeFeatured(cfg.home, items)
+    writeFeatured(cfg, items)
     return { ok: true, featured: items.some((it) => it.name === name), items }
   })
 
@@ -1192,7 +1207,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
     const pathname = new URL(req.url ?? '/', 'http://x').pathname
     const name = decodeURIComponent(pathname.slice('/kybernos-skills/cover/'.length))
-    const file = SKILL_NAME_RE.test(name) ? coverFileOf(configOf().home, name) : null
+    const file = SKILL_NAME_RE.test(name) ? coverFileOf(configOf(), name) : null
     if (file === null) return sendJson(res, 404, { ok: false, error: 'aucune pochette pour ce skill' })
     try {
       const ext = file.slice(file.lastIndexOf('.') + 1)
@@ -1205,7 +1220,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── exports nommes pour le harnais (testabilite : chemins explicites, rien de cable) + apply ────────────────
-export { catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, indexStatus, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
+export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, indexStatus, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
 
 export function apply(ctx) {
   // Filet miroir de kybernos-plugin/index.js:2876-2884 (base) : une erreur de montage ne doit pas

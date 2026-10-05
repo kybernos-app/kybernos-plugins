@@ -37,10 +37,9 @@
 
 import { execFile } from 'node:child_process'
 import { readdirSync, statSync, existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync, rmSync, realpathSync, renameSync, chmodSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join, basename, dirname } from 'node:path'
 import { creerSonde } from './brain-health.mjs'
-import { decider, selectionnerKyber, selectionnerCategorie, lireModeleDecision, CATEGORIES, MODELES_DECISION_CONNUS, MODELE_DEFAUT } from './decision.mjs'
+import { decider, selectionnerKyber, selectionnerCategorie, lireModeleDecision, dshHome, CATEGORIES, MODELES_DECISION_CONNUS, MODELE_DEFAUT } from './decision.mjs'
 
 // ── slug du magasin de sessions ⇄ chemin ───────────────────────────────────
 // Le slug encode le chemin ('/Users/me/projects/x' → '--Users-me-projects-x--')
@@ -1167,15 +1166,17 @@ const cheminConfine = (sessionsHome, corps, slug) => {
 export function monterRoutes (webServerSvc, opts) {
   const sessionsHome = opts.sessionsHome
   const kybersHome = opts.kybersHome
-  // Chemin des réglages et du registre de catégories. Fourni par `apply()`
-  // (DSH_HOME réel) ; à défaut, dérivé du magasin de sessions — les harnais
-  // passent un home temporaire et restent ainsi hors de ~/.dsh.
-  const reglagesFichier = opts.reglagesPath || join(sessionsHome === undefined ? homedir() : dirname(sessionsHome), 'kybernos', 'settings.json')
-  const categoriesFichier = opts.categoriesPath || join(sessionsHome === undefined ? homedir() : dirname(sessionsHome), 'kybernos', 'categories.json')
+  // Settings, category registry and credentials. Given by `apply()` (the real DSH
+  // home); otherwise derived from the session store, so a harness that passes a
+  // temporary home stays out of the real one. With no session store either, the
+  // DSH home itself (never <os home>/kybernos, which is not a DSH folder).
+  const base = sessionsHome === undefined ? dshHome() : dirname(sessionsHome)
+  const reglagesFichier = opts.reglagesPath || join(base, 'kybernos', 'settings.json')
+  const categoriesFichier = opts.categoriesPath || join(base, 'kybernos', 'categories.json')
   // Le fichier de références du harnais porte la clé de la passerelle de
   // décision. Il est lu PAR L'HÔTE, jamais envoyé à la page : le cerveau de
   // décision n'expose pas de secret au navigateur.
-  const referencesFichier = opts.credentialsPath || join(homedir(), '.dsh', '.credentials.yaml')
+  const referencesFichier = opts.credentialsPath || join(base, '.credentials.yaml')
   // Le moteur de décision est injectable : le harnais de routes le remplace par
   // un faux — sinon chaque contrôle appellerait vraiment la passerelle.
   const moteurDecision = (opts.decision === null || opts.decision === undefined)
@@ -1369,7 +1370,7 @@ export function monterRoutes (webServerSvc, opts) {
 
 export function apply (ctx) {
   try {
-    const home = process.env.DSH_HOME || join(homedir(), '.dsh')
+    const home = dshHome()
     const demarrer = (hostCtx) => {
       monterRoutes(hostCtx.webServer, {
         ctx: hostCtx,

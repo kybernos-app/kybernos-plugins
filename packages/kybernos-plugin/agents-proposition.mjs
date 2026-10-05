@@ -1,17 +1,18 @@
-// ── Force de proposition : la règle globale des agents Kybernos ─────────────
-// (02/10/2026) Le « prompt système » partagé des agents DSH vit dans
-// `~/.dsh/AGENTS.md` — un fichier PAR POSTE, jamais dans le paquet. Pour que
-// chaque utilisateur du plugin reçoive le réflexe « matching kyber/skill »,
-// le boot du plugin POSSE la section dans ce fichier, de façon idempotente :
-// marquée, jamais réécrite, jamais supprimée. C'est le même contrat que
-// `preset-compaction.mjs` : une couture de boot, pas un patch moteur.
+// ── "Force de proposition": the global rule of the Kybernos agents ──────────
+// (02/10/2026) The shared "system prompt" of the DSH agents lives in
+// `<DSH home>/AGENTS.md` (~/.dsh by default) — one file PER MACHINE, never in the
+// package. So that every user of the plugin gets the "kyber/skill matching" reflex,
+// the plugin's boot LAYS the section into that file, idempotently: marked, never
+// rewritten, never removed. Same contract as `preset-compaction.mjs`: a boot seam,
+// not an engine patch.
 //
-// Idempotence : un marqueur HTML ouvre et ferme la section ; si le titre de la
-// règle existe DÉJÀ hors marqueur (le cas du poste de l'auteur), on ne touche
-// à rien — écraser la main d'un utilisateur serait une régression.
+// Idempotence: an HTML marker opens and closes the section; if the title of the rule
+// ALREADY exists outside the markers (the author's machine), nothing is touched —
+// overwriting a user's own text would be a regression.
+// The SECTION below is the text the agents read, so it stays in French, as written.
 import { existsSync, readFileSync, appendFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { dshHomeSync } from './dsh-home.mjs'
 
 export const MARQUEUR_OUVERT = '<!-- kybernos:force-proposition v1 -->'
 export const MARQUEUR_FERME = '<!-- /kybernos:force-proposition -->'
@@ -41,13 +42,13 @@ const SECTION = [
   ''
 ].join('\n')
 
-/** Pose la section dans `~/.dsh/AGENTS.md` si absente. Idempotent, réversible
- *  (les marqueurs permettent un retrait propre). Rend un état lisible. */
-export function poserForceProposition (chemin = join(homedir(), '.dsh', 'AGENTS.md')) {
+/** Lays the section into `<DSH home>/AGENTS.md` if absent. Idempotent, reversible
+ *  (the markers allow a clean removal). Returns a readable state. */
+export function poserForceProposition (chemin = join(dshHomeSync(), 'AGENTS.md')) {
   const brut = existsSync(chemin) ? readFileSync(chemin, 'utf8') : ''
   if (brut.includes(MARQUEUR_OUVERT)) return { etat: 'deja', chemin }
-  // Le poste de l'auteur porte la règle écrite à la main : même titre, même
-  // esprit — ne pas doubler.
+  // The author's machine carries the rule written by hand: same title, same
+  // spirit — do not double it.
   if (brut.includes(TITRE_EXISTANT)) return { etat: 'variante-locale', chemin }
   try {
     appendFileSync(chemin, SECTION, 'utf8')

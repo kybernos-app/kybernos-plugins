@@ -1,27 +1,36 @@
 #!/usr/bin/env node
-// generer-pochettes.mjs — pochettes illustrées des skills Featured (wan2.7-image, Token Plan).
+// generer-pochettes.mjs — illustrated covers for the Featured skills (wan2.7-image, Token Plan).
 //
-// Lit ~/.dsh/kybernos/skills-featured.json, et pour chaque item SANS pochette dans
-// ~/.dsh/kybernos/skills-featured/ génère une illustration 1664x928 et l'écrit <name>.png.
-// Le client /kybernos-skills/cover sert ces fichiers ; sans pochette, la carte retombe sur sa
-// tuile SVG procédurale — donc ce script est une amélioration, jamais un prérequis.
+// Reads <DSH home>/kybernos/skills-featured.json and, for each item WITHOUT a cover in
+// <DSH home>/kybernos/skills-featured/, generates a 1664x928 illustration and writes it as <name>.png.
+// The client route /kybernos-skills/cover serves these files; without a cover the card falls back to
+// its procedural SVG tile, so this script is an improvement, never a prerequisite.
+// <DSH home> is $DSH_HOME when set, else ~/.dsh (the same rule as DSH itself).
 //
-// Usage : node generer-pochettes.mjs [--force] [--only <skill-name>]…
-// Clé : première entrée non vide de providers.qwen-token-plan.cles (ou .cle) dans
-// ~/.dsh/kybernos-models/providers.json — jamais échoitée, jamais journalisée.
+// Usage: node generer-pochettes.mjs [--force] [--only <skill-name>]…
+// Key: first non-empty entry of providers.qwen-token-plan.cles (or .cle) in
+// <DSH home>/kybernos-models/providers.json — never echoed, never logged.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 
-const HOME = homedir()
-const FEATURED = join(HOME, '.dsh', 'kybernos', 'skills-featured.json')
-const COVERS = join(HOME, '.dsh', 'kybernos', 'skills-featured')
-const SKILLS_ROOT = join(HOME, '.dsh', 'skills')
+// The DSH home, the way DSH resolves it (@deepseek-ai/dsh-home-paths): a non-blank $DSH_HOME
+// (trimmed, a leading ~ expanded), else <os home>/.dsh.
+const dshHome = () => {
+  const raw = typeof process.env.DSH_HOME === 'string' ? process.env.DSH_HOME.trim() : ''
+  if (raw === '') return join(homedir(), '.dsh')
+  if (raw === '~') return homedir()
+  return resolve(raw.startsWith('~/') || raw.startsWith('~\\') ? join(homedir(), raw.slice(2)) : raw)
+}
+const DSH = dshHome()
+const FEATURED = join(DSH, 'kybernos', 'skills-featured.json')
+const COVERS = join(DSH, 'kybernos', 'skills-featured')
+const SKILLS_ROOT = join(DSH, 'skills')
 const GATE = 'https://token-plan.ap-southeast-1.maas.aliyuncs.com'
 const IMAGE_MODEL = 'wan2.7-image'
-const SIZE = '1664*928' // taille prouvée par le skill prod-video-alibaba
+const SIZE = '1664*928' // size proven by the prod-video-alibaba skill
 
-// Direction artistique commune aux pochettes (cohérence de la rangée) + overrides par skill.
+// Art direction shared by all covers (a consistent row) + per-skill overrides.
 const STYLE = 'flat vintage storybook illustration, warm muted colors, fine ink linework, isometric composition, playful and detailed, soft paper texture, no text, no watermark, no letters'
 const ART = {
   'ai-team-creator': 'a team of tiny engineers assembling friendly robot agents on a wooden workbench, gears, blueprints and speech bubbles',
@@ -47,7 +56,7 @@ const descriptionOf = (name) => {
 
 const keyOf = () => {
   try {
-    const j = JSON.parse(readFileSync(join(HOME, '.dsh', 'kybernos-models', 'providers.json'), 'utf8'))
+    const j = JSON.parse(readFileSync(join(DSH, 'kybernos-models', 'providers.json'), 'utf8'))
     const p = j.providers?.['qwen-token-plan'] ?? {}
     const list = Array.isArray(p.cles) ? p.cles : []
     const k = [p.cle, ...list].find((v) => typeof v === 'string' && v.length > 0)
@@ -55,10 +64,10 @@ const keyOf = () => {
   } catch (e) { return null }
 }
 
-const generer = async (cle, prompt) => {
+const generate = async (key, prompt) => {
   const r = await fetch(GATE + '/api/v1/services/aigc/multimodal-generation/generation', {
     method: 'POST',
-    headers: { authorization: 'Bearer ' + cle, 'content-type': 'application/json' },
+    headers: { authorization: 'Bearer ' + key, 'content-type': 'application/json' },
     body: JSON.stringify({
       model: IMAGE_MODEL,
       input: { messages: [{ role: 'user', content: [{ text: prompt }] }] },
@@ -67,33 +76,33 @@ const generer = async (cle, prompt) => {
   })
   const j = await r.json().catch(() => null)
   const url = j?.output?.choices?.[0]?.message?.content?.find((c) => typeof c?.image === 'string')?.image
-  if (typeof url !== 'string' || url === '') throw new Error('pas d\'image dans la réponse (HTTP ' + r.status + ')')
+  if (typeof url !== 'string' || url === '') throw new Error('no image in the response (HTTP ' + r.status + ')')
   const img = await fetch(url)
-  if (!img.ok) throw new Error('téléchargement impossible (HTTP ' + img.status + ')')
+  if (!img.ok) throw new Error('download failed (HTTP ' + img.status + ')')
   return Buffer.from(await img.arrayBuffer())
 }
 
-const cle = keyOf()
-if (cle === null) { console.error('✗ aucune clé qwen-token-plan dans providers.json'); process.exit(1) }
+const key = keyOf()
+if (key === null) { console.error('✗ no qwen-token-plan key in providers.json'); process.exit(1) }
 let items = []
 try { items = JSON.parse(readFileSync(FEATURED, 'utf8')).items ?? [] } catch (e) { items = [] }
-if (items.length === 0) { console.log('liste featured vide — rien à générer'); process.exit(0) }
+if (items.length === 0) { console.log('featured list empty — nothing to generate'); process.exit(0) }
 
-let faits = 0
+let made = 0
 for (const it of items) {
   const name = it.name
   if (typeof name !== 'string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) continue
   if (only.length > 0 && !only.includes(name)) continue
   const out = join(COVERS, name + '.png')
-  if (!force && existsSync(out)) { console.log('· ' + name + ' — pochette déjà là'); continue }
+  if (!force && existsSync(out)) { console.log('· ' + name + ' — cover already there'); continue }
   const prompt = (ART[name] ?? descriptionOf(name) ?? '') + ' — ' + STYLE
   try {
-    const buf = await generer(cle, prompt)
+    const buf = await generate(key, prompt)
     writeFileSync(out, buf)
-    console.log('✓ ' + name + ' — ' + Math.round(buf.length / 1024) + ' Ko')
-    faits++
+    console.log('✓ ' + name + ' — ' + Math.round(buf.length / 1024) + ' KB')
+    made++
   } catch (e) {
     console.error('✗ ' + name + ' — ' + (e?.message ?? e))
   }
 }
-console.log(faits + ' pochette(s) générée(s) dans ' + COVERS)
+console.log(made + ' cover(s) generated in ' + COVERS)
