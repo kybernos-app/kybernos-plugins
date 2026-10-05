@@ -773,6 +773,73 @@ const sameOrigin = (req) => {
   }
 }
 
+/** Strict variant for a route that hands out the account's data with its token: a request that names no origin at all is
+ *  refused (any local process can omit a header; a browser page always sends Origin or Referer), and the origin must be
+ *  this server's own address, taken from the socket and not from the client-supplied Host header. */
+const sameOriginStrict = (req) => {
+  try {
+    const headers = req !== null && req !== undefined && req.headers !== null && req.headers !== undefined ? req.headers : {}
+    const source = typeof headers.origin === 'string' && headers.origin !== '' ? headers.origin : (typeof headers.referer === 'string' && headers.referer !== '' ? headers.referer : null)
+    if (source === null) return false
+    const u = new URL(source)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
+    const port = sock !== null && typeof sock.localPort === 'number' ? ':' + sock.localPort : ''
+    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
+  } catch (e) { return false }
+}
+
+// ── Relay for the Team settings console (read only, phase 1) ───────────────────
+// The console is a page of another origin shown in an iframe: it must never hold a session token. It asks its parent page,
+// the parent calls THIS route, and this route adds the token and calls the main API: only on the allowlist below, only GET,
+// only for a workspace of this account. The server checks the caller's role again (docs/specs/2026-10-05-team-console-wiring.md).
+const UUID_SRC = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+const RELAY_DATE = /^\d{4}-\d{2}-\d{2}([T ][0-9:.]{1,16}(Z|[+-]\d{2}:?\d{2})?)?$/
+const RELAY_RULES = [
+  { re: /^\/v1\/me$/, query: [] },
+  { re: /^\/v1\/workspaces$/, query: [] },
+  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(members|providers|models)$', 'i'), query: [] },
+  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(budget|models|catalog|billing)$', 'i'), query: [] },
+  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/usage$', 'i'), query: ['from', 'to'] },
+]
+
+/** `{ ok, path }` (the canonical path to call) or `{ ok: false, error }`. Pure: a path the allowlist does not name, a
+ *  workspace that is not one of the account's, a query parameter other than a date `from` / `to`, is refused. */
+const relayCheck = (target, state) => {
+  const refused = { ok: false, error: 'chemin refuse' }
+  if (typeof target !== 'string' || target.length === 0 || target.length > 300 || target[0] !== '/') return refused
+  let u = null
+  try { u = new URL(target, 'http://relay.invalid') } catch (e) { return refused }
+  // A path the URL parser rewrites (dot segments, doubled slashes, an encoded trick) is not the path we were asked for.
+  if (u.origin !== 'http://relay.invalid' || u.pathname !== target.split('?')[0]) return refused
+  const rule = RELAY_RULES.find((r) => r.re.test(u.pathname))
+  if (rule === undefined) return refused
+  const seen = new Set()
+  const query = []
+  for (const [k, v] of u.searchParams) {
+    if (rule.query.indexOf(k) < 0 || seen.has(k) || RELAY_DATE.test(v) !== true) return refused
+    seen.add(k)
+    query.push(k + '=' + encodeURIComponent(v))
+  }
+  const m = u.pathname.match(new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/', 'i'))
+  if (m !== null) {
+    const known = (state !== null && state !== undefined && Array.isArray(state.workspaces) ? state.workspaces : [])
+    if (known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === m[1].toLowerCase()) !== true) return { ok: false, error: 'espace_inconnu' }
+  }
+  return { ok: true, path: u.pathname + (query.length > 0 ? '?' + query.join('&') : '') }
+}
+
+const relayRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
+  let target = ''
+  try { target = new URL(req.url, 'http://localhost').searchParams.get('p') || '' } catch (e) { target = '' }
+  const verdict = relayCheck(target, state)
+  if (verdict.ok !== true) return { ok: false, error: verdict.error }
+  const res = await apiCall(verdict.path, { token: state.token })
+  return { ok: res.status >= 200 && res.status < 300, status: res.status, body: res.body }
+}
+
 // ── Artefacts (phase A) ─────────────────────────────────────────────────────
 // Le livrable du chat local part vers `kybernos.artifacts` par `/v1/artifacts`
 // (l'app calcule le sha256, résout l'objectif implicite, uploade dans le bucket
@@ -3247,6 +3314,8 @@ const ROUTES = [
   // Membres d'un espace : lecture réelle ; invitation et retrait renvoient
   // {ok:false,error:'indisponible'} tant que le serveur les réserve à la master key.
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
+  // Relais lecture seule pour la console Team (iframe d'une autre origine) : liste blanche, jeton ajouté ici, origine STRICTE.
+  { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
@@ -3300,6 +3369,7 @@ const mountWebRoutes = (ctx, webServer) => {
       }
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+      if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.confirm === true) {
         const body = await readJsonBody(req)
         if (body.confirm !== true) return sendJson(res, 400, { ok: false, error: 'confirmation requise : POST avec {"confirm":true}' })
@@ -3337,6 +3407,8 @@ export function apply(ctx) {
 // surface publique n'est promise.
 export {
   dshHome, resolveApi, stateFile, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
+  // Relais de la console Team (exportés pour la suite dédiée).
+  relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,

@@ -346,6 +346,15 @@ at the iframe's width and reads each of its pages (the list comes from the page,
   console is rewired to other routes, change the stand-in's table: a drift there is the test doing its job. Run it on the
   previous console file and it fails (10 checks), which is how you know it is not vacuous.
 
+- **relay** (only with `--console-file`): the console the way DSH runs it, with no key anywhere. `scripts/lib-fake-relay-host.mjs`
+  serves a host page holding the console in an iframe, with **the broker cut out of `packages/kybernos-plugin/client.js`** (what
+  ships, not a copy) and a `/kybernos-cloud/relay` route that applies **the real allowlist, `relayCheck()` of
+  `packages/kybernos-cloud/index.js`**, then answers with main-API and LLM-service shapes. It proves the console announces itself,
+  asks only for paths the allowlist names (a path outside it is listed and fails the check), calls no gateway of its own, names
+  the signed-in person from `/v1/me` and shows other members as a short id rather than an invented name, refuses a write and an
+  unknown route in the page, and says « Sign in » when the host is not connected. One thing is stand-in: the page and the console
+  share an origin so the test can read the iframe; the origin check itself is `packages/kybernos-plugin/test-console-broker.mjs`.
+
 Every dialog or side panel a page owns is opened and read (Plan: Compare plans; Members: a member's details and the filters;
 Usage: the filters), the segments that swap a view are pressed (Usage: group by), and every inner tab is checked for overflow,
 so a label that moved behind a click still counts as reachable and nothing hides a table wider than its column.

@@ -26115,10 +26115,27 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         } catch (e) { /* iframe pas prête : elle redemandera via kbConsoleReady */ }
       }, [])
       React.useEffect(() => {
+        // The console never holds a token. It asks this page (a `kbApi` request: a GET path), this page asks the local host
+        // route `/kybernos-cloud/relay` (allowlist, strict origin, the token is added THERE) and posts the answer back to the
+        // console's exact origin. Only the console's own iframe and its exact origin are heard: any other frame is ignored.
+        const repondre = (fr, message) => {
+          try { fr.contentWindow.postMessage(message, kbWsOrigin()) } catch (e) { /* iframe partie : rien à faire */ }
+        }
+        const relayer = (fr, demande) => {
+          const id = typeof demande.id === 'string' || typeof demande.id === 'number' ? String(demande.id).slice(0, 40) : ''
+          const chemin = typeof demande.path === 'string' ? demande.path : ''
+          if (id === '' || demande.method !== 'GET' || chemin === '' || chemin.length > 300) { repondre(fr, { kbApiReply: { id: id, ok: false, status: 0, error: 'demande refusee' } }); return }
+          fetch('/kybernos-cloud/relay?p=' + encodeURIComponent(chemin), { credentials: 'same-origin' })
+            .then((r) => r.json()).catch(() => ({ ok: false, status: 0, error: 'relais injoignable' }))
+            .then((j) => repondre(fr, { kbApiReply: { id: id, ok: j !== null && j.ok === true, status: j !== null && typeof j.status === 'number' ? j.status : 0, body: j !== null && j.body !== undefined ? j.body : null, error: j !== null && typeof j.error === 'string' ? j.error : undefined } }))
+        }
         const sur = (ev) => {
           const fr = document.querySelector('.kbwsif iframe')
           if (fr === null || ev.source !== fr.contentWindow) return
-          if (ev.data !== null && typeof ev.data === 'object' && ev.data.kbConsoleReady === true) envoyerCle()
+          if (ev.data === null || typeof ev.data !== 'object') return
+          if (kbWsOrigin() !== '*' && ev.origin !== kbWsOrigin()) return
+          if (ev.data.kbConsoleReady === true) { envoyerCle(); repondre(fr, { kbApiReady: true }) }
+          else if (ev.data.kbApi !== null && typeof ev.data.kbApi === 'object') relayer(fr, ev.data.kbApi)
         }
         window.addEventListener('message', sur)
         return () => window.removeEventListener('message', sur)

@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:http'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { startFakeTeamGateway } from './lib-fake-team-gateway.mjs'
+import { startRelayHost, OWNER_ID } from './lib-fake-relay-host.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const LABELS_FILE = join(HERE, 'team-console-labels.json')
@@ -291,6 +292,56 @@ try {
       check('Billing shows the Stripe invoice and the card', r && r.billing.includes('#IN-abc123456') && r.billing.includes('4242'), r && r.billing)
       check('no script error with live-shaped data', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 160))
     } finally { await gw.close() }
+
+    // ── 5. The console the way DSH runs it: inside a page, no key, answers through a relay ───────────
+    console.log('relay: the console in a host page, no key anywhere')
+    const host = await startRelayHost({ consoleHtml: readFileSync(opt('--console-file'), 'utf8') })
+    try {
+      const frame = (body) => `(async () => { const document = window.frames[0].document, frameWindow = window.frames[0]; ${body} })()`
+      const before = errors.length
+      await page.send('Page.navigate', { url: host.url + '/parent.html' })
+      const live = await waitFor(page, frame(`return !!document.querySelector('#kbKeyBanner') && /Live data/.test(document.querySelector('#kbKeyBanner').innerText) && document.querySelectorAll('#navList [data-nav]').length >= 5`), 20000)
+      await sleep(1500)
+      check('the host announces its relay and the console says it shows live data (no « connect key »)', live !== null)
+      const r = (await page.evalJs(frame(`
+        const q = (s) => document.querySelector(s), go = (id) => q('[data-nav=' + id + ']').click(), res = {}
+        const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ')
+        res.banner = txt('#kbKeyBanner')
+        go('team'); res.team = txt('#t-team')
+        go('plan'); res.plan = txt('#curName') + ' | ' + txt('#balance')
+        go('members'); res.members = Array.from(document.querySelectorAll('#memberBody tr')).map((x) => x.innerText.replace(/\\s+/g, ' '))
+        go('providers'); res.cards = Array.from(document.querySelectorAll('#provGrid .pcard')).map((x) => x.innerText.replace(/\\s+/g, ' ').trim())
+        q('#pmTabs [data-pm=models]').click(); res.models = document.querySelectorAll('#mBody tr').length
+        go('usage'); res.usage = txt('#t-usage')
+        go('billing'); res.billing = txt('#invoiceBody') + ' | ' + txt('#pmText')
+        res.network = frameWindow.performance.getEntriesByType('resource').map((e) => e.name).filter((n) => /gateway\\.invalid/.test(n)).length
+        return res`))).val
+      check('the team page shows the workspace\'s id, name and creation date', r && r.team.includes('11111111-1111-4111-8111-111111111111') && r.team.includes('Acme Team') && r.team.includes('August 1, 2026'), r && r.team.slice(0, 160))
+      check('the plan page reads the plan and the shared balance', r && r.plan.startsWith('Team') && r.plan.includes('$12.50'), r && r.plan)
+      check('Members: two rows, the signed-in person named from /v1/me and marked as owner, the other as a short id (no invented name or email)', r && r.members.length === 2 && /Owner Person/.test(r.members[0]) && /Owner/.test(r.members[0]) && /Member bbbb/.test(r.members[1]) && !/bbbbbbbb-/.test(r.members[1]) && !/@/.test(r.members[1]), r && JSON.stringify(r.members))
+      check('Providers: Kybernos as one card, then the team\'s own provider', r && r.cards.length === 2 && /kybernos/.test(r.cards[0]) && /openrouter/.test(r.cards[1]), r && JSON.stringify(r.cards))
+      check('the Models table lists the service\'s models and the team\'s own', r && r.models === 3, r && String(r.models))
+      check('Usage totals the amounts and names the members', r && r.usage.includes('$1.60') && /Owner Person/.test(r.usage), r && r.usage.slice(0, 160))
+      check('Billing shows the Stripe invoice and the card', r && r.billing.includes('#IN-abc123456') && r.billing.includes('4242'), r && r.billing)
+      check('the banner says what it is: live and read-only for now', r && /read-only/i.test(r.banner), r && r.banner)
+      check('the console called no gateway of its own (everything went through the relay)', r && r.network === 0, r && String(r.network))
+      check('every path the console asked for is on the host route\'s allowlist', host.refused.length === 0, JSON.stringify(host.refused))
+      const wanted = ['/v1/me', '/v1/workspaces', '/members', '/llm/budget', '/llm/usage', '/llm/models', '/llm/catalog', '/llm/billing', '/providers']
+      check('and it asked for what each page needs', wanted.every((w) => host.asked.some((a) => a === w || a.endsWith(w))), JSON.stringify(wanted.filter((w) => !host.asked.some((a) => a === w || a.endsWith(w)))))
+      const w = (await page.evalJs(frame(`
+        const post = await frameWindow.__kbApi('POST', '/v1/teams/x/members', { user_ref: 'a@b.c' })
+        const keys = await frameWindow.__kbApi('GET', '/v1/keys')
+        return { post, keys }`))).val
+      const askedBefore = host.asked.length
+      check('a write is refused in the console, with a plain sentence, before it leaves the page', w && w.post.status === 405 && /read-only/i.test(String(w.post.json && w.post.json.error)), JSON.stringify(w && w.post))
+      check('a route the console has no translation for is refused in the page too', w && w.keys.status === 404 && host.asked.length === askedBefore, JSON.stringify(w && w.keys))
+      check('no script error through the relay', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 160))
+
+      // Not signed in: the host answers « not connected » to everything.
+      await page.send('Page.navigate', { url: host.url + '/parent.html?offline=1' })
+      const off = await waitFor(page, frame(`return !!document.querySelector('#kbKeyBanner') && /Sign in/.test(document.querySelector('#kbKeyBanner').innerText)`), 20000)
+      check('not signed in: the console says to sign in, and shows no live data', off !== null)
+    } finally { await host.close() }
   }
   await page.send('Emulation.clearDeviceMetricsOverride', {})
 } catch (e) {
