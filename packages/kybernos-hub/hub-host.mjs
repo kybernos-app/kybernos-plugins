@@ -2,7 +2,8 @@
 // Everything here takes its I/O as arguments (state reader/writer, clock, id
 // generator) so test-host.mjs can play it without DSH, a disk or a browser.
 import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
-import { basculer, charge, installer } from './suite-host.mjs'
+import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
+import { catalogueEffectif } from './catalogue-distant.mjs'
 
 /**
  * @param {{lire: () => unknown, ecrire: (etat: object) => void, maintenant: () => string, nouvelId: () => string}} io
@@ -114,15 +115,29 @@ export function monterRoutes (webServer, hub, liens = {}) {
  *   GET  /kybernos-hub/suite      → catalogue + what is switched on + boot verdict
  *   POST /kybernos-hub/module     → { id, action: 'activer' | 'desactiver' | 'installer' }
  *   POST /kybernos-hub/relaunch   → { confirm: true } — detached restart, ONLY on explicit confirmation
- * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub }
+ *   POST /kybernos-hub/catalogue/refresh → ask the online (signed) catalogue; nothing is believed unless it verifies
+ *   POST /kybernos-hub/update     → { confirm: true } — update the WHOLE suite from the verified release (202; poll the status)
+ *   GET  /kybernos-hub/update/status → { etat: idle | telechargement | extraction | installation | termine | echec, … }
+ * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub,
+ *         cles(), versionSuite(), urlCatalogue(), lireCache(), ecrireCache({octets,signature}), telecharger(url,{max}),
+ *         telechargerVers(url,{max}), extraire(fichier), executerArchive(racine), nettoyer(), racineDev(), plateforme }
  */
 export function monterSuite (webServer, deps, liens = {}) {
   let occupe = false
   const lire = () => { try { return deps.lireActivation() } catch { return null } }
+  // The online catalogue is optional: a deps object without it (the tests of the activation logic) serves the shipped one.
+  const enLigne = typeof deps.lireCache === 'function'
+  let derniere = null
+  let tache = { etat: 'idle' }
+  const evaluation = () => (enLigne ? evaluerCache({ lireCache: deps.lireCache, cles: deps.cles(), versionSuite: deps.versionSuite() }) : null)
+  const distant = (ev) => (enLigne
+    ? etatDistant({ evaluation: ev, cle: deps.cles().length > 0, urlConfiguree: deps.urlCatalogue() !== '', plateforme: deps.plateforme, racineDev: deps.racineDev(), derniere })
+    : null)
   const suite = (req, res) => {
     if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
     if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
-    return envoyer(res, 200, charge({ catalogue: deps.catalogue, brut: lire(), etatHub: deps.hub.etat() }))
+    const ev = evaluation()
+    return envoyer(res, 200, charge({ catalogue: deps.catalogue, brut: lire(), etatHub: deps.hub.etat(), effectif: catalogueEffectif({ embarque: deps.catalogue, evaluation: ev }), distant: distant(ev) }))
   }
   const corpsJson = async (req, res) => {
     if (req.method !== 'POST') { envoyer(res, 405, { ok: false, error: 'method-not-allowed' }); return undefined }
@@ -158,7 +173,46 @@ export function monterSuite (webServer, deps, liens = {}) {
     try { r = await deps.relancer() } catch (e) { return envoyer(res, 500, { ok: false, error: 'relaunch-failed', detail: String(e?.message ?? e) }) }
     return envoyer(res, r?.ok === true ? 200 : 500, r?.ok === true ? { ok: true } : { ok: false, error: r?.error ?? 'relaunch-failed' })
   }
+  const rafraichirRoute = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (!enLigne) return envoyer(res, 404, { ok: false, error: 'not-available' })
+    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    occupe = true
+    try {
+      const r = await rafraichir({ url: deps.urlCatalogue(), cles: deps.cles(), versionSuite: deps.versionSuite(), telecharger: deps.telecharger, ecrireCache: deps.ecrireCache })
+      derniere = { ok: r.ok === true, etat: r.etat ?? null, erreur: r.erreur ?? null }
+      return envoyer(res, r.ok ? 200 : (r.erreur === 'reseau' ? 502 : 400), { ...r, distant: distant(evaluation()) })
+    } finally { occupe = false }
+  }
+  const mettreAJourRoute = async (req, res) => {
+    const corps = await corpsJson(req, res)
+    if (corps === undefined) return undefined
+    if (!enLigne) return envoyer(res, 404, { ok: false, error: 'not-available' })
+    if (corps.confirm !== true) return envoyer(res, 400, { ok: false, error: 'confirmation-required' })
+    if (occupe) return envoyer(res, 409, { ok: false, error: 'busy' })
+    const ev = evaluation()
+    const d = distant(ev)
+    if (!d.miseAJour.possible) return envoyer(res, 409, { ok: false, error: d.miseAJour.raison })
+    occupe = true
+    tache = { etat: 'telechargement', version: ev.doc.suite.version }
+    // 202: the update takes minutes; the panel polls /update/status. `occupe` stays set until it ends, so no install or refresh runs under it.
+    mettreAJour({
+      evaluation: ev, plateforme: deps.plateforme, racineDev: deps.racineDev(), telechargerVers: deps.telechargerVers, extraire: deps.extraire,
+      executer: deps.executerArchive, nettoyer: deps.nettoyer, progres: (etat) => { tache = { ...tache, etat } }
+    }).then((r) => { tache = r.ok ? { etat: 'termine', version: r.version, relanceRequise: true } : { etat: 'echec', erreur: r.error, detail: r.detail ?? null } },
+      (e) => { tache = { etat: 'echec', erreur: 'update-failed', detail: String(e?.message ?? e) } }).finally(() => { occupe = false })
+    return envoyer(res, 202, { ok: true, etat: tache.etat })
+  }
+  const etatMiseAJour = (req, res) => {
+    if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
+    if (sameOriginLax(req) === false) return envoyer(res, 403, { ok: false, error: 'origin-refused' })
+    return envoyer(res, 200, { ok: true, ...tache })
+  }
   const enregistrer = () => {
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/catalogue/refresh', handler: rafraichirRoute })
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/update', handler: mettreAJourRoute })
+    webServer.register({ kind: 'exact', path: '/kybernos-hub/update/status', handler: etatMiseAJour })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/suite', handler: suite })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/module', handler: module_ })
     webServer.register({ kind: 'exact', path: '/kybernos-hub/relaunch', handler: relancer })

@@ -22,14 +22,29 @@ import { execFile, spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { creerHub, monterRoutes, monterSuite } from './hub-host.mjs'
+import { URL_PAR_DEFAUT } from './catalogue-distant.mjs'
+import { plateformeDe } from './suite-host.mjs'
+import { creerTelechargeurs } from './telechargement.mjs'
 
 export const name = 'kybernos-hub'
 
 const FICHIER_ACTIVATION = 'satellites-actives.json'
 
 // The real I/O of the Suite panel. Kept here (not in suite-host.mjs) so the logic stays testable.
+const FICHIER_CATALOGUE_DISTANT = 'catalogue-distant.json'
+
 function suiteDeps (dshHome, hub) {
   const ici = dirname(fileURLToPath(import.meta.url))
+  const racineDepot = join(ici, '..', '..')
+  const dossierKb = join(dshHome, 'kybernos')
+  const cache = join(dossierKb, FICHIER_CATALOGUE_DISTANT)
+  const ecrireAtomique = (fichier, contenu) => {
+    mkdirSync(dirname(fichier), { recursive: true })
+    const tmp = fichier + '.tmp-' + process.pid
+    writeFileSync(tmp, contenu)
+    renameSync(tmp, fichier)
+  }
+  const telechargeurs = creerTelechargeurs()
   const catalogue = JSON.parse(readFileSync(join(ici, 'catalog.json'), 'utf8'))
   const fichier = join(dshHome, 'kybernos', FICHIER_ACTIVATION)
   const robot = join(ici, '..', '..', 'scripts', 'dsh-lifecycle.mjs')
@@ -38,6 +53,34 @@ function suiteDeps (dshHome, hub) {
     catalogue,
     hub,
     lireActivation: () => { try { return JSON.parse(readFileSync(fichier, 'utf8')) } catch { return null } },
+    // ── the online (signed) catalogue and the suite update: see catalogue-distant.mjs and suite-host.mjs ──
+    // The public key(s) this bundle trusts. None installed = the online catalogue is never asked for.
+    cles: () => { try { const j = JSON.parse(readFileSync(join(ici, 'catalog-pubkey.json'), 'utf8')); return Array.isArray(j.cles) ? j.cles : [] } catch { return [] } },
+    versionSuite: () => { try { return readFileSync(join(racineDepot, 'VERSION'), 'utf8').trim() } catch { return '0.0.0' } },
+    // The setting `catalogueUrl` of ~/.dsh/kybernos/settings.json overrides the default (an empty string turns the online catalogue off).
+    urlCatalogue: () => {
+      try {
+        const v = JSON.parse(readFileSync(join(dossierKb, 'settings.json'), 'utf8')).catalogueUrl
+        if (typeof v === 'string') return v.trim()
+      } catch { /* the default applies */ }
+      return URL_PAR_DEFAUT
+    },
+    lireCache: () => {
+      try { return { octets: readFileSync(cache), signature: readFileSync(cache + '.sig', 'utf8') } } catch { return null }
+    },
+    ecrireCache: ({ octets, signature }) => { ecrireAtomique(cache, octets); ecrireAtomique(cache + '.sig', signature) },
+    telecharger: telechargeurs.telecharger,
+    telechargerVers: telechargeurs.telechargerVers,
+    extraire: telechargeurs.extraire,
+    nettoyer: telechargeurs.nettoyer,
+    // The robot that ships INSIDE the verified archive installs it (the same contract as running ./kybernos-update by hand).
+    executerArchive: (racine) => new Promise((resolve) => {
+      execFile(process.execPath, [join(racine, 'scripts', 'dsh-lifecycle.mjs'), 'upgrade', '--source', racine], { env: { ...process.env, DSH_HOME: dshHome }, timeout: 20 * 60 * 1000, maxBuffer: 8 * 1024 * 1024 },
+        (erreur, sortie, err) => resolve({ code: erreur ? (typeof erreur.code === 'number' ? erreur.code : 1) : 0, sortie: String(sortie ?? '') + String(err ?? '') }))
+    }),
+    // A git working tree is a development checkout: it is updated with git, never by replacing it with an archive.
+    racineDev: () => existsSync(join(racineDepot, '.git')),
+    plateforme: plateformeDe(process.platform),
     ecrireActivation: (obj) => {
       mkdirSync(dirname(fichier), { recursive: true })
       const tmp = fichier + '.tmp-' + process.pid
