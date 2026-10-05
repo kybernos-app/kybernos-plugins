@@ -11,15 +11,32 @@ to the host and needs no engine patch.
 
 | Part | What it is |
 |---|---|
-| **Start from** | Pick a project or a kyber (searchable). Everything else is drawn around it. |
-| **Map** | Four columns: *Project*, *Kybers & automations*, *Skills & apps*, *Memory & lessons*. Hover a name to light up its lines, click it for details. |
-| **List** | The same nodes as a filterable table. The text version of the map. |
+| **Around** | Pick a project or a kyber in *Start from* (searchable). Four columns: *Project*, *Kybers & automations*, *Skills & apps*, *Memory & lessons*. Hover a name to light up its lines, click it for details. |
+| **Rings** | The whole workspace: one ring per layer, the workspace in the middle, each project keeping the same wedge on every ring. |
+| **Circle** | Every node on one ring, grouped by project. Links cross the middle. |
+| **Areas** | One cluster per project. Lines between clusters show what crosses projects. |
+| **Links** | A force layout: nodes pulled together by what they reference, loose ends at the edge. |
+| **Timeline** | Automation runs of the last 14 days on top, everything else by last change below (square-root scale; things with no date in their own column). |
+| **Orbit** | The rings as a 3D stack that turns on its own. Drag to turn it. |
+| **List** | The same nodes as a filterable table. The text version of every drawing. |
 | **To check** | Broken references and things that look wrong, each with the reason. Click one to see it on the map. |
 | **Help** | The legend: solid lines, dashed lines, crossed-out red names, the words used, and what is not shown. |
 
 Lines: **solid** = written in a file (a kyber lists a skill); **dashed** =
 guessed from a name (an app that matches one of a kyber's tools); a
 **crossed-out red name** = a reference to something that no longer exists.
+
+### In the drawings
+
+Rings, Circle, Areas, Links, Timeline and Orbit share one canvas and one set of controls:
+search (it flies to the node), *Names* (every label), *Motion* (idle drift and the Orbit
+turning; off when the system asks for reduced motion), *Lessons*, *Fit*, *Full screen*, and zoom
+(+ / − buttons, or Ctrl/⌘ + scroll). A legend isolates a project or a kind, and a toggle shows or
+hides the dashed (inferred) lines. Shape is the kind, colour is the project, a bigger dot has more
+links, a dashed ring marks something in *To check*, and a red cross marks a broken reference.
+
+Lessons are **off by default** in the drawings: a real workspace has dozens (the host returns the
+newest few per kyber) and they bury everything else. The *Lessons* button adds them.
 
 ### What "To check" lists
 
@@ -51,6 +68,7 @@ named in a banner and the rest still draw.
 
 Things worth knowing:
 
+- **Runs** are only drawn from the last 14 days of each automation's history, and only in the drawings.
 - **Account memory is one node with a count.** It can hold hundreds of facts and
   is not tied to a project or a kyber, so it is never drawn fact by fact.
 - **Lessons**: the host only returns the 5 newest per kyber; the kyber's card
@@ -70,9 +88,8 @@ Things worth knowing:
 
 ## Not in this version
 
-A whole-workspace graph view, a timeline, and "open in Skills / Kybers" buttons
-(they need a deep-link seam in DSH). The first two were prototyped and dropped to
-keep the page easy to read; the third is a follow-up.
+"Open in Skills / Kybers" buttons: they need a deep-link seam in DSH, so the details card
+shows the path and offers *Copy* instead of a button that would do nothing.
 
 ## Install and enable
 
