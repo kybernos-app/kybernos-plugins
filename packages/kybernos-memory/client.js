@@ -1159,6 +1159,17 @@ window.__ModuleLoader__.load({
         ]
       }
 
+      /** « Pick by relevance » for the lessons: besides the most used and the newest, the ones that clearly match what the user just asked. Local. */
+      const LessonsRelevantRow = ({ les, onToggle }) => {
+        const stale = les !== null && typeof les.relevant !== 'boolean'   // a host that predates the switch
+        const off = les === null || les.lessons !== true || les.context !== true || stale
+        return h(SettingRow, { label: 'Pick by relevance', act: 'lessons-relevant',
+          desc: 'Besides the most used and the newest lessons, also send the ones that clearly match what you just asked, even old ones — from the kyber of the chat and the general lessons only. Worked out on this machine: nothing extra is sent anywhere.',
+          locked: off,
+          why: stale ? 'The lessons plugin was updated: restart DSH to use this.' : (les !== null && (les.lessons !== true || les.context !== true) ? 'Turn on Lessons learned and Lessons system context first.' : null),
+          control: h(YesNo, { name: 'Pick lessons by relevance', value: !off && les.relevant === true, onChange: onToggle }) })
+      }
+
       const OptionsView = ({ status, settings, back, notify, refresh, refreshKey, tidy, scan, scanning, openReview }) => {
         const cloud = status.connected
         const mem = settings.memory
@@ -1195,6 +1206,7 @@ window.__ModuleLoader__.load({
             h(SettingRow, { label: 'Lessons system context', desc: 'Include saved lessons in the system context.', locked: lesUnavailable || (les !== null && les.lessons !== true),
               why: les !== null && les.lessons !== true ? 'Turn on Lessons learned first.' : null,
               control: h(YesNo, { name: 'Lessons system context', value: les !== null && les.context === true && les.lessons === true, onChange: (v) => setLes({ context: v }) }) }),
+            h(LessonsRelevantRow, { les, onToggle: (v) => setLes({ relevant: v }) }),
             h(SettingRow, { label: 'Share lessons with your team', desc: 'Members can propose a lesson; an admin validates it before your team’s agents use it.', locked: true, chip: PlanChip('Team · soon'),
               why: 'Team lessons are not built yet.', control: h(YesNo, { name: 'Share lessons with your team', value: false, onChange: () => {} }) })),
           h(TidyOptions, { tidy, scan, scanning, openReview, notify, bump: refresh }))
