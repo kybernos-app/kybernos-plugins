@@ -160,8 +160,8 @@ try {
   if (!hostHasTidy) {
     check('this DSH predates the tidy routes: the page says to restart it and offers no scan', /restart DSH/.test((await text('[data-act=tidy-now]')) || '') && (await ev(`document.querySelector('[data-act=tidy-scan]').disabled`)) === true)
     console.log('  – SKIP the scan: restart dsh web to load the tidy routes')
-  } else if (cfgNow !== null && cfgNow.mode !== 'ask') {
-    console.log('  – SKIP the scan: the mode is « merge close matches by itself », so a scan would change your data, and this check never does (set « Ask me first » to try it)')
+  } else if (cfgNow === null || cfgNow.mode !== 'ask') {
+    console.log('  – SKIP the scan: the mode is not « Ask me first » (or this DSH predates the settings), so a scan could change your data, and this check never does')
   } else {
     const memTotal0 = await local('/kybernos-cloud/memory/list?limit=1')
     const lesTotal0 = await local('/kybernos-memory/lessons?limit=1')
