@@ -92,7 +92,9 @@ try {
     console.log('  – SKIP memory numbers: the cloud memory route does not answer (not connected?)')
   }
   check('the Lessons count is the host\'s total', ((await text('.kbmem-row2')) || '').indexOf('Lessons learned' + String(lesList.total)) >= 0)
-  check('Map is disabled and says why (no index yet)', (await ev(`document.querySelector('.kbmem-seg.sm button[data-v=map]').disabled`)) === true)
+  // The Map view is offered for the memories; it is never opened here (with Search by meaning on, opening it would spend embedding credits).
+  const mapBtn = JSON.parse((await ev(`JSON.stringify((() => { const b = document.querySelector('.kbmem-seg.sm button[data-v=map]'); return b ? { off: b.disabled, title: b.title, lock: b.querySelectorAll('svg').length > 1 } : null })())`)) || 'null')
+  check('Map is offered for the memories: ready when Search by meaning works, else locked and says why', mapBtn !== null && mapBtn.off === false && (mapBtn.lock === false ? /placed by meaning/.test(mapBtn.title) : /Click to see why/.test(mapBtn.title)), mapBtn)
 
   console.log('search by relevance (local, the default)')
   check('the search field offers Relevance | Meaning, Relevance on', (await count('.kbmem-modes button')) === 2 && (await ev(`document.querySelector('.kbmem-modes button[data-mode=relevance]').classList.contains('on')`)) === true)

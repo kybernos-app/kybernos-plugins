@@ -172,7 +172,6 @@ export const planLessons = (sessionId, options = {}) => {
   const all = kybers.flatMap((kyber) => readLessons(kyber).map((l) => ({ ...l, kyber, id: lessonId(kyber, l) })))
   const wantRelevant = options.relevant === true && typeof sessionId === 'string'
   const preferred = wantRelevant ? pickRelevant(sessionId, all) : []
-  const preferredIds = new Set(preferred.map((l) => l.id))
   const chosen = []
   const picked = []
   let used = 0

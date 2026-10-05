@@ -10,9 +10,8 @@
 //   Options page ............................ the switches of both, as a classic settings page
 //
 // Nothing here talks to the cloud directly: the account token never leaves the host half.
-// What is not built is not drawn as if it were: the map needs an index
-// that does not exist yet (the Map button says so), team lessons are not built (the Team scope
-// says so), and the list search is by words.
+// What is not offered is not drawn as if it were: the map is for memories only and needs Search by
+// meaning (the Map view says what is missing), and the list search is by words.
 //
 // One file, no bundler, no import: the loader hands `require` to the factory. The factory's
 // try/catch is vital — an evaluation error here would break the WHOLE client entry ("Failed to
@@ -127,6 +126,77 @@ window.__ModuleLoader__.load({
       const wordsLabel = (matched, of) => (Number.isInteger(matched) && Number.isInteger(of) && of > 1 && matched >= 1 && matched < of ? String(matched) + ' of ' + String(of) + ' words' : null)
       /** « 82% match » — only for a number the host really computed. */
       const closenessLabel = (n) => (typeof n === 'number' && Number.isFinite(n) ? String(Math.max(0, Math.min(100, Math.round(n)))) + '% match' : null)
+
+      // ── The map (memories placed by meaning; the host works the positions out, the page draws and lets you look around) ──
+      const MAP_W = 1000, MAP_H = 540, MAP_MIN_W = 150
+      const MAP_FIT = [0, 0, MAP_W, MAP_H]
+      const LAYOUT_KEY = 'kbmem.layout'
+      const readLayout = () => { try { return window.localStorage.getItem(LAYOUT_KEY) === 'map' ? 'map' : 'list' } catch (e) { return 'list' } }
+      const writeLayout = (v) => { try { window.localStorage.setItem(LAYOUT_KEY, v) } catch (e) { /* private window */ } }
+      const plain = (t) => String(t === undefined || t === null ? '' : t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      /** « Light up what matches »: the memory has every word typed (accents and case ignored). Nothing typed matches everything. */
+      const mapMatches = (node, q) => {
+        const words = plain(q).split(/\s+/).filter((w) => w !== '')
+        if (words.length === 0) return true
+        const hay = plain(node.content)
+        return words.every((w) => hay.indexOf(w) >= 0)
+      }
+      /** A view box [x, y, w, h] kept inside the drawing. */
+      const mapClamp = (vb) => [Math.min(MAP_W - vb[2], Math.max(0, vb[0])), Math.min(MAP_H - vb[3], Math.max(0, vb[1])), vb[2], vb[3]]
+      /** The view after zooming by `factor` (above 1 zooms in) around the point (px, py), given as fractions of the view; never wider than the drawing nor narrower than MAP_MIN_W. */
+      const mapZoom = (vb, factor, px, py) => {
+        const w = Math.min(MAP_W, Math.max(MAP_MIN_W, vb[2] / factor))
+        const h = w * MAP_H / MAP_W
+        const fx = px === undefined ? 0.5 : px, fy = py === undefined ? 0.5 : py
+        return mapClamp([vb[0] + (vb[2] - w) * fx, vb[1] + (vb[3] - h) * fy, w, h])
+      }
+      const mapPan = (vb, dx, dy) => mapClamp([vb[0] + dx, vb[1] + dy, vb[2], vb[3]])
+      /**
+       * Where the names of the clusters are written (in the drawing's units): above the highest dot of the cluster, else below the lowest one, else
+       * the nearest free spot within reach; never over another name, over a dot, the search field, the legend or the zoom buttons. A name that finds no
+       * room is left out. Returns { clusterId: { x, y } }.
+       */
+      const mapLabelSpots = (nodes, clusters) => {
+        const boxes = [[0, 0, 290, 58], [0, MAP_H - 50, 400, MAP_H], [MAP_W - 70, MAP_H - 150, MAP_W, MAP_H]]
+        const dots = nodes.map((n) => [n.x * MAP_W - 9, n.y * MAP_H - 9, n.x * MAP_W + 9, n.y * MAP_H + 9])
+        const hit = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]
+        const free = (box) => box[0] >= 6 && box[2] <= MAP_W - 6 && box[1] >= 4 && box[3] <= MAP_H - 4 && !boxes.some((o) => hit(box, o)) && !dots.some((o) => hit(box, o))
+        const out = {}
+        clusters.slice().sort((a, b) => b.size - a.size || a.id - b.id).forEach((c) => {
+          const own = nodes.filter((n) => n.cl === c.id)
+          if (own.length === 0 || c.label === '') return
+          const cx = own.reduce((a, n) => a + n.x, 0) / own.length * MAP_W, cy = own.reduce((a, n) => a + n.y, 0) / own.length * MAP_H
+          const top = Math.min.apply(null, own.map((n) => n.y)) * MAP_H, bottom = Math.max.apply(null, own.map((n) => n.y)) * MAP_H
+          const w = c.label.length * 8.4 + 10
+          const boxAt = (x, y) => [x - w / 2, y - 12, x + w / 2, y + 4]
+          const tries = [[cx, top - 16], [cx, bottom + 24], [cx - w * 0.6, top - 16], [cx + w * 0.6, top - 16], [cx - w * 0.6, bottom + 24], [cx + w * 0.6, bottom + 24], [cx, top - 34], [cx, bottom + 42]]
+          let spot = tries.find(([x, y]) => free(boxAt(x, y)))
+          if (spot === undefined) {
+            // the nearest free place to the middle of the cluster, within reach
+            let best = null
+            for (let y = 14; y <= MAP_H - 8; y += 8) for (let x = w / 2 + 6; x <= MAP_W - w / 2 - 6; x += 12) {
+              const dist = Math.hypot(x - cx, y - cy)
+              if (dist <= 150 && (best === null || dist < best[2]) && free(boxAt(x, y))) best = [x, y, dist]
+            }
+            if (best !== null) spot = [best[0], best[1]]
+          }
+          if (spot === undefined) return
+          boxes.push(boxAt(spot[0], spot[1]))
+          out[c.id] = { x: spot[0], y: spot[1] }
+        })
+        return out
+      }
+      /** What the map says when it cannot be drawn: [title, what it means and what to do]. */
+      const mapWords = (code, tier) => {
+        const c = String(code === undefined || code === null ? '' : code)
+        if (c === 'sens_desactive') return ['The map needs Search by meaning', 'The map places each memory by what it means, with the same embeddings as Search by meaning, which is off. Turned on, it sends the text of the memories drawn (150 at most) to the Kybernos embedding model, and nothing else.']
+        if (c === 'offre_requise') return ['The map needs the ' + (TIER_NAME[tier] || 'Solo') + ' plan', 'It uses the embeddings model, which your plan does not include. The list and the search by words keep working.']
+        if (c === 'credits_epuises') return ['You are out of credits', 'Placing the memories uses the embeddings model, billed to your account like chat.']
+        if (c === 'non connecte') return ['Not connected', 'Memories live in your Kybernos Cloud account: connect it to see the map.']
+        if (c === 'indisponible') return ['The map needs a restart', 'The Kybernos Cloud plugin was updated: restart DSH to see the map.']
+        if (c === 'embedding_invalide') return ['The map could not be drawn', 'The embeddings service sent back something unexpected. Try again in a moment.']
+        return ['The map could not be drawn', friendlyError(c)]
+      }
 
       /** What a host error code means to a person. */
       const friendlyError = (code) => {
@@ -516,6 +586,27 @@ window.__ModuleLoader__.load({
 .kbmem-foot{position:sticky;bottom:0;margin-top:18px;display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf2);flex-wrap:wrap}
 .kbmem-run{padding:14px 0;border-bottom:1px solid var(--m-line);display:flex;gap:14px;align-items:center;max-width:760px}
 .kbmem-run .when{width:120px;color:var(--m-cap);font-size:12.5px;flex:none}
+.kbmem-mapwrap{display:block}
+.kbmem-map{position:relative;width:100%;aspect-ratio:1000/540;border:1px solid var(--m-line2);border-radius:14px;overflow:hidden;background:var(--m-surf)}
+.kbmem-map>svg{display:block;width:100%;height:100%;touch-action:none;user-select:none}
+.kbmem-bg{fill:transparent;cursor:grab}.kbmem-map.drag .kbmem-bg{cursor:grabbing}
+.kbmem-ed{stroke:var(--m-line3);stroke-width:1;vector-effect:non-scaling-stroke;pointer-events:none}
+.kbmem-nd{cursor:pointer;outline:none}.kbmem-nd .kbmem-dot{fill:var(--m-cap)}.kbmem-nd.fact .kbmem-dot{fill:var(--m-acc)}.kbmem-nd.preference .kbmem-dot{fill:var(--m-ok)}.kbmem-nd.policy .kbmem-dot{fill:var(--m-warn)}
+.kbmem-ring{fill:none;stroke:var(--m-ok);stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.85}
+.kbmem-nd.dim{opacity:.2}.kbmem-nd.sel .kbmem-dot,.kbmem-nd:focus-visible .kbmem-dot{stroke:var(--m-ink);stroke-width:2;vector-effect:non-scaling-stroke}
+.kbmem-cl{fill:var(--m-cap);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.kbmem-maphud{position:absolute;inset-inline-start:12px;top:12px;display:flex;gap:10px;align-items:center;max-width:calc(100% - 24px)}
+.kbmem-maphud .kbmem-field{width:230px;max-width:100%;height:32px;background:var(--m-surf2)}
+.kbmem-legend{position:absolute;inset-inline-start:12px;bottom:12px;display:flex;gap:12px;flex-wrap:wrap;max-width:calc(100% - 70px);padding:6px 10px;border-radius:10px;background:var(--m-surf2);font-size:11.5px;color:var(--m-muted)}
+.kbmem-legend span{display:inline-flex;gap:6px;align-items:center}.kbmem-legend .kbmem-kd{margin:0}
+.kbmem-lring{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--m-ok);display:inline-block}
+.kbmem-zoom{position:absolute;inset-inline-end:12px;bottom:12px;display:grid;gap:6px}
+.kbmem-zoom button{width:32px;height:32px;border-radius:50%;border:1px solid var(--m-line2);background:var(--m-surf2);color:var(--m-ink2);display:grid;place-items:center;cursor:pointer;padding:0}.kbmem-zoom button:hover{background:var(--m-hover)}
+.kbmem-tip{position:absolute;max-width:280px;padding:8px 10px;border-radius:10px;background:var(--m-toast);color:var(--m-ink);font-size:12px;line-height:1.4;pointer-events:none;transform:translate(-50%,calc(-100% - 12px));z-index:3}
+.kbmem-mcard{position:absolute;inset-inline-end:12px;top:12px;width:min(320px,calc(100% - 24px));display:grid;gap:8px;padding:12px 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf2);box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:4}
+.kbmem-mhd{display:flex;gap:8px;align-items:center}.kbmem-mtx{font-size:13px;line-height:1.5;color:var(--m-ink);max-height:180px;overflow:auto;word-break:break-word}
+.kbmem-mmt{display:flex;gap:10px;align-items:center;font-size:11.5px;color:var(--m-cap)}.kbmem-mmt .kbmem-ico{width:12px;height:12px}
+.kbmem-empty .kbmem-acts{flex-wrap:wrap;justify-content:center}
 @media (max-width:720px){.kbmem-foot .kbmem-grow{flex-basis:100%}.kbmem-run{flex-wrap:wrap}.kbmem-run .when{width:auto}.kbmem-it{flex-wrap:wrap}}
 `
 
@@ -533,6 +624,7 @@ window.__ModuleLoader__.load({
         gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
         broom: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
         inbox: '<path d="M3 13h5l1 3h6l1-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/>', share: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/>',
+        zin: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4M11 8v6M8 11h6"/>', zout: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4M8 11h6"/>', fit: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
         undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
         bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
       }
@@ -978,6 +1070,117 @@ window.__ModuleLoader__.load({
                 }))
       }
 
+      /**
+       * The map of the memories: each dot is a memory, close dots mean close meaning. The host sends the positions (`/kybernos-cloud/memory/meaning-map`:
+       * it embeds a sample on first use, then reads its own private cache); here a dot is drawn, looked at, searched and opened.
+       * When the map cannot be drawn the page says why, in words, and offers the way out.
+       */
+      const MapPane = ({ ctxOn, refreshKey, openOptions, onOpen, onReady, onList }) => {
+        const [d, setD] = useState({ loading: true, ok: false, error: null, tier: null, nodes: [], clusters: [], links: [], total: 0, shown: 0 })
+        const [q, setQ] = useState('')
+        const [sel, setSel] = useState(null)
+        const [tip, setTip] = useState(null)
+        const [vb, setVb] = useState(MAP_FIT)
+        const [drag, setDrag] = useState(false)
+        const [tick, setTick] = useState(0)
+        const frame = useRef(null)
+        useEffect(() => {
+          let live = true
+          setD((old) => Object.assign({}, old, { loading: true }))
+          api('/kybernos-cloud/memory/meaning-map').then((r) => {
+            if (!live) return
+            if (r.ok === true && Array.isArray(r.nodes)) { setD({ loading: false, ok: true, error: null, tier: null, nodes: r.nodes, clusters: r.clusters || [], links: r.links || [], total: r.total, shown: r.shown }); onReady() }
+            else setD({ loading: false, ok: false, error: r.error === undefined ? 'indisponible' : r.error, tier: r.requiredTier === undefined ? null : r.requiredTier, nodes: [], clusters: [], links: [], total: 0, shown: 0 })
+          })
+          return () => { live = false }
+        }, [refreshKey, tick])
+        useEffect(() => (sel !== null ? onEscape(() => setSel(null)) : undefined), [sel])
+        const drawn = d.ok
+        // the wheel zooms around the pointer: a native listener, because React's is passive and could not keep the page from scrolling
+        useEffect(() => {
+          const el = frame.current
+          if (el === null || !drawn) return undefined
+          const wheel = (e) => {
+            e.preventDefault()
+            const r = el.getBoundingClientRect()
+            setVb((v) => mapZoom(v, e.deltaY < 0 ? 1.2 : 1 / 1.2, (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height))
+          }
+          el.addEventListener('wheel', wheel, { passive: false })
+          return () => el.removeEventListener('wheel', wheel)
+        }, [drawn])
+        const startDrag = (e) => {
+          if (e.button !== 0 || frame.current === null) return
+          const r = frame.current.getBoundingClientRect()
+          const from = { x: e.clientX, y: e.clientY, vb }
+          setDrag(true)
+          const move = (m) => setVb(mapPan(from.vb, -(m.clientX - from.x) / r.width * from.vb[2], -(m.clientY - from.y) / r.height * from.vb[3]))
+          const up = () => { setDrag(false); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up) }
+          document.addEventListener('mousemove', move)
+          document.addEventListener('mouseup', up)
+        }
+        const showTip = (n) => {
+          if (frame.current === null) return
+          const r = frame.current.getBoundingClientRect()
+          setTip({ id: n.id, left: (n.x * MAP_W - vb[0]) / vb[2] * r.width, top: (n.y * MAP_H - vb[1]) / vb[3] * r.height })
+        }
+
+        if (!d.ok) {
+          if (d.loading) return h('div', { className: 'kbmem-empty', 'data-map': 'loading' }, h('div', { className: 'kbmem-spin' }), h('div', null, 'Placing your memories by meaning… the first time takes a few seconds.'))
+          const [title, text] = mapWords(d.error, d.tier)
+          return h('div', { className: 'kbmem-empty', 'data-map': 'unavailable', 'data-why': d.error }, h('div', { className: 'kbmem-ill' }, Ico('lock')), h('h3', null, title), h('div', null, text),
+            h('div', { className: 'kbmem-acts' },
+              d.error === 'sens_desactive' || d.error === 'offre_requise' ? h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'map-options', onClick: openOptions }, 'Open Options') : null,
+              d.error !== 'sens_desactive' && d.error !== 'offre_requise' && d.error !== 'non connecte' ? h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'map-retry', onClick: () => setTick((t) => t + 1) }, 'Try again') : null,
+              h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'map-list', onClick: onList }, 'Back to the list')))
+        }
+        if (d.nodes.length === 0) return h('div', { className: 'kbmem-empty', 'data-map': 'empty' }, h('div', { className: 'kbmem-ill' }, Ico('brain')), h('h3', null, 'Nothing to place yet'), h('div', null, 'Memories appear on the map as soon as there are some.'))
+
+        const typed = q.trim() !== ''
+        const hits = typed ? d.nodes.filter((n) => mapMatches(n, q)).length : d.nodes.length
+        const picked = sel === null ? null : d.nodes.find((n) => n.id === sel) || null
+        const tipped = tip === null ? null : d.nodes.find((n) => n.id === tip.id) || null
+        const pos = (n) => [n.x * MAP_W, n.y * MAP_H]
+        const byIndex = d.nodes
+        const spots = mapLabelSpots(d.nodes, d.clusters)
+        return h('div', { className: 'kbmem-mapwrap' },
+          h('div', { className: 'kbmem-map' + (drag ? ' drag' : ''), ref: frame, 'data-map': 'ready', style: d.loading ? { opacity: 0.6 } : null },
+            h('svg', { viewBox: vb.map((x) => Math.round(x * 100) / 100).join(' '), role: 'img', 'aria-label': 'Map of your memories: close dots mean close meaning', 'data-view': vb.join(',') },
+              h('rect', { className: 'kbmem-bg', x: 0, y: 0, width: MAP_W, height: MAP_H, onMouseDown: startDrag, onClick: () => { setSel(null) } }),
+              d.clusters.map((c) => { const at = spots[c.id]; return at === undefined ? null : h('text', { key: 'c' + c.id, className: 'kbmem-cl', x: at.x, y: at.y, textAnchor: 'middle', 'data-cluster': c.id }, c.label) }),
+              d.links.map(([a, b]) => { const A = pos(byIndex[a]), B = pos(byIndex[b]); return h('line', { key: a + ':' + b, className: 'kbmem-ed', x1: A[0], y1: A[1], x2: B[0], y2: B[1] }) }),
+              d.nodes.map((n) => {
+                const hit = typed && mapMatches(n, q)
+                const [x, y] = pos(n)
+                return h('g', { key: n.id, className: 'kbmem-nd ' + n.kind + (typed && !hit ? ' dim' : '') + (hit ? ' hit' : '') + (sel === n.id ? ' sel' : ''), 'data-id': n.id, transform: 'translate(' + x + ' ' + y + ')', tabIndex: 0, role: 'button', 'aria-label': n.content,
+                  onClick: (e) => { e.stopPropagation(); setSel(n.id) }, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(n.id) } },
+                  onMouseEnter: () => showTip(n), onMouseLeave: () => setTip(null), onFocus: () => showTip(n), onBlur: () => setTip(null) },
+                  n.sent && ctxOn ? h('circle', { className: 'kbmem-ring', r: 8 }) : null,
+                  h('circle', { className: 'kbmem-dot', r: (n.pinned ? 6 : 4) + (hit ? 3 : 0) }),
+                  h('circle', { r: 12, fill: 'transparent' }))
+              })),
+            h('div', { className: 'kbmem-maphud' },
+              h('label', { className: 'kbmem-field' }, Ico('search'), h('input', { 'aria-label': 'Light up what matches', placeholder: 'Light up what matches…', value: q, onChange: (e) => setQ(e.target.value) })),
+              typed ? h('span', { className: 'kbmem-tiny', 'data-map': 'hits' }, hits + (hits === 1 ? ' match' : ' matches')) : null),
+            h('div', { className: 'kbmem-legend' },
+              ['fact', 'preference', 'policy', 'event'].map((k) => h('span', { key: k }, h('i', { className: 'kbmem-kd ' + k }), KIND_LABEL[k])),
+              ctxOn ? h('span', { key: 'sent' }, h('i', { className: 'kbmem-lring' }), 'Sent each turn') : null),
+            h('div', { className: 'kbmem-zoom' },
+              h('button', { type: 'button', 'aria-label': 'Zoom in', 'data-act': 'zin', onClick: () => setVb((v) => mapZoom(v, 1.4)) }, Ico('zin')),
+              h('button', { type: 'button', 'aria-label': 'Zoom out', 'data-act': 'zout', onClick: () => setVb((v) => mapZoom(v, 1 / 1.4)) }, Ico('zout')),
+              h('button', { type: 'button', 'aria-label': 'Fit the whole map', 'data-act': 'zfit', onClick: () => setVb(MAP_FIT) }, Ico('fit'))),
+            tipped !== null && picked === null ? h('div', { className: 'kbmem-tip', role: 'tooltip', 'data-map': 'tip', style: { left: tip.left, top: tip.top } }, tipped.content.length > 160 ? tipped.content.slice(0, 160) + '…' : tipped.content) : null,
+            picked !== null ? h('div', { className: 'kbmem-mcard', 'data-map': 'card' },
+              h('div', { className: 'kbmem-mhd' }, h('span', { className: 'kbmem-kd ' + picked.kind, style: { margin: 0 } }), h('b', null, KIND_LABEL[picked.kind] || picked.kind), h('span', { className: 'kbmem-grow' }),
+                h('button', { type: 'button', className: 'kbmem-ib', 'aria-label': 'Close', 'data-act': 'map-close', onClick: () => setSel(null) }, Ico('x'))),
+              h('div', { className: 'kbmem-mtx' }, picked.content),
+              h('div', { className: 'kbmem-mmt' },
+                picked.sent && ctxOn ? h('span', { className: 'kbmem-chip ok' }, 'Sent') : null,
+                picked.pinned ? h('span', { title: 'Pinned' }, Ico('pin')) : null,
+                h('span', null, ORIGIN_LABEL[picked.origin] || picked.origin), h('span', null, ageLabel(picked.ageMinutes))),
+              h('div', { className: 'kbmem-acts' }, h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'map-open', onClick: () => onOpen(picked) }, 'Open'))) : null),
+          h('div', { className: 'kbmem-tiny', 'data-map': 'foot', style: { marginTop: 10 } }, 'Each dot is a memory; close dots mean close meaning · ' + (d.shown < d.total ? 'sample of ' + d.shown + ' of ' + d.total + ' (pinned, then sent, then newest)' : d.shown + ' memories') + (ctxOn ? ' · rings = sent to the model each turn' : '') + ' · drag to move, scroll to zoom'))
+      }
+
       const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview, ran, onRanUndo, onRanHide, team, openTeamReview, startScope, usedStartScope }) => {
         const [q, setQ] = useState('')
         const [qd, setQd] = useState('')
@@ -988,6 +1191,7 @@ window.__ModuleLoader__.load({
         const [menu, setMenu] = useState(false)
         const [sheet, setSheet] = useState(null)
         const [mode, setModeState] = useState(readMode)
+        const [layout, setLayoutState] = useState(readLayout)
         const setMode = (v) => { setModeState(v); writeMode(v); setPage(1) }
         const wrap = useRef(null)
         useEffect(() => { const t = setTimeout(() => { setQd(q); setPage(1) }, 250); return () => clearTimeout(t) }, [q])
@@ -1037,6 +1241,10 @@ window.__ModuleLoader__.load({
         const teamAvail = teamInfo !== null && teamInfo.available === true
         const teamFull = teamAvail ? Object.assign({}, teamInfo, { shareOn: team.settings.share === true }) : null
         const teamMode = !mems && f.scope === 'team' && teamAvail
+        // The map is for the memories (the lessons stay on this machine: drawing them would send them to the embeddings model). The choice is kept
+        // once a map has really been drawn, so a plan or a switch that is missing never leaves the page stuck on a map it cannot show.
+        const mapOn = mems && layout === 'map'
+        const setLayout = (v) => { setLayoutState(v); setSheet(null); if (v === 'list') writeLayout('list') }
         const [lockLabel, lockWhy] = teamLockedWords(teamInfo === null ? teamReasonOf(team) : teamInfo.reason)
 
         const setFilter = (key, v) => { setF(Object.assign({}, f, { [key]: v })); setPage(1) }
@@ -1057,9 +1265,9 @@ window.__ModuleLoader__.load({
           !mems ? h(Seg, { value: teamMode ? 'team' : 'mine', label: 'Scope', onChange: (v) => { setFilter('scope', v); setSheet(null) }, items: [
             { v: 'mine', l: [h('span', { key: 'a' }, 'Mine'), h('span', { key: 'b', className: 'kbmem-cnt' }, lesCount === null ? '' : lesCount)] },
             { v: 'team', disabled: !teamAvail, title: teamAvail ? undefined : lockWhy, l: teamAvail ? [h('span', { key: 'a' }, 'Team'), h('span', { key: 'b', className: 'kbmem-cnt' }, teamInfo.counts ? teamInfo.counts.approved : '')] : [h('span', { key: 'a' }, 'Team'), h('span', { key: 'b', className: 'kbmem-plan', 'data-lock': 'team' }, Ico('lock'), lockLabel)] }] }) : null,
-          h(Seg, { small: true, value: 'list', label: 'View', onChange: () => {}, items: [
+          h(Seg, { small: true, value: mapOn ? 'map' : 'list', label: 'View', onChange: setLayout, items: [
             { v: 'list', l: [Ico('list'), ' List'] },
-            { v: 'map', l: [Ico('map'), ' Map ', Ico('lock')], disabled: true, title: 'The map groups items by meaning and needs a search index that does not exist yet.' }] }))
+            { v: 'map', l: [Ico('map'), ' Map ', canMeaning ? null : Ico('lock')], disabled: !mems, title: !mems ? 'Lessons stay on this machine: the map would send them to the embeddings model, so it is only offered for memories.' : (canMeaning ? 'Memories placed by meaning: close dots mean close meaning.' : meaningWhy(meaningReason, meaning.requiredTier) + ' Click to see why.') }] }))
 
         const tools = h('div', { className: 'kbmem-tools' },
           h('label', { className: 'kbmem-field' }, Ico('search'),
@@ -1113,7 +1321,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Memory & Lessons learned'), h('span', { className: 'kbmem-grow' }),
             h('button', { type: 'button', className: 'kbmem-st' + (on ? '' : ' off'), 'data-act': 'status', title: 'Open options', onClick: openOptions }, h('i'), status1),
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'options', onClick: openOptions }, Ico('gear'), 'Options')),
-          tabs, teamMode ? null : tools, teamMode ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : body,
+          tabs, teamMode || mapOn ? null : tools, teamMode || mapOn ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : (mapOn ? h(MapPane, { ctxOn, refreshKey, openOptions, onOpen: (m) => setSheet({ kind: 'mem', item: m }), onReady: () => writeLayout('map'), onList: () => setLayout('list') }) : body),
           sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
             onPropose: teamAvail && team.settings.share === true ? (lesson) => setSheet({ kind: 'propose', initial: { text: lesson.text, kyber: lesson.kyber === 'default' ? null : lesson.kyber, tags: lesson.tags } }) : undefined }) : null,
           sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'propose', initial: sheet.initial, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setSheet(null), onDone: (m) => { setSheet(null); bump(); notify(m) }, notify }) : null)
@@ -1584,7 +1792,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { mapMatches, mapZoom, mapPan, mapClamp, mapLabelSpots, mapWords, MAP_FIT, teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
