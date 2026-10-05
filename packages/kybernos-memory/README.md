@@ -42,6 +42,16 @@ one click away.
   When it cannot be done — switch off, plan too low (the embeddings model needs the Solo plan on the
   dev tier: `model-not-available-plan`), a server without pgvector or that predates the routes, no
   credits — the page shows the relevance matches and says why, with a link to Options.
+- **Tidy up** (Options → *Clean up now*, then a banner on the page): finds near-duplicates among the memories
+  and among the lessons, on this machine, with no model and nothing sent anywhere. Suggestions are groups
+  (« Merge 3 into 1 »): the most complete item stays, or the one you pick, optionally with edited text; pinned
+  memories are never removed; lessons only meet inside their own kyber. *Merge*, *Edit the kept one*, *Keep both*
+  (remembered, and takeable back) or *Accept all* for the tab. Nothing is deleted before you accept, every
+  accepted group is archived first and can be undone for 30 days (restored memories come back as new
+  memories, restored lessons exactly as they were; a lesson Undo refuses when the kyber would pass 50).
+  The kept lesson inherits the tags and the uses of the others, so merging never makes it the first thing the cap
+  evicts. Looking is manual for now; the automatic run (daily, weekly, every 50 new items) and a Study model that
+  judges the unclear pairs are drawn locked, « Coming next ». See *Tidy up* below.
 - **Not drawn as if it existed**: the Map needs 2-D positions of the vectors, which nothing computes
   yet (the button is disabled and says so), and team lessons are not built (the Team scope and
   « Share lessons with your team » say so). The only plan gate shown is the one the server enforces
@@ -83,11 +93,34 @@ no `..`), and a typo never creates a kyber.
 - Concurrent writers (the CLI appends, this bundle rewrites atomically) can lose an append in a
   window of a few milliseconds.
 
+## Tidy up
+
+`dedupe.mjs` (pure; one module copied into `kybernos-cloud` and `kybernos-memory`, the two copies are
+tested byte-identical) groups items whose words (the `relevance.mjs` tokens) overlap almost entirely:
+Jaccard ≥ 0.8, or one wholly inside the other (≥ 95 % of the smaller one, Jaccard ≥ 0.6, 4+ words).
+Groups are stars around a keeper, never chains, so a loose threshold cannot merge different facts; what it
+cannot decide (a value replaced by a newer one, two similar facts about different things) is left alone.
+
+| | Memories (`kybernos-cloud`) | Lessons (`kybernos-memory`) |
+|---|---|---|
+| Routes | `GET /kybernos-cloud/memory/tidy`, `POST …/tidy/scan`, `…/tidy/apply`, `…/tidy/dismiss`, `…/tidy/undo` | `GET /kybernos-memory/tidy`, `POST …/tidy/scan`, `…/tidy/apply`, `…/tidy/dismiss`, `…/tidy/undo` |
+| Compared inside | the memory's kind | the kyber |
+| Apply | edit the kept memory if asked, delete the others on the server | merge tags / uses / last use into the kept lesson, delete the others (each also goes to `lessons.archive.jsonl`) |
+| Archive (30 days) | the removed rows and the kept one's old text, in `kybernos-cloud-tidy-archive.json` | the removed rows and the kept one's old fields, in `kybernos-memory.tidy-archive.json` |
+| Undo | recreates the removed memories (new ids), puts the old text back | puts the rows back as they were; `kyber_plein` if the kyber would pass 50 lessons |
+
+Both hosts: `apply` needs `confirm: true`, checks every group against what is stored *now* (a changed or
+vanished item makes its group `a_change`, never a guess), writes the archive before the first delete, refuses
+a request that removes more than 50 items, and never removes a pinned memory. `dismiss` remembers a pair the
+user kept apart (`restore: true` takes it back). The scan and the log live next to the state / settings file
+(0600). Same-origin guard, POST for everything that writes.
+
 ## Tests
 
 ```bash
 node packages/kybernos-memory/test-memory-host.mjs   # real files in a temp folder, real memory.cjs if present
 node packages/kybernos-memory/test-client.mjs        # the page's pure pieces, mounting contract, source guards
+node packages/kybernos-cloud/test-dedupe.mjs         # near-duplicate detection (pure)
 node scripts/check-memory-live.mjs --shots /tmp/mem  # the REAL GUI, read-only (needs dsh web restarted once)
 ```
 

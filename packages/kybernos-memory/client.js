@@ -141,10 +141,95 @@ window.__ModuleLoader__.load({
         if (c === 'genre_invalide') return 'Pick a type.'
         if (c === 'memoire_desactivee') return 'Memory is switched off.'
         if (c === 'lecon_introuvable') return 'That lesson no longer exists.'
+        if (c === 'a_change') return 'It changed since the scan: look again.'
+        if (c === 'groupe_inconnu') return 'That suggestion is out of date: look again.'
+        if (c === 'garde_invalide') return 'That item is not part of the suggestion: look again.'
+        if (c === 'epingle_protege') return 'A pinned memory is never removed: keep that one.'
+        if (c === 'trop_de_suppressions') return 'That removes too many at once (50 at most).'
+        if (c === 'kyber_plein') return 'That kyber already holds 50 lessons: delete some, then undo.'
+        if (c === 'archive_perimee') return 'Too old to undo (30 days).'
+        if (c === 'deja_annule') return 'Already undone.'
+        if (c === 'aucun_scan') return 'Look first: nothing has been scanned yet.'
         if (c.indexOf('refus_') === 0) return 'The server refused the request (' + c.slice(6) + ').'
         if (c === 'erreur interne' || c === 'internal error') return 'Something failed inside the plugin.'
         return c === '' ? 'Something went wrong.' : 'Something went wrong (' + c + ').'
       }
+
+      // ── Tidy up: the pure pieces ─────────────────────────────────────────────
+      // Near-duplicates are found on this machine (kybernos-cloud and kybernos-memory each scan their own side) and applied
+      // by the hosts; this file only chooses and asks. `mem` = memories (account), `les` = lessons (local files).
+      const TIDY_MAX_REMOVALS = 50
+      const TIDY_SOURCES = {
+        mem: { noun: 'memories', one: 'memory', many: 'memories', max: 2000, base: '/kybernos-cloud/memory/tidy' },
+        les: { noun: 'lessons', one: 'lesson', many: 'lessons', max: 500, base: '/kybernos-memory/tidy' },
+      }
+      const plural = (n, word, many) => String(n) + ' ' + (n === 1 ? word : (many === undefined ? word + 's' : many))
+
+      /** « just now », « 5 minutes ago », « 2 hours ago », « 3 days ago ». */
+      const whenLabel = (iso, now) => {
+        const t = Date.parse(iso)
+        if (!Number.isFinite(t)) return ''
+        const m = Math.max(0, Math.round(((now === undefined ? Date.now() : now) - t) / 60000))
+        if (m < 1) return 'just now'
+        if (m < 60) return plural(m, 'minute') + ' ago'
+        if (m < 1440) return plural(Math.round(m / 60), 'hour') + ' ago'
+        return plural(Math.round(m / 1440), 'day') + ' ago'
+      }
+
+      /** How many items a group removes: all but the kept one. */
+      const groupRemovals = (g) => Math.max(0, g.items.length - 1)
+
+      /** Requests of at most `max` removals each (the host refuses more in one go). A group that is alone over the limit goes alone, and the host says no. */
+      const tidyChunks = (groups, max) => {
+        const out = []
+        let cur = []
+        let n = 0
+        for (const g of groups) {
+          const r = groupRemovals(g)
+          if (cur.length > 0 && n + r > max) { out.push(cur); cur = []; n = 0 }
+          cur.push(g)
+          n += r
+        }
+        if (cur.length > 0) out.push(cur)
+        return out
+      }
+
+      /** The kept item of a group: the user's pick, else the one the scan proposed. */
+      const keeperOf = (g, choices) => {
+        const c = choices[g.id]
+        return c !== undefined && c.keep !== undefined && g.items.some((i) => i.id === c.keep) ? c.keep : g.keeperId
+      }
+
+      /** The request body for some groups: only what differs from the proposal is sent (`keep`, `edit`). */
+      const tidyBody = (groups, choices) => ({
+        confirm: true,
+        groups: groups.map((g) => {
+          const c = choices[g.id] || {}
+          const out = { id: g.id }
+          const keep = keeperOf(g, choices)
+          if (keep !== g.keeperId) out.keep = keep
+          if (typeof c.edit === 'string' && c.edit.trim() !== '') out.edit = c.edit
+          return out
+        }),
+      })
+
+      /** A scan response (or a stored view) → what the page keeps; anything that is not a view is `null`. */
+      const asTidyView = (r) => (r !== null && typeof r === 'object' && r.ok === true && Array.isArray(r.groups) ? r : null)
+      const tidySaves = (t) => (t.mem === null ? 0 : t.mem.saves) + (t.les === null ? 0 : t.les.saves)
+      /** The banner is hidden for one scan only: a new scan shows it again. */
+      const scanKey = (t) => (t.mem === null ? '' : String(t.mem.scannedAt)) + '|' + (t.les === null ? '' : String(t.les.scannedAt))
+      const TIDY_HIDDEN_KEY = 'kbmem.tidyHidden'
+      const readHidden = () => { try { return window.localStorage.getItem(TIDY_HIDDEN_KEY) || '' } catch (e) { return '' } }
+      const writeHidden = (v) => { try { window.localStorage.setItem(TIDY_HIDDEN_KEY, v) } catch (e) { /* private window */ } }
+
+      /** One log line, in words: « Merged 3 memories into 1 ». */
+      const logWords = (src, l) => 'Merged ' + plural(l.removed + 1, TIDY_SOURCES[src].one, TIDY_SOURCES[src].many) + ' into 1' + (l.kyber ? ' · ' + l.kyber : '') + (l.partial ? ' (partly)' : '')
+
+      /** Both logs, newest first, each line tagged with its side. */
+      const tidyLog = (t) => []
+        .concat(t.mem === null ? [] : t.mem.log.map((l) => Object.assign({ src: 'mem' }, l)))
+        .concat(t.les === null ? [] : t.les.log.map((l) => Object.assign({ src: 'les' }, l)))
+        .sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0))
 
       /** The capture's last outcome, in words (the host keeps it in memory only). */
       const captureWords = (capture) => {
@@ -197,7 +282,7 @@ window.__ModuleLoader__.load({
   --m-line:var(--kb-line,var(--dsw-alias-border-l1,rgba(255,255,255,.06)));--m-line2:var(--kb-line2,var(--dsw-alias-border-l2,rgba(255,255,255,.12)));--m-line3:var(--kb-line3,var(--dsw-alias-border-l3,rgba(255,255,255,.16)));
   --m-hover:var(--kb-hover,var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.08)));--m-fill:var(--kb-fill,var(--dsw-alias-bg-layer-3,#353638));--m-surf:var(--kb-surface,var(--dsw-alias-bg-layer-1,#232324));--m-surf2:var(--kb-surface2,var(--dsw-alias-bg-layer-2,#2c2c2e));
   --m-toast:var(--kb-toast,#43454a);--m-acc:var(--kb-accent,#7aaaff);--m-ok:var(--kb-ok,#22c55e);--m-ok-bg:var(--kb-ok-bg,#233c2c);--m-warn:var(--kb-warn,#f59e0b);--m-warn-bg:var(--kb-warn-bg,#27241f);--m-danger:var(--kb-danger,#f25a5a);
-  --m-primary:var(--kb-primary,#f9fafb);--m-primary-ink:var(--kb-primary-ink,#353638);--m-r-md:var(--dsw-radius-md,12px);--m-r-sm:var(--dsw-radius-sm,8px);--m-r-lg:var(--dsw-radius-lg,16px);
+  --m-acc-bg:var(--kb-accent-bg,rgba(122,170,255,.14));--m-del-bg:var(--kb-del-bg,rgba(242,90,90,.12));--m-primary:var(--kb-primary,#f9fafb);--m-primary-ink:var(--kb-primary-ink,#353638);--m-r-md:var(--dsw-radius-md,12px);--m-r-sm:var(--dsw-radius-sm,8px);--m-r-lg:var(--dsw-radius-lg,16px);
   max-width:960px;min-width:0;margin-inline:auto;color:var(--m-ink);font-size:14px;line-height:22px;position:relative}
 .kbmem-page *{box-sizing:border-box}
 /* :where() keeps these resets at zero specificity, so every component class below wins over them. */
@@ -282,6 +367,30 @@ window.__ModuleLoader__.load({
 .kbmem-spin{width:18px;height:18px;border-radius:50%;border:2px solid var(--m-fill);border-top-color:var(--m-muted);animation:kbmem-spin .8s linear infinite}
 @keyframes kbmem-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.kbmem-spin{animation:none}}
+.kbmem-chip.acc{color:var(--m-acc);background:var(--m-acc-bg);border-color:transparent}
+.kbmem-banner{display:flex;gap:12px;align-items:center;margin-bottom:14px;padding:12px 14px;border-radius:var(--m-r-md);background:var(--m-acc-bg)}
+.kbmem-banner>.kbmem-ico{width:18px;height:18px;color:var(--m-acc)}
+.kbmem-x{width:26px;height:26px;border-radius:999px;display:inline-grid;place-items:center;color:var(--m-muted)}.kbmem-x:hover{background:var(--m-hover)}
+.kbmem-btn.sm{height:26px;padding:0 11px;font-size:12px}
+.kbmem-sum{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:4px 0 14px;font-size:13px;color:var(--m-ink2)}.kbmem-sum b{color:var(--m-ink)}
+.kbmem-grp{border:1px solid var(--m-line2);border-radius:14px;margin-bottom:12px;overflow:hidden;background:var(--m-surf)}
+.kbmem-grp>header{display:flex;gap:10px;align-items:center;padding:12px 14px;flex-wrap:wrap}.kbmem-grp>header .t{font-weight:600}
+.kbmem-grp .items{padding:0 14px 2px}
+.kbmem-it{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;margin-bottom:6px;font-size:13px}
+.kbmem-it.del{background:var(--m-del-bg);color:var(--m-ink2)}.kbmem-it.del .kbmem-itx{text-decoration:line-through;text-decoration-color:var(--m-danger);text-decoration-thickness:1px}
+.kbmem-it.new{background:var(--m-ok-bg)}
+.kbmem-itx{flex:1;min-width:0;overflow-wrap:anywhere}
+.kbmem-it textarea{width:100%;min-height:72px;border-radius:8px;border:1px solid var(--m-line2);background:var(--m-surf2);color:var(--m-ink);padding:8px;resize:vertical;font:inherit}
+.kbmem-im{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--m-cap);white-space:nowrap;padding-inline-start:6px}.kbmem-im .kbmem-ico{width:12px;height:12px}
+.kbmem-pick{flex:none;width:16px;height:16px;margin-top:3px;border-radius:50%;border:1.5px solid var(--m-line3)}.kbmem-pick.on{border-color:var(--m-acc);background:radial-gradient(var(--m-acc) 0 4px,transparent 5px)}.kbmem-pick[disabled]{opacity:.4;pointer-events:none}
+.kbmem-gnote{padding:0 14px 10px;font-size:12px;color:var(--m-cap)}
+.kbmem-gacts{display:flex;gap:8px;align-items:center;padding:10px 14px;border-top:1px solid var(--m-line);flex-wrap:wrap}
+.kbmem-grp.done .items,.kbmem-grp.done .kbmem-gnote{display:none}.kbmem-grp.done{opacity:.8}
+.kbmem-stat{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--m-muted)}.kbmem-stat.ok{color:var(--m-ok)}.kbmem-stat.err{color:var(--m-danger)}
+.kbmem-foot{position:sticky;bottom:0;margin-top:18px;display:flex;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--m-line2);border-radius:14px;background:var(--m-surf2);flex-wrap:wrap}
+.kbmem-run{padding:14px 0;border-bottom:1px solid var(--m-line);display:flex;gap:14px;align-items:center;max-width:760px}
+.kbmem-run .when{width:120px;color:var(--m-cap);font-size:12.5px;flex:none}
+@media (max-width:720px){.kbmem-foot .kbmem-grow{flex-basis:100%}.kbmem-run{flex-wrap:wrap}.kbmem-run .when{width:auto}.kbmem-it{flex-wrap:wrap}}
 `
 
       // ═══════════════════════════════════════════════════════════════
@@ -291,12 +400,13 @@ window.__ModuleLoader__.load({
         brain: '<path d="M9.5 3A3.5 3.5 0 0 0 6 6.5c0 .4.1.8.2 1.1A3.5 3.5 0 0 0 4 10.8c0 1 .5 2 1.2 2.6A3.5 3.5 0 0 0 7 19a3 3 0 0 0 5-1V4.5A1.5 1.5 0 0 0 9.5 3z"/><path d="M14.5 3A3.5 3.5 0 0 1 18 6.5c0 .4-.1.8-.2 1.1A3.5 3.5 0 0 1 20 10.8c0 1-.5 2-1.2 2.6A3.5 3.5 0 0 1 17 19a3 3 0 0 1-5-1V4.5A1.5 1.5 0 0 1 14.5 3z"/>',
         pin: '<path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/>', search: '<circle cx="11" cy="11" r="6"/><path d="m20 20-4-4"/>', plus: '<path d="M12 5v14M5 12h14"/>',
         check: '<path d="m5 12 5 5 9-10"/>', x: '<path d="M6 6l12 12M18 6 6 18"/>', trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
-        users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.2A6.5 6.5 0 0 1 21.5 20"/>',
         cloud: '<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 9.5a4 4 0 0 1-.5 8.5z"/>', lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
         alert: '<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 18v.5"/>', shield: '<path d="M12 3 5 6v6c0 4 3 7 7 9 4-2 7-5 7-9V6z"/>',
         list: '<path d="M8 6h12M8 12h12M8 18h12M4 6h.5M4 12h.5M4 18h.5"/>', map: '<circle cx="6" cy="7" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="17" r="2"/><path d="M7.7 8.2l3 7M16.5 7.5l-3.5 8"/>',
         filter: '<path d="M4 6h16M7 12h10M10 18h4"/>', left: '<path d="m15 6-6 6 6 6"/>', right: '<path d="m9 6 6 6-6 6"/>',
         gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
+        broom: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
+        undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
         bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
       }
       // The paths are this file's own constants (never user text): setting them as markup is safe.
@@ -392,6 +502,27 @@ window.__ModuleLoader__.load({
           })
         }, [url, refreshKey])
         return d
+      }
+
+      /**
+       * The two tidy-up views (memories: the account, lessons: this machine). Each is `null` when its host cannot be reached
+       * (a host that predates the feature answers 404 until DSH restarts). `adopt` puts a fresh scan in place without a round trip.
+       */
+      const useTidy = (refreshKey) => {
+        const [t, setT] = useState({ loaded: false, mem: null, les: null, memError: null, lesError: null })
+        const seq = useRef(0)
+        useEffect(() => {
+          const mine = ++seq.current
+          Promise.all([api(TIDY_SOURCES.mem.base), api(TIDY_SOURCES.les.base)]).then(([m, l]) => {
+            if (mine !== seq.current) return
+            setT({ loaded: true, mem: asTidyView(m), les: asTidyView(l), memError: asTidyView(m) === null ? (m.error || 'indisponible') : null, lesError: asTidyView(l) === null ? (l.error || 'indisponible') : null })
+          })
+        }, [refreshKey])
+        const adopt = useCallback((m, l) => {
+          seq.current += 1
+          setT({ loaded: true, mem: asTidyView(m), les: asTidyView(l), memError: asTidyView(m) === null ? (m.error || 'indisponible') : null, lesError: asTidyView(l) === null ? (l.error || 'indisponible') : null })
+        }, [])
+        return [t, adopt]
       }
 
       // ═══════════════════════════════════════════════════════════════
@@ -517,7 +648,7 @@ window.__ModuleLoader__.load({
           !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, 'A deleted lesson goes to the kyber\'s lessons.archive.jsonl — it is not destroyed.') : null)
       }
 
-      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey }) => {
+      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview }) => {
         const [q, setQ] = useState('')
         const [qd, setQd] = useState('')
         const [f, setF] = useState(defaultFilters())
@@ -642,7 +773,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Memory & Lessons learned'), h('span', { className: 'kbmem-grow' }),
             h('button', { type: 'button', className: 'kbmem-st' + (on ? '' : ' off'), 'data-act': 'status', title: 'Open options', onClick: openOptions }, h('i'), status1),
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'options', onClick: openOptions }, Ico('gear'), 'Options')),
-          tabs, tools, chips, notes, body,
+          tabs, tools, chips, tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null, notes, body,
           sheet !== null ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify }) : null)
       }
 
@@ -709,7 +840,213 @@ window.__ModuleLoader__.load({
           control: h(YesNo, { name: 'Pick by relevance', value: !off && mem.relevant === true, onChange: onToggle }) })
       }
 
-      const OptionsView = ({ status, settings, back, notify, refresh, refreshKey }) => {
+      // ── Tidy up: banner, review, options rows ────────────────────────────────
+      const TidyBanner = ({ tidy, onReview, onHide }) => {
+        const nm = tidy.mem === null ? 0 : tidy.mem.saves
+        const nl = tidy.les === null ? 0 : tidy.les.saves
+        const parts = [nm > 0 ? plural(nm, 'memory', 'memories') : null, nl > 0 ? plural(nl, 'lesson') : null].filter((x) => x !== null)
+        const at = [tidy.mem === null ? null : tidy.mem.scannedAt, tidy.les === null ? null : tidy.les.scannedAt].filter((x) => x !== null).sort().pop()
+        return h('div', { className: 'kbmem-banner', 'data-tidy': 'banner', role: 'status' }, Ico('broom'),
+          h('div', { className: 'kbmem-grow' }, h('b', null, plural(nm + nl, 'near-duplicate')), ' found: ' + parts.join(', ') + '. ',
+            h('span', { className: 'kbmem-muted' }, 'Found ' + whenLabel(at) + ', nothing changed yet.')),
+          h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'tidy-review', onClick: onReview }, 'Review'),
+          h('button', { type: 'button', className: 'kbmem-x', 'data-act': 'tidy-hide', 'aria-label': 'Dismiss', onClick: onHide }, Ico('x')))
+      }
+
+      /** One suggestion: the items (the kept one in green, the others struck), who stays, and what to do. */
+      const GroupCard = ({ g, st, keepId, editing, edit, busy, onPick, onMerge, onToggleEdit, onEdit, onKeepBoth, onUndo, onRestore }) => {
+        const src = TIDY_SOURCES[g.src]
+        const pinned = g.items.some((i) => i.pinned === true)
+        const tooBig = groupRemovals(g) > TIDY_MAX_REMOVALS
+        const done = st !== undefined && st.s !== 'err'
+        const title = 'Merge ' + String(g.items.length) + ' into 1'
+        let status = null
+        if (st !== undefined) {
+          if (st.s === 'ok') status = [h('span', { key: 's', className: 'kbmem-stat ok', 'data-stat': 'ok' }, Ico('check'), 'Merged'), h('button', { key: 'u', type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-undo', disabled: busy, onClick: onUndo }, Ico('undo'), 'Undo')]
+          else if (st.s === 'keep') status = [h('span', { key: 's', className: 'kbmem-stat', 'data-stat': 'keep' }, Ico('x'), 'Kept as is'), h('button', { key: 'u', type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-restore', disabled: busy, onClick: onRestore }, Ico('undo'), 'Undo')]
+          else if (st.s === 'undone') status = h('span', { className: 'kbmem-stat', 'data-stat': 'undone' }, Ico('undo'), 'Undone: ' + (g.src === 'mem' ? 'the originals are back as new memories' : 'everything is back as it was'))
+          else status = h('span', { className: 'kbmem-stat err', 'data-stat': 'err' }, Ico('alert'), friendlyError(st.error))
+        }
+        return h('div', { className: 'kbmem-grp' + (done ? ' done' : ''), 'data-group': g.id, 'data-src': g.src },
+          h('header', null, h('span', { className: 't' }, title), h('span', { className: 'kbmem-chip' }, 'Close match ' + String(g.score) + '%'),
+            g.kyber ? h('span', { className: 'kbmem-chip' }, g.kyber) : null, h('span', { className: 'kbmem-grow' }), status),
+          h('div', { className: 'items' }, g.items.map((i) => {
+            const kept = i.id === keepId
+            return h('div', { key: i.id, className: 'kbmem-it ' + (kept ? 'new' : 'del'), 'data-item': i.id, 'data-kept': kept ? '1' : '0' },
+              h('button', { type: 'button', className: 'kbmem-pick' + (kept ? ' on' : ''), role: 'radio', 'aria-checked': kept, 'aria-label': 'Keep this one', disabled: done || (pinned && i.pinned !== true), onClick: () => onPick(i.id) }),
+              kept && editing
+                ? h('textarea', { 'aria-label': 'Text to keep', value: edit, maxLength: src.max, onChange: (e) => onEdit(e.target.value) })
+                : h('span', { className: 'kbmem-itx' }, kept && edit !== undefined && edit.trim() !== '' ? edit : i.content),
+              h('span', { className: 'kbmem-im' }, i.pinned ? Ico('pin') : null, i.uses > 0 ? h('span', null, 'Used ' + String(i.uses) + '×') : null, h('span', null, ageLabel(i.ageMinutes))))
+          })),
+          h('div', { className: 'kbmem-gnote' }, g.src === 'les' ? 'The kept lesson also gets the tags and the uses of the others.' : (pinned ? 'A pinned memory is never removed: it is the one that stays.' : 'The other ' + (g.items.length === 2 ? 'one is' : 'ones are') + ' deleted; Undo brings them back as new memories.')),
+          done ? null : h('div', { className: 'kbmem-gacts' },
+            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'tidy-merge', disabled: busy || tooBig || (st !== undefined), onClick: onMerge }, Ico('check'), 'Merge'),
+            h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-edit', disabled: busy, onClick: onToggleEdit }, editing ? 'Done editing' : 'Edit the kept one'),
+            h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-keepboth', disabled: busy, onClick: onKeepBoth }, 'Keep both'),
+            tooBig ? h('span', { className: 'kbmem-tiny' }, 'Too many at once (' + String(groupRemovals(g)) + '): the limit is ' + String(TIDY_MAX_REMOVALS) + '.') : null))
+      }
+
+      const ReviewBody = ({ tidy, back, notify, bump, scan, scanning }) => {
+        const first = useRef(null)
+        if (first.current === null) {
+          // the suggestions as they were when the page was opened: applying one must not make its card vanish (it becomes « Merged » + Undo)
+          const tag = (src) => (tidy[src] === null ? [] : tidy[src].groups.map((g) => Object.assign({ src }, g)))
+          first.current = { mem: tag('mem'), les: tag('les') }
+        }
+        const snap = first.current
+        const [tab, setTab] = useState(snap.mem.length === 0 && snap.les.length > 0 ? 'les' : 'mem')
+        const [status, setStatus] = useState({})
+        const [choices, setChoices] = useState({})
+        const [editing, setEditing] = useState(null)
+        const [busy, setBusy] = useState(false)
+        const list = snap[tab]
+        const open = list.filter((g) => status[g.id] === undefined)
+        const openOf = (src) => snap[src].filter((g) => status[g.id] === undefined).length
+        const setChoice = (id, patch) => setChoices((old) => Object.assign({}, old, { [id]: Object.assign({}, old[id], patch) }))
+        const textOf = (g, id) => g.items.find((i) => i.id === id).content
+
+        const apply = async (groups) => {
+          setBusy(true)
+          const next = {}
+          const runs = []
+          let removed = 0
+          for (const src of ['mem', 'les']) {
+            for (const chunk of tidyChunks(groups.filter((g) => g.src === src), TIDY_MAX_REMOVALS)) {
+              const r = await api(TIDY_SOURCES[src].base + '/apply', tidyBody(chunk, choices))
+              if (!Array.isArray(r.results)) { for (const g of chunk) next[g.id] = { s: 'err', error: r.error === undefined ? 'indisponible' : r.error }; continue }
+              for (const res of r.results) {
+                if (res.ok === true) { next[res.id] = { s: 'ok', run: res.run, src }; if (res.run) runs.push({ src, run: res.run, id: res.id }); removed += res.removed || 0 }
+                else next[res.id] = { s: 'err', error: res.error }
+              }
+            }
+          }
+          setStatus((old) => Object.assign({}, old, next))
+          setBusy(false)
+          bump()
+          const failed = Object.keys(next).filter((k) => next[k].s === 'err').length
+          const merged = Object.keys(next).length - failed
+          if (merged === 0) { notify(failed === 1 ? friendlyError(next[Object.keys(next)[0]].error) : 'Nothing was merged.'); return }
+          notify('Merged ' + plural(merged, 'group') + ' · ' + plural(removed, 'item') + ' removed' + (failed > 0 ? ' · ' + String(failed) + ' not done' : ''), async () => {
+            let back = 0
+            for (const x of runs) {
+              const u = await api(TIDY_SOURCES[x.src].base + '/undo', { run: x.run })
+              if (u.ok === true) { back += 1; setStatus((old) => Object.assign({}, old, { [x.id]: { s: 'undone' } })) }
+            }
+            bump()
+            notify(back === runs.length ? 'Undone: everything is back' : 'Undone ' + String(back) + ' of ' + String(runs.length) + ': open Options to retry the rest')
+          })
+        }
+
+        const undoOne = async (g) => {
+          const st = status[g.id]
+          setBusy(true)
+          const r = await api(TIDY_SOURCES[g.src].base + '/undo', { run: st.run })
+          setBusy(false)
+          if (r.ok !== true) { notify(friendlyError(r.error)); return }
+          setStatus((old) => Object.assign({}, old, { [g.id]: { s: 'undone' } }))
+          bump()
+        }
+        const keepBoth = async (g) => {
+          setBusy(true)
+          const r = await api(TIDY_SOURCES[g.src].base + '/dismiss', { groups: [g.id] })
+          setBusy(false)
+          if (r.ok !== true) { notify(friendlyError(r.error)); return }
+          setStatus((old) => Object.assign({}, old, { [g.id]: { s: 'keep' } }))
+          bump()
+        }
+        const restoreOne = async (g) => {
+          setBusy(true)
+          const r = await api(TIDY_SOURCES[g.src].base + '/dismiss', { groups: [g.id], restore: true })
+          setBusy(false)
+          if (r.ok !== true) { notify(friendlyError(r.error)); return }
+          setStatus((old) => { const n = Object.assign({}, old); delete n[g.id]; return n })
+          bump()
+        }
+
+        const scanned = [tidy.mem, tidy.les].filter((x) => x !== null)
+        const at = scanned.map((x) => x.scannedAt).filter((x) => x !== null).sort().pop()
+        const total = (tidy.mem === null || tidy.mem.total === null ? 0 : tidy.mem.total) + (tidy.les === null || tidy.les.total === null ? 0 : tidy.les.total)
+        const nothing = snap.mem.length + snap.les.length === 0
+        const notes = []
+        if (tidy.memError !== null && tidy.mem === null) notes.push(h('div', { key: 'nm', className: 'kbmem-note warn', 'data-note': 'mem-skipped' }, Ico('cloud'), h('div', null, h('b', null, 'Memories were not looked at. '), friendlyError(tidy.memError))))
+        if (tidy.lesError !== null && tidy.les === null) notes.push(h('div', { key: 'nl', className: 'kbmem-note warn', 'data-note': 'les-skipped' }, Ico('alert'), h('div', null, h('b', null, 'Lessons were not looked at. '), friendlyError(tidy.lesError))))
+
+        const head = h('div', null,
+          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons learned'),
+          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Tidy-up suggestions'), h('span', { className: 'kbmem-grow' }),
+            at ? h('span', { className: 'kbmem-tiny' }, 'Found ' + whenLabel(at) + ' · local scan') : null,
+            h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-rescan', disabled: scanning || busy, onClick: scan }, Ico('broom'), scanning ? 'Looking…' : 'Look again')),
+          notes)
+
+        if (nothing) return h('div', null, head,
+          h('div', { className: 'kbmem-empty', 'data-tidy': 'empty' }, h('div', { className: 'kbmem-ill' }, Ico('check')),
+            at ? [h('h3', { key: 'h' }, 'Nothing to tidy up'), h('div', { key: 'd' }, 'Looked at ' + plural(total, 'item') + ' on this machine: no near-duplicates.')]
+              : [h('h3', { key: 'h' }, 'Nothing has been looked at yet'), h('div', { key: 'd' }, 'Press “Look again” to search your memories and lessons for near-duplicates. Nothing is changed by looking.')]))
+
+        return h('div', null, head,
+          h('div', { className: 'kbmem-row2' }, h(Seg, { value: tab, onChange: (v) => { setTab(v); setEditing(null) }, label: 'Section', items: [
+            { v: 'mem', l: [h('span', { key: 'a' }, 'Memories'), h('span', { key: 'b', className: 'kbmem-cnt' }, openOf('mem'))] },
+            { v: 'les', l: [h('span', { key: 'a' }, 'Lessons learned'), h('span', { key: 'b', className: 'kbmem-cnt' }, openOf('les'))] }] })),
+          h('div', { className: 'kbmem-sum' }, h('span', null, h('b', null, String(open.length)), ' to review'), tab === 'mem' ? h('span', null, 'Pinned memories are never removed') : h('span', null, 'Lessons only meet inside their own kyber')),
+          list.length === 0 ? h('div', { className: 'kbmem-empty' }, h('h3', null, 'No suggestion for ' + TIDY_SOURCES[tab].noun), h('div', null, 'Nothing looks duplicated here.')) : null,
+          list.map((g) => {
+            const keepId = keeperOf(g, choices)
+            const c = choices[g.id] || {}
+            return h(GroupCard, { key: g.id, g, st: status[g.id], keepId, editing: editing === g.id, edit: c.edit, busy,
+              onPick: (id) => { setChoice(g.id, { keep: id, edit: editing === g.id ? textOf(g, id) : undefined }) },
+              onMerge: () => apply([g]),
+              onToggleEdit: () => {
+                if (editing === g.id) { setEditing(null); if (c.edit !== undefined && c.edit.trim() === textOf(g, keepId).trim()) setChoice(g.id, { edit: undefined }); return }
+                setEditing(g.id); setChoice(g.id, { edit: c.edit !== undefined ? c.edit : textOf(g, keepId) })
+              },
+              onEdit: (text) => setChoice(g.id, { edit: text }),
+              onKeepBoth: () => keepBoth(g), onUndo: () => undoOne(g), onRestore: () => restoreOne(g) })
+          }),
+          h('div', { className: 'kbmem-foot' }, h('span', { className: 'kbmem-grow kbmem-muted', style: { fontSize: 13 } }, 'Nothing is deleted until you accept. Undo works for 30 days.'),
+            h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'tidy-later', onClick: back }, 'Not now'),
+            h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'tidy-all', disabled: open.length === 0 || busy, onClick: () => apply(open) }, Ico('check'), 'Accept all (' + String(open.length) + ')')))
+      }
+
+      /** Waits for the first read of both views, so the snapshot of suggestions is never taken from an empty page. */
+      const ReviewView = (props) => (props.tidy.loaded === true
+        ? h(ReviewBody, props)
+        : h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' })))
+
+      /** Options: « Tidy up now », what is coming next (locked, not drawn as working), and the recent tidy-ups with their Undo. */
+      const TidyOptions = ({ tidy, scan, scanning, openReview, notify, bump }) => {
+        const none = tidy.loaded === true && tidy.mem === null && tidy.les === null
+        const saves = tidySaves(tidy)
+        const at = [tidy.mem === null ? null : tidy.mem.scannedAt, tidy.les === null ? null : tidy.les.scannedAt].filter((x) => x !== null).sort().pop()
+        const log = tidyLog(tidy)
+        const undo = async (l) => {
+          const r = await api(TIDY_SOURCES[l.src].base + '/undo', { run: l.id })
+          if (r.ok !== true) notify(friendlyError(r.error))
+          else notify('Undone: ' + (l.src === 'mem' ? 'the originals are back as new memories' : 'everything is back as it was'))
+          bump()
+        }
+        return [
+          h('section', { key: 'tidy', className: 'kbmem-sec', 'data-sec': 'tidy' }, h('h2', null, 'Tidy up', h('small', null, 'near-duplicates, memories and lessons')),
+            h(SettingRow, { label: 'Tidy up now', act: 'tidy-now',
+              desc: 'Looks for near-duplicates on this machine: nothing is sent anywhere and nothing changes until you accept. ' + (at ? 'Last look ' + whenLabel(at) + ' · ' + (saves === 0 ? 'nothing to tidy up.' : plural(saves, 'near-duplicate') + ' waiting.') : 'Not looked yet.'),
+              why: none ? 'The plugins were updated: restart DSH to use this.' : null,
+              control: h('div', { className: 'kbmem-acts' },
+                saves > 0 ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'tidy-open', onClick: openReview }, 'Review ' + String(saves)) : null,
+                h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'tidy-scan', disabled: scanning || none || tidy.loaded !== true, onClick: scan }, Ico('broom'), scanning ? 'Looking…' : 'Clean up now')) }),
+            h(SettingRow, { label: 'Run automatically', locked: true, chip: PlanChip('Coming next'), desc: 'Every day or week, or every 50 new items, and ask you before changing anything.',
+              control: h(Seg, { value: 'off', label: 'Run automatically', onChange: () => {}, items: [{ v: 'off', l: 'Off' }, { v: 'start', l: 'When DSH starts' }, { v: 'daily', l: 'Daily' }, { v: 'weekly', l: 'Weekly' }] }) }),
+            h(SettingRow, { label: 'Study model judges the unclear cases', locked: true, chip: PlanChip('Coming next'), desc: 'Only the groups that look alike but are not identical would be sent to it, never the whole list.',
+              control: h(YesNo, { name: 'Study model judges the unclear cases', value: false, onChange: () => {} }) }),
+            h(SettingRow, { label: 'Pinned memories', desc: 'Never removed by a tidy-up.', control: h('span', { className: 'kbmem-chip' }, 'Always protected') })),
+          h('section', { key: 'log', className: 'kbmem-sec', 'data-sec': 'tidy-log' }, h('h2', null, 'Recent tidy-ups'),
+            log.length === 0 ? h('div', { className: 'kbmem-srow' }, h('div', { className: 'desc' }, 'Nothing yet.')) : log.slice(0, 10).map((l) => h('div', { key: l.id, className: 'kbmem-run', 'data-run': l.id },
+              h('div', { className: 'when' }, whenLabel(l.at)), h('div', { className: 'kbmem-grow' }, logWords(l.src, l), h('div', { className: 'kbmem-tiny' }, 'Local scan')),
+              l.canUndo ? h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-log-undo', onClick: () => undo(l) }, Ico('undo'), 'Undo')
+                : h('span', { className: 'kbmem-tiny' }, l.undone ? 'Undone' : 'Too old to undo'))))
+        ]
+      }
+
+      const OptionsView = ({ status, settings, back, notify, refresh, refreshKey, tidy, scan, scanning, openReview }) => {
         const cloud = status.connected
         const mem = settings.memory
         const les = settings.lessons
@@ -746,7 +1083,8 @@ window.__ModuleLoader__.load({
               why: les !== null && les.lessons !== true ? 'Turn on Lessons learned first.' : null,
               control: h(YesNo, { name: 'Lessons system context', value: les !== null && les.context === true && les.lessons === true, onChange: (v) => setLes({ context: v }) }) }),
             h(SettingRow, { label: 'Share lessons with your team', desc: 'Members can propose a lesson; an admin validates it before your team’s agents use it.', locked: true, chip: PlanChip('Team · soon'),
-              why: 'Team lessons are not built yet.', control: h(YesNo, { name: 'Share lessons with your team', value: false, onChange: () => {} }) })))
+              why: 'Team lessons are not built yet.', control: h(YesNo, { name: 'Share lessons with your team', value: false, onChange: () => {} }) })),
+          h(TidyOptions, { tidy, scan, scanning, openReview, notify, bump: refresh }))
       }
 
       function Page() {
@@ -758,16 +1096,32 @@ window.__ModuleLoader__.load({
         const bump = useCallback(() => setRefreshKey((k) => k + 1), [])
         const status = useStatus(refreshKey)
         const settings = useSettings(refreshKey)
+        const [tidy, adopt] = useTidy(refreshKey)
+        const [scanning, setScanning] = useState(false)
+        const [hiddenKey, setHiddenKey] = useState(readHidden)
+        const hideBanner = () => { const k = scanKey(tidy); writeHidden(k); setHiddenKey(k) }
         const notify = useCallback((message, undo) => {
           setToast({ message, undo })
           if (timer.current !== null) clearTimeout(timer.current)
           timer.current = setTimeout(() => setToast(null), 5000)
         }, [])
         useEffect(() => () => { if (timer.current !== null) clearTimeout(timer.current) }, [])
+        // Looking only reads: both hosts scan on this machine, and each can fail alone (memories need the cloud account).
+        const scan = async () => {
+          setScanning(true)
+          const [m, l] = await Promise.all([api(TIDY_SOURCES.mem.base + '/scan', {}), api(TIDY_SOURCES.les.base + '/scan', {})])
+          setScanning(false)
+          if (asTidyView(m) === null && asTidyView(l) === null) { notify(friendlyError(m.error === undefined || m.error === 'indisponible' ? l.error : m.error)); return }
+          adopt(m, l)
+          setView('review')
+        }
+        const toReview = () => setView('review')
         return h('div', { className: 'kbmem-page', 'data-kbmem': view },
           view === 'options'
-            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey })
-            : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey }),
+            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey, tidy, scan, scanning, openReview: toReview })
+            : view === 'review'
+              ? h(ReviewView, { key: scanKey(tidy), tidy, back: () => setView('main'), notify, bump, scan, scanning })
+              : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview: toReview }),
           toast !== null ? h('div', { className: 'kbmem-toast', role: 'status', 'aria-live': 'polite' }, toast.message,
             toast.undo ? h('button', { type: 'button', 'data-act': 'undo', onClick: () => { const u = toast.undo; setToast(null); u() } }, 'Undo') : null) : null)
       }
@@ -791,7 +1145,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
