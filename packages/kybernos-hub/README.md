@@ -16,11 +16,19 @@ are wrapped in try/catch; a half that fails is skipped (the host logs it).
 
 ## Suite panel
 
-A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the 25 modules of `catalog.json`
-in 6 families. Installed state and switches come from DSH's native plugin manager; the DSH version from
+A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the 26 modules of `catalog.json`
+in 7 families. Installed state and switches come from DSH's native plugin manager; the DSH version from
 `/kybernos-maintenance/state`, if present. A module with a `plugins.bundle.config` screen gets a Settings button.
 
-- **Grid or list.** Grid: cards grouped by family. List: one flat row per module (grip, family
+- **Featured, then the rest.** The default tab is *Featured*: the six most advanced modules (`vedette` = rank in the
+  catalogue) as larger cards with a tagline and the full description. *All*, *Installed*, *Available* and *Updates* follow.
+  Family chips filter (there are no group headings), and the search matches the human title too.
+- **The artwork is the module's glyph** on a tile coloured by its family (`glyphe` and the family's `couleur` come from the
+  catalogue; the 32px three-tone glyphs live in the client). Cards show the human title (`titre`), the id and the version.
+- **The module's page.** A click (or Enter) on a card or a row opens it: header with the actions, *Description* (what it does,
+  from the catalogue) and *Compatibility* (your DSH, the suite's tested range, the verdict), and a details column. Nothing on
+  it that the catalogue does not say. A compatibility chip shows on a card only when DSH is outside the tested range.
+- **Grid or list.** Grid: one flat grid of cards. List: one flat row per module (grip, family
   tag, status, switch, install/update, Settings, up/down). Filters and search work in both.
 - **Your order.** Drag a row, or use the up/down buttons; with a filter on, a row moves relative
   to its visible neighbour. "Reset order" shows once an order is set. Order and view live in this
@@ -56,5 +64,5 @@ and a banner offers a confirmed "Restart DSH".
 
 Run `for t in test*.mjs; do node "$t"; done` in this folder: `test-boot-guard.mjs` (verdicts, safe mode),
 `test-host.mjs` (routes, client beacons), `test-suite-host.mjs` (activation, install, routes),
-`test-suite-order.mjs` (order and view helpers). `scripts/test-suite-gui.mjs` renders the real panel in a
+`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, title, verdict, Featured and family filters). `scripts/test-suite-gui.mjs` renders the real panel in a
 browser (needs Playwright and React 18; skipped otherwise).

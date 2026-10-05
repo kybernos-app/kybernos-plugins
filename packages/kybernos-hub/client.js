@@ -126,20 +126,35 @@ window.__ModuleLoader__.load({
       return bundle.enabled === true ? 'active' : 'off'
     }
 
-    /** Pure. Filter + search; keeps the order it is given. `installes` is a Map name → bundle. */
-    const filtrer = ({ modules, filtre, requete, installes }) => {
+    /** Pure. The title a module shows: its human name, the id when the catalogue has none. */
+    const titreDe = (m) => (m !== null && m !== undefined && typeof m.titre === 'string' && m.titre !== '' ? m.titre : String(m.id))
+
+    /** Pure. Is the installed DSH inside the range the suite was tested on? `compat` = the maintenance payload's
+     *  { min, max, horsZone } (null when unknown). 'ok' | 'hors' | 'inconnu'. */
+    const verdictCompat = (compat) => {
+      if (compat === null || compat === undefined) return 'inconnu'
+      return compat.horsZone === true ? 'hors' : 'ok'
+    }
+
+    /** Pure. Filter + search. `filtre` is all | featured | installed | available | updates; `famille` ('' = every family).
+     *  It keeps the order it is given, except Featured, which follows the catalogue's rank (`vedette`). `installes` is a
+     *  Map name → bundle. */
+    const filtrer = ({ modules, filtre, requete, installes, famille }) => {
       const q = String(requete || '').trim().toLowerCase()
-      return modules.filter((m) => {
+      const out = modules.filter((m) => {
+        if (famille !== undefined && famille !== '' && m.famille !== famille) return false
         if (q !== '') {
-          const hay = (m.id + ' ' + m.promesse.fr + ' ' + m.promesse.en).toLowerCase()
+          const hay = (m.id + ' ' + titreDe(m) + ' ' + m.promesse.fr + ' ' + m.promesse.en).toLowerCase()
           if (hay.indexOf(q) < 0) return false
         }
         const b = installes.get(m.nom)
+        if (filtre === 'featured') return typeof m.vedette === 'number'
         if (filtre === 'installed') return b !== undefined
         if (filtre === 'available') return b === undefined
         if (filtre === 'updates') return b !== undefined && typeof b.version === 'string' && comparerVersions(b.version, m.version) < 0
         return true
       })
+      return filtre === 'featured' ? out.slice().sort((x, y) => x.vedette - y.vedette) : out
     }
 
     // ── Order and view: pure helpers first, then a thin, total storage layer ─────────
@@ -265,19 +280,35 @@ window.__ModuleLoader__.load({
       '.kbsu-search{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
       '.kbsu-search input{flex:1;min-width:0;background:transparent;border:0;color:inherit;font:inherit;padding:8px 0;outline:none}',
       '.kbsu-summary{font-size:12.5px;color:var(--dsw-alias-label-tertiary);min-height:1.4em}',
-      '.kbsu-fam{display:flex;flex-direction:column;gap:10px}',
-      '.kbsu-fam h5{margin:0;font-size:15px;font-weight:600;display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}',
-      '.kbsu-fam h5 span{font-weight:400;color:var(--dsw-alias-label-tertiary);font-size:13px}',
+      // family filter chips (no group headings: the chips filter, each card carries its family)
+      '.kbsu-fams{display:flex;flex-wrap:wrap;gap:6px}',
+      '.kbsu-fb{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);font-size:12.5px}',
+      '.kbsu-fb[aria-pressed="true"]{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-tertiary)}',
+      '.kbsu-fb i,.kbsu-chip.fam i{width:8px;height:8px;border-radius:3px;background:var(--c);display:inline-block}',
+      '.kbsu-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:600;white-space:nowrap}',
+      '.kbsu-chip.fam{border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);font-weight:500}',
+      '.kbsu-chip.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-state-success-primary)}',
+      '.kbsu-chip.warn{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-state-warn-primary)}',
       '.kbsu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}',
       '.kbsu-card{display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
       '.kbsu-card.open{grid-column:1/-1}',
       '.kbsu-card.dim{opacity:.85}',
       '.kbsu-top{display:flex;gap:10px;align-items:flex-start}',
-      '.kbsu-ico{width:34px;height:34px;border-radius:9px;background:var(--dsw-alias-bg-layer-2);display:grid;place-items:center;color:var(--dsw-alias-label-secondary);flex:none}',
+      // The module's artwork: a glyph on a tile coloured by its family (--c).
+      '.kbsu-ico{width:40px;height:40px;border-radius:11px;background:radial-gradient(120% 120% at 20% 10%,color-mix(in srgb,var(--c) 70%,#fff) 0,var(--c) 38%,color-mix(in srgb,var(--c) 55%,#000) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 6px rgba(0,0,0,.18);display:grid;place-items:center;flex:none}',
+      '.kbsu-ico svg{width:26px;height:26px}.kbsu-ico.mid{width:52px;height:52px;border-radius:14px}.kbsu-ico.mid svg{width:35px;height:35px}.kbsu-ico.big{width:76px;height:76px;border-radius:19px}.kbsu-ico.big svg{width:51px;height:51px}',
+      '.kbsu svg .a{fill:rgba(255,255,255,.30)}.kbsu svg .b{fill:rgba(255,255,255,.58)}.kbsu svg .w{fill:#fff}.kbsu svg .d{fill:rgba(0,0,0,.22)}.kbsu svg .l{fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}',
       '.kbsu-name{min-width:0;flex:1}',
-      '.kbsu-name b{font:600 13px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}',
-      '.kbsu-name small{display:block;color:var(--dsw-alias-label-tertiary);font:12px ui-monospace,Menlo,monospace}',
-      '.kbsu-promise{margin:0}',
+      '.kbsu-name b{display:block;font-size:14.5px;font-weight:650;overflow-wrap:anywhere}',
+      '.kbsu-name small{display:block;color:var(--dsw-alias-label-tertiary);font:11.5px ui-monospace,Menlo,monospace}',
+      '.kbsu-card{cursor:pointer}.kbsu-card:hover{border-color:var(--dsw-alias-label-tertiary)}.kbsu-card.open{cursor:default}',
+      '.kbsu-row{cursor:pointer}',
+      // Featured: the same cards, larger, with the tagline and the full description
+      '.kbsu-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}',
+      '.kbsu-vedette{padding:16px;gap:12px}',
+      '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#ff7a1a;font-weight:700}',
+      '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}',
+      '.kbsu-promise{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px}',
       '.kbsu-badges{display:flex;flex-wrap:wrap;gap:6px}',
       '.kbsu-b{font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;padding:4px 7px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary)}',
       '.kbsu-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:auto}',
@@ -289,6 +320,28 @@ window.__ModuleLoader__.load({
       '.kbsu-sw.on{background:#ff7a1a;border-color:#ff7a1a}.kbsu-sw.on i{inset-inline-start:18px;background:#fff}',
       '.kbsu-note{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere;white-space:pre-line}',
       '.kbsu-cfg{border-top:1px solid var(--dsw-alias-border-l1);padding-top:12px}',
+      // the module's own page
+      '.kbsu-crumb{display:flex;gap:8px;align-items:center;color:var(--dsw-alias-label-secondary)}',
+      '.kbsu-hero{display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:20px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
+      '.kbsu-htitle{flex:1;min-width:220px;display:flex;flex-direction:column;gap:6px}',
+      '.kbsu-htitle h4{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em}',
+      '.kbsu-htitle p{margin:0;color:var(--dsw-alias-label-secondary)}',
+      '.kbsu-hact{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
+      '.kbsu-cols{display:grid;grid-template-columns:minmax(0,1fr) 240px;gap:14px;align-items:start}',
+      '.kbsu-panel{border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
+      '.kbsu-tabs{display:flex;gap:4px;padding:0 14px;border-bottom:1px solid var(--dsw-alias-border-l1)}',
+      '.kbsu-tabs button{border:0;background:none;height:42px;padding:0 10px;color:var(--dsw-alias-label-secondary);border-bottom:2px solid transparent;font:inherit}',
+      '.kbsu-tabs button[aria-selected="true"]{color:var(--dsw-alias-label-primary);border-color:#ff7a1a}',
+      '.kbsu-body{padding:18px;display:flex;flex-direction:column;gap:16px}',
+      '.kbsu-body p{margin:0;color:var(--dsw-alias-label-secondary);max-width:68ch}',
+      '.kbsu-body h5{margin:0;font-size:14px}',
+      '.kbsu-ticks{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}',
+      '.kbsu-ticks li{display:flex;gap:10px;align-items:flex-start;color:var(--dsw-alias-label-secondary)}',
+      '.kbsu-ticks li::before{content:"✓";flex:none;width:18px;height:18px;border-radius:6px;margin-top:1px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--dsw-alias-label-primary);background:color-mix(in srgb,var(--c) 30%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 60%,transparent)}',
+      '.kbsu-dl{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px 10px;font-size:13px;margin:0}',
+      '.kbsu-dl dt{color:var(--dsw-alias-label-tertiary)}.kbsu-dl dd{margin:0;overflow-wrap:anywhere}',
+      '.kbsu-side{padding:16px;display:flex;flex-direction:column;gap:12px}',
+      '@media (max-width:700px){.kbsu-cols{grid-template-columns:1fr}.kbsu-fgrid{grid-template-columns:1fr}}',
       '.kbsu-empty{padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary);border:1px dashed var(--dsw-alias-border-l2);border-radius:12px}',
       // view toggle, order line, screen-reader announcements
       '.kbsu-seg.view button{display:inline-flex;align-items:center;gap:6px}',
@@ -323,14 +376,41 @@ window.__ModuleLoader__.load({
       '@media (max-width:520px){.kbsu-headr{align-items:flex-start}.kbsu-meta{justify-content:flex-start}}'
     ].join('\n')
 
+    // The artwork of a module: a 32px glyph in three tones (a / b translucent fills, l strokes, w solid, d shade), drawn on a
+    // tile coloured by the module's family. The catalogue names the glyph (`glyphe`); an unknown name falls back to the cube.
+    const GLYPHES = {
+      cube:'<path class="a" d="M16 3.5l11.5 6.5v12L16 28.5 4.5 22V10z"/><path class="b" d="M16 16l11.5-6v12L16 28.5z"/><path class="l" d="M16 3.5l11.5 6.5v12L16 28.5 4.5 22V10zM4.5 10L16 16l11.5-6M16 16v12.5"/><circle class="w" cx="16" cy="16" r="1.8"/>',
+      palette:'<path class="a" d="M16 3a13 13 0 1 0 0 26c2 0 3-1.2 3-2.6 0-1.9-1.6-2.2-1.6-3.8 0-1.4 1.1-2.2 2.6-2.2H23a6 6 0 0 0 6-6C29 8 23.5 3 16 3z"/><path class="l" d="M16 3a13 13 0 1 0 0 26c2 0 3-1.2 3-2.6 0-1.9-1.6-2.2-1.6-3.8 0-1.4 1.1-2.2 2.6-2.2H23a6 6 0 0 0 6-6C29 8 23.5 3 16 3z"/><circle class="w" cx="9.5" cy="14" r="2"/><circle class="w" cx="14" cy="8.5" r="2"/><circle class="w" cx="20.5" cy="9" r="2"/><circle class="b" cx="9" cy="20" r="2"/>',
+      lang:'<rect class="a" x="3" y="4" width="17" height="14" rx="4"/><path class="d" d="M9 18l-1 5 5-4z"/><path class="l" d="M7.5 13.5L11.5 7l4 6.5M9 11.5h5"/><rect class="b" x="12" y="13" width="17" height="14" rx="4"/><path class="l" d="M17.5 17.5h8M21.5 16v1.5M18.5 24c3-1.5 4.5-3.5 5.2-6.5M24.5 24c-3-1-4.5-3-5-6.5"/>',
+      chat:'<rect class="a" x="3" y="4" width="20" height="14" rx="4"/><rect class="b" x="9" y="12" width="20" height="14" rx="4"/><path class="l" d="M13.5 17.5h11M13.5 21h6"/><circle class="w" cx="8" cy="9" r="1.4"/><circle class="w" cx="12.5" cy="9" r="1.4"/><circle class="w" cx="17" cy="9" r="1.4"/>',
+      info:'<circle class="a" cx="16" cy="16" r="13"/><circle class="l" cx="16" cy="16" r="13"/><circle class="b" cx="16" cy="16" r="8"/><path class="l" d="M16 14.5v6.5"/><circle class="w" cx="16" cy="10.7" r="1.4"/>',
+      bolt:'<path class="a" d="M18.5 2L6 18h8l-2.5 12L26 12h-8.5z"/><path class="l" d="M18.5 2L6 18h8l-2.5 12L26 12h-8.5z"/><path class="w" d="M26 3.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8zM5 6l.6 1.4L7 8l-1.4.6L5 10l-.6-1.4L3 8l1.4-.6z"/>',
+      slash:'<rect class="a" x="3" y="3.5" width="26" height="25" rx="7"/><rect class="l" x="3" y="3.5" width="26" height="25" rx="7"/><path class="l" d="M19 9l-6 14"/><path class="b" d="M7.5 22h5v2.5h-5zM20 22h4.5v2.5H20z"/>',
+      refresh:'<circle class="a" cx="16" cy="16" r="12"/><path class="l" d="M6 14a10 10 0 0 1 17.5-5.5L26 11M26 5v6h-6M26 18a10 10 0 0 1-17.5 5.5L6 21M6 27v-6h6"/><circle class="w" cx="16" cy="16" r="2.6"/>',
+      cpu:'<path class="l" d="M11 2v4M16 2v4M21 2v4M11 26v4M16 26v4M21 26v4M2 11h4M2 16h4M2 21h4M26 11h4M26 16h4M26 21h4"/><rect class="a" x="6" y="6" width="20" height="20" rx="4"/><rect class="l" x="6" y="6" width="20" height="20" rx="4"/><rect class="b" x="11" y="11" width="10" height="10" rx="2"/><path class="d" d="M13.5 16h5M16 13.5v5"/>',
+      home:'<path class="a" d="M3 15L16 4l13 11v12H3z"/><path class="l" d="M3 15L16 4l13 11M6 13v14h20V13"/><rect class="b" x="11.5" y="14" width="9" height="9" rx="2"/><path class="l" d="M14 17h4M14 20h4"/>',
+      route:'<circle class="b" cx="6.5" cy="16" r="3.5"/><path class="l" d="M10 16h5.5c2 0 3-2.5 5-6.5M15.5 16c2 0 3 0 5 0M15.5 16c2 0 3 2.5 5 6.5"/><rect class="a" x="21" y="4" width="8" height="8" rx="2.5"/><rect class="a" x="21" y="12.5" width="8" height="7" rx="2.5"/><rect class="b" x="21" y="21" width="8" height="8" rx="2.5"/><path class="l" d="M23 25l1.6 1.8L27.4 23"/><path class="l" d="M23 7l4 2M27 7l-4 2"/>',
+      flow:'<rect class="a" x="3" y="5" width="17" height="5" rx="2.5"/><rect class="b" x="3" y="13.5" width="26" height="5" rx="2.5"/><rect class="a" x="3" y="22" width="12" height="5" rx="2.5"/><path class="w" d="M22 6.8l5 .9-5 .9z"/><path class="l" d="M25 22v7M25 22.5l5 1.8-5 1.8"/>',
+      slides:'<rect class="a" x="3" y="4" width="26" height="18" rx="3"/><rect class="l" x="3" y="4" width="26" height="18" rx="3"/><path class="b" d="M8 19v-5h3v5zM13 19v-8h3v8zM18 19v-3h3v3z"/><path class="l" d="M23 14l2.5-3"/><path class="l" d="M10 27h12M16 22v5"/>',
+      bricks:'<path class="a" d="M3 20l7 4v5l-7-4z"/><path class="b" d="M10 24l9-5v5l-9 5z"/><path class="a" d="M10 12l7 4-7 4-7-4z"/><path class="b" d="M17 7l7 4-7 4-7-4z"/><path class="l" d="M10 12l7 4-7 4-7-4zM17 7l7 4-7 4-7-4zM3 20l7 4 9-5"/><circle class="w" cx="17" cy="11" r="1.2"/><circle class="w" cx="10" cy="16" r="1.2"/>',
+      box3d:'<path class="a" d="M16 3l12 7v12L16 29 4 22V10z"/><path class="l" d="M16 3l12 7v12L16 29 4 22V10zM4 10l12 7 12-7M16 17v12"/><path class="b" d="M16 17l12-7v12L16 29z"/><circle class="w" cx="16" cy="3" r="1.6"/><circle class="w" cx="28" cy="10" r="1.6"/><circle class="w" cx="4" cy="10" r="1.6"/><circle class="w" cx="16" cy="29" r="1.6"/>',
+      app:'<rect class="a" x="5" y="3" width="22" height="26" rx="6"/><rect class="l" x="5" y="3" width="22" height="26" rx="6"/><rect class="b" x="9" y="8" width="14" height="9" rx="2.5"/><path class="l" d="M12 23.5h8"/><path class="w" d="M16 10.5v4M14 12.5h4"/>',
+      link:'<path class="l" d="M13 19a5 5 0 0 0 7 0l4-4a5 5 0 0 0-7-7l-1.5 1.5M19 13a5 5 0 0 0-7 0l-4 4a5 5 0 0 0 7 7l1.5-1.5"/><rect class="b" x="2" y="2" width="10" height="7" rx="2.5"/><rect class="b" x="20" y="23" width="10" height="7" rx="2.5"/><path class="d" d="M4.5 5.5h5M22.5 26.5h5"/>',
+      flowc:'<rect class="b" x="11" y="2.5" width="10" height="6" rx="2.5"/><path class="a" d="M16 12l6 4.5-6 4.5-6-4.5z"/><path class="l" d="M16 12l6 4.5-6 4.5-6-4.5zM16 8.5V12M16 21v3M22 16.5h3.5V24M10 16.5H6.5V24"/><rect class="b" x="2" y="24" width="9" height="6" rx="2"/><rect class="b" x="21" y="24" width="9" height="6" rx="2"/><rect class="a" x="11.5" y="24" width="9" height="6" rx="2"/>',
+      db:'<path class="a" d="M4 7v18c0 2.2 5.4 4 12 4s12-1.8 12-4V7z"/><ellipse class="b" cx="16" cy="7" rx="12" ry="4"/><path class="l" d="M4 7v18c0 2.2 5.4 4 12 4s12-1.8 12-4V7M4 16c0 2.2 5.4 4 12 4s12-1.8 12-4"/><ellipse class="l" cx="16" cy="7" rx="12" ry="4"/><circle class="w" cx="22" cy="23.5" r="1.3"/>',
+      play:'<rect class="a" x="3" y="5" width="26" height="18" rx="4"/><rect class="l" x="3" y="5" width="26" height="18" rx="4"/><circle class="b" cx="16" cy="14" r="5.5"/><path class="w" d="M14.6 11.5l4.4 2.5-4.4 2.5z"/><path class="l" d="M6 27h20"/><circle class="w" cx="14" cy="27" r="1.7"/>',
+      plug:'<path class="l" d="M11 3v6M21 3v6"/><path class="a" d="M7 9h18v6a9 9 0 0 1-18 0z"/><path class="l" d="M7 9h18v6a9 9 0 0 1-18 0zM16 24v5"/><circle class="b" cx="16" cy="14" r="3.5"/><path class="w" d="M26 4.5l1 2.3 2.3 1-2.3 1-1 2.3-1-2.3-2.3-1 2.3-1z"/>',
+      pc:'<rect class="a" x="3" y="5" width="26" height="17" rx="3"/><rect class="l" x="3" y="5" width="26" height="17" rx="3"/><path class="l" d="M10 27h12M16 22v5"/><path class="b" d="M20.5 18H12a3.5 3.5 0 1 1 .8-6.9 4.5 4.5 0 0 1 8.4 1.4 2.8 2.8 0 0 1-.7 5.5z"/>',
+      wrench:'<path class="a" d="M20.5 4.5a7 7 0 0 0-6.8 9L3.5 23.7a3 3 0 0 0 4.3 4.3L18 17.8a7 7 0 0 0 9-6.8l-4 4-3.6-.6-.6-3.6 4-4a7 7 0 0 0-2.3-.3z"/><path class="l" d="M20.5 4.5a7 7 0 0 0-6.8 9L3.5 23.7a3 3 0 0 0 4.3 4.3L18 17.8a7 7 0 0 0 9-6.8l-4 4-3.6-.6-.6-3.6 4-4a7 7 0 0 0-2.3-.3z"/><circle class="w" cx="7" cy="25" r="1.4"/>',
+      cloud:'<path class="a" d="M24 25H9a7 7 0 1 1 1.6-13.8A8 8 0 0 1 26 13.6 5.7 5.7 0 0 1 24 25z"/><path class="l" d="M24 25H9a7 7 0 1 1 1.6-13.8A8 8 0 0 1 26 13.6 5.7 5.7 0 0 1 24 25z"/><circle class="b" cx="16" cy="17.5" r="3"/><path class="l" d="M16 20.5v3"/>',
+      brain:'<rect class="d" x="7" y="9" width="21" height="19" rx="4"/><rect class="a" x="5" y="6.5" width="21" height="19" rx="4"/><rect class="b" x="9" y="3" width="19" height="19" rx="4"/><path class="l" d="M13.5 9.5h10M13.5 13h10M13.5 16.5h6"/><path class="w" d="M23.5 18.3l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z"/>',
+      doc:'<path class="a" d="M7 3h13l6 6v20H7z"/><path class="b" d="M20 3l6 6h-6z"/><path class="l" d="M7 3h13l6 6v20H7zM11.5 15h10M11.5 19h10M11.5 23h6"/><path class="w" d="M11 10.5h3M11 8h6"/>',
+      cal:'<rect class="a" x="3" y="6" width="26" height="22" rx="4"/><path class="b" d="M3 10a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><path class="l" d="M3 13h26M10 3v6M22 3v6"/><path class="l" d="M10 21l3 3 6-7"/>'
+}
+
     const ICONES = {
       box: 'M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7l8.7 5 8.7-5M12 22V12',
-      cpu: 'M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2ZM9 9h6v6H9ZM15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2',
-      users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75',
-      layout: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2ZM3 9h18M9 21V9',
       plug: 'M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z',
-      cloud: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z',
-      database: 'M12 3c4.97 0 9 1.34 9 3s-4.03 3-9 3-9-1.34-9-3 4.03-3 9-3ZM3 6v6c0 1.66 4.03 3 9 3s9-1.34 9-3V6M3 12v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6',
       check: 'M20 6 9 17l-5-5',
       alert: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4M12 17h.01',
       refresh: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5',
@@ -340,12 +420,16 @@ window.__ModuleLoader__.load({
       grip: 'M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01',
       up: 'm18 15-6-6-6 6',
       down: 'm6 9 6 6 6-6',
-      reset: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5'
+      reset: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8M3 3v5h5',
+      back: 'm15 18-6-6 6-6'
     }
 
     const construirePanneau = (React, scope, ctx) => {
       const h = React.createElement
       const ic = (nom, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONES[nom] || ICONES.box }))
+      // The module's artwork: its glyph on a tile coloured by its family. `taille` = '' | 'mid' | 'big'.
+      const artwork = (m, fam, taille) => h('span', { className: 'kbsu-ico' + (taille ? ' ' + taille : ''), style: { '--c': (fam && fam.couleur) || '#5b6fd6' }, 'aria-hidden': 'true' },
+        h('svg', { viewBox: '0 0 32 32', dangerouslySetInnerHTML: { __html: GLYPHES[m.glyphe] || GLYPHES.cube } }))
       const slots = scope.slots
       const gestionnaire = () => {
         try {
@@ -375,7 +459,10 @@ window.__ModuleLoader__.load({
 
       const Panneau = () => {
         const [charge, setCharge] = React.useState({ etat: 'loading', suite: null, bundles: null, maint: null })
-        const [filtre, setFiltre] = React.useState('all')
+        const [filtre, setFiltre] = React.useState('featured')
+        const [famille, setFamille] = React.useState('')
+        const [detail, setDetail] = React.useState(null)
+        const [ongletFiche, setOngletFiche] = React.useState('description')
         const [requete, setRequete] = React.useState('')
         const [occupes, setOccupes] = React.useState({})
         const [notes, setNotes] = React.useState({})
@@ -452,8 +539,9 @@ window.__ModuleLoader__.load({
         const horsZone = compat !== null && compat.horsZone === true
         const fullOrder = effectiveOrder(modules, order)
         const custom = isCustomOrder(modules, order)
-        const visibles = filtrer({ modules: applyOrder(modules, order), filtre, requete, installes })
+        const visibles = filtrer({ modules: applyOrder(modules, order), filtre, requete, installes, famille })
         const nbInstalles = modules.filter((m) => installes.has(m.nom)).length
+        const nbVedettes = modules.filter((m) => typeof m.vedette === 'number').length
         const nbMaj = modules.filter((m) => { const b = installes.get(m.nom); return b !== undefined && typeof b.version === 'string' && comparerVersions(b.version, m.version) < 0 }).length
         const nbEnAttente = Object.keys(enAttente).length
 
@@ -537,15 +625,69 @@ window.__ModuleLoader__.load({
           return parts
         }
 
-        const carte = (m) => {
+        // A click on a card or a row opens the module's page, unless it lands on a control (a button, the switch, the
+        // module's own settings panel). Enter and Space do the same from the keyboard.
+        const sourisSurControle = (e) => e.target.closest('button,a,input,select,textarea,[role="switch"],.kbsu-cfg') !== null
+        const ouvrirFiche = (id) => (e) => { if (!sourisSurControle(e)) { setDetail(id); setOngletFiche('description') } }
+        const clavierFiche = (id) => (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); setDetail(id); setOngletFiche('description') } }
+        const verdict = verdictCompat(compat)
+        const chipFamille = (fam) => h('span', { className: 'kbsu-chip fam', style: { '--c': fam.couleur } }, h('i', null), kt(fam.fr, fam.en))
+        // Compatibility speaks up on a card only when something is wrong; the full verdict is on the module's page.
+        const chipCompat = (pleine) => verdict === 'hors'
+          ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur votre DSH', 'Not tested on your DSH'))
+          : (pleine && verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible avec DSH ', 'Works with DSH ') + (charge.maint && charge.maint.global ? charge.maint.global : '')) : null)
+
+        const carte = (m, vedette) => {
           const p = cardParts(m, false)
-          return h('article', { key: m.id, className: 'kbsu-card' + (p.estOuvert ? ' open' : '') + (p.etat === 'safe' ? ' dim' : ''), 'data-kb': 'suite-card', 'data-id': m.id, 'data-etat': p.etat },
-            h('div', { className: 'kbsu-top' }, h('div', { className: 'kbsu-ico' }, ic(p.fam.icone)), h('div', { className: 'kbsu-name' }, h('b', null, m.id), h('small', null, 'v' + (p.bundle !== null && typeof p.bundle.version === 'string' ? p.bundle.version : m.version)))),
-            h('p', { className: 'kbsu-promise' }, kt(m.promesse.fr, m.promesse.en)),
-            h('div', { className: 'kbsu-badges' }, h('span', { className: 'kbsu-b' }, m.socle ? kt('SOCLE', 'BASE') : 'CORE')),
+          const version = 'v' + (p.bundle !== null && typeof p.bundle.version === 'string' ? p.bundle.version : m.version)
+          return h('article', { key: m.id, className: 'kbsu-card' + (vedette ? ' kbsu-vedette' : '') + (p.estOuvert ? ' open' : '') + (p.etat === 'safe' ? ' dim' : ''), 'data-kb': 'suite-card', 'data-id': m.id, 'data-etat': p.etat, tabIndex: 0, 'aria-label': titreDe(m) + ', ' + kt('ouvrir sa page', 'open its page'), onClick: ouvrirFiche(m.id), onKeyDown: clavierFiche(m.id) },
+            h('div', { className: 'kbsu-top' }, artwork(m, p.fam, vedette ? 'mid' : ''), h('div', { className: 'kbsu-name' },
+              vedette && m.accroche ? h('div', { className: 'kbsu-tag' }, kt(m.accroche.fr, m.accroche.en)) : null,
+              h('b', null, titreDe(m)), h('small', null, m.id + ' · ' + version))),
+            h('p', { className: 'kbsu-promise' }, vedette && m.description ? kt(m.description.fr, m.description.en) : kt(m.promesse.fr, m.promesse.en)),
+            h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), m.socle ? h('span', { className: 'kbsu-b' }, kt('SOCLE', 'BASE')) : null, chipCompat(false)),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
             h('div', { className: 'kbsu-foot' }, p.statut, p.install, p.reglages !== null || p.sw !== null ? h('span', { className: 'kbsu-right' }, p.reglages, p.sw) : null),
             p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null)
+        }
+
+        // ── The module's own page: header, what it does, compatibility, details. Nothing on it that the catalogue does not say.
+        const tailleTexte = (ko) => (typeof ko !== 'number' ? '—' : (ko >= 1000 ? (ko / 1000).toFixed(1) + ' MB' : ko + ' KB'))
+        const fiche = (m) => {
+          const p = cardParts(m, false)
+          const installee = p.bundle !== null && typeof p.bundle.version === 'string' ? p.bundle.version : null
+          const compatLue = charge.maint && charge.maint.compat ? charge.maint.compat : null
+          const dsh = charge.maint && charge.maint.global ? charge.maint.global : '—'
+          const accroche = m.accroche ? kt(m.accroche.fr, m.accroche.en) : kt(m.promesse.fr, m.promesse.en)
+          const texte = m.description ? kt(m.description.fr, m.description.en) : kt(m.promesse.fr, m.promesse.en)
+          const onglet = (id, libelle) => h('button', { key: id, type: 'button', role: 'tab', 'aria-selected': ongletFiche === id ? 'true' : 'false', 'data-kb': 'suite-onglet-' + id, onClick: () => setOngletFiche(id) }, libelle)
+          const corps = ongletFiche === 'compat'
+            ? h('div', { className: 'kbsu-body' },
+              h('dl', { className: 'kbsu-dl' },
+                h('dt', null, kt('Votre DSH', 'Your DSH')), h('dd', null, dsh),
+                h('dt', null, kt('Zone testée', 'Tested range')), h('dd', null, compatLue !== null ? (compatLue.min || '?') + kt(' à ', ' to ') + (compatLue.max || '?') : kt('inconnue', 'unknown')),
+                h('dt', null, kt('Verdict', 'Verdict')), h('dd', null, verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible', 'Works with your DSH')) : verdict === 'hors' ? chipCompat(true) : kt('Inconnu', 'Unknown'))),
+              h('p', null, kt('Cette zone est celle de toute la suite : elle vient de dsh-compat.json, le contrat que le testeur de compatibilité applique à chaque installation et mise à jour.', 'This range is the whole suite’s: it comes from dsh-compat.json, the contract the compatibility check applies to every install and update.')))
+            : h('div', { className: 'kbsu-body', style: { '--c': p.fam.couleur } },
+              h('p', null, texte),
+              Array.isArray(m.points) && m.points.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Ce que ça fait', 'What it does')), h('ul', { className: 'kbsu-ticks' }, m.points.map((pt, i) => h('li', { key: i }, kt(pt.fr, pt.en))))) : null,
+              m.socle ? h('p', { className: 'kbsu-st' }, kt('Fait partie du socle : il est livré sur chaque poste et ne s’éteint pas.', 'Part of the base: it ships on every machine and cannot be switched off.')) : null)
+          return h('div', { className: 'kbsu-fiche', 'data-kb': 'suite-fiche', 'data-id': m.id, style: { display: 'flex', flexDirection: 'column', gap: 14 } },
+            h('div', { className: 'kbsu-crumb' }, h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-retour', onClick: () => setDetail(null) }, ic('back'), 'Kybernos Suite'), h('span', null, '/'), h('span', null, titreDe(m))),
+            h('section', { className: 'kbsu-hero' }, artwork(m, p.fam, 'big'),
+              h('div', { className: 'kbsu-htitle' }, h('h4', null, titreDe(m)), h('p', null, accroche), h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), p.statut, chipCompat(true))),
+              h('div', { className: 'kbsu-hact' }, p.install, p.reglages, p.sw)),
+            notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
+            p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null,
+            h('div', { className: 'kbsu-cols' },
+              h('main', { className: 'kbsu-panel' }, h('div', { className: 'kbsu-tabs', role: 'tablist' }, onglet('description', kt('Description', 'Description')), onglet('compat', kt('Compatibilité', 'Compatibility'))), corps),
+              h('aside', { className: 'kbsu-panel kbsu-side' }, h('b', null, kt('Détails', 'Details')),
+                h('dl', { className: 'kbsu-dl' },
+                  h('dt', null, 'Version'), h('dd', null, installee !== null && installee !== m.version ? installee + ' → ' + m.version : (installee || m.version)),
+                  h('dt', null, kt('Famille', 'Family')), h('dd', null, kt(p.fam.fr, p.fam.en)),
+                  h('dt', null, kt('Poids', 'Size')), h('dd', null, tailleTexte(m.poids_ko)),
+                  h('dt', null, 'Id'), h('dd', null, h('code', null, m.id)),
+                  h('dt', null, 'Source'), h('dd', null, kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))))
         }
 
         // ── Reordering (list view). The order is saved after every change, in this browser only.
@@ -604,27 +746,22 @@ window.__ModuleLoader__.load({
         const row = (m, i, n) => {
           const p = cardParts(m, true)
           const cls = 'kbsu-row' + (p.estOuvert ? ' open' : '') + (p.etat === 'safe' ? ' dim' : '') + (dragId === m.id ? ' dragging' : '') + (dropAt !== null && dropAt.id === m.id ? (dropAt.before ? ' drop-before' : ' drop-after') : '')
-          return h('li', { key: m.id, className: cls, 'data-kb': 'suite-row', 'data-id': m.id, 'data-etat': p.etat, draggable: !p.estOuvert, onDragStart: (e) => rowDragStart(e, m.id), onDragOver: (e) => rowDragOver(e, m.id), onDragLeave: rowDragLeave, onDrop: (e) => rowDrop(e, m.id), onDragEnd: dragEnd },
+          return h('li', { key: m.id, className: cls, 'data-kb': 'suite-row', 'data-id': m.id, 'data-etat': p.etat, draggable: !p.estOuvert, tabIndex: 0, 'aria-label': titreDe(m) + ', ' + kt('ouvrir sa page', 'open its page'), onClick: ouvrirFiche(m.id), onKeyDown: clavierFiche(m.id), onDragStart: (e) => rowDragStart(e, m.id), onDragOver: (e) => rowDragOver(e, m.id), onDragLeave: rowDragLeave, onDrop: (e) => rowDrop(e, m.id), onDragEnd: dragEnd },
             h('div', { className: 'kbsu-rowmain' },
               h('span', { className: 'kbsu-grip', draggable: true, 'data-kb': 'suite-grip', 'aria-hidden': 'true', title: kt('Glisser pour réordonner', 'Drag to reorder') }, ic('grip')),
-              h('div', { className: 'kbsu-ico' }, ic(p.fam.icone)),
-              h('div', { className: 'kbsu-rowname' }, h('b', { title: m.id }, m.id), h('span', { className: 'kbsu-promise', title: kt(m.promesse.fr, m.promesse.en) }, kt(m.promesse.fr, m.promesse.en))),
+              artwork(m, p.fam, ''),
+              h('div', { className: 'kbsu-rowname' }, h('b', { title: m.id }, titreDe(m)), h('span', { className: 'kbsu-promise', title: kt(m.promesse.fr, m.promesse.en) }, kt(m.promesse.fr, m.promesse.en))),
               h('span', { className: 'kbsu-famcol' }, h('span', { className: 'kbsu-b kbsu-famtag', title: p.fam.fr ? kt(p.fam.fr, p.fam.en) : undefined }, p.fam.fr ? kt(p.fam.fr, p.fam.en) : '')),
               p.statut,
               h('span', { className: 'kbsu-right kbsu-rowact' }, p.install, p.reglages, p.sw),
               h('span', { className: 'kbsu-mv' },
-                h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-up', disabled: i === 0, 'aria-label': kt('Monter ', 'Move up ') + m.id, title: kt('Monter', 'Move up'), onClick: () => moveRow(m.id, -1) }, ic('up')),
-                h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-down', disabled: i === n - 1, 'aria-label': kt('Descendre ', 'Move down ') + m.id, title: kt('Descendre', 'Move down'), onClick: () => moveRow(m.id, 1) }, ic('down')))),
+                h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-up', disabled: i === 0, 'aria-label': kt('Monter ', 'Move up ') + titreDe(m), title: kt('Monter', 'Move up'), onClick: () => moveRow(m.id, -1) }, ic('up')),
+                h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-down', disabled: i === n - 1, 'aria-label': kt('Descendre ', 'Move down ') + titreDe(m), title: kt('Descendre', 'Move down'), onClick: () => moveRow(m.id, 1) }, ic('down')))),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
             p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null)
         }
 
-        const familles = suite.catalogue.familles.map((f) => {
-          const items = visibles.filter((m) => m.famille === f.id)
-          if (items.length === 0) return null
-          return h('div', { key: f.id, className: 'kbsu-fam' }, h('h5', null, kt(f.fr, f.en), h('span', null, kt(f.ligne.fr, f.ligne.en))), h('div', { className: 'kbsu-grid' }, items.map(carte)))
-        })
-
+        const familleBtn = (id, libelle, couleur) => h('button', { key: id || 'all', type: 'button', className: 'kbsu-fb', 'data-kb': 'suite-fam-' + (id || 'all'), 'aria-pressed': famille === id ? 'true' : 'false', onClick: () => { setFamille(id); setResume('') } }, couleur ? h('i', { style: { '--c': couleur } }) : null, libelle)
         const segment = (id, libelle, n) => h('button', { key: id, type: 'button', 'aria-pressed': filtre === id ? 'true' : 'false', onClick: () => { setFiltre(id); setResume('') } }, libelle, h('span', { className: 'c' }, n))
         const dshVersion = charge.maint && charge.maint.global ? charge.maint.global : null
 
@@ -633,7 +770,7 @@ window.__ModuleLoader__.load({
         const orderLine = custom ? (orderSaved ? kt('Ordre personnalisé, enregistré dans ce navigateur', 'Custom order, saved in this browser') : kt('Ordre personnalisé, non enregistré (stockage du navigateur indisponible)', 'Custom order, not saved (browser storage unavailable)')) : kt('Ordre par défaut', 'Default order')
 
         return h('div', { className: 'kbsu', 'data-kb': 'suite', ref: rootRef },
-          h('div', { className: 'kbsu-head' },
+          detail !== null ? null : h('div', { className: 'kbsu-head' },
             h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
@@ -653,21 +790,23 @@ window.__ModuleLoader__.load({
                 : h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => setConfirmerRelance(true) }, kt('Relancer DSH', 'Restart DSH')),
             relance === 'error' ? h('span', { className: 'kbsu-st bad' }, kt('Relance impossible depuis ici : demandez à l’agent « relance DSH ».', 'Cannot restart from here: ask the agent to "restart DSH".')) : null) : null,
           mgr === null ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Gestionnaire de plugins indisponible.', 'Plugin manager unavailable.')), h('span', null, kt('Le catalogue s’affiche, mais l’état installé et les interrupteurs ne sont pas disponibles sur cette version de DSH.', 'The catalogue shows, but installed state and switches are unavailable on this DSH version.'))) : null,
-          h('div', { className: 'kbsu-bar' },
+          detail !== null ? null : h('div', { className: 'kbsu-bar' },
             h('div', { className: 'kbsu-seg', role: 'group', 'aria-label': kt('Filtre', 'Filter') },
-              segment('all', kt('Tous', 'All'), modules.length), segment('installed', kt('Installés', 'Installed'), nbInstalles), segment('available', kt('Disponibles', 'Available'), modules.length - nbInstalles), segment('updates', kt('Mises à jour', 'Updates'), nbMaj)),
+              segment('featured', kt('À la une', 'Featured'), nbVedettes), segment('all', kt('Tous', 'All'), modules.length), segment('installed', kt('Installés', 'Installed'), nbInstalles), segment('available', kt('Disponibles', 'Available'), modules.length - nbInstalles), segment('updates', kt('Mises à jour', 'Updates'), nbMaj)),
             h('label', { className: 'kbsu-search' }, ic('search'), h('input', { type: 'search', value: requete, placeholder: kt('Rechercher un module…', 'Search a module…'), 'aria-label': kt('Rechercher un module', 'Search a module'), onChange: (e) => { setRequete(e.target.value); setResume('') } })),
             h('span', { className: 'kbsu-right' },
-              h('div', { className: 'kbsu-seg view', role: 'group', 'aria-label': kt('Affichage', 'View') },
+              filtre === 'featured' ? null : h('div', { className: 'kbsu-seg view', role: 'group', 'aria-label': kt('Affichage', 'View') },
                 viewButton('grid', kt('Vue en grille', 'Grid view'), kt('Grille', 'Grid'), 'grid'), viewButton('list', kt('Vue en liste', 'List view'), kt('Liste', 'List'), 'list')),
               custom ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-order-reset', onClick: resetOrder }, ic('reset'), kt('Réinitialiser l’ordre', 'Reset order')) : null)),
-          h('div', { className: 'kbsu-subbar' },
+          detail !== null ? null : h('div', { className: 'kbsu-fams', role: 'group', 'aria-label': kt('Famille', 'Family') }, familleBtn('', kt('Toutes les familles', 'All families'), null), suite.catalogue.familles.map((f) => familleBtn(f.id, kt(f.fr, f.en), f.couleur))),
+          detail !== null ? null : h('div', { className: 'kbsu-subbar' },
             h('div', { className: 'kbsu-summary', role: 'status', 'aria-live': 'polite' }, resume || (nbInstalles + kt(' installés · ', ' installed · ') + (modules.length - nbInstalles) + kt(' disponibles', ' available') + (nbMaj > 0 ? ' · ' + nbMaj + kt(' mise(s) à jour', ' update(s)') : ''))),
             h('span', { className: 'kbsu-st' + (custom && !orderSaved ? ' warn' : ''), 'data-kb': 'suite-order-status' }, orderLine)),
           h('div', { className: 'kbsu-sr', role: 'status', 'aria-live': 'polite' }, announce),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 22 } }, view === 'list'
+          detail !== null ? null : h('div', { style: { display: 'flex', flexDirection: 'column', gap: 22 } }, view === 'list' && filtre !== 'featured'
             ? (visibles.length > 0 ? h('ul', { className: 'kbsu-list', role: 'list', 'data-kb': 'suite-list' }, visibles.map((m, i) => row(m, i, visibles.length))) : aucun)
-            : (familles.some((f) => f !== null) ? familles : aucun)))
+            : (visibles.length > 0 ? h('div', { className: filtre === 'featured' ? 'kbsu-fgrid' : 'kbsu-grid', 'data-kb': 'suite-grid' }, visibles.map((m) => carte(m, filtre === 'featured'))) : aucun)),
+          detail !== null ? (modules.filter((m) => m.id === detail)[0] !== undefined ? fiche(modules.filter((m) => m.id === detail)[0]) : null) : null)
       }
       return Panneau
     }
@@ -701,6 +840,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView } }
   }
 })

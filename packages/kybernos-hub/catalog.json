@@ -5,77 +5,51 @@
       "id": "base",
       "fr": "Fondations",
       "en": "Foundations",
-      "ligne": {
-        "fr": "Le socle, sur chaque poste.",
-        "en": "The base, on every machine."
-      },
-      "icone": "box"
+      "couleur": "#5b6fd6"
     },
     {
       "id": "models",
       "fr": "Modèles",
       "en": "Models",
-      "ligne": {
-        "fr": "N’importe quel modèle, y compris local.",
-        "en": "Any model, local ones included."
-      },
-      "icone": "cpu"
+      "couleur": "#8a5bd6"
     },
     {
       "id": "teams",
       "fr": "Équipes d’agents",
       "en": "Agent teams",
-      "ligne": {
-        "fr": "File d’attente, reprise, objectifs.",
-        "en": "Queue, resume, goals."
-      },
-      "icone": "users"
+      "couleur": "#1a9a8a"
     },
     {
       "id": "create",
       "fr": "Créer dans le chat",
       "en": "Create in the chat",
-      "ligne": {
-        "fr": "L’agent montre au lieu d’expliquer.",
-        "en": "The agent shows instead of explaining."
-      },
-      "icone": "layout"
+      "couleur": "#e8630a"
     },
     {
       "id": "data",
       "fr": "Données",
       "en": "Data",
-      "ligne": {
-        "fr": "Vos bases, lues et tracées dans le chat.",
-        "en": "Your databases, read and charted in the chat."
-      },
-      "icone": "database"
+      "couleur": "#0f8fb5"
     },
     {
       "id": "connect",
       "fr": "Connecteurs et machines",
       "en": "Connectors and machines",
-      "ligne": {
-        "fr": "Vos outils, des ordinateurs pour l’agent.",
-        "en": "Your tools, computers for the agent."
-      },
-      "icone": "plug"
+      "couleur": "#d6458a"
     },
     {
       "id": "cloud",
       "fr": "Cloud",
       "en": "Cloud",
-      "ligne": {
-        "fr": "Compte, mémoire, modèles du proxy.",
-        "en": "Account, memory, proxy models."
-      },
-      "icone": "cloud"
+      "couleur": "#3b8be0"
     }
   ],
   "modules": [
     {
       "id": "kybernos-plugin",
       "nom": "@local/kybernos",
+      "titre": "Kybernos Core",
+      "glyphe": "cube",
       "famille": "base",
       "palier": "core",
       "version": "1.0.0",
@@ -90,6 +64,8 @@
     {
       "id": "kybernos-hub",
       "nom": "@local/kybernos-hub",
+      "titre": "Suite",
+      "glyphe": "plug",
       "famille": "base",
       "palier": "core",
       "version": "0.1.0",
@@ -104,6 +80,8 @@
     {
       "id": "kybernos-theme",
       "nom": "@local/kybernos-theme",
+      "titre": "Theme",
+      "glyphe": "palette",
       "famille": "base",
       "palier": "core",
       "version": "0.1.0",
@@ -118,6 +96,8 @@
     {
       "id": "kybernos-language",
       "nom": "@local/kybernos-language",
+      "titre": "Language",
+      "glyphe": "lang",
       "famille": "base",
       "palier": "core",
       "version": "0.1.0",
@@ -132,6 +112,8 @@
     {
       "id": "kybernos-models",
       "nom": "@local/kybernos-models",
+      "titre": "Models",
+      "glyphe": "cpu",
       "famille": "models",
       "palier": "core",
       "version": "1.0.0",
@@ -141,11 +123,44 @@
       "promesse": {
         "fr": "Catalogue de modèles : recherche, comparaison, prix.",
         "en": "Model catalogue: search, compare, prices."
-      }
+      },
+      "vedette": 1,
+      "accroche": {
+        "fr": "Fournisseurs et modèles au même endroit",
+        "en": "Providers and models in one place"
+      },
+      "description": {
+        "fr": "Une page pour chaque fournisseur et chaque modèle que vos agents peuvent appeler. Ajoutez un fournisseur comme dans DSH, désactivez-en un sans le supprimer, demandez à un fournisseur quels modèles il propose, et comparez les modèles dans un tableau : capacités, prix, scores. La page native de DSH reste à un clic.",
+        "en": "One page for every provider and every model your agents can call. Add a provider the way DSH does, switch one off without deleting it, ask a provider which models it serves, and compare models in a table: capabilities, prices, scores. DSH’s native page stays one click away."
+      },
+      "points": [
+        {
+          "fr": "Fournisseurs en cartes : état de la clé, nombre de modèles, actions au survol, désactivation sans suppression",
+          "en": "Providers as cards: key state, model count, hover actions, disable without deleting"
+        },
+        {
+          "fr": "Tableau des modèles avec filtres par capacité, tri et fiche détaillée",
+          "en": "Models table with capability filters, sorting and a details sheet"
+        },
+        {
+          "fr": "Récupérer les modèles disponibles chez le fournisseur, avec recherche et tout sélectionner",
+          "en": "Fetch the available models from the provider, with search and select all"
+        },
+        {
+          "fr": "Une pastille qui dit quels modèles ne répondent plus, et pourquoi",
+          "en": "A chip that says which models stopped answering, and why"
+        },
+        {
+          "fr": "Les deux adaptateurs DeepSeek modifiables, avec leur catalogue de modèles",
+          "en": "Both DeepSeek adapters editable, with their model catalogue"
+        }
+      ]
     },
     {
       "id": "kybernos-skills",
       "nom": "@local/kybernos-skills",
+      "titre": "Skills",
+      "glyphe": "bolt",
       "famille": "base",
       "palier": "core",
       "version": "1.0.0",
@@ -160,6 +175,8 @@
     {
       "id": "kybernos-slash",
       "nom": "@local/kybernos-slash",
+      "titre": "Slash commands",
+      "glyphe": "slash",
       "famille": "base",
       "palier": "core",
       "version": "1.0.0",
@@ -174,6 +191,8 @@
     {
       "id": "kybernos-sessions",
       "nom": "@local/kybernos-sessions",
+      "titre": "Sessions",
+      "glyphe": "chat",
       "famille": "base",
       "palier": "core",
       "version": "1.0.0",
@@ -188,6 +207,8 @@
     {
       "id": "kybernos-auto",
       "nom": "@local/kybernos-auto",
+      "titre": "Auto routing",
+      "glyphe": "route",
       "famille": "models",
       "palier": "core",
       "version": "0.1.0",
@@ -197,11 +218,44 @@
       "promesse": {
         "fr": "Routage Auto : choisit un modèle de votre liste selon la classe de la demande.",
         "en": "Auto routing: picks a model from your list by request class."
-      }
+      },
+      "vedette": 2,
+      "accroche": {
+        "fr": "Choisit un modèle qui répond",
+        "en": "Picks a model that answers"
+      },
+      "description": {
+        "fr": "Le routage Auto envoie chaque étape déléguée vers le meilleur modèle de votre liste. Il pose d’abord une vraie question minuscule aux candidats, écarte ceux qui échouent et garde une chaîne de repli : une délégation n’attend jamais un modèle en panne. Chaque modèle écarté dit pourquoi et quand il sera réessayé.",
+        "en": "Auto routing sends each delegated step to the best model of your list. It asks the candidates a real, tiny question first, skips the ones that fail and keeps a fallback chain, so a delegation never waits on a model that is down. Every skipped model says why and when it will be tried again."
+      },
+      "points": [
+        {
+          "fr": "Sonde d’abord : un modèle doit répondre avant d’être choisi (verdict gardé 60 s)",
+          "en": "Probe first: a model must answer before it is chosen (verdict kept 60 s)"
+        },
+        {
+          "fr": "Un disjoncteur par modèle : une clé refusée le met en pause, un modèle instable après trois échecs",
+          "en": "A circuit breaker per model: a refused key pauses it, a flaky one after three failures"
+        },
+        {
+          "fr": "Une chaîne de repli de 10 modèles au plus, dans l’ordre de votre liste",
+          "en": "A fallback chain of at most 10 models, in the order of your list"
+        },
+        {
+          "fr": "Des raisons lisibles : clé refusée, modèle retiré, muet, limite de débit",
+          "en": "Readable reasons: key refused, model gone, silent, rate limited"
+        },
+        {
+          "fr": "La commande de l’agent est livrée avec le module",
+          "en": "The agent’s command ships with the module"
+        }
+      ]
     },
     {
       "id": "kybernos-relance",
       "nom": "@local/kybernos-relance",
+      "titre": "Relaunch",
+      "glyphe": "refresh",
       "famille": "base",
       "palier": "core",
       "version": "0.2.0",
@@ -216,6 +270,8 @@
     {
       "id": "kybernos-flow",
       "nom": "@local/kybernos-flow",
+      "titre": "Flow",
+      "glyphe": "flow",
       "famille": "teams",
       "palier": "core",
       "version": "1.0.0",
@@ -230,6 +286,8 @@
     {
       "id": "kybernos-composio",
       "nom": "@local/kybernos-composio",
+      "titre": "Connectors",
+      "glyphe": "plug",
       "famille": "connect",
       "palier": "core",
       "version": "1.0.0",
@@ -244,6 +302,8 @@
     {
       "id": "kybernos-cloud",
       "nom": "@local/kybernos-cloud",
+      "titre": "Kybernos Cloud",
+      "glyphe": "cloud",
       "famille": "cloud",
       "palier": "core",
       "version": "1.0.0",
@@ -258,6 +318,8 @@
     {
       "id": "kybernos-maintenance",
       "nom": "@local/kybernos-maintenance",
+      "titre": "About & Maintenance",
+      "glyphe": "info",
       "famille": "base",
       "palier": "core",
       "version": "0.1.0",
@@ -272,6 +334,8 @@
     {
       "id": "kybernos-bricks",
       "nom": "@local/kybernos-bricks",
+      "titre": "Bricks",
+      "glyphe": "bricks",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -286,6 +350,8 @@
     {
       "id": "kybernos-slides",
       "nom": "@local/kybernos-slides",
+      "titre": "Slides",
+      "glyphe": "slides",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -295,11 +361,40 @@
       "promesse": {
         "fr": "Decks écrits en direct dans la barre latérale.",
         "en": "Decks written live in the sidebar."
-      }
+      },
+      "vedette": 5,
+      "accroche": {
+        "fr": "Un deck écrit sous vos yeux",
+        "en": "A deck written before your eyes"
+      },
+      "description": {
+        "fr": "L’agent écrit un deck de slides en temps réel dans la barre latérale, caractère par caractère. Vous retouchez à la main (texte, pinceau), l’agent relit vos retouches et corrige, et chaque passage corrigé est souligné à l’écran.",
+        "en": "The agent writes a slide deck in real time in the right sidebar, character by character. You touch it up by hand (text, brush), the agent reads your edits back and corrects, and every corrected passage is highlighted on screen."
+      },
+      "points": [
+        {
+          "fr": "Six mises en page : titre, statement, puces, chiffre, citation, fin",
+          "en": "Six layouts: title, statement, bullets, figure, quote, end"
+        },
+        {
+          "fr": "Quatre thèmes : sombre, clair, corail, papier",
+          "en": "Four themes: dark, light, coral, paper"
+        },
+        {
+          "fr": "Vos retouches (texte et pinceau) sont relues par l’agent",
+          "en": "Your edits (text and brush) are read back by the agent"
+        },
+        {
+          "fr": "Les passages corrigés par l’agent reçoivent un halo vert",
+          "en": "Passages corrected by the agent get a green halo"
+        }
+      ]
     },
     {
       "id": "kybernos-modeleur",
       "nom": "@local/kybernos-modeleur",
+      "titre": "3D modeller",
+      "glyphe": "box3d",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -309,11 +404,36 @@
       "promesse": {
         "fr": "Modèles 2D et 3D pilotés par le chat.",
         "en": "2D and 3D models driven by the chat."
-      }
+      },
+      "vedette": 6,
+      "accroche": {
+        "fr": "2D et 3D, dessinés par l’agent",
+        "en": "2D and 3D, drawn by the agent"
+      },
+      "description": {
+        "fr": "L’agent dessine un modèle 2D ou 3D ; il s’anime dans la barre latérale, objet par objet, puis se relit. Les solides 3D s’orbitent.",
+        "en": "The agent draws a 2D or 3D model; it animates in the right sidebar, object by object, then plays back. 3D solids can be orbited."
+      },
+      "points": [
+        {
+          "fr": "Un moteur 2D à l’échelle et un moteur 3D de solides orbitables",
+          "en": "A to-scale 2D engine and an orbitable 3D solids engine"
+        },
+        {
+          "fr": "Pose objet par objet, calée sur l’horloge de l’hôte : un onglet en retard rattrape son retard",
+          "en": "Objects appear one by one on the host’s clock: a late tab catches up"
+        },
+        {
+          "fr": "Lecture, vitesses, curseur et relecture",
+          "en": "Play, speeds, cursor and replay"
+        }
+      ]
     },
     {
       "id": "kybernos-miniapps",
       "nom": "@local/kybernos-miniapps",
+      "titre": "Mini-apps",
+      "glyphe": "app",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -328,6 +448,8 @@
     {
       "id": "kybernos-computers",
       "nom": "@local/kybernos-computers",
+      "titre": "Cloud computers",
+      "glyphe": "pc",
       "famille": "connect",
       "palier": "core",
       "version": "0.1.0",
@@ -342,6 +464,8 @@
     {
       "id": "kybernos-workers",
       "nom": "@local/kybernos-workers",
+      "titre": "Workers",
+      "glyphe": "wrench",
       "famille": "connect",
       "palier": "core",
       "version": "0.1.0",
@@ -356,6 +480,8 @@
     {
       "id": "kybernos-modeles-locaux",
       "nom": "@local/kybernos-modeles-locaux",
+      "titre": "Local models",
+      "glyphe": "home",
       "famille": "models",
       "palier": "core",
       "version": "1.0.0",
@@ -370,6 +496,8 @@
     {
       "id": "kybernos-refs",
       "nom": "@local/kybernos-refs",
+      "titre": "Reference chips",
+      "glyphe": "link",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -384,6 +512,8 @@
     {
       "id": "kybernos-memory",
       "nom": "@local/kybernos-memory",
+      "titre": "Memory & Lessons",
+      "glyphe": "brain",
       "famille": "cloud",
       "palier": "core",
       "version": "0.1.0",
@@ -393,11 +523,40 @@
       "promesse": {
         "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par kyber, filtres, interrupteurs.",
         "en": "The Memory & Lessons learned page: account memory and lessons per kyber, filters, on/off switches."
-      }
+      },
+      "vedette": 3,
+      "accroche": {
+        "fr": "Ce que les agents ont retenu",
+        "en": "What the agents remember"
+      },
+      "description": {
+        "fr": "La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque kyber, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
+        "en": "The Memory & Lessons learned page: the account memories and the lessons of every kyber, with search, filters and switches. Search ranks by relevance, locally."
+      },
+      "points": [
+        {
+          "fr": "Souvenirs du compte : liste, recherche, filtres (épinglés, source, date), ajout, modification, oubli avec annulation",
+          "en": "Account memories: list, search, filters (pinned, source, date), add, edit, forget with Undo"
+        },
+        {
+          "fr": "Leçons de chaque kyber : filtres, modification, suppression (archivée, pas perdue)",
+          "en": "Lessons of every kyber: filters, edit, delete (archived, not lost)"
+        },
+        {
+          "fr": "Recherche classée par pertinence, en local : accents, pluriels et mots rares pris en compte",
+          "en": "Search ranked by relevance, locally: accents, plurals and rare words handled"
+        },
+        {
+          "fr": "Options : ce qui est envoyé au modèle, capture automatique, recherche par sens",
+          "en": "Options: what is sent to the model, automatic capture, search by meaning"
+        }
+      ]
     },
     {
       "id": "dsh-media-player",
       "nom": "@local/dsh-media-player",
+      "titre": "Media player",
+      "glyphe": "play",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -412,6 +571,8 @@
     {
       "id": "dsh-mermaid",
       "nom": "@local/dsh-mermaid",
+      "titre": "Mermaid",
+      "glyphe": "flowc",
       "famille": "create",
       "palier": "core",
       "version": "0.1.0",
@@ -426,6 +587,8 @@
     {
       "id": "dsh-db-viewer",
       "nom": "@local/dsh-db-viewer",
+      "titre": "Databases",
+      "glyphe": "db",
       "famille": "data",
       "palier": "core",
       "version": "0.1.0",
@@ -435,7 +598,34 @@
       "promesse": {
         "fr": "Visionneuse SQLite en lecture seule, avec graphiques.",
         "en": "Read-only SQLite viewer, with charts."
-      }
+      },
+      "vedette": 4,
+      "accroche": {
+        "fr": "Lire la base d’un kyber dans le chat",
+        "en": "Read a kyber’s database in the chat"
+      },
+      "description": {
+        "fr": "Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde un kyber, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.",
+        "en": "A read-only SQLite viewer in the right sidebar: the small database a kyber keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page."
+      },
+      "points": [
+        {
+          "fr": "Diagramme : une carte par table, avec les liens tirés des clés étrangères",
+          "en": "Diagram: a card per table, with the links drawn from the foreign keys"
+        },
+        {
+          "fr": "Graphiques : compteurs et courbes choisies d’après les types de colonnes",
+          "en": "Charts: counters and charts picked from the column types"
+        },
+        {
+          "fr": "Données : une table à la fois, en liste",
+          "en": "Data: one table at a time, as a list"
+        },
+        {
+          "fr": "SQL : une requête SELECT, WITH, PRAGMA ou EXPLAIN",
+          "en": "SQL: one SELECT, WITH, PRAGMA or EXPLAIN statement"
+        }
+      ]
     }
   ]
 }
