@@ -165,6 +165,68 @@ check('a line is drawn for each link inside the set, plus one per ghost', am.lin
   check('expanding shows all of them', T.aroundModel(gb, 'k:k', { ['k:k/skill']: true }).cols[2].groups[0].items.length === 7)
 }
 
+console.log('\n── whole-workspace views (model) ──')
+check('graph keeps the recent automation runs (last 14 days) and the clock', Array.isArray(g.runs) && g.runs.length === 2 && g.runs.every((r) => r.days <= 13) && typeof g.now === 'number')
+const cm = T.canvasModel(g, {})
+const cmL = T.canvasModel(g, { lessons: true })
+check('canvas: a root node, copies of every node but the lessons, and the runs', cm.byId.root && cm.nodes.filter((n) => n.kind === 'lesson').length === 0 && cm.nodes.filter((n) => n.kind === 'run').length === 2)
+check('canvas: lessons come back when asked for', cmL.nodes.filter((n) => n.kind === 'lesson').length === 3)
+check('canvas nodes are copies (the engine moves them, the graph must not move)', g.nodes[0].x === undefined && cm.byId['p:w1'] !== g.byId['p:w1'])
+check('canvas: the root is linked to every project and to account memory', cm.adj.root.has('p:w1') && cm.adj.root.has('p:w2') && cm.adj.root.has('m:account') && cm.byId.root.deg === 3)
+check('canvas: a run is linked to its automation and takes its project', cm.adj['x:digest:0'].has('t:digest') && cm.byId['x:digest:0'].area === 'p:w1' && cm.byId['x:digest:0'].run.ok === false)
+check('canvas: one red stub per broken reference, no target', cm.links.filter((l) => l.bad).length === g.ghosts.length && cm.links.filter((l) => l.bad).every((l) => l.t === null))
+check('canvas: inferred links keep their flag, declared ones do not', cm.links.some((l) => l.inf && l.s === 'a:toolkit:github') && cm.links.some((l) => !l.inf && l.s === 'k:reviewer' && l.t === 's:code-review'))
+check('canvas: counts per project and per kind add up', Object.keys(cm.areaCount).reduce((a, k) => a + cm.areaCount[k], 0) === cm.nodes.length - 1 && cm.kindCount.run === 2 && cm.problemCount === g.problems.length)
+
+console.log('\n── whole-workspace views (layouts) ──')
+const lay = T.canvasLayouts(cm)
+const finite = (pos, ids) => ids.every((id) => Array.isArray(pos[id]) && pos[id].length >= 2 && pos[id].every((v) => Number.isFinite(v)))
+const ids = cm.nodes.map((n) => n.id)
+for (const v of ['rings', 'circle', 'areas', 'links', 'timeline']) check('layout "' + v + '": every node gets a finite position', finite(lay[v], ids))
+check('orbit: every node gets finite 3D coordinates', ids.every((id) => Array.isArray(lay.L3[id]) && lay.L3[id].length === 3 && lay.L3[id].every((x) => Number.isFinite(x))))
+check('rings: the root is in the middle and each node sits on the ring of its layer', lay.rings.root[0] === 0 && lay.rings.root[1] === 0 && cm.nodes.filter((n) => n.id !== 'root').every((n) => Math.abs(Math.hypot(lay.rings[n.id][0], lay.rings[n.id][1]) - T.RING_R[T.LAYERS.indexOf(n.layer)]) < 0.01))
+{
+  // every project keeps ONE wedge on every ring
+  const ang = (id) => Math.atan2(lay.rings[id][1], lay.rings[id][0])
+  const norm = (a) => (a + 2.5 * Math.PI) % (2 * Math.PI) // 0 at the top, increasing clockwise
+  const ranges = {}
+  for (const n of cm.nodes) { if (n.id === 'root' || n.area === null) continue; const a = norm(ang(n.id)); const r = ranges[n.area] || (ranges[n.area] = [9, -9]); r[0] = Math.min(r[0], a); r[1] = Math.max(r[1], a) }
+  const keys = Object.keys(ranges).filter((k) => cm.areaCount[k] > 0).sort((a, b) => ranges[a][0] - ranges[b][0])
+  let overlap = false
+  for (let i = 1; i < keys.length; i++) if (ranges[keys[i]][0] < ranges[keys[i - 1]][1] - 1e-9) overlap = true
+  check('rings: wedges of two projects never overlap', overlap === false, ranges)
+}
+check('circle: everything but the root sits on the same circle', cm.nodes.filter((n) => n.id !== 'root').every((n) => Math.abs(Math.hypot(lay.circle[n.id][0], lay.circle[n.id][1]) - 330) < 0.01))
+{
+  const hs = Object.keys(lay.halos).map((k) => lay.halos[k]); let clash = false
+  for (let i = 0; i < hs.length; i++) for (let j = i + 1; j < hs.length; j++) if (Math.hypot(hs[i].x - hs[j].x, hs[i].y - hs[j].y) < hs[i].r + hs[j].r - 1) clash = true
+  check('areas: the cluster halos do not overlap', clash === false)
+  check('areas: a project sits at the centre of its own halo', Math.abs(lay.areas['p:w1'][0] - lay.halos['p:w1'].x) < 0.01 && Math.abs(lay.areas['p:w1'][1] - lay.halos['p:w1'].y) < 0.01)
+}
+{
+  const again = T.canvasLayouts(T.canvasModel(g, {}))
+  check('links: the force layout gives the same picture every time', JSON.stringify(again.links) === JSON.stringify(lay.links))
+  const linked = lay.links['k:reviewer']; const near = lay.links['s:code-review']
+  check('links: two linked nodes end up closer than two unrelated ones', Math.hypot(linked[0] - near[0], linked[1] - near[1]) < Math.hypot(lay.links['k:reviewer'][0] - lay.links['m:cloud:c1'][0], lay.links['k:reviewer'][1] - lay.links['m:cloud:c1'][1]) + 400)
+}
+check('timeline: runs are above the axis, everything else below', cm.nodes.filter((n) => n.kind === 'run').every((n) => lay.timeline[n.id][1] < -40) && cm.nodes.filter((n) => n.kind !== 'run').every((n) => lay.timeline[n.id][1] > 60))
+check('timeline: the more recent run is further right', lay.timeline['x:digest:0'][0] > lay.timeline['x:digest:1'][0])
+check('timeline: things with no date sit left of the dated ones', cm.nodes.filter((n) => n.days === null && n.kind !== 'run').every((n) => lay.timeline[n.id][0] < T.TL.x0) && cm.nodes.filter((n) => n.days !== null && n.kind !== 'run').every((n) => lay.timeline[n.id][0] >= T.TL.x0 - 1))
+check('timeline: the scale grows with recency (square root)', T.tlx(0) > T.tlx(1) && T.tlx(1) > T.tlx(30) && T.tlx(220) === T.TL.x0 && T.tlx(5000) === T.TL.x0)
+check('every view has a finite bounding box', ['rings', 'circle', 'areas', 'links', 'timeline', 'orbit'].every((v) => lay.boxes[v].length === 4 && lay.boxes[v].every((x) => Number.isFinite(x))))
+{
+  const lone = T.canvasLayouts(T.canvasModel(T.buildGraph({ workspaces: [], kybers: [], skills: [], state: [], memory: null, tasks: [], apps: [], active: {} }, NOW), {}))
+  check('an empty workspace still lays out (just the root), no NaN', Object.keys(lone.rings).length === 1 && lone.boxes.areas.every((x) => Number.isFinite(x)) && lone.boxes.links.every((x) => Number.isFinite(x)))
+}
+{
+  const many = { workspaces: [{ id: 'w', name: 'P', sessionIds: [], skills: [] }], kybers: Array.from({ length: 30 }, (_, i) => ({ id: 'k' + i, name: 'K' + i, mission: '', category: '', skillsDeclared: [], localSkills: [], tools: [], roles: [] })), skills: Array.from({ length: 120 }, (_, i) => ({ name: 's' + i, description: '', root: '', source: '', active: true, collision: false, modifiedAt: iso(i) })), state: [], memory: null, tasks: [], apps: [], active: {} }
+  const bm = T.canvasModel(T.buildGraph(many, NOW), {})
+  const t0 = Date.now(); const big = T.canvasLayouts(bm); const ms = Date.now() - t0
+  check('150 nodes lay out in well under a second, every one placed', bm.nodes.length === 152 && Object.keys(big.links).length === 152 && ms < 2000, [bm.nodes.length, ms])
+  check('timeline: a more recent change is further right', big.timeline['s:s0'][0] > big.timeline['s:s50'][0] && big.timeline['s:s50'][0] > big.timeline['s:s119'][0])
+}
+check('six drawing views are declared', T.CANVAS_VIEWS.join() === 'rings,circle,areas,links,timeline,orbit')
+
 console.log('\n── list, picker, default focus ──')
 check('list: problems first', T.listRows(g, '')[0].problem !== null)
 check('list: filter matches name, note or path', T.listRows(g, 'pdf').some((n) => n.label === 'pdf') && T.listRows(g, 'zzzz').length === 0)
