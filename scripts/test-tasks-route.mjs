@@ -4,7 +4,8 @@
 // stubbed session service. No real session is ever started and nothing outside the temporary
 // folder is read or written.
 // Usage: node scripts/test-tasks-route.mjs   (exit 0 = everything passes)
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync, existsSync, utimesSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -276,6 +277,46 @@ writeFileSync(file, good)
 }
 
 
+
+/* ── The lock shared with the automation-creator skill ───────────────────── */
+{
+  const lock = file + '.lock'
+  eq('no lock is left behind by everything above', existsSync(lock), false)
+  mkdirSync(lock)
+  const old = new Date(Date.now() - 60000)
+  utimesSync(lock, old, old)
+  const t0 = Date.now()
+  const r = (await api({ action: 'create', task: task({ name: 'after a stale lock' }) })).json
+  eq('a stale lock (a crash) is broken at once', r.ok === true && Date.now() - t0 < 1500 && existsSync(lock) === false, true)
+  // another writer holds it for a moment: the route waits for it, then writes
+  mkdirSync(lock)
+  realSetTimeout(() => rmSync(lock, { recursive: true, force: true }), 500)
+  const t1 = Date.now()
+  const w = (await api({ action: 'create', task: task({ name: 'after a short wait' }) })).json
+  eq('a lock held for half a second: the route waits for it, then saves', w.ok === true && Date.now() - t1 >= 400 && Date.now() - t1 < 3000 && existsSync(lock) === false, true)
+  eq('both tasks were kept', onDisk().filter((x) => /after a/.test(x.name)).length, 2)
+}
+{
+  // the real script of the skill and the route writing the same file at the same moment: nothing is lost
+  const skillText = readFileSync(root + 'packages/kybernos-plugin/skills/automation-creator/SKILL.md', 'utf8')
+  const block = /```bash\n(node --input-type=module - [^\n]*<<'JS'\n[\s\S]*?\nJS)\n```/.exec(skillText)
+  const before = onDisk().length
+  const skillRuns = Array.from({ length: 4 }, (_, i) => new Promise((resolve) => {
+    const spec = join(dshHome, 'spec' + i + '.json')
+    writeFileSync(spec, JSON.stringify({ name: 'from the skill ' + i, prompt: '1. do it', schedule: { mode: 'cron', cron: '0 9 * * 1' } }))
+    const p = spawn('sh', ['-c', block[1].replace('/tmp/automation-spec.json', spec)], { env: Object.assign({}, process.env, { DSH_HOME: dshHome }) })
+    let out = ''
+    p.stdout.on('data', (d) => { out += d })
+    p.on('close', (code) => resolve({ code, out }))
+  }))
+  const routeRuns = Array.from({ length: 4 }, (_, i) => api({ action: 'create', task: task({ name: 'from the route ' + i }) }))
+  const results = await Promise.all([...skillRuns, ...routeRuns])
+  const skillOk = results.slice(0, 4).filter((x) => x.code === 0).length
+  const routeOk = results.slice(4).filter((x) => x.json && x.json.ok === true).length
+  eq('the skill and the route writing at the same time: every one of the eight succeeds', skillOk + routeOk, 8)
+  eq('...and all eight are in the file', onDisk().length - before, 8)
+  eq('...and no lock or temporary file is left', readdirSync(join(dshHome, 'kybernos')).filter((n) => /\.lock$|\.tmp-/.test(n)).length, 0)
+}
 
 /* ── No cookie to read: the Origin rule alone, said once ──────────────────── */
 {

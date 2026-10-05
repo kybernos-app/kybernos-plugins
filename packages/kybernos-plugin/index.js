@@ -33,6 +33,7 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 // ~/.dsh/kybernos/settings.json (clé `pairingToken`), il reste inactif et rien
 // ne sort de la machine — le local reste strictement celui d'aujourd'hui.
 import { createGatewayWatcher } from './gateway-watcher.mjs'
+import { seedSkills } from './seed-skills.mjs'
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -324,7 +325,9 @@ const kbParseTasksText = (text) => {
   return Array.isArray(data) === true ? { tasks: data } : { corrupt: true }
 }
 // io: { read() -> string | null (null = no file yet, a throw = unreadable),
-//       write(text) (atomic, mode 0600), keepCopy(text) (best effort copy of a corrupt file) }
+//       write(text) (atomic, mode 0600), keepCopy(text) (best effort copy of a corrupt file),
+//       lock() (optional) -> release function | null: a lock shared with the other writers of the file (the
+//       automation-creator skill edits it too); null means "could not take it, go on without" }
 const kbMakeTaskStore = (io) => {
   let chain = Promise.resolve()
   const load = async (keep) => {
@@ -343,11 +346,17 @@ const kbMakeTaskStore = (io) => {
     // callback changed nothing (the tick runs every 30 s and must not rewrite the file).
     mutate(fn) {
       const run = async () => {
-        const tasks = await load(true)
-        const before = JSON.stringify(tasks)
-        const result = await fn(tasks)
-        if (JSON.stringify(tasks) !== before) await io.write(JSON.stringify(tasks, null, 2))
-        return result
+        let release = null
+        if (typeof io.lock === 'function') { try { release = await io.lock() } catch (e) { release = null } }
+        try {
+          const tasks = await load(true)
+          const before = JSON.stringify(tasks)
+          const result = await fn(tasks)
+          if (JSON.stringify(tasks) !== before) await io.write(JSON.stringify(tasks, null, 2))
+          return result
+        } finally {
+          if (typeof release === 'function') { try { release() } catch (e) { /* a lock nobody frees goes stale by itself */ } }
+        }
       }
       const next = chain.then(run, run)
       chain = next.then(() => null, () => null)
@@ -2311,6 +2320,23 @@ function boot(ctx) {
         } catch (e) {
           try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
           throw e
+        }
+      },
+      // The lock: creating a directory is atomic, so `tasks.json.lock` is one any writer can take; the
+      // automation-creator skill takes the same one. A lock older than 20 s is what a crash left behind.
+      // It waits up to 3 s, then goes on without it rather than stopping every automation.
+      lock: async () => {
+        const p = await kbTasksFileOf()
+        const dir = p + '.lock'
+        try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* the write will say */ }
+        const until = Date.now() + 3000
+        for (;;) {
+          try { mkdirSync(dir); return () => { try { rmSync(dir, { recursive: true, force: true }) } catch (e) { /* stale after 20 s */ } } } catch (e) {
+            if (e === null || typeof e !== 'object' || e.code !== 'EEXIST') return null
+            try { if (Date.now() - statSync(dir).mtimeMs > 20000) { rmSync(dir, { recursive: true, force: true }); continue } } catch (e2) { /* it just went away */ }
+            if (Date.now() > until) return null
+            await new Promise((resolve) => setTimeout(resolve, 25 + Math.floor(Math.random() * 35)))
+          }
         }
       },
       // `tasks.json.corrupt-<hash of the content>`: the same content is kept once, at most five copies.
@@ -11200,6 +11226,30 @@ const kbFeedbackEnsureSkill = (dsh) => {
   } catch (e) { return false }
 }
 
+/** Skills this plugin ships under <dsh home>/skills (folders in ./skills): the Automations page
+ *  sends its "Create" chat to `automation-creator`, so it must exist on a fresh home. Seeded by
+ *  seed-skills.mjs, which never overwrites a skill the user wrote or edited. */
+const KB_SHIPPED_SKILLS = ['automation-creator']
+/** The DSH home the way dsh-home-paths resolves it: a non-blank $DSH_HOME (trimmed, a leading ~
+ *  expanded), else <home>/.dsh. Synchronous: it runs at plugin start, before any service exists. */
+const kbDshHomeSync = () => {
+  const raw = (typeof process !== 'undefined' && process.env !== undefined && typeof process.env.DSH_HOME === 'string') ? process.env.DSH_HOME.trim() : ''
+  const home = String(homedir() || '')
+  if (raw === '') return joinPath(home, '.dsh')
+  if (raw === '~') return home
+  return raw.startsWith('~/') ? joinPath(home, raw.slice(2)) : raw
+}
+const kbSeedShippedSkills = () => {
+  const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
+  const results = seedSkills({ home: kbDshHomeSync(), sourceDir, names: KB_SHIPPED_SKILLS })
+  for (const r of results) {
+    if (r.action === 'error' || r.action === 'no-source' || r.action === 'invalid-name') {
+      try { console.error('[kybers] skill ' + r.name + ' not installed: ' + r.action + (r.error !== undefined ? ' (' + r.error + ')' : '')) } catch (e) { /* console unavailable */ }
+    }
+  }
+  return results
+}
+
 /** Enregistre l'outil agent. Séparé de `boot` : un échec ici (moitié hôte non
  *  sandboxée, registre absent) ne doit jamais couper les routes /kybernos/*. */
 const kbFeedbackInstallTool = (ctx) => {
@@ -11296,6 +11346,14 @@ export function apply(ctx) {
         try {
             console.error('[kybers] skill signaler-retour non installee', kbSkillError)
         } catch (e4) { /* console indisponible */ }
+    }
+    // The skills this plugin ships (automation-creator): optional, and never allowed to stop the plugin.
+    try {
+        kbSeedShippedSkills()
+    } catch (kbShippedError) {
+        try {
+            console.error('[kybers] shipped skills not installed', kbShippedError)
+        } catch (e5) { /* console unavailable */ }
     }
 }
 
