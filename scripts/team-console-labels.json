@@ -1,7 +1,21 @@
 {
  "about": "Static labels of the Team settings console, per page (lower-case, no digits). Captured by scripts/check-team-live.mjs --capture-labels. A label may only leave this file with the owner's approval: list it in allowRemoved.",
  "capturedFrom": "https://dev.kybernos.app/workspace-console",
- "allowRemoved": [],
+ "allowRemoved": [
+  "auto-recharge settings on ›",
+  "change plan",
+  "color soon",
+  "compare plans ↓",
+  "copy",
+  "dissolve team soon",
+  "just me",
+  "my team",
+  "plan",
+  "sync · profile contributor",
+  "team details",
+  "team name soon",
+  "used up. only the shared pool applies now."
+ ],
  "pages": {
   "team": [
    "auto-recharge settings on ›",
@@ -191,5 +205,14 @@
    "· laptop",
    "· opencode"
   ]
+ },
+ "allowRemovedPages": [
+  "skills"
+ ],
+ "allowRemovedNotes": {
+  "2026-10-05 Team Settings": "Owner approved: the name, color and Dissolve controls were dead (the backend persists none of them) and are hidden until it does; the plan / credits / auto-recharge summary duplicated Plan & Credits; « Team details » became one muted line and the ID got a copy chip.",
+  "2026-10-05 Skills": "Owner approved removing the Skills page from the console: it was a demo (in-memory list, no network); real skills are per user in the DSH and web Skills screens.",
+  "2026-10-05 Plan & Credits": "Owner approved: « Just me » / « My team » no longer exist inside a team (a team only offers team plans; one personal workspace per person; to reach personal plans you switch workspace). « Compare plans ↓ » is « Compare plans »: the plan list moved into a dialog.",
+  "2026-10-05 Members & Roles": "Member details moved from a row that unfolded inside the table into a side panel (Details); Deactivate moved into that panel; the four filters fold behind one Filters button; the sync profile is a chip in the row and a select in the panel. Two baseline entries were state-dependent texts captured while nina's row was open (her profile name, her used-up credits): not features."
  }
 }

@@ -74,6 +74,13 @@ const LABELS_FN = `function __kbLabels(root) {
   return Array.from(out)
 }`
 
+// Labels that live in a dialog or a side panel still count as reachable: for a page, open each one (a click that only shows
+// it), read it, close it. [opener, scope, closer]; a dialog the console does not have (an older one) is simply skipped.
+const DIALOGS = {
+  plan: [['#toCompare', '#planModal', '#planClose']],
+  members: [['#t-members tbody tr:nth-child(2) [data-open]', '#drBody', '#drClose']], // the 2nd row: the owner's has no Deactivate
+}
+
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => inconclusive(e.message))
 const { page } = live
 let exitNow = null
@@ -171,6 +178,16 @@ try {
       if (t.val) { t.val.l.forEach((x) => labels.add(x)); extraControls = Math.max(extraControls, t.val.n) }
     }
     if (tabs.length > 0) await page.evalJs(`document.querySelectorAll('#t-${id} .subtabs button')[0].click()`)
+    for (const [opener, scope, closer] of (DIALOGS[id] || [])) {
+      const has = await page.evalJs(`!!document.querySelector(${JSON.stringify(opener)})`)
+      if (!has.val) continue
+      await page.evalJs(`document.querySelector(${JSON.stringify(opener)}).click()`)
+      await sleep(400)
+      const d = await page.evalJs(`${LABELS_FN}; (() => { const root = document.querySelector(${JSON.stringify(scope)}); return root ? __kbLabels(root) : null })()`)
+      if (Array.isArray(d.val)) d.val.forEach((x) => labels.add(x))
+      await page.evalJs(`(() => { const c = document.querySelector(${JSON.stringify(closer)}); if (c) c.click() })()`)
+      await sleep(250)
+    }
     captured[id] = Array.from(labels).sort()
     check('page ' + id + ': no script error', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 120))
     check('page ' + id + ': no « undefined » / « NaN » on screen', r.badText === 0, r.badText + ' occurrence(s)')
@@ -192,12 +209,16 @@ try {
     gaps.push('No label baseline yet: run with --capture-labels once, on a console you trust, to freeze what must not be lost.')
   } else {
     const allow = new Set((baseline.allowRemoved || []).map((x) => String(x).toLowerCase()))
+    const approvedPages = new Set(baseline.allowRemovedPages || [])
     let lost = 0
     for (const id of Object.keys(baseline.pages)) {
       const now = new Set(captured[id] || [])
       const missing = baseline.pages[id].filter((l) => !now.has(l) && !allow.has(l))
-      if (!ids.includes(id)) { fail('baseline page ' + id + ' still exists', 'the console no longer has it (add its labels to allowRemoved if it was approved)'); lost += 1; continue }
-      if (missing.length > 0) { lost += missing.length; fail('page ' + id + ': every recorded label is still there', missing.length + ' missing, e.g. « ' + missing.slice(0, 3).join(' », « ') + ' »') } else pass('page ' + id + ': all ' + baseline.pages[id].length + ' recorded labels are still there')
+      if (!ids.includes(id)) {
+        if (approvedPages.has(id)) { pass('page ' + id + ' was removed, with the owner\'s approval (allowRemovedPages)'); continue }
+        fail('baseline page ' + id + ' still exists', 'the console no longer has it (list it in allowRemovedPages if the owner approved)'); lost += 1; continue
+      }
+      if (missing.length > 0) { lost += missing.length; fail('page ' + id + ': every recorded label is still there', missing.length + ' missing: « ' + missing.slice(0, 15).join(' », « ') + ' »' + (missing.length > 15 ? ' …' : '')) } else pass('page ' + id + ': all ' + baseline.pages[id].length + ' recorded labels are still there')
     }
     const added = ids.filter((id) => !(id in baseline.pages))
     if (added.length > 0) observations.push('Pages not in the baseline: ' + added.join(', ') + '.')
