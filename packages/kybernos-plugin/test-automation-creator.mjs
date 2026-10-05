@@ -2,7 +2,7 @@
 // agent to run. The script is taken out of SKILL.md (the fenced bash block) and RUN with sh, on a
 // temporary DSH_HOME and a different HOME, exactly as an agent would run it.
 //   (cd packages/kybernos-plugin && node test-automation-creator.mjs)   exit 0 = everything passes
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { spawn, spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -171,10 +171,10 @@ for (const [label, patch] of [
   check('a missing specification file is refused', w3.run().status === 2 && existsSync(w3.file) === false)
 }
 
-console.log('several writers at once: nothing is lost')
+console.log('one writer at a time: nothing is lost')
 {
   const w = world(base, '[]')
-  const N = 6
+  const N = 10
   const runs = await Promise.all(Array.from({ length: N }, (_, i) => new Promise((resolve) => {
     const spec = join(root, 'par' + i + '.json')
     writeFileSync(spec, JSON.stringify(Object.assign({}, base, { name: 'parallel ' + i })))
@@ -185,11 +185,39 @@ console.log('several writers at once: nothing is lost')
   })))
   const saved = runs.filter((r) => r.code === 0).map((r) => JSON.parse(r.so.trim().split('\n').pop()).id)
   const onDisk = w.tasks().map((t) => t.id)
-  check('every task the script reported as saved is in the file', saved.every((id) => onDisk.includes(id)), saved.length + ' saved, ' + onDisk.length + ' on disk')
-  check('no task appears twice, and the file is a valid list', new Set(onDisk).size === onDisk.length)
-  check('a writer that gave up said so (exit 5), it did not pretend', runs.filter((r) => r.code !== 0).every((r) => r.code === 5))
-  check('at least one of them succeeded', saved.length >= 1)
-  check('nothing but tasks.json is left in the folder', readdirSync(join(w.dsh, 'kybernos')).join() === 'tasks.json')
+  check('ten writers at once: every one of them succeeds', saved.length === N, runs.map((r) => r.code).join())
+  check('...and every task they reported is in the file, once', saved.every((id) => onDisk.includes(id)) && onDisk.length === N && new Set(onDisk).size === N, saved.length + ' saved, ' + onDisk.length + ' on disk')
+  check('nothing but tasks.json is left in the folder (no temporary file, no lock)', readdirSync(join(w.dsh, 'kybernos')).join() === 'tasks.json')
+}
+{
+  // the lock is released after a refusal too
+  const w = world(base, '[{"id":"a"')
+  w.run()
+  check('the lock is released after a refusal', existsSync(w.file + '.lock') === false)
+  const w2 = world(Object.assign({}, base, { name: '' }), '[]')
+  w2.run()
+  check('...and after a refused specification', existsSync(w2.file + '.lock') === false)
+}
+{
+  // a lock left behind by a crash (older than 20 s) is broken
+  const w = world(base, '[]')
+  mkdirSync(w.file + '.lock')
+  const old = new Date(Date.now() - 60000)
+  utimesSync(w.file + '.lock', old, old)
+  const r = w.run()
+  check('a stale lock is broken and the task is saved', r.status === 0 && w.tasks().length === 1 && existsSync(w.file + '.lock') === false, r.stdout + r.stderr)
+}
+{
+  // a fresh lock held by somebody else is respected: it waits, then gives up without writing
+  const w = world(base, '[]')
+  mkdirSync(w.file + '.lock')
+  const t0 = Date.now()
+  const r = w.run()
+  check('a lock held by another writer: it waits, then gives up with exit 5 and writes nothing', r.status === 5 && out(r).ok === false && /another process/.test(out(r).error) && readFileSync(w.file, 'utf8') === '[]', r.stdout + r.stderr)
+  check('...after waiting a few seconds, not forever', Date.now() - t0 >= 2500 && Date.now() - t0 < 10000, String(Date.now() - t0))
+  check('...and it leaves the other writer\'s lock alone', existsSync(w.file + '.lock') === true)
+  rmSync(w.file + '.lock', { recursive: true })
+  check('once the lock is gone, the same run succeeds', w.run().status === 0 && w.tasks().length === 1)
 }
 
 rmSync(root, { recursive: true, force: true })

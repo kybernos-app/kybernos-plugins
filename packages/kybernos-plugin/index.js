@@ -325,7 +325,9 @@ const kbParseTasksText = (text) => {
   return Array.isArray(data) === true ? { tasks: data } : { corrupt: true }
 }
 // io: { read() -> string | null (null = no file yet, a throw = unreadable),
-//       write(text) (atomic, mode 0600), keepCopy(text) (best effort copy of a corrupt file) }
+//       write(text) (atomic, mode 0600), keepCopy(text) (best effort copy of a corrupt file),
+//       lock() (optional) -> release function | null: a lock shared with the other writers of the file (the
+//       automation-creator skill edits it too); null means "could not take it, go on without" }
 const kbMakeTaskStore = (io) => {
   let chain = Promise.resolve()
   const load = async (keep) => {
@@ -344,11 +346,17 @@ const kbMakeTaskStore = (io) => {
     // callback changed nothing (the tick runs every 30 s and must not rewrite the file).
     mutate(fn) {
       const run = async () => {
-        const tasks = await load(true)
-        const before = JSON.stringify(tasks)
-        const result = await fn(tasks)
-        if (JSON.stringify(tasks) !== before) await io.write(JSON.stringify(tasks, null, 2))
-        return result
+        let release = null
+        if (typeof io.lock === 'function') { try { release = await io.lock() } catch (e) { release = null } }
+        try {
+          const tasks = await load(true)
+          const before = JSON.stringify(tasks)
+          const result = await fn(tasks)
+          if (JSON.stringify(tasks) !== before) await io.write(JSON.stringify(tasks, null, 2))
+          return result
+        } finally {
+          if (typeof release === 'function') { try { release() } catch (e) { /* a lock nobody frees goes stale by itself */ } }
+        }
       }
       const next = chain.then(run, run)
       chain = next.then(() => null, () => null)
@@ -2312,6 +2320,23 @@ function boot(ctx) {
         } catch (e) {
           try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
           throw e
+        }
+      },
+      // The lock: creating a directory is atomic, so `tasks.json.lock` is one any writer can take; the
+      // automation-creator skill takes the same one. A lock older than 20 s is what a crash left behind.
+      // It waits up to 3 s, then goes on without it rather than stopping every automation.
+      lock: async () => {
+        const p = await kbTasksFileOf()
+        const dir = p + '.lock'
+        try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* the write will say */ }
+        const until = Date.now() + 3000
+        for (;;) {
+          try { mkdirSync(dir); return () => { try { rmSync(dir, { recursive: true, force: true }) } catch (e) { /* stale after 20 s */ } } } catch (e) {
+            if (e === null || typeof e !== 'object' || e.code !== 'EEXIST') return null
+            try { if (Date.now() - statSync(dir).mtimeMs > 20000) { rmSync(dir, { recursive: true, force: true }); continue } } catch (e2) { /* it just went away */ }
+            if (Date.now() > until) return null
+            await new Promise((resolve) => setTimeout(resolve, 25 + Math.floor(Math.random() * 35)))
+          }
         }
       },
       // `tasks.json.corrupt-<hash of the content>`: the same content is kept once, at most five copies.

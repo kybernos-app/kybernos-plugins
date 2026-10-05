@@ -273,6 +273,34 @@ for (const [label, text] of [['truncated JSON', '[{"id":"a","na'], ['object inst
   eq('25 concurrent creates are all kept', JSON.parse(st.text).length, 25)
 }
 
+/* ── 5b. The lock shared with the other writers of the file ───────────────── */
+{
+  const events = []
+  const m = memIo(JSON.stringify([{ id: 'a' }]))
+  const io = Object.assign({}, m.io, {
+    async read() { events.push('read'); return m.io.read() },
+    async write(text) { events.push('write'); return m.io.write(text) },
+    async lock() { events.push('lock'); return () => events.push('release') },
+  })
+  const store = mod.kbMakeTaskStore(io)
+  await store.mutate(async (t) => { t.push({ id: 'b' }) })
+  eq('the lock is taken before the read and released after the write', events.join(' '), 'lock read write release')
+  events.length = 0
+  await store.mutate(async () => {})
+  eq('an unchanged list still takes and frees the lock, and writes nothing', events.join(' '), 'lock read release')
+  events.length = 0
+  const err = await failure(() => store.mutate(async () => { throw new Error('boom') }))
+  eq('the lock is freed when the callback throws', String(err.message) + ':' + events.join(' '), 'boom:lock read release')
+  events.length = 0
+  m.st.text = '[{"id":"a"'
+  const corrupt = await failure(() => store.mutate(async (t) => { t.push({ id: 'c' }) }))
+  eq('the lock is freed when the file is corrupt', codeOf(corrupt) + ':' + events.join(' '), 'tasks-corrupt:lock read release')
+  const broken = mod.kbMakeTaskStore(Object.assign({}, memIo('[]').io, { async lock() { throw new Error('no lock here') } }))
+  eq('a lock that cannot be taken does not stop the work', await broken.mutate(async (t) => { t.push({ id: 'x' }); return 'done' }), 'done')
+  const none = mod.kbMakeTaskStore(Object.assign({}, memIo('[]').io, { async lock() { return null } }))
+  eq('"could not lock, go on without" works', await none.mutate(async () => 'ok'), 'ok')
+}
+
 /* ── 6. Trigger: claim, fire, record ──────────────────────────────────────── */
 const T0 = Date.UTC(2026, 9, 5, 8, 0, 0)
 const dueTask = (o) => Object.assign({ id: 't1', name: 'A', prompt: 'p', schedule: { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, active: true, nextRun: new Date(T0 - 1000).toISOString(), history: [] }, o)

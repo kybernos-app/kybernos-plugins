@@ -38,9 +38,9 @@ something to someone, or spends money, say so in the draft and keep the approval
 ## 3. Save
 
 Do not edit the task file yourself and do not write it any other way: use the script
-below. It checks the values, refuses to touch a task file it cannot read, writes
-atomically (so the page and the scheduler never see half a file), and starts again if
-another writer changed the file meanwhile.
+below. It checks the values, refuses to touch a task file it cannot read, takes the lock
+the scheduler also takes (so two writers never overwrite each other), and writes
+atomically (so the page and the scheduler never see half a file).
 
 First write the specification to a temporary JSON file, for example
 `/tmp/automation-spec.json`, with your file-writing tool, so no quoting can break it:
@@ -77,7 +77,9 @@ import os from 'node:os'
 import path from 'node:path'
 import crypto from 'node:crypto'
 
+let lockDir = null
 const done = (code, payload) => {
+  if (lockDir !== null) { try { fs.rmSync(lockDir, { recursive: true, force: true }) } catch (e) { /* a stale lock is broken after 20 s */ } }
   const line = JSON.stringify(payload) + '\n'
   try { fs.writeSync(1, line) } catch (e) { process.stdout.write(line) }
   process.exit(code)
@@ -175,11 +177,24 @@ const read = () => {
   return { raw, tasks: data }
 }
 
-// Write a temporary file next to it (private), then rename it over the real one. If somebody
-// else wrote in between, start again from what is there now instead of overwriting it.
+// One writer at a time: creating a directory is atomic, so tasks.json.lock is a lock any writer can take
+// (the scheduler takes the same one). A lock older than 20 seconds is what a crash left behind.
+fs.mkdirSync(path.dirname(file), { recursive: true })
+const until = Date.now() + 3000
+for (;;) {
+  try { fs.mkdirSync(file + '.lock'); lockDir = file + '.lock'; break } catch (e) {
+    if (!e || e.code !== 'EEXIST') fail(3, 'tasks.json cannot be locked: nothing was written')
+    try { if (Date.now() - fs.statSync(file + '.lock').mtimeMs > 20000) { fs.rmSync(file + '.lock', { recursive: true, force: true }); continue } } catch (e2) { /* it just went away */ }
+    if (Date.now() > until) fail(5, 'tasks.json is being written by another process: nothing was written, try again')
+    await new Promise((resolve) => setTimeout(resolve, 25 + Math.floor(Math.random() * 35)))
+  }
+}
+
+// Write a temporary file next to it (private), then rename it over the real one, so the page and
+// the scheduler never see half a file. If a writer that ignores the lock wrote in between, start
+// again from what is there now instead of overwriting it.
 for (let attempt = 0; attempt < 5; attempt += 1) {
   const current = read()
-  fs.mkdirSync(path.dirname(file), { recursive: true })
   const tmp = file + '.tmp-' + process.pid + '-' + Date.now().toString(36)
   fs.writeFileSync(tmp, JSON.stringify(current.tasks.concat([task]), null, 2), { mode: 0o600 })
   let now = null
