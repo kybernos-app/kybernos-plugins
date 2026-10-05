@@ -78,7 +78,12 @@ const LABELS_FN = `function __kbLabels(root) {
 // it), read it, close it. [opener, scope, closer]; a dialog the console does not have (an older one) is simply skipped.
 const DIALOGS = {
   plan: [['#toCompare', '#planModal', '#planClose']],
-  members: [['#t-members tbody tr:nth-child(2) [data-open]', '#drBody', '#drClose']], // the 2nd row: the owner's has no Deactivate
+  members: [['#t-members tbody tr:nth-child(2) [data-open]', '#drBody', '#drClose'], ['#mfToggle', '#mFilters', '#mfToggle']], // the 2nd row: the owner's has no Deactivate
+  usage: [['#uFilterToggle', '#uFilters', '#uFilterToggle']],
+}
+// Segments that swap what the page shows (a click that only changes the view): each button is pressed in turn.
+const SWITCHES = {
+  usage: ['#uBreak [data-by]'],
 }
 
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => inconclusive(e.message))
@@ -187,6 +192,16 @@ try {
       if (Array.isArray(d.val)) d.val.forEach((x) => labels.add(x))
       await page.evalJs(`(() => { const c = document.querySelector(${JSON.stringify(closer)}); if (c) c.click() })()`)
       await sleep(250)
+    }
+    for (const sel of (SWITCHES[id] || [])) {
+      const n = (await page.evalJs(`document.querySelectorAll(${JSON.stringify(sel)}).length`)).val || 0
+      for (let i = 0; i < n; i += 1) {
+        await page.evalJs(`document.querySelectorAll(${JSON.stringify(sel)})[${i}].click()`)
+        await sleep(300)
+        const t = await page.evalJs(`${LABELS_FN}; __kbLabels(document.getElementById('t-${id}'))`)
+        if (Array.isArray(t.val)) t.val.forEach((x) => labels.add(x))
+      }
+      if (n > 0) await page.evalJs(`document.querySelectorAll(${JSON.stringify(sel)})[0].click()`)
     }
     captured[id] = Array.from(labels).sort()
     check('page ' + id + ': no script error', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 120))
