@@ -249,6 +249,16 @@ console.log('tidy up')
   check('…not when the user pressed the button (they saw the result), nor when nothing was merged, nor with no run', T.tidyRanNotice(ranView('manual', 2), '') === null && T.tidyRanNotice(ranView('schedule', 0), '') === null && T.tidyRanNotice({ mem: null, les: null }, '') === null)
   // ── team lessons
   const nowT = Date.parse('2026-10-05T12:00:00.000Z')
+  check('team: why Team is not offered when the host did not say (loading, signed out, a host that predates the routes, a network error)',
+    T.teamReasonOf({ loaded: false, ok: false, connected: false }) === 'chargement'
+    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'non connecte' }) === 'non_connecte'
+    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'indisponible' }) === 'hote_ancien'
+    && T.teamLockedWords('hote_ancien')[0] === 'Restart DSH'
+    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'reseau' }) === 'indisponible'
+    && T.teamReasonOf({ loaded: true, ok: false, connected: false, error: 'refus_500' }) === 'indisponible'
+    && T.teamReasonOf({ loaded: true, ok: true, team: { available: false, reason: 'offre_requise' } }) === 'offre_requise'
+    && T.teamReasonOf({ loaded: true, ok: true, team: { available: true, reason: null } }) === 'indisponible'
+    && T.teamReasonOf(undefined) === 'indisponible')
   check('team: why the Team scope is locked, in words (plan, workspace, sign-in, unknown)', T.teamLockedWords('offre_requise')[0] === 'Team plan' && /Team workspace/.test(T.teamLockedWords('offre_requise')[1]) && T.teamLockedWords('aucun_espace')[0] === 'No team workspace' && T.teamLockedWords('non_connecte')[0] === 'Sign in' && T.teamLockedWords('???')[0] === 'Unavailable')
   check('team: owners and admins are the ones who decide', T.isTeamAdmin('owner') && T.isTeamAdmin('admin') && !T.isTeamAdmin('member') && !T.isTeamAdmin(null) && !T.isTeamAdmin(undefined))
   check('team: minutes since a date, never NaN', T.minutesSince('2026-10-05T11:00:00.000Z', nowT) === 60 && T.minutesSince('2026-10-05T12:30:00.000Z', nowT) === 0 && T.minutesSince('garbage', nowT) === null && T.minutesSince(null, nowT) === null)

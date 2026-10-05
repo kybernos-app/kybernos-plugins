@@ -304,8 +304,17 @@ window.__ModuleLoader__.load({
 
       // ── Team lessons: the pure pieces ───────────────────────────────────────────────────────────────────
       const TEAM_LOCKED = { offre_requise: ['Team plan', 'Team lessons need a Team workspace: members propose what they learned, an owner or admin approves it, and every agent of the team reads it.'],
-        aucun_espace: ['No team workspace', 'Select a team workspace in the sidebar to read and propose its lessons.'], non_connecte: ['Sign in', 'Connect your Kybernos account to use team lessons.'] }
+        aucun_espace: ['No team workspace', 'Select a team workspace in the sidebar to read and propose its lessons.'], non_connecte: ['Sign in', 'Connect your Kybernos account to use team lessons.'],
+        hote_ancien: ['Restart DSH', 'The Kybernos Cloud plugin was updated: restart DSH to use team lessons.'], chargement: ['Checking…', 'Looking for your team workspace…'] }
       const teamLockedWords = (reason) => TEAM_LOCKED[reason] || ['Unavailable', 'Team lessons are not available right now.']
+      /** Why Team is not offered, from what `useTeam` knows: the host's own answer when there is one, else what its silence means (a host that predates the routes answers 404). */
+      const teamReasonOf = (team) => {
+        if (team === undefined || team === null) return 'indisponible'
+        if (team.ok === true && team.team !== null && team.team !== undefined) return team.team.reason === null || team.team.reason === undefined ? 'indisponible' : team.team.reason
+        if (team.loaded !== true) return 'chargement'
+        if (team.error === 'non connecte') return 'non_connecte'
+        return team.error === 'indisponible' ? 'hote_ancien' : 'indisponible'
+      }
       const isTeamAdmin = (role) => role === 'owner' || role === 'admin'
       const minutesSince = (iso, now) => { const t = Date.parse(iso); return Number.isFinite(t) ? Math.max(0, Math.round(((now === undefined ? Date.now() : now) - t) / 60000)) : null }
       /** « Waiting for review », « Approved »… with the chip tone the page uses. */
@@ -1028,7 +1037,7 @@ window.__ModuleLoader__.load({
         const teamAvail = teamInfo !== null && teamInfo.available === true
         const teamFull = teamAvail ? Object.assign({}, teamInfo, { shareOn: team.settings.share === true }) : null
         const teamMode = !mems && f.scope === 'team' && teamAvail
-        const [lockLabel, lockWhy] = teamLockedWords(teamInfo === null ? (team !== undefined && team.connected === true ? 'indisponible' : 'non_connecte') : teamInfo.reason)
+        const [lockLabel, lockWhy] = teamLockedWords(teamInfo === null ? teamReasonOf(team) : teamInfo.reason)
 
         const setFilter = (key, v) => { setF(Object.assign({}, f, { [key]: v })); setPage(1) }
         const clearFilters = () => { setF(defaultFilters()); setPage(1); setMenu(false) }
@@ -1429,7 +1438,7 @@ window.__ModuleLoader__.load({
       const TeamRows = ({ team, mem, onToggle }) => {
         const info = team !== undefined && team.ok === true && team.team !== null ? team.team : null
         const avail = info !== null && info.available === true
-        const [label, why] = teamLockedWords(info === null ? (team !== undefined && team.connected === true ? 'indisponible' : 'non_connecte') : info.reason)
+        const [label, why] = teamLockedWords(info === null ? teamReasonOf(team) : info.reason)
         const stale = mem !== null && (typeof mem.team_use !== 'boolean' || typeof mem.team_share !== 'boolean')   // a host that predates the switches
         const off = !avail || mem === null || stale
         const reason = off ? (stale ? 'The cloud plugin was updated: restart DSH to use this.' : why) : null
@@ -1575,7 +1584,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { teamLockedWords, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { teamLockedWords, teamReasonOf, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
