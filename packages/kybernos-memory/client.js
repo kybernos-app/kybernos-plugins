@@ -194,6 +194,11 @@ window.__ModuleLoader__.load({
         return out
       }
 
+      const TIDY_SHOWN = 4
+
+      /** The items a card draws: the first few, plus the kept one if it is further down; all of them once expanded. */
+      const visibleItems = (g, keepId, expanded) => (expanded || g.items.length <= TIDY_SHOWN + 1 ? g.items : g.items.filter((i, n) => n < TIDY_SHOWN || i.id === keepId))
+
       /** The kept item of a group: the user's pick, else the one the scan proposed. */
       const keeperOf = (g, choices) => {
         const c = choices[g.id]
@@ -380,6 +385,8 @@ window.__ModuleLoader__.load({
 .kbmem-it.del{background:var(--m-del-bg);color:var(--m-ink2)}.kbmem-it.del .kbmem-itx{text-decoration:line-through;text-decoration-color:var(--m-danger);text-decoration-thickness:1px}
 .kbmem-it.new{background:var(--m-ok-bg)}
 .kbmem-itx{flex:1;min-width:0;overflow-wrap:anywhere}
+.kbmem-it.del .kbmem-itx{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.kbmem-more{padding:2px 12px 8px;font-size:12px;color:var(--m-muted)}.kbmem-more button{color:var(--m-acc);font-weight:600}
 .kbmem-it textarea{width:100%;min-height:72px;border-radius:8px;border:1px solid var(--m-line2);background:var(--m-surf2);color:var(--m-ink);padding:8px;resize:vertical;font:inherit}
 .kbmem-im{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--m-cap);white-space:nowrap;padding-inline-start:6px}.kbmem-im .kbmem-ico{width:12px;height:12px}
 .kbmem-pick{flex:none;width:16px;height:16px;margin-top:3px;border-radius:50%;border:1.5px solid var(--m-line3)}.kbmem-pick.on{border-color:var(--m-acc);background:radial-gradient(var(--m-acc) 0 4px,transparent 5px)}.kbmem-pick[disabled]{opacity:.4;pointer-events:none}
@@ -854,7 +861,7 @@ window.__ModuleLoader__.load({
       }
 
       /** One suggestion: the items (the kept one in green, the others struck), who stays, and what to do. */
-      const GroupCard = ({ g, st, keepId, editing, edit, busy, onPick, onMerge, onToggleEdit, onEdit, onKeepBoth, onUndo, onRestore }) => {
+      const GroupCard = ({ g, st, keepId, editing, edit, busy, expanded, onExpand, onPick, onMerge, onToggleEdit, onEdit, onKeepBoth, onUndo, onRestore }) => {
         const src = TIDY_SOURCES[g.src]
         const pinned = g.items.some((i) => i.pinned === true)
         const tooBig = groupRemovals(g) > TIDY_MAX_REMOVALS
@@ -870,15 +877,15 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbmem-grp' + (done ? ' done' : ''), 'data-group': g.id, 'data-src': g.src },
           h('header', null, h('span', { className: 't' }, title), h('span', { className: 'kbmem-chip' }, 'Close match ' + String(g.score) + '%'),
             g.kyber ? h('span', { className: 'kbmem-chip' }, g.kyber) : null, h('span', { className: 'kbmem-grow' }), status),
-          h('div', { className: 'items' }, g.items.map((i) => {
+          h('div', { className: 'items' }, visibleItems(g, keepId, expanded).map((i) => {
             const kept = i.id === keepId
             return h('div', { key: i.id, className: 'kbmem-it ' + (kept ? 'new' : 'del'), 'data-item': i.id, 'data-kept': kept ? '1' : '0' },
               h('button', { type: 'button', className: 'kbmem-pick' + (kept ? ' on' : ''), role: 'radio', 'aria-checked': kept, 'aria-label': 'Keep this one', disabled: done || (pinned && i.pinned !== true), onClick: () => onPick(i.id) }),
               kept && editing
                 ? h('textarea', { 'aria-label': 'Text to keep', value: edit, maxLength: src.max, onChange: (e) => onEdit(e.target.value) })
-                : h('span', { className: 'kbmem-itx' }, kept && edit !== undefined && edit.trim() !== '' ? edit : i.content),
+                : h('span', { className: 'kbmem-itx', title: kept ? undefined : i.content }, kept && edit !== undefined && edit.trim() !== '' ? edit : i.content),
               h('span', { className: 'kbmem-im' }, i.pinned ? Ico('pin') : null, i.uses > 0 ? h('span', null, 'Used ' + String(i.uses) + '×') : null, h('span', null, ageLabel(i.ageMinutes))))
-          })),
+          }), visibleItems(g, keepId, expanded).length < g.items.length ? h('div', { className: 'kbmem-more' }, '+ ' + String(g.items.length - visibleItems(g, keepId, false).length) + ' more with the same meaning ', h('button', { type: 'button', 'data-act': 'tidy-more', onClick: onExpand }, 'Show')) : null),
           h('div', { className: 'kbmem-gnote' }, g.src === 'les' ? 'The kept lesson also gets the tags and the uses of the others.' : (pinned ? 'A pinned memory is never removed: it is the one that stays.' : 'The other ' + (g.items.length === 2 ? 'one is' : 'ones are') + ' deleted; Undo brings them back as new memories.')),
           done ? null : h('div', { className: 'kbmem-gacts' },
             h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'tidy-merge', disabled: busy || tooBig || (st !== undefined), onClick: onMerge }, Ico('check'), 'Merge'),
@@ -899,6 +906,7 @@ window.__ModuleLoader__.load({
         const [status, setStatus] = useState({})
         const [choices, setChoices] = useState({})
         const [editing, setEditing] = useState(null)
+        const [expanded, setExpanded] = useState({})
         const [busy, setBusy] = useState(false)
         const list = snap[tab]
         const open = list.filter((g) => status[g.id] === undefined)
@@ -993,7 +1001,7 @@ window.__ModuleLoader__.load({
           list.map((g) => {
             const keepId = keeperOf(g, choices)
             const c = choices[g.id] || {}
-            return h(GroupCard, { key: g.id, g, st: status[g.id], keepId, editing: editing === g.id, edit: c.edit, busy,
+            return h(GroupCard, { key: g.id, g, st: status[g.id], keepId, editing: editing === g.id, edit: c.edit, busy, expanded: expanded[g.id] === true, onExpand: () => setExpanded((old) => Object.assign({}, old, { [g.id]: true })),
               onPick: (id) => { setChoice(g.id, { keep: id, edit: editing === g.id ? textOf(g, id) : undefined }) },
               onMerge: () => apply([g]),
               onToggleEdit: () => {
@@ -1145,7 +1153,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
