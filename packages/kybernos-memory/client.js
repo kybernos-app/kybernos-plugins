@@ -276,6 +276,21 @@ window.__ModuleLoader__.load({
       }
       const lastWords = (l, now) => (l === null ? 'Not run yet.' : 'Last run ' + whenLabel(l.at, now) + (l.trigger === 'schedule' ? ' (scheduled)' : '') + ': ' + (l.autoGroups > 0 ? 'merged ' + plural(l.autoGroups, 'group') + ' by itself' : 'nothing merged by itself') + (l.found - l.autoGroups > 0 ? ', ' + String(l.found - l.autoGroups) + ' left for you' : '') + '.')
 
+      /**
+       * A scheduled run that merged something while nobody was looking: the notice the page shows once, with the runs it can undo.
+       * `null` when there is nothing to tell (no run, nothing merged, or the user pressed the button and saw the result).
+       */
+      const TIDY_RAN_KEY = 'kbmem.tidyRanSeen'
+      const readRanSeen = () => { try { return window.localStorage.getItem(TIDY_RAN_KEY) || '' } catch (e) { return '' } }
+      const writeRanSeen = (v) => { try { window.localStorage.setItem(TIDY_RAN_KEY, v) } catch (e) { /* private window */ } }
+      const tidyRanNotice = (t, seen) => {
+        const last = tidyLast(t)
+        if (last === null || last.trigger !== 'schedule' || !(last.autoGroups > 0) || seen === last.at) return null
+        const from = Date.parse(last.at) - 120000
+        const entries = tidyLog(t).filter((l) => l.by === 'auto' && l.canUndo === true && Date.parse(l.at) >= from)
+        return { at: last.at, groups: last.autoGroups, removed: last.autoRemoved, entries }
+      }
+
       /** The Study model, as the page needs it: its name (the same file for both hosts), whether a model service exists, and how many unclear pairs wait. */
       const tidyBrain = (t) => {
         const views = [t.mem, t.les].filter((x) => x !== null && x.brain !== undefined)
@@ -711,7 +726,7 @@ window.__ModuleLoader__.load({
           !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, 'A deleted lesson goes to the kyber\'s lessons.archive.jsonl — it is not destroyed.') : null)
       }
 
-      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview }) => {
+      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview, ran, onRanUndo, onRanHide }) => {
         const [q, setQ] = useState('')
         const [qd, setQd] = useState('')
         const [f, setF] = useState(defaultFilters())
@@ -836,7 +851,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Memory & Lessons learned'), h('span', { className: 'kbmem-grow' }),
             h('button', { type: 'button', className: 'kbmem-st' + (on ? '' : ' off'), 'data-act': 'status', title: 'Open options', onClick: openOptions }, h('i'), status1),
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'options', onClick: openOptions }, Ico('gear'), 'Options')),
-          tabs, tools, chips, tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null, notes, body,
+          tabs, tools, chips, ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null, tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null, notes, body,
           sheet !== null ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify }) : null)
       }
 
@@ -915,6 +930,11 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'tidy-review', onClick: onReview }, 'Review'),
           h('button', { type: 'button', className: 'kbmem-x', 'data-act': 'tidy-hide', 'aria-label': 'Dismiss', onClick: onHide }, Ico('x')))
       }
+
+      const TidyRanNotice = ({ notice, onUndo, onHide }) => h('div', { className: 'kbmem-autobar', 'data-tidy': 'ran', role: 'status' }, Ico('check'),
+        h('div', { className: 'kbmem-grow' }, h('b', null, 'Tidied up by itself ' + whenLabel(notice.at)), ': merged ' + plural(notice.groups, 'group') + ' (' + plural(notice.removed, 'item') + ' removed). Every change can be undone for 30 days.'),
+        notice.entries.length > 0 ? h('button', { type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'tidy-ran-undo', onClick: onUndo }, Ico('undo'), 'Undo') : null,
+        h('button', { type: 'button', className: 'kbmem-x', 'data-act': 'tidy-ran-hide', 'aria-label': 'Dismiss', onClick: onHide }, Ico('x')))
 
       /** One suggestion: the items (the kept one in green, the others struck), who stays, and what to do. */
       const GroupCard = ({ g, st, keepId, editing, edit, busy, expanded, onExpand, onPick, onMerge, onToggleEdit, onEdit, onKeepBoth, onUndo, onRestore }) => {
@@ -1038,7 +1058,7 @@ window.__ModuleLoader__.load({
         const total = (tidy.mem === null || tidy.mem.total === null ? 0 : tidy.mem.total) + (tidy.les === null || tidy.les.total === null ? 0 : tidy.les.total)
         const nothing = snap.mem.length + snap.les.length === 0
         const notes = []
-        if (auto !== null && auto !== undefined && auto.brainError) notes.push(h('div', { key: 'nb', className: 'kbmem-note warn', 'data-note': 'brain' }, Ico('brain'), h('div', null, h('b', null, 'The Study model was not asked. '), friendlyError(auto.brainError), ' The suggestions below come from the local look only.')))
+        if (auto !== null && auto !== undefined && auto.brainError) notes.push(h('div', { key: 'nb', className: 'kbmem-note warn', 'data-note': 'brain' }, Ico('brain'), h('div', null, h('b', null, 'The Study model was not asked. '), friendlyError(auto.brainError), auto.brainDetail ? ' (' + auto.brainDetail + ')' : '', ' The suggestions below come from the local look only.')))
         if (tidy.memError !== null && tidy.mem === null) notes.push(h('div', { key: 'nm', className: 'kbmem-note warn', 'data-note': 'mem-skipped' }, Ico('cloud'), h('div', null, h('b', null, 'Memories were not looked at. '), friendlyError(tidy.memError))))
         if (tidy.lesError !== null && tidy.les === null) notes.push(h('div', { key: 'nl', className: 'kbmem-note warn', 'data-note': 'les-skipped' }, Ico('alert'), h('div', null, h('b', null, 'Lessons were not looked at. '), friendlyError(tidy.lesError))))
 
@@ -1193,6 +1213,7 @@ window.__ModuleLoader__.load({
         const [scanning, setScanning] = useState(false)
         const [autoRun, setAutoRun] = useState(null)
         const [hiddenKey, setHiddenKey] = useState(readHidden)
+        const [ranSeen, setRanSeen] = useState(readRanSeen)
         const hideBanner = () => { const k = scanKey(tidy); writeHidden(k); setHiddenKey(k) }
         const notify = useCallback((message, undo) => {
           setToast({ message, undo })
@@ -1215,12 +1236,22 @@ window.__ModuleLoader__.load({
           setScanning(false)
           if (asTidyView(m) === null && asTidyView(l) === null) { notify(friendlyError(m.error === undefined || m.error === 'indisponible' ? l.error : m.error)); return }
           const pick = (r) => (r.auto !== undefined && r.auto !== null ? { groups: r.auto.groups, removed: r.auto.removed, runs: r.auto.runs } : null)
-          const a = { mem: pick(m), les: pick(l), brainError: [m, l].map((r) => (r.brain !== undefined && r.brain !== null && r.brain.error ? r.brain.error : null)).find((e) => e !== null) || null }
+          const a = { mem: pick(m), les: pick(l), brainError: [m, l].map((r) => (r.brain !== undefined && r.brain !== null && r.brain.error ? r.brain.error : null)).find((e) => e !== null) || null, brainDetail: [m, l].map((r) => (r.brain !== undefined && r.brain !== null && r.brain.detail ? r.brain.detail : null)).find((e) => e !== null) || null }
           setAutoRun(a)
           adopt(m, l)
           setView('review')
           const groups = (a.mem === null ? 0 : a.mem.groups) + (a.les === null ? 0 : a.les.groups)
           if (groups > 0) notify('Merged ' + plural(groups, 'group') + ' by itself · ' + plural((a.mem === null ? 0 : a.mem.removed) + (a.les === null ? 0 : a.les.removed), 'item') + ' removed', async () => { const r = await undoAuto(a); notify(r.back === r.total ? 'Undone: everything is back' : 'Undid ' + String(r.back) + ' of ' + String(r.total) + ': open Options to retry the rest') })
+        }
+        const ran = tidy.loaded === true ? tidyRanNotice(tidy, ranSeen) : null
+        const hideRan = () => { if (ran !== null) { writeRanSeen(ran.at); setRanSeen(ran.at) } }
+        const undoRan = async () => {
+          if (ran === null) return
+          let back = 0
+          for (const l of ran.entries) { const u = await api(TIDY_SOURCES[l.src].base + '/undo', { run: l.id }); if (u.ok === true) back += 1 }
+          hideRan()
+          bump()
+          notify(back === ran.entries.length ? 'Undone: everything is back' : 'Undid ' + String(back) + ' of ' + String(ran.entries.length) + ': open Options to retry the rest')
         }
         const toReview = () => { setAutoRun(null); setView('review') }
         return h('div', { className: 'kbmem-page', 'data-kbmem': view },
@@ -1228,7 +1259,7 @@ window.__ModuleLoader__.load({
             ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey, tidy, scan, scanning, openReview: toReview })
             : view === 'review'
               ? h(ReviewView, { key: scanKey(tidy), tidy, back: () => setView('main'), notify, bump, scan, scanning, auto: autoRun, onUndoAuto: undoAuto })
-              : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview: toReview }),
+              : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview: toReview, ran, onRanUndo: undoRan, onRanHide: hideRan }),
           toast !== null ? h('div', { className: 'kbmem-toast', role: 'status', 'aria-live': 'polite' }, toast.message,
             toast.undo ? h('button', { type: 'button', 'data-act': 'undo', onClick: () => { const u = toast.undo; setToast(null); u() } }, 'Undo') : null) : null)
       }
@@ -1252,7 +1283,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
