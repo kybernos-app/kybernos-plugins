@@ -160,6 +160,8 @@ window.__ModuleLoader__.load({
     /** Pure. What to say about the answer of POST /kybernos-hub/catalogue/refresh. [fr, en]. */
     const messageCatalogue = (r) => {
       if (r === null || r === undefined || typeof r !== 'object') return ['Réponse illisible.', 'Unreadable answer.']
+      // A DSH started before this version answers 404 (not JSON): `post` reports it as bad-response.
+      if (r.error === 'bad-response' || r.error === 'network') return ['Le serveur DSH n’a pas encore chargé cette version : redémarrez-le.', 'The DSH server has not loaded this version yet: restart it.']
       if (r.ok === true) {
         return r.etat === 'nouveau'
           ? ['La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').']
