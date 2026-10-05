@@ -42,16 +42,22 @@ one click away.
   When it cannot be done — switch off, plan too low (the embeddings model needs the Solo plan on the
   dev tier: `model-not-available-plan`), a server without pgvector or that predates the routes, no
   credits — the page shows the relevance matches and says why, with a link to Options.
-- **Tidy up** (Options → *Clean up now*, then a banner on the page): finds near-duplicates among the memories
-  and among the lessons, on this machine, with no model and nothing sent anywhere. Suggestions are groups
-  (« Merge 3 into 1 »): the most complete item stays, or the one you pick, optionally with edited text; pinned
-  memories are never removed; lessons only meet inside their own kyber. *Merge*, *Edit the kept one*, *Keep both*
-  (remembered, and takeable back) or *Accept all* for the tab. Nothing is deleted before you accept, every
-  accepted group is archived first and can be undone for 30 days (restored memories come back as new
-  memories, restored lessons exactly as they were; a lesson Undo refuses when the kyber would pass 50).
-  The kept lesson inherits the tags and the uses of the others, so merging never makes it the first thing the cap
-  evicts. Looking is manual for now; the automatic run (daily, weekly, every 50 new items) and a Study model that
-  judges the unclear pairs are drawn locked, « Coming next ». See *Tidy up* below.
+- **Tidy up** (Options → *Clean up now*, the schedule, then a banner on the page): finds near-duplicates among the
+  memories and among the lessons, on this machine. Suggestions are groups (« Merge 3 into 1 », « Remove the outdated
+  one »): the most complete item stays, or the one you pick, optionally with edited text; pinned memories are never
+  removed; lessons only meet inside their own kyber. **A group that is 80 % alike or more is merged by itself**
+  (setting *When it finds near-duplicates*: « Merge close matches by itself », the default, or « Ask me first »);
+  the weaker ones wait for *Merge*, *Edit the kept one*, *Keep both* (remembered, and takeable back) or *Accept all*.
+  Every merge is archived first and can be undone for 30 days (restored memories come back as new memories,
+  restored lessons exactly as they were; a lesson Undo refuses when the kyber would pass 50). The kept lesson
+  inherits the tags and the uses of the others. A negation (« do not X » vs « X ») or another number (« port 3000 »
+  vs « 3080 ») is never « the same fact », whatever the word overlap.
+  *Run automatically* (Off / When DSH starts / Daily / Weekly (default) / Every 50 new) starts a run while DSH runs:
+  a look, then what the mode allows; a failed run waits an hour. *Study model judges the unclear cases* (off by
+  default, needs the Study model of Kybernos Settings): the pairs that look alike but are not duplicates are sent to
+  it — their text only, never the whole list — and it answers « same » (with a merged wording), « replaces » (the
+  newer one makes the older outdated) or « different »; its answers are only ever suggestions, never merged by
+  itself. See *Tidy up* below.
 - **Not drawn as if it existed**: the Map needs 2-D positions of the vectors, which nothing computes
   yet (the button is disabled and says so), and team lessons are not built (the Team scope and
   « Share lessons with your team » say so). The only plan gate shown is the one the server enforces
@@ -95,25 +101,48 @@ no `..`), and a typo never creates a kyber.
 
 ## Tidy up
 
-`dedupe.mjs` (pure; one module copied into `kybernos-cloud` and `kybernos-memory`, the two copies are
-tested byte-identical) groups items whose words (the `relevance.mjs` tokens) overlap almost entirely:
-Jaccard ≥ 0.8, or one wholly inside the other (≥ 95 % of the smaller one, Jaccard ≥ 0.6, 4+ words).
-Groups are stars around a keeper, never chains, so a loose threshold cannot merge different facts; what it
-cannot decide (a value replaced by a newer one, two similar facts about different things) is left alone.
+Three pure modules, copied into `kybernos-cloud` and `kybernos-memory` (bundles ship one by one and cannot import
+each other; the tests fail if a copy drifts): `relevance.mjs` (the words), `dedupe.mjs` (the detector) and `tidy.mjs`
+(settings, schedule, what may go without asking, the Study-model question and answer).
+
+**Detection** (`dedupe.mjs`): items whose words (the `relevance.mjs` tokens) overlap almost entirely — Jaccard ≥ 0.8, or
+one wholly inside the other (≥ 95 % of the smaller one, Jaccard ≥ 0.6, 4+ words). Groups are stars around a keeper,
+never chains. Two things the overlap cannot see are checked on the raw text, because they flip a fact while leaving
+the overlap at 100 %: a negation (`not` is a stop word) and a number. A pair that differs on either is not a
+duplicate; it becomes an *unclear pair* (`unclearPairs`: Jaccard ≥ 0.5, or a clash), which is what the Study model is for.
+`score` = the lowest Jaccard of a group's members with its keeper; `AUTO_MIN_SCORE = 80`.
 
 | | Memories (`kybernos-cloud`) | Lessons (`kybernos-memory`) |
 |---|---|---|
-| Routes | `GET /kybernos-cloud/memory/tidy`, `POST …/tidy/scan`, `…/tidy/apply`, `…/tidy/dismiss`, `…/tidy/undo` | `GET /kybernos-memory/tidy`, `POST …/tidy/scan`, `…/tidy/apply`, `…/tidy/dismiss`, `…/tidy/undo` |
+| Routes | `GET /kybernos-cloud/memory/tidy`, `POST …/tidy/scan`, `…/tidy/apply`, `…/tidy/dismiss`, `…/tidy/undo`, `…/tidy/settings` | the same under `/kybernos-memory/tidy` |
 | Compared inside | the memory's kind | the kyber |
 | Apply | edit the kept memory if asked, delete the others on the server | merge tags / uses / last use into the kept lesson, delete the others (each also goes to `lessons.archive.jsonl`) |
 | Archive (30 days) | the removed rows and the kept one's old text, in `kybernos-cloud-tidy-archive.json` | the removed rows and the kept one's old fields, in `kybernos-memory.tidy-archive.json` |
 | Undo | recreates the removed memories (new ids), puts the old text back | puts the rows back as they were; `kyber_plein` if the kyber would pass 50 lessons |
+| State | `kybernos-cloud-tidy.json` (scan, kept-apart pairs, log, settings, last run, judged pairs) | `kybernos-memory.tidy.json` (same) |
 
-Both hosts: `apply` needs `confirm: true`, checks every group against what is stored *now* (a changed or
-vanished item makes its group `a_change`, never a guess), writes the archive before the first delete, refuses
-a request that removes more than 50 items, and never removes a pinned memory. `dismiss` remembers a pair the
-user kept apart (`restore: true` takes it back). The scan and the log live next to the state / settings file
-(0600). Same-origin guard, POST for everything that writes.
+**A run** (`tidyRun`, from « Clean up now » or the schedule): look (local groups, and the Study model's suggestions
+when allowed), store the scan, then in `auto` mode apply the local groups with `score >= 80` that the user did not
+keep apart — at most 100 removals per run, in requests of at most 50; a group over 50 stays for the review and the
+run counts it as failed. The log says who merged: `auto` or `you`. `last` = `{ at, trigger, total, found, autoGroups,
+autoRemoved, brainAsked, brainError }` and the page's « Next: … » comes from `tidyNext`.
+
+**Settings** (`mode` auto|ask, `schedule` off|start|daily|weekly|n50, `brain` bool) live in each host's tidy state
+and are written by the page to both (lessons work without the cloud); a patch is all or nothing. The schedule
+(`tidyDue`, checked 90 s after start then every 10 minutes while DSH runs): `daily` 24 h, `weekly` 7 days, `start` once
+per launch if the last run is over 3 days old, `n50` once 50 more items exist than at the last run; never offline, not
+with Memories / Lessons switched off, and a failed attempt is not retried for an hour.
+
+**Study model** (`brain`, « route/id » of Kybernos Settings, read from `~/.dsh/kybernos/settings.json`): asked through
+the `llm` service (`purpose: 'kybernos-tidy'`), 12 pairs per question, at most 30 pairs per run, 60 s per question,
+the notes handed over as data. Every verdict is cached by pair and text (a pair is asked once; a changed text is asked
+again; `different` is remembered), every slip in the answer becomes « unsure », a pinned item is never offered for
+removal, and the answer only ever produces suggestions (`by: 'brain'`) for the review — `pickAuto` never applies one.
+
+Both hosts: `apply` needs `confirm: true`, checks every group against what is stored *now* (a changed or vanished item
+makes its group `a_change`, never a guess), writes the archive before the first delete and refuses a request that
+removes more than 50 items. `dismiss` remembers a pair the user kept apart (`restore: true` takes it back).
+Same-origin guard, POST for everything that writes.
 
 ## Tests
 
@@ -121,6 +150,7 @@ user kept apart (`restore: true` takes it back). The scan and the log live next 
 node packages/kybernos-memory/test-memory-host.mjs   # real files in a temp folder, real memory.cjs if present
 node packages/kybernos-memory/test-client.mjs        # the page's pure pieces, mounting contract, source guards
 node packages/kybernos-cloud/test-dedupe.mjs         # near-duplicate detection (pure)
+node packages/kybernos-cloud/test-tidy.mjs           # settings, schedule, auto line, Study-model question/answer (fake llm)
 node scripts/check-memory-live.mjs --shots /tmp/mem  # the REAL GUI, read-only (needs dsh web restarted once)
 ```
 

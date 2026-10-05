@@ -354,6 +354,8 @@ try {
   const before = { a: fileOf('td-a'), b: fileOf('td-b') }
   const tdFile = (suffix) => join(root, 'kybernos-memory.' + suffix + '.json')
 
+  assert.deepEqual((await call('/kybernos-memory/tidy')).settings, { mode: 'auto', schedule: 'weekly', brain: false }, 'the defaults: merge the close matches by itself, look weekly, no model')
+  assert.equal((await call('/kybernos-memory/tidy/settings', { mode: 'ask' })).settings.mode, 'ask', 'this section looks first')
   const scan = await call('/kybernos-memory/tidy/scan', null)
   assert.equal(scan.ok, true)
   assert.equal(scan.total, 6)
@@ -484,7 +486,7 @@ try {
   ok('tidy: undo refuses with kyber_plein when the 50-lesson cap would be exceeded, and works once there is room')
 
   // too many removals in one request: refused whole
-  put('td-c', Array.from({ length: 52 }, (_, i) => L('Shared sentence about the topic alpha beta gamma number ' + String(i), { ts: iso(100 + i) })))
+  put('td-c', Array.from({ length: 52 }, (_, i) => L('Shared sentence about the topic alpha beta gamma delta ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'zz', { ts: iso(100 + i) })))
   const gBig = (await call('/kybernos-memory/tidy/scan', null)).groups.find((x) => x.kyber === 'td-c')
   assert.equal(gBig.saves, 51, 'fifty-two near-identical lessons form one group')
   const big = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: gBig.id }] })
@@ -525,6 +527,178 @@ try {
   assert.equal(store.restoreLessons('../etc', [L('x')]).error, 'kyber_inconnu')
   assert.deepEqual(store.restoreLessons('td-r', [{ nope: 1 }, null, 3]), { ok: true, restored: 0 })
   ok('tidy: restoreLessons puts lessons back as they were, skips text already there, ignores junk and unknown kybers')
+  }
+
+  // ── 10. Tidy up, second half: settings, merging by itself at 80 %+, the schedule, the Study model ──────────
+  {
+    const url = (suffix) => '/kybernos-memory/tidy' + suffix
+    const studyFile = join(root, 'kybernos-settings.json')
+    process.env.KYBERNOS_SETTINGS_FILE = studyFile
+    const tuneStore = mod.TIDY_TUNING
+    tuneStore.firstMs = 1e9; tuneStore.tickMs = 1e9
+    const llmCalls = []
+    let llmScript = null
+    const fakeLlm = { stream: (o) => (async function* () { llmCalls.push(o); yield { type: 'text-delta', text: llmScript(o.messages[0].content[0].text) }; yield { type: 'finish', reason: { kind: 'stop' } } })() }
+    let llmOn = true
+    mod.apply({ get: (n) => (n === 'llm' && llmOn ? fakeLlm : undefined), inject: () => {}, effect: () => {} })
+    const sideFile = (suffix) => join(root, 'kybernos-memory.' + suffix + '.json')
+    const fileOf = (kyber) => readFileSync(join(dirOf(kyber), 'lessons.jsonl'), 'utf8')
+
+    for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+    for (const bad of [{ mode: 'yolo' }, { schedule: 'hourly' }, { brain: 'yes' }, { mode: 'ask', other: 1 }, {}, null]) assert.equal((await call(url('/settings'), bad)).ok, false, JSON.stringify(bad))
+    assert.equal((await call(url('/settings'), { mode: 'ask', brain: 'yes' })).error, 'valeur_invalide')
+    assert.equal((await call(url(''))).settings.mode, 'ask', 'a refused patch changed nothing')
+    assert.equal((await hit(url('/settings'), 'GET')).status, 405)
+    assert.equal((await hit(url('/settings'), 'POST', { origin: 'https://evil.example' }, { mode: 'ask' })).status, 403)
+    assert.equal(statSync(sideFile('tidy')).mode & 0o777, 0o600)
+    ok('tidy: settings are validated all or nothing, private, same-origin')
+
+    const A1 = 'expo start with CI=1 serves a frozen bundle: the Metro watcher never recompiles edited files'
+    const A2 = 'Expo start with CI=1 serves a frozen bundle: Metro watcher never recompiles edited files'
+    put('au-a', [
+      L(A1, { ts: iso(1500), uses: 2, tags: ['expo'] }),
+      L(A2, { ts: iso(20000), uses: 1, tags: ['metro'] }),
+      L('Never commit the env files of the project to the repository because secrets leak from there', { ts: iso(3000) }),
+      L('Never commit the env files of the project to the repository', { ts: iso(4000) }),
+      L('The dev server listens on port 3000 for the whole project', { ts: iso(9000) }),
+      L('The dev server listens on port 3080 for the whole project', { ts: iso(200) }),
+      L('Do not commit .env files to the repository', { ts: iso(7000) }),
+      L('Commit .env files to the repository', { ts: iso(6000) }),
+      L('Confirm a finding twice before reporting it', { ts: iso(100) }),
+    ])
+    const before10 = fileOf('au-a')
+    const asked10 = await call(url('/scan'), null)
+    assert.equal(asked10.auto.groups, 0, 'ask mode: a scan merges nothing')
+    assert.equal(fileOf('au-a'), before10)
+    assert.equal(asked10.groups.length, 2, 'the expo pair and the one-inside-the-other pair')
+    assert.equal(asked10.unclear, 2, 'the port and the negation are left for judgement')
+    assert.equal((await call(url('/settings'), { mode: 'auto' })).settings.mode, 'auto')
+    const auto10 = await call(url('/scan'), null)
+    assert.deepEqual([auto10.ok, auto10.auto.groups, auto10.auto.removed, auto10.auto.failed], [true, 1, 1, 0], 'auto mode: the 80 %+ group is merged by the scan itself')
+    assert.equal(rows('au-a').length, 8, 'one lesson went, nothing else moved: not the weaker pair, not the port, not the negation')
+    const keptExpo = rows('au-a').find((l) => /frozen bundle/.test(l.text))
+    assert.deepEqual([keptExpo.uses, keptExpo.tags.slice().sort()], [3, ['expo', 'metro']], 'the kept lesson inherits uses and tags, as a manual merge does')
+    assert.equal(auto10.log[0].by, 'auto')
+    assert.equal(auto10.groups.length, 1, 'what is left for the review: the weaker group')
+    assert.equal(auto10.last.trigger, 'manual')
+    assert.equal(auto10.last.total, 8)
+    const undo10 = await call(url('/undo'), { run: auto10.auto.runs[0] })
+    assert.equal(undo10.ok, true)
+    assert.equal(rows('au-a').length, 9, 'Undo brings it back')
+    ok('tidy: in auto mode a scan merges the groups at 80 %+ by itself (archived, logged « auto », undoable) and leaves the rest')
+
+    await call(url('/settings'), { mode: 'ask' })
+    const g80 = (await call(url('/scan'), null)).groups.find((g) => g.score >= 80)
+    await call(url('/dismiss'), { groups: [g80.id] })
+    await call(url('/settings'), { mode: 'auto' })
+    const keptApart = await call(url('/scan'), null)
+    assert.equal(keptApart.auto.groups, 0, 'kept apart: never merged by itself')
+    await call(url('/dismiss'), { groups: [g80.id], restore: true })
+    ok('tidy: a group kept apart is never merged automatically')
+
+    rmSync(join(kybers, 'au-a'), { recursive: true, force: true })
+    put('au-big', Array.from({ length: 52 }, (_, i) => L('Shared sentence about the topic alpha beta gamma delta ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'zz', { ts: iso(100 + i) })))
+    const big10 = await call(url('/scan'), null)
+    assert.deepEqual([big10.auto.groups, big10.auto.failed], [0, 1], 'a group over 50 removals is not merged by itself')
+    assert.equal(rows('au-big').length, 52)
+    rmSync(join(kybers, 'au-big'), { recursive: true, force: true })
+    ok('tidy: a group of more than 50 removals stays for the review and the run says it failed')
+
+    // the schedule
+    put('au-a', [L('Run the lifecycle tests before every push to the repository', { ts: iso(2000) }), L('Always run the lifecycle tests before every push to the repository', { ts: iso(1000) }), L('Confirm a finding twice before reporting it')])
+    const T0 = Date.now() + 10 * 86400000
+    mod.tidyFlags.retryAt = 0; mod.tidyFlags.bootDone = false
+    await call(url('/settings'), { schedule: 'off' })
+    assert.deepEqual(await mod.tidyTick(T0), { ran: false, why: 'pas_echu' })
+    await call(url('/settings'), { schedule: 'daily' })
+    await call('/kybernos-memory/settings/set', { lessons: false })
+    assert.deepEqual(await mod.tidyTick(T0), { ran: false, why: 'lecons_desactivees' }, 'with Lessons switched off nothing runs')
+    await call('/kybernos-memory/settings/set', { lessons: true })
+    const t1 = await mod.tidyTick(T0)
+    assert.equal(t1.ran, true)
+    assert.equal(t1.auto.groups, 1, 'and it merged the close match by itself')
+    const v1 = await call(url(''))
+    assert.deepEqual([v1.last.trigger, v1.next.kind], ['schedule', 'at'])
+    assert.deepEqual(await mod.tidyTick(T0 + 3600000), { ran: false, why: 'pas_echu' })
+    assert.equal((await mod.tidyTick(T0 + 25 * 3600000)).ran, true)
+    await call(url('/settings'), { schedule: 'weekly' })
+    assert.equal((await mod.tidyTick(T0 + 26 * 3600000)).ran, false)
+    assert.equal((await mod.tidyTick(T0 + 33 * 86400000)).ran, true)
+    await call(url('/settings'), { schedule: 'start' })
+    mod.tidyFlags.bootDone = false
+    assert.equal((await mod.tidyTick(T0 + 40 * 86400000)).ran, true, 'start: after 3 days, at the first look of this launch')
+    assert.equal((await mod.tidyTick(T0 + 50 * 86400000)).ran, false, 'and not again before the next launch')
+    await call(url('/settings'), { schedule: 'n50' })
+    put('au-a', [...rows('au-a'), ...Array.from({ length: 48 }, (_, i) => L('Filler remark number ' + String.fromCharCode(97 + Math.floor(i / 26)) + String.fromCharCode(97 + (i % 26)) + 'q about wholly separate subjects ' + 'zk'.repeat(i % 7 + 1) + ' ' + ['kitchens', 'violins', 'glaciers', 'harbors'][i % 4], { ts: iso(50 + i) }))].slice(0, 80))
+    assert.equal((await mod.tidyTick(T0 + 51 * 86400000)).ran, false, 'fewer than 50 new since the last run')
+    put('au-b', Array.from({ length: 3 }, (_, i) => L('Another separate remark about ' + ['cellars', 'orchards', 'lighthouses'][i] + ' and nothing in common ' + String.fromCharCode(113 + i) + 'y', { ts: iso(30 + i) })))
+    assert.equal((await mod.tidyTick(T0 + 51 * 86400000)).ran, true, '50 more than at the last run: due')
+    await call(url('/settings'), { schedule: 'off' })
+    ok('tidy: the schedule (off, lessons off, daily, weekly, start once per launch, every 50 new) runs, merges by itself and says when is next')
+
+    // a run that cannot start waits an hour
+    mod.tidyFlags.retryAt = 0
+    await call(url('/settings'), { schedule: 'daily' })
+    const T1 = T0 + 200 * 86400000
+    mod.tidyFlags.running = true
+    const busy = await mod.tidyTick(T1)
+    mod.tidyFlags.running = false
+    assert.equal(busy.ran, false, 'a run already in progress is not started twice')
+    assert.notEqual(busy.why, 'pas_echu')
+    assert.deepEqual(await mod.tidyTick(T1 + 600000), { ran: false, why: 'pas_echu' }, 'after a failed attempt the next one waits')
+    assert.equal((await mod.tidyTick(T1 + 3700000)).ran, true, 'an hour later it tries again')
+    ok('tidy: a run in progress is not doubled, and a failed attempt waits an hour')
+
+    // the Study model
+    for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+    put('au-s', [
+      L('The dev server listens on port 3000 for the whole project', { ts: iso(60000) }),
+      L('The dev server listens on port 3080 for the whole project', { ts: iso(500) }),
+      L('Project A deploys on Vercel from the dev branch', { ts: iso(9000) }),
+      L('Project B deploys on Railway from the dev branch', { ts: iso(8000) }),
+      L('Do not commit .env files to the repository', { ts: iso(70000) }),
+      L('Commit .env files to the repository', { ts: iso(9500) }),
+      L('The wifi password of the office is hunter2 and nothing else matters here', { ts: iso(10) }),
+    ])
+    await call(url('/settings'), { mode: 'auto', schedule: 'off', brain: false })
+    llmScript = (prompt) => JSON.stringify({ verdicts: prompt.split('\n\n').slice(1).map((b, i) => (/port 3000/.test(b) ? { n: i + 1, verdict: 'replaces', why: 'the port changed' } : /\.env/.test(b) ? { n: i + 1, verdict: 'different', why: 'opposite rules' } : { n: i + 1, verdict: 'same', why: 'same deploy rule', merged: 'Both projects deploy from the dev branch.' })) })
+    writeFileSync(studyFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))   // a Study model IS set: only the switch keeps the text home
+    llmCalls.length = 0
+    const off = await call(url('/scan'), null)
+    assert.equal(llmCalls.length, 0, 'brain off: nothing is sent to any model')
+    assert.equal(off.unclear, 3)
+    await call(url('/settings'), { brain: true })
+    writeFileSync(studyFile, JSON.stringify({ brain: '' }))
+    const nomodel = await call(url('/scan'), null)
+    assert.deepEqual([llmCalls.length, nomodel.brain.error], [0, 'pas_de_modele_detude'])
+    writeFileSync(studyFile, JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
+    llmOn = false
+    mod.apply({ get: () => undefined, inject: () => {}, effect: () => {} })
+    assert.equal((await call(url('/scan'), null)).brain.error, 'llm_indisponible')
+    llmOn = true
+    mod.apply({ get: (n) => (n === 'llm' ? fakeLlm : undefined), inject: () => {}, effect: () => {} })
+    const before = fileOf('au-s')
+    const judged = await call(url('/scan'), null)
+    assert.equal(llmCalls.length, 1)
+    assert.equal(llmCalls[0].provider + '/' + llmCalls[0].model, 'zai-coding-cn/GLM-5.3-Flash')
+    assert.ok(!/hunter2/.test(llmCalls[0].messages[0].content[0].text), 'a lesson that is in no pair never leaves the machine')
+    assert.equal(fileOf('au-s'), before, 'a verdict is a suggestion: even in auto mode nothing is deleted')
+    const outdated = judged.groups.find((g) => g.type === 'outdated')
+    const same = judged.groups.find((g) => g.type === 'merge')
+    assert.deepEqual([outdated.by, outdated.verdict, judged.groups.length], ['brain', 'the port changed', 2])
+    assert.equal(same.merged, 'Both projects deploy from the dev branch.')
+    await call(url('/scan'), null)
+    assert.equal(llmCalls.length, 1, 'a judged pair is not asked again')
+    const apply1 = await call(url('/apply'), { confirm: true, groups: [{ id: outdated.id }] })
+    assert.equal(apply1.ok, true)
+    assert.ok(!rows('au-s').some((l) => /port 3000/.test(l.text)), 'the outdated lesson is removed on the user\'s click')
+    assert.equal(apply1.view.log[0].by, 'you')
+    const apply2 = await call(url('/apply'), { confirm: true, groups: [{ id: same.id, edit: same.merged }] })
+    assert.equal(apply2.ok, true)
+    assert.ok(rows('au-s').some((l) => l.text === 'Both projects deploy from the dev branch.'))
+    ok('tidy: the Study model is opt-in, only the unclear pairs leave, a verdict is only a suggestion, and each pair is asked once')
+    await call(url('/settings'), { mode: 'ask', schedule: 'off', brain: false })
+    delete process.env.KYBERNOS_SETTINGS_FILE
   }
 
   console.log('\n' + String(pass) + ' verifications OK')
