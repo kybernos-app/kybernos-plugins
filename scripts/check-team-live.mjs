@@ -129,6 +129,14 @@ try {
           check('the iframe fills the content area', size.val && size.val.w >= 600 && size.val.h >= 400, JSON.stringify(size.val))
           await sleep(3500)
           await shot(page, 'team-settings-in-dsh')
+          // The console never holds a token: it asks this page, and this page calls the host's relay. The page's own resource
+          // timing shows those calls, whatever the console (another origin) shows.
+          const relayed = await page.evalJs(`performance.getEntriesByType('resource').map((e) => e.name).filter((n) => n.indexOf('/kybernos-cloud/relay') >= 0).map((n) => new URL(n).searchParams.get('p'))`)
+          const calls = Array.isArray(relayed.val) ? relayed.val : []
+          const { RELAY_RULES } = await import('../packages/kybernos-cloud/index.js')
+          check('the console reads through the host relay (it asked this page, the page called /kybernos-cloud/relay)', calls.length >= 3, calls.length + ' relay request(s): an old console, or a host that was not restarted after the relay was merged')
+          check('every path it asked for is one the allowlist names', calls.length > 0 && calls.every((c) => typeof c === 'string' && RELAY_RULES.some((r) => r.re.test(c.split('?')[0]))), calls.filter((c) => !RELAY_RULES.some((r) => r.re.test(String(c).split('?')[0]))))
+          observations.push('Relay calls seen from the page after the console loaded: ' + Array.from(new Set(calls.map((c) => String(c).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '<workspace>')))).join(' · ') + '.')
           if (opt('--console-url') === null) args.push('--console-url', src)
         }
       }
@@ -307,6 +315,7 @@ try {
         const q = (s) => document.querySelector(s), go = (id) => q('[data-nav=' + id + ']').click(), res = {}
         const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ')
         res.banner = txt('#kbKeyBanner')
+        res.crumbs = txt('#crumbs')
         go('team'); res.team = txt('#t-team')
         go('plan'); res.plan = txt('#curName') + ' | ' + txt('#balance')
         go('members'); res.members = Array.from(document.querySelectorAll('#memberBody tr')).map((x) => x.innerText.replace(/\\s+/g, ' '))
@@ -324,6 +333,8 @@ try {
       check('Usage totals the amounts and names the members', r && r.usage.includes('$1.60') && /Owner Person/.test(r.usage), r && r.usage.slice(0, 160))
       check('Billing shows the Stripe invoice and the card', r && r.billing.includes('#IN-abc123456') && r.billing.includes('4242'), r && r.billing)
       check('the banner says what it is: live and read-only for now', r && /read-only/i.test(r.banner), r && r.banner)
+      check('the crumbs name the real workspace, not the sample team', r && r.crumbs.startsWith('Acme Team'), r && r.crumbs)
+      check('no sample invitation is counted as pending', r && /· 0 pending ·/.test(r.team), r && r.team.slice(0, 200))
       check('the console called no gateway of its own (everything went through the relay)', r && r.network === 0, r && String(r.network))
       check('every path the console asked for is on the host route\'s allowlist', host.refused.length === 0, JSON.stringify(host.refused))
       const wanted = ['/v1/me', '/v1/workspaces', '/members', '/llm/budget', '/llm/usage', '/llm/models', '/llm/catalog', '/llm/billing', '/providers']
@@ -336,6 +347,24 @@ try {
       check('a write is refused in the console, with a plain sentence, before it leaves the page', w && w.post.status === 405 && /read-only/i.test(String(w.post.json && w.post.json.error)), JSON.stringify(w && w.post))
       check('a route the console has no translation for is refused in the page too', w && w.keys.status === 404 && host.asked.length === askedBefore, JSON.stringify(w && w.keys))
       check('no script error through the relay', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 160))
+
+      // Signed in, but the LLM service behind the relay is not configured: members and providers are live, nothing about credits is guessed.
+      await page.send('Page.navigate', { url: host.url + '/parent.html?llm=down' })
+      await waitFor(page, frame(`return !!document.querySelector('#kbKeyBanner') && /could not be loaded/.test(document.querySelector('#kbKeyBanner').innerText)`), 20000)
+      await sleep(1200)
+      const d = (await page.evalJs(frame(`
+        const q = (s) => document.querySelector(s), go = (id) => q('[data-nav=' + id + ']').click(), res = {}
+        const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
+        res.banner = txt('#kbKeyBanner')
+        go('plan'); res.plan = txt('#curName') + ' | ' + txt('#curMeta') + ' | ' + txt('#balance') + ' | side=' + txt('#sidePlan')
+        go('usage'); res.usage = txt('#pUsed') + ' | ' + txt('#pBal')
+        go('members'); res.members = document.querySelectorAll('#memberBody tr').length
+        go('providers'); res.cards = document.querySelectorAll('#provGrid .pcard').length
+        return res`))).val
+      check('LLM service down: the banner says credits, usage and billing could not be loaded, and that members and providers are live', d && /Credits, usage and billing could not be loaded/.test(d.banner) && /live/.test(d.banner), d && d.banner)
+      check('the plan is not guessed: a dash, « Not available right now », no balance of zero, no plan in the sidebar', d && d.plan === '— | Not available right now | — | side=', d && d.plan)
+      check('Usage shows dashes, not zero amounts', d && d.usage.startsWith('— |'), d && d.usage)
+      check('members are still the real ones, and the team\'s own provider stays while the Kybernos card goes (its catalogue is the LLM service\'s)', d && d.members === 2 && d.cards === 1, d && JSON.stringify([d.members, d.cards]))
 
       // Not signed in: the host answers « not connected » to everything.
       await page.send('Page.navigate', { url: host.url + '/parent.html?offline=1' })
