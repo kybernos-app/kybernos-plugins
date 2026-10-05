@@ -76,10 +76,11 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 
 ## Gaps (no automated home yet)
 
-- **The LLM numbers on screen.** The deployed `api.dev2.kybernos.app` runs the LiteLLM proxy, not the gateway service the console and
-  the relay's upstream were written for (`/v1/teams/*` answers 404 there). Until that service is deployed and `LLM_SERVICE_URL` /
-  `LLM_SERVICE_KEY` are set on the proxy, plan, credits, usage and billing cannot be tested against anything real: the relay answers
-  503 and REL-11 is the behaviour.
+- **The LLM numbers on screen.** The LLM gateway service (the console's and the relay's upstream) is not served anywhere: since
+  2026-10-01 22:03 `api.dev2.kybernos.app` is a deliberate second dev copy of the main API (commit `5f4bb96b`, « dev2 smoke green »),
+  where `/v1/teams/*` answers 404 (`docs/runbooks/infra-map.md` in the app repo). Until the gateway is deployed and `LLM_SERVICE_URL` /
+  `LLM_SERVICE_KEY` are set on `kybernos-proxy-dev`, plan, credits, usage and billing cannot be tested against anything real: the
+  relay answers 503 and REL-11 is the behaviour.
 - **Writes** (invites, roles, budgets, whitelist, keys, auto-recharge): not built, so not tested; the console says « Read-only for now ».
 - **Names and emails of members**: the main API keeps neither; the console shows ids.
 - **The relay from a web page** (not DSH): only the DSH broker exists.
