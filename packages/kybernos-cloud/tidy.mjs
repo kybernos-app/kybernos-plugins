@@ -2,6 +2,7 @@
 // model's judgement of the pairs the word count cannot decide. Pure apart from `judgePairs`, which is given the `llm`
 // service. ONE module copied into kybernos-cloud (memories) and kybernos-memory (lessons) — bundles ship one by one and
 // cannot import each other; test-tidy.mjs fails if the two copies differ.
+import { randomUUID } from 'node:crypto'
 import { AUTO_MIN_SCORE, unclearPairs } from './dedupe.mjs'
 
 // ── Settings ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -186,7 +187,7 @@ export const askModel = async (llm, model, prompt, { timeoutMs = BRAIN_TIMEOUT_M
   try {
     const stream = llm.stream({
       provider: model.slice(0, slash), model: model.slice(slash + 1), maxTokens, purpose: 'kybernos-tidy', signal: stop.signal,
-      messages: [{ id: id === undefined ? 'tidy-' + String(Date.now()) : id, role: 'user', content: [{ type: 'text', text: prompt }], source: { kind: 'kybernos-tidy' } }],
+      messages: [{ id: id === undefined ? randomUUID() : id, role: 'user', content: [{ type: 'text', text: prompt }], source: { kind: 'kybernos-tidy' } }],
     })
     for await (const chunk of stream) {
       if (chunk === null || typeof chunk !== 'object') continue
@@ -194,14 +195,17 @@ export const askModel = async (llm, model, prompt, { timeoutMs = BRAIN_TIMEOUT_M
       else if (chunk.type === 'finish') finish = chunk
     }
   } catch (e) {
-    return { error: late ? 'delai_depasse' : 'modele_en_erreur', detail: String((e && e.message) || e).slice(0, 160) }
+    return { error: late ? 'delai_depasse' : 'modele_en_erreur', detail: String((e && (e.code ? e.code + ': ' : '') + e.message) || e).slice(0, 240) }
   } finally {
     clearTimeout(timer)
     if (signal !== undefined && signal !== null && typeof signal.removeEventListener === 'function') signal.removeEventListener('abort', onAbort)
   }
   if (late) return { error: 'delai_depasse' }
   const reason = finish !== null && finish.reason !== null && typeof finish.reason === 'object' ? finish.reason : (finish === null ? {} : finish)
-  if (typeof reason.kind === 'string' && ['stop', 'max-tokens', 'tool-calls'].indexOf(reason.kind) < 0) return { error: 'modele_en_erreur', detail: reason.kind }
+  if (typeof reason.kind === 'string' && ['stop', 'max-tokens', 'tool-calls'].indexOf(reason.kind) < 0) {
+    const f = reason.failure !== null && typeof reason.failure === 'object' ? reason.failure : {}
+    return { error: 'modele_en_erreur', detail: (reason.kind + (typeof f.code === 'string' ? ' ' + f.code : '') + (typeof f.message === 'string' ? ': ' + f.message : '')).slice(0, 240) }
+  }
   return { text }
 }
 
@@ -238,11 +242,12 @@ export const brainGroups = async ({ items, taken, judged, dismissed, llm, model,
   const unclear = all.filter((p) => !skip.has(p.id)).length
   let asked = 0
   let error = null
+  let detail = null
   if (fresh.length > 0 && llm !== null && llm !== undefined && typeof model === 'string' && model !== '') {
     for (let i = 0; i < fresh.length; i += BRAIN_BATCH) {
       const batch = fresh.slice(i, i + BRAIN_BATCH)
       const res = await askModel(llm, model, brainPrompt(batch, noun), { signal, timeoutMs })
-      if (res.error !== undefined) { error = res.error; break }
+      if (res.error !== undefined) { error = res.error; detail = res.detail === undefined ? null : res.detail; break }
       const verdicts = parseVerdicts(res.text, batch.length, maxMerged)
       asked += batch.length
       batch.forEach((p, k) => {
@@ -255,7 +260,7 @@ export const brainGroups = async ({ items, taken, judged, dismissed, llm, model,
   // the cache is bounded: the newest 500 judgements
   const keys = Object.keys(cache)
   if (keys.length > 500) for (const k of keys.sort((x, y) => (Date.parse(cache[x].at) || 0) - (Date.parse(cache[y].at) || 0)).slice(0, keys.length - 500)) delete cache[k]
-  return { groups, judged: cache, unclear, known, asked, error }
+  return { groups, judged: cache, unclear, known, asked, error, detail }
 }
 
 export { AUTO_MIN_SCORE }

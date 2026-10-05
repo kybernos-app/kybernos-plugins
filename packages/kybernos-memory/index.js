@@ -393,7 +393,7 @@ const tidyRun = async (trigger, now = Date.now()) => {
     const taken = new Set(local.flatMap((g) => g.items.map((i) => i.id)))
     let suggestions = []
     let unclear = 0
-    const brain = { asked: 0, error: null, model: '' }
+    const brain = { asked: 0, error: null, detail: null, model: '' }
     if (t.settings.brain === true) {
       brain.model = studyModel()
       const llm = tidyLlm()
@@ -403,6 +403,8 @@ const tidyRun = async (trigger, now = Date.now()) => {
       brain.asked = judged.asked
       brain.error = brain.model === '' ? 'pas_de_modele_detude' : (llm === undefined ? 'llm_indisponible' : judged.error)
       t.judged = judged.judged
+      brain.detail = brain.error === null ? null : (judged.detail === undefined ? null : judged.detail)
+      if (brain.error !== null && brain.error !== 'pas_de_modele_detude' && brain.error !== 'llm_indisponible') console.error('[kybernos-memory] tidy-up: the Study model could not be asked (' + brain.error + (brain.detail === null ? '' : ': ' + brain.detail) + ')')
     } else {
       unclear = unclearPairs(items, { taken }).filter((p) => t.dismissed.indexOf(p.id) < 0).length
     }
@@ -411,7 +413,7 @@ const tidyRun = async (trigger, now = Date.now()) => {
     const auto = { groups: 0, removed: 0, runs: [], failed: 0 }
     const picked = pickAuto(local.filter((g) => t.dismissed.indexOf(g.id) < 0), t.settings)
     for (const chunk of removalChunks(picked, TIDY_MAX_REMOVALS)) {
-      const done = applyGroups(chunk.map((g) => ({ id: g.id })), 'auto')
+      const done = applyGroups(chunk.map((g) => ({ id: g.id })), 'auto', now)
       if (done.error !== undefined) { auto.failed += chunk.length; continue }
       for (const r of done.results) {
         if (r.ok === true) { auto.groups += 1; auto.removed += r.removed || 0; if (r.run) auto.runs.push(r.run) } else auto.failed += 1
@@ -491,7 +493,7 @@ const tidyApply = (body) => {
 }
 
 /** The work of an apply, for the user's click (`by: 'you'`) and for a run that merges by itself (`by: 'auto'`). */
-const applyGroups = (asked, by) => {
+const applyGroups = (asked, by, now = Date.now()) => {
   const t = tidyState()
   if (t.scan === null) return { error: 'aucun_scan', results: [] }
   const live = liveLessons()
@@ -553,7 +555,7 @@ const applyGroups = (asked, by) => {
     if (!edited) kept.runs[runId].edited = []
     if (gone.length === 0 && !edited) delete kept.runs[runId]
     writeTidyArchive(kept)
-    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by, groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false })
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date(now).toISOString(), by, groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false })
     results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
   }
   const after = tidyState()
