@@ -34,6 +34,8 @@ in 7 families. Installed state and switches come from DSH's native plugin manage
   to its visible neighbour. "Reset order" shows once an order is set. Order and view live in this
   browser's `localStorage` only (`kybernos.suite.order.v1`, `kybernos.suite.view.v1`); a blocked
   `localStorage` is tolerated and the panel then says the order is not saved.
+- **Updates.** *Check for updates* asks the signed online catalogue (nothing unsigned is ever shown); a newer suite offers *Update the suite*, which
+  installs the whole suite with the lifecycle robot (one restart). A development checkout is updated with git, never by this. See `docs/dev/suite-updates.md`.
 - **Switch.** Saves the intent on the host, then asks the native manager. Base modules cannot be switched.
 
 ## Host routes
@@ -45,6 +47,7 @@ Same-origin only: a POST needs an `Origin` or `Referer` of the local server; a G
 | `GET /kybernos-hub/state` | boot verdict and recommendation |
 | `POST /kybernos-hub/beacon` | `{type, bootId, entries?}` from the client |
 | `GET /kybernos-hub/suite` | catalogue, which modules are switched on, hub state |
+| `POST /kybernos-hub/catalogue/refresh` · `POST /kybernos-hub/update` · `GET /kybernos-hub/update/status` | the signed online catalogue and the whole-suite update: see `docs/dev/suite-updates.md` |
 | `POST /kybernos-hub/module` | `{id, action: activer \| desactiver \| installer}`, one at a time (409 if busy) |
 | `POST /kybernos-hub/relaunch` | `{confirm: true}` only: starts `~/.dsh/tools/dsh-relance.mjs` detached |
 
@@ -64,5 +67,5 @@ and a banner offers a confirmed "Restart DSH".
 
 Run `for t in test*.mjs; do node "$t"; done` in this folder: `test-boot-guard.mjs` (verdicts, safe mode),
 `test-host.mjs` (routes, client beacons), `test-suite-host.mjs` (activation, install, routes),
-`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, title, verdict, Featured and family filters). `scripts/test-suite-gui.mjs` renders the real panel in a
+`test-suite-order.mjs` (order and view helpers), `test-suite-store.mjs` (catalogue sheets, Featured, family filters, the update words and wiring), `test-catalogue-distant.mjs`, `test-telechargement.mjs`, `test-suite-update.mjs` (the signed catalogue and the update). `scripts/test-suite-gui.mjs` renders the real panel in a
 browser (needs Playwright and React 18; skipped otherwise).

@@ -10,6 +10,8 @@
 //     snapshot, links the bundle, checks the boot and rolls back on failure. This file
 //     never edits the DSH profile itself.
 
+import { archivePour, evaluer, TAILLE_MAX_DOC } from './catalogue-distant.mjs'
+
 const NOM_MODULE = /^[a-z0-9][a-z0-9-]*$/
 
 // Same rule as scripts/lifecycle-engine.mjs (activesResolues / desactivesAEcrire);
@@ -44,16 +46,105 @@ export function lireActivation ({ catalogue, brut }) {
   return { file: true, actifs: liste }
 }
 
-/** The payload of GET /kybernos-hub/suite. */
-export function charge ({ catalogue, brut, etatHub }) {
+/** The payload of GET /kybernos-hub/suite. `effectif` is the catalogue to show (the signed online one when there is one, else the shipped
+ *  one); activation is always resolved against the SHIPPED catalogue, which decides what can be switched. `distant` says what the online
+ *  catalogue amounts to (see etatDistant). */
+export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   const act = lireActivation({ catalogue, brut })
   const actifs = new Set(act.actifs)
+  const vu = effectif ?? { ...catalogue, source: 'embarque' }
   return {
     ok: true,
-    catalogue: { schema: catalogue.schema, familles: catalogue.familles, source: 'embarque' },
-    modules: catalogue.modules.map((m) => ({ ...m, voulu: m.socle ? true : actifs.has(m.nom) })),
+    catalogue: { schema: vu.schema, familles: vu.familles, source: vu.source, suite: vu.suite ?? null },
+    modules: vu.modules.map((m) => ({ ...m, voulu: m.socle ? true : actifs.has(m.nom) })),
     activationFichier: act.file,
-    hub: etatHub ?? null
+    hub: etatHub ?? null,
+    distant: distant ?? null
+  }
+}
+
+/** The platform key a release names its archives by. */
+export const plateformeDe = (processPlatform) => (processPlatform === 'darwin' ? 'mac' : processPlatform === 'win32' ? 'windows' : 'linux')
+
+/**
+ * What the online catalogue amounts to, for the panel. `evaluation` = evaluer(...) of the cached release (or null), `cle` = a trusted key is
+ * installed, `urlConfiguree`, `plateforme`, `racineDev` = this is a development checkout (a git working tree: it is updated with git).
+ * `miseAJour.possible` is true only when an update can really be applied from here.
+ */
+export function etatDistant ({ evaluation, cle, urlConfiguree, plateforme, racineDev, derniere }) {
+  const ok = evaluation !== null && evaluation !== undefined && evaluation.ok === true
+  let raison = null
+  if (!cle) raison = 'no-key'
+  else if (!ok) raison = 'no-release'
+  else if (!evaluation.plusRecent) raison = 'up-to-date'
+  else if (archivePour(evaluation.doc, plateforme) === null) raison = 'no-archive-for-platform'
+  else if (racineDev === true) raison = 'development-checkout'
+  return {
+    cle: Boolean(cle),
+    urlConfiguree: Boolean(urlConfiguree),
+    evaluation: evaluation === null || evaluation === undefined ? 'aucune' : (ok ? 'ok' : evaluation.erreur),
+    suite: ok ? evaluation.doc.suite.version : null,
+    publieLe: ok ? evaluation.doc.publieLe : null,
+    plusRecent: ok && evaluation.plusRecent === true,
+    miseAJour: { possible: raison === null, raison },
+    derniere: derniere ?? null
+  }
+}
+
+/**
+ * Ask the online catalogue. Nothing is downloaded without a trusted key to check it with, and nothing reaches the cache unless it
+ * verifies: a refused answer leaves the cache (and so the panel) exactly as it was.
+ * `telecharger(url, { max })` resolves the bytes. @returns {{ ok, etat?, erreur?, suite?, publieLe? }}
+ */
+export async function rafraichir ({ url, cles, versionSuite, telecharger, ecrireCache }) {
+  if (!Array.isArray(cles) || cles.length === 0) return { ok: false, erreur: 'pas-de-cle' }
+  if (typeof url !== 'string' || !/^https:\/\/[^\s]+$/.test(url)) return { ok: false, erreur: 'url' }
+  let octets
+  let signature
+  try {
+    octets = await telecharger(url, { max: TAILLE_MAX_DOC })
+    signature = (await telecharger(url + '.sig', { max: 1024 })).toString('utf8')
+  } catch (e) { return { ok: false, erreur: 'reseau', detail: String(e?.message ?? e) } }
+  const v = evaluer({ octets, signature, cles, versionSuite })
+  if (!v.ok) return { ok: false, erreur: v.erreur, detail: v.detail }
+  try { ecrireCache({ octets, signature }) } catch (e) { return { ok: false, erreur: 'cache', detail: String(e?.message ?? e) } }
+  return { ok: true, etat: v.plusRecent ? 'nouveau' : 'a-jour', suite: v.doc.suite.version, publieLe: v.doc.publieLe }
+}
+
+/** The cached release, re-verified every time it is used (a cache file that was edited stops verifying). */
+export function evaluerCache ({ lireCache, cles, versionSuite }) {
+  let c = null
+  try { c = lireCache() } catch (e) { c = null }
+  if (c === null || c === undefined) return null
+  return evaluer({ octets: c.octets, signature: c.signature, cles, versionSuite })
+}
+
+/**
+ * Update the WHOLE suite from the verified release: download the archive for this platform, check its SHA-256 and size against the signed
+ * document, extract it, then let the lifecycle robot that ships INSIDE the archive do the install (it checks the manifest of every file,
+ * takes the safety snapshot, verifies the boot and rolls back on failure). DSH is not restarted here.
+ * Everything with a side effect is injected. `progres(etat)` is told: telechargement | extraction | installation.
+ * @returns {{ ok: boolean, error?: string, detail?: string, relanceRequise?: boolean, version?: string }}
+ */
+export async function mettreAJour ({ evaluation, plateforme, racineDev, telechargerVers, extraire, executer, nettoyer, progres }) {
+  if (racineDev === true) return { ok: false, error: 'development-checkout' }
+  if (evaluation === null || evaluation === undefined || evaluation.ok !== true || evaluation.plusRecent !== true) return { ok: false, error: 'nothing-to-update' }
+  const archive = archivePour(evaluation.doc, plateforme)
+  if (archive === null) return { ok: false, error: 'no-archive-for-platform' }
+  try {
+    progres('telechargement')
+    const recu = await telechargerVers(archive.url, { max: archive.taille })
+    if (recu.taille !== archive.taille || recu.sha256 !== archive.sha256) return { ok: false, error: 'digest-mismatch' }
+    progres('extraction')
+    const racine = await extraire(recu.fichier)
+    progres('installation')
+    const r = await executer(racine)
+    if (r.code !== 0) return { ok: false, error: 'robot-refused', detail: String(r.sortie ?? '').split('\n').slice(-6).join('\n') }
+    return { ok: true, relanceRequise: true, version: evaluation.doc.suite.version }
+  } catch (e) {
+    return { ok: false, error: String(e?.code ?? 'update-failed'), detail: String(e?.message ?? e) }
+  } finally {
+    try { await nettoyer() } catch (e) { /* a temp folder left behind is not worth failing for */ }
   }
 }
 

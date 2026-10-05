@@ -157,6 +157,54 @@ window.__ModuleLoader__.load({
       return filtre === 'featured' ? out.slice().sort((x, y) => x.vedette - y.vedette) : out
     }
 
+    /** Pure. What to say about the answer of POST /kybernos-hub/catalogue/refresh. [fr, en]. */
+    const messageCatalogue = (r) => {
+      if (r === null || r === undefined || typeof r !== 'object') return ['Réponse illisible.', 'Unreadable answer.']
+      if (r.ok === true) {
+        return r.etat === 'nouveau'
+          ? ['La suite ' + r.suite + ' est disponible (catalogue signé du ' + String(r.publieLe || '').slice(0, 10) + ').', 'Suite ' + r.suite + ' is available (signed catalogue of ' + String(r.publieLe || '').slice(0, 10) + ').']
+          : ['Catalogue signé à jour (suite ' + r.suite + ').', 'Signed catalogue up to date (suite ' + r.suite + ').']
+      }
+      const t = {
+        'pas-de-cle': ['Aucune clé de signature n’est installée : le catalogue en ligne ne peut pas être vérifié, il n’est donc pas demandé.', 'No signing key is installed: the online catalogue cannot be verified, so it is not asked for.'],
+        url: ['L’adresse du catalogue n’est pas une adresse https valide (réglage catalogueUrl).', 'The catalogue address is not a valid https address (the catalogueUrl setting).'],
+        reseau: ['Le catalogue en ligne est injoignable pour l’instant.', 'The online catalogue cannot be reached right now.'],
+        signature: ['Le catalogue en ligne n’est pas signé par une clé de confiance : ignoré.', 'The online catalogue is not signed by a trusted key: ignored.'],
+        'plus-ancien': ['Le catalogue en ligne est plus ancien que la suite installée : ignoré.', 'The online catalogue is older than the installed suite: ignored.'],
+        forme: ['Le catalogue en ligne est mal formé : ignoré.', 'The online catalogue is malformed: ignored.'],
+        taille: ['Le catalogue en ligne a une taille anormale : ignoré.', 'The online catalogue has an unusual size: ignored.'],
+        cache: ['Impossible d’enregistrer le catalogue vérifié sur le disque.', 'Could not save the verified catalogue to disk.'],
+        busy: ['Une opération est déjà en cours.', 'Another operation is already running.']
+      }
+      return t[r.erreur] || ['Catalogue en ligne refusé (' + String(r.erreur) + ').', 'Online catalogue refused (' + String(r.erreur) + ').']
+    }
+
+    /** Pure. Why an update cannot be applied from this page. [fr, en] or null when it can. */
+    const raisonMiseAJour = (distant) => {
+      if (distant === null || distant === undefined || distant.miseAJour === undefined || distant.miseAJour.possible === true) return null
+      const t = {
+        'development-checkout': ['Ce poste est une copie de développement (git) : mettez-la à jour avec git, pas avec une archive.', 'This machine is a development checkout (git): update it with git, not with an archive.'],
+        'no-archive-for-platform': ['Cette version n’a pas d’archive pour ce système.', 'This release has no archive for this system.'],
+        'no-key': ['Aucune clé de signature n’est installée.', 'No signing key is installed.'],
+        'no-release': ['Aucun catalogue en ligne vérifié : cherchez les mises à jour d’abord.', 'No verified online catalogue: check for updates first.'],
+        'up-to-date': ['La suite est à jour.', 'The suite is up to date.']
+      }
+      return t[distant.miseAJour.raison] || [String(distant.miseAJour.raison), String(distant.miseAJour.raison)]
+    }
+
+    /** Pure. The line shown while the update runs, and when it ends. [fr, en]. */
+    const messageMiseAJour = (t) => {
+      if (t === null || t === undefined) return null
+      const etapes = { telechargement: ['Téléchargement de l’archive…', 'Downloading the archive…'], extraction: ['Vérification et extraction…', 'Verifying and extracting…'], installation: ['Installation : photo de sécurité, liaison, contrôle du démarrage…', 'Installing: safety snapshot, link, boot check…'] }
+      if (etapes[t.etat] !== undefined) return etapes[t.etat]
+      if (t.etat === 'termine') return ['Suite ' + t.version + ' installée. Relancez DSH pour l’activer.', 'Suite ' + t.version + ' installed. Restart DSH to turn it on.']
+      if (t.etat === 'echec') {
+        const e = { 'digest-mismatch': ['L’archive téléchargée ne correspond pas à l’empreinte signée : rien n’a été installé.', 'The downloaded archive does not match the signed digest: nothing was installed.'], 'robot-refused': ['L’installation a été refusée et annulée : votre installation actuelle est intacte.', 'The install was refused and rolled back: your current install is intact.'], 'bad-archive': ['L’archive est invalide : rien n’a été installé.', 'The archive is invalid: nothing was installed.'] }
+        return e[t.erreur] || ['Mise à jour échouée (' + String(t.erreur) + ').', 'Update failed (' + String(t.erreur) + ').']
+      }
+      return null
+    }
+
     // ── Order and view: pure helpers first, then a thin, total storage layer ─────────
     // The order is one list of module ids covering the WHOLE catalogue. It applies to
     // both views: inside each family in the grid, globally in the list.
@@ -463,6 +511,8 @@ window.__ModuleLoader__.load({
         const [famille, setFamille] = React.useState('')
         const [detail, setDetail] = React.useState(null)
         const [ongletFiche, setOngletFiche] = React.useState('description')
+        const [confirmerMaj, setConfirmerMaj] = React.useState(false)
+        const [tacheMaj, setTacheMaj] = React.useState(null)
         const [requete, setRequete] = React.useState('')
         const [occupes, setOccupes] = React.useState({})
         const [notes, setNotes] = React.useState({})
@@ -588,11 +638,31 @@ window.__ModuleLoader__.load({
           setTimeout(attendre, 3000)
         }
 
+        // "Check for updates": ask the online catalogue (the host verifies its signature; nothing unverified is ever shown), then reload.
         const verifier = async () => {
           setVerifie(true); setResume('')
+          const r = await post('/kybernos-hub/catalogue/refresh', {})
           await recharger()
           setVerifie(false)
-          setResume(kt('Catalogue livré avec la suite : à jour. Pas de catalogue en ligne pour l’instant.', 'Catalogue shipped with the suite: up to date. No online catalogue yet.'))
+          const [fr, en] = messageCatalogue(r)
+          setResume(kt(fr, en))
+        }
+
+        // Update the whole suite: the host downloads, verifies and installs; the page only polls its status.
+        const suivreMaj = async () => {
+          const t = await lireJson('/kybernos-hub/update/status')
+          if (t === null || t.ok !== true) { setTimeout(suivreMaj, 3000); return }
+          setTacheMaj(t)
+          if (t.etat === 'termine') { setEnAttente((a) => ({ ...a, __suite: true })); recharger(); return }
+          if (t.etat === 'echec') { recharger(); return }
+          setTimeout(suivreMaj, 2000)
+        }
+        const mettreAJourSuite = async () => {
+          setConfirmerMaj(false)
+          setTacheMaj({ etat: 'telechargement' })
+          const r = await post('/kybernos-hub/update', { confirm: true })
+          if (r.ok !== true) { setTacheMaj({ etat: 'echec', erreur: r.error || 'update-failed' }); return }
+          setTimeout(suivreMaj, 1500)
         }
 
         // What one module shows, shared by the grid card and the list row so both views use
@@ -615,7 +685,7 @@ window.__ModuleLoader__.load({
             parts.install = h('button', { type: 'button', className: 'kbsu-btn sm', onClick: () => installer(m) }, kt('Installer', 'Install'))
           } else if (etat === 'update') {
             parts.statut = h('span', { className: 'kbsu-st warn' }, ic('refresh'), kt('Version ', 'Version ') + m.version + kt(' disponible', ' available'))
-            parts.install = h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => installer(m) }, kt('Mettre à jour', 'Update'))
+            parts.install = h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: () => (suite.distant && suite.distant.plusRecent === true ? setConfirmerMaj(true) : installer(m)) }, kt('Mettre à jour', 'Update'))
           } else {
             const actif = etat === 'active'
             // The row says "Base" for an active base module (the card keeps "Active" + its BASE badge).
@@ -673,6 +743,7 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'kbsu-body', style: { '--c': p.fam.couleur } },
               h('p', null, texte),
               Array.isArray(m.points) && m.points.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Ce que ça fait', 'What it does')), h('ul', { className: 'kbsu-ticks' }, m.points.map((pt, i) => h('li', { key: i }, kt(pt.fr, pt.en))))) : null,
+              Array.isArray(m.notes) && m.notes.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Nouveautés de la version ', 'What’s new in ') + m.version), h('ul', { className: 'kbsu-ticks' }, m.notes.map((nt, i) => h('li', { key: i }, kt(nt.fr, nt.en))))) : null,
               m.socle ? h('p', { className: 'kbsu-st' }, kt('Fait partie du socle : il est livré sur chaque poste et ne s’éteint pas.', 'Part of the base: it ships on every machine and cannot be switched off.')) : null)
           return h('div', { className: 'kbsu-fiche', 'data-kb': 'suite-fiche', 'data-id': m.id, style: { display: 'flex', flexDirection: 'column', gap: 14 } },
             h('div', { className: 'kbsu-crumb' }, h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-retour', onClick: () => setDetail(null) }, ic('back'), 'Kybernos Suite'), h('span', null, '/'), h('span', null, titreDe(m))),
@@ -689,7 +760,7 @@ window.__ModuleLoader__.load({
                   h('dt', null, kt('Famille', 'Family')), h('dd', null, kt(p.fam.fr, p.fam.en)),
                   h('dt', null, kt('Poids', 'Size')), h('dd', null, tailleTexte(m.poids_ko)),
                   h('dt', null, 'Id'), h('dd', null, h('code', null, m.id)),
-                  h('dt', null, 'Source'), h('dd', null, kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))))
+                  h('dt', null, 'Source'), h('dd', null, suite.catalogue.source === 'signe' ? kt('Catalogue signé', 'Signed catalogue') : kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))))
         }
 
         // ── Reordering (list view). The order is saved after every change, in this browser only.
@@ -777,14 +848,23 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
                 ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
-                h('button', { type: 'button', className: 'kbsu-btn', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Actualiser', 'Refresh'))),
+                h('button', { type: 'button', className: 'kbsu-btn', 'data-kb': 'suite-verifier', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Rechercher des mises à jour', 'Check for updates'))),
               h('div', { className: 'kbsu-meta' },
                 dshVersion !== null ? h('span', null, h('span', { className: 'kbsu-dot' + (horsZone ? ' warn' : '') }), 'DSH ' + dshVersion + (horsZone ? kt(' · hors de la zone testée', ' · outside the tested range') : kt(' · dans la zone testée', ' · inside the tested range'))) : null,
-                h('span', null, kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))),
+                h('span', { 'data-kb': 'suite-source' }, suite.catalogue.source === 'signe' && suite.catalogue.suite ? kt('Catalogue signé · suite ', 'Signed catalogue · suite ') + suite.catalogue.suite.version + ' · ' + String(suite.catalogue.suite.publieLe || '').slice(0, 10) : kt('Catalogue livré avec la suite', 'Catalogue shipped with the suite'))))),
           safe ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Mode sans échec actif : seul le socle est chargé.', 'Safe mode is on: only the base is loaded.')), h('span', null, kt('Pour en sortir : ', 'To leave it: '), h('code', null, 'node scripts/dsh-lifecycle.mjs safe-mode off'))) : null,
           (!safe && reco.mode === 'safe-recommande') ? h('div', { className: 'kbsu-banner', role: 'status' }, h('strong', null, ic('alert'), kt('Plusieurs démarrages récents ont échoué.', 'Several recent boots failed.')), h('span', null, String(reco.raison || ''), ' ', h('code', null, 'node scripts/dsh-lifecycle.mjs safe-mode status'))) : null,
+          suite.distant && suite.distant.plusRecent === true && (tacheMaj === null || tacheMaj.etat === 'echec') ? h('div', { className: 'kbsu-relance', role: 'status', 'data-kb': 'suite-maj' },
+            h('span', null, h('b', null, kt('La suite ' + suite.distant.suite + ' est disponible. ', 'Suite ' + suite.distant.suite + ' is available. ')), (() => { const r = raisonMiseAJour(suite.distant); return r === null ? kt('Elle met à jour tous les modules en une fois ; un seul redémarrage de DSH.', 'It updates every module at once; DSH restarts once.') : kt(r[0], r[1]) })()),
+            raisonMiseAJour(suite.distant) !== null ? null
+              : confirmerMaj ? h('span', { className: 'kbsu-right' }, h('span', { className: 'kbsu-st warn' }, kt('Archive vérifiée par empreinte signée, installation avec photo de sécurité et retour arrière automatique.', 'Archive checked against a signed digest, installed with a safety snapshot and automatic rollback.')),
+                h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'suite-maj-go', onClick: mettreAJourSuite }, kt('Mettre à jour la suite', 'Update the suite')),
+                h('button', { type: 'button', className: 'kbsu-btn sm ghost', onClick: () => setConfirmerMaj(false) }, kt('Annuler', 'Cancel')))
+                : h('button', { type: 'button', className: 'kbsu-btn sm accent', 'data-kb': 'suite-maj-ask', onClick: () => setConfirmerMaj(true) }, kt('Mettre à jour la suite', 'Update the suite')),
+            tacheMaj !== null && tacheMaj.etat === 'echec' ? h('span', { className: 'kbsu-st bad', role: 'alert' }, (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })()) : null) : null,
+          tacheMaj !== null && tacheMaj.etat !== 'echec' && tacheMaj.etat !== 'termine' ? h('div', { className: 'kbsu-relance', role: 'status', 'data-kb': 'suite-maj-en-cours' }, h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), (() => { const m = messageMiseAJour(tacheMaj); return m === null ? '' : kt(m[0], m[1]) })())) : null,
           nbEnAttente > 0 ? h('div', { className: 'kbsu-relance', role: 'status' },
-            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), kt('Relancez DSH pour les activer.', 'Restart DSH to turn them on.')),
+            h('span', null, h('b', null, nbEnAttente + (nbEnAttente > 1 ? kt(' changements en attente. ', ' changes pending. ') : kt(' changement en attente. ', ' change pending. '))), enAttente.__suite === true ? kt('La suite est installée. Relancez DSH pour l’activer.', 'The suite is installed. Restart DSH to turn it on.') : kt('Relancez DSH pour les activer.', 'Restart DSH to turn them on.')),
             relance === 'running' ? h('span', { className: 'kbsu-st' }, ic('refresh', 'spin'), kt('Relance en cours… la page va se recharger.', 'Restarting… the page will reload.'))
               : confirmerRelance ? h('span', { className: 'kbsu-right' }, h('span', { className: 'kbsu-st warn' }, kt('Les sessions en cours seront interrompues, puis reprises.', 'Running sessions will be interrupted, then resumed.')),
                 h('button', { type: 'button', className: 'kbsu-btn sm accent', onClick: relancer }, kt('Relancer maintenant', 'Restart now')),
@@ -842,6 +922,6 @@ window.__ModuleLoader__.load({
 
     const demarrer = (ctx) => { apply(ctx); try { appliquerSuite(ctx) } catch (e) { /* optional */ } }
 
-    return { name: NAME, inject: [], apply: demarrer, __test: { ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView } }
+    return { name: NAME, inject: [], apply: demarrer, __test: { messageCatalogue, raisonMiseAJour, messageMiseAJour, ROUTE, ALIVE_AFTER_MS, TICK_MS, lireEchec, comparerVersions, deballer, etatCarte, filtrer, titreDe, verdictCompat, GLYPHES, ORDER_KEY, VIEW_KEY, parseOrder, effectiveOrder, applyOrder, isCustomOrder, storableOrder, moveTo, moveBy, browserStore, readOrder, writeOrder, readView, writeView } }
   }
 })
