@@ -1521,6 +1521,15 @@ try {
 
   // 11k. Tidy up, second half : les reglages, ce qui se fait SANS demander (>= 80 %), le planificateur, et le Study model.
   const tk_url = (suffix) => '/kybernos-cloud/memory/tidy' + suffix
+  // the DEFAULT place of the Study model: <DSH home>/kybernos/settings.json (no test override)
+  const tk_home = join(stateDir, 'dsh-home')
+  mkdirSync(join(tk_home, 'kybernos'), { recursive: true })
+  writeFileSync(join(tk_home, 'kybernos', 'settings.json'), JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
+  const tk_savedHome = process.env.DSH_HOME
+  delete process.env.KYBERNOS_SETTINGS_FILE
+  process.env.DSH_HOME = tk_home
+  assert.equal(mod.studyModel(), 'zai-coding-cn/GLM-5.3-Flash', 'the Study model is read from <DSH home>/kybernos/settings.json')
+  if (tk_savedHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = tk_savedHome
   const tk_settingsFile = join(stateDir, 'kybernos-settings.json')
   process.env.KYBERNOS_SETTINGS_FILE = tk_settingsFile
   const tk_sideFile = statePath.replace(/\.json$/, '') + '-tidy.json'
