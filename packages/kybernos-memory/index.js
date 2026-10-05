@@ -326,9 +326,7 @@ const writeTidy = (t) => writeTidyFile('tidy', { scan: t.scan, dismissed: t.dism
 // The Study model (Kybernos Settings → `brain`, « route/id ») and the `llm` service that can talk to it.
 const kybernosSettingsFile = () => {
   const own = process.env.KYBERNOS_SETTINGS_FILE
-  if (typeof own === 'string' && own.trim() !== '') return own.trim()
-  const home = process.env.DSH_HOME
-  return join(typeof home === 'string' && home.trim() !== '' ? home.trim() : join(homedir(), '.dsh'), 'kybernos', 'settings.json')
+  return typeof own === 'string' && own.trim() !== '' ? own.trim() : join(dshHome(), 'kybernos', 'settings.json')
 }
 const studyModel = () => readStudyModel(() => readFileSync(kybernosSettingsFile(), 'utf8'))
 let hostCtx = null

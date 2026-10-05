@@ -532,6 +532,18 @@ try {
   // ── 10. Tidy up, second half: settings, merging by itself at 80 %+, the schedule, the Study model ──────────
   {
     const url = (suffix) => '/kybernos-memory/tidy' + suffix
+    // the DEFAULT place of the Study model: <DSH home>/kybernos/settings.json (no test override), through the shared resolver
+    const fakeHome = join(root, 'dsh-home')
+    mkdirSync(join(fakeHome, 'kybernos'), { recursive: true })
+    writeFileSync(join(fakeHome, 'kybernos', 'settings.json'), JSON.stringify({ brain: 'zai-coding-cn/GLM-5.3-Flash' }))
+    const savedHome = process.env.DSH_HOME
+    const savedStudy = process.env.KYBERNOS_SETTINGS_FILE
+    delete process.env.KYBERNOS_SETTINGS_FILE
+    process.env.DSH_HOME = fakeHome
+    assert.equal(mod.studyModel(), 'zai-coding-cn/GLM-5.3-Flash', 'the Study model is read from <DSH home>/kybernos/settings.json')
+    if (savedHome === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = savedHome
+    if (savedStudy !== undefined) process.env.KYBERNOS_SETTINGS_FILE = savedStudy
+    ok('tidy: the Study model is found at its default place, <DSH home>/kybernos/settings.json')
     const studyFile = join(root, 'kybernos-settings.json')
     process.env.KYBERNOS_SETTINGS_FILE = studyFile
     const tuneStore = mod.TIDY_TUNING
