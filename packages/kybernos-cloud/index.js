@@ -41,6 +41,7 @@ import { dirname, join, resolve } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 
@@ -1202,12 +1203,14 @@ const writeSide = (suffix, value) => {
  * pour qui ne les touche pas. Lus à chaque assemblage de prompt (fichier minuscule,
  * lecture synchrone) — pas de cache à invalider quand un autre processus écrit.
  */
-const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning', 'relevant']
+const MEMORY_SETTING_KEYS = ['memories', 'context', 'capture', 'meaning', 'relevant', 'team_use', 'team_share']
 // `meaning` (search by meaning) is OFF until the user turns it on: it sends the text of a memory to the
 // embedding model of the Kybernos cloud, which nothing else in this plugin does outside a chat turn.
 // `relevant` (pick the memories that match the current question, on top of the pinned and the newest) is ON: it is
 // local, nothing goes anywhere extra, and the page lets the user turn it off.
-const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false, relevant: true }
+// `team_use` (the agents also read the lessons the team approved) and `team_share` (« Propose to team » is offered) only mean something on a Team
+// workspace; both are on by default there, and the page locks them with the reason everywhere else.
+const MEMORY_SETTING_DEFAULTS = { memories: true, context: true, capture: true, meaning: false, relevant: true, team_use: true, team_share: true }
 const readMemorySettings = () => {
   const raw = readSide('memory', {})
   const out = {}
@@ -1582,13 +1585,13 @@ const overlapOf = (a, b) => {
 }
 
 /** The memories of `candidates` that match this session's latest question, best first; [] when nothing clearly does. */
-const pickRelevant = (sessionId, candidates) => {
+const pickRelevant = (sessionId, candidates, picks = sessionPick, tuning = RELEVANCE_TUNING) => {
   const q = sessionQuery.get(sessionId)
   if (q === undefined) return []
   const byId = new Map(candidates.map((m) => [String(m.id), m]))
-  const prev = sessionPick.get(sessionId)
+  const prev = picks.get(sessionId)
   if (prev !== undefined && prev.key === q.key) return prev.ids.map((id) => byId.get(id)).filter((m) => m !== undefined)   // same message, next step: byte-identical
-  const T = RELEVANCE_TUNING
+  const T = tuning
   const ranked = rankByRelevance(candidates.map((m) => ({ content: m.content, createdAt: m.createdAt, pinned: false, mem: m })), q.text, { maxTerms: T.maxTerms })
   const passing = ranked.filter((r) => (r.matched >= 2 && r.coverage >= T.minCoverage) || (r.matched >= 1 && r.coverage >= T.strongCoverage))
   const best = passing.reduce((top, r) => Math.max(top, r.coverage), 0)
@@ -1601,9 +1604,9 @@ const pickRelevant = (sessionId, candidates) => {
     const spaced = q.turn - prev.turn >= T.minTurnsBetweenChanges
     if (overlapOf(ids, prev.ids) >= T.keepOverlap || !spaced) { next = prev.ids; turn = prev.turn }
   }
-  sessionPick.delete(sessionId)
-  sessionPick.set(sessionId, { key: q.key, ids: next, turn })
-  forgetOldest(sessionPick)
+  picks.delete(sessionId)
+  picks.set(sessionId, { key: q.key, ids: next, turn })
+  forgetOldest(picks)
   return next.map((id) => byId.get(id)).filter((m) => m !== undefined)
 }
 
@@ -2371,6 +2374,203 @@ const tidyUndo = async (state, body) => {
   return { ok: failed.length === 0, restored, reverted, failed: failed.length, view: tidyView() }
 }
 
+// ── Team lessons ─────────────────────────────────────────────────────────────────────────────────────
+// What the owners and admins of a TEAM workspace approved, read by every agent of it (team-lessons.mjs holds the rules; the server
+// is /v1/workspaces/{id}/lessons). Three jobs here: keep the approved list in a small cache (the prompt only ever reads the cache),
+// answer the page (list, propose, approve, reject, retire, withdraw) and add one block to the system prompt.
+// The workspace is the ACTIVE one of the plugin (the sidebar's switcher); membership and roles are the server's business.
+
+const teamCache = { at: 0, workspaceId: null, lessons: [], role: null, counts: { approved: 0, pending: 0 }, error: null }
+const teamPickStore = new Map()   // sessionId -> { key, ids, turn } : the relevance pick of the team block, apart from the memories'
+const TEAM_RELEVANCE = { ...RELEVANCE_TUNING, maxPicked: 3, maxCandidates: 8, share: 0.5 }
+
+const emptyTeamCache = () => {
+  teamCache.at = 0
+  teamCache.workspaceId = null
+  teamCache.lessons = []
+  teamCache.role = null
+  teamCache.counts = { approved: 0, pending: 0 }
+  teamCache.error = null
+  teamPickStore.clear()
+}
+
+const teamNow = (state) => teamWorkspace(state, state === null || state === undefined ? null : espaceActif(state))
+const teamBase = (workspaceId) => '/v1/workspaces/' + encodeURIComponent(workspaceId) + '/lessons'
+
+/** Re-reads the approved lessons of the active team workspace when the cache is older than its TTL (or `force`). Never throws. */
+const refreshTeamCache = async (state, force) => {
+  const ws = teamNow(state)
+  if (ws.available !== true) { if (teamCache.workspaceId !== null) emptyTeamCache(); return ws }
+  if (teamCache.workspaceId !== ws.workspaceId) emptyTeamCache()
+  if (force !== true && teamCache.workspaceId === ws.workspaceId && Date.now() - teamCache.at < TEAM_TUNING.ttlMs) return ws
+  const res = await apiCall(teamBase(ws.workspaceId) + '?view=approved&limit=' + String(TEAM_TUNING.fetchMax), { token: state.token })
+  const failure = teamFailure(res.status, res.body)
+  teamCache.workspaceId = ws.workspaceId
+  if (failure !== null || res.body === null || !Array.isArray(res.body.lessons)) {
+    teamCache.error = failure !== null ? failure : 'reponse_invalide'
+    // a short retry delay, not the whole TTL; what was read before stays until the workspace is no longer ours
+    teamCache.at = Date.now() - TEAM_TUNING.ttlMs + 60000
+    if (teamCache.error === 'espace_introuvable') { teamCache.lessons = []; teamCache.role = null; teamCache.counts = { approved: 0, pending: 0 } }
+    return ws
+  }
+  teamCache.at = Date.now()
+  teamCache.error = null
+  teamCache.lessons = res.body.lessons.map(asTeamLesson)
+  teamCache.role = typeof res.body.role === 'string' ? res.body.role : null
+  teamCache.counts = res.body.counts !== null && typeof res.body.counts === 'object' ? { approved: Number(res.body.counts.approved) || 0, pending: Number(res.body.counts.pending) || 0 } : { approved: teamCache.lessons.length, pending: 0 }
+  return ws
+}
+
+/** The personal-lessons plugin's own switches (`kybernos-memory.json`): turning its context off also silences the team block. */
+const lessonsSwitches = () => {
+  const own = process.env.KYBERNOS_MEMORY_SETTINGS
+  const file = typeof own === 'string' && own.trim() !== '' ? own.trim() : join(dshHome(), 'kybernos-memory.json')
+  try {
+    const raw = JSON.parse(readFileSync(file, 'utf8'))
+    return { lessons: raw.lessons !== false, context: raw.context !== false }
+  } catch (e) { return { lessons: true, context: true } }
+}
+
+/** The kyber a chat runs (`<kybers>/.active/<session>`, written by the lessons plugin); null when unknown. */
+const activeKyberOf = (sessionId) => {
+  if (typeof sessionId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{5,79}$/.test(sessionId)) return null
+  try {
+    const row = JSON.parse(readFileSync(join(kybersDir(), '.active', sessionId), 'utf8'))
+    return typeof row.kyber === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(row.kyber) && row.kyber.indexOf('..') < 0 ? row.kyber : null
+  } catch (e) { return null }
+}
+
+/** What a session receives: from the cache only (synchronous), and nothing unless every switch says so. */
+const teamSelection = (state, sessionId) => {
+  const none = { plan: { chosen: [], omitted: 0, used: 0 }, ws: teamNow(state), kyber: null, picked: [] }
+  if (state === null || state === undefined) return none
+  const ws = none.ws
+  const cfg = readMemorySettings()
+  const sw = lessonsSwitches()
+  if (ws.available !== true || cfg.team_use !== true || sw.lessons !== true || sw.context !== true || teamCache.workspaceId !== ws.workspaceId) return none
+  const kyber = activeKyberOf(sessionId)
+  const pool = applicable(teamCache.lessons, kyber)
+  let preferred = []
+  if (cfg.relevant === true && typeof sessionId === 'string' && sessionId !== '') {
+    const hits = pickRelevant(sessionId, pool.map((l) => ({ id: l.id, content: l.text + ' ' + l.tags.join(' '), createdAt: l.updatedAt })), teamPickStore, TEAM_RELEVANCE)
+    preferred = hits.map((h) => pool.find((l) => l.id === h.id)).filter((l) => l !== undefined)
+  }
+  return { plan: teamPlan(teamCache.lessons, kyber, preferred), ws, kyber, picked: preferred.map((l) => l.id) }
+}
+
+/** The block of the system prompt. Synchronous and never throws: '' on any doubt. */
+const renderTeamPrompt = (state, sessionId) => {
+  try {
+    const sel = teamSelection(state, sessionId)
+    return renderTeamChunk(sel.plan, sel.ws.workspaceName === undefined ? '' : sel.ws.workspaceName)
+  } catch (e) { return '' }
+}
+
+const isLessonId = (v) => (typeof v === 'number' && Number.isInteger(v) && v > 0) || (typeof v === 'string' && /^\d{1,18}$/.test(v))
+
+const teamCall = async (state, method, suffix, body) => {
+  const ws = teamNow(state)
+  if (ws.available !== true) return { ok: false, error: ws.reason }
+  const res = await apiCall(teamBase(ws.workspaceId) + suffix, { method, token: state.token, ...(body === undefined ? {} : { body }) })
+  const failure = teamFailure(res.status, res.body)
+  if (failure !== null) return { ok: false, error: failure }
+  return { ok: true, body: res.body, ws }
+}
+
+const teamStatusRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const ws = teamNow(state)
+  if (ws.available === true) await refreshTeamCache(state, false)
+  const cfg = readMemorySettings()
+  let params = new URLSearchParams('')
+  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* no query */ }
+  const sid = String(params.get('session') || '')
+  const sel = sid === '' ? null : teamSelection(state, sid.replace(/^session-/, ''))
+  const mine = ws.available === true && teamCache.workspaceId === ws.workspaceId
+  return {
+    ok: true, connected: true,
+    team: { available: ws.available, reason: ws.reason, plan: ws.plan === undefined ? null : ws.plan, workspaceId: ws.workspaceId === undefined ? null : ws.workspaceId, workspaceName: ws.workspaceName === undefined ? null : ws.workspaceName,
+      role: mine ? teamCache.role : null, counts: mine ? teamCache.counts : { approved: 0, pending: 0 }, error: mine ? teamCache.error : null },
+    settings: { use: cfg.team_use === true, share: cfg.team_share === true },
+    sent: sel === null ? null : { count: sel.plan.chosen.length, omitted: sel.plan.omitted, picked: sel.picked.length, kyber: sel.kyber },
+  }
+}
+
+const teamListRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const ws = teamNow(state)
+  if (ws.available !== true) return { ok: false, error: ws.reason }
+  let params = new URLSearchParams('')
+  try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* no query */ }
+  const view = ['approved', 'proposed', 'mine', 'all'].indexOf(params.get('view')) >= 0 ? params.get('view') : 'approved'
+  let query = 'view=' + view + '&limit=' + String(intParam(params.get('limit'), 100, 1, 200)) + '&offset=' + String(intParam(params.get('offset'), 0, 0, 100000))
+  if (params.get('kyber') !== null) query += '&kyber=' + encodeURIComponent(String(params.get('kyber')).slice(0, 64))
+  const made = await teamCall(state, 'GET', '?' + query)
+  if (made.ok !== true) return made
+  const b = made.body !== null && typeof made.body === 'object' ? made.body : {}
+  if (!Array.isArray(b.lessons)) return { ok: false, error: 'reponse_invalide' }
+  return { ok: true, connected: true, role: typeof b.role === 'string' ? b.role : null, view: b.view, total: b.total, limit: b.limit, offset: b.offset, counts: b.counts, lessons: b.lessons.map(asTeamLesson), workspaceName: ws.workspaceName }
+}
+
+/** After a write: the cache is stale, and the next reading must see it. */
+const afterTeamWrite = (state) => { teamCache.at = 0; void refreshTeamCache(state, true) }
+
+const teamAddRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  if (readMemorySettings().team_share !== true) return { ok: false, error: 'partage_desactive' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (typeof b.text !== 'string' || b.text.trim() === '') return { ok: false, error: 'texte_invalide' }
+  const payload = { text: b.text, name: displayName(state) }
+  if (typeof b.kyber === 'string' && b.kyber !== '') payload.kyber = b.kyber
+  if (Array.isArray(b.tags)) payload.tags = b.tags
+  if (typeof b.note === 'string' && b.note.trim() !== '') payload.note = b.note
+  const made = await teamCall(state, 'POST', '', payload)
+  if (made.ok !== true) return made
+  afterTeamWrite(state)
+  return { ok: true, lesson: asTeamLesson(made.body) }
+}
+
+const teamReviewRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isLessonId(b.id)) return { ok: false, error: 'lecon_introuvable' }
+  if (b.decision !== 'approve' && b.decision !== 'reject') return { ok: false, error: 'requete_invalide' }
+  const payload = { decision: b.decision, name: displayName(state) }
+  if (typeof b.note === 'string' && b.note.trim() !== '') payload.note = b.note
+  if (b.decision === 'approve' && typeof b.text === 'string' && b.text.trim() !== '') payload.text = b.text
+  if (b.decision === 'approve' && typeof b.kyber === 'string') payload.kyber = b.kyber
+  const made = await teamCall(state, 'POST', '/' + String(b.id) + '/review', payload)
+  if (made.ok !== true) return made
+  afterTeamWrite(state)
+  return { ok: true, lesson: asTeamLesson(made.body) }
+}
+
+const teamRetireRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isLessonId(b.id)) return { ok: false, error: 'lecon_introuvable' }
+  const made = await teamCall(state, 'POST', '/' + String(b.id) + '/retire', { name: displayName(state) })
+  if (made.ok !== true) return made
+  afterTeamWrite(state)
+  return { ok: true, lesson: asTeamLesson(made.body) }
+}
+
+const teamDeleteRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isLessonId(b.id)) return { ok: false, error: 'lecon_introuvable' }
+  const made = await teamCall(state, 'DELETE', '/' + String(b.id))
+  if (made.ok !== true) return made
+  afterTeamWrite(state)
+  return { ok: true }
+}
+
 /**
  * Liste paginée et filtrée des souvenirs du COMPTE. Tout est calculé ici, sur le
  * cache : le serveur ne pagine pas encore (`GET /v1/memories` renvoie tout), donc
@@ -2756,13 +2956,19 @@ const mountMemoryPrompt = (ctx) => {
       order: MEMORY_INJECT_ORDER,
       text: (context) => renderMemoryPrompt(readState(), { sessionId: sessionIdOfContext(context) }),
     })
+    // The lessons the team approved: a block of its own, from the cache only (refreshed below and by the tick).
+    scope.systemPrompt.context({
+      name: TEAM_CHUNK_NAME,
+      order: TEAM_CHUNK_ORDER,
+      text: (context) => renderTeamPrompt(readState(), sessionIdOfContext(context)),
+    })
   })
   // The human's message of each turn, to pick the memories that match it (see « The memories that matter »).
   ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => {
     try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ }
   })
   const state = readState()
-  if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true) }, 1500)
+  if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true); void refreshTeamCache(readState(), true) }, 1500)
 }
 
 const mountMemoryTools = (ctx) => {
@@ -2779,7 +2985,7 @@ const mountMemoryTools = (ctx) => {
  */
 const mountMemoryRefresh = (ctx) => {
   ctx.effect(() => {
-    const timer = setInterval(() => { void refreshMemoryCache(readState(), false) }, MEMORY_TUNING.tickMs)
+    const timer = setInterval(() => { void refreshMemoryCache(readState(), false); void refreshTeamCache(readState(), false) }, MEMORY_TUNING.tickMs)
     if (typeof timer.unref === 'function') timer.unref()
     return () => clearInterval(timer)
   }, 'kybernos-cloud: rafraichissement memoire')
@@ -2959,6 +3165,12 @@ const ROUTES = [
   { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
   { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryIndexRunRoute },
   // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
+  { path: '/kybernos-cloud/team/status', method: 'GET', guarded: true, run: teamStatusRoute },
+  { path: '/kybernos-cloud/team/lessons', method: 'GET', guarded: true, run: teamListRoute },
+  { path: '/kybernos-cloud/team/lessons/add', method: 'POST', guarded: true, body: true, cap: 16384, run: teamAddRoute },
+  { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, body: true, cap: 16384, run: teamReviewRoute },
+  { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamRetireRoute },
+  { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: teamDeleteRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
   { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
   { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
@@ -3022,6 +3234,7 @@ export {
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
+  teamCache, teamPickStore, refreshTeamCache, emptyTeamCache, teamSelection, renderTeamPrompt, activeKyberOf, lessonsSwitches, TEAM_RELEVANCE,
   tidyScan, tidyRun, tidyApply, tidyUndo, tidyDismiss, tidySettings, tidyTick, tidyView, tidyFlags, TIDY_TUNING, TIDY_MAX_REMOVALS, studyModel,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,

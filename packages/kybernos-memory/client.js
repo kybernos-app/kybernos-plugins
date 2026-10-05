@@ -75,7 +75,6 @@ window.__ModuleLoader__.load({
           { key: 'added', label: 'Added', def: 'any', opts: ADDED },
         ],
         lessons: [
-          { key: 'scope', label: 'Scope', def: 'mine', opts: [['mine', 'Mine'], ['team', 'Team']] },
           { key: 'status', label: 'Status', def: 'all', opts: [['all', 'All'], ['used', 'Used at least once']] },
           { key: 'added', label: 'Added', def: 'any', opts: ADDED },
         ],
@@ -141,6 +140,18 @@ window.__ModuleLoader__.load({
         if (c === 'genre_invalide') return 'Pick a type.'
         if (c === 'memoire_desactivee') return 'Memory is switched off.'
         if (c === 'lecon_introuvable') return 'That lesson no longer exists.'
+        if (c === 'doublon') return 'Your team already has that lesson, waiting or approved.'
+        if (c === 'equipe_pleine') return 'Your team already has the most approved lessons it can hold (200).'
+        if (c === 'trop_de_propositions') return 'You already have 20 proposals waiting: wait for a review first.'
+        if (c === 'admin_requis') return 'Only an owner or an admin of the team can do that.'
+        if (c === 'deja_decidee') return 'Someone already decided on this one.'
+        if (c === 'non_approuvee') return 'Only an approved lesson can be retired.'
+        if (c === 'espace_introuvable') return 'You are not a member of that team workspace any more.'
+        if (c === 'offre_requise') return 'Team lessons need a Team plan.'
+        if (c === 'aucun_espace') return 'No team workspace is selected.'
+        if (c === 'partage_desactive') return 'Sharing lessons with your team is switched off in Options.'
+        if (c === 'texte_invalide') return 'Write the lesson first (500 characters at most).'
+        if (c === 'requete_invalide') return 'That request was refused as invalid.'
         if (c === 'a_change') return 'It changed since the scan: look again.'
         if (c === 'groupe_inconnu') return 'That suggestion is out of date: look again.'
         if (c === 'garde_invalide') return 'That item is not part of the suggestion: look again.'
@@ -289,6 +300,32 @@ window.__ModuleLoader__.load({
         const from = Date.parse(last.at) - 120000
         const entries = tidyLog(t).filter((l) => l.by === 'auto' && l.canUndo === true && Date.parse(l.at) >= from)
         return { at: last.at, groups: last.autoGroups, removed: last.autoRemoved, entries }
+      }
+
+      // ── Team lessons: the pure pieces ───────────────────────────────────────────────────────────────────
+      const TEAM_LOCKED = { offre_requise: ['Team plan', 'Team lessons need a Team workspace: members propose what they learned, an owner or admin approves it, and every agent of the team reads it.'],
+        aucun_espace: ['No team workspace', 'Select a team workspace in the sidebar to read and propose its lessons.'], non_connecte: ['Sign in', 'Connect your Kybernos account to use team lessons.'] }
+      const teamLockedWords = (reason) => TEAM_LOCKED[reason] || ['Unavailable', 'Team lessons are not available right now.']
+      const isTeamAdmin = (role) => role === 'owner' || role === 'admin'
+      const minutesSince = (iso, now) => { const t = Date.parse(iso); return Number.isFinite(t) ? Math.max(0, Math.round(((now === undefined ? Date.now() : now) - t) / 60000)) : null }
+      /** « Waiting for review », « Approved »… with the chip tone the page uses. */
+      const teamStatusChip = (l) => ({ proposed: ['Waiting for review', 'warn'], approved: ['Approved', 'ok'], rejected: ['Rejected', ''], retired: ['Retired', ''] }[l.status] || [String(l.status), ''])
+      /** The search of the team list: every word typed is somewhere in the text, the tags, the kyber or a name (the list is at most 200 long). */
+      const teamMatches = (l, q) => {
+        const words = String(q === undefined || q === null ? '' : q).toLowerCase().split(/\s+/).filter((w) => w !== '')
+        if (words.length === 0) return true
+        const hay = (l.text + ' ' + l.tags.join(' ') + ' ' + (l.kyber || 'general') + ' ' + (l.proposedName || '') + ' ' + (l.reviewedName || '')).toLowerCase()
+        return words.every((w) => hay.indexOf(w) >= 0)
+      }
+      /** The line under a team lesson: who proposed it, who approved it, and when. */
+      const teamMeta = (l, now) => {
+        const out = []
+        if (l.proposedName !== null) out.push('Proposed by ' + l.proposedName)
+        if (l.status === 'approved' && l.reviewedName !== null) out.push('approved by ' + l.reviewedName)
+        if (l.status === 'rejected' && l.reviewedName !== null) out.push('rejected by ' + l.reviewedName)
+        const age = ageLabel(minutesSince(l.updatedAt === null ? l.createdAt : l.updatedAt, now))
+        if (age !== '') out.push(age === 'now' ? 'just now' : age + ' ago')
+        return out
       }
 
       /** The Study model, as the page needs it: its name (the same file for both hosts), whether a model service exists, and how many unclear pairs wait. */
@@ -457,6 +494,8 @@ window.__ModuleLoader__.load({
 .kbmem-why{display:flex;gap:8px;align-items:flex-start;padding:0 14px 8px;font-size:12.5px;color:var(--m-muted)}.kbmem-why .kbmem-ico{margin-top:3px;color:var(--m-acc)}
 .kbmem-chip .kbmem-ico{width:11px;height:11px}
 .kbmem-autobar{display:flex;gap:12px;align-items:center;margin:0 0 14px;padding:12px 14px;border-radius:var(--m-r-md);background:var(--m-ok-bg);font-size:13px;flex-wrap:wrap}.kbmem-autobar .kbmem-ico{color:var(--m-ok);width:18px;height:18px}
+.kbmem-tmeta{display:block;margin-top:2px;font-size:12px;color:var(--m-cap)}.kbmem-why-r{color:var(--m-muted)}
+.kbmem-tsheet-text{padding:10px 12px;border-radius:var(--m-r-md);background:var(--m-surf);overflow-wrap:anywhere}
 .kbmem-more{padding:2px 12px 8px;font-size:12px;color:var(--m-muted)}.kbmem-more button{color:var(--m-acc);font-weight:600}
 .kbmem-it textarea{width:100%;min-height:72px;border-radius:8px;border:1px solid var(--m-line2);background:var(--m-surf2);color:var(--m-ink);padding:8px;resize:vertical;font:inherit}
 .kbmem-im{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--m-cap);white-space:nowrap;padding-inline-start:6px}.kbmem-im .kbmem-ico{width:12px;height:12px}
@@ -484,6 +523,7 @@ window.__ModuleLoader__.load({
         filter: '<path d="M4 6h16M7 12h10M10 18h4"/>', left: '<path d="m15 6-6 6 6 6"/>', right: '<path d="m9 6 6 6-6 6"/>',
         gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>',
         broom: '<path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/>',
+        inbox: '<path d="M3 13h5l1 3h6l1-3h5"/><path d="M5 5h14l2 8v6H3v-6z"/>', share: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M5 14v5h14v-5"/>',
         undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
         bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6M10 22h4"/>',
       }
@@ -603,6 +643,21 @@ window.__ModuleLoader__.load({
         return [t, adopt]
       }
 
+      /** Team lessons: is the feature there for this account, which workspace, which role, how many wait. `ok` false when the plugin predates it. */
+      const useTeam = (refreshKey) => {
+        const [t, setT] = useState({ loaded: false, ok: false, connected: false, team: null, settings: { use: true, share: true } })
+        useEffect(() => {
+          let live = true
+          api('/kybernos-cloud/team/status').then((r) => {
+            if (!live) return
+            setT(r.ok === true && r.team !== undefined ? { loaded: true, ok: true, connected: true, team: r.team, settings: r.settings === undefined ? { use: true, share: true } : r.settings }
+              : { loaded: true, ok: false, connected: r.connected === true, team: null, settings: { use: true, share: true }, error: r.error === undefined ? 'indisponible' : r.error })
+          })
+          return () => { live = false }
+        }, [refreshKey])
+        return t
+      }
+
       // ═══════════════════════════════════════════════════════════════
       // 5. PAGE
       // ═══════════════════════════════════════════════════════════════
@@ -613,11 +668,9 @@ window.__ModuleLoader__.load({
           groups.map((g) => [
             h('div', { key: g.key + '-h', className: 'kbmem-mg' }, g.label),
             g.opts.map(([v, l]) => {
-              const soon = tab === 'lessons' && g.key === 'scope' && v === 'team'
-              return h('button', { key: g.key + v, type: 'button', role: 'menuitemradio', 'aria-checked': f[g.key] === v, 'data-g': g.key, 'data-v': v, disabled: soon,
+              return h('button', { key: g.key + v, type: 'button', role: 'menuitemradio', 'aria-checked': f[g.key] === v, 'data-g': g.key, 'data-v': v,
                 onClick: () => onSet(g.key, v) },
-                h('span', { className: 'kbmem-ck' }, f[g.key] === v ? Ico('check') : null), l,
-                soon ? h('span', { className: 'kbmem-plan', style: { marginInlineStart: 'auto' } }, Ico('lock'), 'Team · soon') : null)
+                h('span', { className: 'kbmem-ck' }, f[g.key] === v ? Ico('check') : null), l)
             }),
           ]),
           tab === 'lessons' && kybers.length > 0 ? [h('div', { key: 'k-h', className: 'kbmem-mg' }, 'Kyber'),
@@ -649,7 +702,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(l.ageMinutes))))
 
       /** The side sheet: edit or add a memory, edit a lesson. Closes on Cancel; the page reloads after a save. */
-      const Sheet = ({ sheet, onClose, onDone, notify }) => {
+      const Sheet = ({ sheet, onClose, onDone, notify, onPropose }) => {
         const mem = sheet.kind === 'mem'
         const item = sheet.item
         const [text, setText] = useState(mem ? item.content : item.text)
@@ -719,6 +772,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmem-acts' },
             h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'save', disabled: busy || text.trim() === '', onClick: save }, isNew ? 'Save memory' : 'Save'),
             h('button', { type: 'button', className: 'kbmem-btn ghost', onClick: onClose }, 'Cancel'),
+            !mem && !isNew && typeof onPropose === 'function' ? h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'propose-team', disabled: busy, onClick: () => onPropose(item) }, Ico('share'), 'Propose to team') : null,
             h('span', { className: 'kbmem-grow' }),
             isNew ? null : (confirm
               ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'confirm-remove', disabled: busy, onClick: remove }, mem ? 'Confirm: forget' : 'Confirm: delete')
@@ -726,10 +780,200 @@ window.__ModuleLoader__.load({
           !mem && !isNew ? h('div', { className: 'kbmem-tiny' }, 'A deleted lesson goes to the kyber\'s lessons.archive.jsonl — it is not destroyed.') : null)
       }
 
-      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview, ran, onRanUndo, onRanHide }) => {
+      // ── Team lessons: the Team tab, proposing, reviewing ─────────────────────────────────────────────────
+      const TeamRow = ({ l, mineView, onOpen }) => {
+        const [label, tone] = teamStatusChip(l)
+        return h('button', { type: 'button', className: 'kbmem-r', 'data-id': l.id, 'data-status': l.status, onClick: () => onOpen(l) },
+          h('span', { className: 'kbmem-kd lesson' }),
+          h('span', { className: 'kbmem-tx' }, l.text,
+            h('span', { className: 'kbmem-tmeta' }, teamMeta(l).join(' · '),
+              mineView && l.status === 'rejected' && l.reviewNote ? h('span', { className: 'kbmem-why-r', 'data-why': '1' }, ' · “' + l.reviewNote + '”') : null)),
+          h('span', { className: 'kbmem-mt' },
+            mineView || l.status !== 'approved' ? h('span', { className: 'kbmem-chip' + (tone === '' ? '' : ' ' + tone), 'data-chip': 'status' }, label) : null,
+            h('span', { className: 'kbmem-chip' }, l.kyber === null ? 'general' : l.kyber)))
+      }
+
+      /** Propose a lesson to the team (a member), or add one (an owner or admin: approved at once). Prefilled from a personal lesson. */
+      const ProposeSheet = ({ initial, kybers, admin, onClose, onDone, notify }) => {
+        const [text, setText] = useState(initial.text)
+        const [kyber, setKyber] = useState(initial.kyber === null || initial.kyber === undefined ? '' : initial.kyber)
+        const [tags, setTags] = useState((initial.tags || []).join(', '))
+        const [note, setNote] = useState('')
+        const [busy, setBusy] = useState(false)
+        const send = async () => {
+          setBusy(true)
+          const r = await api('/kybernos-cloud/team/lessons/add', { text, kyber, tags: tags.split(',').map((t) => t.trim()).filter((t) => t !== ''), note })
+          if (r.ok !== true) { setBusy(false); notify(friendlyError(r.error)); return }
+          onDone(admin ? 'Added: your team reads it from the next message' : 'Proposed: an owner or admin will review it')
+        }
+        const options = [{ id: '', label: 'General (every kyber)' }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
+        if (kyber !== '' && !options.some((o) => o.id === kyber)) options.push({ id: kyber, label: kyber })
+        return h('aside', { className: 'kbmem-sheet', role: 'dialog', 'aria-label': admin ? 'Add a team lesson' : 'Propose to your team' },
+          h('h3', null, Ico('share'), admin ? 'Add a team lesson' : 'Propose to your team', h('span', { className: 'kbmem-grow' }), h('button', { type: 'button', className: 'kbmem-ib', 'aria-label': 'Close', onClick: onClose }, Ico('x'))),
+          h('textarea', { 'aria-label': 'Lesson text', value: text, maxLength: 500, placeholder: 'One falsifiable sentence the whole team should know.', onChange: (e) => setText(e.target.value), disabled: busy }),
+          h('div', { className: 'kbmem-f' }, h('span', null, 'Applies to'),
+            h('select', { className: 'kbmem-sel', 'aria-label': 'Kyber', value: kyber, onChange: (e) => setKyber(e.target.value), disabled: busy }, options.map((o) => h('option', { key: o.id, value: o.id }, o.label)))),
+          h('div', { className: 'kbmem-f' }, h('span', null, 'Tags (comma separated, 5 at most)'), h('input', { className: 'kbmem-sel', style: { width: '100%' }, 'aria-label': 'Tags', value: tags, onChange: (e) => setTags(e.target.value), disabled: busy })),
+          admin ? null : h('div', { className: 'kbmem-f' }, h('span', null, 'Why it helps the team (optional)'), h('input', { className: 'kbmem-sel', style: { width: '100%' }, 'aria-label': 'Note', value: note, maxLength: 280, onChange: (e) => setNote(e.target.value), disabled: busy })),
+          h('div', { className: 'kbmem-tiny' }, admin ? 'As an owner or admin your lesson is approved at once and read by every member from their next message.' : 'An owner or admin reads it first. Until then it stays yours and nobody else sees it.'),
+          h('div', { className: 'kbmem-acts' },
+            h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'team-send', disabled: busy || text.trim() === '', onClick: send }, admin ? 'Add to the team' : 'Propose'),
+            h('button', { type: 'button', className: 'kbmem-btn ghost', onClick: onClose }, 'Cancel')))
+      }
+
+      /** One team lesson, opened: what it says, who stands behind it, and what the caller may do with it. */
+      const TeamOpenSheet = ({ lesson, role, onClose, onDone, notify }) => {
+        const [busy, setBusy] = useState(false)
+        const [confirm, setConfirm] = useState(null)   // 'delete' | 'retire' | null
+        const admin = isTeamAdmin(role)
+        const [label, tone] = teamStatusChip(lesson)
+        const canWithdraw = lesson.mine && lesson.status === 'proposed'
+        const act = async (path, message) => {
+          setBusy(true)
+          const r = await api('/kybernos-cloud/team/lessons/' + path, { id: lesson.id })
+          if (r.ok !== true) { setBusy(false); notify(friendlyError(r.error)); return }
+          onDone(message)
+        }
+        return h('aside', { className: 'kbmem-sheet', role: 'dialog', 'aria-label': 'Team lesson' },
+          h('h3', null, h('span', { className: 'kbmem-kd lesson', style: { margin: 0 } }), 'Team lesson', h('span', { className: 'kbmem-grow' }), h('button', { type: 'button', className: 'kbmem-ib', 'aria-label': 'Close', onClick: onClose }, Ico('x'))),
+          h('div', { className: 'kbmem-tsheet-text', 'data-team': 'text' }, lesson.text),
+          h('div', { className: 'kbmem-tiny' }, h('span', { className: 'kbmem-chip' + (tone === '' ? '' : ' ' + tone) }, label), ' ', h('span', { className: 'kbmem-chip' }, lesson.kyber === null ? 'general' : lesson.kyber), ' ', lesson.tags.map((t) => '#' + t).join(' ')),
+          h('div', { className: 'kbmem-tiny' }, teamMeta(lesson).join(' · ')),
+          lesson.note ? h('div', { className: 'kbmem-tiny' }, h('b', null, 'Note: '), lesson.note) : null,
+          lesson.reviewNote ? h('div', { className: 'kbmem-tiny', 'data-team': 'reason' }, h('b', null, 'Reason: '), lesson.reviewNote) : null,
+          canWithdraw || admin ? h('div', { className: 'kbmem-acts' },
+            canWithdraw && !admin ? (confirm === 'delete'
+              ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'team-confirm-delete', disabled: busy, onClick: () => act('delete', 'Proposal withdrawn') }, 'Confirm: withdraw')
+              : h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'team-delete', onClick: () => setConfirm('delete') }, 'Withdraw my proposal')) : null,
+            admin && lesson.status === 'approved' ? (confirm === 'retire'
+              ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'team-confirm-retire', disabled: busy, onClick: () => act('retire', 'Retired: agents stop reading it') }, 'Confirm: retire')
+              : h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'team-retire', onClick: () => setConfirm('retire') }, 'Retire')) : null,
+            admin ? (confirm === 'delete'
+              ? h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'team-confirm-delete', disabled: busy, onClick: () => act('delete', 'Deleted') }, 'Confirm: delete')
+              : h('button', { type: 'button', className: 'kbmem-btn danger', 'data-act': 'team-delete', onClick: () => setConfirm('delete') }, 'Delete')) : null) : null,
+          admin && lesson.status === 'approved' ? h('div', { className: 'kbmem-tiny' }, 'Retiring keeps it in the history; agents stop reading it. Deleting removes it for good.') : null)
+      }
+
+      /** The Team scope of the Lessons tab. */
+      const TeamPane = ({ team, kybers, notify, bump, refreshKey, openReview }) => {
+        const [view, setView] = useState('approved')
+        const [q, setQ] = useState('')
+        const [sheet, setSheet] = useState(null)
+        const [d, setD] = useState({ loading: true, ok: false, error: null, lessons: [], role: null })
+        const seq = useRef(0)
+        const role = d.role !== null ? d.role : team.role
+        const admin = isTeamAdmin(role)
+        const canShare = team.shareOn !== false
+        useEffect(() => {
+          const mine = ++seq.current
+          setD((old) => Object.assign({}, old, { loading: true }))
+          api('/kybernos-cloud/team/lessons?view=' + view + '&limit=200').then((r) => {
+            if (mine !== seq.current) return
+            setD(r.ok === true ? { loading: false, ok: true, error: null, lessons: r.lessons, role: r.role, counts: r.counts } : { loading: false, ok: false, error: r.error === undefined ? 'indisponible' : r.error, lessons: [], role: null })
+          })
+        }, [view, refreshKey])
+        useEffect(() => (sheet !== null ? onEscape(() => setSheet(null)) : undefined), [sheet !== null])
+        const shown = d.lessons.filter((l) => teamMatches(l, q))
+        const after = (message) => { setSheet(null); bump(); notify(message) }
+        const pending = team.counts === undefined || team.counts === null ? 0 : team.counts.pending
+        let body
+        if (d.loading && d.lessons.length === 0 && d.error === null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
+        else if (!d.ok) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico('users')), h('h3', null, 'Team lessons are not available'), h('div', null, friendlyError(d.error)))
+        else if (shown.length === 0) body = h('div', { className: 'kbmem-empty', 'data-team': 'empty' }, h('div', { className: 'kbmem-ill' }, Ico('users')),
+          q.trim() !== '' ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'No team lesson has those words.')]
+            : view === 'mine' ? [h('h3', { key: 'h' }, 'You have not proposed anything yet'), h('div', { key: 'd' }, 'Propose a lesson your team should know: an owner or admin reads it, then every agent of the team does.')]
+              : [h('h3', { key: 'h' }, 'No approved lesson yet'), h('div', { key: 'd' }, admin ? 'Add the first one, or review what members propose.' : 'Propose one: when an owner or admin approves it, every agent of the team reads it.')])
+        else body = h('div', { className: 'kbmem-list', style: d.loading ? { opacity: 0.6 } : null }, shown.map((l) => h(TeamRow, { key: l.id, l, mineView: view === 'mine', onOpen: (x) => setSheet({ kind: 'open', lesson: x }) })))
+        return h('div', { 'data-team': 'pane' },
+          h('div', { className: 'kbmem-tools' },
+            h('label', { className: 'kbmem-field' }, Ico('search'), h('input', { 'aria-label': 'Search', placeholder: 'Search team lessons…', value: q, onChange: (e) => setQ(e.target.value) })),
+            h(Seg, { small: true, value: view, label: 'Team view', onChange: setView, items: [{ v: 'approved', l: [h('span', { key: 'a' }, 'Approved'), h('span', { key: 'b', className: 'kbmem-cnt' }, team.counts ? team.counts.approved : '')] }, { v: 'mine', l: 'My proposals' }] }),
+            canShare ? h('button', { type: 'button', className: 'kbmem-btn', 'data-act': 'team-add', onClick: () => setSheet({ kind: 'propose', initial: { text: '', kyber: null, tags: [] } }) }, Ico('plus'), admin ? 'Add a team lesson' : 'Propose a lesson') : null),
+          h('div', { className: 'kbmem-tiny', style: { marginBottom: 8 } }, (team.workspaceName || 'Your team') + ' · lessons your team’s agents read, approved by an owner or admin'),
+          admin && pending > 0 ? h('div', { className: 'kbmem-banner', 'data-team': 'banner', role: 'status' }, Ico('inbox'),
+            h('div', { className: 'kbmem-grow' }, h('b', null, plural(pending, 'proposal')), ' wait for your review. ', h('span', { className: 'kbmem-muted' }, 'Nothing reaches your team’s agents until you approve it.')),
+            h('button', { type: 'button', className: 'kbmem-btn sm', 'data-act': 'team-review', onClick: openReview }, 'Review')) : null,
+          body,
+          sheet !== null && sheet.kind === 'open' ? h(TeamOpenSheet, { key: 'o' + String(sheet.lesson.id), lesson: sheet.lesson, role, onClose: () => setSheet(null), onDone: after, notify }) : null,
+          sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'p', initial: sheet.initial, kybers, admin, onClose: () => setSheet(null), onDone: after, notify }) : null)
+      }
+
+      /** The owner's or admin's queue: approve (maybe after editing it), reject with a reason. Decisions are the server's and final. */
+      const TeamReviewView = ({ team, kybers, back, notify, bump, refreshKey }) => {
+        const [d, setD] = useState({ loading: true, ok: false, error: null, lessons: [] })
+        const [state, setState] = useState({})     // id -> 'approved' | 'rejected' | { error }
+        const [edit, setEdit] = useState({})       // id -> { text, kyber } while editing
+        const [rejecting, setRejecting] = useState({})   // id -> reason text while rejecting
+        const [busy, setBusy] = useState(false)
+        const stateRef = useRef(state)
+        stateRef.current = state
+        useEffect(() => {
+          let live = true
+          api('/kybernos-cloud/team/lessons?view=proposed&limit=200').then((r) => {
+            if (!live) return
+            // A decision bumps the page, so the queue is read again: the ones decided here no longer wait on the server, but they stay on screen with their verdict, in place.
+            if (r.ok === true) setD((old) => {
+              const fresh = new Set(r.lessons.map((l) => l.id))
+              const kept = old.lessons.filter((l) => fresh.has(l.id) || stateRef.current[l.id] === 'approved' || stateRef.current[l.id] === 'rejected')
+              const known = new Set(kept.map((l) => l.id))
+              return { loading: false, ok: true, error: null, lessons: kept.map((l) => (fresh.has(l.id) ? r.lessons.find((x) => x.id === l.id) : l)).concat(r.lessons.filter((l) => !known.has(l.id))) }
+            })
+            else setD({ loading: false, ok: false, error: r.error === undefined ? 'indisponible' : r.error, lessons: [] })
+          })
+          return () => { live = false }
+        }, [refreshKey])
+        const waiting = d.lessons.filter((l) => state[l.id] === undefined).length
+        const decide = async (l, decision) => {
+          setBusy(true)
+          const e = edit[l.id]
+          const body = { id: l.id, decision }
+          if (decision === 'approve' && e !== undefined) { if (e.text.trim() !== l.text) body.text = e.text; body.kyber = e.kyber }
+          if (decision === 'reject' && typeof rejecting[l.id] === 'string' && rejecting[l.id].trim() !== '') body.note = rejecting[l.id]
+          const r = await api('/kybernos-cloud/team/lessons/review', body)
+          setBusy(false)
+          if (r.ok !== true) { setState((old) => Object.assign({}, old, { [l.id]: { error: r.error } })); return }
+          setState((old) => Object.assign({}, old, { [l.id]: decision === 'approve' ? 'approved' : 'rejected' }))
+          bump()
+          notify(decision === 'approve' ? 'Approved: members read it from their next message' : 'Rejected: the proposer sees your reason')
+        }
+        const options = [{ id: '', label: 'General (every kyber)' }].concat(kybers.map((k) => ({ id: k.id, label: k.id })))
+        return h('div', null,
+          h('a', { className: 'kbmem-crumb', role: 'button', tabIndex: 0, 'data-act': 'back', onClick: back, onKeyDown: (e) => { if (e.key === 'Enter') back() } }, Ico('left'), 'Memory & Lessons learned'),
+          h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Team lesson proposals'), h('span', { className: 'kbmem-grow' }), h('span', { className: 'kbmem-tiny' }, (team.workspaceName || 'Your team') + ' · ' + String(waiting) + ' to review')),
+          h('p', { className: 'kbmem-lead' }, 'A lesson you approve is read by every member’s agents from their next message. Members never see a proposal that is still waiting, except their own.'),
+          d.loading ? h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
+            : !d.ok ? h('div', { className: 'kbmem-empty' }, h('h3', null, 'Could not load the proposals'), h('div', null, friendlyError(d.error)))
+              : d.lessons.length === 0 ? h('div', { className: 'kbmem-empty', 'data-team': 'nothing' }, h('div', { className: 'kbmem-ill' }, Ico('check')), h('h3', null, 'Nothing to review'), h('div', null, 'When a member proposes a lesson it shows up here.'))
+                : d.lessons.map((l) => {
+                  const st = state[l.id]
+                  const done = st === 'approved' || st === 'rejected'
+                  const e = edit[l.id]
+                  const rj = rejecting[l.id]
+                  const head = h('header', null, h('span', { className: 'kbmem-chip' }, l.proposedName || 'member'), h('span', { className: 'kbmem-chip' }, l.kyber === null ? 'general' : l.kyber), h('span', { className: 'kbmem-tiny' }, teamMeta(l).slice(-1)[0] || ''), h('span', { className: 'kbmem-grow' }),
+                    done ? h('span', { className: 'kbmem-stat' + (st === 'approved' ? ' ok' : ''), 'data-stat': st }, Ico(st === 'approved' ? 'check' : 'x'), st === 'approved' ? 'Approved' : 'Rejected')
+                      : st !== undefined ? h('span', { className: 'kbmem-stat err', 'data-stat': 'err' }, Ico('alert'), friendlyError(st.error)) : null)
+                  if (done) return h('div', { key: l.id, className: 'kbmem-grp done', 'data-group': String(l.id) }, head, h('div', { className: 'kbmem-tiny', style: { padding: '0 14px 12px' } }, e !== undefined && st === 'approved' ? e.text : l.text))
+                  return h('div', { key: l.id, className: 'kbmem-grp', 'data-group': String(l.id) }, head,
+                    h('div', { className: 'items' },
+                      h('div', { className: 'kbmem-it new' }, e !== undefined
+                        ? h('div', { style: { width: '100%' } }, h('textarea', { 'aria-label': 'Text to approve', value: e.text, maxLength: 500, onChange: (ev) => setEdit((old) => Object.assign({}, old, { [l.id]: Object.assign({}, old[l.id], { text: ev.target.value }) })) }),
+                          h('select', { className: 'kbmem-sel', 'aria-label': 'Kyber', style: { marginTop: 8 }, value: e.kyber, onChange: (ev) => setEdit((old) => Object.assign({}, old, { [l.id]: Object.assign({}, old[l.id], { kyber: ev.target.value }) })) }, options.map((o) => h('option', { key: o.id, value: o.id }, o.label))))
+                        : h('span', { className: 'kbmem-itx' }, l.text)),
+                      l.note ? h('div', { className: 'kbmem-gnote', style: { padding: '0 0 8px' } }, h('b', null, (l.proposedName || 'The proposer') + ' says: '), l.note) : null,
+                      rj !== undefined ? h('textarea', { 'aria-label': 'Reason', placeholder: 'Tell ' + (l.proposedName || 'them') + ' why (they will see it)', value: rj, maxLength: 280, onChange: (ev) => setRejecting((old) => Object.assign({}, old, { [l.id]: ev.target.value })) }) : null),
+                    h('div', { className: 'kbmem-gacts' }, rj !== undefined
+                      ? [h('button', { key: 'r', type: 'button', className: 'kbmem-btn danger sm', 'data-act': 'team-reject', disabled: busy, onClick: () => decide(l, 'reject') }, 'Reject'), h('button', { key: 'c', type: 'button', className: 'kbmem-btn ghost sm', onClick: () => setRejecting((old) => { const n = Object.assign({}, old); delete n[l.id]; return n }) }, 'Cancel')]
+                      : [h('button', { key: 'a', type: 'button', className: 'kbmem-btn sm', 'data-act': 'team-approve', disabled: busy, onClick: () => decide(l, 'approve') }, Ico('check'), 'Approve'),
+                        h('button', { key: 'e', type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'team-edit', disabled: busy, onClick: () => setEdit((old) => { const n = Object.assign({}, old); if (n[l.id] === undefined) n[l.id] = { text: l.text, kyber: l.kyber === null ? '' : l.kyber }; else delete n[l.id]; return n }) }, e !== undefined ? 'Done editing' : 'Edit, then approve'),
+                        h('button', { key: 'j', type: 'button', className: 'kbmem-btn ghost sm', 'data-act': 'team-rejecting', disabled: busy, onClick: () => setRejecting((old) => Object.assign({}, old, { [l.id]: '' })) }, 'Reject…')]))
+                }))
+      }
+
+      const MainView = ({ tab, setTab, status, settings, openOptions, notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview, ran, onRanUndo, onRanHide, team, openTeamReview, startScope, usedStartScope }) => {
         const [q, setQ] = useState('')
         const [qd, setQd] = useState('')
-        const [f, setF] = useState(defaultFilters())
+        const [f, setF] = useState(() => Object.assign(defaultFilters(), tab === 'lessons' && startScope === 'team' ? { scope: 'team' } : {}))
+        useEffect(() => { if (typeof usedStartScope === 'function') usedStartScope() }, [])
         const [page, setPage] = useState(1)
         const [size, setSize] = useState(PAGE_SIZES[0])
         const [menu, setMenu] = useState(false)
@@ -779,6 +1023,12 @@ window.__ModuleLoader__.load({
           ? (list.ok && list.extra !== null && list.extra.budget !== undefined ? list.extra.budget.sent + ' of ' + (list.counts ? list.counts.all : list.total) + ' sent each turn' : '')
           : 'sent to each session: its kyber + default'
         const status1 = on ? (ctxOn ? 'On · ' + sentText : 'On · not sent to the model') : 'Off'
+        // Team lessons: the Team scope of the Lessons tab, available on a Team workspace only.
+        const teamInfo = team !== undefined && team.ok === true && team.team !== null ? team.team : null
+        const teamAvail = teamInfo !== null && teamInfo.available === true
+        const teamFull = teamAvail ? Object.assign({}, teamInfo, { shareOn: team.settings.share === true }) : null
+        const teamMode = !mems && f.scope === 'team' && teamAvail
+        const [lockLabel, lockWhy] = teamLockedWords(teamInfo === null ? (team !== undefined && team.connected === true ? 'indisponible' : 'non_connecte') : teamInfo.reason)
 
         const setFilter = (key, v) => { setF(Object.assign({}, f, { [key]: v })); setPage(1) }
         const clearFilters = () => { setF(defaultFilters()); setPage(1); setMenu(false) }
@@ -795,6 +1045,9 @@ window.__ModuleLoader__.load({
             { v: 'memories', l: [h('span', { key: 'a' }, 'Memories'), h('span', { key: 'b', className: 'kbmem-cnt' }, memCount === null ? '' : memCount)] },
             { v: 'lessons', l: [h('span', { key: 'a' }, 'Lessons learned'), h('span', { key: 'b', className: 'kbmem-cnt' }, lesCount === null ? '' : lesCount)] }] }),
           h('span', { className: 'kbmem-grow' }),
+          !mems ? h(Seg, { value: teamMode ? 'team' : 'mine', label: 'Scope', onChange: (v) => { setFilter('scope', v); setSheet(null) }, items: [
+            { v: 'mine', l: [h('span', { key: 'a' }, 'Mine'), h('span', { key: 'b', className: 'kbmem-cnt' }, lesCount === null ? '' : lesCount)] },
+            { v: 'team', disabled: !teamAvail, title: teamAvail ? undefined : lockWhy, l: teamAvail ? [h('span', { key: 'a' }, 'Team'), h('span', { key: 'b', className: 'kbmem-cnt' }, teamInfo.counts ? teamInfo.counts.approved : '')] : [h('span', { key: 'a' }, 'Team'), h('span', { key: 'b', className: 'kbmem-plan', 'data-lock': 'team' }, Ico('lock'), lockLabel)] }] }) : null,
           h(Seg, { small: true, value: 'list', label: 'View', onChange: () => {}, items: [
             { v: 'list', l: [Ico('list'), ' List'] },
             { v: 'map', l: [Ico('map'), ' Map ', Ico('lock')], disabled: true, title: 'The map groups items by meaning and needs a search index that does not exist yet.' }] }))
@@ -843,16 +1096,18 @@ window.__ModuleLoader__.load({
               : [h('h3', { key: 'h' }, 'No lesson yet'), h('div', { key: 'd' }, 'A lesson is written when an agent finds an expectation was contradicted. They are stored per kyber, on this machine.')]))
         else body = h('div', null,
           h('div', { className: 'kbmem-list', style: list.loading ? { opacity: .6 } : null }, list.items.map((it) => mems
-            ? h(MemoryRow, { key: it.id, m: it, ctxOn, selected: sheet !== null && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
-            : h(LessonRow, { key: it.id, l: it, selected: sheet !== null && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
+            ? h(MemoryRow, { key: it.id, m: it, ctxOn, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
+            : h(LessonRow, { key: it.id, l: it, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
           h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
 
         return h('div', null,
           h('div', { className: 'kbmem-top' }, h('h1', { className: 'kbmem-h1' }, 'Memory & Lessons learned'), h('span', { className: 'kbmem-grow' }),
             h('button', { type: 'button', className: 'kbmem-st' + (on ? '' : ' off'), 'data-act': 'status', title: 'Open options', onClick: openOptions }, h('i'), status1),
             h('button', { type: 'button', className: 'kbmem-btn ghost', 'data-act': 'options', onClick: openOptions }, Ico('gear'), 'Options')),
-          tabs, tools, chips, ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null, tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null, notes, body,
-          sheet !== null ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify }) : null)
+          tabs, teamMode ? null : tools, teamMode ? null : chips, teamMode ? h(TeamPane, { team: teamFull, kybers, notify, bump, refreshKey, openReview: openTeamReview }) : null, teamMode ? null : (ran !== null && ran !== undefined ? h(TidyRanNotice, { notice: ran, onUndo: onRanUndo, onHide: onRanHide }) : null), teamMode ? null : (tidy.loaded === true && tidySaves(tidy) > 0 && hiddenKey !== scanKey(tidy) ? h(TidyBanner, { tidy, onReview: openReview, onHide: hideBanner }) : null), teamMode ? null : notes, teamMode ? null : body,
+          sheet !== null && sheet.kind !== 'propose' ? h(Sheet, { key: (sheet.item.id === undefined ? 'new' : sheet.item.id) + String(sheet.isNew), sheet, onClose: () => setSheet(null), onDone: (m, u) => (sheet.kind === 'mem' ? forgetUndo(m, u) : after(m)), notify,
+            onPropose: teamAvail && team.settings.share === true ? (lesson) => setSheet({ kind: 'propose', initial: { text: lesson.text, kyber: lesson.kyber === 'default' ? null : lesson.kyber, tags: lesson.tags } }) : undefined }) : null,
+          sheet !== null && sheet.kind === 'propose' ? h(ProposeSheet, { key: 'propose', initial: sheet.initial, kybers, admin: isTeamAdmin(teamInfo === null ? null : teamInfo.role), onClose: () => setSheet(null), onDone: (m) => { setSheet(null); bump(); notify(m) }, notify }) : null)
       }
 
       /**
@@ -1170,7 +1425,27 @@ window.__ModuleLoader__.load({
           control: h(YesNo, { name: 'Pick lessons by relevance', value: !off && les.relevant === true, onChange: onToggle }) })
       }
 
-      const OptionsView = ({ status, settings, back, notify, refresh, refreshKey, tidy, scan, scanning, openReview }) => {
+      /** Options of the team lessons: read them, share yours, and who decides. Locked with the reason outside a Team workspace. */
+      const TeamRows = ({ team, mem, onToggle }) => {
+        const info = team !== undefined && team.ok === true && team.team !== null ? team.team : null
+        const avail = info !== null && info.available === true
+        const [label, why] = teamLockedWords(info === null ? (team !== undefined && team.connected === true ? 'indisponible' : 'non_connecte') : info.reason)
+        const stale = mem !== null && (typeof mem.team_use !== 'boolean' || typeof mem.team_share !== 'boolean')   // a host that predates the switches
+        const off = !avail || mem === null || stale
+        const reason = off ? (stale ? 'The cloud plugin was updated: restart DSH to use this.' : why) : null
+        const chip = off ? PlanChip(stale ? 'Restart DSH' : label) : h('span', { className: 'kbmem-plan' }, 'Team')
+        return [
+          h(SettingRow, { key: 'use', label: 'Use your team’s lessons', act: 'team-use', locked: off, chip, why: reason,
+            desc: 'Your agents also read the lessons your team approved: the ones for the kyber of the chat and the general ones, up to a quarter of the lessons block. The ones that match what you just asked come first.',
+            control: h(YesNo, { name: 'Use your team’s lessons', value: !off && mem.team_use === true, onChange: (v) => onToggle({ team_use: v }) }) }),
+          h(SettingRow, { key: 'share', label: 'Share lessons with your team', act: 'team-share', locked: off, chip, why: reason,
+            desc: 'Show « Propose to team » on your lessons and the Propose button of the Team tab. A proposal is only read by owners and admins until one approves it.',
+            control: h(YesNo, { name: 'Share lessons with your team', value: !off && mem.team_share === true, onChange: (v) => onToggle({ team_share: v }) }) }),
+          h(SettingRow, { key: 'who', label: 'Who approves', desc: 'Set by the workspace roles, not here.', control: h('span', { className: 'kbmem-chip' }, 'Owners and admins') }),
+        ]
+      }
+
+      const OptionsView = ({ status, settings, back, notify, refresh, refreshKey, tidy, scan, scanning, openReview, team }) => {
         const cloud = status.connected
         const mem = settings.memory
         const les = settings.lessons
@@ -1179,7 +1454,7 @@ window.__ModuleLoader__.load({
         const setLes = async (patch) => { const r = await api('/kybernos-memory/settings/set', patch); if (r.ok !== true) notify(friendlyError(r.error)); refresh() }
         const note = !cloud
           ? h('div', { className: 'kbmem-note warn' }, Ico('cloud'), h('div', null, h('b', null, 'Not connected. '), 'Memories live in your Kybernos Cloud account, so they cannot be changed here. Lessons are stored on this machine and keep working.'))
-          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, 'Your plan: ', h('b', null, PLAN_NAME[plan]), '. ', plan === 'team' ? 'Team lessons are not built yet.' : 'The map and team lessons are not built yet.'))
+          : h('div', { className: 'kbmem-note' }, Ico('shield'), h('div', null, 'Your plan: ', h('b', null, PLAN_NAME[plan]), '. The map is not built yet.'))
         const memUnavailable = mem === null
         const lesUnavailable = les === null
         const lastCapture = settings.capture === null ? null : h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, 'Last capture: ' + captureWords(settings.capture))
@@ -1207,13 +1482,13 @@ window.__ModuleLoader__.load({
               why: les !== null && les.lessons !== true ? 'Turn on Lessons learned first.' : null,
               control: h(YesNo, { name: 'Lessons system context', value: les !== null && les.context === true && les.lessons === true, onChange: (v) => setLes({ context: v }) }) }),
             h(LessonsRelevantRow, { les, onToggle: (v) => setLes({ relevant: v }) }),
-            h(SettingRow, { label: 'Share lessons with your team', desc: 'Members can propose a lesson; an admin validates it before your team’s agents use it.', locked: true, chip: PlanChip('Team · soon'),
-              why: 'Team lessons are not built yet.', control: h(YesNo, { name: 'Share lessons with your team', value: false, onChange: () => {} }) })),
+            h(TeamRows, { team, mem, onToggle: setMem })),
           h(TidyOptions, { tidy, scan, scanning, openReview, notify, bump: refresh }))
       }
 
       function Page() {
         const [view, setView] = useState('main')
+        const [startScope, setStartScope] = useState('mine')   // the scope the list opens on: back from the team review lands on Team, not on Mine
         const [tab, setTab] = useState('memories')
         const [refreshKey, setRefreshKey] = useState(0)
         const [toast, setToast] = useState(null)
@@ -1222,6 +1497,9 @@ window.__ModuleLoader__.load({
         const status = useStatus(refreshKey)
         const settings = useSettings(refreshKey)
         const [tidy, adopt] = useTidy(refreshKey)
+        const team = useTeam(refreshKey)
+        const [kybersForTeam, setKybersForTeam] = useState([])
+        useEffect(() => { let live = true; api('/kybernos-memory/kybers').then((r) => { if (live && r.ok === true) setKybersForTeam(r.kybers) }); return () => { live = false } }, [refreshKey])
         const [scanning, setScanning] = useState(false)
         const [autoRun, setAutoRun] = useState(null)
         const [hiddenKey, setHiddenKey] = useState(readHidden)
@@ -1268,10 +1546,12 @@ window.__ModuleLoader__.load({
         const toReview = () => { setAutoRun(null); setView('review') }
         return h('div', { className: 'kbmem-page', 'data-kbmem': view },
           view === 'options'
-            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey, tidy, scan, scanning, openReview: toReview })
-            : view === 'review'
+            ? h(OptionsView, { status, settings, back: () => setView('main'), notify, refresh: bump, refreshKey, tidy, scan, scanning, openReview: toReview, team })
+            : view === 'teamreview'
+              ? h(TeamReviewView, { team: team.team === null ? {} : team.team, kybers: kybersForTeam, back: () => { setStartScope('team'); setView('main') }, notify, bump, refreshKey })
+              : view === 'review'
               ? h(ReviewView, { key: scanKey(tidy), tidy, back: () => setView('main'), notify, bump, scan, scanning, auto: autoRun, onUndoAuto: undoAuto })
-              : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview: toReview, ran, onRanUndo: undoRan, onRanHide: hideRan }),
+              : h(MainView, { tab, setTab, status, settings, openOptions: () => setView('options'), notify, bump, refreshKey, tidy, hiddenKey, hideBanner, openReview: toReview, ran, onRanUndo: undoRan, onRanHide: hideRan, team, openTeamReview: () => setView('teamreview'), startScope, usedStartScope: () => setStartScope('mine') }),
           toast !== null ? h('div', { className: 'kbmem-toast', role: 'status', 'aria-live': 'polite' }, toast.message,
             toast.undo ? h('button', { type: 'button', 'data-act': 'undo', onClick: () => { const u = toast.undo; setToast(null); u() } }, 'Undo') : null) : null)
       }
@@ -1295,7 +1575,7 @@ window.__ModuleLoader__.load({
       return {
         inject: ['slots'],
         // Pure pieces and the page, exposed for test-client.mjs and the live check.
-        __test: { tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
+        __test: { teamLockedWords, isTeamAdmin, minutesSince, teamStatusChip, teamMatches, teamMeta, tidyRanNotice, TIDY_MODES, TIDY_SCHEDULES, whenAhead, tidySettingsOf, nextWords, tidyNextOf, tidyLast, lastWords, tidyBrain, logWho, TIDY_SHOWN, visibleItems, TIDY_MAX_REMOVALS, TIDY_SOURCES, plural, whenLabel, groupRemovals, tidyChunks, keeperOf, tidyBody, asTidyView, tidySaves, scanKey, logWords, tidyLog, onEscape, meaningWhy, closenessLabel, wordsLabel, readMode, writeMode, planOf, ageLabel, pagerPages, listUrl, activeFilters, defaultFilters, friendlyError, captureWords, api, GROUPS, Page, css, PAGE_SIZES },
         apply(ctx) {
           if (ctx === null || ctx === undefined || ctx.slots === null || ctx.slots === undefined) return
           ctx.effect(() => styles.insert(css), 'kybernos-memory: styles')
