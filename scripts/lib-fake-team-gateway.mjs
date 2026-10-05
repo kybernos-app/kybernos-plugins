@@ -9,7 +9,7 @@ import { createServer } from 'node:http'
 
 export const FAKE_TEAM_ID = '11111111-1111-4111-8111-111111111111'
 
-const ROUTES = {
+export const ROUTES = {
   'GET /v1/teams': () => ({ teams: [{ id: FAKE_TEAM_ID, name: 'Acme Team', created_at: '2026-08-01T10:00:00Z' }] }),
   'GET /budget': () => ({ plan: { pack: 'full', monthly_usd: 50, min_members: 2 }, shared_remaining: 12.5, members: [{ user_ref: 'owner@acme.test' }, { user_ref: 'bea@acme.test' }] }),
   'GET /members': () => ({ members: [{ user_ref: 'owner@acme.test', role: 'owner', max_shared_share: 20 }, { user_ref: 'bea@acme.test', role: 'member', max_shared_share: 5 }] }),
