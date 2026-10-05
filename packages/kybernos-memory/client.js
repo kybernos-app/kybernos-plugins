@@ -1114,7 +1114,7 @@ window.__ModuleLoader__.load({
         return [
           h('section', { key: 'tidy', className: 'kbmem-sec', 'data-sec': 'tidy' }, h('h2', null, 'Tidy up', h('small', null, 'near-duplicates, memories and lessons')),
             h(SettingRow, { label: 'Tidy up now', act: 'tidy-now',
-              desc: (cfg.mode === 'auto' ? 'Looks for near-duplicates on this machine and merges by itself the ones that are 80 % alike or more; the rest is shown for you to review. ' : 'Looks for near-duplicates on this machine; nothing changes until you accept. ') + 'Every change can be undone for 30 days. ' + lastWords(last),
+              desc: (cfg.mode === 'auto' && !stale && !none ? 'Looks for near-duplicates on this machine and merges by itself the ones that are 80 % alike or more; the rest is shown for you to review. ' : 'Looks for near-duplicates on this machine; nothing changes until you accept. ') + 'Every change can be undone for 30 days. ' + lastWords(last),
               why: unavailable,
               live: saves > 0 ? h('div', { className: 'kbmem-tiny', style: { marginTop: 6 } }, plural(saves, 'near-duplicate') + ' waiting for your review.') : null,
               control: h('div', { className: 'kbmem-acts' },
