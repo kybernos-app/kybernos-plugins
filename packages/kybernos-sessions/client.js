@@ -1844,6 +1844,19 @@ window.__ModuleLoader__.load({
         const t = setInterval(lireMem, 30000)
         return () => clearInterval(t)
       }, [lireMem])
+      // How many LESSONS were picked for this chat's latest message (the lessons plugin keeps it per session, like the memories').
+      const [lesPicked, setLesPicked] = React.useState(0)
+      const lireLecons = React.useCallback(async () => {
+        try {
+          const l = await fetch('/kybernos-memory/lessons?limit=1&session=' + encodeURIComponent(sessionId || '')).then((x) => x.json())
+          setLesPicked(l && l.ok === true && l.picked && l.picked.count > 0 ? l.picked.count : 0)
+        } catch (e) { setLesPicked(0) }
+      }, [])
+      React.useEffect(() => {
+        lireLecons()
+        const t = setInterval(lireLecons, 30000)
+        return () => clearInterval(t)
+      }, [lireLecons])
 
       const charger = React.useCallback(() => {
         fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1')
@@ -1994,6 +2007,7 @@ window.__ModuleLoader__.load({
           ? h('div', { className: 'kbs-vide' }, 'Nothing yet. Memories are captured at the end of a turn, or saved by the agent.')
           : h('div', { className: 'kbs-memo' }, memoire.souvenirs.slice(-3).map(ligneSouvenir).concat(memFaites.slice(-3).map(ligneMemo)))))
       const visuelLecons = h('div', { className: 'kbs-memwrap' },
+        lesPicked > 0 ? h('p', { className: 'kbs-note-line', 'data-kbs': 'picked-lessons' }, 'Picked for your latest message: ' + lesPicked + (lesPicked === 1 ? ' lesson' : ' lessons') + ' that match it') : null,
         sectionNote('Lessons in this chat', nbLecons === 0
           ? h('div', { className: 'kbs-vide' }, 'Nothing learned or reused in this chat yet.')
           : h('div', { className: 'kbs-lessons' }, leconsSession.slice(0, 3).map(ligneLecon))))

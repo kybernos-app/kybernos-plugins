@@ -35,6 +35,15 @@ one click away.
   memories match equally). It costs nothing to the history: the engine appends a new « runtime context »
   snapshot whenever the text changes, so the pick is made once per message, kept while the topic is the
   same, and not changed again for 3 turns. The page's counts and « Sent » chips stay the base selection.
+- **Pick by relevance, for the lessons** (Options → Lessons learned, on by default, local): a kyber holds up to 50
+  lessons and the block fits about a third of them, so the base selection (most used, then newest) never sends an old,
+  never-used lesson. The same picker as the memories' ranks the lessons of the chat's kyber and `default` against the human's
+  latest message (`agent/inbox/claimed`, `source.kind: 'user'`; tags count as text) and sends the clear matches first — at most
+  4, within 40 % of the lessons budget, and only if the question is selective (more than 10 qualifying lessons means none
+  stands out). It never reads another kyber's lessons, and it costs nothing to the history: the pick is made once per message,
+  kept while the topic holds, not changed within 3 turns, and byte-identical across the steps of one message (a lesson
+  written mid-turn waits for the next one). The Memory pill's Lessons tab says « Picked for your latest message: 2 lessons »
+  (`GET /kybernos-memory/lessons?session=` answers `picked: { count, turn }`).
 - **Search by meaning** (memories only, **off until you turn it on**: it sends the text of each memory
   to the Kybernos embedding model). The search field offers *Relevance | Meaning* (the choice is saved per
   browser). Turning the switch on checks, once, what your plan and server allow (one 2-letter embedding,
@@ -82,7 +91,7 @@ every rewrite is atomic, and a deletion goes to the archive too.
 |---|---|
 | **Prompt** | chunk `kybernos:lessons` (order 135, ≤ 2 400 chars **frame included**): the lessons of the kyber the session runs (`~/.dsh/kybers/.active/<sessionId>`) get 70 % of the budget, `default` the rest. Most used first, then newest; a lesson too long for what is left is skipped. Never the lessons of another kyber. The chunk says when lessons were left out. |
 | **Tools** | `lesson_write` (text, kyber, tags — validated, deduplicated) and `lesson_search`. A lesson that a search returns counts as used: it is the only use this bundle can see, and the signal the cap relies on (1 lesson in 212 had `uses > 0` before). |
-| **Switches** | `lessons` (agents may save and look lessons up) and `context` (lessons are injected), both on by default, in `kybernos-memory.json` (0600). `lessons = off` injects one line telling agents not to record lessons — a global rule or the `memory.cjs` habit would otherwise go on. A patch with an unknown key or a non-boolean applies nothing. |
+| **Switches** | `lessons` (agents may save and look lessons up), `context` (lessons are injected) and `relevant` (the lessons that match the latest message go first), all on by default, in `kybernos-memory.json` (0600). `lessons = off` injects one line telling agents not to record lessons — a global rule or the `memory.cjs` habit would otherwise go on. A patch with an unknown key or a non-boolean applies nothing. |
 | **Routes** | `GET /kybernos-memory/lessons` (limit, offset, kyber, used, added, q), `GET /kybernos-memory/kybers`, `POST …/lessons/add`, `…/lessons/update`, `…/lessons/delete`, `GET …/settings`, `POST …/settings/set`. Same-origin only, one path per route (the web server indexes by path). |
 
 Kyber ids and session ids end up in paths: only plain names pass (`^[A-Za-z0-9][A-Za-z0-9._-]*$`,

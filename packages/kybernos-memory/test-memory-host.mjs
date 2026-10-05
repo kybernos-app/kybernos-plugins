@@ -138,8 +138,8 @@ try {
   }
 
   // ── 3. Switches ───────────────────────────────────────────────────────────
-  assert.deepEqual(mod.readSettings(), { lessons: true, context: true })
-  ok('switches: both on by default (nothing changes for whoever never touches them)')
+  assert.deepEqual(mod.readSettings(), { lessons: true, context: true, relevant: true })
+  ok('switches: all on by default (nothing changes for whoever never touches them)')
 
   // ── 4. The prompt chunk ───────────────────────────────────────────────────
   rmSync(dirOf('default'), { recursive: true, force: true }); rmSync(dirOf('dev-team'), { recursive: true, force: true }); rmSync(dirOf('audit'), { recursive: true, force: true })
@@ -182,7 +182,7 @@ try {
   const call = async (path, body, url) => route(path).run({ url: url === undefined ? path : url }, body === undefined ? null : body)
   put('default', [L('general lesson visible')])
   const noCtx = await call('/kybernos-memory/settings/set', { context: false })
-  assert.deepEqual(noCtx.settings, { lessons: true, context: false })
+  assert.deepEqual(noCtx.settings, { lessons: true, context: false, relevant: true })
   assert.equal(mod.renderLessonsChunk(ctxFor(SESSION_B)), '', 'context = no: nothing is injected')
   const off = await call('/kybernos-memory/settings/set', { lessons: false, context: true })
   const directive = mod.renderLessonsChunk(ctxFor(SESSION_B))
@@ -195,7 +195,7 @@ try {
   assert.equal((await call('/kybernos-memory/settings/set', { lessons: 'no' })).error, 'valeur_invalide')
   assert.equal((await call('/kybernos-memory/settings/set', { colour: true })).error, 'cle_inconnue')
   assert.equal((await call('/kybernos-memory/settings/set', { lessons: true, colour: true })).ok, false)
-  assert.deepEqual(mod.readSettings(), { lessons: false, context: true }, 'a refused patch applies NOTHING, not even its valid half')
+  assert.deepEqual(mod.readSettings(), { lessons: false, context: true, relevant: true }, 'a refused patch applies NOTHING, not even its valid half')
   await call('/kybernos-memory/settings/set', { lessons: true, context: true })
   ok('switches: honoured by chunk and tools, refused patches apply nothing, file is 0600')
 
@@ -711,6 +711,114 @@ try {
     ok('tidy: the Study model is opt-in, only the unclear pairs leave, a verdict is only a suggestion, and each pair is asked once')
     await call(url('/settings'), { mode: 'ask', schedule: 'off', brain: false })
     delete process.env.KYBERNOS_SETTINGS_FILE
+  }
+
+  // ── 11. The lessons that matter to THIS question ──────────────────────────────────────────────────────────
+  {
+    for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+    rmSync(join(kybers, '.active'), { recursive: true, force: true }); mkdirSync(join(kybers, '.active'), { recursive: true })
+    const SES = 'sess-relevance-0001'
+    const filler = (n, tag) => Array.from({ length: n }, (_, i) => L(tag + ' habit number ' + String.fromCharCode(97 + i % 26) + String.fromCharCode(97 + Math.floor(i / 26)) + 'x: keep the commit messages short and in the imperative mood, never in the past tense', { ts: iso(100 + i), uses: 1 + (i % 3), tags: ['style'] }))
+    put('dev-team', [...filler(44, 'dev'), L('The tilemaker export breaks when the atlas has transparent borders: pad every sprite by two pixels', { ts: iso(80000), uses: 0, tags: ['atlas'] }), L('Sprite sheets for the tilemaker must be power-of-two wide or the atlas packer silently crops them', { ts: iso(81000), uses: 0 })])
+    put('default', filler(30, 'general'))
+    put('other-kyber', [L('The tilemaker atlas of the other team uses premultiplied alpha: never mix it with ours', { ts: iso(10) })])
+    writeFileSync(join(kybers, '.active', SES), JSON.stringify({ kyber: 'dev-team', ts: iso(1) }))
+    const human = (text) => ({ source: { kind: 'user' }, content: [{ type: 'text', text }] })
+    const pick = (text, turn, session = SES) => { mod.noteUserTurn(session, human(text), turn); return mod.planLessons(session, { relevant: true }) }
+    const ids = (plan) => plan.chosen.map((l) => l.text.slice(0, 22))
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
+
+    // the base selection cannot see them: 46 lessons, the block fits a third
+    const base = mod.planLessons(SES)
+    assert.ok(base.omitted > 10, 'the base selection leaves many out (' + String(base.omitted) + ')')
+    assert.ok(!base.chosen.some((l) => /tilemaker/.test(l.text)), 'and the old, never-used tilemaker lessons are among them')
+    assert.deepEqual(base.picked, [], 'no question, no pick')
+
+    const first = pick('the tilemaker export crops my atlas, how do I pad the sprites?', 1)
+    assert.ok(first.chosen.some((l) => /pad every sprite/.test(l.text)), 'the lesson about padding is now sent')
+    assert.ok(first.chosen.some((l) => /power-of-two/.test(l.text)), 'and the second one about the atlas packer')
+    assert.equal(first.picked.length, 2)
+    assert.ok(!first.chosen.some((l) => /other team/.test(l.text)), 'a lesson of another kyber never goes, even when it matches')
+    assert.ok(first.used <= 2400 - 460, 'the block stays inside its budget')
+    assert.ok(first.chosen[0].text.includes('tilemaker'), 'what matches comes first')
+    const listedFor = await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?limit=1&session=' + SES)
+    assert.deepEqual([listedFor.picked.count, listedFor.picked.turn], [2, 1], 'the page next to the chat can say how many lessons were picked for its latest message')
+    assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?limit=1&session=session-' + SES)).picked.count, 2, 'with the engine\'s « session- » prefix too')
+    assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?limit=1')).picked, null, 'no session, no pick: the page shows the base selection')
+    assert.equal((await call('/kybernos-memory/lessons', null, '/kybernos-memory/lessons?limit=1&session=unknown-chat')).picked, null)
+    ok('relevance: a question about the tilemaker brings its two old lessons, never another kyber\'s, within the budget')
+
+    const same = mod.planLessons(SES, { relevant: true })
+    assert.deepEqual(same.chosen.map((l) => l.id), first.chosen.map((l) => l.id), 'the same message on the next step is byte-identical')
+    assert.equal(mod.renderLessonsChunk({ agent: { session: { id: SES } } }), mod.renderLessonsChunk({ agent: { session: { id: SES } } }))
+    const rendered = mod.renderLessonsChunk({ agent: { session: { id: SES } } })
+    assert.ok(/pad every sprite/.test(rendered) && rendered.length <= 2400, 'the chunk carries it, inside the cap')
+    // an agent writes a better matching lesson DURING the turn: the text must not change before the next message
+    store.addLesson('dev-team', { text: 'tilemaker atlas padding export crops sprites transparent borders: pad two pixels', from: 'lesson_write' })
+    const mid = mod.planLessons(SES, { relevant: true })
+    assert.deepEqual(mid.picked, first.picked, 'a lesson written mid-turn does not change what this message gets (the engine would append a snapshot)')
+    mod.sessionPick.clear(); mod.sessionQuery.clear()
+    mod.noteUserTurn(SES, human('the tilemaker export crops my atlas, how do I pad the sprites?'), 1)
+    assert.ok(mod.planLessons(SES, { relevant: true }).picked.length >= 1)
+    const newId = store.listLessons({ kyber: 'dev-team', q: 'tilemaker atlas padding export crops', limit: 1 }).items[0].id
+    assert.ok(mod.planLessons(SES, { relevant: true }).picked.includes(newId), 'it is picked by the next message')
+    const dropped = rows('dev-team').filter((l) => !/tilemaker atlas padding export crops/.test(l.text))
+    put('dev-team', dropped)
+    mod.sessionPick.clear(); mod.sessionQuery.clear()
+    mod.noteUserTurn(SES, human('the tilemaker export crops my atlas, how do I pad the sprites?'), 1)
+    ok('relevance: stable across steps; the rendered chunk carries the pick')
+
+    const follow = pick('and why does the tilemaker atlas keep cropping?', 2)
+    const sorted = (a) => [...a].sort()
+    assert.deepEqual(sorted(follow.picked), sorted(first.picked), 'a follow-up on the same topic keeps the pick')
+    const away = pick('what is the capital of Australia, and the weather there?', 3)
+    assert.deepEqual(away.picked, follow.picked, 'a new topic within 3 turns does not change the text (the engine would append a snapshot)')
+    const later = pick('what is the capital of Australia, and the weather there?', 6)
+    assert.deepEqual(later.picked, [], 'three turns later the pick follows the question: nothing matches, nothing extra')
+    ok('relevance: kept while the topic holds, changes at most every 3 turns')
+
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
+    const broad = pick('commit messages in the imperative mood, never in the past tense', 1)
+    assert.deepEqual(broad.picked, [], 'a question that matches dozens of lessons equally is not about any of them')
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
+    mod.noteUserTurn(SES, { source: { kind: 'skill' }, content: [{ type: 'text', text: 'the tilemaker atlas padding' }] }, 1)
+    mod.noteUserTurn(SES, { source: { kind: 'user' }, content: [{ type: 'image' }] }, 1)
+    mod.noteUserTurn(SES, null, 1)
+    mod.noteUserTurn('', human('the tilemaker atlas padding'), 1)
+    assert.equal(mod.sessionQuery.size, 0, 'only the words of a human are a question: injected context, images, nothing')
+    // long matching lessons: they may take at most their own share of the block, the rest compete like any other lesson
+    put('dev-team', [...filler(30, 'dev'), ...Array.from({ length: 4 }, (_, i) => L('The zeppelin gondola autopilot number ' + ['alpha', 'bravo', 'charlie', 'delta'][i] + ' fails during the launch sequence when the ballast table is stale: ' + 'refresh the ballast table first, then retry the launch sequence with a clean autopilot state. '.repeat(3).slice(0, 360), { ts: iso(70000 + i), uses: 0 }))])
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
+    const big = pick('the zeppelin gondola autopilot fails during the launch sequence, ballast table stale', 1)
+    assert.ok(big.picked.length >= 1 && big.picked.length <= 2, 'long matching lessons are limited to their share of the block (' + String(big.picked.length) + ')')
+    const pickedChars = big.chosen.filter((l) => big.picked.includes(l.id)).reduce((n, l) => n + l.text.length, 0)
+    assert.ok(pickedChars <= 0.4 * 1940 + 460, 'the picked lessons stay near 40 % of the lines budget')
+    ok('relevance: a broad question picks nothing, only a human prompt counts, and the pick has its own share')
+
+    // the switch (the tilemaker lessons are back)
+    put('dev-team', [...filler(44, 'dev'), L('The tilemaker export breaks when the atlas has transparent borders: pad every sprite by two pixels', { ts: iso(80000), uses: 0, tags: ['atlas'] }), L('Sprite sheets for the tilemaker must be power-of-two wide or the atlas packer silently crops them', { ts: iso(81000), uses: 0 })])
+    await call('/kybernos-memory/settings/set', { relevant: false })
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
+    mod.noteUserTurn(SES, human('the tilemaker export crops my atlas, how do I pad the sprites?'), 1)
+    const off11 = mod.renderLessonsChunk({ agent: { session: { id: SES } } })
+    assert.ok(!/pad every sprite/.test(off11), 'switched off: the base selection only')
+    await call('/kybernos-memory/settings/set', { relevant: true })
+    assert.ok(/pad every sprite/.test(mod.renderLessonsChunk({ agent: { session: { id: SES } } })), 'switched on again')
+    assert.equal((await call('/kybernos-memory/settings/set', { relevant: 'yes' })).error, 'valeur_invalide', 'a non-boolean refuses the whole patch')
+    ok('relevance: the switch turns it off and on, a bad value is refused')
+
+    // the wiring: the human's message reaches the picker through the engine's event
+    const handlers = new Map()
+    mod.apply({ get: () => undefined, inject: () => {}, effect: () => {}, on: (event, fn) => handlers.set(event, fn) })
+    assert.equal(typeof handlers.get('agent/inbox/claimed'), 'function', 'the bundle listens to the human\'s message')
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
+    handlers.get('agent/inbox/claimed')({ agent: { session: { id: SES } }, message: human('tilemaker atlas padding'), turn: 4 })
+    assert.equal(mod.sessionQuery.get(SES).turn, 4)
+    assert.doesNotThrow(() => handlers.get('agent/inbox/claimed')({}), 'a malformed event never breaks a turn')
+    assert.doesNotThrow(() => mod.apply({ get: () => undefined, inject: () => {}, effect: () => {} }), 'a ctx without `on` is fine')
+    assert.doesNotThrow(() => mod.apply({ get: () => undefined, inject: () => {}, effect: () => {}, on: () => { throw new Error('boom') } }))
+    ok('relevance: wired to the engine\'s event, and a missing or failing `on` never stops DSH from starting')
+    mod.sessionQuery.clear(); mod.sessionPick.clear()
   }
 
   console.log('\n' + String(pass) + ' verifications OK')

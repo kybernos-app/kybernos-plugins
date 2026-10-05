@@ -22,6 +22,7 @@ import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync }
 import { dirname, join } from 'node:path'
 import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, dshHome, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
+import { rank } from './relevance.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 
 export const name = 'kybernos-memory'
@@ -30,9 +31,10 @@ const say = (message) => console.log('[kybernos-memory] ' + message)
 
 // ── Switches ────────────────────────────────────────────────────────────────
 // `lessons`: agents may save and look up lessons. `context`: lessons are injected into
-// the system prompt. Both true by default — that is how things behaved before the
-// switches existed, so nothing changes for whoever never touches them.
-const SETTING_KEYS = ['lessons', 'context']
+// the system prompt. `relevant`: besides the base selection, also send the lessons that clearly match what the user
+// just asked. All true by default — that is how things behaved before the switches existed, so nothing changes for
+// whoever never touches them (`relevant` is new and local: nothing extra leaves the machine).
+const SETTING_KEYS = ['lessons', 'context', 'relevant']
 
 // <DSH home>/kybernos-memory.json, in the same home as the lessons (lessons-store.mjs).
 const settingsFile = () => {
@@ -78,30 +80,128 @@ const lessonLine = (lesson) => '- [' + lesson.kyber + '] ' + sanitize(lesson.tex
 
 const usefulFirst = (a, b) => (b.uses || 0) - (a.uses || 0) || (Date.parse(b.ts) || 0) - (Date.parse(a.ts) || 0)
 
+// ── The lessons that matter to THIS question ───────────────────────────────
+// The base selection (most used, then newest) cannot know what the user is asking: a kyber holds up to 50 lessons and
+// the block fits about a third of them. So the human's latest message of each session is kept here and ranked against the
+// lessons of the kybers the session reads (relevance.mjs, local: nothing is sent anywhere), and the ones that clearly
+// match go first. The same rules as the memories' (kybernos-cloud): the engine appends a new « runtime context » snapshot
+// to the history whenever this text changes, so the pick is made once per user message, kept while the topic is the same
+// (overlap), and not changed again for a few turns — never per step, never per tool call.
+export const RELEVANCE_TUNING = {
+  maxTerms: 12,           // judge the question by its 12 rarest words that can match something
+  minCoverage: 0.25,      // >= 2 words matched and a quarter of the question's rarity …
+  strongCoverage: 0.5,    // … or 1 word that is half of it
+  relative: 0.5,          // and never less than this fraction of the best match's coverage
+  maxPicked: 4,           // at most this many lessons picked
+  maxCandidates: 10,      // … and only when the question is SELECTIVE: more than this many qualifying means none stands out
+  share: 0.4,             // … and at most this share of the lessons budget
+  keepOverlap: 0.6,       // a new pick that overlaps the last one this much changes nothing
+  minTurnsBetweenChanges: 3,
+  queryChars: 1200,
+  sessions: 64,
+}
+export const sessionQuery = new Map()   // sessionId -> { key, text, turn }
+export const sessionPick = new Map()    // sessionId -> { key, ids, turn }
+
+const forgetOldest = (map) => { while (map.size > RELEVANCE_TUNING.sessions) map.delete(map.keys().next().value) }
+
+/** The text of a HUMAN prompt (source.kind 'user'); injected context, file notices, skills and goal rounds are not a question. */
+export const userPromptText = (message) => {
+  if (message === null || typeof message !== 'object') return ''
+  const kind = message.source !== null && typeof message.source === 'object' ? message.source.kind : undefined
+  if (kind !== 'user') return ''
+  const blocks = Array.isArray(message.content) ? message.content : []
+  return blocks.filter((b) => b !== null && typeof b === 'object' && b.type === 'text' && typeof b.text === 'string').map((b) => b.text).join('\n').trim()
+}
+
+export const noteUserTurn = (sessionId, message, turn) => {
+  try {
+    const text = userPromptText(message)
+    if (typeof sessionId !== 'string' || sessionId === '' || text === '') return
+    const cut = text.slice(0, RELEVANCE_TUNING.queryChars)
+    sessionQuery.delete(sessionId)
+    sessionQuery.set(sessionId, { key: String(Number.isFinite(turn) ? turn : 0) + ':' + String(text.length) + ':' + cut.slice(0, 40), text: cut, turn: Number.isFinite(turn) ? turn : 0 })
+    forgetOldest(sessionQuery)
+  } catch (e) { /* never break a turn */ }
+}
+
+const overlapOf = (a, b) => {
+  if (a.length === 0 && b.length === 0) return 1
+  const set = new Set(a)
+  let both = 0
+  for (const id of b) if (set.has(id)) both += 1
+  return both / (a.length + b.length - both)
+}
+
+/** The lessons of `candidates` (each with an `id`) that match this session's latest question, best first; [] when nothing clearly does. */
+export const pickRelevant = (sessionId, candidates) => {
+  const q = sessionQuery.get(sessionId)
+  if (q === undefined) return []
+  const byId = new Map(candidates.map((l) => [l.id, l]))
+  const prev = sessionPick.get(sessionId)
+  if (prev !== undefined && prev.key === q.key) return prev.ids.map((id) => byId.get(id)).filter((l) => l !== undefined)   // same message, next step: byte-identical
+  const T = RELEVANCE_TUNING
+  // tags and the kyber's name are text too (as in the lessons search)
+  const ranked = rank(candidates.map((l) => ({ content: l.text + ' ' + l.tags.join(' '), createdAt: l.ts, pinned: false, lesson: l })), q.text, { maxTerms: T.maxTerms })
+  const passing = ranked.filter((r) => (r.matched >= 2 && r.coverage >= T.minCoverage) || (r.matched >= 1 && r.coverage >= T.strongCoverage))
+  const best = passing.reduce((top, r) => Math.max(top, r.coverage), 0)
+  const strong = passing.filter((r) => r.coverage >= best * T.relative)
+  const ids = strong.length > T.maxCandidates ? [] : strong.slice(0, T.maxPicked).map((r) => r.doc.lesson.id)
+  let next = ids
+  let turn = q.turn
+  if (prev !== undefined) {
+    const spaced = q.turn - prev.turn >= T.minTurnsBetweenChanges
+    if (overlapOf(ids, prev.ids) >= T.keepOverlap || !spaced) { next = prev.ids; turn = prev.turn }
+  }
+  sessionPick.delete(sessionId)
+  sessionPick.set(sessionId, { key: q.key, ids: next, turn })
+  forgetOldest(sessionPick)
+  return next.map((id) => byId.get(id)).filter((l) => l !== undefined)
+}
+
 /**
- * Which lessons a session reads. The kyber the session runs gets most of the budget,
- * `default` (the general lessons) the rest; inside a kyber the most used come first,
- * then the newest. A lesson too long for what is left is skipped, not a stopper.
+ * Which lessons a session reads. The kyber the session runs gets most of the budget, `default` (the general lessons)
+ * the rest. Inside the budget the lessons that match the user's latest message come first (at most their own share),
+ * then the most used, then the newest. A lesson too long for what is left is skipped, not a stopper.
+ * `sessionId` also decides the relevance pick: the page (no session) shows the base selection, the prompt shows both.
  */
-export const planLessons = (sessionId) => {
+export const planLessons = (sessionId, options = {}) => {
   const active = activeKyber(sessionId)
   const kybers = active !== null && active !== 'default' ? [active, 'default'] : ['default']
   const budget = Math.max(0, CHUNK_MAX_CHARS - CHUNK_FRAME_CHARS)
+  const all = kybers.flatMap((kyber) => readLessons(kyber).map((l) => ({ ...l, kyber, id: lessonId(kyber, l) })))
+  const wantRelevant = options.relevant === true && typeof sessionId === 'string'
+  const preferred = wantRelevant ? pickRelevant(sessionId, all) : []
+  const preferredIds = new Set(preferred.map((l) => l.id))
   const chosen = []
+  const picked = []
   let used = 0
+  let relevantUsed = 0
   let omitted = 0
+  const relevantCap = Math.floor(budget * RELEVANCE_TUNING.share)
+  const firstCapOf = (i) => (i === 0 && kybers.length > 1 ? Math.floor(budget * ACTIVE_SHARE) : budget)
+  const groupUsed = kybers.map(() => 0)
+  const take = (lesson, i) => {
+    const cost = lessonLine(lesson).length + 1
+    const cap = i === 0 && kybers.length > 1 ? firstCapOf(0) : budget
+    if (used + cost > budget || (i === 0 && kybers.length > 1 && groupUsed[0] + cost > cap)) return false
+    chosen.push(lesson)
+    used += cost
+    groupUsed[i] += cost
+    return true
+  }
+  // what matches the question, right after nothing else and BEFORE the most used, within its own share
+  for (const lesson of preferred) {
+    const i = kybers.indexOf(lesson.kyber)
+    const cost = lessonLine(lesson).length + 1
+    if (relevantUsed + cost > relevantCap) continue
+    if (take(lesson, i)) { relevantUsed += cost; picked.push(lesson) }
+  }
   kybers.forEach((kyber, i) => {
-    const cap = i === 0 && kybers.length > 1 ? Math.floor(budget * ACTIVE_SHARE) : budget
-    const lessons = readLessons(kyber).map((l) => ({ ...l, kyber })).sort(usefulFirst)
-    const groupStart = used
-    for (const lesson of lessons) {
-      const cost = lessonLine(lesson).length + 1
-      if (used + cost > (i === 0 ? groupStart + cap : budget)) { omitted += 1; continue }
-      chosen.push(lesson)
-      used += cost
-    }
+    const lessons = all.filter((l) => l.kyber === kyber && !chosen.includes(l)).sort(usefulFirst)
+    for (const lesson of lessons) { if (!take(lesson, i)) omitted += 1 }
   })
-  return { kyber: active, chosen, used, omitted, cap: CHUNK_MAX_CHARS }
+  return { kyber: active, chosen, picked: picked.map((l) => l.id), used, omitted, cap: CHUNK_MAX_CHARS }
 }
 
 const sessionIdOf = (context) => {
@@ -116,7 +216,7 @@ export const renderLessonsChunk = (context) => {
     // lessons (a global rule, the memory.cjs habit) knows the user has turned it off.
     if (settings.lessons !== true) return CHUNK_HEAD + ' Lesson recording is turned off by the user: do not record lessons (no lesson_write, no memory.cjs lesson).'
     if (settings.context !== true) return ''
-    const plan = planLessons(sessionIdOf(context))
+    const plan = planLessons(sessionIdOf(context), { relevant: settings.relevant === true })
     if (plan.chosen.length === 0) return ''
     const lines = [CHUNK_HEAD + ' Lessons learned on this machine' + (plan.kyber === null ? '' : ' (your kyber: ' + plan.kyber + ')') + ':']
     plan.chosen.forEach((l) => lines.push(lessonLine(l)))
@@ -240,6 +340,13 @@ const intParam = (raw, fallback, min, max) => {
 
 const queryOf = (req) => { try { return new URL(req.url, 'http://localhost').searchParams } catch (e) { return new URLSearchParams('') } }
 
+const pickedFor = (session) => {
+  const sid = String(session || '')
+  if (sid === '') return null
+  const pick = sessionPick.get(sid) || sessionPick.get(sid.replace(/^session-/, ''))
+  return pick === undefined ? null : { count: pick.ids.length, turn: pick.turn }
+}
+
 const lessonsListRoute = async (req) => {
   const params = queryOf(req)
   const kyber = params.get('kyber')
@@ -259,6 +366,8 @@ const lessonsListRoute = async (req) => {
     filters: { kyber: isKyberId(kyber) ? kyber : null, used: params.get('used') === '1', added: params.get('added') === null ? 'any' : params.get('added'), q: params.get('q') === null ? '' : params.get('q') },
     search: { mode: 'relevance', relevance: true },
     injection: { scope: 'the kyber of the session, plus default', cap: plan.cap, defaultSent: plan.chosen.length, defaultOmitted: plan.omitted },
+    // the chat this page is open next to (`?session=`): how many lessons were picked for its latest message
+    picked: pickedFor(params.get('session')),
     settings: readSettings(),
   }
 }
@@ -674,6 +783,10 @@ export function apply(ctx) {
   } catch (e) { say('routes not mounted: ' + String((e && e.message) || e)) }
   try { mountPrompt(ctx) } catch (e) { say('prompt chunk not mounted: ' + String((e && e.message) || e)) }
   try { mountTools(ctx) } catch (e) { say('tools not mounted: ' + String((e && e.message) || e)) }
+  // the human's message of each turn, to pick the lessons that match it (see « The lessons that matter to THIS question »)
+  try {
+    if (typeof ctx.on === 'function') ctx.on('agent/inbox/claimed', ({ agent, message, turn }) => { try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ } })
+  } catch (e) { say('turn listener not mounted: ' + String((e && e.message) || e)) }
   hostCtx = ctx
   try { mountTidySchedule(ctx) } catch (e) { say('scheduled tidy-up not mounted: ' + String((e && e.message) || e)) }
 }

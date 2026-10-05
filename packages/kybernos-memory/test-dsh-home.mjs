@@ -130,7 +130,7 @@ try {
   iso.seedDshHome('kybers/.active/' + SESSION, JSON.stringify({ kyber: 'real-kyber', ts: 1 }))
   iso.freezeDecoy()
 
-  assert.deepEqual(mod.readSettings(), { lessons: true, context: false }, 'the switches must come from DSH_HOME')
+  assert.deepEqual(mod.readSettings(), { lessons: true, context: false, relevant: true }, 'the switches must come from DSH_HOME')
   ok('the switches are read from $DSH_HOME/kybernos-memory.json')
 
   assert.deepEqual(store.listKybers(), ['default', 'real-kyber'])
@@ -140,8 +140,8 @@ try {
 
   const set = await route(mod, '/kybernos-memory/settings/set').run(null, { lessons: false, context: true })
   assert.equal(set.ok, true)
-  assert.deepEqual(JSON.parse(readFileSync(join(iso.dshHome, 'kybernos-memory.json'), 'utf8')), { lessons: false, context: true })
-  assert.deepEqual(mod.readSettings(), { lessons: false, context: true })
+  assert.deepEqual(JSON.parse(readFileSync(join(iso.dshHome, 'kybernos-memory.json'), 'utf8')), { lessons: false, context: true, relevant: true })
+  assert.deepEqual(mod.readSettings(), { lessons: false, context: true, relevant: true })
   ok('flipping a switch writes $DSH_HOME/kybernos-memory.json')
 
   const added = store.addLesson('real-kyber', { text: 'a new real lesson' })
@@ -154,11 +154,11 @@ try {
 
   // DSH_HOME unset: the default location is unchanged, for the switches and the lessons alike.
   iso.useDefaultHome()
-  assert.deepEqual(mod.readSettings(), { lessons: false, context: false })
+  assert.deepEqual(mod.readSettings(), { lessons: false, context: false, relevant: true })
   assert.deepEqual(store.listKybers(), ['decoy-kyber', 'default'])
   const flipped = await route(mod, '/kybernos-memory/settings/set').run(null, { lessons: true })
   assert.equal(flipped.ok, true)
-  assert.deepEqual(JSON.parse(readFileSync(join(iso.decoy, 'kybernos-memory.json'), 'utf8')), { lessons: true, context: false })
+  assert.deepEqual(JSON.parse(readFileSync(join(iso.decoy, 'kybernos-memory.json'), 'utf8')), { lessons: true, context: false, relevant: true })
   assert.equal(existsSync(join(iso.dshHome, 'kybernos-memory.json')), true, 'the DSH_HOME file of the first phase is left alone')
   ok('with DSH_HOME unset, switches and lessons still live under <HOME>/.dsh')
 

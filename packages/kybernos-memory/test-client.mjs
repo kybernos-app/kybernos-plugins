@@ -153,6 +153,7 @@ for (const m of T.css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{/g)) 
   if (head.startsWith('@') || head === 'to' || head === 'from' || /^\d+%$/.test(head)) continue
   for (const part of head.split(',')) if (part.indexOf('kbmem-') < 0) unprefixed.push(part.trim())
 }
+check('the lessons have their own « Pick by relevance » row, locked with a reason when its parents are off or the plugin is stale', /LessonsRelevantRow/.test(SOURCE) && /act: 'lessons-relevant'/.test(SOURCE) && /Pick lessons by relevance/.test(SOURCE) && /typeof les\.relevant !== 'boolean'/.test(SOURCE))
 check('every selector of the stylesheet carries the kbmem- prefix (prefixes are shared across bundles)', unprefixed.length === 0, unprefixed)
 const others = ['kybernos-plugin', 'kybernos-cloud', 'kybernos-sessions', 'kybernos-language', 'kybernos-theme', 'kybernos-models', 'kybernos-auto', 'kybernos-hub', 'kybernos-flow'].filter((d) => { try { return /kbmem-/.test(readFileSync(join(HERE, '..', d, 'client.js'), 'utf8')) } catch (e) { return false } })
 check('no other bundle uses the kbmem- prefix', others.length === 0, others)
