@@ -710,7 +710,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       return ''
     }
     /** Starts the Suite's update from the dialog (the host does the work; this only asks and follows). */
-    const updRun = async (btn, statut) => {
+    const updRun = async (btn, statut, fin) => {
       btn.disabled = true
       statut.textContent = kbp('Démarrage…', 'Starting…')
       let r = null
@@ -728,7 +728,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         try { const x = await fetch('/kybernos-hub/update/status', { cache: 'no-store' }); t = await x.json() } catch (e) { t = null }
         if (t === null || t.ok !== true) { setTimeout(() => { void suivre() }, 3000); return }
         statut.textContent = motMaj(t)
-        if (t.etat === 'termine') { btn.remove(); try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ } return }
+        if (t.etat === 'termine') { fin(); try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ } return }
         if (t.etat === 'echec') { btn.disabled = false; return }
         setTimeout(() => { void suivre() }, 2000)
       }
@@ -821,7 +821,12 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
       foot.appendChild(again)
       if (viaSuite === true) {
-        const go = upBtn(kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main', () => { void updRun(go, statutMaj) })
+        // Once installed the dialog has nothing left to postpone or skip: only "Close" stays.
+        const fin = () => {
+          foot.querySelectorAll('.kbup-b').forEach((b) => { if (b !== go) b.remove() })
+          go.textContent = kbp('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb'); go.onclick = close
+        }
+        const go = upBtn(kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main', () => { void updRun(go, statutMaj, fin) })
         go.setAttribute('data-kb', 'upd-go')
         foot.appendChild(go)
       } else if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
