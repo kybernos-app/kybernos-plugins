@@ -39,6 +39,7 @@ const FICHE = {
   'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
   'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de votre liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
   'kybernos-flow': ['teams', 'Reprise des tours coupés, file d’attente réordonnable, barre Goal.', 'Resume cut turns, reorderable queue, Goal bar.'],
+  'kybernos-atlas': ['teams', 'La carte de votre espace : projets, kybers, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, kybers, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
   'kybernos-bricks': ['create', 'Maquettes en briques, animées brique par brique.', 'Brick mockups, animated brick by brick.'],
   'kybernos-modeleur': ['create', 'Modèles 2D et 3D pilotés par le chat.', '2D and 3D models driven by the chat.'],
@@ -62,7 +63,7 @@ const TITRES = {
   'kybernos-flow': 'Flow', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers',
-  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons'
+  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas'
 }
 const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'plug', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
@@ -70,7 +71,7 @@ const GLYPHES = {
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
   'kybernos-modeleur': 'box3d', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain'
+  'kybernos-memory': 'brain', 'kybernos-atlas': 'route'
 }
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written

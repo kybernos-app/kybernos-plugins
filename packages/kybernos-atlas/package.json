@@ -1,0 +1,27 @@
+{
+  "name": "@local/kybernos-atlas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Atlas: a read-only map of how projects, kybers, skills, memories, lessons, automations and apps fit together, with a list of what is broken or unused.",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  }
+}
