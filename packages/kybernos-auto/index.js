@@ -18,6 +18,8 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, realpathSync, renameSync, chmodSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
+import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
+import { TTL_SONDE_MS, apresIssue, issueDeRapport, plafondEssais, resoudre, triCandidats, vueModele } from './resilience.mjs'
 
 export const name = 'kybernos-auto'
 
@@ -141,55 +143,55 @@ export function ecrireSession (fichier, sessionId, on) {
   }
 }
 
-// ── santé : compteurs LOCAUX, dérivés des routages réels ────────────────────
+// ── health: one record per model, written by probes and by the delegations' reports ───
 export function lireSante (fichier) {
   let brut = {}
   try { brut = JSON.parse(readFileSync(fichier, 'utf8')) } catch { brut = {} }
   return (brut !== null && typeof brut === 'object' && !Array.isArray(brut)) ? brut : {}
 }
 
-export function noterRoutage (fichier, modele, latenceMs, erreur, usage) {
-  if (typeof modele !== 'string' || modele === '' || modele.length > 200) return
+/** Record one outcome. A probe (`rapport` false) updates the breaker and the last probe; a delegation's report
+ *  (`rapport` true) also counts as a call, with its latency and cache usage. Routing itself records nothing: a model
+ *  that was merely chosen has not yet done anything. */
+export function noterIssue (fichier, modele, issue, { rapport = false, latenceMs = null, usage = null, maintenant = Date.now() } = {}) {
+  if (typeof modele !== 'string' || modele === '' || modele.length > 200) return null
   const sante = lireSante(fichier)
-  const m = sante[modele] || { calls: 0, errors: 0, lastLatencyMs: null, cacheInput: 0, cacheRead: 0, updatedAt: null }
-  m.calls += 1
-  if (erreur === true) m.errors += 1
-  if (typeof latenceMs === 'number' && latenceMs >= 0) m.lastLatencyMs = Math.round(latenceMs)
-  // cache : le rapport porte les tokens d'entrée et ceux lus depuis le cache
-  if (usage && Number.isFinite(usage.inputTokens) && usage.inputTokens > 0 &&
-      Number.isFinite(usage.cacheReadTokens) && usage.cacheReadTokens >= 0 && usage.cacheReadTokens <= usage.inputTokens) {
-    m.cacheInput = (m.cacheInput || 0) + usage.inputTokens
-    m.cacheRead = (m.cacheRead || 0) + usage.cacheReadTokens
+  const m = apresIssue(sante[modele], issue, maintenant)
+  if (rapport === true) {
+    m.calls += 1
+    if (issue.etat !== 'ok') m.errors += 1
+    if (typeof latenceMs === 'number' && latenceMs >= 0) m.lastLatencyMs = Math.round(latenceMs)
+    // cache: the report carries the input tokens and those read from the cache
+    if (usage !== null && Number.isFinite(usage.inputTokens) && usage.inputTokens > 0 &&
+        Number.isFinite(usage.cacheReadTokens) && usage.cacheReadTokens >= 0 && usage.cacheReadTokens <= usage.inputTokens) {
+      m.cacheInput = (m.cacheInput || 0) + usage.inputTokens
+      m.cacheRead = (m.cacheRead || 0) + usage.cacheReadTokens
+    }
+  } else {
+    m.probes += 1
+    m.lastProbe = { at: maintenant, etat: issue.etat, ms: Number.isFinite(issue.ms) ? Math.round(issue.ms) : null, code: String(issue.code || '') }
   }
-  m.updatedAt = Date.now()
   sante[modele] = m
   try {
-    mkdirSync(dirname(fichier), { recursive: true })
-    writeFileSync(fichier, JSON.stringify(sante, null, 2) + '\n')
-  } catch { /* un compteur perdu ne casse jamais un routage */ }
+    writeFileAtomically(fichier, JSON.stringify(sante, null, 2) + '\n')
+  } catch { /* a lost counter never breaks a routing */ }
+  return m
 }
 
-/** Vue « santé » pour la page : pour chaque modèle de la whitelist, ses
- *  compteurs (ou un état « jamais routé »), et un état dérivé simple.
- *  « down » = taux d'erreurs ≥ 25 % sur ≥ 3 appels ; « degrade » = ≥ 5 %.
- *  Un modèle simplement inactif n'est JAMAIS écarté (pas de péremption). */
-export function vueSante (sante, whitelist) {
-  return whitelist.map((modele) => {
-    const m = sante[modele] || null
-    if (m === null || m.calls === 0) return { modele, etat: 'jamais', calls: 0, errors: 0, erreurPct: null, lastLatencyMs: null, cacheHitPct: null }
-    const erreurPct = Math.round((m.errors / m.calls) * 1000) / 10
-    let etat = 'ok'
-    if (m.calls >= 3 && erreurPct >= 25) etat = 'down'
-    else if (erreurPct >= 5) etat = 'degrade'
-    const cacheHitPct = (m.cacheInput || 0) > 0 ? Math.round(((m.cacheRead || 0) / m.cacheInput) * 100) : null
-    return { modele, etat, calls: m.calls, errors: m.errors, erreurPct, lastLatencyMs: m.lastLatencyMs, cacheHitPct }
-  })
+/** The page's view: for each whitelist model, its record and what the breaker says now. */
+export function vueSante (sante, whitelist, maintenant = Date.now()) {
+  return whitelist.map((modele) => vueModele(modele, sante[modele], maintenant))
 }
 
-// ── le routeur (copie conforme du CLI) ──────────────────────────────────────
+// ── the router: rules → local classifier → whitelist → probe-first chain ──────────────
+// Same classes and rules as the CLI `~/.dsh/tools/auto-router.mjs` (the agent's reflex before a delegation), which asks
+// this host first and keeps its own copy only as a fallback when the host does not answer.
 const REGLES = [
   ['media', /\b(vi[ée]deo|g[ée]n[è]re[sr]?\s+(une?\s+)?(vid[ée]o|image|icone)|tts|voix de synth|doublag|sous-titr)/i],
   ['vision', /\b(regarde[sr]?\s+(l['’]?[ée]cran|l'image|la capture)|capture d['’]?[ée]cran|lis (ce|cette) (png|jpg|image)|planche contact)/i],
+  // "design" class (user decision 03/10/2026): mock-ups, templates, visual consistency, UI reviews, sites. Measured
+  // 03/10: without website|landing|site web the brief of the kybernos.app site was classed "code".
+  ['design', /\b(design|d[ée]sign|maquette|gabarit|homog[ée]n[ée]it[ée] (visuelle|de bord|des bords)|int[ée]gration (CSS|ui|interface)|harmonisation|revue (UI|visuelle|vision)|parit[ée] (UI|spot)|ui\b|(site|page) web|website|landing|front.?end)/i],
   ['code', /\b(bug|refactor|corrige|patch|compile|test unitaire|migration|typescript|lint|pagination|feature|composant)/i]
 ]
 const regle = (demande) => {
@@ -197,16 +199,20 @@ const regle = (demande) => {
   return null
 }
 
-function candidats (whitelist, classe) {
+/** Which whitelist models may serve a class. No metadata per model: the class is read on the id. */
+export function candidats (whitelist, classe) {
   const indices = {
     media: /(wan|image|video|happyhorse|tts|audio|asr)/i,
     vision: /(vision|5v|-vl|glm-5\.3-flash)/i,
+    // design: Claude first (user opinion: best at design and integration), then the other text models
+    design: /(claude|sonnet|anthropic)/i,
     code: /(deepseek-chat|code|devstral|qwen-coder)/i
   }
   const re = indices[classe]
   const surprise = whitelist.filter((m) => re && re.test(m))
   if (surprise.length > 0) return surprise
-  if (classe === 'chat' || classe === 'agent-task' || classe === 'code') {
+  if (classe === 'chat' || classe === 'agent-task' || classe === 'code' || classe === 'design') {
+    // Any non-media model can serve text: a wan2.7 does not write code.
     const texte = whitelist.filter((m) => !indices.media.test(m))
     if (texte.length > 0) return texte
   }
@@ -230,8 +236,12 @@ export async function classifie (demande, modele, ollama = OLLAMA) {
   return CLASSES.find((cl) => brut === cl || brut.startsWith(cl)) || null
 }
 
-/** Le routage : règles → classifieur → whitelist. `deja` (santé) peut EXCLURE
- *  un modèle down. Rend { actif, classe, via, modele, candidats, raison }. */
+/** Routing: rules → classifier → whitelist, then the chain. `opts.sante` is the raw health map (the breaker's state),
+ *  `opts.sonder(modele)` probes one model (absent = no probing: the chain is the eligible candidates, unverified),
+ *  `opts.noter(modele, issue)` records a probe's outcome, `opts.exclure` lists models that just failed for this very
+ *  delegation. Answers { actif, classe, via, modele, verifie, candidats, chaine, ecartes, sondes, sonde, plafond, raison }:
+ *  `modele` is the first model to try (null = keep the session model), `candidats` the ordered fallbacks, never more
+ *  than the retry cap. */
 export async function router (demande, opts = {}) {
   const reg = opts.reglages || { whitelist: [], classifier: '', global: false }
   const whitelist = reg.whitelist
@@ -249,24 +259,38 @@ export async function router (demande, opts = {}) {
     }
   }
   if (classe === null) classe = 'chat'
-  const sante = opts.sante || {}
-  const sains = candidats(whitelist, classe).filter((m) => {
-    const s = sante[m]
-    return s === undefined || s.etat !== 'down'
-  })
+  const horloge = opts.horloge || (() => Date.now())
+  const plafond = opts.plafond !== undefined ? opts.plafond : plafondEssais()
   const tous = candidats(whitelist, classe)
-  // Tous les candidats « down » : on n'envoie PAS vers un modèle en panne, on
-  // garde le modèle de session (« skipped until it recovers », page Settings).
-  const liste = sains
+  const tri = triCandidats(tous, opts.sante || {}, horloge(), { exclure: Array.isArray(opts.exclure) ? opts.exclure : [], max: plafond })
+  let chaine = []
+  let echecs = []
+  let sondes = 0
+  let delai = false
+  let sonde = 'indisponible'
+  if (typeof opts.sonder === 'function') {
+    const r = await resoudre({ eligibles: tri.eligibles, sonder: opts.sonder, cache: opts.cache || new Map(), noter: opts.noter || (() => {}), horloge, delaiMs: opts.delaiMs })
+    chaine = r.chaine
+    echecs = r.echecs
+    sondes = r.sondes
+    delai = r.delai
+    sonde = r.sondes > 0 ? 'fraiche' : (chaine.some((c) => c.verifie === true) ? 'cache' : 'aucune')
+  } else {
+    chaine = tri.eligibles.map((modele) => ({ modele, verifie: false, source: 'unprobed' }))
+  }
+  const tete = chaine.length > 0 ? chaine[0] : null
+  const ecartes = tri.ecartes.concat(echecs)
+  let raison
+  if (tete !== null && tete.verifie === true) raison = 'class ' + classe + ' → ' + tete.modele + ' answered a probe' + (ecartes.length > 0 ? ' (' + ecartes.length + ' skipped)' : '')
+  else if (tete !== null) raison = 'class ' + classe + ' → ' + tete.modele + ' (not probed: ' + (sonde === 'indisponible' ? 'the llm service is not available' : 'the probe deadline passed') + ')'
+  else if (tous.length > 0) raison = 'class ' + classe + ': every candidate is paused or did not answer — keep the session model'
+  else raison = 'no ' + classe + ' candidate — keep the session model'
   return {
     actif: true, classe, via,
-    modele: liste.length > 0 ? liste[0] : null,
-    candidats: liste,
-    raison: liste.length > 0
-      ? 'classe ' + classe + ' → premier candidat sain de la whitelist'
-      : (tous.length > 0
-        ? 'classe ' + classe + ' : tous les candidats sont hors service — garder le modèle de session'
-        : 'aucun candidat ' + classe + ' — garder le modèle de session')
+    modele: tete === null ? null : tete.modele,
+    verifie: tete !== null && tete.verifie === true,
+    candidats: chaine.map((c) => c.modele),
+    chaine, ecartes, sondes, sonde, delai, plafond, raison
   }
 }
 
@@ -298,13 +322,32 @@ export function monterRoutes (webServerSvc, opts = {}) {
   const reglagesFichier = opts.reglagesPath || join(home, 'kybernos', 'settings.json')
   const sessionsFichier = opts.sessionsAutoPath || join(home, 'kybernos', 'auto-sessions.json')
   const santeFichier = opts.santePath || join(home, 'kybernos', 'auto-health.json')
+  // The llm service, read at call time (DSH may publish it after this plugin mounts); `opts.llm` is a test double.
+  const llm = opts.llm !== undefined ? opts.llm : null
+  const llmDispo = () => llm !== null && typeof llm.stream === 'function'
+  const delaiSonde = Number.isFinite(opts.delaiSondeMs) ? opts.delaiSondeMs : parseInt(process.env.KB_AUTO_DELAI || String(DELAI_DEFAUT), 10)
+  const horloge = opts.horloge || (() => Date.now())
+  /** Probe verdicts, kept for a minute: "always probe first" without asking the same model twice in a breath. */
+  const cacheSondes = new Map()
+  /** One probe per model at a time: two requests that need the same model share the call instead of making two. */
+  const enVol = new Map()
+  const sonder = (modele) => {
+    if (enVol.has(modele)) return enVol.get(modele)
+    const p = sonderUn(llm, modele, delaiSonde, horloge).finally(() => { enVol.delete(modele) })
+    enVol.set(modele, p)
+    return p
+  }
+  const noter = (modele, issue) => noterIssue(santeFichier, modele, issue, { maintenant: horloge() })
+  let sondeToutEnCours = null
+  let derniereSonde = 0
 
   const etatComplet = (sessionId) => {
     const reg = lireReglagesAuto(reglagesFichier)
     const sessions = lireSessions(sessionsFichier)
     const on = sessionId ? sessions[String(sessionId)] === true : false
-    const sante = vueSante(lireSante(santeFichier), reg.whitelist)
-    // « cache chaud » : le modèle sain dont le taux de cache est le plus haut (≥ 50 %)
+    const maintenant = Date.now()
+    const sante = vueSante(lireSante(santeFichier), reg.whitelist, maintenant)
+    // "warm cache": the healthy model whose cache hit rate is the highest (≥ 50 %)
     const sains = sante.filter((v) => v.etat !== 'down' && v.cacheHitPct !== null && v.cacheHitPct >= 50)
     sains.sort((a, b) => b.cacheHitPct - a.cacheHitPct)
     return {
@@ -312,7 +355,8 @@ export function monterRoutes (webServerSvc, opts = {}) {
       sessionOn: on, sante,
       total: sante.length, disponibles: sante.filter((v) => v.etat !== 'down').length,
       chaud: sains.length > 0 ? sains[0].modele : null,
-      checkedAt: Date.now(), intervalS: 60
+      sondeEnCours: sondeToutEnCours !== null, plafond: plafondEssais(), ttlSondeS: Math.round(TTL_SONDE_MS / 1000),
+      checkedAt: maintenant, intervalS: 60
     }
   }
 
@@ -378,7 +422,43 @@ export function monterRoutes (webServerSvc, opts = {}) {
     const c = await lireCorps(req)
     if (typeof c.modele !== 'string' || c.modele === '' || c.modele.length > 200) { envoyer(res, 400, { ok: false, erreur: 'modele attendu' }); return }
     if (c.latenceMs !== undefined && !(Number.isFinite(c.latenceMs) && c.latenceMs >= 0)) { envoyer(res, 400, { ok: false, erreur: 'latenceMs : nombre >= 0 attendu' }); return }
-    noterRoutage(santeFichier, c.modele, c.latenceMs, c.erreur === true, { inputTokens: c.inputTokens, cacheReadTokens: c.cacheReadTokens })
+    if (c.code !== undefined && (typeof c.code !== 'string' || c.code.length > 100)) { envoyer(res, 400, { ok: false, erreur: 'code : chaîne de 100 caractères max attendue' }); return }
+    if (c.message !== undefined && typeof c.message !== 'string') { envoyer(res, 400, { ok: false, erreur: 'message : chaîne attendue' }); return }
+    // The outcome keeps its reason (code, message, when): the page says WHY a model is skipped, and the breaker learns from it.
+    const issue = issueDeRapport({ erreur: c.erreur === true, code: c.code, message: c.message })
+    noterIssue(santeFichier, c.modele, issue, { rapport: true, latenceMs: c.latenceMs, usage: { inputTokens: c.inputTokens, cacheReadTokens: c.cacheReadTokens }, maintenant: horloge() })
+    envoyer(res, 200, { ...etatComplet(''), issue: { etat: issue.etat, code: issue.code } })
+  } })
+
+  // "Re-check now": probe the whitelist (or the models named) for real, bypassing the verdict cache. A success closes a
+  // model's breaker, a failure counts against it. One run at a time: a second call waits for the first.
+  webServerSvc.register({ kind: 'exact', path: '/kybernos-auto/probe', handler: async (req, res) => {
+    if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
+    if (req.method !== 'POST') { res.writeHead(405); res.end('POST attendu'); return }
+    const corps = await lireCorps(req)
+    if (!llmDispo()) { envoyer(res, 503, { ok: false, erreur: 'llm service unavailable: nothing can be probed' }); return }
+    const reg = lireReglagesAuto(reglagesFichier)
+    // Only whitelist models are ever probed: these routes need no login (DSH serves plugin routes before its own
+    // authentication), so they must not become a way to make the server call arbitrary models.
+    const liste = corps.models === undefined ? reg.whitelist : normaliserListe(corps.models).filter((m) => reg.whitelist.indexOf(m) >= 0)
+    // …nor a way to burn tokens: a run that ended less than five seconds ago answers again with its result.
+    if (sondeToutEnCours === null && horloge() - derniereSonde >= 5000) {
+      sondeToutEnCours = (async () => {
+        let curseur = 0
+        const ouvriers = Array.from({ length: Math.max(1, Math.min(4, liste.length)) }, async () => {
+          for (;;) {
+            const k = curseur
+            curseur += 1
+            if (k >= liste.length) return
+            const issue = await sonder(liste[k])
+            cacheSondes.set(liste[k], { at: horloge(), issue })
+            noter(liste[k], issue)
+          }
+        })
+        await Promise.all(ouvriers)
+      })().finally(() => { sondeToutEnCours = null; derniereSonde = horloge() })
+    }
+    if (sondeToutEnCours !== null) await sondeToutEnCours
     envoyer(res, 200, etatComplet(''))
   } })
 
@@ -396,25 +476,35 @@ export function monterRoutes (webServerSvc, opts = {}) {
     // dont le CLI sans sessionId).
     const actifPourSession = reg.global === true || (sessionId !== '' && sessions[sessionId] === true)
     if (actifPourSession === false) { envoyer(res, 200, { actif: false, raison: 'auto off pour cette session' }); return }
-    // la route a déjà tranché l'activation : le routeur ne doit pas re-vetoer
-    const r = await router(demande, { reglages: { ...reg, global: true }, sante: vueSanteIndexee(lireSante(santeFichier)), ollama: opts.ollama })
-    if (r.modele !== null) noterRoutage(santeFichier, r.modele, null, false)
+    // The caller may name models that just failed for this very delegation: the answer is then the NEXT ones.
+    const exclure = corps.exclure === undefined ? [] : corps.exclure
+    if (!Array.isArray(exclure) || exclure.length > 64 || !exclure.every((x) => typeof x === 'string' && x.length <= 200)) {
+      envoyer(res, 400, { ok: false, erreur: 'exclure : tableau de 64 identifiants max attendu' }); return
+    }
+    // The route has already decided the activation: the router must not veto it again. A caller that cannot wait for
+    // probes says `sonde: false`; with no llm service nothing can be probed, and the chain is told so.
+    const r = await router(demande, {
+      reglages: { ...reg, global: true }, sante: lireSante(santeFichier), ollama: opts.ollama, exclure, horloge,
+      sonder: corps.sonde !== false && llmDispo() ? sonder : undefined, noter, cache: cacheSondes, delaiMs: opts.delaiTotalMs
+    })
     envoyer(res, 200, r)
   } })
-}
-
-const vueSanteIndexee = (sante) => {
-  const vue = vueSante(sante, Object.keys(sante))
-  const index = {}
-  for (const v of vue) index[v.modele] = v
-  return index
 }
 
 export function apply (ctx) {
   try {
     const monter = (hostCtx) => {
-      monterRoutes(hostCtx.webServer, { home: process.env.DSH_HOME || join(homedir(), '.dsh') })
-      console.log('[kybernos-auto] routes /kybernos-auto/* enregistrees (state, session, settings, router, report)')
+      // The llm service is read AT CALL TIME, as a getter, not at mount: DSH may publish it after this plugin, and a plugin
+      // that refused to mount would lose all its routes. `typeof llm.stream` is how the probe says "service unavailable".
+      const llmParesseux = {
+        get stream () {
+          let svc = null
+          try { svc = ctx.get('llm') } catch (e) { svc = null }
+          return svc === null || svc === undefined || typeof svc.stream !== 'function' ? undefined : svc.stream.bind(svc)
+        }
+      }
+      monterRoutes(hostCtx.webServer, { home: process.env.DSH_HOME || join(homedir(), '.dsh'), llm: llmParesseux })
+      console.log('[kybernos-auto] routes /kybernos-auto/* enregistrees (state, session, settings, router, report, probe)')
     }
     if (ctx.get('webServer') !== undefined) monter(ctx)
     else ctx.inject(['webServer'], monter)

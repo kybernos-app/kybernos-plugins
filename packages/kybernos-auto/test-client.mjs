@@ -29,7 +29,9 @@ ok('id de session lu dans localStorage « dsh.sessions.current » (pas seulement
 ok('état PAR SESSION : POST /kybernos-auto/session avec sessionId courant', src.indexOf("'/kybernos-auto/session'") !== -1 && src.indexOf('sessionId: sessionIdCourante()') !== -1)
 ok('pastille « N of M models available » alimentée par disponibles/total', src.indexOf('etat.disponibles') !== -1 && src.indexOf('etat.total') !== -1)
 ok('colonnes Model / Latency / Errors / Cache hit + badge warm cache', src.indexOf("'Cache hit'") !== -1 && src.indexOf("'warm cache'") !== -1 && src.indexOf("'Latency'") !== -1)
-ok('relecture automatique toutes les 60 s + Re-check now', src.indexOf('setInterval(lire, 60000)') !== -1 && src.indexOf("'Re-check now'") !== -1)
+ok('relecture automatique toutes les 60 s + « Check now » qui sonde pour de vrai (POST /kybernos-auto/probe)', src.indexOf('setInterval(lire, 60000)') !== -1 && src.indexOf("'Check now'") !== -1 && src.indexOf("'/kybernos-auto/probe'") !== -1)
+ok('un DSH démarré avant la route /probe (404) reçoit un message clair, pas une erreur de parse JSON', src.indexOf('r.status === 404 ? Promise.reject') !== -1)
+ok('l’état d’un modèle dit POURQUOI (cause, retour prévu, dernière erreur), dans la page et dans le composer', src.indexOf('const statutTxt') !== -1 && src.indexOf("'data-kb': 'auto-health-why'") !== -1 && (src.match(/statutTxt\(/g) || []).length === 2)
 ok('un clic dans le panneau ne ferme pas le menu natif (pointerdown arrêté)', src.indexOf("'pointerdown'") !== -1 && src.indexOf('stopPropagation') !== -1)
 
 console.log('\n' + (ko === 0 ? 'HARNAIS CLIENT VERT — ' + ok0 + ' contrôles ✓' : ko + ' échec(s)'))

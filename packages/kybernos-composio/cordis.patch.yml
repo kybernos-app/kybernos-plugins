@@ -1,10 +1,16 @@
 - insert:
-    # ── Composio : serveur MCP streamable-http pour les agents ────────────────
-    # La clé vient de COMPOSIO_API_KEY, chargée au boot depuis ~/.dsh/.env
-    # (couche user-env de dsh). Mesuré au boot 2026-09-17 : dans un contexte !!js,
-    # `require` et `env` sont UNDEFINED (seul `process` existe) — l'ancienne
-    # lecture via require('node:fs') jetait en silence et le header partait vide.
-    # Sans clé, la connexion échoue en silence (failOnStartupError: false).
+    # ── Composio: MCP server (streamable-http) for the agents ─────────────────
+    # The key comes from COMPOSIO_API_KEY, loaded at boot from ~/.dsh/.env (the user-env layer
+    # of dsh). Measured at boot on 2026-09-17: in a !!js context `require` and `env` are
+    # UNDEFINED (only `process` exists): the old read through require('node:fs') threw silently
+    # and the header went out empty. Without a key the connection fails quietly
+    # (failOnStartupError: false).
+    # Reconnection (dsh-mcp-client, source-derived): after maxAttempts consecutive failed
+    # attempts (delays 0.5 s doubling up to 30 s, so about 2.5 minutes for 10) the client gives
+    # up, UNREGISTERS the Composio tools and does not try again until DSH restarts. Being
+    # offline or without a valid key for longer than that therefore costs the tools until the
+    # next start. Raising maxAttempts (an integer, no upper bound in the client) keeps it
+    # retrying every 30 s; that is a choice about log noise and load, left to the user.
     - id: composio
       name: '@deepseek-ai/dsh-mcp-client'
       config:
@@ -18,6 +24,6 @@
         reconnect:
           enabled: true
           maxAttempts: 10
-    # ── UI Connexions Composio (panneau client) ──────────────────────────────
+    # ── Composio Connections UI (client panel) ───────────────────────────────
     - id: kybernos-composio
       name: '@local/kybernos-composio'

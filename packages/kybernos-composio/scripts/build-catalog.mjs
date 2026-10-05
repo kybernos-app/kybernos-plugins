@@ -1,17 +1,26 @@
-// Génère catalog.js depuis kybernos : 100 apps (nom, catégories, description)
-// + logos SVG réels extraits de integrations-logos-live.ts.
+// Builds catalog.js from the Kybernos cloud repo: 100 apps (name, categories, description)
+// plus the real SVG logos taken from integrations-logos-live.ts.
 //
-// Deux normalisations OBLIGATOIRES (mesurées 2026-09-18) :
-//  1. Taille : les SVG source portent width="128" height="128" en dur. Injectés
-//     dans un conteneur de 42 px, ils débordent (coin rogné : Gmail, G Drive,
-//     Make). On retire width/height pour laisser le viewBox + le CSS dimensionner.
-//  2. IDs : la plupart des SVG sont déjà namespacés (kyb-x-<slug>-*), mais
-//     salesforce/outlook/reddit ont des ids courts (a, b, c…) qui COLLISIONNENT
-//     entre logos sur la même page → dégradés résolus vers le mauvais SVG.
-//     On préfixe tout id/url(#id) local par `lgb-<slug>-`.
+// Normalizations (measured 2026-09-18):
+//  1. Size: the source SVGs carry a hard-coded width="128" height="128". Injected into a 42 px
+//     container they overflow (cropped corner: Gmail, G Drive, Make). width/height are removed so
+//     the viewBox and the CSS size them.
+//  2. IDs: most SVGs are already namespaced (kyb-x-<slug>-*), but salesforce/outlook/reddit have
+//     short ids (a, b, c...) that COLLIDE between logos on the same page, so gradients resolve to
+//     the wrong SVG. Every local id and url(#id) is prefixed with `lgb-<slug>-`.
+//  3. Mangled markup (found 2026-10-05): a space moved inside tag names and attribute names, the
+//     spaces between attributes were lost, a closing quote was doubled (repairSvg, see
+//     svg-check.mjs). The defect is in the cloud repo itself.
 //
-// Usage: node scripts/build-catalog.mjs
+// The result is then CHECKED (svgProblems): one <svg> root, only known elements, well-formed
+// attributes, no reference to an id that does not exist, no relative or remote href. A logo that
+// fails is a build error, except the ones listed in UNRECOVERABLE, which are dropped (the page
+// then draws the app's initial instead of a broken picture). The catalog is served with
+// `cache-control: max-age=3600`, so a corrected catalog reaches a browser up to an hour late.
+//
+// Usage: KYBERNOS_REPO=<cloud repo checkout> node scripts/build-catalog.mjs
 import { readFileSync, writeFileSync } from 'node:fs';
+import { repairSvg, svgProblems } from './svg-check.mjs';
 
 // Path to a checkout of the Kybernos cloud repo (source of the integrations catalog).
 const K = process.env.KYBERNOS_REPO;
@@ -19,20 +28,25 @@ if (!K) { console.error('Set KYBERNOS_REPO to the path of the kybernos cloud rep
 const cat = JSON.parse(readFileSync(`${K}/apps/app/src/components/landing/integrations-catalog.json`, 'utf8'));
 const src = readFileSync(`${K}/apps/app/src/components/landing/integrations-logos-live.ts`, 'utf8');
 
-// 1. Parse les 1387 entrées LIVE_LOGOS
+// Logos that cannot be repaired from the source, with the reason. The page falls back to a tile.
+const UNRECOVERABLE = {
+  airparser: 'the embedded PNG lost every "/", "+" and "=" of its base64 in the cloud repo (and its data: prefix became part of a relative href): the picture cannot be rebuilt',
+};
+
+// 1. Parse the LIVE_LOGOS entries (1387)
 const logos = {};
 const re = /\{ key: '([^']+)', name: '([^']*)', categories: (\[[^\]]*\]), svg: `([\s\S]*?)` \}/g;
 let m;
 while ((m = re.exec(src)) !== null) logos[m[1]] = m[4];
-console.log('logos source:', Object.keys(logos).length);
+console.log('source logos:', Object.keys(logos).length);
 
-// 2. Normalise un SVG pour un rendu inline fiable.
-// Trois défauts source corrigés (mesurés 2026-09-18 sur integrations-logos-live.ts) :
-//  a. noms de balises camelCase coupés par un espace (<line arGradient>,
-//     <feFloo d>, <feGaussianBlu r>…) sur 37 logos → dégradés/masques cassés,
-//     logo blanc ou partiel. Défaut PRÉSENT DANS kybernos à la source.
-//  b. width/height en dur → débordement du conteneur.
-//  c. ids courts non namespacés (salesforce/outlook/reddit) → collisions.
+// 2. Normalize an SVG for reliable inline rendering.
+// Defects of the source fixed here (measured 2026-09-18 on integrations-logos-live.ts):
+//  a. camelCase tag names cut by a space (<line arGradient>, <feFloo d>, <feGaussianBlu r>...)
+//     on 37 logos: broken gradients/masks, a white or partial logo. Present IN kybernos, at the source.
+//  b. hard-coded width/height: overflow of the container.
+//  c. short, non-namespaced ids (salesforce/outlook/reddit): collisions.
+// and, since 2026-10-05, the other mangling that repairSvg handles.
 const BROKEN_TAGS = [
   ['line arGradient', 'linearGradient'],
   ['feFloo d', 'feFlood'],
@@ -50,16 +64,18 @@ function normalize(svg, slug) {
     .replace(/\sxmlns:\w+="[^"]*"/g, '')
     .replace(/\ssodipodi:\w+="[^"]*"/g, '')
     .replace(/\sinkscape:\w+="[^"]*"/g, '');
-  // (a) répare les noms de balises coupés
+  // (a) repair the cut tag names
   for (const [broken, fixed] of BROKEN_TAGS) {
     out = out.split('<' + broken).join('<' + fixed);
   }
-  // (b) taille : le conteneur CSS décide, le viewBox préserve les proportions
+  // (a') the rest of the mangling (glued attributes, a space inside a name, a doubled quote)
+  out = repairSvg(out);
+  // (b) size: the CSS container decides, the viewBox keeps the proportions
   out = out
     .replace(/(<svg[^>]*?)\swidth="[^"]*"/, '$1')
     .replace(/(<svg[^>]*?)\sheight="[^"]*"/, '$1');
 
-  // (c) namespacing des ids locaux
+  // (c) namespacing of the local ids
   const ids = [...out.matchAll(/id="([^"]+)"/g)].map((x) => x[1]);
   const prefix = `lgb-${slug}-`;
   for (const id of ids) {
@@ -73,21 +89,26 @@ function normalize(svg, slug) {
   return out;
 }
 
-// 3. Construit le catalogue
+// 3. Build the catalog
 const apps = [];
 let withLogo = 0;
+const dropped = [];
 for (const a of cat.apps) {
   const svg = logos[a.slug];
-  if (svg) withLogo++;
-  apps.push({ s: a.slug, n: a.name, c: a.categories || [], d: a.description || '', l: svg ? normalize(svg, a.slug) : null });
+  let logo = svg ? normalize(svg, a.slug) : null;
+  if (logo !== null && UNRECOVERABLE[a.slug] !== undefined) { dropped.push(`${a.slug}: ${UNRECOVERABLE[a.slug]}`); logo = null; }
+  if (logo) withLogo++;
+  apps.push({ s: a.slug, n: a.name, c: a.categories || [], d: a.description || '', l: logo });
 }
-console.log('apps:', apps.length, '| avec logo:', withLogo);
+console.log('apps:', apps.length, '| with a logo:', withLogo);
+for (const d of dropped) console.log('logo dropped (unrecoverable):', d);
 
-// 4. Contrôles de non-régression
+// 4. Non-regression checks
 const seen = new Map();
 const collisions = [];
 let hardSized = 0;
 let brokenTags = 0;
+const defective = [];
 for (const a of apps) {
   if (!a.l) continue;
   if (/<svg[^>]*\swidth="/.test(a.l)) hardSized++;
@@ -96,24 +117,29 @@ for (const a of apps) {
     if (seen.has(id)) collisions.push(`${id} (${seen.get(id)} & ${a.s})`);
     else seen.set(id, a.s);
   }
+  const problems = svgProblems(a.l);
+  if (problems.length > 0) defective.push(`${a.s}: ${problems.slice(0, 3).join('; ')}`);
 }
-console.log('SVG encore dimensionnés en dur:', hardSized, '(doit être 0)');
-console.log('balises coupées restantes:', brokenTags, '(doit être 0)');
-console.log('collisions d\'id restantes:', collisions.length, '(doit être 0)');
+console.log('SVGs still hard-sized:', hardSized, '(must be 0)');
+console.log('cut tags left:', brokenTags, '(must be 0)');
+console.log('id collisions left:', collisions.length, '(must be 0)');
+console.log('logos with a structural defect (unknown element, dangling url(#id), relative href...):', defective.length, '(must be 0)');
 if (collisions.length) console.log(collisions.slice(0, 5).join('\n'));
-if (hardSized || collisions.length || brokenTags) { console.error('ABANDON: normalisation incomplète'); process.exit(1); }
+for (const d of defective.slice(0, 10)) console.log('  ' + d);
+if (hardSized || collisions.length || brokenTags || defective.length) { console.error('ABORT: the normalization is incomplete'); process.exit(1); }
 
 const totalBytes = apps.reduce((n, a) => n + (a.l ? a.l.length : 0), 0);
-console.log('taille logos:', Math.round(totalBytes / 1024), 'KB');
+console.log('logos size:', Math.round(totalBytes / 1024), 'KB');
 
-const out = `// Catalogue Composio embarqué — généré depuis kybernos
+const out = `// Embedded Composio catalog, generated from the Kybernos cloud repo
 // (apps/app/src/components/landing/integrations-catalog.json + integrations-logos-live.ts).
-// ${apps.length} apps, ${withLogo} logos SVG réels (${Math.round(totalBytes / 1024)} Ko).
-// Le MCP Composio n'expose AUCUN catalogue (resources/list → -32601, search renvoie
-// 4-6 tools par requête) : cette liste locale est la seule source d'affichage.
-// SVG normalisés : width/height retirés (le conteneur dimensionne), ids préfixés
-// lgb-<slug>- (anti-collision). Régénérer : node scripts/build-catalog.mjs
+// ${apps.length} apps, ${withLogo} real SVG logos (${Math.round(totalBytes / 1024)} KB).
+// The Composio MCP exposes NO catalog (resources/list -> -32601, search returns 4-6 tools
+// per request): this local list is the only source for the display.
+// SVGs are normalized: width/height removed (the container sizes them), ids prefixed
+// lgb-<slug>- (collision guard), mangled markup repaired and every logo checked
+// (scripts/svg-check.mjs). Regenerate: KYBERNOS_REPO=<checkout> node scripts/build-catalog.mjs
 export const CATALOG = ${JSON.stringify(apps)};
 `;
 writeFileSync(new URL('../catalog.js', import.meta.url).pathname, out);
-console.log('catalog.js écrit');
+console.log('catalog.js written');

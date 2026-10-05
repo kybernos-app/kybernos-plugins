@@ -60,7 +60,26 @@ What cannot be changed here, and why the control says so:
 
 - a provider the **base layer** also declares (an `unset` would just reveal the base copy);
 - `kybernos` (Kybernos Cloud): `kybernos-cloud` rewrites that route on every sync;
-- **DeepSeek**: it lives in another namespace (`llm-deepseek`); its card opens DSH's native page.
+
+## DeepSeek: two adapters in their own namespaces
+
+DSH ships two DeepSeek adapters outside `llm-pi-ai`; the page shows each as a *Built into DSH* card and edits both
+(`llm.listConfigurableProviders()` names them; the settings path is empty: the namespace IS the profile).
+
+| Card | Namespace | What the panel edits |
+|---|---|---|
+| DeepSeek (`deepseek-official`) | `llm-deepseek` | the API key (credential under the profile's `apiKeyEnv`, `DEEPSEEK_API_KEY` by default), then, folded under *Customized settings*, the base URL and the model catalog |
+| DeepSeek Account (`deepseek-account`) | `llm-deepseek-account` | the model catalog only: it signs in with the user's account, so no key and no URL |
+
+- The catalog rows show id, display name, context window and max output tokens (typed like the native page: `131072`, `256K`,
+  `1M`; blank inherits the adapter's default, shown as the placeholder), and an image-input toggle. They validate like the
+  adapter (ID required and unique, name not empty, capacities positive integers); Apply is disabled while a row is invalid.
+- `models` is replaced as **one array**: the first edit writes every inherited row into the user layer, with the fields the page
+  does not show (description, `systemPromptUpdate`, `toolUpdate`…), which travel with their row. *Restore default models*
+  removes the override instead of copying defaults into it, so the user layer goes back to empty.
+- Each namespace has its own revision: a write to one never uses the other's, nor the models page's.
+- Verified with a real write on the official catalog (settings backed up, undone through the page): DSH accepts it, nothing the
+  page does not show is lost, the other adapter is untouched, and Restore returns the user layer to `{}`.
 
 ## "Custom", display names and key state come from the engine
 
@@ -73,9 +92,8 @@ If the directory cannot be read, "custom" falls back to "not in models.dev".
 The page and DSH's native one read and write the **same** namespace and listen to the same
 invalidations, so they stay in sync by construction.
 
-- The menu cell can be hidden while this plugin is active and healthy. **Today the default is visible**
-  (`KB_NAT_DEFAULT_HIDDEN = false`): this page does not yet do everything the native one does (DeepSeek editing).
-  One constant flips the default once it does; a stored choice always wins.
+- The menu cell is hidden while this plugin is active and healthy. **The default is hidden**
+  (`KB_NAT_DEFAULT_HIDDEN = true`, since this page does everything the native one does); a stored choice always wins.
   The engine has no way to unregister another plugin's Settings section, so it is hidden in the DOM
   (`data-kb-native-nav`): the cell is the one whose text equals `locale.bind('settings.models')('nav')`, inside a menu
   that also holds ours. If the label cannot be read, nothing is hidden.
@@ -96,5 +114,4 @@ invalidations, so they stay in sync by construction.
 
 ## Not done yet
 
-- DeepSeek editing here (it lives in `llm-deepseek`).
 - The Models tab is described in `models-page.md`, the health chip in `model-health.md`.
