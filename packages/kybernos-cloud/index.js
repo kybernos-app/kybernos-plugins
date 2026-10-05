@@ -40,6 +40,7 @@ import { homedir, hostname } from 'node:os'
 import { dirname, join } from 'node:path'
 import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
+import { findDuplicateGroups } from './dedupe.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 
 const STATE_DIR = join(homedir(), '.dsh')
@@ -2068,6 +2069,187 @@ const findByMeaning = async (state, q, limit) => {
   return { ok: true, items: raw.map((m) => ({ ...asMemory(m), distance: typeof m.distance === 'number' ? m.distance : null })) }
 }
 
+// ── Tidy up: near-duplicates among the account's memories (dedupe.mjs, local, no model) ─────────────────
+// A scan only LOOKS: it groups near-duplicates and stores the groups, nothing is changed. Applying a group keeps one
+// memory (the pinned one if any, else the most complete, or the one the user picks, optionally edited) and deletes
+// the others — and the server deletes for good, so BEFORE any delete the removed rows (and the kept one's old text)
+// are written to a local archive, which is what Undo restores from, for 30 days. A pinned memory is never removed.
+// Side files next to the state: `tidy` (last scan, groups the user kept apart, log of runs) and `tidy-archive`.
+
+const TIDY_UNDO_DAYS = 30
+const TIDY_MAX_REMOVALS = 50
+const TIDY_DISMISSED_MAX = 500
+const TIDY_LOG_MAX = 50
+
+const tidyState = () => {
+  const raw = readSide('tidy', {})
+  return {
+    scan: raw.scan !== null && typeof raw.scan === 'object' ? raw.scan : null,
+    dismissed: Array.isArray(raw.dismissed) ? raw.dismissed.map(String) : [],
+    log: Array.isArray(raw.log) ? raw.log : [],
+  }
+}
+const writeTidy = (t) => writeSide('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX) })
+const tidyArchive = () => { const raw = readSide('tidy-archive', {}); return { runs: raw.runs !== null && typeof raw.runs === 'object' ? raw.runs : {} } }
+const writeTidyArchive = (a) => writeSide('tidy-archive', a)
+
+const forgetOldArchive = () => {
+  const limit = Date.now() - TIDY_UNDO_DAYS * 86400000
+  const a = tidyArchive()
+  let changed = false
+  for (const id of Object.keys(a.runs)) { if (!(Date.parse(a.runs[id].at) > limit)) { delete a.runs[id]; changed = true } }
+  if (changed) writeTidyArchive(a)
+  return a
+}
+
+/** What the page needs: the groups of the last scan (without the ones the user kept apart), the log and what can still be undone. */
+const tidyView = () => {
+  const t = tidyState()
+  const a = forgetOldArchive()
+  const now = Date.now()
+  const groups = t.scan === null ? [] : t.scan.groups.filter((g) => t.dismissed.indexOf(g.id) < 0).map((g) => ({
+    ...g, items: g.items.map((i) => { const when = parseWhen(i.createdAt); return { ...i, ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null } }),
+  }))
+  return {
+    ok: true, scannedAt: t.scan === null ? null : t.scan.at, total: t.scan === null ? null : t.scan.total, groups,
+    saves: groups.reduce((n, g) => n + g.saves, 0),
+    log: t.log.slice(0, 20).map((l) => ({ ...l, canUndo: l.undone !== true && a.runs[l.id] !== undefined })),
+  }
+}
+
+const tidyScan = async (state) => {
+  await refreshMemoryCache(state, true)
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: memoryCache.error }
+  const items = memoryCache.account.map((m) => ({ id: m.id, content: m.content, createdAt: m.createdAt, pinned: m.pinned === true, bucket: m.kind }))
+  const groups = findDuplicateGroups(items)
+  const t = tidyState()
+  t.scan = { at: new Date().toISOString(), total: items.length, groups }
+  writeTidy(t)
+  return tidyView()
+}
+
+const tidyDismiss = (body) => {
+  const ids = body !== null && typeof body === 'object' && Array.isArray(body.groups) ? body.groups.map(String) : []
+  if (ids.length === 0) return { ok: false, error: 'groupes_manquants' }
+  const t = tidyState()
+  if (body.restore === true) t.dismissed = t.dismissed.filter((d) => ids.indexOf(d) < 0)   // Undo of « Keep both »
+  else for (const id of ids) if (t.dismissed.indexOf(id) < 0) t.dismissed.push(id)
+  writeTidy(t)
+  return tidyView()
+}
+
+/**
+ * Applies the groups the user accepted. `body = { confirm: true, groups: [{ id, keep?, edit? }] }`. Every group is checked
+ * against what the account holds NOW (a memory that changed or vanished since the scan is skipped, never guessed).
+ */
+const tidyApply = async (state, body) => {
+  if (body === null || typeof body !== 'object' || body.confirm !== true) return { ok: false, error: 'confirmation_requise' }
+  const asked = Array.isArray(body.groups) ? body.groups : []
+  if (asked.length === 0) return { ok: false, error: 'groupes_manquants' }
+  const t = tidyState()
+  if (t.scan === null) return { ok: false, error: 'aucun_scan' }
+  await refreshMemoryCache(state, true)
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, error: memoryCache.error }
+  const live = new Map(memoryCache.account.map((m) => [String(m.id), m]))
+  // plan first (nothing is written until every group is judged): a request that would remove too much is refused whole
+  const plan = []
+  const results = []
+  let removals = 0
+  for (const want of asked) {
+    const id = want !== null && typeof want === 'object' ? String(want.id) : ''
+    const group = t.scan.groups.find((g) => g.id === id)
+    if (group === undefined) { results.push({ id, ok: false, error: 'groupe_inconnu' }); continue }
+    const members = group.items.map((i) => live.get(String(i.id)))
+    if (members.some((m, k) => m === undefined || m.content !== group.items[k].content)) { results.push({ id, ok: false, error: 'a_change' }); continue }
+    const pinned = members.filter((m) => m.pinned === true)
+    let keepId = want.keep === undefined || want.keep === null ? String(group.keeperId) : String(want.keep)
+    if (members.every((m) => String(m.id) !== keepId)) { results.push({ id, ok: false, error: 'garde_invalide' }); continue }
+    if (pinned.length > 0 && pinned.some((m) => String(m.id) !== keepId)) { results.push({ id, ok: false, error: 'epingle_protege' }); continue }
+    let edit = null
+    if (typeof want.edit === 'string' && want.edit.trim() !== '') {
+      edit = want.edit.trim()
+      if (edit.length > MEMORY_MAX_CONTENT) { results.push({ id, ok: false, error: 'contenu_trop_long' }); continue }
+    }
+    const keeper = live.get(keepId)
+    const removed = members.filter((m) => String(m.id) !== keepId)
+    removals += removed.length
+    plan.push({ group, keeper, removed, edit: edit !== null && edit !== keeper.content ? edit : null })
+  }
+  if (removals > TIDY_MAX_REMOVALS) return { ok: false, error: 'trop_de_suppressions', max: TIDY_MAX_REMOVALS, wanted: removals }
+  const log = []
+  for (const step of plan) {
+    const runId = 't' + Date.now().toString(36) + step.group.id
+    const archive = tidyArchive()
+    const row = (m) => ({ id: m.id, content: m.content, kind: m.kind, scope: m.scope, kyberId: m.kyberId, source: m.source, pinned: m.pinned === true, retentionDays: m.retentionDays, createdAt: m.createdAt })
+    // 1. the archive FIRST: if anything below fails half way, what was removed can always be put back
+    archive.runs[runId] = { at: new Date().toISOString(), removed: step.removed.map(row), edited: step.edit === null ? [] : [{ id: step.keeper.id, before: step.keeper.content }] }
+    writeTidyArchive(archive)
+    let edited = false
+    if (step.edit !== null) {
+      const patched = await patchMemory(state, { id: step.keeper.id, content: step.edit })
+      if (patched.ok !== true) { delete archive.runs[runId]; writeTidyArchive(archive); results.push({ id: step.group.id, ok: false, error: patched.error }); continue }
+      edited = true
+    }
+    const gone = []
+    let failure = null
+    for (const m of step.removed) {
+      const del = await deleteMemory(state, { id: m.id })
+      if (del.ok !== true) { failure = del.error; break }
+      gone.push(m.id)
+    }
+    // the archive keeps ONLY what was really deleted (and the old text only if it was really edited)
+    const kept = tidyArchive()
+    kept.runs[runId].removed = kept.runs[runId].removed.filter((r) => gone.indexOf(r.id) >= 0)
+    if (!edited) kept.runs[runId].edited = []
+    if (kept.runs[runId].removed.length === 0 && kept.runs[runId].edited.length === 0) delete kept.runs[runId]
+    writeTidyArchive(kept)
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by: 'local', groupId: step.group.id, kept: step.keeper.id, removed: gone.length, edited, partial: failure !== null, undone: false })
+    results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
+  }
+  const after = tidyState()
+  const done = new Set(results.filter((r) => r.ok === true).map((r) => r.id))
+  if (after.scan !== null) after.scan.groups = after.scan.groups.filter((g) => !done.has(g.id))
+  after.log = [...log.reverse(), ...after.log]
+  writeTidy(after)
+  return { ok: results.every((r) => r.ok === true), results, view: tidyView() }
+}
+
+/** Puts a run back: the removed memories come back as NEW memories (new ids), the edited keeper gets its old text. */
+const tidyUndo = async (state, body) => {
+  const runId = body !== null && typeof body === 'object' ? String(body.run || '') : ''
+  if (runId === '') return { ok: false, error: 'run_manquant' }
+  const t = tidyState()
+  const entry = t.log.find((l) => l.id === runId)
+  if (entry === undefined) return { ok: false, error: 'run_inconnu' }
+  if (entry.undone === true) return { ok: false, error: 'deja_annule' }
+  const archive = tidyArchive()
+  const run = archive.runs[runId]
+  if (run === undefined) return { ok: false, error: 'archive_perimee' }
+  let restored = 0
+  const failed = []
+  for (const r of run.removed) {
+    const made = await createMemory(state, { scope: r.scope === 'kyber' ? 'kyber' : 'account', kind: r.kind, content: r.content, source: r.source, pinned: r.pinned === true, retentionDays: r.retentionDays, kyberId: r.kyberId === null ? undefined : r.kyberId }, 'taught')
+    if (made.ok === true) restored += 1
+    else failed.push(r)
+  }
+  let reverted = 0
+  for (const e of run.edited) {
+    const back = await patchMemory(state, { id: e.id, content: e.before })
+    if (back.ok === true) reverted += 1
+  }
+  // what could not be put back stays in the archive, and the run stays undoable
+  if (failed.length === 0) {
+    delete archive.runs[runId]
+    entry.undone = true
+  } else {
+    run.removed = failed
+    run.edited = []
+  }
+  writeTidyArchive(archive)
+  writeTidy(t)
+  return { ok: failed.length === 0, restored, reverted, failed: failed.length, view: tidyView() }
+}
+
 /**
  * Liste paginée et filtrée des souvenirs du COMPTE. Tout est calculé ici, sur le
  * cache : le serveur ne pagine pas encore (`GET /v1/memories` renvoie tout), donc
@@ -2173,6 +2355,24 @@ const memoryIndexRunRoute = async (req, body) => {
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
   const max = body !== null && typeof body === 'object' && body.max !== undefined ? Number(body.max) : INDEX_BATCH_MAX
   return await indexMemories(state, max)
+}
+
+const memoryTidyRoute = async () => tidyView()
+const memoryTidyScanRoute = async () => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  return await tidyScan(state)
+}
+const memoryTidyApplyRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  return await tidyApply(state, body)
+}
+const memoryTidyDismissRoute = async (req, body) => tidyDismiss(body)
+const memoryTidyUndoRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  return await tidyUndo(state, body)
 }
 
 const memoryLessonsRoute = async (req, body) => {
@@ -2635,6 +2835,12 @@ const ROUTES = [
   // Search by meaning (off by default): status, then one indexing batch per POST — each batch calls the embeddings route.
   { path: '/kybernos-cloud/memory/index', method: 'GET', guarded: true, run: memoryIndexStatusRoute },
   { path: '/kybernos-cloud/memory/index/run', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryIndexRunRoute },
+  // Tidy up (near-duplicates): the last scan and the log, a scan (it only looks), what to apply / keep apart / undo.
+  { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
+  { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
+  { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
+  { path: '/kybernos-cloud/memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: memoryTidyDismissRoute },
+  { path: '/kybernos-cloud/memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: memoryTidyUndoRoute },
 ]
 
 const mountWebRoutes = (ctx, webServer) => {
@@ -2691,6 +2897,7 @@ export {
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
+  tidyScan, tidyApply, tidyUndo, tidyDismiss, tidyView, TIDY_MAX_REMOVALS,
   refreshMemoryCache, memoryCache,
   emptyMemoryCache, bumpMemoryCache, pushLessons, localLessons, localKybers, stateKyberMap,
   listMemories, lastTurnText, memoryWriteTool, memorySearchTool, MEMORY_KINDS, MEMORY_SOURCES,

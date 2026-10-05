@@ -48,7 +48,7 @@ let catalog = { data: [
   { id: 'deepseek-v4-flash:0731', object: 'model' },
   { id: 'kybernos/orchestrator-expert', object: 'model' },
 ] }
-const seen = { startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], referralAuth: [], embedCalls: [], puts: [], searches: [] }
+const seen = { startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -69,6 +69,8 @@ const NOW = '2026-09-22T00:00:00Z'
 let semantic = 'on'
 let embedStatus = 200
 let embedShape = 'ok'
+const failDelete = new Set()   // ids whose DELETE answers 500 (a failure half way through a tidy-up)
+let onDelete = null            // called with the memory right before its DELETE is served
 let embedPlanBody = true
 // Ce que la vraie route repond a une cle `free` (mesure sur le tier dev, 2026-10-05).
 const PLAN_REFUSED = { error: { message: 'model-not-available-plan', type: 'permission_error', param: null, code: '403', provider_specific_fields: { error: 'model-not-available-plan', model: 'kybernos/embed', required_tier: 'solo', plan: 'free' } } }
@@ -239,6 +241,7 @@ const api = createServer((req, res) => {
         }
         nextMemoryId += 1
         memories.push(made)
+        seen.writes.push({ method: 'POST', id: made.id })
         return send(201, made)
       }
       const idMatch = /^\/v1\/memories\/(\d+)$/.exec(url.pathname)
@@ -246,10 +249,14 @@ const api = createServer((req, res) => {
         const target = memories.filter((m) => String(m.id) === idMatch[1])[0]
         if (target === undefined) return send(404, { error: 'not found' })
         if (req.method === 'DELETE') {
+          if (typeof onDelete === 'function') onDelete(target)
+          if (failDelete.has(String(target.id))) return send(500, { error: 'boom' })
+          seen.writes.push({ method: 'DELETE', id: target.id })
           memories.splice(memories.indexOf(target), 1)
           return send(200, { ok: true })
         }
         if (req.method === 'PATCH') {
+          seen.writes.push({ method: 'PATCH', id: target.id })
           if (body !== null && typeof body.content === 'string') { target.content = body.content; embeddings.delete(target.id) }
           if (body !== null && typeof body.pinned === 'boolean') {
             target.pinned = body.pinned
@@ -424,6 +431,7 @@ try {
     // Page Memory & Lessons learned : liste paginee/filtree et reglages.
     '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
     '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run',
+    '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
     // Code de parrainage du compte (carte d'invitation du pied de sidebar).
     '/kybernos-cloud/referral',
@@ -1340,6 +1348,165 @@ try {
   assert.doesNotThrow(() => agentHooks.get('agent/inbox/claimed')({ agent: null, message: null, turn: undefined }), 'un evenement mal forme ne casse jamais un tour')
   mod.memoryCache.account = injKept
   ok('injection : les souvenirs qui correspondent clairement a la question partent, une fois par message, stables entre etapes et sujets voisins, jamais au-dela du budget')
+
+  // 11j. Tidy up : un scan REGARDE seulement ; appliquer garde un souvenir, supprime les autres (le serveur supprime pour
+  //      de bon) — donc l'archive locale est ecrite AVANT le premier DELETE, un epingle n'est jamais supprime, et Undo
+  //      remet tout comme avant (nouveaux ids). Rien ne part sans `confirm`, rien ne se devine si le souvenir a bouge.
+  const tidyKept = memories.splice(0)
+  const tm = (content, extra = {}) => {
+    const td_m = { id: nextMemoryId, user_id: 'u-1', scope: 'account', kyber_id: null, kind: 'fact', content, source: 'taught', pinned: false, retention_days: 180, expires_at: '2027-01-01 00:00:00+00:00', created_at: '2026-09-10 10:00:00+00:00', ...extra }
+    nextMemoryId += 1
+    memories.push(td_m)
+    return td_m
+  }
+  const tz1 = tm("Fuseau horaire de l'utilisateur : Europe/Paris (à utiliser pour interpréter les dates et heures non qualifiées)", { created_at: '2026-09-01 10:00:00+00:00' })
+  const tz2 = tm("Fuseau horaire de l'utilisateur : Europe/Paris (interpréter les dates et heures non qualifiées dans ce fuseau).", { created_at: '2026-09-05 10:00:00+00:00' })
+  const tz3 = tm("Fuseau horaire de l'utilisateur : Europe/Paris (interpréter les dates/heures non qualifiées dans ce fuseau)", { created_at: '2026-09-09 10:00:00+00:00' })
+  const rule1 = tm('Règle durable : toujours demander avant de supprimer un fichier', { pinned: true, expires_at: null, created_at: '2026-01-01 10:00:00+00:00' })
+  const rule2 = tm('Règle durable : toujours demander avant de supprimer un fichier du dépôt', { created_at: '2026-09-09 10:00:00+00:00' })
+  const lone = tm('Utilise pnpm pour les installs et jamais npm ni yarn')
+  const archiveFile = statePath.replace(/\.json$/, '') + '-tidy-archive.json'
+  const readArchive = () => { try { return JSON.parse(readFileSync(archiveFile, 'utf8')) } catch (e) { return { runs: {} } } }
+
+  const noScan = await hit('/kybernos-cloud/memory/tidy', 'GET')
+  assert.deepEqual([noScan.body.ok, noScan.body.groups, noScan.body.scannedAt], [true, [], null], 'before any scan: nothing to show')
+  const td_writesBefore = seen.writes.length
+  const scanned = await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  assert.equal(scanned.body.ok, true)
+  assert.equal(scanned.body.total, 6)
+  assert.equal(scanned.body.groups.length, 2, 'the three timezones, and the pinned rule with its rewording')
+  assert.equal(scanned.body.saves, 3)
+  assert.equal(seen.writes.length, td_writesBefore, 'a scan only LOOKS: not one write to the account')
+  const gTz = scanned.body.groups.find((g) => g.items.some((i) => i.id === tz1.id))
+  const gRule = scanned.body.groups.find((g) => g.items.some((i) => i.id === rule1.id))
+  assert.equal(gTz.keeperId, tz1.id, 'the most complete timezone memory is the suggested keeper')
+  assert.equal(gRule.keeperId, rule1.id, 'the pinned rule is always the keeper')
+  assert.ok(gTz.items.every((i) => typeof i.ageMinutes === 'number'))
+  assert.equal(leaks(scanned.body), false)
+  assert.equal(existsSync(archiveFile), false, 'nothing archived yet: nothing has been removed')
+
+  const noConfirm = await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { groups: [{ id: gTz.id }] })
+  assert.equal(noConfirm.body.error, 'confirmation_requise')
+  assert.equal(seen.writes.length, td_writesBefore, 'nothing is deleted without an explicit confirm')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/apply', 'POST', 'https://evil.example', { confirm: true, groups: [{ id: gTz.id }] })).status, 403, 'another site cannot delete memories')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: 'zzzzzzzz' }] })).body.results[0].error, 'groupe_inconnu')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gTz.id, keep: 99999 }] })).body.results[0].error, 'garde_invalide')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gRule.id, keep: rule2.id }] })).body.results[0].error, 'epingle_protege', 'a pinned memory can never be the one removed')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gTz.id, edit: 'x'.repeat(2001) }] })).body.results[0].error, 'contenu_trop_long')
+  assert.equal(seen.writes.length, td_writesBefore, 'every refusal happened before any write')
+
+  // the archive must be on disk BEFORE the first DELETE reaches the account
+  let archiveAtFirstDelete = null
+  onDelete = () => { if (archiveAtFirstDelete === null) archiveAtFirstDelete = readArchive() }
+  const applied = await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gTz.id }] })
+  onDelete = null
+  assert.equal(applied.body.ok, true)
+  assert.equal(applied.body.results[0].removed, 2)
+  const td_run1 = applied.body.results[0].run
+  assert.ok(Object.values(archiveAtFirstDelete.runs).some((r) => r.removed.length === 2 && r.removed.every((x) => [tz2.id, tz3.id].indexOf(x.id) >= 0)), 'the removed rows were already archived when the first DELETE arrived')
+  assert.deepEqual(memories.map((td_m) => td_m.id).sort((a, b) => a - b), [tz1.id, rule1.id, rule2.id, lone.id], 'the keeper stays, the two others are gone, nothing else moved')
+  assert.equal(applied.body.view.groups.length, 1, 'the applied group leaves the list')
+  assert.equal(applied.body.view.log[0].id, td_run1)
+  assert.equal(applied.body.view.log[0].canUndo, true)
+  assert.equal(applied.body.view.log[0].removed, 2)
+
+  // undo: the originals come back (as new memories), exactly as they were
+  const undone = await hit('/kybernos-cloud/memory/tidy/undo', 'POST', undefined, { run: td_run1 })
+  assert.equal(undone.body.ok, true)
+  assert.equal(undone.body.restored, 2)
+  const back = memories.filter((td_m) => td_m.content.indexOf('Fuseau horaire') === 0)
+  assert.equal(back.length, 3)
+  const restored = back.find((td_m) => td_m.content === tz2.content)
+  assert.ok(restored !== undefined && restored.id !== tz2.id, 'it comes back with a NEW id (the server deleted the old one for good)')
+  assert.deepEqual([restored.kind, restored.source, restored.pinned, restored.retention_days], ['fact', 'taught', false, 180], 'same kind, source, retention')
+  assert.equal(undone.body.view.log[0].undone, true)
+  assert.equal(undone.body.view.log[0].canUndo, false)
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/undo', 'POST', undefined, { run: td_run1 })).body.error, 'deja_annule', 'a run is undone once')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/undo', 'POST', undefined, { run: 'inconnu' })).body.error, 'run_inconnu')
+  assert.equal(readArchive().runs[td_run1], undefined, 'the archive entry is gone once restored')
+
+  // keep another one + edit the kept text; the pinned group: the default keeper is the pinned one
+  const rescan = await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  const gTz2 = rescan.body.groups.find((g) => g.items.some((i) => i.content === tz1.content))
+  const gRule2 = rescan.body.groups.find((g) => g.items.some((i) => i.id === rule1.id))
+  const edited = await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gTz2.id, keep: tz3.id + 0 === tz3.id ? gTz2.items.find((i) => i.content === tz3.content).id : null, edit: "Fuseau horaire de l'utilisateur et du navigateur : Europe/Paris ; lire ainsi toute date non qualifiée." }, { id: gRule2.id }] })
+  assert.equal(edited.body.ok, true, JSON.stringify(edited.body.results))
+  const left = memories.map((td_m) => td_m.content)
+  assert.ok(left.some((c) => c.indexOf('du navigateur') >= 0), 'the kept memory has the edited text')
+  assert.equal(left.filter((c) => c.indexOf('Fuseau horaire') === 0).length, 1, 'one timezone memory left')
+  assert.ok(memories.some((td_m) => td_m.id === rule1.id && td_m.pinned === true), 'the pinned rule is intact')
+  assert.equal(memories.some((td_m) => td_m.id === rule2.id), false, 'its unpinned rewording went')
+  const editRun = edited.body.results[0].run
+  assert.deepEqual(readArchive().runs[editRun].edited.map((e) => e.before), [gTz2.items.find((i) => i.content === tz3.content).content], 'the old text of the edited keeper is archived too')
+  const undoEdit = await hit('/kybernos-cloud/memory/tidy/undo', 'POST', undefined, { run: editRun })
+  assert.equal(undoEdit.body.reverted, 1)
+  assert.ok(memories.some((td_m) => td_m.content === tz3.content), 'the edited text is back to the original')
+  ok('tidy : scan sans ecriture, confirm obligatoire, archive AVANT le premier DELETE, epingle protege, edition archivee, Undo remet les originaux')
+
+  // something changed since the scan: nothing is guessed
+  await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  const gNow = (await hit('/kybernos-cloud/memory/tidy', 'GET')).body.groups[0]
+  const victim = memories.find((td_m) => td_m.id === gNow.items.find((i) => !i.keep).id)
+  victim.content = victim.content + ' (modifie entre-temps)'
+  const delsBefore = seen.writes.filter((w) => w.method === 'DELETE').length
+  const stale = await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gNow.id }] })
+  assert.equal(stale.body.results[0].error, 'a_change', 'a memory edited since the scan is never deleted on the strength of the old scan')
+  assert.equal(seen.writes.filter((w) => w.method === 'DELETE').length, delsBefore)
+
+  // a DELETE fails half way: only what was really deleted is archived and logged, and Undo restores exactly that
+  victim.content = victim.content.replace(' (modifie entre-temps)', '')
+  const t4 = tm("Fuseau horaire de l'utilisateur : Europe/Paris (interpréter les dates/heures non qualifiées dans ce fuseau) !", { created_at: '2026-09-11 10:00:00+00:00' })
+  await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  const gPart = (await hit('/kybernos-cloud/memory/tidy', 'GET')).body.groups.find((g) => g.items.length >= 3)
+  assert.ok(gPart !== undefined, 'a group of 3+ to cut in the middle')
+  const removable = gPart.items.filter((i) => !i.keep).map((i) => i.id)
+  failDelete.add(String(removable[1]))
+  const partial = await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: [{ id: gPart.id }] })
+  failDelete.clear()
+  assert.equal(partial.body.ok, false)
+  assert.equal(partial.body.results[0].removed, 1, 'the first delete went through, the second did not')
+  assert.equal(partial.body.results[0].error, 'refus_500')
+  assert.ok(memories.some((td_m) => td_m.id === removable[1]), 'the one that failed is still there')
+  const partRun = partial.body.results[0].run
+  assert.deepEqual(readArchive().runs[partRun].removed.map((r) => r.id), [removable[0]], 'the archive holds only what was really deleted')
+  assert.equal(partial.body.view.log[0].partial, true)
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/undo', 'POST', undefined, { run: partRun })).body.restored, 1)
+
+  // dismiss: « keep both » is remembered
+  await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  const gDis = (await hit('/kybernos-cloud/memory/tidy', 'GET')).body.groups[0]
+  const dis = await hit('/kybernos-cloud/memory/tidy/dismiss', 'POST', undefined, { groups: [gDis.id] })
+  assert.equal(dis.body.groups.some((g) => g.id === gDis.id), false)
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/scan', 'POST')).body.groups.some((g) => g.id === gDis.id), false, 'a pair the user kept apart does not come back on the next scan')
+  const undismissed = await hit('/kybernos-cloud/memory/tidy/dismiss', 'POST', undefined, { groups: [gDis.id], restore: true })
+  assert.equal(undismissed.body.groups.some((g) => g.id === gDis.id), true, 'Undo of « Keep both »: the pair is offered again')
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/scan', 'POST')).body.groups.some((g) => g.id === gDis.id), true, 'and stays offered across scans')
+  await hit('/kybernos-cloud/memory/tidy/dismiss', 'POST', undefined, { groups: [gDis.id] })
+  assert.equal((await hit('/kybernos-cloud/memory/tidy/dismiss', 'POST', undefined, {})).body.error, 'groupes_manquants')
+  ok('tidy : un memoire modifiee depuis le scan n est jamais supprimee, un echec a mi-chemin n archive que le vrai, « Keep both » est retenu')
+
+  // expiry: after 30 days the archive is forgotten and Undo says so
+  const aged = readArchive()
+  const anyRun = Object.keys(aged.runs)[0]
+  if (anyRun !== undefined) { aged.runs[anyRun].at = '2026-01-01T00:00:00.000Z'; writeFileSync(archiveFile, JSON.stringify(aged)) }
+  const viewAged = (await hit('/kybernos-cloud/memory/tidy', 'GET')).body
+  assert.ok(viewAged.log.every((l) => l.id !== anyRun || l.canUndo === false), 'a run older than 30 days cannot be undone any more')
+  if (anyRun !== undefined) assert.equal((await hit('/kybernos-cloud/memory/tidy/undo', 'POST', undefined, { run: anyRun })).body.error, 'archive_perimee')
+
+  // a request that would remove too much is refused whole
+  memories.splice(0)
+  const bigIds = []
+  for (let g = 0; g < 8; g++) for (let i = 0; i < 8; i++) { const td_m = tm('Procedure numero ' + String(g) + ' etape alpha beta gamma delta epsilon zeta theta iota kappa ' + 'x'.repeat(i % 1), {}); bigIds.push(td_m.id) }
+  const bigScan = await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  const bigGroups = bigScan.body.groups
+  assert.ok(bigGroups.reduce((n, g) => n + g.saves, 0) > 50, 'fixture: more than 50 removals asked at once (' + String(bigGroups.reduce((n, g) => n + g.saves, 0)) + ')')
+  const writesBig = seen.writes.length
+  const tooMany = await hit('/kybernos-cloud/memory/tidy/apply', 'POST', undefined, { confirm: true, groups: bigGroups.map((g) => ({ id: g.id })) })
+  assert.equal(tooMany.body.error, 'trop_de_suppressions')
+  assert.equal(seen.writes.length, writesBig, 'refused whole: nothing was removed')
+  memories.splice(0, memories.length, ...tidyKept)
+  await hit('/kybernos-cloud/memory/tidy/scan', 'POST')
+  ok('tidy : l archive de plus de 30 jours est oubliee, une demande de plus de 50 suppressions est refusee en bloc')
 
   // 11h. Recherche par le sens (cote plugin). COUPEE par defaut : tant que l'interrupteur est
   //      coupe, AUCUN texte de souvenir ne part vers le modele d'embedding, ni a l'ecriture, ni

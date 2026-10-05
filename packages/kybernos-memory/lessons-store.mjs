@@ -224,11 +224,11 @@ export const updateLesson = (id, patch) => {
 }
 
 /** Removes a lesson — into the archive, like the cap does: deleting is still recoverable by hand. */
-export const deleteLesson = (id) => {
+export const deleteLesson = (id, reason = 'deleted') => {
   const found = locate(id)
   if (found === null) return { ok: false, error: 'lecon_introuvable' }
   const [removed] = found.lessons.splice(found.index, 1)
-  archive(found.kyber, [removed], 'deleted')
+  archive(found.kyber, [removed], reason)
   writeJsonlAtomic(lessonsFile(found.kyber), found.lessons)
   return { ok: true, total: found.lessons.length }
 }
@@ -269,3 +269,35 @@ export const activeKyber = (sessionId) => {
   return isKyberId(kyber) && isDir(join(kybersRoot(), kyber)) ? kyber : null
 }
 
+/**
+ * Puts lessons back EXACTLY as they were (ts, tags, uses, lastUsed, from): the Undo of a tidy-up. Never evicts: when the kyber
+ * could not hold them (the cap), nothing is written and the caller says so. A lesson whose text is already there is skipped.
+ */
+export const restoreLessons = (kyber, rows) => {
+  if (!isKyberId(kyber) || !isDir(join(kybersRoot(), kyber))) return { ok: false, error: 'kyber_inconnu' }
+  const lessons = readLessons(kyber)
+  const have = new Set(lessons.map((l) => normalize(l.text)))
+  const add = (Array.isArray(rows) ? rows : []).filter((r) => r !== null && typeof r === 'object' && typeof r.text === 'string' && r.text.trim() !== '' && !have.has(normalize(r.text))).map(cleanRow)
+  if (add.length === 0) return { ok: true, restored: 0 }
+  if (lessons.length + add.length > LESSONS_MAX_COUNT) return { ok: false, error: 'kyber_plein', room: Math.max(0, LESSONS_MAX_COUNT - lessons.length), needed: add.length }
+  mkdirSync(memoryDir(kyber), { recursive: true })
+  writeJsonlAtomic(lessonsFile(kyber), [...lessons, ...add])
+  return { ok: true, restored: add.length }
+}
+
+/**
+ * Sets fields of one lesson as they are (no 500-char cut, no tag filter beyond type): the tidy-up's merge and its Undo, where
+ * the values come from the user's own lessons. The id changes with the text; the new one is returned.
+ */
+export const retouchLesson = (id, fields) => {
+  const found = locate(id)
+  if (found === null) return { ok: false, error: 'lecon_introuvable' }
+  const lesson = found.lessons[found.index]
+  const f = fields !== null && typeof fields === 'object' ? fields : {}
+  if (typeof f.text === 'string' && f.text.trim() !== '') lesson.text = f.text
+  if (Array.isArray(f.tags)) lesson.tags = f.tags.filter((t) => typeof t === 'string').slice(0, LESSON_TAGS_MAX)
+  if (Number.isFinite(f.uses)) lesson.uses = Math.max(0, f.uses)
+  if (f.lastUsed === null || typeof f.lastUsed === 'string') lesson.lastUsed = f.lastUsed
+  writeJsonlAtomic(lessonsFile(found.kyber), found.lessons)
+  return { ok: true, id: lessonId(found.kyber, lesson), lesson: present(found.kyber, lesson, Date.now()) }
+}

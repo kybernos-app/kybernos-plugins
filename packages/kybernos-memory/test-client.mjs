@@ -188,6 +188,42 @@ console.log('escape')
   check('the unsubscribe removes it (an Escape with nothing open must reach DSH)', listeners.length === 0)
 }
 
+// ── Tidy up: the pure pieces
+console.log('tidy up')
+{
+  const now = Date.parse('2026-10-05T12:00:00.000Z')
+  const ago = (min) => new Date(now - min * 60000).toISOString()
+  check('when: just now / minutes / hours / days, singular and plural', T.whenLabel(ago(0), now) === 'just now' && T.whenLabel(ago(1), now) === '1 minute ago' && T.whenLabel(ago(45), now) === '45 minutes ago' && T.whenLabel(ago(60), now) === '1 hour ago' && T.whenLabel(ago(150), now) === '3 hours ago' && T.whenLabel(ago(1440), now) === '1 day ago' && T.whenLabel(ago(60 * 24 * 12), now) === '12 days ago')
+  check('when: unknown or future dates never say NaN', T.whenLabel('garbage', now) === '' && T.whenLabel(null, now) === '' && T.whenLabel(new Date(now + 60000).toISOString(), now) === 'just now')
+  check('plural: regular and irregular', T.plural(1, 'lesson') === '1 lesson' && T.plural(2, 'lesson') === '2 lessons' && T.plural(1, 'memory', 'memories') === '1 memory' && T.plural(3, 'memory', 'memories') === '3 memories' && T.plural(0, 'item') === '0 items')
+
+  const G = (id, n, extra) => Object.assign({ id, keeperId: id + '-0', items: Array.from({ length: n }, (_, i) => ({ id: id + '-' + String(i), content: 'text ' + String(i), pinned: false })), saves: n - 1, score: 90 }, extra)
+  check('removals of a group are all but the kept one', T.groupRemovals(G('a', 3)) === 2 && T.groupRemovals(G('a', 2)) === 1 && T.groupRemovals({ items: [] }) === 0)
+  const sizes = (chunks) => chunks.map((c) => c.map((g) => T.groupRemovals(g)).reduce((a, b) => a + b, 0))
+  const many = [G('a', 31), G('b', 21), G('c', 11), G('d', 11), G('e', 3)]   // 30, 20, 10, 10, 2 removals
+  const chunks = T.tidyChunks(many, 50)
+  check('chunks hold at most 50 removals each, in order, and lose no group', sizes(chunks).every((n) => n <= 50) && chunks.flat().map((g) => g.id).join('') === 'abcde' && chunks.length === 2, sizes(chunks))
+  check('a group over the limit goes alone (the host then refuses it, loudly)', JSON.stringify(sizes(T.tidyChunks([G('a', 5), G('big', 60), G('c', 5)], 50))) === '[4,59,4]')
+  check('no groups, no chunks', T.tidyChunks([], 50).length === 0)
+
+  const g = G('g1', 3)
+  check('the keeper is the proposal until the user picks, and a pick outside the group is ignored', T.keeperOf(g, {}) === 'g1-0' && T.keeperOf(g, { g1: { keep: 'g1-2' } }) === 'g1-2' && T.keeperOf(g, { g1: { keep: 'zzz' } }) === 'g1-0' && T.keeperOf(g, { g1: {} }) === 'g1-0')
+  const body = T.tidyBody([g, G('g2', 2)], { g1: { keep: 'g1-2', edit: '  my text  ' }, g2: { edit: '   ' } })
+  check('the body sends confirm, and only what differs from the proposal', body.confirm === true && JSON.stringify(body.groups) === JSON.stringify([{ id: 'g1', keep: 'g1-2', edit: '  my text  ' }, { id: 'g2' }]), body)
+  check('an untouched group is just its id', JSON.stringify(T.tidyBody([g], {}).groups) === '[{"id":"g1"}]')
+
+  check('a view is only a view when ok and with groups', T.asTidyView({ ok: true, groups: [] }) !== null && T.asTidyView({ ok: false, error: 'x' }) === null && T.asTidyView({ ok: true }) === null && T.asTidyView(null) === null && T.asTidyView('x') === null)
+  const view = (saves, at, log) => ({ ok: true, groups: [], saves, scannedAt: at, total: 10, log: log || [] })
+  check('saves add up across both sides, a missing side counts 0', T.tidySaves({ mem: view(3), les: view(2) }) === 5 && T.tidySaves({ mem: null, les: view(2) }) === 2 && T.tidySaves({ mem: null, les: null }) === 0)
+  check('the banner is hidden per scan: a new scan changes the key', T.scanKey({ mem: view(1, 'A'), les: view(1, 'B') }) !== T.scanKey({ mem: view(1, 'A2'), les: view(1, 'B') }) && T.scanKey({ mem: null, les: null }) === '|')
+  check('a log line says what happened, in the side\'s own words', T.logWords('mem', { removed: 2 }) === 'Merged 3 memories into 1' && T.logWords('les', { removed: 1, kyber: 'dev-team' }) === 'Merged 2 lessons into 1 · dev-team' && T.logWords('les', { removed: 1, partial: true }) === 'Merged 2 lessons into 1 (partly)')
+  const merged = T.tidyLog({ mem: view(0, 'A', [{ id: 'm1', at: ago(10) }]), les: view(0, 'B', [{ id: 'l1', at: ago(5) }, { id: 'l2', at: ago(60) }]) })
+  check('both logs are merged newest first and tagged with their side', merged.map((l) => l.id + l.src).join(',') === 'l1les,m1mem,l2les', merged)
+  check('the limits and endpoints match the hosts', T.TIDY_MAX_REMOVALS === 50 && T.TIDY_SOURCES.mem.base === '/kybernos-cloud/memory/tidy' && T.TIDY_SOURCES.les.base === '/kybernos-memory/tidy' && T.TIDY_SOURCES.les.max === 500)
+  check('the host codes of a tidy-up have words', ['a_change', 'groupe_inconnu', 'garde_invalide', 'epingle_protege', 'trop_de_suppressions', 'kyber_plein', 'archive_perimee', 'deja_annule', 'aucun_scan'].every((c) => T.friendlyError(c).indexOf('Something went wrong') < 0))
+  check('the limits agree with the host sources', /const TIDY_MAX_REMOVALS = 50/.test(readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8')) && /const TIDY_MAX_REMOVALS = 50/.test(readFileSync(join(HERE, 'index.js'), 'utf8')) && /MEMORY_MAX_CONTENT = 2000/.test(readFileSync(join(HERE, '..', 'kybernos-cloud', 'index.js'), 'utf8')) && /LESSON_MAX_CHARS = 500/.test(readFileSync(join(HERE, 'lessons-store.mjs'), 'utf8')))
+}
+
 console.error = realError
 console.log('\n' + String(pass) + ' verifications, ' + String(fail) + ' failure(s)')
 process.exit(fail === 0 ? 0 : 1)

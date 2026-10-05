@@ -333,6 +333,200 @@ try {
   assert.deepEqual(store.searchLessons('   ').length, 0)
   ok('relevance: lessons list and lesson_search rank by words found, rarity, accents and plurals; used lessons win ties')
 
+  // ── 9. Tidy up: near-duplicate lessons, apply with an archive, undo ───────────────────
+  {
+  const dedupeSrc = join(new URL('.', import.meta.url).pathname, '..', 'kybernos-cloud', 'dedupe.mjs')
+  assert.equal(readFileSync(join(new URL('.', import.meta.url).pathname, 'dedupe.mjs'), 'utf8'), readFileSync(dedupeSrc, 'utf8'), 'dedupe.mjs is one module, copied into each bundle: the two copies must stay byte-identical')
+  ok('tidy: kybernos-memory/dedupe.mjs is byte-identical to kybernos-cloud/dedupe.mjs')
+
+  for (const k of store.listKybers()) rmSync(join(kybers, k), { recursive: true, force: true })
+  const TA = 'Run the lifecycle tests before every push to the repository'
+  const TB = 'Always run the lifecycle tests before every push to the repository'
+  const TC = 'run lifecycle tests before every push to repository'
+  put('td-a', [
+    L(TA, { ts: iso(3000), uses: 2, tags: ['tests', 'push'], lastUsed: iso(100) }),
+    L(TB, { ts: iso(2000), uses: 1, tags: ['push', 'ci'], lastUsed: iso(50) }),
+    L('Restart the web server after editing a host module of a plugin', { ts: iso(1500), uses: 0 }),
+    L(TC, { ts: iso(10), uses: 0, tags: [] }),
+  ])
+  put('td-b', [L(TA, { ts: iso(900), uses: 0 }), L('Prefer pnpm over npm for installs in this monorepo', { ts: iso(800) })])
+  const fileOf = (kyber) => readFileSync(join(dirOf(kyber), 'lessons.jsonl'), 'utf8')
+  const before = { a: fileOf('td-a'), b: fileOf('td-b') }
+  const tdFile = (suffix) => join(root, 'kybernos-memory.' + suffix + '.json')
+
+  const scan = await call('/kybernos-memory/tidy/scan', null)
+  assert.equal(scan.ok, true)
+  assert.equal(scan.total, 6)
+  assert.equal(scan.groups.length, 1, 'one group: the three rewordings in td-a; the same text in td-b is another kyber and is never compared')
+  const g = scan.groups[0]
+  assert.equal(g.kyber, 'td-a')
+  assert.deepEqual(g.items.map((i) => store.parseLessonId(i.id).kyber), ['td-a', 'td-a', 'td-a'])
+  assert.equal(g.saves, 2)
+  assert.ok(g.items.every((i) => typeof i.uses === 'number' && Array.isArray(i.tags) && i.ageMinutes !== null), 'the page gets uses, tags and age')
+  assert.equal(fileOf('td-a'), before.a, 'a scan only looks: nothing changed')
+  assert.equal(fileOf('td-b'), before.b)
+  assert.equal(statSync(tdFile('tidy')).mode & 0o777, 0o600, 'the scan is stored privately next to the settings')
+  assert.deepEqual((await call('/kybernos-memory/tidy')).groups.map((x) => x.id), [g.id], 'GET returns the stored scan without rescanning')
+  ok('tidy: scan groups near-duplicates inside one kyber, changes nothing, stores the groups privately')
+
+  // refusals leave every file as it was
+  assert.equal((await call('/kybernos-memory/tidy/apply', { groups: [{ id: g.id }] })).error, 'confirmation_requise')
+  assert.equal((await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [] })).error, 'groupes_manquants')
+  assert.equal((await call('/kybernos-memory/tidy/apply', null)).error, 'confirmation_requise')
+  const unknown = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: 'nope' }] })
+  assert.deepEqual([unknown.ok, unknown.results[0].error], [false, 'groupe_inconnu'])
+  const badKeep = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: g.id, keep: 'td-a:000000000000' }] })
+  assert.equal(badKeep.results[0].error, 'garde_invalide', 'the kept lesson must be a member of the group')
+  const tooLong = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: g.id, edit: 'x'.repeat(501) }] })
+  assert.equal(tooLong.results[0].error, 'contenu_trop_long')
+  assert.equal(fileOf('td-a'), before.a)
+  assert.equal(existsSync(tdFile('tidy-archive')), false, 'no archive is written for a refused request')
+  ok('tidy: no confirm, no groups, unknown group, wrong keeper, too long an edit — all refused, files untouched')
+
+  // a lesson edited after the scan: the group is skipped, never guessed
+  const liveA = store.listLessons({ kyber: 'td-a', limit: 50 }).items
+  const tbId = liveA.find((l) => l.text === TB).id
+  store.updateLesson(tbId, { text: TB + ' (edited)' })
+  const stale = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: g.id }] })
+  assert.deepEqual([stale.ok, stale.results[0].error], [false, 'a_change'])
+  assert.equal(rows('td-a').length, 4, 'nothing removed')
+  assert.equal((await call('/kybernos-memory/tidy')).groups.length, 0, 'a group whose lessons changed is not offered any more')
+  store.updateLesson(store.listLessons({ kyber: 'td-a', limit: 50 }).items.find((l) => l.text.endsWith('(edited)')).id, { text: TB })
+  const scan2 = await call('/kybernos-memory/tidy/scan', null)
+  assert.equal(scan2.groups.length, 1)
+  ok('tidy: a lesson changed since the scan makes its group a_change, and it leaves the list')
+
+  // apply with the default keeper
+  const g2 = scan2.groups[0]
+  const keeperDefault = g2.items.find((i) => i.keep === true)
+  const applied = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: g2.id }] })
+  assert.equal(applied.ok, true)
+  assert.equal(applied.results[0].removed, 2)
+  const left = rows('td-a')
+  assert.equal(left.length, 2, 'one kept, the unrelated one untouched')
+  const kept = left.find((l) => /lifecycle/.test(l.text))
+  assert.equal(kept.uses, 3, 'the kept lesson inherits the uses of the removed ones (2 + 1 + 0)')
+  assert.deepEqual(kept.tags.slice().sort(), ['ci', 'push', 'tests'], 'and their tags')
+  assert.equal(kept.lastUsed.slice(0, 16), iso(50).slice(0, 16), 'and the latest lastUsed')
+  assert.equal(store.lessonId('td-a', kept), keeperDefault.id, 'the default keeper is the one the scan proposed')
+  assert.equal(rows('td-b').length, 2, 'td-b is not touched')
+  const archived = readFileSync(join(dirOf('td-a'), 'lessons.archive.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l))
+  assert.equal(archived.length, 2)
+  assert.ok(archived.every((r) => r.archivedBecause === 'tidy'), 'each removed lesson is also in the kyber\'s own archive')
+  const runId = applied.results[0].run
+  assert.ok(applied.view.log.some((l) => l.id === runId && l.canUndo === true && l.removed === 2))
+  assert.equal(applied.view.groups.length, 0, 'an applied group leaves the list')
+  assert.equal(statSync(tdFile('tidy-archive')).mode & 0o777, 0o600)
+  ok('tidy: apply keeps one lesson, merges uses/tags/lastUsed into it, archives the others twice, logs the run')
+
+  // undo: exactly as it was
+  const undone = await call('/kybernos-memory/tidy/undo', { run: runId })
+  assert.equal(undone.ok, true)
+  assert.deepEqual([undone.restored, undone.reverted], [2, 1])
+  const back = rows('td-a')
+  assert.equal(back.length, 4)
+  const byText = (t) => back.find((l) => l.text === t)
+  assert.deepEqual([byText(TA).uses, byText(TA).tags, byText(TA).ts], [2, ['tests', 'push'], rows('td-a').find((l) => l.text === TA).ts])
+  assert.equal(byText(TB).uses, 1)
+  assert.deepEqual(byText(TB).tags, ['push', 'ci'])
+  assert.equal(byText(TC).uses, 0)
+  const keeperBack = back.find((l) => store.lessonId('td-a', l) === keeperDefault.id)
+  assert.equal(keeperBack.uses, keeperDefault.uses, 'the kept lesson has its own uses again')
+  assert.deepEqual(keeperBack.tags, keeperDefault.tags)
+  assert.equal((await call('/kybernos-memory/tidy/undo', { run: runId })).error, 'deja_annule')
+  assert.equal((await call('/kybernos-memory/tidy/undo', { run: 'zzz' })).error, 'run_inconnu')
+  assert.equal((await call('/kybernos-memory/tidy/undo', {})).error, 'run_manquant')
+  assert.equal(undone.view.log.find((l) => l.id === runId).canUndo, false)
+  ok('tidy: undo puts every field back (ts, tags, uses), the kept lesson too; twice or unknown is refused')
+
+  // choose the keeper and edit it
+  const scan3 = await call('/kybernos-memory/tidy/scan', null)
+  const g3 = scan3.groups[0]
+  const other = g3.items.find((i) => i.keep !== true)
+  const edit = 'Run the lifecycle tests before every push — no exceptions'
+  const chosen = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: g3.id, keep: other.id, edit }] })
+  assert.equal(chosen.ok, true)
+  const chosenRows = rows('td-a').filter((l) => /lifecycle/.test(l.text))
+  assert.deepEqual(chosenRows.map((l) => l.text), [edit], 'the picked one stays, with the edited text')
+  assert.equal(chosenRows[0].ts, g3.items.find((i) => i.id === other.id).createdAt, 'and keeps its own date')
+  const undoEdit = await call('/kybernos-memory/tidy/undo', { run: chosen.results[0].run })
+  assert.equal(undoEdit.ok, true)
+  assert.deepEqual(rows('td-a').map((l) => l.text).sort(), [TA, TB, TC, 'Restart the web server after editing a host module of a plugin'].sort(), 'undo brings back the old text as well')
+  ok('tidy: the user can pick the keeper and edit its text; undo reverts the edit')
+
+  // dismiss
+  const scan4 = await call('/kybernos-memory/tidy/scan', null)
+  const dis = await call('/kybernos-memory/tidy/dismiss', { groups: [scan4.groups[0].id] })
+  assert.equal(dis.groups.length, 0)
+  assert.equal((await call('/kybernos-memory/tidy/scan', null)).groups.length, 0, 'a group kept apart stays apart across scans')
+  assert.equal((await call('/kybernos-memory/tidy/dismiss', {})).error, 'groupes_manquants')
+  assert.equal(rows('td-a').length, 4, 'dismissing deletes nothing')
+  const restored = await call('/kybernos-memory/tidy/dismiss', { groups: [scan4.groups[0].id], restore: true })
+  assert.deepEqual(restored.groups.map((x) => x.id), [scan4.groups[0].id], 'Undo of « Keep both »: the group is offered again')
+  assert.equal((await call('/kybernos-memory/tidy/scan', null)).groups.length, 1, 'and stays offered across scans')
+  await call('/kybernos-memory/tidy/dismiss', { groups: [scan4.groups[0].id] })
+  assert.equal((await call('/kybernos-memory/tidy')).groups.length, 0)
+  ok('tidy: a group kept apart is remembered, never deleted, and can be offered again')
+
+  // undo needs room: the kyber's cap is never exceeded by a restore
+  put('td-a', [L(TA + ' today', { ts: iso(3000), uses: 2 }), L(TB + ' today', { ts: iso(2000) }), L(TC + ' today', { ts: iso(10) })])
+  const g6 = (await call('/kybernos-memory/tidy/scan', null)).groups[0]
+  const ap6 = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: g6.id }] })
+  assert.equal(ap6.ok, true)
+  put('td-a', [...rows('td-a'), ...Array.from({ length: 49 }, (_, i) => L('filler ' + String(i) + ' alpha beta gamma delta' + String(i * 7919), { ts: iso(100 + i) }))])
+  assert.equal(rows('td-a').length, 50, 'the kyber is at its cap')
+  const full = await call('/kybernos-memory/tidy/undo', { run: ap6.results[0].run })
+  assert.deepEqual([full.ok, full.error, full.needed], [false, 'kyber_plein', 2])
+  assert.equal(rows('td-a').length, 50, 'a refused undo writes nothing')
+  assert.equal((await call('/kybernos-memory/tidy')).log.find((l) => l.id === ap6.results[0].run).canUndo, true, 'and the run stays undoable')
+  put('td-a', rows('td-a').slice(0, 10))
+  assert.equal((await call('/kybernos-memory/tidy/undo', { run: ap6.results[0].run })).ok, true, 'once there is room, it works')
+  ok('tidy: undo refuses with kyber_plein when the 50-lesson cap would be exceeded, and works once there is room')
+
+  // too many removals in one request: refused whole
+  put('td-c', Array.from({ length: 52 }, (_, i) => L('Shared sentence about the topic alpha beta gamma number ' + String(i), { ts: iso(100 + i) })))
+  const gBig = (await call('/kybernos-memory/tidy/scan', null)).groups.find((x) => x.kyber === 'td-c')
+  assert.equal(gBig.saves, 51, 'fifty-two near-identical lessons form one group')
+  const big = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: gBig.id }] })
+  assert.deepEqual([big.ok, big.error, big.max, big.wanted], [false, 'trop_de_suppressions', 50, 51])
+  assert.equal(rows('td-c').length, 52, 'nothing was removed')
+  ok('tidy: more than 50 removals in one request is refused whole')
+
+  // an archive older than 30 days is forgotten: Undo is no longer offered
+  put('td-e', [L('Keep the changelog entry short and factual for every release', { ts: iso(500) }), L('Keep every changelog entry short and factual for each release', { ts: iso(400) })])
+  const gOld = (await call('/kybernos-memory/tidy/scan', null)).groups.find((x) => x.kyber === 'td-e')
+  const apOld = await call('/kybernos-memory/tidy/apply', { confirm: true, groups: [{ id: gOld.id }] })
+  assert.equal(apOld.ok, true)
+  const oldRun = apOld.results[0].run
+  const archFile = JSON.parse(readFileSync(tdFile('tidy-archive'), 'utf8'))
+  assert.ok(archFile.runs[oldRun], 'the run is archived')
+  archFile.runs[oldRun].at = new Date(Date.now() - 31 * 86400000).toISOString()
+  writeFileSync(tdFile('tidy-archive'), JSON.stringify(archFile))
+  assert.equal((await call('/kybernos-memory/tidy')).log.find((l) => l.id === oldRun).canUndo, false, 'a run older than 30 days can no longer be undone')
+  assert.equal((await call('/kybernos-memory/tidy/undo', { run: oldRun })).error, 'archive_perimee')
+  assert.equal(JSON.parse(readFileSync(tdFile('tidy-archive'), 'utf8')).runs[oldRun], undefined, 'and its archive is forgotten')
+  ok('tidy: an archive older than 30 days is forgotten')
+
+  // routes: guards and methods
+  assert.equal((await hit('/kybernos-memory/tidy', 'GET', { origin: 'https://evil.example' })).status, 403, 'cross-origin refused')
+  for (const path of ['/kybernos-memory/tidy/scan', '/kybernos-memory/tidy/apply', '/kybernos-memory/tidy/dismiss', '/kybernos-memory/tidy/undo']) {
+    assert.equal((await hit(path, 'POST', { origin: 'https://evil.example' }, { confirm: true })).status, 403, path + ' refuses another origin')
+    assert.equal((await hit(path, 'GET')).status, 405, path + ' is POST only')
+  }
+  assert.equal((await hit('/kybernos-memory/tidy', 'GET', { origin: 'http://127.0.0.1:3080' })).status, 200)
+  assert.equal((await hit('/kybernos-memory/tidy/apply', 'POST', {}, { confirm: true, groups: [{ id: 'nope' }] })).body.results[0].error, 'groupe_inconnu', 'the real handler reaches the apply code')
+  ok('tidy: routes are same-origin guarded, POST where they write')
+
+  // the store's restore: as-is, never beyond the cap, text already there is skipped
+  put('td-r', [L('already here and visible to everyone')])
+  assert.deepEqual(store.restoreLessons('td-r', [L('already here and visible to everyone'), L('a brand new restored lesson', { uses: 4, tags: ['x'] })]), { ok: true, restored: 1 })
+  assert.equal(rows('td-r').find((l) => l.text === 'a brand new restored lesson').uses, 4)
+  assert.equal(store.restoreLessons('ghost', [L('x')]).error, 'kyber_inconnu')
+  assert.equal(store.restoreLessons('../etc', [L('x')]).error, 'kyber_inconnu')
+  assert.deepEqual(store.restoreLessons('td-r', [{ nope: 1 }, null, 3]), { ok: true, restored: 0 })
+  ok('tidy: restoreLessons puts lessons back as they were, skips text already there, ignores junk and unknown kybers')
+  }
+
   console.log('\n' + String(pass) + ' verifications OK')
 } finally {
   rmSync(root, { recursive: true, force: true })

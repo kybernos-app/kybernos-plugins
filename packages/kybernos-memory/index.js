@@ -18,10 +18,11 @@
 // cannot share code.
 // ═════════════════════════════════════════════════════════════════════════════
 
-import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson } from './lessons-store.mjs'
+import { LESSON_MAX_CHARS, activeKyber, addLesson, deleteLesson, isKyberId, listKybers, listLessons, markUsed, readLessons, searchLessons, updateLesson, restoreLessons, retouchLesson, lessonId, parseLessonId } from './lessons-store.mjs'
+import { findDuplicateGroups } from './dedupe.mjs'
 
 export const name = 'kybernos-memory'
 
@@ -276,6 +277,223 @@ const lessonsUpdateRoute = async (req, body) => {
 
 const lessonsDeleteRoute = async (req, body) => deleteLesson(body !== null && typeof body === 'object' ? body.id : undefined)
 
+// ── Tidy up: near-duplicate lessons (dedupe.mjs, local, no model) ───────────────────────────────────────────
+// Same contract as the memories' tidy-up (kybernos-cloud): a scan only LOOKS and stores the groups; applying a group keeps
+// one lesson (the one the user picks, optionally edited, inheriting the tags and the uses of the others) and removes the
+// rest. Lessons only ever meet inside their own kyber (`bucket`). BEFORE anything is removed the removed rows and the kept
+// one's old fields go to a local archive — Undo puts them back exactly, for 30 days; the store also archives each removed
+// lesson in `lessons.archive.jsonl`, as every deletion does. Side files sit next to the settings file.
+
+const TIDY_UNDO_DAYS = 30
+const TIDY_MAX_REMOVALS = 50
+const TIDY_DISMISSED_MAX = 500
+const TIDY_LOG_MAX = 50
+
+const tidyFile = (suffix) => settingsFile().replace(/\.json$/, '') + '.' + suffix + '.json'
+const readTidyFile = (suffix, fallback) => {
+  try {
+    const parsed = JSON.parse(readFileSync(tidyFile(suffix), 'utf8'))
+    return parsed !== null && typeof parsed === 'object' && Array.isArray(parsed) === false ? parsed : fallback
+  } catch (e) { return fallback }
+}
+const writeTidyFile = (suffix, value) => {
+  const file = tidyFile(suffix)
+  const tmp = file + '.tmp-' + String(process.pid)
+  try { mkdirSync(dirname(file), { recursive: true, mode: 0o700 }) } catch (e) { /* already there */ }
+  try {
+    writeFileSync(tmp, JSON.stringify(value) + '\n', { mode: 0o600 })
+    renameSync(tmp, file)
+  } catch (e) {
+    try { rmSync(tmp, { force: true }) } catch (e2) { /* nothing to clean */ }
+    throw e
+  }
+}
+
+const tidyState = () => {
+  const raw = readTidyFile('tidy', {})
+  return {
+    scan: raw.scan !== null && typeof raw.scan === 'object' && Array.isArray(raw.scan.groups) ? raw.scan : null,
+    dismissed: Array.isArray(raw.dismissed) ? raw.dismissed.map(String) : [],
+    log: Array.isArray(raw.log) ? raw.log : [],
+  }
+}
+const writeTidy = (t) => writeTidyFile('tidy', { scan: t.scan, dismissed: t.dismissed.slice(-TIDY_DISMISSED_MAX), log: t.log.slice(0, TIDY_LOG_MAX) })
+const tidyArchive = () => { const raw = readTidyFile('tidy-archive', {}); return { runs: raw.runs !== null && typeof raw.runs === 'object' ? raw.runs : {} } }
+const writeTidyArchive = (a) => writeTidyFile('tidy-archive', a)
+
+const forgetOldArchive = () => {
+  const limit = Date.now() - TIDY_UNDO_DAYS * 86400000
+  const a = tidyArchive()
+  let changed = false
+  for (const id of Object.keys(a.runs)) { if (!(Date.parse(a.runs[id].at) > limit)) { delete a.runs[id]; changed = true } }
+  if (changed) writeTidyArchive(a)
+  return a
+}
+
+/** Every lesson of every kyber, by id, as it is NOW. */
+const liveLessons = () => {
+  const live = new Map()
+  for (const kyber of listKybers()) for (const lesson of readLessons(kyber)) live.set(lessonId(kyber, lesson), { kyber, lesson })
+  return live
+}
+
+const tidyView = () => {
+  const t = tidyState()
+  const a = forgetOldArchive()
+  const live = liveLessons()
+  const now = Date.now()
+  // a group whose lessons are gone or changed since the scan is not offered any more (apply would refuse it anyway)
+  const groups = t.scan === null ? [] : t.scan.groups.filter((g) => t.dismissed.indexOf(g.id) < 0 && g.items.every((i) => live.has(String(i.id)))).map((g) => ({
+    ...g, kyber: parseLessonId(String(g.keeperId)) === null ? null : parseLessonId(String(g.keeperId)).kyber,
+    items: g.items.map((i) => {
+      const found = live.get(String(i.id))
+      const when = Date.parse(i.createdAt)
+      return { ...i, uses: found.lesson.uses, tags: found.lesson.tags, ageMinutes: Number.isFinite(when) ? Math.max(0, Math.round((now - when) / 60000)) : null }
+    }),
+  }))
+  return {
+    ok: true, scannedAt: t.scan === null ? null : t.scan.at, total: t.scan === null ? null : t.scan.total, groups,
+    saves: groups.reduce((n, g) => n + g.saves, 0),
+    log: t.log.slice(0, 20).map((l) => ({ ...l, canUndo: l.undone !== true && a.runs[l.id] !== undefined })),
+  }
+}
+
+const tidyScan = () => {
+  const items = []
+  for (const [id, { kyber, lesson }] of liveLessons()) items.push({ id, content: lesson.text, createdAt: lesson.ts, pinned: false, bucket: kyber })
+  const t = tidyState()
+  t.scan = { at: new Date().toISOString(), total: items.length, groups: findDuplicateGroups(items) }
+  writeTidy(t)
+  return tidyView()
+}
+
+const tidyDismiss = (body) => {
+  const ids = body !== null && typeof body === 'object' && Array.isArray(body.groups) ? body.groups.map(String) : []
+  if (ids.length === 0) return { ok: false, error: 'groupes_manquants' }
+  const t = tidyState()
+  if (body.restore === true) t.dismissed = t.dismissed.filter((d) => ids.indexOf(d) < 0)   // Undo of « Keep both »
+  else for (const id of ids) if (t.dismissed.indexOf(id) < 0) t.dismissed.push(id)
+  writeTidy(t)
+  return tidyView()
+}
+
+const fieldsOf = (lesson) => ({ text: lesson.text, tags: lesson.tags, uses: lesson.uses, lastUsed: lesson.lastUsed })
+
+/**
+ * `body = { confirm: true, groups: [{ id, keep?, edit? }] }`. Each group is checked against the files NOW: a lesson that
+ * was edited or deleted since the scan makes its group `a_change`, never a guess. The kept lesson inherits the others' tags
+ * (5 at most) and uses, so merging never makes it the first thing the 50-lesson cap evicts.
+ */
+const tidyApply = (body) => {
+  if (body === null || typeof body !== 'object' || body.confirm !== true) return { ok: false, error: 'confirmation_requise' }
+  const asked = Array.isArray(body.groups) ? body.groups : []
+  if (asked.length === 0) return { ok: false, error: 'groupes_manquants' }
+  const t = tidyState()
+  if (t.scan === null) return { ok: false, error: 'aucun_scan' }
+  const live = liveLessons()
+  const plan = []
+  const results = []
+  let removals = 0
+  for (const want of asked) {
+    const id = want !== null && typeof want === 'object' ? String(want.id) : ''
+    const group = t.scan.groups.find((g) => g.id === id)
+    if (group === undefined) { results.push({ id, ok: false, error: 'groupe_inconnu' }); continue }
+    const members = group.items.map((i) => live.get(String(i.id)))
+    if (members.some((m) => m === undefined)) { results.push({ id, ok: false, error: 'a_change' }); continue }
+    const keepId = want.keep === undefined || want.keep === null ? String(group.keeperId) : String(want.keep)
+    const ids = group.items.map((i) => String(i.id))
+    if (ids.indexOf(keepId) < 0) { results.push({ id, ok: false, error: 'garde_invalide' }); continue }
+    let edit = null
+    if (typeof want.edit === 'string' && want.edit.trim() !== '') {
+      edit = want.edit.trim()
+      if (edit.length > LESSON_MAX_CHARS) { results.push({ id, ok: false, error: 'contenu_trop_long' }); continue }
+    }
+    const keeper = live.get(keepId)
+    const removed = ids.filter((x) => x !== keepId).map((x) => ({ id: x, ...live.get(x) }))
+    removals += removed.length
+    plan.push({ group, keepId, keeper, removed, edit: edit !== null && edit !== keeper.lesson.text ? edit : null })
+  }
+  if (removals > TIDY_MAX_REMOVALS) return { ok: false, error: 'trop_de_suppressions', max: TIDY_MAX_REMOVALS, wanted: removals }
+  const log = []
+  for (const step of plan) {
+    const runId = 't' + Date.now().toString(36) + step.group.id
+    const { kyber, lesson } = step.keeper
+    const tags = []
+    for (const tag of [...lesson.tags, ...step.removed.flatMap((r) => r.lesson.tags)]) if (tags.indexOf(tag) < 0 && tags.length < 5) tags.push(tag)
+    const uses = lesson.uses + step.removed.reduce((n, r) => n + r.lesson.uses, 0)
+    const stamps = [lesson.lastUsed, ...step.removed.map((r) => r.lesson.lastUsed)].filter((x) => typeof x === 'string' && Number.isFinite(Date.parse(x)))
+    const lastUsed = stamps.length === 0 ? null : stamps.reduce((a, b) => (Date.parse(a) >= Date.parse(b) ? a : b))
+    const next = { text: step.edit === null ? lesson.text : step.edit, tags, uses, lastUsed }
+    const changes = next.text !== lesson.text || next.uses !== lesson.uses || next.lastUsed !== lesson.lastUsed || next.tags.join('\n') !== lesson.tags.join('\n')
+    const afterId = lessonId(kyber, { ts: lesson.ts, text: next.text })
+    // 1. the archive FIRST: if anything below fails half way, what was removed can always be put back
+    const archive = tidyArchive()
+    archive.runs[runId] = { at: new Date().toISOString(), kyber, removed: step.removed.map((r) => r.lesson), edited: changes ? [{ id: afterId, before: fieldsOf(lesson) }] : [] }
+    writeTidyArchive(archive)
+    let edited = false
+    if (changes) {
+      const done = retouchLesson(step.keepId, next)
+      if (done.ok !== true) { const a2 = tidyArchive(); delete a2.runs[runId]; writeTidyArchive(a2); results.push({ id: step.group.id, ok: false, error: done.error }); continue }
+      edited = true
+    }
+    const gone = []
+    let failure = null
+    for (const r of step.removed) {
+      const del = deleteLesson(r.id, 'tidy')
+      if (del.ok !== true) { failure = del.error; break }
+      gone.push(r.lesson)
+    }
+    // the archive keeps ONLY what was really removed (and the old fields only if they were really changed)
+    const kept = tidyArchive()
+    kept.runs[runId].removed = gone
+    if (!edited) kept.runs[runId].edited = []
+    if (gone.length === 0 && !edited) delete kept.runs[runId]
+    writeTidyArchive(kept)
+    if (gone.length > 0 || edited) log.push({ id: runId, at: new Date().toISOString(), by: 'local', groupId: step.group.id, kyber, kept: afterId, removed: gone.length, edited, partial: failure !== null, undone: false })
+    results.push({ id: step.group.id, ok: failure === null, removed: gone.length, edited, run: gone.length > 0 || edited ? runId : null, error: failure === null ? undefined : failure })
+  }
+  const after = tidyState()
+  const done = new Set(results.filter((r) => r.ok === true).map((r) => r.id))
+  if (after.scan !== null) after.scan.groups = after.scan.groups.filter((g) => !done.has(g.id))
+  after.log = [...log.reverse(), ...after.log]
+  writeTidy(after)
+  return { ok: results.every((r) => r.ok === true), results, view: tidyView() }
+}
+
+/** Puts a run back exactly: removed lessons return as they were (ts, tags, uses…), the kept one gets its old fields. */
+const tidyUndo = (body) => {
+  const runId = body !== null && typeof body === 'object' ? String(body.run || '') : ''
+  if (runId === '') return { ok: false, error: 'run_manquant' }
+  const t = tidyState()
+  const entry = t.log.find((l) => l.id === runId)
+  if (entry === undefined) return { ok: false, error: 'run_inconnu' }
+  if (entry.undone === true) return { ok: false, error: 'deja_annule' }
+  const archive = tidyArchive()
+  const run = archive.runs[runId]
+  if (run === undefined) return { ok: false, error: 'archive_perimee' }
+  // the kept lesson first: if the kyber is full the restore below refuses, and nothing has been touched yet
+  const back = restoreLessons(run.kyber, run.removed)
+  if (back.ok !== true) return { ok: false, error: back.error, ...(back.room === undefined ? {} : { room: back.room, needed: back.needed }) }
+  let reverted = 0
+  let notReverted = 0
+  for (const e of run.edited) {
+    const done = retouchLesson(e.id, e.before)
+    if (done.ok === true) reverted += 1
+    else notReverted += 1
+  }
+  delete archive.runs[runId]
+  entry.undone = true
+  writeTidyArchive(archive)
+  writeTidy(t)
+  return { ok: true, restored: back.restored, reverted, notReverted, view: tidyView() }
+}
+
+const tidyRoute = async () => tidyView()
+const tidyScanRoute = async () => tidyScan()
+const tidyApplyRoute = async (req, body) => tidyApply(body)
+const tidyDismissRoute = async (req, body) => tidyDismiss(body)
+const tidyUndoRoute = async (req, body) => tidyUndo(body)
+
 const settingsRoute = async () => ({ ok: true, settings: readSettings() })
 
 const settingsSetRoute = async (req, body) => {
@@ -301,6 +519,11 @@ export const ROUTES = [
   { path: '/kybernos-memory/lessons/add', method: 'POST', guarded: true, body: true, run: lessonsAddRoute },
   { path: '/kybernos-memory/lessons/update', method: 'POST', guarded: true, body: true, run: lessonsUpdateRoute },
   { path: '/kybernos-memory/lessons/delete', method: 'POST', guarded: true, body: true, run: lessonsDeleteRoute },
+  { path: '/kybernos-memory/tidy', method: 'GET', guarded: true, run: tidyRoute },
+  { path: '/kybernos-memory/tidy/scan', method: 'POST', guarded: true, run: tidyScanRoute },
+  { path: '/kybernos-memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: tidyApplyRoute },
+  { path: '/kybernos-memory/tidy/dismiss', method: 'POST', guarded: true, body: true, cap: 16384, run: tidyDismissRoute },
+  { path: '/kybernos-memory/tidy/undo', method: 'POST', guarded: true, body: true, cap: 4096, run: tidyUndoRoute },
   { path: '/kybernos-memory/settings', method: 'GET', guarded: true, run: settingsRoute },
   { path: '/kybernos-memory/settings/set', method: 'POST', guarded: true, body: true, run: settingsSetRoute },
 ]
