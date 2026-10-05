@@ -102,7 +102,8 @@ export const readRegistry = (file) => {
  *  `active`, then the built-in Kybernos Cloud. `error` says why the registry's choice was not honoured. */
 export const activeServer = ({ env = process.env, registryFile }) => {
   const registry = registryFile !== undefined ? readRegistry(registryFile) : { active: null, servers: [], rejected: [] }
-  const list = [{ id: DEFAULT_SERVER_ID, name: DEFAULT_PROFILE.name }].concat(registry.servers.map((s) => ({ id: s.id, name: s.name })))
+  const summary = (s) => ({ id: s.id, name: s.name, api: s.api, llm: s.services.llm === false ? 'none' : (s.services.llm !== null ? s.services.llm : 'api') })
+  const list = [summary(DEFAULT_PROFILE)].concat(registry.servers.map(summary))
   const fromEnv = urlOrNull(typeof env.KYBERNOS_CLOUD_API === 'string' ? env.KYBERNOS_CLOUD_API : '')
   if (fromEnv !== null) {
     const base = registry.servers.find((s) => s.id === registry.active) || DEFAULT_PROFILE
