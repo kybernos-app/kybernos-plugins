@@ -43,7 +43,8 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,
 `kybers/tts/{tts.json,cache/}`, `.kyber-pins.json`, `.kyber-shares.json`, `.kyber-workspaces.json`,
-`kybernos/{tasks.json (0600),settings.json,onboarding.json,livekit.env,gateway-sync-state.json,quality/*.jsonl,i18n/<lang>.json}`,
+`kybernos/{tasks.json (0600),settings.json,onboarding.json,livekit.env,gateway-sync-state.json,seeded-skills.json,quality/*.jsonl,i18n/<lang>.json}`,
+`skills/automation-creator/SKILL.md`,
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
 base) and `.credentials.yaml` (browser-session secret). The art progress file is `<bundle dir>/../.dsh/artifacts/.progress.json`,
@@ -54,7 +55,10 @@ beside the bundle rather than in `~/.dsh`. Env: `DSH_HOME`, `HOME`, `DSH_WEB_POR
 model pinned to `deepseek-official/deepseek-flash`, auto-compaction at 70 %), default only if none is chosen; turns on the
 `subagent_claude_code` row of every preset definition (in memory); lowers any retry policy above 10 attempts (`settings.update`,
 only on a violation); appends a marked "force de proposition" section to `~/.dsh/AGENTS.md` once; writes the `signaler-retour`
-skill into `~/.dsh/skills` if its source exists (it does not in this repo).
+skill into `~/.dsh/skills` if its source exists (it does not in this repo); seeds the skills it ships (`skills/<name>/SKILL.md`, today
+`automation-creator`) into `<dsh home>/skills` with `seed-skills.mjs`: absent is written, the shipped text is refreshed only while the file is
+still byte for byte what we wrote (sha-256 in `kybernos/seeded-skills.json`), and a skill the user wrote or edited under the same name, or
+switched off with a `SKILL.md.disabled`, is never touched.
 
 ## DSH seams, network
 
@@ -79,6 +83,11 @@ node packages/kybernos-plugin/test-i18n-translate.mjs  # 47: translate batches a
 node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtime> block with fake locale and storage
 node scripts/test-pins-host.mjs                        # KB-PINS-CORE block of index.js
 node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cron, validation, store, trigger
+node packages/kybernos-plugin/test-automation-creator.mjs  # 59: the shipped skill's script, run with sh on a temp DSH_HOME
+node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)
+node scripts/test-shipped-skills-wiring.mjs            # the real index.js seeds under DSH_HOME, not under the other HOME
+node scripts/test-automation-creator-parity.mjs        # the skill validates crons and zones exactly like the scheduler
+node scripts/test-seed-skills-drift.mjs                # seed-skills.mjs here = the one of kybernos-theme
 node scripts/boot-check.mjs                            # live GUI only: detects "Failed to load plugins"
 ```
 

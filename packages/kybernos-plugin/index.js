@@ -33,6 +33,7 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 // ~/.dsh/kybernos/settings.json (clé `pairingToken`), il reste inactif et rien
 // ne sort de la machine — le local reste strictement celui d'aujourd'hui.
 import { createGatewayWatcher } from './gateway-watcher.mjs'
+import { seedSkills } from './seed-skills.mjs'
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -11200,6 +11201,30 @@ const kbFeedbackEnsureSkill = (dsh) => {
   } catch (e) { return false }
 }
 
+/** Skills this plugin ships under <dsh home>/skills (folders in ./skills): the Automations page
+ *  sends its "Create" chat to `automation-creator`, so it must exist on a fresh home. Seeded by
+ *  seed-skills.mjs, which never overwrites a skill the user wrote or edited. */
+const KB_SHIPPED_SKILLS = ['automation-creator']
+/** The DSH home the way dsh-home-paths resolves it: a non-blank $DSH_HOME (trimmed, a leading ~
+ *  expanded), else <home>/.dsh. Synchronous: it runs at plugin start, before any service exists. */
+const kbDshHomeSync = () => {
+  const raw = (typeof process !== 'undefined' && process.env !== undefined && typeof process.env.DSH_HOME === 'string') ? process.env.DSH_HOME.trim() : ''
+  const home = String(homedir() || '')
+  if (raw === '') return joinPath(home, '.dsh')
+  if (raw === '~') return home
+  return raw.startsWith('~/') ? joinPath(home, raw.slice(2)) : raw
+}
+const kbSeedShippedSkills = () => {
+  const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
+  const results = seedSkills({ home: kbDshHomeSync(), sourceDir, names: KB_SHIPPED_SKILLS })
+  for (const r of results) {
+    if (r.action === 'error' || r.action === 'no-source' || r.action === 'invalid-name') {
+      try { console.error('[kybers] skill ' + r.name + ' not installed: ' + r.action + (r.error !== undefined ? ' (' + r.error + ')' : '')) } catch (e) { /* console unavailable */ }
+    }
+  }
+  return results
+}
+
 /** Enregistre l'outil agent. Séparé de `boot` : un échec ici (moitié hôte non
  *  sandboxée, registre absent) ne doit jamais couper les routes /kybernos/*. */
 const kbFeedbackInstallTool = (ctx) => {
@@ -11296,6 +11321,14 @@ export function apply(ctx) {
         try {
             console.error('[kybers] skill signaler-retour non installee', kbSkillError)
         } catch (e4) { /* console indisponible */ }
+    }
+    // The skills this plugin ships (automation-creator): optional, and never allowed to stop the plugin.
+    try {
+        kbSeedShippedSkills()
+    } catch (kbShippedError) {
+        try {
+            console.error('[kybers] shipped skills not installed', kbShippedError)
+        } catch (e5) { /* console unavailable */ }
     }
 }
 
