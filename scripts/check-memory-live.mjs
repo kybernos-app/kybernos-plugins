@@ -5,7 +5,8 @@
 //   node scripts/check-memory-live.mjs [--shots <dir>] [--session "<start of a chat title>"]
 //
 // READ-ONLY by design: it opens Settings, opens the page, looks, opens the filter menu and the Options
-// page, and takes screenshots. It never clicks a Yes/No, Save, Forget or Add — your memories, your lessons
+// page, looks for near-duplicates (« Clean up now » only scans: the scan record is the one thing it writes),
+// and takes screenshots. It never clicks a Yes/No, Save, Forget or Add — your memories, your lessons
 // and your switches are not touched (a test that must write picks its own throw-away data; this one
 // does not need to). The headless browser is its own: nothing it stores reaches yours.
 //
@@ -146,6 +147,46 @@ try {
   await shot('03-options')
   await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500)
   check('Back returns to the list', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
+
+  console.log('tidy up (it only LOOKS: this check never merges, keeps, undoes or accepts anything)')
+  const tidyLes0 = await local('/kybernos-memory/tidy')
+  const hostHasTidy = tidyLes0 !== null && tidyLes0.ok === true
+  await ev(`document.querySelector('[data-act=options]').click()`); await sleep(900)
+  check('Options has the Tidy up and the Recent tidy-ups sections', (await count('[data-sec=tidy]')) === 1 && (await count('[data-sec=tidy-log]')) === 1)
+  check('« Run automatically » and « Study model » are locked and say « Coming next »', (await ev(`[...document.querySelectorAll('[data-sec=tidy] .kbmem-srow.locked')].filter(r => /Coming next/.test(r.textContent)).length`)) === 2)
+  await ev(`document.querySelector('[data-sec=tidy]').scrollIntoView()`); await sleep(200)
+  await shot('03b-options-tidy')
+  if (!hostHasTidy) {
+    check('this DSH predates the tidy routes: the page says to restart it and offers no scan', /restart DSH/.test((await text('[data-act=tidy-now]')) || '') && (await ev(`document.querySelector('[data-act=tidy-scan]').disabled`)) === true)
+    console.log('  – SKIP the scan: restart dsh web to load the tidy routes')
+  } else {
+    const memTotal0 = await local('/kybernos-cloud/memory/list?limit=1')
+    const lesTotal0 = await local('/kybernos-memory/lessons?limit=1')
+    await ev(`document.querySelector('[data-act=tidy-scan]').click()`)
+    const opened = await waitFor(page, `!!document.querySelector('.kbmem-h1') && /Tidy-up suggestions/.test(document.querySelector('.kbmem-h1').textContent)`, 20000)
+    check('« Clean up now » opens the review', opened === true)
+    if (opened === true) {
+      await sleep(500)
+      const tM = await local('/kybernos-cloud/memory/tidy')
+      const tL = await local('/kybernos-memory/tidy')
+      const tabs = (await text('.kbmem-row2')) || ''
+      const nM = tM !== null && tM.ok === true ? tM.groups.length : null
+      const nL = tL !== null && tL.ok === true ? tL.groups.length : null
+      check('the tab counts are the host\'s groups', (nM === null || new RegExp('Memories' + String(nM)).test(tabs)) && (nL === null || new RegExp('Lessons learned' + String(nL)).test(tabs)), { tabs, nM, nL })
+      check('every card offers Merge, Edit and Keep both, and a kept item is marked', (await count('.kbmem-grp')) === 0 || ((await count('.kbmem-grp [data-act=tidy-merge]')) === (await count('.kbmem-grp')) && (await count('.kbmem-grp .kbmem-it.new')) === (await count('.kbmem-grp'))))
+      check('the page says nothing is deleted until you accept', /Nothing is deleted until you accept/.test((await text('.kbmem-foot')) || '') || (await count('[data-tidy=empty]')) === 1)
+      await shot('03c-tidy-review')
+      if (nL !== null && nL > 0) { await clickText(page, 'Lessons learned', { within: '.kbmem-row2' }); await sleep(300); await shot('03d-tidy-review-lessons') }
+      const memTotal1 = await local('/kybernos-cloud/memory/list?limit=1')
+      const lesTotal1 = await local('/kybernos-memory/lessons?limit=1')
+      check('looking changed nothing: same memory and lesson totals', (memTotal0 === null || memTotal1 === null || memTotal0.total === memTotal1.total) && (lesTotal0 === null || lesTotal0.total === lesTotal1.total), [memTotal0 && memTotal0.total, memTotal1 && memTotal1.total, lesTotal0 && lesTotal0.total, lesTotal1 && lesTotal1.total])
+      await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500)
+      const saves = (tM !== null && tM.ok === true ? tM.saves : 0) + (tL !== null && tL.ok === true ? tL.saves : 0)
+      check('back on the list, the banner counts what the host found', saves === 0 ? (await count('[data-tidy=banner]')) === 0 : new RegExp('^' + String(saves) + ' near-duplicate').test((await text('[data-tidy=banner]')) || ''), { saves, banner: await text('[data-tidy=banner]') })
+      await shot('03e-tidy-banner')
+    }
+  }
+  if ((await text('.kbmem-h1')) !== 'Memory & Lessons learned') { await ev(`document.querySelector('[data-act=back]').click()`); await sleep(500) }
 
   console.log('theme tokens')
   const colors = await ev(`(() => { const p = document.querySelector('.kbmem-page'); const cs = getComputedStyle(p); const btn = document.querySelector('.kbmem-btn'); return JSON.stringify({ ink: cs.getPropertyValue('--m-ink').trim(), acc: cs.getPropertyValue('--m-acc').trim(), color: cs.color, btnBg: btn ? getComputedStyle(btn).backgroundColor : null }) })()`)
