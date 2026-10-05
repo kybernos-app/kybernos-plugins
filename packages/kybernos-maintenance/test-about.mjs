@@ -460,8 +460,12 @@ console.log('── source guards ──')
   check('no dead CSS class (each .kbmz-* rule is used by the markup)', mortes.length === 0, mortes)
   const manque = [...code.matchAll(/className: '(kbmz-[a-z0-9-]+)'/g)].map((m) => m[1]).filter((c) => !classes.has(c))
   check('every class the markup uses is styled', manque.length === 0, [...new Set(manque)])
-  // The page reads /state; the update notice (own feature, same bundle) reads /update. Nothing else leaves the page.
-  check('the module only touches the page: no engine patch, and the only network calls are the state and update routes (read-only)', !/XMLHttpRequest|WebSocket|eval\(|new Function/.test(SOURCE) && (SOURCE.match(/fetch\(/g) || []).length === 2 && /fetch\('\/kybernos-maintenance\/state'\)/.test(SOURCE) && /fetch\('\/kybernos-maintenance\/update'/.test(SOURCE))
+  // The page reads /state; the update notice (own feature, same bundle) reads /update, asks the Suite's signed catalogue and, only
+  // when the user presses "Update now", starts and follows the Suite's own update. Nothing else leaves the page.
+  const appelsReseau = [...SOURCE.matchAll(/fetch\('([^']+)'/g)].map((m) => m[1].split('?')[0])
+  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
+  check('the module only touches the page: no engine patch, and the only network calls are the maintenance reads and the Suite\'s own routes', !/XMLHttpRequest|WebSocket|eval\(|new Function/.test(SOURCE) && appelsReseau.slice().sort().join() === attendus.join(), appelsReseau)
+  check('the two writes (refresh, update) are POSTs to the Suite, and "Update now" asks for an explicit confirm', /fetch\('\/kybernos-hub\/catalogue\/refresh', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/update', \{ method: 'POST'/.test(SOURCE) && /confirm: true/.test(SOURCE))
   // The About page keeps ONE key (the disclosure). The update notice keeps three more: snooze and skip in localStorage
   // (its own lsGet/lsSet helpers) and the once-per-session card flag in sessionStorage; no other code reaches storage.
   const cles = [...new Set([...SOURCE.matchAll(/'(kybernos\.(?:maintenance|update)\.[a-z]+)'/g)].map((m) => m[1]))].sort()
@@ -494,6 +498,27 @@ console.log('── optional: the same tree through the real React ──')
     const html2 = serveur.renderToStaticMarkup(React.createElement(m2.__test.Page, { etat: ETAT, onRafraichir: () => {}, charge: false }))
     check('real React: the shared Wordmark is used with size 30', html2.includes('<i data-size="30">KB</i>'))
   }
+}
+
+// ── the notification follows the signed release ────────────────────────────
+console.log('update notification: the signed release decides')
+{
+  const hote = { ok: true, checkedAt: 'T', pack: { installee: '1.0.0-beta.2', latest: '1.0.0-beta.2', disponible: false, joignable: true, depot: 'https://example.test/r', git: false }, moteur: {}, pending: null }
+  const signee = (o) => ({ cle: true, evaluation: 'ok', suite: '1.0.0-beta.3', plusRecent: true, miseAJour: { possible: true, raison: null }, ...o })
+  const f = T.fusionnerSigne(hote, signee({}))
+  check('a newer signed release is announced as a Kybernos update', f.pending !== null && f.pending.kind === 'kybernos' && f.pending.cible === '1.0.0-beta.3' && f.pending.installee === '1.0.0-beta.2' && f.pending.requis === false, f.pending)
+  check('and the pack says it is signed and that this install can apply it', f.pack.signe === true && f.pack.applicable === true && f.pack.disponible === true && f.pack.latest === '1.0.0-beta.3', f.pack)
+  const dev = T.fusionnerSigne(hote, signee({ miseAJour: { possible: false, raison: 'development-checkout' } }))
+  check('a development checkout is told it cannot apply it (git steps stay)', dev.pending !== null && dev.pack.applicable === false && dev.pack.raison === 'development-checkout', dev.pack)
+  check('nothing newer: the host answer is returned untouched', T.fusionnerSigne(hote, signee({ plusRecent: false })) === hote)
+  check('no key / no release: untouched', T.fusionnerSigne(hote, { cle: false, evaluation: 'aucune', suite: null, plusRecent: false }) === hote)
+  check('no distant block: untouched', T.fusionnerSigne(hote, null) === hote && T.fusionnerSigne(hote, undefined) === hote)
+  check('suite version not a string: untouched', T.fusionnerSigne(hote, signee({ suite: 3 })) === hote)
+  const sansVersion = { ...hote, pack: { ...hote.pack, installee: null } }
+  check('installed version unknown: nothing is made up', T.fusionnerSigne(sansVersion, signee({})) === sansVersion)
+  check('the host announcement of a newer engine is not hidden by an up-to-date signed suite', (() => { const m = { ...hote, pending: { kind: 'moteur', cible: '0.2.1', installee: '0.2.0', requis: false, note: '' } }; return T.fusionnerSigne(m, signee({ plusRecent: false })).pending.kind === 'moteur' })())
+  check('the words of each step (fr/en) never print "undefined"', ['telechargement', 'extraction', 'installation', 'termine', 'echec'].every((e) => { const t = T.motMaj({ etat: e, version: '1.0.0-beta.3', erreur: 'x' }); return t.length > 0 && !/undefined|null/.test(t) }))
+  check('idle says nothing', T.motMaj({ etat: 'idle' }) === '' && T.motMaj(null) === '')
 }
 
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')

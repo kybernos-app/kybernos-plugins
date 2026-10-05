@@ -620,11 +620,31 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       try { window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* Event missing */ }
     }
     const updPublish = (info) => { upd.info = info; updSignal() }
+    /** Pure. The signed release is what the Suite can actually install, so when it names a suite newer than this one it decides
+     *  what is announced (and says whether this install can apply it). Anything else (no key, offline, nothing newer) leaves the
+     *  host's own answer untouched. `distant` = the `distant` block of the hub's refresh answer. */
+    const fusionnerSigne = (info, distant) => {
+      if (info === null || typeof info !== 'object' || distant === null || typeof distant !== 'object') return info
+      if (distant.plusRecent !== true || typeof distant.suite !== 'string') return info
+      const pk = info.pack || {}
+      if (typeof pk.installee !== 'string') return info
+      const aj = distant.miseAJour || {}
+      return {
+        ...info,
+        pack: { ...pk, latest: distant.suite, disponible: true, joignable: true, signe: true, applicable: aj.possible === true, raison: aj.raison || null },
+        pending: { kind: 'kybernos', cible: distant.suite, installee: pk.installee, requis: false, note: '' }
+      }
+    }
     const updFetch = async (force) => {
       const r = await fetch('/kybernos-maintenance/update' + (force === true ? '?force=1' : ''), { cache: 'no-store' })
       if (r.ok !== true) throw new Error('HTTP ' + String(r.status))
       const j = await r.json()
       if (j === null || typeof j !== 'object' || j.ok !== true) throw new Error('réponse inattendue')
+      // The signed catalogue (the Suite's own check). It never blocks or breaks the host's answer.
+      try {
+        const s = await fetch('/kybernos-hub/catalogue/refresh', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}', cache: 'no-store' })
+        if (s.ok === true) { const sj = await s.json(); return fusionnerSigne(j, sj !== null && typeof sj === 'object' ? sj.distant : null) }
+      } catch (e) { /* the hub is optional here */ }
       return j
     }
     const updMuted = (p) => {
@@ -679,6 +699,42 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       try { navigator.clipboard.writeText(txt).then(done, () => { /* clipboard denied: the command stays visible */ }) } catch (e) { /* no clipboard */ }
     }
 
+    /** The words for one step of the Suite's update, from GET /kybernos-hub/update/status. */
+    const motMaj = (t) => {
+      if (t === null || typeof t !== 'object') return ''
+      if (t.etat === 'telechargement') return kbp('Téléchargement et vérification de l’archive…', 'Downloading and checking the archive…')
+      if (t.etat === 'extraction') return kbp('Extraction…', 'Extracting…')
+      if (t.etat === 'installation') return kbp('Installation (une photo est prise avant)…', 'Installing (a snapshot is taken first)…')
+      if (t.etat === 'termine') return '✓ ' + kbp('Kybernos ' + String(t.version || '') + ' est installé. Redémarrez DSH pour terminer.', 'Kybernos ' + String(t.version || '') + ' is installed. Restart DSH to finish.')
+      if (t.etat === 'echec') return kbp('La mise à jour a échoué, rien n’a changé : ', 'The update failed and nothing changed: ') + String(t.erreur || '')
+      return ''
+    }
+    /** Starts the Suite's update from the dialog (the host does the work; this only asks and follows). */
+    const updRun = async (btn, statut, fin) => {
+      btn.disabled = true
+      statut.textContent = kbp('Démarrage…', 'Starting…')
+      let r = null
+      try {
+        const x = await fetch('/kybernos-hub/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: true }) })
+        r = { code: x.status, body: await x.json().catch(() => null) }
+      } catch (e) { r = null }
+      if (r === null || r.code !== 202) {
+        statut.textContent = kbp('La mise à jour n’a pas pu démarrer', 'The update could not start') + (r !== null && r.body !== null && r.body.error ? ' (' + String(r.body.error) + ')' : '') + '.'
+        btn.disabled = false
+        return
+      }
+      const suivre = async () => {
+        let t = null
+        try { const x = await fetch('/kybernos-hub/update/status', { cache: 'no-store' }); t = await x.json() } catch (e) { t = null }
+        if (t === null || t.ok !== true) { setTimeout(() => { void suivre() }, 3000); return }
+        statut.textContent = motMaj(t)
+        if (t.etat === 'termine') { fin(); try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ } return }
+        if (t.etat === 'echec') { btn.disabled = false; return }
+        setTimeout(() => { void suivre() }, 2000)
+      }
+      void suivre()
+    }
+
     /** The dialog: versions, what changes, the steps to follow — or "you are up to date". */
     const updDialog = (info, opts) => {
       upCss()
@@ -717,6 +773,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       }
       dlg.appendChild(rows)
 
+      let viaSuite = false
+      let statutMaj = null
       if (p !== null) {
         if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbup-note', hs(p.note)))
         if (p.requis === true) dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette mise à jour est requise : le moteur installé est sous le minimum que ce plugin supporte.', 'This update is required: the installed engine is below the minimum this plugin supports.')))
@@ -730,7 +788,12 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           steps.appendChild(li)
         }
         const pk = info.pack || {}
-        if (p.kind === 'kybernos' && pk.git !== true) {
+        if (p.kind === 'kybernos' && pk.signe === true && pk.applicable === true) {
+          viaSuite = true
+          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de votre installation puis installe. En cas d’échec, tout revient à l’état d’avant. DSH n’est pas redémarré : vous le ferez ensuite.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. DSH is not restarted: you do that afterwards.')))
+          statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
+          dlg.appendChild(statutMaj)
+        } else if (p.kind === 'kybernos' && pk.git !== true) {
           step(kbp('Téléchargez la dernière archive du dépôt et décompressez-la.', 'Download the latest archive of the repository and extract it.'))
           step(kbp('Dans un terminal, depuis le dossier décompressé :', 'In a terminal, from the extracted folder:'), './kybernos-update')
         } else if (p.kind === 'kybernos') {
@@ -739,8 +802,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } else {
           step(kbp('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
         }
-        step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
-        dlg.appendChild(steps)
+        if (viaSuite !== true) step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
+        if (viaSuite !== true) dlg.appendChild(steps)
       } else if (info !== null && info.checkedAt) {
         let quand = ''
         try { quand = new Date(info.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { quand = '' }
@@ -757,7 +820,16 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const grow = upEl('span', 'grow'); foot.appendChild(grow)
       const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
       foot.appendChild(again)
-      if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
+      if (viaSuite === true) {
+        // Once installed the dialog has nothing left to postpone or skip: only "Close" stays.
+        const fin = () => {
+          foot.querySelectorAll('.kbup-b').forEach((b) => { if (b !== go) b.remove() })
+          go.textContent = kbp('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb'); go.onclick = close
+        }
+        const go = upBtn(kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main', () => { void updRun(go, statutMaj, fin) })
+        go.setAttribute('data-kb', 'upd-go')
+        foot.appendChild(go)
+      } else if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
         const a = upEl('a', 'kbup-b main', kbp('Ouvrir la page de téléchargement', 'Open the download page'))
         a.href = info.pack.depot; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.textDecoration = 'none'; a.style.display = 'inline-flex'; a.style.alignItems = 'center'
         foot.appendChild(a)
@@ -832,7 +904,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         // Update detection: never blocks startup.
         try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
       },
-      __test: { decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
+      __test: { fusionnerSigne, motMaj, decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }
   }
 })
