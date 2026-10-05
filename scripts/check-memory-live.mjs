@@ -136,7 +136,7 @@ try {
   const scope = await ev(`JSON.stringify([...document.querySelectorAll('.kbmem-seg[aria-label=Scope] button')].map(b => ({ t: b.textContent.trim(), off: b.disabled, why: b.title })))`)
   const scopeBtns = JSON.parse(scope || '[]')
   check('the Scope control offers Mine and Team', scopeBtns.length === 2 && /^Mine/.test(scopeBtns[0].t) && /^Team/.test(scopeBtns[1].t), scope)
-  check('Team is either available, or locked with the reason', scopeBtns.length === 2 && (scopeBtns[1].off === false || (scopeBtns[1].off === true && /Team|Connect|Kybernos Cloud/.test(scopeBtns[1].t) && scopeBtns[1].why !== '')), scope)
+  check('Team is either available, or locked with the reason', scopeBtns.length === 2 && (scopeBtns[1].off === false || (scopeBtns[1].off === true && /Team plan|No team workspace|Sign in|Restart DSH|Checking/.test(scopeBtns[1].t) && scopeBtns[1].why !== '')), scope)
   await ev(`document.querySelector('[data-act=filter]').click()`); await sleep(300)
   const groups = await ev(`JSON.stringify([...document.querySelectorAll('.kbmem-mg')].map(e => e.textContent.trim()))`)
   check('filter menu offers Status and Added (plus Kyber when kybers exist)', ['Status', 'Added'].every((g) => (groups || '').indexOf(g) >= 0) && (groups || '').indexOf('Scope') < 0, groups)
