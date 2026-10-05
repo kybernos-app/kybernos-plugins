@@ -55,6 +55,7 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 | SEL-16 | No server address is hard-coded in the cloud host any more | Auto, same file | pass |
 | SEL-20 | The page's loader: the active server's console, web app and name replace the defaults; a server that names no gateway gets none; every failure (refused, non-OK, foreign answer, invalid server, no fetch) leaves the defaults and never throws | Auto `kybernos-plugin/test-server-client.mjs` (the loader is cut out of `client.js`) | 12/12 |
 | SEL-21 | The console, the cloud page and the store read the loaded server, not a literal; opening « Teams settings » asks for the active server before probing its console | Auto, same file | pass |
+| SEL-23 | The page's loader also reads the active workspace from `/kybernos-cloud/status`: carried when it is a string, empty when not signed in or malformed; the console URL carries `ws` only then | Auto `kybernos-plugin/test-server-client.mjs` | pass |
 | SEL-22 | The Settings nav still orders About last and leaves room under the last tab after the « Servers » entries were added | Auto `kybernos-plugin/test-settings-nav.mjs` | 8/8 |
 | SEL-30 | The running host serves `GET /kybernos-cloud/server`: the active server, every server with `connected`, one active, no token | Live `check-relay-real.mjs` | pass (4 checks) |
 | SEL-31 | The route table of the cloud host, including `/relay`, `/server`, `/server/apply` | Auto `kybernos-cloud/test-cloud-host.mjs` (it had been red since the relay merge; repaired) | 107/107 |
@@ -69,6 +70,9 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 | CON-04 | The data bridge with a key against a stand-in gateway (id, name, date, plan, balance, members and side panel, providers, models, usage, billing) | Live hermetic `check-team-live --console-file` | pass (9 checks) |
 | CON-05 | Controls and scroll height are measured with one rule (observation, not a threshold): 171 → 101 controls | `check-team-live` observations | recorded |
 | CON-06 | DSH-aligned controls (ink pill primary that inverts with the theme, 8 px outline, 12 px grey fields, pill segments, underline tabs, joined KPI strip, flat rows) in the dark and light themes | Manual, screenshots reviewed | reviewed 2026-10-05 |
+| CON-07 | Blocks are bordered like the mockup; the Plan page is: identity row, plan block, credits and auto-recharge side by side (equal top, second one to the right); the members table still fits its column inside a bordered block | Live hermetic `check-team-live --console-file` (relay section + overflow section) | pass |
+| CON-08 | The Team Settings page is folded into Plan & Credits (one page less): no `team` page, Plan & Credits first; the workspace ID is a discreet circled « ID » (24 px at most, labelled « Copy workspace ID »), a click copies the full id and says « Workspace ID copied » | Live hermetic, same run; the label baseline lists the page as removed with the owner's approval | pass |
+| CON-09 | One workspace selector: inside the app the console's selector only SHOWS the workspace (no menu opens), and with `ws` in the iframe URL the console opens on the workspace the app has active, not on the first one; standalone, the menu is headed « Switch workspace » | Live hermetic, same run; Auto `kybernos-plugin/test-server-client.mjs` (the app carries `ws` only when a workspace is known) | pass |
 
 ## Gaps (no automated home yet)
 
