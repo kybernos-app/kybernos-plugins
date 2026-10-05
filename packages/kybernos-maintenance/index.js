@@ -113,8 +113,8 @@ async function lireRegistre () {
 //   · the DSH ENGINE: the same measure as the Maintenance page (`maj`).
 // The client decides when to ask (at launch, then regularly) and how to
 // notify; the host only measures, read-only.
-const VERSION_DISTANTE = process.env.KYBERNOS_VERSION_URL || 'https://raw.githubusercontent.com/platonai-net/kybernos-plugins/main/VERSION'
-const DEPOT_URL = process.env.KYBERNOS_REPO_URL || 'https://github.com/platonai-net/kybernos-plugins'
+const VERSION_DISTANTE = process.env.KYBERNOS_VERSION_URL || 'https://raw.githubusercontent.com/kybernos-app/kybernos-plugins/main/VERSION'
+const DEPOT_URL = process.env.KYBERNOS_REPO_URL || 'https://github.com/kybernos-app/kybernos-plugins'
 const FORME_VERSION = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.+-]+)?$/
 let CACHE_PACK = null
 export async function lirePackDistant (force) {

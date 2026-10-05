@@ -14,7 +14,7 @@ import { createPublicKey, verify } from 'node:crypto'
 export const TAILLE_MAX_DOC = 1024 * 1024
 export const TAILLE_MAX_ARCHIVE = 300 * 1024 * 1024
 /** Where `latest` points on GitHub Releases; the setting `catalogueUrl` overrides it. */
-export const URL_PAR_DEFAUT = 'https://github.com/platonai-net/kybernos-plugins/releases/latest/download/catalog.release.json'
+export const URL_PAR_DEFAUT = 'https://github.com/kybernos-app/kybernos-plugins/releases/latest/download/catalog.release.json'
 
 const NOM_MODULE = /^[a-z0-9][a-z0-9-]*$/
 const NOM_FICHIER = /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/
