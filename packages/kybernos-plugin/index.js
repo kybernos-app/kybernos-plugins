@@ -19,6 +19,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 import { poserPresetKybernos, choisirPresetParDefaut, ID_PRESET_KYBERNOS, SEUIL_COMPACTAGE, activerSubagentClaude } from './preset-compaction.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
+import { wsConsoleKeyReply } from './ws-console-key.mjs'
 import { serveI18nStore } from './i18n-store.mjs'
 // ── Le plafond de retries (29/09/2026) ──────────────────────────────────────
 // Un subagent « ne répondait plus » des heures : maxRetries 500 × backoff 30 s.
@@ -10274,11 +10275,9 @@ function boot(ctx) {
       // dépôt. Le client la récupère par cette route same-origin pour la
       // passer à l'iframe (?key=…), ce qui évite tout prompt à l'utilisateur.
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/ws-console-key', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-        const st = await kbBrainSettings()
-        const key = typeof st.wsAdminKey === 'string' ? st.wsAdminKey.trim() : ''
-        sendJson(res, 200, { ok: true, key: key.length > 0 ? key : null })
+        // The logic (method, origin guard, reading the key) lives in ws-console-key.mjs, where a test covers every branch.
+        const r = await wsConsoleKeyReply(req, { sameOriginStrict: sameOriginStrict, readSettings: kbBrainSettings })
+        sendJson(res, r.status, r.body)
       } }), 'kybernos: route ws-console-key')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/insight-save', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })

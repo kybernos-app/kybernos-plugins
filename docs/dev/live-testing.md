@@ -316,6 +316,38 @@ throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's;
   *language* reloads every open page and flips labels mid-run: each section compares `<html lang>` at its
   start and end and prints `! the interface language changed…` — read the failures of that section as invalid.
 
+## The Team surfaces, read-only: `scripts/check-team-live.mjs`
+
+```bash
+node scripts/check-team-live.mjs --shots /tmp/shots      # + screenshots of the menu, the iframe, Members, Providers
+node scripts/check-team-live.mjs --capture-labels        # re-freeze the label baseline (see below)
+```
+
+It writes nothing: no setting, no key, no language, and DSH is not restarted. It opens the account menu, opens
+« Teams settings », reads the iframe, then loads the hosted console (the iframe's own address) in the throw-away Chrome
+at the iframe's width and reads each of its pages (the list comes from the page, not from the script).
+
+- **menu**: the entry exists; it opens the console in an iframe whose URL carries the gateway and DSH's theme and **no key**;
+  the iframe fills the content area; an outside caller (no `Origin`, or a foreign one) gets 403 from
+  `/kybernos/ws-console-key`. The key itself is never read by the script: only whether the host has one.
+- **console**: every page opens without a script error, shows no `undefined` / `NaN`, and has no element wider than its
+  column. The Members table is 101 px too wide today, so this check is red until that is fixed.
+- **labels**: `scripts/team-console-labels.json` freezes the static labels of each page (headings, buttons, tabs,
+  columns, field labels, helper lines; no numbers, no names). A rework may not lose one silently: a label that is meant
+  to go is listed in `allowRemoved` with the owner's approval. The baseline does not protect sentences outside those
+  elements. Re-freeze with `--capture-labels` only on a console you trust.
+
+Printed, never failing: whether the host has an admin key (without one the console shows **demo data**), the number of
+controls and the scroll height of each page. The count is one rule for the console and for any mockup (visible fields plus
+the outermost clickable elements), so a before / after comparison is fair.
+
+Needs the network (the console is hosted) and a connected account; exit 3 when either is missing.
+
+The host half of the key hand-off is unit-tested in `packages/kybernos-plugin/test-ws-console-key.mjs` (who may ask, what the
+answer carries, where the page posts it). The cloud client's React render half runs only where `react` and `react-dom`
+resolve (`NODE_PATH=<a node_modules with them> node packages/kybernos-cloud/test-cloud-client.mjs`); CI has none, so it
+skips there: run it by hand after touching the footer card or the account menu.
+
 ## Translation coverage: `scripts/audit-i18n-live.mjs`
 
 ```bash
