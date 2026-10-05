@@ -10,6 +10,7 @@
   "cost",
   "credits used",
   "dissolve team soon",
+  "hosted by stripe. open it to:",
   "just me",
   "my team",
   "plan",
@@ -216,6 +217,7 @@
   "2026-10-05 Skills": "Owner approved removing the Skills page from the console: it was a demo (in-memory list, no network); real skills are per user in the DSH and web Skills screens.",
   "2026-10-05 Plan & Credits": "Owner approved: « Just me » / « My team » no longer exist inside a team (a team only offers team plans; one personal workspace per person; to reach personal plans you switch workspace). « Compare plans ↓ » is « Compare plans »: the plan list moved into a dialog.",
   "2026-10-05 Members & Roles": "Member details moved from a row that unfolded inside the table into a side panel (Details); Deactivate moved into that panel; the four filters fold behind one Filters button; the sync profile is a chip in the row and a select in the panel. Two baseline entries were state-dependent texts captured while nina's row was open (her profile name, her used-up credits): not features.",
-  "2026-10-05 Usage": "« Credits used » and « Cost » were the same number twice (the cost is the credits divided by 1,000): one tile, « Used », with the amount first and the credits under it. The filters fold behind a Filters button and the three breakdowns (member, AI Team, model) are chosen by a segment instead of stacked."
+  "2026-10-05 Usage": "« Credits used » and « Cost » were the same number twice (the cost is the credits divided by 1,000): one tile, « Used », with the amount first and the credits under it. The filters fold behind a Filters button and the three breakdowns (member, AI Team, model) are chosen by a segment instead of stacked.",
+  "2026-10-05 Billing, API Keys, Providers & Models": "The three bullets of the billing portal card became one sentence (same content); the opencode snippet folds in a <details>; « Create a team » is not offered by the console any more (it created nothing: the app does), nor the « Import models » button that only toasted."
  }
 }

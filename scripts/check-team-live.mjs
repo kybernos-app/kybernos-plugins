@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // What a user sees of the Team surfaces, on the REAL GUI, read-only.
 //
-//   node scripts/check-team-live.mjs [--shots <dir>] [--console-url <url>] [--capture-labels]
+//   node scripts/check-team-live.mjs [--shots <dir>] [--console-url <url>] [--console-file <path>] [--capture-labels]
 //
 // It talks to your real `dsh web` (127.0.0.1:3080, KB_HOST to change it) and to the hosted Team settings console. It
 // changes nothing: it opens the account menu, opens « Teams settings », reads the iframe, then loads the console page
@@ -16,11 +16,17 @@
 //   labels    every label recorded in scripts/team-console-labels.json is still on its page (nothing silently lost
 //             when the console is reworked); removals the owner approved go in `allowRemoved`
 //
+//   bridge    with --console-file <path to workspace-console.html>: the console you are editing is served locally (instead of the
+//             hosted one), read page by page, then loaded WITH a key against a stand-in gateway (scripts/lib-fake-team-gateway.mjs)
+//             to prove its data bridge still turns the services' answers into the right screens
+//
 // Exit code 0 (all ✓), 1 (a ✗), 3 (inconclusive: no Chrome, no GUI, console unreachable, before any measure).
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createServer } from 'node:http'
 import { openLivePage, waitFor } from './live-page.mjs'
+import { startFakeTeamGateway } from './lib-fake-team-gateway.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const LABELS_FILE = join(HERE, 'team-console-labels.json')
@@ -89,6 +95,7 @@ const SWITCHES = {
 const live = await openLivePage({ width: 1500, height: 950 }).catch((e) => inconclusive(e.message))
 const { page } = live
 let exitNow = null
+let fileServer = null
 try {
   await page.send('Runtime.enable', {})
   await sleep(2500)
@@ -141,8 +148,17 @@ try {
 
   // ── 2. The console itself, page by page ─────────────────────────────────────
   console.log('console: every page, at the iframe\'s width')
-  const consoleUrl = opt('--console-url')
-  if (consoleUrl === null) inconclusive('no console URL (the menu step found no iframe); pass --console-url')
+  // --console-file: serve the console you are editing, on a free local port, instead of reading the hosted one.
+  let consoleBase = null
+  if (opt('--console-file') !== null) {
+    const html = readFileSync(opt('--console-file'), 'utf8')
+    fileServer = createServer((req, res) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html) })
+    await new Promise((r) => fileServer.listen(0, '127.0.0.1', r))
+    consoleBase = 'http://127.0.0.1:' + fileServer.address().port + '/workspace-console.html'
+    observations.push('The console under test is the local file ' + opt('--console-file') + ', not the hosted one.')
+  }
+  const consoleUrl = consoleBase !== null ? consoleBase + '?gw=' + encodeURIComponent('https://gateway.invalid') + '&theme=dark' : opt('--console-url')
+  if (consoleUrl === null) inconclusive('no console URL (the menu step found no iframe); pass --console-url or --console-file')
   const errors = []
   page.on('Runtime.exceptionThrown', (e) => errors.push((e.exceptionDetails && e.exceptionDetails.exception && e.exceptionDetails.exception.description) || 'exception'))
   await page.send('Emulation.setDeviceMetricsOverride', { width: 1220, height: 863, deviceScaleFactor: 1, mobile: false })
@@ -241,12 +257,48 @@ try {
     const added = ids.filter((id) => !(id in baseline.pages))
     if (added.length > 0) observations.push('Pages not in the baseline: ' + added.join(', ') + '.')
   }
+
+  // ── 4. The data bridge, with a key, against a stand-in gateway ───────────────
+  if (consoleBase !== null) {
+    console.log('bridge: the console with a key, against a stand-in gateway')
+    const gw = await startFakeTeamGateway()
+    try {
+      const before = errors.length
+      const u = new URL(consoleBase); u.searchParams.set('gw', gw.url); u.searchParams.set('theme', 'dark'); u.searchParams.set('key', 'stand-in-key')
+      await page.send('Page.navigate', { url: u.toString() })
+      const ok = await waitFor(page, `document.querySelectorAll('[data-nav]').length >= 5 && document.querySelector('#t-team') && !document.getElementById('kbKeyBanner')`, 20000)
+      await sleep(1500)
+      check('with a key the « connect key » banner is gone', ok !== null)
+      const r = (await page.evalJs(`(() => {
+        const q = (s) => document.querySelector(s), go = (id) => q('[data-nav=' + id + ']').click(), res = {}
+        const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ')
+        go('team'); res.team = txt('#t-team')
+        go('plan'); res.plan = txt('#curName') + ' | ' + txt('#balance')
+        go('members'); res.members = Array.from(document.querySelectorAll('#memberBody tr')).map((x) => x.innerText.replace(/\\s+/g, ' '))
+        const open = q('#memberBody tr:nth-child(2) [data-open]'); if (open) open.click(); res.panel = !q('#memDrawer').classList.contains('hidden') ? q('#drTitle').textContent : null
+        q('#drClose').click()
+        go('providers'); res.cards = Array.from(document.querySelectorAll('#provGrid .pcard')).map((x) => x.innerText.replace(/\\s+/g, ' ').trim())
+        q('#pmTabs [data-pm=models]').click(); res.models = document.querySelectorAll('#mBody tr').length
+        go('usage'); res.usage = txt('#t-usage')
+        go('billing'); res.billing = txt('#invoiceBody') + ' | ' + txt('#pmText')
+        return res })()`)).val
+      check('the team page shows the team\'s own id, name and creation date', r && r.team.includes(gw.teamId) && r.team.includes('Acme Team') && r.team.includes('August 1, 2026'), r && r.team.slice(0, 160))
+      check('the plan page reads the plan and the shared balance', r && r.plan.startsWith('Team') && r.plan.includes('$12.50'), r && r.plan)
+      check('Members lists the two members and opens the side panel', r && r.members.length === 2 && r.members[0].includes('owner@acme.test') && r.panel === 'bea', r && JSON.stringify(r.members) + ' ' + r.panel)
+      check('Providers shows Kybernos as one card, then the team\'s own provider', r && r.cards.length === 2 && /kybernos/.test(r.cards[0]) && /openrouter/.test(r.cards[1]), r && JSON.stringify(r.cards))
+      check('the Models table lists the gateway\'s models and the team\'s own', r && r.models === 3, r && String(r.models))
+      check('Usage totals the stand-in\'s usage as an amount', r && r.usage.includes('$1.60'), r && r.usage.slice(0, 120))
+      check('Billing shows the Stripe invoice and the card', r && r.billing.includes('#IN-abc123456') && r.billing.includes('4242'), r && r.billing)
+      check('no script error with live-shaped data', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 160))
+    } finally { await gw.close() }
+  }
   await page.send('Emulation.clearDeviceMetricsOverride', {})
 } catch (e) {
   console.log('\nThe check itself failed: ' + (e && e.message ? e.message : e))
   exitNow = 3
 } finally {
   await live.close()
+  if (fileServer !== null) fileServer.close()
 }
 if (exitNow !== null) process.exit(exitNow)
 

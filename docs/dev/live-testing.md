@@ -321,6 +321,7 @@ throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's;
 ```bash
 node scripts/check-team-live.mjs --shots /tmp/shots      # + screenshots of the menu, the iframe, Members, Providers
 node scripts/check-team-live.mjs --capture-labels        # re-freeze the label baseline (see below)
+node scripts/check-team-live.mjs --console-file <path>/workspace-console.html   # test the console you are editing
 ```
 
 It writes nothing: no setting, no key, no language, and DSH is not restarted. It opens the account menu, opens
@@ -336,6 +337,18 @@ at the iframe's width and reads each of its pages (the list comes from the page,
   columns, field labels, helper lines; no numbers, no names). A rework may not lose one silently: a label that is meant
   to go is listed in `allowRemoved` with the owner's approval. The baseline does not protect sentences outside those
   elements. Re-freeze with `--capture-labels` only on a console you trust.
+
+- **bridge** (only with `--console-file`): the file is served on a free local port instead of reading the hosted console; after
+  the page-by-page reading it is loaded **with a key** against `scripts/lib-fake-team-gateway.mjs`, a stand-in for the gateway
+  and the team API that answers with the shapes the real services return (read-only). It proves the console's data bridge still
+  turns those answers into the right screens: the team's id and creation date, the plan and balance, the two members and the
+  side panel, Kybernos as one provider card then the team's own, the models, the usage total, the Stripe invoice. When the
+  console is rewired to other routes, change the stand-in's table: a drift there is the test doing its job. Run it on the
+  previous console file and it fails (10 checks), which is how you know it is not vacuous.
+
+Every dialog or side panel a page owns is opened and read (Plan: Compare plans; Members: a member's details and the filters;
+Usage: the filters), the segments that swap a view are pressed (Usage: group by), and every inner tab is checked for overflow,
+so a label that moved behind a click still counts as reachable and nothing hides a table wider than its column.
 
 Printed, never failing: whether the host has an admin key (without one the console shows **demo data**), the number of
 controls and the scroll height of each page. The count is one rule for the console and for any mockup (visible fields plus
