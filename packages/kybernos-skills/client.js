@@ -316,6 +316,7 @@ window.__ModuleLoader__.load({
         'tm.lock.other.t': { fr: 'Les skills d’équipe ne répondent pas', en: 'Team skills are not answering' },
         'tm.retry': { fr: 'Réessayer', en: 'Try again' },
         'tm.back': { fr: 'Retour à Yours', en: 'Back to Yours' },
+        'tm.seePlan': { fr: 'Voir le plan Team', en: 'See the Team plan' },
         'tm.det.back': { fr: 'Skills d’équipe', en: 'Team skills' },
         'tm.det.approvedBy': { fr: 'Ajouté par {a} le {d}, approuvé par {r}.', en: 'Added by {a} on {d}, approved by {r}.' },
         'tm.det.proposedBy': { fr: 'Proposé par {a} le {d}.', en: 'Proposed by {a} on {d}.' },
@@ -1704,6 +1705,9 @@ window.__ModuleLoader__.load({
       }))
 
       // Why the Team tab shows nothing to do: not signed in, not on the plan, no team workspace, not on this server…
+      // The page of the plans (the app's /billing route shows the plans grid). Opened in a new tab: this screen stays where it is.
+      const TEAM_PLAN_URL = 'https://kybernos.app/billing'
+
       function TeamLocked(props) {
         const kind = props.kind
         const known = ['plan', 'signin', 'space', 'server', 'reconnect', 'net'].indexOf(kind) >= 0
@@ -1712,6 +1716,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kb8-name' }, t(known ? 'tm.lock.' + kind + '.t' : 'tm.lock.other.t')),
           h('span', { className: 'kb8-parent', style: { maxWidth: '520px' } }, known ? t('tm.lock.' + kind + '.b') : (props.detail || '')),
           h('div', { className: 'kb-row', style: { justifyContent: 'center' } },
+            kind === 'plan' ? h('a', { className: 'kb8-primary', href: TEAM_PLAN_URL, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, t('tm.seePlan')) : null,
             retriable ? h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onRetry }, t('tm.retry')) : null,
             h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onBack }, t('tm.back'))))
       }
