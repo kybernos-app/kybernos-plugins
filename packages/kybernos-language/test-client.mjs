@@ -239,7 +239,7 @@ console.log('\n── older installation (dictionary without a progress record) 
   check('a missing plan (source unavailable) does not crash', T.heldBy('ar', null) === null)
 }
 check('a language in use but incomplete keeps a button to finish it', /if \(inUse\) \{[\s\S]{0,400}if \(!complete && !running\) acts\.push\(goButton\(\)\)/.test(SOURCE))
-check('a language that holds translations can be used as is ("Use anyway")', /else if \(done > 0\) acts\.push\(h\('button', \{ key: 'any'/.test(SOURCE))
+check('a language that holds translations can be used as is ("Use anyway"), unless it holds test marks', /else if \(done > 0 && pseudo\.n === 0\) acts\.push\(h\('button', \{ key: 'any'/.test(SOURCE))
 
 // ── engine: success ───────────────────────────────────────────────────────
 console.log('\n── engine: success ──')
@@ -451,6 +451,161 @@ const settle = async (...states) => { for (let i = 0; i < 400 && states.includes
   T.startRun('es', null)
   await settle('running')
   check('finished with gaps: "partial" + missing count', T.getRun().state === 'partial' && T.getRun().missing > 0, T.getRun())
+}
+
+// ── pseudo-translations: a test mark is never a translation ──────────────────────────────
+console.log('\n── pseudo-translations (⟦…⟧ written by a test run) ──')
+{
+  reset(); setSource()
+  const plan = T.buildPlan('es')
+  const kbItems = plan.items.filter((i) => i.store === 'kb')
+  const dshItems = plan.items.filter((i) => i.store === 'dsh')
+  // What the user's disk really held: the Kybernos half partly real, the whole DSH half marked.
+  const kb = {}
+  kbItems.forEach((it, i) => { kb[it.id] = i % 3 === 0 ? 'ES:' + it.text : '⟦' + it.text + '⟧' })
+  const dsh = {}
+  for (const it of dshItems) dsh[it.id] = '⟦' + it.text + '⟧'
+  const live = { 'Hello there': '⟦Hello there⟧', 'Real one': 'Uno real' }
+  localStorage.setItem('kybernos.i18n.es', JSON.stringify(kb))
+  localStorage.setItem('kybernos.i18n.dsh.es', JSON.stringify(dsh))
+  localStorage.setItem('kybernos.i18n.live.es', JSON.stringify(live))
+  const realKb = kbItems.filter((it, i) => i % 3 === 0).length
+  check('a ⟦…⟧ text is a test mark; a real text and a half-bracket are not', T.isTestMark('⟦Cancel⟧') && !T.isTestMark('Cancelar') && !T.isTestMark('⟦Cancel') && !T.isTestMark('⟦⟧') && !T.isTestMark(undefined))
+  const st = T.pseudoStats('es')
+  check('the marks are counted across the three stores', st.n === (kbItems.length - realKb) + dshItems.length + 1 && st.examples.length === 4, st.n)
+  check('what the page counts as held excludes them (not 100 %)', T.heldBy('es', plan).done === realKb, T.heldBy('es', plan).done)
+  localStorage.setItem('kybernos.i18n.meta.es', JSON.stringify({ complete: true, total: plan.total, done: plan.total, essentials: true, at: 1 }))
+  check('a language recorded "complete" but holding marks is NOT complete', T.isComplete('es') === false)
+  // A run translates the marked texts: they are missing, not done.
+  const host = installHost((body) => translateAll(body))
+  T.startRun('es', null)
+  await settle('running')
+  check('the run translated every marked text of the plan (calls were made, nothing skipped)', host.calls.length > 0 && Object.values(T.i18nRead('es')).every((v) => !T.isTestMark(v)) && Object.values(T.dshRead('es')).every((v) => !T.isTestMark(v)), host.calls.length)
+  check('… and ended complete, with the real texts it already had kept', T.getRun().state === 'done' && T.i18nRead('es')[kbItems[0].id] === 'ES:' + kbItems[0].text, T.getRun())
+  check('the live store is the live layer’s own: a run leaves its marks, the repair takes them', T.pseudoStats('es').n === 1)
+}
+{
+  reset(); setSource()
+  const plan = T.buildPlan('es')
+  const kbItems = plan.items.filter((i) => i.store === 'kb')
+  const dshItems = plan.items.filter((i) => i.store === 'dsh')
+  const kb = {}
+  kbItems.forEach((it, i) => { kb[it.id] = i % 2 === 0 ? 'ES:' + it.text : '⟦' + it.text + '⟧' })
+  const dsh = {}
+  for (const it of dshItems) dsh[it.id] = '⟦' + it.text + '⟧'
+  localStorage.setItem('kybernos.i18n.es', JSON.stringify(kb))
+  localStorage.setItem('kybernos.i18n.dsh.es', JSON.stringify(dsh))
+  localStorage.setItem('kybernos.i18n.live.es', JSON.stringify({ a: '⟦a⟧', b: 'real' }))
+  localStorage.setItem('kybernos.i18n.meta.es', JSON.stringify({ complete: true, total: plan.total, done: 840, essentials: false, at: 1 }))
+  const touched = []
+  const rt = globalThis.window.__KB_LANG_RUNTIME__
+  const before = rt.disk.touch
+  rt.disk.touch = (id) => { touched.push(id) }
+  const r = T.repairPseudo('es')
+  rt.disk.touch = before
+  const keptKb = kbItems.filter((it, i) => i % 2 === 0).length
+  check('the repair removes every mark and only the marks', r.ok === true && r.removed === (kbItems.length - keptKb) + dshItems.length + 1, r)
+  check('… the real texts stay, in every store', Object.keys(T.i18nRead('es')).length === keptKb && Object.keys(T.dshRead('es')).length === 0 && Object.keys(T.liveRead('es')).join() === 'b')
+  const meta = T.metaRead('es')
+  check('… the progress record says the truth: not complete, and the real count', meta.complete === false && meta.done === keptKb && meta.total === plan.total, meta)
+  check('… the disk copy is told (the runtime sends the section as a whole)', touched.includes('es'), touched)
+  check('… a second repair finds nothing to do', T.pseudoStats('es').n === 0 && T.repairPseudo('es').removed === 0)
+}
+{
+  // The live checks and the engine tests run WITH pseudo-translations: the flag turns the guard off.
+  reset(); setSource()
+  const plan = T.buildPlan('es')
+  const kb = {}
+  for (const it of plan.items.filter((i) => i.store === 'kb')) kb[it.id] = '⟦' + it.text + '⟧'
+  localStorage.setItem('kybernos.i18n.es', JSON.stringify(kb))
+  globalThis.window.__KB_I18N_PSEUDO_OK__ = true
+  check('with __KB_I18N_PSEUDO_OK__ the marks are real texts again (no banner, counted as held)', T.pseudoStats('es').n === 0 && T.heldBy('es', plan).done === Object.keys(kb).length)
+  delete globalThis.window.__KB_I18N_PSEUDO_OK__
+  check('… and the flag is read at every call, not once', T.pseudoStats('es').n === Object.keys(kb).length)
+}
+
+// ── a run that outlives a closed tab ───────────────────────────────────────────────────────
+console.log('\n── a run left behind by a closed tab ──')
+{
+  reset(); setSource(); T.resetRun()
+  const now = 1000000
+  check('a fresh heartbeat: another tab is running it, nobody takes over', T.shouldTakeOver({ lang: 'es', beat: now - 5000 }, now, true) === false)
+  check('a stale heartbeat: the next tab takes over', T.shouldTakeOver({ lang: 'es', beat: now - 25000 }, now, true) === true)
+  check('nothing was left behind: nothing to do', T.shouldTakeOver(null, now, true) === false)
+  check('the user switched the automatic resume off: nobody takes over', T.shouldTakeOver({ lang: 'es', beat: now - 25000 }, now, false) === false)
+  check('the automatic resume is on until the user switches it off', T.autoResumeOn() === true)
+  T.setAutoResume(false)
+  check('… off is remembered', T.autoResumeOn() === false && localStorage.getItem('kybernos.i18n.autoresume') === 'off')
+  T.setAutoResume(true)
+  check('… and back on', T.autoResumeOn() === true && localStorage.getItem('kybernos.i18n.autoresume') === null)
+  check('the keys do not look like a language id (the page would list "run" as a language)', ['kybernos.i18n.runstate', 'kybernos.i18n.autoresume'].every((k) => !/^kybernos\.i18n\.[a-z]{2,3}$/.test(k)))
+}
+{
+  reset(); setSource(); T.resetRun()
+  let release
+  const gate = new Promise((r) => { release = r })
+  installHost(async (body) => { await gate; return translateAll(body) })
+  check('nothing is written while no run goes on', T.intentRead() === null)
+  T.startRun('es', { provider: 'p', model: 'm' })
+  const it = T.intentRead()
+  check('a run writes what it is (language, model) and a heartbeat', it !== null && it.lang === 'es' && it.model.model === 'm' && Date.now() - it.beat < 2000, it)
+  check('the intent is not a language: the page does not list it', !T.managedIds().includes('runstate') && !T.managedIds().includes('run'))
+  release()
+  await settle('running')
+  check('a finished run leaves nothing to pick up', T.intentRead() === null && T.getRun().state === 'done')
+}
+{
+  reset(); setSource(); T.resetRun()
+  let release
+  const gate = new Promise((r) => { release = r })
+  installHost(async (body) => { await gate; return translateAll(body) })
+  T.startRun('es', null)
+  T.pauseRun()
+  release()
+  await settle('running', 'pausing')
+  check('a pause on purpose leaves nothing to pick up (the user asked for it)', T.getRun().state === 'paused' && T.intentRead() === null)
+}
+{
+  reset(); setSource(); T.resetRun()
+  installHost(() => ({ json: { ok: false, error: 'AUTH — bad key' } }))
+  T.startRun('es', null)
+  await settle('running')
+  check('a failed run leaves nothing to pick up (a dead key must not be retried at every load)', T.getRun().state === 'failed' && T.intentRead() === null)
+}
+{
+  // The tab was closed mid-run: the intent stays, stale.
+  reset(); setSource(); T.resetRun()
+  T.registryAdd('es')
+  localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: { provider: 'p', model: 'm' }, beat: 1000 }))
+  const host = installHost((body) => translateAll(body))
+  const resumed = await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 })
+  check('a stale intent is taken over at load: the run starts again by itself', resumed === true && T.getRun().state === 'running' && T.getRun().lang === 'es', T.getRun())
+  await settle('running')
+  check('… with the model the run had, and it finishes', host.calls.length > 0 && host.calls[0].model === 'm' && T.getRun().state === 'done', T.getRun())
+}
+{
+  reset(); setSource(); T.resetRun()
+  T.registryAdd('es')
+  localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: null, beat: 1000 }))
+  installHost((body) => translateAll(body))
+  check('a fresh heartbeat (another tab alive): no takeover', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 3000 }) === false && T.getRun().state === 'idle')
+  T.setAutoResume(false)
+  check('automatic resume off: no takeover, the intent stays for the page to explain', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 }) === false && T.intentRead() !== null)
+  T.setAutoResume(true)
+  T.dropLanguage('es')
+  localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: null, beat: 1000 }))
+  check('the language was removed meanwhile: nothing to resume, the intent is dropped', await T.autoResume({ sleep: async () => {}, now: () => 1000 + 60000 }) === false && T.intentRead() === null)
+}
+{
+  reset(); setSource(); T.resetRun()
+  T.registryAdd('es')
+  localStorage.setItem('kybernos.i18n.runstate', JSON.stringify({ lang: 'es', model: null, beat: 1000 }))
+  let ticks = 0
+  // DSH never registers its dictionaries and the Kybernos tables are gone: no plan, so no start and no endless wait.
+  delete globalThis.window.__KB_T__
+  delete globalThis.window.__KB_FR_EN__
+  const r = await T.autoResume({ sleep: async () => { ticks += 1 }, now: () => 1000 + 60000 })
+  check('no plan (nothing to translate from): it waits a bounded time, then gives up', r === false && ticks === 90 && T.getRun().state === 'idle', ticks)
 }
 
 // ── activation + DSH language pack ────────────────────────────────────────

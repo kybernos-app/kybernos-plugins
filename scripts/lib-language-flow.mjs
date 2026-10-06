@@ -251,6 +251,7 @@ export async function fakeDiskRoute(page, home) {
   const { createI18nStore, serveI18nStore } = await import('../packages/kybernos-plugin/i18n-store.mjs')
   const disk = { mode: 'up', requests: [], store: createI18nStore({ dir: home + '/kybernos/i18n' }) }
   const answer = async (p) => {
+    if (p.request.url.indexOf('/kybernos/i18n-store') < 0 || p.responseStatusCode !== undefined) return // not ours (the bundle swap shares the event)
     const url = new URL(p.request.url)
     const method = p.request.method
     const rec = { method, id: url.searchParams.get('id'), status: 0 }

@@ -156,6 +156,44 @@ pseudo-translations (`⟦text⟧`): written to the real disk, they would replace
 translation. Only a script that passes `{ hostStore: true }` (and intercepts the route, as
 above) gets the copy.
 
+## Before it is merged: test a worktree's client on the real GUI (`scripts/lib-bundle-swap.mjs`)
+
+`dsh web` serves what the shared tree holds. To see a plugin's browser half from your worktree *without* touching the shared
+tree, rewrite the response in the test browser:
+
+```js
+import { swapBundles } from './lib-bundle-swap.mjs'
+const swap = await swapBundles(page, [{ name: 'kybernos-language' }])   // after fakeDiskRoute, pass its pattern in extraPatterns
+await page.send('Page.reload', {})
+swap.report()   // [{ file, replaced: true }]  (false = the shared tree has uncommitted edits of that file)
+```
+
+Plugin clients come as ONE combined request (`/plugins/??a/client.js,b/client.js&rev=…`) whose hash validates the list, so the
+helper rewrites the response, found by the text of the shared file. It switches the HTTP cache off (a cached bundle never reaches
+the interceptor). Only client code can be tested this way: host code loads when `dsh web` restarts, and you do not restart it.
+
+Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
+event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
+
+## The run, the ring and the test marks: `scripts/check-language-run-live.mjs`
+
+```bash
+node scripts/check-language-run-live.mjs --worktree --shots /tmp/shots    # this checkout's client, screenshots of the key steps
+node scripts/check-language-run-live.mjs --worktree --user-copy           # start from a COPY of ~/.dsh/kybernos/i18n/es.json
+```
+
+It replays an incident that really happened: a language whose texts were all written by a test run (`⟦…⟧`) and reached the
+disk. A: the situation (built with the pseudo stub, or your copy). B: the page no longer counts the marks as translations (grey
+bar with the real count, banner, no « Use »). C: « Translate these texts again » replaces them while the page says the run lives
+in the tab and the ring in the sidebar footer follows it from the workspace (clicking it opens the Language page); browser and
+disk end up clean and a reload does not bring the marks back. D: a run cut with the tab is taken over at the next load, left
+alone while the heartbeat is fresh, and left alone when the automatic resume is off.
+
+The « disk » is a throw-away folder behind the real route code and the model is a stub in the page, so your `~/.dsh` is never
+written (`--user-copy` only reads `es.json`, once, into that folder); nothing presses « Use », so DSH's language is untouched.
+`openLivePage` sets `window.__KB_I18N_PSEUDO_OK__ = true` for every other script, because they translate with the
+pseudo-translating stub; this one switches it with `localStorage.__kb_pseudo_ok` instead, since the guard is what it tests.
+
 ## The Theme page, end to end: `scripts/check-theme-live.mjs`
 
 ```bash
@@ -424,3 +462,8 @@ user wrote are data, not copy). Exit code is `0` (it measures, it does not gate)
   there: start from a clean page (`flow.openSettings` reloads first).
 - A 401 from your script, with a valid cookie, usually means the *authority* is
   wrong (`KB_HOST` must be exactly `host:port` as `dsh web` listens).
+- **The Theme page and the Language page share the `kbth-` class prefix.** `.kbth-page` is true on both: a test that asks
+  « is the Language page shown? » must use `[data-kb="language-page"]` or `[data-act="add-language"]`. (A first version of the
+  ring's click handler stopped at « the page is already there » while Settings still showed Theme.)
+- **A click on a position hits what is on top.** With Settings open, the sidebar footer is covered by the nav: clicking the
+  ring's coordinates selected « Theme ». Close Settings with a real click on « Back to workspace » first, and check it closed.

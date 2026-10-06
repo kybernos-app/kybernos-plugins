@@ -14,6 +14,15 @@ Translations are saved on the user's disk (`~/.dsh/kybernos/i18n/<lang>.json`), 
 - *Advanced* picks the translation model; a line states whether translations are on disk or in this browser only.
 - *Use* switches Kybernos and DSH's own locale (DSH persists it) and reloads the page. `ar he fa ur ps sd ug yi dv`
   are right-to-left: `dir` and `lang` are set on `<html>` (and `lang` is defended against DSH's shell overwriting it).
+- A run lives **in the browser tab**. The page says so while it runs, and a ring with the percentage appears in the sidebar
+  footer (`sidebar.footer.action`, order 19) from every page; clicking it opens Settings on this page. A language that holds
+  progress but is not running shows a grey bar with its count, also after a reload. If the tab is closed mid-run, the next
+  Kybernos tab takes the run over by itself once its heartbeat is 20 s old (Advanced → « Resume an interrupted translation
+  automatically » turns this off; the page then says the run stopped with the tab).
+- Texts wrapped in `⟦…⟧` are pseudo-translations written by a test run, never real ones: they are not counted as translated,
+  « Use » and « Use anyway » are not offered while they are there, a banner says how many there are, and « Translate these
+  texts again » removes them (browser and disk) and translates exactly those. Live checks that translate with the
+  pseudo-translating stub set `window.__KB_I18N_PSEUDO_OK__ = true` (`openLivePage` does).
 - A link under General → Language points to this page. While a translated language is active, hard-coded text on
   Settings pages, in menus and in the sidebar footer is translated as it appears (live layer).
 
@@ -35,7 +44,8 @@ tried after a missing or invalid credential, a missing adapter or a quota error.
 - Disk: `<DSH home>/kybernos/i18n/<lang>.json` (`{kb, dsh, live, meta, label}`), `.removed.json` tombstones, a damaged file
   set aside as `<lang>.json.bad-<time>`. Needs `kybernos-plugin`'s route, so DSH must be restarted once after an update.
 - Browser `localStorage`: `kybernos.i18n.<id>`, `.meta.<id>`, `.dsh.<id>`, `.live.<id>`, `kybernos.i18n.langs`, `.labels`,
-  `.provider` (model pick), `.help`; the active language is `kybernos.theme.lang`. Page-level switch
+  `.provider` (model pick), `.help`, `.runstate` (`{lang, model, beat}` while a run goes on), `.autoresume` (`off` when switched
+  off); the active language is `kybernos.theme.lang`. The two new keys are named so they never look like a language id. Page-level switch
   `window.__KB_I18N_HOST_STORE__ = false` turns the disk copy off (live test scripts use it). No env var is read here.
 - Switching the bundle off keeps already translated languages working: registration in DSH and the disk reconciliation live
   in the core plugin's always-on `window.__KB_LANG_RUNTIME__`. Only translating, pausing, removing and the live layer go.
@@ -54,15 +64,17 @@ tried after a missing or invalid credential, a missing adapter or a quota error.
 ## Tests
 
 ```bash
-node packages/kybernos-language/test-client.mjs      # 156 checks: ISO list, plan, engine, pause/resume, DSH pack, live layer, disk hand-off
+node packages/kybernos-language/test-client.mjs      # 190 checks: ISO list, plan, engine, pause/resume, test marks, closed-tab takeover, DSH pack, live layer, disk hand-off
 node packages/kybernos-plugin/test-i18n-translate.mjs   # host route, fake LLM stream
 node packages/kybernos-plugin/test-i18n-store.mjs       # on-disk store and its route
 node packages/kybernos-plugin/test-lang-runtime.mjs     # the always-on runtime
 ```
 
 `test-client.mjs` loads the core's real runtime and fakes the host and DSH's locale service. The page in a real browser is
-covered by `scripts/check-language-live.mjs` and `scripts/check-language-disk-live.mjs`; they need a signed-in DSH, switch
-DSH's language and restore English, so read `docs/dev/live-testing.md` first. They were not run for this README.
+covered by `scripts/check-language-live.mjs`, `scripts/check-language-disk-live.mjs` and `scripts/check-language-run-live.mjs`;
+they need a signed-in DSH, the first two switch DSH's language and restore English, so read `docs/dev/live-testing.md` first.
+`check-language-run-live.mjs` never presses « Use » and runs on a throw-away disk (`--worktree` tests this checkout's client,
+`--user-copy` starts from a copy of the user's own `es.json`).
 
 ## Known limits
 
