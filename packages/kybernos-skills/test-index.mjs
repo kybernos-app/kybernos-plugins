@@ -105,7 +105,7 @@ try {
   // 6. The address: default, override, and a refused override.
   delete process.env.KYBERNOS_SKILLS_INDEX_URL
   const src = readFileSync(join(here, 'index.js'), 'utf8')
-  assert.match(src, /const INDEX_API_DEFAULT = 'https:\/\/kybernos-skills-index\.vercel\.app\/v1'/)
+  assert.match(src, /const INDEX_API_DEFAULT = 'https:\/\/skills\.kybernos\.app\/v1'/)
   for (const bad of ['http://example.com/v1', 'ftp://127.0.0.1/v1', 'https://user:pw@example.com/v1', 'https://example.com/v1?x=1', 'not a url']) {
     process.env.KYBERNOS_SKILLS_INDEX_URL = bad
     mod.resetDiscoverCache()

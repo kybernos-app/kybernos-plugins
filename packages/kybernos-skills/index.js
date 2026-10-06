@@ -642,7 +642,7 @@ const toggleSkill = async ({ ctx, root, name, active, config, sessionId }) => {
 // This package used to be purely local. It now opens exactly two flows, both
 // READ-only, to FIXED hosts:
 //   · codeload.github.com  — a repository's archive, to install a skill;
-//   · kybernos-skills-index.vercel.app/v1 — our read-only relay of the skills.sh index (ranking, search, curated, audits);
+//   · skills.kybernos.app/v1 — our read-only relay of the skills.sh index (ranking, search, curated, audits);
 //     see services/skills-index/README.md. It holds the one Vercel token, so no user needs one.
 // No caller-supplied URL is followed: `source` is validated as owner/repo BEFORE any
 // request, and the skill name remains subject to the same pattern as elsewhere. Redirects are followed
@@ -662,7 +662,7 @@ const CODELOAD = 'https://codeload.github.com'
 // it once and serves the same JSON, cached; the plugin sends no credential at all.
 // KYBERNOS_SKILLS_INDEX_URL points DSH at another relay (a company server, a test): https, or http on a loopback address only.
 // A value that is set but invalid refuses the call: a typo must never fall back to another address.
-const INDEX_API_DEFAULT = 'https://kybernos-skills-index.vercel.app/v1'
+const INDEX_API_DEFAULT = 'https://skills.kybernos.app/v1'
 const VIEWS = ['all-time', 'trending', 'hot']
 const PER_PAGE_MAX = 500
 const PER_PAGE_DEFAULT = 50
