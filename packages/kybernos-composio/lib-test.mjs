@@ -54,7 +54,7 @@ export function engineYaml() {
  * registered, and `call(path, { method, body, headers })` that plays a request and returns { code, json, text }.
  * `before(home)` runs before the module starts (to put files where DSH would have them at its start).
  */
-export async function startHost({ before } = {}) {
+export async function startHost({ before, services = {} } = {}) {
   delete process.env.DSH_HOME
   const home = mkdtempSync(join(tmpdir(), 'kb-composio-host-'))
   process.env.HOME = home
@@ -67,7 +67,7 @@ export async function startHost({ before } = {}) {
   if (before !== undefined) await before({ home, dsh, patch: join(dsh, 'profiles', 'web', 'cordis.patch.yml'), env: join(dsh, '.env'), sidecar: join(dsh, 'kybernos', 'connecteurs.json') })
   const mod = await import(new URL('./index.js', import.meta.url).href + '?host=' + Math.random().toString(36).slice(2))
   const routes = {}
-  mod.apply({ get: (n) => (n === 'webServer' ? { register: (r) => { routes[r.path] = r.handler } } : undefined), effect: (fn) => fn(), inject: (_n, fn) => fn(), logger: { info: () => {} } })
+  mod.apply({ get: (n) => (services[n] !== undefined ? services[n] : (n === 'webServer' ? { register: (r) => { routes[r.path] = r.handler } } : undefined)), effect: (fn) => fn(), inject: (_n, fn) => fn(), logger: { info: () => {} } })
   const call = async (path, { method = 'GET', body, headers = {}, raw } = {}) => {
     const handler = routes[path.split('?')[0]]
     if (typeof handler !== 'function') throw new Error('no route ' + path)
@@ -153,4 +153,50 @@ rl.on('line', (l) => {
 })
 `)
   return file
+}
+
+/**
+ * A stand-in for Composio's MCP server (connect.composio.dev/mcp) and the public app list, installed on
+ * globalThis.fetch (any other address throws). `state.keys`: the keys it accepts; `state.accounts`:
+ * { slug: [account] }; `state.calls`: every request; `state.down`: make it unreachable.
+ * Accounts carry an e-mail in `user_info`, which the host must never pass on.
+ */
+export function composioStub() {
+  const state = { keys: new Set(['ck_good']), accounts: {}, calls: [], down: false, seq: 0, linkUrl: 'https://connect.composio.dev/link/abc123' }
+  const real = globalThis.fetch
+  const json = (obj, status = 200, headers = {}) => {
+    const h = Object.assign({ 'content-type': 'application/json' }, headers)
+    return { ok: status >= 200 && status < 300, status, headers: { get: (k) => (h[String(k).toLowerCase()] !== undefined ? h[String(k).toLowerCase()] : null) }, text: async () => JSON.stringify(obj), json: async () => obj }
+  }
+  globalThis.fetch = async (url, init) => {
+    const u = String(url)
+    const o = init || {}
+    const headers = Object.assign({}, o.headers || {})
+    let body = null
+    try { body = o.body ? JSON.parse(String(o.body)) : null } catch (e) { body = null }
+    state.calls.push({ url: u, method: o.method || 'GET', headers, body })
+    if (/kybernos-proxy-production/.test(u)) return json({ apps: [] })
+    if (!/^https:\/\/connect\.composio\.dev\/mcp/.test(u)) throw new Error('STUB: unexpected URL ' + u)
+    if (state.down) throw new TypeError('fetch failed')
+    if (!state.keys.has(headers['x-consumer-api-key'])) return json({ error: 'invalid key' }, 401)
+    if (body !== null && body.method === 'initialize') return json({ jsonrpc: '2.0', id: body.id, result: { protocolVersion: '2024-11-05' } }, 200, { 'mcp-session-id': 'sess-1' })
+    if (body !== null && body.method === 'tools/call' && body.params.name === 'COMPOSIO_MANAGE_CONNECTIONS') {
+      const results = {}
+      for (const t of body.params.arguments.toolkits) {
+        const list = state.accounts[t.name] || (state.accounts[t.name] = [])
+        if (t.action === 'add') {
+          state.seq += 1
+          list.push({ id: 'ca_' + state.seq, status: 'INITIATED', user_info: { email: 'person@example.org' } })
+          results[t.name] = { status: 'initiated', redirect_url: state.linkUrl, accounts: list.slice() }
+        } else {
+          if (t.action === 'remove') state.accounts[t.name] = list.filter((a) => a.id !== t.account_id)
+          results[t.name] = { status: (state.accounts[t.name] || []).length > 0 ? 'active' : 'none', accounts: (state.accounts[t.name] || []).slice() }
+        }
+      }
+      const text = JSON.stringify({ successful: true, data: { results: results } })
+      return json({ jsonrpc: '2.0', id: body.id, result: { content: [{ type: 'text', text: text }] } })
+    }
+    return json({ jsonrpc: '2.0', id: body === null ? null : body.id, result: {} })
+  }
+  return { state, restore: () => { globalThis.fetch = real } }
 }

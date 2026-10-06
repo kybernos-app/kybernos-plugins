@@ -281,9 +281,12 @@ function readEnvKey() {
 
 /**
  * Resolves the Composio key at EVERY request (the secret is never cached: a changed key must
- * take effect without restarting the plugin). The credentials service already covers
- * env/.env/store; it is authoritative: when it resolves nothing we do not fall back on the
- * file. The file fallback only exists when the service is absent or failing, and never throws.
+ * take effect without restarting the plugin). The credentials service layers the environment DSH
+ * was launched with, its own store and the `.env` files. Measured in its source: the `.env` layers
+ * are what the launch read, not the file as it is now, so a key saved from the page a minute ago would
+ * be invisible to it until the next start. The environment and the store (which DSH watches) are
+ * taken as it says; a value that comes from a `.env` is read again from the file, and when the
+ * service resolves nothing the file is read too. Never throws.
  */
 async function resolveComposioKey(ctx) {
   let creds = undefined
@@ -291,8 +294,13 @@ async function resolveComposioKey(ctx) {
   if (creds !== null && creds !== undefined && typeof creds.resolve === 'function') {
     try {
       const got = await creds.resolve(COMPOSIO_KEY_REF)
-      if (got !== null && got !== undefined && typeof got.value === 'string' && got.value.length > 0) return { value: got.value, source: String(got.source || 'credentials') }
-      return null
+      if (got !== null && got !== undefined && typeof got.value === 'string' && got.value.length > 0) {
+        const source = String(got.source || 'credentials')
+        if (source === 'env' || source === 'file') return { value: got.value, source: source }
+        const fresh = readEnvKey()
+        return fresh !== null ? fresh : { value: got.value, source: source }
+      }
+      return readEnvKey()
     } catch (e) { return readEnvKey() }
   }
   return readEnvKey()
@@ -373,7 +381,12 @@ async function mcpToolCall(apiKey, toolName, args) {
 }
 
 async function mcpListConnections(apiKey, slugs) {
-  const reply = await mcpToolCall(apiKey, 'COMPOSIO_MANAGE_CONNECTIONS', { toolkits: slugs.map((name) => ({ name: name, action: 'list' })) })
+  return mcpManage(apiKey, slugs.map((name) => ({ name: name, action: 'list' })))
+}
+
+/** COMPOSIO_MANAGE_CONNECTIONS for the given toolkit actions: the answer's payload, or a failure with a code. */
+async function mcpManage(apiKey, toolkits) {
+  const reply = await mcpToolCall(apiKey, 'COMPOSIO_MANAGE_CONNECTIONS', { toolkits: toolkits })
   // Every way the answer can be something other than a list of connections is a FAILURE with a
   // code: an HTML page, a JSON-RPC error and a tool error used to read as "no connection".
   if (reply === null || reply === undefined || typeof reply !== 'object') throw mcpFailure('bad-response')
@@ -440,11 +453,11 @@ function normalizeConnections(payload, slugs) {
  * propagates an exception: the last good result of the SAME key and slugs is returned (stale),
  * or an empty list, with an error code the UI can show.
  */
-async function readConnections(apiKey, slugs) {
+async function readConnections(apiKey, slugs, fresh) {
   const key = keyId(apiKey) + ':' + digestOf(slugs)
   const kept = () => { const c = connectionsCache.get(key); return c !== undefined && Date.now() - c.at < STALE_MAX_MS ? c : null }
-  const fresh = connectionsCache.get(key)
-  if (fresh !== undefined && Date.now() - fresh.at < CONNECTIONS_TTL_MS) return { result: fresh.result, stale: false, error: null }
+  const cached = connectionsCache.get(key)
+  if (fresh !== true && cached !== undefined && Date.now() - cached.at < CONNECTIONS_TTL_MS) return { result: cached.result, stale: false, error: null }
   let promise = connectionsInFlight.get(key)
   const owner = promise === undefined
   if (owner) {
@@ -491,7 +504,8 @@ async function serveConnections(ctx, req, res) {
       return sendJson(res, 200, { ok: true, configured: true, stale: false, error: failureCode(e), partial: true, connections: [], summary: emptySummary(0), scan: true })
     }
   }
-  const out = await readConnections(credential.value, demandes)
+  // `fresh=1` skips the 2 minute cache for a few toolkits: the page polls an account while it is being authorized.
+  const out = await readConnections(credential.value, demandes, queryOf(req).get('fresh') === '1' && demandes.length <= 5)
   sendJson(res, 200, { ok: true, configured: true, stale: out.stale, error: out.error, connections: out.result.connections, summary: out.result.summary })
 }
 
@@ -1507,6 +1521,129 @@ async function serveConnecteurs(ctx, req, res) {
   return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
 }
 
+// ── the key and the accounts, from the host (the page no longer holds a key) ──
+const KEY_ROUTE = '/kybernos/composio/key'
+const ACCOUNTS_ROUTE = '/kybernos/composio/accounts'
+const KEY_RE = /^ck_[A-Za-z0-9_-]{4,300}$/
+const ACCOUNT_ID_RE = /^[A-Za-z0-9_.:-]{1,120}$/
+
+/** An absolute http(s) address, normalized, or null: the only kind of link the page may open. */
+function webUrl(raw) {
+  if (typeof raw !== 'string') return null
+  try { const u = new URL(raw); return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null } catch (e) { return null }
+}
+
+/** Forgets what was cached about this key's accounts: an account was just added or removed. */
+function forgetAccounts(apiKey) {
+  const id = keyId(apiKey)
+  scanCache.delete(id)
+  for (const k of Array.from(connectionsCache.keys())) if (k.startsWith(id + ':')) connectionsCache.delete(k)
+}
+
+async function credentialDescribe(ctx) {
+  try {
+    const creds = typeof ctx.get === 'function' ? ctx.get('credentials') : undefined
+    if (creds !== null && creds !== undefined && typeof creds.describe === 'function') return await creds.describe(COMPOSIO_KEY_REF)
+  } catch (e) { /* the service is optional */ }
+  return null
+}
+
+/** Reads and checks a JSON body for a route that writes. Returns { body } or sends the refusal and returns null. */
+async function jsonBody(req, res) {
+  if (origineOK(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin refused' }); return null }
+  if (jsonSeulement(req) !== true) { sendJson(res, 415, { ok: false, error: 'content-type application/json expected' }); return null }
+  try {
+    const body = JSON.parse(await readBody(req))
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) { sendJson(res, 400, { ok: false, error: 'a JSON object is expected' }); return null }
+    return { body: body }
+  } catch (e) {
+    sendJson(res, e instanceof BodyTooLarge ? 413 : 400, { ok: false, error: e instanceof BodyTooLarge ? 'the request body is too large' : 'a JSON body is expected' })
+    return null
+  }
+}
+
+/**
+ * GET: is there a key, where does it come from, and do the running agents hold the same one
+ * (their environment is read when DSH starts: a key saved since needs a restart to reach them).
+ * POST { key }: checks it with Composio, then writes COMPOSIO_API_KEY to the DSH .env, the file the
+ * agents read. DELETE: removes it. The key is never returned, nor written anywhere else.
+ */
+async function serveKey(ctx, req, res) {
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  const agentsEnv = typeof process.env[COMPOSIO_KEY_REF] === 'string' ? process.env[COMPOSIO_KEY_REF] : ''
+  if (req.method === 'GET') {
+    const k = await resolveComposioKey(ctx)
+    return sendJson(res, 200, { ok: true, configured: k !== null, source: k === null ? null : k.source, agents: k === null ? 'none' : (agentsEnv.length === 0 ? 'none' : (agentsEnv === k.value ? 'same' : 'different')) })
+  }
+  const inherited = async () => { const d = await credentialDescribe(ctx); return d !== null && d.source === 'env' }
+  if (req.method === 'POST') {
+    const got = await jsonBody(req, res)
+    if (got === null) return
+    const key = typeof got.body.key === 'string' ? got.body.key.trim() : ''
+    if (KEY_RE.test(key) !== true) return sendJson(res, 400, { ok: false, error: 'a Composio key starts with ck_ and has no spaces', code: 'invalid-key' })
+    if (await inherited()) return sendJson(res, 409, { ok: false, error: 'the key comes from the environment DSH was started with: change it there', code: 'inherited' })
+    let verified = false
+    let code = null
+    try { await mcpListConnections(key, ['gmail']); verified = true } catch (e) {
+      code = failureCode(e)
+      // A rejected key is not saved: it would replace one that works. A network failure is not the key's fault.
+      if (code === '401' || code === '403') return sendJson(res, 400, { ok: false, error: 'Composio rejected this key', code: code })
+    }
+    try { upsertEnvSecret(COMPOSIO_KEY_REF, key) } catch (e) {
+      return sendJson(res, e instanceof EnvEditError ? 409 : 500, { ok: false, error: e instanceof EnvEditError ? e.message : fsMessage('the .env file could not be written', e) })
+    }
+    forgetAccounts(key)
+    return sendJson(res, 200, { ok: true, verified: verified, code: code, needRestart: agentsEnv !== key })
+  }
+  if (req.method === 'DELETE') {
+    if (await inherited()) return sendJson(res, 409, { ok: false, error: 'the key comes from the environment DSH was started with: change it there', code: 'inherited' })
+    let text = null
+    try { text = existsSync(ENV_PATH()) ? readFileSync(ENV_PATH(), 'utf8') : null } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the .env file cannot be read', e) }) }
+    if (text !== null) {
+      const next = envTextWithout(text, COMPOSIO_KEY_REF)
+      if (next === null) return sendJson(res, 409, { ok: false, error: 'the .env file cannot be edited safely (another variable would change): edit it by hand' })
+      if (next !== text) { try { writeFileAtomic(ENV_PATH(), next, 0o600) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the .env file could not be written', e) }) } }
+    }
+    return sendJson(res, 200, { ok: true, needRestart: agentsEnv.length > 0 })
+  }
+  return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
+}
+
+/**
+ * POST { action: 'add', toolkit } starts a connection and gives the address where the person
+ * authorizes it; POST { action: 'remove', toolkit, accountId } removes one account. Both answer with
+ * the toolkit's accounts as they are now. The page used to do this itself with a key kept in the browser.
+ */
+async function serveAccounts(ctx, req, res) {
+  if (req.method !== 'POST') { if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' }); return sendJson(res, 405, { ok: false, error: 'POST expected' }) }
+  const got = await jsonBody(req, res)
+  if (got === null) return
+  const action = got.body.action
+  const toolkit = typeof got.body.toolkit === 'string' ? got.body.toolkit.trim().toLowerCase() : ''
+  if (SLUG_RE.test(toolkit) !== true) return sendJson(res, 400, { ok: false, error: 'invalid toolkit' })
+  if (action !== 'add' && action !== 'remove') return sendJson(res, 400, { ok: false, error: 'action must be add or remove' })
+  const accountId = typeof got.body.accountId === 'string' ? got.body.accountId.trim() : ''
+  if (action === 'remove' && ACCOUNT_ID_RE.test(accountId) !== true) return sendJson(res, 400, { ok: false, error: 'invalid account id' })
+  const credential = await resolveComposioKey(ctx)
+  if (credential === null) return sendJson(res, 409, { ok: false, error: 'no-credential', code: 'no-credential' })
+  try {
+    const entry = action === 'add' ? { name: toolkit, action: 'add' } : { name: toolkit, action: 'remove', account_id: accountId }
+    const payload = await mcpManage(credential.value, [entry])
+    forgetAccounts(credential.value)
+    let redirectUrl = null
+    if (action === 'add') {
+      const data = payload.data !== null && typeof payload.data === 'object' ? payload.data : payload
+      const info = data.results !== null && typeof data.results === 'object' && data.results[toolkit] !== null && typeof data.results[toolkit] === 'object' ? data.results[toolkit] : {}
+      redirectUrl = webUrl(info.redirect_url !== undefined ? info.redirect_url : info.redirectUrl)
+    }
+    const out = await readConnections(credential.value, [toolkit], true)
+    const connection = out.result.connections.find((c) => c.toolkit === toolkit) || { toolkit: toolkit, status: '', accounts: [] }
+    return sendJson(res, 200, { ok: true, redirectUrl: redirectUrl, connection: connection, error: out.error })
+  } catch (e) {
+    return sendJson(res, 502, { ok: false, error: failureCode(e), code: failureCode(e) })
+  }
+}
+
 // ── testing a connector (POST /connecteurs/test) ────────────────────────────
 const CONNECTEURS_TEST_ROUTE = '/kybernos/composio/connecteurs/test'
 const CONNECTEURS_CMD_ROUTE = '/kybernos/composio/connecteurs/commande'
@@ -1668,20 +1805,17 @@ function mountRoutes(ctx, log) {
       try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
     }
   }
-  const serveTestSafe = async (req, res) => {
-    try { await serveConnecteurTest(ctx, req, res) } catch (e) {
-      try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
-    }
-  }
-  const serveCommandeSafe = async (req, res) => {
-    try { await serveConnecteurCommande(ctx, req, res) } catch (e) {
+  const guarded = (fn) => async (req, res) => {
+    try { await fn(ctx, req, res) } catch (e) {
       try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
     }
   }
   const mount = (webServerSvc) => {
     if (webServerSvc === null || webServerSvc === undefined || typeof webServerSvc.register !== 'function') return
-    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_TEST_ROUTE, handler: serveTestSafe }), 'kybernos-composio: connector test route')
-    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_CMD_ROUTE, handler: serveCommandeSafe }), 'kybernos-composio: connector folders route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: KEY_ROUTE, handler: guarded(serveKey) }), 'kybernos-composio: key route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: ACCOUNTS_ROUTE, handler: guarded(serveAccounts) }), 'kybernos-composio: accounts route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_TEST_ROUTE, handler: guarded(serveConnecteurTest) }), 'kybernos-composio: connector test route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_CMD_ROUTE, handler: guarded(serveConnecteurCommande) }), 'kybernos-composio: connector folders route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CATALOG_ROUTE, handler: serveCatalog }), 'kybernos-composio: catalog route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTIONS_ROUTE, handler: serveConnectionsSafe }), 'kybernos-composio: connections route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_ROUTE, handler: serveConnecteursSafe }), 'kybernos-composio: connectors route')
