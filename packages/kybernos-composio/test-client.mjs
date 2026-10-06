@@ -435,6 +435,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   // the catalogue search
   const apps = [{ slug: 'github', name: 'GitHub', categories: ['developer tools'] }, { slug: 'gitlab', name: 'GitLab', categories: ['developer tools'] }, { slug: 'gmail', name: 'Gmail', categories: ['email'] }, { slug: 'zohomail', name: 'Zoho Mail', categories: ['email'] }, { slug: 'mailchimp', name: 'Mailchimp', categories: ['marketing'] }]
   ok('search: no query gives the first ones, a query matches name, slug and category', appsMatch(apps, '', 2).length === 2 && appsMatch(apps, 'git', 10).map((a) => a.slug).join() === 'github,gitlab' && appsMatch(apps, 'marketing', 10).length === 1)
+  ok('search: with no limit every match comes back, in the server\'s order (the window pages them itself)', appsMatch(apps, '', Infinity).length === 5 && appsMatch(apps, 'mail', Infinity).length === 3)
   ok('search: the apps whose name starts with it come before the others', appsMatch(apps, 'mail', 10).map((a) => a.slug).join() === 'mailchimp,gmail,zohomail')
   ok('search: accents, case and punctuation do not matter; a bad list does not throw', appsMatch(apps, ' GIT-hub ', 10).length === 1 && appsMatch(null, 'x', 5).length === 0 && appsMatch(undefined, '', 5).length === 0 && appsMatch(apps, 'zzz', 5).length === 0)
 

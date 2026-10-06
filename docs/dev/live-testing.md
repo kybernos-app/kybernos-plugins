@@ -535,7 +535,8 @@ The « Kybernos connections » mode of the Connectors page against a **stand-in 
 server** (the real one is not built yet). It writes into the isolated instance only (a server entry whose
 `services.connections` points at the stand-in, and a connection file with a made-up token; both are put back) and **refuses
 to run against 127.0.0.1:3080 or without an isolated `DSH_HOME`**. The host half is read at start: restart the sandbox after a
-host edit. It plays: the mode switch only when the server offers connections, the list with its states and the quota, row
+host edit. It plays: the mode switch only when the server offers connections, the list with its states and the quota, the add
+window paging a 105-app catalogue (48, 96, 105; a search starts again from the first page), row
 actions hidden until hover, a pending connection that turns active by itself, adding an OAuth app (what the stand-in
 receives, and nothing else), adding an app with an API key (the key reaches the stand-in once and is on no later call, on
 the page or in the browser's storage), a refused add that may have gone through (one call, then « check the list »), a

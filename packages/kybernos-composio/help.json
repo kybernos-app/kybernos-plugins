@@ -1,24 +1,24 @@
 {
   "what": {
-    "fr": "Relie vos applications (Slack, GitHub…) à vos agents avec votre propre clé Composio : un catalogue d'apps, chacune se connecte en un clic.",
-    "en": "Links your apps (Slack, GitHub…) to your agents with your own Composio key: a catalogue of apps, each one connected in a click."
+    "fr": "Relie vos applications (Slack, GitHub…) à vos agents : avec votre propre clé Composio, ou avec votre compte Kybernos, sans clé sur la machine.",
+    "en": "Links your apps (Slack, GitHub…) to your agents: with your own Composio key, or with your Kybernos account, with no key on this machine."
   },
   "steps": [
     {
-      "fr": "Créez une clé sur dashboard.composio.dev, collez-la dans Réglages › Plugins › kybernos-composio, puis « Enregistrer ».",
-      "en": "Create a key on dashboard.composio.dev, paste it in Settings › Plugins › kybernos-composio, then click “Save”."
+      "fr": "Avec votre clé : créez-la sur dashboard.composio.dev, collez-la dans Réglages › Plugins › kybernos-composio, puis « Enregistrer ».",
+      "en": "With your key: create it on dashboard.composio.dev, paste it in Settings › Plugins › kybernos-composio, then click “Save”."
     },
     {
-      "fr": "Pour que les agents du chat l'utilisent aussi, recopiez la clé comme l'indique le panneau, puis redémarrez DSH.",
-      "en": "So the chat agents can use it too, copy the key as the panel explains, then restart DSH."
+      "fr": "Ouvrez Kybernos › Connecteurs › « Découvrir », choisissez une app, « Ajouter une connexion », puis autorisez-la dans l'onglet qui s'ouvre.",
+      "en": "Open Kybernos › Connectors › “Discover”, pick an app, click “Add a connection”, then authorize it in the tab that opens."
     },
     {
-      "fr": "Ouvrez Kybernos › Connecteurs › « Découvrir », choisissez une app puis « Ajouter une connexion ».",
-      "en": "Open Kybernos › Connectors › “Discover”, pick an app, then “Add a connection”."
+      "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Connexions Kybernos » au-dessus de la liste, puis « Connecter une app ».",
+      "en": "With your Kybernos account (if your server offers it): “Kybernos connections” above the list, then “Connect an app”."
     },
     {
-      "fr": "Autorisez l'accès dans l'onglet qui s'ouvre : l'app passe à « Connecté » dans « Vos connexions ».",
-      "en": "Authorize access in the tab that opens: the app shows as “Connected” under “Yours”."
+      "fr": "Un serveur à vous : onglet « Serveurs MCP », « Ajouter », puis un formulaire ou du JSON collé. DSH le charge en quelques secondes.",
+      "en": "A server of your own: the “MCP servers” tab, “Add”, then a form or pasted JSON. DSH loads it within seconds."
     }
   ],
   "where": {
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Votre clé reste sur votre machine et ne sert qu'à parler à Composio. Une app n'est reliée qu'après votre autorisation ; un connecteur personnalisé ne marche qu'après un redémarrage de DSH.",
-    "en": "Your key stays on your machine and is only used to talk to Composio. An app is linked only after you authorize it; a custom connector only works after DSH restarts."
+    "fr": "Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH. Avec Kybernos, vos apps suivent votre compte et une clé d'app n'est jamais gardée.",
+    "en": "Your key stays on your machine; a changed key reaches the agents only after DSH restarts. With Kybernos, your apps follow your account and an app's key is never kept."
   }
 }
