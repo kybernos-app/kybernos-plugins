@@ -26,8 +26,13 @@ failure is `no-store`, and upstream's error text is never relayed (our token or 
 - skills.sh allows **600 requests a minute per Vercel team and project**, shared by every Kybernos user. Browsing is cached an
   hour, so each page costs skills.sh at most one request an hour (per CDN region) however many users there are: that is the
   "refresh every hour" of the index, with no database and no job. **Search is the one open door**: every different word is a
-  new request. Five minutes of cache helps for popular words only, so the Vercel Firewall should carry a rate-limit rule on this
-  project. If abuse shows up, the fallback is to search only inside a local file of the most installed skills.
+  new request. Five minutes of cache helps for popular words only, so the project's Vercel Firewall carries two rate-limit
+  rules, per IP and per minute (published 2026-10-06, `vercel firewall overview`): `search-per-ip` (30 on `/v1/skills/search`)
+  and `relay-per-ip` (240 on `/v1/`). Measured: 29 searches pass, the next ones are refused, and the block lifts after a minute.
+  If abuse shows up, the fallback is to search only inside a local file of the most installed skills.
+- The address is **`https://skills.kybernos.app/v1`** (a domain of the team, attached to this project; `kybernos-skills-index.vercel.app`
+  keeps answering, because suites up to 1.0.0-beta.4 use it). The plugin's default is the first one, so the relay can move without
+  an update.
 - skills.sh documents the token for apps hosted on Vercel and publishes cache lifetimes, but says nothing about redistributing
   its data. This relay serves a short-lived cache of the answers users ask for; it does not copy the index.
 
