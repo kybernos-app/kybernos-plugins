@@ -317,15 +317,29 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('accept: only a true answer counts as consent', envoi.length === 1)
   let confirme = false
   let refus = null
-  const longTexte = 'x'.repeat(2001)
-  ok('accept: a text over 2000 characters is handled but refused, never confirmed nor sent', carteAccepter(enc(longTexte), () => { confirme = true; return true }, (x) => envoi.push(x), (x) => { refus = x.length }) === true && confirme === false && envoi.length === 1 && refus === 2001)
-  ok('accept: 2000 characters is still allowed', carteAccepter(enc('y'.repeat(2000)), () => true, (x) => envoi.push(x)) === true && envoi.length === 2)
+  const max = plugin.composio.carteAcceptMax
+  const longTexte = 'x'.repeat(max + 1)
+  ok('accept: a text over the limit is handled but refused, never confirmed nor sent', carteAccepter(enc(longTexte), () => { confirme = true; return true }, (x) => envoi.push(x), (x) => { refus = x.length }) === true && confirme === false && envoi.length === 1 && refus === max + 1)
+  ok('accept: a text of exactly the limit is still allowed', carteAccepter(enc('y'.repeat(max)), () => true, (x) => envoi.push(x)) === true && envoi.length === 2)
+  // The kybernos bundle's kb-accept-text listener drops a longer text without a word: a limit here above
+  // its own would let the user confirm a message that is never sent. Drift check; skipped when that
+  // bundle is not next to this one (a bundle's test must also run from its own archive).
+  {
+    const { existsSync, readFileSync } = await import('node:fs')
+    const sibling = new URL('../kybernos-plugin/client.js', import.meta.url)
+    if (existsSync(sibling)) {
+      const src = readFileSync(sibling, 'utf8')
+      const at = src.indexOf("addEventListener('kb-accept-text'")
+      const m = at >= 0 ? /t\.length > (\d+)\) return/.exec(src.slice(at, at + 1200)) : null
+      ok('accept: the card limit is not above the one the kybernos bundle enforces', m !== null && max <= Number(m[1]), m === null ? 'listener not found' : 'card ' + max + ' > listener ' + m[1])
+    } else console.log('- accept: drift check skipped (the kybernos bundle is not next to this one)')
+  }
   ok('accept: a malformed %-escape is passed on as it is (and shown as it is)', carteAccepter('kb:accept:100%', (x) => { montre = x; return true }, (x) => envoi.push(x)) === true && montre === '100%')
 }
 
 // ── C-16 / C-20: the form, the search, storage that throws, other locales ───
 {
-  const { joinArgs, match, parse, mode, setMode, has, t } = plugin.composio
+  const { joinArgs, match, parse, has, t } = plugin.composio
   const { splitArgs } = await import(new URL('./index.js', import.meta.url).href)
   // the args field: what the form shows is read back by the host exactly
   ok('joinArgs: plain arguments are joined by a space', joinArgs(['--port', '3000']) === '--port 3000')
@@ -361,13 +375,6 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const realStorage = globalThis.localStorage
   globalThis.localStorage = { getItem() { throw new Error('denied') }, setItem() { throw new Error('denied') }, removeItem() { throw new Error('denied') } }
   try {
-    let e1 = null
-    let m = null
-    try { m = mode() } catch (e) { e1 = e }
-    ok('storage that throws: reading the mode does not throw (local)', e1 === null && m === 'local')
-    let e2 = null
-    try { setMode('cloud'); setMode('local') } catch (e) { e2 = e }
-    ok('storage that throws: setting the mode does not throw', e2 === null)
     let e3 = null
     let h = null
     try { h = has() } catch (e) { e3 = e }
@@ -391,6 +398,17 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
   ok('client.js carries no inline catalog and no generation marker', src.indexOf('const CATALOG = [') < 0 && src.indexOf('CATALOG-START') < 0 && src.indexOf('KBCP-CATALOG-PLACEHOLDER') < 0)
   ok('client.js loads the catalog from the host route', src.indexOf("const CATALOG_URL = '/kybernos/composio/catalog'") >= 0)
+  // The panel used to offer a "Cloud" mode that stored a flag nothing read, and promised that connectors
+  // would work from cloud agents. Composio's For You and Platform are separate projects (a ck_ key's
+  // accounts do not exist on Platform), so nothing here could keep that promise.
+  ok('client.js has no Cloud mode left (no flag, no event, no strings)', !/'composio\.mode'|kbcp-mode|KB_CP_MODE|modecloud|modelocal|modelier/.test(src))
+  // Both rules were measured on the real page (dark theme): the brand colour is near white, so a
+  // fixed white label on it is invisible; and a banner built from kb7-err is painted by the kybernos
+  // bundle's sheet of the same name with the same red for fill and text.
+  const css = src.slice(src.indexOf('const CSS = `'), src.indexOf('// ── Key config'))
+  const onRules = css.split('\n').filter((l) => /\.on\{/.test(l) && /background:var\(--dsw-alias-brand-primary\)/.test(l))
+  ok('the "on" states that use the brand colour take the theme\'s foreground token, not a fixed white', onRules.length >= 2 && onRules.every((l) => /color:var\(--dsw-alias-label-primary-foreground/.test(l)), onRules.join(' | '))
+  ok('the page does not use a class that the kybernos bundle also styles for its error banner', src.indexOf("className: 'kb7-err'") < 0 && src.indexOf("className: 'kbcp-err'") >= 0)
 }
 
 // ── AGENTS.md rule 2: apply() cannot stop DSH from starting ─────────────────

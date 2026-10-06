@@ -75,7 +75,7 @@ window.fetch = async (url, init) => {
   const r = reponses[chemin]
   return r === undefined ? { ok: false, json: async () => null } : { ok: true, json: async () => r }
 }
-const Composio = () => React.createElement('div', { id: 'fake-composio-config' }, 'Clé & mode Composio')
+const Composio = () => React.createElement('div', { id: 'fake-composio-config' }, 'Clé Composio')
 const slots = {
   inject: (nom, fn) => fn(),
   register: (meta, comp) => { window.__sections.push({ meta, comp }); return () => {} },
@@ -163,7 +163,7 @@ try {
     ok('only Composio shows a Settings button (the others registered no config)', avec.join() === 'kybernos-composio', avec.join())
     ok('the config is hidden until asked', (await p.$('#fake-composio-config')) === null)
     await p.click('[data-id="kybernos-composio"] button:has-text("Settings")')
-    ok('Settings unfolds the module\'s own screen inside the card', (await p.textContent('[data-id="kybernos-composio"] [data-kb="suite-config"]')).includes('Clé & mode Composio'))
+    ok('Settings unfolds the module\'s own screen inside the card', (await p.textContent('[data-id="kybernos-composio"] [data-kb="suite-config"]')).includes('Clé Composio'))
     ok('an unfolded card spans the full row', await p.$eval('[data-id="kybernos-composio"]', (e) => e.classList.contains('open')))
     await montrer(p, 'suite-composio-ouvert')
     await p.click('[data-id="kybernos-composio"] button:has-text("Settings")')
