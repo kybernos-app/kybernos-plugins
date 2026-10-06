@@ -74,7 +74,7 @@ const readJsonBody = async (req, maxBytes) => {
   const chunks = []
   for await (const chunk of req) {
     size += chunk.length
-    if (size > cap) throw new Error('corps de requete trop volumineux')
+    if (size > cap) throw new Error('body_too_large')
     chunks.push(chunk)
   }
   if (chunks.length === 0) return {}
@@ -582,34 +582,34 @@ const toggleSkill = async ({ ctx, root, name, active, config, sessionId }) => {
   const wRoots = writableRootsOf(cfg)
 
   // The root must be EXACTLY one of the TWO writable roots (frozen decisions 2 and 4).
-  if (typeof root !== 'string' || wRoots.includes(root) === false) return { ok: false, error: 'racine absente ou non inscriptible' }
-  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'nom de skill invalide' }
-  if (typeof active !== 'boolean') return { ok: false, error: 'champ active requis (booleen)' }
+  if (typeof root !== 'string' || wRoots.includes(root) === false) return { ok: false, error: 'root_not_allowed' }
+  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'invalid_name' }
+  if (typeof active !== 'boolean') return { ok: false, error: 'active_required' }
 
   // Resolution (root, name): EXACTLY one folder must resolve this name in the root.
   const matches = resolveInRoot(root, name)
-  if (matches.length === 0) return { ok: false, error: 'skill introuvable' }
-  if (matches.length > 1) return { ok: false, error: 'nom ambigu : plusieurs dossiers resolvent ce nom, chemin complet requis' }
+  if (matches.length === 0) return { ok: false, error: 'skill_not_found' }
+  if (matches.length > 1) return { ok: false, error: 'skill_ambiguous' }
   const resolved = matches[0]
   const { folder, activeFile, disabledFile, hasActive, hasDisabled } = resolved
 
   if (hasActive && hasDisabled) {
-    return { ok: false, error: 'double marqueur SKILL.md + SKILL.md.disabled : etat ambigu, aucun renommage execute' }
+    return { ok: false, error: 'double_marker' }
   }
-  if (!hasActive && !hasDisabled) return { ok: false, error: 'skill introuvable' }
+  if (!hasActive && !hasDisabled) return { ok: false, error: 'skill_not_found' }
 
   // Anti-traversal barrier (guard A1): the RESOLVED folder must be a DIRECT CHILD of the root.
   if (dirname(folder) !== root || folder === root || basename(folder).startsWith('.')) {
-    return { ok: false, error: 'chemin hors racine refuse' }
+    return { ok: false, error: 'path_outside_root' }
   }
   const markerPath = join(folder, hasActive ? MARKER_ACTIVE : MARKER_DISABLED)
   if (markerPath !== activeFile && markerPath !== disabledFile) {
-    return { ok: false, error: 'chemin hors racine refuse' }
+    return { ok: false, error: 'path_outside_root' }
   }
 
   // Confinement by REAL target (flaw A2): the refusal names the real cause.
   if (writableRootFor(folder, wRoots) === null) {
-    return { ok: false, error: 'chemin reel hors racine refuse' }
+    return { ok: false, error: 'real_path_outside_root' }
   }
 
   let changed = false
@@ -689,7 +689,7 @@ const httpGet = async (url, binary) => {
     }
     return { status: 200, text: await res.text() }
   } catch (e) {
-    return { status: 0, error: e !== null && e.name === 'AbortError' ? 'delai depasse' : 'reseau indisponible' }
+    return { status: 0, error: e !== null && e.name === 'AbortError' ? 'timeout' : 'network_unavailable' }
   } finally {
     clearTimeout(timer)
   }
@@ -719,7 +719,7 @@ const indexApiBase = () => {
 // One read-only GET to the relay. No credential is sent. A failure never carries the relay's own text beyond its `message`.
 const apiGet = async (path) => {
   const base = indexApiBase()
-  if (base === null) return { status: 0, error: 'KYBERNOS_SKILLS_INDEX_URL refusee (https, ou http sur boucle locale)' }
+  if (base === null) return { status: 0, error: 'index_url_refused' }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), NET_TIMEOUT_MS)
   try {
@@ -729,17 +729,20 @@ const apiGet = async (path) => {
       headers: { accept: 'application/json', 'user-agent': 'kybernos-skills' }
     })
     if (!res.ok) {
-      let detail = 'index indisponible (' + res.status + ')'
+      let detail
       try { const e = await res.json(); if (typeof e.message === 'string' && e.message !== '') detail = e.message } catch (e2) { /* body is not JSON */ }
-      return { status: res.status, error: detail }
+      return { status: res.status, error: 'index_unavailable', http: res.status, detail }
     }
     return { status: 200, body: await res.json() }
   } catch (e) {
-    return { status: 0, error: e !== null && e.name === 'AbortError' ? 'delai depasse' : 'reseau indisponible' }
+    return { status: 0, error: e !== null && e.name === 'AbortError' ? 'timeout' : 'network_unavailable' }
   } finally {
     clearTimeout(timer)
   }
 }
+
+// What a failed `apiGet` becomes for the screen: a code, and the facts its sentence needs (the screen words it, in its own language).
+const apiFail = (res) => ({ ok: false, error: res.error, http: res.http, detail: res.detail })
 
 // An API entry: { id, slug, name, source, installs, sourceType, installUrl, url }.
 // WARNING: `source` is NOT always "owner/repo". The index also lists `well-known` sources,
@@ -799,7 +802,7 @@ const indexSkills = async (opts) => {
   const perPage = clampInt(o.perPage, 1, PER_PAGE_MAX, PER_PAGE_DEFAULT)
   return cachedDiscover('index:' + view + ':' + page + ':' + perPage, async () => {
     const res = await apiGet('/skills?view=' + view + '&page=' + page + '&per_page=' + perPage)
-    if (res.status !== 200) return { ok: false, error: res.error }
+    if (res.status !== 200) return apiFail(res)
     const items = Array.isArray(res.body.data) ? res.body.data : []
     const skills = items.map(normalizeHit).filter((x) => x !== null)
     const pag = res.body.pagination !== null && typeof res.body.pagination === 'object' ? res.body.pagination : {}
@@ -817,11 +820,11 @@ const indexSkills = async (opts) => {
 
 const searchSkills = async (query, limit) => {
   const q = typeof query === 'string' ? query.trim() : ''
-  if (q.length < 2) return { ok: false, error: 'recherche : au moins 2 caracteres' }
+  if (q.length < 2) return { ok: false, error: 'query_too_short' }
   const n = clampInt(limit, 1, SEARCH_LIMIT_MAX, PER_PAGE_DEFAULT)
   return cachedDiscover('q:' + q.toLowerCase() + ':' + n, async () => {
     const res = await apiGet('/skills/search?q=' + encodeURIComponent(q) + '&limit=' + n)
-    if (res.status !== 200) return { ok: false, error: res.error }
+    if (res.status !== 200) return apiFail(res)
     const items = Array.isArray(res.body.data) ? res.body.data : []
     const skills = items.map(normalizeHit).filter((x) => x !== null)
     return {
@@ -838,7 +841,7 @@ const searchSkills = async (query, limit) => {
 // "official" badge, which came from a flag scraped from a page's HTML.
 const curatedSkills = async () => cachedDiscover('curated', async () => {
   const res = await apiGet('/skills/curated')
-  if (res.status !== 200) return { ok: false, error: res.error }
+  if (res.status !== 200) return apiFail(res)
   const owners = (Array.isArray(res.body.data) ? res.body.data : []).map((o) => ({
     owner: o !== null && typeof o.owner === 'string' ? o.owner : '',
     totalInstalls: Number.isFinite(o.totalInstalls) ? o.totalInstalls : 0,
@@ -860,11 +863,11 @@ const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/
 const auditSkill = async (source, skill) => {
   const s = typeof source === 'string' && SOURCE_RE.test(source) ? source : ''
   const n = typeof skill === 'string' && SLUG_RE.test(skill) ? skill : ''
-  if (s === '' || n === '') return { ok: false, error: 'source ou skill invalide' }
+  if (s === '' || n === '') return { ok: false, error: 'invalid_source' }
   return cachedDiscover('audit:' + s + '/' + n, async () => {
     const res = await apiGet('/skills/audit/' + s + '/' + n)
-    if (res.status === 404) return { ok: true, audits: [], note: 'aucun audit publie pour ce skill' }
-    if (res.status !== 200) return { ok: false, error: res.error }
+    if (res.status === 404) return { ok: true, audits: [], note: 'no_audit' }
+    if (res.status !== 200) return apiFail(res)
     const audits = (Array.isArray(res.body.audits) ? res.body.audits : []).map((a) => ({
       provider: a !== null && typeof a.provider === 'string' ? a.provider : '',
       slug: typeof a.slug === 'string' ? a.slug : '',
@@ -906,23 +909,23 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
   const cfg = normalizeConfig(config)
   const wRoots = writableRootsOf(cfg)
   const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
-  if (wRoots.includes(dest) === false) return { ok: false, error: 'racine absente ou non inscriptible' }
+  if (wRoots.includes(dest) === false) return { ok: false, error: 'root_not_allowed' }
   if (typeof source !== 'string' || !SOURCE_RE.test(source)) {
     // A `well-known` source is a domain: it is legitimate IN THE INDEX, but its content is
     // not in a GitHub repository, hence out of reach of this route. Say so, rather than "invalid".
     return {
       ok: false,
-      error: DOMAIN_RE.test(String(source))
-        ? 'source non GitHub (' + source + ') : cette route n\'installe que depuis un dépôt GitHub'
-        : 'source invalide (attendu owner/repo)'
+      error: DOMAIN_RE.test(String(source)) ? 'not_github' : 'invalid_source',
+      source: typeof source === 'string' ? source : undefined
     }
   }
-  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'nom de skill invalide' }
-  if (existsSync(join(dest, name))) return { ok: false, error: 'un skill de ce nom est deja installe dans cette racine' }
+  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'invalid_name' }
+  if (existsSync(join(dest, name))) return { ok: false, error: 'already_installed' }
 
   const res = await httpGet(CODELOAD + '/' + source + '/tar.gz/HEAD', true)
-  if (res.status === 404) return { ok: false, error: 'depot introuvable : ' + source }
-  if (res.status !== 200) return { ok: false, error: 'telechargement impossible (' + (res.error !== undefined ? res.error : 'HTTP ' + res.status) + ')' }
+  if (res.status === 404) return { ok: false, error: 'repo_not_found', source }
+  if (res.status === 0) return { ok: false, error: res.error }   // timeout | network_unavailable
+  if (res.status !== 200) return { ok: false, error: 'download_failed', http: res.status }
 
   const tmp = mkdtempSync(join(tmpdir(), 'kybernos-skill-'))
   try {
@@ -931,8 +934,8 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
     catch (e) {
       // Name the real cause: "unreadable archive" would blame the repository when it is
       // perhaps the extraction tool that is missing on the machine.
-      if (e !== null && e !== undefined && e.code === 'ENOENT') return { ok: false, error: 'tar introuvable sur cette machine : extraction impossible' }
-      return { ok: false, error: 'archive illisible' }
+      if (e !== null && e !== undefined && e.code === 'ENOENT') return { ok: false, error: 'tar_missing' }
+      return { ok: false, error: 'archive_unreadable' }
     }
 
     const files = []
@@ -942,15 +945,15 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
       const fm = frontmatterOf(file)
       if (typeof fm.name === 'string' && fm.name === name && typeof fm.description === 'string' && fm.description !== '') found.push(dirname(file))
     }
-    if (found.length === 0) return { ok: false, error: 'skill « ' + name + ' » introuvable dans ' + source }
-    if (found.length > 1) return { ok: false, error: 'nom ambigu : ' + found.length + ' dossiers de ' + source + ' portent ce nom' }
+    if (found.length === 0) return { ok: false, error: 'skill_not_in_repo', name, source }
+    if (found.length > 1) return { ok: false, error: 'repo_ambiguous', count: found.length, source }
 
     mkdirSync(dest, { recursive: true })
     const target = join(dest, name)
     // PHYSICAL, dereferenced copy: never a link. A skill placed as a link would be invisible to the
     // registry (flaw observed on DSH's fs service), hence installed for nothing.
     cpSync(found[0], target, { recursive: true, dereference: true })
-    if (existsSync(join(target, MARKER_ACTIVE)) === false) return { ok: false, error: 'copie incomplete : SKILL.md absent' }
+    if (existsSync(join(target, MARKER_ACTIVE)) === false) return { ok: false, error: 'copy_incomplete' }
 
     invalidateSkills(ctx, sessionId)
     return {
@@ -1123,12 +1126,12 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
   const cfg = normalizeConfig(config)
   const wRoots = writableRootsOf(cfg)
   const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
-  if (wRoots.includes(dest) === false) return { ok: false, error: 'racine absente ou non inscriptible' }
-  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'nom invalide : minuscules, chiffres et tirets, sans accent' }
-  if (typeof description !== 'string' || description.trim() === '') return { ok: false, error: 'description requise' }
-  if (description.trim().length > 1024) return { ok: false, error: 'description trop longue (1024 caracteres)' }
+  if (wRoots.includes(dest) === false) return { ok: false, error: 'root_not_allowed' }
+  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'invalid_name' }
+  if (typeof description !== 'string' || description.trim() === '') return { ok: false, error: 'description_required' }
+  if (description.trim().length > 1024) return { ok: false, error: 'description_too_long', max: 1024 }
   const target = join(dest, name)
-  if (existsSync(target)) return { ok: false, error: 'un skill de ce nom existe deja dans cette racine' }
+  if (existsSync(target)) return { ok: false, error: 'exists' }
 
   const lines = ['---', 'name: ' + name, 'description: ' + yamlQuoted(description.trim())]
   if (typeof whenToUse === 'string' && whenToUse.trim() !== '') lines.push('whenToUse: ' + yamlQuoted(whenToUse.trim()))
@@ -1143,7 +1146,7 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
     writeFileSync(join(target, MARKER_ACTIVE), content)
   } catch (e) {
     try { rmdirSync(target) } catch (e2) { /* rollback: we only remove the empty folder just created, never a skill */ }
-    return { ok: false, error: 'ecriture impossible dans ' + dest }
+    return { ok: false, error: 'write_failed', dest }
   }
   invalidateSkills(ctx, sessionId)
   return {
@@ -1155,17 +1158,17 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
 // ── mounting the routes (mirror of :2728-2729 and :2873-2874, base daed42e) ──────────────────────────────────────
 const mountWebRoutes = (ctx, webServerSvc) => {
   const GET = (path, label, fn) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
-    if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-    try { sendJson(res, 200, await fn(req)) } catch (e) { sendJson(res, 200, { ok: false, error: 'requete impossible' }) }
+    if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'get_required' })
+    try { sendJson(res, 200, await fn(req)) } catch (e) { sendJson(res, 200, { ok: false, error: 'request_failed' }) }
   } }), label)
 
   // Guards verbatim and in this order: method first, origin second. No POST route
   // touches the disk before both.
   // `cap` is the body limit in bytes (default 64 KiB): Team skill routes carry up to a megabyte of files.
   const POST = (path, label, fn, cap) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
-    if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-    if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-    try { sendJson(res, 200, await fn(await readJsonBody(req, cap))) } catch (e) { sendJson(res, 200, { ok: false, error: 'requete impossible' }) }
+    if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'post_required' })
+    if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origin_refused' })
+    try { sendJson(res, 200, await fn(await readJsonBody(req, cap))) } catch (e) { sendJson(res, 200, { ok: false, error: e !== null && e !== undefined && e.message === 'body_too_large' ? 'body_too_large' : 'request_failed' }) }
   } }), label)
 
   GET('/kybernos-skills/skills', 'kybernos-skills: route skills', async (req) => {
@@ -1217,7 +1220,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   POST('/kybernos-skills/toggle', 'kybernos-skills: route toggle', async (body) => {
     const root = typeof body.root === 'string' ? body.root : ''
     const name = typeof body.name === 'string' ? body.name : ''
-    if (root === '') return { ok: false, error: 'racine absente du corps' }
+    if (root === '') return { ok: false, error: 'root_missing' }
     return await toggleSkill({ ctx, root, name, active: body.active, config: configOf(), sessionId: body.sessionId }) // semantic refusals as HTTP 200 { ok:false, error } (precedent :2100/:2169/:2182/:2207)
   })
 
@@ -1287,9 +1290,9 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   POST('/kybernos-skills/featured/toggle', 'kybernos-skills: route featured toggle', async (body) => {
     const cfg = configOf()
     const name = typeof body.name === 'string' ? body.name : ''
-    if (SKILL_NAME_RE.test(name) === false) return { ok: false, error: 'nom de skill invalide' }
+    if (SKILL_NAME_RE.test(name) === false) return { ok: false, error: 'invalid_name' }
     const catalogue = await catalogueOf(ctx, cfg, body.sessionId)
-    if (catalogue.skills.some((s) => s.name === name) === false) return { ok: false, error: 'skill introuvable dans le registre' }
+    if (catalogue.skills.some((s) => s.name === name) === false) return { ok: false, error: 'skill_not_in_registry' }
     const action = body.action === 'add' || body.action === 'remove' ? body.action : 'toggle'
     const items = readFeatured(cfg)
     const at = items.findIndex((it) => it.name === name)
@@ -1307,16 +1310,16 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   // Covers are BINARY FILES: not sendJson. Prefix route (the name follows the
   // last '/'); the name is validated by the regex before any disk access.
   ctx.effect(() => webServerSvc.register({ kind: 'prefix', path: '/kybernos-skills/cover', handler: async (req, res) => {
-    if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+    if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'get_required' })
     const pathname = new URL(req.url ?? '/', 'http://x').pathname
     const name = decodeURIComponent(pathname.slice('/kybernos-skills/cover/'.length))
     const file = SKILL_NAME_RE.test(name) ? coverFileOf(configOf(), name) : null
-    if (file === null) return sendJson(res, 404, { ok: false, error: 'aucune pochette pour ce skill' })
+    if (file === null) return sendJson(res, 404, { ok: false, error: 'no_cover' })
     try {
       const ext = file.slice(file.lastIndexOf('.') + 1)
       res.writeHead(200, { 'content-type': COVER_TYPES[ext] ?? 'application/octet-stream', 'cache-control': 'private, max-age=120' })
       res.end(readFileSync(file))
-    } catch (e) { sendJson(res, 500, { ok: false, error: 'lecture de la pochette impossible' }) }
+    } catch (e) { sendJson(res, 500, { ok: false, error: 'cover_unreadable' }) }
   } }), 'kybernos-skills: route cover')
 
   console.log('[kybernos-skills] routes /kybernos-skills/* enregistrees (catalogue, bascule, creation, installation, index officiel, featured)')
@@ -1335,12 +1338,12 @@ export function apply(ctx) {
       try {
         mountWebRoutes(hostCtx, hostCtx.get('webServer'))
       } catch (e) {
-        try { console.error('[kybernos-skills] montage des routes impossible', e) } catch (e2) { /* */ }
+        try { console.error('[kybernos-skills] mounting the routes failed', e) } catch (e2) { /* */ }
       }
     })
   } catch (ksBootError) {
     try {
-      console.error('[kybernos-skills] demarrage impossible — routes /kybernos-skills/* non montees', ksBootError)
+      console.error('[kybernos-skills] start-up failed — the /kybernos-skills/* routes are not mounted', ksBootError)
     } catch (e2) { /* console unavailable */ }
   }
 }
