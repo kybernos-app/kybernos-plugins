@@ -34,6 +34,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`dsh-db-viewer`](packages/dsh-db-viewer/README.md) | SQLite viewer in the right sidebar |
 | [`dsh-media-player`](packages/dsh-media-player/README.md) | Audio/video preview |
 | [`kybernos-cloud`](packages/kybernos-cloud/README.md) | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
+| [`kybernos-changes`](packages/kybernos-changes/README.md) | One chip under the composer: where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer view |
 | [`kybernos-composio`](packages/kybernos-composio/README.md) | Composio integration: MCP connection and app catalog |
 | [`kybernos-flow`](packages/kybernos-flow/README.md) | Conversation flow without engine patches: auto-continue, queue-move |
 | [`kybernos-language`](packages/kybernos-language/README.md) | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |

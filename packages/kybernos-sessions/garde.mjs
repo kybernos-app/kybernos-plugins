@@ -130,6 +130,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-modeleur/client.js',
   'packages/kybernos-refs/client.js',
   'packages/kybernos-slides/client.js',
+  'packages/kybernos-changes/client.js',
 ]
 export const TTL_CLAIM_MS = 180 * 1000
 

@@ -1816,8 +1816,116 @@ window.__ModuleLoader__.load({
         details }
     }
 
+    // ── la lecture que le plugin « Changes » consomme ───────────────────────────
+    // Les MÊMES faits que les quatre pilules git (local, recap, GitHub, review), sans leur texte ni leurs
+    // nœuds : le plugin voisin en fait une seule phrase. Les gestes sortent comme descripteurs
+    // `{ url, corps, label, hint }` — ce que `PlanAction` reçoit — rangés par RÔLE, pour que ce plugin ne
+    // doive jamais lire une URL pour savoir ce qu'un bouton fait. Rien n'est recalculé : les vues ci-dessus
+    // restent la seule source, et ce que ce plugin affiche ne peut donc pas contredire les pilules.
+    const descripteur = (el) => (el !== null && el !== undefined && el.props !== undefined && el.props !== null && typeof el.props.url === 'string')
+      ? { url: el.props.url, corps: el.props.corps || {}, label: el.props.label || '', hint: el.props.hint || '' } : null
+    // `git status --porcelain` : « ?? » = nouveau, « D » = supprimé, « R » = renommé, « U »/« AA »/« DD » = conflit.
+    const genreDeCode = (code) => {
+      const c = String(code || '')
+      if (c.indexOf('U') >= 0 || /^(AA|DD)$/.test(c)) return 'conflict'
+      if (c === '??' || c.indexOf('A') >= 0) return 'new'
+      if (c.indexOf('D') >= 0) return 'deleted'
+      if (c.indexOf('R') >= 0) return 'renamed'
+      return 'modified'
+    }
+    function faitsChangements (s, sessionId, travail) {
+      if (!s) return { git: false, pourquoi: 'dossier' }
+      const g = s.git
+      if (!g || !g.git) return { git: false, pourquoi: 'git' }
+      const n = g.modifications > 0 ? g.modifications : 0
+      const restes = restesDuChat(s, travail)
+      const mesChemins = travail !== null && Array.isArray(travail.chemins) ? travail.chemins : []
+      const nonSauvees = restes !== null ? restes : (travail === null ? n : (travail.ecritures === null ? n : travail.ecritures))
+      const nonFusionnes = g.nonFusionnes > 0 ? g.nonFusionnes : 0
+      const y = s.sync || null
+      const aEnvoyer = y !== null && y.commitsNonPousses > 0 ? y.commitsNonPousses : 0
+      const aRecevoir = y !== null && y.commitsRecus > 0 ? y.commitsRecus : 0
+      const github = !!(g.distant && /github\.com/i.test(g.distant))
+      const autres = Math.max(0, (s.sessionsActives || 0) - 1)
+      // Les fichiers sales, avec leur genre quand le host le donne (champ additif `fichiers`), et ce qui revient à CE
+      // chat quand le disque permet de le dire (`restes` n'est pas nul).
+      const miens = restes !== null
+        ? new Set(mesChemins.map((p) => relatifAuDossier(p, s.chemin)).filter((p) => p !== null && encoreSale(g.sale, p)))
+        : null
+      const genres = new Map()
+      if (Array.isArray(g.fichiers)) for (const f of g.fichiers) if (f !== null && typeof f === 'object') genres.set(String(f.chemin).replace(/\/+$/, ''), genreDeCode(f.code))
+      const fichiers = (Array.isArray(g.sale) ? g.sale : []).slice(0, 200).map((p) => {
+        const chemin = String(p).replace(/\/+$/, '')
+        return { path: String(p), kind: genres.get(chemin) || null, mine: miens === null ? null : miens.has(chemin) }
+      })
+      const conflits = fichiers.filter((f) => f.kind === 'conflict').length
+      // Les gestes, par rôle : celui que `vueLocal`, `vueSync` et `vuePr` proposeraient, plus le geste local du récap.
+      const actions = {}
+      const poser = (role, d) => { if (d !== null && actions[role] === undefined) actions[role] = d }
+      const w = vueLocal(s, sessionId, travail)
+      const dw = descripteur(w.action)
+      if (dw !== null) {
+        if (/\/commit$/.test(dw.url)) poser(Array.isArray(dw.corps.chemins) ? 'save' : 'addToProject', dw)
+        else if (/\/isolate$/.test(dw.url)) poser('isolate', dw)
+        else if (/\/close$/.test(dw.url)) poser('closeCopy', dw)
+      }
+      if (nonSauvees > 0 || nonFusionnes > 0) {
+        poser('saveLocal', { url: '/kybernos-sessions/commit', corps: { session: sessionId, chemins: mesChemins, local: true }, label: nonFusionnes > 0 && nonSauvees === 0 ? 'Merge into the local project' : 'Commit & merge locally', hint: '' })
+      }
+      const v = github ? vueSync(s) : null
+      const dy = v !== null ? descripteur(v.act) : null
+      if (dy !== null) poser(/\/sync$/.test(dy.url) ? 'sync' : /\/push$/.test(dy.url) ? 'push' : 'fetch', dy)
+      const r = github ? vuePr(s) : null
+      const dr = r !== null ? descripteur(r.act) : null
+      if (dr !== null) poser(dr.corps.action === 'merge' ? 'merge' : 'askReview', dr)
+      return {
+        git: true,
+        folder: s.chemin || '',
+        branch: g.branche || '',
+        base: g.base || '',
+        isolated: !!g.worktree,
+        isolatedName: g.worktree ? nomDeChemin(g.worktree) : '',
+        remote: g.distant || null,
+        github,
+        unsaved: nonSauvees,
+        unsavedKnown: restes !== null,
+        files: fichiers,
+        folderDirty: n,
+        sharedWith: autres,
+        ahead: aEnvoyer,
+        behind: aRecevoir,
+        notMerged: nonFusionnes,
+        lastFetch: y !== null ? y.dernierFetch || null : null,
+        conflicts: conflits,
+        pr: s.pr ? { number: s.pr.numero, title: s.pr.titre || '', state: s.pr.etat, checks: s.pr.checks, review: s.pr.revue, url: s.pr.url || '' } : null,
+        onBase: !!(g.branche && g.base && g.branche === g.base),
+        actions
+      }
+    }
+    // Le plugin « Changes » lit ceci à chaque ouverture : l'état du dossier ET le journal de la session (qui dit ce
+    // que CE chat a écrit), comme les pilules. `null` quand la route est muette.
+    const lireChangements = async (sessionId) => {
+      let etat = null
+      try { etat = await fetch('/kybernos-sessions/state?session=' + encodeURIComponent(sessionId || '') + '&window=1').then((r) => r.json()) } catch (e) { return null }
+      if (etat === null || typeof etat !== 'object') return null
+      const s = etat.session ? Object.assign({}, etat.session, { session: sessionId }) : null
+      let travail = null
+      try { const j = await lireJournalSession(sessionId); travail = j !== null && j !== undefined ? classerJournal(j.events, j.cwd) : null } catch (e) { travail = null }
+      return faitsChangements(s, sessionId, travail)
+    }
+    try { window.__KB_SESSIONS_VIEW__ = { version: 1, read: lireChangements } } catch (e) { /* no window: the Changes plugin then shows nothing and the four pills stay */ }
+
     // ── la rangée des pilules ───────────────────────────────────────────────
     function Pills ({ sessionId }) {
+      // Le plugin « Changes » dit la même chose en une pastille : tant qu'il est actif, les quatre pilules git se
+      // taisent (Memory & Lessons reste). Il le signale par `window.__KB_CHANGES_ACTIVE__` et par un événement.
+      const [changesOn, setChangesOn] = React.useState(() => typeof window !== 'undefined' && window.__KB_CHANGES_ACTIVE__ === true)
+      React.useEffect(() => {
+        const on = () => setChangesOn(window.__KB_CHANGES_ACTIVE__ === true)
+        window.addEventListener('kybernos-changes-active', on)
+        on()
+        return () => window.removeEventListener('kybernos-changes-active', on)
+      }, [])
       const [etat, setEtat] = React.useState(null)
       const [journal, setJournal] = React.useState(null)
       const [ouverte, setOuverte] = React.useState(null) // 'local' | 'recap' | 'sync' | 'pr' | 'notes' | null
@@ -2113,10 +2221,10 @@ window.__ModuleLoader__.load({
         (badge === null || badge === undefined) && MUETTES.has(o.label)
 
       return h(React.Fragment, null,
-        pill('local', 'laptop', w.accent, w.label, null, wTip, false, calme(w, null)),
-        pill('recap', 'merge', rec.accent, rec.label, null, rec.tip, rec.act, calme(rec, null)),
-        v ? pill('sync', 'cloud', v.accent, v.label, vBadge, vTip, false, calme(v, vBadge)) : null,
-        r ? pill('pr', 'pr', r.accent, r.label, null, rTip, false, calme(r, null)) : null,
+        changesOn ? null : pill('local', 'laptop', w.accent, w.label, null, wTip, false, calme(w, null)),
+        changesOn ? null : pill('recap', 'merge', rec.accent, rec.label, null, rec.tip, rec.act, calme(rec, null)),
+        !changesOn && v ? pill('sync', 'cloud', v.accent, v.label, vBadge, vTip, false, calme(v, vBadge)) : null,
+        !changesOn && r ? pill('pr', 'pr', r.accent, r.label, null, rTip, false, calme(r, null)) : null,
         pill('notes', 'brain', notesAccent, 'Memory', memBadge, notesTip, false, rien,
           { libelleVisible: true, extra: h(React.Fragment, null, h('span', { className: 'kbs-pillsep' }), svg('bulb', 15), h('span', { className: 'kbs-n' }, String(nbLecons)),
             delta > 0 ? h('span', { className: 'kbs-d' }, '+' + delta) : null) }))
@@ -2799,7 +2907,7 @@ window.__ModuleLoader__.load({
       // l'entrée reste « loading » (même contrat que kybernos/kybernos-theme).
       inject: ['slots'],
       // Pure pieces, exposed for test-journal.mjs.
-      __test: { memoireDuJournal, santeVue, santeCause, suivreSante },
+      __test: { memoireDuJournal, santeVue, santeCause, suivreSante, faitsChangements, genreDeCode, descripteur },
       apply
     }
   }

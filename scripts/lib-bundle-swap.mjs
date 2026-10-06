@@ -15,12 +15,17 @@
 // A file is found in the response by its text as served from `servedRoot` (default: the shared tree,
 // i.e. the checkout `dsh web` runs from). If the shared tree has uncommitted edits of that file the
 // text no longer matches what is served: `replaced` is then false and the caller must say so.
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-export const SHARED_TREE = process.env.KB_SHARED_TREE || '/Users/miled/kybernos-plugins'
+// The checkout `dsh web` runs from is the repository's MAIN working tree: the parent of the common git dir.
+const mainWorkingTree = () => {
+  try { return dirname(resolve(REPO, execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: REPO, encoding: 'utf8' }).trim())) } catch (e) { return REPO }
+}
+export const SHARED_TREE = process.env.KB_SHARED_TREE || mainWorkingTree()
 
 /**
  * @param page   a CDP page from scripts/cdp-lib.mjs (see scripts/live-page.mjs)

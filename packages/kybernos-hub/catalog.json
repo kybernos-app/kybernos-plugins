@@ -569,6 +569,22 @@
       }
     },
     {
+      "id": "kybernos-changes",
+      "nom": "@local/kybernos-changes",
+      "titre": "Changes",
+      "glyphe": "flow",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 40,
+      "promesse": {
+        "fr": "Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.",
+        "en": "Where your work stands (changed, saved, on GitHub, in the project) and what to do next."
+      }
+    },
+    {
       "id": "dsh-media-player",
       "nom": "@local/dsh-media-player",
       "titre": "Media player",

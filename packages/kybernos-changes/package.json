@@ -1,0 +1,20 @@
+{
+  "name": "@local/kybernos-changes",
+  "version": "0.1.0",
+  "description": "Changes: one chip under the composer that says where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next, with a Simple / Developer switch. Replaces the four git pills of Sessions while it is on.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}
