@@ -47,7 +47,7 @@ if (yaml === null) console.log('(no DSH engine: the cases that read the blocks b
     ok('a block with an option the form does not know is read only, with the reason', by('weird').editable === false && /autoApprove/.test(by('weird').readOnlyReason) && by('weird').command === '/usr/bin/true')
     ok('the secret a connector refers to says whether it has a value, never the value', hor.secretsSet.FAKE_TOKEN === false && g.text.includes('FAKE_TOKEN') && !/good|ck_/.test(g.text))
   } else ok('without a parser the blocks stay listed, read only, with the reason', by('horloge').editable === false && /parser/.test(by('horloge').readOnlyReason))
-  ok('what was in the patch when DSH started is not "to apply"', g.json.connecteurs.every((c) => c.pending === false) && g.json.removed.length === 0)
+  ok('without DSH\'s services the page is told there is no live state (not that nothing is loaded)', g.json.live === false && g.json.connecteurs.every((c) => c.live === null))
   ok('the folders commands may run from are reported', g.json.roots.base.includes('/opt/homebrew/bin') && Array.isArray(g.json.roots.extra))
   h.stop()
 }
@@ -62,18 +62,27 @@ if (yaml !== null) {
   const save = await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: form2 })
   ok('editing a block of the skill saves it (it becomes the form\'s)', save.code === 200 && save.json.ok === true, save.text.slice(0, 160))
   const z = (await get()).connecteurs.find((c) => c.nom === 'zcode')
-  ok('...it is now a form connector, to apply, with its timeout kept', z.source === 'form' && z.pending === true && z.toolCallTimeoutMs === 600000 && z.args.includes('--verbose'), JSON.stringify(z).slice(0, 160))
+  ok('...it is now a form connector, with its timeout kept', z.source === 'form' && z.toolCallTimeoutMs === 600000 && z.args.includes('--verbose'), JSON.stringify(z).slice(0, 160))
   const patch = h.files.read('patch')
   const back = readConnector('zcode', patchBlocks(patch).zcode, yaml.load)
   ok('...and the block on disk reads back to what was saved', back.connecteur !== undefined && back.connecteur.command === '/usr/bin/true' && back.connecteur.toolCallTimeoutMs === 600000 && back.connecteur.args.join() === form2.args.join(), JSON.stringify(back).slice(0, 160))
   ok('...the other blocks and entries were not touched', patch.includes('# connecteur:horloge') && patch.includes('autoApprove: true') && patch.includes('- id: kybernos-computers'))
 
+  // the enabled flag and the tool timeout
+  const off = await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: Object.assign({}, form2, { disabled: true, toolCallTimeoutMs: 90000 }) })
+  const pOff = h.files.read('patch')
+  ok('disabled: true is written as the loader reads it, and the timeout with it', off.code === 200 && /mcp-client-zcode\n\s+name: '@deepseek-ai\/dsh-mcp-client'\n\s+disabled: true/.test(pOff) && /toolCallTimeoutMs: 90000/.test(pOff))
+  const backOff = readConnector('zcode', patchBlocks(pOff).zcode, yaml.load)
+  ok('...and it reads back as disabled', backOff.connecteur !== undefined && backOff.connecteur.disabled === true && backOff.connecteur.toolCallTimeoutMs === 90000)
+  ok('...a timeout out of range is refused', (await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: Object.assign({}, form2, { toolCallTimeoutMs: 5 }) })).code === 400)
+  await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: form2 })
+  ok('...enabling it again drops the flag', !/disabled: true/.test(h.files.read('patch').slice(h.files.read('patch').indexOf('# connecteur:zcode'), h.files.read('patch').indexOf('# connecteur:weird'))))
+
   // rename
   const ren = await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: { nom: 'chrono', renameFrom: 'horloge', transport: 'stdio', command: '/usr/bin/true', args: [], env: [{ name: 'FAKE_TOKEN', value: '$FAKE_TOKEN' }], secrets: [{ name: 'FAKE_TOKEN', value: 'good' }] } })
   ok('a rename answers ok and says where it came from', ren.code === 200 && ren.json.renamedFrom === 'horloge', ren.text.slice(0, 120))
   const after = await get()
-  ok('...the old name is gone, the new one is there, to apply', !after.connecteurs.some((c) => c.nom === 'horloge') && after.connecteurs.find((c) => c.nom === 'chrono').pending === true)
-  ok('...the old one is reported as removed (it was in service)', after.removed.includes('horloge'))
+  ok('...the old name is gone, the new one is there', !after.connecteurs.some((c) => c.nom === 'horloge') && after.connecteurs.some((c) => c.nom === 'chrono'))
   const p2 = h.files.read('patch')
   ok('...in the patch the old block is gone and the new one is there once', !p2.includes('# connecteur:horloge') && !p2.includes('mcp-client-horloge') && p2.split('# connecteur:chrono').length === 2)
   ok('...the secret typed with it is in the .env, and the new connector says it is set', /FAKE_TOKEN=/.test(h.files.read('env') || '') && after.connecteurs.find((c) => c.nom === 'chrono').secretsSet.FAKE_TOKEN === true)
@@ -85,26 +94,33 @@ if (yaml !== null) {
 
   // delete
   const del = await h.call('/kybernos/composio/connecteurs?nom=zcode', { method: 'DELETE' })
-  ok('deleting a connector that was in service reports it as to apply', del.code === 200 && del.json.needRestart === true && (await get()).removed.includes('zcode'))
-  // adding then deleting something that was never in service is no change
-  await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: { nom: 'ephemere', transport: 'stdio', command: '/usr/bin/true' } })
-  await h.call('/kybernos/composio/connecteurs?nom=ephemere', { method: 'DELETE' })
-  ok('...a connector added and deleted since the start is not "removed" (nothing changed)', !(await get()).removed.includes('ephemere'))
+  ok('deleting a connector removes its block and says so', del.code === 200 && del.json.removed === true && !h.files.read('patch').includes('mcp-client-zcode') && !(await get()).connecteurs.some((c) => c.nom === 'zcode'))
+  ok('...the response no longer claims a restart is needed (DSH reloads the patch itself)', del.json.needRestart === undefined && save.json.needRestart === undefined)
   h.stop()
 } else console.log('- skipped, no DSH engine: edit, rename and delete of the skill\'s blocks')
 
-// ── not "to apply" once DSH has restarted ───────────────────────────────────
+// ── what DSH says about each connector ──────────────────────────────────────
 {
-  const h = await startHost({ before: ({ patch, sidecar }) => {
-    writeFileSync(patch, SKILL_PATCH())
-    writeFileSync(sidecar, JSON.stringify([{ nom: 'horloge', transport: 'stdio', command: '/usr/bin/true', args: [], env: [], updatedAt: '2020-01-01T00:00:00.000Z' }]))
-  } })
+  const inventory = { list: async () => ({ entries: [
+    { entryId: 'include:mcp-client-horloge', moduleName: '@deepseek-ai/dsh-mcp-client', enabled: true, fiberPhase: 'active' },
+    { entryId: 'include:mcp-client-zcode', moduleName: '@deepseek-ai/dsh-mcp-client', enabled: true, fiberPhase: 'failed' },
+    { entryId: 'include:mcp-client-weird', moduleName: '@deepseek-ai/dsh-mcp-client', enabled: false, fiberPhase: null },
+    { entryId: 'include:not-a-connector', enabled: true, fiberPhase: 'active' },
+  ], agentPresets: [], managementAvailable: true }) }
+  const tools = { schemas: () => [{ name: 'mcp__horloge__now' }, { name: 'mcp__horloge__zone' }, { name: 'mcp__horloge2__x' }, { name: 'read_file' }] }
+  const h = await startHost({ services: { pluginInventory: inventory, tools: tools }, before: ({ patch }) => { writeFileSync(patch, SKILL_PATCH()) } })
   const g = (await h.call('/kybernos/composio/connecteurs')).json
-  ok('a form connector saved before DSH started, and in the patch then, is not "to apply"', g.connecteurs.find((c) => c.nom === 'horloge').pending === false)
-  await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: { nom: 'horloge', transport: 'stdio', command: '/usr/bin/true', args: ['x'] } })
-  ok('...saved again, it is', (await h.call('/kybernos/composio/connecteurs')).json.connecteurs.find((c) => c.nom === 'horloge').pending === true)
-  ok('a block nobody touched since the start is not', (await h.call('/kybernos/composio/connecteurs')).json.connecteurs.find((c) => c.nom === 'zcode').pending === false)
+  const live = (n) => g.connecteurs.find((c) => c.nom === n).live
+  ok('live: a loaded connector says its phase and how many tools it registered (and only its own: mcp__horloge2__ is another)', g.live === true && live('horloge').loaded === true && live('horloge').phase === 'active' && live('horloge').tools === 2, JSON.stringify(live('horloge')))
+  ok('live: a connector whose entry failed to load says so', live('zcode').phase === 'failed' && live('zcode').tools === 0)
+  ok('live: a disabled entry is loaded:true, enabled:false', live('weird').enabled === false)
+  ok('live: a block DSH has not loaded (yet) is loaded:false', (await (async () => { await h.call('/kybernos/composio/connecteurs', { method: 'POST', body: { nom: 'neuf', transport: 'stdio', command: '/usr/bin/true' } }); return (await h.call('/kybernos/composio/connecteurs')).json.connecteurs.find((c) => c.nom === 'neuf').live })()).loaded === false)
   h.stop()
+  // services that fail must never fail the route
+  const bad = await startHost({ services: { pluginInventory: { list: async () => { throw new Error('boom') } }, tools: { schemas: () => { throw new Error('boom') } } }, before: ({ patch }) => { writeFileSync(patch, SKILL_PATCH()) } })
+  const r = await bad.call('/kybernos/composio/connecteurs')
+  ok('live: an inventory that throws is "no live state", not an error', r.code === 200 && r.json.live === false)
+  bad.stop()
 }
 
 // ── the Test route ──────────────────────────────────────────────────────────

@@ -61,13 +61,22 @@ window.__ModuleLoader__.load({
       return catalogLoad
     }
 
-    // ── key + minimal MCP client (streamable-http, JSON-RPC over POST) ────────
-    const MCP_URL = 'https://connect.composio.dev/mcp'
-    const KB_CP_KEY = 'composio.apiKey'
-    // Browser storage can be unavailable or throw (private window, blocked site data): every
-    // access is guarded and the page then works with what it has in memory.
-    const kbCpKey = () => { try { return localStorage.getItem(KB_CP_KEY) || '' } catch (e) { return '' } }
-    const kbCpHas = () => kbCpKey().indexOf('ck_') === 0
+    // ── host calls ────────────────────────────────────────────────────────────
+    // This page holds no Composio key. The host half (index.js) keeps it in the DSH .env (where the agents
+    // read it), checks it with Composio, and makes every call to Composio on the page's behalf: accounts,
+    // connectors, the connector test. The page only asks.
+    const HOST = '/kybernos/composio'
+    /** One call to the host: { status, json } (json is null when the body is not JSON). Never throws: no network is { status: 0 }. */
+    const kbCpHost = async (path, method, body) => {
+      try {
+        const init = { method: method || 'GET', credentials: 'same-origin' }
+        if (body !== undefined) { init.headers = { 'content-type': 'application/json' }; init.body = JSON.stringify(body) }
+        const res = await fetch(HOST + path, init)
+        let json = null
+        try { json = await res.json() } catch (e) { json = null }
+        return { status: res.status, json: json }
+      } catch (e) { return { status: 0, json: null } }
+    }
 
     // ── URL rule for everything the user can click or the page can open ──────
     // Card JSON is model output and `redirect_url` is a remote server's reply, so
@@ -108,127 +117,11 @@ window.__ModuleLoader__.load({
     }
     const kbCpDropLink = (slug) => { try { const all = JSON.parse(localStorage.getItem(KB_CP_LINKS) || '{}'); delete all[slug]; localStorage.setItem(KB_CP_LINKS, JSON.stringify(all)) } catch (e) { } }
 
-    // ── minimal MCP client ───────────────────────────────────────────────────
-    // One session at a time, remembered WITH the key it was opened for. It used to be
-    // memoised for good, a failure included: a mistyped key (401) kept failing after the
-    // right one was saved, until the page was reloaded, and the old Mcp-Session-Id was sent
-    // with the new key. Now a new key, a failed initialize or an expired session (404) starts
-    // a new session, and every exchange is bounded by ONE deadline (headers and body).
-    const MCP_TIMEOUT = { ms: 20000 }
-    let mcpSession = { key: null, id: null, ready: null }
-    const mcpFail = (code, message) => { const e = new Error(message || code); e.code = code; return e }
-    const mcpSessionFor = (key) => {
-      if (mcpSession.key !== key) mcpSession = { key: key, id: null, ready: null }
-      return mcpSession
-    }
-    const mcpRpc = async (method, params) => {
-      const key = kbCpKey()
-      const sess = mcpSessionFor(key)
-      const headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/event-stream',
-        'x-consumer-api-key': key,
-      }
-      if (sess.id !== null) headers['Mcp-Session-Id'] = sess.id
-      const controller = new AbortController()
-      const deadline = new Promise((_resolve, reject) => { controller.signal.addEventListener('abort', () => reject(mcpFail('timeout', 'timeout')), { once: true }) })
-      deadline.catch(() => { /* nothing races it any more */ })
-      const timer = setTimeout(() => controller.abort(), MCP_TIMEOUT.ms)
-      const failed = (e) => (e !== null && e !== undefined && typeof e.code === 'string' ? e : mcpFail(controller.signal.aborted === true ? 'timeout' : 'offline', String((e && e.message) || e)))
-      try {
-        let r = null
-        try { r = await Promise.race([fetch(MCP_URL, { method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: Date.now() % 1e9, method, params }), signal: controller.signal }), deadline]) } catch (e) { throw failed(e) }
-        const sid = r.headers.get('mcp-session-id')
-        if (sid && mcpSession === sess) sess.id = sid
-        let raw = ''
-        try { raw = await Promise.race([r.text(), deadline]) } catch (e) { throw failed(e) }
-        let payload = null
-        for (const line of raw.split('\n')) {
-          if (line.indexOf('data:') === 0) { try { payload = JSON.parse(line.slice(5).trim()) } catch (e) { } }
-        }
-        if (payload === null) { try { payload = JSON.parse(raw) } catch (e) { } }
-        if (r.ok !== true) throw mcpFail(String(r.status), (payload && payload.error && payload.error.message) || ('HTTP ' + r.status))
-        if (payload && payload.error) throw mcpFail('rpc-error', payload.error.message || 'MCP error')
-        return payload ? payload.result : null
-      } finally { clearTimeout(timer) }
-    }
-    const mcpReady = () => {
-      const sess = mcpSessionFor(kbCpKey())
-      if (sess.ready === null) {
-        sess.ready = mcpRpc('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kybernos-harness', version: '1.0' } })
-          .catch((e) => { if (sess.ready !== null && mcpSession === sess) sess.ready = null; throw e })
-      }
-      return sess.ready
-    }
-    const kbCpCall = async (tool, args) => {
-      if (kbCpHas() === false) throw new Error('nokey')
-      const attempt = async () => {
-        await mcpReady()
-        return mcpRpc('tools/call', { name: tool, arguments: args })
-      }
-      try { return await attempt() } catch (e) {
-        if (e === null || e === undefined || e.code !== '404') throw e
-        // The server forgot the session: start a new one, once.
-        mcpSession = { key: kbCpKey(), id: null, ready: null }
-        return attempt()
-      }
-    }
-    const kbCpText = (res) => {
-      const c = res && Array.isArray(res.content) ? res.content : []
-      const first = c.find((x) => x && typeof x.text === 'string')
-      if (!first) return ''
-      try { return JSON.parse(first.text) } catch (e) { return first.text }
-    }
-
-    // ── catalog / account helpers ─────────────────────────────────────────────
+    // ── catalog helpers ───────────────────────────────────────────────────────
     // CAT_BY_SLUG is (re)built when the catalog arrives (kbCpCatalog).
     const catOf = (slug) => CAT_BY_SLUG[slug] || null
     const nameOf = (slug) => { const c = catOf(slug); return c ? c.n : slug }
     const logoOf = (slug) => { const c = catOf(slug); return c ? c.l : null }
-
-    /** Normalizes the COMPOSIO_MANAGE_CONNECTIONS answer into { slug: {status, accounts[]} }. */
-    /**
-     * Readable label of an account. The API returns `user_info` with, depending on the
-     * toolkit: `summary` (Google Calendar -> the email), `email`, `name`,
-     * `username`, `screen_name`... The first one available is taken, else the alias set by
-     * the user, else the raw id (last resort).
-     */
-    const accountLabel = (a) => {
-      const ui = (a && a.user_info && typeof a.user_info === 'object') ? a.user_info : {}
-      const cands = [a && a.alias, ui.summary, ui.email, ui.emailAddress, ui.name, ui.username, ui.screen_name, ui.login, a && a.client_name]
-      for (const c of cands) {
-        if (typeof c === 'string' && c.trim().length > 0 && c.trim() !== 'undefined') return c.trim()
-      }
-      return String((a && (a.id || a.connectedAccountId)) || kbt('kb.cp.account'))
-    }
-
-    const parseAccounts = (raw) => {
-      const out = {}
-      if (raw === null || typeof raw !== 'object') return out
-      const data = raw.data && typeof raw.data === 'object' ? raw.data : raw
-      const results = data.results && typeof data.results === 'object' ? data.results : null
-      if (results === null) return out
-      for (const [slug, info] of Object.entries(results)) {
-        const key = String(slug).toLowerCase()
-        // A null entry in the account list used to throw here and break the whole page.
-        const accounts = (Array.isArray(info && info.accounts) ? info.accounts : []).filter((a) => a !== null && typeof a === 'object')
-        out[key] = {
-          status: String((info && info.status) || '').toLowerCase(),
-          accounts: accounts.map((a) => ({
-            id: String(a.id || a.connectedAccountId || ''),
-            label: accountLabel(a),
-            status: String(a.status || a.state || '').toUpperCase(),
-          })),
-        }
-      }
-      return out
-    }
-
-    /** Queries a batch of toolkits (action list). Measured batch: 500 in ~760 ms. */
-    const listBatch = async (slugs) => {
-      const res = await kbCpCall('COMPOSIO_MANAGE_CONNECTIONS', { toolkits: slugs.map((name) => ({ name, action: 'list' })) })
-      return parseAccounts(kbCpText(res))
-    }
 
     // ── i18n ──────────────────────────────────────────────────────────────────
     const STR = {

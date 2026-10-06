@@ -1369,19 +1369,35 @@ function applyPlan(plan) {
   }
 }
 
-// ── what DSH loaded when it started ─────────────────────────────────────────
-// DSH reads cordis.patch.yml once, at its start. The connectors present then are "in service"; a
-// connector added or saved since, or one removed since, only takes effect at the next start. The names
-// are captured when this host half starts (that is DSH's start), so the page can say "to apply" without
-// guessing. A person who edits the file by hand shows up as a difference too, which is true.
-let boot = null
-function snapshotBoot() {
-  if (boot !== null) return
+// ── what DSH says about each connector ──────────────────────────────────────
+// DSH watches cordis.patch.yml and reloads it by itself (about 2 to 3 seconds after a write: measured on
+// DSH 0.2.0-rc.2 with its `hmr` watcher), so a saved connector is loaded without a restart. Whether it
+// IS loaded is not guessed: pluginInventory.list() gives { entries: [{ entryId: 'include:<id>', enabled,
+// fiberPhase }] } and tools.schemas() the registered tools, whose names start with mcp__<name>__. A connector
+// whose server cannot be reached stays "active" with no tools (failOnStartupError is false), so
+// "active, 0 tools" is shown as that, not as working. Null when DSH's services are not there (tests, an older engine).
+async function liveStates(ctx, noms) {
+  let inv = null
+  let tools = null
+  try { inv = ctx.get('pluginInventory') } catch (e) { inv = null }
+  try { tools = ctx.get('tools') } catch (e) { tools = null }
+  if (inv === null || inv === undefined || typeof inv.list !== 'function') return null
+  let entries = null
+  try {
+    const got = await inv.list()
+    entries = got !== null && typeof got === 'object' && Array.isArray(got.entries) ? got.entries : (Array.isArray(got) ? got : null)
+  } catch (e) { entries = null }
+  if (entries === null) return null
   let names = []
-  try { names = Object.keys(patchBlocks(readPatchText())) } catch (e) { names = [] }
-  boot = { at: Date.now(), names: new Set(names) }
+  try { if (tools !== null && tools !== undefined && typeof tools.schemas === 'function') names = tools.schemas().map((t) => (t !== null && t !== undefined ? t.name : '')).filter((n) => typeof n === 'string') } catch (e) { names = [] }
+  const out = {}
+  for (const nom of noms) {
+    const e = entries.find((x) => x !== null && x !== undefined && typeof x.entryId === 'string' && (x.entryId === 'include:mcp-client-' + nom || x.entryId.endsWith(':mcp-client-' + nom)))
+    const count = names.filter((n) => n.startsWith('mcp__' + nom + '__')).length
+    out[nom] = e === undefined ? { loaded: false, tools: count } : { loaded: true, phase: String(e.fiberPhase === null || e.fiberPhase === undefined ? '' : e.fiberPhase), enabled: e.enabled !== false, tools: count }
+  }
+  return out
 }
-const isPending = (c) => boot !== null && (boot.names.has(c.nom) === false || Date.parse(c.updatedAt) > boot.at)
 
 const envFileValues = () => { try { return parseEnvText(readFileSync(ENV_PATH(), 'utf8')) || {} } catch (e) { return {} } }
 /** { NAME: true|false }: whether each secret a connector refers to has a value (never the value). */
@@ -1392,26 +1408,27 @@ function secretsSetFor(c) {
   return out
 }
 
-/** The connector list the page shows: the form's own, then the blocks nothing in the sidecar knows (read in full when the form could write them back). */
-function listConnecteurs(sidecar, patchText) {
+/** The connector list the page shows: the form's own, then the blocks nothing in the sidecar knows (read in full when the form could write them back), each with what DSH says of it. */
+function listConnecteurs(sidecar, patchText, live) {
   const blocks = patchBlocks(patchText)
   const seen = {}
   const out = []
   for (const c of sidecar) {
     seen[c.nom] = true
-    out.push(Object.assign({}, c, { source: 'form', editable: true, pending: isPending(c), secretsSet: secretsSetFor(c) }))
+    out.push(Object.assign({}, c, { source: 'form', editable: true, secretsSet: secretsSetFor(c) }))
   }
   const yaml = findYaml()
   for (const nom of Object.keys(blocks)) {
     if (seen[nom] === true) continue
     const lines = blocks[nom]
     const read = readConnector(nom, lines, yaml === null ? null : yaml.load)
-    const item = Object.assign({ nom: nom, horsFormulaire: true, source: 'skill', pending: boot !== null && boot.names.has(nom) === false }, blockSummary(lines))
+    const item = Object.assign({ nom: nom, horsFormulaire: true, source: 'skill' }, blockSummary(lines))
     if (read.connecteur !== undefined) Object.assign(item, read.connecteur, { editable: true, secretsSet: secretsSetFor(read.connecteur) })
     else Object.assign(item, { editable: false, readOnlyReason: read.readOnly })
     out.push(item)
   }
-  return { connecteurs: out, removed: boot === null ? [] : Array.from(boot.names).filter((n) => blocks[n] === undefined).sort() }
+  for (const c of out) c.live = live === null ? null : (live[c.nom] || { loaded: false, tools: 0 })
+  return out
 }
 
 async function serveConnecteurs(ctx, req, res) {
@@ -1426,10 +1443,10 @@ async function serveConnecteurs(ctx, req, res) {
     const sidecar = problem === null ? state.list : []
     let patchText = ''
     try { patchText = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
-    snapshotBoot()
-    const listed = listConnecteurs(sidecar, patchText)
+    const names = Object.keys(patchBlocks(patchText)).concat(sidecar.map((c) => c.nom))
+    const live = await liveStates(ctx, names)
     // Never a secret value here: only names, labels and whether a secret has a value.
-    return sendJson(res, 200, Object.assign({ ok: true, connecteurs: listed.connecteurs, removed: listed.removed, roots: { base: RACINES_STDIO_OK, extra: extraRoots() } },
+    return sendJson(res, 200, Object.assign({ ok: true, connecteurs: listConnecteurs(sidecar, patchText, live), live: live !== null, roots: { base: RACINES_STDIO_OK, extra: extraRoots() } },
       problem === null ? {} : { state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem }))
   }
   if (req.method === 'POST') {
@@ -1483,7 +1500,7 @@ async function serveConnecteurs(ctx, req, res) {
     list.sort((a, b) => (a.nom < b.nom ? -1 : 1))
     const failure = applyPlan({ patch: { avant: avant, apres: apres, empty: verdict.empty, existait: existait }, env: { avant: envAvant, apres: envApres }, sidecar: { liste: list } })
     if (failure !== null) return sendJson(res, 500, { ok: false, error: failure })
-    return sendJson(res, 200, Object.assign({ ok: true, connecteur: c, secretsWritten: secrets.length, needRestart: true, validated: verdict.validated }, renameFrom === '' ? {} : { renamedFrom: renameFrom }))
+    return sendJson(res, 200, Object.assign({ ok: true, connecteur: c, secretsWritten: secrets.length, validated: verdict.validated }, renameFrom === '' ? {} : { renamedFrom: renameFrom }))
   }
   if (req.method === 'DELETE') {
     const nom = queryOf(req).get('nom') || ''
@@ -1516,7 +1533,7 @@ async function serveConnecteurs(ctx, req, res) {
     const failure = applyPlan({ patch: { avant: avant, apres: apres === null ? avant : apres, empty: verdict.empty, existait: existait }, env: { avant: envAvant, apres: envApres }, sidecar: { liste: had ? state.list.filter((x) => x.nom !== nom) : null } })
     if (failure !== null) return sendJson(res, 500, { ok: false, error: failure })
     const removed = apres !== null
-    return sendJson(res, 200, { ok: true, removed: removed, needRestart: removed, secretsRemoved: secretsRemoved })
+    return sendJson(res, 200, { ok: true, removed: removed, secretsRemoved: secretsRemoved })
   }
   return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
 }
@@ -1785,7 +1802,6 @@ export function apply(ctx) {
   const log = (message) => { try { if (ctx.logger !== undefined && ctx.logger !== null) ctx.logger.info(message) } catch (e) { /* the logger is optional */ } }
   // AGENTS.md rule 2: a bundle must never stop DSH from starting. Nothing below may throw out
   // of apply(): a failure here only costs this bundle's routes.
-  try { snapshotBoot() } catch (e) { /* the page then lists nothing as pending */ }
   try { mountRoutes(ctx, log) } catch (e) { log('[composio] routes not mounted: ' + fsMessage('error', e)) }
 }
 
