@@ -69,6 +69,23 @@ const files = (name, more = []) => [{ path: 'SKILL.md', content: skillMd(name) }
   assert.equal(reason({ name: 'a', files: [...files('a'), { path: 'wide.md', content: 'é'.repeat(130 * 1024) }] }), 'file_too_large', 'the cap counts bytes, not characters')
   ok('binary content, a file over 256 KiB (counted in bytes) and a skill over 1 MiB are refused, the caps themselves are allowed')
 
+  // What the server also refuses (kybernos-server, validate.ts): a path no member's disk can hold, and text that cannot be stored.
+  const bad = (extra) => reason({ name: 'a', files: [...files('a'), ...extra] })
+  for (const path of ['aux.md', 'con', 'NUL.txt', 'lpt1/x.md', 'com3.tar.gz', 'dir./x.md', 'x/aux/y.md', 'a.']) assert.equal(bad([{ path, content: 'x' }]), 'bad_path', path)
+  for (const path of ['auxiliary.md', 'console.md', 'com10.md', 'lpt.md', 'a.b/c.md']) assert.equal(bad([{ path, content: 'x' }]), 'ok', path)
+  assert.equal(bad([{ path: 'Notes.md', content: 'x' }, { path: 'notes.MD', content: 'y' }]), 'bad_path', 'two paths that differ only by case are one file on a Mac or Windows disk')
+  assert.equal(bad([{ path: 'docs', content: 'x' }, { path: 'docs/a.md', content: 'y' }]), 'bad_path', 'a file that is also the folder of another')
+  assert.equal(bad([{ path: 'Docs', content: 'x' }, { path: 'docs/a.md', content: 'y' }]), 'bad_path', '…even when only the case differs')
+  assert.equal(bad([{ path: 'docs/a.md', content: 'x' }, { path: 'docs/b/c.md', content: 'y' }]), 'ok')
+  const half = String.fromCharCode(0xd83d)   // half of a surrogate pair: not UTF-8, it would not come back as it went
+  assert.deepEqual(validateTeamSkill({ name: 'a', files: [...files('a'), { path: 'x.md', content: 'ok ' + half + ' ko' }] }), { ok: false, reason: 'binary', file: 'x.md' })
+  assert.equal(bad([{ path: 'x.md', content: 'a whole pair: ' + String.fromCharCode(0xd83d, 0xde00) }]), 'ok')
+  assert.deepEqual(validateTeamSkill({ name: 'a', files: [{ path: 'SKILL.md', content: '---\nname: a\ndescription: "bad ' + half + '"\n---\n' }] }), { ok: false, reason: 'binary', file: 'SKILL.md' })
+  const secretInHeader = 'ghp_' + 'Q'.repeat(36)
+  const sd = validateTeamSkill({ name: 'a', files: [{ path: 'SKILL.md', content: '---\nname: a\ndescription: "token ' + secretInHeader + '"\n---\n' }] })
+  assert.deepEqual([sd.ok, sd.reason, sd.file, sd.line], [false, 'scan_rejected', 'SKILL.md', 3], 'a secret in the description is as public as one in a file')
+  ok('a path no member\'s disk can hold (Windows names, case twins, a file that is a folder) and text that cannot be stored are refused, as the server refuses them')
+
   assert.equal(TEAM_SKILL_LIMITS.files, 50)
   assert.equal(TEAM_SKILL_LIMITS.totalBytes, 1048576)
 }

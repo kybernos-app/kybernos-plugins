@@ -16,9 +16,20 @@ A DSH skill is a folder: a `SKILL.md` plus optional text files next to it. A Tea
 - `files`: `[{ "path": "SKILL.md", "content": "..." }, ...]`. Text only, UTF-8.
   - `SKILL.md` must be present, and its frontmatter `name` must equal `name` and carry a non-empty `description`.
   - A path is relative and ASCII: `/`-separated segments, each matching `[A-Za-z0-9_][A-Za-z0-9._-]*` (so no `..`, no hidden
-    segment like `.git`, no `\`, no empty segment, no leading `/`), at most 200 characters, no path twice.
+    segment like `.git`, no `\`, no empty segment, no leading `/`), at most 200 characters, no path twice. Because the paths go to
+    **every member's disk**, the server also refuses (and the plugin checks the same) two paths that differ only by case, a file that is
+    also the folder of another, a segment that ends with a dot, and a Windows device name (`con`, `prn`, `aux`, `nul`, `com0`–`com9`,
+    `lpt0`–`lpt9`, with or without an extension). All of these are `bad_path`.
   - At most 50 files, 256 KiB per file, 1 MiB in total. Binary content is refused.
-  - A secret scan on every file refuses the skill (`scan_rejected`); the patterns of `_skillrepos.py` are the reference.
+  - A secret scan on every file **and on the description** (it is shown to every member) refuses the skill (`scan_rejected`; the
+    file of a description hit is `<description>`); the patterns of `_skillrepos.py` are the reference.
+  - Text means no NUL and no half of a surrogate pair (not UTF-8: it would not come back as it went): otherwise `binary`.
+  - **Every check on a skill's text must be linear in its size.** A skill is text a stranger wrote and the plugin runs these checks in the
+    same process as the GUI. Two expressions of the reference are quadratic and must not be used as they are: the JWT pattern
+    (`\beyJ…\.…\.…\b`, 6.7 s on 160 000 characters of `-eyJ-eyJ…`) and a frontmatter line pattern `^key:[ \t]*(.*)$` (6 s on
+    `k:` + 80 000 spaces + a CR). Both implementations apply the same rules run by run; see `hasJwt` and `frontmatterOfText` in
+    `packages/kybernos-skills/team-skills.mjs` and `src/modules/skills/validate.ts` of kybernos-server, and
+    `packages/kybernos-skills/test-team-skills-linear.mjs`, which checks them against the expressions on random lines.
 - `version`: SHA-256 (hex) of the files, computed by the server over the canonical listing: for each file sorted by `path`
   (ASCII, so the same order in any language), `path`, a NUL byte, the content's byte length in decimal (UTF-8 bytes), a NUL byte,
   the content bytes. The client recomputes it after a download and refuses a mismatch. What an admin approved is therefore exactly
@@ -86,7 +97,7 @@ The vocabulary of the lessons module, plus the skill-specific ones.
 
 | Status | Body | When |
 | --- | --- | --- |
-| 400 | `{error: "invalid_skill", reason, file?}` | `reason` is one of `name`, `no_skill_md`, `frontmatter` (SKILL.md must carry the same `name` and a non-empty `description`), `bad_path`, `binary`, `too_many_files`, `file_too_large`, `too_large` (the total); `file` names the offender when there is one |
+| 400 | `{error: "invalid_skill", reason, file?}` | `reason` is one of `name`, `description` (the description field is empty, too long or not storable text), `no_skill_md`, `frontmatter` (SKILL.md must carry the same `name` and a non-empty `description`), `bad_path`, `binary`, `too_many_files`, `file_too_large`, `too_large` (the total); `file` names the offender when there is one |
 | 400 | `{error: "scan_rejected", file}` | a secret was found (the match itself is never returned) |
 | 401 / 403 | as lessons | no identity / `admin_required` |
 | 404 | `{error: "Workspace not found"}` or `{error: "Team skill not found"}` | not a member of the workspace (same answer as an unknown one) / no such skill, or someone else's proposal. These two texts are what the plugin tells apart from a server that has no Team skills at all (any other 404): keep them exact |

@@ -20,7 +20,9 @@ const NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PATH_RE = /^[A-Za-z0-9_][A-Za-z0-9._-]*(?:\/[A-Za-z0-9_][A-Za-z0-9._-]*)*$/
 const SCRIPT_EXT = /\.(?:sh|bash|zsh|fish|py|rb|pl|php|js|mjs|cjs|ts|ps1|bat|cmd)$/i
 
-// The patterns of the server's own scan (core/middleware/skills/_skillrepos.py). A match is reported as a file and a line, never as text.
+// The patterns of the server's own scan (core/middleware/skills/_skillrepos.py, and src/modules/skills/validate.ts of kybernos-server).
+// The JWT one is not here: see `hasJwt`. A skill is text a stranger wrote, so every check below must be LINEAR in the size of the text:
+// none of these expressions backtracks across a long run (each class is followed by a character the class does not hold, or by the end).
 const SECRET_PATTERNS = Object.freeze([
   ['aws_access_key', /AKIA[0-9A-Z]{16}/],
   ['github_pat', /gh[pousr]_[A-Za-z0-9]{30,}/],
@@ -29,18 +31,55 @@ const SECRET_PATTERNS = Object.freeze([
   ['anthropic_key', /sk-ant-[A-Za-z0-9_-]{20,}/],
   ['private_key_block', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
   ['generic_bearer', /bearer\s+[a-z0-9._~+/-]{22,}={0,2}/i],
-  ['google_api_key', /AIza[0-9A-Za-z_-]{35}/],
-  ['jwt', /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/]
+  ['google_api_key', /AIza[0-9A-Za-z_-]{35}/]
 ])
+
+const isWordChar = (c) => c !== undefined && /[A-Za-z0-9_]/.test(c)
+
+/**
+ * Pure. Whether a line holds a JWT: `\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b`. That regular expression is
+ * QUADRATIC on a line such as `-eyJ-eyJ-eyJ…` (every `eyJ` scans to the end of the run, then backtracks): 160 000 characters took 6.7 s,
+ * with the host frozen. The same rule is applied run by run instead. The class has no `.`, so the three parts are three maximal runs
+ * joined by single dots, and for the first run only its earliest `eyJ` can matter (it leaves the longest tail). The test checks this
+ * against the regular expression on random lines.
+ */
+export const hasJwt = (line) => {
+  const runs = []
+  for (const m of line.matchAll(/[A-Za-z0-9_-]+/g)) runs.push([m.index, m.index + m[0].length])
+  for (let i = 0; i + 2 < runs.length; i += 1) {
+    const [s1, e1] = runs[i]
+    const [s2, e2] = runs[i + 1]
+    const [s3, e3] = runs[i + 2]
+    if (e1 + 1 !== s2 || e2 + 1 !== s3 || line[e1] !== '.' || line[e2] !== '.') continue
+    if (e2 - s2 < 10) continue
+    // The first run: an `eyJ` at a word boundary (the start of the run, or after a `-`) with ten more characters of the run after it.
+    // Searched in the run, never past it: `indexOf` on the line would scan on to the next `eyJ` anywhere, for every run.
+    const run = line.slice(s1, e1)
+    let start = -1
+    for (let p = run.indexOf('eyJ'); p !== -1 && p + 13 <= run.length; p = run.indexOf('eyJ', p + 1)) {
+      if (p === 0 || run[p - 1] === '-') { start = p; break }
+    }
+    if (start === -1) continue
+    // The last: ten characters or more of the run, ending at a word boundary (the end of the run counts, unless it ends on a `-`).
+    for (let q = s3 + 10; q <= e3; q += 1) {
+      if (isWordChar(line[q - 1]) !== isWordChar(line[q])) return true
+    }
+  }
+  return false
+}
 
 /** Pure. `{ file, line, kind }` of the first secret-looking line, or null. The matched text is never returned. */
 export const findSecret = (files) => {
   for (const f of files) {
     const lines = String(f.content).split(/\r?\n/)
     for (let i = 0; i < lines.length; i += 1) {
+      const text = lines[i]
+      // The shortest secret (`xoxa-` and ten characters) is 15 characters: most lines of a file are shorter.
+      if (text.length < 15) continue
       for (const [kind, re] of SECRET_PATTERNS) {
-        if (re.test(lines[i])) return { file: f.path, line: i + 1, kind }
+        if (re.test(text)) return { file: f.path, line: i + 1, kind }
       }
+      if (hasJwt(text)) return { file: f.path, line: i + 1, kind: 'jwt' }
     }
   }
   return null
@@ -65,16 +104,27 @@ export const skillVersion = (files) => {
   return hash.digest('hex')
 }
 
-/** Pure. The `key: value` pairs of a SKILL.md frontmatter, unquoted the way DSH reads them (double quotes with \\ \" \n, single quotes). */
+/**
+ * Pure. The `key: value` pairs of a SKILL.md frontmatter, unquoted the way DSH reads them (double quotes with \\ \" \n, single quotes).
+ * Not one regular expression `^key:[ \t]*(.*)$`: its spaces and its `.*` overlap, and on `k:` followed by 250 000 spaces and a character `.` does
+ * not match (a lone CR, U+2028, U+2029) it backtracks quadratically (24 s for one SKILL.md). The key first, then the rest: a line whose rest holds
+ * what `.` does not match is no pair, exactly as before.
+ */
+// What `.` does not match: CR, U+2028, U+2029 (built from code points: a literal line terminator inside a regex literal would end it).
+const NOT_DOT = new RegExp('[\\r' + String.fromCharCode(0x2028, 0x2029) + ']')
+
 export const frontmatterOfText = (text) => {
   const out = {}
   const lines = String(text).split(/\r?\n/)
   if (lines[0] !== '---') return out
   for (let i = 1; i < lines.length; i += 1) {
-    if (lines[i] === '---') break
-    const m = /^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/.exec(lines[i])
+    const line = lines[i]
+    if (line === '---') break
+    const m = /^([A-Za-z][A-Za-z0-9_-]*):/.exec(line)
     if (m === null) continue
-    const t = m[2].trim()
+    const rest = line.slice(m[0].length)
+    if (NOT_DOT.test(rest)) continue
+    const t = rest.trim()
     if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) out[m[1]] = t.slice(1, -1).replace(/\\(.)/g, (all, c) => (c === 'n' ? '\n' : (c === '\\' || c === '"' ? c : all)))
     else if (t.length >= 2 && t.startsWith("'") && t.endsWith("'")) out[m[1]] = t.slice(1, -1).replace(/''/g, "'")
     else out[m[1]] = t
@@ -86,6 +136,26 @@ export const frontmatterOfText = (text) => {
 export const scriptFiles = (files) => files
   .filter((f) => SCRIPT_EXT.test(f.path) || /^scripts?\//i.test(f.path) || String(f.content).startsWith('#!'))
   .map((f) => f.path)
+
+// A text that can be stored and read back unchanged: no NUL (a picture, an archive) and no half of a surrogate pair (not UTF-8).
+const isStorableText = (s) => {
+  if (s.indexOf('\0') !== -1) return false
+  if (typeof s.isWellFormed === 'function') return s.isWellFormed()
+  for (let i = 0; i < s.length; i += 1) {
+    const c = s.charCodeAt(i)
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = s.charCodeAt(i + 1)
+      if (d >= 0xdc00 && d <= 0xdfff) i += 1
+      else return false
+    } else if (c >= 0xdc00 && c <= 0xdfff) return false
+  }
+  return true
+}
+
+// What a Windows machine cannot write (a skill's paths go to every member's disk): a segment that ends with a dot, or is a device name
+// (with or without an extension). The server refuses the same.
+const WINDOWS_DEVICE = /^(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$/i
+const windowsUnsafe = (path) => path.split('/').some((seg) => seg.endsWith('.') || WINDOWS_DEVICE.test(seg.split('.')[0]))
 
 /**
  * Pure. `{ ok: true, version, count, bytes, scripts, description }` when the skill may travel, else `{ ok: false, reason, file? }` with a
@@ -99,23 +169,36 @@ export const validateTeamSkill = (skill) => {
   if (files.length === 0) return { ok: false, reason: 'no_skill_md' }
   if (files.length > TEAM_SKILL_LIMITS.files) return { ok: false, reason: 'too_many_files' }
   const seen = new Set()
+  const folded = new Set()
   let bytes = 0
   for (const f of files) {
     if (f === null || typeof f !== 'object' || typeof f.path !== 'string' || typeof f.content !== 'string') return { ok: false, reason: 'bad_path' }
-    if (f.path.length > TEAM_SKILL_LIMITS.pathChars || !PATH_RE.test(f.path) || seen.has(f.path)) return { ok: false, reason: 'bad_path', file: f.path.slice(0, TEAM_SKILL_LIMITS.pathChars) }
+    if (f.path.length > TEAM_SKILL_LIMITS.pathChars || !PATH_RE.test(f.path) || seen.has(f.path) || windowsUnsafe(f.path)) return { ok: false, reason: 'bad_path', file: f.path.slice(0, TEAM_SKILL_LIMITS.pathChars) }
+    // Two paths that differ only by case are one file on a Mac or a Windows disk.
+    if (folded.has(f.path.toLowerCase())) return { ok: false, reason: 'bad_path', file: f.path }
     seen.add(f.path)
-    if (f.content.indexOf('\0') !== -1) return { ok: false, reason: 'binary', file: f.path }
+    folded.add(f.path.toLowerCase())
+    if (!isStorableText(f.content)) return { ok: false, reason: 'binary', file: f.path }
     const size = Buffer.byteLength(f.content, 'utf8')
     if (size > TEAM_SKILL_LIMITS.fileBytes) return { ok: false, reason: 'file_too_large', file: f.path }
     bytes += size
   }
   if (bytes > TEAM_SKILL_LIMITS.totalBytes) return { ok: false, reason: 'too_large' }
+  // A file that is also the folder of another one cannot be written.
+  for (const path of seen) {
+    const parts = path.toLowerCase().split('/')
+    for (let n = 1; n < parts.length; n += 1) {
+      if (folded.has(parts.slice(0, n).join('/'))) return { ok: false, reason: 'bad_path', file: path }
+    }
+  }
   const entry = files.find((f) => f.path === 'SKILL.md')
   if (entry === undefined) return { ok: false, reason: 'no_skill_md' }
   const fm = frontmatterOfText(entry.content)
   const description = typeof fm.description === 'string' ? fm.description.trim() : ''
   if (fm.name !== s.name || description === '' || description.length > TEAM_SKILL_LIMITS.description) return { ok: false, reason: 'frontmatter', file: 'SKILL.md' }
-  const secret = findSecret(files)
+  if (!isStorableText(description)) return { ok: false, reason: 'description' }
+  // The description is shown to every member and is its own field, not a file: a secret in it is as public as one in a file.
+  const secret = findSecret([...files, { path: '<description>', content: description }])
   if (secret !== null) return { ok: false, reason: 'scan_rejected', file: secret.file, line: secret.line }
   return { ok: true, version: skillVersion(files), count: files.length, bytes, scripts: scriptFiles(files), description }
 }

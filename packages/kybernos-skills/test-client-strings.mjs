@@ -61,7 +61,7 @@ assert.ok(words.size > 15, 'the answer words were read (' + words.size + ')')
 ok('every answer of the Team routes and of pack/install has a sentence (' + words.size + ' words, ' + generic.size + ' deliberately generic)')
 
 // 5. the ways a skill can fail to be packed each have a sentence
-for (const reason of ['binary', 'file_too_large', 'too_many_files', 'too_large', 'bad_path', 'frontmatter', 'name', 'no_skill_md']) {
+for (const reason of ['binary', 'file_too_large', 'too_many_files', 'too_large', 'bad_path', 'frontmatter', 'name', 'description', 'no_skill_md']) {
   assert.ok(src.includes(reason + ": 'tm.p.bad."), 'no sentence for the pack reason ' + reason)
 }
 ok('each reason a skill cannot be shared (picture, size, count, name, path, frontmatter, missing SKILL.md) has a sentence')

@@ -332,8 +332,9 @@ window.__ModuleLoader__.load({
         'tm.p.bad.big': { fr: '{file} dépasse 256 Ko.', en: '{file} is over 256 KB.' },
         'tm.p.bad.many': { fr: 'Plus de 50 fichiers.', en: 'More than 50 files.' },
         'tm.p.bad.total': { fr: 'Plus de 1 Mo au total.', en: 'Over 1 MB in total.' },
-        'tm.p.bad.path': { fr: '{file} : ce nom de fichier ne peut pas être partagé (lettres, chiffres, - _ . et / seulement).', en: '{file}: this file name cannot be shared (letters, digits, - _ . and / only).' },
+        'tm.p.bad.path': { fr: '{file} : ce nom de fichier ne peut pas être partagé (lettres, chiffres, - _ . et / seulement ; pas de nom que Windows ne sait pas écrire, pas deux noms qui ne diffèrent que par la casse, pas un fichier qui est aussi un dossier).', en: '{file}: this file name cannot be shared (letters, digits, - _ . and / only; no name Windows cannot write, no two names that differ only by case, no file that is also a folder).' },
         'tm.p.bad.frontmatter': { fr: 'SKILL.md doit porter le même nom que le dossier et une description.', en: 'SKILL.md needs a name that matches the folder and a description.' },
+        'tm.p.bad.description': { fr: 'La description de SKILL.md contient un caractère qui ne peut pas être enregistré.', en: 'The description in SKILL.md holds a character that cannot be stored.' },
         'tm.p.bad.name': { fr: 'Le nom du skill n’est pas valide.', en: 'The skill name is not valid.' },
         'tm.p.bad.nofile': { fr: 'Il manque un fichier SKILL.md.', en: 'There is no SKILL.md.' },
         'tm.p.bad.disabled': { fr: 'Activez d’abord le skill.', en: 'Turn the skill on first.' },
@@ -1612,7 +1613,7 @@ window.__ModuleLoader__.load({
         const f = j.file || ''
         if (j.error === 'scan_rejected' || j.reason === 'scan_rejected') return t('tm.p.bad.secret', { file: f, line: j.line || '?' })
         if (j.error === 'skill_disabled') return t('tm.p.bad.disabled')
-        const by = { binary: 'tm.p.bad.binary', file_too_large: 'tm.p.bad.big', too_many_files: 'tm.p.bad.many', too_large: 'tm.p.bad.total', bad_path: 'tm.p.bad.path', frontmatter: 'tm.p.bad.frontmatter', name: 'tm.p.bad.name', no_skill_md: 'tm.p.bad.nofile' }
+        const by = { binary: 'tm.p.bad.binary', file_too_large: 'tm.p.bad.big', too_many_files: 'tm.p.bad.many', too_large: 'tm.p.bad.total', bad_path: 'tm.p.bad.path', frontmatter: 'tm.p.bad.frontmatter', name: 'tm.p.bad.name', description: 'tm.p.bad.description', no_skill_md: 'tm.p.bad.nofile' }
         if (by[j.reason] !== undefined) return t(by[j.reason], { file: f })
         if (j.error === 'skill_not_found' || j.error === 'root_not_allowed') return teamWord(j)
         return t('tm.p.bad.other', { code: j.reason || j.error || '?' })

@@ -36,7 +36,7 @@ import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { validateTeamSkill, skillVersion, TEAM_SKILL_LIMITS } from './team-skills.mjs'
+import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 
 // ── helpers locaux (miroir semantique de kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -180,33 +180,12 @@ const writableRootFor = (target, roots) => {
   return null
 }
 
-// ── frontmatter minimal « cle: valeur » avec de-quotation (lisible sur les DESACTIVES, que le
-//    registre ne voit pas ; les actifs, eux, sont deja parses par DSH) ────────────────────────────────────
-const unquote = (v) => {
-  const t = v.trim()
-  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    // On defait EXACTEMENT ce que yamlQuoted pose (\\, \" et \n), en une passe : sans cela la
-    // reponse immediate d'une creation rendrait des echappements litteraux, alors que le
-    // registre, lui, relit la valeur exacte dans le fichier — deux lectures du meme champ.
-    return t.slice(1, -1).replace(/\\(.)/g, (m, c) => c === 'n' ? '\n' : (c === '\\' || c === '"' ? c : m))
-  }
-  if (t.length >= 2 && t.startsWith("'") && t.endsWith("'")) return t.slice(1, -1).replace(/''/g, "'")
-  return t
-}
-
+// ── frontmatter minimal « cle: valeur » avec de-quotation (lisible sur les DESACTIVES, que le registre ne voit pas ; les actifs, eux,
+//    sont deja parses par DSH). Le parseur est celui de team-skills.mjs : l'ancien (une seule expression reguliere dont les espaces et le
+//    `.*` se chevauchent) etait QUADRATIQUE — une ligne `k:` suivie de 80 000 espaces bloquait l'hote 6 s, et un skill telecharge de GitHub
+//    en est un exemple possible.
 const frontmatterOf = (file) => {
-  const out = {}
-  try {
-    const lines = readFileSync(file, 'utf8').split(/\r?\n/)
-    if (lines[0] !== '---') return out
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i] === '---') break
-      const m = /^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/.exec(lines[i])
-      if (m === null) continue
-      out[m[1]] = unquote(m[2])
-    }
-  } catch (e) { /* illisible => frontmatter vide */ }
-  return out
+  try { return frontmatterOfText(readFileSync(file, 'utf8')) } catch (e) { return {} /* illisible => frontmatter vide */ }
 }
 
 // ── VUE DES DESACTIVES : ce que le registre ne peut pas voir ─────────────────────────────────────────────────
