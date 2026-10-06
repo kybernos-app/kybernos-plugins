@@ -121,5 +121,37 @@ delete process.env.COMPOSIO_API_KEY
   ok('accounts: no key at all -> 409 no-credential', r.code === 409 && r.json.code === 'no-credential')
   bare.stop()
 }
+// ── Composio's gateway drops many requests (502): a read is asked again, a write is not ──
+{
+  const h = await startHost({ before: ({ env }) => { writeFileSync(env, 'COMPOSIO_API_KEY=ck_good\n') } })
+  h.mod.TIMEOUTS.retryDelayMs = 1
+  const tools = () => comp.state.calls.filter((c) => c.body && c.body.method === 'tools/call')
+  const inits = () => comp.state.calls.filter((c) => c.body && c.body.method === 'initialize')
+  comp.state.calls.length = 0
+  comp.state.failNext = 3
+  let r = await h.call(C + '?toolkits=gmail&fresh=1')
+  ok('gateway: a read that meets three 502s still answers, with no error', r.json.error === null && r.json.configured === true, JSON.stringify(r.json.error))
+  ok('...it asked again (initialize 4 times, the 4th is the one that worked), then read once', inits().length === 4 && tools().length === 1, `inits=${inits().length} tools=${tools().length}`)
+  comp.state.calls.length = 0
+  comp.state.failNext = 9999
+  r = await h.call(C + '?toolkits=slack&fresh=1')
+  ok('gateway: when it never answers, the read gives up with the code (not an endless loop)', r.json.error === '502' && comp.state.calls.length === 5, `error=${r.json.error} calls=${comp.state.calls.length}`)
+  comp.state.failNext = 0
+  // the session now exists: the next 502 lands on the write itself
+  await h.call(C + '?toolkits=slack&fresh=1')
+  comp.state.calls.length = 0
+  comp.state.failNext = 1
+  r = await h.call(A, { method: 'POST', body: { action: 'add', toolkit: 'slack' } })
+  ok('gateway: a write is NOT repeated (an add could create a second pending account): one attempt, the code is told', r.code === 502 && r.json.code === '502' && tools().length === 1, `code=${r.code} tools=${tools().length}`)
+  comp.state.calls.length = 0
+  r = await h.call(A, { method: 'POST', body: { action: 'add', toolkit: 'slack' } })
+  ok('accounts: add answers from its own reply (the pending account is in it): one call, no second list', r.code === 200 && r.json.connection.accounts.length >= 1 && tools().length === 1, `tools=${tools().length} accounts=${r.json.connection && r.json.connection.accounts.length}`)
+  const pend = r.json.connection.accounts[r.json.connection.accounts.length - 1]
+  comp.state.calls.length = 0
+  r = await h.call(A, { method: 'POST', body: { action: 'remove', toolkit: 'slack', accountId: pend.id } })
+  ok('accounts: remove answers from its own reply as well', r.code === 200 && !r.json.connection.accounts.some((a) => a.id === pend.id) && tools().length === 1, `tools=${tools().length}`)
+  h.stop()
+}
+
 comp.restore()
 done('Key and accounts')

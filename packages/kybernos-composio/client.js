@@ -204,6 +204,7 @@ window.__ModuleLoader__.load({
       'kb.cp.err.timeout': { fr: 'Composio n’a pas répondu à temps.', en: 'Composio did not answer in time.' },
       'kb.cp.err.offline': { fr: 'Composio est injoignable (réseau).', en: 'Composio cannot be reached (network).' },
       'kb.cp.err.other': { fr: 'Composio a répondu par une erreur ({code}).', en: 'Composio answered with an error ({code}).' },
+      'kb.cp.err.gateway': { fr: 'Composio a un souci passager ({code}) : réessayez dans un instant.', en: 'Composio has a passing problem ({code}): try again in a moment.' },
       // Key panel: what the HOST (the agents) sees, as opposed to this browser.
       // Card button that sends text into the conversation: the text is shown first.
       'kb.cp.accept.confirm': { fr: 'Envoyer ce message dans la conversation ?', en: 'Send this message in the conversation?' },
@@ -391,6 +392,7 @@ window.__ModuleLoader__.load({
       if (c === '429') return kbt('kb.cp.err.429')
       if (c === 'timeout') return kbt('kb.cp.err.timeout')
       if (c === 'offline') return kbt('kb.cp.err.offline')
+      if (c === '502' || c === '503' || c === '504') return kbt('kb.cp.err.gateway').replace('{code}', c)
       return kbt('kb.cp.err.other').replace('{code}', c.length > 0 ? c : '?')
     }
     /** The text for an error thrown by the MCP client: its code when it has one, else its message. */

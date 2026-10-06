@@ -81,12 +81,12 @@ fixable from here; `reconnect.maxAttempts` can be raised in the patch if that is
 | `GET /kybernos/composio/catalog` | the `catalog.js` array (100 apps, 98 SVG logos, about 360 KB), ETag, `max-age=3600` (a corrected catalog reaches a browser up to an hour late) |
 | `GET /kybernos/composio/connections?toolkits=a,b[&fresh=1]` | read-only; up to 40 slugs (lower-cased, a leading `_` allowed); with none it scans the account; always 200 with `configured`, `stale`, `error`; only `id`, `alias`, `status`, `accountType`, `isDefault` are returned; `fresh=1` (at most 5 slugs) skips the 2 minute cache, for polling an account being authorized |
 | `GET`, `POST`, `DELETE /kybernos/composio/key` | whether there is a key, where it comes from and whether the running agents hold it (`agents`: `same`, `different`, `none`); `POST { key }` checks it with Composio (a 401/403 is refused, a network failure saves it as unverified) and writes `COMPOSIO_API_KEY` to the DSH `.env`; `DELETE` removes the line. The key is never returned. A key from the launching environment is a 409 |
-| `POST /kybernos/composio/accounts` | `{ action: 'add', toolkit }` starts a connection and returns the address to authorize at (http(s) only); `{ action: 'remove', toolkit, accountId }` removes one account; both answer with the toolkit's accounts; an upstream failure is a 502 with the code |
+| `POST /kybernos/composio/accounts` | `{ action: 'add', toolkit }` starts a connection and returns the address to authorize at (http(s) only); `{ action: 'remove', toolkit, accountId }` removes one account; both answer with the toolkit's accounts, taken from Composio's own reply (the pending account is in the reply to an add; a second call to list is only the fallback); an upstream failure is a 502 with the code |
 | `GET`, `POST`, `DELETE /kybernos/composio/connecteurs[?nom=]` | the servers: each with `source` (`form` or `skill`), `editable` (and `readOnlyReason`), `live`, `secretsSet`; `POST` saves (or renames with `renameFrom`); exact-origin guard, JSON required; body at most 200000 bytes (413) |
 | `POST /kybernos/composio/connecteurs/test` | `{ nom }` for a saved server (run as DSH starts it, whatever folder its command is in), or a full draft with the secrets typed in the form (held to the rules of a save); returns the tools or a coded failure |
 | `GET`, `POST`, `DELETE /kybernos/composio/connecteurs/commande` | `GET ?command=npx` says where a program is and whether its folder is trusted; `POST { dir }` confirms a folder; `DELETE ?dir=` forgets it |
 
-`connections` never answers 5xx. `error` says what failed, so an empty list that comes with an error is not
+`connections` never answers 5xx. Composio's gateway answers 502 for roughly half of the requests at times (measured on a real account, 2026-10-06: 11 of 20 with one session, 12 of 20 initializes, 7 of 20 with no session at all; any method, any toolkit), so a read, and the `initialize` before it, is asked again up to 4 times on a 502, 503 or 504; a write (add, remove) never is, because an add could create a second pending account. `error` says what failed, so an empty list that comes with an error is not
 "nothing connected": `no-credential`, `401` (key rejected, also when a tool error says so), `429`,
 `timeout`, `offline`, another HTTP status, `bad-response` (not a JSON-RPC answer: an HTML page...),
 `rpc-error`, `tool-error`, `invalid-toolkits` (a list with no valid slug: it is not turned into a scan). The
@@ -162,11 +162,11 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
 ```bash
 cd packages/kybernos-composio
 node test-host.mjs         # 528 checks with a DSH engine on the machine (454 without): the routes, the files they write
-node test-connecteurs.mjs  # 62 (40): reading, editing, renaming, state, test route, trusted folders
-node test-key.mjs          # 34: the key and the accounts, against a stand-in for Composio
+node test-connecteurs.mjs  # 63 (40): reading, editing, renaming, state, test route, trusted folders
+node test-key.mjs          # the key and the accounts, against a stand-in for Composio (it can answer 502s)
 node test-probe.mjs        # 29: the connector test against fake HTTP and stdio servers
 node test-block-read.mjs   # 31 (15): reading a block back, and refusing what cannot be written back
-node test-client.mjs       # 187: the pure parts of the page, no browser
+node test-client.mjs       # 190: the pure parts of the page, no browser
 ```
 
 `test-host.mjs` covers the first routes (hostile origin, content type, command rules, YAML injection, the files they
@@ -187,7 +187,8 @@ mangled markup the cloud repo carries, checks every logo and stops on a defect.
 
 ## Known limits
 
-- The hot reload was measured on an isolated DSH 0.2.0-rc.2 instance (its `hmr` watcher is enabled when DSH runs
+- Composio's gateway is flaky (see above): the page can still show "Composio has a passing problem (502)" after the retries, and an add or remove that fails must be tried again by hand.
+- The hot reload was measured on an isolated DSH 0.2.0-rc.2 instance (and then on the real one: a server added, switched, renamed and deleted from the page was loaded each time within seconds) (its `hmr` watcher is enabled when DSH runs
   with a profile). If a DSH does not reload, the row says "Not loaded: restart DSH" after 12 s instead of waiting.
 - A stdio server that writes logs on stdout still works in DSH's client, but the test counts those lines and says so.
 - The state of a server needs DSH's `pluginInventory` service; without it the row only says "Configured".
