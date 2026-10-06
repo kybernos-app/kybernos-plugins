@@ -22359,6 +22359,9 @@ function renderFit(canvas, model, cam, opts){
         return true
       } catch (e) { return false }
     }
+    // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
+    // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []) })
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     const SalesMenu = (p0) => {
       const s = useStore()
