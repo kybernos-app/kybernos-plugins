@@ -1,9 +1,9 @@
-// @local/kybernos-skills — client du parcours complet (Yours · Discover · Team).
+// @local/kybernos-skills — client for the full flow (Yours · Discover · Team).
 //
-// Mécanisme unique ARB-1 : ce module s'injecte dans l'emplacement 'main.kybernos-skills'
-// publié par le pivot kybernos (lot B4) — aucun export pair, aucun pont require.
+// Single mechanism ARB-1: this module injects itself into the 'main.kybernos-skills' slot
+// published by the kybernos pivot (batch B4) — no peer export, no require bridge.
 //
-// Contrats gelés consommés (hôte : kybernos-skills/index.js) :
+// Frozen contracts consumed (host: kybernos-skills/index.js):
 //   GET  /kybernos-skills/skills            -> { ok, skills[], roots[], complete }
 //   GET  /kybernos-skills/status            -> { ok, roots[{path,source,exists}] }
 //   GET  /kybernos-skills/index[?view=&page=&perPage=] -> { ok, total, hasMore, skills[] }
@@ -13,16 +13,16 @@
 //   POST /kybernos-skills/toggle  {root,name,active}
 //   POST /kybernos-skills/create  {root,name,description,whenToUse,body,modelInvocable}
 //   POST /kybernos-skills/install {source,name,root}
-//   Team (docs/dev/team-skills-contract.md) : GET /kybernos-cloud/team/skills[?view=] · /item?id= · POST …/add · …/review · …/retire · …/delete,
-//   et côté disque POST /kybernos-skills/team/pack {root,name} · /team/install {root,name,version,files,teamId,replace}
+//   Team (docs/dev/team-skills-contract.md): GET /kybernos-cloud/team/skills[?view=] · /item?id= · POST …/add · …/review · …/retire · …/delete,
+//   and on the disk side POST /kybernos-skills/team/pack {root,name} · /team/install {root,name,version,files,teamId,replace}
 //
-// Rendu fidèle à docs/handoff/skills-ui/maquette.html : segment Yours/Discover, barre
-// d'outils (recherche, filtres, tri, Add), rangée Featured, grille, pagination, fiche,
-// modales. Les règles de style sont celles de la maquette, VERBATIM, à deux exceptions
-// près : (1) elles sont confinées sous `.kbs-root`, pour qu'aucune ne puisse toucher le
-// reste de la GUI ; (2) celles dont le sélecteur existe à l'identique dans le pivot
-// (kb8-card, kb8-grid, kb8-tile, kb8-pill, kb8-page…) sont écartées — le pivot reste
-// propriétaire de son système de design.
+// Rendering faithful to docs/handoff/skills-ui/maquette.html: Yours/Discover segment, toolbar
+// (search, filters, sort, Add), Featured row, grid, pagination, detail page,
+// modals. The style rules are the mockup's, VERBATIM, with two exceptions:
+// (1) they are scoped under `.kbs-root`, so that none of them can touch the
+// rest of the GUI; (2) the ones whose selector exists identically in the pivot
+// (kb8-card, kb8-grid, kb8-tile, kb8-pill, kb8-page…) are dropped — the pivot stays
+// owner of its design system.
 window.__ModuleLoader__.load({
   id: '@local/kybernos-skills',
   factory(require) {
@@ -30,7 +30,7 @@ window.__ModuleLoader__.load({
       const React = require('react')
       const h = React.createElement
 
-      // ── icônes : tracés Lucide verbatim de maquette.html:223-248 ─────────────
+      // ── icons: Lucide paths verbatim from maquette.html:223-248 ─────────────
       const PATHS = {
         search: ['M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z', 'm21 21-4.34-4.34'],
         sliders: ['M4 21v-7', 'M4 10V3', 'M12 21v-9', 'M12 8V3', 'M20 21v-5', 'M20 12V3', 'M1 14h6', 'M9 8h6', 'M17 16h6'],
@@ -61,21 +61,21 @@ window.__ModuleLoader__.load({
         fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round'
       }, (PATHS[name] || PATHS.pkg).map((d, i) => h('path', { key: i, d })))
 
-      // ── utilitaires de la maquette (:252-258) ────────────────────────────────
+      // ── mockup utilities (:252-258) ────────────────────────────────
       const hue = (s) => { let x = 0; for (let i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) % 360; return x }
       const tile = (name, ic, cls) => {
         const u = hue(String(name))
-        // `kbs-sm` : la tuile d'une LIGNE de tableau. Meme langue visuelle que les cartes des autres
-        // onglets, simplement a l'echelle d'une ligne. Sans elle, Discover ressemblait a un tableau
-        // brut pose a cote du reste de l'interface.
+        // `kbs-sm`: the tile of a table ROW. Same visual language as the cards of the other
+        // tabs, simply at the scale of a row. Without it, Discover looked like a raw table
+        // dropped next to the rest of the interface.
         const taille = cls === 'lg' ? 22 : (cls === 'kbs-sm' ? 15 : 18)
         return h('span', {
           className: 'kb8-tile' + (cls ? ' ' + cls : ''),
           style: { background: 'hsl(' + u + ' 42% 17%)', color: 'hsl(' + u + ' 72% 72%)', border: '1px solid hsl(' + u + ' 40% 26%)' }
         }, icon(ic || 'pkg', taille))
       }
-      // La maquette n'avait que des petits nombres : son format cassait au-dela du million
-      // (« 3476k » pour 3 476 000). L'index reel depasse le million des sa premiere ligne.
+      // The mockup only had small numbers: its format broke beyond a million
+      // (“3476k” for 3,476,000). The real index goes past a million from its very first row.
       const nf = (n) => {
         const v = Number(n)
         if (Number.isFinite(v) === false) return '0'
@@ -389,9 +389,9 @@ window.__ModuleLoader__.load({
         'tm.r.rejectedWith': { fr: 'Refusé : {note}', en: 'Rejected: {note}' },
         'tm.r.noNote': { fr: 'Refusé, sans note.', en: 'Rejected, no note.' },
       }
-      // Langue : même mécanisme que kybernos-composio (kbt). Service `locale` de l'hôte ; « kybernos »
-      // est le défaut du thème : sans choix explicite (kybernos.theme.lang absent) et sous un shell
-      // anglais, on sert l'anglais. Sans service : repli localStorage puis <html lang>.
+      // Language: same mechanism as kybernos-composio (kbt). The host's `locale` service; “kybernos”
+      // is the theme's default: with no explicit choice (kybernos.theme.lang absent) and under an English
+      // shell, we serve English. Without the service: fall back to localStorage, then <html lang>.
       let localeSvc = null
       const tlang = () => {
         if (localeSvc === null || localeSvc === undefined) {
@@ -407,7 +407,7 @@ window.__ModuleLoader__.load({
               const snap = localeSvc.getLocale()
               if (snap !== null && snap !== undefined && String(snap.active) === 'en') lang = 'en'
             }
-          } catch (e) { /* storage ou service indisponible : défaut */ }
+          } catch (e) { /* storage or service unavailable: default */ }
         }
         return lang
       }
@@ -428,11 +428,11 @@ window.__ModuleLoader__.load({
 
       const CSS = `
 .kbs-root{display:flex;flex-direction:column;flex:1;min-height:0}
-/* Troisieme exception a la maquette (cf. en-tete) : le bandeau Yours/Discover
-   etait dessine en plein cadre, avec ses propres cotes (22 px) et sa propre
-   echelle (carres 46, bouton principal 43, recherche du pivot 52). La page est
-   deja mise en page par .kbg-root (30/34 px) et ses onglets sont des .kb4-tab
-   de 28 px : on s'aligne sur eux — meme colonne, meme pilule, meme echelle. */
+/* Third exception to the mockup (see header): the Yours/Discover banner
+   was drawn full-frame, with its own margins (22 px) and its own
+   scale (46 squares, 43 primary button, 52 core-plugin search). The page is
+   already laid out by .kbg-root (30/34 px) and its tabs are 28 px .kb4-tab
+   elements: we line up with them — same column, same pill, same scale. */
 .kbs-root{gap:16px}
 .kbs-root .kbs-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex:0 0 auto}
 .kbs-root .kbs-top-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
@@ -442,37 +442,37 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-ctlrow .kb-toolbar{margin:0;flex:1 1 0;min-width:0;justify-content:flex-end}
 .kbs-root .kbs-ctlrow .kb8-search{flex:0 1 260px}
 .kbs-root .kbsub{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:0;box-sizing:content-box;background:transparent;border:none}
-/* Capsule de sous-onglets identique à .kb7-subtabs (Connections) : conteneur discret, actif en carte surélevée. */
+/* Sub-tab capsule identical to .kb7-subtabs (Connections): discreet container, active one as a raised card. */
 .kbs-root .kbsub-group{display:inline-flex;align-items:center;gap:2px;padding:4px;border-radius:999px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l1)}
 .kbs-root .kbsub button.kb-seg{display:inline-flex;align-items:center;gap:8px;height:34px;border:0;border-radius:999px;padding:0 16px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbs-root .kbsub button.kb-seg:hover{color:var(--dsw-alias-label-primary)}
 .kbs-root .kbsub button.kb-seg.on{background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 1px 3px rgba(20,20,19,.14)}
 .kbs-root .kbsub .count{font-family:ui-monospace,monospace;font-size:11px;color:inherit;opacity:.7}
 .kbs-root .kbsub .kb8-mono{flex:1 1 0;min-width:0;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-/* Le corps du panneau est injecte DANS .kbg-root, qui porte deja les marges de
-   la page (30/34/40). Il reprenait celles de .kb8-page (30/28/36) : tout le
-   contenu etait decale de 28 px par rapport au titre et aux onglets, et la
-   colonne utile perdait 56 px. On annule ces marges interieures — la colonne
-   du plugin rejoint alors celle de la page.
-   Le meme selecteur rend aussi .kb8-page NON defilant, et c'est volontaire.
-   Mesure du 21/09/2026, onglet Ressources > Skills, fenetre 1400x950 : le
-   panneau est borne par .kbg-root (950 px pour 2816 px de contenu), mais
-   .kbs-root s'intercale entre les deux SANS contraindre la hauteur (son
-   flex:1/min-height:0 suppose un parent flex, or .kbg-root est un bloc). Le
-   max-height:100% de .kb8-page se resout alors contre .kbs-root, haut de tout
-   le contenu : .kb8-page fait 2633 px pour 2633 px, il ne deborde jamais tout
-   en restant un conteneur defilant (overflow-y:auto). Combine a
-   l'overscroll-behavior:contain que le pivot posait alors sur .kb8-page, la
-   molette etait consommee la et ne remontait jamais a .kbg-root : le panneau ne
-   defilait plus du tout (0 px sur 4 crans de molette, alors que l'onglet
-   Composio voisin, qui n'a pas de .kb8-page interpose, defilait de 600 px). On
-   rend la main au seul vrai defileur, .kbg-root : geste restaure, rendu
-   inchange.
-   Depuis, le pivot ne pose plus contain sur les corps de page (contrat de
-   defilement dans kybernos-plugin/client.js) : le geste passerait donc meme
-   sans cette regle. Elle reste, pour deux raisons : supprimer un conteneur
-   defilant qui ne sert a rien, et rendre l'intention explicite la ou un futur
-   panneau s'intercalera entre une page et son hote. */
+/* The panel body is injected INSIDE .kbg-root, which already carries the page
+   margins (30/34/40). It was taking those of .kb8-page (30/28/36): all the
+   content was shifted by 28 px relative to the title and the tabs, and the
+   useful column lost 56 px. We cancel these inner margins — the plugin's column
+   then joins the page's column.
+   The same selector also makes .kb8-page NON-scrolling, and that is deliberate.
+   Measured on 21 Sep 2026, Resources tab > Skills, 1400x950 window: the
+   panel is bounded by .kbg-root (950 px for 2816 px of content), but
+   .kbs-root sits between the two WITHOUT constraining the height (its
+   flex:1/min-height:0 assumes a flex parent, whereas .kbg-root is a block). The
+   max-height:100% of .kb8-page then resolves against .kbs-root, which is as tall as all the
+   content: .kb8-page is 2633 px for 2633 px, so it never overflows while
+   remaining a scrolling container (overflow-y:auto). Combined with the
+   overscroll-behavior:contain that the core plugin then set on .kb8-page, the
+   wheel was consumed there and never bubbled up to .kbg-root: the panel did not
+   scroll at all (0 px over 4 wheel notches, whereas the neighbouring Composio
+   tab, which has no interposed .kb8-page, scrolled 600 px). We
+   hand control back to the only real scroller, .kbg-root: gesture restored, rendering
+   unchanged.
+   Since then, the core plugin no longer sets contain on page bodies (scroll contract
+   in kybernos-plugin/client.js): the gesture would therefore work even
+   without this rule. It stays, for two reasons: removing a scrolling container
+   that serves no purpose, and making the intent explicit where a future
+   panel will sit between a page and its host. */
 .kbs-root .kb8-page{padding:0;overflow:visible;max-height:none}
 .kbs-root .kb8-h2{margin:0;font-size:16px;font-weight:600}
 .kbs-root .kb8-mono{font-family:ui-monospace,monospace;font-size:11px;color:var(--dsw-alias-label-caption)}
@@ -485,19 +485,19 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-tool{width:38px;height:38px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1); color:var(--dsw-alias-label-secondary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
 .kbs-root .kb-tool:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
 .kbs-root .kb-tool.on{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
-/* Controles LIBELLES : meme facture que .kb6-tb-filterbtn du pivot (38 px, rayon 11, bordure
-   l1, fond layer-1). L'etat — filtre actif, tri courant, vue courante — se lit sur le bouton
-   au lieu d'etre cache derriere une icone nue, comme dans le reste de la GUI. */
+/* LABELLED controls: same styling as the core plugin's .kb6-tb-filterbtn (38 px, radius 11, l1
+   border, layer-1 background). The state — active filter, current sort, current view — is read on the button
+   instead of being hidden behind a bare icon, as in the rest of the GUI. */
 .kbs-root .kb-tool-lab{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap;flex:0 0 auto}
 .kbs-root .kb-tool-lab:hover,.kbs-root .kb-tool-lab.on{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary)}
 .kbs-root .kb-tool-lab .n{min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font-size:10.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
 .kbs-root .kb8-ghost{display:inline-flex;align-items:center;gap:8px;height:38px;background:transparent;color:var(--dsw-alias-label-primary); border:1px solid var(--dsw-alias-border-l2);border-radius:11px;padding:0 15px;font:inherit;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap}
 .kbs-root .kb8-primary{height:38px;padding:0 14px;font-size:13px;border-radius:11px}
 .kbs-root .kb8-ghost:hover{background:var(--dsw-alias-interactive-bg-hover)}
-/* Le panneau de filtres suivait la maquette en CARTE EN LIGNE : ouverte, elle poussait la
-   liste de 145 px vers le bas et ne se refermait que par son propre bouton. Le pivot met ses
-   filtres dans un popover ancre au bouton (.kb6-tb-pop) : on suit la meme convention, en
-   gardant les trois rangees de la maquette (Vue, Lignes, Source / Etat, Racine). */
+/* The filters panel followed the mockup as an INLINE CARD: when open, it pushed the
+   list down by 145 px and only closed through its own button. The core plugin puts its
+   filters in a popover anchored to the button (.kb6-tb-pop): we follow the same convention, while
+   keeping the mockup's three rows (View, Rows, Source / State, Root). */
 .kbs-root .kb-filters{position:absolute;right:0;top:calc(100% + 6px);z-index:60;display:flex;flex-direction:column;gap:10px;width:min(560px,calc(100vw - 56px));box-sizing:border-box;padding:10px 12px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:13px;background:var(--dsw-alias-bg-layer-1);box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .kbs-root .kb-filters .head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 4px}
 .kbs-root .kb-filters .head .t{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
@@ -506,11 +506,11 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-filter-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .kbs-root .kb-filter-row .lbl{font-size:12px;color:var(--dsw-alias-label-caption);min-width:74px}
 .kbs-root .kb8-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
-/* Tableau du classement : une ligne par skill, pas une carte. C'est ce qui rend un index de
-   9 827 lignes parcourable — cinquante lignes a l'ecran, et un pager fixe au lieu d'un
-   « Charger plus » enfoui sous 3 380 px de cartes. */
-/* Memes jetons que .kb8-card du pivot : bg-layer-1, border-l1, rayon 16 — le tableau doit se
-   lire comme les autres onglets, pas comme un tableau brut pose a cote d'eux. */
+/* Ranking table: one row per skill, not a card. This is what makes an index of
+   9 827 rows browsable — fifty rows on screen, and a fixed pager instead of a
+   "Load more" buried under 3 380 px of cards. */
+/* Same tokens as the core plugin's .kb8-card: bg-layer-1, border-l1, radius 16 — the table must
+   read like the other tabs, not like a raw table dropped next to them. */
 .kbs-root .kbs-table{border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden;background:var(--dsw-alias-bg-layer-1)}
 .kbs-root .kbs-head,.kbs-root .kbs-row{display:grid;grid-template-columns:44px minmax(200px,1.6fr) minmax(130px,1fr) 150px 100px;align-items:center;gap:14px;padding:8px 18px}
 .kbs-root .kbs-head{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
@@ -524,19 +524,19 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-row .src{overflow:hidden;text-overflow:ellipsis}
 .kbs-root .kbs-row .badges{display:flex;gap:6px;flex-wrap:wrap}
 .kbs-root .kbs-row .inst{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--dsw-alias-label-secondary);text-align:right}
-/* Tuile de LIGNE : echelle d'une ligne, meme facture que .kb8-tile (38px / rayon 13). */
+/* ROW tile: row scale, same styling as .kb8-tile (38px / radius 13). */
 .kbs-root .kb8-tile.kbs-sm{width:30px;height:30px;border-radius:10px}
-/* Une ligne mesure ~48 px : cinquante tiennent dans l'ecran d'un onglet. */
-/* Une requete en vol se voit, sans faire disparaitre la page precedente. */
+/* A row is ~48 px tall: fifty fit in a tab's screen. */
+/* A request in flight is visible, without making the previous page disappear. */
 .kbs-root .kbs-table.loading{opacity:.55}
-/* Pager : page courante, total de pages, et sauts. Plus de bouton en bas d'une liste qui grandit. */
+/* Pager: current page, total pages, and jumps. No more button at the bottom of a growing list. */
 .kbs-root .kbs-pager{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 0 2px;flex-wrap:wrap}
 .kbs-root .kbs-pager .pg{min-width:38px;height:38px;padding:0 9px;border-radius:11px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-secondary);font-family:ui-monospace,monospace;font-size:12.5px;cursor:pointer}
 .kbs-root .kbs-pager .pg:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbs-root .kbs-pager .pg.on{background:var(--kb-switch-on,#4d7cfe);border-color:transparent;color:#fff;font-weight:600}
 .kbs-root .kbs-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-pager.haut{padding:0 0 10px}
-/* Bandeau d'audit : la donnee qui remplace « communaute, non audite ». */
+/* Audit banner: the data that replaces "community, not audited". */
 .kbs-root .kbs-audit{display:flex;flex-direction:column;gap:9px}
 .kbs-root .kbs-audit .ligne{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kb-star-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;letter-spacing:.03em; padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 18%,transparent);color:#f7c46c}
@@ -587,9 +587,9 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-preview-body ul{margin:0 0 12px;padding-left:20px}
 .kbs-root .kb-preview-body li{margin:5px 0}
 .kbs-root .kb-menu-wrap{position:relative;display:inline-flex}
-/* Les trois popovers du panneau (Créer, Trier, Filtres) reprennent les jetons exacts de
-   .kb6-tb-pop du pivot : bordure l1, rayon 13, ombre 0 14px 34px .3. Ils flottaient plus
-   haut et plus sombres que ceux du reste de la GUI. */
+/* The three popovers of the panel (Create, Sort, Filters) take the exact tokens of the core plugin's
+   .kb6-tb-pop: l1 border, radius 13, shadow 0 14px 34px .3. They used to float higher
+   and darker than those of the rest of the GUI. */
 .kbs-root .kb-menu{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:320px;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:13px;padding:6px;box-shadow:0 14px 34px rgba(0,0,0,.3)}
 .kbs-root .kb-menu button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border:none;background:transparent;border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;text-align:left;cursor:pointer}
 .kbs-root .kb-menu button:hover{background:var(--dsw-alias-interactive-bg-hover)}
@@ -617,7 +617,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-note{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:56px 24px;background:var(--dsw-alias-bg-layer-1);border:1px dashed var(--dsw-alias-border-l1);border-radius:18px;text-align:center;color:var(--dsw-alias-label-secondary)}
 .kbs-root .kb-callout{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1);border-left:3px solid var(--kb-switch-on,#4d7cfe);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
-/* — ajouts hors maquette : uniquement ce que le parcours réel exige (formulaires, avis) — */
+/* — additions outside the mockup: only what the real flow requires (forms, notices) — */
 .kbs-root .kbs-fields{display:flex;flex-direction:column;gap:13px}
 .kbs-root .kbs-label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-input,.kbs-root .kbs-area,.kbs-root .kbs-select{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
@@ -631,9 +631,9 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-copy{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);border-radius:999px;padding:3px 9px;font-family:ui-monospace,monospace;font-size:11px;cursor:pointer}
 .kbs-root .kbs-copy:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* — Featured : cartes à pochette — mêmes jetons que .kb8-card (bg-layer-1, border-l1,
-   rayon 16) : la rangée doit se lire comme le reste des onglets, pas comme une
-   marketplace posée à côté. Hover = bordure l2, SANS lift (les autres cartes ne lèvent pas). */
+/* — Featured: cards with a cover image — same tokens as .kb8-card (bg-layer-1, border-l1,
+   radius 16): the row must read like the rest of the tabs, not like a
+   marketplace dropped next to them. Hover = l2 border, WITHOUT lift (the other cards do not lift). */
 .kbs-root .kbs-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
 .kbs-root .kbs-feat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .kbs-root .kbs-feat-head .t{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
@@ -655,7 +655,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-star-btn:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
 .kbs-root .kbs-star-btn.on{color:#f7c46c;border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
 .kbs-root .kbs-feat-card .kbs-star-btn{position:absolute;top:9px;right:9px;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1) 78%,transparent);backdrop-filter:blur(4px)}
-/* — Team skills : le tableau reprend celui de Discover (mêmes jetons), seules les colonnes changent — */
+/* — Team skills: the table reuses the one from Discover (same tokens), only the columns change — */
 .kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{display:grid;grid-template-columns:44px minmax(200px,1.7fr) minmax(120px,1fr) 210px 150px;align-items:center;gap:14px;padding:8px 18px}
 .kbs-root .kbt .kbt-head{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kbt .kbs-row{min-height:56px}
@@ -700,18 +700,18 @@ window.__ModuleLoader__.load({
 .kbs-root .kb8-primary[disabled]{opacity:.45;cursor:default}
 `
 
-      // ── accès aux routes ────────────────────────────────────────────────────
-      // Un corps illisible n'est pas une panne réseau : on nomme le statut HTTP, parce que le cas
-      // le plus fréquent en développement est une route simplement ABSENTE (module hôte pas encore
-      // rechargé) — et « injoignable » enverrait chercher la panne au mauvais endroit.
+      // ── route access ────────────────────────────────────────────────────
+      // An unreadable body is not a network outage: we name the HTTP status, because the most
+      // frequent case in development is a route that is simply ABSENT (host module not yet
+      // reloaded) — and "unreachable" would send us looking for the fault in the wrong place.
       const lire = async (r) => {
         try { return await r.json() } catch (e) {
           return { ok: false, error: r.ok === true ? t('err.unreadable') : t('err.noroute', { s: r.status }) }
         }
       }
-      // La session AFFICHEE accompagne chaque appel : c'est elle qui fixe le PROJET, donc les skills
-      // de projet que le catalogue doit montrer, et la portee a invalider apres une ecriture. Sans
-      // session (onglet ouvert hors session), rien n'est ajoute : comportement d'origine conserve.
+      // The DISPLAYED session accompanies every call: it is what sets the PROJECT, hence the project
+      // skills the catalogue must show, and the scope to invalidate after a write. Without a
+      // session (tab opened outside a session), nothing is added: original behaviour kept.
       let kbSkSid = ''
       const avecSession = (path) => (kbSkSid === '' ? path : path + (path.indexOf('?') === -1 ? '?' : '&') + 'sessionId=' + encodeURIComponent(kbSkSid))
       const corpsSession = (body) => (kbSkSid === '' ? body : Object.assign({}, body === null || body === undefined ? {} : body, { sessionId: kbSkSid }))
@@ -725,8 +725,8 @@ window.__ModuleLoader__.load({
       const skillKey = (s) => String(s.root) + '\u0000' + String(s.name)
 
       function KybernosSkills(props) {
-        // Portee de la vue : la session que l'onglet represente. Publiee des le rendu pour que les
-        // helpers l'attachent a chaque appel ; l'effet de chargement, lui, depend de `sid`.
+        // Scope of the view: the session the tab represents. Published from the render so that the
+        // helpers attach it to every call; the loading effect, however, depends on `sid`.
         const sid = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : ''
         kbSkSid = sid
         const [mode, setMode] = React.useState('yours')                       // yours | discover | team
@@ -734,9 +734,9 @@ window.__ModuleLoader__.load({
         const [sort, setSort] = React.useState({ yours: 'recent', discover: 'installs' })
         const [dir, setDir] = React.useState({ yours: -1, discover: -1 })
         const [page, setPage] = React.useState({ yours: 1 })
-        // L'index est PAGINE cote serveur : `iview` choisit le classement, `ipage` est 0-indexe comme
-        // l'API, `iper` la taille de page. C'est ce qui remplace le « Charger plus » sans fin — a
-        // 9 827 skills, on ne fait pas defiler : on page, ou on cherche.
+        // The index is PAGINATED server-side: `iview` chooses the ranking, `ipage` is 0-indexed like the
+        // API, `iper` the page size. This is what replaces the endless "Load more" — at
+        // 9 827 skills, we do not scroll: we page, or we search.
         const [iview, setIview] = React.useState('all-time')
         const [ipage, setIpage] = React.useState(0)
         const [iper, setIper] = React.useState(50)
@@ -751,15 +751,15 @@ window.__ModuleLoader__.load({
         const [disc, setDisc] = React.useState(null)
         const [discPhase, setDiscPhase] = React.useState('idle')
         const [discError, setDiscError] = React.useState('')
-        const [audit, setAudit] = React.useState(null)     // audits de securite du skill ouvert
+        const [audit, setAudit] = React.useState(null)     // security audits of the open skill
         const [busy, setBusy] = React.useState({})
         const [errors, setErrors] = React.useState({})
         const [notice, setNotice] = React.useState(null)
         const [roots, setRoots] = React.useState([])
         const [modal, setModal] = React.useState(null)                        // null | create | install
         const [detail, setDetail] = React.useState(null)
-        // Featured : la liste mise en avant, contrôlée par l'utilisateur. `items` suit l'ordre du
-        // fichier ; un item `found:false` (skill disparu du registre) est sauté au rendu, pas effacé.
+        // Featured: the highlighted list, controlled by the user. `items` follows the order of the
+        // file; an item `found:false` (skill gone from the registry) is skipped at render, not erased.
         const [feat, setFeat] = React.useState({ phase: 'idle', items: [] })
         // Team skills: what the account says about the active workspace (its role and counts, or why the tab is locked), the skill
         // that is open, the sub-view, the propose sheet, and a counter that makes the list read again.
@@ -772,18 +772,18 @@ window.__ModuleLoader__.load({
 
         React.useEffect(() => () => { alive.current = false }, [])
 
-        // Fermeture des trois popovers (Filtres, Trier, Creer/Installer) au clic exterieur et
-        // a Echap. Sans ca, un menu ouvert ne se refermait que par son propre bouton : on
-        // pouvait cliquer dans la liste, changer d'onglet, et le laisser ouvert derriere. Meme
-        // mecanique que les popovers du pivot (.kb6-tb-mwrap) : un clic dans le popover ou sur
-        // son bouton ne ferme pas, tout le reste ferme.
+        // Closing the three popovers (Filters, Sort, Create/Install) on an outside click and
+        // on Escape. Without this, an open menu only closed through its own button: you
+        // could click in the list, switch tabs, and leave it open behind. Same
+        // mechanics as the pivot's popovers (.kb6-tb-mwrap): a click inside the popover or on
+        // its button does not close it, everything else does.
         React.useEffect(() => {
           if (showFilters !== true && sortOpen !== true && addOpen !== true) return undefined
           const ferme = () => { setShowFilters(false); setSortOpen(false); setAddOpen(false) }
           const onDown = (e) => {
             try {
               if (e !== null && e.target !== null && typeof e.target.closest === 'function' && e.target.closest('.kb-menu-wrap') !== null) return
-            } catch (e2) { /* cible exotique */ }
+            } catch (e2) { /* exotic target */ }
             ferme()
           }
           const onKey = (e) => { if (e !== null && e.key === 'Escape') ferme() }
@@ -813,10 +813,10 @@ window.__ModuleLoader__.load({
           }).catch(() => { if (alive.current === true) setFeat({ phase: 'error', items: [] }) })
         }, [sid])
 
-        // Étoile = (dé)mettre en avant. La réponse porte la liste à jour : on la suit telle quelle,
-        // sans recharger — un aller-retour de moins, et l'ordre affiché reste celui du fichier.
-        // POST sur /featured/toggle (et non /featured) : la table exact du webServer est indexée
-        // par chemin seul, un GET+POST de même path jette « duplicate » AU MONTAGE (mesuré).
+        // Star = feature / unfeature. The response carries the up-to-date list: we follow it as is,
+        // without reloading — one round trip less, and the displayed order stays the file's.
+        // POST on /featured/toggle (and not /featured): the webServer's exact table is indexed
+        // by path alone, a GET+POST on the same path throws "duplicate" AT MOUNT (measured).
         const toggleFeatured = (name, reason) => {
           postJson('/kybernos-skills/featured/toggle', { name, why: reason || '' }).then((j) => {
             if (alive.current !== true) return
@@ -855,12 +855,12 @@ window.__ModuleLoader__.load({
             if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.roots)) {
               setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
             }
-          }).catch(() => { /* sans racines, les modales retombent sur l'hôte qui revalide tout */ })
+          }).catch(() => { /* without roots, the modals fall back on the host, which revalidates everything */ })
         }, [loadCatalogue, loadFeatured, loadTeam])
 
-        // Une requête pour les trois vues paginées, une autre pour la recherche, une pour le set
-        // curated. Le serveur annonce `total` et `hasMore` : la pagination ne devine rien, et c'est
-        // précisément ce qui manquait quand on scrapait 571 entrées d'une page de 9 827 skills.
+        // One request for the three paginated views, another for the search, one for the curated
+        // set. The server announces `total` and `hasMore`: pagination guesses nothing, and that is
+        // precisely what was missing when we scraped 571 entries from a page of 9 827 skills.
         const dq = q.discover
         const dneedle = dq.trim()
         const discKind = dneedle.length >= 2 ? 'search' : (iview === 'curated' ? 'curated' : 'index')
@@ -873,7 +873,7 @@ window.__ModuleLoader__.load({
             : (discKind === 'curated'
               ? '/kybernos-skills/curated'
               : '/kybernos-skills/index?view=' + encodeURIComponent(iview) + '&page=' + ipage + '&perPage=' + iper)
-          // Le debounce n'a de sens que pour la frappe : les autres requêtes partent d'un clic.
+          // The debounce only makes sense for typing: the other requests start from a click.
           const timer = setTimeout(() => {
             getJson(route).then((j) => {
               if (stopped === true || alive.current !== true) return
@@ -881,22 +881,22 @@ window.__ModuleLoader__.load({
               else { setDiscPhase('error'); setDiscError(why(j, t('err.index'))) }
             }).catch(() => {
               if (stopped === true || alive.current !== true) return
-              // Ce `catch` est celui de NOTRE route : si elle tombe, l'index n'y est pour rien.
-            // Accuser skills.sh ici serait un mensonge de diagnostic — l'état d'erreur dit
-            // juste en dessous d'où vient l'index et ce qu'il exige.
+              // This `catch` is the one for OUR route: if it fails, the index has nothing to do with it.
+            // Blaming skills.sh here would be a diagnostic lie — the error state says
+            // just below where the index comes from and what it requires.
             setDiscPhase('error'); setDiscError(t('err.noanswer'))
             })
           }, discKind === 'search' ? 350 : 0)
           return () => { stopped = true; clearTimeout(timer) }
         }, [mode, dneedle, discKind, iview, ipage, iper])
 
-        // Tout changement de filtre ramène à la première page : sinon on peut se retrouver
-        // sur une page vide après avoir resserré une recherche.
+        // Any filter change goes back to the first page: otherwise we can end up
+        // on an empty page after narrowing a search.
         React.useEffect(() => { setPage((p) => ({ ...p, yours: 1 })) }, [q.yours, stateFilter, sourceFilter, sort.yours, dir.yours])
         React.useEffect(() => { setIpage(0) }, [dneedle, iview, iper])
 
-        // Les audits ne sont demandés QUE pour le skill ouvert : une requête par ligne serait
-        // impolie pour un tableau de cinquante lignes.
+        // Audits are requested ONLY for the open skill: one request per row would be
+        // rude for a fifty-row table.
         React.useEffect(() => {
           if (detail === null) { setAudit(null); return undefined }
           let stopped = false
@@ -947,12 +947,12 @@ window.__ModuleLoader__.load({
           return copy
         }, [skills, q.yours, stateFilter, sourceFilter, sort.yours, dir.yours])
 
-        // Les trois formes de réponse sont ramenées à UNE liste, pour que le rendu n'ait qu'un cas.
+        // The three response shapes are reduced to ONE list, so the render only has one case.
         //   index   : { skills, total, hasMore, page }
         //   search  : { skills, count, durationMs }
         //   curated : { owners[{owner, skills[]}], totalOwners, totalSkills }
-        // Le set curated est aplati et marqué `official` : la pastille vient enfin d'un ENSEMBLE
-        // first-party, et non plus d'un drapeau glané dans le HTML d'une page.
+        // The curated set is flattened and marked `official`: the badge finally comes from a first-party SET,
+        // and no longer from a flag picked out of a page's HTML.
         const discList = React.useMemo(() => {
           if (disc === null) return []
           if (discKind === 'curated') {
@@ -974,18 +974,18 @@ window.__ModuleLoader__.load({
           return copy
         }, [disc, discKind, sort.discover, dir.discover])
 
-        // ── pagination du classement ──────────────────────────────────────────
-        // Elle vient du SERVEUR pour les trois vues classées ; le set curated, lui, est rendu d'un
-        // bloc (100 propriétaires, 6 533 skills) et se pagine localement.
+        // ── ranking pagination ────────────────────────────────────────────────
+        // It comes from the SERVER for the three ranked views; the curated set is rendered
+        // in one block (100 owners, 6 533 skills) and is paginated locally.
         const discTotal = discKind === 'index'
           ? (disc !== null && Number.isFinite(disc.total) ? disc.total : discList.length)
           : (discKind === 'search'
             ? (disc !== null && Number.isFinite(disc.count) ? disc.count : discList.length)
             : discList.length)
         const discPages = Math.max(1, Math.ceil(discTotal / iper))
-        // La page AFFICHÉE est celle de la DONNÉE reçue, jamais celle qu'on vient de demander :
-        // pendant le chargement, `ipage` avance avant la réponse, et la colonne « # » afficherait
-        // alors les rangs de la page 3 au-dessus des lignes de la page 1 — constaté en vrai.
+        // The DISPLAYED page is the one of the data RECEIVED, never the one we just asked for:
+        // during loading, `ipage` advances before the response, and the "#" column would then show
+        // the ranks of page 3 above the rows of page 1 — observed for real.
         const discPage = discKind === 'index'
           ? (disc !== null && Number.isFinite(disc.page) ? disc.page : ipage)
           : Math.min(ipage, discPages - 1)
@@ -1004,8 +1004,8 @@ window.__ModuleLoader__.load({
             if (alive.current !== true) return
             setBusy((m) => { const n = { ...m }; delete n[k]; return n })
             if (j !== null && typeof j === 'object' && j.ok === true) {
-              // ARB-3 : « changed » vaut true ou false, les deux sont des succès — l'état
-              // affiché suit d'abord le skill renvoyé, puis la liste est resynchronisée.
+              // ARB-3: "changed" is true or false, both are successes — the displayed
+              // state first follows the returned skill, then the list is resynchronized.
               if (j.skill !== null && typeof j.skill === 'object') {
                 const ret = j.skill
                 setCat((c) => c === null ? c : { ...c, skills: c.skills.map((s) => (s.root === ret.root && s.name === ret.name) ? ret : s) })
@@ -1030,15 +1030,15 @@ window.__ModuleLoader__.load({
                 () => { if (alive.current === true) setNotice({ kind: 'err', text: t('copy.denied') }) })
               return
             }
-          } catch (e) { /* repli ci-dessous */ }
+          } catch (e) { /* fallback below */ }
           setNotice({ kind: 'err', text: t('copy.unavail') })
         }
 
         const count = catPhase === 'ready' ? String(skills.length) : '0'
         const shownYours = filtered.slice(0, page.yours * PAGE)
 
-        // Ouvrir une modale repart d'un ecran propre : sans cela, l'erreur de la tentative
-        // precedente resterait affichee au-dessus d'un formulaire encore vide.
+        // Opening a modal starts from a clean screen: without this, the error of the previous
+        // attempt would stay displayed above a still-empty form.
         const openModal = (kind) => {
           setErrors((m) => { const n = { ...m }; delete n.__modal; return n })
           setModal(kind)
@@ -1078,8 +1078,8 @@ window.__ModuleLoader__.load({
           key: key || label, type: 'button', className: 'kb8-chip' + (on ? ' on' : ''), onClick: act
         }, label)
 
-        // VUES offertes par l'API officielle. « Curated » n'est pas un classement mais le set
-        // first-party : il est donc présenté à part, et il marque ses entrées `official`.
+        // VIEWS offered by the official API. "Curated" is not a ranking but the first-party
+        // set: it is therefore presented separately, and it marks its entries `official`.
         const VUES = [
           ['all-time', 'All Time', t('view.alltime')],
           ['trending', 'Trending', t('view.trending')],
@@ -1091,9 +1091,9 @@ window.__ModuleLoader__.load({
           if (mode === 'discover') { setIview('all-time'); setIper(50) }
           else { setStateFilter('all'); setSourceFilter('all') }
         }
-        // Nombre de filtres actifs : l'etat se lit sur le bouton (.kb-tool-lab .n), comme le
-        // « Filters 1 » du pivot. En Discover la vue est ecrite en clair sur le bouton, seules
-        // les lignes comptent donc ici.
+        // Number of active filters: the state is read on the button (.kb-tool-lab .n), like the
+        // "Filters 1" of the pivot. In Discover the view is written in plain text on the button, so only
+        // the rows-per-page setting counts here.
         const filtresActifs = () => mode === 'discover'
           ? (iper === 50 ? 0 : 1)
           : (stateFilter === 'all' ? 0 : 1) + (sourceFilter === 'all' ? 0 : 1)
@@ -1184,9 +1184,9 @@ window.__ModuleLoader__.load({
                 h('button', { type: 'button', className: 'kb-tool-lab' + (sortOpen ? ' on' : ''), title: t('sort.by'), onClick: () => { setSortOpen(!sortOpen); setAddOpen(false); setShowFilters(false) } }, icon('sort', 16), h('span', null, sortLabel(isYours)), icon('chev', 14)),
                 sortOpen ? renderSortMenu() : null)
             ),
-            // Le panneau de filtres vit maintenant DANS le .kb-menu-wrap de son bouton
-            // (popover ancre, convention .kb6-tb-pop du pivot) : plus de carte en ligne qui
-            // poussait la liste vers le bas. L'etat reste lisible sur le bouton libelle.
+            // The filter panel now lives INSIDE the .kb-menu-wrap of its button
+            // (anchored popover, .kb6-tb-pop convention of the pivot): no more inline card
+            // pushing the list down. The state stays readable on the labelled button.
             null)
         }
 
@@ -1241,29 +1241,29 @@ window.__ModuleLoader__.load({
             err ? h('div', { className: 'kbs-err' }, err) : null)
         }
 
-        // ── TABLEAU du classement ─────────────────────────────────────────────
-        // Des CARTES pour un classement de 9 827 lignes, c'est ce qui rendait le défilement
-        // interminable : six cartes par écran, et « Charger plus » au bas d'une page de 3 380 px.
-        // Une ligne fait ~34 px : cinquante tiennent à l'écran, et le pager reste fixe.
-        // ── Featured : fragments de la rangée mise en avant ───────────────────
-        // Le set des noms featuretés (items found seulement) : l'étoile des cartes Yours et de la
-        // fiche se remplit depuis ici, sans état dupliqué.
+        // ── Ranking TABLE ─────────────────────────────────────────────────────
+        // CARDS for a ranking of 9 827 rows are what made scrolling endless: six cards per screen,
+        // and "Load more" at the bottom of a 3 380 px page.
+        // A row is ~34 px tall: fifty fit on screen, and the pager stays fixed.
+        // ── Featured: fragments of the highlighted row ────────────────────────
+        // The set of featured names (found items only): the star on the Yours cards and on the
+        // detail page fills from here, with no duplicated state.
         const featNames = React.useMemo(() => new Set(feat.items.filter((it) => it.found !== false).map((it) => it.name)), [feat])
 
-        // Pochette : l'image du dossier si elle existe, sinon la TUILE DU PIVOT (tile(), même
-        // facture que les cartes des autres onglets) — jamais un visuel qui sort du thème.
+        // Cover: the folder's image if it exists, otherwise the PIVOT TILE (tile(), same look
+        // as the cards of the other tabs) — never a visual that falls outside the theme.
         const coverArt = (it) => {
           if (it.cover !== null && it.cover !== undefined && it.cover !== '') {
             return h('img', {
               src: it.cover, alt: t('cover.alt', { name: it.name }), loading: 'lazy',
-              onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* la tuile sombre suffit */ } }
+              onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the dark tile is enough */ } }
             })
           }
           return tile(it.name, 'pkg', 'lg')
         }
 
-        // Clic sur une carte Featured = retrouver le skill dans Yours (filtre pré-rempli) :
-        // la fiche Discover est une fiche d'INSTALLATION, elle n'a rien à dire d'un skill local.
+        // Click on a Featured card = find the skill in Yours (pre-filled filter):
+        // the Discover detail page is an INSTALL page, it has nothing to say about a local skill.
         const featCard = (it) => h('div', {
           key: it.name, className: 'kbs-feat-card',
           onClick: () => { setMode('yours'); setQ((m) => ({ ...m, yours: it.name })); setDetail(null) }
@@ -1289,22 +1289,22 @@ window.__ModuleLoader__.load({
           onClick: () => { setDetail(x); setModal(null); setAudit(null) }
         },
           h('span', { className: 'rank' }, String(discFrom + i)),
-          // La TUILE est ce qui fait qu'une ligne appartient au meme univers que les cartes des
-          // autres onglets (kb8-tile, kb8-name, kb8-parent, kb8-pill : les jetons du pivot).
+          // The TILE is what makes a row belong to the same universe as the cards of the
+          // other tabs (kb8-tile, kb8-name, kb8-parent, kb8-pill: the pivot's tokens).
           h('span', { className: 'who' }, tile(x.name, 'pkg', 'kbs-sm'), h('span', { className: 'kb8-name' }, x.name)),
           h('span', { className: 'kb8-parent src kbs-nowrap' }, x.source),
           h('span', { className: 'badges' },
             x.official === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : null,
             installed(x) ? h('span', { key: 'i', className: 'kb8-pill' }, t('row.installed')) : null,
-            // 15 % du catalogue est hébergé hors GitHub (`well-known`) : on le DIT ici plutôt que de
-            // proposer un bouton qui échouera plus loin.
+            // 15 % of the catalogue is hosted outside GitHub (`well-known`): we SAY so here rather than
+            // offering a button that will fail further on.
             x.installable !== true ? h('span', { key: 'w', className: 'kb8-pill warn' }, t('row.offgh')) : null),
           h('span', { className: 'inst' }, nf(x.installs)))
 
-        // Pager sur `total` SERVEUR. On ne charge plus « un peu plus » en bas d'une liste qui grandit :
-        // on va à la page voulue, et le nombre de pages est connu d'avance.
-        // `haut` : le même pager est rendu AU-DESSUS du tableau. Avec cinquante lignes, le pager du
-        // bas n'est atteignable qu'en défilant — exactement le geste qu'on cherchait à supprimer.
+        // Pager based on the SERVER `total`. We no longer load "a bit more" at the bottom of a growing list:
+        // we go to the wanted page, and the number of pages is known in advance.
+        // `haut` (top): the same pager is rendered ABOVE the table. With fifty rows, the bottom pager
+        // can only be reached by scrolling — exactly the gesture we were trying to remove.
         const pagerIndex = (haut) => {
           const first = Math.max(0, Math.min(discPage - 2, Math.max(0, discPages - 5)))
           const around = []
@@ -1325,7 +1325,7 @@ window.__ModuleLoader__.load({
             h('span', { className: 't' }, t('pg.rows', { a: discFrom, b: discTo, n: discTotal })))
         }
 
-        // Yours reste petit (des dizaines) : « Charger plus » y suffit, un pager serait du bruit.
+        // Yours stays small (tens of items): "Load more" is enough there, a pager would be noise.
         const pagerYours = (shown, total) => h('div', { className: 'kbs-pager' },
           shown < total
             ? h('button', { type: 'button', className: 'kb8-ghost', onClick: () => setPage((p) => ({ ...p, yours: p.yours + 1 })) }, icon('plus', 15), ' ' + t('pg.more'))
@@ -1359,8 +1359,8 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kb8-parent' }, t('d.direct')))
           }
           return h('div', null,
-            // Rangée Featured : seulement sur la page 1 du classement, sans recherche — elle met
-            // en avant, elle ne participe ni au tri ni au filtrage.
+            // Featured row: only on page 1 of the ranking, without a search — it highlights,
+            // it takes part neither in sorting nor in filtering.
             feat.phase === 'ready' && discKind !== 'search' && dneedle === '' && discPage === 0 &&
               feat.items.some((it) => it.found !== false)
               ? h('div', { className: 'kbs-feat' },
@@ -1414,7 +1414,7 @@ window.__ModuleLoader__.load({
                   h('span', { className: 'kb-section-label' }, t('det.provenance')),
                   h('div', { className: 'kb8-pills' },
                     h('span', { className: 'kb8-pill' }, x.source),
-                    // Le type de source explique POURQUOI l'installation est possible ou non.
+                    // The source type explains WHY installation is possible or not.
                     h('span', { className: 'kb8-pill' + (x.installable === true ? '' : ' warn') }, x.sourceType !== '' && x.sourceType !== undefined ? x.sourceType : t('det.unknownSrc')),
                     x.official === true ? h('span', { className: 'kb8-pill ok' }, 'curated') : null)),
                 h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
@@ -1492,8 +1492,8 @@ window.__ModuleLoader__.load({
           ? renderDetail()
           : h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover()))
 
-        // (01/10) Même en-tête que « Connections » : titre + sous-titre à gauche, action principale à droite, puis une
-        // rangée de contrôle (sous-onglets à gauche, recherche / filtre / tri à droite).
+        // (1 Oct) Same header as "Connections": title + subtitle on the left, main action on the right, then a
+        // control row (sub-tabs on the left, search / filter / sort on the right).
         const capTxt = detail !== null ? t('cap.detail') : (mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length })
           : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank'))))
@@ -1506,7 +1506,7 @@ window.__ModuleLoader__.load({
             detail === null && mode !== 'team' ? renderAdd() : null),
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
-              // Même capsule que les sous-onglets de « Connections » (Vos connexions / Découvrir) : un seul langage.
+              // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
               h('div', { className: 'kbsub-group', role: 'tablist' },
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
@@ -1522,7 +1522,7 @@ window.__ModuleLoader__.load({
             icon(notice.kind === 'err' ? 'info' : 'check', 15), h('span', null, notice.text)) : null)
       }
 
-      // Modale de création : les quatre champs qui composent un SKILL.md valide, rien de plus.
+      // Create modal: the four fields that make up a valid SKILL.md, nothing more.
       function CreateModal(props) {
         const [name, setName] = React.useState('')
         const [description, setDescription] = React.useState('')
@@ -1557,7 +1557,7 @@ window.__ModuleLoader__.load({
               }, icon('wand', 15), props.busy.__modal === true ? t('m.creating') : t('m.createBtn')))))
       }
 
-      // Modale d'import : une source GitHub en owner/repo, pré-remplie depuis la fiche ouverte.
+      // Import modal: a GitHub source as owner/repo, prefilled from the open detail page.
       function InstallModal(props) {
         const p = props.preset
         const [source, setSource] = React.useState(p !== null ? String(p.source) : '')
@@ -1588,7 +1588,7 @@ window.__ModuleLoader__.load({
       }
 
       // ── Team skills ─────────────────────────────────────────────────────────────
-      // The Team tab (docs/dev/team-skills-contract.md, maquette « Skills Team catalogue »). The server half is
+      // The Team tab (docs/dev/team-skills-contract.md, the "Skills Team catalogue" mockup). The server half is
       // /kybernos-cloud/team/skills* (kybernos-cloud, the account token and the active workspace); the disk half is
       // /kybernos-skills/team/pack and /team/install. This page carries the files from one to the other, so neither plugin imports
       // the other and no skill content is kept anywhere.
@@ -2020,15 +2020,15 @@ window.__ModuleLoader__.load({
           body)
       }
 
-      // Feuille de style posee UNE fois, par identifiant, et rafraichie a chaque
-      // application du module. Avant, elle vivait dans un ctx.effect : au
-      // rechargement du plugin (patchReload) l'effet precedent etait demonte, la
-      // feuille retiree — et si le nouvel apply sortait tot (service `slots` pas
-      // encore pret), elle n'etait jamais reposee. Le panneau restait monte avec
-      // les seuls styles du pivot (barre d'outils empilee, etiquettes recouvertes,
-      // recherche a 52 px) : la page paraissait cassee sans qu'aucune erreur ne
-      // remonte. Meme mecanique que le pivot : pose par id, jamais retiree,
-      // contenu remis a jour si la version du module a change.
+      // Stylesheet set ONCE, by id, and refreshed on every apply of the
+      // module. Before, it lived in a ctx.effect: when the plugin reloaded
+      // (patchReload) the previous effect was unmounted, the stylesheet
+      // removed — and if the new apply returned early (`slots` service not
+      // ready yet), it was never set again. The panel stayed mounted with
+      // only the pivot's styles (stacked toolbar, overlapping labels,
+      // search at 52 px): the page looked broken without any error being
+      // raised. Same mechanism as the pivot: set by id, never removed,
+      // content updated if the module's version changed.
       const CSS_ID = 'kb-skills-css'
       const kbStyle = (css) => {
         try {
@@ -2042,14 +2042,14 @@ window.__ModuleLoader__.load({
             head.appendChild(st)
           }
           if (st.textContent !== css) st.textContent = css
-        } catch (e) { /* head indisponible */ }
+        } catch (e) { /* head unavailable */ }
       }
 
       function apply(ctx) {
-        // Les styles d'abord : ils sont necessaires des que le panneau est monte,
-        // meme si l'emplacement n'est pas encore disponible.
+        // Styles first: they are needed as soon as the panel is mounted,
+        // even if the slot is not available yet.
         kbStyle(CSS)
-        try { const loc = ctx.get('locale'); if (loc !== undefined && loc !== null) localeSvc = loc } catch (e) { /* repli localStorage / <html lang> */ }
+        try { const loc = ctx.get('locale'); if (loc !== undefined && loc !== null) localeSvc = loc } catch (e) { /* fallback to localStorage / <html lang> */ }
         const slots = ctx.get('slots')
         if (slots === undefined) {
           console.error('[kybernos-skills] service slots indisponible: pas d interface')
@@ -2067,8 +2067,8 @@ window.__ModuleLoader__.load({
     } catch (kbBootError) {
       try {
         console.error('[kybernos-skills] chargement impossible — plugin desactive, GUI preservee', kbBootError)
-      } catch (e2) { /* console indisponible */ }
-      return { apply() { /* plugin desactive apres erreur de chargement */ } }
+      } catch (e2) { /* console unavailable */ }
+      return { apply() { /* plugin disabled after a load error */ } }
     }
   },
 })
