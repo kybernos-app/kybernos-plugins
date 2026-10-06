@@ -1,19 +1,22 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// @local/kybernos-composio — client: Connections page (rich catalog,
-// SVG logos, several connections per app) + key setting on the bundle page.
+// @local/kybernos-composio — client: Connections page (rich catalog, SVG logos,
+// several connections per app, the person's own MCP servers) + the key panel
+// on the bundle page.
 //
-// Architecture (measured 2026-09-17):
-// - The ck_ key ONLY opens the MCP connect.composio.dev/mcp (the REST backend answers 401).
-// - The MCP exposes NO catalog: resources/list -> -32601, and
-//   COMPOSIO_SEARCH_TOOLS only returns 4-6 tools per request. The grid is therefore built
-//   on CATALOG (100 apps, 98 real SVG logos), served by the host
-//   on GET /kybernos/composio/catalog and loaded on demand (catalog.js).
-// - COMPOSIO_MANAGE_CONNECTIONS action "list" in a BATCH: 500 toolkits in ~760 ms,
-//   with no side effect (checked twice: status "initiated", accounts [] stable).
-//   It is the mechanism for discovering the connections that already exist.
-// - CORS: the MCP returns `access-control-allow-origin: *` but
-//   NOTIFICATIONS (no id) answer 202 WITHOUT that header -> never send
-//   notifications/initialized.
+// Architecture:
+// - This page holds NO Composio key and makes no call to Composio. The host half
+//   (index.js) keeps the key in the DSH .env (the file the agents read), checks it
+//   with Composio, lists and adds accounts, writes the MCP servers into the
+//   profile and tests them. The page asks the host (kbCpHost) and shows the answer.
+// - The grid is built on CATALOG (100 apps, 98 real SVG logos), served by the host
+//   on GET /kybernos/composio/catalog and loaded on demand (catalog.js): Composio's
+//   MCP exposes no catalog (resources/list -> -32601, and COMPOSIO_SEARCH_TOOLS only
+//   returns 4-6 tools per request). The accounts already connected come from
+//   GET /connections, which asks Composio in batches (measured: 500 toolkits in
+//   about 760 ms, no side effect).
+// - DSH reloads cordis.patch.yml by itself a couple of seconds after the host
+//   writes it (measured), so a saved MCP server needs no restart: the row shows
+//   what DSH says of it (loaded, how many tools) and asks again while it loads.
 // ═══════════════════════════════════════════════════════════════════════════
 window.__ModuleLoader__.load({
   id: '@local/kybernos-composio',
@@ -127,15 +130,12 @@ window.__ModuleLoader__.load({
     const STR = {
       'composio.keysave': { fr: 'Enregistrer', en: 'Save' },
       'composio.keyclear': { fr: 'Effacer', en: 'Clear' },
-      'composio.keyok': { fr: 'clé enregistrée dans ce navigateur', en: 'key saved in this browser' },
-      'composio.keymissing': { fr: 'aucune clé dans ce navigateur', en: 'no key in this browser' },
       'composio.keylabel': { fr: 'Clé Composio', en: 'Composio key' },
-      'composio.keynote': { fr: 'Votre clé personnelle Composio : elle pilote cet onglet ET les agents du chat. Elle reste sur cette machine ; les outils sont appelés chez Composio.', en: 'Your personal Composio key: it drives this tab AND the chat agents. It stays on this machine; the tools are called at Composio.' },
+      'composio.keynote': { fr: 'Votre clé personnelle Composio : elle pilote cet onglet ET les agents du chat. Elle reste sur cette machine (~/.dsh/.env) ; les outils sont appelés chez Composio.', en: 'Your personal Composio key: it drives this tab AND the chat agents. It stays on this machine (~/.dsh/.env); the tools are called at Composio.' },
       'composio.keyhelpq': { fr: 'Comment trouver ma clé Composio ?', en: 'How do I find my Composio key?' },
       'composio.keyhelp1': { fr: 'Ouvrez dashboard.composio.dev et connectez-vous (compte gratuit).', en: 'Open dashboard.composio.dev and sign in (free account).' },
       'composio.keyhelp2': { fr: 'Menu Settings ▸ API Keys, puis Generate new key.', en: 'Menu Settings ▸ API Keys, then Generate new key.' },
-      'composio.keyhelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus — elle reste sur votre machine.', en: 'Paste the key (it starts with ck_…) above — it stays on your machine.' },
-      'composio.keyhint': { fr: "Pour que les AGENTS du chat l'utilisent aussi, copiez la même clé dans ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) puis redémarrez dsh.", en: "So the CHAT agents can use it too, copy the same key into ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) then restart dsh." },
+      'composio.keyhelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus : elle est enregistrée sur votre machine.', en: 'Paste the key (it starts with ck_…) above: it is saved on your machine.' },
       'kb.cp.title': { fr: 'Connections', en: 'Connections' },
       'kb.cp.sub': { fr: 'Les comptes par lesquels vos Kybers agissent, via Composio. Plusieurs connexions par app — une par compte, boîte ou région.', en: 'The accounts your Kybers act through, via Composio. Multiple connections per app — one per account, mailbox or region.' },
       'kb.cp.search': { fr: 'Chercher une app — Slack, GitHub, facturation…', en: 'Search an app — Slack, GitHub, billing…' },
@@ -157,9 +157,6 @@ window.__ModuleLoader__.load({
       'kb.cp.close': { fr: 'Fermer', en: 'Close' },
       'kb.cp.active': { fr: 'ACTIF', en: 'ACTIVE' },
       'kb.cp.dismiss': { fr: 'Écarter ce lien', en: 'Dismiss this link' },
-      'kb.cp.create': { fr: 'Créer', en: 'Create' },
-      'kb.cp.custom': { fr: 'Connecteur personnalisé', en: 'Add custom connector' },
-      'kb.cp.custom.hint': { fr: 'Ajouter un serveur MCP hors catalogue — serveur HTTP distant ou commande locale (stdio).', en: 'Add an off-catalog MCP server — remote HTTP server or local command (stdio).' },
       'kb.cp.form.title': { fr: 'Nouveau connecteur', en: 'New connector' },
       'kb.cp.form.edit': { fr: 'Modifier le connecteur', en: 'Edit connector' },
       'kb.cp.form.name': { fr: 'Nom (kebab-case, ex. tavily)', en: 'Name (kebab-case, e.g. tavily)' },
@@ -179,14 +176,8 @@ window.__ModuleLoader__.load({
       'kb.cp.form.envname': { fr: 'NOM', en: 'NAME' },
       'kb.cp.form.envvalue': { fr: 'valeur ou $SECRET', en: 'value or $SECRET' },
       'kb.cp.form.addrow': { fr: 'Ajouter une ligne', en: 'Add row' },
-      'kb.cp.form.save': { fr: 'Enregistrer le connecteur', en: 'Save connector' },
-      'kb.cp.form.saved': { fr: 'Connecteur enregistré — il sera actif au prochain démarrage de DSH.', en: 'Connector saved — it will be active the next time DSH starts.' },
+      'kb.cp.form.saved': { fr: 'Serveur enregistré. DSH le charge dans quelques secondes.', en: 'Server saved. DSH loads it in a few seconds.' },
       'kb.cp.form.saving': { fr: 'Enregistrement…', en: 'Saving…' },
-      'kb.cp.list.title': { fr: 'Connecteurs personnalisés', en: 'Custom connectors' },
-      'kb.cp.list.offform': { fr: 'hors formulaire', en: 'not from form' },
-      'kb.cp.list.empty': { fr: 'Aucun connecteur personnalisé pour l’instant.', en: 'No custom connectors yet.' },
-      'kb.cp.list.confirm': { fr: 'Supprimer ce connecteur du profil ?', en: 'Remove this connector from the profile?' },
-      'kb.cp.list.removed': { fr: 'Connecteur supprimé — il disparaîtra au prochain démarrage de DSH.', en: 'Connector removed — it will disappear the next time DSH starts.' },
       'kb.cp.refresh': { fr: 'Rafraîchir', en: 'Refresh' },
       'kbui.sort.az': { fr: 'A → Z', en: 'A → Z' },
       // (29/09) sous-onglets + aide « Connecteurs locaux ».
@@ -194,7 +185,7 @@ window.__ModuleLoader__.load({
       'kb.cp.tab.discover': { fr: 'Découvrir', en: 'Discover' },
       'kb.cp.info': { fr: 'À propos des connecteurs locaux', en: 'About Local Connectors' },
       'kb.cp.help.title': { fr: 'Connecteurs locaux — mode d’emploi', en: 'Local Connectors — how it works' },
-      'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Kybers, plus vos connecteurs personnalisés (MCP). Découvrir : le catalogue complet, connexion en un clic. Les agents du chat lisent la même clé côté hôte (~/.dsh/.env).', en: 'Yours: apps already linked to your Kybers, plus your custom connectors (MCP). Discover: the full catalog, one-click connect. Chat agents read the same host-side key (~/.dsh/.env).' },
+      'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Kybers. Découvrir : le catalogue complet, connexion en un clic. Serveurs MCP : vos propres serveurs (HTTP distant ou commande locale). Les agents du chat lisent la même clé côté machine (~/.dsh/.env).', en: 'Yours: apps already linked to your Kybers. Discover: the full catalog, one-click connect. MCP servers: your own servers (remote HTTP or local command). Chat agents read the same key on this machine (~/.dsh/.env).' },
       'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue vous attend.', en: 'No app connected yet — the catalog is waiting for you.' },
       // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
@@ -202,7 +193,6 @@ window.__ModuleLoader__.load({
       'kb.cp.err.catalog': { fr: 'Catalogue', en: 'Catalog' },
       'kb.cp.err.fullcatalog': { fr: 'Catalogue complet indisponible', en: 'Full catalog unavailable' },
       'kb.cp.err.remove': { fr: 'Suppression impossible', en: 'Could not remove' },
-      'kb.cp.err.removecx': { fr: 'Le connecteur n’a pas pu être supprimé', en: 'The connector could not be removed' },
       'kb.cp.account': { fr: '(compte)', en: '(account)' },
       'kb.cp.card.available': { fr: 'dispo', en: 'available' },
       'kb.cp.card.open': { fr: 'Ouvrir', en: 'Open' },
@@ -215,15 +205,119 @@ window.__ModuleLoader__.load({
       'kb.cp.err.offline': { fr: 'Composio est injoignable (réseau).', en: 'Composio cannot be reached (network).' },
       'kb.cp.err.other': { fr: 'Composio a répondu par une erreur ({code}).', en: 'Composio answered with an error ({code}).' },
       // Key panel: what the HOST (the agents) sees, as opposed to this browser.
-      'composio.hostok': { fr: 'Agents : clé trouvée côté hôte', en: 'Agents: key found on the host' },
-      'composio.hostmissing': { fr: 'Agents : aucune clé côté hôte — copiez-la dans ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) puis redémarrez dsh.', en: 'Agents: no key on the host — copy it into ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) then restart dsh.' },
-      'composio.hostbad': { fr: 'Agents : la clé côté hôte est refusée par Composio', en: 'Agents: the key on the host is rejected by Composio' },
-      'composio.hosterr': { fr: 'Agents : clé côté hôte trouvée, mais Composio ne répond pas bien', en: 'Agents: key found on the host, but Composio is not answering well' },
-      'composio.hostunknown': { fr: 'Agents : état côté hôte inconnu (plugin hôte injoignable)', en: 'Agents: state on the host unknown (host plugin unreachable)' },
       // Card button that sends text into the conversation: the text is shown first.
       'kb.cp.accept.confirm': { fr: 'Envoyer ce message dans la conversation ?', en: 'Send this message in the conversation?' },
       'kb.cp.accept.toolong': { fr: 'Ce message est trop long pour être envoyé d’un clic : il n’a pas été envoyé.', en: 'This message is too long to send with one click: it was not sent.' },
+      // ── key panel: what is saved, whether Composio accepts it, whether the agents hold it ──
+      'composio.keyset': { fr: 'Clé enregistrée sur cette machine', en: 'Key saved on this machine' },
+      'composio.keyunset': { fr: 'Aucune clé enregistrée', en: 'No key saved' },
+      'composio.keyenv': { fr: 'Clé fournie par l’environnement de lancement de DSH (à changer là-bas)', en: 'Key provided by the environment DSH was started with (change it there)' },
+      'composio.accepted': { fr: 'Composio l’accepte', en: 'Composio accepts it' },
+      'composio.rejected': { fr: 'Composio refuse cette clé', en: 'Composio rejects this key' },
+      'composio.unchecked': { fr: 'Composio ne répond pas bien : clé non vérifiée', en: 'Composio is not answering well: key not checked' },
+      'composio.agentsSame': { fr: 'Les agents du chat l’utilisent', en: 'The chat agents use it' },
+      'composio.agentsLater': { fr: 'Les agents du chat l’utiliseront après un redémarrage de DSH', en: 'The chat agents will use it after DSH restarts' },
+      'composio.hostunknown': { fr: 'État de la clé inconnu (le plugin hôte ne répond pas)', en: 'Key state unknown (the host plugin does not answer)' },
+      'composio.migrate': { fr: 'Une clé de l’ancienne version est dans ce navigateur. L’enregistrer sur cette machine ?', en: 'A key from the previous version is in this browser. Save it on this machine?' },
+      'composio.err.invalid': { fr: 'Une clé Composio commence par ck_ et ne contient pas d’espace.', en: 'A Composio key starts with ck_ and has no spaces.' },
+      'composio.err.rejected': { fr: 'Composio a refusé cette clé : elle n’a pas été enregistrée.', en: 'Composio rejected this key: it was not saved.' },
+      'composio.err.inherited': { fr: 'La clé vient de l’environnement de lancement de DSH : changez-la là-bas.', en: 'The key comes from the environment DSH was started with: change it there.' },
+      'composio.err.write': { fr: 'La clé n’a pas pu être enregistrée.', en: 'The key could not be saved.' },
+      'composio.saved': { fr: 'Clé enregistrée. Les agents l’utiliseront après un redémarrage de DSH.', en: 'Key saved. The agents will use it after DSH restarts.' },
+      'composio.savedlive': { fr: 'Clé enregistrée.', en: 'Key saved.' },
+      'composio.savedunchecked': { fr: 'Clé enregistrée, mais Composio ne répond pas : elle n’a pas pu être vérifiée.', en: 'Key saved, but Composio does not answer: it could not be checked.' },
+      // ── the MCP servers tab ──
+      'kb.cp.tab.mcp': { fr: 'Serveurs MCP', en: 'MCP servers' },
+      'kb.cp.add': { fr: 'Ajouter un serveur MCP', en: 'Add an MCP server' },
+      'kb.cp.add.form': { fr: 'Remplir un formulaire', en: 'Fill in a form' },
+      'kb.cp.add.formhint': { fr: 'HTTP distant ou commande locale', en: 'Remote HTTP or local command' },
+      'kb.cp.add.json': { fr: 'Coller du JSON', en: 'Paste JSON' },
+      'kb.cp.add.jsonhint': { fr: 'Le bloc « mcpServers » d’une documentation', en: 'The "mcpServers" block of a documentation page' },
+      'kb.cp.mcp.empty': { fr: 'Aucun serveur MCP. Ajoutez-en un avec un formulaire ou en collant du JSON.', en: 'No MCP server yet. Add one with a form or by pasting JSON.' },
+      'kb.cp.mcp.error': { fr: 'La liste des serveurs n’a pas pu être lue : {why}', en: 'The server list could not be read: {why}' },
+      'kb.cp.src.skill': { fr: 'créé par la skill', en: 'made by the skill' },
+      'kb.cp.src.ro': { fr: 'lecture seule', en: 'read only' },
+      'kb.cp.st.nolive': { fr: 'Configuré', en: 'Configured' },
+      'kb.cp.st.loading': { fr: 'Chargement…', en: 'Loading…' },
+      'kb.cp.st.active': { fr: 'Actif · {n} outils', en: 'Active · {n} tools' },
+      'kb.cp.st.noTools': { fr: 'Chargé · aucun outil', en: 'Loaded · no tools' },
+      'kb.cp.st.failed': { fr: 'Échec du chargement', en: 'Failed to load' },
+      'kb.cp.st.off': { fr: 'Désactivé', en: 'Disabled' },
+      'kb.cp.st.notloaded': { fr: 'Pas encore chargé', en: 'Not loaded yet' },
+      'kb.cp.st.stale': { fr: 'Non chargé : redémarrez DSH', en: 'Not loaded: restart DSH' },
+      'kb.cp.st.hint.noTools': { fr: 'Le serveur est configuré mais n’a enregistré aucun outil : il n’a sans doute pas pu démarrer. Testez-le pour voir pourquoi.', en: 'The server is configured but registered no tools: it probably could not start. Test it to see why.' },
+      'kb.cp.st.hint.stale': { fr: 'DSH n’a pas rechargé sa configuration. Redémarrez DSH pour que ce serveur soit chargé.', en: 'DSH did not reload its configuration. Restart DSH for this server to load.' },
+      'kb.cp.act.test': { fr: 'Tester', en: 'Test' },
+      'kb.cp.act.edit': { fr: 'Modifier', en: 'Edit' },
+      'kb.cp.act.del': { fr: 'Supprimer', en: 'Delete' },
+      'kb.cp.act.toggle': { fr: 'Activer ou désactiver {name}', en: 'Enable or disable {name}' },
+      'kb.cp.act.testing': { fr: 'Test en cours : initialisation, puis liste des outils…', en: 'Testing: initialize, then the tool list…' },
+      'kb.cp.test.ok': { fr: 'Connecté en {s} s. {n} outils :', en: 'Connected in {s} s. {n} tools:' },
+      'kb.cp.test.none': { fr: 'Connecté en {s} s, mais le serveur n’expose aucun outil.', en: 'Connected in {s} s, but the server exposes no tools.' },
+      'kb.cp.test.fail': { fr: 'Échec du test.', en: 'Test failed.' },
+      'kb.cp.test.missing': { fr: 'Secret sans valeur : {names}.', en: 'Secret with no value: {names}.' },
+      'kb.cp.test.stderr': { fr: 'Dernier message du programme :', en: 'The program’s last words:' },
+      'kb.cp.test.noise': { fr: '{n} ligne(s) écrites sur stdout ne sont pas du protocole : le serveur marche, mais écrit ses logs au mauvais endroit.', en: '{n} line(s) written on stdout are not protocol: the server works, but writes its logs in the wrong place.' },
+      'kb.cp.terr.401': { fr: 'Le serveur refuse l’accès (401). Vérifiez l’en-tête et le secret.', en: 'The server refuses access (401). Check the header and the secret.' },
+      'kb.cp.terr.403': { fr: 'Le serveur interdit l’accès (403).', en: 'The server forbids access (403).' },
+      'kb.cp.terr.404': { fr: 'Adresse introuvable (404). Vérifiez l’URL.', en: 'Address not found (404). Check the URL.' },
+      'kb.cp.terr.429': { fr: 'Le serveur limite le débit (429).', en: 'The server is rate limiting (429).' },
+      'kb.cp.terr.oauth': { fr: 'Ce serveur demande une autorisation OAuth, que DSH ne gère pas : seul un en-tête fixe est possible.', en: 'This server asks for OAuth authorization, which DSH does not handle: only a fixed header is possible.' },
+      'kb.cp.terr.timeout': { fr: 'Pas de réponse à temps.', en: 'No answer in time.' },
+      'kb.cp.terr.offline': { fr: 'Serveur injoignable.', en: 'Server unreachable.' },
+      'kb.cp.terr.bad-response': { fr: 'La réponse n’est pas du MCP (une page web ? une mauvaise adresse ?).', en: 'The answer is not MCP (a web page? a wrong address?).' },
+      'kb.cp.terr.rpc-error': { fr: 'Le serveur a répondu par une erreur MCP.', en: 'The server answered with an MCP error.' },
+      'kb.cp.terr.spawn': { fr: 'La commande ne peut pas démarrer ({m}).', en: 'The command cannot start ({m}).' },
+      'kb.cp.terr.exited': { fr: 'Le programme s’est arrêté avant de répondre ({m}).', en: 'The program stopped before answering ({m}).' },
+      'kb.cp.terr.other': { fr: 'Le serveur a répondu par une erreur ({code}).', en: 'The server answered with an error ({code}).' },
+      'kb.cp.spawn.ENOENT': { fr: 'introuvable', en: 'not found' },
+      'kb.cp.spawn.EACCES': { fr: 'non exécutable', en: 'not executable' },
+      'kb.cp.del.confirm': { fr: 'Supprimer {name} du profil ? Une sauvegarde du fichier est gardée. Les secrets que le formulaire a écrits pour lui sont retirés de ~/.dsh/.env s’ils ne servent à rien d’autre.', en: 'Delete {name} from the profile? A backup of the file is kept. The secrets the form wrote for it are removed from ~/.dsh/.env unless something else uses them.' },
+      'kb.cp.del.go': { fr: 'Supprimer', en: 'Delete' },
+      'kb.cp.del.cancel': { fr: 'Annuler', en: 'Cancel' },
+      'kb.cp.del.done': { fr: 'Serveur supprimé. DSH le décharge dans quelques secondes.', en: 'Server deleted. DSH unloads it in a few seconds.' },
+      'kb.cp.err.del': { fr: 'Le serveur n’a pas pu être supprimé', en: 'The server could not be deleted' },
+      'kb.cp.err.toggle': { fr: 'Le serveur n’a pas pu être modifié', en: 'The server could not be changed' },
+      // ── the form ──
+      'kb.cp.form.save': { fr: 'Enregistrer', en: 'Save' },
+      'kb.cp.form.cancel': { fr: 'Annuler', en: 'Cancel' },
+      'kb.cp.form.rename': { fr: 'Renommer…', en: 'Rename…' },
+      'kb.cp.form.renamehint': { fr: 'Renommer crée un nouveau serveur, retire l’ancien et garde ses secrets.', en: 'Renaming creates a new server, removes the old one and keeps its secrets.' },
+      'kb.cp.form.skillnote': { fr: 'Créé par la skill, pas par ce formulaire. En l’enregistrant, vous le faites passer au format standard : ses commentaires sont perdus, l’ancien fichier est sauvegardé.', en: 'Made by the skill, not by this form. Saving moves it to the standard format: its comments are lost, the old file is backed up.' },
+      'kb.cp.form.ro': { fr: 'Ce serveur ne peut pas être modifié ici ({reason}). Modifiez cordis.patch.yml à la main, ou demandez-le à l’agent.', en: 'This server cannot be edited here ({reason}). Edit cordis.patch.yml by hand, or ask the agent.' },
+      'kb.cp.form.test': { fr: 'Tester sans enregistrer', en: 'Test without saving' },
+      'kb.cp.form.secretset': { fr: 'défini', en: 'set' },
+      'kb.cp.form.secretunset': { fr: 'sans valeur', en: 'no value' },
+      'kb.cp.form.secretreplace': { fr: 'Remplacer', en: 'Replace' },
+      'kb.cp.form.secretnew': { fr: 'nouvelle valeur', en: 'new value' },
+      'kb.cp.form.secretnone': { fr: 'Aucun secret. Écrivez $NOM dans un en-tête ou une variable pour y faire référence.', en: 'No secret. Write $NAME in a header or a variable to refer to one.' },
+      'kb.cp.form.advanced': { fr: 'Avancé', en: 'Advanced' },
+      'kb.cp.form.timeout': { fr: 'Délai d’un appel d’outil (secondes)', en: 'Tool call timeout (seconds)' },
+      'kb.cp.form.noname': { fr: 'Donnez un nom au serveur.', en: 'Give the server a name.' },
+      'kb.cp.cmd.use': { fr: 'Utiliser {path}', en: 'Use {path}' },
+      'kb.cp.cmd.allow': { fr: 'Autoriser {dir} et utiliser {path}', en: 'Allow {dir} and use {path}' },
+      'kb.cp.cmd.explain': { fr: 'Ce dossier n’est pas dans la liste de confiance. DSH lancera ce programme à chaque démarrage : ne confirmez que si vous le reconnaissez.', en: 'This folder is not on the trusted list. DSH will run this program every time it starts: confirm only if you recognise it.' },
+      'kb.cp.cmd.none': { fr: 'Aucun programme de ce nom n’a été trouvé sur cette machine.', en: 'No program of that name was found on this machine.' },
+      // ── pasting JSON ──
+      'kb.cp.imp.title': { fr: 'Coller du JSON', en: 'Paste JSON' },
+      'kb.cp.imp.sub': { fr: 'format « mcpServers » (Claude Desktop, Cursor, docs des serveurs)', en: '"mcpServers" format (Claude Desktop, Cursor, server docs)' },
+      'kb.cp.imp.label': { fr: 'Le bloc de configuration', en: 'The configuration block' },
+      'kb.cp.imp.invalid': { fr: 'Ce n’est pas du JSON valide : {why}', en: 'This is not valid JSON: {why}' },
+      'kb.cp.imp.nomap': { fr: 'Aucun bloc « mcpServers » trouvé.', en: 'No "mcpServers" block found.' },
+      'kb.cp.imp.go': { fr: 'Importer la sélection', en: 'Import the selection' },
+      'kb.cp.imp.hint': { fr: 'Rien n’est écrit avant « Importer ». Les valeurs secrètes ne repassent jamais à l’écran.', en: 'Nothing is written before "Import". Secret values never come back to the screen.' },
+      'kb.cp.imp.exists': { fr: 'Un serveur de ce nom existe déjà : l’importer le remplace.', en: 'A server of that name exists: importing replaces it.' },
+      'kb.cp.imp.sse': { fr: 'Transport SSE : DSH ne gère que HTTP streamable ou une commande locale.', en: 'SSE transport: DSH only handles streamable HTTP or a local command.' },
+      'kb.cp.imp.badname': { fr: 'Nom corrigé en « {name} » (minuscules, chiffres et tirets).', en: 'Name changed to "{name}" (lowercase letters, digits and dashes).' },
+      'kb.cp.imp.notfound': { fr: '« {cmd} » est introuvable sur cette machine.', en: '"{cmd}" was not found on this machine.' },
+      'kb.cp.imp.relative': { fr: '« {cmd} » n’est pas un chemin absolu : {path} est présent sur cette machine.', en: '"{cmd}" is not an absolute path: {path} exists on this machine.' },
+      'kb.cp.imp.allow': { fr: 'Autoriser {dir}', en: 'Allow {dir}' },
+      'kb.cp.imp.secret': { fr: '{what} : la valeur sera mise dans ~/.dsh/.env et remplacée par ${name}.', en: '{what}: the value goes into ~/.dsh/.env and is replaced by ${name}.' },
+      'kb.cp.imp.done': { fr: '{n} serveur(s) importé(s). DSH les charge dans quelques secondes.', en: '{n} server(s) imported. DSH loads them in a few seconds.' },
+      'kb.cp.imp.failed': { fr: 'Échec pour {name} : {why}', en: 'Failed for {name}: {why}' },
+      'kb.cp.imp.none': { fr: 'Rien à importer.', en: 'Nothing to import.' },
     }
+
     const kbt = (key) => {
       const row = STR[key]
       if (row === null || row === undefined) return key
@@ -301,18 +395,125 @@ window.__ModuleLoader__.load({
     /** The text for an error thrown by the MCP client: its code when it has one, else its message. */
     const kbCpErrOf = (e) => (e !== null && e !== undefined && typeof e.code === 'string' && e.code.length > 0 ? kbCpErrText(e.code) : String((e && e.message) || e))
     /**
-     * What the key panel says about the HOST, from GET /kybernos/composio/connections. The panel
-     * used to read only the browser's copy of the key and show green while the agents, which
-     * read process.env.COMPOSIO_API_KEY from ~/.dsh/.env, had no key at all. null = the reply
-     * is unusable (the host plugin is not there).
+     * What the key panel shows, from GET /key and GET /connections?toolkits=gmail (the second says whether
+     * Composio accepts the key; null when it did not answer). Returns null when the host plugin does not
+     * answer at all. `agents` is 'same' when the running agents hold the key, else 'later' (they read it when
+     * DSH starts).
      */
-    const kbCpHostState = (reply) => {
-      if (reply === null || reply === undefined || typeof reply !== 'object' || reply.ok !== true) return { level: 'unknown', key: 'composio.hostunknown' }
-      if (reply.configured !== true) return { level: 'warn', key: 'composio.hostmissing' }
-      const err = reply.error === undefined || reply.error === null ? null : String(reply.error)
-      if (err === null) return { level: 'ok', key: 'composio.hostok' }
-      if (err === '401' || err === '403') return { level: 'bad', key: 'composio.hostbad' }
-      return { level: 'warn', key: 'composio.hosterr' }
+    const kbCpKeyState = (key, conns) => {
+      if (key === null || key === undefined || typeof key !== 'object' || key.ok !== true) return null
+      if (key.configured !== true) return { present: false, env: false, accepted: null, agents: null }
+      const err = conns !== null && conns !== undefined && typeof conns === 'object' && conns.ok === true ? (conns.error === null || conns.error === undefined ? null : String(conns.error)) : 'unknown'
+      let accepted = 'yes'
+      if (err === '401' || err === '403') accepted = 'no'
+      else if (err !== null) accepted = 'unchecked'
+      return { present: true, env: key.source === 'env', accepted: accepted, agents: key.agents === 'same' ? 'same' : 'later' }
+    }
+
+    // ── MCP servers: pure helpers (the page and the tests share them) ──────────
+    /** What a server runs or talks to, as one line. */
+    const kbCpTargetOf = (c) => (c.transport === 'streamable-http' ? String(c.url || '') : [String(c.command || '')].concat(Array.isArray(c.args) === true ? c.args : []).join(' '))
+
+    /** What a failed connector test says, as a sentence the person can act on. `r` is the host's result ({ code, message, hint }). */
+    const kbCpTestErr = (r) => {
+      const code = String(r !== null && r !== undefined && r.code !== undefined && r.code !== null ? r.code : '')
+      if (r !== null && r !== undefined && r.hint === 'oauth') return kbt('kb.cp.terr.oauth')
+      const known = ['401', '403', '404', '429', 'timeout', 'offline', 'bad-response', 'rpc-error', 'spawn', 'exited']
+      if (known.indexOf(code) < 0) return kbt('kb.cp.terr.other').replace('{code}', code.length > 0 ? code : '?')
+      let m = String(r.message || '')
+      if (code === 'spawn') { const row = STR['kb.cp.spawn.' + m]; if (row !== undefined) m = kbt('kb.cp.spawn.' + m) }
+      const text = kbt('kb.cp.terr.' + code).replace('{m}', m)
+      return code === 'rpc-error' && m.length > 0 ? text + ' ' + m : text
+    }
+
+    /**
+     * The chip of a server's row from what DSH says of it (the host's `live`): { kind, key, n, hint }.
+     * `recent` is true for a few seconds after the server was saved, while DSH is still reloading its
+     * configuration; a server that is still not loaded after that gets the "restart DSH" hint.
+     */
+    const kbCpStatusOf = (c, recent) => {
+      if (c.disabled === true || (c.live !== null && c.live !== undefined && c.live.loaded === true && c.live.enabled === false)) return { kind: 'plain', key: 'kb.cp.st.off' }
+      const live = c.live
+      if (live === null || live === undefined) return { kind: 'plain', key: 'kb.cp.st.nolive' }
+      if (live.loaded !== true) return recent === true ? { kind: 'warn', key: 'kb.cp.st.loading' } : { kind: 'warn', key: 'kb.cp.st.stale', hint: 'kb.cp.st.hint.stale' }
+      if (live.phase === 'failed') return { kind: 'bad', key: 'kb.cp.st.failed' }
+      if (live.phase === 'loading' || live.phase === 'pending') return { kind: 'warn', key: 'kb.cp.st.loading' }
+      if (live.phase === 'active') return live.tools > 0 ? { kind: 'ok', key: 'kb.cp.st.active', n: live.tools } : { kind: 'warn', key: 'kb.cp.st.noTools', hint: 'kb.cp.st.hint.noTools' }
+      return { kind: 'plain', key: 'kb.cp.st.nolive' }
+    }
+
+    // ── pasting the JSON a server's documentation gives ───────────────────────
+    const SERVER_NAME_RE = /^[a-z][a-z0-9-]{1,30}$/
+    const SECRET_NAME_RE = /^[A-Z_][A-Z0-9_]{0,63}$/
+    const SECRETISH = /KEY|TOKEN|SECRET|PASSWORD|AUTH/i
+    /** A name the host accepts, made from any text: lower case, dashes for the rest, a letter first, 31 characters at most. */
+    const kbCpSafeName = (raw) => {
+      let n = String(raw === null || raw === undefined ? '' : raw).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+      if (/^[a-z]/.test(n) === false) n = 'srv-' + n
+      n = n.slice(0, 31).replace(/-+$/, '')
+      return n.length >= 2 ? n : 'serveur'
+    }
+    /**
+     * The servers of a pasted "mcpServers" block, as { source, name, type, url, command, args, cwd, headers, env, sse }.
+     * Returns { error: 'json', why } or { error: 'nomap' } when there is nothing to read. Pure: nothing is resolved or written.
+     */
+    const kbCpImportParse = (text) => {
+      let j = null
+      try { j = JSON.parse(String(text)) } catch (e) { return { error: 'json', why: String((e && e.message) || e).slice(0, 90) } }
+      const map = j !== null && typeof j === 'object' && Array.isArray(j) === false ? (j.mcpServers || j.servers || (j.command !== undefined || j.url !== undefined ? null : j)) : null
+      if (map === null || typeof map !== 'object' || Array.isArray(map)) return { error: 'nomap' }
+      const rows = (o) => (o !== null && typeof o === 'object' && Array.isArray(o) === false ? Object.keys(o).map((k) => ({ name: k, value: String(o[k]) })) : [])
+      const servers = []
+      for (const source of Object.keys(map)) {
+        const sv = map[source]
+        if (sv === null || typeof sv !== 'object') continue
+        const type = typeof sv.url === 'string' ? 'streamable-http' : (typeof sv.command === 'string' ? 'stdio' : null)
+        if (type === null) continue
+        servers.push({
+          source: source, name: kbCpSafeName(source), type: type,
+          url: typeof sv.url === 'string' ? sv.url : '', command: typeof sv.command === 'string' ? sv.command : '',
+          args: Array.isArray(sv.args) ? sv.args.map((a) => String(a)) : [], cwd: typeof sv.cwd === 'string' ? sv.cwd : '',
+          headers: rows(sv.headers), env: rows(sv.env),
+          sse: String(sv.type || sv.transport || '').toLowerCase() === 'sse' || (type === 'streamable-http' && /\/sse\/?$/i.test(sv.url)),
+        })
+      }
+      return servers.length === 0 ? { error: 'nomap' } : { servers: servers }
+    }
+    /**
+     * The body to send the host for one parsed server: every secret-looking value (an API key in a header, a
+     * token in an env variable) becomes a `$NAME` reference and a secret to write to the .env, so no secret ends
+     * up in the config. `command` is the one to use (the host's choice when the pasted one was a bare name).
+     * Returns { body, notes } where notes lists what was moved ({ what, name }) for the page to say.
+     */
+    const kbCpImportBody = (sv, command) => {
+      const secrets = []
+      const notes = []
+      const used = {}
+      const move = (what, name, raw, prefix) => {
+        let n = String(name).toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+        if (SECRET_NAME_RE.test(n) === false) return raw
+        while (used[n] === true && secrets.some((x) => x.name === n && x.value !== raw)) n += '_2'
+        used[n] = true
+        if (secrets.some((x) => x.name === n) === false) secrets.push({ name: n, value: raw })
+        notes.push({ what: what, name: n })
+        return prefix + '$' + n
+      }
+      const refOnly = (v) => /^(Bearer\s+|Basic\s+)?\$[A-Z_][A-Z0-9_]*$/.test(v.trim())
+      const headers = sv.headers.map((h) => {
+        if (refOnly(h.value) || SECRETISH.test(h.name) === false) return { name: h.name, value: h.value }
+        const m = /^(Bearer\s+|Basic\s+|Token\s+)?(.*)$/i.exec(h.value)
+        const prefix = m[1] || ''
+        const secretName = /^authorization$/i.test(h.name) ? sv.name + '_API_KEY' : h.name
+        return { name: h.name, value: move(h.name, secretName, m[2], prefix) }
+      })
+      const env = sv.env.map((e) => {
+        if (refOnly(e.value) || SECRETISH.test(e.name) === false || SECRET_NAME_RE.test(e.name) === false) return { name: e.name, value: e.value }
+        return { name: e.name, value: move(e.name, e.name, e.value, '') }
+      })
+      const body = { nom: sv.name, transport: sv.type, secrets: secrets }
+      if (sv.type === 'streamable-http') Object.assign(body, { url: sv.url, headers: headers })
+      else Object.assign(body, { command: command === undefined ? sv.command : command, args: sv.args, cwd: sv.cwd, env: env })
+      return { body: body, notes: notes }
     }
 
     // ── Lucide icons (inline SVG) ─────────────────────────────────────────────
@@ -495,6 +696,59 @@ window.__ModuleLoader__.load({
 .kb7-fhint{font-size:11px;opacity:.6;line-height:1.5}
 .kb7-fok{font-size:12px;color:#22c55e}
 .kb7-ferr{font-size:12px;color:#f87171}
+/* ── MCP servers tab: list rows whose actions appear on hover, add menu, JSON import ── */
+.kbcp-addwrap{position:relative;display:inline-flex;flex:none}
+.kbcp-menu{position:absolute;right:0;top:calc(100% + 6px);min-width:260px;background:var(--dsw-alias-bg-layer-2,#232324);border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.35));border-radius:12px;padding:6px;z-index:30;box-shadow:0 12px 32px rgba(0,0,0,.35)}
+.kbcp-menu button{display:flex;flex-direction:column;align-items:flex-start;width:100%;gap:1px;padding:8px 10px;border:0;background:transparent;color:inherit;border-radius:8px;text-align:left;cursor:pointer;font:inherit;font-size:13px}
+.kbcp-menu button:hover{background:rgba(128,128,128,.16)}
+.kbcp-menu small{opacity:.6;font-size:11.5px}
+.kbcp-mlist{display:flex;flex-direction:column;gap:10px;max-width:1180px}
+.kbcp-mrow{border:1px solid rgba(128,128,128,.25);border-radius:12px}
+.kbcp-mrow:hover{border-color:rgba(128,128,128,.45)}
+.kbcp-mmain{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:12px 14px}
+.kbcp-mid{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 280px}
+.kbcp-mname{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-weight:650;font-size:14px}
+.kbcp-mtarget{font-family:ui-monospace,Menlo,monospace;font-size:11px;opacity:.55;overflow-wrap:anywhere}
+.kbcp-src{font-size:11px;opacity:.65;border:1px dashed rgba(128,128,128,.55);border-radius:99px;padding:1px 8px;font-weight:500}
+.kbcp-chip{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border-radius:99px;font-size:12px;font-weight:650;white-space:nowrap;background:rgba(128,128,128,.16)}
+.kbcp-chip i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.kbcp-chip.warn{background:rgba(245,158,11,.16);color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbcp-chip.ok{background:rgba(34,197,94,.16);color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbcp-chip.bad{background:rgba(242,90,90,.16);color:var(--dsw-alias-state-error-primary,#f25a5a)}
+/* The actions are quiet until the row is hovered or has the keyboard focus; a touch screen always shows them. */
+.kbcp-macts{display:flex;align-items:center;gap:6px;opacity:0;transition:opacity .12s}
+.kbcp-mrow:hover .kbcp-macts,.kbcp-mrow:focus-within .kbcp-macts{opacity:1}
+@media (hover:none){.kbcp-macts{opacity:1}}
+@media (prefers-reduced-motion:reduce){.kbcp-macts{transition:none}}
+.kbcp-switch{position:relative;width:38px;height:22px;border-radius:99px;border:1px solid rgba(128,128,128,.5);background:rgba(128,128,128,.2);padding:0;flex:none;cursor:pointer}
+.kbcp-switch::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:rgba(128,128,128,.9)}
+.kbcp-switch[aria-checked="true"]{background:rgba(34,197,94,.2);border-color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbcp-switch[aria-checked="true"]::after{transform:translateX(16px);background:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbcp-detail{border-top:1px solid rgba(128,128,128,.2);padding:10px 14px;font-size:12.5px;display:flex;flex-direction:column;gap:6px;line-height:1.5}
+.kbcp-detail.ok b{color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbcp-detail.bad b{color:var(--dsw-alias-state-error-primary,#f25a5a)}
+.kbcp-detail.warn b{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbcp-tools{display:flex;flex-wrap:wrap;gap:5px}
+.kbcp-tools code{font-family:ui-monospace,Menlo,monospace;font-size:11px;background:rgba(128,128,128,.18);border-radius:6px;padding:1px 7px}
+.kbcp-confirm{border-top:1px solid var(--dsw-alias-state-error-primary,#f25a5a);padding:10px 14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12.5px}
+.kbcp-confirm p{margin:0;flex:1 1 260px}
+.kbcp-note{font-size:12px;line-height:1.5;border-radius:10px;padding:9px 12px;border:1px solid rgba(128,128,128,.3);background:rgba(128,128,128,.08)}
+.kbcp-note.warn{border-color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbcp-note.ok{border-color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbcp-note.bad{border-color:var(--dsw-alias-state-error-primary,#f25a5a)}
+.kbcp-secrow{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:12.5px}
+.kbcp-secrow code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+.kbcp-textarea{width:100%;height:170px;border-radius:9px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:10px 11px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.5;resize:vertical;box-sizing:border-box}
+.kbcp-found{display:flex;flex-direction:column;gap:8px}
+.kbcp-fitem{border:1px solid rgba(128,128,128,.25);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.kbcp-fitem .kbcp-ftop{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.kbcp-fitem .kbcp-ftop label{display:flex;gap:8px;align-items:center;font-weight:650;font-size:13px}
+.kbcp-fitem ul{margin:0;padding-left:18px;font-size:12px;display:flex;flex-direction:column;gap:3px;opacity:.85}
+.kbcp-fitem .kbcp-good{color:var(--dsw-alias-state-success-primary,#22c55e)}
+.kbcp-fitem .kbcp-badl{color:var(--dsw-alias-state-error-primary,#f25a5a)}
+.kbcp-fitem .kbcp-warnl{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbcp-help2{font-size:11.5px;opacity:.65;line-height:1.45}
+.kbcp-toast{font-size:12.5px;color:var(--dsw-alias-state-success-primary,#22c55e)}
 /* ── resource cards in the chat (fenced kybernos-carte block) ──────────── */
 .kbcp-cartes{display:flex;flex-direction:column;gap:8px;margin:10px 0}
 .kbcp-carte{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;background:var(--dsw-alias-markdown-code-block,#1b1b1c);border:1px solid var(--dsw-alias-border-l2,#ffffff1f);box-shadow:var(--dsw-elevation-stroke,0 0 0 .5px #fff3),var(--dsw-shadow-lv1,0 2px 4px 0 #0000000d)}
@@ -525,159 +779,454 @@ window.__ModuleLoader__.load({
 `
 
     // ── Key config (bundle page, Plugins) ────────────────────────────────────
+    // The key lives in the DSH .env, on this machine: the host checks it with Composio and writes it where
+    // the agents read it. This panel only asks the host and shows what it says. The previous version kept a
+    // copy in this browser; one found there is offered for saving and then forgotten.
+    const KB_CP_OLD_KEY = 'composio.apiKey'
     const ComposioKeyConfig = () => {
-      const p1 = React.useState('')
-      const v = p1[0]
-      const setV = p1[1]
-      const p2 = React.useState(kbCpHas())
-      const has = p2[0]
-      const setHas = p2[1]
-      const p3 = React.useState(null)
-      const probe = p3[0]
-      const setProbe = p3[1]
-      React.useEffect(() => { setHas(kbCpHas()) }, [])
-      React.useEffect(() => {
-        if (kbCpHas() === false) { setProbe(null); return undefined }
-        let dead = false
-        mcpReady().then(() => { if (dead === false) setProbe('ok') }).catch((e) => { if (dead === false) setProbe(e !== null && e !== undefined && typeof e.code === 'string' ? e.code : 'err') })
-        return () => { dead = true }
-      }, [has])
-      // What the HOST sees. The agents read COMPOSIO_API_KEY from ~/.dsh/.env, not this browser's
-      // copy, so the key being saved here proves nothing about them.
-      const pH = React.useState(null)
-      const hostState = pH[0]
-      const setHostState = pH[1]
+      const [v, setV] = React.useState('')
+      const [state, setState] = React.useState(undefined)
+      const [busy, setBusy] = React.useState(false)
+      const [msg, setMsg] = React.useState(null)
+      const [old, setOld] = React.useState('')
+      const [tick, setTick] = React.useState(0)
       React.useEffect(() => {
         let dead = false
-        let reply = null
-        Promise.resolve().then(() => fetch('/kybernos/composio/connections?toolkits=gmail', { credentials: 'same-origin' }))
-          .then((r) => (r.ok === true ? r.json() : null))
-          .catch(() => null)
-          .then((j) => { reply = j; if (dead === false) setHostState(kbCpHostState(reply)) })
+        ;(async () => {
+          const k = await kbCpHost('/key')
+          let c = null
+          if (k.status === 200 && k.json !== null && k.json.configured === true) c = (await kbCpHost('/connections?toolkits=gmail')).json
+          const st = k.status === 200 ? kbCpKeyState(k.json, c) : null
+          if (dead === true) return
+          setState(st)
+          let left = ''
+          try { left = localStorage.getItem(KB_CP_OLD_KEY) || '' } catch (e) { left = '' }
+          if (left.length === 0) { setOld(''); return }
+          // The host has a key: the copy in the browser is not needed. It has none: offer to move this one.
+          if (st !== null && st.present === true) { try { localStorage.removeItem(KB_CP_OLD_KEY) } catch (e) { } setOld('') } else if (st !== null && /^ck_/.test(left)) setOld(left)
+        })()
         return () => { dead = true }
-      }, [has])
-      const save = () => {
-        const val = String(v).trim()
-        if (val.length > 6 && val.indexOf('ck_') === 0) {
-          let stored = true
-          try { localStorage.setItem(KB_CP_KEY, val) } catch (e) { stored = false }
-          // Storage refused: nothing is claimed saved (the panel would say "key saved" for a key that is gone on reload).
-          if (stored === true) { setHas(true); setV(''); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
+      }, [tick])
+      const save = async (value) => {
+        setBusy(true)
+        setMsg(null)
+        const r = await kbCpHost('/key', 'POST', { key: String(value).trim() })
+        setBusy(false)
+        if (r.status === 200 && r.json !== null && r.json.ok === true) {
+          setV('')
+          setOld('')
+          try { localStorage.removeItem(KB_CP_OLD_KEY) } catch (e) { }
+          setMsg({ kind: r.json.verified === true ? 'ok' : 'warn', text: kbt(r.json.verified !== true ? 'composio.savedunchecked' : (r.json.needRestart === true ? 'composio.saved' : 'composio.savedlive')) })
+          try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { }
+          setTick((n) => n + 1)
+        } else {
+          const code = r.json !== null && r.json.code !== undefined ? String(r.json.code) : ''
+          setMsg({ kind: 'bad', text: kbt(code === 'invalid-key' ? 'composio.err.invalid' : (code === '401' || code === '403' ? 'composio.err.rejected' : (code === 'inherited' ? 'composio.err.inherited' : 'composio.err.write'))) })
         }
       }
-      const clear = () => { try { localStorage.removeItem(KB_CP_KEY) } catch (e) { } setHas(false); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
+      const clear = async () => {
+        setBusy(true)
+        setMsg(null)
+        const r = await kbCpHost('/key', 'DELETE')
+        setBusy(false)
+        if (r.status !== 200) setMsg({ kind: 'bad', text: kbt(r.json !== null && r.json.code === 'inherited' ? 'composio.err.inherited' : 'composio.err.write') })
+        try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { }
+        setTick((n) => n + 1)
+      }
       const DASH = 'https://dashboard.composio.dev/'
+      const line = (kind, key) => h('div', { className: 'kbcp-row', key: key },
+        h('span', { className: 'kbcp-state' }, h('span', { className: 'kbcp-dot' + (kind === '' ? '' : ' ' + kind) }), kbt(key)))
+      const lines = []
+      if (state === null) lines.push(line('warn', 'composio.hostunknown'))
+      else if (state !== undefined && state.present === false) lines.push(line('', 'composio.keyunset'))
+      else if (state !== undefined) {
+        lines.push(line('on', state.env === true ? 'composio.keyenv' : 'composio.keyset'))
+        lines.push(line(state.accepted === 'yes' ? 'on' : (state.accepted === 'no' ? 'bad' : 'warn'), state.accepted === 'yes' ? 'composio.accepted' : (state.accepted === 'no' ? 'composio.rejected' : 'composio.unchecked')))
+        lines.push(line(state.agents === 'same' ? 'on' : 'warn', state.agents === 'same' ? 'composio.agentsSame' : 'composio.agentsLater'))
+      }
+      const locked = state !== undefined && state !== null && state.env === true
       return h('div', { className: 'kbcp-config' },
         h('h3', null, h('span', { className: 'kbcp-logo' }, 'C'), kbt('composio.keylabel')),
-        h('div', { className: 'kbcp-row' },
-          h('span', { className: 'kbcp-state' },
-            h('span', { className: 'kbcp-dot' + (has === true ? ' on' : '') }),
-            has === true ? kbt('composio.keyok') : kbt('composio.keymissing'))),
+        h('div', { 'data-kb': 'composio-host-state' }, lines),
         h('div', { className: 'kbcp-note' }, kbt('composio.keynote')),
+        old.length > 0 ? h('div', { className: 'kbcp-row' },
+          h('span', { className: 'kbcp-help2', style: { flex: 1 } }, kbt('composio.migrate')),
+          h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy, onClick: () => save(old) }, kbt('composio.keysave'))) : null,
         h('div', { className: 'kbcp-row' },
-          h('input', { className: 'kbcp-input', type: 'password', value: v, placeholder: 'ck_…', onChange: (e) => setV(e.target.value), autoComplete: 'off' }),
-          h('button', { type: 'button', className: 'kbcp-btn primary', onClick: save }, kbt('composio.keysave')),
-          h('button', { type: 'button', className: 'kbcp-btn', onClick: clear }, kbt('composio.keyclear')),
-          has === true ? h('span', { className: 'kbcp-code' }, probe === 'ok' ? 'MCP ✓' : (probe === null ? '…' : 'MCP ✗ ' + probe)) : null),
-        hostState !== null ? h('div', { className: 'kbcp-row' },
-          h('span', { className: 'kbcp-state', 'data-kb': 'composio-host-state' },
-            h('span', { className: 'kbcp-dot' + (hostState.level === 'ok' ? ' on' : (hostState.level === 'bad' ? ' bad' : ' warn')) }),
-            kbt(hostState.key))) : null,
+          h('input', { className: 'kbcp-input', type: 'password', value: v, placeholder: 'ck_…', disabled: locked || busy, onChange: (e) => setV(e.target.value), autoComplete: 'off', 'aria-label': kbt('composio.keylabel') }),
+          h('button', { type: 'button', className: 'kbcp-btn primary', disabled: locked || busy || v.trim().length === 0, onClick: () => save(v) }, kbt('composio.keysave')),
+          state !== undefined && state !== null && state.present === true && locked === false ? h('button', { type: 'button', className: 'kbcp-btn', disabled: busy, onClick: clear }, kbt('composio.keyclear')) : null),
+        msg !== null ? h('div', { className: 'kbcp-note ' + msg.kind, role: 'status' }, msg.text) : null,
         h('details', { className: 'kbcp-help' },
           h('summary', null, kbt('composio.keyhelpq')),
           h('ol', null,
             h('li', null, h('a', { href: DASH, target: '_blank', rel: 'noopener' }, 'dashboard.composio.dev'), ' — ', kbt('composio.keyhelp1')),
             h('li', null, kbt('composio.keyhelp2')),
-            h('li', null, kbt('composio.keyhelp3')))),
-        h('div', { className: 'kbcp-row' },
-          h('span', { className: 'kbcp-note' }, kbt('composio.keyhint'))))
+            h('li', null, kbt('composio.keyhelp3')))))
     }
 
-    // ── "custom connector" form (talks to the host route) ────────────────────
-    // The server writes the config and the .env itself: the user never sees
-    // the YAML. A field value can reference a secret as $NAME.
-    const EMPTY_FORM = () => ({ nom: '', transport: 'streamable-http', url: '', command: '', args: '', cwd: '', headers: [], env: [], secrets: [] })
+    // ── MCP servers: the form, pasting JSON, and the list ────────────────────
+    // The host writes the config and the .env itself: the person never sees the YAML. A value can
+    // refer to a secret as $NAME. Every call goes through the host (kbCpHost).
+    const EMPTY_FORM = () => ({ nom: '', transport: 'streamable-http', url: '', command: '', args: '', cwd: '', headers: [], env: [], secrets: [], timeoutS: '' })
+    const TOKEN_IN = /\$([A-Z_][A-Z0-9_]*)/g
+    const kbCpTokens = (rows) => {
+      const out = []
+      for (const r of rows) { const re = new RegExp(TOKEN_IN.source, 'g'); let m; while ((m = re.exec(String(r.value))) !== null) if (out.indexOf(m[1]) < 0) out.push(m[1]) }
+      return out
+    }
+    /** The form's state for a server of the list (null = a new one). */
+    const kbCpFormOf = (it) => {
+      if (it === null || it === undefined) return EMPTY_FORM()
+      const headers = Array.isArray(it.headers) ? it.headers.map((x) => ({ name: String(x.name || ''), value: String(x.value || '') })) : []
+      const env = Array.isArray(it.env) ? it.env.map((x) => ({ name: String(x.name || ''), value: String(x.value || '') })) : []
+      const names = (Array.isArray(it.secrets) ? it.secrets.filter((n) => typeof n === 'string') : []).concat(kbCpTokens(headers.concat(env)))
+      const seen = {}
+      const secrets = []
+      for (const n of names) { if (seen[n] === true) continue; seen[n] = true; secrets.push({ name: n, known: true, set: it.secretsSet !== undefined && it.secretsSet !== null && it.secretsSet[n] === true, replace: false, value: '' }) }
+      return {
+        nom: String(it.nom || ''), transport: it.transport === 'stdio' ? 'stdio' : 'streamable-http',
+        url: String(it.url || ''), command: String(it.command || ''),
+        args: Array.isArray(it.args) ? kbCpJoinArgs(it.args) : String(it.args || ''),
+        cwd: String(it.cwd || ''), headers: headers, env: env, secrets: secrets,
+        timeoutS: Number.isInteger(it.toolCallTimeoutMs) ? String(it.toolCallTimeoutMs / 1000) : '',
+      }
+    }
+    /** The body the host's save and test routes take, from the form's state. */
+    const kbCpBodyOf = (f, initial) => {
+      const body = { nom: f.nom.trim(), transport: f.transport, url: f.url.trim(), command: f.command.trim(), args: f.args, cwd: f.cwd.trim(), headers: f.headers, env: f.env, secrets: f.secrets.filter((s) => s.value.trim().length > 0 && s.name.trim().length > 0).map((s) => ({ name: s.name.trim(), value: s.value })) }
+      if (initial !== null && initial !== undefined) {
+        if (initial.disabled === true) body.disabled = true
+        if (Number.isInteger(initial.toolCallTimeoutMs)) body.toolCallTimeoutMs = initial.toolCallTimeoutMs
+      }
+      const t = Number(f.timeoutS)
+      if (f.timeoutS !== '' && isFinite(t) && t > 0) body.toolCallTimeoutMs = Math.round(t * 1000)
+      return body
+    }
+    /** The facts of a connector test as lines: the result, a missing secret, the program's last words, stray stdout. */
+    const kbCpTestView = (test) => {
+      if (test === null || test === undefined) return null
+      if (test.busy === true) return h('div', { className: 'kbcp-note' }, kbt('kb.cp.act.testing'))
+      const r = test.result
+      const missing = Array.isArray(test.missing) && test.missing.length > 0 ? h('div', { key: 'm' }, kbt('kb.cp.test.missing').replace('{names}', test.missing.join(', '))) : null
+      if (r === null || r === undefined) return h('div', { className: 'kbcp-note bad' }, kbt('kb.cp.test.fail'))
+      if (r.ok === true) {
+        const tools = Array.isArray(r.tools) ? r.tools : []
+        const secs = String(Math.max(0.1, Math.round(r.ms / 100) / 10))
+        return h('div', { className: 'kbcp-note ok' },
+          h('div', null, h('b', null, tools.length > 0 ? kbt('kb.cp.test.ok').replace('{s}', secs).replace('{n}', String(tools.length)) : kbt('kb.cp.test.none').replace('{s}', secs))),
+          tools.length > 0 ? h('div', { className: 'kbcp-tools' }, tools.map((t) => h('code', { key: t.name, title: t.description || '' }, t.name))) : null,
+          missing,
+          r.noise > 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.test.noise').replace('{n}', String(r.noise))) : null)
+      }
+      return h('div', { className: 'kbcp-note bad' },
+        h('div', null, h('b', null, kbt('kb.cp.test.fail')), ' ', kbCpTestErr(r)),
+        missing,
+        typeof r.stderr === 'string' && r.stderr.length > 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.test.stderr'), ' ', h('code', null, r.stderr)) : null)
+    }
+
     const ConnecteurForm = (props) => {
-      const p0 = React.useState(() => {
-        const it = props.initial !== null && props.initial !== undefined ? props.initial : null
-        if (it === null) return EMPTY_FORM()
-        return {
-          nom: String(it.nom || ''), transport: it.transport === 'stdio' ? 'stdio' : 'streamable-http',
-          url: String(it.url || ''), command: String(it.command || ''),
-          args: Array.isArray(it.args) ? kbCpJoinArgs(it.args) : String(it.args || ''),
-          cwd: String(it.cwd || ''),
-          headers: Array.isArray(it.headers) ? it.headers.map((x) => ({ name: String(x.name || ''), value: String(x.value || '') })) : [],
-          env: Array.isArray(it.env) ? it.env.map((x) => ({ name: String(x.name || ''), value: String(x.value || '') })) : [],
-          secrets: [],
-        }
-      })
-      const f = p0[0]
-      const setF = p0[1]
-      const p1 = React.useState(false)
-      const busy = p1[0]
-      const setBusy = p1[1]
-      const p2 = React.useState(null)
-      const ferr = p2[0]
-      const setFerr = p2[1]
+      const initial = props.initial !== null && props.initial !== undefined ? props.initial : null
+      const readOnly = initial !== null && initial.editable === false
+      const [f, setF] = React.useState(() => kbCpFormOf(initial))
+      const [renaming, setRenaming] = React.useState(false)
+      const [busy, setBusy] = React.useState(false)
+      const [ferr, setFerr] = React.useState(null)
+      const [test, setTest] = React.useState(null)
+      const [help, setHelp] = React.useState(null)
       const up = (patch) => setF((prev) => Object.assign({}, prev, patch))
-      const setRow = (key, i, field, value) => setF((prev) => Object.assign({}, prev, { [key]: prev[key].map((x, j) => (j === i ? { name: x.name, value: x.value, [field]: value } : x)) }))
-      const addRow = (key) => setF((prev) => Object.assign({}, prev, { [key]: prev[key].concat([{ name: '', value: '' }]) }))
+      const setRow = (key, i, field, value) => setF((prev) => Object.assign({}, prev, { [key]: prev[key].map((x, j) => (j === i ? Object.assign({}, x, { [field]: value }) : x)) }))
+      const addRow = (key, row) => setF((prev) => Object.assign({}, prev, { [key]: prev[key].concat([row]) }))
       const delRow = (key, i) => setF((prev) => Object.assign({}, prev, { [key]: prev[key].filter((x, j) => j !== i) }))
-      const rows = (key, title, phName, phValue, secret) => h('div', { className: 'kb7-fgroup' },
+      const isNew = initial === null
+      const isHttp = f.transport === 'streamable-http'
+
+      const pair = (key, title, phName, phValue) => h('div', { className: 'kb7-fgroup' },
         h('div', { className: 'kb7-fgrouptitle' }, title),
         f[key].map((p, i) => h('div', { className: 'kb7-frow', key: key + i },
-          h('input', { className: 'kb7-finput', style: { maxWidth: 210 }, value: p.name, placeholder: phName, onChange: (e) => setRow(key, i, 'name', e.target.value), autoComplete: 'off', spellCheck: false }),
-          h('input', { className: 'kb7-finput', type: secret === true ? 'password' : 'text', value: p.value, placeholder: phValue, onChange: (e) => setRow(key, i, 'value', e.target.value), autoComplete: 'off', spellCheck: false }),
-          h('button', { type: 'button', className: 'kbcp-btn', onClick: () => delRow(key, i), 'aria-label': 'remove' }, Icon('x', 12)))),
-        h('button', { type: 'button', className: 'kbcp-btn', style: { alignSelf: 'flex-start' }, onClick: () => addRow(key) }, Icon('plus', 12), ' ' + kbt('kb.cp.form.addrow')))
+          h('input', { className: 'kb7-finput', style: { maxWidth: 210 }, value: p.name, placeholder: phName, onChange: (e) => setRow(key, i, 'name', e.target.value), autoComplete: 'off', spellCheck: false, 'aria-label': phName }),
+          h('input', { className: 'kb7-finput', value: p.value, placeholder: phValue, onChange: (e) => setRow(key, i, 'value', e.target.value), autoComplete: 'off', spellCheck: false, 'aria-label': phValue }),
+          h('button', { type: 'button', className: 'kbcp-btn', onClick: () => delRow(key, i), 'aria-label': kbt('kb.cp.dismiss') }, Icon('x', 12)))),
+        h('button', { type: 'button', className: 'kbcp-btn', style: { alignSelf: 'flex-start' }, onClick: () => addRow(key, { name: '', value: '' }) }, Icon('plus', 12), ' ' + kbt('kb.cp.form.addrow')))
+
+      // A command the host refused comes with where the program is: use it, or confirm its folder once.
+      const helpFor = async (value) => {
+        const r = await kbCpHost('/connecteurs/commande?command=' + encodeURIComponent(value))
+        setHelp(r.json !== null && Array.isArray(r.json.help) ? r.json.help : [])
+      }
+      const allowDir = async (hit) => {
+        const r = await kbCpHost('/connecteurs/commande', 'POST', { dir: hit.dir })
+        if (r.status === 200) { up({ command: hit.path }); setHelp(null); setFerr(null); if (typeof props.onRoots === 'function') props.onRoots() } else setFerr(r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'HTTP ' + r.status)
+      }
+      const helpView = () => (help === null ? null : h('div', { className: 'kbcp-found' },
+        help.length === 0 ? h('div', { className: 'kbcp-note warn' }, kbt('kb.cp.cmd.none')) : null,
+        help.some((x) => x.allowed !== true) ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.cmd.explain')) : null,
+        help.map((x) => h('button', { type: 'button', key: x.path, className: 'kbcp-btn', style: { alignSelf: 'flex-start' }, onClick: () => (x.allowed === true ? (up({ command: x.path }), setHelp(null), setFerr(null)) : allowDir(x)) },
+          (x.allowed === true ? kbt('kb.cp.cmd.use') : kbt('kb.cp.cmd.allow').replace('{dir}', x.dir)).replace('{path}', x.path)))))
+
+      const failure = (r) => {
+        const j = r.json
+        if (j !== null && j.code === 'command-refused') { setHelp(Array.isArray(j.help) ? j.help : []); setFerr(String(j.error || '')); return }
+        setFerr(j !== null && typeof j.error === 'string' ? j.error : (r.status === 0 ? kbt('kb.cp.err.offline') : 'HTTP ' + r.status))
+      }
       const save = async () => {
+        if (f.nom.trim().length === 0) { setFerr(kbt('kb.cp.form.noname')); return }
         setBusy(true)
         setFerr(null)
-        try {
-          const body = { nom: f.nom.trim(), transport: f.transport, url: f.url.trim(), command: f.command.trim(), args: f.args, cwd: f.cwd.trim(), headers: f.headers, env: f.env, secrets: f.secrets }
-          const res = await fetch('/kybernos/composio/connecteurs', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
-          const j = await res.json().catch(() => null)
-          if (res.ok !== true || j === null || j === undefined || j.ok !== true) throw new Error(j !== null && j !== undefined && j.error !== undefined && j.error !== null ? String(j.error) : 'HTTP ' + res.status)
-          props.onSaved(kbt('kb.cp.form.saved'))
-        } catch (e) {
-          setFerr(String((e && e.message) || e))
-        } finally { setBusy(false) }
+        const body = kbCpBodyOf(f, initial)
+        if (initial !== null && f.nom.trim() !== initial.nom) body.renameFrom = initial.nom
+        const r = await kbCpHost('/connecteurs', 'POST', body)
+        setBusy(false)
+        if (r.status === 200 && r.json !== null && r.json.ok === true) props.onSaved(f.nom.trim())
+        else failure(r)
       }
-      const isHttp = f.transport === 'streamable-http'
+      const runTest = async () => {
+        if (f.transport === 'stdio' && f.command.trim().length === 0) { setFerr(kbt('kb.cp.cmd.none')); return }
+        setTest({ busy: true })
+        setFerr(null)
+        const r = await kbCpHost('/connecteurs/test', 'POST', kbCpBodyOf(f, initial))
+        if (r.status === 200 && r.json !== null && r.json.ok === true) setTest({ result: r.json.result, missing: r.json.missing })
+        else { setTest(null); failure(r) }
+      }
+
+      const title = readOnly ? initial.nom : (isNew ? kbt('kb.cp.form.title') : kbt('kb.cp.form.edit') + ' · ' + initial.nom)
       return h('div', { className: 'kb7-overlay', onClick: props.onClose },
-        h('div', { className: 'kb7-modal', onClick: (e) => e.stopPropagation() },
+        h('div', { className: 'kb7-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, onClick: (e) => e.stopPropagation() },
           h('div', { className: 'kb7-mhead' },
             h('div', { style: { flex: 1, minWidth: 0 } },
-              h('div', { className: 'kb7-mname' }, props.initial !== null && props.initial !== undefined ? kbt('kb.cp.form.edit') : kbt('kb.cp.form.title')),
+              h('div', { className: 'kb7-mname' }, title),
               h('div', { className: 'kb7-mcat' }, 'mcp__' + (f.nom.trim().length > 0 ? f.nom.trim() : '…') + '__*')),
             h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
-          h('div', { className: 'kb7-form' },
+          readOnly ? h('div', { className: 'kb7-form' },
+            h('div', { className: 'kbcp-note warn' }, kbt('kb.cp.form.ro').replace('{reason}', String(initial.readOnlyReason || ''))),
+            h('div', { className: 'kbcp-mtarget' }, kbCpTargetOf(initial)),
+            h('div', { className: 'kb7-actions' }, h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.close'))))
+          : h('div', { className: 'kb7-form' },
+            !isNew && initial.source === 'skill' ? h('div', { className: 'kbcp-note warn' }, kbt('kb.cp.form.skillnote')) : null,
             h('div', null,
-              h('label', { className: 'kb7-flabel' }, kbt('kb.cp.form.name')),
-              h('input', { className: 'kb7-finput', value: f.nom, placeholder: 'tavily', onChange: (e) => up({ nom: e.target.value }), autoComplete: 'off', spellCheck: false })),
+              h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-f-name' }, kbt('kb.cp.form.name')),
+              h('div', { className: 'kb7-frow' },
+                h('input', { className: 'kb7-finput', id: 'kbcp-f-name', value: f.nom, placeholder: 'tavily', disabled: !isNew && !renaming, onChange: (e) => up({ nom: e.target.value }), autoComplete: 'off', spellCheck: false }),
+                !isNew && !renaming ? h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setRenaming(true) }, kbt('kb.cp.form.rename')) : null),
+              !isNew ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.form.renamehint')) : null),
             h('div', null,
               h('label', { className: 'kb7-flabel' }, kbt('kb.cp.form.type')),
               h('div', { className: 'kb7-fseg' },
-                h('button', { type: 'button', className: isHttp ? 'on' : '', onClick: () => up({ transport: 'streamable-http' }) }, kbt('kb.cp.form.http')),
-                h('button', { type: 'button', className: isHttp === false ? 'on' : '', onClick: () => up({ transport: 'stdio' }) }, kbt('kb.cp.form.stdio')))),
+                h('button', { type: 'button', className: isHttp ? 'on' : '', 'aria-pressed': isHttp ? 'true' : 'false', onClick: () => up({ transport: 'streamable-http' }) }, kbt('kb.cp.form.http')),
+                h('button', { type: 'button', className: isHttp === false ? 'on' : '', 'aria-pressed': isHttp ? 'false' : 'true', onClick: () => up({ transport: 'stdio' }) }, kbt('kb.cp.form.stdio')))),
             isHttp === true
               ? h('div', null,
-                  h('label', { className: 'kb7-flabel' }, kbt('kb.cp.form.url')),
-                  h('input', { className: 'kb7-finput', value: f.url, placeholder: 'https://mcp.tavily.com/mcp/', onChange: (e) => up({ url: e.target.value }), autoComplete: 'off', spellCheck: false }),
-                  rows('headers', kbt('kb.cp.form.headers'), 'authorization', 'Bearer $TAVILY_API_KEY', false))
+                  h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-f-url' }, kbt('kb.cp.form.url')),
+                  h('input', { className: 'kb7-finput', id: 'kbcp-f-url', value: f.url, placeholder: 'https://mcp.tavily.com/mcp/', onChange: (e) => up({ url: e.target.value }), autoComplete: 'off', spellCheck: false }),
+                  pair('headers', kbt('kb.cp.form.headers'), 'authorization', 'Bearer $TAVILY_API_KEY'))
               : h('div', null,
-                  h('label', { className: 'kb7-flabel' }, kbt('kb.cp.form.command')),
-                  h('input', { className: 'kb7-finput', value: f.command, placeholder: '/opt/homebrew/bin/node', onChange: (e) => up({ command: e.target.value }), autoComplete: 'off', spellCheck: false }),
-                  h('label', { className: 'kb7-flabel', style: { marginTop: 8 } }, kbt('kb.cp.form.args')),
-                  h('input', { className: 'kb7-finput', value: f.args, placeholder: '/path/to/server.mjs --port 3000', onChange: (e) => up({ args: e.target.value }), autoComplete: 'off', spellCheck: false }),
-                  h('label', { className: 'kb7-flabel', style: { marginTop: 8 } }, kbt('kb.cp.form.cwd')),
-                  h('input', { className: 'kb7-finput', value: f.cwd, onChange: (e) => up({ cwd: e.target.value }), autoComplete: 'off', spellCheck: false }),
-                  rows('env', kbt('kb.cp.form.env'), kbt('kb.cp.form.envname'), kbt('kb.cp.form.envvalue'), false)),
-            rows('secrets', kbt('kb.cp.form.secrets'), kbt('kb.cp.form.secretname'), kbt('kb.cp.form.secretvalue'), true),
+                  h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-f-cmd' }, kbt('kb.cp.form.command')),
+                  h('input', { className: 'kb7-finput', id: 'kbcp-f-cmd', value: f.command, placeholder: '/opt/homebrew/bin/node', onChange: (e) => { up({ command: e.target.value }); setHelp(null) }, onBlur: (e) => { const t = e.target.value.trim(); if (t.length > 0 && t.charAt(0) !== '/') helpFor(t) }, autoComplete: 'off', spellCheck: false }),
+                  helpView(),
+                  h('label', { className: 'kb7-flabel', style: { marginTop: 8 }, htmlFor: 'kbcp-f-args' }, kbt('kb.cp.form.args')),
+                  h('input', { className: 'kb7-finput', id: 'kbcp-f-args', value: f.args, placeholder: '/path/to/server.mjs --port 3000', onChange: (e) => up({ args: e.target.value }), autoComplete: 'off', spellCheck: false }),
+                  h('label', { className: 'kb7-flabel', style: { marginTop: 8 }, htmlFor: 'kbcp-f-cwd' }, kbt('kb.cp.form.cwd')),
+                  h('input', { className: 'kb7-finput', id: 'kbcp-f-cwd', value: f.cwd, onChange: (e) => up({ cwd: e.target.value }), autoComplete: 'off', spellCheck: false }),
+                  pair('env', kbt('kb.cp.form.env'), kbt('kb.cp.form.envname'), kbt('kb.cp.form.envvalue'))),
+            h('div', { className: 'kb7-fgroup' },
+              h('div', { className: 'kb7-fgrouptitle' }, kbt('kb.cp.form.secrets')),
+              f.secrets.length === 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.form.secretnone')) : null,
+              f.secrets.map((sec, i) => h('div', { className: 'kbcp-secrow', key: 'sec' + i },
+                sec.known === true ? h('code', null, sec.name) : h('input', { className: 'kb7-finput', style: { maxWidth: 210 }, value: sec.name, placeholder: kbt('kb.cp.form.secretname'), onChange: (e) => setRow('secrets', i, 'name', e.target.value), autoComplete: 'off', spellCheck: false, 'aria-label': kbt('kb.cp.form.secretname') }),
+                sec.known === true && sec.replace !== true
+                  ? [h('span', { key: 's', className: 'kbcp-help2' }, sec.set === true ? '● ' + kbt('kb.cp.form.secretset') : '○ ' + kbt('kb.cp.form.secretunset')),
+                    h('button', { key: 'b', type: 'button', className: 'kbcp-btn', onClick: () => setRow('secrets', i, 'replace', true) }, kbt('kb.cp.form.secretreplace'))]
+                  : h('input', { className: 'kb7-finput', style: { maxWidth: 260 }, type: 'password', value: sec.value, placeholder: sec.known === true ? kbt('kb.cp.form.secretnew') : kbt('kb.cp.form.secretvalue'), onChange: (e) => setRow('secrets', i, 'value', e.target.value), autoComplete: 'off', 'aria-label': kbt('kb.cp.form.secretvalue') }),
+                sec.known === true ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => delRow('secrets', i), 'aria-label': kbt('kb.cp.dismiss') }, Icon('x', 12)))),
+              h('button', { type: 'button', className: 'kbcp-btn', style: { alignSelf: 'flex-start' }, onClick: () => addRow('secrets', { name: '', value: '' }) }, Icon('plus', 12), ' ' + kbt('kb.cp.form.addrow'))),
             h('div', { className: 'kb7-fhint' }, kbt('kb.cp.form.tokenhint')),
-            ferr !== null ? h('div', { className: 'kb7-ferr' }, ferr) : null,
-            h('div', { className: 'kb7-actions' },
-              h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy || f.nom.trim().length === 0, onClick: save }, busy === true ? kbt('kb.cp.form.saving') : kbt('kb.cp.form.save'))))))
+            h('details', { className: 'kbcp-help' },
+              h('summary', null, kbt('kb.cp.form.advanced')),
+              h('div', { style: { marginTop: 8 } },
+                h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-f-timeout' }, kbt('kb.cp.form.timeout')),
+                h('input', { className: 'kb7-finput', id: 'kbcp-f-timeout', style: { maxWidth: 120 }, type: 'number', min: 1, max: 3600, placeholder: '180', value: f.timeoutS, onChange: (e) => up({ timeoutS: e.target.value }) }))),
+            kbCpTestView(test),
+            ferr !== null ? h('div', { className: 'kb7-ferr', role: 'alert' }, ferr) : null,
+            h('div', { className: 'kb7-actions', style: { justifyContent: 'space-between' } },
+              h('button', { type: 'button', className: 'kbcp-btn', disabled: busy || (test !== null && test.busy === true), onClick: runTest }, kbt('kb.cp.form.test')),
+              h('div', { className: 'kb7-frow' },
+                h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
+                h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy || f.nom.trim().length === 0, onClick: save }, busy === true ? kbt('kb.cp.form.saving') : kbt('kb.cp.form.save')))))))
+    }
+
+    // Pasting the "mcpServers" block a server's documentation gives.
+    const ImportModal = (props) => {
+      const SAMPLE = '{\n  "mcpServers": {\n    "github": {\n      "command": "npx",\n      "args": ["-y", "@modelcontextprotocol/server-github"],\n      "env": { "GITHUB_TOKEN": "ghp_..." }\n    }\n  }\n}'
+      const [text, setText] = React.useState('')
+      const [names, setNames] = React.useState({})
+      const [sel, setSel] = React.useState({})
+      const [cmds, setCmds] = React.useState({})
+      const [busy, setBusy] = React.useState(false)
+      const [fails, setFails] = React.useState([])
+      const parsed = React.useMemo(() => (text.trim().length === 0 ? null : kbCpImportParse(text)), [text])
+      const roots = props.roots !== null && props.roots !== undefined ? [].concat(props.roots.base || [], props.roots.extra || []) : []
+      const insideRoots = (c) => c.charAt(0) === '/' && roots.some((r) => c.indexOf(r + '/') === 0)
+      // Where each command is: already allowed, a bare name the host can find, or somewhere that needs a confirmation.
+      React.useEffect(() => {
+        if (parsed === null || parsed.servers === undefined) return undefined
+        let dead = false
+        ;(async () => {
+          const next = {}
+          for (const sv of parsed.servers.slice(0, 30)) {
+            if (sv.type !== 'stdio') continue
+            if (insideRoots(sv.command)) { next[sv.source] = { state: 'ok', path: sv.command }; continue }
+            if (sv.command.charAt(0) === '/') { const dir = sv.command.slice(0, sv.command.lastIndexOf('/')) || '/'; next[sv.source] = { state: 'outside', path: sv.command, dir: dir }; continue }
+            const r = await kbCpHost('/connecteurs/commande?command=' + encodeURIComponent(sv.command))
+            const found = r.json !== null && Array.isArray(r.json.help) ? r.json.help : []
+            const good = found.find((x) => x.allowed === true)
+            const other = found.find((x) => x.allowed !== true)
+            next[sv.source] = good !== undefined ? { state: 'relative', path: good.path } : (other !== undefined ? { state: 'outside', path: other.path, dir: other.dir } : { state: 'notfound' })
+          }
+          if (dead === false) setCmds(next)
+        })()
+        return () => { dead = true }
+      }, [text, props.roots])
+      const servers = parsed !== null && parsed.servers !== undefined ? parsed.servers : []
+      const nameOf2 = (sv) => (names[sv.source] !== undefined ? names[sv.source] : sv.name)
+      const blockers = (sv) => {
+        const out = []
+        if (sv.sse === true) out.push(kbt('kb.cp.imp.sse'))
+        if (SERVER_NAME_RE.test(nameOf2(sv)) === false) out.push(kbt('kb.cp.form.noname'))
+        const c = cmds[sv.source]
+        if (sv.type === 'stdio' && (c === undefined || c.state === 'outside' || c.state === 'notfound')) out.push(c !== undefined && c.state === 'notfound' ? kbt('kb.cp.imp.notfound').replace('{cmd}', sv.command) : kbt('kb.cp.cmd.explain'))
+        return out
+      }
+      const allow = async (sv) => {
+        const c = cmds[sv.source]
+        const r = await kbCpHost('/connecteurs/commande', 'POST', { dir: c.dir })
+        if (r.status === 200) { if (typeof props.onRoots === 'function') props.onRoots() } else setFails([{ name: sv.name, why: r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'HTTP ' + r.status }])
+      }
+      const doImport = async () => {
+        setBusy(true)
+        const bad = []
+        let done = 0
+        const imported = []
+        for (const sv of servers) {
+          if (sel[sv.source] === false || (sel[sv.source] === undefined && blockers(sv).length > 0) || blockers(sv).length > 0) continue
+          const c = cmds[sv.source]
+          const { body } = kbCpImportBody(Object.assign({}, sv, { name: nameOf2(sv) }), sv.type === 'stdio' && c !== undefined ? c.path : undefined)
+          const r = await kbCpHost('/connecteurs', 'POST', body)
+          if (r.status === 200 && r.json !== null && r.json.ok === true) { done += 1; imported.push(body.nom) }
+          else bad.push({ name: body.nom, why: r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'HTTP ' + r.status })
+        }
+        setBusy(false)
+        setFails(bad)
+        if (bad.length === 0) props.onDone(done, imported)
+        else if (done > 0 && typeof props.onChanged === 'function') props.onChanged(imported)
+      }
+      const exists = (sv) => (props.existing || []).indexOf(nameOf2(sv)) >= 0
+      return h('div', { className: 'kb7-overlay', onClick: props.onClose },
+        h('div', { className: 'kb7-modal', style: { maxWidth: 620 }, role: 'dialog', 'aria-modal': 'true', 'aria-label': kbt('kb.cp.imp.title'), onClick: (e) => e.stopPropagation() },
+          h('div', { className: 'kb7-mhead' },
+            h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'kb7-mname' }, kbt('kb.cp.imp.title')), h('div', { className: 'kb7-mcat' }, kbt('kb.cp.imp.sub'))),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
+          h('div', { className: 'kb7-form' },
+            h('div', null,
+              h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-imp-json' }, kbt('kb.cp.imp.label')),
+              h('textarea', { className: 'kbcp-textarea', id: 'kbcp-imp-json', value: text, placeholder: SAMPLE, spellCheck: false, onChange: (e) => { setText(e.target.value); setFails([]) } })),
+            parsed !== null && parsed.error === 'json' ? h('div', { className: 'kbcp-note bad' }, kbt('kb.cp.imp.invalid').replace('{why}', parsed.why)) : null,
+            parsed !== null && parsed.error === 'nomap' ? h('div', { className: 'kbcp-note bad' }, kbt('kb.cp.imp.nomap')) : null,
+            servers.length > 0 ? h('div', { className: 'kbcp-found' }, servers.map((sv) => {
+              const bl = blockers(sv)
+              const c = cmds[sv.source]
+              const imported = kbCpImportBody(Object.assign({}, sv, { name: nameOf2(sv) }), sv.type === 'stdio' && c !== undefined ? c.path : undefined)
+              const checked = bl.length === 0 && sel[sv.source] !== false
+              return h('div', { className: 'kbcp-fitem', key: sv.source },
+                h('div', { className: 'kbcp-ftop' },
+                  h('label', null, h('input', { type: 'checkbox', checked: checked, disabled: bl.length > 0, onChange: (e) => setSel((prev) => Object.assign({}, prev, { [sv.source]: e.target.checked })) }), ' ',
+                    h('input', { className: 'kb7-finput', style: { maxWidth: 200, height: 28 }, value: nameOf2(sv), onChange: (e) => setNames((prev) => Object.assign({}, prev, { [sv.source]: e.target.value })), autoComplete: 'off', spellCheck: false, 'aria-label': kbt('kb.cp.form.name') })),
+                  h('span', { className: 'kb7-cxtype' + (sv.type === 'streamable-http' ? ' http' : '') }, sv.type === 'streamable-http' ? 'http' : 'stdio'),
+                  c !== undefined && c.state === 'outside' ? h('button', { type: 'button', className: 'kbcp-btn', onClick: () => allow(sv) }, kbt('kb.cp.imp.allow').replace('{dir}', c.dir)) : null),
+                h('ul', null,
+                  nameOf2(sv) !== sv.source ? h('li', { className: 'kbcp-good' }, kbt('kb.cp.imp.badname').replace('{name}', nameOf2(sv))) : null,
+                  c !== undefined && c.state === 'relative' ? h('li', { className: 'kbcp-good' }, kbt('kb.cp.imp.relative').replace('{cmd}', sv.command).replace('{path}', c.path)) : null,
+                  imported.notes.map((n, i) => h('li', { className: 'kbcp-good', key: 'n' + i }, kbt('kb.cp.imp.secret').replace('{what}', n.what).replace('{name}', n.name))),
+                  exists(sv) ? h('li', { className: 'kbcp-warnl' }, kbt('kb.cp.imp.exists')) : null,
+                  bl.map((t, i) => h('li', { className: 'kbcp-badl', key: 'b' + i }, t))))
+            })) : null,
+            fails.length > 0 ? h('div', { className: 'kbcp-note bad', role: 'alert' }, fails.map((x, i) => h('div', { key: i }, kbt('kb.cp.imp.failed').replace('{name}', x.name).replace('{why}', x.why)))) : null,
+            h('div', { className: 'kb7-actions', style: { justifyContent: 'space-between' } },
+              h('span', { className: 'kbcp-help2', style: { flex: 1 } }, kbt('kb.cp.imp.hint')),
+              h('div', { className: 'kb7-frow' },
+                h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
+                h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy || servers.length === 0 || servers.every((sv) => blockers(sv).length > 0 || sel[sv.source] === false), onClick: doImport }, kbt('kb.cp.imp.go')))))))
+    }
+
+    // The MCP servers tab. Each row says what DSH says of the server; its actions (test, edit, delete,
+    // on/off) show when the row is hovered or focused.
+    const RECENT_MS = 12000
+    const McpPanel = (props) => {
+      const items = props.items
+      const [tests, setTests] = React.useState({})
+      const [confirmDel, setConfirmDel] = React.useState(null)
+      const recent = props.recent
+      const touch = props.touch
+      const [, setTick] = React.useState(0)
+      const [busy, setBusy] = React.useState(null)
+      const [err, setErr] = React.useState(null)
+      const isRecent = (nom) => recent[nom] !== undefined && Date.now() - recent[nom] < RECENT_MS
+      // While a server just saved is not loaded yet, ask DSH again every 2 s (it reloads its configuration by itself, about 2 to 3 s after the write).
+      const waiting = items.some((c) => isRecent(c.nom) && (c.live === null || c.live === undefined || c.live.loaded !== true || c.live.phase === 'loading' || c.live.phase === 'pending'))
+      React.useEffect(() => {
+        if (waiting === false) return undefined
+        const t1 = setInterval(() => props.reload(), 2000)
+        const t2 = setTimeout(() => setTick((n) => n + 1), RECENT_MS + 500)
+        return () => { clearInterval(t1); clearTimeout(t2) }
+      }, [waiting])
+      const runTest = async (c) => {
+        setTests((prev) => Object.assign({}, prev, { [c.nom]: { busy: true } }))
+        const r = await kbCpHost('/connecteurs/test', 'POST', { nom: c.nom })
+        setTests((prev) => Object.assign({}, prev, { [c.nom]: r.status === 200 && r.json !== null && r.json.ok === true ? { result: r.json.result, missing: r.json.missing } : { result: { ok: false, code: r.json !== null && r.json.code !== undefined ? r.json.code : String(r.status), message: r.json !== null && typeof r.json.error === 'string' ? r.json.error : '' }, missing: [] } }))
+      }
+      const toggle = async (c) => {
+        setBusy(c.nom); setErr(null)
+        const body = { nom: c.nom, transport: c.transport, url: c.url, command: c.command, args: c.args, cwd: c.cwd, headers: c.headers || [], env: c.env || [], secrets: [], disabled: c.disabled !== true }
+        if (c.disabled === true) delete body.disabled
+        if (Number.isInteger(c.toolCallTimeoutMs)) body.toolCallTimeoutMs = c.toolCallTimeoutMs
+        const r = await kbCpHost('/connecteurs', 'POST', body)
+        setBusy(null)
+        if (r.status === 200 && r.json !== null && r.json.ok === true) { touch([c.nom]); props.reload() } else setErr(kbt('kb.cp.err.toggle') + ' — ' + (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'HTTP ' + r.status))
+      }
+      const remove = async (c) => {
+        setBusy(c.nom); setErr(null); setConfirmDel(null)
+        const r = await kbCpHost('/connecteurs?nom=' + encodeURIComponent(c.nom), 'DELETE')
+        setBusy(null)
+        if (r.status === 200 && r.json !== null && r.json.ok === true) { props.toast(kbt('kb.cp.del.done')); props.reload() } else setErr(kbt('kb.cp.err.del') + ' — ' + (r.json !== null && typeof r.json.error === 'string' ? r.json.error : 'HTTP ' + r.status))
+      }
+      const row = (c) => {
+        const st = kbCpStatusOf(c, isRecent(c.nom))
+        const t = tests[c.nom]
+        const ro = c.editable === false
+        return h('div', { className: 'kbcp-mrow', key: c.nom, 'data-kb-server': c.nom },
+          h('div', { className: 'kbcp-mmain' },
+            h('div', { className: 'kbcp-mid' },
+              h('div', { className: 'kbcp-mname' }, c.nom,
+                h('span', { className: 'kb7-cxtype' + (c.transport === 'streamable-http' ? ' http' : '') }, c.transport === 'streamable-http' ? 'http' : 'stdio'),
+                c.source === 'skill' ? h('span', { className: 'kbcp-src', title: 'connecteur-personnalise' }, kbt('kb.cp.src.skill')) : null,
+                ro ? h('span', { className: 'kbcp-src' }, kbt('kb.cp.src.ro')) : null),
+              h('div', { className: 'kbcp-mtarget' }, 'mcp__' + c.nom + '__* · ' + kbCpTargetOf(c))),
+            h('span', { className: 'kbcp-chip ' + (st.kind === 'plain' ? '' : st.kind), 'data-kb-state': st.key }, h('i'), kbt(st.key).replace('{n}', String(st.n === undefined ? '' : st.n))),
+            h('div', { className: 'kbcp-macts' },
+              ro ? null : h('button', { type: 'button', className: 'kbcp-switch', role: 'switch', 'aria-checked': c.disabled === true ? 'false' : 'true', 'aria-label': kbt('kb.cp.act.toggle').replace('{name}', c.nom), disabled: busy === c.nom, onClick: () => toggle(c) }),
+              h('button', { type: 'button', className: 'kbcp-btn', disabled: t !== undefined && t.busy === true, onClick: () => runTest(c) }, kbt('kb.cp.act.test')),
+              h('button', { type: 'button', className: 'kbcp-btn', onClick: () => props.edit(c) }, ro ? kbt('kb.cp.src.ro') : kbt('kb.cp.act.edit')),
+              h('button', { type: 'button', className: 'kbcp-btn', 'aria-label': kbt('kb.cp.act.del') + ' ' + c.nom, disabled: busy === c.nom, onClick: () => setConfirmDel(c.nom) }, Icon('trash', 13)))),
+          t !== undefined ? h('div', { className: 'kbcp-detail' }, kbCpTestView(t)) : (st.hint !== undefined ? h('div', { className: 'kbcp-detail warn' }, h('span', null, kbt(st.hint))) : null),
+          confirmDel === c.nom ? h('div', { className: 'kbcp-confirm' },
+            h('p', null, kbt('kb.cp.del.confirm').replace('{name}', c.nom)),
+            h('button', { type: 'button', className: 'kbcp-btn', style: { color: 'var(--dsw-alias-state-error-primary,#f25a5a)' }, onClick: () => remove(c) }, kbt('kb.cp.del.go')),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setConfirmDel(null) }, kbt('kb.cp.del.cancel'))) : null)
+      }
+      return h('div', { className: 'kb7-panel' },
+        props.note !== null ? h('div', { className: 'kbcp-toast', role: 'status' }, props.note) : null,
+        props.error !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, kbt('kb.cp.mcp.error').replace('{why}', props.error)) : null,
+        err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
+        items.length === 0 ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.mcp.empty'))) : h('div', { className: 'kbcp-mlist' }, items.map(row)))
     }
 
     // ── page Connections ─────────────────────────────────────────────────────
@@ -709,9 +1258,6 @@ window.__ModuleLoader__.load({
       const p5 = React.useState(null)
       const err = p5[0]
       const setErr = p5[1]
-      const p6 = React.useState(kbCpHas())
-      const hasKey = p6[0]
-      const setHasKey = p6[1]
       const p7 = React.useState(null)
       const open = p7[0]
       const setOpen = p7[1]
@@ -749,130 +1295,82 @@ window.__ModuleLoader__.load({
       const p16 = React.useState(false)
       const helpOpen = p16[0]
       const setHelpOpen = p16[1]
-      // True once the host reported that it has a key (the one the agents use): then the missing
-      // browser key is not a reason to say "add your key".
-      const p17 = React.useState(false)
+      // Whether the host has a Composio key: null until it has answered, so the "add your key" banner never flashes.
+      const p17 = React.useState(null)
       const hostCfg = p17[0]
       const setHostCfg = p17[1]
+      // The MCP servers tab: what the host said about the list, the add menu, the JSON window, and the servers saved a moment ago.
+      const [mcpErr, setMcpErr] = React.useState(null)
+      const [roots, setRoots] = React.useState(null)
+      const [menuOpen, setMenuOpen] = React.useState(false)
+      const [importOpen, setImportOpen] = React.useState(false)
+      const [recent, setRecent] = React.useState({})
+      const touch = React.useCallback((noms) => setRecent((prev) => { const n = Object.assign({}, prev); for (const x of noms) n[x] = Date.now(); return n }), [])
 
       const loadConnecteurs = React.useCallback(async () => {
-        try {
-          const res = await fetch('/kybernos/composio/connecteurs')
-          const j = await res.json()
-          setCx(Array.isArray(j && j.connecteurs) === true ? j.connecteurs : [])
-          // The host says why when its connectors file cannot be used (corrupt, unreadable).
-          if (j !== null && j !== undefined && typeof j.error === 'string' && j.error.length > 0) setErr(j.error)
-        } catch (e) { /* the list stays silent when the route is down */ }
+        const r = await kbCpHost('/connecteurs')
+        if (r.status !== 200 || r.json === null || r.json.ok !== true) {
+          // The host says why when it cannot list them (a corrupt or unreadable file); no answer at all stays quiet.
+          if (r.json !== null && typeof r.json.error === 'string') setMcpErr(r.json.error)
+          return
+        }
+        setCx(Array.isArray(r.json.connecteurs) === true ? r.json.connecteurs : [])
+        setRoots(r.json.roots !== undefined ? r.json.roots : null)
+        setMcpErr(typeof r.json.error === 'string' && r.json.error.length > 0 ? r.json.error : null)
       }, [])
       React.useEffect(() => { loadConnecteurs() }, [loadConnecteurs])
 
-      const removeConnecteur = async (nom) => {
-        let ok = false
-        try { ok = window.confirm(kbt('kb.cp.list.confirm')) } catch (e) { ok = false }
-        if (ok !== true) return
-        // A refusal (409 on a corrupt sidecar, 500 when a file cannot be written) used to be shown
-        // as "Connector removed": the answer is read now.
-        setErr(null)
-        try {
-          const res = await fetch('/kybernos/composio/connecteurs?nom=' + encodeURIComponent(nom), { method: 'DELETE' })
-          const j = await res.json().catch(() => null)
-          if (res.ok !== true || j === null || j === undefined || j.ok !== true) {
-            setCxNote(null)
-            setErr(kbt('kb.cp.err.removecx') + (j !== null && j !== undefined && typeof j.error === 'string' ? ' — ' + j.error : ' (HTTP ' + res.status + ')'))
-          } else setCxNote(kbt('kb.cp.list.removed'))
-        } catch (e) {
-          setCxNote(null)
-          setErr(kbt('kb.cp.err.removecx') + ' — ' + String((e && e.message) || e))
-        }
-        loadConnecteurs()
-      }
-
-      /** Refreshes the connections of the apps shown (batch list). */
+      /** Refreshes the connections of the apps shown, 40 at a time, from the host (which holds the key). */
       const refresh = React.useCallback(async (list, retry) => {
-        setHasKey(kbCpHas())
-        // OPT-IN retry: only the Refresh click passes retry = true.
-        // The host catalog does not depend on the ck_ key, so the retry comes before
-        // the kbCpHas() guard; the catOk gate avoids any catalog fetch when a
-        // non-empty catalog is already held.
+        // OPT-IN retry: only the Refresh click passes retry = true. The host catalog does not depend on the
+        // key, so the retry comes first; the catOk gate avoids any catalog fetch when a non-empty catalog is already held.
         if (retry === true && catOk === false) {
           try {
             const fresh = await kbCpCatalog()
-            // SUCCESSFUL retry: the catalog error is cleared BEFORE any early
-            // return (otherwise a red banner would survive the reload).
+            // SUCCESSFUL retry: the catalog error is cleared BEFORE any early return (otherwise a red banner would survive the reload).
             setErr(null)
-            // A NON-EMPTY caller list is never overwritten: the refetch only
-            // serves to refill CATALOG/catOk (loadAll may have filled apps/conns).
-            // Empty list: the fresh list is adopted and the grid refilled,
-            // as the mount does.
+            // A NON-EMPTY caller list is never overwritten: the refetch only serves to refill CATALOG/catOk.
+            // Empty list: the fresh list is adopted and the grid refilled, as the mount does.
             if (!list || list.length === 0) {
               list = fresh
               if (fresh.length > 0) setApps(fresh)
             }
           } catch (e) {
             setErr(kbt('kb.cp.err.catalog') + ': ' + String((e && e.message) || e))
-            if (kbCpHas() === false) setConns({})
+            setConns({})
             return
           }
         }
-        // The ck_ key can live on the HOST without being in the browser: requiring
-        // kbCpHas() here left "Connected" empty while the account holds
-        // real connections (measured: 401 without a key on the public MCP, but
-        // the host route /kybernos/composio/connections answers, with
-        // COMPOSIO_API_KEY). Without a browser key the host route is read.
-        if (kbCpHas() === false) {
-          setBusy(true)
-          setErr(null)
-          try {
-            const sl = (list || CATALOG).map((a) => a && a.s).filter((x) => typeof x === 'string' && x.length > 0)
-            if (sl.length === 0) { setConns({}); return }
-            const acc = {}
-            // The first failure the host reports (401, 429, timeout...) is shown: an empty list
-            // that comes with an error is NOT "no app connected".
-            let failure = null
-            let hostKey = null
-            for (let i = 0; i < sl.length; i += 40) {
-              const q = sl.slice(i, i + 40).join(',')
-              const r = await fetch('/kybernos/composio/connections?toolkits=' + encodeURIComponent(q))
-              if (r.ok !== true) throw new Error('HTTP ' + r.status)
-              const j = await r.json()
-              if (j !== null && j !== undefined && j.configured === true) hostKey = true
-              if (failure === null && j !== null && j !== undefined && j.configured === true && typeof j.error === 'string' && j.error.length > 0) failure = j.error
-              const rows = Array.isArray(j && j.connections) ? j.connections : []
-              for (const c of rows) {
-                const key = String((c && c.toolkit) || '').toLowerCase()
-                if (key.length === 0) continue
-                const accounts = Array.isArray(c && c.accounts) ? c.accounts : []
-                acc[key] = {
-                  status: String((c && c.status) || '').toLowerCase(),
-                  accounts: accounts.map((a) => ({
-                    id: String((a && a.id) || ''),
-                    label: String((a && (a.alias || a.accountType || a.id)) || ''),
-                    status: String((a && a.status) || '').toUpperCase(),
-                  })),
-                }
-              }
-            }
-            setConns(acc)
-            setHostCfg(hostKey === true)
-            if (failure !== null) setErr(kbCpErrText(failure))
-          } catch (e) {
-            setErr(String((e && e.message) || e))
-            setConns({})
-          } finally { setBusy(false) }
-          return
-        }
         setBusy(true)
         setErr(null)
-        try {
-          const slugs = (list || CATALOG).map((a) => a.s)
-          const acc = {}
-          for (let i = 0; i < slugs.length; i += 300) {
-            Object.assign(acc, await listBatch(slugs.slice(i, i + 300)))
+        const sl = (list || CATALOG).map((a) => a && a.s).filter((x) => typeof x === 'string' && x.length > 0)
+        const acc = {}
+        // The first failure the host reports (401, 429, timeout...) is shown: an empty list that comes with an error is NOT "no app connected".
+        let failure = null
+        let configured = null
+        for (let i = 0; i < sl.length; i += 40) {
+          const r = await kbCpHost('/connections?toolkits=' + encodeURIComponent(sl.slice(i, i + 40).join(',')))
+          if (r.status !== 200 || r.json === null) { failure = r.status === 0 ? 'offline' : String(r.status); break }
+          if (r.json.configured === true) configured = true
+          else if (configured === null) configured = false
+          if (failure === null && r.json.configured === true && typeof r.json.error === 'string' && r.json.error.length > 0) failure = r.json.error
+          for (const c of (Array.isArray(r.json.connections) ? r.json.connections : [])) {
+            const key = String((c && c.toolkit) || '').toLowerCase()
+            if (key.length === 0) continue
+            acc[key] = {
+              status: String((c && c.status) || '').toLowerCase(),
+              accounts: (Array.isArray(c && c.accounts) ? c.accounts : []).map((a) => ({
+                id: String((a && a.id) || ''),
+                label: String((a && (a.alias || a.accountType || a.id)) || ''),
+                status: String((a && a.status) || '').toUpperCase(),
+              })),
+            }
           }
-          setConns(acc)
-        } catch (e) {
-          setErr(kbCpErrOf(e))
-        } finally { setBusy(false) }
+        }
+        setConns(acc)
+        setHostCfg(configured)
+        if (failure !== null) setErr(kbCpErrText(failure))
+        setBusy(false)
       }, [])
       // The catalog comes from the host, on demand: first need = opening the page.
       React.useEffect(() => {
@@ -886,7 +1384,7 @@ window.__ModuleLoader__.load({
         return () => { alive = false }
       }, [refresh])
       React.useEffect(() => {
-        const on = () => { setHasKey(kbCpHas()); refresh(apps) }
+        const on = () => { refresh(apps) }
         try { window.addEventListener('kbcp-key', on) } catch (e) { }
         return () => { try { window.removeEventListener('kbcp-key', on) } catch (e2) { } }
       }, [refresh, apps])
@@ -912,69 +1410,69 @@ window.__ModuleLoader__.load({
         } finally { setLoadingAll(false) }
       }
 
-      /** Connect: creates an account + OAuth link (action add). */
+      /** Connect: the host starts the connection and gives the address where the person authorizes it. */
       const connect = async (slug) => {
         setErr(null)
         setBusy(true)
-        try {
-          const res = await kbCpCall('COMPOSIO_MANAGE_CONNECTIONS', { toolkits: [{ name: slug, action: 'add' }] })
-          const data = kbCpText(res)
-          const results = data && data.data && data.data.results && typeof data.data.results === 'object'
-            ? data.data.results
-            : (data && data.results && typeof data.results === 'object' ? data.results : null)
-          const info = results ? results[slug] : null
-          // The server's redirect URL is opened in a new window: it must be http(s).
-          const given = info ? (info.redirect_url || info.redirectUrl) : null
-          const url = kbCpWebUrl(given) || kbCpGetLink(slug)
-          if (url !== null) {
-            kbCpSaveLink(slug, url)
-            window.open(url, '_blank', 'noopener')
-            setAuthLinks((prev) => Object.assign({}, prev, { [slug]: url }))
-          } else if (typeof given === 'string' && given.length > 0) {
-            setErr('Authorization link refused: it is not an http(s) address.')
-          }
-          // The account shows up as "initializing": it is displayed right away.
-          if (info && Array.isArray(info.accounts)) {
-            setConns((prev) => Object.assign({}, prev, { [slug]: { status: 'initiated', accounts: info.accounts.map((a) => ({ id: String(a.id || ''), label: accountLabel(a), status: String(a.status || '').toUpperCase() })) } }))
-          }
-          // Probe until ACTIVE (2 min 30).
-          const deadline = Date.now() + 150000
-          const poll = async () => {
-            while (Date.now() < deadline) {
-              await new Promise((r) => setTimeout(r, 5000))
-              try {
-                const acc = await listBatch([slug])
-                setConns((prev) => Object.assign({}, prev, acc))
-                const list = (acc[slug] || {}).accounts || []
-                if (list.some((a) => String(a.status).toUpperCase() === 'ACTIVE')) {
-                  setAuthLinks((prev) => { const n = Object.assign({}, prev); delete n[slug]; return n })
-                  return
-                }
-              } catch (e) { }
+        const r = await kbCpHost('/accounts', 'POST', { action: 'add', toolkit: slug })
+        setBusy(false)
+        if (r.status !== 200 || r.json === null || r.json.ok !== true) {
+          const code = r.json !== null && r.json.code !== undefined ? String(r.json.code) : (r.status === 0 ? 'offline' : String(r.status))
+          setErr(code === 'no-credential' ? kbt('kb.cp.nokey') : kbCpErrText(code))
+          return
+        }
+        // The host only passes on an http(s) address; one that is not is never opened.
+        const url = kbCpWebUrl(r.json.redirectUrl) || kbCpGetLink(slug)
+        if (url !== null) {
+          kbCpSaveLink(slug, url)
+          window.open(url, '_blank', 'noopener')
+          setAuthLinks((prev) => Object.assign({}, prev, { [slug]: url }))
+        } else if (typeof r.json.redirectUrl === 'string' && r.json.redirectUrl.length > 0) setErr('Authorization link refused: it is not an http(s) address.')
+        // The account shows up as "initiated": it is displayed right away.
+        const conn = r.json.connection
+        const show = (c) => setConns((prev) => Object.assign({}, prev, { [slug]: { status: String(c.status || ''), accounts: (Array.isArray(c.accounts) ? c.accounts : []).map((a) => ({ id: String(a.id || ''), label: String(a.alias || a.accountType || a.id || ''), status: String(a.status || '').toUpperCase() })) } }))
+        if (conn !== null && conn !== undefined) show(conn)
+        // Ask again until the account is ACTIVE (2 min 30): the person is authorizing in the other tab.
+        const deadline = Date.now() + 150000
+        const poll = async () => {
+          while (Date.now() < deadline) {
+            await new Promise((res) => setTimeout(res, 5000))
+            const p = await kbCpHost('/connections?toolkits=' + encodeURIComponent(slug) + '&fresh=1')
+            if (p.status !== 200 || p.json === null || !Array.isArray(p.json.connections) || p.json.error) continue
+            const c = p.json.connections.find((x) => x && x.toolkit === slug)
+            if (c === undefined) continue
+            show(c)
+            if ((c.accounts || []).some((a) => String(a.status).toUpperCase() === 'ACTIVE')) {
+              setAuthLinks((prev) => { const n = Object.assign({}, prev); delete n[slug]; return n })
+              return
             }
           }
-          poll()
-        } catch (e) {
-          setErr(kbCpErrOf(e))
-        } finally { setBusy(false) }
+        }
+        poll()
       }
 
-      /** Removes ONE given account (action remove + account_id). */
+      /** Removes ONE given account. */
       const removeAccount = async (slug, accountId) => {
         setErr(null)
-        try {
-          await kbCpCall('COMPOSIO_MANAGE_CONNECTIONS', { toolkits: [{ name: slug, action: 'remove', account_id: accountId }] })
-          const acc = await listBatch([slug])
-          setConns((prev) => Object.assign({}, prev, acc))
-        } catch (e) {
-          setErr(kbt('kb.cp.err.remove') + ': ' + kbCpErrOf(e))
+        const r = await kbCpHost('/accounts', 'POST', { action: 'remove', toolkit: slug, accountId: accountId })
+        if (r.status !== 200 || r.json === null || r.json.ok !== true) {
+          const code = r.json !== null && r.json.code !== undefined ? String(r.json.code) : (r.status === 0 ? 'offline' : String(r.status))
+          setErr(kbt('kb.cp.err.remove') + ': ' + kbCpErrText(code))
+          return
         }
+        const c = r.json.connection
+        if (c !== null && c !== undefined) setConns((prev) => Object.assign({}, prev, { [slug]: { status: String(c.status || ''), accounts: (Array.isArray(c.accounts) ? c.accounts : []).map((a) => ({ id: String(a.id || ''), label: String(a.alias || a.accountType || a.id || ''), status: String(a.status || '').toUpperCase() })) } }))
       }
 
-      /** Custom connector: opens the FORM (host route). The old conversational
-        * path (skill) stays available through the chat. */
-      const openConnectorWizard = () => {
-        setCxForm({ initial: null })
+      /** After a server was saved or imported: note it, mark it as just saved (DSH reloads in a few seconds), list again. */
+      const flash = (msg) => { setCxNote(msg); setTimeout(() => setCxNote((cur) => (cur === msg ? null : cur)), 6000) }
+      const savedServers = (noms, note) => {
+        touch(noms)
+        flash(note)
+        setCxForm(null)
+        setImportOpen(false)
+        setVtab('mcp')
+        loadConnecteurs()
       }
 
       const accOf = (slug) => (conns[slug] || {}).accounts || []
@@ -1097,10 +1595,13 @@ window.__ModuleLoader__.load({
               h('h2', { className: 'kb7-h1' }, kbt('kb.cp.title')),
               h('button', { type: 'button', className: 'kb7-infobtn' + (helpOpen === true ? ' on' : ''), 'aria-label': kbt('kb.cp.info'), title: kbt('kb.cp.info'), 'aria-expanded': helpOpen === true ? 'true' : 'false', 'data-kb': 'connectors-help', onClick: () => setHelpOpen(!helpOpen) }, Icon('info', 14))),
             h('p', { className: 'kb7-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
-          // Dedicated button, same visual language as "Create with AI" on the other
-          // pages (class kb-createai of the kybernos bundle; fallback rule in
-          // the kb7 CSS below if that bundle has not inserted its own).
-          h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, title: kbt('kb.cp.custom.hint'), 'aria-label': kbt('kb.cp.custom'), onClick: openConnectorWizard }, Icon('plus', 16), kbt('kb.cp.create'))),
+          // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
+          // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
+          h('div', { className: 'kbcp-addwrap' },
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
+            menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
+              h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
+              h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint')))) : null)),
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -1109,10 +1610,12 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'yours' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'yours' ? ' on' : ''), 'data-kb': 'subtab-yours', onClick: () => setVtab('yours') },
               kbt('kb.cp.tab.yours'), totalConn > 0 ? h('span', { className: 'kb7-cxcount' }, String(totalConn)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'discover' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'discover' ? ' on' : ''), 'data-kb': 'subtab-discover', onClick: () => setVtab('discover') },
-              kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null)),
+              kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null),
+            h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'mcp' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'mcp' ? ' on' : ''), 'data-kb': 'subtab-mcp', onClick: () => setVtab('mcp') },
+              kbt('kb.cp.tab.mcp'), cx.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length)) : null)),
           // Unified bar on the RIGHT of the row (mockup): visible on
           // "Discover" only; Refresh / Load all as trailing items.
-          (kbTb !== null ? h(kbTb.KbToolbar, {
+          (kbTb !== null && vtab !== 'mcp' ? h(kbTb.KbToolbar, {
             state: Object.assign({}, tbState, { dir: cpDir }),
             onUpdate: onCpUpdate,
             searchPlaceholder: kbt('kb.cp.search'),
@@ -1134,28 +1637,18 @@ window.__ModuleLoader__.load({
         helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
           h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
           h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
-        (ready === true && hasKey === false && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
+        (ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Vos connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
-          cxNote !== null ? h('div', { className: 'kb7-fok' }, cxNote) : null,
           yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
                 h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
                 yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading'))))
-            : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a))),
-          // Custom connectors: off-catalog list, managed by the form.
-          h('div', { className: 'kb7-cxsec' },
-            h('div', { className: 'kb7-cxtitle' }, Icon('link', 14), ' ' + kbt('kb.cp.list.title'), cx.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length)) : null),
-            cxShown.length === 0 ? h('div', { className: 'kb7-empty' }, cx.length === 0 ? kbt('kb.cp.list.empty') : kbt('kb.cp.empty')) : cxShown.map((c) => h('div', { className: 'kb7-cxrow', key: c.nom },
-              h('span', { className: 'kb7-cxtype' + (c.transport === 'streamable-http' ? ' http' : '') }, c.transport === 'streamable-http' ? 'http' : 'stdio'),
-              h('div', { style: { minWidth: 0, flex: 1 } },
-                h('div', { className: 'kb7-cxname' }, c.nom),
-                h('div', { className: 'kb7-cxpath' }, 'mcp__' + c.nom + '__* · ' + (c.transport === 'streamable-http' ? String(c.url || '') : [String(c.command || '')].concat(Array.isArray(c.args) === true ? c.args : []).join(' ')))),
-              c.horsFormulaire === true ? h('span', { className: 'kb7-cat', style: { whiteSpace: 'nowrap' } }, kbt('kb.cp.list.offform')) : null,
-              c.horsFormulaire === true ? null : h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.form.edit'), onClick: () => setCxForm({ initial: c }) }, Icon('pencil', 13)),
-              h('button', { type: 'button', className: 'kbcp-btn', onClick: () => removeConnecteur(c.nom) }, Icon('trash', 13)))))
+            : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a)))
         ) : null,
+        // ── MCP servers ─────────────────────────────────────────────────────
+        vtab === 'mcp' ? h(McpPanel, { items: cx, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
         // ── Discover ────────────────────────────────────────────────────────
         vtab === 'discover' ? h('div', { className: 'kb7-panel' },
           // The unified bar lives in the control row above;
@@ -1178,8 +1671,17 @@ window.__ModuleLoader__.load({
         modal(),
         cxForm !== null ? h(ConnecteurForm, {
           initial: cxForm.initial,
-          onSaved: (msg) => { setCxNote(msg); setCxForm(null); loadConnecteurs() },
+          onSaved: (nom) => savedServers([nom], kbt('kb.cp.form.saved')),
           onClose: () => setCxForm(null),
+          onRoots: loadConnecteurs,
+        }) : null,
+        importOpen === true ? h(ImportModal, {
+          roots: roots,
+          existing: cx.map((c) => c.nom),
+          onRoots: loadConnecteurs,
+          onChanged: (noms) => { touch(noms); loadConnecteurs() },
+          onDone: (n, noms) => savedServers(noms, kbt('kb.cp.imp.done').replace('{n}', String(n))),
+          onClose: () => setImportOpen(false),
         }) : null)
     }
 
@@ -1485,7 +1987,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, hostState: kbCpHostState, mcpTimeout: MCP_TIMEOUT },
+      composio: { page: ComposioPage, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

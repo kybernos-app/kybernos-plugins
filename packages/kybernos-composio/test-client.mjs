@@ -198,110 +198,41 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('svg repair: what it cannot fix is still reported', svgProblems(repairSvg(svg('<rect fill="url(#nope)"/><image href="x"/>'))).length >= 2)
 }
 
-// ── the minimal MCP client (kbCpCall) ───────────────────────────────────────
-// It talks to connect.composio.dev with the key kept in localStorage. Everything below runs
-// against a stubbed fetch: no network.
+// ── what the page says: failures, the key, a server's state ────────────────
+// The page holds no Composio key and makes no call to Composio: everything goes through the host
+// (index.js), whose routes are tested in test-host.mjs, test-key.mjs and test-connecteurs.mjs.
 {
-  const { call, errText, hostState, mcpTimeout, carteAccepter } = plugin.composio
-  const appels = []
-  const stubFetch = (handler) => {
-    appels.length = 0
-    globalThis.fetch = async (url, init) => {
-      const rec = { url: String(url), headers: Object.assign({}, init.headers), body: JSON.parse(init.body), signal: init.signal }
-      appels.push(rec)
-      if (rec.url !== 'https://connect.composio.dev/mcp') throw new Error('STUB: unexpected URL ' + rec.url)
-      return handler(rec)
-    }
-  }
-  const rep = (obj, status = 200, headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: { get: (k) => (headers[String(k).toLowerCase()] !== undefined ? headers[String(k).toLowerCase()] : null) }, text: async () => JSON.stringify(obj) })
-  const init = (sid) => rep({ jsonrpc: '2.0', id: 1, result: {} }, 200, sid === undefined ? {} : { 'mcp-session-id': sid })
-  const outil = (texte) => rep({ jsonrpc: '2.0', id: 2, result: { content: [{ type: 'text', text: texte }] } })
-  const cle = (k) => { store.set('composio.apiKey', k) }
-  const echec = async (p) => { try { await p; return null } catch (e) { return e } }
-  const course = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r('TIMEOUT'), ms))])
-  const methode = (rec) => rec.body.method
-  const nbInit = () => appels.filter((c) => methode(c) === 'initialize').length
-
-  store.clear()
-  const e0 = await echec(call('T', {}))
-  ok('mcp: a call without a key is refused before any request', e0 !== null && e0.message === 'nokey')
-
-  // a mistyped key (401), then the right one: it must work without reloading the page
-  cle('ck_typo')
-  stubFetch((r) => (r.headers['x-consumer-api-key'] === 'ck_right' ? (methode(r) === 'initialize' ? init('S-right') : outil('"fine"')) : rep({ error: { message: 'Unauthorized' } }, 401)))
-  const e1 = await echec(call('T', {}))
-  ok('mcp: a rejected key fails with code 401', e1 !== null && e1.code === '401' && /Unauthorized/.test(e1.message), e1 && e1.message)
-  cle('ck_right')
-  const r1 = await echec(call('T', {}))
-  ok('mcp: after the key is fixed the next call works (the failure was not memoised)', r1 === null, String(r1 && r1.message))
-  ok('mcp: ...it initialized again with the right key', appels.filter((c) => methode(c) === 'initialize' && c.headers['x-consumer-api-key'] === 'ck_right').length === 1)
-
-  // a failed initialize with the SAME key is retried by the next call
-  cle('ck_retry')
-  let n = 0
-  stubFetch((r) => { if (methode(r) === 'initialize') { n += 1; return n === 1 ? rep({}, 500) : init('S-retry') } return outil('1') })
-  const e2 = await echec(call('T', {}))
-  const e3 = await echec(call('T', {}))
-  ok('mcp: a failed initialize is retried on the next call (same key)', e2 !== null && e2.code === '500' && e3 === null && n === 2, `${e2 && e2.code} ${e3 && e3.message} n=${n}`)
-
-  // the session belongs to a key
-  cle('ck_one')
-  stubFetch((r) => { const k = r.headers['x-consumer-api-key']; return methode(r) === 'initialize' ? init('S-' + k) : (r.headers['Mcp-Session-Id'] === 'S-' + k ? outil('1') : rep({}, 404)) })
-  await call('T', {})
-  cle('ck_two')
-  const e4 = await echec(call('T', {}))
-  cle('ck_one')
-  const e5 = await echec(call('T', {}))
-  ok('mcp: the old Mcp-Session-Id is never sent with another key', e4 === null && e5 === null, `${e4 && e4.message} ${e5 && e5.message}`)
-  ok('mcp: the first initialize of a new key carries no session id', appels.filter((c) => methode(c) === 'initialize').every((c) => c.headers['Mcp-Session-Id'] === undefined))
-
-  // an expired session (404) is started again, once
-  cle('ck_exp')
-  let ini = 0
-  let expirer = false
-  stubFetch((r) => {
-    if (methode(r) === 'initialize') { ini += 1; return init('S' + ini) }
-    return expirer && r.headers['Mcp-Session-Id'] === 'S1' ? rep({ error: { message: 'session not found' } }, 404) : outil('"ok"')
-  })
-  await call('T', {})
-  expirer = true
-  const e6 = await echec(call('T', {}))
-  ok('mcp: a 404 (expired session) starts a new session and the call succeeds', e6 === null && ini === 2, `${e6 && e6.message} ini=${ini}`)
-  stubFetch((r) => (methode(r) === 'initialize' ? init('S-x') : rep({ error: { message: 'gone' } }, 404)))
-  cle('ck_exp2')
-  const e7 = await echec(call('T', {}))
-  ok('mcp: a 404 that persists is reported after one retry', e7 !== null && e7.code === '404' && nbInit() === 2, `${e7 && e7.code} inits=${nbInit()}`)
-
-  // deadlines: headers and body
-  const ms0 = mcpTimeout.ms
-  mcpTimeout.ms = 120
-  try {
-    cle('ck_slow')
-    stubFetch(() => new Promise(() => {}))
-    const t1 = await course(echec(call('T', {})), 2000)
-    ok('mcp: a fetch that never answers is cut by the timeout (code timeout)', t1 !== 'TIMEOUT' && t1 !== null && t1.code === 'timeout', String(t1 && t1.code))
-    stubFetch((r) => (methode(r) === 'initialize' ? init('S-slow') : { ok: true, status: 200, headers: { get: () => null }, text: () => new Promise(() => {}) }))
-    const t2 = await course(echec(call('T', {})), 2000)
-    ok('mcp: a body that never arrives is cut as well', t2 !== 'TIMEOUT' && t2 !== null && t2.code === 'timeout', String(t2 && t2.code))
-    stubFetch((r) => (methode(r) === 'initialize' ? init('S-slow2') : outil('1')))
-    const t3 = await course(echec(call('T', {})), 2000)
-    ok('mcp: ...and the next call is not stuck behind it', t3 === null)
-    stubFetch(() => { throw new TypeError('Failed to fetch') })
-    cle('ck_off')
-    const t4 = await echec(call('T', {}))
-    ok('mcp: a network failure has code offline', t4 !== null && t4.code === 'offline', String(t4 && t4.code))
-  } finally { mcpTimeout.ms = ms0 }
-
-  // what a failure says
+  const { errText, carteAccepter, keyState, testErr, statusOf, targetOf } = plugin.composio
   ok('errText: 401 and 403 say the key was rejected', /401/.test(errText('401')) && errText('403') === errText('401'))
   ok('errText: 429, timeout and offline each have their own sentence', new Set([errText('429'), errText('timeout'), errText('offline'), errText('401')]).size === 4)
   ok('errText: any other code is carried in the sentence', errText('bad-response').includes('bad-response') && errText(undefined).includes('?'))
-  // the key panel: what the host says
-  ok('hostState: a key on the host and no error is ok', hostState({ ok: true, configured: true, error: null }).level === 'ok')
-  ok('hostState: no key on the host is a warning, whatever the browser holds', hostState({ ok: true, configured: false, error: 'no-credential' }).level === 'warn' && hostState({ ok: true, configured: false }).key === 'composio.hostmissing')
-  ok('hostState: a key the host has but Composio rejects is bad', hostState({ ok: true, configured: true, error: '401' }).level === 'bad')
-  ok('hostState: another failure is a warning, not a green light', hostState({ ok: true, configured: true, error: 'timeout' }).level === 'warn')
-  ok('hostState: an unusable reply (plugin not there) is unknown', hostState(null).level === 'unknown' && hostState({ ok: false }).level === 'unknown' && hostState('x').level === 'unknown')
+
+  // the key panel
+  ok('keyState: no answer from the host plugin is null', keyState(null, null) === null && keyState({ ok: false }, null) === null && keyState('x', null) === null)
+  ok('keyState: no key', (() => { const k = keyState({ ok: true, configured: false }, null); return k.present === false && k.accepted === null && k.agents === null })())
+  ok('keyState: a key Composio accepts, held by the agents', (() => { const k = keyState({ ok: true, configured: true, source: 'env-file', agents: 'same' }, { ok: true, configured: true, error: null }); return k.present === true && k.accepted === 'yes' && k.agents === 'same' && k.env === false })())
+  ok('keyState: a key Composio rejects', keyState({ ok: true, configured: true, agents: 'none' }, { ok: true, configured: true, error: '401' }).accepted === 'no' && keyState({ ok: true, configured: true }, { ok: true, error: '403' }).accepted === 'no')
+  ok('keyState: another failure, or no answer, is "not checked", never a green light', keyState({ ok: true, configured: true }, { ok: true, error: 'timeout' }).accepted === 'unchecked' && keyState({ ok: true, configured: true }, null).accepted === 'unchecked')
+  ok('keyState: a key the agents do not hold yet is "later"; one from the launching environment is flagged', keyState({ ok: true, configured: true, agents: 'different' }, { ok: true, error: null }).agents === 'later' && keyState({ ok: true, configured: true, source: 'env', agents: 'same' }, { ok: true, error: null }).env === true)
+
+  // a failed connector test
+  ok('testErr: an OAuth challenge says OAuth, not "401"', /OAuth/.test(testErr({ code: '401', hint: 'oauth' })))
+  ok('testErr: 401, 403, 404 and 429 each have their own sentence', new Set(['401', '403', '404', '429'].map((c) => testErr({ code: c }))).size === 4)
+  ok('testErr: a command that cannot start says why in words', /introuvable|not found/.test(testErr({ code: 'spawn', message: 'ENOENT' })) && !/ENOENT/.test(testErr({ code: 'spawn', message: 'ENOENT' })))
+  ok('testErr: a program that stopped carries its exit code', /exit code 3/.test(testErr({ code: 'exited', message: 'exit code 3' })))
+  ok('testErr: an MCP error carries the server\'s own words', /boom/.test(testErr({ code: 'rpc-error', message: 'boom' })))
+  ok('testErr: an unknown code is carried, none gives ?', /weird/.test(testErr({ code: 'weird' })) && /\?/.test(testErr({})))
+
+  // the state of a server's row
+  const live = (o) => Object.assign({ loaded: true, phase: 'active', enabled: true, tools: 3 }, o)
+  ok('statusOf: no live state from DSH is "configured", not a claim', statusOf({ live: null }, false).key === 'kb.cp.st.nolive' && statusOf({}, false).key === 'kb.cp.st.nolive')
+  ok('statusOf: loaded with tools is ok and counts them', (() => { const r = statusOf({ live: live() }, false); return r.kind === 'ok' && r.key === 'kb.cp.st.active' && r.n === 3 })())
+  ok('statusOf: loaded with no tool is a warning with a hint (the server probably did not start)', (() => { const r = statusOf({ live: live({ tools: 0 }) }, false); return r.kind === 'warn' && r.key === 'kb.cp.st.noTools' && r.hint === 'kb.cp.st.hint.noTools' })())
+  ok('statusOf: an entry that failed to load is bad', statusOf({ live: live({ phase: 'failed', tools: 0 }) }, false).kind === 'bad')
+  ok('statusOf: still loading is a warning', statusOf({ live: live({ phase: 'loading', tools: 0 }) }, false).key === 'kb.cp.st.loading')
+  ok('statusOf: not loaded just after a save is "loading"; later it says to restart DSH', statusOf({ live: { loaded: false, tools: 0 } }, true).key === 'kb.cp.st.loading' && statusOf({ live: { loaded: false, tools: 0 } }, false).key === 'kb.cp.st.stale' && statusOf({ live: { loaded: false, tools: 0 } }, false).hint === 'kb.cp.st.hint.stale')
+  ok('statusOf: disabled, by the config or by DSH', statusOf({ disabled: true, live: live() }, false).key === 'kb.cp.st.off' && statusOf({ live: live({ enabled: false }) }, false).key === 'kb.cp.st.off')
+  ok('targetOf: an address for http, the command line for stdio', targetOf({ transport: 'streamable-http', url: 'https://x.test/mcp' }) === 'https://x.test/mcp' && targetOf({ transport: 'stdio', command: '/bin/node', args: ['a.mjs', '--x'] }) === '/bin/node a.mjs --x')
 
   // C-14: a card action that sends text into the conversation shows it first
   const envoi = []
@@ -339,7 +270,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
 
 // ── C-16 / C-20: the form, the search, storage that throws, other locales ───
 {
-  const { joinArgs, match, parse, has, t } = plugin.composio
+  const { joinArgs, match, t } = plugin.composio
   const { splitArgs } = await import(new URL('./index.js', import.meta.url).href)
   // the args field: what the form shows is read back by the host exactly
   ok('joinArgs: plain arguments are joined by a space', joinArgs(['--port', '3000']) === '--port 3000')
@@ -366,20 +297,47 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('search: under 2 characters everything matches', CATALOG.every((a) => match(a, 'a')) && CATALOG.every((a) => match(a, '')))
   ok('search: nonsense matches nothing', named('zzzzqqqq').length === 0)
   ok('search: an alias needs 3 letters (a "bi" is not billing)', named('bi').every((s) => { const a = CATALOG.find((x) => x.s === s); return JSON.stringify(a).toLowerCase().includes('bi') }))
-  // a null in the account list used to throw
-  let jete = null
-  let parsed = null
-  try { parsed = parse({ data: { results: { gmail: { status: 'active', accounts: [null, { id: 'ca_1', status: 'ACTIVE' }, 'x', undefined] }, slack: null } } }) } catch (e) { jete = e }
-  ok('parse: a null or non-object account does not throw (it is skipped)', jete === null && parsed.gmail.accounts.length === 1 && parsed.gmail.accounts[0].id === 'ca_1', String(jete && jete.message))
-  // storage that throws (private window, blocked site data)
-  const realStorage = globalThis.localStorage
-  globalThis.localStorage = { getItem() { throw new Error('denied') }, setItem() { throw new Error('denied') }, removeItem() { throw new Error('denied') } }
-  try {
-    let e3 = null
-    let h = null
-    try { h = has() } catch (e) { e3 = e }
-    ok('storage that throws: has() is false, not an exception', e3 === null && h === false)
-  } finally { globalThis.localStorage = realStorage }
+  // ── pasting the JSON a server's documentation gives ──
+  const { importParse, importBody, safeName, formOf, bodyOf } = plugin.composio
+  ok('safeName: lower case, dashes, a letter first, 31 characters at most, never empty', safeName('My Server_1') === 'my-server-1' && safeName('1password') === 'srv-1password' && safeName('x'.repeat(60)).length <= 31 && safeName('!!!') === 'srv')
+  const DOC = JSON.stringify({ mcpServers: {
+    github: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-github'], env: { GITHUB_TOKEN: 'ghp_exemple', LOG_LEVEL: 'debug', ALREADY_TOKEN: '$ALREADY_TOKEN' } },
+    context7: { url: 'https://mcp.context7.com/mcp', headers: { CONTEXT7_API_KEY: 'ctx7sk-exemple', 'x-client': 'kybernos' } },
+    tavily: { url: 'https://mcp.tavily.com/mcp/', headers: { Authorization: 'Bearer tvly-exemple' } },
+    old: { url: 'https://x.test/sse', type: 'sse' },
+    'My Tool': { command: '/opt/homebrew/bin/node', args: ['s.mjs'] },
+    junk: { nothing: true },
+  } })
+  const parsed = importParse(DOC)
+  ok('import: every server with a url or a command is read, the rest is dropped', parsed.servers.map((x) => x.source).join() === 'github,context7,tavily,old,My Tool', JSON.stringify(parsed.servers && parsed.servers.map((x) => x.source)))
+  ok('import: a type sse, or an address ending in /sse, is flagged', parsed.servers.find((x) => x.source === 'old').sse === true && parsed.servers.find((x) => x.source === 'github').sse === false)
+  ok('import: a name the host would refuse is made acceptable', parsed.servers.find((x) => x.source === 'My Tool').name === 'my-tool')
+  ok('import: the "servers" key and a bare map are understood as well', importParse('{"servers":{"a1":{"command":"/bin/x"}}}').servers.length === 1 && importParse('{"a1":{"command":"/bin/x"}}').servers.length === 1)
+  ok('import: not JSON, and JSON with nothing to read, say so', importParse('{nope').error === 'json' && importParse('[]').error === 'nomap' && importParse('{"mcpServers":{}}').error === 'nomap' && importParse('{"command":"/bin/x"}').error === 'nomap')
+  const gh = importBody(parsed.servers.find((x) => x.source === 'github'), '/opt/homebrew/bin/npx')
+  ok('import: a token in an env variable becomes a secret and a $NAME reference', gh.body.secrets.length === 1 && gh.body.secrets[0].name === 'GITHUB_TOKEN' && gh.body.secrets[0].value === 'ghp_exemple' && gh.body.env.find((e) => e.name === 'GITHUB_TOKEN').value === '$GITHUB_TOKEN', JSON.stringify(gh.body))
+  ok('import: a variable that is not secret-looking stays as it is, and a reference stays a reference', gh.body.env.find((e) => e.name === 'LOG_LEVEL').value === 'debug' && gh.body.env.find((e) => e.name === 'ALREADY_TOKEN').value === '$ALREADY_TOKEN')
+  ok('import: the command the host chose replaces the pasted bare name', gh.body.command === '/opt/homebrew/bin/npx' && gh.body.transport === 'stdio' && gh.body.args.join(' ') === '-y @modelcontextprotocol/server-github')
+  ok('import: nothing secret survives in the body outside the secrets list', !JSON.stringify(Object.assign({}, gh.body, { secrets: [] })).includes('ghp_exemple'))
+  const c7 = importBody(parsed.servers.find((x) => x.source === 'context7'))
+  ok('import: a key in a header becomes a secret named like the header', c7.body.secrets[0].name === 'CONTEXT7_API_KEY' && c7.body.headers.find((x) => x.name === 'CONTEXT7_API_KEY').value === '$CONTEXT7_API_KEY' && c7.body.headers.find((x) => x.name === 'x-client').value === 'kybernos')
+  const tv = importBody(parsed.servers.find((x) => x.source === 'tavily'))
+  ok('import: a Bearer token keeps its prefix and the secret is named after the server', tv.body.headers[0].value === 'Bearer $TAVILY_API_KEY' && tv.body.secrets[0].name === 'TAVILY_API_KEY' && tv.body.secrets[0].value === 'tvly-exemple' && tv.body.url === 'https://mcp.tavily.com/mcp/' && tv.body.command === undefined)
+  ok('import: what was moved is listed for the page to say', tv.notes.length === 1 && tv.notes[0].name === 'TAVILY_API_KEY')
+
+  // ── the form: from a server of the list to the body the host takes ──
+  const item = { nom: 'zcode', transport: 'stdio', command: '/opt/homebrew/bin/node', args: ['/path with space/z.mjs', '--v'], cwd: '', env: [{ name: 'T', value: '$ZTOKEN' }], headers: [], secrets: ['OLD_SECRET'], secretsSet: { OLD_SECRET: true, ZTOKEN: false }, toolCallTimeoutMs: 600000, disabled: true, source: 'skill', editable: true }
+  const f = formOf(item)
+  ok('form: the arguments are shown so that the host reads them back as they were', f.args === '"/path with space/z.mjs" --v')
+  ok('form: the secrets are the recorded ones plus the $NAME the rows use, with whether each has a value', f.secrets.map((x) => x.name + ':' + x.set).join() === 'OLD_SECRET:true,ZTOKEN:false')
+  ok('form: the tool timeout is shown in seconds', f.timeoutS === '600')
+  const body = bodyOf(f, item)
+  ok('form: the body keeps the disabled flag and the timeout, and sends no secret value that was not typed', body.disabled === true && body.toolCallTimeoutMs === 600000 && body.secrets.length === 0)
+  f.secrets[1].value = 'typed-value'; f.timeoutS = '90'
+  const body2 = bodyOf(f, item)
+  ok('form: a typed secret is sent with its name, and a new timeout wins', body2.secrets.length === 1 && body2.secrets[0].name === 'ZTOKEN' && body2.secrets[0].value === 'typed-value' && body2.toolCallTimeoutMs === 90000)
+  ok('form: a new server starts empty, http', formOf(null).transport === 'streamable-http' && formOf(null).secrets.length === 0 && bodyOf(formOf(null), null).disabled === undefined)
+
   // locales: fr stays French, en English, any other locale English (it used to fall back to French)
   const tin = (lang) => {
     plugin.apply({ get: (n) => (n === 'locale' ? { current: () => lang } : (n === 'slots' ? { inject: () => {}, register: () => {} } : undefined)), effect: () => {} })
@@ -398,6 +356,10 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
   ok('client.js carries no inline catalog and no generation marker', src.indexOf('const CATALOG = [') < 0 && src.indexOf('CATALOG-START') < 0 && src.indexOf('KBCP-CATALOG-PLACEHOLDER') < 0)
   ok('client.js loads the catalog from the host route', src.indexOf("const CATALOG_URL = '/kybernos/composio/catalog'") >= 0)
+  // The page used to keep the key in localStorage and call connect.composio.dev itself, with a copy of the MCP
+  // client in this bundle and another in kybernos-plugin. The host does it now, once.
+  ok('client.js never talks to Composio itself: no MCP address, no key header', !/connect\.composio\.dev|x-consumer-api-key|mcp-session-id/i.test(src.replace(/https:\/\/dashboard\.composio\.dev/g, '')))
+  ok('client.js never stores the key: it only reads (and then forgets) the copy an old version left', !/localStorage\.setItem\(\s*KB_CP_OLD_KEY|setItem\('composio\.apiKey'/.test(src))
   // The panel used to offer a "Cloud" mode that stored a flag nothing read, and promised that connectors
   // would work from cloud agents. Composio's For You and Platform are separate projects (a ck_ key's
   // accounts do not exist on Platform), so nothing here could keep that promise.

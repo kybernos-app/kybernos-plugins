@@ -3589,49 +3589,12 @@ const kbComposioConnections = (slugs) => {
   }
   return null
 }
-// Activer / desactiver une connexion deja etablie, depuis la page projet : le
-// meme client MCP minimal que le panneau Composio (la cle reste dans le
-// localStorage, aucun secret n'entre dans le depot), et la meme route de lecture
-// pour le rafraichissement.
+// Activer / desactiver une connexion deja etablie, depuis la page projet : par la
+// route d'hote du plugin Composio (`/composio/accounts`), qui seule porte la cle,
+// et la meme route de lecture pour le rafraichissement.
 const kbConnForget = () => {
   for (const k of Object.keys(kbConnCache)) delete kbConnCache[k]
   kbBumpConn()
-}
-const kbConnKey = () => { try { return localStorage.getItem('composio.apiKey') || '' } catch (e) { return '' } }
-const kbConnMcp = (() => {
-  let sid = null
-  let pret = null
-  const appel = async (method, params) => {
-    const headers = { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'x-consumer-api-key': kbConnKey() }
-    if (sid !== null) headers['Mcp-Session-Id'] = sid
-    const r = await fetch('https://connect.composio.dev/mcp', { method: 'POST', headers: headers, body: JSON.stringify({ jsonrpc: '2.0', id: Date.now() % 1e9, method: method, params: params }) })
-    const s = r.headers.get('mcp-session-id')
-    if (s) sid = s
-    const brut = await r.text()
-    let charge = null
-    for (const ligne of brut.split('\n')) if (ligne.indexOf('data:') === 0) { try { charge = JSON.parse(ligne.slice(5).trim()) } catch (e) { /* ligne non-JSON */ } }
-    if (charge === null) { try { charge = JSON.parse(brut) } catch (e) { /* corps non-JSON */ } }
-    if (r.ok !== true) throw new Error((charge !== null && charge !== undefined && charge.error !== null && charge.error !== undefined && typeof charge.error.message === 'string') ? charge.error.message : ('HTTP ' + r.status))
-    if (charge !== null && charge !== undefined && charge.error !== null && charge.error !== undefined) throw new Error(typeof charge.error.message === 'string' ? charge.error.message : 'erreur MCP')
-    return (charge === null || charge === undefined) ? null : charge.result
-  }
-  return async (tool, args) => {
-    if (kbConnKey().indexOf('ck_') !== 0) throw new Error('nokey')
-    if (pret === null) pret = appel('initialize', { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kybernos-kybers', version: '1.0' } })
-    await pret
-    return appel('tools/call', { name: tool, arguments: args })
-  }
-})()
-const kbConnTexte = (res) => {
-  const c = (res !== null && res !== undefined && Array.isArray(res.content) === true) ? res.content : []
-  for (const x of c) if (x !== null && x !== undefined && typeof x.text === 'string') { try { return JSON.parse(x.text) } catch (e) { return x.text } }
-  return ''
-}
-const kbConnLien = (res) => {
-  const t = kbConnTexte(res)
-  const s = (typeof t === 'string') ? t : JSON.stringify(t === null || t === undefined ? '' : t)
-  const m = s.match(/https:\/\/[^"\\ ]+/)
-  return (m === null) ? null : m[0].replace(/\\u0026/g, '&')
 }
 // Ce que le COMPTE a connecte, vu depuis la page projet. Le MCP exige des noms
 // (mesure : « At least one toolkit is required ») : on prend les candidats du
@@ -3765,11 +3728,18 @@ const kbConnActionOf = async (c, arm, setArm, setAction) => {
   const desactiver = (c.real === true && c.account !== null && c.account !== undefined && c.account !== '')
   if (desactiver === true && arm !== c.key) { setArm(c.key); setAction(null); return }
   setArm(null)
-  if (kbConnKey().indexOf('ck_') !== 0) { setAction({ key: c.key, etat: 'err', message: kbt('kbui.conn.nokey'), lien: null }); return }
   setAction({ key: c.key, etat: 'busy', message: kbt('kbui.conn.doing'), lien: null })
   try {
-    const res = await kbConnMcp('COMPOSIO_MANAGE_CONNECTIONS', { toolkits: [desactiver === true ? { name: c.slug, action: 'remove', account_id: c.account } : { name: c.slug, action: 'add' }] })
-    const lien = desactiver === true ? null : kbConnLien(res)
+    const body = desactiver === true ? { action: 'remove', toolkit: c.slug, accountId: c.account } : { action: 'add', toolkit: c.slug }
+    const res = await fetch(kbApiBase() + '/composio/accounts', { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+    const j = await res.json().catch(() => null)
+    if (res.ok !== true || j === null || j.ok !== true) {
+      const code = (j !== null && j !== undefined && j.code !== undefined) ? String(j.code) : 'HTTP ' + res.status
+      setAction({ key: c.key, etat: 'err', message: code === 'no-credential' ? kbt('kbui.conn.nokey') : kbt('kbui.conn.err') + code, lien: null })
+      return
+    }
+    // L'hote ne rend qu'une adresse http(s) ; elle s'ouvre dans un nouvel onglet.
+    const lien = (desactiver === true || typeof j.redirectUrl !== 'string') ? null : j.redirectUrl
     if (lien !== null) { try { window.open(lien, '_blank', 'noopener') } catch (e) { /* ouverture refusee : le lien reste affiche */ } }
     kbConnForget()
     setAction({ key: c.key, etat: 'ok', message: desactiver === true ? kbt('kbui.conn.okoff') : kbt('kbui.conn.okon'), lien: lien })
