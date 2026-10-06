@@ -55,7 +55,7 @@ const rawSkills = { ok: true, skills: [
 ], roots: [], complete: true }
 const rawLoad = { ok: true, roots: [
   { id: 'installed', label: 'Installed', path: '/h/.dsh/kybers', kybers: [
-    { id: 'Reviewer', mission: 'Review changes before they ship. Then report.', roles: [{ id: 'lead', tools: ['GITHUB_LIST_PRS'] }, { id: 'tester', tools: [] }], skillsDeclared: ['code-review', 'brand-voice', 'old-skill'], skills: [], ui: { name: 'Reviewer', color: '#fff', category: 'dev' } },
+    { id: 'Reviewer', file: '/h/.dsh/kybers/reviewer/kyber.yml', mission: 'Review changes before they ship. Then report.', roles: [{ id: 'lead', tools: ['GITHUB_LIST_PRS'] }, { id: 'tester', tools: [] }], skillsDeclared: ['code-review', 'brand-voice', 'old-skill'], skills: [], ui: { name: 'Reviewer', color: '#fff', category: 'dev' } },
     { id: 'writer', mission: '', roles: [], skillsDeclared: ['voice-local'], skills: ['voice-local'], ui: null }
   ] },
   { id: 'workspace', label: 'Repo', path: '/r/kybers', kybers: [{ id: 'reviewer', mission: 'dup', roles: [], skillsDeclared: [], skills: [] }] }
@@ -244,6 +244,27 @@ check('daysSince: ISO string and ms number', T.daysSince(iso(3), NOW) === 3 && T
 check('ago wording', T.ago(0) === 'today' && T.ago(1) === 'yesterday' && T.ago(12) === '12 days ago' && T.ago(90) === '3 months ago' && T.ago(null) === 'not recorded')
 check('cut adds an ellipsis only when needed', T.cut('short', 10) === 'short' && T.cut('x'.repeat(20), 10).length === 10)
 check('firstSentence', T.firstSentence('Roles: lead. Then more.') === 'Roles: lead')
+
+console.log('\n── opening a node in DSH ──')
+check('normLoad keeps the kyber file and the root it lives in', load.kybers[0].file === '/h/.dsh/kybers/reviewer/kyber.yml' && load.kybers[0].rootId === 'installed' && load.kybers[1].file === '')
+check('skill → Skills, automation → Automations, toolkit app → Connectors', T.openTarget(g.byId['s:code-review']).patch.view === 'skills' && T.openTarget(g.byId['t:digest']).patch.view === 'tasks' && T.openTarget(g.byId['a:toolkit:github']).patch.view === 'connectors')
+check('project → its page by workspace id', JSON.stringify(T.openTarget(g.byId['p:w1']).patch) === JSON.stringify({ view: 'project', projectId: 'w1' }))
+check('kyber with a definition → its page by file and root', JSON.stringify(T.openTarget(g.byId['k:reviewer']).patch) === JSON.stringify({ view: 'teaminfo', detailPath: '/h/.dsh/kybers/reviewer/kyber.yml', detailRoot: 'installed' }))
+check('a kyber known only by its lessons has no page to open', T.openTarget(g.byId['k:ghost-kyber']) === null)
+check('mini apps, memory and lessons have no page of their own', T.openTarget({ kind: 'app', id: 'a:mini:Telegram' }) === null && T.openTarget(g.byId['m:account']) === null && T.openTarget(g.byId['l:reviewer:0']) === null && T.openTarget({ kind: 'root', id: 'root' }) === null)
+check('a run opens its session, and only when it has one', T.openTarget({ kind: 'run', run: { sessionId: 's1' } }).session === 's1' && T.openTarget({ kind: 'run', run: { sessionId: '' } }) === null)
+check('canvas runs keep their session id', cm.byId['x:digest:0'].run.sessionId === 's1')
+check('the page degrades when the main plugin does not expose the seam', /typeof window\.__KB_OPEN__ !== 'function'\) return null/.test(SOURCE))
+{
+  // contract with the main plugin: the seam exists and each patch Atlas sends is one its sidebar rows send
+  let master = null
+  try { master = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8') } catch (e) { master = null }
+  if (master === null) console.log('  ○ main plugin source not found: contract checks skipped')
+  else {
+    check('main plugin exposes window.__KB_OPEN__', /window\.__KB_OPEN__ = kbOpenPage/.test(master))
+    check('it opens the pages Atlas asks for, with the same patches as its sidebar', ["openPage({ view: 'skills' })", "openPage({ view: 'tasks' })", "openPage({ view: 'connectors' })"].every((x) => master.includes(x)) && master.includes("set({ view: 'project', projectId: w.workspaceId })") && /view: 'teaminfo', detailPath: k\.file, detailRoot: it\.rootId/.test(master))
+  }
+}
 
 console.log('\n── nothing is read until the user asks ──')
 {

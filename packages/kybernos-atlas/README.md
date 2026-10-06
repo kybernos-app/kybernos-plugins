@@ -91,10 +91,33 @@ Things worth knowing:
 - Reading memory makes the cloud plugin refresh the account, so an update costs a
   network round trip.
 
-## Not in this version
+## Opening a node
 
-"Open in Skills / Kybers" buttons: they need a deep-link seam in DSH, so the details card
-shows the path and offers *Copy* instead of a button that would do nothing.
+The details card has an **Open** button when the thing has a page in Kybernos:
+
+| Node | Opens |
+|---|---|
+| Skill | Skills |
+| Kyber (one with a definition) | the kyber's page |
+| Project | the project's page |
+| Automation | Automations |
+| App (a connected toolkit) | Connectors |
+| Run | its session |
+
+Memory, lessons, mini apps, a kyber known only by its lessons and the workspace itself have no page of
+their own, so they only offer *Copy*. The Settings dialog is closed afterwards so the page is visible.
+
+How: the main plugin exposes `window.__KB_OPEN__(patch)` (in `kybernos-plugin/client.js`), the same
+gesture as its sidebar rows (`{ view: 'skills' | 'tasks' | 'connectors' }`, `{ view: 'project', projectId }`,
+`{ view: 'teaminfo', detailPath, detailRoot }`). A session is opened through the workspace store's
+`openSession`. If the seam is missing the button is simply not shown, and `test-client.mjs` checks that every
+patch Atlas sends is one the sidebar sends.
+
+## Layout
+
+The page measures its own width (the Settings dialog keeps its menu, so the screen width says little):
+below 760 px it goes to one column, below 460 px the controls stack. Inside DSH's own Settings dialog a
+phone-sized window leaves only ~120 px for any page: that is the dialog's layout, not something a page can fix.
 
 ## Install and enable
 
