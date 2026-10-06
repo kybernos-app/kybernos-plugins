@@ -101,7 +101,7 @@ const jouer = async (headers, corps) => { const res = reponse(); await routes['/
 // ── K-01: stdio command outside the system roots ────────────────────────────
 {
   const res = await jouer({}, { nom: 'poc', transport: 'stdio', command: '/tmp/definitely-not-system' })
-  ok('K-01: a command outside the system roots -> 400', res.code === 400 && res.corps.includes('system executable'), res.corps.slice(0, 70))
+  ok('K-01: a command outside the system roots -> 400', res.code === 400 && res.corps.includes('executable file'), res.corps.slice(0, 70))
 }
 {
   const res = await jouer({}, { nom: 'poc', transport: 'stdio', command: '/usr/bin/i-do-not-exist' })
@@ -158,7 +158,7 @@ const jouer = async (headers, corps) => { const res = reponse(); await routes['/
   const res = await jouer({}, { nom: 'poc', transport: 'stdio', command: '/usr/bin/touch' })
   // Accepted by the validation: here we only check that a real system binary is NOT
   // refused as a command. (The reply is a 500 without a profile folder in the temp home.)
-  const refuseCommande = res.code === 400 && res.corps.includes('system executable')
+  const refuseCommande = res.code === 400 && res.corps.includes('executable file')
   ok('K-01: /usr/bin/touch passes the command validation', refuseCommande === false, `code=${res.code}`)
   // This case may have WRITTEN the temp home's sidecar: clean up.
   try { rmSync(join(HOME, '.dsh'), { recursive: true, force: true }) } catch (e) { /* nothing */ }
@@ -1234,6 +1234,8 @@ const proxyOuMcp = (apps, mcpHandler) => (r) => (r.url.includes('kybernos-proxy'
     const copie = mkdtempSync(join(tmpdir(), 'kb-composio-nocat-'))
     try {
       writeFileSync(join(copie, 'index.js'), readFileSync(new URL('./index.js', import.meta.url), 'utf8'))
+      // the library modules index.js imports (everything .mjs that is not a test) travel with it
+      for (const f of readdirSync(new URL('.', import.meta.url))) if (/\.mjs$/.test(f) && !/^(test|lib-test)/.test(f)) writeFileSync(join(copie, f), readFileSync(new URL('./' + f, import.meta.url), 'utf8'))
       writeFileSync(join(copie, 'catalog.js'), 'export const CATALOG = [];\n')
       chmodSync(join(copie, 'catalog.js'), 0o000)
       const mod = await import(join(copie, 'index.js') + '?nocat')
