@@ -222,9 +222,9 @@ const classes = (noeud, acc = []) => {
   return acc
 }
 const toutes = classes(rendu)
-ok('l\'état vide montre le guide et la démo', toutes.some((c) => c.includes('kbs-empty')) && toutes.some((c) => c.includes('kbs-demo')))
+ok('l\'état vide montre le guide et la démo', toutes.some((c) => c.includes('kbsd-empty')) && toutes.some((c) => c.includes('kbsd-demo')))
 ok('le chrome de lecture est présent (vignettes, barre, note)',
-  toutes.some((c) => c === 'kbs-vignettes') && toutes.some((c) => c === 'kbs-bar') && toutes.some((c) => c === 'kbs-note-bas'))
+  toutes.some((c) => c === 'kbsd-vignettes') && toutes.some((c) => c === 'kbsd-bar') && toutes.some((c) => c === 'kbsd-note-bas'))
 ok('le titre d\'en-tête est rendu', JSON.stringify(rendu).includes('Slides'))
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\nClient : ${echecs} échec(s).`)
