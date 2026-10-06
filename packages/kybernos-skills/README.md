@@ -14,6 +14,14 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 - **Discover**: the skills.sh ranking (all-time / trending / hot), search, the first-party "curated" set, security audits of a
   skill, one-click install of GitHub-hosted skills. It reads the index through Kybernos's own relay (`services/skills-index`), so
   it works for every user with no token.
+- **Team**: a Team's private catalogue (contract: `docs/dev/team-skills-contract.md`). *Approved* skills with Install, Update (only
+  over a team skill nobody edited), or "You have your own" when a skill of that name is yours; a skill opens on its files and an
+  install panel. *My proposals* (with Withdraw, and the admin's note on a refusal) and a *Propose a skill* sheet that reads one of
+  your skills, shows the files and the checks (text only, no secret) and sends it. For an owner or admin: *To review*, each proposal
+  with its files and, for an update, what changed line by line, a warning when it comes with a script, Approve or Reject… with a
+  note (an approval cannot edit the files); *Retired*, and *Retire from the team* on a skill's page. The tab is a lock with the
+  reason when you are not signed in, not on the Team plan, or in a personal workspace, and it is hidden when `kybernos-cloud` is not
+  loaded. It reads the account and the active workspace through `/kybernos-cloud/team/skills*`.
 - **Add**: *Create a skill* (name, description, when to use, body, "do not announce to the model") and *Import from GitHub*
   (`owner/repo` + skill name). Strings are fr/en (`locale` service, falling back to `localStorage` `kybernos.theme.lang`, then `<html lang>`).
 
@@ -32,13 +40,14 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
 | `POST team/pack {root,name}` | reads a skill of a writable root into a Team proposal: text files only, no hidden file or symlink, secret scan, the SHA-256 version |
-| `POST team/install {root?,name,version,files}` | writes a Team skill (checks every path and the version first), atomically, **never over an existing folder** |
+| `POST team/install {root?,name,version,files,teamId?,replace?}` | writes a Team skill (checks every path and the version first), atomically, **never over an existing folder** — except `replace: true` over a team skill whose files still hash to the version it was installed at |
 
 ## Files, settings, env
 
 - Reads the roots DSH's registry resolves (project, custom, user, bundled). **Writes only** `~/.dsh/skills` and
   `~/.agents/skills`; writability is judged on the real path (a symlink leaving the root stays visible but read-only).
 - `~/.dsh/kybernos-skills.json`: journal of the last 50 toggles (0600); not a source of truth (active = `SKILL.md` present).
+- `<skill folder>/.kybernos-team.json`: written by a Team install (the approved version and the team skill id, hidden, never part of what a proposal sends); it lets the catalogue say `teamVersion` and `teamModified` and lets Update replace a folder nobody edited.
 - `~/.dsh/kybernos/skills-featured.json` (0600) and `~/.dsh/kybernos/skills-featured/<name>.{png,webp,jpg,jpeg,svg}` (covers).
 - Reads the first event of `<DSH_HOME or ~/.dsh>/sessions/<project>/<session>/session.v3.jsonl.zstd` to learn an idle session's
   folder (so its project skills show). Temp dir `kybernos-skill-*` during install. Env: `DSH_HOME`, and optionally `KYBERNOS_SKILLS_INDEX_URL` (below).
@@ -62,7 +71,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 `node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the four POST routes
 mounted on a fake context. `test-index.mjs` covers the Discover routes against a local stand-in for the relay (what is asked,
-that no credential is sent, failures not cached, the address override). `test-dsh-home.mjs` covers `DSH_HOME`. `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan) and the disk half of `team/pack` and `team/install` on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
+that no credential is sent, failures not cached, the address override). `test-dsh-home.mjs` covers `DSH_HOME`. `test-client-strings.mjs` checks the client's words (every key in French and English, every answer word has a sentence). `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan), the disk half of `team/pack` and `team/install`, the team mark and the replace-only-if-untouched swap, on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
 and toggle logic is not tested; CI also syntax-checks the bundle (`node --check packages/kybernos-skills/*.js`).
 The host exports its functions "for the harness" (`catalogueOf`, `toggleSkill`, `createSkill`, `installSkill`, …) but no other
 harness is in this repo.

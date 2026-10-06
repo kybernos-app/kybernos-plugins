@@ -36,7 +36,7 @@ import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { validateTeamSkill, TEAM_SKILL_LIMITS } from './team-skills.mjs'
+import { validateTeamSkill, skillVersion, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 
 // ── helpers locaux (miroir semantique de kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -439,12 +439,16 @@ const catalogueOf = async (ctx, config, sessionId) => {
     const { folder, root } = layoutOf(entry.path)
     const target = folder !== null ? folder : entry.path
     const writable = writableRootFor(target, wRoots) !== null
+    // Only a skill of a writable root can have been installed from a team (that is where an install writes).
+    const team = writable && root !== null ? teamInfoOf(root, entry.name) : { teamVersion: null, teamModified: null }
     skills.push({
       name: entry.name,
       root: root === null ? '' : root,
       source: typeof entry.source === 'string' ? entry.source : 'runtime',
       rank: SOURCE_RANK[entry.source] ?? UNKNOWN_RANK,
       writable,
+      teamVersion: team.teamVersion,
+      teamModified: team.teamModified,
       active: true,
       description: typeof entry.description === 'string' ? entry.description : '',
       whenToUse: typeof entry.whenToUse === 'string' ? entry.whenToUse : '',
@@ -1007,6 +1011,47 @@ const walkSkillFolder = (dir, rel, depth, out) => {
   }
 }
 
+// What an install leaves inside the skill folder to say where it came from: the version that was approved. It is a hidden file, so
+// it is never part of the files a proposal carries and never changes the version of the folder. A skill without it is the user's own.
+const TEAM_MARK = '.kybernos-team.json'
+
+const readTeamMark = (folder) => {
+  try {
+    const m = JSON.parse(readFileSync(join(folder, TEAM_MARK), 'utf8'))
+    return m !== null && typeof m === 'object' && /^[0-9a-f]{64}$/.test(String(m.version)) ? { version: m.version, id: Number.isInteger(m.id) ? m.id : null, installedAt: typeof m.installedAt === 'string' ? m.installedAt : '' } : null
+  } catch (e) { return null }
+}
+
+/** `{ ok: true, files }` (text files of a skill folder, sorted by path) or `{ ok: false, error: 'invalid_skill', reason, file }`. */
+const readSkillFiles = (folder) => {
+  const listed = []
+  walkSkillFolder(folder, '', 0, listed)
+  if (listed.length > TEAM_SKILL_LIMITS.files) return { ok: false, error: 'invalid_skill', reason: 'too_many_files' }
+  const files = []
+  for (const f of listed.sort((a, b) => (a.path < b.path ? -1 : (a.path > b.path ? 1 : 0)))) {
+    if (f.size > TEAM_SKILL_LIMITS.fileBytes) return { ok: false, error: 'invalid_skill', reason: 'file_too_large', file: f.path }
+    let content
+    try { content = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(f.abs)) } catch (e) {
+      // Not UTF-8 text (a picture, a binary), or unreadable: either way it cannot travel, and the user is told which file.
+      return { ok: false, error: 'invalid_skill', reason: 'binary', file: f.path }
+    }
+    files.push({ path: f.path, content })
+  }
+  return { ok: true, files }
+}
+
+/**
+ * What the catalogue says about a skill that an install put there: `{ teamVersion, teamModified }`, both null for the user's own.
+ * `teamModified` is true when the files no longer hash to the installed version (edited, added to, or unreadable as text).
+ */
+const teamInfoOf = (root, name) => {
+  const folder = join(root, name)
+  const mark = readTeamMark(folder)
+  if (mark === null) return { teamVersion: null, teamModified: null }
+  const read = readSkillFiles(folder)
+  return { teamVersion: mark.version, teamModified: read.ok !== true || skillVersion(read.files) !== mark.version }
+}
+
 /** `{ ok, name, description, files: [{path, content}], version, count, bytes, scripts }` or `{ ok: false, error, reason?, file? }`. Never writes. */
 const packSkill = ({ root, name, config }) => {
   const cfg = normalizeConfig(config)
@@ -1020,26 +1065,21 @@ const packSkill = ({ root, name, config }) => {
   // The folder must really live under the root (a symlink leaving it is visible elsewhere, but never packed).
   if (writableRootFor(found.folder, [root]) === null) return { ok: false, error: 'root_not_allowed' }
 
-  const listed = []
-  walkSkillFolder(found.folder, '', 0, listed)
-  if (listed.length > TEAM_SKILL_LIMITS.files) return { ok: false, error: 'invalid_skill', reason: 'too_many_files' }
-  const files = []
-  for (const f of listed.sort((a, b) => (a.path < b.path ? -1 : (a.path > b.path ? 1 : 0)))) {
-    if (f.size > TEAM_SKILL_LIMITS.fileBytes) return { ok: false, error: 'invalid_skill', reason: 'file_too_large', file: f.path }
-    let content
-    try { content = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(f.abs)) } catch (e) {
-      // Not UTF-8 text (a picture, a binary), or unreadable: either way it cannot travel, and the user is told which file.
-      return { ok: false, error: 'invalid_skill', reason: 'binary', file: f.path }
-    }
-    files.push({ path: f.path, content })
-  }
+  const read = readSkillFiles(found.folder)
+  if (read.ok !== true) return read
+  const files = read.files
   const checked = validateTeamSkill({ name, files })
   if (checked.ok !== true) return { ok: false, error: checked.reason === 'scan_rejected' ? 'scan_rejected' : 'invalid_skill', reason: checked.reason, file: checked.file, line: checked.line }
   return { ok: true, name, description: checked.description, files, version: checked.version, count: checked.count, bytes: checked.bytes, scripts: checked.scripts }
 }
 
-/** Writes a Team skill into a writable root. `version` is what the server announced: the files must hash to it, or nothing is written. */
-const installTeamSkill = async ({ ctx, root, name, version, files, config, sessionId }) => {
+/**
+ * Writes a Team skill into a writable root. `version` is what the server announced: the files must hash to it, or nothing is written.
+ * It never overwrites a folder, with ONE exception: `replace: true` swaps a folder that an earlier install made (it carries the team
+ * mark) and that nobody has touched since (its files still hash to the version the mark says). The user's own skills, and a team
+ * skill edited by hand, are left exactly as they are.
+ */
+const installTeamSkill = async ({ ctx, root, name, version, files, teamId, replace, config, sessionId }) => {
   const cfg = normalizeConfig(config)
   const wRoots = writableRootsOf(cfg)
   const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
@@ -1048,9 +1088,17 @@ const installTeamSkill = async ({ ctx, root, name, version, files, config, sessi
   if (checked.ok !== true) return { ok: false, error: checked.reason === 'scan_rejected' ? 'scan_rejected' : 'invalid_skill', reason: checked.reason, file: checked.file }
   if (typeof version !== 'string' || version !== checked.version) return { ok: false, error: 'version_mismatch' }
   const target = join(dest, name)
-  if (existsSync(target)) return { ok: false, error: 'exists' }
+  const swap = existsSync(target)
+  if (swap) {
+    if (replace !== true) return { ok: false, error: 'exists' }
+    // A swap needs proof that the folder is ours to replace.
+    const info = teamInfoOf(dest, name)
+    if (info.teamVersion === null) return { ok: false, error: 'exists' }
+    if (info.teamModified !== false) return { ok: false, error: 'modified' }
+  }
 
   let staging = null
+  let parked = null
   try {
     mkdirSync(dest, { recursive: true })
     // A dot-prefixed staging folder: the registry never lists it, and the rename below is one step.
@@ -1061,9 +1109,19 @@ const installTeamSkill = async ({ ctx, root, name, version, files, config, sessi
       mkdirSync(dirname(abs), { recursive: true })
       writeFileSync(abs, f.content, { mode: 0o644 })
     }
-    if (existsSync(target)) { rmSync(staging, { recursive: true, force: true }); return { ok: false, error: 'exists' } }
-    renameSync(staging, target)
-    staging = null
+    writeFileSync(join(staging, TEAM_MARK), JSON.stringify({ version: checked.version, id: Number.isInteger(teamId) ? teamId : null, installedAt: new Date().toISOString() }) + '\n', { mode: 0o644 })
+    if (swap) {
+      // The old folder is parked beside the new one, then removed: if the move fails it goes back, and the skill is never missing.
+      parked = join(dest, '.kb-old-' + basename(staging).slice('.kb-team-'.length))
+      renameSync(target, parked)
+      try { renameSync(staging, target) } catch (e) { renameSync(parked, target); parked = null; throw e }
+      staging = null
+      try { rmSync(parked, { recursive: true, force: true }) } catch (e) { /* a leftover dot folder is invisible; the swap itself is done */ }
+    } else {
+      if (existsSync(target)) { rmSync(staging, { recursive: true, force: true }); return { ok: false, error: 'exists' } }
+      renameSync(staging, target)
+      staging = null
+    }
   } catch (e) {
     if (staging !== null) { try { rmSync(staging, { recursive: true, force: true }) } catch (e2) { /* best effort */ } }
     return { ok: false, error: 'write_failed' }
@@ -1071,6 +1129,7 @@ const installTeamSkill = async ({ ctx, root, name, version, files, config, sessi
   invalidateSkills(ctx, sessionId)
   return {
     ok: true,
+    replaced: swap,
     files: files.length,
     skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
   }
@@ -1217,6 +1276,8 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     name: body.name,
     version: body.version,
     files: body.files,
+    teamId: body.teamId,
+    replace: body.replace === true,
     config: configOf(),
     sessionId: body.sessionId
   }), 4 * 1024 * 1024)

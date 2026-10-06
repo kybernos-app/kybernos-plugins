@@ -118,6 +118,8 @@ Built (host halves, tested against a stand-in server; the screen is not built ye
   Both are POST and same-origin guarded because they carry skill content.
 - The page moves the files between the two (the server never sees a local path, the plugins never import each other).
 
-To build: the Skills screen gets a **Team** segment next to *Yours* and *Discover* (maquette: approved skills with *Install*, *My
-proposals*, *Propose*, and for admins a review queue showing the files before approving). Without the route (an older or a
-different server) the segment says « not available on this server », never an error.
+The Skills screen has a **Team** segment next to *Yours* and *Discover*: approved skills with *Install* or *Update* (a skill installed
+from the team carries a hidden mark with its version, so an update replaces only a folder nobody edited), *My proposals*, a *Propose*
+sheet, and for admins a review queue showing the files (and what changed since the approved version) before approving. Without the
+route (an older or a different server) the segment says « not available on this server », never an error. Checked on the real GUI
+with the Team routes faked: `scripts/check-skills-team-live.mjs`.

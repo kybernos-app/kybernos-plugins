@@ -1,4 +1,4 @@
-// @local/kybernos-skills — client du parcours complet (Yours · Discover).
+// @local/kybernos-skills — client du parcours complet (Yours · Discover · Team).
 //
 // Mécanisme unique ARB-1 : ce module s'injecte dans l'emplacement 'main.kybernos-skills'
 // publié par le pivot kybernos (lot B4) — aucun export pair, aucun pont require.
@@ -13,6 +13,8 @@
 //   POST /kybernos-skills/toggle  {root,name,active}
 //   POST /kybernos-skills/create  {root,name,description,whenToUse,body,modelInvocable}
 //   POST /kybernos-skills/install {source,name,root}
+//   Team (docs/dev/team-skills-contract.md) : GET /kybernos-cloud/team/skills[?view=] · /item?id= · POST …/add · …/review · …/retire · …/delete,
+//   et côté disque POST /kybernos-skills/team/pack {root,name} · /team/install {root,name,version,files,teamId,replace}
 //
 // Rendu fidèle à docs/handoff/skills-ui/maquette.html : segment Yours/Discover, barre
 // d'outils (recherche, filtres, tri, Add), rangée Featured, grille, pagination, fiche,
@@ -48,7 +50,10 @@ window.__ModuleLoader__.load({
         star: ['M11.5 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.9l5.16-.76a2.12 2.12 0 0 0 1.6-1.16z'],
         folder: ['M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 1 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'],
         eye: ['M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
-        code: ['m16 18 6-6-6-6', 'm8 6-6 6 6 6']
+        code: ['m16 18 6-6-6-6', 'm8 6-6 6 6 6'],
+        lock: ['M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
+        file: ['M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z', 'M14 3v5h5'],
+        alert: ['M12 9v4', 'M12 17h.01', 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z']
       }
       const icon = (name, size) => h('svg', {
         key: 'i' + name + size,
@@ -228,6 +233,160 @@ window.__ModuleLoader__.load({
         'm.skillInRepo': { fr: 'Nom du skill dans ce dépôt', en: 'Skill name in this repo' },
         'm.destRoot': { fr: 'Racine de destination', en: 'Destination root' },
         'm.downloading': { fr: 'Téléchargement…', en: 'Downloading…' },
+        // ── Team skills (docs/dev/team-skills-contract.md) ──
+        'tm.seg': { fr: 'Team', en: 'Team' },
+        'cap.team': { fr: 'Les skills que votre équipe a approuvés, partagés avec tous les membres de {ws}.', en: 'Skills your team approved, shared with every member of {ws}.' },
+        'tm.v.approved': { fr: 'Approuvés', en: 'Approved' },
+        'tm.v.mine': { fr: 'Mes propositions', en: 'My proposals' },
+        'tm.v.review': { fr: 'À valider', en: 'To review' },
+        'tm.v.retired': { fr: 'Retirés', en: 'Retired' },
+        'tm.who.member': { fr: '{ws} · vous êtes membre · un admin valide ce que vous proposez', en: '{ws} · you are a member · an admin approves what you propose' },
+        'tm.who.admin': { fr: '{ws} · vous êtes admin · ce qui est à valider n’est pas encore disponible pour les membres', en: '{ws} · you are an admin · nothing to review is available to members yet' },
+        'tm.search': { fr: 'Chercher dans les skills de l’équipe', en: 'Search team skills' },
+        'tm.propose': { fr: 'Proposer un skill', en: 'Propose a skill' },
+        'tm.add': { fr: 'Ajouter un skill', en: 'Add a skill' },
+        'tm.th.skill': { fr: 'SKILL', en: 'SKILL' },
+        'tm.th.by': { fr: 'AJOUTÉ PAR', en: 'ADDED BY' },
+        'tm.th.version': { fr: 'VERSION', en: 'VERSION' },
+        'tm.install': { fr: 'Installer', en: 'Install' },
+        'tm.update': { fr: 'Mettre à jour', en: 'Update' },
+        'tm.installed': { fr: 'Installé', en: 'Installed' },
+        'tm.own': { fr: 'Vous avez le vôtre', en: 'You have your own' },
+        'tm.edited': { fr: 'modifié ici', en: 'edited here' },
+        'tm.newer': { fr: 'plus récent : {v}', en: 'newer: {v}' },
+        'tm.withdraw': { fr: 'Retirer ma proposition', en: 'Withdraw' },
+        'tm.retire': { fr: 'Retirer de l’équipe', en: 'Retire from the team' },
+        'tm.st.proposed': { fr: 'En attente', en: 'Pending' },
+        'tm.st.approved': { fr: 'Approuvé', en: 'Approved' },
+        'tm.st.rejected': { fr: 'Refusé', en: 'Rejected' },
+        'tm.st.retired': { fr: 'Retiré', en: 'Retired' },
+        'tm.loading': { fr: 'Chargement des skills de l’équipe…', en: 'Loading the team’s skills…' },
+        'tm.empty.approved': { fr: 'Aucun skill approuvé pour l’instant', en: 'No approved skill yet' },
+        'tm.empty.approvedHint': { fr: 'Proposez-en un : un admin le valide, puis tout le monde peut l’installer.', en: 'Propose one: an admin reviews it, then everyone can install it.' },
+        'tm.empty.mine': { fr: 'Vous n’avez rien proposé', en: 'You have not proposed anything' },
+        'tm.empty.mineHint': { fr: 'Choisissez l’un de vos skills et proposez-le à l’équipe.', en: 'Pick one of your skills and propose it to the team.' },
+        'tm.empty.review': { fr: 'Rien à valider', en: 'Nothing to review' },
+        'tm.empty.reviewHint': { fr: 'Les nouvelles propositions apparaissent ici.', en: 'New proposals show up here.' },
+        'tm.empty.retired': { fr: 'Rien n’a été retiré', en: 'Nothing has been retired' },
+        'tm.empty.retiredHint': { fr: 'Un skill retiré reste dans l’historique, mais plus personne ne peut l’installer.', en: 'A retired skill stays in the history, but nobody can install it any more.' },
+        'tm.lock.plan.t': { fr: 'Les skills d’équipe font partie du plan Team', en: 'Team skills are part of the Team plan' },
+        'tm.lock.plan.b': { fr: 'Partagez des skills avec les personnes avec qui vous travaillez : un membre en propose un, un admin l’approuve, tout le monde l’installe. Vos propres skills restent privés dans Yours.', en: 'Share skills with the people you work with: any member proposes one, an admin approves it, everyone installs it. Your own skills stay private in Yours.' },
+        'tm.lock.signin.t': { fr: 'Connectez-vous à Kybernos Cloud pour utiliser les skills d’équipe', en: 'Sign in to Kybernos Cloud to use Team skills' },
+        'tm.lock.signin.b': { fr: 'Les skills d’équipe vivent dans l’espace de votre équipe. Connectez votre compte depuis le menu du compte, puis revenez ici.', en: 'Team skills live in your team’s workspace. Connect your account from the account menu, then come back.' },
+        'tm.lock.space.t': { fr: 'Passez sur un espace d’équipe', en: 'Switch to a team workspace' },
+        'tm.lock.space.b': { fr: 'Les skills d’équipe appartiennent à un espace d’équipe. Votre espace actif n’en est pas un.', en: 'Team skills belong to a team workspace. Your active workspace is not one.' },
+        'tm.lock.server.t': { fr: 'Indisponible sur ce serveur', en: 'Not available on this server' },
+        'tm.lock.server.b': { fr: 'Ce serveur Kybernos ne propose pas les skills d’équipe.', en: 'This Kybernos server does not offer Team skills.' },
+        'tm.lock.reconnect.t': { fr: 'Votre session Kybernos a expiré', en: 'Your Kybernos session has expired' },
+        'tm.lock.reconnect.b': { fr: 'Reconnectez votre compte, puis rouvrez cet onglet.', en: 'Reconnect your account, then reopen this tab.' },
+        'tm.lock.net.t': { fr: 'Le serveur de l’équipe est injoignable', en: 'The team server cannot be reached' },
+        'tm.lock.net.b': { fr: 'Vérifiez votre connexion, puis réessayez.', en: 'Check your connection, then try again.' },
+        'tm.lock.other.t': { fr: 'Les skills d’équipe ne répondent pas', en: 'Team skills are not answering' },
+        'tm.retry': { fr: 'Réessayer', en: 'Try again' },
+        'tm.back': { fr: 'Retour à Yours', en: 'Back to Yours' },
+        'tm.det.back': { fr: 'Skills d’équipe', en: 'Team skills' },
+        'tm.det.approvedBy': { fr: 'Ajouté par {a} le {d}, approuvé par {r}.', en: 'Added by {a} on {d}, approved by {r}.' },
+        'tm.det.proposedBy': { fr: 'Proposé par {a} le {d}.', en: 'Proposed by {a} on {d}.' },
+        'tm.det.files': { fr: 'Ce qui sera copié', en: 'What gets copied' },
+        'tm.det.count': { fr: '{n} fichiers · {size}', en: '{n} files · {size}' },
+        'cap.teamLocked': { fr: 'Les skills partagés par votre équipe.', en: 'Skills shared by your team.' },
+        'tm.det.entry': { fr: 'entrée', en: 'entry' },
+        'tm.det.pick': { fr: 'Choisissez un fichier pour le lire.', en: 'Pick a file to read it.' },
+        'tm.det.loading': { fr: 'Chargement des fichiers…', en: 'Loading the files…' },
+        'tm.det.into': { fr: 'Dans', en: 'Into' },
+        'tm.det.checks': { fr: 'Vérifié avant toute écriture', en: 'Checked before anything is written' },
+        'tm.det.chk1': { fr: 'Les fichiers donnent la version {v}, celle que votre admin a approuvée', en: 'The files hash to version {v}, the one your admin approved' },
+        'tm.det.chk2': { fr: 'Chaque chemin reste dans le dossier du skill', en: 'Every path stays inside the skill folder' },
+        'tm.det.chk3': { fr: 'Fichiers texte seulement, aucun secret', en: 'Text files only, no secret' },
+        'tm.det.never': { fr: 'Si un skill de ce nom existe déjà à cet endroit, rien n’est écrasé : on vous le dit, et vous choisissez.', en: 'If a skill with this name already exists there, nothing is overwritten: you are told, and you choose.' },
+        'tm.det.updateNote': { fr: 'Cela remplace votre version installée ({old}), car vous ne l’avez pas modifiée.', en: 'This replaces your installed version ({old}), because you have not edited it.' },
+        'tm.det.editedNote': { fr: 'Vous avez modifié ce skill ici : il ne sera pas remplacé. Mettez vos changements de côté, puis mettez à jour.', en: 'You edited this skill here, so it will not be replaced. Move your changes aside, then update.' },
+        'tm.det.ownNote': { fr: 'Vous avez déjà un skill de ce nom qui ne vient pas de l’équipe : il ne sera pas touché. Renommez-le ou supprimez-le pour installer celui de l’équipe.', en: 'You already have a skill with this name that is not from the team: it will not be touched. Rename or remove it to install the team’s.' },
+        'tm.det.installedNote': { fr: 'Cette version est déjà installée.', en: 'This version is already installed.' },
+        'tm.det.notApproved': { fr: 'Ce skill n’est pas (ou plus) approuvé : il ne peut pas être installé.', en: 'This skill is not (or no longer) approved: it cannot be installed.' },
+        'tm.det.retireAsk': { fr: 'Retirer « {name} » ? Ceux qui l’ont installé gardent leur copie, personne d’autre ne pourra l’installer.', en: 'Retire “{name}”? Members who installed it keep their copy, nobody else can install it.' },
+        'tm.det.retireYes': { fr: 'Retirer', en: 'Retire' },
+        'tm.script': { fr: 'contient un script', en: 'contains a script' },
+        'tm.p.title': { fr: 'Proposer un skill à {ws}', en: 'Propose a skill to {ws}' },
+        'tm.p.titleAdmin': { fr: 'Ajouter un skill à {ws}', en: 'Add a skill to {ws}' },
+        'tm.p.sub': { fr: 'Un admin le relit avant que quiconque puisse l’installer. Votre copie reste exactement telle quelle.', en: 'An admin reviews it before anyone can install it. Your own copy stays exactly as it is.' },
+        'tm.p.subAdmin': { fr: 'En tant qu’admin, votre skill est disponible pour tous les membres tout de suite. Votre copie reste exactement telle quelle.', en: 'As an admin, your skill is available to every member right away. Your own copy stays exactly as it is.' },
+        'tm.p.pick': { fr: 'Skill', en: 'Skill' },
+        'tm.p.choose': { fr: 'Choisissez l’un de vos skills', en: 'Choose one of your skills' },
+        'tm.p.none': { fr: 'Aucun de vos skills ne peut être partagé : seuls ceux de vos dossiers (~/.dsh/skills, ~/.agents/skills) peuvent être proposés.', en: 'None of your skills can be shared: only skills of your own folders (~/.dsh/skills, ~/.agents/skills) can be proposed.' },
+        'tm.p.packing': { fr: 'Lecture du skill…', en: 'Reading the skill…' },
+        'tm.p.send': { fr: 'Ce qui sera envoyé', en: 'What will be sent' },
+        'tm.p.checks': { fr: 'Contrôles', en: 'Checks' },
+        'tm.p.ck.name': { fr: 'Nom valide', en: 'Name valid' },
+        'tm.p.ck.text': { fr: 'Fichiers texte seulement', en: 'Text files only' },
+        'tm.p.ck.secret': { fr: 'Aucun secret trouvé', en: 'No secret found' },
+        'tm.p.ck.size': { fr: '{n} fichiers sur 50 · {kb} Ko sur 1 Mo', en: '{n} of 50 files · {kb} KB of 1 MB' },
+        'tm.p.note': { fr: 'Note pour l’admin (facultatif)', en: 'Note for the admin (optional)' },
+        'tm.p.noteAdmin': { fr: 'Note (facultatif)', en: 'Note (optional)' },
+        'tm.p.submit': { fr: 'Proposer à l’équipe', en: 'Propose to the team' },
+        'tm.p.submitAdmin': { fr: 'Ajouter à l’équipe', en: 'Add to the team' },
+        'tm.p.sending': { fr: 'Envoi…', en: 'Sending…' },
+        'tm.p.foot': { fr: 'Les mêmes contrôles sont refaits sur le serveur : un skill qui passe ici ne sera pas refusé plus tard pour ces raisons.', en: 'The same checks run again on the server, so a skill that passes here cannot be refused later for these reasons.' },
+        'tm.p.bad.secret': { fr: '{file}, ligne {line} : cela ressemble à une clé ou un jeton secret. Retirez-le du fichier, puis proposez à nouveau. La clé elle-même n’est jamais affichée ni envoyée.', en: '{file}, line {line}: this looks like a secret key or token. Remove it from the file, then propose again. The key itself is never shown or sent.' },
+        'tm.p.bad.binary': { fr: '{file} : seuls les fichiers texte peuvent être partagés. Retirez-le, ou mentionnez-le dans SKILL.md.', en: '{file}: only text files can be shared. Remove it, or mention it in SKILL.md instead.' },
+        'tm.p.bad.big': { fr: '{file} dépasse 256 Ko.', en: '{file} is over 256 KB.' },
+        'tm.p.bad.many': { fr: 'Plus de 50 fichiers.', en: 'More than 50 files.' },
+        'tm.p.bad.total': { fr: 'Plus de 1 Mo au total.', en: 'Over 1 MB in total.' },
+        'tm.p.bad.path': { fr: '{file} : ce nom de fichier ne peut pas être partagé (lettres, chiffres, - _ . et / seulement).', en: '{file}: this file name cannot be shared (letters, digits, - _ . and / only).' },
+        'tm.p.bad.frontmatter': { fr: 'SKILL.md doit porter le même nom que le dossier et une description.', en: 'SKILL.md needs a name that matches the folder and a description.' },
+        'tm.p.bad.name': { fr: 'Le nom du skill n’est pas valide.', en: 'The skill name is not valid.' },
+        'tm.p.bad.nofile': { fr: 'Il manque un fichier SKILL.md.', en: 'There is no SKILL.md.' },
+        'tm.p.bad.disabled': { fr: 'Activez d’abord le skill.', en: 'Turn the skill on first.' },
+        'tm.p.bad.other': { fr: 'Ce skill ne peut pas être partagé ({code}).', en: 'This skill cannot be shared ({code}).' },
+        'tm.n.proposed': { fr: 'Proposé à l’équipe. Un admin relira « {name} ».', en: 'Proposed to the team. An admin will review “{name}”.' },
+        'tm.n.added': { fr: '« {name} » est maintenant disponible pour l’équipe.', en: '“{name}” is now available to the team.' },
+        'tm.n.installed': { fr: '« {name} » installé ({n} fichiers).', en: '“{name}” installed ({n} files).' },
+        'tm.n.updated': { fr: '« {name} » mis à jour.', en: '“{name}” updated.' },
+        'tm.n.approved': { fr: '« {name} » approuvé.', en: '“{name}” approved.' },
+        'tm.n.rejected': { fr: '« {name} » refusé.', en: '“{name}” rejected.' },
+        'tm.n.retired': { fr: '« {name} » retiré de l’équipe.', en: '“{name}” retired from the team.' },
+        'tm.n.withdrawn': { fr: 'Proposition retirée.', en: 'Proposal withdrawn.' },
+        'tm.e.admin_required': { fr: 'Seul un admin peut faire cela.', en: 'Only an admin can do that.' },
+        'tm.e.duplicate': { fr: 'Ce skill est déjà proposé ou approuvé.', en: 'This skill is already proposed or approved.' },
+        'tm.e.team_full': { fr: 'L’équipe a déjà le nombre maximal de skills.', en: 'The team already has the maximum number of skills.' },
+        'tm.e.too_many_proposals': { fr: 'Vous avez déjà le nombre maximal de propositions en attente.', en: 'You already have the maximum number of proposals waiting.' },
+        'tm.e.too_large': { fr: 'Le skill est trop volumineux.', en: 'The skill is too large.' },
+        'tm.e.not_pending': { fr: 'Quelqu’un a décidé avant vous. La liste a été rafraîchie.', en: 'Someone decided before you. The list has been refreshed.' },
+        'tm.e.not_approved': { fr: 'Ce skill n’est plus approuvé.', en: 'It is not approved any more.' },
+        'tm.e.skill_not_found': { fr: 'Ce skill n’existe plus.', en: 'This skill no longer exists.' },
+        'tm.e.reconnect_required': { fr: 'Votre session Kybernos a expiré : reconnectez votre compte.', en: 'Your Kybernos session has expired: reconnect your account.' },
+        'tm.e.network': { fr: 'Le serveur de l’équipe est injoignable.', en: 'The team server cannot be reached.' },
+        'tm.e.workspace_not_found': { fr: 'Cet espace d’équipe n’est plus accessible.', en: 'This team workspace is no longer available.' },
+        'tm.e.not_on_this_server': { fr: 'Ce serveur ne propose pas les skills d’équipe.', en: 'This server does not offer Team skills.' },
+        'tm.e.forbidden': { fr: 'Le serveur a refusé.', en: 'The server refused.' },
+        'tm.e.invalid_response': { fr: 'Réponse inattendue du serveur.', en: 'Unexpected answer from the server.' },
+        'tm.e.invalid_skill': { fr: 'Le serveur refuse ce skill ({reason}).', en: 'The server refuses this skill ({reason}).' },
+        'tm.e.scan_rejected': { fr: 'Le serveur a trouvé un secret dans {file}.', en: 'The server found a secret in {file}.' },
+        'tm.e.exists': { fr: 'Un skill de ce nom est déjà dans ce dossier. Rien n’a été modifié.', en: 'A skill with this name is already in this folder. Nothing was changed.' },
+        'tm.e.version_mismatch': { fr: 'Les fichiers ne correspondent pas à la version approuvée. Rien n’a été écrit.', en: 'The files do not match the approved version. Nothing was written.' },
+        'tm.e.modified': { fr: 'Vous avez modifié ce skill ici : il n’a pas été remplacé.', en: 'You edited this skill here, so it was not replaced.' },
+        'tm.e.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de vos dossiers de skills.', en: 'That folder is not one of your skills folders.' },
+        'tm.e.write_failed': { fr: 'Impossible d’écrire le skill. Rien n’a été modifié.', en: 'Could not write the skill. Nothing was changed.' },
+        'tm.e.conflict': { fr: 'Le serveur ne peut pas faire cela maintenant.', en: 'The server cannot do that right now.' },
+        'tm.e.bad_request': { fr: 'Le serveur n’a pas compris la demande.', en: 'The server did not understand the request.' },
+        'tm.e.skill_ambiguous': { fr: 'Deux skills portent ce nom dans ce dossier.', en: 'Two skills with this name exist in that folder.' },
+        'tm.e.other': { fr: 'Échec ({code}).', en: 'Failed ({code}).' },
+        'tm.r.banner': { fr: 'Un skill est une instruction que les agents de vos membres suivront, et il peut venir avec des fichiers. Ouvrez les fichiers avant d’approuver. Une approbation ne se modifie pas : refusez avec une note pour demander un changement.', en: 'A skill is an instruction your members’ agents will follow, and it can come with files. Open the files before you approve. An approval cannot be edited: reject with a note to ask for a change.' },
+        'tm.r.new': { fr: 'Nouveau', en: 'New' },
+        'tm.r.updateOf': { fr: 'Mise à jour', en: 'Update' },
+        'tm.r.replaces': { fr: 'Approuver remplace la version que les membres peuvent installer aujourd’hui ({v}). Ceux qui l’ont installée verront « Mettre à jour ».', en: 'Approving replaces the version members can install today ({v}). Members who installed it see “Update”.' },
+        'tm.r.by': { fr: 'Proposé par {a} · {d}', en: 'Proposed by {a} · {d}' },
+        'tm.r.approve': { fr: 'Approuver', en: 'Approve' },
+        'tm.r.reject': { fr: 'Refuser…', en: 'Reject…' },
+        'tm.r.rejectNote': { fr: 'Pourquoi ? (le proposeur le verra)', en: 'Why? (the proposer will see it)' },
+        'tm.r.rejectYes': { fr: 'Refuser', en: 'Reject' },
+        'tm.r.changed': { fr: 'modifié', en: 'changed' },
+        'tm.r.fnew': { fr: 'nouveau', en: 'new' },
+        'tm.r.removed': { fr: 'supprimé', en: 'removed' },
+        'tm.r.scan': { fr: 'Contrôlé par le serveur : aucun secret · {n} fichiers · {kb} Ko', en: 'Checked by the server: no secret · {n} files · {kb} KB' },
+        'tm.r.tooBig': { fr: 'Trop long pour une comparaison ligne à ligne.', en: 'Too long to compare line by line.' },
+        'tm.r.rejectedWith': { fr: 'Refusé : {note}', en: 'Rejected: {note}' },
+        'tm.r.noNote': { fr: 'Refusé, sans note.', en: 'Rejected, no note.' },
       }
       // Langue : même mécanisme que kybernos-composio (kbt). Service `locale` de l'hôte ; « kybernos »
       // est le défaut du thème : sans choix explicite (kybernos.theme.lang absent) et sous un shell
@@ -495,6 +654,49 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-star-btn:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
 .kbs-root .kbs-star-btn.on{color:#f7c46c;border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
 .kbs-root .kbs-feat-card .kbs-star-btn{position:absolute;top:9px;right:9px;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1) 78%,transparent);backdrop-filter:blur(4px)}
+/* — Team skills : le tableau reprend celui de Discover (mêmes jetons), seules les colonnes changent — */
+.kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{display:grid;grid-template-columns:44px minmax(200px,1.7fr) minmax(120px,1fr) 210px 150px;align-items:center;gap:14px;padding:8px 18px}
+.kbs-root .kbt .kbt-head{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbt .kbs-row{min-height:56px}
+.kbs-root .kbt .badges{display:flex;gap:6px;flex-wrap:wrap}
+.kbs-root .kbt-name{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kbs-root .kbt-name .n{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbs-root .kbt-name .d{font-size:12px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbs-root .kbt-by{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.4}
+.kbs-root .kbt-by .d{display:block;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbt-act{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}
+.kbs-root .kbt-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;font-weight:500;cursor:pointer;white-space:nowrap}
+.kbs-root .kbt-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbs-root .kbt-btn.solid{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);border-color:transparent;font-weight:600}
+.kbs-root .kbt-btn.solid:hover{opacity:.9}
+.kbs-root .kbt-btn.danger{color:var(--dsw-alias-state-error-primary)}
+.kbs-root .kbt-btn[disabled]{opacity:.45;cursor:default}
+.kbs-root .kbt-subrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.kbs-root .kbt-stack{display:flex;flex-direction:column;gap:16px}
+.kbs-root .kbt-files{border:1px solid var(--dsw-alias-border-l1);border-radius:13px;overflow:hidden;background:var(--dsw-alias-bg-base)}
+.kbs-root .kbt-file{display:grid;grid-template-columns:22px minmax(0,1fr) 70px auto;gap:10px;align-items:center;width:100%;box-sizing:border-box;padding:8px 14px;border:0;border-bottom:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
+.kbs-root .kbt-file:last-child{border-bottom:0}
+.kbs-root .kbt-file:hover,.kbs-root .kbt-file.on{background:var(--dsw-alias-interactive-bg-hover)}
+.kbs-root .kbt-file.warn{box-shadow:inset 2px 0 0 var(--dsw-alias-state-warn-primary)}
+.kbs-root .kbt-file .p{font-family:ui-monospace,monospace;font-size:12px;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbs-root .kbt-file .z{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption);text-align:right}
+.kbs-root .kbt-code{margin:0;font-family:ui-monospace,monospace;font-size:12px;line-height:1.55;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);border-radius:13px;padding:12px 14px;white-space:pre-wrap;overflow:auto;max-height:320px;word-break:break-word}
+.kbs-root .kbt-code .add{display:block;color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 10%,transparent)}
+.kbs-root .kbt-code .del{display:block;color:var(--dsw-alias-state-error-primary);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 10%,transparent)}
+.kbs-root .kbt-code .gap{display:block;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbt-banner{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:13px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);font-size:13px;color:var(--dsw-alias-label-secondary);line-height:1.5}
+.kbs-root .kbt-banner.warn{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 40%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 8%,transparent);color:var(--dsw-alias-label-primary)}
+.kbs-root .kbt-banner.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 40%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 8%,transparent);color:var(--dsw-alias-label-primary)}
+.kbs-root .kbt-banner svg{flex:0 0 auto;margin-top:1px}
+.kbs-root .kbt-card{background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.kbs-root .kbt-card .head{display:flex;align-items:flex-start;gap:14px}
+.kbs-root .kbt-card .grow{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.kbs-root .kbt-dot{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-warn-primary);display:inline-block;flex:0 0 auto}
+.kbs-root .kbt-kv{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbt-kv .k{color:var(--dsw-alias-label-caption)}
+.kbs-root .kbt-cap{font-size:12px;color:var(--dsw-alias-label-caption);line-height:1.5}
+.kbs-root .kbt-sheet{width:660px}
+.kbs-root .kb8-primary[disabled]{opacity:.45;cursor:default}
 `
 
       // ── accès aux routes ────────────────────────────────────────────────────
@@ -526,8 +728,8 @@ window.__ModuleLoader__.load({
         // helpers l'attachent a chaque appel ; l'effet de chargement, lui, depend de `sid`.
         const sid = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : ''
         kbSkSid = sid
-        const [mode, setMode] = React.useState('yours')                       // yours | discover
-        const [q, setQ] = React.useState({ yours: '', discover: '' })
+        const [mode, setMode] = React.useState('yours')                       // yours | discover | team
+        const [q, setQ] = React.useState({ yours: '', discover: '', team: '' })
         const [sort, setSort] = React.useState({ yours: 'recent', discover: 'installs' })
         const [dir, setDir] = React.useState({ yours: -1, discover: -1 })
         const [page, setPage] = React.useState({ yours: 1 })
@@ -558,6 +760,13 @@ window.__ModuleLoader__.load({
         // Featured : la liste mise en avant, contrôlée par l'utilisateur. `items` suit l'ordre du
         // fichier ; un item `found:false` (skill disparu du registre) est sauté au rendu, pas effacé.
         const [feat, setFeat] = React.useState({ phase: 'idle', items: [] })
+        // Team skills: what the account says about the active workspace (its role and counts, or why the tab is locked), the skill
+        // that is open, the sub-view, the propose sheet, and a counter that makes the list read again.
+        const [tsum, setTsum] = React.useState({ phase: 'loading' })
+        const [teamOpen, setTeamOpen] = React.useState(null)
+        const [teamView, setTeamView] = React.useState('approved')
+        const [teamSheet, setTeamSheet] = React.useState(false)
+        const [teamVer, setTeamVer] = React.useState(0)
         const alive = React.useRef(true)
 
         React.useEffect(() => () => { alive.current = false }, [])
@@ -607,8 +816,8 @@ window.__ModuleLoader__.load({
         // sans recharger — un aller-retour de moins, et l'ordre affiché reste celui du fichier.
         // POST sur /featured/toggle (et non /featured) : la table exact du webServer est indexée
         // par chemin seul, un GET+POST de même path jette « duplicate » AU MONTAGE (mesuré).
-        const toggleFeatured = (name, why) => {
-          postJson('/kybernos-skills/featured/toggle', { name, why: why || '' }).then((j) => {
+        const toggleFeatured = (name, reason) => {
+          postJson('/kybernos-skills/featured/toggle', { name, why: reason || '' }).then((j) => {
             if (alive.current !== true) return
             if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.items)) {
               setFeat((m) => ({ ...m, phase: 'ready', items: j.items }))
@@ -619,16 +828,34 @@ window.__ModuleLoader__.load({
           })
         }
 
+        // One cheap call tells the tab what to show: the count, a dot when an admin has proposals to review, a lock and the reason, or
+        // nothing at all when kybernos-cloud is not loaded (its routes then answer a page, not JSON).
+        const loadTeam = React.useCallback(() => {
+          fetch('/kybernos-cloud/team/skills?view=approved&limit=1', { headers: { accept: 'application/json' } })
+            .then((r) => r.json().then((j) => j, () => null))
+            .then((j) => {
+              if (alive.current !== true) return
+              if (j === null || typeof j !== 'object') { setTsum({ phase: 'absent' }); return }
+              if (j.ok === true) setTsum({ phase: 'ready', role: j.role, counts: j.counts !== null && typeof j.counts === 'object' ? j.counts : { approved: 0, pending: 0 }, workspaceName: typeof j.workspaceName === 'string' ? j.workspaceName : '' })
+              else setTsum({ phase: 'locked', kind: teamLockOf(typeof j.error === 'string' ? j.error : ''), detail: typeof j.error === 'string' ? j.error : '' })
+            })
+            .catch(() => { if (alive.current === true) setTsum({ phase: 'absent' }) })
+        }, [])
+
+        // The workspace may have changed in the sidebar since the last look: read again whenever the tab is opened.
+        React.useEffect(() => { if (mode === 'team') loadTeam() }, [mode])
+
         React.useEffect(() => {
           loadCatalogue()
           loadFeatured()
+          loadTeam()
           getJson('/kybernos-skills/status').then((j) => {
             if (alive.current !== true) return
             if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.roots)) {
               setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
             }
           }).catch(() => { /* sans racines, les modales retombent sur l'hôte qui revalide tout */ })
-        }, [loadCatalogue, loadFeatured])
+        }, [loadCatalogue, loadFeatured, loadTeam])
 
         // Une requête pour les trois vues paginées, une autre pour la recherche, une pour le set
         // curated. Le serveur annonce `total` et `hasMore` : la pagination ne devine rien, et c'est
@@ -962,6 +1189,20 @@ window.__ModuleLoader__.load({
             null)
         }
 
+        const renderTeamToolbar = () => h('div', { className: 'kb-toolbar' },
+          h('div', { className: 'kb8-search' }, icon('search', 14),
+            h('input', { placeholder: t('tm.search'), value: q.team, onChange: (e) => { const v = e.target.value; setQ((m) => ({ ...m, team: v })) } })),
+          primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus'))
+
+        const renderTeam = () => {
+          if (tsum.phase === 'loading') return h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.loading')))
+          if (tsum.phase !== 'ready') return h(TeamLocked, { kind: tsum.phase === 'locked' ? tsum.kind : 'other', detail: tsum.detail, onRetry: loadTeam, onBack: () => setMode('yours') })
+          return h(TeamSkills, {
+            sum: tsum, local: skills, roots, needle: q.team, view: teamView, onView: setTeamView, ver: teamVer, openId: teamOpen, onOpen: setTeamOpen,
+            notify: setNotice, onChanged: loadCatalogue, onSummary: loadTeam
+          })
+        }
+
         const yourCard = (s) => {
           const k = skillKey(s)
           const on = s.active === true
@@ -1204,6 +1445,13 @@ window.__ModuleLoader__.load({
         }
 
         const renderModal = () => {
+          if (teamSheet === true && tsum.phase === 'ready') return h(ProposeSheet, {
+            local: skills, ws: tsum.workspaceName || '', admin: teamRoleAdmin(tsum.role), onClose: () => setTeamSheet(false),
+            onDone: (name) => {
+              setTeamSheet(false); setTeamView(teamRoleAdmin(tsum.role) ? 'approved' : 'mine'); setTeamVer((n) => n + 1); loadTeam()
+              setNotice({ kind: 'ok', text: t(teamRoleAdmin(tsum.role) ? 'tm.n.added' : 'tm.n.proposed', { name }) })
+            }
+          })
           if (modal === 'create') return h(CreateModal, { roots, busy, onClose: () => setModal(null), onSubmit: (form) => {
             setBusy((m) => ({ ...m, __modal: true }))
             postJson('/kybernos-skills/create', form).then((j) => {
@@ -1241,19 +1489,19 @@ window.__ModuleLoader__.load({
 
         const body = detail !== null
           ? renderDetail()
-          : h('div', null, mode === 'yours' ? renderYours() : renderDiscover())
+          : h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover()))
 
         // (01/10) Même en-tête que « Connections » : titre + sous-titre à gauche, action principale à droite, puis une
         // rangée de contrôle (sous-onglets à gauche, recherche / filtre / tri à droite).
         const capTxt = detail !== null ? t('cap.detail') : (mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length })
-          : (discKind === 'search' ? t('cap.search') : t('cap.rank')))
+          : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank'))))
         return h('div', { className: 'kbs-root' },
           h('div', { className: 'kbs-top' },
             h('div', { className: 'kbs-top-txt' },
               h('h2', { className: 'kbs-h1' }, 'Skills'),
               h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
-            detail === null ? renderAdd() : null),
+            detail === null && mode !== 'team' ? renderAdd() : null),
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Même capsule que les sous-onglets de « Connections » (Vos connexions / Découvrir) : un seul langage.
@@ -1261,8 +1509,11 @@ window.__ModuleLoader__.load({
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
                 h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null) } },
-                  'Discover ', h('span', { className: 'count' }, disc !== null && Array.isArray(disc.skills) ? String(disc.skills.length) : '—')))),
-            detail === null ? renderToolbar() : null),
+                  'Discover ', h('span', { className: 'count' }, disc !== null && Array.isArray(disc.skills) ? String(disc.skills.length) : '—')),
+                tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setTeamOpen(null) } },
+                  'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
+                  tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
+            mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : (detail === null ? renderToolbar() : null)),
           h('div', { className: 'kb8-page' }, body),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
@@ -1332,6 +1583,439 @@ window.__ModuleLoader__.load({
                 type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true,
                 onClick: () => props.onSubmit({ source: source.trim(), name: name.trim(), root })
               }, icon('github', 15), props.busy.__modal === true ? t('m.downloading') : t('btn.install')))))
+      }
+
+      // ── Team skills ─────────────────────────────────────────────────────────────
+      // The Team tab (docs/dev/team-skills-contract.md, maquette « Skills Team catalogue »). The server half is
+      // /kybernos-cloud/team/skills* (kybernos-cloud, the account token and the active workspace); the disk half is
+      // /kybernos-skills/team/pack and /team/install. This page carries the files from one to the other, so neither plugin imports
+      // the other and no skill content is kept anywhere.
+      const TEAM_LOCKS = { non_connecte: 'signin', 'non connecte': 'signin', offre_requise: 'plan', aucun_espace: 'space', not_on_this_server: 'server', reconnect_required: 'reconnect', network: 'net' }
+      const teamLockOf = (code) => (TEAM_LOCKS[code] !== undefined ? TEAM_LOCKS[code] : 'other')
+      const TEAM_SCRIPT_RE = /\.(?:sh|bash|zsh|fish|py|rb|pl|php|js|mjs|cjs|ts|ps1|bat|cmd)$/i
+      // Shown to the reviewer, who must see that a skill comes with something that runs.
+      const teamScripts = (files) => files.filter((f) => TEAM_SCRIPT_RE.test(f.path) || /^scripts?\//i.test(f.path) || String(f.content).startsWith('#!')).map((f) => f.path)
+      const byteLen = (s) => { try { return new TextEncoder().encode(String(s)).length } catch (e) { return String(s).length } }
+      const kbOf = (n) => { const v = n / 1024; return v < 10 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v)) }
+      const sizeOf = (n) => (n < 1024 ? String(n) + ' B' : kbOf(n) + ' KB')
+      const shortV = (v) => String(v === null || v === undefined ? '' : v).slice(0, 7)
+      const teamRoleAdmin = (role) => role === 'owner' || role === 'admin'
+
+      // One word of the server or of the disk half → a sentence. A word nobody planned is still shown, with its code.
+      const teamWord = (j) => {
+        const code = j !== null && j !== undefined && typeof j === 'object' && typeof j.error === 'string' ? j.error : 'other'
+        const key = 'tm.e.' + code
+        if (STR[key] !== undefined) return t(key, { reason: j.reason || '?', file: j.file || '?', code })
+        return t('tm.e.other', { code })
+      }
+      const packWord = (j) => {
+        const f = j.file || ''
+        if (j.error === 'scan_rejected' || j.reason === 'scan_rejected') return t('tm.p.bad.secret', { file: f, line: j.line || '?' })
+        if (j.error === 'skill_disabled') return t('tm.p.bad.disabled')
+        const by = { binary: 'tm.p.bad.binary', file_too_large: 'tm.p.bad.big', too_many_files: 'tm.p.bad.many', too_large: 'tm.p.bad.total', bad_path: 'tm.p.bad.path', frontmatter: 'tm.p.bad.frontmatter', name: 'tm.p.bad.name', no_skill_md: 'tm.p.bad.nofile' }
+        if (by[j.reason] !== undefined) return t(by[j.reason], { file: f })
+        if (j.error === 'skill_not_found' || j.error === 'root_not_allowed') return teamWord(j)
+        return t('tm.p.bad.other', { code: j.reason || j.error || '?' })
+      }
+
+      // A small line diff for a reviewer: changed lines with two lines of context. null when a file is too long to compare.
+      const lineDiff = (aText, bText) => {
+        const a = String(aText).split('\n')
+        const b = String(bText).split('\n')
+        if (a.length > 1200 || b.length > 1200) return null
+        const n = a.length
+        const m = b.length
+        const dp = []
+        for (let i = 0; i <= n; i++) dp.push(new Uint16Array(m + 1))
+        for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--) dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+        const out = []
+        let i = 0
+        let j = 0
+        while (i < n && j < m) {
+          if (a[i] === b[j]) { out.push([' ', a[i]]); i++; j++ } else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push(['-', a[i]]); i++ } else { out.push(['+', b[j]]); j++ }
+        }
+        while (i < n) out.push(['-', a[i++]])
+        while (j < m) out.push(['+', b[j++]])
+        const keep = out.map(() => false)
+        out.forEach((l, k) => { if (l[0] !== ' ') for (let d = -2; d <= 2; d++) if (k + d >= 0 && k + d < out.length) keep[k + d] = true })
+        const lines = []
+        let gap = false
+        out.forEach((l, k) => {
+          if (keep[k]) { if (gap && lines.length > 0) lines.push(['@', '…']); lines.push(l); gap = false } else gap = true
+        })
+        return lines
+      }
+      const codeBox = (text, diffAgainst) => {
+        if (diffAgainst === undefined || diffAgainst === null) return h('pre', { className: 'kbt-code' }, String(text))
+        const d = lineDiff(diffAgainst, text)
+        if (d === null) return h('div', { className: 'kbt-code' }, t('tm.r.tooBig'))
+        return h('pre', { className: 'kbt-code' }, d.map((l, k) => h('span', { key: k, className: l[0] === '+' ? 'add' : (l[0] === '-' ? 'del' : (l[0] === '@' ? 'gap' : null)), style: l[0] === ' ' ? { display: 'block' } : null }, (l[0] === '@' ? '' : l[0] + ' ') + l[1])))
+      }
+      const banner = (kind, ic, text) => h('div', { className: 'kbt-banner' + (kind === '' ? '' : ' ' + kind) }, icon(ic, 16), h('span', null, text))
+      const filesList = (files, sel, onPick, statuses) => h('div', { className: 'kbt-files' }, files.map((f) => {
+        const st = statuses !== undefined && statuses !== null ? statuses[f.path] : undefined
+        return h('button', {
+          key: f.path, type: 'button', className: 'kbt-file' + (sel === f.path ? ' on' : '') + (TEAM_SCRIPT_RE.test(f.path) || /^scripts?\//i.test(f.path) ? ' warn' : ''),
+          onClick: () => onPick(f.path)
+        }, icon('file', 14), h('span', { className: 'p' }, f.path), h('span', { className: 'z' }, sizeOf(byteLen(f.content))),
+        st !== undefined && st !== 'same' ? h('span', { className: 'kb8-pill ' + (st === 'removed' ? '' : 'warn') }, t(st === 'changed' ? 'tm.r.changed' : (st === 'new' ? 'tm.r.fnew' : 'tm.r.removed'))) : (f.path === 'SKILL.md' ? h('span', { className: 'kb8-pill' }, t('tm.det.entry')) : h('span', null)))
+      }))
+
+      // Why the Team tab shows nothing to do: not signed in, not on the plan, no team workspace, not on this server…
+      function TeamLocked(props) {
+        const kind = props.kind
+        const known = ['plan', 'signin', 'space', 'server', 'reconnect', 'net'].indexOf(kind) >= 0
+        const retriable = kind === 'net' || kind === 'other' || kind === 'reconnect'
+        return h('div', { className: 'kb-empty' }, icon(kind === 'plan' || kind === 'signin' || kind === 'space' ? 'lock' : 'alert', 24),
+          h('span', { className: 'kb8-name' }, t(known ? 'tm.lock.' + kind + '.t' : 'tm.lock.other.t')),
+          h('span', { className: 'kb8-parent', style: { maxWidth: '520px' } }, known ? t('tm.lock.' + kind + '.b') : (props.detail || '')),
+          h('div', { className: 'kb-row', style: { justifyContent: 'center' } },
+            retriable ? h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onRetry }, t('tm.retry')) : null,
+            h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onBack }, t('tm.back'))))
+      }
+
+      // A local skill that can be proposed, from the catalogue: one of the two writable folders, switched on.
+      const proposable = (skills) => skills.filter((s) => s.writable === true && s.active === true)
+
+      function ProposeSheet(props) {
+        const cands = proposable(props.local)
+        const [pick, setPick] = React.useState('')
+        const [pack, setPack] = React.useState({ phase: 'idle' })
+        const [note, setNote] = React.useState('')
+        const [sending, setSending] = React.useState(false)
+        const [err, setErr] = React.useState('')
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+        const chosen = cands.filter((s) => skillKey(s) === pick)[0]
+        React.useEffect(() => {
+          if (chosen === undefined) { setPack({ phase: 'idle' }); return undefined }
+          let stop = false
+          setPack({ phase: 'loading' }); setErr('')
+          postJson('/kybernos-skills/team/pack', { root: chosen.root, name: chosen.name }).then((j) => {
+            if (stop || alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true) setPack({ phase: 'ready', data: j })
+            else setPack({ phase: 'bad', text: packWord(j !== null && typeof j === 'object' ? j : {}) })
+          }).catch(() => { if (!stop && alive.current === true) setPack({ phase: 'bad', text: t('err.unavail', { r: 'team/pack' }) }) })
+          return () => { stop = true }
+        }, [pick])
+        const submit = () => {
+          if (pack.phase !== 'ready' || sending) return
+          setSending(true); setErr('')
+          postJson('/kybernos-cloud/team/skills/add', { name: pack.data.name, description: pack.data.description, files: pack.data.files, note: note.trim() }).then((j) => {
+            if (alive.current !== true) return
+            setSending(false)
+            if (j !== null && typeof j === 'object' && j.ok === true) props.onDone(pack.data.name)
+            else setErr(teamWord(j))
+          }).catch(() => { if (alive.current === true) { setSending(false); setErr(t('tm.e.network')) } })
+        }
+        const d = pack.phase === 'ready' ? pack.data : null
+        return h('div', { className: 'kb-overlay', onClick: props.onClose },
+          h('div', { className: 'kb-modal kbt-sheet', onClick: (e) => e.stopPropagation() },
+            h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, props.admin ? t('tm.p.titleAdmin', { ws: props.ws }) : t('tm.p.title', { ws: props.ws })), h('span', { style: { flex: '1' } }),
+              h('button', { type: 'button', className: 'kb-tool', onClick: props.onClose, 'aria-label': t('m.cancel') }, '✕')),
+            h('p', { className: 'kb8-sub', style: { margin: '0' } }, props.admin ? t('tm.p.subAdmin') : t('tm.p.sub')),
+            cands.length === 0
+              ? banner('', 'info', t('tm.p.none'))
+              : h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, t('tm.p.pick')),
+                h('select', { className: 'kbs-select', value: pick, onChange: (e) => setPick(e.target.value) },
+                  h('option', { value: '' }, t('tm.p.choose')),
+                  cands.map((s) => h('option', { key: skillKey(s), value: skillKey(s) }, s.name + ' · ' + s.root))),
+                chosen !== undefined && chosen.description !== '' ? h('span', { className: 'kbt-cap' }, chosen.description) : null),
+            pack.phase === 'loading' ? h('span', { className: 'kb8-mono' }, t('tm.p.packing')) : null,
+            pack.phase === 'bad' ? banner('err', 'alert', pack.text) : null,
+            d !== null ? h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, t('tm.p.send')),
+              filesList(d.files, '', () => {}, null)) : null,
+            d !== null ? h('div', { className: 'kbt-kv' }, h('span', { className: 'k' }, t('tm.p.checks')),
+              h('span', { className: 'kb8-pills' },
+                h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.name')),
+                h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.text')),
+                h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.secret')),
+                h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.size', { n: d.count, kb: kbOf(d.bytes) })))) : null,
+            d !== null && d.scripts.length > 0 ? banner('warn', 'alert', t('tm.script') + ' : ' + d.scripts.join(', ')) : null,
+            h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, props.admin ? t('tm.p.noteAdmin') : t('tm.p.note')),
+              h('textarea', { className: 'kbs-area', style: { minHeight: '70px', fontFamily: 'inherit', fontSize: '13px' }, value: note, maxLength: 280, onChange: (e) => setNote(e.target.value) })),
+            err !== '' ? h('div', { className: 'kbs-err' }, err) : null,
+            h('div', { className: 'kbs-actions' },
+              h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
+              h('button', { type: 'button', className: 'kb8-primary', disabled: pack.phase !== 'ready' || sending, onClick: submit },
+                sending ? t('tm.p.sending') : (props.admin ? t('tm.p.submitAdmin') : t('tm.p.submit')))),
+            h('span', { className: 'kbt-cap' }, t('tm.p.foot'))))
+      }
+
+      // The admin's queue: every proposal with its files (and what changed since the approved version) BEFORE the decision.
+      function TeamReviewCard(props) {
+        const s = props.skill
+        const [st, setSt] = React.useState({ phase: 'loading', files: [], base: null })
+        const [sel, setSel] = React.useState('')
+        const [rejecting, setRejecting] = React.useState(false)
+        const [why2, setWhy2] = React.useState('')
+        const [busy, setBusy] = React.useState(false)
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+        React.useEffect(() => {
+          let stop = false
+          const one = (id) => getJson('/kybernos-cloud/team/skills/item?id=' + encodeURIComponent(id))
+          Promise.all([one(s.id), s.replaces !== null && s.replaces !== undefined ? one(s.replaces) : Promise.resolve(null)]).then(([a, b]) => {
+            if (stop || alive.current !== true) return
+            if (a === null || a.ok !== true || !Array.isArray(a.skill.files)) { setSt({ phase: 'error', files: [], base: null, error: teamWord(a) }); return }
+            const files = a.skill.files
+            const base = b !== null && b.ok === true && Array.isArray(b.skill.files) ? b.skill.files : null
+            setSt({ phase: 'ready', files, base })
+            const changed = base === null ? null : files.filter((f) => { const o = base.filter((x) => x.path === f.path)[0]; return o === undefined || o.content !== f.content })[0]
+            setSel(changed !== undefined && changed !== null ? changed.path : (files.some((f) => f.path === 'SKILL.md') ? 'SKILL.md' : (files[0] !== undefined ? files[0].path : '')))
+          }).catch(() => { if (!stop && alive.current === true) setSt({ phase: 'error', files: [], base: null, error: t('tm.e.network') }) })
+          return () => { stop = true }
+        }, [s.id])
+        const decide = (decision) => {
+          if (busy) return
+          setBusy(true)
+          const payload = { id: s.id, decision }
+          if (decision === 'reject' && why2.trim() !== '') payload.note = why2.trim()
+          postJson('/kybernos-cloud/team/skills/review', payload).then((j) => {
+            if (alive.current !== true) return
+            setBusy(false)
+            if (j !== null && typeof j === 'object' && j.ok === true) props.onDone({ kind: 'ok', text: t(decision === 'approve' ? 'tm.n.approved' : 'tm.n.rejected', { name: s.name }) })
+            else props.onDone({ kind: 'err', text: teamWord(j) }, j !== null && typeof j === 'object' && (j.error === 'not_pending' || j.error === 'skill_not_found'))
+          }).catch(() => { if (alive.current === true) { setBusy(false); props.onDone({ kind: 'err', text: t('tm.e.network') }) } })
+        }
+        const files = st.files
+        const statuses = {}
+        let shown = files
+        if (st.base !== null) {
+          files.forEach((f) => { const o = st.base.filter((x) => x.path === f.path)[0]; statuses[f.path] = o === undefined ? 'new' : (o.content === f.content ? 'same' : 'changed') })
+          const gone = st.base.filter((o) => !files.some((f) => f.path === o.path))
+          gone.forEach((o) => { statuses[o.path] = 'removed' })
+          shown = files.concat(gone)
+        }
+        const cur = shown.filter((f) => f.path === sel)[0]
+        const baseOf = cur !== undefined && st.base !== null ? st.base.filter((x) => x.path === cur.path)[0] : undefined
+        const scripts = teamScripts(files)
+        return h('div', { className: 'kbt-card' },
+          h('div', { className: 'head' }, tile(s.name, 'pkg', 'kbs-sm'),
+            h('div', { className: 'grow' },
+              h('div', { className: 'kb-row', style: { gap: '8px' } },
+                h('span', { className: 'kb8-name' }, s.name),
+                h('span', { className: 'kb8-pill ' + (s.replaces !== null && s.replaces !== undefined ? 'info' : 'ok') }, s.replaces !== null && s.replaces !== undefined ? t('tm.r.updateOf') : t('tm.r.new')),
+                scripts.length > 0 ? h('span', { className: 'kb8-pill warn' }, t('tm.script')) : null,
+                h('span', { className: 'kb8-pill' }, shortV(s.version))),
+              h('span', { className: 'kb8-parent' }, t('tm.r.by', { a: s.proposedName || '—', d: s.proposedAt ? today(s.proposedAt) : '' }) + (s.note ? ' · “' + s.note + '”' : '')),
+              s.replaces !== null && s.replaces !== undefined && st.base !== null ? h('span', { className: 'kbt-cap' }, t('tm.r.replaces', { v: '#' + s.replaces })) : null),
+            h('div', { className: 'kbt-act' },
+              h('button', { type: 'button', className: 'kbt-btn danger', disabled: busy || st.phase !== 'ready', onClick: () => setRejecting(!rejecting) }, t('tm.r.reject')),
+              h('button', { type: 'button', className: 'kbt-btn solid', disabled: busy || st.phase !== 'ready', onClick: () => decide('approve') }, t('tm.r.approve')))),
+          rejecting ? h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, t('tm.r.rejectNote')),
+            h('textarea', { className: 'kbs-area', style: { minHeight: '60px', fontFamily: 'inherit', fontSize: '13px' }, value: why2, maxLength: 280, onChange: (e) => setWhy2(e.target.value) }),
+            h('div', { className: 'kbs-actions' },
+              h('button', { type: 'button', className: 'kb8-ghost', onClick: () => setRejecting(false) }, t('m.cancel')),
+              h('button', { type: 'button', className: 'kbt-btn danger', disabled: busy, onClick: () => decide('reject') }, t('tm.r.rejectYes')))) : null,
+          st.phase === 'loading' ? h('span', { className: 'kb8-mono' }, t('tm.det.loading')) : null,
+          st.phase === 'error' ? h('div', { className: 'kbs-err' }, st.error) : null,
+          st.phase === 'ready' ? h('div', { className: 'kbt-stack' },
+            filesList(shown, sel, setSel, st.base !== null ? statuses : null),
+            cur === undefined ? null : codeBox(cur.content, statuses[cur.path] === 'changed' && baseOf !== undefined ? baseOf.content : null),
+            h('span', { className: 'kbt-cap' }, t('tm.r.scan', { n: files.length, kb: kbOf(s.bytes || files.reduce((a, f) => a + byteLen(f.content), 0)) }))) : null)
+      }
+
+      // One skill, opened: its files first (what will be copied), then the install panel.
+      function TeamDetail(props) {
+        const [st, setSt] = React.useState({ phase: 'loading', skill: null, error: '' })
+        const [sel, setSel] = React.useState('')
+        const writable = props.roots
+        const [root, setRoot] = React.useState(writable.length > 0 ? writable[0].path : '')
+        const [asking, setAsking] = React.useState(false)
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+        React.useEffect(() => {
+          let stop = false
+          setSt({ phase: 'loading', skill: null, error: '' })
+          getJson('/kybernos-cloud/team/skills/item?id=' + encodeURIComponent(props.id)).then((j) => {
+            if (stop || alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && j.skill !== undefined) {
+              setSt({ phase: 'ready', skill: j.skill, error: '' })
+              setSel(j.skill.files.some((f) => f.path === 'SKILL.md') ? 'SKILL.md' : (j.skill.files[0] !== undefined ? j.skill.files[0].path : ''))
+            } else setSt({ phase: 'error', skill: null, error: teamWord(j) })
+          }).catch(() => { if (!stop && alive.current === true) setSt({ phase: 'error', skill: null, error: t('tm.e.network') }) })
+          return () => { stop = true }
+        }, [props.id, props.tick])
+        const back = h('button', { type: 'button', className: 'kb-back', onClick: props.onClose }, icon('back', 15), ' ' + t('tm.det.back'))
+        if (st.phase === 'loading') return h('div', null, back, h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.det.loading'))))
+        if (st.phase === 'error') return h('div', null, back, h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-name' }, st.error)))
+        const s = st.skill
+        const rel = props.relationOf(s)
+        const approved = s.status === 'approved'
+        const cur = s.files.filter((f) => f.path === sel)[0]
+        const scripts = teamScripts(s.files)
+        const busy = props.busy['i' + s.id] === true
+        const canInstall = approved && rel.kind !== 'own' && rel.kind !== 'installed' && !(rel.kind === 'update' && rel.edited === true)
+        const action = () => props.onInstall(s, rel, root)
+        const note = !approved ? t('tm.det.notApproved')
+          : (rel.kind === 'update' ? (rel.edited === true ? t('tm.det.editedNote') : t('tm.det.updateNote', { old: shortV(rel.local.teamVersion) }))
+            : (rel.kind === 'own' ? t('tm.det.ownNote') : (rel.kind === 'installed' ? t('tm.det.installedNote') : t('tm.det.never'))))
+        return h('div', null, back,
+          h('div', { className: 'kb-detail-head' }, tile(s.name, 'pkg', 'lg'),
+            h('div', { className: 'meta' },
+              h('div', { className: 'kb-row', style: { gap: '9px' } }, h('span', { className: 'kb8-h1', style: { fontSize: '22px' } }, s.name),
+                h('span', { className: 'kb8-pill ' + (approved ? 'ok' : (s.status === 'rejected' ? 'warn' : '')) }, t('tm.st.' + s.status)),
+                h('span', { className: 'kb8-pill' }, shortV(s.version)),
+                h('span', { className: 'kb8-pill' }, t('tm.det.count', { n: s.fileCount, size: sizeOf(s.bytes) })),
+                scripts.length > 0 ? h('span', { className: 'kb8-pill warn' }, t('tm.script')) : null),
+              h('span', { className: 'kb8-parent' }, s.description)),
+            canInstall ? h('button', { type: 'button', className: 'kb8-primary', disabled: busy, onClick: action }, icon(rel.kind === 'update' ? 'dl' : 'plus', 15), h('span', null, rel.kind === 'update' ? t('tm.update') : t('tm.install'))) : null),
+          h('span', { className: 'kb8-parent' }, s.reviewedName ? t('tm.det.approvedBy', { a: s.proposedName || '—', d: today(s.proposedAt || ''), r: s.reviewedName }) : t('tm.det.proposedBy', { a: s.proposedName || '—', d: today(s.proposedAt || '') })),
+          h('div', { className: 'kb-cols', style: { marginTop: '16px' } },
+            h('div', { className: 'kbt-stack' },
+              h('span', { className: 'kb-section-label' }, t('tm.det.files')),
+              filesList(s.files, sel, setSel, null),
+              cur === undefined ? h('span', { className: 'kb8-mono' }, t('tm.det.pick')) : codeBox(cur.content, null)),
+            h('div', { className: 'kb-panel' },
+              h('span', { className: 'kb-section-label' }, t('tm.det.into')),
+              rel.kind === 'update'
+                ? h('span', { className: 'kb8-mono' }, rel.local.root)
+                : h('select', { className: 'kbs-select', value: root, onChange: (e) => setRoot(e.target.value) },
+                  writable.length === 0 ? h('option', { value: '' }, t('m.defroot')) : writable.map((r) => h('option', { key: r.path, value: r.path }, r.path + (r.exists === true ? '' : '  ' + t('m.willCreate'))))),
+              h('span', { className: 'kb-section-label', style: { marginTop: '4px' } }, t('tm.det.checks')),
+              h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('shield', 15)), h('span', null, t('tm.det.chk1', { v: shortV(s.version) }))),
+              h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('folder', 15)), h('span', null, t('tm.det.chk2'))),
+              h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('code', 15)), h('span', null, t('tm.det.chk3'))),
+              canInstall ? h('button', { type: 'button', className: 'kb8-primary', disabled: busy, style: { justifyContent: 'center' }, onClick: action }, rel.kind === 'update' ? t('tm.update') : t('tm.install')) : null,
+              h('span', { className: 'kbt-cap' }, note),
+              props.admin && approved
+                ? (asking
+                  ? h('div', { className: 'kbs-fields' }, h('span', { className: 'kbt-cap' }, t('tm.det.retireAsk', { name: s.name })),
+                    h('div', { className: 'kbs-actions' },
+                      h('button', { type: 'button', className: 'kb8-ghost', onClick: () => setAsking(false) }, t('m.cancel')),
+                      h('button', { type: 'button', className: 'kbt-btn danger', onClick: () => props.onRetire(s) }, t('tm.det.retireYes'))))
+                  : h('button', { type: 'button', className: 'kbt-btn danger', style: { alignSelf: 'flex-start' }, onClick: () => setAsking(true) }, t('tm.retire')))
+                : null)))
+      }
+
+      // The tab: sub-views, the table, the queue, the opened skill. `sum` is what the parent already knows (role, counts, workspace).
+      function TeamSkills(props) {
+        const sum = props.sum
+        const admin = teamRoleAdmin(sum.role)
+        const view = props.view
+        const setView = props.onView
+        const [list, setList] = React.useState({ phase: 'loading', skills: [], error: '' })
+        const [tick, setTick] = React.useState(0)
+        const [busy, setBusy] = React.useState({})
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+        const reload = () => { setTick((n) => n + 1); props.onSummary() }
+        React.useEffect(() => {
+          if (admin !== true && (view === 'proposed' || view === 'retired')) { setView('approved'); return undefined }
+          if (admin === true && view === 'mine') { setView('approved'); return undefined }
+          let stop = false
+          setList((m) => ({ ...m, phase: 'loading' }))
+          getJson('/kybernos-cloud/team/skills?view=' + (view === 'retired' ? 'all' : view) + '&limit=200').then((j) => {
+            if (stop || alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.skills)) {
+              setList({ phase: 'ready', skills: view === 'retired' ? j.skills.filter((s) => s.status === 'retired') : j.skills, error: '' })
+            } else setList({ phase: 'error', skills: [], error: teamWord(j) })
+          }).catch(() => { if (!stop && alive.current === true) setList({ phase: 'error', skills: [], error: t('tm.e.network') }) })
+          return () => { stop = true }
+        }, [view, tick, props.ver])
+
+        // What this machine already has under that name: nothing, the team's skill (same or older version, edited or not), or the user's own.
+        const relationOf = (s) => {
+          const here = props.local.filter((x) => x.name === s.name && x.writable === true)
+          if (here.length === 0) return { kind: 'install' }
+          const l = here.filter((x) => typeof x.teamVersion === 'string')[0]
+          if (l === undefined) return { kind: 'own', local: here[0] }
+          if (l.teamVersion === s.version) return { kind: 'installed', local: l }
+          return { kind: 'update', local: l, edited: l.teamModified === true }
+        }
+        const install = async (s, rel, root) => {
+          const k = 'i' + s.id
+          if (busy[k] === true) return
+          setBusy((m) => ({ ...m, [k]: true }))
+          try {
+            const item = await getJson('/kybernos-cloud/team/skills/item?id=' + encodeURIComponent(s.id))
+            if (item === null || item.ok !== true || !Array.isArray(item.skill.files)) { props.notify({ kind: 'err', text: teamWord(item) }); return }
+            const update = rel.kind === 'update'
+            const res = await postJson('/kybernos-skills/team/install', { root: update ? rel.local.root : root, name: s.name, version: item.skill.version, files: item.skill.files, teamId: s.id, replace: update })
+            if (res !== null && res.ok === true) { props.notify({ kind: 'ok', text: update ? t('tm.n.updated', { name: s.name }) : t('tm.n.installed', { name: s.name, n: res.files }) }); props.onChanged() }
+            else props.notify({ kind: 'err', text: teamWord(res) })
+          } catch (e) { props.notify({ kind: 'err', text: t('tm.e.network') }) } finally {
+            if (alive.current === true) setBusy((m) => { const n = { ...m }; delete n[k]; return n })
+          }
+        }
+        const act = async (path, body, okText, after) => {
+          try {
+            const j = await postJson(path, body)
+            if (j !== null && typeof j === 'object' && j.ok === true) { props.notify({ kind: 'ok', text: okText }); if (after) after() } else { props.notify({ kind: 'err', text: teamWord(j) }); if (j !== null && j.error === 'not_pending') reload() }
+          } catch (e) { props.notify({ kind: 'err', text: t('tm.e.network') }) }
+          reload()
+        }
+        const retire = (s) => act('/kybernos-cloud/team/skills/retire', { id: s.id }, t('tm.n.retired', { name: s.name }), () => props.onOpen(null))
+        const withdraw = (s) => act('/kybernos-cloud/team/skills/delete', { id: s.id }, t('tm.n.withdrawn'))
+
+        if (props.openId !== null) {
+          return h(TeamDetail, { id: props.openId, tick, local: props.local, roots: props.roots, admin, busy, relationOf, onInstall: install, onRetire: retire, onClose: () => props.onOpen(null) })
+        }
+
+        const counts = sum.counts || { approved: 0, pending: 0 }
+        const views = admin ? [['approved', counts.approved], ['proposed', counts.pending], ['retired', null]] : [['approved', counts.approved], ['mine', counts.pending]]
+        const names = { approved: 'tm.v.approved', mine: 'tm.v.mine', proposed: 'tm.v.review', retired: 'tm.v.retired' }
+        const needle = props.needle.trim().toLowerCase()
+        const rows = list.skills.filter((s) => needle === '' || s.name.toLowerCase().includes(needle) || s.description.toLowerCase().includes(needle))
+        const emptyKey = { approved: 'approved', mine: 'mine', proposed: 'review', retired: 'retired' }[view]
+
+        const verPills = (s, rel) => {
+          const out = []
+          if (rel !== null && rel.kind === 'update') {
+            out.push(h('span', { key: 'o', className: 'kb8-pill' }, shortV(rel.local.teamVersion)))
+            out.push(h('span', { key: 'n', className: 'kb8-pill info' }, t('tm.newer', { v: shortV(s.version) })))
+            if (rel.edited === true) out.push(h('span', { key: 'e', className: 'kb8-pill warn' }, t('tm.edited')))
+          } else out.push(h('span', { key: 'v', className: 'kb8-pill' }, shortV(s.version)))
+          return out
+        }
+        const rowActions = (s, rel) => {
+          if (view === 'mine') {
+            if (s.status === 'proposed') return [h('button', { key: 'w', type: 'button', className: 'kbt-btn', onClick: (e) => { e.stopPropagation(); withdraw(s) } }, t('tm.withdraw'))]
+            return [h('span', { key: 's', className: 'kb8-pill ' + (s.status === 'approved' ? 'ok' : (s.status === 'rejected' ? 'warn' : '')) }, t('tm.st.' + s.status))]
+          }
+          if (s.status === 'retired') return [h('span', { key: 's', className: 'kb8-pill' }, t('tm.st.retired'))]
+          const bz = busy['i' + s.id] === true
+          if (rel.kind === 'installed') return [h('span', { key: 's', className: 'kb8-pill ok' }, t('tm.installed'))]
+          if (rel.kind === 'own') return [h('span', { key: 's', className: 'kb8-pill warn', title: t('tm.det.ownNote') }, t('tm.own'))]
+          return [h('button', { key: 'i', type: 'button', className: 'kbt-btn solid', disabled: bz || (rel.kind === 'update' && rel.edited === true), title: rel.kind === 'update' && rel.edited === true ? t('tm.det.editedNote') : undefined,
+            onClick: (e) => { e.stopPropagation(); install(s, rel, (props.roots[0] || { path: '' }).path) } }, rel.kind === 'update' ? t('tm.update') : t('tm.install'))]
+        }
+        const row = (s, i) => {
+          const rel = view === 'mine' || s.status === 'retired' ? null : relationOf(s)
+          return h('div', { key: s.id, className: 'kbs-row' + (rel !== null && (rel.kind === 'installed' || rel.kind === 'update') ? ' has' : ''), onClick: () => props.onOpen(s.id) },
+            h('span', { className: 'who' }, tile(s.name, 'pkg', 'kbs-sm')),
+            h('span', { className: 'kbt-name' }, h('span', { className: 'n' }, s.name),
+              h('span', { className: 'd' }, view === 'mine' && s.status === 'rejected' ? (s.reviewNote ? t('tm.r.rejectedWith', { note: s.reviewNote }) : t('tm.r.noNote')) : s.description)),
+            h('span', { className: 'kbt-by' }, s.proposedName || '—', h('span', { className: 'd' }, s.proposedAt ? today(s.proposedAt) : '')),
+            h('span', { className: 'badges' }, verPills(s, rel)),
+            h('span', { className: 'kbt-act' }, rowActions(s, rel)))
+        }
+
+        let body
+        if (list.phase === 'loading' && list.skills.length === 0) body = h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.loading')))
+        else if (list.phase === 'error') body = h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-name' }, list.error), h('button', { type: 'button', className: 'kb8-ghost', onClick: reload }, t('tm.retry')))
+        else if (view === 'proposed') {
+          body = rows.length === 0
+            ? h('div', { className: 'kb-empty' }, icon('check', 24), h('span', { className: 'kb8-name' }, t('tm.empty.review')), h('span', { className: 'kb8-parent' }, t('tm.empty.reviewHint')))
+            : h('div', { className: 'kbt-stack' }, banner('warn', 'alert', t('tm.r.banner')),
+              rows.map((s) => h(TeamReviewCard, { key: s.id, skill: s, onDone: (notice, refresh) => { props.notify(notice); reload(); if (refresh) props.onSummary() } })))
+        } else if (rows.length === 0) {
+          body = needle !== '' ? h('div', { className: 'kb-empty' }, icon('search', 24), h('span', { className: 'kb8-name' }, t('y.noresult')), h('span', { className: 'kb8-parent' }, t('y.nofilter')))
+            : h('div', { className: 'kb-empty' }, icon('pkg', 24), h('span', { className: 'kb8-name' }, t('tm.empty.' + emptyKey)), h('span', { className: 'kb8-parent' }, t('tm.empty.' + emptyKey + 'Hint')))
+        } else {
+          body = h('div', { className: 'kbs-table kbt' + (list.phase === 'loading' ? ' loading' : '') },
+            h('div', { className: 'kbt-head' }, h('span', null), h('span', null, t('tm.th.skill')), h('span', null, t('tm.th.by')), h('span', null, t('tm.th.version')), h('span', null)),
+            rows.map(row))
+        }
+
+        return h('div', { className: 'kbt-stack' },
+          h('div', { className: 'kbt-subrow' },
+            h('nav', { className: 'kbsub' }, h('div', { className: 'kbsub-group', role: 'tablist' }, views.map((v) => h('button', {
+              key: v[0], type: 'button', role: 'tab', 'aria-selected': view === v[0] ? 'true' : 'false', className: 'kb-seg' + (view === v[0] ? ' on' : ''), onClick: () => setView(v[0])
+            }, t(names[v[0]]) + ' ', v[1] === null ? null : h('span', { className: 'count' }, String(v[1])), v[0] === 'proposed' && counts.pending > 0 ? h('span', { className: 'kbt-dot' }) : null)))),
+            h('span', { className: 'kb8-mono', style: { flex: 'none', textAlign: 'left' } }, t(admin ? 'tm.who.admin' : 'tm.who.member', { ws: sum.workspaceName || '' }))),
+          body)
       }
 
       // Feuille de style posee UNE fois, par identifiant, et rafraichie a chaque

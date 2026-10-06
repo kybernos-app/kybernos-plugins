@@ -231,6 +231,69 @@ try {
     ok('a folder that cannot be written is reported as write_failed and leaves nothing behind')
   }
 
+  // 5b-bis. what an install remembers, what the catalogue says, and the one case where an install replaces a folder
+  const registryFor = (...roots) => ({
+    async snapshot () {
+      const skills = []
+      for (const root of roots) {
+        let names = []
+        try { names = readdirSync(root) } catch (e) { names = [] }
+        for (const n of names) if (!n.startsWith('.') && existsSync(join(root, n, 'SKILL.md'))) skills.push({ name: n, path: join(root, n, 'SKILL.md'), source: root === dshSkills ? 'user-dsh' : 'user-agents', description: 'd' })
+      }
+      return { complete: true, skills }
+    },
+    invalidateCache () {}
+  })
+  const regCtx = { get: (n) => (n === 'skills' ? registryFor(dshSkills, agentsSkills) : undefined) }
+  const entryOf = async (root, name) => (await mod.catalogueOf(regCtx, config)).skills.find((x) => x.root === root && x.name === name)
+
+  const mark = JSON.parse(readFileSync(join(agentsSkills, 'release-notes', '.kybernos-team.json'), 'utf8'))
+  assert.deepEqual([mark.version, mark.id], [packed.version, null])
+  assert.match(mark.installedAt, /^\d{4}-\d\d-\d\dT/)
+  const own = await entryOf(dshSkills, 'release-notes')
+  assert.deepEqual([own.teamVersion, own.teamModified], [null, null], 'a skill the user wrote carries no team version')
+  const fromTeam = await entryOf(agentsSkills, 'release-notes')
+  assert.equal(fromTeam.teamVersion, packed.version)
+  assert.equal(fromTeam.teamModified, true, 'it was edited by hand just above (style-guide.md)')
+  ok('an install leaves a hidden mark with the version; the catalogue tells a team skill from the user\'s own, and an edited one from a pristine one')
+
+  // an update: a newer version over an untouched team skill
+  const v1 = [{ path: 'SKILL.md', content: skillMd('sql-review', 'Reviews SQL') }, { path: 'rules.md', content: 'one\n' }]
+  const v2 = [{ path: 'SKILL.md', content: skillMd('sql-review', 'Reviews SQL, now with indexes') }, { path: 'rules.md', content: 'one\ntwo\n' }, { path: 'new.md', content: 'x\n' }]
+  const i1 = await mod.installTeamSkill({ ctx, root: dshSkills, name: 'sql-review', version: skillVersion(v1), files: v1, teamId: 14, config })
+  assert.equal(i1.ok, true, JSON.stringify(i1))
+  assert.equal(i1.replaced, false)
+  assert.deepEqual(JSON.parse(readFileSync(join(dshSkills, 'sql-review', '.kybernos-team.json'), 'utf8')).id, 14)
+  const pristine = await entryOf(dshSkills, 'sql-review')
+  assert.deepEqual([pristine.teamVersion, pristine.teamModified], [skillVersion(v1), false])
+  const noReplace = await mod.installTeamSkill({ ctx, root: dshSkills, name: 'sql-review', version: skillVersion(v2), files: v2, config })
+  assert.equal(noReplace.error, 'exists', 'without replace, even a team skill is not touched')
+  const i2 = await mod.installTeamSkill({ ctx, root: dshSkills, name: 'sql-review', version: skillVersion(v2), files: v2, teamId: 15, replace: true, config })
+  assert.deepEqual([i2.ok, i2.replaced, i2.skill.description], [true, true, 'Reviews SQL, now with indexes'])
+  assert.equal(readFileSync(join(dshSkills, 'sql-review', 'rules.md'), 'utf8'), 'one\ntwo\n')
+  assert.equal(readFileSync(join(dshSkills, 'sql-review', 'new.md'), 'utf8'), 'x\n')
+  assert.deepEqual(readdirSync(dshSkills).filter((n) => n.startsWith('.')), [], 'no staging or parked folder is left')
+  const updated = await entryOf(dshSkills, 'sql-review')
+  assert.deepEqual([updated.teamVersion, updated.teamModified], [skillVersion(v2), false])
+  ok('replace swaps an untouched team skill for a newer version in one step, leaving nothing behind')
+
+  // the cases where it must NOT replace
+  writeFileSync(join(dshSkills, 'sql-review', 'rules.md'), 'my own rule\n')
+  const v3 = [{ path: 'SKILL.md', content: skillMd('sql-review', 'v3') }]
+  const touched = await mod.installTeamSkill({ ctx, root: dshSkills, name: 'sql-review', version: skillVersion(v3), files: v3, replace: true, config })
+  assert.deepEqual([touched.ok, touched.error], [false, 'modified'])
+  assert.equal(readFileSync(join(dshSkills, 'sql-review', 'rules.md'), 'utf8'), 'my own rule\n', 'a team skill edited by hand is left as it is')
+  writeFileSync(join(dshSkills, 'sql-review', 'extra.md'), 'a file I added\n')
+  assert.equal((await mod.installTeamSkill({ ctx, root: dshSkills, name: 'sql-review', version: skillVersion(v3), files: v3, replace: true, config })).error, 'modified', 'an added file counts as an edit too')
+  const ownV = [{ path: 'SKILL.md', content: skillMd('release-notes', 'theirs') }]
+  const mine = await mod.installTeamSkill({ ctx, root: dshSkills, name: 'release-notes', version: skillVersion(ownV), files: ownV, replace: true, config })
+  assert.deepEqual([mine.ok, mine.error], [false, 'exists'])
+  assert.match(readFileSync(join(dshSkills, 'release-notes', 'SKILL.md'), 'utf8'), /Drafts release notes/, 'the user\'s own skill is never replaced, replace or not')
+  writeFileSync(join(dshSkills, 'sql-review', '.kybernos-team.json'), '{"version":"not a hash"}')
+  assert.equal((await mod.installTeamSkill({ ctx, root: dshSkills, name: 'sql-review', version: skillVersion(v3), files: v3, replace: true, config })).error, 'exists', 'a broken mark proves nothing')
+  assert.deepEqual(readdirSync(dshSkills).filter((n) => n.startsWith('.')), [])
+  ok('replace refuses a team skill that was edited or added to, the user\'s own skill, and a folder whose mark is not a version')
+
   // 5c. the two POST routes, through apply() on a fake context (the guard comes first, the disk after)
   const routes = {}
   mod.apply({ inject (deps, fn) { fn({ get: (n) => (n === 'webServer' ? { register: (r) => { routes[r.path] = r.handler } } : {}), effect: (f) => f() }) } })
