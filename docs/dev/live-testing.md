@@ -524,6 +524,24 @@ it by itself (hot reload, no restart), tests it, switches it off and on, renames
 run against 127.0.0.1:3080** unless `--allow-real` (it writes the profile and the `.env`). Exit 0 / 1 / 3
 (inconclusive).
 
+## Kybernos connections: `scripts/check-connections-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # an isolated instance serving this checkout
+node scripts/check-connections-live.mjs [--shots <dir>]
+```
+
+The « Kybernos connections » mode of the Connectors page against a **stand-in server that speaks ADR 0008 of the Kybernos
+server** (the real one is not built yet). It writes into the isolated instance only (a server entry whose
+`services.connections` points at the stand-in, and a connection file with a made-up token; both are put back) and **refuses
+to run against 127.0.0.1:3080 or without an isolated `DSH_HOME`**. The host half is read at start: restart the sandbox after a
+host edit. It plays: the mode switch only when the server offers connections, the list with its states and the quota, row
+actions hidden until hover, a pending connection that turns active by itself, adding an OAuth app (what the stand-in
+receives, and nothing else), adding an app with an API key (the key reaches the stand-in once and is on no later call, on
+the page or in the browser's storage), a refused add that may have gone through (one call, then « check the list »), a
+second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
+(and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
+
 ## Traps
 
 - **These scripts are deliberately NOT named `test-*.mjs`.** CI runs every

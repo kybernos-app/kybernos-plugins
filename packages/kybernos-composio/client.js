@@ -318,6 +318,79 @@ window.__ModuleLoader__.load({
       'kb.cp.imp.done': { fr: '{n} serveur(s) importé(s). DSH les charge dans quelques secondes.', en: '{n} server(s) imported. DSH loads them in a few seconds.' },
       'kb.cp.imp.failed': { fr: 'Échec pour {name} : {why}', en: 'Failed for {name}: {why}' },
       'kb.cp.imp.none': { fr: 'Rien à importer.', en: 'Nothing to import.' },
+      'kb.cp.kc.mode.label': { fr: 'Mode', en: 'Mode' },
+      'kb.cp.kc.mode.personal': { fr: 'Ma clé Composio', en: 'My Composio key' },
+      'kb.cp.kc.mode.kybernos': { fr: 'Connexions Kybernos', en: 'Kybernos connections' },
+      'kb.cp.kc.mode.hint.personal': { fr: 'Vos comptes Composio, avec votre propre clé, sur cette machine.', en: 'Your Composio accounts, with your own key, on this machine.' },
+      'kb.cp.kc.mode.hint.kybernos': { fr: 'Vos apps reliées à votre compte Kybernos : tous vos agents les utilisent, sans clé sur cette machine.', en: 'Your apps linked to your Kybernos account: all your agents use them, with no key on this machine.' },
+      'kb.cp.kc.add': { fr: 'Connecter une app', en: 'Connect an app' },
+      'kb.cp.kc.meter': { fr: '{count} sur {limit} connexions', en: '{count} of {limit} connections' },
+      'kb.cp.kc.meter.nolimit': { fr: '{count} connexion(s)', en: '{count} connection(s)' },
+      'kb.cp.kc.meter.note': { fr: 'Une demande en attente compte aussi.', en: 'A pending request counts too.' },
+      'kb.cp.kc.full': { fr: 'Limite atteinte ({limit} sur {limit}) : retirez une connexion pour en ajouter. Le maximum dépend de votre offre.', en: 'Limit reached ({limit} of {limit}): remove a connection to add one. The maximum depends on your plan.' },
+      'kb.cp.kc.empty': { fr: 'Aucune app connectée. Connectez Gmail, GitHub ou Slack : vos agents pourront les utiliser aussitôt.', en: 'No app connected. Connect Gmail, GitHub or Slack: your agents can use them right away.' },
+      'kb.cp.kc.st.active': { fr: 'Actif', en: 'Active' },
+      'kb.cp.kc.st.pending': { fr: 'En attente', en: 'Pending' },
+      'kb.cp.kc.st.failed': { fr: 'Échec', en: 'Failed' },
+      'kb.cp.kc.st.expired': { fr: 'Expirée', en: 'Expired' },
+      'kb.cp.kc.st.disabled': { fr: 'Désactivée', en: 'Disabled' },
+      'kb.cp.kc.st.unknown': { fr: 'Inconnu', en: 'Unknown' },
+      'kb.cp.kc.type.api_key': { fr: 'clé API', en: 'API key' },
+      'kb.cp.kc.default': { fr: 'par défaut', en: 'default' },
+      'kb.cp.kc.pend': { fr: 'Terminez dans l’onglet ouvert chez {app}. Cette ligne se met à jour toute seule.', en: 'Finish in the tab opened at {app}. This row updates by itself.' },
+      'kb.cp.kc.pend.sub': { fr: 'Vérifié toutes les 5 s, pendant 10 minutes au plus. Onglet fermé ? Annulez et recommencez.', en: 'Checked every 5 s, for 10 minutes at most. Tab closed? Cancel and start again.' },
+      'kb.cp.kc.pend.open': { fr: 'Ouvrir la page d’autorisation', en: 'Open the authorization page' },
+      'kb.cp.kc.pend.timeout': { fr: 'Toujours en attente après 10 minutes. Annulez et recommencez.', en: 'Still pending after 10 minutes. Cancel and start again.' },
+      'kb.cp.kc.failed.refused': { fr: '{app} a refusé la connexion.', en: '{app} refused the connection.' },
+      'kb.cp.kc.failed.upstream': { fr: '{app} n’a pas répondu.', en: '{app} did not answer.' },
+      'kb.cp.kc.failed.unknown': { fr: 'La connexion a échoué.', en: 'The connection failed.' },
+      'kb.cp.kc.failed.hint': { fr: 'Réessayez : la tentative est retirée et une nouvelle commence.', en: 'Try again: the attempt is removed and a new one starts.' },
+      'kb.cp.kc.expired': { fr: 'L’accord n’est plus valable. Les agents ne peuvent plus utiliser ce compte tant qu’il n’est pas reconnecté.', en: 'The authorization is no longer valid. Agents cannot use this account until it is reconnected.' },
+      'kb.cp.kc.disabled': { fr: 'Ce compte est désactivé chez Composio. Reconnectez-le pour le réutiliser.', en: 'This account is switched off at Composio. Reconnect it to use it again.' },
+      'kb.cp.kc.act.cancel': { fr: 'Annuler', en: 'Cancel' },
+      'kb.cp.kc.act.cancelreq': { fr: 'Annuler cette demande', en: 'Cancel that request' },
+      'kb.cp.kc.act.retry': { fr: 'Réessayer', en: 'Try again' },
+      'kb.cp.kc.act.reconnect': { fr: 'Reconnecter', en: 'Reconnect' },
+      'kb.cp.kc.act.remove': { fr: 'Retirer', en: 'Remove' },
+      'kb.cp.kc.del.confirm': { fr: 'Retirer {name} ? Les agents n’y auront plus accès, et le compte est aussi retiré chez Composio. Il faudra le reconnecter pour le retrouver.', en: 'Remove {name}? Agents lose access to it, and the account is removed at Composio too. You would have to connect it again.' },
+      'kb.cp.kc.done.removed': { fr: 'Connexion retirée.', en: 'Connection removed.' },
+      'kb.cp.kc.done.active': { fr: '{app} est connecté.', en: '{app} is connected.' },
+      'kb.cp.kc.done.opened': { fr: 'Onglet ouvert chez {app}. Terminez-y votre accord.', en: 'Tab opened at {app}. Finish your authorization there.' },
+      'kb.cp.kc.m.title': { fr: 'Connecter une app', en: 'Connect an app' },
+      'kb.cp.kc.m.search': { fr: 'Chercher une app', en: 'Search an app' },
+      'kb.cp.kc.m.noapps': { fr: 'Aucune app ne correspond.', en: 'No matching app.' },
+      'kb.cp.kc.m.alias': { fr: 'Nom de la connexion (facultatif)', en: 'Connection name (optional)' },
+      'kb.cp.kc.m.alias.hint': { fr: 'Utile si vous connectez deux comptes {app}.', en: 'Useful if you connect two {app} accounts.' },
+      'kb.cp.kc.m.key': { fr: 'Clé API {app}', en: '{app} API key' },
+      'kb.cp.kc.m.key.hint': { fr: 'Envoyée une seule fois au serveur Kybernos, qui la transmet à Composio. Elle n’est enregistrée nulle part et n’est plus jamais affichée.', en: 'Sent once to the Kybernos server, which passes it to Composio. It is stored nowhere and never shown again.' },
+      'kb.cp.kc.m.oauth': { fr: 'Vous serez envoyé chez {app} dans un nouvel onglet pour donner votre accord. Revenez ici ensuite : la liste se met à jour toute seule.', en: 'You will be sent to {app} in a new tab to give your authorization. Come back here afterwards: the list updates by itself.' },
+      'kb.cp.kc.m.go': { fr: 'Continuer chez {app}', en: 'Continue at {app}' },
+      'kb.cp.kc.m.go.key': { fr: 'Connecter', en: 'Connect' },
+      'kb.cp.kc.m.used': { fr: '{count} sur {limit} connexions utilisées.', en: '{count} of {limit} connections used.' },
+      'kb.cp.kc.check': { fr: 'Vérifiez la liste avant de réessayer.', en: 'Check the list before trying again.' },
+      'kb.cp.kc.check.go': { fr: 'Vérifier la liste', en: 'Check the list' },
+      'kb.cp.kc.stale': { fr: 'La liste est peut-être périmée : le serveur n’a pas pu joindre Composio à l’instant, il montre ce qu’il savait.', en: 'The list may be out of date: the server could not reach Composio just now and shows what it knew.' },
+      'kb.cp.kc.refresh': { fr: 'Actualiser', en: 'Refresh' },
+      'kb.cp.kc.signin.title': { fr: 'Connectez votre compte Kybernos.', en: 'Connect your Kybernos account.' },
+      'kb.cp.kc.signin.body': { fr: 'Vos apps sont reliées à votre compte, pas à cette machine : une fois connectées, tous vos agents les utilisent, ici comme ailleurs.', en: 'Your apps are linked to your account, not to this machine: once connected, all your agents use them, here and elsewhere.' },
+      'kb.cp.kc.signin.go': { fr: 'Connecter mon compte Kybernos', en: 'Connect my Kybernos account' },
+      'kb.cp.kc.signin.wait': { fr: 'En attente de votre accord dans l’onglet ouvert…', en: 'Waiting for your approval in the opened tab…' },
+      'kb.cp.kc.signin.code': { fr: 'Code : {code}', en: 'Code: {code}' },
+      'kb.cp.kc.signin.open': { fr: 'Ouvrir la page', en: 'Open the page' },
+      'kb.cp.kc.err.signin_failed': { fr: 'La connexion du compte n’a pas abouti : réessayez.', en: 'Connecting the account did not work: try again.' },
+      'kb.cp.kc.err.reconnect_required': { fr: 'Votre session Kybernos a pris fin. Connectez votre compte à nouveau.', en: 'Your Kybernos session has ended. Connect your account again.' },
+      'kb.cp.kc.err.network': { fr: 'Le serveur Kybernos est injoignable. Réessayez dans un instant.', en: 'The Kybernos server cannot be reached. Try again in a moment.' },
+      'kb.cp.kc.err.connection_limit': { fr: 'Limite atteinte ({count} sur {limit}). Retirez une connexion pour en ajouter.', en: 'Limit reached ({count} of {limit}). Remove a connection to add one.' },
+      'kb.cp.kc.err.pending_exists': { fr: 'Une connexion {app} attend déjà votre accord. Terminez-la, ou annulez-la pour en commencer une autre.', en: 'A {app} connection is already waiting for your authorization. Finish it, or cancel it to start another.' },
+      'kb.cp.kc.err.needs_api_key': { fr: 'Cette app se connecte avec une clé API : collez-la dans le champ ci-dessous.', en: 'This app connects with an API key: paste it in the field below.' },
+      'kb.cp.kc.err.upstream_unavailable': { fr: 'Le serveur n’a pas pu joindre Composio. Un instant, puis réessayez.', en: 'The server could not reach Composio. Wait a moment, then try again.' },
+      'kb.cp.kc.err.upstream_check': { fr: 'Le serveur n’a pas répondu à temps : la connexion a peut-être été créée.', en: 'The server did not answer in time: the connection may have been created.' },
+      'kb.cp.kc.err.connections_disabled': { fr: 'Ce serveur n’offre pas les connexions pour le moment.', en: 'This server does not offer connections right now.' },
+      'kb.cp.kc.err.not_found': { fr: 'Cette connexion n’existe plus.', en: 'This connection no longer exists.' },
+      'kb.cp.kc.err.too_many_requests': { fr: 'Trop de demandes d’un coup. Patientez un instant.', en: 'Too many requests at once. Wait a moment.' },
+      'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifiez l’app et la clé.', en: 'Request refused: check the app and the key.' },
+      'kb.cp.kc.err.forbidden': { fr: 'Ce compte ne peut pas utiliser les connexions.', en: 'This account cannot use connections.' },
+      'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
     }
 
     const kbt = (key) => {
@@ -395,8 +468,6 @@ window.__ModuleLoader__.load({
       if (c === '502' || c === '503' || c === '504') return kbt('kb.cp.err.gateway').replace('{code}', c)
       return kbt('kb.cp.err.other').replace('{code}', c.length > 0 ? c : '?')
     }
-    /** The text for an error thrown by the MCP client: its code when it has one, else its message. */
-    const kbCpErrOf = (e) => (e !== null && e !== undefined && typeof e.code === 'string' && e.code.length > 0 ? kbCpErrText(e.code) : String((e && e.message) || e))
     /**
      * What the key panel shows, from GET /key and GET /connections?toolkits=gmail (the second says whether
      * Composio accepts the key; null when it did not answer). Returns null when the host plugin does not
@@ -534,6 +605,98 @@ window.__ModuleLoader__.load({
       pencil: ['M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z'],
       info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-5', 'M12 8h.01'],
     }
+    // ── Kybernos connections: the second mode of "Yours" (ADR 0008 of the Kybernos server) ──────────────────────
+    // The person's apps, linked once to their Kybernos account through the server's own Composio project: every agent
+    // uses them, with no key on this machine. The cloud half of this machine (kybernos-cloud) holds the account's token
+    // and makes every call, the page only asks it (kbCpCloud) and shows the answer. A server that does not offer the
+    // feature, or a cloud half that is older than this page, answers nothing usable: the mode stays hidden.
+    const CLOUD = '/kybernos-cloud'
+    const KB_CP_MODE = 'kbcp.mode'
+    /** How often a pending connection is asked about, and how long: past this the row says so and offers to start again. */
+    const KC_POLL_MS = 5000
+    const KC_POLL_MAX_MS = 10 * 60 * 1000
+    /** One call to the cloud half: { status, json } (json is null when the body is not JSON). Never throws. */
+    const kbCpCloud = async (path, method, body) => {
+      try {
+        const init = { method: method || 'GET', credentials: 'same-origin' }
+        if (body !== undefined) { init.headers = { 'content-type': 'application/json' }; init.body = JSON.stringify(body) }
+        const res = await fetch(CLOUD + path, init)
+        let json = null
+        try { json = await res.json() } catch (e) { json = null }
+        return { status: res.status, json: json }
+      } catch (e) { return { status: 0, json: null } }
+    }
+    const kbCpModeGet = () => { try { return localStorage.getItem(KB_CP_MODE) === 'kybernos' ? 'kybernos' : 'personal' } catch (e) { return 'personal' } }
+    const kbCpModeSet = (m) => { try { localStorage.setItem(KB_CP_MODE, m === 'kybernos' ? 'kybernos' : 'personal') } catch (e) { /* a convenience only */ } }
+    /**
+     * What GET /kybernos-cloud/connections says, as the page uses it. null when the cloud half does not answer in that shape
+     * (an older host, or no cloud plugin): the mode is hidden. `connected` false means « sign in first ».
+     */
+    const kbCpCloudView = (r) => {
+      const j = r !== null && r !== undefined ? r.json : null
+      if (r === null || r === undefined || r.status !== 200 || j === null || typeof j !== 'object' || typeof j.ok !== 'boolean' || typeof j.offered !== 'boolean') return null
+      if (j.offered === false) return { offered: false }
+      const view = { offered: true, connected: j.connected !== false, connections: [], limit: null, count: 0, stale: false, error: null, details: {} }
+      if (j.ok === true) {
+        view.connections = Array.isArray(j.connections) ? j.connections.filter((c) => c !== null && typeof c === 'object' && typeof c.id === 'string') : []
+        view.limit = Number.isFinite(j.limit) ? j.limit : null
+        view.count = Number.isFinite(j.count) ? j.count : view.connections.length
+        view.stale = j.stale === true
+        return view
+      }
+      if (j.connected === false) return view
+      view.error = typeof j.error === 'string' && j.error.length > 0 ? j.error : 'other'
+      view.details = { limit: j.limit, count: j.count, existing: j.existing, checkFirst: j.checkFirst === true }
+      return view
+    }
+    /** The view to keep after a new answer: a failed call never empties a list we already had, nor hides a mode we already showed. */
+    const kbCpCloudMerge = (prev, next) => {
+      const had = prev !== null && prev !== undefined && prev.offered === true
+      if (next === null) return had ? Object.assign({}, prev, { error: 'network', details: {} }) : { offered: false }
+      if (next.offered !== true || next.error === null || had === false || next.connected === false) return next
+      return Object.assign({}, next, { connections: prev.connections, limit: prev.limit, count: prev.count, stale: true })
+    }
+    /** The chip of a connection: its colour family and its words. */
+    const kbCpConnState = (status) => {
+      if (status === 'active') return { kind: 'ok', key: 'kb.cp.kc.st.active' }
+      if (status === 'pending') return { kind: 'warn', key: 'kb.cp.kc.st.pending' }
+      if (status === 'failed') return { kind: 'bad', key: 'kb.cp.kc.st.failed' }
+      if (status === 'expired') return { kind: 'warn', key: 'kb.cp.kc.st.expired' }
+      if (status === 'disabled') return { kind: 'plain', key: 'kb.cp.kc.st.disabled' }
+      return { kind: 'plain', key: 'kb.cp.kc.st.unknown' }
+    }
+    /** What the person can do with a connection, by status. `redo` deletes it and links again (a pending one is only cancelled). */
+    const kbCpConnActions = (status) => {
+      if (status === 'pending') return ['cancel']
+      if (status === 'active') return ['remove']
+      if (status === 'failed') return ['retry', 'remove']
+      return ['reconnect', 'remove']
+    }
+    /** A word from the cloud half as a sentence. Never the server's own text: the cloud half only sends words. */
+    const kbCpCloudErr = (word, details) => {
+      const w = String(word === null || word === undefined ? '' : word)
+      const d = details !== null && details !== undefined && typeof details === 'object' ? details : {}
+      // An add that may have gone through is not « try again »: the sentence says to look at the list first.
+      const key = w === 'upstream_unavailable' && d.checkFirst === true ? 'kb.cp.kc.err.upstream_check' : 'kb.cp.kc.err.' + w
+      const known = STR[key] !== undefined
+      let s = known ? kbt(key) : kbt('kb.cp.kc.err.other').replace('{code}', w.length > 0 ? w : '?')
+      const existing = d.existing !== null && d.existing !== undefined && typeof d.existing === 'object' ? d.existing : {}
+      s = s.replace(/\{limit\}/g, Number.isFinite(d.limit) ? String(d.limit) : '?').replace(/\{count\}/g, Number.isFinite(d.count) ? String(d.count) : '?').replace(/\{app\}/g, typeof existing.toolkit === 'string' ? nameOf(existing.toolkit) : '')
+      return s
+    }
+    /** The line under a failed connection, from the stable code the server gave. */
+    const kbCpFailedText = (failure, app) => kbt('kb.cp.kc.failed.' + (failure === 'refused' || failure === 'upstream' ? failure : 'unknown')).replace('{app}', app)
+    /** The apps of the server's catalogue that match a search; at most `max`, the exact starts first. */
+    const kbCpAppsMatch = (apps, query, max) => {
+      const needle = kbCpSquash(query)
+      const list = Array.isArray(apps) ? apps : []
+      if (needle.length === 0) return list.slice(0, max)
+      const hit = (a) => kbCpSquash(String(a.name) + ' ' + String(a.slug) + ' ' + (Array.isArray(a.categories) ? a.categories.join(' ') : '')).indexOf(needle) >= 0
+      const starts = (a) => kbCpSquash(String(a.name)).indexOf(needle) === 0
+      const found = list.filter(hit)
+      return found.filter(starts).concat(found.filter((a) => !starts(a))).slice(0, max)
+    }
+
     const Icon = (name, size) => {
       const d = LUCIDE[name]
       if (d === null || d === undefined) return null
@@ -782,6 +945,22 @@ window.__ModuleLoader__.load({
    specificity so the button keeps its native pair (fill + label) */
 [class*="_markdown_"] a.kbcp-carte-action{color:var(--dsw-alias-label-primary-foreground,#18181b);text-decoration:none}
 .kbcp-carte-ghost{flex-shrink:0;display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:7px;border:1px solid var(--dsw-alias-border-l3,#ffffff29);color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:11.5px}
+/* ── Kybernos connections mode: the mode switch, the quota meter, the app picker of the add window ── */
+.kbcp-modebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 14px}
+.kbcp-kc{display:flex;flex-direction:column;gap:12px;max-width:1180px}
+.kbcp-kcmeter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:13px}
+.kbcp-kcbar{display:inline-flex;gap:4px}
+.kbcp-kcbar i{width:26px;height:6px;border-radius:99px;background:rgba(128,128,128,.28)}
+.kbcp-kcbar i.on{background:#635bff}
+.kbcp-kcbar i.pend{background:var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbcp-kcpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;max-height:250px;overflow:auto;padding:2px}
+.kbcp-kcapp{display:flex;align-items:center;gap:9px;text-align:left;padding:8px 10px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;cursor:pointer;font:inherit;min-width:0}
+.kbcp-kcapp:hover{background:rgba(128,128,128,.12)}
+.kbcp-kcapp.on{border-color:#635bff;background:rgba(99,91,255,.16)}
+.kbcp-kcapp span{display:flex;flex-direction:column;min-width:0}
+.kbcp-kcapp b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbcp-kcapp small{font-size:11px;opacity:.6}
+.kbcp-kcrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
 `
 
     // ── Key config (bundle page, Plugins) ────────────────────────────────────
@@ -1237,6 +1416,268 @@ window.__ModuleLoader__.load({
         items.length === 0 ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.mcp.empty'))) : h('div', { className: 'kbcp-mlist' }, items.map(row)))
     }
 
+    // ── Kybernos connections: add window and panel ───────────────────────────────────────────────────────────
+    /** Connect an app: pick it in the server's catalogue, name the account, and either go to the app's own page (OAuth) or give its API key. */
+    const KcAddModal = (props) => {
+      const preset = props.preset !== null && props.preset !== undefined ? props.preset : null
+      const [q, setQ] = React.useState('')
+      const [pick, setPick] = React.useState(preset !== null ? preset.toolkit : null)
+      const [alias, setAlias] = React.useState(preset !== null && typeof preset.alias === 'string' ? preset.alias : '')
+      const [apiKey, setApiKey] = React.useState('')
+      const [needsKey, setNeedsKey] = React.useState(preset !== null && preset.apiKey === true)
+      const [busy, setBusy] = React.useState(false)
+      const [fail, setFail] = React.useState(null)
+      const live = React.useRef(true)
+      React.useEffect(() => () => { live.current = false }, [])
+      const apps = Array.isArray(props.apps) ? props.apps : null
+      const app = pick === null ? null : ((apps || []).find((a) => a.slug === pick) || { slug: pick, name: nameOf(pick), needsApiKey: false })
+      const wantsKey = app !== null && (app.needsApiKey === true || needsKey === true)
+      const full = props.limit !== null && props.count >= props.limit
+      const matches = kbCpAppsMatch(apps, q, 48)
+      const submit = async () => {
+        if (app === null || busy === true) return
+        if (wantsKey && apiKey.trim().length === 0) { setFail({ error: 'needs_api_key', details: {} }); return }
+        setBusy(true); setFail(null)
+        const body = { toolkit: app.slug }
+        if (alias.trim().length > 0) body.alias = alias.trim()
+        if (wantsKey) body.api_key = apiKey
+        const r = await kbCpCloud('/connections/link', 'POST', body)
+        if (live.current === false) return
+        setBusy(false)
+        const j = r.json
+        if (r.status === 200 && j !== null && j.ok === true && j.connection !== null && typeof j.connection === 'object') { setApiKey(''); props.onLinked({ app: app, connection: j.connection, redirectUrl: j.redirectUrl }); return }
+        const word = j !== null && typeof j.error === 'string' ? j.error : (r.status === 0 ? 'network' : 'other')
+        if (word === 'needs_api_key') setNeedsKey(true)
+        setFail({ error: word, details: j !== null && typeof j === 'object' ? j : {} })
+      }
+      const existing = fail !== null && fail.error === 'pending_exists' && fail.details.existing !== null && typeof fail.details.existing === 'object' ? fail.details.existing : null
+      return h('div', { className: 'kb7-overlay', onClick: props.onClose },
+        h('div', { className: 'kb7-modal', style: { maxWidth: 620 }, role: 'dialog', 'aria-modal': 'true', 'aria-label': kbt('kb.cp.kc.m.title'), onClick: (e) => e.stopPropagation() },
+          h('div', { className: 'kb7-mhead' },
+            h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'kb7-mname' }, kbt('kb.cp.kc.m.title'))),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
+          h('div', { className: 'kb7-form' },
+            h('div', null,
+              h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-kc-q' }, kbt('kb.cp.kc.m.search')),
+              h('input', { className: 'kb7-finput', id: 'kbcp-kc-q', value: q, placeholder: 'Gmail, GitHub, Slack…', autoComplete: 'off', spellCheck: false, onChange: (e) => setQ(e.target.value) })),
+            apps === null ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.loading'))
+              : (matches.length === 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.m.noapps'))
+                : h('div', { className: 'kbcp-kcpick', role: 'listbox', 'aria-label': kbt('kb.cp.kc.m.title') },
+                  matches.map((a) => h('button', { type: 'button', key: a.slug, className: 'kbcp-kcapp' + (pick === a.slug ? ' on' : ''), role: 'option', 'aria-selected': pick === a.slug ? 'true' : 'false', 'data-kb-app': a.slug, onClick: () => { setPick(a.slug); setFail(null); setNeedsKey(false) } },
+                    AppLogo(a.slug, 28),
+                    h('span', null, h('b', null, a.name), h('small', null, a.needsApiKey === true ? kbt('kb.cp.kc.type.api_key') : 'OAuth')))))),
+            app !== null ? h('div', null,
+              h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-kc-alias' }, kbt('kb.cp.kc.m.alias')),
+              h('input', { className: 'kb7-finput', id: 'kbcp-kc-alias', value: alias, maxLength: 64, placeholder: 'pro, perso…', autoComplete: 'off', spellCheck: false, onChange: (e) => setAlias(e.target.value) }),
+              h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.m.alias.hint').replace('{app}', app.name))) : null,
+            app !== null && wantsKey ? h('div', null,
+              h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-kc-key' }, kbt('kb.cp.kc.m.key').replace('{app}', app.name)),
+              h('input', { className: 'kb7-finput', id: 'kbcp-kc-key', type: 'password', value: apiKey, autoComplete: 'off', spellCheck: false, onChange: (e) => setApiKey(e.target.value) }),
+              h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.m.key.hint'))) : null,
+            app !== null && !wantsKey ? h('div', { className: 'kbcp-note' }, kbt('kb.cp.kc.m.oauth').replace('{app}', app.name)) : null,
+            fail !== null ? h('div', { className: 'kbcp-note ' + (fail.error === 'needs_api_key' ? '' : 'bad'), role: 'alert' },
+              h('div', null, kbCpCloudErr(fail.error, fail.details)),
+              fail.details.checkFirst === true ? h('div', { className: 'kbcp-kcrow' }, kbt('kb.cp.kc.check'), h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onCheck }, kbt('kb.cp.kc.check.go'))) : null,
+              existing !== null ? h('div', { className: 'kbcp-kcrow' }, h('button', { type: 'button', className: 'kbcp-btn', onClick: () => props.onCancelExisting(existing.id).then(() => { if (live.current === true) setFail(null) }) }, kbt('kb.cp.kc.act.cancelreq'))) : null) : null,
+            h('div', { className: 'kb7-actions', style: { justifyContent: 'space-between' } },
+              h('span', { className: 'kbcp-help2' }, props.limit !== null ? kbt('kb.cp.kc.m.used').replace('{count}', String(props.count)).replace('{limit}', String(props.limit)) : ''),
+              h('div', { className: 'kb7-frow' },
+                h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
+                h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'kc-link', disabled: busy || app === null || full, onClick: submit }, busy === true ? kbt('kb.cp.form.saving') : (app !== null && !wantsKey ? kbt('kb.cp.kc.m.go').replace('{app}', app.name) : kbt('kb.cp.kc.m.go.key'))))))))
+    }
+
+    /** The account's connected apps (mode « Kybernos connections »): the list, its states, and what to do about each. */
+    const KybernosPanel = (props) => {
+      const kc = props.kc
+      const [apps, setApps] = React.useState(null)
+      const [modal, setModal] = React.useState(null)
+      const [confirmDel, setConfirmDel] = React.useState(null)
+      const [busy, setBusy] = React.useState(null)
+      const [err, setErr] = React.useState(null)
+      const [pair, setPair] = React.useState(null)
+      const [, setTick] = React.useState(0)
+      const seen = React.useRef({})
+      const live = React.useRef(true)
+      React.useEffect(() => () => { live.current = false }, [])
+      const appName = (slug) => { const known = (apps || []).find((a) => a.slug === slug); return known !== undefined ? known.name : nameOf(slug) }
+      const full = kc.limit !== null && kc.count >= kc.limit
+      const fail = (r) => { const j = r.json; setErr({ error: j !== null && typeof j.error === 'string' ? j.error : (r.status === 0 ? 'network' : 'other'), details: j !== null && typeof j === 'object' ? j : {} }) }
+
+      // The server's catalogue (names for the rows, and the add window): once, when the account is connected.
+      React.useEffect(() => {
+        if (kc.connected === false || apps !== null) return undefined
+        let alive = true
+        kbCpCloud('/connections/apps').then((r) => { if (alive === true) setApps(r.status === 200 && r.json !== null && r.json.ok === true && Array.isArray(r.json.apps) ? r.json.apps : []) })
+        return () => { alive = false }
+      }, [kc.connected])
+
+      // A pending connection is asked about every 5 s, for 10 minutes at most; the server reconciles that one connection on the spot.
+      const pending = kc.connections.filter((c) => c.status === 'pending')
+      const pendingKey = pending.map((c) => c.id).join(',')
+      React.useEffect(() => {
+        if (pendingKey === '') return undefined
+        let alive = true
+        const now = Date.now()
+        for (const c of pending) if (seen.current[c.id] === undefined) seen.current[c.id] = now
+        const tick = async () => {
+          for (const c of pending) {
+            if (alive === false) return
+            if (Date.now() - seen.current[c.id] > KC_POLL_MAX_MS) { setTick((n) => n + 1); continue }
+            const r = await kbCpCloud('/connections/item?id=' + encodeURIComponent(c.id))
+            if (alive === false) return
+            if (r.status === 200 && r.json !== null && r.json.ok === true && r.json.connection !== null && typeof r.json.connection === 'object') {
+              if (r.json.connection.status !== 'pending') { props.patch(r.json.connection); if (r.json.connection.status === 'active') props.flash(kbt('kb.cp.kc.done.active').replace('{app}', appName(c.toolkit))) }
+            } else if (r.json !== null && r.json.error === 'not_found') props.reload(false)
+          }
+        }
+        const t = setInterval(tick, KC_POLL_MS)
+        return () => { alive = false; clearInterval(t) }
+      }, [pendingKey])
+
+      // Sign-in without leaving the page: the cloud half starts the pairing, the person approves it in a tab, this asks every 3 s.
+      React.useEffect(() => {
+        if (pair === null || pair.failed === true) return undefined
+        let alive = true
+        const t = setInterval(async () => {
+          const r = await kbCpCloud('/poll', 'POST')
+          if (alive === false) return
+          const j = r.json
+          if (j !== null && j.ok === true && j.connected === true) { setPair(null); props.reload(false) }
+          else if (j !== null && j.ok === true && (j.status === 'denied' || j.status === 'expired' || j.status === 'none')) setPair(Object.assign({}, pair, { failed: true }))
+        }, 3000)
+        return () => { alive = false; clearInterval(t) }
+      }, [pair])
+      const signIn = async () => {
+        setErr(null)
+        const r = await kbCpCloud('/start', 'POST')
+        if (live.current === false) return
+        const j = r.json
+        if (j !== null && j.ok === true && j.connected === true) { props.reload(false); return }
+        if (j !== null && j.ok === true && j.pairing !== null && typeof j.pairing === 'object') {
+          const url = kbCpWebUrl(j.pairing.activation_url)
+          setPair({ code: j.pairing.user_code, url: url, failed: false })
+          if (url !== null) { try { window.open(url, '_blank', 'noopener,noreferrer') } catch (e) { /* the button below opens it */ } }
+          return
+        }
+        setErr({ error: 'signin_failed', details: {} })
+      }
+
+      const linked = (res) => {
+        setModal(null)
+        const name = res.app.name !== undefined ? res.app.name : appName(res.app.slug)
+        const url = kbCpWebUrl(res.redirectUrl)
+        if (url !== null) {
+          kbCpSaveLink('kc:' + res.connection.id, url)
+          try { window.open(url, '_blank', 'noopener,noreferrer') } catch (e) { /* the pending row keeps a button that opens it */ }
+          props.flash(kbt('kb.cp.kc.done.opened').replace('{app}', name))
+        } else props.flash(kbt('kb.cp.kc.done.active').replace('{app}', name))
+        props.reload(false)
+      }
+      const del = async (id) => {
+        const r = await kbCpCloud('/connections/delete', 'POST', { id: id })
+        const ok = r.status === 200 && r.json !== null && (r.json.ok === true || r.json.error === 'not_found')
+        return { ok: ok, r: r }
+      }
+      const remove = async (c) => {
+        setBusy(c.id); setErr(null); setConfirmDel(null)
+        const d = await del(c.id)
+        if (live.current === false) return
+        setBusy(null)
+        if (d.ok === true) { props.flash(kbt('kb.cp.kc.done.removed')); props.reload(false) } else fail(d.r)
+      }
+      /** Failed, expired or disabled: remove it (that frees its place), then link again. An API-key connection needs its key again, so the window opens. */
+      const redo = async (c) => {
+        setBusy(c.id); setErr(null)
+        const d = await del(c.id)
+        if (live.current === false) return
+        if (d.ok !== true) { setBusy(null); fail(d.r); return }
+        if (c.accountType === 'api_key') { setBusy(null); props.reload(false); setModal({ preset: { toolkit: c.toolkit, alias: c.alias, apiKey: true } }); return }
+        const body = { toolkit: c.toolkit }
+        if (typeof c.alias === 'string' && c.alias.length > 0) body.alias = c.alias
+        const r = await kbCpCloud('/connections/link', 'POST', body)
+        if (live.current === false) return
+        setBusy(null)
+        if (r.status === 200 && r.json !== null && r.json.ok === true && r.json.connection !== null && typeof r.json.connection === 'object') linked({ app: { slug: c.toolkit, name: appName(c.toolkit) }, connection: r.json.connection, redirectUrl: r.json.redirectUrl })
+        else { props.reload(false); fail(r) }
+      }
+
+      const row = (c) => {
+        const st = kbCpConnState(c.status)
+        const name = appName(c.toolkit)
+        const q = props.query
+        if (q.length >= 2 && (name + ' ' + c.toolkit + ' ' + (c.alias || '')).toLowerCase().indexOf(q) < 0) return null
+        const acts = kbCpConnActions(c.status)
+        const link = c.status === 'pending' ? kbCpGetLink('kc:' + c.id) : null
+        const waited = c.status === 'pending' && seen.current[c.id] !== undefined && Date.now() - seen.current[c.id] > KC_POLL_MAX_MS
+        const act = (a) => {
+          if (a === 'cancel') return h('button', { type: 'button', key: a, className: 'kbcp-btn', disabled: busy === c.id, onClick: () => remove(c) }, kbt('kb.cp.kc.act.cancel'))
+          if (a === 'retry' || a === 'reconnect') return h('button', { type: 'button', key: a, className: 'kbcp-btn', disabled: busy === c.id, onClick: () => redo(c) }, kbt(a === 'retry' ? 'kb.cp.kc.act.retry' : 'kb.cp.kc.act.reconnect'))
+          return h('button', { type: 'button', key: a, className: 'kbcp-btn', 'aria-label': kbt('kb.cp.kc.act.remove') + ' ' + name, disabled: busy === c.id, onClick: () => setConfirmDel(c.id) }, Icon('trash', 13))
+        }
+        return h('div', { className: 'kbcp-mrow', key: c.id, 'data-kb-conn': c.id, 'data-kb-status': c.status },
+          h('div', { className: 'kbcp-mmain' },
+            AppLogo(c.toolkit, 34),
+            h('div', { className: 'kbcp-mid' },
+              h('div', { className: 'kbcp-mname' }, name,
+                c.alias !== null ? h('span', { className: 'kbcp-src' }, c.alias) : null,
+                h('span', { className: 'kb7-cxtype' }, c.accountType === 'api_key' ? kbt('kb.cp.kc.type.api_key') : 'OAuth'),
+                c.isDefault === true && c.status === 'active' ? h('span', { className: 'kb7-cxtype http' }, kbt('kb.cp.kc.default')) : null),
+              h('div', { className: 'kbcp-mtarget' }, c.toolkit)),
+            h('span', { className: 'kbcp-chip ' + (st.kind === 'plain' ? '' : st.kind), 'data-kb-state': c.status }, h('i'), kbt(st.key)),
+            h('div', { className: 'kbcp-macts' }, acts.map(act))),
+          c.status === 'pending' ? h('div', { className: 'kbcp-detail warn' },
+            h('span', null, h('b', null, waited === true ? kbt('kb.cp.kc.pend.timeout') : kbt('kb.cp.kc.pend').replace('{app}', name))),
+            waited === true ? null : h('span', { className: 'kbcp-help2' }, kbt('kb.cp.kc.pend.sub')),
+            link !== null && waited !== true ? h('a', { className: 'kbcp-btn', style: { alignSelf: 'flex-start', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }, href: link, target: '_blank', rel: 'noopener noreferrer' }, kbt('kb.cp.kc.pend.open')) : null) : null,
+          c.status === 'failed' ? h('div', { className: 'kbcp-detail bad' }, h('span', null, h('b', null, kbCpFailedText(c.failure, name)), ' ' + kbt('kb.cp.kc.failed.hint'))) : null,
+          c.status === 'expired' ? h('div', { className: 'kbcp-detail warn' }, h('span', null, kbt('kb.cp.kc.expired'))) : null,
+          c.status === 'disabled' ? h('div', { className: 'kbcp-detail warn' }, h('span', null, kbt('kb.cp.kc.disabled'))) : null,
+          confirmDel === c.id ? h('div', { className: 'kbcp-confirm' },
+            h('p', null, kbt('kb.cp.kc.del.confirm').replace('{name}', name + (c.alias !== null ? ' (' + c.alias + ')' : ''))),
+            h('button', { type: 'button', className: 'kbcp-btn', style: { color: 'var(--dsw-alias-state-error-primary,#f25a5a)' }, onClick: () => remove(c) }, kbt('kb.cp.kc.act.remove')),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setConfirmDel(null) }, kbt('kb.cp.del.cancel'))) : null)
+      }
+
+      if (kc.connected === false) {
+        return h('div', { className: 'kb7-emptybox', 'data-kb': 'kc-signin' },
+          h('div', { className: 'kb7-empty' }, h('b', null, kbt('kb.cp.kc.signin.title')), h('br'), kbt('kb.cp.kc.signin.body')),
+          pair === null || pair.failed === true ? h('button', { type: 'button', className: 'kbcp-btn primary', onClick: signIn }, kbt('kb.cp.kc.signin.go')) : h('div', { className: 'kbcp-note', role: 'status' },
+            h('div', null, kbt('kb.cp.kc.signin.wait')),
+            pair.code ? h('div', null, kbt('kb.cp.kc.signin.code').replace('{code}', String(pair.code))) : null,
+            pair.url !== null ? h('a', { className: 'kbcp-btn', style: { alignSelf: 'flex-start', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', marginTop: 6 }, href: pair.url, target: '_blank', rel: 'noopener noreferrer' }, kbt('kb.cp.kc.signin.open')) : null),
+          pair !== null && pair.failed === true ? h('div', { className: 'kbcp-err', role: 'alert' }, kbCpCloudErr('signin_failed')) : null,
+          err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, kbCpCloudErr(err.error, err.details)) : null)
+      }
+      const shown = kc.connections.map(row).filter((x) => x !== null)
+      const meter = []
+      if (kc.limit !== null) for (let i = 0; i < kc.limit && i < 20; i++) meter.push(h('i', { key: i, className: i < kc.connections.length ? (kc.connections[i].status === 'pending' ? 'pend' : 'on') : '' }))
+      const bannerErr = err !== null ? err : (kc.error !== null ? { error: kc.error, details: kc.details } : null)
+      return h('div', { className: 'kbcp-kc' },
+        h('div', { className: 'kbcp-kcmeter' },
+          h('b', null, kc.limit !== null ? kbt('kb.cp.kc.meter').replace('{count}', String(kc.count)).replace('{limit}', String(kc.limit)) : kbt('kb.cp.kc.meter.nolimit').replace('{count}', String(kc.count))),
+          kc.limit !== null ? h('span', { className: 'kbcp-kcbar', 'aria-hidden': 'true' }, meter) : null,
+          h('span', { className: 'kbcp-help2' }, kbt('kb.cp.kc.meter.note')),
+          h('button', { type: 'button', className: 'kbcp-btn primary', style: { marginLeft: 'auto' }, 'data-kb': 'kc-add', disabled: full, onClick: () => setModal({ preset: null }) }, Icon('plus', 13), ' ' + kbt('kb.cp.kc.add'))),
+        full ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.full').replace(/\{limit\}/g, String(kc.limit))) : null,
+        props.note !== null ? h('div', { className: 'kbcp-toast', role: 'status' }, props.note) : null,
+        kc.stale === true && bannerErr === null ? h('div', { className: 'kbcp-note warn', role: 'status' }, kbt('kb.cp.kc.stale'), ' ', h('button', { type: 'button', className: 'kbcp-btn', onClick: () => props.reload(true) }, kbt('kb.cp.kc.refresh'))) : null,
+        bannerErr !== null ? h('div', { className: 'kbcp-err', role: 'alert' },
+          kbCpCloudErr(bannerErr.error, bannerErr.details),
+          bannerErr.details !== null && bannerErr.details.checkFirst === true ? h('button', { type: 'button', className: 'kbcp-btn', style: { marginLeft: 8 }, onClick: () => { setErr(null); props.reload(true) } }, kbt('kb.cp.kc.check.go')) : null,
+          bannerErr.error === 'reconnect_required' ? h('button', { type: 'button', className: 'kbcp-btn', style: { marginLeft: 8 }, onClick: signIn }, kbt('kb.cp.kc.signin.go')) : null,
+          err !== null ? h('button', { type: 'button', className: 'kbcp-btn', style: { marginLeft: 8 }, 'aria-label': kbt('kb.cp.dismiss'), onClick: () => setErr(null) }, Icon('x', 12)) : null) : null,
+        shown.length === 0
+          ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kc.connections.length > 0 ? kbt('kb.cp.empty') : kbt('kb.cp.kc.empty')))
+          : h('div', { className: 'kbcp-mlist' }, shown),
+        modal !== null ? h(KcAddModal, {
+          apps: apps, preset: modal.preset, limit: kc.limit, count: kc.count,
+          onClose: () => setModal(null),
+          onLinked: linked,
+          onCheck: () => { setModal(null); props.reload(true) },
+          onCancelExisting: async (id) => { const d = await del(id); props.reload(false); return d },
+        }) : null)
+    }
+
     // ── page Connections ─────────────────────────────────────────────────────
     const PAGE = 24
     const ComposioPage = (props) => {
@@ -1314,6 +1755,17 @@ window.__ModuleLoader__.load({
       const [menuOpen, setMenuOpen] = React.useState(false)
       const [importOpen, setImportOpen] = React.useState(false)
       const [recent, setRecent] = React.useState({})
+      // Kybernos connections, the second mode of "Yours": null until the cloud half has answered, { offered: false } when this server
+      // (or an older cloud half on this machine) does not offer it, and then the mode is not shown at all.
+      const [kc, setKc] = React.useState(null)
+      const [mode, setModeState] = React.useState(kbCpModeGet())
+      const reloadKc = React.useCallback(async (fresh) => {
+        const r = await kbCpCloud('/connections' + (fresh === true ? '?refresh=1' : ''))
+        setKc((prev) => kbCpCloudMerge(prev, kbCpCloudView(r)))
+      }, [])
+      React.useEffect(() => { reloadKc(false) }, [reloadKc])
+      const patchKc = React.useCallback((conn) => setKc((prev) => (prev === null || prev.offered !== true ? prev : Object.assign({}, prev, { connections: prev.connections.map((c) => (c.id === conn.id ? conn : c)) }))), [])
+      const setMode = (m) => { setModeState(m); kbCpModeSet(m) }
       const touch = React.useCallback((noms) => setRecent((prev) => { const n = Object.assign({}, prev); for (const x of noms) n[x] = Date.now(); return n }), [])
 
       const loadConnecteurs = React.useCallback(async () => {
@@ -1596,6 +2048,9 @@ window.__ModuleLoader__.load({
       const yoursList = yoursPool.filter(yoursMatch).slice().sort((a, b) => String(a.n).localeCompare(String(b.n), 'fr') * yoursDir)
       const yoursFacet = yoursCats.slice(0, 14).map((c) => ({ id: c, label: c, count: yoursPool.filter(matchQuery).filter((a) => (a.c || []).indexOf(c) >= 0).length }))
       const cxShown = cx.filter((c) => qn.length < 2 || String(c.nom).toLowerCase().indexOf(qn) >= 0)
+      // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
+      const effMode = kc !== null && kc.offered === true && mode === 'kybernos' ? 'kybernos' : 'personal'
+      const kcMode = effMode === 'kybernos'
 
       return h('div', { className: 'kb7-root' },
         h('div', { className: 'kb7-head', style: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 } },
@@ -1619,7 +2074,7 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kb7-ctlrow' },
           h('div', { className: 'kb7-subtabs', role: 'tablist' },
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'yours' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'yours' ? ' on' : ''), 'data-kb': 'subtab-yours', onClick: () => setVtab('yours') },
-              kbt('kb.cp.tab.yours'), totalConn > 0 ? h('span', { className: 'kb7-cxcount' }, String(totalConn)) : null),
+              kbt('kb.cp.tab.yours'), (kcMode ? kc.count : totalConn) > 0 ? h('span', { className: 'kb7-cxcount' }, String(kcMode ? kc.count : totalConn)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'discover' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'discover' ? ' on' : ''), 'data-kb': 'subtab-discover', onClick: () => setVtab('discover') },
               kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'mcp' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'mcp' ? ' on' : ''), 'data-kb': 'subtab-mcp', onClick: () => setVtab('mcp') },
@@ -1631,9 +2086,9 @@ window.__ModuleLoader__.load({
             onUpdate: onCpUpdate,
             searchPlaceholder: kbt('kb.cp.search'),
             sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }],
-            facets: { type: { options: vtab === 'discover' ? facetOptions : yoursFacet } },
-            total: vtab === 'discover' ? apps.length : yoursPool.length,
-            shown: vtab === 'discover' ? list.length : yoursList.length,
+            facets: { type: { options: vtab === 'discover' ? facetOptions : (kcMode ? [] : yoursFacet) } },
+            total: vtab === 'discover' ? apps.length : (kcMode ? kc.connections.length : yoursPool.length),
+            shown: vtab === 'discover' ? list.length : (kcMode ? kc.connections.length : yoursList.length),
             hideView: true,
             showFav: false,
             trailing: vtab === 'discover' ? [
@@ -1648,11 +2103,16 @@ window.__ModuleLoader__.load({
         helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
           h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
           h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
-        (vtab !== 'mcp' && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
-        err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
+        (vtab !== 'mcp' && kcMode === false && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
+        err !== null && (vtab !== 'yours' || kcMode === false) ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Vos connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
-          yoursList.length === 0
+          kc !== null && kc.offered === true ? h('div', { className: 'kbcp-modebar' },
+            h('div', { className: 'kb7-fseg', role: 'group', 'aria-label': kbt('kb.cp.kc.mode.label') },
+              h('button', { type: 'button', className: kcMode ? '' : 'on', 'aria-pressed': kcMode ? 'false' : 'true', 'data-kb': 'mode-personal', onClick: () => setMode('personal') }, kbt('kb.cp.kc.mode.personal')),
+              h('button', { type: 'button', className: kcMode ? 'on' : '', 'aria-pressed': kcMode ? 'true' : 'false', 'data-kb': 'mode-kybernos', onClick: () => setMode('kybernos') }, kbt('kb.cp.kc.mode.kybernos'))),
+            h('span', { className: 'kbcp-help2' }, kbt(kcMode ? 'kb.cp.kc.mode.hint.kybernos' : 'kb.cp.kc.mode.hint.personal'))) : null,
+          kcMode ? h(KybernosPanel, { kc: kc, reload: reloadKc, patch: patchKc, flash: flash, note: cxNote, query: qn }) : yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
                 h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
                 yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading'))))
@@ -1998,7 +2458,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { cloudView: kbCpCloudView, cloudMerge: kbCpCloudMerge, cloudErr: kbCpCloudErr, connState: kbCpConnState, connActions: kbCpConnActions, failedText: kbCpFailedText, appsMatch: kbCpAppsMatch, modeGet: kbCpModeGet, modeSet: kbCpModeSet, page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })
