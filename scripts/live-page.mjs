@@ -68,6 +68,10 @@ export async function openLivePage(opts = {}) {
   // host: a test must never write there (a pseudo-translation would replace a real one).
   // Off in every page of the test browser, unless the test asks for it (opts.hostStore).
   if (opts.hostStore !== true) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_HOST_STORE__ = false' })
+  // The language page treats a ⟦…⟧ text as a test mark, not as a translation (it would be one a user never wants).
+  // The checks that translate with the pseudo-translating stub need it to count as real: say so, unless a check
+  // is about that very guard (`pseudoOk: false`, and it then sets the flag itself).
+  if (opts.pseudoOk !== false) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_PSEUDO_OK__ = true' })
   if (await poserCookie(page, authority) !== true) { page.close(); await close(); throw new Error('the browser refused the session cookie') }
   await page.send('Page.navigate', { url: 'http://' + authority + '/' })
   // The GUI is up once the DSH shell has rendered something.

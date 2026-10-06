@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par kyber.",
+    "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per kyber."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez la page : elle montre la liste, avec les onglets « Memories » et « Lessons learned » et une barre de recherche.",
+      "en": "Open the page: it shows the list, with the “Memories” and “Lessons learned” tabs and a search bar."
+    },
+    {
+      "fr": "Filtrez avec « Filter », cliquez une ligne pour la modifier ou l’oublier ; « Add » écrit un souvenir de votre main.",
+      "en": "Narrow down with “Filter” and click a row to edit or forget it; “Add” writes a memory of your own."
+    },
+    {
+      "fr": "« Options » donne les interrupteurs : enregistrer, envoyer au modèle, capture automatique, recherche par sens.",
+      "en": "“Options” holds the switches: saving, sending to the model, automatic capture and search by meaning."
+    },
+    {
+      "fr": "Sous la zone de saisie, la pastille « Memory & Lessons » montre ce que le modèle reçoit, avec un lien vers la page.",
+      "en": "Under the message box, the “Memory & Lessons” pill shows what the model receives, with a link to the page."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Memory & Lessons, et la pastille du même nom sous la saisie",
+    "en": "Settings › Memory & Lessons, and the pill of the same name under the message box",
+    "page": true
+  },
+  "good": {
+    "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par kyber.",
+    "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per kyber."
+  }
+}

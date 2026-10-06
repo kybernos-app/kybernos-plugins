@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
+    "en": "Adds an “App” button to the Briques, Modeleur and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+  },
+  "steps": [
+    {
+      "fr": "Quand la maquette ou le deck est prêt, cliquez « App ⤓ » dans l’en-tête du panneau.",
+      "en": "Once the mockup or deck is ready, click “App ⤓” in the panel header."
+    },
+    {
+      "fr": "Un message confirme et l’app s’ouvre : une petite fenêtre sans bord, toujours au-dessus, rangée dans Applications › Kybernos.",
+      "en": "A message confirms and the app opens: a small borderless window, always on top, kept in Applications › Kybernos."
+    },
+    {
+      "fr": "Recliquez « App » (avec une roue) : « Lancer » rouvre l’app, « Démarrage auto » l’ouvre à la connexion, « Désinstaller » la retire.",
+      "en": "Click “App” again (it now shows a gear): “Launch” reopens the app, “Launch at login” starts it at sign-in, “Uninstall” removes it."
+    }
+  ],
+  "where": {
+    "fr": "Dans l’en-tête de chaque panneau Briques, Modeleur ou Slides",
+    "en": "In the header of each Briques, Modeleur or Slides panel",
+    "page": false
+  },
+  "good": {
+    "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
+    "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
+  }
+}

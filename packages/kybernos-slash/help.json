@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Enregistrez vos messages types comme commandes « / » dans la zone de saisie, ou comme boutons d’action sous les réponses de l’assistant, avec un formulaire si besoin.",
+    "en": "Save your go-to prompts as “/” commands in the message box, or as action buttons under the assistant’s replies, with a small form if needed."
+  },
+  "steps": [
+    {
+      "fr": "Tapez « / » dans la zone de saisie : vos commandes suivent celles de DSH. Choisissez-en une et remplissez son formulaire le cas échéant.",
+      "en": "Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one."
+    },
+    {
+      "fr": "Pour créer une commande, écrivez votre texte puis cliquez sur le marque-page « Save as command » dans la barre de la zone de saisie.",
+      "en": "To create a command, write your text, then click the bookmark button “Save as command” in the message box bar."
+    },
+    {
+      "fr": "Sous une réponse de l’assistant, un bouton-icône lance une action sur ce message ; « + » en ajoute une, clic droit pour la modifier.",
+      "en": "Under an assistant reply, an icon button runs an action on that message; “+” adds one, right-click to edit it."
+    },
+    {
+      "fr": "Réglages › Commandes liste tout (onglets « Commandes slash » et « Actions de message ») avec « Nouvelle commande » et « Créer avec l’IA ».",
+      "en": "Settings › Commands lists everything (“Slash commands” and “Message actions” tabs) with “New command” and “Create with AI”."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Commandes",
+    "en": "Settings › Commands",
+    "page": true
+  },
+  "good": {
+    "fr": "Vos commandes restent sur cet ordinateur. « Créer avec l’IA » ouvre un nouveau chat qui s’appuie sur une skill dédiée : si elle n’est pas installée, créez la commande à la main.",
+    "en": "Your commands stay on this computer. “Create with AI” opens a new chat that relies on a dedicated skill: if it is not installed, create the command by hand."
+  }
+}

@@ -55,7 +55,7 @@ const rawSkills = { ok: true, skills: [
 ], roots: [], complete: true }
 const rawLoad = { ok: true, roots: [
   { id: 'installed', label: 'Installed', path: '/h/.dsh/kybers', kybers: [
-    { id: 'Reviewer', mission: 'Review changes before they ship. Then report.', roles: [{ id: 'lead', tools: ['GITHUB_LIST_PRS'] }, { id: 'tester', tools: [] }], skillsDeclared: ['code-review', 'brand-voice', 'old-skill'], skills: [], ui: { name: 'Reviewer', color: '#fff', category: 'dev' } },
+    { id: 'Reviewer', file: '/h/.dsh/kybers/reviewer/kyber.yml', mission: 'Review changes before they ship. Then report.', roles: [{ id: 'lead', tools: ['GITHUB_LIST_PRS'] }, { id: 'tester', tools: [] }], skillsDeclared: ['code-review', 'brand-voice', 'old-skill'], skills: [], ui: { name: 'Reviewer', color: '#fff', category: 'dev' } },
     { id: 'writer', mission: '', roles: [], skillsDeclared: ['voice-local'], skills: ['voice-local'], ui: null }
   ] },
   { id: 'workspace', label: 'Repo', path: '/r/kybers', kybers: [{ id: 'reviewer', mission: 'dup', roles: [], skillsDeclared: [], skills: [] }] }
@@ -244,6 +244,46 @@ check('daysSince: ISO string and ms number', T.daysSince(iso(3), NOW) === 3 && T
 check('ago wording', T.ago(0) === 'today' && T.ago(1) === 'yesterday' && T.ago(12) === '12 days ago' && T.ago(90) === '3 months ago' && T.ago(null) === 'not recorded')
 check('cut adds an ellipsis only when needed', T.cut('short', 10) === 'short' && T.cut('x'.repeat(20), 10).length === 10)
 check('firstSentence', T.firstSentence('Roles: lead. Then more.') === 'Roles: lead')
+
+console.log('\n── opening a node in DSH ──')
+const NEW_SIDEBAR = ['teaminfo', 'project', 'tasks', 'skills', 'connectors']
+const OLD_SIDEBAR = ['teaminfo', 'project', 'tasks', 'resources']
+const ot = (n, v) => T.openTarget(n, v)
+check('normLoad keeps the kyber file and the root it lives in', load.kybers[0].file === '/h/.dsh/kybers/reviewer/kyber.yml' && load.kybers[0].rootId === 'installed' && load.kybers[1].file === '')
+check('new sidebar: skill → Skills, automation → Automations, toolkit app → Connectors', ot(g.byId['s:code-review'], NEW_SIDEBAR).patch.view === 'skills' && ot(g.byId['t:digest'], NEW_SIDEBAR).patch.view === 'tasks' && ot(g.byId['a:toolkit:github'], NEW_SIDEBAR).patch.view === 'connectors')
+check('old sidebar: a skill opens the single Resources page, an app has no page', ot(g.byId['s:code-review'], OLD_SIDEBAR).patch.view === 'resources' && ot(g.byId['s:code-review'], OLD_SIDEBAR).label === 'Resources' && ot(g.byId['a:toolkit:github'], OLD_SIDEBAR) === null)
+check('project → its page by workspace id', JSON.stringify(ot(g.byId['p:w1'], NEW_SIDEBAR).patch) === JSON.stringify({ view: 'project', projectId: 'w1' }))
+check('kyber with a definition → its page by file and root', JSON.stringify(ot(g.byId['k:reviewer'], NEW_SIDEBAR).patch) === JSON.stringify({ view: 'teaminfo', detailPath: '/h/.dsh/kybers/reviewer/kyber.yml', detailRoot: 'installed' }))
+check('a kyber known only by its lessons has no page to open', ot(g.byId['k:ghost-kyber'], NEW_SIDEBAR) === null)
+check('mini apps, memory and lessons have no page of their own', ot({ kind: 'app', id: 'a:mini:Telegram' }, NEW_SIDEBAR) === null && ot(g.byId['m:account'], NEW_SIDEBAR) === null && ot(g.byId['l:reviewer:0'], NEW_SIDEBAR) === null && ot({ kind: 'root', id: 'root' }, NEW_SIDEBAR) === null)
+check('a run opens its session, and only when it has one', ot({ kind: 'run', run: { sessionId: 's1' } }, []).session === 's1' && ot({ kind: 'run', run: { sessionId: '' } }, NEW_SIDEBAR) === null)
+check('a page the sidebar does not advertise gets no button (no list, or an empty one)', ot(g.byId['s:code-review'], undefined) === null && ot(g.byId['t:digest'], []) === null && ot(g.byId['k:reviewer'], ['tasks']) === null)
+check('canvas runs keep their session id', cm.byId['x:digest:0'].run.sessionId === 's1')
+check('the page degrades when the main plugin does not expose the seam', /typeof seam !== 'function'\) return null/.test(SOURCE) && /seam\.views/.test(SOURCE))
+{
+  // contract with the main plugin: the seam exists, and every page it advertises is a page its sidebar can open
+  let master = null
+  try { master = readFileSync(new URL('../kybernos-plugin/client.js', import.meta.url), 'utf8') } catch (e) { master = null }
+  if (master === null) console.log('  ○ main plugin source not found: contract checks skipped')
+  else {
+    check('main plugin exposes window.__KB_OPEN__ and says which pages it has', /window\.__KB_OPEN__ = kbOpenPage/.test(master) && /Object\.defineProperty\(kbOpenPage, 'views'/.test(master))
+    const adv = (master.match(/Object\.defineProperty\(kbOpenPage, 'views', \{ get: \(\) => ([^\n]*)\}\)\n/) || [null, ''])[1]
+    const names = (adv.match(/'[a-z]+'/g) || []).map((x) => x.slice(1, -1))
+    check('every advertised page is one the sidebar opens, with the same patch shape', names.length >= 3 && names.every((v) => new RegExp("(openPage|set)\\(\\{ view: '" + v + "'").test(master)), names)
+    const sent = ['skills', 'resources', 'connectors', 'tasks', 'project', 'teaminfo'].filter((v) => SOURCE.includes("view: '" + v + "'"))
+    check('every page Atlas can ask for is a page some sidebar opens (this one or a newer one)', sent.length === 6 && sent.every((v) => names.indexOf(v) >= 0 || ['skills', 'resources', 'connectors'].indexOf(v) >= 0), sent)
+  }
+}
+
+console.log('\n── nothing is read until the user asks ──')
+{
+  const mount = SOURCE.split('\n').filter((l) => l.includes('poserCss()') && l.includes('React.useEffect'))
+  check('the mount effect exists and never calls load()', mount.length === 1 && !/\bload\(/.test(mount[0]), mount)
+  check('readAll is only called from load, and load only from buttons', (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*load\(\)/.test(SOURCE))
+  check('a first visit starts idle, not loading', /\{ phase: 'idle', status: \{\}, result: null \}/.test(SOURCE) && !/useState\(\{ phase: 'loading'/.test(SOURCE))
+  check('the header button says Update, the first screen offers Update', SOURCE.includes("}, 'Update'))),") && SOURCE.includes("onClick: load }, 'Update'"))
+  check('readAgo: just now, minutes, hours, days', T.readAgo(1000, 1000 + 20000) === 'just now' && T.readAgo(0, 5 * 60000) === '5 min ago' && T.readAgo(0, 3 * 3600000) === '3 h ago' && T.readAgo(0, 86400000) === '1 day ago' && T.readAgo(0, 4 * 86400000) === '4 days ago')
+}
 
 console.log('\n── what the page may not do ──')
 const verbs = SOURCE.match(/method:\s*'([A-Z]+)'/g) || []

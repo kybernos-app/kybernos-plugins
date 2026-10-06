@@ -209,6 +209,20 @@ window.__ModuleLoader__.load({
 @keyframes kbth-k-s2{0%,24%{opacity:.45}27%,64%{opacity:1}67%,100%{opacity:.45}}
 @keyframes kbth-k-s3{0%,65%{opacity:.45}68%,95%{opacity:1}98%,100%{opacity:.45}}
 @media (prefers-reduced-motion:reduce){.kbth-mm *,.kbth-step{animation:none !important}.kbth-step{opacity:1}}
+/* A run lives in the tab: what to expect, a stale bar for a language that is not running, test marks */
+.kbth-banner{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3)}
+.kbth-banner b{color:var(--dsw-alias-label-primary);font-weight:600}
+.kbth-banner.warn{border:1px solid var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbth-bar.stale>i{background:var(--dsw-alias-label-tertiary)}
+.kbth-ex{font:11.5px/1.6 ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbth-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbth-check input{width:16px;height:16px;margin:0;accent-color:var(--dsw-alias-brand-primary)}
+/* The footer indicator: a ring that fills while a translation runs, with the percentage inside */
+.kbth-ring{appearance:none;--p:0;position:relative;display:inline-grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:0;border-radius:50%;cursor:pointer;font:inherit;background:conic-gradient(var(--dsw-alias-brand-primary) calc(var(--p) * 1%),var(--dsw-alias-border-l3) 0)}
+.kbth-ring::before{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--dsw-alias-bg-layer-2)}
+.kbth-ring-n{position:relative;font-size:10px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-primary)}
+.kbth-ring:hover::before{background:var(--dsw-alias-bg-layer-3)}
+.kbth-ring:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
 /* The pointer under DSH's General › Language row */
 /* A pointer, not a row: zero height, lifted into the bottom of the Language row above it
    (the row's own separator stays below it), so the rows after it do not move. */
@@ -242,6 +256,12 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       const I18N_LABELS_KEY = 'kybernos.i18n.labels' // { id: native name } — read by the runtime too
       const I18N_MODEL_KEY = 'kybernos.i18n.provider'
       const I18N_HELP_KEY = 'kybernos.i18n.help' // 'open' | 'closed' once the user has chosen
+      // The two keys below must NOT look like a language id (2-3 letters): the page lists every
+      // `kybernos.i18n.<id>` key as a language, and `run` would show up as "Rundi".
+      const I18N_RUN_KEY = 'kybernos.i18n.runstate' // { lang, model, beat } while a run goes on: lets a tab that was closed pick it up again
+      const I18N_AUTO_KEY = 'kybernos.i18n.autoresume' // 'off' once the user switched automatic resume off
+      const RUN_BEAT_MS = 5000 // a live run writes its heartbeat this often…
+      const RUN_STALE_MS = 20000 // …and a heartbeat older than this means no tab runs it any more
       // A language declares itself right-to-left here (any language added later
       // whose id is in the list inherits the direction). The direction is set on
       // <html> (dir + lang) by appliquerDirection(), not on a container: that is
@@ -316,6 +336,14 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       const dshRead = (lang) => readJson(I18N_DSH_PREFIX + lang, {})
       const liveRead = (lang) => readJson(I18N_LIVE_PREFIX + lang, {})
       const metaRead = (lang) => readJson(I18N_META_PREFIX + lang, {})
+      // A text wrapped in ⟦…⟧ is a PSEUDO-translation: what a test run writes when it swaps the model for a
+      // stub (scripts/lib-language-flow.mjs). It is never a real translation. One reached a real disk once and
+      // the page counted it as translated: « Resume » then translated nothing and « Use » showed the brackets.
+      // So it counts as missing, unless the page is told that pseudo-translations are the point of the run
+      // (`window.__KB_I18N_PSEUDO_OK__`, set by the live checks and by the unit tests of the engine).
+      const isTestMark = (v) => typeof v === 'string' && v.length > 2 && v.charAt(0) === '⟦' && v.charAt(v.length - 1) === '⟧'
+      const pseudoAllowed = () => window.__KB_I18N_PSEUDO_OK__ === true
+      const holds = (v) => typeof v === 'string' && (pseudoAllowed() || !isTestMark(v))
       const registryRead = () => { const r = readJson(I18N_REGISTRY_KEY, []); return Array.isArray(r) ? r.filter((x) => typeof x === 'string') : [] }
       const registryAdd = (id) => {
         const r = registryRead()
@@ -408,7 +436,19 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         areaCore: ['Menus, discussions et réglages', 'Menus, chat and settings'],
         areaMore: ['Écrans avancés et plugins', 'Advanced screens and plugins'],
         areaPhrases: ['Messages et détails', 'Messages and details'],
-        essentials: ['L’essentiel est prêt. Le reste continue en arrière-plan : ce qui n’est pas encore traduit s’affiche en anglais.', 'The essentials are ready. The rest keeps going in the background: texts not translated yet show in English.'],
+        essentials: ['L’essentiel est prêt. Le reste continue dans cet onglet : ce qui n’est pas encore traduit s’affiche en anglais.', 'The essentials are ready. The rest keeps going in this tab: texts not translated yet show in English.'],
+        runsInTab: ['Ça tourne dans cet onglet. Vous pouvez quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne fermez pas l’onglet : s’il se ferme, la traduction reprend toute seule à la prochaine ouverture de Kybernos.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation resumes by itself the next time Kybernos opens.'],
+        runsInTabManual: ['Ça tourne dans cet onglet. Vous pouvez quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne fermez pas l’onglet : s’il se ferme, la traduction s’arrête et il faudra appuyer sur Reprendre.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation stops and you will have to press Resume.'],
+        cutNote: ['La traduction s’est arrêtée avec l’onglet. Ce qui est déjà traduit est conservé : appuyez sur Reprendre.', 'The translation stopped with the tab. What is already translated is kept: press Resume.'],
+        pseudoTitle: ['{n} textes ressemblent à des marques de test.', '{n} texts look like test marks.'],
+        pseudoBody: ['Ce ne sont pas de vraies traductions : ils ne sont pas comptés, et utilisés tels quels ils s’afficheraient entourés de crochets. « Retraduire » les remplace par de vraies traductions.', 'They are not real translations: they are not counted, and used as they are they would show up wrapped in brackets. “Translate again” replaces them with real translations.'],
+        repair: ['Retraduire ces textes', 'Translate these texts again'],
+        tipRepair: ['Retire les marques de test de cette langue, puis traduit ces textes avec le modèle choisi. Le reste est conservé.', 'Removes the test marks from this language, then translates those texts with the chosen model. Everything else is kept.'],
+        showExamples: ['Voir des exemples', 'Show examples'],
+        hideExamples: ['Masquer les exemples', 'Hide examples'],
+        autoLabel: ['Reprendre automatiquement une traduction coupée, à l’ouverture de Kybernos', 'Resume an interrupted translation automatically when Kybernos opens'],
+        tipAuto: ['Si l’onglet est fermé pendant une traduction, elle reprend toute seule à la prochaine ouverture. Décochez pour reprendre à la main.', 'If the tab is closed during a translation, it resumes by itself the next time Kybernos opens. Untick to resume by hand.'],
+        chipTitle: ['Traduction en {name} : {pct} %. Cliquez pour ouvrir la page Langue.', 'Translating {name}: {pct}%. Click to open the Language page.'],
         gaps: ['{n} textes n’ont pas pu être traduits et resteront en anglais.', '{n} texts couldn’t be translated and will stay in English.'],
         model: ['Modèle', 'Model'],
         usesModel: ['Modèle : {model}', 'Model: {model}'],
@@ -607,7 +647,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         let rawKb = ''
         let rawDsh = ''
         try { rawKb = localStorage.getItem(I18N_STORE_PREFIX + lang) || ''; rawDsh = localStorage.getItem(I18N_DSH_PREFIX + lang) || '' } catch (e) { /* storage unavailable */ }
-        const key = rawKb.length + ':' + rawDsh.length + ':' + plan.total
+        const key = rawKb.length + ':' + rawDsh.length + ':' + plan.total + ':' + (pseudoAllowed() ? 1 : 0)
         const hit = _held.get(lang)
         if (hit !== undefined && hit.key === key) return hit.value
         const kb = i18nRead(lang)
@@ -615,12 +655,59 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         let done = 0
         let coreMissing = 0
         for (const it of plan.items) {
-          if (typeof (it.store === 'kb' ? kb : dsh)[it.id] === 'string') done += 1
+          if (holds((it.store === 'kb' ? kb : dsh)[it.id])) done += 1
           else if (it.area === 'core') coreMissing += 1
         }
         const value = { done, essentials: coreMissing === 0 }
         _held.set(lang, { key, value })
         return value
+      }
+
+      // The pseudo-translations a language holds, counted on the three stores (memoized on their sizes: a page
+      // render asks for every language).
+      const _pseudo = new Map()
+      const pseudoStats = (lang) => {
+        const none = { n: 0, examples: [] }
+        if (pseudoAllowed()) return none
+        let key = ''
+        try { key = [I18N_STORE_PREFIX, I18N_DSH_PREFIX, I18N_LIVE_PREFIX].map((p) => (localStorage.getItem(p + lang) || '').length).join(':') } catch (e) { return none }
+        const hit = _pseudo.get(lang)
+        if (hit !== undefined && hit.key === key) return hit.value
+        let n = 0
+        const examples = []
+        for (const [store, read] of [['kb', i18nRead], ['dsh', dshRead], ['live', liveRead]]) {
+          const data = read(lang)
+          for (const id of Object.keys(data)) if (isTestMark(data[id])) { n += 1; if (examples.length < 4) examples.push({ store, id, text: data[id] }) }
+        }
+        const value = { n, examples }
+        _pseudo.set(lang, { key, value })
+        return value
+      }
+
+      // Takes the pseudo-translations out of the three stores of a language, then writes the true count of what
+      // is left, so that the next run translates exactly those texts. The disk copy follows: the runtime sends a
+      // section whose texts were taken away as a whole (a plain delta could never remove them, and the next boot
+      // would merge them back from the disk).
+      const repairPseudo = (lang) => {
+        let removed = 0
+        for (const [prefix, read] of [[I18N_STORE_PREFIX, i18nRead], [I18N_DSH_PREFIX, dshRead], [I18N_LIVE_PREFIX, liveRead]]) {
+          const data = read(lang)
+          let changed = false
+          for (const id of Object.keys(data)) if (isTestMark(data[id])) { delete data[id]; removed += 1; changed = true }
+          if (changed && !writeJson(prefix + lang, data)) return { ok: false, removed }
+        }
+        _held.delete(lang)
+        _pseudo.delete(lang)
+        const plan = buildPlan(lang)
+        const meta = Object.assign({}, metaRead(lang), { complete: false, at: Date.now() })
+        if (plan !== null) {
+          const held = heldBy(lang, plan)
+          meta.total = plan.total
+          meta.done = held.done
+          meta.essentials = held.essentials
+        }
+        writeJson(I18N_META_PREFIX + lang, meta)
+        return { ok: true, removed }
       }
 
       // A language is usable as is when it is built in, or when a finished run
@@ -637,6 +724,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         if (isBuiltIn(lang)) return true
         const meta = metaRead(lang)
         if (meta.complete !== true) return false
+        if (pseudoStats(lang).n > 0) return false
         const plan = buildPlan(lang)
         return plan === null || (typeof meta.total === 'number' && meta.total >= plan.total - COMPLETE_TOLERANCE(plan.total))
       }
@@ -729,7 +817,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const plan = buildPlan(lang)
         if (plan === null) return { ok: false, error: 'SOURCE_MISSING : chaînes sources introuvables — mettez à jour le plugin Kybernos principal', done: 0, total: 0 }
         const stores = { kb: i18nRead(lang), dsh: dshRead(lang) }
-        const has = (it) => typeof stores[it.store][it.id] === 'string'
+        const has = (it) => holds(stores[it.store][it.id])
         const counts = {}
         for (const a of AREAS) counts[a] = { done: 0, total: plan.areas[a].total }
         let done = 0
@@ -844,25 +932,70 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         for (const fn of Array.from(runListeners)) { try { fn(run) } catch (e) { /* a dead listener must not stop the run */ } }
       }
       const subscribeRun = (fn) => { runListeners.add(fn); return () => { runListeners.delete(fn) } }
+      // A run lives in THIS tab. While it goes on it writes a heartbeat; a tab that is closed leaves it behind,
+      // and the next tab that opens takes the run over once the heartbeat is stale (a live one in another tab
+      // keeps writing it, so two tabs never run the same language and never double the model bill).
+      const intentRead = () => {
+        const v = readJson(I18N_RUN_KEY, null)
+        return v !== null && typeof v.lang === 'string' && Number.isFinite(Number(v.beat)) ? v : null
+      }
+      const intentWrite = (lang, route) => {
+        try { localStorage.setItem(I18N_RUN_KEY, JSON.stringify({ lang, model: route !== null && route !== undefined ? route : null, beat: Date.now() })) } catch (e) { /* storage unavailable: the run goes on, it just cannot be picked up again */ }
+      }
+      const intentClear = () => { try { localStorage.removeItem(I18N_RUN_KEY) } catch (e) { /* storage unavailable */ } }
+      const autoResumeOn = () => { try { return localStorage.getItem(I18N_AUTO_KEY) !== 'off' } catch (e) { return true } }
+      const setAutoResume = (on) => { try { if (on) localStorage.removeItem(I18N_AUTO_KEY); else localStorage.setItem(I18N_AUTO_KEY, 'off') } catch (e) { /* storage unavailable */ } }
+      // Pure: should a tab that just opened take over the run `it` describes?
+      const shouldTakeOver = (it, now, auto) => it !== null && auto === true && now - Number(it.beat) >= RUN_STALE_MS
+      let beatTimer = null
+      const stopBeat = () => { if (beatTimer !== null) { clearInterval(beatTimer); beatTimer = null } }
       const startRun = (lang, route) => {
         if (run.state === 'running' || run.state === 'pausing') return false
         registryAdd(lang)
         runControl = new AbortController()
         setRun({ state: 'running', lang, done: 0, total: 0, areas: null, model: route !== null && route !== undefined ? route.model : null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 })
+        intentWrite(lang, route)
+        stopBeat()
+        beatTimer = setInterval(() => intentWrite(lang, route), RUN_BEAT_MS)
         runTranslation(lang, {
           route, signal: runControl.signal,
           onProgress: (p) => setRun({ done: p.done, total: p.total, areas: p.areas, essentials: p.essentials, startedWith: p.startedWith, elapsedMs: p.elapsedMs, model: p.model !== null && p.model !== undefined ? p.model : run.model }),
         }).then((result) => {
+          // Finished, paused on purpose or failed: nothing to pick up again. Only a closed tab leaves the intent.
+          stopBeat(); intentClear()
           if (result.paused) return setRun({ state: 'paused', done: result.done, total: result.total })
           if (!result.ok) return setRun({ state: 'failed', error: result.error || 'échec inconnu', done: result.done, total: result.total })
           setRun({ state: result.missing > 0 ? 'partial' : 'done', done: result.done, total: result.total, missing: result.missing })
-        }).catch((e) => setRun({ state: 'failed', error: String((e !== null && e !== undefined && e.message) || e) }))
+        }).catch((e) => { stopBeat(); intentClear(); setRun({ state: 'failed', error: String((e !== null && e !== undefined && e.message) || e) }) })
         return true
       }
       const pauseRun = () => {
         if (run.state !== 'running' || runControl === null) return
         setRun({ state: 'pausing' })
         try { runControl.abort() } catch (e) { /* already finished */ }
+      }
+      // At load: a run the previous tab left behind goes on by itself (unless the user switched that off). The
+      // plan exists only once DSH has registered its dictionaries, so look again for a while; and look again at
+      // the heartbeat just before starting, a second tab may have taken the run over in the meantime.
+      const autoResume = async (o) => {
+        const sleep = o !== undefined && typeof o.sleep === 'function' ? o.sleep : () => new Promise((r) => setTimeout(r, 1000))
+        const now = o !== undefined && typeof o.now === 'function' ? o.now : Date.now
+        const it = intentRead()
+        if (!shouldTakeOver(it, now(), autoResumeOn()) || run.state !== 'idle') return false
+        const lang = it.lang
+        if (managedIds().indexOf(lang) < 0 || isComplete(lang)) { intentClear(); return false }
+        for (let i = 0; i < 90 && buildPlan(lang) === null; i += 1) await sleep()
+        if (buildPlan(lang) === null) return false
+        let route = it.model !== null && typeof it.model === 'object' && typeof it.model.model === 'string' ? it.model : null
+        if (route === null) {
+          const res = await fetchModels()
+          let saved = ''
+          try { saved = localStorage.getItem(I18N_MODEL_KEY) || '' } catch (e) { /* storage unavailable */ }
+          const m = res.models.find((x) => x.id === saved) || res.models.find((x) => x.id === res.preferred)
+          if (m !== undefined) route = { provider: m.provider, model: m.model }
+        }
+        if (!shouldTakeOver(intentRead(), now(), autoResumeOn()) || run.state !== 'idle') return false
+        return startRun(lang, route)
       }
 
       // ══════════════════════════════════════════════════════════════════════
@@ -1151,6 +1284,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const [askRemove, setAskRemove] = React.useState(null)
         const [details, setDetails] = React.useState(false)
         const [, setTick] = React.useState(0)
+        const [pseudoOpen, setPseudoOpen] = React.useState(null)
+        const [autoOn, setAutoOn] = React.useState(autoResumeOn)
         // Open the first time (nothing translated yet), then as the user left it.
         const [helpOpen, setHelpOpen] = React.useState(() => {
           try { const v = localStorage.getItem(I18N_HELP_KEY); if (v === 'open') return true; if (v === 'closed') return false } catch (e) { /* storage unavailable */ }
@@ -1206,7 +1341,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         }
         const modelName = () => { const m = models.find((x) => x.id === selectedModel); return m !== undefined ? m.name : null }
         const activate = (id) => { setActiveLang(id); activateLanguage(id) }
-        const start = (id) => { setDetails(false); startRun(id, route()) }
+        // Test marks are taken out first: they would otherwise count as translated and nothing would be redone.
+        const start = (id) => { setDetails(false); if (pseudoStats(id).n > 0) repairPseudo(id); startRun(id, route()) }
         const addLanguage = (id) => { registryAdd(id); setPickerOpen(false); setQuery(''); setTick((n) => n + 1) }
         const chooseModel = () => {
           if (advRef.current !== null) { advRef.current.open = true; try { advRef.current.scrollIntoView({ block: 'center' }) } catch (e) { /* no layout */ } }
@@ -1219,6 +1355,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           const meta = metaRead(id)
           const plan = isBuiltIn(id) ? null : buildPlan(id)
           const complete = isComplete(id)
+          const pseudo = isBuiltIn(id) ? { n: 0, examples: [] } : pseudoStats(id)
           const inUse = activeLang === id
           const st = isRun ? snap.state : null
           const running = st === 'running' || st === 'pausing'
@@ -1229,7 +1366,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           const pct = total > 0 ? Math.min(100, Math.floor(done / total * 100)) : 0
           const hasProgress = !complete && !isBuiltIn(id) && done > 0
           const essentialsOk = isRun ? (snap.essentials === true) : (typeof meta.essentials === 'boolean' ? meta.essentials : (held !== null && held.essentials))
-          const canUseNow = !isBuiltIn(id) && !complete && essentialsOk && !inUse
+          const canUseNow = !isBuiltIn(id) && !complete && essentialsOk && !inUse && pseudo.n === 0
 
           // status line
           let metaLine
@@ -1257,7 +1394,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           } else if (complete || st === 'done') acts.push(h('button', { key: 'use', className: 'kbth-btn primary', type: 'button', 'data-act': 'use', title: L('tipUse'), onClick: () => activate(id) }, L('use')))
           else {
             if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L(st === 'partial' ? 'useAnyway' : 'useNow')))
-            else if (done > 0) acts.push(h('button', { key: 'any', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
+            else if (done > 0 && pseudo.n === 0) acts.push(h('button', { key: 'any', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
             acts.push(goButton())
           }
           if (!isBuiltIn(id) && !running) {
@@ -1273,15 +1410,17 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           // body: progress, errors, remove confirmation
           const body = []
           // A failure before anything was translated shows the cause only: no empty bars.
-          if (running || st === 'paused' || (st === 'failed' && snap.done > 0)) {
+          // Also for a language that is not running but holds some progress (after a reload, a closed tab): the bar
+          // is the one place that says how far it is.
+          if (running || st === 'paused' || (st === 'failed' && snap.done > 0) || (st === null && hasProgress)) {
             const mins = running ? minutesLeft(snap) : null
             body.push(h('div', { key: 'prog', className: 'kbth-prog' },
-              h('div', { className: 'kbth-bar', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, title: L('tipProgress') },
+              h('div', { className: 'kbth-bar' + (running ? '' : ' stale'), role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct, title: L('tipProgress') },
                 h('i', { style: { width: pct + '%' } })),
               h('div', { className: 'kbth-prog-line' },
                 h('span', null, L('counts', { done: fmtN(done), total: fmtN(total) })),
                 h('b', { style: { fontWeight: 500 } }, running ? (mins === null ? L('estimating') : L('left', { m: mins })) : pct + ' %')),
-              snap.areas !== null && snap.areas !== undefined
+              isRun && snap.areas !== null && snap.areas !== undefined
                 ? h('div', { className: 'kbth-areas' },
                     AREAS.filter((a) => snap.areas[a].total > 0).map((a) => {
                       const ar = snap.areas[a]
@@ -1294,6 +1433,20 @@ html[dir="rtl"] .kbth-page{direction:rtl}
                     }))
                 : null,
               running && snap.essentials ? h('div', { className: 'kbth-note' }, L('essentials')) : null))
+          }
+          if (running) body.push(h('div', { key: 'tab', className: 'kbth-banner', role: 'status', 'data-note': 'in-tab' }, L(autoOn ? 'runsInTab' : 'runsInTabManual')))
+          // The tab was closed during a run and the automatic resume is off: say why it stopped.
+          if (!running && st === null && !complete && !autoOn && !isBuiltIn(id)) {
+            const left = intentRead()
+            if (left !== null && left.lang === id) body.push(h('div', { key: 'cut', className: 'kbth-banner warn', role: 'status', 'data-note': 'cut' }, L('cutNote')))
+          }
+          if (pseudo.n > 0 && !running) {
+            body.push(h('div', { key: 'pseudo', className: 'kbth-banner warn', role: 'status', 'data-note': 'pseudo' },
+              h('div', null, h('b', null, L('pseudoTitle', { n: fmtN(pseudo.n) })), ' ', L('pseudoBody')),
+              h('div', { className: 'kbth-row', style: { gap: 8 } },
+                h('button', { className: 'kbth-btn primary', type: 'button', 'data-act': 'repair', title: L('tipRepair'), disabled: models.length === 0, onClick: () => start(id) }, L('repair')),
+                h('button', { className: 'kbth-link', type: 'button', 'data-act': 'pseudo-details', onClick: () => setPseudoOpen(pseudoOpen === id ? null : id) }, L(pseudoOpen === id ? 'hideExamples' : 'showExamples'))),
+              pseudoOpen === id ? h('div', { className: 'kbth-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text))) : null))
           }
           if (st === 'failed') {
             const key = friendlyError(snap.error)
@@ -1352,7 +1505,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
               filtered.length > 0 ? h('div', { className: 'kbth-iso' }, filtered.map(isoBtn)) : h('div', { className: 'kbth-note' }, L('noMatch')))
           : null
 
-        return h('div', { className: 'kbth-page' },
+        return h('div', { className: 'kbth-page', 'data-kb': 'language-page' },
           h('div', { className: 'kbth-main' },
             h('div', { className: 'kbth-head' },
               h('div', { className: 'kbth-head-row' },
@@ -1379,7 +1532,10 @@ html[dir="rtl"] .kbth-page{direction:rtl}
                           onChange: (e) => { setSelectedModel(e.target.value); try { localStorage.setItem(I18N_MODEL_KEY, e.target.value) } catch (ex) { /* */ } },
                         }, models.map((m) => h('option', { key: m.id, value: m.id }, m.name + ' (' + m.provider + ')'))))
                     : null,
-                  h('div', { className: 'kbth-hint' }, models.length > 0 ? L('modelHint') : L('noModels')))),
+                  h('div', { className: 'kbth-hint' }, models.length > 0 ? L('modelHint') : L('noModels')),
+                  h('label', { className: 'kbth-check', title: L('tipAuto') },
+                    h('input', { type: 'checkbox', 'data-act': 'autoresume', checked: autoOn, onChange: (e) => { setAutoResume(e.target.checked); setAutoOn(e.target.checked) } }),
+                    L('autoLabel')))),
               diskLine())))
       }
 
@@ -1394,6 +1550,41 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         })
         if (entry !== undefined) entry.click()
         return entry !== undefined
+      }
+      // From outside Settings (the footer ring): open the dialog with its own trigger, then the Language entry.
+      // Same two anchors as the account menu of the cloud plugin; the hashed class prefixes change at every
+      // build, their suffixes do not.
+      const openLanguageFromAnywhere = async () => {
+        // Not `.kbth-page`: the Theme page uses the same class prefix.
+        const shown = () => document.querySelector('[data-kb="language-page"]') !== null
+        const settle = (ms) => new Promise((r) => setTimeout(r, ms))
+        if (shown()) return true
+        const opened = openLanguagePage() // Settings are already open on another section
+        if (!opened) {
+          const trigger = document.querySelector('[class*="settingsArea"] button[class*="trigger"]') || document.querySelector('button[aria-label="Settings"]')
+          if (trigger === null) return false
+          trigger.click()
+          // The dialog restores the section it was last on while it mounts: a click on the nav entry that comes
+          // first is overwritten. Wait for it to settle, then click until the page is really there.
+          await settle(600)
+        }
+        for (let i = 0; i < 100; i += 1) {
+          if (shown()) return true
+          openLanguagePage()
+          await settle(150)
+        }
+        return shown()
+      }
+      // A ring in the sidebar footer, only while a translation runs: it is visible from every page, so the
+      // run no longer hides behind the Language page.
+      function RunRing() {
+        const [snap, setSnap] = React.useState(run)
+        React.useEffect(() => { setSnap(run); return subscribeRun(setSnap) }, [])
+        if (snap.state !== 'running' && snap.state !== 'pausing') return null
+        const pct = snap.total > 0 ? Math.min(100, Math.floor(snap.done / snap.total * 100)) : 0
+        const label = L('chipTitle', { name: langInfo(snap.lang).native, pct })
+        return h('button', { type: 'button', className: 'kbth-ring', 'data-act': 'run-ring', 'aria-label': label, title: label, style: { '--p': pct }, onClick: () => { openLanguageFromAnywhere() } },
+          h('span', { className: 'kbth-ring-n', 'aria-hidden': 'true' }, String(pct)))
       }
       function GeneralLink() {
         return h('div', { className: 'kbth-gl' },
@@ -1412,6 +1603,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         // Pure pieces, exposed for test-client.mjs.
         __test: {
           kbSources, dshSources, buildPlan, runTranslation, hostTranslate, planBatches, isComplete, metaRead, i18nRead, dshRead, liveRead,
+          isTestMark, holds, pseudoStats, repairPseudo, intentRead, intentWrite, intentClear, shouldTakeOver, autoResume, autoResumeOn, setAutoResume,
+          resetRun: () => { stopBeat(); run = { state: 'idle', lang: null, done: 0, total: 0, areas: null, model: null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 } },
           startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate,
           managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage, heldBy,
           __writeJson: writeJson, setLocale: (svc) => { locSvc = svc; _dsh = null; _dshRev = null }, L, estimateMinutes, minutesLeft,
@@ -1454,9 +1647,14 @@ html[dir="rtl"] .kbth-page{direction:rtl}
             ctx.effect(() => ctx.slots.inject('settings.general.item', () => ctx.slots.register(
               { name: 'settings.general.item', id: 'kybernos-language-link', order: 1 },
               () => h(GeneralLink))), 'kybernos-language: pointer under General › Language')
+            ctx.effect(() => ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register(
+              { name: 'sidebar.footer.action', id: 'kybernos-language-run', order: 19 },
+              () => h(RunRing))), 'kybernos-language: footer ring while a translation runs')
             // Optional: a failure here must not take DSH down with it.
             try { startLiveLayer(ctx) } catch (e5) { /* */ }
           }
+          // A run the previous tab left behind goes on by itself, once DSH has had time to register its dictionaries.
+          try { window.setTimeout(() => { autoResume().catch(() => { /* never breaks the boot */ }) }, 3000) } catch (e6) { /* no timers */ }
         }
       }
     } catch (kbLangBootError) {

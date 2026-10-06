@@ -1500,6 +1500,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbs-root' },
           h('div', { className: 'kbs-top' },
             h('div', { className: 'kbs-top-txt' },
+              h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)),
               h('h2', { className: 'kbs-h1' }, 'Skills'),
               h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
             detail === null && mode !== 'team' ? renderAdd() : null),

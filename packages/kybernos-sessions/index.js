@@ -155,6 +155,13 @@ export function cheminsSales (out) {
     .map((l) => l.slice(3).trim().replace(/^"/, '').replace(/"$/, '').split(' -> ').pop())
     .filter((p) => p !== '')
 }
+// Les mêmes chemins AVEC leur code `XY` (« M », « ?? », « UU »…), pour dire ce qui a changé et non seulement où :
+// le plugin « Changes » les range en modifié / nouveau / supprimé / en conflit. Champ additif de l'état.
+export function fichiersSales (out) {
+  return String(out || '').split('\n').map((l) => l.replace(/\s+$/, '')).filter((l) => l.trim() !== '')
+    .map((l) => ({ code: l.slice(0, 2).trim(), chemin: l.slice(3).trim().replace(/^"/, '').replace(/"$/, '').split(' -> ').pop() }))
+    .filter((f) => f.chemin !== '')
+}
 export function estSale (sales, p) {
   return (Array.isArray(sales) ? sales : []).some((s) => {
     const brut = String(s)
@@ -200,6 +207,7 @@ export async function etatGit (chemin, run = git) {
     // disque, même quand le commit est passé par le bouton (le journal, lui, ne
     // voit que les commits lancés par un outil de l'agent).
     sale: sale.ok ? cheminsSales(sale.out).slice(0, 200) : [],
+    fichiers: sale.ok ? fichiersSales(sale.out).slice(0, 200) : [],
     commitsNonPousses: avance.ok ? avance.out.split('\n').filter((l) => l.trim() !== '').length : -1,
     commitsRecus: recul.ok ? parseInt(recul.out.trim(), 10) || 0 : -1,
     nonFusionnes: fusion.ok ? parseInt(fusion.out.trim(), 10) || 0 : -1,

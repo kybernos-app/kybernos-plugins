@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Permet à l’agent de redémarrer DSH lui-même (après un changement de plugin ou de réglage) sans perdre le travail : les sessions en cours reprennent toutes seules.",
+    "en": "Lets the agent restart DSH itself (after a plugin or setting change) without losing work: running sessions pick up again on their own."
+  },
+  "steps": [
+    {
+      "fr": "Demandez à l’agent de relancer DSH, par exemple après l’ajout d’un plugin ou un changement de réglage.",
+      "en": "Ask the agent to restart DSH, for example after adding a plugin or changing a setting."
+    },
+    {
+      "fr": "Si d’autres sessions travaillent, le panneau d’approbation de DSH les nomme : « Allow once » coupe, un refus ne touche à rien.",
+      "en": "If other sessions are working, DSH’s approval panel names them: “Allow once” goes ahead, a refusal changes nothing."
+    },
+    {
+      "fr": "Le redémarrage a lieu une vingtaine de secondes plus tard, le temps que la réponse en cours s’affiche.",
+      "en": "The restart happens about twenty seconds later, so the current reply has time to finish."
+    },
+    {
+      "fr": "Ensuite chaque session qui travaillait reçoit un message de reprise, et la page se recharge toute seule une fois.",
+      "en": "Then each session that was working gets a resume message, and the page reloads by itself once."
+    }
+  ],
+  "where": {
+    "fr": "Dans le chat : c’est l’agent qui la déclenche (pas de page dans les Réglages)",
+    "en": "In the chat: the agent triggers it (no page in Settings)",
+    "page": false
+  },
+  "good": {
+    "fr": "Si d’autres sessions travaillent et que votre session est en accès complet (approbation « never »), aucun panneau ne peut s’ouvrir : l’agent refuse de relancer plutôt que de couper.",
+    "en": "If other sessions are working and yours has full access (approval “never”), no panel can open: the agent declines to restart rather than cut anything."
+  }
+}

@@ -156,6 +156,93 @@ pseudo-translations (`⟦text⟧`): written to the real disk, they would replace
 translation. Only a script that passes `{ hostStore: true }` (and intercepts the route, as
 above) gets the copy.
 
+## Before it is merged: test a worktree's client on the real GUI (`scripts/lib-bundle-swap.mjs`)
+
+`dsh web` serves what the shared tree holds. To see a plugin's browser half from your worktree *without* touching the shared
+tree, rewrite the response in the test browser:
+
+```js
+import { swapBundles } from './lib-bundle-swap.mjs'
+const swap = await swapBundles(page, [{ name: 'kybernos-language' }])   // after fakeDiskRoute, pass its pattern in extraPatterns
+await page.send('Page.reload', {})
+swap.report()   // [{ file, replaced: true }]  (false = the shared tree has uncommitted edits of that file)
+```
+
+Plugin clients come as ONE combined request (`/plugins/??a/client.js,b/client.js&rev=…`) whose hash validates the list, so the
+helper rewrites the response, found by the text of the shared file. It switches the HTTP cache off (a cached bundle never reaches
+the interceptor). Only client code can be tested this way: host code loads when `dsh web` restarts, and you do not restart it.
+
+Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
+event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
+
+## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
+
+A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change
+needs a restart, which you do not do. Build a second DSH that serves this checkout:
+
+```bash
+scripts/sandbox/setup.sh          # a clone of the real `web` profile, every @local link on this checkout, new bundles added
+scripts/sandbox/start.sh          # port 3098 (never 3080), own HOME and DSH_HOME, log in the sandbox folder
+source scripts/sandbox/env.sh     # KB_HOST, DSH_HOME, HOME: what the live checks read (`kb_sandbox_leave` undoes it)
+scripts/sandbox/stop.sh           # that instance only
+```
+
+No credential, key or session is copied, the paid server module and the relaunch tool (it targets :3080) are left out; the new bundles of the checkout are added and the checkout is the one workspace. HOME
+is set too, because some bundles still write under `~/.dsh` when only DSH_HOME is: with HOME alone changed, the real files
+stay untouched (fingerprint `~/.dsh/.credentials.yaml`, `profiles/web/package.json`, `kybernos/i18n/*.json` before and after).
+Host code is not hot-reloaded: `stop` then `start` after editing an `index.js`; client code is read from the checkout at each
+page load. The first load asks for an API key (« Configure later »); a chat for a git folder only exists once a first message
+was sent (the turn then fails for lack of a key, which is fine): `check-changes-live.mjs` does both by itself.
+
+## The Changes chip: `scripts/check-changes-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-changes-live.mjs --shots /tmp/shots
+```
+
+It refuses to run against `:3080` (exit 3: that DSH does not load the bundle). It checks the real data path (the chip, the
+host's `fichiers`, the four pills stepping aside), every state through the seam, an action end to end, French, a narrow
+window and the seam missing. **Every POST of `/kybernos-sessions/*` is answered inside the page by the check** (fail-closed):
+the sandbox runs git in the user's real repository folder, so a real commit must be impossible, whatever the page asks.
+
+## The help of every plugin: `scripts/check-help-live.mjs`
+
+Each bundle has a `packages/<dir>/help.json` (what it is, how to use it, where to find it, one thing worth knowing, in French and
+English). `scripts/build-catalog.mjs` validates it and ships it in the catalogue; the Suite shows it on the module's page, and the
+« ? How it works » button of a plugin page (`window.__KB_HELP__.Help`, published by the hub) shows the same text.
+
+```bash
+node scripts/test-help.mjs                   # no GUI: the shape, every bundle has one, the buttons are guarded and ask for their own bundle
+source scripts/sandbox/env.sh && node scripts/check-help-live.mjs --shots /tmp/shots
+```
+
+The live check opens each page that carries the button (Theme, AI Provider & Models, Commands, Workers, About, Ollama Local Models,
+Memory & Lessons, General, Kybernos Suite, Skills), opens the card, checks it holds the text **read from the file**, that Escape closes
+the card and not the Settings dialog behind it, then French, a module's page in the Suite, and that Atlas, Language and Auto Routing
+(which already had a help) do not get a second button. Two traps: the Settings dialog closes on Escape with a capture listener, so
+anything that handles Escape inside it must listen in capture and stop the event only when it has something to close; and the core
+rewrites French phrases to English on Settings pages while the document language is English (a French test must set
+`document.documentElement.lang` too, or compare without quotation marks).
+
+## The run, the ring and the test marks: `scripts/check-language-run-live.mjs`
+
+```bash
+node scripts/check-language-run-live.mjs --worktree --shots /tmp/shots    # this checkout's client, screenshots of the key steps
+node scripts/check-language-run-live.mjs --worktree --user-copy           # start from a COPY of ~/.dsh/kybernos/i18n/es.json
+```
+
+It replays an incident that really happened: a language whose texts were all written by a test run (`⟦…⟧`) and reached the
+disk. A: the situation (built with the pseudo stub, or your copy). B: the page no longer counts the marks as translations (grey
+bar with the real count, banner, no « Use »). C: « Translate these texts again » replaces them while the page says the run lives
+in the tab and the ring in the sidebar footer follows it from the workspace (clicking it opens the Language page); browser and
+disk end up clean and a reload does not bring the marks back. D: a run cut with the tab is taken over at the next load, left
+alone while the heartbeat is fresh, and left alone when the automatic resume is off.
+
+The « disk » is a throw-away folder behind the real route code and the model is a stub in the page, so your `~/.dsh` is never
+written (`--user-copy` only reads `es.json`, once, into that folder); nothing presses « Use », so DSH's language is untouched.
+`openLivePage` sets `window.__KB_I18N_PSEUDO_OK__ = true` for every other script, because they translate with the
+pseudo-translating stub; this one switches it with `localStorage.__kb_pseudo_ok` instead, since the guard is what it tests.
+
 ## The Theme page, end to end: `scripts/check-theme-live.mjs`
 
 ```bash
@@ -397,6 +484,46 @@ language-preference rules above. The sidebar's session list is left out (titles 
 user wrote are data, not copy). Exit code is `0` (it measures, it does not gate),
 `3` when inconclusive.
 
+## An isolated instance for host code: `scripts/sandbox/`
+
+A host half (`packages/*/index.js`) only loads when DSH starts, and a restart interrupts the sessions running in
+your real DSH. To see host code live, run a **second** `dsh web` with its own HOME and DSH_HOME that serves *this
+checkout's* `packages/*`:
+
+```bash
+scripts/sandbox/start.sh                 # first run clones the real profile (read only), re-points every @local link at this checkout, starts on 3098
+source scripts/sandbox/env.sh            # HOME, DSH_HOME, KB_HOST, DSH_WEB_PORT now point at the sandbox (kb_sandbox_leave undoes it)
+node scripts/check-connectors-live.mjs --write --shots /path/to/shots
+scripts/sandbox/stop.sh                  # kills only the pid it recorded, after checking it is the sandbox's dsh
+```
+
+- It reads your real `~/.dsh` (clone of `profiles/web`, copy of `mcp/`) and never writes there, never copies a
+  credential, never uses port 3080 (a busy port makes it take the next free one) and refuses to run with the real
+  HOME. State lives in `~/.kybernos-sandbox/<checkout name>` (`KB_SANDBOX_ROOT` overrides): short on purpose, a unix
+  socket path is limited to about 100 characters.
+- Client edits (`client.js`) are served from the checkout at once; host edits need `stop.sh` then `start.sh` (this
+  instance holds nobody's sessions). `setup.sh` again after the checkout gains a package, `setup.sh --refresh`
+  (sandbox stopped) to re-clone the profile.
+- `sandbox.log` holds DSH's token URL: never print it; sign in with the cookie like every script here.
+- A fresh instance asks for a model key in a dialog that covers the page (it swallows mouse events): click
+  "Configure later" first, as `check-connectors-live.mjs` does. The paid module `@local/kybernos-servers` is read
+  from its private checkout when there is one.
+- With DSH_HOME alone the sandbox would write the real profile: several bundles hard-code `homedir()`, so HOME is
+  isolated too.
+
+## The Connectors page: `scripts/check-connectors-live.mjs`
+
+```bash
+node scripts/check-connectors-live.mjs [--shots <dir>]    # read only, safe on the real DSH once its host has the new routes
+KB_HOST=... node scripts/check-connectors-live.mjs --write # the whole life of an MCP server, on an isolated instance
+```
+
+Read only: the three tabs, the add menu, row actions hidden until hover, a state chip on every row, the form
+opening on a server the skill wrote. `--write` adds a fake stdio MCP server by pasting JSON, waits for DSH to load
+it by itself (hot reload, no restart), tests it, switches it off and on, renames it and deletes it; it **refuses to
+run against 127.0.0.1:3080** unless `--allow-real` (it writes the profile and the `.env`). Exit 0 / 1 / 3
+(inconclusive).
+
 ## Traps
 
 - **These scripts are deliberately NOT named `test-*.mjs`.** CI runs every
@@ -424,3 +551,8 @@ user wrote are data, not copy). Exit code is `0` (it measures, it does not gate)
   there: start from a clean page (`flow.openSettings` reloads first).
 - A 401 from your script, with a valid cookie, usually means the *authority* is
   wrong (`KB_HOST` must be exactly `host:port` as `dsh web` listens).
+- **The Theme page and the Language page share the `kbth-` class prefix.** `.kbth-page` is true on both: a test that asks
+  « is the Language page shown? » must use `[data-kb="language-page"]` or `[data-act="add-language"]`. (A first version of the
+  ring's click handler stopped at « the page is already there » while Settings still showed Theme.)
+- **A click on a position hits what is on top.** With Settings open, the sidebar footer is covered by the nav: clicking the
+  ring's coordinates selected « Theme ». Close Settings with a real click on « Back to workspace » first, and check it closed.

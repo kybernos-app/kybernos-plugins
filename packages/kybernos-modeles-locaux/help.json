@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Détecte la mémoire de votre ordinateur, recommande les modèles qui y tiennent, installe celui que vous choisissez avec Ollama et le branche sur DSH pour travailler en local.",
+    "en": "Detects your computer’s memory, recommends the models that fit, installs the one you pick with Ollama and wires it into DSH so you can work locally."
+  },
+  "steps": [
+    {
+      "fr": "La page affiche votre machine (puce, mémoire) et si Ollama est présent ; « Installer Ollama (brew) » apparaît s’il manque.",
+      "en": "The page shows your machine (chip, memory) and whether Ollama is present; “Install Ollama (brew)” appears if it is missing."
+    },
+    {
+      "fr": "Dans « Sélection pour cette machine », choisissez un modèle (le « Recommandé » est le plus grand qui tient) puis « Installer ».",
+      "en": "In “Picked for this machine”, choose a model (the “Recommended” one is the largest that fits) then “Install”."
+    },
+    {
+      "fr": "Quand il est téléchargé, cliquez sur « Brancher sur DSH » : la carte passe à « Branché » et le modèle devient utilisable dans DSH.",
+      "en": "Once downloaded, click “Wire into DSH”: the card turns to “Wired” and the model becomes usable in DSH."
+    },
+    {
+      "fr": "Autre modèle : « Modèle personnalisé (Hugging Face) », collez un lien, « Vérifier la compatibilité », puis « Télécharger via Ollama ».",
+      "en": "For another model, “Custom model (Hugging Face)”: paste a link, “Check compatibility”, then “Download via Ollama”."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Modèles locaux Ollama",
+    "en": "Settings › Ollama Local Models",
+    "page": true
+  },
+  "good": {
+    "fr": "Le modèle tourne sur votre machine et rien n’est téléchargé sans votre clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relancez DSH.",
+    "en": "The model runs on your machine and nothing is downloaded without your click. If it is missing from the model picker after “Wire into DSH”, restart DSH."
+  }
+}

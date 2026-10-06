@@ -98,6 +98,10 @@
       "nom": "@local/kybernos-atlas"
     },
     {
+      "dir": "kybernos-changes",
+      "nom": "@local/kybernos-changes"
+    },
+    {
       "dir": "dsh-media-player",
       "nom": "@local/dsh-media-player"
     },
