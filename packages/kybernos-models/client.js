@@ -2163,6 +2163,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbpv', 'data-kbm': 'prov-list' },
           h('div', { className: 'kbpv-head' },
             h('span', { className: 'kbpv-grow' }),
+            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-models' }) : null),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', 'data-kbm': 'prov-add', disabled: ro, title: ro ? m('kb.models.readonly') : undefined, onClick: openAdd }, Ic('plus', 14), m('kb.prov.add')),
             h('span', { className: 'kbpv-menuwrap' },
               h('button', { type: 'button', className: 'kbpv-ib', 'data-kbm': 'prov-head-more', 'aria-haspopup': 'menu', 'aria-expanded': ui.menu === '__head' ? 'true' : 'false', 'aria-label': m('kb.pv.more.page'), title: m('kb.pv.more.page'), onClick: (ev) => { ev.stopPropagation(); patch({ menu: ui.menu === '__head' ? null : '__head' }) } }, Ic('more', 16)),

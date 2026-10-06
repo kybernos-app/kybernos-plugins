@@ -364,6 +364,25 @@ window.__ModuleLoader__.load({
       '.kbsu-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:auto}',
       '.kbsu-st{font-size:12.5px;color:var(--dsw-alias-label-tertiary);display:inline-flex;gap:6px;align-items:center;min-width:0}',
       '.kbsu-st.ok{color:var(--dsw-alias-state-success-primary)}.kbsu-st.warn{color:var(--dsw-alias-state-warn-primary)}.kbsu-st.bad{color:var(--dsw-alias-state-error-primary)}',
+      '.kbsu-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;counter-reset:kbsu-s}',
+      '.kbsu-steps li{display:flex;gap:10px;align-items:flex-start;color:var(--dsw-alias-label-secondary);counter-increment:kbsu-s}',
+      '.kbsu-steps li::before{content:counter(kbsu-s);flex:none;width:20px;height:20px;border-radius:50%;margin-top:0;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
+      '.kbsu-where,.kbsu-good{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
+      '.kbsu-where b{color:var(--dsw-alias-label-primary);font-weight:600}',
+      '.kbsu-good{padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-border-l3)}',
+      // The « ? How it works » button of any plugin page, and the card it opens (window.__KB_HELP__.Help).
+      '.kbhp-wrap{position:relative;display:inline-block;max-width:100%}',
+      '.kbhp-btn{appearance:none;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 6px;border-radius:16px;border:1px solid var(--dsw-alias-border-l3);background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}',
+      '.kbhp-btn:hover,.kbhp-btn[aria-expanded="true"]{border-color:var(--dsw-alias-label-tertiary);color:var(--dsw-alias-label-primary)}',
+      '.kbhp-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}',
+      '.kbhp-q{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
+      '.kbhp-pop{box-sizing:border-box;position:absolute;inset-inline-end:0;top:calc(100% + 8px);z-index:60;width:min(420px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;padding:16px 18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-primary);text-align:start;white-space:normal;font-size:14px;line-height:1.5;background:linear-gradient(var(--dsw-specific-menu,#1c1c1f),var(--dsw-specific-menu,#1c1c1f)),var(--dsw-alias-bg-base,#151517);box-shadow:0 16px 44px rgba(0,0,0,.42);display:flex;flex-direction:column;gap:12px}',
+      '.kbhp-pop h4{margin:0;font-size:17px;font-weight:700}',
+      '.kbhp-pop h5{margin:0 0 8px;font-size:11.5px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}',
+      '.kbhp-pop p{margin:0;color:var(--dsw-alias-label-secondary)}',
+      '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
+      '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
+      '.kbhp-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
       '.kbsu-right{display:inline-flex;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
@@ -745,6 +764,10 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'kbsu-body', style: { '--c': p.fam.couleur } },
               h('p', null, texte),
               Array.isArray(m.points) && m.points.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Ce que ça fait', 'What it does')), h('ul', { className: 'kbsu-ticks' }, m.points.map((pt, i) => h('li', { key: i }, kt(pt.fr, pt.en))))) : null,
+              m.aide !== undefined && m.aide !== null ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 }, 'data-kb': 'suite-aide' },
+                h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, m.aide.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
+                h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(m.aide.where.fr, m.aide.where.en)),
+                m.aide.good ? h('p', { className: 'kbsu-good' }, kt(m.aide.good.fr, m.aide.good.en)) : null) : null,
               Array.isArray(m.notes) && m.notes.length > 0 ? h('div', null, h('h5', { style: { marginBottom: 10 } }, kt('Nouveautés de la version ', 'What’s new in ') + m.version), h('ul', { className: 'kbsu-ticks' }, m.notes.map((nt, i) => h('li', { key: i }, kt(nt.fr, nt.en))))) : null,
               m.socle ? h('p', { className: 'kbsu-st' }, kt('Fait partie du socle : il est livré sur chaque poste et ne s’éteint pas.', 'Part of the base: it ships on every machine and cannot be switched off.')) : null)
           return h('div', { className: 'kbsu-fiche', 'data-kb': 'suite-fiche', 'data-id': m.id, style: { display: 'flex', flexDirection: 'column', gap: 14 } },
@@ -849,6 +872,7 @@ window.__ModuleLoader__.load({
             h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
             h('div', { className: 'kbsu-headr' },
               h('span', { className: 'kbsu-right' },
+                typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-hub' }) : null,
                 ouvrirGestionnaire !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost', 'data-kb': 'suite-native', onClick: ouvrirGestionnaire }, ic('plug'), kt('Gestionnaire natif', 'Native manager')) : null,
                 h('button', { type: 'button', className: 'kbsu-btn', 'data-kb': 'suite-verifier', disabled: verifie, onClick: verifier }, ic('refresh', verifie ? 'spin' : ''), verifie ? kt('Vérification…', 'Checking…') : kt('Rechercher des mises à jour', 'Check for updates'))),
               h('div', { className: 'kbsu-meta' },
@@ -895,12 +919,76 @@ window.__ModuleLoader__.load({
       return Panneau
     }
 
+    // ── « ? How it works », for every plugin page ─────────────────────────────────────────────────────────────────────
+    // The help of each module is written once (packages/<dir>/help.json), shipped in the catalogue and shown on the module's page in
+    // the Suite. This is the same text behind a button any plugin page can put in its header:
+    //   window.__KB_HELP__ && h(window.__KB_HELP__.Help, { id: '<bundle folder>' })
+    // It renders nothing when the module, or its help, is not known — a plugin never depends on it being there.
+    const construireAide = (React) => {
+      const h = React.createElement
+      const cache = { map: null, pending: null }
+      const lireAides = () => {
+        if (cache.map !== null) return Promise.resolve(cache.map)
+        if (cache.pending === null) {
+          cache.pending = fetch('/kybernos-hub/suite', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => {
+            const map = {}
+            for (const m of (j !== null && typeof j === 'object' && Array.isArray(j.modules) ? j.modules : [])) if (m !== null && typeof m === 'object' && typeof m.id === 'string') map[m.id] = m
+            cache.map = map
+            return map
+          }).catch(() => { cache.pending = null; return {} })
+        }
+        return cache.pending
+      }
+      function Help ({ id }) {
+        const [open, setOpen] = React.useState(false)
+        const [mod, setMod] = React.useState(null)
+        const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
+        const wrap = React.useRef(null)
+        React.useEffect(() => {
+          let off = false
+          lireAides().then((map) => { if (!off) setMod(map[id] !== undefined ? map[id] : null) })
+          return () => { off = true }
+        }, [id])
+        React.useEffect(() => {
+          if (!open) return undefined
+          // The Settings dialog closes on Escape with a capture listener of its own: this one runs first, in capture, and only
+          // when the card is open, so Escape closes the card and leaves the page behind it alone.
+          if (wrap.current !== null) {
+            const r = wrap.current.getBoundingClientRect()
+            const w = Math.min(420, window.innerWidth - 32)
+            const rtl = document.documentElement.dir === 'rtl'
+            // Hang from the end edge (toward the right) unless the card would run out of the window there.
+            setSide((rtl ? r.left + w > window.innerWidth - 16 : r.right - w < 16) ? 'start' : 'end')
+          }
+          const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }
+          const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target)) setOpen(false) }
+          window.addEventListener('keydown', esc, true)
+          document.addEventListener('mousedown', away)
+          return () => { window.removeEventListener('keydown', esc, true); document.removeEventListener('mousedown', away) }
+        }, [open])
+        if (mod === null || mod.aide === undefined || mod.aide === null) return null
+        const a = mod.aide
+        return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id },
+          h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + id, title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
+            h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?'), kt('Comment ça marche', 'How it works')),
+          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : ''), id: 'kbhp-' + id, role: 'dialog', 'aria-label': (mod.titre || id) + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
+            h('button', { type: 'button', className: 'kbhp-x', 'aria-label': kt('Fermer', 'Close'), onClick: () => setOpen(false) }, '✕'),
+            h('h4', null, mod.titre || id),
+            h('p', null, kt(a.what.fr, a.what.en)),
+            h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
+            h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)),
+            a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null) : null)
+      }
+      return { version: 1, Help }
+    }
+
     const monterSuite = (ctx, scope, require) => {
       try {
         const slots = scope.slots
         if (slots == null || typeof slots.inject !== 'function') return
         const React = typeof require === 'function' ? require('react') : null
         if (React == null) return
+        try { window.__KB_HELP__ = construireAide(React) } catch (e) { /* the pages then simply have no help button */ }
         ctx.effect(() => { const s = document.createElement('style'); s.dataset.plugin = '@local/kybernos-hub'; s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'kybernos-hub: suite styles')
         const Panneau = construirePanneau(React, scope, ctx)
         ctx.effect(() => slots.inject('settings.section', () => slots.register(

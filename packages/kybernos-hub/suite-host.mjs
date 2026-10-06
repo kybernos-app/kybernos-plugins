@@ -53,10 +53,13 @@ export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   const act = lireActivation({ catalogue, brut })
   const actifs = new Set(act.actifs)
   const vu = effectif ?? { ...catalogue, source: 'embarque' }
+  // The help of a module ships with the suite: the signed online catalogue carries the versions and the promises, and a module it
+  // describes without a help keeps the one that shipped.
+  const aides = new Map(catalogue.modules.filter((m) => m.aide !== undefined).map((m) => [m.id, m.aide]))
   return {
     ok: true,
     catalogue: { schema: vu.schema, familles: vu.familles, source: vu.source, suite: vu.suite ?? null },
-    modules: vu.modules.map((m) => ({ ...m, voulu: m.socle ? true : actifs.has(m.nom) })),
+    modules: vu.modules.map((m) => ({ ...m, ...(m.aide === undefined && aides.has(m.id) ? { aide: aides.get(m.id) } : {}), voulu: m.socle ? true : actifs.has(m.nom) })),
     activationFichier: act.file,
     hub: etatHub ?? null,
     distant: distant ?? null

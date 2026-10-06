@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Le chat construit une maquette en briques dans la barre latérale droite, brique par brique et en direct. Vous la tournez, la rejouez, et le chat peut la continuer.",
+    "en": "The chat builds a brick mockup in the right sidebar, brick by brick, live. You can turn it, replay it, and the chat can keep building on it."
+  },
+  "steps": [
+    {
+      "fr": "Demandez une maquette au chat, par exemple « construis un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
+      "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Briques” tab opens by itself on the right."
+    },
+    {
+      "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Front », « Top » et « Spin » changent la vue.",
+      "en": "Drag the scene to turn it and scroll to zoom; “3/4”, “Front”, “Top” and “Spin” change the view."
+    },
+    {
+      "fr": "En bas, ▶ rejoue la construction, ◀◀ et ▶▶ sautent au début ou à la fin, 0.5× à 4× règlent la vitesse.",
+      "en": "At the bottom, ▶ replays the build, ◀◀ and ▶▶ jump to the start or the end, 0.5× to 4× set the speed."
+    },
+    {
+      "fr": "Demandez d’en ajouter : le chat continue la maquette, et seules les briques neuves s’animent.",
+      "en": "Ask for more: the chat carries on with the same mockup, and only the new bricks are animated."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale droite, onglet « Briques » (il s’ouvre seul)",
+    "en": "Right sidebar, “Briques” tab (opens by itself)",
+    "page": false
+  },
+  "good": {
+    "fr": "Une maquette n’est pas enregistrée : elle disparaît quand DSH redémarre, et chaque conversation a la sienne.",
+    "en": "A mockup is not saved: it disappears when DSH restarts, and each chat has its own."
+  }
+}

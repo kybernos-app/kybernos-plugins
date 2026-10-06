@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Affiche en lecture seule la petite base SQLite que garde un kyber : schéma en diagramme, graphiques, tableaux et zone de requête.",
+    "en": "Shows, read-only, the small SQLite database a kyber keeps: schema as a diagram, charts, tables and a query box."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez l'onglet « Base de données » dans la barre latérale droite : le titre « Base du kyber » et une liste de bases apparaissent.",
+      "en": "Open the “Base de données” tab in the right sidebar: the title “Base du kyber” and a list of databases appear."
+    },
+    {
+      "fr": "Choisissez la base d'un kyber dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
+      "en": "Pick a kyber's database in the list; the “↻” button reads it again if it just changed."
+    },
+    {
+      "fr": "Passez d'une vue à l'autre : « Diagramme », « Graphiques », « Données » (un tableau à la fois) ou « SQL ».",
+      "en": "Switch views: “Diagramme” (diagram), “Graphiques” (charts), “Données” (one table at a time) or “SQL”."
+    },
+    {
+      "fr": "Dans « SQL », écrivez une requête de lecture (SELECT…) et cliquez « Exécuter » pour voir le résultat.",
+      "en": "In “SQL”, write a read query (SELECT…) and click “Exécuter” (run) to see the result."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale droite › onglet « Base de données » (pas d'écran de réglages)",
+    "en": "Right sidebar › “Base de données” tab (no settings screen)",
+    "page": false
+  },
+  "good": {
+    "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base de kyber, l'onglet le dit. Interface en français.",
+    "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no kyber database, the tab says so. Interface in French only."
+  }
+}

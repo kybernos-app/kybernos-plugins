@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Les liens des messages du chat deviennent de petites pastilles grises avec le nom du site, en fin de phrase : les longues adresses ne coupent plus la lecture.",
+    "en": "Links in chat messages become small grey chips with the site name at the end of the sentence, so long addresses stop breaking the reading."
+  },
+  "steps": [
+    {
+      "fr": "Lisez une réponse du chat qui contient des liens : chacun devient une pastille grise, par exemple « llm-stats », au bout de sa phrase.",
+      "en": "Read a chat answer that contains links: each one becomes a grey chip, for example “llm-stats”, at the end of its sentence."
+    },
+    {
+      "fr": "Cliquez une pastille : une carte montre le titre du lien, le site et l’adresse complète.",
+      "en": "Click a chip: a card shows the link’s title, the site and the full address."
+    },
+    {
+      "fr": "Cliquez « Ouvrir ↗ » dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
+      "en": "Click “Ouvrir ↗” in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
+    }
+  ],
+  "where": {
+    "fr": "Dans les messages du chat, en fin de phrase (aucune page de réglages)",
+    "en": "In chat messages, at the end of the sentence (no settings page)",
+    "page": false
+  },
+  "good": {
+    "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir. Le bouton « Ouvrir ↗ » reste en français.",
+    "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it. The “Ouvrir ↗” button stays in French."
+  }
+}

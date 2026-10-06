@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Connecte DSH à votre compte Kybernos : les modèles proposés par Kybernos (selon votre formule) et la mémoire du compte, partagée avec vos agents.",
+    "en": "Connects DSH to your Kybernos account: the models Kybernos offers (according to your plan) and the account memory, shared with your agents."
+  },
+  "steps": [
+    {
+      "fr": "Cliquez « Se connecter » en bas de la barre latérale, puis « Ouvrir la page d'activation » et confirmez le code dans le navigateur.",
+      "en": "Click “Sign in” at the bottom of the sidebar, then “Open activation page” and confirm the code in your browser."
+    },
+    {
+      "fr": "Une fois connecté, vos modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Models, selon votre formule.",
+      "en": "Once connected, your Kybernos models add themselves in Settings › Models, according to your plan."
+    },
+    {
+      "fr": "Le bas de la barre latérale montre votre espace et votre formule ; cliquez-le pour « Compte », « Paramètres » ou « Se déconnecter ».",
+      "en": "The bottom of the sidebar shows your workspace and plan; click it for “Account”, “Settings” or “Log out”."
+    },
+    {
+      "fr": "Vos souvenirs du compte se gèrent dans Réglages › Memory & Lessons (si ce module est installé).",
+      "en": "Your account memories are managed in Settings › Memory & Lessons (if that module is installed)."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale (en bas) : « Se connecter », puis votre espace ; aussi Réglages › Compte",
+    "en": "Sidebar (bottom): “Sign in”, then your workspace; also Settings › Account",
+    "page": true
+  },
+  "good": {
+    "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Vos souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
+    "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
+  }
+}

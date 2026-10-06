@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Une carte en lecture seule de votre espace : projets, kybers, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+    "en": "A read-only map of your workspace: projects, kybers, skills, memory, lessons, automations and apps, how they connect, and what is broken."
+  },
+  "steps": [
+    {
+      "fr": "Activez Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvrez Réglages › Atlas.",
+      "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
+    },
+    {
+      "fr": "Cliquez « Update » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
+      "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
+    },
+    {
+      "fr": "Dans « Around », choisissez un projet ou un kyber dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+      "en": "In “Around”, pick a project or a kyber in “Start from”: four columns show who works there and what they use."
+    },
+    {
+      "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",
+      "en": "The other tabs show the same map in other ways; “To check” lists what is broken, “Help” explains the lines."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Atlas",
+    "en": "Settings › Atlas",
+    "page": true
+  },
+  "good": {
+    "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré. La page est en anglais, d’où les noms d’onglets cités ici.",
+    "en": "Atlas only reads: nothing is changed or stored. The page is in English, hence the tab names quoted here."
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Change l’apparence de Kybernos : thème prêt à l’emploi, accent, fond d’écran, police, transparence, et l’animation affichée pendant que l’agent travaille.",
+    "en": "Changes how Kybernos looks: ready-made themes, accent, wallpaper, font, transparency, and the animation shown while the agent works."
+  },
+  "steps": [
+    {
+      "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème, une couleur d’accent, un fond et une police.",
+      "en": "In “Essentials” (open by default), pick a mode, a theme, an accent color, a background and a font."
+    },
+    {
+      "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
+      "en": "“Glass and background” sets transparency and blur once a background is chosen; “Colors”, “Text and shape” and “Accessibility” refine."
+    },
+    {
+      "fr": "« Animation » : choisissez le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
+      "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
+    },
+    {
+      "fr": "« Partage » exporte votre thème (YAML, JSON ou CSS) ou importe un fichier .json ; « Tout rétablir » revient à l’apparence native de DSH.",
+      "en": "“Sharing” exports your theme (YAML, JSON or CSS) or imports a .json file; “Reset all” goes back to DSH’s native look."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Thème",
+    "en": "Settings › Theme",
+    "page": true
+  },
+  "good": {
+    "fr": "Un fond d’écran ne se voit pas dans les Réglages eux-mêmes, seulement derrière le chat et les autres pages. Le thème ne change que l’interface web, pas le terminal.",
+    "en": "A wallpaper is not visible inside Settings itself, only behind the chat and the other pages. The theme only changes the web interface, not the terminal."
+  }
+}

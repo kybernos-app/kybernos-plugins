@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Quand une réponse est coupée par la limite de longueur, DSH enchaîne tout seul avec « continue ». Les messages en attente se réordonnent aussi par glisser-déposer.",
+    "en": "When a reply is cut off by the length limit, DSH carries on by itself with “continue”. Queued messages can also be reordered by drag and drop."
+  },
+  "steps": [
+    {
+      "fr": "Envoyez plusieurs messages pendant que l’agent travaille : ils attendent dans la file d’attente de DSH.",
+      "en": "Send several messages while the agent is working: they wait in DSH’s queue."
+    },
+    {
+      "fr": "Survolez un message en attente : une poignée à six points apparaît. Glissez-la, ou, au clavier, utilisez Alt + ↑ et Alt + ↓ dessus.",
+      "en": "Hover a queued message: a six-dot handle appears. Drag it, or, with the keyboard, press Alt + ↑ and Alt + ↓ on it."
+    },
+    {
+      "fr": "Si une réponse s’arrête net sur la limite de longueur, DSH envoie lui-même « continue » et la réponse reprend.",
+      "en": "If a reply stops dead at the length limit, DSH sends “continue” itself and the reply picks up again."
+    }
+  ],
+  "where": {
+    "fr": "Dans le chat : la file d’attente des messages et les réponses coupées (pas de page dans les Réglages)",
+    "en": "In the chat: the message queue and cut-off replies (no page in Settings)",
+    "page": false
+  },
+  "good": {
+    "fr": "La reprise automatique n’a pas de réglage à l’écran et s’arrête après 3 « continue » de suite. La poignée n’apparaît que sur une session en cours avec au moins 2 messages en attente.",
+    "en": "Automatic resume has no setting on screen and stops after 3 “continue” in a row. The handle only appears on a running session with at least 2 queued messages."
+  }
+}

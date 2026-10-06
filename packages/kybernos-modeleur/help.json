@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Le chat dessine un modèle 2D (plan à l’échelle) ou 3D (solides qu’on fait tourner) dans la barre latérale droite, objet par objet. Vous pouvez dessiner par-dessus.",
+    "en": "The chat draws a 2D model (a scaled drawing) or a 3D one (solids you can turn) in the right sidebar, object by object. You can draw on top of it."
+  },
+  "steps": [
+    {
+      "fr": "Demandez un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+      "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “Modeleur” tab opens by itself on the right."
+    },
+    {
+      "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
+      "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grille”, “Ajuster”)."
+    },
+    {
+      "fr": "Sous la scène, ▶ rejoue la pose, le curseur avance à la main, 0.5× à 4× règlent la vitesse.",
+      "en": "Under the scene, ▶ replays the drawing, the slider moves it by hand, 0.5× to 4× set the speed."
+    },
+    {
+      "fr": "Le bouton crayon dessine par-dessus (trait, rectangle, ellipse, flèche, texte) ; dites ensuite « réajuste d’après mes traits ».",
+      "en": "The pencil button draws on top (freehand, rectangle, ellipse, arrow, text); then tell the chat to readjust from your marks."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale droite, onglet « Modeleur » (il s’ouvre seul)",
+    "en": "Right sidebar, “Modeleur” tab (opens by itself)",
+    "page": false
+  },
+  "good": {
+    "fr": "Un modèle n’est pas enregistré : il disparaît quand DSH redémarre. Passer de la 3D à la 2D (ou l’inverse) repart aussi d’un modèle neuf.",
+    "en": "A model is not saved: it disappears when DSH restarts. Switching from 3D to 2D (or back) also starts from a new model."
+  }
+}
