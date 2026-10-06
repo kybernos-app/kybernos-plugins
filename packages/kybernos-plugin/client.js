@@ -22347,6 +22347,22 @@ function renderFit(canvas, model, cam, opts){
         h('button', { type: 'button', className: 'kb4-pick-b', onClick: () => { set({ newChatOpen: false }); if (typeof onSeeAll === 'function') onSeeAll() } },
           kbt('menu.newchat.seeall'))))
     // ── menu maquette : New chat + Projets / Kybers / Livrables / Ressources ──
+    // A way in for other plugins (the Atlas): open a Kybernos page exactly as a sidebar row does.
+    //   window.__KB_OPEN__({ view: 'skills' })  /  { view: 'tasks' }  /  { view: 'connectors' }
+    //   { view: 'project', projectId }  /  { view: 'teaminfo', detailPath: <kyber file>, detailRoot: <root id> }
+    // Returns false when the page could not be opened. No engine patch: it is the same store and panel selection.
+    const kbOpenPage = (patch) => {
+      try {
+        set(patch)
+        if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybers')
+        if (state.data === null && state.loading === false) load()
+        return true
+      } catch (e) { return false }
+    }
+    // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
+    // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []) })
+    try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     const SalesMenu = (p0) => {
       const s = useStore()
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
@@ -22508,7 +22524,6 @@ function renderFit(canvas, model, cam, opts){
 .kb7-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:6px}
 .kb7-pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;background:var(--dsw-alias-state-success-tertiary, rgba(34,197,94,.16));color:var(--dsw-alias-state-success-primary, #22c55e);font-size:11.5px;font-weight:600}
 .kb7-pill.pend{background:var(--dsw-alias-state-warn-tertiary, rgba(250,180,60,.16));color:var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary, #f0a030))}
-.kb7-err{padding:9px 13px;border-radius:9px;background:var(--dsw-alias-state-error-secondary, rgba(239,68,68,.12));border:1px solid var(--dsw-alias-state-error-secondary, rgba(239,68,68,.35));color:var(--dsw-alias-state-error-primary, #ef4444);font-size:12px}
 .kb7-empty{opacity:.5;font-size:13px}
 `
       document.head.appendChild(s)

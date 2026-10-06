@@ -40,6 +40,7 @@ window.__ModuleLoader__.load({
     }
     const daysSince = (v, now) => { const t = toMs(v); return t === null ? null : Math.max(0, Math.floor((now - t) / DAY)) }
     const ago = (d) => (d === null ? 'not recorded' : d === 0 ? 'today' : d === 1 ? 'yesterday' : d < 45 ? d + ' days ago' : Math.round(d / 30) + ' months ago')
+    const readAgo = (ms, now) => { const d = Math.max(0, now - ms); const m = Math.floor(d / 60000); return d < 45000 ? 'just now' : m < 60 ? Math.max(1, m) + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : Math.floor(m / 1440) + (Math.floor(m / 1440) === 1 ? ' day ago' : ' days ago') }
     const shortId = (id) => (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(id) ? id.slice(0, 8) : id)
 
     // ── Normalisers: one per route, written against the shapes measured on a
@@ -55,13 +56,14 @@ window.__ModuleLoader__.load({
       const seen = new Set()
       const kybers = []
       for (const root of arr(obj(j).roots)) {
+        const rootId = str(obj(root).id)
         for (const k of arr(obj(root).kybers)) {
           const id = low(obj(k).id)
           if (id === '' || seen.has(id)) continue
           seen.add(id)
           const ui = obj(k.ui)
           kybers.push({
-            id, name: str(ui.name) !== '' ? str(ui.name) : id, mission: str(k.mission), category: str(ui.category),
+            id, file: str(k.file), rootId, name: str(ui.name) !== '' ? str(ui.name) : id, mission: str(k.mission), category: str(ui.category),
             skillsDeclared: arr(k.skillsDeclared).filter((x) => typeof x === 'string' && x !== ''),
             localSkills: arr(k.skills).filter((x) => typeof x === 'string' && x !== ''),
             tools: arr(k.roles).reduce((a, r) => a.concat(arr(obj(r).tools).map((t) => (typeof t === 'string' ? t : str(obj(t).name))).filter((t) => t !== '')), []),
@@ -200,7 +202,7 @@ window.__ModuleLoader__.load({
         if (d && d.roles.length) bits.push('Roles: ' + d.roles.join(', ') + '.')
         if (l) bits.push(l.total + (l.total === 1 ? ' lesson' : ' lessons') + ', ' + l.runs + (l.runs === 1 ? ' run.' : ' runs.'))
         if (!d) bits.unshift('No kyber definition found; only its lessons and runs remain.')
-        add({ id: 'k:' + kid, kind: 'kyber', label: d ? d.name : kid, area: mainWs(kid), days: l ? daysSince(l.lastActivity, now) : null, path: '~/.dsh/kybers/' + kid, note: bits.join(' ') || 'No description.', sub: d ? (d.roles.length ? 'Roles: ' + d.roles.slice(0, 3).join(', ') : '') : 'lessons only' })
+        add({ id: 'k:' + kid, kind: 'kyber', file: d ? d.file : '', rootId: d ? d.rootId : '', label: d ? d.name : kid, area: mainWs(kid), days: l ? daysSince(l.lastActivity, now) : null, path: '~/.dsh/kybers/' + kid, note: bits.join(' ') || 'No description.', sub: d ? (d.roles.length ? 'Roles: ' + d.roles.slice(0, 3).join(', ') : '') : 'lessons only' })
         for (const wid of Object.keys(obj(kyberWs[kid]))) link('k:' + kid, 'p:' + wid, 'derived')
       }
 
@@ -323,6 +325,22 @@ window.__ModuleLoader__.load({
     const KIND_ORDER = ['area', 'kyber', 'routine', 'skill', 'app', 'memory', 'lesson']
     const byKindThenLabel = (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.label.localeCompare(b.label)
     const CAP = 5
+    // Where a node opens in DSH. The patches are the ones the sidebar rows apply (see __KB_OPEN__ in kybernos-plugin).
+    // Memory, lessons, apps from mini apps and the workspace itself have no page of their own: null.
+    // `views` is what the main plugin says its sidebar has (window.__KB_OPEN__.views): an older sidebar has one
+    // Resources page where a newer one has Skills and Connectors, so a button is only offered for a page that exists.
+    function openTarget (n, views) {
+      const has = (v) => arr(views).indexOf(v) >= 0
+      switch (n.kind) {
+        case 'skill': return has('skills') ? { label: 'Skills', patch: { view: 'skills' } } : has('resources') ? { label: 'Resources', patch: { view: 'resources' } } : null
+        case 'routine': return has('tasks') ? { label: 'Automations', patch: { view: 'tasks' } } : null
+        case 'app': return n.id.indexOf('a:toolkit:') === 0 && has('connectors') ? { label: 'Connectors', patch: { view: 'connectors' } } : null
+        case 'area': return n.path !== '' && has('project') ? { label: 'Projects', patch: { view: 'project', projectId: n.path } } : null
+        case 'kyber': return n.file && has('teaminfo') ? { label: 'Kybers', patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
+        case 'run': return n.run && n.run.sessionId ? { label: 'the session', session: n.run.sessionId } : null
+        default: return null
+      }
+    }
     // What the Map view draws: columns of groups, and the lines between the pills.
     function aroundModel (g, focusId, expanded) {
       const f = g.byId[focusId]
@@ -394,7 +412,7 @@ window.__ModuleLoader__.load({
       for (const r of arr(g.runs)) {
         const t = g.byId[r.task]
         add({ id: r.id, kind: 'run', label: r.taskName + ' · ' + shortDate(r.days, now), area: t ? t.area : 'none', days: r.days, path: r.sessionId !== '' ? 'session ' + r.sessionId : 'task history',
-          note: (r.ok ? 'Ran ' + ago(r.days) + '.' : 'Failed ' + ago(r.days) + (r.error !== '' ? ': ' + r.error : '.')), problem: null, run: { ok: r.ok } })
+          note: (r.ok ? 'Ran ' + ago(r.days) + '.' : 'Failed ' + ago(r.days) + (r.error !== '' ? ': ' + r.error : '.')), problem: null, run: { ok: r.ok, sessionId: r.sessionId } })
       }
       const links = []
       const has = (id) => byId[id] !== undefined
@@ -954,8 +972,15 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-chip[data-check="1"]{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#f59e0b) 55%,transparent)}
 .kbat-chip[data-check="1"] svg{color:var(--dsw-alias-state-warn-primary,#f59e0b)}
 .kbat-chip .kbat-n{color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
-@media (max-width:900px){.kbat-body{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:720px){.kbat-lbl{width:100%}.kbat-count2{display:none}}
+/* The Settings dialog keeps its own menu, so what matters is the width of this page, measured in JS (data-size). */
+.kbat-page[data-size="narrow"] .kbat-body,.kbat-page[data-size="tight"] .kbat-body{grid-template-columns:minmax(0,1fr)}
+.kbat-page[data-size="narrow"] .kbat-stage[data-canvas="1"],.kbat-page[data-size="tight"] .kbat-stage[data-canvas="1"]{height:clamp(420px,70vh,860px)}
+.kbat-page[data-size="tight"] .kbat-lbl{width:100%}
+.kbat-page[data-size="tight"] .kbat-count2{display:none}
+.kbat-page[data-size="tight"] .kbat-search{flex:1 1 100%}
+.kbat-page[data-size="tight"] .kbat-seg button{padding-inline:10px}
+.kbat-page[data-size="tight"] .kbat-around{padding-inline:12px}
+.kbat-page[data-size="tight"] .kbat-stage > .kbat-card.kbat-float{left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:55%}
 @media (prefers-reduced-motion:reduce){.kbat-dot[data-t="busy"]{animation:none}}
 `
     const poserCss = () => {
@@ -1004,7 +1029,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('div', { className: 'kbat-mcard', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbat-help-t', ref, tabIndex: -1 },
           h('button', { type: 'button', className: 'kbat-x', 'aria-label': 'Close help', onClick: p.onClose }, '×'),
           h('h2', { id: 'kbat-help-t' }, 'How to read the Atlas'),
-          h('p', { className: 'kbat-lead' }, 'The Atlas shows how the things you set up fit together. It only reads your files and plugins. It never edits or stores anything.'),
+          h('p', { className: 'kbat-lead' }, 'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits or stores anything.'),
           h('section', null, h('h3', null, 'The views'),
             h('dl', null,
               h('dt', null, 'Around'), h('dd', null, 'Pick a project or a kyber in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.'),
@@ -1015,7 +1040,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
               h('dt', null, 'Timeline'), h('dd', null, 'Automation runs of the last 14 days on top, everything else by last change below.'),
               h('dt', null, 'Orbit'), h('dd', null, 'The rings as a stack that turns on its own. Drag to turn it.'),
               h('dt', null, 'List'), h('dd', null, 'The same things as a table. The text version of every drawing.'))),
-          h('section', null, h('h3', null, 'In the drawings'), h('p', null, 'Click a dot for details. Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.')),
+          h('section', null, h('h3', null, 'In the drawings'), h('p', null, 'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, a kyber, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.')),
           h('section', null, h('h3', null, 'The lines'),
             h('ul', { className: 'kbat-key' },
               h('li', null, line(undefined), h('span', null, h('b', null, 'Solid. '), 'Written in a file. For example, a kyber lists a skill.')),
@@ -1169,6 +1194,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('dl', { className: 'kbat-kv' }, h('dt', null, isPath ? 'Path' : 'Source'), h('dd', { className: 'kbat-mono' }, n.path), h('dt', null, 'Changed'), h('dd', null, n.days === null ? 'Not recorded' : ago(n.days))),
         nb.length && !p.hideLinked ? h('div', { className: 'kbat-meta' }, nb.slice(0, 6).map((y) => h('button', { key: y.id, type: 'button', className: 'kbat-pill', onClick: () => p.onGo(y.id) }, h(Glyph, { kind: y.kind, color: areaVar(g, y), size: 10 }), y.label)), nb.length > 6 ? h('span', { className: 'kbat-pill' }, '+' + (nb.length - 6) + ' more') : null) : null,
         h('div', { className: 'kbat-acts' },
+          p.openAction ? h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: p.openAction.run }, p.openAction.label) : null,
           hub && !(p.tab === 'around' && p.focus === n.id) ? h('button', { type: 'button', className: 'kbat-btn', onClick: () => p.onFocus(n.id) }, 'Show around this') : null,
           p.onFly ? h('button', { type: 'button', className: 'kbat-btn', onClick: p.onFly }, 'Centre') : null,
           h('button', { type: 'button', className: 'kbat-btn', onClick: copy }, isPath ? 'Copy path' : 'Copy id')),
@@ -1177,7 +1203,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 
     function ToCheck (p) {
       const items = p.graph.problems
-      return h('details', { className: 'kbat-tc', open: typeof window !== 'undefined' && window.innerWidth > 900, 'data-kb': 'atlas-tocheck' },
+      return h('details', { className: 'kbat-tc', open: p.open, 'data-kb': 'atlas-tocheck' },
         h('summary', null, h('span', null, 'To check'), h('span', { className: 'kbat-count', 'data-zero': items.length === 0 ? '1' : undefined }, items.length)),
         h('p', null, 'Broken links, and things that look wrong.'),
         items.length === 0 ? h('p', null, 'Nothing to check. Every reference points somewhere and nothing failed.') : h('ul', null, items.map((n) => h('li', { key: n.id }, h('button', { type: 'button', onClick: () => p.onShow(n.id) },
@@ -1329,9 +1355,13 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       orbit: ['Orbit. ', 'The rings as a stack that turns on its own. Drag to turn it yourself.']
     }
 
+    // The last reading, kept in memory only (gone when the page reloads) so that moving between Settings pages
+    // does not make the user read again. Nothing is ever read until they ask: see `load` below.
+    let LAST = null
     function Atlas (p) {
-      const sp = React.useState({ phase: 'loading', status: {}, result: null }); const st = sp[0]; const setSt = sp[1]
-      const fp = React.useState(null); const focus = fp[0]; const setFocus = fp[1]
+      const sp = React.useState(() => (LAST ? { phase: 'ready', status: LAST.status, result: LAST.result } : { phase: 'idle', status: {}, result: null })); const st = sp[0]; const setSt = sp[1]
+      const fp = React.useState(() => (LAST ? defaultFocus(LAST.result.graph) : null)); const focus = fp[0]; const setFocus = fp[1]
+      const tkp = React.useState(0); const setTick = tkp[1]
       const tp = React.useState('around'); const tab = tp[0]; const setTabRaw = tp[1]
       const selp = React.useState(null); const sel = selp[0]; const setSel = selp[1]
       const hp = React.useState(false); const help = hp[0]; const setHelp = hp[1]
@@ -1344,6 +1374,17 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const isp = React.useState(null); const iso = isp[0]; const setIso = isp[1]
       const qp = React.useState(''); const query = qp[0]; const setQuery = qp[1]
       const fup = React.useState(false); const full = fup[0]; const setFull = fup[1]
+      const rootRef = React.useRef(null)
+      const wdp = React.useState(1000); const boxW = wdp[0]; const setBoxW = wdp[1]
+      React.useEffect(() => {
+        const el = rootRef.current; if (!el) return undefined
+        const read = () => setBoxW(Math.round(el.getBoundingClientRect().width))
+        read()
+        if (typeof ResizeObserver !== 'function') return undefined
+        const ro = new ResizeObserver(read); ro.observe(el)
+        return () => ro.disconnect()
+      }, [])
+      const size = boxW < 460 ? 'tight' : boxW < 760 ? 'narrow' : 'wide'
       const alive = React.useRef(true)
       const canvasApi = React.useRef(null)
       const panelRef = React.useRef(null)
@@ -1354,11 +1395,15 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           if (!alive.current) return
           const failed = SOURCES.filter((s) => r.status[s[0]] && r.status[s[0]].state === 'failed').length
           const g = buildGraph(r.src, Date.now())
-          setSt({ phase: failed === SOURCES.length ? 'error' : 'ready', status: r.status, result: { graph: g, src: r.src, at: Date.now(), failed } })
+          const result = { graph: g, src: r.src, at: Date.now(), failed }
+          if (failed < SOURCES.length) LAST = { status: r.status, result }
+          setSt({ phase: failed === SOURCES.length ? 'error' : 'ready', status: r.status, result })
           setFocus((f) => (f !== null && g.byId[f] !== undefined ? f : defaultFocus(g)))
         }).catch((e) => { if (alive.current) setSt({ phase: 'error', status: {}, result: null }) })
       }, [p.store])
-      React.useEffect(() => { poserCss(); alive.current = true; load(); return () => { alive.current = false } }, [load])
+      // Opening the page reads NOTHING. Reading starts only from the Update button (or Try again).
+      React.useEffect(() => { poserCss(); alive.current = true; return () => { alive.current = false } }, [])
+      React.useEffect(() => { if (!st.result) return undefined; const t = setInterval(() => setTick((x) => x + 1), 30000); return () => clearInterval(t) }, [st.result])
       React.useEffect(() => { if (toast === null) return undefined; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
       // Leaving full screen: Escape (captured, because the Settings dialog also closes on Escape) or the browser's own exit.
       React.useEffect(() => {
@@ -1398,7 +1443,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const failedNames = SOURCES.filter((s) => st.status[s[0]] && st.status[s[0]].state === 'failed').map((s) => s[1])
       const skippedMemory = st.status.memory && st.status.memory.state === 'skipped'
       const notes = []
-      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so kybers are not tied to projects. Re-read in a moment.')
+      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so kybers are not tied to projects. Click Update in a moment.')
       if (skippedMemory) notes.push('Memories were not read, so any problem with them is not listed.')
       if (failedNames.length) notes.push(failedNames.join(', ') + (failedNames.length === 1 ? ' was' : ' were') + ' not read, so related problems are not listed.')
       const flyTo = (id) => { setTimeout(() => { if (canvasApi.current) canvasApi.current.fly(id) }, 40) }
@@ -1415,18 +1460,34 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         setSel(id)
         if (hub === null) setTab('list')
       }
-      const builtTxt = loading ? 'Reading…' : st.phase === 'error' ? 'Could not read' : partial ? 'Read just now · ' + (SOURCES.length - failedNames.length - (skippedMemory ? 1 : 0)) + ' of ' + SOURCES.length + ' sources' : 'Read just now'
-      const dotT = loading || st.phase === 'loading' ? 'busy' : st.phase === 'error' ? 'err' : partial ? 'warn' : undefined
+      const when = st.result ? readAgo(st.result.at, Date.now()) : ''
+      const builtTxt = st.phase === 'loading' ? 'Reading…' : st.phase === 'idle' ? 'Not read yet' : st.phase === 'error' ? 'Could not read' : partial ? 'Read ' + when + ' · ' + (SOURCES.length - failedNames.length - (skippedMemory ? 1 : 0)) + ' of ' + SOURCES.length + ' sources' : 'Read ' + when
+      const dotT = st.phase === 'loading' ? 'busy' : st.phase === 'idle' ? 'idle' : st.phase === 'error' ? 'err' : partial ? 'warn' : undefined
       const empty = g && g.nodes.length === 0
-      const card = (float) => (sel && nodeOf(sel) ? h(DetailCard, { graph: g, extra: data ? data.model : null, id: sel, tab, focus, float, hideLinked: tab === 'around', onClose: () => setSel(null), onGo: showNode, onFocus: (id) => { setFocus(id); setTab('around') }, onFly: isCanvas ? () => flyTo(sel) : null, onToast: setToast }) : null)
+      // Opening a page: the Kybernos pages through window.__KB_OPEN__ (set by the main plugin), a session through the
+      // workspace store. The Settings dialog sits over them, so it is closed afterwards (it closes on Escape).
+      const closeSettings = () => { setFull(false); try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })) } catch (e) { /* the user can close it */ } }
+      const openAction = (n) => {
+        const seam = typeof window !== 'undefined' ? window.__KB_OPEN__ : undefined
+        const t = openTarget(n, typeof seam === 'function' ? seam.views : [])
+        if (t === null) return null
+        if (t.session) {
+          if (!(p.store && typeof p.store.openSession === 'function')) return null
+          return { label: 'Open the session', run: () => { try { p.store.openSession(t.session); closeSettings() } catch (e) { setToast('Could not open the session.') } } }
+        }
+        if (typeof seam !== 'function') return null
+        return { label: 'Open in ' + t.label, run: () => { if (seam(t.patch) === false) setToast('Could not open ' + t.label + '.'); else closeSettings() } }
+      }
+      const card = (float) => (sel && nodeOf(sel) ? h(DetailCard, { graph: g, extra: data ? data.model : null, id: sel, tab, focus, float, openAction: openAction(nodeOf(sel)), hideLinked: tab === 'around', onClose: () => setSel(null), onGo: showNode, onFocus: (id) => { setFocus(id); setTab('around') }, onFly: isCanvas ? () => flyTo(sel) : null, onToast: setToast }) : null)
       let body
       if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, 'Reading the Atlas'), h('p', null, 'Reading seven sources on this computer. Nothing leaves it.'), h(SourceList, { status: st.status }))
       else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, 'The Atlas could not be read'), h('p', null, 'None of the sources answered. DSH may be restarting. Wait a moment, then try again.'), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Try again'))
-      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add kybers, skills, automations and memories. Create a kyber or install a skill, then come back and re-read.'))
+      else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing read yet'), h('p', null, 'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing.'), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Update'))
+      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add kybers, skills, automations and memories. Create a kyber or install a skill, then click Update.'))
       else {
         const cap = CAPTION[tab]
         body = h('div', { className: 'kbat-body' },
-          h('aside', { className: 'kbat-rail' }, full ? null : card(false), h(ToCheck, { graph: g, notes, onShow: showNode })),
+          h('aside', { className: 'kbat-rail' }, full ? null : card(false), h(ToCheck, { graph: g, notes, open: size === 'wide', onShow: showNode })),
           h('div', { className: 'kbat-panel', ref: panelRef, 'data-full': full ? '1' : undefined },
             h('div', { className: 'kbat-tools' },
               tab === 'around' ? h(Picker, { graph: g, focus, onPick: (id) => { setFocus(id); setTab('around'); setSel(null) } }) : null,
@@ -1446,13 +1507,13 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
                       h('button', { type: 'button', className: 'kbat-btn kbat-icon', 'aria-label': 'Fit to screen', title: 'Fit to screen', onClick: () => { if (canvasApi.current) canvasApi.current.fit() } }, h('svg', { width: 12, height: 12, viewBox: '0 0 12 12', fill: 'none', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M1.5 4.5v-3h3M7.5 1.5h3v3M10.5 7.5v3h-3M4.5 10.5h-3v-3' })))),
                     full ? card(true) : null))))
       }
-      return h('div', { className: 'kbat-page', 'data-kb': 'atlas' },
+      return h('div', { className: 'kbat-page', 'data-kb': 'atlas', 'data-size': size, ref: rootRef },
         h('header', { className: 'kbat-head' },
           h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, 'Every project, kyber, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits or stores anything.')),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
             h('button', { type: 'button', className: 'kbat-btn', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, 'Help'),
-            h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, 'Re-read'))),
+            h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, 'Update'))),
         partial ? h('div', { className: 'kbat-banner', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': 'warn' }), h('span', { className: 'kbat-sp' },
           skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, 'Memories were skipped. '), 'They live in your kybernos.app account, which is not linked. The other sources were read.')
             : h(React.Fragment, null, h('b', null, failedNames.join(', ') + ' did not answer. '), 'The rest is shown.')),
@@ -1485,7 +1546,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
     }
     Object.defineProperty(model, '__test', {
       enumerable: false,
-      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx }
+      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx, readAgo, openTarget }
     })
     return model
   }

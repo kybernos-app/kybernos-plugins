@@ -64,21 +64,10 @@ window.__ModuleLoader__.load({
     // ── key + minimal MCP client (streamable-http, JSON-RPC over POST) ────────
     const MCP_URL = 'https://connect.composio.dev/mcp'
     const KB_CP_KEY = 'composio.apiKey'
-    // (01/10) Local setting (free, personal ck_ key) vs Cloud (paid Composio
-    // Platform account, dashboard.composio.dev). Default: local.
-    const KB_CP_MODE = 'composio.mode'
-    const kbCpKey = () => { try { return localStorage.getItem(KB_CP_KEY) || '' } catch (e) { return '' } }
-    const kbCpHas = () => kbCpKey().indexOf('ck_') === 0
     // Browser storage can be unavailable or throw (private window, blocked site data): every
     // access is guarded and the page then works with what it has in memory.
-    const kbCpMode = () => { try { return localStorage.getItem(KB_CP_MODE) === 'cloud' ? 'cloud' : 'local' } catch (e) { return 'local' } }
-    const kbCpSetMode = (m) => {
-      try {
-        if (m === 'cloud') localStorage.setItem(KB_CP_MODE, 'cloud')
-        else localStorage.removeItem(KB_CP_MODE)
-      } catch (e) { /* not stored: the mode lasts until the page closes */ }
-      try { window.dispatchEvent(new Event('kbcp-mode')) } catch (e) { }
-    }
+    const kbCpKey = () => { try { return localStorage.getItem(KB_CP_KEY) || '' } catch (e) { return '' } }
+    const kbCpHas = () => kbCpKey().indexOf('ck_') === 0
 
     // ── URL rule for everything the user can click or the page can open ──────
     // Card JSON is model output and `redirect_url` is a remote server's reply, so
@@ -247,18 +236,12 @@ window.__ModuleLoader__.load({
       'composio.keyclear': { fr: 'Effacer', en: 'Clear' },
       'composio.keyok': { fr: 'clé enregistrée dans ce navigateur', en: 'key saved in this browser' },
       'composio.keymissing': { fr: 'aucune clé dans ce navigateur', en: 'no key in this browser' },
-      'composio.modelabel': { fr: 'Clé & mode Composio', en: 'Composio key & mode' },
-      'composio.modelocal': { fr: 'Local · gratuit', en: 'Local · free' },
-      'composio.modecloud': { fr: 'Cloud · local + cloud', en: 'Cloud · local + cloud' },
-      'composio.modelocalnote': { fr: 'Le serveur MCP tourne sur votre machine avec votre clé personnelle — tout usage est gratuit, la clé pilote cet onglet ET les agents.', en: 'The MCP server runs on your machine with your own key — everything is free; the key drives this tab AND the agents.' },
-      'composio.modecloudnote': { fr: 'Les connecteurs deviennent utilisables en local ET par les agents cloud.', en: 'Connectors become usable locally AND by cloud agents.' },
-      'composio.modecloudrow': { fr: 'Fonctionne en local et depuis les agents cloud — via un compte Composio Platform, à l’usage facturé.', en: 'Works locally and from cloud agents — through a Composio Platform account, billed per usage.' },
-      'composio.modelier': { fr: 'Lier Composio Platform…', en: 'Link Composio Platform…' },
-      'composio.modecloudstate': { fr: 'compte Platform à lier', en: 'Platform account to link' },
-      'composio.modehelpq': { fr: 'Comment trouver ma clé Composio ?', en: 'How do I find my Composio key?' },
-      'composio.modehelp1': { fr: 'Ouvrez dashboard.composio.dev et connectez-vous (compte gratuit).', en: 'Open dashboard.composio.dev and sign in (free account).' },
-      'composio.modehelp2': { fr: 'Menu Settings ▸ API Keys, puis Generate new key.', en: 'Menu Settings ▸ API Keys, then Generate new key.' },
-      'composio.modehelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus — elle reste sur votre machine.', en: 'Paste the key (it starts with ck_…) above — it stays on your machine.' },
+      'composio.keylabel': { fr: 'Clé Composio', en: 'Composio key' },
+      'composio.keynote': { fr: 'Votre clé personnelle Composio : elle pilote cet onglet ET les agents du chat. Elle reste sur cette machine ; les outils sont appelés chez Composio.', en: 'Your personal Composio key: it drives this tab AND the chat agents. It stays on this machine; the tools are called at Composio.' },
+      'composio.keyhelpq': { fr: 'Comment trouver ma clé Composio ?', en: 'How do I find my Composio key?' },
+      'composio.keyhelp1': { fr: 'Ouvrez dashboard.composio.dev et connectez-vous (compte gratuit).', en: 'Open dashboard.composio.dev and sign in (free account).' },
+      'composio.keyhelp2': { fr: 'Menu Settings ▸ API Keys, puis Generate new key.', en: 'Menu Settings ▸ API Keys, then Generate new key.' },
+      'composio.keyhelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus — elle reste sur votre machine.', en: 'Paste the key (it starts with ck_…) above — it stays on your machine.' },
       'composio.keyhint': { fr: "Pour que les AGENTS du chat l'utilisent aussi, copiez la même clé dans ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) puis redémarrez dsh.", en: "So the CHAT agents can use it too, copy the same key into ~/.dsh/.env (COMPOSIO_API_KEY=ck_…) then restart dsh." },
       'kb.cp.title': { fr: 'Connections', en: 'Connections' },
       'kb.cp.sub': { fr: 'Les comptes par lesquels vos Kybers agissent, via Composio. Plusieurs connexions par app — une par compte, boîte ou région.', en: 'The accounts your Kybers act through, via Composio. Multiple connections per app — one per account, mailbox or region.' },
@@ -509,13 +492,6 @@ window.__ModuleLoader__.load({
 .kbcp-dot.on{background:#22c55e}
 .kbcp-dot.warn{background:#f59e0b}
 .kbcp-dot.bad{background:#ef4444}
-/* Local/Cloud setting: two pills in a kbcp-row (kb7-chip values);
-   the purple #635bff is the primary button's: readable light AND dark */
-.kbcp-modepill{height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.kbcp-modepill:hover{background:rgba(128,128,128,.12)}
-.kbcp-modepill.on{background:#635bff;border-color:#635bff;color:#fff}
-.kbcp-modepill .kbcp-dot{width:7px;height:7px}
-.kbcp-modepill.on .kbcp-dot{background:#fff}
 .kbcp-help{font-size:12px;opacity:.75}
 .kbcp-help summary{cursor:pointer;font-size:12.5px;width:fit-content}
 .kbcp-help ol{margin:8px 0 0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px}
@@ -529,7 +505,9 @@ window.__ModuleLoader__.load({
 .kb7-search{height:38px;border-radius:10px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;padding:0 12px;font-size:13.5px;max-width:620px}
 .kb7-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .kb7-chip{height:30px;padding:0 12px;border-radius:999px;border:1px solid rgba(128,128,128,.3);background:transparent;color:inherit;font-size:12.5px;cursor:pointer}
-.kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:#fff}
+/* The brand colour is near white in the dark theme: the text on it is the theme's own "foreground"
+   token (a fixed #fff was invisible on it). */
+.kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
 .kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:1180px}
 .kb7-card{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid rgba(128,128,128,.25);border-radius:14px;background:transparent;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .kb7-card:hover{background:rgba(128,128,128,.07);border-color:rgba(128,128,128,.45)}
@@ -546,7 +524,11 @@ window.__ModuleLoader__.load({
 .kb7-bar{height:4px;flex:1;border-radius:2px;background:#22c55e;opacity:.55}
 .kb7-bar.pend{background:#facc15}
 .kb7-nokey{display:flex;align-items:center;gap:8px;padding:12px 14px;border:1px dashed rgba(128,128,128,.4);border-radius:12px;font-size:12.5px;opacity:.8;max-width:620px}
-.kb7-err{font-size:12px;color:#f87171;max-width:620px}
+/* Own class: kb7-err is also a rule of the kybernos bundle's sheet for this tab, and in the dark theme
+   its fill and its text are the same red. The banner is a tint of the theme's error colour, readable on
+   both; the first declarations are the fallback for a browser without color-mix. */
+.kbcp-err{font-size:12px;line-height:1.5;max-width:620px;padding:9px 13px;border-radius:9px;color:var(--dsw-alias-state-error-primary,#f25a5a);background:rgba(242,90,90,.12);border:1px solid rgba(242,90,90,.35)}
+@supports (color:color-mix(in srgb,red 10%,transparent)){.kbcp-err{background:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f25a5a) 12%,transparent);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#f25a5a) 35%,transparent)}}
 .kb7-empty{font-size:12.5px;opacity:.6}
 .kb7-more{align-self:flex-start}
 .kb7-auth{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid rgba(99,91,255,.5);border-radius:12px;max-width:620px;font-size:12.5px}
@@ -614,7 +596,7 @@ window.__ModuleLoader__.load({
 .kb7-frow .kb7-finput{flex:1;min-width:0}
 .kb7-fseg{display:flex;gap:0;border:1px solid rgba(128,128,128,.3);border-radius:9px;overflow:hidden;width:max-content}
 .kb7-fseg button{height:32px;padding:0 14px;border:none;background:transparent;color:inherit;font:inherit;font-size:12.5px;cursor:pointer}
-.kb7-fseg button.on{background:var(--dsw-alias-brand-primary);color:#fff}
+.kb7-fseg button.on{background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
 .kb7-fgroup{border:1px dashed rgba(128,128,128,.35);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .kb7-fgrouptitle{font-size:11.5px;font-weight:700;opacity:.8}
 .kb7-fhint{font-size:11px;opacity:.6;line-height:1.5}
@@ -691,44 +673,31 @@ window.__ModuleLoader__.load({
         }
       }
       const clear = () => { try { localStorage.removeItem(KB_CP_KEY) } catch (e) { } setHas(false); try { window.dispatchEvent(new Event('kbcp-key')) } catch (e) { } }
-      // (01/10) Local (free) / Cloud (paid) setting, composio-cloud v3 mockup:
-      // the only addition to the block, the rest of the page is unchanged.
-      const p4 = React.useState(kbCpMode())
-      const mode = p4[0]
-      const setMode = p4[1]
-      const choisir = (m) => { kbCpSetMode(m); setMode(m) }
-      const local = mode !== 'cloud'
       const DASH = 'https://dashboard.composio.dev/'
       return h('div', { className: 'kbcp-config' },
-        h('h3', null, h('span', { className: 'kbcp-logo' }, 'C'), kbt('composio.modelabel')),
-        h('div', { className: 'kbcp-row', role: 'group', 'aria-label': 'Composio mode' },
-          h('button', { type: 'button', className: 'kbcp-modepill' + (local ? ' on' : ''), 'aria-pressed': local ? 'true' : 'false', onClick: () => choisir('local') },
-            h('span', { className: 'kbcp-dot' + (local && has === true ? ' on' : '') }), kbt('composio.modelocal')),
-          h('button', { type: 'button', className: 'kbcp-modepill' + (local ? '' : ' on'), 'aria-pressed': local ? 'false' : 'true', onClick: () => choisir('cloud') },
-            h('span', { className: 'kbcp-dot' }), kbt('composio.modecloud')),
+        h('h3', null, h('span', { className: 'kbcp-logo' }, 'C'), kbt('composio.keylabel')),
+        h('div', { className: 'kbcp-row' },
           h('span', { className: 'kbcp-state' },
-            h('span', { className: 'kbcp-dot' + (local ? (has === true ? ' on' : '') : ' warn') }),
-            local ? (has === true ? kbt('composio.keyok') : kbt('composio.keymissing')) : kbt('composio.modecloudstate'))),
-        h('div', { className: 'kbcp-note' }, kbt(local ? 'composio.modelocalnote' : 'composio.modecloudnote')),
-        local ? h('div', { className: 'kbcp-row' },
+            h('span', { className: 'kbcp-dot' + (has === true ? ' on' : '') }),
+            has === true ? kbt('composio.keyok') : kbt('composio.keymissing'))),
+        h('div', { className: 'kbcp-note' }, kbt('composio.keynote')),
+        h('div', { className: 'kbcp-row' },
           h('input', { className: 'kbcp-input', type: 'password', value: v, placeholder: 'ck_…', onChange: (e) => setV(e.target.value), autoComplete: 'off' }),
           h('button', { type: 'button', className: 'kbcp-btn primary', onClick: save }, kbt('composio.keysave')),
           h('button', { type: 'button', className: 'kbcp-btn', onClick: clear }, kbt('composio.keyclear')),
-          has === true ? h('span', { className: 'kbcp-code' }, probe === 'ok' ? 'MCP ✓' : (probe === null ? '…' : 'MCP ✗ ' + probe)) : null) : null,
-        local && hostState !== null ? h('div', { className: 'kbcp-row' },
+          has === true ? h('span', { className: 'kbcp-code' }, probe === 'ok' ? 'MCP ✓' : (probe === null ? '…' : 'MCP ✗ ' + probe)) : null),
+        hostState !== null ? h('div', { className: 'kbcp-row' },
           h('span', { className: 'kbcp-state', 'data-kb': 'composio-host-state' },
             h('span', { className: 'kbcp-dot' + (hostState.level === 'ok' ? ' on' : (hostState.level === 'bad' ? ' bad' : ' warn')) }),
             kbt(hostState.key))) : null,
-        local ? h('details', { className: 'kbcp-help' },
-          h('summary', null, kbt('composio.modehelpq')),
+        h('details', { className: 'kbcp-help' },
+          h('summary', null, kbt('composio.keyhelpq')),
           h('ol', null,
-            h('li', null, h('a', { href: DASH, target: '_blank', rel: 'noopener' }, 'dashboard.composio.dev'), ' — ', kbt('composio.modehelp1')),
-            h('li', null, kbt('composio.modehelp2')),
-            h('li', null, kbt('composio.modehelp3')))) : null,
-        local ? h('div', { className: 'kbcp-row' },
-          h('span', { className: 'kbcp-note' }, kbt('composio.keyhint'))) : h('div', { className: 'kbcp-row' },
-          h('span', { className: 'kbcp-note', style: { flex: 1 } }, kbt('composio.modecloudrow')),
-          h('a', { className: 'kbcp-btn primary', href: DASH, target: '_blank', rel: 'noopener' }, kbt('composio.modelier'))))
+            h('li', null, h('a', { href: DASH, target: '_blank', rel: 'noopener' }, 'dashboard.composio.dev'), ' — ', kbt('composio.keyhelp1')),
+            h('li', null, kbt('composio.keyhelp2')),
+            h('li', null, kbt('composio.keyhelp3')))),
+        h('div', { className: 'kbcp-row' },
+          h('span', { className: 'kbcp-note' }, kbt('composio.keyhint'))))
     }
 
     // ── "custom connector" form (talks to the host route) ────────────────────
@@ -1273,7 +1242,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
           h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
         (ready === true && hasKey === false && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
-        err !== null ? h('div', { className: 'kb7-err' }, err) : null,
+        err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Vos connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
           cxNote !== null ? h('div', { className: 'kb7-fok' }, cxNote) : null,
@@ -1387,8 +1356,10 @@ window.__ModuleLoader__.load({
         '</span>' + action
     }
     // Longest text a card may send with one click. A longer one is refused rather than shown
-    // truncated: the confirmation must show everything that would be sent.
-    const CARTE_ACCEPT_MAX = 2000
+    // truncated: the confirmation must show everything that would be sent. 500 is the bound of the
+    // kb-accept-text listener in @local/kybernos-plugin, which drops anything longer: a higher limit here
+    // would let the user confirm a message that is then never sent.
+    const CARTE_ACCEPT_MAX = 500
     /**
      * The click on an `kb:accept:<text>` action. Returns true when `href` is such an action (the
      * click is then handled, never navigated), after asking `confirmer(text)` with the exact text
@@ -1621,7 +1592,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, match: kbCpMatch, joinArgs: kbCpJoinArgs, mode: kbCpMode, setMode: kbCpSetMode, t: kbt, errText: kbCpErrText, hostState: kbCpHostState, mcpTimeout: MCP_TIMEOUT },
+      composio: { page: ComposioPage, has: kbCpHas, call: kbCpCall, text: kbCpText, parse: parseAccounts, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, hostState: kbCpHostState, mcpTimeout: MCP_TIMEOUT },
     }
   },
 })

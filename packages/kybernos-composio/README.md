@@ -5,11 +5,15 @@ catalog of connectable apps plus a form for custom MCP connectors.
 
 ## What the user sees
 
-- **Key and mode panel** in the bundle's configuration slot (the UI text points to Settings, Plugins,
-  kybernos-composio): "Local" mode takes a `ck_...` key and shows an "MCP" probe result; "Cloud" mode only
-  shows a link to the Composio dashboard (no behaviour behind it was verified). The panel also asks the
-  HOST (`GET /connections`) and says whether the agents have a key (`COMPOSIO_API_KEY` in `~/.dsh/.env`) and
-  whether Composio accepts it: the key saved in the browser alone proves nothing about the agents.
+- **Key panel** in the bundle's configuration slot (the UI text points to Settings, Plugins,
+  kybernos-composio): it takes a `ck_...` key (Composio "For You", the personal product) and shows an "MCP"
+  probe result. The panel also asks the HOST (`GET /connections`) and says whether the agents have a key
+  (`COMPOSIO_API_KEY` in `~/.dsh/.env`) and whether Composio accepts it: the key saved in the browser alone
+  proves nothing about the agents. There is no "Cloud" mode: the toggle that used to be here stored a flag
+  nothing read, and promised connectors for cloud agents that a `ck_` key cannot give (Composio's For You and
+  Platform are separate projects: `ck_` vs `ak_` keys, different headers, and the accounts of one do not
+  exist in the other). The Kybernos server runs its own Platform integration (`/v1/connections`, scoped to the
+  user's Kybernos key); a real cloud mode would go through that, not through a Platform key typed here.
 - **Failures are shown as failures**: a rejected key (401), a rate limit (429), no answer in time or no
   network replace the "No app connected yet" message, with the same codes as the host (see below).
 - **Connections page** (tabs "Yours" and "Discover", search, category facets, 24 apps per page): add an
@@ -24,7 +28,7 @@ catalog of connectable apps plus a form for custom MCP connectors.
   plain text. The same http(s) rule applies to the authorization link Composio returns and to the one kept in
   localStorage. A `kb:accept:<text>` button sends its text into the conversation AS THE USER'S MESSAGE, and
   the card is model output (it can be built from a mail the agent read): a click first shows the exact
-  text in a confirmation, and a text over 2000 characters is refused.
+  text in a confirmation, and a text over 500 characters is refused (the limit of the kybernos bundle's `kb-accept-text` listener, which drops anything longer).
 - A "Kybernos" pill on the engine's Plugins page that shows only `@local/kybernos-*` bundles.
 
 ## MCP entry (`cordis.patch.yml`)
@@ -86,7 +90,7 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
 - Writes go through a temp file and a rename, files are 0600 when created (the folder 0700; an existing file keeps
   its mode, a symlink stays a symlink). The patch is written first; if the `.env` or sidecar step then fails, the
   files already written are put back and the reply (500) says so, without a path.
-- Browser storage: `composio.apiKey`, `composio.mode`, `composio.authLinks` (10 min TTL),
+- Browser storage: `composio.apiKey`, `composio.authLinks` (10 min TTL),
   `kybernos.pluginsFilter`; reads `kybernos.theme.lang`.
 
 ## DSH seams and network
@@ -103,7 +107,7 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
 
 ```bash
 node test-host.mjs     # 528 checks with a DSH engine on the machine (454 without), temp HOME and DSH_HOME
-node test-client.mjs   # 164 checks, no browser
+node test-client.mjs   # 166 checks, no browser
 ```
 
 `test-host.mjs` covers the connectors route (hostile origin, content type, command rules, YAML injection, the
@@ -129,5 +133,9 @@ mangled markup the cloud repo carries, checks every logo and stops on a defect.
   initial); "Load the full catalog" fetches the rest of the names from the Kybernos proxy.
 - UI strings exist in French and English only; French is the default for `kybernos` and `fr`, English for every
   other locale.
+- About twenty `kb7-*` class names are defined both here and in the kybernos bundle's sheet for this tab (it
+  themes the page on purpose, so the same name there overrides this one). That cost the error banner its
+  text in the dark theme, where the other sheet fills and writes it in the same red: the banner has its own
+  class (`kbcp-err`). Anything new on this page should take a `kbcp-` name.
 - `kybernos-plugin/client.js` carries its own copy of the MCP client (`kbConnMcp`) and of the `kb-accept-text`
   listener: they do not get the fixes made here.
