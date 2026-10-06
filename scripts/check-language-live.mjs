@@ -2,7 +2,10 @@
 // End-to-end test of the Language page and of what a translated language does to
 // the REAL GUI — signed in through docs/dev/live-testing.md.
 //
-//   node scripts/check-language-live.mjs [--shots <dir>]
+//   node scripts/check-language-live.mjs [--shots <dir>] [--worktree]
+//
+//   --worktree   test this checkout's Language client instead of what the shared tree serves
+//                (scripts/lib-bundle-swap.mjs: the served text is replaced inside this browser only)
 //
 // The LLM is replaced by a stub inside the page (every string comes back as
 // ⟦text⟧ after a short delay), so the run is free, fast and deterministic, and
@@ -21,10 +24,12 @@ import { mkdirSync } from 'node:fs'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { createFlow, assertEnglishStored, storedLocale, LANGUAGE } from './lib-language-flow.mjs'
 import { collectIn, analyse } from './lib-i18n-audit.mjs'
+import { swapBundles } from './lib-bundle-swap.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
 if (shotsDir !== null) mkdirSync(shotsDir, { recursive: true })
+const useWorktree = args.includes('--worktree')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 let pass = 0
@@ -44,9 +49,15 @@ const titleOf = async (selector) => String(await val(`(() => { const e = documen
 const shot = async (name) => { if (shotsDir !== null) await page.shot(shotsDir + '/' + name + '.png') }
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await restoreEnglish(); await live.close(); process.exit(130) })
 
-await flow.installStub()
+const swap = useWorktree ? await swapBundles(page, [{ name: 'kybernos-language' }]) : null
+await flow.installStub() // reloads the page: the swapped client is what loads
 
 try {
+  if (swap !== null) {
+    const r = swap.report()
+    check('the worktree client is what the page runs (its text replaced the served one)', r.every((x) => x.replaced), r)
+    if (!r.every((x) => x.replaced)) throw new Error('the served file differs from the shared tree on disk (uncommitted edits there?): cannot swap')
+  }
   // ═══ 1. the page ═════════════════════════════════════════════════════════
   console.log('\n── the Language page ──')
   await openSettings(LANGUAGE)

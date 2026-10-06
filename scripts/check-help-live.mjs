@@ -2,9 +2,9 @@
 // The help of the plugins, in a real GUI: the « ? How it works » button on the page of each plugin that has one, and the
 // help on the module's page in the Suite.
 //
-//   KB_HOST=127.0.0.1:3091 DSH_HOME=<sandbox>/.dsh HOME=<sandbox> node scripts/check-help-live.mjs [--shots <dir>]
+//   source scripts/sandbox/env.sh && node scripts/check-help-live.mjs [--shots <dir>]
 //
-// Needs a DSH that serves this checkout (scripts/sandbox-instance.mjs): the help button and the catalogue's `aide` live in
+// Needs a DSH that serves this checkout (scripts/sandbox/start.sh): the help button and the catalogue's `aide` live in
 // the hub and in the plugins of the checkout. Refuses :3080. Read-only: nothing here changes a setting.
 // For every page: the button is there, it opens a card with what the plugin does and the steps of packages/<dir>/help.json
 // (the text is read from the file, not copied here), the card closes on Escape, and French shows French.

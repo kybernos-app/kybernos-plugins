@@ -113,11 +113,15 @@ export async function createFlow(page) {
     await page.send('Input.insertText', { text })
     await sleep(450)
   }
-  const shellReady = `/studio|my workspace/i.test(document.body ? document.body.innerText : '')`
+  // « Agent Teams » is in the sidebar of every DSH; « studio » / « my workspace » only in the user's own.
+  const shellReady = `/studio|my workspace|agent teams/i.test(document.body ? document.body.innerText : '')`
+  // A fresh instance (the sandbox) opens on an API-key dialog that covers the page after every load; the user's own DSH does not.
+  const freshInstance = (process.env.KB_HOST || '127.0.0.1:3080') !== '127.0.0.1:3080'
   const reload = async () => {
     await page.send('Page.reload', {})
     await sleep(3000)
     await waitFor(page, shellReady, 25000)
+    if (freshInstance) await dismissKeyDialog()
     await sleep(800)
   }
   const openSettings = async (label) => {
@@ -152,6 +156,17 @@ export async function createFlow(page) {
     await page.send('Page.reload', {})
     await sleep(4000)
     await waitFor(page, shellReady, 25000)
+    if (freshInstance) await dismissKeyDialog()
+  }
+
+  /** A fresh instance (the sandbox) asks for an API key first and covers the page: « Configure later ». No-op on a configured DSH. */
+  const dismissKeyDialog = async () => {
+    // The dialog comes up a moment after the shell: look for it for a few seconds before concluding there is none.
+    let there = false
+    for (let i = 0; i < 6 && !there; i += 1) { there = (await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true; if (!there) await sleep(700) }
+    if (!there) return
+    const pos = await val(`(() => { const e = Array.from(document.querySelectorAll('*')).filter((x) => x.children.length === 0 && (x.innerText || '').trim() === 'Configure later')[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
+    if (typeof pos === 'string') { const { x, y } = JSON.parse(pos); await mouse(x, y); await sleep(700) }
   }
 
   /** Add `iso`, translate it (stubbed), press « Use » and land in the reloaded GUI. */

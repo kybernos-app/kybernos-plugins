@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // The Changes chip (packages/kybernos-changes), end to end, in a real GUI.
 //
-//   KB_HOST=127.0.0.1:3091 DSH_HOME=<sandbox>/.dsh HOME=<sandbox> node scripts/check-changes-live.mjs [--shots <dir>]
+//   source scripts/sandbox/env.sh && node scripts/check-changes-live.mjs [--shots <dir>]
 //
 // It needs a DSH that LOADS the bundle, i.e. a second instance whose profile links this checkout:
-// `node scripts/sandbox-instance.mjs` builds and starts one (see docs/dev/live-testing.md). The user's own `dsh web`
+// `scripts/sandbox/setup.sh` then `scripts/sandbox/start.sh` build and start one (see docs/dev/live-testing.md). The user's own `dsh web`
 // does not list the bundle, and this script refuses to run against it (exit 3).
 //
 // What it checks, in a real page:

@@ -233,7 +233,7 @@ yourself** (it interrupts the owner's running sessions).
 A **new** bundle is in nobody's profile yet, so build a second DSH that serves your checkout:
 
 ```bash
-node scripts/sandbox-instance.mjs setup && node scripts/sandbox-instance.mjs start    # port 3091, own HOME and DSH_HOME
+scripts/sandbox/setup.sh && scripts/sandbox/start.sh    # port 3098, own HOME and DSH_HOME; then `source scripts/sandbox/env.sh`
 ```
 
 then write a `scripts/check-<dir>-live.mjs` like `check-changes-live.mjs` (a `check-*` name, never `test-*`: CI has no GUI).

@@ -175,19 +175,19 @@ the interceptor). Only client code can be tested this way: host code loads when 
 Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
 event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
 
-## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox-instance.mjs`)
+## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change
 needs a restart, which you do not do. Build a second DSH that serves this checkout:
 
 ```bash
-node scripts/sandbox-instance.mjs setup      # ~/.kybernos-sandbox/dev: a clone of the real `web` profile, every @local link on this checkout
-node scripts/sandbox-instance.mjs start      # port 3091, own HOME and DSH_HOME, log in the sandbox folder
-node scripts/sandbox-instance.mjs env        # KB_HOST=… DSH_HOME=… HOME=…  (what the live checks read)
-node scripts/sandbox-instance.mjs stop       # that instance only; it refuses :3080
+scripts/sandbox/setup.sh          # a clone of the real `web` profile, every @local link on this checkout, new bundles added
+scripts/sandbox/start.sh          # port 3098 (never 3080), own HOME and DSH_HOME, log in the sandbox folder
+source scripts/sandbox/env.sh     # KB_HOST, DSH_HOME, HOME: what the live checks read (`kb_sandbox_leave` undoes it)
+scripts/sandbox/stop.sh           # that instance only
 ```
 
-No credential, key or session is copied, the paid server module and the relaunch tool (it targets :3080) are left out. HOME
+No credential, key or session is copied, the paid server module and the relaunch tool (it targets :3080) are left out; the new bundles of the checkout are added and the checkout is the one workspace. HOME
 is set too, because some bundles still write under `~/.dsh` when only DSH_HOME is: with HOME alone changed, the real files
 stay untouched (fingerprint `~/.dsh/.credentials.yaml`, `profiles/web/package.json`, `kybernos/i18n/*.json` before and after).
 Host code is not hot-reloaded: `stop` then `start` after editing an `index.js`; client code is read from the checkout at each
@@ -197,7 +197,7 @@ was sent (the turn then fails for lack of a key, which is fine): `check-changes-
 ## The Changes chip: `scripts/check-changes-live.mjs`
 
 ```bash
-KB_HOST=127.0.0.1:3091 DSH_HOME=<sandbox>/.dsh HOME=<sandbox> node scripts/check-changes-live.mjs --shots /tmp/shots
+source scripts/sandbox/env.sh && node scripts/check-changes-live.mjs --shots /tmp/shots
 ```
 
 It refuses to run against `:3080` (exit 3: that DSH does not load the bundle). It checks the real data path (the chip, the
@@ -213,7 +213,7 @@ English). `scripts/build-catalog.mjs` validates it and ships it in the catalogue
 
 ```bash
 node scripts/test-help.mjs                   # no GUI: the shape, every bundle has one, the buttons are guarded and ask for their own bundle
-KB_HOST=127.0.0.1:3091 DSH_HOME=<sandbox>/.dsh HOME=<sandbox> node scripts/check-help-live.mjs --shots /tmp/shots
+source scripts/sandbox/env.sh && node scripts/check-help-live.mjs --shots /tmp/shots
 ```
 
 The live check opens each page that carries the button (Theme, AI Provider & Models, Commands, Workers, About, Ollama Local Models,

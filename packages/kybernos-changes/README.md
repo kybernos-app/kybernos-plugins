@@ -55,8 +55,8 @@ pills stay**. The pills only step aside once the chip is on screen (`window.__KB
 ```bash
 node packages/kybernos-changes/test-client.mjs           # the states in priority order, the words in both languages, the contract
 node packages/kybernos-sessions/test-changes-facts.mjs   # the facts and the actions the chip reads, kinds of change
-node scripts/sandbox-instance.mjs setup && node scripts/sandbox-instance.mjs start    # a second DSH that loads this checkout
-KB_HOST=127.0.0.1:3091 DSH_HOME=<sandbox>/.dsh HOME=<sandbox> node scripts/check-changes-live.mjs --shots /tmp/shots
+scripts/sandbox/setup.sh && scripts/sandbox/start.sh    # a second DSH that loads this checkout
+source scripts/sandbox/env.sh && node scripts/check-changes-live.mjs --shots /tmp/shots
 ```
 
 `check-changes-live.mjs` needs a DSH that loads the bundle (the user's own `dsh web` does not list it) and refuses to run
