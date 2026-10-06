@@ -891,11 +891,12 @@ const RELAY_RULES = [
   { re: /^\/v1\/workspaces$/, query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(members|providers|models)$', 'i'), query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(budget|models|catalog|billing)$', 'i'), query: [] },
-  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/usage$', 'i'), query: ['from', 'to'] },
+  // `group_by` is one of the server's four groupings (the team console asks for `detail`: one row per day, member and model).
+  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/usage$', 'i'), query: ['from', 'to', 'group_by'], choices: { group_by: ['model', 'day', 'member', 'detail'] } },
 ]
 
 /** `{ ok, path }` (the canonical path to call) or `{ ok: false, error }`. Pure: a path the allowlist does not name, a
- *  workspace that is not one of the account's, a query parameter other than a date `from` / `to`, is refused. */
+ *  workspace that is not one of the account's, a query parameter other than a date `from` / `to` (or a known `group_by` on usage), is refused. */
 const relayCheck = (target, state) => {
   const refused = { ok: false, error: 'chemin refuse' }
   if (typeof target !== 'string' || target.length === 0 || target.length > 300 || target[0] !== '/') return refused
@@ -908,7 +909,9 @@ const relayCheck = (target, state) => {
   const seen = new Set()
   const query = []
   for (const [k, v] of u.searchParams) {
-    if (rule.query.indexOf(k) < 0 || seen.has(k) || RELAY_DATE.test(v) !== true) return refused
+    if (rule.query.indexOf(k) < 0 || seen.has(k)) return refused
+    const choices = rule.choices !== undefined ? rule.choices[k] : undefined
+    if (choices !== undefined ? choices.indexOf(v) < 0 : RELAY_DATE.test(v) !== true) return refused
     seen.add(k)
     query.push(k + '=' + encodeURIComponent(v))
   }
