@@ -327,13 +327,16 @@ window.__ModuleLoader__.load({
     const CAP = 5
     // Where a node opens in DSH. The patches are the ones the sidebar rows apply (see __KB_OPEN__ in kybernos-plugin).
     // Memory, lessons, apps from mini apps and the workspace itself have no page of their own: null.
-    function openTarget (n) {
+    // `views` is what the main plugin says its sidebar has (window.__KB_OPEN__.views): an older sidebar has one
+    // Resources page where a newer one has Skills and Connectors, so a button is only offered for a page that exists.
+    function openTarget (n, views) {
+      const has = (v) => arr(views).indexOf(v) >= 0
       switch (n.kind) {
-        case 'skill': return { label: 'Skills', patch: { view: 'skills' } }
-        case 'routine': return { label: 'Automations', patch: { view: 'tasks' } }
-        case 'app': return n.id.indexOf('a:toolkit:') === 0 ? { label: 'Connectors', patch: { view: 'connectors' } } : null
-        case 'area': return n.path !== '' ? { label: 'Projects', patch: { view: 'project', projectId: n.path } } : null
-        case 'kyber': return n.file ? { label: 'Kybers', patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
+        case 'skill': return has('skills') ? { label: 'Skills', patch: { view: 'skills' } } : has('resources') ? { label: 'Resources', patch: { view: 'resources' } } : null
+        case 'routine': return has('tasks') ? { label: 'Automations', patch: { view: 'tasks' } } : null
+        case 'app': return n.id.indexOf('a:toolkit:') === 0 && has('connectors') ? { label: 'Connectors', patch: { view: 'connectors' } } : null
+        case 'area': return n.path !== '' && has('project') ? { label: 'Projects', patch: { view: 'project', projectId: n.path } } : null
+        case 'kyber': return n.file && has('teaminfo') ? { label: 'Kybers', patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
         case 'run': return n.run && n.run.sessionId ? { label: 'the session', session: n.run.sessionId } : null
         default: return null
       }
@@ -1465,14 +1468,15 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       // workspace store. The Settings dialog sits over them, so it is closed afterwards (it closes on Escape).
       const closeSettings = () => { setFull(false); try { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })) } catch (e) { /* the user can close it */ } }
       const openAction = (n) => {
-        const t = openTarget(n)
+        const seam = typeof window !== 'undefined' ? window.__KB_OPEN__ : undefined
+        const t = openTarget(n, typeof seam === 'function' ? seam.views : [])
         if (t === null) return null
         if (t.session) {
           if (!(p.store && typeof p.store.openSession === 'function')) return null
           return { label: 'Open the session', run: () => { try { p.store.openSession(t.session); closeSettings() } catch (e) { setToast('Could not open the session.') } } }
         }
-        if (typeof window === 'undefined' || typeof window.__KB_OPEN__ !== 'function') return null
-        return { label: 'Open in ' + t.label, run: () => { if (window.__KB_OPEN__(t.patch) === false) setToast('Could not open ' + t.label + '.'); else closeSettings() } }
+        if (typeof seam !== 'function') return null
+        return { label: 'Open in ' + t.label, run: () => { if (seam(t.patch) === false) setToast('Could not open ' + t.label + '.'); else closeSettings() } }
       }
       const card = (float) => (sel && nodeOf(sel) ? h(DetailCard, { graph: g, extra: data ? data.model : null, id: sel, tab, focus, float, openAction: openAction(nodeOf(sel)), hideLinked: tab === 'around', onClose: () => setSel(null), onGo: showNode, onFocus: (id) => { setFocus(id); setTab('around') }, onFly: isCanvas ? () => flyTo(sel) : null, onToast: setToast }) : null)
       let body
