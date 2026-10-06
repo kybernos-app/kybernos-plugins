@@ -205,6 +205,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const { errText, carteAccepter, keyState, testErr, statusOf, targetOf } = plugin.composio
   ok('errText: 401 and 403 say the key was rejected', /401/.test(errText('401')) && errText('403') === errText('401'))
   ok('errText: 429, timeout and offline each have their own sentence', new Set([errText('429'), errText('timeout'), errText('offline'), errText('401')]).size === 4)
+  ok('errText: a gateway error says it is passing and carries the code', /502/.test(errText('502')) && errText('502') !== errText('500') && errText('503') !== errText('401'))
   ok('errText: any other code is carried in the sentence', errText('bad-response').includes('bad-response') && errText(undefined).includes('?'))
 
   // the key panel

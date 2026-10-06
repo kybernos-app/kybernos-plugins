@@ -44,7 +44,12 @@ const CONNECTIONS_TTL_MS = 120 * 1000
 // How long an old answer may still be served (flagged stale) when Composio fails.
 const STALE_MAX_MS = 30 * 60 * 1000
 // Adjustable: the tests shorten them. mcpMs covers a whole exchange, headers AND body.
-export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000, testHttpMs: 12000, testStdioMs: 20000 }
+export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000, testHttpMs: 12000, testStdioMs: 20000, retryDelayMs: 150 }
+// Composio's MCP gateway answers 502 for about half of the requests at times (measured 2026-10-06 on the real
+// account: 11 of 20 with one session, 12 of 20 initializes, 7 of 20 with none; any method, any toolkit). A
+// read can simply be asked again; a write is not repeated (an add could create a second pending account).
+const TRANSIENT_STATUS = ['502', '503', '504']
+const RETRIES = 4
 // A batch of 40 toolkits stays far below the measured batch (500 in about 760 ms).
 const MAX_TOOLKITS = 40
 // Deliberately strict grammar: a Composio slug is a flat identifier. It may start with an
@@ -308,22 +313,29 @@ async function resolveComposioKey(ctx) {
 
 // ── MCP transport: the HTTP helpers live in mcp-http.mjs ─────────────────────
 
-async function mcpPost(apiKey, body) {
+async function mcpPost(apiKey, body, retry) {
   const sess = sessionOf(apiKey)
-  const headers = {
-    'content-type': 'application/json',
-    'accept': 'application/json, text/event-stream',
-    'x-consumer-api-key': apiKey,
+  for (let attempt = 0; ; attempt += 1) {
+    const headers = {
+      'content-type': 'application/json',
+      'accept': 'application/json, text/event-stream',
+      'x-consumer-api-key': apiKey,
+    }
+    if (sess.id !== null) headers['mcp-session-id'] = sess.id
+    const out = await exchange(MCP_URL, { method: 'POST', headers: headers, body: JSON.stringify(body) }, TIMEOUTS.mcpMs)
+    const res = out.res
+    const sid = res.headers !== null && res.headers !== undefined && typeof res.headers.get === 'function' ? res.headers.get('mcp-session-id') : null
+    if (typeof sid === 'string' && sid.length > 0) sess.id = sid
+    // Only a gateway error is asked again (a timeout already cost its whole deadline), and only a read.
+    if (retry === true && attempt < RETRIES && TRANSIENT_STATUS.indexOf(String(res.status)) >= 0) {
+      await new Promise((resolve) => setTimeout(resolve, TIMEOUTS.retryDelayMs * (attempt + 1)))
+      continue
+    }
+    if (res.status === 401) throw mcpFailure('401')
+    if (res.status === 429) throw mcpFailure('429')
+    if (res.ok !== true) throw mcpFailure(String(res.status))
+    return decodeRpc(out.raw)
   }
-  if (sess.id !== null) headers['mcp-session-id'] = sess.id
-  const out = await exchange(MCP_URL, { method: 'POST', headers: headers, body: JSON.stringify(body) }, TIMEOUTS.mcpMs)
-  const res = out.res
-  const sid = res.headers !== null && res.headers !== undefined && typeof res.headers.get === 'function' ? res.headers.get('mcp-session-id') : null
-  if (typeof sid === 'string' && sid.length > 0) sess.id = sid
-  if (res.status === 401) throw mcpFailure('401')
-  if (res.status === 429) throw mcpFailure('429')
-  if (res.ok !== true) throw mcpFailure(String(res.status))
-  return decodeRpc(out.raw)
 }
 
 /** initialize once per key; a failure can be retried on the next call. */
@@ -334,7 +346,7 @@ function mcpInitialize(apiKey) {
   const init = mcpPost(apiKey, {
     jsonrpc: '2.0', id: 1, method: 'initialize',
     params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'kybernos-host', version: '1.0' } },
-  }).then((reply) => {
+  }, true).then((reply) => {
     if (reply === null || typeof reply !== 'object') throw mcpFailure('bad-response')
     if (reply.error !== undefined && reply.error !== null) throw mcpFailure('rpc-error')
     if (reply.result === undefined) throw mcpFailure('bad-response')
@@ -367,9 +379,11 @@ const textOf = (result) => {
  * restart.
  */
 async function mcpToolCall(apiKey, toolName, args) {
+  // A call that only reads (every toolkit asks for a list) may be repeated on a gateway error; add and remove are not.
+  const reads = args !== null && args !== undefined && Array.isArray(args.toolkits) && args.toolkits.length > 0 && args.toolkits.every((t) => t !== null && t !== undefined && t.action === 'list')
   const attempt = async () => {
     await mcpInitialize(apiKey)
-    return mcpPost(apiKey, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: toolName, arguments: args } })
+    return mcpPost(apiKey, { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: toolName, arguments: args } }, reads)
   }
   try { return await attempt() } catch (e) {
     if (failureCode(e) !== '404') throw e
@@ -1658,6 +1672,10 @@ async function serveAccounts(ctx, req, res) {
       const info = data.results !== null && typeof data.results === 'object' && data.results[toolkit] !== null && typeof data.results[toolkit] === 'object' ? data.results[toolkit] : {}
       redirectUrl = webUrl(info.redirect_url !== undefined ? info.redirect_url : info.redirectUrl)
     }
+    // The answer of add and of remove lists the toolkit's accounts as they are now, the pending one included: that is what
+    // the page shows. (Measured: asking for the list right after is a second call, and Composio's gateway drops many.)
+    const given = normalizeConnections(payload, [toolkit]).connections.find((c) => c.toolkit === toolkit)
+    if (given !== undefined && (given.accounts.length > 0 || action === 'remove')) return sendJson(res, 200, { ok: true, redirectUrl: redirectUrl, connection: given, error: null })
     const out = await readConnections(credential.value, [toolkit], true)
     const connection = out.result.connections.find((c) => c.toolkit === toolkit) || { toolkit: toolkit, status: '', accounts: [] }
     return sendJson(res, 200, { ok: true, redirectUrl: redirectUrl, connection: connection, error: out.error })

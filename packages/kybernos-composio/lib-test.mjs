@@ -160,11 +160,12 @@ rl.on('line', (l) => {
 /**
  * A stand-in for Composio's MCP server (connect.composio.dev/mcp) and the public app list, installed on
  * globalThis.fetch (any other address throws). `state.keys`: the keys it accepts; `state.accounts`:
- * { slug: [account] }; `state.calls`: every request; `state.down`: make it unreachable.
+ * { slug: [account] }; `state.calls`: every request; `state.down`: make it unreachable; `state.failNext`: answer the next N
+ * requests with a 502, as Composio's gateway does at times.
  * Accounts carry an e-mail in `user_info`, which the host must never pass on.
  */
 export function composioStub() {
-  const state = { keys: new Set(['ck_good']), accounts: {}, calls: [], down: false, seq: 0, linkUrl: 'https://connect.composio.dev/link/abc123' }
+  const state = { keys: new Set(['ck_good']), accounts: {}, calls: [], down: false, failNext: 0, seq: 0, linkUrl: 'https://connect.composio.dev/link/abc123' }
   const real = globalThis.fetch
   const json = (obj, status = 200, headers = {}) => {
     const h = Object.assign({ 'content-type': 'application/json' }, headers)
@@ -180,6 +181,7 @@ export function composioStub() {
     if (/kybernos-proxy-production/.test(u)) return json({ apps: [] })
     if (!/^https:\/\/connect\.composio\.dev\/mcp/.test(u)) throw new Error('STUB: unexpected URL ' + u)
     if (state.down) throw new TypeError('fetch failed')
+    if (state.failNext > 0) { state.failNext -= 1; return json({ error: 'bad gateway' }, 502) }
     if (!state.keys.has(headers['x-consumer-api-key'])) return json({ error: 'invalid key' }, 401)
     if (body !== null && body.method === 'initialize') return json({ jsonrpc: '2.0', id: body.id, result: { protocolVersion: '2024-11-05' } }, 200, { 'mcp-session-id': 'sess-1' })
     if (body !== null && body.method === 'tools/call' && body.params.name === 'COMPOSIO_MANAGE_CONNECTIONS') {
