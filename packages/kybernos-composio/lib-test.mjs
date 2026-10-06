@@ -145,11 +145,13 @@ const rl = createInterface({ input: process.stdin })
 rl.on('line', (l) => {
   if (mode === 'silent' || mode === 'leak') return
   let m; try { m = JSON.parse(l) } catch (e) { return }
-  if (m.method === 'initialize') return send({ jsonrpc: '2.0', id: m.id, result: { protocolVersion: '2024-11-05', serverInfo: { name: 'fake-stdio', version: '1.2' }, capabilities: {} } })
+  if (m.method === 'initialize') return send({ jsonrpc: '2.0', id: m.id, result: { protocolVersion: (m.params && m.params.protocolVersion) || '2024-11-05', serverInfo: { name: 'fake-stdio', version: '1.2' }, capabilities: { tools: {} } } })
   if (m.method === 'tools/list') {
     const names = ['ping', 'cwd:' + process.cwd().split('/').pop(), 'secret_in_env:' + (process.env.SOME_TOKEN !== undefined), 'dsh_in_env:' + (process.env.DSH_HOME !== undefined), 'explicit:' + (process.env.EXPLICIT || '-'), 'path:' + (process.env.PATH !== undefined)]
-    return send({ jsonrpc: '2.0', id: m.id, result: { tools: names.map((n) => ({ name: n })) } })
+    return send({ jsonrpc: '2.0', id: m.id, result: { tools: names.map((n) => ({ name: n, inputSchema: { type: 'object', properties: {} } })) } })
   }
+  // Any other request gets a JSON-RPC error, as real servers do: DSH's client opens with a server/discover probe and waits for an answer.
+  if (m.id !== undefined && m.method) return send({ jsonrpc: '2.0', id: m.id, error: { code: -32601, message: 'Method not found' } })
 })
 `)
   return file

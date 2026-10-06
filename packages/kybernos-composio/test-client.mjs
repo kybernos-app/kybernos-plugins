@@ -232,6 +232,9 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('statusOf: still loading is a warning', statusOf({ live: live({ phase: 'loading', tools: 0 }) }, false).key === 'kb.cp.st.loading')
   ok('statusOf: not loaded just after a save is "loading"; later it says to restart DSH', statusOf({ live: { loaded: false, tools: 0 } }, true).key === 'kb.cp.st.loading' && statusOf({ live: { loaded: false, tools: 0 } }, false).key === 'kb.cp.st.stale' && statusOf({ live: { loaded: false, tools: 0 } }, false).hint === 'kb.cp.st.hint.stale')
   ok('statusOf: disabled, by the config or by DSH', statusOf({ disabled: true, live: live() }, false).key === 'kb.cp.st.off' && statusOf({ live: live({ enabled: false }) }, false).key === 'kb.cp.st.off')
+  const { hostIsOld } = plugin.composio
+  ok('hostIsOld: a host that does not say its version (an older one), or says another, is old', hostIsOld({ ok: true }) === true && hostIsOld({ ok: true, api: 1 }) === true && hostIsOld(null) === true && hostIsOld('x') === true)
+  ok('hostIsOld: the version this page speaks is not', hostIsOld({ ok: true, api: 2 }) === false)
   ok('targetOf: an address for http, the command line for stdio', targetOf({ transport: 'streamable-http', url: 'https://x.test/mcp' }) === 'https://x.test/mcp' && targetOf({ transport: 'stdio', command: '/bin/node', args: ['a.mjs', '--x'] }) === '/bin/node a.mjs --x')
 
   // C-14: a card action that sends text into the conversation shows it first

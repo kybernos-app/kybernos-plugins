@@ -18,6 +18,7 @@ delete process.env.COMPOSIO_API_KEY
 {
   const h = await startHost()
   let r = await h.call(K)
+  ok('key: GET says which contract it speaks', r.json.api === 2)
   ok('key: nothing configured at first', r.code === 200 && r.json.configured === false && r.json.agents === 'none' && r.json.source === null)
   r = await h.call(K, { method: 'POST', body: { key: 'not a key' } })
   ok('key: a value that is not a Composio key is refused before anything else', r.code === 400 && r.json.code === 'invalid-key' && comp.state.calls.length === 0)

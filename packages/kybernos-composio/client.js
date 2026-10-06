@@ -217,7 +217,8 @@ window.__ModuleLoader__.load({
       'composio.unchecked': { fr: 'Composio ne répond pas bien : clé non vérifiée', en: 'Composio is not answering well: key not checked' },
       'composio.agentsSame': { fr: 'Les agents du chat l’utilisent', en: 'The chat agents use it' },
       'composio.agentsLater': { fr: 'Les agents du chat l’utiliseront après un redémarrage de DSH', en: 'The chat agents will use it after DSH restarts' },
-      'composio.hostunknown': { fr: 'État de la clé inconnu (le plugin hôte ne répond pas)', en: 'Key state unknown (the host plugin does not answer)' },
+      'composio.hostunknown': { fr: 'État de la clé inconnu : le plugin hôte ne répond pas. S’il vient d’être mis à jour, redémarrez DSH.', en: 'Key state unknown: the host plugin does not answer. If it was just updated, restart DSH.' },
+      'kb.cp.hostold': { fr: 'Le plugin hôte tourne encore dans sa version précédente : redémarrez DSH pour activer les nouveautés. En attendant, la liste est en lecture seule.', en: 'The host plugin is still running its previous version: restart DSH to activate the changes. Meanwhile the list is read only.' },
       'composio.migrate': { fr: 'Une clé de l’ancienne version est dans ce navigateur. L’enregistrer sur cette machine ?', en: 'A key from the previous version is in this browser. Save it on this machine?' },
       'composio.err.invalid': { fr: 'Une clé Composio commence par ck_ et ne contient pas d’espace.', en: 'A Composio key starts with ck_ and has no spaces.' },
       'composio.err.rejected': { fr: 'Composio a refusé cette clé : elle n’a pas été enregistrée.', en: 'Composio rejected this key: it was not saved.' },
@@ -411,6 +412,9 @@ window.__ModuleLoader__.load({
     }
 
     // ── MCP servers: pure helpers (the page and the tests share them) ──────────
+    /** The contract version of the host half this page speaks (index.js API_VERSION). A host that says another one, or none, is older than this page. */
+    const KB_CP_API = 2
+    const kbCpHostIsOld = (json) => json === null || json === undefined || typeof json !== 'object' || json.api !== KB_CP_API
     /** What a server runs or talks to, as one line. */
     const kbCpTargetOf = (c) => (c.transport === 'streamable-http' ? String(c.url || '') : [String(c.command || '')].concat(Array.isArray(c.args) === true ? c.args : []).join(' '))
 
@@ -796,7 +800,7 @@ window.__ModuleLoader__.load({
           const k = await kbCpHost('/key')
           let c = null
           if (k.status === 200 && k.json !== null && k.json.configured === true) c = (await kbCpHost('/connections?toolkits=gmail')).json
-          const st = k.status === 200 ? kbCpKeyState(k.json, c) : null
+          const st = k.status === 200 && kbCpHostIsOld(k.json) === false ? kbCpKeyState(k.json, c) : null
           if (dead === true) return
           setState(st)
           let left = ''
@@ -1107,7 +1111,7 @@ window.__ModuleLoader__.load({
         let done = 0
         const imported = []
         for (const sv of servers) {
-          if (sel[sv.source] === false || (sel[sv.source] === undefined && blockers(sv).length > 0) || blockers(sv).length > 0) continue
+          if (sel[sv.source] === false || blockers(sv).length > 0) continue
           const c = cmds[sv.source]
           const { body } = kbCpImportBody(Object.assign({}, sv, { name: nameOf2(sv) }), sv.type === 'stdio' && c !== undefined ? c.path : undefined)
           const r = await kbCpHost('/connecteurs', 'POST', body)
@@ -1202,6 +1206,7 @@ window.__ModuleLoader__.load({
         const st = kbCpStatusOf(c, isRecent(c.nom))
         const t = tests[c.nom]
         const ro = c.editable === false
+        const frozen = props.hostOld === true
         return h('div', { className: 'kbcp-mrow', key: c.nom, 'data-kb-server': c.nom },
           h('div', { className: 'kbcp-mmain' },
             h('div', { className: 'kbcp-mid' },
@@ -1212,10 +1217,10 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbcp-mtarget' }, 'mcp__' + c.nom + '__* · ' + kbCpTargetOf(c))),
             h('span', { className: 'kbcp-chip ' + (st.kind === 'plain' ? '' : st.kind), 'data-kb-state': st.key }, h('i'), kbt(st.key).replace('{n}', String(st.n === undefined ? '' : st.n))),
             h('div', { className: 'kbcp-macts' },
-              ro ? null : h('button', { type: 'button', className: 'kbcp-switch', role: 'switch', 'aria-checked': c.disabled === true ? 'false' : 'true', 'aria-label': kbt('kb.cp.act.toggle').replace('{name}', c.nom), disabled: busy === c.nom, onClick: () => toggle(c) }),
-              h('button', { type: 'button', className: 'kbcp-btn', disabled: t !== undefined && t.busy === true, onClick: () => runTest(c) }, kbt('kb.cp.act.test')),
-              h('button', { type: 'button', className: 'kbcp-btn', onClick: () => props.edit(c) }, ro ? kbt('kb.cp.src.ro') : kbt('kb.cp.act.edit')),
-              h('button', { type: 'button', className: 'kbcp-btn', 'aria-label': kbt('kb.cp.act.del') + ' ' + c.nom, disabled: busy === c.nom, onClick: () => setConfirmDel(c.nom) }, Icon('trash', 13)))),
+              ro || frozen ? null : h('button', { type: 'button', className: 'kbcp-switch', role: 'switch', 'aria-checked': c.disabled === true ? 'false' : 'true', 'aria-label': kbt('kb.cp.act.toggle').replace('{name}', c.nom), disabled: busy === c.nom, onClick: () => toggle(c) }),
+              h('button', { type: 'button', className: 'kbcp-btn', disabled: frozen || (t !== undefined && t.busy === true), onClick: () => runTest(c) }, kbt('kb.cp.act.test')),
+              h('button', { type: 'button', className: 'kbcp-btn', disabled: frozen, onClick: () => props.edit(c) }, ro ? kbt('kb.cp.src.ro') : kbt('kb.cp.act.edit')),
+              h('button', { type: 'button', className: 'kbcp-btn', 'aria-label': kbt('kb.cp.act.del') + ' ' + c.nom, disabled: frozen || busy === c.nom, onClick: () => setConfirmDel(c.nom) }, Icon('trash', 13)))),
           t !== undefined ? h('div', { className: 'kbcp-detail' }, kbCpTestView(t)) : (st.hint !== undefined ? h('div', { className: 'kbcp-detail warn' }, h('span', null, kbt(st.hint))) : null),
           confirmDel === c.nom ? h('div', { className: 'kbcp-confirm' },
             h('p', null, kbt('kb.cp.del.confirm').replace('{name}', c.nom)),
@@ -1223,6 +1228,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setConfirmDel(null) }, kbt('kb.cp.del.cancel'))) : null)
       }
       return h('div', { className: 'kb7-panel' },
+        props.hostOld === true ? h('div', { className: 'kbcp-note warn', role: 'status' }, kbt('kb.cp.hostold')) : null,
         props.note !== null ? h('div', { className: 'kbcp-toast', role: 'status' }, props.note) : null,
         props.error !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, kbt('kb.cp.mcp.error').replace('{why}', props.error)) : null,
         err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
@@ -1301,6 +1307,7 @@ window.__ModuleLoader__.load({
       const setHostCfg = p17[1]
       // The MCP servers tab: what the host said about the list, the add menu, the JSON window, and the servers saved a moment ago.
       const [mcpErr, setMcpErr] = React.useState(null)
+      const [hostOld, setHostOld] = React.useState(false)
       const [roots, setRoots] = React.useState(null)
       const [menuOpen, setMenuOpen] = React.useState(false)
       const [importOpen, setImportOpen] = React.useState(false)
@@ -1314,6 +1321,7 @@ window.__ModuleLoader__.load({
           if (r.json !== null && typeof r.json.error === 'string') setMcpErr(r.json.error)
           return
         }
+        setHostOld(kbCpHostIsOld(r.json))
         setCx(Array.isArray(r.json.connecteurs) === true ? r.json.connecteurs : [])
         setRoots(r.json.roots !== undefined ? r.json.roots : null)
         setMcpErr(typeof r.json.error === 'string' && r.json.error.length > 0 ? r.json.error : null)
@@ -1418,7 +1426,8 @@ window.__ModuleLoader__.load({
         setBusy(false)
         if (r.status !== 200 || r.json === null || r.json.ok !== true) {
           const code = r.json !== null && r.json.code !== undefined ? String(r.json.code) : (r.status === 0 ? 'offline' : String(r.status))
-          setErr(code === 'no-credential' ? kbt('kb.cp.nokey') : kbCpErrText(code))
+          // No such route: the host half is older than this page.
+          setErr(r.status === 404 && r.json === null ? kbt('kb.cp.hostold') : (code === 'no-credential' ? kbt('kb.cp.nokey') : kbCpErrText(code)))
           return
         }
         // The host only passes on an http(s) address; one that is not is never opened.
@@ -1457,7 +1466,7 @@ window.__ModuleLoader__.load({
         const r = await kbCpHost('/accounts', 'POST', { action: 'remove', toolkit: slug, accountId: accountId })
         if (r.status !== 200 || r.json === null || r.json.ok !== true) {
           const code = r.json !== null && r.json.code !== undefined ? String(r.json.code) : (r.status === 0 ? 'offline' : String(r.status))
-          setErr(kbt('kb.cp.err.remove') + ': ' + kbCpErrText(code))
+          setErr(r.status === 404 && r.json === null ? kbt('kb.cp.hostold') : kbt('kb.cp.err.remove') + ': ' + kbCpErrText(code))
           return
         }
         const c = r.json.connection
@@ -1598,7 +1607,7 @@ window.__ModuleLoader__.load({
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
           h('div', { className: 'kbcp-addwrap' },
-            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
+            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
             menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
               h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
               h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint')))) : null)),
@@ -1637,7 +1646,7 @@ window.__ModuleLoader__.load({
         helpOpen === true ? h('div', { className: 'kb7-help', role: 'note' },
           h('div', { className: 'kb7-helptitle' }, kbt('kb.cp.help.title')),
           h('p', { className: 'kb7-helptext' }, kbt('kb.cp.help'))) : null,
-        (ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
+        (vtab !== 'mcp' && ready === true && hostCfg === false && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-nokey' }, Icon('key', 15), kbt('kb.cp.nokey')) : null,
         err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
         // ── Vos connexions ──────────────────────────────────────────────────
         vtab === 'yours' ? h('div', { className: 'kb7-panel' },
@@ -1648,7 +1657,7 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a)))
         ) : null,
         // ── MCP servers ─────────────────────────────────────────────────────
-        vtab === 'mcp' ? h(McpPanel, { items: cx, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
+        vtab === 'mcp' ? h(McpPanel, { items: cx, hostOld: hostOld, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
         // ── Discover ────────────────────────────────────────────────────────
         vtab === 'discover' ? h('div', { className: 'kb7-panel' },
           // The unified bar lives in the control row above;
@@ -1987,7 +1996,7 @@ window.__ModuleLoader__.load({
       // exposed for the Resources tab of the kybernos bundle; the pure parts (webUrl, carteHtml,
       // carteAccepter, errText, hostState) and the MCP timeout are exposed so test-client.mjs can
       // reach them without a DOM.
-      composio: { page: ComposioPage, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
+      composio: { page: ComposioPage, hostIsOld: kbCpHostIsOld, getLink: kbCpGetLink, saveLink: kbCpSaveLink, event: 'kbcp-key', webUrl: kbCpWebUrl, carteHtml: carteHtml, carteAccepter: carteAccepter, carteAcceptMax: CARTE_ACCEPT_MAX, match: kbCpMatch, joinArgs: kbCpJoinArgs, t: kbt, errText: kbCpErrText, keyState: kbCpKeyState, testErr: kbCpTestErr, statusOf: kbCpStatusOf, importParse: kbCpImportParse, importBody: kbCpImportBody, safeName: kbCpSafeName, targetOf: kbCpTargetOf, formOf: kbCpFormOf, bodyOf: kbCpBodyOf },
     }
   },
 })

@@ -516,6 +516,11 @@ async function serveConnections(ctx, req, res) {
 // DSH loader consumes. A connector written by the skill (a block without a sidecar entry)
 // is still listed, read only.
 const CONNECTEURS_ROUTE = '/kybernos/composio/connecteurs'
+// The contract the page speaks with this half. The page reloads by itself when its file changes but this half only
+// loads when DSH starts, so after an update the page can be newer than the host: GET /connecteurs and GET /key
+// say which version they are, and a page that finds none (or another) tells the person to restart DSH instead of
+// saving through routes that do not know the new fields (an old host would rewrite a skill's block without its args).
+export const API_VERSION = 2
 /**
  * The DSH home, the way DSH resolves it (dsh-home-paths) and kybernos-theme does: DSH_HOME
  * when it is set and not blank (`~` expanded), else <home of the OS user>/.dsh. Everything
@@ -1446,7 +1451,7 @@ async function serveConnecteurs(ctx, req, res) {
     const names = Object.keys(patchBlocks(patchText)).concat(sidecar.map((c) => c.nom))
     const live = await liveStates(ctx, names)
     // Never a secret value here: only names, labels and whether a secret has a value.
-    return sendJson(res, 200, Object.assign({ ok: true, connecteurs: listConnecteurs(sidecar, patchText, live), live: live !== null, roots: { base: RACINES_STDIO_OK, extra: extraRoots() } },
+    return sendJson(res, 200, Object.assign({ ok: true, api: API_VERSION, connecteurs: listConnecteurs(sidecar, patchText, live), live: live !== null, roots: { base: RACINES_STDIO_OK, extra: extraRoots() } },
       problem === null ? {} : { state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem }))
   }
   if (req.method === 'POST') {
@@ -1590,7 +1595,7 @@ async function serveKey(ctx, req, res) {
   const agentsEnv = typeof process.env[COMPOSIO_KEY_REF] === 'string' ? process.env[COMPOSIO_KEY_REF] : ''
   if (req.method === 'GET') {
     const k = await resolveComposioKey(ctx)
-    return sendJson(res, 200, { ok: true, configured: k !== null, source: k === null ? null : k.source, agents: k === null ? 'none' : (agentsEnv.length === 0 ? 'none' : (agentsEnv === k.value ? 'same' : 'different')) })
+    return sendJson(res, 200, { ok: true, api: API_VERSION, configured: k !== null, source: k === null ? null : k.source, agents: k === null ? 'none' : (agentsEnv.length === 0 ? 'none' : (agentsEnv === k.value ? 'same' : 'different')) })
   }
   const inherited = async () => { const d = await credentialDescribe(ctx); return d !== null && d.source === 'env' }
   if (req.method === 'POST') {

@@ -397,6 +397,46 @@ language-preference rules above. The sidebar's session list is left out (titles 
 user wrote are data, not copy). Exit code is `0` (it measures, it does not gate),
 `3` when inconclusive.
 
+## An isolated instance for host code: `scripts/sandbox/`
+
+A host half (`packages/*/index.js`) only loads when DSH starts, and a restart interrupts the sessions running in
+your real DSH. To see host code live, run a **second** `dsh web` with its own HOME and DSH_HOME that serves *this
+checkout's* `packages/*`:
+
+```bash
+scripts/sandbox/start.sh                 # first run clones the real profile (read only), re-points every @local link at this checkout, starts on 3098
+source scripts/sandbox/env.sh            # HOME, DSH_HOME, KB_HOST, DSH_WEB_PORT now point at the sandbox (kb_sandbox_leave undoes it)
+node scripts/check-connectors-live.mjs --write --shots /path/to/shots
+scripts/sandbox/stop.sh                  # kills only the pid it recorded, after checking it is the sandbox's dsh
+```
+
+- It reads your real `~/.dsh` (clone of `profiles/web`, copy of `mcp/`) and never writes there, never copies a
+  credential, never uses port 3080 (a busy port makes it take the next free one) and refuses to run with the real
+  HOME. State lives in `~/.kybernos-sandbox/<checkout name>` (`KB_SANDBOX_ROOT` overrides): short on purpose, a unix
+  socket path is limited to about 100 characters.
+- Client edits (`client.js`) are served from the checkout at once; host edits need `stop.sh` then `start.sh` (this
+  instance holds nobody's sessions). `setup.sh` again after the checkout gains a package, `setup.sh --refresh`
+  (sandbox stopped) to re-clone the profile.
+- `sandbox.log` holds DSH's token URL: never print it; sign in with the cookie like every script here.
+- A fresh instance asks for a model key in a dialog that covers the page (it swallows mouse events): click
+  "Configure later" first, as `check-connectors-live.mjs` does. The paid module `@local/kybernos-servers` is read
+  from its private checkout when there is one.
+- With DSH_HOME alone the sandbox would write the real profile: several bundles hard-code `homedir()`, so HOME is
+  isolated too.
+
+## The Connectors page: `scripts/check-connectors-live.mjs`
+
+```bash
+node scripts/check-connectors-live.mjs [--shots <dir>]    # read only, safe on the real DSH once its host has the new routes
+KB_HOST=... node scripts/check-connectors-live.mjs --write # the whole life of an MCP server, on an isolated instance
+```
+
+Read only: the three tabs, the add menu, row actions hidden until hover, a state chip on every row, the form
+opening on a server the skill wrote. `--write` adds a fake stdio MCP server by pasting JSON, waits for DSH to load
+it by itself (hot reload, no restart), tests it, switches it off and on, renames it and deletes it; it **refuses to
+run against 127.0.0.1:3080** unless `--allow-real` (it writes the profile and the `.env`). Exit 0 / 1 / 3
+(inconclusive).
+
 ## Traps
 
 - **These scripts are deliberately NOT named `test-*.mjs`.** CI runs every

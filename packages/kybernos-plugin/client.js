@@ -1015,6 +1015,7 @@ let kbLocaleRead = () => 'en'
       'kbui.conn.okoff': { kybernos: 'Connexion désactivée.', en: 'Connection disabled.' },
       'kbui.conn.okon': { kybernos: 'Demande envoyée : ouvre le lien d’autorisation.', en: 'Request sent: open the authorization link.' },
       'kbui.conn.err': { kybernos: 'Échec : ', en: 'Failed: ' },
+      'kbui.conn.hostold': { kybernos: 'Le plugin Composio de DSH tourne dans sa version précédente : redémarrez DSH.', en: 'DSH\u2019s Composio plugin is still running its previous version: restart DSH.' },
       'kbui.conn.nokey': { kybernos: 'Aucune clé Composio sur cette machine.', en: 'No Composio key on this machine.' },
       'kbui.conn.global': { kybernos: ' La connexion est globale, pas seulement ce projet.', en: ' The connection is global, not just this project.' },
       'kbui.conn.openlink': { kybernos: 'Ouvrir le lien d’autorisation', en: 'Open the authorization link' },
@@ -3735,7 +3736,7 @@ const kbConnActionOf = async (c, arm, setArm, setAction) => {
     const j = await res.json().catch(() => null)
     if (res.ok !== true || j === null || j.ok !== true) {
       const code = (j !== null && j !== undefined && j.code !== undefined) ? String(j.code) : 'HTTP ' + res.status
-      setAction({ key: c.key, etat: 'err', message: code === 'no-credential' ? kbt('kbui.conn.nokey') : kbt('kbui.conn.err') + code, lien: null })
+      setAction({ key: c.key, etat: 'err', message: (res.status === 404 && j === null) ? kbt('kbui.conn.hostold') : (code === 'no-credential' ? kbt('kbui.conn.nokey') : kbt('kbui.conn.err') + code), lien: null })
       return
     }
     // L'hote ne rend qu'une adresse http(s) ; elle s'ouvre dans un nouvel onglet.

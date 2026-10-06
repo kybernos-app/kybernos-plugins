@@ -47,6 +47,7 @@ if (yaml === null) console.log('(no DSH engine: the cases that read the blocks b
     ok('a block with an option the form does not know is read only, with the reason', by('weird').editable === false && /autoApprove/.test(by('weird').readOnlyReason) && by('weird').command === '/usr/bin/true')
     ok('the secret a connector refers to says whether it has a value, never the value', hor.secretsSet.FAKE_TOKEN === false && g.text.includes('FAKE_TOKEN') && !/good|ck_/.test(g.text))
   } else ok('without a parser the blocks stay listed, read only, with the reason', by('horloge').editable === false && /parser/.test(by('horloge').readOnlyReason))
+  ok('the list says which contract it speaks (the page refuses to save through an older host)', g.json.api === 2 && h.mod.API_VERSION === 2)
   ok('without DSH\'s services the page is told there is no live state (not that nothing is loaded)', g.json.live === false && g.json.connecteurs.every((c) => c.live === null))
   ok('the folders commands may run from are reported', g.json.roots.base.includes('/opt/homebrew/bin') && Array.isArray(g.json.roots.extra))
   h.stop()
