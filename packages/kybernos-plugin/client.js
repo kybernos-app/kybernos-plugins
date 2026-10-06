@@ -22347,6 +22347,19 @@ function renderFit(canvas, model, cam, opts){
         h('button', { type: 'button', className: 'kb4-pick-b', onClick: () => { set({ newChatOpen: false }); if (typeof onSeeAll === 'function') onSeeAll() } },
           kbt('menu.newchat.seeall'))))
     // ── menu maquette : New chat + Projets / Kybers / Livrables / Ressources ──
+    // A way in for other plugins (the Atlas): open a Kybernos page exactly as a sidebar row does.
+    //   window.__KB_OPEN__({ view: 'skills' })  /  { view: 'tasks' }  /  { view: 'connectors' }
+    //   { view: 'project', projectId }  /  { view: 'teaminfo', detailPath: <kyber file>, detailRoot: <root id> }
+    // Returns false when the page could not be opened. No engine patch: it is the same store and panel selection.
+    const kbOpenPage = (patch) => {
+      try {
+        set(patch)
+        if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybers')
+        if (state.data === null && state.loading === false) load()
+        return true
+      } catch (e) { return false }
+    }
+    try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     const SalesMenu = (p0) => {
       const s = useStore()
       React.useEffect(() => { if (state.data === null && state.loading === false) load() }, [])
