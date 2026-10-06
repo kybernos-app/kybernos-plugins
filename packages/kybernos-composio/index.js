@@ -19,10 +19,13 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, chmodSync
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { homedir } from 'node:os'
+import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { Script } from 'node:vm'
 import * as nodeUtil from 'node:util'
+import { mcpFailure, failureCode, decodeRpc, exchange } from './mcp-http.mjs'
+import { probeHttp, probeStdio, redactDeep } from './mcp-probe.mjs'
+import { readConnector } from './block-read.mjs'
 
 export const name = 'kybernos-composio'
 
@@ -41,7 +44,7 @@ const CONNECTIONS_TTL_MS = 120 * 1000
 // How long an old answer may still be served (flagged stale) when Composio fails.
 const STALE_MAX_MS = 30 * 60 * 1000
 // Adjustable: the tests shorten them. mcpMs covers a whole exchange, headers AND body.
-export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000 }
+export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000, testHttpMs: 12000, testStdioMs: 20000 }
 // A batch of 40 toolkits stays far below the measured batch (500 in about 760 ms).
 const MAX_TOOLKITS = 40
 // Deliberately strict grammar: a Composio slug is a flat identifier. It may start with an
@@ -278,9 +281,12 @@ function readEnvKey() {
 
 /**
  * Resolves the Composio key at EVERY request (the secret is never cached: a changed key must
- * take effect without restarting the plugin). The credentials service already covers
- * env/.env/store; it is authoritative: when it resolves nothing we do not fall back on the
- * file. The file fallback only exists when the service is absent or failing, and never throws.
+ * take effect without restarting the plugin). The credentials service layers the environment DSH
+ * was launched with, its own store and the `.env` files. Measured in its source: the `.env` layers
+ * are what the launch read, not the file as it is now, so a key saved from the page a minute ago would
+ * be invisible to it until the next start. The environment and the store (which DSH watches) are
+ * taken as it says; a value that comes from a `.env` is read again from the file, and when the
+ * service resolves nothing the file is read too. Never throws.
  */
 async function resolveComposioKey(ctx) {
   let creds = undefined
@@ -288,65 +294,19 @@ async function resolveComposioKey(ctx) {
   if (creds !== null && creds !== undefined && typeof creds.resolve === 'function') {
     try {
       const got = await creds.resolve(COMPOSIO_KEY_REF)
-      if (got !== null && got !== undefined && typeof got.value === 'string' && got.value.length > 0) return { value: got.value, source: String(got.source || 'credentials') }
-      return null
+      if (got !== null && got !== undefined && typeof got.value === 'string' && got.value.length > 0) {
+        const source = String(got.source || 'credentials')
+        if (source === 'env' || source === 'file') return { value: got.value, source: source }
+        const fresh = readEnvKey()
+        return fresh !== null ? fresh : { value: got.value, source: source }
+      }
+      return readEnvKey()
     } catch (e) { return readEnvKey() }
   }
   return readEnvKey()
 }
 
-// ── MCP transport (same mechanics as client.js, without localStorage) ───────
-function mcpFailure(code) { const e = new Error(code); e.mcpCode = code; return e }
-
-/**
- * Why a call failed, as a short code the page can show: 401 (key rejected), 429 (rate limited),
- * another HTTP status, timeout, offline, bad-response (not a JSON-RPC answer: a captive
- * portal, an HTML page), rpc-error (a JSON-RPC error object) or tool-error (the tool said it failed).
- */
-function failureCode(e) { return e !== null && e !== undefined && typeof e.mcpCode === 'string' ? e.mcpCode : 'offline' }
-
-/**
- * Decodes a JSON-RPC body: bare JSON or text/event-stream (`data: {...}`). Both forms are
- * served by connect.composio.dev depending on the negotiated accept, so SSE is tried first,
- * then raw JSON, exactly like the client.
- */
-function decodeRpc(raw) {
-  let payload = null
-  for (const line of String(raw).split('\n')) {
-    if (line.indexOf('data:') !== 0) continue
-    try { payload = JSON.parse(line.slice(5).trim()) } catch (e) { /* partial SSE block */ }
-  }
-  if (payload === null) { try { payload = JSON.parse(String(raw)) } catch (e) { payload = null } }
-  return payload
-}
-
-/**
- * One HTTP exchange under ONE deadline: the status, the headers AND the body must all arrive
- * within `ms`. The timer used to be cleared as soon as the headers came, so a server that
- * stalled the body hung the request, and every later one behind it (coalescing shares one
- * promise). The body is only read when the status is ok. Returns { res, raw }; throws an
- * mcpFailure ('timeout' or 'offline').
- */
-async function exchange(url, init, ms) {
-  const controller = new AbortController()
-  const deadline = new Promise((_resolve, reject) => {
-    controller.signal.addEventListener('abort', () => reject(mcpFailure('timeout')), { once: true })
-  })
-  deadline.catch(() => { /* nothing races it any more */ })
-  const timer = setTimeout(() => controller.abort(), ms)
-  const failed = (e) => (e !== null && e !== undefined && typeof e.mcpCode === 'string' ? e
-    : mcpFailure(controller.signal.aborted === true || (e !== null && e !== undefined && e.name === 'AbortError') ? 'timeout' : 'offline'))
-  try {
-    let res = null
-    try { res = await Promise.race([fetch(url, Object.assign({}, init, { signal: controller.signal })), deadline]) } catch (e) { throw failed(e) }
-    if (res === null || res === undefined) throw mcpFailure('offline')
-    let raw = ''
-    if (res.ok === true) {
-      try { raw = await Promise.race([res.text(), deadline]) } catch (e) { throw failed(e) }
-    }
-    return { res: res, raw: String(raw) }
-  } finally { clearTimeout(timer) }
-}
+// ── MCP transport: the HTTP helpers live in mcp-http.mjs ─────────────────────
 
 async function mcpPost(apiKey, body) {
   const sess = sessionOf(apiKey)
@@ -421,7 +381,12 @@ async function mcpToolCall(apiKey, toolName, args) {
 }
 
 async function mcpListConnections(apiKey, slugs) {
-  const reply = await mcpToolCall(apiKey, 'COMPOSIO_MANAGE_CONNECTIONS', { toolkits: slugs.map((name) => ({ name: name, action: 'list' })) })
+  return mcpManage(apiKey, slugs.map((name) => ({ name: name, action: 'list' })))
+}
+
+/** COMPOSIO_MANAGE_CONNECTIONS for the given toolkit actions: the answer's payload, or a failure with a code. */
+async function mcpManage(apiKey, toolkits) {
+  const reply = await mcpToolCall(apiKey, 'COMPOSIO_MANAGE_CONNECTIONS', { toolkits: toolkits })
   // Every way the answer can be something other than a list of connections is a FAILURE with a
   // code: an HTML page, a JSON-RPC error and a tool error used to read as "no connection".
   if (reply === null || reply === undefined || typeof reply !== 'object') throw mcpFailure('bad-response')
@@ -488,11 +453,11 @@ function normalizeConnections(payload, slugs) {
  * propagates an exception: the last good result of the SAME key and slugs is returned (stale),
  * or an empty list, with an error code the UI can show.
  */
-async function readConnections(apiKey, slugs) {
+async function readConnections(apiKey, slugs, fresh) {
   const key = keyId(apiKey) + ':' + digestOf(slugs)
   const kept = () => { const c = connectionsCache.get(key); return c !== undefined && Date.now() - c.at < STALE_MAX_MS ? c : null }
-  const fresh = connectionsCache.get(key)
-  if (fresh !== undefined && Date.now() - fresh.at < CONNECTIONS_TTL_MS) return { result: fresh.result, stale: false, error: null }
+  const cached = connectionsCache.get(key)
+  if (fresh !== true && cached !== undefined && Date.now() - cached.at < CONNECTIONS_TTL_MS) return { result: cached.result, stale: false, error: null }
   let promise = connectionsInFlight.get(key)
   const owner = promise === undefined
   if (owner) {
@@ -539,7 +504,8 @@ async function serveConnections(ctx, req, res) {
       return sendJson(res, 200, { ok: true, configured: true, stale: false, error: failureCode(e), partial: true, connections: [], summary: emptySummary(0), scan: true })
     }
   }
-  const out = await readConnections(credential.value, demandes)
+  // `fresh=1` skips the 2 minute cache for a few toolkits: the page polls an account while it is being authorized.
+  const out = await readConnections(credential.value, demandes, queryOf(req).get('fresh') === '1' && demandes.length <= 5)
   sendJson(res, 200, { ok: true, configured: true, stale: out.stale, error: out.error, connections: out.result.connections, summary: out.result.summary })
 }
 
@@ -550,6 +516,11 @@ async function serveConnections(ctx, req, res) {
 // DSH loader consumes. A connector written by the skill (a block without a sidecar entry)
 // is still listed, read only.
 const CONNECTEURS_ROUTE = '/kybernos/composio/connecteurs'
+// The contract the page speaks with this half. The page reloads by itself when its file changes but this half only
+// loads when DSH starts, so after an update the page can be newer than the host: GET /connecteurs and GET /key
+// say which version they are, and a page that finds none (or another) tells the person to restart DSH instead of
+// saving through routes that do not know the new fields (an old host would rewrite a skill's block without its args).
+export const API_VERSION = 2
 /**
  * The DSH home, the way DSH resolves it (dsh-home-paths) and kybernos-theme does: DSH_HOME
  * when it is set and not blank (`~` expanded), else <home of the OS user>/.dsh. Everything
@@ -600,6 +571,7 @@ export function isBootstrapOnlyName(name) {
 const bootstrapMessage = (nom) => 'secret ' + nom + ': DSH refuses this variable name in its .env file (only the launching environment may set it), so DSH would not start. Pick another name.'
 // The banner is written into the user's patch and looked for by its first words: it stays as
 // it was (French) so the files already on disk keep matching.
+const DEFAULT_TOOL_TIMEOUT_MS = 180000
 const BANNER = '# ── CONNECTEURS PERSONNALISÉS (géré par le formulaire et la skill connecteur-personnalise) ────'
 // Secret token in a form value: "Bearer $TAVILY_API_KEY" -> the server generates the
 // process.env reference; the value is never stored in the patch nor returned by GET.
@@ -632,11 +604,65 @@ function jsonSeulement(req) {
 // origin + JSON): a local attacker who can write to /opt/homebrew/bin does not need this
 // route to run code. The list therefore does NOT change.
 const RACINES_STDIO_OK = ['/usr/bin', '/bin', '/usr/sbin', '/sbin', '/usr/local/bin', '/usr/local/sbin', '/opt/homebrew/bin', '/opt/homebrew/sbin']
+// The person can add folders to that list (uvx lives in ~/.local/bin, a node from nvm under ~/.nvm): one
+// explicit confirmation in the page, kept in <DSH home>/kybernos/connecteurs-roots.json. A folder is only
+// ever a root while it is still one nobody else can write to, checked at every use, never once.
+const ROOTS_PATH = () => join(DSH_HOME(), 'kybernos', 'connecteurs-roots.json')
+const NEVER_ROOTS = () => {
+  const list = ['/', '/tmp', '/var', '/var/tmp', '/private', '/private/tmp', '/Users', '/home', homedir(), tmpdir()]
+  for (const d of list.slice()) { try { list.push(realpathSync(d)) } catch (e) { /* not there */ } }
+  return list
+}
+/** Why `dir` cannot be a folder commands are accepted from, or null when it can. Exported for test-host.mjs. */
+export function rootProblem(dir) {
+  if (typeof dir !== 'string' || dir.length === 0 || dir.startsWith('/') !== true) return 'the folder must be an absolute path'
+  if (dir.length > 400 || /[\0-\x1f]/.test(dir) === true || dir.split('/').indexOf('..') >= 0 || (dir.length > 1 && dir.endsWith('/'))) return 'the folder path is not clean'
+  if (NEVER_ROOTS().some((n) => resolve(n) === dir)) return 'this folder is too broad to be trusted'
+  let st = null
+  try { st = statSync(dir) } catch (e) { return 'the folder does not exist' }
+  if (st.isDirectory() !== true) return 'it is not a folder'
+  try { if (realpathSync(dir) !== dir) return 'the folder is a link (or has one in its path): give the real folder' } catch (e) { return 'the folder cannot be resolved' }
+  if ((st.mode & 0o022) !== 0) return 'other users can write in this folder, so a program could be swapped in it'
+  if (typeof process.getuid === 'function' && st.uid !== 0 && st.uid !== process.getuid()) return 'the folder belongs to someone else'
+  return null
+}
+/** The extra folders the person confirmed that still pass rootProblem. */
+function extraRoots() {
+  try {
+    const j = JSON.parse(readFileSync(ROOTS_PATH(), 'utf8'))
+    return (Array.isArray(j.extra) ? j.extra : []).filter((d) => rootProblem(d) === null)
+  } catch (e) { return [] }
+}
+const writeExtraRoots = (list) => { mkdirSync(dirname(ROOTS_PATH()), { recursive: true, mode: 0o700 }); writeFileAtomic(ROOTS_PATH(), JSON.stringify({ extra: list }, null, 2) + '\n', 0o600) }
+/**
+ * Where a program of this name can be found, for the page to propose: [{ path, dir, allowed }]. `allowed`
+ * says whether that folder is already accepted. Looks in the accepted folders first, then in this
+ * process's PATH and a few places people install to; only executable regular files count.
+ */
+function commandHelp(command) {
+  const name = basename(String(command === null || command === undefined ? '' : command))
+  if (/^[A-Za-z0-9][A-Za-z0-9._+-]{0,60}$/.test(name) !== true) return []
+  const ok = RACINES_STDIO_OK.concat(extraRoots())
+  const h = homedir()
+  const dirs = [].concat(ok, String(process.env.PATH || '').split(':'), [join(h, '.local', 'bin'), join(h, '.cargo', 'bin'), join(h, '.bun', 'bin'), join(h, '.volta', 'bin')])
+  const seen = {}
+  const out = []
+  for (const d of dirs) {
+    if (typeof d !== 'string' || d.startsWith('/') !== true || seen[d] === true) continue
+    seen[d] = true
+    try {
+      const st = statSync(join(d, name))
+      if (st.isFile() === true && (st.mode & 0o111) !== 0) out.push({ path: join(d, name), dir: d, allowed: ok.indexOf(d) >= 0 })
+    } catch (e) { /* not there */ }
+    if (out.length >= 6) break
+  }
+  return out
+}
 function commandStdioOK(command) {
   if (typeof command !== 'string' || command.length === 0) return false
   if (/[\s\0-\x1f]/.test(command) === true) return false // no whitespace or control character: one clean path
   if (command.startsWith('/') !== true) return false
-  const sousRacine = RACINES_STDIO_OK.some((r) => command === r || command.startsWith(r + '/'))
+  const sousRacine = RACINES_STDIO_OK.concat(extraRoots()).some((r) => command === r || command.startsWith(r + '/'))
   if (sousRacine !== true) return false
   try {
     const st = statSync(command)
@@ -706,7 +732,7 @@ function findBlocks(lines) {
 }
 
 /** The text of each marked block, by connector name (the first one when a name is repeated). */
-function patchBlocks(text) {
+export function patchBlocks(text) {
   const lines = String(text).split('\n')
   const out = {}
   for (const b of findBlocks(lines)) if (out[b.nom] === undefined) out[b.nom] = lines.slice(b.start, b.end)
@@ -814,7 +840,9 @@ const sansMultiLigne = (v) => /[\r\n\0]/.test(String(v)) !== true
 /** Renders the marked block text for a structured connector. */
 function renderBlock(c) {
   const ind = (n) => ' '.repeat(n)
-  const L = ['# connecteur:' + c.nom, '- insert:', ind(2) + '- id: mcp-client-' + c.nom, ind(4) + "name: '@deepseek-ai/dsh-mcp-client'", ind(4) + 'config:']
+  const L = ['# connecteur:' + c.nom, '- insert:', ind(2) + '- id: mcp-client-' + c.nom, ind(4) + "name: '@deepseek-ai/dsh-mcp-client'"]
+  if (c.disabled === true) L.push(ind(4) + 'disabled: true')
+  L.push(ind(4) + 'config:')
   L.push(ind(6) + 'serverName: ' + yamlScalaire(c.nom))
   L.push(ind(6) + 'transport: ' + c.transport)
   if (c.transport === 'stdio') {
@@ -836,7 +864,7 @@ function renderBlock(c) {
       for (const e of hs) L.push(ind(8) + yamlScalaire(e.name) + ': ' + renderValue(e.value))
     }
   }
-  L.push(ind(6) + 'toolCallTimeoutMs: 180000')
+  L.push(ind(6) + 'toolCallTimeoutMs: ' + (Number.isInteger(c.toolCallTimeoutMs) ? c.toolCallTimeoutMs : DEFAULT_TOOL_TIMEOUT_MS))
   L.push(ind(6) + 'failOnStartupError: false')
   L.push(ind(6) + 'reconnect:')
   L.push(ind(8) + 'enabled: true')
@@ -952,7 +980,7 @@ function loadLikeDsh(text) {
  * file was already broken (a delete can repair it). The entry of `nom` must then be there
  * exactly once, or not at all, and its `!!js` expressions must compile (compiled, never run).
  */
-function checkPatch(avant, apres, nom, expect) {
+function checkPatch(avant, apres, nom, expect, alsoAbsent) {
   if (emptyPatch(apres)) return { ok: true, validated: true, empty: true }
   const after = loadLikeDsh(apres)
   if (after.skipped === true) return { ok: true, validated: false, empty: false }
@@ -963,6 +991,7 @@ function checkPatch(avant, apres, nom, expect) {
   }
   const mine = entriesWithId(after.doc, 'mcp-client-' + nom, [])
   if (mine.length !== (expect === 'present' ? 1 : 0)) return { ok: false, status: 500, error: 'the connector entry would not be written as expected, so nothing was changed' }
+  if (typeof alsoAbsent === 'string' && entriesWithId(after.doc, 'mcp-client-' + alsoAbsent, []).length !== 0) return { ok: false, status: 500, error: 'the old entry would still be there after the rename, so nothing was changed' }
   for (const expr of jsExpressions(mine, [])) {
     try { new Script(expr) } catch (e) { return { ok: false, status: 500, error: 'a header or env value of ' + nom + ' would not compile in the loader, so nothing was saved' } }
   }
@@ -1238,9 +1267,15 @@ function normalizeConnecteur(body) {
   const transport = body.transport === 'stdio' ? 'stdio' : (body.transport === 'streamable-http' ? 'streamable-http' : null)
   if (transport === null) return { erreur: 'invalid transport' }
   const c = { nom: nom, transport: transport, updatedAt: new Date().toISOString() }
+  if (body.disabled === true) c.disabled = true
+  if (body.toolCallTimeoutMs !== undefined && body.toolCallTimeoutMs !== null && body.toolCallTimeoutMs !== '') {
+    const t = Number(body.toolCallTimeoutMs)
+    if (Number.isInteger(t) !== true || t < 1000 || t > 3600000) return { erreur: 'toolCallTimeoutMs: a whole number of milliseconds between 1000 and 3600000' }
+    if (t !== DEFAULT_TOOL_TIMEOUT_MS) c.toolCallTimeoutMs = t
+  }
   if (transport === 'stdio') {
     const command = String(body.command || '').trim()
-    if (commandStdioOK(command) !== true) return { erreur: 'command: a system executable is required (absolute path under /usr/bin, /bin, /opt/homebrew/bin..., an executable file); a binary elsewhere goes through the validated setup (connecteur-personnalise)' }
+    if (commandStdioOK(command) !== true) return { erreur: 'command: an executable file with an absolute path, in a folder that is accepted (/usr/bin, /bin, /opt/homebrew/bin... or one you confirmed) is required', code: 'command-refused', help: commandHelp(command) }
     c.command = command
     if (Array.isArray(body.args)) c.args = body.args.map((x) => String(x)).filter((x) => x.length > 0)
     else {
@@ -1339,6 +1374,68 @@ function applyPlan(plan) {
   }
 }
 
+// ── what DSH says about each connector ──────────────────────────────────────
+// DSH watches cordis.patch.yml and reloads it by itself (about 2 to 3 seconds after a write: measured on
+// DSH 0.2.0-rc.2 with its `hmr` watcher), so a saved connector is loaded without a restart. Whether it
+// IS loaded is not guessed: pluginInventory.list() gives { entries: [{ entryId: 'include:<id>', enabled,
+// fiberPhase }] } and tools.schemas() the registered tools, whose names start with mcp__<name>__. A connector
+// whose server cannot be reached stays "active" with no tools (failOnStartupError is false), so
+// "active, 0 tools" is shown as that, not as working. Null when DSH's services are not there (tests, an older engine).
+async function liveStates(ctx, noms) {
+  let inv = null
+  let tools = null
+  try { inv = ctx.get('pluginInventory') } catch (e) { inv = null }
+  try { tools = ctx.get('tools') } catch (e) { tools = null }
+  if (inv === null || inv === undefined || typeof inv.list !== 'function') return null
+  let entries = null
+  try {
+    const got = await inv.list()
+    entries = got !== null && typeof got === 'object' && Array.isArray(got.entries) ? got.entries : (Array.isArray(got) ? got : null)
+  } catch (e) { entries = null }
+  if (entries === null) return null
+  let names = []
+  try { if (tools !== null && tools !== undefined && typeof tools.schemas === 'function') names = tools.schemas().map((t) => (t !== null && t !== undefined ? t.name : '')).filter((n) => typeof n === 'string') } catch (e) { names = [] }
+  const out = {}
+  for (const nom of noms) {
+    const e = entries.find((x) => x !== null && x !== undefined && typeof x.entryId === 'string' && (x.entryId === 'include:mcp-client-' + nom || x.entryId.endsWith(':mcp-client-' + nom)))
+    const count = names.filter((n) => n.startsWith('mcp__' + nom + '__')).length
+    out[nom] = e === undefined ? { loaded: false, tools: count } : { loaded: true, phase: String(e.fiberPhase === null || e.fiberPhase === undefined ? '' : e.fiberPhase), enabled: e.enabled !== false, tools: count }
+  }
+  return out
+}
+
+const envFileValues = () => { try { return parseEnvText(readFileSync(ENV_PATH(), 'utf8')) || {} } catch (e) { return {} } }
+/** { NAME: true|false }: whether each secret a connector refers to has a value (never the value). */
+function secretsSetFor(c) {
+  const file = envFileValues()
+  const out = {}
+  for (const n of secretNamesOf(c)) out[n] = (typeof file[n] === 'string' && file[n].length > 0) || (typeof process.env[n] === 'string' && process.env[n].length > 0)
+  return out
+}
+
+/** The connector list the page shows: the form's own, then the blocks nothing in the sidecar knows (read in full when the form could write them back), each with what DSH says of it. */
+function listConnecteurs(sidecar, patchText, live) {
+  const blocks = patchBlocks(patchText)
+  const seen = {}
+  const out = []
+  for (const c of sidecar) {
+    seen[c.nom] = true
+    out.push(Object.assign({}, c, { source: 'form', editable: true, secretsSet: secretsSetFor(c) }))
+  }
+  const yaml = findYaml()
+  for (const nom of Object.keys(blocks)) {
+    if (seen[nom] === true) continue
+    const lines = blocks[nom]
+    const read = readConnector(nom, lines, yaml === null ? null : yaml.load)
+    const item = Object.assign({ nom: nom, horsFormulaire: true, source: 'skill' }, blockSummary(lines))
+    if (read.connecteur !== undefined) Object.assign(item, read.connecteur, { editable: true, secretsSet: secretsSetFor(read.connecteur) })
+    else Object.assign(item, { editable: false, readOnlyReason: read.readOnly })
+    out.push(item)
+  }
+  for (const c of out) c.live = live === null ? null : (live[c.nom] || { loaded: false, tools: 0 })
+  return out
+}
+
 async function serveConnecteurs(ctx, req, res) {
   // K-01: reads are reserved to the machine (exact origin); writes also need explicit JSON.
   if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
@@ -1349,18 +1446,12 @@ async function serveConnecteurs(ctx, req, res) {
     // A sidecar that is there but unusable is NOT an empty list: the blocks of the patch are
     // still listed (that is what DSH loads), and the problem is reported next to them.
     const sidecar = problem === null ? state.list : []
-    const seen = {}
-    for (const c of sidecar) { seen[c.nom] = true }
-    const fromPatch = []
     let patchText = ''
     try { patchText = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
-    const blocks = patchBlocks(patchText)
-    for (const nom of Object.keys(blocks)) {
-      if (seen[nom] === true) continue
-      fromPatch.push(Object.assign({ nom: nom, horsFormulaire: true }, blockSummary(blocks[nom])))
-    }
-    // Never a secret value here: only names and labels leave.
-    return sendJson(res, 200, Object.assign({ ok: true, connecteurs: sidecar.concat(fromPatch) },
+    const names = Object.keys(patchBlocks(patchText)).concat(sidecar.map((c) => c.nom))
+    const live = await liveStates(ctx, names)
+    // Never a secret value here: only names, labels and whether a secret has a value.
+    return sendJson(res, 200, Object.assign({ ok: true, api: API_VERSION, connecteurs: listConnecteurs(sidecar, patchText, live), live: live !== null, roots: { base: RACINES_STDIO_OK, extra: extraRoots() } },
       problem === null ? {} : { state: state.corrupt === true ? 'corrupt' : 'unreadable', error: problem }))
   }
   if (req.method === 'POST') {
@@ -1371,7 +1462,7 @@ async function serveConnecteurs(ctx, req, res) {
       return sendJson(res, 400, { ok: false, error: 'a JSON body is expected' })
     }
     const n = normalizeConnecteur(body)
-    if (n.erreur !== undefined) return sendJson(res, 400, { ok: false, error: n.erreur })
+    if (n.erreur !== undefined) return sendJson(res, 400, Object.assign({ ok: false, error: n.erreur }, n.code === undefined ? {} : { code: n.code, help: n.help }))
     const secretErreur = verifierSecrets(body)
     if (secretErreur !== null) return sendJson(res, 400, { ok: false, error: secretErreur })
     const c = n.connecteur
@@ -1383,9 +1474,21 @@ async function serveConnecteurs(ctx, req, res) {
     let avant = ''
     try { avant = readPatchText() } catch (e) { return readFail('cordis.patch.yml', e) }
     const existait = existsSync(PATCH_PATH())
-    if (usedElsewhere(avant, c.nom)) return sendJson(res, 409, { ok: false, error: 'the name ' + c.nom + ' is already used by another entry of cordis.patch.yml (a repeated serverName makes dsh-mcp-client throw); pick another' })
-    const apres = patchWithBlock(avant, c)
-    const verdict = checkPatch(avant, apres, c.nom, 'present')
+    // A rename: the old connector goes, the new one takes its place, in ONE write. It must never
+    // land on a name that is taken (the new block would silently replace that connector).
+    const renameFrom = typeof body.renameFrom === 'string' && body.renameFrom.trim() !== c.nom ? body.renameFrom.trim() : ''
+    let base = avant
+    if (renameFrom !== '') {
+      if (NOM_RE.test(renameFrom) !== true) return sendJson(res, 400, { ok: false, error: 'invalid name to rename from' })
+      const old = findBlocks(avant.split('\n')).some((b) => b.nom === renameFrom) || state.list.some((x) => x.nom === renameFrom)
+      if (old !== true) return sendJson(res, 404, { ok: false, error: 'there is no connector named ' + renameFrom })
+      if (findBlocks(avant.split('\n')).some((b) => b.nom === c.nom) || state.list.some((x) => x.nom === c.nom)) return sendJson(res, 409, { ok: false, error: 'a connector named ' + c.nom + ' already exists; pick another name' })
+      const without = patchWithoutBlock(avant, renameFrom)
+      if (without !== null) base = without
+    }
+    if (usedElsewhere(base, c.nom)) return sendJson(res, 409, { ok: false, error: 'the name ' + c.nom + ' is already used by another entry of cordis.patch.yml (a repeated serverName makes dsh-mcp-client throw); pick another' })
+    const apres = patchWithBlock(base, c)
+    const verdict = checkPatch(avant, apres, c.nom, 'present', renameFrom === '' ? undefined : renameFrom)
     if (verdict.ok !== true) return sendJson(res, verdict.status, { ok: false, error: verdict.error })
     let envAvant = null
     try { envAvant = existsSync(ENV_PATH()) ? readFileSync(ENV_PATH(), 'utf8') : null } catch (e) { return readFail('the .env file', e) }
@@ -1394,15 +1497,15 @@ async function serveConnecteurs(ctx, req, res) {
     try { for (const s of secrets) envApres = envTextWith(envApres === null ? '' : envApres, s.nom, s.valeur) } catch (e) {
       return sendJson(res, e instanceof EnvEditError ? 409 : 500, { ok: false, error: e instanceof EnvEditError ? e.message : fsMessage('the secrets could not be prepared', e) })
     }
-    const previous = state.list.find((x) => x.nom === c.nom)
+    const previous = state.list.find((x) => x.nom === (renameFrom === '' ? c.nom : renameFrom))
     const names = new Set((previous !== undefined && Array.isArray(previous.secrets) ? previous.secrets : []).concat(secrets.map((s) => s.nom)))
     if (names.size > 0) c.secrets = Array.from(names).sort()
-    const list = state.list.filter((x) => x.nom !== c.nom)
+    const list = state.list.filter((x) => x.nom !== c.nom && x.nom !== renameFrom)
     list.push(c)
     list.sort((a, b) => (a.nom < b.nom ? -1 : 1))
     const failure = applyPlan({ patch: { avant: avant, apres: apres, empty: verdict.empty, existait: existait }, env: { avant: envAvant, apres: envApres }, sidecar: { liste: list } })
     if (failure !== null) return sendJson(res, 500, { ok: false, error: failure })
-    return sendJson(res, 200, { ok: true, connecteur: c, secretsWritten: secrets.length, needRestart: true, validated: verdict.validated })
+    return sendJson(res, 200, Object.assign({ ok: true, connecteur: c, secretsWritten: secrets.length, validated: verdict.validated }, renameFrom === '' ? {} : { renamedFrom: renameFrom }))
   }
   if (req.method === 'DELETE') {
     const nom = queryOf(req).get('nom') || ''
@@ -1435,7 +1538,240 @@ async function serveConnecteurs(ctx, req, res) {
     const failure = applyPlan({ patch: { avant: avant, apres: apres === null ? avant : apres, empty: verdict.empty, existait: existait }, env: { avant: envAvant, apres: envApres }, sidecar: { liste: had ? state.list.filter((x) => x.nom !== nom) : null } })
     if (failure !== null) return sendJson(res, 500, { ok: false, error: failure })
     const removed = apres !== null
-    return sendJson(res, 200, { ok: true, removed: removed, needRestart: removed, secretsRemoved: secretsRemoved })
+    return sendJson(res, 200, { ok: true, removed: removed, secretsRemoved: secretsRemoved })
+  }
+  return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
+}
+
+// ── the key and the accounts, from the host (the page no longer holds a key) ──
+const KEY_ROUTE = '/kybernos/composio/key'
+const ACCOUNTS_ROUTE = '/kybernos/composio/accounts'
+const KEY_RE = /^ck_[A-Za-z0-9_-]{4,300}$/
+const ACCOUNT_ID_RE = /^[A-Za-z0-9_.:-]{1,120}$/
+
+/** An absolute http(s) address, normalized, or null: the only kind of link the page may open. */
+function webUrl(raw) {
+  if (typeof raw !== 'string') return null
+  try { const u = new URL(raw); return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : null } catch (e) { return null }
+}
+
+/** Forgets what was cached about this key's accounts: an account was just added or removed. */
+function forgetAccounts(apiKey) {
+  const id = keyId(apiKey)
+  scanCache.delete(id)
+  for (const k of Array.from(connectionsCache.keys())) if (k.startsWith(id + ':')) connectionsCache.delete(k)
+}
+
+async function credentialDescribe(ctx) {
+  try {
+    const creds = typeof ctx.get === 'function' ? ctx.get('credentials') : undefined
+    if (creds !== null && creds !== undefined && typeof creds.describe === 'function') return await creds.describe(COMPOSIO_KEY_REF)
+  } catch (e) { /* the service is optional */ }
+  return null
+}
+
+/** Reads and checks a JSON body for a route that writes. Returns { body } or sends the refusal and returns null. */
+async function jsonBody(req, res) {
+  if (origineOK(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin refused' }); return null }
+  if (jsonSeulement(req) !== true) { sendJson(res, 415, { ok: false, error: 'content-type application/json expected' }); return null }
+  try {
+    const body = JSON.parse(await readBody(req))
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) { sendJson(res, 400, { ok: false, error: 'a JSON object is expected' }); return null }
+    return { body: body }
+  } catch (e) {
+    sendJson(res, e instanceof BodyTooLarge ? 413 : 400, { ok: false, error: e instanceof BodyTooLarge ? 'the request body is too large' : 'a JSON body is expected' })
+    return null
+  }
+}
+
+/**
+ * GET: is there a key, where does it come from, and do the running agents hold the same one
+ * (their environment is read when DSH starts: a key saved since needs a restart to reach them).
+ * POST { key }: checks it with Composio, then writes COMPOSIO_API_KEY to the DSH .env, the file the
+ * agents read. DELETE: removes it. The key is never returned, nor written anywhere else.
+ */
+async function serveKey(ctx, req, res) {
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  const agentsEnv = typeof process.env[COMPOSIO_KEY_REF] === 'string' ? process.env[COMPOSIO_KEY_REF] : ''
+  if (req.method === 'GET') {
+    const k = await resolveComposioKey(ctx)
+    return sendJson(res, 200, { ok: true, api: API_VERSION, configured: k !== null, source: k === null ? null : k.source, agents: k === null ? 'none' : (agentsEnv.length === 0 ? 'none' : (agentsEnv === k.value ? 'same' : 'different')) })
+  }
+  const inherited = async () => { const d = await credentialDescribe(ctx); return d !== null && d.source === 'env' }
+  if (req.method === 'POST') {
+    const got = await jsonBody(req, res)
+    if (got === null) return
+    const key = typeof got.body.key === 'string' ? got.body.key.trim() : ''
+    if (KEY_RE.test(key) !== true) return sendJson(res, 400, { ok: false, error: 'a Composio key starts with ck_ and has no spaces', code: 'invalid-key' })
+    if (await inherited()) return sendJson(res, 409, { ok: false, error: 'the key comes from the environment DSH was started with: change it there', code: 'inherited' })
+    let verified = false
+    let code = null
+    try { await mcpListConnections(key, ['gmail']); verified = true } catch (e) {
+      code = failureCode(e)
+      // A rejected key is not saved: it would replace one that works. A network failure is not the key's fault.
+      if (code === '401' || code === '403') return sendJson(res, 400, { ok: false, error: 'Composio rejected this key', code: code })
+    }
+    try { upsertEnvSecret(COMPOSIO_KEY_REF, key) } catch (e) {
+      return sendJson(res, e instanceof EnvEditError ? 409 : 500, { ok: false, error: e instanceof EnvEditError ? e.message : fsMessage('the .env file could not be written', e) })
+    }
+    forgetAccounts(key)
+    return sendJson(res, 200, { ok: true, verified: verified, code: code, needRestart: agentsEnv !== key })
+  }
+  if (req.method === 'DELETE') {
+    if (await inherited()) return sendJson(res, 409, { ok: false, error: 'the key comes from the environment DSH was started with: change it there', code: 'inherited' })
+    let text = null
+    try { text = existsSync(ENV_PATH()) ? readFileSync(ENV_PATH(), 'utf8') : null } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the .env file cannot be read', e) }) }
+    if (text !== null) {
+      const next = envTextWithout(text, COMPOSIO_KEY_REF)
+      if (next === null) return sendJson(res, 409, { ok: false, error: 'the .env file cannot be edited safely (another variable would change): edit it by hand' })
+      if (next !== text) { try { writeFileAtomic(ENV_PATH(), next, 0o600) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the .env file could not be written', e) }) } }
+    }
+    return sendJson(res, 200, { ok: true, needRestart: agentsEnv.length > 0 })
+  }
+  return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
+}
+
+/**
+ * POST { action: 'add', toolkit } starts a connection and gives the address where the person
+ * authorizes it; POST { action: 'remove', toolkit, accountId } removes one account. Both answer with
+ * the toolkit's accounts as they are now. The page used to do this itself with a key kept in the browser.
+ */
+async function serveAccounts(ctx, req, res) {
+  if (req.method !== 'POST') { if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' }); return sendJson(res, 405, { ok: false, error: 'POST expected' }) }
+  const got = await jsonBody(req, res)
+  if (got === null) return
+  const action = got.body.action
+  const toolkit = typeof got.body.toolkit === 'string' ? got.body.toolkit.trim().toLowerCase() : ''
+  if (SLUG_RE.test(toolkit) !== true) return sendJson(res, 400, { ok: false, error: 'invalid toolkit' })
+  if (action !== 'add' && action !== 'remove') return sendJson(res, 400, { ok: false, error: 'action must be add or remove' })
+  const accountId = typeof got.body.accountId === 'string' ? got.body.accountId.trim() : ''
+  if (action === 'remove' && ACCOUNT_ID_RE.test(accountId) !== true) return sendJson(res, 400, { ok: false, error: 'invalid account id' })
+  const credential = await resolveComposioKey(ctx)
+  if (credential === null) return sendJson(res, 409, { ok: false, error: 'no-credential', code: 'no-credential' })
+  try {
+    const entry = action === 'add' ? { name: toolkit, action: 'add' } : { name: toolkit, action: 'remove', account_id: accountId }
+    const payload = await mcpManage(credential.value, [entry])
+    forgetAccounts(credential.value)
+    let redirectUrl = null
+    if (action === 'add') {
+      const data = payload.data !== null && typeof payload.data === 'object' ? payload.data : payload
+      const info = data.results !== null && typeof data.results === 'object' && data.results[toolkit] !== null && typeof data.results[toolkit] === 'object' ? data.results[toolkit] : {}
+      redirectUrl = webUrl(info.redirect_url !== undefined ? info.redirect_url : info.redirectUrl)
+    }
+    const out = await readConnections(credential.value, [toolkit], true)
+    const connection = out.result.connections.find((c) => c.toolkit === toolkit) || { toolkit: toolkit, status: '', accounts: [] }
+    return sendJson(res, 200, { ok: true, redirectUrl: redirectUrl, connection: connection, error: out.error })
+  } catch (e) {
+    return sendJson(res, 502, { ok: false, error: failureCode(e), code: failureCode(e) })
+  }
+}
+
+// ── testing a connector (POST /connecteurs/test) ────────────────────────────
+const CONNECTEURS_TEST_ROUTE = '/kybernos/composio/connecteurs/test'
+const CONNECTEURS_CMD_ROUTE = '/kybernos/composio/connecteurs/commande'
+let testsRunning = 0
+const MAX_TESTS = 3
+
+/**
+ * Puts the secrets in the text of a header or env value: `$NAME` becomes the value typed in the form (not
+ * saved yet), else the one in the DSH .env, else this process's own. Returns { text, missing } where
+ * `missing` lists the names that have no value anywhere (the test says so instead of failing obscurely).
+ */
+function withSecrets(text, draft, fileEnv, used, missing) {
+  const re = new RegExp(TOKEN_RE.source, 'g')
+  return String(text).replace(re, (_all, name) => {
+    let v = draft[name]
+    if (typeof v !== 'string' || v.length === 0) v = fileEnv[name]
+    if (typeof v !== 'string' || v.length === 0) v = process.env[name]
+    if (typeof v !== 'string' || v.length === 0) { if (missing.indexOf(name) < 0) missing.push(name); return '' }
+    used.push(v)
+    return v
+  })
+}
+
+async function serveConnecteurTest(ctx, req, res) {
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+  if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
+  let body = null
+  try { body = JSON.parse(await readBody(req)) } catch (e) {
+    if (e instanceof BodyTooLarge) return sendJson(res, 413, { ok: false, error: 'the request body is too large (' + MAX_BODY_BYTES + ' bytes at most)' })
+    return sendJson(res, 400, { ok: false, error: 'a JSON body is expected' })
+  }
+  if (body === null || typeof body !== 'object') return sendJson(res, 400, { ok: false, error: 'a JSON object is expected' })
+  let c = null
+  if (body.transport === undefined) {
+    // A saved connector: the one DSH loads, so it is tested as it is, whatever folder its command is in.
+    const nom = String(body.nom || '').trim()
+    if (NOM_RE.test(nom) !== true) return sendJson(res, 400, { ok: false, error: 'invalid name' })
+    const state = readSidecarState()
+    const problem = sidecarProblem(state, false)
+    if (problem !== null) return sendJson(res, 409, { ok: false, error: problem })
+    c = state.list.find((x) => x.nom === nom)
+    if (c === undefined) {
+      let text = ''
+      try { text = readPatchText() } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('cordis.patch.yml cannot be read', e) }) }
+      const lines = patchBlocks(text)[nom]
+      if (lines === undefined) return sendJson(res, 404, { ok: false, error: 'there is no connector named ' + nom })
+      const yaml = findYaml()
+      const read = readConnector(nom, lines, yaml === null ? null : yaml.load)
+      if (read.connecteur === undefined) return sendJson(res, 409, { ok: false, error: 'this connector cannot be read back for a test: ' + read.readOnly })
+      c = read.connecteur
+    }
+  } else {
+    // A draft from the form, not saved: held to the same rules as saving it.
+    const n = normalizeConnecteur(Object.assign({}, body, { nom: NOM_RE.test(String(body.nom || '').trim()) ? body.nom : 'essai' }))
+    if (n.erreur !== undefined) return sendJson(res, 400, Object.assign({ ok: false, error: n.erreur }, n.code === undefined ? {} : { code: n.code, help: n.help }))
+    const bad = verifierSecrets(body)
+    if (bad !== null) return sendJson(res, 400, { ok: false, error: bad })
+    c = n.connecteur
+  }
+  if (testsRunning >= MAX_TESTS) return sendJson(res, 429, { ok: false, error: 'tests are already running; try again in a moment' })
+  const draft = {}
+  for (const sec of secretsOf(body)) if (sec.valeur.length > 0) draft[sec.nom] = sec.valeur
+  const fileEnv = envFileValues()
+  const used = Object.values(draft)
+  const missing = []
+  const resolveRows = (rows) => {
+    const o = {}
+    for (const r of (Array.isArray(rows) ? rows : [])) o[r.name] = withSecrets(r.value, draft, fileEnv, used, missing)
+    return o
+  }
+  testsRunning += 1
+  let result = null
+  try {
+    if (c.transport === 'stdio') {
+      result = await probeStdio({ command: c.command, args: c.args || [], cwd: c.cwd, env: resolveRows(c.env), secrets: used, timeoutMs: TIMEOUTS.testStdioMs })
+    } else {
+      result = await probeHttp({ url: c.url, headers: resolveRows(c.headers), secrets: used, timeoutMs: TIMEOUTS.testHttpMs })
+    }
+  } catch (e) {
+    result = { ok: false, ms: 0, code: 'internal', message: '' }
+  } finally { testsRunning -= 1 }
+  // Whatever the probe returned, no secret value leaves (a server can echo a header back in an error).
+  const clean = redactDeep(result, used, 2000)
+  return sendJson(res, 200, { ok: true, result: clean, missing: missing })
+}
+
+// ── the folders commands may be run from (GET/POST/DELETE /connecteurs/commande) ──
+async function serveConnecteurCommande(ctx, req, res) {
+  if (origineOK(req) !== true) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+  const roots = () => ({ base: RACINES_STDIO_OK, extra: extraRoots() })
+  if (req.method === 'GET') return sendJson(res, 200, { ok: true, help: commandHelp(queryOf(req).get('command') || ''), roots: roots() })
+  if (req.method === 'POST') {
+    if (jsonSeulement(req) !== true) return sendJson(res, 415, { ok: false, error: 'content-type application/json expected' })
+    let body = null
+    try { body = JSON.parse(await readBody(req)) } catch (e) { return sendJson(res, e instanceof BodyTooLarge ? 413 : 400, { ok: false, error: e instanceof BodyTooLarge ? 'the request body is too large' : 'a JSON body is expected' }) }
+    const dir = body !== null && typeof body === 'object' && typeof body.dir === 'string' ? body.dir : ''
+    const why = rootProblem(dir)
+    if (why !== null) return sendJson(res, 400, { ok: false, error: why })
+    try { const now = extraRoots(); if (now.indexOf(dir) < 0) writeExtraRoots(now.concat([dir])) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the folder list could not be written', e) }) }
+    return sendJson(res, 200, { ok: true, roots: roots() })
+  }
+  if (req.method === 'DELETE') {
+    const dir = queryOf(req).get('dir') || ''
+    try { writeExtraRoots(extraRoots().filter((d) => d !== dir)) } catch (e) { return sendJson(res, 500, { ok: false, error: fsMessage('the folder list could not be written', e) }) }
+    return sendJson(res, 200, { ok: true, roots: roots() })
   }
   return sendJson(res, 405, { ok: false, error: 'GET/POST/DELETE expected' })
 }
@@ -1490,8 +1826,17 @@ function mountRoutes(ctx, log) {
       try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
     }
   }
+  const guarded = (fn) => async (req, res) => {
+    try { await fn(ctx, req, res) } catch (e) {
+      try { if (res.headersSent !== true) sendJson(res, 500, { ok: false, error: fsMessage('internal error', e) }) } catch (e2) { /* socket closed */ }
+    }
+  }
   const mount = (webServerSvc) => {
     if (webServerSvc === null || webServerSvc === undefined || typeof webServerSvc.register !== 'function') return
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: KEY_ROUTE, handler: guarded(serveKey) }), 'kybernos-composio: key route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: ACCOUNTS_ROUTE, handler: guarded(serveAccounts) }), 'kybernos-composio: accounts route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_TEST_ROUTE, handler: guarded(serveConnecteurTest) }), 'kybernos-composio: connector test route')
+    ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_CMD_ROUTE, handler: guarded(serveConnecteurCommande) }), 'kybernos-composio: connector folders route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CATALOG_ROUTE, handler: serveCatalog }), 'kybernos-composio: catalog route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTIONS_ROUTE, handler: serveConnectionsSafe }), 'kybernos-composio: connections route')
     ctx.effect(() => webServerSvc.register({ kind: 'exact', path: CONNECTEURS_ROUTE, handler: serveConnecteursSafe }), 'kybernos-composio: connectors route')
