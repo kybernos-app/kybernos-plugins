@@ -934,6 +934,29 @@ const relayRoute = async (req) => {
   return { ok: res.status >= 200 && res.status < 300, status: res.status, body: res.body }
 }
 
+// ── The team console in the user's browser (the new server, ADR 0005 § 5) ──────
+// The console page is served by the server and, in a browser, uses the person's own session. DSH holds a device token and a token never goes through a
+// browser: it asks the server for a single-use link (valid 60 seconds) and hands THAT to the browser. The link is a bearer capability, so it is only
+// returned when it points at the server this account is connected to (a hostile or broken answer cannot send the browser elsewhere), and the route is strict
+// (a page of another origin cannot ask DSH for it).
+const consoleLink = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
+  const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id.trim().toLowerCase() : ''
+  const known = Array.isArray(state.workspaces) ? state.workspaces : []
+  const mine = (id) => known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === id)
+  if (asked !== '' && (new RegExp('^' + UUID_SRC + '$', 'i').test(asked) !== true || mine(asked) !== true)) return { ok: false, error: 'espace_inconnu' }
+  const res = await apiCall('/v1/console/link', { method: 'POST', token: state.token, body: asked === '' ? {} : { workspace_id: asked } })
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse' }
+  let url = null
+  try {
+    const u = new URL(String(res.body.url))
+    if ((u.protocol === 'https:' || u.protocol === 'http:') && u.origin === new URL(resolveApi()).origin) url = u.toString()
+  } catch (e) { url = null }
+  if (url === null) return { ok: false, status: res.status, error: 'lien_invalide' }
+  return { ok: true, url, expires_in: typeof res.body.expires_in === 'number' ? res.body.expires_in : 60 }
+}
+
 // ── Artefacts (phase A) ─────────────────────────────────────────────────────
 // Le livrable du chat local part vers `kybernos.artifacts` par `/v1/artifacts`
 // (l'app calcule le sha256, résout l'objectif implicite, uploade dans le bucket
@@ -3418,6 +3441,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
   // Relais lecture seule pour la console Team (iframe d'une autre origine) : liste blanche, jeton ajouté ici, origine STRICTE.
   { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
+  // La console Team dans le navigateur : un lien à usage unique (60 s) demandé au serveur avec le jeton d'appareil, jamais le jeton lui-même.
+  { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
@@ -3512,6 +3537,7 @@ export {
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
+  consoleLink,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,

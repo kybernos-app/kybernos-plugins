@@ -507,6 +507,8 @@ try {
     '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
     // Console Team: the read-only relay (test-relay.mjs) and the active server (test-server-switch.mjs).
     '/kybernos-cloud/relay', '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
+    // The console in the user's browser: a single-use link from the server (test-console-link.mjs).
+    '/kybernos-cloud/console/link',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
