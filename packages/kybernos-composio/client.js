@@ -358,6 +358,7 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.done.opened': { fr: 'Onglet ouvert chez {app}. Terminez-y votre accord.', en: 'Tab opened at {app}. Finish your authorization there.' },
       'kb.cp.kc.m.title': { fr: 'Connecter une app', en: 'Connect an app' },
       'kb.cp.kc.m.search': { fr: 'Chercher une app', en: 'Search an app' },
+      'kb.cp.kc.m.more': { fr: 'Afficher la suite ({n} de plus)', en: 'Show more ({n} more)' },
       'kb.cp.kc.m.noapps': { fr: 'Aucune app ne correspond.', en: 'No matching app.' },
       'kb.cp.kc.m.alias': { fr: 'Nom de la connexion (facultatif)', en: 'Connection name (optional)' },
       'kb.cp.kc.m.alias.hint': { fr: 'Utile si vous connectez deux comptes {app}.', en: 'Useful if you connect two {app} accounts.' },
@@ -615,6 +616,8 @@ window.__ModuleLoader__.load({
     /** How often a pending connection is asked about, and how long: past this the row says so and offers to start again. */
     const KC_POLL_MS = 5000
     const KC_POLL_MAX_MS = 10 * 60 * 1000
+    /** Apps shown in the add window before « show more ». */
+    const KC_PAGE = 48
     /** One call to the cloud half: { status, json } (json is null when the body is not JSON). Never throws. */
     const kbCpCloud = async (path, method, body) => {
       try {
@@ -1421,6 +1424,8 @@ window.__ModuleLoader__.load({
     const KcAddModal = (props) => {
       const preset = props.preset !== null && props.preset !== undefined ? props.preset : null
       const [q, setQ] = React.useState('')
+      // The server's catalogue holds about a thousand apps: 48 at a time, the rest on demand.
+      const [pages, setPages] = React.useState(1)
       const [pick, setPick] = React.useState(preset !== null ? preset.toolkit : null)
       const [alias, setAlias] = React.useState(preset !== null && typeof preset.alias === 'string' ? preset.alias : '')
       const [apiKey, setApiKey] = React.useState('')
@@ -1433,7 +1438,8 @@ window.__ModuleLoader__.load({
       const app = pick === null ? null : ((apps || []).find((a) => a.slug === pick) || { slug: pick, name: nameOf(pick), needsApiKey: false })
       const wantsKey = app !== null && (app.needsApiKey === true || needsKey === true)
       const full = props.limit !== null && props.count >= props.limit
-      const matches = kbCpAppsMatch(apps, q, 48)
+      const found = kbCpAppsMatch(apps, q, Infinity)
+      const matches = found.slice(0, KC_PAGE * pages)
       const submit = async () => {
         if (app === null || busy === true) return
         if (wantsKey && apiKey.trim().length === 0) { setFail({ error: 'needs_api_key', details: {} }); return }
@@ -1459,13 +1465,15 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kb7-form' },
             h('div', null,
               h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-kc-q' }, kbt('kb.cp.kc.m.search')),
-              h('input', { className: 'kb7-finput', id: 'kbcp-kc-q', value: q, placeholder: 'Gmail, GitHub, Slack…', autoComplete: 'off', spellCheck: false, onChange: (e) => setQ(e.target.value) })),
+              h('input', { className: 'kb7-finput', id: 'kbcp-kc-q', value: q, placeholder: 'Gmail, GitHub, Slack…', autoComplete: 'off', spellCheck: false, onChange: (e) => { setQ(e.target.value); setPages(1) } })),
             apps === null ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.loading'))
               : (matches.length === 0 ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.m.noapps'))
-                : h('div', { className: 'kbcp-kcpick', role: 'listbox', 'aria-label': kbt('kb.cp.kc.m.title') },
-                  matches.map((a) => h('button', { type: 'button', key: a.slug, className: 'kbcp-kcapp' + (pick === a.slug ? ' on' : ''), role: 'option', 'aria-selected': pick === a.slug ? 'true' : 'false', 'data-kb-app': a.slug, onClick: () => { setPick(a.slug); setFail(null); setNeedsKey(false) } },
-                    AppLogo(a.slug, 28),
-                    h('span', null, h('b', null, a.name), h('small', null, a.needsApiKey === true ? kbt('kb.cp.kc.type.api_key') : 'OAuth')))))),
+                : h(React.Fragment, null,
+                  h('div', { className: 'kbcp-kcpick', role: 'listbox', 'aria-label': kbt('kb.cp.kc.m.title') },
+                    matches.map((a) => h('button', { type: 'button', key: a.slug, className: 'kbcp-kcapp' + (pick === a.slug ? ' on' : ''), role: 'option', 'aria-selected': pick === a.slug ? 'true' : 'false', 'data-kb-app': a.slug, onClick: () => { setPick(a.slug); setFail(null); setNeedsKey(false) } },
+                      AppLogo(a.slug, 28),
+                      h('span', null, h('b', null, a.name), h('small', null, a.needsApiKey === true ? kbt('kb.cp.kc.type.api_key') : 'OAuth'))))),
+                  found.length > matches.length ? h('button', { type: 'button', className: 'kbcp-btn', style: { alignSelf: 'flex-start' }, 'data-kb': 'kc-more', onClick: () => setPages(pages + 1) }, kbt('kb.cp.kc.m.more').replace('{n}', String(found.length - matches.length))) : null)),
             app !== null ? h('div', null,
               h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-kc-alias' }, kbt('kb.cp.kc.m.alias')),
               h('input', { className: 'kb7-finput', id: 'kbcp-kc-alias', value: alias, maxLength: 64, placeholder: 'pro, perso…', autoComplete: 'off', spellCheck: false, onChange: (e) => setAlias(e.target.value) }),

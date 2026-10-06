@@ -53,6 +53,8 @@ const APPS = [
   { slug: 'linear', name: 'Linear', categories: ['tickets'], description: 'Tickets', needs_api_key: false },
   { slug: 'notion', name: 'Notion', categories: ['docs'], description: 'Pages', needs_api_key: true },
 ]
+// A catalogue of about a thousand apps in real life: a hundred more here so the add window has to page.
+for (let i = 1; i <= 100; i += 1) APPS.push({ slug: 'zeta-app-' + String(i).padStart(3, '0'), name: 'Zeta App ' + String(i).padStart(3, '0'), categories: ['filler'], description: 'Filler', needs_api_key: false })
 const reseed = () => {
   st.seq = 0; st.failNextLink = false; st.claimed = false; st.polls = 0
   st.conns = [mk('gmail', 'active', { alias: 'pro', is_default: true }), mk('github', 'active', { is_default: true }), mk('slack', 'pending')]
@@ -183,6 +185,19 @@ try {
   await clickJs('[data-kb="kc-add"]')
   check('the add window opens with the server\'s catalogue', (await waitFor(page, `!!document.querySelector('[data-kb-app="linear"]')`, 10000)) !== null)
   check('the link button waits for an app', (await ev(`document.querySelector('[data-kb="kc-link"]').disabled`)) === true)
+  const apps1 = await ev(`document.querySelectorAll('[data-kb-app]').length`)
+  check('the window shows 48 apps of the 105, and offers the rest', apps1 === 48 && /57/.test(String(await text('[data-kb="kc-more"]'))), { apps1, more: await text('[data-kb="kc-more"]') })
+  await clickJs('[data-kb="kc-more"]')
+  await sleep(300)
+  check('"show more" adds the next 48', (await ev(`document.querySelectorAll('[data-kb-app]').length`)) === 96 && /9/.test(String(await text('[data-kb="kc-more"]'))))
+  await clickJs('[data-kb="kc-more"]')
+  await sleep(300)
+  check('...and the button goes when nothing is left', (await ev(`document.querySelectorAll('[data-kb-app]').length`)) === 105 && !(await exists('[data-kb="kc-more"]')))
+  await typeInto('#kbcp-kc-q', 'notion')
+  await sleep(300)
+  check('a search narrows the list (and starts from the first page again)', (await ev(`document.querySelectorAll('[data-kb-app]').length`)) === 1 && !(await exists('[data-kb="kc-more"]')))
+  await typeInto('#kbcp-kc-q', '')
+  await sleep(300)
   await clickJs('[data-kb-app="linear"]')
   await sleep(300)
   await typeInto('#kbcp-kc-alias', 'team')
