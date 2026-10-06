@@ -59,7 +59,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   project view. Not verified on the oldest DSH of `dsh-compat.json`. Client: slot `main.kybernos-skills`, services `slots` and
   `locale`; no `ctx.remote` use. `package.json` injects seven DSH client services, only those two are used.
 - Network, two fixed hosts, no caller URL followed: `https://codeload.github.com` (install; `source` must match `owner/repo`) and
-  `https://kybernos-skills-index.vercel.app/v1` (index, search, curated, audits; a bare GET, no credential; good answers cached
+  `https://skills.kybernos.app/v1` (index, search, curated, audits; a bare GET, no credential; good answers cached
   5 min in memory). That is Kybernos's relay of the skills.sh API (`services/skills-index`, which holds the one Vercel token and
   caches answers at the CDN). `KYBERNOS_SKILLS_INDEX_URL` points DSH at another relay (https, or http on a loopback address): a
   value that is set but invalid refuses the call and never falls back to the default. It also runs `tar`. If the relay is down,
