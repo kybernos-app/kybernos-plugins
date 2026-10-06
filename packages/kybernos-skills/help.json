@@ -1,24 +1,24 @@
 {
   "what": {
-    "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents peuvent charger. Listez-les, activez-les, créez-en, ou installez-en depuis GitHub et skills.sh.",
-    "en": "Your skills: reusable instructions your agents can load. List them, switch them on, create some, or install them from GitHub and skills.sh."
+    "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents chargent. Créez-en, installez-en, ou partagez-les avec votre équipe.",
+    "en": "Your skills: reusable instructions your agents load. Create some, install some, or share them with your team."
   },
   "steps": [
     {
-      "fr": "Ouvrez « Compétences » dans le menu Kybernos : l’onglet « Yours » liste vos skills (recherche, filtres, interrupteur actif / inactif).",
-      "en": "Open “Skills” in the Kybernos menu: the “Yours” tab lists your skills, with search, filters and an on / off switch."
+      "fr": "Ouvrez « Compétences » : « Yours » liste vos skills (recherche, filtres, interrupteur). « /nom » copie l’appel à coller dans le chat.",
+      "en": "Open “Skills”: “Yours” lists your skills, with search, filters and a switch. “/name” copies the call to paste in the chat."
     },
     {
-      "fr": "« Créer un skill » (nom, description, quand l’utiliser, contenu) ou « Importer depuis GitHub » (dépôt owner/repo et nom du skill).",
-      "en": "“Create a skill” (name, description, when to use, content) or “Import from GitHub” (owner/repo and the skill’s name)."
+      "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",
+      "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
     },
     {
-      "fr": "L’onglet « Discover » classe les skills publics de skills.sh : ouvrez une fiche, lisez ses audits de sécurité, puis « Installer ».",
-      "en": "The “Discover” tab ranks the public skills of skills.sh: open one, read its security audits, then “Install”."
+      "fr": "« Discover » classe les skills publics de skills.sh : ouvrez une fiche, lisez ses audits de sécurité, puis « Installer ».",
+      "en": "“Discover” ranks the public skills of skills.sh: open one, read its security audits, then “Install”."
     },
     {
-      "fr": "Sur une carte, le bouton « /nom » copie l’appel du skill à coller dans la zone de saisie du chat.",
-      "en": "On a card, the “/name” button copies the skill’s call to paste in the chat box."
+      "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
+      "en": "“Team”: your team’s catalogue. Propose one of your skills, an admin approves it, everyone installs it. Needs the Team plan."
     }
   ],
   "where": {
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Un skill installé depuis Internet est écrit par un tiers : DSH ne le vérifie pas, lisez ses audits. Sans accès à skills.sh, « Discover » reste vide, mais « Yours » et l’import GitHub marchent.",
-    "en": "A skill installed from the internet is written by a third party: DSH does not check it, so read its audits. Without access to skills.sh, “Discover” stays empty, but “Yours” and GitHub import still work."
+    "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+    "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
   }
 }

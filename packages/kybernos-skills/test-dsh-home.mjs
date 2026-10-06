@@ -1,7 +1,7 @@
 // ── kybernos-skills honours DSH_HOME and never touches <HOME>/.dsh when it is set ──
 //
 // DSH's home is $DSH_HOME when set, else <os home>/.dsh. This bundle built its two
-// writable roots, the toggle journal, the featured list and covers, the index token cache
+// writable roots, the toggle journal, the featured list and covers
 // and the session lookup from <os home>/.dsh. With DSH_HOME set it listed, created, toggled
 // and deleted skills in the user's real folder, and its "writable roots" did not even match
 // the ones DSH's own registry was reading.
@@ -105,11 +105,7 @@ const PORT = 3080
 const here = dirname(fileURLToPath(import.meta.url))
 const skillMd = (name) => '---\nname: ' + name + '\ndescription: "a skill called ' + name + '"\n---\n\n# ' + name + '\n'
 const session = (cwd) => zstdCompressSync(Buffer.from(JSON.stringify({ type: 'session', version: 3, id: 'x', cwd }) + '\n'))
-const token = (value) => 'VERCEL_OIDC_TOKEN="' + value + '"\n'
 const providers = (key) => JSON.stringify({ providers: { 'qwen-token-plan': { cle: key } } })
-
-// The two roots never come from the environment of whoever runs the test.
-delete process.env.VERCEL_OIDC_TOKEN
 
 const iso = makeIsolation('skills')
 const sandboxes = []
@@ -133,14 +129,12 @@ try {
   iso.seedDecoy('skills/decoy-off/SKILL.md.disabled', skillMd('decoy-off'))
   iso.seedDecoy('kybernos/skills-featured.json', JSON.stringify({ items: [{ name: 'decoy-feat', why: '', addedAt: '2026-09-20T10:00:00Z' }] }))
   iso.seedDecoy('kybernos/skills-featured/decoy-feat.png', 'DECOY-COVER')
-  iso.seedDecoy('kybernos-skills-index/.env.local', token('decoy-token'))
   iso.seedDecoy('sessions/--proj--/session-decoyonly/session.v3.jsonl.zstd', session('/tmp/decoy-project'))
   iso.seedDecoy('kybernos-models/providers.json', providers('decoy-key'))
   iso.seedDshHome('skills/real-on/SKILL.md', skillMd('real-on'))
   iso.seedDshHome('skills/real-off/SKILL.md.disabled', skillMd('real-off'))
   iso.seedDshHome('kybernos/skills-featured.json', JSON.stringify({ items: [{ name: 'real-feat', why: '', addedAt: '2026-09-20T10:00:00Z' }] }))
   iso.seedDshHome('kybernos/skills-featured/real-feat.png', 'REAL-COVER')
-  iso.seedDshHome('kybernos-skills-index/.env.local', token('real-token'))
   iso.seedDshHome('sessions/--proj--/session-realonly/session.v3.jsonl.zstd', session('/tmp/real-project'))
   iso.freezeDecoy()
 
@@ -191,10 +185,8 @@ try {
 
   const status = await call('GET', '/kybernos-skills/status')
   assert.deepEqual(status.json.roots.map((r) => [r.path, r.source]), [[join(iso.dshHome, 'skills'), 'user-dsh'], [join(iso.home, '.agents', 'skills'), 'user-agents']])
-  assert.equal(status.json.index.token, 'present')
-  assert.equal(status.json.index.dossier, join(iso.dshHome, 'kybernos-skills-index'))
-  assert.equal(mod.indexStatus(cfg).fichier, join(iso.dshHome, 'kybernos-skills-index', '.env.local'))
-  ok('the writable roots and the index token cache live in $DSH_HOME')
+  assert.equal(status.json.index, undefined, 'the status no longer carries a token state')
+  ok('the writable roots live in $DSH_HOME')
 
   // 2. Reading: the catalogue and the disabled view.
   const catalogue = await mod.catalogueOf(ctx, cfg)
@@ -260,9 +252,8 @@ try {
   const made2 = await mod.createSkill({ ctx, name: 'made-default', description: 'created by the test', config: dflt })
   assert.equal(made2.ok, true, JSON.stringify(made2))
   assert.equal(existsSync(join(iso.decoy, 'skills', 'made-default', 'SKILL.md')), true)
-  assert.equal(mod.indexStatus(dflt).token, 'present')
   assert.deepEqual((await call('GET', '/kybernos-skills/featured')).json.items.map((i) => i.name), ['decoy-feat'])
-  ok('with DSH_HOME unset, roots, journal, featured list and token cache still live under <HOME>/.dsh')
+  ok('with DSH_HOME unset, roots, journal and featured list still live under <HOME>/.dsh')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

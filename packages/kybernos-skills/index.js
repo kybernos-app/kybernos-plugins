@@ -11,14 +11,13 @@
 // meme dossier physique affichaient chaque skill deux fois, tout en lecture seule).
 //
 // DIX routes sur le service webServer. DEUX flux RESEAU sortants, en lecture seule, vers des hotes
-// fixes (codeload.github.com pour installer, skills.sh/api/v1 pour l'index) — voir la section RESEAU.
+// fixes (codeload.github.com pour installer, le relais kybernos-skills-index pour l'index) — voir la section RESEAU.
 //   GET  /kybernos-skills/skills    : le catalogue du registre + les skills DESACTIVES. ?q= filtre.
 //   GET  /kybernos-skills/index     : l'index public PAGINE (?view=all-time|trending|hot&page=&perPage=)
 //   GET  /kybernos-skills/search    : recherche floue sur tout l'index (?q=, 2 caracteres minimum)
 //   GET  /kybernos-skills/curated   : le set first-party, groupe par proprietaire
 //   GET  /kybernos-skills/audit     : les audits de securite d'un skill (?source=&skill=)
-//   GET  /kybernos-skills/status    : racines inscriptibles, portee du registre, etat du jeton
-//   POST /kybernos-skills/reconnect : renouvelle le jeton OIDC par le CLI vercel, puis vide le cache
+//   GET  /kybernos-skills/status    : racines inscriptibles, portee du registre
 //   POST /kybernos-skills/toggle    : bascule active/inactif par RENOMMAGE
 //                                     SKILL.md <-> SKILL.md.disabled, uniquement dans
 //                                     <DSH home>/skills (~/.dsh/skills) et ~/.agents/skills (decision gelee).
@@ -37,6 +36,7 @@ import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 
 // ── helpers locaux (miroir semantique de kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -180,33 +180,12 @@ const writableRootFor = (target, roots) => {
   return null
 }
 
-// ── frontmatter minimal « cle: valeur » avec de-quotation (lisible sur les DESACTIVES, que le
-//    registre ne voit pas ; les actifs, eux, sont deja parses par DSH) ────────────────────────────────────
-const unquote = (v) => {
-  const t = v.trim()
-  if (t.length >= 2 && t.startsWith('"') && t.endsWith('"')) {
-    // On defait EXACTEMENT ce que yamlQuoted pose (\\, \" et \n), en une passe : sans cela la
-    // reponse immediate d'une creation rendrait des echappements litteraux, alors que le
-    // registre, lui, relit la valeur exacte dans le fichier — deux lectures du meme champ.
-    return t.slice(1, -1).replace(/\\(.)/g, (m, c) => c === 'n' ? '\n' : (c === '\\' || c === '"' ? c : m))
-  }
-  if (t.length >= 2 && t.startsWith("'") && t.endsWith("'")) return t.slice(1, -1).replace(/''/g, "'")
-  return t
-}
-
+// ── frontmatter minimal « cle: valeur » avec de-quotation (lisible sur les DESACTIVES, que le registre ne voit pas ; les actifs, eux,
+//    sont deja parses par DSH). Le parseur est celui de team-skills.mjs : l'ancien (une seule expression reguliere dont les espaces et le
+//    `.*` se chevauchent) etait QUADRATIQUE — une ligne `k:` suivie de 80 000 espaces bloquait l'hote 6 s, et un skill telecharge de GitHub
+//    en est un exemple possible.
 const frontmatterOf = (file) => {
-  const out = {}
-  try {
-    const lines = readFileSync(file, 'utf8').split(/\r?\n/)
-    if (lines[0] !== '---') return out
-    for (let i = 1; i < lines.length; i++) {
-      if (lines[i] === '---') break
-      const m = /^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/.exec(lines[i])
-      if (m === null) continue
-      out[m[1]] = unquote(m[2])
-    }
-  } catch (e) { /* illisible => frontmatter vide */ }
-  return out
+  try { return frontmatterOfText(readFileSync(file, 'utf8')) } catch (e) { return {} /* illisible => frontmatter vide */ }
 }
 
 // ── VUE DES DESACTIVES : ce que le registre ne peut pas voir ─────────────────────────────────────────────────
@@ -439,12 +418,16 @@ const catalogueOf = async (ctx, config, sessionId) => {
     const { folder, root } = layoutOf(entry.path)
     const target = folder !== null ? folder : entry.path
     const writable = writableRootFor(target, wRoots) !== null
+    // Only a skill of a writable root can have been installed from a team (that is where an install writes).
+    const team = writable && root !== null ? teamInfoOf(root, entry.name) : { teamVersion: null, teamModified: null }
     skills.push({
       name: entry.name,
       root: root === null ? '' : root,
       source: typeof entry.source === 'string' ? entry.source : 'runtime',
       rank: SOURCE_RANK[entry.source] ?? UNKNOWN_RANK,
       writable,
+      teamVersion: team.teamVersion,
+      teamModified: team.teamModified,
       active: true,
       description: typeof entry.description === 'string' ? entry.description : '',
       whenToUse: typeof entry.whenToUse === 'string' ? entry.whenToUse : '',
@@ -659,13 +642,11 @@ const toggleSkill = async ({ ctx, root, name, active, config, sessionId }) => {
 // Ce paquet etait jusqu'ici purement local. Il ouvre desormais exactement deux flux, tous deux en
 // LECTURE, vers des hotes FIXES :
 //   · codeload.github.com  — l'archive d'un depot, pour installer un skill ;
-//   · skills.sh/api/v1     — l'API officielle de l'index (classement, recherche, curated, audits).
+//   · kybernos-skills-index.vercel.app/v1 — our read-only relay of the skills.sh index (ranking, search, curated, audits);
+//     see services/skills-index/README.md. It holds the one Vercel token, so no user needs one.
 // Aucune URL fournie par l'appelant n'est suivie : `source` est validee en owner/repo AVANT toute
 // requete, et le nom du skill reste soumis au meme motif qu'ailleurs. Les redirections sont suivies
 // (codeload redirige) mais l'hote initial, lui, n'est jamais choisi par le client.
-// ATTENTION : skills.sh/api/v1 s'ecrit SANS « www ». Le robots.txt du site interdit `/api/` — c'est
-// l'ancien scraping `/api/search` qui violait cette regle, pas `/api/v1/`, qui est documente et
-// destine a cet usage.
 const SOURCE_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/
 const NET_TIMEOUT_MS = 45000
 const MAX_ARCHIVE_BYTES = 96 * 1024 * 1024
@@ -673,23 +654,20 @@ const MAX_TREE_DEPTH = 6
 const MAX_TREE_FILES = 20000
 const CODELOAD = 'https://codeload.github.com'
 
-// ── INDEX DISTANT : l'API OFFICIELLE de skills.sh ────────────────────────────────────────────────────────
-// Remplace deux bricolages :
-//   - le scraping de la page d'accueil, qui ne portait que 571 entrees la ou l'API en annonce 9 827 ;
-//   - l'appel a /api/search, que le robots.txt du site INTERDIT (`Disallow: /api/`).
-// L'API documentee /api/v1/ expose exactement ce qu'il faut : un classement PAGINE (page 0-indexee,
-// jusqu'a 500 par page, vues all-time / trending / hot), une recherche floue sur le nom ET la
-// description, le set curated first-party, et les AUDITS DE SECURITE de chaque skill.
-// Contrepartie assumee : elle exige un jeton OIDC Vercel. Le CLI sait le produire localement — un projet
-// lie une fois, puis `vercel env pull` y depose un jeton valable ~12 h, qu'on renouvelle seul sur un 401.
-const SKILLS_API = 'https://skills.sh/api/v1'
+// ── REMOTE INDEX: the skills.sh index, through our relay ─────────────────────────────────────────────────────
+// skills.sh's documented API (/api/v1) offers a PAGINATED ranking (0-indexed pages, up to 500 each; all-time / trending / hot
+// views), a fuzzy search over name AND description, the first-party curated set, and each skill's SECURITY AUDITS. It
+// authenticates with a Vercel OIDC token that only a Vercel deployment receives and renews. We used to ask every user for one
+// (pulled with the Vercel CLI, valid ~12 h), so Discover was empty for anyone but the developer. The relay in services/skills-index holds
+// it once and serves the same JSON, cached; the plugin sends no credential at all.
+// KYBERNOS_SKILLS_INDEX_URL points DSH at another relay (a company server, a test): https, or http on a loopback address only.
+// A value that is set but invalid refuses the call: a typo must never fall back to another address.
+const INDEX_API_DEFAULT = 'https://kybernos-skills-index.vercel.app/v1'
 const VIEWS = ['all-time', 'trending', 'hot']
 const PER_PAGE_MAX = 500
 const PER_PAGE_DEFAULT = 50
 const SEARCH_LIMIT_MAX = 100
 const DISCOVER_TTL_MS = 300000
-const TOKEN_FILE = '.env.local'
-const VERCEL_CLI = ['/usr/local/bin/vercel', '/opt/homebrew/bin/vercel', '/usr/bin/vercel']
 
 const httpGet = async (url, binary) => {
   const controller = new AbortController()
@@ -725,56 +703,31 @@ const queryParam = (req, key) => {
   } catch (e) { return '' }
 }
 
-// ── JETON OIDC : lu, jamais journalise, renouvele par le CLI ──────────────────────────────────────────────
-const tokenDir = (cfg) => join(cfg.dsh, 'kybernos-skills-index')
-const tokenPath = (cfg) => join(tokenDir(cfg), TOKEN_FILE)
-
-// L'environnement passe avant le fichier : ca permet de brancher un jeton ephemere sans toucher au disque.
-const readToken = (cfg) => {
-  const env = process.env.VERCEL_OIDC_TOKEN
-  if (typeof env === 'string' && env !== '') return env
+// The relay's base URL: the default, or the validated override. null = an override that is set but not acceptable.
+const indexApiBase = () => {
+  const raw = process.env.KYBERNOS_SKILLS_INDEX_URL
+  if (typeof raw !== 'string' || raw.trim() === '') return INDEX_API_DEFAULT
   try {
-    const m = readFileSync(tokenPath(cfg), 'utf8').match(/VERCEL_OIDC_TOKEN\s*=\s*"?([^"\n]+)"?/)
-    if (m !== null && m[1].trim() !== '') return m[1].trim()
-  } catch (e) { /* pas de jeton : le cas est traite par l'appelant */ }
-  return ''
+    const u = new URL(raw.trim())
+    const loopback = u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '[::1]'
+    const schemeOk = u.protocol === 'https:' || (u.protocol === 'http:' && loopback)
+    if (schemeOk && u.username === '' && u.password === '' && u.search === '' && u.hash === '') return u.href.replace(/\/+$/, '')
+  } catch (e) { /* refused below */ }
+  return null
 }
 
-// `vercel env pull` redemande un jeton frais au projet lie (~12 h de validite). C'est exactement ce que
-// fait @vercel/oidc en arriere-plan ; on s'en passe, mais on ne veut pas d'une dependance npm en plus.
-const renewToken = (cfg) => {
-  const cli = VERCEL_CLI.find((p) => existsSync(p))
-  if (cli === undefined) return { ok: false, error: 'CLI vercel introuvable' }
-  const dir = tokenDir(cfg)
-  if (existsSync(dir) === false) return { ok: false, error: 'projet Vercel non lie : ' + dir }
-  try {
-    execFileSync(cli, ['env', 'pull', TOKEN_FILE, '--yes'], { cwd: dir, encoding: 'utf8', timeout: 120000, stdio: 'pipe' })
-    return { ok: true }
-  } catch (e) {
-    const code = e !== null && e.status !== undefined && e.status !== null ? 'code ' + e.status : 'erreur'
-    return { ok: false, error: 'vercel env pull a echoue (' + code + ')' }
-  }
-}
-
-// Un seul appel, un seul renouvellement automatique. Le jeton n'apparait NI dans l'erreur NI dans un log.
-const apiGet = async (path, cfg, retried) => {
-  const token = readToken(cfg)
-  if (token === '') {
-    return { status: 401, error: 'jeton Vercel absent — lie le projet puis lance « vercel env pull »', missing: true }
-  }
+// One read-only GET to the relay. No credential is sent. A failure never carries the relay's own text beyond its `message`.
+const apiGet = async (path) => {
+  const base = indexApiBase()
+  if (base === null) return { status: 0, error: 'KYBERNOS_SKILLS_INDEX_URL refusee (https, ou http sur boucle locale)' }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), NET_TIMEOUT_MS)
   try {
-    const res = await fetch(SKILLS_API + path, {
+    const res = await fetch(base + path, {
       signal: controller.signal,
       redirect: 'follow',
-      headers: { accept: 'application/json', authorization: 'Bearer ' + token, 'user-agent': 'kybernos-skills' }
+      headers: { accept: 'application/json', 'user-agent': 'kybernos-skills' }
     })
-    if (res.status === 401 && retried !== true) {
-      const r = renewToken(cfg)
-      if (r.ok === true) return await apiGet(path, cfg, true)
-      return { status: 401, error: 'jeton refuse — ' + r.error }
-    }
     if (!res.ok) {
       let detail = 'index indisponible (' + res.status + ')'
       try { const e = await res.json(); if (typeof e.message === 'string' && e.message !== '') detail = e.message } catch (e2) { /* corps non json */ }
@@ -839,13 +792,13 @@ const clampInt = (v, min, max, fallback) => {
 
 // Classement PAGINE. Le serveur annonce `total` et `hasMore` : l'interface n'a donc rien a deviner,
 // et c'est precisement ce qui manquait quand on scrapait 571 entrees d'une page de 9 827 skills.
-const indexSkills = async (opts, cfg) => {
+const indexSkills = async (opts) => {
   const o = opts !== null && typeof opts === 'object' ? opts : {}
   const view = VIEWS.includes(o.view) ? o.view : 'all-time'
   const page = clampInt(o.page, 0, 100000, 0)
   const perPage = clampInt(o.perPage, 1, PER_PAGE_MAX, PER_PAGE_DEFAULT)
   return cachedDiscover('index:' + view + ':' + page + ':' + perPage, async () => {
-    const res = await apiGet('/skills?view=' + view + '&page=' + page + '&per_page=' + perPage, cfg, false)
+    const res = await apiGet('/skills?view=' + view + '&page=' + page + '&per_page=' + perPage)
     if (res.status !== 200) return { ok: false, error: res.error }
     const items = Array.isArray(res.body.data) ? res.body.data : []
     const skills = items.map(normalizeHit).filter((x) => x !== null)
@@ -862,12 +815,12 @@ const indexSkills = async (opts, cfg) => {
   })
 }
 
-const searchSkills = async (query, limit, cfg) => {
+const searchSkills = async (query, limit) => {
   const q = typeof query === 'string' ? query.trim() : ''
   if (q.length < 2) return { ok: false, error: 'recherche : au moins 2 caracteres' }
   const n = clampInt(limit, 1, SEARCH_LIMIT_MAX, PER_PAGE_DEFAULT)
   return cachedDiscover('q:' + q.toLowerCase() + ':' + n, async () => {
-    const res = await apiGet('/skills/search?q=' + encodeURIComponent(q) + '&limit=' + n, cfg, false)
+    const res = await apiGet('/skills/search?q=' + encodeURIComponent(q) + '&limit=' + n)
     if (res.status !== 200) return { ok: false, error: res.error }
     const items = Array.isArray(res.body.data) ? res.body.data : []
     const skills = items.map(normalizeHit).filter((x) => x !== null)
@@ -883,8 +836,8 @@ const searchSkills = async (query, limit, cfg) => {
 
 // Le set first-party, groupe par proprietaire. C'est lui qui donne un sens VERIFIABLE a l'ancienne
 // pastille « officiel », qui venait d'un drapeau glane dans le HTML d'une page.
-const curatedSkills = async (cfg) => cachedDiscover('curated', async () => {
-  const res = await apiGet('/skills/curated', cfg, false)
+const curatedSkills = async () => cachedDiscover('curated', async () => {
+  const res = await apiGet('/skills/curated')
   if (res.status !== 200) return { ok: false, error: res.error }
   const owners = (Array.isArray(res.body.data) ? res.body.data : []).map((o) => ({
     owner: o !== null && typeof o.owner === 'string' ? o.owner : '',
@@ -904,12 +857,12 @@ const curatedSkills = async (cfg) => cachedDiscover('curated', async () => {
 
 // Audits de securite : la donnee qui manquait pour dire autre chose que « non audite ».
 const SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/
-const auditSkill = async (source, skill, cfg) => {
+const auditSkill = async (source, skill) => {
   const s = typeof source === 'string' && SOURCE_RE.test(source) ? source : ''
   const n = typeof skill === 'string' && SLUG_RE.test(skill) ? skill : ''
   if (s === '' || n === '') return { ok: false, error: 'source ou skill invalide' }
   return cachedDiscover('audit:' + s + '/' + n, async () => {
-    const res = await apiGet('/skills/audit/' + s + '/' + n, cfg, false)
+    const res = await apiGet('/skills/audit/' + s + '/' + n)
     if (res.status === 404) return { ok: true, audits: [], note: 'aucun audit publie pour ce skill' }
     if (res.status !== 200) return { ok: false, error: res.error }
     const audits = (Array.isArray(res.body.audits) ? res.body.audits : []).map((a) => ({
@@ -921,16 +874,6 @@ const auditSkill = async (source, skill, cfg) => {
     return { ok: true, audits }
   })
 }
-
-// Etat du jeton, pour que l'interface dise QUOI FAIRE plutot qu'« erreur 401 ».
-const indexStatus = (cfg) => ({
-  token: readToken(cfg) === '' ? 'absent' : 'present',
-  dossier: tokenDir(cfg),
-  dossierPresent: existsSync(tokenDir(cfg)),
-  fichier: tokenPath(cfg),
-  fichierPresent: existsSync(tokenPath(cfg)),
-  cli: VERCEL_CLI.find((p) => existsSync(p)) !== undefined
-})
 
 // ── INSTALLATION : telechargement direct de l'archive GitHub, sans npm ni CLI externe ────────────────────────
 // Parcours borne de l'arbre extrait : ni profondeur infinie, ni nombre de fichiers infini, et les liens
@@ -1020,6 +963,157 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
   }
 }
 
+// ── TEAM SKILLS: a local skill to the Team, and a Team skill to this machine ─────────────────────────────────
+// The server half is docs/dev/team-skills-contract.md; the pure rules (limits, paths, secret scan, version) are team-skills.mjs and
+// are applied on both ends. Two operations touch the disk, and both are POST: they carry skill CONTENT, which a GET (served before
+// DSH's own auth, no origin guard) must not hand to any local caller.
+//   pack    reads a skill folder of ONE of the two writable roots and returns what a proposal carries;
+//   install writes what a Team skill carries into a writable root, atomically, and NEVER over an existing folder.
+const TEAM_WALK_DEPTH = 6
+
+// Every regular file of a skill folder, as { path, abs, size }. Hidden entries (`.git`, `.DS_Store`, `.env`) and `node_modules` are
+// not part of a skill; a symlink is neither a file nor a folder here, so it is skipped, never followed.
+const walkSkillFolder = (dir, rel, depth, out) => {
+  if (depth > TEAM_WALK_DEPTH || out.length > TEAM_SKILL_LIMITS.files) return
+  let entries
+  try { entries = readdirSync(dir, { withFileTypes: true }) } catch (e) { return }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+    const abs = join(dir, entry.name)
+    const path = rel === '' ? entry.name : rel + '/' + entry.name
+    if (entry.isDirectory()) walkSkillFolder(abs, path, depth + 1, out)
+    else if (entry.isFile()) {
+      let size = 0
+      try { size = statSync(abs).size } catch (e) { continue }
+      out.push({ path, abs, size })
+    }
+  }
+}
+
+// What an install leaves inside the skill folder to say where it came from: the version that was approved. It is a hidden file, so
+// it is never part of the files a proposal carries and never changes the version of the folder. A skill without it is the user's own.
+const TEAM_MARK = '.kybernos-team.json'
+
+const readTeamMark = (folder) => {
+  try {
+    const m = JSON.parse(readFileSync(join(folder, TEAM_MARK), 'utf8'))
+    return m !== null && typeof m === 'object' && /^[0-9a-f]{64}$/.test(String(m.version)) ? { version: m.version, id: Number.isInteger(m.id) ? m.id : null, installedAt: typeof m.installedAt === 'string' ? m.installedAt : '' } : null
+  } catch (e) { return null }
+}
+
+/** `{ ok: true, files }` (text files of a skill folder, sorted by path) or `{ ok: false, error: 'invalid_skill', reason, file }`. */
+const readSkillFiles = (folder) => {
+  const listed = []
+  walkSkillFolder(folder, '', 0, listed)
+  if (listed.length > TEAM_SKILL_LIMITS.files) return { ok: false, error: 'invalid_skill', reason: 'too_many_files' }
+  const files = []
+  for (const f of listed.sort((a, b) => (a.path < b.path ? -1 : (a.path > b.path ? 1 : 0)))) {
+    if (f.size > TEAM_SKILL_LIMITS.fileBytes) return { ok: false, error: 'invalid_skill', reason: 'file_too_large', file: f.path }
+    let content
+    try { content = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(f.abs)) } catch (e) {
+      // Not UTF-8 text (a picture, a binary), or unreadable: either way it cannot travel, and the user is told which file.
+      return { ok: false, error: 'invalid_skill', reason: 'binary', file: f.path }
+    }
+    files.push({ path: f.path, content })
+  }
+  return { ok: true, files }
+}
+
+/**
+ * What the catalogue says about a skill that an install put there: `{ teamVersion, teamModified }`, both null for the user's own.
+ * `teamModified` is true when the files no longer hash to the installed version (edited, added to, or unreadable as text).
+ */
+const teamInfoOf = (root, name) => {
+  const folder = join(root, name)
+  const mark = readTeamMark(folder)
+  if (mark === null) return { teamVersion: null, teamModified: null }
+  const read = readSkillFiles(folder)
+  return { teamVersion: mark.version, teamModified: read.ok !== true || skillVersion(read.files) !== mark.version }
+}
+
+/** `{ ok, name, description, files: [{path, content}], version, count, bytes, scripts }` or `{ ok: false, error, reason?, file? }`. Never writes. */
+const packSkill = ({ root, name, config }) => {
+  const cfg = normalizeConfig(config)
+  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'invalid_skill', reason: 'name' }
+  if (typeof root !== 'string' || writableRootsOf(cfg).includes(root) === false) return { ok: false, error: 'root_not_allowed' }
+  const matches = resolveInRoot(root, name)
+  if (matches.length === 0) return { ok: false, error: 'skill_not_found' }
+  if (matches.length > 1) return { ok: false, error: 'skill_ambiguous' }
+  const found = matches[0]
+  if (found.hasActive === false) return { ok: false, error: 'skill_disabled' }
+  // The folder must really live under the root (a symlink leaving it is visible elsewhere, but never packed).
+  if (writableRootFor(found.folder, [root]) === null) return { ok: false, error: 'root_not_allowed' }
+
+  const read = readSkillFiles(found.folder)
+  if (read.ok !== true) return read
+  const files = read.files
+  const checked = validateTeamSkill({ name, files })
+  if (checked.ok !== true) return { ok: false, error: checked.reason === 'scan_rejected' ? 'scan_rejected' : 'invalid_skill', reason: checked.reason, file: checked.file, line: checked.line }
+  return { ok: true, name, description: checked.description, files, version: checked.version, count: checked.count, bytes: checked.bytes, scripts: checked.scripts }
+}
+
+/**
+ * Writes a Team skill into a writable root. `version` is what the server announced: the files must hash to it, or nothing is written.
+ * It never overwrites a folder, with ONE exception: `replace: true` swaps a folder that an earlier install made (it carries the team
+ * mark) and that nobody has touched since (its files still hash to the version the mark says). The user's own skills, and a team
+ * skill edited by hand, are left exactly as they are.
+ */
+const installTeamSkill = async ({ ctx, root, name, version, files, teamId, replace, config, sessionId }) => {
+  const cfg = normalizeConfig(config)
+  const wRoots = writableRootsOf(cfg)
+  const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
+  if (wRoots.includes(dest) === false) return { ok: false, error: 'root_not_allowed' }
+  const checked = validateTeamSkill({ name, files })
+  if (checked.ok !== true) return { ok: false, error: checked.reason === 'scan_rejected' ? 'scan_rejected' : 'invalid_skill', reason: checked.reason, file: checked.file }
+  if (typeof version !== 'string' || version !== checked.version) return { ok: false, error: 'version_mismatch' }
+  const target = join(dest, name)
+  const swap = existsSync(target)
+  if (swap) {
+    if (replace !== true) return { ok: false, error: 'exists' }
+    // A swap needs proof that the folder is ours to replace.
+    const info = teamInfoOf(dest, name)
+    if (info.teamVersion === null) return { ok: false, error: 'exists' }
+    if (info.teamModified !== false) return { ok: false, error: 'modified' }
+  }
+
+  let staging = null
+  let parked = null
+  try {
+    mkdirSync(dest, { recursive: true })
+    // A dot-prefixed staging folder: the registry never lists it, and the rename below is one step.
+    staging = mkdtempSync(join(dest, '.kb-team-'))
+    for (const f of files) {
+      const abs = resolvePath(staging, f.path)
+      if (abs.startsWith(staging + sep) === false) throw new Error('path outside the skill folder')
+      mkdirSync(dirname(abs), { recursive: true })
+      writeFileSync(abs, f.content, { mode: 0o644 })
+    }
+    writeFileSync(join(staging, TEAM_MARK), JSON.stringify({ version: checked.version, id: Number.isInteger(teamId) ? teamId : null, installedAt: new Date().toISOString() }) + '\n', { mode: 0o644 })
+    if (swap) {
+      // The old folder is parked beside the new one, then removed: if the move fails it goes back, and the skill is never missing.
+      parked = join(dest, '.kb-old-' + basename(staging).slice('.kb-team-'.length))
+      renameSync(target, parked)
+      try { renameSync(staging, target) } catch (e) { renameSync(parked, target); parked = null; throw e }
+      staging = null
+      try { rmSync(parked, { recursive: true, force: true }) } catch (e) { /* a leftover dot folder is invisible; the swap itself is done */ }
+    } else {
+      if (existsSync(target)) { rmSync(staging, { recursive: true, force: true }); return { ok: false, error: 'exists' } }
+      renameSync(staging, target)
+      staging = null
+    }
+  } catch (e) {
+    if (staging !== null) { try { rmSync(staging, { recursive: true, force: true }) } catch (e2) { /* best effort */ } }
+    return { ok: false, error: 'write_failed' }
+  }
+  invalidateSkills(ctx, sessionId)
+  return {
+    ok: true,
+    replaced: swap,
+    files: files.length,
+    skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
+  }
+}
+
 // ── CREATION : le fichier est la seule source, on ecrit donc un SKILL.md valide et rien d'autre ──────────────
 // Toute valeur textuelle est emise en scalaire YAML entre guillemets, avec les echappements qui vont
 // bien : une description contenant « : » ou un guillemet ne doit pas pouvoir casser le frontmatter.
@@ -1067,10 +1161,11 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 
   // Gardes verbatim et dans cet ordre : methode d'abord, origine ensuite. Aucune route POST ne
   // touche au disque avant les deux.
-  const POST = (path, label, fn) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
+  // `cap` is the body limit in bytes (default 64 KiB): Team skill routes carry up to a megabyte of files.
+  const POST = (path, label, fn, cap) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
     if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-    try { sendJson(res, 200, await fn(await readJsonBody(req))) } catch (e) { sendJson(res, 200, { ok: false, error: 'requete impossible' }) }
+    try { sendJson(res, 200, await fn(await readJsonBody(req, cap))) } catch (e) { sendJson(res, 200, { ok: false, error: 'requete impossible' }) }
   } }), label)
 
   GET('/kybernos-skills/skills', 'kybernos-skills: route skills', async (req) => {
@@ -1084,30 +1179,22 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     return { ok: true, ...catalogue, skills, query: q }
   })
 
-  // ── index distant : l'API OFFICIELLE, paginee. 9 827 skills annonces, 50 par page par defaut. ──────────
+  // ── remote index, through the relay: paginated, 50 per page by default ───────────────────────────────────
   GET('/kybernos-skills/index', 'kybernos-skills: route index', async (req) => indexSkills({
     view: queryParam(req, 'view'),
     page: queryParam(req, 'page'),
     perPage: queryParam(req, 'perPage')
-  }, configOf()))
+  }))
 
   GET('/kybernos-skills/search', 'kybernos-skills: route search', async (req) => searchSkills(
-    queryParam(req, 'q'), queryParam(req, 'limit'), configOf()
+    queryParam(req, 'q'), queryParam(req, 'limit')
   ))
 
-  GET('/kybernos-skills/curated', 'kybernos-skills: route curated', async () => curatedSkills(configOf()))
+  GET('/kybernos-skills/curated', 'kybernos-skills: route curated', async () => curatedSkills())
 
   GET('/kybernos-skills/audit', 'kybernos-skills: route audit', async (req) => auditSkill(
-    queryParam(req, 'source'), queryParam(req, 'skill'), configOf()
+    queryParam(req, 'source'), queryParam(req, 'skill')
   ))
-
-  // Renouvelle le jeton a la demande, quand l'interface propose de « reconnecter l'index ».
-  POST('/kybernos-skills/reconnect', 'kybernos-skills: route reconnect', async () => {
-    const cfg = configOf()
-    const r = renewToken(cfg)
-    if (r.ok === true) resetDiscoverCache()
-    return { ok: r.ok === true, error: r.ok === true ? undefined : r.error, index: indexStatus(cfg) }
-  })
 
   GET('/kybernos-skills/status', 'kybernos-skills: route status', async (req) => {
     const cfg = configOf()
@@ -1119,9 +1206,6 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     return {
       ok: true,
       roots,
-      // L'etat du jeton est rendu NU (jamais sa valeur) : l'interface doit pouvoir dire quoi faire
-      // plutot qu'afficher « erreur 401 ».
-      index: indexStatus(cfg),
       view: {
         scope: view.live !== undefined ? 'agent' : (view.scope !== undefined ? 'preset' : 'none'),
         cwd: view.cwd,
@@ -1157,6 +1241,25 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     config: configOf(),
     sessionId: body.sessionId
   }))
+
+  // ── Team skills (see docs/dev/team-skills-contract.md): the page asks here for the disk half, kybernos-cloud for the server half ──
+  POST('/kybernos-skills/team/pack', 'kybernos-skills: route team pack', async (body) => packSkill({
+    root: body.root,
+    name: body.name,
+    config: configOf()
+  }))
+
+  POST('/kybernos-skills/team/install', 'kybernos-skills: route team install', async (body) => installTeamSkill({
+    ctx,
+    root: body.root,
+    name: body.name,
+    version: body.version,
+    files: body.files,
+    teamId: body.teamId,
+    replace: body.replace === true,
+    config: configOf(),
+    sessionId: body.sessionId
+  }), 4 * 1024 * 1024)
 
   // ── Featured : la liste mise en avant, contrôlée par l'utilisateur ──────────────────────────
   GET('/kybernos-skills/featured', 'kybernos-skills: route featured', async (req) => {
@@ -1220,7 +1323,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── exports nommes pour le harnais (testabilite : chemins explicites, rien de cable) + apply ────────────────
-export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, indexStatus, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
+export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
 
 export function apply(ctx) {
   // Filet miroir de kybernos-plugin/index.js:2876-2884 (base) : une erreur de montage ne doit pas

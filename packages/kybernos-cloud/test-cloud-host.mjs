@@ -488,6 +488,8 @@ try {
     '/kybernos-cloud/memory/list', '/kybernos-cloud/memory/settings', '/kybernos-cloud/memory/settings/set',
     '/kybernos-cloud/memory/index', '/kybernos-cloud/memory/index/run', '/kybernos-cloud/memory/meaning-map',
     '/kybernos-cloud/team/status', '/kybernos-cloud/team/lessons', '/kybernos-cloud/team/lessons/add', '/kybernos-cloud/team/lessons/review', '/kybernos-cloud/team/lessons/retire', '/kybernos-cloud/team/lessons/delete',
+    // Team skills (test-team-skills.mjs): the server half of a Team's private catalogue.
+    '/kybernos-cloud/team/skills', '/kybernos-cloud/team/skills/item', '/kybernos-cloud/team/skills/add', '/kybernos-cloud/team/skills/review', '/kybernos-cloud/team/skills/retire', '/kybernos-cloud/team/skills/delete',
     '/kybernos-cloud/memory/tidy', '/kybernos-cloud/memory/tidy/scan', '/kybernos-cloud/memory/tidy/apply', '/kybernos-cloud/memory/tidy/dismiss', '/kybernos-cloud/memory/tidy/undo', '/kybernos-cloud/memory/tidy/settings',
     '/kybernos-cloud/marketplace', '/kybernos-cloud/marketplace/install',
     // Code de parrainage du compte (carte d'invitation du pied de sidebar).
