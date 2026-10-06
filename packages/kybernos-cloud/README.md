@@ -196,6 +196,37 @@ Every refusal of the server is returned as one word (`team-skills.mjs`: `admin_r
 `reason`, `duplicate`, `not_on_this_server` for a server without the routes, …). The server's own text never reaches the page.
 `node packages/kybernos-cloud/test-team-skills.mjs` (13 checks, stand-in server).
 
+## Kybernos connections (the account's connected apps)
+
+The person connects Gmail or GitHub once, in the web app or in DSH, through the **server's own Composio Platform project** (not a key typed
+on a machine: ADR 0008 of the Kybernos server), and every agent of theirs can then use it. This package holds the DSH half; it exists only
+for a server whose profile says `services.connections` (an address, on the server's own origin; absent or `false` = not offered: no route
+answers, no tool is registered, nothing is sent: `docs/dev/servers.md`). Pure half in `connections.mjs` (paths, the five statuses, one word
+per refusal, row mappers, JSON-RPC), host half in `connections-host.mjs` (routes and tools), glue in `index.js`.
+
+| Route | Does |
+| --- | --- |
+| `GET /kybernos-cloud/connections[?refresh=1]` | `{ offered, connected, connections: [{id, toolkit, status, accountType, alias, isDefault, createdAt, failure}], limit, count, stale }`; `status` is `pending`, `active`, `failed`, `expired` or `disabled` |
+| `GET …/connections/apps` | the toolkits that may be connected: `{ apps: [{slug, name, categories, description, needsApiKey}] }` (no logo: it is a third-party address) |
+| `GET …/connections/item?id=` | one connection, reconciled at the server on the spot: what the page **polls** (every 5 s) while an add is pending |
+| `POST …/connections/link` `{toolkit, api_key?, alias?}` | starts one: `{ connection: {id, status}, redirectUrl }` (the page opens `redirectUrl` in a new tab); never a `redirect_uri` (the server uses its own page), never a user id; an `api_key` is sent in this one call and never kept, logged or answered back |
+| `POST …/connections/delete` `{id}` | disconnects, at the third party and in the server's table |
+
+Refusals are one word: `connection_limit` (with `limit` and `count`), `pending_exists` (with `existing: {id, toolkit, status}`, so the page can offer
+« cancel it »), `needs_api_key`, `upstream_unavailable` (with `checkFirst`: an add that may have gone through, so **list before trying again**; an add is
+never sent twice), `connections_disabled`, `reconnect_required`, `not_found`, `not_on_this_server`, `network`. Nothing leaves the machine when
+the server does not offer connections or the account is not connected.
+
+**Three native tools** for the agents, registered while the server offers connections AND the account is connected, and removed when either stops
+(checked every 5 s, so a pairing, a disconnect or a change of server needs no restart): `connections_list` → what is connected, `connections_search_tools`
+`{toolkit, query?, limit?}` → the actions of an app, `connections_execute` `{tool_slug, params, connection_id?}` → runs one with the person's own
+account. They are registered here and not as a `dsh-mcp-client` entry because an entry's headers are fixed when it loads: it would keep the token it
+started with through a re-pairing. Each call posts one JSON-RPC `tools/call` to the endpoint with the live token (stateless: no `initialize`); the person
+is named by the token alone, never by an argument. `connections_execute` acts for real and is not retried.
+
+`node packages/kybernos-cloud/test-connections.mjs` (26 checks, a stand-in server that speaks ADR 0008; the engine's own JSON-schema rules are
+checked for each tool where DSH is installed, `NO_DSH_ENGINE=1` skips them).
+
 ## Pourquoi un package séparé
 
 Le half client d'un plugin Cordis doit tenir dans **un seul** `client.js` : le

@@ -4,7 +4,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { DEFAULT_PROFILE, DEFAULT_SERVER_ID, activeServer, deriveWeb, llmBase, normalizeProfile, publicProfile, readRegistry, stateFileName } from './server-profile.mjs'
+import { DEFAULT_PROFILE, DEFAULT_SERVER_ID, activeServer, connectionsEndpoint, deriveWeb, llmBase, normalizeProfile, publicProfile, readRegistry, stateFileName } from './server-profile.mjs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -53,6 +53,37 @@ console.log('the LLM of a server')
   check('a server with no Kybernos LLM has no chat base at all', llm({ llm: false }) === null)
   check('the built-in server keeps today\'s routing (the api host)', llmBase(DEFAULT_PROFILE) === 'https://api.dev.kybernos.app/v1')
   check('publicProfile says « none », « api » or the URL', publicProfile(normalizeProfile({ id: 'x', api: 'https://a.example', services: { llm: false } }).profile).llm === 'none' && publicProfile(DEFAULT_PROFILE).llm === 'api' && publicProfile(normalizeProfile({ id: 'x', api: 'https://a.example', services: { llm: 'https://l.example' } }).profile).llm === 'https://l.example')
+}
+
+console.log('the connected apps of a server')
+{
+  const conn = (services) => { const r = normalizeProfile({ id: 'x', api: 'https://a.example', services }); return r.ok === true ? connectionsEndpoint(r.profile) : 'REFUSED' }
+  check('absent means NOT OFFERED (unlike the LLM, where absent means the api host)', conn(undefined) === null && conn({}) === null && conn({ llm: 'https://llm.example' }) === null && conn({ connections: null }) === null)
+  check('false is not offered either', conn({ connections: false }) === null)
+  check('an address is kept as the endpoint, trailing slash cut', conn({ connections: 'https://a.example/v1/mcp/connections/' }) === 'https://a.example/v1/mcp/connections')
+  const local = (api, connections) => { const r = normalizeProfile({ id: 'x', api, services: { connections } }); return r.ok === true ? connectionsEndpoint(r.profile) : 'REFUSED' }
+  check('http is accepted for a loopback address only', local('http://127.0.0.1:8080', 'http://127.0.0.1:8080/v1/mcp/connections') === 'http://127.0.0.1:8080/v1/mcp/connections' && local('http://a.example', 'http://a.example/v1/mcp/connections') === 'REFUSED')
+  const bad = (label, services) => { const r = normalizeProfile({ id: 'x', api: 'https://a.example', services }); check('refused: ' + label, r.ok === false && r.error === 'bad_connections', JSON.stringify(r)) }
+  bad('a value that is present and not an address (no silent fallback)', { connections: 'nope' })
+  bad('true (it is an address or false)', { connections: 'true' })
+  bad('a query in the address', { connections: 'https://a.example/v1/mcp/connections?x=1' })
+  bad('another host than the server (the token must not leave the server that issued it)', { connections: 'https://elsewhere.example/v1/mcp/connections' })
+  bad('another port is another origin', { connections: 'https://a.example:8443/v1/mcp/connections' })
+  {
+    const dir = mkdtempSync(join(tmpdir(), 'kb-conn-'))
+    const file = join(dir, 'servers.json')
+    writeFileSync(file, JSON.stringify({ active: 'x', servers: [{ id: 'x', api: 'https://a.example', services: { connections: 'https://a.example/v1/mcp/connections' } }] }))
+    const own = activeServer({ env: {}, registryFile: file })
+    const overridden = activeServer({ env: { KYBERNOS_CLOUD_API: 'http://127.0.0.1:9' }, registryFile: file })
+    check('the registry server offers its endpoint', connectionsEndpoint(own.profile) === 'https://a.example/v1/mcp/connections', JSON.stringify(own.profile.services))
+    check('an environment override of api leaves the endpoint behind: no token for the old host', connectionsEndpoint(overridden.profile) === null && publicProfile(overridden.profile).connections === false)
+    check('the server list says which servers offer them', own.servers.find((x) => x.id === 'x').connections === true && own.servers[0].connections === false)
+    rmSync(dir, { recursive: true, force: true })
+  }
+  check('the built-in server offers none until the new server is the default', connectionsEndpoint(DEFAULT_PROFILE) === null && publicProfile(DEFAULT_PROFILE).connections === false)
+  check('publicProfile says whether connections are offered, never the address', publicProfile(normalizeProfile({ id: 'x', api: 'https://a.example', services: { connections: 'https://a.example/v1/mcp/connections' } }).profile).connections === true)
+  check('the profile stays frozen with the new field', Object.isFrozen(normalizeProfile({ id: 'x', api: 'https://a.example', services: { connections: false } }).profile.services))
+  check('connectionsEndpoint never throws on a missing or odd profile', connectionsEndpoint(null) === null && connectionsEndpoint({}) === null && connectionsEndpoint({ services: {} }) === null)
 }
 
 console.log('the registry')
