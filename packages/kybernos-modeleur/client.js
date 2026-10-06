@@ -1151,7 +1151,9 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         h('div', { className: 'kbm-chips' }, ...Object.keys(DEMOS).map((cle) => h(Apercu, { key: cle, cle }))),
       )
 
-      return h('div', { className: 'kbm-root' },
+      // `kbmo`: this panel's own class. `.kbm-root` alone is also the root of the AI Provider & Models page (`kbm-root kbmp`) and of the core's
+      // Models page, so the mini-apps plugin cannot find the Modeleur by it (scripts/test-miniapps-panels.mjs).
+      return h('div', { className: 'kbm-root kbmo' },
         h('div', { className: 'kbm-head' },
           h('span', { className: 'kbm-title', title: ETAT.titre }, ETAT.titre || 'Modeleur'),
           h('span', { className: 'kbm-badge' }, en2d ? '2D' : '3D')),

@@ -62,10 +62,13 @@ window.__ModuleLoader__.load({
     // ── les panneaux reconnus : sélecteur racine + où poser le bouton ─────────
     const PANNEAUX = [
       { racine: '.kbb-root', id: 'briques', tete: '.kbb-head', defaut: 'Briques', l: 260, h: 380 },
-      // `.kbm-root` is shared with kybernos-models (its Settings page is `.kbm-root.kbmp`): without the `:not`, the
-      // "App ⤓" button landed twice on AI Provider & Models, a page that is not a mini-app.
-      { racine: '.kbm-root:not(.kbmp)', id: 'modeleur', tete: '.kbm-head', defaut: 'Modeleur', l: 320, h: 420 },
-      { racine: '.kbs-root', id: 'slides', tete: '.kbs-head', defaut: 'Slides', l: 420, h: 340 },
+      // `.kbm-root` is shared by three bundles: this panel, kybernos-models (its Settings page is `.kbm-root.kbmp`: the button once landed twice on
+      // AI Provider & Models) and the core's own Models page (a bare `.kbm-root`, which `:not(.kbmp)` did not exclude). The Modeleur says `kbmo` on its root.
+      { racine: '.kbm-root.kbmo', id: 'modeleur', tete: '.kbm-head', defaut: 'Modeleur', l: 320, h: 420 },
+      // Slides renders `.kbsd-root` / `.kbsd-head`. This entry used to say `.kbs-root`, which is the root of the SKILLS page (and `.kbs-` is also
+      // the prefix of the sessions and cloud bundles): the button landed on Skills, and Slides, whose classes had been renamed, got none.
+      // test-miniapps-panels.mjs fails when a selector here matches a panel of another bundle.
+      { racine: '.kbsd-root', id: 'slides', tete: '.kbsd-head', defaut: 'Slides', l: 420, h: 340 },
     ]
 
     // Racines SANS en-tête dédié (livrable mini-app ouvert depuis la page

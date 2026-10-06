@@ -59,11 +59,14 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
 }
 
 {
-  // kybernos-models' Settings page is `.kbm-root.kbmp`: it shares the `kbm-` prefix with the Modeleur and must not be taken for it.
+  // `.kbm-` is a prefix shared by three bundles: the Modeleur panel, kybernos-models' Settings page (`.kbm-root.kbmp`) and the core's own Models
+  // page (a bare `.kbm-root`). The Modeleur says `kbmo` on its root and the entry asks for it. The cross-bundle check, on every panel of the list
+  // and against the real sources of every bundle, is scripts/test-miniapps-panels.mjs; this is the same rule for the Modeleur, next to the code.
   const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
-  ok("le Modeleur ne se reconnaît pas sur la page Réglages de kybernos-models (.kbm-root.kbmp)", src.includes("racine: '.kbm-root:not(.kbmp)'") && !/racine: '\.kbm-root'/.test(src))
-  const root = (cls) => ({ matches: (sel) => { const m = sel.match(/^\.([a-z-]+)(?::not\(\.([a-z]+)\))?$/); return m !== null && cls.includes(m[1]) && (m[2] === undefined || !cls.includes(m[2])) } })
-  ok('sélecteur : .kbm-root.kbmp (Réglages) est écarté, .kbm-root seul (Modeleur) est gardé', root(['kbm-root', 'kbmp']).matches('.kbm-root:not(.kbmp)') === false && root(['kbm-root']).matches('.kbm-root:not(.kbmp)') === true)
+  ok("le Modeleur ne se reconnaît ni sur la page Réglages de kybernos-models ni sur la page Models du cœur (.kbm-root seul)", src.includes("racine: '.kbm-root.kbmo'") && !/racine: '\.kbm-root'/.test(src) && !src.includes('.kbm-root:not(.kbmp)'))
+  const root = (cls) => ({ matches: (sel) => { const m = sel.match(/^((?:\.[a-z-]+)+)$/); return m !== null && m[1].split('.').filter(Boolean).every((c) => cls.includes(c)) } })
+  ok('sélecteur : .kbm-root.kbmp (Réglages) et .kbm-root seul (page Models du cœur) sont écartés, .kbm-root.kbmo (Modeleur) est gardé',
+    root(['kbm-root', 'kbmp']).matches('.kbm-root.kbmo') === false && root(['kbm-root']).matches('.kbm-root.kbmo') === false && root(['kbm-root', 'kbmo']).matches('.kbm-root.kbmo') === true)
 }
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\n✗ ${echecs} échec(s)`)

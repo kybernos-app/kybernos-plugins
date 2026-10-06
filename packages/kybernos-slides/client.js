@@ -140,78 +140,78 @@ window.__ModuleLoader__.load({
             const CSS = `
         .kbsd-root{display:flex;flex-direction:column;height:100%;min-height:0;font-size:12px;
           color:var(--dsw-alias-label-primary,#1a1a1a);background:var(--dsw-alias-bg-layer-2,#fff)}
-        .kbs-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
-        .kbs-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .kbs-badge{margin-left:auto;flex:none;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;
+        .kbsd-head{flex:none;display:flex;align-items:center;gap:8px;padding:10px 12px 8px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
+        .kbsd-title{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .kbsd-badge{margin-left:auto;flex:none;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;
           background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));color:var(--dsw-alias-label-secondary,#6b6b68)}
-        .kbs-badge.run{background:#37B5C4;color:#08262a}
-        .kbs-badge.ia{background:#1f9d57;color:#fff}
-        .kbs-scene{flex:1;min-height:120px;display:flex;align-items:center;justify-content:center;
+        .kbsd-badge.run{background:#37B5C4;color:#08262a}
+        .kbsd-badge.ia{background:#1f9d57;color:#fff}
+        .kbsd-scene{flex:1;min-height:120px;display:flex;align-items:center;justify-content:center;
           background:#e9e7e2;padding:10px;position:relative;overflow:hidden}
-        .kbs-wrap{position:relative}
-        .kbs-stage{position:absolute;top:0;left:0;width:${L}px;height:${H}px;transform-origin:top left;
+        .kbsd-wrap{position:relative}
+        .kbsd-stage{position:absolute;top:0;left:0;width:${L}px;height:${H}px;transform-origin:top left;
           border-radius:6px;overflow:hidden;box-shadow:0 6px 24px rgba(20,28,26,.18)}
-        .kbs-slide{position:absolute;inset:0;padding:96px 110px;box-sizing:border-box;
+        .kbsd-slide{position:absolute;inset:0;padding:96px 110px;box-sizing:border-box;
           font-family:ui-sans-serif,-apple-system,'Segoe UI',system-ui,sans-serif}
-        .kbs-kicker{position:absolute;top:78px;left:110px;font-size:21px;font-weight:650;letter-spacing:.42em;
+        .kbsd-kicker{position:absolute;top:78px;left:110px;font-size:21px;font-weight:650;letter-spacing:.42em;
           text-transform:uppercase;opacity:.85}
-        .kbs-foot{position:absolute;bottom:52px;right:110px;font-size:17px;font-weight:600;letter-spacing:.18em;
+        .kbsd-foot{position:absolute;bottom:52px;right:110px;font-size:17px;font-weight:600;letter-spacing:.18em;
           text-transform:uppercase;opacity:.5}
-        .kbs-note{position:absolute;bottom:52px;left:110px;font-size:17px;opacity:.55;max-width:900px}
-        .kbs-titre{font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:0}
-        .kbs-champ{position:relative;white-space:pre-wrap}
-        .kbs-outil-texte .kbs-champ{cursor:text;border-bottom:1.5px dashed transparent}
-        .kbs-outil-texte .kbs-champ:hover{border-bottom-color:currentColor}
-        .kbs-cor{animation:kbs-cor 5s ease-out 1}
-        @keyframes kbs-cor{0%{box-shadow:0 0 0 8px rgba(31,157,87,.45);background:rgba(31,157,87,.22)}
+        .kbsd-note{position:absolute;bottom:52px;left:110px;font-size:17px;opacity:.55;max-width:900px}
+        .kbsd-titre{font-weight:800;letter-spacing:-.02em;line-height:1.08;margin:0}
+        .kbsd-champ{position:relative;white-space:pre-wrap}
+        .kbsd-outil-texte .kbsd-champ{cursor:text;border-bottom:1.5px dashed transparent}
+        .kbsd-outil-texte .kbsd-champ:hover{border-bottom-color:currentColor}
+        .kbsd-cor{animation:kbsd-cor 5s ease-out 1}
+        @keyframes kbsd-cor{0%{box-shadow:0 0 0 8px rgba(31,157,87,.45);background:rgba(31,157,87,.22)}
           70%{box-shadow:0 0 0 4px rgba(31,157,87,.25);background:rgba(31,157,87,.10)}100%{box-shadow:none;background:transparent}}
-        .kbs-caret{display:inline-block;width:.08em;min-width:3px;height:.9em;margin-left:.06em;vertical-align:-.08em;
-          background:currentColor;animation:kbs-clign 1s steps(2) infinite}
-        @keyframes kbs-clign{0%,49%{opacity:1}50%,100%{opacity:0}}
-        .kbs-puces{list-style:none;margin:0;padding:0}
-        .kbs-puces li{position:relative;padding-left:44px;margin-bottom:.55em;line-height:1.4}
-        .kbs-puces li::before{content:'';position:absolute;left:0;top:.52em;width:18px;height:6px;border-radius:3px;background:var(--kbs-accent)}
-        .kbs-champ.kbs-sel{outline:2px solid var(--kbs-accent);outline-offset:5px;border-radius:2px}
-        .kbs-ebox{position:absolute;z-index:30;margin:0;border:1.5px solid #37B5C4;border-radius:4px;padding:0;background:transparent;
+        .kbsd-caret{display:inline-block;width:.08em;min-width:3px;height:.9em;margin-left:.06em;vertical-align:-.08em;
+          background:currentColor;animation:kbsd-clign 1s steps(2) infinite}
+        @keyframes kbsd-clign{0%,49%{opacity:1}50%,100%{opacity:0}}
+        .kbsd-puces{list-style:none;margin:0;padding:0}
+        .kbsd-puces li{position:relative;padding-left:44px;margin-bottom:.55em;line-height:1.4}
+        .kbsd-puces li::before{content:'';position:absolute;left:0;top:.52em;width:18px;height:6px;border-radius:3px;background:var(--kbsd-accent)}
+        .kbsd-champ.kbsd-sel{outline:2px solid var(--kbsd-accent);outline-offset:5px;border-radius:2px}
+        .kbsd-ebox{position:absolute;z-index:30;margin:0;border:1.5px solid #37B5C4;border-radius:4px;padding:0;background:transparent;
           background:rgba(255,255,255,.92);color:#111;resize:none;overflow:hidden;outline:none;box-shadow:0 4px 18px rgba(0,0,0,.25)}
-        .kbs-trait{position:absolute;inset:0;z-index:20;touch-action:none}
-        .kbs-trait.off{pointer-events:none}
-        .kbs-vignettes{flex:none;display:flex;gap:10px;padding:10px 14px;overflow-x:auto;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07));scrollbar-width:thin}
-        .kbs-vignettes::-webkit-scrollbar{height:6px}
-        .kbs-vignettes::-webkit-scrollbar-thumb{background:var(--dsw-alias-border-l1,rgba(0,0,0,.14));border-radius:3px}
-        .kbs-vign{position:relative;flex:none;width:132px;height:75px;padding:0;border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.16));
+        .kbsd-trait{position:absolute;inset:0;z-index:20;touch-action:none}
+        .kbsd-trait.off{pointer-events:none}
+        .kbsd-vignettes{flex:none;display:flex;gap:10px;padding:10px 14px;overflow-x:auto;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07));scrollbar-width:thin}
+        .kbsd-vignettes::-webkit-scrollbar{height:6px}
+        .kbsd-vignettes::-webkit-scrollbar-thumb{background:var(--dsw-alias-border-l1,rgba(0,0,0,.14));border-radius:3px}
+        .kbsd-vign{position:relative;flex:none;width:132px;height:75px;padding:0;border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.16));
           border-radius:8px;overflow:hidden;background:var(--dsw-alias-bg-layer-2,#fff);cursor:pointer;
           transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
-        .kbs-vign:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.10)}
-        .kbs-vign.on{border-color:#4C8DFF;box-shadow:0 0 0 2px #4C8DFF}
-        .kbs-vign i{position:absolute;left:5px;bottom:5px;z-index:2;font-style:normal;font-weight:700;font-size:9px;
+        .kbsd-vign:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(0,0,0,.10)}
+        .kbsd-vign.on{border-color:#4C8DFF;box-shadow:0 0 0 2px #4C8DFF}
+        .kbsd-vign i{position:absolute;left:5px;bottom:5px;z-index:2;font-style:normal;font-weight:700;font-size:9px;
           width:15px;height:15px;border-radius:4px;display:grid;place-items:center;background:rgba(0,0,0,.5);color:#fff}
-        .kbs-mini{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:top left;pointer-events:none;overflow:hidden}
-        .kbs-bar{flex:none;display:flex;align-items:center;gap:7px;padding:7px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
-        .kbs-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#e1502a;color:#fff;cursor:pointer;
+        .kbsd-mini{position:absolute;top:0;left:0;width:1600px;height:900px;transform-origin:top left;pointer-events:none;overflow:hidden}
+        .kbsd-bar{flex:none;display:flex;align-items:center;gap:7px;padding:7px 12px 10px;border-top:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.07))}
+        .kbsd-play{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:#e1502a;color:#fff;cursor:pointer;
           display:grid;place-items:center;font-size:10px;line-height:1}
-        .kbs-play:hover{background:#c94522}
-        .kbs-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:#8a8a87;padding:3px 5px;border-radius:5px;cursor:pointer}
-        .kbs-sp.on{background:rgba(0,0,0,.06);color:#1a1a1a;font-weight:650}
-        .kbs-range{-webkit-appearance:none;appearance:none;flex:1;min-width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,.10);outline:0}
-        .kbs-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-        .kbs-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
+        .kbsd-play:hover{background:#c94522}
+        .kbsd-sp{border:0;background:transparent;font:inherit;font-size:10.5px;color:#8a8a87;padding:3px 5px;border-radius:5px;cursor:pointer}
+        .kbsd-sp.on{background:rgba(0,0,0,.06);color:#1a1a1a;font-weight:650}
+        .kbsd-range{-webkit-appearance:none;appearance:none;flex:1;min-width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,.10);outline:0}
+        .kbsd-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+        .kbsd-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
           border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.16)}
-        .kbs-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#6b6b68;padding:3px 8px;border-radius:6px;cursor:pointer}
-        .kbs-outil:hover{background:rgba(0,0,0,.05)}
-        .kbs-outil.on{background:#efefec;color:#1a1a1a;font-weight:650}
-        .kbs-coul{width:15px;height:15px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
-        .kbs-coul.on{border-color:#1a1a1a}
-        .kbs-note-bas{flex:none;padding:4px 12px 8px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a87);
+        .kbsd-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#6b6b68;padding:3px 8px;border-radius:6px;cursor:pointer}
+        .kbsd-outil:hover{background:rgba(0,0,0,.05)}
+        .kbsd-outil.on{background:#efefec;color:#1a1a1a;font-weight:650}
+        .kbsd-coul{width:15px;height:15px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+        .kbsd-coul.on{border-color:#1a1a1a}
+        .kbsd-note-bas{flex:none;padding:4px 12px 8px;font-size:10.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a87);
           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .kbs-note-bas b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
-        .kbs-empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
+        .kbsd-note-bas b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
+        .kbsd-empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
           padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary,#8a8a87);font-size:12px;line-height:1.55;z-index:5}
-        .kbs-empty b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
-        .kbs-empty code{font-size:11px;background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));padding:1px 5px;border-radius:4px}
-        .kbs-demo{border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.12));background:transparent;font:inherit;font-size:11px;
+        .kbsd-empty b{color:var(--dsw-alias-label-secondary,#4a4a47);font-weight:600}
+        .kbsd-empty code{font-size:11px;background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));padding:1px 5px;border-radius:4px}
+        .kbsd-demo{border:1px solid var(--dsw-alias-border-l1,rgba(0,0,0,.12));background:transparent;font:inherit;font-size:11px;
           padding:5px 12px;border-radius:99px;cursor:pointer;color:var(--dsw-alias-label-secondary,#4a4a47)}
-        .kbs-demo:hover{background:rgba(0,0,0,.05)}
+        .kbsd-demo:hover{background:rgba(0,0,0,.05)}
         `
         
             /* ═══════════════ 2. MOTEUR DE FRAPPE ═══════════════
@@ -274,7 +274,7 @@ window.__ModuleLoader__.load({
               } else { // fin
                 if (s.titre !== '') noeuds.push(T(s.titre, 380, 380, 92, { gras: 750, k: 't' }))
               }
-              return h('div', { className: 'kbs-mini', style: { background: th.bg, transform: 'scale(0.0825)' } }, noeuds)
+              return h('div', { className: 'kbsd-mini', style: { background: th.bg, transform: 'scale(0.0825)' } }, noeuds)
             }
         
             function poidsSlide (s) {
@@ -653,7 +653,7 @@ window.__ModuleLoader__.load({
                 const barre = document.createElement('div')
                 barre.style.cssText = 'display:flex;gap:4px;align-items:center;background:rgba(255,255,255,.96);border:1px solid rgba(0,0,0,.18);border-radius:6px;padding:4px 8px;box-shadow:0 2px 8px rgba(0,0,0,.18)'
                 const zone = document.createElement('div')
-                zone.className = 'kbs-ebox'
+                zone.className = 'kbsd-ebox'
                 zone.style.cssText = 'position:static;background:transparent;border:none;min-width:200px;max-width:520px;min-height:1.2em;padding:0'
                 host.appendChild(barre)
                 host.appendChild(zone)
@@ -791,9 +791,9 @@ window.__ModuleLoader__.load({
                 const richeVue = !f.tape && estRicheTipTap(source)
                 return h('div', {
                   'data-kbs': cleChamp(kVue, champ, idx),
-                  className: 'kbs-champ'
-                    + (corrigeIci(champ, idx) ? ' kbs-cor' : '')
-                    + (S.selection === cleChamp(kVue, champ, idx) ? ' kbs-sel' : '')
+                  className: 'kbsd-champ'
+                    + (corrigeIci(champ, idx) ? ' kbsd-cor' : '')
+                    + (S.selection === cleChamp(kVue, champ, idx) ? ' kbsd-sel' : '')
                     + (classeProps ? ' ' + classeProps : ''),
                   style: coul !== null ? { ...(styleProps ?? {}), color: coul } : styleProps,
                   // Le HTML passe par un ref callback (post-commit) : un
@@ -803,26 +803,26 @@ window.__ModuleLoader__.load({
                   onMouseDown: (e) => { S.selection = cleChamp(kVue, champ, idx); ouvrirEdition(e, champ, idx) },
                   onDoubleClick: (e) => ouvrirEdition(e, champ, idx, true),
                   ...reste,
-                }, richeVue ? null : f.texte, richeVue ? null : (f.tape ? h('span', { className: 'kbs-caret' }) : null), ...enfants)
+                }, richeVue ? null : f.texte, richeVue ? null : (f.tape ? h('span', { className: 'kbsd-caret' }) : null), ...enfants)
               }
         
               const ac = slide !== null && slide.accent ? slide.accent : theme.accent
-              const styleSlide = { background: theme.bg, color: theme.ink, '--kbs-accent': ac }
+              const styleSlide = { background: theme.bg, color: theme.ink, '--kbsd-accent': ac }
               const contenu = () => {
                 if (slide === null) return null
                 const n = S.deck.slides.length
                 const noeuds = []
-                if (slide.kicker !== '') noeuds.push(A('kicker', -1, { className: 'kbs-kicker', key: 'k', style: { color: ac } }))
+                if (slide.kicker !== '') noeuds.push(A('kicker', -1, { className: 'kbsd-kicker', key: 'k', style: { color: ac } }))
                 if (slide.layout === 'statement') {
                   noeuds.push(A('titre', -1, {
-                    key: 't', className: 'kbs-titre',
+                    key: 't', className: 'kbsd-titre',
                     style: { fontSize: 88, color: ac, position: 'absolute', top: 300, left: 110, right: 110 },
                   }))
                   if (slide.sous !== '') noeuds.push(A('sous', -1, { key: 's', style: { position: 'absolute', top: 620, left: 110, fontSize: 30, color: theme.ink } }))
                 } else if (slide.layout === 'puces') {
-                  if (slide.titre !== '') noeuds.push(A('titre', -1, { key: 't', className: 'kbs-titre', style: { position: 'absolute', top: 150, left: 110, fontSize: 58 } }))
+                  if (slide.titre !== '') noeuds.push(A('titre', -1, { key: 't', className: 'kbsd-titre', style: { position: 'absolute', top: 150, left: 110, fontSize: 58 } }))
                   if (slide.sous !== '') noeuds.push(A('sous', -1, { key: 's', style: { position: 'absolute', top: 246, left: 110, fontSize: 24, color: theme.muted } }))
-                  noeuds.push(h('ul', { key: 'l', className: 'kbs-puces', style: { position: 'absolute', top: 320, left: 110, right: 130, fontSize: 31 } },
+                  noeuds.push(h('ul', { key: 'l', className: 'kbsd-puces', style: { position: 'absolute', top: 320, left: 110, right: 130, fontSize: 31 } },
                     slide.points.map((_, i) => {
                       const sg = segDe('points', i)
                       const visible = !enEcriture || (sg !== null && qSlide >= sg.start)
@@ -830,17 +830,17 @@ window.__ModuleLoader__.load({
                         A('points', i, { style: { fontSize: 'inherit' } }))
                     })))
                 } else if (slide.layout === 'chiffre') {
-                  if (slide.titre !== '') noeuds.push(A('titre', -1, { key: 't', className: 'kbs-titre', style: { position: 'absolute', top: 150, left: 110, fontSize: 44 } }))
-                  noeuds.push(A('grand', -1, { key: 'g', className: 'kbs-titre', style: { position: 'absolute', top: 300, left: 110, fontSize: 190, color: ac } }))
+                  if (slide.titre !== '') noeuds.push(A('titre', -1, { key: 't', className: 'kbsd-titre', style: { position: 'absolute', top: 150, left: 110, fontSize: 44 } }))
+                  noeuds.push(A('grand', -1, { key: 'g', className: 'kbsd-titre', style: { position: 'absolute', top: 300, left: 110, fontSize: 190, color: ac } }))
                   if (slide.legende !== '') noeuds.push(A('legende', -1, { key: 'l', style: { position: 'absolute', top: 590, left: 110, fontSize: 30, color: theme.muted } }))
                 } else if (slide.layout === 'citation') {
                   noeuds.push(h('div', { key: 'q', style: { position: 'absolute', top: 130, left: 100, fontSize: 150, color: ac, fontFamily: 'Georgia,serif', lineHeight: 1 } }, '«'))
-                  noeuds.push(A('citation', -1, { key: 'c', className: 'kbs-titre', style: { position: 'absolute', top: 270, left: 110, right: 150, fontSize: 52, fontWeight: 650 } }))
+                  noeuds.push(A('citation', -1, { key: 'c', className: 'kbsd-titre', style: { position: 'absolute', top: 270, left: 110, right: 150, fontSize: 52, fontWeight: 650 } }))
                   if (slide.auteur !== '') noeuds.push(A('auteur', -1, { key: 'a', style: { position: 'absolute', top: 640, left: 110, fontSize: 26, color: theme.muted } }))
                 } else { // titre / fin
                   const centre = slide.layout === 'fin'
                   noeuds.push(A('titre', -1, {
-                    key: 't', className: 'kbs-titre',
+                    key: 't', className: 'kbsd-titre',
                     style: {
                       position: 'absolute', left: 110, right: 110, top: centre ? 340 : 330,
                       fontSize: 92, textAlign: centre ? 'center' : 'left',
@@ -851,8 +851,8 @@ window.__ModuleLoader__.load({
                   }
                   if (!centre) noeuds.push(h('div', { key: 'r', style: { position: 'absolute', top: 290, left: 112, width: 110, height: 5, background: ac } }))
                 }
-                if (slide.note !== '') noeuds.push(A('note', -1, { key: 'n', className: 'kbs-note' }))
-                noeuds.push(h('div', { key: 'f', className: 'kbs-foot' }, `${S.deck.titre} · ${kVue + 1}/${n}`))
+                if (slide.note !== '') noeuds.push(A('note', -1, { key: 'n', className: 'kbsd-note' }))
+                noeuds.push(h('div', { key: 'f', className: 'kbsd-foot' }, `${S.deck.titre} · ${kVue + 1}/${n}`))
                 return noeuds
               }
         
@@ -862,29 +862,29 @@ window.__ModuleLoader__.load({
               ]
         
               return h('div', { className: 'kbsd-root', ref: racineRef },
-                h('div', { className: 'kbs-head' },
-                  h('div', { className: 'kbs-title' }, S.deck !== null ? S.deck.titre : 'Slides'),
-                  correctionsRecentes ? h('div', { className: 'kbs-badge ia' }, `IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`) : null,
-                  h('div', { className: 'kbs-badge' + (enEcriture ? ' run' : '') }, enEcriture ? `écrit… ${Math.round(p * 100)} %` : (S.deck !== null ? 'live' : 'vide')),
+                h('div', { className: 'kbsd-head' },
+                  h('div', { className: 'kbsd-title' }, S.deck !== null ? S.deck.titre : 'Slides'),
+                  correctionsRecentes ? h('div', { className: 'kbsd-badge ia' }, `IA · ${S.corrections.length} correction${S.corrections.length > 1 ? 's' : ''}`) : null,
+                  h('div', { className: 'kbsd-badge' + (enEcriture ? ' run' : '') }, enEcriture ? `écrit… ${Math.round(p * 100)} %` : (S.deck !== null ? 'live' : 'vide')),
                 ),
-                h('div', { className: 'kbs-scene', ref: sceneRef },
+                h('div', { className: 'kbsd-scene', ref: sceneRef },
                   S.deck === null
-                    ? h('div', { className: 'kbs-empty' },
+                    ? h('div', { className: 'kbsd-empty' },
                         h('b', null, 'Demande un deck au chat'),
                         h('div', null, 'l\'agent l\'écrit ici même, slide après slide — tu peux retaper un texte ou peindre par-dessus pendant qu\'il écrit.'),
                         h('button', {
-                          className: 'kbs-demo',
+                          className: 'kbsd-demo',
                           onClick: () => pousserDeck(DEMOS[0]),
                         }, 'Voir la démo'))
-                    : h('div', { className: 'kbs-wrap', ref: wrapRef, style: { width: L * S.echelle, height: H * S.echelle } },
+                    : h('div', { className: 'kbsd-wrap', ref: wrapRef, style: { width: L * S.echelle, height: H * S.echelle } },
                         h('div', {
-                          className: 'kbs-stage kbs-outil-' + S.outil,
+                          className: 'kbsd-stage kbsd-outil-' + S.outil,
                           style: { transform: `scale(${S.echelle})`, background: theme.bg },
                         },
-                          h('div', { className: 'kbs-slide', style: styleSlide }, contenu()),
+                          h('div', { className: 'kbsd-slide', style: styleSlide }, contenu()),
                           h('canvas', {
                             ref: canvasRef,
-                            className: 'kbs-trait' + (S.outil === 'pinceau' || S.outil === 'gomme' ? '' : ' off'),
+                            className: 'kbsd-trait' + (S.outil === 'pinceau' || S.outil === 'gomme' ? '' : ' off'),
                             width: L * 2, height: H * 2,
                             style: { width: L, height: H, cursor: S.outil === 'gomme' ? 'not-allowed' : 'crosshair' },
                             onPointerDown: traitDebut, onPointerMove: traitBouge,
@@ -893,7 +893,7 @@ window.__ModuleLoader__.load({
                           S.edition !== null && S.editionRect !== null && S.editeurRiche === null
                             ? [
                                 h('textarea', {
-                                  className: 'kbs-ebox',
+                                  className: 'kbsd-ebox',
                                   autoFocus: true,
                                   style: {
                                     left: S.editionRect.x, top: S.editionRect.y,
@@ -920,7 +920,7 @@ window.__ModuleLoader__.load({
                                 }, PALETTE.map((c) => h('button', {
                                   key: c,
                                   title: 'Couleur du texte',
-                                  className: 'kbs-coul' + (S.edition.couleur === c ? ' on' : ''),
+                                  className: 'kbsd-coul' + (S.edition.couleur === c ? ' on' : ''),
                                   style: { background: c, width: 22, height: 22, borderRadius: 11, border: '2px solid rgba(255,255,255,.75)', cursor: 'pointer', padding: 0 },
                                   onClick: () => choisirCouleur(c),
                                 }))),
@@ -928,43 +928,43 @@ window.__ModuleLoader__.load({
                             : null,
                         ),
                         S.outil !== 'voir'
-                          ? h('div', { className: 'kbs-outils' },
+                          ? h('div', { className: 'kbsd-outils' },
                               outils.map(([cle, label]) => h('button', {
-                                key: cle, className: 'kbs-outil' + (S.outil === cle ? ' on' : ''),
+                                key: cle, className: 'kbsd-outil' + (S.outil === cle ? ' on' : ''),
                                 onClick: () => { S.outil = cle; S.edition = null; S.editionRect = null; reveiller() },
                               }, label)),
                               S.outil === 'pinceau'
                                 ? ['#F2C31A', '#E1502A', theme.accent, theme.ink].map((c) => h('button', {
-                                    key: c, className: 'kbs-coul' + (S.couleur === c ? ' on' : ''),
+                                    key: c, className: 'kbsd-coul' + (S.couleur === c ? ' on' : ''),
                                     style: { background: c, margin: '2px 2px' },
                                     onClick: () => { S.couleur = c; reveiller() },
                                   }))
                                 : null,
                               h('button', {
-                                className: 'kbs-outil',
+                                className: 'kbsd-outil',
                                 onClick: () => { S.traits.set(S.vue, []); pousserTraits(S, S.vue); reveiller() },
                               }, 'Tout effacer'))
                           : null,
                       ),
                 ),
-                h('div', { className: 'kbs-vignettes' },
+                h('div', { className: 'kbsd-vignettes' },
                   S.deck !== null
                     ? S.deck.slides.map((s, i) => h('button', {
                         key: i,
-                        className: 'kbs-vign' + (i === kVue ? ' on' : ''),
+                        className: 'kbsd-vign' + (i === kVue ? ' on' : ''),
                         title: s.titre || s.grand || s.citation || s.layout,
                         onClick: () => { S.vue = i; S.suivre = false; reveiller() },
                       }, miniature(s, theme), h('i', null, String(i + 1))))
                     : null,
                 ),
-                h('div', { className: 'kbs-bar' },
-                  h('button', { className: 'kbs-play', title: 'Rejouer l\'écriture', onClick: rejouer }, '▶'),
+                h('div', { className: 'kbsd-bar' },
+                  h('button', { className: 'kbsd-play', title: 'Rejouer l\'écriture', onClick: rejouer }, '▶'),
                   vitesses.map((v) => h('button', {
-                    key: v, className: 'kbs-sp' + ((TICK !== null ? TICK.vitesse : 1) === v ? ' on' : ''),
+                    key: v, className: 'kbsd-sp' + ((TICK !== null ? TICK.vitesse : 1) === v ? ' on' : ''),
                     onClick: () => changerVitesse(v),
                   }, `×${v}`)),
                   h('input', {
-                    type: 'range', className: 'kbs-range', min: 0, max: 1000, value: Math.round(p * 1000),
+                    type: 'range', className: 'kbsd-range', min: 0, max: 1000, value: Math.round(p * 1000),
                     onChange: (e) => {
                       if (S.deck === null) return
                       TICK = { t0: Date.now() - (Number(e.currentTarget.value) / 1000) * S.deck.dureeMs, vitesse: TICK !== null ? TICK.vitesse : 1 }
@@ -973,7 +973,7 @@ window.__ModuleLoader__.load({
                     },
                   }),
                 ),
-                h('div', { className: 'kbs-note-bas' },
+                h('div', { className: 'kbsd-note-bas' },
                   S.deck === null
                     ? h('b', null, 'Panneau « Slides » — le chat écrit, tu modifies, il corrige.')
                     : h('span', null,
