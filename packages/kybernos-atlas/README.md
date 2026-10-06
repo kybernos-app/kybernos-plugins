@@ -4,6 +4,11 @@ A read-only map of how the things you set up fit together: **projects, kybers,
 skills, memory, lessons, automations and apps**. It adds one Settings page,
 **Atlas**, with a Help button that explains how to read it.
 
+**It reads nothing until you click *Update*.** Opening the page only shows an empty screen with an
+*Update* button; the sources below are read when you click it (and again each time you click it again).
+The last reading is kept in memory so that moving between Settings pages does not read again; it is
+gone when the page reloads, and the header says how long ago it was read.
+
 It only reads. It writes nothing, stores nothing between visits, adds no route
 to the host and needs no engine patch.
 
@@ -52,7 +57,7 @@ demand, so that would be noise. Nor is an app that no kyber lists.
 
 ## Where the data comes from
 
-All same-origin, all read-only. Each source is read on its own: one that fails is
+All same-origin, all read-only, all read when you click *Update*. Each source is read on its own: one that fails is
 named in a banner and the rest still draw.
 
 | Source | Route | Gives |
@@ -83,7 +88,7 @@ Things worth knowing:
   holds each task's prompt and, for webhook tasks, a secret. The client copies only
   `id`, `name`, `schedule`, `active` and `history`, and a test checks that nothing
   else reaches the page.
-- Reading memory makes the cloud plugin refresh the account, so a re-read costs a
+- Reading memory makes the cloud plugin refresh the account, so an update costs a
   network round trip.
 
 ## Not in this version

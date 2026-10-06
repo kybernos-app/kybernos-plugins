@@ -40,6 +40,7 @@ window.__ModuleLoader__.load({
     }
     const daysSince = (v, now) => { const t = toMs(v); return t === null ? null : Math.max(0, Math.floor((now - t) / DAY)) }
     const ago = (d) => (d === null ? 'not recorded' : d === 0 ? 'today' : d === 1 ? 'yesterday' : d < 45 ? d + ' days ago' : Math.round(d / 30) + ' months ago')
+    const readAgo = (ms, now) => { const d = Math.max(0, now - ms); const m = Math.floor(d / 60000); return d < 45000 ? 'just now' : m < 60 ? Math.max(1, m) + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : Math.floor(m / 1440) + (Math.floor(m / 1440) === 1 ? ' day ago' : ' days ago') }
     const shortId = (id) => (/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(id) ? id.slice(0, 8) : id)
 
     // ── Normalisers: one per route, written against the shapes measured on a
@@ -1004,7 +1005,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         h('div', { className: 'kbat-mcard', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'kbat-help-t', ref, tabIndex: -1 },
           h('button', { type: 'button', className: 'kbat-x', 'aria-label': 'Close help', onClick: p.onClose }, '×'),
           h('h2', { id: 'kbat-help-t' }, 'How to read the Atlas'),
-          h('p', { className: 'kbat-lead' }, 'The Atlas shows how the things you set up fit together. It only reads your files and plugins. It never edits or stores anything.'),
+          h('p', { className: 'kbat-lead' }, 'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits or stores anything.'),
           h('section', null, h('h3', null, 'The views'),
             h('dl', null,
               h('dt', null, 'Around'), h('dd', null, 'Pick a project or a kyber in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.'),
@@ -1329,9 +1330,13 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       orbit: ['Orbit. ', 'The rings as a stack that turns on its own. Drag to turn it yourself.']
     }
 
+    // The last reading, kept in memory only (gone when the page reloads) so that moving between Settings pages
+    // does not make the user read again. Nothing is ever read until they ask: see `load` below.
+    let LAST = null
     function Atlas (p) {
-      const sp = React.useState({ phase: 'loading', status: {}, result: null }); const st = sp[0]; const setSt = sp[1]
-      const fp = React.useState(null); const focus = fp[0]; const setFocus = fp[1]
+      const sp = React.useState(() => (LAST ? { phase: 'ready', status: LAST.status, result: LAST.result } : { phase: 'idle', status: {}, result: null })); const st = sp[0]; const setSt = sp[1]
+      const fp = React.useState(() => (LAST ? defaultFocus(LAST.result.graph) : null)); const focus = fp[0]; const setFocus = fp[1]
+      const tkp = React.useState(0); const setTick = tkp[1]
       const tp = React.useState('around'); const tab = tp[0]; const setTabRaw = tp[1]
       const selp = React.useState(null); const sel = selp[0]; const setSel = selp[1]
       const hp = React.useState(false); const help = hp[0]; const setHelp = hp[1]
@@ -1354,11 +1359,15 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           if (!alive.current) return
           const failed = SOURCES.filter((s) => r.status[s[0]] && r.status[s[0]].state === 'failed').length
           const g = buildGraph(r.src, Date.now())
-          setSt({ phase: failed === SOURCES.length ? 'error' : 'ready', status: r.status, result: { graph: g, src: r.src, at: Date.now(), failed } })
+          const result = { graph: g, src: r.src, at: Date.now(), failed }
+          if (failed < SOURCES.length) LAST = { status: r.status, result }
+          setSt({ phase: failed === SOURCES.length ? 'error' : 'ready', status: r.status, result })
           setFocus((f) => (f !== null && g.byId[f] !== undefined ? f : defaultFocus(g)))
         }).catch((e) => { if (alive.current) setSt({ phase: 'error', status: {}, result: null }) })
       }, [p.store])
-      React.useEffect(() => { poserCss(); alive.current = true; load(); return () => { alive.current = false } }, [load])
+      // Opening the page reads NOTHING. Reading starts only from the Update button (or Try again).
+      React.useEffect(() => { poserCss(); alive.current = true; return () => { alive.current = false } }, [])
+      React.useEffect(() => { if (!st.result) return undefined; const t = setInterval(() => setTick((x) => x + 1), 30000); return () => clearInterval(t) }, [st.result])
       React.useEffect(() => { if (toast === null) return undefined; const t = setTimeout(() => setToast(null), 2400); return () => clearTimeout(t) }, [toast])
       // Leaving full screen: Escape (captured, because the Settings dialog also closes on Escape) or the browser's own exit.
       React.useEffect(() => {
@@ -1398,7 +1407,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const failedNames = SOURCES.filter((s) => st.status[s[0]] && st.status[s[0]].state === 'failed').map((s) => s[1])
       const skippedMemory = st.status.memory && st.status.memory.state === 'skipped'
       const notes = []
-      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so kybers are not tied to projects. Re-read in a moment.')
+      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so kybers are not tied to projects. Click Update in a moment.')
       if (skippedMemory) notes.push('Memories were not read, so any problem with them is not listed.')
       if (failedNames.length) notes.push(failedNames.join(', ') + (failedNames.length === 1 ? ' was' : ' were') + ' not read, so related problems are not listed.')
       const flyTo = (id) => { setTimeout(() => { if (canvasApi.current) canvasApi.current.fly(id) }, 40) }
@@ -1415,14 +1424,16 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         setSel(id)
         if (hub === null) setTab('list')
       }
-      const builtTxt = loading ? 'Reading…' : st.phase === 'error' ? 'Could not read' : partial ? 'Read just now · ' + (SOURCES.length - failedNames.length - (skippedMemory ? 1 : 0)) + ' of ' + SOURCES.length + ' sources' : 'Read just now'
-      const dotT = loading || st.phase === 'loading' ? 'busy' : st.phase === 'error' ? 'err' : partial ? 'warn' : undefined
+      const when = st.result ? readAgo(st.result.at, Date.now()) : ''
+      const builtTxt = st.phase === 'loading' ? 'Reading…' : st.phase === 'idle' ? 'Not read yet' : st.phase === 'error' ? 'Could not read' : partial ? 'Read ' + when + ' · ' + (SOURCES.length - failedNames.length - (skippedMemory ? 1 : 0)) + ' of ' + SOURCES.length + ' sources' : 'Read ' + when
+      const dotT = st.phase === 'loading' ? 'busy' : st.phase === 'idle' ? 'idle' : st.phase === 'error' ? 'err' : partial ? 'warn' : undefined
       const empty = g && g.nodes.length === 0
       const card = (float) => (sel && nodeOf(sel) ? h(DetailCard, { graph: g, extra: data ? data.model : null, id: sel, tab, focus, float, hideLinked: tab === 'around', onClose: () => setSel(null), onGo: showNode, onFocus: (id) => { setFocus(id); setTab('around') }, onFly: isCanvas ? () => flyTo(sel) : null, onToast: setToast }) : null)
       let body
       if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, 'Reading the Atlas'), h('p', null, 'Reading seven sources on this computer. Nothing leaves it.'), h(SourceList, { status: st.status }))
       else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, 'The Atlas could not be read'), h('p', null, 'None of the sources answered. DSH may be restarting. Wait a moment, then try again.'), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Try again'))
-      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add kybers, skills, automations and memories. Create a kyber or install a skill, then come back and re-read.'))
+      else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing read yet'), h('p', null, 'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing.'), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Update'))
+      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add kybers, skills, automations and memories. Create a kyber or install a skill, then click Update.'))
       else {
         const cap = CAPTION[tab]
         body = h('div', { className: 'kbat-body' },
@@ -1452,7 +1463,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
             h('button', { type: 'button', className: 'kbat-btn', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, 'Help'),
-            h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, 'Re-read'))),
+            h('button', { type: 'button', className: 'kbat-btn', onClick: load, disabled: st.phase === 'loading' }, 'Update'))),
         partial ? h('div', { className: 'kbat-banner', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': 'warn' }), h('span', { className: 'kbat-sp' },
           skippedMemory && failedNames.length === 0 ? h(React.Fragment, null, h('b', null, 'Memories were skipped. '), 'They live in your kybernos.app account, which is not linked. The other sources were read.')
             : h(React.Fragment, null, h('b', null, failedNames.join(', ') + ' did not answer. '), 'The rest is shown.')),
@@ -1485,7 +1496,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
     }
     Object.defineProperty(model, '__test', {
       enumerable: false,
-      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx }
+      value: { normSkills, normLoad, normState, normMemory, normTasks, normApps, normWorkspaces, buildGraph, hubOf, aroundSet, aroundModel, listRows, pickerItems, defaultFocus, daysSince, ago, cut, firstSentence, canvasModel, canvasLayouts, runForce, CANVAS_VIEWS, LAYERS, RING_R, TL, tlx, readAgo }
     })
     return model
   }

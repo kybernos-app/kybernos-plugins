@@ -245,6 +245,16 @@ check('ago wording', T.ago(0) === 'today' && T.ago(1) === 'yesterday' && T.ago(1
 check('cut adds an ellipsis only when needed', T.cut('short', 10) === 'short' && T.cut('x'.repeat(20), 10).length === 10)
 check('firstSentence', T.firstSentence('Roles: lead. Then more.') === 'Roles: lead')
 
+console.log('\n── nothing is read until the user asks ──')
+{
+  const mount = SOURCE.split('\n').filter((l) => l.includes('poserCss()') && l.includes('React.useEffect'))
+  check('the mount effect exists and never calls load()', mount.length === 1 && !/\bload\(/.test(mount[0]), mount)
+  check('readAll is only called from load, and load only from buttons', (SOURCE.match(/readAll\(/g) || []).length === 1 && !/useEffect\([^)]*load\(\)/.test(SOURCE))
+  check('a first visit starts idle, not loading', /\{ phase: 'idle', status: \{\}, result: null \}/.test(SOURCE) && !/useState\(\{ phase: 'loading'/.test(SOURCE))
+  check('the header button says Update, the first screen offers Update', SOURCE.includes("}, 'Update'))),") && SOURCE.includes("onClick: load }, 'Update'"))
+  check('readAgo: just now, minutes, hours, days', T.readAgo(1000, 1000 + 20000) === 'just now' && T.readAgo(0, 5 * 60000) === '5 min ago' && T.readAgo(0, 3 * 3600000) === '3 h ago' && T.readAgo(0, 86400000) === '1 day ago' && T.readAgo(0, 4 * 86400000) === '4 days ago')
+}
+
 console.log('\n── what the page may not do ──')
 const verbs = SOURCE.match(/method:\s*'([A-Z]+)'/g) || []
 check('the only explicit non-GET verb is POST', verbs.every((v) => v.includes("'POST'")))
