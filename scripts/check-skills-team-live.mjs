@@ -353,7 +353,11 @@ try {
     await clickBtn('.kbs-root .kbsub-group', 'Yours'); await sleep(300)
     await clickBtn('.kbs-root .kbsub-group', 'Team'); await sleep(900)
     check('locked "' + code + '" explains itself and offers a way back', want.test(await text('.kb8-page')) && /Back to Yours/.test(await text('.kb8-page')), await text('.kb8-page'))
-    if (code === 'offre_requise') await shot('7-locked')
+    const link = (await page.evalJs(`(() => { const a = Array.from(document.querySelectorAll('.kb8-page a')).find((x) => /Team plan/.test(x.innerText)); return a ? { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel') } : null })()`)).val
+    if (code === 'offre_requise') {
+      check('the plan lock offers the plans page, in a new tab, without handing the opener over', link !== null && link.href === 'https://kybernos.app/billing' && link.target === '_blank' && /noopener/.test(link.rel), link)
+      await shot('7-locked')
+    } else check('"' + code + '" does not send anyone to the plans page', link === null, link)
   }
   check('the lock shows on the segment', (await page.evalJs(`!!document.querySelector('.kbs-root .kbsub-group .kb-seg:nth-child(3) svg')`)).val === true)
   fx.lock = null
