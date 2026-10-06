@@ -91,14 +91,15 @@ try {
   answer = () => ({ status: 502, body: { message: 'index unavailable' } })
   const down = await mod.indexSkills({ view: 'hot', page: '0', perPage: '5' })
   assert.equal(down.ok, false)
-  assert.equal(down.error, 'index unavailable')
+  assert.deepEqual([down.error, down.http, down.detail], ['index_unavailable', 502, 'index unavailable'], 'a code, the status, and the relay\'s own message')
   answer = () => ({ status: 200, body: { data: [hit('back', 1)], pagination: { total: 1, hasMore: false } } })
   const back = await mod.indexSkills({ view: 'hot', page: '0', perPage: '5' })
   assert.equal(back.ok, true, 'a failure is never cached')
   assert.equal(back.skills[0].name, 'back')
   answer = () => ({ status: 503, body: 'not json' })
   mod.resetDiscoverCache()
-  assert.match((await mod.indexSkills({ view: 'all-time', page: '9', perPage: '5' })).error, /index indisponible \(503\)/)
+  const noJson = await mod.indexSkills({ view: 'all-time', page: '9', perPage: '5' })
+  assert.deepEqual([noJson.error, noJson.http, noJson.detail], ['index_unavailable', 503, undefined], 'no JSON body: the code and the status, no message')
   ok('a relay failure is reported in its own words, a non-JSON failure gets a generic one, and neither is cached')
 
   // 6. The address: default, override, and a refused override.
@@ -111,7 +112,7 @@ try {
     const before = seen.length
     const refused = await mod.indexSkills({ view: 'all-time', page: '0', perPage: '1' })
     assert.equal(refused.ok, false, bad)
-    assert.match(refused.error, /KYBERNOS_SKILLS_INDEX_URL refusee/, bad)
+    assert.equal(refused.error, 'index_url_refused', bad)
     assert.equal(seen.length, before, bad + ' must not send anything')
   }
   ok('an override that is not https (or loopback http), carries credentials or a query, or is not a URL is refused, not replaced by the default')

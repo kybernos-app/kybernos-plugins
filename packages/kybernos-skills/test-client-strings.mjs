@@ -66,4 +66,24 @@ for (const reason of ['binary', 'file_too_large', 'too_many_files', 'too_large',
 }
 ok('each reason a skill cannot be shared (picture, size, count, name, path, frontmatter, missing SKILL.md) has a sentence')
 
+// 6. the older routes (list, toggle, install, create, discover, audit) answer in CODES, and the screen words each one in both languages
+//    (`he.<code>`). Before, the host wrote French sentences, which an English user read as they were.
+const outsideTeam = host.slice(0, host.indexOf('// ── TEAM SKILLS')) + host.slice(host.indexOf('// ── CREATION'))
+const literal = [...outsideTeam.matchAll(/\berror: ('(?:[^'\\\n]|\\.)*')/g)].map((m) => m[1].slice(1, -1))
+assert.ok(literal.length > 25, 'the codes of the older routes were read (' + literal.length + ')')
+const notCodes = literal.filter((w) => /^[a-z][a-z0-9_]*$/.test(w) === false)
+assert.deepEqual(notCodes, [], 'an answer that is a sentence, not a code: ' + notCodes.join(' | '))
+assert.deepEqual([...outsideTeam.matchAll(/\berror: '[a-z_]+' \+/g)].map((m) => m[0]), [], 'a code with text glued to it')
+// Codes the host builds without writing `error: '…'` (a ternary, a thrown word): named here, and checked to be in the source.
+const built = ['timeout', 'network_unavailable', 'not_github', 'body_too_large']
+for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longer in the host: drop it from this list')
+const codes = new Set([...literal, ...built])
+// Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
+const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable'])
+const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))
+assert.deepEqual(noHe, [], 'host codes with no sentence on the screen: ' + noHe.join(', '))
+const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(k.slice(3)))
+assert.deepEqual(orphan, [], 'sentences for a code the host never sends: ' + orphan.join(', '))
+ok('the older routes answer in codes (' + codes.size + '), and every one the page can show has a French and an English sentence')
+
 console.log('\n' + pass + ' verifications OK')

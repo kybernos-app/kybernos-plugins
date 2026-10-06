@@ -27,7 +27,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 
 ## Host routes
 
-All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, error}`.
+All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, error}`, where `error` is a snake_case **code** (`invalid_name`, `root_not_allowed`, `index_unavailable`…) plus the facts its sentence needs (`source`, `name`, `http`, `max`…). The host never words a refusal: the screen does, in French and English (`he.<code>` in `client.js`; `test-client-strings.mjs` fails on a code without a sentence).
 
 | Route | Does |
 | --- | --- |

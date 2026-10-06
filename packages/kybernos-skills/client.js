@@ -96,6 +96,38 @@ window.__ModuleLoader__.load({
         'err.audit': { fr: 'audit indisponible', en: 'audit unavailable' },
         'err.create': { fr: 'création impossible', en: 'creation failed' },
         'err.install': { fr: 'installation impossible', en: 'installation failed' },
+        'he.root_not_allowed': { fr: 'Ce dossier n’est pas l’un de vos dossiers de skills modifiables.', en: 'That folder is not one of your writable skills folders.' },
+        'he.invalid_name': { fr: 'Nom invalide : minuscules, chiffres et tirets, sans accent.', en: 'Invalid name: lowercase letters, digits and hyphens, no accents.' },
+        'he.active_required': { fr: 'L’état à appliquer (actif ou non) est absent.', en: 'The state to apply (on or off) is missing.' },
+        'he.skill_not_found': { fr: 'Skill introuvable.', en: 'Skill not found.' },
+        'he.skill_ambiguous': { fr: 'Plusieurs dossiers portent ce nom : impossible de choisir.', en: 'Several folders have this name: cannot choose.' },
+        'he.double_marker': { fr: 'SKILL.md et SKILL.md.disabled existent tous deux : état ambigu, rien n’a été renommé.', en: 'Both SKILL.md and SKILL.md.disabled exist: the state is ambiguous, nothing was renamed.' },
+        'he.path_outside_root': { fr: 'Chemin hors du dossier de skills : refusé.', en: 'Path outside the skills folder: refused.' },
+        'he.real_path_outside_root': { fr: 'Le chemin réel sort du dossier de skills : refusé.', en: 'The real path leaves the skills folder: refused.' },
+        'he.timeout': { fr: 'Délai dépassé.', en: 'Timed out.' },
+        'he.network_unavailable': { fr: 'Réseau indisponible.', en: 'Network unavailable.' },
+        'he.index_url_refused': { fr: 'KYBERNOS_SKILLS_INDEX_URL refusée (https, ou http sur la boucle locale).', en: 'KYBERNOS_SKILLS_INDEX_URL refused (https, or http on loopback).' },
+        'he.index_unavailable': { fr: 'Index indisponible (HTTP {http}).', en: 'Index unavailable (HTTP {http}).' },
+        'he.query_too_short': { fr: 'Recherche : au moins 2 caractères.', en: 'Search: at least 2 characters.' },
+        'he.invalid_source': { fr: 'Source invalide (attendu : propriétaire/dépôt).', en: 'Invalid source (expected owner/repo).' },
+        'he.not_github': { fr: 'Source non GitHub ({source}) : cette route n’installe que depuis un dépôt GitHub.', en: 'Not a GitHub source ({source}): this route only installs from a GitHub repository.' },
+        'he.already_installed': { fr: 'Un skill de ce nom est déjà installé dans ce dossier.', en: 'A skill with this name is already installed in this folder.' },
+        'he.repo_not_found': { fr: 'Dépôt introuvable : {source}.', en: 'Repository not found: {source}.' },
+        'he.download_failed': { fr: 'Téléchargement impossible (HTTP {http}).', en: 'Download failed (HTTP {http}).' },
+        'he.tar_missing': { fr: 'tar est introuvable sur cette machine : extraction impossible.', en: 'tar is not available on this machine: cannot extract.' },
+        'he.archive_unreadable': { fr: 'Archive illisible.', en: 'Unreadable archive.' },
+        'he.skill_not_in_repo': { fr: 'Skill « {name} » introuvable dans {source}.', en: 'Skill “{name}” not found in {source}.' },
+        'he.repo_ambiguous': { fr: '{count} dossiers de {source} portent ce nom.', en: '{count} folders of {source} have this name.' },
+        'he.copy_incomplete': { fr: 'Copie incomplète : SKILL.md absent.', en: 'Incomplete copy: SKILL.md is missing.' },
+        'he.description_required': { fr: 'Une description est requise.', en: 'A description is required.' },
+        'he.description_too_long': { fr: 'Description trop longue ({max} caractères au plus).', en: 'Description too long ({max} characters at most).' },
+        'he.exists': { fr: 'Un skill de ce nom existe déjà dans ce dossier.', en: 'A skill with this name already exists in this folder.' },
+        'he.write_failed': { fr: 'Écriture impossible dans {dest}.', en: 'Could not write to {dest}.' },
+        'he.origin_refused': { fr: 'Origine refusée.', en: 'Origin refused.' },
+        'he.request_failed': { fr: 'Requête impossible.', en: 'The request failed.' },
+        'he.body_too_large': { fr: 'Requête trop volumineuse.', en: 'The request is too large.' },
+        'he.root_missing': { fr: 'Le dossier est absent de la requête.', en: 'The folder is missing from the request.' },
+        'he.skill_not_in_registry': { fr: 'Skill introuvable dans le registre.', en: 'Skill not found in the registry.' },
         'notice.featOn': { fr: '« {name} » mis en avant (Featured)', en: '“{name}” added to Featured' },
         'notice.featOff': { fr: '« {name} » retiré de Featured', en: '“{name}” removed from Featured' },
         'notice.off': { fr: '« {name} » désactivé', en: '“{name}” disabled' },
@@ -284,6 +316,7 @@ window.__ModuleLoader__.load({
         'tm.lock.other.t': { fr: 'Les skills d’équipe ne répondent pas', en: 'Team skills are not answering' },
         'tm.retry': { fr: 'Réessayer', en: 'Try again' },
         'tm.back': { fr: 'Retour à Yours', en: 'Back to Yours' },
+        'tm.seePlan': { fr: 'Voir le plan Team', en: 'See the Team plan' },
         'tm.det.back': { fr: 'Skills d’équipe', en: 'Team skills' },
         'tm.det.approvedBy': { fr: 'Ajouté par {a} le {d}, approuvé par {r}.', en: 'Added by {a} on {d}, approved by {r}.' },
         'tm.det.proposedBy': { fr: 'Proposé par {a} le {d}.', en: 'Proposed by {a} on {d}.' },
@@ -721,7 +754,15 @@ window.__ModuleLoader__.load({
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify(corpsSession(body))
       }).then(lire)
-      const why = (j, fallback) => (j !== null && j !== undefined && typeof j.error === 'string' && j.error !== '') ? j.error : fallback
+      // A host answer is a code in `error`, with the facts its sentence needs (`source`, `name`, `http`…): the sentence is the screen's, in the
+      // screen's language. A code with no sentence (a host from before this change answers in French) is shown as it came.
+      const why = (j, fallback) => {
+        const code = (j !== null && j !== undefined && typeof j.error === 'string') ? j.error : ''
+        if (code === '') return fallback
+        if (STR['he.' + code] === undefined) return code
+        const text = t('he.' + code, { source: j.source, name: j.name, http: j.http, count: j.count, max: j.max, dest: j.dest })
+        return typeof j.detail === 'string' && j.detail !== '' ? text + ' — ' + j.detail : text
+      }
       const skillKey = (s) => String(s.root) + '\u0000' + String(s.name)
 
       function KybernosSkills(props) {
@@ -1664,6 +1705,9 @@ window.__ModuleLoader__.load({
       }))
 
       // Why the Team tab shows nothing to do: not signed in, not on the plan, no team workspace, not on this server…
+      // The page of the plans (the app's /billing route shows the plans grid). Opened in a new tab: this screen stays where it is.
+      const TEAM_PLAN_URL = 'https://kybernos.app/billing'
+
       function TeamLocked(props) {
         const kind = props.kind
         const known = ['plan', 'signin', 'space', 'server', 'reconnect', 'net'].indexOf(kind) >= 0
@@ -1672,6 +1716,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kb8-name' }, t(known ? 'tm.lock.' + kind + '.t' : 'tm.lock.other.t')),
           h('span', { className: 'kb8-parent', style: { maxWidth: '520px' } }, known ? t('tm.lock.' + kind + '.b') : (props.detail || '')),
           h('div', { className: 'kb-row', style: { justifyContent: 'center' } },
+            kind === 'plan' ? h('a', { className: 'kb8-primary', href: TEAM_PLAN_URL, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, t('tm.seePlan')) : null,
             retriable ? h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onRetry }, t('tm.retry')) : null,
             h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onBack }, t('tm.back'))))
       }
