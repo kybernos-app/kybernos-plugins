@@ -2562,6 +2562,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'kbr-page', 'data-kbr': 'bloc' },
         // (28/09, audit) Titre de page 26px comme Thème/Maintenance/Outils —
         // le h4 natif (16px) était le seul petit titre de page du dialog.
+        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-sessions' }) : null)),
         h('h4', { className: 'kb6-title', style: { fontSize: natif ? undefined : '26px' } }, 'Kybernos Settings'),
         // ── tout en haut : rejouer l'onboarding ──────────────────────────────
         // Le wizard vit dans le bundle @local/kybernos : on ne fait qu'émettre

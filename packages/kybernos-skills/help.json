@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents peuvent charger. Listez-les, activez-les, créez-en, ou installez-en depuis GitHub et skills.sh.",
+    "en": "Your skills: reusable instructions your agents can load. List them, switch them on, create some, or install them from GitHub and skills.sh."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez « Compétences » dans le menu Kybernos : l’onglet « Yours » liste vos skills (recherche, filtres, interrupteur actif / inactif).",
+      "en": "Open “Skills” in the Kybernos menu: the “Yours” tab lists your skills, with search, filters and an on / off switch."
+    },
+    {
+      "fr": "« Créer un skill » (nom, description, quand l’utiliser, contenu) ou « Importer depuis GitHub » (dépôt owner/repo et nom du skill).",
+      "en": "“Create a skill” (name, description, when to use, content) or “Import from GitHub” (owner/repo and the skill’s name)."
+    },
+    {
+      "fr": "L’onglet « Discover » classe les skills publics de skills.sh : ouvrez une fiche, lisez ses audits de sécurité, puis « Installer ».",
+      "en": "The “Discover” tab ranks the public skills of skills.sh: open one, read its security audits, then “Install”."
+    },
+    {
+      "fr": "Sur une carte, le bouton « /nom » copie l’appel du skill à coller dans la zone de saisie du chat.",
+      "en": "On a card, the “/name” button copies the skill’s call to paste in the chat box."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale › Kybernos › Compétences",
+    "en": "Sidebar › Kybernos › Skills",
+    "page": true
+  },
+  "good": {
+    "fr": "Un skill installé depuis Internet est écrit par un tiers : DSH ne le vérifie pas, lisez ses audits. Sans accès à skills.sh, « Discover » reste vide, mais « Yours » et l’import GitHub marchent.",
+    "en": "A skill installed from the internet is written by a third party: DSH does not check it, so read its audits. Without access to skills.sh, “Discover” stays empty, but “Yours” and GitHub import still work."
+  }
+}

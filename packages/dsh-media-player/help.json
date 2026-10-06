@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Lit un fichier audio ou vidéo dans la barre latérale droite, au lieu du message « aperçu non disponible ».",
+    "en": "Plays an audio or video file in the right sidebar, instead of the “preview not available” message."
+  },
+  "steps": [
+    {
+      "fr": "Dans la barre latérale droite, ouvrez l'onglet « Files » et cliquez un fichier son ou vidéo (mp3, wav, mp4, webm…).",
+      "en": "In the right sidebar, open the “Files” tab and click a sound or video file (mp3, wav, mp4, webm…)."
+    },
+    {
+      "fr": "Le lecteur s'ouvre sur place, avec le nom et la taille du fichier.",
+      "en": "The player opens in place, with the file's name and size."
+    },
+    {
+      "fr": "Utilisez les commandes habituelles : lecture, pause, position, volume.",
+      "en": "Use the usual controls: play, pause, position, volume."
+    },
+    {
+      "fr": "« Ouvrir à part » permet d'ouvrir ou d'enregistrer le fichier en dehors de la page.",
+      "en": "“Open separately” lets you open or save the file outside the page."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale droite › onglet « Files » : cliquez un fichier audio ou vidéo",
+    "en": "Right sidebar › “Files” tab: click an audio or video file",
+    "page": false
+  },
+  "good": {
+    "fr": "Le fichier est lu en entier avant de démarrer. Si le navigateur ne sait pas décoder le format (souvent mkv, avi ou wmv), un message s'affiche à la place du lecteur.",
+    "en": "The whole file is read before playing. If the browser cannot decode the format (often mkv, avi or wmv), a message replaces the player."
+  }
+}

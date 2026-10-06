@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Choisit, pour chaque étape déléguée, le meilleur modèle de votre liste après avoir vérifié qu’il répond, avec des modèles de repli si l’un tombe en panne.",
+    "en": "Picks, for each delegated step, the best model from your list after checking that it answers, with fallback models if one goes down."
+  },
+  "steps": [
+    {
+      "fr": "Dans la « Whitelist », saisissez des modèles au format fournisseur/modèle puis « Ajouter » : leur ordre est l’ordre de repli.",
+      "en": "In the “Whitelist”, type models as provider/model then “Add”: their order is the fallback order."
+    },
+    {
+      "fr": "Dans la zone de saisie, ouvrez le menu du modèle : la ligne « Auto » a un interrupteur « Cette session seulement ».",
+      "en": "In the message box, open the model menu: the “Auto” row has a “This session only” switch."
+    },
+    {
+      "fr": "Une fois activé, le sélecteur affiche « Auto » et une pastille dit combien de modèles sont disponibles (« 3 sur 4 modèles disponibles »).",
+      "en": "Once on, the model chip reads “Auto” and a pill shows how many models are available (“3 of 4 models available”)."
+    },
+    {
+      "fr": "Dans « Santé locale », « Vérifier maintenant » teste chaque modèle pour de vrai et dit pourquoi l’un d’eux est écarté.",
+      "en": "In “Local health”, “Check now” really tests each model and says why one of them is skipped."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Auto Routing",
+    "en": "Settings › Auto Routing",
+    "page": true
+  },
+  "good": {
+    "fr": "Auto ne change jamais le modèle de votre session : il ne conseille un modèle à l’agent que pour les étapes qu’il délègue, toujours dans votre liste. Liste vide : le modèle de la session est gardé.",
+    "en": "Auto never changes your session’s model: it only advises the agent on a model for the steps it delegates, always from your list. Empty list: the session’s model is kept."
+  }
+}

@@ -97,7 +97,7 @@ const openSession = async () => {
   for (let i = 0; i < 24 && !found; i += 1) {
     await sleep(500)
     if ((await val(`/Add an API key to get started/.test(document.body.innerText)`)) === true) { await clickText(page, 'Configure later'); await sleep(700); continue }
-    found = (await val(`/kybernos-plugins/.test(document.body.innerText) && /Changes check/.test(document.body.innerText)`)) === true
+    found = (await val(`/Changes check/.test(document.body.innerText)`)) === true
   }
   if (!found && !(await createSession())) return false
   if (await hasComposer()) return true // creating it opened it
@@ -145,7 +145,8 @@ try {
   await shot('1-real-dev')
   await val(`document.querySelector('[data-act="mode-simple"]').click()`)
   await closeCard()
-  check('no POST was made by just looking', posts.length === 0, posts)
+  // (DSH's own classifier may post a session's category to /decision: that is not an action of the chip.)
+  check('no action was posted by just looking', posts.filter((x) => !/\/decision$/.test(x.path)).length === 0, posts)
 
   // ═══ 2. every state ═══════════════════════════════════════════════════════════════════════════════════════════════
   console.log('\n── 2. every state, through the seam ──')

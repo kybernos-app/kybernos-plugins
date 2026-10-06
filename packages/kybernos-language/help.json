@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Traduit l’interface de Kybernos et celle de DSH dans la langue de votre choix, avec un modèle déjà configuré. L’arabe ou l’hébreu inversent aussi le sens de lecture.",
+    "en": "Translates the Kybernos and DSH interface into the language you choose, using a model you already set up. Arabic or Hebrew also flip the reading direction."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez « Ajouter une langue », cherchez-la (ex. Español) et choisissez-la dans la liste.",
+      "en": "Open “Add a language”, search for it (e.g. Español) and pick it from the list."
+    },
+    {
+      "fr": "Appuyez sur « Démarrer la traduction » et gardez l’onglet ouvert : un rond en bas de la barre latérale suit l’avancement.",
+      "en": "Press “Start translation” and keep the tab open: a ring at the bottom of the sidebar shows progress."
+    },
+    {
+      "fr": "« Mettre en pause » puis « Reprendre la traduction » quand vous voulez : ce qui est déjà traduit est conservé.",
+      "en": "“Pause”, then “Resume translation” whenever you like: what is already translated is kept."
+    },
+    {
+      "fr": "Dès que l’essentiel est prêt, « Utiliser maintenant » ; sinon « Utiliser » à la fin. La page se recharge dans la nouvelle langue.",
+      "en": "As soon as the essentials are ready, “Use now”; otherwise “Use” at the end. The page reloads in the new language."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Langue",
+    "en": "Settings › Language",
+    "page": true
+  },
+  "good": {
+    "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de vos conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
+    "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
+  }
+}

@@ -6,7 +6,7 @@
 // scripts/lifecycle-packages.json, socle/tier/default-state from docs/beta/satellites.json,
 // the version from each package.json. Only the family and the one-line promise (fr/en)
 // are written here, once, because nothing else knows them.
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -38,7 +38,7 @@ const FICHE = {
   'kybernos-models': ['models', 'Catalogue de modèles : recherche, comparaison, prix.', 'Model catalogue: search, compare, prices.'],
   'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
   'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de votre liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
-  'kybernos-flow': ['teams', 'Reprise des tours coupés, file d’attente réordonnable, barre Goal.', 'Resume cut turns, reorderable queue, Goal bar.'],
+  'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
   'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
   'kybernos-atlas': ['teams', 'La carte de votre espace : projets, kybers, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, kybers, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
@@ -159,8 +159,43 @@ const VEDETTES = {
   }
 }
 
-/** Pure: assemble the catalogue from the three sources of truth. */
-export function construireCatalogue ({ lifecycle, satellites, versions }) {
+// ── The help of a module: packages/<dir>/help.json, one per bundle ────────────────────────────────────────────────────
+// What it is, how to use it in a few steps, where to find it, one thing worth knowing — in French and in English. The
+// Suite shows it on the module's page and the « ? How it works » button of any plugin page shows the same text, so it is
+// written once, here, and read from the catalogue. A bundle without a valid help.json fails the build (and CI).
+const AIDE_LIMITES = { what: 200, step: 140, good: 220, where: 120 }
+// Words a person who is not a developer does not know: the help is for them.
+const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b/i
+
+/** Pure: a help.json, checked. Throws a message that names the bundle and the field. */
+export function validerAide (dir, brut) {
+  const faute = (m) => { throw new Error('help.json of "' + dir + '": ' + m) }
+  if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) faute('not an object')
+  const permis = ['what', 'steps', 'where', 'good']
+  for (const k of Object.keys(brut)) if (!permis.includes(k)) faute('unknown field "' + k + '" (expected ' + permis.join(', ') + ')')
+  const paire = (v, champ, max) => {
+    if (v === null || typeof v !== 'object') faute(champ + ' must be { fr, en }')
+    for (const l of ['fr', 'en']) {
+      const t = v[l]
+      if (typeof t !== 'string' || t.trim() === '') faute(champ + '.' + l + ' is empty')
+      if (t.length > max) faute(champ + '.' + l + ' is ' + t.length + ' characters, the limit is ' + max)
+      if (JARGON.test(t)) faute(champ + '.' + l + ' uses a word the user does not know (' + (JARGON.exec(t) || [''])[0] + ')')
+      if (/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(t)) faute(champ + '.' + l + ' has an emoji')
+    }
+    return { fr: v.fr.trim(), en: v.en.trim() }
+  }
+  const what = paire(brut.what, 'what', AIDE_LIMITES.what)
+  if (!Array.isArray(brut.steps) || brut.steps.length < 2 || brut.steps.length > 4) faute('steps must hold 2 to 4 entries')
+  const steps = brut.steps.map((e, i) => paire(e, 'steps[' + i + ']', AIDE_LIMITES.step))
+  const w = paire(brut.where, 'where', AIDE_LIMITES.where)
+  if (typeof brut.where.page !== 'boolean') faute('where.page must be true or false')
+  const out = { what, steps, where: { ...w, page: brut.where.page } }
+  if (brut.good !== undefined) out.good = paire(brut.good, 'good', AIDE_LIMITES.good)
+  return out
+}
+
+/** Pure: assemble the catalogue from the sources of truth. `aides` = { <dir>: help.json parsed }. */
+export function construireCatalogue ({ lifecycle, satellites, versions, aides }) {
   const parNom = new Map()
   for (const b of satellites?.socle?.bundles ?? []) parNom.set(b.nom, { ...b, socle: true })
   for (const b of satellites?.satellites?.bundles ?? []) parNom.set(b.nom, { ...b, socle: false })
@@ -172,6 +207,7 @@ export function construireCatalogue ({ lifecycle, satellites, versions }) {
     const version = versions?.[p.dir]
     if (typeof version !== 'string') throw new Error('catalog: no version for "' + p.dir + '"')
     const v = VEDETTES[p.dir]
+    if (aides !== undefined && aides[p.dir] === undefined) throw new Error('catalog: "' + p.dir + '" has no help.json — write packages/' + p.dir + '/help.json (see validerAide in scripts/build-catalog.mjs for the shape)')
     return {
       id: p.dir,
       nom: p.nom,
@@ -184,6 +220,7 @@ export function construireCatalogue ({ lifecycle, satellites, versions }) {
       defaut: s.defaut === 'actif' ? 'actif' : null,
       poids_ko: typeof s.poids_ko === 'number' ? s.poids_ko : null,
       promesse: { fr: f[1], en: f[2] },
+      ...(aides === undefined ? {} : { aide: validerAide(p.dir, aides[p.dir]) }),
       ...(v === undefined ? {} : { vedette: Object.keys(VEDETTES).indexOf(p.dir) + 1, accroche: v.accroche, description: v.description, points: v.points })
     }
   })
@@ -200,7 +237,9 @@ export function catalogueDuDepot () {
   const lifecycle = lire('scripts', 'lifecycle-packages.json')
   const versions = {}
   for (const p of lifecycle.packages) versions[p.dir] = lire('packages', p.dir, 'package.json').version
-  return construireCatalogue({ lifecycle, satellites: lire('docs', 'beta', 'satellites.json'), versions })
+  const aides = {}
+  for (const p of lifecycle.packages) if (existsSync(join(REPO, 'packages', p.dir, 'help.json'))) aides[p.dir] = lire('packages', p.dir, 'help.json')
+  return construireCatalogue({ lifecycle, satellites: lire('docs', 'beta', 'satellites.json'), versions, aides })
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

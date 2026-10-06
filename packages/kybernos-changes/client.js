@@ -362,11 +362,12 @@ html[dir="rtl"] .kbch-card{left:auto;right:0;text-align:right}
         // Escape and a click elsewhere close the card.
         React.useEffect(() => {
           if (!open) return undefined
-          const esc = (e) => { if (e.key === 'Escape') setOpen(false) }
+          // In capture, and only while the card is open: Escape closes the card and nothing else (the chat may stop a reply on it).
+          const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false) } }
           const away = (e) => { if (wrap.current !== null && !wrap.current.contains(e.target)) setOpen(false) }
-          document.addEventListener('keydown', esc)
+          window.addEventListener('keydown', esc, true)
           document.addEventListener('mousedown', away)
-          return () => { document.removeEventListener('keydown', esc); document.removeEventListener('mousedown', away) }
+          return () => { window.removeEventListener('keydown', esc, true); document.removeEventListener('mousedown', away) }
         }, [open])
 
         // The card opens above the chip, flush with its left edge: in a narrow window it would run out on the right.

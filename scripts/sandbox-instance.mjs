@@ -17,6 +17,7 @@
 //   KB_HOST=127.0.0.1:3091 DSH_HOME=<root>/.dsh HOME=<root> node scripts/check-changes-live.mjs
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, readlinkSync, rmSync, symlinkSync, writeFileSync, copyFileSync, openSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -99,6 +100,19 @@ function setup (name) {
   })
   writeFileSync(join(profile, 'package.json'), JSON.stringify(out.packageJson, null, 2) + '\n')
   if (out.lockText !== '') writeFileSync(join(profile, 'pnpm-lock.yaml'), out.lockText)
+  // One workspace, this checkout: a chat started in the sandbox then lives in a git folder, which is what the git chip needs.
+  mkdirSync(join(dsh, 'storages'), { recursive: true })
+  const now = new Date().toISOString()
+  writeFileSync(join(dsh, 'storages', 'workspace.json'), JSON.stringify({
+    unit: { name: 'workspace', version: 2 },
+    global: { initialized: true, workspaceIds: [], archivedSessionIds: [], pinnedSessionIds: [] },
+    tables: { workspaces: {} }
+  }))
+  const wid = randomUUID()
+  const ws = JSON.parse(readFileSync(join(dsh, 'storages', 'workspace.json'), 'utf8'))
+  ws.global.workspaceIds.push(wid)
+  ws.tables.workspaces[wid] = { path: REPO, title: basename(REPO), sessionIds: [], createdAt: now, updatedAt: now }
+  writeFileSync(join(dsh, 'storages', 'workspace.json'), JSON.stringify(ws))
   const ob = join(realHome(), 'kybernos', 'onboarding.json')
   if (existsSync(ob)) copyFileSync(ob, join(dsh, 'kybernos', 'onboarding.json'))
   console.log('✓ sandbox ready: ' + root)
@@ -107,7 +121,7 @@ function setup (name) {
 
 const envLine = (name, port) => { const { root, dsh } = roots(name); return 'KB_HOST=127.0.0.1:' + port + ' DSH_HOME=' + dsh + ' HOME=' + root }
 const pidsOf = (port) => {
-  const r = spawnSync('pgrep', ['-f', '--port ' + port + ' '], { encoding: 'utf8' })
+  const r = spawnSync('pgrep', ['-f', '--', '--port ' + port + ' '], { encoding: 'utf8' }) // `--`: the pattern itself starts with dashes
   return String(r.stdout || '').split('\n').map((x) => parseInt(x, 10)).filter((n) => Number.isFinite(n) && n !== process.pid)
 }
 

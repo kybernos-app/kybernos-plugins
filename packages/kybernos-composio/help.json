@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Relie vos applications (Slack, GitHub…) à vos agents avec votre propre clé Composio : un catalogue d'apps, chacune se connecte en un clic.",
+    "en": "Links your apps (Slack, GitHub…) to your agents with your own Composio key: a catalogue of apps, each one connected in a click."
+  },
+  "steps": [
+    {
+      "fr": "Créez une clé sur dashboard.composio.dev, collez-la dans Réglages › Plugins › kybernos-composio, puis « Enregistrer ».",
+      "en": "Create a key on dashboard.composio.dev, paste it in Settings › Plugins › kybernos-composio, then click “Save”."
+    },
+    {
+      "fr": "Pour que les agents du chat l'utilisent aussi, recopiez la clé comme l'indique le panneau, puis redémarrez DSH.",
+      "en": "So the chat agents can use it too, copy the key as the panel explains, then restart DSH."
+    },
+    {
+      "fr": "Ouvrez Kybernos › Connecteurs › « Découvrir », choisissez une app puis « Ajouter une connexion ».",
+      "en": "Open Kybernos › Connectors › “Discover”, pick an app, then “Add a connection”."
+    },
+    {
+      "fr": "Autorisez l'accès dans l'onglet qui s'ouvre : l'app passe à « Connecté » dans « Vos connexions ».",
+      "en": "Authorize access in the tab that opens: the app shows as “Connected” under “Yours”."
+    }
+  ],
+  "where": {
+    "fr": "Kybernos (barre latérale) › Connecteurs ; la clé : Réglages › Plugins › kybernos-composio",
+    "en": "Kybernos (sidebar) › Connectors; the key: Settings › Plugins › kybernos-composio",
+    "page": true
+  },
+  "good": {
+    "fr": "Votre clé reste sur votre machine et ne sert qu'à parler à Composio. Une app n'est reliée qu'après votre autorisation ; un connecteur personnalisé ne marche qu'après un redémarrage de DSH.",
+    "en": "Your key stays on your machine and is only used to talk to Composio. An app is linked only after you authorize it; a custom connector only works after DSH restarts."
+  }
+}

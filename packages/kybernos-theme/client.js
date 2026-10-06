@@ -2494,6 +2494,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             // Colonne principale
             h('div', { className: 'kbth-main' },
               h('div', { className: 'kbth-head' },
+                h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
                 h('div', { className: 'kbth-title' }, 'Thème'),
                 h('div', { className: 'kbth-sub' },
                   'Personnalisez l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.'),

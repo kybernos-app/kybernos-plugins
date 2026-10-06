@@ -153,6 +153,28 @@ Code, comments and docs are English (AGENTS rule 6).
 - Anything the plugin stores goes under `process.env.DSH_HOME || ~/.dsh`, in `kybernos/<dir>/`.
   Never write `/Users/<name>` paths in code (`scripts/garde-depot.mjs` warns).
 
+### The help (every plugin has one)
+
+Write `packages/<dir>/help.json` — what it is, how to use it in 2-4 steps, where to find it, one thing worth knowing, in French
+**and** English, in the words of someone who is not a developer. The catalogue build fails without it, and it checks the
+shape (`validerAide` in `scripts/build-catalog.mjs`: lengths, both languages, no `slot`/`bundle`/`endpoint`, no emoji).
+
+```json
+{
+  "what":  { "fr": "…", "en": "…" },
+  "steps": [ { "fr": "…", "en": "…" }, { "fr": "…", "en": "…" } ],
+  "where": { "fr": "Réglages › …", "en": "Settings › …", "page": true },
+  "good":  { "fr": "…", "en": "…" }
+}
+```
+
+The Suite shows it on the module's page. If the plugin has a page of its own, put the same text behind a « ? How it works »
+button in the page header — one line, guarded, nothing breaks if the Suite is absent:
+
+```js
+(typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: '<dir>' }) : null)
+```
+
 ## 4. Register the bundle (five places)
 
 (Check `git log --oneline -1 dev` against your branch first: the registration tables move often, and a
@@ -204,11 +226,20 @@ node --check packages/<dir>/index.js && node --check packages/<dir>/client.js
 
 Then look at it for real. Unit tests prove a function, not a page: follow
 `docs/dev/live-testing.md` (signed-in headless Chrome, `scripts/live-page.mjs`). The browser half
-is served from the working tree and a page reload picks it up; the **host half only loads when
-`dsh web` restarts — never restart it yourself** (it interrupts the owner's running sessions):
-say "restart needed" and test the host module by importing it with a fake `ctx`.
-To switch the new bundle on in a profile: `node scripts/dsh-lifecycle.mjs satellites --activer <dir>`
-(from the shared tree, with the owner's go).
+of a bundle the owner already runs can be tried from your worktree on their GUI with
+`scripts/lib-bundle-swap.mjs`; the **host half only loads when `dsh web` restarts — never restart it
+yourself** (it interrupts the owner's running sessions).
+
+A **new** bundle is in nobody's profile yet, so build a second DSH that serves your checkout:
+
+```bash
+node scripts/sandbox-instance.mjs setup && node scripts/sandbox-instance.mjs start    # port 3091, own HOME and DSH_HOME
+```
+
+then write a `scripts/check-<dir>-live.mjs` like `check-changes-live.mjs` (a `check-*` name, never `test-*`: CI has no GUI).
+If the bundle can change something (run git, write files, call a service), answer every such request **inside the check**
+rather than letting it through: the sandbox runs in the owner's real folders. To switch the bundle on in the owner's own
+profile: `node scripts/dsh-lifecycle.mjs satellites --activer <dir>` (from the shared tree, with the owner's go).
 
 ## 7. Before the PR
 

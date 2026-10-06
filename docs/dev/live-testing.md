@@ -205,6 +205,25 @@ host's `fichiers`, the four pills stepping aside), every state through the seam,
 window and the seam missing. **Every POST of `/kybernos-sessions/*` is answered inside the page by the check** (fail-closed):
 the sandbox runs git in the user's real repository folder, so a real commit must be impossible, whatever the page asks.
 
+## The help of every plugin: `scripts/check-help-live.mjs`
+
+Each bundle has a `packages/<dir>/help.json` (what it is, how to use it, where to find it, one thing worth knowing, in French and
+English). `scripts/build-catalog.mjs` validates it and ships it in the catalogue; the Suite shows it on the module's page, and the
+« ? How it works » button of a plugin page (`window.__KB_HELP__.Help`, published by the hub) shows the same text.
+
+```bash
+node scripts/test-help.mjs                   # no GUI: the shape, every bundle has one, the buttons are guarded and ask for their own bundle
+KB_HOST=127.0.0.1:3091 DSH_HOME=<sandbox>/.dsh HOME=<sandbox> node scripts/check-help-live.mjs --shots /tmp/shots
+```
+
+The live check opens each page that carries the button (Theme, AI Provider & Models, Commands, Workers, About, Ollama Local Models,
+Memory & Lessons, General, Kybernos Suite, Skills), opens the card, checks it holds the text **read from the file**, that Escape closes
+the card and not the Settings dialog behind it, then French, a module's page in the Suite, and that Atlas, Language and Auto Routing
+(which already had a help) do not get a second button. Two traps: the Settings dialog closes on Escape with a capture listener, so
+anything that handles Escape inside it must listen in capture and stop the event only when it has something to close; and the core
+rewrites French phrases to English on Settings pages while the document language is English (a French test must set
+`document.documentElement.lang` too, or compare without quotation marks).
+
 ## The run, the ring and the test marks: `scripts/check-language-run-live.mjs`
 
 ```bash
