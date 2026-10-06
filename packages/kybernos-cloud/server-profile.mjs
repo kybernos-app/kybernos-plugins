@@ -16,6 +16,9 @@
 //     the LLM pages);
 //   - services.gateway: the LLM service's admin gateway, only used by the console's key mode, which goes away with the key
 //     hand-off (docs/dev/servers.md);
+//   - services.connections: the address of the server's MCP endpoint for connected apps (`/v1/mcp/connections`, ADR 0008 of the
+//     server), or false. ABSENT MEANS « NOT OFFERED » (an older server, or one with no Composio, such as an on-premises one),
+//     unlike services.llm where absent means the same host as `api`. DSH hides the Kybernos connections mode when it is not a URL;
 //   - https only; http only for a loopback address (a bearer token never crosses a clear network).
 // One server is active at a time. Each server has its OWN connection file (kybernos-cloud-<id>.json), so switching never
 // signs anyone out and never lets one server's token reach another.
@@ -25,6 +28,10 @@ export const DEFAULT_SERVER_ID = 'kybernos-cloud'
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/
 const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]', '::1'])
 const MAX_URL = 300
+
+const sameOrigin = (a, b) => {
+  try { return new URL(a).origin === new URL(b).origin } catch (e) { return false }
+}
 
 const urlOrNull = (value) => {
   if (typeof value !== 'string') return null
@@ -51,7 +58,7 @@ export const DEFAULT_PROFILE = Object.freeze({
   api: 'https://api.dev.kybernos.app',
   web: 'https://dev.kybernos.app',
   console: 'https://dev.kybernos.app/workspace-console',
-  services: Object.freeze({ llm: null, gateway: 'https://api.dev2.kybernos.app' }),
+  services: Object.freeze({ llm: null, gateway: 'https://api.dev2.kybernos.app', connections: null }),
 })
 
 /** `{ ok: true, profile }` or `{ ok: false, error }`. A field that is present and invalid refuses the whole profile: a
@@ -74,8 +81,15 @@ export const normalizeProfile = (raw) => {
   else if (services.llm !== undefined && services.llm !== null) { llm = urlOrNull(services.llm); if (llm === null) return { ok: false, error: 'bad_llm' } }
   let gateway = null
   if (services.gateway !== undefined && services.gateway !== null) { gateway = urlOrNull(services.gateway); if (gateway === null) return { ok: false, error: 'bad_gateway' } }
+  let connections = null
+  if (services.connections === false) connections = false
+  else if (services.connections !== undefined && services.connections !== null) {
+    // The device token travels to this address: it must be the server that issued it, never another host.
+    connections = urlOrNull(services.connections)
+    if (connections === null || sameOrigin(connections, api) !== true) return { ok: false, error: 'bad_connections' }
+  }
   const name = typeof raw.name === 'string' && raw.name.trim() !== '' ? raw.name.trim().slice(0, 60) : id
-  return { ok: true, profile: Object.freeze({ id, name, api, web, console: consoleUrl, services: Object.freeze({ llm, gateway }) }) }
+  return { ok: true, profile: Object.freeze({ id, name, api, web, console: consoleUrl, services: Object.freeze({ llm, gateway, connections }) }) }
 }
 
 /** Never throws: a missing, unreadable or malformed file is « no registry ». Invalid entries are dropped and listed. */
@@ -102,7 +116,7 @@ export const readRegistry = (file) => {
  *  `active`, then the built-in Kybernos Cloud. `error` says why the registry's choice was not honoured. */
 export const activeServer = ({ env = process.env, registryFile }) => {
   const registry = registryFile !== undefined ? readRegistry(registryFile) : { active: null, servers: [], rejected: [] }
-  const summary = (s) => ({ id: s.id, name: s.name, api: s.api, llm: s.services.llm === false ? 'none' : (s.services.llm !== null ? s.services.llm : 'api') })
+  const summary = (s) => ({ id: s.id, name: s.name, api: s.api, llm: s.services.llm === false ? 'none' : (s.services.llm !== null ? s.services.llm : 'api'), connections: connectionsEndpoint(s) !== null })
   const list = [summary(DEFAULT_PROFILE)].concat(registry.servers.map(summary))
   const fromEnv = urlOrNull(typeof env.KYBERNOS_CLOUD_API === 'string' ? env.KYBERNOS_CLOUD_API : '')
   if (fromEnv !== null) {
@@ -123,6 +137,15 @@ export const stateFileName = (profile) => (profile.id === DEFAULT_SERVER_ID ? 'k
 /** The OpenAI-compatible base DSH sends chat to, or null when the server has no Kybernos LLM. */
 export const llmBase = (profile) => (profile.services.llm === false ? null : (profile.services.llm !== null ? profile.services.llm : profile.api) + '/v1')
 
+/** The MCP endpoint of the server's connected apps, or null when the server does not offer them (absent, false, or not a URL).
+ *  Also null when it is not on the server's own origin, which is how the environment override of `api` (tests, developers) can
+ *  never send a registry server's token to the registry server's host: the override has its own `api` and the old endpoint stays behind. */
+export const connectionsEndpoint = (profile) => {
+  if (profile === null || profile === undefined || profile.services === undefined) return null
+  const endpoint = profile.services.connections
+  return typeof endpoint === 'string' && sameOrigin(endpoint, profile.api) === true ? endpoint : null
+}
+
 /** What the page may know. No secret lives in a profile; this only drops the shape's internals. */
 export const publicProfile = (profile) => ({
   id: profile.id,
@@ -132,4 +155,5 @@ export const publicProfile = (profile) => ({
   console: profile.console,
   llm: profile.services.llm === false ? 'none' : (profile.services.llm !== null ? profile.services.llm : 'api'),
   gateway: profile.services.gateway,
+  connections: connectionsEndpoint(profile) !== null,
 })

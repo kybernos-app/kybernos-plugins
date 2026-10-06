@@ -20,6 +20,12 @@ server.
   « kybernos » models, removes the ones another server left, and the console can hide the LLM pages.
 - `services.gateway`: the LLM service's admin gateway, used only by the Team console's key mode. It goes away with the key
   hand-off (the relay replaces it), so a new server never needs one.
+- `services.connections`: the address of the server's MCP endpoint for the account's connected apps (`/v1/mcp/connections`, ADR 0008
+  of the Kybernos server), or `false`. **Absent means not offered**, unlike `services.llm` where absent means the same host as `api`:
+  an older server, or one without Composio (an on-premises one), simply has no connections, and DSH hides the « Kybernos connections »
+  mode and registers no tool. It must be on **the same origin as `api`**: the device token goes to that address, so it can never be
+  another host than the server that issued it (a profile that says otherwise is refused, and an environment override of `api`
+  leaves the registry's endpoint behind).
 - https only, http for a loopback address only (a bearer token never crosses a clear network), no credentials, query or fragment
   in a URL. **A field that is present and invalid refuses the whole profile**: a typo must never fall back to another server's
   address. The id `kybernos-cloud` is reserved for the built-in server.
@@ -66,7 +72,7 @@ A user types ONE address; the module reads `GET <address>/.well-known/kybernos-s
 ```
 
 `api` is required, everything else is optional (`web` and `console` are derived, `services.llm` is a URL, absent = same host as the API, or `false` =
-no Kybernos LLM). The addresses inside are where the account's token will go: the user is shown them before anything is added, and the open
+no Kybernos LLM; `services.connections` is the connected apps' endpoint on the same host, or `false`, and **absent means not offered**). The addresses inside are where the account's token will go: the user is shown them before anything is added, and the open
 half refuses a profile with an insecure or malformed one. A server that cannot publish this file can still be used by writing its profile
 into the registry by hand.
 

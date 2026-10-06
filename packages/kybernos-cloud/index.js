@@ -44,6 +44,7 @@ import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
 import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
+import { createConnections } from './connections-host.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
@@ -217,7 +218,8 @@ const apiCall = async (path, options = {}) => {
   const token = typeof options.token === 'string' ? options.token : null
   const body = options.body !== undefined && options.body !== null ? options.body : null
   const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS)
+  // A longer wait only for what is known to take longer (an action of a connected app: up to 30 s at the server).
+  const timer = setTimeout(() => ctrl.abort(), Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : REQUEST_TIMEOUT_MS)
   try {
     const headers = { 'content-type': 'application/json' }
     if (token !== null) headers.authorization = 'Bearer ' + token
@@ -718,6 +720,7 @@ const serverApply = async () => {
     } catch (e) { /* no connection file for it: nothing was imported */ }
   }
   markApplied()
+  connections.sync()
   const out = { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, cleaned, connected: isConnected(readState()) }
   if (out.connected === true) {
     const imported = await importCatalog('server', { force: true })
@@ -3429,6 +3432,10 @@ const chatsDetail = (req) => {
   return { ok: true, dsh_id: dshId, title: titre, messages, tronque: messages.length >= DSH_DETAIL_MAX_MESSAGES }
 }
 
+// Kybernos connections (ADR 0008 of the server): the routes the connectors page calls, and three native tools for the agents. Nothing is
+// asked of a server that does not offer them (`services.connections`), and nothing is sent without the account's own token.
+const connections = createConnections({ apiCall, readState, isConnected, server, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
+
 const ROUTES = [
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
@@ -3515,6 +3522,13 @@ const ROUTES = [
   { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
   { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
   { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
+  // Kybernos connections: the account's connected apps. The routes sit here (the token does) and the connectors page calls them. A
+  // link may carry the API key of a toolkit that has no OAuth, so its body is small and its handler never logs or echoes it.
+  { path: '/kybernos-cloud/connections', method: 'GET', guarded: true, run: connections.listRoute },
+  { path: '/kybernos-cloud/connections/apps', method: 'GET', guarded: true, run: connections.appsRoute },
+  { path: '/kybernos-cloud/connections/item', method: 'GET', guarded: true, run: connections.itemRoute },
+  { path: '/kybernos-cloud/connections/link', method: 'POST', guarded: true, body: true, cap: 16384, run: connections.linkRoute },
+  { path: '/kybernos-cloud/connections/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: connections.deleteRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
   { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
   { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },
@@ -3565,6 +3579,7 @@ export function apply(ctx) {
   // tour. Chaque montage est indépendant et tolère l'absence de son service.
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
+  try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connexions: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
@@ -3574,7 +3589,7 @@ export function apply(ctx) {
 // Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre
 // surface publique n'est promise.
 export {
-  dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID,
+  dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
