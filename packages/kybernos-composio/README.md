@@ -12,17 +12,30 @@ switch off, delete.
   whether Composio accepts it, and whether the running agents hold the same one (they read it when DSH starts, so a
   key saved now is used by them after a restart). Saving checks the key with Composio first: a rejected key is not
   saved. The page keeps no copy of the key: one an older version left in this browser is offered for saving, then
-  removed. There is no "Cloud" mode: the toggle that used to be here stored a flag nothing read, and promised
-  connectors for cloud agents that a `ck_` key cannot give (Composio's For You and Platform are separate projects:
-  `ck_` vs `ak_` keys, different headers, and the accounts of one do not exist in the other). The Kybernos server
-  runs its own Platform integration (`/v1/connections`, scoped to the user's Kybernos key); a real cloud mode would
-  go through that, not through a Platform key typed here.
+  removed. There is no Platform key field: Composio's For You and Platform are separate projects (`ck_` vs `ak_`
+  keys, different headers, and the accounts of one do not exist in the other), so a cloud mode cannot come from a key
+  typed here. It comes from the Kybernos account: see "Kybernos connections" below (the toggle that used to stand here
+  stored a flag nothing read, and is gone).
 - **Failures are shown as failures**: a rejected key (401), a rate limit (429), no answer in time or no network
   replace the "No app connected yet" message, with the same codes as the host.
 - **Connections page** (mounted by `@local/kybernos-plugin` in its Connectors page; three sub-tabs):
   - *Yours* and *Discover*: search, category facets, 24 apps per page. Add an account through an authorization link
     opened in a new tab (polled up to 2.5 min until ACTIVE), remove one. The account label is its alias, else its
     type, else its id: the host never passes on the e-mail Composio holds.
+  - *Kybernos connections* (the second mode of *Yours*, shown only when the active server offers it): the person's
+    apps linked once to their Kybernos account through the server's own Composio Platform project, so every agent of
+    theirs uses them with no key on this machine (ADR 0008 of the Kybernos server). A switch above the list chooses
+    between this and the personal key (one at a time, the last choice is remembered). The list shows a state per
+    connection (active, pending, failed, expired, disabled), the quota ("3 of 4", a pending request counts), and the
+    actions on hover (cancel a pending one, remove, retry or reconnect). "Connect an app" searches the server's
+    catalogue, then either sends the person to the app's own page in a new tab (the row stays pending and the page
+    asks the server about that one connection every 5 s, 10 minutes at most) or, for an app with no OAuth, takes its
+    API key (sent once, never stored, logged or shown again). A refused add that may have gone through says to check
+    the list, and is never sent twice. Not signed in to Kybernos: a button starts the pairing right there. The page
+    asks the cloud half of this machine (`/kybernos-cloud/connections*`, which holds the account's token); with a
+    cloud half that does not know those routes, or a server that does not announce `services.connections`, the
+    switch is not shown at all. The agents get three tools for the same connections from that same cloud half
+    (`packages/kybernos-cloud/README.md`).
   - *MCP servers*: one row per server with what DSH says of it. The actions (switch on/off, Test, Edit, Delete)
     appear when the row is hovered or has the keyboard focus (always visible on a touch screen). The "+ Add an MCP
     server" menu offers a form or pasting JSON.
@@ -166,7 +179,7 @@ node test-connecteurs.mjs  # 63 (40): reading, editing, renaming, state, test ro
 node test-key.mjs          # the key and the accounts, against a stand-in for Composio (it can answer 502s)
 node test-probe.mjs        # 29: the connector test against fake HTTP and stdio servers
 node test-block-read.mjs   # 31 (15): reading a block back, and refusing what cannot be written back
-node test-client.mjs       # 190: the pure parts of the page, no browser
+node test-client.mjs       # 233: the pure parts of the page, no browser
 ```
 
 `test-host.mjs` covers the first routes (hostile origin, content type, command rules, YAML injection, the files they
@@ -177,11 +190,14 @@ patch, the engine's list of refused `.env` names compared with ours, and `js-yam
 one (CI) those checks are reported as skipped and the rest runs (`NO_DSH_ENGINE=1` plays that on a machine that has
 one). `test-client.mjs` loads `client.js` with a fake module loader and reaches the pure parts through the `composio`
 export: card URLs and the confirmed `kb:accept:` action, the stored authorization link, the key panel's state, the
-server rows' state, test failure texts, the JSON import, the form's round trip, the search, error texts, and a
-structural check of every catalog logo (`scripts/svg-check.mjs`) and that the page never reaches Composio itself.
+server rows' state, test failure texts, the JSON import, the form's round trip, the search, error texts, the
+Kybernos connections mode (when it exists, what a failed call leaves of a list, which word becomes which sentence in
+both languages, and that an API key has nowhere to go but its one call), and a structural check of every catalog logo (`scripts/svg-check.mjs`) and that the page never reaches Composio itself.
 `lib-test.mjs` is the shared harness (a host in a temp HOME, fake HTTP and stdio MCP servers, a stand-in for
 Composio). The React page itself has no browser test here; it was driven in a real DSH (see
-`docs/dev/live-testing.md`).
+`docs/dev/live-testing.md`): `scripts/check-connectors-live.mjs` for the MCP servers tab and
+`scripts/check-connections-live.mjs` for Kybernos connections (a stand-in server that speaks ADR 0008, on an isolated
+instance).
 Regenerate the catalog with `KYBERNOS_REPO=<cloud repo checkout> node scripts/build-catalog.mjs`: it repairs the
 mangled markup the cloud repo carries, checks every logo and stops on a defect.
 

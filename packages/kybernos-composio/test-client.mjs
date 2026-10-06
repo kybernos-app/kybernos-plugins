@@ -367,7 +367,10 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   // The panel used to offer a "Cloud" mode that stored a flag nothing read, and promised that connectors
   // would work from cloud agents. Composio's For You and Platform are separate projects (a ck_ key's
   // accounts do not exist on Platform), so nothing here could keep that promise.
-  ok('client.js has no Cloud mode left (no flag, no event, no strings)', !/'composio\.mode'|kbcp-mode|KB_CP_MODE|modecloud|modelocal|modelier/.test(src))
+  ok('client.js has none of the old fake Cloud mode left (its flag, its strings)', !/'composio\.mode'|modecloud|modelocal|modelier/.test(src))
+  // The mode that exists now is another thing: « Kybernos connections » (ADR 0008 of the server), shown only when the server offers it,
+  // and the flag it stores is READ by the page (the old one was written and never read).
+  ok('the new mode stores a flag the page reads, and only through try/catch', /localStorage\.getItem\(KB_CP_MODE\)/.test(src) && /localStorage\.setItem\(KB_CP_MODE/.test(src) && /const kbCpModeSet = \(m\) => \{ try/.test(src))
   // Both rules were measured on the real page (dark theme): the brand colour is near white, so a
   // fixed white label on it is invisible; and a banner built from kb7-err is painted by the kybernos
   // bundle's sheet of the same name with the same red for fill and text.
@@ -375,6 +378,103 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const onRules = css.split('\n').filter((l) => /\.on\{/.test(l) && /background:var\(--dsw-alias-brand-primary\)/.test(l))
   ok('the "on" states that use the brand colour take the theme\'s foreground token, not a fixed white', onRules.length >= 2 && onRules.every((l) => /color:var\(--dsw-alias-label-primary-foreground/.test(l)), onRules.join(' | '))
   ok('the page does not use a class that the kybernos bundle also styles for its error banner', src.indexOf("className: 'kb7-err'") < 0 && src.indexOf("className: 'kbcp-err'") >= 0)
+}
+
+// ── Kybernos connections, the second mode of « Yours » (ADR 0008 of the server) ─────────────────────────────────
+// The page asks the cloud half of this machine (/kybernos-cloud/connections*) and shows the answer. What is pinned here is what
+// the page decides on its own: when the mode exists at all, what a failed call does to a list it already had, which words become
+// which sentences, and that an API key has nowhere to go but the one call that sends it.
+{
+  const { cloudView, cloudMerge, cloudErr, connState, connActions, failedText, appsMatch, modeGet, modeSet, t } = plugin.composio
+  const C1 = '0b1c2d3e-aaaa-4bbb-8ccc-1234567890ab'
+  const row = (extra) => Object.assign({ id: C1, toolkit: 'gmail', status: 'active', accountType: 'oauth', alias: null, isDefault: true, createdAt: 't', failure: null }, extra || {})
+  const view = (status, json) => cloudView({ status: status, json: json })
+
+  // when the mode exists
+  ok('an older cloud half, no cloud plugin, a network error or any answer of another shape: no mode (null)', [
+    cloudView(null), cloudView({ status: 0, json: null }), cloudView({ status: 404, json: null }), cloudView({ status: 404, json: { ok: false, error: 'x' } }),
+    cloudView({ status: 200, json: null }), cloudView({ status: 200, json: {} }), cloudView({ status: 200, json: { ok: true } }), cloudView({ status: 200, json: { offered: true } }),
+    cloudView({ status: 200, json: 'text' }), cloudView({ status: 500, json: { ok: true, offered: true, connections: [] } }),
+  ].every((v) => v === null))
+  ok('a server that does not offer connections: { offered: false }, whatever else the answer says', JSON.stringify(view(200, { ok: true, offered: false, connected: true })) === '{"offered":false}')
+  const listed = view(200, { ok: true, offered: true, connected: true, limit: 3, count: 2, stale: true, connections: [row(), { nope: 1 }, null, row({ id: 'c2', status: 'pending' })] })
+  ok('a list: the rows that are rows, the limit, the count and the stale flag', listed.offered === true && listed.connected === true && listed.connections.length === 2 && listed.limit === 3 && listed.count === 2 && listed.stale === true && listed.error === null)
+  const bare = view(200, { ok: true, offered: true, connected: true, connections: [row()] })
+  ok('without a limit or a count: no limit, and the count is what was read', bare.limit === null && bare.count === 1 && bare.stale === false)
+  const signed = view(200, { ok: false, offered: true, connected: false, error: 'non connecte' })
+  ok('the account is not connected: the mode is offered, the person is asked to sign in, and that is not an error', signed.offered === true && signed.connected === false && signed.error === null && signed.connections.length === 0)
+  const failed = view(200, { ok: false, offered: true, connected: true, error: 'upstream_unavailable', checkFirst: true, limit: 3, count: 3, existing: { id: C1, toolkit: 'slack', status: 'pending' } })
+  ok('a refusal keeps its word and the details the page acts on', failed.error === 'upstream_unavailable' && failed.details.checkFirst === true && failed.details.limit === 3 && failed.details.existing.toolkit === 'slack')
+  ok('a refusal with no word is "other", never undefined', view(200, { ok: false, offered: true, connected: true }).error === 'other')
+
+  // what a failed call does to a list we already had
+  const had = cloudView({ status: 200, json: { ok: true, offered: true, connected: true, limit: 3, count: 1, connections: [row()] } })
+  const net = cloudMerge(had, null)
+  ok('the cloud half stops answering: the mode stays, the list stays, and the page says "network"', net.offered === true && net.connections.length === 1 && net.error === 'network')
+  ok('it never answered: no mode', JSON.stringify(cloudMerge(null, null)) === '{"offered":false}' && JSON.stringify(cloudMerge({ offered: false }, null)) === '{"offered":false}')
+  const refusal = cloudMerge(had, view(200, { ok: false, offered: true, connected: true, error: 'too_many_requests' }))
+  ok('a refusal does not empty the list: the rows stay, marked stale, with the refusal', refusal.connections.length === 1 && refusal.limit === 3 && refusal.stale === true && refusal.error === 'too_many_requests')
+  ok('a good answer replaces the list and clears the error', cloudMerge(refusal, cloudView({ status: 200, json: { ok: true, offered: true, connected: true, limit: 3, count: 0, connections: [] } })).connections.length === 0)
+  ok('signing out empties the list (it is another account\'s apps no more)', cloudMerge(had, signed).connections.length === 0 && cloudMerge(had, signed).connected === false)
+  ok('the server stops offering connections: the mode goes', JSON.stringify(cloudMerge(had, { offered: false })) === '{"offered":false}')
+
+  // states and actions
+  ok('every status has a chip family and words, and an unknown one is plain', connState('active').kind === 'ok' && connState('pending').kind === 'warn' && connState('failed').kind === 'bad' && connState('expired').kind === 'warn' && connState('disabled').kind === 'plain' && connState('a-new-word').kind === 'plain' && connState('a-new-word').key === 'kb.cp.kc.st.unknown')
+  ok('what can be done: cancel a pending one, remove an active one, retry a failed one, reconnect an expired or disabled one', JSON.stringify([connActions('pending'), connActions('active'), connActions('failed'), connActions('expired'), connActions('disabled'), connActions('x')]) === '[["cancel"],["remove"],["retry","remove"],["reconnect","remove"],["reconnect","remove"],["reconnect","remove"]]')
+  ok('the line of a failed connection comes from the stable code, and an odd one is "unknown"', failedText('refused', 'Gmail').indexOf('Gmail') >= 0 && failedText('upstream', 'Gmail').indexOf('Gmail') >= 0 && failedText('Composio said: boom', 'Gmail') === t('kb.cp.kc.failed.unknown') && failedText(null, 'Gmail') === t('kb.cp.kc.failed.unknown'))
+
+  // words → sentences
+  const WORDS = ['reconnect_required', 'network', 'connection_limit', 'pending_exists', 'needs_api_key', 'upstream_unavailable', 'connections_disabled', 'not_found', 'too_many_requests', 'bad_request', 'forbidden', 'signin_failed']
+  ok('every word the cloud half sends has its own sentence', WORDS.every((w) => cloudErr(w, {}) !== cloudErr('something_else', {}) && cloudErr(w, {}).indexOf('kb.cp') < 0))
+  ok('an add that may have gone through does not say "try again": it says it may exist', cloudErr('upstream_unavailable', { checkFirst: true }) !== cloudErr('upstream_unavailable', {}) && cloudErr('upstream_unavailable', { checkFirst: false }) === cloudErr('upstream_unavailable', {}))
+  ok('the limit and the count are filled in, not left as braces', cloudErr('connection_limit', { limit: 3, count: 3 }).indexOf('3') >= 0 && !/[{}]/.test(cloudErr('connection_limit', { limit: 3, count: 3 })) && !/[{}]/.test(cloudErr('connection_limit', {})))
+  ok('the app of the request that is already waiting is named', cloudErr('pending_exists', { existing: { id: C1, toolkit: 'gmail', status: 'pending' } }).toLowerCase().indexOf('gmail') >= 0)
+  ok('an unknown word or a refused_500 is "unexpected answer" with its code, never a raw object', cloudErr('refused_500', {}).indexOf('refused_500') >= 0 && cloudErr(undefined).indexOf('?') >= 0)
+  ok('what the server said in its own words never reaches the sentence', cloudErr('forbidden', { message: 'SECRET server wording', error: 'SECRET' }).indexOf('SECRET') < 0)
+
+  // the catalogue search
+  const apps = [{ slug: 'github', name: 'GitHub', categories: ['developer tools'] }, { slug: 'gitlab', name: 'GitLab', categories: ['developer tools'] }, { slug: 'gmail', name: 'Gmail', categories: ['email'] }, { slug: 'zohomail', name: 'Zoho Mail', categories: ['email'] }, { slug: 'mailchimp', name: 'Mailchimp', categories: ['marketing'] }]
+  ok('search: no query gives the first ones, a query matches name, slug and category', appsMatch(apps, '', 2).length === 2 && appsMatch(apps, 'git', 10).map((a) => a.slug).join() === 'github,gitlab' && appsMatch(apps, 'marketing', 10).length === 1)
+  ok('search: the apps whose name starts with it come before the others', appsMatch(apps, 'mail', 10).map((a) => a.slug).join() === 'mailchimp,gmail,zohomail')
+  ok('search: accents, case and punctuation do not matter; a bad list does not throw', appsMatch(apps, ' GIT-hub ', 10).length === 1 && appsMatch(null, 'x', 5).length === 0 && appsMatch(undefined, '', 5).length === 0 && appsMatch(apps, 'zzz', 5).length === 0)
+
+  // the person's choice of mode
+  store.clear()
+  ok('the mode is the person\'s own key until they choose otherwise', modeGet() === 'personal')
+  modeSet('kybernos')
+  ok('the choice is kept, and read back', modeGet() === 'kybernos')
+  modeSet('anything else')
+  ok('anything but "kybernos" is the personal key', modeGet() === 'personal')
+  store.set('kbcp.mode', '<script>')
+  ok('a stored value that is not ours is the personal key', modeGet() === 'personal')
+  const realLs = globalThis.localStorage
+  globalThis.localStorage = { getItem: () => { throw new Error('blocked') }, setItem: () => { throw new Error('blocked') } }
+  let storageThrew = null
+  try { ok('with storage blocked the mode still reads and writes without a throw', modeGet() === 'personal' && modeSet('kybernos') === undefined) } catch (e) { storageThrew = e }
+  globalThis.localStorage = realLs
+  ok('(storage blocked) nothing escaped', storageThrew === null)
+
+  // strings: every new key in both languages, with the same placeholders
+  const { readFileSync } = await import('node:fs')
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  const rows = [...src.matchAll(/'(kb\.cp\.kc\.[a-z_.]+)': \{ fr: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
+  const holes = (x) => (x.match(/\{[a-z]+\}/g) || []).sort().join()
+  ok('the new strings exist (more than 60)', rows.length > 60, String(rows.length))
+  ok('every new string is in French and in English, none empty, with the same placeholders', rows.every((r) => r[2].length > 0 && r[3].length > 0 && holes(r[2]) === holes(r[3])), rows.filter((r) => holes(r[2]) !== holes(r[3])).map((r) => r[1]).join())
+  const used = new Set([...src.matchAll(/kbt\('(kb\.cp\.kc\.[a-z_.]+)'\)/g)].map((m) => m[1]))
+  const defined = new Set(rows.map((r) => r[1]))
+  ok('every new string the page asks for is defined', [...used].every((k) => defined.has(k)), [...used].filter((k) => !defined.has(k)).join())
+  ok('every refusal word has its sentence', ['reconnect_required', 'network', 'connection_limit', 'pending_exists', 'needs_api_key', 'upstream_unavailable', 'connections_disabled', 'not_found', 'too_many_requests', 'bad_request', 'forbidden', 'signin_failed', 'other'].every((w) => defined.has('kb.cp.kc.err.' + w)))
+
+  // what the page never does with the key
+  const kcSrc = src.slice(src.indexOf('const KcAddModal'), src.indexOf('// ── page Connections'))
+  ok('an API key is held in the add window only, sent in the one link call, and cleared once sent', /body\.api_key = apiKey/.test(kcSrc) && /setApiKey\(''\)/.test(kcSrc) && (kcSrc.match(/apiKey/g) || []).length < 20)
+  ok('the key is never stored, logged or put in an address', !/localStorage[^\n]*(apiKey|api_key)|console\.[a-z]+\([^)]*(apiKey|api_key)|encodeURIComponent\(apiKey|\?[^'"\n]*apiKey/.test(src))
+  ok('the key field is a password field that the browser does not remember', /type: 'password', value: apiKey, autoComplete: 'off'/.test(kcSrc))
+  ok('the page asks no redirect address and no user id: the server decides both', !/redirect_uri|user_id|redirectUri/.test(kcSrc.replace(/res\.redirectUrl|j\.redirectUrl|r\.json\.redirectUrl|redirectUrl/g, '')))
+  ok('everything the page asks for goes to the cloud half of this machine, never to Kybernos or Composio directly', !/fetch\(\s*['"`]https?:/.test(kcSrc) && /kbCpCloud\('\/connections/.test(kcSrc))
+  ok('the address the person is sent to goes through the one URL rule', /kbCpWebUrl\(res\.redirectUrl\)/.test(kcSrc) && /rel: 'noopener noreferrer'/.test(kcSrc))
+  ok('an add that failed in a way that may have gone through offers to check the list, and never retries by itself', /checkFirst === true/.test(kcSrc) && !/setTimeout\([^)]*submit/.test(kcSrc))
 }
 
 // ── AGENTS.md rule 2: apply() cannot stop DSH from starting ─────────────────
