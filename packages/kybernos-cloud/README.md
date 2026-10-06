@@ -179,6 +179,23 @@ plafond de 40 coupe.
 - l'injection est fail-open (pas de chunk ⇒ le tour continue), la lecture est
   fail-loud (l'erreur remonte jusqu'à la carte).
 
+## Team skills (server half)
+
+A Team's private catalogue of skills: any member proposes one, an owner or admin approves it, every member can install it. This
+package only talks to the server (contract: `docs/dev/team-skills-contract.md`, routes under `/v1/workspaces/{id}/skills`) with the
+account token, for the **active** workspace, and only on the Team plan (the same `teamWorkspace` rule as the lessons). It never
+reads or writes a skill on disk: `kybernos-skills` does (`team/pack`, `team/install`), and the page carries the files between the two.
+
+| Route | Does |
+| --- | --- |
+| `GET /kybernos-cloud/team/skills?view=approved\|proposed\|mine\|all&limit=&offset=` | a page of skills (metadata), with the caller's role and the counts |
+| `GET /kybernos-cloud/team/skills/item?id=` | one skill with its files |
+| `POST …/add` `{name, description, files, note?}` · `…/review` `{id, decision, note?}` · `…/retire` `{id}` · `…/delete` `{id}` | propose (an admin's skill is approved at once), approve or reject, retire, withdraw |
+
+Every refusal of the server is returned as one word (`team-skills.mjs`: `admin_required`, `scan_rejected`, `invalid_skill` with its
+`reason`, `duplicate`, `not_on_this_server` for a server without the routes, …). The server's own text never reaches the page.
+`node packages/kybernos-cloud/test-team-skills.mjs` (13 checks, stand-in server).
+
 ## Pourquoi un package séparé
 
 Le half client d'un plugin Cordis doit tenir dans **un seul** `client.js` : le

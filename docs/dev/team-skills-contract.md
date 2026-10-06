@@ -15,12 +15,17 @@ A DSH skill is a folder: a `SKILL.md` plus optional text files next to it. A Tea
 - `description`: non-empty, at most 1 024 characters (what DSH requires of a skill).
 - `files`: `[{ "path": "SKILL.md", "content": "..." }, ...]`. Text only, UTF-8.
   - `SKILL.md` must be present, and its frontmatter `name` must equal `name` and carry a non-empty `description`.
-  - A path is relative, uses `/`, at most 200 characters, with no `..`, no leading `/`, no `\`, no empty segment.
+  - A path is relative and ASCII: `/`-separated segments, each matching `[A-Za-z0-9_][A-Za-z0-9._-]*` (so no `..`, no hidden
+    segment like `.git`, no `\`, no empty segment, no leading `/`), at most 200 characters, no path twice.
   - At most 50 files, 256 KiB per file, 1 MiB in total. Binary content is refused.
   - A secret scan on every file refuses the skill (`scan_rejected`); the patterns of `_skillrepos.py` are the reference.
-- `version`: SHA-256 (hex) of the files, computed by the server over the canonical listing: for each file sorted by `path`,
-  `path`, a NUL byte, the content's byte length in decimal, a NUL byte, the content bytes. The client recomputes it after a
-  download and refuses a mismatch. What an admin approved is therefore exactly what a member installs.
+- `version`: SHA-256 (hex) of the files, computed by the server over the canonical listing: for each file sorted by `path`
+  (ASCII, so the same order in any language), `path`, a NUL byte, the content's byte length in decimal (UTF-8 bytes), a NUL byte,
+  the content bytes. The client recomputes it after a download and refuses a mismatch. What an admin approved is therefore exactly
+  what a member installs.
+  Test vector (checked against an independent Python implementation): the two files
+  `SKILL.md` = `---\nname: demo\ndescription: "A demo"\n---\n\n# demo\n` and `notes/a.md` = `é\n` (3 bytes) give
+  `ebeb1967f2fba1a8f440ee917f7a12cd4b1a2089dab2615ea31d319cc63ef4cb`.
 
 ## Status flow
 
@@ -81,9 +86,10 @@ The vocabulary of the lessons module, plus the skill-specific ones.
 
 | Status | Body | When |
 | --- | --- | --- |
-| 400 | `{error: "invalid_skill", reason}` | `reason` is one of `name`, `description`, `no_skill_md`, `frontmatter`, `bad_path`, `binary`, `too_many_files`, `file_too_large` |
+| 400 | `{error: "invalid_skill", reason, file?}` | `reason` is one of `name`, `no_skill_md`, `frontmatter` (SKILL.md must carry the same `name` and a non-empty `description`), `bad_path`, `binary`, `too_many_files`, `file_too_large`, `too_large` (the total); `file` names the offender when there is one |
 | 400 | `{error: "scan_rejected", file}` | a secret was found (the match itself is never returned) |
-| 401 / 403 / 404 | as lessons | no identity / `admin_required` / unknown workspace, skill or someone else's proposal |
+| 401 / 403 | as lessons | no identity / `admin_required` |
+| 404 | `{error: "Workspace not found"}` or `{error: "Team skill not found"}` | not a member of the workspace (same answer as an unknown one) / no such skill, or someone else's proposal. These two texts are what the plugin tells apart from a server that has no Team skills at all (any other 404): keep them exact |
 | 409 | `duplicate` | same `name` and same `version` already `proposed` or `approved` (`id`, `status` returned) |
 | 409 | `not_pending`, `not_approved` | a review or retire that came too late (another admin was faster) |
 | 409 | `team_full` | 100 approved skills |
@@ -100,10 +106,18 @@ carry the rules: one approved row per `(workspace_id, name)`, and no second `pro
 
 ## The plugin side (for information, not part of the contract)
 
-- DSH host routes `/kybernos-cloud/team/skills*` call the server with the account token, like `/kybernos-cloud/team/lessons*`.
-  They are not on the console relay's allowlist: that one serves the Team console iframe only.
-- The Skills screen gets a **Team** segment next to *Yours* and *Discover*: approved skills with *Install*, *My proposals*,
-  *Propose* (from a local skill), and for admins a review queue showing the file list before approving.
-- *Install* copies the files into `~/.dsh/skills/<name>` with the same containment rules as a GitHub install, after checking
-  `version`. A skill that already exists there is never overwritten silently.
-- Without the route (an older or a different server), the segment shows « not available on this server », never an error.
+Built (host halves, tested against a stand-in server; the screen is not built yet):
+
+- `kybernos-cloud`: `/kybernos-cloud/team/skills` (list), `…/item?id=` (one skill with its files), `…/add`, `…/review`,
+  `…/retire`, `…/delete`. They call the server above with the account token, for the ACTIVE workspace, only on the Team plan
+  (`teamWorkspace`, like lessons), and turn every refusal into one word (`team-skills.mjs`). They are not on the console relay's
+  allowlist: that one serves the Team console iframe only.
+- `kybernos-skills`: `POST /kybernos-skills/team/pack {root, name}` reads a skill of one of the two writable roots into a proposal
+  (text only, hidden files and symlinks left out, secret scan, the version), and `POST /kybernos-skills/team/install {root?, name,
+  version, files}` recomputes the version, checks every path and writes the folder atomically, **never over an existing folder**.
+  Both are POST and same-origin guarded because they carry skill content.
+- The page moves the files between the two (the server never sees a local path, the plugins never import each other).
+
+To build: the Skills screen gets a **Team** segment next to *Yours* and *Discover* (maquette: approved skills with *Install*, *My
+proposals*, *Propose*, and for admins a review queue showing the files before approving). Without the route (an older or a
+different server) the segment says « not available on this server », never an error.

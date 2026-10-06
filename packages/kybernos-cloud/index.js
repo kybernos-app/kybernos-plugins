@@ -43,6 +43,7 @@ import { rank as rankByRelevance } from './relevance.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
 import { TEAM_CHUNK_NAME, TEAM_CHUNK_ORDER, TEAM_TUNING, teamWorkspace, displayName, asTeamLesson, teamFailure, teamPlan, renderTeamChunk, applicable } from './team-lessons.mjs'
+import { teamSkillsBase, isSkillId, teamSkillsFailure, asTeamSkill } from './team-skills.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
@@ -2809,6 +2810,93 @@ const teamDeleteRoute = async (req, body) => {
   return { ok: true }
 }
 
+// ── Team skills ──────────────────────────────────────────────────────────────────────
+// A Team's private catalogue of skills (docs/dev/team-skills-contract.md): any member proposes one, an owner or admin approves it, every
+// member can install it. Reserved to the Team plan by the same rule as the lessons (`teamWorkspace`). This side only talks to the server
+// with the account token; reading a local skill and writing an installed one is kybernos-skills' business (the page carries the files
+// from one to the other), so no skill content is ever kept here.
+const teamSkillsCall = async (state, method, suffix, body) => {
+  const ws = teamNow(state)
+  if (ws.available !== true) return { ok: false, error: ws.reason }
+  const res = await apiCall(teamSkillsBase(ws.workspaceId) + suffix, { method, token: state.token, ...(body === undefined ? {} : { body }) })
+  const failure = teamSkillsFailure(res.status, res.body)
+  if (failure !== null) return { ok: false, ...failure }
+  return { ok: true, body: res.body, ws }
+}
+
+const paramsOf = (req) => {
+  try { return new URL(req.url, 'http://localhost').searchParams } catch (e) { return new URLSearchParams('') }
+}
+
+const teamSkillsListRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const params = paramsOf(req)
+  const view = ['approved', 'proposed', 'mine', 'all'].indexOf(params.get('view')) >= 0 ? params.get('view') : 'approved'
+  const query = 'view=' + view + '&limit=' + String(intParam(params.get('limit'), 100, 1, 200)) + '&offset=' + String(intParam(params.get('offset'), 0, 0, 100000))
+  const made = await teamSkillsCall(state, 'GET', '?' + query)
+  if (made.ok !== true) return made
+  const b = made.body !== null && typeof made.body === 'object' ? made.body : {}
+  if (!Array.isArray(b.skills)) return { ok: false, error: 'invalid_response' }
+  return { ok: true, connected: true, role: typeof b.role === 'string' ? b.role : null, view: b.view, total: b.total, limit: b.limit, offset: b.offset, counts: b.counts, skills: b.skills.map(asTeamSkill), workspaceName: made.ws.workspaceName }
+}
+
+const teamSkillsItemRoute = async (req) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const id = paramsOf(req).get('id')
+  if (!isSkillId(id)) return { ok: false, error: 'skill_not_found' }
+  const made = await teamSkillsCall(state, 'GET', '/' + String(id))
+  if (made.ok !== true) return made
+  if (made.body === null || typeof made.body !== 'object' || !Array.isArray(made.body.files)) return { ok: false, error: 'invalid_response' }
+  return { ok: true, skill: asTeamSkill(made.body) }
+}
+
+const teamSkillsAddRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (typeof b.name !== 'string' || b.name === '' || typeof b.description !== 'string' || !Array.isArray(b.files) || b.files.length === 0) return { ok: false, error: 'bad_request' }
+  const payload = { name: b.name, description: b.description, files: b.files, display_name: displayName(state) }
+  if (typeof b.note === 'string' && b.note.trim() !== '') payload.note = b.note
+  const made = await teamSkillsCall(state, 'POST', '', payload)
+  if (made.ok !== true) return made
+  return { ok: true, skill: asTeamSkill(made.body) }
+}
+
+const teamSkillsReviewRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isSkillId(b.id)) return { ok: false, error: 'skill_not_found' }
+  if (b.decision !== 'approve' && b.decision !== 'reject') return { ok: false, error: 'bad_request' }
+  const payload = { decision: b.decision, display_name: displayName(state) }
+  if (typeof b.note === 'string' && b.note.trim() !== '') payload.note = b.note
+  const made = await teamSkillsCall(state, 'POST', '/' + String(b.id) + '/review', payload)
+  if (made.ok !== true) return made
+  return { ok: true, skill: asTeamSkill(made.body) }
+}
+
+const teamSkillsRetireRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isSkillId(b.id)) return { ok: false, error: 'skill_not_found' }
+  const made = await teamSkillsCall(state, 'POST', '/' + String(b.id) + '/retire', { display_name: displayName(state) })
+  if (made.ok !== true) return made
+  return { ok: true, skill: asTeamSkill(made.body) }
+}
+
+const teamSkillsDeleteRoute = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  if (!isSkillId(b.id)) return { ok: false, error: 'skill_not_found' }
+  const made = await teamSkillsCall(state, 'DELETE', '/' + String(b.id))
+  if (made.ok !== true) return made
+  return { ok: true }
+}
+
 /**
  * Liste paginée et filtrée des souvenirs du COMPTE. Tout est calculé ici, sur le
  * cache : le serveur ne pagine pas encore (`GET /v1/memories` renvoie tout), donc
@@ -3420,6 +3508,13 @@ const ROUTES = [
   { path: '/kybernos-cloud/team/lessons/review', method: 'POST', guarded: true, body: true, cap: 16384, run: teamReviewRoute },
   { path: '/kybernos-cloud/team/lessons/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamRetireRoute },
   { path: '/kybernos-cloud/team/lessons/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: teamDeleteRoute },
+  // Team skills: the server half only (files are read and written by kybernos-skills). A proposal carries up to 1 MiB of files.
+  { path: '/kybernos-cloud/team/skills', method: 'GET', guarded: true, run: teamSkillsListRoute },
+  { path: '/kybernos-cloud/team/skills/item', method: 'GET', guarded: true, run: teamSkillsItemRoute },
+  { path: '/kybernos-cloud/team/skills/add', method: 'POST', guarded: true, body: true, cap: 4 * 1024 * 1024, run: teamSkillsAddRoute },
+  { path: '/kybernos-cloud/team/skills/review', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsReviewRoute },
+  { path: '/kybernos-cloud/team/skills/retire', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsRetireRoute },
+  { path: '/kybernos-cloud/team/skills/delete', method: 'POST', guarded: true, body: true, cap: 4096, run: teamSkillsDeleteRoute },
   { path: '/kybernos-cloud/memory/tidy', method: 'GET', guarded: true, run: memoryTidyRoute },
   { path: '/kybernos-cloud/memory/tidy/scan', method: 'POST', guarded: true, run: memoryTidyScanRoute },
   { path: '/kybernos-cloud/memory/tidy/apply', method: 'POST', guarded: true, body: true, cap: 65536, run: memoryTidyApplyRoute },

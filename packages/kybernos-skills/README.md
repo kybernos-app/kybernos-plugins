@@ -31,6 +31,8 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST create {root?,name,description,whenToUse?,body?,modelInvocable?}` | writes a valid `SKILL.md` |
 | `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
+| `POST team/pack {root,name}` | reads a skill of a writable root into a Team proposal: text files only, no hidden file or symlink, secret scan, the SHA-256 version |
+| `POST team/install {root?,name,version,files}` | writes a Team skill (checks every path and the version first), atomically, **never over an existing folder** |
 
 ## Files, settings, env
 
@@ -60,7 +62,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 `node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the four POST routes
 mounted on a fake context. `test-index.mjs` covers the Discover routes against a local stand-in for the relay (what is asked,
-that no credential is sent, failures not cached, the address override). `test-dsh-home.mjs` covers `DSH_HOME`. The install, create
+that no credential is sent, failures not cached, the address override). `test-dsh-home.mjs` covers `DSH_HOME`. `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan) and the disk half of `team/pack` and `team/install` on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
 and toggle logic is not tested; CI also syntax-checks the bundle (`node --check packages/kybernos-skills/*.js`).
 The host exports its functions "for the harness" (`catalogueOf`, `toggleSkill`, `createSkill`, `installSkill`, …) but no other
 harness is in this repo.

@@ -36,6 +36,7 @@ import { createZstdDecompress } from 'node:zlib'
 import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { validateTeamSkill, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 
 // ── helpers locaux (miroir semantique de kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -979,6 +980,102 @@ const installSkill = async ({ ctx, source, name, root, config, sessionId }) => {
   }
 }
 
+// ── TEAM SKILLS: a local skill to the Team, and a Team skill to this machine ─────────────────────────────────
+// The server half is docs/dev/team-skills-contract.md; the pure rules (limits, paths, secret scan, version) are team-skills.mjs and
+// are applied on both ends. Two operations touch the disk, and both are POST: they carry skill CONTENT, which a GET (served before
+// DSH's own auth, no origin guard) must not hand to any local caller.
+//   pack    reads a skill folder of ONE of the two writable roots and returns what a proposal carries;
+//   install writes what a Team skill carries into a writable root, atomically, and NEVER over an existing folder.
+const TEAM_WALK_DEPTH = 6
+
+// Every regular file of a skill folder, as { path, abs, size }. Hidden entries (`.git`, `.DS_Store`, `.env`) and `node_modules` are
+// not part of a skill; a symlink is neither a file nor a folder here, so it is skipped, never followed.
+const walkSkillFolder = (dir, rel, depth, out) => {
+  if (depth > TEAM_WALK_DEPTH || out.length > TEAM_SKILL_LIMITS.files) return
+  let entries
+  try { entries = readdirSync(dir, { withFileTypes: true }) } catch (e) { return }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+    const abs = join(dir, entry.name)
+    const path = rel === '' ? entry.name : rel + '/' + entry.name
+    if (entry.isDirectory()) walkSkillFolder(abs, path, depth + 1, out)
+    else if (entry.isFile()) {
+      let size = 0
+      try { size = statSync(abs).size } catch (e) { continue }
+      out.push({ path, abs, size })
+    }
+  }
+}
+
+/** `{ ok, name, description, files: [{path, content}], version, count, bytes, scripts }` or `{ ok: false, error, reason?, file? }`. Never writes. */
+const packSkill = ({ root, name, config }) => {
+  const cfg = normalizeConfig(config)
+  if (typeof name !== 'string' || !SKILL_NAME_RE.test(name)) return { ok: false, error: 'invalid_skill', reason: 'name' }
+  if (typeof root !== 'string' || writableRootsOf(cfg).includes(root) === false) return { ok: false, error: 'root_not_allowed' }
+  const matches = resolveInRoot(root, name)
+  if (matches.length === 0) return { ok: false, error: 'skill_not_found' }
+  if (matches.length > 1) return { ok: false, error: 'skill_ambiguous' }
+  const found = matches[0]
+  if (found.hasActive === false) return { ok: false, error: 'skill_disabled' }
+  // The folder must really live under the root (a symlink leaving it is visible elsewhere, but never packed).
+  if (writableRootFor(found.folder, [root]) === null) return { ok: false, error: 'root_not_allowed' }
+
+  const listed = []
+  walkSkillFolder(found.folder, '', 0, listed)
+  if (listed.length > TEAM_SKILL_LIMITS.files) return { ok: false, error: 'invalid_skill', reason: 'too_many_files' }
+  const files = []
+  for (const f of listed.sort((a, b) => (a.path < b.path ? -1 : (a.path > b.path ? 1 : 0)))) {
+    if (f.size > TEAM_SKILL_LIMITS.fileBytes) return { ok: false, error: 'invalid_skill', reason: 'file_too_large', file: f.path }
+    let content
+    try { content = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(f.abs)) } catch (e) {
+      // Not UTF-8 text (a picture, a binary), or unreadable: either way it cannot travel, and the user is told which file.
+      return { ok: false, error: 'invalid_skill', reason: 'binary', file: f.path }
+    }
+    files.push({ path: f.path, content })
+  }
+  const checked = validateTeamSkill({ name, files })
+  if (checked.ok !== true) return { ok: false, error: checked.reason === 'scan_rejected' ? 'scan_rejected' : 'invalid_skill', reason: checked.reason, file: checked.file, line: checked.line }
+  return { ok: true, name, description: checked.description, files, version: checked.version, count: checked.count, bytes: checked.bytes, scripts: checked.scripts }
+}
+
+/** Writes a Team skill into a writable root. `version` is what the server announced: the files must hash to it, or nothing is written. */
+const installTeamSkill = async ({ ctx, root, name, version, files, config, sessionId }) => {
+  const cfg = normalizeConfig(config)
+  const wRoots = writableRootsOf(cfg)
+  const dest = typeof root === 'string' && root !== '' ? root : join(cfg.dsh, 'skills')
+  if (wRoots.includes(dest) === false) return { ok: false, error: 'root_not_allowed' }
+  const checked = validateTeamSkill({ name, files })
+  if (checked.ok !== true) return { ok: false, error: checked.reason === 'scan_rejected' ? 'scan_rejected' : 'invalid_skill', reason: checked.reason, file: checked.file }
+  if (typeof version !== 'string' || version !== checked.version) return { ok: false, error: 'version_mismatch' }
+  const target = join(dest, name)
+  if (existsSync(target)) return { ok: false, error: 'exists' }
+
+  let staging = null
+  try {
+    mkdirSync(dest, { recursive: true })
+    // A dot-prefixed staging folder: the registry never lists it, and the rename below is one step.
+    staging = mkdtempSync(join(dest, '.kb-team-'))
+    for (const f of files) {
+      const abs = resolvePath(staging, f.path)
+      if (abs.startsWith(staging + sep) === false) throw new Error('path outside the skill folder')
+      mkdirSync(dirname(abs), { recursive: true })
+      writeFileSync(abs, f.content, { mode: 0o644 })
+    }
+    if (existsSync(target)) { rmSync(staging, { recursive: true, force: true }); return { ok: false, error: 'exists' } }
+    renameSync(staging, target)
+    staging = null
+  } catch (e) {
+    if (staging !== null) { try { rmSync(staging, { recursive: true, force: true }) } catch (e2) { /* best effort */ } }
+    return { ok: false, error: 'write_failed' }
+  }
+  invalidateSkills(ctx, sessionId)
+  return {
+    ok: true,
+    files: files.length,
+    skill: skillEntryOf(dest, cfg, { folder: target, activeFile: join(target, MARKER_ACTIVE), disabledFile: join(target, MARKER_DISABLED), hasActive: true })
+  }
+}
+
 // ── CREATION : le fichier est la seule source, on ecrit donc un SKILL.md valide et rien d'autre ──────────────
 // Toute valeur textuelle est emise en scalaire YAML entre guillemets, avec les echappements qui vont
 // bien : une description contenant « : » ou un guillemet ne doit pas pouvoir casser le frontmatter.
@@ -1026,10 +1123,11 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 
   // Gardes verbatim et dans cet ordre : methode d'abord, origine ensuite. Aucune route POST ne
   // touche au disque avant les deux.
-  const POST = (path, label, fn) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
+  // `cap` is the body limit in bytes (default 64 KiB): Team skill routes carry up to a megabyte of files.
+  const POST = (path, label, fn, cap) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
     if (sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-    try { sendJson(res, 200, await fn(await readJsonBody(req))) } catch (e) { sendJson(res, 200, { ok: false, error: 'requete impossible' }) }
+    try { sendJson(res, 200, await fn(await readJsonBody(req, cap))) } catch (e) { sendJson(res, 200, { ok: false, error: 'requete impossible' }) }
   } }), label)
 
   GET('/kybernos-skills/skills', 'kybernos-skills: route skills', async (req) => {
@@ -1106,6 +1204,23 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     sessionId: body.sessionId
   }))
 
+  // ── Team skills (see docs/dev/team-skills-contract.md): the page asks here for the disk half, kybernos-cloud for the server half ──
+  POST('/kybernos-skills/team/pack', 'kybernos-skills: route team pack', async (body) => packSkill({
+    root: body.root,
+    name: body.name,
+    config: configOf()
+  }))
+
+  POST('/kybernos-skills/team/install', 'kybernos-skills: route team install', async (body) => installTeamSkill({
+    ctx,
+    root: body.root,
+    name: body.name,
+    version: body.version,
+    files: body.files,
+    config: configOf(),
+    sessionId: body.sessionId
+  }), 4 * 1024 * 1024)
+
   // ── Featured : la liste mise en avant, contrôlée par l'utilisateur ──────────────────────────
   GET('/kybernos-skills/featured', 'kybernos-skills: route featured', async (req) => {
     const cfg = configOf()
@@ -1168,7 +1283,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── exports nommes pour le harnais (testabilite : chemins explicites, rien de cable) + apply ────────────────
-export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
+export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
 
 export function apply(ctx) {
   // Filet miroir de kybernos-plugin/index.js:2876-2884 (base) : une erreur de montage ne doit pas
