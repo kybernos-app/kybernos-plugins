@@ -75,7 +75,7 @@ for (const chemin of POSTS) {
 {
   const r = reponse()
   await routes['/kybernos-skills/toggle'].handler(requete('POST', { origin: 'http://127.0.0.1:' + PORT }, {}), r)
-  ok('POST /toggle from the GUI origin passes the guard (and is refused by its own validation, no disk touched)', r.code === 200 && r.corps.ok === false && /racine absente/.test(r.corps.error), { code: r.code, corps: r.corps })
+  ok('POST /toggle from the GUI origin passes the guard (and is refused by its own validation, no disk touched)', r.code === 200 && r.corps.ok === false && r.corps.error === 'root_missing', { code: r.code, corps: r.corps })
   const g = reponse()
   await routes['/kybernos-skills/toggle'].handler(requete('GET', { origin: 'http://127.0.0.1:' + PORT }), g)
   ok('a GET on a POST route is still 405 (method guard first)', g.code === 405, { code: g.code })
