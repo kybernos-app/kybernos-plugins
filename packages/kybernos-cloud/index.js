@@ -484,7 +484,8 @@ const humanizeModelName = (id) => {
  *  catalogue en fournit (LiteLLM expose parfois max_tokens / context_length).
  *  Un modèle non dimensionné prend les replis de la route (262 144 / 32 768). */
 const modelEntry = (id, info) => {
-  const entry = { id, name: humanizeModelName(id) }
+  const shown = info !== null && typeof info === 'object' && typeof info.display_name === 'string' && info.display_name.trim() !== '' ? info.display_name.trim() : null
+  const entry = { id, name: shown !== null ? shown : humanizeModelName(id) }
   if (info !== null && typeof info === 'object' && Array.isArray(info) === false) {
     const context = intOf(info.context_length, info.max_input_tokens, info.max_model_len)
     const output = intOf(info.max_output_tokens, info.max_tokens)
@@ -494,23 +495,39 @@ const modelEntry = (id, info) => {
   return entry
 }
 
-/** Formes acceptées : `{data: [{id, …}]}` (LiteLLM natif) ou `{models: {id: …}}`
- *  (variante enrichie). Rien d'autre = illisible. */
+/** The catalogue of a Kybernos server built on vanilla provider models (`GET /v1/models` answers entries with a `kind`): every chat model is
+ *  offered, named as the server names it; the embeddings model is remembered apart (it is not a chat route). The old role routes
+ *  (`kybernos/*` twins, `_rg` pools, raw backend ids) are told apart by having no `kind`: they keep the filter below. */
+const isServerCatalog = (entries) => entries.length > 0 && entries.every((e) => typeof e.kind === 'string')
+
+const serverCatalog = (entries) => {
+  const chat = []
+  let embed = null
+  for (const entry of entries) {
+    if (entry.kind === 'chat') chat.push(entry)
+    else if (entry.kind === 'embeddings' && embed === null) embed = entry.id
+  }
+  return { models: chat.map((e) => modelEntry(e.id, e)), embed }
+}
+
+/** Formes acceptées : `{data: [{id, …}]}` (LiteLLM natif, ou serveur Kybernos avec `kind`) ou `{models: {id: …}}`
+ *  (variante enrichie). Rien d'autre = illisible. Rend `{models, embed}` : `embed` est l'id du modèle d'embeddings, ou null. */
 const parseCatalogIds = (body) => {
   if (body === null || typeof body !== 'object') return null
   if (Array.isArray(body.data) === true) {
+    const entries = body.data.filter((entry) => entry !== null && typeof entry === 'object' && typeof entry.id === 'string')
+    if (isServerCatalog(entries) === true) return serverCatalog(entries)
     const infos = new Map()
     const ids = []
-    for (const entry of body.data) {
-      if (entry === null || typeof entry !== 'object' || typeof entry.id !== 'string') continue
+    for (const entry of entries) {
       ids.push(entry.id)
       infos.set(entry.id, entry)
     }
     const kept = keepChatModels(ids)
-    return kept.map((id) => modelEntry(id, infos.get(id)))
+    return { models: kept.map((id) => modelEntry(id, infos.get(id))), embed: null }
   }
   if (body.models !== null && typeof body.models === 'object' && Array.isArray(body.models) === false) {
-    return keepChatModels(Object.keys(body.models)).map((id) => modelEntry(id, body.models[id]))
+    return { models: keepChatModels(Object.keys(body.models)).map((id) => modelEntry(id, body.models[id])), embed: null }
   }
   return null
 }
@@ -523,9 +540,9 @@ const fetchCatalog = async (state) => {
   if (res.status !== 200 || res.body === null) {
     return { ok: false, error: res.status === 0 ? 'reseau' : 'catalogue_indisponible', status: res.status }
   }
-  const models = parseCatalogIds(res.body)
-  if (models === null) return { ok: false, error: 'catalogue_illisible', status: res.status }
-  return { ok: true, models }
+  const parsed = parseCatalogIds(res.body)
+  if (parsed === null) return { ok: false, error: 'catalogue_illisible', status: res.status }
+  return { ok: true, models: parsed.models, embed: parsed.embed }
 }
 
 /** La route provider écrite dans `llm-pi-ai.providers.kybernos`. apiKeyEnv est
@@ -539,10 +556,11 @@ const providerValue = (state, entries) => ({
 })
 
 /** Déjà importé à l'identique ? (comparaison ids triés + formule + base) */
-const catalogFingerprint = (state, entries, plan) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
+  embed === undefined || embed === null ? null : embed,
 ])
 
 /** Import (ou rafraîchissement) : catalogue → settings → credential → état.
@@ -570,7 +588,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan) === catalogFingerprint(state, cat.models, plan)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed) === catalogFingerprint(state, cat.models, plan, cat.embed)) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -583,6 +601,7 @@ const importCatalog = async (cause, options = {}) => {
     plan,
     count: cat.models.length,
     ids: cat.models.map((e) => e.id),
+    embed: cat.embed,
     provider: PROVIDER_ID,
     base_url: baseUrl(state),
     settings: settingsOut.wrote === true,
@@ -659,6 +678,7 @@ const publicModels = (models) => {
     plan: models.plan !== undefined ? models.plan : null,
     count: typeof models.count === 'number' ? models.count : 0,
     ids: Array.isArray(models.ids) ? models.ids.slice() : [],
+    embed: typeof models.embed === 'string' ? models.embed : null,
     settings: models.settings === true,
     credential: models.credential === true,
     cause: models.cause !== undefined ? models.cause : null,
@@ -2053,7 +2073,13 @@ const intParam = (raw, fallback, min, max) => {
 // dimensions, free tier, billed to the account like chat) and sends the vector; the server only stores
 // and ranks. EVERYTHING here is behind the `meaning` switch and never runs on its own at start-up.
 
-const EMBED_MODEL = 'kybernos/embed'
+const EMBED_MODEL = 'kybernos/embed'   // the role route of the older servers; a server with a vanilla catalogue names its own (below)
+/** The embeddings model of the server we are connected to: the one its catalogue named at the last import, else the legacy route. */
+const embedModelId = () => {
+  const state = readState()
+  const named = state !== null && state.models !== undefined && state.models !== null ? state.models.embed : null
+  return typeof named === 'string' && named !== '' ? named : EMBED_MODEL
+}
 const EMBED_DIM = 1024
 const EMBED_BATCH = 16
 const INDEX_BATCH_MAX = 64
@@ -2100,7 +2126,7 @@ const noteEmbedFailure = (failure) => {
 /** Vectors for `texts`, in order. Never throws; every failure is `{ ok:false, error }` (+ requiredTier / plan for 'offre_requise'). */
 const embedTexts = async (state, texts) => {
   if (!Array.isArray(texts) || texts.length === 0) return { ok: true, vectors: [] }
-  const res = await apiCall('/v1/embeddings', { method: 'POST', token: state.token, body: { model: EMBED_MODEL, input: texts } })
+  const res = await apiCall('/v1/embeddings', { method: 'POST', token: state.token, body: { model: embedModelId(), input: texts } })
   const failure = embedFailure(res)
   if (failure !== null) return { ok: false, ...failure }
   const data = res.body !== null && Array.isArray(res.body.data) ? res.body.data.slice() : []
@@ -2114,7 +2140,7 @@ const embedTexts = async (state, texts) => {
 
 /** Stores one vector on a memory. 503 = this server cannot (no pgvector); 404 = gone (or an older server). */
 const putEmbedding = async (state, id, vector) => {
-  const res = await apiCall('/v1/memories/' + encodeURIComponent(String(id)) + '/embedding', { method: 'PUT', token: state.token, body: { embedding: vector, model: EMBED_MODEL } })
+  const res = await apiCall('/v1/memories/' + encodeURIComponent(String(id)) + '/embedding', { method: 'PUT', token: state.token, body: { embedding: vector, model: embedModelId() } })
   if (res.status === 200) return { ok: true }
   if (res.status === 503) return { ok: false, error: 'sens_indisponible' }
   if (res.status === 404) {
@@ -2241,7 +2267,7 @@ let mapInFlight = null
 
 const readVectorCache = () => {
   const raw = readSide('memory-vectors', {})
-  if (raw.model !== EMBED_MODEL || raw.dim !== EMBED_DIM || raw.v === null || typeof raw.v !== 'object' || Array.isArray(raw.v)) return {}
+  if (raw.model !== embedModelId() || raw.dim !== EMBED_DIM || raw.v === null || typeof raw.v !== 'object' || Array.isArray(raw.v)) return {}
   return raw.v
 }
 
@@ -2251,7 +2277,7 @@ const writeVectorCache = (cache, keep) => {
   if (keys.length > MAP_VECTORS_MAX) keys = keys.slice(keys.length - MAP_VECTORS_MAX)
   const v = {}
   for (const k of keys) v[k] = cache[k]
-  try { writeSide('memory-vectors', { model: EMBED_MODEL, dim: EMBED_DIM, v }) } catch (e) { /* the map just recomputes next time */ }
+  try { writeSide('memory-vectors', { model: embedModelId(), dim: EMBED_DIM, v }) } catch (e) { /* the map just recomputes next time */ }
 }
 
 /** Keeps vectors that were just paid for (indexing, a new memory) so the map does not ask for them again. Never throws. */
