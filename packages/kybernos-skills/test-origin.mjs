@@ -55,8 +55,8 @@ console.log('\n── through the real routes (apply on a fake context) ──')
 const routes = {}
 const webServer = { register: (r) => { routes[r.path] = { kind: r.kind, handler: r.handler } } }
 apply({ inject (deps, fn) { fn({ get: (nom) => (nom === 'webServer' ? webServer : {}), effect: (f) => f() }) } })
-const POSTS = ['reconnect', 'toggle', 'create', 'install', 'featured/toggle'].map((n) => '/kybernos-skills/' + n)
-ok('the five POST routes are registered', POSTS.every((p) => routes[p] !== undefined), Object.keys(routes))
+const POSTS = ['toggle', 'create', 'install', 'featured/toggle'].map((n) => '/kybernos-skills/' + n)
+ok('the four POST routes are registered', POSTS.every((p) => routes[p] !== undefined), Object.keys(routes))
 const requete = (method, headers, corps) => ({
   method, headers: headers || {}, socket: { localPort: PORT },
   async * [Symbol.asyncIterator] () { if (corps !== undefined) yield Buffer.from(JSON.stringify(corps)) }

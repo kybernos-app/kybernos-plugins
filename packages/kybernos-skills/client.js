@@ -44,7 +44,6 @@ window.__ModuleLoader__.load({
         check: ['M20 6 9 17l-5-5'],
         github: ['M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4', 'M9 18c-4.51 2-5-2-7-2'],
         wand: ['m15 4-1 1', 'm9 9-1 1', 'M4 20l10.5-10.5a2.1 2.1 0 0 0-3-3L1 17l3 3z', 'm14 7 3 3', 'M14.5 3.5 15 3', 'M19 9l.5-.5'],
-        plug: ['M12 22v-5', 'M9 8V2', 'M15 8V2', 'M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z'],
         info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-4', 'M12 8h.01'],
         star: ['M11.5 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.9l5.16-.76a2.12 2.12 0 0 0 1.6-1.16z'],
         folder: ['M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 1 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'],
@@ -90,7 +89,6 @@ window.__ModuleLoader__.load({
         'err.index': { fr: 'index indisponible', en: 'index unavailable' },
         'err.noanswer': { fr: 'la route /kybernos-skills/ ne répond pas', en: 'the /kybernos-skills/ route is not responding' },
         'err.audit': { fr: 'audit indisponible', en: 'audit unavailable' },
-        'err.reconnect': { fr: 'reconnexion impossible', en: 'reconnection failed' },
         'err.create': { fr: 'création impossible', en: 'creation failed' },
         'err.install': { fr: 'installation impossible', en: 'installation failed' },
         'notice.featOn': { fr: '« {name} » mis en avant (Featured)', en: '“{name}” added to Featured' },
@@ -100,7 +98,6 @@ window.__ModuleLoader__.load({
         'notice.created': { fr: '« {name} » créé et actif', en: '“{name}” created and active' },
         'notice.installed': { fr: '« {name} » installé', en: '“{name}” installed' },
         'notice.files': { fr: ' — {n} fichiers', en: ' — {n} files' },
-        'notice.reconnected': { fr: 'Index reconnecté — jeton Vercel renouvelé', en: 'Index reconnected — Vercel token renewed' },
         'copy.ok': { fr: 'Copié : {text} — colle-le dans le composeur', en: 'Copied: {text} — paste it in the composer' },
         'copy.denied': { fr: 'copie refusée par le navigateur', en: 'copy denied by the browser' },
         'copy.unavail': { fr: 'copie indisponible dans ce navigateur', en: 'copy unavailable in this browser' },
@@ -144,7 +141,7 @@ window.__ModuleLoader__.load({
         'add.manual': { fr: 'Installer à la main (owner/repo)', en: 'Install manually (owner/repo)' },
         'add.top': { fr: 'Voir les plus installés', en: 'See the most installed' },
         'ph.yours': { fr: 'Rechercher un skill…', en: 'Search skills…' },
-        'ph.discover': { fr: 'Chercher dans 9 827 skills (nom et description)…', en: 'Search 9,827 skills (name and description)…' },
+        'ph.discover': { fr: 'Chercher dans les skills (nom et description)…', en: 'Search skills (name and description)…' },
         'card.disable': { fr: 'Désactiver', en: 'Disable' },
         'card.enable': { fr: 'Activer', en: 'Enable' },
         'card.readonly': { fr: 'lecture seule', en: 'read-only' },
@@ -183,8 +180,6 @@ window.__ModuleLoader__.load({
         'y.nofilter': { fr: 'Change de filtre ou de terme.', en: 'Change the filter or search term.' },
         'd.query': { fr: 'Interrogation de l\'index…', en: 'Querying the index…' },
         'd.down': { fr: 'Index indisponible', en: 'Index unavailable' },
-        'd.oidc': { fr: 'L\'index passe par l\'API officielle skills.sh, qui exige un jeton Vercel OIDC — il vit environ 12 h.', en: 'The index uses the official skills.sh API, which requires a Vercel OIDC token — it lasts about 12 h.' },
-        'd.reconnect': { fr: 'Reconnecter l\'index', en: 'Reconnect the index' },
         'd.direct': { fr: 'L\'installation directe reste possible par « Importer depuis GitHub ».', en: 'Direct install is still possible via “Import from GitHub”.' },
         'feat.sub': { fr: 'mis en avant — liste tenue à l\'étoile, dans l\'ordre du fichier', en: 'featured — list kept by star, in file order' },
         'th.result': { fr: 'RÉSULTAT', en: 'RESULT' },
@@ -554,7 +549,6 @@ window.__ModuleLoader__.load({
         const [discPhase, setDiscPhase] = React.useState('idle')
         const [discError, setDiscError] = React.useState('')
         const [audit, setAudit] = React.useState(null)     // audits de securite du skill ouvert
-        const [index, setIndex] = React.useState(null)     // etat du jeton OIDC (jamais sa valeur)
         const [busy, setBusy] = React.useState({})
         const [errors, setErrors] = React.useState({})
         const [notice, setNotice] = React.useState(null)
@@ -633,7 +627,6 @@ window.__ModuleLoader__.load({
             if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.roots)) {
               setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
             }
-            if (j !== null && typeof j === 'object' && j.index !== undefined) setIndex(j.index)
           }).catch(() => { /* sans racines, les modales retombent sur l'hôte qui revalide tout */ })
         }, [loadCatalogue, loadFeatured])
 
@@ -1115,32 +1108,12 @@ window.__ModuleLoader__.load({
             pagerYours(shownYours.length, filtered.length))
         }
 
-        // Le jeton OIDC vit ~12 h. Plutôt qu'un « erreur 401 » opaque, on dit quoi faire et on le fait.
-        const reconnect = () => {
-          setDiscPhase('loading')
-          postJson('/kybernos-skills/reconnect', {}).then((j) => {
-            if (alive.current !== true) return
-            if (j !== null && typeof j === 'object' && j.index !== undefined) setIndex(j.index)
-            if (j !== null && typeof j === 'object' && j.ok === true) {
-              setNotice({ kind: 'ok', text: t('notice.reconnected') })
-              setDisc(null); setDiscPhase('idle')
-            } else {
-              setDiscPhase('error'); setDiscError(why(j, t('err.reconnect')))
-            }
-          }).catch(() => {
-            if (alive.current !== true) return
-            setDiscPhase('error'); setDiscError(t('err.unavail', { r: 'reconnect' }))
-          })
-        }
-
         const renderDiscover = () => {
           if (discPhase === 'loading' && disc === null) return h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('d.query')))
           if (discPhase === 'error') {
             return h('div', { className: 'kb-empty' },
               h('span', { className: 'kb8-name' }, t('d.down')),
               h('span', { className: 'kb8-parent' }, discError),
-              h('span', { className: 'kb8-parent' }, t('d.oidc')),
-              h('button', { type: 'button', className: 'kb8-ghost', onClick: reconnect }, icon('plug', 15), ' ' + t('d.reconnect')),
               h('span', { className: 'kb8-parent' }, t('d.direct')))
           }
           return h('div', null,
