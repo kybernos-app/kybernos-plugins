@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // End-to-end test of the DISK COPY of the translations, on the REAL GUI.
 //
-//   node scripts/check-language-disk-live.mjs [--worktree]
+//   node scripts/check-language-disk-live.mjs [--worktree | --baseline]
 //
 //   --worktree   test this checkout's Language client instead of what the shared tree serves
 //
@@ -23,12 +23,16 @@
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive.
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { createFlow, assertEnglishStored, storedLocale, fakeDiskRoute, LANGUAGE } from './lib-language-flow.mjs'
-import { swapBundles } from './lib-bundle-swap.mjs'
+import { swapBundles, SHARED_TREE } from './lib-bundle-swap.mjs'
 
 const useWorktree = process.argv.slice(2).includes('--worktree')
+// --baseline: the opposite, for a sandbox that serves this checkout: serve the SHARED TREE's client instead, to tell a regression of this branch from a failure that was already there.
+const baseline = process.argv.slice(2).includes('--baseline')
+const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let pass = 0
 let fail = 0
@@ -46,7 +50,7 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await res
 
 const disk = await fakeDiskRoute(page, home)
 // After the fake disk: `Fetch.enable` replaces the patterns of an earlier call, so this one lists the store route too.
-const swap = useWorktree ? await swapBundles(page, [{ name: 'kybernos-language' }], { extraPatterns: [{ urlPattern: '*/kybernos/i18n-store*', requestStage: 'Request' }] }) : null
+const swap = useWorktree || baseline ? await swapBundles(page, [{ name: 'kybernos-language' }], { ...(baseline ? { servedRoot: REPO, mineRoot: SHARED_TREE } : {}), extraPatterns: [{ urlPattern: '*/kybernos/i18n-store*', requestStage: 'Request' }] }) : null
 await flow.installStub() // reloads the page: the swapped client is what loads
 const browserCount = async (id) => Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.${id}') || '{}')).length`))
 const browserDshCount = async (id) => Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.${id}') || '{}')).length`))
@@ -56,7 +60,7 @@ const poll = async (fn, ms = 20000) => { const end = Date.now() + ms; for (;;) {
 try {
   if (swap !== null) {
     const r = swap.report()
-    check('the worktree client is what the page runs (its text replaced the served one)', r.every((x) => x.replaced), r)
+    check((baseline ? 'the shared tree’s client (baseline)' : 'the worktree client') + ' is what the page runs (its text replaced the served one)', r.every((x) => x.replaced), r)
     if (!r.every((x) => x.replaced)) throw new Error('the served file differs from the shared tree on disk (uncommitted edits there?): cannot swap')
   }
   // ═══ 1. a disk that is empty ═════════════════════════════════════════════

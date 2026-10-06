@@ -128,6 +128,10 @@ export async function createFlow(page) {
     // Always from a clean state: from inside the settings, the account footer is not there.
     await reload()
     for (let i = 0; i < 3; i += 1) {
+      // The settings trigger itself (the footer differs: a signed-in account on the user's DSH, « Sign in » on a fresh one).
+      await val(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`)
+      await sleep(1200)
+      if (/back to workspace|retour au workspace/i.test(await val('document.body.innerText'))) break
       const pos = JSON.parse(await val(`JSON.stringify({ x: document.documentElement.dir === 'rtl' ? innerWidth - 140 : 140, y: innerHeight - 45 })`))
       await mouse(pos.x, pos.y); await sleep(700)
       for (const l of SETTINGS) if (await click(l)) break
