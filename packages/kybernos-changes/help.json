@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Une pastille sous la zone de saisie dit où en est le travail de cette conversation (modifié, sauvegardé, sur GitHub, dans le projet) et ce qu’il reste à faire.",
+    "en": "A chip under the message box says where this chat’s work stands (changed, saved, on GitHub, in the project) and what to do next."
+  },
+  "steps": [
+    {
+      "fr": "Lisez la pastille : vert = rien à faire, orange = quelque chose vous attend, bleu = information, rouge = bloqué.",
+      "en": "Read the chip: green = nothing to do, amber = something is waiting on you, blue = information, red = blocked."
+    },
+    {
+      "fr": "Cliquez-la : la carte montre « Modifié », « Sauvegardé », « Sur GitHub », « Dans le projet » et les fichiers concernés.",
+      "en": "Click it: the card shows “Changed”, “Saved”, “On GitHub”, “In the project” and the files concerned."
+    },
+    {
+      "fr": "Cliquez le bouton principal, par ex. « Sauvegarder mon travail » : l’encadré « Avant de continuer » permet de valider ou « Retour ».",
+      "en": "Click the main button, e.g. “Save my work”: a “Before going on” box lets you confirm or press “Back”."
+    },
+    {
+      "fr": "En bas de la carte, « Affichage » passe de « Simple » à « Développeur » : branche, écart avec GitHub, commandes exactes.",
+      "en": "At the bottom of the card, “View” switches from “Simple” to “Developer”: branch, gap with GitHub, exact commands."
+    }
+  ],
+  "where": {
+    "fr": "Sous la zone de saisie du chat : la première pastille de la rangée",
+    "en": "Under the chat message box: the first chip in the row",
+    "page": false
+  },
+  "good": {
+    "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent.",
+    "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back."
+  }
+}

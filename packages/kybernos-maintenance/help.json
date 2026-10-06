@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "La page « À propos » : version de Kybernos, moteur DSH installé, plage de versions testée, et un avis discret quand une mise à jour est disponible.",
+    "en": "The “About” page: Kybernos version, installed DSH engine, tested version range, and a discreet notice when an update is available."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez « À propos » : vous voyez la version de Kybernos, celle de DSH et la zone de DSH testée avec cette version.",
+      "en": "Open “About”: you see the Kybernos version, the DSH version and the DSH range tested with this version."
+    },
+    {
+      "fr": "Le bloc d’état dit en une phrase si tout est en phase ; « Vérifier maintenant » refait la mesure.",
+      "en": "The status block says in one sentence whether everything is in sync; “Check now” measures again."
+    },
+    {
+      "fr": "Si une mise à jour est conseillée, « Copier la commande », puis collez-la dans un terminal.",
+      "en": "If an update is advised, “Copy the command”, then paste it in a terminal."
+    },
+    {
+      "fr": "« Détails techniques » (replié par défaut) : dernière opération, mises à jour passées, compatibilité par version de DSH.",
+      "en": "“Technical details” (closed by default): last operation, earlier updates, compatibility by DSH version."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › À propos",
+    "en": "Settings › About",
+    "page": true
+  },
+  "good": {
+    "fr": "Rien ne s’installe tout seul : une carte « Mise à jour disponible » peut s’afficher, mais toute mise à jour prend d’abord une photo de votre installation et revient en arrière si elle échoue.",
+    "en": "Nothing installs by itself: an “Update available” card may appear, but any update first takes a snapshot of your installation and rolls back if it fails."
+  }
+}

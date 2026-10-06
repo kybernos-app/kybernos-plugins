@@ -59,6 +59,39 @@
       "promesse": {
         "fr": "Le cœur : équipes d’agents, ressources, réglages et préréglages.",
         "en": "The core: agent teams, resources, settings and presets."
+      },
+      "aide": {
+        "what": {
+          "fr": "Le cœur de Kybernos : des équipes d’agents que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
+          "en": "The heart of Kybernos: teams of agents you start from a chat, what they create, automations, voice and tool choices."
+        },
+        "steps": [
+          {
+            "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’équipe d’agents.",
+            "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
+          },
+          {
+            "fr": "« Agent Teams » : parcourez, créez et modifiez vos équipes. « Workspaces » rassemble vos projets et leurs conversations.",
+            "en": "“Agent Teams”: browse, create and edit your teams. “Workspaces” gathers your projects and their chats."
+          },
+          {
+            "fr": "« Créations » garde les fichiers produits ; « Automations » lance une équipe seule, à l’heure choisie ou quand un message arrive.",
+            "en": "“Creations” keeps the files produced; “Automations” starts a team on its own, at a chosen time or when a message arrives."
+          },
+          {
+            "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’équipe a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
+            "en": "In a chat, the “Journal” tab traces what the team ran. The “Tools” and “Voice” pages are in Settings."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale › Kybernos",
+          "en": "Sidebar › Kybernos",
+          "page": true
+        },
+        "good": {
+          "fr": "Une automation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend votre accord avant une action qui modifie quelque chose.",
+          "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
+        }
       }
     },
     {
@@ -75,6 +108,39 @@
       "promesse": {
         "fr": "Ce panneau, la garde de démarrage et le mode sans échec.",
         "en": "This panel, the boot guard and safe mode."
+      },
+      "aide": {
+        "what": {
+          "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour. En coulisse, une garde repère les démarrages ratés.",
+          "en": "The panel that lists the Kybernos modules so you can switch, install or update them. Behind the scenes, a guard spots failed starts."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
+            "en": "Open “Kybernos Suite”: the “Featured” tab shows the main modules, “All” lists every one."
+          },
+          {
+            "fr": "Cherchez avec « Rechercher un module… », filtrez par « Installés » ou « Mises à jour », puis cliquez une carte pour lire sa page.",
+            "en": "Use “Search a module…”, filter by “Installed” or “Updates”, then click a card to read its page."
+          },
+          {
+            "fr": "L’interrupteur active ou coupe un module (« Socle » reste toujours actif). « Installer » en ajoute un, puis « Relancer DSH ».",
+            "en": "The switch turns a module on or off (“Base” modules stay on). “Install” adds one, then “Restart DSH”."
+          },
+          {
+            "fr": "« Rechercher des mises à jour » interroge le catalogue signé ; si la suite est plus récente, « Mettre à jour la suite ».",
+            "en": "“Check for updates” asks the signed catalogue; if the suite is newer, use “Update the suite”."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Kybernos Suite",
+          "en": "Settings › Kybernos Suite",
+          "page": true
+        },
+        "good": {
+          "fr": "Si DSH rate deux démarrages de suite, le panneau recommande le « mode sans échec » (seuls les modules de base se chargent). Il ne l’active jamais seul : cela se gère par une commande dans un terminal.",
+          "en": "If DSH fails to start twice in a row, the panel recommends “safe mode” (only the base modules load). It never turns it on by itself: you manage it with a command in a terminal."
+        }
       }
     },
     {
@@ -91,6 +157,39 @@
       "promesse": {
         "fr": "Thème, palettes, fond, police et animation de réflexion.",
         "en": "Theme, palettes, background, font and thinking animation."
+      },
+      "aide": {
+        "what": {
+          "fr": "Change l’apparence de Kybernos : thème prêt à l’emploi, accent, fond d’écran, police, transparence, et l’animation affichée pendant que l’agent travaille.",
+          "en": "Changes how Kybernos looks: ready-made themes, accent, wallpaper, font, transparency, and the animation shown while the agent works."
+        },
+        "steps": [
+          {
+            "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème, une couleur d’accent, un fond et une police.",
+            "en": "In “Essentials” (open by default), pick a mode, a theme, an accent color, a background and a font."
+          },
+          {
+            "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
+            "en": "“Glass and background” sets transparency and blur once a background is chosen; “Colors”, “Text and shape” and “Accessibility” refine."
+          },
+          {
+            "fr": "« Animation » : choisissez le dessin et les mots affichés en bas du chat pendant que l’agent travaille.",
+            "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
+          },
+          {
+            "fr": "« Partage » exporte votre thème (YAML, JSON ou CSS) ou importe un fichier .json ; « Tout rétablir » revient à l’apparence native de DSH.",
+            "en": "“Sharing” exports your theme (YAML, JSON or CSS) or imports a .json file; “Reset all” goes back to DSH’s native look."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Thème",
+          "en": "Settings › Theme",
+          "page": true
+        },
+        "good": {
+          "fr": "Un fond d’écran ne se voit pas dans les Réglages eux-mêmes, seulement derrière le chat et les autres pages. Le thème ne change que l’interface web, pas le terminal.",
+          "en": "A wallpaper is not visible inside Settings itself, only behind the chat and the other pages. The theme only changes the web interface, not the terminal."
+        }
       }
     },
     {
@@ -107,6 +206,39 @@
       "promesse": {
         "fr": "Langue de l’interface : toutes les langues ISO, traduction de Kybernos et de DSH, sens de lecture.",
         "en": "Interface language: every ISO language, translation of Kybernos and DSH, reading direction."
+      },
+      "aide": {
+        "what": {
+          "fr": "Traduit l’interface de Kybernos et celle de DSH dans la langue de votre choix, avec un modèle déjà configuré. L’arabe ou l’hébreu inversent aussi le sens de lecture.",
+          "en": "Translates the Kybernos and DSH interface into the language you choose, using a model you already set up. Arabic or Hebrew also flip the reading direction."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez « Ajouter une langue », cherchez-la (ex. Español) et choisissez-la dans la liste.",
+            "en": "Open “Add a language”, search for it (e.g. Español) and pick it from the list."
+          },
+          {
+            "fr": "Appuyez sur « Démarrer la traduction » et gardez l’onglet ouvert : un rond en bas de la barre latérale suit l’avancement.",
+            "en": "Press “Start translation” and keep the tab open: a ring at the bottom of the sidebar shows progress."
+          },
+          {
+            "fr": "« Mettre en pause » puis « Reprendre la traduction » quand vous voulez : ce qui est déjà traduit est conservé.",
+            "en": "“Pause”, then “Resume translation” whenever you like: what is already translated is kept."
+          },
+          {
+            "fr": "Dès que l’essentiel est prêt, « Utiliser maintenant » ; sinon « Utiliser » à la fin. La page se recharge dans la nouvelle langue.",
+            "en": "As soon as the essentials are ready, “Use now”; otherwise “Use” at the end. The page reloads in the new language."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Langue",
+          "en": "Settings › Language",
+          "page": true
+        },
+        "good": {
+          "fr": "Seuls des textes d’interface partent chez le fournisseur du modèle choisi dans « Avancé », pas le contenu de vos conversations. Ce qui n’est pas encore traduit s’affiche en anglais.",
+          "en": "Only interface texts go to the provider of the model chosen in “Advanced”, not the content of your chats. Anything not translated yet shows in English."
+        }
       }
     },
     {
@@ -123,6 +255,39 @@
       "promesse": {
         "fr": "Catalogue de modèles : recherche, comparaison, prix.",
         "en": "Model catalogue: search, compare, prices."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une page pour tous vos fournisseurs et modèles : ajoutez-en, désactivez-en sans rien supprimer, récupérez leurs modèles et comparez capacités, prix et notes.",
+          "en": "One page for all your providers and models: add them, switch them off without deleting, fetch their models and compare capabilities, prices and scores."
+        },
+        "steps": [
+          {
+            "fr": "Dans l’onglet « Fournisseurs », chaque fournisseur a sa carte : état de la clé API, nombre de modèles et interrupteur pour le désactiver.",
+            "en": "On the “Providers” tab, each provider has a card: API key state, model count and a switch to turn it off."
+          },
+          {
+            "fr": "« Ajouter un fournisseur » : choisissez-le dans le catalogue et collez votre clé API, ou prenez « API personnalisée » pour votre adresse.",
+            "en": "Click “Add provider”, pick it from the catalog and paste your API key, or use “Custom API” for your own address."
+          },
+          {
+            "fr": "Dans sa fiche, « Récupérer les modèles disponibles » interroge le fournisseur : cochez ceux à ajouter, puis « Appliquer ».",
+            "en": "In its sheet, “Fetch available models” asks the provider: tick the ones to add, then “Apply”."
+          },
+          {
+            "fr": "Dans l’onglet « Modèles », cherchez, filtrez et triez ; ouvrez un modèle pour voir ses capacités, ses prix et ses notes externes.",
+            "en": "On the “Models” tab, search, filter and sort; open a model to see its capabilities, prices and external scores."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Fournisseur IA & modèles",
+          "en": "Settings › AI Provider & Models",
+          "page": true
+        },
+        "good": {
+          "fr": "La page « Models » native de DSH est masquée du menu des Réglages par défaut, mais reste à un clic : « Plus d’actions » › « Ouvrir la page native de DSH ».",
+          "en": "DSH’s native Models page is hidden from the Settings menu by default, but stays one click away: “More actions” › “Open DSH’s native Models page”."
+        }
       },
       "vedette": 1,
       "accroche": {
@@ -170,6 +335,39 @@
       "promesse": {
         "fr": "Compétences locales, créées par chat.",
         "en": "Local skills, created by chat."
+      },
+      "aide": {
+        "what": {
+          "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents chargent. Créez-en, installez-en, ou partagez-les avec votre équipe.",
+          "en": "Your skills: reusable instructions your agents load. Create some, install some, or share them with your team."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez « Compétences » : « Yours » liste vos skills (recherche, filtres, interrupteur). « /nom » copie l’appel à coller dans le chat.",
+            "en": "Open “Skills”: “Yours” lists your skills, with search, filters and a switch. “/name” copies the call to paste in the chat."
+          },
+          {
+            "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",
+            "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
+          },
+          {
+            "fr": "« Discover » classe les skills publics de skills.sh : ouvrez une fiche, lisez ses audits de sécurité, puis « Installer ».",
+            "en": "“Discover” ranks the public skills of skills.sh: open one, read its security audits, then “Install”."
+          },
+          {
+            "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
+            "en": "“Team”: your team’s catalogue. Propose one of your skills, an admin approves it, everyone installs it. Needs the Team plan."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale › Kybernos › Compétences",
+          "en": "Sidebar › Kybernos › Skills",
+          "page": true
+        },
+        "good": {
+          "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+          "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
+        }
       }
     },
     {
@@ -186,6 +384,39 @@
       "promesse": {
         "fr": "Commandes / et actions de message, créées par chat.",
         "en": "Slash commands and message actions, created by chat."
+      },
+      "aide": {
+        "what": {
+          "fr": "Enregistrez vos messages types comme commandes « / » dans la zone de saisie, ou comme boutons d’action sous les réponses de l’assistant, avec un formulaire si besoin.",
+          "en": "Save your go-to prompts as “/” commands in the message box, or as action buttons under the assistant’s replies, with a small form if needed."
+        },
+        "steps": [
+          {
+            "fr": "Tapez « / » dans la zone de saisie : vos commandes suivent celles de DSH. Choisissez-en une et remplissez son formulaire le cas échéant.",
+            "en": "Type “/” in the message box: your commands show after DSH’s own. Pick one and fill in its form, if it has one."
+          },
+          {
+            "fr": "Pour créer une commande, écrivez votre texte puis cliquez sur le marque-page « Save as command » dans la barre de la zone de saisie.",
+            "en": "To create a command, write your text, then click the bookmark button “Save as command” in the message box bar."
+          },
+          {
+            "fr": "Sous une réponse de l’assistant, un bouton-icône lance une action sur ce message ; « + » en ajoute une, clic droit pour la modifier.",
+            "en": "Under an assistant reply, an icon button runs an action on that message; “+” adds one, right-click to edit it."
+          },
+          {
+            "fr": "Réglages › Commandes liste tout (onglets « Commandes slash » et « Actions de message ») avec « Nouvelle commande » et « Créer avec l’IA ».",
+            "en": "Settings › Commands lists everything (“Slash commands” and “Message actions” tabs) with “New command” and “Create with AI”."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Commandes",
+          "en": "Settings › Commands",
+          "page": true
+        },
+        "good": {
+          "fr": "Vos commandes restent sur cet ordinateur. « Créer avec l’IA » ouvre un nouveau chat qui s’appuie sur une skill dédiée : si elle n’est pas installée, créez la commande à la main.",
+          "en": "Your commands stay on this computer. “Create with AI” opens a new chat that relies on a dedicated skill: if it is not installed, create the command by hand."
+        }
       }
     },
     {
@@ -202,6 +433,39 @@
       "promesse": {
         "fr": "Sessions qui se nomment et se classent seules.",
         "en": "Sessions that name and sort themselves."
+      },
+      "aide": {
+        "what": {
+          "fr": "Met de l’ordre dans vos conversations : une icône de catégorie devant chaque titre, la pastille « Memory » sous la zone de saisie et le bloc « Kybernos Settings ».",
+          "en": "Tidies your chats: a category icon before each title, the “Memory” pill under the chat box, and the “Kybernos Settings” block."
+        },
+        "steps": [
+          {
+            "fr": "Dans la liste des conversations, une petite icône devant chaque titre dit le type de travail : correctif, question, documentation…",
+            "en": "In the chat list, a small icon before each title shows the kind of work: fix, question, documentation…"
+          },
+          {
+            "fr": "Sous la zone de saisie, la pastille « Memory » compte les souvenirs envoyés au modèle et les leçons de ce chat ; cliquez pour le détail.",
+            "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
+          },
+          {
+            "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No), « Study model (brain) » et « Decision Brain ».",
+            "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No), “Study model (brain)” and “Decision Brain”."
+          },
+          {
+            "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
+            "en": "Without the Changes module, four more pills show where this chat’s work stands (saved, GitHub, review)."
+          }
+        ],
+        "where": {
+          "fr": "Sous la zone de saisie du chat, et Réglages › Général › Kybernos Settings",
+          "en": "Under the chat box, and Settings › General › Kybernos Settings",
+          "page": false
+        },
+        "good": {
+          "fr": "Pour choisir l’icône d’un chat sans catégorie, son titre (pas son contenu) est envoyé à un service en ligne ; rien ne part sans clé configurée, ni si « Decision Brain » est sur « None ».",
+          "en": "To pick the icon of a chat with no category, its title (not its content) is sent to an online service; nothing is sent without a configured key, or when “Decision Brain” is set to “None”."
+        }
       }
     },
     {
@@ -218,6 +482,39 @@
       "promesse": {
         "fr": "Routage Auto : choisit un modèle de votre liste selon la classe de la demande.",
         "en": "Auto routing: picks a model from your list by request class."
+      },
+      "aide": {
+        "what": {
+          "fr": "Choisit, pour chaque étape déléguée, le meilleur modèle de votre liste après avoir vérifié qu’il répond, avec des modèles de repli si l’un tombe en panne.",
+          "en": "Picks, for each delegated step, the best model from your list after checking that it answers, with fallback models if one goes down."
+        },
+        "steps": [
+          {
+            "fr": "Dans la « Whitelist », saisissez des modèles au format fournisseur/modèle puis « Ajouter » : leur ordre est l’ordre de repli.",
+            "en": "In the “Whitelist”, type models as provider/model then “Add”: their order is the fallback order."
+          },
+          {
+            "fr": "Dans la zone de saisie, ouvrez le menu du modèle : la ligne « Auto » a un interrupteur « Cette session seulement ».",
+            "en": "In the message box, open the model menu: the “Auto” row has a “This session only” switch."
+          },
+          {
+            "fr": "Une fois activé, le sélecteur affiche « Auto » et une pastille dit combien de modèles sont disponibles (« 3 sur 4 modèles disponibles »).",
+            "en": "Once on, the model chip reads “Auto” and a pill shows how many models are available (“3 of 4 models available”)."
+          },
+          {
+            "fr": "Dans « Santé locale », « Vérifier maintenant » teste chaque modèle pour de vrai et dit pourquoi l’un d’eux est écarté.",
+            "en": "In “Local health”, “Check now” really tests each model and says why one of them is skipped."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Auto Routing",
+          "en": "Settings › Auto Routing",
+          "page": true
+        },
+        "good": {
+          "fr": "Auto ne change jamais le modèle de votre session : il ne conseille un modèle à l’agent que pour les étapes qu’il délègue, toujours dans votre liste. Liste vide : le modèle de la session est gardé.",
+          "en": "Auto never changes your session’s model: it only advises the agent on a model for the steps it delegates, always from your list. Empty list: the session’s model is kept."
+        }
       },
       "vedette": 2,
       "accroche": {
@@ -265,6 +562,39 @@
       "promesse": {
         "fr": "Relancer DSH sans couper l’agent qui travaille.",
         "en": "Restart DSH without cutting the working agent."
+      },
+      "aide": {
+        "what": {
+          "fr": "Permet à l’agent de redémarrer DSH lui-même (après un changement de plugin ou de réglage) sans perdre le travail : les sessions en cours reprennent toutes seules.",
+          "en": "Lets the agent restart DSH itself (after a plugin or setting change) without losing work: running sessions pick up again on their own."
+        },
+        "steps": [
+          {
+            "fr": "Demandez à l’agent de relancer DSH, par exemple après l’ajout d’un plugin ou un changement de réglage.",
+            "en": "Ask the agent to restart DSH, for example after adding a plugin or changing a setting."
+          },
+          {
+            "fr": "Si d’autres sessions travaillent, le panneau d’approbation de DSH les nomme : « Allow once » coupe, un refus ne touche à rien.",
+            "en": "If other sessions are working, DSH’s approval panel names them: “Allow once” goes ahead, a refusal changes nothing."
+          },
+          {
+            "fr": "Le redémarrage a lieu une vingtaine de secondes plus tard, le temps que la réponse en cours s’affiche.",
+            "en": "The restart happens about twenty seconds later, so the current reply has time to finish."
+          },
+          {
+            "fr": "Ensuite chaque session qui travaillait reçoit un message de reprise, et la page se recharge toute seule une fois.",
+            "en": "Then each session that was working gets a resume message, and the page reloads by itself once."
+          }
+        ],
+        "where": {
+          "fr": "Dans le chat : c’est l’agent qui la déclenche (pas de page dans les Réglages)",
+          "en": "In the chat: the agent triggers it (no page in Settings)",
+          "page": false
+        },
+        "good": {
+          "fr": "Si d’autres sessions travaillent et que votre session est en accès complet (approbation « never »), aucun panneau ne peut s’ouvrir : l’agent refuse de relancer plutôt que de couper.",
+          "en": "If other sessions are working and yours has full access (approval “never”), no panel can open: the agent declines to restart rather than cut anything."
+        }
       }
     },
     {
@@ -279,8 +609,37 @@
       "defaut": "actif",
       "poids_ko": 88,
       "promesse": {
-        "fr": "Reprise des tours coupés, file d’attente réordonnable, barre Goal.",
-        "en": "Resume cut turns, reorderable queue, Goal bar."
+        "fr": "Reprise des tours coupés et file d’attente réordonnable.",
+        "en": "Resume cut turns and a reorderable queue."
+      },
+      "aide": {
+        "what": {
+          "fr": "Quand une réponse est coupée par la limite de longueur, DSH enchaîne tout seul avec « continue ». Les messages en attente se réordonnent aussi par glisser-déposer.",
+          "en": "When a reply is cut off by the length limit, DSH carries on by itself with “continue”. Queued messages can also be reordered by drag and drop."
+        },
+        "steps": [
+          {
+            "fr": "Envoyez plusieurs messages pendant que l’agent travaille : ils attendent dans la file d’attente de DSH.",
+            "en": "Send several messages while the agent is working: they wait in DSH’s queue."
+          },
+          {
+            "fr": "Survolez un message en attente : une poignée à six points apparaît. Glissez-la, ou, au clavier, utilisez Alt + ↑ et Alt + ↓ dessus.",
+            "en": "Hover a queued message: a six-dot handle appears. Drag it, or, with the keyboard, press Alt + ↑ and Alt + ↓ on it."
+          },
+          {
+            "fr": "Si une réponse s’arrête net sur la limite de longueur, DSH envoie lui-même « continue » et la réponse reprend.",
+            "en": "If a reply stops dead at the length limit, DSH sends “continue” itself and the reply picks up again."
+          }
+        ],
+        "where": {
+          "fr": "Dans le chat : la file d’attente des messages et les réponses coupées (pas de page dans les Réglages)",
+          "en": "In the chat: the message queue and cut-off replies (no page in Settings)",
+          "page": false
+        },
+        "good": {
+          "fr": "La reprise automatique n’a pas de réglage à l’écran et s’arrête après 3 « continue » de suite. La poignée n’apparaît que sur une session en cours avec au moins 2 messages en attente.",
+          "en": "Automatic resume has no setting on screen and stops after 3 “continue” in a row. The handle only appears on a running session with at least 2 queued messages."
+        }
       }
     },
     {
@@ -297,6 +656,39 @@
       "promesse": {
         "fr": "Des centaines de connecteurs en cartes prêtes pour l’agent.",
         "en": "Hundreds of connectors as ready-made cards for the agent."
+      },
+      "aide": {
+        "what": {
+          "fr": "Relie vos applications (Slack, GitHub…) à vos agents avec votre propre clé Composio : un catalogue d'apps, chacune se connecte en un clic.",
+          "en": "Links your apps (Slack, GitHub…) to your agents with your own Composio key: a catalogue of apps, each one connected in a click."
+        },
+        "steps": [
+          {
+            "fr": "Créez une clé sur dashboard.composio.dev, collez-la dans Réglages › Plugins › kybernos-composio, puis « Enregistrer ».",
+            "en": "Create a key on dashboard.composio.dev, paste it in Settings › Plugins › kybernos-composio, then click “Save”."
+          },
+          {
+            "fr": "Pour que les agents du chat l'utilisent aussi, recopiez la clé comme l'indique le panneau, puis redémarrez DSH.",
+            "en": "So the chat agents can use it too, copy the key as the panel explains, then restart DSH."
+          },
+          {
+            "fr": "Ouvrez Kybernos › Connecteurs › « Découvrir », choisissez une app puis « Ajouter une connexion ».",
+            "en": "Open Kybernos › Connectors › “Discover”, pick an app, then “Add a connection”."
+          },
+          {
+            "fr": "Autorisez l'accès dans l'onglet qui s'ouvre : l'app passe à « Connecté » dans « Vos connexions ».",
+            "en": "Authorize access in the tab that opens: the app shows as “Connected” under “Yours”."
+          }
+        ],
+        "where": {
+          "fr": "Kybernos (barre latérale) › Connecteurs ; la clé : Réglages › Plugins › kybernos-composio",
+          "en": "Kybernos (sidebar) › Connectors; the key: Settings › Plugins › kybernos-composio",
+          "page": true
+        },
+        "good": {
+          "fr": "Votre clé reste sur votre machine et ne sert qu'à parler à Composio. Une app n'est reliée qu'après votre autorisation ; un connecteur personnalisé ne marche qu'après un redémarrage de DSH.",
+          "en": "Your key stays on your machine and is only used to talk to Composio. An app is linked only after you authorize it; a custom connector only works after DSH restarts."
+        }
       }
     },
     {
@@ -313,6 +705,39 @@
       "promesse": {
         "fr": "Compte Kybernos, modèles du proxy, mémoire du compte.",
         "en": "Kybernos account, proxy models, account memory."
+      },
+      "aide": {
+        "what": {
+          "fr": "Connecte DSH à votre compte Kybernos : les modèles proposés par Kybernos (selon votre formule) et la mémoire du compte, partagée avec vos agents.",
+          "en": "Connects DSH to your Kybernos account: the models Kybernos offers (according to your plan) and the account memory, shared with your agents."
+        },
+        "steps": [
+          {
+            "fr": "Cliquez « Se connecter » en bas de la barre latérale, puis « Ouvrir la page d'activation » et confirmez le code dans le navigateur.",
+            "en": "Click “Sign in” at the bottom of the sidebar, then “Open activation page” and confirm the code in your browser."
+          },
+          {
+            "fr": "Une fois connecté, vos modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Models, selon votre formule.",
+            "en": "Once connected, your Kybernos models add themselves in Settings › Models, according to your plan."
+          },
+          {
+            "fr": "Le bas de la barre latérale montre votre espace et votre formule ; cliquez-le pour « Compte », « Paramètres » ou « Se déconnecter ».",
+            "en": "The bottom of the sidebar shows your workspace and plan; click it for “Account”, “Settings” or “Log out”."
+          },
+          {
+            "fr": "Vos souvenirs du compte se gèrent dans Réglages › Memory & Lessons (si ce module est installé).",
+            "en": "Your account memories are managed in Settings › Memory & Lessons (if that module is installed)."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale (en bas) : « Se connecter », puis votre espace ; aussi Réglages › Compte",
+          "en": "Sidebar (bottom): “Sign in”, then your workspace; also Settings › Account",
+          "page": true
+        },
+        "good": {
+          "fr": "Les modèles Kybernos passent par les serveurs de Kybernos. Vos souvenirs y sont gardés et, par défaut, ajoutés à ce que lit le modèle à chaque tour, quel qu'il soit. Rien de tout cela sans connexion.",
+          "en": "Kybernos models go through Kybernos servers. Your memories are kept there and, by default, added to what the model reads each turn, whichever model it is. None of this happens without signing in."
+        }
       }
     },
     {
@@ -329,6 +754,39 @@
       "promesse": {
         "fr": "Page À propos : version, compatibilité avec DSH, journal des mises à jour.",
         "en": "About page: version, DSH compatibility, update log."
+      },
+      "aide": {
+        "what": {
+          "fr": "La page « À propos » : version de Kybernos, moteur DSH installé, plage de versions testée, et un avis discret quand une mise à jour est disponible.",
+          "en": "The “About” page: Kybernos version, installed DSH engine, tested version range, and a discreet notice when an update is available."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez « À propos » : vous voyez la version de Kybernos, celle de DSH et la zone de DSH testée avec cette version.",
+            "en": "Open “About”: you see the Kybernos version, the DSH version and the DSH range tested with this version."
+          },
+          {
+            "fr": "Le bloc d’état dit en une phrase si tout est en phase ; « Vérifier maintenant » refait la mesure.",
+            "en": "The status block says in one sentence whether everything is in sync; “Check now” measures again."
+          },
+          {
+            "fr": "Si une mise à jour est conseillée, « Copier la commande », puis collez-la dans un terminal.",
+            "en": "If an update is advised, “Copy the command”, then paste it in a terminal."
+          },
+          {
+            "fr": "« Détails techniques » (replié par défaut) : dernière opération, mises à jour passées, compatibilité par version de DSH.",
+            "en": "“Technical details” (closed by default): last operation, earlier updates, compatibility by DSH version."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › À propos",
+          "en": "Settings › About",
+          "page": true
+        },
+        "good": {
+          "fr": "Rien ne s’installe tout seul : une carte « Mise à jour disponible » peut s’afficher, mais toute mise à jour prend d’abord une photo de votre installation et revient en arrière si elle échoue.",
+          "en": "Nothing installs by itself: an “Update available” card may appear, but any update first takes a snapshot of your installation and rolls back if it fails."
+        }
       }
     },
     {
@@ -345,6 +803,39 @@
       "promesse": {
         "fr": "Maquettes en briques, animées brique par brique.",
         "en": "Brick mockups, animated brick by brick."
+      },
+      "aide": {
+        "what": {
+          "fr": "Le chat construit une maquette en briques dans la barre latérale droite, brique par brique et en direct. Vous la tournez, la rejouez, et le chat peut la continuer.",
+          "en": "The chat builds a brick mockup in the right sidebar, brick by brick, live. You can turn it, replay it, and the chat can keep building on it."
+        },
+        "steps": [
+          {
+            "fr": "Demandez une maquette au chat, par exemple « construis un château en briques » : l’onglet « Briques » s’ouvre seul à droite.",
+            "en": "Ask the chat for a mockup, for example “build a brick castle”: the “Briques” tab opens by itself on the right."
+          },
+          {
+            "fr": "Faites glisser la scène pour la tourner, molette pour zoomer ; « 3/4 », « Front », « Top » et « Spin » changent la vue.",
+            "en": "Drag the scene to turn it and scroll to zoom; “3/4”, “Front”, “Top” and “Spin” change the view."
+          },
+          {
+            "fr": "En bas, ▶ rejoue la construction, ◀◀ et ▶▶ sautent au début ou à la fin, 0.5× à 4× règlent la vitesse.",
+            "en": "At the bottom, ▶ replays the build, ◀◀ and ▶▶ jump to the start or the end, 0.5× to 4× set the speed."
+          },
+          {
+            "fr": "Demandez d’en ajouter : le chat continue la maquette, et seules les briques neuves s’animent.",
+            "en": "Ask for more: the chat carries on with the same mockup, and only the new bricks are animated."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale droite, onglet « Briques » (il s’ouvre seul)",
+          "en": "Right sidebar, “Briques” tab (opens by itself)",
+          "page": false
+        },
+        "good": {
+          "fr": "Une maquette n’est pas enregistrée : elle disparaît quand DSH redémarre, et chaque conversation a la sienne.",
+          "en": "A mockup is not saved: it disappears when DSH restarts, and each chat has its own."
+        }
       }
     },
     {
@@ -361,6 +852,39 @@
       "promesse": {
         "fr": "Decks écrits en direct dans la barre latérale.",
         "en": "Decks written live in the sidebar."
+      },
+      "aide": {
+        "what": {
+          "fr": "Le chat écrit un deck de slides en direct dans la barre latérale droite. Vous retapez un texte à la main, puis il relit vos retouches et corrige.",
+          "en": "The chat writes a slide deck live in the right sidebar. You retype any text by hand, then it reads your edits back and corrects the deck."
+        },
+        "steps": [
+          {
+            "fr": "Demandez un deck au chat : l’onglet « Slides » s’ouvre seul à droite et le texte se tape slide après slide.",
+            "en": "Ask the chat for a deck: the “Slides” tab opens by itself on the right and the text is typed out slide after slide."
+          },
+          {
+            "fr": "Revoyez-le avec ▶ (rejouer l’écriture), ×0.5 / ×1 / ×2 (vitesse) et les vignettes pour changer de slide.",
+            "en": "Look back with ▶ (replay the writing), ×0.5 / ×1 / ×2 (speed) and the thumbnails to jump between slides."
+          },
+          {
+            "fr": "Double-cliquez sur un texte pour le retaper : barre G / I / S et couleurs, Entrée valide, Échap annule.",
+            "en": "Double-click a text to retype it: a G / I / S bar and colours, Enter confirms, Esc cancels."
+          },
+          {
+            "fr": "Dites au chat de relire vos retouches : il corrige, et les passages corrigés s’illuminent en vert quelques secondes.",
+            "en": "Tell the chat to read your edits back: it corrects the deck, and the corrected passages glow green for a few seconds."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale droite, onglet « Slides » (il s’ouvre seul quand un deck arrive)",
+          "en": "Right sidebar, “Slides” tab (opens by itself when a deck arrives)",
+          "page": false
+        },
+        "good": {
+          "fr": "Le deck n’est pas enregistré : il disparaît quand DSH redémarre, et chaque conversation a le sien.",
+          "en": "The deck is not saved: it disappears when DSH restarts, and each chat has its own."
+        }
       },
       "vedette": 5,
       "accroche": {
@@ -405,6 +929,39 @@
         "fr": "Modèles 2D et 3D pilotés par le chat.",
         "en": "2D and 3D models driven by the chat."
       },
+      "aide": {
+        "what": {
+          "fr": "Le chat dessine un modèle 2D (plan à l’échelle) ou 3D (solides qu’on fait tourner) dans la barre latérale droite, objet par objet. Vous pouvez dessiner par-dessus.",
+          "en": "The chat draws a 2D model (a scaled drawing) or a 3D one (solids you can turn) in the right sidebar, object by object. You can draw on top of it."
+        },
+        "steps": [
+          {
+            "fr": "Demandez un modèle au chat, par exemple « dessine un phare en 3D » : l’onglet « Modeleur » s’ouvre seul à droite.",
+            "en": "Ask the chat for a model, for example “draw a lighthouse in 3D”: the “Modeleur” tab opens by itself on the right."
+          },
+          {
+            "fr": "En 3D, faites glisser pour tourner, molette pour zoomer ; « 3/4 », « Front », « Top », « Spin » (en 2D : « Grille », « Ajuster »).",
+            "en": "In 3D, drag to turn and scroll to zoom; “3/4”, “Front”, “Top”, “Spin” change the view (in 2D: “Grille”, “Ajuster”)."
+          },
+          {
+            "fr": "Sous la scène, ▶ rejoue la pose, le curseur avance à la main, 0.5× à 4× règlent la vitesse.",
+            "en": "Under the scene, ▶ replays the drawing, the slider moves it by hand, 0.5× to 4× set the speed."
+          },
+          {
+            "fr": "Le bouton crayon dessine par-dessus (trait, rectangle, ellipse, flèche, texte) ; dites ensuite « réajuste d’après mes traits ».",
+            "en": "The pencil button draws on top (freehand, rectangle, ellipse, arrow, text); then tell the chat to readjust from your marks."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale droite, onglet « Modeleur » (il s’ouvre seul)",
+          "en": "Right sidebar, “Modeleur” tab (opens by itself)",
+          "page": false
+        },
+        "good": {
+          "fr": "Un modèle n’est pas enregistré : il disparaît quand DSH redémarre. Passer de la 3D à la 2D (ou l’inverse) repart aussi d’un modèle neuf.",
+          "en": "A model is not saved: it disappears when DSH restarts. Switching from 3D to 2D (or back) also starts from a new model."
+        }
+      },
       "vedette": 6,
       "accroche": {
         "fr": "2D et 3D, dessinés par l’agent",
@@ -443,6 +1000,35 @@
       "promesse": {
         "fr": "« Install as app » : un panneau devient une app native.",
         "en": "\"Install as app\": a panel becomes a native app."
+      },
+      "aide": {
+        "what": {
+          "fr": "Ajoute un bouton « App » aux panneaux Briques, Modeleur et Slides : il en fait une petite app macOS flottante, qui reste ouverte même quand DSH est fermé.",
+          "en": "Adds an “App” button to the Briques, Modeleur and Slides panels: it turns the panel into a small floating macOS app that stays open even when DSH is closed."
+        },
+        "steps": [
+          {
+            "fr": "Quand la maquette ou le deck est prêt, cliquez « App ⤓ » dans l’en-tête du panneau.",
+            "en": "Once the mockup or deck is ready, click “App ⤓” in the panel header."
+          },
+          {
+            "fr": "Un message confirme et l’app s’ouvre : une petite fenêtre sans bord, toujours au-dessus, rangée dans Applications › Kybernos.",
+            "en": "A message confirms and the app opens: a small borderless window, always on top, kept in Applications › Kybernos."
+          },
+          {
+            "fr": "Recliquez « App » (avec une roue) : « Lancer » rouvre l’app, « Démarrage auto » l’ouvre à la connexion, « Désinstaller » la retire.",
+            "en": "Click “App” again (it now shows a gear): “Launch” reopens the app, “Launch at login” starts it at sign-in, “Uninstall” removes it."
+          }
+        ],
+        "where": {
+          "fr": "Dans l’en-tête de chaque panneau Briques, Modeleur ou Slides",
+          "en": "In the header of each Briques, Modeleur or Slides panel",
+          "page": false
+        },
+        "good": {
+          "fr": "macOS seulement. Dans l’app, Briques garde sa lecture et sa rotation ; Modeleur et Slides sont figés comme une photo et ne suivent plus le chat.",
+          "en": "macOS only. In the app, Briques keeps its replay and rotation; Modeleur and Slides are frozen like a photo and no longer follow the chat."
+        }
       }
     },
     {
@@ -459,6 +1045,39 @@
       "promesse": {
         "fr": "Ordinateurs cloud pour les agents (votre clé E2B).",
         "en": "Cloud computers for agents (your E2B key)."
+      },
+      "aide": {
+        "what": {
+          "fr": "Laisse l'agent exécuter du code dans un ordinateur cloud jetable (E2B) plutôt que sur votre poste. Votre propre clé E2B est nécessaire : l'usage est facturé sur votre compte E2B.",
+          "en": "Lets the agent run code in a throwaway cloud computer (E2B) instead of on your machine. Your own E2B key is required: usage is billed to your E2B account."
+        },
+        "steps": [
+          {
+            "fr": "Créez un compte sur e2b.dev et copiez votre clé API.",
+            "en": "Create an account on e2b.dev and copy your API key."
+          },
+          {
+            "fr": "Collez-la dans Réglages › Plugins › Ordinateurs cloud (champ « Clé API »), puis « Enregistrer ».",
+            "en": "Paste it in Settings › Plugins › Cloud computers (“API key” field), then click “Save”."
+          },
+          {
+            "fr": "Dans le chat, ouvrez le menu « Ce poste ▾ » à gauche de la zone de saisie et choisissez « E2B ».",
+            "en": "In the chat, open the “This machine ▾” menu next to the message box and choose “E2B”."
+          },
+          {
+            "fr": "Demandez à l'agent d'exécuter du code : il démarre un ordinateur cloud, y travaille, puis l'arrête.",
+            "en": "Ask the agent to run some code: it starts a cloud computer, works in it, then stops it."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Plugins › Ordinateurs cloud ; le choix « E2B » est dans le chat, près de la zone de saisie",
+          "en": "Settings › Plugins › Cloud computers; the “E2B” choice is in the chat, next to the message box",
+          "page": true
+        },
+        "good": {
+          "fr": "Le code et les fichiers que l'agent y envoie partent chez E2B. Chaque ordinateur est jetable, s'arrête seul après 15 min (2 h au plus), 4 à la fois. Sans clé, l'agent reste sur votre poste.",
+          "en": "The code and files the agent sends there go to E2B. Each computer is disposable, stops by itself after 15 min (2 h at most), 4 at a time. With no key, the agent stays on your machine."
+        }
       }
     },
     {
@@ -475,6 +1094,39 @@
       "promesse": {
         "fr": "État vérifié de Claude Code, Codex et ZCode, et exposition au lead.",
         "en": "Verified state of Claude Code, Codex and ZCode, and exposure to the lead."
+      },
+      "aide": {
+        "what": {
+          "fr": "Montre si Claude Code, Codex et ZCode sont vraiment utilisables sur ce poste, et choisit si l'agent principal peut leur déléguer des tâches.",
+          "en": "Shows whether Claude Code, Codex and ZCode are really usable on this machine, and lets you choose whether the main agent may delegate tasks to them."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez Réglages › Workers : une carte par agent, avec son état (« Prêt », « Non installé sur ce poste », « Non authentifié »…).",
+            "en": "Open Settings › Workers: one card per agent, with its state (“Ready”, “Not installed on this machine”, “Not signed in”…)."
+          },
+          {
+            "fr": "Cliquez « Vérifier » (ou « Tout vérifier ») : DSH contrôle la connexion, l'installation, la session et un essai d'écriture.",
+            "en": "Click “Check” (or “Check all”): DSH tests the connection, the install, the sign-in and a trial write."
+          },
+          {
+            "fr": "Si la carte dit « Connexion non montée », cliquez « Installer la connexion », puis relancez DSH.",
+            "en": "If the card says “Connection not mounted”, click “Install the connection”, then restart DSH."
+          },
+          {
+            "fr": "Activez « Exposé au lead » (et « Arrière-plan autorisé » si besoin), puis « Appliquer au profil » et relancez DSH.",
+            "en": "Turn on “Exposed to the lead” (and “Background allowed” if needed), then “Apply to profile” and restart DSH."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Workers",
+          "en": "Settings › Workers",
+          "page": true
+        },
+        "good": {
+          "fr": "Vérifier n'appelle aucun modèle : rien n'est consommé sur l'abonnement de l'agent. « Prêt » ne prouve pas qu'une délégation réussira ; ZCode ne peut jamais afficher « Prêt ».",
+          "en": "Checking calls no model, so nothing is spent on the agent's subscription. “Ready” does not prove a delegation will work; ZCode can never show “Ready”."
+        }
       }
     },
     {
@@ -491,6 +1143,39 @@
       "promesse": {
         "fr": "Modèles locaux détectés et installés depuis les Réglages.",
         "en": "Local models detected and installed from Settings."
+      },
+      "aide": {
+        "what": {
+          "fr": "Détecte la mémoire de votre ordinateur, recommande les modèles qui y tiennent, installe celui que vous choisissez avec Ollama et le branche sur DSH pour travailler en local.",
+          "en": "Detects your computer’s memory, recommends the models that fit, installs the one you pick with Ollama and wires it into DSH so you can work locally."
+        },
+        "steps": [
+          {
+            "fr": "La page affiche votre machine (puce, mémoire) et si Ollama est présent ; « Installer Ollama (brew) » apparaît s’il manque.",
+            "en": "The page shows your machine (chip, memory) and whether Ollama is present; “Install Ollama (brew)” appears if it is missing."
+          },
+          {
+            "fr": "Dans « Sélection pour cette machine », choisissez un modèle (le « Recommandé » est le plus grand qui tient) puis « Installer ».",
+            "en": "In “Picked for this machine”, choose a model (the “Recommended” one is the largest that fits) then “Install”."
+          },
+          {
+            "fr": "Quand il est téléchargé, cliquez sur « Brancher sur DSH » : la carte passe à « Branché » et le modèle devient utilisable dans DSH.",
+            "en": "Once downloaded, click “Wire into DSH”: the card turns to “Wired” and the model becomes usable in DSH."
+          },
+          {
+            "fr": "Autre modèle : « Modèle personnalisé (Hugging Face) », collez un lien, « Vérifier la compatibilité », puis « Télécharger via Ollama ».",
+            "en": "For another model, “Custom model (Hugging Face)”: paste a link, “Check compatibility”, then “Download via Ollama”."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Modèles locaux Ollama",
+          "en": "Settings › Ollama Local Models",
+          "page": true
+        },
+        "good": {
+          "fr": "Le modèle tourne sur votre machine et rien n’est téléchargé sans votre clic. S’il manque dans le sélecteur de modèles après « Brancher sur DSH », relancez DSH.",
+          "en": "The model runs on your machine and nothing is downloaded without your click. If it is missing from the model picker after “Wire into DSH”, restart DSH."
+        }
       }
     },
     {
@@ -507,6 +1192,35 @@
       "promesse": {
         "fr": "Les liens des messages deviennent des pastilles de référence.",
         "en": "Message links become reference chips."
+      },
+      "aide": {
+        "what": {
+          "fr": "Les liens des messages du chat deviennent de petites pastilles grises avec le nom du site, en fin de phrase : les longues adresses ne coupent plus la lecture.",
+          "en": "Links in chat messages become small grey chips with the site name at the end of the sentence, so long addresses stop breaking the reading."
+        },
+        "steps": [
+          {
+            "fr": "Lisez une réponse du chat qui contient des liens : chacun devient une pastille grise, par exemple « llm-stats », au bout de sa phrase.",
+            "en": "Read a chat answer that contains links: each one becomes a grey chip, for example “llm-stats”, at the end of its sentence."
+          },
+          {
+            "fr": "Cliquez une pastille : une carte montre le titre du lien, le site et l’adresse complète.",
+            "en": "Click a chip: a card shows the link’s title, the site and the full address."
+          },
+          {
+            "fr": "Cliquez « Ouvrir ↗ » dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
+            "en": "Click “Ouvrir ↗” in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
+          }
+        ],
+        "where": {
+          "fr": "Dans les messages du chat, en fin de phrase (aucune page de réglages)",
+          "en": "In chat messages, at the end of the sentence (no settings page)",
+          "page": false
+        },
+        "good": {
+          "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir. Le bouton « Ouvrir ↗ » reste en français.",
+          "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it. The “Ouvrir ↗” button stays in French."
+        }
       }
     },
     {
@@ -523,6 +1237,39 @@
       "promesse": {
         "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par kyber, filtres, interrupteurs.",
         "en": "The Memory & Lessons learned page: account memory and lessons per kyber, filters, on/off switches."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par kyber.",
+          "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per kyber."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez la page : elle montre la liste, avec les onglets « Memories » et « Lessons learned » et une barre de recherche.",
+            "en": "Open the page: it shows the list, with the “Memories” and “Lessons learned” tabs and a search bar."
+          },
+          {
+            "fr": "Filtrez avec « Filter », cliquez une ligne pour la modifier ou l’oublier ; « Add » écrit un souvenir de votre main.",
+            "en": "Narrow down with “Filter” and click a row to edit or forget it; “Add” writes a memory of your own."
+          },
+          {
+            "fr": "« Options » donne les interrupteurs : enregistrer, envoyer au modèle, capture automatique, recherche par sens.",
+            "en": "“Options” holds the switches: saving, sending to the model, automatic capture and search by meaning."
+          },
+          {
+            "fr": "Sous la zone de saisie, la pastille « Memory & Lessons » montre ce que le modèle reçoit, avec un lien vers la page.",
+            "en": "Under the message box, the “Memory & Lessons” pill shows what the model receives, with a link to the page."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Memory & Lessons, et la pastille du même nom sous la saisie",
+          "en": "Settings › Memory & Lessons, and the pill of the same name under the message box",
+          "page": true
+        },
+        "good": {
+          "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par kyber.",
+          "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per kyber."
+        }
       },
       "vedette": 3,
       "accroche": {
@@ -566,6 +1313,88 @@
       "promesse": {
         "fr": "La carte de votre espace : projets, kybers, skills, mémoire, et ce qui est cassé.",
         "en": "A map of your workspace: projects, kybers, skills, memory, and what is broken."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une carte en lecture seule de votre espace : projets, kybers, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+          "en": "A read-only map of your workspace: projects, kybers, skills, memory, lessons, automations and apps, how they connect, and what is broken."
+        },
+        "steps": [
+          {
+            "fr": "Activez Atlas dans Réglages › Kybernos Suite (désactivé par défaut), puis ouvrez Réglages › Atlas.",
+            "en": "Turn Atlas on in Settings › Kybernos Suite (off by default), then open Settings › Atlas."
+          },
+          {
+            "fr": "Cliquez « Update » : rien n’est lu avant, et l’en-tête dit depuis combien de temps la carte a été lue.",
+            "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
+          },
+          {
+            "fr": "Dans « Around », choisissez un projet ou un kyber dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+            "en": "In “Around”, pick a project or a kyber in “Start from”: four columns show who works there and what they use."
+          },
+          {
+            "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",
+            "en": "The other tabs show the same map in other ways; “To check” lists what is broken, “Help” explains the lines."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Atlas",
+          "en": "Settings › Atlas",
+          "page": true
+        },
+        "good": {
+          "fr": "Atlas ne fait que lire : rien n’est modifié ni enregistré. La page est en anglais, d’où les noms d’onglets cités ici.",
+          "en": "Atlas only reads: nothing is changed or stored. The page is in English, hence the tab names quoted here."
+        }
+      }
+    },
+    {
+      "id": "kybernos-changes",
+      "nom": "@local/kybernos-changes",
+      "titre": "Changes",
+      "glyphe": "flow",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 40,
+      "promesse": {
+        "fr": "Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.",
+        "en": "Where your work stands (changed, saved, on GitHub, in the project) and what to do next."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une pastille sous la zone de saisie dit où en est le travail de cette conversation (modifié, sauvegardé, sur GitHub, dans le projet) et ce qu’il reste à faire.",
+          "en": "A chip under the message box says where this chat’s work stands (changed, saved, on GitHub, in the project) and what to do next."
+        },
+        "steps": [
+          {
+            "fr": "Lisez la pastille : vert = rien à faire, orange = quelque chose vous attend, bleu = information, rouge = bloqué.",
+            "en": "Read the chip: green = nothing to do, amber = something is waiting on you, blue = information, red = blocked."
+          },
+          {
+            "fr": "Cliquez-la : la carte montre « Modifié », « Sauvegardé », « Sur GitHub », « Dans le projet » et les fichiers concernés.",
+            "en": "Click it: the card shows “Changed”, “Saved”, “On GitHub”, “In the project” and the files concerned."
+          },
+          {
+            "fr": "Cliquez le bouton principal, par ex. « Sauvegarder mon travail » : l’encadré « Avant de continuer » permet de valider ou « Retour ».",
+            "en": "Click the main button, e.g. “Save my work”: a “Before going on” box lets you confirm or press “Back”."
+          },
+          {
+            "fr": "En bas de la carte, « Affichage » passe de « Simple » à « Développeur » : branche, écart avec GitHub, commandes exactes.",
+            "en": "At the bottom of the card, “View” switches from “Simple” to “Developer”: branch, gap with GitHub, exact commands."
+          }
+        ],
+        "where": {
+          "fr": "Sous la zone de saisie du chat : la première pastille de la rangée",
+          "en": "Under the chat message box: the first chip in the row",
+          "page": false
+        },
+        "good": {
+          "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent.",
+          "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back."
+        }
       }
     },
     {
@@ -582,6 +1411,39 @@
       "promesse": {
         "fr": "Lecteur audio et vidéo dans la barre latérale.",
         "en": "Audio and video player in the sidebar."
+      },
+      "aide": {
+        "what": {
+          "fr": "Lit un fichier audio ou vidéo dans la barre latérale droite, au lieu du message « aperçu non disponible ».",
+          "en": "Plays an audio or video file in the right sidebar, instead of the “preview not available” message."
+        },
+        "steps": [
+          {
+            "fr": "Dans la barre latérale droite, ouvrez l'onglet « Files » et cliquez un fichier son ou vidéo (mp3, wav, mp4, webm…).",
+            "en": "In the right sidebar, open the “Files” tab and click a sound or video file (mp3, wav, mp4, webm…)."
+          },
+          {
+            "fr": "Le lecteur s'ouvre sur place, avec le nom et la taille du fichier.",
+            "en": "The player opens in place, with the file's name and size."
+          },
+          {
+            "fr": "Utilisez les commandes habituelles : lecture, pause, position, volume.",
+            "en": "Use the usual controls: play, pause, position, volume."
+          },
+          {
+            "fr": "« Ouvrir à part » permet d'ouvrir ou d'enregistrer le fichier en dehors de la page.",
+            "en": "“Open separately” lets you open or save the file outside the page."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale droite › onglet « Files » : cliquez un fichier audio ou vidéo",
+          "en": "Right sidebar › “Files” tab: click an audio or video file",
+          "page": false
+        },
+        "good": {
+          "fr": "Le fichier est lu en entier avant de démarrer. Si le navigateur ne sait pas décoder le format (souvent mkv, avi ou wmv), un message s'affiche à la place du lecteur.",
+          "en": "The whole file is read before playing. If the browser cannot decode the format (often mkv, avi or wmv), a message replaces the player."
+        }
       }
     },
     {
@@ -598,6 +1460,39 @@
       "promesse": {
         "fr": "Diagrammes Mermaid rendus en SVG dans le chat.",
         "en": "Mermaid diagrams rendered as SVG in the chat."
+      },
+      "aide": {
+        "what": {
+          "fr": "Dessine dans le chat les schémas que l'agent écrit en code Mermaid : enchaînements d'étapes, échanges entre acteurs, plannings…",
+          "en": "Draws, right in the chat, the diagrams the agent writes as Mermaid code: flows of steps, exchanges between actors, schedules…"
+        },
+        "steps": [
+          {
+            "fr": "Demandez un schéma à l'agent (au besoin, précisez « en Mermaid »).",
+            "en": "Ask the agent for a diagram (if needed, say “in Mermaid”)."
+          },
+          {
+            "fr": "Sous le bloc de code étiqueté « mermaid », le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
+            "en": "Under the code block labelled “mermaid”, the diagram appears in your theme's colours; the raw code is hidden."
+          },
+          {
+            "fr": "Le bouton « Code » sous le schéma montre le code ; « Diagramme » ramène le dessin.",
+            "en": "The “Code” button under the diagram shows the code; “Diagramme” brings the picture back."
+          },
+          {
+            "fr": "Si le code est faux, une carte indique « Diagramme mermaid invalide » et le code reste visible.",
+            "en": "If the code is wrong, a card says “Diagramme mermaid invalide” and the code stays visible."
+          }
+        ],
+        "where": {
+          "fr": "Dans le chat, sous un bloc de code « mermaid » (pas d'écran de réglages)",
+          "en": "In the chat, under a “mermaid” code block (no settings screen)",
+          "page": false
+        },
+        "good": {
+          "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons et l'erreur sont en français.",
+          "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons and the error message are in French only."
+        }
       }
     },
     {
@@ -614,6 +1509,39 @@
       "promesse": {
         "fr": "Visionneuse SQLite en lecture seule, avec graphiques.",
         "en": "Read-only SQLite viewer, with charts."
+      },
+      "aide": {
+        "what": {
+          "fr": "Affiche en lecture seule la petite base SQLite que garde un kyber : schéma en diagramme, graphiques, tableaux et zone de requête.",
+          "en": "Shows, read-only, the small SQLite database a kyber keeps: schema as a diagram, charts, tables and a query box."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez l'onglet « Base de données » dans la barre latérale droite : le titre « Base du kyber » et une liste de bases apparaissent.",
+            "en": "Open the “Base de données” tab in the right sidebar: the title “Base du kyber” and a list of databases appear."
+          },
+          {
+            "fr": "Choisissez la base d'un kyber dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
+            "en": "Pick a kyber's database in the list; the “↻” button reads it again if it just changed."
+          },
+          {
+            "fr": "Passez d'une vue à l'autre : « Diagramme », « Graphiques », « Données » (un tableau à la fois) ou « SQL ».",
+            "en": "Switch views: “Diagramme” (diagram), “Graphiques” (charts), “Données” (one table at a time) or “SQL”."
+          },
+          {
+            "fr": "Dans « SQL », écrivez une requête de lecture (SELECT…) et cliquez « Exécuter » pour voir le résultat.",
+            "en": "In “SQL”, write a read query (SELECT…) and click “Exécuter” (run) to see the result."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale droite › onglet « Base de données » (pas d'écran de réglages)",
+          "en": "Right sidebar › “Base de données” tab (no settings screen)",
+          "page": false
+        },
+        "good": {
+          "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base de kyber, l'onglet le dit. Interface en français.",
+          "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no kyber database, the tab says so. Interface in French only."
+        }
       },
       "vedette": 4,
       "accroche": {

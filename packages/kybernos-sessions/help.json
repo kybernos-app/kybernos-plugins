@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Met de l’ordre dans vos conversations : une icône de catégorie devant chaque titre, la pastille « Memory » sous la zone de saisie et le bloc « Kybernos Settings ».",
+    "en": "Tidies your chats: a category icon before each title, the “Memory” pill under the chat box, and the “Kybernos Settings” block."
+  },
+  "steps": [
+    {
+      "fr": "Dans la liste des conversations, une petite icône devant chaque titre dit le type de travail : correctif, question, documentation…",
+      "en": "In the chat list, a small icon before each title shows the kind of work: fix, question, documentation…"
+    },
+    {
+      "fr": "Sous la zone de saisie, la pastille « Memory » compte les souvenirs envoyés au modèle et les leçons de ce chat ; cliquez pour le détail.",
+      "en": "Under the chat box, the “Memory” pill counts the memories sent to the model and this chat’s lessons; click it for details."
+    },
+    {
+      "fr": "Dans « Kybernos Settings », réglez « Rename Chat session after each recap » (Yes/No), « Study model (brain) » et « Decision Brain ».",
+      "en": "In “Kybernos Settings”, set “Rename Chat session after each recap” (Yes/No), “Study model (brain)” and “Decision Brain”."
+    },
+    {
+      "fr": "Sans le module Changes, quatre pastilles de plus montrent où en est le travail de ce chat (enregistré, GitHub, relecture).",
+      "en": "Without the Changes module, four more pills show where this chat’s work stands (saved, GitHub, review)."
+    }
+  ],
+  "where": {
+    "fr": "Sous la zone de saisie du chat, et Réglages › Général › Kybernos Settings",
+    "en": "Under the chat box, and Settings › General › Kybernos Settings",
+    "page": false
+  },
+  "good": {
+    "fr": "Pour choisir l’icône d’un chat sans catégorie, son titre (pas son contenu) est envoyé à un service en ligne ; rien ne part sans clé configurée, ni si « Decision Brain » est sur « None ».",
+    "en": "To pick the icon of a chat with no category, its title (not its content) is sent to an online service; nothing is sent without a configured key, or when “Decision Brain” is set to “None”."
+  }
+}

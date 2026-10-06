@@ -2072,6 +2072,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
           plat(nameOf(e)).indexOf(needle) >= 0 || plat(L(e.label)).indexOf(needle) >= 0 || plat(L(e.description)).indexOf(needle) >= 0)
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
+            h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
             h('span', { className: 'kbsl-h1' }, 'Commandes & actions'),
             h('span', { className: 'kbsl-sub' }, 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.')),
           h('div', { className: 'kbsl-tabs' },

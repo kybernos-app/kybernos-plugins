@@ -542,6 +542,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kml-tuile-valeur' }, contenu))
 
         return h('div', { className: 'kml-root', 'data-kml': 'panneau' },
+          h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-modeles-locaux' }) : null)),
           h('h2', { className: 'kml-titre' }, m('kml.titre')),
           h('p', { className: 'kml-soustitre' }, m('kml.soustitre')),
           h('div', { className: 'kml-tuiles' },

@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Le cœur de Kybernos : des équipes d’agents que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
+    "en": "The heart of Kybernos: teams of agents you start from a chat, what they create, automations, voice and tool choices."
+  },
+  "steps": [
+    {
+      "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’équipe d’agents.",
+      "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
+    },
+    {
+      "fr": "« Agent Teams » : parcourez, créez et modifiez vos équipes. « Workspaces » rassemble vos projets et leurs conversations.",
+      "en": "“Agent Teams”: browse, create and edit your teams. “Workspaces” gathers your projects and their chats."
+    },
+    {
+      "fr": "« Créations » garde les fichiers produits ; « Automations » lance une équipe seule, à l’heure choisie ou quand un message arrive.",
+      "en": "“Creations” keeps the files produced; “Automations” starts a team on its own, at a chosen time or when a message arrives."
+    },
+    {
+      "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’équipe a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
+      "en": "In a chat, the “Journal” tab traces what the team ran. The “Tools” and “Voice” pages are in Settings."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale › Kybernos",
+    "en": "Sidebar › Kybernos",
+    "page": true
+  },
+  "good": {
+    "fr": "Une automation ne part que si DSH est lancé, sur cet ordinateur. Réglée sur « Me demander d’abord » (le choix par défaut), elle attend votre accord avant une action qui modifie quelque chose.",
+    "en": "An automation only starts while DSH is running, on this computer. Set to “Ask me first” (the default), it waits for your approval before an action that changes something."
+  }
+}

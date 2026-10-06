@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Le panneau qui liste les modules Kybernos pour les activer, les installer ou les mettre à jour. En coulisse, une garde repère les démarrages ratés.",
+    "en": "The panel that lists the Kybernos modules so you can switch, install or update them. Behind the scenes, a guard spots failed starts."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez « Kybernos Suite » : l’onglet « À la une » montre les modules phares, « Tous » les liste tous.",
+      "en": "Open “Kybernos Suite”: the “Featured” tab shows the main modules, “All” lists every one."
+    },
+    {
+      "fr": "Cherchez avec « Rechercher un module… », filtrez par « Installés » ou « Mises à jour », puis cliquez une carte pour lire sa page.",
+      "en": "Use “Search a module…”, filter by “Installed” or “Updates”, then click a card to read its page."
+    },
+    {
+      "fr": "L’interrupteur active ou coupe un module (« Socle » reste toujours actif). « Installer » en ajoute un, puis « Relancer DSH ».",
+      "en": "The switch turns a module on or off (“Base” modules stay on). “Install” adds one, then “Restart DSH”."
+    },
+    {
+      "fr": "« Rechercher des mises à jour » interroge le catalogue signé ; si la suite est plus récente, « Mettre à jour la suite ».",
+      "en": "“Check for updates” asks the signed catalogue; if the suite is newer, use “Update the suite”."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Kybernos Suite",
+    "en": "Settings › Kybernos Suite",
+    "page": true
+  },
+  "good": {
+    "fr": "Si DSH rate deux démarrages de suite, le panneau recommande le « mode sans échec » (seuls les modules de base se chargent). Il ne l’active jamais seul : cela se gère par une commande dans un terminal.",
+    "en": "If DSH fails to start twice in a row, the panel recommends “safe mode” (only the base modules load). It never turns it on by itself: you manage it with a command in a terminal."
+  }
+}

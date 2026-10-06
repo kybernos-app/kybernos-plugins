@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Une page pour tous vos fournisseurs et modèles : ajoutez-en, désactivez-en sans rien supprimer, récupérez leurs modèles et comparez capacités, prix et notes.",
+    "en": "One page for all your providers and models: add them, switch them off without deleting, fetch their models and compare capabilities, prices and scores."
+  },
+  "steps": [
+    {
+      "fr": "Dans l’onglet « Fournisseurs », chaque fournisseur a sa carte : état de la clé API, nombre de modèles et interrupteur pour le désactiver.",
+      "en": "On the “Providers” tab, each provider has a card: API key state, model count and a switch to turn it off."
+    },
+    {
+      "fr": "« Ajouter un fournisseur » : choisissez-le dans le catalogue et collez votre clé API, ou prenez « API personnalisée » pour votre adresse.",
+      "en": "Click “Add provider”, pick it from the catalog and paste your API key, or use “Custom API” for your own address."
+    },
+    {
+      "fr": "Dans sa fiche, « Récupérer les modèles disponibles » interroge le fournisseur : cochez ceux à ajouter, puis « Appliquer ».",
+      "en": "In its sheet, “Fetch available models” asks the provider: tick the ones to add, then “Apply”."
+    },
+    {
+      "fr": "Dans l’onglet « Modèles », cherchez, filtrez et triez ; ouvrez un modèle pour voir ses capacités, ses prix et ses notes externes.",
+      "en": "On the “Models” tab, search, filter and sort; open a model to see its capabilities, prices and external scores."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Fournisseur IA & modèles",
+    "en": "Settings › AI Provider & Models",
+    "page": true
+  },
+  "good": {
+    "fr": "La page « Models » native de DSH est masquée du menu des Réglages par défaut, mais reste à un clic : « Plus d’actions » › « Ouvrir la page native de DSH ».",
+    "en": "DSH’s native Models page is hidden from the Settings menu by default, but stays one click away: “More actions” › “Open DSH’s native Models page”."
+  }
+}

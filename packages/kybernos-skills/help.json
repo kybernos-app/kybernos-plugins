@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Vos compétences (skills) : des consignes réutilisables que vos agents chargent. Créez-en, installez-en, ou partagez-les avec votre équipe.",
+    "en": "Your skills: reusable instructions your agents load. Create some, install some, or share them with your team."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez « Compétences » : « Yours » liste vos skills (recherche, filtres, interrupteur). « /nom » copie l’appel à coller dans le chat.",
+      "en": "Open “Skills”: “Yours” lists your skills, with search, filters and a switch. “/name” copies the call to paste in the chat."
+    },
+    {
+      "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",
+      "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
+    },
+    {
+      "fr": "« Discover » classe les skills publics de skills.sh : ouvrez une fiche, lisez ses audits de sécurité, puis « Installer ».",
+      "en": "“Discover” ranks the public skills of skills.sh: open one, read its security audits, then “Install”."
+    },
+    {
+      "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",
+      "en": "“Team”: your team’s catalogue. Propose one of your skills, an admin approves it, everyone installs it. Needs the Team plan."
+    }
+  ],
+  "where": {
+    "fr": "Barre latérale › Kybernos › Compétences",
+    "en": "Sidebar › Kybernos › Skills",
+    "page": true
+  },
+  "good": {
+    "fr": "Un skill vient d’un tiers ou d’un collègue : DSH ne le vérifie pas, lisez ses fichiers et ses audits avant de l’installer ou de l’approuver.",
+    "en": "A skill comes from a third party or a colleague: DSH does not check it, so read its files and audits before you install or approve it."
+  }
+}

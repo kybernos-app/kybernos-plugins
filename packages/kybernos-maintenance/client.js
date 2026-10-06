@@ -547,7 +547,9 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         blocSurfaces)
 
       return h('div', { className: 'kbmz-page' },
-        h('h1', { className: 'kbmz-titre' }, t('titre')),
+        // The help button sits IN the title row: the page's children keep the order the About tests pin.
+        h('h1', { className: 'kbmz-titre', style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 } }, t('titre'),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-maintenance' }) : null)),
         entete,
         statut,
         tuiles,

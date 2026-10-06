@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Montre si Claude Code, Codex et ZCode sont vraiment utilisables sur ce poste, et choisit si l'agent principal peut leur déléguer des tâches.",
+    "en": "Shows whether Claude Code, Codex and ZCode are really usable on this machine, and lets you choose whether the main agent may delegate tasks to them."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez Réglages › Workers : une carte par agent, avec son état (« Prêt », « Non installé sur ce poste », « Non authentifié »…).",
+      "en": "Open Settings › Workers: one card per agent, with its state (“Ready”, “Not installed on this machine”, “Not signed in”…)."
+    },
+    {
+      "fr": "Cliquez « Vérifier » (ou « Tout vérifier ») : DSH contrôle la connexion, l'installation, la session et un essai d'écriture.",
+      "en": "Click “Check” (or “Check all”): DSH tests the connection, the install, the sign-in and a trial write."
+    },
+    {
+      "fr": "Si la carte dit « Connexion non montée », cliquez « Installer la connexion », puis relancez DSH.",
+      "en": "If the card says “Connection not mounted”, click “Install the connection”, then restart DSH."
+    },
+    {
+      "fr": "Activez « Exposé au lead » (et « Arrière-plan autorisé » si besoin), puis « Appliquer au profil » et relancez DSH.",
+      "en": "Turn on “Exposed to the lead” (and “Background allowed” if needed), then “Apply to profile” and restart DSH."
+    }
+  ],
+  "where": {
+    "fr": "Réglages › Workers",
+    "en": "Settings › Workers",
+    "page": true
+  },
+  "good": {
+    "fr": "Vérifier n'appelle aucun modèle : rien n'est consommé sur l'abonnement de l'agent. « Prêt » ne prouve pas qu'une délégation réussira ; ZCode ne peut jamais afficher « Prêt ».",
+    "en": "Checking calls no model, so nothing is spent on the agent's subscription. “Ready” does not prove a delegation will work; ZCode can never show “Ready”."
+  }
+}

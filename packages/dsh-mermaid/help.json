@@ -1,0 +1,33 @@
+{
+  "what": {
+    "fr": "Dessine dans le chat les schémas que l'agent écrit en code Mermaid : enchaînements d'étapes, échanges entre acteurs, plannings…",
+    "en": "Draws, right in the chat, the diagrams the agent writes as Mermaid code: flows of steps, exchanges between actors, schedules…"
+  },
+  "steps": [
+    {
+      "fr": "Demandez un schéma à l'agent (au besoin, précisez « en Mermaid »).",
+      "en": "Ask the agent for a diagram (if needed, say “in Mermaid”)."
+    },
+    {
+      "fr": "Sous le bloc de code étiqueté « mermaid », le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
+      "en": "Under the code block labelled “mermaid”, the diagram appears in your theme's colours; the raw code is hidden."
+    },
+    {
+      "fr": "Le bouton « Code » sous le schéma montre le code ; « Diagramme » ramène le dessin.",
+      "en": "The “Code” button under the diagram shows the code; “Diagramme” brings the picture back."
+    },
+    {
+      "fr": "Si le code est faux, une carte indique « Diagramme mermaid invalide » et le code reste visible.",
+      "en": "If the code is wrong, a card says “Diagramme mermaid invalide” and the code stays visible."
+    }
+  ],
+  "where": {
+    "fr": "Dans le chat, sous un bloc de code « mermaid » (pas d'écran de réglages)",
+    "en": "In the chat, under a “mermaid” code block (no settings screen)",
+    "page": false
+  },
+  "good": {
+    "fr": "Le schéma est dessiné dans la page : le plugin n'envoie rien en ligne. Liens et HTML sont bloqués dans les schémas, volontairement. Les deux boutons et l'erreur sont en français.",
+    "en": "The diagram is drawn in the page itself: the plugin sends nothing online. Links and HTML are blocked inside diagrams on purpose. The two buttons and the error message are in French only."
+  }
+}
