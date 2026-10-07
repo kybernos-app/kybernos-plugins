@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════
 // dsh-subagent-hermes — provider maison de sous-agent DSH pour la CLI
-// Hermes (Nous Research). One-shot prompt ; le mode `hermes serve` (backend
-// headless) reste à câbler quand la CLI sera installée (non testé ici).
-// Façade commune : ../fabriquer-provider.mjs. Aucun modèle en dur.
+// Hermes (Nous Research). One-shot `hermes -z PROMPT` (hermes-agent 0.21 n'a
+// pas de mode `serve`). Façade commune : ../fabriquer-provider.mjs.
+// Aucun modèle en dur. Nécessite une auth hermes (`hermes model`).
 // ═══════════════════════════════════════════════════════
 
 import { fabriquerProvider } from '../fabriquer-provider.mjs'

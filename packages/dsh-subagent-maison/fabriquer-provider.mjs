@@ -15,7 +15,7 @@
 // Aucun modèle en dur : `model` est optionnel et déféré au produit natif.
 // ═══════════════════════════════════════════════════════
 
-import { z } from 'zod'
+import z from '@deepseek-ai/schemastery'
 import { NO_START_CAPABILITIES, resolveChildCwd, settleRunResult, subprocessRunHandle } from '@deepseek-ai/dsh-subagent'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -33,7 +33,7 @@ export function fabriquerProvider (spec) {
   const inject = ['subagents', 'subprocess']
   const Config = z.object({
     providerName: z.string().min(1).default(spec.defautNom ?? spec.bin),
-    model: z.string().min(1).optional(),
+    model: z.string().default(''),
     bin: z.string().min(1).default(spec.bin),
     env: z.dict(z.string()).default({}),
     disposeGraceMs: z.number().default(DEFAULT_DISPOSE_GRACE_MS)

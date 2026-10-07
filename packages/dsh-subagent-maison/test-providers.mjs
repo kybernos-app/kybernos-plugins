@@ -17,7 +17,7 @@ try {
   ok('opencode run + skip-permissions', eq(opencode('opencode', undefined, ['t']), ['opencode', 'run', '--dangerously-skip-permissions', 't']))
   ok('opencode joint les tâches', opencode('opencode', undefined, ['a', 'b']).pop() === 'a\n\nb')
   ok('aucun modèle en dur (defaut = pas de -m)', !gemini('gemini', undefined, ['t']).includes('-m'))
-  ok('hermes prompt one-shot (serve à câbler)', eq(hermes('hermes', undefined, ['t']), ['hermes', 't']))
+  ok('hermes -z one-shot', eq(hermes('hermes', undefined, ['t']), ['hermes', '-z', 't']))
 } finally {
   console.log('\nPROVIDERS — ' + echecs + ' échec(s)')
   process.exit(echecs === 0 ? 0 : 1)

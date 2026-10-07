@@ -1,9 +1,8 @@
-// Fabrique d'argv du run one-shot Hermes — pur, testable sans DSH.
-// NOTE : Hermes a un mode `serve` (backend headless) — câblage client serveur
-// NON FAIT tant que la CLI `hermes` n'est pas installée ici. En attendant, on
-// utilise le mode prompt one-shot. À réviser quand `hermes` sera présent.
+// Fabrique d'argv du run one-shot Hermes (hermes -z PROMPT) — pur, testable
+// sans DSH. Aucun modèle en dur : `-m` seulement si le produit en reçoit un.
+// Le mode `serve` n'existe pas dans hermes-agent 0.21 : le one-shot est `-z`.
 export const argv = (bin, model, taches) => {
-  const a = [bin]
+  const a = [bin, '-z']
   if (model != null && model !== '') a.push('-m', model)
   a.push(taches.join('\n\n'))
   return a
