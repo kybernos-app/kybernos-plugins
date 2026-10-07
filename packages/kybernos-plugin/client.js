@@ -3929,14 +3929,47 @@ try {
 const nowIso = () => { try { return new Date().toISOString() } catch (e) { return null } }
 
 // ── minimal YAML readers (only the fields this view needs) ──────────────────
+// KB-KYBER-YAML-BEGIN (the readers below are tested from this marker to KB-KYBER-YAML-END: kybernos-cloud/test-marketplace-kyber.mjs)
+// The escapes YAML knows inside a double-quoted scalar. One it does not know is left as written.
+const YAML_ESCAPES = { 0: '\0', a: '\x07', b: '\b', t: '\t', '\t': '\t', n: '\n', v: '\v', f: '\f', r: '\r', e: '\x1b', ' ': ' ', '"': '"', '/': '/', '\\': '\\', N: '\x85', _: '\xa0', L: '\u{2028}', P: '\u{2029}' }
+const unescapeYaml = (s) => s.replace(/\\(?:([0abtnvfre\t "\/\\N_LP])|x([0-9a-fA-F]{2})|u([0-9a-fA-F]{4})|U([0-9a-fA-F]{8}))/g, (all, one, x, u, big) => {
+  if (one !== undefined) return YAML_ESCAPES[one]
+  const code = parseInt(x !== undefined ? x : (u !== undefined ? u : big), 16)
+  return code <= 0x10ffff ? String.fromCodePoint(code) : all
+})
+// The value of a scalar the way a YAML parser reads it: a double-quoted one has its escapes decoded (so what the
+// marketplace writes, and what the skills and roles writers write, comes back exactly), a single-quoted one has its
+// doubled quotes folded, anything else is the text as it is.
 const unquote = (v) => {
   const t = String(v).trim()
   if (t.length > 1) {
     const a = t.charAt(0)
     const b = t.charAt(t.length - 1)
-    if ((a === '"' && b === '"') || (a === "'" && b === "'")) return t.slice(1, -1)
+    if (a === '"' && b === '"') return unescapeYaml(t.slice(1, -1))
+    if (a === "'" && b === "'") return t.slice(1, -1).replace(/''/g, "'")
   }
   return t
+}
+// The items of a flow list (`[a, "b, c", 'd']`): the text between the commas that are not inside quotes. A quote opens
+// a quoted item only at the start of the item (`it's` stays a plain item).
+const splitFlow = (inner) => {
+  const out = []
+  let cur = ''
+  let quote = ''
+  for (let i = 0; i < inner.length; i += 1) {
+    const c = inner.charAt(i)
+    cur += c
+    if (quote === '"') {
+      if (c === '\\' && i + 1 < inner.length) { i += 1; cur += inner.charAt(i) } else if (c === '"') quote = ''
+    } else if (quote === "'") {
+      if (c === "'") { if (inner.charAt(i + 1) === "'") { i += 1; cur += "'" } else quote = '' }
+    } else if (c === ',') {
+      out.push(cur.slice(0, -1))
+      cur = ''
+    } else if ((c === '"' || c === "'") && cur.slice(0, -1).trim() === '') quote = c
+  }
+  out.push(cur)
+  return out
 }
 const inlineMap = (v) => {
   const t = String(v).trim()
@@ -3954,7 +3987,7 @@ const inlineMap = (v) => {
 const inlineList = (v) => {
   const t = String(v).trim()
   if (t.charAt(0) === '[' && t.charAt(t.length - 1) === ']') {
-    return t.slice(1, -1).split(',').map(unquote).filter((s) => s.length > 0)
+    return splitFlow(t.slice(1, -1)).map(unquote).filter((s) => s.length > 0)
   }
   return t.length > 0 ? [unquote(t)] : []
 }
@@ -4101,6 +4134,7 @@ const parseKyber = (text) => {
   if (doc.budget !== null && (doc.budget.total === null || Number.isNaN(doc.budget.total))) doc.budget = null
   return doc
 }
+// KB-KYBER-YAML-END
 const buildRole = (role, catalog, probe) => {
   const needs = role.needs !== null && typeof role.needs === 'object' ? role.needs : {}
   const provider = role.provider
