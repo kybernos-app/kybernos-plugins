@@ -9071,13 +9071,14 @@ return {
         setMarketBusy(null)
       }
 
+      // A catalogue read in part (a later page failed, or the plugin's limit was hit) comes with `partiel` and a `motif`: the count is followed by it.
       const marketCloudItems = (marketCloud !== null && marketCloud.ok === true && Array.isArray(marketCloud.items)) ? marketCloud.items : []
       const cloudTile = (it) => h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', flex: '0 0 auto', background: it.color === '' ? 'var(--dsw-alias-bg-layer-1)' : it.color, color: kbOnColor(it.color === '' ? '#888888' : it.color), display: 'flex', alignItems: 'center', justifyContent: 'center' } }, String(it.glyph === '' ? it.name.slice(0, 2) : it.glyph))
       const marketCloudBloc = (hubTab !== 'marketplace' || marketCloud === null) ? null
         : h('div', { style: { display: 'flex', flexDirection: 'column', gap: '10px' }, 'data-kb': 'market-cloud' },
             h('div', { style: { display: 'flex', alignItems: 'baseline', gap: '10px' } },
               h('span', { className: 'kb8-name' }, kbt('kbui.market.cloud.title')),
-              h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) : String(marketCloud.motif === undefined ? '' : marketCloud.motif))),
+              h('span', { className: 'kb8-parent' }, marketCloudItems.length > 0 ? String(marketCloudItems.length) + (marketCloud.partiel === true && typeof marketCloud.motif === 'string' ? ' · ' + marketCloud.motif : '') : String(marketCloud.motif === undefined ? '' : marketCloud.motif))),
             (marketCloudItems.length === 0
               ? h('span', { className: 'kb8-parent' }, kbt('kbui.market.cloud.none'))
               : h('div', { className: 'kb8-grid' }, marketCloudItems.map((it) => h('div', { className: 'kb8-card', key: it.slug, style: { cursor: 'default' } },

@@ -6,9 +6,9 @@
  * manifest (`name, cat, pitch, glyph, color, agents, version`; the private keys
  * `data_schemas`, `source_kyber_id`, `price` are removed server side). The plugin
  * used to show a hard-coded local catalogue whose « 1.2k installs » counters and
- * prices were made up. This module is the pure half of the receiving path: normalise
- * what the platform sends, and turn an item into a `kyber.yml` in the format the
- * plugin really reads.
+ * prices were made up. This module is the pure half of the receiving path: read
+ * what the platform sends (all of its pages), and turn an item into a `kyber.yml`
+ * in the format the plugin really reads.
  *
  * WHAT IT REFUSES TO DO
  * Invent. A manifest gives `agents` (`role_key`, `name`, `does`, `model_route`,
@@ -22,6 +22,14 @@
  *
  * An empty `aCompleter` is therefore the only proof that a received kyber is
  * complete.
+ *
+ * THE CATALOGUE IS PAGED (ADR 0011 § 9 of the server)
+ * `GET /v1/marketplace` answers at most 200 items, newest first, as
+ * `{ items, has_more }`; the next page is `?before=<id of the last item>`. An item
+ * can also be read alone, listed or not, by its address: `GET /v1/marketplace/{slug}`.
+ * `lireCatalogue` follows `has_more` (with hard limits) and `resoudreItem` finds
+ * the one item an install asks for. A server older than the paging answers one
+ * page with no `has_more`: that is read as « this is all of it ».
  *
  * THE kyber.yml WRITTEN HERE MUST BE REAL YAML
  * Every scalar goes through `scalaire` / `scalaireFlux`: plain when it is provably
@@ -42,7 +50,47 @@ export const slugifier = (v) => String(v === null || v === undefined ? '' : v)
 export const idDeRole = (roleKey) => slugifier(String(roleKey === null || roleKey === undefined ? '' : roleKey).replace(/^[a-z]+:/i, ''))
 
 /**
- * Normalises the answer of `GET /v1/marketplace`.
+ * A slug that can be put in a URL path and used as a folder name: letters, digits, `.`, `_`, `-`, starting with a
+ * letter or a digit (so never `.`, `..`, a separator or a hidden folder). The server's own rule is narrower
+ * (`[a-z0-9-]`, 64 characters); this one only has to keep the plugin from writing outside its folder.
+ */
+export const slugSur = (slug) => typeof slug === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(slug)
+
+/**
+ * One item of the catalogue (or of `GET /v1/marketplace/{slug}`) as the plugin keeps it, or null when it cannot be
+ * used (not an object, no slug, no name).
+ */
+export const normaliserItem = (it) => {
+  if (it === null || typeof it !== 'object') return null
+  const slug = typeof it.slug === 'string' && it.slug !== '' ? it.slug : null
+  const nom = typeof it.name === 'string' && it.name !== '' ? it.name : null
+  if (slug === null || nom === null) return null
+  const manBrut = it.manifest !== null && typeof it.manifest === 'object' ? it.manifest : {}
+  // Defence in depth: the platform already removes these keys, they are not carried any further.
+  const man = {}
+  for (const k of Object.keys(manBrut)) if (CLES_PRIVEES.indexOf(k) < 0) man[k] = manBrut[k]
+  const agents = Array.isArray(man.agents) ? man.agents.filter((a) => a !== null && typeof a === 'object') : []
+  return {
+    id: typeof it.id === 'string' ? it.id : slug,
+    slug,
+    name: nom,
+    cat: typeof it.cat === 'string' ? it.cat : '',
+    pitch: typeof it.pitch === 'string' ? it.pitch : '',
+    glyph: typeof it.glyph === 'string' ? it.glyph : '',
+    color: typeof it.color === 'string' ? it.color : '',
+    version: Number.isFinite(Number(it.version)) ? Number(it.version) : 0,
+    publishedAt: typeof it.published_at === 'string' ? it.published_at : null,
+    agents,
+    manifest: man,
+    origine: 'kybernos.app',
+  }
+}
+
+/** What an empty result says (the same words whether it is one page or all of them). */
+const motifVide = (ecartes) => (ecartes > 0 ? 'aucune entree exploitable (' + ecartes + ' ecartee(s))' : 'catalogue vide')
+
+/**
+ * Normalises the answer of `GET /v1/marketplace` (one page).
  * Returns `{ ok, items, motif }`: an empty catalogue is never « ok » without a reason.
  */
 export const normaliserCatalogue = (reponse) => {
@@ -52,32 +100,127 @@ export const normaliserCatalogue = (reponse) => {
   const items = []
   let ecartes = 0
   for (const it of brut) {
-    if (it === null || typeof it !== 'object') { ecartes++; continue }
-    const slug = typeof it.slug === 'string' && it.slug !== '' ? it.slug : null
-    const nom = typeof it.name === 'string' && it.name !== '' ? it.name : null
-    if (slug === null || nom === null) { ecartes++; continue }
-    const manBrut = it.manifest !== null && typeof it.manifest === 'object' ? it.manifest : {}
-    // Defence in depth: the platform already removes these keys, they are not carried any further.
-    const man = {}
-    for (const k of Object.keys(manBrut)) if (CLES_PRIVEES.indexOf(k) < 0) man[k] = manBrut[k]
-    const agents = Array.isArray(man.agents) ? man.agents.filter((a) => a !== null && typeof a === 'object') : []
-    items.push({
-      id: typeof it.id === 'string' ? it.id : slug,
-      slug,
-      name: nom,
-      cat: typeof it.cat === 'string' ? it.cat : '',
-      pitch: typeof it.pitch === 'string' ? it.pitch : '',
-      glyph: typeof it.glyph === 'string' ? it.glyph : '',
-      color: typeof it.color === 'string' ? it.color : '',
-      version: Number.isFinite(Number(it.version)) ? Number(it.version) : 0,
-      publishedAt: typeof it.published_at === 'string' ? it.published_at : null,
-      agents,
-      manifest: man,
-      origine: 'kybernos.app',
-    })
+    const item = normaliserItem(it)
+    if (item === null) { ecartes++; continue }
+    items.push(item)
   }
-  const motif = items.length === 0 ? (ecartes > 0 ? 'aucune entree exploitable (' + ecartes + ' ecartee(s))' : 'catalogue vide') : null
+  const motif = items.length === 0 ? motifVide(ecartes) : null
   return { ok: items.length > 0, items, motif }
+}
+
+/**
+ * Hard limits of a full read: the server pages 200 at a time (and keeps 2000 items by default), so 25 pages is more
+ * than a catalogue should ever need; a server that answers `has_more` for ever stops here. `budgetMs` bounds the
+ * whole read (each page has its own timeout in `apiCall`).
+ */
+export const LIMITES_CATALOGUE = { pages: 25, items: 5000, budgetMs: 60000 }
+
+const messageDe = (e) => String(e !== null && e !== undefined && e.message !== undefined ? e.message : e)
+
+/**
+ * Reads the WHOLE catalogue, following `has_more` with `before=<id of the last item of the page>`.
+ *
+ * `lirePage(avant)` reads one page (`avant` is null for the first one) and answers `{ status, body }` like the plugin's
+ * `apiCall` does (it may also throw: that is a failed page).
+ *
+ * Returns `{ ok, items, motif, partiel?, echec? }`:
+ *  - `echec: true`: the FIRST page could not be read at all (network, HTTP error): nothing to show, `motif` says why
+ *    (the same words as before the paging existed);
+ *  - `partiel: true`: some pages were read and the rest was not (a later page failed, the server repeated itself, or a
+ *    limit was hit): `ok` is true, `items` holds what was read and `motif` says what is missing, so the page can show
+ *    the first pages WITH a note, never an empty catalogue;
+ *  - otherwise `motif` is null (or, with no item at all, says why it is empty).
+ * A server with no paging (no `has_more` in its answer) is one page: exactly what the plugin did before.
+ */
+export const lireCatalogue = async (lirePage, limites = {}) => {
+  const lim = Object.assign({}, LIMITES_CATALOGUE, limites)
+  const debut = Date.now()
+  const items = []
+  const slugs = new Set()
+  const curseurs = new Set()
+  let ecartes = 0
+  let vide = null
+  let note = null
+  let avant = null
+  let page = 0
+  while (note === null) {
+    page += 1
+    let rep = null
+    let panne = null
+    try { rep = await lirePage(avant) } catch (e) { panne = 'injoignable : ' + messageDe(e) }
+    if (panne === null && (rep === null || rep === undefined || rep.status !== 200 || rep.body === null || rep.body === undefined)) {
+      panne = 'indisponible (code ' + String(rep === null || rep === undefined ? 'inconnu' : rep.status) + ')'
+    }
+    if (panne !== null) {
+      if (page === 1) return { ok: false, items: [], motif: 'catalogue ' + panne, echec: true }
+      note = 'catalogue incomplet : la page ' + page + ' est ' + panne + ', ' + items.length + ' kyber(s) lus'
+      break
+    }
+    const brut = rep.body !== null && typeof rep.body === 'object' && Array.isArray(rep.body.items) ? rep.body.items : null
+    if (brut === null) {
+      // Not a page of the catalogue. On the first page that is the answer's own reason; later it is a broken server.
+      if (page === 1) return Object.assign(normaliserCatalogue(rep.body), { ok: false })
+      note = 'catalogue incomplet : la page ' + page + ' est illisible, ' + items.length + ' kyber(s) lus'
+      break
+    }
+    for (const it of brut) {
+      const item = normaliserItem(it)
+      if (item === null) { ecartes += 1; continue }
+      if (slugs.has(item.slug)) continue
+      slugs.add(item.slug)
+      items.push(item)
+    }
+    const limite = 'catalogue incomplet : lecture limitee a ' + page + ' page(s), limite du plugin'
+    if (items.length > lim.items) {
+      items.length = lim.items
+      note = limite + ' (' + items.length + ' kyber(s) gardes)'
+      break
+    }
+    // An old server has no `has_more`: this was the only page.
+    if (rep.body.has_more !== true) break
+    const dernier = brut.length > 0 ? brut[brut.length - 1] : null
+    const curseur = dernier !== null && typeof dernier === 'object' && typeof dernier.id === 'string' && dernier.id !== '' ? dernier.id : null
+    if (curseur === null) note = 'catalogue incomplet : la page ' + page + ' annonce une suite sans dire ou la reprendre, ' + items.length + ' kyber(s) lus'
+    else if (curseurs.has(curseur)) note = 'catalogue incomplet : le serveur repete la page ' + page + ', ' + items.length + ' kyber(s) lus'
+    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' kyber(s) lus)'
+    else if (Date.now() - debut > lim.budgetMs) note = 'catalogue incomplet : delai depasse apres ' + page + ' page(s), ' + items.length + ' kyber(s) lus'
+    curseurs.add(curseur)
+    avant = curseur
+  }
+  if (items.length === 0) vide = motifVide(ecartes)
+  if (note === null) return { ok: items.length > 0, items, motif: vide }
+  return { ok: items.length > 0, items, motif: vide === null ? note : vide + ' ; ' + note, partiel: true }
+}
+
+/**
+ * Finds the item an install asks for.
+ *
+ * 1. By its address (`lireItem(slug)` = `GET /v1/marketplace/{slug}`): it answers any item, listed or not, with no
+ *    paging, so an item beyond the first page, or an unlisted one given by its link, is found.
+ * 2. A 404 is read two ways: the item is not there, OR the server has no such route (older than it). So a 404 falls
+ *    back to the pages of the list (`lireCatalogue`): found there → fine; not there after all of them → « no longer
+ *    published ». An answer that is not that item (garbage, another slug) falls back the same way.
+ * 3. Any other failure (network, 401, 429, 5xx) is the catalogue being unavailable, said with the same words as
+ *    before.
+ *
+ * Returns `{ item }` or `{ erreur }`.
+ */
+export const resoudreItem = async (slug, { lireItem, lirePage, limites }) => {
+  let rep = null
+  try { rep = await lireItem(slug) } catch (e) { return { erreur: 'catalogue injoignable : ' + messageDe(e) } }
+  if (rep === null || rep === undefined || (rep.status !== 200 && rep.status !== 404)) {
+    return { erreur: 'catalogue indisponible (code ' + String(rep === null || rep === undefined ? 'inconnu' : rep.status) + ')' }
+  }
+  if (rep.status === 200) {
+    const item = normaliserItem(rep.body)
+    if (item !== null && item.slug === slug) return { item }
+  }
+  const cat = await lireCatalogue(lirePage, limites)
+  if (cat.echec === true) return { erreur: cat.motif }
+  const trouve = cat.items.filter((i) => i.slug === slug)[0]
+  if (trouve !== undefined) return { item: trouve }
+  if (cat.partiel === true) return { erreur: 'ce kyber n\'a pas ete trouve sous l\'id « ' + slug + ' » (' + cat.motif + ')' }
+  return { erreur: 'ce kyber n\'est plus publie sous l\'id « ' + slug + ' »' }
 }
 
 // ── YAML scalars ────────────────────────────────────────────────────────────

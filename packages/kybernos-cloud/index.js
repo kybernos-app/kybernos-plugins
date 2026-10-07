@@ -38,7 +38,7 @@
 import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
+import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
@@ -737,25 +737,23 @@ const modelsRoute = async () => {
   return { ok: true, connected: true, plan: userPlan(state), models: publicModels(state.models) }
 }
 
+/** One page of the remote catalogue (`before`: the id of the last item of the previous page; null for the first page). */
+const marketplacePage = (state) => (before) => apiCall('/v1/marketplace' + (before === null ? '' : '?before=' + encodeURIComponent(before)), { token: state.token })
+
 /**
- * Le catalogue distant : ce que kybernos.app publie, tel quel.
- * Non lie -> motif explicite ; plateau injoignable -> motif avec le code HTTP.
- * On ne retombe JAMAIS sur une fixture locale en la faisant passer pour le
- * catalogue distant : c'est exactement le mensonge que ce module remplace.
+ * The remote catalogue: what kybernos.app publishes, as it is.
+ * Not linked -> an explicit `motif`; server unreachable -> a `motif` with the HTTP code.
+ * It NEVER falls back on a local fixture passed off as the remote catalogue: that is exactly the lie this module replaces.
+ *
+ * The server pages the catalogue (200 at a time, `has_more`): every page is read (marketplace-kyber.mjs, `lireCatalogue`,
+ * with hard limits). When a later page cannot be read the answer is still `ok` with the pages read, `partiel: true` and
+ * a `motif` that says what is missing: the panel shows the first pages with a note, never an empty catalogue.
  */
 const marketplaceRoute = async () => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, items: [], motif: 'aucun compte lie a kybernos.app' }
-  let res = null
-  try {
-    res = await apiCall('/v1/marketplace', { token: state.token })
-  } catch (e) {
-    return { ok: false, connected: true, items: [], motif: 'catalogue injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
-  }
-  if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, connected: true, items: [], motif: 'catalogue indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
-  }
-  const cat = normaliserCatalogue(res.body)
+  const cat = await lireCatalogue(marketplacePage(state))
+  if (cat.echec === true) return { ok: false, connected: true, items: [], motif: cat.motif }
   return Object.assign({ connected: true }, cat)
 }
 
@@ -1929,11 +1927,14 @@ const memoryRoute = async (req) => {
 }
 
 /**
- * Installe un kyber publie dans la racine locale `<DSH home>/kybers/`.
- * On ne remplace JAMAIS un kyber du testeur : si l'id est pris, la route
- * refuse et le dit, sauf `ecraser: true` demande explicitement.
- * La reponse porte `aCompleter` : ce que le catalogue ne publie pas (route de
- * modele, stages, prompt manquant) et que le testeur devra ecrire.
+ * Installs a published kyber into the local root `<DSH home>/kybers/`.
+ * A tester's kyber is NEVER replaced: when the id is taken the route refuses and says so, unless `ecraser: true` is
+ * asked for explicitly. The answer carries `aCompleter`: what the catalogue does not publish (model route, stages, a
+ * missing prompt) and the tester will have to write.
+ *
+ * The item is found by its address first (`GET /v1/marketplace/{slug}`: any item, listed or not, whatever page of the
+ * catalogue it would be on), then, on a 404 (an older server has no such route, or the item is not there), by reading
+ * the pages of the list (marketplace-kyber.mjs, `resoudreItem`).
  */
 const marketplaceInstallRoute = async (req, body) => {
   const state = readState()
@@ -1941,19 +1942,14 @@ const marketplaceInstallRoute = async (req, body) => {
   const demande = body !== null && typeof body === 'object' ? body : {}
   const slug = typeof demande.slug === 'string' ? demande.slug.trim() : ''
   if (slug === '') return { ok: false, error: 'slug manquant' }
-  if (verdictInstallation([], slug).cible !== slug) return { ok: false, error: 'slug invalide' }
-  let res = null
-  try {
-    res = await apiCall('/v1/marketplace', { token: state.token })
-  } catch (e) {
-    return { ok: false, error: 'catalogue injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
-  }
-  if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, error: 'catalogue indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
-  }
-  const cat = normaliserCatalogue(res.body)
-  const item = cat.items.filter((i) => i.slug === slug)[0]
-  if (item === undefined) return { ok: false, error: 'ce kyber n\'est plus publie sous l\'id « ' + slug + ' »' }
+  // The slug goes into a URL and into a folder name: only a plain one is let through.
+  if (slugSur(slug) !== true) return { ok: false, error: 'slug invalide' }
+  const trouve = await resoudreItem(slug, {
+    lireItem: (id) => apiCall('/v1/marketplace/' + encodeURIComponent(id), { token: state.token }),
+    lirePage: marketplacePage(state),
+  })
+  if (trouve.item === undefined) return { ok: false, error: trouve.erreur }
+  const item = trouve.item
   const construit = ymlDuKyber(item)
   if (construit.yml === null) return { ok: false, error: 'manifeste inexploitable : ' + construit.aCompleter.join(' ; ') }
   const racine = kybersDir()

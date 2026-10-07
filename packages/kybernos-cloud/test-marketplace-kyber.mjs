@@ -12,7 +12,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { scalaire, scalaireFlux, lignesDeTexte, ymlDuKyber, normaliserCatalogue } from './marketplace-kyber.mjs'
+import { scalaire, scalaireFlux, lignesDeTexte, ymlDuKyber, normaliserCatalogue, normaliserItem, lireCatalogue, resoudreItem, slugSur, LIMITES_CATALOGUE } from './marketplace-kyber.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -314,6 +314,217 @@ console.log('the catalogue answer')
     items: [{ id: 'a', slug: 'a', name: 'A', cat: '', pitch: '', glyph: '', color: '', version: 4, publishedAt: 'd', agents: [{ role_key: 'r' }], manifest: { agents: [null, { role_key: 'r' }] }, origine: 'kybernos.app' }],
   })
   ok('an answer that is not a catalogue says why; the private keys of a manifest are dropped; an unusable entry is counted, not shown')
+}
+
+// ── 5. reading every page of the catalogue ──
+console.log('the pages')
+// A server of `n` items, newest first, that answers like the new one: `size` a page, `has_more`, `before` = the id of the last item of the page before.
+const makeItems = (n) => Array.from({ length: n }, (_, i) => {
+  const k = n - i
+  return { id: 'id-' + String(k).padStart(6, '0'), slug: 'kyber-' + k, name: 'Kyber ' + k, cat: 'Sales', pitch: 'p' + k, glyph: 'K', color: '#336699', version: 1, unlisted: false, manifest: { agents: [] } }
+})
+const pager = (all, { size = 200, paging = true, fail = {} } = {}) => {
+  const calls = []
+  const read = async (before) => {
+    calls.push(before)
+    const n = calls.length
+    if (fail[n] !== undefined) {
+      if (fail[n] === 'throw') throw new Error('boom')
+      return fail[n]
+    }
+    const from = before === null ? 0 : all.findIndex((x) => x.id === before) + 1
+    const page = all.slice(from, from + size)
+    const body = paging ? { items: page, has_more: from + size < all.length } : { items: all }
+    return { status: 200, body }
+  }
+  return { read, calls }
+}
+const slugsOf = (r) => r.items.map((i) => i.slug)
+
+{
+  const all = makeItems(450)
+  const srv = pager(all)
+  const r = await lireCatalogue(srv.read)
+  assert.equal(r.ok, true)
+  assert.equal(r.items.length, 450)
+  assert.equal(r.motif, null)
+  assert.equal(r.partiel, undefined)
+  assert.equal(r.echec, undefined)
+  assert.deepEqual(srv.calls, [null, 'id-000251', 'id-000051'], 'the next page is `before` = the id of the last item of this one')
+  assert.deepEqual(slugsOf(r), all.map((x) => x.slug), 'newest first, nothing lost, nothing twice')
+  ok('a catalogue of 450 items is read in three pages, in order, and says nothing is missing')
+}
+{
+  const srv = pager(makeItems(200))
+  const r = await lireCatalogue(srv.read)
+  assert.equal(r.items.length, 200)
+  assert.equal(srv.calls.length, 1, 'has_more is false: no second request')
+  const old = pager(makeItems(3), { paging: false })
+  const o = await lireCatalogue(old.read)
+  assert.deepEqual([o.ok, o.items.length, o.motif, o.partiel, old.calls], [true, 3, null, undefined, [null]], 'a server with no has_more is one page: what the plugin always did')
+  const one = await lireCatalogue(async () => ({ status: 200, body: { items: makeItems(2), has_more: false } }))
+  assert.equal(one.items.length, 2)
+  ok('exactly one full page, or an old server that does not say `has_more`: one request, as before')
+}
+{
+  const big = pager(makeItems(30 * 200))
+  const r = await lireCatalogue(big.read)
+  assert.equal(big.calls.length, LIMITES_CATALOGUE.pages)
+  assert.equal(LIMITES_CATALOGUE.pages, 25)
+  assert.equal(r.items.length, 25 * 200)
+  assert.equal(r.ok, true)
+  assert.equal(r.partiel, true)
+  assert.match(r.motif, /^catalogue incomplet : lecture limitee a 25 page\(s\), limite du plugin \(5000 kyber\(s\) lus\)$/)
+  const few = pager(makeItems(40), { size: 5 })
+  const f = await lireCatalogue(few.read, { pages: 3 })
+  assert.deepEqual([f.items.length, few.calls.length, f.partiel], [15, 3, true])
+  const cap = pager(makeItems(40), { size: 5 })
+  const c = await lireCatalogue(cap.read, { items: 7 })
+  assert.deepEqual([c.items.length, c.partiel], [7, true], 'the item cap holds even inside a page')
+  assert.match(c.motif, /limite du plugin/)
+  assert.equal(slugsOf(c)[0], 'kyber-40')
+  ok('a server that always says `has_more` stops at 25 pages / 5000 items, keeps what it read and says it hit the plugin\'s limit')
+}
+{
+  const all = makeItems(450)
+  for (const [label, failure, motif] of [
+    ['an HTTP error', { status: 502, body: { error: 'bad gateway' } }, /la page 2 est indisponible \(code 502\)/],
+    ['a network error', { status: 0, body: null, error: 'fetch failed' }, /la page 2 est indisponible \(code 0\)/],
+    ['an unreadable body', { status: 200, body: null }, /la page 2 est indisponible \(code 200\)/],
+    ['a rate limit', { status: 429, body: { error: 'rate_limited' } }, /code 429/],
+    ['a throw', 'throw', /la page 2 est injoignable : boom/],
+    ['a body with no items', { status: 200, body: { oops: true } }, /la page 2 est illisible/],
+  ]) {
+    const srv = pager(all, { fail: { 2: failure } })
+    const r = await lireCatalogue(srv.read)
+    assert.equal(r.ok, true, label)
+    assert.equal(r.partiel, true, label)
+    assert.equal(r.items.length, 200, label + ': the first page is kept, never an empty catalogue')
+    assert.match(r.motif, /^catalogue incomplet : /, label)
+    assert.match(r.motif, motif, label)
+    assert.match(r.motif, /200 kyber\(s\) lus$/, label)
+    assert.equal(srv.calls.length, 2, label + ': nothing is asked after a failure')
+  }
+  const third = await lireCatalogue(pager(all, { fail: { 3: { status: 500, body: null } } }).read)
+  assert.deepEqual([third.items.length, third.partiel], [400, true], 'a failure on page 3 keeps the 400 items of the two first')
+  ok('a page that fails after the first (HTTP, network, unreadable, rate limit, a throw): the pages read are kept, `partiel` and a note say what is missing')
+}
+{
+  // the first page failing is the old « catalogue indisponible »: nothing to show
+  for (const [failure, motif] of [
+    [{ status: 500, body: { error: 'x' } }, 'catalogue indisponible (code 500)'],
+    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue indisponible (code 401)'],
+    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue indisponible (code 0)'],
+    [{ status: 200, body: null }, 'catalogue indisponible (code 200)'],
+    [null, 'catalogue indisponible (code inconnu)'],
+    ['throw', 'catalogue injoignable : boom'],
+  ]) {
+    const r = await lireCatalogue(pager(makeItems(3), { fail: { 1: failure } }).read)
+    assert.deepEqual(r, { ok: false, items: [], motif, echec: true }, JSON.stringify(failure))
+  }
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: {} })), { ok: false, items: [], motif: 'aucun champ « items »' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: [] })), { ok: false, items: [], motif: 'aucun champ « items »' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [] } })), { ok: false, items: [], motif: 'catalogue vide' })
+  assert.deepEqual(await lireCatalogue(async () => ({ status: 200, body: { items: [null, {}] } })), { ok: false, items: [], motif: 'aucune entree exploitable (2 ecartee(s))' })
+  ok('the first page failing, or not being a catalogue, says what it always said (same words as before the paging)')
+}
+{
+  // a server that misbehaves: it never stops, repeats itself, or forgets the id
+  const all = makeItems(30)
+  const loop = await lireCatalogue(async () => ({ status: 200, body: { items: all.slice(0, 10), has_more: true } }))
+  assert.equal(loop.partiel, true)
+  assert.match(loop.motif, /le serveur repete la page 2, 10 kyber\(s\) lus/)
+  assert.equal(loop.items.length, 10, 'no item twice')
+  const noId = await lireCatalogue(async () => ({ status: 200, body: { items: [{ slug: 'a', name: 'A' }], has_more: true } }))
+  assert.match(noId.motif, /annonce une suite sans dire ou la reprendre, 1 kyber\(s\) lus/)
+  const empty = await lireCatalogue(async () => ({ status: 200, body: { items: [], has_more: true } }))
+  assert.deepEqual([empty.ok, empty.items.length, empty.partiel], [false, 0, true])
+  assert.match(empty.motif, /^catalogue vide ; catalogue incomplet : /)
+  const slow = await lireCatalogue(pager(makeItems(40), { size: 5 }).read, { budgetMs: -1 })
+  assert.deepEqual([slow.items.length, slow.partiel], [5, true])
+  assert.match(slow.motif, /delai depasse apres 1 page\(s\), 5 kyber\(s\) lus/)
+  // an unusable entry never stops the paging: the cursor is the raw id of the last item
+  const all2 = makeItems(6)
+  const rows = all2.map((x, i) => (i === 2 ? { id: x.id } : x))
+  const garbage = await lireCatalogue(pager(rows, { size: 3 }).read)
+  assert.deepEqual([garbage.items.length, garbage.partiel], [5, undefined])
+  // the same slug on two pages is one item
+  let n = 0
+  const twice = await lireCatalogue(async () => { n += 1; return { status: 200, body: { items: n === 1 ? [{ id: 'id-b', slug: 'a', name: 'A' }, { id: 'id-a', slug: 'b', name: 'B' }] : [{ id: 'id-0', slug: 'b', name: 'B again' }], has_more: n === 1 } } })
+  assert.deepEqual(slugsOf(twice), ['a', 'b'])
+  assert.equal(twice.items[1].name, 'B')
+  ok('a server that repeats itself, never stops, forgets the id or sends nothing is stopped with a note; a bad entry or a repeated slug changes nothing')
+}
+
+// ── 6. finding the item an install asks for ──
+console.log('the item of an install')
+{
+  const all = makeItems(450)
+  const listed = pager(all)
+  const asked = []
+  // the new server: the address answers, the list is never read
+  const viaAddress = await resoudreItem('kyber-3', {
+    lireItem: async (slug) => { asked.push(slug); return { status: 200, body: { ...all[447], unlisted: false } } },
+    lirePage: listed.read,
+  })
+  assert.equal(viaAddress.item.slug, 'kyber-3')
+  assert.equal(viaAddress.item.name, 'Kyber 3')
+  assert.deepEqual(asked, ['kyber-3'])
+  assert.equal(listed.calls.length, 0, 'an item far beyond the first page is found without reading any page')
+  const draft = await resoudreItem('draft-0123456789', {
+    lireItem: async () => ({ status: 200, body: { id: 'u1', slug: 'draft-0123456789', name: 'Draft', unlisted: true, manifest: { agents: [{ role_key: 'x', name: 'X', does: 'd' }] } } }),
+    lirePage: async () => { throw new Error('the list must not be read') },
+  })
+  assert.equal(draft.item.slug, 'draft-0123456789')
+  assert.equal(draft.item.agents.length, 1)
+  ok('an item is found by its address, wherever it would be in the list, listed or not, without reading a page')
+}
+{
+  // an older server has no such route (404 for every slug): the pages of the list are searched
+  const all = makeItems(450)
+  const old = pager(all)
+  const found = await resoudreItem('kyber-3', { lireItem: async () => ({ status: 404, body: { error: 'not found' } }), lirePage: old.read })
+  assert.equal(found.item.slug, 'kyber-3')
+  assert.equal(old.calls.length, 3, 'found on page 3 of the list')
+  const flat = pager(makeItems(3), { paging: false })
+  assert.equal((await resoudreItem('kyber-2', { lireItem: async () => ({ status: 404, body: null }), lirePage: flat.read })).item.slug, 'kyber-2')
+  // a 200 that is not that item (a catch-all, another slug) is no better than a 404
+  assert.equal((await resoudreItem('kyber-5', { lireItem: async () => ({ status: 200, body: { ok: true } }), lirePage: pager(all).read })).item.slug, 'kyber-5')
+  assert.equal((await resoudreItem('kyber-5', { lireItem: async () => ({ status: 200, body: all[0] }), lirePage: pager(all).read })).item.slug, 'kyber-5', 'another item answered for that address: the list decides')
+  ok('a 404 (an older server with no such route) or an answer that is not that item falls back to the pages of the list')
+}
+{
+  const all = makeItems(450)
+  const gone = await resoudreItem('pas-au-catalogue', { lireItem: async () => ({ status: 404, body: { error: 'Marketplace item not found' } }), lirePage: pager(all).read })
+  assert.deepEqual(gone, { erreur: 'ce kyber n\'est plus publie sous l\'id « pas-au-catalogue »' }, 'the old words')
+  const partial = await resoudreItem('pas-au-catalogue', { lireItem: async () => ({ status: 404, body: null }), lirePage: pager(all, { fail: { 2: { status: 502, body: null } } }).read })
+  assert.match(partial.erreur, /^ce kyber n'a pas ete trouve sous l'id « pas-au-catalogue » \(catalogue incomplet : la page 2 est indisponible \(code 502\)/)
+  assert.equal(/plus publie/.test(partial.erreur), false, 'never claims it is unpublished when only part of the catalogue was read')
+  const down = await resoudreItem('x', { lireItem: async () => ({ status: 404, body: null }), lirePage: async () => ({ status: 502, body: null }) })
+  assert.deepEqual(down, { erreur: 'catalogue indisponible (code 502)' })
+  for (const [rep, erreur] of [
+    [{ status: 401, body: { error: 'invalid session' } }, 'catalogue indisponible (code 401)'],
+    [{ status: 429, body: null }, 'catalogue indisponible (code 429)'],
+    [{ status: 500, body: null }, 'catalogue indisponible (code 500)'],
+    [{ status: 0, body: null, error: 'fetch failed' }, 'catalogue indisponible (code 0)'],
+    [null, 'catalogue indisponible (code inconnu)'],
+  ]) {
+    let listRead = 0
+    assert.deepEqual(await resoudreItem('x', { lireItem: async () => rep, lirePage: async () => { listRead += 1; return { status: 200, body: { items: [] } } } }), { erreur }, JSON.stringify(rep))
+    assert.equal(listRead, 0, 'a failure that is not a 404 does not start reading the list: ' + JSON.stringify(rep))
+  }
+  assert.deepEqual(await resoudreItem('x', { lireItem: async () => { throw new Error('boom') }, lirePage: async () => ({ status: 200, body: { items: [] } }) }), { erreur: 'catalogue injoignable : boom' })
+  ok('not published: the old words; read in part: it does not say so; a failure that is not a 404 is « catalogue indisponible » and reads nothing more')
+}
+{
+  const ok1 = ['support-concierge', 'A1', 'a.b_c-d', '0abc', 'x'.repeat(128), 'odd-name-1', 'compat-draft-0123456789']
+  const no = ['', '.', '..', '../x', 'a/b', 'a' + BS + 'b', '.hidden', '-x', 'a b', 'a%2Fb', 'é', 'x'.repeat(129), 'a\nb', 'a\0b', null, undefined, 5, {}]
+  for (const v of ok1) assert.equal(slugSur(v), true, String(v))
+  for (const v of no) assert.equal(slugSur(v), false, JSON.stringify(v))
+  assert.equal(normaliserItem(null), null)
+  assert.equal(normaliserItem({ slug: 'a' }), null)
+  assert.equal(normaliserItem({ slug: 'a', name: 'A' }).origine, 'kybernos.app')
+  ok('a slug that may go in a URL and a folder name: letters, digits, `.`, `_`, `-`; never a path, a dot-file or a separator')
 }
 
 console.log('\n' + pass + ' verifications OK')

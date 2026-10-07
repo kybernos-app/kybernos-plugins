@@ -48,8 +48,21 @@ let catalog = { data: [
   { id: 'deepseek-v4-flash:0731', object: 'model' },
   { id: 'kybernos/orchestrator-expert', object: 'model' },
 ] }
+// The marketplace the fake serves. `mode: 'legacy'` is a server older than the paging (the first tests below: it must keep working);
+// `'paged'` is the new one. `hidden` holds items that are not in the list but are served by their address (unlisted ones).
+const SUPPORT_ITEM = {
+    id: '9f0c1e3a-0000-4000-8000-000000000001', slug: 'support-concierge', name: 'Support Concierge',
+    cat: 'Support', pitch: 'Ton equipe de support client : tri des tickets, reponses dans le bon ton.',
+    glyph: 'SC', color: '#2E86AB', version: 2, unlisted: false, published_at: '2026-09-01T10:00:00Z',
+    manifest: {
+      name: 'Support Concierge', cat: 'Support', glyph: 'SC', color: '#2E86AB', version: 2,
+      agents: [{ role_key: 'custom:manager', name: 'Manager', does: 'Pilote le SLA de reponse et trie chaque entree.', model_route: 'kybernos/doer', tools: [] }],
+      data_schemas: { jamais: 'servi' }, source_kyber_id: 'kyber-interne-42', price: 9,
+    },
+}
+const market = { mode: 'legacy', items: [SUPPORT_ITEM], hidden: [], pageSize: 200, listCalls: 0, failPage: null, endless: false, byAddressStatus: null }
 const teamApi = { workspace: '11111111-1111-4111-8111-111111111111', role: 'member', rows: [], next: 1, fail: null }
-const seen = { team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
+const seen = { team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -167,21 +180,36 @@ const api = createServer((req, res) => {
         token_hash_prefix: 'deadbeef', user: { id: 'u-1', email: 'dev@example.test', name: null, plan: 'free' } })
     }
     const auth = req.headers.authorization || null
-    if (req.url === '/v1/marketplace' && req.method === 'GET') {
+    if (req.url.startsWith('/v1/marketplace') && req.method === 'GET') {
       seen.marketAuth.push(auth)
+      seen.marketUrls.push(req.url)
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
-      return send(200, { items: [
-        {
-          id: '9f0c1e3a-0000-4000-8000-000000000001', slug: 'support-concierge', name: 'Support Concierge',
-          cat: 'Support', pitch: 'Ton equipe de support client : tri des tickets, reponses dans le bon ton.',
-          glyph: 'SC', color: '#2E86AB', version: 2, unlisted: false, published_at: '2026-09-01T10:00:00Z',
-          manifest: {
-            name: 'Support Concierge', cat: 'Support', glyph: 'SC', color: '#2E86AB', version: 2,
-            agents: [{ role_key: 'custom:manager', name: 'Manager', does: 'Pilote le SLA de reponse et trie chaque entree.', model_route: 'kybernos/doer', tools: [] }],
-            data_schemas: { jamais: 'servi' }, source_kyber_id: 'kyber-interne-42', price: 9,
-          },
-        },
-      ] })
+      // A server older than the paging: one answer with no has_more, nothing else (not even `?before=` or a route by address).
+      if (market.mode === 'legacy') {
+        if (req.url !== '/v1/marketplace') return send(404, { detail: 'Not Found' })
+        return send(200, { items: market.items })
+      }
+      // The new server (ADR 0011 § 9 of the server): 200 a page, newest first, { items, has_more }, `?before=<id of the last item>`,
+      // and GET /v1/marketplace/{slug} for any item, listed or not.
+      const u = new URL(req.url, 'http://x')
+      const bySlug = /^\/v1\/marketplace\/([^/]+)$/.exec(u.pathname)
+      if (bySlug !== null) {
+        if (market.byAddressStatus !== null) return send(market.byAddressStatus, { error: 'boom' })
+        const found = market.items.concat(market.hidden).find((x) => x.slug === decodeURIComponent(bySlug[1]))
+        return found === undefined ? send(404, { error: 'not_found', message: 'Marketplace item not found' }) : send(200, found)
+      }
+      if (u.pathname !== '/v1/marketplace') return send(404, { error: 'not_found' })
+      market.listCalls += 1
+      if (market.failPage !== null && market.listCalls === market.failPage) return send(502, { error: 'bad gateway' })
+      if (market.endless === true) {
+        const base = market.listCalls * 1000
+        return send(200, { items: Array.from({ length: 200 }, (_, k) => ({ id: 'e' + String(base - k).padStart(8, '0'), slug: 'endless-' + (base - k), name: 'Endless ' + (base - k) })), has_more: true })
+      }
+      const before = u.searchParams.get('before')
+      const from = before === null ? 0 : market.items.findIndex((x) => x.id === before) + 1
+      if (before !== null && from === 0) return send(400, { error: 'invalid before' })
+      const page = market.items.slice(from, from + market.pageSize)
+      return send(200, { items: page, has_more: from + market.pageSize < market.items.length })
     }
     if (req.url === '/v1/models' && req.method === 'GET') {
       seen.modelsAuth.push(auth)
@@ -2390,6 +2418,135 @@ try {
 
   assert.ok(seen.marketAuth.length > 0 && seen.marketAuth.every((a) => a === 'Bearer ' + TOKEN))
   ok('le catalogue est lu avec le jeton du compte (jamais sans)')
+
+  // 10r. The catalogue is paged (the new server: 200 a page, `has_more`, `?before=`, and an item by its address). The fake is the
+  //      OLD server in 10q above (it must keep working: that is the fallback tested here too) and the new one from here on.
+  const urlsSince = (n) => seen.marketUrls.slice(n)
+  {
+    const mark = seen.marketUrls.length
+    const old = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'pas-au-catalogue' })
+    assert.deepEqual(urlsSince(mark), ['/v1/marketplace/pas-au-catalogue', '/v1/marketplace'])
+    assert.match(String(old.body.error), /plus publie/)
+    const cat1 = await hit('/kybernos-cloud/marketplace', 'GET')
+    assert.deepEqual([cat1.body.items.length, cat1.body.partiel], [1, undefined])
+    assert.deepEqual(urlsSince(mark + 2), ['/v1/marketplace'], 'no has_more: one request, as before')
+    ok('an older server (no has_more, no route by address): an install asks the address, gets a 404, reads the one page and says « plus publie »; the catalogue is one request')
+  }
+
+  const manyItems = (n) => Array.from({ length: n }, (_, i) => {
+    const k = n - i
+    return { id: 'id+/' + String(k).padStart(6, '0'), slug: 'kyber-' + k, name: 'Kyber ' + k, cat: 'Sales', pitch: 'Pitch ' + k, glyph: 'K', color: '#336699', version: 1, unlisted: false,
+      published_at: '2026-10-01T10:00:00Z', manifest: { name: 'Kyber ' + k, agents: [{ role_key: 'manager', name: 'Mia', does: 'Owns kyber ' + k + '.', model_route: 'openai/gpt-x', tools: ['gmail'] }] } }
+  })
+  market.mode = 'paged'
+  market.items = manyItems(450)
+  // An unlisted kyber, given by its link: not in the list, served by its address. Its text is full of what YAML cares about.
+  market.hidden = [{ id: 'id+/draft', slug: 'draft-0123456789', name: 'Odd: name # 1', cat: 'Sales', pitch: 'first line\nsecond: line # not a key', glyph: 'bot', color: '#336699', version: 1, unlisted: true,
+    manifest: { agents: [{ role_key: 'x', name: 'Ex: Why', does: 'does: this # and that', tools: ['mcp:github', 'gmail'] }] } }]
+
+  {
+    const mark = seen.marketUrls.length
+    market.listCalls = 0
+    const full = await hit('/kybernos-cloud/marketplace', 'GET')
+    assert.equal(full.body.ok, true)
+    assert.equal(full.body.items.length, 450, 'the whole catalogue, not the first page')
+    assert.equal(full.body.partiel, undefined)
+    assert.equal(full.body.motif, null)
+    assert.equal(full.body.items[0].slug, 'kyber-450')
+    assert.equal(full.body.items[449].slug, 'kyber-1')
+    assert.deepEqual(urlsSince(mark), ['/v1/marketplace', '/v1/marketplace?before=' + encodeURIComponent('id+/000251'), '/v1/marketplace?before=' + encodeURIComponent('id+/000051')])
+    ok('a catalogue of 450 items: three requests, the id of the last item of a page as `before` (url-encoded), every item in order')
+  }
+  {
+    const mark = seen.marketUrls.length
+    const far = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'kyber-3' })
+    assert.equal(far.body.ok, true, JSON.stringify(far.body))
+    assert.deepEqual(urlsSince(mark), ['/v1/marketplace/kyber-3'], 'one request: the address answers, no page is read')
+    const farYml = readFileSync(join(kybersFixture, 'kyber-3', 'kyber.yml'), 'utf8')
+    assert.match(farYml, /^id: kyber-3$/m)
+    assert.match(farYml, /^couleur: "#336699"$/m)
+    assert.match(farYml, /^ {2}Pitch 3$/m)
+    assert.deepEqual(far.body.roles, ['manager'])
+    ok('an item beyond the first page installs (it used to answer « plus publie »), from one request to its address')
+  }
+  {
+    const mark = seen.marketUrls.length
+    const draft = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'draft-0123456789' })
+    assert.equal(draft.body.ok, true, JSON.stringify(draft.body))
+    assert.deepEqual(urlsSince(mark), ['/v1/marketplace/draft-0123456789'])
+    const yml = readFileSync(join(kybersFixture, 'draft-0123456789', 'kyber.yml'), 'utf8')
+    assert.match(yml, /^name: "Odd: name # 1"$/m, 'a name with `: ` and ` #` is quoted')
+    assert.match(yml, /^couleur: "#336699"$/m, 'the colour is a string, not a comment')
+    assert.match(yml, /^ {4}tools: \["mcp:github", gmail\]$/m)
+    assert.match(yml, /^ {6}does: this # and that$/m)
+    assert.deepEqual(yml.split('\n').filter((l) => /^\S/.test(l)).map((l) => l.slice(0, l.indexOf(':'))), ['id', 'specVersion', 'name', 'categorie', 'glyphe', 'couleur', 'origine', 'mission', 'roles'])
+    ok('an unlisted item given by its address installs; what it says about itself is written as real YAML (quoted name, colour and tool)')
+  }
+  {
+    const mark = seen.marketUrls.length
+    market.listCalls = 0
+    const nope = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'nope' })
+    assert.equal(nope.body.ok, false)
+    assert.equal(nope.body.error, 'ce kyber n\'est plus publie sous l\'id « nope »')
+    assert.deepEqual(urlsSince(mark).slice(0, 2), ['/v1/marketplace/nope', '/v1/marketplace'], 'a 404 on the address: the pages of the list are read before saying it is gone')
+    assert.equal(urlsSince(mark).length, 4)
+    ok('an item that exists nowhere: the address says 404, the three pages say so too, and only then « plus publie »')
+  }
+  {
+    // the second page fails: the user sees the first page and a note, never an empty catalogue
+    market.failPage = 2
+    market.listCalls = 0
+    const part = await hit('/kybernos-cloud/marketplace', 'GET')
+    assert.equal(part.body.ok, true)
+    assert.equal(part.body.partiel, true)
+    assert.equal(part.body.items.length, 200)
+    assert.match(part.body.motif, /^catalogue incomplet : la page 2 est indisponible \(code 502\), 200 kyber\(s\) lus$/)
+    market.listCalls = 0
+    const mark = seen.marketUrls.length
+    const lost = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'nope' })
+    assert.equal(lost.body.ok, false)
+    assert.match(String(lost.body.error), /catalogue incomplet/)
+    assert.equal(/plus publie/.test(String(lost.body.error)), false, 'it never says « no longer published » about a catalogue it could not read to the end')
+    assert.equal(urlsSince(mark).length, 3)
+    market.failPage = null
+    ok('a failing second page: the first page and a note (`partiel`, the reason) for the panel; an install that cannot be found says the catalogue is incomplete')
+  }
+  {
+    // a failure of the address that is not a 404 is the catalogue being unavailable: no page is read, nothing is written
+    market.byAddressStatus = 500
+    const mark = seen.marketUrls.length
+    const bad = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'kyber-9' })
+    assert.deepEqual([bad.body.ok, bad.body.error], [false, 'catalogue indisponible (code 500)'])
+    assert.deepEqual(urlsSince(mark), ['/v1/marketplace/kyber-9'])
+    assert.equal(existsSync(join(kybersFixture, 'kyber-9')), false)
+    market.byAddressStatus = null
+    // a slug that is not plain is refused before any request: it goes in a URL and in a folder name
+    const before = seen.marketUrls.length
+    for (const slug of ['../escape', 'a/b', '.hidden', 'x y', 'a%2Fb', '-x', 'é', 'x'.repeat(129)]) {
+      const refused = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug })
+      assert.deepEqual([refused.body.ok, refused.body.error], [false, 'slug invalide'], slug)
+    }
+    assert.equal(seen.marketUrls.length, before, 'no request for a refused slug')
+    assert.equal(existsSync(join(kybersFixture, '..', 'escape')), false)
+    ok('a failing address (500) is « catalogue indisponible » and writes nothing; a slug that is not plain is refused before any request')
+  }
+  {
+    // a server that never stops: 25 pages, 5000 items, then a note
+    market.endless = true
+    market.listCalls = 0
+    const mark = seen.marketUrls.length
+    const endless = await hit('/kybernos-cloud/marketplace', 'GET')
+    assert.equal(endless.body.ok, true)
+    assert.equal(endless.body.partiel, true)
+    assert.equal(urlsSince(mark).length, 25)
+    assert.equal(endless.body.items.length, 5000)
+    assert.match(endless.body.motif, /limite du plugin/)
+    market.endless = false
+    ok('a server that always says has_more: the plugin stops at 25 pages / 5000 items, shows them and says it stopped')
+  }
+  market.mode = 'legacy'
+  market.items = [SUPPORT_ITEM]
+  market.hidden = []
 
   // 10p. On rend l'état à la section 9 : déconnecté. Le test « réseau
   //      injoignable » suppose qu'aucun état local ne subsiste — le laisser
