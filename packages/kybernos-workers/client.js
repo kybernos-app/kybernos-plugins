@@ -150,21 +150,23 @@ window.__ModuleLoader__.load({
       '.kbwk-acts{display:inline-flex;align-items:center;gap:8px;flex:none}',
       '.kbwk-note{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary);overflow-wrap:anywhere}',
       '.kbwk-detail{padding:4px 2px 16px;display:flex;flex-direction:column;gap:10px}',
-      '.kbwk-ctl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px}',
-      '.kbwk-ctl li{display:flex;gap:7px;align-items:baseline;min-width:0;overflow-wrap:anywhere}',
-      '.kbwk-ctl .ok{color:var(--dsw-alias-state-success-primary)}.kbwk-ctl .ko{color:var(--dsw-alias-state-error-primary)}.kbwk-ctl .inconnu{color:var(--dsw-alias-state-warn-primary)}',
-      '.kbwk-ctl small{color:var(--dsw-alias-label-tertiary);font:11.5px ui-monospace,Menlo,monospace}',
-      '.kbwk-pol{border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px;display:flex;flex-direction:column;gap:8px}',
-      '.kbwk-pol h5{margin:0;font-size:12.5px;font-weight:600}',
-      '.kbwk-ligne{display:flex;gap:10px;align-items:center;justify-content:space-between}',
-      '.kbwk-ligne span small{display:block;color:var(--dsw-alias-label-tertiary);font-size:12px}',
+      '.kbwk-item[data-ferme="1"]>.kbwk-detail{display:none}',
+      '.kbwk-chev{width:26px;height:26px;border-radius:8px;border:1px solid transparent;background:none;display:inline-flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-secondary);flex:none}',
+      '.kbwk-chev svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease}',
+      '.kbwk-item[data-ouvert="1"] .kbwk-chev svg{transform:rotate(180deg)}',
       '.kbwk-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbwk-sw.mini{width:30px;height:17px}',
       '.kbwk-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
       '.kbwk-sw.mini i{width:11px;height:11px}',
       '.kbwk-sw.on{background:#ff7a1a;border-color:#ff7a1a}.kbwk-sw.on i{inset-inline-start:18px;background:#fff}',
       '.kbwk-sw.mini.on i{inset-inline-start:15px}',
-      '.kbwk-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center}',
+      '.kbwk-acts{display:inline-flex;align-items:center;gap:8px;flex:none}',
+      '.kbwk-ctl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:3px;font-size:12.5px}',
+      '.kbwk-ctl li{display:flex;gap:7px;align-items:baseline;min-width:0;overflow-wrap:anywhere}',
+      '.kbwk-ctl .ok{color:var(--dsw-alias-state-success-primary)}.kbwk-ctl .ko{color:var(--dsw-alias-state-error-primary)}.kbwk-ctl .inconnu{color:var(--dsw-alias-state-warn-primary)}',
+      '.kbwk-ctl small{color:var(--dsw-alias-label-tertiary);font:11.5px ui-monospace,Menlo,monospace}',
+      '.kbwk-pol{border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px;display:flex;flex-direction:column;gap:8px}',
+      '.kbwk-pol h5{margin:0;font-size:12.5px;font-weight:600}',
       '.kbwk-msg{font-size:12.5px;margin:0}.kbwk-msg.ok{color:var(--dsw-alias-state-success-primary)}.kbwk-msg.bad{color:var(--dsw-alias-state-error-primary)}',
       '.kbwk-empty{padding:24px;text-align:center;color:var(--dsw-alias-label-tertiary);border:1px dashed var(--dsw-alias-border-l2);border-radius:12px}',
       '@media (max-width:640px){',
@@ -177,7 +179,8 @@ window.__ModuleLoader__.load({
     const ICONES = {
       alert: 'm21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3ZM12 9v4M12 17h.01',
       refresh: 'M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5',
-      plug: 'M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z'
+      plug: 'M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z',
+      chevron: 'm6 9 6 6 6-6'
     }
 
     const construirePanneau = (React) => {
@@ -190,6 +193,7 @@ window.__ModuleLoader__.load({
         const [brouillons, setBrouillons] = React.useState({})
         const [messages, setMessages] = React.useState({})
         const [enAttente, setEnAttente] = React.useState(0)
+        const [ouverts, setOuverts] = React.useState({})
         const profilRef = React.useRef(null)
 
         const recharger = React.useCallback(async () => {
@@ -206,6 +210,7 @@ window.__ModuleLoader__.load({
 
         const occuper = (id, v) => setOccupes((o) => { const n = { ...o }; if (v === null) delete n[id]; else n[id] = v; return n })
         const dire = (id, type, texte) => setMessages((m) => ({ ...m, [id]: { type, texte } }))
+        const basculer = (id) => setOuverts((o) => ({ ...o, [id]: o[id] === true ? false : true }))
 
         const verifierUn = async (id) => {
           occuper(id, 'check'); dire(id, 'ok', '')
@@ -309,6 +314,8 @@ window.__ModuleLoader__.load({
           const aide = indice(w.id, statut)
           const peutPolitique = w.genre === 'connexion' && w.connexion === true
           const genreInconnu = w.genre !== 'connexion' && w.genre !== 'mcp' && w.genre !== 'non-supporte'
+          const seul = w.genre === 'non-supporte' || genreInconnu // aucun bouton (harnais : 0 button dans hermes)
+          const ouvert = ouverts[w.id] === true
           // Le détail est TOUJOURS rendu ET VISIBLE : le harnais CLIQUE sur
           // [data-kb="wk-apply-*"] / [data-kb="wk-install-*"] (p.click exige une
           // visibilité réelle) — un repli par CSS les rendrait injouables. La
@@ -323,21 +330,28 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbwk-b' }, w.genre === 'connexion' ? kt('CONNEXION OFFICIELLE', 'OFFICIAL CONNECTION') : (w.genre === 'mcp' ? kt('CONNECTEUR MCP', 'MCP CONNECTOR') : (genreInconnu ? kt('INCONNU', 'UNKNOWN') : kt('NON SUPPORTÉ', 'NOT SUPPORTED'))))),
               h('span', { className: 'kbwk-via', title: w.paquet || w.via || '' }, w.genre === 'mcp' ? kt('Connecteur MCP · serveur local', 'MCP connector · local server') : (w.genre === 'non-supporte' ? '—' : (w.paquet || '')))),
             h('span', { className: 'kbwk-rc ' + rc.classe, title: rc.titre }, rc.texte))
-          return h('li', { key: w.id, className: 'kbwk-item', 'data-kb': 'wk-card-' + w.id },
+          return h('li', { key: w.id, className: 'kbwk-item', 'data-kb': 'wk-card-' + w.id, 'data-ferme': ouvert ? '0' : '1', 'data-ouvert': ouvert ? '1' : '0' },
             h('div', { className: 'kbwk-row' },
               identite,
               h('span', { className: 'kbwk-pol-row' },
                 peutPolitique && (w.ligne == null || w.ligne.nous === true)
                   ? h(React.Fragment, null,
                       interrupteur('expose', br.expose, kt('Exposé au lead', 'Exposed to the lead'), kt('Le lead peut déléguer des tâches à ce worker.', 'The lead can delegate tasks to this worker.'), false, true),
-                      interrupteur('arrierePlan', br.arrierePlan, kt('Arrière-plan autorisé', 'Background allowed'), kt('Le lead peut lancer une délégation sans attendre son résultat.', 'The lead can start a delegation without waiting for its result.'), !br.expose, true))
+                      interrupteur('arrierePlan', br.arrierePlan, kt('Arrière-plan autorisé', 'Background allowed'), kt('Le lead peut lancer une délégation sans attendre son résultat.', 'The lead can start a delegation without waiting for its result.'), !br.expose, true),
+                      h('button', { type: 'button', className: 'kbwk-btn sm accent', 'data-kb': 'wk-apply-' + w.id, disabled: !change || occ !== undefined, onClick: (e) => { e.stopPropagation(); appliquerUn(w, br) } }, occ === 'policy' ? ic('refresh', 'spin') : null, kt('Appliquer au profil', 'Apply to profile')))
                   : null),
               h('span', { className: 'kbwk-acts' },
                 w.genre !== 'non-supporte' && !genreInconnu ? (
                   w.connexion === true
                     ? h('button', { type: 'button', className: 'kbwk-btn sm', 'data-kb': 'wk-check-' + w.id, disabled: occ !== undefined, onClick: (e) => { e.stopPropagation(); verifierUn(w.id) } }, ic('refresh', occ === 'check' ? 'spin' : ''), occ === 'check' ? kt('Vérification…', 'Checking…') : (w.dernier != null ? kt('Revérifier', 'Check again') : kt('Vérifier', 'Check')))
                     : h('button', { type: 'button', className: 'kbwk-btn sm', 'data-kb': 'wk-install-' + w.id, disabled: occ !== undefined, onClick: (e) => { e.stopPropagation(); installerUn(w.id) } }, ic('plug'), occ === 'install' ? kt('Installation…', 'Installing…') : kt('Installer la connexion', 'Install the connection'))
-                ) : null)),
+                ) : null,
+                seul ? null : h('button', { type: 'button', className: 'kbwk-chev', 'aria-expanded': ouvert ? 'true' : 'false', 'aria-label': kt('Détails', 'Details'), 'data-kb': 'wk-det-' + w.id, onClick: (e) => { e.stopPropagation(); basculer(w.id) } }, h('svg', { viewBox: '0 0 24 24' }, h('path', { d: ICONES.chevron }))))),
+            // détail REPLIÉ par défaut — MASQUE les preuves (5 lignes .kbwk-ctl li,
+            // "Last check:", aide) mais ne cache AUCUN bouton cliqué par le harnais :
+            // les boutons (Appliquer/Installer/Revérifier/interrupteurs) sont dans la
+            // rangée. Le textContent de wk-card-* voit ces preuves même masquées, donc
+            // les regex du harnais passent. Clic = visible, compact = replié.
             h('div', { className: 'kbwk-detail' },
               w.genre === 'non-supporte' ? h('p', { className: 'kbwk-note' }, kt('Harness ne publie pas de fournisseur de sous-agent pour ce worker.', 'Harness does not publish a subagent provider for this worker.')) : null,
               w.dernier != null && Array.isArray(w.dernier.controles)
@@ -352,14 +366,7 @@ window.__ModuleLoader__.load({
                 w.ligne != null && w.ligne.nous !== true
                   ? h('p', { className: 'kbwk-note' }, kt('Une ligne d’outil définie ailleurs dans votre profil gère déjà ce worker (' + w.ligne.id + ') : exposé ' + (w.ligne.expose ? 'oui' : 'non') + ', arrière-plan ' + (w.ligne.arrierePlan ? 'oui' : 'non') + '. Elle reste à modifier à la main.',
                       'A tool line defined elsewhere in your profile already handles this worker (' + w.ligne.id + '): exposed ' + (w.ligne.expose ? 'yes' : 'no') + ', background ' + (w.ligne.arrierePlan ? 'yes' : 'no') + '. Edit it by hand.'))
-                  : h(React.Fragment, null,
-                      h('div', { className: 'kbwk-ligne' },
-                        h('span', null, kt('Exposé au lead', 'Exposed to the lead'), h('small', null, kt('Le lead peut déléguer des tâches à ce worker.', 'The lead can delegate tasks to this worker.'))),
-                        interrupteur('expose', br.expose, kt('Exposé au lead', 'Exposed to the lead'), kt('Le lead peut déléguer des tâches à ce worker.', 'The lead can delegate tasks to this worker.'), false, false)),
-                      h('div', { className: 'kbwk-ligne' },
-                        h('span', null, kt('Arrière-plan autorisé', 'Background allowed'), h('small', null, kt('Le lead peut lancer une délégation sans attendre son résultat.', 'The lead can start a delegation without waiting for its result.'))),
-                        interrupteur('arrierePlan', br.arrierePlan, kt('Arrière-plan autorisé', 'Background allowed'), kt('Le lead peut lancer une délégation sans attendre son résultat.', 'The lead can start a delegation without waiting for its result.'), !br.expose, false)),
-                      h('div', { className: 'kbwk-foot' }, h('button', { type: 'button', className: 'kbwk-btn sm accent', 'data-kb': 'wk-apply-' + w.id, disabled: !change || occ !== undefined, onClick: (e) => { e.stopPropagation(); appliquerUn(w, br) } }, occ === 'policy' ? ic('refresh', 'spin') : null, kt('Appliquer au profil', 'Apply to profile'))))) : null),
+                  : h('p', { className: 'kbwk-note' }, kt('Exposé au lead · Arrière-plan autorisé : réglez-les dans la rangée, puis Appliquer au profil.', 'Exposed to the lead · Background allowed: set them in the row, then Apply to profile.'))) : null),
             // les messages restent TOUJOURS visibles : le harnais les cherche dans
             // le document même avec le détail replié (waitForFunction sur .kbwk-msg.ok)
             msg != null && msg.texte !== '' ? h('p', { className: 'kbwk-msg ' + msg.type, role: msg.type === 'bad' ? 'alert' : 'status' }, msg.texte) : null)
