@@ -1,0 +1,14 @@
+{
+  "name": "dsh-subagent-opencode",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Provider maison de sous-agent DSH pour la CLI OpenCode (opencode run)",
+  "main": "index.js",
+  "exports": { ".": "./index.js" },
+  "dependencies": {
+    "@deepseek-ai/dsh-subagent": "*",
+    "@deepseek-ai/dsh-subprocess": "*",
+    "@deepseek-ai/dsh-brand": "*",
+    "zod": "*"
+  }
+}
