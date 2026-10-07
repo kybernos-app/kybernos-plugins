@@ -553,13 +553,38 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const kbT = typeof window !== 'undefined' ? window.__KB_T__ : null
         if (kbT === null || kbT === undefined || typeof kbT !== 'object') return null
         const from = window.__KB_FR_EN__
-        if (_kb !== null && _kbFrom !== null && _kbFrom.t === kbT && _kbFrom.f === from) return _kb
+        // The packs other bundles publish at factory time
+        // (window.__KB_I18N_PACKS__ = [{ id, keys: { key: { fr, en } } }]) join the
+        // corpus: their French is the source, their id is namespaced
+        // ('cloud.<key>') so the shared per-language store never collides with kbt
+        // keys or another bundle's. Counted into the memo key so a late pack (or a
+        // reloaded bundle) is picked up instead of served the stale cache.
+        let packs = []
+        let packStamp = ''
+        try {
+          const p = window.__KB_I18N_PACKS__
+          if (Array.isArray(p)) {
+            packs = p
+            for (const it of p) { if (it && typeof it.id === 'string') packStamp += it.id + ':' + Object.keys(it.keys || {}).length + ';' }
+          }
+        } catch (e) { /* no window */ }
+        if (_kb !== null && _kbFrom !== null && _kbFrom.t === kbT && _kbFrom.f === from && _kbFrom.p === packStamp) return _kb
         const seen = new Set()
         const out = []
         const push = (id, text, area) => {
           if (seen.has(id) || id.length === 0 || wireOf('kb', id).length > WIRE_MAX) return
           seen.add(id)
           out.push({ wire: wireOf('kb', id), id, text, store: 'kb', area })
+        }
+        for (const pack of packs) {
+          if (pack === null || pack === undefined || typeof pack.id !== 'string' || pack.keys === null || typeof pack.keys !== 'object') continue
+          const pfx = pack.id.replace(/^kybernos-/, '') + '.'
+          for (const k of Object.keys(pack.keys)) {
+            const entry = pack.keys[k]
+            if (entry === null || entry === undefined || typeof entry !== 'object') continue
+            if (typeof entry.fr !== 'string' || entry.fr === '') continue
+            push(pfx + k, entry.fr, 'more')
+          }
         }
         for (const k of Object.keys(kbT)) {
           const entry = kbT[k]
@@ -574,7 +599,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         }
         if (out.length === 0) return null
         _kb = out
-        _kbFrom = { t: kbT, f: from }
+        _kbFrom = { t: kbT, f: from, p: packStamp }
         return _kb
       }
 

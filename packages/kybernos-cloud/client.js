@@ -519,6 +519,26 @@ window.__ModuleLoader__.load({
       },
     }
 
+    // Publish the bundle vocabulary for the Language page's translation corpus
+    // (window.__KB_I18N_PACKS__, read by @local/kybernos-language): each entry
+    // carries the French source and the English fallback; the corpus translates
+    // the French, and t() serves the result under 'cloud.<key>'. Built once, at
+    // factory time, before any settings page can start a translation run.
+    try {
+      if (typeof window !== 'undefined') {
+        const packs = window.__KB_I18N_PACKS__ = window.__KB_I18N_PACKS__ || []
+        const keys = {}
+        for (const k of Object.keys(DICT.fr)) {
+          const fr = DICT.fr[k]
+          const en = DICT.en[k]
+          if (typeof fr !== 'string' || fr === '') continue
+          if (typeof en !== 'string' || en === '') continue
+          keys[k] = { fr: fr, en: en }
+        }
+        packs.push({ id: 'kybernos-cloud', keys: keys })
+      }
+    } catch (e) { /* publishing must never break the factory */ }
+
     const CLOUD_CSS = `
 /* ── La rangée du bas du menu ────────────────────────────────────────────────
    Elle remplace l'ancien bouton-nuage : connecté, elle montre l'identité
@@ -1083,22 +1103,71 @@ window.__ModuleLoader__.load({
         const localeSvc = ctx.get('locale')
 
         const lang = () => {
+          // Active language: the mirror the Language runtime keeps of DSH's shell
+          // locale (window.__KB_I18N_ACTIVE__), then the first-paint cache
+          // (kybernos.theme.lang), then DSH's own locale service, then the French
+          // source. 'kybernos' is the DEFAULT (French), never a choice. Any
+          // translated language (es, de, ar…) is served through its pack — see t().
+          let act = null
           try {
-            if (localeSvc === undefined || localeSvc === null || typeof localeSvc.getLocale !== 'function') return 'fr'
-            const snap = localeSvc.getLocale()
-            if (snap === null || snap === undefined) return 'fr'
-            // (01/10) La snapshot du service `locale` porte sa valeur dans
-            // `active` (mesuré : kbLocaleRead du plugin la lit ainsi) — les
-            // champs ci-dessous n'ont jamais existé et laissaient le bundle
-            // en français même quand le shell réglé en anglais.
-            const raw = snap.active || snap.locale || snap.current || snap.lang || snap.id
-            return typeof raw === 'string' && raw.toLowerCase().indexOf('en') === 0 ? 'en' : 'fr'
-          } catch (e) { return 'fr' }
+            const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
+            if (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined && String(a.lang) !== '') act = String(a.lang)
+          } catch (e) { /* no window (test harness) */ }
+          if (act === null || act === 'kybernos') {
+            try { const l = localStorage.getItem('kybernos.theme.lang'); if (l !== null && l !== '') act = String(l) } catch (e) { /* storage unavailable */ }
+          }
+          if (act === null || act === 'kybernos') {
+            try {
+              if (localeSvc !== undefined && localeSvc !== null && typeof localeSvc.getLocale === 'function') {
+                const snap = localeSvc.getLocale()
+                if (snap !== null && snap !== undefined) {
+                  const raw = snap.active || snap.locale || snap.current || snap.lang || snap.id
+                  if (typeof raw === 'string' && raw !== '') act = raw.toLowerCase()
+                }
+              }
+            } catch (e) { /* locale service in flux */ }
+          }
+          if (act === null || act === '' || act === 'kybernos') return 'fr'
+          const base = String(act).split(/[-_]/)[0]
+          if (base === 'en') return 'en'
+          if (DICT[base] !== undefined || kbPackFor(base) !== null) return base
+          // A language we have nothing for: English is the fallback, never French.
+          return 'en'
         }
+        // The translated pack for a language, read once per language and per page
+        // (t() runs hundreds of times per render). The browser's copy is kept in
+        // step with the disk store (~/.dsh/kybernos/i18n/<lang>.json) by the
+        // always-on runtime in @local/kybernos.
+        const packCache = { lang: null, dict: null }
+        const kbPackFor = (id) => {
+          if (packCache.lang === id && packCache.dict !== null) return packCache.dict
+          try {
+            const raw = localStorage.getItem('kybernos.i18n.' + id)
+            if (raw !== null) {
+              const d = JSON.parse(raw)
+              if (d !== null && typeof d === 'object' && Object.keys(d).length > 0) {
+                packCache.lang = id
+                packCache.dict = d
+                return d
+              }
+            }
+          } catch (e) { /* storage unavailable */ }
+          return null
+        }
+        // Ids in the shared translation store are namespaced ('cloud.<key>') so the
+        // bundle vocabulary never collides with kbt keys or another bundle's.
+        const KB_PACK_PREFIX = 'cloud.'
         const t = (key) => {
-          const dict = DICT[lang()] || DICT.fr
-          if (dict[key] !== undefined) return dict[key]
-          return DICT.fr[key] !== undefined ? DICT.fr[key] : key
+          const pack = kbPackFor(lang())
+          if (pack !== null) {
+            const v = pack[KB_PACK_PREFIX + key]
+            if (typeof v === 'string' && v !== '') return v
+          }
+          const en = DICT.en[key]
+          if (en !== undefined) return en
+          const fr = DICT.fr[key]
+          if (fr !== undefined) return fr
+          return key
         }
         // Statut de la capture de fin de tour : la carte affichait l'identifiant
         // interne tel quel (« rien_a_retenir », constat de la campagne visuelle).
@@ -1116,7 +1185,8 @@ window.__ModuleLoader__.load({
           if (typeof iso !== 'string' || iso === '') return null
           const d = new Date(iso)
           if (Number.isNaN(d.getTime())) return null
-          return d.toLocaleDateString(lang() === 'en' ? 'en-GB' : 'fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+          const l = lang()
+          return d.toLocaleDateString(l === 'en' ? 'en-GB' : l === 'fr' ? 'fr-FR' : l, { day: '2-digit', month: 'short', year: 'numeric' })
         }
 
         // Nom affiché. `kybernos_users.name` est vide pour l'instant : AUCUN
@@ -3141,7 +3211,8 @@ window.__ModuleLoader__.load({
           }, [flash])
           let fuseau = ''
           try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || '' } catch (e) { fuseau = '' }
-          const locale = lang() === 'en' ? 'en-GB' : 'fr-FR'
+          const _l = lang()
+          const locale = _l === 'en' ? 'en-GB' : _l === 'fr' ? 'fr-FR' : _l
           const aujourdhui = kbToday()
 
           // Not signed in: a skeleton while reading (never the "Sign in" button

@@ -29824,6 +29824,22 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'listing': '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" ' + trait + '/>',
         'built-in plugins': '<path d="M21 8l-9-5-9 5v8l9 5 9-5z" ' + trait + '/><path d="M3 8l9 5 9-5" ' + trait + '/><path d="M12 13v8" ' + trait + '/>',
       }
+      // Variantes de LANGUE des libellés : sous une langue traduite, le titre
+      // affiché d'une cellule n'est plus fr/en et le reconnaissance par mot-clé
+      // (GROUPES + ICONES) échouait — l'ordre du menu changeait et les icônes
+      // variées n'étaient plus peintes (constaté en espagnol, 08/10). Chaque
+      // variante pointe la clé canonique fr/en dont elle reprend groupe et tracé.
+      for (const [variante, base] of Object.entries({
+        'cuenta': 'compte', 'referidos': 'parrainage', 'datos y privacidad': 'donnees & confidentialite',
+        'apariencia': 'apparence', 'seguridad': 'securite', 'soporte y legal': 'support & legal',
+        'idioma': 'langue', 'tema': 'theme', 'modelos': 'models', 'voz': 'voix',
+        'herramientas': 'outils', 'preajustes de agente': 'agent presets', 'plugins integrados': 'built-in plugins',
+      })) {
+        if (ICONES[base] !== undefined && ICONES[variante] === undefined) ICONES[variante] = ICONES[base]
+        for (let g = 0; g < GROUPES.length; g++) {
+          if (GROUPES[g].mots.indexOf(base) !== -1 && GROUPES[g].mots.indexOf(variante) === -1) GROUPES[g].mots.push(variante)
+        }
+      }
       // Libellés (normalisés) qui ferment le menu des Réglages, quelle que soit leur place dans GROUPES.
       const FIN_DE_LISTE = ['about', 'a propos']
       const rang = (libelle) => {

@@ -36,9 +36,16 @@ window.__ModuleLoader__.load({
     const BRAND = 'var(--dsw-alias-brand-primary, #3b82f6)'
 
     const lang = () => {
-      try { const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__(); return String(l || '').split(/[-_]/)[0] } catch { return 'fr' }
+      try {
+        const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
+        const s = String(l || '')
+        // French only when the resolved language IS French (the 'kybernos' default
+        // or a fr base); every other language — translated (es…) or not — gets
+        // English, never French.
+        return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+      } catch { return 'fr' }
     }
-    const kt = (fr, en) => (lang() === 'en' ? en : fr)
+    const kt = (fr, en) => (lang() === 'fr' ? fr : en)
 
     // ── Fonctions pures (jouées par test-client.mjs) ──────────────────────────
 
