@@ -1,0 +1,8 @@
+{
+  "name": "dsh-subagent-gemini",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Provider maison de sous-agent DSH pour la CLI gemini",
+  "main": "index.js",
+  "exports": { ".": "./index.js" }
+}
