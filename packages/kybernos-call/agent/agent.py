@@ -321,7 +321,10 @@ async def kybernos_appel(ctx: JobContext) -> None:
         room_output_options=room_io.RoomOutputOptions(audio_enabled=avatar is None),
     )
     # No automatic greeting: a clean turn first.
-    ctx.add_shutdown_callback(_dump)
+    async def _dump_at_end() -> None:  # LiveKit awaits shutdown callbacks: a plain function made every job end with a TypeError
+        _dump()
+
+    ctx.add_shutdown_callback(_dump_at_end)
     tasks = [asyncio.create_task(_watch_limits(ctx, state, meta))]
     if meta.brain == "session":
         tasks.append(asyncio.create_task(_speak_session(session, ctx.room.name, state)))

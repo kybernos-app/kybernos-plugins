@@ -336,6 +336,25 @@ class ClonedVoice(unittest.TestCase):
         self.assertFalse(any(isinstance(t, CloneTTS) for t in getattr(voice, "_tts_instances", [voice])))
 
 
+class ShutdownCallbacks(unittest.TestCase):
+    def test_every_shutdown_callback_is_a_coroutine_function(self):
+        # LiveKit awaits them. A plain function made every call end with "TypeError: object NoneType can't be used in
+        # 'await' expression" in the log (seen on the first real call, 2026-10-08).
+        import ast
+        import pathlib
+
+        tree = ast.parse((pathlib.Path(__file__).parent / "agent.py").read_text(encoding="utf8"))
+        coroutines = {n.name for n in ast.walk(tree) if isinstance(n, ast.AsyncFunctionDef)}
+        plain = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+        registered = [c.args[0].id for c in ast.walk(tree)
+                      if isinstance(c, ast.Call) and getattr(c.func, "attr", "") == "add_shutdown_callback"
+                      and c.args and isinstance(c.args[0], ast.Name)]
+        self.assertGreaterEqual(len(registered), 2)
+        for name in registered:
+            self.assertIn(name, coroutines, name + " is registered as a shutdown callback but is not async")
+            self.assertNotIn(name, plain - coroutines)
+
+
 @unittest.skipUnless(HAVE_LIVEKIT, "livekit-agents is not installed: run this with the worker's venv")
 class OnABusyMachine(unittest.TestCase):
     def test_a_busy_machine_does_not_make_the_worker_refuse_the_call(self):
