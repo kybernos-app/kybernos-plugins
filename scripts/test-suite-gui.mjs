@@ -115,6 +115,9 @@ const ouvrir = async (lang, scenario, largeur = 1000) => {
   await p.setContent(page(lang, scenario))
   await p.waitForFunction(() => { const e = document.querySelector('.kbsu'); return e !== null && !/Loading the suite|Chargement de la suite/.test(e.textContent) }, null, { timeout: 5000 })
   await p.waitForTimeout(100)
+  // The panel opens on « Featured » (six larger cards) since the featured sheets: this bench walks the whole catalogue, so it opens « All ».
+  await p.evaluate(() => { const b = Array.from(document.querySelectorAll('.kbsu button')).find((x) => /^(All|Tous)\s*\d*$/.test((x.textContent || '').trim())); if (b) b.click() })
+  await p.waitForTimeout(150)
   p.erreurs = erreurs
   return p
 }
@@ -132,8 +135,9 @@ try {
     const cs = await cartes(p)
     ok(N_ALL + ' cards: ' + N_IN + ' installed + ' + N_OUT + ' not', cs.length === N_ALL, String(cs.length))
     ok('the kybernos-* modules read active, the dsh-* read available', cs.filter((c) => c.etat === 'active').length === N_IN && cs.filter((c) => c.etat === 'available').length === N_OUT, JSON.stringify(cs.filter((c) => c.etat !== 'active').map((c) => c.id + ':' + c.etat)))
-    const fam = await p.$$eval('.kbsu-fam h5', (e) => e.map((x) => x.firstChild.textContent))
-    ok('six families, in the catalogue order', fam.join('|') === 'Foundations|Models|Agent teams|Create in the chat|Connectors and machines|Cloud', fam.join('|'))
+    // The families are a filter row now (« All families » then one button per family, with its count): the catalogue's order.
+    const fam = await p.$$eval('.kbsu-fams button', (e) => e.map((x) => x.textContent.replace(/\s*\d+\s*$/, '').trim()))
+    ok(catalogue.familles.length + ' families, in the catalogue order (after « All families »)', fam.join('|') === ['All families'].concat(catalogue.familles.map((f) => f.en)).join('|'), fam.join('|'))
     ok('the summary counts installed and available', (await p.textContent('.kbsu-summary')).startsWith(N_IN + ' installed · ' + N_OUT + ' available'))
     ok('the header shows the DSH version, inside the tested range', (await p.textContent('.kbsu-meta')).includes('DSH 0.2.0-rc.2 · inside the tested range'))
     ok('no JS error while rendering', p.erreurs.length === 0, p.erreurs.join(' | '))
@@ -187,7 +191,7 @@ try {
   {
     const p = await ouvrir('en', scenarioBase())
     await p.click('.kbsu-seg button:has-text("Available")')
-    ok('Available lists the 3 dsh-* modules', (await cartes(p)).map((c) => c.id).sort().join() === 'dsh-db-viewer,dsh-media-player,dsh-mermaid')
+    ok('Available lists the ' + N_OUT + ' dsh-* modules of the catalogue', (await cartes(p)).map((c) => c.id).sort().join() === catalogue.modules.filter((m) => !m.nom.startsWith('@local/kybernos')).map((m) => m.id).sort().join(), (await cartes(p)).map((c) => c.id).sort().join())
     await p.click('.kbsu-seg button:has-text("Installed")')
     ok('Installed lists every installed module', (await cartes(p)).length === N_IN)
     await p.click('.kbsu-seg button:has-text("All")')
