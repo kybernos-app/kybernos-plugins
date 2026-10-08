@@ -436,6 +436,10 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   const apps = [{ slug: 'github', name: 'GitHub', categories: ['developer tools'] }, { slug: 'gitlab', name: 'GitLab', categories: ['developer tools'] }, { slug: 'gmail', name: 'Gmail', categories: ['email'] }, { slug: 'zohomail', name: 'Zoho Mail', categories: ['email'] }, { slug: 'mailchimp', name: 'Mailchimp', categories: ['marketing'] }]
   ok('search: no query gives the first ones, a query matches name, slug and category', appsMatch(apps, '', 2).length === 2 && appsMatch(apps, 'git', 10).map((a) => a.slug).join() === 'github,gitlab' && appsMatch(apps, 'marketing', 10).length === 1)
   ok('search: with no limit every match comes back, in the server\'s order (the window pages them itself)', appsMatch(apps, '', Infinity).length === 5 && appsMatch(apps, 'mail', Infinity).length === 3)
+  const mixed = [{ slug: 'airtable', name: 'Airtable', needsApiKey: true }, { slug: 'asana', name: 'Asana', needsApiKey: false }, { slug: 'ahrefs', name: 'Ahrefs', needsApiKey: true }, { slug: 'github', name: 'GitHub', needsApiKey: false }]
+  ok('search: with no query the apps that connect in one click come first, each group in the server\'s order', appsMatch(mixed, '', 10).map((a) => a.slug).join() === 'asana,github,airtable,ahrefs')
+  ok('search: a name that starts with the query beats the one-click rule, which then orders the rest', appsMatch(mixed.concat([{ slug: 'bagel', name: 'Bagel', needsApiKey: false }]), 'a', 10).map((a) => a.slug).join() === 'asana,airtable,ahrefs,bagel')
+  ok('search: the page of 48 is cut after that order', appsMatch(mixed, '', 2).map((a) => a.slug).join() === 'asana,github')
   ok('search: the apps whose name starts with it come before the others', appsMatch(apps, 'mail', 10).map((a) => a.slug).join() === 'mailchimp,gmail,zohomail')
   ok('search: accents, case and punctuation do not matter; a bad list does not throw', appsMatch(apps, ' GIT-hub ', 10).length === 1 && appsMatch(null, 'x', 5).length === 0 && appsMatch(undefined, '', 5).length === 0 && appsMatch(apps, 'zzz', 5).length === 0)
 
