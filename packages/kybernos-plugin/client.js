@@ -1426,6 +1426,10 @@ let kbLocaleRead = () => 'en'
       'kbsd.err.readstate': { kybernos: 'État du lien illisible : {m}', en: 'Link state unreadable: {m}' },
       'kbsd.err.nolink': { kybernos: 'Aucun lien à copier', en: 'No link to copy' },
       'kbsd.err.invite': { kybernos: 'Invitation refusée {e} : {m}', en: 'Invitation refused {e}: {m}' },
+      'kbsd.err.invite.already_member': { kybernos: 'cette personne est déjà membre de l’espace', en: 'this person is already a member of the workspace' },
+      'kbsd.err.invite.seat_limit': { kybernos: 'plus de place libre : un propriétaire doit ajouter des places ou en libérer', en: 'no free seat: an owner has to add seats or make room' },
+      'kbsd.err.invite.forbidden': { kybernos: 'votre rôle ne permet pas d’inviter', en: 'your role does not allow inviting' },
+      'kbsd.err.invite.rate_limited': { kybernos: 'trop d’invitations en peu de temps, réessayez dans un moment', en: 'too many invitations in a short time, try again in a moment' },
       'kbsd.err.role': { kybernos: 'Changement de rôle refusé : {m}', en: 'Role change refused: {m}' },
       'kbsd.err.remove': { kybernos: 'Retrait refusé : {m}', en: 'Removal refused: {m}' },
       'kbsd.err.members': { kybernos: 'Membres illisibles : {m}', en: 'Members unreadable: {m}' },
@@ -8658,6 +8662,8 @@ return {
           if (j === null || j.ok !== true) return { err: (j !== null && j.error) ? String(j.error) : 'HTTP ' + r.status }
           return { ok: true }
         }
+        // The host answers the refusals it knows as one word (already_member, seat_limit, forbidden, rate_limited): say it in words.
+        const motInvitation = (w) => (['already_member', 'seat_limit', 'forbidden', 'rate_limited'].indexOf(w) !== -1 ? T('kbsd.err.invite.' + w) : w)
         const inviter = async () => {
           if (valide !== true || busy === true) return
           setBusy(true)
@@ -8667,7 +8673,7 @@ return {
             for (const e of bruts) {
               const res = await appelMembres('/kybernos-cloud/members/invite', { email: e, role: roleSrv(invRole) })
               if (res.unavail === true) { dire('err', T('kbsd.invite.unavail')); break }
-              if (res.err !== undefined) { dire('err', T('kbsd.err.invite', { e: e, m: res.err })); break }
+              if (res.err !== undefined) { dire('err', T('kbsd.err.invite', { e: e, m: motInvitation(res.err) })); break }
               ok += 1
             }
             if (ok > 0) { setMailTxt(''); dire('ok', ok + (ok > 1 ? kbf(' invitations envoyées') : kbf(' invitation envoyée'))); await chargerMembres() }
