@@ -96,6 +96,15 @@ class CallMeta:
     brain: str = "voice"   # "session": speak what the session's assistant writes; "voice": the small model answers
     voice: VoiceChoice | None = None  # the member's voice on the app's voice engine; None = the default voice
     limits: CallLimits = CallLimits()
+    stt_model: str = ""    # the listening model chosen in the settings ("" = the worker's default)
+    clone_model: str = ""  # the cloned-voice model chosen in the settings ("" = the default)
+
+
+_MODEL_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def _model(value: object) -> str:
+    return value if isinstance(value, str) and _MODEL_RE.match(value) else ""
 
 
 def _text(value: object, limit: int) -> str:
@@ -136,6 +145,8 @@ def parse_job_metadata(raw: str | None, env: Mapping[str, str] | None = None) ->
         brain="session" if data.get("brain") == "session" and _text(data.get("sessionId"), 120) else "voice",
         voice=_voice(data.get("voice")),
         limits=_limits(data.get("limits")),
+        stt_model=_model(data.get("sttModel")),
+        clone_model=_model(data.get("cloneModel")),
     )
 
 

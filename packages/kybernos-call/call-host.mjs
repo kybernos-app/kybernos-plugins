@@ -11,6 +11,7 @@ import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync } fr
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { dshHomeSync } from './dsh-home.mjs'
+import { configOf } from './providers.mjs'
 
 export const AGENT_NAME = 'kybernos-appel'
 export const ENV_REL = 'kybernos/livekit.env'
@@ -135,11 +136,14 @@ export function createCall (deps = {}) {
   /** What the client may know about the call chain: never a secret. */
   const status = async () => {
     const secrets = await readSecrets()
+    const settings = store !== null ? await store.readSettings() : null
+    const wantsFace = settings === null || settings.use.face === 'liveavatar'
     return {
       ok: true,
       secrets: (secrets === null ? 'absente' : 'posee'),
       url: (secrets === null ? null : String(secrets.LIVEKIT_URL)),
-      provider: (secrets === null || typeof secrets.LIVEAVATAR_API_KEY !== 'string' || secrets.LIVEAVATAR_API_KEY.length === 0) ? 'none' : 'liveavatar',
+      setupDone: settings !== null && settings.setupDone === true,
+      provider: (!wantsFace || secrets === null || typeof secrets.LIVEAVATAR_API_KEY !== 'string' || secrets.LIVEAVATAR_API_KEY.length === 0) ? 'none' : 'liveavatar',
       avatar: (secrets === null || typeof secrets.LIVEAVATAR_AVATAR_ID !== 'string' ? null : String(secrets.LIVEAVATAR_AVATAR_ID)),
       sandbox: (secrets !== null && String(secrets.LIVEAVATAR_SANDBOX) === '1')
     }
@@ -289,8 +293,14 @@ export function createCall (deps = {}) {
       if (asked.mode !== 'voice' && asked.mode !== 'video') wanted.mode = settings.mode
       if ((asked.voice === null || asked.voice === undefined) && str(asked.roleId) === null && settings.defaultVoice !== null) wanted.voice = settings.defaultVoice
     }
+    if (settings !== null && settings.use.face === 'none') wanted.mode = 'voice' // "No face" is a choice: a camera click still gets a voice call
     const meta = callMetadata(wanted, { sessionBrain: feed !== null })
-    if (settings !== null) meta.limits = { silenceMs: settings.silenceMinutes * 60000, maxMs: settings.maxMinutes * 60000 }
+    if (settings !== null) {
+      meta.limits = { silenceMs: settings.silenceMinutes * 60000, maxMs: settings.maxMinutes * 60000 }
+      // The models chosen on the provider pages: only values the catalogue lists can get here (configOf).
+      meta.sttModel = configOf('groq', settings.providers.groq).model
+      meta.cloneModel = configOf('elevenlabs', settings.providers.elevenlabs).model
+    }
     // A recording that was cloned at the provider is spoken with its clone; one that was not, with the default voice.
     if (meta.voice !== null && meta.voice.custom === true && store !== null && meta.voice.id !== undefined) {
       const clone = (await store.readClones())[meta.voice.id]
@@ -386,5 +396,18 @@ export function createCall (deps = {}) {
     return { ok: false, service: 'LiveKit', error: 'LiveKit answered HTTP ' + String(r.status) }
   }
 
-  return { readSecrets, accessToken, status, mint, agentStart, agentStop, agentState, utterance, sessionCookie, agentScript, testLiveKit }
+  /**
+   * Is the call engine (the listening worker's Python environment) installed and whole? `code` tells the page what to say:
+   * 'not-installed', 'broken' (a package fails to import: `detail` has the last line), 'running' or 'installed'.
+   */
+  const engineCheck = async () => {
+    const python = await venvPython()
+    if (python === null) return { ok: false, code: 'not-installed' }
+    const r = await run(python, ['-c', 'import livekit.agents, livekit.plugins.groq, livekit.plugins.silero'], { timeout: 30000 })
+    if (r.error !== null) return { ok: false, code: 'broken', detail: String(r.stderr).trim().split(/\r?\n/).pop().slice(0, 200) }
+    const state = await agentState()
+    return { ok: true, code: state.running === true ? 'running' : 'installed' }
+  }
+
+  return { readSecrets, accessToken, status, mint, agentStart, agentStop, agentState, utterance, sessionCookie, agentScript, testLiveKit, engineCheck }
 }

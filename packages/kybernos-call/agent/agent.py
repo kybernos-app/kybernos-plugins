@@ -132,7 +132,7 @@ def _build_tts(meta: CallMeta):
     voices = []
     key = os.getenv("ELEVENLABS_API_KEY", "")
     if meta.voice is not None and meta.voice.remote_id and key:
-        voices.append(CloneTTS(key, meta.voice.remote_id))
+        voices.append(CloneTTS(key, meta.voice.remote_id, model=meta.clone_model))
     engine = HostTTS(HOST, meta)
     voices.append(engine)
     if sys.platform == "darwin":
@@ -263,7 +263,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
     state = CallState(time.monotonic)
     session = AgentSession(
         vad=silero.VAD.load(),
-        stt=groq.STT(model=os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
+        stt=groq.STT(model=meta.stt_model or os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
         llm=groq.LLM(model=os.getenv("KYBER_LLM", "openai/gpt-oss-20b")),
         tts=voice,
         # No cloud turn detector / adaptive interruption: a 401 without a cloud key and several

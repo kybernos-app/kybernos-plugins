@@ -18,6 +18,9 @@ export const ROUTES = {
   keys: '/kybernos-call/keys',
   test: '/kybernos-call/test',
   clone: '/kybernos-call/clone',
+  preset: '/kybernos-call/preset',
+  avatars: '/kybernos-call/avatars',
+  health: '/kybernos-call/health',
   vendor: '/kybernos-call/vendor/livekit-client.js'
 }
 
@@ -143,6 +146,16 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     }, 'settings')
     post(ROUTES.keys, 'keys', (b) => admin.setKeys(b.patch))
     post(ROUTES.test, 'test', (b) => admin.test(b.service))
+    post(ROUTES.preset, 'preset', (b) => admin.applyPreset(b.id))
+    post(ROUTES.avatars, 'avatars', () => admin.avatars())
+    // The health check asks this DSH's own voice engine, so it needs the address the request came in on (the socket's, never a header).
+    reg(ROUTES.health, async (req, res) => {
+      if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      const port = req.socket && typeof req.socket.localPort === 'number' ? req.socket.localPort : null
+      if (port === null) return sendJson(res, 500, { ok: false, error: 'no local port' })
+      try { return sendJson(res, 200, await admin.runHealth('http://127.0.0.1:' + String(port))) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
+    }, 'health')
     post(ROUTES.clone, 'clone', (b) => (b.action === 'delete' ? admin.deleteClone(b.voiceId) : admin.cloneSample({ rootId: b.rootId, voiceId: b.voiceId, name: b.name })))
   }
 

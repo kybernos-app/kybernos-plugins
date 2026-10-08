@@ -144,5 +144,5 @@ def eleven_request(key: str, voice_id: str, text: str, model: str = ELEVEN_MODEL
 
 
 def render_eleven_pcm(key: str, voice_id: str, text: str, base: str = ELEVEN_BASE,
-                      opener: Callable = urllib.request.urlopen) -> bytes:
-    return decode_pcm(eleven_request(key, voice_id, text, base=base, opener=opener))
+                      opener: Callable = urllib.request.urlopen, model: str = ELEVEN_MODEL) -> bytes:
+    return decode_pcm(eleven_request(key, voice_id, text, model=model or ELEVEN_MODEL, base=base, opener=opener))

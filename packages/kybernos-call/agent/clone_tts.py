@@ -12,7 +12,7 @@ DEFAULT_CONN = APIConnectOptions(max_retry=1, retry_interval=1.0, timeout=50.0)
 
 
 class CloneTTS(tts.TTS):
-    def __init__(self, api_key: str, voice_id: str, base: str = ELEVEN_BASE) -> None:
+    def __init__(self, api_key: str, voice_id: str, base: str = ELEVEN_BASE, model: str = "") -> None:
         super().__init__(
             capabilities=tts.TTSCapabilities(streaming=False),
             sample_rate=SAMPLE_RATE,
@@ -21,6 +21,7 @@ class CloneTTS(tts.TTS):
         self._key = api_key
         self._voice_id = voice_id
         self._base = base
+        self._model = model
 
     @property
     def model(self) -> str:
@@ -37,7 +38,7 @@ class CloneTTS(tts.TTS):
 class _CloneStream(tts.ChunkedStream):
     async def _run(self, output_emitter: tts.AudioEmitter) -> None:
         voice: CloneTTS = self._tts  # type: ignore[assignment]
-        pcm = await asyncio.to_thread(render_eleven_pcm, voice._key, voice._voice_id, self._input_text, voice._base)
+        pcm = await asyncio.to_thread(render_eleven_pcm, voice._key, voice._voice_id, self._input_text, voice._base, model=voice._model)
         output_emitter.initialize(
             request_id=utils.shortuuid(),
             sample_rate=SAMPLE_RATE,

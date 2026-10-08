@@ -9,6 +9,7 @@ const text = (e) => (e && e.message ? String(e.message) : String(e))
 
 const GROQ_MODELS = 'https://api.groq.com/openai/v1/models'
 const ELEVEN = 'https://api.elevenlabs.io/v1'
+const LIVEAVATAR = 'https://api.liveavatar.com/v1'
 export const CLONE_MODEL = 'eleven_multilingual_v2'
 
 export function createServices (deps = {}) {
@@ -26,6 +27,40 @@ export function createServices (deps = {}) {
   }
   const testGroq = (key) => probe('Groq', GROQ_MODELS, { headers: { authorization: 'Bearer ' + key } }, 'Groq refused the key')
   const testEleven = (key) => probe('ElevenLabs', ELEVEN + '/models', { headers: { 'xi-api-key': key } }, 'ElevenLabs refused the key')
+
+  /** LiveAvatar has no "ping": the balance of the account is the cheapest read-only call that needs the key. */
+  const testLiveAvatar = async (key) => {
+    try {
+      const res = await doFetch(LIVEAVATAR + '/users/credits', { headers: { 'x-api-key': key }, signal: timeout(10000) })
+      if (res.status === 401 || res.status === 403) return { ok: false, service: 'LiveAvatar', error: 'LiveAvatar refused the key' }
+      if (res.status < 200 || res.status >= 300) return { ok: false, service: 'LiveAvatar', error: 'LiveAvatar answered HTTP ' + String(res.status) }
+      let credits = null
+      try { const body = await res.json(); credits = body && body.data && body.data.credits_left !== undefined ? String(body.data.credits_left) : null } catch (e) { credits = null }
+      return { ok: true, service: 'LiveAvatar', detail: credits === null ? '' : credits }
+    } catch (e) { return { ok: false, service: 'LiveAvatar', error: 'LiveAvatar is unreachable: ' + text(e) } }
+  }
+
+  /** The faces a LiveAvatar account can use: its own avatars (with the key) then the public ones. Names and ids only. */
+  const listAvatars = async (key) => {
+    const read = async (url, headers) => {
+      try {
+        const res = await doFetch(url, { headers, signal: timeout(12000) })
+        if (res.status < 200 || res.status >= 300) return { status: res.status, items: [] }
+        const body = await res.json()
+        const rows = body && body.data && Array.isArray(body.data.results) ? body.data.results : []
+        return { status: res.status, items: rows }
+      } catch (e) { return { status: 0, items: [] } }
+    }
+    const mine = key ? await read(LIVEAVATAR + '/avatars?page_size=100', { 'x-api-key': key }) : { status: 0, items: [] }
+    const open = await read(LIVEAVATAR + '/avatars/public?page_size=100', {})
+    const clean = (rows, source) => rows
+      .filter((a) => a && typeof a.id === 'string' && /^[A-Za-z0-9._-]{1,128}$/.test(a.id) && (a.status === undefined || a.status === 'ACTIVE'))
+      .map((a) => ({ id: a.id, name: typeof a.name === 'string' ? a.name.slice(0, 80) : a.id, type: a.type === 'IMAGE' ? 'IMAGE' : 'VIDEO', source }))
+    if (mine.status === 401 || mine.status === 403) return { ok: false, error: 'LiveAvatar refused the key' }
+    const avatars = clean(mine.items, 'yours').concat(clean(open.items, 'public'))
+    if (avatars.length === 0 && mine.status === 0 && open.status === 0) return { ok: false, error: 'LiveAvatar is unreachable' }
+    return { ok: true, avatars }
+  }
 
   /**
    * Instant voice cloning: one recording in, a voice id out. `sample` is { bytes: Buffer, mime, filename }.
@@ -59,5 +94,5 @@ export function createServices (deps = {}) {
     } catch (e) { return { ok: false, error: 'ElevenLabs is unreachable: ' + text(e) } }
   }
 
-  return { testGroq, testEleven, cloneVoice, deleteVoice }
+  return { testGroq, testEleven, testLiveAvatar, listAvatars, cloneVoice, deleteVoice }
 }

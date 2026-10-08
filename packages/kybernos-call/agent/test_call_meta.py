@@ -105,6 +105,21 @@ class Brain(unittest.TestCase):
         self.assertEqual(parse_job_metadata('{"brain": "hologram", "sessionId": "s"}', {}).brain, "voice")
 
 
+class ProviderModels(unittest.TestCase):
+    def test_the_models_chosen_in_the_settings_reach_the_worker(self):
+        meta = parse_job_metadata('{"sttModel": "whisper-large-v3", "cloneModel": "eleven_flash_v2_5"}', {})
+        self.assertEqual((meta.stt_model, meta.clone_model), ("whisper-large-v3", "eleven_flash_v2_5"))
+
+    def test_a_model_name_that_is_not_one_is_dropped(self):
+        for bad in ("../x", "a b", "", "x" * 65, 3, None, ["a"]):
+            meta = parse_job_metadata('{"sttModel": %s}' % json.dumps(bad), {})
+            self.assertEqual(meta.stt_model, "", bad)
+
+    def test_without_them_the_workers_defaults_apply(self):
+        meta = parse_job_metadata('{"mode": "voice"}', {})
+        self.assertEqual((meta.stt_model, meta.clone_model), ("", ""))
+
+
 class Speakable(unittest.TestCase):
     def test_plain_text_is_kept(self):
         self.assertEqual(speakable("Europe grows faster. North America follows."), "Europe grows faster. North America follows.")

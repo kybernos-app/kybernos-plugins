@@ -169,7 +169,7 @@ try {
   await admin.patchSettings({ language: 'es', mode: 'video', silenceMinutes: 3, maxMinutes: 30, defaultVoice: { engine: 'say', voice: 'Monica', lang: 'es' } })
   const mint = (body) => createCall({ dshHome: async () => home, store, env: {} }).mint(Object.assign({ agent: false }, body))
   let m = await mint({ sessionId: 'session-aaaaaaaa' })
-  assert.deepEqual(m.meta, { sessionId: 'session-aaaaaaaa', kyberId: null, roleId: null, name: null, mode: 'video', language: 'es', voice: { engine: 'say', voice: 'Monica', lang: 'es' }, brain: 'voice', limits: { silenceMs: 180000, maxMs: 1800000 } })
+  assert.deepEqual(m.meta, { sessionId: 'session-aaaaaaaa', kyberId: null, roleId: null, name: null, mode: 'video', language: 'es', voice: { engine: 'say', voice: 'Monica', lang: 'es' }, brain: 'voice', limits: { silenceMs: 180000, maxMs: 1800000 } , sttModel: 'whisper-large-v3-turbo', cloneModel: 'eleven_multilingual_v2' })
   ok('a call that says nothing gets the settings: language, mode, the default voice, and its limits')
   m = await mint({ sessionId: 'session-aaaaaaaa', language: 'fr', mode: 'voice', roleId: 'm1', name: 'Alice' })
   assert.equal(m.meta.language, 'fr')

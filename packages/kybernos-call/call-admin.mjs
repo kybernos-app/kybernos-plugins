@@ -4,20 +4,47 @@
 // Rule of the file: a secret is never returned, and a recording never leaves the machine unless the user switched
 // that on in the settings AND set the provider's key.
 
+import { PRESETS, PROVIDERS, SLOTS, configOf, isConfigured } from './providers.mjs'
+
 const ID_RE = /^[A-Za-z0-9._-]{1,64}$/
 const ROOT_RE = /^[A-Za-z0-9._:~@/+-]{1,200}$/
 const text = (e) => (e && e.message ? String(e.message) : String(e))
 
-export function createAdmin ({ store, services, call, env = process.env, fetch: doFetch = (...a) => globalThis.fetch(...a) }) {
+export function createAdmin ({ store, services, call, health = null, env = process.env, fetch: doFetch = (...a) => globalThis.fetch(...a) }) {
   const everything = async () => {
     const [settings, keys, clones] = await Promise.all([store.readSettings(), store.keysStatus(), store.readClones()])
+    // The catalogue as the page needs it: each provider with whether it is set up, and its own settings with the defaults filled in.
+    const providers = PROVIDERS.map((p) => {
+      const configured = isConfigured(p, keys)
+      return Object.assign({}, p, { configured, ready: p.available === true && (p.source === 'none' || configured), config: configOf(p.id, settings.providers[p.id]) })
+    })
     return {
       ok: true,
       settings,
       keys,
+      slots: SLOTS,
+      providers,
+      presets: PRESETS.map((p) => ({ id: p.id, available: p.available, name: p.name, desc: p.desc })),
       clones: Object.entries(clones).map(([id, c]) => ({ id, name: c.name, provider: c.provider, createdAt: c.createdAt }))
     }
   }
+
+  /** A preset fills the slots at once. One that is not available yet is refused, not half applied. */
+  const applyPreset = async (id) => {
+    const preset = PRESETS.find((p) => p.id === id)
+    if (preset === undefined) return { ok: false, error: 'unknown preset' }
+    if (preset.available !== true) return { ok: false, error: 'this preset is not available yet' }
+    return patchSettings(preset.patch)
+  }
+
+  /** The faces the face provider offers (names and ids). Needs the key for the account's own avatars. */
+  const avatars = async () => {
+    const keys = await store.readKeys()
+    return services.listAvatars(keys.LIVEAVATAR_API_KEY ?? null)
+  }
+
+  /** The health check. `base` is this DSH's own address, taken from the request's socket by the route. */
+  const runHealth = async (base) => (health === null ? { ok: false, error: 'the health check is not available' } : health.run({ base }))
 
   const patchSettings = async (patch) => {
     const out = await store.writeSettings(patch)
@@ -32,7 +59,8 @@ export function createAdmin ({ store, services, call, env = process.env, fetch: 
     if (service === 'livekit') return call.testLiveKit()
     if (service === 'groq') return keys.GROQ_API_KEY ? services.testGroq(keys.GROQ_API_KEY) : { ok: false, service: 'Groq', error: 'no Groq key is set' }
     if (service === 'elevenlabs') return keys.ELEVENLABS_API_KEY ? services.testEleven(keys.ELEVENLABS_API_KEY) : { ok: false, service: 'ElevenLabs', error: 'no ElevenLabs key is set' }
-    return { ok: false, error: 'unknown service (livekit, groq, elevenlabs)' }
+    if (service === 'liveavatar') return keys.LIVEAVATAR_API_KEY ? services.testLiveAvatar(keys.LIVEAVATAR_API_KEY) : { ok: false, service: 'LiveAvatar', error: 'no LiveAvatar key is set' }
+    return { ok: false, error: 'unknown service (livekit, groq, elevenlabs, liveavatar)' }
   }
 
   /**
@@ -80,5 +108,5 @@ export function createAdmin ({ store, services, call, env = process.env, fetch: 
     return { ok: true }
   }
 
-  return { everything, patchSettings, setKeys, test, cloneSample, deleteClone }
+  return { everything, patchSettings, setKeys, test, cloneSample, deleteClone, applyPreset, avatars, runHealth }
 }

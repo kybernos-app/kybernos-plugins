@@ -8,6 +8,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { availableIds, checkProviderConfig } from './providers.mjs'
 
 export const ENV_REL = 'kybernos/livekit.env'
 const SETTINGS_REL = 'kybernos/kybernos-call/settings.json'
@@ -24,7 +25,10 @@ export const DEFAULT_SETTINGS = Object.freeze({
   silenceMinutes: 5,     // hang up after this many minutes without the user speaking
   maxMinutes: 60,        // and never stay longer than this
   defaultVoice: null,    // { engine, voice, lang } on the app's voice engine, for a call without a member; null = the app's default
-  cloneUpload: false     // allow sending a recording to the clone provider (it leaves the machine): off until the user says so
+  cloneUpload: false,    // allow sending a recording to the clone provider (it leaves the machine): off until the user says so
+  use: Object.freeze({ listen: 'groq', face: 'liveavatar' }), // which provider fills a slot (what speaks is `defaultVoice`; think and line have one choice)
+  providers: Object.freeze({}), // each provider's own settings (a model, …), see providers.mjs
+  setupDone: false       // the first-call assistant has been through (or skipped)
 })
 
 /** The secrets a call knows, each with what it must look like. A value that does not match is refused, never stored. */
@@ -85,19 +89,44 @@ export function createStore (deps = {}) {
         if (v === null) kept.defaultVoice = null
         else { const ok = voiceOf(v); if (ok !== null) kept.defaultVoice = ok; else refused.defaultVoice = 'an engine voice ({ engine, voice, lang }) or null' }
       } else if (k === 'cloneUpload') { if (typeof v === 'boolean') kept.cloneUpload = v; else refused.cloneUpload = 'true or false' }
+      else if (k === 'setupDone') { if (typeof v === 'boolean') kept.setupDone = v; else refused.setupDone = 'true or false' }
+      else if (k === 'use') {
+        if (v === null || typeof v !== 'object' || Array.isArray(v)) { refused.use = 'an object like { listen, face }'; continue }
+        const use = {}
+        for (const [slot, id] of Object.entries(v)) {
+          if (slot !== 'listen' && slot !== 'face') { refused['use.' + slot] = 'a slot with a choice (listen, face)'; continue }
+          if (typeof id === 'string' && availableIds(slot).includes(id)) use[slot] = id
+          else refused['use.' + slot] = 'one of: ' + availableIds(slot).join(', ')
+        }
+        kept.use = use
+      } else if (k === 'providers') {
+        const out = checkProviderConfig(v)
+        Object.assign(refused, out.refused)
+        kept.providers = out.kept
+      }
       else refused[k] = 'not a call setting'
     }
     return { kept, refused }
   }
+  /** The defaults under what was kept; `use` and `providers` are merged one level down, not replaced. */
+  const compose = (base, kept) => {
+    const next = Object.assign({}, base, kept)
+    next.use = Object.assign({}, base.use, kept.use ?? {})
+    const providers = {}
+    for (const [id, values] of Object.entries(base.providers ?? {})) providers[id] = Object.assign({}, values)
+    for (const [id, values] of Object.entries(kept.providers ?? {})) providers[id] = Object.assign({}, providers[id] ?? {}, values)
+    next.providers = providers
+    return next
+  }
   const readSettings = async () => {
     const saved = await readJson(SETTINGS_REL, {})
     // What is on disk is read through the same rules: a hand-edited file cannot slip a bad value in.
-    return Object.assign({}, DEFAULT_SETTINGS, checkSettings(saved).kept)
+    return compose(DEFAULT_SETTINGS, checkSettings(saved).kept)
   }
   const writeSettings = async (patch) => {
     const { kept, refused } = checkSettings(patch)
     if (Object.keys(refused).length > 0) return { ok: false, error: 'invalid settings', refused: refused }
-    const next = Object.assign({}, await readSettings(), kept)
+    const next = compose(await readSettings(), kept)
     await writeAtomic(SETTINGS_REL, JSON.stringify(next, null, 2) + '\n', 0o600)
     return { ok: true, settings: next }
   }
@@ -123,6 +152,7 @@ export function createStore (deps = {}) {
     if (status.LIVEKIT_URL.set) { try { status.LIVEKIT_URL.host = new URL(keys.LIVEKIT_URL.replace(/^ws/, 'http')).host } catch (e) { /* not a URL */ } }
     if (status.LIVEAVATAR_SANDBOX.set) status.LIVEAVATAR_SANDBOX.value = keys.LIVEAVATAR_SANDBOX
     if (status.LIVEAVATAR_AVATAR_ID.set) status.LIVEAVATAR_AVATAR_ID.value = keys.LIVEAVATAR_AVATAR_ID
+    if (status.LIVEKIT_URL.set) status.LIVEKIT_URL.value = keys.LIVEKIT_URL // an address, not a secret: shown so the user can check it
     return status
   }
   /**
