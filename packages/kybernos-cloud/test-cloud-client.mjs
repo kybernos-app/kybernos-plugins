@@ -110,6 +110,22 @@ assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('dataNavLabel'\), su
 assert.ok(/\.kbpg-head\{margin:0 0 6px\}/.test(clientSource), 'the head only adds the 6px that make the first card sit 20px under the sub-title')
 assert.equal(/\.kbpg-head[^{]*\{[^}]*font-size/.test(clientSource), false, 'the bundle sets no title size of its own: the shared Settings rule does')
 sok('Account and Data & privacy: same head (h2.kb6-title + p.kb8-sub) in every state, fr/en keys checked above')
+// Dead-code rider: the local Team page (`SpaceMain`, key `kybernos-cloud-space`: Plan / Usage / People / Billing / Synchronisation tabs) was removed as
+// unreachable. Its only doors were the last fallback of the « Teams settings » entry (behind the two bridges the mandatory master bundle sets
+// unconditionally) and the window event `kybernos-cloud:space`, which nothing in the repos dispatched. It stays removed: the component, its panel key,
+// its event, its tab list and helpers, and its strings in BOTH dictionaries (a dictionary line is also a line the Language page has to translate).
+for (const gone of ['SpaceMain', 'kybernos-cloud-space', "'kybernos-cloud:space'", 'const TABS = [', 'kbt-tabs', 'kbs-flip', 'ligneSync']) {
+  assert.equal(clientSource.includes(gone), false, 'removed with the local Team page, must not come back: ' + gone)
+}
+for (const cle of ['wsTabPlan', 'wsTabUsage', 'wsTabPeople', 'wsTabBilling', 'wsTabSync', 'wsPlanLabel', 'wsViewUsage', 'wsUsageNote', 'wsPeopleNote', 'wsBillingNote',
+  'syncTitle', 'syncNotServed', 'syncOn', 'syncOff', 'syncMemorySpace', 'syncSends', 'syncPull', 'syncPush', 'spaceAccount']) {
+  assert.equal((clientSource.match(new RegExp('^ {8}' + cle + ': ', 'gm')) || []).length, 0, cle + ' belonged to the local Team page and must not stay in a dictionary')
+}
+// The ways in the « Teams settings » entry has left: the console bridge, then the rich page of an older master; nothing else.
+assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 1)
+assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 1)
+assert.equal(/\.selectPanel\('/.test(clientSource), false, 'selectPanel only ever closes the profile page (selectPanel(null)): no call opens a panel by key')
+sok('page locale de l equipe : supprimee (composant, cle de panneau, evenement, onglets, 38 chaines fr/en)')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null
@@ -192,18 +208,14 @@ assert.equal(registered.options.id, 'kybernos-cloud')
 assert.equal(registered.options.order, 21)
 ok('bouton enregistre dans sidebar.footer.action (id=kybernos-cloud, order=21)')
 
-// La page de l'espace est PLEIN CADRE : enregistrée dans le slot `main` sous la
-// clé qu'ouvre layout.selectPanel — pas une surcouche.
-const page = registrations.filter((r) => r.options.name === 'main')[0]
-assert.ok(page !== undefined, 'la page de l espace doit etre enregistree dans le slot main')
-assert.equal(page.options.key, 'kybernos-cloud-space')
-assert.equal(typeof page.component, 'function')
-assert.equal(source.includes("selectPanel('kybernos-cloud-space')"), true, 'l engrenage doit ouvrir le panneau main')
-// Only the page's own body counts: the profile card, defined further down, legitimately owns a scrim.
-const spaceBody = source.slice(source.indexOf('const SpaceMain'), source.indexOf('SpaceMain.__testTabs'))
-assert.ok(spaceBody.length > 200, 'le corps de la page de l espace doit etre trouve')
-assert.equal(spaceBody.includes('kbc-scrim'), false, 'la page ne doit PAS etre une surcouche')
-ok('page de l espace enregistree dans le slot main (selectPanel, pas de surcouche)')
+// The only full-frame page this bundle still puts in the `main` slot is the profile page. The old local Team page (`SpaceMain`: Plan / Usage /
+// People / Billing / Synchronisation tabs, key `kybernos-cloud-space`) was removed as unreachable (dead-code rider): its only doors were the
+// last fallback of the « Teams settings » entry, behind two bridges the mandatory master bundle sets unconditionally, and a window event nothing
+// in the repos dispatched. The team console is the server-hosted one, opened by the master.
+const mains = registrations.filter((r) => r.options.name === 'main')
+assert.deepEqual(mains.map((r) => r.options.key), ['kybernos-cloud-profile'], 'the profile page is the only `main` page of the bundle')
+assert.equal(typeof mains[0].component, 'function')
+ok('slot main : la page profil seule (la page locale de l espace n existe plus)')
 
 assert.equal(inserted.length, 1)
 assert.ok(inserted[0].textContent.includes('.kbc-scrim'), 'le CSS de la carte doit etre injecte')
@@ -408,38 +420,24 @@ ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase
 
 
 // « Teams settings » is a NAMED entry of the account menu. It opens the console through a bridge the core plugin exposes,
-// then falls back to the rich space page, then to the local page: degrade, never break.
+// then falls back to the rich space page of the Kybernos panel (an older master): degrade, never break. There is no third, local page.
 assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)"),
   'le menu doit porter une entree nommee pour les reglages de la team')
-for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace', "selectPanel('kybernos-cloud-space')"]) {
+for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace']) {
   assert.ok(source.includes(needle), 'repli de l entree Teams settings manquant: ' + needle)
 }
 assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSettings doit exister en fr ET en')
-ok('Teams settings : entree nommee du menu, pont vers la console puis deux replis, fr/en')
+ok('Teams settings : entree nommee du menu, pont vers la console puis un repli, fr/en')
 
 
-// Le câblage de la page : la liste des espaces, la route du choix, les cinq
-// directions inertes, et le lien vers la page hébergée.
+// Wiring that stays: the switcher (the list of teams, the choice route, the event another plugin can send) and the hosted-page link.
 for (const needle of [
   "callLocal('/space/active', 'POST'",
-  "'kybernos-cloud:space'",
   "'kybernos-cloud:switch'",
   "t('spaceUnknown')",
-  "t('syncNotServed')",
-  "t('wsTabPlan')",
-  "t('wsTabSync')",
 ]) {
-  assert.ok(source.includes(needle), 'cablage de la page d espace manquant: ' + needle)
+  assert.ok(source.includes(needle), 'cablage du selecteur d equipe manquant: ' + needle)
 }
-// Les cinq onglets de la maquette, dans l'ordre : la clé du panneau, la liste
-// des clés d'onglet, puis le dictionnaire de libellés (les cinq mêmes clés).
-assert.equal(source.includes("const TABS = ['plan', 'usage', 'people', 'billing', 'sync']"), true,
-  'les cinq onglets doivent etre declares dans l ordre de la maquette')
-const libelles = "{ plan: t('wsTabPlan'), usage: t('wsTabUsage'), people: t('wsTabPeople'), billing: t('wsTabBilling'), sync: t('wsTabSync') }"
-assert.equal(source.includes(libelles), true, 'le dictionnaire des libelles doit suivre le meme ordre')
-for (const cle of ['wsTabPlan', 'wsTabUsage', 'wsTabPeople', 'wsTabBilling', 'wsTabSync', 'wsPlanLabel', 'wsViewUsage']) {
-  assert.equal((source.match(new RegExp(cle + ':', 'g')) || []).length, 2, cle + ' doit exister en fr ET en')
-}
-ok('page de l espace : cinq onglets (Plan, Usage, People, Billing, Synchronisation) + fr/en')
+ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe inconnue')
 
 console.log('\n' + pass + ' verifications OK')

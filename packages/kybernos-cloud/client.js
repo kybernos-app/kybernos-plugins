@@ -102,55 +102,14 @@ window.__ModuleLoader__.load({
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
         wsSettingsTitle: 'Réglages d\'équipe',
-        wsTabPlan: 'Plan',
-        wsTabUsage: 'Usage',
-        wsTabPeople: 'People',
-        wsTabBilling: 'Billing',
-        wsTabSync: 'Synchronisation',
-        wsPlanLabel: 'FORMULE ACTUELLE',
-        wsPlanPrice: '— par mois',
-        wsPlanSummary: 'Ce que cette équipe porte :',
-        wsPlanVisible: 'équipes visibles depuis ce poste',
-        wsViewUsage: 'Voir l\'usage',
-        wsUsageTitle: 'Ce que ce poste sait de la consommation',
-        wsUsageNote: 'Le détail (crédits, appels, plafond de l\'équipe) vit dans Kybernos : ici on n\'affiche que ce qui est déjà descendu.',
-        wsPeopleTitle: 'Qui travaille dans cette équipe',
-        wsPeopleNote: 'L\'annuaire et les invitations vivent dans Kybernos — DSH ne les lit pas et n\'en invente aucun.',
-        wsBillingTitle: 'Paiement et factures',
-        wsBillingNote: 'La facturation vit dans Kybernos : rien n\'est modifiable depuis cet écran.',
         wsOpenHosted: 'Ouvrir dans Kybernos',
         wsClose: 'Fermer',
-        wsKybersOne: 'kyber',
-        wsKybersMany: 'kybers',
-        wsModelsOne: 'modèle',
-        wsModelsMany: 'modèles',
         spaceSwitch: 'Changer d\'équipe',
         spaceActive: 'Équipe active',
         spaceSetup: 'Réglage de la synchronisation',
-        spaceAccount: 'Compte & appareils',
         spaceOpen: 'Ouvrir dans Kybernos',
         spaceMark: 'actif',
         spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
-        syncTitle: 'Synchronisation',
-        // Fail-closed : tant que le serveur ne sert pas la politique, on le DIT
-        // et les interrupteurs restent inertes (un interrupteur qui ne tient
-        // rien serait un mensonge).
-        syncNotServed: 'La politique de synchronisation n\'est pas encore servie par le serveur : les interrupteurs sont inactifs. Rien ne sort de cette équipe en attendant.',
-        syncPull: 'Recevoir',
-        syncPush: 'Envoyer',
-        syncOn: 'Activé',
-        syncOff: 'Désactivé',
-        syncMemorySpace: 'Mémoire d\'équipe',
-        syncMemorySpaceHint: 'Le savoir commun de l\'équipe — recevoir le descend, envoyer l\'enrichit.',
-        syncMemoryKybers: 'Mémoire des kybers',
-        syncMemoryKybersHint: 'Le savoir-faire d\'un rôle : une leçon suit le kyber, jamais le projet.',
-        syncSends: 'Envois explicites',
-        syncSendsHint: 'Artefacts et chats, un envoi à la fois, après un manifeste.',
-        syncDownTitle: 'Ce qui peut descendre',
-        syncUpTitle: 'Ce qui peut sortir',
-        syncUnknown: 'à lire dès que le serveur sert la politique',
-        syncNeverTitle: 'Ne sort jamais',
-        syncNeverBody: 'Le contenu des fichiers et des dossiers, les chats en masse, les secrets et les chemins de la machine.',
         models: 'Modèles',
         modelsImport: 'Importer les modèles',
         modelsReimport: 'Réimporter',
@@ -372,52 +331,14 @@ window.__ModuleLoader__.load({
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
         wsSettingsTitle: 'Team settings',
-        wsTabPlan: 'Plan',
-        wsTabUsage: 'Usage',
-        wsTabPeople: 'People',
-        wsTabBilling: 'Billing',
-        wsTabSync: 'Sync',
-        wsPlanLabel: 'CURRENT PLAN',
-        wsPlanPrice: '— per month',
-        wsPlanSummary: 'What this team holds:',
-        wsPlanVisible: 'teams visible from this machine',
-        wsViewUsage: 'View usage',
-        wsUsageTitle: 'What this machine knows about usage',
-        wsUsageNote: 'The detail (credits, calls, team cap) lives in Kybernos: only what already came down is shown here.',
-        wsPeopleTitle: 'Who works in this team',
-        wsPeopleNote: 'The directory and the invites live in Kybernos — DSH does not read them, and invents none.',
-        wsBillingTitle: 'Payment and invoices',
-        wsBillingNote: 'Billing lives in Kybernos: nothing can be changed from this screen.',
         wsOpenHosted: 'Open in Kybernos',
         wsClose: 'Close',
-        wsKybersOne: 'kyber',
-        wsKybersMany: 'kybers',
-        wsModelsOne: 'model',
-        wsModelsMany: 'models',
         spaceSwitch: 'Switch team',
         spaceActive: 'Active team',
         spaceSetup: 'Sync settings',
-        spaceAccount: 'Account & devices',
         spaceOpen: 'Open in Kybernos',
         spaceMark: 'active',
         spaceUnknown: 'Unknown team — nothing was changed.',
-        syncTitle: 'Sync',
-        syncNotServed: 'The server does not serve the sync policy yet: the switches are inactive. Nothing leaves this team meanwhile.',
-        syncPull: 'Receive',
-        syncPush: 'Send',
-        syncOn: 'On',
-        syncOff: 'Off',
-        syncMemorySpace: 'Team memory',
-        syncMemorySpaceHint: 'The team\'s shared knowledge — receiving brings it down, sending enriches it.',
-        syncMemoryKybers: 'Kyber memory',
-        syncMemoryKybersHint: 'Know-how of a role: a lesson follows the kyber, never the project.',
-        syncSends: 'Explicit sends',
-        syncSendsHint: 'Artifacts and chats, one send at a time, after a manifest.',
-        syncDownTitle: 'What may come down',
-        syncUpTitle: 'What may leave',
-        syncUnknown: 'readable as soon as the server serves the policy',
-        syncNeverTitle: 'Never leaves',
-        syncNeverBody: 'File and folder contents, chats in bulk, secrets and machine paths.',
         models: 'Models',
         modelsImport: 'Import models',
         modelsReimport: 'Re-import',
@@ -657,17 +578,15 @@ window.__ModuleLoader__.load({
 .kbf-tightprofil{justify-content:center;width:auto;min-width:0;max-width:100%;padding:3px}
 .kbf-tightprofil .kbf-name,.kbf-tightprofil .kbf-plan,.kbf-tightprofil .kbf-dev{display:none}
 .kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-/* La page PLEIN CADRE (slot main) : elle vit dans la zone de contenu, pas
-   dans une surcouche. Mêmes onglets, mêmes contenus que la maquette. */
+/* Full-frame page (slot main): it lives in the content area, not in an overlay.
+   Only the profile page uses it now (the local Team page was removed as unreachable). */
 .kbp-page{display:flex;flex-direction:column;height:100%;overflow:auto;padding:24px 30px 40px;color:var(--dsw-alias-label-primary,#e9e9ee)}
 .kbp-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .kbp-title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
 .kbp-sub{display:block;margin-top:3px;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbp-back{margin-left:auto;padding:7px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer}
 .kbp-back:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbp-body{width:100%;max-width:900px;margin-top:4px}
 .kbp-card{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.22));border-radius:14px;padding:20px 22px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06))}
-.kbp-loading{padding:24px;color:var(--dsw-alias-label-tertiary,#8a8a93);font-size:13px}
 /* La page profil : menu de sections a gauche (comme dans Kybernos), contenu
    a droite. Le libelle actif porte un fond discret et une barre laterale. */
 .kbp-wrap{display:flex;gap:28px;align-items:flex-start;width:100%;max-width:900px;margin-top:18px}
@@ -679,16 +598,6 @@ window.__ModuleLoader__.load({
 .kbp-navbtn.kbp-navout:hover{background:rgba(242,90,90,.12);color:var(--dsw-alias-state-error-primary,#f25a5a)}
 .kbp-sec{flex:1 1 auto;min-width:0}
 
-/* La page : en-tête d'espace, onglets (style de la maquette), contenu. */
-.kbt-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 16px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.18));padding-bottom:10px}
-.kbt-tab{padding:10px 18px;border:none;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8a93);font:inherit;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
-.kbt-tab[aria-selected="true"]{background:var(--dsw-alias-button-primary-fill,#3b82f6);color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:600}
-.kbt-plan{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
-.kbt-label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.1em;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbt-planline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.kbt-planname{font-size:28px;font-weight:700;letter-spacing:-.02em}
-.kbt-planprice{font-size:15px;color:var(--dsw-alias-label-secondary,#8a8a93)}
-.kbt-plansum{font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#8a8a93)}
 .kbt-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
 .kbs-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
 .kbs-who{display:flex;align-items:center;gap:9px;min-width:0}
@@ -703,16 +612,7 @@ window.__ModuleLoader__.load({
 .kbs-sep{height:1px;margin:12px 0;background:var(--dsw-alias-border-l2,rgba(127,127,127,.22))}
 .kbs-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbs-row{display:flex;align-items:flex-start;gap:14px;padding:10px 0;border-top:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.16))}
-.kbs-row-txt{flex:1;min-width:0}
-.kbs-row-txt b{display:block;font-size:12.5px;font-weight:600;margin-bottom:2px}
-.kbs-row-txt span{display:block;font-size:11.5px;line-height:1.5;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbs-flip{display:inline-flex;gap:4px;flex:none;align-self:center}
-.kbs-flip button{min-width:64px;height:24px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8a93);font:inherit;font-size:11px;cursor:pointer}
-.kbs-flip button[aria-pressed="true"]{background:var(--dsw-alias-button-primary-fill,#3b82f6);border-color:var(--dsw-alias-button-primary-fill,#3b82f6);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbs-flip button:disabled{cursor:default;opacity:.55}
 .kbs-note{padding:9px 11px;border-radius:8px;border-left:3px solid var(--dsw-alias-state-warn-primary,#f59e0b);background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.10));font-size:11.5px;line-height:1.5}
-.kbs-recap{margin-top:12px;display:flex;flex-direction:column;gap:6px}
-.kbs-recap div{font-size:11.5px;color:var(--dsw-alias-label-secondary,#8a8a93)}
 .kbs-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .kbs-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
 .kbs-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
@@ -2426,124 +2326,6 @@ window.__ModuleLoader__.load({
               : null)
         }
 
-        // ── LA PAGE DE L'ESPACE, PLEIN CADRE (slot main) ─────────────────────
-        // Elle ne vit PAS dans une surcouche : `layout.selectPanel('kybernos-cloud-space')`
-        // ouvre la zone de contenu, comme les pages du plugin Kybernos. Cinq
-        // onglets (Plan, Usage, People, Billing, Synchronisation) ; ce qui n'est
-        // pas lisible depuis DSH est NOMMÉ et renvoyé à Kybernos.
-        const TABS = ['plan', 'usage', 'people', 'billing', 'sync']
-
-        const SpaceMain = () => {
-          const [etat, setEtat] = React.useState(null)
-          const [onglet, setOnglet] = React.useState('plan')
-          const [erreur, setErreur] = React.useState(false)
-          const vivant = React.useRef(true)
-          React.useEffect(() => () => { vivant.current = false }, [])
-          React.useEffect(() => {
-            const lire = async () => {
-              let res = null
-              try { res = await callLocal('/status', 'GET') } catch (e) { res = null }
-              if (vivant.current !== true) return
-              if (res !== null && res.connected === true) setEtat(res.state !== undefined && res.state !== null ? res.state : {})
-              else setErreur(true)
-            }
-            void lire()
-          }, [])
-
-          const libelle = { plan: t('wsTabPlan'), usage: t('wsTabUsage'), people: t('wsTabPeople'), billing: t('wsTabBilling'), sync: t('wsTabSync') }
-          const fermer = () => { try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel(null) } catch (e) { } }
-
-          if (etat === null) {
-            return h('div', { className: 'kbp-page' },
-              h('div', { className: 'kbp-head' }, h('h2', { className: 'kbp-title' }, t('spaceTitle'))),
-              h('div', { className: 'kbp-loading' }, erreur === true ? t('spaceUnknown') : t('loading')))
-          }
-
-          const user = etat.user !== undefined && etat.user !== null ? etat.user : {}
-          const espaces = Array.isArray(etat.workspaces) ? etat.workspaces : []
-          const actif = typeof etat.active_workspace_id === 'string' ? etat.active_workspace_id : null
-          const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-          const nom = courant !== null && courant.name ? courant.name : t('spaceTitle')
-          const formule = planDeEspace(etat, user).label !== null ? planDeEspace(etat, user).label : t('none')
-          const modele = etat.models !== undefined && etat.models !== null ? etat.models : null
-          const nbModeles = modele !== null && typeof modele.count === 'number' ? modele.count : 0
-          const nbKybers = courant !== null && typeof courant.kyber_count === 'number' ? courant.kyber_count : 0
-          const web = typeof etat.web_url === 'string' && etat.web_url !== '' ? etat.web_url : null
-          const lienHosted = (chemin, libelleLien) => (web === null ? null : h('a', {
-            className: 'kbs-link', href: web + chemin, target: '_blank', rel: 'noreferrer',
-          }, libelleLien))
-
-          const flip = (cle) => h('span', { className: 'kbs-flip', role: 'group' },
-            h('button', { type: 'button', 'aria-pressed': 'false', disabled: true, key: cle + '-on' }, t('syncOn')),
-            h('button', { type: 'button', 'aria-pressed': 'true', disabled: true, key: cle + '-off' }, t('syncOff')))
-          const ligneSync = (cle, titre, aide) => h('div', { className: 'kbs-row', key: cle },
-            h('span', { className: 'kbs-row-txt' }, h('b', null, titre), h('span', null, aide)), flip(cle))
-
-          const corps = () => {
-            if (onglet === 'plan') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbt-head' },
-                  h('span', { className: 'kbt-plan' },
-                    h('span', { className: 'kbt-label' }, t('wsPlanLabel')),
-                    h('span', { className: 'kbt-planline' },
-                      h('span', { className: 'kbt-planname' }, formule),
-                      h('span', { className: 'kbt-planprice' }, t('wsPlanPrice'))),
-                    h('span', { className: 'kbt-plansum' },
-                      t('wsPlanSummary') + ' ' + String(nbKybers) + ' '
-                      + (nbKybers === 1 ? t('wsKybersOne') : t('wsKybersMany')) + ', '
-                      + String(espaces.length) + ' ' + t('wsPlanVisible') + '.')),
-                  h('button', { type: 'button', className: 'kbs-link', onClick: () => setOnglet('usage') }, t('wsViewUsage'))))
-            }
-            if (onglet === 'usage') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbs-sect' }, t('wsUsageTitle')),
-                h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('wsUsageNote')),
-                h(Row, { label: t('models'), value: String(nbModeles) + ' ' + (nbModeles === 1 ? t('wsModelsOne') : t('wsModelsMany')) }),
-                h(Row, { label: t('kybers'), value: String(nbKybers) + ' ' + (nbKybers === 1 ? t('wsKybersOne') : t('wsKybersMany')) }),
-                h(Row, { label: t('plan'), value: formule }))
-            }
-            if (onglet === 'people') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbs-sect' }, t('wsPeopleTitle')),
-                h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('wsPeopleNote')))
-            }
-            if (onglet === 'billing') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbs-sect' }, t('wsBillingTitle')),
-                h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('wsBillingNote')))
-            }
-            return h('div', { className: 'kbp-card' },
-              h('div', { className: 'kbs-sect' }, t('syncTitle')),
-              h('div', { className: 'kbs-note', style: { margin: '10px 0 4px' } }, t('syncNotServed')),
-              ligneSync('space', t('syncMemorySpace'), t('syncMemorySpaceHint')),
-              ligneSync('kybers', t('syncMemoryKybers'), t('syncMemoryKybersHint')),
-              ligneSync('sends', t('syncSends'), t('syncSendsHint')),
-              h('div', { className: 'kbs-recap' },
-                h('div', null, t('syncDownTitle') + ' : ' + t('syncUnknown')),
-                h('div', null, t('syncUpTitle') + ' : ' + t('syncUnknown')),
-                h('div', null, t('syncNeverTitle') + ' · ' + t('syncNeverBody'))))
-          }
-
-          return h('div', { className: 'kbp-page' },
-            h('div', { className: 'kbp-head' },
-              h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(nom, '')),
-              h('span', null,
-                h('h2', { className: 'kbp-title' }, nom),
-                h('span', { className: 'kbp-sub' }, formule + ' · ' + String(espaces.length) + ' ' + t('workspaces'))),
-              h('button', { type: 'button', className: 'kbp-back', onClick: fermer }, t('wsClose'))),
-            h('div', { className: 'kbp-body' },
-              h('div', { className: 'kbt-tabs', role: 'tablist' }, TABS.map((cle) => h('button', {
-                type: 'button', key: cle, role: 'tab', className: 'kbt-tab',
-                'aria-selected': onglet === cle ? 'true' : 'false',
-                onClick: () => setOnglet(cle),
-              }, libelle[cle]))),
-              corps(),
-              h('div', { className: 'kbs-actions' },
-                lienHosted('/workspace-console', t('wsOpenHosted')),
-                h('button', { type: 'button', className: 'kbs-link', onClick: () => { window.dispatchEvent(new Event('kybernos-cloud:open')) } }, t('spaceAccount')))))
-        }
-        SpaceMain.__testTabs = TABS
-
         // ── La rangée du bas du menu ─────────────────────────────────────────        // ── La rangée du bas du menu ─────────────────────────────────────────
         // Un seul composant pour les trois états, parce que la rangée CHANGE de
         // forme : connecté elle montre l'identité, sinon elle explique et
@@ -2671,17 +2453,11 @@ window.__ModuleLoader__.load({
             return () => window.removeEventListener('kybernos-cloud:open', ouvrir)
           }, [])
 
-          // Un autre plugin peut ouvrir la page de l'espace (même couture que
-          // la fiche compte) ou le sélecteur.
+          // Another plugin can open the team switcher (same seam as the account card).
           React.useEffect(() => {
-            const ouvrir = () => { try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybernos-cloud-space') } catch (e) { } }
             const ouvrirSelecteur = () => setMenuOpen(true)
-            window.addEventListener('kybernos-cloud:space', ouvrir)
             window.addEventListener('kybernos-cloud:switch', ouvrirSelecteur)
-            return () => {
-              window.removeEventListener('kybernos-cloud:space', ouvrir)
-              window.removeEventListener('kybernos-cloud:switch', ouvrirSelecteur)
-            }
+            return () => window.removeEventListener('kybernos-cloud:switch', ouvrirSelecteur)
           }, [])
 
           // État publié pour les AUTRES plugins du pied : la cloche des
@@ -2732,19 +2508,20 @@ window.__ModuleLoader__.load({
               // Le pont marche par contrat : le composant de la page vit dans
               // le plugin, et cette entrée se contente de demander son
               // ouverture — jamais de dupliquer l'iframe ici.
-              // Replis en cascade si le plugin n'expose pas le pont (version
-              // plus ancienne, profil sans le bundle) : la page riche « Mon
-              // espace » du panneau Kybernos, puis le gabarit local
-              // kybernos-cloud-space — on dégrade, on ne casse pas.
+              // Fallback if the plugin has no console bridge (a master older than
+              // 02/10): the rich « Mon espace » page of the Kybernos panel. No local
+              // page stands behind it any more (it was removed as unreachable): the
+              // master bundle is mandatory in the Suite (docs/beta/satellites.json)
+              // and sets both bridges unconditionally, so a missing bridge can only
+              // mean a stale master.
               const ouvrir = (typeof window !== 'undefined') ? window.__kbOpenWsConsole : null
               if (typeof ouvrir === 'function') {
-                try { ouvrir(); return } catch (e) { /* repli page riche */ }
+                try { ouvrir(); return } catch (e) { /* fall back to the rich page */ }
               }
               const ouvrirRiche = (typeof window !== 'undefined') ? window.__kbOpenWorkspace : null
               if (typeof ouvrirRiche === 'function') {
-                try { ouvrirRiche(); return } catch (e) { /* repli page locale */ }
+                try { ouvrirRiche() } catch (e) { /* nothing left to try: the click does nothing */ }
               }
-              try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybernos-cloud-space') } catch (e) { /* layout indisponible */ }
             }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
@@ -2898,12 +2675,6 @@ window.__ModuleLoader__.load({
         ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
           { name: 'sidebar.footer.action', id: 'kybernos-cloud', order: 21 }, CloudFoot)),
         'kybernos-cloud: rangee de profil dans le pied de sidebar')
-        // La page de l'espace : PLEIN CADRE, dans la zone de contenu. Elle est
-        // ouverte par l'engrenage de la rangée d'espace (ou par l'événement
-        // `kybernos-cloud:space`), jamais dans une surcouche.
-        ctx.effect(() => slots.register(
-          { name: 'main', key: 'kybernos-cloud-space' }, SpaceMain),
-        'kybernos-cloud: page de l espace en plein cadre')
         // La page PROFIL, plein cadre elle aussi : le clic sur le nom du pied
         // de sidebar l'ouvre (comme dans Kybernos). C'est la fiche CloudCard
         // en gabarit page — aucune seconde implémentation.
