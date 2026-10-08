@@ -390,6 +390,7 @@ window.__ModuleLoader__.load({
       '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
       '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
       '.kbhp-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbhp-act{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:9px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kbsu-right{display:inline-flex;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
@@ -480,6 +481,10 @@ window.__ModuleLoader__.load({
       wrench:'<path class="a" d="M20.5 4.5a7 7 0 0 0-6.8 9L3.5 23.7a3 3 0 0 0 4.3 4.3L18 17.8a7 7 0 0 0 9-6.8l-4 4-3.6-.6-.6-3.6 4-4a7 7 0 0 0-2.3-.3z"/><path class="l" d="M20.5 4.5a7 7 0 0 0-6.8 9L3.5 23.7a3 3 0 0 0 4.3 4.3L18 17.8a7 7 0 0 0 9-6.8l-4 4-3.6-.6-.6-3.6 4-4a7 7 0 0 0-2.3-.3z"/><circle class="w" cx="7" cy="25" r="1.4"/>',
       cloud:'<path class="a" d="M24 25H9a7 7 0 1 1 1.6-13.8A8 8 0 0 1 26 13.6 5.7 5.7 0 0 1 24 25z"/><path class="l" d="M24 25H9a7 7 0 1 1 1.6-13.8A8 8 0 0 1 26 13.6 5.7 5.7 0 0 1 24 25z"/><circle class="b" cx="16" cy="17.5" r="3"/><path class="l" d="M16 20.5v3"/>',
       brain:'<rect class="d" x="7" y="9" width="21" height="19" rx="4"/><rect class="a" x="5" y="6.5" width="21" height="19" rx="4"/><rect class="b" x="9" y="3" width="19" height="19" rx="4"/><path class="l" d="M13.5 9.5h10M13.5 13h10M13.5 16.5h6"/><path class="w" d="M23.5 18.3l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z"/>',
+      suite:'<rect class="a" x="4" y="4" width="10" height="10" rx="3"/><rect class="b" x="18" y="4" width="10" height="10" rx="3"/><rect class="b" x="4" y="18" width="10" height="10" rx="3"/><rect class="a" x="18" y="18" width="10" height="10" rx="3"/><rect class="l" x="4" y="4" width="10" height="10" rx="3"/><rect class="l" x="18" y="4" width="10" height="10" rx="3"/><rect class="l" x="4" y="18" width="10" height="10" rx="3"/><rect class="l" x="18" y="18" width="10" height="10" rx="3"/><circle class="w" cx="23" cy="9" r="1.6"/>',
+      agent:'<path class="b" d="M2 14h4v6H2zM26 14h4v6h-4z"/><rect class="a" x="6" y="9" width="20" height="16" rx="5"/><rect class="l" x="6" y="9" width="20" height="16" rx="5"/><path class="l" d="M16 9V5M12.5 5h7M12 21.5h8"/><circle class="w" cx="12" cy="16.5" r="2"/><circle class="w" cx="20" cy="16.5" r="2"/>',
+      map:'<path class="a" d="M3 8l8-3 10 3 8-3v19l-8 3-10-3-8 3z"/><path class="b" d="M11 5l10 3v19l-10-3z"/><path class="l" d="M3 8l8-3 10 3 8-3v19l-8 3-10-3-8 3zM11 5v19M21 8v19"/><circle class="w" cx="16" cy="14" r="2"/>',
+      branch:'<path class="l" d="M9 10.5v11M23 15.5c0 5-14 3-14 8"/><circle class="b" cx="9" cy="7" r="3.5"/><circle class="b" cx="9" cy="25" r="3.5"/><circle class="a" cx="23" cy="12" r="3.5"/><circle class="l" cx="9" cy="7" r="3.5"/><circle class="l" cx="9" cy="25" r="3.5"/><circle class="l" cx="23" cy="12" r="3.5"/>',
       doc:'<path class="a" d="M7 3h13l6 6v20H7z"/><path class="b" d="M20 3l6 6h-6z"/><path class="l" d="M7 3h13l6 6v20H7zM11.5 15h10M11.5 19h10M11.5 23h6"/><path class="w" d="M11 10.5h3M11 8h6"/>',
       cal:'<rect class="a" x="3" y="6" width="26" height="22" rx="4"/><path class="b" d="M3 10a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><path class="l" d="M3 13h26M10 3v6M22 3v6"/><path class="l" d="M10 21l3 3 6-7"/>'
 }
@@ -946,7 +951,9 @@ window.__ModuleLoader__.load({
         }
         return cache.pending
       }
-      function Help ({ id }) {
+      // `action` ({ label, onClick }) is optional: a page that has something more to show than the text (an interactive guide) adds
+      // a button at the bottom of the card. The card closes first, then the page does its thing.
+      function Help ({ id, action }) {
         const [open, setOpen] = React.useState(false)
         const [mod, setMod] = React.useState(null)
         const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
@@ -984,9 +991,10 @@ window.__ModuleLoader__.load({
             h('p', null, kt(a.what.fr, a.what.en)),
             h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
             h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)),
-            a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null) : null)
+            a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null,
+            action != null && typeof action.onClick === 'function' ? h('button', { type: 'button', className: 'kbhp-act', 'data-kb': 'help-action', onClick: () => { setOpen(false); action.onClick() } }, action.label) : null) : null)
       }
-      return { version: 1, Help }
+      return { version: 1, actions: true, Help }
     }
 
     const monterSuite = (ctx, scope, require) => {

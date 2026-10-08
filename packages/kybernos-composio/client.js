@@ -387,6 +387,8 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.upstream_unavailable': { fr: 'Le serveur n’a pas pu joindre Composio. Un instant, puis réessayez.', en: 'The server could not reach Composio. Wait a moment, then try again.' },
       'kb.cp.kc.err.upstream_check': { fr: 'Le serveur n’a pas répondu à temps : la connexion a peut-être été créée.', en: 'The server did not answer in time: the connection may have been created.' },
       'kb.cp.kc.err.connections_disabled': { fr: 'Ce serveur n’offre pas les connexions pour le moment.', en: 'This server does not offer connections right now.' },
+      'kb.cp.kc.err.connection_failed': { fr: 'L’app a refusé cette clé : vérifiez-la, puis réessayez.', en: 'The app refused this key: check it, then try again.' },
+      'kb.cp.kc.err.app_not_found': { fr: 'Cette app n’est pas proposée par le serveur.', en: 'The server does not offer this app.' },
       'kb.cp.kc.err.not_found': { fr: 'Cette connexion n’existe plus.', en: 'This connection no longer exists.' },
       'kb.cp.kc.err.too_many_requests': { fr: 'Trop de demandes d’un coup. Patientez un instant.', en: 'Too many requests at once. Wait a moment.' },
       'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifiez l’app et la clé.', en: 'Request refused: check the app and the key.' },
@@ -696,15 +698,18 @@ window.__ModuleLoader__.load({
     }
     /** The line under a failed connection, from the stable code the server gave. */
     const kbCpFailedText = (failure, app) => kbt('kb.cp.kc.failed.' + (failure === 'refused' || failure === 'upstream' ? failure : 'unknown')).replace('{app}', app)
-    /** The apps of the server's catalogue that match a search; at most `max`, the exact starts first. */
+    /**
+     * The apps of the server's catalogue that match a search; at most `max`. The ones whose name starts with it come first and,
+     * among equals, the apps that connect in one click (the server manages their sign-in: about 120 of 1,600) come before the
+     * ones that need the person's own API key. Without a search that is the order of the first page.
+     */
     const kbCpAppsMatch = (apps, query, max) => {
       const needle = kbCpSquash(query)
       const list = Array.isArray(apps) ? apps : []
-      if (needle.length === 0) return list.slice(0, max)
-      const hit = (a) => kbCpSquash(String(a.name) + ' ' + String(a.slug) + ' ' + (Array.isArray(a.categories) ? a.categories.join(' ') : '')).indexOf(needle) >= 0
-      const starts = (a) => kbCpSquash(String(a.name)).indexOf(needle) === 0
-      const found = list.filter(hit)
-      return found.filter(starts).concat(found.filter((a) => !starts(a))).slice(0, max)
+      const hit = (a) => needle.length === 0 || kbCpSquash(String(a.name) + ' ' + String(a.slug) + ' ' + (Array.isArray(a.categories) ? a.categories.join(' ') : '')).indexOf(needle) >= 0
+      const starts = (a) => needle.length > 0 && kbCpSquash(String(a.name)).indexOf(needle) === 0
+      const rank = (a) => (starts(a) ? 0 : 2) + (a.needsApiKey === true ? 1 : 0)
+      return list.filter(hit).map((a, i) => ({ a: a, i: i, r: rank(a) })).sort((x, y) => x.r - y.r || x.i - y.i).map((x) => x.a).slice(0, max)
     }
 
     const Icon = (name, size) => {
@@ -1461,7 +1466,8 @@ window.__ModuleLoader__.load({
         if (r.status === 200 && j !== null && j.ok === true && j.connection !== null && typeof j.connection === 'object') { setApiKey(''); props.onLinked({ app: app, connection: j.connection, redirectUrl: j.redirectUrl }); return }
         const word = j !== null && typeof j.error === 'string' ? j.error : (r.status === 0 ? 'network' : 'other')
         if (word === 'needs_api_key') setNeedsKey(true)
-        setFail({ error: word, details: j !== null && typeof j === 'object' ? j : {} })
+        // Here a 404 can only mean the server does not know that app (it is not « this connection no longer exists »).
+        setFail({ error: word === 'not_found' ? 'app_not_found' : word, details: j !== null && typeof j === 'object' ? j : {} })
       }
       const existing = fail !== null && fail.error === 'pending_exists' && fail.details.existing !== null && typeof fail.details.existing === 'object' ? fail.details.existing : null
       return h('div', { className: 'kb7-overlay', onClick: props.onClose },

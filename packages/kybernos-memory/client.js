@@ -711,10 +711,14 @@ window.__ModuleLoader__.load({
         const [d, setD] = useState({ loading: true, ok: false, error: null, total: 0, items: [], counts: null, extra: null })
         const seq = useRef(0)
         const url = listUrl(tab, state)
+        const looked = useRef(null)
         useEffect(() => {
           const mine = ++seq.current
           setD((old) => Object.assign({}, old, { loading: true }))
-          api(url).then((r) => {
+          // The page opening, or a refresh / a write (the key changes), reads the server again; paging and filters keep the host's short cache.
+          const again = looked.current !== refreshKey
+          looked.current = refreshKey
+          api(tab === 'memories' && again ? url + '&fresh=1' : url).then((r) => {
             if (mine !== seq.current) return
             if (r.ok === true) setD({ loading: false, ok: true, error: null, total: r.total, items: r.items, counts: r.counts, extra: r })
             else setD({ loading: false, ok: false, error: r.error === undefined ? 'indisponible' : r.error, total: 0, items: [], counts: null, extra: r })

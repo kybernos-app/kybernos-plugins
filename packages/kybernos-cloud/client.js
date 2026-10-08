@@ -1037,6 +1037,17 @@ window.__ModuleLoader__.load({
     ], props)
 
     /** Initiales pour l'avatar : deux lettres au plus, jamais vides. */
+    /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word
+     *  (`user.plan`, « team » as soon as the person is in any team) is only the fallback when that read is not there. `free` is
+     *  true for a space with no paid plan: the only case that is offered « Upgrade ». Never the raw lowercase key of an API. */
+    const planDeEspace = (state, user) => {
+      const sp = state !== null && state !== undefined && state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? state.space_plan : null
+      const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
+      if (sp !== null) return { label: cap(sp.label), free: sp.key === 'free' || sp.key === 'none' }
+      const brut = user !== null && user !== undefined && typeof user.plan === 'string' ? user.plan.trim() : ''
+      return { label: cap(brut), free: brut.toLowerCase() === 'free' }
+    }
+
     const initiales = (nom, email) => {
       const nomPropre = typeof nom === 'string' ? nom.trim() : ''
       const local = typeof email === 'string' && email.indexOf('@') > 0 ? email.slice(0, email.indexOf('@')) : ''
@@ -2060,7 +2071,8 @@ window.__ModuleLoader__.load({
           const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
           const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
           const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
-          const plan = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
+          const planInfo = planDeEspace(st, user)
+          const plan = planInfo.label !== null ? planInfo.label : t('none')
           const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
 
           const switchPair = React.useState(false)
@@ -2171,7 +2183,8 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbfp-mplan' },
                 h('div', { className: 'kbfp-mplanline' },
                   h('span', { className: 'kbfp-mplanname' }, plan),
-                  h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')))),
+                  // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it.
+                  planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')) : null)),
               // "Teams settings" = the former "Workspace settings" (same action).
               entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace),
               // The same console in the browser, where it can change things (here it is read-only): the server makes a single-use link for it.
@@ -2266,7 +2279,7 @@ window.__ModuleLoader__.load({
           const actif = typeof etat.active_workspace_id === 'string' ? etat.active_workspace_id : null
           const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
           const nom = courant !== null && courant.name ? courant.name : t('spaceTitle')
-          const formule = typeof user.plan === 'string' && user.plan !== '' ? user.plan : t('none')
+          const formule = planDeEspace(etat, user).label !== null ? planDeEspace(etat, user).label : t('none')
           const modele = etat.models !== undefined && etat.models !== null ? etat.models : null
           const nbModeles = modele !== null && typeof modele.count === 'number' ? modele.count : 0
           const nbKybers = courant !== null && typeof courant.kyber_count === 'number' ? courant.kyber_count : 0
@@ -2490,7 +2503,7 @@ window.__ModuleLoader__.load({
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
             const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
-            const planEspace = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
+            const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
             const ouvrirPageEspace = () => {
               // « Réglage de l'espace » (02/10) : l'entrée ouvre la page EMBED
               // qui vivait jusqu'ici dans Paramètres ▸ Mon espace — l'iframe
@@ -3253,7 +3266,7 @@ window.__ModuleLoader__.load({
           const user = st.user !== undefined && st.user !== null ? st.user : {}
           const shownName = displayName(user)
           const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
-          const plan = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
+          const plan = planDeEspace(st, user).label !== null ? planDeEspace(st, user).label : t('none')
           const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
           const couleurAvatar = profil.color !== '' ? profil.color : '#4b4fe0'
           const glyphAvatar = initiales(profil.name !== '' ? profil.name : qui, user.email)

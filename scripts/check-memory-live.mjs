@@ -18,7 +18,7 @@
 // only declared at boot). Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down, section
 // not there yet).
 import { mkdirSync } from 'node:fs'
-import { openLivePage, waitFor, clickText } from './live-page.mjs'
+import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -54,19 +54,9 @@ try {
 
   console.log('settings → Memory & Lessons')
   await waitFor(page, `document.readyState === 'complete'`, 15000); await sleep(2500)
-  // The GUI may still be hydrating when the page opens, and the account chip's place depends on the window
-  // height: find the chip by its label (never by coordinates), and retry the whole opening a few times.
-  const chipJs = `(() => { const e = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`
+  // The GUI may still be hydrating and the way in differs between the user's DSH and a fresh one: openSettings finds it.
   const navCellJs = `[...document.querySelectorAll('[class*="navCell"]')].some(e => e.textContent.trim() === 'Memory & Lessons')`
-  let settingsOpen = false
-  for (let attempt = 1; attempt <= 4 && settingsOpen !== true; attempt += 1) {
-    if ((await waitFor(page, `${chipJs} !== null`, 15000)) === null) break
-    const chip = JSON.parse(await ev(chipJs))
-    await click(chip.x, chip.y); await sleep(1000)
-    await clickText(page, 'Settings')
-    settingsOpen = (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 0`, 6000)) !== null
-    if (settingsOpen !== true) { console.log('  … Settings did not open (attempt ' + String(attempt) + '), retrying'); await page.send('Page.reload', { ignoreCache: true }); await sleep(3500) }
-  }
+  const settingsOpen = await openSettings(page, { minCells: 0 })
   if (settingsOpen !== true) { console.error('○ inconclusive: the Settings dialog did not open (is the GUI loaded?)'); await shot('no-settings'); await live.close(); process.exit(3) }
   // Plugin sections register a moment after the shell's own cells: wait for ours, not for a fixed delay.
   await waitFor(page, navCellJs, 12000)

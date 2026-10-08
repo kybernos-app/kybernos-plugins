@@ -56,7 +56,11 @@ export const connectionsFailure = (status, body, { named = false } = {}) => {
     return { error: 'conflict' }
   }
   if (status === 413) return { error: 'too_large' }
-  if (status === 422) return { error: c === 'no_managed_credentials' ? 'needs_api_key' : 'bad_request' }
+  if (status === 422) {
+    if (c === 'no_managed_credentials') return { error: 'needs_api_key' }
+    // The third party refused the key that was given (the server's `connection_failed`): the person is told to check it.
+    return { error: c === 'connection_failed' ? 'connection_failed' : 'bad_request' }
+  }
   if (status === 400) return { error: 'bad_request' }
   if (status === 429) return { error: 'too_many_requests' }
   if (status === 503 && c === 'connections_disabled') return { error: 'connections_disabled' }

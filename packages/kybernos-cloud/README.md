@@ -213,7 +213,7 @@ per refusal, row mappers, JSON-RPC), host half in `connections-host.mjs` (routes
 | `POST …/connections/delete` `{id}` | disconnects, at the third party and in the server's table |
 
 Refusals are one word: `connection_limit` (with `limit` and `count`), `pending_exists` (with `existing: {id, toolkit, status}`, so the page can offer
-« cancel it »), `needs_api_key`, `upstream_unavailable` (with `checkFirst`: an add that may have gone through, so **list before trying again**; an add is
+« cancel it »), `needs_api_key`, `connection_failed` (the app refused the key), `upstream_unavailable` (with `checkFirst`: an add that may have gone through, so **list before trying again**; an add is
 never sent twice), `connections_disabled`, `reconnect_required`, `not_found`, `not_on_this_server`, `network`. Nothing leaves the machine when
 the server does not offer connections or the account is not connected.
 

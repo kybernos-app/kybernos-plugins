@@ -28,7 +28,8 @@ switch off, delete.
     between this and the personal key (one at a time, the last choice is remembered). The list shows a state per
     connection (active, pending, failed, expired, disabled), the quota ("3 of 4", a pending request counts), and the
     actions on hover (cancel a pending one, remove, retry or reconnect). "Connect an app" searches the server's
-    catalogue (48 apps at a time, "Show more" for the rest), then either sends the person to the app's own page in a new tab (the row stays pending and the page
+    catalogue (48 apps at a time, "Show more" for the rest; the apps that connect in one click come first: measured
+    on the real Platform catalogue, only 123 of 1,601 have a managed sign-in, the others take an API key), then either sends the person to the app's own page in a new tab (the row stays pending and the page
     asks the server about that one connection every 5 s, 10 minutes at most) or, for an app with no OAuth, takes its
     API key (sent once, never stored, logged or shown again). A refused add that may have gone through says to check
     the list, and is never sent twice. Not signed in to Kybernos: a button starts the pairing right there. The page

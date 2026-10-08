@@ -1,5 +1,5 @@
 // ── small helpers ───────────────────────────────────────────────────────────
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, openSync, copyFileSync, renameSync, chmodSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, openSync, copyFileSync, renameSync, chmodSync, realpathSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
@@ -11136,6 +11136,13 @@ const KB_FEEDBACK_API_DEFAULT = 'https://api.dev.kybernos.app'
 
 const kbFeedbackClip = (value, limit) => (typeof value === 'string' ? value.slice(0, limit) : '')
 
+/** The end of a report longer than the relay accepts says so: a silent cut would hand the team a report that
+ *  stops mid-sentence, and the person would never know the last lines were lost. */
+const KB_FEEDBACK_CUT = '\n\n[... cut: the report was longer than ' + String(KB_FEEDBACK_BODY_MAX) + ' characters]'
+const kbFeedbackBodyClip = (text) => (text.length <= KB_FEEDBACK_BODY_MAX
+  ? text
+  : text.slice(0, KB_FEEDBACK_BODY_MAX - KB_FEEDBACK_CUT.length) + KB_FEEDBACK_CUT)
+
 /** Local outbox folder (<DSH home>/beta-reports). Pure: takes the DSH home itself. */
 const kbFeedbackOutboxDir = (dsh) => joinPath(String(dsh), 'beta-reports')
 
@@ -11162,7 +11169,7 @@ const kbFeedbackReport = (input, env) => {
     uuid: uuidOk ? e.uuid : null,
     kind: kind,
     title: kbFeedbackClip(textOf(src.title), KB_FEEDBACK_TITLE_MAX),
-    body: kbFeedbackClip(textOf(src.body), KB_FEEDBACK_BODY_MAX),
+    body: kbFeedbackBodyClip(kbFeedbackClip(textOf(src.body), 4 * KB_FEEDBACK_BODY_MAX)),
     reporter: kbFeedbackClip(textOf(src.reporter), 200),
     client: client,
     context: context,
@@ -11216,13 +11223,19 @@ const kbFeedbackVerdict = (status, text) => {
     && typeof parsed.issue === 'object' ? parsed.issue : null
   const url = issue !== null && typeof issue.url === 'string' && issue.url !== '' ? issue.url : null
   const raw = parsed !== null && parsed !== undefined && typeof parsed.error === 'string' ? parsed.error : ''
-  if (code === 201 && url !== null) return { ok: true, issue_url: url, error: null, deduped: false }
-  if (raw === 'already_sent' && url !== null) return { ok: true, issue_url: url, error: null, deduped: true }
+  // The relay holds a report's id for a while after a failed call (the call may have created the issue without the answer coming back):
+  // it says how long, and asking again sooner only gets `en_cours`.
+  const wait = parsed !== null && parsed !== undefined && typeof parsed.retry_after === 'number' && parsed.retry_after > 0 && parsed.retry_after <= 3600
+    ? Math.ceil(parsed.retry_after) : null
+  if (code === 201 && url !== null) return { ok: true, issue_url: url, error: null, deduped: false, retry_after: null }
+  if (raw === 'already_sent' && url !== null) return { ok: true, issue_url: url, error: null, deduped: true, retry_after: null }
   const known = ['already_sent', 'en_cours', 'github_indisponible', 'base_indisponible',
     'corps_trop_volumineux', 'invalid_json', 'invalid_uuid', 'invalid_kind',
     'invalid_title', 'invalid_body', 'consentement_requis', 'trop_de_demandes']
-  const error = known.indexOf(raw) >= 0 ? raw : (code === 0 ? 'reseau_indisponible' : 'refus_' + String(code))
-  return { ok: false, issue_url: null, error: error, deduped: false }
+  // A token the server no longer accepts (revoked from the web, expired) is a session to reconnect, not an opaque « refus_401 ».
+  const refused = code === 401 || code === 403 ? 'reconnexion_requise' : 'refus_' + String(code)
+  const error = known.indexOf(raw) >= 0 ? raw : (code === 0 ? 'reseau_indisponible' : refused)
+  return { ok: false, issue_url: null, error: error, deduped: false, retry_after: wait }
 }
 
 /** Lit la réponse d'un service HTTP hôte ou d'un `fetch` standard. Pur. */
@@ -11268,6 +11281,101 @@ const kbFeedbackPost = async (url, token, report) => {
   return { status: res.status, text: text }
 }
 
+/** Codes that a second attempt cannot change: the relay refused the CONTENT of the report. Everything else (service down, no network,
+ *  a session to reconnect, a rate limit, a 5xx) may succeed later, so the report stays in the outbox and leaves again. */
+const KB_FEEDBACK_PERMANENT = ['corps_trop_volumineux', 'invalid_json', 'invalid_uuid', 'invalid_kind', 'invalid_title', 'invalid_body',
+  'consentement_requis', 'uuid_indisponible', 'rapport_incomplet']
+const kbFeedbackRetryable = (error) => {
+  const code = String(error === undefined || error === null ? '' : error)
+  if (KB_FEEDBACK_PERMANENT.indexOf(code) >= 0) return false
+  const refus = /^refus_(\d{3})$/.exec(code)
+  return refus === null || Number(refus[1]) >= 500
+}
+const KB_FEEDBACK_SAME_MS = 24 * 3600 * 1000       // an identical report within a day is the same report
+const KB_FEEDBACK_RETRY_MS = 14 * 24 * 3600 * 1000  // a failed report is retried for two weeks
+const KB_FEEDBACK_FLUSH_MAX = 3                     // older failed reports resent after one success
+
+/** The Kybernos set's own version: the VERSION file `scripts/paquet.mjs` writes at the root of every archive (two levels above
+ *  this bundle). A value that is not a semver is refused, never invented. Pure: the path and the reader are given. */
+const kbFeedbackSuiteVersion = (path, read) => {
+  try {
+    const v = String(read(path, 'utf8')).trim()
+    return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(v) ? v : null
+  } catch (e) { return null }
+}
+
+/** The DSH version: `DSH_VERSION` when the host sets it, else the version of the `@deepseek-ai/dsh` package this process was started from. */
+const kbFeedbackDshVersion = () => {
+  const fromEnv = (typeof process !== 'undefined' && process.env !== undefined) ? str(process.env.DSH_VERSION) : null
+  if (fromEnv !== null && fromEnv.trim() !== '') return fromEnv.trim()
+  try {
+    let dir = dirname(realpathSync(process.argv[1]))
+    for (let i = 0; i < 8; i++) {
+      const file = nodePathJoin(dir, 'package.json')
+      if (existsSync(file)) {
+        const pkg = JSON.parse(readFileSync(file, 'utf8'))
+        if (pkg !== null && pkg.name === '@deepseek-ai/dsh' && typeof pkg.version === 'string') return pkg.version
+      }
+      const up = dirname(dir)
+      if (up === dir) break
+      dir = up
+    }
+  } catch (e) { /* not started from a package: the version stays unknown, never made up */ }
+  return null
+}
+
+/** One POST to the relay, whatever goes wrong: a verdict, never an exception. `net` = the network (or the runtime) failed. */
+const kbFeedbackSend = async (api, token, report) => {
+  try {
+    const read = kbFeedbackReadHttp(await kbFeedbackPost(String(api).replace(/\/+$/, '') + '/v1/feedback', token, report))
+    return Object.assign({ net: false }, kbFeedbackVerdict(read.status, read.text))
+  } catch (e) {
+    return { net: true, ok: false, issue_url: null, error: 'envoi_indisponible', deduped: false }
+  }
+}
+
+/** The outbox holds the RAW text of what a person wrote (it may contain a secret they pasted): only they read it. */
+const kbFeedbackWriteRecord = (file, record) => {
+  try { writeFileSync(file, JSON.stringify(record, null, 2) + '\n', { mode: 0o600 }) } catch (e) { return }
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic filesystem */ }
+}
+const kbFeedbackReadOutbox = (dir) => {
+  const out = []
+  let names = []
+  try { names = readdirSync(dir) } catch (e) { return out }
+  for (const name of names) {
+    if (name.endsWith('.json') !== true) continue
+    const file = joinPath(dir, name)
+    try {
+      const record = JSON.parse(readFileSync(file, 'utf8'))
+      if (record !== null && typeof record === 'object' && record.report !== null && typeof record.report === 'object') out.push({ file: file, record: record })
+    } catch (e) { /* an unreadable trace is left alone */ }
+  }
+  return out
+}
+const kbFeedbackAge = (record) => {
+  const t = Date.parse(String(record.created_at))
+  return Number.isFinite(t) ? Date.now() - t : Infinity
+}
+
+/** After a success: failed reports of the last two weeks leave again under their own id (the relay deduplicates on it). Best effort. */
+const kbFeedbackFlush = async (dir, api, token, exceptUuid) => {
+  const pending = kbFeedbackReadOutbox(dir)
+    .filter((x) => x.record.status === 'echec' && kbFeedbackRetryable(x.record.error) && x.record.report.uuid !== exceptUuid
+      && kbFeedbackAge(x.record) < KB_FEEDBACK_RETRY_MS && !(Number(x.record.retry_at) > Date.now()))
+    .sort((x, y) => String(x.record.created_at).localeCompare(String(y.record.created_at)))
+    .slice(0, KB_FEEDBACK_FLUSH_MAX)
+  for (const item of pending) {
+    const verdict = await kbFeedbackSend(api, token, item.record.report)
+    item.record.status = verdict.ok ? 'envoye' : 'echec'
+    item.record.issue_url = verdict.issue_url
+    item.record.error = verdict.error
+    item.record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
+    kbFeedbackWriteRecord(item.file, item.record)
+    if (verdict.ok !== true) break          // the service is down again: do not hammer it
+  }
+}
+
 /** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. */
 const kbFeedbackExecute = async (args) => {
   const dsh = dshHomeSync()
@@ -11276,60 +11384,94 @@ const kbFeedbackExecute = async (args) => {
   const report = kbFeedbackReport(args, {
     uuid: typeof randomUUID === 'function' ? randomUUID() : null,
     os: osLabel,
-    dsh: (typeof process !== 'undefined' && process.env !== undefined) ? str(process.env.DSH_VERSION) : null,
-    revision: null,
+    dsh: kbFeedbackDshVersion(),
+    revision: kbFeedbackSuiteVersion(nodePathJoin(dirname(fileURLToPath(import.meta.url)), '..', '..', 'VERSION'), readFileSync),
     session_id: null,
   })
+  const asked = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+  const truncated = String(asked.body === undefined || asked.body === null ? '' : asked.body).trim().length > KB_FEEDBACK_BODY_MAX
   const mailto = kbFeedbackMailto(report)
-  const fail = (code) => ({ ok: false, error: code, issue_url: null, deduped: false,
+  const fail = (code) => ({ ok: false, error: code, issue_url: null, deduped: false, truncated: truncated,
     mailto: mailto, report: report, outbox_file: null })
   if (report.uuid === null) return fail('uuid_indisponible')
   if (report.title === '' || report.body === '') return fail('rapport_incomplet')
 
   const dir = kbFeedbackOutboxDir(dsh)
-  const file = joinPath(dir, String(report.uuid) + '.json')
-  const record = { created_at: nowIso(), status: 'en_attente', issue_url: null, error: null, report: report }
-  const writeRecord = () => { try { writeFileSync(file, JSON.stringify(record, null, 2) + '\n') } catch (e) { /* trace = bonus */ } }
-  try { mkdirSync(dir, { recursive: true }) } catch (e) { /* deja la */ }
-  writeRecord()
+  try { mkdirSync(dir, { recursive: true, mode: 0o700 }) } catch (e) { /* deja la */ }
+  try { chmodSync(dir, 0o700) } catch (e) { /* not ours, or an exotic filesystem */ }
+
+  // The same report again (an agent that retries, a double click) is the SAME report: a sent one is not sent twice, a failed one
+  // is posted again under its first id, so the relay deduplicates it and the outbox keeps one record, not two.
+  const same = kbFeedbackReadOutbox(dir).filter((x) => x.record.report.kind === report.kind && x.record.report.title === report.title
+    && x.record.report.body === report.body && kbFeedbackAge(x.record) < KB_FEEDBACK_SAME_MS
+    && (x.record.status === 'envoye' || kbFeedbackRetryable(x.record.error) || x.record.status === 'en_attente'))
+    .sort((x, y) => String(y.record.created_at).localeCompare(String(x.record.created_at)))[0]
+  if (same !== undefined && same.record.status === 'envoye' && typeof same.record.issue_url === 'string') {
+    return { ok: true, error: null, issue_url: same.record.issue_url, deduped: true, truncated: truncated,
+      mailto: mailto, report: same.record.report, outbox_file: same.file }
+  }
+  if (same !== undefined && Number(same.record.retry_at) > Date.now()) {
+    // Asked again before the relay lets go of this report's id: say so without a round trip.
+    return { ok: false, error: 'en_cours', issue_url: null, deduped: false, truncated: truncated, retry_after: Math.ceil((Number(same.record.retry_at) - Date.now()) / 1000),
+      mailto: mailto, report: same.record.report, outbox_file: same.file }
+  }
+  if (same !== undefined) report.uuid = same.record.report.uuid
+  const file = same !== undefined ? same.file : joinPath(dir, String(report.uuid) + '.json')
+  const record = { created_at: same !== undefined ? same.record.created_at : nowIso(), status: 'en_attente', issue_url: null, error: null, report: report }
+  kbFeedbackWriteRecord(file, record)
 
   const state = kbFeedbackCloudState(dsh)
   const token = state !== null && typeof state.token === 'string' ? state.token : ''
   if (token === '') {
-    record.status = 'echec'; record.error = 'non_connecte'; writeRecord()
-    return { ok: false, error: 'non_connecte', issue_url: null, deduped: false,
+    record.status = 'echec'; record.error = 'non_connecte'; kbFeedbackWriteRecord(file, record)
+    return { ok: false, error: 'non_connecte', issue_url: null, deduped: false, truncated: truncated,
       mailto: mailto, report: report, outbox_file: file }
   }
   const api = state !== null && typeof state.api === 'string' && state.api !== '' ? state.api : KB_FEEDBACK_API_DEFAULT
-  let read = { status: 0, text: '' }
-  try {
-    read = kbFeedbackReadHttp(await kbFeedbackPost(api.replace(/\/+$/, '') + '/v1/feedback', token, report))
-  } catch (e) {
-    record.status = 'echec'; record.error = 'envoi_indisponible'; writeRecord()
-    return { ok: false, error: 'envoi_indisponible', issue_url: null, deduped: false,
-      mailto: mailto, report: report, outbox_file: file }
-  }
-  const verdict = kbFeedbackVerdict(read.status, read.text)
+  const verdict = await kbFeedbackSend(api, token, report)
   record.status = verdict.ok ? 'envoye' : 'echec'
   record.issue_url = verdict.issue_url
   record.error = verdict.error
-  writeRecord()
+  record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
+  kbFeedbackWriteRecord(file, record)
+  if (verdict.ok) { try { await kbFeedbackFlush(dir, api, token, report.uuid) } catch (e) { /* the report itself is already out */ } }
   return { ok: verdict.ok, error: verdict.error, issue_url: verdict.issue_url,
-    deduped: verdict.deduped === true, mailto: mailto, report: report, outbox_file: file }
+    deduped: verdict.deduped === true, truncated: truncated, retry_after: verdict.retry_after === undefined ? null : verdict.retry_after,
+    mailto: mailto, report: report, outbox_file: file }
+}
+
+/** What went wrong, in a sentence the agent can pass on in the user's language. */
+const KB_FEEDBACK_REASONS = {
+  github_indisponible: 'The team\'s issue tracker did not answer.',
+  base_indisponible: 'The Kybernos service could not store the report just now.',
+  en_cours: 'The same report is already being sent.',
+  trop_de_demandes: 'Too many reports were sent in the last hour.',
+  envoi_indisponible: 'This machine could not reach the Kybernos service.',
+  reseau_indisponible: 'This machine could not reach the Kybernos service.',
+  non_connecte: 'This DSH is not connected to a Kybernos account: connect it from the account card in the sidebar.',
+  reconnexion_requise: 'The Kybernos session of this DSH expired or was revoked: reconnect it from the account card in the sidebar.',
+  corps_trop_volumineux: 'The service found the report too large.',
 }
 
 /** Texte que lit l'agent : soit le lien de l'issue, soit le repli prêt à coller. */
 const kbFeedbackToolText = (value) => {
   const v = value !== null && value !== undefined && typeof value === 'object' ? value : {}
+  const cutNote = v.truncated === true ? '\nThe report was longer than ' + String(KB_FEEDBACK_BODY_MAX) + ' characters: its end was cut, say so to the user.' : ''
   if (v.ok === true) {
-    return 'Rapport transmis' + (v.deduped === true ? ' (deja depose)' : '') + ' : ' + String(v.issue_url)
-      + "\nDis-le a l'utilisateur en une phrase avec ce lien, puis propose d'y ajouter une capture ou une precision."
+    return 'Report sent' + (v.deduped === true ? ' (it had already been sent: same report, no second one)' : '') + ': ' + String(v.issue_url)
+      + '\nTell the user in one sentence, with this link, then offer to add a screenshot or a detail on the issue.' + cutNote
   }
-  const out = ['Le relais automatique n\'a pas repondu (' + String(v.error === undefined ? 'erreur' : v.error) + ').',
-    'Le rapport est CONSERVE localement et repartira. Rapport complet a copier :', '', kbFeedbackPlainText(v.report)]
-  if (v.mailto) out.push('', 'Lien mail : ' + String(v.mailto))
-  if (v.outbox_file) out.push('Trace locale : ' + String(v.outbox_file))
-  return out.join('\n')
+  const code = String(v.error === undefined || v.error === null ? 'error' : v.error)
+  const reason = KB_FEEDBACK_REASONS[code] !== undefined ? KB_FEEDBACK_REASONS[code] : 'The service refused the report (' + code + ').'
+  const wait = typeof v.retry_after === 'number' && v.retry_after > 0 ? ' The service asks to wait about ' + String(v.retry_after) + ' seconds before this same report is sent again.' : ''
+  const out = ['The report was NOT sent automatically (' + code + '). ' + reason + wait]
+  out.push(kbFeedbackRetryable(code)
+    ? 'It is KEPT on this machine and is sent again by itself with the next report that goes through. Full report to copy:'
+    : 'It is kept on this machine. Full report to copy:')
+  out.push('', kbFeedbackPlainText(v.report))
+  if (v.mailto) out.push('', 'Mail link: ' + String(v.mailto))
+  if (v.outbox_file) out.push('Local copy: ' + String(v.outbox_file))
+  return out.join('\n') + cutNote
 }
 
 const kbFeedbackRegisterTool = (harnessRef, args) => {
@@ -11353,6 +11495,8 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
           error: { type: 'string' },
           issue_url: { type: 'string' },
           deduped: { type: 'boolean' },
+          truncated: { type: 'boolean' },
+          retry_after: { type: 'number' },
           mailto: { type: 'string' },
           outbox_file: { type: 'string' },
           report: { type: 'json', required: true },
@@ -11366,35 +11510,16 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
   return true
 }
 
-/** Installe la skill `signaler-retour` dans <DSH home>/skills. Sans elle, le bouton
- *  ouvrirait un chat sur une commande inconnue : le plugin pousse donc sa
- *  propre skill au démarrage (idempotent : on n'écrit que si le contenu
- *  diffère, donc une mise à jour du plugin met la skill à jour). */
+/** Puts the skill `signaler-retour` into <DSH home>/skills. Without it the « Send feedback » button would open a chat on an unknown
+ *  command. It goes through the same careful seeding as every skill this plugin ships (seed-skills.mjs): absent → written, ours and
+ *  outdated → refreshed, and a skill the person wrote or edited under that name is NEVER overwritten (the shipped copy used to replace any
+ *  file that differed). True when the skill is there (ours or the person's). */
 const KB_FEEDBACK_SKILL = 'signaler-retour'
-const kbFeedbackSkillSource = () => {
-  try {
-    const here = dirname(fileURLToPath(import.meta.url))
-    // `joinPath(dir, name)` ne prend QUE deux arguments : on imbrique.
-    const candidates = [
-      joinPath(joinPath(joinPath(dirname(here), 'skills'), KB_FEEDBACK_SKILL), 'SKILL.md'),
-      joinPath(joinPath(joinPath(here, 'skills'), KB_FEEDBACK_SKILL), 'SKILL.md'),
-    ]
-    for (let i = 0; i < candidates.length; i++) {
-      try { if (existsSync(candidates[i]) === true) return readFileSync(candidates[i], 'utf8') } catch (e) { /* suivant */ }
-    }
-  } catch (e) { /* import.meta indisponible */ }
-  return null
-}
 const kbFeedbackEnsureSkill = (dsh) => {
-  const text = kbFeedbackSkillSource()
-  if (text === null || typeof text !== 'string' || text.trim() === '') return false
-  const dir = joinPath(joinPath(String(dsh), 'skills'), KB_FEEDBACK_SKILL)
-  const file = joinPath(dir, 'SKILL.md')
-  try { if (readFileSync(file, 'utf8') === text) return true } catch (e) { /* absente */ }
   try {
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(file, text)
-    return true
+    const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
+    const r = seedSkills({ home: String(dsh), sourceDir, names: [KB_FEEDBACK_SKILL] })[0]
+    return r !== undefined && (r.action === 'created' || r.action === 'current' || r.action === 'updated' || r.action === 'kept')
   } catch (e) { return false }
 }
 
@@ -11533,4 +11658,6 @@ export {
     kbFeedbackOutboxDir,
     kbFeedbackExecute,
     kbFeedbackEnsureSkill,
+    kbFeedbackSuiteVersion,
+    kbFeedbackToolText,
 }

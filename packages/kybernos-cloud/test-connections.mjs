@@ -54,6 +54,7 @@ const KEY = 'sk-live-THIS-IS-AN-API-KEY-9876543210'
   assert.deepEqual(f(413, null), { error: 'too_large' })
   assert.deepEqual(f(422, { error: 'no_managed_credentials' }), { error: 'needs_api_key' })
   assert.deepEqual(f(422, { error: 'other' }), { error: 'bad_request' })
+  assert.deepEqual(f(422, { error: 'connection_failed', message: 'SECRET ' + KEY }), { error: 'connection_failed' })
   assert.deepEqual(f(400, { error: 'redirect_uri_not_allowed' }), { error: 'bad_request' })
   assert.deepEqual(f(429, { error: 'rate_limited' }), { error: 'too_many_requests' })
   assert.deepEqual(f(503, { error: 'connections_disabled' }), { error: 'connections_disabled' })

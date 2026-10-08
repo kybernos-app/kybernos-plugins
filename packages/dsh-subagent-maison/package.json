@@ -1,0 +1,15 @@
+{
+  "name": "@local/dsh-subagent-maison",
+  "version": "0.1.0",
+  "description": "Kybernos agent connectors: DSH subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes. Loaded by name from the profile patch; turned on from Settings > Workers.",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./opencode": "./dsh-subagent-opencode/index.js",
+    "./gemini": "./dsh-subagent-gemini/index.js",
+    "./qwen": "./dsh-subagent-qwen/index.js",
+    "./hermes": "./dsh-subagent-hermes/index.js",
+    "./package.json": "./package.json"
+  }
+}

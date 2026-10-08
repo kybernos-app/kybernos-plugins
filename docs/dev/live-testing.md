@@ -524,6 +524,25 @@ it by itself (hot reload, no restart), tests it, switches it off and on, renames
 run against 127.0.0.1:3080** unless `--allow-real` (it writes the profile and the `.env`). Exit 0 / 1 / 3
 (inconclusive).
 
+## The Workers page: `scripts/test-workers-gui.mjs` and `scripts/check-workers-live.mjs`
+
+Two checks, two jobs. `test-workers-gui.mjs` plays the **real client** in Chromium against the **real host routes** over a faked
+world (binaries, sign-in, git, installer and credentials store are toggles), so install, activation, key and policy flows run
+without touching anything. It needs Playwright and React 18 UMD builds, which this repo does not install: point
+`KB_BENCH_DEPS` at a folder whose `node_modules` holds `playwright`, `react@18` and `react-dom@18` (symlinks are enough), and
+`KB_CHROMIUM` at a browser when Playwright's own is not downloaded. Without them it exits 0 "SKIPPED".
+
+```bash
+KB_BENCH_DEPS=/some/dir KB_CHROMIUM=/path/to/chromium node scripts/test-workers-gui.mjs --shots /tmp/shots
+source scripts/sandbox/env.sh && node scripts/check-workers-live.mjs --shots /tmp/shots   # the real GUI, on a sandbox instance
+```
+
+`check-workers-live.mjs` opens Settings → Workers in the sandbox, with the real programs of the machine: seven rows, logos, the
+columns lining up, *Check all* (spends nothing), the key field (and whether the engine offers the credentials service), the
+guide from the Suite's help card, Escape closing the guide and not Settings. It **never installs, never types a key, never saves
+a policy** — the install button is only ever clicked in the faked world of the first script. The sandbox has none of the
+user's credentials, so every agent that needs a sign-in reads "To connect" there: that is the expected result.
+
 ## Kybernos connections: `scripts/check-connections-live.mjs`
 
 ```bash

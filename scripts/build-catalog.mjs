@@ -51,7 +51,8 @@ const FICHE = {
   'dsh-media-player': ['create', 'Lecteur audio et vidéo dans la barre latérale.', 'Audio and video player in the sidebar.'],
   'kybernos-composio': ['connect', 'Des centaines de connecteurs en cartes prêtes pour l’agent.', 'Hundreds of connectors as ready-made cards for the agent.'],
   'kybernos-computers': ['connect', 'Ordinateurs cloud pour les agents (votre clé E2B).', 'Cloud computers for agents (your E2B key).'],
-  'kybernos-workers': ['connect', 'État vérifié de Claude Code, Codex et ZCode, et exposition au lead.', 'Verified state of Claude Code, Codex and ZCode, and exposure to the lead.'],
+  'dsh-subagent-maison': ['connect', 'Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.', 'The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on.'],
+  'kybernos-workers': ['connect', 'Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.', 'Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode.'],
   'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
   'kybernos-memory': ['cloud', 'La page Memory & Lessons learned : mémoire du compte et leçons par kyber, filtres, interrupteurs.', 'The Memory & Lessons learned page: account memory and lessons per kyber, filters, on/off switches.']
 }
@@ -63,16 +64,16 @@ const TITRES = {
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto routing',
   'kybernos-flow': 'Flow', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
-  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers',
+  'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes'
 }
 const GLYPHES = {
-  'kybernos-plugin': 'cube', 'kybernos-hub': 'plug', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
+  'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
   'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
   'kybernos-modeleur': 'box3d', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
-  'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain', 'kybernos-atlas': 'route', 'kybernos-changes': 'flow'
+  'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
+  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch'
 }
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written

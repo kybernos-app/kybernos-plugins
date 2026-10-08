@@ -19,11 +19,14 @@ export const TEAM_TUNING = {
 /** Which team workspace the plugin talks about, and whether the feature exists for this account. */
 export const teamWorkspace = (state, activeId) => {
   if (state === null || state === undefined || typeof state.token !== 'string' || state.token === '') return { available: false, reason: 'non_connecte' }
-  const plan = String(state.user !== null && state.user !== undefined && state.user.plan !== undefined ? state.user.plan : '').toLowerCase()
   const spaces = Array.isArray(state.workspaces) ? state.workspaces : []
   const space = spaces.find((w) => w !== null && typeof w === 'object' && w.id === activeId)
+  // The ACTIVE space's own plan (read from the server) decides. The account's word (`user.plan`) says « team » as soon as the person is in
+  // ANY team, so it is only the fallback when the space's plan was not read; and a personal space is never a team space.
+  const sp = state.space_plan !== null && typeof state.space_plan === 'object' && state.space_plan.workspace_id === activeId ? state.space_plan : null
+  const plan = String(sp !== null ? sp.key : (state.user !== null && state.user !== undefined && state.user.plan !== undefined ? state.user.plan : '')).toLowerCase()
   if (space === undefined || typeof activeId !== 'string' || activeId === '') return { available: false, reason: 'aucun_espace', plan }
-  if (plan.indexOf('team') !== 0) return { available: false, reason: 'offre_requise', plan, workspaceId: activeId, workspaceName: String(space.name || '') }
+  if (space.personal === true || plan.indexOf('team') !== 0) return { available: false, reason: 'offre_requise', plan, workspaceId: activeId, workspaceName: String(space.name || '') }
   return { available: true, reason: null, plan, workspaceId: activeId, workspaceName: String(space.name || '') }
 }
 

@@ -133,6 +133,7 @@ const publicState = (state) => ({
   // premier espace (le perso, créé à la connexion) sans rien écrire : un défaut
   // dérivé n'est pas un choix, et l'écrire ferait croire à une décision.
   active_workspace_id: espaceActif(state),
+  ...(spacePlanView(state) !== null ? { space_plan: spacePlanView(state) } : {}),
   web_url: resolveWeb(),
   server: { id: server().profile.id, name: server().profile.name },
   device_label: state.device_label !== undefined ? state.device_label : null,
@@ -153,16 +154,43 @@ const espaceActif = (state) => {
   return ids.length > 0 ? ids[0] : null
 }
 
+/** The plan of ONE space, as the server's `/plan` of that space answers it. The profile's `plan` (/v1/me) is the ACCOUNT's word and says « team »
+ *  as soon as the person is in any team; the footer, the menu and the team features belong to the ACTIVE space, so they read this instead.
+ *  Never throws and never disconnects: a server that does not answer leaves the account-level word as the fallback. */
+const readSpacePlan = async (state, id) => {
+  if (typeof id !== 'string' || id === '' || isConnected(state) !== true) return null
+  const res = await apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/plan', { token: state.token })
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return null
+  const b = res.body
+  const plan = b.plan !== null && typeof b.plan === 'object' ? b.plan : null
+  const key = plan !== null && typeof plan.key === 'string' && plan.key !== '' ? plan.key : 'none'
+  const name = plan !== null && typeof plan.name === 'string' && plan.name !== '' ? plan.name : null
+  const level = typeof b.level === 'string' && b.level !== '' ? b.level : null
+  // « Solo Studio »: for an individual plan the level is part of what the person bought (Solo, at the Studio level). A team plan's level is a
+  // price band (« 1-5 seats »), not a name, and « Free » / « Free » is just « Free ».
+  const kind = plan !== null && typeof plan.kind === 'string' ? plan.kind : null
+  const label = name === null ? null : (kind === 'individual' && level !== null && level.toLowerCase() !== name.toLowerCase() ? name + ' ' + level : name)
+  const credits = Number(b.credit_balance_credits)
+  return { workspace_id: id, key, name, level, label, status: typeof b.status === 'string' ? b.status : null,
+    credit_balance_credits: Number.isFinite(credits) ? credits : null }
+}
+
+/** What the page may know of it: only when it was read for the space that is active NOW. */
+const spacePlanView = (state) => {
+  const sp = state !== null && state !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? state.space_plan : null
+  return sp !== null && sp.workspace_id === espaceActif(state) ? sp : null
+}
+
 /** Route : choisir l'espace actif. Fail-closed — un id inconnu est REFUSÉ et
  *  jamais écrit : un espace qu'on ne voit pas ne devient pas actif. */
-const setActiveSpace = (req, body) => {
+const setActiveSpace = async (req, body) => {
   const state = readState()
   if (!isConnected(state)) return { ok: false, error: 'non_connecte' }
   const voulu = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id : ''
   if (voulu === '') return { ok: false, error: 'espace_absent' }
   const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
-  const next = Object.assign({}, state, { active_workspace_id: voulu })
+  const next = Object.assign({}, state, { active_workspace_id: voulu, space_plan: await readSpacePlan(state, voulu) })
   writeState(next)
   return { ok: true, state: publicState(next) }
 }
@@ -185,6 +213,7 @@ const createSpace = async (req, body) => {
   const espaces = Array.isArray(state.workspaces) ? state.workspaces.slice() : []
   if (id !== null && espaces.some((w) => w !== null && w.id === id) !== true) espaces.push(brut)
   const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
+  next.space_plan = await readSpacePlan(state, espaceActif(next))
   writeState(next)
   return { ok: true, state: publicState(next) }
 }
@@ -353,6 +382,10 @@ const refreshProfile = async () => {
   const profile = me.status === 200 && me.body !== null && typeof me.body === 'object' ? me.body : null
   const user = mergeUser(state.user, profile)
   const next = Object.assign({}, state, { user, workspaces, refreshed_at: new Date().toISOString() })
+  // The plan of the active space; a read that fails keeps the one already known for the SAME space, never another's.
+  const activeId = espaceActif(next)
+  const spacePlan = await readSpacePlan(state, activeId)
+  next.space_plan = spacePlan !== null ? spacePlan : (state.space_plan !== undefined && state.space_plan !== null && state.space_plan.workspace_id === activeId ? state.space_plan : null)
   writeState(next)
   // Fonctionnalité cloud n°1 : si rien n'a encore été importé (vieux fichier
   // d'état, DSH mis à jour), le refresh importe à son tour. Sinon, la formule
@@ -2976,10 +3009,12 @@ const accountRows = (state) => {
 const memoryListRoute = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  await refreshMemoryCache(state, false)
-  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
   let params = new URLSearchParams('')
   try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* requete sans query */ }
+  // `fresh=1` is the page's own « look again » (it opens, or the person refreshes): a memory written on the web or by another
+  // device is there at once. Without it the 60 s cache serves paging and filters, which must not call the server each time.
+  await refreshMemoryCache(state, params.get('fresh') === '1')
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
   const limit = intParam(params.get('limit'), 25, 1, 200)
   const offset = intParam(params.get('offset'), 0, 0, 1000000)
   const show = ['pinned', 'sent'].indexOf(params.get('show')) >= 0 ? params.get('show') : 'all'

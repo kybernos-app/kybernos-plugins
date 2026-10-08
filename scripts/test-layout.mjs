@@ -12,8 +12,15 @@ let echecs = 0
 let total = 0
 const verifie = (nom, ok, detail = '') => { total++; if (ok) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail ? ' — ' + detail : '')) } }
 
-const bundles = readdirSync(join(REPO, BASE_BUNDLES)).filter((d) => statSync(join(REPO, BASE_BUNDLES, d)).isDirectory())
-verifie('every bundle has a package.json', bundles.every((d) => existsSync(join(REPO, BASE_BUNDLES, d, 'package.json'))))
+const dossiers = readdirSync(join(REPO, BASE_BUNDLES)).filter((d) => statSync(join(REPO, BASE_BUNDLES, d)).isDirectory())
+const aPackageJson = (...chemin) => existsSync(join(REPO, BASE_BUNDLES, ...chemin, 'package.json'))
+const sousDossiers = (d) => readdirSync(join(REPO, BASE_BUNDLES, d)).filter((f) => statSync(join(REPO, BASE_BUNDLES, d, f)).isDirectory())
+// A container (dsh-subagent-maison: one shared core and one package per provider) has no package.json of
+// its own; the packages nested in it do. Everything else directly under packages/ is a bundle.
+const conteneurs = dossiers.filter((d) => !aPackageJson(d) && sousDossiers(d).some((f) => aPackageJson(d, f)))
+const bundles = dossiers.filter((d) => !conteneurs.includes(d))
+verifie('every bundle has a package.json', bundles.every((d) => aPackageJson(d)), bundles.filter((d) => !aPackageJson(d)).join(', '))
+verifie('every package nested in a container has a package.json', conteneurs.every((d) => sousDossiers(d).every((f) => aPackageJson(d, f))), conteneurs.flatMap((d) => sousDossiers(d).filter((f) => !aPackageJson(d, f)).map((f) => d + '/' + f)).join(', '))
 
 // 1. No bundle-level file may take "one level up" as the repo root.
 const suspects = []
@@ -72,6 +79,20 @@ verifie('garde: launchd plist points at an existing garde.mjs', existsSync(join(
   try { attendu = JSON.stringify(catalogueDuDepot(), null, 2) + '\n' } catch (e) { erreur = String(e.message) }
   verifie('the Suite catalogue can be built from the repo (every bundle has a family and a promise)', attendu !== null, erreur)
   verifie('packages/kybernos-hub/catalog.json is up to date (node scripts/build-catalog.mjs)', attendu !== null && existsSync(FICHIER_CATALOGUE) && readFileSync(FICHIER_CATALOGUE, 'utf8') === attendu)
+}
+
+// 7. every module of the Suite draws a glyph of its own, and the hub knows how to draw it: two cards with the same
+//    glyph look identical side by side (« not every plugin has an icon »), and an unknown name falls back to the cube.
+{
+  const catalogue = JSON.parse(readFileSync(join(REPO, BASE_BUNDLES, 'kybernos-hub', 'catalog.json'), 'utf8'))
+  const client = readFileSync(join(REPO, BASE_BUNDLES, 'kybernos-hub', 'client.js'), 'utf8')
+  const dessins = client.slice(client.indexOf('const GLYPHES = {'), client.indexOf('const ICONES = {'))
+  const connus = new Set([...dessins.matchAll(/^\s+(\w+):'/gm)].map((m) => m[1]))
+  const parGlyphe = new Map()
+  for (const m of catalogue.modules) parGlyphe.set(m.glyphe, [...(parGlyphe.get(m.glyphe) || []), m.id || m.dir])
+  const partages = [...parGlyphe].filter(([, l]) => l.length > 1).map(([g, l]) => `${g}: ${l.join(' + ')}`)
+  verifie('every Suite module has a glyph the hub can draw', catalogue.modules.every((m) => connus.has(m.glyphe)), catalogue.modules.filter((m) => !connus.has(m.glyphe)).map((m) => `${m.id || m.dir} → ${m.glyphe}`).join(', '))
+  verifie('no two Suite modules share a glyph', partages.length === 0, partages.join(' · '))
 }
 
 console.log(`\nLAYOUT — ${total} checks, ${echecs} failure(s)`)

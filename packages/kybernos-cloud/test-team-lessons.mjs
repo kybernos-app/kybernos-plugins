@@ -28,6 +28,15 @@ assert.equal(teamWorkspace({ token: 'x', workspaces: [{ id: W }] }, W).reason, '
 assert.doesNotThrow(() => teamWorkspace({ token: 'x', workspaces: [null, 3, { id: W }], user: null }, W))
 ok('a Team plan and an active workspace of the list; every other case says why')
 
+// The account's own plan says « team » as soon as the person is in ANY team; the feature belongs to the ACTIVE space.
+const sp = (key, id = W) => ({ workspace_id: id, key: key, name: key, level: null, label: key })
+assert.equal(teamWorkspace(st('team', { workspaces: [{ id: W, name: 'Mine', personal: true }] }), W).reason, 'offre_requise', 'a personal space is never a team space')
+assert.equal(teamWorkspace(st('team', { space_plan: sp('free') }), W).reason, 'offre_requise', 'the active space\'s own plan wins over the account\'s')
+assert.equal(teamWorkspace(st('team', { space_plan: sp('none') }), W).reason, 'offre_requise', 'a team space with no plan yet')
+assert.equal(teamWorkspace(st('free', { space_plan: sp('team') }), W).available, true)
+assert.equal(teamWorkspace(st('team', { space_plan: sp('free', 'w2') }), W).available, true, 'a plan read for another space says nothing about this one')
+ok('the active space decides: personal spaces and spaces without a Team plan are refused, whatever the account says')
+
 console.log('names')
 assert.equal(displayName({ user: { name: '  Sara   M. ', email: 'sara@x.test' } }), 'Sara M.')
 assert.equal(displayName({ user: { name: null, email: 'sara.m@example.test' } }), 'sara.m')

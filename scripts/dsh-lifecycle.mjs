@@ -115,10 +115,59 @@ const nettoyerVerrousOrphelins = () => {
   try { if (existsSync(verrou)) { rmSync(verrou); console.log('  🧹 verrou orphelin retiré (' + verrou + ')') } } catch (e) { /* rien */ }
 }
 
+// Lier un binaire construit dans NOTRE arbre dans le préfixe GLOBAL de npm : c'est ce dossier qui est déjà
+// sur le PATH du testeur, donc son geste (`dsh web`) ne change pas. On ne suppose pas que le PATH y pointe
+// déjà (même piège qu'avant : « moteur posé » suivi de « aucun moteur lisible »). Rend le lien posé, ou null
+// quand npm ne dit pas où est le préfixe. `echouer(message)` interrompt (ou lève) selon l'appelant.
+async function lierDansLePrefixe (vrai, nom, echouer) {
+  const p = await execReel(['npm', 'prefix', '-g'])
+  const prefixe = (p.sortie || '').trim()
+  if (p.code !== 0 || prefixe === '') return null
+  const win = famille() === 'windows'
+  const bin = win ? prefixe : join(prefixe, 'bin')
+  mkdirSync(bin, { recursive: true })
+  const lien = join(bin, win ? nom + '.cmd' : nom)
+  rmSync(lien, { force: true })
+  if (existsSync(vrai) === false) echouer('🔴 le binaire ' + nom + ' n\'est pas là où npm l\'a installé : ' + vrai)
+  if (win) {
+    // Windows : un lien symbolique demande des droits ; un relais qui appelle
+    // le vrai .cmd par chemin ABSOLU marche sans rien supposer.
+    writeFileSync(lien, '@echo off\r\ncall "' + vrai + '" %*\r\n')
+  } else {
+    symlinkSync(vrai, lien)
+  }
+  const sepPath = win ? ';' : ':'
+  const actuel = process.env.PATH || ''
+  if (!actuel.split(sepPath).includes(bin)) process.env.PATH = bin + sepPath + actuel
+  return lien
+}
+
+// DSH installe les plugins d'un profil avec `pnpm` (`spawn pnpm ENOENT` sinon) et le site ne promet que Node et git :
+// sur une machine qui n'a pas pnpm, l'installation posait le moteur puis s'arrêtait au milieu (« pnpm was not found »).
+// On le pose comme le moteur : dans NOTRE arbre (npm), lié dans le préfixe global, jamais plus d'un geste de plus.
+async function assurerPnpm () {
+  const present = await execReel(['pnpm', '--version'], REPO, 30000)
+  if (present.code === 0) return
+  console.log('  ⬇ pnpm n\'est pas sur cette machine (DSH en a besoin pour installer les plugins) : npm le pose …')
+  const dossier = join(dirname(MOTEUR_DIR), 'outils', 'pnpm')
+  mkdirSync(dossier, { recursive: true })
+  writeFileSync(join(dossier, 'package.json'), JSON.stringify({ name: 'kybernos-outils-pnpm', version: '1.0.0', private: true, dependencies: { pnpm: '^11' } }, null, 2) + '\n')
+  const r = await execReel(['npm', 'install', '--no-audit', '--no-fund'], dossier, 600000)
+  const vrai = join(dossier, 'node_modules', '.bin', famille() === 'windows' ? 'pnpm.cmd' : 'pnpm')
+  if (r.code !== 0 || existsSync(vrai) === false) {
+    throw new Error('pnpm manque et npm n\'a pas pu le poser (' + (r.delaiDepasse === true ? 'délai dépassé' : (r.err || r.sortie || 'code ' + r.code).slice(0, 300)) + '). Installe-le toi-même (npm install -g pnpm) puis relance.')
+  }
+  const lien = await lierDansLePrefixe(vrai, 'pnpm', (m) => { throw new Error(m) })
+  const apres = await execReel(['pnpm', '--version'], REPO, 30000)
+  if (apres.code !== 0) throw new Error('pnpm a été posé' + (lien === null ? '' : ' (' + lien + ')') + ' mais ne répond pas : ouvre un NOUVEAU terminal puis relance.')
+  console.log('  ✓ pnpm ' + apres.sortie.trim() + ' posé' + (lien === null ? '' : ' (lié dans ' + lien + ')'))
+}
+
 // install pnpm avec sortie VISIBLE : un échec muet est un échec qu'on
 // confond avec un boot cassé. Le code de sortie est la seule vérité.
 const installerProfil = async () => {
   nettoyerVerrousOrphelins()
+  await assurerPnpm()
   const r = await execReel(['dsh', 'plugin', '--profile', 'web', 'install'], REPO)
   if (r.code !== 0) {
     console.log(r.sortie.slice(0, 800))
@@ -633,30 +682,10 @@ async function installerMoteur (cible, opts = {}) {
   const moteur = join(projet, 'node_modules', '@deepseek-ai', 'dsh')
   if (existsSync(moteur) === false) echouer('🔴 npm n\'a pas posé @deepseek-ai/dsh dans ' + projet)
 
-  // Le binaire est lié dans le préfixe GLOBAL : c'est ce dossier qui est déjà
-  // sur le PATH du testeur, donc son geste (`dsh web`) ne change pas. On ne
-  // suppose pas que le PATH y pointe déjà (même piège qu'avant : « moteur posé »
-  // suivi de « aucun moteur lisible »).
-  const p = await execReel(['npm', 'prefix', '-g'])
-  const prefixe = (p.sortie || '').trim()
-  if (p.code === 0 && prefixe !== '') {
-    const win = famille() === 'windows'
-    const bin = win ? prefixe : join(prefixe, 'bin')
-    mkdirSync(bin, { recursive: true })
-    const vrai = join(projet, 'node_modules', '.bin', win ? 'dsh.cmd' : 'dsh')
-    const lien = join(bin, win ? 'dsh.cmd' : 'dsh')
-    rmSync(lien, { force: true })
-    if (existsSync(vrai) === false) echouer('🔴 le binaire dsh n\'est pas là où npm a installé : ' + vrai)
-    if (win) {
-      // Windows : un lien symbolique demande des droits ; un relais qui appelle
-      // le vrai .cmd par chemin ABSOLU marche sans rien supposer.
-      writeFileSync(lien, '@echo off\r\ncall "' + vrai + '" %*\r\n')
-    } else {
-      symlinkSync(vrai, lien)
-    }
-    const sep = win ? ';' : ':'
-    const actuel = process.env.PATH || ''
-    if (!actuel.split(sep).includes(bin)) process.env.PATH = bin + sep + actuel
+  // Le binaire est lié dans le préfixe GLOBAL (voir `lierDansLePrefixe`).
+  const vrai = join(projet, 'node_modules', '.bin', famille() === 'windows' ? 'dsh.cmd' : 'dsh')
+  const lien = await lierDansLePrefixe(vrai, 'dsh', echouer)
+  if (lien !== null) {
     // Le moteur vient de CHANGER : tout ce qui a été résolu avant (racine des
     // retouches, audit des surfaces) désignait l'ancien arbre.
     RACINE_CACHE = null
