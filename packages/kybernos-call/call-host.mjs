@@ -22,6 +22,8 @@ const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const CONTROL = /[\u0000-\u001f\u007f]/g
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 const LANG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
+const ENGINE_RE = /^[a-z0-9_-]{1,32}$/
+const VOICE_RE = /^[A-Za-z0-9._:() -]{1,100}$/
 
 /**
  * Who a call is with, as the worker will read it (the dispatch metadata of the room). Every field is
@@ -31,6 +33,8 @@ const LANG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
  *   name       the member's name, to speak as, or null
  *   mode       'voice' (no face) unless 'video' was asked
  *   language   'auto' (follow the speaker) or a language code
+ *   voice      the member's voice on the app's voice engine: { engine, voice, lang }, { custom: true } for a
+ *              recording no engine speaks yet, or null (the default voice)
  *   brain      'session' when the answer spoken is the session's own (the host feeds the worker with it),
  *              'voice' when it is the worker's small model (no session, or no feed): `sessionBrain` says
  *              whether this host can feed a call
@@ -42,6 +46,12 @@ export function callMetadata (asked, { sessionBrain = false } = {}) {
   const name = str(a.name) === null ? '' : String(a.name).replace(CONTROL, ' ').trim().slice(0, 60)
   const language = str(a.language) === null ? 'auto' : String(a.language).trim()
   const session = (sessionId !== null && SESSION_RE.test(sessionId)) ? sessionId : null
+  const v = (a.voice !== null && typeof a.voice === 'object') ? a.voice : null
+  let voice = null
+  if (v !== null && v.custom === true) voice = { custom: true }
+  else if (v !== null && str(v.engine) !== null && ENGINE_RE.test(v.engine) && str(v.voice) !== null && VOICE_RE.test(v.voice)) {
+    voice = { engine: v.engine, voice: v.voice, lang: (str(v.lang) !== null && /^[A-Za-z]{2}/.test(v.lang)) ? v.lang.slice(0, 2).toLowerCase() : '' }
+  }
   return {
     sessionId: session,
     kyberId: id(a.kyberId),
@@ -49,6 +59,7 @@ export function callMetadata (asked, { sessionBrain = false } = {}) {
     name: name === '' ? null : name,
     mode: a.mode === 'video' ? 'video' : 'voice',
     language: (language === 'auto' || LANG_RE.test(language)) ? language : 'auto',
+    voice: voice,
     brain: (sessionBrain === true && session !== null) ? 'session' : 'voice'
   }
 }

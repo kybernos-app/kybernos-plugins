@@ -1,8 +1,10 @@
 // kybernos-call: the worker's Python side, through Python's own test runner.
 //   · test_call_meta.py  — who a call is with, what is worth saying aloud, the speech poll. Standard library only.
-//   · test_call_agent.py — who answers (the session or the small model) and the loop that speaks the session's
-//     replies. It needs livekit-agents, so it is skipped where that is not installed (CI); on a machine with the
-//     worker's venv it runs for real:  <venv>/bin/python agent/test_call_agent.py
+//   · test_call_voice.py — which voice a call asks the app's voice engine for, the request, the decoding (PyAV).
+//   · test_call_agent.py — who answers (the session or the small model), the loop that speaks the session's
+//     replies, and the voice adapter against a fake engine. They need livekit-agents / PyAV, so those tests are
+//     skipped where that is not installed (CI); on a machine with the worker's venv they run for real:
+//     <venv>/bin/python agent/test_call_agent.py
 // The whole file is skipped when python3 is not installed.
 //
 //   node packages/kybernos-call/test-agent-meta.mjs
@@ -17,7 +19,7 @@ if (python === undefined) { console.log('kybernos-call agent (python): skipped (
 
 let ran = 0
 let skipped = 0
-for (const file of ['test_call_meta.py', 'test_call_agent.py']) {
+for (const file of ['test_call_meta.py', 'test_call_voice.py', 'test_call_agent.py']) {
   const run = spawnSync(python, ['-B', file], { cwd: agentDir, encoding: 'utf8', env })
   if (run.status !== 0) {
     process.stdout.write(String(run.stdout))

@@ -22,16 +22,18 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-from livekit.agents import Agent, AgentServer, AgentSession, JobContext, StopResponse, cli, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, JobContext, StopResponse, cli, room_io, tts
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import groq, silero
 
 from call_meta import CallMeta, fetch_speech, instructions as build_instructions, parse_job_metadata, speakable, stt_options, utterance_payload
+from host_tts import HostTTS
 from local_tts import LocalSayTTS
 
 AGENT_NAME = "kybernos-appel"
@@ -94,13 +96,35 @@ def _inject(meta: CallMeta, text: str) -> None:
         _say("DSH turn unreachable:", exc)
 
 
-def _build_tts():
-    if os.getenv("KYBER_TTS", "say") == "groq":
+def _legacy_tts(kind: str):
+    """The worker's own voices, from before the app's voice engine: macOS `say`, or Groq's (en/ar only)."""
+    if kind == "groq":
         return groq.TTS(
             model=os.getenv("KYBER_GROQ_TTS", "playai-tts"),
             voice=os.getenv("KYBER_GROQ_VOICE", "Celeste-PlayAI"),
         )
     return LocalSayTTS(voice=os.getenv("KYBER_SAY_VOICE", "Thomas"))
+
+
+def _build_tts(meta: CallMeta):
+    """The call's voice: (the TTS handed to the session, the app-engine voice to tell the language to).
+
+    By default the app's own voice engine (the member's voice, the reply's language), with macOS `say`
+    behind it when that engine fails. `KYBER_TTS` still decides for a worker that sets it:
+      (unset), `say`, `app`   the app's voice engine. `say` was the old default, so a livekit.env that
+                              says it keeps working and now speaks the member's voice
+      `groq`                  Groq's voice (English and Arabic only)
+      `legacy`                only the local macOS `say` voice, as before
+    """
+    forced = os.getenv("KYBER_TTS", "")
+    if forced == "groq":
+        return _legacy_tts("groq"), None
+    if forced == "legacy":
+        return _legacy_tts("say"), None
+    engine = HostTTS(HOST, meta)
+    if sys.platform == "darwin":
+        return tts.FallbackAdapter([engine, _legacy_tts("say")]), engine
+    return engine, engine
 
 
 class CallAgent(Agent):
@@ -162,12 +186,14 @@ async def kybernos_appel(ctx: JobContext) -> None:
     # Who this call is with comes from the job that woke us (this worker serves many rooms).
     meta = parse_job_metadata(getattr(ctx.job, "metadata", ""), os.environ)
     _say("call: room", ctx.room.name, "| secrets", SOURCE_ENV, "| session", meta.session_id or "-",
-         "| as", meta.name or "-", "| mode", meta.mode, "| language", meta.language, "| brain", meta.brain)
+         "| as", meta.name or "-", "| mode", meta.mode, "| language", meta.language, "| brain", meta.brain,
+         "| voice", (meta.voice.engine + "::" + meta.voice.voice) if meta.voice and meta.voice.engine else "default")
+    voice, app_voice = _build_tts(meta)
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=groq.STT(model=os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
         llm=groq.LLM(model=os.getenv("KYBER_LLM", "openai/gpt-oss-20b")),
-        tts=_build_tts(),
+        tts=voice,
         # No cloud turn detector / adaptive interruption: a 401 without a cloud key and several
         # seconds lost before the fallback (measured in the spike).
         turn_handling=TurnHandlingOptions(
@@ -191,7 +217,9 @@ async def kybernos_appel(ctx: JobContext) -> None:
         if not getattr(ev, "is_final", False):
             return
         marks.append({"t": round(time.time() - started, 3), "type": "user_transcript", "text": ev.transcript})
-        _say("heard:", repr(ev.transcript))
+        _say("heard:", repr(ev.transcript), getattr(ev, "language", None) or "")
+        if app_voice is not None:
+            app_voice.hear(getattr(ev, "language", None))
         _dump()
         # Off the event loop: the insertion must never delay the speech.
         asyncio.get_event_loop().run_in_executor(None, _inject, meta, ev.transcript)

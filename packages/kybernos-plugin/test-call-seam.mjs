@@ -28,7 +28,7 @@ ok('client.js and index.js have no call code, no call route and no LiveKit SDK r
 
 console.log('the seam')
 const start = client.indexOf('const kbCallSeam = () => {')
-const end = client.indexOf('seam.open({ sessionId: sessionId, kyberId: kyberId, roleId: roleId, name: name, mode: mode })')
+const end = client.indexOf('seam.open({ sessionId: sessionId, kyberId: kyberId, roleId: roleId, name: name, mode: mode, voice: voice })')
 assert.ok(start > 0 && end > start, 'the seam helpers are in client.js')
 const helpers = client.slice(start, client.indexOf('}', client.indexOf('\n      }', end)) + 1)
 const run = (windowObj, extra = {}) => {
@@ -49,8 +49,13 @@ const run = (windowObj, extra = {}) => {
   assert.notEqual(ctx.kbCallSeam(), null)
   ctx.kbOpenCall('m1', 'Alice', 'video')
   assert.equal(calls.length, 1)
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video' })
-  ok('with the bundle, the click opens a call with the current session, the team, the member and the mode')
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', voice: null })
+  ok('with the bundle, the click opens a call with the current session, the team, the member and the mode (no voice chosen: null)')
+  ctx.kbOpenCall('m1', 'Alice', 'voice', { id: 'edge::fr-FR-DeniseNeural', name: 'Denise', custom: false, engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr', engineName: 'Edge' })
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[1].voice)), { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' })
+  ctx.kbOpenCall('m1', 'Alice', 'voice', { id: 'v-123', name: 'My recording', custom: true, engine: null, voice: null, lang: null })
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[2].voice)), { custom: true })
+  ok('the member\'s voice goes with the call: its engine, voice and language, or "a recording" (nothing else of it leaves the card)')
 }
 {
   const calls = []
@@ -66,8 +71,8 @@ const run = (windowObj, extra = {}) => {
 console.log('the buttons')
 assert.equal((client.match(/hasCall: kbCallSeam\(\) !== null/g) ?? []).length, 1)
 assert.equal((client.match(/style: \{ display: r\.hasCall === true \? "" : "none" \} \}, \[h\('button', \{ type: "button", className: "kbm-ico-btn", "aria-label": r\.(voice|video)CallLabel/g) ?? []).length, 2)
-assert.ok(client.includes('callVoice: () => kbOpenCall(id, rs.name, \'voice\')'))
-assert.ok(client.includes('callVideo: () => kbOpenCall(id, rs.name, \'video\')'))
+assert.ok(client.includes('callVoice: () => kbOpenCall(id, rs.name, \'voice\', activeVoice)'))
+assert.ok(client.includes('callVideo: () => kbOpenCall(id, rs.name, \'video\', activeVoice)'))
 ok('both buttons are hidden unless the seam exists, and both call it with their mode')
 
 console.log('\nkybernos core ↔ kybernos-call seam: ' + pass + ' checks')

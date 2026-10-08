@@ -20701,11 +20701,14 @@ function renderFit(canvas, model, cam, opts){
           return (seam !== undefined && seam !== null && typeof seam.open === 'function') ? seam : null
         } catch (e) { return null }
       }
-      const kbOpenCall = (roleId, name, mode) => {
+      // `chosen`: the member's entry of the voice list (engine, voice, lang), or a recording (custom) that no engine speaks yet.
+      const kbOpenCall = (roleId, name, mode, chosen) => {
         const seam = kbCallSeam()
         if (seam === null) return
         const sessionId = (() => { try { return kbCurrentSessionId() } catch (e) { return null } })()
-        seam.open({ sessionId: sessionId, kyberId: kyberId, roleId: roleId, name: name, mode: mode })
+        const voice = (chosen === null || chosen === undefined) ? null
+          : (chosen.custom === true ? { custom: true } : { engine: chosen.engine, voice: chosen.voice, lang: chosen.lang })
+        seam.open({ sessionId: sessionId, kyberId: kyberId, roleId: roleId, name: name, mode: mode, voice: voice })
       }
       // ── modal de voix custom (MediaRecorder / fichier ; échantillon gardé) ──
       // Le host range vraiment l'audio (`/kybernos/voice-sample`) : ce qui manque
@@ -21074,8 +21077,8 @@ function renderFit(canvas, model, cam, opts){
           voiceCallLabel: 'Voice call with ' + rs.name, videoCallLabel: 'Video call with ' + rs.name,
           voiceCallTip: 'Live call · this member joins the room and answers · voice ' + ((activeVoice !== null) ? activeVoice.name : '—'),
           videoCallTip: 'Live call · asks for the face track' + (hasAvatar ? '' : ' · no portrait yet, so voice only'),
-          callVoice: () => kbOpenCall(id, rs.name, 'voice'),
-          callVideo: () => kbOpenCall(id, rs.name, 'video'),
+          callVoice: () => kbOpenCall(id, rs.name, 'voice', activeVoice),
+          callVideo: () => kbOpenCall(id, rs.name, 'video', activeVoice),
           hasCall: kbCallSeam() !== null,
           personaShort: (rs.look !== '' ? '“' + rs.look + '”' : 'No persona yet'),
           onPersona: (e) => { setCastOne(id, e.target.value); patchRole(id, { look: e.target.value }) },

@@ -119,9 +119,9 @@ console.log('kybernos-call: a call, from the first click to hang-up')
   await opening
   assert.equal(e.requests[0].url, '/kybernos-call/status')
   assert.equal(e.requests[1].url, '/kybernos-call/token')
-  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'voice', language: 'auto', identity: 'moi' })
+  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'voice', language: 'auto', voice: null, identity: 'moi' })
   assert.equal(e.requests[1].init.method, 'POST')
-  ok('it asks the host for the status, then for a token carrying the session, the team, the member, the mode and the language')
+  ok('it asks the host for the status, then for a token carrying the session, the team, the member, the mode, the language and the voice')
 
   const room = e.rooms[0]
   assert.deepEqual(room.connected, { url: 'wss://lk.example.test', token: 'JWT' })
@@ -158,6 +158,26 @@ console.log('kybernos-call: a call, from the first click to hang-up')
   assert.equal(room.micStopped, true)
   assert.equal(t.getState(), null)
   ok('hanging up stops the microphone, leaves the room, and closes the panel')
+}
+
+console.log('kybernos-call: the member\'s voice')
+{
+  const e = makeEnv()
+  const t = e.run().__test
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true } })
+  const voice = { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' }
+  await t.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: voice })
+  assert.deepEqual(JSON.parse(e.requests[1].init.body).voice, voice)
+  assert.doesNotMatch(t.getState().note, /recorded voice|voix enregistrée/)
+  ok('the voice picked on the member\'s card goes with the token request')
+
+  const f = makeEnv()
+  const ft = f.run().__test
+  f.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true } })
+  await ft.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: { custom: true } })
+  assert.deepEqual(JSON.parse(f.requests[1].init.body).voice, { custom: true })
+  assert.match(ft.getState().note, /recorded voice: the default voice is used \(cloning is not available yet\)/)
+  ok('a recording given to the member is announced as not spoken yet (the default voice is used), instead of being silently ignored')
 }
 
 console.log('kybernos-call: what goes wrong is said, never invented over')

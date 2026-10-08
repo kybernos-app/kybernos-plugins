@@ -25,7 +25,11 @@ seam does not exist and the two buttons are hidden.
    detecting it when it is `auto`), shows a face only on a `video` call, and POSTs every sentence it heard to
    `/kybernos-call/utterance`, which sends it to THAT call's session (`session/prompt`): a real turn, with the session's model,
    tools and permissions.
-4. **One brain.** With a session behind the call (`brain: session` in the metadata) the worker's small model does NOT answer
+4. **The app's voice.** The worker speaks through the app's own voice engine (`POST /kybernos/tts/speak` of `@local/kybernos`, the one
+   behind the member card's Preview: engines, a voice per language, a fallback chain, a cache), with the voice picked on the
+   member's card and the language of the reply (`agent/call_voice.py`, `agent/host_tts.py`). The m4a it gets back is decoded with
+   PyAV and handed to LiveKit; macOS `say` stays behind it when the engine fails.
+5. **One brain.** With a session behind the call (`brain: session` in the metadata) the worker's small model does NOT answer
    (`StopResponse`). The host listens to the engine's `session/event` stream (`speech-feed.mjs`) and keeps, for the call's room, what
    the session's assistant writes; the worker long-polls `GET /kybernos-call/speech` and speaks it (`speakable()`: code, tables,
    links and markup stay in the thread, the rest is cut at a sentence end under 700 characters). Without a session, or on an
@@ -62,8 +66,9 @@ and call `session/prompt` on `127.0.0.1:$DSH_WEB_PORT`; the same technique as `s
 
 ## Outbound
 
-LiveKit (the room URL in `livekit.env`), and from the worker: Groq (listening, answering, optional TTS) and LiveAvatar (the
-face). Nothing else, and nothing at all until a call starts.
+LiveKit (the room URL in `livekit.env`), and from the worker: Groq (listening, and the small model when there is no session) and
+LiveAvatar (the face). The voice goes through the app's own engine on this machine (`127.0.0.1`), which sends the text to Microsoft
+only if the engine chosen is Edge. Nothing else, and nothing at all until a call starts.
 
 ## Changed while moving
 
@@ -76,6 +81,30 @@ Behaviour is the same, except for what was broken or dead:
 - "Mute me" is a toggle (it only ever muted), and the call clock ticks while the call is live.
 - The unpkg fallback for the SDK is gone (the SDK ships with this bundle, and a call must not load a script from a third party).
 - Host error messages are in English; the panel text is French and English.
+
+## Changed in step 4: the app's voice engine
+
+The worker had its own voices: macOS `say` with one French voice (`Thomas`), or Groq's, which only speaks English and Arabic. So every
+member sounded alike and a reply in Spanish was read with a French accent. Now:
+
+- **The member's voice.** The card's voice (`engine::voice`, with its language) goes with the call (seam `open({ voice })`, token request,
+  dispatch metadata `voice`), and the worker asks the app's engine for it. A call speaks like the card's Preview.
+- **The reply's language.** With the call on `auto`, the reply is spoken in the language the user just spoke (the transcription's own
+  language). The member's voice is kept while it speaks that language (or says it is multilingual, like Edge's `…MultilingualNeural`
+  voices); in another language the engine picks a voice of that language on the same engine, so a French voice does not read Spanish.
+  A call with a named language speaks that language.
+- **A recording is not a voice yet.** A voice made from an uploaded or recorded sample is not spoken by any engine: the call uses the
+  default voice and the panel says so.
+- `KYBER_TTS` in `livekit.env`: unset, `say` (the old default) or `app` use the app's engine; `groq` forces Groq's voice; `legacy` forces
+  the old local `say` voice only.
+- Proved on a real DSH (`scripts/check-call-voice-live.mjs`): the worker's code asks the app's real engine for a French voice, gets real
+  audio, decodes it (a real signal, over a second), then asks for a Spanish reply and the engine picks a Spanish voice. Not proved here:
+  the Edge engine (it sends the sentence to Microsoft's online service; pass `--edge` to try it) and the speech played in a real room.
+
+**Where cloned voices plug in.** A cloned voice has to become a voice of an engine of the core's catalogue (`kbTtsEngines`), next to
+`say`, Piper and Edge. Then the member card lists it, Preview plays it and a call speaks it with no change here. What is not decided is
+the engine itself: a hosted one (ElevenLabs, Cartesia: a key, an upload of the sample, the provider's own consent terms) or a local one
+(Chatterbox, MIT: a GPU or a recent Apple chip, a Python environment, a slower first sentence).
 
 ## Changed in step 3: one brain
 
@@ -97,11 +126,12 @@ what a session does reaches the call's room. What was not proved with real audio
 
 ## Known limits (from reading the code, not yet measured on a live call)
 
-- Every member has the same voice: it still comes from an environment variable (`KYBER_SAY_VOICE`, `KYBER_GROQ_VOICE`); the
-  member's own voice needs a voice engine (not built yet).
 - The client always asks for the language `auto`; there is no setting for it yet.
-- Hearing is multilingual now, speaking is not: the local voice (`say`, `Thomas`) is a French voice and Groq's TTS only does English and
-  Arabic, so a Spanish answer is read with a French accent. A multilingual voice engine is the next step.
+- A reply is spoken sentence by sentence, each one rendered whole by the engine before it plays: the first words wait for the first
+  sentence (about a second with a local engine, more with Edge).
+- Which languages can be spoken depends on the engines the app has: `say` has voices for many languages on a Mac, Piper only the models
+  you installed, Edge a great many (online). A language with no voice falls back to the engine's first voice.
+- Cloned voices do not exist yet (see above); the engines themselves are macOS-first (`say`), the others need their Python helper.
 - The session's answer is spoken in full only up to ~700 characters (a sentence end); the rest is in the thread. Nothing is said while
   a tool runs (the thread shows it); a spoken "one moment" needs a line per language.
 - What you say while the session is still working is queued as a new turn (`mode: queue`), not steered into the running one.
@@ -110,6 +140,6 @@ what a session does reaches the call's room. What was not proved with real audio
 ## Tests
 
 `node packages/kybernos-call/test-host.mjs`, `test-routes.mjs`, `test-client.mjs`, `test-dsh-home.mjs`, `test-agent-process.mjs` (a real child process, Unix only), `test-speech-feed.mjs`, `test-agent-meta.mjs` (the worker's Python
-tests, through `python3`; the LiveKit-facing ones are skipped without the worker's venv: run `<venv>/bin/python agent/test_call_agent.py`). None needs DSH, a browser
+tests: `call_meta`, `call_voice`, the LiveKit-facing worker; through `python3`; the LiveKit-facing ones are skipped without the worker's venv: run `<venv>/bin/python agent/test_call_agent.py`). None needs DSH, a browser
 or the network. A real call needs a microphone and the keys above: run it on the sandbox instance (`scripts/sandbox/`), never
 on the owner's own GUI.

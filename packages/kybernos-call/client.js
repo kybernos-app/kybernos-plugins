@@ -100,7 +100,8 @@ window.__ModuleLoader__.load({
             body: JSON.stringify({
               sessionId: o.sessionId ?? null, kyberId: o.kyberId ?? null, roleId: o.roleId ?? null,
               name: String(o.name ?? ''), mode: o.mode === 'video' ? 'video' : 'voice',
-              language: typeof o.language === 'string' ? o.language : 'auto', identity: 'moi'
+              language: typeof o.language === 'string' ? o.language : 'auto',
+              voice: (o.voice !== null && typeof o.voice === 'object') ? o.voice : null, identity: 'moi'
             })
           })
           token = await r.json()
@@ -140,11 +141,15 @@ window.__ModuleLoader__.load({
           await room.connect(token.url, token.token)
           const mic = await room.localParticipant.setMicrophoneEnabled(true)
           live = { room: room, mic: mic }
+          // A recording given to the member is not spoken by any engine yet: say which voice is used instead.
+          const recorded = (o.voice !== null && typeof o.voice === 'object' && o.voice.custom === true)
+            ? kt(' · voix enregistrée : la voix par défaut est utilisée (le clonage n’existe pas encore)', ' · recorded voice: the default voice is used (cloning is not available yet)')
+            : ''
           patch({
             phase: 'live', startedAt: Date.now(),
-            note: (agent !== null && agent.dispatched === true)
+            note: ((agent !== null && agent.dispatched === true)
               ? (kt('voix ', 'voice ') + String(status.avatar !== null && status.avatar !== undefined ? status.avatar : '') + ' · ' + String(token.room))
-              : kt('personne n’écoute encore de l’autre côté', 'nobody is listening on the other side yet')
+              : kt('personne n’écoute encore de l’autre côté', 'nobody is listening on the other side yet')) + recorded
           })
         } catch (e) {
           patch({ phase: 'error', note: kt('impossible de rejoindre la salle — ', 'could not join the room — ') + messageOf(e) })

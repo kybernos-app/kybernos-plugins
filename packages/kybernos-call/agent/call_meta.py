@@ -28,6 +28,35 @@ _LANG_RE = re.compile(r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$")
 
 
 @dataclass(frozen=True)
+class VoiceChoice:
+    """The voice picked for the member on the app's own voice engine (the card's voice list).
+
+    `custom` is a recording the member was given: no engine speaks it yet, so the default voice is used.
+    """
+    engine: str = ""
+    voice: str = ""
+    lang: str = ""
+    custom: bool = False
+
+
+_ENGINE_RE = re.compile(r"^[a-z0-9_-]{1,32}$")
+_VOICE_RE = re.compile(r"^[A-Za-z0-9._:() -]{1,100}$")
+
+
+def _voice(raw: object) -> VoiceChoice | None:
+    if not isinstance(raw, dict):
+        return None
+    if raw.get("custom") is True:
+        return VoiceChoice(custom=True)
+    engine, voice, lang = raw.get("engine"), raw.get("voice"), raw.get("lang")
+    if not (isinstance(engine, str) and _ENGINE_RE.match(engine)):
+        return None
+    if not (isinstance(voice, str) and _VOICE_RE.match(voice)):
+        return None
+    return VoiceChoice(engine, voice, lang[:2].lower() if isinstance(lang, str) and re.match(r"^[A-Za-z]{2}", lang) else "")
+
+
+@dataclass(frozen=True)
 class CallMeta:
     session_id: str = ""   # the session the words are sent to ("" = nowhere: a voice-only chat)
     kyber_id: str = ""     # the team
@@ -36,6 +65,7 @@ class CallMeta:
     mode: str = "voice"    # "voice" (no face) or "video" (a face when a provider is set)
     language: str = "auto" # "auto" (follow the speaker) or a language code
     brain: str = "voice"   # "session": speak what the session's assistant writes; "voice": the small model answers
+    voice: VoiceChoice | None = None  # the member's voice on the app's voice engine; None = the default voice
 
 
 def _text(value: object, limit: int) -> str:
@@ -74,6 +104,7 @@ def parse_job_metadata(raw: str | None, env: Mapping[str, str] | None = None) ->
         mode=mode,
         language=language,
         brain="session" if data.get("brain") == "session" and _text(data.get("sessionId"), 120) else "voice",
+        voice=_voice(data.get("voice")),
     )
 
 
