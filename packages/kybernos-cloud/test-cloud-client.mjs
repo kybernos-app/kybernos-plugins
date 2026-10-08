@@ -89,6 +89,19 @@ for (const old of ["wsNew: 'New workspace'", "wsNewTitle: 'Create a workspace'",
   assert.ok(!clientSource.includes(old), 'ancien libellé « workspace » à la création: ' + old)
 }
 sok('Menu du compte : une seule entrée pour la console d équipe, création = Team (fr/en)')
+// Vocabulary (decided: the product speaks of TEAMS): no person-facing string of the cloud card says « workspace » / « espace », and the personal one is shown as « Personal » / « Personnel ».
+// The dictionaries are the only place such strings live; code, routes and comments keep the technical word.
+for (const [lang, block] of [['en', enBlock], ['fr', frBlock]]) {
+  const values = [...block.matchAll(/^ {8}[A-Za-z][A-Za-z0-9_]*: '((?:[^'\\]|\\.)*)'/gm)].map((m) => m[1])
+  const bad = values.filter((v) => /workspace|espace/i.test(v))
+  assert.deepEqual(bad, [], 'mot « workspace » / « espace » dans une chaine visible (' + lang + ') : on dit Team / équipe')
+}
+assert.ok(/wsPersonal: 'Personal'/.test(enBlock) && /wsPersonal: 'Personnel'/.test(frBlock), 'l espace personnel s affiche Personal / Personnel')
+assert.ok(clientSource.includes('nomAffiche(courant)') && clientSource.includes('nomAffiche(w)'), 'la carte et la liste affichent le nom via nomAffiche (Personal pour l espace personnel)')
+sok('vocabulaire Team : aucune chaine visible ne dit workspace / espace, l espace personnel = Personal / Personnel')
+// A refused creation always says so (with the server's code), and keeps the hosted page as an extra: never a dialog that silently does nothing.
+assert.ok(clientSource.includes("setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number'"), 'la creation refusee dit pourquoi (code serveur)')
+sok('creation d une equipe refusee : une phrase avec le code, la page hebergee reste proposee')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null
@@ -336,7 +349,7 @@ const htmlConnecte = htmlDe(racineEl)
 // The unified card (04/10): ONE card carries the active space, "who · plan", the phone and the bell; a click opens the
 // account menu. No gear inside the row (DSH shows its own right beside it) and no menu until it is opened.
 assert.ok(htmlConnecte.includes('data-kb="workspace-card"'), 'la carte unifiee est la (un clic ouvre le menu)')
-assert.ok(htmlConnecte.includes('kbfp-cardname">My workspace<'), 'la carte montre l espace ACTIF')
+assert.ok(htmlConnecte.includes('kbfp-cardname">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
 assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>MW<'), 'tuile d initiales de l espace')
 assert.ok(htmlConnecte.includes('dev · free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
 assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')

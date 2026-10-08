@@ -145,7 +145,7 @@ export async function clickText(page, text, opts = {}) {
  *  sandbox) has no account, so the dialog opens from the settings trigger of the sidebar instead. */
 export async function openSettings(page, opts = {}) {
   const minCells = opts.minCells === undefined ? 3 : opts.minCells
-  const chipJs = `(() => { const e = [...document.querySelectorAll('button')].find((x) => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`
+  const chipJs = `(() => { const e = [...document.querySelectorAll('button')].find((x) => ['Team', 'My workspace'].includes(x.getAttribute('aria-label')) || /Switch team|Switch workspace|^MW|^PE/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`
   const click = async (x, y) => { for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x, y, button: 'left', clickCount: 1 }) }
   for (let attempt = 1; attempt <= (opts.tries || 4); attempt += 1) {
     await waitFor(page, `document.readyState === 'complete'`, 15000)

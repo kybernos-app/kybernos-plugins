@@ -58,18 +58,19 @@ window.__ModuleLoader__.load({
         workspaces: 'Teams',
         kybers: 'kybers',
         // ── l'espace : la rangée du pied devient un sélecteur, et sa page ──
-        spaceTitle: 'Espace de travail',
-        wsSwitchTitle: 'Changer d\'espace',
+        spaceTitle: 'Équipe',
+        wsSwitchTitle: 'Changer d\'équipe',
         wsSwitchSub: 'switch',
-        wsPageTitle: 'Mon espace',
-        wsPrev: 'Espace précédent',
-        wsNext: 'Espace suivant',
+        wsPageTitle: 'Équipe',
+        wsPersonal: 'Personnel',
+        wsPrev: 'Équipe précédente',
+        wsNext: 'Équipe suivante',
         wsNew: 'Nouvelle équipe',
         wsNewTitle: 'Créer une équipe',
         wsNewName: 'Nom de l\'équipe',
         wsNewCreate: 'Créer',
         wsNewHosted: 'Créer dans Kybernos',
-        wsNewErr: 'La création a été refusée par le serveur.',
+        wsNewErr: 'Le serveur a refusé de créer l\'équipe.',
         profTitle: 'Profil',
         profCompte: 'Compte',
         profParrain: 'Parrainage',
@@ -100,7 +101,7 @@ window.__ModuleLoader__.load({
         mobTitle: 'Télécharger l\'app mobile',
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
-        wsSettingsTitle: 'Réglage de l\'espace',
+        wsSettingsTitle: 'Réglages d\'équipe',
         wsTabPlan: 'Plan',
         wsTabUsage: 'Usage',
         wsTabPeople: 'People',
@@ -108,12 +109,12 @@ window.__ModuleLoader__.load({
         wsTabSync: 'Synchronisation',
         wsPlanLabel: 'FORMULE ACTUELLE',
         wsPlanPrice: '— par mois',
-        wsPlanSummary: 'Ce que cet espace porte :',
-        wsPlanVisible: 'espaces visibles depuis ce poste',
+        wsPlanSummary: 'Ce que cette équipe porte :',
+        wsPlanVisible: 'équipes visibles depuis ce poste',
         wsViewUsage: 'Voir l\'usage',
         wsUsageTitle: 'Ce que ce poste sait de la consommation',
-        wsUsageNote: 'Le détail (crédits, appels, plafond de l\'espace) vit dans Kybernos : ici on n\'affiche que ce qui est déjà descendu.',
-        wsPeopleTitle: 'Qui travaille dans cet espace',
+        wsUsageNote: 'Le détail (crédits, appels, plafond de l\'équipe) vit dans Kybernos : ici on n\'affiche que ce qui est déjà descendu.',
+        wsPeopleTitle: 'Qui travaille dans cette équipe',
         wsPeopleNote: 'L\'annuaire et les invitations vivent dans Kybernos — DSH ne les lit pas et n\'en invente aucun.',
         wsBillingTitle: 'Paiement et factures',
         wsBillingNote: 'La facturation vit dans Kybernos : rien n\'est modifiable depuis cet écran.',
@@ -123,23 +124,23 @@ window.__ModuleLoader__.load({
         wsKybersMany: 'kybers',
         wsModelsOne: 'modèle',
         wsModelsMany: 'modèles',
-        spaceSwitch: 'Changer d\'espace',
-        spaceActive: 'Espace actif',
+        spaceSwitch: 'Changer d\'équipe',
+        spaceActive: 'Équipe active',
         spaceSetup: 'Réglage de la synchronisation',
         spaceAccount: 'Compte & appareils',
         spaceOpen: 'Ouvrir dans Kybernos',
         spaceMark: 'actif',
-        spaceUnknown: 'Espace inconnu — rien n\'a été changé.',
+        spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
         syncTitle: 'Synchronisation',
         // Fail-closed : tant que le serveur ne sert pas la politique, on le DIT
         // et les interrupteurs restent inertes (un interrupteur qui ne tient
         // rien serait un mensonge).
-        syncNotServed: 'La politique de synchronisation n\'est pas encore servie par le serveur : les interrupteurs sont inactifs. Rien ne sort de cet espace en attendant.',
+        syncNotServed: 'La politique de synchronisation n\'est pas encore servie par le serveur : les interrupteurs sont inactifs. Rien ne sort de cette équipe en attendant.',
         syncPull: 'Recevoir',
         syncPush: 'Envoyer',
         syncOn: 'Activé',
         syncOff: 'Désactivé',
-        syncMemorySpace: 'Mémoire d\'espace',
+        syncMemorySpace: 'Mémoire d\'équipe',
         syncMemorySpaceHint: 'Le savoir commun de l\'équipe — recevoir le descend, envoyer l\'enrichit.',
         syncMemoryKybers: 'Mémoire des kybers',
         syncMemoryKybersHint: 'Le savoir-faire d\'un rôle : une leçon suit le kyber, jamais le projet.',
@@ -233,14 +234,14 @@ window.__ModuleLoader__.load({
         quotaMoreMember: ' Demandez plus de crédits à un propriétaire ou à un admin de {name}.',
         quotaOpenConsole: 'Ouvrir Formule et crédits',
         quotaClose: 'Fermer',
-        quotaWorkspace: 'cet espace',
+        quotaWorkspace: 'cette équipe',
         quotaHours: '{n} heures',
         quotaDays: '{n} jours',
         quotaMinutes: '{n} minutes',
         mfaBlockedShort: 'Second facteur requis',
         mfaBlockedLong: '{name} demande un second facteur à ses membres et vous n\'en avez pas : activez-en un dans votre compte Kybernos (Sécurité), puis rechargez.',
         mfaGraceShort: 'Second facteur d\'ici le {date}',
-        mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'espace vous sera fermé.',
+        mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'équipe vous sera fermée.',
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
         dataNavLabel: 'Données & confidentialité',
@@ -319,18 +320,19 @@ window.__ModuleLoader__.load({
         // vocabulaires pour la même chose.
         workspaces: 'Teams',
         kybers: 'kybers',
-        spaceTitle: 'Workspace',
-        wsSwitchTitle: 'Switch workspace',
+        spaceTitle: 'Team',
+        wsSwitchTitle: 'Switch team',
         wsSwitchSub: 'switch',
-        wsPageTitle: 'My workspace',
-        wsPrev: 'Previous workspace',
-        wsNext: 'Next workspace',
+        wsPageTitle: 'Team',
+        wsPersonal: 'Personal',
+        wsPrev: 'Previous team',
+        wsNext: 'Next team',
         wsNew: 'New team',
         wsNewTitle: 'Create a team',
         wsNewName: 'Team name',
         wsNewCreate: 'Create',
         wsNewHosted: 'Create in Kybernos',
-        wsNewErr: 'The server refused the creation.',
+        wsNewErr: 'The server refused to create the team.',
         profTitle: 'Profile',
         profCompte: 'Account',
         profParrain: 'Referral',
@@ -361,7 +363,7 @@ window.__ModuleLoader__.load({
         mobTitle: 'Get the mobile app',
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
-        wsSettingsTitle: 'Workspace settings',
+        wsSettingsTitle: 'Team settings',
         wsTabPlan: 'Plan',
         wsTabUsage: 'Usage',
         wsTabPeople: 'People',
@@ -369,12 +371,12 @@ window.__ModuleLoader__.load({
         wsTabSync: 'Sync',
         wsPlanLabel: 'CURRENT PLAN',
         wsPlanPrice: '— per month',
-        wsPlanSummary: 'What this workspace holds:',
-        wsPlanVisible: 'workspaces visible from this machine',
+        wsPlanSummary: 'What this team holds:',
+        wsPlanVisible: 'teams visible from this machine',
         wsViewUsage: 'View usage',
         wsUsageTitle: 'What this machine knows about usage',
-        wsUsageNote: 'The detail (credits, calls, workspace cap) lives in Kybernos: only what already came down is shown here.',
-        wsPeopleTitle: 'Who works in this workspace',
+        wsUsageNote: 'The detail (credits, calls, team cap) lives in Kybernos: only what already came down is shown here.',
+        wsPeopleTitle: 'Who works in this team',
         wsPeopleNote: 'The directory and the invites live in Kybernos — DSH does not read them, and invents none.',
         wsBillingTitle: 'Payment and invoices',
         wsBillingNote: 'Billing lives in Kybernos: nothing can be changed from this screen.',
@@ -384,20 +386,20 @@ window.__ModuleLoader__.load({
         wsKybersMany: 'kybers',
         wsModelsOne: 'model',
         wsModelsMany: 'models',
-        spaceSwitch: 'Switch workspace',
-        spaceActive: 'Active workspace',
+        spaceSwitch: 'Switch team',
+        spaceActive: 'Active team',
         spaceSetup: 'Sync settings',
         spaceAccount: 'Account & devices',
         spaceOpen: 'Open in Kybernos',
         spaceMark: 'active',
-        spaceUnknown: 'Unknown workspace — nothing was changed.',
+        spaceUnknown: 'Unknown team — nothing was changed.',
         syncTitle: 'Sync',
-        syncNotServed: 'The server does not serve the sync policy yet: the switches are inactive. Nothing leaves this workspace meanwhile.',
+        syncNotServed: 'The server does not serve the sync policy yet: the switches are inactive. Nothing leaves this team meanwhile.',
         syncPull: 'Receive',
         syncPush: 'Send',
         syncOn: 'On',
         syncOff: 'Off',
-        syncMemorySpace: 'Workspace memory',
+        syncMemorySpace: 'Team memory',
         syncMemorySpaceHint: 'The team\'s shared knowledge — receiving brings it down, sending enriches it.',
         syncMemoryKybers: 'Kyber memory',
         syncMemoryKybersHint: 'Know-how of a role: a lesson follows the kyber, never the project.',
@@ -478,7 +480,7 @@ window.__ModuleLoader__.load({
         menuUpdate: 'Update available',
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
-        menuTeamsSettings: 'Teams settings',
+        menuTeamsSettings: 'Team settings',
         quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
         quotaPaymentAdmin: ' Fix it in Billing.',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
@@ -490,14 +492,14 @@ window.__ModuleLoader__.load({
         quotaMoreMember: ' Ask an owner or admin of {name} for more credits.',
         quotaOpenConsole: 'Open Plan & Credits',
         quotaClose: 'Close',
-        quotaWorkspace: 'this workspace',
+        quotaWorkspace: 'this team',
         quotaHours: '{n} hours',
         quotaDays: '{n} days',
         quotaMinutes: '{n} minutes',
         mfaBlockedShort: 'Second factor required',
         mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
         mfaGraceShort: 'Second factor by {date}',
-        mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the workspace is closed to you.',
+        mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the team is closed to you.',
         dataNavLabel: 'Data & privacy',
         dataLabel: 'Your data',
         dataExportTitle: 'Full data export',
@@ -1081,6 +1083,8 @@ window.__ModuleLoader__.load({
     /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word
      *  (`user.plan`, « team » as soon as the person is in any team) is only the fallback when that read is not there. `free` is
      *  true for a space with no paid plan: the only case that is offered « Upgrade ». Never the raw lowercase key of an API. */
+    // The name a person sees for a workspace: the personal one is « Personal » (the server stores it as « My workspace »), a team keeps its own name.
+    const nomAffiche = (w) => (w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace') ? t('wsPersonal') : (w !== null && typeof w === 'object' && typeof w.name === 'string' ? w.name : ''))
     const planDeEspace = (state, user) => {
       const sp = state !== null && state !== undefined && state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? state.space_plan : null
       const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
@@ -2026,7 +2030,7 @@ window.__ModuleLoader__.load({
                     onClick: () => { void choisir(w && w.id) },
                   },
                   h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
-                  h('span', { className: 'kbs-name' }, (w && w.name) || t('none')),
+                  h('span', { className: 'kbs-name' }, w ? nomAffiche(w) || t('none') : t('none')),
                   h('span', { className: 'kbs-mark' }, on
                     ? t('spaceMark')
                     : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : '')))
@@ -2065,8 +2069,9 @@ window.__ModuleLoader__.load({
             try { res = await callLocal('/space/create', 'POST', { name: propre }) } catch (e) { res = null }
             setBusy(false)
             if (res !== null && res.ok === true) { props.onCreated(); props.onClose(); return }
-            if (res !== null && typeof res.web_url === 'string' && res.web_url !== '') { setHosted(res.web_url); return }
-            setErreur(t('wsNewErr'))
+            // Never a dialog that silently does nothing: the sentence says it was refused (with the server's code when there is one), and the hosted page stays offered.
+            if (res !== null && typeof res.web_url === 'string' && res.web_url !== '') setHosted(res.web_url)
+            setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number' && res.status > 0 ? ' (' + String(res.status) + ')' : ''))
           }
 
           return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
@@ -2173,7 +2178,7 @@ window.__ModuleLoader__.load({
           const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
           const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
           const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-          const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
+          const nomEspace = courant !== null && courant.name ? nomAffiche(courant) : t('spaceTitle')
           const planInfo = planDeEspace(st, user)
           const plan = planInfo.label !== null ? planInfo.label : t('none')
           // The host reports the active server's web address in every connected state; with none, nothing is opened (never a literal host).
@@ -2612,7 +2617,7 @@ window.__ModuleLoader__.load({
             const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-            const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
+            const nomEspace = courant !== null && courant.name ? nomAffiche(courant) : t('spaceTitle')
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
             const ouvrirPageEspace = () => {
