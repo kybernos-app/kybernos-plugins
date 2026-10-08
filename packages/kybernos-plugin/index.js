@@ -11178,6 +11178,66 @@ const kbFeedbackReport = (input, env) => {
   }
 }
 
+/** Secrets out of a text that leaves this machine through the person's own mail client or clipboard (the relay path is masked by the
+ *  server; this is the same rule for the path that goes around it). A port of the server's feedback redactor
+ *  (kybernos-server src/modules/feedback/redact.ts): the known shapes are caught, the words that merely mention a secret
+ *  (`token: expired`) are kept so the report stays readable. Every step is bounded or cannot backtrack (a hostile 64 KiB text costs
+ *  milliseconds). A heuristic, not a guarantee: the person still reads the draft before sending it. Pur. */
+const KB_MASK_KEYWORD = String.raw`api[_-]?key|(?:secret|private|access|signing|encryption|master)[_-]?key|(?:db|database|admin|root)[_-]?pass(?:word)?|secret|password|passwd|pwd|credentials?|token|session[_-]?id`
+const KB_MASK_SEPARATOR = String.raw`[ \t]{0,8}(?:\\?["'])?[ \t]{0,8}(?::=|=>|[:=])[ \t]{0,8}`
+const KB_MASK_HARMLESS = /^(?:undefined|null|none|nil|true|false|string|number|boolean|object|any|unknown|void|required|expired|invalid|missing|include|omit|same-origin|await|async|new|function|empty|revoked|denied|forbidden|unauthorized|expected|wrong|incorrect|rejected|\*+|x+)$/i
+const kbMaskHarmless = (value) => KB_MASK_HARMLESS.test(value) || value.includes('(') || value.startsWith('[object') || value.startsWith('[REDACTED')
+const KB_MASK_KEY_HEADER = /-----BEGIN [A-Z ]{0,30}PRIVATE KEY(?: BLOCK)?-----/g
+const KB_MASK_KEY_END = /-----END [A-Z ]{0,30}PRIVATE KEY(?: BLOCK)?-----/
+const kbMaskPrivateKeys = (text) => {
+  if (!text.includes('PRIVATE KEY')) return text
+  let out = ''
+  let last = 0
+  for (const header of text.matchAll(KB_MASK_KEY_HEADER)) {
+    if (header.index < last) continue
+    const from = header.index + header[0].length
+    const window = text.slice(from, from + 20000)
+    const end = KB_MASK_KEY_END.exec(window)
+    const stop = end === null ? from + Math.min(window.length, 4000) : from + end.index + end[0].length
+    out += text.slice(last, header.index) + '[REDACTED PRIVATE KEY]'
+    last = stop
+  }
+  return out + text.slice(last)
+}
+const KB_MASK_STEPS = [
+  kbMaskPrivateKeys,
+  (t) => t.replace(/\b(sk|kys)-[A-Za-z0-9_-]{6,}\b/g, '$1-[REDACTED]'),
+  (t) => t.replace(/\bkyd_[A-Za-z0-9_-]{8,}/g, 'kyd_[REDACTED]'),
+  (t) => t.replace(/\b(?:(?:sk|rk|pk)_(?:test|live)_|whsec_)[A-Za-z0-9]{6,}/g, '[REDACTED]'),
+  (t) => t.replace(/\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, '[REDACTED]'),
+  (t) => t.replace(/\bAKIA[0-9A-Z]{16}\b/g, '[REDACTED]'),
+  (t) => t.replace(/\bxox[abprs]-[A-Za-z0-9-]{10,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bAIza[0-9A-Za-z_-]{35}/g, '[REDACTED]'),
+  (t) => t.replace(/\bglpat-[A-Za-z0-9_-]{16,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bnpm_[A-Za-z0-9]{30,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bhf_[A-Za-z0-9]{20,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bdop_v1_[a-f0-9]{30,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bya29\.[A-Za-z0-9_-]{20,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g, '[REDACTED]'),
+  (t) => t.replace(/\beyJ[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]{0,4000}){0,2}/g, '[REDACTED]'),
+  (t) => t.replace(/\b(bearer|basic)\s{1,20}([A-Za-z0-9_\-.~+/=]{8,})/gi, (all, kind, token) => (/[0-9=+/._~-]/.test(token) || token.length >= 20 ? kind + ' [REDACTED]' : all)),
+  (t) => t.replace(/(\b(?:authorization|(?:set-)?cookie)["']?[ \t]{0,8}:[ \t]{0,8}["']?)[^"'\r\n]+/gi, '$1[REDACTED]'),
+  (t) => t.replace(/(:\/\/[^\s/:@]{1,64}:)[^\s/@?#]{1,128}@/g, '$1[REDACTED]@'),
+  (t) => t.replace(new RegExp(String.raw`(${KB_MASK_KEYWORD})(${KB_MASK_SEPARATOR}\\?(["']))((?:(?!\3)[^\r\n\\]){1,200})`, 'gi'),
+    (all, name, separator, _quote, value) => (kbMaskHarmless(value.trim()) ? all : name + separator + '[REDACTED]')),
+  (t) => t.replace(new RegExp(String.raw`(${KB_MASK_KEYWORD})(${KB_MASK_SEPARATOR})([^\s"',;}\\&)\]<>]{4,})`, 'gi'),
+    (all, name, separator, value) => (kbMaskHarmless(value) ? all : name + separator + '[REDACTED]')),
+]
+const KB_MASK_INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}]/gu
+const kbFeedbackMask = (value) => {
+  if (typeof value !== 'string') return ''
+  const run = (t) => { let out = t; for (const step of KB_MASK_STEPS) out = step(out); return out }
+  // A secret with invisible characters spread inside is found all the same: when the text without them holds something to mask, that text is kept.
+  const plain = value.replace(KB_MASK_INVISIBLE, '')
+  if (plain !== value) { const masked = run(plain); if (masked !== plain) return masked }
+  return run(value)
+}
+
 /** Rapport en clair, prêt à coller (repli mail). Pur. */
 const kbFeedbackPlainText = (report) => {
   const r = report !== null && report !== undefined && typeof report === 'object' ? report : {}
@@ -11199,7 +11259,7 @@ const kbFeedbackPlainText = (report) => {
     for (let i = 0; i < evidence.errors.length; i++) lines.push('- ' + String(evidence.errors[i]))
   }
   lines.push('', 'Rapport ' + String(r.uuid) + ' (relais automatique indisponible).')
-  return lines.join('\r\n')
+  return kbFeedbackMask(lines.join('\r\n'))
 }
 
 /** `mailto:` SANS destinataire : le rapport part par le client mail de
@@ -11207,7 +11267,7 @@ const kbFeedbackPlainText = (report) => {
  *  acceptée partout ; « copier le rapport complet » prend le reste. Pur. */
 const kbFeedbackMailto = (report, limit) => {
   const cap = typeof limit === 'number' ? limit : KB_FEEDBACK_MAILTO_MAX
-  const subject = 'Retour beta : ' + String(report === null || report === undefined ? '' : report.title)
+  const subject = kbFeedbackMask('Retour beta : ' + String(report === null || report === undefined ? '' : report.title))
   const body = kbFeedbackClip(kbFeedbackPlainText(report), cap)
   return 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body)
 }
@@ -11651,6 +11711,7 @@ export function apply(ctx) {
 // est testée avec un `fetch` simulé et un HOME jetable.
 export {
     kbFeedbackReport,
+    kbFeedbackMask,
     kbFeedbackPlainText,
     kbFeedbackMailto,
     kbFeedbackVerdict,
