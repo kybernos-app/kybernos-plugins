@@ -1,21 +1,22 @@
 // ═══════════════════════════════════════════════════════
-// kybernos-workers — moitié hôte.
+// kybernos-workers — host half.
 //
-// Écran « Workers » (Réglages) : état VÉRIFIÉ des agents de code externes et
-// politique commune. La logique est dans workers-host.mjs (testable sans DSH) ;
-// ce fichier ne fait que brancher la vraie E/S :
-//   · le patch du profil  ~/.dsh/profiles/<profil>/cordis.patch.yml
-//   · les processus (`claude`, `codex`, `git`) lancés avec le PATH de DSH et un
-//     environnement SANS variables « secrètes », comme le font les connexions
-//     officielles (sinon un jeton présent chez DSH ferait croire « connecté »
-//     alors que le worker, lui, ne le verrait pas).
+// The "Workers" screen (Settings): VERIFIED state of the external coding agents and the
+// common policy. The logic lives in workers-host.mjs (testable without DSH); this file only
+// plugs in the real I/O:
+//   · the profile patch  ~/.dsh/profiles/<profile>/cordis.patch.yml
+//   · the processes (`claude`, `codex`, `gemini`, `git`…) run with DSH's PATH and an
+//     environment WITHOUT secret-looking variables, as the official connections do (otherwise
+//     a token DSH happens to hold would make a worker look "signed in" while the worker
+//     itself would not see it)
+//   · the install of a program, from a closed list of commands (see workers-host.mjs)
 //
-// Aucun appel de modèle : vérifier ne consomme pas l'abonnement du worker.
-// Tout apply() est protégé : une erreur ici ne doit jamais empêcher DSH de démarrer.
-// Aucun import @deepseek-ai/* (un plugin @local/… ne les résout pas).
+// No model call: checking spends nothing on the worker's subscription.
+// Everything in apply() is guarded: an error here must never stop DSH from starting.
+// No @deepseek-ai/* import (an @local/… plugin does not resolve them).
 // ═══════════════════════════════════════════════════════
 
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { accessSync, constants, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
@@ -27,14 +28,14 @@ const dire = (message) => console.log('[kybernos-workers] ' + message)
 
 const SECRET = /(KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|COOKIE|AUTH)/i
 
-/** Environnement transmis aux contrôles : celui de DSH, sans rien qui ressemble à un secret. */
+/** Environment handed to the checks: DSH's own, minus anything that looks like a secret. */
 export function envSansSecrets (env) {
   const sortie = {}
   for (const [k, v] of Object.entries(env)) if (!SECRET.test(k) && typeof v === 'string') sortie[k] = v
   return sortie
 }
 
-/** Cherche un exécutable dans le PATH de DSH (et nulle part ailleurs : c'est ce que voit la connexion). */
+/** Looks an executable up in DSH's PATH (and nowhere else: that is what the connection sees). */
 export function trouverBinaire (binaire, env = process.env, plateforme = process.platform) {
   const exts = plateforme === 'win32' ? String(env.PATHEXT || '.EXE;.CMD;.BAT').split(';') : ['']
   for (const dossier of String(env.PATH || '').split(delimiter)) {
@@ -43,7 +44,7 @@ export function trouverBinaire (binaire, env = process.env, plateforme = process
       const candidat = join(dossier, binaire + ext)
       try {
         if (statSync(candidat).isFile()) { accessSync(candidat, constants.X_OK); return candidat }
-      } catch { /* suivant */ }
+      } catch { /* next */ }
     }
   }
   return null
@@ -62,7 +63,7 @@ const executer = (binaire, args, { delaiMs = 20000, cwd, env } = {}) => new Prom
   } catch (e) { resolve({ code: 1, sortie: String(e?.message ?? e), absent: true }) }
 })
 
-/** Un dépôt git jetable, un worktree dedans, un fichier écrit puis relu. Nettoie toujours. */
+/** A throw-away git repository, a worktree in it, a file written then read back. Always cleans up. */
 export async function worktreeJetable (lancer = executer) {
   let dossier = null
   try {
@@ -72,25 +73,59 @@ export async function worktreeJetable (lancer = executer) {
     mkdirSync(depot)
     const git = (args, cwd) => lancer('git', ['-c', 'commit.gpgsign=false', '-c', 'user.name=kybernos', '-c', 'user.email=kybernos@localhost', ...args], { cwd, delaiMs: 30000 })
     const v = await git(['--version'], depot)
-    if (v.absent === true) return { ok: false, detail: 'git introuvable dans le PATH de DSH' }
+    if (v.absent === true) return { ok: false, detail: 'git not found in DSH’s PATH' }
     const init = await git(['init', '-q'], depot)
-    if (init.code !== 0) return { ok: false, detail: 'git init : ' + String(init.sortie).trim().split('\n')[0] }
+    if (init.code !== 0) return { ok: false, detail: 'git init: ' + String(init.sortie).trim().split('\n')[0] }
     writeFileSync(join(depot, 'a.txt'), 'a\n')
     for (const etape of [['add', 'a.txt'], ['commit', '-q', '--no-verify', '-m', 'init'], ['worktree', 'add', '-q', '-b', 'kybernos-controle', arbre]]) {
       const r = await git(etape, depot)
-      if (r.code !== 0) return { ok: false, detail: 'git ' + etape[0] + ' : ' + String(r.sortie).trim().split('\n')[0] }
+      if (r.code !== 0) return { ok: false, detail: 'git ' + etape[0] + ': ' + String(r.sortie).trim().split('\n')[0] }
     }
     writeFileSync(join(arbre, 'b.txt'), 'ecriture\n')
-    if (readFileSync(join(arbre, 'b.txt'), 'utf8') !== 'ecriture\n') return { ok: false, detail: 'relecture différente de l’écriture' }
+    if (readFileSync(join(arbre, 'b.txt'), 'utf8') !== 'ecriture\n') return { ok: false, detail: 'the file read back differs from the one written' }
     return { ok: true, detail: String(v.sortie).trim().split('\n')[0] }
   } catch (e) {
     return { ok: false, detail: String(e?.message ?? e) }
   } finally {
-    if (dossier !== null) { try { rmSync(dossier, { recursive: true, force: true }) } catch { /* temp: l'OS nettoiera */ } }
+    if (dossier !== null) { try { rmSync(dossier, { recursive: true, force: true }) } catch { /* temp folder: the OS will clean it */ } }
   }
 }
 
-/** La vraie E/S de l'écran. Gardée ici pour que workers-host.mjs reste testable. */
+const INSTALL_DELAI_MS = 15 * 60 * 1000
+
+/**
+ * Runs one install command through `/bin/sh -c`, feeding every chunk of output to `surDonnees`.
+ * The command is a CONSTANT of workers-host.mjs, never text from a request. Killed after
+ * `delaiMs` (SIGTERM, then SIGKILL) — to the whole process GROUP, because `curl … | bash` is two processes and signalling
+ * the shell alone would leave both running. Resolves { code, delai? } and never rejects.
+ */
+export function lancerInstallation (commande, { surDonnees = () => {}, delaiMs = INSTALL_DELAI_MS, env = process.env, cwd = tmpdir() } = {}) {
+  return new Promise((resolve) => {
+    let enfant
+    try {
+      enfant = spawn('/bin/sh', ['-c', commande], { cwd, env: envSansSecrets(env), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, detached: true })
+    } catch (e) { return resolve({ code: 1, erreur: String(e?.message ?? e) }) }
+    let delai = false
+    let fin = false
+    const tuer = (signal) => {
+      try { process.kill(-enfant.pid, signal) } catch { try { enfant.kill(signal) } catch { /* already gone */ } }
+    }
+    const minuteur = setTimeout(() => {
+      delai = true
+      tuer('SIGTERM')
+      const dur = setTimeout(() => tuer('SIGKILL'), 5000)
+      if (typeof dur.unref === 'function') dur.unref()
+    }, delaiMs)
+    if (typeof minuteur.unref === 'function') minuteur.unref()
+    const donner = (d) => { try { surDonnees(String(d)) } catch { /* the log is a courtesy */ } }
+    enfant.stdout.on('data', donner)
+    enfant.stderr.on('data', donner)
+    enfant.on('error', (e) => { if (fin) return; fin = true; clearTimeout(minuteur); donner(String(e?.message ?? e) + '\n'); resolve({ code: 127, erreur: String(e?.message ?? e) }) })
+    enfant.on('close', (code, signal) => { if (fin) return; fin = true; clearTimeout(minuteur); resolve({ code: typeof code === 'number' ? code : 1, signal, ...(delai ? { delai: true } : {}) }) })
+  })
+}
+
+/** The real I/O of the screen. Kept here so workers-host.mjs stays testable. */
 export function workersDeps (dshHome, env = process.env) {
   const dossierProfils = join(dshHome, 'profiles')
   const patch = (profil) => join(dossierProfils, profil, 'cordis.patch.yml')
@@ -122,7 +157,11 @@ export function workersDeps (dshHome, env = process.env) {
       fichierExiste: (chemin) => { try { return chemin !== '' && existsSync(chemin) } catch { return false } },
       trouver: async (binaire) => trouverBinaire(binaire, env),
       executer: (binaire, args, opts) => executer(binaire, args, { delaiMs: opts?.delaiMs, env: envSansSecrets(env) }),
-      worktreeJetable: () => worktreeJetable()
+      worktreeJetable: () => worktreeJetable(),
+      // Names only: the VALUE of a key never leaves this function.
+      cleDansEnv: (noms) => noms.some((n) => typeof env[n] === 'string' && env[n].trim() !== ''),
+      plateforme: () => process.platform,
+      lancerInstallation: (commande, opts) => lancerInstallation(commande, { ...opts, env })
     }
   }
 }

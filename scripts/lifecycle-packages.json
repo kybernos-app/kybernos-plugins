@@ -78,6 +78,10 @@
       "nom": "@local/kybernos-computers"
     },
     {
+      "dir": "dsh-subagent-maison",
+      "nom": "@local/dsh-subagent-maison"
+    },
+    {
       "dir": "kybernos-workers",
       "nom": "@local/kybernos-workers"
     },
