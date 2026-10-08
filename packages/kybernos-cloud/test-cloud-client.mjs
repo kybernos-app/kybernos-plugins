@@ -102,6 +102,14 @@ sok('vocabulaire Team : aucune chaine visible ne dit workspace / espace, l espac
 // A refused creation always says so (with the server's code), and keeps the hosted page as an extra: never a dialog that silently does nothing.
 assert.ok(clientSource.includes("setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number'"), 'la creation refusee dit pourquoi (code serveur)')
 sok('creation d une equipe refusee : une phrase avec le code, la page hebergee reste proposee')
+// Page head (harmonisation audit, gap G8): the Account and the Data & privacy pages carry the same head as every other Settings page, a title and a sub-title
+// built with the classes the core plugin's single Settings head rule styles (.kb6-title / .kb8-sub), never a one-off style of their own.
+assert.ok(/const PageHead = \(props\) => h\('div', \{ className: 'kbpg-head' \},\s*h\('h2', \{ className: 'kb6-title' \}, props\.title\),\s*h\('p', \{ className: 'kb8-sub' \}, props\.sub\)\)/.test(clientSource), 'PageHead = h2.kb6-title + p.kb8-sub')
+assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('profCompte'\), sub: t\('accSub'\) \}\)/g) || []).length, 3, 'Account: the head is shown while loading, signed out and signed in')
+assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('dataNavLabel'\), sub: t\('dataSub'\) \}\)/g) || []).length, 2, 'Data & privacy: the head is shown signed out and signed in')
+assert.ok(/\.kbpg-head\{margin:0 0 6px\}/.test(clientSource), 'the head only adds the 6px that make the first card sit 20px under the sub-title')
+assert.equal(/\.kbpg-head[^{]*\{[^}]*font-size/.test(clientSource), false, 'the bundle sets no title size of its own: the shared Settings rule does')
+sok('Account and Data & privacy: same head (h2.kb6-title + p.kb8-sub) in every state, fr/en keys checked above')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null
@@ -201,6 +209,17 @@ assert.equal(inserted.length, 1)
 assert.ok(inserted[0].textContent.includes('.kbc-scrim'), 'le CSS de la carte doit etre injecte')
 assert.ok(inserted[0].textContent.includes('.kbf-profile'), 'le CSS de la rangee d identite doit etre injecte')
 ok('CSS injecte via styles.insert')
+
+// The two Settings pages of the account, rendered for real in their first (reading) state: each opens with the page head.
+for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile, preferences and instructions. They stay on this device.'], ['kybernos-data', 'Data &amp; privacy', 'Export your data, manage the device signed in here, or delete your account.']]) {
+  const reg = registrations.filter((r) => r.options.name === 'settings.section' && r.options.id === id)[0]
+  assert.ok(reg !== undefined, 'la section ' + id + ' doit etre enregistree')
+  const markup = renderToStaticMarkup(React.createElement(reg.component, null))
+  const head = '<div class="kbpg-head"><h2 class="kb6-title">' + title + '</h2><p class="kb8-sub">' + sub + '</p></div>'
+  assert.ok(markup.includes(head), id + ' : the page head is missing or changed — ' + markup.slice(0, 300))
+  assert.ok(markup.indexOf(head) < markup.indexOf('class="kbax-card') || markup.indexOf('class="kbax-card') < 0, id + ' : the head comes first')
+}
+ok('Account and Data & privacy pages open with the shared page head (title + sub-title)')
 
 // ── Rendu réel du composant (React) ─────────────────────────────────────────
 // L'état de connexion vient d'un effet fetch : au premier rendu la rangée est

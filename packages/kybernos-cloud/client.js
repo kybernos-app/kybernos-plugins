@@ -251,6 +251,7 @@ window.__ModuleLoader__.load({
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
         dataNavLabel: 'Données & confidentialité',
+        dataSub: 'Exportez vos données, gérez l\'appareil connecté ici ou supprimez votre compte.',
         dataLabel: 'Vos données',
         dataExportTitle: 'Export complet des données',
         dataExportSub: 'Toutes vos données (profil, conversations, transactions, artefacts) regroupées et envoyées par email sous forme de lien ZIP signé (7 jours).',
@@ -289,6 +290,7 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Soyez direct. Phrases courtes…',
         accSave: 'Enregistrer',
         accSaved: 'Enregistré ✓',
+        accSub: 'Votre profil, vos préférences et vos instructions. Ils restent sur cet appareil.',
         accAbout: 'À propos de vous',
         accPrefs: 'Préférences',
         accBirthPh: 'Choisir une date',
@@ -513,6 +515,7 @@ window.__ModuleLoader__.load({
         mfaGraceShort: 'Second factor by {date}',
         mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the team is closed to you.',
         dataNavLabel: 'Data & privacy',
+        dataSub: 'Export your data, manage the device signed in here, or delete your account.',
         dataLabel: 'Your data',
         dataExportTitle: 'Full data export',
         dataExportSub: 'All your data (profile, conversations, transactions, artifacts) bundled and emailed as a signed ZIP link (7 days).',
@@ -551,6 +554,7 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Be direct. Short sentences…',
         accSave: 'Save',
         accSaved: 'Saved ✓',
+        accSub: 'Your profile, preferences and instructions. They stay on this device.',
         accAbout: 'About you',
         accPrefs: 'Preferences',
         accBirthPh: 'Pick a date',
@@ -883,6 +887,10 @@ window.__ModuleLoader__.load({
    and time zone picker. All in design-system tokens, nothing hard-coded
    except the avatar palette. */
 .kbax{display:flex;flex-direction:column;gap:14px;max-width:720px;position:relative}
+/* Page head of the Account and Data & privacy pages. The title (18/600) and the sub-title (13, 6px under it) are NOT styled here: the core plugin's
+   single Settings head rule styles every .kb6-title / .kb8-sub inside the dialog. Only the 6px below is ours: these pages stack their cards with a 14px
+   gap, and the first card has to sit 20px under the sub-title (as on the pages built with the core plugin's KbacHead). */
+.kbpg-head{margin:0 0 6px}
 .kbax-card{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
 .kbax-hero{flex-direction:row;align-items:center;gap:18px}
 .kbax-avwrap{position:relative;flex:none}
@@ -3377,6 +3385,15 @@ window.__ModuleLoader__.load({
             listbox)
         }
 
+        // ── Page head shared by the Account and Data & privacy pages ───────────
+        // Same markup as the core plugin's KbacHead (h2.kb6-title + p.kb8-sub): the one Settings
+        // head rule of the core plugin gives it the 18/600 title and the 13 sub-title, so these
+        // two pages cannot drift from the others. The core plugin lives in another bundle and
+        // exposes no component, hence the two class names here.
+        const PageHead = (props) => h('div', { className: 'kbpg-head' },
+          h('h2', { className: 'kb6-title' }, props.title),
+          h('p', { className: 'kb8-sub' }, props.sub))
+
         // ── Account page ───────────────────────────────────────────────────────
         const AccountSection = () => {
           const vuePair = React.useState({ phase: 'loading' })
@@ -3493,6 +3510,7 @@ window.__ModuleLoader__.load({
           // before we know), the button only if we really are not signed in.
           if (vue.phase === 'loading') {
             return h('div', { className: 'kbax', 'data-kb': 'settings-account', 'aria-busy': 'true', 'aria-label': t('loading') },
+              h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
               h('div', { className: 'kbax-card' }, h('div', { className: 'kbax-skel kbax-skel-head' })),
               h('div', { className: 'kbax-card' },
                 h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' }),
@@ -3501,6 +3519,7 @@ window.__ModuleLoader__.load({
           }
           if (vue.phase !== 'connected') {
             return h('div', { className: 'kbax', 'data-kb': 'settings-account' },
+              h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
               h('div', { className: 'kbax-card' },
                 h('p', { className: 'kbf-hint', style: { margin: 0 } }, vue.phase === 'pairing' ? t('footPairing') : t('footHint')),
                 h('button', {
@@ -3526,6 +3545,7 @@ window.__ModuleLoader__.load({
             className: 'kbax', 'data-kb': 'settings-account',
             onKeyDown: (e) => { if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 's') { e.preventDefault(); enregistrer() } },
           },
+          h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
           // ── Identity ──
           h('div', { className: 'kbax-card kbax-hero' },
             h('div', { className: 'kbax-avwrap' },
@@ -3648,6 +3668,7 @@ window.__ModuleLoader__.load({
 
           if (vue.phase !== 'connected') {
             return h('div', { 'data-kb': 'settings-data', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
+              h(PageHead, { title: t('dataNavLabel'), sub: t('dataSub') }),
               panneau(t('dataLabel'),
                 h('p', { className: 'kbf-hint', style: { margin: '10px 0 0' } }, vue.phase === 'loading' ? t('loading') : t('footHint')),
                 vue.phase === 'disconnected'
@@ -3664,6 +3685,7 @@ window.__ModuleLoader__.load({
           const rafraichi = fmtDate(st.refreshed_at) !== null ? fmtDate(st.refreshed_at) : t('none')
 
           return h('div', { 'data-kb': 'settings-data', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
+            h(PageHead, { title: t('dataNavLabel'), sub: t('dataSub') }),
             // ── Export complet ──
             panneau(t('dataExportTitle'),
               h('p', { style: { margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, t('dataExportSub')),
