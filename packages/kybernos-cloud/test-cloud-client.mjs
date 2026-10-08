@@ -97,7 +97,7 @@ for (const [lang, block] of [['en', enBlock], ['fr', frBlock]]) {
   assert.deepEqual(bad, [], 'mot « workspace » / « espace » dans une chaine visible (' + lang + ') : on dit Team / équipe')
 }
 assert.ok(/wsPersonal: 'Personal'/.test(enBlock) && /wsPersonal: 'Personnel'/.test(frBlock), 'l espace personnel s affiche Personal / Personnel')
-assert.ok(clientSource.includes('nomAffiche(courant)') && clientSource.includes('nomAffiche(w)'), 'la carte et la liste affichent le nom via nomAffiche (Personal pour l espace personnel)')
+assert.ok(clientSource.includes('nomAffiche(courant, t)') && clientSource.includes('nomAffiche(w, t)') && clientSource.includes('const nomAffiche = (w, t) =>'), 'la carte et la liste affichent le nom via nomAffiche, avec le traducteur de l appelant (Personal pour l espace personnel)')
 sok('vocabulaire Team : aucune chaine visible ne dit workspace / espace, l espace personnel = Personal / Personnel')
 // A refused creation always says so (with the server's code), and keeps the hosted page as an extra: never a dialog that silently does nothing.
 assert.ok(clientSource.includes("setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number'"), 'la creation refusee dit pourquoi (code serveur)')
@@ -350,13 +350,42 @@ const htmlConnecte = htmlDe(racineEl)
 // account menu. No gear inside the row (DSH shows its own right beside it) and no menu until it is opened.
 assert.ok(htmlConnecte.includes('data-kb="workspace-card"'), 'la carte unifiee est la (un clic ouvre le menu)')
 assert.ok(htmlConnecte.includes('kbfp-cardname">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
-assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>MW<'), 'tuile d initiales de l espace')
-assert.ok(htmlConnecte.includes('dev · free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
+assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>PE<'), 'tuile d initiales de l espace (celles du nom affiche : Personal, pas My workspace)')
+assert.ok(htmlConnecte.includes('dev · Free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
 assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')
 assert.equal(htmlConnecte.includes('kbfp-menu'), false, 'le menu n est pas rendu tant qu il n est pas ouvert')
 assert.equal(htmlConnecte.includes('kbf-wsgear'), false, 'aucun engrenage DANS la rangee du pied')
 assert.ok(htmlConnecte.includes('title="Notifications"'), 'la cloche est dans la carte')
 ok('carte unifiee : espace actif, qui · formule, mobile et cloche, menu ferme, aucun engrenage')
+
+// The meter of the card: the percent of the allowance that counts in the ACTIVE team, read from the host's /quota route. Nothing is drawn while the host has nothing to
+// say (the render above got the status JSON for /quota too: no windows, no meter), and a fresh read of 82% shows a bar, the figure and the sentence as its title.
+assert.equal(htmlConnecte.includes('workspace-card-usage'), false, 'sans fenetre de budget : aucun compteur sur la carte')
+// The first card's own read of the quota lands after its render: let it settle inside act before the next card is drawn.
+await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+racine.unmount()
+const statutConnecte = (await globalThis.fetch('/status')).json
+let quotaServi = { ok: true, workspace: { id: 'ws-1', name: 'My workspace', role: 'owner', personal: true }, payment_blocked: false, usage: [{ kind: 'member', window_seconds: 86400, scope: 'plan', used_percent: 82, exhausted: false, resets_at: null }] }
+let quotaLus = 0
+globalThis.fetch = async (url) => {
+  if (String(url).includes('/quota')) { quotaLus += 1; return { ok: true, status: 200, json: async () => quotaServi } }
+  return { ok: true, status: 200, json: statutConnecte }
+}
+const racineEl2 = element(doc)
+const racine2 = ReactClient.createRoot(racineEl2)
+await act(async () => {
+  racine2.render(createElement(registered.component, null))
+  await new Promise((r) => setTimeout(r, 20))
+})
+await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+const htmlCompteur = htmlDe(racineEl2)
+assert.ok(quotaLus >= 1, 'la carte lit le quota a l hote quand elle apparait')
+assert.ok(htmlCompteur.includes('data-kb="workspace-card-usage"') && htmlCompteur.includes('data-percent="82"') && htmlCompteur.includes('data-level="near"'), 'le compteur montre 82 % en ambre')
+assert.ok(htmlCompteur.includes('class="kbfp-usepct">82%<'), 'le chiffre est un pourcentage entier')
+assert.ok(htmlCompteur.includes('title="82% of your 24 hours allowance is used."'), 'la phrase derriere le compteur est son titre')
+assert.equal(/[$\u20ac]|token|_usd/i.test(htmlCompteur.slice(htmlCompteur.indexOf('workspace-card-usage'), htmlCompteur.indexOf('workspace-card-usage') + 400)), false, 'ni montant ni jeton sur la carte')
+racine2.unmount()
+ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase en titre, aucun montant)')
 
 
 // « Teams settings » is a NAMED entry of the account menu. It opens the console through a bridge the core plugin exposes,

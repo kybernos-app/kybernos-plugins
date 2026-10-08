@@ -127,10 +127,13 @@ catalogue of that team and in no other. Choosing or creating a space rewrites th
 only when the models changed. Without this a member's chat used their personal allowance whatever the Cloud card said (measured, `console2` lane of
 the production gate).
 
-Two more things serve the quota notice and the Cloud card: `GET /kybernos-cloud/quota` (what stopped the last call: the active space's plan and
-payment state and the person's own windows that are used up, no token) and the `space_plan.mfa` field of `/status` (a workspace that asks its
+Two more things serve the quota notice and the Cloud card: `GET /kybernos-cloud/quota` (what stopped the last call and how much is left: the active
+space's payment state and every budget window as a whole percent, `used_percent`, with `resets_at` while one is used up; never an amount of money or a
+token) and the `space_plan.mfa` field of `/status` (a workspace that asks its
 members for a second factor: `grace` with the date, or `blocked`). DSH words every refusal « Request quota exhausted » (a 403 is « API key is
-invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead. The notice's
+invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead. The card also shows a small meter under the plan: the
+percent of the window that counts (the team's pool for an owner or admin of a team, the person's own window otherwise; a window that turns calls away always wins),
+read when the card appears, when the team changes, on focus, every two minutes and right after a refusal. The notice's
 button has the host open the console in the system browser (`POST /kybernos-cloud/console/link` with `open: true`).
 
 ## The discovery document a company server serves
