@@ -121,7 +121,8 @@ try {
         try { u = new URL(src) } catch (e) { u = null }
         check('the iframe URL is readable', u !== null)
         if (u !== null) {
-          check('it carries the gateway', (u.searchParams.get('gw') || '').startsWith('https://'))
+          // The new server has no admin gateway (the host relay replaced it): `gw` is there and empty. A server that names one (the old stack, as an opt-in) gets https.
+          check('it carries the gateway of the active server, or none (empty) when the server has none', u.searchParams.has('gw') && (u.searchParams.get('gw') === '' || (u.searchParams.get('gw') || '').startsWith('https://')))
           const dark = await page.evalJs(`(() => { const v = document.body.getAttribute('data-ds-dark-theme'); return v !== null && v !== 'false' })()`)
           check('it follows DSH\'s theme', u.searchParams.get('theme') === (dark.val === true ? 'dark' : 'light'), 'theme=' + u.searchParams.get('theme'))
           check('no key is in the URL', !u.searchParams.has('key') && !/sk-admin/i.test(src))

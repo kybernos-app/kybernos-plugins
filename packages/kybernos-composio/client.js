@@ -1872,15 +1872,17 @@ window.__ModuleLoader__.load({
         return () => { try { window.removeEventListener('kbcp-key', on) } catch (e2) { } }
       }, [refresh, apps])
 
-      /** Loads the apps of the public Kybernos catalog (slug + name + categories). */
+      /** Loads the apps of the Kybernos catalog (slug + name + categories) from the server this machine is signed in to, through the cloud half
+       *  (the server's `GET /v1/connections/apps` needs the account's token, which only the host holds). Without that sign-in, or on a server
+       *  with no connected apps, the page keeps the local catalog and says why. */
       const loadAll = async () => {
         setLoadingAll(true)
         setErr(null)
         try {
-          const r = await fetch('https://kybernos-proxy-production.up.railway.app/v1/connections/apps')
-          const j = await r.json()
-          const list = Array.isArray(j && j.apps) ? j.apps : []
-          if (list.length === 0) throw new Error('empty catalog')
+          const r = await kbCpCloud('/connections/apps')
+          const j = r.json
+          const list = r.status === 200 && j !== null && j.ok === true && Array.isArray(j.apps) ? j.apps : []
+          if (list.length === 0) throw new Error(j !== null && j.connected === false ? 'sign in to Kybernos Cloud first' : (j !== null && j.offered === false ? 'this server offers no catalog' : 'empty catalog'))
           // Whatever the list holds, an entry gets a string name and string categories: a missing
           // name or an object in `categories` would throw in the search and in the facets.
           const merged = list.filter((a) => a !== null && typeof a === 'object' && typeof a.slug === 'string' && a.slug.length > 0)

@@ -398,7 +398,7 @@ const main = async () => {
       if (champ !== null) {
         // Repli manuel : on colle un lien de partage, on enregistre.
         const poser = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
-        poser.call(champ, 'https://dev.kybernos.app/r/CODE-TEST')
+        poser.call(champ, 'https://kybernos.example/r/CODE-TEST')
         champ.dispatchEvent(new Event('input', { bubbles: true }))
         await attendre(60)
         const save = p.querySelector('.kbu-rel-save')
@@ -427,7 +427,7 @@ const main = async () => {
       // intact — c'est lui qui garantit que la carte sert encore a quelque chose.
       ok('sans route hote, la carte demande le code (repli manuel)', rel.champPresent === true)
       ok('le code colle s affiche dans la carte', rel.code === 'CODE-TEST', String(rel.code))
-      ok('le code est garde sur l appareil', rel.garde !== null && rel.garde.code === 'CODE-TEST' && rel.garde.link === 'https://dev.kybernos.app/r/CODE-TEST', JSON.stringify(rel.garde))
+      ok('le code est garde sur l appareil', rel.garde !== null && rel.garde.code === 'CODE-TEST' && rel.garde.link === 'https://kybernos.example/r/CODE-TEST', JSON.stringify(rel.garde))
     } else {
       // Compte lie : le code est la, sans collage — et il est dit comme venant
       // du compte (jamais fait passer pour une saisie locale).
@@ -437,8 +437,8 @@ const main = async () => {
       ok('la carte dit que le code vient du compte Kybernos',
         typeof rel.sourceCompte === 'string' && rel.sourceCompte.length > 0, String(rel.sourceCompte))
     }
-    ok('la carte offre Partager et garde le lien vers la page',
-      typeof rel.partager === 'string' && rel.partager.length > 0 && rel.lienPage === 'https://dev.kybernos.app/profiles?section=referral',
+    ok('la carte offre Partager et garde le lien vers la page du compte du serveur (<web>/account)',
+      typeof rel.partager === 'string' && rel.partager.length > 0 && /^https?:\/\/[^/]+\/account$/.test(String(rel.lienPage)),
       'partager ' + String(rel.partager) + ' / lien ' + String(rel.lienPage))
     ok('Echap referme la carte', rel.ferme === true)
   }

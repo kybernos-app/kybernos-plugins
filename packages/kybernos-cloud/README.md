@@ -20,13 +20,13 @@ Quand l'utilisateur est connecté, le half host importe automatiquement le
 catalogue du proxy Kybernos LiteLLM dans le harnais :
 
 ```
-GET https://api.dev.kybernos.app/v1/models        (Authorization: Bearer kys-…)
+GET <api>/v1/models        (Authorization: Bearer <device token>)   ← <api> = BUILTIN_API (server-profile.mjs), the new server
    → { data: [{ id: 'kybernos/doer', … }, …] }    (liste OpenAI-compatible)
 ```
 
 - **Écrit dans `~/.dsh/settings.yaml`** (namespace `llm-pi-ai`) une route
   provider `kybernos` : `displayName: Kybernos Cloud`, `api: openai-completions`,
-  `baseURL: https://api.dev.kybernos.app/v1`, `apiKeyEnv: KYBERNOS_API_KEY`,
+  `baseURL: <api>/v1`, `apiKeyEnv: KYBERNOS_API_KEY`,
   `models: [{ id, name }, …]`. L'écriture passe par le service `settings`
   (le même chemin que la page Models native) — les modèles apparaissent dans
   Settings → Models et dans le sélecteur de modèles, sans redémarrage.
@@ -238,7 +238,7 @@ collisions d'écriture et rend chaque moitié livrable indépendamment.
 ## Comment ça marche (device code flow, RFC 8628)
 
 ```
-DSH (host)                    api.dev.kybernos.app              navigateur (déjà connecté)
+DSH (host)                    <api> (le serveur actif)          navigateur (déjà connecté)
    │ POST /v1/device/start ───────▶│
    │ ◀── device_id, device_secret, user_code, activation_url     │
    │ window.open(activation_url) ───────────────────────────────▶│ /cloud/cli/activate
@@ -316,7 +316,7 @@ définir le plugin à chaud avec le contenu de `index.js` (host) et `client.js`
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `KYBERNOS_CLOUD_API` | `https://api.dev.kybernos.app` | base d'API (dev par défaut ; mettez la prod ici) |
+| `KYBERNOS_CLOUD_API` | `BUILTIN_API` de `server-profile.mjs` (le nouveau serveur ; au go-live on ne change que cette constante) | base d'API ; remplace l'adresse du serveur actif (web, console et connexions suivent). L'ancienne pile reste joignable par une entrée `servers.json` (docs/dev/servers.md) |
 | `KYBERNOS_CLOUD_STATE` | `~/.dsh/kybernos-cloud.json` | fichier d'état (tests, profils multiples) |
 
 L'origine de la page d'activation vient du serveur (`activation_url`), donc

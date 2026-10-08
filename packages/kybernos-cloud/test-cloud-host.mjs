@@ -576,6 +576,8 @@ try {
     '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
     // Console Team: the read-only relay (test-relay.mjs) and the active server (test-server-switch.mjs).
     '/kybernos-cloud/relay', '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
+    // The terms and privacy addresses of the active server (test-unplug-host.mjs).
+    '/kybernos-cloud/legal',
     // The console in the user's browser: a single-use link from the server (test-console-link.mjs).
     '/kybernos-cloud/console/link',
     // What stopped the person's last call, in the server's words, for the quota notice (test-quota-notice.mjs and below).

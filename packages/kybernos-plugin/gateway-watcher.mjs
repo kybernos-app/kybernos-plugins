@@ -1,5 +1,5 @@
 // ── Brique gateway : watcher long-poll + file locale ───────────────────────
-// Pont DSH local ↔ kybernos.app, côté MACHINE de l'utilisateur.
+// Pont DSH local ↔ gateway cloud (ancienne pile), côté MACHINE de l'utilisateur. Inactif sauf token d'appairage ET `gatewayBase`.
 // Sources de vérité : docs/handoff/gateway-contrat.md (§2.2 route long-poll,
 // §3 file à 5 états, §4 appairage, §7 décisions d'arbitrage, §8 sync par
 // catégorie — ici les RÉGLAGES `syncAllowed` seulement, pas encore de client
@@ -128,6 +128,15 @@ export function normaliserItem (brut) {
     }
   }
   return null
+}
+
+/** Lit la base du gateway dans un objet de réglages (`gatewayBase`). `null` = aucune : le watcher reste inactif.
+ *  Il n'y a PLUS de base par défaut : ce gateway (`/gateway/poll`, `/widget/api/reply`, `/telecommande/*`) n'existe que sur l'ancienne
+ *  pile, et le serveur Kybernos par défaut ne l'a pas. Y parler est un choix explicite (réglage écrit à la main). */
+export function lireBaseGateway (reglages) {
+  const o = (reglages !== null && reglages !== undefined && typeof reglages === 'object') ? reglages : {}
+  const b = typeof o.gatewayBase === 'string' ? o.gatewayBase.trim().replace(/\/+$/, '') : ''
+  return b !== '' ? b : null
 }
 
 /** Lit le token d'appairage dans un objet de réglages. `null` = inactif. */
@@ -282,8 +291,8 @@ const estDefinitive = (e) => e !== null && e !== undefined && e.definitive === t
  * - `settingsPath` : chemin du settings.json — défaut `<home>/kybernos/settings.json` ;
  * - `stateDir`  : dossier de la file + des conversations JSONL — défaut
  *                 `<home>/kybernos-widget` (LE MÊME magasin que le pont local) ;
- * - `base`      : origine cloud — défaut `gatewayBase` des réglages, sinon
- *                 `https://kybernos.app` ;
+ * - `base`      : origine cloud — défaut `gatewayBase` des réglages ; sans
+ *                 l'un ni l'autre, le watcher reste inactif (aucun hôte par défaut) ;
  * - `fetchImpl` : transport HTTP — défaut `fetch` global ;
  * - `rpc`       : `(method, args, timeoutMs)` RPC local DSH — défaut : RPC
  *                 local par cookie signé (transport du pont widget) ;
@@ -359,8 +368,9 @@ export function createGatewayWatcher (options) {
   const baseCloud = async () => {
     if (typeof opts.base === 'string' && opts.base !== '') return opts.base.replace(/\/+$/, '')
     const r = await lireReglages()
-    const b = typeof r.gatewayBase === 'string' && r.gatewayBase.trim() !== '' ? r.gatewayBase.trim() : 'https://kybernos.app'
-    return b.replace(/\/+$/, '')
+    const b = lireBaseGateway(r)
+    if (b === null) throw new Error('aucune base de gateway (réglage gatewayBase)')
+    return b
   }
 
   // ── RPC local : par défaut, le MÊME transport que le pont widget ─────────
@@ -1046,12 +1056,17 @@ export function createGatewayWatcher (options) {
       }
       return false
     }
+    // Sans base écrite à la main, rien ne sort : aucun hôte par défaut (le serveur Kybernos par défaut n'a pas ce gateway).
+    if ((typeof opts.base !== 'string' || opts.base === '') && lireBaseGateway(lireReglagesSync()) === null) {
+      journal('token d’appairage sans gatewayBase — inactif (le gateway est un choix explicite, aucun hôte par défaut)')
+      return false
+    }
     jeton = t
     enMarche = true
     motifArret = null
     derniereErreur = null
     const maGeneration = ++generation
-    journal('démarrage — long-poll ' + (opts.base !== undefined ? String(opts.base) : 'https://kybernos.app') + GATEWAY_POLL_PATH + ' (token ' + empreinteToken(t) + '…)')
+    journal('démarrage — long-poll ' + (opts.base !== undefined ? String(opts.base) : String(lireBaseGateway(lireReglagesSync()))) + GATEWAY_POLL_PATH + ' (token ' + empreinteToken(t) + '…)')
     bouclePromesse = boucle(maGeneration).catch((e) => {
       journal('boucle interrompue — ' + String(e !== null && e !== undefined && e.message ? e.message : e))
       enMarche = false
@@ -1176,6 +1191,7 @@ export function createGatewayWatcher (options) {
     cleIdempotence,
     normaliserItem,
     lireTokenAppairage,
+    lireBaseGateway,
   }
 }
 
