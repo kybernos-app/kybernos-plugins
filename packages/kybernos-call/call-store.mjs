@@ -27,8 +27,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   defaultVoice: null,    // { engine, voice, lang } on the app's voice engine, for a call without a member; null = the app's default
   cloneUpload: false,    // allow sending a recording to the clone provider (it leaves the machine): off until the user says so
   use: Object.freeze({ listen: 'groq', face: 'liveavatar' }), // which provider fills a slot (what speaks is `defaultVoice`; think and line have one choice)
-  providers: Object.freeze({}), // each provider's own settings (a model, …), see providers.mjs
-  setupDone: false       // the first-call assistant has been through (or skipped)
+  providers: Object.freeze({}) // each provider's own settings (a model, …), see providers.mjs
 })
 
 /** The secrets a call knows, each with what it must look like. A value that does not match is refused, never stored. */
@@ -89,7 +88,6 @@ export function createStore (deps = {}) {
         if (v === null) kept.defaultVoice = null
         else { const ok = voiceOf(v); if (ok !== null) kept.defaultVoice = ok; else refused.defaultVoice = 'an engine voice ({ engine, voice, lang }) or null' }
       } else if (k === 'cloneUpload') { if (typeof v === 'boolean') kept.cloneUpload = v; else refused.cloneUpload = 'true or false' }
-      else if (k === 'setupDone') { if (typeof v === 'boolean') kept.setupDone = v; else refused.setupDone = 'true or false' }
       else if (k === 'use') {
         if (v === null || typeof v !== 'object' || Array.isArray(v)) { refused.use = 'an object like { listen, face }'; continue }
         const use = {}

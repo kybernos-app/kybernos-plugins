@@ -15,7 +15,7 @@ const check = (name, ok, detail) => {
 
 const SRC = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
 const start = SRC.indexOf("const GROUPES = [")
-const block = SRC.slice(start, start + 16000)
+const block = SRC.slice(start, start + 24000)
 
 console.log('About closes the list')
 const fin = /const FIN_DE_LISTE = \[([^\]]*)\]/.exec(block)

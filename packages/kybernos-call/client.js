@@ -46,8 +46,6 @@ window.__ModuleLoader__.load({
         state = (typeof next === 'function') ? next(state) : next
         subscribers.forEach((fn) => { try { fn() } catch (e) { /* a dead subscriber */ } })
       }
-      let assist = null // { step: 1..4, pending } while the setup assistant is open: pending is the call that was asked for
-      const setAssist = (next) => { assist = next; subscribers.forEach((fn) => { try { fn() } catch (e) { /* a dead subscriber */ } }) }
       const patch = (fields) => {
         if (fields.phase === 'error') cue('error')
         setState((old) => ((old === null) ? null : Object.assign({}, old, fields)))
@@ -134,6 +132,47 @@ window.__ModuleLoader__.load({
         if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') { ev.preventDefault(); setWidth(videoWidth() + step, true) } else if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') { ev.preventDefault(); setWidth(videoWidth() - step, true) }
       }
 
+      // ── Settings › Calls: the one place where everything is set up, reached from the call panel and from the gear at the top right of a chat ──
+      let settingsGoto = null // { tab }: what the Calls page takes when it shows (or is already showing)
+      const navKeyOf = (el) => {
+        try {
+          const name = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+          const key = name === undefined ? null : el[name].key
+          return typeof key === 'string' ? key : null
+        } catch (e) { return null }
+      }
+      const callsCell = () => {
+        const cells = Array.from(document.querySelectorAll('[class*="navCell"]'))
+        const own = cells.find((e) => navKeyOf(e) === 'kybernos-call') // the section's id: the same in every language
+        if (own !== undefined) return own
+        const names = [kt('Appels', 'Calls'), 'Appels', 'Calls']
+        return cells.find((e) => names.indexOf(String(e.textContent || '').trim()) >= 0)
+      }
+      const openCallSettings = async (goto) => {
+        settingsGoto = (goto !== null && goto !== undefined && typeof goto === 'object') ? goto : null
+        if (typeof document === 'undefined' || document === null || typeof document.querySelector !== 'function') return false
+        try { return await showCallSettings() } catch (e) { return false } // the app's markup is not ours: never let a moved class break a call
+      }
+      const showCallSettings = async () => {
+        const shown = () => document.querySelector('[data-kb="kybernos-call-settings"]') !== null
+        const settle = (ms) => new Promise((r) => setTimeout(r, ms))
+        if (shown()) { viewChanged(); return true }
+        const click = () => { const cell = callsCell(); if (cell === undefined) return false; cell.click(); return true }
+        if (!click()) {
+          // The dialog is closed: its own trigger opens it (the hashed class prefixes change at every build, their suffixes do not), then the entry.
+          const trigger = document.querySelector('[class*="settingsArea"] button[class*="trigger"]') || document.querySelector('button[aria-label="Settings"]')
+          if (trigger === null) return false
+          trigger.click()
+          await settle(600) // the dialog restores the section it was last on while it mounts: a click that comes first is overwritten
+        }
+        for (let i = 0; i < 60; i += 1) {
+          if (shown()) { viewChanged(); return true }
+          click()
+          await settle(150)
+        }
+        return shown()
+      }
+
       const loadSdk = () => new Promise((resolve, reject) => {
         if (window.LivekitClient !== undefined && window.LivekitClient !== null) { resolve(window.LivekitClient); return }
         const s = document.createElement('script')
@@ -198,21 +237,8 @@ window.__ModuleLoader__.load({
           return
         }
         if (status.secrets !== 'posee') {
-          if (status.setupDone === true) {
-            // The assistant has been through: do not send the user round it again, say where to look.
-            patch({ phase: 'error', note: kt('les appels ne sont pas configurés : voir Réglages › Appels › Bilan de santé', 'calls are not set up: see Settings › Calls › Health') })
-            return
-          }
-          // Nothing is set up on this machine: the setup assistant takes over (it opens the call it was asked for when it is done).
-          setState(null)
-          setAssist({ step: 1, pending: o })
-          return
-        }
-        if (status.setupDone === false) {
-          // The keys are there but nobody has been through the assistant (calls set up before it existed): the microphone and
-          // voice check comes once, before the call; "Skip" goes straight on, and it stays one click away (the gear at the top right).
-          setState(null)
-          setAssist({ step: 1, pending: o, ready: true })
+          // Nothing to call with yet: say so, with a button to the one page where everything is set up (Settings › Calls).
+          patch({ phase: 'error', fix: true, note: kt('les appels ne sont pas encore prêts : il manque des clés', 'calls are not ready yet: some keys are missing') })
           return
         }
         // A recording given to the member is spoken in its own voice only if the host could give it a clone
@@ -236,7 +262,7 @@ window.__ModuleLoader__.load({
           { voice: voice, identity: 'moi' })
         const token = await post('/token', body)
         if (token === null || token.ok !== true) {
-          patch({ phase: 'error', note: (token !== null && typeof token.error === 'string') ? token.error : kt('pas de jeton d’appel', 'no call token') })
+          patch({ phase: 'error', fix: true, note: (token !== null && typeof token.error === 'string') ? token.error : kt('pas de jeton d’appel', 'no call token') })
           return
         }
         const agent = (token.agent !== null && token.agent !== undefined) ? token.agent : null
@@ -430,6 +456,7 @@ window.__ModuleLoader__.load({
             h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, kt('Raccrocher', 'Hang up'))
           ]),
           note !== '' ? h('span', { key: 'note', style: css.note }, note) : null,
+          s.fix === true ? h('button', { key: 'fix', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'open-settings', style: { alignSelf: 'flex-start' }, onClick: () => { setState(null); openCallSettings({ tab: 'overview' }) } }, kt('Ouvrir Réglages › Appels', 'Open Settings › Calls')) : null,
           // Once the call is live: what the microphone hears (left), and what the assistant is doing (right).
           isLive ? h('div', { key: 'act', className: 'kbcl-activity', 'data-state': mood[0] }, [
             h('span', { key: 'w', className: 'kbcl-who' }, kt('Vous', 'You')),
@@ -529,10 +556,8 @@ window.__ModuleLoader__.load({
 .kbcl-hbtn:disabled{opacity:.4;cursor:default}
 .kbcl-hbtn.kbcl-hlive{background:#DC2626;color:#FFFFFF;padding:0 10px}
 @keyframes kbcl-spin{to{transform:rotate(360deg)}}
-.kbcl-veil{position:fixed;inset:0;z-index:1002;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
-.kbcl-modal{box-sizing:border-box;width:min(620px,100%);max-height:88vh;overflow:auto;background:${T.layer};color:${T.text};border:1px solid ${T.line};border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;box-shadow:0 24px 64px rgba(0,0,0,.35);font-size:14px}
 .kbcl-hh{display:flex;align-items:center;gap:8px}
-.kbcl-prov a,.kbcl-modal a{color:${T.brand}}
+.kbcl-prov a{color:${T.brand}}
 .kbcl-hl{appearance:none;display:inline-flex;align-items:center;gap:8px;border:0;background:transparent;color:${T.mute};font:inherit;font-size:12.5px;cursor:pointer;padding:0}
 .kbcl-hl:hover{color:${T.text}}
 .kbcl-hl:focus-visible{outline:2px solid ${T.brand};outline-offset:2px;border-radius:6px}
@@ -589,11 +614,6 @@ window.__ModuleLoader__.load({
         } catch (e) { headerStatus.asked = false /* try again at the next mount */ }
         subscribers.forEach((fn) => { try { fn() } catch (e) { /* a dead subscriber */ } })
       }
-      const useAssistState = () => {
-        const [, rerender] = React.useReducer((n) => n + 1, 0)
-        React.useEffect(() => { subscribers.add(rerender); return () => { subscribers.delete(rerender) } }, [])
-        return assist
-      }
       const CallHeader = (props) => {
         const current = useCall()
         React.useEffect(() => { loadHeaderStatus() }, [])
@@ -608,7 +628,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' }, [
           h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
           h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoutez une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
-          h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', title: kt('Régler les appels : micro, voix, connexion, visage', 'Set up calls: microphone, voice, connection, face'), 'aria-label': kt('Réglages d’appel', 'Call setup'), onClick: () => setAssist({ step: 1, pending: null }) }, Ico('sliders', 17))
+          h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', title: kt('Réglages des appels : micro, voix, visage, clés', 'Call settings: microphone, voice, face, keys'), 'aria-label': kt('Réglages des appels', 'Call settings'), onClick: () => { openCallSettings({ tab: 'overview' }) } }, Ico('sliders', 17))
         ])
       }
 
@@ -641,7 +661,8 @@ window.__ModuleLoader__.load({
       const HELP = () => ({
         overview: [
           [kt('Ce que c’est.', 'What it is.'), kt('Un appel est une chaîne de cinq maillons : votre voix, Écoute, Cerveau, Voix, Visage, le tout porté par la Ligne. Chaque maillon a un fournisseur.', 'A call is a chain of five slots: your voice, Listen, Think, Speak, Face, all carried by the Line. Each slot has one provider.')],
-          [kt('Préréglages.', 'Presets.'), kt('Ils remplissent les maillons d’un coup. Vous pouvez ensuite changer chacun.', 'They fill the slots at once. You can change each one afterwards.')]
+          [kt('Préréglages.', 'Presets.'), kt('Ils remplissent les maillons d’un coup. Vous pouvez ensuite changer chacun.', 'They fill the slots at once. You can change each one afterwards.')],
+          [kt('Casque.', 'Headphones.'), kt('Un casque ou des écouteurs sont conseillés : sinon l’assistant entend sa propre voix et se coupe la parole.', 'Headphones are recommended: without them the assistant hears its own voice and cuts itself off.')]
         ],
         providers: [
           [kt('Ce que c’est.', 'What it is.'), kt('Une page par fournisseur, avec la même disposition : prix, lien pour obtenir une clé, réglages propres, test.', 'One page per provider, same layout: price, where to get a key, its own settings, a test.')],
@@ -833,9 +854,9 @@ window.__ModuleLoader__.load({
               p.test ? h('button', { key: 't', type: 'button', className: 'kbcl-btn', 'data-act': 'test-' + p.test, disabled: test !== null && test.busy === true, onClick: runTest }, kt('Tester', 'Test')) : null,
               test !== null && test.busy === true ? h('span', { key: 'w', className: 'kbcl-sub' }, kt('Test en cours…', 'Testing…')) : null,
               test !== null && test.busy !== true ? h('span', { key: 'r', 'data-test-result': p.test }, test.ok === true ? Chip('ok', kt('connexion réussie', 'connection works') + (test.detail ? ' · ' + test.detail : '')) : Chip('err', test.error || kt('échec', 'failed'))) : null,
-              (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone && props.compact !== true ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string') || (p.id === 'models-asr' && !(p.config && p.config.model)), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
+              (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string') || (p.id === 'models-asr' && !(p.config && p.config.model)), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
             ]),
-            p.slot === 'speak' && !p.clone && props.compact !== true ? h('div', { key: 'fb', className: 'kbcl-sub' }, kt('Si ce fournisseur échoue, la voix du Mac prend le relais : l’appel n’est jamais muet.', 'If this provider fails, the Mac voice takes over: a call is never silent.')) : null,
+            p.slot === 'speak' && !p.clone ? h('div', { key: 'fb', className: 'kbcl-sub' }, kt('Si ce fournisseur échoue, la voix du Mac prend le relais : l’appel n’est jamais muet.', 'If this provider fails, the Mac voice takes over: a call is never silent.')) : null,
             p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’un Kyber est un enregistrement. Créez la voix depuis la carte du Kyber.', 'Used when a Kyber’s voice is a recording. Create the voice from the Kyber’s card.')) : null
           ]
         ])
@@ -881,7 +902,20 @@ window.__ModuleLoader__.load({
           if (r.state === 'ok') return Chip('ok', label + (m.kind === 'realtime' ? ' · ' + kt('se connecte (pas encore utilisé)', 'connects (not used yet)') : ' · ' + kt('marche', 'works')))
           return Chip('warn', label + ' · ' + (r.code === 'no-key' ? kt('pas de clé pour ce fournisseur', 'no key for this provider') : r.code === 'no-address' ? kt('adresse du fournisseur inconnue', 'provider address unknown') : kt('aucune façon connue de lui parler', 'no known way to talk to it')))
         }
+        // Is a call possible now? The face is optional (without one a video call is a voice call); every other link needs its provider ready.
+        const lacking = d.slots.filter((sl) => sl.id !== 'face').map((sl) => ({ sl: sl, p: used[sl.id] })).filter((x) => x.p !== null && x.p !== undefined && x.p.ready !== true)
+        const faceP = used.face
+        const noFace = faceP !== null && faceP !== undefined && faceP.ready !== true
+        const fixRow = (x) => h('div', { key: x.sl.id, className: 'kbcl-row' }, [
+          h('span', { key: 'n', style: { fontWeight: 600 } }, tx(x.sl.name) + ' · ' + tx(x.p.name)), stateChip(x.p, c), h('span', { key: 'g', className: 'kbcl-grow' }),
+          h('button', { key: 'b', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'fix-' + x.sl.id, onClick: () => props.onChange(x.sl.id, x.p.id) }, kt('Régler', 'Set up'))])
+        const ready = h('div', { key: 'ready', className: 'kbcl-slot', 'data-kb': 'kybernos-call-ready', 'data-ready': lacking.length === 0 ? 'true' : 'false' }, lacking.length === 0
+          ? [h('div', { key: 'r', className: 'kbcl-row' }, [Chip('ok', kt('Prêt à appeler', 'Ready to call')), h('span', { key: 't', className: 'kbcl-sub kbcl-grow' }, kt('Cliquez sur le téléphone en haut à droite d’une session.', 'Click the phone at the top right of a session.')),
+            h('button', { key: 'h', type: 'button', className: 'kbcl-btn', 'data-act': 'goto-health', onClick: props.onHealth }, kt('Tout vérifier', 'Check everything'))])]
+            .concat(noFace ? [h('div', { key: 'v', className: 'kbcl-sub' }, kt('Pour les appels vidéo, il manque encore un visage : ', 'For video calls, a face is still missing: ')), fixRow({ sl: d.slots.find((x) => x.id === 'face'), p: faceP })] : [])
+          : [h('div', { key: 'r', className: 'kbcl-row' }, [Chip('warn', kt('Pas encore prêt', 'Not ready yet')), h('span', { key: 't', className: 'kbcl-sub kbcl-grow' }, kt('Il manque une clé ou un réglage :', 'A key or a setting is missing:'))])].concat(lacking.map(fixRow)))
         return [
+          ready,
           audio.length > 0 ? h('div', { key: 'found', className: 'kbcl-found', 'data-kb': 'kybernos-call-found-models' }, [
             h('div', { key: 't', style: { fontWeight: 600 } }, kt('Trouvé dans vos Modèles : ', 'Found in your Models: ') + audio.map((g) => g.provider).join(', ')),
             h('div', { key: 'd', className: 'kbcl-sub' }, kt('Déjà payé par votre offre, sans nouvelle clé. Les modèles de voix et d’écoute s’utilisent dans Fournisseurs ; les modèles temps réel sont détectés, pas encore utilisés dans les appels.', 'Already paid by your plan, no new key. Voice and listening models are used in Providers; realtime models are detected, not used in calls yet.')),
@@ -1021,7 +1055,6 @@ window.__ModuleLoader__.load({
           setInst(r)
           setTimeout(follow, 1500)
         }
-        React.useEffect(() => { if (props.autorun === true) run() }, [])
         return [
           h('div', { key: 'top', className: 'kbcl-row' }, [h('button', { key: 'b', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'run-health', disabled: running, onClick: run }, running ? kt('Vérification…', 'Checking…') : kt('Tout vérifier', 'Check everything'))]),
           h('div', { key: 'rows', className: 'kbcl-slots', 'data-kb': 'kybernos-call-health' }, HEALTH_ORDER.map((id) => {
@@ -1045,123 +1078,29 @@ window.__ModuleLoader__.load({
         const [slot, setSlot] = React.useState('speak')
         const [prov, setProv] = React.useState(null)
         const [open, setOpen] = React.useState({})
+        // Sent here by the call panel or by the gear: land on the tab that was asked for, even if the page was already open on another one.
+        React.useEffect(() => {
+          const take = () => { const g = settingsGoto; if (g === null) return; settingsGoto = null; if (typeof g.tab === 'string') setTab(g.tab) }
+          take()
+          subscribers.add(take)
+          return () => { subscribers.delete(take) }
+        }, [])
         if (c.data === null) return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, h('div', { className: 'kbcl-sub' }, kt('Lecture des réglages…', 'Reading the settings…')))
         if (c.data.ok !== true) return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, h('div', { className: 'kbcl-notice kbcl-bad' }, kt('Les routes d’appel ne sont pas chargées — relancez DSH une fois.', 'The call routes are not loaded — relaunch DSH once.')))
         const helps = HELP()
         const tabs = [['overview', kt('Vue d’ensemble', 'Overview')], ['providers', kt('Fournisseurs', 'Providers')], ['health', kt('Bilan de santé', 'Health')]]
         const toggle = (id) => () => setOpen((o) => Object.assign({}, o, { [id]: !o[id] }))
         const goProvider = (s, p) => { setSlot(s); setProv(p || null); setTab('providers') }
-        const body = tab === 'overview' ? h(Overview, { calls: c, onChange: goProvider })
+        const body = tab === 'overview' ? h(Overview, { calls: c, onChange: goProvider, onHealth: () => setTab('health') })
           : tab === 'providers' ? h(Providers, { calls: c, slot: slot, prov: prov, onSlot: (s) => { setSlot(s); setProv(null) }, onProv: setProv })
             : h(Health, { onFix: (id) => goProvider(id === 'line' ? 'line' : id, null) })
         return h('div', { className: 'kbcl-page', 'data-kb': 'kybernos-call-settings' }, [
           h('div', { key: 'top' }, [h('h2', { key: 'h' }, kt('Appels', 'Calls')), h('div', { key: 's', className: 'kbcl-sub' }, kt('Parler à votre assistant ou à un membre de votre équipe, à voix haute, depuis n’importe quelle session.', 'Talk to your assistant, or to a team member, out loud, from any session.'))]),
-          h('div', { key: 'again', className: 'kbcl-row' }, [h('button', { key: 'b', type: 'button', className: 'kbcl-btn', 'data-act': 'run-assistant', onClick: () => setAssist({ step: 1, pending: null }) }, kt('Lancer l’assistant de configuration', 'Run the setup assistant'))]),
           h('div', { key: 'tabs', className: 'kbcl-tabs', role: 'tablist' }, tabs.map((t) => h('button', { key: t[0], type: 'button', role: 'tab', className: 'kbcl-tab', 'data-act': 'tab-' + t[0], 'aria-selected': tab === t[0] ? 'true' : 'false', onClick: () => setTab(t[0]) }, t[1]))),
           h('div', { key: 'help' }, h(Help, { id: tab, title: tabs.find((t) => t[0] === tab)[1], lines: helps[tab], open: open[tab] === true, onToggle: toggle(tab) })),
           c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status', 'data-kb': 'kybernos-call-notice' }, c.notice.text) : null,
           body
         ])
-      }
-
-      // ── The setup assistant: a first call on a machine with nothing set up. Four screens, once; Settings › Calls has all of it afterwards. ──
-      const AssistantBody = (props) => {
-        const cur = props.cur
-        const c = useCalls()
-        const step = cur.step
-        const go = (n) => setAssist(Object.assign({}, assist, { step: n }))
-        const [heard, setHeard] = React.useState(false)
-        const [micErr, setMicErr] = React.useState('')
-        const [devices, setDevices] = React.useState([])
-        const [deviceId, setDeviceId] = React.useState('')
-        const bar = React.useRef(null)
-        // Step 1: the microphone, live. The bar must move when the user speaks: that is the whole step.
-        React.useEffect(() => {
-          if (step !== 1) return undefined
-          let stopped = false
-          let stream = null
-          let ac = null
-          let timer = null
-          ;(async () => {
-            try {
-              stream = await navigator.mediaDevices.getUserMedia({ audio: deviceId === '' ? true : { deviceId: { exact: deviceId } } })
-              if (stopped) { stream.getTracks().forEach((t) => t.stop()); return }
-              setMicErr('')
-              const list = await navigator.mediaDevices.enumerateDevices()
-              setDevices(list.filter((d) => d.kind === 'audioinput' && d.deviceId !== ''))
-              const AC = window.AudioContext || window.webkitAudioContext
-              ac = new AC()
-              const an = ac.createAnalyser()
-              an.fftSize = 512
-              ac.createMediaStreamSource(stream).connect(an)
-              const buf = new Uint8Array(an.fftSize)
-              timer = setInterval(() => {
-                an.getByteTimeDomainData(buf)
-                let peak = 0
-                for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128))
-                const v = peak / 128
-                if (bar.current) bar.current.style.transform = 'scaleX(' + Math.min(1, Math.max(0.02, v * 2.5)).toFixed(3) + ')'
-                if (v > 0.1) setHeard(true)
-              }, 90)
-            } catch (e) { setMicErr(String(e && e.name ? e.name : e)) }
-          })()
-          return () => { stopped = true; if (timer !== null) clearInterval(timer); if (stream !== null) stream.getTracks().forEach((t) => t.stop()); try { if (ac !== null) ac.close() } catch (e) { /* closed */ } }
-        }, [step, deviceId])
-        React.useEffect(() => {
-          const onKey = (e) => { if (e.key === 'Escape') setAssist(null) }
-          document.addEventListener('keydown', onKey)
-          return () => document.removeEventListener('keydown', onKey)
-        }, [])
-        const d = c.data
-        const titles = [kt('Vérifiez votre micro', 'Check your microphone'), kt('Comment voulez-vous appeler ?', 'How do you want to call?'), kt('Connectez les services', 'Connect the services'), kt('Dernière vérification', 'Final check')]
-        const finish = async () => {
-          if (await c.save({ setupDone: true })) {
-            const p = cur.pending
-            setAssist(null)
-            if (p !== null && p !== undefined) open(p)
-          }
-        }
-        let body = null
-        if (d === null) body = h('div', { className: 'kbcl-sub' }, kt('Lecture des réglages…', 'Reading the settings…'))
-        else if (d.ok !== true) body = h('div', { className: 'kbcl-notice kbcl-bad' }, kt('Les routes d’appel ne sont pas chargées — relancez DSH une fois.', 'The call routes are not loaded — relaunch DSH once.'))
-        else if (step === 1) {
-          body = [
-            h('div', { key: 'd', className: 'kbcl-sub' }, kt('Dites quelques mots : la barre doit bouger. Un casque ou des écouteurs sont conseillés, sinon l’assistant entend sa propre voix et se coupe la parole.', 'Say a few words: the bar should move. Headphones are recommended, or the assistant hears its own voice and cuts itself off.')),
-            devices.length > 1 ? h('select', { key: 's', className: 'kbcl-in', 'data-field': 'assist-mic', 'aria-label': kt('Micro', 'Microphone'), value: deviceId, onChange: (e) => setDeviceId(e.target.value) }, devices.map((x) => h('option', { key: x.deviceId, value: x.deviceId }, x.label || x.deviceId))) : null,
-            h('div', { key: 'm', className: 'kbcl-activity' }, [h('span', { key: 'w', className: 'kbcl-who' }, kt('Vous', 'You')), h('span', { key: 'b', className: 'kbcl-meter', 'aria-hidden': 'true' }, h('span', { className: 'kbcl-meter-fill', ref: bar }))]),
-            micErr !== '' ? h('div', { key: 'e', className: 'kbcl-notice kbcl-bad', 'data-kb': 'kybernos-call-mic-error' }, kt('Le navigateur ne donne pas accès au micro (', 'The browser does not give access to the microphone (') + micErr + kt('). Autorisez-le pour ce site, puis revenez ici.', '). Allow it for this site, then come back.')) : h('div', { key: 'h', className: 'kbcl-sub', 'data-kb': 'kybernos-call-mic-state' }, heard ? kt('Je vous entends bien.', 'I hear you well.') : kt('J’écoute…', 'Listening…'))
-          ]
-        } else if (step === 2) {
-          body = [
-            h('div', { key: 'd', className: 'kbcl-sub' }, kt('Un préréglage remplit les cinq maillons d’un coup. Vous pourrez changer chacun dans Réglages › Appels.', 'A preset fills the five slots at once. You can change each one in Settings › Calls.')),
-            h('div', { key: 'p', className: 'kbcl-slots' }, d.presets.map((pr) => h('button', { key: pr.id, type: 'button', className: 'kbcl-preset', 'data-act': 'assist-preset-' + pr.id, 'aria-pressed': pr.active === true ? 'true' : 'false', disabled: c.busy || pr.available !== true, onClick: () => c.preset(pr.id) }, [
-              h('div', { key: 'n', style: { fontWeight: 600 } }, tx(pr.name) + (pr.available !== true ? ' · ' + kt('bientôt', 'soon') : '')), h('div', { key: 'd', className: 'kbcl-sub' }, tx(pr.desc))])))
-          ]
-        } else if (step === 3) {
-          const need = [providerOf(d, d.settings.use.listen), providerOf(d, 'livekit')].concat(d.settings.use.face === 'liveavatar' ? [providerOf(d, 'liveavatar')] : []).filter((x) => x !== null)
-          body = [h('div', { key: 'd', className: 'kbcl-sub' }, kt('Ces services ont besoin d’une clé. Chacun a un lien pour l’obtenir, et un bouton Tester.', 'These services need a key. Each has a link to get one, and a Test button.'))].concat(need.map((p) => h(ProviderForm, { key: p.id, provider: p, calls: c, compact: true })))
-        } else {
-          body = [h('div', { key: 'd', className: 'kbcl-sub' }, kt('Le même bilan existe dans Réglages › Appels › Bilan de santé.', 'The same check lives in Settings › Calls › Health.')), h(Health, { key: 'h', autorun: true, onFix: () => go(3) })]
-        }
-        return [
-          h('div', { key: 'hd', className: 'kbcl-row' }, [Chip('ok', kt('Assistant · étape ', 'Setup assistant · step ') + step + kt(' sur 4', ' of 4')), h('span', { key: 'once', className: 'kbcl-sub' }, kt('une seule fois', 'runs once'))]),
-          h('h2', { key: 't', style: { margin: 0, fontSize: '18px' } }, titles[step - 1]),
-          c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status' }, c.notice.text) : null,
-          h('div', { key: 'b', className: 'kbcl-f' }, body),
-          h('div', { key: 'ft', className: 'kbcl-row', style: { justifyContent: 'space-between' } }, [
-            step === 1 && cur.ready === true
-              ? h('button', { key: 'bk', type: 'button', className: 'kbcl-btn', 'data-act': 'assist-skip', disabled: c.busy, onClick: () => finish() }, kt('Passer et appeler', 'Skip and call'))
-              : h('button', { key: 'bk', type: 'button', className: 'kbcl-btn', 'data-act': 'assist-back', onClick: () => (step === 1 ? setAssist(null) : go(step - 1)) }, step === 1 ? kt('Annuler', 'Cancel') : kt('Retour', 'Back')),
-            h('button', { key: 'nx', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'assist-next', disabled: c.busy, onClick: () => (step === 4 ? finish() : go(step + 1)) }, step === 4 ? (cur.pending ? kt('Terminer et appeler', 'Finish and call') : kt('Terminer', 'Finish')) : kt('Continuer', 'Continue'))
-          ])
-        ]
-      }
-      const Assistant = () => {
-        const cur = useAssistState()
-        if (cur === null) return null
-        const node = h('div', { className: 'kbcl-veil', role: 'presentation' }, h('div', { role: 'dialog', 'aria-modal': 'true', 'aria-label': kt('Assistant de configuration des appels', 'Call setup assistant'), className: 'kbcl-modal', 'data-kb': 'kybernos-call-assistant', 'data-step': String(cur.step) }, h(AssistantBody, { cur: cur })))
-        const canPortal = ReactDOM !== null && ReactDOM !== undefined && typeof ReactDOM.createPortal === 'function' && typeof document !== 'undefined' && document.body
-        return canPortal ? ReactDOM.createPortal(node, document.body) : node
       }
 
       // ── the seam ──
@@ -1170,7 +1109,7 @@ window.__ModuleLoader__.load({
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { getAssist: () => assist, closeAssist: () => setAssist(null), open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
+        __test: { getGoto: () => settingsGoto, openCallSettings: openCallSettings, open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
         apply (ctx) {
           try {
             const slots = ctx.slots
@@ -1183,8 +1122,6 @@ window.__ModuleLoader__.load({
             }, 'kybernos-call: styles')
             ctx.effect(() => slots.inject('shell.overlay', () => slots.register(
               { name: 'shell.overlay', id: 'kybernos-call-overlay', order: 30 }, Panel)), 'kybernos-call: call panel')
-            ctx.effect(() => slots.inject('shell.overlay', () => slots.register(
-              { name: 'shell.overlay', id: 'kybernos-call-assistant', order: 31 }, Assistant)), 'kybernos-call: setup assistant')
             // Voice and video buttons at the top right of the chat of every session: the call belongs to the session, not to a team.
             ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
               { name: 'conversation.session.header.actions', id: 'kybernos-call-header', order: 50 },

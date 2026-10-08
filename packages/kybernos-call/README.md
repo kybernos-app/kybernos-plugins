@@ -26,10 +26,11 @@ reach this bundle through one seam.
   - **Health**: one button, **Check everything**: the microphone, the listening key, a sentence through the voice engine, the face
     account, the LiveKit line and the call engine, each with a sentence that says what to do. A missing call engine can be **installed in
     one click**.
-- **The setup assistant**: a call asked on a machine with nothing set up (no LiveKit keys), or with keys but never through it, opens a
-  four-screen dialog instead of failing: the microphone (a bar that moves), a preset, the keys the preset needs (each with its link and
-  test), a final check. It then makes the call that was asked for ("Skip and call" on the first screen goes straight on when the keys are
-  already there). A gear next to the phone and camera at the top right of a chat opens it at any time, and so does the button in Settings › Calls.
+- **One place to set things up: Settings › Calls.** There is no pop-up wizard. When a call cannot start for want of a key or a setting,
+  the panel says so and has an "Open Settings › Calls" button; a gear next to the phone and camera at the top right of a chat goes to
+  the same page. The Overview opens with a status line: "Ready to call" (with a "Check everything" button), or "Not ready yet" and
+  what is missing, each with a "Set up" button that leads to that provider's page. The face is optional: without one a video call is
+  a voice call, and the line says so.
 
 ## The audio models you already have
 
@@ -51,7 +52,7 @@ once if it stops working.
 
 ## First call
 
-1. Click the phone at the top right of a chat. On a machine with nothing set up the setup assistant opens: follow its four screens.
+1. Click the phone at the top right of a chat. On a machine with nothing set up the panel says so and opens Settings › Calls: the Overview lists what is missing, each with a "Set up" button.
    By hand, the same things are in Settings › Calls › Providers: the LiveKit address, key and secret (a free LiveKit Cloud project is
    enough), and the Groq key (listening). Each has a **Test** button. Keys are written to `kybernos/livekit.env` (private file) and are
    never shown again.
@@ -142,7 +143,7 @@ come from the page's own origin (checked against the socket's real port, never t
 - `kybernos/livekit.env` (chmod 600): `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `GROQ_API_KEY`, `LIVEAVATAR_API_KEY`,
   `LIVEAVATAR_AVATAR_ID`, `LIVEAVATAR_SANDBOX`, `ELEVENLABS_API_KEY`. Any other line (the worker's `KYBER_*` options, comments) is left
   untouched when the page changes a key.
-- `kybernos/kybernos-call/settings.json` and `clones.json` (chmod 600): the settings (which provider fills a slot, each provider's own settings, the voice, the language, the limits, whether the setup assistant has been through); the clones (a recording id → a provider voice id; no key).
+- `kybernos/kybernos-call/settings.json` and `clones.json` (chmod 600): the settings (which provider fills a slot, each provider's own settings, the voice, the language, the limits); the clones (a recording id → a provider voice id; no key).
 - `kybernos/logs/engine-install.log` and `.json`: the call engine's install, and how it is going.
 - `kybernos/logs/appel-agent.log` and `appel-agent.json`: the worker's log and its per-call marks.
 - `kybernos/appel-venv/`: the worker's Python environment.
@@ -189,7 +190,7 @@ button is clicked.
 `node packages/kybernos-call/test-*.mjs`: `test-host` (the token, the dispatch, the settings a call uses), `test-store` (settings, secrets,
 clones on disk), `test-admin` (the settings page's host side, the clone provider, against fake servers), `test-routes`, `test-speech-feed`,
 `test_call_stt.py` (listening through the host), `test-providers` (the catalogue, what the settings keep of it, the presets, LiveAvatar, the health check), `test-engine` (the one-click install, with a fake shell),
-`test-client` (the panel and its indicators and sounds, the header buttons, the setup assistant's gate, the clone flow, in a fake browser), `test-call-brief`, `test-dsh-home`, `test-agent-process` (a real child
+`test-client` (the panel and its indicators and sounds, the header buttons, the way to Settings › Calls, the clone flow, in a fake browser), `test-call-brief`, `test-dsh-home`, `test-agent-process` (a real child
 process, Unix only), `test-agent-meta` (the worker's Python tests through `python3`: `call_meta`, `call_voice`, and the LiveKit-facing worker
 which are skipped without the worker's venv; run `<venv>/bin/python agent/test_call_agent.py` to run them). None needs DSH, a browser or the
 network. In `@local/kybernos`, `test-call-seam.mjs` checks the member card's side.

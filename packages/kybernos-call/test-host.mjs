@@ -32,7 +32,7 @@ try {
 
   let call = base()
   assert.equal(await call.readSecrets(), null)
-  assert.deepEqual(await call.status(), { ok: true, secrets: 'absente', url: null, setupDone: false, provider: 'none', avatar: null, sandbox: false })
+  assert.deepEqual(await call.status(), { ok: true, secrets: 'absente', url: null, provider: 'none', avatar: null, sandbox: false })
   ok('no secrets file → "absente", no URL, no provider')
 
   put('kybernos/livekit.env', 'LIVEKIT_URL=wss://lk.example.test\nLIVEKIT_API_KEY=APIkey\nLIVEKIT_API_SECRET=short\n')

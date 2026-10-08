@@ -2666,7 +2666,7 @@ const KB_NAV_KEYS = {
   'kybernos-maintenance': 'about', 'kbac-security': 'security', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing',
   'kbac-support': 'support & legal', plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
-  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers',
+  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
 }
 /** The React key of a nav cell, or null (never throws: the internals are not ours). */
 const kbNavKeyOf = (el) => {
@@ -29799,6 +29799,11 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'plugins': '<rect x="3" y="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="14" width="7" height="7" rx="1" ' + trait + '/>',
         'listing': '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" ' + trait + '/>',
         'built-in plugins': '<path d="M21 8l-9-5-9 5v8l9 5 9-5z" ' + trait + '/><path d="M3 8l9 5 9-5" ' + trait + '/><path d="M12 13v8" ' + trait + '/>',
+        // The pages the Suite's plugins add under « Third party plugins »: each its own picture instead of the shell's gear.
+        'auto routing': '<path d="M16 3h5v5" ' + trait + '/><path d="M8 3H3v5" ' + trait + '/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3" ' + trait + '/><path d="m15 9 6-6" ' + trait + '/>',
+        'kybernos suite': '<path d="M19.44 7.85c-.05.32.06.65.29.88l1.57 1.57c.47.47.7 1.09.7 1.7s-.23 1.23-.7 1.7l-1.61 1.61a.98.98 0 0 1-.84.28c-.47-.07-.8-.48-.97-.93a2.5 2.5 0 1 0-3.21 3.21c.45.17.86.5.93.97a.98.98 0 0 1-.28.84l-1.61 1.61a2.4 2.4 0 0 1-1.7.7 2.4 2.4 0 0 1-1.7-.7l-1.57-1.57a1.03 1.03 0 0 0-.88-.29c-.49.07-.84.5-1.02.97a2.5 2.5 0 1 1-3.24-3.24c.46-.18.89-.53.97-1.02a1.03 1.03 0 0 0-.29-.88l-1.57-1.57A2.4 2.4 0 0 1 2 12c0-.62.24-1.23.7-1.7l1.53-1.53c.24-.24.58-.35.92-.3.52.08.88.53 1.07 1.01a2.5 2.5 0 1 0 3.26-3.26c-.48-.2-.93-.56-1.01-1.07-.05-.34.06-.68.3-.92l1.53-1.53A2.4 2.4 0 0 1 12 2c.62 0 1.23.24 1.7.7l1.57 1.57c.23.23.56.34.88.29.49-.07.84-.5 1.02-.97a2.5 2.5 0 1 1 3.24 3.24c-.46.18-.89.53-.97 1.02z" ' + trait + '/>',
+        'workers': '<rect x="4" y="4" width="16" height="16" rx="2" ' + trait + '/><rect x="9" y="9" width="6" height="6" rx="1" ' + trait + '/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" ' + trait + '/>',
+        'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
       // Variantes de LANGUE des libellés : sous une langue traduite, le titre
       // affiché d'une cellule n'est plus fr/en et le reconnaissance par mot-clé
@@ -29824,6 +29829,18 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           if (GROUPES[g].mots.indexOf(n) !== -1) return g
         }
         return -1
+      }
+      // icône VARIÉE : le svg natif de la cellule reçoit le tracé du libellé (plusieurs items partageaient la même icône shell).
+      // Posée AVANT le tri par groupe : une page de plugin qui n'est dans aucun groupe garde sa place en queue, mais plus l'engrenage.
+      const poserIcone = (cellule, n) => {
+        const icone = ICONES[n]
+        const svg = cellule.querySelector('svg')
+        if (icone !== undefined && svg !== null && svg.dataset.kbIcon !== n) {
+          svg.dataset.kbIcon = n
+          svg.setAttribute('viewBox', '0 0 24 24')
+          svg.setAttribute('stroke-width', '1.75')
+          svg.innerHTML = icone
+        }
       }
       let minuteur = null
       const organiser = () => {
@@ -29858,6 +29875,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
               const pos = GROUPES[k].mots.indexOf(n)
               if (pos !== -1) { g = k; wi = pos; break }
             }
+            poserIcone(cellule, n)
             if (g === -1) { cellule.style.order = String(450 + idx); return }
             if (vus[g] !== true) {
               vus[g] = true
@@ -29882,16 +29900,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             cellule.style.order = String(g * 100 + 10 + wi)
             // « About » ferme la liste, après les pages que les plugins ajoutent (qui tombent à 450+).
             if (FIN_DE_LISTE.indexOf(n) !== -1) cellule.style.order = '9000'
-            // icône VARIÉE : le svg natif de la cellule reçoit le tracé du
-            // libellé (plusieurs items partageaient la même icône shell).
-            const icone = ICONES[n]
-            const svg = cellule.querySelector('svg')
-            if (icone !== undefined && svg !== null && svg.dataset.kbIcon !== n) {
-              svg.dataset.kbIcon = n
-              svg.setAttribute('viewBox', '0 0 24 24')
-              svg.setAttribute('stroke-width', '1.75')
-              svg.innerHTML = icone
-            }
           })
         }
       }

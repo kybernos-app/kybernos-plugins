@@ -23,7 +23,7 @@
     "page": true
   },
   "good": {
-    "fr": "Au premier appel, un assistant vous guide (micro, préréglage, clés, vérification). Ensuite, tout est dans Réglages › Appels. Une voix enregistrée n'est clonée que si vous l'autorisez.",
-    "en": "On the first call, an assistant guides you (microphone, preset, keys, check). Afterwards everything is in Settings › Calls. A recorded voice is only cloned if you allow it."
+    "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau vous y conduit. Une voix enregistrée n'est clonée que si vous l'autorisez.",
+    "en": "Everything is set up in Settings › Calls: a preset, each provider's keys, then “Check everything”. If a call cannot start, the panel takes you there. A recorded voice is only cloned if you allow it."
   }
 }

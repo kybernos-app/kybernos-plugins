@@ -55,5 +55,15 @@ console.log('the table is consistent with the organiser')
   check('no two keys name the same title', new Set(Object.values(KB_NAV_KEYS)).size === Object.values(KB_NAV_KEYS).length)
 }
 
+console.log('the pages the Suite adds have their own icon, not the shell\'s gear')
+{
+  check('Calls is a known cell, whatever the language', KB_NAV_KEYS['kybernos-call'] === 'calls' && JSON.stringify(kbNavTitles(['llamadas'], ['kybernos-call'])) === JSON.stringify(['calls']))
+  for (const t of ['auto routing', 'kybernos suite', 'workers', 'calls']) check('« ' + t + ' » has a drawing', new RegExp("^        '" + t + "': '<", 'm').test(SRC))
+  const drawn = [...SRC.matchAll(/^        '(auto routing|kybernos suite|workers|calls)': '(.*)',$/gm)].map((m) => m[2])
+  check('and the four are four different ones', drawn.length === 4 && new Set(drawn).size === 4)
+  const iconBeforeGroupTest = SRC.indexOf('poserIcone(cellule, n)') > 0 && SRC.indexOf('poserIcone(cellule, n)') < SRC.indexOf('if (g === -1) { cellule.style.order')
+  check('the icon is put on before a cell with no group is left in the tail (that is where they kept the gear)', iconBeforeGroupTest)
+}
+
 console.log(`\n${pass} ✓  ${fail} ✗`)
 process.exit(fail === 0 ? 0 : 1)

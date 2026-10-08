@@ -142,7 +142,6 @@ export function createCall (deps = {}) {
       ok: true,
       secrets: (secrets === null ? 'absente' : 'posee'),
       url: (secrets === null ? null : String(secrets.LIVEKIT_URL)),
-      setupDone: settings !== null && settings.setupDone === true,
       provider: (!wantsFace || secrets === null || typeof secrets.LIVEAVATAR_API_KEY !== 'string' || secrets.LIVEAVATAR_API_KEY.length === 0) ? 'none' : 'liveavatar',
       avatar: (secrets === null || typeof secrets.LIVEAVATAR_AVATAR_ID !== 'string' ? null : String(secrets.LIVEAVATAR_AVATAR_ID)),
       sandbox: (secrets !== null && String(secrets.LIVEAVATAR_SANDBOX) === '1')
