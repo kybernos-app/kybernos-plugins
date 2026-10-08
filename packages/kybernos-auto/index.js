@@ -20,6 +20,9 @@ import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
 import { TTL_SONDE_MS, apresIssue, issueDeRapport, plafondEssais, resoudre, triCandidats, vueModele } from './resilience.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 
 export const name = 'kybernos-auto'
 
@@ -321,7 +324,7 @@ const origineOK = (req) => {
     const u = new URL(o)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
     const port = (req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
-    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
+    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch { return false }
 }
 const lireCorps = (req) => new Promise((res) => {

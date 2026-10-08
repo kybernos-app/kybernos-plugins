@@ -440,6 +440,9 @@ const vueJob = (job) => (job === undefined ? null : {
 })
 
 // ── routes ──────────────────────────────────────────────────────────────────
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
 const hotesLocaux = (req) => {
   const port = typeof req?.socket?.localPort === 'number' ? ':' + req.socket.localPort : ''
@@ -451,7 +454,7 @@ const origineOk = (req, strict) => {
     if (source === null) return strict === false
     const u = new URL(source)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    return hotesLocaux(req).includes(u.host)
+    return (hotesLocaux(req).includes(u.host) || kbTrusted(u.host))
   } catch { return strict === false }
 }
 export const sameOriginStrict = (req) => origineOk(req, true)

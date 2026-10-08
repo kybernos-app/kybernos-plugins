@@ -35,6 +35,10 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 // ne sort de la machine — le local reste strictement celui d'aujourd'hui.
 import { createGatewayWatcher } from './gateway-watcher.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { publishTrustedAuthority } from './trusted-authority.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -9072,7 +9076,7 @@ function boot(ctx) {
         const sock = (req !== null && req.socket !== null && req.socket !== undefined) ? req.socket : null
         const port = (sock !== null && typeof sock.localPort === 'number') ? ':' + sock.localPort : ''
         const hosts = ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port]
-        return hosts.indexOf(u.host) >= 0
+        return (hosts.indexOf(u.host) >= 0 || kbTrusted(u.host))
       } catch (e) { return false }
     }
     // H-01/H-02 (recette 03/10) : garde des GET sensibles. Contrairement au
@@ -9088,7 +9092,7 @@ function boot(ctx) {
         if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
         const sock = (req !== null && req.socket !== null && req.socket !== undefined) ? req.socket : null
         const port = (sock !== null && typeof sock.localPort === 'number') ? ':' + sock.localPort : ''
-        return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
+        return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
       } catch (e) { return true }
     }
     const readJsonBody = async (req, maxBytes) => {
@@ -10588,7 +10592,15 @@ function boot(ctx) {
           return true
         }
         const port = req.socket !== null && req.socket !== undefined && typeof req.socket.localPort === 'number' ? ':' + req.socket.localPort : ''
-        return kbVerifySessionCookie(req.headers.cookie, ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port], secret, Date.now(), { createHash, createHmac, timingSafeEqual })
+        const authorities = ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port]
+        // Behind a reverse proxy the browser's cookie is bound to the PUBLIC authority. A forged Host can only choose
+        // which cookie name is looked up: the value still has to carry a valid signature from the machine secret.
+        try {
+          const hostHeader = typeof req.headers.host === 'string' ? req.headers.host : ''
+          const publicHost = hostHeader === '' ? '' : new URL('http://' + hostHeader).host
+          if (publicHost !== '' && kbTrusted(publicHost)) authorities.push(publicHost)
+        } catch (e) { /* unparsable Host: loopback authorities only */ }
+        return kbVerifySessionCookie(req.headers.cookie, authorities, secret, Date.now(), { createHash, createHmac, timingSafeEqual })
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
@@ -10987,6 +10999,9 @@ function boot(ctx) {
       try { setTimeout(() => { kbTtsCacheTrim().catch(() => null) }, 8000) } catch (e) { /* pas de minuterie : sans importance */ }
       console.log('[kybers] routes webServer /kybernos/* enregistrees (lecture + ecriture cadree + icones + avatar + runs + runs-index + team-cap + voice/* + tts/* + yml-proposer + yml-appliquer)')
     }
+    // Every bundle's route guard reads this predicate: it is what lets a hosted instance behind a reverse
+    // proxy (Origin = the public address) pass the guards, using the same `--trusted-host` list as DSH's own fence.
+    publishTrustedAuthority(ctx)
     if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx.get('webServer'))
     else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(hostCtx.webServer))
 }
