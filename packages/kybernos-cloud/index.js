@@ -193,7 +193,9 @@ const setActiveSpace = async (req, body) => {
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
   const next = Object.assign({}, state, { active_workspace_id: voulu, space_plan: await readSpacePlan(state, voulu) })
   writeState(next)
-  return { ok: true, state: publicState(next) }
+  // The model route names the active space and lists its catalogue: it follows the choice (nothing is written when it already matches).
+  await importCatalog('space')
+  return { ok: true, state: publicState(readState()) }
 }
 
 /** Route : créer un espace. Le serveur hébergé reste maître — on transmet le
@@ -218,7 +220,8 @@ const createSpace = async (req, body) => {
   const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
   next.space_plan = await readSpacePlan(state, espaceActif(next))
   writeState(next)
-  return { ok: true, state: publicState(next) }
+  await importCatalog('space')
+  return { ok: true, state: publicState(readState()) }
 }
 
 const publicPairing = (state) => ({
@@ -290,6 +293,7 @@ const apiCall = async (path, options = {}) => {
   const timer = setTimeout(() => ctrl.abort(), Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : REQUEST_TIMEOUT_MS)
   try {
     const headers = { 'content-type': 'application/json' }
+    if (options.headers !== undefined && options.headers !== null && typeof options.headers === 'object') Object.assign(headers, options.headers)
     if (token !== null) headers.authorization = 'Bearer ' + token
     const res = await fetch((typeof options.base === 'string' ? options.base : resolveApi()) + path, {
       method,
@@ -403,6 +407,16 @@ const statusRoute = () => {
   return { ok: true, connected: false, status: 'none' }
 }
 
+/** Does the server's catalogue for the active space list other models than the route holds? One read; nothing is written here, and the plan is
+ *  not part of the comparison (a plan change alone has never rewritten the route). A server that cannot answer says « no change ». */
+const catalogChanged = async (state, known) => {
+  if (server().profile.services.llm === false || known === null || Array.isArray(known.ids) !== true) return false
+  const cat = await fetchCatalog(state)
+  if (cat.ok !== true) return false
+  const key = (ids) => ids.slice().sort().join('\n')
+  return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
+}
+
 const refreshProfile = async () => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false, status: 'none' }
@@ -454,8 +468,16 @@ const refreshProfile = async () => {
   let models = null
   let import_error
   const known = state.models !== undefined && state.models !== null ? state.models : null
-  if (known === null || known.provider !== PROVIDER_ID) {
+  const routeSpace = known !== null && typeof known.workspace === 'string' ? known.workspace : null
+  if (known === null || known.provider !== PROVIDER_ID || routeSpace !== activeId) {
+    // Nothing imported yet, or the route names another space than the active one (the list of spaces was not known at the claim, or the active one
+    // is gone): import for the active space. An import for the same space is a no-op (fingerprint), so this is not churn.
     const imported = await importCatalog('refresh')
+    models = imported.summary !== undefined ? imported.summary : null
+    if (imported.ok !== true) import_error = imported.error
+  } else if (await catalogChanged(next, known)) {
+    // The models of this space changed on the server (an owner shared a model with the team, or took one away): the route is rewritten.
+    const imported = await importCatalog('refresh', { force: true })
     models = imported.summary !== undefined ? imported.summary : null
     if (imported.ok !== true) import_error = imported.error
   } else if (known.plan !== userPlan(next)) {
@@ -630,7 +652,7 @@ const parseCatalogIds = (body) => {
 const fetchCatalog = async (state) => {
   // The catalogue is read where the route will point: the profile's LLM service when it has one, else the account API.
   const llm = server().profile.services.llm
-  const res = await apiCall('/v1/models', { token: state.token, base: typeof llm === 'string' ? llm : undefined })
+  const res = await apiCall('/v1/models', { token: state.token, base: typeof llm === 'string' ? llm : undefined, headers: spaceHeaders(state) })
   if (res.status === 401 || res.status === 403) return { ok: false, error: 'catalogue_refuse', status: res.status }
   if (res.status !== 200 || res.body === null) {
     return { ok: false, error: res.status === 0 ? 'reseau' : 'catalogue_indisponible', status: res.status }
@@ -640,22 +662,36 @@ const fetchCatalog = async (state) => {
   return { ok: true, models: parsed.models, embed: parsed.embed }
 }
 
+/** The workspace a model call is billed to is named by the CALLER (`x-kybernos-workspace`); without it the server bills the person's PERSONAL
+ *  workspace. DSH's chat has nothing else to say it with, so the route carries the ACTIVE space's id: the one the Cloud card shows, and the one
+ *  whose plan, pool and shared models (a team's own `byok/…` models) the person is meant to use. No known space, no header (the server's default). */
+const SPACE_HEADER = 'x-kybernos-workspace'
+const spaceHeaders = (state) => {
+  const id = espaceActif(state)
+  return id !== null ? { [SPACE_HEADER]: id } : undefined
+}
+
 /** La route provider écrite dans `llm-pi-ai.providers.kybernos`. apiKeyEnv est
  *  une RÉFÉRENCE : le jeton vit dans le store de credentials, pas ici. */
-const providerValue = (state, entries) => ({
-  displayName: PROVIDER_DISPLAY,
-  api: 'openai-completions',
-  baseURL: baseUrl(state),
-  apiKeyEnv: CRED_REF,
-  models: entries,
-})
+const providerValue = (state, entries) => {
+  const headers = spaceHeaders(state)
+  return {
+    displayName: PROVIDER_DISPLAY,
+    api: 'openai-completions',
+    baseURL: baseUrl(state),
+    apiKeyEnv: CRED_REF,
+    ...(headers !== undefined ? { headers } : {}),
+    models: entries,
+  }
+}
 
 /** Déjà importé à l'identique ? (comparaison ids triés + formule + base) */
-const catalogFingerprint = (state, entries, plan, embed) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed, space) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
   embed === undefined || embed === null ? null : embed,
+  typeof space === 'string' ? space : null,
 ])
 
 /** Import (ou rafraîchissement) : catalogue → settings → credential → état.
@@ -683,7 +719,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed) === catalogFingerprint(state, cat.models, plan, cat.embed)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state))) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -697,6 +733,8 @@ const importCatalog = async (cause, options = {}) => {
     count: cat.models.length,
     ids: cat.models.map((e) => e.id),
     embed: cat.embed,
+    // The space this route names on every call (and whose catalogue it lists): a later refresh compares it with the active one.
+    workspace: espaceActif(state),
     provider: PROVIDER_ID,
     base_url: baseUrl(state),
     settings: settingsOut.wrote === true,
