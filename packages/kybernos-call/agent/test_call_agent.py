@@ -300,6 +300,17 @@ class ClonedVoice(unittest.TestCase):
         self.assertFalse(any(isinstance(t, CloneTTS) for t in getattr(voice, "_tts_instances", [voice])))
 
 
+@unittest.skipUnless(HAVE_LIVEKIT, "livekit-agents is not installed: run this with the worker's venv")
+class OnABusyMachine(unittest.TestCase):
+    def test_a_busy_machine_does_not_make_the_worker_refuse_the_call(self):
+        # LiveKit's default marks the worker "unavailable" above 70 % CPU: on a laptop at full load the call never connected.
+        load = worker.server.load_fnc
+        self.assertEqual(load(), 0.0)
+
+    def test_it_does_not_keep_ten_warm_processes(self):
+        self.assertLessEqual(worker.server._num_idle_processes, 2)
+
+
 class _Say:
     def __init__(self):
         self.said = []

@@ -74,10 +74,10 @@ const fakeSdk = (rooms) => {
     constructor (opts) { this.opts = opts; this.handlers = {}; this.connected = null; this.micCalls = []; this.disconnected = false; rooms.push(this)
       this.localParticipant = { setMicrophoneEnabled: async (on) => { this.micCalls.push(on); return { stop: async () => { this.micStopped = true } } } } }
     on (event, fn) { this.handlers[event] = fn }
-    async connect (url, token) { if (this.failConnect) throw new Error('boom'); this.connected = { url, token } }
+    async connect (url, token) { if (this.failConnect) throw new Error('boom'); this.connected = { url, token }; this.remoteParticipants = new Map(rooms.present === true ? [['agent', {}]] : []) }
     async disconnect () { this.disconnected = true }
   }
-  return { Room, RoomEvent: { TrackSubscribed: 'trackSubscribed', TranscriptionReceived: 'transcriptionReceived', ParticipantDisconnected: 'participantDisconnected', Disconnected: 'disconnected' } }
+  return { Room, RoomEvent: { TrackSubscribed: 'trackSubscribed', TranscriptionReceived: 'transcriptionReceived', ParticipantDisconnected: 'participantDisconnected', ParticipantConnected: 'participantConnected', ParticipantAttributesChanged: 'participantAttributesChanged', Disconnected: 'disconnected' } }
 }
 
 console.log('kybernos-call: the plugin object and the seam')
@@ -143,7 +143,8 @@ console.log('kybernos-call: a call, from the first click to hang-up')
   assert.equal(s.phase, 'live')
   assert.equal(s.name, 'Alice')
   assert.equal(typeof s.startedAt, 'number')
-  assert.match(s.note, /voice wayne · room-1/)
+  assert.match(s.note, /waiting for the assistant/)
+  assert.equal(s.joined, false)
   ok('it joins the room with that token, publishes the microphone, and goes live')
 
   room.handlers.transcriptionReceived([{ text: 'bonjour' }, { text: 'tout le monde' }], { identity: 'moi' })
@@ -369,6 +370,47 @@ console.log('kybernos-call: the call button of a session')
   assert.equal(JSON.parse(e.requests[e.requests.length - 1].init?.body ?? '{}').sessionId, undefined)
   assert.match(t.getState().note, /Settings › Calls › Service/)
   ok('without a session it still opens (voice only); with no secrets it points to Settings › Calls › Service, not to a file')
+}
+
+console.log('kybernos-call: nobody comes to the call')
+{
+  const start = async (present) => {
+    const e = makeEnv()
+    const plugin = e.run()
+    let Panel = null
+    plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') Panel = c; return {} } }, effect: (fn) => fn() })
+    e.rooms.present = present
+    e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true } })
+    await plugin.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+    return { e, t: plugin.__test, Panel }
+  }
+  const a = await start(false)
+  assert.equal(a.t.getState().joined, false)
+  assert.ok(JSON.stringify(a.Panel()).includes('waiting for the assistant'))
+  assert.equal(JSON.stringify(a.Panel()).includes('nobody joined the call'), false)
+  ok('right after the join the panel says it is waiting for the assistant, not that something is wrong')
+
+  a.t.getState().startedAt -= 20000
+  const late = JSON.stringify(a.Panel())
+  assert.ok(late.includes('nobody joined the call') && late.includes('appel-agent.log'))
+  ok('after 15 seconds with nobody in the room, the panel says so and where to look (a busy or stopped worker is otherwise silent)')
+
+  a.e.rooms[0].handlers.participantConnected()
+  assert.equal(a.t.getState().joined, true)
+  assert.equal(JSON.stringify(a.Panel()).includes('nobody joined the call'), false)
+  assert.equal(JSON.stringify(a.Panel()).includes('waiting for the assistant'), false)
+  ok('when the assistant joins, the waiting and the warning are gone')
+
+  const b = await start(false)
+  b.e.rooms[0].handlers.participantAttributesChanged({ 'lk.agent.state': 'listening' })
+  assert.equal(b.t.getState().joined, true)
+  assert.equal(b.t.getState().agentState, 'listening')
+  ok('the agent announcing its state counts as joined')
+
+  const c = await start(true)
+  assert.equal(c.t.getState().joined, true)
+  assert.equal(JSON.stringify(c.Panel()).includes('waiting for the assistant'), false)
+  ok('an assistant already in the room when we connect is not waited for')
 }
 
 console.log('kybernos-call: the panel and the language')

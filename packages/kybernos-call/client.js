@@ -90,7 +90,7 @@ window.__ModuleLoader__.load({
         setState({
           role: o.roleId, name: String(o.name ?? ''), mode: o.mode === 'video' ? 'video' : 'voice',
           phase: 'preparing', note: kt('lecture des réglages d’appel…', 'reading call settings…'),
-          lines: [], startedAt: null, agent: null, muted: false, agentState: '', mics: [], micId: ''
+          lines: [], startedAt: null, agent: null, muted: false, agentState: '', mics: [], micId: '', joined: false
         })
         // 1) The machine's secrets: without them we say so, we do not invent a call.
         let status = null
@@ -145,7 +145,14 @@ window.__ModuleLoader__.load({
               if (track.kind === 'video') { el.style.width = '100%'; el.style.height = '100%'; el.style.objectFit = 'cover' }
             } catch (e) { /* a track without picture */ }
           }
-          room.on(lib.RoomEvent.TrackSubscribed, (track) => attach(track))
+          // The worker is a participant of the room: until one shows up, nobody can hear the user (a busy or stopped worker is silent).
+          let assistantSeen = false
+          const assistantHere = () => {
+            assistantSeen = true
+            patch({ joined: true, note: voiceNote.replace(/^ · /, '') })
+          }
+          room.on(lib.RoomEvent.TrackSubscribed, (track) => { attach(track); assistantHere() })
+          if (typeof lib.RoomEvent.ParticipantConnected === 'string') room.on(lib.RoomEvent.ParticipantConnected, () => assistantHere())
           if (typeof lib.RoomEvent.TranscriptionReceived === 'string') {
             room.on(lib.RoomEvent.TranscriptionReceived, (segments, participant) => {
               try {
@@ -158,7 +165,7 @@ window.__ModuleLoader__.load({
           }
           if (typeof lib.RoomEvent.ParticipantAttributesChanged === 'string') {
             room.on(lib.RoomEvent.ParticipantAttributesChanged, (changed) => {
-              try { if (changed !== null && changed !== undefined && typeof changed['lk.agent.state'] === 'string') patch({ agentState: changed['lk.agent.state'] }) } catch (e) { /* unreadable attributes */ }
+              try { if (changed !== null && changed !== undefined && typeof changed['lk.agent.state'] === 'string') { patch({ agentState: changed['lk.agent.state'] }); assistantHere() } } catch (e) { /* unreadable attributes */ }
             })
           }
           room.on(lib.RoomEvent.ParticipantDisconnected, () => patch({ note: kt('l’agent a quitté la salle', 'the agent left the room') }))
@@ -174,11 +181,13 @@ window.__ModuleLoader__.load({
           } catch (e) { mics = [] }
           const current = (mic && mic.track && mic.track.mediaStreamTrack && typeof mic.track.mediaStreamTrack.getSettings === 'function') ? String(mic.track.mediaStreamTrack.getSettings().deviceId || '') : ''
           patch({ mics: mics, micId: current })
+          const present = assistantSeen || (room.remoteParticipants !== undefined && room.remoteParticipants !== null && room.remoteParticipants.size > 0)
           patch({
-            phase: 'live', startedAt: Date.now(),
-            note: ((agent !== null && agent.dispatched === true)
-              ? (kt('voix ', 'voice ') + String(status.avatar !== null && status.avatar !== undefined ? status.avatar : '') + ' · ' + String(token.room))
-              : kt('personne n’écoute encore de l’autre côté', 'nobody is listening on the other side yet')) + voiceNote
+            phase: 'live', startedAt: Date.now(), joined: present,
+            note: present ? voiceNote.replace(/^ · /, '')
+              : ((agent !== null && agent.dispatched === true)
+                ? kt('en attente de l’assistant…', 'waiting for the assistant…')
+                : kt('personne n’écoute encore de l’autre côté', 'nobody is listening on the other side yet')) + voiceNote
           })
         } catch (e) {
           patch({ phase: 'error', note: kt('impossible de rejoindre la salle — ', 'could not join the room — ') + messageOf(e) })
@@ -234,7 +243,9 @@ window.__ModuleLoader__.load({
           ? (kt('agent non démarré : ', 'worker not started: ') + s.agent.error)
           : ((s.agent !== null && s.agent !== undefined && s.agent.dispatched === false && s.agent.dispatchError !== undefined)
             ? ('agent not dispatched: ' + String(s.agent.dispatchError))
-            : ((typeof s.note === 'string') ? s.note : ''))
+            : ((isLive && s.joined !== true && s.agent !== null && s.agent !== undefined && s.agent.dispatched === true && seconds(s) >= 15)
+              ? kt('personne n’a rejoint l’appel : le worker est peut-être saturé ou arrêté. Raccrochez et rappelez ; sinon voir kybernos/logs/appel-agent.log', 'nobody joined the call: the worker may be busy or stopped. Hang up and call again; if it repeats, see kybernos/logs/appel-agent.log')
+              : ((typeof s.note === 'string') ? s.note : '')))
         const node = h('div', { role: 'dialog', 'aria-label': kt('Panneau d’appel', 'Call panel'), 'data-kb': 'kybernos-call-panel', style: css.card }, [
           h('div', { key: 'head', style: css.row }, [
             h('span', { key: 'badge', style: css.badge }, s.mode === 'video' ? 'VID' : 'AUD'),

@@ -32,11 +32,14 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
 
 1. `POST /kybernos-call/token` returns a LiveKit room-join token (an HS256 JWT forged with `node:crypto`), starts the worker if it is not
    running, waits for it to register, and wakes it on the new room by explicit dispatch (`agent_name = kybernos-appel`).
+   The worker takes the job whatever the machine's load (`load_fnc` returns 0, two warm processes): LiveKit's production default stops
+   offering jobs above 70 % CPU, which on a busy laptop meant a call that never connected (measured 2026-10-08).
    **Who the call is with travels with the room**: the dispatch metadata carries `{ sessionId, kyberId, roleId, name, mode, language,
    voice, brain, limits }`, each field checked by the host (`callMetadata`). The worker serves many rooms, so none of it lives in its
    environment. What a surface does not say (mode, language, the assistant's voice) is filled from the settings.
 2. The browser loads the LiveKit SDK (`/kybernos-call/vendor/livekit-client.js`, 2.22.3, Apache-2.0, at the first call only), joins the
-   room, publishes the microphone and attaches the tracks it receives.
+   room, publishes the microphone and attaches the tracks it receives. The panel says "waiting for the assistant…" until the worker is in the room; if nobody has come after 15 s it says so and
+   points to `kybernos/logs/appel-agent.log` (a worker that never got the job is otherwise silent).
 3. The worker (`agent/agent.py`) reads the metadata (`agent/call_meta.py`), listens (Groq Whisper, in the call's language, or detecting
    it when it is `auto`), shows a face only on a `video` call, and POSTs every sentence it heard to `/kybernos-call/utterance`, which sends
    it to THAT call's session (`session/prompt`). If a turn of the session is already running, the words go in as `steer` (they correct

@@ -223,7 +223,10 @@ async def _watch_limits(ctx: JobContext, state: CallState, meta: CallMeta) -> No
             return
 
 
-server = AgentServer()
+# A personal worker: one person, one call at a time, on a machine that also runs a browser and builds. LiveKit's
+# production defaults (stop taking jobs above 70 % CPU, keep 10 warm processes) made a call silently never connect on a
+# busy laptop: measured 2026-10-08, load 0.9995 right at start, "marking as unavailable", no job ever received.
+server = AgentServer(load_fnc=lambda: 0.0, num_idle_processes=2)
 
 
 @server.rtc_session(agent_name=AGENT_NAME)
