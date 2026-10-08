@@ -13,7 +13,7 @@ try {
   console.log('── argv par CLI ──')
   ok('gemini -p sans modèle', eq(gemini('gemini', undefined, ['t']), ['gemini', '-p', 't']))
   ok('gemini -m modèle quand fourni', eq(gemini('gemini', 'flash', ['t']), ['gemini', '-m', 'flash', '-p', 't']))
-  ok('qwen -p identique façade', eq(qwen('qwen', undefined, ['t']), ['qwen', '-p', 't']))
+  ok('qwen -y --auth-type openai + endpoint token plan', (() => { const a = qwen('qwen', undefined, ['t'], { apiKey: 'K', baseUrl: 'https://x/v1' }); return a[1] === '-y' && a[2] === '--auth-type' && a[3] === 'openai' && a.includes('https://x/v1') && a.includes('K') })())
   ok('opencode run + skip-permissions', eq(opencode('opencode', undefined, ['t']), ['opencode', 'run', '--dangerously-skip-permissions', 't']))
   ok('opencode joint les tâches', opencode('opencode', undefined, ['a', 'b']).pop() === 'a\n\nb')
   ok('aucun modèle en dur (defaut = pas de -m)', !gemini('gemini', undefined, ['t']).includes('-m'))

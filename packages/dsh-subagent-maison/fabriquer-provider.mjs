@@ -35,6 +35,8 @@ export function fabriquerProvider (spec) {
     providerName: z.string().min(1).default(spec.defautNom ?? spec.bin),
     model: z.string().default(''),
     bin: z.string().min(1).default(spec.bin),
+    apiKey: z.string().default(''),
+    baseUrl: z.string().default(''),
     env: z.dict(z.string()).default({}),
     disposeGraceMs: z.number().default(DEFAULT_DISPOSE_GRACE_MS)
   })
@@ -60,7 +62,7 @@ export function fabriquerProvider (spec) {
       }
 
       const taches = texteTache(request.prompt)
-      const argv = spec.argv(this.config.bin, this.config.model, taches)
+      const argv = spec.argv(this.config.bin, this.config.model, taches, { apiKey: this.config.apiKey, baseUrl: this.config.baseUrl })
       const env = { ...scrubbedParentEnv(), ...this.config.env }
       const spawn = (spawnSpec) => this.ctx.subprocess.spawn(spawnSpec)
 
@@ -101,10 +103,20 @@ export function fabriquerProvider (spec) {
   }
 
   function apply (ctx, config) {
+    // Clé/endpoint : le config les porte s'il les a ; sinon on lit l'env du
+    // provider (spec.envCle = noms de variables essayées dans l'ordre) — la clé
+    // vit hors git (~/.dsh/.credentials.yaml injecté en env), jamais en dur.
+    let apiKey = config.apiKey ?? ''
+    if (apiKey === '' && Array.isArray(spec.envCle)) {
+      for (const nom of spec.envCle) { const v = process.env[nom]; if (typeof v === 'string' && v !== '') { apiKey = v; break } }
+    }
+    const baseUrl = (config.baseUrl ?? '') !== '' ? config.baseUrl : (process.env[spec.envBaseUrl ?? ''] ?? spec.baseUrlDefaut ?? '')
     const resolved = {
       providerName: config.providerName ?? spec.defautNom ?? spec.bin,
       model: config.model,
       bin: config.bin ?? spec.bin,
+      apiKey,
+      baseUrl,
       env: config.env ?? {},
       disposeGraceMs: config.disposeGraceMs ?? DEFAULT_DISPOSE_GRACE_MS
     }
