@@ -1,0 +1,23 @@
+{
+  "id": "lavande-brumeuse",
+  "v": 1,
+  "name": "Lavande brumeuse",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Clair, violet léger, très lisible.",
+    "en": "Light, a gentle violet, very readable."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#7c3aed",
+    "ov": {
+      "light:base": "#f8f6fd",
+      "light:l1": "#ffffff",
+      "light:l2": "#efebfa",
+      "light:side": "#f3f0fb",
+      "light:input": "#ffffff"
+    },
+    "fontText": "inter",
+    "radius": "soft"
+  }
+}

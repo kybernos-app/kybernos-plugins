@@ -1,0 +1,22 @@
+{
+  "id": "calcaire",
+  "v": 1,
+  "name": "Calcaire",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Gris pierre et vert mousse, calme.",
+    "en": "Stone grey and moss green, calm."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#4d7c0f",
+    "ov": {
+      "light:base": "#f5f6f4",
+      "light:l1": "#ffffff",
+      "light:l2": "#eceeea",
+      "light:side": "#eff1ed",
+      "light:input": "#ffffff"
+    },
+    "radius": "standard"
+  }
+}

@@ -4,7 +4,7 @@
 //
 //   node scripts/check-theme-live.mjs [--shots <dir>] [--only <id,id,…>]
 //   --only runs just those sections (the baseline always runs): render, skins, default, persist,
-//   accent, wallpaper, font, advanced, colors, a11y, reset, gaps, sharing, verre, forme, access, boot, animation, runtime, light, french, disk.
+//   accent, wallpaper, font, advanced, colors, a11y, reset, gaps, sharing, library, gallery, verre, forme, access, boot, animation, runtime, light, french, disk.
 //
 // Named check-*, not test-*: CI runs every scripts/test-*.mjs on a runner with no `dsh web`,
 // where a live script would exit 3 and fail the build (see docs/dev/live-testing.md, Traps).
@@ -15,7 +15,7 @@
 // COMPUTED styles (`getComputedStyle(document.body)` for the --dsw-* tokens), not
 // the source. No LLM, no stub.
 //
-// The page has no Simple/Advanced switch: seven vertical tabs, « Essentiel » (appearance, colour,
+// The page has no Simple/Advanced switch: eight vertical tabs, « Essentiel » (appearance, colour,
 // background, font) open by default after every load.
 //
 // ⚠ The plugin calls DSH's own theme service, which PERSISTS two native preferences
@@ -65,6 +65,7 @@ const note = (text) => { observations.push(text) }
 // ── what the page calls things (English UI in this environment, French is the source) ──
 const THEME_LABELS = ['Thème', 'Theme']
 const STORE = 'kybernos.theme.v1'
+const LIB = 'kybernos.theme.presets.v1'
 const MODES = ['system', 'light', 'dark']
 const TOKENS = [
   ['base', '--dsw-alias-bg-base'], ['l1', '--dsw-alias-bg-layer-1'], ['l2', '--dsw-alias-bg-layer-2'], ['l3', '--dsw-alias-bg-layer-3'],
@@ -77,7 +78,7 @@ const V = Object.fromEntries(TOKENS)
 const TOKEN_VARS = TOKENS.map((t) => t[1])
 const BORDER_VARS = ['--dsw-alias-border-l1', '--dsw-alias-border-l2', '--dsw-alias-border-l3', '--dsw-alias-border-l4']
 
-// The 17 ready-made themes, in the order of the page. `mode` is what clicking the theme does to the
+// The 18 ready-made themes, in the order of the page. `mode` is what clicking the theme does to the
 // native mode: 'dark' (sets Dark), 'light' (sets Light — NEVER clicked here), null (mode-less pack,
 // follows the current mode). `brand`/`base` are the dark-scheme values the layer must produce, `lbrand`/`lbase`
 // the light-scheme ones (used only if the mode found is not Dark); null brand = neutral accent = the DSH value.
@@ -90,6 +91,7 @@ const SKINS = [
   { id: 'oled', names: ['OLED midnight', 'Minuit OLED'], mode: 'dark', brand: null, wp: true, vis: 100 },
   { id: 'papier', names: ['Paper', 'Papier'], mode: 'light' },
   { id: 'clair', names: ['Clean light', 'Clair net'], mode: 'light' },
+  { id: 'neutre', names: ['Neutral violet', 'Neutre violet'], mode: 'light' },
   { id: 'rose', names: ['Rose'], mode: 'light' },
   { id: 'kb-ember', names: ['Ember', 'Braise'], mode: null, base: '#191513', brand: '#e2805a', lbase: '#faf5ef', lbrand: '#c1552f' },
   { id: 'kb-stone-cloud', names: ['Stone & Cloud', 'Pierre & Nuage'], mode: null, base: '#141517', brand: '#94a3b8', lbase: '#fafafa', lbrand: '#64748b' },
@@ -100,6 +102,7 @@ const SKINS = [
   { id: 'kb-sunset-dream', names: ['Twilight dream', 'Rêve de crépuscule'], mode: null, base: '#191510', brand: '#fbbf24', lbase: '#fdf9f1', lbrand: '#d97706' },
   { id: 'kb-plum-haze', names: ['Plum mist', 'Brume de prune'], mode: null, base: '#17121f', brand: '#a78bfa', lbase: '#faf7fe', lbrand: '#7c3aed' },
 ]
+const SKIN = (id) => SKINS.find((d) => d.id === id)   // by id: the table grows, positions move
 const CATS = [['colors'], ['gradients'], ['patterns'], ['images']]
 
 // ── colours ────────────────────────────────────────────────────────────────────────
@@ -230,7 +233,8 @@ const clickEl = async (expr) => {
   await modeGuard()
   await val(`(() => { const e = ${expr}; if (e) e.scrollIntoView({ block: 'center' }) })()`)
   await sleep(60)
-  const pos = await val(`(() => { const e = ${expr}; if (!e) return null; const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return 'hidden'; const x = r.left + r.width / 2, y = r.top + r.height / 2; const t = document.elementFromPoint(x, y); const ms = ${Q.modeSeg}; return JSON.stringify({ x, y, ok: !!t && (e === t || e.contains(t) || t.contains(e)), over: t ? (t.tagName + '.' + String(t.className).slice(0, 40)) : null, skin: e.classList.contains('kbth-skin') ? (e.getAttribute('aria-label') || '?') : null, mode: !!ms && ms.contains(e) }) })()`)
+  const pos = await val(`(() => { const e = ${expr}; if (!e) return null; const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return 'hidden'; const x = r.left + r.width / 2, y = r.top + r.height / 2; const t = document.elementFromPoint(x, y); const ms = ${Q.modeSeg}; return JSON.stringify({ x, y, ok: !!t && (e === t || e.contains(t) || t.contains(e)), over: t ? (t.tagName + '.' + String(t.className).slice(0, 40)) : null, // a theme of yours was saved from the look in use: it carries the mode that is already there (the library section checks it), so it is not a « Light theme » click
+  skin: e.classList.contains('kbth-skin') && !e.closest('[data-kb=theme-mine]') ? (e.getAttribute('aria-label') || '?') : null, mode: !!ms && ms.contains(e) }) })()`)
   if (pos === null || pos === undefined) throw new Error('element not found: ' + expr.slice(0, 90))
   if (pos === 'hidden') throw new Error('element not visible: ' + expr.slice(0, 90))
   const p = JSON.parse(pos)
@@ -282,9 +286,9 @@ const Q = {
   hexInput: `document.querySelector('.kbth-hex input')`,
   footBtn: (i) => `document.querySelectorAll('.kbth-foot button')[${i}]`,
 }
-// The seven tabs, in the order of the page (« Conversation » and « Terminal » are gone: nothing to apply in the web GUI).
-const TAB = { essentiel: 0, verre: 1, couleurs: 2, texte: 3, animation: 4, accessibilite: 5, partage: 6 }
-const TAB_NAMES = [/^(essentiel|essentials?)$/i, /^(verre et fond|glass and background)$/i, /^(couleurs|colou?rs)$/i, /^(texte et forme|text and shape)$/i, /^animation$/i, /^(accessibilit[ée]|accessibility)$/i, /^(partage|sharing)$/i]
+// The eight tabs, in the order of the page (« Conversation » and « Terminal » are gone: nothing to apply in the web GUI).
+const TAB = { essentiel: 0, verre: 1, couleurs: 2, texte: 3, animation: 4, accessibilite: 5, partage: 6, galerie: 7 }
+const TAB_NAMES = [/^(essentiel|essentials?)$/i, /^(verre et fond|glass and background)$/i, /^(couleurs|colou?rs)$/i, /^(texte et forme|text and shape)$/i, /^animation$/i, /^(accessibilit[ée]|accessibility)$/i, /^(partage|sharing)$/i, /^(galerie|gallery)$/i]
 const RE = { vis: '/visib/i', blur: '/blur|flou/i', tint: '/tint|teinte/i', size: '/size|taille/i',
   glass: '/flou du verre|glass blur/i', side: '/barre|sidebar/i', field: '/champ|field|input/i', menu: '/menu/i', imgblur: '/flou de l|image blur|blur of the image/i',
   bright: '/lumin|bright/i', contrast: '/^contrast/i', sat: '/satur/i', dark: '/assombr|darken/i' }
@@ -317,9 +321,10 @@ const readFont = async () => JSON.parse(await val(`JSON.stringify({
 })`))
 const readPage = () => val(`JSON.stringify({
   open: !!document.querySelector('.kbth-page'),
-  pills: Array.from(document.querySelectorAll('.kbth-pill')).map((e) => e.textContent.trim()),
+  pills: Array.from(document.querySelectorAll('.kbth-foot .kbth-pill')).map((e) => e.textContent.trim()),
   skinPressed: Array.from(document.querySelectorAll('.kbth-skin')).map((e, i) => e.getAttribute('aria-pressed') === 'true' ? i : -1).filter((i) => i >= 0),
-  current: (document.querySelector('.kbth-skin-current') || { textContent: '' }).textContent,
+  current: (document.querySelector('.kbth-sum-n') || { textContent: '' }).textContent,
+  summaryPills: Array.from(document.querySelectorAll('.kbth-sum-n .kbth-pill')).map((e) => e.textContent.trim()),
 })`).then((s) => JSON.parse(s))
 const modeInfo = async () => JSON.parse(await val(`(() => { const s = ${Q.modeSeg}; const i = s ? Array.from(s.children).findIndex((b) => b.getAttribute('aria-pressed') === 'true') : -2; return JSON.stringify({ idx: i, has: !!s, source: document.documentElement.getAttribute('data-ds-theme-source') }) })()`))
 /** Waits until the Mode row, DSH’s own report (html[data-ds-theme-source]) and — once known — the mode found at the start all agree. */
@@ -333,7 +338,7 @@ const alive = () => val(`document.body ? document.body.innerText.length : 0`)
 
 /** Opens Settings › Theme from a clean page (and retries: the first click on the account footer can miss). */
 const openTheme = async ({ fresh = false, settle = true } = {}) => {
-  if (fresh) await val(`localStorage.removeItem(${JSON.stringify(STORE)}); localStorage.removeItem(${JSON.stringify(LD_KEY)}); localStorage.removeItem(${JSON.stringify(LD_CACHE)})`)
+  if (fresh) await val(`localStorage.removeItem(${JSON.stringify(STORE)}); localStorage.removeItem(${JSON.stringify(LIB)}); localStorage.removeItem(${JSON.stringify(LD_KEY)}); localStorage.removeItem(${JSON.stringify(LD_CACHE)})`)
   for (let i = 0; i < 3; i += 1) {
     await flow.openSettings(THEME_LABELS)
     if (await until(() => val(`!!document.querySelector('.kbth-page')`), 5000)) {
@@ -478,8 +483,8 @@ try {
       sub: (document.querySelector('.kbth-sub') || { textContent: '' }).textContent.trim(),
       tabs: Array.from(document.querySelectorAll('.kbth-adv-tab')).map((b) => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), on: b.classList.contains('on'), pressed: b.getAttribute('aria-pressed'), x: Math.round(r.left), y: Math.round(r.top) } }),
       mode: Array.from((${Q.modeSeg}).children).map((b) => b.getAttribute('aria-pressed')),
-      skins: document.querySelectorAll('.kbth-skin').length,
-      skinNamed: Array.from(document.querySelectorAll('.kbth-skin')).every((b) => (b.getAttribute('aria-label') || '').indexOf(' — ') > 0 && b.querySelector('.kbth-skin-dot') && b.querySelector('.kbth-skin-name')),
+      skins: document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length,
+      skinNamed: Array.from(document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)')).every((b) => (b.getAttribute('aria-label') || '').indexOf(' — ') > 0 && b.querySelector('.kbth-skin-dot') && b.querySelector('.kbth-skin-name')),
       dots: document.querySelectorAll('.kbth-dots .kbth-dot').length,
       pipette: document.querySelectorAll('.kbth-sw input[type=color]').length,
       hex: document.querySelectorAll('.kbth-hex input').length,
@@ -492,10 +497,10 @@ try {
     const pg = await readPage()
     check('Settings › Theme opens on the real GUI (title « Theme »)', /^(theme|thème)$/i.test(j.title), j.title)
     check('there is no Simple / Advanced switch any more (no button of that name, no segment in the header)', j.switchLike === false, j.switchLike)
-    check('seven tabs stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === 7 && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
+    check('eight tabs stacked vertically on the left, « Essentiel » the one open (and the only one pressed)', j.tabs.length === 8 && j.tabs.every((t) => t.x === j.tabs[0].x) && j.tabs.every((t, i) => i === 0 || t.y > j.tabs[i - 1].y) && j.tabs[0].on === true && j.tabs[0].pressed === 'true' && j.tabs.filter((t) => t.on).length === 1, j.tabs)
     check('the header says the basic settings are in « Essentiel »', /essentiel|essentials?/i.test(j.sub), j.sub)
     check('Mode row: System / Light / Dark, exactly one pressed, and it is the native one (' + startMode + ')', j.mode.filter((x) => x === 'true').length === 1 && j.mode[MODES.indexOf(startMode)] === 'true', j.mode)
-    check('17 theme dots, each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 17 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })
+    check('18 shipped theme dots (and the add button next to « My themes »), each with a coloured disc, a name and « name — mode · accent » as label', j.skins === 18 && j.skinNamed === true, { n: j.skins, named: j.skinNamed })
     const labels = await skinLabels()
     check('every theme of the catalogue is there, under its name', SKINS.every((d) => findSkin(labels, d).idx >= 0), labels)
     check('« DSH default » is the pressed one (and the only one)', pg.skinPressed.length === 1 && pg.skinPressed[0] === 0, pg.skinPressed)
@@ -545,7 +550,7 @@ try {
       } else if (wp.count !== 0) problems.push('unexpected wallpaper <div> (' + wp.count + ')')
       if (font.tags.length !== 0) problems.push('font tag present')
       if (pg.skinPressed.length !== 1 || pg.skinPressed[0] !== f.idx) problems.push('pressed dots ' + pg.skinPressed)
-      if (!def.names.some((n) => pg.current.indexOf(n) >= 0)) problems.push('« Theme: … » line: ' + pg.current.slice(0, 60))
+      if (!def.names.some((n) => pg.current.indexOf(n) >= 0)) problems.push('summary line: ' + pg.current.slice(0, 60))
       if (/native|natif/i.test(pg.pills[0] || '')) problems.push('pill still says native')
       if (mode.source !== startMode) problems.push('NATIVE MODE CHANGED to ' + mode.source)
       check(def.names[0] + (def.mode === null ? ' (mode-less pack)' : '') + ': skin stored, tokens' + (def.wp ? ', wallpaper' : '') + ', pill, native mode kept', problems.length === 0, problems)
@@ -559,8 +564,8 @@ try {
     if (!modeSafe) { console.log('  · skipped: this theme forces Dark and the mode found is ' + startMode); return }
     await openTheme({ fresh: true })
     const labels = await skinLabels()
-    const dsh = findSkin(labels, SKINS[0])
-    for (const from of [SKINS[1], SKINS[9]]) { // a dark theme with wallpaper, then a pack whose palette lives in `ov`
+    const dsh = findSkin(labels, SKIN('dsh'))
+    for (const from of [SKIN('bleu'), SKIN('kb-ember')]) { // a dark theme with wallpaper, then a pack whose palette lives in `ov`
       const f = findSkin(labels, from)
       await clickEl(Q.skin(f.idx))
       await until(async () => { const s = await store(); return s && s.skin === from.id }, 4000)
@@ -585,7 +590,7 @@ try {
   await section('persist', 'Persistence: after a reload everything is applied at boot, BEFORE Settings is opened', async () => {
     await openTheme({ fresh: true })
     const labels = await skinLabels()
-    const A = modeSafe ? SKINS[3] : SKINS[9]   // Nebula, or Ember when the mode is not Dark
+    const A = modeSafe ? SKIN('nebuleuse') : SKIN('kb-ember')   // Nebula, or Ember when the mode is not Dark
     const fa = findSkin(labels, A)
     await clickEl(Q.skin(fa.idx))
     await until(async () => { const s = await store(); return s && s.skin === A.id })
@@ -604,7 +609,7 @@ try {
     const pgA = await readPage()
     check('opening Settings › Theme afterwards shows it pressed', pgA.skinPressed.length === 1 && pgA.skinPressed[0] === fa.idx, pgA)
 
-    // accent + wallpaper + font all together (these make the theme « custom »)
+    // accent + wallpaper + font all together (the theme in use stays selected and reads « modified »)
     await openTheme({ fresh: true })
     const dotTitle = await val(`document.querySelectorAll('.kbth-dots .kbth-dot')[7].title`)
     await clickEl(Q.dot(7))
@@ -615,7 +620,7 @@ try {
     await typeInto(`document.querySelector('.kbth-fssearch')`, 'georgia')
     await clickEl(`document.querySelector('.kbth-fsopt')`)
     const stB = await until(async () => { const s = await store(); return s && s.fontText === 'georgia' && s.wp !== 'none' && s.acc ? s : null })
-    check('accent « ' + dotTitle + ' », wallpaper « ' + wpTitle + ' » and font Georgia are stored', !!stB && sameColor(stB.acc, dotTitle) && stB.skin === 'custom', stB)
+    check('accent « ' + dotTitle + ' », wallpaper « ' + wpTitle + ' » and font Georgia are stored', !!stB && sameColor(stB.acc, dotTitle), stB)
     await reloadBoot()
     t0 = Date.now()
     const tokB = await until(async () => { const t = await readTokens(); return sameColor(t[V.brand], dotTitle) ? t : null }, 6000)
@@ -650,13 +655,13 @@ try {
       if (brandRatio < 3) dim.push(titles[i] + ' ' + brandRatio.toFixed(2) + ':1')
       // the token is the colour itself when it is readable enough, a lightened version of it otherwise
       const tokenOk = wasLifted ? (!sameColor(tok[V.brand], titles[i]) && brandRatio >= 3) : sameColor(tok[V.brand], titles[i])
-      if (!st || !tokenOk || pressed.length !== 1 || pressed[0] !== i || st.skin !== 'custom') bad.push({ dot: titles[i], store: st && st.acc, brand: tok[V.brand], pressed })
+      if (!st || !tokenOk || pressed.length !== 1 || pressed[0] !== i || st.skin !== 'dsh') bad.push({ dot: titles[i], store: st && st.acc, brand: tok[V.brand], pressed })
       const shown = JSON.parse(await val(`(() => { const e = document.querySelector('.kbth-acc-ratio'); return JSON.stringify(e ? { t: e.getAttribute('data-texte'), f: e.getAttribute('data-fond') } : null) })()`))
       if (shown === null || contrast(shown.t, shown.f) < 4.5) weakText.push(titles[i] + ' ' + (shown ? contrast(shown.t, shown.f).toFixed(2) : '?') + ':1')
       if (i === 1) {
         const hexShown = await val(`document.querySelector('.kbth-hex input').value`)
         const tabColor = await until(async () => { const c = await val(`getComputedStyle(${Q.tabOn}).color`); return sameColor(c, tok[V.brand]) ? c : null }, 1500) || await val(`getComputedStyle(${Q.tabOn}).color`)
-        check('an accent dot: stored (theme becomes « custom »), brand token set, dot pressed, hex field follows (' + titles[i] + ')', bad.length === 0 && String(hexShown).toLowerCase() === titles[i].slice(1).toLowerCase(), { bad, hexShown })
+        check('an accent dot: stored (the theme in use stays selected), brand token set, dot pressed, hex field follows (' + titles[i] + ')', bad.length === 0 && String(hexShown).toLowerCase() === titles[i].slice(1).toLowerCase(), { bad, hexShown })
         check('… and the page itself follows: the open tab takes the accent colour', sameColor(tabColor, tok[V.brand]), { tab: tabColor, brand: tok[V.brand] })
       }
     }
@@ -739,7 +744,7 @@ try {
       const seenWp = lastWp
       const wp = await readWallpaper()
       const ok = wp.count === 1 && wp.position === 'fixed' && wp.zIndex === '-1' && wp.pe === 'none' && wp.w === wp.vw && wp.h === wp.vh && (CATS[c][0] === 'colors' ? wp.bgColor !== 'rgba(0, 0, 0, 0)' : /gradient/.test(wp.bgImage))
-      check('first tile of « ' + CATS[c][0] + ' » (' + seenWp + '): one fixed, full-window, click-through <div> at z-index -1 painting it; skin becomes « custom »', ok && st.skin === 'custom', { wp, skin: st && st.skin })
+      check('first tile of « ' + CATS[c][0] + ' » (' + seenWp + '): one fixed, full-window, click-through <div> at z-index -1 painting it; the theme in use stays selected', ok && st.skin === 'dsh', { wp, skin: st && st.skin })
     }
     // pattern tile: the shorthand size must survive (the grid is drawn by background-size)
     await clickEl(Q.cat(2))
@@ -908,24 +913,26 @@ try {
     await sleep(200)
   }
   const tabInfo = async () => JSON.parse(await val(`JSON.stringify((() => { const p = document.querySelector('.kbth-adv-pane'); const q = (s) => p.querySelectorAll(s).length; const t = p.innerText; return {
-    chars: t.length, skins: q('.kbth-skin'), segs: q('.kbth-seg'), toggles: q('.kbth-toggle'), sliders: q('.kbth-slider'), colors: q('input[type=color]'), toks: q('.kbth-tok'),
+    chars: t.length, skins: q('.kbth-skin:not(.kbth-skin-add)'), segs: q('.kbth-seg'), toggles: q('.kbth-toggle'), sliders: q('.kbth-slider'), colors: q('input[type=color]'), toks: q('.kbth-tok'),
     ansi: q('.kbth-ansi-swatch'), a11y: q('.kbth-a11y-row'), note: q('.kbth-note'), exportCode: q('.kbth-export-code'), fsbtn: q('.kbth-fsbtn'), term: q('.kbth-term-preview'),
-    gpv: q('[data-kb=glass-preview]'), ldSummary: q('[data-kb=ld-summary]'), ldPane: q('[data-kb=ld-pane]'), ldPreview: q('[data-kb=ld-preview]'), ldAmb: q('[data-kb=ld-amb]'), ldSettings: q('[data-kb=ld-settings]'), slots: q('.kbth-lds'),
+    gpv: q('[data-kb=glass-preview]'), galState: q('[data-kb=theme-gal],[data-kb=theme-gal-loading],[data-kb=theme-gal-error],[data-kb=theme-gal-none]'), ldSummary: q('[data-kb=ld-summary]'), ldPane: q('[data-kb=ld-pane]'), ldPreview: q('[data-kb=ld-preview]'), ldAmb: q('[data-kb=ld-amb]'), ldSettings: q('[data-kb=ld-settings]'), slots: q('.kbth-lds'),
     broken: t.indexOf('undefined') >= 0 || t.indexOf('NaN') >= 0 || t.indexOf('[object') >= 0 } })())`))
   const TAB_ID = Object.keys(TAB)
   const TAB_EXPECT = {
-    essentiel: (s) => s.skins === 17 && s.fsbtn === 1 && s.sliders >= 1 && s.ldSummary === 1,
+    essentiel: (s) => s.skins === 18 && s.fsbtn === 1 && s.sliders >= 1 && s.ldSummary === 1,
     verre: (s) => s.sliders >= 10 && s.toggles === 2 && s.segs === 2 && s.gpv === 1,
     couleurs: (s) => s.toks === 7 && s.colors === 3 && s.segs === 1,
     texte: (s) => s.sliders === 1 && s.toggles === 2 && s.segs === 1,
     animation: (s) => s.ldPane === 1 && s.ldPreview === 1 && s.ldAmb === 1 && s.ldSettings === 1 && s.slots === 4,
     accessibilite: (s) => s.a11y === 6 && s.segs === 2 && s.toggles === 4,
     partage: (s) => s.exportCode >= 1 && s.segs === 1 && s.toggles === 0,
+    // whatever the host answers: the grid, the loading placeholders or the error card — never an empty pane
+    galerie: (s) => s.galState >= 1,
   }
-  await section('advanced', 'The seven vertical tabs', async () => {
+  await section('advanced', 'The eight vertical tabs', async () => {
     await openTheme({ fresh: true })
     const tabs = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('.kbth-adv-tab')).map((b) => { const r = b.getBoundingClientRect(); return { text: b.textContent.trim(), on: b.classList.contains('on'), x: Math.round(r.left), y: Math.round(r.top) } }))`))
-    check('seven tabs, stacked vertically on the left, in the expected order (Essentiel, Verre et fond, Couleurs, Texte et forme, Animation, Accessibilité, Partage — no Conversation, no Terminal)', tabs.length === 7 && tabs.every((t, i) => TAB_NAMES[i].test(t.text)) && tabs.every((t) => t.x === tabs[0].x) && tabs.every((t, i) => i === 0 || t.y > tabs[i - 1].y), tabs)
+    check('eight tabs, stacked vertically on the left, in the expected order (Essentiel, Verre et fond, Couleurs, Texte et forme, Animation, Accessibilité, Partage, Galerie — no Conversation, no Terminal)', tabs.length === 8 && tabs.every((t, i) => TAB_NAMES[i].test(t.text)) && tabs.every((t) => t.x === tabs[0].x) && tabs.every((t, i) => i === 0 || t.y > tabs[i - 1].y), tabs)
     check('… « Essentiel » is the one open by default', tabs[0].on === true && tabs.filter((t) => t.on).length === 1, tabs.map((t) => t.on))
     await goTab(2)
     const st = await store()
@@ -933,7 +940,7 @@ try {
     await openTheme()       // a plain reload: the stored state is kept
     check('… and after a reload « Essentiel » is open again', (await val(`Array.from(document.querySelectorAll('.kbth-adv-tab')).findIndex((b) => b.classList.contains('on'))`)) === 0)
     await shot('06-advanced')
-    for (let i = 0; i < 7; i += 1) {
+    for (let i = 0; i < 8; i += 1) {
       const mark = errors.length
       await goTab(i)
       await sleep(250)
@@ -968,7 +975,7 @@ try {
     // (b) with a pack applied: UI and DOM agree on all 17
     await goTab(0)
     const labels = await skinLabels()
-    const ember = findSkin(labels, SKINS[9])
+    const ember = findSkin(labels, SKIN('kb-ember'))
     await clickEl(Q.skin(ember.idx))
     await until(async () => (await store()).skin === 'kb-ember', 3000)
     await goTab(2)
@@ -978,7 +985,7 @@ try {
     check('with « Ember » applied, the 17 hex codes the page shows equal the 17 computed tokens', diff.length === 0, diff.map((v) => v + ' page ' + ui[v] + ' / dom ' + dom[v]))
     if (modeSafe) {
       await goTab(0)
-      await clickEl(Q.skin(findSkin(labels, SKINS[3]).idx))
+      await clickEl(Q.skin(findSkin(labels, SKIN('nebuleuse')).idx))
       await until(async () => (await store()).skin === 'nebuleuse', 3000)
       await focusEl(sliderQ('tint'))
       await press('End'); await sleep(250)
@@ -998,7 +1005,7 @@ try {
     check('… and no « Reset » button while the token is untouched', (await val(`!document.querySelector('.kbth-adv-editor .kbth-btn')`)) === true)
     await setColor(editor(1), '#102030')
     let stc = await until(async () => { const s = await store(); return s && s.ov && s.ov['dark:l1'] ? s : null }, 2500)
-    check('picking a dark value: stored as ov["dark:l1"], theme becomes « custom », and the live token follows', !!stc && stc.ov['dark:l1'] === '#102030' && stc.skin === 'custom' && sameColor((await readTokens())[V.l1], '#102030'), stc && { ov: stc.ov, skin: stc.skin })
+    check('picking a dark value: stored as ov["dark:l1"], the theme in use stays selected, and the live token follows', !!stc && stc.ov['dark:l1'] === '#102030' && stc.skin === 'dsh' && sameColor((await readTokens())[V.l1], '#102030'), stc && { ov: stc.ov, skin: stc.skin })
     const pills = (await readPage()).pills
     check('the footer counts tokens, not halves: one scheme of one token edited → « 1 jeton(s) retouché(s) » (it used to say 0.5)', /^1\s/.test(pills[1] || ''), pills)
     check('a « Reset » button appears for that token', (await val(`!!document.querySelector('.kbth-adv-editor .kbth-btn')`)) === true)
@@ -1023,7 +1030,7 @@ try {
     await openTheme({ fresh: true })
     await goTab(0)
     const lab2 = await skinLabels()
-    await clickEl(Q.skin(findSkin(lab2, SKINS[9]).idx))
+    await clickEl(Q.skin(findSkin(lab2, SKIN('kb-ember')).idx))
     await until(async () => (await store()).skin === 'kb-ember', 3000)
     await goTab(2)
     await clickEl(`document.querySelectorAll('.kbth-tok')[1]`)
@@ -1086,7 +1093,7 @@ try {
     await openTheme({ fresh: true })
     // dirty everything on « Essentiel », then three other tabs
     const labels = await skinLabels()
-    await clickEl(Q.skin(findSkin(labels, SKINS[3]).idx))
+    await clickEl(Q.skin(findSkin(labels, SKIN('nebuleuse')).idx))
     await clickEl(Q.dot(5))
     await clickEl(Q.cat(1)); await clickEl(Q.wp(3))
     await clickEl(`document.querySelector('.kbth-fsbtn')`)
@@ -1097,7 +1104,7 @@ try {
     await goTab(TAB.verre); await focusEl(sliderQ('vis', Q.pane)); await press('End')
     await sleep(300)
     const dirty = await store()
-    check('before the reset the state is really dirty (theme, accent, wallpaper, font, contrast, an Advanced control)', dirty.skin === 'custom' && dirty.acc !== null && dirty.wp !== 'none' && dirty.fontText === 'georgia' && dirty.contrastMode === 'plus' && dirty.radius === 'soft', dirty)
+    check('before the reset the state is really dirty (accent, wallpaper, font, contrast, an Advanced control)', dirty.acc !== null && dirty.wp !== 'none' && dirty.fontText === 'georgia' && dirty.contrastMode === 'plus' && dirty.radius === 'soft', dirty)
     await clickEl(Q.footBtn(0))
     await sleep(500)
     const st = await store()
@@ -1108,7 +1115,7 @@ try {
     const font = await readFont()
     await goTab(0)
     const pg = await readPage()
-    check('… the 17 tokens are the native ones, no wallpaper <div>, no font tag, the pill says native, and the page still shows its tabs', TOKEN_VARS.every((v) => sameColor(tok[v], NATIVE[v])) && wp.count === 0 && font.tags.length === 0 && /native|natif/i.test(pg.pills[0] || '') && (await val(`document.querySelectorAll('.kbth-skin').length`)) === 17, { diff: TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v])), wp: wp.count, tags: font.tags, pill: pg.pills[0] })
+    check('… the 17 tokens are the native ones, no wallpaper <div>, no font tag, the pill says native, and the page still shows its tabs', TOKEN_VARS.every((v) => sameColor(tok[v], NATIVE[v])) && wp.count === 0 && font.tags.length === 0 && /native|natif/i.test(pg.pills[0] || '') && (await val(`document.querySelectorAll('.kbth-skin:not(.kbth-skin-add)').length`)) === 18, { diff: TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v])), wp: wp.count, tags: font.tags, pill: pg.pills[0] })
     check('… « DSH default » is the pressed theme again; the native mode is still ' + startMode, pg.skinPressed.length === 1 && pg.skinPressed[0] === 0 && (await modeInfo()).source === startMode, pg.skinPressed)
     const junk = Object.keys(st).filter((k) => DEFAULTS[k] === undefined && k !== 'ov')
     check('… and nothing is left behind in the stored state: « Reset all » REPLACES it (a key outside the defaults, such as radius, would otherwise survive)', junk.length === 0, junk.map((k) => k + '=' + JSON.stringify(st[k])))
@@ -1203,12 +1210,13 @@ try {
   })
 
   // ═══ 13. Advanced › Sharing ═══════════════════════════════════════════════════════
-  await section('sharing', 'Advanced › Sharing: export (3 real formats), copy, import', async () => {
+  await section('sharing', 'Advanced › Sharing: the current look exports (3 real formats), copy; a file imports as a THEME in My themes and applies nothing', async () => {
     await openTheme({ fresh: true })
     await clickEl(Q.dot(2))                                          // a state that is not the default
     await clickEl(Q.cat(1)); await clickEl(Q.wp(3))
     await until(async () => { const s0 = await store(); return s0 && s0.wp !== 'none' && s0.acc !== null }, 3000)
     await goTab(TAB.partage)
+    await val(`document.querySelector('[data-kb=theme-export-fold]').open = true`)     // the file of the current look is folded away
     await val(`window.__copied = []; Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: (t) => { window.__copied.push(String(t)); return Promise.resolve() } })`)
     const fmtBtn = (f) => `document.querySelectorAll('.kbth-adv-pane .kbth-seg')[0].children[${f}]`
     const view = async () => JSON.parse(await val(`JSON.stringify({ file: document.querySelectorAll('.kbth-export-bar span')[0].textContent, lines: (document.querySelector('[data-kb=theme-export-lines]') || { textContent: '' }).textContent, code: (document.querySelector('[data-kb=theme-export]') || { textContent: '' }).textContent })`))
@@ -1221,37 +1229,45 @@ try {
       await clickEl(`document.querySelector('[data-kb=theme-copy]')`); await sleep(250)
       copied[id] = { n: Number(await val(`window.__copied.length`)) - n0, arg: await val(`window.__copied[window.__copied.length - 1]`) }
     }
-    const st = await store()
     check('the three formats show DIFFERENT real content in [data-kb=theme-export] (YAML, JSON and CSS never equal)', new Set([views.yaml.code, views.json.code, views.css.code]).size === 3 && views.yaml.code.length > 100 && views.json.code.length > 100 && views.css.code.length > 100, { yaml: views.yaml.code.slice(0, 40), json: views.json.code.slice(0, 40), css: views.css.code.slice(0, 40) })
-    check('… each looks like what it claims to be: YAML has « theme: » and « skin: », JSON parses, CSS has :root and body[data-ds-dark-theme] blocks', /(^|\n)theme:\n/.test(views.yaml.code) && /skin:/.test(views.yaml.code) && (() => { try { return typeof JSON.parse(views.json.code) === 'object' } catch (e) { return false } })() && /:root/.test(views.css.code) && /body\[data-ds-dark-theme\]/.test(views.css.code), null)
+    check('… each looks like what it claims to be: YAML has « theme: » and « skin: », JSON parses, CSS has :root and body[data-ds-dark-theme] blocks', /(^|\n)theme:\n/.test(views.yaml.code) && /skin:/.test(views.yaml.code) && (() => { try { return typeof JSON.parse(views.json.code) === 'object' } catch (e) { return false } })() && /:root/.test(views.css.code) && /body\[data-ds-dark-theme\]/.test(views.css.code))
     check('the file name follows the format: dsh-theme.yml / dsh-theme.json / dsh-theme.css', views.yaml.file === 'dsh-theme.yml' && views.json.file === 'dsh-theme.json' && views.css.file === 'dsh-theme.css', [views.yaml.file, views.json.file, views.css.file])
     check('the « N lines » label is the real line count of the text shown (each format)', ['yaml', 'json', 'css'].every((f) => Number((views[f].lines.match(/\d+/) || ['-1'])[0]) === views[f].code.split('\n').length), ['yaml', 'json', 'css'].map((f) => views[f].lines + ' / ' + views[f].code.split('\n').length))
     check('« Copy » calls navigator.clipboard.writeText exactly once with EXACTLY the preview text, for each format', ['yaml', 'json', 'css'].every((f) => copied[f].n === 1 && copied[f].arg === views[f].code), ['yaml', 'json', 'css'].map((f) => f + ': calls ' + copied[f].n + ', same text ' + (copied[f].arg === views[f].code)))
     const declarations = (views.css.code.match(/--dsw-[a-z0-9-]+\s*:/g) || [])
     check('the CSS export has 17 tokens × 2 schemes (34 declarations, 17 distinct names)', declarations.length === 34 && new Set(declarations).size === 17, { declarations: declarations.length, distinct: new Set(declarations).size })
-    // round trip: the JSON export, imported again after the state was changed, gives back the same stored state
+
+    // The old export (the whole look, no frame) still imports: as a THEME, not over the current look.
     const exported = JSON.parse(views.json.code)
     await goTab(TAB.essentiel)
     await clickEl(Q.dot(7)); await until(async () => !sameColor((await store()).acc, exported.acc), 3000)
     const changed = await store()
     await goTab(TAB.partage)
-    const importJson = (name, text) => val(`(() => { const input = document.querySelector('[data-kb=theme-import]'); if (!input) return false; const dt = new DataTransfer(); dt.items.add(new File([${JSON.stringify(text)}], ${JSON.stringify(name)}, { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return true })()`)
-    await importJson('dsh-theme.json', views.json.code)
-    await sleep(700)
+    const rowsN = async () => Number(await val(`document.querySelectorAll('[data-kb=theme-row]').length`))
+    const libJson = async () => { const raw = await val(`localStorage.getItem(${JSON.stringify(LIB)})`); try { return raw ? JSON.parse(raw) : null } catch (e) { return undefined } }
+    const importFile = (name, text) => val(`(() => { const input = document.querySelector('.kbth-adv-pane input[type=file]'); const dt = new DataTransfer(); dt.items.add(new File([${JSON.stringify(text)}], ${JSON.stringify(name)}, { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return !!input })()`)
+    const importNote = async () => JSON.parse(await val(`JSON.stringify((() => { const n = document.querySelector('[data-kb=theme-note]'); return n ? { text: n.textContent.trim(), color: getComputedStyle(n).color, cls: n.className } : null })())`))
+    const snapshot = async () => ({ store: JSON.stringify(await store()), tokens: JSON.stringify(await readTokens()), lib: JSON.stringify(await libJson()) })
+    const picker = JSON.parse(await val(`JSON.stringify((() => { const i = document.querySelector('.kbth-adv-pane input[type=file]'); return { accept: i ? i.accept : null, label: i ? i.closest('label').textContent.trim() : '', hook: i ? i.getAttribute('data-kb') : null } })())`))
+    check('the file picker only offers .json (accept names .json and no other format; the label names no other format)', /\.json/.test(picker.accept || '') && !/yml|yaml|css/i.test(picker.accept || '') && /\.json/.test(picker.label) && !/yml|yaml|css/i.test(picker.label) && picker.hook === 'theme-import', picker)
+    const before = await snapshot()
+    await importFile('dsh-theme.json', views.json.code)
+    await until(async () => (await rowsN()) === 1, 4000)
+    const after = await snapshot()
+    const note1 = await importNote()
+    check('importing the JSON export ADDS one theme to My themes and applies nothing: the stored state and the 17 tokens are exactly what they were', (await rowsN()) === 1 && after.store === before.store && after.tokens === before.tokens && JSON.parse(after.lib).presets.length === 1, { rows: await rowsN(), sameStore: after.store === before.store, sameTokens: after.tokens === before.tokens })
+    check('… the note is green and says it is in My themes, not applied, and that an old file brings the whole look', note1 !== null && /kbth-ok/.test(note1.cls) && /Mes thèmes|My themes/i.test(note1.text) && /pas appliqu|not applied/i.test(note1.text) && /ancien|old/i.test(note1.text), note1)
+    check('… the new row is named « Thème importé » and says where it comes from (« importé »)', /Thème importé|Imported theme/i.test(await val(`document.querySelector('[data-kb=theme-row] .kbth-trow-n').textContent`)) && /import/i.test(await val(`document.querySelector('[data-kb=theme-row] .kbth-trow-n').textContent`)))
+    await clickEl(`document.querySelector('[data-kb=theme-row] [data-kb=theme-apply]')`)
+    await until(async () => { const s = await store(); return s && sameColor(s.acc, exported.acc) }, 3000)
     const back = await store()
     const low = (v) => JSON.stringify(v, (k, x) => (typeof x === 'string' && /^#[0-9a-f]{6}$/i.test(x) ? x.toLowerCase() : x))
-    const differs = Object.keys(exported).filter((k) => low(back[k]) !== low(exported[k]))
-    if (differs.length === 0 && Object.keys(exported).some((k) => JSON.stringify(back[k]) !== JSON.stringify(exported[k]))) note('Sharing › the JSON export keeps a colour as it was picked (« ' + exported.acc + ' ») while the import stores it lower-case (« ' + back.acc + ' »): equal colours, different strings')
-    check('round trip: after changing the accent, importing the JSON export gives back the same stored state (all ' + Object.keys(exported).length + ' keys equal)', !sameColor(changed.acc, exported.acc) && differs.length === 0, { differs: differs.map((k) => k + ': ' + JSON.stringify(back[k]) + ' vs ' + JSON.stringify(exported[k])) })
-    check('… and the exported JSON holds every key the plugin stores (no more, no less)', Object.keys(exported).sort().join() === Object.keys(DEFAULTS).concat('ov').sort().join(), Object.keys(exported).filter((k) => DEFAULTS[k] === undefined && k !== 'ov'))
-    // Import: only a .json in this theme's format is accepted; anything else is refused, visibly, and changes nothing
-    const importFile = (name, text) => val(`(() => { const input = document.querySelector('.kbth-adv-pane input[type=file]'); const dt = new DataTransfer(); dt.items.add(new File([${JSON.stringify(text)}], ${JSON.stringify(name)})); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return !!input })()`)
-    const importNote = async () => JSON.parse(await val(`JSON.stringify((() => { const n = document.querySelector('[data-kb=theme-import-note]'); return n ? { text: n.textContent.trim(), color: getComputedStyle(n).color } : null })())`))
-    const snapshot = async () => ({ store: JSON.stringify(await store()), tokens: JSON.stringify(await readTokens()) })
-    const picker = JSON.parse(await val(`JSON.stringify((() => { const i = document.querySelector('.kbth-adv-pane input[type=file]'); return { accept: i ? i.accept : null, label: i ? i.closest('label').textContent.trim() : '', hook: i ? i.getAttribute('data-kb') : null } })())`))
-    check('the file picker only offers .json (accept = ".json", and the label names no other format)', picker.accept === '.json' && /\.json/.test(picker.label) && !/yml|yaml|css/i.test(picker.label), picker)
-    const roundNote = await importNote()
-    check('the round-trip import above said so in green (« ' + (roundNote && roundNote.text) + ' »)', roundNote !== null && /import|appliqu|applied/i.test(roundNote.text) && !/refus|non reconnu|not recogni/i.test(roundNote.text), roundNote)
+    const settingKeys = Object.keys(exported).filter((k) => !['skin', 'fs', 'showBrand'].includes(k))
+    const differs = settingKeys.filter((k) => low(back[k]) !== low(exported[k]))
+    check('« Appliquer » on that row gives back the exported look: after changing the accent, the same stored values (all ' + settingKeys.length + ' keys a theme carries)', !sameColor(changed.acc, exported.acc) && differs.length === 0, { differs: differs.map((k) => k + ': ' + JSON.stringify(back[k]) + ' vs ' + JSON.stringify(exported[k])) })
+    check('… the text size and the brand toggle are not part of a theme (they stay as they were)', back.fs === changed.fs && back.showBrand === changed.showBrand, { fs: [changed.fs, back.fs] })
+
+    // Anything that is not a theme file is refused, visibly, and changes nothing.
     const mark = errors.length
     for (const [name, text, what] of [
       ['theme.yml', 'theme:\n  skin: kb-ember\n  accent: "#ff0000"\n', 'a .yml file'],
@@ -1260,6 +1276,7 @@ try {
       ['array.json', '[1, 2, 3]', 'a JSON array'],
       ['null-ov.json', '{"ov":null}', '{"ov": null} (used to crash the whole section)'],
       ['unknown.json', '{"exportFormat":"css","level":"x","bogus":1,"glassBlurr":3}', 'JSON with only unknown keys'],
+      ['framed-empty.json', '{"format":"kybernos-theme-preset","version":1,"name":"Vide","settings":{"evil":1}}', 'a framed theme with nothing a theme may carry'],
     ]) {
       const a = await snapshot()
       await importFile(name, text); await sleep(700)
@@ -1268,35 +1285,336 @@ try {
       const problems = []
       if (a.store !== b.store) problems.push('the stored state changed')
       if (a.tokens !== b.tokens) problems.push('the tokens changed')
-      if (n === null) problems.push('no visible note'); else if (!/rien|nothing|non reconnu|not recogni/i.test(n.text)) problems.push('the note does not say it was refused: ' + n.text)
+      if (a.lib !== b.lib) problems.push('the library changed')
+      if (n === null) problems.push('no visible note'); else if (!/rien|nothing|non reconnu|not recogni/i.test(n.text) || !/kbth-bad/.test(n.cls)) problems.push('the note does not say (in red) that it was refused: ' + n.text)
       if (!(await val(`!!document.querySelector('.kbth-page')`))) problems.push('the Theme section is gone')
-      check('importing ' + what + ' is refused: a visible note says so, nothing is changed, nothing crashes', problems.length === 0, problems.concat(n ? [n.text] : []))
+      check('importing ' + what + ' is refused: a visible red note says so, nothing is changed (state, tokens, library), nothing crashes', problems.length === 0, problems.concat(n ? [n.text] : []))
     }
     const bad = themeErrorsSince(mark)
     check('… and none of those imports raised an exception or a console error', bad.length === 0, bad.slice(0, 2).map((e) => e.text.split('\n')[0]))
-    const a = await snapshot()
+
+    const a2 = await snapshot()
     await importFile('theme.json', '{"acc":"#ff00aa","skin":"custom"}'); await sleep(700)
-    const b = await snapshot()
-    const okNote = await importNote()
-    check('importing a valid .json applies it (accent #ff00aa → stored and in the brand token) and says so in the note', JSON.parse(b.store).acc === '#ff00aa' && sameColor(JSON.parse(b.tokens)[V.brand], '#ff00aa') && a.tokens !== b.tokens && okNote !== null && /import|appliqu|applied/i.test(okNote.text), { acc: JSON.parse(b.store).acc, note: okNote })
+    const b2 = await snapshot()
+    check('a valid old-style .json becomes a theme too (2 rows now); the accent #ff00aa is NOT applied until « Appliquer »', (await rowsN()) === 2 && JSON.parse(b2.store).acc === JSON.parse(a2.store).acc && a2.tokens === b2.tokens, { rows: await rowsN(), acc: JSON.parse(b2.store).acc })
+    await clickEl(`document.querySelectorAll('[data-kb=theme-row]')[1].querySelector('[data-kb=theme-apply]')`)
+    await until(async () => { const s = await store(); return s && sameColor(s.acc, '#ff00aa') }, 3000)
+    const applied = await store()
+    check('« Appliquer » then applies it: accent stored and in the brand token', sameColor(applied.acc, '#ff00aa') && sameColor((await readTokens())[V.brand], '#ff00aa'), { acc: applied.acc })
     await importFile('sanitised.json', '{"acc":"#12ab34","wpVis":150,"radius":"banana","glassBlur":999,"ligatures":"yes","bogus":1,"ov":{"dark:l1":"nothex","evil:l1":"#ffffff"}}'); await sleep(700)
+    await clickEl(`document.querySelectorAll('[data-kb=theme-row]')[2].querySelector('[data-kb=theme-apply]')`)
+    await until(async () => { const s = await store(); return s && sameColor(s.acc, '#12ab34') }, 3000)
     const clean = await store()
-    check('import validates what it keeps: the colour is stored, numbers are clamped (wpVis 150 → 100, glassBlur 999 → 40), an invalid choice (radius « banana ») and a non-boolean (ligatures « yes ») are dropped, unknown keys and invalid token overrides are not stored', clean.acc === '#12ab34' && clean.wpVis === 100 && clean.glassBlur === 40 && clean.radius === 'standard' && clean.ligatures === true && clean.bogus === undefined && Object.keys(clean.ov).length === 0, { acc: clean.acc, wpVis: clean.wpVis, glassBlur: clean.glassBlur, radius: clean.radius, ligatures: clean.ligatures, bogus: clean.bogus, ov: clean.ov })
+    check('a file is validated before it is kept: the colour is stored, numbers are clamped (wpVis 150 → 100, glassBlur 999 → 40), an invalid choice (radius « banana ») and a non-boolean (ligatures « yes ») are dropped, unknown keys and invalid token overrides are not stored', clean.acc === '#12ab34' && clean.wpVis === 100 && clean.glassBlur === 40 && clean.radius === DEFAULTS.radius && clean.ligatures === DEFAULTS.ligatures && !('bogus' in clean) && !('evil:l1' in clean.ov) && !Object.keys(clean.ov).some((k) => /^evil/.test(k)) && clean.ov['dark:l1'] === undefined, clean)
     await reloadBoot()
     await openTheme()
     const st2 = await store()
-    check('after a reload the page opens on the imported state, all keys known', (await val(`!!document.querySelector('.kbth-page')`)) === true && st2 !== null && st2.acc === '#12ab34' && typeof st2.ov === 'object' && st2.ov !== null, st2)
+    check('after a reload the page opens on the applied state, and the three themes are still in My themes', (await val(`!!document.querySelector('.kbth-page')`)) === true && st2 !== null && st2.acc === '#12ab34' && typeof st2.ov === 'object' && st2.ov !== null && JSON.parse(await val(`localStorage.getItem(${JSON.stringify(LIB)})`)).presets.length === 3, st2)
     if (modeSafe) {
       await goTab(TAB.partage)
-      await clickEl(`(() => { const r = Array.from(document.querySelectorAll('.kbth-adv-pane .kbth-row')).find((x) => x.querySelector('.kbth-btn') && !/format/i.test((x.querySelector('.kbth-lb') || { textContent: '' }).textContent) && /reset|rétablir|réinit/i.test(x.querySelector('.kbth-btn').textContent)); return r ? r.querySelector('.kbth-btn') : null })()`)
+      await clickEl(`(() => { const r = Array.from(document.querySelectorAll('.kbth-adv-pane .kbth-row')).find((x) => x.querySelector('.kbth-btn') && /reset|rétablir|réinit/i.test(x.querySelector('.kbth-btn').textContent) && /tous|all/i.test((x.querySelector('.kbth-lb') || { textContent: '' }).textContent)); return r ? r.querySelector('.kbth-btn') : null })()`)
       await sleep(500)
       const st3 = await store()
       const junk3 = Object.keys(st3).filter((k) => DEFAULTS[k] === undefined && k !== 'ov')
       check('Sharing › Reset: back to the defaults (skin dsh, no accent, ov empty), and it REPLACES the state: no key left over', st3.skin === 'dsh' && st3.acc === null && Object.keys(st3.ov).length === 0 && junk3.length === 0, st3)
       const tok = await readTokens()
       check('… and the 17 tokens are the native ones', TOKEN_VARS.every((v) => sameColor(tok[v], NATIVE[v])), TOKEN_VARS.filter((v) => !sameColor(tok[v], NATIVE[v])))
+      check('… and Reset leaves your saved themes alone (the three are still there)', (await rowsN()) === 3, await rowsN())
+    }
+    await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
+  })
+
+  // ═══ 13b. My themes ═══════════════════════════════════════════════════════════════
+  await section('library', 'My themes: save, modify, update, apply, rename, export, delete; then the disk copy (sandbox only)', async () => {
+    const sandbox = /^(127\.0\.0\.1|localhost):(?!3080$)\d+$/.test(process.env.KB_HOST || '127.0.0.1:3080') && /sandbox/i.test(process.env.DSH_HOME || '')
+    const hostFile = join(String(process.env.DSH_HOME || ''), 'kybernos', 'theme-presets.json')
+    const libJson = async () => { const raw = await val(`localStorage.getItem(${JSON.stringify(LIB)})`); try { return raw ? JSON.parse(raw) : null } catch (e) { return undefined } }
+    const mineDots = () => val(`document.querySelectorAll('[data-kb=theme-mine] .kbth-skin:not(.kbth-skin-add)').length`)
+    const summary = async () => JSON.parse(await val(`JSON.stringify({ name: ((document.querySelector('.kbth-sum-n') || { childNodes: [] }).childNodes[0] || { textContent: '' }).textContent, pills: Array.from(document.querySelectorAll('.kbth-sum-n .kbth-pill')).map((e) => e.textContent.trim()), modified: !!document.querySelector('[data-kb=theme-modified]'), update: !!document.querySelector('[data-kb=theme-update]'), revert: !!document.querySelector('[data-kb=theme-revert]'), note: (document.querySelector('[data-kb=theme-note]') || { textContent: '' }).textContent.trim() })`))
+    const dlg = () => val(`!!document.querySelector('[data-kb=theme-save-dlg]')`)
+    const kb = (k) => `document.querySelector('[data-kb=${k}]')`
+    const markLib = errors.length
+
+    await openTheme({ fresh: true })
+    const labels = await skinLabels()
+    const ember = findSkin(labels, SKINS.find((d) => d.id === 'kb-ember'))
+    const stone = findSkin(labels, SKINS.find((d) => d.id === 'kb-stone-cloud'))
+    check('the add button sits next to « My themes », and with no theme of yours the page says so and points to Sharing', (await mineDots()) === 0 && (await val(`!!document.querySelector('[data-kb=theme-add]')`)) && /Aucun thème à vous|You have no theme/i.test(await val(`document.querySelector('[data-kb=theme-block]').innerText`)) && (await val(`!!document.querySelector('[data-kb=theme-open-sharing]')`)))
+    await clickEl(Q.skin(ember.idx))
+    await until(async () => { const s = await store(); return s && s.skin === 'kb-ember' }, 4000)
+    let sm = await summary()
+    check('a shipped theme in use: named in the summary, flagged « livré », not modified, no Update and no Revert', /Braise|Ember/.test(sm.name) && sm.pills.length === 1 && /livré|shipped/i.test(sm.pills[0]) && !sm.modified && !sm.update && !sm.revert, sm)
+
+    await clickEl(Q.dot(3))                                  // an accent of the dot row
+    await until(async () => (await summary()).modified, 3000)
+    sm = await summary()
+    const edited = await store()
+    check('moving the accent keeps the theme selected and says « modifié » (it used to un-select every theme)', sm.modified && edited.skin === 'kb-ember' && sameColor(edited.acc, '#22A06B') && (await readPage()).skinPressed.length === 1, { sm, skin: edited.skin, acc: edited.acc })
+    check('… a shipped theme offers « Enregistrer sous… » and « Annuler les changements », never « Mettre à jour »', !sm.update && sm.revert && (await val(`!!document.querySelector('[data-kb=theme-save]')`)))
+    await clickEl(kb('theme-revert'))
+    await until(async () => { const s = await store(); return s && s.acc === null }, 3000)
+    sm = await summary()
+    check('« Annuler les changements » puts the theme back (accent null again, pill gone, the native mode kept)', !sm.modified && (await store()).acc === null && (await modeInfo()).source === startMode, sm)
+
+    await clickEl(Q.dot(3)); await until(async () => (await summary()).modified, 3000)
+    await shot('13b-essentiel-modified')
+    // — the save window
+    await clickEl(kb('theme-save'))
+    await until(dlg, 2000)
+    await shot('13b-save-window')
+    const dl = JSON.parse(await val(`JSON.stringify((() => { const d = document.querySelector('[data-kb=theme-save-dlg]'); const t = Array.from(d.querySelectorAll('.kbth-toggle')).map((b) => b.getAttribute('aria-checked')); return { role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), label: d.getAttribute('aria-labelledby'), name: d.querySelector('[data-kb=theme-save-name]').value, focus: document.activeElement === d.querySelector('[data-kb=theme-save-name]'), toggles: t, inBody: d.parentElement === document.body || !!d.closest('body') } })())`))
+    check('« Enregistrer sous… » opens a window: a dialog with a name field (focused, pre-filled) and four switches: font, corners, glass on; accessibility OFF', dl.role === 'dialog' && dl.modal === 'true' && dl.name.length > 0 && dl.focus && dl.toggles.join() === 'true,true,true,false', dl)
+    await press('Tab', 12)
+    check('Tab stays inside the window', await val(`!!document.activeElement.closest('[data-kb=theme-save-dlg]')`))
+    await press('Escape'); await sleep(250)
+    check('Escape closes the window only: Settings stays open and the focus goes back to the button that opened it', !(await dlg()) && (await val(`!!document.querySelector('.kbth-page')`)) && (await val(`document.activeElement && document.activeElement.getAttribute('data-kb')`)) === 'theme-save')
+    check('… and nothing was saved', (await libJson()) === null || (await libJson()).presets.length === 0)
+
+    await clickEl(kb('theme-save')); await until(dlg, 2000)
+    await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, '   ')
+    await clickEl(kb('theme-save-ok')); await sleep(250)
+    check('an empty name is refused inside the window, in red, and the window stays', (await dlg()) && /nom|name/i.test(await val(`(document.querySelector('[data-kb=theme-save-error]') || { textContent: '' }).textContent`)))
+    await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, 'Défaut DSH')
+    await clickEl(kb('theme-save-ok')); await sleep(250)
+    check('a name already used by a shipped theme is refused too', (await dlg()) && /existe|exists/i.test(await val(`(document.querySelector('[data-kb=theme-save-error]') || { textContent: '' }).textContent`)))
+    await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, 'Bureau')
+    await clickEl(kb('theme-save-ok'))
+    await until(async () => (await mineDots()) === 1, 3000)
+    const saved = await libJson()
+    const st1 = await store()
+    sm = await summary()
+    check('saving closes the window, adds a dot to My themes, selects it and says so', !(await dlg()) && (await mineDots()) === 1 && st1.skin === saved.presets[0].id && /Bureau/.test(sm.name) && /à vous|yours/i.test(sm.pills.join(' ')) && /enregistré|saved/i.test(sm.note), { sm, skin: st1.skin })
+    const p0 = saved.presets[0]
+    check('the saved theme keeps the colours, the accent, the font, the corners and the wallpaper — and NOT the accessibility settings', p0.name === 'Bureau' && p0.source === 'me' && sameColor(p0.settings.acc, '#22A06B') && p0.settings.fontText === 'dsh' && p0.settings.radius === 'standard' && p0.settings.wp === 'none' && Object.keys(p0.settings.ov).length >= 12 && !('contrastMode' in p0.settings) && !('cbSafe' in p0.settings) && !('skin' in p0.settings) && !('fs' in p0.settings), p0.settings && Object.keys(p0.settings))
+    check('… and it is not « modified » right after being saved', !sm.modified)
+
+    await clickEl(Q.dot(5)); await until(async () => (await summary()).modified, 3000)
+    sm = await summary()
+    check('your own theme with another accent: « modifié », « Mettre à jour » first, « Enregistrer sous… », « Annuler »', sm.modified && sm.update && sm.revert)
+    await clickEl(kb('theme-update'))
+    await until(async () => { const l = await libJson(); return l && sameColor(l.presets[0].settings.acc, '#F59E0B') }, 3000)
+    sm = await summary()
+    const brandSaved = (await readTokens())[V.brand]      // the engine may darken an accent that is too light for the scheme: what matters is that the same look comes back
+    check('« Mettre à jour » rewrites it (accent now #F59E0B in the library, lower-case like any saved theme), the pill goes, the note says so', !sm.modified && /mis à jour|updated/i.test(sm.note) && (await libJson()).presets[0].settings.acc === '#f59e0b', sm)
+
+    await clickEl(Q.skin(stone.idx))
+    await until(async () => { const s = await store(); return s && s.skin === 'kb-stone-cloud' }, 4000)
+    await clickEl(`document.querySelector('[data-kb=theme-mine] .kbth-skin:not(.kbth-skin-add)')`)
+    await until(async () => { const s = await store(); return s && s.skin === p0.id }, 4000)
+    const again = await store()
+    const tok = await readTokens()
+    check('choosing your theme again restores everything it retains (skin, accent, overrides) and applies it to the 17 tokens; the native mode is untouched', again.skin === p0.id && sameColor(again.acc, '#F59E0B') && JSON.stringify(Object.keys(again.ov).sort()) === JSON.stringify(Object.keys(p0.settings.ov).sort()) && sameColor(tok[V.brand], brandSaved) && !sameColor(tok[V.brand], NATIVE[V.brand]) && (await modeInfo()).source === startMode, { skin: again.skin, acc: again.acc, brand: tok[V.brand], expected: brandSaved })
+
+    // — Sharing: the row
+    await goTab(TAB.partage)
+    check('Sharing lists it: one row, the source (« à vous »), what it retains, and the four actions (the theme in use has no « Appliquer »)', (await val(`document.querySelectorAll('[data-kb=theme-row]').length`)) === 1 && /retient|keeps|retains/i.test(await val(`document.querySelector('[data-kb=theme-row]').innerText`)) && !(await val(`!!document.querySelector('[data-kb=theme-row] [data-kb=theme-apply]')`)) && (await val(`['theme-export-one', 'theme-rename', 'theme-delete'].every((k) => !!document.querySelector('[data-kb=theme-row] [data-kb=' + k + ']'))`)))
+    await clickEl(kb('theme-rename'))
+    await until(() => val(`!!document.querySelector('[data-kb=theme-rename-in]')`), 2000)
+    await typeInto(kb('theme-rename-in'), 'Clair net')
+    await press('Enter'); await sleep(300)
+    check('renaming to a name that exists is refused with a visible red note, and the row keeps its name', /existe|exists/i.test(await val(`(document.querySelector('[data-kb=theme-note]') || { textContent: '' }).textContent`)) && (await libJson()).presets[0].name === 'Bureau')
+    await typeInto(kb('theme-rename-in'), 'Bureau du matin')
+    await press('Enter'); await sleep(300)
+    check('renaming works (Enter): the library and the row have the new name, the settings are untouched', (await libJson()).presets[0].name === 'Bureau du matin' && /Bureau du matin/.test(await val(`document.querySelector('[data-kb=theme-row] .kbth-trow-n').textContent`)) && sameColor((await libJson()).presets[0].settings.acc, '#F59E0B'))
+    await val(`window.__copied = []; Object.defineProperty(navigator.clipboard, 'writeText', { configurable: true, value: (t) => { window.__copied.push(String(t)); return Promise.resolve() } })`)
+    await clickEl(kb('theme-export-one')); await sleep(250)
+    await shot('13b-sharing-export')
+    const fileTxt = await val(`(document.querySelector('[data-kb=theme-file]') || { textContent: '' }).textContent`)
+    let fileObj = null
+    try { fileObj = JSON.parse(fileTxt) } catch (e) { fileObj = null }
+    check('« Exporter » shows the file of that theme: framed JSON (format, version, name, settings), nothing else of the page in it', fileObj !== null && fileObj.format === 'kybernos-theme-preset' && fileObj.version === 1 && fileObj.name === 'Bureau du matin' && fileObj.settings && sameColor(fileObj.settings.acc, '#F59E0B') && !('skin' in fileObj.settings), fileTxt.slice(0, 120))
+    await clickEl(kb('theme-copy-one')); await sleep(250)
+    check('… « Copier » puts exactly that text on the clipboard', Number(await val(`window.__copied.length`)) === 1 && (await val(`window.__copied[0]`)) === fileTxt)
+    // the file we just exported comes back as a second theme (the exchange between two machines, in one)
+    await val(`window.__file = ${JSON.stringify('')}`)
+    const importFile = (name, text) => val(`(() => { const input = document.querySelector('.kbth-adv-pane input[type=file]'); const dt = new DataTransfer(); dt.items.add(new File([${JSON.stringify(text)}], ${JSON.stringify(name)}, { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })); return !!input })()`)
+    await importFile('theme-bureau.json', fileTxt); await sleep(600)
+    const l2 = await libJson()
+    check('an exported theme imports back as a second one: same settings, a free name (« Bureau du matin (2) »), source « importé », not applied', l2.presets.length === 2 && l2.presets[1].name === 'Bureau du matin (2)' && l2.presets[1].source === 'file' && JSON.stringify(l2.presets[1].settings) === JSON.stringify(l2.presets[0].settings) && (await store()).skin === p0.id, l2.presets.map((p) => p.name))
+    const evil = JSON.stringify({ format: 'kybernos-theme-preset', version: 1, name: '<img src=x onerror="window.__pwned=1">', author: '<b>x</b>', settings: { mode: 'dark', acc: '#ff0000', fontText: 'url(//evil.test/f)', evil: true } })
+    await importFile('evil.json', evil); await sleep(600)
+    await shot('13b-sharing-rows')
+    const hostile = JSON.parse(await val(`JSON.stringify({ img: !!document.querySelector('.kbth-page img'), bold: !!document.querySelector('.kbth-page b'), pwned: window.__pwned === 1, row: Array.from(document.querySelectorAll('[data-kb=theme-row] .kbth-trow-n span:first-child')).map((e) => e.textContent) })`))
+    check('a hostile file is data: its name is drawn as text (no element, no handler), its unknown font is dropped', !hostile.img && !hostile.bold && !hostile.pwned && hostile.row.some((t) => /<img/.test(t)) && !JSON.stringify((await libJson()).presets[2].settings).includes('evil'), hostile)
+    await clickEl(`document.querySelectorAll('[data-kb=theme-row]')[2].querySelector('[data-kb=theme-delete]')`)
+    await sleep(150)
+    check('« Supprimer » asks first, in place (no browser dialog), naming the theme', /Supprimer|Delete/i.test(await val(`document.querySelectorAll('[data-kb=theme-row]')[2].innerText`)) && (await val(`!!document.querySelector('[data-kb=theme-delete-yes]')`)) && (await libJson()).presets.length === 3)
+    await clickEl(kb('theme-delete-yes')); await sleep(300)
+    check('… and confirming removes that theme only', (await libJson()).presets.length === 2 && (await val(`document.querySelectorAll('[data-kb=theme-row]').length`)) === 2)
+    await clickEl(`document.querySelectorAll('[data-kb=theme-row]')[1].querySelector('[data-kb=theme-delete]')`); await clickEl(kb('theme-delete-yes')); await sleep(300)
+    await goTab(TAB.essentiel)
+    // delete the one in use
+    await goTab(TAB.partage)
+    await clickEl(kb('theme-delete')); await clickEl(kb('theme-delete-yes')); await sleep(400)
+    await goTab(TAB.essentiel)
+    sm = await summary()
+    check('deleting the theme in use leaves the look as it is and reads « Personnalisé »; the library is empty again', (await libJson()).presets.length === 0 && /Personnalisé|Custom/i.test(sm.name) && sameColor((await store()).acc, '#F59E0B'), sm)
+    check('a reload keeps the library as it is (empty) and nothing raised an error', (await mineDots()) === 0 && themeErrorsSince(markLib).length === 0, themeErrorsSince(markLib).slice(0, 2).map((e) => e.text.split('\n')[0]))
+
+    // ── the disk copy, on the real route of the sandbox ─────────────────────────────
+    if (!sandbox) { console.log('  · the disk copy is not played here: it writes <DSH_HOME>/kybernos/theme-presets.json, so it needs the isolated instance (source scripts/sandbox/env.sh; this run targets ' + (process.env.KB_HOST || '127.0.0.1:3080') + ')'); return }
+    check('the disk copy is played against the sandbox only (KB_HOST is not :3080, DSH_HOME is the sandbox one)', sandbox)
+    rmSync(hostFile, { force: true })
+    if (flagScriptId !== null) { await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: flagScriptId }); flagScriptId = null }
+    try {
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
+      await reloadBoot()
+      await openTheme()
+      check('no theme on the disk yet: the route answers « library: null »', JSON.stringify(await val(`fetch('/kybernos-theme/preset-store').then((r) => r.json())`, 8000)) === '{"ok":true,"library":null}')
+      await clickEl(kb('theme-save')); await until(dlg, 2000)
+      await typeInto(`document.querySelector('[data-kb=theme-save-name]')`, 'Sur disque')
+      await clickEl(kb('theme-save-ok'))
+      const onDisk = await until(() => existsSync(hostFile), 5000, 150)
+      let disk = null
+      try { disk = JSON.parse(readFileSync(hostFile, 'utf8')) } catch (e) { disk = null }
+      check('saving writes <DSH_HOME>/kybernos/theme-presets.json (after a short pause): one theme, same name, same clock as the browser copy', !!onDisk && disk !== null && disk.presets.length === 1 && disk.presets[0].name === 'Sur disque' && disk.updatedAt === (await libJson()).updatedAt, disk && { n: disk.presets.length, at: disk.updatedAt })
+      check('… the file holds only data: known settings, no skin, no text size', disk !== null && !('skin' in disk.presets[0].settings) && !('fs' in disk.presets[0].settings) && Object.keys(disk.presets[0].settings).every((k) => /^(mode|acc|ov|fontText|ligatures|radius|wp|wpVis|wpBlur|tint|glass\w+|sidebar\w+|fieldOpacity|floatOpacity|bg\w+)$/.test(k)), disk && Object.keys(disk.presets[0].settings))
+      // clear the browser: the disk brings it back
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
+      await reloadBoot()
+      await openTheme()
+      const back2 = await until(async () => (await mineDots()) === 1, 6000)
+      check('after clearing the browser copy and reloading, the theme comes back from the disk, and is kept in the browser again', !!back2 && (await libJson()) !== null && (await libJson()).presets[0].name === 'Sur disque', await mineDots())
+      await goTab(TAB.partage)
+      await clickEl(kb('theme-delete')); await clickEl(kb('theme-delete-yes'))
+      const gone = await until(() => { try { return JSON.parse(readFileSync(hostFile, 'utf8')).presets.length === 0 } catch (e) { return false } }, 5000, 150)
+      check('deleting it empties the disk copy too (the library is replaced as a whole: nothing comes back after a reload)', !!gone)
+      await reloadBoot(); await openTheme(); await sleep(1500)
+      check('… after a reload it stays deleted', (await mineDots()) === 0)
+    } finally {
+      rmSync(hostFile, { force: true })
+      const again = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: FLAG_SRC })
+      flagScriptId = again && again.result ? again.result.identifier : null
+      await val(FLAG_SRC)
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
     }
   })
+
+  // ═══ 13c. The gallery ═════════════════════════════════════════════════════════════
+  await section('gallery', 'The gallery: the shipped catalogue on the sandbox host, search, filter, try, install, update', async () => {
+    const sandbox = /^(127\.0\.0\.1|localhost):(?!3080$)\d+$/.test(process.env.KB_HOST || '127.0.0.1:3080') && /sandbox/i.test(process.env.DSH_HOME || '')
+    if (!sandbox) { console.log('  · the gallery is read by the HOST and caches under <DSH_HOME>/kybernos: it needs the isolated instance (source scripts/sandbox/env.sh; this run targets ' + (process.env.KB_HOST || '127.0.0.1:3080') + ')'); return }
+    const shipped = JSON.parse(readFileSync(new URL('../packages/kybernos-theme/gallery.json', import.meta.url), 'utf8'))
+    // The host half is ON in this section, so a saved library goes to the SANDBOX's disk: start and end with none there.
+    const hostLibFile = join(String(process.env.DSH_HOME || ''), 'kybernos', 'theme-presets.json')
+    const libJson = async () => { const raw = await val(`localStorage.getItem(${JSON.stringify(LIB)})`); try { return raw ? JSON.parse(raw) : null } catch (e) { return undefined } }
+    const kb = (k) => `document.querySelector('[data-kb=${k}]')`
+    const cards = () => val(`document.querySelectorAll('[data-kb=theme-gal-card]').length`)
+    const cardBtn = (id, k) => `document.querySelector('[data-kb=theme-gal-card][data-id=${id}] [data-kb=${k}]')`
+    const sameMode = shipped.themes.find((t) => t.settings.mode === startMode)
+    const otherMode = shipped.themes.find((t) => t.settings.mode !== startMode && (t.settings.mode === 'light' || t.settings.mode === 'dark'))
+    const mark = errors.length
+    if (flagScriptId !== null) { await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: flagScriptId }); flagScriptId = null }
+    rmSync(hostLibFile, { force: true })
+    try {
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
+      await reloadBoot()
+      await openTheme({ fresh: true })
+      const tok0 = await readTokens()
+      await goTab(TAB.galerie)
+      check('the Galerie tab opens and shows one card per shipped theme', !!(await until(async () => (await cards()) === shipped.themes.length, 8000)), { cards: await cards(), want: shipped.themes.length })
+      const cardNames = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb=theme-gal-card] .kbth-card-n')).map((e) => e.textContent))`))
+      // (the interface may be live-translated: a theme called « Crépuscule » then reads « Twilight », so the cards are matched by id)
+      const ids = JSON.parse(await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-kb=theme-gal-card]')).map((e) => e.getAttribute('data-id')))`))
+      const parts = { missing: shipped.themes.filter((t) => !ids.includes(t.id)).map((t) => t.id), unnamed: cardNames.filter((n) => n.trim() === '').length, thumbs: await val(`document.querySelectorAll('[data-kb=theme-gal-card] .kbth-thumb').length`), authors: await val(`document.querySelectorAll('[data-kb=theme-gal-card] .kbth-card-a').length`), descs: await val(`document.querySelectorAll('[data-kb=theme-gal-card] .kbth-card-d').length`) }
+      check('...each under its name, with thumbnail, author and description', parts.missing.length === 0 && parts.unnamed === 0 && parts.thumbs === shipped.themes.length && parts.authors === shipped.themes.length && parts.descs === shipped.themes.length, parts)
+      const src = await val(`(document.querySelector('[data-kb=theme-gal-source]') || { textContent: '' }).textContent`)
+      check('the source line says they are shipped with Kybernos (no key is embedded yet) and counts them', /Livré avec Kybernos|Shipped with Kybernos/i.test(src) && src.includes(String(shipped.themes.length)), src)
+      const online = await until(async () => (await val(`(document.querySelector('[data-kb=theme-gal-online]') || { textContent: '' }).textContent`)) || null, 8000)
+      check('...and says in plain words why the online catalogue is not shown (no key embedded yet, or none reachable)', !!online && /pas encore activé|injoignable|not active yet|cannot be reached|turned off/i.test(online), online)
+      check('...with no « Actualiser » while the online catalogue is not active', !(await val(`!!document.querySelector('[data-kb=theme-gal-refresh]')`)) || /injoignable|cannot be reached|unreachable/i.test(online || ''))
+      const asked = JSON.parse(await val(`fetch('/kybernos-theme/gallery').then((r) => r.json()).then((j) => JSON.stringify({ ok: j.ok, source: j.source, n: j.themes.length, state: j.online.state, reason: j.online.reason }))`, 8000))
+      check('the route answers from the disk: shipped, the same count, and the state the page showed', asked.ok === true && asked.source === 'shipped' && asked.n === shipped.themes.length, asked)
+
+      // search and filter
+      await shot('13c-gallery')
+      const some = shipped.themes[2]
+      await typeInto(kb('theme-gal-q'), some.name.slice(0, 5))
+      await sleep(300)
+      check('searching a few letters of a name narrows the grid to that theme', (await cards()) >= 1 && (await cards()) < shipped.themes.length && (await val(`!!${cardBtn(some.id, 'theme-gal-install')}`)), { cards: await cards() })
+      await typeInto(kb('theme-gal-q'), 'zzzz-nothing')
+      await sleep(300)
+      check('a search with no match says so and offers to clear it', (await cards()) === 0 && (await val(`!!document.querySelector('[data-kb=theme-gal-none]')`)))
+      await typeInto(kb('theme-gal-q'), '')
+      await sleep(300)
+      await clickEl(`Array.from(document.querySelectorAll('.kbth-adv-pane .kbth-seg button')).find((b) => /^(sombre|dark)$/i.test(b.textContent.trim()))`)
+      await sleep(250)
+      const darkIds = shipped.themes.filter((t) => t.settings.mode === 'dark').map((t) => t.id)
+      check('the filter « Sombre » keeps only the dark themes', (await cards()) === darkIds.length && (await val(`Array.from(document.querySelectorAll('[data-kb=theme-gal-card]')).every((c) => ${JSON.stringify(darkIds)}.includes(c.getAttribute('data-id')))`)))
+      await clickEl(`Array.from(document.querySelectorAll('.kbth-adv-pane .kbth-seg button')).find((b) => /^(tous|all)$/i.test(b.textContent.trim()))`)
+      await sleep(250)
+      check('...and « Tous » brings them all back', (await cards()) === shipped.themes.length)
+
+      if (sameMode === undefined || (startMode !== 'dark' && startMode !== 'light')) {
+        console.log('  · try / install are not played: the mode found (' + startMode + ') has no shipped theme of its own, and a theme of the other mode would change DSH\'s native mode')
+      } else {
+        const t = sameMode
+        // a trial draws the theme and stores nothing
+        await clickEl(cardBtn(t.id, 'theme-gal-try'))
+        await until(() => val(`!!document.querySelector('[data-kb=theme-trial]')`), 3000)
+        await sleep(300)
+        const tokTry = await readTokens()
+        const stTry = await store()
+        await shot('13c-gallery-trial')
+        check('« Essayer » shows a banner and draws the theme: the brand token is no longer the native one', (await val(`!!document.querySelector('[data-kb=theme-trial]')`)) && !sameColor(tokTry[V.brand], tok0[V.brand]) && /Essai de|Trial of/.test(await val(`document.querySelector('[data-kb=theme-trial]').textContent`)), { brand: tokTry[V.brand], native: tok0[V.brand] })
+        check('...and stores NOTHING: the stored look is the one from before, and My themes is empty', (stTry === null || stTry.skin === 'dsh') && ((await libJson()) === null || (await libJson()).presets.length === 0), stTry && stTry.skin)
+        check('...the card says « En essai » and is disabled', /En essai|Trying/i.test(await val(`${cardBtn(t.id, 'theme-gal-try')}.textContent`)) && (await val(`${cardBtn(t.id, 'theme-gal-try')}.disabled`)) === true)
+        await clickEl(kb('theme-trial-end'))
+        await sleep(400)
+        const tokBack = await readTokens()
+        check('« Revenir à mon thème » puts the look back (all 17 tokens as before), the banner is gone', TOKEN_VARS.every((v) => sameColor(tokBack[v], tok0[v])) && !(await val(`!!document.querySelector('[data-kb=theme-trial]')`)), TOKEN_VARS.filter((v) => !sameColor(tokBack[v], tok0[v])))
+        // closing Settings during a trial gives the stored look back
+        await clickEl(cardBtn(t.id, 'theme-gal-try')); await sleep(300)
+        await val(`(Array.from(document.querySelectorAll('button')).find((b) => /back to workspace|retour/i.test(b.textContent)) || { click() {} }).click()`)
+        await sleep(600)
+        const tokClosed = await readTokens()
+        check('closing Settings in the middle of a trial puts the stored look back', TOKEN_VARS.every((v) => sameColor(tokClosed[v], tok0[v])), TOKEN_VARS.filter((v) => !sameColor(tokClosed[v], tok0[v])))
+        await reloadBoot(); await openTheme(); await goTab(TAB.galerie)
+        await until(async () => (await cards()) === shipped.themes.length, 8000)
+
+        // install
+        await clickEl(cardBtn(t.id, 'theme-gal-install'))
+        await until(async () => { const l = await libJson(); return l && l.presets.length === 1 }, 4000)
+        const l1 = await libJson()
+        const st1 = await store()
+        check('« Installer » adds the theme to My themes (source gallery, its catalogue id, version, author) and applies it', l1.presets[0].source === 'gallery' && l1.presets[0].gid === t.id && l1.presets[0].v === t.v && l1.presets[0].author === t.author && l1.presets[0].name === t.name && st1.skin === l1.presets[0].id, l1.presets[0])
+        check('...the note says so and the card now reads « Installé »', /installé|installed/i.test(await val(`(document.querySelector('[data-kb=theme-note]') || { textContent: '' }).textContent`)) && /Installé|Installed/i.test(await val(`document.querySelector('[data-kb=theme-gal-card][data-id=${t.id}]').textContent`)) && !(await val(`!!${cardBtn(t.id, 'theme-gal-install')}`)))
+        check('...the native mode is still the one found, and the look is the theme\'s (brand token moved)', (await modeInfo()).source === startMode && !sameColor((await readTokens())[V.brand], tok0[V.brand]))
+        check('no accessibility setting was touched by the install', st1.contrastMode === DEFAULTS.contrastMode && st1.cbSafe === DEFAULTS.cbSafe && st1.reduceMotion === DEFAULTS.reduceMotion && st1.largeTargets === DEFAULTS.largeTargets && st1.underlineLinks === DEFAULTS.underlineLinks && st1.focusRing === DEFAULTS.focusRing, st1)
+        // update: pretend the installed copy is older than the catalogue
+        await val(`(() => { const l = JSON.parse(localStorage.getItem(${JSON.stringify(LIB)})); l.presets[0].v = 0; localStorage.setItem(${JSON.stringify(LIB)}, JSON.stringify(l)) })()`)
+        await reloadBoot(); await openTheme(); await goTab(TAB.galerie)
+        await until(async () => (await cards()) === shipped.themes.length, 8000)
+        check('an installed copy older than the catalogue offers « Mettre à jour » on that card only', (await val(`!!${cardBtn(t.id, 'theme-gal-update')}`)) && (await val(`document.querySelectorAll('[data-kb=theme-gal-update]').length`)) === 1)
+        await clickEl(cardBtn(t.id, 'theme-gal-update'))
+        await until(async () => { const l = await libJson(); return l && l.presets[0].v === t.v }, 4000)
+        check('...clicking it moves the copy to the catalogue\'s version and the button goes away', (await libJson()).presets[0].v === t.v && !(await val(`!!${cardBtn(t.id, 'theme-gal-update')}`)))
+        // a second theme of the same mode: a second install, and « Partage » lists both with their source
+        const t2 = shipped.themes.find((x) => x.settings.mode === startMode && x.id !== t.id)
+        if (t2 !== undefined) {
+          await clickEl(cardBtn(t2.id, 'theme-gal-install'))
+          await until(async () => { const l = await libJson(); return l && l.presets.length === 2 }, 4000)
+          await goTab(TAB.partage)
+          check('Sharing lists both, each flagged « Galerie · Kybernos »', (await val(`document.querySelectorAll('[data-kb=theme-row]').length`)) === 2 && (await val(`Array.from(document.querySelectorAll('[data-kb=theme-row]')).every((r) => /Galerie · Kybernos|Gallery · Kybernos/.test(r.textContent))`)))
+          await goTab(TAB.galerie)
+        }
+        if (otherMode !== undefined) {
+          const before = await store()
+          check('a theme of the other mode is NOT installed by this test (it would change DSH\'s native mode); the card is simply there', (await val(`!!${cardBtn(otherMode.id, 'theme-gal-install')}`)) && (await store()).mode === before.mode)
+        }
+      }
+      const bad = themeErrorsSince(mark)
+      check('nothing raised an exception or a console error in the gallery', bad.length === 0, bad.slice(0, 2).map((e) => e.text.split('\n')[0]))
+    } finally {
+      await sleep(900)                                   // let a pending push of the library reach the disk before it is removed
+      rmSync(hostLibFile, { force: true })
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
+      const again = await page.send('Page.addScriptToEvaluateOnNewDocument', { source: FLAG_SRC })
+      flagScriptId = again && again.result ? again.result.identifier : null
+      await val(FLAG_SRC)
+    }
+  })
+
   // ═══ B–F. The controls that used to be dead, now wired: each one is measured on the real GUI (computed styles) ═══════════
   const alphaOf = (c) => {
     const t = String(c).trim().toLowerCase()
@@ -2154,7 +2472,7 @@ try {
     const origAttr = await val(`document.body.getAttribute('data-ds-dark-theme')`)
     const darkOn = () => val(`document.body.setAttribute('data-ds-dark-theme', ${JSON.stringify(origAttr === null ? '' : origAttr)})`)
     const setLight = async () => { await val(`document.body.removeAttribute('data-ds-dark-theme')`); await sleep(350); await val(`document.body.removeAttribute('data-ds-dark-theme')`); await sleep(150) }
-    const inspect = async () => JSON.parse(await val(`JSON.stringify((${INSPECT_IN_PAGE})(['.kbth-page', '[data-kb=ld-picker]', '[data-kb=ld-pack]'], ${JSON.stringify(LIGHT_RULE.concat(LIGHT_EXTRA))}))`, 12000))
+    const inspect = async () => JSON.parse(await val(`JSON.stringify((${INSPECT_IN_PAGE})(['.kbth-page', '[data-kb=ld-picker]', '[data-kb=ld-pack]', '[data-kb=theme-save-dlg]'], ${JSON.stringify(LIGHT_RULE.concat(LIGHT_EXTRA))}))`, 12000))
     const lightShot = async (name) => { const f = join(tmpdir(), 'kb-theme-light-' + name + '.png'); try { await page.shot(f); console.log('  · screenshot (Light, temp folder, never committed): ' + f) } catch (e) { console.log('  · the screenshot failed: ' + short(e.message)) } }
     const SHOTS = { 'Essentiel': 'essentiel', 'Animation': 'animation', 'Animation › picker › examples': 'picker', 'Verre et fond': 'verre', 'Accessibilité': 'access', 'Animation › word pack': 'pack' }
     const dark = { tert: await bodyVar('--dsw-alias-label-tertiary'), cap: await bodyVar('--dsw-alias-label-caption'), sec: await bodyVar('--dsw-alias-label-secondary') }
@@ -2173,7 +2491,7 @@ try {
       let frNow = []
       while (Date.now() - t0 < 2000) {
         let fr = []
-        for (const scope of ['.kbth-page', '[data-kb=ld-picker]', '[data-kb=ld-pack]']) fr = fr.concat(audit.analyse(JSON.parse((await val(audit.collectIn(scope), 10000)) || '[]')).fr)
+        for (const scope of ['.kbth-page', '[data-kb=ld-picker]', '[data-kb=ld-pack]', '[data-kb=theme-save-dlg]']) fr = fr.concat(audit.analyse(JSON.parse((await val(audit.collectIn(scope), 10000)) || '[]')).fr)
         frNow = fr.filter((t) => !/^#/.test(t) && t !== 'Fermer')
         n = frNow.length
         if (n === 0) break
@@ -2233,9 +2551,23 @@ try {
       await press('Escape'); await sleep(400)
       if (!(await settingsPageOpen())) { await openTheme(); }
       await visit('Accessibilité', async () => { await goTab(TAB.accessibilite) })
-      await visit('Partage', async () => { await goTab(TAB.partage) })
+      // (the export of the current look sits in a folded block: a browser does not recompute the colours of what is folded, so it is opened to be measured)
+      await visit('Partage', async () => { await goTab(TAB.partage); await val(`(document.querySelector('[data-kb=theme-export-fold]') || {}).open = true`) })
+      // My themes and the gallery: two themes of yours (one from the gallery), the save window, the file of a theme, the gallery. None of them is IN USE:
+      // a theme in use posts the token layer, and the Light emulation (the attribute removed from <body>, in the page only) cannot flip a posted layer.
+      await val(`localStorage.setItem(${JSON.stringify(LIB)}, JSON.stringify({ v: 1, updatedAt: 9, presets: [{ id: 'u-a', name: 'Bureau', source: 'me', at: 1, settings: { mode: ${JSON.stringify(startMode)}, acc: '#22a06b', ov: {} } }, { id: 'g-b', name: 'Calcaire', source: 'gallery', author: 'Kybernos', gid: 'calcaire', v: 1, settings: { mode: ${JSON.stringify(startMode)}, acc: '#4d7c0f' } }] }))`)
+      await reloadBoot(); await openTheme()
+      await visit('Essentiel › my themes', async () => { await goTab(TAB.essentiel) })
+      await visit('Save window', async () => { await clickEl(`document.querySelector('[data-kb=theme-add]')`); await until(() => val(`!!document.querySelector('[data-kb=theme-save-dlg]')`), 3000) })
+      await press('Escape'); await sleep(300)
+      if (!(await settingsPageOpen())) { await openTheme() }
+      await visit('Partage › my themes', async () => { await goTab(TAB.partage); await val(`(document.querySelector('[data-kb=theme-export-fold]') || {}).open = true`) })
+      await visit('Partage › a theme file shown', async () => { await clickEl(`document.querySelector('[data-kb=theme-export-one]')`); await sleep(300) })
+      await visit('Galerie', async () => { await val(`window.__KB_THEME_HOST_STORE__ = true`); await goTab(TAB.galerie); await until(async () => (await val(`document.querySelectorAll('[data-kb=theme-gal-card]').length`)) > 0, 8000) })
+      await val(`window.__KB_THEME_HOST_STORE__ = false`)
     } finally {
       await darkOn()
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
     }
     const restoredAttr = await val(`document.body.getAttribute('data-ds-dark-theme')`)
     check('the attribute is put back on <body> and DSH never stopped reporting « ' + startMode + ' » (nothing was persisted)', restoredAttr === origAttr && (await modeInfo()).source === startMode && storedUi() !== null && storedUi().preference === startMode, { orig: origAttr, now: restoredAttr })
@@ -2286,8 +2618,8 @@ try {
       res.fr.forEach((t) => { if (!left.some((x) => x.text === t && x.area === area)) left.push({ area, text: t }) })
       return res
     }
-    const NAMES = ['Essentiel', 'Verre et fond', 'Couleurs', 'Texte et forme', 'Animation', 'Accessibilité', 'Partage']
-    for (let i = 0; i < 7; i += 1) {
+    const NAMES = ['Essentiel', 'Verre et fond', 'Couleurs', 'Texte et forme', 'Animation', 'Accessibilité', 'Partage', 'Galerie']
+    for (let i = 0; i < 8; i += 1) {
       await goTab(i)
       await settleView(NAMES[i], '.kbth-page')
       if (i === TAB.essentiel) {
@@ -2317,6 +2649,51 @@ try {
         if (!(await settingsPageOpen())) { await openTheme(); await goTab(TAB.animation) }
       }
     }
+    // ── My themes and the gallery, in the states a person meets ────────────────────────────────
+    {
+      const at = (k) => `document.querySelector('[data-kb=${k}]')`
+      await openTheme({ fresh: true })
+      await goTab(TAB.essentiel)
+      const labels = await skinLabels()
+      await clickEl(Q.skin(findSkin(labels, SKIN('kb-ember')).idx))
+      await clickEl(Q.dot(3))
+      await settleView('Essentiel › theme modified', '.kbth-page')
+      await clickEl(at('theme-save')); await sleep(300)
+      await settleView('Save window', '[data-kb=theme-save-dlg]')
+      await typeInto(at('theme-save-name'), '   '); await clickEl(at('theme-save-ok')); await sleep(250)
+      await settleView('Save window, name missing', '[data-kb=theme-save-dlg]')
+      await typeInto(at('theme-save-name'), 'Bureau'); await clickEl(at('theme-save-ok')); await sleep(400)
+      await settleView('Essentiel › theme saved (note)', '.kbth-page')
+      await goTab(TAB.partage)
+      await settleView('Partage › one theme', '.kbth-page')
+      await clickEl(at('theme-export-one')); await sleep(200)
+      await settleView('Partage › theme file shown', '.kbth-page')
+      await clickEl(at('theme-rename')); await sleep(200)
+      await settleView('Partage › renaming', '.kbth-page')
+      await press('Escape'); await sleep(200)
+      if (!(await settingsPageOpen())) { await openTheme(); await goTab(TAB.partage) }
+      await clickEl(at('theme-delete')); await sleep(200)
+      await settleView('Partage › delete asked', '.kbth-page')
+      await val(`(() => { const input = document.querySelector('.kbth-adv-pane input[type=file]'); const dt = new DataTransfer(); dt.items.add(new File(['nope'], 'x.json', { type: 'application/json' })); input.files = dt.files; input.dispatchEvent(new Event('change', { bubbles: true })) })()`)
+      await sleep(500)
+      await settleView('Partage › refused file', '.kbth-page')
+      // the gallery, read by the sandbox host (the flag that keeps the run off the disk is lifted for these views only)
+      await val(`window.__KB_THEME_HOST_STORE__ = true`)
+      await goTab(TAB.essentiel); await goTab(TAB.galerie)
+      await until(async () => (await val(`document.querySelectorAll('[data-kb=theme-gal-card]').length`)) > 0, 8000)
+      await settleView('Galerie › cards', '.kbth-page')
+      await typeInto(at('theme-gal-q'), 'zzzzzz'); await sleep(250)
+      await settleView('Galerie › no match', '.kbth-page')
+      await typeInto(at('theme-gal-q'), ''); await sleep(250)
+      const gal0 = JSON.parse(readFileSync(new URL('../packages/kybernos-theme/gallery.json', import.meta.url), 'utf8')).themes.find((t) => t.settings.mode === startMode)
+      if (gal0 !== undefined) {         // a theme of ANOTHER mode would move DSH's native mode: only a theme of the mode found is tried
+        await clickEl(`document.querySelector('[data-kb=theme-gal-card][data-id=${gal0.id}] [data-kb=theme-gal-try]')`); await sleep(300)
+        await settleView('Galerie › trying a theme', '.kbth-page')
+      }
+      if (gal0 !== undefined) { await clickEl(at('theme-trial-end')); await sleep(300) }
+      await val(`window.__KB_THEME_HOST_STORE__ = false`)
+      await val(`localStorage.removeItem(${JSON.stringify(LIB)})`)
+    }
     const slow = timings.filter((t) => t.first > 0)
     console.log('  · ' + timings.length + ' views read; ' + slow.length + ' of them showed French at first sight and were then translated by the live translators:')
     for (const t of slow) console.log('      ' + t.area.padEnd(34) + String(t.first).padStart(3) + ' French at first sight → ' + (t.rest === 0 ? 'none left' : t.rest + ' left') + '; translators awake after ' + (t.awake ? t.wakeMs + ' ms' : 'NEVER (12 s)') + ' (a 120 ms timer ran in ' + t.lateness + ' ms)')
@@ -2324,11 +2701,11 @@ try {
     if (lateTimers.length) note('English UI: Chrome throttled the throw-away browser’s timers in ' + lateTimers.length + ' of ' + timings.length + ' views (a 120 ms timer took up to ' + Math.max(...lateTimers.map((t) => t.lateness)) + ' ms): the live translation was late then, which is not a plugin defect — the check waits for it')
     const byArea = {}
     for (const l of left) (byArea[l.area] = byArea[l.area] || []).push(l.text)
-    console.log('  · ' + left.length + ' French string(s) left under an English interface, over the seven tabs and their windows:')
+    console.log('  · ' + left.length + ' French string(s) left under an English interface, over the eight tabs and their windows:')
     for (const area of Object.keys(byArea)) console.log('      ' + area + ' (' + byArea[area].length + '): ' + byArea[area].map((t) => '« ' + t.slice(0, 70) + ' »').join(' | '))
     // Allowed: the CONTENT of the exported file (its YAML header comment is the file’s own text, not interface copy).
-    const unexpected = left.filter((l) => !(l.area === 'Partage' && /^#/.test(l.text)) && !/^Open Sans$/.test(l.text))      // « Open Sans »: a font family name that the French-words heuristic mistakes for French
-    check('English UI: nothing French is left on the seven tabs, the picker or the word pack, except the file content of the export (' + left.length + ' listed, ' + unexpected.length + ' not allowed)', unexpected.length === 0, unexpected.map((l) => l.area + ' « ' + l.text.slice(0, 60) + ' »'))
+    const unexpected = left.filter((l) => !(l.area.indexOf('Partage') === 0 && /^#/.test(l.text)) && !/^Open Sans$/.test(l.text))      // « Open Sans »: a font family name that the French-words heuristic mistakes for French
+    check('English UI: nothing French is left on the eight tabs, the picker or the word pack, except the file content of the export (' + left.length + ' listed, ' + unexpected.length + ' not allowed)', unexpected.length === 0, unexpected.map((l) => l.area + ' « ' + l.text.slice(0, 60) + ' »'))
     const asleep = timings.filter((t) => !t.awake)
     if (asleep.length) note('English UI: the live translators did not answer a canary text within 12 s in ' + asleep.map((t) => t.area).join(', ') + ' (the browser’s timers were throttled; not a verdict on the plugin)')
     if (left.length) note('French left under an English interface (' + left.length + '): ' + Object.keys(byArea).map((a) => a + ' ' + byArea[a].length).join(', ') + ' — listed in the « french » section of the run')
