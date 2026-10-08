@@ -72,10 +72,14 @@ for (const k of ['memoKindFact', 'memoKindPreference', 'memoKindEvent', 'memoKin
 sok(String(used.size) + ' cles litterales presentes en fr ET en (+4 construites dynamiquement)')
 // « Open the console in your browser » is gone: it asked the server for a link the old stack does not have (the tab opened, then closed with no word) and
 // it repeated « Teams settings ». The menu has ONE entry for the team console, and nothing in the client opens a tab for it.
-for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrowser", "ouvrirEspaceNavigateur", "callLocal('/console/link'", "window.open('', '_blank')"]) {
+for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrowser", "ouvrirEspaceNavigateur", "window.open('', '_blank')"]) {
   assert.ok(!clientSource.includes(needle), 'l entree « ouvrir dans le navigateur » ne doit plus exister: ' + needle)
 }
 assert.ok(clientSource.includes("entree('space-settings'"), 'l entree « Teams settings » reste')
+// The ONLY client call to the host's console-link route is the quota notice's button, and it asks the HOST to open the system browser (`open: true`): a tab opened by the
+// page and pointed at the link is « cross-site » and the server refuses it (« link expired »).
+assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length, 1, 'un seul appel client a /console/link : le bouton de la notice de quota')
+assert.ok(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/.test(clientSource), 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
 // The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
 for (const [needle, why] of [["wsNew: 'New team'", 'en: New team'], ["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
   ["wsNew: 'Nouvelle équipe'", 'fr: Nouvelle équipe'], ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
