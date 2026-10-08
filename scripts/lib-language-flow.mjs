@@ -238,7 +238,7 @@ export async function createFlow(page) {
   }
 
   let restoring = false
-  /** Puts DSH back in English (« Use » on English, or on French, which also sends DSH to English). */
+  /** Puts DSH back in English (« Use » on English, or on French, which also sends DSH to English; a no-op when English is already in use). */
   const restoreEnglish = async () => {
     if (restoring) return
     restoring = true
@@ -246,8 +246,14 @@ export async function createFlow(page) {
       await languagePlugin(true) // the page to press « Use » on needs the plugin
       await openSettings(LANGUAGE)
       await waitFor(page, `!!document.querySelector('[data-lang="en"]')`, 10000)
-      if (!(await clickSel('[data-lang="en"] [data-act="use"]'))) await clickSel('[data-lang="kybernos"] [data-act="use"]')
-      await sleep(2500)
+      // English already in use (its row shows the « in use » pill, not a « Use » button): nothing to
+      // restore. Falling through to « Use » on French would make an EXPLICIT French choice, and every
+      // Kybernos label would then read French under an English DSH.
+      const inUse = (await val(`!!document.querySelector('[data-lang="en"] [data-act="in-use"]')`)) === true
+      if (!inUse) {
+        if (!(await clickSel('[data-lang="en"] [data-act="use"]'))) await clickSel('[data-lang="kybernos"] [data-act="use"]')
+        await sleep(2500)
+      }
     } catch (e) { console.log('  ! restoring English failed: ' + e.message) }
     restoring = false
   }

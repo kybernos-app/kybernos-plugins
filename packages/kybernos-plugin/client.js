@@ -2654,6 +2654,35 @@ const kbt = (key) => {
   return entry.en !== undefined ? entry.en : key
 }
 
+// ── Settings nav: which title each cell stands for, whatever the language (<kb-nav-titles>) ──
+// The organiser below groups, orders and draws the icon of each Settings cell by its TITLE, normalised: it knows the French and English
+// titles and a few Spanish ones. Under any other translated language no title matched, so the menu lost its groups, its order and
+// its icons (« the language moves the menus »). Each cell is rendered by React with a KEY that is the id of the section it stands for
+// (« general », « kybernos-theme », « kbac-referral »…), the same in every language: that key, read from the cell's fiber, names the
+// title the organiser knows. A cell with no known key (a section added later, React internals that moved) keeps its drawn title.
+const KB_NAV_KEYS = {
+  general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
+  'kybernos-account': 'account', 'kbac-referral': 'referral', 'kybernos-data': 'data & privacy', 'kbac-appearance': 'appearance',
+  'kybernos-maintenance': 'about', 'kbac-security': 'security', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing',
+  'kbac-support': 'support & legal', plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
+  'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
+  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers',
+}
+/** The React key of a nav cell, or null (never throws: the internals are not ours). */
+const kbNavKeyOf = (el) => {
+  try {
+    const name = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+    const key = name === undefined ? null : el[name].key
+    return typeof key === 'string' ? key : null
+  } catch (e) { return null }
+}
+/** texts: the normalised titles as drawn now; keys: the cells' React keys (null when unreadable). */
+const kbNavTitles = (texts, keys) => texts.map((t, i) => {
+  const key = keys[i]
+  return typeof key === 'string' && Object.prototype.hasOwnProperty.call(KB_NAV_KEYS, key) ? KB_NAV_KEYS[key] : t
+})
+// </kb-nav-titles>
+
 // ── Traduction de profondeur (chantier i18n du 2026-09-21) ──────────────────
 // Les vues internes (Projets, éditeur de kyber, lecteurs quiz/cartes/résumé/fiche,
 // panneau Composio, dictée) portaient encore du français en dur : sous locale
@@ -29776,12 +29805,15 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           if (cellules.length === 0) continue
           // le nav des Réglages se reconnaît à ses cellules connues (General,
           // Compte, Thème…) — les autres navs de l'app n'en portent aucune.
-          if (cellules.every((e) => rang(e.textContent) === -1)) continue
+          // Titles by what the cells stand for, not by how they are drawn in the language of the day (kbNavTitles).
+          const dessines = cellules.map((e) => norm(e.textContent))
+          const titres = kbNavTitles(dessines, cellules.map(kbNavKeyOf))
+          if (titres.every((t) => rang(t) === -1)) continue
           // Idempotence : si les cellules n'ont pas changé et que les
           // en-têtes sont déjà posés, on ne touche à rien — sinon
           // l'observateur se ré-amorce sur ses propres mutations et
           // boucle (constaté 30/09 : le nav clignotait hors ordre).
-          const signature = cellules.map((e) => norm(e.textContent)).join('|')
+          const signature = dessines.join('|')
           const tetes = liste.querySelectorAll('[data-kb="settings-group"]')
           if (liste.dataset.kbSig === signature && tetes.length === GROUPES.length) continue
           liste.dataset.kbSig = signature
@@ -29790,7 +29822,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           liste.dataset.kbSettings = '1'
           let vus = [false, false, false, false]
           cellules.forEach((cellule, idx) => {
-            const n = norm(cellule.textContent)
+            const n = titres[idx]
             let g = -1
             let wi = 0
             for (let k = 0; k < GROUPES.length; k++) {

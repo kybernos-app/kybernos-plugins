@@ -128,7 +128,8 @@ try {
   check('the chip shows, with words (not an icon)', typeof chip === 'string' && chip.trim().length > 4, chip)
   const real = await wrapState()
   check('it is in one of the known states', real !== null && /^(ok|unsaved|toSend|sync|notInProject|readyReview|prChecks|prWaiting|prChanges|prFail|prReady|prMerged|toFetch|conflict|elsewhere)$/.test(real.state), real)
-  const p0 = await pills()
+  // The row under the composer fills in a moment after the chip: look until something is there before judging what it holds.
+  const p0 = (await poll(async () => { const x = await pills(); return Array.isArray(x) && x.length > 0 ? x : null }, 12000)) ?? []
   check('the four git pills stepped aside; Memory & Lessons stays', !p0.some((x) => ['local', 'recap', 'sync', 'pr'].includes(x)) && p0.includes('notes'), p0)
   check('the pills were told (flag and event)', (await val(`window.__KB_CHANGES_ACTIVE__`)) === true)
   await openCard()

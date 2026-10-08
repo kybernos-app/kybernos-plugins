@@ -69,12 +69,12 @@ const TITRES = {
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-call': 'Calls'
 }
 const GLYPHES = {
-  'kybernos-plugin': 'cube', 'kybernos-hub': 'plug', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
+  'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
   'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
   'kybernos-modeleur': 'box3d', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
-  'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'plug', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain', 'kybernos-atlas': 'route', 'kybernos-changes': 'flow', 'kybernos-call': 'chat'
+  'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
+  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-call': 'phone'
 }
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written
