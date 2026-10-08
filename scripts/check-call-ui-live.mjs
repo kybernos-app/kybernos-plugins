@@ -41,12 +41,19 @@ const poll = async (fn, ms = 15000) => { const end = Date.now() + ms; for (;;) {
 
 // fail-closed: nothing that acts is let through
 const blocked = []
+let statusOnce = null // the next GET /kybernos-call/status is answered with this (a machine whose keys are set, to see the first-call path)
 page.on('Fetch.requestPaused', async (p) => {
   try {
     const url = new URL(p.request.url)
     if (p.request.method === 'POST' && ['/kybernos-call/token', '/kybernos-call/agent', '/kybernos-call/utterance', '/kybernos-call/clone'].includes(url.pathname)) {
       blocked.push(url.pathname)
       await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 403, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify({ ok: false, error: 'blocked by the check' })).toString('base64') })
+      return
+    }
+    if (p.request.method === 'GET' && url.pathname === '/kybernos-call/status' && statusOnce !== null) {
+      const body = statusOnce
+      statusOnce = null
+      await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: Buffer.from(JSON.stringify(body)).toString('base64') })
       return
     }
     await page.send('Fetch.continueRequest', { requestId: p.requestId })
@@ -140,6 +147,21 @@ try {
   await clickWhenEnabled('[data-act="assist-back"]')
   await clickWhenEnabled('[data-act="assist-back"]')
   check('and Cancel on the first screen closes the assistant, leaving everything as it was', (await poll(async () => (await assistant()) === null, 5000)) === true && (await panel()) === null)
+  // The assistant is not only for a machine with nothing set up: a gear opens it at any time, and a machine whose keys are set but which never ran it gets it once.
+  check('a gear at the top right of the chat opens the assistant at any time', (await click('[data-act="call-setup"]')) === true && (await poll(async () => /step 1 of 4/.test((await assistant()) || ''), 8000)) === true)
+  check('opened that way it can be cancelled, not skipped', (await val(`!document.querySelector('[data-act="assist-skip"]') && !!document.querySelector('[data-act="assist-back"]')`)) === true)
+  await clickWhenEnabled('[data-act="assist-back"]')
+  check('Cancel closes it', (await poll(async () => (await assistant()) === null, 5000)) === true)
+  statusOnce = { ok: true, secrets: 'posee', setupDone: false, provider: 'none' }
+  await click('[data-act="call-voice"]')
+  check('keys set but the assistant never run: the first call opens it, with "Skip and call"', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-call-assistant"] [data-act="assist-skip"]')`), 8000)) === true)
+  await shot('assistant-first-call-keys-set')
+  await clickWhenEnabled('[data-act="assist-skip"]')
+  check('Skip saves that it has been through', (await poll(async () => { const x = await getSettings(); return x && x.settings.setupDone === true }, 8000)) === true)
+  check('and goes on with the call it was asked for, without the assistant coming back (the sandbox really has no keys, so the panel says where to look)', (await poll(async () => { const t = await panel(); return typeof t === 'string' && /Health/.test(t) && (await assistant()) === null }, 8000)) === true)
+  await val(`(() => { const b = document.querySelector('[data-act="hangup"]'); if (b) b.click() })()`)
+  await sleep(500)
+  await val(`fetch('/kybernos-call/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ patch: { setupDone: false } }) }).then((r) => r.status)`, 8000) // put back: the defaults are checked below
 
   console.log('2. Settings › Calls › Overview')
   await val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => x.getAttribute('aria-label') === 'Settings'); if (b) b.click() })()`)
@@ -179,6 +201,7 @@ try {
   await click('[data-act="slot-listen"]')
   await click('[data-act="prov-groq"]')
   await poll(() => val(`!!document.querySelector('[data-provider="groq"]')`), 8000)
+  check('the provider list stays in its column, left of the provider page', await val(`(() => { const n = document.querySelector('.kbcl-provnav'); const p = document.querySelector('.kbcl-prov'); if (!n || !p) return false; const bs = Array.from(n.querySelectorAll('button')); return n.getBoundingClientRect().right <= p.getBoundingClientRect().left && bs.length > 0 && bs.every((b) => b.getBoundingClientRect().right <= p.getBoundingClientRect().left) })()`) === true)
   const SECRET = 'gsk_' + 'x'.repeat(30) + '_SECRET_MUST_NOT_APPEAR'
   await setField('[data-field="GROQ_API_KEY"]', SECRET)
   await clickWhenEnabled('[data-act="save-GROQ_API_KEY"]') // enabled once the page has taken the typed key into its state

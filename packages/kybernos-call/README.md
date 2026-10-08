@@ -26,9 +26,10 @@ reach this bundle through one seam.
   - **Health**: one button, **Check everything**: the microphone, the listening key, a sentence through the voice engine, the face
     account, the LiveKit line and the call engine, each with a sentence that says what to do. A missing call engine can be **installed in
     one click**.
-- **The setup assistant**: a call asked on a machine with nothing set up (no LiveKit keys) opens a four-screen dialog instead of failing:
-  the microphone (a bar that moves), a preset, the keys the preset needs (each with its link and test), a final check. It then makes the
-  call that was asked for. Settings › Calls has a button to run it again.
+- **The setup assistant**: a call asked on a machine with nothing set up (no LiveKit keys), or with keys but never through it, opens a
+  four-screen dialog instead of failing: the microphone (a bar that moves), a preset, the keys the preset needs (each with its link and
+  test), a final check. It then makes the call that was asked for ("Skip and call" on the first screen goes straight on when the keys are
+  already there). A gear next to the phone and camera at the top right of a chat opens it at any time, and so does the button in Settings › Calls.
 
 ## The audio models you already have
 

@@ -168,6 +168,13 @@ window.__ModuleLoader__.load({
           setAssist({ step: 1, pending: o })
           return
         }
+        if (status.setupDone === false) {
+          // The keys are there but nobody has been through the assistant (calls set up before it existed): the microphone and
+          // voice check comes once, before the call; "Skip" goes straight on, and it stays one click away (the gear at the top right).
+          setState(null)
+          setAssist({ step: 1, pending: o, ready: true })
+          return
+        }
         // A recording given to the member is spoken in its own voice only if the host could give it a clone
         // (and the user allowed it): otherwise the call goes on with the default voice, and says so.
         let voice = (o.voice !== null && typeof o.voice === 'object') ? o.voice : null
@@ -537,7 +544,8 @@ window.__ModuleLoader__.load({
         const noFace = headerStatus.provider === 'none'
         return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' }, [
           h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
-          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoutez une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17))
+          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoutez une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17)),
+          h('button', { key: 's', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-setup', title: kt('Régler les appels : micro, voix, connexion, visage', 'Set up calls: microphone, voice, connection, face'), 'aria-label': kt('Réglages d’appel', 'Call setup'), onClick: () => setAssist({ step: 1, pending: null }) }, Ico('sliders', 17))
         ])
       }
 
@@ -556,7 +564,8 @@ window.__ModuleLoader__.load({
         warn: [['circle', 12, 12, 10], ['path', 'M12 8v4'], ['path', 'M12 16h.01']],
         bad: [['circle', 12, 12, 10], ['path', 'm15 9-6 6'], ['path', 'm9 9 6 6']],
         idle: [['circle', 12, 12, 10]],
-        run: [['path', 'M21 12a9 9 0 1 1-6.219-8.56']]
+        run: [['path', 'M21 12a9 9 0 1 1-6.219-8.56']],
+        sliders: [['path', 'M4 21v-7'], ['path', 'M4 10V3'], ['path', 'M12 21v-9'], ['path', 'M12 8V3'], ['path', 'M20 21v-5'], ['path', 'M20 12V3'], ['path', 'M1 14h6'], ['path', 'M9 8h6'], ['path', 'M17 16h6']]
       }
       const Ico = (name, size, cls) => h('svg', { width: size || 20, height: size || 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: cls || undefined, style: { flex: 'none' } },
         (ICONS[name] || ICONS.idle).map((d, i) => (d[0] === 'circle' ? h('circle', { key: i, cx: d[1], cy: d[2], r: d[3] }) : h('path', { key: i, d: d[1] }))))
@@ -862,7 +871,8 @@ window.__ModuleLoader__.load({
         return [
           h('div', { key: 'sl', className: 'kbcl-row', role: 'group', 'aria-label': kt('Maillon', 'Slot') }, d.slots.filter((s) => !s.locked).map((s) => h('button', { key: s.id, type: 'button', className: 'kbcl-btn', 'data-act': 'slot-' + s.id, 'aria-pressed': s.id === slot ? 'true' : 'false', onClick: () => props.onSlot(s.id) }, tx(s.name)))),
           h('div', { key: 'grid', className: 'kbcl-grid' }, [
-            h('nav', { key: 'nav', className: 'kbcl-provnav', 'aria-label': kt('Fournisseurs', 'Providers') }, list.map((p) => {
+            // A div, not a nav element: DSH's settings dialog gives every nav inside it a width of 248px, which pushed this list over the provider's page.
+            h('div', { key: 'nav', className: 'kbcl-provnav', role: 'group', 'aria-label': kt('Fournisseurs', 'Providers') }, list.map((p) => {
               const isUsed = usedProvider(d, slot) === p.id
               return h('button', { key: p.id, type: 'button', className: 'kbcl-provbtn', 'data-act': 'prov-' + p.id, 'aria-current': sel && sel.id === p.id ? 'true' : 'false', onClick: () => props.onProv(p.id) }, [
                 h('i', { key: 'd', className: 'kbcl-dotmark' + (isUsed ? ' kbcl-on' : p.ready ? ' kbcl-rdy' : ''), 'aria-hidden': 'true' }), h('span', { key: 'n', className: 'kbcl-grow' }, tx(p.name)), p.available !== true ? h('span', { key: 's', className: 'kbcl-sub' }, kt('bientôt', 'soon')) : null])
@@ -1074,7 +1084,9 @@ window.__ModuleLoader__.load({
           c.notice !== null ? h('div', { key: 'n', className: 'kbcl-notice' + (c.notice.bad ? ' kbcl-bad' : ''), role: 'status' }, c.notice.text) : null,
           h('div', { key: 'b', className: 'kbcl-f' }, body),
           h('div', { key: 'ft', className: 'kbcl-row', style: { justifyContent: 'space-between' } }, [
-            h('button', { key: 'bk', type: 'button', className: 'kbcl-btn', 'data-act': 'assist-back', onClick: () => (step === 1 ? setAssist(null) : go(step - 1)) }, step === 1 ? kt('Annuler', 'Cancel') : kt('Retour', 'Back')),
+            step === 1 && cur.ready === true
+              ? h('button', { key: 'bk', type: 'button', className: 'kbcl-btn', 'data-act': 'assist-skip', disabled: c.busy, onClick: () => finish() }, kt('Passer et appeler', 'Skip and call'))
+              : h('button', { key: 'bk', type: 'button', className: 'kbcl-btn', 'data-act': 'assist-back', onClick: () => (step === 1 ? setAssist(null) : go(step - 1)) }, step === 1 ? kt('Annuler', 'Cancel') : kt('Retour', 'Back')),
             h('button', { key: 'nx', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'assist-next', disabled: c.busy, onClick: () => (step === 4 ? finish() : go(step + 1)) }, step === 4 ? (cur.pending ? kt('Terminer et appeler', 'Finish and call') : kt('Terminer', 'Finish')) : kt('Continuer', 'Continue'))
           ])
         ]
