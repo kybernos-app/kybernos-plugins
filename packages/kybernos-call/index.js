@@ -11,6 +11,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAdmin } from './call-admin.mjs'
 import { createHealth } from './call-health.mjs'
+import { createInstaller } from './engine-install.mjs'
 import { renderCallBrief } from './call-brief.mjs'
 import { createCall } from './call-host.mjs'
 import { mountCallRoutes } from './call-routes.mjs'
@@ -47,7 +48,7 @@ export function apply (ctx) {
     const store = createStore()
     const call = createCall({ pluginDir, feed, store })
     const services = createServices()
-    const admin = createAdmin({ store, services, call, health: createHealth({ store, services, call }) })
+    const admin = createAdmin({ store, services, call, health: createHealth({ store, services, call }), installer: createInstaller({ pluginDir }) })
     const effect = (fn, label) => ctx.effect(fn, label)
     const mount = (webServer) => {
       try { mountCallRoutes(webServer, call, pluginDir, effect, feed, admin); say('routes mounted' + (feed === null ? ' (the worker answers with its own voice model)' : '')) } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }

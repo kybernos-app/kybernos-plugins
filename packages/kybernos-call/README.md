@@ -15,19 +15,34 @@ reach this bundle through one seam.
 - **Call / Video on a team member's card** (the crew view of `@local/kybernos`): that member, with its own voice. These two buttons
   call `window.__KB_CALL__.open({ sessionId, kyberId, roleId, name, mode, voice })`; without this bundle the seam does not exist and
   the buttons are hidden.
-- **Settings › Calls**: Essentials (the assistant's voice, with a **Listen** button to hear it without a call, the call language, the default mode, when a call hangs up by itself, whether
-  recordings may be sent to the clone provider), Engines (what a call uses, read only) and Service (the keys, with a test button each).
+- **Settings › Calls**, in three tabs and a "?" that explains each:
+  - **Overview**: the five slots of a call (Listen, Think, Speak, Face, Line) with the provider each uses, three presets (Simple, which is
+    not wired yet, Live, Best quality), an estimate of the cost per call minute, and the options that are not a provider (the call
+    language, small sounds, when a call hangs up by itself). When the user's Models already hold audio models (an ASR, a TTS, a
+    realtime one) it says so; using them in calls is not wired yet.
+  - **Providers**: one page per provider, drawn from the catalogue (`providers.mjs`): price, where to get a key, its own fields (a key, a
+    model, a voice with **Listen**, a face), a **Test** and **Use for calls**. A provider that is only listed ("coming soon") says so and
+    offers nothing to fill in.
+  - **Health**: one button, **Check everything**: the microphone, the listening key, a sentence through the voice engine, the face
+    account, the LiveKit line and the call engine, each with a sentence that says what to do. A missing call engine can be **installed in
+    one click**.
+- **The setup assistant**: a call asked on a machine with nothing set up (no LiveKit keys) opens a four-screen dialog instead of failing:
+  the microphone (a bar that moves), a preset, the keys the preset needs (each with its link and test), a final check. It then makes the
+  call that was asked for. Settings › Calls has a button to run it again.
 
 ## First call
 
-1. Settings › Calls › Service: the LiveKit address, key and secret (a free LiveKit Cloud project is enough), and the Groq key
-   (listening). Each has a **Test** button. Keys are written to `kybernos/livekit.env` (private file) and are never shown again.
-2. The worker's Python environment, once: `uv venv ~/.dsh/kybernos/appel-venv && uv pip install --python ~/.dsh/kybernos/appel-venv/bin/python -r agent/requirements.txt`
-   (under `$DSH_HOME` if set). The host starts the worker itself at the first call.
+1. Click the phone at the top right of a chat. On a machine with nothing set up the setup assistant opens: follow its four screens.
+   By hand, the same things are in Settings › Calls › Providers: the LiveKit address, key and secret (a free LiveKit Cloud project is
+   enough), and the Groq key (listening). Each has a **Test** button. Keys are written to `kybernos/livekit.env` (private file) and are
+   never shown again.
+2. The worker's Python environment, once: Settings › Calls › Health › **Install in one click** (it runs `uv venv` and `uv pip install -r
+   agent/requirements.txt` for you, under `$DSH_HOME/kybernos/appel-venv`; with no `uv` it uses a Python 3.10+, and with neither it says what to
+   install). The host starts the worker itself at the first call.
 3. Click Call. Allow the microphone. Speak. With several microphones (a laptop and a headset) the panel lets you switch to the right one during the call. If the worker could not start, the panel says why (for instance a missing worker environment) instead of staying silent.
 
-A face (a `video` call) needs a LiveAvatar key and avatar id (Service tab); without them the call stays voice only. A member's own voice
-needs nothing: it is the one chosen on its card. A voice made from a recording needs an ElevenLabs key and the switch in Essentials.
+A face (a `video` call) needs the LiveAvatar provider chosen, with its key and avatar id (Providers › Face); without them, or with "No face", the call stays voice only. A member's own voice
+needs nothing: it is the one chosen on its card. A voice made from a recording needs an ElevenLabs key and the switch on its provider page.
 
 ## How a call works
 
@@ -86,10 +101,14 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
 | `agent` | POST | same origin only; `{ action: 'start' \| 'stop' \| 'status' }` |
 | `utterance` | POST | same origin only; `{ sessionId, text, mode: 'queue' \| 'steer' }` |
 | `speech` | GET | same origin only (it is the session's own text); `?room=&after=&wait=` a long poll; `known: false` once the room is released |
-| `settings` | GET, POST | GET: the settings, which secrets are set, the clones. POST (same origin): `{ patch }`, all or nothing |
+| `settings` | GET, POST | GET: the settings, which secrets are set, the clones, the five slots, the provider catalogue with each provider's state and settings, the presets. POST (same origin): `{ patch }`, all or nothing |
 | `keys` | POST | same origin only; `{ patch: { NAME: value } }` (`''` removes); all or nothing; the answer never repeats a value |
-| `test` | POST | same origin only; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' }`: one read-only call, on this click only |
+| `test` | POST | same origin only; `{ service: 'livekit' \| 'groq' \| 'elevenlabs' \| 'liveavatar' }`: one read-only call, on this click only |
 | `clone` | POST | same origin only; `{ rootId, voiceId, name }` creates, `{ action: 'delete', voiceId }` deletes |
+| `preset` | POST | same origin only; `{ id }` fills the slots at once (a preset that is not available is 400) |
+| `avatars` | POST | same origin only; the faces the face provider offers (names and ids; the account's own first) |
+| `health` | POST | same origin only; checks every slot and answers `{ checks: [{ id, status, code, detail?, ms }] }`; the voice is asked through this DSH's own engine, at the socket's address |
+| `engine` | POST | same origin only; `{ action: 'status' \| 'install' }`: the one-click install of the call engine, read back from its own log |
 | `vendor/livekit-client.js` | GET, HEAD | the SDK, served as is |
 
 DSH serves plugin routes before its own sign-in, so every POST, and the GET that returns session text, refuse any request that does not
@@ -100,7 +119,8 @@ come from the page's own origin (checked against the socket's real port, never t
 - `kybernos/livekit.env` (chmod 600): `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `GROQ_API_KEY`, `LIVEAVATAR_API_KEY`,
   `LIVEAVATAR_AVATAR_ID`, `LIVEAVATAR_SANDBOX`, `ELEVENLABS_API_KEY`. Any other line (the worker's `KYBER_*` options, comments) is left
   untouched when the page changes a key.
-- `kybernos/kybernos-call/settings.json` and `clones.json` (chmod 600): the settings; the clones (a recording id → a provider voice id; no key).
+- `kybernos/kybernos-call/settings.json` and `clones.json` (chmod 600): the settings (which provider fills a slot, each provider's own settings, the voice, the language, the limits, whether the setup assistant has been through); the clones (a recording id → a provider voice id; no key).
+- `kybernos/logs/engine-install.log` and `.json`: the call engine's install, and how it is going.
 - `kybernos/logs/appel-agent.log` and `appel-agent.json`: the worker's log and its per-call marks.
 - `kybernos/appel-venv/`: the worker's Python environment.
 
@@ -145,7 +165,8 @@ button is clicked.
 
 `node packages/kybernos-call/test-*.mjs`: `test-host` (the token, the dispatch, the settings a call uses), `test-store` (settings, secrets,
 clones on disk), `test-admin` (the settings page's host side, the clone provider, against fake servers), `test-routes`, `test-speech-feed`,
-`test-client` (the panel and its indicators and sounds, the header buttons, the clone flow, in a fake browser), `test-call-brief`, , `test-dsh-home`, `test-agent-process` (a real child
+`test-providers` (the catalogue, what the settings keep of it, the presets, LiveAvatar, the health check), `test-engine` (the one-click install, with a fake shell),
+`test-client` (the panel and its indicators and sounds, the header buttons, the setup assistant's gate, the clone flow, in a fake browser), `test-call-brief`, `test-dsh-home`, `test-agent-process` (a real child
 process, Unix only), `test-agent-meta` (the worker's Python tests through `python3`: `call_meta`, `call_voice`, and the LiveKit-facing worker
 which are skipped without the worker's venv; run `<venv>/bin/python agent/test_call_agent.py` to run them). None needs DSH, a browser or the
 network. In `@local/kybernos`, `test-call-seam.mjs` checks the member card's side.
@@ -153,4 +174,4 @@ network. In `@local/kybernos`, `test-call-seam.mjs` checks the member card's sid
 On a real DSH (a sandbox: `scripts/sandbox/setup.sh` then `start.sh`, then `source scripts/sandbox/env.sh`):
 `scripts/check-call-live.mjs` (the panel), `check-call-ui-live.mjs` (the header buttons, where they sit, and Settings › Calls), `check-call-team-live.mjs`
 (a team's member cards), `check-call-brain-live.mjs` (the session's events reach the call), `check-call-voice-live.mjs` (the worker asks the
-app's real voice engine). A real call needs a microphone: run it on the sandbox, never on your own GUI while it holds a conversation.
+app's real voice engine), `check-call-engine-live.mjs` (the one-click install, for real: start the sandbox with `UV_CACHE_DIR` and `UV_PYTHON_INSTALL_DIR` pointing at the real ones to keep it to seconds). A real call needs a microphone: run it on the sandbox, never on your own GUI while it holds a conversation.

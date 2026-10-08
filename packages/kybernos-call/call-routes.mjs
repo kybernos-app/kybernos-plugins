@@ -21,6 +21,7 @@ export const ROUTES = {
   preset: '/kybernos-call/preset',
   avatars: '/kybernos-call/avatars',
   health: '/kybernos-call/health',
+  engine: '/kybernos-call/engine',
   vendor: '/kybernos-call/vendor/livekit-client.js'
 }
 
@@ -148,6 +149,7 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     post(ROUTES.test, 'test', (b) => admin.test(b.service))
     post(ROUTES.preset, 'preset', (b) => admin.applyPreset(b.id))
     post(ROUTES.avatars, 'avatars', () => admin.avatars())
+    post(ROUTES.engine, 'engine', (b) => admin.engine(b.action))
     // The health check asks this DSH's own voice engine, so it needs the address the request came in on (the socket's, never a header).
     reg(ROUTES.health, async (req, res) => {
       if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })

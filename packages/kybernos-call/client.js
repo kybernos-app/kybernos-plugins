@@ -476,6 +476,7 @@ window.__ModuleLoader__.load({
 .kbcl-preset:hover:not(:disabled){background:${T.hover}}
 .kbcl-preset[aria-pressed="true"]{border-color:${T.brand};box-shadow:0 0 0 1px ${T.brand}}
 .kbcl-preset:disabled{opacity:.55;cursor:default}
+.kbcl-found{border:1px dashed ${T.brand};border-radius:12px;padding:10px 14px;display:flex;flex-direction:column;gap:2px}
 .kbcl-cost{border:1px solid ${T.line};border-radius:12px;padding:10px 14px;gap:16px}
 .kbcl-grid{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:14px;align-items:start}
 @media (max-width:640px){.kbcl-grid{grid-template-columns:minmax(0,1fr)}}
@@ -592,12 +593,14 @@ window.__ModuleLoader__.load({
       const useCalls = () => {
         const [data, setData] = React.useState(null)
         const [voices, setVoices] = React.useState(null)
+        const [models, setModels] = React.useState([]) // the audio models of the providers already set up in Models: [{ provider, models: [{ id, kind }] }]
         const [notice, setNotice] = React.useState(null) // { bad, text }
         const [busy, setBusy] = React.useState(false)
         const load = async () => {
-          const [d, v] = await Promise.all([getJson(API + '/settings'), getJson('/kybernos/tts/voices')])
+          const [d, v, m] = await Promise.all([getJson(API + '/settings'), getJson('/kybernos/tts/voices'), getJson('/kybernos/models/audio')])
           setData(d !== null && d.ok === true ? d : { ok: false })
           setVoices(v !== null && v.ok === true ? v : null)
+          setModels(m !== null && m.ok === true && Array.isArray(m.providers) ? m.providers : [])
         }
         React.useEffect(() => { load() }, [])
         const say = (bad, text) => setNotice({ bad: bad, text: text })
@@ -618,7 +621,14 @@ window.__ModuleLoader__.load({
           say(true, kt('Valeur refusée — ', 'Value refused — ') + (reasons(r) || (r && r.error) || kt('l’hôte ne répond pas', 'the host does not answer')))
           return false
         }
-        return { data: data, voices: voices, notice: notice, busy: busy, load: load, save: save, saveKeys: saveKeys, say: say, setNotice: setNotice }
+        // A preset fills several slots: the page is "busy" until what it shows is what was saved (a Continue clicked too soon would read the old choice).
+        const preset = async (id) => {
+          setBusy(true)
+          const r = await post('/preset', { id: id })
+          if (r !== null && r.ok === true) { await load(); setNotice(null) } else say(true, (r && r.error) || kt('Préréglage refusé', 'Preset refused'))
+          setBusy(false)
+        }
+        return { data: data, voices: voices, models: models, notice: notice, busy: busy, load: load, save: save, saveKeys: saveKeys, preset: preset, say: say, setNotice: setNotice }
       }
       const usedProvider = (d, slot) => {
         const s = d.settings
@@ -628,6 +638,8 @@ window.__ModuleLoader__.load({
         if (slot === 'think') return 'session'
         return 'livekit'
       }
+      // The provider of the user's Models that holds the model a catalogue entry points to ('qwen-audio-3.0-asr-flash'), or null.
+      const inModels = (c, p) => { const hit = (c.models || []).find((g) => g.models.some((m) => m.id === p.model)); return hit === undefined ? null : hit.provider }
       const providerOf = (d, id) => d.providers.find((p) => p.id === id) || null
       const stateChip = (p) => (p.available !== true ? Chip('warn', kt('Bientôt', 'Coming soon')) : (p.ready === true ? Chip('ok', kt('Prêt', 'Ready')) : Chip('warn', kt('Clé manquante', 'Needs a key'))))
       const SAMPLES = { fr: 'Bonjour, je suis votre assistant. Comment puis-je vous aider ?', en: 'Hello, I am your assistant. How can I help you?', es: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?', de: 'Hallo, ich bin dein Assistent. Wie kann ich dir helfen?', it: 'Ciao, sono il tuo assistente. Come posso aiutarti?', pt: 'Olá, sou o seu assistente. Como posso ajudar?' }
@@ -704,7 +716,7 @@ window.__ModuleLoader__.load({
         }
         const clones = Array.isArray(d.clones) ? d.clones : []
         return h('section', { className: 'kbcl-prov', 'data-kb': 'kybernos-call-provider', 'data-provider': p.id }, [
-          h('div', { key: 'hd', className: 'kbcl-row' }, [h('div', { key: 'n', style: { fontSize: '17px', fontWeight: 700 } }, tx(p.name)), Chip('', tx(d.slots.find((s) => s.id === p.slot).name)), p.source === 'models' ? Chip('ok', kt('Dans vos Modèles', 'In your Models')) : null, stateChip(p), used && props.compact !== true ? Chip('ok', kt('Utilisé pour les appels', 'Used for calls')) : null]),
+          h('div', { key: 'hd', className: 'kbcl-row' }, [h('div', { key: 'n', style: { fontSize: '17px', fontWeight: 700 } }, tx(p.name)), Chip('', tx(d.slots.find((s) => s.id === p.slot).name)), p.source === 'models' ? (inModels(c, p) !== null ? Chip('ok', kt('Dans vos Modèles', 'In your Models') + ' · ' + inModels(c, p)) : Chip('warn', kt('Pas trouvé dans vos Modèles', 'Not found in your Models'))) : null, stateChip(p), used && props.compact !== true ? Chip('ok', kt('Utilisé pour les appels', 'Used for calls')) : null]),
           h('div', { key: 'nt', className: 'kbcl-sub' }, tx(p.note)),
           h('div', { key: 'pr', className: 'kbcl-row kbcl-sub' }, [h('span', { key: 'p' }, tx(p.price)), p.url ? h('a', { key: 'u', href: p.url, target: '_blank', rel: 'noreferrer noopener' }, kt('Obtenir une clé ↗', 'Get a key ↗')) : null]),
           p.available !== true ? h('div', { key: 'soon', className: 'kbcl-notice' }, kt('Ce fournisseur est listé pour montrer ce qui est prévu. Il ne peut pas encore être utilisé.', 'This provider is listed to show what is planned. It cannot be used yet.')) : [
@@ -744,8 +756,14 @@ window.__ModuleLoader__.load({
         const used = {}
         let cents = 0
         for (const sl of d.slots) { const p = providerOf(d, usedProvider(d, sl.id)); used[sl.id] = p; if (p) cents += p.cost || 0 }
+        const audio = (c.models || []).filter((g) => g.models.length > 0)
+        const kinds = (g) => ['listen', 'speak', 'realtime'].filter((k) => g.models.some((m) => m.kind === k)).map((k) => (k === 'listen' ? kt('écoute', 'speech-to-text') : k === 'speak' ? kt('voix', 'text-to-speech') : kt('conversation en temps réel', 'realtime conversation')))
         return [
-          h('div', { key: 'pre', className: 'kbcl-row', 'data-kb': 'kybernos-call-presets' }, d.presets.map((pr) => h('button', { key: pr.id, type: 'button', className: 'kbcl-preset', 'data-act': 'preset-' + pr.id, 'aria-pressed': pr.active === true ? 'true' : 'false', disabled: c.busy || pr.available !== true, onClick: async () => { const r = await post('/preset', { id: pr.id }); if (r !== null && r.ok === true) c.load(); else c.say(true, (r && r.error) || kt('Préréglage refusé', 'Preset refused')) } }, [
+          audio.length > 0 ? h('div', { key: 'found', className: 'kbcl-found', 'data-kb': 'kybernos-call-found-models' }, [
+            h('div', { key: 't', style: { fontWeight: 600 } }, kt('Trouvé dans vos Modèles : ', 'Found in your Models: ') + audio.map((g) => g.provider).join(', ')),
+            h('div', { key: 'd', className: 'kbcl-sub' }, audio.map((g) => g.provider + ' — ' + kinds(g).join(', ')).join(' · ') + '. ' + kt('Déjà payé par votre offre, sans nouvelle clé. Leur usage dans les appels est la prochaine étape.', 'Already paid by your plan, no new key. Using them in calls is the next step.'))
+          ]) : null,
+          h('div', { key: 'pre', className: 'kbcl-row', 'data-kb': 'kybernos-call-presets' }, d.presets.map((pr) => h('button', { key: pr.id, type: 'button', className: 'kbcl-preset', 'data-act': 'preset-' + pr.id, 'aria-pressed': pr.active === true ? 'true' : 'false', disabled: c.busy || pr.available !== true, onClick: () => c.preset(pr.id) }, [
             h('div', { key: 'n', style: { fontWeight: 600 } }, tx(pr.name) + (pr.available !== true ? ' · ' + kt('bientôt', 'soon') : '')), h('div', { key: 'd', className: 'kbcl-sub' }, tx(pr.desc))]))),
           h('div', { key: 'slots', className: 'kbcl-slots' }, d.slots.map((sl) => {
             const p = used[sl.id]
@@ -837,13 +855,16 @@ window.__ModuleLoader__.load({
           'speak:ok': kt('La voix répond en ', 'The voice answers in ') + (r.ms / 1000).toFixed(1) + ' s.', 'speak:fell-back': kt('Cette voix n’a pas pu parler, une autre a pris le relais.', 'That voice could not speak, another took over.') + detail, 'speak:failed': detail,
           'face:ok': kt('Le compte répond', 'The account answers') + (r.detail ? ' · ' + r.detail + kt(' crédits', ' credits') : '') + '.', 'face:voice-only': kt('Pas de visage choisi : appels à la voix seule.', 'No face chosen: calls are voice only.'), 'face:no-key': kt('Pas de clé : l’appel se fera à la voix seule.', 'No key: the call will be voice only.'), 'face:refused': kt('La clé est refusée : collez-la de nouveau.', 'The key is refused: paste it again.'), 'face:failed': detail,
           'line:ok': kt('La connexion est bonne.', 'The connection is good.'), 'line:no-key': kt('Adresse, clé ou secret manquants.', 'Address, key or secret missing.'), 'line:refused': kt('La clé ou le secret sont refusés.', 'The key or the secret is refused.'), 'line:failed': detail,
-          'engine:installed': kt('Installé sur cet ordinateur.', 'Installed on this computer.'), 'engine:running': kt('Installé et démarré.', 'Installed and running.'), 'engine:not-installed': kt('Le moteur d’appel n’est pas installé : voir Réglages › Appels, aide.', 'The call engine is not installed: see Settings › Calls, help.'), 'engine:broken': kt('Le moteur d’appel est abîmé.', 'The call engine is damaged.') + detail
+          'engine:installed': kt('Installé sur cet ordinateur.', 'Installed on this computer.'), 'engine:running': kt('Installé et démarré.', 'Installed and running.'), 'engine:not-installed': kt('Le moteur d’appel n’est pas installé sur cet ordinateur.', 'The call engine is not installed on this computer.'), 'engine:broken': kt('Le moteur d’appel est abîmé.', 'The call engine is damaged.') + detail
         }
         return T[k] !== undefined ? T[k] : (r.code === 'timeout' ? kt('Pas de réponse à temps.', 'No answer in time.') : (r.code === 'failed' ? (r.detail ? String(r.detail) : kt('Échec.', 'Failed.')) : String(r.code)))
       }
       const Health = (props) => {
         const [rows, setRows] = React.useState({})
         const [running, setRunning] = React.useState(false)
+        const [inst, setInst] = React.useState(null) // the call engine's install: null | { state, step, last, code, error }
+        const mounted = React.useRef(true)
+        React.useEffect(() => () => { mounted.current = false }, [])
         const merge = (more) => setRows((old) => Object.assign({}, old, more))
         const run = async () => {
           setRunning(true)
@@ -859,6 +880,21 @@ window.__ModuleLoader__.load({
           await Promise.all([hostDone, micDone])
           setRunning(false)
         }
+        // The engine is installed by the host in the background (minutes): follow it, then check again.
+        const follow = async () => {
+          const r = await post('/engine', { action: 'status' })
+          if (!mounted.current) return
+          setInst(r)
+          if (r !== null && r.state === 'running') setTimeout(follow, 2500)
+          else if (r !== null && r.state === 'done') run()
+        }
+        const install = async () => {
+          const r = await post('/engine', { action: 'install' })
+          if (!mounted.current) return
+          if (r === null || r.ok === false) { setInst({ state: 'failed', code: (r && r.code) || 'failed', error: (r && r.error) || kt('l’hôte ne répond pas', 'the host does not answer') }); return }
+          setInst(r)
+          setTimeout(follow, 1500)
+        }
         React.useEffect(() => { if (props.autorun === true) run() }, [])
         return [
           h('div', { key: 'top', className: 'kbcl-row' }, [h('button', { key: 'b', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'run-health', disabled: running, onClick: run }, running ? kt('Vérification…', 'Checking…') : kt('Tout vérifier', 'Check everything'))]),
@@ -869,7 +905,8 @@ window.__ModuleLoader__.load({
             return h('div', { key: id, className: 'kbcl-slot kbcl-hrow', 'data-check': id, 'data-status': st }, h('div', { className: 'kbcl-row', style: { flexWrap: 'nowrap' } }, [
               Ico(icon, 22, 'kbcl-hic-' + st),
               h('span', { key: 'n', style: { fontWeight: 600, minWidth: '120px' } }, healthName(id)),
-              h('span', { key: 'm', className: 'kbcl-sub kbcl-grow' }, st === 'idle' ? kt('Pas encore vérifié', 'Not checked yet') : st === 'run' ? kt('Vérification…', 'Checking…') : healthText(r)),
+              h('span', { key: 'm', className: 'kbcl-sub kbcl-grow', 'data-kb': id === 'engine' ? 'kybernos-call-engine-state' : undefined }, id === 'engine' && inst !== null && inst.state === 'running' ? kt('Installation en cours (', 'Installing (') + (inst.step === 'packages' ? kt('paquets', 'packages') : kt('environnement', 'environment')) + ')… ' + (inst.last || '') : id === 'engine' && inst !== null && inst.state === 'failed' ? kt('L’installation a échoué : ', 'The install failed: ') + (inst.error || inst.last || inst.code) : st === 'idle' ? kt('Pas encore vérifié', 'Not checked yet') : st === 'run' ? kt('Vérification…', 'Checking…') : healthText(r)),
+              id === 'engine' && (st === 'bad') && r && (r.code === 'not-installed' || r.code === 'broken') && !(inst !== null && inst.state === 'running') ? h('button', { key: 'ins', type: 'button', className: 'kbcl-btn kbcl-pri', 'data-act': 'install-engine', onClick: install }, inst !== null && inst.state === 'failed' ? kt('Réessayer', 'Try again') : (r.code === 'broken' ? kt('Réparer', 'Repair') : kt('Installer en un clic', 'Install in one click'))) : null,
               (st === 'bad' || st === 'warn') && ['listen', 'face', 'line'].indexOf(id) >= 0 ? h('button', { key: 'f', type: 'button', className: 'kbcl-btn', 'data-act': 'fix-' + id, onClick: () => props.onFix(id) }, kt('Ouvrir le fournisseur', 'Open the provider')) : null
             ]))
           }))
@@ -971,7 +1008,7 @@ window.__ModuleLoader__.load({
         } else if (step === 2) {
           body = [
             h('div', { key: 'd', className: 'kbcl-sub' }, kt('Un préréglage remplit les cinq maillons d’un coup. Vous pourrez changer chacun dans Réglages › Appels.', 'A preset fills the five slots at once. You can change each one in Settings › Calls.')),
-            h('div', { key: 'p', className: 'kbcl-slots' }, d.presets.map((pr) => h('button', { key: pr.id, type: 'button', className: 'kbcl-preset', 'data-act': 'assist-preset-' + pr.id, 'aria-pressed': pr.active === true ? 'true' : 'false', disabled: c.busy || pr.available !== true, onClick: async () => { const r = await post('/preset', { id: pr.id }); if (r !== null && r.ok === true) c.load(); else c.say(true, (r && r.error) || kt('Préréglage refusé', 'Preset refused')) } }, [
+            h('div', { key: 'p', className: 'kbcl-slots' }, d.presets.map((pr) => h('button', { key: pr.id, type: 'button', className: 'kbcl-preset', 'data-act': 'assist-preset-' + pr.id, 'aria-pressed': pr.active === true ? 'true' : 'false', disabled: c.busy || pr.available !== true, onClick: () => c.preset(pr.id) }, [
               h('div', { key: 'n', style: { fontWeight: 600 } }, tx(pr.name) + (pr.available !== true ? ' · ' + kt('bientôt', 'soon') : '')), h('div', { key: 'd', className: 'kbcl-sub' }, tx(pr.desc))])))
           ]
         } else if (step === 3) {

@@ -23,7 +23,7 @@
     "page": true
   },
   "good": {
-    "fr": "Au premier appel, ajoutez vos clés dans Réglages › Appels › Service (chaque clé a un bouton Tester). Une voix enregistrée n'est clonée que si vous l'autorisez.",
-    "en": "On the first call, add your keys in Settings › Calls › Service (each key has a Test button). A recorded voice is only cloned if you allow it."
+    "fr": "Au premier appel, un assistant vous guide (micro, préréglage, clés, vérification). Ensuite, tout est dans Réglages › Appels. Une voix enregistrée n'est clonée que si vous l'autorisez.",
+    "en": "On the first call, an assistant guides you (microphone, preset, keys, check). Afterwards everything is in Settings › Calls. A recorded voice is only cloned if you allow it."
   }
 }

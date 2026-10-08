@@ -15,7 +15,7 @@ const presetIsActive = (preset, settings) => preset.available === true && preset
   && settings.use.listen === preset.patch.use.listen && settings.use.face === preset.patch.use.face
   && settings.defaultVoice !== null && settings.defaultVoice.engine === preset.patch.defaultVoice.engine && settings.defaultVoice.voice === preset.patch.defaultVoice.voice
 
-export function createAdmin ({ store, services, call, health = null, env = process.env, fetch: doFetch = (...a) => globalThis.fetch(...a) }) {
+export function createAdmin ({ store, services, call, health = null, installer = null, env = process.env, fetch: doFetch = (...a) => globalThis.fetch(...a) }) {
   const everything = async () => {
     const [settings, keys, clones] = await Promise.all([store.readSettings(), store.keysStatus(), store.readClones()])
     // The catalogue as the page needs it: each provider with whether it is set up, and its own settings with the defaults filled in.
@@ -113,5 +113,13 @@ export function createAdmin ({ store, services, call, health = null, env = proce
     return { ok: true }
   }
 
-  return { everything, patchSettings, setKeys, test, cloneSample, deleteClone, applyPreset, avatars, runHealth }
+  /** The call engine's installer: `status` (what is going on) or `install` (start it; asking again while it runs only reports). */
+  const engine = async (action) => {
+    if (installer === null) return { ok: false, error: 'the installer is not available' }
+    if (action === 'status') return installer.status()
+    if (action === 'install') return installer.start()
+    return { ok: false, error: 'unknown action (status, install)' }
+  }
+
+  return { everything, patchSettings, setKeys, test, cloneSample, deleteClone, applyPreset, avatars, runHealth, engine }
 }

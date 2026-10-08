@@ -36,6 +36,7 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 import { createGatewayWatcher } from './gateway-watcher.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { createPythonPicker } from './tts-python.mjs'
+import { audioModelsOf } from './audio-models.mjs'
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -10115,6 +10116,13 @@ function boot(ctx) {
           : (quota === true ? ('dernier essai refuse (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota epuise' : kbAsrState.error)) : null)
         sendJson(res, 200, { ok: true, asr: { model: prof.asrModel, ready: ready, ref: prof.ref, baseUrl: prof.baseUrl, maxBytes: KB_VOICE_MAX_BYTES, reason: raison, quota: { exhausted: quota, status: kbAsrState.status, at: kbAsrState.at === null ? null : new Date(kbAsrState.at).toISOString(), message: kbAsrState.error } } })
       } }), 'kybernos: route voice/config')
+      // The audio models of the providers already set up in Models (names and kinds only): a call can reuse them without a new key.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        let providers = {}
+        try { const ns = lireNamespace('llm-pi-ai').valeur; providers = (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { providers = {} }
+        sendJson(res, 200, { ok: true, providers: audioModelsOf(providers) })
+      } }), 'kybernos: route models/audio')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
