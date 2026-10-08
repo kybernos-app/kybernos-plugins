@@ -94,6 +94,88 @@ console.log('what it will not hand to a browser')
   check('an empty answer is a refusal, not a crash', (await mod.consoleLink({}, {})).ok === false)
 }
 
+console.log('opening the system browser (the server only accepts a link a person\'s OS opens)')
+{
+  // A tab a page opens, pointed at the link, is a « cross-site » navigation: the server refuses it (ADR 0005 § 5) and the person lands on « link expired ». The host,
+  // which runs on the person's machine, opens the SYSTEM browser instead: that navigation carries no such mark. The tests never open a real browser: the opener is injected.
+  writeState(connected)
+  answer = good
+  const loopback = { socket: { remoteAddress: '127.0.0.1' }, headers: {} }
+  const opened = []
+  const opener = (result) => async (url) => { opened.push(url); return result }
+
+  seen.length = 0
+  let r = await mod.consoleLink(loopback, { open: true }, { openExternal: opener(true) })
+  check('open: the host opens the link itself and does not hand it to the page', r.ok === true && r.opened === true && r.url === undefined && opened.length === 1 && opened[0].startsWith(origin + '/api/auth/magic-link/verify?token=abc'), JSON.stringify([r, opened]))
+  check('the answer still carries no token', JSON.stringify(r).indexOf(TOKEN) < 0)
+
+  opened.length = 0
+  r = await mod.consoleLink(loopback, { open: true }, { openExternal: opener(false) })
+  check('a host that cannot open a browser hands the address back, opened: false', r.ok === true && r.opened === false && typeof r.url === 'string' && r.url.startsWith(origin + '/api/auth/magic-link/verify?token=abc') && opened.length === 1, JSON.stringify(r))
+
+  opened.length = 0
+  r = await mod.consoleLink(loopback, {}, { openExternal: opener(true) })
+  check('without the wish to open, nothing is opened and the address comes back as before', r.ok === true && r.url !== undefined && r.opened === undefined && opened.length === 0, JSON.stringify(r))
+
+  for (const [label, peer] of [['a peer that is not on this machine', '10.1.2.3'], ['an unknown peer', undefined]]) {
+    opened.length = 0
+    r = await mod.consoleLink({ socket: { remoteAddress: peer }, headers: {} }, { open: true }, { openExternal: opener(true) })
+    check(label + ': no browser is opened on this machine; the address comes back', r.ok === true && r.opened === false && typeof r.url === 'string' && opened.length === 0, JSON.stringify(r))
+  }
+  for (const peer of ['::1', '::ffff:127.0.0.1']) {
+    opened.length = 0
+    r = await mod.consoleLink({ socket: { remoteAddress: peer }, headers: {} }, { open: true }, { openExternal: opener(true) })
+    check('a loopback peer (' + peer + ') may have a browser opened', r.opened === true && opened.length === 1, JSON.stringify(r))
+  }
+
+  opened.length = 0
+  answer = () => ({ status: 200, body: { url: 'https://evil.example/api/auth/magic-link/verify?token=abc', expires_in: 60 } })
+  r = await mod.consoleLink(loopback, { open: true }, { openExternal: opener(true) })
+  check('a link for another origin is never opened', r.ok === false && r.error === 'lien_invalide' && opened.length === 0, JSON.stringify([r, opened]))
+  answer = good
+
+  opened.length = 0
+  r = await mod.consoleLink(loopback, { open: true }, { openExternal: async () => { throw new Error('boom') } })
+  check('an opener that throws is « could not open », not a crash and not a lost link', r.ok === true && r.opened === false && typeof r.url === 'string', JSON.stringify(r))
+  r = await mod.consoleLink(loopback, { open: 'yes' }, { openExternal: opener(true) })
+  check('only a true « open » opens anything', r.opened === undefined && opened.length === 0, JSON.stringify(r))
+}
+
+console.log('the system opener itself')
+{
+  const make = (events) => {
+    const calls = []
+    const spawnFn = (cmd, args, options) => {
+      calls.push({ cmd, args, options })
+      const handlers = {}
+      const child = { once: (name, fn) => { handlers[name] = fn; return child }, unref: () => {} }
+      setImmediate(() => { if (events.error !== undefined) handlers.error?.(events.error); else if (events.exit !== undefined) handlers.exit?.(events.exit) })
+      return child
+    }
+    return { calls, spawnFn }
+  }
+  const URL1 = 'https://srv.example/api/auth/magic-link/verify?token=a&b=c&callbackURL=%2Fconsole'
+  let m = make({ exit: 0 })
+  check('macOS: `open <url>`, one argument, no shell', (await mod.openExternal(URL1, { platform: 'darwin', env: {}, spawnFn: m.spawnFn })) === true && m.calls[0].cmd === 'open' && m.calls[0].args.length === 1 && m.calls[0].args[0] === URL1 && m.calls[0].options.shell !== true, JSON.stringify(m.calls))
+  m = make({ exit: 0 })
+  check('Windows: the URL is ONE argument of the URL handler (an & in it is not a shell command)', (await mod.openExternal(URL1, { platform: 'win32', env: {}, spawnFn: m.spawnFn })) === true && m.calls[0].cmd === 'rundll32' && m.calls[0].args.join('|') === 'url.dll,FileProtocolHandler|' + URL1 && m.calls[0].options.shell !== true, JSON.stringify(m.calls))
+  m = make({ exit: 0 })
+  check('Linux with a display: xdg-open', (await mod.openExternal(URL1, { platform: 'linux', env: { DISPLAY: ':0' }, spawnFn: m.spawnFn })) === true && m.calls[0].cmd === 'xdg-open' && m.calls[0].args[0] === URL1, JSON.stringify(m.calls))
+  m = make({ exit: 0 })
+  check('Linux with no display: not opened, nothing started', (await mod.openExternal(URL1, { platform: 'linux', env: {}, spawnFn: m.spawnFn })) === false && m.calls.length === 0)
+  m = make({ exit: 1 })
+  check('an opener that exits with an error is « not opened »', (await mod.openExternal(URL1, { platform: 'darwin', env: {}, spawnFn: m.spawnFn })) === false)
+  m = make({ error: new Error('ENOENT') })
+  check('an opener that is not there is « not opened »', (await mod.openExternal(URL1, { platform: 'linux', env: { WAYLAND_DISPLAY: 'wayland-0' }, spawnFn: m.spawnFn })) === false)
+  check('a spawn that throws is « not opened »', (await mod.openExternal(URL1, { platform: 'darwin', env: {}, spawnFn: () => { throw new Error('x') } })) === false)
+  m = make({})
+  check('an opener that is still handing over after the time allowed counts as opened', (await mod.openExternal(URL1, { platform: 'darwin', env: {}, spawnFn: m.spawnFn, waitMs: 20 })) === true)
+  for (const bad of ['javascript:alert(1)', 'file:///etc/passwd', 'ftp://x/y', 'not a url', '']) {
+    m = make({ exit: 0 })
+    check('« ' + bad + ' » is never handed to the system', (await mod.openExternal(bad, { platform: 'darwin', env: {}, spawnFn: m.spawnFn })) === false && m.calls.length === 0)
+  }
+}
+
 console.log('who may ask')
 {
   check('a page of another origin is refused (strict)', mod.sameOriginStrict({ headers: { origin: 'https://evil.example' } }) === false)

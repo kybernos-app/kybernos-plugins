@@ -2535,13 +2535,12 @@ window.__ModuleLoader__.load({
               try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybernos-cloud-space') } catch (e) { /* layout indisponible */ }
             }
             const ouvrirEspaceNavigateur = () => {
-              // The tab is opened NOW, inside the click (a tab opened after the wait can be blocked), and pointed at the link once the server has made it.
-              let onglet = null
-              try { onglet = window.open('', '_blank'); if (onglet !== null) onglet.opener = null } catch (e) { onglet = null }
-              const fermer = () => { try { if (onglet !== null) onglet.close() } catch (e) { /* deja fermee */ } }
-              callLocal('/console/link', 'POST', actif === null ? {} : { workspace_id: actif }).then((r) => {
-                if (r !== null && r.ok === true && typeof r.url === 'string' && onglet !== null) { try { onglet.location.href = r.url } catch (e) { fermer() } } else fermer()
-              }).catch(fermer)
+              // The HOST opens the system browser with the single-use link: the server refuses a link that reaches it as a navigation this page started (a tab opened
+              // here and pointed at the link is « cross-site »: the person lands on « link expired »), and accepts one the person's own OS opened. Only a host that could
+              // not open a browser hands the address back, and then a tab is opened here, with no opener.
+              callLocal('/console/link', 'POST', actif === null ? { open: true } : { workspace_id: actif, open: true }).then((r) => {
+                if (r !== null && r.ok === true && r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* ouverture impossible */ } }
+              }).catch(() => { /* hote injoignable : rien a ouvrir */ })
             }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))

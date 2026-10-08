@@ -338,12 +338,15 @@ assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSe
 ok('Teams settings : entree nommee du menu, pont vers la console puis deux replis, fr/en')
 
 // « Open the console in your browser »: the page is the same one, where it can change things. DSH asks its host route for a single-use link (never the
-// device token in a URL), opens the tab INSIDE the click (a tab opened after the wait can be blocked) with no opener, and points it at the link; a refusal closes it.
-for (const needle of ["entree('space-browser', h(GlobeIcon", "callLocal('/console/link', 'POST'", "window.open('', '_blank')", 'onglet.opener = null', 'onSpaceBrowser: ouvrirEspaceNavigateur']) {
+// device token in a URL) and asks the HOST to open the system browser with it: the server refuses a link that reaches it as a navigation a page started (a tab this page
+// opened and pointed at the link is « cross-site »: the person lands on « link expired », measured 2026-10-08 in a real browser), and accepts one the OS opened.
+// Only a host that could not open one hands the address back, and then a tab is opened here, with no opener.
+for (const needle of ["entree('space-browser', h(GlobeIcon", "callLocal('/console/link', 'POST'", '{ open: true }', 'workspace_id: actif, open: true', 'r.opened !== true', "window.open(r.url, '_blank', 'noopener,noreferrer')", 'onSpaceBrowser: ouvrirEspaceNavigateur']) {
   assert.ok(source.includes(needle), 'entree « ouvrir dans le navigateur » : element manquant: ' + needle)
 }
+assert.ok(!source.includes("window.open('', '_blank')") && !source.includes('onglet.location.href'), 'un onglet ouvert par la page puis pointe sur le lien est « cross-site » : le serveur le refuse')
 assert.equal((source.match(/menuTeamsBrowser:/g) || []).length, 2, 'menuTeamsBrowser doit exister en fr ET en')
-ok('Ouvrir la console dans le navigateur : entree du menu, lien a usage unique demande a l hote, onglet ouvert dans le clic, fr/en')
+ok('Ouvrir la console dans le navigateur : entree du menu, lien a usage unique demande a l hote qui ouvre le navigateur du systeme, adresse rendue sinon, fr/en')
 
 // Le câblage de la page : la liste des espaces, la route du choix, les cinq
 // directions inertes, et le lien vers la page hébergée.

@@ -34,11 +34,12 @@ const harness = () => {
     return answers.fail ? Promise.reject(new Error('offline')) : Promise.resolve({ json: () => Promise.resolve(answers.json) })
   }
   const events = []
+  const opened = []
   const kbServer = { workspace: 'w-before' }
-  const win = { dispatchEvent: (e) => { events.push(e.type); return true } }
+  const win = { dispatchEvent: (e) => { events.push(e.type); return true }, open: (...args) => { opened.push(args); return null } }
   class EventStub { constructor (type) { this.type = type } }
   const sur = new Function('kbWsOrigin', 'envoyerCle', 'document', 'fetch', 'kbServer', 'window', 'Event', snippet + '\nreturn sur')(() => CONSOLE_ORIGIN, () => { keyAsked += 1 }, doc, fetchStub, kbServer, win, EventStub)
-  return { sur, posted, fetched, iframeWindow, answers, events, kbServer, get keyAsked () { return keyAsked } }
+  return { sur, posted, fetched, iframeWindow, answers, events, opened, kbServer, get keyAsked () { return keyAsked } }
 }
 const settle = () => new Promise((r) => setTimeout(r, 5))
 
@@ -150,6 +151,58 @@ console.log('creating a team from the console')
   l.sur({ source: l.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbNewSpace: { name: 'x'.repeat(200) } } })
   await settle()
   check('a very long name is cut to 60 characters before it leaves the page', JSON.parse(l.fetched[0].opts.body).name.length === 60)
+}
+
+console.log('opening the console in the person\'s browser (the frame can only look)')
+{
+  // The frame cannot change anything; it asks this page for its twin in the browser. The HOST opens the system browser (a navigation the person's OS starts: the server
+  // refuses a single-use link that a page-opened tab brings, because that one is « cross-site »); a host that cannot hands the address back and this page opens it.
+  const h = harness()
+  h.answers.json = { ok: true, opened: true, expires_in: 60 }
+  h.sur({ source: h.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('the request goes to the host\'s console-link route, same-origin, with the workspace and the wish that the host opens the browser', h.fetched.length === 1 && h.fetched[0].url === '/kybernos-cloud/console/link' && h.fetched[0].opts.method === 'POST' && h.fetched[0].opts.credentials === 'same-origin' && h.fetched[0].opts.body === JSON.stringify({ workspace_id: 'w-1', open: true }), JSON.stringify(h.fetched))
+  check('a browser the host opened is not opened a second time here', h.opened.length === 0)
+  check('the console is told it worked, at its exact origin', h.posted.length === 1 && h.posted[0].origin === CONSOLE_ORIGIN && h.posted[0].message.kbBrowserReply.ok === true)
+
+  const u = harness()
+  u.answers.json = { ok: true, opened: false, url: 'https://srv.example/api/auth/magic-link/verify?token=t', expires_in: 60 }
+  u.sur({ source: u.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('a host that could not open one hands the address back: a tab is opened here, with no opener', u.opened.length === 1 && u.opened[0][0] === 'https://srv.example/api/auth/magic-link/verify?token=t' && u.opened[0][1] === '_blank' && /noopener/.test(String(u.opened[0][2])), JSON.stringify(u.opened))
+  check('and the console is told it worked', u.posted[0].message.kbBrowserReply.ok === true)
+
+  const r = harness()
+  r.answers.json = { ok: false, error: 'espace_inconnu' }
+  r.sur({ source: r.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-gone' } } })
+  await settle()
+  check('a refusal opens nothing and the console is told why', r.opened.length === 0 && r.posted[0].message.kbBrowserReply.ok === false && r.posted[0].message.kbBrowserReply.error === 'espace_inconnu')
+
+  const n = harness()
+  n.answers.json = { ok: true, opened: false }
+  n.sur({ source: n.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('an answer with nothing to open is a failure, not a success', n.opened.length === 0 && n.posted[0].message.kbBrowserReply.ok === false)
+
+  for (const [label, id] of [['a path in the id', '../x'], ['an id with a space', 'a b'], ['a number', 7], ['a very long id', 'x'.repeat(81)]]) {
+    const g = harness()
+    g.answers.json = { ok: true, opened: true }
+    g.sur({ source: g.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id } } })
+    await settle()
+    check(label + ' is dropped: the host is asked for the active workspace, not for that id', g.fetched.length === 1 && g.fetched[0].opts.body === JSON.stringify({ open: true }), JSON.stringify(g.fetched))
+  }
+
+  const f = harness()
+  f.sur({ source: { other: true }, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  f.sur({ source: f.iframeWindow, origin: 'https://evil.example', data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('another frame or another origin cannot open a browser', f.fetched.length === 0 && f.opened.length === 0)
+
+  const d = harness()
+  d.answers.fail = true
+  d.sur({ source: d.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('an unreachable host is an ok:false answer', d.opened.length === 0 && d.posted[0].message.kbBrowserReply.ok === false && d.posted[0].message.kbBrowserReply.error === 'hote_injoignable')
 }
 
 console.log('the shipped code')
