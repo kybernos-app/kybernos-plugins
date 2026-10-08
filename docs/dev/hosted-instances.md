@@ -38,6 +38,15 @@ DSH's own cookie, so there is one login. Its README has the server install, the 
 2. Run the gate in front of it (plugin routes answer without the DSH token, so nothing may be exposed without a login).
 3. Keep the DSH profile (`~/.dsh`) on a persistent volume if the platform recreates containers.
 
+## DSH's preview notice on a hosted instance
+
+DSH 0.2.0-rc.2 keeps its UI settings in **memory**, not on the host, for a browser whose page address is not loopback
+(`dsh-client-ui-settings`: `persistence = ctx.remote.$host.isLoopback ? "host" : "memory"`). Its "Preview Notice" (the
+`welcome-notice` entry of the `settings.onboarding` slot) therefore cannot be remembered there: measured with a `.localhost` name,
+Continue, reload, and the notice is back, whatever the host setting `ui-settings-general.welcomeNoticeVersion` says.
+The core client now shadows that entry (same id, priority -1, renders nothing) when the page is not on loopback. On loopback DSH
+remembers the acknowledgement itself and nothing changes. `node scripts/test-hosted-client.mjs` covers the rule.
+
 ## Measured (Coolify, DSH 0.2.0-rc.2, container behind a TLS proxy with basic auth)
 
 Before the change, with `Origin: https://<public host>`: `kybernos-auto/state`, `kybernos-hub/state` and

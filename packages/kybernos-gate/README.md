@@ -95,6 +95,10 @@ The container listens on `127.0.0.1:3080` only: put your TLS proxy in front of i
 `~/.dsh` is a volume: it holds the profile, the settings and the sessions; an empty volume is seeded from the image.
 The container refuses to start without `KYBERNOS_GATE_PASSWORD` or `KYBERNOS_GATE_PASSWORD_HASH`.
 
+The plugins are installed in `/opt/kybernos-plugins`, out of the home folder, so they do not show up in DSH's folder picker.
+The agent works in `~/workspace` (`KYBERNOS_WORKSPACE` changes it): it is created at start and offered as the first workspace, so
+the first screen is the chat. Both only happen while DSH has no workspace yet; an existing one is never touched.
+
 Coolify: create a Docker Compose or Dockerfile application from the same files, set the two variables above, expose port 3080
 and let Coolify's proxy carry the domain and the TLS certificate. Do **not** also turn on its basic authentication: the gate replaces it.
 

@@ -21,6 +21,7 @@
 #                                                           `dsh web --trusted-host` so DSH and the plugins accept it
 #
 # Nothing secret goes in this file. Keep ~/.dsh on a volume: it holds the profile, the settings and the sessions.
+# The agent works in ~/workspace (created at start and offered as the first workspace).
 FROM node:22-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -48,10 +49,15 @@ RUN timeout 40 dsh web --no-open --port 0 > /tmp/first-start.log 2>&1 || true; \
     tail -n 5 /tmp/first-start.log; \
     test -d /home/node/.dsh/profiles/web
 
+# The plugins live in /opt, not in the home folder: DSH's folder picker starts at the home folder, and the agent's own
+# workspace (~/workspace, created at start) should not sit next to the plugin sources.
+USER root
+RUN mkdir -p /opt/kybernos-plugins && chown node:node /opt/kybernos-plugins
+USER node
 ARG KB_REF=main
-RUN git clone --depth 1 --branch "${KB_REF}" https://github.com/kybernos-app/kybernos-plugins.git /home/node/kybernos-plugins \
-    && cd /home/node/kybernos-plugins && git log --oneline -1
-RUN cd /home/node/kybernos-plugins && ./kybernos-install
+RUN git clone --depth 1 --branch "${KB_REF}" https://github.com/kybernos-app/kybernos-plugins.git /opt/kybernos-plugins \
+    && cd /opt/kybernos-plugins && git log --oneline -1
+RUN cd /opt/kybernos-plugins && ./kybernos-install
 
 # A volume mounted over ~/.dsh starts empty: the entrypoint seeds it from this copy of the installed profile.
 USER root
@@ -63,4 +69,4 @@ ENV DSH_PORT=3081 DSH_WEB_PORT=3081 \
     KYBERNOS_GATE_TRUST_PROXY=1
 EXPOSE 3080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 CMD curl -fsS http://127.0.0.1:3080/__gate/health || exit 1
-CMD ["sh", "/home/node/kybernos-plugins/packages/kybernos-gate/docker/entrypoint.sh"]
+CMD ["sh", "/opt/kybernos-plugins/packages/kybernos-gate/docker/entrypoint.sh"]
