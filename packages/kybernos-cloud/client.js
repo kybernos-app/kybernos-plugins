@@ -2445,6 +2445,14 @@ window.__ModuleLoader__.load({
           // dans la rangée sans recharger la page.
           React.useEffect(() => { void load() }, [load, open])
 
+          // The team console (an iframe of another page) changed the active space through the host: re-read it, so the card and the
+          // console never show two different teams.
+          React.useEffect(() => {
+            const relire = () => { void load() }
+            window.addEventListener('kybernos-cloud:space-changed', relire)
+            return () => window.removeEventListener('kybernos-cloud:space-changed', relire)
+          }, [load])
+
           // La fiche peut être ouverte depuis un autre plugin (page Models) :
           // même événement fenêtre que l'ancien bouton, rien de nouveau.
           React.useEffect(() => {
