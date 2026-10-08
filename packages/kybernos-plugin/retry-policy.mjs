@@ -34,8 +34,12 @@ export const ID_NS_PROVIDERS = 'llm-pi-ai'
  *   ~12 min pour rien).
  */
 export function plafondDepuisEnv(env = process.env) {
-  const brut = Number(env?.KB_RETRY_PLAFOND)
-  return Number.isSafeInteger(brut) && brut >= 0 ? brut : 10
+  // Digits only: `Number('')` and `Number('  ')` are 0, which would cut every provider to zero retries
+  // at boot when the variable is set but empty (`KB_RETRY_PLAFOND=`).
+  const texte = String(env?.KB_RETRY_PLAFOND ?? '').trim()
+  if (/^\d+$/.test(texte) === false) return 10
+  const brut = Number(texte)
+  return Number.isSafeInteger(brut) ? brut : 10
 }
 
 const cloner = (valeur) =>
