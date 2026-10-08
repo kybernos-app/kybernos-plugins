@@ -390,6 +390,7 @@ window.__ModuleLoader__.load({
       '.kbhp-pop.start{inset-inline-end:auto;inset-inline-start:0}',
       '.kbhp-x{position:absolute;inset-inline-end:10px;top:10px;width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;font-size:14px}',
       '.kbhp-x:hover{background:var(--dsw-alias-interactive-bg-hover)}',
+      '.kbhp-act{appearance:none;align-self:flex-start;display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:9px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kbsu-right{display:inline-flex;gap:8px;align-items:center}',
       '.kbsu-sw{position:relative;flex:none;width:36px;height:20px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);padding:0}',
       '.kbsu-sw i{position:absolute;inset-inline-start:2px;top:2px;width:14px;height:14px;border-radius:999px;background:var(--dsw-alias-label-secondary);transition:inset-inline-start .15s ease}',
@@ -946,7 +947,9 @@ window.__ModuleLoader__.load({
         }
         return cache.pending
       }
-      function Help ({ id }) {
+      // `action` ({ label, onClick }) is optional: a page that has something more to show than the text (an interactive guide) adds
+      // a button at the bottom of the card. The card closes first, then the page does its thing.
+      function Help ({ id, action }) {
         const [open, setOpen] = React.useState(false)
         const [mod, setMod] = React.useState(null)
         const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
@@ -984,9 +987,10 @@ window.__ModuleLoader__.load({
             h('p', null, kt(a.what.fr, a.what.en)),
             h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
             h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)),
-            a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null) : null)
+            a.good ? h('p', { className: 'kbsu-good' }, kt(a.good.fr, a.good.en)) : null,
+            action != null && typeof action.onClick === 'function' ? h('button', { type: 'button', className: 'kbhp-act', 'data-kb': 'help-action', onClick: () => { setOpen(false); action.onClick() } }, action.label) : null) : null)
       }
-      return { version: 1, Help }
+      return { version: 1, actions: true, Help }
     }
 
     const monterSuite = (ctx, scope, require) => {

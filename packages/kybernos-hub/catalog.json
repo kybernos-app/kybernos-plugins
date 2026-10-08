@@ -1081,6 +1081,51 @@
       }
     },
     {
+      "id": "dsh-subagent-maison",
+      "nom": "@local/dsh-subagent-maison",
+      "titre": "Agent connectors",
+      "glyphe": "plug",
+      "famille": "connect",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 28,
+      "promesse": {
+        "fr": "Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.",
+        "en": "The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on."
+      },
+      "aide": {
+        "what": {
+          "fr": "Les quatre petits connecteurs qui permettent à votre agent principal de confier une tâche à OpenCode, Gemini, Qwen ou Hermes. Ils ne font rien tant que vous ne les allumez pas.",
+          "en": "The four small connectors that let your main agent hand a task to OpenCode, Gemini, Qwen or Hermes. They do nothing until you turn them on."
+        },
+        "steps": [
+          {
+            "fr": "Laissez ce module actif : il n'a pas de page, la page Workers s'en sert.",
+            "en": "Leave this module on: it has no page of its own, the Workers page uses it."
+          },
+          {
+            "fr": "Ouvrez Réglages › Workers et cliquez « Activer » sur la ligne de l'agent voulu.",
+            "en": "Open Settings › Workers and click “Turn on” on the row of the agent you want."
+          },
+          {
+            "fr": "Installez le programme de l'agent et connectez-vous, toujours depuis la page Workers.",
+            "en": "Install the agent's program and sign in, still from the Workers page."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Workers (pas de page propre)",
+          "en": "Settings › Workers (no page of its own)",
+          "page": false
+        },
+        "good": {
+          "fr": "Désactiver ce module retire les quatre connecteurs : la page Workers le dira au lieu d'allumer quelque chose qui ne se charge pas.",
+          "en": "Turning this module off removes the four connectors: the Workers page will say so instead of turning on something that cannot load."
+        }
+      }
+    },
+    {
       "id": "kybernos-workers",
       "nom": "@local/kybernos-workers",
       "titre": "Workers",
@@ -1090,32 +1135,32 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 56,
+      "poids_ko": 168,
       "promesse": {
-        "fr": "État vérifié de Claude Code, Codex et ZCode, et exposition au lead.",
-        "en": "Verified state of Claude Code, Codex and ZCode, and exposure to the lead."
+        "fr": "Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.",
+        "en": "Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode."
       },
       "aide": {
         "what": {
-          "fr": "Montre si Claude Code, Codex et ZCode sont vraiment utilisables sur ce poste, et choisit si l'agent principal peut leur déléguer des tâches.",
-          "en": "Shows whether Claude Code, Codex and ZCode are really usable on this machine, and lets you choose whether the main agent may delegate tasks to them."
+          "fr": "Des assistants de code (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) que votre agent principal peut appeler. DSH vérifie qu'ils sont prêts et peut les installer.",
+          "en": "Coding assistants (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes…) your main agent can call. DSH checks they are ready and can install them."
         },
         "steps": [
           {
-            "fr": "Ouvrez Réglages › Workers : une carte par agent, avec son état (« Prêt », « Non installé sur ce poste », « Non authentifié »…).",
-            "en": "Open Settings › Workers: one card per agent, with its state (“Ready”, “Not installed on this machine”, “Not signed in”…)."
+            "fr": "Ouvrez Réglages › Workers : une ligne par assistant, avec son état (« Prêt », « À installer », « À connecter »…).",
+            "en": "Open Settings › Workers: one row per assistant, with its state (“Ready”, “To install”, “To connect”…)."
           },
           {
-            "fr": "Cliquez « Vérifier » (ou « Tout vérifier ») : DSH contrôle la connexion, l'installation, la session et un essai d'écriture.",
-            "en": "Click “Check” (or “Check all”): DSH tests the connection, the install, the sign-in and a trial write."
+            "fr": "Cliquez le bouton de la ligne : Activer, Vérifier, Installer (DSH montre la commande et attend votre accord) ou Se connecter.",
+            "en": "Click the row's button: Turn on, Check, Install (DSH shows the command and waits for your OK) or Sign in."
           },
           {
-            "fr": "Si la carte dit « Connexion non montée », cliquez « Installer la connexion », puis relancez DSH.",
-            "en": "If the card says “Connection not mounted”, click “Install the connection”, then restart DSH."
+            "fr": "Connectez-vous avec votre compte dans le navigateur, ou collez votre clé API pour Gemini et Qwen.",
+            "en": "Sign in with your account in the browser, or paste your API key for Gemini and Qwen."
           },
           {
-            "fr": "Activez « Exposé au lead » (et « Arrière-plan autorisé » si besoin), puis « Appliquer au profil » et relancez DSH.",
-            "en": "Turn on “Exposed to the lead” (and “Background allowed” if needed), then “Apply to profile” and restart DSH."
+            "fr": "Quand la ligne dit « Prêt », activez « Autorisé » et enregistrez : DSH l'applique en quelques secondes.",
+            "en": "When the row says “Ready”, turn on “Allowed” and save: DSH applies it in a few seconds."
           }
         ],
         "where": {
@@ -1124,8 +1169,8 @@
           "page": true
         },
         "good": {
-          "fr": "Vérifier n'appelle aucun modèle : rien n'est consommé sur l'abonnement de l'agent. « Prêt » ne prouve pas qu'une délégation réussira ; ZCode ne peut jamais afficher « Prêt ».",
-          "en": "Checking calls no model, so nothing is spent on the agent's subscription. “Ready” does not prove a delegation will work; ZCode can never show “Ready”."
+          "fr": "Vérifier n'appelle aucun modèle : rien n'est dépensé. Chaque assistant utilise son propre abonnement ou sa propre clé. « Essayer la démo » montre le parcours pas à pas.",
+          "en": "Checking calls no model, so nothing is spent. Each assistant uses its own subscription or key. “Try the demo” walks through the whole path step by step."
         }
       }
     },

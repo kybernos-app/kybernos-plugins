@@ -1,7 +1,7 @@
 {
   "name": "@local/kybernos-workers",
   "version": "0.1.0",
-  "description": "Kybernos Workers: verified state of the external coding agents DSH can drive (Claude Code, Codex, ZCode) and the one policy DSH really exposes for them.",
+  "description": "Kybernos Workers: verified state, install and exposure of the external coding agents DSH can drive (Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes, ZCode).",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",

@@ -1,32 +1,35 @@
 // ═══════════════════════════════════════════════════════
-// fabriquer-provider.mjs — fabrique de providers maison one-shot.
+// fabriquer-provider.mjs — factory of home-made one-shot providers.
 //
-// Encapsule le pont DSH (Provider class + apply + settleRunResult +
-// subprocessRunHandle) pour qu'une CLI « one-shot qui écrit sur stdout »
-// (gemini -p, qwen -p, opencode run…) devienne une déclaration de quelques
-// lignes. OpenCode, Gemini, Qwen partagent cette façade ; Hermes (serve) aura
-// la sienne.
+// Wraps the DSH bridge (Provider class + apply + settleRunResult + subprocessRunHandle) so that a CLI that "runs once and
+// writes on stdout" (gemini -p, qwen -p, opencode run, hermes -z…) becomes a declaration of a few lines.
 //
-// Usage — dans <dsh-subagent-cli>/index.js :
+// Usage — in <dsh-subagent-cli>/index.js:
 //   export { name, inject, Config, apply } = fabriquerProvider({
 //     nomModule: 'subagent-gemini', produit: 'Gemini CLI', bin: 'gemini',
 //     argv: (bin, model, taches) => [bin, '-p', ...model ? ['-m', model] : [], taches.join('\n\n')],
 //   })
-// Aucun modèle en dur : `model` est optionnel et déféré au produit natif.
+// No model is hard-coded: `model` is optional and left to the native product.
+//
+// The engine modules it needs come from moteur.mjs (looked up from where the running DSH is), not from a node_modules next
+// to this file: this package ships without one. The lookup is a top-level await, so a DSH without the engine's modules
+// reports a plugin that failed to load, with the places it looked in.
 // ═══════════════════════════════════════════════════════
 
-import z from '@deepseek-ai/schemastery'
-import { NO_START_CAPABILITIES, resolveChildCwd, settleRunResult, subprocessRunHandle } from '@deepseek-ai/dsh-subagent'
-import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
-import { brandString } from '@deepseek-ai/dsh-brand'
 import { randomUUID } from 'node:crypto'
+import { chargerMoteur } from './moteur.mjs'
 import { runOneShot, texteTache, RunFailure } from './noyau.mjs'
+
+const { subagent, subprocess, brand, z } = await chargerMoteur()
+const { NO_START_CAPABILITIES, resolveChildCwd, settleRunResult, subprocessRunHandle } = subagent
+const { scrubbedParentEnv } = subprocess
+const { brandString } = brand
 
 const DEFAULT_DISPOSE_GRACE_MS = 3000
 
 /**
- * spec : { nomModule, produit, bin, argv(bin, model, taches) -> argv, defautBin? }
- * Renvoie { name, inject, Config, apply } prêts à exporter par le provider.
+ * spec : { nomModule, produit, bin, argv(bin, model, taches) -> argv, defautNom?, envCle?, varEnvCle?, resoudreModel? }
+ * Returns { name, inject, Config, apply }, ready to be exported by the provider.
  */
 export function fabriquerProvider (spec) {
   const name = spec.nomModule
@@ -52,27 +55,26 @@ export function fabriquerProvider (spec) {
 
     async start (request) {
       const parentCwd = request.parent.session.header.cwd
-      if (parentCwd === undefined) throw new Error(`${spec.produit}: pas de dossier de travail pour l’enfant — déléguez depuis une session qui en a un`)
+      if (parentCwd === undefined) throw new Error(`${spec.produit}: no working folder for the child — delegate from a session that has one`)
       let cwd
       try {
         cwd = resolveChildCwd(spec.nomModule, undefined, parentCwd)
       } catch (error) {
-        if (request.signal.aborted) throw new Error(`${spec.produit}: requête annulée avant le lancement`)
+        if (request.signal.aborted) throw new Error(`${spec.produit}: request cancelled before the launch`)
         throw new RunFailure(spec.produit, { stage: 'exec', categorie: 'unknown' }, error)
       }
 
       const taches = texteTache(request.prompt)
-      // Résolution du modèle : le config/ENV d'abord ; sinon le hook optionnel
-      // du provider (ex. Hermes découvre un modèle `:free`, jamais en dur).
+      // Which model: the config first; otherwise the provider's optional hook
+      // (Hermes discovers a `:free` model — none is ever hard-coded).
       let model = this.config.model
       if ((model == null || model === '') && typeof spec.resoudreModel === 'function') {
         model = await spec.resoudreModel({ baseUrl: this.config.baseUrl, env: this.config.env })
       }
       const argv = spec.argv(this.config.bin, model, taches, { apiKey: this.config.apiKey, baseUrl: this.config.baseUrl })
       const env = { ...scrubbedParentEnv(), ...this.config.env }
-      // La clé API passe aussi en env (sous spec.varEnvCle) pour les CLIs qui la
-      // lisent là (gemini lit GEMINI_API_KEY) — scrubbedParentEnv a filtré les
-      // secrets, on ré-injecte explicitement la nôtre.
+      // The API key also goes in the environment (under spec.varEnvCle) for the CLIs that read it there (gemini reads
+      // GEMINI_API_KEY): scrubbedParentEnv removed the secrets, so ours is put back explicitly.
       if (spec.varEnvCle != null && this.config.apiKey) env[spec.varEnvCle] = this.config.apiKey
       const spawn = (spawnSpec) => this.ctx.subprocess.spawn(spawnSpec)
 
@@ -87,7 +89,7 @@ export function fabriquerProvider (spec) {
             return await attempt()
           } catch (error) {
             diagnostic = error instanceof RunFailure ? error.message : String(error && error.message ? error.message : error)
-            this.ctx.logger.warn(`${spec.produit} "${this.name}": run en échec : ${diagnostic}`)
+            this.ctx.logger.warn(`${spec.produit} "${this.name}": run failed: ${diagnostic}`)
             throw error
           }
         },
@@ -95,7 +97,7 @@ export function fabriquerProvider (spec) {
         collectDiagnostic: () => diagnostic,
         cancelled: () => request.signal.aborted,
         onError: (error, stopReason) => {
-          this.ctx.logger.warn(`${spec.produit} "${this.name}": run en échec (${stopReason}) : %o`, error)
+          this.ctx.logger.warn(`${spec.produit} "${this.name}": run failed (${stopReason}): %o`, error)
         },
         signal: request.signal,
         onAbort
@@ -113,9 +115,9 @@ export function fabriquerProvider (spec) {
   }
 
   function apply (ctx, config) {
-    // Clé/endpoint : le config les porte s'il les a ; sinon on lit l'env du
-    // provider (spec.envCle = noms de variables essayées dans l'ordre) — la clé
-    // vit hors git (~/.dsh/.credentials.yaml injecté en env), jamais en dur.
+    // Key and endpoint: the config carries them when it has them; otherwise the provider's environment is read (spec.envCle =
+    // variable names tried in order). The key lives outside git (~/.dsh/.credentials.yaml, injected in the environment at
+    // launch), never in the code — so a key stored while DSH runs reaches a provider at the next DSH start.
     let apiKey = config.apiKey ?? ''
     if (apiKey === '' && Array.isArray(spec.envCle)) {
       for (const nom of spec.envCle) { const v = process.env[nom]; if (typeof v === 'string' && v !== '') { apiKey = v; break } }
