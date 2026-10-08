@@ -1,7 +1,8 @@
 # Servers: which Kybernos server this DSH talks to
 
-DSH talks to one Kybernos server at a time. Today that is Kybernos Cloud. A company can run its own, and a paid module
-(« Select server », a separate plugin in the private repo) will let a user switch. This repo is the open half: it knows how to
+DSH talks to one Kybernos server at a time. Today that is Kybernos Cloud, which is the **new Kybernos server**
+(`kybernos-server`); the old stack is unplugged (see « The built-in server » and « The old stack »). A company can run its
+own, and a paid module (« Select server », a separate plugin in the private repo) will let a user switch. This repo is the open half: it knows how to
 **read** which server is active and where its api, web, console and LLM are. It has no screen, no licence and no way to add a
 server.
 
@@ -15,6 +16,9 @@ server.
 ```
 
 - `api` is required: account, workspaces, billing, the Team relay.
+- `web` and `console` are optional and default to **the server's own host** (`web` = `api`, `console` = `<web>/workspace-console`): the
+  new server serves its account page, the device activation page, the referral landing and the team console itself. There is no
+  `api.x → x` convention any more: it pointed a server at a different host (the legacy web app).
 - `services.llm`: a URL is the OpenAI-compatible base DSH sends chat to; `null` or absent means the same host as `api` (what
   Kybernos Cloud does today); `false` means **this server has no Kybernos LLM**. That is a normal case: DSH imports no
   « kybernos » models, removes the ones another server left, and the console can hide the LLM pages.
@@ -31,6 +35,60 @@ server.
   address. The id `kybernos-cloud` is reserved for the built-in server.
 
 Code: `packages/kybernos-cloud/server-profile.mjs` (pure, `test-server-profile.mjs`).
+
+## The built-in server (and the go-live checklist)
+
+With no registry and no environment override, DSH talks to the built-in server and to nothing else. It is the new server:
+`BUILTIN_API` in `server-profile.mjs` is **the one place that names it** (dev today: a Railway-generated address; the production
+name is not final). Everything else follows from it: web and console are its own host, chat goes to `<api>/v1/chat/completions`
+(`services.llm` null = same host), the connected apps' MCP endpoint is `<api>/v1/mcp/connections`, there is no gateway.
+
+At go-live, change `BUILTIN_API` and run `node scripts/test-no-legacy-hosts.mjs`. It checks the two literals that cannot import it
+(the page's fallback in `packages/kybernos-plugin/client.js`, `KB_FEEDBACK_API_DEFAULT` in `packages/kybernos-plugin/index.js`) and
+tells you which one to edit; it also fails on any old-stack hostname in shipped code (the allowlist is in the test, with a reason
+per entry). If a separate web app exists by then, give the built-in profile a `web` there (the discovery document of the server
+publishes it when it is configured).
+
+The sandbox and the tests re-point the built-in server with `KYBERNOS_CLOUD_API=http://localhost:<port>`: its web, console and
+connections endpoint move with it.
+
+## The old stack (explicit opt-in)
+
+Nothing of the old stack was deleted; it is simply not the default any more. To use it (to compare, to reproduce a problem), add
+this entry to `servers.json` and make it active. It has its own connection file (`kybernos-cloud-kybernos-legacy.json`), so a
+token of one stack never reaches the other; the page then follows it (console, web app and gateway), and `POST
+/kybernos-cloud/server/apply` swaps the « kybernos » model route. A test reads this very block (`test-server-profile.mjs`).
+
+<!-- legacy-entry -->
+```json
+{ "active": "kybernos-legacy",
+  "servers": [ { "id": "kybernos-legacy", "name": "Kybernos (old stack)",
+                 "api": "https://api.dev.kybernos.app",
+                 "web": "https://dev.kybernos.app",
+                 "console": "https://dev.kybernos.app/workspace-console",
+                 "services": { "gateway": "https://api.dev2.kybernos.app" } } ] }
+```
+
+The block above is the whole file; with other servers in it, add only the entry and set `active`. The old stack has no connected
+apps endpoint (`services.connections` absent = not offered), and plugins that call routes only the new server has (for example the
+Team lessons or skills routes) fail there; that is the point of keeping it behind an opt-in.
+
+Three more things the old stack needs on purpose, because none of them is a default any more:
+
+- the gateway watcher (remote widget, remote control: `/gateway/poll`, `/widget/api/reply`, `/telecommande/*`) needs `pairingToken` AND
+  `gatewayBase` in `<DSH home>/kybernos/settings.json`; with a token and no `gatewayBase` it stays inactive and sends nothing;
+- the Composio plugin's full app list came from the old Composio proxy; it is read now from the signed-in server (page) or from an address in
+  `KYBERNOS_COMPOSIO_APPS_URL` (host half; unset = the local 100-app catalogue, and a scan is reported partial);
+- public links (`/v1/shares`, `/v1/chats`, links on the old web app's `/s/<slug>`) work only if the active server has those routes.
+
+## An install left by the old stack
+
+A DSH that was connected before the new server became the default has `kybernos-cloud.json` recording `api: <old stack>` and an old token,
+and the « kybernos » model route pointing at the old address. At start (before anything can use the token) the cloud host sees that the
+connection belongs to ANOTHER server than the active one: it **moves the file aside** as `kybernos-cloud-<host>.json` (0600, kept,
+never read for this server), removes the model route and credential that connection imported, and the person is « not connected » and
+pairs again. The token never reaches the new server and chat never keeps going to the old address (`test-unplug-host.mjs`). A state with
+no `api` (older than the field) is trusted as before.
 
 ## The registry
 
@@ -59,6 +117,21 @@ Anyone can edit the file by hand. What the paid module sells is the management o
 |---|---|
 | `GET /kybernos-cloud/server` | `{ ok, server: { id, name, api, web, console, llm, gateway }, source, error?, servers: [{ id, name, api, llm, active, connected }], rejected }`. `connected` = this DSH holds a sign-in for that server (its own connection file); nothing of the token is returned. No secret lives in a profile. |
 | `POST /kybernos-cloud/server/apply` | Make DSH follow the registry: clean the previous server's route, mark the new one, import its catalogue if connected. Idempotent. `{ ok, server, cleaned, connected, models?, no_llm?, import_error? }`. Same-origin guarded. |
+
+## Which workspace a chat call is billed to
+
+The server bills a call to the workspace named in `x-kybernos-workspace`, else to the person's **personal** workspace. DSH's chat has no way to
+name one per call, so the model route the plugin writes (`llm-pi-ai.providers.kybernos`) carries the header of the **active space** as a profile
+`header`, and the catalogue is read with the same header: a team's own models (`byok/…`, shared with its members by an owner or admin) are in the
+catalogue of that team and in no other. Choosing or creating a space rewrites the route; a refresh re-reads the catalogue (one GET) and rewrites it
+only when the models changed. Without this a member's chat used their personal allowance whatever the Cloud card said (measured, `console2` lane of
+the production gate).
+
+Two more things serve the quota notice and the Cloud card: `GET /kybernos-cloud/quota` (what stopped the last call: the active space's plan and
+payment state and the person's own windows that are used up, no token) and the `space_plan.mfa` field of `/status` (a workspace that asks its
+members for a second factor: `grace` with the date, or `blocked`). DSH words every refusal « Request quota exhausted » (a 403 is « API key is
+invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead. The notice's
+button has the host open the console in the system browser (`POST /kybernos-cloud/console/link` with `open: true`).
 
 ## The discovery document a company server serves
 
@@ -92,7 +165,7 @@ imported.
 ## Still tied to Kybernos Cloud (deliberately)
 
 - The referral page (`KB_REFERRAL_PAGE`) and the feedback address (`KB_FEEDBACK_API_DEFAULT`): they belong to the vendor, not to
-  a company's server.
+  a company's server. Both point at the built-in server (checked by `scripts/test-no-legacy-hosts.mjs`).
 - `gateway-watcher.mjs` (`https://kybernos.app` by default, from its own `gatewayBase` setting) and the Composio proxy: they are
   not the account server and this seam does not move them.
 - The credential name `KYBERNOS_API_KEY` is global: the model route holds one token at a time. The switch cleans it, so « last
@@ -100,7 +173,9 @@ imported.
 
 ## Tests
 
-`node packages/kybernos-cloud/test-server-profile.mjs` (profile and registry rules), `node packages/kybernos-cloud/test-server-switch.mjs`
+`node scripts/test-no-legacy-hosts.mjs` (the built-in server is the new one, no old hostname in shipped code, the page's and the
+feedback's fallbacks equal `BUILTIN_API`), `node packages/kybernos-cloud/test-server-profile.mjs` (profile and registry rules, the
+built-in server, the documented old-stack entry), `node packages/kybernos-cloud/test-server-switch.mjs`
 (four fake servers: boot, switch, no LLM, a separate LLM service, leaving for an unconnected server, an unreadable registry; it
 fails if the cleanup or the no-LLM rule is removed), `node packages/kybernos-plugin/test-server-client.mjs` (the page's loader,
 cut out of `client.js`).

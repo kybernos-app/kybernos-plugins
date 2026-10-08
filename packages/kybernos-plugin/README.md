@@ -70,8 +70,8 @@ switched off with a `SKILL.md.disabled`, is never touched.
 - Calls DSH's own `/api/*` on `127.0.0.1:$DSH_WEB_PORT` with a signed `dsh-auth-*` cookie built from the
   `client-connection/browser-session` secret (widget bridge, gateway).
 - Outbound: `models.dev` (prices); `artificialanalysis.ai` (only with `AA_API_KEY`); the configured LLM providers (voice,
-  starters, portraits, translation); the feedback relay (`<api>/v1/feedback`, default
-  `https://api.dev.kybernos.app`); **`https://kybernos.app` only when `pairingToken` is set** in `kybernos/settings.json`;
+  starters, portraits, translation); the LiveKit server of `livekit.env`; the feedback relay (`<api>/v1/feedback`, default
+  the built-in Kybernos server's address, `BUILTIN_API` in `kybernos-cloud/server-profile.mjs`); the gateway watcher (`/gateway/poll`, widget replies, remote control) **only when both `pairingToken` and `gatewayBase` are set** in `kybernos/settings.json` (no default host: that gateway belongs to the old stack);
   `edge-tts` sends text to Microsoft. In the browser `kb-places.js` uses photon.komoot.io, nominatim.openstreetmap.org, CARTO tiles
   and a jsdelivr fallback. Helpers: `tools/visages-equipe.py`.
 

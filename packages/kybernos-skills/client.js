@@ -1714,18 +1714,27 @@ window.__ModuleLoader__.load({
       }))
 
       // Why the Team tab shows nothing to do: not signed in, not on the plan, no team workspace, not on this server…
-      // The page of the plans (the app's /billing route shows the plans grid). Opened in a new tab: this screen stays where it is.
-      const TEAM_PLAN_URL = 'https://kybernos.app/billing'
-
+      // The page of the plans: the console of the ACTIVE server (its « Plan & Credits » page, with its own sign-in in a browser), which
+      // the cloud host reports (`/kybernos-cloud/server`): no address is written here. Opened in a new tab: this screen stays where it is.
       function TeamLocked(props) {
         const kind = props.kind
+        const planPair = React.useState('')
+        const planUrl = planPair[0]
+        React.useEffect(() => {
+          if (kind !== 'plan') return undefined
+          let alive = true
+          fetch('/kybernos-cloud/server', { headers: { accept: 'application/json' } }).then((r) => r.json().catch(() => null))
+            .then((j) => { if (alive === true && j !== null && j.ok === true && j.server !== null && typeof j.server === 'object' && typeof j.server.console === 'string') planPair[1](j.server.console) })
+            .catch(() => { /* no plans link */ })
+          return () => { alive = false }
+        }, [kind])
         const known = ['plan', 'signin', 'space', 'server', 'reconnect', 'net'].indexOf(kind) >= 0
         const retriable = kind === 'net' || kind === 'other' || kind === 'reconnect'
         return h('div', { className: 'kb-empty' }, icon(kind === 'plan' || kind === 'signin' || kind === 'space' ? 'lock' : 'alert', 24),
           h('span', { className: 'kb8-name' }, t(known ? 'tm.lock.' + kind + '.t' : 'tm.lock.other.t')),
           h('span', { className: 'kb8-parent', style: { maxWidth: '520px' } }, known ? t('tm.lock.' + kind + '.b') : (props.detail || '')),
           h('div', { className: 'kb-row', style: { justifyContent: 'center' } },
-            kind === 'plan' ? h('a', { className: 'kb8-primary', href: TEAM_PLAN_URL, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, t('tm.seePlan')) : null,
+            kind === 'plan' && planUrl !== '' ? h('a', { className: 'kb8-primary', href: planUrl, target: '_blank', rel: 'noopener noreferrer', style: { textDecoration: 'none' } }, t('tm.seePlan')) : null,
             retriable ? h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onRetry }, t('tm.retry')) : null,
             h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onBack }, t('tm.back'))))
       }

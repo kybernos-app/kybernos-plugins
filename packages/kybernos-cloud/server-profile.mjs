@@ -10,7 +10,7 @@
 //   { "active": "acme", "servers": [ { "id": "acme", "name": "Acme", "api": "https://kb.acme.example",
 //       "web": "https://kb.acme.example/app", "console": "https://kb.acme.example/app/workspace-console",
 //       "services": { "llm": "https://llm.acme.example", "gateway": null } } ] }
-//   - `api` is required; `web` and `console` are derived from it when absent;
+//   - `api` is required; `web` and `console` are derived when absent (web = the api host itself, console = <web>/workspace-console);
 //   - services.llm: a URL = the OpenAI-compatible base DSH sends chat to; null/absent = same host as `api` (today's Kybernos
 //     Cloud); false = THIS SERVER HAS NO KYBERNOS LLM (a normal case: DSH imports no « kybernos » models and the console hides
 //     the LLM pages);
@@ -22,7 +22,21 @@
 //   - https only; http only for a loopback address (a bearer token never crosses a clear network).
 // One server is active at a time. Each server has its OWN connection file (kybernos-cloud-<id>.json), so switching never
 // signs anyone out and never lets one server's token reach another.
+//
+// THE BUILT-IN SERVER is the NEW Kybernos server (kybernos-server): with no registry and no override, it is the only server DSH
+// talks to. The old stack (its api, its web app and its gateway) is NOT in this file any more: it stays reachable as
+// an explicit opt-in, one servers.json entry documented in docs/dev/servers.md (« The old stack »), so nothing legacy is deleted
+// and nothing legacy is the default. scripts/test-no-legacy-hosts.mjs fails if an old hostname comes back into shipped code.
 import { readFileSync } from 'node:fs'
+
+// ── GO-LIVE: THE ONE PLACE THAT NAMES THE BUILT-IN SERVER ───────────────────────────────────────────────────────────────
+// Dev runs on a Railway-generated address; the production name (api.kybernos.app) is not final. When it is, change this
+// line and nothing else in the plugins: web, console, the LLM base and the connections endpoint all follow from it, and the
+// two literals that cannot import it (the page's fallback in packages/kybernos-plugin/client.js, the feedback fallback in
+// packages/kybernos-plugin/index.js) are checked against it by scripts/test-no-legacy-hosts.mjs, which says which one to edit.
+export const BUILTIN_API = 'https://server-dev-7831.up.railway.app'
+/** The connected apps' endpoint on the server's own origin (ADR 0008 of the server). */
+export const CONNECTIONS_PATH = '/v1/mcp/connections'
 
 export const DEFAULT_SERVER_ID = 'kybernos-cloud'
 const ID = /^[a-z0-9][a-z0-9-]{0,39}$/
@@ -44,22 +58,25 @@ const urlOrNull = (value) => {
   return u.origin + u.pathname.replace(/\/+$/, '')
 }
 
-/** « https://api.x.y » → « https://x.y » (the Kybernos convention); any other host keeps its own origin. */
-export const deriveWeb = (api) => {
-  const clean = urlOrNull(api)
-  if (clean === null) return null
-  const u = new URL(clean)
-  return u.protocol + '//' + u.host.replace(/^api\./, '')
-}
+/** Where a server's pages live when it does not say: on its OWN host. The new server serves its account page, the activation
+ *  page, the referral landing and the team console itself (`<api>/account`, `/cloud/cli/activate`, `/r/<code>`,
+ *  `/workspace-console`), and publishes a `web` of its own only when a separate web app exists. The old convention
+ *  (« https://api.x.y » → « https://x.y ») pointed a server at ANOTHER host, the legacy web app: it is gone. */
+export const deriveWeb = (api) => urlOrNull(api)
 
-export const DEFAULT_PROFILE = Object.freeze({
+/** The built-in profile for a given api address: everything else is the server's own host. */
+const builtinProfile = (api) => Object.freeze({
   id: DEFAULT_SERVER_ID,
   name: 'Kybernos Cloud',
-  api: 'https://api.dev.kybernos.app',
-  web: 'https://dev.kybernos.app',
-  console: 'https://dev.kybernos.app/workspace-console',
-  services: Object.freeze({ llm: null, gateway: 'https://api.dev2.kybernos.app', connections: null }),
+  api,
+  web: api,
+  console: api + '/workspace-console',
+  // The new server has no separate LLM service (same host as the api) and no admin gateway (the host relay replaced it);
+  // its connected apps are on its own origin.
+  services: Object.freeze({ llm: null, gateway: null, connections: api + CONNECTIONS_PATH }),
 })
+
+export const DEFAULT_PROFILE = builtinProfile(BUILTIN_API)
 
 /** `{ ok: true, profile }` or `{ ok: false, error }`. A field that is present and invalid refuses the whole profile: a
  *  typo must never silently fall back to another server's address. */
@@ -120,8 +137,11 @@ export const activeServer = ({ env = process.env, registryFile }) => {
   const list = [summary(DEFAULT_PROFILE)].concat(registry.servers.map(summary))
   const fromEnv = urlOrNull(typeof env.KYBERNOS_CLOUD_API === 'string' ? env.KYBERNOS_CLOUD_API : '')
   if (fromEnv !== null) {
-    const base = registry.servers.find((s) => s.id === registry.active) || DEFAULT_PROFILE
-    return { profile: Object.freeze(Object.assign({}, base, { api: fromEnv, web: deriveWeb(fromEnv), console: deriveWeb(fromEnv) + '/workspace-console' })), source: 'env', servers: list, rejected: registry.rejected }
+    const chosen = registry.servers.find((s) => s.id === registry.active)
+    // An override of api re-points the server the person is on: the built-in one entirely (its web, console and connections are its
+    // own host), a registry server with its other fields (its endpoint, on its old host, is left behind: connectionsEndpoint).
+    const profile = chosen === undefined ? builtinProfile(fromEnv) : Object.assign({}, chosen, { api: fromEnv, web: deriveWeb(fromEnv), console: deriveWeb(fromEnv) + '/workspace-console' })
+    return { profile: Object.freeze(profile), source: 'env', servers: list, rejected: registry.rejected }
   }
   if (registry.active !== null && registry.active !== '' && registry.active !== DEFAULT_SERVER_ID) {
     const found = registry.servers.find((s) => s.id === registry.active)

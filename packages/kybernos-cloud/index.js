@@ -1,7 +1,7 @@
 // ── Kybernos Cloud — appairage par code d'appareil + profil + catalogue (half host) ─
 //
 // Ce half fait trois choses :
-//   1. parler à l'API Kybernos (https://api.dev.kybernos.app par défaut) ;
+//   1. parler à l'API du serveur Kybernos actif (le NOUVEAU serveur par défaut : BUILTIN_API dans server-profile.mjs) ;
 //   2. garder le secret d'appareil HORS du navigateur et HORS du dépôt, dans
 //      <DSH home>/kybernos-cloud.json (~/.dsh by default, mode 0600) ;
 //   3. quand l'utilisateur est connecté, importer AUTOMATIQUEMENT le catalogue
@@ -35,7 +35,8 @@
 // client ne voit que `publicState()` (profil, workspaces, état, résumé du
 // catalogue). L'abonnement (glm, deepseek… accessibles selon la formule) est
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
-import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
@@ -160,6 +161,11 @@ const espaceActif = (state) => {
 const readSpacePlan = async (state, id) => {
   if (typeof id !== 'string' || id === '' || isConnected(state) !== true) return null
   const res = await apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/plan', { token: state.token })
+  // A workspace that asks for a second factor turns away a member who has none, once the grace is over: the plan is unknown, the reason is not. DSH itself can only
+  // say « API key is invalid » to that person (a 403 is AUTH to it), so the card carries the reason.
+  if (res.status === 403 && res.body !== null && typeof res.body === 'object' && res.body.error === 'mfa_required_by_workspace') {
+    return { workspace_id: id, key: 'none', name: null, level: null, label: null, status: null, credit_balance_credits: null, mfa: { state: 'blocked', ends: null } }
+  }
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return null
   const b = res.body
   const plan = b.plan !== null && typeof b.plan === 'object' ? b.plan : null
@@ -172,7 +178,8 @@ const readSpacePlan = async (state, id) => {
   const label = name === null ? null : (kind === 'individual' && level !== null && level.toLowerCase() !== name.toLowerCase() ? name + ' ' + level : name)
   const credits = Number(b.credit_balance_credits)
   return { workspace_id: id, key, name, level, label, status: typeof b.status === 'string' ? b.status : null,
-    credit_balance_credits: Number.isFinite(credits) ? credits : null }
+    credit_balance_credits: Number.isFinite(credits) ? credits : null,
+    ...(res.grace !== null ? { mfa: { state: 'grace', ends: res.grace } } : {}) }
 }
 
 /** What the page may know of it: only when it was read for the space that is active NOW. */
@@ -192,7 +199,9 @@ const setActiveSpace = async (req, body) => {
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
   const next = Object.assign({}, state, { active_workspace_id: voulu, space_plan: await readSpacePlan(state, voulu) })
   writeState(next)
-  return { ok: true, state: publicState(next) }
+  // The model route names the active space and lists its catalogue: it follows the choice (nothing is written when it already matches).
+  await importCatalog('space')
+  return { ok: true, state: publicState(readState()) }
 }
 
 /** Route : créer un espace. Le serveur hébergé reste maître — on transmet le
@@ -217,7 +226,8 @@ const createSpace = async (req, body) => {
   const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
   next.space_plan = await readSpacePlan(state, espaceActif(next))
   writeState(next)
-  return { ok: true, state: publicState(next) }
+  await importCatalog('space')
+  return { ok: true, state: publicState(readState()) }
 }
 
 const publicPairing = (state) => ({
@@ -289,6 +299,7 @@ const apiCall = async (path, options = {}) => {
   const timer = setTimeout(() => ctrl.abort(), Number.isFinite(options.timeoutMs) && options.timeoutMs > 0 ? options.timeoutMs : REQUEST_TIMEOUT_MS)
   try {
     const headers = { 'content-type': 'application/json' }
+    if (options.headers !== undefined && options.headers !== null && typeof options.headers === 'object') Object.assign(headers, options.headers)
     if (token !== null) headers.authorization = 'Bearer ' + token
     const res = await fetch((typeof options.base === 'string' ? options.base : resolveApi()) + path, {
       method,
@@ -308,7 +319,9 @@ const apiCall = async (path, options = {}) => {
     let readable = true
     try { parsed = JSON.parse(got.text) } catch (e) { parsed = null; readable = got.text.trim() === '' }
     if (readable !== true && res.status >= 200 && res.status < 300) return { status: 0, body: null, error: 'invalid_response' }
-    return { status: res.status, body: parsed }
+    // When the workspace asks its members for a second factor, a member who has none is told when the grace ends on every answer of that workspace.
+    const grace = res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('x-kybernos-mfa-grace-ends') : null
+    return { status: res.status, body: parsed, grace: typeof grace === 'string' && grace !== '' ? grace : null }
   } catch (e) {
     return { status: 0, body: null, error: String((e && e.message) || e) }
   } finally {
@@ -402,6 +415,16 @@ const statusRoute = () => {
   return { ok: true, connected: false, status: 'none' }
 }
 
+/** Does the server's catalogue for the active space list other models than the route holds? One read; nothing is written here, and the plan is
+ *  not part of the comparison (a plan change alone has never rewritten the route). A server that cannot answer says « no change ». */
+const catalogChanged = async (state, known) => {
+  if (server().profile.services.llm === false || known === null || Array.isArray(known.ids) !== true) return false
+  const cat = await fetchCatalog(state)
+  if (cat.ok !== true) return false
+  const key = (ids) => ids.slice().sort().join('\n')
+  return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
+}
+
 const refreshProfile = async () => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false, status: 'none' }
@@ -453,8 +476,16 @@ const refreshProfile = async () => {
   let models = null
   let import_error
   const known = state.models !== undefined && state.models !== null ? state.models : null
-  if (known === null || known.provider !== PROVIDER_ID) {
+  const routeSpace = known !== null && typeof known.workspace === 'string' ? known.workspace : null
+  if (known === null || known.provider !== PROVIDER_ID || routeSpace !== activeId) {
+    // Nothing imported yet, or the route names another space than the active one (the list of spaces was not known at the claim, or the active one
+    // is gone): import for the active space. An import for the same space is a no-op (fingerprint), so this is not churn.
     const imported = await importCatalog('refresh')
+    models = imported.summary !== undefined ? imported.summary : null
+    if (imported.ok !== true) import_error = imported.error
+  } else if (await catalogChanged(next, known)) {
+    // The models of this space changed on the server (an owner shared a model with the team, or took one away): the route is rewritten.
+    const imported = await importCatalog('refresh', { force: true })
     models = imported.summary !== undefined ? imported.summary : null
     if (imported.ok !== true) import_error = imported.error
   } else if (known.plan !== userPlan(next)) {
@@ -629,7 +660,7 @@ const parseCatalogIds = (body) => {
 const fetchCatalog = async (state) => {
   // The catalogue is read where the route will point: the profile's LLM service when it has one, else the account API.
   const llm = server().profile.services.llm
-  const res = await apiCall('/v1/models', { token: state.token, base: typeof llm === 'string' ? llm : undefined })
+  const res = await apiCall('/v1/models', { token: state.token, base: typeof llm === 'string' ? llm : undefined, headers: spaceHeaders(state) })
   if (res.status === 401 || res.status === 403) return { ok: false, error: 'catalogue_refuse', status: res.status }
   if (res.status !== 200 || res.body === null) {
     return { ok: false, error: res.status === 0 ? 'reseau' : 'catalogue_indisponible', status: res.status }
@@ -639,22 +670,36 @@ const fetchCatalog = async (state) => {
   return { ok: true, models: parsed.models, embed: parsed.embed }
 }
 
+/** The workspace a model call is billed to is named by the CALLER (`x-kybernos-workspace`); without it the server bills the person's PERSONAL
+ *  workspace. DSH's chat has nothing else to say it with, so the route carries the ACTIVE space's id: the one the Cloud card shows, and the one
+ *  whose plan, pool and shared models (a team's own `byok/…` models) the person is meant to use. No known space, no header (the server's default). */
+const SPACE_HEADER = 'x-kybernos-workspace'
+const spaceHeaders = (state) => {
+  const id = espaceActif(state)
+  return id !== null ? { [SPACE_HEADER]: id } : undefined
+}
+
 /** La route provider écrite dans `llm-pi-ai.providers.kybernos`. apiKeyEnv est
  *  une RÉFÉRENCE : le jeton vit dans le store de credentials, pas ici. */
-const providerValue = (state, entries) => ({
-  displayName: PROVIDER_DISPLAY,
-  api: 'openai-completions',
-  baseURL: baseUrl(state),
-  apiKeyEnv: CRED_REF,
-  models: entries,
-})
+const providerValue = (state, entries) => {
+  const headers = spaceHeaders(state)
+  return {
+    displayName: PROVIDER_DISPLAY,
+    api: 'openai-completions',
+    baseURL: baseUrl(state),
+    apiKeyEnv: CRED_REF,
+    ...(headers !== undefined ? { headers } : {}),
+    models: entries,
+  }
+}
 
 /** Déjà importé à l'identique ? (comparaison ids triés + formule + base) */
-const catalogFingerprint = (state, entries, plan, embed) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed, space) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
   embed === undefined || embed === null ? null : embed,
+  typeof space === 'string' ? space : null,
 ])
 
 /** Import (ou rafraîchissement) : catalogue → settings → credential → état.
@@ -682,7 +727,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed) === catalogFingerprint(state, cat.models, plan, cat.embed)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, known.workspace) === catalogFingerprint(state, cat.models, plan, cat.embed, espaceActif(state))) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -696,6 +741,8 @@ const importCatalog = async (cause, options = {}) => {
     count: cat.models.length,
     ids: cat.models.map((e) => e.id),
     embed: cat.embed,
+    // The space this route names on every call (and whose catalogue it lists): a later refresh compares it with the active one.
+    workspace: espaceActif(state),
     provider: PROVIDER_ID,
     base_url: baseUrl(state),
     settings: settingsOut.wrote === true,
@@ -779,9 +826,58 @@ const publicModels = (models) => {
   }
 }
 
+const addressOrigin = (url) => { try { return new URL(String(url)).origin } catch (e) { return null } }
+
+/** A connection recorded against ANOTHER server's address than the active one's: an install from before the new server became the default
+ *  (its file still says `api: <old stack>`), or a state copied by hand. Its token belongs to that server: it must not be sent to this
+ *  one (the new server answers 401 and the old route kept chat and feedback going to the old address until then). A state with no
+ *  `api` (a file older than the field) is trusted, as before. */
+const foreignConnection = (state) => {
+  if (state === null || typeof state !== 'object' || typeof state.api !== 'string' || state.api === '') return false
+  const theirs = addressOrigin(state.api)
+  const ours = addressOrigin(resolveApi())
+  return theirs !== null && ours !== null && theirs !== ours
+}
+
+/** Boot, FIRST thing (before any timer or refresh can use the token): take a foreign connection out of the way. The file is MOVED aside
+ *  under the name of its own host, never deleted (nothing is lost, an explicit opt-in to that server finds it again) and never read for
+ *  this server: the person is « not connected » here and pairs again. Returns what was set aside (`{ raw }`), or null. Never throws. */
+const setAsideForeignConnection = () => {
+  try {
+    const file = stateFile()
+    const raw = readState()
+    if (foreignConnection(raw) !== true) return null
+    const host = String(addressOrigin(raw.api)).replace(/^[a-z]+:\/\//, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60) || 'other'
+    const aside = join(dirname(file), 'kybernos-cloud-' + host + '.json')
+    renameSync(file, aside)
+    try { chmodSync(aside, 0o600) } catch (e) { /* exotic FS */ }
+    console.error('[kybernos-cloud] a connection recorded for another server (' + host + ') was set aside, not used for this one: pair again to connect to this server')
+    return { raw }
+  } catch (e) {
+    console.error('[kybernos-cloud] could not set aside a connection of another server: ' + String((e && e.message) || e))
+    return null
+  }
+}
+
+/** Then, once the settings and credentials services are there: the « kybernos » model route and credential the set-aside connection
+ *  imported point at the other server and go too, so chat never keeps talking to it. */
+const cleanAfterForeignConnection = async (aside) => {
+  try {
+    await removeImportedCatalog(aside.raw)
+    emptyMemoryCache()
+    markApplied()
+  } catch (e) { /* the route stays, without a token to use it */ }
+}
+
 /** Import au démarrage de DSH quand la session est déjà vivante : sans ça, un
  *  harnais relancé n'aurait les modèles qu'après une ouverture de carte. */
-const autoImportAtBoot = (ctx) => {
+const autoImportAtBoot = (ctx, aside) => {
+  if (aside !== null && aside !== undefined) {
+    const kickForeign = () => { void cleanAfterForeignConnection(aside) }
+    if (ctx.get('settings') !== undefined && ctx.get('credentials') !== undefined) kickForeign()
+    else ctx.inject(['settings', 'credentials'], kickForeign)
+    return
+  }
   // The registry may have changed while DSH was down: then the previous server's route must go, connected or not.
   const changed = appliedServerId() !== null && appliedServerId() !== server().profile.id
   if (changed !== true && isConnected(readState()) !== true) return
@@ -1032,7 +1128,7 @@ const relayRoute = async (req) => {
 // browser: it asks the server for a single-use link (valid 60 seconds) and hands THAT to the browser. The link is a bearer capability, so it is only
 // returned when it points at the server this account is connected to (a hostile or broken answer cannot send the browser elsewhere), and the route is strict
 // (a page of another origin cannot ask DSH for it).
-const consoleLink = async (req, body) => {
+const consoleLink = async (req, body, deps = {}) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
   const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id.trim().toLowerCase() : ''
@@ -1047,7 +1143,75 @@ const consoleLink = async (req, body) => {
     if ((u.protocol === 'https:' || u.protocol === 'http:') && u.origin === new URL(resolveApi()).origin) url = u.toString()
   } catch (e) { url = null }
   if (url === null) return { ok: false, status: res.status, error: 'lien_invalide' }
-  return { ok: true, url, expires_in: typeof res.body.expires_in === 'number' ? res.body.expires_in : 60 }
+  const expires = typeof res.body.expires_in === 'number' ? res.body.expires_in : 60
+  // « open: true »: this host runs on the person's machine, so it opens the SYSTEM browser with the link. The server refuses a single-use link that arrives as a navigation a
+  // page started (a tab opened by this DSH page, pointed at the link, is « cross-site » for it: the person lands on « link expired »), and accepts one the person's own OS opened
+  // (ADR 0005 § 5 of the server). Only for a caller on this machine; the address is handed back (opened: false) when no browser could be opened, and is NOT when one was.
+  if (body !== null && typeof body === 'object' && body.open === true) {
+    const peer = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? String(req.socket.remoteAddress || '') : ''
+    let opened = false
+    if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].indexOf(peer) >= 0) {
+      try { opened = (await (deps.openExternal || openExternal)(url)) === true } catch (e) { opened = false }
+    }
+    return opened ? { ok: true, opened: true, expires_in: expires } : { ok: true, opened: false, url, expires_in: expires }
+  }
+  return { ok: true, url, expires_in: expires }
+}
+
+/** Opens an http(s) address in the system browser, from the process that runs on the person's machine. True when it was handed over, false when it could not be (no desktop,
+ *  no opener, a refusal). Never a shell: the address is ONE argument (a `&` in it must not become a command), and nothing but http(s) is ever handed over. */
+const openExternal = (url, { platform = process.platform, env = process.env, spawnFn = spawn, waitMs = 3000 } = {}) => new Promise((resolve) => {
+  let ok = false
+  try { const u = new URL(String(url)); ok = u.protocol === 'https:' || u.protocol === 'http:' } catch (e) { ok = false }
+  if (ok !== true) { resolve(false); return }
+  let cmd = null
+  let args = []
+  if (platform === 'darwin') { cmd = 'open'; args = [String(url)] }
+  else if (platform === 'win32') { cmd = 'rundll32'; args = ['url.dll,FileProtocolHandler', String(url)] }
+  else if ((typeof env.DISPLAY === 'string' && env.DISPLAY !== '') || (typeof env.WAYLAND_DISPLAY === 'string' && env.WAYLAND_DISPLAY !== '')) { cmd = 'xdg-open'; args = [String(url)] }
+  if (cmd === null) { resolve(false); return }
+  let done = false
+  let timer = null
+  const finish = (value) => { if (done) return; done = true; if (timer !== null) clearTimeout(timer); resolve(value) }
+  try {
+    const child = spawnFn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true })
+    child.once('error', () => finish(false))
+    child.once('exit', (code) => finish(code === 0))
+    if (typeof child.unref === 'function') child.unref()
+    // An opener that keeps running (xdg-open waits for some browsers) has handed the address over.
+    timer = setTimeout(() => finish(true), waitMs)
+    if (typeof timer.unref === 'function') timer.unref()
+  } catch (e) { finish(false) }
+})
+
+/** What stopped the person's last call, for the notice that replaces DSH's « Request quota exhausted » (its own words, the same for every refusal: a window used up,
+ *  a cap, a failed payment). The facts are the server's, for the ACTIVE space and with the device token, which never leaves here: the person's own windows that are
+ *  used up (the pool is the team's, not theirs), the plan and whether its payment is blocked. A server that does not answer gives no facts, and the notice then
+ *  says what DSH said. */
+const quotaFacts = async () => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none' }
+  const id = espaceActif(state)
+  if (id === null) return { ok: false, error: 'espace_absent' }
+  const [plan, budget] = await Promise.all([
+    apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/plan', { token: state.token }),
+    apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/llm/budget', { token: state.token }),
+  ])
+  if (plan.status !== 200 || plan.body === null || typeof plan.body !== 'object' || budget.status !== 200 || budget.body === null || typeof budget.body !== 'object') return { ok: false, error: 'indisponible' }
+  const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
+  const p = plan.body.plan !== null && typeof plan.body.plan === 'object' ? plan.body.plan : null
+  const windows = Array.isArray(budget.body.windows) ? budget.body.windows : []
+  const exhausted = windows
+    .filter((w) => w !== null && typeof w === 'object' && w.kind === 'member' && w.exhausted === true && Number.isFinite(w.window_seconds))
+    .map((w) => ({ window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan' }))
+    .sort((a, b) => a.window_seconds - b.window_seconds)
+  return {
+    ok: true,
+    workspace: { id, name: known !== undefined && typeof known.name === 'string' ? known.name : null, role: known !== undefined && typeof known.role === 'string' ? known.role : null, personal: known !== undefined && known.personal === true },
+    plan: { key: p !== null && typeof p.key === 'string' ? p.key : 'none', name: p !== null && typeof p.name === 'string' ? p.name : null, kind: p !== null && typeof p.kind === 'string' ? p.kind : null, level: typeof plan.body.level === 'string' ? plan.body.level : null, status: typeof plan.body.status === 'string' ? plan.body.status : null },
+    payment_blocked: plan.body.payment_blocked === true,
+    exhausted,
+  }
 }
 
 // ── Artefacts (phase A) ─────────────────────────────────────────────────────
@@ -1105,6 +1269,11 @@ const shareError = (res, fallback) => {
   const detail = res && res.body && typeof res.body.error === 'string' ? res.body.error : null
   return detail !== null ? detail : (res && res.error ? res.error : fallback)
 }
+
+/** True when the SERVER says it has no such route (the new server's answer to an unknown path: 404 `{error:'not_found', message:'No such route.'}`).
+ *  Public links and hosted chats (`/v1/shares`, `/v1/chats`) are paused on the new server (its ADR 0007 § 7): the pages are told
+ *  « not on this server » instead of showing a raw `not_found`, and hide the control. A 404 about a resource has another message. */
+const routeAbsent = (res) => res !== null && res !== undefined && res.status === 404 && res.body !== null && typeof res.body === 'object' && res.body.error === 'not_found' && /no such route/i.test(String(res.body.message === undefined ? '' : res.body.message))
 
 // ── Chats DSH → webapp (annuaire de sessions) ────────────────────────────────
 // Pousse la LISTE des sessions locales (<DSH home>/sessions) vers
@@ -1229,6 +1398,7 @@ const chatEnsure = async (req, body) => {
     payload.messages = body.messages.filter((m) => m !== null && typeof m === 'object').slice(0, 500)
   }
   const res = await apiCall('/v1/chats', { method: 'POST', token: state.token, body: payload })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200 && res.status !== 201) {
     return { ok: false, status: res.status, error: shareError(res, 'materialisation refusee') }
   }
@@ -1255,6 +1425,7 @@ const shareGet = async (req) => {
     q = '?resource_type=' + encodeURIComponent(rt) + '&resource_id=' + encodeURIComponent(rid)
   } catch (e) { return { ok: false, error: 'URL illisible' } }
   const res = await apiCall('/v1/shares' + q, { token: state.token })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200) return { ok: false, status: res.status, error: shareError(res, 'lecture refusee') }
   const out = res.body !== null && typeof res.body === 'object' ? res.body : {}
   return { ok: true, share: out.share === undefined ? null : out.share, status: 200 }
@@ -1272,6 +1443,7 @@ const shareSet = async (req, body) => {
     return { ok: false, error: 'resource_type et resource_id requis' }
   }
   const res = await apiCall('/v1/shares', { method: 'POST', token: state.token, body: payload })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200 && res.status !== 201) {
     return { ok: false, status: res.status, error: shareError(res, 'ecriture refusee') }
   }
@@ -1291,6 +1463,7 @@ const shareRevoke = async (req, body) => {
     return { ok: false, error: 'resource_type et resource_id requis' }
   }
   const res = await apiCall('/v1/shares/revoke', { method: 'POST', token: state.token, body: payload })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200) return { ok: false, status: res.status, error: shareError(res, 'revocation refusee') }
   const out = res.body !== null && typeof res.body === 'object' ? res.body : {}
   return { ok: true, count: typeof out.count === 'number' ? out.count : 0, status: 200 }
@@ -1350,10 +1523,12 @@ const membersInvite = async (req, body) => {
   // Contrat de l'EF : admin | member — jamais owner depuis ici.
   const role = body.role === 'admin' ? 'admin' : (body.role === 'member' ? 'member' : '')
   if (role === '') return { ok: false, error: 'role invalide (admin|member)' }
-  const payload = { role }
-  if (email !== '') payload.email = email
-  else payload.user_id = userId
-  const res = await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/members', { method: 'POST', token: state.token, body: payload })
+  // The new server separates the two: an e-mail address is an INVITATION (`POST …/invitations`, a link valid 7 days; 501 when the
+  // server sends no e-mail, which the page words as « not available on this server »), a user id is an upsert of the role
+  // (`POST …/members`). Sending `{email, role}` to `/members` is a 400 `invalid_request`.
+  const res = email !== ''
+    ? await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/invitations', { method: 'POST', token: state.token, body: { email, role } })
+    : await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/members', { method: 'POST', token: state.token, body: { role, user_id: userId } })
   if (memberUnavailable(res)) return { ok: false, error: 'indisponible', status: res.status }
   if (res.status !== 200 && res.status !== 201) return { ok: false, status: res.status, error: shareError(res, 'invitation refusee') }
   return { ok: true, status: res.status }
@@ -3582,6 +3757,24 @@ const chatsDetail = (req) => {
   return { ok: true, dsh_id: dshId, title: titre, messages, tronque: messages.length >= DSH_DETAIL_MAX_MESSAGES }
 }
 
+/** GET /kybernos-cloud/legal: where the active server publishes its terms and its privacy policy (`GET /v1/public/legal`, public: no
+ *  token, a person may read them before an account). `null` for a document the server does not configure. The pages used to link
+ *  to `<web>/terms` and `<web>/privacy` of the old web app, which the new server host does not serve. Only https links (or http
+ *  to a loopback server, for tests and developers) are handed to the page: the owner of a server writes these addresses. */
+const legalLink = (doc) => {
+  if (doc === null || typeof doc !== 'object' || typeof doc.url !== 'string') return null
+  let u = null
+  try { u = new URL(doc.url) } catch (e) { return null }
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].indexOf(u.hostname) >= 0)) return null
+  if (u.username !== '' || u.password !== '') return null
+  return { version: typeof doc.version === 'string' ? doc.version : '', url: u.toString() }
+}
+const legalRoute = async () => {
+  const res = await apiCall('/v1/public/legal')
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, terms: null, privacy: null, error: res.status === 0 ? 'reseau' : 'indisponible' }
+  return { ok: true, terms: legalLink(res.body.terms), privacy: legalLink(res.body.privacy) }
+}
+
 // Kybernos connections (ADR 0008 of the server): the routes the connectors page calls, and three native tools for the agents. Nothing is
 // asked of a server that does not offer them (`services.connections`), and nothing is sent without the account's own token.
 const connections = createConnections({ apiCall, readState, isConnected, server, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
@@ -3603,6 +3796,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
+  // The terms and privacy addresses of the active server (public document, no token).
+  { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
   { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
   { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, run: modelsSyncRoute },
@@ -3636,6 +3831,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
   // La console Team dans le navigateur : un lien à usage unique (60 s) demandé au serveur avec le jeton d'appareil, jamais le jeton lui-même.
   { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
+  // The facts behind a refused model call (the quota notice): the active space's plan, its payment, and the windows of the person that are used up.
+  { path: '/kybernos-cloud/quota', method: 'GET', guarded: true, run: quotaFacts },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
@@ -3725,6 +3922,8 @@ const mountWebRoutes = (ctx, webServer) => {
 
 export function apply(ctx) {
   hostCtx = ctx
+  // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
+  const aside = setAsideForeignConnection()
   if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx, ctx.get('webServer'))
   else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(ctx, hostCtx.webServer))
   // Mémoire : le chunk dans le prompt, les deux outils, la capture de fin de
@@ -3735,7 +3934,7 @@ export function apply(ctx) {
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
-  autoImportAtBoot(ctx)
+  autoImportAtBoot(ctx, aside)
 }
 
 // Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre
@@ -3745,7 +3944,7 @@ export {
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
-  consoleLink,
+  consoleLink, openExternal,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,

@@ -167,8 +167,9 @@ All paths are under the DSH home, resolved like DSH does (`$DSH_HOME` when set, 
   scans of chat code blocks and of the Plugins page. No `remote.*` is used, although `package.json` lists
   `@deepseek-ai/dsh-api-remotes` among seven client dependencies.
 - Network: from the host, `https://connect.composio.dev/mcp` and
-  `https://kybernos-proxy-production.up.railway.app/v1/connections/apps` (public app list; the page also fetches
-  it for "Load the full catalog"); a server's own address when it is tested; links to
+  an app-list address ONLY when `KYBERNOS_COMPOSIO_APPS_URL` is set (a public list; the old Composio proxy was the default, it is not any
+  more: the new server's `GET /v1/connections/apps` needs the account's token, so the page's "Load the full catalog" asks the cloud plugin's host
+  route `/kybernos-cloud/connections/apps` instead, and the host half scans against the local catalog unless that variable is set); a server's own address when it is tested; links to
   `https://dashboard.composio.dev/`. The page itself never contacts Composio.
 
 ## Tests
