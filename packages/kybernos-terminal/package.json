@@ -1,0 +1,33 @@
+{
+  "name": "@local/kybernos-terminal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dresses the shell code fences of the DSH chat as terminal windows (title bar, $ prompt) — DOM decoration only, no engine patch.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client",
+    "cordis.patch.yml"
+  ],
+  "scripts": {
+    "check": "node --check client/client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}
