@@ -1,7 +1,7 @@
 // Test standalone du noyau des providers maison — sans DSH.
 // Simule un ctx.subprocess.spawn minimal pour prouver le run one-shot.
 //   node test-noyau.mjs
-import { runOneShot, texteTache, RunFailure, sonder, trouverBinaire } from './noyau.mjs'
+import { runOneShot, texteTache, RunFailure, sonder, trouverBinaire, trouverModeleFree } from './noyau.mjs'
 import { spawn as nodeSpawn } from 'node:child_process'
 
 let echecs = 0
@@ -53,6 +53,12 @@ try {
   {
     const s = await sonder({ produit: 'OpenCode', binaire: 'opencode', versionArgs: ['--version'], authArgs: ['models'], authOk: (code) => code === 0 })
     ok('sonde OpenCode prête', s.pret === true, JSON.stringify(s))
+  }
+
+  // découverte d'un modèle gratuit sur le portail Nous (réel, sans clé)
+  {
+    const m = await trouverModeleFree('https://inference-api.nousresearch.com/v1')
+    ok('découvre un modèle :free sur le portail Nous', typeof m === 'string' && m.endsWith(':free'), String(m))
   }
 } finally {
   console.log('\nNOYAU — ' + echecs + ' échec(s)')

@@ -17,7 +17,8 @@ try {
   ok('opencode run + skip-permissions', eq(opencode('opencode', undefined, ['t']), ['opencode', 'run', '--dangerously-skip-permissions', 't']))
   ok('opencode joint les tâches', opencode('opencode', undefined, ['a', 'b']).pop() === 'a\n\nb')
   ok('aucun modèle en dur (defaut = pas de -m)', !gemini('gemini', undefined, ['t']).includes('-m'))
-  ok('hermes -z one-shot', eq(hermes('hermes', undefined, ['t']), ['hermes', '-z', 't']))
+  ok('hermes -z (modèle découvert à l\'exécution, -m si fourni)', eq(hermes('hermes', undefined, ['t']), ['hermes', '-z', 't']))
+  ok('hermes -m quand fourni, avant -z', (() => { const a = hermes('hermes', 'x/y', ['t']); return a[1] === '-m' && a[2] === 'x/y' && a[3] === '-z' })())
 } finally {
   console.log('\nPROVIDERS — ' + echecs + ' échec(s)')
   process.exit(echecs === 0 ? 0 : 1)

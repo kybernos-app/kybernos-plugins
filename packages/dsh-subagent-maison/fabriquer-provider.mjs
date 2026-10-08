@@ -50,7 +50,7 @@ export function fabriquerProvider (spec) {
       this.inheritsParentContext = false
     }
 
-    start (request) {
+    async start (request) {
       const parentCwd = request.parent.session.header.cwd
       if (parentCwd === undefined) throw new Error(`${spec.produit}: pas de dossier de travail pour l’enfant — déléguez depuis une session qui en a un`)
       let cwd
@@ -62,7 +62,13 @@ export function fabriquerProvider (spec) {
       }
 
       const taches = texteTache(request.prompt)
-      const argv = spec.argv(this.config.bin, this.config.model, taches, { apiKey: this.config.apiKey, baseUrl: this.config.baseUrl })
+      // Résolution du modèle : le config/ENV d'abord ; sinon le hook optionnel
+      // du provider (ex. Hermes découvre un modèle `:free`, jamais en dur).
+      let model = this.config.model
+      if ((model == null || model === '') && typeof spec.resoudreModel === 'function') {
+        model = await spec.resoudreModel({ baseUrl: this.config.baseUrl, env: this.config.env })
+      }
+      const argv = spec.argv(this.config.bin, model, taches, { apiKey: this.config.apiKey, baseUrl: this.config.baseUrl })
       const env = { ...scrubbedParentEnv(), ...this.config.env }
       const spawn = (spawnSpec) => this.ctx.subprocess.spawn(spawnSpec)
 

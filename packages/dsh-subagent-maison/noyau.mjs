@@ -93,6 +93,24 @@ export function executer (binaire, args, { delaiMs = 30000, cwd, env } = {}) {
 }
 
 /**
+ * Découvre un modèle gratuit (`…:free`) sur un catalogue OpenAI-compatible
+ * (/v1/models), à l'exécution — jamais un nom écrit en dur (politique). Utilisé
+ * par Hermes dont le défaut du portail est cassé/payant. `choisir` départage si
+ * plusieurs candidats. Renvoie un id ou null.
+ */
+export async function trouverModeleFree (baseUrl, { choisir, env = process.env } = {}) {
+  try {
+    const r = await fetch(String(baseUrl).replace(/\/$/, '') + '/models', { headers: { accept: 'application/json' } })
+    if (!r.ok) return null
+    const d = await r.json()
+    const ids = Array.isArray(d && d.data) ? d.data.map((m) => m && m.id).filter((x) => typeof x === 'string') : []
+    const gratuits = ids.filter((i) => i.endsWith(':free'))
+    if (gratuits.length === 0) return null
+    return typeof choisir === 'function' ? choisir(gratuits) : gratuits[0]
+  } catch { return null }
+}
+
+/**
  * Health-check d'une CLI agentique : binaire présent + authentifié, sans
  * consommer l'abonnement (aucun appel de modèle). Renvoie un verdict stable
  * que la page Workers et le routeur Auto consomment.
