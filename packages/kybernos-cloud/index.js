@@ -1127,6 +1127,36 @@ const openExternal = (url, { platform = process.platform, env = process.env, spa
   } catch (e) { finish(false) }
 })
 
+/** What stopped the person's last call, for the notice that replaces DSH's « Request quota exhausted » (its own words, the same for every refusal: a window used up,
+ *  a cap, a failed payment). The facts are the server's, for the ACTIVE space and with the device token, which never leaves here: the person's own windows that are
+ *  used up (the pool is the team's, not theirs), the plan and whether its payment is blocked. A server that does not answer gives no facts, and the notice then
+ *  says what DSH said. */
+const quotaFacts = async () => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none' }
+  const id = espaceActif(state)
+  if (id === null) return { ok: false, error: 'espace_absent' }
+  const [plan, budget] = await Promise.all([
+    apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/plan', { token: state.token }),
+    apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/llm/budget', { token: state.token }),
+  ])
+  if (plan.status !== 200 || plan.body === null || typeof plan.body !== 'object' || budget.status !== 200 || budget.body === null || typeof budget.body !== 'object') return { ok: false, error: 'indisponible' }
+  const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
+  const p = plan.body.plan !== null && typeof plan.body.plan === 'object' ? plan.body.plan : null
+  const windows = Array.isArray(budget.body.windows) ? budget.body.windows : []
+  const exhausted = windows
+    .filter((w) => w !== null && typeof w === 'object' && w.kind === 'member' && w.exhausted === true && Number.isFinite(w.window_seconds))
+    .map((w) => ({ window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan' }))
+    .sort((a, b) => a.window_seconds - b.window_seconds)
+  return {
+    ok: true,
+    workspace: { id, name: known !== undefined && typeof known.name === 'string' ? known.name : null, role: known !== undefined && typeof known.role === 'string' ? known.role : null, personal: known !== undefined && known.personal === true },
+    plan: { key: p !== null && typeof p.key === 'string' ? p.key : 'none', name: p !== null && typeof p.name === 'string' ? p.name : null, kind: p !== null && typeof p.kind === 'string' ? p.kind : null, level: typeof plan.body.level === 'string' ? plan.body.level : null, status: typeof plan.body.status === 'string' ? plan.body.status : null },
+    payment_blocked: plan.body.payment_blocked === true,
+    exhausted,
+  }
+}
+
 // ── Artefacts (phase A) ─────────────────────────────────────────────────────
 // Le livrable du chat local part vers `kybernos.artifacts` par `/v1/artifacts`
 // (l'app calcule le sha256, résout l'objectif implicite, uploade dans le bucket
@@ -3713,6 +3743,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
   // La console Team dans le navigateur : un lien à usage unique (60 s) demandé au serveur avec le jeton d'appareil, jamais le jeton lui-même.
   { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
+  // The facts behind a refused model call (the quota notice): the active space's plan, its payment, and the windows of the person that are used up.
+  { path: '/kybernos-cloud/quota', method: 'GET', guarded: true, run: quotaFacts },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
