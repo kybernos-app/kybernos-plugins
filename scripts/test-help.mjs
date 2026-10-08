@@ -65,9 +65,9 @@ console.log('the « ? How it works » buttons')
     const f = join(REPO, 'packages', d, 'client.js')
     if (!existsSync(f)) continue
     const src = readFileSync(f, 'utf8')
-    for (const m of src.matchAll(/window\.__KB_HELP__\.Help, \{ id: '([a-z0-9-]+)' \}/g)) { placed.push(d + '→' + m[1]); if (m[1] !== d) wrong.push(d + ' asks for ' + m[1]) }
+    for (const m of src.matchAll(/window\.__KB_HELP__\.Help, \{ id: '([a-z0-9-]+)'/g)) { placed.push(d + '→' + m[1]); if (m[1] !== d) wrong.push(d + ' asks for ' + m[1]) }
     // every use is guarded: a plugin must not depend on the Suite being there
-    for (const m of src.matchAll(/__KB_HELP__\.Help, \{ id: '[a-z0-9-]+' \}/g)) {
+    for (const m of src.matchAll(/__KB_HELP__\.Help, \{ id: '[a-z0-9-]+'/g)) {
       const before = src.slice(Math.max(0, m.index - 140), m.index)
       if (!/window\.__KB_HELP__ && window\.__KB_HELP__\.Help \?/.test(before)) wrong.push(d + ': an unguarded use')
     }
@@ -75,7 +75,7 @@ console.log('the « ? How it works » buttons')
   check('a page asks for the help of its own bundle, and always behind a guard', wrong.length === 0, wrong)
   check('the pages that carry the button', ['kybernos-theme', 'kybernos-models', 'kybernos-slash', 'kybernos-workers', 'kybernos-maintenance', 'kybernos-modeles-locaux', 'kybernos-memory', 'kybernos-skills', 'kybernos-sessions', 'kybernos-hub'].every((d) => placed.includes(d + '→' + d)), placed)
   const hub = readFileSync(join(REPO, 'packages', 'kybernos-hub', 'client.js'), 'utf8')
-  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /window\.__KB_HELP__ = construireAide\(React\)/.test(hub) && /return \{ version: 1, Help \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
+  check('the Suite publishes it (version 1) and shows the same help on a module’s page', /window\.__KB_HELP__ = construireAide\(React\)/.test(hub) && /return \{ version: 1, actions: true, Help \}/.test(hub) && /'data-kb': 'suite-aide'/.test(hub))
   check('the host keeps the shipped help when the online catalogue lacks it', /aides\.has\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []
