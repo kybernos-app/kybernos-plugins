@@ -178,6 +178,44 @@ try {
   assert.match(mod.kbFeedbackToolText(nominal), /example\.invalid\/issues/)
   ok('the nominal send is unchanged')
 
+  // 12. The fallback (mail link, « full report to copy ») goes around the relay, so it masks secrets itself, by the server's rules (R-30).
+  {
+    const secrets = ['sk-proj-ABCDEFGHIJKLMNOP1234', 'hunter2hunter2', 'ghp_abcdefghijklmnopqrstuvwxyz0123456789', 'AKIAABCDEFGHIJKLMNOP', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop', 'supersecretpw', 'Zm9vYmFyYmF6cXV4']
+    const dirty = [
+      'It fails when I use token=' + secrets[0] + ' and password: ' + secrets[1] + '.',
+      'My key ' + secrets[2] + ' and ' + secrets[3] + ' and jwt ' + secrets[4] + '.',
+      'DATABASE_URL=postgres://app:' + secrets[5] + '@db.internal/prod',
+      'Authorization: Bearer ' + secrets[6],
+      '-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----',
+      'But "token: expired" and the basic setup are only words.',
+    ].join('\n')
+    reset()
+    answers = [reply(503, 'github_indisponible')]
+    const down = await send({ kind: 'bug', title: 'Leak check token=' + secrets[0], body: dirty })
+    assert.equal(down.ok, false)
+    const shown = mod.kbFeedbackToolText(down)
+    const mailBody = decodeURIComponent(String(down.mailto))
+    for (const secret of secrets) {
+      assert.equal(shown.includes(secret), false, 'the text to copy leaks ' + secret.slice(0, 8))
+      assert.equal(mailBody.includes(secret), false, 'the mail link leaks ' + secret.slice(0, 8))
+    }
+    assert.equal(mailBody.includes('MIIEvQIBADANBgkqhkiG9w0BAQEFAASC'), false, 'a private key block is cut')
+    assert.match(shown, /\[REDACTED/, 'the person can see something was masked')
+    assert.match(shown, /token: expired/, 'a word about a secret is kept so the report stays readable')
+    assert.match(shown, /basic setup/)
+    assert.equal(JSON.stringify(posts[0].body).includes(secrets[0]), true, 'the relay request is untouched: the server masks it (one rule, two places)')
+    assert.equal(JSON.stringify(outbox()).includes(secrets[0]), true, 'the local copy keeps what the person wrote (0600, on their own machine)')
+    ok('the mail link and the text to copy mask secrets like the server does; words about secrets stay; the relay request and the local copy are untouched')
+
+    assert.equal(mod.kbFeedbackMask('sk-proj-ABC​DEFGHIJ12345').includes('ABCDEFGHIJ12345'), false, 'a secret with a zero-width character inside is found')
+    assert.equal(mod.kbFeedbackMask(42), '', 'anything that is not text is empty')
+    const t0 = Date.now()
+    const hostile = ['password: ' + 'x '.repeat(30000), 'a'.repeat(60000), ('token=' + '\\"'.repeat(20000)), 'bearer ' + 'a'.repeat(30000), 'https://' + 'u'.repeat(30000) + ':'].join('\n')
+    mod.kbFeedbackMask(hostile)
+    assert.ok(Date.now() - t0 < 1500, 'a hostile 150 KB text costs ' + (Date.now() - t0) + ' ms')
+    ok('invisible characters do not hide a secret, a non-text is empty, and a hostile text costs milliseconds')
+  }
+
   console.log('\n' + n + ' checks, all green')
 } finally {
   globalThis.fetch = realFetch

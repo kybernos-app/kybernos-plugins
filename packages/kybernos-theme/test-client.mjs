@@ -23,6 +23,8 @@
 // owner, not regressions (see the block at the end).
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { SETTINGS_KEYS, sanitizeLibrary } from './preset-store.mjs'
+import { A11Y_KEYS, sanitizeDocument } from './themes-catalogue.mjs'
 
 let pass = 0
 let fail = 0
@@ -118,7 +120,7 @@ section('catalogues')
   check('theme ids are unique', dupes(T.SKINS.map((s) => s.id)).length === 0, dupes(T.SKINS.map((s) => s.id)))
   check('wallpaper ids are unique', dupes(T.WPS.map((s) => s.id)).length === 0)
   check('font ids are unique', dupes(T.FONTS.map((s) => s.id)).length === 0)
-  check('17 ready-made themes (9 + the 8 legacy packs)', T.SKINS.length === 17, T.SKINS.length)
+  check('18 ready-made themes (10 + the 8 legacy packs)', T.SKINS.length === 18, T.SKINS.length)
   check('every theme points at an existing wallpaper', T.SKINS.every((s) => T.WPS.some((w) => w.id === s.wp)), T.SKINS.filter((s) => !T.WPS.some((w) => w.id === s.wp)).map((s) => s.id))
   check('every wallpaper is in a known category (or is "none")', T.WPS.every((w) => w.id === 'none' || T.WPCATS.some((c) => c.id === w.cat)))
   check('every wallpaper has CSS and a valid dominant colour (or none)', T.WPS.every((w) => w.css !== '' && (w.dom === '' || T.HEX(w.dom) !== null)))
@@ -649,6 +651,8 @@ section('animation: the disk (fake host)')
   const calls = []
   const serve = { settings: null, loaders: [], words: null, fail: false }
   globalThis.fetch = async (url, init) => {
+    // The theme library talks to its own route (see the « theme library » section): not this section's traffic.
+    if (!String(url).includes('loader-store')) return { json: async () => ({ ok: false, error: 'not this route' }) }
     calls.push({ url: String(url), init })
     if (serve.fail) throw new Error('offline')
     if (init && init.method === 'POST') {
@@ -852,6 +856,293 @@ section('export: three real formats')
 }
 
 // ═══ 7. Render stage (needs react) ═════════════════════════════════════════
+// ═══ Theme library (« My themes ») ═══════════════════════════════════════════
+section('theme library: what a theme may retain')
+{
+  check('the retained keys are exactly the host store\'s list (no drift)', [...T.PRESET_KEYS].sort().join() === [...SETTINGS_KEYS].sort().join(), { client: T.PRESET_KEYS.length, host: SETTINGS_KEYS.length })
+  check('every retained key is a stored setting', T.PRESET_KEYS.every((k) => k in T.DEF), T.PRESET_KEYS.filter((k) => !(k in T.DEF)))
+  const sample = {
+    mode: 'light', acc: '#112233', ov: { 'light:base': '#ffffff' }, fontText: 'inter', ligatures: false, radius: 'soft',
+    wp: 'nuit', wpVis: 50, wpBlur: 5, tint: 10, glassEffect: 'liquid', glassBlur: 10, sidebarLinked: false, sidebarOpacity: 30, fieldOpacity: 30, floatOpacity: 30,
+    bgBrightness: 110, bgContrast: 110, bgSaturation: 110, bgDarken: 10, bgFit: 'fill', bgMirror: true,
+    contrastMode: 'plus', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true,
+  }
+  const got = T.presetSettings(sample)
+  check('a value for every retained key survives the sanitiser (nothing a theme saves is dropped on the way back)', got !== null && T.PRESET_KEYS.every((k) => got[k] !== undefined), T.PRESET_KEYS.filter((k) => got === null || got[k] === undefined))
+  check('...and the host store accepts the same values', sanitizeLibrary({ presets: [{ id: 'u-x', name: 'X', settings: got }] }).library.presets.length === 1)
+  const loose = T.presetSettings({ ...sample, skin: 'bleu', fs: 17, showBrand: false, evil: 1 })
+  check('the skin, the text size and the brand toggle are not part of a theme', !('skin' in loose) && !('fs' in loose) && !('showBrand' in loose) && !('evil' in loose), Object.keys(loose))
+  check('a font or a wallpaper this plugin does not ship is dropped, not trusted', !('fontText' in T.presetSettings({ mode: 'dark', fontText: 'https://x.test/f.woff' })) && !('wp' in T.presetSettings({ mode: 'dark', wp: 'url(x)' })))
+  check('nothing known at all is null', T.presetSettings({ evil: 1 }) === null && T.presetSettings(null) === null && T.presetSettings([]) === null && T.presetSettings('x') === null)
+  check('values are clamped, bad colours dropped', (() => { const x = T.presetSettings({ wpVis: 999, acc: 'red', ov: { 'light:base': 'nope', 'light:l1': '#ABCDEF' } }); return x.wpVis === 100 && !('acc' in x) && x.ov['light:l1'] === '#abcdef' && !('light:base' in x.ov) })())
+
+  const S = { ...T.DEF, mode: 'dark', acc: '#0ea5e9', ov: { 'dark:base': '#101010' }, fontText: 'inter', radius: 'soft', wp: 'nuit', contrastMode: 'max', cbSafe: true }
+  const colorsOnly = T.presetFromState(S, {})
+  check('colours always travel, nothing else unless asked', Object.keys(colorsOnly).sort().join() === 'acc,mode,ov', Object.keys(colorsOnly))
+  const withFont = T.presetFromState(S, { font: true, radius: true })
+  check('font and corners travel when asked', withFont.fontText === 'inter' && withFont.radius === 'soft' && withFont.ligatures === true && !('wp' in withFont))
+  const all = T.presetFromState(S, { font: true, radius: true, glass: true })
+  check('glass carries the wallpaper', all.wp === 'nuit' && 'glassBlur' in all)
+  check('accessibility never travels unless it is switched on', !('contrastMode' in all) && !('cbSafe' in all) && T.presetFromState(S, { a11y: true }).contrastMode === 'max')
+  const copy = T.presetFromState(S, {})
+  copy.ov['dark:base'] = '#ffffff'
+  check('the saved overrides are a copy, not the live object', S.ov['dark:base'] === '#101010')
+  check('groupsOf says which groups a theme retains', JSON.stringify(T.groupsOf(withFont)) === JSON.stringify({ colors: true, font: true, radius: true, glass: false, a11y: false }), T.groupsOf(withFont))
+}
+
+section('theme library: records, names and the file')
+{
+  const rec = T.presetRecord({ id: 'u-a1', name: '  Bureau\n clair ', source: 'me', at: 5, settings: { mode: 'light', acc: '#0EA5E9' } })
+  check('a record is cleaned: name tidied, accent lowercased', rec !== null && rec.name === 'Bureau clair' && rec.settings.acc === '#0ea5e9', rec)
+  check('a bad id, an empty name or empty settings give null', T.presetRecord({ id: 'U 1', name: 'x', settings: { mode: 'dark' } }) === null && T.presetRecord({ id: 'u-1', name: ' ', settings: { mode: 'dark' } }) === null && T.presetRecord({ id: 'u-1', name: 'x', settings: { evil: 1 } }) === null)
+  check('a long name is cut to ' + 40, T.presetRecord({ id: 'u-1', name: 'x'.repeat(80), settings: { mode: 'dark' } }).name.length === 40)
+  check('an unknown source becomes "file"; a bad gid or version is dropped', T.presetRecord({ id: 'u-1', name: 'x', source: 'evil', gid: '../x', v: -2, settings: { mode: 'dark' } }).source === 'file' && !('gid' in T.presetRecord({ id: 'u-1', name: 'x', gid: '../x', settings: { mode: 'dark' } })))
+  const lib = T.libClean({ updatedAt: 12.4, presets: [{ id: 'u-1', name: 'A', settings: { mode: 'dark' } }, { id: 'u-1', name: 'B', settings: { mode: 'dark' } }, { id: 'bad id', name: 'C', settings: { mode: 'dark' } }, null] })
+  check('a library keeps the first of two records with one id and drops the broken ones', lib.presets.length === 1 && lib.presets[0].name === 'A' && lib.updatedAt === 12, lib)
+  check('not a library at all is an empty one', T.libClean(null).presets.length === 0 && T.libClean('x').updatedAt === 0 && T.libClean({ presets: 5 }).presets.length === 0)
+  const many = T.libClean({ presets: Array.from({ length: T.PRESET_LIMIT + 7 }, (_, i) => ({ id: 'u-' + i, name: 'n' + i, settings: { mode: 'dark' } })) })
+  check('at most ' + 100 + ' themes', many.presets.length === 100)
+
+  reset(); T.lib.presets = []; T.lib.updatedAt = 0
+  check('a name taken by a shipped theme is taken', T.libNameTaken('bleu profond') && T.libNameTaken('Défaut DSH'))
+  const a = T.libAdd('Mon thème', 'me', { mode: 'dark', acc: '#0ea5e9' })
+  const b = T.libAdd('Mon thème', 'me', { mode: 'light' })
+  check('adding a theme under a taken name numbers it', a.name === 'Mon thème' && b.name === 'Mon thème (2)', [a.name, b.name])
+  check('...and the library is in the browser right away', JSON.parse(store.get(T.LIB_KEY)).presets.length === 2 && JSON.parse(store.get(T.LIB_KEY)).updatedAt === T.lib.updatedAt)
+  check('ids are valid and distinct (u- for yours, g- for the gallery)', T.PRESET_ID.test(a.id) && a.id !== b.id && a.id.startsWith('u-') && T.libAdd('Depuis la galerie', 'gallery', { mode: 'dark' }).id.startsWith('g-'))
+  check('a theme with nothing to keep is refused', T.libAdd('Vide', 'me', {}) === null)
+  const t0 = T.lib.updatedAt
+  T.libPatch(a.id, { name: 'Renommé' })
+  check('renaming keeps the settings and moves the clock forward', T.lib.presets.find((p) => p.id === a.id).name === 'Renommé' && T.lib.presets.find((p) => p.id === a.id).settings.acc === '#0ea5e9' && T.lib.updatedAt > t0)
+  T.libPatch(a.id, { settings: { mode: 'dark', acc: '#0EA5E9', evil: 1 } })
+  check('an updated theme goes through the same check as a new one: accent lowercased, unknown keys gone', T.lib.presets.find((p) => p.id === a.id).settings.acc === '#0ea5e9' && !('evil' in T.lib.presets.find((p) => p.id === a.id).settings))
+  T.libPatch(a.id, { settings: { evil: 1 } })
+  check('...and a change that would leave nothing valid is ignored', T.lib.presets.find((p) => p.id === a.id).settings.acc === '#0ea5e9')
+  T.libRemove(b.id)
+  check('removing a theme removes only that one', !T.lib.presets.some((p) => p.id === b.id) && T.lib.presets.some((p) => p.id === a.id))
+  T.lib.presets = []; T.libRead()
+  check('a reload reads the library back from the browser', T.lib.presets.length === 2 && T.lib.presets[0].name === 'Renommé', T.lib.presets.map((p) => p.name))
+  while (T.lib.presets.length < T.PRESET_LIMIT) T.lib.presets.push(T.presetRecord({ id: 'u-fill' + T.lib.presets.length, name: 'f' + T.lib.presets.length, settings: { mode: 'dark' } }))
+  check('a full library refuses one more', T.libAdd('De trop', 'me', { mode: 'dark' }) === null)
+
+  const one = T.presetRecord({ id: 'u-f1', name: 'Bureau clair', source: 'me', at: 1, settings: { mode: 'light', acc: '#0ea5e9', ov: { 'light:base': '#f6f7f8' }, fontText: 'inter', radius: 'soft' } })
+  const file = T.presetFile(one)
+  const back = T.presetFromFileText(file)
+  check('a theme exports to a framed JSON file that imports back to the same settings', JSON.parse(file).format === 'kybernos-theme-preset' && back.ok === true && back.name === 'Bureau clair' && back.legacy === false && JSON.stringify(back.settings) === JSON.stringify(one.settings), back)
+  const old = T.presetFromFileText(T.exportTexte('json', { ...T.DEF, skin: 'bleu', acc: '#4176e6', mode: 'dark' }))
+  check('an old export (the whole look, no frame) imports as a theme, without the skin or the text size', old.ok === true && old.legacy === true && old.name === 'Thème importé' && !('skin' in old.settings) && !('fs' in old.settings) && old.settings.acc === '#4176e6', old)
+  check('not JSON, an array, a number, an empty object, a too big file: all refused with a reason', T.presetFromFileText('{ nope').error === 'json' && T.presetFromFileText('[1]').error === 'shape' && T.presetFromFileText('3').error === 'shape' && T.presetFromFileText('{}').error === 'empty' && T.presetFromFileText('x'.repeat(300 * 1024)).error === 'size' && T.presetFromFileText('').error === 'size')
+  check('a framed file with a hostile name and unknown keys keeps only the safe part', (() => { const r = T.presetFromFileText(JSON.stringify({ format: 'kybernos-theme-preset', name: '<img src=x onerror=alert(1)>', settings: { mode: 'dark', fontText: 'javascript:alert(1)', evil: 1 } })); return r.ok === true && r.settings.mode === 'dark' && Object.keys(r.settings).length === 1 })())
+  check('the file name is a slug', T.fileSlug('Bureau clair — été') === 'bureau-clair-ete' && T.fileSlug('???') === 'theme')
+}
+
+section('theme library: modified or not')
+{
+  const neutre = T.SKINS.find((s) => s.id === 'neutre')
+  const base = { ...T.DEF, ...T.skinPatch(neutre) }
+  const set = T.skinSettings(neutre)
+  check('a shipped theme\'s settings carry no skin id', !('skin' in set) && set.fontText === 'inter' && set.radius === 'standard' && set.acc === '#6114D4')
+  check('the older shipped themes leave font and corners alone', !('fontText' in T.skinSettings(T.SKINS.find((s) => s.id === 'bleu'))) && !('radius' in T.skinSettings(T.SKINS.find((s) => s.id === 'bleu'))))
+  check('right after choosing a theme it is not modified', T.settingsDirty(base, set) === false)
+  check('another accent: modified', T.settingsDirty({ ...base, acc: '#0EA5E9' }, set) === true)
+  check('the same accent in another case: not modified', T.settingsDirty({ ...base, acc: '#6114d4' }, set) === false)
+  check('another font or other corners: modified', T.settingsDirty({ ...base, fontText: 'georgia' }, set) === true && T.settingsDirty({ ...base, radius: 'soft' }, set) === true)
+  check('a changed colour override: modified; the same ones in another order: not', T.settingsDirty({ ...base, ov: { ...base.ov, 'light:l1': '#000000' } }, set) === true && T.settingsDirty({ ...base, ov: Object.fromEntries(Object.entries(base.ov).reverse()) }, set) === false)
+  check('the mode is not part of it (DSH\'s own light/dark button moves it)', T.settingsDirty({ ...base, mode: 'dark' }, set) === false)
+  check('accessibility is none of a shipped theme\'s business (a wallpaper is: it sets one)', T.settingsDirty({ ...base, contrastMode: 'max', cbSafe: true, reduceMotion: true }, set) === false && T.settingsDirty({ ...base, wp: 'nuit' }, set) === true)
+  const mine = T.presetFromState({ ...T.DEF, mode: 'dark', acc: '#0ea5e9' }, { font: true })
+  check('your own theme: accent, font and wallpaper count once it retains them', T.settingsDirty({ ...T.DEF, acc: '#0ea5e9' }, mine) === false && T.settingsDirty({ ...T.DEF, acc: '#0ea5e9', fontText: 'georgia' }, mine) === true && T.settingsDirty({ ...T.DEF, acc: '#0ea5e9', wp: 'nuit' }, mine) === false)
+  const dot = T.presetAsSkin(T.presetRecord({ id: 'u-d', name: 'D', settings: { mode: 'system', acc: '#0ea5e9', fontText: 'inter' } }))
+  check('a theme is drawn like a shipped one (mode "system" = follows the mode)', dot.mode === null && dot.acc === '#0ea5e9' && dot.fontText === 'inter' && T.skinAccent(dot) === '#0ea5e9')
+}
+
+section('theme library: state colours')
+{
+  check('the notes and pills of the library take the accessibility inks (a darker green and red in Light, blue/orange for the colour-blind palette), not the raw state colours', /\.kbth-ok\{[^}]*var\(--kbth-ink,/.test(SOURCE) && /\.kbth-bad\{[^}]*var\(--kbth-ink,/.test(SOURCE) && /\.kbth-tone-on\{--tone:var\(--kbth-ink,/.test(SOURCE))
+  check('...and the elements that carry them name the grade (kbth-gr-ok / kbth-gr-err), which is what sets the ink', (SOURCE.match(/kbth-ok kbth-gr-ok/g) || []).length >= 2 && /kbth-bad kbth-gr-err/.test(SOURCE) && /kbth-tone kbth-tone-on kbth-gr-ok/.test(SOURCE))
+}
+
+section('theme library: the disk copy (fake host)')
+{
+  const calls = []
+  const serve = { library: null, fail: false }
+  globalThis.fetch = async (url, init) => {
+    if (!String(url).includes('preset-store')) return { json: async () => ({ ok: false }) }
+    calls.push({ url: String(url), init })
+    if (serve.fail) throw new Error('offline')
+    if (init && init.method === 'POST') {
+      // The REAL host check: what the page sends must be something the host accepts.
+      const v = sanitizeLibrary(JSON.parse(init.body).library)
+      if (v.ok === true) serve.library = v.library
+      return { json: async () => (v.ok === true ? { ok: true, library: v.library, dropped: v.dropped } : v) }
+    }
+    return { json: async () => ({ ok: true, library: serve.library }) }
+  }
+  const fresh = () => { reset(); T.lib.presets = []; T.lib.updatedAt = 0; T.lib.hostState = 'unknown'; T.lib.pulled = false; calls.length = 0; serve.library = null; serve.fail = false }
+  const pauseForPush = () => new Promise((r) => setTimeout(r, 800))
+  const posts = () => calls.filter((c) => c.init && c.init.method === 'POST')
+
+  fresh()
+  T.libAdd('Un', 'me', { mode: 'dark' }); T.libAdd('Deux', 'me', { mode: 'light' }); T.libAdd('Trois', 'me', { mode: 'light', acc: '#112233' })
+  await pauseForPush()
+  check('a burst of changes goes to the disk ONCE, after a pause', posts().length === 1, posts().length)
+  check('...and the host accepted it as it stands (shape, ids, values)', serve.library !== null && serve.library.presets.length === 3 && serve.library.presets[2].settings.acc === '#112233', serve.library)
+  check('...the disk copy carries the same clock', serve.library.updatedAt === T.lib.updatedAt)
+
+  T.libRemove(T.lib.presets[0].id)
+  await pauseForPush()
+  check('a deletion reaches the disk (the library is replaced as a whole)', serve.library.presets.length === 2 && !serve.library.presets.some((p) => p.name === 'Un'))
+
+  // Another browser wrote a newer library.
+  serve.library = { v: 1, updatedAt: T.lib.updatedAt + 5000, presets: [{ id: 'u-other', name: 'Autre', source: 'me', at: 1, settings: { mode: 'dark' } }] }
+  calls.length = 0
+  let woke = 0; const poke = () => { woke += 1 }; T.lib.subs.add(poke)
+  await T.libPull(false)
+  check('pull: a newer disk library replaces the browser\'s', T.lib.presets.length === 1 && T.lib.presets[0].name === 'Autre' && T.lib.hostState === 'on', T.lib.presets.map((p) => p.name))
+  check('...and is kept in the browser for the next first paint', JSON.parse(store.get(T.LIB_KEY)).presets[0].name === 'Autre')
+  check('...the page is told', woke === 1, woke)
+  await T.libPull(true)
+  check('a quiet pull that finds nothing new does not wake the page', woke === 1, woke)
+  T.lib.subs.delete(poke)
+
+  serve.library = { v: 1, updatedAt: 1, presets: [{ id: 'u-old', name: 'Vieux', source: 'me', at: 1, settings: { mode: 'dark' } }] }
+  calls.length = 0
+  await T.libPull(true); await pauseForPush()
+  check('pull: an OLDER disk library never overwrites the browser\'s; the disk is brought up to date', T.lib.presets[0].name === 'Autre' && posts().length === 1 && serve.library.presets[0].name === 'Autre', serve.library)
+
+  fresh()
+  T.lib.presets = [T.presetRecord({ id: 'u-here', name: 'Ici', settings: { mode: 'dark' } })]; T.lib.updatedAt = 4000
+  await T.libPull(false); await pauseForPush()
+  check('first sync: an empty disk receives what the browser already knows', serve.library !== null && serve.library.presets[0].name === 'Ici', serve.library)
+
+  fresh()
+  serve.library = { v: 1, updatedAt: 9, presets: [{ id: 'u-disk', name: 'Sur disque', source: 'file', at: 1, settings: { mode: 'dark' } }] }
+  await T.libPull(false)
+  check('a fresh browser takes the library from the disk', T.lib.presets.length === 1 && T.lib.presets[0].name === 'Sur disque')
+
+  fresh()
+  serve.fail = true
+  T.libAdd('Local', 'me', { mode: 'dark' })
+  await pauseForPush()
+  await T.libPull(false)
+  check('an unreachable host: the themes stay in the browser, the state says so', T.lib.presets.length === 1 && T.lib.hostState === 'off' && JSON.parse(store.get(T.LIB_KEY)).presets.length === 1)
+  serve.fail = false
+
+  fresh()
+  serve.library = { v: 1, updatedAt: 10, presets: [{ id: 'u-ok', name: 'Bon', source: 'me', at: 1, settings: { mode: 'dark' } }, { id: 'u-bad', name: 'Mauvais', settings: { evil: 1 } }, { id: 'bad id', name: 'x', settings: { mode: 'dark' } }] }
+  await T.libPull(false)
+  check('a library from the disk is checked again in the browser: broken records are dropped', T.lib.presets.length === 1 && T.lib.presets[0].name === 'Bon', T.lib.presets.map((p) => p.name))
+
+  loaderWindow.__KB_THEME_HOST_STORE__ = false
+  fresh(); T.libAdd('Sans disque', 'me', { mode: 'dark' }); await pauseForPush()
+  check('with the host store switched off nothing is sent', calls.length === 0, calls.length)
+  delete loaderWindow.__KB_THEME_HOST_STORE__
+  delete globalThis.fetch
+  fresh()
+}
+
+// ═══ Theme gallery ═══════════════════════════════════════════════════════════
+section('theme gallery: what the page believes of a catalogue theme')
+{
+  check('the accessibility keys a catalogue may not carry are exactly the retained a11y group (no drift with the host)', [...A11Y_KEYS].sort().join() === [...T.PRESET_GROUPS.a11y].sort().join(), { host: A11Y_KEYS, client: T.PRESET_GROUPS.a11y })
+  const raw = { id: 'encre-papier', v: 2, name: 'Encre & papier', author: 'Kybernos', description: { fr: 'Sobre.', en: 'Plain.' }, settings: { mode: 'light', acc: '#1F2937', radius: 'sharp', fontText: 'georgia' } }
+  const t = T.galTheme(raw)
+  check('a catalogue theme is cleaned like a file: accent lowercased, version kept', t !== null && t.settings.acc === '#1f2937' && t.v === 2 && t.name === 'Encre & papier' && t.author === 'Kybernos', t)
+  const sneaky = T.galTheme({ ...raw, settings: { ...raw.settings, contrastMode: 'max', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true } })
+  check('accessibility settings are removed even if the host sent them (a catalogue never touches them)', sneaky !== null && !['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks'].some((k) => k in sneaky.settings), Object.keys(sneaky.settings))
+  check('a theme whose only settings were accessibility ones is dropped', T.galTheme({ ...raw, settings: { contrastMode: 'max' } }) === null)
+  check('an unknown font or wallpaper is dropped, not fetched', (() => { const x = T.galTheme({ ...raw, settings: { mode: 'dark', fontText: 'https://x.test/f.woff', wp: 'url(//x.test/a.png)' } }); return x !== null && !('fontText' in x.settings) && !('wp' in x.settings) })())
+  check('a bad id, an empty name or no settings gives null', T.galTheme({ ...raw, id: '../x' }) === null && T.galTheme({ ...raw, name: ' ' }) === null && T.galTheme({ ...raw, settings: {} }) === null && T.galTheme(null) === null && T.galTheme([]) === null)
+  check('a missing description or version is tolerated (empty text, version 1)', (() => { const x = T.galTheme({ ...raw, description: null, v: 'x' }); return x !== null && x.description.fr === '' && x.v === 1 })())
+  check('the author is drawn as text and cut', T.galTheme({ ...raw, author: '<b>' + 'x'.repeat(100) + '</b>' }).author.length <= 60)
+
+  const answer = { ok: true, source: 'signed', publishedAt: '2026-10-08T12:00:00.000Z', seq: 3, themes: [raw, raw, { id: 'bad id' }], online: { state: 'ok', at: 1, reason: null } }
+  const c = T.galClean(answer)
+  check('the host\'s answer is put in shape: duplicates and broken themes dropped, the source and the online state kept', c !== null && c.themes.length === 1 && c.source === 'signed' && c.online.state === 'ok', c)
+  check('an unknown source falls back to « shipped », an unknown online state to « never »', T.galClean({ ...answer, source: 'evil', online: { state: 'hacked' } }).source === 'shipped' && T.galClean({ ...answer, online: { state: 'hacked' } }).online.state === 'never')
+  check('anything that is not an ok answer with themes is null', T.galClean(null) === null && T.galClean({ ok: false }) === null && T.galClean({ ok: true, themes: 'x' }) === null && T.galClean('x') === null)
+  check('the language of the interface: French by default, English when asked (and for anything else)', T.kbLang() === 'fr' && (loaderWindow.__KB_I18N_ACTIVE__ = { lang: 'en-GB' }, T.kbLang() === 'en') && (loaderWindow.__KB_I18N_ACTIVE__ = { lang: 'es' }, T.kbLang() === 'en') && (loaderWindow.__KB_I18N_ACTIVE__ = { lang: 'fr-CA' }, T.kbLang() === 'fr') && (delete loaderWindow.__KB_I18N_ACTIVE__, true))
+  check('what the page says about the online catalogue', /injoignable/.test(T.galOnlineText({ state: 'offline' })) && /désactivé/.test(T.galOnlineText({ state: 'off' })) && /signature/.test(T.galOnlineText({ state: 'refused', reason: 'signature' })) && /plus ancien/.test(T.galOnlineText({ state: 'refused', reason: 'older' })) && /pas encore activé/.test(T.galOnlineText({ state: 'refused', reason: 'no-key' })) && T.galOnlineText({ state: 'ok' }) === '' && T.galOnlineText({ state: 'never' }) === '')
+}
+
+section('theme gallery: the catalogue shipped with Kybernos')
+{
+  const shipped = JSON.parse(readFileSync(new URL('./gallery.json', import.meta.url), 'utf8'))
+  const doc = sanitizeDocument(shipped)
+  check('gallery.json is a valid catalogue by the host\'s own rules', doc.ok === true && doc.doc.themes.length >= 8, doc.error && doc)
+  const ids = shipped.themes.map((t) => t.id)
+  check('ids are unique and well formed', new Set(ids).size === ids.length && ids.every((id) => /^[a-z0-9][a-z0-9-]{0,39}$/.test(id)))
+  check('every theme has a name, an author and a description in both languages', shipped.themes.every((t) => t.name && t.author && t.description.fr && t.description.en))
+  check('every theme comes through the page\'s own check unchanged (nothing is silently dropped or rewritten)', shipped.themes.every((t) => { const g = T.galTheme(t); return g !== null && JSON.stringify(g.settings) === JSON.stringify(t.settings) }), shipped.themes.filter((t) => { const g = T.galTheme(t); return g === null || JSON.stringify(g.settings) !== JSON.stringify(t.settings) }).map((t) => t.id))
+  check('none of them touches accessibility', shipped.themes.every((t) => !T.PRESET_GROUPS.a11y.some((k) => k in t.settings)))
+  check('every theme sets a mode (the gallery filters on it)', shipped.themes.every((t) => t.settings.mode === 'light' || t.settings.mode === 'dark'))
+  check('light and dark are both there', shipped.themes.some((t) => t.settings.mode === 'light') && shipped.themes.some((t) => t.settings.mode === 'dark'))
+  // Legible by construction: the engine lifts the accent, but the surfaces are the theme's own.
+  const weak = []
+  for (const t of shipped.themes) {
+    const m = t.settings.mode
+    const c = T.makeTheme(m, { acc: t.settings.acc === undefined ? null : t.settings.acc, ov: t.settings.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' })
+    const rows = [['text on the base', T.ratio(c.t1, c.base), 7], ['text on layer 1', T.ratio(c.t1, c.l1), 7], ['secondary text on layer 1', T.ratio(c.t2, c.l1), 4.5], ['accent text on layer 1', T.ratio(c.accText, c.l1), 4.5], ['button text on the accent fill', T.ratio(c.onAcc, c.fill), 4.5], ['text on a field', T.ratio(c.t1, c.input), 7]]
+    for (const [what, got, want] of rows) if (got < want) weak.push(t.id + ' (' + m + '): ' + what + ' ' + got.toFixed(2) + ' < ' + want)
+  }
+  check('every theme is legible on BOTH counts the page cares about: 7:1 text, 4.5:1 secondary text, accent text and button text', weak.length === 0, weak)
+  check('every theme brings something of its own: surfaces that are not the native ones', shipped.themes.every((t) => t.settings.ov && Object.keys(t.settings.ov).length >= 3))
+}
+
+section('theme gallery: install, update and the host (fake host)')
+{
+  const calls = []
+  const serve = { answer: null, refreshed: null, fail: false }
+  globalThis.fetch = async (url, init) => {
+    if (!String(url).includes('/gallery')) return { json: async () => ({ ok: false }) }
+    calls.push({ url: String(url), init })
+    if (serve.fail) throw new Error('offline')
+    if (init && init.method === 'POST') return { json: async () => serve.refreshed || serve.answer }
+    return { json: async () => serve.answer }
+  }
+  const mk = (id, v = 1, over = {}) => ({ id, v, name: 'Thème ' + id, author: 'Kybernos', description: { fr: 'fr', en: 'en' }, settings: { mode: 'dark', acc: '#22c55e', ov: { 'dark:base': '#0b120e' } }, ...over })
+  const snap = (themes, over = {}) => ({ ok: true, source: 'shipped', publishedAt: '2026-10-01T00:00:00.000Z', seq: 1, themes, online: { state: 'never', at: 0, reason: null }, ...over })
+  const fresh = () => { reset(); T.lib.presets = []; T.lib.updatedAt = 0; T.gal.data = null; T.gal.state = 'idle'; T.gal.refreshing = false; T.gal.refreshed = false; calls.length = 0; serve.fail = false; serve.refreshed = null }
+
+  fresh()
+  serve.answer = snap([mk('a'), mk('b')])
+  const ok = await T.galLoad()
+  check('loading reads the host once and keeps the themes', ok === true && T.gal.state === 'ready' && T.gal.data.themes.length === 2 && calls.length === 1 && calls[0].init === undefined)
+  serve.refreshed = snap([mk('a'), mk('b'), mk('c')], { source: 'signed', seq: 2, online: { state: 'ok', at: 5, reason: null } })
+  await T.galRefresh()
+  check('a refresh POSTs { op: "refresh" } and takes the new catalogue', T.gal.data.themes.length === 3 && T.gal.data.source === 'signed' && calls.length === 2 && JSON.parse(calls[1].init.body).op === 'refresh' && T.gal.refreshed === true)
+  const n = calls.length
+  await Promise.all([T.galRefresh(), T.galRefresh()])
+  check('two refreshes at once ask the host once', calls.length === n + 1, calls.length - n)
+  serve.refreshed = { ok: false, error: 'boom' }
+  await T.galRefresh()
+  check('a refresh the host cannot answer keeps what was shown', T.gal.data.themes.length === 3 && T.gal.state === 'ready')
+  fresh(); serve.fail = true
+  check('a host that cannot be reached is an error state, not a crash', (await T.galLoad()) === false && T.gal.state === 'error' && T.gal.data === null)
+  fresh(); serve.answer = { ok: false, error: 'DSH home not found' }
+  check('a host that answers ok:false is an error state too', (await T.galLoad()) === false && T.gal.state === 'error')
+  fresh()
+  loaderWindow.__KB_THEME_HOST_STORE__ = false
+  serve.answer = snap([mk('a')])
+  check('with the host switched off nothing is asked, and the state says error', (await T.galLoad()) === false && calls.length === 0)
+  delete loaderWindow.__KB_THEME_HOST_STORE__
+
+  fresh()
+  const t1 = T.galTheme(mk('a', 1))
+  const rec = T.galInstall(t1)
+  check('installing puts a copy in My themes: source « gallery », its catalogue id, version and author', rec !== null && rec.source === 'gallery' && rec.gid === 'a' && rec.v === 1 && rec.author === 'Kybernos' && rec.name === 'Thème a' && rec.id.startsWith('g-'), rec)
+  check('...and the gallery knows it is installed', T.galInstalled('a') !== null && T.galInstalled('a').id === rec.id && T.galInstalled('zzz') === null)
+  const second = T.galInstall(T.galTheme(mk('b', 1, { name: 'Thème a' })))
+  check('a name already taken gets a number, like any new theme', second.name === 'Thème a (2)')
+  T.galUpdate(T.galTheme(mk('a', 2, { settings: { mode: 'dark', acc: '#ef4444' } })), rec)
+  const after = T.galInstalled('a')
+  check('an update replaces the settings and moves the version; the name you may have changed stays', after.v === 2 && after.settings.acc === '#ef4444' && after.name === 'Thème a' && after.gid === 'a')
+  T.libPatch(after.id, { name: 'Mon vert' }); T.galUpdate(T.galTheme(mk('a', 3)), T.galInstalled('a'))
+  check('...even after a rename', T.galInstalled('a').name === 'Mon vert' && T.galInstalled('a').v === 3)
+  T.lib.presets = Array.from({ length: T.PRESET_LIMIT }, (_, i) => T.presetRecord({ id: 'u-f' + i, name: 'f' + i, settings: { mode: 'dark' } }))
+  check('a full library refuses an install', T.galInstall(t1) === null)
+  fresh()
+}
 section('page render (react-dom/server)')
 let React = null, renderToStaticMarkup = null
 try {
@@ -876,18 +1167,18 @@ if (React === null) {
   const text = (html) => html.replace(/<[^>]+>/g, '|').replace(/\|+/g, '|')
 
   const simple = render({ mode: 'dark', skin: 'bleu', acc: '#4176E6' })
-  check('the page opens on Essentiel and renders the 17 theme dots', (simple.match(/class="kbth-skin"/g) || []).length === 17, (simple.match(/class="kbth-skin"/g) || []).length)
+  check('the page opens on Essentiel and renders the 18 shipped theme dots', (simple.match(/class="kbth-skin"/g) || []).length === 18, (simple.match(/class="kbth-skin"/g) || []).length)
   check('...marks exactly the current theme as pressed', (simple.match(/class="kbth-skin" aria-pressed="true"/g) || []).length === 1 && /aria-pressed="true"[^>]*title="Bleu profond/.test(simple))
   check('...the mode segment shows Sombre pressed', /aria-pressed="true">Sombre</.test(simple))
   const natural = render({ mode: 'dark' })
   check('natural state: the pill says no layer is posted', /DSH natif/.test(natural))
   check('themed state: the pill announces the 17-token layer', /17 jetons/.test(simple))
-  check('the seven vertical tabs are always there, Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 7 && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
+  check('the eight vertical tabs are always there, Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 8 && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
   check('there is no Simple / Avancé switch any more', !/>Simple</.test(simple) && !/>Avancé</.test(simple) && !/Besoin de plus de réglages/.test(simple))
   check('Essentiel carries appearance, colour, background and font', ['Apparence', 'Couleur', 'Arrière-plan', 'Police'].every((t) => simple.includes('>' + t + '<')))
   check('the wallpaper grid starts with an "Aucun" tile (a wallpaper can be removed)', /class="kbth-wp"[^>]*title="Aucun"/.test(simple))
 
-  for (const tab of ['essentiel', 'verre', 'couleurs', 'texte', 'animation', 'accessibilite', 'partage']) {
+  for (const tab of ['essentiel', 'verre', 'couleurs', 'texte', 'animation', 'accessibilite', 'partage', 'galerie']) {
     let html = null, err = null
     try { html = render({ mode: 'dark' }, tab) } catch (e) { err = e.message }
     check('tab ' + tab + ' renders without throwing', html !== null && html.length > 500, err)
@@ -971,6 +1262,107 @@ if (React === null) {
   // Export block: the format segment must change what the preview shows.
   const exp = (fmt) => text(render({ mode: 'dark' }, 'partage'))
   check('Share › Export: the preview file name follows the format', /dsh-theme\.yml/.test(exp('yaml')))
+
+  // ── The theme library on the page ──────────────────────────────────────────
+  {
+    real.lib.presets = []; real.lib.updatedAt = 0
+    const neutre = real.SKINS.find((s) => s.id === 'neutre')
+    const neutreState = { ...real.DEF, ...real.skinPatch(neutre) }
+    const noLib = render(neutreState)
+    check('Essentiel: « Livrés » and « Mes thèmes » are two groups, the add button is always there', /Livrés/.test(noLib) && /Mes thèmes/.test(noLib) && /data-kb="theme-add"/.test(noLib))
+    check('...with no theme of yours it says so and points to Sharing', /Aucun thème à vous pour l’instant/.test(noLib) && /data-kb="theme-open-sharing"/.test(noLib))
+    check('...the shipped theme in use is named in the summary, flagged « livré », not modified', /kbth-sum-n">Neutre violet<span class="kbth-pill">livré</.test(noLib) && !/theme-modified/.test(noLib))
+    check('...its meta line includes the font and the corners it sets', /Clair · #6114D4 · police Inter · coins standard/.test(noLib))
+    check('...there is « Enregistrer sous… » and nothing to update or revert', /data-kb="theme-save"/.test(noLib) && !/data-kb="theme-update"/.test(noLib) && !/data-kb="theme-revert"/.test(noLib))
+    check('the mode alone never makes a theme « modified »', !/theme-modified/.test(render({ ...neutreState, mode: 'dark' })))
+    const edited = render({ ...neutreState, acc: '#0ea5e9' })
+    check('a shipped theme with another accent: « modifié », « Annuler », and no « Mettre à jour » (a shipped theme is not edited)', /theme-modified/.test(edited) && /data-kb="theme-revert"/.test(edited) && !/data-kb="theme-update"/.test(edited) && /enregistrez-en une copie/.test(edited))
+    check('the 18 shipped dots plus none of yours', (edited.match(/class="kbth-skin"/g) || []).length === 18 && (edited.match(/class="kbth-skin kbth-skin-add"/g) || []).length === 1)
+    check('the old « Thème : … Défaut DSH retire… » line is only shown on « Défaut DSH »', !/retire la couche de jetons/.test(edited) && /retire la couche de jetons/.test(render({ ...real.DEF })))
+
+    const mine = real.presetRecord({ id: 'u-bureau', name: 'Bureau clair', source: 'me', at: 1, settings: { mode: 'light', acc: '#0ea5e9', ov: {}, fontText: 'georgia', radius: 'soft' } })
+    const other = real.presetRecord({ id: 'g-lumen', name: 'Crépuscule', source: 'gallery', author: '@lumen', at: 2, settings: { mode: 'dark', acc: '#fb923c', ov: { 'dark:base': '#1a1220' } } })
+    real.lib.presets = [mine, other]
+    const mineState = { ...real.DEF, skin: 'u-bureau', ...mine.settings }
+    const withLib = render(mineState)
+    check('your themes are dots next to the add button (and the shipped ones stay)', (withLib.match(/class="kbth-skin"/g) || []).length === 20 && /title="Bureau clair — /.test(withLib) && /title="Crépuscule — /.test(withLib))
+    check('...the one in use is pressed, named in the summary and flagged « à vous »', /kbth-skin" aria-pressed="true"[^>]*title="Bureau clair/.test(withLib) && /kbth-sum-n">Bureau clair<span class="kbth-pill">à vous</.test(withLib) && !/theme-modified/.test(withLib))
+    check('...its meta says what it retains (font, corners)', /police Georgia/.test(withLib) && /coins doux/.test(withLib))
+    const dirtyMine = render({ ...mineState, acc: '#ff0000' })
+    check('your own theme with a changed accent: « modifié », « Mettre à jour » first, « Enregistrer sous… », « Annuler »', /theme-modified/.test(dirtyMine) && /data-kb="theme-update"[^>]*>Mettre à jour/.test(dirtyMine) && /data-kb="theme-save"/.test(dirtyMine) && /data-kb="theme-revert"/.test(dirtyMine))
+    check('a theme from the gallery is flagged « Galerie » when in use', /kbth-sum-n">Crépuscule<span class="kbth-pill">Galerie</.test(render({ ...real.DEF, skin: 'g-lumen', ...other.settings })))
+    check('an id that is gone (deleted elsewhere) reads « Personnalisé »', /kbth-sum-n">Personnalisé</.test(render({ ...real.DEF, skin: 'u-gone' })))
+
+    const sharing = render(mineState, 'partage')
+    check('Sharing lists your themes, one row each, with what each retains', (sharing.match(/data-kb="theme-row"/g) || []).length === 2 && /retient : couleurs et accent, police, coins/.test(sharing) && /retient : couleurs et accent</.test(sharing))
+    check('...the theme in use says « appliqué » and has no « Appliquer »; the other has it', (sharing.match(/data-kb="theme-apply"/g) || []).length === 1 && /kbth-tone kbth-tone-on kbth-gr-ok">appliqué</.test(sharing))
+    check('...each row exports, renames and deletes', (sharing.match(/data-kb="theme-export-one"/g) || []).length === 2 && (sharing.match(/data-kb="theme-rename"/g) || []).length === 2 && (sharing.match(/data-kb="theme-delete"/g) || []).length === 2)
+    check('...the source is shown: « à vous », « Galerie · @lumen »', /pill">à vous</.test(sharing) && /Galerie · @lumen/.test(sharing))
+    check('Sharing: import takes a .json file and says it adds, not applies', /data-kb="theme-import"/.test(sharing) && /accept=".json,application\/json"/.test(sharing) && /ne change rien tant que vous ne cliquez pas sur Appliquer/.test(sharing))
+    check('...the current look still exports (YAML, JSON, CSS), folded away', /<details class="kbth-fold"/.test(sharing) && /Exporter l’état actuel/.test(sharing) && /dsh-theme\.yml/.test(sharing) && /data-kb="theme-export"/.test(sharing))
+    check('...reset says the library is kept', /Vos thèmes enregistrés restent dans Mes thèmes/.test(sharing))
+    real.lib.presets = []
+    const sharingEmpty = render({ ...real.DEF }, 'partage')
+    check('Sharing with no theme of yours: an explanation instead of an empty list, the save button stays', /data-kb="theme-lib-empty"/.test(sharingEmpty) && /Aucun thème à vous/.test(sharingEmpty) && /data-kb="theme-save-sharing"/.test(sharingEmpty) && !/data-kb="theme-row"/.test(sharingEmpty))
+    check('the old import (it applied the file over the current look) is gone', !/Thème importé et appliqué/.test(sharingEmpty) && !/theme-import-note/.test(sharingEmpty))
+  }
+
+  // ── The gallery on the page ────────────────────────────────────────────────
+  {
+    const shipped = JSON.parse(readFileSync(new URL('./gallery.json', import.meta.url), 'utf8'))
+    const answer = (over = {}) => ({ ok: true, source: 'shipped', publishedAt: shipped.publishedAt, seq: shipped.seq, themes: shipped.themes, online: { state: 'never', at: 0, reason: null }, ...over })
+    real.lib.presets = []
+    real.gal.data = real.galClean(answer()); real.gal.state = 'ready'
+    const html = render({ ...real.DEF }, 'galerie')
+    const n = shipped.themes.length
+    check('the Galerie tab is there, the eighth, and is the one pressed when opened', (html.match(/class="kbth-adv-tab[ "]/g) || []).length === 8 && /kbth-adv-tab on" aria-pressed="true">Galerie</.test(html))
+    check('a card per theme, each with a thumbnail, its name, its author and its description', (html.match(/data-kb="theme-gal-card"/g) || []).length === n && shipped.themes.every((t) => html.includes('>' + t.name.replace(/&/g, '&amp;') + '<')) && (html.match(/par Kybernos/g) || []).length === n && (html.match(/class="kbth-thumb"/g) || []).length === n && html.includes(shipped.themes[0].description.fr),
+      { cards: (html.match(/data-kb="theme-gal-card"/g) || []).length, n, names: shipped.themes.filter((t) => !html.includes('>' + t.name.replace(/&/g, '&amp;') + '<')).map((t) => t.name), authors: (html.match(/par Kybernos/g) || []).length, thumbs: (html.match(/class="kbth-thumb"/g) || []).length })
+    check('...the thumbnails are decoration (hidden from screen readers) and painted with the theme\'s own base colour', (html.match(/class="kbth-thumb" aria-hidden="true" style="background:#[0-9a-f]{6}/g) || []).length === n)
+    check('...every card offers « Installer » and « Essayer »', (html.match(/data-kb="theme-gal-install"/g) || []).length === n && (html.match(/data-kb="theme-gal-try"/g) || []).length === n)
+    check('...and says what the theme sets (mode, accent, font, corners)', /Clair · #1f2937 · police Georgia · coins nets/.test(html) && /Sombre · #22c55e · coins nets/.test(html))
+    check('the source line says the themes are shipped with Kybernos, and how many there are', /Livré avec Kybernos/.test(html) && html.includes(n + ' thèmes') && !/Catalogue signé/.test(html))
+    check('...a search field and the filter Tous / Clair / Sombre', /data-kb="theme-gal-q"/.test(html) && /aria-pressed="true">Tous</.test(html) && />Clair</.test(html) && />Sombre</.test(html))
+    check('the page says what a theme is: a settings file, no code, nothing loaded from outside', /ne contient aucun code et ne charge rien d’extérieur/.test(html))
+    check('before any refresh there is no sentence about the online catalogue', !/data-kb="theme-gal-online"/.test(html))
+    check('a plain-text description is escaped, never HTML', !/<script|onerror/.test(html))
+
+    real.gal.data = real.galClean(answer({ source: 'signed', online: { state: 'ok', at: 1, reason: null } }))
+    const signed = render({ ...real.DEF }, 'galerie')
+    check('a signed catalogue says so, in the colour of a good state', /kbth-tone kbth-tone-on kbth-gr-ok">Catalogue signé</.test(signed) && !/Livré avec Kybernos/.test(signed))
+    for (const [state, reason, re] of [['offline', 'network', /injoignable/], ['refused', 'signature', /signature n’est pas reconnue/], ['refused', 'older', /plus ancien/], ['refused', 'no-key', /pas encore activé/], ['off', null, /désactivé/]]) {
+      real.gal.data = real.galClean(answer({ online: { state, at: 1, reason } }))
+      const h2 = render({ ...real.DEF }, 'galerie')
+      check('the online catalogue « ' + state + (reason ? ' / ' + reason : '') + ' » is said in plain words, and the shipped themes are still shown', re.test((h2.match(/data-kb="theme-gal-online"[^>]*>([^<]*)</) || [])[1] || '') && (h2.match(/data-kb="theme-gal-card"/g) || []).length === n)
+    }
+    real.gal.data = real.galClean(answer({ online: { state: 'off', at: 1, reason: null } }))
+    check('with the online catalogue off or not yet active there is no « Actualiser »', !/data-kb="theme-gal-refresh"/.test(render({ ...real.DEF }, 'galerie')) && (real.gal.data = real.galClean(answer({ online: { state: 'refused', at: 1, reason: 'no-key' } }), true), !/data-kb="theme-gal-refresh"/.test(render({ ...real.DEF }, 'galerie'))))
+    real.gal.data = real.galClean(answer({ online: { state: 'ok', at: 1, reason: null } }))
+    check('...and there is one when it can be asked', /data-kb="theme-gal-refresh"/.test(render({ ...real.DEF }, 'galerie')))
+
+    const calc = shipped.themes.find((t) => t.id === 'calcaire')
+    real.lib.presets = [real.presetRecord({ id: 'g-calc', name: 'Calcaire', source: 'gallery', author: 'Kybernos', gid: 'calcaire', v: 1, settings: calc.settings })]
+    const inst = render({ ...real.DEF }, 'galerie')
+    const cardOf = (h2, id) => (h2.match(new RegExp('<article[^>]*data-id="' + id + '"[^]*?</article>')) || [''])[0]
+    const c1 = cardOf(inst, 'calcaire')
+    check('a theme already installed shows « Installé » and « Appliquer » instead of « Installer » / « Essayer »', /kbth-tone-on kbth-gr-ok">Installé</.test(c1) && /theme-gal-apply/.test(c1) && !/theme-gal-install/.test(c1) && !/theme-gal-try/.test(c1) && /theme-gal-install/.test(cardOf(inst, 'graphite')))
+    const inUse = render({ ...real.DEF, skin: 'g-calc', ...calc.settings }, 'galerie')
+    check('...the one in use has no « Appliquer »', /kbth-tone-on kbth-gr-ok">Installé</.test(cardOf(inUse, 'calcaire')) && !/theme-gal-apply/.test(cardOf(inUse, 'calcaire')))
+    real.gal.data = real.galClean(answer({ themes: shipped.themes.map((t) => (t.id === 'calcaire' ? { ...t, v: 2 } : t)) }))
+    check('a newer version in the catalogue offers « Mettre à jour » on that card only', /theme-gal-update/.test(cardOf(render({ ...real.DEF }, 'galerie'), 'calcaire')) && (render({ ...real.DEF }, 'galerie').match(/theme-gal-update/g) || []).length === 1)
+    real.lib.presets = []
+
+    real.gal.data = real.galClean(answer({ themes: [] }))
+    check('an empty catalogue says so', /La galerie est vide/.test(render({ ...real.DEF }, 'galerie')))
+    real.gal.data = null; real.gal.state = 'loading'
+    const loading = render({ ...real.DEF }, 'galerie')
+    check('while it loads: six grey placeholders, hidden from screen readers, no card', (loading.match(/class="kbth-sk"/g) || []).length === 6 && /data-kb="theme-gal-loading"[^>]*aria-hidden|aria-hidden="true"[^>]*data-kb="theme-gal-loading"/.test(loading) && !/theme-gal-card/.test(loading))
+    real.gal.state = 'error'
+    const err = render({ ...real.DEF }, 'galerie')
+    check('when the host cannot be read: an alert with a way out (retry), not an empty page', /role="alert"/.test(err) && /Impossible de lire la galerie/.test(err) && /data-kb="theme-gal-retry"/.test(err) && /redémarrez DSH/.test(err))
+    real.gal.data = real.galClean(answer()); real.gal.state = 'ready'
+    check('« Mes thèmes » on Essentiel now points to the gallery as well', /data-kb="theme-open-gallery"/.test(render({ ...real.DEF })))
+  }
   void exp
 }
 

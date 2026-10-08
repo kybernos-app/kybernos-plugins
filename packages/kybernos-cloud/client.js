@@ -215,7 +215,7 @@ window.__ModuleLoader__.load({
         // ── Refonte du pied (30/09, maquette « Menu ouvert ») ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
-        menuPlanCta: 'Passer à Pro',
+        menuPlanCta: 'Mettre à niveau',
         menuWebsite: 'Site web',
         menuHelp: 'Aide',
         menuUpdate: 'Mise à jour disponible',
@@ -454,7 +454,7 @@ window.__ModuleLoader__.load({
         footPairingAction: 'Show code',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
-        menuPlanCta: 'Upgrade to Pro',
+        menuPlanCta: 'Upgrade',
         menuWebsite: 'Website',
         menuHelp: 'Help',
         menuUpdate: 'Update available',

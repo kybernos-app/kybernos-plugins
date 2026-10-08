@@ -8,6 +8,10 @@
 //
 //   GET|POST /kybernos-theme/loader-store   the user's loaders, loader settings and
 //        loading words, on disk under <dsh home>/kybernos (see loader-store.mjs)
+//   GET|POST /kybernos-theme/preset-store   the user's theme library ("My themes"), one
+//        JSON document under <dsh home>/kybernos (see preset-store.mjs)
+//   GET|POST /kybernos-theme/gallery   the theme gallery: the shipped catalogue (gallery.json) or the
+//        signed online one, verified and cached under <dsh home>/kybernos (see themes-gallery.mjs)
 //   GET      /kybernos-theme/vendor/lottie.js   the vendored Lottie runtime
 //        (vendor/lottie_light.min.js, MIT, see vendor/NOTICES.md), served locally so
 //        nothing is fetched from a CDN
@@ -25,13 +29,17 @@ import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { serveLoaderStore } from './loader-store.mjs'
+import { servePresetStore } from './preset-store.mjs'
+import { loadKeys, loadShipped, serveGallery } from './themes-gallery.mjs'
 import { seedSkills } from './seed-skills.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 export const LOTTIE_FILE = join(here, 'vendor', 'lottie_light.min.js')
 export const SKILLS_DIR = join(here, 'skills')
+export const GALLERY_FILE = join(here, 'gallery.json')
+export const THEMES_KEYS_FILE = join(here, 'themes-pubkey.json')
 export const SEEDED_SKILLS = ['loader', 'loading-text']
-export const ROUTES = { store: '/kybernos-theme/loader-store', lottie: '/kybernos-theme/vendor/lottie.js' }
+export const ROUTES = { store: '/kybernos-theme/loader-store', presets: '/kybernos-theme/preset-store', gallery: '/kybernos-theme/gallery', lottie: '/kybernos-theme/vendor/lottie.js' }
 
 const logError = (what, e) => { try { if (e === undefined) console.error('[kybernos-theme] ' + what); else console.error('[kybernos-theme] ' + what, e) } catch (e2) { /* console unavailable */ } }
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -148,6 +156,13 @@ function mountRoutes(ctx, webServerSvc) {
   mount(ROUTES.store, (req, res) => serveLoaderStore(req, res, {
     home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
   }), 'kybernos-theme: route loader-store')
+  mount(ROUTES.presets, (req, res) => servePresetStore(req, res, {
+    home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+  }), 'kybernos-theme: route preset-store')
+  mount(ROUTES.gallery, (req, res) => serveGallery(req, res, {
+    home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
+    shipped: () => loadShipped(GALLERY_FILE), keys: () => loadKeys(THEMES_KEYS_FILE),
+  }), 'kybernos-theme: route gallery')
   mount(ROUTES.lottie, (req, res) => serveLottie(req, res), 'kybernos-theme: route vendor lottie')
 }
 
