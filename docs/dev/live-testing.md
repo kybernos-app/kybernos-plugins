@@ -562,6 +562,41 @@ the page or in the browser's storage), a refused add that may have gone through 
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
 
+## A broken bundle must not stop DSH: `scripts/check-bundle-faults.mjs`
+
+```bash
+node scripts/check-bundle-faults.mjs [--only kybernos-atlas,dsh-mermaid] [--faults syntax,throw-apply] [--gui] [--port 3097]
+```
+
+AGENTS.md rule 2 as a measurement. In a copy of the tree served by a throw-away sandbox profile, the script breaks ONE bundle at a
+time (syntax error, throw at load, throw in `apply`, missing dependency, missing entry file, cut or missing `package.json`, a top-level
+`await` that never ends; with `--gui` also a broken, throwing or missing `client.js`), starts DSH and reports whether it started,
+whether every OTHER bundle still mounted its routes, whether the log names the entry that failed and, with `--gui`, whether the page
+still renders. It exits 1 on what a bundle can prevent. Measured 2026-10-08 on 34 bundles (272 host runs, 90 client runs):
+
+- DSH started in every run with a broken host half; the other bundles lost nothing; the failure is always in the log
+  (`dsh: warning: N entries did not activate` plus the stack); the GUI renders.
+- A broken `client.js` (any of the three faults, any bundle) replaces the **whole GUI** with the engine's « Failed to load plugins »
+  screen. That is the engine waiting for every client entry: a bundle cannot prevent it, only the release gate can (`node --check`
+  in CI, the signed archive).
+- A host half that never finishes loading (`tla-hang`) leaves the web server up and the GUI usable, but the `dsh web: http://…` banner
+  (the only place the login URL is printed) never appears. A host half that spins the CPU at load takes the whole process down.
+  Neither is fixable from a bundle: do not `await` the network at the top level of an `index.js`.
+
+The sandbox does not copy credentials and the script never touches `:3080`. Run it under a profile with no network if you want it
+to be certain that nothing leaves (a `sandbox-exec` profile denying outbound connections to everything but loopback works on macOS).
+
+### The server misbehaves
+
+`packages/kybernos-cloud/test-cloud-resilience.mjs` (hermetic) plays a programmable fake server against the REAL host routes: an
+answer of 96 MB, a redirect (307, 302), a poll that is not a verdict (429, 5xx, HTML), a captive-portal page in place of the workspace
+list, a body cut short, a Team list with entries that are not lessons. The same mistakes are covered, one file each, for the feedback
+send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skills/test-index.mjs`, 8), the models.dev read
+(`kybernos-models/test-no-engine-fetch.mjs`) and the TTL sweeper (`kybernos-computers/test-computers-host.mjs`).
+**Rules these tests pin:** a bundle's network read is bounded in size and time; a redirect is not followed; the engine's
+`ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
+firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.
+
 ## Traps
 
 - **These scripts are deliberately NOT named `test-*.mjs`.** CI runs every
