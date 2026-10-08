@@ -119,9 +119,9 @@ console.log('kybernos-call: a call, from the first click to hang-up')
   await opening
   assert.equal(e.requests[0].url, '/kybernos-call/status')
   assert.equal(e.requests[1].url, '/kybernos-call/token')
-  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', identity: 'moi' })
+  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'voice', language: 'auto', identity: 'moi' })
   assert.equal(e.requests[1].init.method, 'POST')
-  ok('it asks the host for the status, then for a token carrying the session and the team')
+  ok('it asks the host for the status, then for a token carrying the session, the team, the member, the mode and the language')
 
   const room = e.rooms[0]
   assert.deepEqual(room.connected, { url: 'wss://lk.example.test', token: 'JWT' })

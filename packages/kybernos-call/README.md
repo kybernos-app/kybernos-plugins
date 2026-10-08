@@ -17,10 +17,14 @@ seam does not exist and the two buttons are hidden.
 
 1. `POST /kybernos-call/token` returns a LiveKit room-join token (an HS256 JWT forged with `node:crypto`), starts the worker if it
    is not running, waits for it to register, and wakes it on the new room by explicit dispatch (`agent_name = kybernos-appel`).
+   **Who the call is with travels with the room**: the dispatch metadata carries `{ sessionId, kyberId, roleId, name, mode,
+   language }` (each field checked by the host, `callMetadata`). The worker serves many rooms, so none of it lives in its environment.
 2. The browser loads the LiveKit SDK (`/kybernos-call/vendor/livekit-client.js`, 2.22.3, Apache-2.0, at the first call only),
    joins the room, publishes the microphone and attaches the tracks it receives.
-3. The worker (`agent/agent.py`) listens (Groq Whisper), answers by voice (a small Groq model, macOS `say` or Groq TTS) and
-   POSTs every sentence it heard to `/kybernos-call/utterance`, which sends it to the session (`session/prompt`).
+3. The worker (`agent/agent.py`) reads that metadata (`agent/call_meta.py`), listens (Groq Whisper, in the call's language or
+   detecting it when it is `auto`), answers by voice as the member it was called as (a small Groq model, macOS `say` or Groq TTS),
+   shows a face only on a `video` call, and POSTs every sentence it heard to `/kybernos-call/utterance`, which sends it to THAT
+   call's session (`session/prompt`).
 
 ## Host routes
 
@@ -67,17 +71,29 @@ Behaviour is the same, except for what was broken or dead:
 - The unpkg fallback for the SDK is gone (the SDK ships with this bundle, and a call must not load a script from a third party).
 - Host error messages are in English; the panel text is French and English.
 
+## Changed in step 2: who a call is with
+
+- The worker no longer keeps the session and the team of the FIRST call (they were set in its environment when it started, and it
+  is started once): a second call from another session wrote into the first one. They are the dispatch metadata of each room now.
+- The member and the mode reach the worker: it speaks as the member, and a `voice` call shows no face (a `video` call does, when a
+  face provider is set). Before, every call had a face as soon as a provider key was there.
+- The language reaches it too: `auto` detects it (Whisper without a forced language) and the voice model is told to answer in the
+  language it hears. The French-only brief and the forced `fr` are gone. A hand-started worker (no metadata) still reads
+  `KYBER_SESSION_ID`, `KYBER_ID`, `KYBER_VISAGE`, `KYBER_LANGUAGE`, `KYBER_INSTRUCTIONS` from its environment.
+
 ## Known limits (from reading the code, not yet measured on a live call)
 
-- The worker is started once and keeps the session and kyber of the FIRST call (`KYBER_SESSION_ID`, `KYBER_ID` are set in its
-  environment). A later call from another session injects into the first one.
-- The client sends no member and no mode: every member sounds the same, the language is `fr`, the voice comes from an
-  environment variable.
+- Every member has the same voice: it still comes from an environment variable (`KYBER_SAY_VOICE`, `KYBER_GROQ_VOICE`); the
+  member's own voice needs a voice engine (not built yet).
+- The client always asks for the language `auto`; there is no setting for it yet.
+- Hearing is multilingual now, speaking is not: the local voice (`say`, `Thomas`) is a French voice and Groq's TTS only does English and
+  Arabic, so a Spanish answer is read with a French accent. A multilingual voice engine is the next step.
 - The voice that speaks is a separate small model; DSH's own answer is not spoken.
 - macOS only for the local TTS (`say`), and `pgrep` / `kill` are Unix.
 
 ## Tests
 
-`node packages/kybernos-call/test-host.mjs`, `test-routes.mjs`, `test-client.mjs`, `test-dsh-home.mjs`, `test-agent-process.mjs` (a real child process, Unix only). None needs DSH, a browser
+`node packages/kybernos-call/test-host.mjs`, `test-routes.mjs`, `test-client.mjs`, `test-dsh-home.mjs`, `test-agent-process.mjs` (a real child process, Unix only), `test-agent-meta.mjs` (the worker's `call_meta.py`, through
+`python3`, skipped without it). None needs DSH, a browser
 or the network. A real call needs a microphone and the keys above: run it on the sandbox instance (`scripts/sandbox/`), never
 on the owner's own GUI.

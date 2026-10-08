@@ -97,7 +97,11 @@ window.__ModuleLoader__.load({
           const r = await fetch(API + '/token', {
             method: 'POST',
             headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ sessionId: o.sessionId ?? null, kyberId: o.kyberId ?? null, identity: 'moi' })
+            body: JSON.stringify({
+              sessionId: o.sessionId ?? null, kyberId: o.kyberId ?? null, roleId: o.roleId ?? null,
+              name: String(o.name ?? ''), mode: o.mode === 'video' ? 'video' : 'voice',
+              language: typeof o.language === 'string' ? o.language : 'auto', identity: 'moi'
+            })
           })
           token = await r.json()
         } catch (e) { token = null }

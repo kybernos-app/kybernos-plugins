@@ -9,7 +9,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { createCall } from './call-host.mjs'
+import { callMetadata, createCall } from './call-host.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -106,7 +106,8 @@ try {
   const twirpCalls = []
   const fakeExec = (cmd, args, opts, cb) => {
     execCalls.push({ cmd, args, opts })
-    setImmediate(() => cb(Object.assign(new Error('none'), { code: 1 }), '', '')) // pgrep: no worker yet
+    // pgrep: no worker until one was spawned, then the one we spawned
+    setImmediate(() => (spawnCalls.length === 0 ? cb(Object.assign(new Error('none'), { code: 1 }), '', '') : cb(null, '4242\n', '')))
     return undefined
   }
   const fakeSpawn = (cmd, args, opts) => {
@@ -137,13 +138,24 @@ try {
   assert.equal(typeof start.opts.stdio[1], 'number')
   assert.equal(start.opts.stdio[1], start.opts.stdio[2])
   assert.equal(start.child.unrefCalled, true)
-  assert.equal(start.opts.env.KYBER_SESSION_ID, 'session-aaaaaaaa')
-  assert.equal(start.opts.env.KYBER_ID, 'team-1')
   assert.equal(start.opts.env.DSH_HOME, home)
-  ok('the worker is started detached with the venv\'s interpreter, its output on the log, the session and the kyber in its environment')
+  assert.equal('KYBER_SESSION_ID' in start.opts.env && start.opts.env.KYBER_SESSION_ID === 'session-aaaaaaaa', false)
+  assert.equal(start.opts.env.KYBER_ID === 'team-1', false)
+  ok('the worker is started detached with the venv\'s interpreter and its output on the log, and nothing about the call in its environment')
   assert.equal(twirpCalls.length, 1)
   assert.equal(twirpCalls[0].url, 'https://lk.example.test/twirp/livekit.AgentDispatchService/CreateDispatch')
-  assert.deepEqual(JSON.parse(twirpCalls[0].init.body), { room: 'room-xyz', agent_name: 'kybernos-appel' })
+  const dispatched = JSON.parse(twirpCalls[0].init.body)
+  assert.equal(dispatched.room, 'room-xyz')
+  assert.equal(dispatched.agent_name, 'kybernos-appel')
+  assert.deepEqual(JSON.parse(dispatched.metadata), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: null, name: null, mode: 'voice', language: 'auto' })
+  assert.deepEqual(m5.meta, JSON.parse(dispatched.metadata))
+  ok('the call\'s identity travels with the room (dispatch metadata), and is echoed in the answer')
+  const m5b = await call.mint({ sessionId: 'session-bbbbbbbb', kyberId: 'team-2', roleId: 'm2', name: 'Bob', mode: 'video', language: 'es', room: 'room-two' })
+  const second = JSON.parse(JSON.parse(twirpCalls[1].init.body).metadata)
+  assert.deepEqual(second, { sessionId: 'session-bbbbbbbb', kyberId: 'team-2', roleId: 'm2', name: 'Bob', mode: 'video', language: 'es' })
+  assert.equal(spawnCalls.length, 1, 'the second call reuses the worker')
+  assert.equal(m5b.agent.dispatched, true)
+  ok('a second call to another session is its own room with its own identity, on the same worker (the first call\'s session is not kept)')
   const bearer = decodeJwt(twirpCalls[0].init.headers.authorization.replace('Bearer ', ''), SECRET)
   assert.equal(bearer.signatureOk, true)
   assert.equal(bearer.payload.video.roomAdmin, true)
@@ -157,6 +169,26 @@ try {
   assert.equal(m6.agent.dispatchError, 'unauthenticated')
   assert.equal(m6.agent.dispatchDetail, 'bad key')
   ok('a refused dispatch does not refuse the call: agent.dispatched is false and says why')
+
+  console.log('kybernos-call: who a call is with')
+  assert.deepEqual(callMetadata({}), { sessionId: null, kyberId: null, roleId: null, name: null, mode: 'voice', language: 'auto' })
+  assert.deepEqual(callMetadata(null), callMetadata({}))
+  ok('nothing asked: no session, no member, voice, language auto')
+  const full = callMetadata({ sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: '  Alice  ', mode: 'video', language: 'pt-BR' })
+  assert.deepEqual(full, { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', language: 'pt-BR' })
+  ok('a good request passes through (the name is trimmed)')
+  const bad = callMetadata({ sessionId: 'nope', kyberId: '../etc', roleId: 'a b', name: 'Al\u0000i\nce' + 'x'.repeat(100), mode: 'hologram', language: 'Klingon!' })
+  assert.equal(bad.sessionId, null)
+  assert.equal(bad.kyberId, null)
+  assert.equal(bad.roleId, null)
+  assert.equal(bad.mode, 'voice')
+  assert.equal(bad.language, 'auto')
+  assert.equal(bad.name.length, 60)
+  assert.equal(/[\u0000-\u001f]/.test(bad.name), false)
+  ok('a bad session id, ids with path characters, an unknown mode or language are dropped; the name loses control characters and is cut at 60')
+  assert.equal(callMetadata({ name: 42, sessionId: 7, language: 5 }).language, 'auto')
+  assert.equal(JSON.stringify(callMetadata({ name: 'x'.repeat(5000), kyberId: 'k'.repeat(5000) })).length < 400, true)
+  ok('wrong types are ignored and the metadata stays small')
 
   console.log('kybernos-call: what is heard enters the session')
   const calls = []

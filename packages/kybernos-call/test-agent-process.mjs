@@ -25,14 +25,15 @@ mkdirSync(join(home, 'kybernos', 'appel-venv', 'bin'), { recursive: true })
 writeFileSync(join(home, 'kybernos', 'livekit.env'), secrets)
 // The fake worker: it announces itself, shows what it was given, then stays alive.
 const fakePython = join(home, 'kybernos', 'appel-venv', 'bin', 'python')
-writeFileSync(fakePython, '#!/bin/sh\necho "args: $@"\necho "session: $KYBER_SESSION_ID"\necho "registered worker"\nsleep 60\n')
+writeFileSync(fakePython, '#!/bin/sh\necho "args: $@"\necho "session: [$KYBER_SESSION_ID]"\necho "registered worker"\nsleep 60\n')
 chmodSync(fakePython, 0o755)
 const log = join(home, 'kybernos', 'logs', 'appel-agent.log')
 
+const dispatches = []
 const call = createCall({
   env: Object.assign({}, process.env, { DSH_HOME: home }),
   dshHome: async () => home,
-  fetch: async () => ({ status: 200, text: async () => '{}' })
+  fetch: async (url, init) => { dispatches.push(JSON.parse(init.body)); return { status: 200, text: async () => '{}' } }
 })
 
 let pid = null
@@ -50,14 +51,16 @@ try {
   const text = readFileSync(log, 'utf8')
   assert.match(text, /registered worker/)
   assert.match(text, /args: .*agent\.py start/)
-  assert.match(text, /session: session-aaaaaaaa/)
-  ok('its output lands in the log file, with the subcommand "start" and the session in its environment')
+  assert.match(text, /session: \[\]/)
+  ok('its output lands in the log file, with the subcommand "start", and the call\'s session is NOT in its environment')
 
   assert.equal(m.agent.ready, true)
   assert.ok(took < 8000, 'the call did not wait for the whole 12 s budget (took ' + took + ' ms)')
   ok('the host SAW it register (agent.ready) without waiting out its 12 s budget')
   assert.equal(m.agent.dispatched, true)
-  ok('and then woke it on the room')
+  assert.equal(dispatches.length, 1)
+  assert.equal(JSON.parse(dispatches[0].metadata).sessionId, 'session-aaaaaaaa')
+  ok('and then woke it on the room, with the session of THIS call as dispatch metadata')
 
   const state = await call.agentState()
   assert.equal(state.running, true)

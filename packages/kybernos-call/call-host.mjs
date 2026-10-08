@@ -19,6 +19,34 @@ export const SESSION_RE = /^session-[A-Za-z0-9-]{6,80}$/
 
 const str = (v) => (typeof v === 'string' ? v : null)
 const errText = (e) => (e && e.message ? String(e.message) : String(e))
+const CONTROL = /[\u0000-\u001f\u007f]/g
+const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
+const LANG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
+
+/**
+ * Who a call is with, as the worker will read it (the dispatch metadata of the room). Every field is
+ * checked here: the browser asked for it, the host decides what the worker is told.
+ *   sessionId  the session the words go to, or null (a call without a thread)
+ *   kyberId / roleId  the team and the member, or null
+ *   name       the member's name, to speak as, or null
+ *   mode       'voice' (no face) unless 'video' was asked
+ *   language   'auto' (follow the speaker) or a language code
+ */
+export function callMetadata (asked) {
+  const a = (asked !== null && asked !== undefined && typeof asked === 'object') ? asked : {}
+  const id = (v) => { const t = str(v); return (t !== null && ID_RE.test(t)) ? t : null }
+  const sessionId = str(a.sessionId)
+  const name = str(a.name) === null ? '' : String(a.name).replace(CONTROL, ' ').trim().slice(0, 60)
+  const language = str(a.language) === null ? 'auto' : String(a.language).trim()
+  return {
+    sessionId: (sessionId !== null && SESSION_RE.test(sessionId)) ? sessionId : null,
+    kyberId: id(a.kyberId),
+    roleId: id(a.roleId),
+    name: name === '' ? null : name,
+    mode: a.mode === 'video' ? 'video' : 'voice',
+    language: (language === 'auto' || LANG_RE.test(language)) ? language : 'auto'
+  }
+}
 
 /**
  * deps (all optional, the defaults are the real ones):
@@ -126,10 +154,13 @@ export function createCall (deps = {}) {
       return { status: res.status, payload: payload, text: text.slice(0, 200) }
     } catch (e) { return { status: 0, payload: null, text: errText(e) } }
   }
-  /** Wakes the agent on THIS room, never twice: a single send. */
-  const dispatch = async (secrets, room) => {
+  /**
+   * Wakes the agent on THIS room, never twice: a single send. `metadata` is who the call is with: the
+   * worker serves many rooms, so it must come with each room, not with the process.
+   */
+  const dispatch = async (secrets, room, metadata) => {
     const admin = accessToken(secrets, { room: room, identity: 'kybernos-host', ttlSeconds: 600, admin: true })
-    const r = await twirp(secrets, 'livekit.AgentDispatchService', 'CreateDispatch', { room: room, agent_name: AGENT_NAME }, admin.token)
+    const r = await twirp(secrets, 'livekit.AgentDispatchService', 'CreateDispatch', { room: room, agent_name: AGENT_NAME, metadata: JSON.stringify(metadata ?? {}) }, admin.token)
     if (r.status === 200) return { ok: true }
     const code = (r.payload !== null && typeof r.payload.code === 'string') ? r.payload.code : ('HTTP ' + String(r.status))
     return { ok: false, error: code, detail: (r.payload !== null && typeof r.payload.msg === 'string') ? String(r.payload.msg).slice(0, 160) : r.text }
@@ -174,8 +205,7 @@ export function createCall (deps = {}) {
     }
     return false
   }
-  const agentStart = async (options) => {
-    const opts = (options !== null && typeof options === 'object') ? options : {}
+  const agentStart = async () => {
     const already = await agentPid()
     if (already !== null) return { ok: true, running: true, pid: already, already: true, depart: 0 }
     const python = await venvPython()
@@ -189,11 +219,8 @@ export function createCall (deps = {}) {
     try { from = statSync(log).size } catch (e) { from = 0 }
     let fd = null
     try { fd = openSync(log, 'a') } catch (e) { fd = null }
-    const childEnv = Object.assign({}, env, {
-      DSH_HOME: home,
-      KYBER_SESSION_ID: (str(opts.sessionId) ?? ''),
-      KYBER_ID: (str(opts.kyberId) ?? '')
-    })
+    // Nothing about a call in the environment: the worker outlives the call that started it.
+    const childEnv = Object.assign({}, env, { DSH_HOME: home })
     return await new Promise((resolve) => {
       const done = (answer) => {
         if (fd !== null) { try { closeSync(fd) } catch (e) { /* already closed */ } fd = null }
@@ -235,23 +262,24 @@ export function createCall (deps = {}) {
     const askedIdentity = str(asked.identity)
     const identity = (askedIdentity !== null && String(askedIdentity).trim().length >= 1 && String(askedIdentity).trim().length <= 64) ? String(askedIdentity).trim() : ('moi-' + randomUUID().slice(0, 8))
     const token = accessToken(secrets, { room: room, identity: identity, ttlSeconds: asked.ttlSeconds })
+    const meta = callMetadata(asked)
     // A call is three things: a room, a token, and a woken agent. The agent is started on the first
     // call and left alive; the explicit dispatch keeps it from entering a room by accident. An agent
     // failure does not refuse the call: the human can speak alone, and the answer says so
     // (`agent.dispatched: false`) instead of lying by omission.
     const agent = { running: false, dispatched: false }
     if (asked.agent !== false) {
-      const started = await agentStart({ sessionId: asked.sessionId, kyberId: asked.kyberId })
+      const started = await agentStart()
       agent.running = started.running === true
       if (typeof started.error === 'string') agent.error = started.error
       if (agent.running === true) {
         agent.ready = await waitRegistered(started.depart, 12000)
-        const sent = await dispatch(secrets, room)
+        const sent = await dispatch(secrets, room, meta)
         agent.dispatched = sent.ok === true
         if (sent.ok !== true) { agent.dispatchError = sent.error; if (typeof sent.detail === 'string') agent.dispatchDetail = sent.detail }
       }
     }
-    return { ok: true, url: String(secrets.LIVEKIT_URL), room: room, identity: identity, token: token.token, expiresIn: token.expiresIn, agent: agent }
+    return { ok: true, url: String(secrets.LIVEKIT_URL), room: room, identity: identity, token: token.token, expiresIn: token.expiresIn, agent: agent, meta: meta }
   }
 
   // ── What is heard enters the session as a REAL turn ────────────────────────

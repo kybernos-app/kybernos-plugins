@@ -31,15 +31,14 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext, cli, ro
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import groq, silero
 
+from call_meta import CallMeta, instructions as build_instructions, parse_job_metadata, stt_options, utterance_payload
 from local_tts import LocalSayTTS
 
 AGENT_NAME = "kybernos-appel"
 
-INSTRUCTIONS = os.getenv(
-    "KYBER_INSTRUCTIONS",
-    "Tu es le Kyber d'un poste de travail Kybernos, au téléphone. Réponds en "
-    "français, une phrase courte, sans préambule, et ne propose rien d'autre.",
-)
+# A fixed brief for every call, for a hand-started worker (debug). Normally the brief is built per
+# call from who is called and the language (call_meta.instructions).
+INSTRUCTIONS_OVERRIDE = os.getenv("KYBER_INSTRUCTIONS")
 
 
 def _load_env() -> Path | None:
@@ -72,17 +71,12 @@ def _say(*parts: object) -> None:
     print(time.strftime("[%H:%M:%S]"), *parts, flush=True)
 
 
-def _inject(text: str) -> None:
-    """What is heard becomes a DSH turn. Never blocking for the call."""
-    session_id = os.getenv("KYBER_SESSION_ID", "").strip()
-    if not session_id or os.getenv("KYBER_INJECT", "1") != "1":
+def _inject(meta: CallMeta, text: str) -> None:
+    """What is heard becomes a DSH turn of THIS call's session. Never blocking for the call."""
+    payload = utterance_payload(meta, text)
+    if payload is None or os.getenv("KYBER_INJECT", "1") != "1":
         return
-    body = json.dumps({
-        "sessionId": session_id,
-        "text": text,
-        "kyberId": os.getenv("KYBER_ID", ""),
-        "origin": "appel",
-    }).encode("utf-8")
+    body = json.dumps({**payload, "origin": "appel"}).encode("utf-8")
     req = urllib.request.Request(
         HOST + "/kybernos-call/utterance",
         data=body,
@@ -114,10 +108,13 @@ server = AgentServer()
 
 @server.rtc_session(agent_name=AGENT_NAME)
 async def kybernos_appel(ctx: JobContext) -> None:
-    _say("call: room", ctx.room.name, "| secrets", SOURCE_ENV, "| session", os.getenv("KYBER_SESSION_ID", "-"))
+    # Who this call is with comes from the job that woke us (this worker serves many rooms).
+    meta = parse_job_metadata(getattr(ctx.job, "metadata", ""), os.environ)
+    _say("call: room", ctx.room.name, "| secrets", SOURCE_ENV, "| session", meta.session_id or "-",
+         "| as", meta.name or "-", "| mode", meta.mode, "| language", meta.language)
     session = AgentSession(
         vad=silero.VAD.load(),
-        stt=groq.STT(model=os.getenv("KYBER_STT", "whisper-large-v3-turbo"), language="fr"),
+        stt=groq.STT(model=os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
         llm=groq.LLM(model=os.getenv("KYBER_LLM", "openai/gpt-oss-20b")),
         tts=_build_tts(),
         # No cloud turn detector / adaptive interruption: a 401 without a cloud key and several
@@ -146,7 +143,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
         _say("heard:", repr(ev.transcript))
         _dump()
         # Off the event loop: the insertion must never delay the speech.
-        asyncio.get_event_loop().run_in_executor(None, _inject, ev.transcript)
+        asyncio.get_event_loop().run_in_executor(None, _inject, meta, ev.transcript)
 
     @session.on("conversation_item_added")
     def _on_item(ev) -> None:
@@ -169,9 +166,8 @@ async def kybernos_appel(ctx: JobContext) -> None:
         _dump()
 
     avatar = None
-    # `KYBER_VISAGE=0`: voice only. It is what the host asks when the face is already taken, and
-    # what the proof of the voice chain uses.
-    if os.getenv("LIVEAVATAR_API_KEY") and os.getenv("KYBER_VISAGE", "1") != "0":
+    # A face only on a video call, and only when a provider is set: a voice call costs no face minutes.
+    if os.getenv("LIVEAVATAR_API_KEY") and meta.mode == "video":
         from livekit.plugins import liveavatar
 
         t0 = time.time()
@@ -188,7 +184,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
     # Without a face, the audio goes into the room; with one, it goes to the face.
     await session.start(
         room=ctx.room,
-        agent=Agent(instructions=INSTRUCTIONS),
+        agent=Agent(instructions=build_instructions(meta, INSTRUCTIONS_OVERRIDE)),
         room_output_options=room_io.RoomOutputOptions(audio_enabled=avatar is None),
     )
     # No automatic greeting: a clean turn first.
