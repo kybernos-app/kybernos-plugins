@@ -30,6 +30,24 @@ reach this bundle through one seam.
   the microphone (a bar that moves), a preset, the keys the preset needs (each with its link and test), a final check. It then makes the
   call that was asked for. Settings › Calls has a button to run it again.
 
+## The audio models you already have
+
+The Models page lists models. The core (`@local/kybernos`) reads that list and sorts the audio ones by what their names say (`audio-models.mjs`:
+`listen`, `speak`, `realtime`), whichever provider they come from, and then finds **how each one is asked** (`audio-probe.mjs`): a gateway TTS
+that wants the text as an *assistant* message, a gateway ASR that wants the audio alone, OpenAI's own `/audio/speech` and `/audio/transcriptions`,
+DashScope's realtime socket (it answers `session.created`). It sends a few words, or a speaking model's sentence to a listening one, with the key the
+app already holds for that provider; the key never leaves the process. What it found is remembered (`models-audio.mjs`) and looked for again
+once if it stops working.
+
+- **Speak**: the core has a `models` voice engine, so a speaking model is a voice like any other (the member card, Listen in Settings, and a call).
+  A model that needs a reference voice or a description (`voiceclone`, `voicedesign`) is listed but not used yet.
+- **Listen**: the provider **A model from your Models** (the worker's `HostSTT` sends each sentence to the host, which asks the model), or **App
+  dictation** (the model the app's microphone button already uses).
+- **Realtime** models are detected and their connection checked ("Check these models" on the Overview); using one as the whole call is not built.
+- Measured on the user's own plans (2026-10-08): a Xiaomi MiMo TTS and ASR work end to end, but a gateway TTS takes 4 to 8 s per sentence and the
+  ASR mishears French (the app's own dictation did better), so for live calls Edge, Piper or Groq are faster; Qwen's TTS has no HTTP way found
+  (it probably speaks over the realtime socket), and its ASR is the app's dictation.
+
 ## First call
 
 1. Click the phone at the top right of a chat. On a machine with nothing set up the setup assistant opens: follow its four screens.
@@ -165,7 +183,7 @@ button is clicked.
 
 `node packages/kybernos-call/test-*.mjs`: `test-host` (the token, the dispatch, the settings a call uses), `test-store` (settings, secrets,
 clones on disk), `test-admin` (the settings page's host side, the clone provider, against fake servers), `test-routes`, `test-speech-feed`,
-`test-providers` (the catalogue, what the settings keep of it, the presets, LiveAvatar, the health check), `test-engine` (the one-click install, with a fake shell),
+`test_call_stt.py` (listening through the host), `test-providers` (the catalogue, what the settings keep of it, the presets, LiveAvatar, the health check), `test-engine` (the one-click install, with a fake shell),
 `test-client` (the panel and its indicators and sounds, the header buttons, the setup assistant's gate, the clone flow, in a fake browser), `test-call-brief`, `test-dsh-home`, `test-agent-process` (a real child
 process, Unix only), `test-agent-meta` (the worker's Python tests through `python3`: `call_meta`, `call_voice`, and the LiveKit-facing worker
 which are skipped without the worker's venv; run `<venv>/bin/python agent/test_call_agent.py` to run them). None needs DSH, a browser or the
