@@ -1184,10 +1184,37 @@ const openExternal = (url, { platform = process.platform, env = process.env, spa
   } catch (e) { finish(false) }
 })
 
+/** How much of a budget window is used, as the whole percent people are shown (never tokens, never dollars): the server's own `used_percent` when it gives one,
+ *  else computed from what it spent and its limit by the same rule (100 only when used up, at least 1 once anything was spent, never 100 before). Null: unlimited,
+ *  or nothing readable. */
+const budgetPercent = (w) => {
+  if (w === null || typeof w !== 'object') return null
+  if (typeof w.used_percent === 'number' && Number.isFinite(w.used_percent)) return Math.min(100, Math.max(0, Math.round(w.used_percent)))
+  if (w.limit_usd === null || w.limit_usd === undefined) return null
+  const limit = Number(w.limit_usd)
+  const used = Number(w.spent_usd)
+  if (!Number.isFinite(limit) || !Number.isFinite(used)) return null
+  if (limit <= 0 || used >= limit) return 100
+  if (used <= 0) return 0
+  return Math.min(99, Math.max(1, Math.round((used / limit) * 100)))
+}
+
+/** One window of the server's budget as the notice and the card read it: its length, whose it is (`member`: the person's own, `pool`: the team's), where its limit
+ *  comes from, how much is used and, only while it is used up, when it opens again. No amounts of money: the allowance is a percentage. Null for a window that is
+ *  unlimited or unreadable. */
+const budgetWindowView = (w) => {
+  if (w === null || typeof w !== 'object' || (w.kind !== 'member' && w.kind !== 'pool') || !Number.isFinite(w.window_seconds)) return null
+  const exhausted = w.exhausted === true
+  const percent = exhausted ? 100 : budgetPercent(w)
+  if (percent === null) return null
+  const at = typeof w.resets_at === 'string' && Number.isFinite(Date.parse(w.resets_at)) ? new Date(Date.parse(w.resets_at)).toISOString() : null
+  return { kind: w.kind, window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan', used_percent: percent, exhausted, resets_at: exhausted ? at : null }
+}
+
 /** What stopped the person's last call, for the notice that replaces DSH's « Request quota exhausted » (its own words, the same for every refusal: a window used up,
- *  a cap, a failed payment). The facts are the server's, for the ACTIVE space and with the device token, which never leaves here: the person's own windows that are
- *  used up (the pool is the team's, not theirs), the plan and whether its payment is blocked. A server that does not answer gives no facts, and the notice then
- *  says what DSH said. */
+ *  a cap, a failed payment), and what the card of the active team shows as its meter. The facts are the server's, for the ACTIVE space and with the device token,
+ *  which never leaves here: every window as a percent (the person's own, and the team's pool, which turns everyone away when it is used up) and whether the plan's
+ *  payment is blocked. A server that does not answer gives no facts, and the notice then says what DSH said. */
 const quotaFacts = async () => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none' }
@@ -1199,18 +1226,13 @@ const quotaFacts = async () => {
   ])
   if (plan.status !== 200 || plan.body === null || typeof plan.body !== 'object' || budget.status !== 200 || budget.body === null || typeof budget.body !== 'object') return { ok: false, error: 'indisponible' }
   const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
-  const p = plan.body.plan !== null && typeof plan.body.plan === 'object' ? plan.body.plan : null
-  const windows = Array.isArray(budget.body.windows) ? budget.body.windows : []
-  const exhausted = windows
-    .filter((w) => w !== null && typeof w === 'object' && w.kind === 'member' && w.exhausted === true && Number.isFinite(w.window_seconds))
-    .map((w) => ({ window_seconds: w.window_seconds, scope: typeof w.scope === 'string' ? w.scope : 'plan' }))
-    .sort((a, b) => a.window_seconds - b.window_seconds)
+  const usage = (Array.isArray(budget.body.windows) ? budget.body.windows : []).map(budgetWindowView).filter((w) => w !== null)
+    .sort((a, b) => a.window_seconds - b.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))
   return {
     ok: true,
     workspace: { id, name: known !== undefined && typeof known.name === 'string' ? known.name : null, role: known !== undefined && typeof known.role === 'string' ? known.role : null, personal: known !== undefined && known.personal === true },
-    plan: { key: p !== null && typeof p.key === 'string' ? p.key : 'none', name: p !== null && typeof p.name === 'string' ? p.name : null, kind: p !== null && typeof p.kind === 'string' ? p.kind : null, level: typeof plan.body.level === 'string' ? plan.body.level : null, status: typeof plan.body.status === 'string' ? plan.body.status : null },
     payment_blocked: plan.body.payment_blocked === true,
-    exhausted,
+    usage,
   }
 }
 

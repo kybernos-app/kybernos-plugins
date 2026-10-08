@@ -44,7 +44,7 @@ let teamSpaceListed = false
 // active space's plan read (a member without a factor, past the grace: 403 mfa_required_by_workspace).
 let extraHeaders = null
 let planRefusal = null
-// What `GET …/llm/budget` says of the signed-in person's windows (the server's own words: kind, window, scope, exhausted).
+// What `GET …/llm/budget` says of the signed-in person's windows (the server's own words: kind, window, scope, exhausted; the percent comes with the newer servers).
 let budgetBody = { windows: [
   { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '0.10', remaining_usd: '0.90', exhausted: false, lifted_by_topup: false },
   { kind: 'pool', window_seconds: 18000, scope: 'plan', limit_usd: '9.00', spent_usd: '0.10', remaining_usd: '8.90', exhausted: false, lifted_by_topup: false },
@@ -815,29 +815,49 @@ try {
   // read from the server for the ACTIVE space with the device token, and nothing else.
   const quotaNone = await hit('/kybernos-cloud/quota', 'GET')
   assert.equal(quotaNone.body.ok, true)
-  assert.equal(quotaNone.body.exhausted.length, 0, 'nothing is used up')
+  assert.deepEqual(quotaNone.body.usage, [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 10, exhausted: false, resets_at: null },
+    { kind: 'pool', window_seconds: 18000, scope: 'plan', used_percent: 1, exhausted: false, resets_at: null },
+  ], 'nothing is used up: the windows read as the percent of what is spent (0.10 of 1.00 is 10, 0.10 of 9.00 is 1: never 0 once something was spent)')
   assert.equal(quotaNone.body.workspace.id, 'ws-1')
+  const resetAt = new Date(Date.now() + 3 * 3600000).toISOString()
   budgetBody = { windows: [
-    { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '1.20', remaining_usd: '0.00', exhausted: true },
-    { kind: 'member', window_seconds: 86400, scope: 'team', limit_usd: '0.10', spent_usd: '0.30', remaining_usd: '0.00', exhausted: true },
-    { kind: 'member', window_seconds: 2592000, scope: 'plan', limit_usd: '5.00', spent_usd: '1.50', remaining_usd: '3.50', exhausted: false },
-    { kind: 'pool', window_seconds: 18000, scope: 'plan', limit_usd: '9.00', spent_usd: '9.50', remaining_usd: '0.00', exhausted: true },
+    { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '1.20', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: resetAt },
+    { kind: 'member', window_seconds: 86400, scope: 'team', limit_usd: '0.10', spent_usd: '0.30', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: 'not a date' },
+    { kind: 'member', window_seconds: 2592000, scope: 'plan', limit_usd: '5.00', spent_usd: '1.50', remaining_usd: '3.50', exhausted: false, used_percent: 30, resets_at: null },
+    { kind: 'pool', window_seconds: 18000, scope: 'plan', limit_usd: '9.00', spent_usd: '9.50', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: resetAt },
+    { kind: 'member', window_seconds: 604800, scope: 'plan', limit_usd: null, spent_usd: '2.00', remaining_usd: null, exhausted: false, used_percent: null, resets_at: null },
+    // A server that does not give the percent yet: it is worked out from what was spent and the limit, by the same rule.
+    { kind: 'pool', window_seconds: 86400, scope: 'plan', limit_usd: '4.00', spent_usd: '1.00', remaining_usd: '3.00', exhausted: false },
+    { kind: 'pool', window_seconds: 2592000, scope: 'plan', limit_usd: '1000.00', spent_usd: '0.01', remaining_usd: '999.99', exhausted: false },
+    { kind: 'pool', window_seconds: 604800, scope: 'plan', limit_usd: '100.00', spent_usd: '99.90', remaining_usd: '0.10', exhausted: false },
+    { kind: 'other', window_seconds: 18000, scope: 'plan', used_percent: 50 },
   ] }
   spacePlanBody = { source: 'subscription', status: 'past_due', payment_blocked: true, plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 }
   const quotaOut = await hit('/kybernos-cloud/quota', 'GET')
   assert.equal(quotaOut.body.ok, true)
-  assert.deepEqual(quotaOut.body.exhausted, [{ window_seconds: 18000, scope: 'plan' }, { window_seconds: 86400, scope: 'team' }], 'the person\'s own windows that are used up, shortest first; the pool is not theirs')
+  assert.deepEqual(quotaOut.body.usage, [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: resetAt },
+    { kind: 'pool', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: resetAt },
+    { kind: 'member', window_seconds: 86400, scope: 'team', used_percent: 100, exhausted: true, resets_at: null },
+    { kind: 'pool', window_seconds: 86400, scope: 'plan', used_percent: 25, exhausted: false, resets_at: null },
+    { kind: 'pool', window_seconds: 604800, scope: 'plan', used_percent: 99, exhausted: false, resets_at: null },
+    { kind: 'member', window_seconds: 2592000, scope: 'plan', used_percent: 30, exhausted: false, resets_at: null },
+    { kind: 'pool', window_seconds: 2592000, scope: 'plan', used_percent: 1, exhausted: false, resets_at: null },
+  ], 'every window of the active space as a percent, shortest first and the person\'s own before the pool; the unlimited and the unknown are left out; a time that is not a time is dropped; the percent is never 0 once something was spent, never 100 before it is used up')
   assert.equal(quotaOut.body.payment_blocked, true)
-  assert.equal(quotaOut.body.plan.kind, 'team')
+  assert.equal(quotaOut.body.plan, undefined, 'the plan is not in the answer: the card has it already')
   assert.equal(quotaOut.body.workspace.name, 'My workspace')
-  assert.equal(JSON.stringify(quotaOut.body).includes(TOKEN), false, 'the token is not in the answer')
+  const quotaText = JSON.stringify(quotaOut.body)
+  assert.equal(quotaText.includes(TOKEN), false, 'the token is not in the answer')
+  assert.equal(/_usd|limit|spent|remaining/.test(quotaText), false, 'no amount of money leaves the host: the allowance is a percentage')
   tokenValid = false
   const quotaDead = await hit('/kybernos-cloud/quota', 'GET')
   assert.equal(quotaDead.body.ok, false, 'a server that refuses the token: no facts, the notice falls back to DSH\'s own words')
   tokenValid = true
   budgetBody = { windows: [] }
   spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000 }
-  ok('quota : les fenetres epuisees de la personne et l etat du paiement de l espace ACTIF, sans jeton')
+  ok('quota : toutes les fenetres de l espace ACTIF en pourcentage (jamais de montant), l etat du paiement, sans jeton')
 
   // ── The card says when the space turns the person away ─────────────────────────────────────────────────────────────────────────────────────
   // A workspace that asks its members for a second factor answers its routes 403 `mfa_required_by_workspace` to a member who has none once the grace is over, and DSH shows
