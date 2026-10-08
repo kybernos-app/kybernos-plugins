@@ -1443,6 +1443,51 @@
       }
     },
     {
+      "id": "kybernos-call",
+      "nom": "@local/kybernos-call",
+      "titre": "Calls",
+      "glyphe": "chat",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 680,
+      "promesse": {
+        "fr": "Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : ce qui se dit entre dans le fil.",
+        "en": "Talk to your assistant or a team member from any session: what is said enters the thread."
+      },
+      "aide": {
+        "what": {
+          "fr": "Parlez à votre assistant ou à un membre de votre équipe, à voix haute, depuis une session. Ce qui se dit entre dans la discussion, comme si vous l'aviez écrit.",
+          "en": "Talk to your assistant or a team member out loud, from a session. What is said enters the conversation, as if you had typed it."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez la fiche d'un membre de l'équipe et cliquez Call (voix) ou Video.",
+            "en": "Open a team member's card and click Call (voice) or Video."
+          },
+          {
+            "fr": "Autorisez le micro dans le navigateur : le panneau d'appel s'ouvre en bas à droite.",
+            "en": "Allow the microphone in the browser: the call panel opens at the bottom right."
+          },
+          {
+            "fr": "Parlez. Vos phrases arrivent dans la discussion. « Raccrocher » termine l'appel.",
+            "en": "Speak. Your sentences land in the conversation. “Hang up” ends the call."
+          }
+        ],
+        "where": {
+          "fr": "Fiche d'un membre de l'équipe › Call / Video",
+          "en": "A team member's card › Call / Video",
+          "page": false
+        },
+        "good": {
+          "fr": "Les clés d'appel doivent être posées avant le premier appel : sans elles, le panneau vous dit ce qui manque.",
+          "en": "The call keys must be set before the first call: without them, the panel tells you what is missing."
+        }
+      }
+    },
+    {
       "id": "dsh-media-player",
       "nom": "@local/dsh-media-player",
       "titre": "Media player",
