@@ -26204,6 +26204,33 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
             .then((r) => r.json()).catch(() => ({ ok: false, status: 0, error: 'relais injoignable' }))
             .then((j) => repondre(fr, { kbApiReply: { id: id, ok: j !== null && j.ok === true, status: j !== null && typeof j.status === 'number' ? j.status : 0, body: j !== null && j.body !== undefined ? j.body : null, error: j !== null && typeof j.error === 'string' ? j.error : undefined } }))
         }
+        // The console's team menu asks THIS page to change the ACTIVE space (the one the Cloud card shows and the app bills), so the two
+        // selectors always agree: a `kbSwitchSpace` names one id, a `kbNewSpace` names a team to create. Both go to the same local host routes
+        // the Cloud card uses (the server stays the master: a refusal creates nothing here); the console is told the outcome, and the card
+        // is told to reload through an event. Nothing else is accepted from the frame.
+        const dire = (fr, ok, extra) => repondre(fr, { kbSpaceReply: Object.assign({ ok: ok }, extra) })
+        const posterHote = (route, payload) => fetch('/kybernos-cloud/space/' + route, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) })
+          .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
+        const prevenirCarte = () => { try { window.dispatchEvent(new Event('kybernos-cloud:space-changed')) } catch (e) { /* Event absent */ } }
+        const changerEspace = (fr, demande) => {
+          const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
+          if (id === '') { dire(fr, false, { error: 'espace_absent' }); return }
+          posterHote('active', { workspace_id: id }).then((j) => {
+            const ok = j !== null && j.ok === true
+            if (ok) { kbServer.workspace = id; prevenirCarte() }
+            dire(fr, ok, { id: id, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
+          })
+        }
+        const creerEspace = (fr, demande) => {
+          const nom = typeof demande.name === 'string' ? demande.name.trim().slice(0, 60) : ''
+          if (nom === '') { dire(fr, false, { created: true, error: 'nom_absent' }); return }
+          posterHote('create', { name: nom }).then((j) => {
+            const ok = j !== null && j.ok === true
+            const actif = ok && j.state !== null && typeof j.state === 'object' && typeof j.state.active_workspace_id === 'string' ? j.state.active_workspace_id : null
+            if (ok && actif !== null) { kbServer.workspace = actif; prevenirCarte() }
+            dire(fr, ok, { created: true, id: actif, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
+          })
+        }
         const sur = (ev) => {
           const fr = document.querySelector('.kbwsif iframe')
           if (fr === null || ev.source !== fr.contentWindow) return
@@ -26211,6 +26238,8 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           if (kbWsOrigin() !== '*' && ev.origin !== kbWsOrigin()) return
           if (ev.data.kbConsoleReady === true) { envoyerCle(); repondre(fr, { kbApiReady: true }) }
           else if (ev.data.kbApi !== null && typeof ev.data.kbApi === 'object') relayer(fr, ev.data.kbApi)
+          else if (ev.data.kbSwitchSpace !== null && typeof ev.data.kbSwitchSpace === 'object') changerEspace(fr, ev.data.kbSwitchSpace)
+          else if (ev.data.kbNewSpace !== null && typeof ev.data.kbNewSpace === 'object') creerEspace(fr, ev.data.kbNewSpace)
         }
         window.addEventListener('message', sur)
         return () => window.removeEventListener('message', sur)

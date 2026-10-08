@@ -6,6 +6,8 @@
 //   open host.url + '/parent.html?offline=1'                // the account is not signed in
 //   open host.url + '/parent.html?ws=<id>'                  // the app has THIS workspace active: the console opens on it
 //   open host.url + '/parent.html?llm=down'                 // signed in, but the LLM service is not configured (503 on /llm/*)
+//   open host.url + '/parent.html?create=refused'           // the server refuses to create a team (the host route says creation_refusee)
+//   host.switched / host.created                            // what the console asked the page to do (active space, new team)
 //
 // What is real here, so that a drift is caught instead of copied:
 //   - the broker in the parent page is the code shipped in packages/kybernos-plugin/client.js, cut out of the source;
@@ -23,6 +25,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 export const SECOND_TEAM_ID = '22222222-2222-4222-8222-222222222222'
 export const OWNER_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 export const BEA_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+export const THIRD_TEAM_ID = '33333333-3333-4333-8333-333333333333'
 
 // The shipped broker, cut out of the page component: from « const repondre » up to its addEventListener.
 const brokerSnippet = () => {
@@ -35,7 +38,7 @@ const brokerSnippet = () => {
 
 const ANSWERS = {
   me: () => ({ id: OWNER_ID, name: 'Owner Person', plan: 'studio' }),
-  workspaces: () => ({ workspaces: [{ id: FAKE_TEAM_ID, name: 'Acme Team', kyber_count: 0, created_at: '2026-08-01 10:00:00+00:00' }, { id: SECOND_TEAM_ID, name: 'Beta Team', kyber_count: 0, created_at: '2026-08-15 10:00:00+00:00' }] }),
+  workspaces: (extra) => ({ workspaces: [{ id: FAKE_TEAM_ID, name: 'Acme Team', role: 'owner', kyber_count: 0, created_at: '2026-08-01 10:00:00+00:00' }, { id: SECOND_TEAM_ID, name: 'Beta Team', role: 'member', kyber_count: 0, created_at: '2026-08-15 10:00:00+00:00' }].concat(extra) }),
   members: () => ({ members: [{ user_id: OWNER_ID, role: 'owner', status: 'active', created_at: '2026-08-01 10:00:00+00:00' }, { user_id: BEA_ID, role: 'member', status: 'active', created_at: '2026-08-02 10:00:00+00:00' }] }),
   budget: () => ({ plan: { pack: 'full', monthly_usd: 50, min_members: 2 }, shared_remaining: 12.5, members: [{ user_ref: OWNER_ID }, { user_ref: BEA_ID }] }),
   usage: () => ({ usage: [{ ts: '2026-09-01T10:00:00Z', team_id: FAKE_TEAM_ID, user_ref: OWNER_ID, model: 'claude-x', credits: 1.2 }, { ts: '2026-09-02T10:00:00Z', team_id: FAKE_TEAM_ID, user_ref: BEA_ID, model: 'glm-y', credits: 0.4 }] }),
@@ -46,9 +49,9 @@ const ANSWERS = {
   byokModels: () => ROUTES['GET /workspace-models'](),
 }
 
-const answerFor = (path) => {
+const answerFor = (path, extra) => {
   if (path === '/v1/me') return ANSWERS.me()
-  if (path === '/v1/workspaces') return ANSWERS.workspaces()
+  if (path === '/v1/workspaces') return ANSWERS.workspaces(extra)
   const m = path.match(/^\/v1\/workspaces\/[^/]+\/(members|providers|models|llm\/(budget|models|catalog|billing|usage))/)
   if (m === null) return null
   const key = m[1]
@@ -63,8 +66,12 @@ export async function startRelayHost ({ consoleHtml }) {
   const snippet = brokerSnippet()
   const asked = []
   const refused = []
+  const switched = []   // ids the console asked to make active
+  const created = []    // names the console asked to create
+  const extra = []      // teams created during the run
+  const known = () => [FAKE_TEAM_ID, SECOND_TEAM_ID].concat(extra.map((w) => w.id))
   const parentPage = (origin, ws) => '<!doctype html><meta charset="utf-8"><title>host</title><div class="kbwsif" style="height:100vh"><iframe src="/workspace-console.html?gw=' + encodeURIComponent('https://gateway.invalid') + '&theme=dark' + (ws ? '&ws=' + encodeURIComponent(ws) : '') + '" style="width:100%;height:100%;border:0"></iframe></div><script>\n' +
-    'const kbWsOrigin = () => ' + JSON.stringify(origin) + '\nconst envoyerCle = () => {}\n' + snippet + "\nwindow.addEventListener('message', sur)\n</script>"
+    'const kbWsOrigin = () => ' + JSON.stringify(origin) + '\nconst envoyerCle = () => {}\nconst kbServer = { workspace: \'\' }\n' + snippet + "\nwindow.addEventListener('message', sur)\n</script>"
   const server = createServer((req, res) => {
     const url = new URL(req.url, 'http://x')
     const send = (status, type, body) => { res.writeHead(status, { 'content-type': type }); res.end(body) }
@@ -74,16 +81,42 @@ export async function startRelayHost ({ consoleHtml }) {
       // The real host route's contract: { ok, status, body }, or { ok: false, connected: false } when not signed in.
       if (url.searchParams.get('offline') === '1' || req.headers.referer?.includes('offline=1')) return send(200, 'application/json', JSON.stringify({ ok: false, connected: false, status: 'none', error: 'non connecte' }))
       const target = url.searchParams.get('p') || ''
-      const verdict = relayCheck(target, { workspaces: [{ id: FAKE_TEAM_ID }, { id: SECOND_TEAM_ID }] })
+      const verdict = relayCheck(target, { workspaces: known().map((id) => ({ id })) })
       if (verdict.ok !== true) { refused.push(target); return send(200, 'application/json', JSON.stringify({ ok: false, error: verdict.error })) }
       asked.push(verdict.path)
       // ?llm=down: the main API answers, the LLM service behind its relay is not configured (what the deployed API says today).
       if (req.headers.referer?.includes('llm=down') && verdict.path.includes('/llm/')) return send(200, 'application/json', JSON.stringify({ ok: false, status: 503, body: { error: 'LLM service not configured' } }))
-      const body = answerFor(verdict.path)
+      const body = answerFor(verdict.path, extra)
       return send(200, 'application/json', JSON.stringify(body === null ? { ok: false, status: 404, body: null } : { ok: true, status: 200, body }))
+    }
+    // The host routes the console reaches through the page (packages/kybernos-cloud/index.js: setActiveSpace, createSpace).
+    if (url.pathname === '/kybernos-cloud/space/active' && req.method === 'POST') {
+      let raw = ''
+      req.on('data', (c) => { raw += c })
+      req.on('end', () => {
+        let id = ''
+        try { id = JSON.parse(raw).workspace_id } catch (e) { id = '' }
+        switched.push(id)
+        send(200, 'application/json', JSON.stringify(known().includes(id) ? { ok: true, state: { active_workspace_id: id } } : { ok: false, error: 'espace_inconnu' }))
+      })
+      return
+    }
+    if (url.pathname === '/kybernos-cloud/space/create' && req.method === 'POST') {
+      let raw = ''
+      req.on('data', (c) => { raw += c })
+      req.on('end', () => {
+        let name = ''
+        try { name = JSON.parse(raw).name } catch (e) { name = '' }
+        created.push(name)
+        if (req.headers.referer?.includes('create=refused')) return send(200, 'application/json', JSON.stringify({ ok: false, error: 'creation_refusee', status: 402 }))
+        const w = { id: THIRD_TEAM_ID, name, role: 'owner', kyber_count: 0, created_at: '2026-10-08 10:00:00+00:00' }
+        extra.push(w)
+        send(200, 'application/json', JSON.stringify({ ok: true, state: { active_workspace_id: w.id } }))
+      })
+      return
     }
     send(404, 'text/plain', 'not here')
   })
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve) })
-  return { url: 'http://127.0.0.1:' + server.address().port, asked, refused, close: () => new Promise((r) => server.close(() => r())) }
+  return { url: 'http://127.0.0.1:' + server.address().port, asked, refused, switched, created, close: () => new Promise((r) => server.close(() => r())) }
 }
