@@ -2935,19 +2935,34 @@ function boot(ctx) {
       }
       return { byRoute, byModel }
     }
-    // `ctx.web.fetch` tronque le corps à 100 000 caractères (limite par défaut du
-    // service) et l'index models.dev pèse ~4,7 Mo : `JSON.parse` échouait donc à
-    // la position 100000 et les tarifs restaient indisponibles pour toujours. On
-    // relit la réponse en direct dès que le service annonce `truncated`.
+    // L'index models.dev pèse ~4,7 Mo : le `ctx.web.fetch` du moteur le tronque à 100 000 caractères (JSON.parse échouait à la position
+    // 100000 et les tarifs restaient indisponibles pour toujours) et, surtout, son fournisseur HTTP peut faire mourir tout DSH quand
+    // une connexion échoue sur-le-champ (pas de route, pare-feu : le dispatcher est fermé alors qu'une seconde tentative est encore
+    // armée, et elle lève depuis un minuteur). On lit donc l'index avec le `fetch` global, par morceaux, coupé à `cap` octets.
     const kbFetchTextFull = async (url, cap) => {
       const max = typeof cap === 'number' ? cap : 12000000
       const control = new AbortController()
       const timer = setTimeout(() => { try { control.abort() } catch (e) { /* deja termine */ } }, 30000)
       try {
         const res = await fetch(url, { signal: control.signal, headers: { accept: 'application/json' } })
-        if (res === null || res === undefined || typeof res.text !== 'function') return { text: null, reason: 'reponse sans corps' }
+        if (res === null || res === undefined) return { text: null, reason: 'reponse sans corps' }
         if (res.ok === false) return { text: null, reason: 'HTTP ' + String(res.status) }
-        const text = await res.text()
+        let text = null
+        if (res.body !== null && res.body !== undefined && typeof res.body.getReader === 'function') {
+          const reader = res.body.getReader()
+          const chunks = []
+          let total = 0
+          for (;;) {
+            const part = await reader.read()
+            if (part.done === true) break
+            total += part.value.byteLength
+            if (total > max) { await reader.cancel().catch(() => {}); return { text: null, reason: 'corps trop volumineux (plus de ' + max + ' octets)' } }
+            chunks.push(part.value)
+          }
+          text = Buffer.concat(chunks).toString('utf8')
+        } else if (typeof res.text === 'function') {
+          text = await res.text()
+        } else return { text: null, reason: 'reponse sans corps' }
         if (typeof text !== 'string' || text.length === 0) return { text: null, reason: 'corps vide' }
         if (text.length > max) return { text: null, reason: 'corps trop volumineux (' + text.length + ' caracteres)' }
         return { text: text, reason: null }
@@ -2961,26 +2976,15 @@ function boot(ctx) {
       }
       const url = 'https://models.dev/api.json'
       try {
-        let raw = null
-        let tronque = false
-        if (web !== undefined && web !== null && typeof web.fetch === 'function') {
-          const res = await web.fetch({ url: url })
-          raw = res !== null && res !== undefined ? (str(res.body) ?? (res.body !== null && res.body !== undefined && typeof res.body === 'object' ? (str(res.body.content) ?? str(res.body.text)) : null) ?? str(res.content) ?? str(res.text)) : null
-          tronque = res !== null && res !== undefined && res.truncated === true
-        }
-        if (raw === null && tronque === false) {
-          // Aucun service web : on reste hors réseau (le harnais de test interdit
-          // toute requête pendant ses vérifications).
+        if (web === undefined || web === null) {
+          // Aucun service web : on reste hors réseau (le harnais de test interdit toute requête pendant ses vérifications). Sa seule
+          // présence dit que l'hôte autorise l'accès web ; la requête elle-même ne passe PAS par lui (voir kbFetchTextFull).
           priceError = 'service web indisponible: tarifs models.dev inaccessibles'
           return
         }
-        if (raw === null || tronque === true) {
-          // Corps inutilisable : on le dit, puis on relit l'index en direct.
-          const detail = raw === null ? 'reponse illisible' : (raw.length + ' caracteres tronques par le service web (index complet ~4,7 Mo)')
-          const full = await kbFetchTextFull(url)
-          if (full.text === null) { priceError = 'models.dev: ' + detail + ' — relecture directe impossible (' + full.reason + ')'; return }
-          raw = full.text
-        }
+        const full = await kbFetchTextFull(url)
+        if (full.text === null) { priceError = 'models.dev: lecture impossible (' + full.reason + ')'; return }
+        const raw = full.text
         const parsed = parseJson(raw)
         if (parsed === null || parsed === undefined) { priceError = 'models.dev: reponse JSON invalide'; return }
         priceIndex = buildPriceIndex(parsed)
@@ -11329,16 +11333,40 @@ const kbFeedbackCloudState = (dsh) => {
  *  un GET en lecture (constaté dans dsh-web-fetch-http), l'utiliser pour un
  *  envoi ferait un faux « succès ». Si le runtime interdit la sortie réseau,
  *  on le DIT (envoi_indisponible) et l'agent bascule sur le repli mail. */
+const KB_FEEDBACK_TIMEOUT_MS = 20000
+const KB_FEEDBACK_ANSWER_MAX = 1 << 20
+/** The relay's answer as text, never more than `KB_FEEDBACK_ANSWER_MAX` bytes of it (a real Response is read as a stream and cut). */
+const kbFeedbackAnswerText = async (res) => {
+  if (res.body !== null && res.body !== undefined && typeof res.body.getReader === 'function') {
+    const reader = res.body.getReader()
+    const chunks = []
+    let total = 0
+    for (;;) {
+      const part = await reader.read()
+      if (part.done === true) break
+      total += part.value.byteLength
+      chunks.push(part.value)
+      if (total > KB_FEEDBACK_ANSWER_MAX) { await reader.cancel().catch(() => {}); break }
+    }
+    return Buffer.concat(chunks).toString('utf8').slice(0, KB_FEEDBACK_ANSWER_MAX)
+  }
+  return typeof res.text === 'function' ? String(await res.text()).slice(0, KB_FEEDBACK_ANSWER_MAX) : ''
+}
 const kbFeedbackPost = async (url, token, report) => {
   if (typeof fetch !== 'function') throw new Error('fetch indisponible')
+  // A relay that accepts the connection and never answers must not hold the agent for ever, and a redirect must not carry the report
+  // (and the way to the person's account) to another host: both end as a failed send, which the outbox keeps for later.
+  const wait = Number(process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS)
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + String(token) },
     body: JSON.stringify(report),
+    redirect: 'manual',
+    signal: AbortSignal.timeout(Number.isFinite(wait) && wait > 0 ? wait : KB_FEEDBACK_TIMEOUT_MS),
   })
   if (res === null || res === undefined) throw new Error('reponse vide')
-  const text = typeof res.text === 'function' ? await res.text() : ''
-  return { status: res.status, text: text }
+  if (res.status >= 300 && res.status < 400) throw new Error('redirection refusee')
+  return { status: res.status, text: await kbFeedbackAnswerText(res) }
 }
 
 /** Codes that a second attempt cannot change: the relay refused the CONTENT of the report. Everything else (service down, no network,

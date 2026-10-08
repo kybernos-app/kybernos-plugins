@@ -210,6 +210,8 @@ const createSpace = async (req, body) => {
   }
   const brut = res.body !== null && typeof res.body === 'object' ? (res.body.workspace !== undefined && res.body.workspace !== null ? res.body.workspace : res.body) : null
   const id = brut !== null && typeof brut.id === 'string' ? brut.id : null
+  // A success that does not describe the space (an empty body, a page) did not create one: nothing is written.
+  if (id === null) return { ok: false, error: 'creation_refusee', status: res.status, web_url: resolveWeb() }
   const espaces = Array.isArray(state.workspaces) ? state.workspaces.slice() : []
   if (id !== null && espaces.some((w) => w !== null && w.id === id) !== true) espaces.push(brut)
   const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
@@ -241,7 +243,43 @@ const mergeUser = (cached, profile) => {
   return next
 }
 
-/** Appel API : ne throw jamais, renvoie { status, body } (status 0 = réseau). */
+/** The most an answer of the server may weigh. The biggest legitimate one is an artifact (8 MiB of content, base64: ~11 MiB). Without
+ *  a cap the whole body is held, then parsed: a 400 MB answer (a faulty endpoint, a proxy page) took DSH down for every session. */
+const MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+
+/** The body of a response as text, never holding more than `max` bytes. `tooLarge` (the stream is cancelled, the socket dropped), or
+ *  `error` when the body could not be read to its end (cut connection, timeout): a half answer is not an answer. */
+const readBoundedText = async (res, max) => {
+  const declared = Number(res.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > max) {
+    try { await res.body.cancel() } catch (e) { /* already closed */ }
+    return { tooLarge: true }
+  }
+  if (res.body === null) return { text: '' }
+  const reader = res.body.getReader()
+  const chunks = []
+  let total = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > max) {
+        await reader.cancel().catch(() => {})
+        return { tooLarge: true }
+      }
+      chunks.push(value)
+    }
+  } catch (e) {
+    return { error: String((e && e.message) || e) }
+  }
+  return { text: Buffer.concat(chunks).toString('utf8') }
+}
+
+/** Appel API : ne throw jamais, renvoie { status, body } (status 0 = réseau).
+ *  Le serveur est une API JSON, pas un site : une redirection n'est jamais suivie (elle emporterait le corps de la requête vers un
+ *  autre hôte et la réponse de cet hôte passerait pour celle du serveur), une réponse trop grosse ou coupée est un échec réseau,
+ *  et un statut de succès avec un corps qui n'est pas du JSON (la page d'un portail captif) n'est pas un succès. */
 const apiCall = async (path, options = {}) => {
   const method = typeof options.method === 'string' ? options.method : 'GET'
   const token = typeof options.token === 'string' ? options.token : null
@@ -256,10 +294,20 @@ const apiCall = async (path, options = {}) => {
       method,
       headers,
       signal: ctrl.signal,
+      redirect: 'manual',
       body: body === null ? undefined : JSON.stringify(body),
     })
+    if (res.status >= 300 && res.status < 400) {
+      try { await res.body.cancel() } catch (e) { /* nothing to cancel */ }
+      return { status: 0, body: null, error: 'redirect_refused' }
+    }
+    const got = await readBoundedText(res, Number.isFinite(options.maxBytes) && options.maxBytes > 0 ? options.maxBytes : MAX_RESPONSE_BYTES)
+    if (got.tooLarge === true) return { status: 0, body: null, error: 'response_too_large' }
+    if (got.error !== undefined) return { status: 0, body: null, error: got.error }
     let parsed = null
-    try { parsed = await res.json() } catch (e) { parsed = null }
+    let readable = true
+    try { parsed = JSON.parse(got.text) } catch (e) { parsed = null; readable = got.text.trim() === '' }
+    if (readable !== true && res.status >= 200 && res.status < 300) return { status: 0, body: null, error: 'invalid_response' }
     return { status: res.status, body: parsed }
   } catch (e) {
     return { status: 0, body: null, error: String((e && e.message) || e) }
@@ -306,7 +354,13 @@ const pollPairing = async () => {
     body: { device_id: state.device_id, device_secret: state.device_secret },
   })
   if (res.status === 0) return { ok: false, error: 'reseau', status: 0 }
-  const status = res.body !== null && typeof res.body.status === 'string' ? res.body.status : 'expired'
+  // Only the server's own verdict ends a pairing. A rate limit, a 5xx, a proxy page or a reply without a status says nothing about
+  // the request: the pairing stays (it expires by itself), and the page tries again. Forgetting it here also lost a claim whose
+  // answer had not come through.
+  if (res.status === 429) return { ok: false, error: 'trop_de_demandes', status: 429 }
+  const verdicts = ['pending', 'claimed', 'denied', 'expired']
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object' || verdicts.indexOf(res.body.status) < 0) return { ok: false, error: 'reponse_illisible', status: res.status }
+  const status = res.body.status
   if (status === 'claimed' && typeof res.body.token === 'string') {
     // Fin de l'appairage : le secret d'appareil et le code disparaissent ici.
     const next = {
@@ -373,8 +427,10 @@ const refreshProfile = async () => {
     clearState()
     return { ok: true, connected: false, status: 'revoked' }
   }
-  if (ws.status !== 200) return { ok: false, error: 'profil_indisponible', status: ws.status }
-  const workspaces = ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
+  // Anything but the list itself (a portal's page, an empty body, another shape) keeps the list the person has: only the server's own
+  // `{ workspaces: [] }` empties it.
+  if (ws.status !== 200 || ws.body === null || typeof ws.body !== 'object' || Array.isArray(ws.body.workspaces) !== true) return { ok: false, error: 'profil_indisponible', status: ws.status }
+  const workspaces = ws.body.workspaces
   // /v1/me absent (serveur plus ancien : 404), cassé (401/403) ou en panne :
   // on garde le user en cache et on ne casse PAS le rafraîchissement. L'email
   // n'est jamais écrasé — il ne vient que du claim (l'identité /v1/* ne le

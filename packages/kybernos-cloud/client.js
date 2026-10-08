@@ -1304,6 +1304,13 @@ window.__ModuleLoader__.load({
               const res = await callLocal('/poll', 'POST')
               if (res.connected === true) return settle({ phase: 'connected', state: res.state })
               if (res.status === 'pending') return
+              // The host keeps the pairing through a rate limit, a 5xx, a network drop or a page that is not the server's: try again
+              // on the next tick instead of showing an error that the next tick would have cleared.
+              if (res.ok === false && (res.error === 'reseau' || res.error === 'trop_de_demandes' || res.error === 'reponse_illisible' || res.error === 'reponse illisible')) {
+                const until = view.pairing !== undefined && view.pairing !== null ? Date.parse(view.pairing.expires_at) : NaN
+                if (Number.isFinite(until) && until < Date.now()) return settle({ phase: 'error', error: res.error })
+                return
+              }
               if (res.status === 'denied') return settle({ phase: 'disconnected', note: 'denied' })
               if (res.status === 'expired') return settle({ phase: 'disconnected', note: 'expired' })
               settle({ phase: 'error', error: res.error || 'reseau' })

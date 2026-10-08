@@ -216,6 +216,56 @@ try {
     ok('invisible characters do not hide a secret, a non-text is empty, and a hostile text costs milliseconds')
   }
 
+  // 13. The relay misbehaves: a send never hangs, never follows a redirect, never reads an endless answer. The report is kept in every case.
+  {
+    const savedFetch = globalThis.fetch
+    process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS = '400'
+    try {
+      // 13a. A relay that accepts the connection and never answers: the call ends by itself (it used to wait for ever, and so did the agent).
+      reset()
+      let seenInit = null
+      globalThis.fetch = (url, init) => {
+        seenInit = init
+        return new Promise((resolve, reject) => {
+          if (init.signal === undefined) return // the old code: no signal, so no end
+          init.signal.addEventListener('abort', () => reject(init.signal.reason ?? new Error('aborted')), { once: true })
+        })
+      }
+      const t0 = Date.now()
+      const hung = await Promise.race([send(bug), new Promise((resolve) => setTimeout(() => resolve('STILL WAITING'), 3000))])
+      assert.notEqual(hung, 'STILL WAITING', 'the send must end when the relay never answers')
+      assert.equal(hung.ok, false)
+      assert.equal(hung.error, 'envoi_indisponible')
+      assert.ok(Date.now() - t0 < 2500)
+      assert.equal(outbox().length, 1, 'the report is kept')
+      assert.equal(outbox()[0].status, 'echec')
+      assert.equal(seenInit.redirect, 'manual', 'a redirect is never followed: it would carry the report and the way to the person\'s account elsewhere')
+      ok('a relay that never answers ends the send by itself; the report is kept; redirects are not followed')
+
+      // 13b. A redirect is a failure, not a delivery.
+      reset()
+      globalThis.fetch = async () => ({ status: 307, headers: new Headers({ location: 'http://elsewhere.invalid/v1/feedback' }), text: async () => '' })
+      const moved = await send(bug)
+      assert.equal(moved.ok, false)
+      assert.equal(moved.error, 'envoi_indisponible')
+      assert.equal(outbox()[0].status, 'echec')
+      ok('a redirect answer is a failed send, kept for later')
+
+      // 13c. An answer that never ends is cut at a size, not read to the end.
+      reset()
+      let pulled = 0
+      const endless = new ReadableStream({ pull (controller) { pulled += 1 << 20; controller.enqueue(new Uint8Array(1 << 20).fill(120)); if (pulled > (256 << 20)) controller.close() } })
+      globalThis.fetch = async () => new Response(endless, { status: 201, headers: { 'content-type': 'application/json' } })
+      const flood = await send(bug)
+      assert.ok(pulled <= (8 << 20), 'the client read ' + (pulled >> 20) + ' MB of an endless answer')
+      assert.equal(flood.ok === true || flood.ok === false, true)
+      ok('an endless answer is cut after a few MB')
+    } finally {
+      globalThis.fetch = savedFetch
+      delete process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS
+    }
+  }
+
   console.log('\n' + n + ' checks, all green')
 } finally {
   globalThis.fetch = realFetch
