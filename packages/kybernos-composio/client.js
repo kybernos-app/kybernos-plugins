@@ -387,6 +387,8 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.upstream_unavailable': { fr: 'Le serveur n’a pas pu joindre Composio. Un instant, puis réessayez.', en: 'The server could not reach Composio. Wait a moment, then try again.' },
       'kb.cp.kc.err.upstream_check': { fr: 'Le serveur n’a pas répondu à temps : la connexion a peut-être été créée.', en: 'The server did not answer in time: the connection may have been created.' },
       'kb.cp.kc.err.connections_disabled': { fr: 'Ce serveur n’offre pas les connexions pour le moment.', en: 'This server does not offer connections right now.' },
+      'kb.cp.kc.err.connection_failed': { fr: 'L’app a refusé cette clé : vérifiez-la, puis réessayez.', en: 'The app refused this key: check it, then try again.' },
+      'kb.cp.kc.err.app_not_found': { fr: 'Cette app n’est pas proposée par le serveur.', en: 'The server does not offer this app.' },
       'kb.cp.kc.err.not_found': { fr: 'Cette connexion n’existe plus.', en: 'This connection no longer exists.' },
       'kb.cp.kc.err.too_many_requests': { fr: 'Trop de demandes d’un coup. Patientez un instant.', en: 'Too many requests at once. Wait a moment.' },
       'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifiez l’app et la clé.', en: 'Request refused: check the app and the key.' },
@@ -1461,7 +1463,8 @@ window.__ModuleLoader__.load({
         if (r.status === 200 && j !== null && j.ok === true && j.connection !== null && typeof j.connection === 'object') { setApiKey(''); props.onLinked({ app: app, connection: j.connection, redirectUrl: j.redirectUrl }); return }
         const word = j !== null && typeof j.error === 'string' ? j.error : (r.status === 0 ? 'network' : 'other')
         if (word === 'needs_api_key') setNeedsKey(true)
-        setFail({ error: word, details: j !== null && typeof j === 'object' ? j : {} })
+        // Here a 404 can only mean the server does not know that app (it is not « this connection no longer exists »).
+        setFail({ error: word === 'not_found' ? 'app_not_found' : word, details: j !== null && typeof j === 'object' ? j : {} })
       }
       const existing = fail !== null && fail.error === 'pending_exists' && fail.details.existing !== null && typeof fail.details.existing === 'object' ? fail.details.existing : null
       return h('div', { className: 'kb7-overlay', onClick: props.onClose },
