@@ -38,7 +38,7 @@
 import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { normaliserCatalogue, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
+import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
 import { rank as rankByRelevance } from './relevance.mjs'
 import { findDuplicateGroups, unclearPairs } from './dedupe.mjs'
 import { MAP_TUNING, textHash, packVector, unpackVector, buildMap } from './mapproj.mjs'
@@ -487,7 +487,8 @@ const humanizeModelName = (id) => {
  *  catalogue en fournit (LiteLLM expose parfois max_tokens / context_length).
  *  Un modèle non dimensionné prend les replis de la route (262 144 / 32 768). */
 const modelEntry = (id, info) => {
-  const entry = { id, name: humanizeModelName(id) }
+  const shown = info !== null && typeof info === 'object' && typeof info.display_name === 'string' && info.display_name.trim() !== '' ? info.display_name.trim() : null
+  const entry = { id, name: shown !== null ? shown : humanizeModelName(id) }
   if (info !== null && typeof info === 'object' && Array.isArray(info) === false) {
     const context = intOf(info.context_length, info.max_input_tokens, info.max_model_len)
     const output = intOf(info.max_output_tokens, info.max_tokens)
@@ -497,23 +498,39 @@ const modelEntry = (id, info) => {
   return entry
 }
 
-/** Formes acceptées : `{data: [{id, …}]}` (LiteLLM natif) ou `{models: {id: …}}`
- *  (variante enrichie). Rien d'autre = illisible. */
+/** The catalogue of a Kybernos server built on vanilla provider models (`GET /v1/models` answers entries with a `kind`): every chat model is
+ *  offered, named as the server names it; the embeddings model is remembered apart (it is not a chat route). The old role routes
+ *  (`kybernos/*` twins, `_rg` pools, raw backend ids) are told apart by having no `kind`: they keep the filter below. */
+const isServerCatalog = (entries) => entries.length > 0 && entries.every((e) => typeof e.kind === 'string')
+
+const serverCatalog = (entries) => {
+  const chat = []
+  let embed = null
+  for (const entry of entries) {
+    if (entry.kind === 'chat') chat.push(entry)
+    else if (entry.kind === 'embeddings' && embed === null) embed = entry.id
+  }
+  return { models: chat.map((e) => modelEntry(e.id, e)), embed }
+}
+
+/** Formes acceptées : `{data: [{id, …}]}` (LiteLLM natif, ou serveur Kybernos avec `kind`) ou `{models: {id: …}}`
+ *  (variante enrichie). Rien d'autre = illisible. Rend `{models, embed}` : `embed` est l'id du modèle d'embeddings, ou null. */
 const parseCatalogIds = (body) => {
   if (body === null || typeof body !== 'object') return null
   if (Array.isArray(body.data) === true) {
+    const entries = body.data.filter((entry) => entry !== null && typeof entry === 'object' && typeof entry.id === 'string')
+    if (isServerCatalog(entries) === true) return serverCatalog(entries)
     const infos = new Map()
     const ids = []
-    for (const entry of body.data) {
-      if (entry === null || typeof entry !== 'object' || typeof entry.id !== 'string') continue
+    for (const entry of entries) {
       ids.push(entry.id)
       infos.set(entry.id, entry)
     }
     const kept = keepChatModels(ids)
-    return kept.map((id) => modelEntry(id, infos.get(id)))
+    return { models: kept.map((id) => modelEntry(id, infos.get(id))), embed: null }
   }
   if (body.models !== null && typeof body.models === 'object' && Array.isArray(body.models) === false) {
-    return keepChatModels(Object.keys(body.models)).map((id) => modelEntry(id, body.models[id]))
+    return { models: keepChatModels(Object.keys(body.models)).map((id) => modelEntry(id, body.models[id])), embed: null }
   }
   return null
 }
@@ -526,9 +543,9 @@ const fetchCatalog = async (state) => {
   if (res.status !== 200 || res.body === null) {
     return { ok: false, error: res.status === 0 ? 'reseau' : 'catalogue_indisponible', status: res.status }
   }
-  const models = parseCatalogIds(res.body)
-  if (models === null) return { ok: false, error: 'catalogue_illisible', status: res.status }
-  return { ok: true, models }
+  const parsed = parseCatalogIds(res.body)
+  if (parsed === null) return { ok: false, error: 'catalogue_illisible', status: res.status }
+  return { ok: true, models: parsed.models, embed: parsed.embed }
 }
 
 /** La route provider écrite dans `llm-pi-ai.providers.kybernos`. apiKeyEnv est
@@ -542,10 +559,11 @@ const providerValue = (state, entries) => ({
 })
 
 /** Déjà importé à l'identique ? (comparaison ids triés + formule + base) */
-const catalogFingerprint = (state, entries, plan) => JSON.stringify([
+const catalogFingerprint = (state, entries, plan, embed) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
+  embed === undefined || embed === null ? null : embed,
 ])
 
 /** Import (ou rafraîchissement) : catalogue → settings → credential → état.
@@ -573,7 +591,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan) === catalogFingerprint(state, cat.models, plan)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed) === catalogFingerprint(state, cat.models, plan, cat.embed)) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -586,6 +604,7 @@ const importCatalog = async (cause, options = {}) => {
     plan,
     count: cat.models.length,
     ids: cat.models.map((e) => e.id),
+    embed: cat.embed,
     provider: PROVIDER_ID,
     base_url: baseUrl(state),
     settings: settingsOut.wrote === true,
@@ -662,6 +681,7 @@ const publicModels = (models) => {
     plan: models.plan !== undefined ? models.plan : null,
     count: typeof models.count === 'number' ? models.count : 0,
     ids: Array.isArray(models.ids) ? models.ids.slice() : [],
+    embed: typeof models.embed === 'string' ? models.embed : null,
     settings: models.settings === true,
     credential: models.credential === true,
     cause: models.cause !== undefined ? models.cause : null,
@@ -737,25 +757,23 @@ const modelsRoute = async () => {
   return { ok: true, connected: true, plan: userPlan(state), models: publicModels(state.models) }
 }
 
+/** One page of the remote catalogue (`before`: the id of the last item of the previous page; null for the first page). */
+const marketplacePage = (state) => (before) => apiCall('/v1/marketplace' + (before === null ? '' : '?before=' + encodeURIComponent(before)), { token: state.token })
+
 /**
- * Le catalogue distant : ce que kybernos.app publie, tel quel.
- * Non lie -> motif explicite ; plateau injoignable -> motif avec le code HTTP.
- * On ne retombe JAMAIS sur une fixture locale en la faisant passer pour le
- * catalogue distant : c'est exactement le mensonge que ce module remplace.
+ * The remote catalogue: what kybernos.app publishes, as it is.
+ * Not linked -> an explicit `motif`; server unreachable -> a `motif` with the HTTP code.
+ * It NEVER falls back on a local fixture passed off as the remote catalogue: that is exactly the lie this module replaces.
+ *
+ * The server pages the catalogue (200 at a time, `has_more`): every page is read (marketplace-kyber.mjs, `lireCatalogue`,
+ * with hard limits). When a later page cannot be read the answer is still `ok` with the pages read, `partiel: true` and
+ * a `motif` that says what is missing: the panel shows the first pages with a note, never an empty catalogue.
  */
 const marketplaceRoute = async () => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, items: [], motif: 'aucun compte lie a kybernos.app' }
-  let res = null
-  try {
-    res = await apiCall('/v1/marketplace', { token: state.token })
-  } catch (e) {
-    return { ok: false, connected: true, items: [], motif: 'catalogue injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
-  }
-  if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, connected: true, items: [], motif: 'catalogue indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
-  }
-  const cat = normaliserCatalogue(res.body)
+  const cat = await lireCatalogue(marketplacePage(state))
+  if (cat.echec === true) return { ok: false, connected: true, items: [], motif: cat.motif }
   return Object.assign({ connected: true }, cat)
 }
 
@@ -875,11 +893,12 @@ const RELAY_RULES = [
   { re: /^\/v1\/workspaces$/, query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(members|providers|models)$', 'i'), query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(budget|models|catalog|billing)$', 'i'), query: [] },
-  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/usage$', 'i'), query: ['from', 'to'] },
+  // `group_by` is one of the server's four groupings (the team console asks for `detail`: one row per day, member and model).
+  { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/usage$', 'i'), query: ['from', 'to', 'group_by'], choices: { group_by: ['model', 'day', 'member', 'detail'] } },
 ]
 
 /** `{ ok, path }` (the canonical path to call) or `{ ok: false, error }`. Pure: a path the allowlist does not name, a
- *  workspace that is not one of the account's, a query parameter other than a date `from` / `to`, is refused. */
+ *  workspace that is not one of the account's, a query parameter other than a date `from` / `to` (or a known `group_by` on usage), is refused. */
 const relayCheck = (target, state) => {
   const refused = { ok: false, error: 'chemin refuse' }
   if (typeof target !== 'string' || target.length === 0 || target.length > 300 || target[0] !== '/') return refused
@@ -892,7 +911,9 @@ const relayCheck = (target, state) => {
   const seen = new Set()
   const query = []
   for (const [k, v] of u.searchParams) {
-    if (rule.query.indexOf(k) < 0 || seen.has(k) || RELAY_DATE.test(v) !== true) return refused
+    if (rule.query.indexOf(k) < 0 || seen.has(k)) return refused
+    const choices = rule.choices !== undefined ? rule.choices[k] : undefined
+    if (choices !== undefined ? choices.indexOf(v) < 0 : RELAY_DATE.test(v) !== true) return refused
     seen.add(k)
     query.push(k + '=' + encodeURIComponent(v))
   }
@@ -913,6 +934,29 @@ const relayRoute = async (req) => {
   if (verdict.ok !== true) return { ok: false, error: verdict.error }
   const res = await apiCall(verdict.path, { token: state.token })
   return { ok: res.status >= 200 && res.status < 300, status: res.status, body: res.body }
+}
+
+// ── The team console in the user's browser (the new server, ADR 0005 § 5) ──────
+// The console page is served by the server and, in a browser, uses the person's own session. DSH holds a device token and a token never goes through a
+// browser: it asks the server for a single-use link (valid 60 seconds) and hands THAT to the browser. The link is a bearer capability, so it is only
+// returned when it points at the server this account is connected to (a hostile or broken answer cannot send the browser elsewhere), and the route is strict
+// (a page of another origin cannot ask DSH for it).
+const consoleLink = async (req, body) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
+  const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id.trim().toLowerCase() : ''
+  const known = Array.isArray(state.workspaces) ? state.workspaces : []
+  const mine = (id) => known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === id)
+  if (asked !== '' && (new RegExp('^' + UUID_SRC + '$', 'i').test(asked) !== true || mine(asked) !== true)) return { ok: false, error: 'espace_inconnu' }
+  const res = await apiCall('/v1/console/link', { method: 'POST', token: state.token, body: asked === '' ? {} : { workspace_id: asked } })
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse' }
+  let url = null
+  try {
+    const u = new URL(String(res.body.url))
+    if ((u.protocol === 'https:' || u.protocol === 'http:') && u.origin === new URL(resolveApi()).origin) url = u.toString()
+  } catch (e) { url = null }
+  if (url === null) return { ok: false, status: res.status, error: 'lien_invalide' }
+  return { ok: true, url, expires_in: typeof res.body.expires_in === 'number' ? res.body.expires_in : 60 }
 }
 
 // ── Artefacts (phase A) ─────────────────────────────────────────────────────
@@ -1929,11 +1973,14 @@ const memoryRoute = async (req) => {
 }
 
 /**
- * Installe un kyber publie dans la racine locale `<DSH home>/kybers/`.
- * On ne remplace JAMAIS un kyber du testeur : si l'id est pris, la route
- * refuse et le dit, sauf `ecraser: true` demande explicitement.
- * La reponse porte `aCompleter` : ce que le catalogue ne publie pas (route de
- * modele, stages, prompt manquant) et que le testeur devra ecrire.
+ * Installs a published kyber into the local root `<DSH home>/kybers/`.
+ * A tester's kyber is NEVER replaced: when the id is taken the route refuses and says so, unless `ecraser: true` is
+ * asked for explicitly. The answer carries `aCompleter`: what the catalogue does not publish (model route, stages, a
+ * missing prompt) and the tester will have to write.
+ *
+ * The item is found by its address first (`GET /v1/marketplace/{slug}`: any item, listed or not, whatever page of the
+ * catalogue it would be on), then, on a 404 (an older server has no such route, or the item is not there), by reading
+ * the pages of the list (marketplace-kyber.mjs, `resoudreItem`).
  */
 const marketplaceInstallRoute = async (req, body) => {
   const state = readState()
@@ -1941,19 +1988,14 @@ const marketplaceInstallRoute = async (req, body) => {
   const demande = body !== null && typeof body === 'object' ? body : {}
   const slug = typeof demande.slug === 'string' ? demande.slug.trim() : ''
   if (slug === '') return { ok: false, error: 'slug manquant' }
-  if (verdictInstallation([], slug).cible !== slug) return { ok: false, error: 'slug invalide' }
-  let res = null
-  try {
-    res = await apiCall('/v1/marketplace', { token: state.token })
-  } catch (e) {
-    return { ok: false, error: 'catalogue injoignable : ' + String(e !== null && e.message !== undefined ? e.message : e) }
-  }
-  if (res === null || res.status !== 200 || res.body === null) {
-    return { ok: false, error: 'catalogue indisponible (code ' + String(res === null ? 'inconnu' : res.status) + ')' }
-  }
-  const cat = normaliserCatalogue(res.body)
-  const item = cat.items.filter((i) => i.slug === slug)[0]
-  if (item === undefined) return { ok: false, error: 'ce kyber n\'est plus publie sous l\'id « ' + slug + ' »' }
+  // The slug goes into a URL and into a folder name: only a plain one is let through.
+  if (slugSur(slug) !== true) return { ok: false, error: 'slug invalide' }
+  const trouve = await resoudreItem(slug, {
+    lireItem: (id) => apiCall('/v1/marketplace/' + encodeURIComponent(id), { token: state.token }),
+    lirePage: marketplacePage(state),
+  })
+  if (trouve.item === undefined) return { ok: false, error: trouve.erreur }
+  const item = trouve.item
   const construit = ymlDuKyber(item)
   if (construit.yml === null) return { ok: false, error: 'manifeste inexploitable : ' + construit.aCompleter.join(' ; ') }
   const racine = kybersDir()
@@ -2057,7 +2099,13 @@ const intParam = (raw, fallback, min, max) => {
 // dimensions, free tier, billed to the account like chat) and sends the vector; the server only stores
 // and ranks. EVERYTHING here is behind the `meaning` switch and never runs on its own at start-up.
 
-const EMBED_MODEL = 'kybernos/embed'
+const EMBED_MODEL = 'kybernos/embed'   // the role route of the older servers; a server with a vanilla catalogue names its own (below)
+/** The embeddings model of the server we are connected to: the one its catalogue named at the last import, else the legacy route. */
+const embedModelId = () => {
+  const state = readState()
+  const named = state !== null && state.models !== undefined && state.models !== null ? state.models.embed : null
+  return typeof named === 'string' && named !== '' ? named : EMBED_MODEL
+}
 const EMBED_DIM = 1024
 const EMBED_BATCH = 16
 const INDEX_BATCH_MAX = 64
@@ -2104,7 +2152,7 @@ const noteEmbedFailure = (failure) => {
 /** Vectors for `texts`, in order. Never throws; every failure is `{ ok:false, error }` (+ requiredTier / plan for 'offre_requise'). */
 const embedTexts = async (state, texts) => {
   if (!Array.isArray(texts) || texts.length === 0) return { ok: true, vectors: [] }
-  const res = await apiCall('/v1/embeddings', { method: 'POST', token: state.token, body: { model: EMBED_MODEL, input: texts } })
+  const res = await apiCall('/v1/embeddings', { method: 'POST', token: state.token, body: { model: embedModelId(), input: texts } })
   const failure = embedFailure(res)
   if (failure !== null) return { ok: false, ...failure }
   const data = res.body !== null && Array.isArray(res.body.data) ? res.body.data.slice() : []
@@ -2118,7 +2166,7 @@ const embedTexts = async (state, texts) => {
 
 /** Stores one vector on a memory. 503 = this server cannot (no pgvector); 404 = gone (or an older server). */
 const putEmbedding = async (state, id, vector) => {
-  const res = await apiCall('/v1/memories/' + encodeURIComponent(String(id)) + '/embedding', { method: 'PUT', token: state.token, body: { embedding: vector, model: EMBED_MODEL } })
+  const res = await apiCall('/v1/memories/' + encodeURIComponent(String(id)) + '/embedding', { method: 'PUT', token: state.token, body: { embedding: vector, model: embedModelId() } })
   if (res.status === 200) return { ok: true }
   if (res.status === 503) return { ok: false, error: 'sens_indisponible' }
   if (res.status === 404) {
@@ -2245,7 +2293,7 @@ let mapInFlight = null
 
 const readVectorCache = () => {
   const raw = readSide('memory-vectors', {})
-  if (raw.model !== EMBED_MODEL || raw.dim !== EMBED_DIM || raw.v === null || typeof raw.v !== 'object' || Array.isArray(raw.v)) return {}
+  if (raw.model !== embedModelId() || raw.dim !== EMBED_DIM || raw.v === null || typeof raw.v !== 'object' || Array.isArray(raw.v)) return {}
   return raw.v
 }
 
@@ -2255,7 +2303,7 @@ const writeVectorCache = (cache, keep) => {
   if (keys.length > MAP_VECTORS_MAX) keys = keys.slice(keys.length - MAP_VECTORS_MAX)
   const v = {}
   for (const k of keys) v[k] = cache[k]
-  try { writeSide('memory-vectors', { model: EMBED_MODEL, dim: EMBED_DIM, v }) } catch (e) { /* the map just recomputes next time */ }
+  try { writeSide('memory-vectors', { model: embedModelId(), dim: EMBED_DIM, v }) } catch (e) { /* the map just recomputes next time */ }
 }
 
 /** Keeps vectors that were just paid for (indexing, a new memory) so the map does not ask for them again. Never throws. */
@@ -3484,6 +3532,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/members', method: 'GET', guarded: true, run: membersGet },
   // Relais lecture seule pour la console Team (iframe d'une autre origine) : liste blanche, jeton ajouté ici, origine STRICTE.
   { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
+  // La console Team dans le navigateur : un lien à usage unique (60 s) demandé au serveur avec le jeton d'appareil, jamais le jeton lui-même.
+  { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,
@@ -3593,6 +3643,7 @@ export {
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
+  consoleLink,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,

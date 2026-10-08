@@ -337,6 +337,14 @@ for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace', "s
 assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSettings doit exister en fr ET en')
 ok('Teams settings : entree nommee du menu, pont vers la console puis deux replis, fr/en')
 
+// « Open the console in your browser »: the page is the same one, where it can change things. DSH asks its host route for a single-use link (never the
+// device token in a URL), opens the tab INSIDE the click (a tab opened after the wait can be blocked) with no opener, and points it at the link; a refusal closes it.
+for (const needle of ["entree('space-browser', h(GlobeIcon", "callLocal('/console/link', 'POST'", "window.open('', '_blank')", 'onglet.opener = null', 'onSpaceBrowser: ouvrirEspaceNavigateur']) {
+  assert.ok(source.includes(needle), 'entree « ouvrir dans le navigateur » : element manquant: ' + needle)
+}
+assert.equal((source.match(/menuTeamsBrowser:/g) || []).length, 2, 'menuTeamsBrowser doit exister en fr ET en')
+ok('Ouvrir la console dans le navigateur : entree du menu, lien a usage unique demande a l hote, onglet ouvert dans le clic, fr/en')
+
 // Le câblage de la page : la liste des espaces, la route du choix, les cinq
 // directions inertes, et le lien vers la page hébergée.
 for (const needle of [
