@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<title>dsh-mermaid — banc d'essai</title>
+<title>dsh-mermaid — test bench</title>
 <style>
-  /* Jetons DSH réalistes : le plugin ne doit lire QUE ceux-ci. */
+  /* Realistic DSH tokens: the plugin must read ONLY these. */
   :root{
     --dsw-font-family: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     --dsw-alias-bg-base:#0e1117;
@@ -22,7 +22,7 @@
     font-family:var(--dsw-font-family)}
   h1{font-size:14px;color:var(--dsw-alias-label-secondary);font-weight:500}
   .wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
-  /* Reproduction du CSS CodeBlock utile au banc d'essai. */
+  /* The CodeBlock CSS that matters to the bench. */
   .md-code-block{border:1px solid var(--dsw-alias-border-l2);border-radius:12px;overflow:hidden;
     background:var(--dsw-alias-bg-layer-1)}
   .md-code-block pre{margin:0;padding:8px 12px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -34,49 +34,78 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>DOM fidèle à <code>CodeBlock</code> (primitives lib/index.js:7590-7613)</h1>
+  <h1>DOM as DSH 0.2.0-rc.2 renders it (CodeToolbar + CodeBlock, dsh-client-ui-primitives lib/index.js): the label is "Code block" unless the language can be highlighted, and the source sits in [data-code-block-content]</h1>
 
-  <!-- 1. fence ```mermaid valide -->
-  <div class="md-code-block md-block" id="valid">
+  <!-- 1. ```mermaid fence, valid: not highlightable, so the banner does NOT say "mermaid" -->
+  <div class="md-code-block" id="valid">
     <div class="bannerWrap"><div data-code-block-banner>
-      <div class="infostring">mermaid</div>
-      <div class="action"><button class="copyButton">Copier</button></div>
+      <div class="heading"><span>Code block</span></div>
+      <div class="actions"><button class="copyButton" aria-label="Copy">Copy</button></div>
     </div></div>
-    <pre class="plain"><code>flowchart TD
-  A[Question] --&gt; B{Un diagramme ?}
-  B -- Oui --&gt; C[Mermaid]
-  B -- Non --&gt; D[Tableau ou graphe]
-  C --&gt; E[Rendu SVG]
+    <div data-code-block-content>
+      <pre class="plain"><code>flowchart TD
+  A[Question] --&gt; B{A diagram?}
+  B -- Yes --&gt; C[Mermaid]
+  B -- No --&gt; D[Table or graph]
+  C --&gt; E[SVG rendering]
   D --&gt; E</code></pre>
+    </div>
   </div>
 
-  <!-- 2. fence ```mermaid invalide -->
-  <div class="md-code-block md-block" id="invalid">
+  <!-- 2. ```mermaid fence, invalid: it opens like a diagram, so the error card must show -->
+  <div class="md-code-block" id="invalid">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>Code block</span></div>
+      <div class="actions"><button class="copyButton" aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content>
+      <pre class="plain"><code>flowchart TD
+  A[ --&gt; ???</code></pre>
+    </div>
+  </div>
+
+  <!-- 3. a highlighted fence: the label names the language, the source is pre.shiki. Must NOT be touched,
+          even though its text opens like a diagram -->
+  <div class="md-code-block" id="not-mermaid">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>python</span></div>
+      <div class="actions"><button class="copyButton" aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content>
+      <div><pre class="shiki"><code>graph TD
+def bonjour():
+    return "mermaid-not-touched"</code></pre></div>
+    </div>
+  </div>
+
+  <!-- 4. an unknown-language fence that is not a diagram: same "Code block" label, must NOT be touched -->
+  <div class="md-code-block" id="plain-text">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>Code block</span></div>
+      <div class="actions"><button class="copyButton" aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content>
+      <pre class="plain"><code>graph theory is the study of graphs</code></pre>
+    </div>
+  </div>
+
+  <!-- 5. the older, flatter DOM (label says "mermaid", <pre> is a direct child): kept working -->
+  <div class="md-code-block" id="legacy">
     <div class="bannerWrap"><div data-code-block-banner>
       <div class="infostring">mermaid</div>
-      <div class="action"><button class="copyButton">Copier</button></div>
+      <div class="action"><button class="copyButton">Copy</button></div>
     </div></div>
-    <pre class="plain"><code>flowchart TD
-  A[ --&gt; ???</code></pre>
-  </div>
-
-  <!-- 3. fence d'un autre langage : ne doit PAS être touchée -->
-  <div class="md-code-block md-block" id="not-mermaid">
-    <div class="bannerWrap"><div data-code-block-banner>
-      <div class="infostring">python</div>
-      <div class="action"><button class="copyButton">Copier</button></div>
-    </div></div>
-    <pre class="plain"><code>def bonjour():
-    return "mermaid-non-touche"</code></pre>
+    <pre class="plain"><code>graph LR
+  A[Legacy DOM] --&gt; B[Still drawn]</code></pre>
   </div>
 </div>
 
 <script>
-  // Chargeur de modules DSH simulé : même contrat que le vrai
+  // Simulated DSH module loader: same contract as the real one
   // (window.__ModuleLoader__.load({ id, factory })).
   window.__ModuleLoader__ = {
     load({ id, factory }) {
-      const exports = factory(() => { throw new Error('require indisponible dans le banc d\'essai') })
+      const exports = factory(() => { throw new Error('require is not available in the test bench') })
       window.__PLUGIN__ = { id, exports }
       if (exports && typeof exports.apply === 'function') exports.apply({})
     }

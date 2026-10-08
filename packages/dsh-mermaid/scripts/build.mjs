@@ -35,46 +35,58 @@ function resolveOrNull(id) {
 }
 
 const mermaidPkgPath = resolveOrNull('mermaid/package.json')
-if (!mermaidPkgPath) {
-  console.error('[build] mermaid introuvable. Installe-le ou pointe DSH_MERMAID_DEPS vers un dossier qui le contient.')
-  process.exit(1)
-}
 const esbuildPath = resolveOrNull('esbuild')
-if (!esbuildPath) {
-  console.error('[build] esbuild introuvable. Installe-le ou pointe DSH_MERMAID_DEPS vers un dossier qui le contient.')
+const vendorPath = join(root, 'vendor', 'mermaid.iife.js')
+
+let mermaidBundle
+let mermaidVersion
+if (mermaidPkgPath && esbuildPath) {
+  mermaidVersion = JSON.parse(readFileSync(mermaidPkgPath, 'utf8')).version
+  const resolveDir = dirname(mermaidPkgPath)
+  const esbuild = require_(esbuildPath)
+
+  mkdirSync(join(root, 'vendor'), { recursive: true })
+
+  const result = await esbuild.build({
+    stdin: {
+      contents: "import mermaid from 'mermaid'\nexport default mermaid\n",
+      resolveDir,
+      sourcefile: 'dsh-mermaid-entry.mjs',
+      loader: 'js'
+    },
+    bundle: true,
+    format: 'iife',
+    globalName: '__DSH_MERMAID_NS',
+    platform: 'browser',
+    target: ['es2020'],
+    minify: true,
+    legalComments: 'none',
+    write: false,
+    logLevel: 'warning'
+  })
+
+  mermaidBundle = result.outputFiles[0].text
+  writeFileSync(
+    vendorPath,
+    `/* mermaid ${mermaidVersion} — MIT — bundle IIFE généré par scripts/build.mjs ; ne pas éditer. */\n${mermaidBundle}\n`
+  )
+} else if (existsSync(vendorPath)) {
+  // Plugin-only change on a machine without mermaid/esbuild: reuse the vendored bundle as it is.
+  // Only vendor/mermaid.iife.js is read, never rewritten, so the result is byte-identical for an
+  // unchanged src/plugin.js.
+  const vendored = readFileSync(vendorPath, 'utf8')
+  const header = /^\/\* mermaid (\S+) —/.exec(vendored)
+  if (!header) {
+    console.error('[build] vendor/mermaid.iife.js has no version header: cannot reuse it.')
+    process.exit(1)
+  }
+  mermaidVersion = header[1]
+  mermaidBundle = vendored.slice(vendored.indexOf('\n') + 1, -1)
+  console.log(`[build] mermaid/esbuild not found: reusing the vendored bundle (mermaid ${mermaidVersion})`)
+} else {
+  console.error('[build] mermaid or esbuild not found, and no vendored bundle. Install them or point DSH_MERMAID_DEPS at a folder that has them.')
   process.exit(1)
 }
-
-const mermaidVersion = JSON.parse(readFileSync(mermaidPkgPath, 'utf8')).version
-const resolveDir = dirname(mermaidPkgPath)
-const esbuild = require_(esbuildPath)
-
-mkdirSync(join(root, 'vendor'), { recursive: true })
-
-const result = await esbuild.build({
-  stdin: {
-    contents: "import mermaid from 'mermaid'\nexport default mermaid\n",
-    resolveDir,
-    sourcefile: 'dsh-mermaid-entry.mjs',
-    loader: 'js'
-  },
-  bundle: true,
-  format: 'iife',
-  globalName: '__DSH_MERMAID_NS',
-  platform: 'browser',
-  target: ['es2020'],
-  minify: true,
-  legalComments: 'none',
-  write: false,
-  logLevel: 'warning'
-})
-
-const mermaidBundle = result.outputFiles[0].text
-const vendorPath = join(root, 'vendor', 'mermaid.iife.js')
-writeFileSync(
-  vendorPath,
-  `/* mermaid ${mermaidVersion} — MIT — bundle IIFE généré par scripts/build.mjs ; ne pas éditer. */\n${mermaidBundle}\n`
-)
 
 const pluginBody = readFileSync(join(root, 'src', 'plugin.js'), 'utf8')
 
@@ -122,6 +134,6 @@ writeFileSync(outPath, assembled)
 execFileSync(process.execPath, ['--check', outPath], { stdio: 'inherit' })
 
 const size = (readFileSync(outPath).length / 1048576).toFixed(2)
-console.log(`[build] mermaid ${mermaidVersion} → vendor/mermaid.iife.js`)
+console.log(`[build] mermaid ${mermaidVersion} (vendor/mermaid.iife.js)`)
 console.log(`[build] client/client.js — ${size} Mo, syntaxe OK`)
 if (!existsSync(join(root, 'client', 'client.js'))) process.exit(1)
