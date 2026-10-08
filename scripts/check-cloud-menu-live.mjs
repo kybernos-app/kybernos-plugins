@@ -55,7 +55,7 @@ try {
       await sleep(900)
       const pops = (await page.evalJs(`Array.from(document.querySelectorAll('.kbfp-sub')).map((e) => (e.innerText || '').replace(/\\s+/g, ' ').trim()).join(' || ')`)).val
       console.log('     switcher:', JSON.stringify(pops).slice(0, 300))
-      check('the switcher lists the workspaces and offers to create one', /switch workspace|changer d/i.test(pops) && /create a |créer /i.test(pops), pops)
+      check('the switcher lists the workspaces and offers to create one', /switch team|changer d/i.test(pops) && /create a |créer /i.test(pops), pops)
       check('creating a shared space says « team » in the switcher, not « workspace »', /Create a team|Créer une équipe/.test(pops) && !/Create a workspace|Créer un espace/.test(pops), pops)
     }
   }
