@@ -412,6 +412,13 @@ window.__ModuleLoader__.load({
             if (snap !== null && snap !== undefined && String(snap.active) === 'en') lang = 'en'
           }
         } catch (e) { /* storage or service unavailable: default */ }
+        // A translated language (es, de, ar…) is a choice, not the default:
+        // surface it so the row lookup below serves its text (or the English
+        // fallback) instead of the French source.
+        try {
+          const th = localStorage.getItem('kybernos.theme.lang')
+          if (th !== null && th !== '' && th !== 'kybernos' && String(th).split(/[-_]/)[0] !== 'fr') lang = String(th)
+        } catch (e) { /* storage unavailable */ }
       }
       if (lang !== 'kybernos' && lang !== 'fr') {
         const tag = lang.slice(0, 2).toLowerCase()

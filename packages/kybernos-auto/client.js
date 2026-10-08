@@ -20,9 +20,16 @@ window.__ModuleLoader__.load({
     const h = React.createElement
 
     const lang = () => {
-      try { const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__(); return String(l || '').split(/[-_]/)[0] } catch { return 'fr' }
+      try {
+        const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
+        const s = String(l || '')
+        // French only when the resolved language IS French (the 'kybernos' default
+        // or a fr base); every other language — translated (es…) or not — gets
+        // English, never French.
+        return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+      } catch { return 'fr' }
     }
-    const kt = (fr, en) => lang() === 'en' ? en : fr
+    const kt = (fr, en) => lang() === 'fr' ? fr : en
     // Why a model is skipped, in the words of the Models tab's health chip (the host keeps the cause with the outcome).
     const CAUSES_TXT = {
       key: ['clé refusée', 'key refused'], gone: ['retiré chez le fournisseur', 'gone from the provider'],

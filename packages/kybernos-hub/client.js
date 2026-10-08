@@ -90,9 +90,16 @@ window.__ModuleLoader__.load({
     // Nothing here may stop the boot beacon above: every entry point is wrapped.
 
     const lang = () => {
-      try { const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__(); return String(l || '').split(/[-_]/)[0] } catch (e) { return 'fr' }
+      try {
+        const l = window.__KB_LANG_RESOLVE__ && window.__KB_LANG_RESOLVE__()
+        const s = String(l || '')
+        // French only when the resolved language IS French (the 'kybernos' default
+        // or a fr base); every other language — translated (es…) or not — gets
+        // English, never French.
+        return (s === 'kybernos' || s.split(/[-_]/)[0] === 'fr') ? 'fr' : 'en'
+      } catch (e) { return 'fr' }
     }
-    const kt = (fr, en) => (lang() === 'en' ? en : fr)
+    const kt = (fr, en) => (lang() === 'fr' ? fr : en)
 
     /** Pure. "1.2.0" vs "1.10.0" → -1 | 0 | 1. Non-numeric parts compare as 0. */
     const comparerVersions = (a, b) => {

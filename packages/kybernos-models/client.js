@@ -71,6 +71,7 @@ window.__ModuleLoader__.load({
         'kb.prov.add.reglages': { kybernos: 'Réglages avancés', en: 'Advanced settings' },
         'kb.prov.add.fait.cleok': { kybernos: '{slug} est ajouté et sa clé est enregistrée.', en: '{slug} was added and its key saved.' },
         'kb.prov.add.fait.cleko': { kybernos: '{slug} est ajouté, mais la clé n’a pas pu être enregistrée — posez-la via le flux natif.', en: '{slug} was added, but its key could not be saved — add it through the native flow.' },
+        'kb.prov.add.sans.modeles': { kybernos: 'Le catalogue installé ne décrit pas {slug} et aucun modèle n’a répondu ({raison}) — la liste des modèles doit être déclarée à la main (bouton « Fetch models » après l’ajout, ou API personnalisée).', en: 'The installed catalog does not describe {slug} and no model answered ({raison}) — the model list must be declared by hand (“Fetch models” after adding, or Custom API).' },
         'kb.prov.add.grp.free': { kybernos: 'Modèles gratuits (quota)', en: 'Free models (quota)' },
         'kb.prov.add.grp.pop': { kybernos: 'Populaires', en: 'Popular' },
         'kb.prov.add.grp.tous': { kybernos: 'Tous les fournisseurs', en: 'All providers' },
@@ -3844,6 +3845,15 @@ window.__ModuleLoader__.load({
         const block = kbPvAddBlock(d, taken)
         if (block !== null) throw new Error(m('kb.pv.err.' + block))
         const prof = kbPvNewProfile(d)
+        // A route the installed catalog does not describe serves nothing until its models are
+        // listed (measured on gmicloud, 08/10: the native add refuses with “resolves no models”).
+        // A catalog add with a pasted key asks the endpoint over the wire — the same
+        // `llm.discoverModels` call the fetch panel uses — and adopts the answer as its list.
+        if (prof.models === undefined && d.tab === 'catalog' && String(d.key || '').trim() !== '') {
+          const found = await kbFetchRun(api, kbFetchProbe(slug, d))
+          if (found.kind === 'found' && found.models.length > 0) prof.models = found.models.map(kbFetchAdopt)
+          else if (found.kind === 'refused' && found.unavailable !== true) throw new Error(m('kb.prov.add.sans.modeles', { raison: found.message }))
+        }
         const resp = await kbMMutateRetry(api, [{ op: 'set', path: ['providers', slug], value: prof }])
         await kbMJournal({ niveau: 'settings', route: slug, champ: 'provider', op: 'set', chemin: ['providers', slug], ok: resp.ok === true })
         if (resp.ok !== true) throw new Error(kbMErrText(resp))
