@@ -10,6 +10,7 @@ import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { callMetadata, createCall } from './call-host.mjs'
+import { createSpeechFeed } from './speech-feed.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -147,12 +148,12 @@ try {
   const dispatched = JSON.parse(twirpCalls[0].init.body)
   assert.equal(dispatched.room, 'room-xyz')
   assert.equal(dispatched.agent_name, 'kybernos-appel')
-  assert.deepEqual(JSON.parse(dispatched.metadata), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: null, name: null, mode: 'voice', language: 'auto' })
+  assert.deepEqual(JSON.parse(dispatched.metadata), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: null, name: null, mode: 'voice', language: 'auto', brain: 'voice' })
   assert.deepEqual(m5.meta, JSON.parse(dispatched.metadata))
   ok('the call\'s identity travels with the room (dispatch metadata), and is echoed in the answer')
   const m5b = await call.mint({ sessionId: 'session-bbbbbbbb', kyberId: 'team-2', roleId: 'm2', name: 'Bob', mode: 'video', language: 'es', room: 'room-two' })
   const second = JSON.parse(JSON.parse(twirpCalls[1].init.body).metadata)
-  assert.deepEqual(second, { sessionId: 'session-bbbbbbbb', kyberId: 'team-2', roleId: 'm2', name: 'Bob', mode: 'video', language: 'es' })
+  assert.deepEqual(second, { sessionId: 'session-bbbbbbbb', kyberId: 'team-2', roleId: 'm2', name: 'Bob', mode: 'video', language: 'es', brain: 'voice' })
   assert.equal(spawnCalls.length, 1, 'the second call reuses the worker')
   assert.equal(m5b.agent.dispatched, true)
   ok('a second call to another session is its own room with its own identity, on the same worker (the first call\'s session is not kept)')
@@ -170,12 +171,42 @@ try {
   assert.equal(m6.agent.dispatchDetail, 'bad key')
   ok('a refused dispatch does not refuse the call: agent.dispatched is false and says why')
 
+  console.log('kybernos-call: one brain (the session\'s replies)')
+  {
+    const feed = createSpeechFeed()
+    const wired = base({ execFile: fakeExec, spawn: fakeSpawn, fetch: fakeFetch, feed })
+    const before = twirpCalls.length
+    const mm = await wired.mint({ sessionId: 'session-aaaaaaaa', room: 'room-brain' })
+    assert.equal(mm.agent.dispatched, true)
+    assert.equal(mm.meta.brain, 'session')
+    assert.equal(JSON.parse(JSON.parse(twirpCalls[before].init.body).metadata).brain, 'session')
+    assert.equal(feed.sessionOf('room-brain'), 'session-aaaaaaaa')
+    feed.ingest('session-aaaaaaaa', { type: 'assistant/message', data: { message: { content: [{ type: 'text', text: 'Spoken reply.' }] } } })
+    assert.deepEqual((await feed.poll('room-brain', 0, 0)).items.map((i) => i.text), ['Spoken reply.'])
+    ok('a call with a session tells the worker "brain: session" and the host keeps that session\'s replies for the room')
+
+    const noSession = await wired.mint({ room: 'room-nosession' })
+    assert.equal(noSession.meta.brain, 'voice')
+    assert.equal(feed.sessionOf('room-nosession'), null)
+    ok('a call without a session keeps the worker\'s own voice model, and nothing is followed')
+
+    const refused = await base({ execFile: fakeExec, spawn: fakeSpawn, fetch: failingFetch, feed }).mint({ sessionId: 'session-aaaaaaaa', room: 'room-refused' })
+    assert.equal(refused.agent.dispatched, false)
+    assert.equal(feed.sessionOf('room-refused'), null)
+    ok('a worker that could not be woken leaves nothing registered')
+
+    const noWorker = await base({ feed }).mint({ sessionId: 'session-aaaaaaaa', room: 'room-noworker' })
+    assert.equal(noWorker.ok, true)
+    assert.equal(feed.sessionOf('room-noworker'), null)
+    ok('with no worker (no venv) nothing is registered either')
+  }
+
   console.log('kybernos-call: who a call is with')
-  assert.deepEqual(callMetadata({}), { sessionId: null, kyberId: null, roleId: null, name: null, mode: 'voice', language: 'auto' })
+  assert.deepEqual(callMetadata({}), { sessionId: null, kyberId: null, roleId: null, name: null, mode: 'voice', language: 'auto', brain: 'voice' })
   assert.deepEqual(callMetadata(null), callMetadata({}))
   ok('nothing asked: no session, no member, voice, language auto')
   const full = callMetadata({ sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: '  Alice  ', mode: 'video', language: 'pt-BR' })
-  assert.deepEqual(full, { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', language: 'pt-BR' })
+  assert.deepEqual(full, { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', language: 'pt-BR', brain: 'voice' })
   ok('a good request passes through (the name is trimmed)')
   const bad = callMetadata({ sessionId: 'nope', kyberId: '../etc', roleId: 'a b', name: 'Al\u0000i\nce' + 'x'.repeat(100), mode: 'hologram', language: 'Klingon!' })
   assert.equal(bad.sessionId, null)
@@ -186,6 +217,10 @@ try {
   assert.equal(bad.name.length, 60)
   assert.equal(/[\u0000-\u001f]/.test(bad.name), false)
   ok('a bad session id, ids with path characters, an unknown mode or language are dropped; the name loses control characters and is cut at 60')
+  assert.equal(callMetadata({ sessionId: 'session-aaaaaaaa' }, { sessionBrain: true }).brain, 'session')
+  assert.equal(callMetadata({}, { sessionBrain: true }).brain, 'voice')
+  assert.equal(callMetadata({ sessionId: 'session-aaaaaaaa' }).brain, 'voice')
+  ok('"session" brain only when the call has a session AND this host can feed it; otherwise the worker answers with its voice model')
   assert.equal(callMetadata({ name: 42, sessionId: 7, language: 5 }).language, 'auto')
   assert.equal(JSON.stringify(callMetadata({ name: 'x'.repeat(5000), kyberId: 'k'.repeat(5000) })).length < 400, true)
   ok('wrong types are ignored and the metadata stays small')

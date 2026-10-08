@@ -11,6 +11,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createCall } from './call-host.mjs'
 import { mountCallRoutes } from './call-routes.mjs'
+import { createSpeechFeed } from './speech-feed.mjs'
 
 export const name = 'kybernos-call'
 
@@ -19,10 +20,20 @@ const say = (message) => console.log('[kybernos-call] ' + message)
 export function apply (ctx) {
   try {
     const pluginDir = dirname(fileURLToPath(import.meta.url))
-    const call = createCall({ pluginDir })
+    // One brain: the call speaks what the session's assistant writes. The host sees every session event;
+    // without that event source (an engine that does not offer it) a call keeps the worker's own voice model.
+    let feed = null
+    try {
+      if (typeof ctx.on === 'function') {
+        const candidate = createSpeechFeed()
+        ctx.on('session/event', (session, event) => { try { candidate.ingest(session && session.id, event) } catch (e) { /* never break a session */ } })
+        feed = candidate
+      }
+    } catch (e) { feed = null; say('session events not followed: ' + String(e && e.message ? e.message : e)) }
+    const call = createCall({ pluginDir, feed })
     const effect = (fn, label) => ctx.effect(fn, label)
     const mount = (webServer) => {
-      try { mountCallRoutes(webServer, call, pluginDir, effect); say('routes mounted') } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }
+      try { mountCallRoutes(webServer, call, pluginDir, effect, feed); say('routes mounted' + (feed === null ? ' (the worker answers with its own voice model)' : '')) } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }
     if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
     else ctx.inject(['webServer'], (host) => mount(host.webServer))

@@ -6,6 +6,7 @@ import { Readable } from 'node:stream'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mountCallRoutes, ROUTES, sameOriginStrict, readJsonBody } from './call-routes.mjs'
+import { createSpeechFeed } from './speech-feed.mjs'
 import { apply, name } from './index.js'
 
 let pass = 0
@@ -68,11 +69,17 @@ const fakeCall = {
   agentState: async () => ({ ok: true, running: false }),
   utterance: async (b) => (b && b.text === 'bad' ? { ok: false, error: 'unknown session' } : { ok: true, accepted: true })
 }
-mountCallRoutes(webServer, fakeCall, here, (fn, label) => { effects.push(label); return fn() })
+const feed = createSpeechFeed()
+mountCallRoutes(webServer, fakeCall, here, (fn, label) => { effects.push(label); return fn() }, feed)
 assert.deepEqual([...registered.keys()].sort(), Object.values(ROUTES).sort())
-assert.equal(effects.length, 5)
+assert.equal(effects.length, 6)
 for (const path of registered.keys()) assert.match(path, /^\/kybernos-call\//)
-ok('five routes, all under /kybernos-call/, each registered through the plugin\'s effect')
+ok('six routes, all under /kybernos-call/, each registered through the plugin\'s effect')
+const bare = new Map()
+mountCallRoutes({ register: (r) => { bare.set(r.path, r); return () => {} } }, fakeCall, here, (fn) => fn())
+assert.equal(bare.size, 5)
+assert.equal(bare.has(ROUTES.speech), false)
+ok('without a session event source there is no speech route (a call keeps the worker\'s own voice model)')
 const run = async (path, req) => { const res = makeRes(); await registered.get(path).handler(req, res); return res }
 
 let res = await run(ROUTES.status, makeReq('GET'))
@@ -121,6 +128,37 @@ res = await run(ROUTES.utterance, makeReq('POST', { ...same, body: { text: 'bad'
 assert.equal(res.status, 400)
 ok('utterance: 200 when accepted, 400 when the host refuses it')
 
+console.log('kybernos-call: the speech route')
+feed.register('room-speak', 'session-aaaaaaaa')
+feed.ingest('session-aaaaaaaa', { type: 'assistant/message', data: { message: { content: [{ type: 'text', text: 'Hello from the session.' }] } } })
+const withUrl = (path, query, req) => { req.url = path + '?' + query; return req }
+res = await run(ROUTES.speech, makeReq('POST'))
+assert.equal(res.status, 405)
+res = await run(ROUTES.speech, withUrl(ROUTES.speech, 'room=room-speak', makeReq('GET')))
+assert.equal(res.status, 403)
+res = await run(ROUTES.speech, withUrl(ROUTES.speech, 'room=room-speak', makeReq('GET', { origin: 'https://evil.example' })))
+assert.equal(res.status, 403)
+ok('speech: it is the session\'s own text, so GET needs the same origin too (no origin or a foreign one is 403)')
+res = await run(ROUTES.speech, withUrl(ROUTES.speech, 'room=room-speak&after=0&wait=0', makeReq('GET', same)))
+assert.equal(res.status, 200)
+assert.deepEqual(json(res).items, [{ seq: 1, kind: 'text', text: 'Hello from the session.' }])
+res = await run(ROUTES.speech, withUrl(ROUTES.speech, 'room=room-speak&after=1&wait=0', makeReq('GET', same)))
+assert.deepEqual(json(res).items, [])
+res = await run(ROUTES.speech, withUrl(ROUTES.speech, 'room=unknown-room&wait=0', makeReq('GET', same)))
+assert.equal(json(res).known, false)
+ok('speech: the items after "after", an empty list when nothing is new, known:false for a room the host does not follow')
+for (const bad of ['', 'room=a', 'room=has space!', 'room=' + 'x'.repeat(65)]) {
+  res = await run(ROUTES.speech, withUrl(ROUTES.speech, bad, makeReq('GET', same)))
+  assert.equal(res.status, 400, bad)
+}
+ok('speech: a missing or malformed room is 400')
+const longPoll = run(ROUTES.speech, withUrl(ROUTES.speech, 'room=room-speak&after=1&wait=5000', makeReq('GET', same)))
+await new Promise((resolve) => setTimeout(resolve, 40))
+feed.ingest('session-aaaaaaaa', { type: 'assistant/message', data: { message: { content: [{ type: 'text', text: 'And more.' }] } } })
+res = await longPoll
+assert.deepEqual(json(res).items.map((i) => i.text), ['And more.'])
+ok('speech: a long poll answers as soon as the assistant writes')
+
 res = await run(ROUTES.vendor, makeReq('GET'))
 assert.equal(res.status, 200)
 assert.equal(res.headers['content-type'], 'text/javascript; charset=utf-8')
@@ -147,14 +185,26 @@ try {
   const reg2 = new Map()
   let injected = null
   apply({ get: () => undefined, inject: (list, cb) => { injected = list; cb({ webServer: { register: (r) => { reg2.set(r.path, r); return () => {} } } }) }, effect: (fn) => fn() })
+  // with the session event source: the speech route, fed by the events
+  const handlers = new Map()
+  const reg3 = new Map()
+  apply({ get: (n) => (n === 'webServer' ? { register: (r) => { reg3.set(r.path, r); return () => {} } } : undefined), inject: () => {}, effect: (fn) => fn(), on: (event, fn) => { handlers.set(event, fn); return () => {} } })
+  assert.equal(reg3.size, 6)
+  assert.equal(typeof handlers.get('session/event'), 'function')
+  // a broken event source must not stop it
+  const reg4 = new Map()
+  apply({ get: (n) => (n === 'webServer' ? { register: (r) => { reg4.set(r.path, r); return () => {} } } : undefined), inject: () => {}, effect: (fn) => fn(), on: () => { throw new Error('no events here') } })
+  assert.equal(reg4.size, 5)
   // a broken context must not throw
   apply(undefined)
   apply({ get: () => { throw new Error('boom') } })
   console.log = origLog
   assert.equal(reg1.size, 5)
+  assert.equal(reg1.has(ROUTES.speech), false)
   assert.deepEqual(injected, ['webServer'])
   assert.equal(reg2.size, 5)
   ok('apply mounts the five routes when the web server is there, or as soon as it is injected')
+  ok('with the session event source apply also mounts the speech route and listens to session/event; if listening fails it still mounts the rest')
   ok('apply never throws, even with a missing or broken context (a bundle must never stop DSH from starting)')
   assert.ok(logs.some((l) => /disabled/.test(l)))
   ok('and it says it is disabled instead of staying silent')

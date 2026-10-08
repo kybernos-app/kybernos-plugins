@@ -22,9 +22,14 @@ seam does not exist and the two buttons are hidden.
 2. The browser loads the LiveKit SDK (`/kybernos-call/vendor/livekit-client.js`, 2.22.3, Apache-2.0, at the first call only),
    joins the room, publishes the microphone and attaches the tracks it receives.
 3. The worker (`agent/agent.py`) reads that metadata (`agent/call_meta.py`), listens (Groq Whisper, in the call's language or
-   detecting it when it is `auto`), answers by voice as the member it was called as (a small Groq model, macOS `say` or Groq TTS),
-   shows a face only on a `video` call, and POSTs every sentence it heard to `/kybernos-call/utterance`, which sends it to THAT
-   call's session (`session/prompt`).
+   detecting it when it is `auto`), shows a face only on a `video` call, and POSTs every sentence it heard to
+   `/kybernos-call/utterance`, which sends it to THAT call's session (`session/prompt`): a real turn, with the session's model,
+   tools and permissions.
+4. **One brain.** With a session behind the call (`brain: session` in the metadata) the worker's small model does NOT answer
+   (`StopResponse`). The host listens to the engine's `session/event` stream (`speech-feed.mjs`) and keeps, for the call's room, what
+   the session's assistant writes; the worker long-polls `GET /kybernos-call/speech` and speaks it (`speakable()`: code, tables,
+   links and markup stay in the thread, the rest is cut at a sentence end under 700 characters). Without a session, or on an
+   engine that offers no event stream, the small model answers as before, so a call is never silent.
 
 ## Host routes
 
@@ -34,6 +39,7 @@ seam does not exist and the two buttons are hidden.
 | `/kybernos-call/token` | POST | same origin only; the body carries `sessionId`, `kyberId`, `identity` |
 | `/kybernos-call/agent` | POST | same origin only; `{ action: 'start' \| 'stop' \| 'status' }` |
 | `/kybernos-call/utterance` | POST | same origin only; `{ sessionId, text, mode: 'queue' \| 'steer' }` |
+| `/kybernos-call/speech` | GET | same origin only (it is the session's own text); `?room=&after=&wait=` a long poll for what the session's assistant wrote for this call; `known: false` once the room is released |
 | `/kybernos-call/vendor/livekit-client.js` | GET, HEAD | the SDK, served as is |
 
 DSH serves plugin routes before its own sign-in, so the three POST routes refuse any request that does not come from the
@@ -71,6 +77,14 @@ Behaviour is the same, except for what was broken or dead:
 - The unpkg fallback for the SDK is gone (the SDK ships with this bundle, and a call must not load a script from a third party).
 - Host error messages are in English; the panel text is French and English.
 
+## Changed in step 3: one brain
+
+Before, two models answered: a small Groq model spoke at once, while the same words opened a real DSH turn whose answer was never
+spoken (the thread and the voice could say different things, and the voice knew nothing of the tools). Now the voice speaks the
+session's answer. Proved on a real DSH with `scripts/check-call-brain-live.mjs`: the host follows the engine's session events, and
+what a session does reaches the call's room. What was not proved with real audio: a real model answering and the worker speaking it
+(needs the LiveKit and Groq keys and a microphone).
+
 ## Changed in step 2: who a call is with
 
 - The worker no longer keeps the session and the team of the FIRST call (they were set in its environment when it started, and it
@@ -88,12 +102,14 @@ Behaviour is the same, except for what was broken or dead:
 - The client always asks for the language `auto`; there is no setting for it yet.
 - Hearing is multilingual now, speaking is not: the local voice (`say`, `Thomas`) is a French voice and Groq's TTS only does English and
   Arabic, so a Spanish answer is read with a French accent. A multilingual voice engine is the next step.
-- The voice that speaks is a separate small model; DSH's own answer is not spoken.
+- The session's answer is spoken in full only up to ~700 characters (a sentence end); the rest is in the thread. Nothing is said while
+  a tool runs (the thread shows it); a spoken "one moment" needs a line per language.
+- What you say while the session is still working is queued as a new turn (`mode: queue`), not steered into the running one.
 - macOS only for the local TTS (`say`), and `pgrep` / `kill` are Unix.
 
 ## Tests
 
-`node packages/kybernos-call/test-host.mjs`, `test-routes.mjs`, `test-client.mjs`, `test-dsh-home.mjs`, `test-agent-process.mjs` (a real child process, Unix only), `test-agent-meta.mjs` (the worker's `call_meta.py`, through
-`python3`, skipped without it). None needs DSH, a browser
+`node packages/kybernos-call/test-host.mjs`, `test-routes.mjs`, `test-client.mjs`, `test-dsh-home.mjs`, `test-agent-process.mjs` (a real child process, Unix only), `test-speech-feed.mjs`, `test-agent-meta.mjs` (the worker's Python
+tests, through `python3`; the LiveKit-facing ones are skipped without the worker's venv: run `<venv>/bin/python agent/test_call_agent.py`). None needs DSH, a browser
 or the network. A real call needs a microphone and the keys above: run it on the sandbox instance (`scripts/sandbox/`), never
 on the owner's own GUI.

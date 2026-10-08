@@ -31,20 +31,25 @@ const LANG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
  *   name       the member's name, to speak as, or null
  *   mode       'voice' (no face) unless 'video' was asked
  *   language   'auto' (follow the speaker) or a language code
+ *   brain      'session' when the answer spoken is the session's own (the host feeds the worker with it),
+ *              'voice' when it is the worker's small model (no session, or no feed): `sessionBrain` says
+ *              whether this host can feed a call
  */
-export function callMetadata (asked) {
+export function callMetadata (asked, { sessionBrain = false } = {}) {
   const a = (asked !== null && asked !== undefined && typeof asked === 'object') ? asked : {}
   const id = (v) => { const t = str(v); return (t !== null && ID_RE.test(t)) ? t : null }
   const sessionId = str(a.sessionId)
   const name = str(a.name) === null ? '' : String(a.name).replace(CONTROL, ' ').trim().slice(0, 60)
   const language = str(a.language) === null ? 'auto' : String(a.language).trim()
+  const session = (sessionId !== null && SESSION_RE.test(sessionId)) ? sessionId : null
   return {
-    sessionId: (sessionId !== null && SESSION_RE.test(sessionId)) ? sessionId : null,
+    sessionId: session,
     kyberId: id(a.kyberId),
     roleId: id(a.roleId),
     name: name === '' ? null : name,
     mode: a.mode === 'video' ? 'video' : 'voice',
-    language: (language === 'auto' || LANG_RE.test(language)) ? language : 'auto'
+    language: (language === 'auto' || LANG_RE.test(language)) ? language : 'auto',
+    brain: (sessionBrain === true && session !== null) ? 'session' : 'voice'
   }
 }
 
@@ -52,7 +57,7 @@ export function callMetadata (asked) {
  * deps (all optional, the defaults are the real ones):
  *   dshHome()  → the DSH folder (async)          execFile / spawn → child_process
  *   fetch      → global fetch                    env        → process.env
- *   pluginDir  → this bundle's folder
+ *   pluginDir  → this bundle's folder           feed       → speech-feed.mjs (the session's replies)
  */
 export function createCall (deps = {}) {
   const env = deps.env ?? process.env
@@ -61,6 +66,7 @@ export function createCall (deps = {}) {
   const spawn = deps.spawn ?? nodeSpawn
   const doFetch = deps.fetch ?? ((...a) => globalThis.fetch(...a))
   const pluginDir = deps.pluginDir ?? dirname(fileURLToPath(import.meta.url))
+  const feed = deps.feed ?? null
 
   // ── The secrets, and the LiveKit room token ────────────────────────────────
   // Secrets do NOT go in `settings.json` (readable by the client and the settings screen): a
@@ -262,7 +268,7 @@ export function createCall (deps = {}) {
     const askedIdentity = str(asked.identity)
     const identity = (askedIdentity !== null && String(askedIdentity).trim().length >= 1 && String(askedIdentity).trim().length <= 64) ? String(askedIdentity).trim() : ('moi-' + randomUUID().slice(0, 8))
     const token = accessToken(secrets, { room: room, identity: identity, ttlSeconds: asked.ttlSeconds })
-    const meta = callMetadata(asked)
+    const meta = callMetadata(asked, { sessionBrain: feed !== null })
     // A call is three things: a room, a token, and a woken agent. The agent is started on the first
     // call and left alive; the explicit dispatch keeps it from entering a room by accident. An agent
     // failure does not refuse the call: the human can speak alone, and the answer says so
@@ -274,9 +280,15 @@ export function createCall (deps = {}) {
       if (typeof started.error === 'string') agent.error = started.error
       if (agent.running === true) {
         agent.ready = await waitRegistered(started.depart, 12000)
+        // The session's replies are kept for this room from the moment the worker is woken.
+        if (meta.brain === 'session') feed.register(room, meta.sessionId)
         const sent = await dispatch(secrets, room, meta)
         agent.dispatched = sent.ok === true
-        if (sent.ok !== true) { agent.dispatchError = sent.error; if (typeof sent.detail === 'string') agent.dispatchDetail = sent.detail }
+        if (sent.ok !== true) {
+          agent.dispatchError = sent.error
+          if (typeof sent.detail === 'string') agent.dispatchDetail = sent.detail
+          if (feed !== null) feed.unregister(room)
+        }
       }
     }
     return { ok: true, url: String(secrets.LIVEKIT_URL), room: room, identity: identity, token: token.token, expiresIn: token.expiresIn, agent: agent, meta: meta }

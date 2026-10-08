@@ -27,11 +27,11 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from livekit.agents import Agent, AgentServer, AgentSession, JobContext, cli, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, JobContext, StopResponse, cli, room_io
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import groq, silero
 
-from call_meta import CallMeta, instructions as build_instructions, parse_job_metadata, stt_options, utterance_payload
+from call_meta import CallMeta, fetch_speech, instructions as build_instructions, parse_job_metadata, speakable, stt_options, utterance_payload
 from local_tts import LocalSayTTS
 
 AGENT_NAME = "kybernos-appel"
@@ -103,6 +103,57 @@ def _build_tts():
     return LocalSayTTS(voice=os.getenv("KYBER_SAY_VOICE", "Thomas"))
 
 
+class CallAgent(Agent):
+    """The voice of a call. With a session behind the call, it does NOT answer by itself.
+
+    The words heard go to the session (a real turn: its model, its tools, its permissions) and what
+    the session's assistant writes is what is spoken (`_speak_session` below): one brain. Without a
+    session, the small voice model answers, so a call is never silent.
+    """
+
+    def __init__(self, *, instructions: str, session_brain: bool) -> None:
+        super().__init__(instructions=instructions)
+        self._session_brain = session_brain
+
+    async def on_user_turn_completed(self, turn_ctx, new_message) -> None:
+        if self._session_brain:
+            raise StopResponse()
+
+
+async def _speak_session(session: AgentSession, room: str) -> None:
+    """Says what the session's assistant writes, as the host hands it over (a long poll)."""
+    loop = asyncio.get_running_loop()
+    after = 0
+    failures = 0
+    while True:
+        try:
+            reply = await loop.run_in_executor(None, fetch_speech, HOST, room, after, 20000)
+            failures = 0
+        except Exception as exc:  # the host restarts, the network blinks: try again, then give up
+            failures += 1
+            _say("speech poll failed:", exc)
+            if failures >= 5:
+                _say("giving up on the session's replies")
+                return
+            await asyncio.sleep(min(2 * failures, 10))
+            continue
+        if reply.get("known") is False:
+            _say("the host no longer follows this call")
+            return
+        for item in reply.get("items", []):
+            if item.get("kind") != "text":
+                continue
+            said = speakable(item.get("text", ""))
+            if said:
+                _say("speaking the session's reply:", repr(said[:120]))
+                try:
+                    session.say(said, allow_interruptions=True)
+                except Exception as exc:  # the call is closing
+                    _say("could not speak:", exc)
+                    return
+        after = max(after, int(reply.get("next", after) or after))
+
+
 server = AgentServer()
 
 
@@ -111,7 +162,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
     # Who this call is with comes from the job that woke us (this worker serves many rooms).
     meta = parse_job_metadata(getattr(ctx.job, "metadata", ""), os.environ)
     _say("call: room", ctx.room.name, "| secrets", SOURCE_ENV, "| session", meta.session_id or "-",
-         "| as", meta.name or "-", "| mode", meta.mode, "| language", meta.language)
+         "| as", meta.name or "-", "| mode", meta.mode, "| language", meta.language, "| brain", meta.brain)
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=groq.STT(model=os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
@@ -184,11 +235,18 @@ async def kybernos_appel(ctx: JobContext) -> None:
     # Without a face, the audio goes into the room; with one, it goes to the face.
     await session.start(
         room=ctx.room,
-        agent=Agent(instructions=build_instructions(meta, INSTRUCTIONS_OVERRIDE)),
+        agent=CallAgent(instructions=build_instructions(meta, INSTRUCTIONS_OVERRIDE), session_brain=meta.brain == "session"),
         room_output_options=room_io.RoomOutputOptions(audio_enabled=avatar is None),
     )
     # No automatic greeting: a clean turn first.
     ctx.add_shutdown_callback(_dump)
+    if meta.brain == "session":
+        speaker = asyncio.create_task(_speak_session(session, ctx.room.name))
+
+        async def _stop_speaker() -> None:
+            speaker.cancel()
+
+        ctx.add_shutdown_callback(_stop_speaker)
     _say("online - face", "yes" if avatar is not None else "no")
 
 

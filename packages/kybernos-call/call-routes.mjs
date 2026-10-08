@@ -13,6 +13,7 @@ export const ROUTES = {
   token: '/kybernos-call/token',
   agent: '/kybernos-call/agent',
   utterance: '/kybernos-call/utterance',
+  speech: '/kybernos-call/speech',
   vendor: '/kybernos-call/vendor/livekit-client.js'
 }
 
@@ -75,7 +76,7 @@ export const serveVendor = (pluginDir, file, mime) => (req, res) => {
  * Registers the routes. `effect(fn, label)` wraps each registration so it is undone when the
  * plugin stops (ctx.effect in DSH, a plain call in tests).
  */
-export function mountCallRoutes (webServer, call, pluginDir, effect) {
+export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null) {
   const reg = (path, handler, label) => effect(() => webServer.register({ kind: 'exact', path: path, handler: handler }), 'kybernos-call: route ' + label)
 
   // First what is true of the chain (never a secret)…
@@ -118,6 +119,22 @@ export function mountCallRoutes (webServer, call, pluginDir, effect) {
     const out = await call.utterance(body)
     return sendJson(res, (out.ok === true ? 200 : 400), out)
   }, 'utterance')
+
+  // What the session's assistant wrote for this call, for the worker to speak: a long poll. It is the
+  // session's own text, so it is only given to the same origin (the worker declares it, like for utterance).
+  if (feed !== null) {
+    reg(ROUTES.speech, async (req, res) => {
+      if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      let q = null
+      try { q = new URL(req.url ?? '/', 'http://127.0.0.1').searchParams } catch (e) { return sendJson(res, 400, { ok: false, error: 'bad url' }) }
+      const room = q.get('room') ?? ''
+      if (/^[A-Za-z0-9_-]{3,64}$/.test(room) === false) return sendJson(res, 400, { ok: false, error: 'room required' })
+      const after = Math.max(0, Number.parseInt(q.get('after') ?? '0', 10) || 0)
+      const wait = Math.max(0, Number.parseInt(q.get('wait') ?? '0', 10) || 0)
+      try { return sendJson(res, 200, await feed.poll(room, after, wait)) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
+    }, 'speech')
+  }
 
   // LiveKit client 2.22.3 (Apache-2.0): the browser's room join. A UMD build, not ESM: the ESM
   // build imports bare specifiers (@livekit/protocol…) a browser without a bundler cannot resolve.

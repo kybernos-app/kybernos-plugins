@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import json
 import re
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Callable, Mapping
 
 # The languages the instruction names in English; any other code is passed through as is.
 LANGUAGE_NAMES = {
@@ -33,6 +35,7 @@ class CallMeta:
     name: str = ""         # the member's name, to speak as
     mode: str = "voice"    # "voice" (no face) or "video" (a face when a provider is set)
     language: str = "auto" # "auto" (follow the speaker) or a language code
+    brain: str = "voice"   # "session": speak what the session's assistant writes; "voice": the small model answers
 
 
 def _text(value: object, limit: int) -> str:
@@ -70,6 +73,7 @@ def parse_job_metadata(raw: str | None, env: Mapping[str, str] | None = None) ->
         name=_text(data.get("name"), 60),
         mode=mode,
         language=language,
+        brain="session" if data.get("brain") == "session" and _text(data.get("sessionId"), 120) else "voice",
     )
 
 
@@ -100,3 +104,60 @@ def utterance_payload(meta: CallMeta, text: str) -> dict | None:
     if not meta.session_id:
         return None
     return {"sessionId": meta.session_id, "text": text, "kyberId": meta.kyber_id, "roleId": meta.role_id}
+
+
+# ── One brain: speaking what the session's assistant wrote ──────────────────────────────────────
+
+_FENCE = re.compile(r"```.*?```", re.DOTALL)
+_LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_URL = re.compile(r"https?://\S+")
+_SENTENCE_END = re.compile(r"[.!?\u2026](?=\s|$)")
+
+
+def speakable(text: str, limit: int = 700) -> str:
+    """The part of an assistant message worth saying aloud, or "" when there is none.
+
+    A written answer is full of things a voice cannot say: code, tables, links, markup. They stay in
+    the thread, where the user can read them. What is left is cut at a sentence end under `limit`.
+    """
+    if not isinstance(text, str):
+        return ""
+    text = _FENCE.sub(" ", text)
+    text = _LINK.sub(r"\1", text)
+    text = _URL.sub("", text)
+    lines = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.count("|") >= 2 or re.fullmatch(r"[-=*_ ]{3,}", line):
+            continue  # a blank line, a table row, a rule
+        line = re.sub(r"^(#{1,6}\s+|>\s*|[-*+]\s+|\d+[.)]\s+)", "", line)
+        line = re.sub(r"[*_`~]+", "", line).strip()
+        if line:
+            lines.append(line if re.search(r"[.!?\u2026:]$", line) else line + ".")
+    out = " ".join(lines)
+    out = re.sub(r"\s+", " ", out).strip()
+    if len(out) <= limit:
+        return out
+    cut = out[:limit]
+    ends = [m.end() for m in _SENTENCE_END.finditer(cut)]
+    if ends:
+        return cut[: ends[-1]].strip()
+    return cut[: cut.rfind(" ")].strip() + "." if " " in cut else cut
+
+
+def speech_url(host: str, room: str, after: int, wait_ms: int) -> str:
+    query = urllib.parse.urlencode({"room": room, "after": int(after), "wait": int(wait_ms)})
+    return host.rstrip("/") + "/kybernos-call/speech?" + query
+
+
+def fetch_speech(host: str, room: str, after: int = 0, wait_ms: int = 0,
+                 opener: Callable = urllib.request.urlopen) -> dict:
+    """Asks the host for what the session's assistant wrote since `after` (a long poll).
+
+    The host only answers its own origin: a local worker declares it, like for `utterance`.
+    Returns {"ok", "known", "items": [{"seq", "kind", ...}], "next"}; raises on a network error.
+    """
+    request = urllib.request.Request(speech_url(host, room, after, wait_ms), headers={"origin": host.rstrip("/")})
+    with opener(request, timeout=wait_ms / 1000 + 10) as reply:
+        data = json.loads(reply.read().decode("utf-8"))
+    return data if isinstance(data, dict) else {"ok": False, "known": False, "items": [], "next": after}
