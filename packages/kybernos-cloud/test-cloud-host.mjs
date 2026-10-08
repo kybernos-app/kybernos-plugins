@@ -511,6 +511,8 @@ try {
     '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
     // Console Team: the read-only relay (test-relay.mjs) and the active server (test-server-switch.mjs).
     '/kybernos-cloud/relay', '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
+    // The console in the user's browser: a single-use link from the server (test-console-link.mjs).
+    '/kybernos-cloud/console/link',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -800,6 +802,35 @@ try {
   assert.equal(unreadable.body.error, 'catalogue_illisible')
   catalog = goodCatalog
   ok('catalogue illisible : echec explicite, rien d ecrit')
+
+  // 6d. A server built on vanilla provider models (its catalogue entries carry a `kind`): every chat model is imported under the name the
+  //     server gives it with its context window, the embeddings model is NOT a chat route and is remembered apart, and the embeddings
+  //     call then uses it instead of the legacy `kybernos/embed`. An older server's catalogue (no `kind`) keeps the filter above.
+  const roleCatalog = catalog
+  catalog = { object: 'list', data: [
+    { id: 'glm-5.3', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'GLM 5.3', context_length: 200000, max_output_tokens: 32768 },
+    { id: 'deepseek-v4.1-flash', object: 'model', owned_by: 'kybernos', kind: 'chat', display_name: 'DeepSeek V4.1 Flash', context_length: null, max_output_tokens: null },
+    { id: 'bge-m3', object: 'model', owned_by: 'kybernos', kind: 'embeddings', display_name: 'BGE M3', context_length: 8192, max_output_tokens: null },
+  ] }
+  const vanilla = await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(vanilla.body.ok, true)
+  assert.deepEqual(vanilla.body.models.ids, ['glm-5.3', 'deepseek-v4.1-flash'], 'chat models only, in the server order')
+  assert.equal(vanilla.body.models.embed, 'bge-m3')
+  const route = settingsCalls.at(-1).value
+  assert.deepEqual(route.models.map((m) => m.name), ['GLM 5.3', 'DeepSeek V4.1 Flash'], 'the server names its models')
+  assert.equal(route.models[0].contextWindow, 200000)
+  assert.equal(route.models[0].maxTokens, 32768)
+  assert.equal(route.models[1].contextWindow, undefined, 'an unknown context window is left to the route defaults, never invented')
+  seen.embedCalls.length = 0
+  assert.equal((await mod.embedTexts(readState(), ['hello'])).ok, true)
+  assert.equal(seen.embedCalls.at(-1).model, 'bge-m3', 'the embeddings call names the server\'s own embeddings model')
+  catalog = roleCatalog
+  await hit('/kybernos-cloud/models/sync', 'POST')
+  assert.equal(readState().models.embed, null)
+  seen.embedCalls.length = 0
+  await mod.embedTexts(readState(), ['hello'])
+  assert.equal(seen.embedCalls.at(-1).model, 'kybernos/embed', 'an older server keeps its role route for embeddings')
+  ok('vanilla catalogue: chat models imported under the server names, embeddings model kept apart and used; older catalogue unchanged')
 
   // 6c. Services absents : dégradation propre, aucune écriture, aucun secret
   //     orphelin — le motif est explicite.
