@@ -1,7 +1,7 @@
 // ── Kybernos Cloud — appairage par code d'appareil + profil + catalogue (half host) ─
 //
 // Ce half fait trois choses :
-//   1. parler à l'API Kybernos (https://api.dev.kybernos.app par défaut) ;
+//   1. parler à l'API du serveur Kybernos actif (le NOUVEAU serveur par défaut : BUILTIN_API dans server-profile.mjs) ;
 //   2. garder le secret d'appareil HORS du navigateur et HORS du dépôt, dans
 //      <DSH home>/kybernos-cloud.json (~/.dsh by default, mode 0600) ;
 //   3. quand l'utilisateur est connecté, importer AUTOMATIQUEMENT le catalogue
@@ -35,7 +35,7 @@
 // client ne voit que `publicState()` (profil, workspaces, état, résumé du
 // catalogue). L'abonnement (glm, deepseek… accessibles selon la formule) est
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
-import { chmodSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { lireCatalogue, resoudreItem, slugSur, ymlDuKyber, verdictInstallation } from './marketplace-kyber.mjs'
@@ -779,9 +779,58 @@ const publicModels = (models) => {
   }
 }
 
+const addressOrigin = (url) => { try { return new URL(String(url)).origin } catch (e) { return null } }
+
+/** A connection recorded against ANOTHER server's address than the active one's: an install from before the new server became the default
+ *  (its file still says `api: <old stack>`), or a state copied by hand. Its token belongs to that server: it must not be sent to this
+ *  one (the new server answers 401 and the old route kept chat and feedback going to the old address until then). A state with no
+ *  `api` (a file older than the field) is trusted, as before. */
+const foreignConnection = (state) => {
+  if (state === null || typeof state !== 'object' || typeof state.api !== 'string' || state.api === '') return false
+  const theirs = addressOrigin(state.api)
+  const ours = addressOrigin(resolveApi())
+  return theirs !== null && ours !== null && theirs !== ours
+}
+
+/** Boot, FIRST thing (before any timer or refresh can use the token): take a foreign connection out of the way. The file is MOVED aside
+ *  under the name of its own host, never deleted (nothing is lost, an explicit opt-in to that server finds it again) and never read for
+ *  this server: the person is « not connected » here and pairs again. Returns what was set aside (`{ raw }`), or null. Never throws. */
+const setAsideForeignConnection = () => {
+  try {
+    const file = stateFile()
+    const raw = readState()
+    if (foreignConnection(raw) !== true) return null
+    const host = String(addressOrigin(raw.api)).replace(/^[a-z]+:\/\//, '').replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60) || 'other'
+    const aside = join(dirname(file), 'kybernos-cloud-' + host + '.json')
+    renameSync(file, aside)
+    try { chmodSync(aside, 0o600) } catch (e) { /* exotic FS */ }
+    console.error('[kybernos-cloud] a connection recorded for another server (' + host + ') was set aside, not used for this one: pair again to connect to this server')
+    return { raw }
+  } catch (e) {
+    console.error('[kybernos-cloud] could not set aside a connection of another server: ' + String((e && e.message) || e))
+    return null
+  }
+}
+
+/** Then, once the settings and credentials services are there: the « kybernos » model route and credential the set-aside connection
+ *  imported point at the other server and go too, so chat never keeps talking to it. */
+const cleanAfterForeignConnection = async (aside) => {
+  try {
+    await removeImportedCatalog(aside.raw)
+    emptyMemoryCache()
+    markApplied()
+  } catch (e) { /* the route stays, without a token to use it */ }
+}
+
 /** Import au démarrage de DSH quand la session est déjà vivante : sans ça, un
  *  harnais relancé n'aurait les modèles qu'après une ouverture de carte. */
-const autoImportAtBoot = (ctx) => {
+const autoImportAtBoot = (ctx, aside) => {
+  if (aside !== null && aside !== undefined) {
+    const kickForeign = () => { void cleanAfterForeignConnection(aside) }
+    if (ctx.get('settings') !== undefined && ctx.get('credentials') !== undefined) kickForeign()
+    else ctx.inject(['settings', 'credentials'], kickForeign)
+    return
+  }
   // The registry may have changed while DSH was down: then the previous server's route must go, connected or not.
   const changed = appliedServerId() !== null && appliedServerId() !== server().profile.id
   if (changed !== true && isConnected(readState()) !== true) return
@@ -1106,6 +1155,11 @@ const shareError = (res, fallback) => {
   return detail !== null ? detail : (res && res.error ? res.error : fallback)
 }
 
+/** True when the SERVER says it has no such route (the new server's answer to an unknown path: 404 `{error:'not_found', message:'No such route.'}`).
+ *  Public links and hosted chats (`/v1/shares`, `/v1/chats`) are paused on the new server (its ADR 0007 § 7): the pages are told
+ *  « not on this server » instead of showing a raw `not_found`, and hide the control. A 404 about a resource has another message. */
+const routeAbsent = (res) => res !== null && res !== undefined && res.status === 404 && res.body !== null && typeof res.body === 'object' && res.body.error === 'not_found' && /no such route/i.test(String(res.body.message === undefined ? '' : res.body.message))
+
 // ── Chats DSH → webapp (annuaire de sessions) ────────────────────────────────
 // Pousse la LISTE des sessions locales (<DSH home>/sessions) vers
 // POST /v1/dsh/sessions — MÉTADONNÉES SEULEMENT (id de session, projet, date,
@@ -1229,6 +1283,7 @@ const chatEnsure = async (req, body) => {
     payload.messages = body.messages.filter((m) => m !== null && typeof m === 'object').slice(0, 500)
   }
   const res = await apiCall('/v1/chats', { method: 'POST', token: state.token, body: payload })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200 && res.status !== 201) {
     return { ok: false, status: res.status, error: shareError(res, 'materialisation refusee') }
   }
@@ -1255,6 +1310,7 @@ const shareGet = async (req) => {
     q = '?resource_type=' + encodeURIComponent(rt) + '&resource_id=' + encodeURIComponent(rid)
   } catch (e) { return { ok: false, error: 'URL illisible' } }
   const res = await apiCall('/v1/shares' + q, { token: state.token })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200) return { ok: false, status: res.status, error: shareError(res, 'lecture refusee') }
   const out = res.body !== null && typeof res.body === 'object' ? res.body : {}
   return { ok: true, share: out.share === undefined ? null : out.share, status: 200 }
@@ -1272,6 +1328,7 @@ const shareSet = async (req, body) => {
     return { ok: false, error: 'resource_type et resource_id requis' }
   }
   const res = await apiCall('/v1/shares', { method: 'POST', token: state.token, body: payload })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200 && res.status !== 201) {
     return { ok: false, status: res.status, error: shareError(res, 'ecriture refusee') }
   }
@@ -1291,6 +1348,7 @@ const shareRevoke = async (req, body) => {
     return { ok: false, error: 'resource_type et resource_id requis' }
   }
   const res = await apiCall('/v1/shares/revoke', { method: 'POST', token: state.token, body: payload })
+  if (routeAbsent(res)) return { ok: false, status: 404, error: 'not_on_this_server' }
   if (res.status !== 200) return { ok: false, status: res.status, error: shareError(res, 'revocation refusee') }
   const out = res.body !== null && typeof res.body === 'object' ? res.body : {}
   return { ok: true, count: typeof out.count === 'number' ? out.count : 0, status: 200 }
@@ -1350,10 +1408,12 @@ const membersInvite = async (req, body) => {
   // Contrat de l'EF : admin | member — jamais owner depuis ici.
   const role = body.role === 'admin' ? 'admin' : (body.role === 'member' ? 'member' : '')
   if (role === '') return { ok: false, error: 'role invalide (admin|member)' }
-  const payload = { role }
-  if (email !== '') payload.email = email
-  else payload.user_id = userId
-  const res = await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/members', { method: 'POST', token: state.token, body: payload })
+  // The new server separates the two: an e-mail address is an INVITATION (`POST …/invitations`, a link valid 7 days; 501 when the
+  // server sends no e-mail, which the page words as « not available on this server »), a user id is an upsert of the role
+  // (`POST …/members`). Sending `{email, role}` to `/members` is a 400 `invalid_request`.
+  const res = email !== ''
+    ? await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/invitations', { method: 'POST', token: state.token, body: { email, role } })
+    : await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/members', { method: 'POST', token: state.token, body: { role, user_id: userId } })
   if (memberUnavailable(res)) return { ok: false, error: 'indisponible', status: res.status }
   if (res.status !== 200 && res.status !== 201) return { ok: false, status: res.status, error: shareError(res, 'invitation refusee') }
   return { ok: true, status: res.status }
@@ -3582,6 +3642,24 @@ const chatsDetail = (req) => {
   return { ok: true, dsh_id: dshId, title: titre, messages, tronque: messages.length >= DSH_DETAIL_MAX_MESSAGES }
 }
 
+/** GET /kybernos-cloud/legal: where the active server publishes its terms and its privacy policy (`GET /v1/public/legal`, public: no
+ *  token, a person may read them before an account). `null` for a document the server does not configure. The pages used to link
+ *  to `<web>/terms` and `<web>/privacy` of the old web app, which the new server host does not serve. Only https links (or http
+ *  to a loopback server, for tests and developers) are handed to the page: the owner of a server writes these addresses. */
+const legalLink = (doc) => {
+  if (doc === null || typeof doc !== 'object' || typeof doc.url !== 'string') return null
+  let u = null
+  try { u = new URL(doc.url) } catch (e) { return null }
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].indexOf(u.hostname) >= 0)) return null
+  if (u.username !== '' || u.password !== '') return null
+  return { version: typeof doc.version === 'string' ? doc.version : '', url: u.toString() }
+}
+const legalRoute = async () => {
+  const res = await apiCall('/v1/public/legal')
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, terms: null, privacy: null, error: res.status === 0 ? 'reseau' : 'indisponible' }
+  return { ok: true, terms: legalLink(res.body.terms), privacy: legalLink(res.body.privacy) }
+}
+
 // Kybernos connections (ADR 0008 of the server): the routes the connectors page calls, and three native tools for the agents. Nothing is
 // asked of a server that does not offer them (`services.connections`), and nothing is sent without the account's own token.
 const connections = createConnections({ apiCall, readState, isConnected, server, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
@@ -3603,6 +3681,8 @@ const ROUTES = [
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
+  // The terms and privacy addresses of the active server (public document, no token).
+  { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
   { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
   { path: '/kybernos-cloud/models', method: 'GET', guarded: false, run: modelsRoute },
   { path: '/kybernos-cloud/models/sync', method: 'POST', guarded: true, run: modelsSyncRoute },
@@ -3725,6 +3805,8 @@ const mountWebRoutes = (ctx, webServer) => {
 
 export function apply(ctx) {
   hostCtx = ctx
+  // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
+  const aside = setAsideForeignConnection()
   if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx, ctx.get('webServer'))
   else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(ctx, hostCtx.webServer))
   // Mémoire : le chunk dans le prompt, les deux outils, la capture de fin de
@@ -3735,7 +3817,7 @@ export function apply(ctx) {
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
-  autoImportAtBoot(ctx)
+  autoImportAtBoot(ctx, aside)
 }
 
 // Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre

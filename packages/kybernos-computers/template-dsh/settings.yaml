@@ -1,11 +1,13 @@
-# Réglages DSH pré-câblés pour l'agent embarqué : unique route provider
-# = proxy Kybernos, payé par la clé du client (KYBERNOS_API_KEY, env).
+# DSH settings pre-wired for the embedded agent: a single provider route = the Kybernos server (the NEW one: scripts/test-no-legacy-hosts.mjs
+# checks that baseURL equals BUILTIN_API of packages/kybernos-cloud/server-profile.mjs), paid by the customer's key (KYBERNOS_API_KEY, env).
+# The E2B template must be rebuilt for the image to carry this address; the model below is an id from the old stack: to be revisited
+# against the new server's catalogue.
 llm-pi-ai:
   providers:
     kybernos:
       displayName: Kybernos Cloud
       api: openai-completions
-      baseURL: https://api.dev.kybernos.app/v1
+      baseURL: https://server-dev-7831.up.railway.app/v1
       apiKeyEnv: KYBERNOS_API_KEY
       models:
         - id: kybernos/doer

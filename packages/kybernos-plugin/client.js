@@ -456,8 +456,6 @@ let kbLocaleRead = () => 'en'
       'kbac.support.terms.sub': { kybernos: 'Crédits, quotas, remboursements, usage équitable', en: 'Credits, quotas, refunds, fair use' },
       'kbac.support.privacy': { kybernos: 'Politique de confidentialité', en: 'Privacy policy' },
       'kbac.support.privacy.sub': { kybernos: 'Ce qui est stocké, ce qui ne l\'est jamais', en: 'What is stored, what is never stored' },
-      'kbac.support.status': { kybernos: 'Page d\'état', en: 'Status page' },
-      'kbac.support.status.sub': { kybernos: 'Proxy, fournisseurs et régions, en direct', en: 'Proxy, providers and regions, live' },
       'kbac.support.help.sub': { kybernos: 'Documentation et guides Kybernos', en: 'Kybernos documentation and guides' },
       'kbac.support.feedback.sub': { kybernos: 'Signaler un problème ou proposer une amélioration', en: 'Report a problem or suggest an improvement' },
       'kbac.open': { kybernos: 'Ouvrir', en: 'Open' },
@@ -1381,6 +1379,8 @@ let kbLocaleRead = () => 'en'
       'kbsd.public': { kybernos: 'Accès public', en: 'Public access' },
       'kbsd.public.sub': { kybernos: 'Toute personne avec le lien peut voir', en: 'Anyone with the link can view' },
       'kbsd.public.sub.off': { kybernos: 'Connectez Kybernos Cloud pour partager par lien', en: 'Connect Kybernos Cloud to share by link' },
+      'kbsd.public.sub.unavail': { kybernos: 'Les liens publics ne sont pas encore disponibles sur ce serveur', en: 'Public links are not yet available on this server' },
+      'kbui.store.unavail': { kybernos: 'Ce livrable ne peut pas être ouvert pour le moment', en: 'This deliverable cannot be opened right now' },
       'kbsd.public.sub.soon': { kybernos: 'Pas encore de lien public pour ce type d’élément', en: 'No public link for this kind of item yet' },
       'kbsd.badge.synced': { kybernos: 'Synchronisé', en: 'Synced' },
       'kbsd.badge.local': { kybernos: 'Local', en: 'Local' },
@@ -7075,10 +7075,13 @@ return {
       engine: 'engine', quiz: 'quiz', cards: 'cards', flashcards: 'cards',
       deck: 'deck', exam: 'exam', pdf: 'pdf', sketchnote: 'sketch',
     }
-    // The server this DSH talks to (Select server): its web app, its console, its gateway. The built-in Kybernos Cloud is the
-    // answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
+    // The server this DSH talks to (Select server): its api, its web app, its console, its gateway. The built-in Kybernos Cloud is
+    // the answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
-    const kbServer = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app', workspace: '' }
+    // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
+    // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ. No gateway: the host relay replaced it.
+    const KB_BUILTIN_API = 'https://server-dev-7831.up.railway.app'
+    const kbServer = { name: 'Kybernos Cloud', api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API + '/workspace-console', gateway: '', workspace: '' }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
       const get = (url) => fetch(url, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
@@ -7089,6 +7092,7 @@ return {
         if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object') {
           const sv = j.server
           if (typeof sv.name === 'string' && sv.name !== '') kbServer.name = sv.name
+          if (typeof sv.api === 'string' && sv.api !== '') kbServer.api = sv.api
           if (typeof sv.web === 'string' && sv.web !== '') kbServer.web = sv.web
           if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
           kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
@@ -7098,8 +7102,6 @@ return {
       })
     }
     try { void kbServerLoad() } catch (e) { /* no network layer: the defaults stand */ }
-    // The web app that carries the viewer.
-    const kbStoreWeb = () => kbServer.web
 
     const kbStoreArtifacts = async () => {
       try {
@@ -8435,6 +8437,10 @@ return {
         setSrv({ state: 'loading', share: null, artId: null, error: null })
         ;(async () => {
           try {
+            // Does this server have public links at all? Asked first, with an id that exists nowhere: a server without them (paused on the new
+            // server) answers « not on this server », and the control says so instead of offering something that cannot work.
+            const sonde = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=probe').then(kbSpJson)
+            if (sonde !== null && sonde.ok !== true && sonde.error === 'not_on_this_server') { if (vivant === true) setSrv({ state: 'unavail', share: null, artId: null, error: null }); return }
             const l = await fetch('/kybernos-cloud/artifacts?limit=200').then(kbSpJson)
             if (l === null || l.ok !== true || !Array.isArray(l.artifacts)) throw new Error(l !== null && l.error ? String(l.error) : 'lecture')
             const hits = l.artifacts.filter((a) => a !== null && typeof a === 'object' && a.title === item.titre).slice(0, 5)
@@ -8444,6 +8450,8 @@ return {
               const g = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=' + encodeURIComponent(a.id)).then(kbSpJson)
               // Lecture refusée (route absente côté serveur : 404, etc.) ≠ « pas de lien » :
               // l'état n'est pas confirmé, on le dit au lieu de supposer privé.
+              // The server has no public links at all (paused on the new server): said plainly below, the control is off.
+              if (g !== null && g.ok !== true && g.error === 'not_on_this_server') { if (vivant === true) setSrv({ state: 'unavail', share: null, artId: null, error: null }); return }
               if (g === null || g.ok !== true) throw new Error(((g !== null && g.error) ? String(g.error) : 'illisible') + ((g !== null && g.status) ? ' (HTTP ' + g.status + ')' : ''))
               if (g.share !== null && g.share !== undefined && g.share.audience !== 'only_me' && typeof g.share.slug === 'string') { trouve = g.share; artId = a.id; break }
             }
@@ -8505,9 +8513,10 @@ return {
         if (cle === null) { dire('err', T('kbsd.err.push', { m: (pousse !== null && pousse.error) ? pousse.error : '?' })); return null }
         const pose = await kbSpPost('/kybernos-cloud/shares/set', { resource_type: 'artifact', resource_id: cle, audience: 'link' }).then(kbSpJson)
         const slug = (pose !== null && pose.ok === true && pose.share !== null && pose.share !== undefined) ? pose.share.slug : null
+        if (pose !== null && pose.ok !== true && pose.error === 'not_on_this_server') { setSrv({ state: 'unavail', share: null, artId: null, error: null }); dire('err', T('kbsd.public.sub.unavail')); return null }
         if (slug === null || slug === undefined) { dire('err', T('kbsd.err.share', { m: (pose !== null && pose.error) ? pose.error : '?' })); return null }
         setSrv({ state: 'ok', share: { slug: slug, audience: 'link' }, artId: cle, error: null })
-        return 'https://kybernos.app/s/' + slug
+        return kbServer.web.replace(/\/+$/, '') + '/s/' + slug
       }
       const revoquer = async () => {
         if (srv.share === null || srv.artId === null) return true
@@ -8524,9 +8533,9 @@ return {
       if (publicReel === true) niveau = 'public'
       else if (acc.access === 'public' && livrable === true && lectureOk !== true) niveau = 'public'
       const publicConfirme = publicReel === true
-      const peutPublic = connecte === true && livrable === true
+      const peutPublic = connecte === true && livrable === true && srv.state !== 'unavail'
       const peutEquipe = equipe === true
-      const lienPublic = publicReel === true ? 'https://kybernos.app/s/' + srv.share.slug : null
+      const lienPublic = publicReel === true ? kbServer.web.replace(/\/+$/, '') + '/s/' + srv.share.slug : null
 
       const poserNiveau = async (cible) => {
         const ECHEC = { ok: false, lien: null }
@@ -8616,7 +8625,7 @@ return {
           on === true ? h('span', { className: 'kbsp-chk' }, Icon('check', 16)) : null)
         const initiale = nomEspace.trim().slice(0, 1).toUpperCase()
         const teamSous = peutEquipe === true ? T('kbsd.team.sub', { team: nomEspace }) : (connecte === true ? T('kbsd.team.sub.personal') : T('kbsd.team.sub.off'))
-        const pubSous = livrable !== true ? T('kbsd.public.sub.soon') : (connecte === true ? T('kbsd.public.sub') : T('kbsd.public.sub.off'))
+        const pubSous = livrable !== true ? T('kbsd.public.sub.soon') : (connecte !== true ? T('kbsd.public.sub.off') : (srv.state === 'unavail' ? T('kbsd.public.sub.unavail') : T('kbsd.public.sub')))
         const chargement = livrable === true && connecte === true && srv.state === 'loading'
         corps = h('div', { className: 'kbsp-body' },
           (info === 'help' ? h('div', { className: 'kbsp-box kbsp-help', 'data-kb': 'share-help-body' }, h('div', { className: 'kbsp-boxtxt' }, T(livrable === true ? 'kbsd.help.file' : 'kbsd.help.kyber'))) : null),
@@ -18239,7 +18248,19 @@ function renderFit(canvas, model, cam, opts){
       // l'app, dans un onglet.
       const openArtifact = (a) => {
         if (a !== null && a !== undefined && a.store === true) {
-          try { window.open(kbStoreWeb() + '/document/' + String(a.storeId), '_blank') } catch (e) { /* popup bloqué par le navigateur */ }
+          // The server hands a link to the file itself (`GET /v1/artifacts/{id}`: `url`, good for an hour); it has no hosted viewer page.
+          // The tab is opened first (a popup blocker only allows a window opened by the click), then pointed at the link.
+          let tab = null
+          try { tab = window.open('', '_blank') } catch (e) { tab = null }
+          fetch('/kybernos-cloud/artifacts/detail', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: String(a.storeId) }) })
+            .then((r) => r.json().catch(() => null))
+            .then((j) => {
+              const url = j !== null && j !== undefined && j.ok === true && j.artifact !== null && j.artifact !== undefined && typeof j.artifact.url === 'string' ? j.artifact.url : ''
+              if (url !== '' && tab !== null) { tab.location.href = url; return }
+              if (tab !== null) { try { tab.close() } catch (e) { /* already closed */ } }
+              try { window.alert(kbt('kbui.store.unavail')) } catch (e) { /* no dialog */ }
+            })
+            .catch(() => { if (tab !== null) { try { tab.close() } catch (e) { /* already closed */ } } })
           return
         }
         // Un seul chemin de prévisualisation (28/09) : le clic — comme l'icône
@@ -18423,6 +18444,13 @@ function renderFit(canvas, model, cam, opts){
               setNote(kbf('Création illisible : ') + ((lu !== null && lu !== undefined && lu.error) ? lu.error : kbf('raison inconnue')))
               return
             }
+            // A server with no public links (paused on the new server) is told BEFORE anything is uploaded: the file would sit in the account for nothing.
+            const sonde = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=probe').then((r) => r.json().catch(() => null))
+            if (sonde !== null && sonde !== undefined && sonde.ok !== true && sonde.error === 'not_on_this_server') {
+              setNote(kbt('kbsd.public.sub.unavail'))
+              try { timerSvc.timeout(() => setNote(null), 6000) } catch (e) { /* pas de timer */ }
+              return
+            }
             const pousse = await fetch('/kybernos-cloud/artifacts/push', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ title: a.name, filename: a.name, kind: kindDe(a.name), content_b64: b64Utf8(lu.text) }),
@@ -18441,7 +18469,7 @@ function renderFit(canvas, model, cam, opts){
               setNote(kbf('Partage refusé : ') + ((pose !== null && pose.error) ? pose.error : kbf('raison inconnue')))
               return
             }
-            const lien = 'https://kybernos.app/s/' + slug
+            const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
             try {
               await navigator.clipboard.writeText(lien)
               setNote(kbf('Lien de partage copié — ') + lien)
@@ -24418,6 +24446,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           .then((r) => r.json().catch(() => null))
           .then((mat) => {
             const cle = mat !== null && mat !== undefined && typeof mat.id === 'string' ? mat.id : null
+            if (mat !== null && mat !== undefined && mat.ok !== true && mat.error === 'not_on_this_server') {
+              finir('erreur', kbt('kbsd.public.sub.unavail'))
+              return null
+            }
             if (mat === null || mat.ok !== true || cle === null) {
               finir('erreur', kbf('hébergement refusé : ') + ((mat !== null && mat.error) ? mat.error : kbf('raison inconnue')))
               return null
@@ -24432,7 +24464,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
               finir('erreur', kbf('partage refusé : ') + (pose.error !== undefined ? pose.error : kbf('raison inconnue')))
               return
             }
-            const lien = 'https://kybernos.app/s/' + slug
+            const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
             try {
               const nav = typeof navigator !== 'undefined' ? navigator : null
               if (nav !== null && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
@@ -25329,7 +25361,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         <h2>${kbt('kbws.keys.title')}</h2><p class="muted" style="margin:6px 0 20px">${kbt('kbws.keys.sub')}</p>
         <div class="card">
           <div class="eyebrow">${kbt('kbws.keys.base')}</div>
-          <div class="row" style="margin-top:12px;flex-wrap:nowrap"><input class="input" readonly value="https://api.dev.kybernos.app" id="kbws-baseUrl"><button class="btn sm" data-copy="baseUrl">${kbt('kbws.keys.copy')}</button></div>
+          <div class="row" style="margin-top:12px;flex-wrap:nowrap"><input class="input" readonly value="" id="kbws-baseUrl"><button class="btn sm" data-copy="baseUrl">${kbt('kbws.keys.copy')}</button></div>
           <p class="small muted" style="margin-top:10px">${kbt('kbws.keys.basenote')}</p>
         </div>
         <div class="card">
@@ -25992,6 +26024,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       }
       // ══════════════ CLÉS API (démo étiquetée ; snippet = modèles RÉELS) ══════════════
       function renderKeys() {
+        $('baseUrl').value = kbServer.api
         $('keyList').innerHTML = S.keys.length > 0 ? S.keys.map((k, i) => `<div class="keyrow"><div><b>${kbwsEsc(k.id)}</b>${k.label !== '' ? ` <span class="muted small">· ${kbwsEsc(k.label)}</span>` : ''}<div class="small" style="color:var(--ok)">${kbt('kbws.keys.active')}</div></div>
           <button class="trash" data-del="${i}">${kbt('kbws.keys.revoke')}</button></div>`).join('') : `<p class="muted" style="margin-top:12px">${kbt('kbws.keys.none')}</p>`
         $('keyList').querySelectorAll('[data-del]').forEach((b) => {
@@ -29019,7 +29052,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     //    Au CLIC (retour du meme jour) : le cadeau n'ouvre plus l'onglet, il
     //    ouvre une CARTE — le code de parrainage en gros, « Partager », le lien
     //    en un clic, et le lien vers la page qui reste au pied de la carte. ──
-    const KB_REFERRAL_PAGE = 'https://dev.kybernos.app/profiles?section=referral'
+    // The referral card lives on the server's account page (`<web>/account`); the server's own host, never a legacy web app's.
+    const kbReferralPage = () => kbServer.web.replace(/\/+$/, '') + '/account'
     // Le code et le lien sont ceux de la page de parrainage, qui les tient d'une
     // session WEB Kybernos (fonction Supabase `kybernos-referral-info`, mesuree
     // le 24/09/2026 : 401 sans JWT web) que le plugin n'a pas — et l'API n'expose
@@ -29151,7 +29185,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
               // hote invente, et le tier suit tout seul.
               const rendu = typeof j.share_url === 'string' && j.share_url !== '' ? j.share_url : ''
               let origine = ''
-              try { origine = new URL(KB_REFERRAL_PAGE).origin } catch (e) { origine = '' }
+              try { origine = new URL(kbReferralPage()).origin } catch (e) { origine = '' }
               const lien = rendu !== '' ? rendu : (origine !== '' ? origine + '/r/' + code : '')
               setCloud({ code: code, link: lien })
               return
@@ -29169,14 +29203,14 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         setEditing(false)
       }
       const copier = async (quoi) => {
-        const texte = quoi === 'code' ? codeAffiche : (lienAffiche !== '' ? lienAffiche : KB_REFERRAL_PAGE)
+        const texte = quoi === 'code' ? codeAffiche : (lienAffiche !== '' ? lienAffiche : kbReferralPage())
         if (texte === '') return
         try { await navigator.clipboard.writeText(texte); setCopied(quoi) } catch (e) { setCopied('') }
       }
       // Partager : la feuille native (macOS : AirDrop, Mail, Messages…) quand le
       // navigateur l'offre ; sinon on copie le lien, ce qui reste un partage.
       const partager = async () => {
-        const url = lienAffiche !== '' ? lienAffiche : KB_REFERRAL_PAGE
+        const url = lienAffiche !== '' ? lienAffiche : kbReferralPage()
         try {
           if (typeof navigator.share === 'function') {
             await navigator.share({ title: label, text: kbt('menu.referral.sharetext'), url: url })
@@ -29229,7 +29263,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h('button', { type: 'button', className: 'kbu-rel-share', onClick: partager }, Icon('link', 15), kbt('menu.referral.share')),
           h('button', { type: 'button', className: 'kbu-rel-ghost', onClick: () => copier('link') }, copied === 'link' ? kbt('menu.referral.copied') : kbt('menu.referral.copylink'))),
         h('div', { className: 'kbu-rel-foot' },
-          h('a', { className: 'kbu-rel-open', href: KB_REFERRAL_PAGE, target: '_blank', rel: 'noreferrer noopener' },
+          h('a', { className: 'kbu-rel-open', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' },
             kbt('menu.referral.openpage'), Icon('chevronRight', 13)),
           (aCode === true && editing === false)
             ? h('button', { type: 'button', className: 'kbu-rel-edit', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))
@@ -29671,7 +29705,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             if (j.ok === true && code !== '') {
               const rendu = typeof j.share_url === 'string' && j.share_url !== '' ? j.share_url : ''
               let origine = ''
-              try { origine = new URL(KB_REFERRAL_PAGE).origin } catch (e) { origine = '' }
+              try { origine = new URL(kbReferralPage()).origin } catch (e) { origine = '' }
               setCloud({ code: code, link: rendu !== '' ? rendu : (origine !== '' ? origine + '/r/' + code : '') })
               return
             }
@@ -29690,12 +29724,12 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         setRel(v); kbReferralWrite(v); setEditing(false)
       }
       const copier = async (quoi) => {
-        const texte = quoi === 'code' ? code : (lien !== '' ? lien : KB_REFERRAL_PAGE)
+        const texte = quoi === 'code' ? code : (lien !== '' ? lien : kbReferralPage())
         if (texte === '') return
         try { await navigator.clipboard.writeText(texte); setCopied(quoi) } catch (e) { setCopied('') }
       }
       const partager = async () => {
-        const url = lien !== '' ? lien : KB_REFERRAL_PAGE
+        const url = lien !== '' ? lien : kbReferralPage()
         try {
           if (typeof navigator.share === 'function') { await navigator.share({ title: kbt('menu.referral.title'), text: kbt('menu.referral.sharetext'), url: url }); return }
         } catch (e) { /* refusé ou annulé : copie */ }
@@ -29731,7 +29765,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             (aCode === true && editing === false)
               ? h('button', { type: 'button', className: 'kbac-btn', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))
               : null,
-            h('a', { className: 'kbac-link', href: KB_REFERRAL_PAGE, target: '_blank', rel: 'noreferrer noopener' }, kbt('menu.referral.openpage'), Icon('chevronRight', 13)))))
+            h('a', { className: 'kbac-link', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' }, kbt('menu.referral.openpage'), Icon('chevronRight', 13)))))
     }
     const KbacAppearance = () => {
       const [pref, setPref] = React.useState('system')
@@ -29779,7 +29813,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           h('button', { type: 'button', className: 'kbac-link-btn', onClick: () => { kbOpenSettingsSection(['theme']) } }, kbt('kbac.appearance.openTheme'))))
     }
     const KbacSecurity = () => {
-      const href = kbacCloudBase() + '/profiles'
+      const href = kbacCloudBase() + '/account'
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }),
         h('div', { className: 'kbac-list' },
@@ -29789,16 +29823,25 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')))
     }
     const KbacSupport = () => {
-      const base = kbacCloudBase()
+      // The terms and the privacy policy are where the SERVER says they are (`GET /v1/public/legal`, through the cloud host): its host serves
+      // no /legal page, and a document it does not configure has no row. There is no status page on the new server, so no row for one.
+      const legalPair = React.useState(null)
+      const legal = legalPair[0]
+      React.useEffect(() => {
+        let vivant = true
+        fetch('/kybernos-cloud/legal', { headers: { accept: 'application/json' } }).then((r) => r.json().catch(() => null))
+          .then((j) => { if (vivant === true && j !== null && j !== undefined && j.ok === true) legalPair[1]({ terms: j.terms, privacy: j.privacy }) })
+          .catch(() => { /* no legal rows */ })
+        return () => { vivant = false }
+      }, [])
       const feedback = () => {
         try { if (typeof kbOpenFeedbackChat === 'function') kbOpenFeedbackChat(kbt('kbui.feedback.draft')) } catch (e) { /* retour indisponible */ }
       }
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.support'), sub: kbt('kbac.support.sub') }),
         h('div', { className: 'kbac-list' },
-          h(KbacRow, { label: kbt('kbac.support.terms'), desc: kbt('kbac.support.terms.sub'), action: kbt('kbac.open'), href: base + '/legal/terms' }),
-          h(KbacRow, { label: kbt('kbac.support.privacy'), desc: kbt('kbac.support.privacy.sub'), action: kbt('kbac.open'), href: base + '/legal/privacy' }),
-          h(KbacRow, { label: kbt('kbac.support.status'), desc: kbt('kbac.support.status.sub'), action: kbt('kbac.open'), href: base + '/legal/status' }),
+          legal !== null && legal.terms !== null && legal.terms !== undefined ? h(KbacRow, { key: 'terms', label: kbt('kbac.support.terms'), desc: kbt('kbac.support.terms.sub'), action: kbt('kbac.open'), href: legal.terms.url }) : null,
+          legal !== null && legal.privacy !== null && legal.privacy !== undefined ? h(KbacRow, { key: 'privacy', label: kbt('kbac.support.privacy'), desc: kbt('kbac.support.privacy.sub'), action: kbt('kbac.open'), href: legal.privacy.url }) : null,
           h(KbacRow, { label: kbt('kbui.helpdocs'), desc: kbt('kbac.support.help.sub'), action: kbt('kbac.open'), href: 'https://kybernos.app' }),
           h(KbacRow, { label: kbt('kbui.send.feedback'), desc: kbt('kbac.support.feedback.sub'), action: kbt('kbui.send.feedback'), onClick: feedback })))
     }

@@ -478,6 +478,7 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
   ok('the key field is a password field that the browser does not remember', /type: 'password', value: apiKey, autoComplete: 'off'/.test(kcSrc))
   ok('the page asks no redirect address and no user id: the server decides both', !/redirect_uri|user_id|redirectUri/.test(kcSrc.replace(/res\.redirectUrl|j\.redirectUrl|r\.json\.redirectUrl|redirectUrl/g, '')))
   ok('everything the page asks for goes to the cloud half of this machine, never to Kybernos or Composio directly', !/fetch\(\s*['"`]https?:/.test(kcSrc) && /kbCpCloud\('\/connections/.test(kcSrc))
+  ok('the full app catalogue is read from the server this machine is signed in to, through the cloud half: no address of a deployed service is written in the page', /kbCpCloud\('\/connections\/apps'\)/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))) && !/railway\.app|fetch\(\s*['"`]https?:/.test(src.slice(src.indexOf('const loadAll'), src.indexOf('const connect = async'))))
   ok('the address the person is sent to goes through the one URL rule', /kbCpWebUrl\(res\.redirectUrl\)/.test(kcSrc) && /rel: 'noopener noreferrer'/.test(kcSrc))
   ok('an add that failed in a way that may have gone through offers to check the list, and never retries by itself', /checkFirst === true/.test(kcSrc) && !/setTimeout\([^)]*submit/.test(kcSrc))
 }

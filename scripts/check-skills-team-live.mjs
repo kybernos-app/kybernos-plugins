@@ -355,7 +355,9 @@ try {
     check('locked "' + code + '" explains itself and offers a way back', want.test(await text('.kb8-page')) && /Back to Yours/.test(await text('.kb8-page')), await text('.kb8-page'))
     const link = (await page.evalJs(`(() => { const a = Array.from(document.querySelectorAll('.kb8-page a')).find((x) => /Team plan/.test(x.innerText)); return a ? { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel') } : null })()`)).val
     if (code === 'offre_requise') {
-      check('the plan lock offers the plans page, in a new tab, without handing the opener over', link !== null && link.href === 'https://kybernos.app/billing' && link.target === '_blank' && /noopener/.test(link.rel), link)
+      // The plans page is the console of the ACTIVE server, as the cloud host reports it (no address is written in the skills bundle).
+      const active = (await page.evalJs(`fetch('/kybernos-cloud/server').then((r) => r.json()).then((j) => (j && j.server ? j.server.console : null)).catch(() => null)`)).val
+      check('the plan lock offers the plans page (the active server\'s console), in a new tab, without handing the opener over', link !== null && typeof active === 'string' && link.href === active && link.target === '_blank' && /noopener/.test(link.rel), [link, active])
       await shot('7-locked')
     } else check('"' + code + '" does not send anyone to the plans page', link === null, link)
   }

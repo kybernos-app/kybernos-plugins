@@ -1242,6 +1242,8 @@ window.__ModuleLoader__.load({
           // parrainage chargé paresseusement, seulement en mode page.
           const [sect, setSect] = React.useState('compte')
           const [referral, setReferral] = React.useState({ phase: 'idle' })
+          // The terms and privacy addresses of the active server (`/kybernos-cloud/legal`): the new server hosts no /terms or /privacy page.
+          const [legal, setLegal] = React.useState(null)
           const [refCopied, setRefCopied] = React.useState(false)
 
           const refCharge = React.useRef(false)
@@ -1252,6 +1254,9 @@ window.__ModuleLoader__.load({
             callLocal('/referral', 'GET')
               .then((r) => { if (liveRef.current === true) setReferral({ phase: 'ready', data: r }) })
               .catch(() => { if (liveRef.current === true) setReferral({ phase: 'error' }) })
+            callLocal('/legal', 'GET')
+              .then((r) => { if (liveRef.current === true && r !== null && r.ok === true) setLegal({ terms: r.terms, privacy: r.privacy }) })
+              .catch(() => { /* no legal links: the section says so */ })
           }, [props.page, view.phase])
 
           const memoMap = () => {
@@ -1729,7 +1734,7 @@ window.__ModuleLoader__.load({
                       ? h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: () => { void copier() } }, refCopied === true ? t('refCopied') : t('refCopy'))
                       : null,
                     web !== null
-                      ? h('a', { className: 'kbs-link', href: web + '/referral', target: '_blank', rel: 'noreferrer' }, t('refOpen'))
+                      ? h('a', { className: 'kbs-link', href: web + '/account', target: '_blank', rel: 'noreferrer' }, t('refOpen'))
                       : null))
               } else if (sect === 'apparence') {
                 let pack = null
@@ -1790,20 +1795,21 @@ window.__ModuleLoader__.load({
                           h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPush(false) }, t('memoLessons'))),
                         memoNote !== null ? h('div', { className: 'kbc-note' }, String(memoNote)) : null,
                         web !== null
-                          ? h('div', { className: 'kbc-note' }, h('a', { className: 'kbs-link', href: web + '/workspace', target: '_blank', rel: 'noreferrer' }, t('wsOpenHosted')))
+                          ? h('div', { className: 'kbc-note' }, h('a', { className: 'kbs-link', href: web + '/workspace-console', target: '_blank', rel: 'noreferrer' }, t('wsOpenHosted')))
                           : null))
               } else {
                 section = h('div', { className: 'kbp-card kbp-sec' },
                   h('div', { className: 'kbs-sect' }, t('supTitle')),
                   h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('supNote')),
-                  web === null
+                  // Only what the server publishes (GET /v1/public/legal): a document it does not configure has no row; there is no support page.
+                  (legal === null || (legal.terms === null && legal.privacy === null))
                     ? h('div', { className: 'kbc-note' }, t('none'))
                     : h('div', { className: 'kbc-rows' },
-                      h(Row, { label: t('supSupport'), value: web + '/support' }),
-                      h(Row, { label: t('supPrivacy'), value: web + '/privacy' }),
-                      h(Row, { label: t('supTerms'), value: web + '/terms' })),
+                      legal.privacy === null ? null : h(Row, { key: 'privacy', label: t('supPrivacy'), value: legal.privacy.url }),
+                      legal.terms === null ? null : h(Row, { key: 'terms', label: t('supTerms'), value: legal.terms.url })),
                   h('div', { className: 'kbc-actions' },
-                    web === null ? null : h('a', { className: 'kbs-link', href: web + '/support', target: '_blank', rel: 'noreferrer' }, t('supSupport'))))
+                    legal !== null && legal.terms !== null ? h('a', { className: 'kbs-link', href: legal.terms.url, target: '_blank', rel: 'noreferrer' }, t('supTerms')) : null,
+                    legal !== null && legal.privacy !== null ? h('a', { className: 'kbs-link', href: legal.privacy.url, target: '_blank', rel: 'noreferrer' }, t('supPrivacy')) : null))
               }
 
               contenu = h('div', { className: 'kbp-wrap' },
@@ -2078,7 +2084,8 @@ window.__ModuleLoader__.load({
           const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
           const planInfo = planDeEspace(st, user)
           const plan = planInfo.label !== null ? planInfo.label : t('none')
-          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
+          // The host reports the active server's web address in every connected state; with none, nothing is opened (never a literal host).
+          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : ''
 
           const switchPair = React.useState(false)
           const switchOpen = switchPair[0]
@@ -2161,7 +2168,7 @@ window.__ModuleLoader__.load({
             opts !== undefined && typeof opts.tail === 'string' ? h('span', { className: 'kbfp-mtail' }, opts.tail) : null,
             opts !== undefined && opts.ext === true ? h('span', { className: 'kbfp-mext', 'aria-hidden': 'true' }, h(ExtIcon, { size: 16 })) : null)
 
-          const ouvrirWeb = () => { try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
+          const ouvrirWeb = () => { if (web === '') return; try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
           const envoyer = (nom) => { try { window.dispatchEvent(new Event('kybernos:menu:' + nom)) } catch (e) { /* Event absent */ } }
 
           // Blocks separated by a rule: Teams (space, plan, team settings) ·
@@ -2357,7 +2364,7 @@ window.__ModuleLoader__.load({
               }, libelle[cle]))),
               corps(),
               h('div', { className: 'kbs-actions' },
-                lienHosted('/workspace', t('wsOpenHosted')),
+                lienHosted('/workspace-console', t('wsOpenHosted')),
                 h('button', { type: 'button', className: 'kbs-link', onClick: () => { window.dispatchEvent(new Event('kybernos-cloud:open')) } }, t('spaceAccount')))))
         }
         SpaceMain.__testTabs = TABS
@@ -2702,8 +2709,8 @@ window.__ModuleLoader__.load({
         'kybernos-cloud: page de profil en plein cadre')
 
         // ── Onglet « Account » des RÉGLAGES (30/09 soir) ────────────────────
-        // Mêmes infos que la page profil de la webapp
-        // (/profiles?section=profile) : identité, formule, teams, espace
+        // Mêmes infos que la page compte du serveur
+        // (<web>/account) : identité, formule, teams, espace
         // actif, appareil, session — lues des routes locales, jamais
         // inventées. Le lien « Ouvrir dans Kybernos » pointe la page web.
         // ── Account page pickers (04/10) ────────────────────────────────────────
@@ -3268,7 +3275,7 @@ window.__ModuleLoader__.load({
           const shownName = displayName(user)
           const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
           const plan = planDeEspace(st, user).label !== null ? planDeEspace(st, user).label : t('none')
-          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
+          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : ''
           const couleurAvatar = profil.color !== '' ? profil.color : '#4b4fe0'
           const glyphAvatar = initiales(profil.name !== '' ? profil.name : qui, user.email)
           const stylePhoto = profil.photo !== '' ? { backgroundImage: 'url(' + profil.photo + ')', backgroundSize: 'cover', backgroundPosition: 'center' } : {}
@@ -3335,9 +3342,10 @@ window.__ModuleLoader__.load({
           // ── Account ──
           h('div', { className: 'kbs-actions', style: { marginTop: 0 } },
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: refreshing, onClick: () => { void charger() } }, refreshing ? t('accRefreshing') : t('refresh')),
-            h('a', {
+            // The account page of the server (`<web>/account`): profile, password, second factor, sessions, export, deletion.
+            web === '' ? null : h('a', {
               className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { textDecoration: 'none' },
-              href: web + '/profiles?section=profile', target: '_blank', rel: 'noreferrer',
+              href: web + '/account', target: '_blank', rel: 'noreferrer',
             }, t('wsOpenHosted')),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { color: 'var(--dsw-alias-state-error-primary)' }, onClick: () => { void seDeconnecter() } }, t('disconnect'))),
           // ── Save bar: stuck to the bottom, visible only when there is something to keep ──
@@ -3353,7 +3361,7 @@ window.__ModuleLoader__.load({
         'kybernos-cloud: onglet Account des reglages')
 
         // ── Onglet « Données & confidentialité » (30/09 soir) ───────────────
-        // Reprend la section data de la webapp (/profiles?section=data) :
+        // Reprend la section data de la page compte du serveur (<web>/account) :
         // export complet, sessions & appareils, suppression du compte.
         // Règle d'honnêteté : DSH ne porte pas le jeton web — les gestes qui
         // le réclament (export, suppression, autres sessions) renvoient à
@@ -3391,8 +3399,9 @@ window.__ModuleLoader__.load({
 
           const ouvrirKybernos = () => {
             const web = (vue.phase === 'connected' && typeof vue.state.web_url === 'string' && vue.state.web_url !== '')
-              ? vue.state.web_url : 'https://kybernos.app'
-            try { window.open(web + '/profiles?section=data', '_blank', 'noopener') } catch (e) { /* ouverture impossible */ }
+              ? vue.state.web_url : ''
+            if (web === '') return
+            try { window.open(web + '/account', '_blank', 'noopener') } catch (e) { /* ouverture impossible */ }
           }
 
           const panneau = (label, ...enfants) => h('div', { className: 'kbp-card' },
@@ -3444,10 +3453,12 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbm-setfield-hint' }, t('dataDevicesHere') + ' · ' + t('dataDevicesRefreshed') + ' ' + rafraichi)),
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } },
                 t('dataDevicesOthers') + ' ',
-                h('a', {
-                  href: ((typeof st.web_url === 'string' && st.web_url !== '') ? st.web_url : 'https://kybernos.app') + '/profiles?section=data',
-                  target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-link)' },
-                }, t('wsOpenHosted'))),
+                (typeof st.web_url === 'string' && st.web_url !== '')
+                  ? h('a', {
+                    href: st.web_url + '/account',
+                    target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-link)' },
+                  }, t('wsOpenHosted'))
+                  : null),
             ),
             // ── Suppression du compte ──
             panneau(t('dataDeleteTitle'),
