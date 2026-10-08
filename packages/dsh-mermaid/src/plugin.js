@@ -1,23 +1,24 @@
-// dsh-mermaid — corps du plugin (source lisible).
+// dsh-mermaid — plugin body (readable source).
 //
-// Ce fichier est encapsulé par scripts/build.mjs dans une fabrique
-// `(mermaid) => { name, inject, apply }`, puis concaténé après le bundle
-// mermaid vendoré pour produire client/client.js.
+// scripts/build.mjs wraps this file in a factory `(mermaid) => { name, inject, apply }`, then
+// concatenates it after the vendored mermaid bundle to produce client/client.js.
 //
-// Principe : le renderer markdown de DSH ne possède AUCUN registre de rendu de
-// fence (MarkdownRenderContext n'expose ni composant ni callback par langage).
-// On s'accroche donc au seul contrat stable disponible, le DOM produit par
-// CodeBlock (`div.md-code-block`) :
+// Principle: DSH's markdown renderer has NO fence-rendering registry (MarkdownRenderContext
+// exposes neither a component nor a per-language callback). We hook onto the only stable contract
+// there is, the DOM produced by CodeBlock (`div.md-code-block`), as measured on DSH 0.2.0-rc.2:
 //
-//   div.md-code-block[data-line-numbers]
+//   div.md-code-block
 //     div.<bannerWrap>
-//       div.<banner>[data-code-block-banner]
-//         div.<infostring>   ← le langage, ici « mermaid »
-//         div.<action> > button.<copyButton>
-//     pre.<plain>            ← source verbatim (shiki n'a pas de grammaire mermaid)
+//       div.<header>[data-code-block-banner]
+//         div.<heading> > span   <- the language, ONLY when DSH can highlight it; otherwise the
+//                                   generic "Code block". mermaid is NOT highlightable, so the
+//                                   label never says "mermaid" (the old detection missed it).
+//         div.<actions>          <- native wrap / copy buttons
+//     div.<content>[data-code-block-content]
+//       pre.<plain> > code       <- the verbatim source (a highlighted block has pre.shiki instead)
 //
-// On laisse ce DOM intact — le bouton « copier » lit toujours le <pre> — et on
-// ajoute une carte juste après, en masquant la source par CSS.
+// The DOM is left intact (the native "copy" button still reads the <pre>) and a card is appended
+// after it, with the source hidden by CSS.
 
 const NAME = 'dsh-mermaid'
 const ROOT_SELECTOR = 'div.md-code-block'
@@ -27,18 +28,17 @@ const SOURCE_ATTR = 'dsh-mermaid-source'
 const LANG = 'mermaid'
 const DEBOUNCE_MS = 120
 
-/** Jeton de thème lu sur :root, avec repli. */
+/** Theme token read from :root, with a fallback. */
 function token(cs, name, fallback) {
   const value = cs.getPropertyValue(name).trim()
   return value || fallback
 }
 
 /**
- * Replis concrets, utilisés UNIQUEMENT si un jeton est illisible. Le bundle est
- * évalué depuis <head> : les jetons DSH peuvent n'être pas encore calculables,
- * et `getPropertyValue` rend alors une chaîne vide. Mermaid n'accepte ni le vide
- * ni `currentColor` (« Unsupported color format ») — l'erreur faisait échouer
- * toute l'activation de l'entrée (« web boot: 1 entry did not activate »).
+ * Concrete fallbacks, used ONLY when a token is unreadable. The bundle is evaluated from <head>:
+ * DSH tokens may not be computable yet, and `getPropertyValue` then returns an empty string.
+ * Mermaid accepts neither an empty value nor `currentColor` ("Unsupported color format"); that
+ * error used to fail the whole entry activation ("web boot: 1 entry did not activate").
  */
 const COULEURS_REPLI = {
   bg: '#0e1117',
@@ -51,9 +51,8 @@ const COULEURS_REPLI = {
 }
 
 /**
- * Normalise une couleur au format que mermaid sait lire : le canevas résout
- * oklch()/color-mix()/var() en #hex ou rgba(), et rend la sentinelle inchangée
- * si le moteur ne comprend pas la valeur.
+ * Normalises a colour to the format mermaid can read: the canvas resolves oklch()/color-mix()/var()
+ * to #hex or rgba(), and returns the sentinel unchanged if the engine does not understand the value.
  */
 function couleurSure(value, fallback) {
   const v = String(value ?? '').trim()
@@ -67,12 +66,12 @@ function couleurSure(value, fallback) {
       return normalise
     }
   } catch (error) {
-    /* canevas indisponible : on garde le repli */
+    /* canvas unavailable: keep the fallback */
   }
   return fallback
 }
 
-/** Palette lue dans les jetons DSH — aucune couleur en dur hors repli. */
+/** Palette read from DSH tokens — no hard-coded colour outside the fallback. */
 function palette() {
   const cs = getComputedStyle(document.documentElement)
   const bg = couleurSure(token(cs, '--dsw-alias-bg-base', ''), COULEURS_REPLI.bg)
@@ -99,7 +98,7 @@ function palette() {
   }
 }
 
-/** Palette de dernier recours, sans aucune lecture du DOM. */
+/** Last-resort palette, with no DOM read at all. */
 function paletteDeRepli() {
   return {
     font: 'ui-sans-serif, system-ui, sans-serif',
@@ -114,15 +113,14 @@ function paletteDeRepli() {
 }
 
 /**
- * Initialise mermaid sans jamais faire tomber l'activation de l'entrée : une
- * configuration refusée dégrade le rendu, elle ne doit pas rendre le plugin
- * inerte (« web boot: 1 entry did not activate »).
+ * Initialises mermaid without ever failing the entry activation: a refused configuration degrades
+ * the rendering, it must not make the plugin inert ("web boot: 1 entry did not activate").
  */
 function initMermaid(theme) {
   try {
     mermaid.initialize(mermaidConfig(theme))
   } catch (error) {
-    console.warn('[dsh-mermaid] configuration refusée par mermaid — palette de repli', error)
+    console.warn('[dsh-mermaid] configuration refused by mermaid — fallback palette', error)
     mermaid.initialize(mermaidConfig(paletteDeRepli()))
   }
 }
@@ -130,8 +128,8 @@ function initMermaid(theme) {
 function mermaidConfig(theme) {
   return {
     startOnLoad: false,
-    // Le markdown assistant est NON FIABLE : aucun HTML injecté dans les labels,
-    // aucun lien cliquable produit par un diagramme.
+    // The assistant's markdown is UNTRUSTED: no HTML injected into labels, no clickable link
+    // produced by a diagram.
     securityLevel: 'strict',
     suppressErrorRendering: true,
     theme: 'base',
@@ -157,9 +155,12 @@ function mermaidConfig(theme) {
 function injectStyle() {
   const style = document.createElement('style')
   style.dataset.plugin = NAME
+  const block = ROOT_SELECTOR.split('.')[1]
+  // The source sits in `[data-code-block-content]` on DSH 0.2; `> pre` is the older, flatter DOM.
   style.textContent = [
-    `.${ROOT_SELECTOR.split('.')[1]}[${READY_ATTR}="ready"] > pre { display: none; }`,
-    `.${ROOT_SELECTOR.split('.')[1]}.${SOURCE_ATTR} > pre { display: block !important; }`,
+    `.${block}[${READY_ATTR}="ready"] > pre, .${block}[${READY_ATTR}="ready"] [data-code-block-content] { display: none; }`,
+    `.${block}.${SOURCE_ATTR} > pre { display: block !important; }`,
+    `.${block}.${SOURCE_ATTR} [data-code-block-content] { display: block !important; }`,
     `.${CARD_CLASS}{margin:4px 0;padding:10px;border:1px solid var(--dsw-alias-border-l2,currentColor);`,
     `border-radius:10px;background:var(--dsw-alias-bg-layer-1,transparent);overflow-x:auto}`,
     `.${CARD_CLASS} svg{max-width:100%;height:auto;display:block;margin:0 auto}`,
@@ -176,18 +177,50 @@ function injectStyle() {
   return () => style.remove()
 }
 
-/** Vrai si ce bloc de code est une fence ```mermaid. */
+// <detect:begin> (test-detect.mjs extracts this block by its markers: keep it free of DOM access)
+//
+// DSH 0.2 does not tell us a fence's language unless it can highlight it, and mermaid cannot be
+// highlighted, so the source is the only trace left. A diagram always opens with a header line.
+// Two lists, to keep prose out of it: names that cannot be mistaken for anything else are matched
+// as a prefix, common English words only count when they are the WHOLE first line.
+const DISTINCT_HEADER = new RegExp(
+  '^(?:(?:graph|flowchart(?:-elk)?)\\s+(?:TB|TD|BT|RL|LR)\\b' +
+  '|sequenceDiagram\\b|classDiagram(?:-v2)?\\b|stateDiagram(?:-v2)?\\b|erDiagram\\b|gitGraph\\b' +
+  '|requirementDiagram\\b|quadrantChart\\b|zenuml\\b|C4(?:Context|Container|Component|Dynamic|Deployment)\\b' +
+  '|(?:sankey|xychart|block|packet|architecture|radar|treemap)-beta\\b)'
+)
+const PLAIN_WORD_HEADER = /^(?:graph|flowchart|pie(?:\s+showData)?(?:\s+title\b.*)?|journey|gantt|timeline|mindmap|kanban)\s*$/
+
+/** True when `source` opens like a mermaid diagram (front matter, blank lines and %% lines skipped). */
+function looksLikeMermaid(source) {
+  let text = String(source === null || source === undefined ? '' : source).replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n')
+  text = text.replace(/^\s*---[ \t]*\n[\s\S]*?\n---[ \t]*(?:\n|$)/, '') // YAML front matter
+  for (const raw of text.split('\n')) {
+    const line = raw.trim()
+    if (line === '' || line.startsWith('%%')) continue // blank, comment or %%{init}%% directive
+    return DISTINCT_HEADER.test(line) || PLAIN_WORD_HEADER.test(line)
+  }
+  return false
+}
+// <detect:end>
+
+/** True when this code block is a ```mermaid fence. */
 function isMermaidBlock(block) {
   const banner = block.querySelector('[data-code-block-banner]')
   const info = banner && banner.firstElementChild ? banner.firstElementChild.textContent.trim() : ''
   if (info.toLowerCase() === LANG) return true
-  // Repli si DSH venait à coloriser la fence : classe de langage explicite.
-  return block.querySelector('code.language-' + LANG) !== null
+  // Fallback if DSH ever highlights the fence: an explicit language class.
+  if (block.querySelector('code.language-' + LANG) !== null) return true
+  // DSH 0.2: the label says "Code block" and the <code> has no class, so read the source — but never
+  // on a highlighted block, which carries its own language (pre.shiki) and is not ours.
+  if (block.querySelector('pre.shiki, pre[class*="shiki"]') !== null) return false
+  const pre = block.querySelector('pre')
+  return pre !== null && looksLikeMermaid(pre.textContent)
 }
 
 function apply(ctx) {
   if (typeof document === 'undefined' || typeof window === 'undefined') return
-  // Défense en profondeur : une seule installation par page.
+  // Defence in depth: a single installation per page.
   if (window.__DSH_MERMAID_ACTIVE__) return
   window.__DSH_MERMAID_ACTIVE__ = true
 
@@ -234,9 +267,8 @@ function apply(ctx) {
     bar.append(toggle)
     card.append(bar)
     block.append(card)
-    // Mémoriser la carte : sans ça, chaque re-rendu (changement de thème,
-    // source modifiée) en fabriquait une deuxième et le bloc finissait avec
-    // plusieurs diagrammes empilés.
+    // Remember the card: without it, every re-render (theme change, edited source) built a second
+    // one and the block ended up with several stacked diagrams.
     if (entry) entry.card = card
     return card
   }
@@ -263,16 +295,15 @@ function apply(ctx) {
     const id = NAME + '-' + ++renderId
     try {
       const { svg } = await mermaid.render(id, source)
-      // Deux rendus peuvent se chevaucher (un changement de thème pendant un
-      // rendu). Seul le plus récent a le droit d'insérer son canevas : sans ce
-      // contrôle, les deux s'ajoutaient et le bloc finissait avec deux
-      // diagrammes empilés.
+      // Two renders can overlap (a theme change during a render). Only the most recent one may
+      // insert its canvas: without this check both were added and the block ended up with two
+      // stacked diagrams.
       const current = rendered.get(block)
       if (!current || current.inflight !== key) return
       const holder = document.createElement('div')
       holder.className = CARD_CLASS + '-canvas'
-      // SVG produit par mermaid en securityLevel strict : labels en texte,
-      // pas de HTML, pas de lien. Aucune donnée utilisateur n'y est injectée.
+      // SVG produced by mermaid at securityLevel strict: text labels, no HTML, no link. No user
+      // data is injected into it.
       holder.innerHTML = svg
       card.insertBefore(holder, card.firstChild)
       card.dataset.dshMermaidState = 'ok'
@@ -280,8 +311,7 @@ function apply(ctx) {
       current.inflight = ''
     } catch (error) {
       const current = rendered.get(block)
-      // Même règle qu'au succès : une erreur d'un rendu périmé ne doit pas
-      // écraser le rendu plus récent.
+      // Same rule as on success: an error from a stale render must not overwrite the newer one.
       if (!current || current.inflight !== key) return
       const message = error && error.message ? error.message : String(error)
       const node = document.createElement('p')
@@ -289,32 +319,30 @@ function apply(ctx) {
       node.textContent = 'Diagramme mermaid invalide — ' + message.split('\n')[0]
       card.append(node)
       card.dataset.dshMermaidState = 'error'
-      // Source laissée visible : le lecteur voit le code fautif.
+      // Source left visible: the reader sees the faulty code.
       block.classList.add(SOURCE_ATTR)
       current.inflight = ''
     }
   }
 
   const domObserver = new MutationObserver(schedule)
-  // On observe `document.documentElement`, jamais `document.body` : le chargeur
-  // de la GUI évalue ce bundle depuis <head>, quand `body` est encore null —
-  // `observe(null)` jetait, l'entrée n'activait pas (« web boot: 1 entry did not
-  // activate »), alors que le style et le drapeau étaient déjà posés : plugin
-  // inerte ET en erreur au boot. `documentElement` existe toujours et son
-  // sous-arbre couvre `body`.
+  // We observe `document.documentElement`, never `document.body`: the GUI loader evaluates this
+  // bundle from <head>, when `body` is still null — `observe(null)` threw, the entry did not
+  // activate ("web boot: 1 entry did not activate"), while the style and the flag were already set:
+  // an inert AND failing plugin at boot. `documentElement` always exists and its subtree covers `body`.
   domObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true })
 
   const themeObserver = new MutationObserver(() => {
-    // themeRevision entre dans la clé de rendu : tout redessine avec les
-    // nouveaux jetons, sans vider le cache (une WeakMap n'en a pas).
+    // themeRevision is part of the render key: everything is redrawn with the new tokens, without
+    // emptying the cache (a WeakMap has none).
     themeRevision += 1
     initMermaid(palette())
     schedule()
   })
   themeObserver.observe(document.documentElement, {
     attributes: true,
-    // `data-ds-theme-source` est le marqueur de thème de la GUI DSH ; les autres
-    // sont ceux du banc d'essai et des versions antérieures.
+    // `data-ds-theme-source` is the DSH GUI theme marker; the others come from the test bench and
+    // earlier versions.
     attributeFilter: ['class', 'style', 'data-theme', 'data-dsw-theme', 'data-ds-theme-source']
   })
 

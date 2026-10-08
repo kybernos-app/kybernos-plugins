@@ -2306,7 +2306,9 @@ function boot(ctx) {
             if (ra.etat === 'pose') console.log('[kybers] force de proposition posée dans ' + ra.chemin)
             else if (ra.etat === 'erreur') console.log('[kybers] force de proposition non posée — ' + ra.erreur)
           } catch (e) { console.log('[kybers] force de proposition — échec silencieux : ' + String(e && e.message ? e.message : e)) }
-          const r = await poserPresetKybernos({ agentPresets: service, seuil: SEUIL_COMPACTAGE })
+          // The threshold goes in the 2nd argument (`options`): in the 1st (the context) it was silently
+          // ignored and the engine kept its own 80% while the gauge and the log said 70%.
+          const r = await poserPresetKybernos({ agentPresets: service }, { seuil: SEUIL_COMPACTAGE })
           if (r.pose === true) console.log('[kybers] preset compactage posé : ' + r.id + ' (résumé ' + r.provider + '/' + r.modele + ', seuil ' + Math.round(SEUIL_COMPACTAGE * 100) + ' %); ' + r.retouches + ' feuille')
           else if (r.deja === true) console.log('[kybers] preset compactage déjà en place')
           else console.log('[kybers] preset compactage non posé — ' + r.raison)

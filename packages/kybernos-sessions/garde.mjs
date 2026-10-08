@@ -129,6 +129,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-modeles-locaux/client.js',
   'packages/kybernos-modeleur/client.js',
   'packages/kybernos-refs/client.js',
+  'packages/kybernos-terminal/client/client.js',
   'packages/kybernos-slides/client.js',
   'packages/kybernos-changes/client.js',
   'packages/kybernos-call/client.js',

@@ -197,6 +197,8 @@ window.__ModuleLoader__.load({
         .kbsd-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
         .kbsd-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
           border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.16)}
+        .kbsd-outils-idle{opacity:.55;transition:opacity .15s}
+        .kbsd-outils-idle:hover,.kbsd-outils-idle:focus-within{opacity:1}
         .kbsd-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#6b6b68;padding:3px 8px;border-radius:6px;cursor:pointer}
         .kbsd-outil:hover{background:rgba(0,0,0,.05)}
         .kbsd-outil.on{background:#efefec;color:#1a1a1a;font-weight:650}
@@ -927,8 +929,7 @@ window.__ModuleLoader__.load({
                               ]
                             : null,
                         ),
-                        S.outil !== 'voir'
-                          ? h('div', { className: 'kbsd-outils' },
+                        h('div', { className: 'kbsd-outils' + (S.outil === 'voir' ? ' kbsd-outils-idle' : '') },
                               outils.map(([cle, label]) => h('button', {
                                 key: cle, className: 'kbsd-outil' + (S.outil === cle ? ' on' : ''),
                                 onClick: () => { S.outil = cle; S.edition = null; S.editionRect = null; reveiller() },
@@ -943,8 +944,7 @@ window.__ModuleLoader__.load({
                               h('button', {
                                 className: 'kbsd-outil',
                                 onClick: () => { S.traits.set(S.vue, []); pousserTraits(S, S.vue); reveiller() },
-                              }, 'Tout effacer'))
-                          : null,
+                              }, 'Tout effacer')),
                       ),
                 ),
                 h('div', { className: 'kbsd-vignettes' },

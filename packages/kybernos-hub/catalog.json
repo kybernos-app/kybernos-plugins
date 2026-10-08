@@ -1562,8 +1562,8 @@
             "en": "Ask the agent for a diagram (if needed, say “in Mermaid”)."
           },
           {
-            "fr": "Sous le bloc de code étiqueté « mermaid », le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
-            "en": "Under the code block labelled “mermaid”, the diagram appears in your theme's colours; the raw code is hidden."
+            "fr": "Sous le bloc de code Mermaid, le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
+            "en": "Under the Mermaid code block, the diagram appears in your theme's colours; the raw code is hidden."
           },
           {
             "fr": "Le bouton « Code » sous le schéma montre le code ; « Diagramme » ramène le dessin.",
@@ -1575,8 +1575,8 @@
           }
         ],
         "where": {
-          "fr": "Dans le chat, sous un bloc de code « mermaid » (pas d'écran de réglages)",
-          "en": "In the chat, under a “mermaid” code block (no settings screen)",
+          "fr": "Dans le chat, sous un bloc de code Mermaid (pas d'écran de réglages)",
+          "en": "In the chat, under a Mermaid code block (no settings screen)",
           "page": false
         },
         "good": {
@@ -1660,6 +1660,51 @@
           "en": "SQL: one SELECT, WITH, PRAGMA or EXPLAIN statement"
         }
       ]
+    },
+    {
+      "id": "kybernos-terminal",
+      "nom": "@local/kybernos-terminal",
+      "titre": "Terminal",
+      "glyphe": "term",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 14,
+      "promesse": {
+        "fr": "Les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour les lancer.",
+        "en": "Command blocks in the chat as terminal windows, with a button to run them."
+      },
+      "aide": {
+        "what": {
+          "fr": "Habille les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour lancer la commande et voir son résultat.",
+          "en": "Dresses the command blocks of the chat as terminal windows, with a button to run the command and see its result."
+        },
+        "steps": [
+          {
+            "fr": "Demandez à l'agent une commande à lancer : son bloc de code prend l'allure d'un terminal.",
+            "en": "Ask the agent for a command: its code block looks like a terminal window."
+          },
+          {
+            "fr": "Le bouton vert « Run » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+            "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
+          },
+          {
+            "fr": "Le résultat s'affiche sous le bloc ; la commande est arrêtée au bout de 30 secondes.",
+            "en": "The result appears under the block; the command is stopped after 30 seconds."
+          }
+        ],
+        "where": {
+          "fr": "Dans le chat, sur les blocs de commandes (pas d'écran de réglages)",
+          "en": "In the chat, on command blocks (no settings screen)",
+          "page": false
+        },
+        "good": {
+          "fr": "La commande s'exécute vraiment, avec vos droits, comme si vous la tapiez dans un terminal : relisez-la avant de cliquer. Le bouton ne marche que depuis votre session DSH ouverte.",
+          "en": "The command really runs, with your own rights, as if you typed it in a terminal: read it before you click. The button only works from your own signed-in DSH session."
+        }
+      }
     }
   ]
 }

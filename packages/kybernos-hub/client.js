@@ -487,7 +487,8 @@ window.__ModuleLoader__.load({
       branch:'<path class="l" d="M9 10.5v11M23 15.5c0 5-14 3-14 8"/><circle class="b" cx="9" cy="7" r="3.5"/><circle class="b" cx="9" cy="25" r="3.5"/><circle class="a" cx="23" cy="12" r="3.5"/><circle class="l" cx="9" cy="7" r="3.5"/><circle class="l" cx="9" cy="25" r="3.5"/><circle class="l" cx="23" cy="12" r="3.5"/>',
       doc:'<path class="a" d="M7 3h13l6 6v20H7z"/><path class="b" d="M20 3l6 6h-6z"/><path class="l" d="M7 3h13l6 6v20H7zM11.5 15h10M11.5 19h10M11.5 23h6"/><path class="w" d="M11 10.5h3M11 8h6"/>',
       cal:'<rect class="a" x="3" y="6" width="26" height="22" rx="4"/><path class="b" d="M3 10a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><path class="l" d="M3 13h26M10 3v6M22 3v6"/><path class="l" d="M10 21l3 3 6-7"/>',
-      phone:'<path class="a" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3z"/><path class="l" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3zM20 5.5a7.5 7.5 0 0 1 6.5 6.5M20 10a3 3 0 0 1 2 2"/>'
+      phone:'<path class="a" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3z"/><path class="l" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3zM20 5.5a7.5 7.5 0 0 1 6.5 6.5M20 10a3 3 0 0 1 2 2"/>',
+      term:'<rect class="a" x="3" y="5" width="26" height="22" rx="4"/><path class="b" d="M3 9a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><rect class="l" x="3" y="5" width="26" height="22" rx="4"/><circle class="w" cx="7.5" cy="8.5" r="1.1"/><circle class="w" cx="11" cy="8.5" r="1.1"/><circle class="w" cx="14.5" cy="8.5" r="1.1"/><path class="l" d="M8 17l4 3-4 3M15 23h7"/>'
 }
 
     const ICONES = {
