@@ -183,6 +183,35 @@ export const exclureIgnores = (liste, exec) => {
   return liste.filter((c) => ignores.has(c) === false)
 }
 
+// ── a folder extracted from an archive is checked against ITS OWN manifest ──
+// `kybernos-install` / `kybernos-update` are run from the extracted folder, so that folder is what gets installed. Until
+// 2026-10-08 only a `.tar.gz` handed to `--source` was verified; the folder the launchers pass was trusted blindly although their
+// header said the fingerprints are checked (a flipped byte in one bundle file sailed through).
+// Returns the manifest when the folder carries one of ours, else null (a development checkout has none).
+export const lireManifestDuDossier = (dossier) => {
+  try {
+    const m = JSON.parse(readFileSync(join(dossier, 'manifest.json'), 'utf8'))
+    return m !== null && typeof m === 'object' && m.nom === 'kybernos-dsh' && Array.isArray(m.fichiers) ? m : null
+  } catch (e) { return null }
+}
+
+/**
+ * Replays the manifest over a folder. A modified or missing file is an error. A file the manifest does not know is only REPORTED
+ * (`enTrop`): DSH and the OS leave things in a folder that has been in use (.DS_Store, a cache), and refusing to update because
+ * of one would block the update for no gain. `estBruit` names are not even reported.
+ */
+export const verifierDossier = (dossier, manifest = lireManifestDuDossier(dossier)) => {
+  if (manifest === null) return { ok: true, manifest: null, ecarts: [], enTrop: [] }
+  const v = verifierManifest({ manifest, lire: (c) => readFileSync(join(dossier, c)), presents: cheminer(dossier, dossier, '').filter((c) => estBruit(c) === false) })
+  return { ok: v.ecarts.every((e) => e.type === 'en-trop'), manifest, ecarts: v.ecarts.filter((e) => e.type !== 'en-trop'), enTrop: v.ecarts.filter((e) => e.type === 'en-trop').map((e) => e.chemin) }
+}
+
+/** The name an archive's content is installed under (a folder name, nothing else), from its manifest; null when it is not a safe name. */
+export const nomInstallation = (manifest) => {
+  const nom = 'kybernos-dsh-' + String(manifest?.version) + '-' + String(manifest?.plateforme)
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/.test(nom) ? nom : null
+}
+
 export const listerContenu = (racine) => {
   const paquets = JSON.parse(readFileSync(join(racine, 'scripts', 'lifecycle-packages.json'), 'utf8'))
   const patches = JSON.parse(readFileSync(join(racine, 'scripts', 'patches.json'), 'utf8'))

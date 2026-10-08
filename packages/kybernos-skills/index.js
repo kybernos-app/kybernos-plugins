@@ -669,6 +669,31 @@ const PER_PAGE_DEFAULT = 50
 const SEARCH_LIMIT_MAX = 100
 const DISCOVER_TTL_MS = 300000
 
+// The most a JSON answer (the relay's, a listing) may weigh. A ranking page is a few hundred KB.
+const MAX_TEXT_BYTES = 16 * 1024 * 1024
+
+/** The body of a response, never holding more than `max` bytes: `null` when it is larger (the stream is cancelled and the socket dropped).
+ *  Without the cap a faulty relay or a proxy's page that never ends filled the memory of the whole DSH. */
+const readBounded = async (res, max) => {
+  const declared = Number(res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('content-length') : NaN)
+  if (Number.isFinite(declared) && declared > max) { try { await res.body.cancel() } catch (e) { /* closed */ } return null }
+  if (res.body === null || res.body === undefined || typeof res.body.getReader !== 'function') {
+    const whole = Buffer.from(await res.arrayBuffer())
+    return whole.length > max ? null : whole
+  }
+  const reader = res.body.getReader()
+  const chunks = []
+  let total = 0
+  for (;;) {
+    const part = await reader.read()
+    if (part.done === true) break
+    total += part.value.byteLength
+    if (total > max) { await reader.cancel().catch(() => {}); return null }
+    chunks.push(part.value)
+  }
+  return Buffer.concat(chunks)
+}
+
 const httpGet = async (url, binary) => {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), NET_TIMEOUT_MS)
@@ -683,11 +708,13 @@ const httpGet = async (url, binary) => {
     })
     if (!res.ok) return { status: res.status }
     if (binary === true) {
-      const buffer = Buffer.from(await res.arrayBuffer())
-      if (buffer.length > MAX_ARCHIVE_BYTES) return { status: 413 }
+      const buffer = await readBounded(res, MAX_ARCHIVE_BYTES)
+      if (buffer === null) return { status: 413 }
       return { status: 200, buffer }
     }
-    return { status: 200, text: await res.text() }
+    const text = await readBounded(res, MAX_TEXT_BYTES)
+    if (text === null) return { status: 413 }
+    return { status: 200, text: text.toString('utf8') }
   } catch (e) {
     return { status: 0, error: e !== null && e.name === 'AbortError' ? 'timeout' : 'network_unavailable' }
   } finally {
@@ -730,10 +757,12 @@ const apiGet = async (path) => {
     })
     if (!res.ok) {
       let detail
-      try { const e = await res.json(); if (typeof e.message === 'string' && e.message !== '') detail = e.message } catch (e2) { /* body is not JSON */ }
+      try { const e = JSON.parse((await readBounded(res, 65536)).toString('utf8')); if (typeof e.message === 'string' && e.message !== '') detail = e.message } catch (e2) { /* body is not JSON, or too long to be an error */ }
       return { status: res.status, error: 'index_unavailable', http: res.status, detail }
     }
-    return { status: 200, body: await res.json() }
+    const raw = await readBounded(res, MAX_TEXT_BYTES)
+    if (raw === null) return { status: 0, error: 'network_unavailable' }
+    return { status: 200, body: JSON.parse(raw.toString('utf8')) }
   } catch (e) {
     return { status: 0, error: e !== null && e.name === 'AbortError' ? 'timeout' : 'network_unavailable' }
   } finally {

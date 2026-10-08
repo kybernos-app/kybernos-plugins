@@ -68,6 +68,17 @@ certificate, `NODE_EXTRA_CA_CERTS` for that process only, `catalogueUrl` pointin
 engine is never patched. The release is "published" by copying a newer signed document into the served folder; then: no card before, the card at the next
 launch, the dialog, Update now, the steps, the end.
 
+## Where an installed suite lives
+
+The profile's `@local/*` links point into the folder the robot installed from. Since 2026-10-08 that folder is checked against its own
+`manifest.json` before anything is touched (a changed or missing file refuses the install; a file the manifest does not know is only
+reported), an archive file is extracted into a staging folder, verified, and only then swapped into `DSH_HOME/kybernos/paquets/<name>`, and
+a release unpacked under the system temp folder (what the panel's « Update now » does, and deletes afterwards) is first copied there.
+`install` and `upgrade` re-point the links that still lead into an earlier archive's folder (or into a folder that is gone); a developer
+checkout (a git tree) is never re-pointed. Installing an older suite over a newer one works but says it is a version step back.
+`paquets/` is not pruned: old copies stay until someone removes them. `scripts/test-lifecycle-archive.mjs` (hermetic) covers all of it and
+`scripts/check-suite-update-tls.mjs` (live, needs `openssl`) replays the refused catalogues over a local https server.
+
 ## Routes
 
 | Route | |

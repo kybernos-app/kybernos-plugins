@@ -210,6 +210,8 @@ const createSpace = async (req, body) => {
   }
   const brut = res.body !== null && typeof res.body === 'object' ? (res.body.workspace !== undefined && res.body.workspace !== null ? res.body.workspace : res.body) : null
   const id = brut !== null && typeof brut.id === 'string' ? brut.id : null
+  // A success that does not describe the space (an empty body, a page) did not create one: nothing is written.
+  if (id === null) return { ok: false, error: 'creation_refusee', status: res.status, web_url: resolveWeb() }
   const espaces = Array.isArray(state.workspaces) ? state.workspaces.slice() : []
   if (id !== null && espaces.some((w) => w !== null && w.id === id) !== true) espaces.push(brut)
   const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
@@ -241,7 +243,43 @@ const mergeUser = (cached, profile) => {
   return next
 }
 
-/** Appel API : ne throw jamais, renvoie { status, body } (status 0 = réseau). */
+/** The most an answer of the server may weigh. The biggest legitimate one is an artifact (8 MiB of content, base64: ~11 MiB). Without
+ *  a cap the whole body is held, then parsed: a 400 MB answer (a faulty endpoint, a proxy page) took DSH down for every session. */
+const MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+
+/** The body of a response as text, never holding more than `max` bytes. `tooLarge` (the stream is cancelled, the socket dropped), or
+ *  `error` when the body could not be read to its end (cut connection, timeout): a half answer is not an answer. */
+const readBoundedText = async (res, max) => {
+  const declared = Number(res.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > max) {
+    try { await res.body.cancel() } catch (e) { /* already closed */ }
+    return { tooLarge: true }
+  }
+  if (res.body === null) return { text: '' }
+  const reader = res.body.getReader()
+  const chunks = []
+  let total = 0
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      total += value.byteLength
+      if (total > max) {
+        await reader.cancel().catch(() => {})
+        return { tooLarge: true }
+      }
+      chunks.push(value)
+    }
+  } catch (e) {
+    return { error: String((e && e.message) || e) }
+  }
+  return { text: Buffer.concat(chunks).toString('utf8') }
+}
+
+/** Appel API : ne throw jamais, renvoie { status, body } (status 0 = réseau).
+ *  Le serveur est une API JSON, pas un site : une redirection n'est jamais suivie (elle emporterait le corps de la requête vers un
+ *  autre hôte et la réponse de cet hôte passerait pour celle du serveur), une réponse trop grosse ou coupée est un échec réseau,
+ *  et un statut de succès avec un corps qui n'est pas du JSON (la page d'un portail captif) n'est pas un succès. */
 const apiCall = async (path, options = {}) => {
   const method = typeof options.method === 'string' ? options.method : 'GET'
   const token = typeof options.token === 'string' ? options.token : null
@@ -256,10 +294,20 @@ const apiCall = async (path, options = {}) => {
       method,
       headers,
       signal: ctrl.signal,
+      redirect: 'manual',
       body: body === null ? undefined : JSON.stringify(body),
     })
+    if (res.status >= 300 && res.status < 400) {
+      try { await res.body.cancel() } catch (e) { /* nothing to cancel */ }
+      return { status: 0, body: null, error: 'redirect_refused' }
+    }
+    const got = await readBoundedText(res, Number.isFinite(options.maxBytes) && options.maxBytes > 0 ? options.maxBytes : MAX_RESPONSE_BYTES)
+    if (got.tooLarge === true) return { status: 0, body: null, error: 'response_too_large' }
+    if (got.error !== undefined) return { status: 0, body: null, error: got.error }
     let parsed = null
-    try { parsed = await res.json() } catch (e) { parsed = null }
+    let readable = true
+    try { parsed = JSON.parse(got.text) } catch (e) { parsed = null; readable = got.text.trim() === '' }
+    if (readable !== true && res.status >= 200 && res.status < 300) return { status: 0, body: null, error: 'invalid_response' }
     return { status: res.status, body: parsed }
   } catch (e) {
     return { status: 0, body: null, error: String((e && e.message) || e) }
@@ -306,7 +354,13 @@ const pollPairing = async () => {
     body: { device_id: state.device_id, device_secret: state.device_secret },
   })
   if (res.status === 0) return { ok: false, error: 'reseau', status: 0 }
-  const status = res.body !== null && typeof res.body.status === 'string' ? res.body.status : 'expired'
+  // Only the server's own verdict ends a pairing. A rate limit, a 5xx, a proxy page or a reply without a status says nothing about
+  // the request: the pairing stays (it expires by itself), and the page tries again. Forgetting it here also lost a claim whose
+  // answer had not come through.
+  if (res.status === 429) return { ok: false, error: 'trop_de_demandes', status: 429 }
+  const verdicts = ['pending', 'claimed', 'denied', 'expired']
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object' || verdicts.indexOf(res.body.status) < 0) return { ok: false, error: 'reponse_illisible', status: res.status }
+  const status = res.body.status
   if (status === 'claimed' && typeof res.body.token === 'string') {
     // Fin de l'appairage : le secret d'appareil et le code disparaissent ici.
     const next = {
@@ -365,7 +419,9 @@ const refreshProfile = async () => {
   // déploiement de /v1/me, la route répondait 401 à un jeton valide (elle
   // tombait dans le régime « master key » du middleware) ; s'y fier pour
   // déconnecter aurait éjecté tous les utilisateurs sur un bug serveur.
-  if (ws.status === 401 || ws.status === 403) {
+  // Only the server's own refusal (a JSON error) is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server
+  // speaking about this token, and signing the person out on it also throws away the models imported for them.
+  if ((ws.status === 401 || ws.status === 403) && ws.body !== null && typeof ws.body === 'object') {
     // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
     // modèles importés ne serviraient plus à rien (le proxy refuserait les
     // appels) : ils partent avec la session.
@@ -373,8 +429,10 @@ const refreshProfile = async () => {
     clearState()
     return { ok: true, connected: false, status: 'revoked' }
   }
-  if (ws.status !== 200) return { ok: false, error: 'profil_indisponible', status: ws.status }
-  const workspaces = ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
+  // Anything but the list itself (a portal's page, an empty body, another shape) keeps the list the person has: only the server's own
+  // `{ workspaces: [] }` empties it.
+  if (ws.status !== 200 || ws.body === null || typeof ws.body !== 'object' || Array.isArray(ws.body.workspaces) !== true) return { ok: false, error: 'profil_indisponible', status: ws.status }
+  const workspaces = ws.body.workspaces
   // /v1/me absent (serveur plus ancien : 404), cassé (401/403) ou en panne :
   // on garde le user en cache et on ne casse PAS le rafraîchissement. L'email
   // n'est jamais écrasé — il ne vient que du claim (l'identité /v1/* ne le
@@ -1494,7 +1552,7 @@ const scheduleMemoryRefresh = () => {
   if (memoryRefreshTimer !== null || MEMORY_TUNING.writeRefreshMs < 0) return
   memoryRefreshTimer = setTimeout(() => {
     memoryRefreshTimer = null
-    void refreshMemoryCache(readState(), false)
+    void refreshMemoryCache(readState(), false).catch(() => {})
   }, MEMORY_TUNING.writeRefreshMs)
   if (typeof memoryRefreshTimer.unref === 'function') memoryRefreshTimer.unref()
 }
@@ -2088,7 +2146,7 @@ const memoryMapRoute = async (req, body) => {
   }
   writeState({ ...state, kyberMap: clean })
   bumpMemoryCache()
-  void refreshMemoryCache(readState(), true)
+  void refreshMemoryCache(readState(), true).catch(() => {})
   return { ok: true, map: clean }
 }
 
@@ -2736,9 +2794,17 @@ const refreshTeamCache = async (state, force) => {
     if (teamCache.error === 'espace_introuvable') { teamCache.lessons = []; teamCache.role = null; teamCache.counts = { approved: 0, pending: 0 } }
     return ws
   }
+  // A row that is not an object (the server's list is typed, a proxy's or a broken deploy's is not) is not a lesson: it is dropped, and a list
+  // with nothing usable in it is an invalid answer. This runs from fire-and-forget refreshes (`void refresh…`): a throw here ends DSH.
+  const rows = res.body.lessons.filter((r) => r !== null && typeof r === 'object' && Array.isArray(r) !== true)
+  if (res.body.lessons.length > 0 && rows.length === 0) {
+    teamCache.error = 'reponse_invalide'
+    teamCache.at = Date.now() - TEAM_TUNING.ttlMs + 60000
+    return ws
+  }
   teamCache.at = Date.now()
   teamCache.error = null
-  teamCache.lessons = res.body.lessons.map(asTeamLesson)
+  teamCache.lessons = rows.map(asTeamLesson)
   teamCache.role = typeof res.body.role === 'string' ? res.body.role : null
   teamCache.counts = res.body.counts !== null && typeof res.body.counts === 'object' ? { approved: Number(res.body.counts.approved) || 0, pending: Number(res.body.counts.pending) || 0 } : { approved: teamCache.lessons.length, pending: 0 }
   return ws
@@ -2838,7 +2904,7 @@ const teamListRoute = async (req) => {
 }
 
 /** After a write: the cache is stale, and the next reading must see it. */
-const afterTeamWrite = (state) => { teamCache.at = 0; void refreshTeamCache(state, true) }
+const afterTeamWrite = (state) => { teamCache.at = 0; void refreshTeamCache(state, true).catch(() => {}) }
 
 const teamAddRoute = async (req, body) => {
   const state = readState()
@@ -3386,7 +3452,8 @@ const mountMemoryPrompt = (ctx) => {
     try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ }
   })
   const state = readState()
-  if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true); void refreshTeamCache(readState(), true) }, 1500)
+  // Fire-and-forget: a rejection here would be an unhandled one, which ends DSH. Each refresh also guards itself; this is the second wall.
+  if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true).catch(() => {}); void refreshTeamCache(readState(), true).catch(() => {}) }, 1500)
 }
 
 const mountMemoryTools = (ctx) => {
@@ -3403,7 +3470,7 @@ const mountMemoryTools = (ctx) => {
  */
 const mountMemoryRefresh = (ctx) => {
   ctx.effect(() => {
-    const timer = setInterval(() => { void refreshMemoryCache(readState(), false); void refreshTeamCache(readState(), false) }, MEMORY_TUNING.tickMs)
+    const timer = setInterval(() => { void refreshMemoryCache(readState(), false).catch(() => {}); void refreshTeamCache(readState(), false).catch(() => {}) }, MEMORY_TUNING.tickMs)
     if (typeof timer.unref === 'function') timer.unref()
     return () => clearInterval(timer)
   }, 'kybernos-cloud: rafraichissement memoire')

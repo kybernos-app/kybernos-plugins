@@ -321,7 +321,28 @@ export function alignerPins ({ fs, profilDir, cible, disponibles = {} }) {
   return { pkg, alignes, retires, bundlesRetires }
 }
 
-export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null, anciensDepots = [] }) {
+/**
+ * Pure. Is this existing `link:` worth re-pointing at the folder being installed? Two cases, both measured on 2026-10-08:
+ *   · the link points at a folder that no longer exists (an update that ran from a temp folder and cleaned it up): nothing
+ *     is left to protect, and keeping it makes `dsh plugin install` crash for good;
+ *   · the link points into a folder extracted from an EARLIER Kybernos archive (its root carries the archive's manifest.json
+ *     and no .git): an update is exactly the act of moving to the new folder. Before this, the update printed "success" and
+ *     28 of 30 bundles kept loading from the old folder.
+ * A developer's checkout (a git tree, or any folder that is not an archive extraction) is never touched.
+ */
+export function lienReprenable ({ fs, actuel, dir }) {
+  if (typeof actuel !== 'string' || !actuel.startsWith('link:') || typeof dir !== 'string' || dir === '') return false
+  const cible = actuel.slice('link:'.length)
+  const fin = new RegExp('[\\\\/](?:packages[\\\\/])?' + dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$').exec(cible)
+  if (fin === null) return false
+  const racine = cible.slice(0, fin.index)
+  if (typeof fs.existe !== 'function') return false
+  if (!fs.existe(cible)) return true
+  if (racine === '' || fs.existe(join(racine, '.git'))) return false
+  try { return JSON.parse(fs.lire(join(racine, 'manifest.json'))).nom === 'kybernos-dsh' } catch (e) { return false }
+}
+
+export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null, anciensDepots = [], reprendre = false, rapporter = null }) {
   const pkg = JSON.parse(fs.lire(join(profilDir, 'package.json')))
   pkg.dependencies = pkg.dependencies || {}
   pkg.dsh = pkg.dsh || {}
@@ -351,7 +372,10 @@ export function alignerLiens ({ fs, profilDir, repoDir, packages, actives = null
     // sans cette demande, il reste intact — jamais de migration silencieuse.
     const ancienLien = actuel === 'link:' + join(repoDir, p.dir) ||
       anciensDepots.some((d) => actuel === 'link:' + join(d, p.dir) || actuel === 'link:' + join(d, 'packages', p.dir))
-    if (!actuel || !actuel.startsWith('link:') || ancienLien) pkg.dependencies[p.nom] = attendu
+    // `reprendre` : install/upgrade only (the act of moving to this folder). `satellites` and `safe-mode` only toggle bundles.
+    const perime = reprendre === true && ancienLien === false && actuel !== attendu && lienReprenable({ fs, actuel, dir: p.dir })
+    if (perime && typeof rapporter === 'function') rapporter(p.nom, actuel, attendu)
+    if (!actuel || !actuel.startsWith('link:') || ancienLien || perime) pkg.dependencies[p.nom] = attendu
     if (!pkg.dsh.profile.bundles.includes(p.nom)) pkg.dsh.profile.bundles.push(p.nom)
   }
   // Un satellite RETIRÉ de l'activation : on le sort aussi de dsh.profile.bundles
