@@ -181,9 +181,9 @@ try {
   await poll(() => val(`!!document.querySelector('[data-provider="groq"]')`), 8000)
   const SECRET = 'gsk_' + 'x'.repeat(30) + '_SECRET_MUST_NOT_APPEAR'
   await setField('[data-field="GROQ_API_KEY"]', SECRET)
-  await click('[data-act="save-GROQ_API_KEY"]')
+  await clickWhenEnabled('[data-act="save-GROQ_API_KEY"]') // enabled once the page has taken the typed key into its state
   const stored = await poll(async () => { const x = await getSettings(); return x && x.keys.GROQ_API_KEY.set === true }, 8000)
-  check('a key typed on a provider\'s page is saved: the host says "set"', stored === true)
+  check('a key typed on a provider\'s page is saved: the host says "set"', stored === true, stored === true ? undefined : { keys: (await getSettings()).keys.GROQ_API_KEY, notice: await val(`(document.querySelector('[data-kb="kybernos-call-notice"]') || { innerText: '' }).innerText`), field: await val(`(document.querySelector('[data-field="GROQ_API_KEY"]') || { value: null }).value`) })
   await poll(() => val(`Array.from(document.querySelectorAll('input')).every((i) => i.value === '')`), 8000) // the field is emptied once the key is saved
   const everywhere = await val(`document.documentElement.outerHTML.includes(${JSON.stringify(SECRET)}) || JSON.stringify(Array.from(document.querySelectorAll('input')).map((i) => i.value)).includes(${JSON.stringify(SECRET)})`)
   check('and it is shown nowhere in the page, not even in a field', everywhere === false)
@@ -237,6 +237,42 @@ try {
   check('"Test" says what is missing instead of failing silently', typeof lk === 'string' && /not all set/.test(lk), lk)
   await shot('settings-provider-livekit')
 
+  console.log('3b. the models of the user\'s own providers')
+  await click('[data-act="tab-overview"]')
+  await poll(() => val(`!!document.querySelector('[data-act="check-models"]') || !document.querySelector('[data-kb="kybernos-call-found-models"]')`), 8000)
+  if (audioModels.providers.length > 0) {
+    await click('[data-act="check-models"]')
+    const chips = await poll(() => val(`(() => { const c = Array.from(document.querySelectorAll('[data-model]')); return c.length > 0 && c.every((e) => !/…$/.test(e.innerText)) ? JSON.stringify(c.map((e) => e.innerText)) : null })()`), 60000)
+    check('"Check these models" asks each one and shows what came back: with no key in the sandbox, that there is no key', chips !== null && chips !== undefined && JSON.parse(chips).some((t) => /no key for this provider/.test(t)), chips)
+  }
+  await click('[data-act="tab-providers"]')
+  await click('[data-act="slot-listen"]')
+  await click('[data-act="prov-models-asr"]')
+  await poll(() => val(`!!document.querySelector('[data-provider="models-asr"]')`), 8000)
+  const listenModels = await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-provider="models-asr"] [data-field="model"] option')).map((o) => o.value).filter((v) => v !== ''))`)
+  const expectListen = audioModels.providers.flatMap((g) => g.models.filter((m) => m.kind === 'listen').map((m) => g.provider + ':' + m.id))
+  check('the Listen slot offers the listening models found in Models, whichever provider they come from', expectListen.length === 0 ? (await val(`!!document.querySelector('[data-kb="kybernos-call-no-models"]')`)) === true : JSON.stringify(JSON.parse(listenModels).sort()) === JSON.stringify(expectListen.sort()), { listenModels, expectListen })
+  if (expectListen.length > 0) {
+    check('and "Use for calls" waits for one to be chosen', (await val(`document.querySelector('[data-act="use-models-asr"]').disabled`)) === true)
+    await setField('[data-provider="models-asr"] [data-field="model"]', expectListen[0])
+    check('choosing one is saved', (await poll(async () => { const x = await getSettings(); return x && x.settings.providers['models-asr'] && x.settings.providers['models-asr'].model === expectListen[0] }, 8000)) === true)
+    await poll(() => val(`document.querySelector('[data-act="use-models-asr"]').disabled === false`), 8000)
+    await clickWhenEnabled('[data-act="use-models-asr"]')
+    check('and using it makes it who listens', (await poll(async () => { const x = await getSettings(); return x && x.settings.use.listen === 'models-asr' }, 8000)) === true)
+    await click('[data-act="prov-groq"]')
+    await clickWhenEnabled('[data-act="use-groq"]')
+    check('and Groq can be chosen again', (await poll(async () => { const x = await getSettings(); return x && x.settings.use.listen === 'groq' }, 8000)) === true)
+  }
+  await click('[data-act="prov-app-dictation"]')
+  await poll(() => val(`!!document.querySelector('[data-provider="app-dictation"]')`), 8000)
+  check('the app\'s own dictation is a listening provider too, with its own test', (await val(`!!document.querySelector('[data-provider="app-dictation"] [data-act="test-dictation"]')`)) === true)
+  await click('[data-act="slot-speak"]')
+  await click('[data-act="prov-models-tts"]')
+  await poll(() => val(`!!document.querySelector('[data-provider="models-tts"]')`), 8000)
+  const speakModels = await val(`JSON.stringify(Array.from(document.querySelectorAll('[data-provider="models-tts"] [data-field="voice"] option')).map((o) => o.value))`)
+  const expectSpeak = audioModels.providers.flatMap((g) => g.models.filter((m) => m.kind === 'speak' && !/voiceclone|voicedesign/i.test(m.id)).map((m) => g.provider + ':' + m.id))
+  check('the Speak slot offers the voice models found in Models as the voices of the "models" engine', expectSpeak.length === 0 ? true : JSON.stringify(JSON.parse(speakModels).sort()) === JSON.stringify(expectSpeak.sort()), { speakModels, expectSpeak })
+
   console.log('4. Settings › Calls › Health')
   await click('[data-act="tab-health"]')
   await poll(() => val(`!!document.querySelector('[data-act="run-health"]')`), 8000)
@@ -251,7 +287,8 @@ try {
   check('the voice is tried through the app\'s own engine', rows.speak && ['ok', 'warn'].includes(rows.speak[0]) && /The voice answers|took over/.test(rows.speak[1]), rows.speak)
   await shot('settings-health')
   await click('[data-act="fix-listen"]')
-  check('a failing row opens the provider to fix it', (await poll(() => val(`!!document.querySelector('[data-provider="groq"]')`), 8000)) === true)
+  const fixed = await poll(() => val(`!!document.querySelector('[data-provider="groq"]')`), 8000)
+  check('a failing row opens the provider to fix it', fixed === true, fixed === true ? undefined : { page: await val(`(document.querySelector('[data-provider]') || { getAttribute: () => null }).getAttribute('data-provider')`), settings: (await getSettings()).settings.use })
 } catch (e) {
   fail += 1
   console.log('  ✗ ' + (e && e.message ? e.message : e))

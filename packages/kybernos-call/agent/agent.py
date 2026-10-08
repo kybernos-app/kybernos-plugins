@@ -36,6 +36,8 @@ from call_meta import (CallMeta, CallState, fetch_speech, filler, instructions a
                        speakable, stt_options, utterance_payload)
 from call_voice import two_letters
 from clone_tts import CloneTTS
+from call_stt import language_hint
+from host_stt import HostSTT
 from host_tts import HostTTS
 from local_tts import LocalSayTTS
 
@@ -110,6 +112,13 @@ def _legacy_tts(kind: str):
             voice=os.getenv("KYBER_GROQ_VOICE", "Celeste-PlayAI"),
         )
     return LocalSayTTS(voice=os.getenv("KYBER_SAY_VOICE", "Thomas"))
+
+
+def _build_stt(meta: CallMeta):
+    """Who listens: Groq (the worker's own key), or the host on behalf of a model of the user's provider / the app's dictation."""
+    if meta.stt_provider in ("models", "app"):
+        return HostSTT(HOST, meta.stt_provider, meta.stt_model, language_hint(meta))
+    return groq.STT(model=meta.stt_model or os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta))
 
 
 def _build_tts(meta: CallMeta):
@@ -263,7 +272,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
     state = CallState(time.monotonic)
     session = AgentSession(
         vad=silero.VAD.load(),
-        stt=groq.STT(model=meta.stt_model or os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
+        stt=_build_stt(meta),
         llm=groq.LLM(model=os.getenv("KYBER_LLM", "openai/gpt-oss-20b")),
         tts=voice,
         # No cloud turn detector / adaptive interruption: a 401 without a cloud key and several

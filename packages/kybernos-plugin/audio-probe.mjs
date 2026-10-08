@@ -1,4 +1,5 @@
-// Which way of talking to an audio model a provider accepts: a probe, run on a click, with a few words of text or a second of silence.
+// Talking to the audio models of a provider: which way it accepts (a probe, run on a click, with a few words of text or a second of
+// silence), and then, once the way is known, speaking and listening with it.
 //
 // The Models page lists models; it does not say how to ask one of them to speak, listen or hold a conversation. Providers differ:
 // OpenAI's own `/audio/speech`, chat completions that return audio, DashScope's native endpoint, a WebSocket for realtime. This tries
@@ -7,6 +8,7 @@
 //
 // The key is handed in by the caller and never appears in what is returned. All I/O is injected: the tests use fakes.
 const text = (e) => (e && e.message ? String(e.message) : String(e))
+const text_ = text
 
 /** A WAV of `ms` of silence, mono 16 kHz 16-bit (the smallest thing a transcription endpoint accepts as audio). */
 export const silentWav = (ms = 800) => {
@@ -57,7 +59,7 @@ export function createProbe ({ fetch: doFetch = (...a) => globalThis.fetch(...a)
     const chat = (shape, body) => attempt(shape, base + '/chat/completions', { method: 'POST', headers, body: json(body) },
       ({ body: b }) => (b && b.choices && b.choices[0] && b.choices[0].message && b.choices[0].message.audio && b.choices[0].message.audio.data ? 'audio in the message' : false))
     const audioOf = (hit) => (hit === null || hit.body === undefined || hit.body === null ? null : wavOf(hit.body.choices[0].message.audio.data))
-    let hit = await attempt('openai-speech', base + '/audio/speech', { method: 'POST', headers, body: json({ model, input: 'Test.', voice: 'alloy' }) }, ({ type }) => (/audio/i.test(type) ? 'audio ' + type : false))
+    let hit = await attempt('openai-speech', base + '/audio/speech', { method: 'POST', headers, body: json({ model, input: 'Test.', voice: 'alloy', response_format: 'wav' }) }, ({ type }) => (/audio/i.test(type) ? 'audio ' + type : false))
     if (hit !== null) return { family: hit.shape, audio: null }
     // A TTS model of a chat gateway wants the text as an ASSISTANT message (measured on a token plan: "messages must contain an assistant role for TTS model").
     hit = await chat('chat-assistant-text', { model, messages: [{ role: 'assistant', content: 'Test.' }], audio: { format: 'wav' } })
@@ -93,6 +95,50 @@ export function createProbe ({ fetch: doFetch = (...a) => globalThis.fetch(...a)
     hit = await attempt('chat-input-audio-dataurl', base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: 'data:audio/wav;base64,' + wav.toString('base64') } }] }], stream: false }) }, said)
     if (hit !== null) return { family: hit.shape }
     return { family: null }
+  }
+
+  /**
+   * Speaks `text` with a way the probe found. Returns { ok, audio } (a WAV Buffer) or { ok: false, error, status }. Only the ways that
+   * return the audio itself are used at run time; the ones that answer with a link are known to the probe but not used.
+   */
+  const speakWith = async ({ family, base, key, model, text }) => {
+    const headers = { authorization: 'Bearer ' + key, 'content-type': 'application/json' }
+    const clean = (s) => String(s).split(key).join('…').replace(/\s+/g, ' ').slice(0, 200)
+    try {
+      let res = null
+      if (family === 'openai-speech') res = await doFetch(base + '/audio/speech', { method: 'POST', headers, body: json({ model, input: text, voice: 'alloy', response_format: 'wav' }), signal: AbortSignal.timeout(timeoutMs) })
+      else if (family === 'chat-assistant-text') res = await doFetch(base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'assistant', content: text }], audio: { format: 'wav' } }), signal: AbortSignal.timeout(timeoutMs) })
+      else if (family === 'chat-audio') res = await doFetch(base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'user', content: text }], modalities: ['text', 'audio'], audio: { voice: 'alloy', format: 'wav' } }), signal: AbortSignal.timeout(timeoutMs) })
+      else return { ok: false, status: 0, error: 'this way of speaking is not used at run time (' + String(family) + ')' }
+      if (res.status < 200 || res.status >= 300) return { ok: false, status: res.status, error: clean(await res.text().catch(() => '')) || 'HTTP ' + String(res.status) }
+      if (family === 'openai-speech') { const bytes = Buffer.from(await res.arrayBuffer()); return bytes.length > 44 ? { ok: true, audio: bytes } : { ok: false, status: res.status, error: 'empty audio' } }
+      const body = await res.json().catch(() => null)
+      const audio = body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.audio ? wavOf(body.choices[0].message.audio.data) : null
+      return audio !== null ? { ok: true, audio } : { ok: false, status: res.status, error: 'no audio in the answer' }
+    } catch (e) { return { ok: false, status: 0, error: clean(text_(e)) } }
+  }
+
+  /** Listens to `wav` (a WAV Buffer) with a way the probe found. Returns { ok, text } or { ok: false, error, status }. */
+  const listenWith = async ({ family, base, key, model, wav, language }) => {
+    const headers = { authorization: 'Bearer ' + key, 'content-type': 'application/json' }
+    const clean = (s) => String(s).split(key).join('…').replace(/\s+/g, ' ').slice(0, 200)
+    try {
+      let res = null
+      if (family === 'openai-transcriptions') {
+        const f = new FormData()
+        f.append('model', model)
+        if (typeof language === 'string' && /^[a-z]{2}$/.test(language)) f.append('language', language)
+        f.append('file', new Blob([wav], { type: 'audio/wav' }), 'speech.wav')
+        res = await doFetch(base + '/audio/transcriptions', { method: 'POST', headers: { authorization: 'Bearer ' + key }, body: f, signal: AbortSignal.timeout(timeoutMs) })
+      } else if (family === 'chat-input-audio-base64' || family === 'chat-input-audio-dataurl') {
+        const data = family === 'chat-input-audio-base64' ? { data: wav.toString('base64'), format: 'wav' } : { data: 'data:audio/wav;base64,' + wav.toString('base64') }
+        res = await doFetch(base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: data }] }], stream: false }), signal: AbortSignal.timeout(timeoutMs) })
+      } else return { ok: false, status: 0, error: 'this way of listening is not used at run time (' + String(family) + ')' }
+      if (res.status < 200 || res.status >= 300) return { ok: false, status: res.status, error: clean(await res.text().catch(() => '')) || 'HTTP ' + String(res.status) }
+      const body = await res.json().catch(() => null)
+      const said = family === 'openai-transcriptions' ? (body && body.text) : (body && body.choices && body.choices[0] && body.choices[0].message ? body.choices[0].message.content : null)
+      return typeof said === 'string' ? { ok: true, text: said.trim() } : { ok: false, status: res.status, error: 'no text in the answer' }
+    } catch (e) { return { ok: false, status: 0, error: clean(text_(e)) } }
   }
 
   /** The realtime handshake in the two usual styles, then the first event the server sends (its name says which protocol it speaks). */
@@ -139,5 +185,5 @@ export function createProbe ({ fetch: doFetch = (...a) => globalThis.fetch(...a)
     if (keepAudio && r.audio) Object.defineProperty(out, 'audio', { value: r.audio, enumerable: false })
     return out
   }
-  return { run }
+  return { run, speakWith, listenWith }
 }

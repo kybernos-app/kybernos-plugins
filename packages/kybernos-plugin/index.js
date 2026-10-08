@@ -38,6 +38,7 @@ import { seedSkills } from './seed-skills.mjs'
 import { createPythonPicker } from './tts-python.mjs'
 import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
 import { createProbe } from './audio-probe.mjs'
+import { createModelsAudio } from './models-audio.mjs'
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -7998,6 +7999,11 @@ function boot(ctx) {
         return { key, source: str(rec.source) }
       } catch (e) { return { key: null, error: errText(e) } }
     }
+    // The audio models of the user's own providers (see models-audio.mjs): spoken to with the key the app already holds for them.
+    const kbModelsProviders = () => {
+      try { const ns = lireNamespace('llm-pi-ai').valeur; return (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { return {} }
+    }
+    const kbModelsAudio = createModelsAudio({ providers: kbModelsProviders, credential: async (ref) => (await kbVoiceKey(ref)).key, api: createProbe() })
     const kbVoiceDecodeAudio = (value) => {
       const raw = str(value)
       if (raw === null) return { error: 'audio manquant' }
@@ -8161,6 +8167,7 @@ function boot(ctx) {
       { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
+      { id: 'models', name: 'Your models', kind: 'cloud', price: 'plan', privacy: 'The reply text is sent to the provider of the model you choose, with the key already set up in Models.' },
     ]
     // 31 langues déclarées par Supertonic-3 (aucune langue chinoise : vérifié).
     const KB_TTS_SUPERTONIC_LANGS = ['ar', 'bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'ko', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'vi']
@@ -8513,6 +8520,16 @@ function boot(ctx) {
           item.sizeBytes = cachePoids
           item.size = cachePoids > 0 ? Math.round(cachePoids / 1048576) + ' Mo' : null
           item.note = 'voix multilingues : la langue se choisit separement'
+        } else if (cat.id === 'models') {
+          // The speaking models of the providers already set up in Models: one "voice" per model. No installation, no new key.
+          const found = []
+          for (const g of audioModelsOf(kbModelsProviders())) for (const m of g.models) if (m.kind === 'speak' && /voiceclone|voicedesign/i.test(m.id) === false) found.push({ id: g.provider + ':' + m.id, label: m.id + ' · ' + g.provider, lang: '' })
+          item.voices = found
+          item.ready = found.length > 0
+          item.reason = found.length > 0 ? null : 'aucun modele de voix dans vos fournisseurs'
+          item.size = '0 Mo'
+          item.sizeBytes = 0
+          item.note = 'utilise la cle deja configuree pour le fournisseur du modele'
         } else if (cat.id === 'edge') {
           item.ready = edgeOk === true
           item.reason = item.ready === true ? null : 'module python edge_tts absent'
@@ -8610,6 +8627,12 @@ function boot(ctx) {
           const argv = ['-v', voiceId, '-r', rate, '-f', textFile, '-o', rawFile]
           if (voiceId === null || voiceId === '') { argv.splice(0, 2) }
           res = await kbTtsExec('say', argv, { timeoutMs: KB_TTS_TIMEOUT.say })
+        } else if (engine === 'models') {
+          // The voice id is "<provider>:<model>". The provider's own server makes the sound; it is written as a WAV like the other engines'.
+          const sep = String(voiceId === null ? '' : voiceId).indexOf(':')
+          const made = await kbModelsAudio.speak({ provider: sep > 0 ? String(voiceId).slice(0, sep) : '', model: sep > 0 ? String(voiceId).slice(sep + 1) : '', text: text })
+          if (made.ok !== true) res = { ok: false, error: made.error !== undefined ? String(made.error) : String(made.code) }
+          else { try { writeFileSync(rawFile, made.audio); res = { ok: true } } catch (e) { res = { ok: false, error: errText(e) } } }
         } else {
           const helper = await kbTtsHelperPath()
           if (helper === null) return { ok: false, error: 'script des moteurs non ecrit' }
@@ -10131,30 +10154,30 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         let body = {}
         try { body = await readJsonBody(req, 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
-        let providers = {}
-        try { const ns = lireNamespace('llm-pi-ai').valeur; providers = (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { providers = {} }
-        const id = str(body.provider)
-        const model = str(body.model)
-        const def = id !== null && Object.prototype.hasOwnProperty.call(providers, id) ? providers[id] : null
-        const known = def !== null && Array.isArray(def.models) && def.models.some((m) => m !== null && typeof m === 'object' && m.id === model)
-        if (!known) return sendJson(res, 404, { ok: false, error: 'ce modele n est pas dans la configuration' })
-        const kind = audioKindOf(model)
-        if (kind === null) return sendJson(res, 400, { ok: false, error: 'ce n est pas un modele audio' })
-        const base = providerBase(id, def)
-        if (base === null) return sendJson(res, 200, { ok: false, code: 'no-address', error: 'adresse du fournisseur inconnue : ajoutez son baseURL dans Modeles' })
-        const cred = await kbVoiceKey(str(def.apiKeyEnv) ?? '')
-        if (cred.key === null) return sendJson(res, 200, { ok: false, code: 'no-key', error: cred.error })
-        const probe = createProbe()
-        // Listening is proven on real speech: a speaking model of the same provider makes a few words, and the listener must recognise them.
-        let sample = null
-        let said = null
-        if (kind === 'listen') {
-          const sibling = (def.models || []).map((m) => (m !== null && typeof m === 'object' ? m.id : null)).find((x) => typeof x === 'string' && audioKindOf(x) === 'speak' && !/voiceclone|voicedesign/i.test(x))
-          if (sibling !== undefined) { said = await probe.run({ kind: 'speak', base, key: cred.key, model: sibling, keepAudio: true }); sample = said.audio ?? null }
-        }
-        const out = await probe.run({ kind, base, key: cred.key, model, sample })
-        sendJson(res, 200, Object.assign({ provider: id, model, kind }, out, said !== null ? { sampleFrom: said.ok ? said.family : null } : {}))
+        sendJson(res, 200, await kbModelsAudio.check({ provider: str(body.provider) ?? '', model: str(body.model) ?? '' }))
       } }), 'kybernos: route models/audio/probe')
+      // Speak with one of those models, and listen with one: what a call uses when its voice or its ears are a model of the user's provider.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/speak', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        let body = {}
+        try { body = await readJsonBody(req, 8192) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        const said = str(body.text)
+        if (said === null || said.trim() === '' || said.length > 1500) return sendJson(res, 400, { ok: false, error: 'texte de 1 a 1500 caracteres attendu' })
+        const made = await kbModelsAudio.speak({ provider: str(body.provider) ?? '', model: str(body.model) ?? '', text: said })
+        sendJson(res, 200, made.ok === true ? { ok: true, family: made.family, audio: 'data:audio/wav;base64,' + made.audio.toString('base64') } : { ok: false, code: made.code, error: made.error })
+      } }), 'kybernos: route models/audio/speak')
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/listen', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        let body = {}
+        try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        const b64 = str(body.audio)
+        const wav = b64 === null ? null : Buffer.from(b64.replace(/^data:audio\/[a-z0-9.+-]+;base64,/i, ''), 'base64')
+        if (wav === null || wav.length < 100 || wav.length > 12582912) return sendJson(res, 400, { ok: false, error: 'audio WAV en base64 attendu (jusqu a 12 Mo)' })
+        const lang = str(body.language)
+        sendJson(res, 200, await kbModelsAudio.listen({ provider: str(body.provider) ?? '', model: str(body.model) ?? '', wav: wav, language: lang !== null && /^[a-z]{2}$/.test(lang) ? lang : undefined }))
+      } }), 'kybernos: route models/audio/listen')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })

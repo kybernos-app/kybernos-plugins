@@ -111,9 +111,17 @@ class ProviderModels(unittest.TestCase):
         self.assertEqual((meta.stt_model, meta.clone_model), ("whisper-large-v3", "eleven_flash_v2_5"))
 
     def test_a_model_name_that_is_not_one_is_dropped(self):
-        for bad in ("../x", "a b", "", "x" * 65, 3, None, ["a"]):
+        for bad in ("../x", "a b", "", "x" * 161, 3, None, ["a"]):
             meta = parse_job_metadata('{"sttModel": %s}' % json.dumps(bad), {})
             self.assertEqual(meta.stt_model, "", bad)
+
+    def test_who_listens_is_one_of_three(self):
+        self.assertEqual(parse_job_metadata('{"sttProvider": "models", "sttModel": "xiaomi-token-plan-ams:mimo-v2.5-asr"}', {}).stt_provider, "models")
+        self.assertEqual(parse_job_metadata('{"sttProvider": "models", "sttModel": "xiaomi-token-plan-ams:mimo-v2.5-asr"}', {}).stt_model, "xiaomi-token-plan-ams:mimo-v2.5-asr")
+        self.assertEqual(parse_job_metadata('{"sttProvider": "app"}', {}).stt_provider, "app")
+        for bad in ("deepgram", "", None, 3, ["models"]):
+            self.assertEqual(parse_job_metadata(json.dumps({"sttProvider": bad}), {}).stt_provider, "groq", bad)
+        self.assertEqual(parse_job_metadata("", {}).stt_provider, "groq")
 
     def test_without_them_the_workers_defaults_apply(self):
         meta = parse_job_metadata('{"mode": "voice"}', {})

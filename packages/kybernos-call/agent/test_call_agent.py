@@ -380,6 +380,43 @@ class WorkingFlag(unittest.TestCase):
         self.assertEqual(written, [{"kb.working": "1"}, {"kb.working": "0"}, {"kb.working": "1"}])
 
 
+@unittest.skipUnless(HAVE_LIVEKIT, "livekit-agents is not installed: run this with the worker's venv")
+class WhoListens(unittest.TestCase):
+    def test_groq_listens_unless_the_settings_say_otherwise(self):
+        async def go():
+            self.assertEqual(type(worker._build_stt(CallMeta())).__module__.split(".")[1], "plugins")
+            models = worker._build_stt(CallMeta(stt_provider="models", stt_model="p:m"))
+            app = worker._build_stt(CallMeta(stt_provider="app"))
+            return type(models).__name__, models.provider, type(app).__name__, app.model
+
+        self.assertEqual(asyncio.run(go()), ("HostSTT", "kybernos-models", "HostSTT", "app-dictation"))
+
+    def test_a_sentence_is_sent_whole_to_the_host_and_comes_back_as_a_transcript(self):
+        from livekit import rtc
+        import host_stt
+
+        seen = []
+
+        def fake(host, provider, model, wav, language):
+            seen.append((host, provider, model, wav[:4], language))
+            return "bonjour"
+
+        original = host_stt.listen_request
+        host_stt.listen_request = fake
+
+        async def go():
+            listener = host_stt.HostSTT("http://127.0.0.1:3080", "models", "p:m", "fr")
+            frame = rtc.AudioFrame(b"\x00\x00" * 1600, 16000, 1, 1600)
+            return await listener._recognize_impl([frame], conn_options=host_stt.DEFAULT_CONN)
+
+        try:
+            event = asyncio.run(go())
+        finally:
+            host_stt.listen_request = original
+        self.assertEqual(event.alternatives[0].text, "bonjour")
+        self.assertEqual(seen, [("http://127.0.0.1:3080", "models", "p:m", b"RIFF", "fr")])
+
+
 class ShutdownCallbacks(unittest.TestCase):
     def test_every_shutdown_callback_is_a_coroutine_function(self):
         # LiveKit awaits them. A plain function made every call end with "TypeError: object NoneType can't be used in

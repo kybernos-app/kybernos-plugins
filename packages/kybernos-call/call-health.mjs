@@ -6,6 +6,7 @@
 //
 // A result is { id, status: 'ok' | 'warn' | 'bad', code, detail?, provider?, ms }. The page turns `code` into a sentence in the
 // user's language; `detail` is the provider's own words, shown as is.
+import { configOf } from './providers.mjs'
 const text = (e) => (e && e.message ? String(e.message) : String(e))
 const refusal = (error) => /refus/i.test(String(error ?? ''))
 
@@ -19,7 +20,25 @@ export function createHealth ({ store, services, call, fetch: doFetch = (...a) =
     } catch (e) { return { id, ms: Date.now() - t0, status: 'bad', code: 'failed', detail: text(e).slice(0, 200) } } finally { if (timer !== null) clearTimeout(timer) }
   }
 
-  const listen = async (settings, keys) => {
+  const listen = async (settings, keys, base) => {
+    if (settings.use.listen === 'models-asr') {
+      const chosen = configOf('models-asr', settings.providers['models-asr']).model
+      if (chosen === '') return { status: 'bad', code: 'no-model', provider: 'models-asr' }
+      const sep = chosen.indexOf(':')
+      const res = await doFetch(base + '/kybernos/models/audio/probe', { method: 'POST', headers: { 'content-type': 'application/json', origin: base }, body: JSON.stringify({ provider: chosen.slice(0, sep), model: chosen.slice(sep + 1) }), signal: AbortSignal.timeout(28000) })
+      let out = null
+      try { out = await res.json() } catch (e) { out = null }
+      if (out !== null && out.ok === true) return { status: 'ok', code: 'ok', provider: 'models-asr', detail: chosen }
+      const code = out !== null && typeof out.code === 'string' ? out.code : 'failed'
+      return { status: 'bad', code: code === 'no-key' || code === 'no-address' || code === 'unknown-model' ? code : 'failed', provider: 'models-asr', detail: out !== null && out.error ? String(out.error).slice(0, 200) : 'none of the known ways of listening works with ' + chosen }
+    }
+    if (settings.use.listen === 'app-dictation') {
+      const res = await doFetch(base + '/kybernos/voice/config', { signal: AbortSignal.timeout(10000) })
+      let out = null
+      try { out = await res.json() } catch (e) { out = null }
+      if (out !== null && out.ok === true && out.asr && out.asr.ready === true) return { status: 'ok', code: 'ok', provider: 'app-dictation' }
+      return { status: 'bad', code: 'failed', provider: 'app-dictation', detail: out !== null && out.asr && out.asr.reason ? String(out.asr.reason).slice(0, 200) : 'the app’s dictation is not ready' }
+    }
     if (settings.use.listen !== 'groq') return { status: 'warn', code: 'not-wired', provider: settings.use.listen }
     if (!keys.GROQ_API_KEY) return { status: 'bad', code: 'no-key', provider: 'groq' }
     const r = await services.testGroq(keys.GROQ_API_KEY)
@@ -64,7 +83,7 @@ export function createHealth ({ store, services, call, fetch: doFetch = (...a) =
   const run = async ({ base }) => {
     const [settings, keys] = await Promise.all([store.readSettings(), store.readKeys()])
     const checks = await Promise.all([
-      guarded('listen', () => listen(settings, keys)),
+      guarded('listen', () => listen(settings, keys, base)),
       guarded('speak', () => speak(settings, base)),
       guarded('face', () => face(settings, keys)),
       guarded('line', () => line()),

@@ -44,6 +44,8 @@ const secret = (name, fr, en) => ({ kind: 'secret', name, label: t(fr, en) })
  *   env      a plain value in that file (shown)
  *   switch   '0' / '1' in that file
  *   setting  a choice kept in settings.json under providers.<id>.<name>
+ *   models   the same, but the choices are the audio models found in the user's Models ("<provider>:<model>", listen or speak):
+ *            the page lists them, the call checks them when it uses them
  */
 export const PROVIDERS = Object.freeze([
   // ── listen ───────────────────────────────────────────────────────────
@@ -55,8 +57,13 @@ export const PROVIDERS = Object.freeze([
       { kind: 'setting', name: 'model', label: t('Modèle', 'Model'), default: 'whisper-large-v3-turbo', options: [
         { value: 'whisper-large-v3-turbo', label: t('whisper-large-v3-turbo · 0,04 $/h', 'whisper-large-v3-turbo · $0.04/h') },
         { value: 'whisper-large-v3', label: t('whisper-large-v3 · 0,111 $/h', 'whisper-large-v3 · $0.111/h') }] }] },
-  { id: 'qwen-asr', cost: 0, slot: 'listen', available: false, source: 'models', tags: ['models'], model: 'qwen-audio-3.0-asr-flash',
-    name: t('Qwen ASR', 'Qwen ASR'), price: t('Inclus dans votre offre', 'Included in your plan'), note: t('Utilise le fournisseur déjà configuré dans Modèles.', 'Uses the provider already set up in Models.'), fields: [] },
+  { id: 'models-asr', cost: 0, slot: 'listen', available: true, source: 'models', tags: ['models'], test: 'models',
+    name: t('Un modèle de vos Modèles', 'A model from your Models'), price: t('Inclus dans votre offre', 'Included in your plan'),
+    note: t('Un modèle d’écoute d’un fournisseur déjà configuré dans Modèles : la clé est celle de ce fournisseur, rien à coller.', 'A listening model of a provider already set up in Models: the key is that provider’s, nothing to paste.'),
+    fields: [{ kind: 'models', name: 'model', want: 'listen', label: t('Modèle d’écoute', 'Listening model') }] },
+  { id: 'app-dictation', cost: 0, slot: 'listen', available: true, source: 'models', tags: ['models'], test: 'dictation',
+    name: t('Dictée de l’app', 'App dictation'), price: t('Inclus dans votre offre', 'Included in your plan'),
+    note: t('Le modèle qu’utilise déjà la dictée de l’app (le micro de la zone de message).', 'The model the app’s dictation already uses (the microphone of the message box).'), fields: [] },
   { id: 'deepgram', cost: 0.58, slot: 'listen', available: false, source: 'key', tags: ['online'], url: 'https://console.deepgram.com',
     name: t('Deepgram Nova-3', 'Deepgram Nova-3'), price: t('0,0058 $ la minute', '$0.0058 per minute'), note: t('Pensé pour la voix en temps réel. 200 $ offerts au départ.', 'Built for realtime voice. $200 free to start.'), fields: [] },
   { id: 'openai-compatible-stt', cost: 0, slot: 'listen', available: false, source: 'key', tags: ['custom'],
@@ -85,8 +92,9 @@ export const PROVIDERS = Object.freeze([
       { kind: 'setting', name: 'model', label: t('Modèle', 'Model'), default: 'eleven_multilingual_v2', options: [
         { value: 'eleven_multilingual_v2', label: t('eleven_multilingual_v2 · 1 crédit par caractère', 'eleven_multilingual_v2 · 1 credit per character') },
         { value: 'eleven_flash_v2_5', label: t('eleven_flash_v2_5 · 0,5 crédit par caractère', 'eleven_flash_v2_5 · 0.5 credit per character') }] }] },
-  { id: 'qwen-tts', cost: 0, slot: 'speak', available: false, source: 'models', tags: ['models'], model: 'qwen-audio-3.0-tts-plus',
-    name: t('Qwen TTS', 'Qwen TTS'), price: t('Inclus dans votre offre', 'Included in your plan'), note: t('Utilise le fournisseur déjà configuré dans Modèles.', 'Uses the provider already set up in Models.'), fields: [] },
+  { id: 'models-tts', cost: 0, slot: 'speak', available: true, source: 'models', tags: ['models'], engine: 'models',
+    name: t('Un modèle de vos Modèles', 'A model from your Models'), price: t('Inclus dans votre offre', 'Included in your plan'),
+    note: t('Un modèle de voix d’un fournisseur déjà configuré dans Modèles : la clé est celle de ce fournisseur, rien à coller. Le texte lui est envoyé.', 'A voice model of a provider already set up in Models: the key is that provider’s, nothing to paste. The text is sent to it.'), fields: [] },
   { id: 'cartesia', cost: 2, slot: 'speak', available: false, source: 'key', tags: ['online', 'clone'], url: 'https://cartesia.ai',
     name: t('Cartesia', 'Cartesia'), price: t('À partir de 5 $ par mois', 'From $5 per month'), note: t('Très faible latence. Clonage inclus dès 5 $ (100 000 crédits).', 'Very low latency. Cloning included from $5 (100,000 credits).'), fields: [] },
   { id: 'deepgram-aura', cost: 0.6, slot: 'speak', available: false, source: 'key', tags: ['online'], url: 'https://console.deepgram.com',
@@ -133,6 +141,7 @@ export const PRESETS = Object.freeze([
     patch: { use: { listen: 'groq', face: 'liveavatar' }, defaultVoice: { engine: 'edge', voice: 'fr-FR-VivienneMultilingualNeural', lang: 'fr' } } }
 ])
 
+const MODEL_RE = /^[A-Za-z0-9._-]{1,80}:[A-Za-z0-9._:-]{1,80}$/
 const byId = new Map(PROVIDERS.map((p) => [p.id, p]))
 export const providerById = (id) => byId.get(id) ?? null
 export const providersOf = (slot) => PROVIDERS.filter((p) => p.slot === slot)
@@ -144,9 +153,9 @@ export const configOf = (providerId, saved) => {
   const out = {}
   if (p === null) return out
   for (const f of p.fields) {
-    if (f.kind !== 'setting') continue
     const have = saved !== null && typeof saved === 'object' ? saved[f.name] : undefined
-    out[f.name] = (typeof have === 'string' && f.options.some((o) => o.value === have)) ? have : f.default
+    if (f.kind === 'models') out[f.name] = (typeof have === 'string' && MODEL_RE.test(have)) ? have : ''
+    else if (f.kind === 'setting') out[f.name] = (typeof have === 'string' && f.options.some((o) => o.value === have)) ? have : f.default
   }
   return out
 }
@@ -161,9 +170,12 @@ export const checkProviderConfig = (patch) => {
     if (p === null) { refused['providers.' + id] = 'unknown provider'; continue }
     if (values === null || typeof values !== 'object' || Array.isArray(values)) { refused['providers.' + id] = 'an object'; continue }
     for (const [name, value] of Object.entries(values)) {
-      const f = p.fields.find((x) => x.kind === 'setting' && x.name === name)
+      const f = p.fields.find((x) => (x.kind === 'setting' || x.kind === 'models') && x.name === name)
       if (f === undefined) { refused['providers.' + id + '.' + name] = 'not a setting of this provider'; continue }
-      if (typeof value !== 'string' || !f.options.some((o) => o.value === value)) { refused['providers.' + id + '.' + name] = 'one of: ' + f.options.map((o) => o.value).join(', '); continue }
+      if (f.kind === 'models') {
+        // The models come from the user's own configuration: the shape is checked here, whether the model exists is checked when it is used.
+        if (typeof value !== 'string' || !(value === '' || MODEL_RE.test(value))) { refused['providers.' + id + '.' + name] = 'a model as "<provider>:<model>"'; continue }
+      } else if (typeof value !== 'string' || !f.options.some((o) => o.value === value)) { refused['providers.' + id + '.' + name] = 'one of: ' + f.options.map((o) => o.value).join(', '); continue }
       if (kept[id] === undefined) kept[id] = {}
       kept[id][name] = value
     }

@@ -638,10 +638,11 @@ window.__ModuleLoader__.load({
         if (slot === 'think') return 'session'
         return 'livekit'
       }
-      // The provider of the user's Models that holds the model a catalogue entry points to ('qwen-audio-3.0-asr-flash'), or null.
-      const inModels = (c, p) => { const hit = (c.models || []).find((g) => g.models.some((m) => m.id === p.model)); return hit === undefined ? null : hit.provider }
       const providerOf = (d, id) => d.providers.find((p) => p.id === id) || null
-      const stateChip = (p) => (p.available !== true ? Chip('warn', kt('Bientôt', 'Coming soon')) : (p.ready === true ? Chip('ok', kt('Prêt', 'Ready')) : Chip('warn', kt('Clé manquante', 'Needs a key'))))
+      // The audio models found in the user's Models, flat: [{ provider, id, kind }].
+      const foundModels = (c, want) => (c.models || []).flatMap((g) => g.models.filter((m) => m.kind === want && !/voiceclone|voicedesign/i.test(m.id)).map((m) => ({ provider: g.provider, id: m.id, kind: m.kind })))
+      const noModels = (c, p) => p.source === 'models' && ((p.id === 'models-asr' && foundModels(c, 'listen').length === 0) || (p.id === 'models-tts' && foundModels(c, 'speak').length === 0))
+      const stateChip = (p, c) => (p.available !== true ? Chip('warn', kt('Bientôt', 'Coming soon')) : (c && noModels(c, p) ? Chip('warn', kt('Pas trouvé dans vos Modèles', 'Not found in your Models')) : (p.ready === true ? Chip('ok', kt('Prêt', 'Ready')) : Chip('warn', kt('Clé manquante', 'Needs a key')))))
       const SAMPLES = { fr: 'Bonjour, je suis votre assistant. Comment puis-je vous aider ?', en: 'Hello, I am your assistant. How can I help you?', es: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?', de: 'Hallo, ich bin dein Assistent. Wie kann ich dir helfen?', it: 'Ciao, sono il tuo assistente. Come posso aiutarti?', pt: 'Olá, sou o seu assistente. Como posso ajudar?' }
 
       // One provider's page. The same layout for every provider of every slot, drawn from the catalogue the host sends.
@@ -663,7 +664,19 @@ window.__ModuleLoader__.load({
         const voiceOf = (id) => engineVoices.find((v) => v.id === id) || null
         const runTest = async () => {
           setTest({ busy: true })
-          const r = await post('/test', { service: p.test })
+          let r = null
+          if (p.test === 'models') {
+            // The app itself asks the model, with real speech a speaking model of the same provider makes: the real proof.
+            const chosenModel = (p.config || {}).model || ''
+            if (chosenModel === '') { setTest({ ok: false, error: kt('Choisissez d’abord un modèle', 'Choose a model first') }); return }
+            const sep = chosenModel.indexOf(':')
+            const got = await fetch('/kybernos/models/audio/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: chosenModel.slice(0, sep), model: chosenModel.slice(sep + 1) }) }).then((x) => x.json()).catch(() => null)
+            const last = got && Array.isArray(got.tried) && got.tried.length > 0 ? got.tried[got.tried.length - 1] : null
+            r = got === null ? null : (got.ok === true ? { ok: true, detail: (last && last.note) || got.family } : { ok: false, error: got.error || (last && last.note) || kt('aucune des façons connues de lui parler ne marche', 'none of the known ways of talking to it works') })
+          } else if (p.test === 'dictation') {
+            const got = await getJson('/kybernos/voice/config')
+            r = got === null ? null : (got.ok === true && got.asr && got.asr.ready === true ? { ok: true, detail: got.asr.model } : { ok: false, error: (got.asr && got.asr.reason) || kt('la dictée n’est pas prête', 'dictation is not ready') })
+          } else r = await post('/test', { service: p.test })
           setTest(r === null ? { ok: false, error: kt('l’hôte ne répond pas', 'the host does not answer') } : r)
         }
         const useIt = () => {
@@ -697,6 +710,14 @@ window.__ModuleLoader__.load({
             const cur = (p.config || {})[f.name]
             return h('div', { key: f.name, className: 'kbcl-f' }, [label, h('select', { key: 's', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in', value: cur, disabled: c.busy, onChange: (e) => c.save({ providers: { [p.id]: { [f.name]: e.target.value } } }) }, f.options.map((o) => h('option', { key: o.value, value: o.value }, tx(o.label))))])
           }
+          if (f.kind === 'models') {
+            const list = foundModels(c, f.want)
+            const cur = (p.config || {})[f.name] || ''
+            const inList = list.some((m) => m.provider + ':' + m.id === cur)
+            return h('div', { key: f.name, className: 'kbcl-f' }, [label, list.length === 0
+              ? h('div', { key: 'n', className: 'kbcl-notice', 'data-kb': 'kybernos-call-no-models' }, kt('Aucun modèle de ce genre dans vos fournisseurs. Ajoutez-en un dans Réglages › Fournisseurs et modèles.', 'No model of this kind in your providers. Add one in Settings › AI Provider & Models.'))
+              : h('select', { key: 's', id: 'kbcl-f-' + f.name, 'data-field': f.name, className: 'kbcl-in', value: inList ? cur : '', disabled: c.busy, onChange: (e) => c.save({ providers: { [p.id]: { [f.name]: e.target.value } } }) }, [h('option', { key: '', value: '' }, kt('Choisir un modèle…', 'Choose a model…'))].concat(list.map((m) => h('option', { key: m.provider + ':' + m.id, value: m.provider + ':' + m.id }, m.id + ' · ' + m.provider))))])
+          }
           if (f.kind === 'switch') {
             const on = keys[f.name] && keys[f.name].set && keys[f.name].value === '1'
             return h('label', { key: f.name, className: 'kbcl-check' }, [h('input', { key: 'i', type: 'checkbox', 'data-field': f.name, checked: on === true, disabled: c.busy, onChange: (e) => c.saveKeys({ [f.name]: e.target.checked ? '1' : '0' }) }), h('span', { key: 't' }, tx(f.label))])
@@ -716,7 +737,7 @@ window.__ModuleLoader__.load({
         }
         const clones = Array.isArray(d.clones) ? d.clones : []
         return h('section', { className: 'kbcl-prov', 'data-kb': 'kybernos-call-provider', 'data-provider': p.id }, [
-          h('div', { key: 'hd', className: 'kbcl-row' }, [h('div', { key: 'n', style: { fontSize: '17px', fontWeight: 700 } }, tx(p.name)), Chip('', tx(d.slots.find((s) => s.id === p.slot).name)), p.source === 'models' ? (inModels(c, p) !== null ? Chip('ok', kt('Dans vos Modèles', 'In your Models') + ' · ' + inModels(c, p)) : Chip('warn', kt('Pas trouvé dans vos Modèles', 'Not found in your Models'))) : null, stateChip(p), used && props.compact !== true ? Chip('ok', kt('Utilisé pour les appels', 'Used for calls')) : null]),
+          h('div', { key: 'hd', className: 'kbcl-row' }, [h('div', { key: 'n', style: { fontSize: '17px', fontWeight: 700 } }, tx(p.name)), Chip('', tx(d.slots.find((s) => s.id === p.slot).name)), p.source === 'models' && !noModels(c, p) ? Chip('ok', kt('Dans vos Modèles', 'In your Models')) : null, stateChip(p, c), used && props.compact !== true ? Chip('ok', kt('Utilisé pour les appels', 'Used for calls')) : null]),
           h('div', { key: 'nt', className: 'kbcl-sub' }, tx(p.note)),
           h('div', { key: 'pr', className: 'kbcl-row kbcl-sub' }, [h('span', { key: 'p' }, tx(p.price)), p.url ? h('a', { key: 'u', href: p.url, target: '_blank', rel: 'noreferrer noopener' }, kt('Obtenir une clé ↗', 'Get a key ↗')) : null]),
           p.available !== true ? h('div', { key: 'soon', className: 'kbcl-notice' }, kt('Ce fournisseur est listé pour montrer ce qui est prévu. Il ne peut pas encore être utilisé.', 'This provider is listed to show what is planned. It cannot be used yet.')) : [
@@ -738,7 +759,7 @@ window.__ModuleLoader__.load({
               p.test ? h('button', { key: 't', type: 'button', className: 'kbcl-btn', 'data-act': 'test-' + p.test, disabled: test !== null && test.busy === true, onClick: runTest }, kt('Tester', 'Test')) : null,
               test !== null && test.busy === true ? h('span', { key: 'w', className: 'kbcl-sub' }, kt('Test en cours…', 'Testing…')) : null,
               test !== null && test.busy !== true ? h('span', { key: 'r', 'data-test-result': p.test }, test.ok === true ? Chip('ok', kt('connexion réussie', 'connection works') + (test.detail ? ' · ' + test.detail : '')) : Chip('err', test.error || kt('échec', 'failed'))) : null,
-              (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone && props.compact !== true ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string'), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
+              (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone && props.compact !== true ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string') || (p.id === 'models-asr' && !(p.config && p.config.model)), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
             ]),
             p.slot === 'speak' && !p.clone && props.compact !== true ? h('div', { key: 'fb', className: 'kbcl-sub' }, kt('Si ce fournisseur échoue, la voix du Mac prend le relais : l’appel n’est jamais muet.', 'If this provider fails, the Mac voice takes over: a call is never silent.')) : null,
             p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’un Kyber est un enregistrement. Créez la voix depuis la carte du Kyber.', 'Used when a Kyber’s voice is a recording. Create the voice from the Kyber’s card.')) : null
@@ -753,15 +774,45 @@ window.__ModuleLoader__.load({
         const s = d.settings
         const [openSlot, setOpenSlot] = React.useState({})
         const [sound, setSound] = React.useState(soundsOn())
+        const [checked, setChecked] = React.useState({})
+        const [checking, setChecking] = React.useState(false)
         const used = {}
         let cents = 0
         for (const sl of d.slots) { const p = providerOf(d, usedProvider(d, sl.id)); used[sl.id] = p; if (p) cents += p.cost || 0 }
         const audio = (c.models || []).filter((g) => g.models.length > 0)
-        const kinds = (g) => ['listen', 'speak', 'realtime'].filter((k) => g.models.some((m) => m.kind === k)).map((k) => (k === 'listen' ? kt('écoute', 'speech-to-text') : k === 'speak' ? kt('voix', 'text-to-speech') : kt('conversation en temps réel', 'realtime conversation')))
+        const kindLabel = (k) => (k === 'listen' ? kt('écoute', 'listening') : k === 'speak' ? kt('voix', 'voice') : kt('temps réel', 'realtime'))
+        const modelKey = (g, m) => g.provider + ':' + m.id
+        // "Check these models": the app asks each one, on real speech, and says which way works (or that none does).
+        const checkAll = async () => {
+          setChecking(true)
+          setChecked({})
+          for (const g of audio) {
+            for (const m of g.models) {
+              const key = modelKey(g, m)
+              if (/voiceclone|voicedesign/i.test(m.id)) { setChecked((o) => Object.assign({}, o, { [key]: { state: 'skip' } })); continue }
+              setChecked((o) => Object.assign({}, o, { [key]: { state: 'run' } }))
+              const got = await fetch('/kybernos/models/audio/probe', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ provider: g.provider, model: m.id }) }).then((x) => x.json()).catch(() => null)
+              const last = got && Array.isArray(got.tried) && got.tried.length > 0 ? got.tried[got.tried.length - 1] : null
+              setChecked((o) => Object.assign({}, o, { [key]: got && got.ok === true ? { state: 'ok', family: got.family } : { state: 'no', code: got && got.code, note: (got && got.error) || (last && last.note) || '' } }))
+            }
+          }
+          setChecking(false)
+        }
+        const modelChip = (g, m) => {
+          const r = checked[modelKey(g, m)]
+          const label = m.id + ' · ' + kindLabel(m.kind)
+          if (r === undefined) return Chip('', label)
+          if (r.state === 'run') return Chip('', label + ' …')
+          if (r.state === 'skip') return Chip('', label + ' · ' + kt('demande un échantillon de voix', 'needs a voice sample'))
+          if (r.state === 'ok') return Chip('ok', label + (m.kind === 'realtime' ? ' · ' + kt('se connecte (pas encore utilisé)', 'connects (not used yet)') : ' · ' + kt('marche', 'works')))
+          return Chip('warn', label + ' · ' + (r.code === 'no-key' ? kt('pas de clé pour ce fournisseur', 'no key for this provider') : r.code === 'no-address' ? kt('adresse du fournisseur inconnue', 'provider address unknown') : kt('aucune façon connue de lui parler', 'no known way to talk to it')))
+        }
         return [
           audio.length > 0 ? h('div', { key: 'found', className: 'kbcl-found', 'data-kb': 'kybernos-call-found-models' }, [
             h('div', { key: 't', style: { fontWeight: 600 } }, kt('Trouvé dans vos Modèles : ', 'Found in your Models: ') + audio.map((g) => g.provider).join(', ')),
-            h('div', { key: 'd', className: 'kbcl-sub' }, audio.map((g) => g.provider + ' — ' + kinds(g).join(', ')).join(' · ') + '. ' + kt('Déjà payé par votre offre, sans nouvelle clé. Leur usage dans les appels est la prochaine étape.', 'Already paid by your plan, no new key. Using them in calls is the next step.'))
+            h('div', { key: 'd', className: 'kbcl-sub' }, kt('Déjà payé par votre offre, sans nouvelle clé. Les modèles de voix et d’écoute s’utilisent dans Fournisseurs ; les modèles temps réel sont détectés, pas encore utilisés dans les appels.', 'Already paid by your plan, no new key. Voice and listening models are used in Providers; realtime models are detected, not used in calls yet.')),
+            h('div', { key: 'm', className: 'kbcl-row' }, audio.flatMap((g) => g.models.map((m) => h('span', { key: modelKey(g, m), 'data-model': modelKey(g, m) }, modelChip(g, m))))),
+            h('div', { key: 'b', className: 'kbcl-row' }, [h('button', { key: 'c', type: 'button', className: 'kbcl-btn', 'data-act': 'check-models', disabled: checking, onClick: checkAll }, checking ? kt('Vérification…', 'Checking…') : kt('Vérifier ces modèles', 'Check these models')), h('span', { key: 's', className: 'kbcl-sub' }, kt('Envoie quelques mots à chacun, avec la clé déjà configurée.', 'Sends a few words to each one, with the key already set up.'))])
           ]) : null,
           h('div', { key: 'pre', className: 'kbcl-row', 'data-kb': 'kybernos-call-presets' }, d.presets.map((pr) => h('button', { key: pr.id, type: 'button', className: 'kbcl-preset', 'data-act': 'preset-' + pr.id, 'aria-pressed': pr.active === true ? 'true' : 'false', disabled: c.busy || pr.available !== true, onClick: () => c.preset(pr.id) }, [
             h('div', { key: 'n', style: { fontWeight: 600 } }, tx(pr.name) + (pr.available !== true ? ' · ' + kt('bientôt', 'soon') : '')), h('div', { key: 'd', className: 'kbcl-sub' }, tx(pr.desc))]))),
@@ -772,7 +823,7 @@ window.__ModuleLoader__.load({
               h('div', { key: 'r', className: 'kbcl-row', style: { flexWrap: 'nowrap' } }, [
                 Ico(sl.icon, 22),
                 h('div', { key: 't', style: { width: '170px', flex: 'none' } }, [h('div', { key: 'a', style: { fontWeight: 600 } }, tx(sl.name)), h('div', { key: 'b', className: 'kbcl-sub' }, tx(sl.sub))]),
-                h('div', { key: 'p', className: 'kbcl-row kbcl-grow', style: { opacity: off ? 0.5 : 1 } }, p ? [h('span', { key: 'n', style: { fontWeight: 600 } }, tx(p.name)), stateChip(p), h('span', { key: 'pr', className: 'kbcl-sub' }, tx(p.price))] : null),
+                h('div', { key: 'p', className: 'kbcl-row kbcl-grow', style: { opacity: off ? 0.5 : 1 } }, p ? [h('span', { key: 'n', style: { fontWeight: 600 } }, tx(p.name)), stateChip(p, c), h('span', { key: 'pr', className: 'kbcl-sub' }, tx(p.price))] : null),
                 h('button', { key: 'q', type: 'button', className: 'kbcl-q', 'data-act': 'help-slot-' + sl.id, 'aria-expanded': openSlot[sl.id] ? 'true' : 'false', 'aria-label': kt('Aide : ', 'Help: ') + tx(sl.name), onClick: () => setOpenSlot((o) => Object.assign({}, o, { [sl.id]: !o[sl.id] })) }, openSlot[sl.id] ? '×' : '?'),
                 sl.locked ? null : h('button', { key: 'c', type: 'button', className: 'kbcl-btn', 'data-act': 'change-' + sl.id, onClick: () => props.onChange(sl.id, usedProvider(d, sl.id)) }, kt('Changer', 'Change'))
               ]),
@@ -851,7 +902,7 @@ window.__ModuleLoader__.load({
         const T = {
           'mic:ok': kt('Il vous entend.', 'It hears you.'), 'mic:quiet': kt('Aucun son détecté. Parlez, ou choisissez un autre micro.', 'No sound detected. Speak, or pick another microphone.'),
           'mic:no-answer': kt('Pas de réponse du navigateur : autorisez le micro.', 'No answer from the browser: allow the microphone.'), 'mic:blocked': kt('Le navigateur bloque le micro.', 'The browser blocks the microphone.') + detail, 'mic:no-api': kt('Ce navigateur n’a pas accès au micro.', 'This browser has no microphone access.'),
-          'listen:ok': kt('La clé fonctionne.', 'The key works.'), 'listen:no-key': kt('Aucune clé enregistrée.', 'No key saved.'), 'listen:refused': kt('La clé est refusée : collez-la de nouveau.', 'The key is refused: paste it again.'), 'listen:failed': detail, 'listen:not-wired': kt('Ce fournisseur n’est pas encore branché.', 'This provider is not wired yet.'),
+          'listen:ok': kt('La clé fonctionne.', 'The key works.'), 'listen:no-key': kt('Aucune clé enregistrée.', 'No key saved.'), 'listen:refused': kt('La clé est refusée : collez-la de nouveau.', 'The key is refused: paste it again.'), 'listen:failed': detail, 'listen:no-model': kt('Aucun modèle d’écoute choisi.', 'No listening model chosen.'), 'listen:no-address': kt('L’adresse de ce fournisseur est inconnue.', 'The address of this provider is unknown.'), 'listen:unknown-model': kt('Ce modèle n’est plus dans vos Modèles.', 'This model is no longer in your Models.'), 'listen:not-wired': kt('Ce fournisseur n’est pas encore branché.', 'This provider is not wired yet.'),
           'speak:ok': kt('La voix répond en ', 'The voice answers in ') + (r.ms / 1000).toFixed(1) + ' s.', 'speak:fell-back': kt('Cette voix n’a pas pu parler, une autre a pris le relais.', 'That voice could not speak, another took over.') + detail, 'speak:failed': detail,
           'face:ok': kt('Le compte répond', 'The account answers') + (r.detail ? ' · ' + r.detail + kt(' crédits', ' credits') : '') + '.', 'face:voice-only': kt('Pas de visage choisi : appels à la voix seule.', 'No face chosen: calls are voice only.'), 'face:no-key': kt('Pas de clé : l’appel se fera à la voix seule.', 'No key: the call will be voice only.'), 'face:refused': kt('La clé est refusée : collez-la de nouveau.', 'The key is refused: paste it again.'), 'face:failed': detail,
           'line:ok': kt('La connexion est bonne.', 'The connection is good.'), 'line:no-key': kt('Adresse, clé ou secret manquants.', 'Address, key or secret missing.'), 'line:refused': kt('La clé ou le secret sont refusés.', 'The key or the secret is refused.'), 'line:failed': detail,

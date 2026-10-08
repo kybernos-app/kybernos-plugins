@@ -298,8 +298,18 @@ export function createCall (deps = {}) {
     if (settings !== null) {
       meta.limits = { silenceMs: settings.silenceMinutes * 60000, maxMs: settings.maxMinutes * 60000 }
       // The models chosen on the provider pages: only values the catalogue lists can get here (configOf).
-      meta.sttModel = configOf('groq', settings.providers.groq).model
       meta.cloneModel = configOf('elevenlabs', settings.providers.elevenlabs).model
+      if (settings.use.listen === 'models-asr') {
+        const chosen = configOf('models-asr', settings.providers['models-asr']).model
+        if (chosen === '') return { ok: false, error: 'no listening model is chosen (Settings › Calls › Providers › Listen)' }
+        meta.sttProvider = 'models'
+        meta.sttModel = chosen
+      } else if (settings.use.listen === 'app-dictation') {
+        meta.sttProvider = 'app'
+      } else {
+        meta.sttProvider = 'groq'
+        meta.sttModel = configOf('groq', settings.providers.groq).model
+      }
     }
     // A recording that was cloned at the provider is spoken with its clone; one that was not, with the default voice.
     if (meta.voice !== null && meta.voice.custom === true && store !== null && meta.voice.id !== undefined) {
