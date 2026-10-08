@@ -224,6 +224,20 @@ try {
       assert.equal(st.token, TOKEN, b.label)
       assert.deepEqual(st.workspaces.map((w) => w.id), [WS], b.label + ': the workspace list must be kept')
     }
+    // A refusal written by something that is not the server (a firewall's or a proxy's page) is not a revocation: the person stays signed in.
+    for (const status of [401, 403]) {
+      connected(); fake.workspacesAnswer = { status, html: true, text: '<html>Access denied by the network</html>' }
+      const r = await hit('/kybernos-cloud/refresh', 'POST')
+      assert.equal(r.body.ok, false, status + ' html: ' + JSON.stringify(r.body).slice(0, 160))
+      assert.notEqual(r.body.status, 'revoked', status + ' html must not sign the person out')
+      assert.equal(readState().token, TOKEN, status + ' html: the session is kept')
+    }
+    // The server's own refusal (its JSON error) is the revocation, and it signs the device out.
+    connected(); fake.workspacesAnswer = { status: 401, body: { error: 'unauthorized', message: 'Sign in required.' } }
+    const revoked = await hit('/kybernos-cloud/refresh', 'POST')
+    assert.equal(revoked.body.status, 'revoked')
+    assert.equal(revoked.body.connected, false)
+    assert.throws(() => readState(), /ENOENT/, 'the dead token is forgotten')
     // A real, empty list is the server's word: it is kept as such.
     connected(); fake.workspacesAnswer = { status: 200, body: { workspaces: [] } }
     const r = await hit('/kybernos-cloud/refresh', 'POST')
@@ -252,6 +266,37 @@ try {
     const good = await hit('/kybernos-cloud/memory/add', 'POST', { content: 'remember this', kind: 'fact' })
     assert.equal(good.body.ok, true, 'and a good answer still works: ' + JSON.stringify(good.body).slice(0, 160))
     ok('HTML or a cut body in place of the answer is reported as a failure; a good answer still works')
+  }
+
+  // 6. The background refreshes are fire-and-forget (`void refresh…()`): a rejection there is an unhandled rejection, which ends DSH.
+  //    A Team list with something that is not a lesson in it must degrade to an error word, never throw.
+  {
+    fake.mode = 'good'
+    const TEAM = '22222222-2222-4222-8222-222222222222'
+    fake.teamLessons = { lessons: [null, 7, 'x'], role: 'member' }
+    const teamServer = server.listeners('request')[0]
+    const origHandler = teamServer
+    server.removeAllListeners('request')
+    server.on('request', (req, res) => {
+      if (req.url.startsWith('/v1/workspaces/' + TEAM + '/lessons')) return json(res, 200, fake.teamLessons)
+      origHandler(req, res)
+    })
+    connected({ workspaces: [{ id: TEAM, name: 'Team', personal: false }], active_workspace_id: TEAM, space_plan: { workspace_id: TEAM, key: 'team', name: 'Team' } })
+    const state = readState()
+    mod.emptyTeamCache()
+    let threw = null
+    try { await mod.refreshTeamCache(state, true) } catch (e) { threw = e }
+    assert.equal(threw, null, 'refreshTeamCache must not reject on a malformed list: ' + (threw && threw.message))
+    assert.equal(mod.teamCache.error, 'reponse_invalide', 'the cache says why it has nothing')
+    // …and a list with one real lesson among the garbage keeps the real one.
+    fake.teamLessons = { lessons: [null, { id: 1, text: 'always run the tests', status: 'approved' }, 7], role: 'member' }
+    mod.emptyTeamCache()
+    await mod.refreshTeamCache(state, true)
+    assert.equal(mod.teamCache.error, null)
+    assert.deepEqual(mod.teamCache.lessons.map((l) => l.text), ['always run the tests'])
+    server.removeAllListeners('request')
+    server.on('request', origHandler)
+    ok('a Team lessons list with entries that are not lessons degrades to an error word instead of rejecting a fire-and-forget refresh')
   }
 
   console.log('\n' + pass + ' checks passed')

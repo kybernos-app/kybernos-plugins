@@ -419,7 +419,9 @@ const refreshProfile = async () => {
   // déploiement de /v1/me, la route répondait 401 à un jeton valide (elle
   // tombait dans le régime « master key » du middleware) ; s'y fier pour
   // déconnecter aurait éjecté tous les utilisateurs sur un bug serveur.
-  if (ws.status === 401 || ws.status === 403) {
+  // Only the server's own refusal (a JSON error) is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server
+  // speaking about this token, and signing the person out on it also throws away the models imported for them.
+  if ((ws.status === 401 || ws.status === 403) && ws.body !== null && typeof ws.body === 'object') {
     // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
     // modèles importés ne serviraient plus à rien (le proxy refuserait les
     // appels) : ils partent avec la session.
@@ -1550,7 +1552,7 @@ const scheduleMemoryRefresh = () => {
   if (memoryRefreshTimer !== null || MEMORY_TUNING.writeRefreshMs < 0) return
   memoryRefreshTimer = setTimeout(() => {
     memoryRefreshTimer = null
-    void refreshMemoryCache(readState(), false)
+    void refreshMemoryCache(readState(), false).catch(() => {})
   }, MEMORY_TUNING.writeRefreshMs)
   if (typeof memoryRefreshTimer.unref === 'function') memoryRefreshTimer.unref()
 }
@@ -2144,7 +2146,7 @@ const memoryMapRoute = async (req, body) => {
   }
   writeState({ ...state, kyberMap: clean })
   bumpMemoryCache()
-  void refreshMemoryCache(readState(), true)
+  void refreshMemoryCache(readState(), true).catch(() => {})
   return { ok: true, map: clean }
 }
 
@@ -2792,9 +2794,17 @@ const refreshTeamCache = async (state, force) => {
     if (teamCache.error === 'espace_introuvable') { teamCache.lessons = []; teamCache.role = null; teamCache.counts = { approved: 0, pending: 0 } }
     return ws
   }
+  // A row that is not an object (the server's list is typed, a proxy's or a broken deploy's is not) is not a lesson: it is dropped, and a list
+  // with nothing usable in it is an invalid answer. This runs from fire-and-forget refreshes (`void refresh…`): a throw here ends DSH.
+  const rows = res.body.lessons.filter((r) => r !== null && typeof r === 'object' && Array.isArray(r) !== true)
+  if (res.body.lessons.length > 0 && rows.length === 0) {
+    teamCache.error = 'reponse_invalide'
+    teamCache.at = Date.now() - TEAM_TUNING.ttlMs + 60000
+    return ws
+  }
   teamCache.at = Date.now()
   teamCache.error = null
-  teamCache.lessons = res.body.lessons.map(asTeamLesson)
+  teamCache.lessons = rows.map(asTeamLesson)
   teamCache.role = typeof res.body.role === 'string' ? res.body.role : null
   teamCache.counts = res.body.counts !== null && typeof res.body.counts === 'object' ? { approved: Number(res.body.counts.approved) || 0, pending: Number(res.body.counts.pending) || 0 } : { approved: teamCache.lessons.length, pending: 0 }
   return ws
@@ -2894,7 +2904,7 @@ const teamListRoute = async (req) => {
 }
 
 /** After a write: the cache is stale, and the next reading must see it. */
-const afterTeamWrite = (state) => { teamCache.at = 0; void refreshTeamCache(state, true) }
+const afterTeamWrite = (state) => { teamCache.at = 0; void refreshTeamCache(state, true).catch(() => {}) }
 
 const teamAddRoute = async (req, body) => {
   const state = readState()
@@ -3442,7 +3452,8 @@ const mountMemoryPrompt = (ctx) => {
     try { noteUserTurn(agent.session.id, message, turn) } catch (e) { /* never break a turn */ }
   })
   const state = readState()
-  if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true); void refreshTeamCache(readState(), true) }, 1500)
+  // Fire-and-forget: a rejection here would be an unhandled one, which ends DSH. Each refresh also guards itself; this is the second wall.
+  if (isConnected(state) === true) setTimeout(() => { void refreshMemoryCache(readState(), true).catch(() => {}); void refreshTeamCache(readState(), true).catch(() => {}) }, 1500)
 }
 
 const mountMemoryTools = (ctx) => {
@@ -3459,7 +3470,7 @@ const mountMemoryTools = (ctx) => {
  */
 const mountMemoryRefresh = (ctx) => {
   ctx.effect(() => {
-    const timer = setInterval(() => { void refreshMemoryCache(readState(), false); void refreshTeamCache(readState(), false) }, MEMORY_TUNING.tickMs)
+    const timer = setInterval(() => { void refreshMemoryCache(readState(), false).catch(() => {}); void refreshTeamCache(readState(), false).catch(() => {}) }, MEMORY_TUNING.tickMs)
     if (typeof timer.unref === 'function') timer.unref()
     return () => clearInterval(timer)
   }, 'kybernos-cloud: rafraichissement memoire')
