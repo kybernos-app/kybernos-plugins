@@ -26264,6 +26264,20 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
             dire(fr, ok, { created: true, id: actif, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
           })
         }
+        // The console is read only in this frame (it has no session of its own); to change a plan it asks for its twin in the person's BROWSER. The host makes the
+        // single-use link and opens the SYSTEM browser itself: the server refuses a link that arrives as a navigation a page started (a tab opened from here is
+        // « cross-site » for it and ends on « link expired »), and accepts one the person's own OS opened. A host that cannot open a browser hands the address back
+        // and this page opens it (a server on the same site as this page accepts that).
+        const ouvrirNavigateur = (fr, demande) => {
+          const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
+          fetch('/kybernos-cloud/console/link', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(id === '' ? { open: true } : { workspace_id: id, open: true }) })
+            .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
+            .then((j) => {
+              const ok = j !== null && j.ok === true && (j.opened === true || typeof j.url === 'string')
+              if (ok && j.opened !== true) { try { window.open(j.url, '_blank', 'noopener,noreferrer') } catch (e) { /* ouverture impossible */ } }
+              repondre(fr, { kbBrowserReply: { ok: ok, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') } })
+            })
+        }
         const sur = (ev) => {
           const fr = document.querySelector('.kbwsif iframe')
           if (fr === null || ev.source !== fr.contentWindow) return
@@ -26273,6 +26287,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           else if (ev.data.kbApi !== null && typeof ev.data.kbApi === 'object') relayer(fr, ev.data.kbApi)
           else if (ev.data.kbSwitchSpace !== null && typeof ev.data.kbSwitchSpace === 'object') changerEspace(fr, ev.data.kbSwitchSpace)
           else if (ev.data.kbNewSpace !== null && typeof ev.data.kbNewSpace === 'object') creerEspace(fr, ev.data.kbNewSpace)
+          else if (ev.data.kbOpenBrowser !== null && typeof ev.data.kbOpenBrowser === 'object') ouvrirNavigateur(fr, ev.data.kbOpenBrowser)
         }
         window.addEventListener('message', sur)
         return () => window.removeEventListener('message', sur)

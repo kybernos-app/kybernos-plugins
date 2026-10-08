@@ -35,6 +35,7 @@
 // client ne voit que `publicState()` (profil, workspaces, état, résumé du
 // catalogue). L'abonnement (glm, deepseek… accessibles selon la formule) est
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
+import { spawn } from 'node:child_process'
 import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -1081,7 +1082,7 @@ const relayRoute = async (req) => {
 // browser: it asks the server for a single-use link (valid 60 seconds) and hands THAT to the browser. The link is a bearer capability, so it is only
 // returned when it points at the server this account is connected to (a hostile or broken answer cannot send the browser elsewhere), and the route is strict
 // (a page of another origin cannot ask DSH for it).
-const consoleLink = async (req, body) => {
+const consoleLink = async (req, body, deps = {}) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
   const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id.trim().toLowerCase() : ''
@@ -1096,8 +1097,46 @@ const consoleLink = async (req, body) => {
     if ((u.protocol === 'https:' || u.protocol === 'http:') && u.origin === new URL(resolveApi()).origin) url = u.toString()
   } catch (e) { url = null }
   if (url === null) return { ok: false, status: res.status, error: 'lien_invalide' }
-  return { ok: true, url, expires_in: typeof res.body.expires_in === 'number' ? res.body.expires_in : 60 }
+  const expires = typeof res.body.expires_in === 'number' ? res.body.expires_in : 60
+  // « open: true »: this host runs on the person's machine, so it opens the SYSTEM browser with the link. The server refuses a single-use link that arrives as a navigation a
+  // page started (a tab opened by this DSH page, pointed at the link, is « cross-site » for it: the person lands on « link expired »), and accepts one the person's own OS opened
+  // (ADR 0005 § 5 of the server). Only for a caller on this machine; the address is handed back (opened: false) when no browser could be opened, and is NOT when one was.
+  if (body !== null && typeof body === 'object' && body.open === true) {
+    const peer = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? String(req.socket.remoteAddress || '') : ''
+    let opened = false
+    if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].indexOf(peer) >= 0) {
+      try { opened = (await (deps.openExternal || openExternal)(url)) === true } catch (e) { opened = false }
+    }
+    return opened ? { ok: true, opened: true, expires_in: expires } : { ok: true, opened: false, url, expires_in: expires }
+  }
+  return { ok: true, url, expires_in: expires }
 }
+
+/** Opens an http(s) address in the system browser, from the process that runs on the person's machine. True when it was handed over, false when it could not be (no desktop,
+ *  no opener, a refusal). Never a shell: the address is ONE argument (a `&` in it must not become a command), and nothing but http(s) is ever handed over. */
+const openExternal = (url, { platform = process.platform, env = process.env, spawnFn = spawn, waitMs = 3000 } = {}) => new Promise((resolve) => {
+  let ok = false
+  try { const u = new URL(String(url)); ok = u.protocol === 'https:' || u.protocol === 'http:' } catch (e) { ok = false }
+  if (ok !== true) { resolve(false); return }
+  let cmd = null
+  let args = []
+  if (platform === 'darwin') { cmd = 'open'; args = [String(url)] }
+  else if (platform === 'win32') { cmd = 'rundll32'; args = ['url.dll,FileProtocolHandler', String(url)] }
+  else if ((typeof env.DISPLAY === 'string' && env.DISPLAY !== '') || (typeof env.WAYLAND_DISPLAY === 'string' && env.WAYLAND_DISPLAY !== '')) { cmd = 'xdg-open'; args = [String(url)] }
+  if (cmd === null) { resolve(false); return }
+  let done = false
+  let timer = null
+  const finish = (value) => { if (done) return; done = true; if (timer !== null) clearTimeout(timer); resolve(value) }
+  try {
+    const child = spawnFn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true })
+    child.once('error', () => finish(false))
+    child.once('exit', (code) => finish(code === 0))
+    if (typeof child.unref === 'function') child.unref()
+    // An opener that keeps running (xdg-open waits for some browsers) has handed the address over.
+    timer = setTimeout(() => finish(true), waitMs)
+    if (typeof timer.unref === 'function') timer.unref()
+  } catch (e) { finish(false) }
+})
 
 // ── Artefacts (phase A) ─────────────────────────────────────────────────────
 // Le livrable du chat local part vers `kybernos.artifacts` par `/v1/artifacts`
@@ -3827,7 +3866,7 @@ export {
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
-  consoleLink,
+  consoleLink, openExternal,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,
