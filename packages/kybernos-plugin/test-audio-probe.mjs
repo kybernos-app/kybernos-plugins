@@ -6,7 +6,7 @@ import { createProbe, nativeBase, realtimeUrls, silentWav } from './audio-probe.
 let n = 0
 const ok = (label) => { n += 1; console.log('  ✓ ' + label) }
 const KEY = 'sk-secret-key-do-not-leak'
-const reply = (status, type, body) => ({ status, headers: { get: () => type }, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)), arrayBuffer: async () => new ArrayBuffer(8) })
+const reply = (status, type, body) => ({ status, headers: { get: () => type }, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)), json: async () => (typeof body === 'string' ? JSON.parse(body) : body), arrayBuffer: async () => new ArrayBuffer(8) })
 const table = (rules) => { const seen = []; return { seen, fetch: async (url, init) => { seen.push({ url: String(url), init }); for (const [match, answer] of rules) if (String(url).includes(match)) return typeof answer === 'function' ? answer(init) : answer; return reply(404, 'application/json', { error: 'not found ' + KEY }) } } }
 
 console.log('kybernos audio-probe')
@@ -26,7 +26,7 @@ ok('the addresses of the other styles are derived from the OpenAI-compatible one
   assert.equal(r.family, 'openai-speech')
   assert.equal(r.tried.length, 1)
   assert.equal(t.seen[0].init.headers.authorization, 'Bearer ' + KEY)
-  assert.deepEqual(JSON.parse(t.seen[0].init.body), { model: 'tts-1', input: 'Test.', voice: 'alloy' })
+  assert.deepEqual(JSON.parse(t.seen[0].init.body), { model: 'tts-1', input: 'Test.', voice: 'alloy', response_format: 'wav' })
   ok('a provider that speaks like OpenAI answers on the first shape, and the probe stops there')
 }
 {
@@ -83,6 +83,37 @@ ok('the addresses of the other styles are derived from the OpenAI-compatible one
   assert.equal((await createProbe({ WebSocket: undefined }).run({ kind: 'realtime', base: 'https://h.example/v1', key: KEY, model: 'rt' })).ok, false)
   assert.equal((await createProbe().run({ kind: 'nothing', base: 'https://h', key: KEY, model: 'm' })).ok, false)
   ok('realtime: the WebSocket handshake in the two usual styles, the key sent as a header and never returned; no WebSocket, or an unknown kind, is an answer too')
+}
+{
+  const wavBytes = Buffer.concat([Buffer.from('RIFF'), Buffer.alloc(80)])
+  const rt = table([
+    ['/audio/speech', () => ({ status: 200, headers: { get: () => 'audio/wav' }, arrayBuffer: async () => wavBytes.buffer.slice(wavBytes.byteOffset, wavBytes.byteOffset + wavBytes.length), text: async () => '' })],
+    ['/chat/completions', (init) => (JSON.parse(init.body).messages[0].role === 'assistant' ? reply(200, 'application/json', { choices: [{ message: { audio: { data: wavBytes.toString('base64') } } }] }) : reply(200, 'application/json', { choices: [{ message: { content: ' bonjour ' } }] }))],
+    ['/audio/transcriptions', reply(200, 'application/json', { text: ' salut ' })]
+  ])
+  const api = createProbe({ fetch: rt.fetch })
+  const a = await api.speakWith({ family: 'openai-speech', base: 'https://h.example/v1', key: KEY, model: 'tts-1', text: 'Bonjour.' })
+  assert.equal(a.ok, true)
+  assert.equal(a.audio.slice(0, 4).toString(), 'RIFF')
+  assert.equal(JSON.parse(rt.seen[0].init.body).input, 'Bonjour.')
+  const b = await api.speakWith({ family: 'chat-assistant-text', base: 'https://h.example/v1', key: KEY, model: 'mimo', text: 'Salut.' })
+  assert.equal(b.ok, true)
+  assert.deepEqual(JSON.parse(rt.seen[1].init.body).messages, [{ role: 'assistant', content: 'Salut.' }])
+  assert.equal((await api.speakWith({ family: 'dashscope-native', base: 'https://h', key: KEY, model: 'm', text: 'x' })).ok, false)
+  const down = createProbe({ fetch: table([['/chat/completions', reply(500, 'application/json', { error: 'boom ' + KEY })]]).fetch })
+  const bad = await down.speakWith({ family: 'chat-assistant-text', base: 'https://h.example/v1', key: KEY, model: 'm', text: 'x' })
+  assert.equal(bad.ok, false)
+  assert.equal(bad.status, 500)
+  assert.equal(JSON.stringify(bad).includes(KEY), false)
+  ok('speaking with a way that is known: the audio comes back as a WAV, the text goes where the way wants it, and a failure keeps its status without the key')
+  assert.deepEqual(await api.listenWith({ family: 'openai-transcriptions', base: 'https://h.example/v1', key: KEY, model: 'whisper', wav: wavBytes, language: 'fr' }), { ok: true, text: 'salut' })
+  assert.equal(rt.seen[rt.seen.length - 1].init.body.get('language'), 'fr')
+  assert.deepEqual(await api.listenWith({ family: 'chat-input-audio-base64', base: 'https://h.example/v1', key: KEY, model: 'mimo-asr', wav: wavBytes }), { ok: true, text: 'bonjour' })
+  const parts = JSON.parse(rt.seen[rt.seen.length - 1].init.body).messages[0].content
+  assert.equal(parts.length, 1)
+  assert.equal(parts[0].input_audio.format, 'wav')
+  assert.equal((await api.listenWith({ family: 'nope', base: 'https://h', key: KEY, model: 'm', wav: wavBytes })).ok, false)
+  ok('listening with a way that is known: the audio goes alone when the gateway wants it that way, and the words come back trimmed')
 }
 assert.equal(providerBase('qwen-token-plan', {}), 'https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1')
 assert.equal(providerBase('xiaomi-token-plan-ams', { baseURL: '' }), 'https://token-plan-ams.xiaomimimo.com/v1')
