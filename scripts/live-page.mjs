@@ -77,7 +77,7 @@ export async function openLivePage(opts = {}) {
   // so it is pressed away by the page itself, whenever it shows up. The user's own DSH never shows it: left alone.
   if (authority !== '127.0.0.1:3080' && opts.keepKeyDialog !== true) {
     await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
-      const press = () => { const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').trim() === 'Configure later'); if (e) (e.closest('button') || e).click() }
+      const press = () => { const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').replace(/[⟦⟧]/g, '').trim() === 'Configure later'); if (e) (e.closest('button') || e).click() }
       new MutationObserver(press).observe(document, { childList: true, subtree: true })
     })()` })
   }
