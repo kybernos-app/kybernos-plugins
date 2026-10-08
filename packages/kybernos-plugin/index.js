@@ -11510,35 +11510,16 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
   return true
 }
 
-/** Installe la skill `signaler-retour` dans <DSH home>/skills. Sans elle, le bouton
- *  ouvrirait un chat sur une commande inconnue : le plugin pousse donc sa
- *  propre skill au démarrage (idempotent : on n'écrit que si le contenu
- *  diffère, donc une mise à jour du plugin met la skill à jour). */
+/** Puts the skill `signaler-retour` into <DSH home>/skills. Without it the « Send feedback » button would open a chat on an unknown
+ *  command. It goes through the same careful seeding as every skill this plugin ships (seed-skills.mjs): absent → written, ours and
+ *  outdated → refreshed, and a skill the person wrote or edited under that name is NEVER overwritten (the shipped copy used to replace any
+ *  file that differed). True when the skill is there (ours or the person's). */
 const KB_FEEDBACK_SKILL = 'signaler-retour'
-const kbFeedbackSkillSource = () => {
-  try {
-    const here = dirname(fileURLToPath(import.meta.url))
-    // `joinPath(dir, name)` ne prend QUE deux arguments : on imbrique.
-    const candidates = [
-      joinPath(joinPath(joinPath(dirname(here), 'skills'), KB_FEEDBACK_SKILL), 'SKILL.md'),
-      joinPath(joinPath(joinPath(here, 'skills'), KB_FEEDBACK_SKILL), 'SKILL.md'),
-    ]
-    for (let i = 0; i < candidates.length; i++) {
-      try { if (existsSync(candidates[i]) === true) return readFileSync(candidates[i], 'utf8') } catch (e) { /* suivant */ }
-    }
-  } catch (e) { /* import.meta indisponible */ }
-  return null
-}
 const kbFeedbackEnsureSkill = (dsh) => {
-  const text = kbFeedbackSkillSource()
-  if (text === null || typeof text !== 'string' || text.trim() === '') return false
-  const dir = joinPath(joinPath(String(dsh), 'skills'), KB_FEEDBACK_SKILL)
-  const file = joinPath(dir, 'SKILL.md')
-  try { if (readFileSync(file, 'utf8') === text) return true } catch (e) { /* absente */ }
   try {
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(file, text)
-    return true
+    const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
+    const r = seedSkills({ home: String(dsh), sourceDir, names: [KB_FEEDBACK_SKILL] })[0]
+    return r !== undefined && (r.action === 'created' || r.action === 'current' || r.action === 'updated' || r.action === 'kept')
   } catch (e) { return false }
 }
 

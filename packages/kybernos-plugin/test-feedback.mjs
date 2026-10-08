@@ -158,6 +158,16 @@ try {
   assert.ok(!/\/Users\/[a-z]/i.test(skill), 'no personal path')
   ok('the plugin ships the signaler-retour skill that the button opens')
 
+  // 10b. A skill the person wrote under that name is theirs: the plugin never overwrites it (it used to, at every start).
+  const mine = mkdtempSync(join(tmpdir(), 'kb-feedback-own-'))
+  mkdirSync(join(mine, 'skills', 'signaler-retour'), { recursive: true })
+  const own = '---\nname: signaler-retour\ndescription: my own way to report\n---\nMy own instructions, in my words.\n'
+  writeFileSync(join(mine, 'skills', 'signaler-retour', 'SKILL.md'), own)
+  assert.equal(mod.kbFeedbackEnsureSkill(mine), true, 'the skill is there, the person\'s own')
+  assert.equal(readFileSync(join(mine, 'skills', 'signaler-retour', 'SKILL.md'), 'utf8'), own, 'the person\'s own skill is left exactly as it was')
+  assert.equal(mod.kbFeedbackEnsureSkill(fresh2), true, 'and a second start on our own copy changes nothing')
+  ok('a signaler-retour skill the person wrote or edited is never overwritten')
+
   // 11. The nominal path still works as before.
   reset()
   const nominal = await send({ kind: 'feature', title: 'Dark mode', body: 'At night.', reporter: 'a@b.test', errors: ['E1'] })
