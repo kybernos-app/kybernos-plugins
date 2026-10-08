@@ -30147,6 +30147,46 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'Fichier': 'File',
         'Déposer un fichier .json': 'Drop a .json file',
         'Revenir aux valeurs par défaut du harness.': 'Back to the harness defaults.',
+        // ── Thème › Mes thèmes, Partage, Galerie ─────────────────────────────────────────────────────
+        'Livrés': 'Shipped', 'Mes thèmes': 'My themes', 'Galerie': 'Gallery', 'Enregistrer': 'Save', 'Enregistrer sous…': 'Save as…', 'Annuler': 'Cancel',
+        'Un thème règle les couleurs ; il peut aussi retenir la police et les coins. Gérez les vôtres dans': 'A theme sets the colors; it can also keep the font and the corners. Manage yours in',
+        'Aucun thème à vous pour l’instant. Réglez l’apparence puis « Enregistrer », importez un fichier dans': 'You have no theme of your own yet. Set the look, then “Save”, import a file in',
+        ', ou installez-en un depuis la': ', or install one from the',
+        'Enregistrer l’état actuel comme thème': 'Save the current look as a theme', 'Personnalisé': 'Custom', 'modifié': 'modified', 'livré': 'shipped', 'à vous': 'yours',
+        'Réglage libre : enregistrez-le pour le retrouver en un clic.': 'Free setting: save it to get it back in one click.',
+        'Mettre à jour': 'Update', 'Annuler les changements': 'Undo the changes', 'Rétablir': 'Reset',
+        'Enregistrer comme thème': 'Save as a theme', 'Nom': 'Name', 'Ce que le thème retient': 'What the theme keeps', 'Les couleurs et l’accent sont toujours retenus.': 'Colors and accent are always kept.',
+        'Couleurs et accent': 'Colors and accent', 'Coins': 'Corners', 'Verre et fond d’écran': 'Glass and wallpaper',
+        'Contraste, palette daltonien, cibles larges : ce sont vos besoins, pas un style. Décoché, un thème ne les change jamais.': 'Contrast, color-blind palette, large targets: these are your needs, not a style. Switched off, a theme never changes them.',
+        'Donnez un nom au thème.': 'Give the theme a name.', 'Ce nom existe déjà. Choisissez-en un autre.': 'That name already exists. Pick another one.',
+        'La bibliothèque est pleine (100 thèmes). Supprimez-en un dans Partage.': 'The library is full (100 themes). Delete one in Sharing.',
+        'La bibliothèque est pleine (100 thèmes). Supprimez-en un d’abord.': 'The library is full (100 themes). Delete one first.',
+        'Les thèmes que vous avez enregistrés ou importés.': 'The themes you saved or imported.', 'Aucun thème à vous': 'No theme of your own',
+        'Réglez l’apparence dans Essentiel puis enregistrez-la, ou importez un fichier ci-dessous.': 'Set the look in Essentials, then save it, or import a file below.',
+        'Enregistrer l’état actuel…': 'Save the current look…', 'Le disque de DSH ne répond pas : vos thèmes restent dans ce navigateur.': 'DSH’s disk does not answer: your themes stay in this browser.',
+        'Un fichier de thème (.json) s’ajoute à Mes thèmes. Il ne change rien tant que vous ne cliquez pas sur Appliquer. Un ancien fichier d’état complet devient lui aussi un thème.': 'A theme file (.json) is added to My themes. It changes nothing until you click Apply. An old file of the whole look becomes a theme too.',
+        'Choisir un fichier .json': 'Choose a .json file', 'Exporter l’état actuel': 'Export the current look',
+        'Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un thème enregistré, utilisez « Exporter » sur sa ligne.': 'The current setting as it is: a file to share or to version. For a saved theme, use “Export” on its row.',
+        'Revenir aux valeurs par défaut du harness. Vos thèmes enregistrés restent dans Mes thèmes.': 'Back to the harness defaults. Your saved themes stay in My themes.',
+        'appliqué': 'applied', 'importé': 'imported', 'Appliquer': 'Apply', 'Renommer': 'Rename', 'Supprimer': 'Delete', 'Garder': 'Keep', 'Nouveau nom': 'New name', 'Télécharger': 'Download',
+        'Fichier trop gros : un thème fait quelques Ko. Rien n’a été modifié.': 'File too big: a theme is a few KB. Nothing was changed.',
+        'Fichier non reconnu : seul un fichier de thème Kybernos (.json) est accepté. Rien n’a été modifié.': 'File not recognized: only a Kybernos theme file (.json) is accepted. Nothing was changed.',
+        'Le téléchargement a échoué : utilisez Copier.': 'The download failed: use Copy.',
+        'Galerie de thèmes': 'Theme gallery',
+        'Un thème n’est qu’un fichier de réglages : il ne contient aucun code et ne charge rien d’extérieur. Installez-le, ou essayez-le d’abord.': 'A theme is only a settings file: it contains no code and loads nothing from outside. Install it, or try it first.',
+        'Livré avec Kybernos': 'Shipped with Kybernos', 'Catalogue signé': 'Signed catalog', 'Actualiser': 'Refresh', 'Actualisation…': 'Refreshing…',
+        'Le catalogue en ligne est injoignable : ce sont les thèmes livrés avec Kybernos.': 'The online catalog cannot be reached: these are the themes shipped with Kybernos.',
+        'Le catalogue en ligne est désactivé : ce sont les thèmes livrés avec Kybernos.': 'The online catalog is turned off: these are the themes shipped with Kybernos.',
+        'Le catalogue en ligne n’est pas encore activé : ce sont les thèmes livrés avec Kybernos.': 'The online catalog is not active yet: these are the themes shipped with Kybernos.',
+        'Rechercher un thème, un auteur': 'Search for a theme or an author', 'Rechercher un thème': 'Search for a theme', 'Tous': 'All',
+        'La galerie est vide': 'The gallery is empty', 'Aucun thème n’est publié pour l’instant.': 'No theme is published yet.',
+        'Aucun thème ne correspond': 'No theme matches', 'Essayez un autre mot, ou affichez tous les modes.': 'Try another word, or show all modes.', 'Effacer la recherche': 'Clear the search',
+        'Impossible de lire la galerie': 'Cannot read the gallery',
+        'Elle est lue par DSH, pas par la page. Si le plugin vient d’être mis à jour, redémarrez DSH. Vos thèmes restent disponibles dans Partage.': 'It is read by DSH, not by the page. If the plugin was just updated, restart DSH. Your themes remain available in Sharing.',
+        'Réessayer': 'Try again', 'par': 'by', 'Installer': 'Install', 'Essayer': 'Try', 'En essai': 'Trying', 'Installé': 'Installed',
+        'Essai de': 'Trial of', '. Rien n’est enregistré.': '. Nothing is saved.', 'Revenir à mon thème': 'Back to my theme',
+        // the names of the themes shipped in the gallery
+        'Neutre violet': 'Neutral violet', 'Calcaire': 'Limestone', 'Console verte': 'Green console', 'Encre & papier': 'Ink & paper', 'Lavande brumeuse': 'Misty lavender', 'Océan nuit': 'Night ocean'
       }
       // Fragments (ordre : du plus long au plus court) pour les phrases composées.
       const SUBS = [
@@ -30154,7 +30194,22 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         ['retire la couche de jetons : l’apparence native repasse telle quelle.', 'removes the token layer: the native look comes back as is.'],
         ['Thème : ', 'Theme: '], ['Fond ', 'Background '], ['« ', '“'], [' »', '”'],
       ]
+      // The line under a theme: « Clair · #c1552f · police Inter · coins doux · retient : couleurs et accent, police ».
+      const metaEn = (rest) => rest.replace('accent neutre', 'neutral accent').replace(' · police ', ' · font ').replace('DSH (défaut)', 'DSH (default)')
+        .replace(' · coins nets', ' · sharp corners').replace(' · coins standard', ' · standard corners').replace(' · coins doux', ' · soft corners')
+        .replace(' · retient : ', ' · keeps: ').replace('couleurs et accent', 'colors and accent').replace(', police', ', font').replace(', coins', ', corners')
+        .replace(', verre et fond d’écran', ', glass and wallpaper').replace(', accessibilité', ', accessibility')
+        .replace(' · un thème livré ne se modifie pas : enregistrez-en une copie.', ' · a shipped theme is not edited: save a copy.')
+      const REFUS = { 'sa signature n’est pas reconnue': 'its signature is not recognized', 'il est plus ancien que celui déjà connu': 'it is older than the one already known', 'il est mal formé': 'it is malformed', 'il est trop gros': 'it is too large' }
       const RX = [
+        [/^Thème « (.+) » enregistré dans Mes thèmes\.$/, 'Theme “$1” saved in My themes.'], [/^Thème « (.+) » mis à jour\.$/, 'Theme “$1” updated.'],
+        [/^« (.+) » est installé et appliqué\. Il est dans Mes thèmes\.$/, '“$1” is installed and applied. It is in My themes.'],
+        [/^« (.+) » est à jour \(version (\d+)\)\.$/, '“$1” is up to date (version $2).'], [/^« (.+) » supprimé\.$/, '“$1” deleted.'],
+        [/^« (.+) » est dans Mes thèmes( \(ancien fichier : tout le réglage est repris\))?\. Il n’est pas appliqué\.$/, (m0, n, old) => '“' + n + '” is in My themes' + (old === undefined ? '' : ' (old file: the whole look is taken)') + '. It is not applied.'],
+        [/^Supprimer « (.+) » \?$/, 'Delete “$1”?'], [/^Galerie · (.+)$/, 'Gallery · $1'], [/^1 thème$/, '1 theme'], [/^(\d+) thèmes$/, '$1 themes'], [/^theme-(.+\.json) · à partager ou à versionner$/, 'theme-$1 · to share or to version'],
+        [/^(Clair \+ sombre|Clair|Sombre)( · .+)$/, (m0, a, rest) => ({ 'Clair + sombre': 'Light + dark', Clair: 'Light', Sombre: 'Dark' }[a]) + metaEn(rest)],
+        [/^(.+ — )?(Clair \+ sombre|Clair|Sombre)( · .+)$/, (m0, n, a, rest) => (n === undefined ? '' : (EXACT[n.slice(0, -3)] || n.slice(0, -3)) + ' — ') + ({ 'Clair + sombre': 'Light + dark', Clair: 'Light', Sombre: 'Dark' }[a]) + metaEn(rest)],
+        [/^Le catalogue en ligne a été refusé(?: \((.+)\))? : ce sont les thèmes déjà connus qui s’affichent\.$/, (m0, why) => 'The online catalog was refused' + (why === undefined ? '' : ' (' + (REFUS[why] || why) + ')') + ': the themes already known are shown.'],
         [/^(\d+) jetons retouchés$/, '$1 tokens adjusted'], [/^1 jeton retouché$/, '1 token adjusted'], [/^17 jetons · /, '17 tokens · '], [/^(\d+) lignes?$/, '$1 lines'], [/^contraste (.+) sous le seuil AA$/, 'contrast $1 below the AA threshold'], [/^(\d+[.,]\d+:1) \((clair|sombre)\)$/, (m0, r, t) => r + (t === 'clair' ? ' (light)' : ' (dark)')],
         [/^Commandes slash · (\d+)$/, 'Slash commands · $1'], [/^Actions de message · (\d+)$/, 'Message actions · $1'],
         [/^Retirer (.+)$/, 'Remove $1'],
@@ -30162,7 +30217,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         [/^Couche (\d)( \((?:clair|sombre)\))?$/, (m0, n, t) => 'Layer ' + n + (t === undefined ? '' : (t.indexOf('clair') >= 0 ? ' (light)' : ' (dark)'))],
         [/^(Clair|Sombre) — pipette$/, (m0, m) => (m === 'Clair' ? 'Light' : 'Dark') + ' — eyedropper'],
       ]
-      const NOMS = ['Défaut DSH', 'Bleu profond', 'Aurore', 'Nébuleuse', 'Ambre', 'Minuit OLED', 'Papier', 'Clair net', 'Rose', 'Braise', 'Pierre & Nuage', 'Pulsation indigo', 'Pulsation minuit', 'Olivaie', 'Aube florale', 'Rêve de crépuscule', 'Brume de prune']
+      const NOMS = ['Défaut DSH', 'Bleu profond', 'Aurore', 'Nébuleuse', 'Ambre', 'Minuit OLED', 'Papier', 'Clair net', 'Neutre violet', 'Rose', 'Braise', 'Pierre & Nuage', 'Pulsation indigo', 'Pulsation minuit', 'Olivaie', 'Aube florale', 'Rêve de crépuscule', 'Brume de prune']
       const tr = (brut) => {
         const t = brut.trim()
         if (t === '' || /^[\x00-\x7f]*$/.test(t) && EXACT[t] === undefined && SUBS.every((x) => t.indexOf(x[0]) < 0) && RX.every((x) => x[0].test(t) === false)) return brut
@@ -30184,8 +30239,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       let minuteur = null
       const passe = () => {
         if (anglais() !== true) return
-        // + les deux fenêtres de l'onglet Animation du thème : posées hors de la page par un portail, elles seraient oubliées.
-        const racines = document.querySelectorAll('[data-slot="settings.section"],[data-kb="ld-picker"],[data-kb="ld-pack"]')
+        // + les fenêtres du thème (onglet Animation, enregistrement d'un thème) : posées hors de la page par un portail, elles seraient oubliées.
+        const racines = document.querySelectorAll('[data-slot="settings.section"],[data-kb="ld-picker"],[data-kb="ld-pack"],[data-kb="theme-save-dlg"]')
         for (let i = 0; i < racines.length; i++) {
           const w = document.createTreeWalker(racines[i], NodeFilter.SHOW_TEXT)
           let n = w.nextNode()

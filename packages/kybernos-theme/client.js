@@ -134,6 +134,10 @@ window.__ModuleLoader__.load({
         { id: 'oled', name: 'Minuit OLED', mode: 'dark', acc: null, wp: 'noir', vis: 100 },
         { id: 'papier', name: 'Papier', mode: 'light', acc: '#4176E6', wp: 'seyes', vis: 55 },
         { id: 'clair', name: 'Clair net', mode: 'light', acc: null, wp: 'none', vis: 60 },
+        // Neutral light theme: white panels, grey fields, one violet accent, Inter. Surfaces measured on a
+        // light admin dashboard; the engine still lifts the accent to 4.5:1 wherever text sits on it.
+        { id: 'neutre', name: 'Neutre violet', mode: 'light', acc: '#6114D4', wp: 'none', vis: 60, fontText: 'inter', radius: 'standard',
+          ov: { 'light:base': '#FAFAFA', 'light:l1': '#FFFFFF', 'light:l2': '#F5F5F5', 'light:l3': '#FFFFFF', 'light:side': '#FFFFFF', 'light:input': '#F2F2F2', 'light:t1': '#101010' } },
         { id: 'rose', name: 'Rose', mode: 'light', acc: '#EC4899', wp: 'peche', vis: 60 },
 
         // ── Palettes héritées de « Colour Pack » v1 (ancien onglet Kybernos) ──
@@ -335,6 +339,9 @@ window.__ModuleLoader__.load({
       const skinPatch = (sk) => {
         const patch = { skin: sk.id, acc: sk.acc, wp: sk.wp, wpVis: sk.vis, ov: sk.ov || {} }
         if (sk.mode !== null && sk.mode !== undefined) patch.mode = sk.mode
+        // A shipped theme may also set the font and the corners; the older ones leave both alone.
+        if (sk.fontText !== undefined) patch.fontText = sk.fontText
+        if (sk.radius !== undefined) patch.radius = sk.radius
         return patch
       }
       // L'accent affiché d'un skin : sa valeur directe, sinon celle de sa
@@ -1083,6 +1090,326 @@ window.__ModuleLoader__.load({
       }
 
       // ══════════════════════════════════════════════════════════════════════
+      // 4c. THEME LIBRARY ("My themes").
+      //
+      //   A preset is DATA: a name plus the settings it retains, in groups so that the person
+      //   chooses what travels with it (colours, font, corners, glass and wallpaper,
+      //   accessibility). Accessibility is off by default when saving: contrast, the
+      //   colour-blind palette and big targets are a need of the person, not a style.
+      //   Nothing in a preset is ever executed, and the only values it can carry are the ones
+      //   `sanitiserImport` accepts: known keys, valid types and ranges, fonts and wallpapers
+      //   that already ship with this plugin.
+      //
+      //   Two copies, like the thinking-animation settings: the browser (`kybernos.theme.presets.v1`,
+      //   what paints first) and the DSH disk (/kybernos-theme/preset-store, see preset-store.mjs,
+      //   what survives clearing site data or DSH Desktop picking another port). The library is
+      //   ONE document: the newer `updatedAt` wins as a whole, so a deletion cannot come back.
+      // ══════════════════════════════════════════════════════════════════════
+
+      const PRESET_FORMAT = 'kybernos-theme-preset'
+      /** What a theme may retain. Mirrored by SETTINGS_KEYS in preset-store.mjs (test-client.mjs fails when they drift). */
+      const PRESET_GROUPS = {
+        colors: ['mode', 'acc', 'ov'],
+        font: ['fontText', 'ligatures'],
+        radius: ['radius'],
+        glass: ['wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror'],
+        a11y: ['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks']
+      }
+      const PRESET_GROUP_LABELS = { colors: 'Couleurs et accent', font: 'Police', radius: 'Coins', glass: 'Verre et fond d’écran', a11y: 'Accessibilité' }
+      const PRESET_KEYS = Object.keys(PRESET_GROUPS).reduce((all, g) => all.concat(PRESET_GROUPS[g]), [])
+      const PRESET_LIMIT = 100
+      const PRESET_NAME_MAX = 40
+      const PRESET_ID = /^[a-z0-9][a-z0-9-]{0,63}$/
+      const PRESET_SOURCES = ['me', 'file', 'gallery']
+      const PRESET_FILE_MAX = 200 * 1024
+      const LIB_KEY = 'kybernos.theme.presets.v1'
+
+      /** The settings of a theme out of any object: only the keys a theme may carry, only valid values. null when nothing is left. */
+      const presetSettings = (raw) => {
+        const s = sanitiserImport(raw)
+        if (s === null) return null
+        const out = {}
+        PRESET_KEYS.forEach((k) => { if (s[k] !== undefined) out[k] = s[k] })
+        return Object.keys(out).length > 0 ? out : null
+      }
+      const presetName = (raw) => (typeof raw === 'string'
+        ? raw.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, PRESET_NAME_MAX) : '')
+      /** One library record, or null. The same shape check as the host's (preset-store.mjs), plus the meaning of the values. */
+      const presetRecord = (raw) => {
+        if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+        if (typeof raw.id !== 'string' || !PRESET_ID.test(raw.id)) return null
+        const name = presetName(raw.name)
+        const settings = presetSettings(raw.settings)
+        if (name === '' || settings === null) return null
+        const rec = {
+          id: raw.id, name, settings,
+          source: PRESET_SOURCES.indexOf(raw.source) >= 0 ? raw.source : 'file',
+          at: typeof raw.at === 'number' && Number.isFinite(raw.at) ? Math.max(0, Math.round(raw.at)) : 0
+        }
+        if (typeof raw.author === 'string' && raw.author.trim() !== '') rec.author = raw.author.trim().slice(0, 60)
+        if (typeof raw.gid === 'string' && PRESET_ID.test(raw.gid)) rec.gid = raw.gid
+        if (Number.isInteger(raw.v) && raw.v >= 0 && raw.v <= 1000000) rec.v = raw.v
+        return rec
+      }
+
+      const lib = { presets: [], updatedAt: 0, hostState: 'unknown', pulled: false, pushTimer: null, subs: new Set() }
+      const libNotify = () => { lib.subs.forEach((f) => { try { f() } catch (e) { /* a page that is gone */ } }) }
+      /** A library document (from the browser or the host), always put back in the expected shape. */
+      const libClean = (raw) => {
+        const r = (raw !== null && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}
+        const seen = new Set()
+        const presets = []
+        ;(Array.isArray(r.presets) ? r.presets : []).forEach((p) => {
+          const rec = presetRecord(p)
+          if (rec !== null && !seen.has(rec.id) && presets.length < PRESET_LIMIT) { seen.add(rec.id); presets.push(rec) }
+        })
+        return { presets, updatedAt: typeof r.updatedAt === 'number' && Number.isFinite(r.updatedAt) ? Math.max(0, Math.round(r.updatedAt)) : 0 }
+      }
+      const libRead = () => {
+        try {
+          const raw = localStorage.getItem(LIB_KEY)
+          const c = libClean(raw === null ? {} : JSON.parse(raw))
+          lib.presets = c.presets; lib.updatedAt = c.updatedAt
+        } catch (e) { lib.presets = []; lib.updatedAt = 0 }
+      }
+      const libWrite = () => { try { localStorage.setItem(LIB_KEY, JSON.stringify({ v: 1, updatedAt: lib.updatedAt, presets: lib.presets })) } catch (e) { /* quota */ } }
+      libRead()
+
+      const libHostUrl = () => { try { return new URL('kybernos-theme/preset-store', document.baseURI).pathname } catch (e) { return '/kybernos-theme/preset-store' } }
+      const libHost = async (body) => {
+        if (!ldHostOn()) return { ok: false, unreachable: true, error: 'host store off' }
+        try {
+          const res = await fetch(libHostUrl(), body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          const j = await res.json().catch(() => null)
+          return (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: 'unreadable answer' }
+        } catch (e) { return { ok: false, unreachable: true, error: String(e !== null && e.message ? e.message : e) } }
+      }
+      const libSchedulePush = () => {
+        if (!ldHostOn()) return
+        if (lib.pushTimer !== null) clearTimeout(lib.pushTimer)
+        lib.pushTimer = setTimeout(() => {
+          lib.pushTimer = null
+          libHost({ library: { v: 1, updatedAt: lib.updatedAt, presets: lib.presets } }).then((j) => {
+            const state = j.ok === true ? 'on' : 'off'
+            if (state !== lib.hostState) { lib.hostState = state; libNotify() }
+          })
+        }, 700)
+      }
+      /** Reads the disk copy. The newer document wins; `quiet`: only wake the page when something changed. */
+      const libPull = async (quiet) => {
+        const j = await libHost()
+        const was = lib.hostState
+        lib.hostState = j.ok === true ? 'on' : 'off'
+        if (j.ok !== true) { if (was !== lib.hostState) libNotify(); return false }
+        const sig = () => JSON.stringify([lib.updatedAt, lib.presets.map((p) => p.id + p.name)])
+        const before = sig()
+        if (j.library !== null && j.library !== undefined) {
+          const c = libClean(j.library)
+          if (c.updatedAt > lib.updatedAt) { lib.presets = c.presets; lib.updatedAt = c.updatedAt; libWrite() }
+          else if (c.updatedAt < lib.updatedAt) libSchedulePush()
+        } else if (lib.updatedAt > 0) libSchedulePush() // the disk has nothing yet: give it what this browser knows
+        lib.pulled = true
+        if (quiet !== true || sig() !== before || was !== lib.hostState) libNotify()
+        return true
+      }
+      /** Replaces the whole library: browser first (immediate), disk after (deferred). */
+      const libSet = (presets) => {
+        lib.presets = presets.slice(0, PRESET_LIMIT)
+        lib.updatedAt = Math.max(Date.now(), lib.updatedAt + 1)
+        libWrite(); libNotify(); libSchedulePush()
+      }
+
+      const presetId = (prefix) => prefix + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+      const libNameTaken = (name, exceptId) => {
+        const k = name.trim().toLowerCase()
+        return SKINS.some((s) => s.name.toLowerCase() === k) || lib.presets.some((p) => p.id !== exceptId && p.name.toLowerCase() === k)
+      }
+      /** `name`, or `name (2)`, `name (3)`... when it is already taken by a shipped theme or one of yours. */
+      const libFreeName = (name) => {
+        const base = presetName(name) || 'Thème'
+        let n = base
+        for (let i = 2; libNameTaken(n); i += 1) n = base.slice(0, PRESET_NAME_MAX - String(i).length - 3).trim() + ' (' + i + ')'
+        return n
+      }
+      /** Adds a theme at the end of the library. Rend l'enregistrement, ou null (settings vides, bibliothèque pleine). */
+      const libAdd = (name, source, settings, extra) => {
+        if (lib.presets.length >= PRESET_LIMIT) return null
+        const rec = presetRecord({ ...(extra || {}), id: presetId(source === 'gallery' ? 'g' : 'u'), name: libFreeName(name), source, at: Date.now(), settings })
+        if (rec === null) return null
+        libSet(lib.presets.concat([rec]))
+        return rec
+      }
+      /** Changes one theme. The result goes through the same check as a new one (accent lowercased, nothing unknown kept); a change that would leave nothing valid is ignored. */
+      const libPatch = (id, patch) => {
+        libSet(lib.presets.map((p) => (p.id === id ? (presetRecord({ ...p, ...patch, at: Date.now() }) || p) : p)))
+      }
+      const libRemove = (id) => { libSet(lib.presets.filter((p) => p.id !== id)) }
+
+      /** What the person chose to keep, out of the current look. Colours always travel. */
+      const presetFromState = (S, groups) => {
+        const out = {}
+        Object.keys(PRESET_GROUPS).forEach((g) => {
+          if (g !== 'colors' && !(groups && groups[g] === true)) return
+          PRESET_GROUPS[g].forEach((k) => { if (S[k] !== undefined) out[k] = k === 'ov' ? { ...S.ov } : S[k] })
+        })
+        return out
+      }
+      /** The file for one theme. */
+      const presetFile = (rec) => {
+        const doc = { format: PRESET_FORMAT, version: 1, name: rec.name }
+        if (rec.author !== undefined) doc.author = rec.author
+        doc.settings = rec.settings
+        return JSON.stringify(doc, null, 2)
+      }
+      /** The text of a file → { ok, name, settings, legacy } or { ok:false, error }. An old export (the whole look, no frame) still imports: as a theme. */
+      const presetFromFileText = (text) => {
+        if (typeof text !== 'string' || text.length === 0 || text.length > PRESET_FILE_MAX) return { ok: false, error: 'size' }
+        let raw = null
+        try { raw = JSON.parse(text) } catch (e) { return { ok: false, error: 'json' } }
+        if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'shape' }
+        const framed = raw.format === PRESET_FORMAT
+        const settings = presetSettings(framed ? raw.settings : raw)
+        if (settings === null) return { ok: false, error: 'empty' }
+        const name = framed ? presetName(raw.name) : ''
+        return { ok: true, name: name === '' ? 'Thème importé' : name, settings, legacy: !framed, author: framed && typeof raw.author === 'string' ? raw.author : undefined }
+      }
+
+      // « Modified » = a setting this theme retains has moved. The mode is left out on purpose: DSH's own
+      // light/dark button changes it from elsewhere, and that is not editing the theme.
+      const settingText = (v) => JSON.stringify(v !== null && typeof v === 'object' ? Object.keys(v).sort().map((k) => [k, v[k]]) : v).toLowerCase()
+      const settingsDirty = (S, settings) => Object.keys(settings).some((k) => k !== 'mode' && settingText(S[k]) !== settingText(settings[k]))
+      /** What a shipped theme sets, in the same shape as a library theme's settings. */
+      const skinSettings = (sk) => { const p = skinPatch(sk); delete p.skin; return p }
+      /** A library theme drawn like a shipped one (dot, accent, meta line). */
+      const presetAsSkin = (rec) => ({
+        id: rec.id, name: rec.name,
+        mode: rec.settings.mode === 'light' || rec.settings.mode === 'dark' ? rec.settings.mode : null,
+        acc: rec.settings.acc === undefined ? null : rec.settings.acc, ov: rec.settings.ov || {},
+        fontText: rec.settings.fontText, radius: rec.settings.radius
+      })
+      const RADIUS_LABEL = { sharp: 'nets', standard: 'standard', soft: 'doux' }
+      /** The groups a set of settings retains: { colors: true, font: false, ... }. */
+      const groupsOf = (settings) => {
+        const g = {}
+        Object.keys(PRESET_GROUPS).forEach((k) => { g[k] = PRESET_GROUPS[k].some((key) => settings[key] !== undefined) })
+        return g
+      }
+      const downloadText = (filename, text) => {
+        try {
+          const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
+          const a = document.createElement('a')
+          a.href = url; a.download = filename
+          document.body.appendChild(a); a.click(); a.remove()
+          setTimeout(() => { try { URL.revokeObjectURL(url) } catch (e) { /* already revoked */ } }, 1000)
+          return true
+        } catch (e) { return false }
+      }
+      const fileSlug = (s) => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'theme'
+
+      // ══════════════════════════════════════════════════════════════════════
+      // 4d. THEME GALLERY.
+      //
+      //   Themes to install, from a catalogue that is read by the HOST (route /kybernos-theme/gallery,
+      //   see themes-gallery.mjs): the catalogue shipped with Kybernos, or the signed online one once it
+      //   has been verified and cached. The page never sees an unverified catalogue, and it checks what
+      //   it is given anyway: a theme is data, so a catalogue theme goes through the same check as a file
+      //   (`presetSettings`) and never carries accessibility settings.
+      //   Installing puts a copy in « My themes » (source « gallery », with its catalogue id and version);
+      //   from then on it is yours, and the gallery only offers an update when its version moves.
+      // ══════════════════════════════════════════════════════════════════════
+
+      const gal = { data: null, state: 'idle', refreshing: false, refreshed: false, subs: new Set() }
+      const galNotify = () => { gal.subs.forEach((f) => { try { f() } catch (e) { /* a page that is gone */ } }) }
+      const galHostUrl = () => { try { return new URL('kybernos-theme/gallery', document.baseURI).pathname } catch (e) { return '/kybernos-theme/gallery' } }
+      const galHost = async (body) => {
+        if (!ldHostOn()) return { ok: false, unreachable: true, error: 'host store off' }
+        try {
+          const res = await fetch(galHostUrl(), body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          const j = await res.json().catch(() => null)
+          return (j !== null && typeof j === 'object') ? j : { ok: false, unreachable: true, error: 'unreadable answer' }
+        } catch (e) { return { ok: false, unreachable: true, error: String(e !== null && e.message ? e.message : e) } }
+      }
+      /** The language of the interface, « fr » or « en »: French while nothing says otherwise (the page is written in French), English for any other language. */
+      const kbLang = () => {
+        try {
+          const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
+          const l = (a !== null && a !== undefined && a.lang !== null && a.lang !== undefined) ? String(a.lang).toLowerCase() : ''
+          return l === '' || l.indexOf('fr') === 0 ? 'fr' : 'en'
+        } catch (e) { return 'fr' }
+      }
+      /** One catalogue theme as the page uses it, or null. Checked again here: the host is not trusted any more than a file is. */
+      const galTheme = (raw) => {
+        if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null
+        if (typeof raw.id !== 'string' || !PRESET_ID.test(raw.id)) return null
+        const name = presetName(raw.name)
+        const settings = presetSettings(raw.settings)
+        if (name === '' || settings === null) return null
+        PRESET_GROUPS.a11y.forEach((k) => { delete settings[k] }) // a catalogue never touches accessibility
+        if (Object.keys(settings).length === 0) return null
+        const d = (raw.description !== null && typeof raw.description === 'object') ? raw.description : {}
+        return {
+          id: raw.id, name, settings,
+          v: Number.isInteger(raw.v) && raw.v >= 1 && raw.v <= 1000000 ? raw.v : 1,
+          author: typeof raw.author === 'string' ? presetName(raw.author) : '',
+          description: { fr: typeof d.fr === 'string' ? d.fr.slice(0, 200) : '', en: typeof d.en === 'string' ? d.en.slice(0, 200) : '' }
+        }
+      }
+      /** The host's answer, put in the shape the page uses; null when it is not one. */
+      const galClean = (j) => {
+        if (j === null || typeof j !== 'object' || j.ok !== true || !Array.isArray(j.themes)) return null
+        const o = (j.online !== null && typeof j.online === 'object') ? j.online : {}
+        const seen = new Set()
+        const themes = []
+        j.themes.forEach((t) => { const g = galTheme(t); if (g !== null && !seen.has(g.id) && themes.length < 200) { seen.add(g.id); themes.push(g) } })
+        return {
+          source: j.source === 'signed' ? 'signed' : 'shipped',
+          publishedAt: typeof j.publishedAt === 'string' ? j.publishedAt.slice(0, 40) : '',
+          themes,
+          online: {
+            state: ['never', 'ok', 'offline', 'refused', 'off'].indexOf(o.state) >= 0 ? o.state : 'never',
+            reason: typeof o.reason === 'string' ? o.reason.slice(0, 40) : null
+          }
+        }
+      }
+      const galLoad = async () => {
+        gal.state = 'loading'; galNotify()
+        const c = galClean(await galHost())
+        if (c === null) gal.state = 'error'; else { gal.data = c; gal.state = 'ready' }
+        galNotify()
+        return gal.state === 'ready'
+      }
+      /** Asks the online catalogue (through the host, which verifies it). Once per page session unless asked again. */
+      const galRefresh = async () => {
+        if (gal.refreshing) return
+        gal.refreshing = true; gal.refreshed = true; galNotify()
+        const c = galClean(await galHost({ op: 'refresh' }))
+        if (c !== null) { gal.data = c; gal.state = 'ready' }
+        gal.refreshing = false; galNotify()
+      }
+      const galInstalled = (id) => lib.presets.find((p) => p.gid === id) || null
+      const galInstall = (t) => libAdd(t.name, 'gallery', t.settings, { author: t.author, gid: t.id, v: t.v })
+      const galUpdate = (t, rec) => libPatch(rec.id, { settings: t.settings, v: t.v, author: t.author })
+      const galAsSkin = (t) => ({
+        id: t.id, name: t.name,
+        mode: t.settings.mode === 'light' || t.settings.mode === 'dark' ? t.settings.mode : null,
+        acc: t.settings.acc === undefined ? null : t.settings.acc, ov: t.settings.ov || {},
+        fontText: t.settings.fontText, radius: t.settings.radius
+      })
+      const GAL_ONLINE_TEXT = {
+        offline: 'Le catalogue en ligne est injoignable : ce sont les thèmes livrés avec Kybernos.',
+        off: 'Le catalogue en ligne est désactivé : ce sont les thèmes livrés avec Kybernos.'
+      }
+      const galOnlineText = (o) => {
+        if (o.state === 'offline' || o.state === 'off') return GAL_ONLINE_TEXT[o.state]
+        if (o.state === 'refused') {
+          if (o.reason === 'no-key') return 'Le catalogue en ligne n’est pas encore activé : ce sont les thèmes livrés avec Kybernos.'
+          const why = { signature: 'sa signature n’est pas reconnue', older: 'il est plus ancien que celui déjà connu', shape: 'il est mal formé', theme: 'il est mal formé', json: 'il est mal formé', size: 'il est trop gros' }[o.reason]
+          return 'Le catalogue en ligne a été refusé' + (why === undefined ? '' : ' (' + why + ')') + ' : ce sont les thèmes déjà connus qui s’affichent.'
+        }
+        return ''
+      }
+
+      // ══════════════════════════════════════════════════════════════════════
       // 5. LA PAGE DE RÉGLAGES.
       // ══════════════════════════════════════════════════════════════════════
 
@@ -1158,7 +1485,6 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-skin-name{font-size:11px;line-height:1.35;text-align:center;color:var(--dsw-alias-label-secondary);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .kbth-skin[aria-pressed="true"] .kbth-skin-name{color:var(--dsw-alias-label-primary);font-weight:600}
-.kbth-skin-current{margin-top:10px}
 .kbth-acc{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .kbth-sw{position:relative;width:26px;height:26px;border-radius:50%;corner-shape:round;overflow:hidden;border:1px solid var(--dsw-alias-border-l3);cursor:pointer;flex:none;transition:border-color .12s}
 .kbth-sw:hover{border-color:var(--dsw-alias-border-l4)}
@@ -1359,6 +1685,59 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-disc-t{font-size:13px;font-weight:600}
 .kbth-disc-s{flex:1;font-size:12px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .kbth-setbody{display:flex;flex-direction:column;gap:12px;padding:14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-skinblock{display:flex;flex-direction:column;gap:10px}
+.kbth-skin-add .kbth-skin-dot{border:1.5px dashed var(--dsw-alias-border-l4);box-shadow:none;background:transparent;color:var(--dsw-alias-label-secondary);font-size:20px;line-height:1;display:grid;place-items:center}
+.kbth-skin-add:hover .kbth-skin-dot{border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-brand-primary)}
+.kbth-empty{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.5;padding:2px 0;max-width:54ch}
+.kbth-sum{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1)}
+.kbth-sum-tx{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
+.kbth-sum-n{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kbth-sum-m{font-size:12px;color:var(--dsw-alias-label-tertiary);line-height:1.45}
+.kbth-sum-a{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* A pill with a state colour. Not a .kbth-pill: the light-scheme list further down greys every one of those. */
+.kbth-tone{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--tone);color:var(--tone);background:var(--tone-bg,transparent)}
+.kbth-tone-on{--tone:var(--kbth-ink,var(--dsw-alias-state-success-primary))}
+.kbth-tone-mod{--tone:var(--dsw-alias-state-warn-label);--tone-bg:var(--dsw-alias-state-warn-tertiary)}
+.kbth-ok{font-size:12px;color:var(--kbth-ink,var(--dsw-alias-state-success-primary));font-weight:500;line-height:1.45}
+.kbth-bad{font-size:12px;color:var(--kbth-ink,var(--dsw-alias-state-error-primary));line-height:1.45}
+.kbth-btn.kbth-danger{color:var(--kbth-ink,var(--dsw-alias-state-error-primary))}
+.kbth-in.bad{border-color:var(--dsw-alias-state-error-primary)}
+.kbth-lib{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);overflow:hidden}
+.kbth-trow{display:flex;align-items:center;gap:12px;padding:10px 14px;flex-wrap:wrap}
+.kbth-trow+.kbth-trow,.kbth-trow+.kbth-exp,.kbth-exp+.kbth-trow{border-top:1px solid var(--dsw-alias-border-l1)}
+.kbth-trow .kbth-skin-dot{width:28px;height:28px;flex:none}
+.kbth-trow-tx{display:flex;flex-direction:column;gap:2px;flex:1;min-width:170px}
+.kbth-trow-n{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kbth-trow-m{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.4}
+.kbth-trow-a{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.kbth-exp{padding:10px 14px 14px;display:flex;flex-direction:column;gap:8px;background:var(--dsw-alias-bg-layer-2)}
+.kbth-state{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border:1px dashed var(--dsw-alias-border-l3);border-radius:12px}
+.kbth-fold{border:1px solid var(--dsw-alias-border-l2);border-radius:12px;padding:10px 14px}
+.kbth-fold>summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbth-gbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.kbth-search{flex:1;min-width:180px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:8px 12px;font-size:13px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.kbth-search:focus{outline:0;border-color:var(--dsw-alias-brand-primary)}
+.kbth-src{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-tertiary)}
+.kbth-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.kbth-card{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);overflow:hidden;min-width:0}
+.kbth-thumb{height:104px;display:flex;border-bottom:1px solid var(--dsw-alias-border-l1)}
+.kbth-thumb-s{width:26%;padding:10px 8px;display:flex;flex-direction:column;gap:6px}
+.kbth-thumb-s i,.kbth-thumb-c i{display:block;height:5px;border-radius:3px}
+.kbth-thumb-c{flex:1;padding:12px;display:flex;flex-direction:column;gap:7px}
+.kbth-thumb-in{height:18px;border:1px solid;margin-top:2px}
+.kbth-thumb-bt{height:16px;width:46%}
+.kbth-card-b{padding:12px 14px 14px;display:flex;flex-direction:column;gap:5px;flex:1}
+.kbth-card-n{font-size:14px;font-weight:600}
+.kbth-card-a{font-size:11px;color:var(--dsw-alias-label-tertiary)}
+.kbth-card-d{font-size:12px;color:var(--dsw-alias-label-secondary);line-height:1.5}
+.kbth-card-m{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.4}
+.kbth-card-f{display:flex;gap:8px;margin-top:auto;padding-top:8px;flex-wrap:wrap;align-items:center}
+.kbth-sk{height:230px;border-radius:14px;background:linear-gradient(100deg,var(--dsw-alias-bg-layer-2) 30%,var(--dsw-alias-bg-layer-3) 50%,var(--dsw-alias-bg-layer-2) 70%);background-size:200% 100%;animation:kbth-sk 1.3s linear infinite}
+@keyframes kbth-sk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.kbth-sk{animation:none}}
+.kbth-trial{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;margin-bottom:18px;border-radius:12px;background:var(--dsw-alias-state-warn-tertiary);border:1px solid var(--dsw-alias-state-warn-secondary);color:var(--dsw-alias-state-warn-label);font-size:13px}
+.kbth-trial b{font-weight:600}
+.kbth-trial-sp{flex:1;min-width:8px}
 .kbth-grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);font-weight:600}
 /* Fenêtre */
 .kbth-mback{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000}
@@ -1411,7 +1790,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
    DSH colore ses textes discrets avec label-tertiary (#81858C, 3,7:1 sur blanc) et label-caption
    (#ADB2B8, 2,1:1) : sous le seuil AA de 4,5:1. Dans CETTE page, en clair seulement, ils prennent
    label-secondary (5,7:1). Le sombre n'y gagne rien et garde sa hiérarchie. Mesuré sur la GUI réelle. */
-body:not([data-ds-dark-theme]) :is(.kbth-a11y-hex,.kbth-adv-css,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
+body:not([data-ds-dark-theme]) :is(.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
 /* ── Encre des notes (AAA / AA / grand texte / échec) ───────────────────────────────────────
    Les teintes d'état de DSH sont des fonds d'état, pas des encres : en clair, #22C55E fait 2,2:1 sur blanc.
    Une variable par note ET par schéma, lue par le CSS : elle suit le schéma affiché sans que le script ait
@@ -1890,6 +2269,38 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           modal === null ? null : portal(h(React.Fragment, null, h('div', { className: 'kbth-mback', onClick: close }), modal === 'picker' ? picker : packModal)))
       }
 
+      /** A window in front of the settings box: Escape closes it, Tab stays inside it, the focus goes back to where it came from. */
+      function ThemeModal(props) {
+        const box = React.useRef(null)
+        React.useEffect(() => {
+          const back = typeof document !== 'undefined' ? document.activeElement : null
+          const el = box.current
+          if (el !== null && el !== undefined) {
+            const first = el.querySelector('input:not([disabled]),textarea')
+            if (first !== null && typeof first.focus === 'function') first.focus(); else if (typeof el.focus === 'function') el.focus()
+          }
+          const key = (e) => {
+            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); props.onClose(); return }
+            if (e.key === 'Tab' && box.current) {
+              // Always ours: DSH's settings box has its own focus trap and this window sits outside it (portal).
+              const f = Array.prototype.slice.call(box.current.querySelectorAll('button,input,textarea,select,a[href],[tabindex="0"]')).filter((x) => !x.disabled && x.offsetParent !== null)
+              e.preventDefault(); e.stopPropagation()
+              if (f.length === 0) return
+              const i = f.indexOf(document.activeElement)
+              f[i < 0 ? (e.shiftKey ? f.length - 1 : 0) : (i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus()
+            }
+          }
+          document.addEventListener('keydown', key, true)
+          return () => {
+            document.removeEventListener('keydown', key, true)
+            try { if (back !== null && back !== undefined && typeof back.focus === 'function') back.focus() } catch (e) { /* gone */ }
+          }
+        }, [])
+        return portal(h(React.Fragment, null,
+          h('div', { className: 'kbth-mback', onClick: props.onClose }),
+          h('div', { className: 'kbth-mdlg', style: { width: 'min(480px, calc(100vw - 32px))' }, role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': props.labelId, tabIndex: -1, ref: box, 'data-kb': props.kb, onKeyDown: (e) => e.stopPropagation() }, props.children)))
+      }
+
       function Page(props) {
         const ctxRef = props.ctx
         const themeSvc = (ctxRef && ctxRef.theme) ? ctxRef.theme : null
@@ -1898,7 +2309,22 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const [wpCat, setWpCat] = React.useState('gradients')
         const [tokSel, setTokSel] = React.useState('l1')
         const [revision, setRevision] = React.useState(0)
-        const [importNote, setImportNote] = React.useState(null) // résultat du dernier import
+        // The theme library (« My themes »): redrawn when it changes (own writes, or the disk copy arriving).
+        const [, libBump] = React.useReducer((x) => x + 1, 0)
+        React.useEffect(() => { lib.subs.add(libBump); libPull(true); return () => { lib.subs.delete(libBump) } }, [])
+        const [saveDlg, setSaveDlg] = React.useState(null)       // null | { name, groups, error }: the « Enregistrer comme thème » window
+        const [renameId, setRenameId] = React.useState(null)     // Sharing: the row being renamed...
+        const [renameDraft, setRenameDraft] = React.useState('')
+        const [delId, setDelId] = React.useState(null)           // ...the one waiting for a delete confirmation...
+        const [expId, setExpId] = React.useState(null)           // ...the one whose file is shown
+        const [libNote, setLibNote] = React.useState(null)       // { ok, text }: the last thing the library did or refused
+        // The gallery: redrawn when the catalogue arrives; the search and the filter live here.
+        const [, galBump] = React.useReducer((x) => x + 1, 0)
+        const [galQ, setGalQ] = React.useState('')
+        const [galF, setGalF] = React.useState('all')           // 'all' | 'light' | 'dark'
+        const [trial, setTrial] = React.useState(null)          // null | { id, name, prev }: a gallery theme being tried, and the look to come back to
+        const trialRef = React.useRef(null)
+        trialRef.current = trial
         const [exportFmt, setExportFmt] = React.useState('yaml')  // format de l'export affiché (non stocké)
         const [advTab, setAdvTab] = React.useState('essentiel') // onglet ouvert : Essentiel = les réglages de base
 
@@ -2012,14 +2438,38 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           return () => { try { if (typeof rendu === 'function') rendu() } catch (e) { /* déjà détaché */ } }
         }, [])
 
-        const commit = (patch, replace) => {
+        // `transient`: drawn but NOT stored, so a reload (or closing Settings) gives the previous look back: that is a trial.
+        // Any other change made during a trial ends it: the person is editing the look they see.
+        const commit = (patch, replace, transient) => {
+          if (transient !== true && trialRef.current !== null) { trialRef.current = null; setTrial(null) }
           setS((cur) => {
             const next = replace === true ? { ...patch } : { ...cur, ...patch }
-            writeState(next)
+            if (transient !== true) writeState(next)
             if (themeSvc !== null) appliquerTout(themeSvc, next)
             return next
           })
         }
+        // Closing Settings with a trial running puts the stored look back. Not through setS: the page is gone by then.
+        React.useEffect(() => {
+          gal.subs.add(galBump)
+          return () => {
+            gal.subs.delete(galBump)
+            const t = trialRef.current
+            if (t !== null && themeSvc !== null) { try { appliquerTout(themeSvc, t.prev) } catch (e) { /* nothing more to do */ } }
+          }
+        }, [])
+        // A reload or a closed tab are not an unmount: put the stored look back then too (a trial may have switched the mode, which DSH keeps).
+        React.useEffect(() => {
+          if (trial === null || themeSvc === null || typeof window === 'undefined') return undefined
+          const back = () => { const t = trialRef.current; if (t !== null) { try { appliquerTout(themeSvc, t.prev) } catch (e) { /* page is going away */ } } }
+          window.addEventListener('pagehide', back)
+          return () => window.removeEventListener('pagehide', back)
+        }, [trial !== null])
+        React.useEffect(() => {
+          if (advTab !== 'galerie') return
+          if (gal.state === 'idle' || gal.state === 'error') galLoad().then(() => { if (!gal.refreshed) galRefresh() })
+          else if (!gal.refreshed) galRefresh()
+        }, [advTab])
 
         const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
         const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
@@ -2045,7 +2495,39 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           return 'radial-gradient(circle at 50% 50%,' + acc + ' 0 6.5px,' + sd.base + ' 7px 100%)'
         }
         const skinMeta = (sk) => (sk.mode === 'dark' ? 'Sombre' : (sk.mode === 'light' ? 'Clair' : 'Clair + sombre')) +
-          (skinAccent(sk) === null ? ' · accent neutre' : ' · ' + skinAccent(sk))
+          (skinAccent(sk) === null ? ' · accent neutre' : ' · ' + skinAccent(sk)) +
+          (sk.fontText !== undefined ? ' · police ' + (FONTS.find((f) => f.id === sk.fontText) || FONTS[0]).name : '') +
+          (sk.radius !== undefined ? ' · coins ' + RADIUS_LABEL[sk.radius] : '')
+
+        // The theme in use: one of yours, or a shipped one. « Modified » = a setting it retains has moved.
+        const activeMine = lib.presets.find((x) => x.id === S.skin) || null
+        const activeSkin = activeMine !== null ? null : (SKINS.find((x) => x.id === S.skin) || null)
+        const activeNow = activeMine !== null ? presetAsSkin(activeMine) : activeSkin
+        const activeModified = activeMine !== null ? settingsDirty(S, activeMine.settings) : (activeSkin !== null && settingsDirty(S, skinSettings(activeSkin)))
+        const applyMine = (rec) => commit({ skin: rec.id, ...rec.settings })
+        // Back to the theme as it was saved. The mode stays as it is: it is not part of « modified » either.
+        const revertTheme = () => {
+          const full = activeMine !== null ? { skin: activeMine.id, ...activeMine.settings } : (activeSkin !== null ? skinPatch(activeSkin) : null)
+          if (full === null) return
+          const { mode, ...rest } = full
+          setHexDraft(null); commit(rest)
+        }
+        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName('Mon thème'), groups: { font: true, radius: true, glass: true, a11y: false }, error: '' }) }
+        const doSave = () => {
+          if (saveDlg === null) return
+          const name = presetName(saveDlg.name)
+          if (name === '') { setSaveDlg({ ...saveDlg, error: 'Donnez un nom au thème.' }); return }
+          if (libNameTaken(name)) { setSaveDlg({ ...saveDlg, error: 'Ce nom existe déjà. Choisissez-en un autre.' }); return }
+          const rec = libAdd(name, 'me', presetFromState(S, saveDlg.groups))
+          if (rec === null) { setSaveDlg({ ...saveDlg, error: 'La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprimez-en un dans Partage.' }); return }
+          setSaveDlg(null); commit({ skin: rec.id })
+          setLibNote({ ok: true, text: 'Thème « ' + rec.name + ' » enregistré dans Mes thèmes.' })
+        }
+        const doUpdate = () => {
+          if (activeMine === null) return
+          libPatch(activeMine.id, { settings: presetFromState(S, groupsOf(activeMine.settings)) })
+          setLibNote({ ok: true, text: 'Thème « ' + activeMine.name + ' » mis à jour.' })
+        }
 
         // Un thème TIERS actif (dream-skin…) reprend la main sur la préférence :
         // mesuré, un setTheme('light') est réaffirmé sombre en moins de 250 ms.
@@ -2062,6 +2544,49 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const hexShown = hexDraft !== null ? hexDraft : ((S.acc === null ? c.brand : S.acc).replace('#', ''))
 
         // ── Simple : apparence ──────────────────────────────────────────────
+        const skinButton = (sk, rec) => h('button', {
+          key: sk.id, type: 'button', className: 'kbth-skin',
+          'aria-pressed': S.skin === sk.id ? 'true' : 'false',
+          title: sk.name + ' — ' + skinMeta(sk),
+          'aria-label': sk.name + ' — ' + skinMeta(sk),
+          onClick: () => { setLibNote(null); setHexDraft(null); if (rec === null) commit(skinPatch(sk)); else applyMine(rec) }
+        },
+          h('span', { className: 'kbth-skin-dot', style: { background: skinDot(sk) } }),
+          h('span', { className: 'kbth-skin-name' }, sk.name))
+        const toSharing = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-sharing', onClick: () => setAdvTab('partage') }, 'Partage')
+        const toGallery = h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-gallery', onClick: () => setAdvTab('galerie') }, 'Galerie')
+        const themeSummary = h('div', { className: 'kbth-sum', 'data-kb': 'theme-sum' },
+          h('div', { className: 'kbth-sum-tx' },
+            h('div', { className: 'kbth-sum-n' }, activeNow === null ? 'Personnalisé' : activeNow.name,
+              activeModified ? h('span', { className: 'kbth-tone kbth-tone-mod', 'data-kb': 'theme-modified' }, 'modifié') : null,
+              activeNow === null ? null : h('span', { className: 'kbth-pill' }, activeMine === null ? 'livré' : (activeMine.source === 'gallery' ? 'Galerie' : 'à vous'))),
+            libNote !== null
+              ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text)
+              : h('div', { className: 'kbth-sum-m' }, activeNow === null
+                ? 'Réglage libre : enregistrez-le pour le retrouver en un clic.'
+                : skinMeta(activeNow) + (activeModified && activeMine === null ? ' · un thème livré ne se modifie pas : enregistrez-en une copie.' : ''))),
+          h('div', { className: 'kbth-sum-a' },
+            activeMine !== null && activeModified ? h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-update', onClick: doUpdate }, 'Mettre à jour') : null,
+            h('button', { type: 'button', className: 'kbth-btn' + (activeMine !== null && activeModified ? '' : ' kbth-ldpri'), 'data-kb': 'theme-save', onClick: openSave }, 'Enregistrer sous…'),
+            activeModified ? h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-revert', onClick: revertTheme }, 'Annuler les changements') : null))
+        const themeBlock = h('div', { className: 'kbth-sec', 'data-kb': 'theme-block' },
+          h('div', { className: 'kbth-sec-h' },
+            h('div', { className: 'kbth-sec-t' }, 'Thème'),
+            h('div', { className: 'kbth-sec-d' }, 'Un thème règle les couleurs ; il peut aussi retenir la police et les coins. Gérez les vôtres dans ', toSharing, '.')),
+          h('div', { className: 'kbth-skinblock' },
+            h('div', { className: 'kbth-grp' }, 'Livrés'),
+            h('div', { className: 'kbth-skins', 'data-kb': 'theme-shipped' }, SKINS.map((sk) => skinButton(sk, null)))),
+          h('div', { className: 'kbth-skinblock' },
+            h('div', { className: 'kbth-grp' }, 'Mes thèmes'),
+            h('div', { className: 'kbth-skins', 'data-kb': 'theme-mine' },
+              lib.presets.map((rec) => skinButton(presetAsSkin(rec), rec)),
+              h('button', { type: 'button', className: 'kbth-skin kbth-skin-add', 'data-kb': 'theme-add', 'aria-label': 'Enregistrer l’état actuel comme thème', onClick: openSave },
+                h('span', { className: 'kbth-skin-dot', 'aria-hidden': 'true' }, '+'),
+                h('span', { className: 'kbth-skin-name' }, 'Enregistrer'))),
+            lib.presets.length === 0 ? h('div', { className: 'kbth-empty' }, 'Aucun thème à vous pour l’instant. Réglez l’apparence puis « Enregistrer », importez un fichier dans ', toSharing, ', ou installez-en un depuis la ', toGallery, '.') : null),
+          themeSummary,
+          S.skin === 'dsh' ? h('div', { className: 'kbth-hint' }, '« Défaut DSH » retire la couche de jetons : l’apparence native repasse telle quelle.') : null)
+
         const apparence = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, 'Apparence'),
@@ -2078,22 +2603,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               h('strong', null, 'Conflit de thème : '),
               'Un autre plugin (« ' + themeTiers + ' ») contrôle le mode clair/sombre. ',
               'Désactivez-le dans son propre panneau pour que ce réglage s’applique.') : null),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
-            h('span', { className: 'kbth-lb' }, 'Thème'),
-            h('div', { className: 'kbth-skins' },
-              SKINS.map((sk) => h('button', {
-                key: sk.id, type: 'button', className: 'kbth-skin',
-                'aria-pressed': S.skin === sk.id ? 'true' : 'false',
-                title: sk.name + ' — ' + skinMeta(sk),
-                'aria-label': sk.name + ' — ' + skinMeta(sk),
-                onClick: () => commit(skinPatch(sk)),
-              },
-                h('span', { className: 'kbth-skin-dot', style: { background: skinDot(sk) } }),
-                h('span', { className: 'kbth-skin-name' }, sk.name)))),
-            h('div', { className: 'kbth-hint kbth-skin-current' },
-              'Thème : ' + (SKINS.find((x) => x.id === S.skin) || { name: 'Personnalisé' }).name +
-              (SKINS.find((x) => x.id === S.skin) === undefined ? '' : ' — ' + skinMeta(SKINS.find((x) => x.id === S.skin))) +
-              '. « Défaut DSH » retire la couche de jetons : l’apparence native repasse telle quelle.')))
+          themeBlock)
 
         // ── Simple : couleur ────────────────────────────────────────────────
         const accentHex = S.acc === null ? c.brand : S.acc
@@ -2106,7 +2616,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-acc' },
               h('label', { className: 'kbth-sw', style: { background: accentHex }, title: 'Pipette' },
                 h('input', { type: 'color', value: accentHex, 'aria-label': 'Choisir la couleur d’accent',
-                  onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value, skin: 'custom' }) } })),
+                  onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value }) } })),
               h('label', { className: 'kbth-hex' + (hexDraft !== null && !validHex(hexDraft) ? ' bad' : '') },
                 h('span', null, '#'),
                 h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': 'Code hexadécimal',
@@ -2114,7 +2624,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                     const v = e.target.value
                     setHexDraft(v)
                     const p = HEX(v)
-                    if (p !== null) commit({ acc: toHex(p), skin: 'custom' })
+                    if (p !== null) commit({ acc: toHex(p) })
                   } })),
               S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button',
                 onClick: () => { setHexDraft(null); commit({ acc: null }) } }, 'Rétablir') : null)),
@@ -2123,7 +2633,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               key: a, type: 'button', className: 'kbth-dot', style: { background: a },
               'aria-pressed': S.acc !== null && S.acc.toLowerCase() === a.toLowerCase() ? 'true' : 'false',
               title: a, 'aria-label': 'Accent ' + a,
-              onClick: () => { setHexDraft(null); commit({ acc: a, skin: 'custom' }) } }))))
+              onClick: () => { setHexDraft(null); commit({ acc: a }) } }))))
         // P2-8 (chasse Settings 27/09) : les ratios WCAG restent en vue
         // Avancé — en Simple, ce jargon de contraste n'a rien à faire.
         const ratiosAccent = h('div', { className: 'kbth-hint' },
@@ -2158,7 +2668,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             fonds.map((w) => h('button', {
               key: w.id, type: 'button', className: 'kbth-wp',
               'aria-pressed': S.wp === w.id ? 'true' : 'false', title: w.name,
-              onClick: () => commit({ wp: w.id, skin: 'custom' }) },
+              onClick: () => commit({ wp: w.id }) },
               h('span', { className: 'kbth-wp-band', style: { background: w.css } }),
               h('span', { className: 'kbth-wp-name', title: w.name }, w.name)))),
           wpo.id !== 'none' ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } },
@@ -2186,7 +2696,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           { id: 'texte', label: 'Texte et forme' },
           { id: 'animation', label: 'Animation' },
           { id: 'accessibilite', label: 'Accessibilité' },
-          { id: 'partage', label: 'Partage' }
+          { id: 'partage', label: 'Partage' },
+          { id: 'galerie', label: 'Galerie' }
         ]
 
         // Toggle switch réutilisable
@@ -2275,20 +2786,20 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-acc' },
               h('label', { className: 'kbth-sw', style: { background: accentHex }, title: 'Pipette' },
                 h('input', { type: 'color', value: accentHex, 'aria-label': 'Choisir la couleur d’accent',
-                  onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value, skin: 'custom' }) } })),
+                  onInput: (e) => { setHexDraft(null); commit({ acc: e.target.value }) } })),
               h('div', { className: 'kbth-dots' },
                 ACCS.map((a) => h('button', {
                   key: a, type: 'button', className: 'kbth-dot', style: { background: a },
                   'aria-pressed': S.acc !== null && S.acc.toLowerCase() === a.toLowerCase() ? 'true' : 'false',
                   title: a, 'aria-label': 'Accent ' + a,
-                  onClick: () => { setHexDraft(null); commit({ acc: a, skin: 'custom' }) } }))))),
+                  onClick: () => { setHexDraft(null); commit({ acc: a }) } }))))),
           h('div', { className: 'kbth-row' },
             h('span', { className: 'kbth-lb' }, 'Valeur exacte'),
             h('div', { className: 'kbth-acc' },
               h('label', { className: 'kbth-hex' + (hexDraft !== null && !validHex(hexDraft) ? ' bad' : '') },
                 h('span', null, '#'),
                 h('input', { value: hexShown, maxLength: 7, spellCheck: false, 'aria-label': 'Code hexadécimal',
-                  onInput: (e) => { const v = e.target.value; setHexDraft(v); const p = HEX(v); if (p !== null) commit({ acc: toHex(p), skin: 'custom' }) } })),
+                  onInput: (e) => { const v = e.target.value; setHexDraft(v); const p = HEX(v); if (p !== null) commit({ acc: toHex(p) }) } })),
               S.acc !== null ? h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ acc: null }) } }, 'Neutre DSH') : null)),
           // Rampe de couleurs
           h('div', { className: 'kbth-ramp' },
@@ -2342,7 +2853,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                   title: (m === 'light' ? 'Clair' : 'Sombre') + ' — pipette' },
                   h('input', { type: 'color', value: m === 'light' ? selClair : selSombre,
                     'aria-label': sel[1] + ' (' + (m === 'light' ? 'clair' : 'sombre') + ')',
-                    onInput: (e) => commit({ ov: { ...S.ov, [m + ':' + sel[0]]: e.target.value }, skin: 'custom' }) })),
+                    onInput: (e) => commit({ ov: { ...S.ov, [m + ':' + sel[0]]: e.target.value } }) })),
                 h('span', { className: 'kbth-adv-swatch-label' }, m === 'light' ? 'Clair' : 'Sombre')))),
             modifie ? h('button', { className: 'kbth-btn', type: 'button', style: { width: 'max-content' },
               onClick: () => { const ov = { ...S.ov }; delete ov['light:' + sel[0]]; delete ov['dark:' + sel[0]]; commit({ ov }) } }, 'Rétablir') : null))
@@ -2414,57 +2925,215 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           toggle('Soulignement des liens', S.underlineLinks, () => commit({ underlineLinks: !S.underlineLinks })),
           toggle('Palette daltonisme', S.cbSafe, () => commit({ cbSafe: !S.cbSafe }), 'Succès et erreurs en bleu et orange plutôt qu’en vert et rouge.'))
 
-        // ── Onglet Partage ─────────────────────────────────────────────────
+        // ── Sharing tab: your themes, import, and the file of the current look ───────────
+        const importThemeFile = (file) => {
+          if (file.size > PRESET_FILE_MAX) { setLibNote({ ok: false, text: 'Fichier trop gros : un thème fait quelques Ko. Rien n’a été modifié.' }); return }
+          const reader = new FileReader()
+          reader.onload = () => {
+            const r = presetFromFileText(String(reader.result))
+            if (r.ok !== true) { setLibNote({ ok: false, text: 'Fichier non reconnu : seul un fichier de thème Kybernos (.json) est accepté. Rien n’a été modifié.' }); return }
+            const rec = libAdd(r.name, 'file', r.settings, r.author !== undefined ? { author: r.author } : undefined)
+            setLibNote(rec === null
+              ? { ok: false, text: 'La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprimez-en un d’abord.' }
+              : { ok: true, text: '« ' + rec.name + ' » est dans Mes thèmes' + (r.legacy ? ' (ancien fichier : tout le réglage est repris)' : '') + '. Il n’est pas appliqué.' })
+          }
+          reader.readAsText(file)
+        }
+        const libRow = (rec) => {
+          const cur = S.skin === rec.id
+          const renaming = renameId === rec.id
+          const deleting = delId === rec.id
+          const showing = expId === rec.id
+          const sk = presetAsSkin(rec)
+          const doRename = () => {
+            const name = presetName(renameDraft)
+            if (name === '') { setLibNote({ ok: false, text: 'Donnez un nom au thème.' }); return }
+            if (libNameTaken(name, rec.id)) { setLibNote({ ok: false, text: 'Ce nom existe déjà. Choisissez-en un autre.' }); return }
+            libPatch(rec.id, { name }); setRenameId(null); setLibNote(null)
+          }
+          const acts = renaming
+            ? [h('button', { key: 'ok', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-rename-ok', onClick: doRename }, 'OK'),
+              h('button', { key: 'no', type: 'button', className: 'kbth-btn', onClick: () => setRenameId(null) }, 'Annuler')]
+            : (deleting
+              ? [h('span', { key: 'q', className: 'kbth-hint' }, 'Supprimer « ' + rec.name + ' » ?'),
+                h('button', { key: 'y', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete-yes', onClick: () => { libRemove(rec.id); setDelId(null); setLibNote({ ok: true, text: '« ' + rec.name + ' » supprimé.' }) } }, 'Supprimer'),
+                h('button', { key: 'n', type: 'button', className: 'kbth-btn', onClick: () => setDelId(null) }, 'Garder')]
+              : [cur ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-apply', onClick: () => { setLibNote(null); applyMine(rec) } }, 'Appliquer'),
+                h('button', { key: 'e', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-export-one', 'aria-expanded': showing ? 'true' : 'false', onClick: () => setExpId(showing ? null : rec.id) }, 'Exporter'),
+                h('button', { key: 'r', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-rename', onClick: () => { setRenameId(rec.id); setRenameDraft(rec.name); setDelId(null) } }, 'Renommer'),
+                h('button', { key: 'd', type: 'button', className: 'kbth-btn kbth-danger kbth-gr-err', 'data-kb': 'theme-delete', onClick: () => { setDelId(rec.id); setRenameId(null) } }, 'Supprimer')])
+          const file = presetFile(rec)
+          return h(React.Fragment, { key: rec.id },
+            h('div', { className: 'kbth-trow', 'data-kb': 'theme-row', 'data-id': rec.id },
+              h('span', { className: 'kbth-skin-dot', style: { background: skinDot(sk) } }),
+              h('div', { className: 'kbth-trow-tx' },
+                h('div', { className: 'kbth-trow-n' },
+                  renaming
+                    ? h('input', { className: 'kbth-in', style: { width: 190 }, value: renameDraft, maxLength: PRESET_NAME_MAX, 'aria-label': 'Nouveau nom', 'data-kb': 'theme-rename-in',
+                      onInput: (e) => setRenameDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doRename() } else if (e.key === 'Escape') { e.stopPropagation(); setRenameId(null) } } })
+                    : [h('span', { key: 'n' }, rec.name),
+                      cur ? h('span', { key: 'c', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, 'appliqué') : null,
+                      h('span', { key: 's', className: 'kbth-pill' }, rec.source === 'gallery' ? 'Galerie' + (rec.author !== undefined ? ' · ' + rec.author : '') : (rec.source === 'file' ? 'importé' : 'à vous'))]),
+                h('div', { className: 'kbth-trow-m' }, skinMeta(sk) + ' · retient : ' + Object.keys(PRESET_GROUPS).filter((g) => groupsOf(rec.settings)[g]).map((g) => PRESET_GROUP_LABELS[g].toLowerCase()).join(', '))),
+              h('div', { className: 'kbth-trow-a' }, acts)),
+            showing ? h('div', { className: 'kbth-exp' },
+              h('div', { className: 'kbth-row', style: { justifyContent: 'space-between' } },
+                h('span', { className: 'kbth-hint' }, 'theme-' + fileSlug(rec.name) + '.json · à partager ou à versionner'),
+                h('div', { className: 'kbth-row', style: { gap: 6 } },
+                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-copy-one', onClick: () => { try { navigator.clipboard.writeText(file) } catch (e) { /* clipboard unavailable */ } } }, 'Copier'),
+                  h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-download-one', onClick: () => { if (!downloadText('theme-' + fileSlug(rec.name) + '.json', file)) setLibNote({ ok: false, text: 'Le téléchargement a échoué : utilisez Copier.' }) } }, 'Télécharger'))),
+              h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-file' }, file)) : null)
+        }
+
         const exportFormats = [['yaml', 'YAML'], ['json', 'JSON'], ['css', 'CSS']]
         const exportBody = exportTexte(exportFmt, S)
-        const advPartage = h('div', { className: 'kbth-sec' },
+        const advPartage = h('div', { className: 'kbth-sec', style: { gap: 22 } },
+          h('div', { className: 'kbth-sec' },
+            h('div', { className: 'kbth-sec-h' },
+              h('div', { className: 'kbth-sec-t' }, 'Mes thèmes'),
+              h('div', { className: 'kbth-sec-d' }, 'Les thèmes que vous avez enregistrés ou importés.')),
+            libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
+            lib.presets.length > 0
+              ? h('div', { className: 'kbth-lib', 'data-kb': 'theme-lib' }, lib.presets.map(libRow))
+              : h('div', { className: 'kbth-state', 'data-kb': 'theme-lib-empty' },
+                h('div', { className: 'kbth-sec-t' }, 'Aucun thème à vous'),
+                h('div', { className: 'kbth-sec-d' }, 'Réglez l’apparence dans Essentiel puis enregistrez-la, ou importez un fichier ci-dessous.')),
+            h('div', { className: 'kbth-row' },
+              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-sharing', onClick: openSave }, 'Enregistrer l’état actuel…'),
+              lib.hostState === 'off' && ldHostOn() ? h('span', { className: 'kbth-hint' }, 'Le disque de DSH ne répond pas : vos thèmes restent dans ce navigateur.') : null)),
+          h('div', { className: 'kbth-sec' },
+            h('div', { className: 'kbth-sec-h' },
+              h('div', { className: 'kbth-sec-t' }, 'Importer'),
+              h('div', { className: 'kbth-sec-d' }, 'Un fichier de thème (.json) s’ajoute à Mes thèmes. Il ne change rien tant que vous ne cliquez pas sur Appliquer. Un ancien fichier d’état complet devient lui aussi un thème.')),
+            h('div', { className: 'kbth-row' },
+              h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, 'Choisir un fichier .json',
+                h('input', { type: 'file', accept: '.json,application/json', 'data-kb': 'theme-import', style: { display: 'none' }, onChange: (e) => {
+                  const input = e.target
+                  const file = input.files && input.files[0]
+                  if (!file) return
+                  importThemeFile(file)
+                  input.value = ''
+                } })))),
+          h('details', { className: 'kbth-fold', 'data-kb': 'theme-export-fold' },
+            h('summary', null, 'Exporter l’état actuel'),
+            h('div', { className: 'kbth-sec', style: { marginTop: 10 } },
+              h('div', { className: 'kbth-sec-d' }, 'Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un thème enregistré, utilisez « Exporter » sur sa ligne.'),
+              h('div', { className: 'kbth-row' },
+                h('span', { className: 'kbth-lb' }, 'Format'),
+                seg({ items: exportFormats.map((f) => ({ id: f[0], label: f[1], on: exportFmt === f[0], tap: () => setExportFmt(f[0]) })) }),
+                h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-copy', onClick: () => {
+                  try { navigator.clipboard.writeText(exportBody) } catch (e) { /* clipboard unavailable */ }
+                } }, 'Copier')),
+              h('div', { className: 'kbth-export-preview' },
+                h('div', { className: 'kbth-export-bar' },
+                  h('span', null, 'dsh-theme.' + (exportFmt === 'yaml' ? 'yml' : exportFmt)),
+                  h('span', { 'data-kb': 'theme-export-lines' }, exportBody.split('\n').length + ' lignes')),
+                h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-export' }, exportBody)))),
+          h('div', { className: 'kbth-sec' },
+            h('div', { className: 'kbth-sec-h' },
+              h('div', { className: 'kbth-sec-t' }, 'Réinitialiser'),
+              h('div', { className: 'kbth-sec-d' }, 'Revenir aux valeurs par défaut du harness. Vos thèmes enregistrés restent dans Mes thèmes.')),
+            h('div', { className: 'kbth-row' },
+              h('span', { className: 'kbth-lb' }, 'Tous les réglages de thème'),
+              h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, 'Réinitialiser'))))
+
+        // ── Gallery tab ───────────────────────────────────────────────────────────────────
+        const lang = kbLang()
+        const startTrial = (t) => {
+          setLibNote(null)
+          if (trialRef.current === null) { const t0 = { id: t.id, name: t.name, prev: { ...S } }; trialRef.current = t0; setTrial(t0) } else { const t1 = { ...trialRef.current, id: t.id, name: t.name }; trialRef.current = t1; setTrial(t1) }
+          setHexDraft(null)
+          commit({ skin: 'try-' + t.id, ...t.settings }, false, true)
+        }
+        const endTrial = () => { const t = trialRef.current; if (t === null) return; setHexDraft(null); commit(t.prev, true) }
+        const installTheme = (t) => {
+          const rec = galInstall(t)
+          if (rec === null) { setLibNote({ ok: false, text: 'La bibliothèque est pleine (' + PRESET_LIMIT + ' thèmes). Supprimez-en un dans Partage.' }); return }
+          setHexDraft(null)
+          commit({ skin: rec.id, ...rec.settings })
+          setLibNote({ ok: true, text: '« ' + rec.name + ' » est installé et appliqué. Il est dans Mes thèmes.' })
+        }
+        const updateTheme = (t, rec) => {
+          galUpdate(t, rec)
+          if (S.skin === rec.id) commit({ ...t.settings })
+          setLibNote({ ok: true, text: '« ' + rec.name + ' » est à jour (version ' + t.v + ').' })
+        }
+        const trialBar = trial === null ? null : h('div', { className: 'kbth-trial', role: 'status', 'data-kb': 'theme-trial' },
+          h('span', null, 'Essai de ', h('b', null, trial.name), '. Rien n’est enregistré.'),
+          h('span', { className: 'kbth-trial-sp' }),
+          h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-trial-install', onClick: () => { const t = gal.data === null ? null : gal.data.themes.find((x) => x.id === trial.id); if (t) installTheme(t) } }, 'Installer'),
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'theme-trial-end', onClick: endTrial }, 'Revenir à mon thème'))
+
+        const galThumb = (t) => {
+          const m = (t.settings.mode === 'light' || t.settings.mode === 'dark') ? t.settings.mode : (dark ? 'dark' : 'light')
+          const g = makeTheme(m, { acc: t.settings.acc === undefined ? null : t.settings.acc, ov: t.settings.ov || {}, lvl: 0, cb: false, tint: 0, dom: '' })
+          const r = Math.round(5 * (RADIUS_ECHELLE[t.settings.radius] === undefined ? 1 : RADIUS_ECHELLE[t.settings.radius]))
+          return h('div', { className: 'kbth-thumb', 'aria-hidden': 'true', style: { background: g.base, borderColor: g.b2 } },
+            h('div', { className: 'kbth-thumb-s', style: { background: g.side } },
+              h('i', { style: { width: '70%', background: g.t3 } }), h('i', { style: { width: '55%', background: g.t4 } }), h('i', { style: { width: '62%', background: g.t4 } })),
+            h('div', { className: 'kbth-thumb-c' },
+              h('i', { style: { width: '48%', height: 7, background: g.t1 } }), h('i', { style: { width: '78%', background: g.t3 } }),
+              h('div', { className: 'kbth-thumb-in', style: { background: g.input, borderColor: g.b2, borderRadius: r } }),
+              h('div', { className: 'kbth-thumb-bt', style: { background: g.fill, borderRadius: r } })))
+        }
+        const galCard = (t) => {
+          const inst = galInstalled(t.id)
+          const trying = trial !== null && trial.id === t.id
+          const sk = galAsSkin(t)
+          const newer = inst !== null && (inst.v === undefined ? 1 : inst.v) < t.v
+          const foot = inst !== null
+            ? [h('span', { key: 'i', className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, 'Installé'),
+              newer ? h('button', { key: 'u', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-update', onClick: () => updateTheme(t, inst) }, 'Mettre à jour')
+                : (S.skin === inst.id ? null : h('button', { key: 'a', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-gal-apply', onClick: () => { setLibNote(null); setHexDraft(null); applyMine(inst) } }, 'Appliquer'))]
+            : [h('button', { key: 'i', type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-install', onClick: () => installTheme(t) }, 'Installer'),
+              h('button', { key: 't', type: 'button', className: 'kbth-btn', 'data-kb': 'theme-gal-try', disabled: trying, onClick: () => startTrial(t) }, trying ? 'En essai' : 'Essayer')]
+          return h('article', { key: t.id, className: 'kbth-card', 'data-kb': 'theme-gal-card', 'data-id': t.id, 'aria-label': t.name },
+            galThumb(t),
+            h('div', { className: 'kbth-card-b' },
+              h('div', { className: 'kbth-card-n' }, t.name),
+              // « par » and the name are two text nodes: the page's English dictionary translates the first and leaves the author alone
+              t.author !== '' ? h('div', { className: 'kbth-card-a' }, 'par ', t.author) : null,
+              (t.description[lang] || t.description.fr || t.description.en) !== '' ? h('div', { className: 'kbth-card-d' }, t.description[lang] || t.description.fr || t.description.en) : null,
+              h('div', { className: 'kbth-card-m' }, skinMeta(sk)),
+              h('div', { className: 'kbth-card-f' }, foot)))
+        }
+        const galBody = () => {
+          if (gal.state === 'idle' || gal.state === 'loading') {
+            return h('div', { className: 'kbth-gal', 'aria-hidden': 'true', 'data-kb': 'theme-gal-loading' }, [0, 1, 2, 3, 4, 5].map((i) => h('div', { key: i, className: 'kbth-sk' })))
+          }
+          if (gal.state === 'error' || gal.data === null) {
+            return h('div', { className: 'kbth-state', role: 'alert', 'data-kb': 'theme-gal-error' },
+              h('div', { className: 'kbth-sec-t' }, 'Impossible de lire la galerie'),
+              h('div', { className: 'kbth-sec-d' }, 'Elle est lue par DSH, pas par la page. Si le plugin vient d’être mis à jour, redémarrez DSH. Vos thèmes restent disponibles dans Partage.'),
+              h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-gal-retry', onClick: () => { galLoad() } }, 'Réessayer'))
+          }
+          const q = galQ.trim().toLowerCase()
+          const list = gal.data.themes.filter((t) => (galF === 'all' || t.settings.mode === galF) && (q === '' || (t.name + ' ' + t.author + ' ' + (t.description[lang] || t.description.fr)).toLowerCase().indexOf(q) >= 0))
+          const o = gal.data.online
+          const onlineText = galOnlineText(o)
+          return h(React.Fragment, null,
+            h('div', { className: 'kbth-src', 'data-kb': 'theme-gal-source' },
+              gal.data.source === 'signed' ? h('span', { className: 'kbth-tone kbth-tone-on kbth-gr-ok' }, 'Catalogue signé') : h('span', { className: 'kbth-pill' }, 'Livré avec Kybernos'),
+              h('span', null, gal.data.themes.length + (gal.data.themes.length > 1 ? ' thèmes' : ' thème')),
+              o.state !== 'off' && !(o.state === 'refused' && o.reason === 'no-key')
+                ? h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-gal-refresh', disabled: gal.refreshing, onClick: () => { galRefresh() } }, gal.refreshing ? 'Actualisation…' : 'Actualiser') : null),
+            onlineText !== '' ? h('div', { className: 'kbth-hint', 'data-kb': 'theme-gal-online' }, onlineText) : null,
+            h('div', { className: 'kbth-gbar' },
+              h('input', { className: 'kbth-search', type: 'search', value: galQ, placeholder: 'Rechercher un thème, un auteur', 'aria-label': 'Rechercher un thème', 'data-kb': 'theme-gal-q', onInput: (e) => setGalQ(e.target.value) }),
+              seg({ items: [['all', 'Tous'], ['light', 'Clair'], ['dark', 'Sombre']].map((f) => ({ id: f[0], label: f[1], on: galF === f[0], tap: () => setGalF(f[0]) })) })),
+            list.length === 0
+              ? h('div', { className: 'kbth-state', 'data-kb': 'theme-gal-none' },
+                h('div', { className: 'kbth-sec-t' }, gal.data.themes.length === 0 ? 'La galerie est vide' : 'Aucun thème ne correspond'),
+                h('div', { className: 'kbth-sec-d' }, gal.data.themes.length === 0 ? 'Aucun thème n’est publié pour l’instant.' : 'Essayez un autre mot, ou affichez tous les modes.'),
+                gal.data.themes.length === 0 ? null : h('button', { type: 'button', className: 'kbth-btn', onClick: () => { setGalQ(''); setGalF('all') } }, 'Effacer la recherche'))
+              : h('div', { className: 'kbth-gal', 'data-kb': 'theme-gal' }, list.map(galCard)))
+        }
+        const advGalerie = h('div', { className: 'kbth-sec', style: { gap: 14 } },
           h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Exporter'),
-            h('div', { className: 'kbth-sec-d' }, 'Un fichier à partager ou à versionner. Le JSON se réimporte ici.')),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Format'),
-            seg({ items: exportFormats.map((f) => ({ id: f[0], label: f[1], on: exportFmt === f[0], tap: () => setExportFmt(f[0]) })) }),
-            h('button', { className: 'kbth-btn', type: 'button', 'data-kb': 'theme-copy', onClick: () => {
-              try { navigator.clipboard.writeText(exportBody) } catch (e) { /* clipboard indisponible */ }
-            } }, 'Copier')),
-          h('div', { className: 'kbth-export-preview' },
-            h('div', { className: 'kbth-export-bar' },
-              h('span', null, 'dsh-theme.' + (exportFmt === 'yaml' ? 'yml' : exportFmt)),
-              h('span', { 'data-kb': 'theme-export-lines' }, exportBody.split('\n').length + ' lignes')),
-            h('pre', { className: 'kbth-export-code', 'data-kb': 'theme-export' }, exportBody)),
-          h('div', { style: { height: 16 } }),
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Importer'),
-            h('div', { className: 'kbth-sec-d' }, 'Un fichier de thème exporté en JSON.')),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Fichier'),
-            h('label', { className: 'kbth-btn', style: { cursor: 'pointer' } }, 'Déposer un fichier .json',
-              h('input', { type: 'file', accept: '.json', 'data-kb': 'theme-import', style: { display: 'none' }, onChange: (e) => {
-                const input = e.target
-                const file = input.files && input.files[0]
-                if (!file) return
-                const reader = new FileReader()
-                reader.onload = () => {
-                  let patch = null
-                  try { patch = sanitiserImport(JSON.parse(String(reader.result))) } catch (err) { patch = null }
-                  if (patch === null || Object.keys(patch).length === 0) {
-                    setImportNote({ ok: false, text: 'Fichier non reconnu : seul un fichier .json au format de ce thème est accepté. Rien n’a été modifié.' })
-                  } else {
-                    setHexDraft(null); commit(patch)
-                    setImportNote({ ok: true, text: 'Thème importé et appliqué.' })
-                  }
-                }
-                reader.readAsText(file)
-                input.value = ''
-              } }))),
-          importNote !== null ? h('div', { className: 'kbth-hint', role: 'status', 'data-kb': 'theme-import-note', style: { color: importNote.ok ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-state-error-primary)' } }, importNote.text) : null,
-          h('div', { style: { height: 16 } }),
-          h('div', { className: 'kbth-sec-h' },
-            h('div', { className: 'kbth-sec-t' }, 'Réinitialiser'),
-            h('div', { className: 'kbth-sec-d' }, 'Revenir aux valeurs par défaut du harness.')),
-          h('div', { className: 'kbth-row' },
-            h('span', { className: 'kbth-lb' }, 'Tous les réglages de thème'),
-            h('button', { className: 'kbth-btn', type: 'button', onClick: () => { setHexDraft(null); commit({ ...DEF }, true) } }, 'Réinitialiser')))
+            h('div', { className: 'kbth-sec-t' }, 'Galerie de thèmes'),
+            h('div', { className: 'kbth-sec-d' }, 'Un thème n’est qu’un fichier de réglages : il ne contient aucun code et ne charge rien d’extérieur. Installez-le, ou essayez-le d’abord.')),
+          libNote !== null ? h('div', { className: libNote.ok ? 'kbth-ok kbth-gr-ok' : 'kbth-bad kbth-gr-err', role: 'status', 'data-kb': 'theme-note' }, libNote.text) : null,
+          galBody())
 
         // ── Assemblage Avancé avec sous-onglets ────────────────────────────
         const ADV_CONTENT = {
@@ -2474,8 +3143,32 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           couleurs: advCouleurs,
           texte: advTexte,
           accessibilite: advAccessibilite,
-          partage: advPartage
+          partage: advPartage,
+          galerie: advGalerie
         }
+        const groupToggle = (g, hint) => ldToggle(PRESET_GROUP_LABELS[g], saveDlg.groups[g] === true, () => setSaveDlg({ ...saveDlg, groups: { ...saveDlg.groups, [g]: !saveDlg.groups[g] } }), hint)
+        const saveModal = saveDlg === null ? null : h(ThemeModal, { labelId: 'kbth-save-t', kb: 'theme-save-dlg', onClose: () => setSaveDlg(null) },
+          h('div', { className: 'kbth-mhd' },
+            h('h3', { id: 'kbth-save-t' }, 'Enregistrer comme thème'),
+            h('button', { type: 'button', className: 'kbth-mx', 'aria-label': 'Fermer', onClick: () => setSaveDlg(null) }, '×')),
+          h('div', { className: 'kbth-mbody' },
+            h('div', { className: 'kbth-sec', style: { gap: 6 } },
+              h('label', { className: 'kbth-lb', htmlFor: 'kbth-save-name', style: { width: 'auto' } }, 'Nom'),
+              h('input', {
+                id: 'kbth-save-name', className: 'kbth-in' + (saveDlg.error !== '' ? ' bad' : ''), value: saveDlg.name, maxLength: PRESET_NAME_MAX, autoComplete: 'off', 'data-kb': 'theme-save-name',
+                'aria-invalid': saveDlg.error !== '' ? 'true' : 'false',
+                onInput: (e) => setSaveDlg({ ...saveDlg, name: e.target.value, error: '' }),
+                onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); doSave() } } }),
+              saveDlg.error !== '' ? h('div', { className: 'kbth-bad kbth-gr-err', role: 'alert', 'data-kb': 'theme-save-error' }, saveDlg.error) : null),
+            h('div', { className: 'kbth-sec', style: { gap: 4 } },
+              h('div', { className: 'kbth-sec-t' }, 'Ce que le thème retient'),
+              h('div', { className: 'kbth-hint' }, 'Les couleurs et l’accent sont toujours retenus.'),
+              groupToggle('font'), groupToggle('radius'), groupToggle('glass'),
+              groupToggle('a11y', 'Contraste, palette daltonien, cibles larges : ce sont vos besoins, pas un style. Décoché, un thème ne les change jamais.'))),
+          h('div', { className: 'kbth-mft' },
+            h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, 'Annuler'),
+            h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', onClick: doSave }, 'Enregistrer')))
+
         // Une seule page : les sept onglets restent toujours là, « Essentiel » s'ouvre par défaut.
         const reglages = h('div', { className: 'kbth-sec' },
           // Onglets empilés VERTICALEMENT à gauche, contenu à droite.
@@ -2486,10 +3179,12 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 'aria-pressed': advTab === t.id ? 'true' : 'false',
                 onClick: () => setAdvTab(t.id) }, t.label))),
             h('div', { className: 'kbth-adv-pane' },
+              trialBar,
               ADV_CONTENT[advTab] || advCouleurs)))
 
         // ── assemblage — une seule colonne (l'aperçu latéral a été retiré) ────────
         return h(React.Fragment, null,
+          saveModal,
           h('div', { className: 'kbth-page' },
             // Colonne principale
             h('div', { className: 'kbth-main' },
@@ -2537,6 +3232,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
           ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page,
+          PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
+          gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
+          presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,
         },
         apply(ctx) {
           // (01/10) Libellé selon l'état de langue courant. La langue n'est
@@ -2618,6 +3316,9 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             // on la trace pour rester diagnosticable.
             try { console.error('[kybernos-theme] application initiale échouée', e) } catch (e2) { /* console indisponible */ }
           }
+
+          // « My themes »: the disk copy, once the page is up. Never a reason for DSH not to start.
+          try { setTimeout(() => { libPull(true) }, 900) } catch (e) { /* no timers */ }
 
           // L'animation du statut du bas : défensif de bout en bout (un échec ici ne touche pas DSH).
           try {

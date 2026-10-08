@@ -642,9 +642,9 @@ console.log('host plugin (index.js) with a fake ctx')
     try { apply(ctx) } catch (e) { threw = e }
     check('apply does not throw', threw === null)
     check('it waits for the webServer service (ctx.inject([\'webServer\']))', JSON.stringify(ctx.injected) === JSON.stringify(['webServer']))
-    check('it registers exactly two exact routes', registered.length === 2 && registered.every((r) => r.kind === 'exact' && typeof r.handler === 'function') && registered.map((r) => r.path).sort().join() === [ROUTES.lottie, ROUTES.store].sort().join(), JSON.stringify(registered.map((r) => r.path)))
-    check('the paths are the documented ones', ROUTES.store === '/kybernos-theme/loader-store' && ROUTES.lottie === '/kybernos-theme/vendor/lottie.js')
-    check('each registration goes through ctx.effect, with a label', effects.length === 2 && effects.every((l) => typeof l === 'string' && l.startsWith('kybernos-theme:')), effects.join())
+    check('it registers exactly four exact routes (loader store, theme library, gallery, Lottie)', registered.length === 4 && registered.every((r) => r.kind === 'exact' && typeof r.handler === 'function') && registered.map((r) => r.path).sort().join() === [ROUTES.gallery, ROUTES.lottie, ROUTES.presets, ROUTES.store].sort().join(), JSON.stringify(registered.map((r) => r.path)))
+    check('the paths are the documented ones', ROUTES.store === '/kybernos-theme/loader-store' && ROUTES.presets === '/kybernos-theme/preset-store' && ROUTES.gallery === '/kybernos-theme/gallery' && ROUTES.lottie === '/kybernos-theme/vendor/lottie.js')
+    check('each registration goes through ctx.effect, with a label', effects.length === 4 && effects.every((l) => typeof l === 'string' && l.startsWith('kybernos-theme:')), effects.join())
 
     const store = registered.find((r) => r.path === ROUTES.store).handler
     let res = await send(store, { method: 'POST', headers: sameOrigin, body: { op: 'put-loader', loader: rec({ id: 'host1' }) } })
@@ -711,11 +711,11 @@ console.log('host plugin (index.js) with a fake ctx')
     threw = null
     try { apply(boom.ctx) } catch (e) { threw = e }
     check('a register that throws does not escape apply', threw === null && errors.length >= 1, errors.join(' | '))
-    check('… each route is tried on its own (both reported)', errors.filter((e) => /not mounted/.test(e)).length === 2, errors.join(' | '))
+    check('… each route is tried on its own (all four reported)', errors.filter((e) => /not mounted/.test(e)).length === 4, errors.join(' | '))
     const first = fakeCtx({ throwOn: (r) => r.path === ROUTES.store })
     threw = null
     try { apply(first.ctx) } catch (e) { threw = e }
-    check('one failing route does not stop the other', threw === null && first.registered.length === 1 && first.registered[0].path === ROUTES.lottie)
+    check('one failing route does not stop the others', threw === null && first.registered.length === 3 && first.registered.every((r) => r.path !== ROUTES.store) && first.registered.some((r) => r.path === ROUTES.lottie))
     threw = null
     try { apply(fakeCtx({ injectThrows: true }).ctx) } catch (e) { threw = e }
     check('ctx.inject throwing does not escape apply', threw === null)
