@@ -12,8 +12,15 @@ let echecs = 0
 let total = 0
 const verifie = (nom, ok, detail = '') => { total++; if (ok) console.log('  ✓ ' + nom); else { echecs++; console.log('  ✗ ' + nom + (detail ? ' — ' + detail : '')) } }
 
-const bundles = readdirSync(join(REPO, BASE_BUNDLES)).filter((d) => statSync(join(REPO, BASE_BUNDLES, d)).isDirectory())
-verifie('every bundle has a package.json', bundles.every((d) => existsSync(join(REPO, BASE_BUNDLES, d, 'package.json'))))
+const dossiers = readdirSync(join(REPO, BASE_BUNDLES)).filter((d) => statSync(join(REPO, BASE_BUNDLES, d)).isDirectory())
+const aPackageJson = (...chemin) => existsSync(join(REPO, BASE_BUNDLES, ...chemin, 'package.json'))
+const sousDossiers = (d) => readdirSync(join(REPO, BASE_BUNDLES, d)).filter((f) => statSync(join(REPO, BASE_BUNDLES, d, f)).isDirectory())
+// A container (dsh-subagent-maison: one shared core and one package per provider) has no package.json of
+// its own; the packages nested in it do. Everything else directly under packages/ is a bundle.
+const conteneurs = dossiers.filter((d) => !aPackageJson(d) && sousDossiers(d).some((f) => aPackageJson(d, f)))
+const bundles = dossiers.filter((d) => !conteneurs.includes(d))
+verifie('every bundle has a package.json', bundles.every((d) => aPackageJson(d)), bundles.filter((d) => !aPackageJson(d)).join(', '))
+verifie('every package nested in a container has a package.json', conteneurs.every((d) => sousDossiers(d).every((f) => aPackageJson(d, f))), conteneurs.flatMap((d) => sousDossiers(d).filter((f) => !aPackageJson(d, f)).map((f) => d + '/' + f)).join(', '))
 
 // 1. No bundle-level file may take "one level up" as the repo root.
 const suspects = []

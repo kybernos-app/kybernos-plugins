@@ -698,15 +698,18 @@ window.__ModuleLoader__.load({
     }
     /** The line under a failed connection, from the stable code the server gave. */
     const kbCpFailedText = (failure, app) => kbt('kb.cp.kc.failed.' + (failure === 'refused' || failure === 'upstream' ? failure : 'unknown')).replace('{app}', app)
-    /** The apps of the server's catalogue that match a search; at most `max`, the exact starts first. */
+    /**
+     * The apps of the server's catalogue that match a search; at most `max`. The ones whose name starts with it come first and,
+     * among equals, the apps that connect in one click (the server manages their sign-in: about 120 of 1,600) come before the
+     * ones that need the person's own API key. Without a search that is the order of the first page.
+     */
     const kbCpAppsMatch = (apps, query, max) => {
       const needle = kbCpSquash(query)
       const list = Array.isArray(apps) ? apps : []
-      if (needle.length === 0) return list.slice(0, max)
-      const hit = (a) => kbCpSquash(String(a.name) + ' ' + String(a.slug) + ' ' + (Array.isArray(a.categories) ? a.categories.join(' ') : '')).indexOf(needle) >= 0
-      const starts = (a) => kbCpSquash(String(a.name)).indexOf(needle) === 0
-      const found = list.filter(hit)
-      return found.filter(starts).concat(found.filter((a) => !starts(a))).slice(0, max)
+      const hit = (a) => needle.length === 0 || kbCpSquash(String(a.name) + ' ' + String(a.slug) + ' ' + (Array.isArray(a.categories) ? a.categories.join(' ') : '')).indexOf(needle) >= 0
+      const starts = (a) => needle.length > 0 && kbCpSquash(String(a.name)).indexOf(needle) === 0
+      const rank = (a) => (starts(a) ? 0 : 2) + (a.needsApiKey === true ? 1 : 0)
+      return list.filter(hit).map((a, i) => ({ a: a, i: i, r: rank(a) })).sort((x, y) => x.r - y.r || x.i - y.i).map((x) => x.a).slice(0, max)
     }
 
     const Icon = (name, size) => {

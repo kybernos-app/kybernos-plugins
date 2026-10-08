@@ -232,7 +232,10 @@ try {
 
   console.log('connect an app with an API key')
   await clickJs('[data-kb="kc-add"]')
-  await waitFor(page, `!!document.querySelector('[data-kb-app="notion"]')`, 10000)
+  await waitFor(page, `!!document.querySelector('[data-kb-app="gmail"]')`, 10000)
+  // the apps that connect in one click come first, so one that needs a key is found by its name
+  await typeInto('#kbcp-kc-q', 'notion')
+  await sleep(300)
   await clickJs('[data-kb-app="notion"]')
   await sleep(300)
   check('an app that needs a key asks for it, in a password field the browser does not remember', (await ev(`(() => { const e = document.querySelector('#kbcp-kc-key'); return !!e && e.type === 'password' && e.autocomplete === 'off' })()`)) === true)
