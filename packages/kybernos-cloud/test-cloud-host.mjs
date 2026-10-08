@@ -1347,6 +1347,18 @@ try {
   assert.ok(ageOrder.every((v, i) => i === 0 || ageOrder[i - 1] <= v), 'les plus recents d abord')
   assert.equal((await hit('/kybernos-cloud/memory/list?limit=10&offset=55', 'GET')).body.items.length, 5, 'derniere page partielle')
   assert.equal((await hit('/kybernos-cloud/memory/list?limit=9999', 'GET')).body.limit, 200, 'la taille de page est plafonnee')
+  // A memory written on the web (or by another device) must show on this page when the person opens it or presses refresh: the 60 s cache
+  // serves the prompt and the paging, not the page's own « look again ». Within the cache the list stays; `fresh=1` reads the server.
+  const serverCount = memories.filter((m) => m.scope === 'account').length
+  const cached = await hit('/kybernos-cloud/memory/list?limit=5', 'GET')
+  assert.equal(cached.body.total, 60, 'inside the cache window the list is the cache (paging and filters do not call the server)')
+  const looked = await hit('/kybernos-cloud/memory/list?limit=5&fresh=1', 'GET')
+  assert.equal(looked.body.total, serverCount, 'fresh=1 reads the server: what another device wrote is there')
+  const afterLook = await hit('/kybernos-cloud/memory/list?limit=5', 'GET')
+  assert.equal(afterLook.body.total, serverCount, 'and the cache now holds that read')
+  ok('liste de memoire : fresh=1 relit le serveur, sans lui la liste reste celle du cache')
+  mod.memoryCache.account = rows
+  mod.memoryCache.at = Date.now()
   const pinnedOnly = await hit('/kybernos-cloud/memory/list?show=pinned&limit=100', 'GET')
   assert.equal(pinnedOnly.body.total, 5)
   const agentOnly = await hit('/kybernos-cloud/memory/list?src=agent&limit=100', 'GET')

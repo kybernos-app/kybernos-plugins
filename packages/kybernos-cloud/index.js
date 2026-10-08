@@ -3009,10 +3009,12 @@ const accountRows = (state) => {
 const memoryListRoute = async (req) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, error: 'non connecte' }
-  await refreshMemoryCache(state, false)
-  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
   let params = new URLSearchParams('')
   try { params = new URL(req.url, 'http://localhost').searchParams } catch (e) { /* requete sans query */ }
+  // `fresh=1` is the page's own « look again » (it opens, or the person refreshes): a memory written on the web or by another
+  // device is there at once. Without it the 60 s cache serves paging and filters, which must not call the server each time.
+  await refreshMemoryCache(state, params.get('fresh') === '1')
+  if (memoryCache.error !== null && memoryCache.account.length === 0) return { ok: false, connected: true, error: memoryCache.error }
   const limit = intParam(params.get('limit'), 25, 1, 200)
   const offset = intParam(params.get('offset'), 0, 0, 1000000)
   const show = ['pinned', 'sent'].indexOf(params.get('show')) >= 0 ? params.get('show') : 'all'
