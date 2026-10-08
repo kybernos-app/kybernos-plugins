@@ -32,6 +32,7 @@ let tokenValid = true
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
 // de la route (le claim fige un instantané, /v1/me remet le profil à jour).
+let spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000, credit_balance_usd: '5.43' }
 let meProfile = null
 // Force le statut de /v1/me (route cassée) independamment du jeton : sert au
 // test « un 401 sur /v1/me ne deconnecte pas ».
@@ -227,6 +228,10 @@ const api = createServer((req, res) => {
       seen.authHeaders.push(auth)
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21' }] })
+    }
+    if (req.url === '/v1/workspaces/ws-1/plan') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, spacePlanBody)
     }
     if (req.url === '/v1/referral' && req.method === 'GET') {
       seen.referralAuth.push(auth)
@@ -712,6 +717,21 @@ try {
   assert.equal(choisi.body.ok, true)
   assert.equal(choisi.body.state.active_workspace_id, 'ws-1')
   ok('espace actif : un id inconnu est refuse, un id connu est ecrit')
+
+  // The footer, the menu and the team features show the plan of the ACTIVE space (read from the server's /plan of that space),
+  // not the account-level word of /v1/me (« team » as soon as the person is in any team).
+  assert.deepEqual(choisi.body.state.space_plan, { workspace_id: 'ws-1', key: 'solo', name: 'Solo', level: 'Studio', label: 'Solo Studio', status: 'active', credit_balance_credits: 20000 })
+  const rafraichi = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(rafraichi.body.state.space_plan.label, 'Solo Studio')
+  assert.equal(JSON.stringify(rafraichi.body).includes(TOKEN), false)
+  // A team plan's level is a price band (« 1-5 seats »), not a name; a space with no plan has no label.
+  spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.label, 'Team')
+  spacePlanBody = { source: 'none', status: 'none', plan: null, level: null, seats: 1, credit_balance_credits: 0 }
+  const sansPlan = (await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan
+  assert.equal(sansPlan.key, 'none')
+  assert.equal(sansPlan.label, null)
+  ok('espace actif : le plan de CET espace est lu au serveur (/plan), au changement d espace et au rafraichissement ; une formule Team ne montre pas sa tranche')
 
   // 4b. Montée de formule : PAS de réécriture settings (le catalogue n'est pas
   //     filtré par formule — l'abonnement est appliqué par le proxy) ; seul le
