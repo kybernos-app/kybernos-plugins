@@ -95,17 +95,18 @@ console.log('kybernos-call: the plugin object and the seam')
   plugin.apply({ slots, effect: (fn) => { const c = fn(); cleanups.push(c) } })
   assert.deepEqual(registered.map((r) => [r.name, r.r.meta.id]), [
     ['shell.overlay', 'kybernos-call-overlay'],
+    ['shell.overlay', 'kybernos-call-assistant'],
     ['conversation.session.header.actions', 'kybernos-call-header'],
     ['settings.section', 'kybernos-call']
   ])
-  assert.equal(registered[1].r.meta.order, 50)
-  assert.equal(registered[2].r.meta.label, 'Calls')
+  assert.equal(registered[2].r.meta.order, 50)
+  assert.equal(registered[3].r.meta.label, 'Calls')
   assert.equal(typeof e.win.__KB_CALL__.open, 'function')
   assert.equal(e.win.__KB_CALL__.version, 1)
   assert.equal(e.styles.length, 1)
   assert.equal(e.styles[0].attrs['data-plugin'], '@local/kybernos-call')
   assert.match(e.styles[0].textContent, /\.kbcl-hbtn\{/)
-  ok('apply registers the panel (overlay), the voice and video buttons in the header of every chat, and the Calls settings page; it publishes window.__KB_CALL__.open and one stylesheet')
+  ok('apply registers the panel and the setup assistant (overlay), the voice and video buttons in the header of every chat, and the Calls settings page; it publishes window.__KB_CALL__.open and one stylesheet')
   cleanups.forEach((c) => { if (typeof c === 'function') c() })
   assert.equal(e.win.__KB_CALL__, undefined)
   assert.equal(e.styles.length, 0)
@@ -247,7 +248,6 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
   const cases = [
     { name: 'host routes not loaded', responses: [new Error('network')], expect: /call routes are not loaded/ },
     { name: 'status not ok', responses: [{ ok: false }], expect: /call routes are not loaded/ },
-    { name: 'no secrets', responses: [{ ok: true, secrets: 'absente' }], expect: /no call secrets on this machine/ },
     { name: 'token refused', responses: [{ ok: true, secrets: 'posee' }, { ok: false, error: 'LiveKit secrets missing' }], expect: /LiveKit secrets missing/ },
     { name: 'token without an error text', responses: [{ ok: true, secrets: 'posee' }, new Error('network')], expect: /no call token/ }
   ]
@@ -387,9 +387,23 @@ console.log('kybernos-call: the call buttons at the top right of a chat')
   const none = t.CallHeader({}).children[0]
   e.responses.push({ ok: true, secrets: 'absente' })
   await none.props.onClick()
-  assert.equal(JSON.parse(e.requests[e.requests.length - 1].init?.body ?? '{}').sessionId, undefined)
-  assert.match(t.getState().note, /Settings › Calls › Service/)
-  ok('without a session it still opens (voice only); with no secrets it points to Settings › Calls › Service, not to a file')
+  assert.equal(t.getState(), null)
+  assert.equal(t.getAssist().step, 1)
+  assert.equal(t.getAssist().pending.mode, 'voice')
+  ok('with nothing set up, a click on the phone opens the setup assistant, remembering the call it was asked for (and no call state is left behind)')
+  t.closeAssist()
+  assert.equal(t.getAssist(), null)
+  e.responses.push({ ok: true, secrets: 'absente' })
+  await t.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', mode: 'video' })
+  assert.deepEqual(plain(t.getAssist().pending), { sessionId: 'session-aaaaaaaa', name: 'Alice', mode: 'video' })
+  t.closeAssist()
+  ok('the same from the seam (the Call and Video buttons of a team member); cancelling the assistant closes it')
+  e.responses.push({ ok: true, secrets: 'absente', setupDone: true })
+  await t.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+  assert.equal(t.getAssist(), null)
+  assert.equal(t.getState().phase, 'error')
+  assert.match(t.getState().note, /Settings › Calls › Health/)
+  ok('once the assistant has been through, a call with nothing set up says where to look instead of sending the user round it again')
 
   // A face needs a provider: without one the video button is off and says why.
   const f = makeEnv()

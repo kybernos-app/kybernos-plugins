@@ -117,14 +117,15 @@ try {
   check('each of the 2 members has a Call and a Video button', b1.length === 4 && b1.filter((b) => /^Voice call with/.test(b.label)).length === 2 && b1.filter((b) => /^Video call with/.test(b.label)).length === 2, b1)
   check('and all of them are visible (the bundle is loaded, so the seam exists)', b1.length > 0 && b1.every((b) => b.shown === true), b1)
 
-  console.log('2. a click opens a call for that member (real host: no keys in the sandbox)')
+  console.log('2. a click on a member opens the setup assistant when nothing is set up (real host: no keys in the sandbox)')
   await val(`(() => { document.querySelector('[aria-label^="Voice call with"]').click() })()`)
-  const opened = await poll(async () => { const t = await panel(); return t && /no call secrets/.test(t) ? t : null }, 15000)
-  const label0 = b1[0].label.replace('Voice call with ', '')
-  check('the panel names the member that was clicked and says where to set the keys', opened !== null && opened !== undefined && opened.includes(label0) && /Settings › Calls › Service/.test(opened), { opened, label0 })
-  check('a voice call (AUD badge), not a video one', typeof opened === 'string' && /AUD/.test(opened), opened)
+  const assistantText = () => val(`(() => { const a = document.querySelector('[data-kb="kybernos-call-assistant"]'); return a ? a.innerText : null })()`)
+  const opened = await poll(async () => { const t = await assistantText(); return t && /step 1 of 4/.test(t) ? t : null }, 15000)
+  check('the setup assistant opens, at its first screen', opened !== null && opened !== undefined, opened)
+  check('and no call panel is left behind it', (await panel()) === null)
   await shot('team-call-opened')
-  await hangUp()
+  await val(`document.querySelector('[data-act="assist-back"]').click()`)
+  await poll(async () => (await assistantText()) === null, 5000)
 
   console.log('3. what the card asks for (a host that says the keys are set)')
   fake.status = { ok: true, secrets: 'posee', url: 'ws://127.0.0.1:1', provider: 'none', avatar: null, sandbox: false }

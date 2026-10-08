@@ -79,14 +79,16 @@ try {
 
   console.log('2. a call against the real host (the sandbox has no call secrets)')
   await openCall('voice')
-  const p2 = await poll(async () => { const p = await panel(); return p && /no call secrets|aucun secret/i.test(p.text) ? p : null })
-  check('the panel opens and says there are no call secrets on this machine', p2 !== null && p2 !== undefined, await panel())
-  check('it names the person called and offers to hang up', p2 && /Alice/.test(p2.text) && p2.hangup === true, p2)
+  const assistantText = () => val(`(() => { const a = document.querySelector('[data-kb="kybernos-call-assistant"]'); return a ? a.innerText : null })()`)
+  const p2 = await poll(async () => { const t = await assistantText(); return t && /step 1 of 4/.test(t) ? t : null })
+  check('with no call secrets on this machine the setup assistant opens, at its first screen', p2 !== null && p2 !== undefined, await assistantText())
+  check('no call panel was opened, and nothing was asked of the host', (await panel()) === null && posts.length === 0, posts)
   await shot('call-no-secrets')
-  check('no request reached the token / agent / utterance routes (nothing was asked of the host)', posts.length === 0, posts)
-  check('hanging up closes the panel', (await clickHangUp()) === true && (await poll(async () => (await panel()) === null)) === true)
+  await val(`document.querySelector('[data-act="assist-back"]').click()`)
+  check('Cancel closes the assistant', (await poll(async () => (await assistantText()) === null)) === true)
 
   console.log('3. a call against fake host answers (a room nobody can reach)')
+  await val(`(() => { window.__gum = 0; const md = navigator.mediaDevices; if (md && md.getUserMedia) { const f = md.getUserMedia.bind(md); md.getUserMedia = (...a) => { window.__gum += 1; return f(...a) } } })()`)
   fake.status = { ok: true, secrets: 'posee', url: 'wss://127.0.0.1:1', provider: 'none', avatar: null, sandbox: false }
   fake.token = { ok: true, url: 'ws://127.0.0.1:1', token: 'fake.jwt.token', room: 'room-check', identity: 'moi', expiresIn: 60, agent: { running: false, dispatched: false } }
   await openCall('video')
@@ -96,8 +98,8 @@ try {
   check('the token request carried who is called: the session, the team, the member, the mode and the voice (not the language: the host takes it from the settings)', tokenPosts.length === 1 && JSON.stringify(tokenPosts[0].body) === JSON.stringify({ sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', voice: null, identity: 'moi' }), tokenPosts)
   const sdk = await val('typeof window.LivekitClient === "object" && typeof window.LivekitClient.Room === "function"')
   check('window.LivekitClient is the real SDK', sdk === true)
-  const media = await val(`(async () => { try { const s = await navigator.permissions.query({ name: 'microphone' }); return s.state } catch (e) { return 'unknown' } })()`)
-  check('the microphone was never asked for (its permission is still "prompt" or unknown)', media === 'prompt' || media === 'unknown', media)
+  const asked = await val(`window.__gum`)
+  check('the microphone was never asked for by this call (the setup assistant\'s first screen is the one that asks)', asked === 0, asked)
   await shot('call-cannot-join')
   await clickHangUp()
   check('the panel closes again', (await poll(async () => (await panel()) === null)) === true)

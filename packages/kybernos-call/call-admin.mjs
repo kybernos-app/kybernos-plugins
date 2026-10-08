@@ -10,6 +10,11 @@ const ID_RE = /^[A-Za-z0-9._-]{1,64}$/
 const ROOT_RE = /^[A-Za-z0-9._:~@/+-]{1,200}$/
 const text = (e) => (e && e.message ? String(e.message) : String(e))
 
+/** Does what is saved equal what the preset sets? (Its slots and its voice: the rest is the user's own.) */
+const presetIsActive = (preset, settings) => preset.available === true && preset.patch !== undefined
+  && settings.use.listen === preset.patch.use.listen && settings.use.face === preset.patch.use.face
+  && settings.defaultVoice !== null && settings.defaultVoice.engine === preset.patch.defaultVoice.engine && settings.defaultVoice.voice === preset.patch.defaultVoice.voice
+
 export function createAdmin ({ store, services, call, health = null, env = process.env, fetch: doFetch = (...a) => globalThis.fetch(...a) }) {
   const everything = async () => {
     const [settings, keys, clones] = await Promise.all([store.readSettings(), store.keysStatus(), store.readClones()])
@@ -24,7 +29,7 @@ export function createAdmin ({ store, services, call, health = null, env = proce
       keys,
       slots: SLOTS,
       providers,
-      presets: PRESETS.map((p) => ({ id: p.id, available: p.available, name: p.name, desc: p.desc })),
+      presets: PRESETS.map((p) => ({ id: p.id, available: p.available, name: p.name, desc: p.desc, active: presetIsActive(p, settings) })),
       clones: Object.entries(clones).map(([id, c]) => ({ id, name: c.name, provider: c.provider, createdAt: c.createdAt }))
     }
   }
