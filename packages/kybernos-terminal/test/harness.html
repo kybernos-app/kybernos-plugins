@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>kybernos-terminal — test bench</title>
+<style>
+  :root{
+    --dsw-alias-bg-base:#0e1117;
+    --dsw-alias-bg-layer-1:#141a22;
+    --dsw-alias-bg-layer-2:#101620;
+    --dsw-alias-label-primary:#e7eef6;
+    --dsw-alias-label-secondary:#93a2b4;
+    --dsw-alias-border-l1:#1d2530;
+    --dsw-alias-state-success-primary:#28c840;
+    --dsw-alias-state-error-primary:#f85149;
+  }
+  body{margin:0;padding:24px;background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font-family:system-ui,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+  .md-code-block{border:1px solid var(--dsw-alias-border-l1);border-radius:12px;overflow:hidden;background:var(--dsw-alias-bg-layer-1)}
+  .md-code-block pre{margin:0;padding:8px 12px;font:12px/1.5 ui-monospace,Menlo,monospace;white-space:pre;overflow:auto}
+  [data-code-block-banner]{display:flex;justify-content:space-between;align-items:center;padding:2px 8px;background:var(--dsw-alias-bg-layer-2);font-size:11px}
+  [data-code-block-banner] button{font:inherit;background:transparent;border:0;color:inherit;cursor:pointer}
+  .heading{display:flex;gap:6px;align-items:center;flex:1;min-width:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- The DOM DSH 0.2.0-rc.2 renders (CodeToolbar + CodeBlock): the label names the language only when DSH can highlight it. -->
+
+  <!-- 1. a highlighted bash fence: label "bash", source in pre.shiki -->
+  <div class="md-code-block" id="bash">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>bash</span></div>
+      <div class="actions"><button aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content><div><pre class="shiki"><code>echo one
+echo two</code></pre></div></div>
+  </div>
+
+  <!-- 2. a bash fence whose first line already carries the prompt: no second `$`, and the run strips it -->
+  <div class="md-code-block" id="bash-dollar">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>bash</span></div>
+      <div class="actions"><button aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content><div><pre class="shiki"><code>$ echo prompted</code></pre></div></div>
+  </div>
+
+  <!-- 3. a `console` transcript: DSH cannot highlight it, so the label says "Code block". Only its `$` lines may run. -->
+  <div class="md-code-block" id="console">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>Code block</span></div>
+      <div class="actions"><button aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content><pre class="plain"><code>$ ls
+file-a  file-b
+$ echo a \
+  b
+/home/user
+$ pwd</code></pre></div>
+  </div>
+
+  <!-- 4. an unknown-language fence that is not a transcript: must NOT be dressed -->
+  <div class="md-code-block" id="plain">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>Code block</span></div>
+      <div class="actions"><button aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content><pre class="plain"><code>just some text, not a command</code></pre></div>
+  </div>
+
+  <!-- 5. a highlighted python fence whose text starts with `$ `: it names its language, so it is NOT a shell -->
+  <div class="md-code-block" id="python">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>python</span></div>
+      <div class="actions"><button aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content><div><pre class="shiki"><code>$ not_a_shell = 1</code></pre></div></div>
+  </div>
+
+  <!-- 6. a narrow bash fence with a long first line: the prompt must stay visible, not be clipped -->
+  <div class="md-code-block" id="narrow" style="width:220px">
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>bash</span></div>
+      <div class="actions"><button aria-label="Copy">Copy</button></div>
+    </div></div>
+    <div data-code-block-content><div><pre class="shiki"><code>echo a-rather-long-first-line-that-overflows-the-box-horizontally</code></pre></div></div>
+  </div>
+</div>
+
+<script>
+  // Simulated DSH module loader: same contract as the real one.
+  window.__ModuleLoader__ = {
+    load({ id, factory }) {
+      const exports = factory(() => { throw new Error('require is not available in the test bench') })
+      window.__PLUGIN__ = { id, exports }
+      if (exports && typeof exports.apply === 'function') exports.apply({})
+    }
+  }
+  // The run button posts to the host: record what it sends, answer with whatever the test queued.
+  window.__POSTS__ = []
+  window.__ANSWERS__ = []
+  window.fetch = (url, init) => {
+    window.__POSTS__.push({ url: String(url), init: init || {}, body: init && init.body ? JSON.parse(init.body) : null })
+    const next = window.__ANSWERS__.shift() || { status: 200, json: { ok: true, code: 0, stdout: 'done\n', stderr: '' } }
+    return Promise.resolve({ status: next.status, json: () => (next.nojson ? Promise.reject(new Error('not json')) : Promise.resolve(next.json)) })
+  }
+</script>
+<script src="../client/client.js"></script>
+</body>
+</html>

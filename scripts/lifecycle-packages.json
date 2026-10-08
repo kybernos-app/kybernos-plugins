@@ -120,6 +120,10 @@
     {
       "dir": "dsh-db-viewer",
       "nom": "@local/dsh-db-viewer"
+    },
+    {
+      "dir": "kybernos-terminal",
+      "nom": "@local/kybernos-terminal"
     }
   ]
 }
