@@ -226,9 +226,15 @@ window.__ModuleLoader__.load({
         quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
         quotaPaymentAdmin: ' Réglez-le dans Facturation.',
         quotaPaymentMember: ' Demandez à un propriétaire ou à un admin de {name}.',
-        quotaWindow: 'Votre quota {plan}pour les {window} dernières est épuisé{cap}.',
+        quotaUsedUp: '{pct}\u00a0% de votre quota de {window}{cap} est utilisé — il revient {when}.',
+        quotaUsedUpTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé — il revient {when}.',
+        quotaNear: '{pct}\u00a0% de votre quota de {window}{cap} est utilisé.',
+        quotaNearTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé.',
         quotaCap: ' (un plafond fixé dans {name})',
-        quotaComes: ' Il revient à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après votre dernier appel.',
+        quotaBackMin: 'dans environ {n}\u00a0min',
+        quotaBackHours: 'dans environ {n}\u00a0h',
+        quotaBackDays: 'dans environ {n}\u00a0jours',
+        quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après votre dernier appel',
         quotaMoreSolo: ' Passez à une formule supérieure ou ajoutez des crédits pour continuer maintenant.',
         quotaMoreAdmin: ' Ajoutez des crédits ou relevez le plafond dans Formule et crédits.',
         quotaMoreMember: ' Demandez plus de crédits à un propriétaire ou à un admin de {name}.',
@@ -484,9 +490,15 @@ window.__ModuleLoader__.load({
         quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
         quotaPaymentAdmin: ' Fix it in Billing.',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
-        quotaWindow: 'Your {plan}allowance for the last {window} is used up{cap}.',
+        quotaUsedUp: '{pct}% of your {window} allowance{cap} is used — it comes back {when}.',
+        quotaUsedUpTeam: '{pct}% of the {window} allowance of {name} is used — it comes back {when}.',
+        quotaNear: '{pct}% of your {window} allowance{cap} is used.',
+        quotaNearTeam: '{pct}% of the {window} allowance of {name} is used.',
         quotaCap: ' (a cap set in {name})',
-        quotaComes: ' It comes back as older use leaves that window, and is whole again {window} after your last call.',
+        quotaBackMin: 'in about {n}\u00a0min',
+        quotaBackHours: 'in about {n}\u00a0h',
+        quotaBackDays: 'in about {n}\u00a0days',
+        quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
         quotaMoreSolo: ' Upgrade or add credits to go on now.',
         quotaMoreAdmin: ' Add credits or raise the cap in Plan & Credits.',
         quotaMoreMember: ' Ask an owner or admin of {name} for more credits.',
@@ -773,6 +785,14 @@ window.__ModuleLoader__.load({
 .kbfp-cardtxt{flex:1 1 auto;min-width:0;margin-inline-start:2px}
 .kbfp-cardname{display:block;font-size:14px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-cardsub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The allowance meter under the plan line: a thin bar and the percent used (never tokens or money); amber from 75 %, red when used up. */
+.kbfp-use{display:flex;align-items:center;gap:6px;margin-top:4px;min-width:0}
+.kbfp-usebar{flex:1 1 auto;min-width:24px;height:4px;border-radius:2px;background:var(--dsw-alias-border-l2);overflow:hidden}
+.kbfp-usefill{display:block;height:100%;border-radius:2px;background:var(--dsw-alias-label-secondary)}
+.kbfp-usepct{flex:none;min-width:30px;text-align:right;font-size:11px;line-height:1;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary)}
+.kbfp-use[data-level="near"] .kbfp-usefill{background:var(--dsw-alias-state-warn-primary)}
+.kbfp-use[data-level="full"] .kbfp-usefill{background:var(--dsw-alias-state-error-primary)}
+.kbfp-use[data-level="full"] .kbfp-usepct{color:var(--dsw-alias-state-error-primary)}
 .kbfp-ico{flex:none;width:36px;height:36px;padding:0;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbfp-ico:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .kbfp-bellwrap{display:flex}
@@ -1083,8 +1103,9 @@ window.__ModuleLoader__.load({
     /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word
      *  (`user.plan`, « team » as soon as the person is in any team) is only the fallback when that read is not there. `free` is
      *  true for a space with no paid plan: the only case that is offered « Upgrade ». Never the raw lowercase key of an API. */
-    // The name a person sees for a workspace: the personal one is « Personal » (the server stores it as « My workspace »), a team keeps its own name.
-    const nomAffiche = (w) => (w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace') ? t('wsPersonal') : (w !== null && typeof w === 'object' && typeof w.name === 'string' ? w.name : ''))
+    // The name a person sees for a workspace: the personal one is « Personal » (the server stores it as « My workspace »), a team keeps its own name. `t` is the
+    // translator of the caller (this helper lives outside the component that owns it).
+    const nomAffiche = (w, t) => (w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace') ? t('wsPersonal') : (w !== null && typeof w === 'object' && typeof w.name === 'string' ? w.name : ''))
     const planDeEspace = (state, user) => {
       const sp = state !== null && state !== undefined && state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? state.space_plan : null
       const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
@@ -1145,8 +1166,9 @@ window.__ModuleLoader__.load({
 
     // <quota-notice-text>
     // DSH answers every refused model call with the same fixed words (« Request quota exhausted »): a window used up, a cap an admin set, a failed payment. This says
-    // what stopped the person, when it comes back and how to get more, from the server's facts for the active space. Pure: facts and a translator in, a sentence out.
-    // `null` means no fact explains it (the server did not answer, or nothing is used up): the caller then keeps DSH's own words.
+    // what stopped the person, when it comes back and how to get more, from the server's facts for the active space. The allowance is always a PERCENTAGE of the window
+    // (the server's `used_percent`, relayed by the host as `usage`): never tokens, never dollars. Pure: facts and a translator in, a sentence out.
+    // `null` means no fact explains it (the server did not answer, or nothing is used up or close to it): the caller then keeps DSH's own words.
     const quotaFill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (values[k] !== undefined ? String(values[k]) : m))
     const quotaWindowLabel = (seconds, t) => {
       const n = Number(seconds)
@@ -1155,26 +1177,74 @@ window.__ModuleLoader__.load({
       if (n > 0 && n % 3600 === 0) return quotaFill(t('quotaHours'), { n: n / 3600 })
       return quotaFill(t('quotaMinutes'), { n: Math.max(1, Math.round(n / 60)) })
     }
-    const quotaNoticeText = (info, t) => {
+    // From this share of a window on, the notice says so even when nothing is used up yet.
+    const QUOTA_NEAR_PERCENT = 75
+    // « in about 3 h »: when a window that is used up has room again, from the server's time. Null when the server gave none (or one already past).
+    const quotaWhen = (iso, now, t) => {
+      const ms = typeof iso === 'string' ? Date.parse(iso) - now : NaN
+      if (!(ms > 0)) return null
+      const minutes = Math.ceil(ms / 60000)
+      if (minutes < 60) return quotaFill(t('quotaBackMin'), { n: minutes })
+      const hours = Math.round(minutes / 60)
+      return hours < 48 ? quotaFill(t('quotaBackHours'), { n: hours }) : quotaFill(t('quotaBackDays'), { n: Math.round(hours / 24) })
+    }
+    // The windows the host relayed, each with its percent; anything unreadable is left out.
+    const quotaWindows = (info) => (Array.isArray(info.usage) ? info.usage : [])
+      .filter((w) => w !== null && typeof w === 'object' && (w.kind === 'member' || w.kind === 'pool') && Number.isFinite(w.window_seconds) && Number.isFinite(w.used_percent))
+    // The window that turns calls away now: a used-up one, the shortest first (it frees first), the person's own before the team's pool on a tie.
+    const quotaBlocking = (windows) => windows.filter((w) => w.exhausted === true)
+      .sort((a, b) => a.window_seconds - b.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))[0] || null
+    // The window closest to being used up (the longer one on a tie). Null for an empty list.
+    const quotaMostUsed = (windows) => windows.slice().sort((a, b) => b.used_percent - a.used_percent || b.window_seconds - a.window_seconds)[0] || null
+    const quotaPaymentText = (name, admin, t) => quotaFill(t('quotaPayment'), { name }) + (admin ? t('quotaPaymentAdmin') : quotaFill(t('quotaPaymentMember'), { name }))
+    // One window in a sentence: « 82% of your 24 hours allowance is used. », and for a used-up one « 100% of your 5 hours allowance is used — it comes back in about 3 h. ».
+    // A window of the team's pool is named after the team, a cap an admin set says where it was set.
+    const quotaWindowSentence = (w, name, t, now) => {
+      const team = w.kind === 'pool'
+      const window = quotaWindowLabel(w.window_seconds, t)
+      const cap = !team && w.scope === 'team' ? quotaFill(t('quotaCap'), { name }) : ''
+      if (w.exhausted !== true) return quotaFill(t(team ? 'quotaNearTeam' : 'quotaNear'), { pct: w.used_percent, window, cap, name })
+      const when = quotaWhen(w.resets_at, now, t) || quotaFill(t('quotaBackUnknown'), { window })
+      return quotaFill(t(team ? 'quotaUsedUpTeam' : 'quotaUsedUp'), { pct: 100, window, cap, name, when })
+    }
+    const quotaNoticeText = (info, t, now = Date.now()) => {
       if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
-      const plan = info.plan !== null && typeof info.plan === 'object' ? info.plan : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
       const admin = ws.role === 'owner' || ws.role === 'admin'
       const shared = ws.personal !== true
-      if (info.payment_blocked === true) {
-        return { text: quotaFill(t('quotaPayment'), { name }) + (admin ? t('quotaPaymentAdmin') : quotaFill(t('quotaPaymentMember'), { name })), action: admin }
-      }
-      const out = Array.isArray(info.exhausted) && info.exhausted.length > 0 ? info.exhausted[0] : null
-      if (out === null || out === undefined) return null
-      const win = quotaWindowLabel(out.window_seconds, t)
-      const planName = typeof plan.name === 'string' && plan.name !== '' ? plan.name : ''
-      const label = planName !== '' && plan.kind === 'individual' && typeof plan.level === 'string' && plan.level !== '' && plan.level.toLowerCase() !== planName.toLowerCase() ? planName + ' ' + plan.level : planName
-      const cap = out.scope === 'team' ? quotaFill(t('quotaCap'), { name }) : ''
-      const more = shared ? (admin ? t('quotaMoreAdmin') : quotaFill(t('quotaMoreMember'), { name })) : t('quotaMoreSolo')
-      return { text: quotaFill(t('quotaWindow'), { plan: label === '' ? '' : label + ' ', window: win, cap }) + quotaFill(t('quotaComes'), { window: win }) + more, action: !shared || admin }
+      if (info.payment_blocked === true) return { text: quotaPaymentText(name, admin, t), action: admin }
+      const windows = quotaWindows(info)
+      const out = quotaBlocking(windows)
+      // Nothing used up: a gentle word when one window is close to it, nothing at all otherwise (the failing provider is another one).
+      const w = out !== null ? out : quotaMostUsed(windows.filter((x) => x.used_percent >= QUOTA_NEAR_PERCENT))
+      if (w === null) return null
+      const more = out === null ? '' : (shared ? (admin ? t('quotaMoreAdmin') : quotaFill(t('quotaMoreMember'), { name })) : t('quotaMoreSolo'))
+      return { text: quotaWindowSentence(w, name, t, now) + more, action: !shared || admin }
+    }
+    // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
+    // team's pool, a member and a personal space their own; a window that turns calls away is always the one shown, and a blocked payment reads 100%. Null: nothing to show
+    // (unlimited, or the server did not answer).
+    const quotaMeterOf = (info, t, now = Date.now()) => {
+      if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
+      const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
+      const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
+      const admin = ws.role === 'owner' || ws.role === 'admin'
+      if (info.payment_blocked === true) return { percent: 100, level: 'full', title: quotaPaymentText(name, admin, t) }
+      const windows = quotaWindows(info)
+      const poolFirst = ws.personal !== true && admin
+      const pool = windows.filter((x) => x.kind === 'pool')
+      const own = windows.filter((x) => x.kind === 'member')
+      const preferred = poolFirst ? pool : own
+      const w = quotaBlocking(windows) || quotaMostUsed(preferred.length > 0 ? preferred : (poolFirst ? own : pool))
+      if (w === null) return null
+      // Red only while calls are turned away; 100% of an allowance that a top-up balance lifts still lets them through (amber).
+      const level = w.exhausted === true ? 'full' : w.used_percent >= QUOTA_NEAR_PERCENT ? 'near' : 'ok'
+      return { percent: w.exhausted === true ? 100 : w.used_percent, level, title: quotaWindowSentence(w, name, t, now) }
     }
     // </quota-notice-text>
+    // How often the card's meter reads the allowance again while it is on screen (it also reads on focus and after a refusal).
+    const QUOTA_METER_REFRESH_MS = 120000
 
     // <mfa-note-text>
     // A workspace that asks its members for a second factor: inside the grace it says by when, after it the person is turned away (DSH can only say « API key is invalid »
@@ -2030,7 +2100,7 @@ window.__ModuleLoader__.load({
                     onClick: () => { void choisir(w && w.id) },
                   },
                   h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
-                  h('span', { className: 'kbs-name' }, w ? nomAffiche(w) || t('none') : t('none')),
+                  h('span', { className: 'kbs-name' }, w ? nomAffiche(w, t) || t('none') : t('none')),
                   h('span', { className: 'kbs-mark' }, on
                     ? t('spaceMark')
                     : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : '')))
@@ -2178,7 +2248,7 @@ window.__ModuleLoader__.load({
           const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
           const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
           const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-          const nomEspace = courant !== null && courant.name ? nomAffiche(courant) : t('spaceTitle')
+          const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
           const planInfo = planDeEspace(st, user)
           const plan = planInfo.label !== null ? planInfo.label : t('none')
           // The host reports the active server's web address in every connected state; with none, nothing is opened (never a literal host).
@@ -2560,6 +2630,31 @@ window.__ModuleLoader__.load({
             return () => window.removeEventListener('kybernos-cloud:space-changed', relire)
           }, [load])
 
+          // The meter of the card: how much of the allowance is used in the ACTIVE team (a percentage, never tokens or money), read from the host (it asks the
+          // server) when the card appears, when the active team changes, when the window comes back into view, every two minutes, and as soon as the quota notice
+          // has read a refusal. A failed read keeps the last figure; changing team clears it, so one team's percent is never shown under another's name.
+          const [quota, setQuota] = React.useState(null)
+          const quotaSpace = phase === 'connected' && typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
+          React.useEffect(() => {
+            setQuota(null)
+            if (quotaSpace === null) return undefined
+            let on = true
+            const read = () => {
+              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(r) }).catch(() => null)
+            }
+            read()
+            const seen = () => { if (document.visibilityState === 'visible') read() }
+            const timer = window.setInterval(read, QUOTA_METER_REFRESH_MS)
+            document.addEventListener('visibilitychange', seen)
+            window.addEventListener('kybernos-cloud:quota-read', read)
+            return () => {
+              on = false
+              window.clearInterval(timer)
+              document.removeEventListener('visibilitychange', seen)
+              window.removeEventListener('kybernos-cloud:quota-read', read)
+            }
+          }, [quotaSpace])
+
           // La fiche peut être ouverte depuis un autre plugin (page Models) :
           // même événement fenêtre que l'ancien bouton, rien de nouveau.
           React.useEffect(() => {
@@ -2617,9 +2712,10 @@ window.__ModuleLoader__.load({
             const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-            const nomEspace = courant !== null && courant.name ? nomAffiche(courant) : t('spaceTitle')
+            const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
             const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
+            const meter = quota !== null ? quotaMeterOf(quota, t) : null
             const ouvrirPageEspace = () => {
               // « Réglage de l'espace » (02/10) : l'entrée ouvre la page EMBED
               // qui vivait jusqu'ici dans Paramètres ▸ Mon espace — l'iframe
@@ -2701,14 +2797,19 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbfp-card' },
               h('button', {
                 type: 'button', className: 'kbfp-cardmain', title: t('wsPageTitle'),
-                'aria-label': t('wsPageTitle'), 'aria-haspopup': 'menu',
+                'aria-label': meter !== null ? t('wsPageTitle') + ' — ' + meter.title : t('wsPageTitle'), 'aria-haspopup': 'menu',
                 'aria-expanded': menuOpen === true ? 'true' : 'false',
                 onClick: () => { setNotifOpen(false); setMenuOpen(menuOpen !== true) },
               },
               h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, initiales(nomEspace, '')),
               h('span', { className: 'kbfp-cardtxt' },
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
-                h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')))),
+                h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
+                meter !== null
+                  ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },
+                    h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
+                    h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
+                  : null)),
               h('button', {
                 type: 'button', className: 'kbfp-ico',
                 title: t('mobTitle'), 'aria-label': t('mobTitle'),
@@ -2816,7 +2917,11 @@ window.__ModuleLoader__.load({
           const setInfo = infoPair[1]
           React.useEffect(() => {
             let on = true
-            callLocal('/quota', 'GET').then((r) => { if (on === true) setInfo({ r: r }) }).catch(() => { if (on === true) setInfo({ r: null }) })
+            callLocal('/quota', 'GET').then((r) => {
+              if (on === true) setInfo({ r: r })
+              // A refused call changed the allowance: the card's meter reads it again now instead of at its next turn.
+              try { window.dispatchEvent(new Event('kybernos-cloud:quota-read')) } catch (e) { /* no window events here */ }
+            }).catch(() => { if (on === true) setInfo({ r: null }) })
             return () => { on = false }
           }, [])
           React.useEffect(() => {
