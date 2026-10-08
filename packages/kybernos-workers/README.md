@@ -60,13 +60,15 @@ backup); the four home-made connections are turned on here, because the Tools sc
 ## Files, settings, processes
 
 - Reads `~/.dsh/profiles/<profile>/cordis.patch.yml`; profile = request value, else `DSH_PROFILE` if it exists, else `web`.
-  Tests that `…/node_modules/<package>` exists for each connection (`@deepseek-ai/dsh-subagent-{claude-code,codex}`,
-  `dsh-subagent-{gemini,opencode,qwen,hermes}`) and, for ZCode, that `~/.dsh/mcp/zcode-mcp-server.mjs` exists.
+  Tests that `…/node_modules/<package>` exists for each connection: `@deepseek-ai/dsh-subagent-{claude-code,codex}` for those two,
+  the shared `@local/dsh-subagent-maison` for the other four (a line that still carries the old bare name of a hand-made
+  setup is judged by its own bare package `dsh-subagent-<cli>`: the package must be the one the line loads), and, for ZCode, that `~/.dsh/mcp/zcode-mcp-server.mjs` exists.
 - Writes only on *Save* and *Turn on* (nothing else is ever written): first `cordis.patch.yml.bak-workers-<worker>-<YYYYMMDD-HHMMSS>` (or
   `bak-workers-activate-<worker>-…`), then an atomic rewrite of `cordis.patch.yml` that adds or edits a
   `@deepseek-ai/dsh-tool-subagent` entry (`kybernos-workers-<worker>`; `disabled: true` when not allowed) or adds the
-  `- id: subagent-<worker>` line that loads a package. DSH applies it by itself. Turning on a connection whose package
-  is not in the profile is refused: DSH would fail to load it.
+  `- id: subagent-<worker>` line (`name: "@local/dsh-subagent-maison/<worker>"`) that loads the connector. DSH applies it by
+  itself. Turning on a connection whose package is not in the profile is refused: DSH would fail to load it. A machine that
+  was set up by hand (old bare name `dsh-subagent-<cli>`) reads as already turned on, so no second line is added; it is "installed" only while its own bare link exists.
 - Runs `<program> --version`, `claude auth status`, `codex login status`, `opencode auth list`, `hermes status` and
   `git init/add/commit/worktree add` in a temp folder (removed afterwards), with 20–40 s timeouts. The environment is DSH's
   own minus any variable whose name matches KEY, TOKEN, SECRET, PASSWORD, PASSWD, CREDENTIAL, COOKIE or AUTH (so
@@ -116,8 +118,8 @@ nothing runs before the confirmation, that the key never appears on the page, an
 - The per-agent presentation (logo, "vendor · account" line, sign-in wording, why Gemini and Qwen take a key) lives in
   `client.js`. An agent added to the host's `WORKERS` shows up on its own with the terminal glyph and without those words
   until the page gets its entries (`LOGO_OF`, `IDENTITY`, the sign-in sentences) and the logo symbol of its own.
-- The four home-made connections (`packages/dsh-subagent-maison/`) are not part of the Suite packages yet: on a machine where
-  nobody linked them into the profile, *Turn on* answers that the connector is not shipped yet.
+- The four home-made connections ship as one Suite module, **Agent connectors** (`packages/dsh-subagent-maison/`). When that
+  module is switched off in the Suite (or an install is broken), *Turn on* says so and writes nothing.
 - A saved API key only reaches the provider at the next DSH start (DSH reads its environment at launch); the page says so.
 - The patch is read line by line, not with a YAML parser; unknown forms are ignored, and a tool line this module did not
   write (or that was edited by hand) is never rewritten.

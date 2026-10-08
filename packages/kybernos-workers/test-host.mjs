@@ -7,7 +7,8 @@ import { Readable } from 'node:stream'
 import { execFileSync } from 'node:child_process'
 import {
   WORKERS, trouverWorker, analyserPatch, etatProfil, blocOutil, calculerPolitique, calculerActivation, blocActivation,
-  lireAuthJson, lireAuthCompte, lireAuthHermes, verifier, statutGlobal, monterWorkers, sansAnsi, ajouterAuJournal
+  lireAuthJson, lireAuthCompte, lireAuthHermes, verifier, statutGlobal, monterWorkers, sansAnsi, ajouterAuJournal,
+  nomsDeConnexion, paquetAChercher
 } from './workers-host.mjs'
 import { apply, envSansSecrets, trouverBinaire, worktreeJetable, workersDeps, lancerInstallation } from './index.js'
 
@@ -52,6 +53,12 @@ const PATCH_AVEC_GEMINI = PATCH + `
 - insert:
     - id: subagent-gemini
       name: "dsh-subagent-gemini"
+`
+// The same connector the way the Suite mounts it: a subpath of the shared package.
+const PATCH_GEMINI_MAISON = PATCH + `
+- insert:
+    - id: subagent-gemini
+      name: "@local/dsh-subagent-maison/gemini"
 `
 
 console.log('── reading the patch ──')
@@ -130,13 +137,25 @@ console.log('── activation: mounting a connection of ours ──')
   const A = (o) => calculerActivation({ worker: gemini, texte: PATCH, horodatage: '20261008-120000', ...o })
   const r = A({})
   ok('adds an insert block that loads the package, nothing else moves', r.ok && r.apres.startsWith(PATCH) && etatProfil(r.apres, gemini).connexion === true)
-  ok('the block follows the shape the profile already uses (id subagent-<worker>, double-quoted name)', r.apres.includes('    - id: subagent-gemini\n      name: "dsh-subagent-gemini"'))
+  ok('the block loads the connector by its subpath name in the shared package (id subagent-<worker>, double-quoted name)', r.apres.includes('    - id: subagent-gemini\n      name: "@local/dsh-subagent-maison/gemini"'))
   ok('the block names its rollback backup', r.apres.includes('bak-workers-activate-gemini-20261008-120000'))
   ok('text without a final newline: the block is not glued to the last line', /maxAttempts: 10\n\n# ── Workers/.test(A({ texte: PATCH.trimEnd() }).apres))
   ok('already mounted: refused, nothing to write', A({ texte: PATCH_AVEC_GEMINI }).error === 'deja-montee')
   ok('Claude Code and Codex are mounted by the Tools screen, not here', calculerActivation({ worker: claude, texte: PATCH, horodatage: 'x' }).error === 'non-supporte' && calculerActivation({ worker: zcode, texte: PATCH, horodatage: 'x' }).error === 'non-supporte')
   ok('unknown worker', calculerActivation({ worker: undefined, texte: PATCH, horodatage: 'x' }).error === 'worker-inconnu')
   ok('blocActivation is parsable on an empty patch', etatProfil(blocActivation(opencode, 'x'), opencode).connexion === true)
+}
+
+console.log('── the shipped package, and the hand-made setups that came before it ──')
+{
+  const NOUVEAU = PATCH_GEMINI_MAISON
+  ok('the new subpath name counts as turned on', etatProfil(NOUVEAU, gemini).connexion === true && etatProfil(NOUVEAU, opencode).connexion === false)
+  ok('the old bare name of a hand-made setup counts too (that machine keeps its connectors)', etatProfil(PATCH_AVEC_GEMINI, gemini).connexion === true)
+  ok('turning on a worker the old way is "already turned on": no second line, so the provider is never registered twice', calculerActivation({ worker: gemini, texte: PATCH_AVEC_GEMINI, horodatage: 'x' }).error === 'deja-montee')
+  ok('a name of another worker is not taken for this one', etatProfil(PATCH_AVEC_GEMINI.replace('dsh-subagent-gemini', 'dsh-subagent-qwen'), gemini).connexion === false)
+  ok('the package to look for follows the NAME of the line: the shared one for the current name, the bare one for an old name, the shared one when there is no line yet', paquetAChercher(gemini, '@local/dsh-subagent-maison/gemini') === '@local/dsh-subagent-maison' && paquetAChercher(gemini, 'dsh-subagent-gemini') === 'dsh-subagent-gemini' && paquetAChercher(gemini) === '@local/dsh-subagent-maison' && paquetAChercher(codex, '@deepseek-ai/dsh-subagent-codex') === '@deepseek-ai/dsh-subagent-codex')
+  ok('etatProfil says which name the line carries', etatProfil(NOUVEAU, gemini).nomMonte === '@local/dsh-subagent-maison/gemini' && etatProfil(PATCH_AVEC_GEMINI, gemini).nomMonte === 'dsh-subagent-gemini' && etatProfil(PATCH, gemini).nomMonte === null)
+  ok('nomsDeConnexion: current name first', nomsDeConnexion(gemini)[0] === '@local/dsh-subagent-maison/gemini' && nomsDeConnexion(codex).join() === '@deepseek-ai/dsh-subagent-codex')
 }
 
 console.log('── reading what a CLI says about its sign-in ──')
@@ -232,7 +251,7 @@ console.log('── the install log ──')
 console.log('── routes ──')
 {
   const PROFIL = 'web'
-  const disque = { patch: PATCH, ecritures: [], profils: [PROFIL, 'other'], paquets: new Set(['@deepseek-ai/dsh-subagent-codex', 'dsh-subagent-gemini']), env: new Set() }
+  const disque = { patch: PATCH, ecritures: [], profils: [PROFIL, 'other'], paquets: new Set(['@deepseek-ai/dsh-subagent-codex', '@local/dsh-subagent-maison']), env: new Set() }
   const monde = { binaires: { codex: '/bin/codex', npm: '/bin/npm', curl: '/bin/curl', bash: '/bin/bash' }, plateforme: 'darwin', installs: [], installFin: null, installDonnees: [] }
   const deps = (over = {}) => ({
     profils: () => disque.profils, profilParDefaut: (l) => (l.includes('web') ? 'web' : l[0]),
@@ -300,7 +319,7 @@ console.log('── routes ──')
 
   disque.env.add('SECRET-NAME-CHECK')
   const SECRETE = 'sk-this-value-must-never-appear-anywhere'
-  disque.patch = PATCH_AVEC_GEMINI
+  disque.patch = PATCH_GEMINI_MAISON
   const withKey = monter(deps({ io: { ...deps().io, cleDansEnv: (noms) => { void SECRETE; return noms.includes('GEMINI_API_KEY') }, trouver: async () => '/bin/gemini' } }))
   r = await appeler(withKey, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'gemini' } })
   ok('check of a key-based worker: ready, and nothing but "API key found" is said about the key', r.json.statut === 'pret' && !JSON.stringify(r.json).includes(SECRETE) && r.json.controles.find((c) => c.id === 'auth').detail === 'API key found')
@@ -340,8 +359,33 @@ console.log('── routes ──')
   ok('activate: the BACKUP is written before the patch, the patch now mounts the connection', disque.ecritures[0][0] === 'sauvegarde' && disque.ecritures[0][2] === PATCH && disque.ecritures[1][0] === 'patch' && etatProfil(disque.patch, gemini).connexion === true)
   r = await appeler(routes, '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'gemini' } })
   ok('activate again: already mounted, nothing written', r.json.already === true && disque.ecritures.length === 2)
+  disque.paquets.delete('@local/dsh-subagent-maison')
   r = await appeler(routes, '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'opencode' } })
-  ok('activate: the package is not in the profile → 409, NOTHING written (DSH would fail to load it)', r.statut === 409 && r.json.error === 'package-missing' && disque.ecritures.length === 2 && etatProfil(disque.patch, opencode).connexion === false)
+  ok('activate: the shared package is not in the profile → 409, NOTHING written (DSH would fail to load it)', r.statut === 409 && r.json.error === 'package-missing' && disque.ecritures.length === 2 && etatProfil(disque.patch, opencode).connexion === false)
+  r = await appeler(routes, '/kybernos-workers/state', { url: '/kybernos-workers/state' })
+  ok('state tells it: not installed for the four connectors, installed for Codex', r.json.workers.filter((w) => w.activation === 'workers').every((w) => w.installe === false) && r.json.workers.find((w) => w.id === 'codex').installe === true)
+  // a hand-made line keeps working only with ITS bare package; a package it does not load never vouches for it
+  const patchAncien = disque.patch
+  disque.patch = PATCH_AVEC_GEMINI
+  r = await appeler(routes, '/kybernos-workers/state', { url: '/kybernos-workers/state' })
+  ok('an old-name line with neither package: not installed', r.json.workers.find((w) => w.id === 'gemini').installe === false)
+  disque.paquets.add('@local/dsh-subagent-maison')
+  r = await appeler(routes, '/kybernos-workers/state', { url: '/kybernos-workers/state' })
+  ok('an old-name line is NOT vouched for by the shared package (it would not load that line)', r.json.workers.find((w) => w.id === 'gemini').installe === false)
+  disque.paquets.add('dsh-subagent-gemini')
+  r = await appeler(routes, '/kybernos-workers/state', { url: '/kybernos-workers/state' })
+  ok('with its own bare package the old-name line is installed', r.json.workers.find((w) => w.id === 'gemini').installe === true)
+  r = await appeler(routes, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'gemini' } })
+  ok('and the check agrees: package installed for an old-name line only with the bare package', r.json.controles.find((c) => c.id === 'paquet').etat === 'ok')
+  disque.paquets.delete('dsh-subagent-gemini')
+  r = await appeler(routes, '/kybernos-workers/check', { methode: 'POST', corps: { worker: 'gemini' } })
+  ok('without it the check says the package is not installed, even though the shared package is there', r.json.controles.find((c) => c.id === 'paquet').etat === 'ko' && r.json.statut === 'a-relancer')
+  disque.patch = patchAncien
+  disque.paquets.delete('@local/dsh-subagent-maison')
+  disque.paquets.add('dsh-subagent-opencode')
+  r = await appeler(routes, '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'opencode' } })
+  ok('a bare package alone does not allow writing a NEW line: it would not load it → package-missing, nothing written', r.statut === 409 && r.json.error === 'package-missing' && etatProfil(disque.patch, opencode).connexion === false)
+  disque.paquets.delete('dsh-subagent-opencode'); disque.paquets.add('@local/dsh-subagent-maison')
   ok('activate: Claude Code is mounted by the Tools screen → 400', (await appeler(routes, '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'claude-code' } })).statut === 400)
   ok('activate: unknown worker → 404, foreign origin → 403, no patch → 409', (await appeler(routes, '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'zzz' } })).statut === 404 && (await appeler(routes, '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'gemini' }, origine: 'http://evil.example' })).statut === 403 && (await appeler(monter(deps({ lirePatch: () => null })), '/kybernos-workers/activate', { methode: 'POST', corps: { worker: 'gemini' } })).statut === 409)
   disque.patch = PATCH; disque.ecritures = []
@@ -507,7 +551,7 @@ ok('display order: Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes, ZCode', W
 ok('every connection has its tool line, named like the provider’s README', claude.outil.toolName === 'subagent_claude_code' && codex.outil.toolName === 'subagent_codex' && gemini.outil.toolName === 'subagent_gemini' && claude.outil.provider === 'claude-code')
 ok('tool ids are unique and this module’s own', new Set(WORKERS.filter((w) => w.outil).map((w) => w.outil.id)).size === 6 && WORKERS.filter((w) => w.outil).every((w) => w.outil.id.startsWith('kybernos-workers-')))
 ok('the four home-made connections are mounted by this module, the rest by the Tools screen', WORKERS.filter((w) => w.activation === 'workers').map((w) => w.id).join() === 'gemini,opencode,qwen,hermes')
-ok('their package names are the ones the profile already uses', WORKERS.filter((w) => w.activation === 'workers').every((w) => w.paquet === 'dsh-subagent-' + w.id))
+ok('they load by a subpath of the ONE shared package, and keep the old bare name as an accepted alias', WORKERS.filter((w) => w.activation === 'workers').every((w) => w.paquet === '@local/dsh-subagent-maison/' + w.id && w.dossier === '@local/dsh-subagent-maison' && w.anciensNoms.join() === 'dsh-subagent-' + w.id))
 ok('every connection says how its sign-in is verified', WORKERS.filter((w) => w.genre === 'connexion').every((w) => ['json-loggedIn', 'code', 'count', 'hermes', 'env'].includes(w.auth.format)))
 ok('key-based workers name the variables to look for, and the one to write', [gemini, qwen].every((w) => w.auth.format === 'env' && w.connect.mode === 'key' && w.auth.names.includes(w.connect.env)))
 {

@@ -38,11 +38,20 @@ const INSTALL = Object.freeze({
   hermes: Object.freeze({ cmd: 'curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash', src: 'hermes-agent.nousresearch.com', needs: ['curl', 'bash'], doc: 'https://github.com/NousResearch/hermes-agent' })
 })
 
+// The home-made connectors ship in ONE package (packages/dsh-subagent-maison, linked into the profile by the Suite) and are
+// loaded by a subpath name. `anciensNoms` are the bare names a hand-made setup used (a link in the profile's node_modules and a
+// patch line `name: "dsh-subagent-<id>"`): they still count as turned on, so such a machine neither loses its connectors nor
+// gets a second line that would register the same provider twice.
+const MAISON = '@local/dsh-subagent-maison'
+const maison = (id) => ({ paquet: `${MAISON}/${id}`, dossier: MAISON, anciensNoms: Object.freeze([`dsh-subagent-${id}`]) })
+
 const tool = (id, provider) => Object.freeze({ id: 'kybernos-workers-' + id, provider, toolName: 'subagent_' + provider.replace(/-/g, '_') })
 
 /**
  * Frozen registry of the known workers, in display order.
  *   genre      : 'connexion' (an official or home-made subagent package) | 'mcp' (a local MCP server)
+ *   paquet     : the name the patch loads (`name:` of the insert line). `dossier` = the package that must be in the profile's
+ *                node_modules for it to load, when that is not `paquet` itself (a subpath of a shared package).
  *   activation : who mounts the connection. 'outils' = the Tools screen of the main plugin
  *                (/kybernos/tools/apply), 'workers' = this module (/kybernos-workers/activate)
  *   auth       : how "signed in" is verified without calling a model
@@ -67,25 +76,25 @@ export const WORKERS = Object.freeze([
   }),
   Object.freeze({
     id: 'gemini', nom: 'Gemini CLI', genre: 'connexion', via: 'cli-one-shot', activation: 'workers',
-    paquet: 'dsh-subagent-gemini', outil: tool('gemini', 'gemini'),
+    ...maison('gemini'), outil: tool('gemini', 'gemini'),
     binaire: 'gemini', versionArgs: ['--version'], auth: Object.freeze({ format: 'env', names: Object.freeze(['GEMINI_API_KEY', 'GOOGLE_API_KEY']) }),
     install: INSTALL.gemini, connect: Object.freeze({ mode: 'key', env: 'GEMINI_API_KEY', refs: Object.freeze(['GEMINI_API_KEY', 'GOOGLE_API_KEY']) })
   }),
   Object.freeze({
     id: 'opencode', nom: 'OpenCode', genre: 'connexion', via: 'cli-one-shot', activation: 'workers',
-    paquet: 'dsh-subagent-opencode', outil: tool('opencode', 'opencode'),
+    ...maison('opencode'), outil: tool('opencode', 'opencode'),
     binaire: 'opencode', versionArgs: ['--version'], auth: Object.freeze({ format: 'count', args: Object.freeze(['auth', 'list']) }),
     install: INSTALL.opencode, connect: Object.freeze({ mode: 'cli', cmd: 'opencode auth login' })
   }),
   Object.freeze({
     id: 'qwen', nom: 'Qwen Code', genre: 'connexion', via: 'cli-one-shot', activation: 'workers',
-    paquet: 'dsh-subagent-qwen', outil: tool('qwen', 'qwen'),
+    ...maison('qwen'), outil: tool('qwen', 'qwen'),
     binaire: 'qwen', versionArgs: ['--version'], auth: Object.freeze({ format: 'env', names: Object.freeze(['QWEN_TOKEN_PLAN_API_KEY', 'DASHSCOPE_API_KEY']) }),
     install: INSTALL.qwen, connect: Object.freeze({ mode: 'key', env: 'QWEN_TOKEN_PLAN_API_KEY', refs: Object.freeze(['QWEN_TOKEN_PLAN_API_KEY', 'DASHSCOPE_API_KEY']) })
   }),
   Object.freeze({
     id: 'hermes', nom: 'Hermes', genre: 'connexion', via: 'cli-one-shot', activation: 'workers',
-    paquet: 'dsh-subagent-hermes', outil: tool('hermes', 'hermes'),
+    ...maison('hermes'), outil: tool('hermes', 'hermes'),
     binaire: 'hermes', versionArgs: ['--version'], auth: Object.freeze({ format: 'hermes', args: Object.freeze(['status']), timeoutMs: 40000 }),
     install: INSTALL.hermes, connect: Object.freeze({ mode: 'cli', cmd: 'hermes model' })
   }),
@@ -96,6 +105,16 @@ export const WORKERS = Object.freeze([
 ])
 
 export const trouverWorker = (id) => WORKERS.find((w) => w.id === id)
+
+/** Every name under which a worker's connection may appear in the patch (the current one first, then the old ones). */
+export const nomsDeConnexion = (worker) => [worker.paquet, ...(worker.anciensNoms ?? [])].filter((n) => typeof n === 'string')
+
+/**
+ * The package that must be in the profile for the connection to load. A line carries the name it was written with: the current
+ * one needs the shared package, an old bare name needs its own bare package — so a line is never judged by a package it does
+ * not load. With no line yet (`nomMonte` null) it is the package a new line would need: the current one.
+ */
+export const paquetAChercher = (worker, nomMonte = null) => (nomMonte !== null && nomMonte !== worker.paquet ? nomMonte : (worker.dossier ?? worker.paquet))
 
 // ── reading the profile patch ───────────────────────────────────────────────
 
@@ -154,8 +173,12 @@ const estLigneOutil = (it, worker) => it.champs.name === PAQUET_OUTIL && it.conf
 export function etatProfil (texte, worker) {
   const items = analyserPatch(texte)
   let connexion = false
-  if (worker.genre === 'connexion') connexion = items.some((it) => it.champs.name === worker.paquet)
-  else if (worker.genre === 'mcp') connexion = items.some((it) => it.id === worker.mcpId || (it.champs.name === PAQUET_MCP && it.config.serverName === worker.serverName))
+  let nomMonte = null
+  if (worker.genre === 'connexion') {
+    const ligneConnexion = items.find((it) => nomsDeConnexion(worker).includes(it.champs.name))
+    connexion = ligneConnexion !== undefined
+    nomMonte = connexion ? ligneConnexion.champs.name : null
+  } else if (worker.genre === 'mcp') connexion = items.some((it) => it.id === worker.mcpId || (it.champs.name === PAQUET_MCP && it.config.serverName === worker.serverName))
   let ligne = null
   if (worker.genre === 'connexion') {
     const it = items.find((x) => estLigneOutil(x, worker))
@@ -170,7 +193,7 @@ export function etatProfil (texte, worker) {
       }
     }
   }
-  return { connexion, ligne }
+  return { connexion, nomMonte, ligne }
 }
 
 // ── writing the policy ──────────────────────────────────────────────────────
@@ -356,7 +379,7 @@ export async function verifier ({ worker, texte, io }) {
   const etat = etatProfil(texte, worker)
   c.push(etat.connexion ? ok('connexion', 'montee') : ko('connexion', 'non-montee'))
   if (worker.genre === 'connexion') {
-    c.push(await protege(() => io.paquetInstalle(worker.paquet)) === true ? ok('paquet', 'installe') : ko('paquet', 'non-installe'))
+    c.push(await protege(() => io.paquetInstalle(paquetAChercher(worker, etat.nomMonte))) === true ? ok('paquet', 'installe') : ko('paquet', 'non-installe'))
     const chemin = await protege(() => io.trouver(worker.binaire))
     if (typeof chemin === 'string' && chemin !== '') {
       const v = await protege(() => io.executer(worker.binaire, worker.versionArgs, { delaiMs: 20000 }))
@@ -498,7 +521,7 @@ export function monterWorkers (webServer, deps, liens = {}) {
     try { texte = deps.lirePatch(p.profil) } catch { texte = null }
     const workers = WORKERS.map((w) => {
       const e = etatProfil(texte ?? '', w)
-      const installe = w.genre === 'connexion' ? deps.io.paquetInstalle(p.profil, w.paquet) : deps.io.fichierExiste(deps.io.fichierServeur ?? '')
+      const installe = w.genre === 'connexion' ? deps.io.paquetInstalle(p.profil, paquetAChercher(w, e.nomMonte)) === true : deps.io.fichierExiste(deps.io.fichierServeur ?? '')
       return {
         id: w.id, nom: w.nom, genre: w.genre, via: w.via, paquet: w.paquet ?? null, binaire: w.binaire ?? null, activation: w.activation,
         connect: w.connect, install: w.install == null ? null : { ...w.install, possible: installable(w) },
@@ -572,7 +595,8 @@ export function monterWorkers (webServer, deps, liens = {}) {
       if (etatProfil(texte, worker).connexion) return envoyer(res, 200, { ok: true, already: true, patch: deps.cheminPatch(p.profil) })
       // Mounting a package DSH cannot load would be worse than not mounting it.
       let present = false
-      try { present = deps.io.paquetInstalle(p.profil, worker.paquet) === true } catch { present = false }
+      // A NEW line is about to be written: it needs the current package (an old bare package would not load it).
+      try { present = deps.io.paquetInstalle(p.profil, paquetAChercher(worker)) === true } catch { present = false }
       if (!present) return envoyer(res, 409, { ok: false, error: 'package-missing' })
       const stamp = horodatage(deps.maintenant())
       const calc = calculerActivation({ worker, texte, horodatage: stamp })

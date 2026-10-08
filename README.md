@@ -24,6 +24,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-auto`](packages/kybernos-auto/README.md) | Auto mode: routes delegations by class |
 | [`kybernos-computers`](packages/kybernos-computers/README.md) | Cloud computers for agents (E2B, bring your own key) |
 | [`kybernos-workers`](packages/kybernos-workers/README.md) | Workers screen: verified state, install and exposure of Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode, with a guide and a clickable demo |
+| [`dsh-subagent-maison`](packages/dsh-subagent-maison/README.md) | Agent connectors: the subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes (no page: the Workers page turns them on) |
 | [`kybernos-slides`](packages/kybernos-slides/README.md) | Slide decks driven by chat |
 | [`kybernos-bricks`](packages/kybernos-bricks/README.md) | Brick mockups driven by chat |
 | [`kybernos-modeleur`](packages/kybernos-modeleur/README.md) | 2D/3D models driven by chat |

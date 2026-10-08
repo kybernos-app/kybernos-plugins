@@ -41,7 +41,7 @@ const PATCH0 = `# Profile patch — written by the Tools tab (Kybers).
 
 - insert:
     - id: subagent-opencode
-      name: "dsh-subagent-opencode"
+      name: "@local/dsh-subagent-maison/opencode"
 
 - insert:
     - id: mcp-client-zcode
@@ -58,7 +58,7 @@ let world
 const newWorld = (extra = {}) => ({
   patch: PATCH0, writes: [], coreCalls: [], checks: 0, installs: [], credentialSets: [], stored: new Set(),
   binaries: { claude: '/usr/local/bin/claude', codex: '/usr/local/bin/codex', opencode: '/usr/local/bin/opencode', npm: '/usr/local/bin/npm', curl: '/usr/bin/curl', bash: '/bin/bash' },
-  auth: { claude: true, codex: true, opencodeCount: 2 }, env: new Set(), packages: new Set([PKG_CODEX, 'dsh-subagent-opencode', 'dsh-subagent-gemini']), git: true,
+  auth: { claude: true, codex: true, opencodeCount: 2 }, env: new Set(), packages: new Set([PKG_CODEX, '@local/dsh-subagent-maison']), git: true,
   hostAbsent: false, coreAbsent: false, installRefused: false, platform: 'darwin', installLines: ['Downloading…', 'Installing…'], installExit: 0, installOnPath: true, ...extra
 })
 const deps = () => ({
@@ -315,8 +315,15 @@ try {
     await waitCard(p, 'gemini', /Turned on/)
     ok('a home-made connection is mounted by the Workers host itself (not by the Tools screen)', world.coreCalls.length === 0 && etatProfil(world.patch, trouverWorker('gemini')).connexion === true && world.writes.map((w) => w[0]).join() === 'backup,patch')
     await p.click('[data-kb="wk-activate-row-qwen"]')
-    await waitCard(p, 'qwen', /does not ship with your Suite yet/)
-    ok('a connection whose package is not in the profile is refused with a sentence, and NOTHING is written', etatProfil(world.patch, trouverWorker('qwen')).connexion === false && world.writes.length === 2)
+    await waitCard(p, 'qwen', /Turned on/)
+    ok('all four connectors come from the one shared package: Qwen turns on the same way', etatProfil(world.patch, trouverWorker('qwen')).connexion === true && world.patch.includes('"@local/dsh-subagent-maison/qwen"'))
+    await p.close()
+  }
+  {
+    const p = await open('en', { packages: new Set([PKG_CODEX]) })
+    await p.click('[data-kb="wk-activate-row-qwen"]')
+    await waitCard(p, 'qwen', /"Agent connectors" module is not installed/)
+    ok('without the shared package in the profile: refused with a sentence that names the module, and NOTHING is written', etatProfil(world.patch, trouverWorker('qwen')).connexion === false && world.writes.length === 0)
     await p.close()
   }
   {
