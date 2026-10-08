@@ -68,8 +68,10 @@ try {
   await stage('kb-t-slides', '<div class="kbsd-root"><div class="kbsd-head">head</div></div>')
   await stage('kb-t-modeleur', '<div class="kbm-root kbmo"><div class="kbm-head">head</div></div>')
   await stage('kb-t-briques', '<div class="kbb-root"><div class="kbb-head">head</div></div>')
-  await sleep(3000)
-  const inHead = (id, head) => page.evalJs(`document.querySelectorAll('#${id} .${head} > .kbmini-btn').length`).then((r) => r.val)
+  // Wait for the sweep to reach the Bricks stand-in (a cold DSH, just restarted, takes longer than 3 s), then give it a beat for the others.
+  await waitFor(page, "document.querySelectorAll('#kb-t-briques .kbb-head > .kbmini-btn').length === 1", 20000)
+  await sleep(1500)
+  const inHead =(id, head) => page.evalJs(`document.querySelectorAll('#${id} .${head} > .kbmini-btn').length`).then((r) => r.val)
   const anywhere = (id) => page.evalJs(`document.querySelectorAll('#${id} .kbmini-btn').length`).then((r) => r.val)
   if (!baseline) {
     check('Slides: its panel (.kbsd-root) gets one button, in its head', (await inHead('kb-t-slides', 'kbsd-head')) === 1, await anywhere('kb-t-slides'))
