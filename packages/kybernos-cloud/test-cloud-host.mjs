@@ -40,6 +40,10 @@ let meForcedStatus = null
 // What `GET /v1/models` lists for a workspace named in `x-kybernos-workspace`: the team's own models (`byok/…`) are in ITS catalogue only.
 // `teamSpaceListed` adds that team to the account's workspaces.
 let teamSpaceListed = false
+// Headers added to every answer (the server tells a member inside the grace of the second-factor policy when it ends: X-Kybernos-Mfa-Grace-Ends) and a refusal of the
+// active space's plan read (a member without a factor, past the grace: 403 mfa_required_by_workspace).
+let extraHeaders = null
+let planRefusal = null
 // What `GET …/llm/budget` says of the signed-in person's windows (the server's own words: kind, window, scope, exhausted).
 let budgetBody = { windows: [
   { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '0.10', remaining_usd: '0.90', exhausted: false, lifted_by_topup: false },
@@ -128,7 +132,7 @@ const api = createServer((req, res) => {
   req.on('end', () => {
     const body = raw === '' ? null : JSON.parse(raw)
     const send = (status, payload) => {
-      res.writeHead(status, { 'content-type': 'application/json' })
+      res.writeHead(status, { 'content-type': 'application/json', ...(extraHeaders !== null ? extraHeaders : {}) })
       res.end(JSON.stringify(payload))
     }
     // Team lessons: a small stand-in for /v1/workspaces/{id}/lessons (the real rules are the server's, tested there): roles come from
@@ -258,6 +262,7 @@ const api = createServer((req, res) => {
     }
     if (req.url === '/v1/workspaces/ws-1/plan') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (planRefusal !== null) return send(403, planRefusal)
       return send(200, spacePlanBody)
     }
     if (req.url === '/v1/referral' && req.method === 'GET') {
@@ -831,6 +836,28 @@ try {
   budgetBody = { windows: [] }
   spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000 }
   ok('quota : les fenetres epuisees de la personne et l etat du paiement de l espace ACTIF, sans jeton')
+
+  // ── The card says when the space turns the person away ─────────────────────────────────────────────────────────────────────────────────────
+  // A workspace that asks its members for a second factor answers its routes 403 `mfa_required_by_workspace` to a member who has none once the grace is over, and DSH shows
+  // that member « API key is invalid » on a chat call (a 403 is AUTH to it, in its own fixed words). The card is this plugin's own surface: it carries the reason.
+  const choisiOk = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(choisiOk.body.state.space_plan.mfa, undefined, 'nothing to say while nothing is asked')
+  extraHeaders = { 'x-kybernos-mfa-grace-ends': '2026-10-15T12:00:00.000Z' }
+  const inGrace = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.deepEqual(inGrace.body.state.space_plan.mfa, { state: 'grace', ends: '2026-10-15T12:00:00.000Z' }, 'inside the grace: when it ends')
+  assert.equal(inGrace.body.state.space_plan.key, 'solo', 'inside the grace the plan is read as usual')
+  extraHeaders = null
+  planRefusal = { workspace_id: 'ws-1', error: 'mfa_required_by_workspace', message: 'This workspace asks its members for a second factor, and you have none yet.' }
+  const turnedAway = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.deepEqual(turnedAway.body.state.space_plan.mfa, { state: 'blocked', ends: null }, 'past the grace: turned away')
+  assert.equal(turnedAway.body.state.space_plan.workspace_id, 'ws-1')
+  assert.equal(JSON.stringify(turnedAway.body).includes(TOKEN), false)
+  const refreshedBlocked = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(refreshedBlocked.body.state.space_plan.mfa.state, 'blocked', 'a refresh keeps saying it')
+  planRefusal = null
+  const freed = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(freed.body.state.space_plan.mfa, undefined, 'once the person has a factor the card says nothing more')
+  ok('espace actif : un second facteur exige (delai en cours, puis refus) est dit dans l etat de l espace, sans jeton')
 
   // 4b. Montée de formule : PAS de réécriture settings (le catalogue n'est pas
   //     filtré par formule — l'abonnement est appliqué par le proxy) ; seul le

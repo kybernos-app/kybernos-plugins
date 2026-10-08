@@ -238,6 +238,10 @@ window.__ModuleLoader__.load({
         quotaHours: '{n} heures',
         quotaDays: '{n} jours',
         quotaMinutes: '{n} minutes',
+        mfaBlockedShort: 'Second facteur requis',
+        mfaBlockedLong: '{name} demande un second facteur à ses membres et vous n\'en avez pas : activez-en un dans votre compte Kybernos (Sécurité), puis rechargez.',
+        mfaGraceShort: 'Second facteur d\'ici le {date}',
+        mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'espace vous sera fermé.',
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
         dataNavLabel: 'Données & confidentialité',
@@ -492,6 +496,10 @@ window.__ModuleLoader__.load({
         quotaHours: '{n} hours',
         quotaDays: '{n} days',
         quotaMinutes: '{n} minutes',
+        mfaBlockedShort: 'Second factor required',
+        mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
+        mfaGraceShort: 'Second factor by {date}',
+        mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the workspace is closed to you.',
         dataNavLabel: 'Data & privacy',
         dataLabel: 'Your data',
         dataExportTitle: 'Full data export',
@@ -1165,6 +1173,22 @@ window.__ModuleLoader__.load({
       return { text: quotaFill(t('quotaWindow'), { plan: label === '' ? '' : label + ' ', window: win, cap }) + quotaFill(t('quotaComes'), { window: win }) + more, action: !shared || admin }
     }
     // </quota-notice-text>
+
+    // <mfa-note-text>
+    // A workspace that asks its members for a second factor: inside the grace it says by when, after it the person is turned away (DSH can only say « API key is invalid »
+    // to them). `mfa` is what the host read for the active space (`space_plan.mfa`), `fmt` formats a date. Pure.
+    const mfaNoteText = (mfa, name, t, fmt) => {
+      if (mfa === null || mfa === undefined || typeof mfa !== 'object') return null
+      const who = typeof name === 'string' && name !== '' ? name : t('quotaWorkspace')
+      if (mfa.state === 'blocked') return { short: t('mfaBlockedShort'), long: quotaFill(t('mfaBlockedLong'), { name: who }) }
+      if (mfa.state === 'grace') {
+        const date = typeof mfa.ends === 'string' ? fmt(mfa.ends) : null
+        if (date === null || date === undefined) return null
+        return { short: quotaFill(t('mfaGraceShort'), { date }), long: quotaFill(t('mfaGraceLong'), { name: who, date }) }
+      }
+      return null
+    }
+    // </mfa-note-text>
 
     return {
       // On ne déclare QUE `slots` (seul service indispensable) : `locale` est
@@ -2584,6 +2608,7 @@ window.__ModuleLoader__.load({
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
             const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
+            const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
             const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
             const ouvrirPageEspace = () => {
               // « Réglage de l'espace » (02/10) : l'entrée ouvre la page EMBED
@@ -2673,7 +2698,7 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, initiales(nomEspace, '')),
               h('span', { className: 'kbfp-cardtxt' },
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
-                h('span', { className: 'kbfp-cardsub' }, qui + ' · ' + planEspace))),
+                h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')))),
               h('button', {
                 type: 'button', className: 'kbfp-ico',
                 title: t('mobTitle'), 'aria-label': t('mobTitle'),

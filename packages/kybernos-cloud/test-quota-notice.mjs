@@ -81,5 +81,21 @@ console.log('the registration')
   check('the dictionary has the notice in French and in English', (source.match(/quotaPayment:/g) || []).length === 2 && (source.match(/quotaWindow:/g) || []).length === 2)
 }
 
+console.log('what the card says when the workspace turns the person away')
+{
+  const f = source.indexOf('// <mfa-note-text>')
+  const g = source.indexOf('// </mfa-note-text>')
+  check('the note builder is where the test expects it', f > 0 && g > f)
+  const fill = source.slice(source.indexOf('const quotaFill'), source.indexOf('const quotaWindowLabel'))
+  const mfaNoteText = new Function(fill + source.slice(f, g) + '\nreturn mfaNoteText')()
+  const fmt = (iso) => iso.slice(0, 10)
+  const blocked = mfaNoteText({ state: 'blocked', ends: null }, 'Acme Crew', t, fmt)
+  check('past the grace: the reason and what to do, in the workspace\'s name', blocked !== null && /Second factor required/.test(blocked.short) && /Acme Crew asks its members for a second factor/.test(blocked.long) && /set one up in your Kybernos account/.test(blocked.long), blocked && JSON.stringify(blocked))
+  const grace = mfaNoteText({ state: 'grace', ends: '2026-10-15T12:00:00.000Z' }, 'Acme Crew', t, fmt)
+  check('inside the grace: by when', grace !== null && /2026-10-15/.test(grace.short) && /before 2026-10-15/.test(grace.long), grace && JSON.stringify(grace))
+  check('nothing asked: nothing said (also a grace with no date)', mfaNoteText(null, 'x', t, fmt) === null && mfaNoteText(undefined, 'x', t, fmt) === null && mfaNoteText({ state: 'grace', ends: null }, 'x', t, fmt) === null && mfaNoteText({ state: 'other' }, 'x', t, fmt) === null)
+  check('the card shows it beside the plan, with the long sentence as its title; fr and en are in the dictionary', /'data-kb': mfaNote !== null \? 'workspace-card-mfa'/.test(source) && (source.match(/mfaBlockedLong:/g) || []).length === 2 && (source.match(/mfaGraceLong:/g) || []).length === 2)
+}
+
 if (failed > 0) { console.log('\n' + failed + ' check(s) FAILED'); process.exit(1) }
 console.log('\nall checks OK')

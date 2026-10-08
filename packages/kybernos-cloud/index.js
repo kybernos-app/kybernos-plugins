@@ -161,6 +161,11 @@ const espaceActif = (state) => {
 const readSpacePlan = async (state, id) => {
   if (typeof id !== 'string' || id === '' || isConnected(state) !== true) return null
   const res = await apiCall('/v1/workspaces/' + encodeURIComponent(id) + '/plan', { token: state.token })
+  // A workspace that asks for a second factor turns away a member who has none, once the grace is over: the plan is unknown, the reason is not. DSH itself can only
+  // say « API key is invalid » to that person (a 403 is AUTH to it), so the card carries the reason.
+  if (res.status === 403 && res.body !== null && typeof res.body === 'object' && res.body.error === 'mfa_required_by_workspace') {
+    return { workspace_id: id, key: 'none', name: null, level: null, label: null, status: null, credit_balance_credits: null, mfa: { state: 'blocked', ends: null } }
+  }
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return null
   const b = res.body
   const plan = b.plan !== null && typeof b.plan === 'object' ? b.plan : null
@@ -173,7 +178,8 @@ const readSpacePlan = async (state, id) => {
   const label = name === null ? null : (kind === 'individual' && level !== null && level.toLowerCase() !== name.toLowerCase() ? name + ' ' + level : name)
   const credits = Number(b.credit_balance_credits)
   return { workspace_id: id, key, name, level, label, status: typeof b.status === 'string' ? b.status : null,
-    credit_balance_credits: Number.isFinite(credits) ? credits : null }
+    credit_balance_credits: Number.isFinite(credits) ? credits : null,
+    ...(res.grace !== null ? { mfa: { state: 'grace', ends: res.grace } } : {}) }
 }
 
 /** What the page may know of it: only when it was read for the space that is active NOW. */
@@ -313,7 +319,9 @@ const apiCall = async (path, options = {}) => {
     let readable = true
     try { parsed = JSON.parse(got.text) } catch (e) { parsed = null; readable = got.text.trim() === '' }
     if (readable !== true && res.status >= 200 && res.status < 300) return { status: 0, body: null, error: 'invalid_response' }
-    return { status: res.status, body: parsed }
+    // When the workspace asks its members for a second factor, a member who has none is told when the grace ends on every answer of that workspace.
+    const grace = res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('x-kybernos-mfa-grace-ends') : null
+    return { status: res.status, body: parsed, grace: typeof grace === 'string' && grace !== '' ? grace : null }
   } catch (e) {
     return { status: 0, body: null, error: String((e && e.message) || e) }
   } finally {

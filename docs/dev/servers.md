@@ -60,6 +60,22 @@ Anyone can edit the file by hand. What the paid module sells is the management o
 | `GET /kybernos-cloud/server` | `{ ok, server: { id, name, api, web, console, llm, gateway }, source, error?, servers: [{ id, name, api, llm, active, connected }], rejected }`. `connected` = this DSH holds a sign-in for that server (its own connection file); nothing of the token is returned. No secret lives in a profile. |
 | `POST /kybernos-cloud/server/apply` | Make DSH follow the registry: clean the previous server's route, mark the new one, import its catalogue if connected. Idempotent. `{ ok, server, cleaned, connected, models?, no_llm?, import_error? }`. Same-origin guarded. |
 
+## Which workspace a chat call is billed to
+
+The server bills a call to the workspace named in `x-kybernos-workspace`, else to the person's **personal** workspace. DSH's chat has no way to
+name one per call, so the model route the plugin writes (`llm-pi-ai.providers.kybernos`) carries the header of the **active space** as a profile
+`header`, and the catalogue is read with the same header: a team's own models (`byok/…`, shared with its members by an owner or admin) are in the
+catalogue of that team and in no other. Choosing or creating a space rewrites the route; a refresh re-reads the catalogue (one GET) and rewrites it
+only when the models changed. Without this a member's chat used their personal allowance whatever the Cloud card said (measured, `console2` lane of
+the production gate).
+
+Three more host routes serve the Team console and the quota notice: `POST /kybernos-cloud/console/open` (the HOST makes the single-use console link
+and opens it in the machine's own browser: a tab a DSH page opens is a cross-site navigation, which the server refuses for a console link; the page
+never sees the link; `KYBERNOS_OPEN_URL_COMMAND` replaces the opener), `GET /kybernos-cloud/quota` (what stopped the last call: the active space's
+plan and payment state and the person's own windows that are used up, no token) and the `space_plan.mfa` field of `/status` (a workspace that asks
+its members for a second factor: `grace` with the date, or `blocked`). DSH words every refusal « Request quota exhausted » (a 403 is « API key is
+invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead.
+
 ## The discovery document a company server serves
 
 A user types ONE address; the module reads `GET <address>/.well-known/kybernos-server.json` (200 JSON, no redirect, under 64 KB):
