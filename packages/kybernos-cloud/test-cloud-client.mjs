@@ -70,6 +70,21 @@ for (const k of ['memoKindFact', 'memoKindPreference', 'memoKindEvent', 'memoKin
   assert.ok(frKeys.has(k) && enKeys.has(k), 'cle dynamique manquante: ' + k)
 }
 sok(String(used.size) + ' cles litterales presentes en fr ET en (+4 construites dynamiquement)')
+// « Open the console in your browser » is gone: it asked the server for a link the old stack does not have (the tab opened, then closed with no word) and
+// it repeated « Teams settings ». The menu has ONE entry for the team console, and nothing in the client opens a tab for it.
+for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrowser", "ouvrirEspaceNavigateur", "callLocal('/console/link'", "window.open('', '_blank')"]) {
+  assert.ok(!clientSource.includes(needle), 'l entree « ouvrir dans le navigateur » ne doit plus exister: ' + needle)
+}
+assert.ok(clientSource.includes("entree('space-settings'"), 'l entree « Teams settings » reste')
+// The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
+for (const [needle, why] of [["wsNew: 'New team'", 'en: New team'], ["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
+  ["wsNew: 'Nouvelle équipe'", 'fr: Nouvelle équipe'], ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
+  assert.ok(clientSource.includes(needle), 'vocabulaire Team: ' + why)
+}
+for (const old of ["wsNew: 'New workspace'", "wsNewTitle: 'Create a workspace'", "wsNewName: 'Workspace name'", "wsNew: 'Nouvel espace'", "wsNewTitle: 'Créer un espace'"]) {
+  assert.ok(!clientSource.includes(old), 'ancien libellé « workspace » à la création: ' + old)
+}
+sok('Menu du compte : une seule entrée pour la console d équipe, création = Team (fr/en)')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null
@@ -337,16 +352,6 @@ for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace', "s
 assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSettings doit exister en fr ET en')
 ok('Teams settings : entree nommee du menu, pont vers la console puis deux replis, fr/en')
 
-// « Open the console in your browser »: the page is the same one, where it can change things. DSH asks its host route for a single-use link (never the
-// device token in a URL) and asks the HOST to open the system browser with it: the server refuses a link that reaches it as a navigation a page started (a tab this page
-// opened and pointed at the link is « cross-site »: the person lands on « link expired », measured 2026-10-08 in a real browser), and accepts one the OS opened.
-// Only a host that could not open one hands the address back, and then a tab is opened here, with no opener.
-for (const needle of ["entree('space-browser', h(GlobeIcon", "callLocal('/console/link', 'POST'", '{ open: true }', 'workspace_id: actif, open: true', 'r.opened !== true', "window.open(r.url, '_blank', 'noopener,noreferrer')", 'onSpaceBrowser: ouvrirEspaceNavigateur']) {
-  assert.ok(source.includes(needle), 'entree « ouvrir dans le navigateur » : element manquant: ' + needle)
-}
-assert.ok(!source.includes("window.open('', '_blank')") && !source.includes('onglet.location.href'), 'un onglet ouvert par la page puis pointe sur le lien est « cross-site » : le serveur le refuse')
-assert.equal((source.match(/menuTeamsBrowser:/g) || []).length, 2, 'menuTeamsBrowser doit exister en fr ET en')
-ok('Ouvrir la console dans le navigateur : entree du menu, lien a usage unique demande a l hote qui ouvre le navigateur du systeme, adresse rendue sinon, fr/en')
 
 // Le câblage de la page : la liste des espaces, la route du choix, les cinq
 // directions inertes, et le lien vers la page hébergée.
