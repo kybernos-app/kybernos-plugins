@@ -162,6 +162,38 @@ try {
   await val(`(() => { const b = document.querySelector('[data-act="hangup"]'); if (b) b.click() })()`)
   await sleep(500)
   await val(`fetch('/kybernos-call/settings', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ patch: { setupDone: false } }) }).then((r) => r.status)`, 8000) // put back: the defaults are checked below
+  // The video window: wide enough to see a face, with a 16:9 picture, a grip to drag it wider and a button to fill the window.
+  console.log('1c. the video window can be resized')
+  statusOnce = { ok: true, secrets: 'posee', setupDone: true, provider: 'liveavatar' }
+  await val(`window.__KB_CALL__.open({ sessionId: 'session-aaaaaaaa', name: 'Assistant', mode: 'video' })`, 8000).catch(() => null)
+  const geom = () => val(`(() => { const p = document.querySelector('[data-kb="kybernos-call-panel"]'); const m = document.querySelector('[data-kb="kybernos-call-media"]'); const g = document.querySelector('[data-act="resize"]'); if (!p || !m) return null; const a = p.getBoundingClientRect(); const b = m.getBoundingClientRect(); const c = g ? g.getBoundingClientRect() : null; return JSON.stringify({ w: Math.round(a.width), h: Math.round(a.height), x: Math.round(a.x), y: Math.round(a.y), mw: Math.round(b.width), mh: Math.round(b.height), full: p.getAttribute('data-full'), grip: c ? [Math.round(c.x + c.width / 2), Math.round(c.y + c.height / 2)] : null, vw: innerWidth, vh: innerHeight }) })()`)
+  const g0 = JSON.parse((await poll(() => geom(), 8000)) || 'null')
+  await shot('video-window-default')
+  check('a video call opens a window wide enough to see a face (560 px, not 340)', g0 !== null && g0.w >= 540 && g0.w <= 580, g0)
+  check('with a 16:9 picture area (the old one was 180 px high)', g0 !== null && Math.abs(g0.mh - g0.mw * 9 / 16) <= 2 && g0.mh > 250, g0)
+  check('and a grip at its top left corner', g0 !== null && g0.grip !== null, g0)
+  if (g0 !== null && g0.grip !== null) {
+    const [gx, gy] = g0.grip
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: gx, y: gy })
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: gx, y: gy, button: 'left', clickCount: 1 })
+    for (const dx of [40, 90, 150]) { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: gx - dx, y: gy, button: 'left' }); await sleep(60) }
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: gx - 150, y: gy, button: 'left', clickCount: 1 })
+    await sleep(300)
+    const g1 = JSON.parse((await geom()) || 'null')
+    check('dragging the grip to the left makes the window wider, the picture following', g1 !== null && g1.w >= g0.w + 140 && g1.w <= g0.w + 160 && Math.abs(g1.mh - g1.mw * 9 / 16) <= 2, g1)
+    check('and the right edge stays where it was', g1 !== null && Math.abs((g1.x + g1.w) - (g0.x + g0.w)) <= 1, g1)
+    check('the width is remembered on this browser', (await val(`window.localStorage.getItem('kybernos-call:width')`)) === String(g1 && g1.w))
+    await shot('video-window-dragged')
+  }
+  await clickWhenEnabled('[data-act="panel-full"]')
+  const g2 = JSON.parse((await poll(async () => { const x = JSON.parse((await geom()) || 'null'); return x !== null && x.full === 'true' ? JSON.stringify(x) : null }, 5000)) || 'null')
+  check('the full screen button fills the window', g2 !== null && g2.w >= g2.vw - 40 && g2.h >= g2.vh - 40 && g2.mh > g2.vh * 0.6, g2)
+  await shot('video-window-full')
+  await val(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`)
+  check('Escape brings it back', (await poll(async () => { const x = JSON.parse((await geom()) || 'null'); return x !== null && x.full === 'false' }, 5000)) === true)
+  await val(`(() => { const b = document.querySelector('[data-act="hangup"]'); if (b) b.click() })()`)
+  await val(`window.localStorage.removeItem('kybernos-call:width')`)
+  await sleep(500)
 
   console.log('2. Settings › Calls › Overview')
   await val(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => x.getAttribute('aria-label') === 'Settings'); if (b) b.click() })()`)

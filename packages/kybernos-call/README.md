@@ -95,6 +95,10 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
    audio file): two rising notes when the assistant joins, one blip when the session starts working on what you said, two falling notes at
    hang-up (and a low one on an error). The "Sounds" button turns them off; the choice is kept per browser (`localStorage`). The "thinking"
    state comes from the worker: it sets the participant attribute `kb.working` while the session works (`_working_flag` in `agent.py`).
+   **The size of the video window.** A voice call is a 340 px card. A video call opens 560 px wide with a 16:9 picture; a grip at its top
+   left corner drags it wider or narrower (the right edge stays put; the arrow keys do the same, Shift for bigger steps), and a button
+   next to "Hang up" fills the whole window (Esc brings it back). The width is remembered per browser (`localStorage`), within 300 px and
+   the width of the window.
 5. **The app's voice.** The worker speaks through the app's own voice engine (`POST /kybernos/tts/speak` of `@local/kybernos`: the one
    behind the member card's Preview, with its engines, a voice per language, a fallback chain and a cache), with the voice picked on the
    member's card and the language of the reply (`agent/call_voice.py`, `agent/host_tts.py`). The member's voice is kept while it speaks

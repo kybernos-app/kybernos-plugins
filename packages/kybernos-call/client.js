@@ -95,6 +95,45 @@ window.__ModuleLoader__.load({
         if (next) { audioContext(); cue('heard') }
       }
 
+      // ── the size of the video window: dragged by its top left corner, or full screen; the width is remembered per device ──
+      const WIDTH_KEY = 'kybernos-call:width'
+      const MIN_W = 300
+      const VOICE_W = 340
+      const VIDEO_W = 560
+      const view = { width: null, full: false } // width null = not chosen yet (stored value, else the default)
+      const viewChanged = () => subscribers.forEach((fn) => { try { fn() } catch (e) { /* a dead subscriber */ } })
+      const maxWidth = () => Math.max(MIN_W, Math.min(1400, (typeof window.innerWidth === 'number' && window.innerWidth > 0 ? window.innerWidth : 1280) - 40))
+      const clampWidth = (w) => Math.round(Math.max(MIN_W, Math.min(maxWidth(), w)))
+      const videoWidth = () => {
+        if (view.width === null) {
+          let stored = null
+          try { const v = Number(window.localStorage.getItem(WIDTH_KEY)); if (Number.isFinite(v) && v >= MIN_W) stored = v } catch (e) { /* storage blocked */ }
+          view.width = stored !== null ? stored : VIDEO_W
+        }
+        return clampWidth(view.width)
+      }
+      const setWidth = (w, keep) => {
+        view.width = clampWidth(w)
+        if (keep === true) { try { window.localStorage.setItem(WIDTH_KEY, String(view.width)) } catch (e) { /* it lasts for this call only */ } }
+        viewChanged()
+      }
+      const toggleFull = () => { view.full = view.full !== true; viewChanged() }
+      // The grip sits at the top left (the window is anchored bottom right): dragging left makes it wider; the picture follows (16:9).
+      const startDrag = (ev) => {
+        if (typeof document === 'undefined' || ev === null || ev === undefined) return
+        try { ev.preventDefault() } catch (e) { /* synthetic */ }
+        const x0 = ev.clientX
+        const w0 = videoWidth()
+        const move = (m) => setWidth(w0 + (x0 - m.clientX), false)
+        const up = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); setWidth(view.width, true) }
+        document.addEventListener('pointermove', move)
+        document.addEventListener('pointerup', up)
+      }
+      const gripKey = (ev) => {
+        const step = ev.shiftKey ? 120 : 40
+        if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') { ev.preventDefault(); setWidth(videoWidth() + step, true) } else if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') { ev.preventDefault(); setWidth(videoWidth() - step, true) }
+      }
+
       const loadSdk = () => new Promise((resolve, reject) => {
         if (window.LivekitClient !== undefined && window.LivekitClient !== null) { resolve(window.LivekitClient); return }
         const s = document.createElement('script')
@@ -140,6 +179,7 @@ window.__ModuleLoader__.load({
       const open = async (opts) => {
         const o = (opts !== null && typeof opts === 'object') ? opts : {}
         if (live !== null) await hangUp() // one call at a time
+        view.full = false
         setState({
           role: o.roleId, name: String(o.name ?? ''), mode: o.mode === 'video' ? 'video' : 'voice',
           phase: 'preparing', note: kt('lecture des réglages d’appel…', 'reading call settings…'),
@@ -343,6 +383,12 @@ window.__ModuleLoader__.load({
           subscribers.add(rerender)
           return () => { subscribers.delete(rerender) }
         }, [])
+        React.useEffect(() => {
+          if (typeof document === 'undefined' || state === null || view.full !== true) return undefined
+          const onKey = (e) => { if (e.key === 'Escape') toggleFull() }
+          document.addEventListener('keydown', onKey)
+          return () => document.removeEventListener('keydown', onKey)
+        }, [state === null ? null : view.full])
         // The clock ticks while the call is live (the state itself does not change every second).
         React.useEffect(() => {
           if (state === null || state.phase !== 'live') return undefined
@@ -361,13 +407,26 @@ window.__ModuleLoader__.load({
               ? kt('personne n’a rejoint l’appel : le worker est peut-être saturé ou arrêté. Raccrochez et rappelez ; sinon voir kybernos/logs/appel-agent.log', 'nobody joined the call: the worker may be busy or stopped. Hang up and call again; if it repeats, see kybernos/logs/appel-agent.log')
               : ((typeof s.note === 'string') ? s.note : '')))
         const mood = moodOf(s)
-        const node = h('div', { role: 'dialog', 'aria-label': kt('Panneau d’appel', 'Call panel'), 'data-kb': 'kybernos-call-panel', 'data-state': mood[0], style: css.card }, [
+        const video = s.mode === 'video'
+        const full = video && view.full === true
+        // A voice call keeps its small card; a video call opens wider and can be dragged wider, or filled to the whole window.
+        const cardStyle = full
+          ? Object.assign({}, css.card, { top: '16px', left: '16px', right: '16px', bottom: '16px', width: 'auto' })
+          : Object.assign({}, css.card, { width: (video ? videoWidth() : VOICE_W) + 'px', maxWidth: 'calc(100vw - 40px)' })
+        const mediaStyle = !video
+          ? { height: '0px', borderRadius: '10px', overflow: 'hidden', background: '#16161A' }
+          : (full
+            ? { flex: '1 1 0', minHeight: '0px', borderRadius: '10px', overflow: 'hidden', background: '#16161A' }
+            : { aspectRatio: '16 / 9', maxHeight: 'calc(100vh - 230px)', borderRadius: '10px', overflow: 'hidden', background: '#16161A' })
+        const node = h('div', { role: 'dialog', 'aria-label': kt('Panneau d’appel', 'Call panel'), 'data-kb': 'kybernos-call-panel', 'data-state': mood[0], 'data-full': full ? 'true' : 'false', style: cardStyle }, [
+          video && !full ? h('button', { key: 'grip', type: 'button', className: 'kbcl-grip', 'data-act': 'resize', role: 'separator', 'aria-orientation': 'vertical', 'aria-label': kt('Redimensionner la fenêtre d’appel (glisser, ou flèches du clavier)', 'Resize the call window (drag, or the arrow keys)'), title: kt('Glisser pour agrandir ou réduire', 'Drag to make it larger or smaller'), onPointerDown: startDrag, onKeyDown: gripKey }) : null,
           h('div', { key: 'head', style: css.row }, [
             h('span', { key: 'badge', style: css.badge }, s.mode === 'video' ? 'VID' : 'AUD'),
             h('div', { key: 'who', style: css.col }, [
               h('span', { key: 'n', style: css.name }, s.name),
               h('span', { key: 'p', className: 'kbcl-status', 'data-state': mood[0], role: 'status', 'aria-live': 'polite' }, [h('i', { key: 'd', className: 'kbcl-dot' }), mood[1] + (isLive ? ' · ' + clock(seconds(s)) : '')])
             ]),
+            video ? h('button', { key: 'full', type: 'button', className: 'kbcl-hbtn', 'data-act': 'panel-full', 'aria-pressed': full ? 'true' : 'false', 'aria-label': full ? kt('Réduire la fenêtre', 'Make the window smaller') : kt('Plein écran', 'Full screen'), title: full ? kt('Réduire la fenêtre (Échap)', 'Make the window smaller (Esc)') : kt('Plein écran', 'Full screen'), onClick: toggleFull }, Ico(full ? 'shrink' : 'expand', 16)) : null,
             h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, kt('Raccrocher', 'Hang up'))
           ]),
           note !== '' ? h('span', { key: 'note', style: css.note }, note) : null,
@@ -377,7 +436,7 @@ window.__ModuleLoader__.load({
             h('span', { key: 'm', className: 'kbcl-meter', 'aria-hidden': 'true' }, h('span', { className: 'kbcl-meter-fill', ref: (el) => { meterEl = el } })),
             h('span', { key: 'b', className: 'kbcl-bars', 'aria-hidden': 'true' }, [h('i', { key: 1 }), h('i', { key: 2 }), h('i', { key: 3 }), h('i', { key: 4 })])
           ]) : null,
-          h('div', { key: 'media', ref: (el) => { audioHost = el }, style: { height: s.mode === 'video' ? '180px' : '0px', borderRadius: '10px', overflow: 'hidden', background: '#16161A' } }),
+          h('div', { key: 'media', ref: (el) => { audioHost = el }, 'data-kb': 'kybernos-call-media', style: mediaStyle }),
           s.lines.length > 0 ? h('div', { key: 'lines', style: css.lines }, s.lines.map((l, i) => h('span', { key: i, style: css.line }, l))) : null,
           (isLive && Array.isArray(s.mics) && s.mics.length > 1) ? h('select', { key: 'mic', 'data-act': 'mic', 'aria-label': kt('Micro', 'Microphone'), className: 'kbcl-in', value: s.micId, onChange: (e) => switchMic(e.target.value) },
             s.mics.map((m) => h('option', { key: m.id, value: m.id }, m.label))) : null,
@@ -458,6 +517,10 @@ window.__ModuleLoader__.load({
 .kbcl-bars i:nth-child(3){animation-delay:.3s!important}
 .kbcl-bars i:nth-child(4){animation-delay:.45s!important}
 .kbcl-activity[data-state="ok"] .kbcl-bars i{background:${T.ok}}
+.kbcl-grip{appearance:none;position:absolute;top:-1px;left:-1px;width:22px;height:22px;padding:0;border:0;border-radius:14px 0 8px 0;background:transparent;cursor:nwse-resize;touch-action:none}
+.kbcl-grip::before{content:"";position:absolute;top:5px;left:5px;width:9px;height:9px;border-top:2px solid ${T.faint};border-left:2px solid ${T.faint};border-radius:3px 0 0 0}
+.kbcl-grip:hover::before,.kbcl-grip:focus-visible::before{border-color:${T.text}}
+.kbcl-grip:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
 .kbcl-hdr{display:flex;align-items:center;gap:4px;margin-left:auto;order:99}
 [class*="_headerActions"]:has(.kbcl-hdr){flex:1 1 auto}
 .kbcl-hbtn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-width:30px;padding:0 6px;box-sizing:border-box;border:1px solid transparent;border-radius:9px;background:transparent;color:${T.mute};cursor:pointer;font:inherit;font-size:12.5px;transition:background .12s,color .12s}
@@ -565,6 +628,8 @@ window.__ModuleLoader__.load({
         bad: [['circle', 12, 12, 10], ['path', 'm15 9-6 6'], ['path', 'm9 9 6 6']],
         idle: [['circle', 12, 12, 10]],
         run: [['path', 'M21 12a9 9 0 1 1-6.219-8.56']],
+        expand: [['path', 'M15 3h6v6'], ['path', 'M9 21H3v-6'], ['path', 'M21 3l-7 7'], ['path', 'M3 21l7-7']],
+        shrink: [['path', 'M4 14h6v6'], ['path', 'M20 10h-6V4'], ['path', 'M14 10l7-7'], ['path', 'M3 21l7-7']],
         sliders: [['path', 'M4 21v-7'], ['path', 'M4 10V3'], ['path', 'M12 21v-9'], ['path', 'M12 8V3'], ['path', 'M20 21v-5'], ['path', 'M20 12V3'], ['path', 'M1 14h6'], ['path', 'M9 8h6'], ['path', 'M17 16h6']]
       }
       const Ico = (name, size, cls) => h('svg', { width: size || 20, height: size || 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true', className: cls || undefined, style: { flex: 'none' } },

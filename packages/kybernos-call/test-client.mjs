@@ -601,8 +601,50 @@ console.log('kybernos-call: the panel and the language')
   const flat = JSON.stringify(tree)
   assert.ok(flat.includes('Raccrocher'))
   assert.ok(flat.includes('Couper le micro'))
-  assert.ok(flat.includes('"height":"180px"'))
-  ok('live, in French: the panel is a dialog with "Raccrocher" and "Couper le micro", and a 180 px picture area for a video call')
+  assert.ok(flat.includes('"aspectRatio":"16 / 9"') && flat.includes('"width":"560px"') && flat.includes('"height":"180px"') === false)
+  ok('live, in French: the panel is a dialog with "Raccrocher" and "Couper le micro"; a video call opens 560 px wide with a 16:9 picture area')
+
+  const find = (node, act) => {
+    if (node === null || node === undefined || typeof node !== 'object') return null
+    if (node.props && node.props['data-act'] === act) return node
+    const kids = Array.isArray(node.children) ? node.children : [node.children]
+    for (const k of kids) { const f = find(k, act); if (f !== null) return f }
+    return null
+  }
+  const grip = find(tree, 'resize')
+  assert.ok(grip !== null && grip.props.role === 'separator' && /Redimensionner/.test(grip.props['aria-label']))
+  grip.props.onKeyDown({ key: 'ArrowLeft', shiftKey: false, preventDefault () {} })
+  assert.ok(JSON.stringify(Panel()).includes('"width":"600px"'))
+  grip.props.onKeyDown({ key: 'ArrowRight', shiftKey: true, preventDefault () {} })
+  assert.ok(JSON.stringify(Panel()).includes('"width":"480px"'))
+  for (let i = 0; i < 30; i += 1) grip.props.onKeyDown({ key: 'ArrowRight', shiftKey: true, preventDefault () {} })
+  assert.ok(JSON.stringify(Panel()).includes('"width":"300px"'))
+  for (let i = 0; i < 30; i += 1) grip.props.onKeyDown({ key: 'ArrowLeft', shiftKey: true, preventDefault () {} })
+  assert.ok(JSON.stringify(Panel()).includes('"width":"1240px"'))
+  ok('the grip at the top left resizes the video window (keys here, the mouse in the browser), never below 300 px nor wider than the window')
+
+  const fullBtn = find(Panel(), 'panel-full')
+  assert.equal(fullBtn.props['aria-pressed'], 'false')
+  assert.match(fullBtn.props['aria-label'], /Plein écran/)
+  fullBtn.props.onClick()
+  const fullTree = Panel()
+  assert.equal(fullTree.props['data-full'], 'true')
+  const fullFlat = JSON.stringify(fullTree)
+  assert.ok(fullFlat.includes('"top":"16px"') && fullFlat.includes('"bottom":"16px"') && fullFlat.includes('"flex":"1 1 0"'))
+  assert.equal(find(fullTree, 'resize'), null)
+  assert.match(find(fullTree, 'panel-full').props['aria-label'], /Réduire/)
+  find(fullTree, 'panel-full').props.onClick()
+  assert.equal(Panel().props['data-full'], 'false')
+  ok('a button fills the whole window with the video, and brings it back')
+
+  await plugin.__test.hangUp()
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true } })
+  await plugin.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', mode: 'voice' })
+  const voiceTree = Panel()
+  assert.equal(find(voiceTree, 'resize'), null)
+  assert.equal(find(voiceTree, 'panel-full'), null)
+  assert.ok(JSON.stringify(voiceTree).includes('"width":"340px"'))
+  ok('a voice call keeps its small 340 px card, with nothing to resize')
 
   const en = draw('en')
   en.e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true } })
