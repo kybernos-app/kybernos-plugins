@@ -90,7 +90,7 @@ window.__ModuleLoader__.load({
         setState({
           role: o.roleId, name: String(o.name ?? ''), mode: o.mode === 'video' ? 'video' : 'voice',
           phase: 'preparing', note: kt('lecture des réglages d’appel…', 'reading call settings…'),
-          lines: [], startedAt: null, agent: null, muted: false, agentState: ''
+          lines: [], startedAt: null, agent: null, muted: false, agentState: '', mics: [], micId: ''
         })
         // 1) The machine's secrets: without them we say so, we do not invent a call.
         let status = null
@@ -166,6 +166,14 @@ window.__ModuleLoader__.load({
           await room.connect(token.url, token.token)
           const mic = await room.localParticipant.setMicrophoneEnabled(true)
           live = { room: room, mic: mic }
+          // With several microphones (a laptop and a headset) the wrong one is the usual first-call surprise: let the user switch.
+          let mics = []
+          try {
+            const found = (typeof lib.Room.getLocalDevices === 'function') ? await lib.Room.getLocalDevices('audioinput') : []
+            mics = (Array.isArray(found) ? found : []).filter((d) => d && typeof d.deviceId === 'string' && d.deviceId !== '').map((d) => ({ id: d.deviceId, label: String(d.label || d.deviceId).slice(0, 60) }))
+          } catch (e) { mics = [] }
+          const current = (mic && mic.track && mic.track.mediaStreamTrack && typeof mic.track.mediaStreamTrack.getSettings === 'function') ? String(mic.track.mediaStreamTrack.getSettings().deviceId || '') : ''
+          patch({ mics: mics, micId: current })
           patch({
             phase: 'live', startedAt: Date.now(),
             note: ((agent !== null && agent.dispatched === true)
@@ -182,6 +190,11 @@ window.__ModuleLoader__.load({
         const next = state.muted !== true
         try { live.room.localParticipant.setMicrophoneEnabled(next === false) } catch (e) { /* the room is going away */ }
         patch({ muted: next })
+      }
+
+      const switchMic = async (id) => {
+        if (live === null || typeof id !== 'string' || id === '') return
+        try { await live.room.switchActiveDevice('audioinput', id); patch({ micId: id }) } catch (e) { patch({ note: kt('impossible de changer de micro — ', 'could not switch microphone — ') + messageOf(e) }) }
       }
 
       // ── the panel ──
@@ -216,9 +229,12 @@ window.__ModuleLoader__.load({
         if (state === null) return null
         const s = state
         const isLive = s.phase === 'live'
-        const note = (s.agent !== null && s.agent !== undefined && s.agent.dispatched === false && s.agent.dispatchError !== undefined)
-          ? ('agent not dispatched: ' + String(s.agent.dispatchError))
-          : ((typeof s.note === 'string') ? s.note : '')
+        // Why nobody answers is said first: the worker that did not start, then the one that could not be woken.
+        const note = (s.agent !== null && s.agent !== undefined && s.agent.running === false && typeof s.agent.error === 'string')
+          ? (kt('agent non démarré : ', 'worker not started: ') + s.agent.error)
+          : ((s.agent !== null && s.agent !== undefined && s.agent.dispatched === false && s.agent.dispatchError !== undefined)
+            ? ('agent not dispatched: ' + String(s.agent.dispatchError))
+            : ((typeof s.note === 'string') ? s.note : ''))
         const node = h('div', { role: 'dialog', 'aria-label': kt('Panneau d’appel', 'Call panel'), 'data-kb': 'kybernos-call-panel', style: css.card }, [
           h('div', { key: 'head', style: css.row }, [
             h('span', { key: 'badge', style: css.badge }, s.mode === 'video' ? 'VID' : 'AUD'),
@@ -231,6 +247,8 @@ window.__ModuleLoader__.load({
           note !== '' ? h('span', { key: 'note', style: css.note }, note) : null,
           h('div', { key: 'media', ref: (el) => { audioHost = el }, style: { height: s.mode === 'video' ? '180px' : '0px', borderRadius: '10px', overflow: 'hidden', background: '#16161A' } }),
           s.lines.length > 0 ? h('div', { key: 'lines', style: css.lines }, s.lines.map((l, i) => h('span', { key: i, style: css.line }, l))) : null,
+          (isLive && Array.isArray(s.mics) && s.mics.length > 1) ? h('select', { key: 'mic', 'data-act': 'mic', 'aria-label': kt('Micro', 'Microphone'), className: 'kbcl-in', value: s.micId, onChange: (e) => switchMic(e.target.value) },
+            s.mics.map((m) => h('option', { key: m.id, value: m.id }, m.label))) : null,
           isLive ? h('div', { key: 'tools', style: css.row }, [
             h('button', { key: 'mute', type: 'button', 'data-act': 'mute', onClick: toggleMute, style: css.ghost }, s.muted === true ? kt('Réactiver', 'Unmute') : kt('Couper le micro', 'Mute me')),
             h('span', { key: 'hint', style: css.mono }, kt('ce qui se dit ici entre dans le fil', 'what is said here enters the thread'))
@@ -510,7 +528,7 @@ window.__ModuleLoader__.load({
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { open: open, hangUp: hangUp, toggleMute: toggleMute, getState: () => state, setAudioHost: (el) => { audioHost = el }, CallPill: CallPill, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
+        __test: { open: open, hangUp: hangUp, toggleMute: toggleMute, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallPill: CallPill, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
         apply (ctx) {
           try {
             const slots = ctx.slots

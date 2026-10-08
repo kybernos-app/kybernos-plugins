@@ -69,6 +69,8 @@ const makeEnv = ({ lang = 'en' } = {}) => {
 }
 const fakeSdk = (rooms) => {
   class Room {
+    static async getLocalDevices (kind) { return Room.devices === undefined ? [] : Room.devices.filter((d) => d.kind === kind) }
+    async switchActiveDevice (kind, id) { if (this.failSwitch) throw new Error('device busy'); this.switched = [kind, id] }
     constructor (opts) { this.opts = opts; this.handlers = {}; this.connected = null; this.micCalls = []; this.disconnected = false; rooms.push(this)
       this.localParticipant = { setMicrophoneEnabled: async (on) => { this.micCalls.push(on); return { stop: async () => { this.micStopped = true } } } } }
     on (event, fn) { this.handlers[event] = fn }
@@ -278,6 +280,58 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
   assert.equal(g.rooms[1].connected.token, 'T2')
   assert.equal(gt.getState().name, 'B')
   ok('a second call hangs up the first one: one call at a time')
+}
+
+console.log('kybernos-call: microphones and why nobody answers')
+{
+  const e = makeEnv()
+  const t = e.run().__test
+  e.win.LivekitClient = fakeSdk(e.rooms)
+  e.win.LivekitClient.Room.devices = [{ kind: 'audioinput', deviceId: 'built-in', label: 'MacBook Microphone' }, { kind: 'audioinput', deviceId: 'airpods', label: 'AirPods' }, { kind: 'videoinput', deviceId: 'cam', label: 'Camera' }]
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true }, meta: { mode: 'voice' } })
+  await t.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+  assert.deepEqual(plain(t.getState().mics), [{ id: 'built-in', label: 'MacBook Microphone' }, { id: 'airpods', label: 'AirPods' }])
+  ok('once the call is live the panel knows the microphones (inputs only, with their names)')
+  await t.switchMic('airpods')
+  assert.deepEqual(e.rooms[0].switched, ['audioinput', 'airpods'])
+  assert.equal(t.getState().micId, 'airpods')
+  e.rooms[0].failSwitch = true
+  await t.switchMic('built-in')
+  assert.match(t.getState().note, /could not switch microphone — device busy/)
+  assert.equal(t.getState().micId, 'airpods')
+  ok('choosing another microphone switches the live call to it; a device that cannot be used is reported and the call stays on the old one')
+}
+{
+  const e = makeEnv()
+  const plugin = e.run()
+  let Panel = null
+  plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') Panel = c; return {} } }, effect: (fn) => fn() })
+  e.win.LivekitClient = fakeSdk(e.rooms)
+  e.win.LivekitClient.Room.devices = [{ kind: 'audioinput', deviceId: 'a', label: 'One' }, { kind: 'audioinput', deviceId: 'b', label: 'Two' }]
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true }, meta: { mode: 'voice' } })
+  await plugin.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+  const withMics = JSON.stringify(Panel())
+  assert.ok(withMics.includes('"data-act":"mic"') && withMics.includes('One') && withMics.includes('Two'))
+  ok('with several microphones the panel offers a choice')
+  const one = makeEnv()
+  const p1 = one.run()
+  let Panel1 = null
+  p1.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') Panel1 = c; return {} } }, effect: (fn) => fn() })
+  one.win.LivekitClient = fakeSdk(one.rooms)
+  one.win.LivekitClient.Room.devices = [{ kind: 'audioinput', deviceId: 'a', label: 'One' }]
+  one.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true }, meta: { mode: 'voice' } })
+  await p1.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+  assert.equal(JSON.stringify(Panel1()).includes('"data-act":"mic"'), false)
+  ok('with only one it offers nothing')
+
+  const bad = makeEnv()
+  const pb = bad.run()
+  let PanelB = null
+  pb.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') PanelB = c; return {} } }, effect: (fn) => fn() })
+  bad.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: false, dispatched: false, error: 'call venv missing (<DSH_HOME>/kybernos/appel-venv)' }, meta: { mode: 'voice' } })
+  await pb.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+  assert.ok(JSON.stringify(PanelB()).includes('worker not started: call venv missing'))
+  ok('a worker that could not start is named in the panel, with the reason (not just "nobody is listening")')
 }
 
 console.log('kybernos-call: the call button of a session')

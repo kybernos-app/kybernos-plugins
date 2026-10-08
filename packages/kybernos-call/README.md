@@ -23,7 +23,7 @@ reach this bundle through one seam.
    (listening). Each has a **Test** button. Keys are written to `kybernos/livekit.env` (private file) and are never shown again.
 2. The worker's Python environment, once: `uv venv ~/.dsh/kybernos/appel-venv && uv pip install --python ~/.dsh/kybernos/appel-venv/bin/python -r agent/requirements.txt`
    (under `$DSH_HOME` if set). The host starts the worker itself at the first call.
-3. Click Call. Allow the microphone. Speak.
+3. Click Call. Allow the microphone. Speak. With several microphones (a laptop and a headset) the panel lets you switch to the right one during the call. If the worker could not start, the panel says why (for instance a missing worker environment) instead of staying silent.
 
 A face (a `video` call) needs a LiveAvatar key and avatar id (Service tab); without them the call stays voice only. A member's own voice
 needs nothing: it is the one chosen on its card. A voice made from a recording needs an ElevenLabs key and the switch in Essentials.
