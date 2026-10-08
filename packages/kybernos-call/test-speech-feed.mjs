@@ -125,4 +125,23 @@ two.ingest('session-iiiiiiii', said('only b'))
 assert.equal((await two.poll('room-b', 0, 0)).items.length, 2)
 ok('two calls on one session each get the replies; hanging up one leaves the other')
 
+console.log('is a call going on with this session')
+{
+  let t = 1000000
+  const live = createSpeechFeed({ now: () => t })
+  assert.equal(live.active('session-jjjjjjjj'), false)
+  live.register('room-j', 'session-jjjjjjjj')
+  assert.equal(live.active('session-jjjjjjjj'), true)
+  assert.equal(live.active('session-other'), false)
+  t += 59000
+  assert.equal(live.active('session-jjjjjjjj'), true)
+  t += 2000
+  assert.equal(live.active('session-jjjjjjjj'), false)
+  await live.poll('room-j', 0, 0)
+  assert.equal(live.active('session-jjjjjjjj'), true)
+  live.unregister('room-j')
+  assert.equal(live.active('session-jjjjjjjj'), false)
+  ok('a session has a live call while its worker keeps asking (a minute without a question: over), and not after the room is released')
+}
+
 console.log('\nkybernos-call speech feed: ' + pass + ' checks')

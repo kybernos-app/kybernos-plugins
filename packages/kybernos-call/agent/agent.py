@@ -157,8 +157,26 @@ class CallAgent(Agent):
             raise StopResponse()
 
 
-async def _speak_session(session: AgentSession, room: str, state: CallState | None = None) -> None:
+def _working_flag(room):
+    """`working(True/False)`: tells the page, through a participant attribute, that the session is working on
+    what was just said (the browser shows it and plays a soft "heard you"). It only writes when the value changes."""
+    last = {"on": None}
+
+    def working(on: bool) -> None:
+        if last["on"] is on:
+            return
+        last["on"] = on
+        try:
+            asyncio.get_running_loop().create_task(room.local_participant.set_attributes({"kb.working": "1" if on else "0"}))
+        except Exception as exc:  # the call is closing
+            _say("could not mark the state:", exc)
+
+    return working
+
+
+async def _speak_session(session: AgentSession, room: str, state: CallState | None = None, working=None) -> None:
     """Says what the session's assistant writes, as the host hands it over (a long poll)."""
+    working = working if working is not None else (lambda on: None)
     loop = asyncio.get_running_loop()
     after = 0
     failures = 0
@@ -171,19 +189,24 @@ async def _speak_session(session: AgentSession, room: str, state: CallState | No
             _say("speech poll failed:", exc)
             if failures >= 5:
                 _say("giving up on the session's replies")
+                working(False)
                 return
             await asyncio.sleep(min(2 * failures, 10))
             continue
         if reply.get("known") is False:
             _say("the host no longer follows this call")
+            working(False)
             return
         for item in reply.get("items", []):
-            if item.get("kind") == "end" and state is not None:
-                state.turn_ended()
+            if item.get("kind") == "end":
+                working(False)
+                if state is not None:
+                    state.turn_ended()
             if item.get("kind") != "text":
                 continue
             said = speakable(item.get("text", ""))
             if said:
+                working(False)
                 if state is not None:
                     state.reply_spoken()
                 _say("speaking the session's reply:", repr(said[:120]))
@@ -253,6 +276,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
 
     marks: list[dict] = []
     started = time.time()
+    working = _working_flag(ctx.room)
 
     def _dump() -> None:
         try:
@@ -275,6 +299,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
         mode = state.inject_mode() if meta.brain == "session" else "queue"
         if meta.brain == "session" and meta.session_id:
             state.turn_started()
+            working(True)
         # Off the event loop: the insertion must never delay the speech.
         asyncio.get_event_loop().run_in_executor(None, _inject, meta, ev.transcript, mode)
 
@@ -327,7 +352,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
     ctx.add_shutdown_callback(_dump_at_end)
     tasks = [asyncio.create_task(_watch_limits(ctx, state, meta))]
     if meta.brain == "session":
-        tasks.append(asyncio.create_task(_speak_session(session, ctx.room.name, state)))
+        tasks.append(asyncio.create_task(_speak_session(session, ctx.room.name, state, working)))
         language_now = (app_voice.current_language if app_voice is not None else (lambda: two_letters(meta.language)))
         tasks.append(asyncio.create_task(_say_while_waiting(session, state, language_now)))
 

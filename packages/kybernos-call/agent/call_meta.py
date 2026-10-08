@@ -178,11 +178,45 @@ _ARROWS = re.compile(r"\s*[\u2190-\u21ff\u27f5-\u27ff]+\s*")
 _PICTOGRAPHS = re.compile("[\U0001f000-\U0001faff\u2600-\u27bf\u2b00-\u2bff\ufe0f\u200d]")
 
 
-def speakable(text: str, limit: int = 700) -> str:
+_LIST_ITEM = re.compile(r"^\s*([-*+]|\d+[.)])\s+")
+
+
+def _block_kind(block: str) -> str:
+    """What a paragraph of a written answer is, for a voice: prose, a list, or something a voice skips."""
+    lines = [ln for ln in block.splitlines() if ln.strip()]
+    if not lines:
+        return "skip"
+    if all(re.fullmatch(r"\s*[-=*_ ]{3,}\s*", ln) for ln in lines):
+        return "skip"  # a rule
+    if sum(1 for ln in lines if ln.count("|") >= 2) * 2 >= len(lines):
+        return "skip"  # a table
+    if all(re.match(r"^\s*#{1,6}\s", ln) for ln in lines):
+        return "skip"  # headings alone
+    if all(_LIST_ITEM.match(ln) for ln in lines):
+        return "list"
+    return "prose"
+
+
+def _spoken_words(block: str) -> str:
+    lines = []
+    for raw in block.splitlines():
+        line = raw.strip()
+        if not line or line.count("|") >= 2 or re.fullmatch(r"[-=*_ ]{3,}", line):
+            continue
+        line = re.sub(r"^(#{1,6}\s+|>\s*|[-*+]\s+|\d+[.)]\s+)", "", line)
+        line = re.sub(r"[*_`~]+", "", line).strip()
+        if line:
+            lines.append(line if re.search(r"[.!?\u2026:]$", line) else line + ".")
+    return " ".join(lines)
+
+
+def speakable(text: str, limit: int = 450) -> str:
     """The part of an assistant message worth saying aloud, or "" when there is none.
 
-    A written answer is full of things a voice cannot say: code, tables, links, markup. They stay in
-    the thread, where the user can read them. What is left is cut at a sentence end under `limit`.
+    A written answer is full of things a voice cannot or should not say: code, tables, links, markup, and the
+    menus of options an assistant likes to add under its answer. What is said is the LEAD: the first paragraph
+    (a lead-in ending with a colon takes the list under it), cut at a sentence end under `limit`. The rest stays
+    in the thread, where the user can read it.
     """
     if not isinstance(text, str):
         return ""
@@ -191,17 +225,14 @@ def speakable(text: str, limit: int = 700) -> str:
     text = _URL.sub("", text)
     text = _ARROWS.sub(", ", text)
     text = _PICTOGRAPHS.sub("", text)  # a voice reads an emoji as its name, or not at all
-    lines = []
-    for raw in text.splitlines():
-        line = raw.strip()
-        if not line or line.count("|") >= 2 or re.fullmatch(r"[-=*_ ]{3,}", line):
-            continue  # a blank line, a table row, a rule
-        line = re.sub(r"^(#{1,6}\s+|>\s*|[-*+]\s+|\d+[.)]\s+)", "", line)
-        line = re.sub(r"[*_`~]+", "", line).strip()
-        if line:
-            lines.append(line if re.search(r"[.!?\u2026:]$", line) else line + ".")
-    out = " ".join(lines)
-    out = re.sub(r"\s+", " ", out).strip()
+    blocks = [(b, _block_kind(b)) for b in re.split(r"\n\s*\n", text)]
+    blocks = [(b, k) for b, k in blocks if k != "skip"]
+    if not blocks:
+        return ""
+    chosen = [blocks[0][0]]
+    if blocks[0][1] == "prose" and len(blocks) > 1 and blocks[1][1] == "list" and blocks[0][0].rstrip().endswith(":"):
+        chosen.append(blocks[1][0])
+    out = re.sub(r"\s+", " ", " ".join(_spoken_words(b) for b in chosen)).strip()
     if len(out) <= limit:
         return out
     cut = out[:limit]
@@ -260,7 +291,7 @@ class CallState:
     comes cannot trap the call: it is forgotten after `STALE_S`.
     """
 
-    FILLER_AFTER_S = 3.5
+    FILLER_AFTER_S = 10.0  # an answer in a few seconds needs no "one moment" (it was said at every turn at 3.5 s)
     STALE_S = 120.0
 
     def __init__(self, now: Callable[[], float]) -> None:

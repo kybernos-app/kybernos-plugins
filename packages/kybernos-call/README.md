@@ -9,7 +9,8 @@ reach this bundle through one seam.
 
 ## Where to find it
 
-- **The Call button in the composer** of every session (the dock under the message box): the call belongs to the session, not to a team.
+- **The phone and camera buttons at the top right of the chat** of every session (the header, next to the app's own controls): the call belongs to the session, not to a team.
+  The phone starts a voice call, the camera a video call (off, with the reason, until a LiveAvatar key is set). During a call they become one red "Hang up".
   It calls the session's assistant, with the voice, language and mode of Settings › Calls.
 - **Call / Video on a team member's card** (the crew view of `@local/kybernos`): that member, with its own voice. These two buttons
   call `window.__KB_CALL__.open({ sessionId, kyberId, roleId, name, mode, voice })`; without this bundle the seam does not exist and
@@ -46,10 +47,20 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
    it); otherwise they queue.
 4. **One brain.** With a session behind the call (`brain: session`) the worker's small model does NOT answer (`StopResponse`). The host
    listens to the engine's `session/event` stream (`speech-feed.mjs`) and keeps, for the call's room, what the session's assistant writes;
-   the worker long-polls `GET /kybernos-call/speech` and speaks it (`speakable()`: code, tables, links and markup stay in the thread, the
-   rest is cut at a sentence end under 700 characters). If the session is still working after a few seconds, the voice says one short
-   "one moment" in the call's language. Without a session, or on an engine with no event stream, the small model answers, so a call is
-   never silent.
+   the worker long-polls `GET /kybernos-call/speech` and speaks it. Only the LEAD is spoken (`speakable()`): the first paragraph of each message
+   (a lead-in ending with a colon takes its list), without code, tables, links, markup, emoji or arrows, cut at a sentence end under 450
+   characters; the rest stays in the thread. While a call is live the host adds a short brief to that session's system prompt
+   (`call-brief.mjs`, a `systemPrompt.context` chunk that is empty outside a call): answer in one to three spoken sentences, no menu of
+   options, kybers or skills, no closing question, detail after a blank line. Measured on the first call: the answer was "Paris" and a
+   voice then read the menu the assistant adds under every answer. If the session is still working after 10 s the voice says one short
+   "one moment" in the call's language (it was 3.5 s and came at every turn). Without a session, or on an engine with no event stream,
+   the small model answers, so a call is never silent.
+   **What the panel shows and plays once connected.** A status line with a dot (amber while connecting, then green "listening", blue
+   "thinking" while the session works on what was said, green with a ring while the assistant speaks), a bar that follows your microphone
+   (the first thing to look at when nothing answers), and four bars that move with the assistant. Three soft tones, made in the page (no
+   audio file): two rising notes when the assistant joins, one blip when the session starts working on what you said, two falling notes at
+   hang-up (and a low one on an error). The "Sounds" button turns them off; the choice is kept per browser (`localStorage`). The "thinking"
+   state comes from the worker: it sets the participant attribute `kb.working` while the session works (`_working_flag` in `agent.py`).
 5. **The app's voice.** The worker speaks through the app's own voice engine (`POST /kybernos/tts/speak` of `@local/kybernos`: the one
    behind the member card's Preview, with its engines, a voice per language, a fallback chain and a cache), with the voice picked on the
    member's card and the language of the reply (`agent/call_voice.py`, `agent/host_tts.py`). The member's voice is kept while it speaks
@@ -112,7 +123,7 @@ button is clicked.
 ## Known limits
 
 - **Proved, not run with a real model and a microphone.** Everything is covered by tests and by checks on a real DSH (a sandbox): the
-  routes, the settings page, the composer button, the member cards, the voice engine and the session events. A full call with real
+  routes, the settings page, the header buttons, the member cards, the voice engine and the session events. A full call with real
   speech, a real model's answer and the voice playing in a browser needs your keys and a microphone: that is the one thing not done.
 - ElevenLabs cloning is written from the provider's published API (create `POST /v1/voices/add`, speak `POST /v1/text-to-speech/{id}`,
   delete `DELETE /v1/voices/{id}`) and tested against fake servers only. The Test button checks the key; the first real clone is the
@@ -134,12 +145,12 @@ button is clicked.
 
 `node packages/kybernos-call/test-*.mjs`: `test-host` (the token, the dispatch, the settings a call uses), `test-store` (settings, secrets,
 clones on disk), `test-admin` (the settings page's host side, the clone provider, against fake servers), `test-routes`, `test-speech-feed`,
-`test-client` (the panel, the composer button, the clone flow, in a fake browser), `test-dsh-home`, `test-agent-process` (a real child
+`test-client` (the panel and its indicators and sounds, the header buttons, the clone flow, in a fake browser), `test-call-brief`, , `test-dsh-home`, `test-agent-process` (a real child
 process, Unix only), `test-agent-meta` (the worker's Python tests through `python3`: `call_meta`, `call_voice`, and the LiveKit-facing worker
 which are skipped without the worker's venv; run `<venv>/bin/python agent/test_call_agent.py` to run them). None needs DSH, a browser or the
 network. In `@local/kybernos`, `test-call-seam.mjs` checks the member card's side.
 
 On a real DSH (a sandbox: `scripts/sandbox/setup.sh` then `start.sh`, then `source scripts/sandbox/env.sh`):
-`scripts/check-call-live.mjs` (the panel), `check-call-ui-live.mjs` (the composer button and Settings › Calls), `check-call-team-live.mjs`
+`scripts/check-call-live.mjs` (the panel), `check-call-ui-live.mjs` (the header buttons, where they sit, and Settings › Calls), `check-call-team-live.mjs`
 (a team's member cards), `check-call-brain-live.mjs` (the session's events reach the call), `check-call-voice-live.mjs` (the worker asks the
 app's real voice engine). A real call needs a microphone: run it on the sandbox, never on your own GUI while it holds a conversation.

@@ -110,12 +110,29 @@ class Speakable(unittest.TestCase):
         self.assertEqual(speakable("Europe grows faster. North America follows."), "Europe grows faster. North America follows.")
 
     def test_what_a_voice_cannot_say_is_dropped(self):
-        text = ("## Summary\n\nEurope leads.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n"
-                "- first point\n- second point\n\n```js\nconsole.log(1)\n```\nSee [the doc](https://x.io/doc) now.")
+        text = ("## Summary\n\nEurope leads, see [the doc](https://x.io/doc).\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n"
+                "- first point\n- second point\n\n```js\nconsole.log(1)\n```\nMore.")
         said = speakable(text)
-        self.assertEqual(said, "Summary. Europe leads. first point. second point. See the doc now.")
-        for forbidden in ("|", "```", "console", "http", "##", "- "):
+        self.assertEqual(said, "Europe leads, see the doc.")  # the heading is not read, the lead is
+        for forbidden in ("|", "```", "console", "http", "##", "- ", "first point"):
             self.assertNotIn(forbidden, said)
+
+    def test_only_the_lead_is_said_not_the_menu_under_it(self):
+        # The first real call: the answer was "Paris", and a voice then read a menu of kybers and skills.
+        text = ("Le capital de la France est Paris. \U0001f1eb\U0001f1f7\n\n"
+                "- Kyber `default` : pour une vraie demande de travail \u2014 je le lance ?\n"
+                "- Skill `feature-plugin-dsh` : pour une fonctionnalité précise \u2014 je la charge ?\n\n"
+                "Autre chose ?")
+        self.assertEqual(speakable(text), "Le capital de la France est Paris.")
+
+    def test_a_lead_in_with_a_colon_takes_its_list(self):
+        self.assertEqual(speakable("Voici les options :\n- rouge\n- bleu\n\nDis-moi laquelle."), "Voici les options : rouge. bleu.")
+
+    def test_an_answer_that_is_a_list_is_said(self):
+        self.assertEqual(speakable("- un\n- deux\n\nFin."), "un. deux.")
+
+    def test_further_paragraphs_stay_in_the_thread(self):
+        self.assertEqual(speakable("Premier paragraphe.\n\nDeuxième paragraphe."), "Premier paragraphe.")
 
     def test_only_code_or_a_table_says_nothing(self):
         self.assertEqual(speakable("Oui, je t'entends bien ! \U0001f50a \u2014 le canal est bon."), "Oui, je t'entends bien ! \u2014 le canal est bon.")
@@ -238,9 +255,9 @@ class State(unittest.TestCase):
 
     def test_one_moment_once_per_turn_and_only_if_nothing_was_said(self):
         self.state.turn_started()
-        self.clock.t += 2
-        self.assertFalse(self.state.wants_filler())
-        self.clock.t += 2
+        self.clock.t += 6
+        self.assertFalse(self.state.wants_filler(), "an answer in a few seconds needs no \"one moment\"")
+        self.clock.t += 5
         self.assertTrue(self.state.wants_filler())
         self.state.filler_said()
         self.assertFalse(self.state.wants_filler())

@@ -70,8 +70,27 @@ class SpeakSession(unittest.TestCase):
             asyncio.run(worker._speak_session(FakeSession(), "room-1"))
         finally:
             worker.fetch_speech = original
-        self.assertEqual(said, ["Result. Europe leads."])
+        self.assertEqual(said, ["Europe leads."])
         self.assertEqual(asked, [("room-1", 0), ("room-1", 3)])
+
+    def test_the_page_is_told_while_the_session_works_and_when_it_stops(self):
+        marks = []
+
+        class FakeSession:
+            def say(self, text, **kwargs):
+                marks.append("said")
+
+        replies = [
+            {"known": True, "next": 2, "items": [{"seq": 1, "kind": "text", "text": "Paris."}, {"seq": 2, "kind": "end", "reason": "end-turn"}]},
+            {"known": False, "items": [], "next": 2},
+        ]
+        original = worker.fetch_speech
+        worker.fetch_speech = lambda host, room, after, wait: replies.pop(0)
+        try:
+            asyncio.run(worker._speak_session(FakeSession(), "room-1", None, lambda on: marks.append("working" if on else "idle")))
+        finally:
+            worker.fetch_speech = original
+        self.assertEqual(marks[:2], ["idle", "said"], "it is not working anymore the moment the voice has something to say")
 
     def test_it_gives_up_after_repeated_failures(self):
         class FakeSession:
@@ -334,6 +353,31 @@ class ClonedVoice(unittest.TestCase):
         finally:
             del os.environ["ELEVENLABS_API_KEY"]
         self.assertFalse(any(isinstance(t, CloneTTS) for t in getattr(voice, "_tts_instances", [voice])))
+
+
+@unittest.skipUnless(HAVE_LIVEKIT, "livekit-agents is not installed: run this with the worker's venv")
+class WorkingFlag(unittest.TestCase):
+    def test_it_writes_a_participant_attribute_only_when_the_value_changes(self):
+        written = []
+
+        class Me:
+            async def set_attributes(self, attrs):
+                written.append(dict(attrs))
+
+        class Room:
+            local_participant = Me()
+
+        async def go():
+            flag = worker._working_flag(Room())
+            flag(True)
+            flag(True)
+            flag(False)
+            flag(False)
+            flag(True)
+            await asyncio.sleep(0.05)
+
+        asyncio.run(go())
+        self.assertEqual(written, [{"kb.working": "1"}, {"kb.working": "0"}, {"kb.working": "1"}])
 
 
 class ShutdownCallbacks(unittest.TestCase):

@@ -10,6 +10,7 @@
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createAdmin } from './call-admin.mjs'
+import { renderCallBrief } from './call-brief.mjs'
 import { createCall } from './call-host.mjs'
 import { mountCallRoutes } from './call-routes.mjs'
 import { createServices } from './call-services.mjs'
@@ -33,6 +34,15 @@ export function apply (ctx) {
         feed = candidate
       }
     } catch (e) { feed = null; say('session events not followed: ' + String(e && e.message ? e.message : e)) }
+    // While a call is live, the session's assistant is told that its answer is read aloud (short, no menus).
+    // Outside a call the chunk is empty, so no other session changes. Fail-open: a prompt chunk never stops DSH.
+    try {
+      if (feed !== null) {
+        ctx.inject(['systemPrompt'], (scope) => {
+          try { scope.systemPrompt.context({ name: 'kybernos:call-voice', order: 9000, text: (context) => renderCallBrief(feed, context) }) } catch (e) { say('voice brief not registered: ' + String(e && e.message ? e.message : e)) }
+        })
+      }
+    } catch (e) { say('voice brief not registered: ' + String(e && e.message ? e.message : e)) }
     const store = createStore()
     const call = createCall({ pluginDir, feed, store })
     const admin = createAdmin({ store, services: createServices(), call })

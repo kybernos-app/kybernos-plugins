@@ -1464,8 +1464,8 @@
         },
         "steps": [
           {
-            "fr": "Dans une session, cliquez Appeler sous la zone de message. Pour un membre d'équipe : Call ou Video sur sa carte.",
-            "en": "In a session, click Call under the message box. For a team member: Call or Video on its card."
+            "fr": "Dans une session, cliquez le téléphone (voix) ou la caméra (vidéo) en haut à droite du chat. Pour un membre : Call ou Video sur sa carte.",
+            "en": "In a session, click the phone (voice) or the camera (video) at the top right of the chat. For a team member: Call or Video on its card."
           },
           {
             "fr": "Autorisez le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parlez, il répond à voix haute.",
@@ -1477,8 +1477,8 @@
           }
         ],
         "where": {
-          "fr": "Sous le message de toute session › Appeler · Réglages › Appels",
-          "en": "Under the message box of any session › Call · Settings › Calls",
+          "fr": "En haut à droite du chat de toute session · Réglages › Appels",
+          "en": "Top right of the chat of any session · Settings › Calls",
           "page": true
         },
         "good": {

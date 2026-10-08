@@ -38,7 +38,7 @@ export function createSpeechFeed (options = {}) {
   const register = (room, sessionId) => {
     if (typeof room !== 'string' || room === '' || typeof sessionId !== 'string' || sessionId === '') return false
     unregister(room)
-    rooms.set(room, { sessionId, since: now(), items: [], next: 1, waiters: new Set() })
+    rooms.set(room, { sessionId, since: now(), polledAt: now(), items: [], next: 1, waiters: new Set() })
     if (!bySession.has(sessionId)) bySession.set(sessionId, new Set())
     bySession.get(sessionId).add(room)
     return true
@@ -97,7 +97,9 @@ export function createSpeechFeed (options = {}) {
     sweep()
     const r = rooms.get(room)
     if (r === undefined) { resolve({ ok: true, known: false, items: [], next: after }); return }
+    r.polledAt = now()
     const read = () => {
+      r.polledAt = now()
       const items = r.items.filter((i) => i.seq > after)
       return { ok: true, known: rooms.get(room) === r, items, next: items.length > 0 ? items[items.length - 1].seq : after }
     }
@@ -110,5 +112,19 @@ export function createSpeechFeed (options = {}) {
     timer = setTimeout(done, wait)
   })
 
-  return { register, unregister, ingest, poll, sweep, size: () => rooms.size, sessionOf: (room) => (rooms.get(room) ?? {}).sessionId ?? null }
+  /**
+   * Is a call going on with this session right now? A worker that follows a call polls all the time (a long poll
+   * of 20 s), so a room that was polled (or created) within `ttlMs` is a live call; one nobody asks about any more is over.
+   */
+  const active = (sessionId, ttlMs = 60000) => {
+    const set = bySession.get(String(sessionId))
+    if (set === undefined) return false
+    for (const room of set) {
+      const r = rooms.get(room)
+      if (r !== undefined && now() - Math.max(r.since, r.polledAt) < ttlMs) return true
+    }
+    return false
+  }
+
+  return { register, unregister, ingest, poll, sweep, active, size: () => rooms.size, sessionOf: (room) => (rooms.get(room) ?? {}).sessionId ?? null }
 }

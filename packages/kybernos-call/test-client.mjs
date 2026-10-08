@@ -95,17 +95,17 @@ console.log('kybernos-call: the plugin object and the seam')
   plugin.apply({ slots, effect: (fn) => { const c = fn(); cleanups.push(c) } })
   assert.deepEqual(registered.map((r) => [r.name, r.r.meta.id]), [
     ['shell.overlay', 'kybernos-call-overlay'],
-    ['conversation.composer.dock', 'kybernos-call'],
+    ['conversation.session.header.actions', 'kybernos-call-header'],
     ['settings.section', 'kybernos-call']
   ])
-  assert.equal(registered[1].r.meta.order, 6)
+  assert.equal(registered[1].r.meta.order, 50)
   assert.equal(registered[2].r.meta.label, 'Calls')
   assert.equal(typeof e.win.__KB_CALL__.open, 'function')
   assert.equal(e.win.__KB_CALL__.version, 1)
   assert.equal(e.styles.length, 1)
   assert.equal(e.styles[0].attrs['data-plugin'], '@local/kybernos-call')
-  assert.match(e.styles[0].textContent, /\.kbcl-pill\{/)
-  ok('apply registers the panel (overlay), a call button in the composer of every session, and the Calls settings page; it publishes window.__KB_CALL__.open and one stylesheet')
+  assert.match(e.styles[0].textContent, /\.kbcl-hbtn\{/)
+  ok('apply registers the panel (overlay), the voice and video buttons in the header of every chat, and the Calls settings page; it publishes window.__KB_CALL__.open and one stylesheet')
   cleanups.forEach((c) => { if (typeof c === 'function') c() })
   assert.equal(e.win.__KB_CALL__, undefined)
   assert.equal(e.styles.length, 0)
@@ -148,7 +148,7 @@ console.log('kybernos-call: a call, from the first click to hang-up')
   ok('it joins the room with that token, publishes the microphone, and goes live')
 
   room.handlers.transcriptionReceived([{ text: 'bonjour' }, { text: 'tout le monde' }], { identity: 'moi' })
-  assert.deepEqual(plain(t.getState().lines), ['moi: bonjour tout le monde'])
+  assert.deepEqual(plain(t.getState().lines), ['Me: bonjour tout le monde'])
   for (let i = 0; i < 8; i++) room.handlers.transcriptionReceived([{ text: 'l' + i }], { identity: 'agent' })
   assert.equal(t.getState().lines.length, 6)
   assert.equal(plain(t.getState().lines)[5], 'Alice: l7')
@@ -345,7 +345,7 @@ console.log('kybernos-call: microphones and why nobody answers')
   ok('a worker that could not start is named in the panel, with the reason (not just "nobody is listening")')
 }
 
-console.log('kybernos-call: the call button of a session')
+console.log('kybernos-call: the call buttons at the top right of a chat')
 {
   const e = makeEnv()
   const plugin = e.run()
@@ -353,33 +353,151 @@ console.log('kybernos-call: the call button of a session')
   const hooks = []
   e.React.useReducer = () => [0, () => {}]
   e.React.useEffect = (fn) => { hooks.push(fn) }
-  const pill = t.CallPill({ sessionId: 'session-aaaaaaaa' })
-  assert.equal(pill.type, 'button')
-  assert.equal(pill.props['data-kb'], 'kybernos-call-pill')
-  assert.equal(pill.props['data-act'], 'call')
-  assert.equal(pill.props['aria-pressed'], 'false')
-  assert.ok(JSON.stringify(pill.children).includes('Call'))
-  ok('the button says "Call" and carries its hooks, in any session')
+  const header = t.CallHeader({ sessionId: 'session-aaaaaaaa' })
+  assert.equal(header.props['data-kb'], 'kybernos-call-header')
+  const [voiceButton, videoButton] = header.children
+  assert.equal(voiceButton.props['data-act'], 'call-voice')
+  assert.equal(videoButton.props['data-act'], 'call-video')
+  assert.equal(voiceButton.props['aria-label'], 'Voice call')
+  assert.equal(videoButton.props['aria-label'], 'Video call')
+  assert.equal(videoButton.props.disabled, false)
+  ok('the chat header carries a voice button and a video button, each with a name for screen readers')
+
   e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
-  await pill.props.onClick()
-  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: null, roleId: null, name: 'Assistant', voice: null, identity: 'moi' })
+  await voiceButton.props.onClick()
+  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: null, roleId: null, name: 'Assistant', mode: 'voice', voice: null, identity: 'moi' })
   assert.equal(t.getState().name, 'Assistant')
   assert.equal(t.getState().phase, 'live')
-  ok('clicking it calls the session\'s assistant (no team, no member): the session and nothing else is asked, the host picks voice, language and mode from the settings')
-  const active = t.CallPill({ sessionId: 'session-aaaaaaaa' })
-  assert.equal(active.props['aria-pressed'], 'true')
-  assert.equal(active.props['data-act'], 'hangup-pill')
-  assert.ok(JSON.stringify(active.children).includes('Hang up'))
-  await active.props.onClick()
+  ok('the voice button calls the session\'s assistant (no team, no member) as a voice call: the session is asked, the host picks voice and language from the settings')
+  const active = t.CallHeader({ sessionId: 'session-aaaaaaaa' })
+  assert.equal(active.children.props['data-act'], 'hangup-header')
+  assert.ok(JSON.stringify(active.children.children).includes('Hang up'))
+  await active.children.props.onClick()
   assert.equal(t.getState(), null)
   assert.equal(e.rooms[0].disconnected, true)
-  ok('during a call the same button hangs up')
-  const none = t.CallPill({})
+  ok('during a call the two buttons become one red "Hang up"')
+
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r2', agent: { dispatched: true }, meta: { mode: 'video' } })
+  await videoButton.props.onClick()
+  assert.equal(JSON.parse(e.requests[e.requests.length - 1].init.body).mode, 'video')
+  assert.equal(t.getState().mode, 'video')
+  await t.hangUp()
+  ok('the video button asks for a video call')
+
+  const none = t.CallHeader({}).children[0]
   e.responses.push({ ok: true, secrets: 'absente' })
   await none.props.onClick()
   assert.equal(JSON.parse(e.requests[e.requests.length - 1].init?.body ?? '{}').sessionId, undefined)
   assert.match(t.getState().note, /Settings › Calls › Service/)
   ok('without a session it still opens (voice only); with no secrets it points to Settings › Calls › Service, not to a file')
+
+  // A face needs a provider: without one the video button is off and says why.
+  const f = makeEnv()
+  const ft2 = f.run().__test
+  const fhooks = []
+  f.React.useReducer = () => [0, () => {}]
+  f.React.useEffect = (fn) => { fhooks.push(fn) }
+  f.responses.push({ ok: true, provider: 'none' })
+  ft2.CallHeader({ sessionId: 'session-aaaaaaaa' })
+  fhooks.forEach((fn) => fn())
+  await new Promise((resolve) => setImmediate(resolve))
+  await new Promise((resolve) => setImmediate(resolve))
+  const noFace = ft2.CallHeader({ sessionId: 'session-aaaaaaaa' }).children
+  assert.equal(noFace[1].props.disabled, true)
+  assert.match(noFace[1].props.title, /LiveAvatar/)
+  assert.equal(noFace[0].props.disabled === true, false)
+  ok('with no face provider the video button is disabled and says to add a LiveAvatar key; the voice button stays')
+}
+
+console.log('kybernos-call: the indicators, and the sounds')
+{
+  const played = []
+  class FakeAudio {
+    constructor () { this.state = 'running'; this.currentTime = 0; this.destination = {} }
+    createOscillator () { const o = { frequency: {}, connect () {}, start () { played.push(o.frequency.value) }, stop () {} }; return o }
+    createGain () { return { gain: { setValueAtTime () {}, exponentialRampToValueAtTime () {} }, connect () {} } }
+  }
+  const start = async () => {
+    const e = makeEnv()
+    e.win.AudioContext = FakeAudio
+    const plugin = e.run()
+    let Panel = null
+    plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') Panel = c; return {} } }, effect: (fn) => fn() })
+    e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true } })
+    await plugin.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+    return { e, t: plugin.__test, Panel, room: e.rooms[0] }
+  }
+  const mood = (c) => JSON.parse(JSON.stringify(c.Panel())).props['data-state']
+  played.length = 0
+  const c = await start()
+  assert.equal(mood(c), 'warn')
+  assert.deepEqual(played, [])
+  ok('connected to the room but not yet to the assistant: amber, and no sound yet')
+
+  c.room.handlers.participantConnected()
+  assert.equal(mood(c), 'ok')
+  assert.deepEqual(played, [660, 880])
+  c.room.handlers.participantConnected()
+  assert.deepEqual(played, [660, 880])
+  ok('when the assistant joins: green "listening" and a soft two-note chime, once')
+
+  c.room.handlers.participantAttributesChanged({ 'kb.working': '1' })
+  assert.equal(mood(c), 'work')
+  assert.deepEqual(played.slice(2), [560])
+  c.room.handlers.participantAttributesChanged({ 'kb.working': '1' })
+  assert.deepEqual(played.slice(2), [560])
+  ok('when the session starts working on what was said: "thinking" and one soft blip (a heard-you), not repeated')
+
+  c.room.handlers.participantAttributesChanged({ 'kb.working': '0', 'lk.agent.state': 'speaking' })
+  assert.equal(mood(c), 'speak')
+  c.room.handlers.participantAttributesChanged({ 'lk.agent.state': 'listening' })
+  assert.equal(mood(c), 'ok')
+  ok('while the assistant speaks: "speaking"; afterwards back to "listening"')
+
+  const flat = JSON.stringify(c.Panel())
+  assert.ok(flat.includes('kbcl-meter-fill') && flat.includes('kbcl-bars') && flat.includes('"data-act":"sounds"'))
+  ok('the panel shows the microphone level bar, the assistant activity and the sounds switch')
+
+  const before = played.length
+  await c.t.hangUp()
+  assert.deepEqual(played.slice(before), [740, 520])
+  ok('hanging up plays a two-note falling tone')
+
+  const quiet = await start()
+  quiet.room.handlers.participantConnected()
+  quiet.t.toggleSounds()
+  assert.equal(quiet.t.getState().sounds, false)
+  const n = played.length
+  quiet.room.handlers.participantAttributesChanged({ 'kb.working': '1' })
+  await quiet.t.hangUp()
+  assert.equal(played.length, n)
+  ok('with the sounds switched off, nothing plays')
+}
+{
+  // the microphone level: written straight to the bar, and stopped with the call
+  const e = makeEnv()
+  let cleaned = false
+  const origCreate = e.doc.head.appendChild
+  e.doc.head.appendChild = (el) => { if (el.tag !== 'script') { origCreate(el); return } setImmediate(() => { const sdk = fakeSdk(e.rooms); sdk.createAudioAnalyser = () => ({ calculateVolume: () => 0.25, cleanup () { cleaned = true } }); const R = sdk.Room; sdk.Room = class extends R { constructor (o) { super(o); this.localParticipant.setMicrophoneEnabled = async (on) => { this.micCalls.push(on); return { track: {}, stop: async () => {} } } } }; e.win.LivekitClient = sdk; el.onload() }) }
+  const plugin = e.run()
+  let Panel = null
+  plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') Panel = c; return {} } }, effect: (fn) => fn() })
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { running: true, dispatched: true } })
+  await plugin.__test.open({ sessionId: 'session-aaaaaaaa', name: 'Alice' })
+  const refOf = (node) => { if (node === null || typeof node !== 'object') return null; if (node.props && typeof node.props.ref === 'function') return node.props.ref; for (const k of (Array.isArray(node.children) ? node.children : [node.children])) { const r = refOf(k); if (r !== null) return r } return null }
+  const bar = { style: {} }
+  refOf(Panel())(bar)
+  await new Promise((resolve) => setTimeout(resolve, 260))
+  assert.match(bar.style.transform, /^scaleX\(0\.55/)
+  ok('the microphone level bar follows the voice (written to the element, not through a render)')
+  await plugin.__test.hangUp()
+  assert.equal(cleaned, true)
+  const stamp = bar.style.transform
+  bar.style.transform = 'x'
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  assert.equal(bar.style.transform, 'x', stamp)
+  ok('hanging up stops the meter and releases the analyser')
+  void origCreate
 }
 
 console.log('kybernos-call: nobody comes to the call')

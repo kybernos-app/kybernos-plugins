@@ -40,12 +40,58 @@ window.__ModuleLoader__.load({
       let state = null // { role, name, mode, phase, note, lines, startedAt, agent, muted }
       let live = null // { room, mic }: the live room, kept out of the render
       let audioHost = null // the element that receives the attached tracks
+      let meterEl = null // the bar that follows the user's voice (its width is written straight to the element, 11 times a second)
       const subscribers = new Set()
       const setState = (next) => {
         state = (typeof next === 'function') ? next(state) : next
         subscribers.forEach((fn) => { try { fn() } catch (e) { /* a dead subscriber */ } })
       }
-      const patch = (fields) => setState((old) => ((old === null) ? null : Object.assign({}, old, fields)))
+      const patch = (fields) => {
+        if (fields.phase === 'error') cue('error')
+        setState((old) => ((old === null) ? null : Object.assign({}, old, fields)))
+      }
+
+      // ── sounds: short soft cues made here (no audio file), one click to silence them, remembered per device ──
+      const SOUND_KEY = 'kybernos-call:sounds'
+      const soundsOn = () => { try { return window.localStorage.getItem(SOUND_KEY) !== '0' } catch (e) { return true } }
+      let audioCtx = null
+      const audioContext = () => {
+        try {
+          if (audioCtx === null) { const C = window.AudioContext || window.webkitAudioContext; if (typeof C !== 'function') return null; audioCtx = new C() }
+          if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') audioCtx.resume()
+          return audioCtx
+        } catch (e) { return null }
+      }
+      // [frequency Hz, start s, length s]: connected = two rising notes, heard = one blip, end = two falling notes, error = one low note.
+      const CUES = { connected: [[660, 0, 0.11], [880, 0.12, 0.17]], heard: [[560, 0, 0.07]], end: [[740, 0, 0.1], [520, 0.11, 0.17]], error: [[220, 0, 0.24]] }
+      const cue = (name) => {
+        if (state === null || state.sounds !== true) return
+        const c = audioContext()
+        if (c === null) return
+        try {
+          const t0 = c.currentTime + 0.01
+          for (const [freq, at, len] of (CUES[name] || [])) {
+            const osc = c.createOscillator()
+            const gain = c.createGain()
+            osc.type = 'sine'
+            osc.frequency.value = freq
+            gain.gain.setValueAtTime(0.0001, t0 + at)
+            gain.gain.exponentialRampToValueAtTime(0.07, t0 + at + 0.015)
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0 + at + len)
+            osc.connect(gain)
+            gain.connect(c.destination)
+            osc.start(t0 + at)
+            osc.stop(t0 + at + len + 0.02)
+          }
+        } catch (e) { /* no sound is better than a broken call */ }
+      }
+      const toggleSounds = () => {
+        if (state === null) return
+        const next = state.sounds !== true
+        try { window.localStorage.setItem(SOUND_KEY, next ? '1' : '0') } catch (e) { /* storage blocked: it lasts for this call only */ }
+        patch({ sounds: next })
+        if (next) { audioContext(); cue('heard') }
+      }
 
       const loadSdk = () => new Promise((resolve, reject) => {
         if (window.LivekitClient !== undefined && window.LivekitClient !== null) { resolve(window.LivekitClient); return }
@@ -59,6 +105,11 @@ window.__ModuleLoader__.load({
       const hangUp = async (reason) => {
         const current = live
         live = null
+        if (current !== null && state !== null && state.phase === 'live') cue('end')
+        if (current !== null && current.meter !== undefined && current.meter !== null) {
+          try { clearInterval(current.meter.timer) } catch (e) { /* nothing to stop */ }
+          try { current.meter.cleanup() } catch (e) { /* already closed */ }
+        }
         if (current !== null) {
           try { if (current.mic !== null && current.mic !== undefined) await current.mic.stop() } catch (e) { /* already stopped */ }
           try { await current.room.disconnect() } catch (e) { /* already gone */ }
@@ -90,8 +141,10 @@ window.__ModuleLoader__.load({
         setState({
           role: o.roleId, name: String(o.name ?? ''), mode: o.mode === 'video' ? 'video' : 'voice',
           phase: 'preparing', note: kt('lecture des réglages d’appel…', 'reading call settings…'),
-          lines: [], startedAt: null, agent: null, muted: false, agentState: '', mics: [], micId: '', joined: false
+          lines: [], startedAt: null, agent: null, muted: false, agentState: '', mics: [], micId: '', joined: false,
+          working: false, sounds: soundsOn()
         })
+        audioContext() // created inside the click, or the browser keeps it silent
         // 1) The machine's secrets: without them we say so, we do not invent a call.
         let status = null
         try {
@@ -148,8 +201,10 @@ window.__ModuleLoader__.load({
           // The worker is a participant of the room: until one shows up, nobody can hear the user (a busy or stopped worker is silent).
           let assistantSeen = false
           const assistantHere = () => {
+            if (assistantSeen) return
             assistantSeen = true
             patch({ joined: true, note: voiceNote.replace(/^ · /, '') })
+            cue('connected')
           }
           room.on(lib.RoomEvent.TrackSubscribed, (track) => { attach(track); assistantHere() })
           if (typeof lib.RoomEvent.ParticipantConnected === 'string') room.on(lib.RoomEvent.ParticipantConnected, () => assistantHere())
@@ -166,7 +221,7 @@ window.__ModuleLoader__.load({
                   const lines = old.lines.slice()
                   const ids = (Array.isArray(old.lineIds) ? old.lineIds : []).slice()
                   while (ids.length < lines.length) ids.unshift(null)
-                  const label = (who === 'moi') ? who : (old.name !== '' ? old.name : who)
+                  const label = (who === 'moi') ? kt('Moi', 'Me') : (old.name !== '' ? old.name : who)
                   const at = segmentId === null ? -1 : ids.lastIndexOf(segmentId)
                   if (at >= 0) lines[at] = label + ': ' + text
                   else { lines.push(label + ': ' + text); ids.push(segmentId) }
@@ -177,14 +232,34 @@ window.__ModuleLoader__.load({
           }
           if (typeof lib.RoomEvent.ParticipantAttributesChanged === 'string') {
             room.on(lib.RoomEvent.ParticipantAttributesChanged, (changed) => {
-              try { if (changed !== null && changed !== undefined && typeof changed['lk.agent.state'] === 'string') { patch({ agentState: changed['lk.agent.state'] }); assistantHere() } } catch (e) { /* unreadable attributes */ }
+              try {
+                if (changed === null || changed === undefined) return
+                if (typeof changed['lk.agent.state'] === 'string') { patch({ agentState: changed['lk.agent.state'] }); assistantHere() }
+                // The worker says the session is working on what was just said: a soft "heard you" and the thinking indicator.
+                if (typeof changed['kb.working'] === 'string') {
+                  const working = changed['kb.working'] === '1'
+                  const was = state !== null && state.working === true
+                  patch({ working: working })
+                  if (working && !was) cue('heard')
+                }
+              } catch (e) { /* unreadable attributes */ }
             })
           }
           room.on(lib.RoomEvent.ParticipantDisconnected, () => patch({ note: kt('l’agent a quitté la salle', 'the agent left the room') }))
-          room.on(lib.RoomEvent.Disconnected, () => patch({ phase: 'ended', note: kt('appel terminé', 'call ended') }))
+          room.on(lib.RoomEvent.Disconnected, () => { if (state !== null && state.phase === 'live') cue('end'); patch({ phase: 'ended', note: kt('appel terminé', 'call ended') }) })
           await room.connect(token.url, token.token)
           const mic = await room.localParticipant.setMicrophoneEnabled(true)
-          live = { room: room, mic: mic }
+          live = { room: room, mic: mic, meter: null }
+          // The user sees that the microphone hears them (the first thing to know when nothing answers).
+          try {
+            if (typeof lib.createAudioAnalyser === 'function' && mic && mic.track) {
+              const analyser = lib.createAudioAnalyser(mic.track)
+              const timer = setInterval(() => {
+                try { if (meterEl !== null && meterEl.style) meterEl.style.transform = 'scaleX(' + Math.min(1, Math.max(0.02, analyser.calculateVolume() * 2.2)).toFixed(3) + ')' } catch (e) { /* the element is gone */ }
+              }, 90)
+              live.meter = { timer: timer, cleanup: analyser.cleanup }
+            }
+          } catch (e) { /* no meter: the call goes on */ }
           // With several microphones (a laptop and a headset) the wrong one is the usual first-call surprise: let the user switch.
           let mics = []
           try {
@@ -235,6 +310,17 @@ window.__ModuleLoader__.load({
       const seconds = (s) => (s.startedAt === null ? 0 : Math.max(0, Math.round((Date.now() - s.startedAt) / 1000)))
       const clock = (sec) => String(Math.floor(sec / 60)) + ':' + String(sec % 60).padStart(2, '0')
 
+      // The one word for where the call is: [kind (drives the colours and the animation), label].
+      const moodOf = (s) => {
+        if (s.phase === 'error') return ['err', kt('erreur', 'error')]
+        if (s.phase === 'ended') return ['off', kt('terminé', 'ended')]
+        if (s.phase !== 'live') return ['warn', kt('préparation…', 'preparing…')]
+        if (s.joined !== true) return ['warn', kt('connexion à l’assistant…', 'connecting to the assistant…')]
+        if (s.agentState === 'speaking') return ['speak', kt('parle', 'speaking')]
+        if (s.working === true || s.agentState === 'thinking') return ['work', kt('réfléchit…', 'thinking…')]
+        return ['ok', kt('à l’écoute', 'listening')]
+      }
+
       const Panel = () => {
         const [, rerender] = React.useReducer((n) => n + 1, 0)
         React.useEffect(() => {
@@ -258,22 +344,30 @@ window.__ModuleLoader__.load({
             : ((isLive && s.joined !== true && s.agent !== null && s.agent !== undefined && s.agent.dispatched === true && seconds(s) >= 15)
               ? kt('personne n’a rejoint l’appel : le worker est peut-être saturé ou arrêté. Raccrochez et rappelez ; sinon voir kybernos/logs/appel-agent.log', 'nobody joined the call: the worker may be busy or stopped. Hang up and call again; if it repeats, see kybernos/logs/appel-agent.log')
               : ((typeof s.note === 'string') ? s.note : '')))
-        const node = h('div', { role: 'dialog', 'aria-label': kt('Panneau d’appel', 'Call panel'), 'data-kb': 'kybernos-call-panel', style: css.card }, [
+        const mood = moodOf(s)
+        const node = h('div', { role: 'dialog', 'aria-label': kt('Panneau d’appel', 'Call panel'), 'data-kb': 'kybernos-call-panel', 'data-state': mood[0], style: css.card }, [
           h('div', { key: 'head', style: css.row }, [
             h('span', { key: 'badge', style: css.badge }, s.mode === 'video' ? 'VID' : 'AUD'),
             h('div', { key: 'who', style: css.col }, [
               h('span', { key: 'n', style: css.name }, s.name),
-              h('span', { key: 'p', style: css.mono }, s.phase + (isLive ? ' · ' + clock(seconds(s)) : '') + (isLive && s.agentState && AGENT_STATES[s.agentState] ? ' · ' + kt(AGENT_STATES[s.agentState][0], AGENT_STATES[s.agentState][1]) : ''))
+              h('span', { key: 'p', className: 'kbcl-status', 'data-state': mood[0], role: 'status', 'aria-live': 'polite' }, [h('i', { key: 'd', className: 'kbcl-dot' }), mood[1] + (isLive ? ' · ' + clock(seconds(s)) : '')])
             ]),
             h('button', { key: 'hang', type: 'button', 'data-act': 'hangup', 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp(), style: css.hangUp }, kt('Raccrocher', 'Hang up'))
           ]),
           note !== '' ? h('span', { key: 'note', style: css.note }, note) : null,
+          // Once the call is live: what the microphone hears (left), and what the assistant is doing (right).
+          isLive ? h('div', { key: 'act', className: 'kbcl-activity', 'data-state': mood[0] }, [
+            h('span', { key: 'w', className: 'kbcl-who' }, kt('Vous', 'You')),
+            h('span', { key: 'm', className: 'kbcl-meter', 'aria-hidden': 'true' }, h('span', { className: 'kbcl-meter-fill', ref: (el) => { meterEl = el } })),
+            h('span', { key: 'b', className: 'kbcl-bars', 'aria-hidden': 'true' }, [h('i', { key: 1 }), h('i', { key: 2 }), h('i', { key: 3 }), h('i', { key: 4 })])
+          ]) : null,
           h('div', { key: 'media', ref: (el) => { audioHost = el }, style: { height: s.mode === 'video' ? '180px' : '0px', borderRadius: '10px', overflow: 'hidden', background: '#16161A' } }),
           s.lines.length > 0 ? h('div', { key: 'lines', style: css.lines }, s.lines.map((l, i) => h('span', { key: i, style: css.line }, l))) : null,
           (isLive && Array.isArray(s.mics) && s.mics.length > 1) ? h('select', { key: 'mic', 'data-act': 'mic', 'aria-label': kt('Micro', 'Microphone'), className: 'kbcl-in', value: s.micId, onChange: (e) => switchMic(e.target.value) },
             s.mics.map((m) => h('option', { key: m.id, value: m.id }, m.label))) : null,
-          isLive ? h('div', { key: 'tools', style: css.row }, [
+          isLive ? h('div', { key: 'tools', style: Object.assign({}, css.row, { flexWrap: 'wrap' }) }, [
             h('button', { key: 'mute', type: 'button', 'data-act': 'mute', onClick: toggleMute, style: css.ghost }, s.muted === true ? kt('Réactiver', 'Unmute') : kt('Couper le micro', 'Mute me')),
+            h('button', { key: 'snd', type: 'button', 'data-act': 'sounds', 'aria-pressed': s.sounds === true ? 'true' : 'false', title: kt('Petits sons : connexion, « j’ai entendu », fin d’appel', 'Small sounds: connected, “heard you”, call ended'), onClick: toggleSounds, style: css.ghost }, s.sounds === true ? kt('Sons : oui', 'Sounds: on') : kt('Sons : non', 'Sounds: off')),
             h('span', { key: 'hint', style: css.mono }, kt('ce qui se dit ici entre dans le fil', 'what is said here enters the thread'))
           ]) : null
         ])
@@ -287,13 +381,9 @@ window.__ModuleLoader__.load({
         mute: 'var(--dsw-alias-label-secondary,#adb2b8)', faint: 'var(--dsw-alias-label-tertiary,#8b9096)',
         layer: 'var(--dsw-alias-bg-layer-2,#2a2b2d)', hover: 'var(--dsw-alias-interactive-bg-hover,rgba(255,255,255,.06))',
         ok: 'var(--dsw-alias-state-success-primary,#22c55e)', warn: 'var(--dsw-alias-state-warn-primary,#f59e0b)',
-        err: 'var(--dsw-alias-state-error-primary,#f25a5a)', brand: 'var(--dsw-alias-brand-primary,#7aaaff)'
+        err: 'var(--dsw-alias-state-error-primary,#f25a5a)', brand: 'var(--dsw-alias-brand-primary,#7aaaff)', info: 'var(--dsw-alias-state-info-primary,#3b82f6)'
       }
       const CSS = `
-.kbcl-pill{appearance:none;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 8px;border:1px solid ${T.line};border-radius:24px;background:transparent;color:${T.mute};font:inherit;font-size:12.5px;line-height:1;cursor:pointer}
-.kbcl-pill:hover{background:${T.hover};color:${T.text}}
-.kbcl-pill:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
-.kbcl-pill[aria-pressed="true"]{border-color:${T.err};color:${T.err}}
 .kbcl-page{display:flex;flex-direction:column;gap:16px;max-width:780px;color:${T.text};font-size:14px}
 .kbcl-page h2{margin:0;font-size:20px;font-weight:700}
 .kbcl-sub{font-size:12.5px;line-height:1.5;color:${T.mute}}
@@ -330,31 +420,79 @@ window.__ModuleLoader__.load({
 .kbcl-notice.kbcl-bad{border-color:${T.err};color:${T.err}}
 .kbcl-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
 .kbcl-check input{margin-top:3px}
-@media (prefers-reduced-motion:reduce){.kbcl-pill{transition:none}}
+@keyframes kbcl-blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes kbcl-ring{0%{box-shadow:0 0 0 0 currentColor}100%{box-shadow:0 0 0 7px transparent}}
+@keyframes kbcl-bar{0%,100%{height:25%}50%{height:100%}}
+@keyframes kbcl-think{0%,100%{height:25%;opacity:.35}50%{height:55%;opacity:1}}
+.kbcl-status{display:inline-flex;align-items:center;gap:6px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:${T.mute}}
+.kbcl-dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block;flex:none}
+.kbcl-status[data-state="ok"]{color:${T.ok}}
+.kbcl-status[data-state="speak"]{color:${T.ok}}
+.kbcl-status[data-state="speak"] .kbcl-dot{animation:kbcl-ring 1.1s ease-out infinite}
+.kbcl-status[data-state="work"]{color:${T.info}}
+.kbcl-status[data-state="work"] .kbcl-dot{animation:kbcl-blink .9s ease-in-out infinite}
+.kbcl-status[data-state="warn"]{color:${T.warn}}
+.kbcl-status[data-state="warn"] .kbcl-dot{animation:kbcl-blink 1s ease-in-out infinite}
+.kbcl-status[data-state="err"]{color:${T.err}}
+.kbcl-activity{display:flex;align-items:center;gap:10px}
+.kbcl-who{font-size:11.5px;color:${T.mute};flex:none}
+.kbcl-meter{flex:1;height:6px;border-radius:3px;background:${T.line};overflow:hidden;min-width:60px}
+.kbcl-meter-fill{display:block;width:100%;height:100%;border-radius:3px;background:${T.ok};transform-origin:left center;transform:scaleX(.02);transition:transform 90ms linear}
+.kbcl-bars{display:inline-flex;align-items:flex-end;gap:2px;height:16px;flex:none}
+.kbcl-bars i{width:3px;height:25%;border-radius:2px;background:${T.faint};display:block}
+.kbcl-activity[data-state="speak"] .kbcl-bars i{background:${T.ok};animation:kbcl-bar .8s ease-in-out infinite}
+.kbcl-activity[data-state="work"] .kbcl-bars i{background:${T.info};animation:kbcl-think 1.1s ease-in-out infinite}
+.kbcl-bars i:nth-child(2){animation-delay:.15s!important}
+.kbcl-bars i:nth-child(3){animation-delay:.3s!important}
+.kbcl-bars i:nth-child(4){animation-delay:.45s!important}
+.kbcl-activity[data-state="ok"] .kbcl-bars i{background:${T.ok}}
+.kbcl-hdr{display:flex;align-items:center;gap:4px;margin-left:auto;order:99}
+[class*="_headerActions"]:has(.kbcl-hdr){flex:1 1 auto}
+.kbcl-hbtn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:30px;min-width:30px;padding:0 6px;box-sizing:border-box;border:1px solid transparent;border-radius:9px;background:transparent;color:${T.mute};cursor:pointer;font:inherit;font-size:12.5px;transition:background .12s,color .12s}
+.kbcl-hbtn:hover:not(:disabled){background:${T.hover};color:${T.text}}
+.kbcl-hbtn:focus-visible{outline:2px solid ${T.brand};outline-offset:1px}
+.kbcl-hbtn:disabled{opacity:.4;cursor:default}
+.kbcl-hbtn.kbcl-hlive{background:#DC2626;color:#FFFFFF;padding:0 10px}
+@media (prefers-reduced-motion:reduce){.kbcl-hbtn{transition:none}.kbcl-status .kbcl-dot,.kbcl-bars i{animation:none!important}}
 `
       const PHONE = (size) => h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
         h('path', { d: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2' }))
 
-      // ── a button in the composer of any session: the call belongs to the session, not to a team ──
+      // ── two buttons at the top right of the chat of any session (voice, video): the call belongs to the session, not to a team ──
+      const CAMERA = (size) => h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, [
+        h('rect', { key: 'r', x: 3, y: 6, width: 12, height: 12, rx: 2 }), h('path', { key: 'p', d: 'M15 10l5-3v10l-5-3z' })])
       const useCall = () => {
         const [, rerender] = React.useReducer((n) => n + 1, 0)
         React.useEffect(() => { subscribers.add(rerender); return () => { subscribers.delete(rerender) } }, [])
         return state
       }
-      const CallPill = (props) => {
+      // Whether a face can be shown (a provider is set), read once when a header mounts: without one, a video call would be a voice call.
+      const headerStatus = { provider: null, asked: false }
+      const loadHeaderStatus = async () => {
+        if (headerStatus.asked) return
+        headerStatus.asked = true
+        try {
+          const r = await fetch(API + '/status', { headers: { accept: 'application/json' } })
+          const d = await r.json()
+          if (d !== null && d !== undefined && d.ok === true && typeof d.provider === 'string') headerStatus.provider = d.provider
+        } catch (e) { headerStatus.asked = false /* try again at the next mount */ }
+        subscribers.forEach((fn) => { try { fn() } catch (e) { /* a dead subscriber */ } })
+      }
+      const CallHeader = (props) => {
         const current = useCall()
+        React.useEffect(() => { loadHeaderStatus() }, [])
         const active = current !== null
         const sessionId = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
-        const onClick = () => {
-          if (active) return hangUp()
-          return open({ sessionId: sessionId, kyberId: null, roleId: null, name: kt('Assistant', 'Assistant'), voice: null })
+        const start = (mode) => open({ sessionId: sessionId, kyberId: null, roleId: null, name: kt('Assistant', 'Assistant'), mode: mode, voice: null })
+        if (active) {
+          return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' },
+            h('button', { type: 'button', className: 'kbcl-hbtn kbcl-hlive', 'data-act': 'hangup-header', title: kt('Raccrocher l’appel en cours', 'Hang up the call in progress'), 'aria-label': kt('Raccrocher', 'Hang up'), onClick: () => hangUp() }, [PHONE(15), h('span', { key: 't' }, kt('Raccrocher', 'Hang up'))]))
         }
-        const label = active ? kt('Raccrocher', 'Hang up') : kt('Appeler', 'Call')
-        return h('button', {
-          type: 'button', className: 'kbcl-pill', 'data-kb': 'kybernos-call-pill', 'data-act': active ? 'hangup-pill' : 'call', 'aria-pressed': active ? 'true' : 'false',
-          title: active ? kt('Raccrocher l’appel en cours', 'Hang up the call in progress') : kt('Parler à l’assistant de cette session, à voix haute', 'Talk to this session’s assistant, out loud'),
-          onClick: onClick
-        }, [PHONE(13), h('span', { key: 't' }, label)])
+        const noFace = headerStatus.provider === 'none'
+        return h('div', { className: 'kbcl-hdr', 'data-kb': 'kybernos-call-header' }, [
+          h('button', { key: 'v', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-voice', title: kt('Appel vocal : parler à l’assistant de cette session', 'Voice call: talk to this session’s assistant'), 'aria-label': kt('Appel vocal', 'Voice call'), onClick: () => start('voice') }, PHONE(17)),
+          h('button', { key: 'c', type: 'button', className: 'kbcl-hbtn', 'data-act': 'call-video', disabled: noFace, title: noFace ? kt('Appel vidéo : ajoutez une clé LiveAvatar (Réglages › Appels › Service)', 'Video call: add a LiveAvatar key (Settings › Calls › Service)') : kt('Appel vidéo : l’assistant a un visage', 'Video call: the assistant has a face'), 'aria-label': kt('Appel vidéo', 'Video call'), onClick: () => start('video') }, CAMERA(17))
+        ])
       }
 
       // ── Settings › Calls ──
@@ -574,7 +712,7 @@ window.__ModuleLoader__.load({
       return {
         name: 'kybernos-call',
         inject: ['slots'],
-        __test: { open: open, hangUp: hangUp, toggleMute: toggleMute, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallPill: CallPill, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
+        __test: { open: open, hangUp: hangUp, toggleMute: toggleMute, toggleSounds: toggleSounds, getState: () => state, setAudioHost: (el) => { audioHost = el }, switchMic: switchMic, CallHeader: CallHeader, SettingsPage: SettingsPage, CSS: CSS, cloneNote: cloneNote },
         apply (ctx) {
           try {
             const slots = ctx.slots
@@ -587,10 +725,10 @@ window.__ModuleLoader__.load({
             }, 'kybernos-call: styles')
             ctx.effect(() => slots.inject('shell.overlay', () => slots.register(
               { name: 'shell.overlay', id: 'kybernos-call-overlay', order: 30 }, Panel)), 'kybernos-call: call panel')
-            // A button in the composer of every session: the call belongs to the session, not to a team.
-            ctx.effect(() => slots.inject('conversation.composer.dock', () => slots.register(
-              { name: 'conversation.composer.dock', id: 'kybernos-call', order: 6 },
-              (props) => { try { return h(CallPill, { sessionId: props !== null && props !== undefined ? props.sessionId : undefined }) } catch (e) { return null } })), 'kybernos-call: call button in the composer')
+            // Voice and video buttons at the top right of the chat of every session: the call belongs to the session, not to a team.
+            ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
+              { name: 'conversation.session.header.actions', id: 'kybernos-call-header', order: 50 },
+              (props) => { try { return h(CallHeader, { sessionId: props !== null && props !== undefined ? props.sessionId : undefined }) } catch (e) { return null } })), 'kybernos-call: call buttons in the chat header')
             ctx.effect(() => slots.inject('settings.section', () => slots.register(
               { name: 'settings.section', id: 'kybernos-call', order: 31, label: kt('Appels', 'Calls') },
               () => h(SettingsPage))), 'kybernos-call: settings page')
