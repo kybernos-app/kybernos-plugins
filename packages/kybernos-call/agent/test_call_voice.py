@@ -14,6 +14,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from call_meta import CallMeta, VoiceChoice, parse_job_metadata
+from lang_guess import guess_language
 from call_voice import audio_bytes, decode_pcm, eleven_request, render_eleven_pcm, reply_language, speak_request, two_letters, voice_request
 
 try:
@@ -62,7 +63,7 @@ class VoiceParsing(unittest.TestCase):
             self.assertIsNone(parse_job_metadata(json.dumps({"voice": bad}), {}).voice, bad)
 
 
-class Languages(unittest.TestCase):
+class LanguageCodes(unittest.TestCase):
     def test_two_letters(self):
         for given, expected in (("fr", "fr"), ("FR", "fr"), ("fr-FR", "fr"), ("pt_BR", "pt"), ("fra", "fr"),
                                 ("french", ""), ("auto", ""), ("", ""), (None, ""), (5, ""), ("x", "")):
@@ -74,6 +75,39 @@ class Languages(unittest.TestCase):
     def test_auto_follows_what_was_heard(self):
         self.assertEqual(reply_language(CallMeta(language="auto"), "de-DE"), "de")
         self.assertEqual(reply_language(CallMeta(language="auto"), ""), "")
+
+
+class GuessLanguage(unittest.TestCase):
+    def test_it_tells_the_common_latin_languages_apart(self):
+        for text, expected in [
+            ("Oui, je t'entends bien ! \U0001f50a \u2014 le canal est bon.", "fr"), ("Allô, tu entends ?", "fr"), ("D'accord.", "fr"),
+            ("Yes, I can hear you well.", "en"), ("Hola, \u00bfc\u00f3mo est\u00e1s? Te escucho muy bien.", "es"),
+            ("Ich kann dich gut h\u00f6ren, danke.", "de"), ("S\u00ec, ti sento molto bene.", "it"),
+            ("Ol\u00e1, eu consigo ouvir voc\u00ea muito bem.", "pt"), ("Ja, ik hoor je goed, dank je.", "nl"),
+        ]:
+            self.assertEqual(guess_language(text), expected, text)
+
+    def test_the_writing_system_names_its_language(self):
+        for text, expected in [("\u0646\u0639\u0645\u060c \u0623\u0633\u0645\u0639\u0643", "ar"), ("\u0414\u0430, \u044f \u0442\u0435\u0431\u044f \u0441\u043b\u044b\u0448\u0443", "ru"),
+                               ("\u306f\u3044\u3001\u3088\u304f\u805e\u3053\u3048\u307e\u3059", "ja"), ("\ub124, \uc798 \ub4e4\ub9bd\ub2c8\ub2e4", "ko"), ("\u662f\u7684\uff0c\u6211\u542c\u5f97\u5f88\u6e05\u695a", "zh")]:
+            self.assertEqual(guess_language(text), expected)
+
+    def test_when_it_cannot_tell_it_says_so(self):
+        for text in ["", "   ", "OK", "123 456", "kybernos-plugin", None, 42]:
+            self.assertEqual(guess_language(text), "")
+
+
+class Languages(unittest.TestCase):
+    def test_in_auto_the_words_of_the_reply_decide_the_language(self):
+        # The measured failure: an English voice read a French reply, because the speech-to-text gave no language.
+        self.assertEqual(reply_language(CallMeta(language="auto"), "", "Oui, je t'entends bien, le canal est bon."), "fr")
+        self.assertEqual(reply_language(CallMeta(language="auto"), "fr", "Yes, I can hear you."), "en")
+
+    def test_a_reply_too_short_to_tell_falls_back_on_what_was_heard(self):
+        self.assertEqual(reply_language(CallMeta(language="auto"), "de-DE", "OK."), "de")
+
+    def test_a_named_language_is_never_overridden(self):
+        self.assertEqual(reply_language(CallMeta(language="es"), "fr", "Oui, je t'entends bien."), "es")
 
 
 class VoiceRequest(unittest.TestCase):

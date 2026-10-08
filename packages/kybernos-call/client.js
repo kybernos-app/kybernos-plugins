@@ -159,7 +159,19 @@ window.__ModuleLoader__.load({
                 const text = segments.map((s) => String(s.text || '')).join(' ').trim()
                 if (text === '') return
                 const who = (participant !== null && participant !== undefined && participant.identity !== undefined) ? String(participant.identity) : ''
-                setState((old) => ((old === null) ? null : Object.assign({}, old, { lines: old.lines.concat([who + ': ' + text]).slice(-6) })))
+                // A transcript arrives in growing pieces under one segment id: the line is rewritten, not repeated.
+                const segmentId = (segments.length > 0 && segments[0] !== null && typeof segments[0].id === 'string') ? segments[0].id : null
+                setState((old) => {
+                  if (old === null) return null
+                  const lines = old.lines.slice()
+                  const ids = (Array.isArray(old.lineIds) ? old.lineIds : []).slice()
+                  while (ids.length < lines.length) ids.unshift(null)
+                  const label = (who === 'moi') ? who : (old.name !== '' ? old.name : who)
+                  const at = segmentId === null ? -1 : ids.lastIndexOf(segmentId)
+                  if (at >= 0) lines[at] = label + ': ' + text
+                  else { lines.push(label + ': ' + text); ids.push(segmentId) }
+                  return Object.assign({}, old, { lines: lines.slice(-6), lineIds: ids.slice(-6) })
+                })
               } catch (e) { /* unreadable segments */ }
             })
           }

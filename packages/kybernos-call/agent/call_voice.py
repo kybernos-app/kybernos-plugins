@@ -21,6 +21,7 @@ import urllib.request
 from typing import Callable
 
 from call_meta import CallMeta, VoiceChoice
+from lang_guess import guess_language
 
 SAMPLE_RATE = 24_000
 _DATA_URL = re.compile(r"^data:[^;,]+;base64,(.*)$", re.DOTALL)
@@ -35,11 +36,12 @@ def two_letters(code: object) -> str:
     return ""
 
 
-def reply_language(meta: CallMeta, heard: str = "") -> str:
-    """The language a reply is spoken in: the call's own when it names one, else the one just heard."""
+def reply_language(meta: CallMeta, heard: str = "", text: str = "") -> str:
+    """The language a reply is spoken in: the call's own when it names one; in "auto", the language the words
+    are written in (an English voice reading French is unintelligible), else the one just heard."""
     if meta.language != "auto":
         return two_letters(meta.language)
-    return two_letters(heard)
+    return guess_language(text) or two_letters(heard)
 
 
 def voice_request(meta: CallMeta, language: str) -> dict:

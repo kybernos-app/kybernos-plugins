@@ -174,6 +174,8 @@ _FENCE = re.compile(r"```.*?```", re.DOTALL)
 _LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")
 _URL = re.compile(r"https?://\S+")
 _SENTENCE_END = re.compile(r"[.!?\u2026](?=\s|$)")
+_ARROWS = re.compile(r"\s*[\u2190-\u21ff\u27f5-\u27ff]+\s*")
+_PICTOGRAPHS = re.compile("[\U0001f000-\U0001faff\u2600-\u27bf\u2b00-\u2bff\ufe0f\u200d]")
 
 
 def speakable(text: str, limit: int = 700) -> str:
@@ -187,6 +189,8 @@ def speakable(text: str, limit: int = 700) -> str:
     text = _FENCE.sub(" ", text)
     text = _LINK.sub(r"\1", text)
     text = _URL.sub("", text)
+    text = _ARROWS.sub(", ", text)
+    text = _PICTOGRAPHS.sub("", text)  # a voice reads an emoji as its name, or not at all
     lines = []
     for raw in text.splitlines():
         line = raw.strip()

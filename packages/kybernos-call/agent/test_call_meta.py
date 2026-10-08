@@ -118,6 +118,8 @@ class Speakable(unittest.TestCase):
             self.assertNotIn(forbidden, said)
 
     def test_only_code_or_a_table_says_nothing(self):
+        self.assertEqual(speakable("Oui, je t'entends bien ! \U0001f50a \u2014 le canal est bon."), "Oui, je t'entends bien ! \u2014 le canal est bon.")
+        self.assertEqual(speakable("spécif \u2192 implé \u2192 tests \u2705"), "spécif, implé, tests.")
         self.assertEqual(speakable("```python\nprint(1)\n```"), "")
         self.assertEqual(speakable("| a | b |\n|---|---|\n| 1 | 2 |"), "")
         self.assertEqual(speakable("   \n  "), "")

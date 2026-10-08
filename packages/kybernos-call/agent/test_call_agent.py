@@ -180,6 +180,42 @@ class VoiceEngine(unittest.TestCase):
         self.assertEqual(spanish, {"text": "Hola.", "engine": "edge", "lang": "es"})
         self.assertEqual(french["voice"], "fr-FR-DeniseNeural")
 
+    def test_an_english_voice_does_not_read_a_french_reply(self):
+        # The measured failure (2026-10-08): the assistant's voice was an English one, the speech-to-text gave no
+        # language, so the French reply was read by the English voice: unintelligible.
+        async def go():
+            voice = HostTTS(self.host, CallMeta(language="auto", voice=VoiceChoice("say", "Albert", "en")))
+            voice.hear("", "")  # nothing told
+            await _collect(voice.synthesize("Oui, je t'entends bien, le canal est bon."))
+
+        asyncio.run(go())
+        sent = _Engine.seen[-1]
+        self.assertEqual(sent["lang"], "fr")
+        self.assertNotIn("voice", sent)  # the engine picks a French voice
+
+    def test_a_reply_in_the_voices_own_language_keeps_the_voice(self):
+        async def go():
+            voice = HostTTS(self.host, CallMeta(language="auto", voice=VoiceChoice("say", "Albert", "en")))
+            await _collect(voice.synthesize("Yes, I can hear you well."))
+
+        asyncio.run(go())
+        self.assertEqual(_Engine.seen[-1], {"text": "Yes, I can hear you well.", "engine": "say", "voice": "Albert", "lang": "en"})
+
+    def test_a_reply_too_short_to_tell_follows_the_last_one_then_what_was_heard(self):
+        async def go():
+            voice = HostTTS(self.host, CallMeta(language="auto"))
+            voice.hear("", "Allô, tu entends ?")  # the speech-to-text said nothing: the words tell
+            self.assertEqual(voice.current_language(), "fr")  # for the "one moment"
+            await _collect(voice.synthesize("OK."))
+            first = _Engine.seen[-1]["lang"]
+            await _collect(voice.synthesize("Yes, I can hear you well."))
+            await _collect(voice.synthesize("OK."))
+            return first, _Engine.seen[-1]["lang"]
+
+        first, after = asyncio.run(go())
+        self.assertEqual(first, "fr")
+        self.assertEqual(after, "en")
+
     def test_a_call_in_a_named_language_ignores_what_was_heard(self):
         async def go():
             voice = HostTTS(self.host, CallMeta(language="de"))

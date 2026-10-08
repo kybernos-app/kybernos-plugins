@@ -54,7 +54,11 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
    behind the member card's Preview, with its engines, a voice per language, a fallback chain and a cache), with the voice picked on the
    member's card and the language of the reply (`agent/call_voice.py`, `agent/host_tts.py`). The member's voice is kept while it speaks
    the language of the reply (or is multilingual, like Edge's `…MultilingualNeural`); in another language the engine picks a voice of that
-   language on the same engine. With the call on `auto` the reply follows the language the user just spoke. macOS `say` stays behind.
+   language on the same engine. With the call on `auto` a reply is spoken in the language it is written in (`agent/lang_guess.py`: the writing system, then the most common words
+   of fr, en, es, de, it, pt, nl, tr; no dependency); one too short to tell takes the language of the last reply, then of what the user said. The speech-to-text's own
+   language field came back empty on the first real call, so it is only a fallback. A voice made for another language (an English voice picked in Settings, a
+   French reply) is replaced by one of the reply's language: measured, the English voice made Whisper hear "Ui, je ti entesteen, we can now have fun"; the
+   replacement made it hear the sentence exactly. Emoji and arrows are not read. macOS `say` stays behind.
 6. **A recording as a voice.** If the member's voice is a recording, the host (never the page) reads the recording the app kept, sends it
    once to ElevenLabs (`/v1/voices/add`) and remembers the voice id; the worker then speaks with it (`eleven_multilingual_v2`: any
    language), the app's engine behind it. This happens only if the switch in Essentials is on AND an ElevenLabs key is set: the

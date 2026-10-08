@@ -268,7 +268,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
         marks.append({"t": round(time.time() - started, 3), "type": "user_transcript", "text": ev.transcript})
         _say("heard:", repr(ev.transcript), getattr(ev, "language", None) or "")
         if app_voice is not None:
-            app_voice.hear(getattr(ev, "language", None))
+            app_voice.hear(getattr(ev, "language", None), ev.transcript)
         state.user_spoke()
         _dump()
         # If a turn of the session is running, these words correct it (steer); otherwise they start the next one.
