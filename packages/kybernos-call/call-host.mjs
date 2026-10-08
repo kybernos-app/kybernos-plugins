@@ -23,7 +23,7 @@ const CONTROL = /[\u0000-\u001f\u007f]/g
 const ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 const LANG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
 const ENGINE_RE = /^[a-z0-9_-]{1,32}$/
-const VOICE_RE = /^[A-Za-z0-9._:() -]{1,100}$/
+const VOICE_RE = /^[\p{L}\p{M}\p{N}._:() -]{1,100}$/u // letters of any language: the app's own French voice is "Amélie"
 
 /**
  * Who a call is with, as the worker will read it (the dispatch metadata of the room). Every field is

@@ -14,7 +14,7 @@ reach this bundle through one seam.
 - **Call / Video on a team member's card** (the crew view of `@local/kybernos`): that member, with its own voice. These two buttons
   call `window.__KB_CALL__.open({ sessionId, kyberId, roleId, name, mode, voice })`; without this bundle the seam does not exist and
   the buttons are hidden.
-- **Settings › Calls**: Essentials (the assistant's voice, the call language, the default mode, when a call hangs up by itself, whether
+- **Settings › Calls**: Essentials (the assistant's voice, with a **Listen** button to hear it without a call, the call language, the default mode, when a call hangs up by itself, whether
   recordings may be sent to the clone provider), Engines (what a call uses, read only) and Service (the keys, with a test button each).
 
 ## First call
@@ -124,7 +124,11 @@ button is clicked.
 - What you say while the session is working is steered into the running turn. How the engine handles `steer` on a turn that has just
   ended was not measured; the worst case is that those words are queued.
 - The face is LiveAvatar only (a catalogue avatar). Using a member's portrait, or the MuseTalk worker on Modal, is not built.
-- macOS first (`say`, `pgrep`, `kill`); the engines other than `say` need their Python helper.
+- macOS first (`say`, `pgrep`, `kill`). The engines other than `say` need their Python module (`piper`, `edge_tts`, `supertonic`); the core runs each with
+  the first Python that can import it (`packages/kybernos-plugin/tts-python.mjs`: the PATH's `python3`, then `/usr/bin/python3` and the Homebrew ones). Before
+  that, DSH started with Homebrew's `python3` reported Piper as ready and then failed, and Edge and Supertonic as absent although they were installed.
+- Voice quality is the engine's: `say` is robotic (flat intonation); Piper (local, ~1 s a sentence), Supertonic (local) and Edge (online, the text goes to
+  Microsoft) are neural. Settings › Calls › Voice marks the online engines and has a Listen button to compare them.
 
 ## Tests
 

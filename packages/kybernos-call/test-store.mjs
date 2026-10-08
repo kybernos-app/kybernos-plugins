@@ -32,6 +32,8 @@ try {
 
   r = await store.writeSettings({ defaultVoice: { engine: 'say', voice: 'Eddy (English (UK))', lang: 'EN-gb' } })
   assert.deepEqual(r.settings.defaultVoice, { engine: 'say', voice: 'Eddy (English (UK))', lang: 'en' })
+  r = await store.writeSettings({ defaultVoice: { engine: 'say', voice: 'Amélie', lang: 'fr' } })
+  assert.deepEqual(r.settings.defaultVoice, { engine: 'say', voice: 'Amélie', lang: 'fr' }) // an accented name is a voice too
   r = await store.writeSettings({ defaultVoice: null })
   assert.equal(r.settings.defaultVoice, null)
   ok('the default voice of a call without a member is an engine voice (language cut to two letters), or none')

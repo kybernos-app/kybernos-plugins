@@ -45,7 +45,7 @@ class VoiceChoice:
 
 _ENGINE_RE = re.compile(r"^[a-z0-9_-]{1,32}$")
 _REMOTE_ID_RE = re.compile(r"^[A-Za-z0-9]{6,64}$")
-_VOICE_RE = re.compile(r"^[A-Za-z0-9._:() -]{1,100}$")
+_VOICE_RE = re.compile(r"^[\w.:() -]{1,100}$")  # \w: letters of any language (the app's own French voice is "Amélie")
 
 
 def _voice(raw: object) -> VoiceChoice | None:

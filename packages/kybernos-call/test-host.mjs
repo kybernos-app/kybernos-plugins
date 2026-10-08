@@ -204,6 +204,11 @@ try {
   console.log('kybernos-call: the member\'s voice')
   assert.deepEqual(callMetadata({ voice: { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr-FR' } }).voice, { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' })
   assert.deepEqual(callMetadata({ voice: { engine: 'say', voice: 'Eddy (English (UK))', lang: 'en' } }).voice, { engine: 'say', voice: 'Eddy (English (UK))', lang: 'en' })
+  // The app's own French voice has an accent: a name checked as plain ASCII silently dropped it, and the call used another voice.
+  assert.deepEqual(callMetadata({ voice: { engine: 'say', voice: 'Amélie', lang: 'fr' } }).voice, { engine: 'say', voice: 'Amélie', lang: 'fr' })
+  assert.deepEqual(callMetadata({ voice: { engine: 'say', voice: 'Mónica', lang: 'es' } }).voice, { engine: 'say', voice: 'Mónica', lang: 'es' })
+  assert.equal(callMetadata({ voice: { engine: 'say', voice: 'a\nb', lang: 'fr' } }).voice, null)
+  assert.equal(callMetadata({ voice: { engine: 'say', voice: '../Amélie', lang: 'fr' } }).voice, null)
   assert.deepEqual(callMetadata({ voice: { engine: 'piper', voice: 'fr_FR-siwis-medium.onnx' } }).voice, { engine: 'piper', voice: 'fr_FR-siwis-medium.onnx', lang: '' })
   ok('an engine voice is kept (the language cut to two letters), including names with spaces, brackets and dots')
   assert.deepEqual(callMetadata({ voice: { custom: true, engine: 'edge', voice: 'x' } }).voice, { custom: true })

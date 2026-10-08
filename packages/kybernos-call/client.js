@@ -370,6 +370,7 @@ window.__ModuleLoader__.load({
         const [tests, setTests] = React.useState({})
         const [draft, setDraft] = React.useState({})
         const [busy, setBusy] = React.useState(false)
+        const [listening, setListening] = React.useState(false)
         const load = async () => {
           const [d, v] = await Promise.all([getJson(API + '/settings'), getJson('/kybernos/tts/voices')])
           setData(d !== null && d.ok === true ? d : { ok: false })
@@ -416,6 +417,26 @@ window.__ModuleLoader__.load({
           const voice = eng ? eng.voices.find((x) => x.id === v.slice(at + 2)) : null
           if (voice) save({ defaultVoice: { engine: eng.id, voice: voice.id, lang: voice.lang || '' } })
         }
+        // Hears the chosen voice (the app's engine renders a sentence of its language): the way to compare voices without a call.
+        const SAMPLES = { fr: 'Bonjour, je suis votre assistant. Comment puis-je vous aider ?', en: 'Hello, I am your assistant. How can I help you?', es: 'Hola, soy tu asistente. ¿En qué puedo ayudarte?', de: 'Hallo, ich bin dein Assistent. Wie kann ich dir helfen?', it: 'Ciao, sono il tuo assistente. Come posso aiutarti?', pt: 'Olá, sou o seu assistente. Como posso ajudar?' }
+        const listen = async () => {
+          const picked = set.defaultVoice
+          const wanted = (picked !== null && picked.lang) ? String(picked.lang) : kt('fr', 'en')
+          const lang = SAMPLES[wanted] !== undefined ? wanted : 'en'
+          const body = Object.assign({ text: SAMPLES[lang], lang: lang }, picked !== null ? { engine: picked.engine, voice: picked.voice } : {})
+          setListening(true)
+          try {
+            const r = await fetch('/kybernos/tts/speak', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+            const d = await r.json()
+            if (d !== null && d.ok === true && typeof d.audio === 'string') {
+              const audio = new Audio(d.audio)
+              await new Promise((resolve) => { audio.onended = resolve; audio.onerror = resolve; audio.play().catch(resolve) })
+              if (picked !== null && d.engine !== picked.engine) say(true, kt('Cette voix n’a pas pu parler : ', 'That voice could not speak: ') + (d.attempts && d.attempts[0] && d.attempts[0].error ? d.attempts[0].error : kt('l’app a utilisé un autre moteur', 'the app used another engine')))
+              else setNotice(null)
+            } else say(true, kt('Écoute impossible — ', 'Could not play — ') + ((d && d.error) || kt('le moteur de voix ne répond pas', 'the voice engine does not answer')))
+          } catch (e) { say(true, kt('Écoute impossible — le moteur de voix ne répond pas', 'Could not play — the voice engine does not answer')) }
+          setListening(false)
+        }
         const field = (name, label, opts) => {
           const o = opts || {}
           return h('div', { key: name, className: 'kbcl-grow', style: { minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '4px' } }, [
@@ -446,8 +467,10 @@ window.__ModuleLoader__.load({
             h('div', { key: 'r', className: 'kbcl-row' }, [
               h('label', { key: 'l', className: 'kbcl-lab', htmlFor: 'kbcl-voice' }, kt('Voix', 'Voice')),
               h('select', { key: 's', id: 'kbcl-voice', 'data-field': 'defaultVoice', className: 'kbcl-in kbcl-grow', value: voiceValue, disabled: busy, onChange: onVoice },
-                [h('option', { key: '', value: '' }, kt('Voix par défaut de l’app (Réglages › Voix)', 'The app’s default voice (Settings › Voice)'))].concat(engines.map((e) => h('optgroup', { key: e.id, label: e.name || e.id }, e.voices.map((v) => h('option', { key: e.id + '::' + v.id, value: e.id + '::' + v.id }, (v.label || v.id) + (v.lang ? ' (' + v.lang + ')' : '')))))))
-            ])
+                [h('option', { key: '', value: '' }, kt('Voix par défaut de l’app (Réglages › Voix)', 'The app’s default voice (Settings › Voice)'))].concat(engines.map((e) => h('optgroup', { key: e.id, label: (e.name || e.id) + (e.kind === 'cloud' ? kt(' · en ligne', ' · online') : '') }, e.voices.map((v) => h('option', { key: e.id + '::' + v.id, value: e.id + '::' + v.id }, (v.label || v.id) + (v.lang ? ' (' + v.lang + ')' : ''))))))),
+              h('button', { key: 'listen', type: 'button', className: 'kbcl-btn', 'data-act': 'listen-voice', disabled: busy || listening, onClick: listen }, listening ? kt('Lecture…', 'Playing…') : kt('Écouter', 'Listen'))
+            ]),
+            h('div', { key: 'tip', className: 'kbcl-sub' }, kt('Pour une voix plus naturelle : Piper (sur ce Mac) ou Edge (en ligne : le texte est envoyé à Microsoft). Écouter permet de comparer sans appeler.', 'For a more natural voice: Piper (on this Mac) or Edge (online: the text is sent to Microsoft). Listen lets you compare without a call.'))
           ]),
           h('section', { key: 'lang', className: 'kbcl-block' }, [
             h('h3', { key: 'h' }, kt('Langue de l’appel', 'Call language')),

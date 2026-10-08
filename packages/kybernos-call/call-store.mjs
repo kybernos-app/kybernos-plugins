@@ -16,7 +16,7 @@ const CLONES_REL = 'kybernos/kybernos-call/clones.json'
 const str = (v) => (typeof v === 'string' ? v : null)
 const LANG_RE = /^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$/
 const ENGINE_RE = /^[a-z0-9_-]{1,32}$/
-const VOICE_RE = /^[A-Za-z0-9._:() -]{1,100}$/
+const VOICE_RE = /^[\p{L}\p{M}\p{N}._:() -]{1,100}$/u // letters of any language: the app's own French voice is "Amélie"
 
 export const DEFAULT_SETTINGS = Object.freeze({
   language: 'auto',      // 'auto' follows what the user speaks, or a language code

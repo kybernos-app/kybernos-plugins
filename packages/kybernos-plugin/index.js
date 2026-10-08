@@ -35,6 +35,7 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 // ne sort de la machine — le local reste strictement celui d'aujourd'hui.
 import { createGatewayWatcher } from './gateway-watcher.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { createPythonPicker } from './tts-python.mjs'
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -8172,7 +8173,6 @@ function boot(ctx) {
       { id: 'ar-SA-HamedNeural', label: 'ar-SA-Hamed', lang: 'ar' },
       { id: 'ar-EG-SalmaNeural', label: 'ar-EG-Salma', lang: 'ar' },
     ]
-    const kbTtsPython = 'python3'
     const kbTtsTmpRoot = () => {
       const base = (typeof tmpdir === 'function' ? tmpdir() : '/tmp')
       return joinPath(base, 'kybernos-tts')
@@ -8393,15 +8393,21 @@ function boot(ctx) {
     }
 
     // ── sondes de disponibilité (mises en cache le temps du processus) ───────
+    const kbTtsPicker = createPythonPicker(kbTtsExec)
     const kbTtsProbes = {}
     const kbTtsProbe = async (moduleName) => {
       const key = String(moduleName)
       const hit = kbTtsProbes[key]
       const now = Date.now()
       if (hit !== undefined && now - hit.at < KB_TTS_PROBE_TTL_MS) return hit.value
-      const res = await kbTtsExec(kbTtsPython, ['-c', 'import ' + key], { timeoutMs: 20000 })
-      kbTtsProbes[key] = { at: now, value: res.ok === true }
-      return res.ok === true
+      const found = (await kbTtsPicker.first(key)) !== null
+      kbTtsProbes[key] = { at: now, value: found }
+      return found
+    }
+    /** The interpreter to run an engine with: the first that imports its module ('python3' when none does). */
+    const kbTtsPythonFor = async (moduleName) => {
+      await kbTtsProbe(moduleName)
+      return kbTtsPicker.pythonOf(moduleName)
     }
 
     // ── inventaire des voix, moteur par moteur ───────────────────────────────
@@ -8455,7 +8461,7 @@ function boot(ctx) {
       let got = null
       if (helper !== null) {
         try { writeFileSync(textFile, 'x') } catch (e) { /* sans fichier : --list-voices n'en a pas besoin */ }
-        const res = await kbTtsExec(kbTtsPython, [helper, '--engine', 'edge', '--list-voices'], { timeoutMs: 30000 })
+        const res = await kbTtsExec(await kbTtsPythonFor('edge_tts'), [helper, '--engine', 'edge', '--list-voices'], { timeoutMs: 30000 })
         if (res.ok === true && res.out.trim().length > 2) {
           const parsed = parseJson(res.out.trim())
           if (parsed !== null && Array.isArray(parsed) === true && parsed.length > 0) got = parsed
@@ -8470,9 +8476,10 @@ function boot(ctx) {
     const kbTtsEngines = async () => {
       const out = []
       const isMac = process.platform === 'darwin'
-      const [superOk, edgeOk, piperVoices, sayVoices, edgeList] = await Promise.all([
+      const [superOk, edgeOk, piperOk, piperVoices, sayVoices, edgeList] = await Promise.all([
         kbTtsProbe('supertonic'),
         kbTtsProbe('edge_tts'),
+        kbTtsProbe('piper'),
         kbTtsPiperModels(),
         kbTtsSayVoices(),
         kbTtsEdgeVoices(),
@@ -8486,8 +8493,8 @@ function boot(ctx) {
           item.size = '0 Mo'
         } else if (cat.id === 'piper') {
           item.voices = piperVoices
-          item.ready = piperVoices.length > 0
-          item.reason = piperVoices.length > 0 ? null : 'aucun modele .onnx dans ~/.dsh/kybers/tts/piper'
+          item.ready = piperVoices.length > 0 && piperOk === true
+          item.reason = piperVoices.length === 0 ? 'aucun modele .onnx dans ~/.dsh/kybers/tts/piper' : (piperOk === true ? null : 'module python piper absent')
           if (piperVoices.length > 0) {
             let bytes = 0
             for (const v of piperVoices) { try { const st = await fs.stat(await fs.resolve(joinPath(await kbTtsDirOf('piper'), v.id))); if (st !== null && typeof st.size === 'number') bytes += st.size } catch (e) { /* taille inconnue */ } }
@@ -8611,7 +8618,7 @@ function boot(ctx) {
             const dir = await kbTtsDirOf('piper')
             argv.push('--model', joinPath(dir, String(voiceId)))
           }
-          res = await kbTtsExec(kbTtsPython, argv, { timeoutMs: KB_TTS_TIMEOUT[engine] === undefined ? 20000 : KB_TTS_TIMEOUT[engine] })
+          res = await kbTtsExec(await kbTtsPythonFor(engine === 'edge' ? 'edge_tts' : engine), argv, { timeoutMs: KB_TTS_TIMEOUT[engine] === undefined ? 20000 : KB_TTS_TIMEOUT[engine] })
         }
       } finally {
         try { rmSync(textFile, { force: true }) } catch (e) { /* deja efface */ }

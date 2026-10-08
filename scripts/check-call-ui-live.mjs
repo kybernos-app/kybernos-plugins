@@ -134,6 +134,26 @@ try {
   check('the assistant\'s voice list is the app\'s own voice engines', typeof voices === 'string' && voices.length > 0, voices)
   await shot('settings-essential-changed')
 
+  // Listen: nothing is played (Audio is stubbed); what the page asks the voice engine for, and what comes back, is recorded.
+  await val(`(() => { window.__asked = []; window.__listened = []; const f = window.fetch; window.fetch = (u, i) => { try { if (String(u).includes('/tts/speak')) window.__asked.push(JSON.parse(i.body)) } catch (e) { /* not JSON */ } return f(u, i) }; window.Audio = class { constructor (src) { window.__listened.push(String(src).slice(0, 20)) } play () { setTimeout(() => { if (this.onended) this.onended() }, 5); return Promise.resolve() } } })()`)
+  check('the voice row has a Listen button', (await val(`!!document.querySelector('[data-act="listen-voice"]')`)) === true)
+  await click('[data-act="listen-voice"]')
+  const heardDefault = await poll(() => val(`window.__listened.length > 0 ? JSON.stringify(window.__listened) : null`), 25000)
+  const askedDefault = JSON.parse((await val(`JSON.stringify(window.__asked)`)) || '[]')
+  check('Listen asks the app\'s voice engine for a sentence (the app\'s own voice: no engine named) and plays what comes back', heardDefault !== null && /data:audio/.test(String(heardDefault)) && askedDefault.length === 1 && typeof askedDefault[0].text === 'string' && askedDefault[0].engine === undefined, { heardDefault, askedDefault })
+  const sayFr = await val(`(() => { const o = Array.from(document.querySelectorAll('[data-field="defaultVoice"] option')).find((x) => /^say::/.test(x.value) && /\\(fr\\)$/.test(x.textContent)); return o ? o.value : null })()`)
+  if (sayFr !== null && sayFr !== undefined) {
+    await setField('[data-field="defaultVoice"]', sayFr)
+    await poll(async () => { const s2 = await getSettings(); return s2 && s2.settings.defaultVoice && s2.settings.defaultVoice.engine === 'say' }, 8000)
+    await val(`window.__listened.length = 0`)
+    await poll(() => val(`(() => { const b = document.querySelector('[data-act="listen-voice"]'); return !!b && b.disabled === false })()`), 8000) // the button waits while the choice is being saved
+    await click('[data-act="listen-voice"]')
+    await poll(() => val(`window.__listened.length > 0`), 25000)
+    const askedFr = JSON.parse((await val(`JSON.stringify(window.__asked)`)) || '[]')
+    const last = askedFr[askedFr.length - 1] || {}
+    check('with a French voice chosen, Listen asks for that voice, in French, with a French sentence', last.engine === 'say' && last.voice === sayFr.slice(5) && last.lang === 'fr' && /Bonjour/.test(last.text), { last, sayFr, saved: (await getSettings()).settings.defaultVoice, selected: await val(`document.querySelector('[data-field="defaultVoice"]').value`), disabled: await val(`document.querySelector('[data-act="listen-voice"]').disabled`), asked: askedFr.length })
+  } else check('a French voice of the say engine exists to listen to', false, sayFr)
+
   console.log('3. a key typed in the Service tab')
   await click('[data-act="tab-service"]')
   await sleep(400)

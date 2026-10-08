@@ -57,6 +57,13 @@ class VoiceParsing(unittest.TestCase):
         meta = parse_job_metadata(json.dumps({"voice": {"engine": "say", "voice": "Eddy (English (UK))", "lang": "en"}}), {})
         self.assertEqual(meta.voice.voice, "Eddy (English (UK))")
 
+    def test_an_accented_voice_name_is_kept(self):
+        # The app's own French voice is "Amélie": checked as ASCII, it was dropped and the call used another voice.
+        for name in ("Amélie", "Mónica", "Tünde", "Eddy (French (France))"):
+            meta = parse_job_metadata(json.dumps({"voice": {"engine": "say", "voice": name, "lang": "fr"}}), {})
+            self.assertEqual(meta.voice, VoiceChoice("say", name, "fr"), name)
+        self.assertIsNone(parse_job_metadata(json.dumps({"voice": {"engine": "say", "voice": "a\nb"}}), {}).voice)
+
     def test_bad_voices_are_dropped(self):
         for bad in (None, "edge", [], {}, {"engine": "Edge!", "voice": "x"}, {"engine": "edge", "voice": ""},
                     {"engine": "edge", "voice": "a/b"}, {"engine": "edge", "voice": "x" * 101}, {"engine": 3, "voice": "x"}):
