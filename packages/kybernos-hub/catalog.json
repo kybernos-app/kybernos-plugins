@@ -1452,38 +1452,38 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 680,
+      "poids_ko": 960,
       "promesse": {
-        "fr": "Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : ce qui se dit entre dans le fil.",
-        "en": "Talk to your assistant or a team member from any session: what is said enters the thread."
+        "fr": "Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.",
+        "en": "Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice."
       },
       "aide": {
         "what": {
-          "fr": "Parlez à votre assistant ou à un membre de votre équipe, à voix haute, depuis une session. Ce qui se dit entre dans la discussion, comme si vous l'aviez écrit.",
-          "en": "Talk to your assistant or a team member out loud, from a session. What is said enters the conversation, as if you had typed it."
+          "fr": "Parlez à votre assistant, ou à un membre de votre équipe, à voix haute, depuis n'importe quelle session. L'assistant répond comme dans le chat, et ce qui se dit entre dans la discussion.",
+          "en": "Talk to your assistant, or to a team member, out loud, from any session. The assistant answers as it does in the chat, and what is said enters the conversation."
         },
         "steps": [
           {
-            "fr": "Ouvrez la fiche d'un membre de l'équipe et cliquez Call (voix) ou Video.",
-            "en": "Open a team member's card and click Call (voice) or Video."
+            "fr": "Dans une session, cliquez Appeler sous la zone de message. Pour un membre d'équipe : Call ou Video sur sa carte.",
+            "en": "In a session, click Call under the message box. For a team member: Call or Video on its card."
           },
           {
-            "fr": "Autorisez le micro dans le navigateur : le panneau d'appel s'ouvre en bas à droite.",
-            "en": "Allow the microphone in the browser: the call panel opens at the bottom right."
+            "fr": "Autorisez le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parlez, il répond à voix haute.",
+            "en": "Allow the microphone in the browser. The call panel opens at the bottom right: speak, it answers out loud."
           },
           {
-            "fr": "Parlez. Vos phrases arrivent dans la discussion. « Raccrocher » termine l'appel.",
-            "en": "Speak. Your sentences land in the conversation. “Hang up” ends the call."
+            "fr": "« Raccrocher » termine l'appel, ou il raccroche seul après un long silence.",
+            "en": "“Hang up” ends the call, or it hangs up by itself after a long silence."
           }
         ],
         "where": {
-          "fr": "Fiche d'un membre de l'équipe › Call / Video",
-          "en": "A team member's card › Call / Video",
-          "page": false
+          "fr": "Sous le message de toute session › Appeler · Réglages › Appels",
+          "en": "Under the message box of any session › Call · Settings › Calls",
+          "page": true
         },
         "good": {
-          "fr": "Les clés d'appel doivent être posées avant le premier appel : sans elles, le panneau vous dit ce qui manque.",
-          "en": "The call keys must be set before the first call: without them, the panel tells you what is missing."
+          "fr": "Au premier appel, ajoutez vos clés dans Réglages › Appels › Service (chaque clé a un bouton Tester). Une voix enregistrée n'est clonée que si vous l'autorisez.",
+          "en": "On the first call, add your keys in Settings › Calls › Service (each key has a Test button). A recorded voice is only cloned if you allow it."
         }
       }
     },

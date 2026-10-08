@@ -93,7 +93,7 @@ try {
   const p3 = await poll(async () => { const p = await panel(); return p && /could not join the room|impossible de rejoindre/i.test(p.text) ? p : null }, 30000)
   check('the real SDK was fetched from this bundle and tried: the panel says the room cannot be joined', p3 !== null && p3 !== undefined, await panel())
   const tokenPosts = posts.filter((x) => x.path === '/kybernos-call/token')
-  check('the token request carried who is called: the session, the team, the member, the mode and the language', tokenPosts.length === 1 && JSON.stringify(tokenPosts[0].body) === JSON.stringify({ sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', language: 'auto', voice: null, identity: 'moi' }), tokenPosts)
+  check('the token request carried who is called: the session, the team, the member, the mode and the voice (not the language: the host takes it from the settings)', tokenPosts.length === 1 && JSON.stringify(tokenPosts[0].body) === JSON.stringify({ sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'video', voice: null, identity: 'moi' }), tokenPosts)
   const sdk = await val('typeof window.LivekitClient === "object" && typeof window.LivekitClient.Room === "function"')
   check('window.LivekitClient is the real SDK', sdk === true)
   const media = await val(`(async () => { try { const s = await navigator.permissions.query({ name: 'microphone' }); return s.state } catch (e) { return 'unknown' } })()`)

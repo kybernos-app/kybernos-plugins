@@ -1,0 +1,84 @@
+// kybernos-call: what the settings page asks of the host (read and change the call settings and secrets, test them,
+// clone a recording). Pure orchestration over the store, the outside services and the call: all I/O injected.
+//
+// Rule of the file: a secret is never returned, and a recording never leaves the machine unless the user switched
+// that on in the settings AND set the provider's key.
+
+const ID_RE = /^[A-Za-z0-9._-]{1,64}$/
+const ROOT_RE = /^[A-Za-z0-9._:~@/+-]{1,200}$/
+const text = (e) => (e && e.message ? String(e.message) : String(e))
+
+export function createAdmin ({ store, services, call, env = process.env, fetch: doFetch = (...a) => globalThis.fetch(...a) }) {
+  const everything = async () => {
+    const [settings, keys, clones] = await Promise.all([store.readSettings(), store.keysStatus(), store.readClones()])
+    return {
+      ok: true,
+      settings,
+      keys,
+      clones: Object.entries(clones).map(([id, c]) => ({ id, name: c.name, provider: c.provider, createdAt: c.createdAt }))
+    }
+  }
+
+  const patchSettings = async (patch) => {
+    const out = await store.writeSettings(patch)
+    return out.ok === true ? { ok: true, settings: out.settings } : out
+  }
+
+  const setKeys = async (patch) => store.writeKeys(patch)
+
+  /** Tests what the user asked to test. A call out to the service, made on this click only. */
+  const test = async (service) => {
+    const keys = await store.readKeys()
+    if (service === 'livekit') return call.testLiveKit()
+    if (service === 'groq') return keys.GROQ_API_KEY ? services.testGroq(keys.GROQ_API_KEY) : { ok: false, service: 'Groq', error: 'no Groq key is set' }
+    if (service === 'elevenlabs') return keys.ELEVENLABS_API_KEY ? services.testEleven(keys.ELEVENLABS_API_KEY) : { ok: false, service: 'ElevenLabs', error: 'no ElevenLabs key is set' }
+    return { ok: false, error: 'unknown service (livekit, groq, elevenlabs)' }
+  }
+
+  /**
+   * Gives a recording a voice at the clone provider (once: asking again returns the same one).
+   * `code` tells the panel which note to show when it cannot: 'upload-off', 'no-key', 'no-sample', 'provider'.
+   */
+  const cloneSample = async ({ rootId, voiceId, name }) => {
+    if (typeof voiceId !== 'string' || !ID_RE.test(voiceId)) return { ok: false, code: 'no-sample', error: 'unknown recording' }
+    const clones = await store.readClones()
+    if (clones[voiceId] !== undefined) return { ok: true, remote: { provider: clones[voiceId].provider, id: clones[voiceId].remoteId }, already: true }
+    const settings = await store.readSettings()
+    if (settings.cloneUpload !== true) return { ok: false, code: 'upload-off', error: 'sending recordings to the clone provider is off (Settings › Calls)' }
+    const keys = await store.readKeys()
+    if (!keys.ELEVENLABS_API_KEY) return { ok: false, code: 'no-key', error: 'no ElevenLabs key is set (Settings › Calls › Service)' }
+    if (typeof rootId !== 'string' || !ROOT_RE.test(rootId)) return { ok: false, code: 'no-sample', error: 'unknown project' }
+    // The recording is the one the app kept on this machine for that voice.
+    let sample = null
+    try {
+      const base = 'http://127.0.0.1:' + String(env.DSH_WEB_PORT ?? '3080')
+      const res = await doFetch(base + '/kybernos/voice-sample-audio?rootId=' + encodeURIComponent(rootId) + '&voiceId=' + encodeURIComponent(voiceId), { signal: AbortSignal.timeout(15000) })
+      if (res.status !== 200) return { ok: false, code: 'no-sample', error: 'the recording is not on this machine (HTTP ' + String(res.status) + ')' }
+      const bytes = Buffer.from(await res.arrayBuffer())
+      if (bytes.length === 0 || bytes.length > 12 * 1024 * 1024) return { ok: false, code: 'no-sample', error: 'the recording is empty or too large' }
+      const mime = String(res.headers.get('content-type') ?? 'audio/mpeg').split(';')[0]
+      sample = { bytes, mime, filename: voiceId + '.' + (mime.split('/')[1] ?? 'mp3').replace(/[^a-z0-9]/gi, '') }
+    } catch (e) { return { ok: false, code: 'no-sample', error: 'could not read the recording: ' + text(e) } }
+    const cleanName = (typeof name === 'string' && name.trim() !== '' ? name.trim() : voiceId).replace(/[\u0000-\u001f]/g, ' ').slice(0, 60)
+    const made = await services.cloneVoice({ key: keys.ELEVENLABS_API_KEY, name: 'Kybernos · ' + cleanName, sample })
+    if (made.ok !== true) return { ok: false, code: 'provider', error: made.error }
+    const entry = await store.setClone(voiceId, { remoteId: made.remoteId, name: cleanName })
+    return { ok: true, remote: { provider: entry.provider, id: entry.remoteId }, requiresVerification: made.requiresVerification === true }
+  }
+
+  /** Removes the clone at the provider, then forgets it here. The user's recording itself is not touched. */
+  const deleteClone = async (voiceId) => {
+    if (typeof voiceId !== 'string' || !ID_RE.test(voiceId)) return { ok: false, error: 'unknown recording' }
+    const clones = await store.readClones()
+    const clone = clones[voiceId]
+    if (clone === undefined) return { ok: true, already: true }
+    const keys = await store.readKeys()
+    if (!keys.ELEVENLABS_API_KEY) return { ok: false, error: 'no ElevenLabs key is set: the clone cannot be deleted at the provider' }
+    const gone = await services.deleteVoice({ key: keys.ELEVENLABS_API_KEY, remoteId: clone.remoteId })
+    if (gone.ok !== true) return { ok: false, error: gone.error }
+    await store.deleteClone(voiceId)
+    return { ok: true }
+  }
+
+  return { everything, patchSettings, setKeys, test, cloneSample, deleteClone }
+}

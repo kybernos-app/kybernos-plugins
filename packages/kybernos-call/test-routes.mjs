@@ -70,16 +70,26 @@ const fakeCall = {
   utterance: async (b) => (b && b.text === 'bad' ? { ok: false, error: 'unknown session' } : { ok: true, accepted: true })
 }
 const feed = createSpeechFeed()
-mountCallRoutes(webServer, fakeCall, here, (fn, label) => { effects.push(label); return fn() }, feed)
+const adminCalls = []
+const fakeAdmin = {
+  everything: async () => ({ ok: true, settings: { language: 'auto' }, keys: { GROQ_API_KEY: { set: true } }, clones: [] }),
+  patchSettings: async (patch) => { adminCalls.push(['settings', patch]); return patch && patch.bad ? { ok: false, error: 'invalid settings', refused: { bad: 'x' } } : { ok: true, settings: patch } },
+  setKeys: async (patch) => { adminCalls.push(['keys', patch]); return { ok: true, status: {} } },
+  test: async (service) => { adminCalls.push(['test', service]); return { ok: service === 'groq', service } },
+  cloneSample: async (a) => { adminCalls.push(['clone', a]); return { ok: true, remote: { provider: 'elevenlabs', id: 'Remote12345' } } },
+  deleteClone: async (id) => { adminCalls.push(['delete', id]); return { ok: true } }
+}
+mountCallRoutes(webServer, fakeCall, here, (fn, label) => { effects.push(label); return fn() }, feed, fakeAdmin)
 assert.deepEqual([...registered.keys()].sort(), Object.values(ROUTES).sort())
-assert.equal(effects.length, 6)
+assert.equal(effects.length, 10)
 for (const path of registered.keys()) assert.match(path, /^\/kybernos-call\//)
-ok('six routes, all under /kybernos-call/, each registered through the plugin\'s effect')
+ok('ten routes, all under /kybernos-call/, each registered through the plugin\'s effect')
 const bare = new Map()
 mountCallRoutes({ register: (r) => { bare.set(r.path, r); return () => {} } }, fakeCall, here, (fn) => fn())
 assert.equal(bare.size, 5)
 assert.equal(bare.has(ROUTES.speech), false)
-ok('without a session event source there is no speech route (a call keeps the worker\'s own voice model)')
+for (const p of [ROUTES.settings, ROUTES.keys, ROUTES.test, ROUTES.clone]) assert.equal(bare.has(p), false)
+ok('without a session event source there is no speech route (a call keeps the worker\'s own voice model), and without the admin part no settings routes')
 const run = async (path, req) => { const res = makeRes(); await registered.get(path).handler(req, res); return res }
 
 let res = await run(ROUTES.status, makeReq('GET'))
@@ -127,6 +137,46 @@ assert.equal(res.status, 200)
 res = await run(ROUTES.utterance, makeReq('POST', { ...same, body: { text: 'bad' } }))
 assert.equal(res.status, 400)
 ok('utterance: 200 when accepted, 400 when the host refuses it')
+
+console.log('kybernos-call: the settings routes')
+res = await run(ROUTES.settings, makeReq('GET'))
+assert.equal(res.status, 200)
+assert.deepEqual(Object.keys(json(res)).sort(), ['clones', 'keys', 'ok', 'settings'])
+ok('settings: GET says what is set (no secret in it), and needs no origin')
+for (const path of [ROUTES.settings, ROUTES.keys, ROUTES.test, ROUTES.clone]) {
+  res = await run(path, makeReq('POST', { body: {} }))
+  assert.equal(res.status, 403, path)
+  res = await run(path, makeReq('POST', { origin: 'https://evil.example', body: {} }))
+  assert.equal(res.status, 403, path)
+  res = await run(path, makeReq('PUT', { ...same, body: {} }))
+  assert.equal(res.status, 405, path)
+}
+assert.equal(adminCalls.length, 0)
+ok('settings, keys, test, clone: no origin or a foreign one is 403 and nothing is done; other methods are 405')
+res = await run(ROUTES.settings, makeReq('POST', { ...same, body: { patch: { language: 'es' } } }))
+assert.equal(res.status, 200)
+assert.deepEqual(adminCalls.pop(), ['settings', { language: 'es' }])
+res = await run(ROUTES.settings, makeReq('POST', { ...same, body: { patch: { bad: true } } }))
+assert.equal(res.status, 400)
+assert.deepEqual(json(res).refused, { bad: 'x' })
+res = await run(ROUTES.keys, makeReq('POST', { ...same, body: { patch: { GROQ_API_KEY: 'gsk_secretvalue' } } }))
+assert.equal(res.status, 200)
+assert.equal(res.body.includes('gsk_secretvalue'), false)
+assert.deepEqual(adminCalls.pop(), ['keys', { GROQ_API_KEY: 'gsk_secretvalue' }])
+ok('a settings change and a key change go through with the same origin; a refused change is 400 with the reason; the answer repeats no secret')
+res = await run(ROUTES.test, makeReq('POST', { ...same, body: { service: 'groq' } }))
+assert.equal(res.status, 200)
+res = await run(ROUTES.test, makeReq('POST', { ...same, body: { service: 'livekit' } }))
+assert.equal(res.status, 400)
+ok('test: ok is 200, not ok is 400 with the service named')
+res = await run(ROUTES.clone, makeReq('POST', { ...same, body: { rootId: 'root-1', voiceId: 'v-1', name: 'Claire' } }))
+assert.equal(res.status, 200)
+assert.deepEqual(adminCalls.pop(), ['clone', { rootId: 'root-1', voiceId: 'v-1', name: 'Claire' }])
+res = await run(ROUTES.clone, makeReq('POST', { ...same, body: { action: 'delete', voiceId: 'v-1' } }))
+assert.deepEqual(adminCalls.pop(), ['delete', 'v-1'])
+res = await run(ROUTES.keys, makeReq('POST', { ...same, body: 'x'.repeat(40000) }))
+assert.equal(res.status, 400)
+ok('clone: creates or (with action "delete") deletes; an over-large body is 400')
 
 console.log('kybernos-call: the speech route')
 feed.register('room-speak', 'session-aaaaaaaa')
@@ -189,21 +239,22 @@ try {
   const handlers = new Map()
   const reg3 = new Map()
   apply({ get: (n) => (n === 'webServer' ? { register: (r) => { reg3.set(r.path, r); return () => {} } } : undefined), inject: () => {}, effect: (fn) => fn(), on: (event, fn) => { handlers.set(event, fn); return () => {} } })
-  assert.equal(reg3.size, 6)
+  assert.equal(reg3.size, 10)
   assert.equal(typeof handlers.get('session/event'), 'function')
   // a broken event source must not stop it
   const reg4 = new Map()
   apply({ get: (n) => (n === 'webServer' ? { register: (r) => { reg4.set(r.path, r); return () => {} } } : undefined), inject: () => {}, effect: (fn) => fn(), on: () => { throw new Error('no events here') } })
-  assert.equal(reg4.size, 5)
+  assert.equal(reg4.size, 9)
   // a broken context must not throw
   apply(undefined)
   apply({ get: () => { throw new Error('boom') } })
   console.log = origLog
-  assert.equal(reg1.size, 5)
+  assert.equal(reg1.size, 9)
   assert.equal(reg1.has(ROUTES.speech), false)
+  assert.equal(reg1.has(ROUTES.settings), true)
   assert.deepEqual(injected, ['webServer'])
-  assert.equal(reg2.size, 5)
-  ok('apply mounts the five routes when the web server is there, or as soon as it is injected')
+  assert.equal(reg2.size, 9)
+  ok('apply mounts its routes (nine without a session event source) when the web server is there, or as soon as it is injected')
   ok('with the session event source apply also mounts the speech route and listens to session/event; if listening fails it still mounts the rest')
   ok('apply never throws, even with a missing or broken context (a bundle must never stop DSH from starting)')
   assert.ok(logs.some((l) => /disabled/.test(l)))

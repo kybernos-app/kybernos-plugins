@@ -8,8 +8,8 @@ import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from call_meta import (CallMeta, fetch_speech, instructions, parse_job_metadata, speakable, speech_url,
-                       stt_options, utterance_payload)
+from call_meta import (CallLimits, CallMeta, CallState, VoiceChoice, fetch_speech, filler, instructions,
+                       parse_job_metadata, speakable, speech_url, stt_options, utterance_payload)
 
 
 class ParseJobMetadata(unittest.TestCase):
@@ -176,6 +176,103 @@ class FetchSpeech(unittest.TestCase):
     def test_a_network_error_raises(self):
         with self.assertRaises(Exception):
             fetch_speech("http://127.0.0.1:1", "room-1", 0, 0)
+
+
+class CloneAndLimits(unittest.TestCase):
+    def test_a_recording_cloned_at_the_provider(self):
+        meta = parse_job_metadata(json.dumps({"voice": {"custom": True, "remote": {"provider": "elevenlabs", "id": "RemoteVoice777"}}}), {})
+        self.assertEqual(meta.voice, VoiceChoice(custom=True, remote_provider="elevenlabs", remote_id="RemoteVoice777"))
+
+    def test_a_recording_that_was_not_cloned_or_a_bad_remote(self):
+        for remote in (None, {}, {"provider": "other", "id": "RemoteVoice777"}, {"provider": "elevenlabs", "id": "../x"},
+                       {"provider": "elevenlabs", "id": "x"}, {"provider": "elevenlabs", "id": 5}, "RemoteVoice777"):
+            meta = parse_job_metadata(json.dumps({"voice": {"custom": True, "remote": remote}}), {})
+            self.assertEqual(meta.voice, VoiceChoice(custom=True), remote)
+
+    def test_limits(self):
+        meta = parse_job_metadata(json.dumps({"limits": {"silenceMs": 180000, "maxMs": 1800000}}), {})
+        self.assertEqual(meta.limits, CallLimits(180000, 1800000))
+        self.assertEqual(parse_job_metadata("", {}).limits, CallLimits(300000, 3600000))
+        for raw in ({"silenceMs": 5, "maxMs": 10 ** 12}, {"silenceMs": "x", "maxMs": None}, {"silenceMs": True}, "x", 5):
+            self.assertEqual(parse_job_metadata(json.dumps({"limits": raw}), {}).limits, CallLimits(), raw)
+
+    def test_the_waiting_phrase_is_in_the_calls_language(self):
+        self.assertEqual(filler("fr"), "Un instant, je regarde.")
+        self.assertEqual(filler("es-ES"), "Un momento, lo estoy mirando.")
+        self.assertEqual(filler("sv"), filler("en"))
+        self.assertEqual(filler(""), filler("en"))
+
+
+class FakeClock:
+    def __init__(self):
+        self.t = 1000.0
+
+    def __call__(self):
+        return self.t
+
+
+class State(unittest.TestCase):
+    def setUp(self):
+        self.clock = FakeClock()
+        self.state = CallState(self.clock)
+
+    def test_words_while_nothing_runs_are_queued(self):
+        self.assertFalse(self.state.busy())
+        self.assertEqual(self.state.inject_mode(), "queue")
+
+    def test_words_while_a_turn_runs_correct_it(self):
+        self.state.turn_started()
+        self.clock.t += 5
+        self.assertTrue(self.state.busy())
+        self.assertEqual(self.state.inject_mode(), "steer")
+        self.state.turn_ended()
+        self.assertEqual(self.state.inject_mode(), "queue")
+
+    def test_a_turn_that_never_ends_cannot_trap_the_call(self):
+        self.state.turn_started()
+        self.clock.t += CallState.STALE_S + 1
+        self.assertFalse(self.state.busy())
+        self.assertEqual(self.state.inject_mode(), "queue")
+
+    def test_one_moment_once_per_turn_and_only_if_nothing_was_said(self):
+        self.state.turn_started()
+        self.clock.t += 2
+        self.assertFalse(self.state.wants_filler())
+        self.clock.t += 2
+        self.assertTrue(self.state.wants_filler())
+        self.state.filler_said()
+        self.assertFalse(self.state.wants_filler())
+        self.state.turn_ended()
+        self.state.turn_started()
+        self.clock.t += 2
+        self.state.reply_spoken()
+        self.clock.t += 5
+        self.assertFalse(self.state.wants_filler(), "the answer was already speaking")
+
+    def test_no_filler_without_a_turn(self):
+        self.clock.t += 100
+        self.assertFalse(self.state.wants_filler())
+
+    def test_a_call_ends_after_the_silence(self):
+        limits = CallLimits(silence_ms=60000, max_ms=3600000)
+        self.assertIsNone(self.state.expired(limits))
+        self.clock.t += 61
+        self.assertEqual(self.state.expired(limits), "silence")
+        self.state.user_spoke()
+        self.assertIsNone(self.state.expired(limits))
+
+    def test_a_session_that_is_working_is_not_silence(self):
+        limits = CallLimits(silence_ms=60000, max_ms=3600000)
+        self.state.turn_started()
+        self.clock.t += 90
+        self.assertIsNone(self.state.expired(limits))
+
+    def test_a_call_ends_at_its_maximum_length_even_if_the_user_keeps_talking(self):
+        limits = CallLimits(silence_ms=60000, max_ms=300000)
+        for _ in range(7):
+            self.clock.t += 50
+            self.state.user_spoke()
+        self.assertEqual(self.state.expired(limits), "max")
 
 
 if __name__ == "__main__":

@@ -9,9 +9,12 @@
 // ═══════════════════════════════════════════════════════
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createAdmin } from './call-admin.mjs'
 import { createCall } from './call-host.mjs'
 import { mountCallRoutes } from './call-routes.mjs'
+import { createServices } from './call-services.mjs'
 import { createSpeechFeed } from './speech-feed.mjs'
+import { createStore } from './call-store.mjs'
 
 export const name = 'kybernos-call'
 
@@ -30,10 +33,12 @@ export function apply (ctx) {
         feed = candidate
       }
     } catch (e) { feed = null; say('session events not followed: ' + String(e && e.message ? e.message : e)) }
-    const call = createCall({ pluginDir, feed })
+    const store = createStore()
+    const call = createCall({ pluginDir, feed, store })
+    const admin = createAdmin({ store, services: createServices(), call })
     const effect = (fn, label) => ctx.effect(fn, label)
     const mount = (webServer) => {
-      try { mountCallRoutes(webServer, call, pluginDir, effect, feed); say('routes mounted' + (feed === null ? ' (the worker answers with its own voice model)' : '')) } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }
+      try { mountCallRoutes(webServer, call, pluginDir, effect, feed, admin); say('routes mounted' + (feed === null ? ' (the worker answers with its own voice model)' : '')) } catch (e) { say('routes not mounted: ' + String(e && e.message ? e.message : e)) }
     }
     if (ctx.get('webServer') !== undefined) mount(ctx.get('webServer'))
     else ctx.inject(['webServer'], (host) => mount(host.webServer))

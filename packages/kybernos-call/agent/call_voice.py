@@ -16,6 +16,7 @@ import base64
 import io
 import json
 import re
+import urllib.error
 import urllib.request
 from typing import Callable
 
@@ -111,3 +112,35 @@ def render_pcm(host: str, text: str, meta: CallMeta, language: str,
     """Text → PCM, through the app's voice engine, for this call's member and the reply's language."""
     answer = speak_request(host, text, voice_request(meta, language), opener)
     return decode_pcm(audio_bytes(answer))
+
+
+# ── A cloned voice: spoken by the provider that holds the clone ─────────────────────────────────
+
+ELEVEN_BASE = "https://api.elevenlabs.io"
+ELEVEN_MODEL = "eleven_multilingual_v2"  # speaks any language with the cloned voice
+
+
+def eleven_request(key: str, voice_id: str, text: str, model: str = ELEVEN_MODEL, base: str = ELEVEN_BASE,
+                   opener: Callable = urllib.request.urlopen, timeout: float = 45.0) -> bytes:
+    """Text → mp3, in the cloned voice, at the provider. Raises with a reason a person can act on."""
+    if not re.fullmatch(r"[A-Za-z0-9]{6,64}", voice_id or ""):
+        raise RuntimeError("the cloned voice id is not valid")
+    request = urllib.request.Request(
+        base.rstrip("/") + "/v1/text-to-speech/" + voice_id + "?output_format=mp3_44100_128",
+        data=json.dumps({"text": text, "model_id": model}).encode("utf-8"), method="POST",
+        headers={"xi-api-key": key, "content-type": "application/json", "accept": "audio/mpeg"},
+    )
+    try:
+        with opener(request, timeout=timeout) as reply:
+            return reply.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            raise RuntimeError("ElevenLabs refused the key") from exc
+        if exc.code == 404:
+            raise RuntimeError("the cloned voice no longer exists at ElevenLabs") from exc
+        raise RuntimeError("ElevenLabs answered HTTP %d" % exc.code) from exc
+
+
+def render_eleven_pcm(key: str, voice_id: str, text: str, base: str = ELEVEN_BASE,
+                      opener: Callable = urllib.request.urlopen) -> bytes:
+    return decode_pcm(eleven_request(key, voice_id, text, base=base, opener=opener))

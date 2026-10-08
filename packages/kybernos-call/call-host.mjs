@@ -33,8 +33,8 @@ const VOICE_RE = /^[A-Za-z0-9._:() -]{1,100}$/
  *   name       the member's name, to speak as, or null
  *   mode       'voice' (no face) unless 'video' was asked
  *   language   'auto' (follow the speaker) or a language code
- *   voice      the member's voice on the app's voice engine: { engine, voice, lang }, { custom: true } for a
- *              recording no engine speaks yet, or null (the default voice)
+ *   voice      the member's voice on the app's voice engine: { engine, voice, lang }; { custom: true, id } for a
+ *              recording (the host swaps it for its clone at the provider when it has one); or null (the default voice)
  *   brain      'session' when the answer spoken is the session's own (the host feeds the worker with it),
  *              'voice' when it is the worker's small model (no session, or no feed): `sessionBrain` says
  *              whether this host can feed a call
@@ -48,7 +48,7 @@ export function callMetadata (asked, { sessionBrain = false } = {}) {
   const session = (sessionId !== null && SESSION_RE.test(sessionId)) ? sessionId : null
   const v = (a.voice !== null && typeof a.voice === 'object') ? a.voice : null
   let voice = null
-  if (v !== null && v.custom === true) voice = { custom: true }
+  if (v !== null && v.custom === true) voice = (str(v.id) !== null && ID_RE.test(v.id)) ? { custom: true, id: v.id } : { custom: true }
   else if (v !== null && str(v.engine) !== null && ENGINE_RE.test(v.engine) && str(v.voice) !== null && VOICE_RE.test(v.voice)) {
     voice = { engine: v.engine, voice: v.voice, lang: (str(v.lang) !== null && /^[A-Za-z]{2}/.test(v.lang)) ? v.lang.slice(0, 2).toLowerCase() : '' }
   }
@@ -69,6 +69,7 @@ export function callMetadata (asked, { sessionBrain = false } = {}) {
  *   dshHome()  → the DSH folder (async)          execFile / spawn → child_process
  *   fetch      → global fetch                    env        → process.env
  *   pluginDir  → this bundle's folder           feed       → speech-feed.mjs (the session's replies)
+ *   store      → call-store.mjs (the settings, the clones); without it a call uses the built-in defaults
  */
 export function createCall (deps = {}) {
   const env = deps.env ?? process.env
@@ -78,6 +79,7 @@ export function createCall (deps = {}) {
   const doFetch = deps.fetch ?? ((...a) => globalThis.fetch(...a))
   const pluginDir = deps.pluginDir ?? dirname(fileURLToPath(import.meta.url))
   const feed = deps.feed ?? null
+  const store = deps.store ?? null
 
   // ── The secrets, and the LiveKit room token ────────────────────────────────
   // Secrets do NOT go in `settings.json` (readable by the client and the settings screen): a
@@ -279,7 +281,21 @@ export function createCall (deps = {}) {
     const askedIdentity = str(asked.identity)
     const identity = (askedIdentity !== null && String(askedIdentity).trim().length >= 1 && String(askedIdentity).trim().length <= 64) ? String(askedIdentity).trim() : ('moi-' + randomUUID().slice(0, 8))
     const token = accessToken(secrets, { room: room, identity: identity, ttlSeconds: asked.ttlSeconds })
-    const meta = callMetadata(asked, { sessionBrain: feed !== null })
+    // What the user set in the settings fills in what the surface that opened the call did not say.
+    const settings = store !== null ? await store.readSettings() : null
+    const wanted = Object.assign({}, asked)
+    if (settings !== null) {
+      if (str(asked.language) === null || asked.language === 'auto') wanted.language = settings.language
+      if (asked.mode !== 'voice' && asked.mode !== 'video') wanted.mode = settings.mode
+      if ((asked.voice === null || asked.voice === undefined) && str(asked.roleId) === null && settings.defaultVoice !== null) wanted.voice = settings.defaultVoice
+    }
+    const meta = callMetadata(wanted, { sessionBrain: feed !== null })
+    if (settings !== null) meta.limits = { silenceMs: settings.silenceMinutes * 60000, maxMs: settings.maxMinutes * 60000 }
+    // A recording that was cloned at the provider is spoken with its clone; one that was not, with the default voice.
+    if (meta.voice !== null && meta.voice.custom === true && store !== null && meta.voice.id !== undefined) {
+      const clone = (await store.readClones())[meta.voice.id]
+      meta.voice = clone !== undefined ? { custom: true, remote: { provider: clone.provider, id: clone.remoteId } } : { custom: true }
+    }
     // A call is three things: a room, a token, and a woken agent. The agent is started on the first
     // call and left alive; the explicit dispatch keeps it from entering a room by accident. An agent
     // failure does not refuse the call: the human can speak alone, and the answer says so
@@ -358,5 +374,17 @@ export function createCall (deps = {}) {
     return { ok: true, accepted: (sent.value !== null && sent.value !== undefined && sent.value.accepted === true), sessionId: String(sessionId), mode: mode }
   }
 
-  return { readSecrets, accessToken, status, mint, agentStart, agentStop, agentState, utterance, sessionCookie, agentScript }
+  /** Is the LiveKit server there, and does it accept this key and secret? A read-only call (list the rooms). */
+  const testLiveKit = async () => {
+    const secrets = await readSecrets()
+    if (secrets === null) return { ok: false, service: 'LiveKit', error: 'the LiveKit address, key and secret are not all set' }
+    const admin = accessToken(secrets, { room: 'kybernos-test', identity: 'kybernos-host', ttlSeconds: 60, admin: true })
+    const r = await twirp(secrets, 'livekit.RoomService', 'ListRooms', {}, admin.token)
+    if (r.status === 200) return { ok: true, service: 'LiveKit' }
+    if (r.status === 401 || r.status === 403) return { ok: false, service: 'LiveKit', error: 'LiveKit refused the key or the secret' }
+    if (r.status === 0) return { ok: false, service: 'LiveKit', error: 'LiveKit is unreachable: ' + r.text }
+    return { ok: false, service: 'LiveKit', error: 'LiveKit answered HTTP ' + String(r.status) }
+  }
+
+  return { readSecrets, accessToken, status, mint, agentStart, agentStop, agentState, utterance, sessionCookie, agentScript, testLiveKit }
 }

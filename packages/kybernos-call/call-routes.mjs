@@ -14,6 +14,10 @@ export const ROUTES = {
   agent: '/kybernos-call/agent',
   utterance: '/kybernos-call/utterance',
   speech: '/kybernos-call/speech',
+  settings: '/kybernos-call/settings',
+  keys: '/kybernos-call/keys',
+  test: '/kybernos-call/test',
+  clone: '/kybernos-call/clone',
   vendor: '/kybernos-call/vendor/livekit-client.js'
 }
 
@@ -76,7 +80,7 @@ export const serveVendor = (pluginDir, file, mime) => (req, res) => {
  * Registers the routes. `effect(fn, label)` wraps each registration so it is undone when the
  * plugin stops (ctx.effect in DSH, a plain call in tests).
  */
-export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null) {
+export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null, admin = null) {
   const reg = (path, handler, label) => effect(() => webServer.register({ kind: 'exact', path: path, handler: handler }), 'kybernos-call: route ' + label)
 
   // First what is true of the chain (never a secret)…
@@ -119,6 +123,28 @@ export function mountCallRoutes (webServer, call, pluginDir, effect, feed = null
     const out = await call.utterance(body)
     return sendJson(res, (out.ok === true ? 200 : 400), out)
   }, 'utterance')
+
+  // The settings page. Reading says what is set (never a secret); everything that changes something needs the same origin.
+  if (admin !== null) {
+    const post = (path, label, run) => reg(path, async (req, res) => {
+      if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      let body = null
+      try { body = await readJsonBody(req, 32768) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
+      try { const out = await run(body !== null && typeof body === 'object' ? body : {}); return sendJson(res, out.ok === true ? 200 : 400, out) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
+    }, label)
+    reg(ROUTES.settings, async (req, res) => {
+      if (req.method === 'GET') { try { return sendJson(res, 200, await admin.everything()) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) } }
+      if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+      if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+      let body = null
+      try { body = await readJsonBody(req, 32768) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
+      try { const out = await admin.patchSettings(body !== null && typeof body === 'object' ? body.patch : null); return sendJson(res, out.ok === true ? 200 : 400, out) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
+    }, 'settings')
+    post(ROUTES.keys, 'keys', (b) => admin.setKeys(b.patch))
+    post(ROUTES.test, 'test', (b) => admin.test(b.service))
+    post(ROUTES.clone, 'clone', (b) => (b.action === 'delete' ? admin.deleteClone(b.voiceId) : admin.cloneSample({ rootId: b.rootId, voiceId: b.voiceId, name: b.name })))
+  }
 
   // What the session's assistant wrote for this call, for the worker to speak: a long poll. It is the
   // session's own text, so it is only given to the same origin (the worker declares it, like for utterance).

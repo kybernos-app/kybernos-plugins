@@ -36,6 +36,7 @@ const makeEnv = ({ lang = 'en' } = {}) => {
   const responses = []
   const loaded = []
   const rooms = []
+  const styles = []
   const win = {
     __KB_LANG_RESOLVE__: () => lang,
     __ModuleLoader__: { load: (def) => { loaded.push(def) } },
@@ -44,8 +45,8 @@ const makeEnv = ({ lang = 'en' } = {}) => {
   const doc = {
     documentElement: { lang },
     body: {},
-    head: { appendChild: (el) => { setImmediate(() => { win.LivekitClient = fakeSdk(rooms); el.onload() }) } },
-    createElement: (tag) => ({ tag })
+    head: { appendChild: (el) => { if (el.tag === 'script') setImmediate(() => { win.LivekitClient = fakeSdk(rooms); el.onload() }); else styles.push(el) } },
+    createElement: (tag) => ({ tag, attrs: {}, setAttribute (k, v) { this.attrs[k] = v }, remove () { const i = styles.indexOf(this); if (i >= 0) styles.splice(i, 1) } })
   }
   const fetchFake = async (url, init) => {
     requests.push({ url, init })
@@ -64,7 +65,7 @@ const makeEnv = ({ lang = 'en' } = {}) => {
     const plugin = loaded[0].factory((name) => { if (name === 'react') return React; throw new Error('no ' + name) })
     return plugin
   }
-  return { win, doc, requests, responses, rooms, run, React }
+  return { win, doc, requests, responses, rooms, styles, run, React }
 }
 const fakeSdk = (rooms) => {
   class Room {
@@ -90,19 +91,29 @@ console.log('kybernos-call: the plugin object and the seam')
   const cleanups = []
   const slots = { inject: (name, fn) => { const r = fn(); registered.push({ name, r }); return () => {} }, register: (meta, comp) => ({ meta, comp }) }
   plugin.apply({ slots, effect: (fn) => { const c = fn(); cleanups.push(c) } })
-  assert.equal(registered.length, 1)
-  assert.equal(registered[0].name, 'shell.overlay')
-  assert.equal(registered[0].r.meta.id, 'kybernos-call-overlay')
+  assert.deepEqual(registered.map((r) => [r.name, r.r.meta.id]), [
+    ['shell.overlay', 'kybernos-call-overlay'],
+    ['conversation.composer.dock', 'kybernos-call'],
+    ['settings.section', 'kybernos-call']
+  ])
+  assert.equal(registered[1].r.meta.order, 6)
+  assert.equal(registered[2].r.meta.label, 'Calls')
   assert.equal(typeof e.win.__KB_CALL__.open, 'function')
   assert.equal(e.win.__KB_CALL__.version, 1)
-  ok('apply registers the panel in the overlay slot and publishes window.__KB_CALL__.open')
+  assert.equal(e.styles.length, 1)
+  assert.equal(e.styles[0].attrs['data-plugin'], '@local/kybernos-call')
+  assert.match(e.styles[0].textContent, /\.kbcl-pill\{/)
+  ok('apply registers the panel (overlay), a call button in the composer of every session, and the Calls settings page; it publishes window.__KB_CALL__.open and one stylesheet')
   cleanups.forEach((c) => { if (typeof c === 'function') c() })
   assert.equal(e.win.__KB_CALL__, undefined)
-  ok('stopping the plugin removes the seam (the Call buttons of other surfaces hide again)')
+  assert.equal(e.styles.length, 0)
+  ok('stopping the plugin removes the seam (the Call buttons of other surfaces hide again) and its stylesheet')
 
   const broken = makeEnv()
   const p2 = broken.run()
-  assert.doesNotThrow(() => p2.apply({ slots: null, effect: () => { throw new Error('x') } }))
+  const warn = console.warn
+  console.warn = () => {}
+  try { assert.doesNotThrow(() => p2.apply({ slots: null, effect: () => { throw new Error('x') } })) } finally { console.warn = warn }
   ok('apply never throws, even with a broken context')
 }
 
@@ -119,9 +130,9 @@ console.log('kybernos-call: a call, from the first click to hang-up')
   await opening
   assert.equal(e.requests[0].url, '/kybernos-call/status')
   assert.equal(e.requests[1].url, '/kybernos-call/token')
-  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'voice', language: 'auto', voice: null, identity: 'moi' })
+  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: 'team-1', roleId: 'm1', name: 'Alice', mode: 'voice', voice: null, identity: 'moi' })
   assert.equal(e.requests[1].init.method, 'POST')
-  ok('it asks the host for the status, then for a token carrying the session, the team, the member, the mode, the language and the voice')
+  ok('it asks the host for the status, then for a token carrying the session, the team, the member, the mode and the voice (no language: the host fills it from the settings)')
 
   const room = e.rooms[0]
   assert.deepEqual(room.connected, { url: 'wss://lk.example.test', token: 'JWT' })
@@ -171,13 +182,51 @@ console.log('kybernos-call: the member\'s voice')
   assert.doesNotMatch(t.getState().note, /recorded voice|voix enregistrée/)
   ok('the voice picked on the member\'s card goes with the token request')
 
+  // a recording: the host is asked to give it a clone first, then the call goes on with the clone's id
   const f = makeEnv()
   const ft = f.run().__test
-  f.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true } })
-  await ft.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: { custom: true } })
-  assert.deepEqual(JSON.parse(f.requests[1].init.body).voice, { custom: true })
-  assert.match(ft.getState().note, /recorded voice: the default voice is used \(cloning is not available yet\)/)
-  ok('a recording given to the member is announced as not spoken yet (the default voice is used), instead of being silently ignored')
+  f.responses.push({ ok: true, secrets: 'posee' }, { ok: true, remote: { provider: 'elevenlabs', id: 'Remote12345' } }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
+  await ft.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: { custom: true, id: 'v-1abc', name: 'Claire', rootId: 'root-1' } })
+  assert.equal(f.requests[1].url, '/kybernos-call/clone')
+  assert.deepEqual(JSON.parse(f.requests[1].init.body), { rootId: 'root-1', voiceId: 'v-1abc', name: 'Claire' })
+  assert.equal(f.requests[2].url, '/kybernos-call/token')
+  assert.deepEqual(JSON.parse(f.requests[2].init.body).voice, { custom: true, id: 'v-1abc' })
+  assert.doesNotMatch(ft.getState().note, /not used|non utilisée/)
+  ok('a recording given to the member is cloned (once, by the host) before the call, and the call asks for it by its id: no audio goes through the page')
+
+  for (const [code, words] of [['upload-off', /sending recordings is off \(Settings › Calls\)/], ['no-key', /no ElevenLabs key/], ['no-sample', /not on this machine/], ['provider', /ElevenLabs answered HTTP 422/]]) {
+    const g = makeEnv()
+    const gt = g.run().__test
+    g.responses.push({ ok: true, secrets: 'posee' }, { ok: false, code: code, error: 'ElevenLabs answered HTTP 422' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
+    await gt.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: { custom: true, id: 'v-1abc', name: 'Claire', rootId: 'root-1' } })
+    assert.deepEqual(JSON.parse(g.requests[2].init.body).voice, { custom: true })
+    assert.equal(gt.getState().phase, 'live')
+    assert.match(gt.getState().note, /recorded voice not used: /)
+    assert.match(gt.getState().note, words)
+    assert.match(gt.getState().note, /default voice/)
+  }
+  ok('when the recording cannot be cloned (switch off, no key, no recording, the provider refuses) the call still goes on with the default voice, and the panel says which reason')
+
+  const h = makeEnv()
+  const ht = h.run().__test
+  h.responses.push({ ok: true, secrets: 'posee' }, null, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
+  await ht.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: { custom: true, id: 'v-1abc', rootId: 'root-1' } })
+  assert.match(ht.getState().note, /the clone service did not answer/)
+  const i = makeEnv()
+  const it = i.run().__test
+  i.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
+  await it.open({ sessionId: 'session-aaaaaaaa', name: 'Alice', voice: { custom: true } })
+  assert.equal(i.requests.length, 2)
+  assert.match(it.getState().note, /not on this machine/)
+  ok('a host that does not answer, or a recording without an id, never blocks the call')
+
+  const j = makeEnv()
+  const jt = j.run().__test
+  j.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'video' } })
+  await jt.open({ sessionId: 'session-aaaaaaaa', name: 'Assistant' })
+  assert.deepEqual(JSON.parse(j.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: null, roleId: null, name: 'Assistant', voice: null, identity: 'moi' })
+  assert.equal(jt.getState().mode, 'video')
+  ok('a call opened with nothing but a session (the composer button) asks for no mode and no language, and shows the mode the host picked from the settings')
 }
 
 console.log('kybernos-call: what goes wrong is said, never invented over')
@@ -231,13 +280,50 @@ console.log('kybernos-call: what goes wrong is said, never invented over')
   ok('a second call hangs up the first one: one call at a time')
 }
 
+console.log('kybernos-call: the call button of a session')
+{
+  const e = makeEnv()
+  const plugin = e.run()
+  const t = plugin.__test
+  const hooks = []
+  e.React.useReducer = () => [0, () => {}]
+  e.React.useEffect = (fn) => { hooks.push(fn) }
+  const pill = t.CallPill({ sessionId: 'session-aaaaaaaa' })
+  assert.equal(pill.type, 'button')
+  assert.equal(pill.props['data-kb'], 'kybernos-call-pill')
+  assert.equal(pill.props['data-act'], 'call')
+  assert.equal(pill.props['aria-pressed'], 'false')
+  assert.ok(JSON.stringify(pill.children).includes('Call'))
+  ok('the button says "Call" and carries its hooks, in any session')
+  e.responses.push({ ok: true, secrets: 'posee' }, { ok: true, url: 'wss://x', token: 'T', room: 'r', agent: { dispatched: true }, meta: { mode: 'voice' } })
+  await pill.props.onClick()
+  assert.deepEqual(JSON.parse(e.requests[1].init.body), { sessionId: 'session-aaaaaaaa', kyberId: null, roleId: null, name: 'Assistant', voice: null, identity: 'moi' })
+  assert.equal(t.getState().name, 'Assistant')
+  assert.equal(t.getState().phase, 'live')
+  ok('clicking it calls the session\'s assistant (no team, no member): the session and nothing else is asked, the host picks voice, language and mode from the settings')
+  const active = t.CallPill({ sessionId: 'session-aaaaaaaa' })
+  assert.equal(active.props['aria-pressed'], 'true')
+  assert.equal(active.props['data-act'], 'hangup-pill')
+  assert.ok(JSON.stringify(active.children).includes('Hang up'))
+  await active.props.onClick()
+  assert.equal(t.getState(), null)
+  assert.equal(e.rooms[0].disconnected, true)
+  ok('during a call the same button hangs up')
+  const none = t.CallPill({})
+  e.responses.push({ ok: true, secrets: 'absente' })
+  await none.props.onClick()
+  assert.equal(JSON.parse(e.requests[e.requests.length - 1].init?.body ?? '{}').sessionId, undefined)
+  assert.match(t.getState().note, /Settings › Calls › Service/)
+  ok('without a session it still opens (voice only); with no secrets it points to Settings › Calls › Service, not to a file')
+}
+
 console.log('kybernos-call: the panel and the language')
 {
   const draw = (lang, mode) => {
     const e = makeEnv({ lang })
     const plugin = e.run()
     let Panel = null
-    plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { Panel = c; return {} } }, effect: (fn) => fn() })
+    plugin.apply({ slots: { inject: (n, fn) => { fn(); return () => {} }, register: (m, c) => { if (m.id === 'kybernos-call-overlay') Panel = c; return {} } }, effect: (fn) => fn() })
     return { e, plugin, Panel }
   }
   const { e, plugin, Panel } = draw('fr')

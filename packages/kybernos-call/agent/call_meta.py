@@ -31,15 +31,20 @@ _LANG_RE = re.compile(r"^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$")
 class VoiceChoice:
     """The voice picked for the member on the app's own voice engine (the card's voice list).
 
-    `custom` is a recording the member was given: no engine speaks it yet, so the default voice is used.
+    `custom` is a recording the member was given. When the host cloned it at a provider, `remote_provider`
+    and `remote_id` name that clone and it is spoken with it; otherwise no engine speaks it and the default
+    voice is used.
     """
     engine: str = ""
     voice: str = ""
     lang: str = ""
     custom: bool = False
+    remote_provider: str = ""
+    remote_id: str = ""
 
 
 _ENGINE_RE = re.compile(r"^[a-z0-9_-]{1,32}$")
+_REMOTE_ID_RE = re.compile(r"^[A-Za-z0-9]{6,64}$")
 _VOICE_RE = re.compile(r"^[A-Za-z0-9._:() -]{1,100}$")
 
 
@@ -47,6 +52,10 @@ def _voice(raw: object) -> VoiceChoice | None:
     if not isinstance(raw, dict):
         return None
     if raw.get("custom") is True:
+        remote = raw.get("remote")
+        if isinstance(remote, dict) and remote.get("provider") == "elevenlabs" and isinstance(remote.get("id"), str) \
+                and _REMOTE_ID_RE.match(remote["id"]):
+            return VoiceChoice(custom=True, remote_provider="elevenlabs", remote_id=remote["id"])
         return VoiceChoice(custom=True)
     engine, voice, lang = raw.get("engine"), raw.get("voice"), raw.get("lang")
     if not (isinstance(engine, str) and _ENGINE_RE.match(engine)):
@@ -54,6 +63,26 @@ def _voice(raw: object) -> VoiceChoice | None:
     if not (isinstance(voice, str) and _VOICE_RE.match(voice)):
         return None
     return VoiceChoice(engine, voice, lang[:2].lower() if isinstance(lang, str) and re.match(r"^[A-Za-z]{2}", lang) else "")
+
+
+@dataclass(frozen=True)
+class CallLimits:
+    """When a call hangs up by itself: after this long without the user speaking, or at this length."""
+    silence_ms: int = 5 * 60_000
+    max_ms: int = 60 * 60_000
+
+
+def _limits(raw: object) -> CallLimits:
+    if not isinstance(raw, dict):
+        return CallLimits()
+
+    def bounded(value: object, low: int, high: int, default: int) -> int:
+        return int(value) if isinstance(value, (int, float)) and not isinstance(value, bool) and low <= value <= high else default
+
+    return CallLimits(
+        silence_ms=bounded(raw.get("silenceMs"), 60_000, 3_600_000, CallLimits.silence_ms),
+        max_ms=bounded(raw.get("maxMs"), 300_000, 14_400_000, CallLimits.max_ms),
+    )
 
 
 @dataclass(frozen=True)
@@ -66,6 +95,7 @@ class CallMeta:
     language: str = "auto" # "auto" (follow the speaker) or a language code
     brain: str = "voice"   # "session": speak what the session's assistant writes; "voice": the small model answers
     voice: VoiceChoice | None = None  # the member's voice on the app's voice engine; None = the default voice
+    limits: CallLimits = CallLimits()
 
 
 def _text(value: object, limit: int) -> str:
@@ -105,6 +135,7 @@ def parse_job_metadata(raw: str | None, env: Mapping[str, str] | None = None) ->
         language=language,
         brain="session" if data.get("brain") == "session" and _text(data.get("sessionId"), 120) else "voice",
         voice=_voice(data.get("voice")),
+        limits=_limits(data.get("limits")),
     )
 
 
@@ -192,3 +223,89 @@ def fetch_speech(host: str, room: str, after: int = 0, wait_ms: int = 0,
     with opener(request, timeout=wait_ms / 1000 + 10) as reply:
         data = json.loads(reply.read().decode("utf-8"))
     return data if isinstance(data, dict) else {"ok": False, "known": False, "items": [], "next": after}
+
+
+# ── What a call says on its own, and when it stops ──────────────────────────────────────────────
+
+# A short phrase while the session is still working, in the language of the call.
+FILLERS = {
+    "fr": "Un instant, je regarde.",
+    "en": "One moment, I'm looking into it.",
+    "es": "Un momento, lo estoy mirando.",
+    "de": "Einen Moment, ich schaue nach.",
+    "it": "Un attimo, controllo.",
+    "pt": "Um momento, vou ver.",
+    "nl": "Een moment, ik kijk ernaar.",
+    "ar": "لحظة، أنظر في الأمر.",
+    "zh": "请稍等，我来看看。",
+    "ja": "少々お待ちください、確認します。",
+    "ru": "Одну минуту, я посмотрю.",
+}
+
+
+def filler(language: str) -> str:
+    return FILLERS.get((language or "").split("-")[0].lower(), FILLERS["en"])
+
+
+class CallState:
+    """What the worker knows about the turn that is running, with the clock injected (testable).
+
+    A turn is running from the moment the words are sent to the session until its end comes back through
+    the feed. While it runs: what the user says next is *steered* into it instead of queued behind it, and
+    after a few seconds without a word the voice says one short "one moment". A turn whose end never
+    comes cannot trap the call: it is forgotten after `STALE_S`.
+    """
+
+    FILLER_AFTER_S = 3.5
+    STALE_S = 120.0
+
+    def __init__(self, now: Callable[[], float]) -> None:
+        self._now = now
+        self.started_at = now()
+        self.last_user_at = now()
+        self._turn_at: float | None = None
+        self._spoke = False
+        self._filler_said = False
+
+    # turns
+    def busy(self) -> bool:
+        return self._turn_at is not None and self._now() - self._turn_at < self.STALE_S
+
+    def inject_mode(self) -> str:
+        return "steer" if self.busy() else "queue"
+
+    def user_spoke(self) -> None:
+        self.last_user_at = self._now()
+
+    def turn_started(self) -> None:
+        if not self.busy():
+            self._turn_at = self._now()
+            self._spoke = False
+            self._filler_said = False
+
+    def reply_spoken(self) -> None:
+        self._spoke = True
+
+    def turn_ended(self) -> None:
+        self._turn_at = None
+        self._spoke = False
+        self._filler_said = False
+
+    # the voice
+    def wants_filler(self) -> bool:
+        if not self.busy() or self._spoke or self._filler_said:
+            return False
+        return self._now() - self._turn_at >= self.FILLER_AFTER_S
+
+    def filler_said(self) -> None:
+        self._filler_said = True
+
+    # the end of the call
+    def expired(self, limits: CallLimits) -> str | None:
+        now = self._now()
+        if (now - self.started_at) * 1000 >= limits.max_ms:
+            return "max"
+        # A turn in progress is the session working for the user, not silence.
+        if not self.busy() and (now - self.last_user_at) * 1000 >= limits.silence_ms:
+            return "silence"
+        return None

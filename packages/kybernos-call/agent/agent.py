@@ -32,7 +32,10 @@ from livekit.agents import Agent, AgentServer, AgentSession, JobContext, StopRes
 from livekit.agents.voice.turn import InterruptionOptions, TurnHandlingOptions
 from livekit.plugins import groq, silero
 
-from call_meta import CallMeta, fetch_speech, instructions as build_instructions, parse_job_metadata, speakable, stt_options, utterance_payload
+from call_meta import (CallMeta, CallState, fetch_speech, filler, instructions as build_instructions, parse_job_metadata,
+                       speakable, stt_options, utterance_payload)
+from call_voice import two_letters
+from clone_tts import CloneTTS
 from host_tts import HostTTS
 from local_tts import LocalSayTTS
 
@@ -73,12 +76,15 @@ def _say(*parts: object) -> None:
     print(time.strftime("[%H:%M:%S]"), *parts, flush=True)
 
 
-def _inject(meta: CallMeta, text: str) -> None:
-    """What is heard becomes a DSH turn of THIS call's session. Never blocking for the call."""
+def _inject(meta: CallMeta, text: str, mode: str = "queue") -> None:
+    """What is heard becomes a DSH turn of THIS call's session. Never blocking for the call.
+
+    `mode` is "steer" when a turn of that session is running (the words correct it) and "queue" otherwise.
+    """
     payload = utterance_payload(meta, text)
     if payload is None or os.getenv("KYBER_INJECT", "1") != "1":
         return
-    body = json.dumps({**payload, "origin": "appel"}).encode("utf-8")
+    body = json.dumps({**payload, "mode": mode, "origin": "appel"}).encode("utf-8")
     req = urllib.request.Request(
         HOST + "/kybernos-call/utterance",
         data=body,
@@ -110,7 +116,9 @@ def _build_tts(meta: CallMeta):
     """The call's voice: (the TTS handed to the session, the app-engine voice to tell the language to).
 
     By default the app's own voice engine (the member's voice, the reply's language), with macOS `say`
-    behind it when that engine fails. `KYBER_TTS` still decides for a worker that sets it:
+    behind it when that engine fails. A member whose recording was cloned at the provider speaks with the
+    clone first (any language), then falls back to the app's engine. `KYBER_TTS` still decides for a
+    worker that sets it:
       (unset), `say`, `app`   the app's voice engine. `say` was the old default, so a livekit.env that
                               says it keeps working and now speaks the member's voice
       `groq`                  Groq's voice (English and Arabic only)
@@ -121,10 +129,15 @@ def _build_tts(meta: CallMeta):
         return _legacy_tts("groq"), None
     if forced == "legacy":
         return _legacy_tts("say"), None
+    voices = []
+    key = os.getenv("ELEVENLABS_API_KEY", "")
+    if meta.voice is not None and meta.voice.remote_id and key:
+        voices.append(CloneTTS(key, meta.voice.remote_id))
     engine = HostTTS(HOST, meta)
+    voices.append(engine)
     if sys.platform == "darwin":
-        return tts.FallbackAdapter([engine, _legacy_tts("say")]), engine
-    return engine, engine
+        voices.append(_legacy_tts("say"))
+    return (voices[0] if len(voices) == 1 else tts.FallbackAdapter(voices)), engine
 
 
 class CallAgent(Agent):
@@ -144,7 +157,7 @@ class CallAgent(Agent):
             raise StopResponse()
 
 
-async def _speak_session(session: AgentSession, room: str) -> None:
+async def _speak_session(session: AgentSession, room: str, state: CallState | None = None) -> None:
     """Says what the session's assistant writes, as the host hands it over (a long poll)."""
     loop = asyncio.get_running_loop()
     after = 0
@@ -165,10 +178,14 @@ async def _speak_session(session: AgentSession, room: str) -> None:
             _say("the host no longer follows this call")
             return
         for item in reply.get("items", []):
+            if item.get("kind") == "end" and state is not None:
+                state.turn_ended()
             if item.get("kind") != "text":
                 continue
             said = speakable(item.get("text", ""))
             if said:
+                if state is not None:
+                    state.reply_spoken()
                 _say("speaking the session's reply:", repr(said[:120]))
                 try:
                     session.say(said, allow_interruptions=True)
@@ -176,6 +193,34 @@ async def _speak_session(session: AgentSession, room: str) -> None:
                     _say("could not speak:", exc)
                     return
         after = max(after, int(reply.get("next", after) or after))
+
+
+async def _say_while_waiting(session: AgentSession, state: CallState, language_now) -> None:
+    """One short "one moment" when the session is still working and nothing has been said for a few seconds."""
+    while True:
+        await asyncio.sleep(0.5)
+        if state.wants_filler():
+            state.filler_said()
+            try:
+                session.say(filler(language_now() or "en"), allow_interruptions=True, add_to_chat_ctx=False)
+            except Exception as exc:  # the call is closing
+                _say("could not speak:", exc)
+                return
+
+
+async def _watch_limits(ctx: JobContext, state: CallState, meta: CallMeta) -> None:
+    """Ends the call by itself after too long without the user speaking, or at the maximum length."""
+    while True:
+        await asyncio.sleep(10)
+        reason = state.expired(meta.limits)
+        if reason:
+            _say("hanging up:", "no one spoke for a while" if reason == "silence" else "the call reached its maximum length")
+            try:
+                await ctx.delete_room()  # the browser sees the call end
+            except Exception as exc:
+                _say("could not delete the room:", exc)
+                ctx.shutdown(reason=reason)
+            return
 
 
 server = AgentServer()
@@ -189,6 +234,7 @@ async def kybernos_appel(ctx: JobContext) -> None:
          "| as", meta.name or "-", "| mode", meta.mode, "| language", meta.language, "| brain", meta.brain,
          "| voice", (meta.voice.engine + "::" + meta.voice.voice) if meta.voice and meta.voice.engine else "default")
     voice, app_voice = _build_tts(meta)
+    state = CallState(time.monotonic)
     session = AgentSession(
         vad=silero.VAD.load(),
         stt=groq.STT(model=os.getenv("KYBER_STT", "whisper-large-v3-turbo"), **stt_options(meta)),
@@ -220,9 +266,14 @@ async def kybernos_appel(ctx: JobContext) -> None:
         _say("heard:", repr(ev.transcript), getattr(ev, "language", None) or "")
         if app_voice is not None:
             app_voice.hear(getattr(ev, "language", None))
+        state.user_spoke()
         _dump()
+        # If a turn of the session is running, these words correct it (steer); otherwise they start the next one.
+        mode = state.inject_mode() if meta.brain == "session" else "queue"
+        if meta.brain == "session" and meta.session_id:
+            state.turn_started()
         # Off the event loop: the insertion must never delay the speech.
-        asyncio.get_event_loop().run_in_executor(None, _inject, meta, ev.transcript)
+        asyncio.get_event_loop().run_in_executor(None, _inject, meta, ev.transcript, mode)
 
     @session.on("conversation_item_added")
     def _on_item(ev) -> None:
@@ -268,13 +319,17 @@ async def kybernos_appel(ctx: JobContext) -> None:
     )
     # No automatic greeting: a clean turn first.
     ctx.add_shutdown_callback(_dump)
+    tasks = [asyncio.create_task(_watch_limits(ctx, state, meta))]
     if meta.brain == "session":
-        speaker = asyncio.create_task(_speak_session(session, ctx.room.name))
+        tasks.append(asyncio.create_task(_speak_session(session, ctx.room.name, state)))
+        language_now = (app_voice.current_language if app_voice is not None else (lambda: two_letters(meta.language)))
+        tasks.append(asyncio.create_task(_say_while_waiting(session, state, language_now)))
 
-        async def _stop_speaker() -> None:
-            speaker.cancel()
+    async def _stop_tasks() -> None:
+        for task in tasks:
+            task.cancel()
 
-        ctx.add_shutdown_callback(_stop_speaker)
+    ctx.add_shutdown_callback(_stop_tasks)
     _say("online - face", "yes" if avatar is not None else "no")
 
 

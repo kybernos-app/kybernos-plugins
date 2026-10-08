@@ -14,7 +14,7 @@ import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from call_meta import CallMeta, VoiceChoice, parse_job_metadata
-from call_voice import audio_bytes, decode_pcm, reply_language, speak_request, two_letters, voice_request
+from call_voice import audio_bytes, decode_pcm, eleven_request, render_eleven_pcm, reply_language, speak_request, two_letters, voice_request
 
 try:
     import av
@@ -170,6 +170,66 @@ class Decoding(unittest.TestCase):
     def test_garbage_raises(self):
         with self.assertRaises(Exception):
             decode_pcm(b"this is not audio")
+
+
+class _Provider(BaseHTTPRequestHandler):
+    seen = []
+    status = 200
+    audio = b"audio-bytes"
+
+    def do_POST(self):
+        length = int(self.headers.get("content-length", "0"))
+        _Provider.seen.append({"path": self.path, "key": self.headers.get("xi-api-key"),
+                               "accept": self.headers.get("accept"), "body": json.loads(self.rfile.read(length).decode())})
+        self.send_response(_Provider.status)
+        self.send_header("content-type", "audio/mpeg")
+        self.send_header("content-length", str(len(_Provider.audio)))
+        self.end_headers()
+        self.wfile.write(_Provider.audio)
+
+    def log_message(self, *args):
+        pass
+
+
+class ElevenRequest(unittest.TestCase):
+    def serve(self):
+        server = HTTPServer(("127.0.0.1", 0), _Provider)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        self.addCleanup(lambda: (server.shutdown(), server.server_close()))
+        _Provider.status = 200
+        return "http://127.0.0.1:%d" % server.server_port
+
+    def test_speaks_in_the_cloned_voice_with_the_multilingual_model(self):
+        base = self.serve()
+        _Provider.audio = b"fake-mp3"
+        out = eleven_request("xi-key-123456", "RemoteVoice777", "Hola, ¿qué tal?", base=base)
+        self.assertEqual(out, b"fake-mp3")
+        seen = _Provider.seen[-1]
+        self.assertEqual(seen["path"], "/v1/text-to-speech/RemoteVoice777?output_format=mp3_44100_128")
+        self.assertEqual(seen["key"], "xi-key-123456")
+        self.assertEqual(seen["body"], {"text": "Hola, ¿qué tal?", "model_id": "eleven_multilingual_v2"})
+
+    def test_each_failure_says_what_to_do(self):
+        base = self.serve()
+        for status, words in ((401, "refused the key"), (403, "refused the key"), (404, "no longer exists"), (500, "HTTP 500")):
+            _Provider.status = status
+            with self.assertRaisesRegex(RuntimeError, words):
+                eleven_request("k" * 10, "RemoteVoice777", "x", base=base)
+
+    def test_a_bad_voice_id_is_never_sent(self):
+        base = self.serve()
+        before = len(_Provider.seen)
+        for bad in ("", "../x", "a/b/c/d/e/f", "x", None):
+            with self.assertRaises(RuntimeError):
+                eleven_request("k" * 10, bad, "x", base=base)
+        self.assertEqual(len(_Provider.seen), before)
+
+    @unittest.skipUnless(HAVE_AV, "PyAV is not installed: run this with the worker's venv")
+    def test_the_answer_is_decoded_to_pcm(self):
+        base = self.serve()
+        _Provider.audio = make_m4a(0.4)
+        pcm = render_eleven_pcm("k" * 10, "RemoteVoice777", "x", base=base)
+        self.assertAlmostEqual(len(pcm) / 2 / 24000, 0.4, delta=0.15)
 
 
 if __name__ == "__main__":

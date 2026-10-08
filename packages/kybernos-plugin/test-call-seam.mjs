@@ -33,7 +33,7 @@ assert.ok(start > 0 && end > start, 'the seam helpers are in client.js')
 const helpers = client.slice(start, client.indexOf('}', client.indexOf('\n      }', end)) + 1)
 const run = (windowObj, extra = {}) => {
   const opened = []
-  const ctx = vm.createContext(Object.assign({ window: windowObj, kybernosOpened: opened, kyberId: 'team-1', kbCurrentSessionId: () => 'session-aaaaaaaa' }, extra))
+  const ctx = vm.createContext(Object.assign({ window: windowObj, kybernosOpened: opened, kyberId: 'team-1', rootId: 'root-1', kbCurrentSessionId: () => 'session-aaaaaaaa' }, extra))
   vm.runInContext(helpers + '\nglobalThis.kbCallSeam = kbCallSeam; globalThis.kbOpenCall = kbOpenCall', ctx)
   return { ctx, opened }
 }
@@ -54,8 +54,8 @@ const run = (windowObj, extra = {}) => {
   ctx.kbOpenCall('m1', 'Alice', 'voice', { id: 'edge::fr-FR-DeniseNeural', name: 'Denise', custom: false, engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr', engineName: 'Edge' })
   assert.deepEqual(JSON.parse(JSON.stringify(calls[1].voice)), { engine: 'edge', voice: 'fr-FR-DeniseNeural', lang: 'fr' })
   ctx.kbOpenCall('m1', 'Alice', 'voice', { id: 'v-123', name: 'My recording', custom: true, engine: null, voice: null, lang: null })
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[2].voice)), { custom: true })
-  ok('the member\'s voice goes with the call: its engine, voice and language, or "a recording" (nothing else of it leaves the card)')
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[2].voice)), { custom: true, id: 'v-123', name: 'My recording', rootId: 'root-1' })
+  ok('the member\'s voice goes with the call: its engine, voice and language, or a recording by its id and project (the host reads the recording itself: no audio goes through the page)')
 }
 {
   const calls = []

@@ -20707,7 +20707,7 @@ function renderFit(canvas, model, cam, opts){
         if (seam === null) return
         const sessionId = (() => { try { return kbCurrentSessionId() } catch (e) { return null } })()
         const voice = (chosen === null || chosen === undefined) ? null
-          : (chosen.custom === true ? { custom: true } : { engine: chosen.engine, voice: chosen.voice, lang: chosen.lang })
+          : (chosen.custom === true ? { custom: true, id: String(chosen.id), name: String(chosen.name), rootId: rootId } : { engine: chosen.engine, voice: chosen.voice, lang: chosen.lang })
         seam.open({ sessionId: sessionId, kyberId: kyberId, roleId: roleId, name: name, mode: mode, voice: voice })
       }
       // ── modal de voix custom (MediaRecorder / fichier ; échantillon gardé) ──
