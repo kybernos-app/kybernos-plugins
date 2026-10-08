@@ -10144,8 +10144,16 @@ function boot(ctx) {
         if (base === null) return sendJson(res, 200, { ok: false, code: 'no-address', error: 'adresse du fournisseur inconnue : ajoutez son baseURL dans Modeles' })
         const cred = await kbVoiceKey(str(def.apiKeyEnv) ?? '')
         if (cred.key === null) return sendJson(res, 200, { ok: false, code: 'no-key', error: cred.error })
-        const out = await createProbe().run({ kind, base, key: cred.key, model })
-        sendJson(res, 200, Object.assign({ provider: id, model, kind }, out))
+        const probe = createProbe()
+        // Listening is proven on real speech: a speaking model of the same provider makes a few words, and the listener must recognise them.
+        let sample = null
+        let said = null
+        if (kind === 'listen') {
+          const sibling = (def.models || []).map((m) => (m !== null && typeof m === 'object' ? m.id : null)).find((x) => typeof x === 'string' && audioKindOf(x) === 'speak' && !/voiceclone|voicedesign/i.test(x))
+          if (sibling !== undefined) { said = await probe.run({ kind: 'speak', base, key: cred.key, model: sibling, keepAudio: true }); sample = said.audio ?? null }
+        }
+        const out = await probe.run({ kind, base, key: cred.key, model, sample })
+        sendJson(res, 200, Object.assign({ provider: id, model, kind }, out, said !== null ? { sampleFrom: said.ok ? said.family : null } : {}))
       } }), 'kybernos: route models/audio/probe')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })

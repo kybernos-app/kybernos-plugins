@@ -29,59 +29,115 @@ export const realtimeUrls = (base, model) => {
 }
 
 export function createProbe ({ fetch: doFetch = (...a) => globalThis.fetch(...a), WebSocket: WS = globalThis.WebSocket, timeoutMs = 20000 } = {}) {
-  const run = async ({ kind, base, key, model }) => {
-    const tried = []
+  const json = (o) => JSON.stringify(o)
+  const wavOf = (b64) => { try { const b = Buffer.from(String(b64), 'base64'); return b.length > 44 && b.slice(0, 4).toString() === 'RIFF' ? b : null } catch (e) { return null } }
+
+  /** Makes one attempt and keeps what it answered (status, the start of the body); `judge` says whether that is a success. */
+  const makeAttempt = (key, tried) => {
     const scrub = (s) => String(s).split(key).join('…').replace(/\s+/g, ' ').slice(0, 200)
-    const auth = { authorization: 'Bearer ' + key }
-    const attempt = async (shape, url, init, judge) => {
+    return { scrub, attempt: async (shape, url, init, judge) => {
       try {
         const res = await doFetch(url, Object.assign({ signal: AbortSignal.timeout(timeoutMs) }, init))
         const type = String((res.headers && res.headers.get ? res.headers.get('content-type') : '') || '')
         let body = null
         let raw = ''
-        if (/json|text/i.test(type)) { raw = await res.text(); try { body = JSON.parse(raw) } catch (e) { body = null } } else { await res.arrayBuffer() }
+        if (/json|text|event-stream/i.test(type)) { raw = await res.text(); try { body = JSON.parse(raw) } catch (e) { body = null } } else { await res.arrayBuffer() }
         const verdict = res.status >= 200 && res.status < 300 ? judge({ type, body, raw }) : null
-        tried.push({ shape, status: res.status, ok: verdict !== null && verdict !== false, note: verdict ? verdict : scrub(raw || type) })
-        return verdict ? shape : null
+        const good = verdict !== null && verdict !== false && verdict !== undefined
+        tried.push({ shape, status: res.status, ok: good, note: good ? (typeof verdict === 'string' ? verdict : 'ok') : scrub(raw || type) })
+        return good ? { shape, verdict, body, raw } : null
       } catch (e) { tried.push({ shape, status: 0, ok: false, note: scrub(text(e)) }); return null }
+    } }
+  }
+
+  /** Asks for a few words of speech. Returns { family, audio } (audio: a WAV Buffer when the answer carried one). */
+  const speak = async ({ base, key, model, tried }) => {
+    const { attempt } = makeAttempt(key, tried)
+    const headers = { authorization: 'Bearer ' + key, 'content-type': 'application/json' }
+    const chat = (shape, body) => attempt(shape, base + '/chat/completions', { method: 'POST', headers, body: json(body) },
+      ({ body: b }) => (b && b.choices && b.choices[0] && b.choices[0].message && b.choices[0].message.audio && b.choices[0].message.audio.data ? 'audio in the message' : false))
+    const audioOf = (hit) => (hit === null || hit.body === undefined || hit.body === null ? null : wavOf(hit.body.choices[0].message.audio.data))
+    let hit = await attempt('openai-speech', base + '/audio/speech', { method: 'POST', headers, body: json({ model, input: 'Test.', voice: 'alloy' }) }, ({ type }) => (/audio/i.test(type) ? 'audio ' + type : false))
+    if (hit !== null) return { family: hit.shape, audio: null }
+    // A TTS model of a chat gateway wants the text as an ASSISTANT message (measured on a token plan: "messages must contain an assistant role for TTS model").
+    hit = await chat('chat-assistant-text', { model, messages: [{ role: 'assistant', content: 'Test.' }], audio: { format: 'wav' } })
+    if (hit !== null) return { family: hit.shape, audio: audioOf(hit) }
+    hit = await chat('chat-audio', { model, messages: [{ role: 'user', content: 'Test.' }], modalities: ['text', 'audio'], audio: { voice: 'alloy', format: 'wav' } })
+    if (hit !== null) return { family: hit.shape, audio: audioOf(hit) }
+    hit = await attempt('chat-audio-stream', base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'user', content: 'Test.' }], modalities: ['text', 'audio'], audio: { voice: 'Cherry', format: 'wav' }, stream: true }) },
+      ({ raw }) => (/"audio"/.test(String(raw).slice(0, 4000)) ? 'audio in the stream' : false))
+    if (hit !== null) return { family: hit.shape, audio: null }
+    hit = await attempt('dashscope-native', nativeBase(base) + '/services/aigc/multimodal-generation/generation', { method: 'POST', headers, body: json({ model, input: { text: 'Test.', voice: 'Cherry', language_type: 'Auto' } }) },
+      ({ body: b }) => (b && b.output && b.output.audio && (b.output.audio.url || b.output.audio.data) ? 'audio ' + (b.output.audio.url ? 'url' : 'data') : false))
+    if (hit !== null) return { family: hit.shape, audio: null }
+    hit = await attempt('dashscope-synthesizer', nativeBase(base) + '/services/audio/tts/SpeechSynthesizer', { method: 'POST', headers, body: json({ model, input: { text: 'Test.', voice: 'Cherry' }, parameters: { format: 'wav', sample_rate: 24000 } }) },
+      ({ body: b }) => (b && b.output && b.output.audio && (b.output.audio.url || b.output.audio.data) ? 'audio ' + (b.output.audio.url ? 'url' : 'data') : false))
+    if (hit !== null) return { family: hit.shape, audio: null }
+    return { family: null, audio: null }
+  }
+
+  /** Asks for the words in `sample` (a WAV; the probe's own silence when there is none). A recognised "test" is the real proof. */
+  const listen = async ({ base, key, model, tried, sample }) => {
+    const { attempt } = makeAttempt(key, tried)
+    const wav = sample ?? silentWav()
+    const spoken = sample !== null && sample !== undefined
+    const verdict = (said) => (typeof said === 'string' ? (/test/i.test(said) ? 'recognised "test"' : (spoken ? 'answered: "' + said.slice(0, 40) + '"' : 'answered')) : false)
+    const form = () => { const f = new FormData(); f.append('model', model); f.append('file', new Blob([wav], { type: 'audio/wav' }), 'sample.wav'); return f }
+    let hit = await attempt('openai-transcriptions', base + '/audio/transcriptions', { method: 'POST', headers: { authorization: 'Bearer ' + key }, body: form() }, ({ body }) => verdict(body && body.text))
+    if (hit !== null) return { family: hit.shape }
+    const headers = { authorization: 'Bearer ' + key, 'content-type': 'application/json' }
+    const said = ({ body }) => verdict(body && body.choices && body.choices[0] && body.choices[0].message ? String(body.choices[0].message.content ?? '') : null)
+    // The gateway injects its own prompt: some refuse any text part, so the audio goes alone, as a data URL and as plain base64.
+    hit = await attempt('chat-input-audio-base64', base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: wav.toString('base64'), format: 'wav' } }] }] }) }, said)
+    if (hit !== null) return { family: hit.shape }
+    hit = await attempt('chat-input-audio-dataurl', base + '/chat/completions', { method: 'POST', headers, body: json({ model, messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: 'data:audio/wav;base64,' + wav.toString('base64') } }] }], stream: false }) }, said)
+    if (hit !== null) return { family: hit.shape }
+    return { family: null }
+  }
+
+  /** The realtime handshake in the two usual styles, then the first event the server sends (its name says which protocol it speaks). */
+  const realtime = async ({ base, key, model, tried }) => {
+    const { scrub } = makeAttempt(key, tried)
+    if (typeof WS !== 'function') { tried.push({ shape: 'websocket', status: 0, ok: false, note: 'no WebSocket in this runtime' }); return { family: null } }
+    for (const c of realtimeUrls(base, model)) {
+      const outcome = await new Promise((resolve) => {
+        let ws = null
+        let opened = false
+        const done = (v) => { try { ws && ws.close() } catch (e) { /* closed */ } resolve(v) }
+        const timer = setTimeout(() => done(opened ? { status: 101, ok: true, note: 'handshake accepted, no first event' } : { status: 0, ok: false, note: 'no answer in time' }), 6000)
+        try {
+          ws = new WS(c.url, { headers: { authorization: 'Bearer ' + key } })
+          ws.onopen = () => { opened = true }
+          ws.onmessage = (ev) => {
+            let type = ''
+            try { type = String(JSON.parse(typeof ev.data === 'string' ? ev.data : String(ev.data)).type ?? '') } catch (e) { type = '' }
+            clearTimeout(timer)
+            done({ status: 101, ok: true, note: 'handshake accepted, first event: ' + (type || 'unnamed') })
+          }
+          ws.onerror = (e) => { clearTimeout(timer); done({ status: 0, ok: false, note: scrub((e && (e.message || (e.error && e.error.message))) || 'handshake refused') }) }
+        } catch (e) { clearTimeout(timer); done({ status: 0, ok: false, note: scrub(text(e)) }) }
+      })
+      tried.push(Object.assign({ shape: c.shape }, outcome))
+      if (outcome.ok) return { family: c.shape }
     }
-    const json = (o) => JSON.stringify(o)
-    let family = null
-    if (kind === 'speak') {
-      family = await attempt('openai-speech', base + '/audio/speech', { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: json({ model, input: 'Test.', voice: 'alloy' }) },
-        ({ type }) => (/audio/i.test(type) ? 'audio ' + type : false))
-      if (family === null) family = await attempt('chat-audio', base + '/chat/completions', { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: json({ model, messages: [{ role: 'user', content: 'Test.' }], modalities: ['text', 'audio'], audio: { voice: 'alloy', format: 'wav' } }) },
-        ({ body }) => (body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.audio ? 'audio in the message' : false))
-      if (family === null) family = await attempt('chat-assistant-text', base + '/chat/completions', { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: json({ model, messages: [{ role: 'assistant', content: 'Test.' }], audio: { format: 'wav' } }) },
-        ({ body }) => (body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.audio ? 'audio in the message' : false))
-      if (family === null) family = await attempt('dashscope-native', nativeBase(base) + '/services/aigc/multimodal-generation/generation', { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: json({ model, input: { text: 'Test.', voice: 'Cherry', language_type: 'Auto' } }) },
-        ({ body }) => (body && body.output && body.output.audio && (body.output.audio.url || body.output.audio.data) ? 'audio ' + (body.output.audio.url ? 'url' : 'data') : false))
-    } else if (kind === 'listen') {
-      const wav = silentWav()
-      const form = () => { const f = new FormData(); f.append('model', model); f.append('file', new Blob([wav], { type: 'audio/wav' }), 'silence.wav'); return f }
-      family = await attempt('openai-transcriptions', base + '/audio/transcriptions', { method: 'POST', headers: auth, body: form() }, ({ body }) => (body && typeof body.text === 'string' ? 'text field' : false))
-      if (family === null) family = await attempt('chat-input-audio', base + '/chat/completions', { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: json({ model, messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: wav.toString('base64'), format: 'wav' } }, { type: 'text', text: 'Transcribe this audio.' }] }] }) },
-        ({ body }) => (body && body.choices && body.choices[0] ? 'chat answer' : false))
-    } else if (kind === 'realtime') {
-      if (typeof WS !== 'function') tried.push({ shape: 'websocket', status: 0, ok: false, note: 'no WebSocket in this runtime' })
-      else {
-        for (const c of realtimeUrls(base, model)) {
-          const outcome = await new Promise((resolve) => {
-            let ws = null
-            const done = (v) => { try { ws && ws.close() } catch (e) { /* closed */ } resolve(v) }
-            const timer = setTimeout(() => done({ status: 0, ok: false, note: 'no answer in time' }), 8000)
-            try {
-              ws = new WS(c.url, { headers: auth })
-              ws.onopen = () => { clearTimeout(timer); done({ status: 101, ok: true, note: 'handshake accepted' }) }
-              ws.onerror = (e) => { clearTimeout(timer); done({ status: 0, ok: false, note: scrub((e && (e.message || e.error && e.error.message)) || 'handshake refused') }) }
-            } catch (e) { clearTimeout(timer); done({ status: 0, ok: false, note: scrub(text(e)) }) }
-          })
-          tried.push(Object.assign({ shape: c.shape }, outcome))
-          if (outcome.ok) { family = c.shape; break }
-        }
-      }
-    } else return { ok: false, error: 'unknown kind (speak, listen, realtime)' }
-    return { ok: family !== null, family, tried }
+    return { family: null }
+  }
+
+  /**
+   * kind: 'speak' | 'listen' | 'realtime'. For 'listen', `sample` (a WAV Buffer) is what to recognise: the speech a sibling
+   * speaking model made, which proves the whole round trip; without one the probe sends a second of silence.
+   * With `keepAudio` a 'speak' result also carries the audio it got (for the caller to feed 'listen'); it is never serialised here.
+   */
+  const run = async ({ kind, base, key, model, sample = null, keepAudio = false }) => {
+    const tried = []
+    let r = null
+    if (kind === 'speak') r = await speak({ base, key, model, tried })
+    else if (kind === 'listen') r = await listen({ base, key, model, tried, sample })
+    else if (kind === 'realtime') r = await realtime({ base, key, model, tried })
+    else return { ok: false, error: 'unknown kind (speak, listen, realtime)' }
+    const out = { ok: r.family !== null, family: r.family, tried }
+    if (keepAudio && r.audio) Object.defineProperty(out, 'audio', { value: r.audio, enumerable: false })
+    return out
   }
   return { run }
 }
