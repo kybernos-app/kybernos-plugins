@@ -227,6 +227,21 @@ await checkAsync('computer_stop détache même une gelée', async () => {
   assert.equal(readState().sandboxes[made.sandbox.sandboxId], undefined)
 })
 
+// The sweeper runs from a timer (`void sweepOnce()`): a rejection there is an unhandled one, which ends DSH. A state file whose JSON is
+// valid but whose entries are not sandboxes (damaged by a crash, edited by hand) must be skipped, not thrown on every 30 seconds.
+await checkAsync('le balayeur ignore une entrée d\'état qui n\'est pas une sandbox (pas de rejet)', async () => {
+  const s = readState()
+  const keep = { ...s.sandboxes }
+  s.sandboxes = { ...keep, 'junk-null': null, 'junk-number': 7, 'junk-string': 'x', 'junk-array': [1] }
+  writeState(s)
+  let rejected = null
+  try { await testHooks.sweepOnce() } catch (e) { rejected = e }
+  assert.equal(rejected, null, 'sweepOnce rejected: ' + (rejected && rejected.message))
+  const clean = readState()
+  clean.sandboxes = keep
+  writeState(clean)
+})
+
 rmSync(sandboxDir, { recursive: true, force: true })
 if (failures > 0) { console.error('\n' + failures + ' échec(s)'); process.exit(1) }
 console.log('\ntous les tests host kybernos-computers passent')

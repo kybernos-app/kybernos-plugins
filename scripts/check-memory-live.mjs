@@ -92,7 +92,8 @@ try {
   // data-independent: take two long-ish words from the first memory and search for them
   const sample = String(await text('.kbmem-r .kbmem-tx') || '')
   const strip = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-  const picks = sample.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 4).slice(0, 2)
+  // the two LONGEST distinct words: a short common word (« cette », « that ») is not a term the ranking has to honour, and the store grows
+  const picks = Array.from(new Set(sample.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 4).map((w) => strip(w)))).sort((a, b) => b.length - a.length).slice(0, 2)
   if (picks.length === 2) {
     await setSearch(picks.join(' ')); await sleep(1600)
     const first = strip(String(await text('.kbmem-r .kbmem-tx') || ''))
@@ -115,7 +116,8 @@ try {
   {
     const sample = String(await text('.kbmem-r .kbmem-tx') || '')
     const strip = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
-    const picks = sample.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 4).slice(0, 2)
+    // the two LONGEST distinct words: a short common word (« cette », « that ») is not a term the ranking has to honour, and the store grows
+  const picks = Array.from(new Set(sample.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 4).map((w) => strip(w)))).sort((a, b) => b.length - a.length).slice(0, 2)
     if (picks.length === 2) {
       await ev(`(() => { const i = document.querySelector('.kbmem-field input'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(picks.join(' '))}); i.dispatchEvent(new Event('input', { bubbles: true })) })()`); await sleep(1500)
       const first = strip(String(await text('.kbmem-r .kbmem-tx') || ''))

@@ -497,6 +497,9 @@ const sweepOnce = async () => {
   const state = readState()
   const now = Date.now()
   for (const entry of Object.values(state.sandboxes)) {
+    // The state file is read from disk and the sweeper runs from a timer: an entry that is not a sandbox (a damaged file) is skipped,
+    // it must not reject a `void sweepOnce()` (an unhandled rejection ends DSH) every 30 seconds.
+    if (entry === null || typeof entry !== 'object' || typeof entry.sandboxId !== 'string') continue
     if (entry.expiresAt > now) continue
     console.log('[kybernos-computers] TTL échu pour ' + entry.sandboxId + ' — arrêt')
     await stopSandbox({ sandboxId: entry.sandboxId })
@@ -506,7 +509,7 @@ const sweepOnce = async () => {
 const mountSweeper = (ctx) => {
   if (sweeperTimer !== null) return
   ctx.effect(() => {
-    sweeperTimer = setInterval(() => { void sweepOnce() }, LIMITS.sweepMs)
+    sweeperTimer = setInterval(() => { void sweepOnce().catch((e) => console.error('[kybernos-computers] balayeur TTL : ' + String((e && e.message) || e))) }, LIMITS.sweepMs)
     sweeperTimer.unref?.()
   }, 'kybernos-computers: balayeur TTL')
 }

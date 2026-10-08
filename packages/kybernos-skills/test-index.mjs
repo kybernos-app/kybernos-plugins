@@ -123,6 +123,38 @@ try {
   }
   ok('index.js no longer reads, renews or mentions a Vercel token, and has no reconnect route')
 
+  // 8. A relay that answers without end is cut, not read to the end (a faulty relay or a proxy page used to fill the memory of DSH).
+  {
+    process.env.KYBERNOS_SKILLS_INDEX_URL = base
+    mod.resetDiscoverCache()
+    let closedEarly = false
+    let sentMb = 0
+    const endless = createServer((req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.write('{"data":["')
+      const piece = 'x'.repeat(1 << 20)
+      res.on('close', () => { if (sentMb < 200) closedEarly = true })
+      const pump = () => {
+        while (sentMb < 200 && !res.destroyed) { sentMb += 1; if (res.write(piece) === false) { res.once('drain', pump); return } }
+        if (!res.destroyed) res.end('"]}')
+      }
+      pump()
+    })
+    await new Promise((resolve) => endless.listen(0, '127.0.0.1', resolve))
+    process.env.KYBERNOS_SKILLS_INDEX_URL = 'http://127.0.0.1:' + endless.address().port + '/v1'
+    const rss0 = process.memoryUsage().rss
+    const flood = await mod.indexSkills({ view: 'all-time', page: '0', perPage: '5' })
+    const grownMb = (process.memoryUsage().rss - rss0) / (1 << 20)
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    endless.close()
+    assert.equal(flood.ok, false, 'a 200 MB answer is not a ranking')
+    assert.equal(closedEarly, true, 'the client must drop the connection (read ' + sentMb + ' MB)')
+    assert.ok(sentMb < 150, 'the client read ' + sentMb + ' MB')
+    assert.ok(grownMb < 250, 'memory grew by ' + Math.round(grownMb) + ' MB')
+    process.env.KYBERNOS_SKILLS_INDEX_URL = base
+    ok('an endless relay answer is cut after a few MB and reported as a failure (memory +' + Math.round(grownMb) + ' MB)')
+  }
+
   console.log('\n' + pass + ' verifications OK')
 } finally {
   server.close()
