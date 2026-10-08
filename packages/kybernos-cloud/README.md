@@ -33,6 +33,10 @@ GET https://api.dev.kybernos.app/v1/models        (Authorization: Bearer kys-…
 - **Pose le credential** `KYBERNOS_API_KEY` (le jeton `kys-…`) dans le store
   de credentials (`~/.dsh/.credentials.yaml`, 0600). Le harnais résout la
   référence à chaque requête : aucun secret dans settings.yaml.
+- **Names the active space for billing.** The route carries `headers: { x-kybernos-workspace: <active space id> }`, so DSH calls are
+  billed to the space the person sees (the server bills the space this header names, else the personal one). Choosing or creating
+  a space re-points that one header (no catalogue download), and a refresh repairs a route written before the header existed. An
+  id that is not a plain token (`[A-Za-z0-9-]`, up to 64) is never written: the route then names no space.
 - **Filtre la surface produit** : seules les routes `kybernos/*` sont gardées —
   pas les jumeaux de fallback (`-fb1`, `-fb2`…), pas les pools de routage infra
   (`*_rg`), pas la route embeddings (`kybernos/embed`). `max_tokens` /

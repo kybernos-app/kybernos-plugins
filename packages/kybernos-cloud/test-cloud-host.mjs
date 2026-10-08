@@ -224,6 +224,11 @@ const api = createServer((req, res) => {
       if (meProfile === null) return send(404, { detail: 'Not Found' })
       return send(200, meProfile)
     }
+    if (req.url === '/v1/workspaces' && req.method === 'POST') {
+      // Creating a space: the server answers the new one (the plugin never invents it).
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(201, { workspace: { id: 'ws-3', name: body !== null && typeof body.name === 'string' ? body.name : 'New' } })
+    }
     if (req.url === '/v1/workspaces') {
       seen.authHeaders.push(auth)
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
@@ -732,6 +737,65 @@ try {
   assert.equal(sansPlan.key, 'none')
   assert.equal(sansPlan.label, null)
   ok('espace actif : le plan de CET espace est lu au serveur (/plan), au changement d espace et au rafraichissement ; une formule Team ne montre pas sa tranche')
+
+  // Billing parity: the model route names the ACTIVE space in `x-kybernos-workspace`. The server bills a chat call to the space named by
+  // that header, else to the caller's personal space (a device token has none of its own): without it, a person working in the Team
+  // space in DSH spends their personal plan while the team's credits never move, and the web app (which sends the header) and DSH
+  // show different balances for the same person.
+  const bs_route = () => settingsStore['llm-pi-ai'].providers.kybernos
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-1' }, 'the route names the active space')
+  const bs_saved = readFileSync(statePath, 'utf8')
+  const bs_two = JSON.parse(bs_saved); bs_two.workspaces = [...bs_two.workspaces, { id: 'ws-2', name: 'Equipe' }]
+  writeFileSync(statePath, JSON.stringify(bs_two, null, 2), { mode: 0o600 })
+  const bs_fetches = seen.modelsAuth.length
+  const bs_switch = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-2' })
+  assert.equal(bs_switch.body.ok, true)
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-2' }, 'choosing the team space re-points the route at once')
+  assert.equal(bs_route().models.length, 3); assert.equal(seen.modelsAuth.length, bs_fetches, 'a switch does not download the catalogue again')
+  assert.equal(bs_route().baseURL, provider.baseURL, 'only the header moved')
+  assert.equal(readState().models.workspace, 'ws-2', 'the saved import names the space the route names')
+  assert.equal(JSON.stringify(bs_route()).includes(TOKEN), false, 'a workspace id, never the token')
+  assert.equal((await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })).body.ok, true)
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-1' })
+  // Creating a space makes it the active one: the route follows it the same way.
+  const bs_created = await hit('/kybernos-cloud/space/create', 'POST', undefined, { name: 'Nouvelle equipe' })
+  assert.equal(bs_created.body.ok, true)
+  assert.equal(bs_created.body.state.active_workspace_id, 'ws-3')
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-3' }, 'a created space is billed from its first call')
+  assert.equal(seen.modelsAuth.length, bs_fetches, 'creating a space does not download the catalogue')
+  assert.equal((await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })).body.ok, true)
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-1' })
+  // An id that could carry a line break or a space never becomes a header: the route then names no space (the server default).
+  const bs_odd = readState(); bs_odd.workspaces = [...bs_odd.workspaces, { id: 'bad id\nx-evil: 1', name: 'Odd' }]
+  writeFileSync(statePath, JSON.stringify(bs_odd, null, 2), { mode: 0o600 })
+  assert.equal((await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'bad id\nx-evil: 1' })).body.ok, true)
+  assert.equal(bs_route().headers, undefined, 'an id that is not a plain token produces no header')
+  assert.equal((await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })).body.ok, true)
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-1' })
+  // A refresh whose active space was never recorded (an import from before this change) repairs the route, with no download.
+  const bs_old = readState(); delete bs_old.models.workspace; writeFileSync(statePath, JSON.stringify(bs_old, null, 2), { mode: 0o600 })
+  delete settingsStore['llm-pi-ai'].providers.kybernos.headers
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-1' }, 'the next refresh repairs a route written before this fix')
+  assert.equal(readState().models.workspace, 'ws-1')
+  assert.equal(seen.modelsAuth.length, bs_fetches, 'no catalogue download')
+  const bs_writes = settingsCalls.length
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(settingsCalls.length, bs_writes, 'a refresh that finds the route right writes nothing')
+  // A refused settings write never fails the switch; the saved import keeps naming what the route still names (so a refresh retries).
+  const bs_two_again = readState(); bs_two_again.workspaces = [...bs_two_again.workspaces, { id: 'ws-2', name: 'Equipe' }]
+  writeFileSync(statePath, JSON.stringify(bs_two_again, null, 2), { mode: 0o600 })
+  const bs_mutate = fakeSettings.mutate
+  const bs_stderr = console.error; console.error = () => {}
+  fakeSettings.mutate = async () => { throw new Error('refused') }
+  const bs_refused = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-2' })
+  fakeSettings.mutate = bs_mutate; console.error = bs_stderr
+  assert.equal(bs_refused.body.ok, true, 'a refused settings write does not fail the switch')
+  assert.equal(bs_refused.body.state.active_workspace_id, 'ws-2')
+  assert.equal(readState().models.workspace, 'ws-1', 'the import still records the space the route names')
+  assert.deepEqual(bs_route().headers, { 'x-kybernos-workspace': 'ws-1' })
+  writeFileSync(statePath, bs_saved, { mode: 0o600 })
+  ok('espace actif : la route modeles nomme l espace actif (x-kybernos-workspace), suit un changement ou une creation sans telecharger, ignore un id douteux, et se repare au refresh')
 
   // 4b. Montée de formule : PAS de réécriture settings (le catalogue n'est pas
   //     filtré par formule — l'abonnement est appliqué par le proxy) ; seul le

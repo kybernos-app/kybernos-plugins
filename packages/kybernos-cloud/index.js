@@ -192,6 +192,7 @@ const setActiveSpace = async (req, body) => {
   const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
   if (espaces.some((w) => w !== null && w.id === voulu) !== true) return { ok: false, error: 'espace_inconnu' }
   const next = Object.assign({}, state, { active_workspace_id: voulu, space_plan: await readSpacePlan(state, voulu) })
+  await followActiveSpace(next)
   writeState(next)
   return { ok: true, state: publicState(next) }
 }
@@ -217,6 +218,7 @@ const createSpace = async (req, body) => {
   if (id !== null && espaces.some((w) => w !== null && w.id === id) !== true) espaces.push(brut)
   const next = Object.assign({}, state, { workspaces: espaces, active_workspace_id: id !== null ? id : state.active_workspace_id })
   next.space_plan = await readSpacePlan(state, espaceActif(next))
+  await followActiveSpace(next)
   writeState(next)
   return { ok: true, state: publicState(next) }
 }
@@ -458,12 +460,15 @@ const refreshProfile = async () => {
     const imported = await importCatalog('refresh')
     models = imported.summary !== undefined ? imported.summary : null
     if (imported.ok !== true) import_error = imported.error
-  } else if (known.plan !== userPlan(next)) {
-    const merged = Object.assign({}, known, { plan: userPlan(next) })
-    writeState(Object.assign({}, next, { models: merged }))
-    models = publicModels(merged)
   } else {
-    models = publicModels(known)
+    // The formula and the space the route names are reflected in the summary; the catalogue itself is not downloaded again.
+    let merged = known
+    if (known.plan !== userPlan(next)) merged = Object.assign({}, merged, { plan: userPlan(next) })
+    // An import from before the route named a space, or one that names another than the active one: repair the header only.
+    const routed = await pointRouteAtSpace(next)
+    if (routed.wrote === true) merged = Object.assign({}, merged, { workspace: routed.space })
+    if (merged !== known) writeState(Object.assign({}, next, { models: merged }))
+    models = publicModels(merged)
   }
   return { ok: true, connected: true, state: publicState(readState()), models, ...(import_error !== undefined ? { import_error } : {}) }
 }
@@ -642,21 +647,71 @@ const fetchCatalog = async (state) => {
 
 /** La route provider écrite dans `llm-pi-ai.providers.kybernos`. apiKeyEnv est
  *  une RÉFÉRENCE : le jeton vit dans le store de credentials, pas ici. */
-const providerValue = (state, entries) => ({
-  displayName: PROVIDER_DISPLAY,
-  api: 'openai-completions',
-  baseURL: baseUrl(state),
-  apiKeyEnv: CRED_REF,
-  models: entries,
-})
+const providerValue = (state, entries) => {
+  const space = billedSpace(state)
+  return {
+    displayName: PROVIDER_DISPLAY,
+    api: 'openai-completions',
+    baseURL: baseUrl(state),
+    apiKeyEnv: CRED_REF,
+    models: entries,
+    ...(space !== null ? { headers: { [WORKSPACE_HEADER]: space } } : {}),
+  }
+}
 
-/** Déjà importé à l'identique ? (comparaison ids triés + formule + base) */
-const catalogFingerprint = (state, entries, plan, embed) => JSON.stringify([
+/** The request header that names the space a chat call is billed to. The server bills a call to the space this header names, else to
+ *  the caller's PERSONAL space (a device token has none of its own): without it, a person working in a Team space in DSH would spend
+ *  their personal plan while the team's credits never move. */
+const WORKSPACE_HEADER = 'x-kybernos-workspace'
+
+/** The space the model route names: the ACTIVE space, only when its id is a plain token. An id that could carry a line break, a space
+ *  or any other odd byte never becomes a header value (the engine validates headers against Fetch, and a bad one would refuse the
+ *  whole route): the route then names no space and the server falls back to the personal one. */
+const billedSpace = (state) => {
+  if (state === null || state === undefined || typeof state !== 'object') return null
+  const id = espaceActif(state)
+  return typeof id === 'string' && /^[A-Za-z0-9-]{1,64}$/.test(id) ? id : null
+}
+
+/** The space an import recorded as named by its route (null: none, or an import from before the route named one). */
+const routeSpace = (models) => (models !== null && models !== undefined && typeof models.workspace === 'string' ? models.workspace : null)
+
+/** Déjà importé à l'identique ? (comparaison ids triés + formule + base + espace nommé par la route) */
+const catalogFingerprint = (state, entries, plan, embed, space) => JSON.stringify([
   baseUrl(state),
   plan,
   entries.map((e) => e.id).slice().sort(),
   embed === undefined || embed === null ? null : embed,
+  space === undefined ? null : space,
 ])
+
+/** Re-point the imported route at the space the person works in now: ONLY the header, through the same `settings` service as the full
+ *  write, and no catalogue download. It acts only on a route this plugin wrote (`models.provider` + `models.settings`) and only when
+ *  the route does not already name that space. It never throws: a refused write leaves the route as it was and records nothing, so
+ *  the next refresh tries again. Returns `{ wrote, space }`; `space` is what the route names afterwards. */
+const pointRouteAtSpace = async (state) => {
+  const models = state !== null && state !== undefined ? state.models : null
+  if (models === null || models === undefined || models.provider !== PROVIDER_ID || models.settings !== true) return { wrote: false }
+  const space = billedSpace(state)
+  if (routeSpace(models) === space) return { wrote: false }
+  const svc = service('settings')
+  if (svc === null || typeof svc.mutate !== 'function') return { wrote: false }
+  const path = ['providers', PROVIDER_ID, 'headers']
+  try {
+    await svc.mutate('llm-pi-ai', [space !== null ? { op: 'set', path, value: { [WORKSPACE_HEADER]: space } } : { op: 'unset', path }], undefined)
+    return { wrote: true, space }
+  } catch (e) {
+    console.error('[kybernos-cloud] ecriture de l espace de facturation refusee : ' + String((e && e.message) || e))
+    return { wrote: false }
+  }
+}
+
+/** The model route bills the space it names: when the active space changes, re-point it (the header alone, no download). A refused
+ *  write never fails the switch. Updates `next.models.workspace` in place only when the route really changed. */
+const followActiveSpace = async (next) => {
+  const routed = await pointRouteAtSpace(next)
+  if (routed.wrote === true) next.models = Object.assign({}, next.models, { workspace: routed.space })
+}
 
 /** Import (ou rafraîchissement) : catalogue → settings → credential → état.
  *  Ne throw jamais : chaque échec est un motif explicite dans la réponse. */
@@ -683,7 +738,7 @@ const importCatalog = async (cause, options = {}) => {
     && known.settings === true && known.credential === true
     && known.plan === plan && known.base_url === baseUrl(state)
     && Array.isArray(known.ids) === true
-    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed) === catalogFingerprint(state, cat.models, plan, cat.embed)) {
+    && catalogFingerprint(state, known.ids.map((id) => ({ id })), plan, known.embed, routeSpace(known)) === catalogFingerprint(state, cat.models, plan, cat.embed, billedSpace(state))) {
     if (appliedServerId() === null) markApplied()   // an install from before servers existed: this route is the active server's
     return { ok: true, connected: true, current: true, summary: publicModels(known) }
   }
@@ -699,6 +754,8 @@ const importCatalog = async (cause, options = {}) => {
     embed: cat.embed,
     provider: PROVIDER_ID,
     base_url: baseUrl(state),
+    // The space the route names (the header the server bills by): a change of active space is then not mistaken for « nothing to do ».
+    workspace: settingsOut.wrote === true ? billedSpace(state) : null,
     settings: settingsOut.wrote === true,
     credential: credentialStored,
     reason: settingsOut.wrote === true ? null : (settingsOut.reason || 'settings_absent'),
