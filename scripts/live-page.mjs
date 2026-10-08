@@ -72,6 +72,15 @@ export async function openLivePage(opts = {}) {
   // The checks that translate with the pseudo-translating stub need it to count as real: say so, unless a check
   // is about that very guard (`pseudoOk: false`, and it then sets the flag itself).
   if (opts.pseudoOk !== false) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_PSEUDO_OK__ = true' })
+  // A fresh instance (the sandbox, any host but the user's own :3080) opens on an « Add an API key to get started »
+  // dialog that covers the page after EVERY load and swallows every click. A check that reloads would meet it again,
+  // so it is pressed away by the page itself, whenever it shows up. The user's own DSH never shows it: left alone.
+  if (authority !== '127.0.0.1:3080' && opts.keepKeyDialog !== true) {
+    await page.send('Page.addScriptToEvaluateOnNewDocument', { source: `(() => {
+      const press = () => { const e = Array.from(document.querySelectorAll('button, [role=button], a, span, div')).find((x) => x.children.length === 0 && (x.innerText || '').trim() === 'Configure later'); if (e) (e.closest('button') || e).click() }
+      new MutationObserver(press).observe(document, { childList: true, subtree: true })
+    })()` })
+  }
   if (await poserCookie(page, authority) !== true) { page.close(); await close(); throw new Error('the browser refused the session cookie') }
   await page.send('Page.navigate', { url: 'http://' + authority + '/' })
   // The GUI is up once the DSH shell has rendered something.
@@ -129,4 +138,24 @@ export async function clickText(page, text, opts = {}) {
   await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
   await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 })
   return true
+}
+
+/** Open DSH's Settings dialog; resolves `true` once its navigation cells are there.
+ *  The signed-in user's DSH has an account chip (« My workspace ») that leads to it; a fresh instance (the
+ *  sandbox) has no account, so the dialog opens from the settings trigger of the sidebar instead. */
+export async function openSettings(page, opts = {}) {
+  const minCells = opts.minCells === undefined ? 3 : opts.minCells
+  const chipJs = `(() => { const e = [...document.querySelectorAll('button')].find((x) => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`
+  const click = async (x, y) => { for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x, y, button: 'left', clickCount: 1 }) }
+  for (let attempt = 1; attempt <= (opts.tries || 4); attempt += 1) {
+    await waitFor(page, `document.readyState === 'complete'`, 15000)
+    await sleep(1500)
+    const chip = (await page.evalJs(chipJs, 4000)).val
+    if (chip) { await click(chip.x, chip.y); await sleep(1000); await clickText(page, 'Settings') }
+    else await page.evalJs(`(() => { const b = document.querySelector('[class*="settingsArea"] button[class*="trigger"]'); if (b) b.click() })()`, 4000)
+    if ((await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > ${minCells}`, 6000)) !== null) return true
+    await page.send('Page.reload', { ignoreCache: true })
+    await sleep(3500)
+  }
+  return false
 }

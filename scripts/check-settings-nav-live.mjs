@@ -7,7 +7,7 @@
 // READ-ONLY: it opens Settings, measures, scrolls the nav and takes a screenshot. Nothing is clicked that
 // changes data. Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down / Settings did not open).
 import { mkdirSync } from 'node:fs'
-import { openLivePage, waitFor, clickText } from './live-page.mjs'
+import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -27,16 +27,7 @@ const click = async (x, y) => { for (const t of ['mouseMoved', 'mousePressed', '
 try {
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] })
   await waitFor(page, `document.readyState === 'complete'`, 15000); await sleep(2500)
-  const chipJs = `(() => { const e = [...document.querySelectorAll('button')].find(x => x.getAttribute('aria-label') === 'My workspace' || /Switch workspace|^MW/.test((x.textContent || '').trim())); if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) })()`
-  let open = false
-  for (let attempt = 1; attempt <= 4 && open !== true; attempt += 1) {
-    if ((await waitFor(page, `${chipJs} !== null`, 15000)) === null) break
-    const chip = JSON.parse(await ev(chipJs))
-    await click(chip.x, chip.y); await sleep(1000)
-    await clickText(page, 'Settings')
-    open = (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 3`, 6000)) !== null
-    if (open !== true) { await page.send('Page.reload', { ignoreCache: true }); await sleep(3500) }
-  }
+  const open = await openSettings(page, { minCells: 3 })
   if (open !== true) { console.error('○ inconclusive: the Settings dialog did not open (is the GUI loaded?)'); process.exit(3) }
   await waitFor(page, `[...document.querySelectorAll('[class*="navCell"]')].some(e => e.textContent.trim() === 'About')`, 12000)
   await sleep(1200)
