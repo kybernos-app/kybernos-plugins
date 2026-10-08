@@ -34,3 +34,20 @@ export const audioModelsOf = (providers) => {
   }
   return out
 }
+
+/**
+ * The address to ask a provider's audio models at. A provider set up with its own `baseURL` says it itself; the built-in ones
+ * keep theirs inside the model library, so the ones read from its own definitions are listed here. Unknown: null (the page then
+ * asks the user for the address instead of guessing).
+ */
+const KNOWN_BASES = Object.freeze({
+  'qwen-token-plan': 'https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1',
+  'xiaomi-token-plan-ams': 'https://token-plan-ams.xiaomimimo.com/v1',
+  openai: 'https://api.openai.com/v1',
+  groq: 'https://api.groq.com/openai/v1'
+})
+export const providerBase = (id, def) => {
+  const own = def !== null && typeof def === 'object' && typeof def.baseURL === 'string' ? def.baseURL.trim() : ''
+  const base = own !== '' ? own : (KNOWN_BASES[String(id)] ?? null)
+  return base === null || !/^https:\/\/[^\s]+$/.test(base) ? null : base.replace(/\/+$/, '')
+}

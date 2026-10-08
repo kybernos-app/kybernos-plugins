@@ -36,7 +36,8 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 import { createGatewayWatcher } from './gateway-watcher.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { createPythonPicker } from './tts-python.mjs'
-import { audioModelsOf } from './audio-models.mjs'
+import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
+import { createProbe } from './audio-probe.mjs'
 let iconsCatalog = null
 try {
   iconsCatalog = JSON.parse(readFileSync(pluginDir + '/icons.json', 'utf8'))
@@ -10123,6 +10124,29 @@ function boot(ctx) {
         try { const ns = lireNamespace('llm-pi-ai').valeur; providers = (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { providers = {} }
         sendJson(res, 200, { ok: true, providers: audioModelsOf(providers) })
       } }), 'kybernos: route models/audio')
+      // Which way of asking one of those models works (a few words of text, or a second of silence, sent to the provider with the key the
+      // app already holds for it; the key never leaves this process and is not in the answer). On a click only: it is a call to the provider.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/probe', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        let body = {}
+        try { body = await readJsonBody(req, 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        let providers = {}
+        try { const ns = lireNamespace('llm-pi-ai').valeur; providers = (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { providers = {} }
+        const id = str(body.provider)
+        const model = str(body.model)
+        const def = id !== null && Object.prototype.hasOwnProperty.call(providers, id) ? providers[id] : null
+        const known = def !== null && Array.isArray(def.models) && def.models.some((m) => m !== null && typeof m === 'object' && m.id === model)
+        if (!known) return sendJson(res, 404, { ok: false, error: 'ce modele n est pas dans la configuration' })
+        const kind = audioKindOf(model)
+        if (kind === null) return sendJson(res, 400, { ok: false, error: 'ce n est pas un modele audio' })
+        const base = providerBase(id, def)
+        if (base === null) return sendJson(res, 200, { ok: false, code: 'no-address', error: 'adresse du fournisseur inconnue : ajoutez son baseURL dans Modeles' })
+        const cred = await kbVoiceKey(str(def.apiKeyEnv) ?? '')
+        if (cred.key === null) return sendJson(res, 200, { ok: false, code: 'no-key', error: cred.error })
+        const out = await createProbe().run({ kind, base, key: cred.key, model })
+        sendJson(res, 200, Object.assign({ provider: id, model, kind }, out))
+      } }), 'kybernos: route models/audio/probe')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
