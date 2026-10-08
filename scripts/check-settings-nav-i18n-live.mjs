@@ -97,11 +97,7 @@ try {
   const en2 = await measure('en-after')
 
   check('nav entry count is stable across a language switch', en1.keys.length === es.keys.length && en1.keys.length === en2.keys.length, { en1: en1.keys.length, es: es.keys.length, en2: en2.keys.length })
-  if (same(en1.keys, es.keys)) check('nav order is identical in the test language (entry by entry)', true)
-  else {
-    console.log('  ~ nav order differs under the test language (reported, not asserted: pseudo-translated titles are not recognised by the organiser)')
-    report.push({ name: 'nav order under the test language', ok: null, detail: { en1: en1.keys, es: es.keys } })
-  }
+  check('nav order is identical in the test language (entry by entry): the cells are read by position, not by their translated title', same(en1.keys, es.keys), { en1: en1.keys, es: es.keys })
   check('nav order returns to English unchanged', same(en1.keys, en2.keys), { en1: en1.keys, en2: en2.keys })
   check('nav labels return to English unchanged (no French, no test language left)', same(en1.order, en2.order), { en1: en1.order, en2: en2.order })
 
