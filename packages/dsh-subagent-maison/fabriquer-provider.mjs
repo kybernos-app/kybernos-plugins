@@ -70,6 +70,10 @@ export function fabriquerProvider (spec) {
       }
       const argv = spec.argv(this.config.bin, model, taches, { apiKey: this.config.apiKey, baseUrl: this.config.baseUrl })
       const env = { ...scrubbedParentEnv(), ...this.config.env }
+      // La clé API passe aussi en env (sous spec.varEnvCle) pour les CLIs qui la
+      // lisent là (gemini lit GEMINI_API_KEY) — scrubbedParentEnv a filtré les
+      // secrets, on ré-injecte explicitement la nôtre.
+      if (spec.varEnvCle != null && this.config.apiKey) env[spec.varEnvCle] = this.config.apiKey
       const spawn = (spawnSpec) => this.ctx.subprocess.spawn(spawnSpec)
 
       const { attempt, requestCancel, onAbort, teardown } = runOneShot(spec.produit, argv, {
