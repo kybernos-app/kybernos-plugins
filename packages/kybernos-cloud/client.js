@@ -64,9 +64,9 @@ window.__ModuleLoader__.load({
         wsPageTitle: 'Mon espace',
         wsPrev: 'Espace précédent',
         wsNext: 'Espace suivant',
-        wsNew: 'Nouvel espace',
-        wsNewTitle: 'Créer un espace',
-        wsNewName: 'Nom de l\'espace',
+        wsNew: 'Nouvelle équipe',
+        wsNewTitle: 'Créer une équipe',
+        wsNewName: 'Nom de l\'équipe',
         wsNewCreate: 'Créer',
         wsNewHosted: 'Créer dans Kybernos',
         wsNewErr: 'La création a été refusée par le serveur.',
@@ -222,7 +222,6 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Envoyer un retour',
         menuSettingsApp: 'Paramètres',
         menuTeamsSettings: 'Réglages d\'équipe',
-        menuTeamsBrowser: 'Ouvrir la console dans le navigateur',
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
         dataNavLabel: 'Données & confidentialité',
@@ -307,9 +306,9 @@ window.__ModuleLoader__.load({
         wsPageTitle: 'My workspace',
         wsPrev: 'Previous workspace',
         wsNext: 'Next workspace',
-        wsNew: 'New workspace',
-        wsNewTitle: 'Create a workspace',
-        wsNewName: 'Workspace name',
+        wsNew: 'New team',
+        wsNewTitle: 'Create a team',
+        wsNewName: 'Team name',
         wsNewCreate: 'Create',
         wsNewHosted: 'Create in Kybernos',
         wsNewErr: 'The server refused the creation.',
@@ -461,7 +460,6 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
         menuTeamsSettings: 'Teams settings',
-        menuTeamsBrowser: 'Open the console in your browser',
         dataNavLabel: 'Data & privacy',
         dataLabel: 'Your data',
         dataExportTitle: 'Full data export',
@@ -2186,9 +2184,7 @@ window.__ModuleLoader__.load({
                   // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it.
                   planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')) : null)),
               // "Teams settings" = the former "Workspace settings" (same action).
-              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace),
-              // The same console in the browser, where it can change things (here it is read-only): the server makes a single-use link for it.
-              entree('space-browser', h(GlobeIcon, { size: 18 }), t('menuTeamsBrowser'), props.onSpaceBrowser, { ext: true })),
+              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
@@ -2534,15 +2530,6 @@ window.__ModuleLoader__.load({
               }
               try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybernos-cloud-space') } catch (e) { /* layout indisponible */ }
             }
-            const ouvrirEspaceNavigateur = () => {
-              // The tab is opened NOW, inside the click (a tab opened after the wait can be blocked), and pointed at the link once the server has made it.
-              let onglet = null
-              try { onglet = window.open('', '_blank'); if (onglet !== null) onglet.opener = null } catch (e) { onglet = null }
-              const fermer = () => { try { if (onglet !== null) onglet.close() } catch (e) { /* deja fermee */ } }
-              callLocal('/console/link', 'POST', actif === null ? {} : { workspace_id: actif }).then((r) => {
-                if (r !== null && r.ok === true && typeof r.url === 'string' && onglet !== null) { try { onglet.location.href = r.url } catch (e) { fermer() } } else fermer()
-              }).catch(fermer)
-            }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
             // ── Réglages ▸ Compte (demande du 30/09) ────────────────────────
@@ -2640,7 +2627,6 @@ window.__ModuleLoader__.load({
                   onAccount: clicProfil,
                   onSection: clicSection,
                   onSpace: ouvrirPageEspace,
-                  onSpaceBrowser: ouvrirEspaceNavigateur,
                   onLogout: () => { void seDeconnecter() },
                 })
                 : null),
