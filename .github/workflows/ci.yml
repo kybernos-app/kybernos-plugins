@@ -30,3 +30,5 @@ jobs:
           done
       - name: messaging tests (standalone daemon)
         run: cd packages/messaging && node --test test/*.test.mjs
+      - name: gate tests (standalone sign-in gate)
+        run: cd packages/kybernos-gate && node --test test/*.test.mjs

@@ -1,0 +1,18 @@
+{
+  "name": "@local/kybernos-gate",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Sign-in gate in front of a hosted DSH: one login page, a signed session, a reverse proxy, and DSH's own session cookie so the user signs in once.",
+  "license": "Apache-2.0",
+  "bin": {
+    "kybernos-gate": "bin/kybernos-gate.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "node bin/kybernos-gate.mjs"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}

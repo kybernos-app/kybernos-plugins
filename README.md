@@ -2,7 +2,7 @@
 
 Plugins that turn DSH (the DeepSeek harness) into an agent workspace: crew workflows with human approval, models catalog, skills, sessions, cloud memory and more.
 
-> **Status: beta, rebuilt from a clean history (October 2026).** Requires DSH within the range declared in [`dsh-compat.json`](dsh-compat.json). Installation has only been measured on macOS.
+> **Status: beta, rebuilt from a clean history (October 2026).** Requires DSH within the range declared in [`dsh-compat.json`](dsh-compat.json). Installation has been measured on macOS and, inside a Docker image, on Linux.
 
 ## Install
 
@@ -10,6 +10,28 @@ Plugins that turn DSH (the DeepSeek harness) into an agent workspace: crew workf
 ./kybernos-install --dry   # shows what would change, touches nothing
 ./kybernos-install         # checks the archive, installs DSH if missing, links the bundles, restores a snapshot if DSH fails to restart
 ```
+
+## Install on a server or with Docker
+
+On your own computer, `./kybernos-install` above is all you need. To run Kybernos on a **server** other people or your own
+devices reach over the internet, put the [Kybernos Gate](packages/kybernos-gate/README.md) in front of DSH: a sign-in page
+(username and password, one login) with a reverse proxy. DSH refuses to listen on the network by itself, and it serves plugin
+routes before its own authentication, so a hosted instance should never be exposed without it.
+
+**With Docker** (one image: DSH, the plugins and the gate):
+
+```sh
+cd packages/kybernos-gate/docker
+printf 'KYBERNOS_GATE_PASSWORD=%s\nKYBERNOS_PUBLIC_HOST=kybernos.example.com\n' 'a long password' > .env   # do not commit it
+docker compose up -d --build
+```
+
+Then put a TLS reverse proxy (Caddy, Traefik, nginx, Coolify) in front of `127.0.0.1:3080`.
+
+**On a Linux server without Docker**: install Node 22.19+, pnpm and DSH, run `./kybernos-install`, start `dsh web` on `127.0.0.1:3081`
+with `--trusted-host <your domain>`, then start the gate (`node packages/kybernos-gate/bin/kybernos-gate.mjs`). The step-by-step
+commands, the two systemd units, a Caddy example and every setting are in [`packages/kybernos-gate/README.md`](packages/kybernos-gate/README.md);
+what a hosted instance changes for the plugins is in [`docs/dev/hosted-instances.md`](docs/dev/hosted-instances.md).
 
 ## Bundles
 
@@ -57,9 +79,12 @@ dsh web --no-open --port 3080 &                                                 
 node scripts/smoke-gui.mjs --token <token>                                       # real GUI: boot, host routes, panels (needs `npm i playwright`)
 ```
 
-## Standalone tool
+## Standalone tools
 
-[`packages/messaging`](packages/messaging) is **not** a DSH bundle: it is a separate daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder; its tests are `node --test test/*.test.mjs`.
+Neither is a DSH bundle: each is a separate process, with its own tests (`node --test test/*.test.mjs` in its folder).
+
+- [`packages/messaging`](packages/messaging): a daemon bridging DSH and messaging apps (Telegram first). Run it with `npm run daemon` in that folder.
+- [`packages/kybernos-gate`](packages/kybernos-gate): the sign-in gate for a hosted DSH (see [Install on a server or with Docker](#install-on-a-server-or-with-docker)). Run it with `node bin/kybernos-gate.mjs`; it refuses to start without a password.
 
 ## Contributing
 
