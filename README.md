@@ -23,7 +23,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-models`](packages/kybernos-models/README.md) | Models catalog |
 | [`kybernos-auto`](packages/kybernos-auto/README.md) | Auto mode: routes delegations by class |
 | [`kybernos-computers`](packages/kybernos-computers/README.md) | Cloud computers for agents (E2B, bring your own key) |
-| [`kybernos-workers`](packages/kybernos-workers/README.md) | Workers screen: verified state of Claude Code, Codex and ZCode, and the lead-exposure policy DSH really offers |
+| [`kybernos-workers`](packages/kybernos-workers/README.md) | Workers screen: verified state, install and exposure of Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode, with a guide and a clickable demo |
 | [`kybernos-slides`](packages/kybernos-slides/README.md) | Slide decks driven by chat |
 | [`kybernos-bricks`](packages/kybernos-bricks/README.md) | Brick mockups driven by chat |
 | [`kybernos-modeleur`](packages/kybernos-modeleur/README.md) | 2D/3D models driven by chat |
