@@ -69,12 +69,11 @@ catalogue of that team and in no other. Choosing or creating a space rewrites th
 only when the models changed. Without this a member's chat used their personal allowance whatever the Cloud card said (measured, `console2` lane of
 the production gate).
 
-Three more host routes serve the Team console and the quota notice: `POST /kybernos-cloud/console/open` (the HOST makes the single-use console link
-and opens it in the machine's own browser: a tab a DSH page opens is a cross-site navigation, which the server refuses for a console link; the page
-never sees the link; `KYBERNOS_OPEN_URL_COMMAND` replaces the opener), `GET /kybernos-cloud/quota` (what stopped the last call: the active space's
-plan and payment state and the person's own windows that are used up, no token) and the `space_plan.mfa` field of `/status` (a workspace that asks
-its members for a second factor: `grace` with the date, or `blocked`). DSH words every refusal « Request quota exhausted » (a 403 is « API key is
-invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead.
+Two more things serve the quota notice and the Cloud card: `GET /kybernos-cloud/quota` (what stopped the last call: the active space's plan and
+payment state and the person's own windows that are used up, no token) and the `space_plan.mfa` field of `/status` (a workspace that asks its
+members for a second factor: `grace` with the date, or `blocked`). DSH words every refusal « Request quota exhausted » (a 403 is « API key is
+invalid »): the quota notice (claimed through DSH's `shell.quota-notice` chain, `QUOTA` only) and the card carry the reason instead. The notice's
+button has the host open the console in the system browser (`POST /kybernos-cloud/console/link` with `open: true`).
 
 ## The discovery document a company server serves
 
