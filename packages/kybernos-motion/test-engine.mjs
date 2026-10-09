@@ -166,6 +166,10 @@ ok('inkOn: light ink on dark, dark ink on light', E.inkOn('#0f1115') === '#f5f6f
 // ── evaluate: charts ────────────────────────────────────────────────────────
 {
   const data = [{ label: 'A', value: 10 }, { label: 'B', value: 5 }, { label: 'C', value: 0 }]
+  const mid = E.evaluate({ layers: [{ type: 'chart', kind: 'bar', data, p: 0.5, w: 600, h: 400 }] }, 0)
+  ok('chart bar: whole values stay whole while the bars grow (no 33,6 on the way to 34)', mid.ops.filter((o) => o.op === 'text').every((o) => !/[0-9],[0-9]/.test(o.text)), mid.ops.filter((o) => o.op === 'text').map((o) => o.text))
+  const dec = E.evaluate({ layers: [{ type: 'chart', kind: 'bar', data: [{ label: 'A', value: 2.5 }], p: 1, w: 600, h: 400 }] }, 0)
+  ok('chart bar: a data set with decimals keeps one', dec.ops.some((o) => o.op === 'text' && o.text === '2,5'))
   const none = E.evaluate({ layers: [{ type: 'chart', kind: 'bar', data, p: 0, w: 600, h: 400 }] }, 0)
   const full = E.evaluate({ layers: [{ type: 'chart', kind: 'bar', data, p: 1, w: 600, h: 400 }] }, 0)
   const bars = (f) => f.ops.filter((o) => o.op === 'rect')
