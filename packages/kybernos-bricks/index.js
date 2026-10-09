@@ -97,6 +97,15 @@ export function creerMagasin () {
         : 'sans-session'
       const precedente = parSession.get(sessionId)
       const maintenant = Date.now()
+      // A call with nothing to build (no ops, no prompt, no archetype key) only asks for the panel to open. It must
+      // not replace the model by an empty one: the client keeps showing what it has, and the host used to forget it.
+      // The request is carried by a counter the client watches; the model itself is left as it was.
+      const aDuContenu = Array.isArray(entree?.ops) || texte(entree?.prompt, 2000) !== '' || texte(entree?.cle, 60) !== ''
+      if (!aDuContenu && precedente !== undefined) {
+        precedente.ouverture = (precedente.ouverture ?? 0) + 1
+        precedente.global = ++compteur
+        return { ...precedente, rouvert: true }
+      }
       const enregistrement = {
         version: (precedente?.version ?? 0) + 1,
         global: ++compteur,
@@ -108,6 +117,7 @@ export function creerMagasin () {
         mode: entree?.mode === 'modifier' ? 'modifier' : 'nouveau',
         ops: Array.isArray(entree?.ops) ? entree.ops.slice(0, 4000) : null,
         cle: texte(entree?.cle, 60) || null,
+        ouverture: 0,
         pose: maintenant,
       }
       parSession.set(sessionId, enregistrement)
@@ -191,7 +201,9 @@ export function optionsOutil (magasin) {
         mode: enregistrement.mode,
         lots: Array.isArray(enregistrement.ops) ? enregistrement.ops.length : 0,
         duree_ms: enregistrement.dureeMs,
-        message: Array.isArray(enregistrement.ops)
+        message: enregistrement.rouvert === true
+          ? 'Panneau rouvert sur la dernière maquette : rien n\'a été reconstruit ni effacé (donne `prompt` ou `ops` pour construire).'
+          : Array.isArray(enregistrement.ops)
           ? `${enregistrement.ops.length} lot(s) de briques déposés : le panneau « Briques » (barre latérale droite) va les poser en ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
           : 'Maquette déposée : le panneau « Briques » (barre latérale droite) la construit maintenant.',
       }
@@ -256,6 +268,7 @@ export function monterRoutes (webServerSvc, magasin) {
       mode: etat.mode,
       cle: etat.cle,
       ops: etat.ops,
+      ouverture: etat.ouverture ?? 0,
       serveur: Date.now(),
     })
   } })
@@ -268,6 +281,12 @@ export function monterRoutes (webServerSvc, magasin) {
     const ct = String(req.headers['content-type'] || '')
     if (ct !== '' && /^application\/json/i.test(ct) === false) { res.writeHead(415); res.end('content-type json attendu'); return }
     const corps = await lireCorps(req)
+    // An unreadable body must not leave an empty model behind: it would become "the last model" for a panel that
+    // does not name its session.
+    if (!corps || typeof corps !== 'object' || (!Array.isArray(corps.ops) && texte(corps.prompt, 2000) === '' && texte(corps.cle, 60) === '')) {
+      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push attend `ops` (tableau), `prompt` ou `cle`.' })
+      return
+    }
     const etat = magasin.pousser(corps)
     envoyer(res, 200, { ok: true, version: etat.version, titre: etat.titre, dureeMs: etat.dureeMs })
   } })

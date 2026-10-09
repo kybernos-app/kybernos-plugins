@@ -101,6 +101,14 @@ export function creerMagasin () {
         : 'sans-session'
       const precedente = parSession.get(sessionId)
       const maintenant = Date.now()
+      // A call with nothing to draw only asks for the panel to open. It must not replace the model (nor the
+      // user's annotations on it) by an empty one: the client keeps showing what it has, and the host used to forget
+      // it. The request is carried by a counter the client watches; the model itself is left as it was.
+      if (!Array.isArray(entree?.ops) && precedente !== undefined && Array.isArray(precedente.ops)) {
+        precedente.ouverture = (precedente.ouverture ?? 0) + 1
+        precedente.global = ++compteur
+        return { ...precedente, rouvert: true }
+      }
       // `modifier` garde l'espace courant : dessiner en 2D sur une scène 3D
       // remplacerait un modèle par un autre sans prévenir l'œil.
       const espace = espaceDe(entree?.espace ?? (entree?.mode === 'modifier' ? precedente?.espace : undefined))
@@ -116,6 +124,7 @@ export function creerMagasin () {
         mode: entree?.mode === 'modifier' && precedente?.espace === espace ? 'modifier' : 'nouveau',
         ops: Array.isArray(entree?.ops) ? entree.ops.slice(0, 4000) : null,
         ann: { version: 0, strokes: [] },
+        ouverture: 0,
         pose: maintenant,
       }
       parSession.set(sessionId, enregistrement)
@@ -264,7 +273,9 @@ export function optionsOutil (magasin) {
         mode: enregistrement.mode,
         lots: Array.isArray(enregistrement.ops) ? enregistrement.ops.length : 0,
         duree_ms: enregistrement.dureeMs,
-        message: Array.isArray(enregistrement.ops)
+        message: enregistrement.rouvert === true
+          ? 'Panneau rouvert sur le dernier modèle : rien n\'a été redessiné ni effacé (donne `ops` pour dessiner).'
+          : Array.isArray(enregistrement.ops)
           ? `${enregistrement.ops.length} lot(s) déposés : le panneau « Modeleur » (barre latérale droite) les dessine en ${(enregistrement.dureeMs / 1000).toFixed(1)} s.`
           : 'Modèle déposé : le panneau « Modeleur » (barre latérale droite) le dessine maintenant.',
       }
@@ -327,6 +338,7 @@ export function monterRoutes (webServerSvc, magasin) {
       mode: etat.mode,
       ops: etat.ops,
       ann: etat.ann,
+      ouverture: etat.ouverture ?? 0,
       serveur: Date.now(),
     })
   } })
@@ -335,6 +347,12 @@ export function monterRoutes (webServerSvc, magasin) {
     if (req.method !== 'POST') { res.writeHead(405); res.end('POST uniquement'); return }
     if (!origineOK(req)) { res.writeHead(403); res.end('origine refusee'); return }
     const corps = await lireCorps(req)
+    // An unreadable body must not leave an empty model behind: it would become "the last model" for a panel that
+    // does not name its session.
+    if (!corps || typeof corps !== 'object' || !Array.isArray(corps.ops)) {
+      envoyer(res, 400, { ok: false, raison: 'corps_illisible', message: 'POST /push attend `ops` (un tableau de lots).' })
+      return
+    }
     const etat = magasin.pousser(corps)
     envoyer(res, 200, { ok: true, version: etat.version, espace: etat.espace, titre: etat.titre, dureeMs: etat.dureeMs })
   } })

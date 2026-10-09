@@ -712,6 +712,7 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
     let ETAT = { titre: 'Modeleur', version: -1, sessionId: '', espace: '3d', total: 0, pose: 0, lots: 0, enCours: false, desc: '', prompt: '', dureeMs: 0 }
     let MODELE = null
     let POSE = 0, POSE_MIN = 0, T0 = 0, DUREE = 8000, VITESSE = 1, EN_COURS = false
+    const OUVERTURES_VUES = new Map() // sessionId → last reopen counter read (each session counts its own)
     let VERSION_VUE = -1, SESSION_VUE = ''
     let SESSION_ID = ''
     let SERVICE_SIDEBAR = null
@@ -943,6 +944,13 @@ function t(t,e,s){if(t&&t.length){const[n,o]=e,a=Math.PI/180*s,h=Math.cos(a),r=M
         const etat = await r.json()
         if (!etat || etat.vide) return
         enPanne = false
+        // The agent asked to reopen the panel on the model it already has: open the tab, redraw nothing. The first
+        // reading only records the counter, so reloading the page does not pop the tab open for an old request.
+        if (Number.isFinite(etat.ouverture)) {
+          const vue = OUVERTURES_VUES.get(etat.sessionId)
+          OUVERTURES_VUES.set(etat.sessionId, etat.ouverture)
+          if (vue !== undefined && etat.ouverture > vue) ouvrirOnglet()
+        }
         if (etat.version === VERSION_VUE && etat.sessionId === SESSION_VUE) return
         appliquer(etat)
       } catch (e) {

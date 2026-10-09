@@ -84,7 +84,7 @@ ok('le push retient la clé d\'archétype', (await lireEtat('session-t')).cle ==
 
 ok('une session inconnue retombe sur la dernière commande',
   (await lireEtat('session-absente')).titre !== undefined)
-ok('un corps illisible ne casse pas la route', (await (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: '{oops' })).json()).ok === true)
+ok('un corps illisible est refusé (400), il ne dépose pas de maquette vide', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: '{oops' })).status === 400)
 ok('un Content-Type non JSON est refusé (415)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'text/plain', Origin: base }, body: '{}' })).status === 415)
 ok('une origine par préfixe est refusée (localhost.evil.example)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost.evil.example' }, body: '{}' })).status === 403)
 ok('une origine par préfixe est refusée (127.0.0.1.nip.io)', (await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://127.0.0.1.nip.io' }, body: '{}' })).status === 403)
@@ -92,6 +92,34 @@ ok('un port voisin est refusé (Origin :3080 vs port réel)', (await fetch(`${ba
 ok('une méthode non POST est refusée', (await fetch(`${base}/kybernos-bricks/push`)).status === 405)
 ok('une origine étrangère est refusée',
   (await fetch(`${base}/kybernos-bricks/state`, { headers: { Origin: 'https://evil.example' } })).status === 403)
+
+// ── 2 bis. an empty call reopens the panel, it does not erase the model ─────
+// It used to replace the model by an empty one; a push with an unreadable body did the same under the default
+// session name, and became "the last model" for a panel naming no session.
+{
+  const SES = 'session-reouvre'
+  const sans = await definition.execute({}, { agent: { id: 'session-sans-modele' } })
+  ok('with no model to reopen, an empty call still answers ok', sans.ok === true)
+  await definition.execute({ prompt: 'un phare sur des rochers', titre: 'A garder' }, { agent: { id: SES } })
+  const avantR = await lireEtat(SES)
+  const r = await definition.execute({}, { agent: { id: SES } })
+  const apresR = await lireEtat(SES)
+  ok('an empty call answers ok and says the panel was reopened', r.ok === true && /rouvert/.test(r.message), r.message)
+  ok('it keeps the model, its title, its prompt and its version', apresR.titre === 'A garder' && apresR.prompt === 'un phare sur des rochers' && apresR.version === avantR.version, JSON.stringify([apresR.titre, apresR.prompt, apresR.version, avantR.version]))
+  ok('it raises the reopen counter the panel watches', apresR.ouverture === avantR.ouverture + 1, `${avantR.ouverture} → ${apresR.ouverture}`)
+  ok('a call with only a prompt is still a real deposit (new version)', (await definition.execute({ prompt: 'un château' }, { agent: { id: SES } })).version === avantR.version + 1)
+  for (const [nom, corps] of [['unreadable', '{oops'], ['an empty object', '{}'], ['null', 'null'], ['a JSON array', '[]'], ['a body of blanks', '{"prompt":"   ","ops":"x"}']]) {
+    const rep = await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: corps })
+    const j = await rep.json()
+    ok(`a push with ${nom} → 400 corps_illisible`, rep.status === 400 && j.ok === false && j.raison === 'corps_illisible', `${rep.status} ${JSON.stringify(j)}`)
+  }
+  const sansSession = await lireEtat()
+  ok('...and leaves no empty model behind: the state without a session is still the real one', sansSession.sessionId === SES, sansSession.sessionId)
+  for (const [nom, corps] of [['ops', { sessionId: SES, ops: [{ op: 'rect', x: 0, y: 0, z: 0, w: 1, d: 1, h: 1 }] }], ['a prompt', { sessionId: SES, prompt: 'une fusée' }], ['an archetype key', { sessionId: SES, cle: 'phare' }]]) {
+    const rep = await fetch(`${base}/kybernos-bricks/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify(corps) })
+    ok(`a push with ${nom} still works`, rep.status === 200 && (await rep.json()).ok === true)
+  }
+}
 
 // ── 3. le montage cordis ────────────────────────────────────────────────────
 let outilVu = null
