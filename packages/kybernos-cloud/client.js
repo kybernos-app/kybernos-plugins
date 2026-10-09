@@ -1581,18 +1581,11 @@ window.__ModuleLoader__.load({
             const st = view.state !== undefined && view.state !== null ? view.state : {}
             const user = st.user !== undefined && st.user !== null ? st.user : {}
             const workspaces = Array.isArray(st.workspaces) ? st.workspaces : []
-            const shownName = displayName(user)
+            // The card is the short answer to « who am I connected as »: the e-mail, the plan, the teams, and the way out. The name, the device, the session and the
+            // account's other tools (models, DSH chats, memory) are on the full page (a click on the name in the sidebar footer), not here.
             body.push(h('div', { className: 'kbc-rows', key: 'r' },
               h(Row, { label: t('email'), value: user.email || t('none') }),
-              h(Row, {
-                label: t('name'),
-                value: shownName.value !== '' ? shownName.value : t('none'),
-                fallback: shownName.fallback,
-                hint: shownName.fallback ? t('nameFallback') : undefined,
-              }),
-              h(Row, { label: t('plan'), value: user.plan || t('none') }),
-              h(Row, { label: t('device'), value: st.device_label || t('none') }),
-              h(Row, { label: t('session'), value: st.expires_at !== undefined && st.expires_at !== null ? fmtDate(st.expires_at) : t('connected') })))
+              h(Row, { label: t('plan'), value: user.plan || t('none') })))
             body.push(h('div', { key: 'wl' },
               h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('workspaces')),
               h('div', { className: 'kbc-ws' }, workspaces.length === 0
@@ -1601,119 +1594,7 @@ window.__ModuleLoader__.load({
                   h('span', null, ws.name || t('none')),
                   h('span', { className: 'kbc-badge' }, String(ws.kyber_count === undefined ? 0 : ws.kyber_count) + ' ' + t('kybers')))))))
             if (view.stale === true) body.push(h('div', { className: 'kbc-note kbc-warn', key: 's' }, t('errorTitle')))
-            // Catalogue Kybernos LiteLLM importé automatiquement à la connexion :
-            // combien de modèles, pour quelle formule, et un bouton pour forcer
-            // une resynchronisation. La carte ne lit QUE des résumés — le
-            // détail (ids) reste dans la route /kybernos-cloud/models.
-            const models = st.models !== undefined && st.models !== null ? st.models : null
-            const modelsCount = models !== null && typeof models.count === 'number' ? models.count : 0
-            body.push(h('div', { key: 'mdl' },
-              h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('models')),
-              h('div', { className: 'kbc-ws' },
-                h('div', { className: 'kbc-ws-item' },
-                  h('span', null, modelsCount > 0
-                    ? String(modelsCount) + ' · ' + (models.plan || t('none'))
-                    : t('modelsUnavailable')),
-                  h('button', {
-                    type: 'button',
-                    className: 'kbc-btn-ghost',
-                    onClick: resync,
-                    disabled: syncing === true,
-                  }, syncing === true ? t('modelsImporting') : (modelsCount > 0 ? t('modelsReimport') : t('modelsImport'))))),
-              h('div', { className: 'kbc-note' }, t('modelsNote')),
-              models !== null && models.settings !== true
-                ? h('div', { className: 'kbc-note kbc-warn' }, t('modelsWarn'))
-                : null,
-              view.syncError !== undefined && view.syncError !== null
-                ? h('div', { className: 'kbc-note kbc-err' }, t('modelsSyncFail'))
-                : null))
-            // Chats DSH → webapp : un envoi explicite de l'annuaire des
-            // sessions (id, projet, date — jamais le contenu des conversations).
-            const lastPush = st.chats_last_push !== undefined && st.chats_last_push !== null ? st.chats_last_push : null
-            body.push(h('div', { key: 'chats' },
-              h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('chatsTitle')),
-              h('div', { className: 'kbc-ws' },
-                h('div', { className: 'kbc-ws-item' },
-                  h('span', null, lastPush !== null && lastPush.ok === true
-                    ? t('chatsLast') + ' · ' + String(lastPush.pushed === undefined ? 0 : lastPush.pushed)
-                    : (lastPush !== null && lastPush.ok === false ? t('chatsFail') : '—')),
-                  h('button', {
-                    type: 'button',
-                    className: 'kbc-btn-ghost',
-                    onClick: pushChats,
-                    disabled: chatsBusy === true,
-                  }, chatsBusy === true ? t('chatsPushing') : t('chatsPush')))),
-              h('div', { className: 'kbc-note' }, t('chatsNote')),
-              view.chatsError !== undefined && view.chatsError !== null
-                ? h('div', { className: 'kbc-note kbc-err' }, t('chatsFail'))
-                : null))
-            body.push(h('div', { key: 'memo' },
-              h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('memoTitle')),
-              memo.phase === 'loading' || memo.phase === 'idle'
-                ? h('div', { className: 'kbc-note' }, t('memoLoading'))
-                : memo.phase === 'error'
-                  ? h('div', { className: 'kbc-note kbc-err' }, t('memoFail'))
-                  : h('div', null,
-                    memo.data.account.length === 0
-                      ? h('div', { className: 'kbc-note' }, t('memoEmpty'))
-                      : h('div', { className: 'kbc-ws' }, memo.data.account.map((m) => h('div', { className: 'kbc-ws-item', key: 'm' + String(m.id) },
-                        h('span', null,
-                          h('span', { className: 'kbc-badge', style: { marginRight: '6px' } }, t('memoKind' + String(m.kind).charAt(0).toUpperCase() + String(m.kind).slice(1))),
-                          m.pinned === true ? h('span', { className: 'kbc-badge', style: { marginRight: '6px' } }, t('memoPinned')) : null,
-                          String(m.content)),
-                        h('span', null,
-                          h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPin(m) },
-                            m.pinned === true ? t('memoUnpin') : t('memoPin')),
-                          h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoForget(m) }, t('memoForget')))))),
-                    // Ajouter un souvenir à la main : le même chemin que l'outil
-                    // `memory_write`, mais décidé par l'utilisateur.
-                    h('div', { className: 'kbc-actions', style: { marginTop: '8px' } },
-                      h('input', {
-                        type: 'text',
-                        className: 'kbc-input',
-                        placeholder: t('memoTeach'),
-                        value: memoDraft,
-                        onChange: (e) => setMemoDraft(e.target.value),
-                      }),
-                      h('select', {
-                        className: 'kbc-input',
-                        value: memoKind,
-                        onChange: (e) => setMemoKind(e.target.value),
-                      }, ['fact', 'preference', 'event', 'policy'].map((k) => h('option', { key: k, value: k }, t('memoKind' + k.charAt(0).toUpperCase() + k.slice(1))))),
-                      h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => setMemoPinned(memoPinned !== true) },
-                        (memoPinned === true ? '★ ' : '☆ ') + t('memoPin')),
-                      h('button', { type: 'button', className: 'kbc-btn-primary', disabled: memoBusy !== null || memoDraft.trim() === '', onClick: memoAdd }, t('memoAdd'))),
-                    h('div', { className: 'kbc-note' }, t('memoNote')),
-                    // Correspondance kybers locaux ↔ cloud : explicite, jamais
-                    // devinée (les identifiants n'ont rien en commun).
-                    h('div', { className: 'kbc-note', style: { marginTop: '10px' } }, t('memoKybers')),
-                    h('div', { className: 'kbc-ws' }, (memo.data.locals || []).map((local) => h('div', { className: 'kbc-ws-item', key: 'k' + local },
-                      h('span', null, local + '  ·  ' + String((memo.data.lessonCounts || {})[local] || 0) + ' leçons'),
-                      h('select', {
-                        className: 'kbc-input',
-                        value: memoMap()[local] !== undefined ? memoMap()[local] : '',
-                        disabled: memoBusy !== null,
-                        onChange: (e) => memoLink(local, e.target.value),
-                      }, [h('option', { key: '', value: '' }, t('memoNoLink'))].concat((memo.data.cloud || []).map((c) => h('option', { key: c.id, value: c.id }, String(c.name) + ' (' + String(c.memoryCount) + ')'))))))),
-                    h('div', { className: 'kbc-note' }, t('memoKybersNote')),
-                    h('div', { className: 'kbc-actions', style: { marginTop: '8px' } },
-                      h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPush(true) }, t('memoLessonsDry')),
-                      h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPush(false) }, t('memoLessons'))),
-                    h('div', { className: 'kbc-note' }, t('memoLessonsNote')),
-                    // La capture de fin de tour est fail-open : sans cet etat
-                    // affiche, « rien a retenir » et « indisponible » se
-                    // ressembleraient exactement.
-                    memo.data.capture !== undefined && memo.data.capture !== null
-                      ? h('div', { className: 'kbc-note' }, memoCaptureLabel(memo.data.capture.status))
-                      : null,
-                    memoNote !== null ? h('div', { className: 'kbc-note' }, String(memoNote)) : null,
-                    memoReport !== null
-                      ? h('div', { className: 'kbc-note' }, memoReport.filter((r) => r.added > 0 || r.error !== null).length === 0
-                        ? t('memoLessonsNone')
-                        : memoReport.map((r) => r.local + ' → ' + r.cloud + ' : +' + String(r.added) + ' · ' + String(r.skipped) + ' déjà' + (r.error !== null ? ' · ' + String(r.error) : '')).join(' · '))
-                      : null)))
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
-              h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: load }, t('refresh')),
               h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: disconnect }, t('disconnect'))))
           } else if (view.phase === 'revoked') {
             body.push(h('div', { className: 'kbc-body kbc-warn', key: 'b' }, t('revokedTitle')))
