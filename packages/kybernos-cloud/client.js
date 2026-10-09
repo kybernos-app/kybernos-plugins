@@ -1099,9 +1099,11 @@ window.__ModuleLoader__.load({
     // The windows the host relayed, each with its percent; anything unreadable is left out.
     const quotaWindows = (info) => (Array.isArray(info.usage) ? info.usage : [])
       .filter((w) => w !== null && typeof w === 'object' && (w.kind === 'member' || w.kind === 'pool') && Number.isFinite(w.window_seconds) && Number.isFinite(w.used_percent))
-    // The window that turns calls away now: a used-up one, the shortest first (it frees first), the person's own before the team's pool on a tie.
+    // The window that turns calls away now. Calls are refused until EVERY used-up window has room again, so the one to name is the one that opens LAST (the later time the
+    // server gave, else the longer window), not the one that frees first; on a tie the person's own before the team's pool. The web app and the console name it the same way.
+    const quotaOpensAt = (w) => { const at = typeof w.resets_at === 'string' ? Date.parse(w.resets_at) : NaN; return Number.isFinite(at) ? at : 0 }
     const quotaBlocking = (windows) => windows.filter((w) => w.exhausted === true)
-      .sort((a, b) => a.window_seconds - b.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))[0] || null
+      .sort((a, b) => quotaOpensAt(b) - quotaOpensAt(a) || b.window_seconds - a.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))[0] || null
     // The window closest to being used up (the longer one on a tie). Null for an empty list.
     const quotaMostUsed = (windows) => windows.slice().sort((a, b) => b.used_percent - a.used_percent || b.window_seconds - a.window_seconds)[0] || null
     const quotaPaymentText = (name, admin, t) => quotaFill(t('quotaPayment'), { name }) + (admin ? t('quotaPaymentAdmin') : quotaFill(t('quotaPaymentMember'), { name }))
