@@ -1532,6 +1532,16 @@ const membersGet = async (req) => {
   return { ok: true, workspace_id: wid, members, status: 200 }
 }
 
+/** The refusals of `POST /invitations` that the Share panel can act on, as ONE word each (`already_member`, `seat_limit`, `forbidden`,
+ *  `rate_limited`); any other refusal keeps the server's own code. The server's sentence is never passed on. */
+const inviteError = (res) => {
+  const code = res && res.body && typeof res.body.error === 'string' ? res.body.error.trim().toLowerCase() : ''
+  if (code === 'already_member' || code === 'seat_limit') return code
+  if (res.status === 403) return 'forbidden'
+  if (res.status === 429) return 'rate_limited'
+  return shareError(res, 'invitation refusee')
+}
+
 const membersInvite = async (req, body) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
@@ -1548,12 +1558,13 @@ const membersInvite = async (req, body) => {
   // The new server separates the two: an e-mail address is an INVITATION (`POST …/invitations`, a link valid 7 days; 501 when the
   // server sends no e-mail, which the page words as « not available on this server »), a user id is an upsert of the role
   // (`POST …/members`). Sending `{email, role}` to `/members` is a 400 `invalid_request`.
-  const res = email !== ''
+  const byEmail = email !== ''
+  const res = byEmail
     ? await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/invitations', { method: 'POST', token: state.token, body: { email, role } })
     : await apiCall('/v1/workspaces/' + encodeURIComponent(wid) + '/members', { method: 'POST', token: state.token, body: { role, user_id: userId } })
   if (memberUnavailable(res)) return { ok: false, error: 'indisponible', status: res.status }
-  if (res.status !== 200 && res.status !== 201) return { ok: false, status: res.status, error: shareError(res, 'invitation refusee') }
-  return { ok: true, status: res.status }
+  if (res.status !== 200 && res.status !== 201) return { ok: false, status: res.status, error: byEmail ? inviteError(res) : shareError(res, 'invitation refusee') }
+  return byEmail ? { ok: true, invited: true, status: res.status } : { ok: true, status: res.status }
 }
 
 const membersRemove = async (req, body) => {

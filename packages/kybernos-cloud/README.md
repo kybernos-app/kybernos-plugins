@@ -227,6 +227,10 @@ is named by the token alone, never by an argument. `connections_execute` acts fo
 `node packages/kybernos-cloud/test-connections.mjs` (26 checks, a stand-in server that speaks ADR 0008; the engine's own JSON-schema rules are
 checked for each tool where DSH is installed, `NO_DSH_ENGINE=1` skips them).
 
+## Share panel: members
+
+`POST /kybernos-cloud/members/invite` with `{email, role}` creates a pending invitation (`POST /v1/workspaces/{id}/invitations`, which sends the mail; answers `invited: true`) and with `{user_id, role}` adds an existing user (`POST …/members`); the refusals the panel can act on come back as one word: `already_member`, `seat_limit`, `forbidden`, `rate_limited`.
+
 ## Pourquoi un package séparé
 
 Le half client d'un plugin Cordis doit tenir dans **un seul** `client.js` : le
