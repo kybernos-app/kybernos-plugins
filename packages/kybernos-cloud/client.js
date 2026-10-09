@@ -628,6 +628,13 @@ window.__ModuleLoader__.load({
 [class*="collapsed"] .kbf-offbtns .kbm-btn span{display:none}
 [class*="collapsed"] .kbf-offbtns .kbm-btn{padding:0 10px}
 .kbf-hint{margin:0;font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-secondary,#8a8a93)}
+.kbf-maj{display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:34px;padding:0 10px;border:1px solid color-mix(in srgb,#f5a524 40%,var(--dsw-alias-border-l2));border-radius:10px;background:color-mix(in srgb,#f5a524 9%,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;cursor:pointer;text-align:start}
+.kbf-maj:hover{background:color-mix(in srgb,#f5a524 16%,transparent)}
+.kbf-maj-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f5a524}
+.kbf-maj-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550}
+.kbf-maj-v{flex:none;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;font-size:11.5px}
+[class*="collapsed"] .kbf-maj{justify-content:center;width:32px;height:32px;padding:0}
+[class*="collapsed"] .kbf-maj-t,[class*="collapsed"] .kbf-maj-v{display:none}
 .kbf-connect{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:34px;border:none;border-radius:10px;background:var(--dsw-alias-brand-primary,#4176e6);color:var(--dsw-alias-label-primary-foreground,#fff);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbf-connect:hover{filter:brightness(1.06)}
 /* Rail replié : l'identité se réduit à l'avatar, l'encart à une pastille. */
@@ -2341,12 +2348,21 @@ window.__ModuleLoader__.load({
           const [mobileOpen, setMobileOpen] = React.useState(false)
           // Update available: an amber dot on the card tile, the discreet
           // reminder that stays visible with the menu closed (kybernos-maintenance signal).
-          const [majDispo, setMajDispo] = React.useState(() => lireMaj() !== null)
+          const [majInfo, setMajInfo] = React.useState(() => lireMaj())
+          const majDispo = majInfo !== null
           React.useEffect(() => {
-            const sur = () => setMajDispo(lireMaj() !== null)
+            const sur = () => setMajInfo(lireMaj())
             window.addEventListener('kybernos:update', sur)
             return () => window.removeEventListener('kybernos:update', sur)
           }, [])
+          // Signed out (or pairing) there is no account menu to carry the "Update available" line, and the card of the launch is shown once:
+          // this line stays in the footer until the update is applied (or its version is skipped). It opens the same dialog.
+          const ouvrirMaj = () => { try { window.dispatchEvent(new Event('kybernos:menu:update')) } catch (e) { /* Event absent */ } }
+          const ligneMaj = majInfo === null ? null : h('button', {
+            type: 'button', className: 'kbf-maj', 'data-kb': 'foot-update', onClick: ouvrirMaj,
+          }, h('span', { className: 'kbf-maj-dot', 'aria-hidden': 'true' }),
+            h('span', { className: 'kbf-maj-t' }, t('menuUpdate')),
+            h('span', { className: 'kbf-maj-v' }, (majInfo.kind === 'moteur' ? 'DSH ' : '') + (typeof majInfo.version === 'string' ? majInfo.version : majInfo.cible)))
           // Largeur RÉELLE du créneau : en rail replié la rangée doit changer de
           // forme, sinon elle déborde (mesuré : 167 px dans un rail de 60 px).
           const racineRef = React.useRef(null)
@@ -2635,6 +2651,7 @@ window.__ModuleLoader__.load({
               : null)
           } else if (phase === 'pairing') {
             corps = h('div', { className: 'kbf-off' },
+              ligneMaj,
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, t('footPairing')),
               h('div', { className: 'kbf-offbtns' },
                 h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: openCard },
@@ -2646,6 +2663,7 @@ window.__ModuleLoader__.load({
           } else {
             const hint = phase === 'loading' ? t('loading') : t('footHint')
             corps = h('div', { className: 'kbf-off' },
+              ligneMaj,
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, hint),
               h('div', { className: 'kbf-offbtns' },
                 h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: openAndConnect },

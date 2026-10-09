@@ -154,14 +154,39 @@ window.__ModuleLoader__.load({
     const vivantTitre = (conf) => conf.defaut
 
     // ── export VIVANT (Briques) : embarquer moteur + état dans l'app ──────────
+    // The code of a plugin's client module, as the page loaded it. It is NOT in a <script> of the page: DSH fetches it and
+    // lists the address in its boot script (a JSON manifest, with escaped quotes: \"url\":\"plugins/??@local/<module>/client.js&rev=…\").
+    // The first inline script that merely MENTIONS the module is that boot script (38 KB of manifest, no module in it), and it used to be
+    // taken for the engine: the exported app opened with a bar and no scene. A text only counts when it defines the module.
+    // Returns null when nothing does; the export then falls back to a still snapshot of the panel.
     async function sourceModule (marque) {
+      const echappe = marque.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const definit = (texte) => typeof texte === 'string' &&
+        new RegExp('__ModuleLoader__\\s*\\.\\s*load\\s*\\(\\s*\\{\\s*id\\s*:\\s*[\'"]@local/' + echappe + '[\'"]').test(texte)
+      const adresses = []
       for (const s of Array.from(window.document.scripts)) {
-        if (s.src && s.src.includes(marque)) {
-          const r = await window.fetch(s.src, { cache: 'no-store' })
-          if (r.ok) return await r.text()
-        } else if (!s.src && s.textContent && s.textContent.includes(marque)) {
-          return s.textContent
+        if (s.src) {
+          if (s.src.includes(marque)) adresses.push(s.src)
+        } else if (typeof s.textContent === 'string') {
+          if (definit(s.textContent)) return s.textContent
+          if (s.textContent.includes(marque)) {
+            const re = new RegExp('url\\\\?"\\s*:\\s*\\\\?"(plugins/\\?\\?[^"\\\\]*' + echappe + '[^"\\\\]*)', 'g')
+            for (const m of s.textContent.matchAll(re)) {
+              let url = m[1]
+              try { url = new URL(m[1], window.document.baseURI || undefined).href } catch { /* keep the relative address */ }
+              adresses.push(url)
+            }
+          }
         }
+      }
+      for (const url of adresses) {
+        try {
+          const r = await window.fetch(url, { cache: 'no-store' })
+          if (r.ok) {
+            const texte = await r.text()
+            if (definit(texte)) return texte
+          }
+        } catch { /* this address does not answer: try the next one */ }
       }
       return null
     }
@@ -302,6 +327,20 @@ window.__ModuleLoader__.load({
     }
 
     // ── menu après installation ────────────────────────────────────────────────
+    /** Where the menu goes: under the button with the left edges aligned, kept INSIDE the window. The button of a right-hand panel sits
+     *  at the window's edge and the menu, starting at the button, ran about 110 px out of it (the labels were cut). When there is no
+     *  room below it opens above the button. Pure. */
+    function placerMenu (r, largeur, hauteur, W, H) {
+      const marge = 8
+      const left = Math.max(marge, Math.min(r.left, W - largeur - marge))
+      let top = r.bottom + 6
+      if (top + hauteur + marge > H) {
+        const auDessus = r.top - hauteur - 6
+        top = auDessus >= marge ? auDessus : Math.max(marge, H - hauteur - marge)
+      }
+      return { left, top }
+    }
+
     function ouvrirMenu (conf, ancre) {
       window.document.querySelectorAll('.' + CLASSE_MENU).forEach((m) => m.remove())
       const etat = installe.get(conf.id) || { auto: false }
@@ -340,8 +379,10 @@ window.__ModuleLoader__.load({
       })
       window.document.body.appendChild(menu)
       const r = ancre.getBoundingClientRect()
-      menu.style.top = Math.max(8, r.bottom + 6) + 'px'
-      menu.style.left = Math.max(8, r.left) + 'px'
+      const doc = window.document.documentElement || {}
+      const place = placerMenu(r, menu.offsetWidth || 190, menu.offsetHeight || 120, window.innerWidth || doc.clientWidth || 1200, window.innerHeight || doc.clientHeight || 800)
+      menu.style.top = place.top + 'px'
+      menu.style.left = place.left + 'px'
       setTimeout(() => window.document.addEventListener('click', fermer, { once: true }), 0)
     }
 
@@ -400,9 +441,16 @@ window.__ModuleLoader__.load({
     }
 
     let dernierBalayage = 0
+    let balayageDiffere = null
     function balayerReel () {
       const maintenant = Date.now()
-      if (maintenant - dernierBalayage < 200) return // pas plus de 5 fois/s
+      const attente = 200 - (maintenant - dernierBalayage)
+      if (attente > 0) {
+        // No more than 5 sweeps a second, but a sweep that is skipped is REPLAYED once the quiet period is over: a panel mounted
+        // right after another change used to find nobody to sweep for it, and never got its button until some unrelated mutation.
+        if (balayageDiffere === null) balayageDiffere = setTimeout(() => { balayageDiffere = null; balayer() }, attente)
+        return
+      }
       dernierBalayage = maintenant
       if (window.document.getElementById(ID_STYLE) === null) {
         const s = window.document.createElement('style')
@@ -436,7 +484,7 @@ window.__ModuleLoader__.load({
     return {
       apply,
       inject: [],
-      __test: { kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript },
+      __test: { kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu },
     }
   },
 })

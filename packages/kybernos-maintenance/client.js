@@ -627,15 +627,30 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
      *  host's own answer untouched. `distant` = the `distant` block of the hub's refresh answer. */
     const fusionnerSigne = (info, distant) => {
       if (info === null || typeof info !== 'object' || distant === null || typeof distant !== 'object') return info
-      if (distant.plusRecent !== true || typeof distant.suite !== 'string') return info
+      // Hosted (a server, a container: rebuilt, not patched in place) is known from the hub whatever the signed release says.
+      const heberge = distant.hebergement !== undefined && distant.hebergement !== null && distant.hebergement.heberge === true
+      const marque = (i) => (heberge === true && i.pack !== undefined && i.pack !== null && typeof i.pack === 'object' ? { ...i, pack: { ...i.pack, heberge } } : i)
+      if (distant.plusRecent !== true || typeof distant.suite !== 'string') return marque(info)
       const pk = info.pack || {}
-      if (typeof pk.installee !== 'string') return info
+      if (typeof pk.installee !== 'string') return marque(info)
       const aj = distant.miseAJour || {}
       return {
         ...info,
-        pack: { ...pk, latest: distant.suite, disponible: true, joignable: true, signe: true, applicable: aj.possible === true, raison: aj.raison || null },
+        pack: { ...pk, latest: distant.suite, disponible: true, joignable: true, signe: true, applicable: aj.possible === true, raison: aj.raison || null, heberge },
         pending: { kind: 'kybernos', cible: distant.suite, installee: pk.installee, requis: false, note: '' }
       }
+    }
+    /** Which way this install is updated. Pure.
+     *  'suite' the Suite downloads, installs and restarts from here (one click) · 'heberge' a server or container: rebuild the instance ·
+     *  'archive' an unpacked archive: ./kybernos-update · 'git' a development checkout · 'moteur' the DSH engine · null nothing pending. */
+    const modeMiseAJour = (info) => {
+      const p = info !== null && typeof info === 'object' && info.pending !== null && info.pending !== undefined ? info.pending : null
+      if (p === null) return null
+      if (p.kind !== 'kybernos') return 'moteur'
+      const pk = info.pack || {}
+      if (pk.heberge === true) return 'heberge'
+      if (pk.signe === true && pk.applicable === true) return 'suite'
+      return pk.git !== true ? 'archive' : 'git'
     }
     const updFetch = async (force) => {
       const r = await fetch('/kybernos-maintenance/update' + (force === true ? '?force=1' : ''), { cache: 'no-store' })
@@ -707,9 +722,19 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       if (t.etat === 'telechargement') return kbp('Téléchargement et vérification de l’archive…', 'Downloading and checking the archive…')
       if (t.etat === 'extraction') return kbp('Extraction…', 'Extracting…')
       if (t.etat === 'installation') return kbp('Installation (une photo est prise avant)…', 'Installing (a snapshot is taken first)…')
+      if (t.etat === 'relance') return '✓ ' + kbp('Kybernos ' + String(t.version || '') + ' est installé. DSH redémarre : la page se recharge toute seule (sinon, rechargez-la).', 'Kybernos ' + String(t.version || '') + ' is installed. DSH is restarting: the page reloads by itself (if it does not, reload it).')
       if (t.etat === 'termine') return '✓ ' + kbp('Kybernos ' + String(t.version || '') + ' est installé. Redémarrez DSH pour terminer.', 'Kybernos ' + String(t.version || '') + ' is installed. Restart DSH to finish.')
       if (t.etat === 'echec') return kbp('La mise à jour a échoué, rien n’a changé : ', 'The update failed and nothing changed: ') + String(t.erreur || '')
       return ''
+    }
+    /** Restarts DSH through the hub, the route the Suite panel already uses (it needs the explicit confirmation sent here: the click on
+     *  "Update now" says it in the dialog). True only when the hub confirms it started the restart. `appel` is fetch (a seam for the tests). */
+    const updRelancer = async (appel) => {
+      try {
+        const x = await (appel || fetch)('/kybernos-hub/relaunch', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: true }) })
+        const b = await x.json().catch(() => null)
+        return x.status === 200 && b !== null && typeof b === 'object' && b.ok === true
+      } catch (e) { return false }
     }
     /** Starts the Suite's update from the dialog (the host does the work; this only asks and follows). */
     const updRun = async (btn, statut, fin) => {
@@ -730,7 +755,15 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         try { const x = await fetch('/kybernos-hub/update/status', { cache: 'no-store' }); t = await x.json() } catch (e) { t = null }
         if (t === null || t.ok !== true) { setTimeout(() => { void suivre() }, 3000); return }
         statut.textContent = motMaj(t)
-        if (t.etat === 'termine') { fin(); try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ } return }
+        if (t.etat === 'termine') {
+          fin()
+          try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ }
+          // The click said "install and restart": restart now. If the hub cannot (no relaunch tool on this machine) the dialog keeps
+          // saying "Restart DSH to finish", as before.
+          statut.textContent = motMaj({ etat: 'relance', version: t.version })
+          if (await updRelancer() !== true) statut.textContent = motMaj(t)
+          return
+        }
         if (t.etat === 'echec') { btn.disabled = false; return }
         setTimeout(() => { void suivre() }, 2000)
       }
@@ -790,9 +823,15 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           steps.appendChild(li)
         }
         const pk = info.pack || {}
-        if (p.kind === 'kybernos' && pk.signe === true && pk.applicable === true) {
+        const mode = modeMiseAJour(info)
+        if (mode === 'heberge') {
+          // A server or container deployment is rebuilt. Replacing files in a running container would be lost at the next redeploy.
+          dlg.appendChild(upEl('p', 'kbup-note', kbp('Cette instance tourne sur un serveur ou dans un conteneur (Coolify, Docker…). Elle ne se met pas à jour sur place : elle se reconstruit.', 'This instance runs on a server or in a container (Coolify, Docker…). It is not updated in place: it is rebuilt.')))
+          step(kbp('Redéployez ou redémarrez l’instance pour qu’elle reparte de la dernière version du Dockerfile. Si la construction réutilise son cache, forcez-la sans cache : sinon l’ancienne version est conservée.', 'Redeploy or restart the instance so that it starts from the latest version of the Dockerfile. If the build reuses its cache, force it without cache: otherwise the old version is kept.'))
+          step(kbp('Gardez le volume de données attaché s’il y en a un : vos sessions et réglages y vivent. Sans volume, un redéploiement repart d’une instance vide.', 'Keep the data volume attached if there is one: your sessions and settings live in it. Without a volume, a redeploy starts from an empty instance.'))
+        } else if (mode === 'suite') {
           viaSuite = true
-          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de votre installation puis installe. En cas d’échec, tout revient à l’état d’avant. DSH n’est pas redémarré : vous le ferez ensuite.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. DSH is not restarted: you do that afterwards.')))
+          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos télécharge l’archive signée, vérifie son empreinte, prend une photo de votre installation puis installe. En cas d’échec, tout revient à l’état d’avant. Ensuite DSH redémarre tout seul ; les sessions en cours reprennent après le redémarrage.', 'Kybernos downloads the signed archive, checks its hash, snapshots your install, then installs. If anything fails, everything goes back to how it was. Then DSH restarts by itself; running sessions pick up again after the restart.')))
           statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
           dlg.appendChild(statutMaj)
         } else if (p.kind === 'kybernos' && pk.git !== true) {
@@ -804,7 +843,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } else {
           step(kbp('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
         }
-        if (viaSuite !== true) step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
+        if (viaSuite !== true && mode !== 'heberge') step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
         if (viaSuite !== true) dlg.appendChild(steps)
       } else if (info !== null && info.checkedAt) {
         let quand = ''
@@ -832,8 +871,8 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         go.setAttribute('data-kb', 'upd-go')
         foot.appendChild(go)
       } else if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
-        const a = upEl('a', 'kbup-b main', kbp('Ouvrir la page de téléchargement', 'Open the download page'))
-        a.href = info.pack.depot; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.textDecoration = 'none'; a.style.display = 'inline-flex'; a.style.alignItems = 'center'
+        const a = upEl('a', 'kbup-b main', modeMiseAJour(info) === 'heberge' ? kbp('Voir cette version', 'See this release') : kbp('Ouvrir la page de téléchargement', 'Open the download page'))
+        a.href = info.pack.depot + (modeMiseAJour(info) === 'heberge' && /github\.com/.test(info.pack.depot) ? '/releases/latest' : ''); a.target = '_blank'; a.rel = 'noopener noreferrer'; a.style.textDecoration = 'none'; a.style.display = 'inline-flex'; a.style.alignItems = 'center'
         foot.appendChild(a)
       } else {
         foot.appendChild(upBtn(kbp('Fermer', 'Close'), 'kbup-b main', close))
@@ -906,7 +945,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         // Update detection: never blocks startup.
         try { updBoot() } catch (e) { try { console.warn('[kybernos-maintenance] detection des mises a jour indisponible', e) } catch (e2) { /* console */ } }
       },
-      __test: { fusionnerSigne, motMaj, decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
+      __test: { fusionnerSigne, modeMiseAJour, updRelancer, motMaj, decouperVersion, ligneVersion, versionPlugin, zoneTexte, statutDe, etatValide, lireOuvert, ecrireOuvert, CLE_DETAILS, ID_DETAILS, Page, FR, EN }
     }
   }
 })

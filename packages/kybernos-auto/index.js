@@ -199,18 +199,29 @@ export function vueSante (sante, whitelist, maintenant = Date.now()) {
 // ── the router: rules → local classifier → whitelist → probe-first chain ──────────────
 // Same classes and rules as the CLI `~/.dsh/tools/auto-router.mjs` (the agent's reflex before a delegation), which asks
 // this host first and keeps its own copy only as a fallback when the host does not answer.
+// The request is read in lower case and without accents ("génère", "genere" and "GÉNÈRE" are one word), in French and in
+// English. The first rule used to be `vi[ée]deo`, which matches neither "vidéo" nor "video", and the others needed the accents or French words,
+// so "generate a video of a cat", "draw an image of a lighthouse" or "write a python function" all fell through to chat.
+// Order: the words that only mean media, then what is looked at, then design, then code, and only then a request to MAKE an
+// image, so "a python function that generates an image" stays code.
+const normaliser = (t) => String(t === undefined || t === null ? '' : t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’‘]/g, "'").toLowerCase()
 const REGLES = [
-  ['media', /\b(vi[ée]deo|g[ée]n[è]re[sr]?\s+(une?\s+)?(vid[ée]o|image|icone)|tts|voix de synth|doublag|sous-titr)/i],
-  ['vision', /\b(regarde[sr]?\s+(l['’]?[ée]cran|l'image|la capture)|capture d['’]?[ée]cran|lis (ce|cette) (png|jpg|image)|planche contact)/i],
+  ['media', /\b(videos?|tts|text.?to.?speech|speech.?to.?text|voix de synth|voice.?over|doublag|dubbing|sous.?titr|subtitl)/],
+  ['vision', /\b(regarde[rsz]?|decris|decrire|analyse[rz]?|inspecte[rz]?|lis|lire|look at|describe|analy[sz]e|inspect|read|check)\s+(?:l'|la |le |les |ce |cet |cette |ces |this |these |that |the |my |ma |mon |mes )?(?:ecran|image|capture|photo|screenshot|png|jpe?g|picture)/,
+    /\b(capture d'?ecran|planche contact|what(?:'s| is) (?:in|on|shown in) (?:this|the|that) (?:image|picture|photo|screenshot))/],
   // "design" class (user decision 03/10/2026): mock-ups, templates, visual consistency, UI reviews, sites. Measured
   // 03/10: without website|landing|site web the brief of the kybernos.app site was classed "code".
-  ['design', /\b(design|d[ée]sign|maquette|gabarit|homog[ée]n[ée]it[ée] (visuelle|de bord|des bords)|int[ée]gration (CSS|ui|interface)|harmonisation|revue (UI|visuelle|vision)|parit[ée] (UI|spot)|ui\b|(site|page) web|website|landing|front.?end)/i],
-  ['code', /\b(bug|refactor|corrige|patch|compile|test unitaire|migration|typescript|lint|pagination|feature|composant)/i]
+  ['design', /\b(design|maquette|mock.?up|wireframe|gabarit|homogeneite (visuelle|de bord|des bords)|integration (css|ui|interface)|harmonisation|revue (ui|visuelle|vision)|parite (ui|spot)|ui\b|(site|page) web|website|landing|front.?end)/],
+  ['code', /\b(bug|refactor|corrige|patch|compile|tests? unitaires?|unit tests?|migration|typescript|javascript|python|rust|golang|java\b|c\+\+|sql|regex|lint|pagination|feature|composant|component|function|fonction|script|endpoint|stack.?trace|debug|deboguer|implement|fix (?:the |this |a |my )?(?:bug|error|issue|crash|test|build|lint)|ecris (?:une?|le|la) (?:fonction|classe|script|programme)|write (?:a |an |the |some )?(?:\w+ )?(?:function|class|script|program))/],
+  ['media', /\b(genere[rsz]?|cree[rz]?|fais|produis|dessine[rz]?|make|create|generate|render|draw|paint|produce|illustrate)(?:[\s-]+(?:moi|me))?\s+(?:(?:une?|des|the|an?|some)\s+)?(?:\w+\s+){0,2}(?:images?|icones?|icons?|illustrations?|photos?|logos?|dessins?|pictures?|animations?|clips?)\b/]
 ]
 const regle = (demande) => {
-  for (const [classe, re] of REGLES) if (re.test(demande)) return classe
+  const t = normaliser(demande)
+  for (const [classe, ...res] of REGLES) if (res.some((re) => re.test(t))) return classe
   return null
 }
+// Exported for the tests: the rules without the rest of the routing.
+export { regle as classerParRegles }
 
 /** Which whitelist models may serve a class. No metadata per model: the class is read on the id. */
 export function candidats (whitelist, classe) {

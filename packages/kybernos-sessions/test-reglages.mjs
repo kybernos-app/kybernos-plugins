@@ -9,7 +9,7 @@
  *  directory: nothing outside it is read or written.
  *
  *  Usage: node packages/kybernos-sessions/test-reglages.mjs   (exit 0 = all pass) */
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, chmodSync, symlinkSync, lstatSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, chmodSync, symlinkSync, lstatSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ecrireReglages, lireReglages, readRawSettings, monterRoutes, REGLAGES_DEFAUT } from './index.js'
@@ -69,7 +69,15 @@ console.log('\n── no file, empty file ──')
   ok('a new file is private (0600)', (statSync(f).mode & 0o777) === 0o600, (statSync(f).mode & 0o777).toString(8))
   const g = nouveau()
   ecrire(g, '   \n')
-  ok('an empty file counts as an empty object', ecrireReglages(g, { brain: 'a/b' }).ok === true && lire(g).brain === 'a/b')
+  {
+  const g = join(racine, 'refus.json')
+  const refuse = ecrireReglages(g, { brain: 42 })
+  ok('a refused value is flagged as the sender\'s mistake (invalide), and nothing is written', refuse.ok === false && refuse.invalide === true && !existsSync(g), JSON.stringify(refuse))
+  writeFileSync(g, '{not json')
+  const bloque = ecrireReglages(g, { brain: 'a/b' })
+  ok('a blocked settings.json is NOT flagged invalide (it is the host\'s trouble, 500)', bloque.ok === false && bloque.invalide !== true, JSON.stringify(bloque))
+}
+ok('an empty file counts as an empty object', ecrireReglages(g, { brain: 'a/b' }).ok === true && lire(g).brain === 'a/b')
 }
 
 console.log('\n── permissions are kept, never widened ──')

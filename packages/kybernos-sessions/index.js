@@ -380,17 +380,19 @@ export function ecrireReglages (fichier, patch) {
   const p = (patch !== null && typeof patch === 'object') ? patch : {}
   // Un modèle d'étude refusé se DIT : l'ignorer en silence ferait croire à la
   // page que le choix est enregistré alors que le fichier garde l'ancien.
+  // `invalide: true` marks a refusal of what was sent (the route answers 400); the others (a blocked or unwritable
+  // settings.json) are the host's own trouble (500).
   if (p.brain !== undefined && brainValide(p.brain) !== true) {
-    return { ok: false, erreur: 'brain : identifiant « route/id » attendu (ou chaîne vide)' }
+    return { ok: false, invalide: true, erreur: 'brain : identifiant « route/id » attendu (ou chaîne vide)' }
   }
   if (p.voiceInput !== undefined && voiceSourceValide(p.voiceInput) !== true) {
-    return { ok: false, erreur: 'voiceInput : « native » ou « kybernos » attendu' }
+    return { ok: false, invalide: true, erreur: 'voiceInput : « native » ou « kybernos » attendu' }
   }
   if (p.decisionBrain !== undefined && decisionValide(p.decisionBrain) !== true) {
-    return { ok: false, erreur: 'decisionBrain : identifiant « route/id », « none » ou chaîne vide attendu' }
+    return { ok: false, invalide: true, erreur: 'decisionBrain : identifiant « route/id », « none » ou chaîne vide attendu' }
   }
   if (p.autoWhitelist !== undefined && whitelistValide(p.autoWhitelist) !== true) {
-    return { ok: false, erreur: 'autoWhitelist : tableau d identifiants « route/id » sans doublon attendu' }
+    return { ok: false, invalide: true, erreur: 'autoWhitelist : tableau d identifiants « route/id » sans doublon attendu' }
   }
   const lu = readRawSettings(fichier)
   const bloque = settingsFileBlocked(lu, fichier)
@@ -1321,7 +1323,7 @@ export function monterRoutes (webServerSvc, opts) {
     try {
       const corps = await lireCorps(req)
       const r = ecrireReglages(reglagesFichier, corps)
-      envoyer(res, r.ok === false ? 500 : 200, r.ok === false ? { ok: false, erreur: r.erreur } : { ok: true, reglages: r.reglages })
+      envoyer(res, r.ok === false ? (r.invalide === true ? 400 : 500) : 200, r.ok === false ? { ok: false, erreur: r.erreur } : { ok: true, reglages: r.reglages })
     } catch (e) {
       envoyer(res, 500, { ok: false, erreur: String(e && e.message ? e.message : e) })
     }

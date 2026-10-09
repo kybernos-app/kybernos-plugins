@@ -58,19 +58,25 @@ const dernierSegment = (txt) => {
 let machineCache = null // { at, data }
 const MACHINE_TTL_MS = 30_000
 
-const mesurerMachine = async () => {
+// `exec` is a seam for the tests (a command and its arguments in, the text out, or null when it failed).
+export const mesurerMachine = async (exec = exec1) => {
   const [chip, memsize] = await Promise.all([
-    exec1('sysctl', ['-n', 'machdep.cpu.brand_string']),
-    exec1('sysctl', ['-n', 'hw.memsize']),
+    exec('sysctl', ['-n', 'machdep.cpu.brand_string']),
+    exec('sysctl', ['-n', 'hw.memsize']),
   ])
   const ramGo = /^\d+$/.test(String(memsize === null ? '' : memsize).trim())
     ? Math.round(Number(memsize.trim()) / (1024 ** 3)) : null
-  const versionBrut = await exec1('ollama', ['--version'])
+  const versionBrut = await exec('ollama', ['--version'])
   const present = versionBrut !== null
   const version = present ? dernierSegment(versionBrut).replace(/^.*version is\s*/i, '') : null
   let models = []
+  // `serveur`: does the Ollama SERVER answer? The `ollama` program being installed says nothing about it, and `ollama list` is the
+  // cheapest call that needs the server. null = no program, so no question; false = installed but not running (an empty `models`
+  // then means "unknown", not "none pulled").
+  let serveur = null
   if (present === true) {
-    const liste = await exec1('ollama', ['list'], 8000)
+    const liste = await exec('ollama', ['list'], 8000)
+    serveur = liste !== null
     if (liste !== null) {
       models = liste.split(/\r?\n/).slice(1) // 1re ligne = en-tête « NAME ID SIZE MODIFIED »
         .map((l) => l.trim()).filter((l) => l.length > 0)
@@ -83,7 +89,7 @@ const mesurerMachine = async () => {
     arch: process.arch,
     chip: chip === null ? null : dernierSegment(chip),
     ramGo,
-    ollama: { present, version, models },
+    ollama: { present, version, models, serveur },
   }
 }
 

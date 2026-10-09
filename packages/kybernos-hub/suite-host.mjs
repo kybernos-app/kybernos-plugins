@@ -66,6 +66,27 @@ export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   }
 }
 
+/**
+ * Is this instance a server or container deployment (Coolify, Docker, a VPS template)? Such an instance is updated by REBUILDING it, not
+ * by replacing files inside a running container: the replacement would be lost at the next redeploy, and there may be no process manager
+ * to restart it. Pure: `env` (process.env) and `existe(path)` are injected.
+ * `KYBERNOS_HOSTED` decides when it is set (1 / true / yes = hosted, 0 / false / no = not: a local DSH that happens to run in a
+ * container). Otherwise: the Kybernos gate's own variables, the `COOLIFY_*` variables Coolify puts in every container it builds, and
+ * the marker file Docker creates.
+ * @returns {{ heberge: boolean, raison: 'env' | 'gate' | 'coolify' | 'container' | null }}
+ */
+export function detecterHebergement ({ env, existe }) {
+  const e = env !== null && typeof env === 'object' ? env : {}
+  const texte = (k) => (typeof e[k] === 'string' ? e[k].trim() : '')
+  const force = texte('KYBERNOS_HOSTED').toLowerCase()
+  if (['1', 'true', 'yes'].includes(force)) return { heberge: true, raison: 'env' }
+  if (['0', 'false', 'no'].includes(force)) return { heberge: false, raison: null }
+  if (texte('KYBERNOS_PUBLIC_HOST') !== '' || texte('KYBERNOS_GATE_PASSWORD') !== '') return { heberge: true, raison: 'gate' }
+  if (Object.keys(e).some((k) => /^COOLIFY_/.test(k))) return { heberge: true, raison: 'coolify' }
+  try { if (typeof existe === 'function' && existe('/.dockerenv') === true) return { heberge: true, raison: 'container' } } catch (x) { /* unreadable: not a container */ }
+  return { heberge: false, raison: null }
+}
+
 /** The platform key a release names its archives by. */
 export const plateformeDe = (processPlatform) => (processPlatform === 'darwin' ? 'mac' : processPlatform === 'win32' ? 'windows' : 'linux')
 
@@ -74,12 +95,15 @@ export const plateformeDe = (processPlatform) => (processPlatform === 'darwin' ?
  * installed, `urlConfiguree`, `plateforme`, `racineDev` = this is a development checkout (a git working tree: it is updated with git).
  * `miseAJour.possible` is true only when an update can really be applied from here.
  */
-export function etatDistant ({ evaluation, cle, urlConfiguree, plateforme, racineDev, derniere }) {
+export function etatDistant ({ evaluation, cle, urlConfiguree, plateforme, racineDev, derniere, hebergement }) {
   const ok = evaluation !== null && evaluation !== undefined && evaluation.ok === true
   let raison = null
   if (!cle) raison = 'no-key'
   else if (!ok) raison = 'no-release'
   else if (!evaluation.plusRecent) raison = 'up-to-date'
+  // A hosted instance is rebuilt, not patched in place. Checked BEFORE the development checkout: the image of a hosted instance is often
+  // built from a git clone, so it would otherwise be told to run `git pull` inside a container.
+  else if (hebergement !== undefined && hebergement !== null && hebergement.heberge === true) raison = 'hosted-instance'
   else if (archivePour(evaluation.doc, plateforme) === null) raison = 'no-archive-for-platform'
   else if (racineDev === true) raison = 'development-checkout'
   return {
@@ -90,6 +114,7 @@ export function etatDistant ({ evaluation, cle, urlConfiguree, plateforme, racin
     publieLe: ok ? evaluation.doc.publieLe : null,
     plusRecent: ok && evaluation.plusRecent === true,
     miseAJour: { possible: raison === null, raison },
+    hebergement: { heberge: hebergement?.heberge === true, raison: hebergement?.raison ?? null },
     derniere: derniere ?? null
   }
 }
@@ -129,7 +154,8 @@ export function evaluerCache ({ lireCache, cles, versionSuite }) {
  * Everything with a side effect is injected. `progres(etat)` is told: telechargement | extraction | installation.
  * @returns {{ ok: boolean, error?: string, detail?: string, relanceRequise?: boolean, version?: string }}
  */
-export async function mettreAJour ({ evaluation, plateforme, racineDev, telechargerVers, extraire, executer, nettoyer, progres }) {
+export async function mettreAJour ({ evaluation, plateforme, racineDev, hebergement, telechargerVers, extraire, executer, nettoyer, progres }) {
+  if (hebergement?.heberge === true) return { ok: false, error: 'hosted-instance' }
   if (racineDev === true) return { ok: false, error: 'development-checkout' }
   if (evaluation === null || evaluation === undefined || evaluation.ok !== true || evaluation.plusRecent !== true) return { ok: false, error: 'nothing-to-update' }
   const archive = archivePour(evaluation.doc, plateforme)

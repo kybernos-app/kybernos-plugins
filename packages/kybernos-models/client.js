@@ -420,6 +420,7 @@ window.__ModuleLoader__.load({
         'kb.models.error.nokey': { kybernos: 'renseignez la route et l identifiant', en: 'set the route and the model id' },
         'kb.models.error.path': { kybernos: 'chemin d écriture inconnu', en: 'unknown write path' },
         'kb.models.error.local': { kybernos: 'ligne locale : les champs appliqués exigent un modèle déclaré', en: 'local row: applied fields need a declared model' },
+        'kb.models.error.number': { kybernos: 'entrez un nombre positif (131072, 256K, 1M)', en: 'enter a positive count (131072, 256K, 1M)' },
         'kb.models.error.wire': { kybernos: 'valeur non traduisible (niveaux de raisonnement inconnus : synchronisez d abord)', en: 'value cannot be translated (unknown reasoning levels: sync first)' },
         'kb.models.error.conflict': { kybernos: 'settings.yaml a changé entre-temps — relu', en: 'settings.yaml changed meanwhile — reloaded' },
         'kb.models.error.refus': { kybernos: 'refus du harnais', en: 'harness refusal' },
@@ -726,21 +727,35 @@ window.__ModuleLoader__.load({
       // Phase sans câblage : rien ne sort de la page. Phase câblée : les champs
       // `wire` passent par `remote.settings.mutate` (settings.yaml, validé par
       // le service), les autres par le fichier d'annotations du plugin.
-      const kbmSave = (mo, k, v) => {
+      const kbmSave = (mo, k, v, ifRefused) => {
         if (KBM.live !== true) return true
         // Optimiste : l'écran suit le geste, le canal réel (settings.yaml ou
         // fichier d'annotations) répond ensuite ; un refus atterrit dans
-        // `mo.error` et reste affiché sur la ligne.
-        Promise.resolve(kbMPersist(mo, k, v)).catch(() => { /* kbMPersist ne rejette pas */ })
+        // `mo.error` et reste affiché sur la ligne. `ifRefused` (optional) is called when the channel
+        // refused, to take back what the screen showed on trust.
+        Promise.resolve(kbMPersist(mo, k, v))
+          .then((ok) => { if (ok === false && typeof ifRefused === 'function') ifRefused() })
+          .catch(() => { /* kbMPersist ne rejette pas */ })
         return true
       }
       const kbmSet = (mo, k, v) => {
+        const had = Object.prototype.hasOwnProperty.call(mo.ov, k)
+        const previous = mo.ov[k]
         const next = Object.assign({}, mo.ov)
         if (v === kbmUnder(mo, k)) delete next[k]
         else next[k] = v
         mo.ov = next
-        if (kbmSave(mo, k, v) !== true) { mo.error = m('kb.models.error'); kbmNotify(); return false }
+        // Cleared BEFORE saving: a refusal sets it again, and it used to be wiped right after (the write is refused
+        // synchronously for a value that cannot be translated), so the user never saw why nothing changed.
         mo.error = null
+        const takeBack = () => {
+          const back = Object.assign({}, mo.ov)
+          if (had) back[k] = previous
+          else delete back[k]
+          mo.ov = back
+          kbmNotify()
+        }
+        if (kbmSave(mo, k, v, takeBack) !== true) { mo.error = m('kb.models.error'); kbmNotify(); return false }
         kbmNotify()
         return true
       }
@@ -3022,10 +3037,20 @@ window.__ModuleLoader__.load({
       // `modelOverrides` à côté d'une liste `models` — d'où les deux chemins.
       const KB_NS = 'llm-pi-ai'
       const KB_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
+      // KB-NUM-PURE-BEGIN
+      // A count typed in the model sheet: "131072", "256K", "1M", "1.5M" (decimal suffixes, like the native page and the DeepSeek
+      // form below), or a number; "128 000", "128,000" and "128_000" still work. Anything else, zero, a negative or an absurd size
+      // (more than 100 million) gives null: the write is refused, with a message. It used to strip every non-digit, so "256K"
+      // was written as 256 and "abc12" as 12. Pure.
+      const KB_COUNT_MAX = 1e8
       const kbMNum = (v) => {
-        const n = typeof v === 'number' ? v : Number(String(v === null || v === undefined ? '' : v).replace(/[^0-9.-]/g, ''))
-        return Number.isFinite(n) && n > 0 ? Math.round(n) : null
+        if (typeof v === 'number') return Number.isFinite(v) && v > 0 && v <= KB_COUNT_MAX ? Math.round(v) : null
+        let t = String(v === null || v === undefined ? '' : v).trim().replace(/[\s_]/g, '')
+        if (/^\d{1,3}(,\d{3})+(\.\d+)?[km]?$/i.test(t)) t = t.replace(/,/g, '')
+        const n = kbDsParseCapacity(t)
+        return typeof n === 'number' && Number.isFinite(n) && n > 0 && n <= KB_COUNT_MAX ? Math.round(n) : null
       }
+      // KB-NUM-PURE-END
       const kbMFieldOf = (k) => {
         if (k === 'name') return 'name'
         if (k === 'context') return 'contextWindow'
@@ -3194,7 +3219,7 @@ window.__ModuleLoader__.load({
           let wire = null
           if (del !== true) {
             wire = kbMWireValue(mo, k, v)
-            if (wire === KB_REFUS) { mo.error = m('kb.models.error.wire'); kbmNotify(); return false }
+            if (wire === KB_REFUS) { mo.error = m(k === 'context' || k === 'outputLimit' ? 'kb.models.error.number' : 'kb.models.error.wire'); kbmNotify(); return false }
             // Un retour à la valeur de la couche inférieure s'écrit en retirant la
             // clé : on ne redéclare pas ce que le harnais applique déjà.
             if ((k === 'textIn' || k === 'vision') && Array.isArray(mo.raw.input) !== true && kbMSameList(wire, kbMInputBase(mo)) === true) del = true
