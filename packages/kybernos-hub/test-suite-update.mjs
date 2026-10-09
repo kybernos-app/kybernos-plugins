@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { monterSuite } from './hub-host.mjs'
-import { etatDistant, evaluerCache, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
+import { detecterHebergement, etatDistant, evaluerCache, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
 import { evaluer } from './catalogue-distant.mjs'
 import { assemblerRelease, genererCles, octetsDe, signer } from './catalogue-publication.mjs'
 
@@ -73,6 +73,32 @@ console.log('what the panel is told')
   ok('an update can be applied from here', etatDistant(base).miseAJour.possible === true && etatDistant(base).plusRecent === true && etatDistant(base).suite === '1.1.0')
   ok('each reason it cannot', etatDistant({ ...base, cle: false }).miseAJour.raison === 'no-key' && etatDistant({ ...base, evaluation: null }).miseAJour.raison === 'no-release' && etatDistant({ ...base, evaluation: { ok: false, erreur: 'signature' } }).evaluation === 'signature' && etatDistant({ ...base, evaluation: { ...ev, plusRecent: false } }).miseAJour.raison === 'up-to-date' && etatDistant({ ...base, plateforme: 'linux' }).miseAJour.raison === 'no-archive-for-platform' && etatDistant({ ...base, racineDev: true }).miseAJour.raison === 'development-checkout')
   ok('platform names', plateformeDe('darwin') === 'mac' && plateformeDe('win32') === 'windows' && plateformeDe('linux') === 'linux' && plateformeDe('freebsd') === 'linux')
+}
+
+console.log('a hosted instance (a server, a container) is rebuilt, not patched')
+{
+  const aucun = () => false
+  const dockerenv = (p) => p === '/.dockerenv'
+  const H = (env, existe = aucun) => detecterHebergement({ env, existe })
+  ok('a plain local machine is not hosted', H({ PATH: '/usr/bin', HOME: '/Users/x' }).heberge === false && H({}).raison === null)
+  ok('KYBERNOS_HOSTED=1 / true / yes forces it on', ['1', 'true', 'YES', ' true '].every((v) => H({ KYBERNOS_HOSTED: v }).heberge === true && H({ KYBERNOS_HOSTED: v }).raison === 'env'))
+  ok('KYBERNOS_HOSTED=0 / false / no forces it off, even inside a container (a local DSH that runs in Docker)', ['0', 'false', 'no'].every((v) => H({ KYBERNOS_HOSTED: v, COOLIFY_FQDN: 'x' }, dockerenv).heberge === false))
+  ok('the Kybernos gate variables mean hosted', H({ KYBERNOS_PUBLIC_HOST: 'dsh.example.com' }).raison === 'gate' && H({ KYBERNOS_GATE_PASSWORD: 'x' }).raison === 'gate')
+  ok('an empty or blank variable does not', H({ KYBERNOS_PUBLIC_HOST: '', KYBERNOS_GATE_PASSWORD: '   ' }).heberge === false)
+  ok('the COOLIFY_* variables that Coolify puts in a container mean hosted', H({ COOLIFY_FQDN: 'dsh.example.com' }).raison === 'coolify' && H({ COOLIFY_URL: 'x' }).heberge === true)
+  ok('the marker file of Docker means hosted', H({}, dockerenv).raison === 'container')
+  ok('an unreadable marker, a missing env or a missing probe never throw', H({}, () => { throw new Error('EACCES') }).heberge === false && detecterHebergement({ env: null, existe: undefined }).heberge === false)
+
+  const ev = evaluer({ ...publier('1.1.0'), cles, versionSuite: '1.0.0' })
+  const base = { evaluation: ev, cle: true, urlConfiguree: true, plateforme: 'mac', racineDev: false }
+  const heberge = { heberge: true, raison: 'coolify' }
+  ok('hosted: the update cannot be applied here, and the reason says so', etatDistant({ ...base, hebergement: heberge }).miseAJour.possible === false && etatDistant({ ...base, hebergement: heberge }).miseAJour.raison === 'hosted-instance')
+  ok('hosted wins over a development checkout (the image of a hosted instance is often built from a git clone: it must not be told to git pull inside a container)', etatDistant({ ...base, racineDev: true, hebergement: heberge }).miseAJour.raison === 'hosted-instance')
+  ok('the panel is told whether the instance is hosted, and why', etatDistant({ ...base, hebergement: heberge }).hebergement.heberge === true && etatDistant({ ...base, hebergement: heberge }).hebergement.raison === 'coolify' && etatDistant(base).hebergement.heberge === false)
+  ok('a hosted instance that is up to date still says up-to-date (the reason that matters most)', etatDistant({ ...base, evaluation: { ...ev, plusRecent: false }, hebergement: heberge }).miseAJour.raison === 'up-to-date')
+  const log = []
+  const r0 = await mettreAJour({ evaluation: ev, plateforme: 'mac', racineDev: false, hebergement: heberge, telechargerVers: async () => { log.push('download') }, extraire: async () => { log.push('extract') }, executer: async () => { log.push('robot'); return { code: 0 } }, nettoyer: async () => {}, progres: () => {} })
+  ok('mettreAJour refuses on a hosted instance before downloading or running anything', r0.ok === false && r0.error === 'hosted-instance' && log.length === 0, JSON.stringify([r0, log]))
 }
 
 console.log('the update itself')
@@ -158,8 +184,14 @@ console.log('the routes')
   r = monter(deps())
   ok('update needs an explicit confirmation', (await appeler(r, '/kybernos-hub/update', 'POST', {})).code === 400)
   ok('update is strict same-origin too', (await appeler(r, '/kybernos-hub/update', 'POST', { confirm: true }, { origin: 'http://evil.example' })).code === 403)
-  r = monter(deps({ racineDev: () => true }))
+  let netAvant = appelsReseau
+  r = monter(deps({ racineDev: () => true, hebergement: () => ({ heberge: true, raison: 'coolify' }) }))
   let u = await appeler(r, '/kybernos-hub/update', 'POST', { confirm: true })
+  ok('on a hosted instance the answer is 409 hosted-instance, even when it is also a git checkout, and nothing is downloaded', u.code === 409 && u.body.error === 'hosted-instance' && appelsReseau === netAvant, JSON.stringify(u.body))
+  u = await appeler(r, '/kybernos-hub/suite', 'GET')
+  ok('the panel route tells the client the instance is hosted', u.body.distant.hebergement.heberge === true && u.body.distant.miseAJour.raison === 'hosted-instance')
+  r = monter(deps({ racineDev: () => true }))
+  u = await appeler(r, '/kybernos-hub/update', 'POST', { confirm: true })
   ok('from a development checkout the answer is 409 and the reason, before anything runs', u.code === 409 && u.body.error === 'development-checkout')
   r = monter(deps({ plateforme: 'linux' }))
   ok('a release with no archive for this platform: 409', (await appeler(r, '/kybernos-hub/update', 'POST', { confirm: true })).body.error === 'no-archive-for-platform')
