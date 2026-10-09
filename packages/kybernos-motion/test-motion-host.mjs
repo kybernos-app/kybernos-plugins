@@ -164,6 +164,7 @@ const p1 = join(project, 'artifacts', 'a.miniapp.json')
   ok('tool: a scene with no files has no asset section', plain.ok && plain.assets === undefined && plain.assets_problems === undefined)
   const back = await tool2.execute({ fichier: made.chemin }, { agent: { id: 's1' } })
   ok('tool: reading hands the scene back in its COMPACT form (what is on disk), not the verbose normalised one', back.ok && JSON.stringify(back.scene).length < 1400 && back.scene.layers[0].objects[0].src === 'media/hero.glb' && !('rx' in back.scene.layers[0].objects[0]), JSON.stringify(back.scene).length)
+  ok('tool: the description asks for named layers (they label the timeline)', tool2.description.includes('Give every layer a short `name`'))
   ok('tool: the description tells the agent about files and clips', tool2.description.includes('animation clip names') && tool2.description.includes('- scene3d:') && tool2.description.includes('- lottie:'))
 }
 

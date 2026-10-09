@@ -194,15 +194,19 @@ function createAssets (path, opts) {
 function createAudioPreview () {
   let ac = null
   let node = null
+  let token = 0 // a start that was waiting (the browser holds audio until a click) must not play after a later stop or start
   let cache = { key: '', buffer: null }
   return {
     async play (scene, assets, t, muted) {
       this.stop()
+      const mine = token
       if (muted || !scene.audio || scene.audio.length === 0) return
       try {
         ac = ac || new (window.AudioContext || window.webkitAudioContext)()
         if (ac.state === 'suspended') await ac.resume()
+        if (mine !== token) return
         await assets.loadSounds(scene)
+        if (mine !== token) return
         const key = JSON.stringify(scene.audio) + scene.format.duration + [...assets.sounds.keys()].join()
         if (cache.key !== key) {
           const m = audio.mix(scene.audio, scene.format.duration, audio.SAMPLE_RATE, assets.sounds)
@@ -211,13 +215,14 @@ function createAudioPreview () {
           b.copyToChannel(m.right, 1)
           cache = { key, buffer: b }
         }
+        if (mine !== token) return
         node = ac.createBufferSource()
         node.buffer = cache.buffer
         node.connect(ac.destination)
         node.start(0, clamp(t, 0, scene.format.duration))
       } catch (e) { /* no sound: the picture still plays */ }
     },
-    stop () { try { if (node) { node.stop(); node.disconnect() } } catch (e) { /* already stopped */ } node = null },
+    stop () { token++; try { if (node) { node.stop(); node.disconnect() } } catch (e) { /* already stopped */ } node = null },
   }
 }
 
@@ -640,6 +645,7 @@ function MotionPanel () {
   const [list, setList] = React.useState([])
   const [modal, setModal] = React.useState(false)
   const [toast, setToast] = React.useState('')
+  const [arrival, setArrival] = React.useState(0) // counts the scenes the HOST handed us (the agent wrote, Livrables pointed here), not our own edits
   const draft = React.useRef(null)
   const timer = React.useRef(null)
   const seenAt = React.useRef(0)
@@ -650,6 +656,17 @@ function MotionPanel () {
   const player = usePlayer(scene, doc ? doc.path : '', { startAt: scene ? scene.format.duration * 0.66 : 0 })
   const say = (m) => { setToast(m); setTimeout(() => setToast(''), 2600) }
 
+  // A scene that just arrived plays from the start, so the first thing seen is the animation, not an empty first frame
+  // (with reduced motion it rests on its finished picture instead). The browser keeps the sound until the first click.
+  React.useEffect(() => {
+    const d = docRef.current
+    if (arrival === 0 || !d) return
+    const calm = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    player.pause()
+    player.seek(calm ? d.scene.format.duration * 0.66 : 0)
+    if (!calm) player.play()
+  }, [arrival])
+
   const load = React.useCallback(async (path) => {
     const r = await api('GET', 'scene?' + q({ path }))
     if (!r.ok) { setLoadErr(r.json.message || kt('Impossible de lire cette animation.', 'Cannot read this animation.')); return }
@@ -658,6 +675,7 @@ function MotionPanel () {
     setDoc({ path: r.json.path, title: r.json.title, rev: r.json.rev, scene: v.scene, errors: r.json.errors || [], userEdits: r.json.userEdits || [] })
     draft.current = null
     setStatus('')
+    setArrival((n) => n + 1)
   }, [])
 
   // follow what the host says is current (the agent wrote, Livrables pointed here); answer frame requests

@@ -390,7 +390,7 @@ export function toolOptions (host) {
       + 'a model\'s animation clip names (use one as `clip`) and a Lottie\'s length, and `assets_problems` lists what is wrong with them.\n'
       + 'A scene is {format:{width,height,fps,duration}, background, params:{name:value}, controls:[{id,label,type,options?}], layers:[...], audio:[...]}. '
       + 'Any property can be a number, a $param, or keyframes {k:[[time_s, value, ease?],...]} (ease: ' + engine.EASE_NAMES.join(', ') + ' or [x1,y1,x2,y2]). '
-      + 'A layer without x,y sits at the centre of the frame; coordinates are in frame pixels, origin top-left. '
+      + 'Give every layer a short `name`: it labels the timeline. A layer without x,y sits at the centre of the frame; coordinates are in frame pixels, origin top-left. '
       + 'Text can use {param} placeholders. Colours are #rgb, #rrggbb or #rrggbbaa. '
       + 'audio: [{synth:"' + engine.AUDIO_SYNTH.join('"|"') + '", at, volume, pitch}] or [{src:"file in the project", at, volume, loop, fadeIn, fadeOut}].\n'
       + 'Components (layers[].type):\n' + engine.describeComponents(),

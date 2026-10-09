@@ -1132,7 +1132,7 @@ function opBox (op) {
     const width = Math.min(op.maxW, Math.max(...lines.map((l) => estimateTextWidth(l, op.size, op.weight, op.tracking))))
     const height = lines.length * op.size * op.lineHeight
     const x0 = op.align === 'left' ? 0 : op.align === 'right' ? -width : -width / 2
-    add(x0, -height / 2); add(x0 + width, -height / 2); add(x0 + width, height / 2); add(x0, height / 2)
+    add(op.x + x0, op.y - height / 2); add(op.x + x0 + width, op.y - height / 2); add(op.x + x0 + width, op.y + height / 2); add(op.x + x0, op.y + height / 2)
   }
   if (pts.length === 0) return null
   let x0 = Infinity; let y0 = Infinity; let x1 = -Infinity; let y1 = -Infinity
