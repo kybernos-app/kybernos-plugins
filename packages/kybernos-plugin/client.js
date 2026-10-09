@@ -441,6 +441,19 @@ let kbLocaleRead = () => 'en'
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de votre appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
       'kbac.security': { kybernos: 'Sécurité', en: 'Security' },
       'kbac.security.sub': { kybernos: 'Accès et sessions de votre compte Kybernos Cloud.', en: 'Access and sessions for your Kybernos Cloud account.' },
+      'kbac.out.security': { kybernos: 'Le mot de passe, la double authentification et les sessions se gèrent sur votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your password, two-factor authentication and sessions are managed on your Kybernos Cloud account. You are not signed in.' },
+      'kbac.out.referral': { kybernos: 'Votre code de parrainage arrive avec votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your referral code comes with your Kybernos Cloud account. You are not signed in.' },
+      'kbac.out.why': { kybernos: 'Pourquoi créer un compte', en: 'Why create an account' },
+      'kbac.out.models': { kybernos: 'Des modèles prêts à l\'emploi', en: 'Models ready to use' },
+      'kbac.out.models.sub': { kybernos: 'Les modèles de votre formule sont ajoutés automatiquement, sans clé d\'API à configurer.', en: 'The models of your plan are added automatically, with no API key to set up.' },
+      'kbac.out.memory': { kybernos: 'Une mémoire qui vous suit', en: 'A memory that follows you' },
+      'kbac.out.memory.sub': { kybernos: 'Vos souvenirs et vos leçons sont gardés sur votre compte et retrouvés sur chaque appareil.', en: 'Your memories and lessons are kept on your account and come back on every device.' },
+      'kbac.out.sync': { kybernos: 'Sessions et appareils synchronisés', en: 'Sessions and devices in sync' },
+      'kbac.out.sync.sub': { kybernos: 'Retrouvez votre travail d\'un appareil à l\'autre.', en: 'Pick your work up from one device to the next.' },
+      'kbac.out.credits': { kybernos: '500 crédits pour chaque ami invité', en: '500 credits for each friend you invite' },
+      'kbac.out.credits.sub': { kybernos: 'Vous et votre ami recevez chacun 500 crédits.', en: 'You and your friend get 500 credits each.' },
+      'kbac.out.cta': { kybernos: 'Créer un compte ou se connecter', en: 'Create an account or sign in' },
+      'kbac.out.local': { kybernos: 'DSH fonctionne aussi sans compte : le compte ajoute ce qui précède.', en: 'DSH also works without an account: the account adds what is listed above.' },
       'kbac.sec.password': { kybernos: 'Mot de passe', en: 'Password' },
       'kbac.sec.password.sub': { kybernos: 'Modifier votre mot de passe', en: 'Change your password' },
       'kbac.sec.change': { kybernos: 'Changer', en: 'Change' },
@@ -29585,6 +29598,44 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       (typeof props.href === 'string'
         ? h('a', { className: 'kbac-btn', href: props.href, target: '_blank', rel: 'noreferrer noopener' }, props.action, Icon('link', 13))
         : h('button', { type: 'button', className: 'kbac-btn', onClick: props.onClick }, props.action)))
+    // Signed out, these pages have nothing to act on: the buttons would open an account that does not exist and the referral
+    // code would be empty. They say so, and say why an account is worth creating. Only reasons the product already states
+    // elsewhere (the cloud bundle's model import and memory, the sidebar's sync line, the referral reward) are listed.
+    // 'loading' → 'connected' | 'disconnected'; when the state cannot be read (the cloud bundle is off) the page keeps
+    // its usual content ('unknown') rather than hiding it behind a sign-in that could not start.
+    const useKbCloud = () => {
+      const pair = React.useState('loading')
+      const phase = pair[0]
+      React.useEffect(() => {
+        let vivant = true
+        let dernier = 'loading'
+        const poser = (p) => { dernier = p; if (vivant === true) pair[1](p) }
+        const lire = () => fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          .then((r) => r.json().catch(() => null))
+          .then((j) => { if (j !== null && typeof j === 'object' && typeof j.connected === 'boolean') poser(j.connected === true ? 'connected' : 'disconnected'); else if (dernier === 'loading') poser('unknown') })
+          .catch(() => { if (dernier === 'loading') poser('unknown') })
+        lire()
+        // Picks up an account created or connected from the card while this page stays open.
+        const voir = () => { if (dernier !== 'connected') lire() }
+        const timer = setInterval(voir, 4000)
+        window.addEventListener('focus', voir)
+        return () => { vivant = false; clearInterval(timer); window.removeEventListener('focus', voir) }
+      }, [])
+      return phase
+    }
+    const KbacSignedOut = (props) => h('div', { className: 'kbac-page', 'data-kb': 'kbac-signed-out' },
+      h(KbacHead, { title: kbt('kbac.' + props.page), sub: kbt('kbac.' + props.page + '.sub') }),
+      h('div', { className: 'kbac-out' },
+        h('p', { className: 'kbac-out-lead' }, kbt('kbac.out.' + props.page)),
+        h('h3', { className: 'kbac-out-why' }, kbt('kbac.out.why')),
+        h('ul', { className: 'kbac-out-list' }, ['models', 'memory', 'sync', 'credits'].map((k) =>
+          h('li', { key: k }, h('b', null, kbt('kbac.out.' + k)), h('span', null, kbt('kbac.out.' + k + '.sub'))))),
+        h('div', { className: 'kbac-out-acts' },
+          h('button', {
+            type: 'button', className: 'kbac-btn kbac-primary', 'data-kb': 'kbac-signed-out-cta',
+            onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* no window events here */ } },
+          }, kbt('kbac.out.cta'))),
+        h('p', { className: 'kbac-hint' }, kbt('kbac.out.local'))))
     const KbacReferral = () => {
       const [rel, setRel] = React.useState(kbReferralRead)
       const [draft, setDraft] = React.useState(() => { const r = kbReferralRead(); return r.link !== '' ? r.link : r.code })
@@ -29592,6 +29643,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       const [copied, setCopied] = React.useState('')
       const [cloud, setCloud] = React.useState(null)
       const [motif, setMotif] = React.useState('')
+      const session = useKbCloud()
       // Même route hôte que la carte du menu : le code du compte lié, jamais inventé.
       React.useEffect(() => {
         let vivant = true
@@ -29633,6 +29685,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         } catch (e) { /* refusé ou annulé : copie */ }
         await copier('link')
       }
+      if (session === 'loading') return h('div', { className: 'kbac-page' }, h(KbacHead, { title: kbt('kbac.referral'), sub: kbt('kbac.referral.sub') }))
+      // Signed out there is no code to show, share or copy. A code pasted by hand on this device keeps the page it set up.
+      if (session === 'disconnected' && rel.code === '' && rel.link === '') return h(KbacSignedOut, { page: 'referral' })
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.referral'), sub: kbt('kbac.referral.sub') }),
         h('div', { className: 'kbac-card' },
@@ -29712,6 +29767,9 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
     }
     const KbacSecurity = () => {
       const href = kbacCloudBase() + '/account'
+      const session = useKbCloud()
+      if (session === 'loading') return h('div', { className: 'kbac-page' }, h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }))
+      if (session === 'disconnected') return h(KbacSignedOut, { page: 'security' })
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }),
         h('div', { className: 'kbac-list' },
@@ -29775,6 +29833,14 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-in{flex:1 1 auto;min-width:0;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}
 .kbac-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbac-hint{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbac-out{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
+.kbac-out-lead{margin:0;font-size:14px;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.kbac-out-why{margin:2px 0 0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbac-out-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.kbac-out-list li{display:flex;flex-direction:column;gap:2px;padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-brand-primary)}
+.kbac-out-list b{font-size:14px;font-weight:550;color:var(--dsw-alias-label-primary)}
+.kbac-out-list span{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbac-out-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .kbac-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .kbac-link{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto;font-size:13px;color:var(--dsw-alias-label-secondary);text-decoration:none}
 .kbac-link:hover{color:var(--dsw-alias-label-primary)}
