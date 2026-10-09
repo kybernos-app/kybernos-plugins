@@ -1,5 +1,5 @@
 // ── small helpers ───────────────────────────────────────────────────────────
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, openSync, copyFileSync, renameSync, chmodSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync, mkdirSync, rmSync, unlinkSync, copyFileSync, renameSync, chmodSync, realpathSync } from 'node:fs'
 import { execFile } from 'node:child_process'
 import { realpath } from 'node:fs/promises'
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
@@ -36,6 +36,10 @@ import { appliquerPlafondRetries } from './retry-policy.mjs'
 import { createGatewayWatcher } from './gateway-watcher.mjs'
 import { seedSkills } from './seed-skills.mjs'
 import { publishTrustedAuthority } from './trusted-authority.mjs'
+import { createPythonPicker } from './tts-python.mjs'
+import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
+import { createProbe } from './audio-probe.mjs'
+import { createModelsAudio } from './models-audio.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -2306,7 +2310,9 @@ function boot(ctx) {
             if (ra.etat === 'pose') console.log('[kybers] force de proposition posée dans ' + ra.chemin)
             else if (ra.etat === 'erreur') console.log('[kybers] force de proposition non posée — ' + ra.erreur)
           } catch (e) { console.log('[kybers] force de proposition — échec silencieux : ' + String(e && e.message ? e.message : e)) }
-          const r = await poserPresetKybernos({ agentPresets: service, seuil: SEUIL_COMPACTAGE })
+          // The threshold goes in the 2nd argument (`options`): in the 1st (the context) it was silently
+          // ignored and the engine kept its own 80% while the gauge and the log said 70%.
+          const r = await poserPresetKybernos({ agentPresets: service }, { seuil: SEUIL_COMPACTAGE })
           if (r.pose === true) console.log('[kybers] preset compactage posé : ' + r.id + ' (résumé ' + r.provider + '/' + r.modele + ', seuil ' + Math.round(SEUIL_COMPACTAGE * 100) + ' %); ' + r.retouches + ' feuille')
           else if (r.deja === true) console.log('[kybers] preset compactage déjà en place')
           else console.log('[kybers] preset compactage non posé — ' + r.raison)
@@ -2939,19 +2945,34 @@ function boot(ctx) {
       }
       return { byRoute, byModel }
     }
-    // `ctx.web.fetch` tronque le corps à 100 000 caractères (limite par défaut du
-    // service) et l'index models.dev pèse ~4,7 Mo : `JSON.parse` échouait donc à
-    // la position 100000 et les tarifs restaient indisponibles pour toujours. On
-    // relit la réponse en direct dès que le service annonce `truncated`.
+    // L'index models.dev pèse ~4,7 Mo : le `ctx.web.fetch` du moteur le tronque à 100 000 caractères (JSON.parse échouait à la position
+    // 100000 et les tarifs restaient indisponibles pour toujours) et, surtout, son fournisseur HTTP peut faire mourir tout DSH quand
+    // une connexion échoue sur-le-champ (pas de route, pare-feu : le dispatcher est fermé alors qu'une seconde tentative est encore
+    // armée, et elle lève depuis un minuteur). On lit donc l'index avec le `fetch` global, par morceaux, coupé à `cap` octets.
     const kbFetchTextFull = async (url, cap) => {
       const max = typeof cap === 'number' ? cap : 12000000
       const control = new AbortController()
       const timer = setTimeout(() => { try { control.abort() } catch (e) { /* deja termine */ } }, 30000)
       try {
         const res = await fetch(url, { signal: control.signal, headers: { accept: 'application/json' } })
-        if (res === null || res === undefined || typeof res.text !== 'function') return { text: null, reason: 'reponse sans corps' }
+        if (res === null || res === undefined) return { text: null, reason: 'reponse sans corps' }
         if (res.ok === false) return { text: null, reason: 'HTTP ' + String(res.status) }
-        const text = await res.text()
+        let text = null
+        if (res.body !== null && res.body !== undefined && typeof res.body.getReader === 'function') {
+          const reader = res.body.getReader()
+          const chunks = []
+          let total = 0
+          for (;;) {
+            const part = await reader.read()
+            if (part.done === true) break
+            total += part.value.byteLength
+            if (total > max) { await reader.cancel().catch(() => {}); return { text: null, reason: 'corps trop volumineux (plus de ' + max + ' octets)' } }
+            chunks.push(part.value)
+          }
+          text = Buffer.concat(chunks).toString('utf8')
+        } else if (typeof res.text === 'function') {
+          text = await res.text()
+        } else return { text: null, reason: 'reponse sans corps' }
         if (typeof text !== 'string' || text.length === 0) return { text: null, reason: 'corps vide' }
         if (text.length > max) return { text: null, reason: 'corps trop volumineux (' + text.length + ' caracteres)' }
         return { text: text, reason: null }
@@ -2965,26 +2986,15 @@ function boot(ctx) {
       }
       const url = 'https://models.dev/api.json'
       try {
-        let raw = null
-        let tronque = false
-        if (web !== undefined && web !== null && typeof web.fetch === 'function') {
-          const res = await web.fetch({ url: url })
-          raw = res !== null && res !== undefined ? (str(res.body) ?? (res.body !== null && res.body !== undefined && typeof res.body === 'object' ? (str(res.body.content) ?? str(res.body.text)) : null) ?? str(res.content) ?? str(res.text)) : null
-          tronque = res !== null && res !== undefined && res.truncated === true
-        }
-        if (raw === null && tronque === false) {
-          // Aucun service web : on reste hors réseau (le harnais de test interdit
-          // toute requête pendant ses vérifications).
+        if (web === undefined || web === null) {
+          // Aucun service web : on reste hors réseau (le harnais de test interdit toute requête pendant ses vérifications). Sa seule
+          // présence dit que l'hôte autorise l'accès web ; la requête elle-même ne passe PAS par lui (voir kbFetchTextFull).
           priceError = 'service web indisponible: tarifs models.dev inaccessibles'
           return
         }
-        if (raw === null || tronque === true) {
-          // Corps inutilisable : on le dit, puis on relit l'index en direct.
-          const detail = raw === null ? 'reponse illisible' : (raw.length + ' caracteres tronques par le service web (index complet ~4,7 Mo)')
-          const full = await kbFetchTextFull(url)
-          if (full.text === null) { priceError = 'models.dev: ' + detail + ' — relecture directe impossible (' + full.reason + ')'; return }
-          raw = full.text
-        }
+        const full = await kbFetchTextFull(url)
+        if (full.text === null) { priceError = 'models.dev: lecture impossible (' + full.reason + ')'; return }
+        const raw = full.text
         const parsed = parseJson(raw)
         if (parsed === null || parsed === undefined) { priceError = 'models.dev: reponse JSON invalide'; return }
         priceIndex = buildPriceIndex(parsed)
@@ -7558,271 +7568,6 @@ function boot(ctx) {
       } catch (e) { return { ok: false, error: errText(e) } }
     }
 
-    // ── Appel (visio) : les secrets, et le jeton de salle LiveKit ────────────
-    // Les secrets ne vont PAS dans `settings.json` (lisible par le client et par
-    // l'écran de réglages) : un fichier à part, chmod 600, dont on ne dit que
-    // « posée » ou « absente ». Le jeton d'accès LiveKit est un JWT HS256 — le
-    // format du protocole — donc `node:crypto` suffit, aucune dépendance.
-    const KB_CALL_ENV_REL = 'kybernos/livekit.env'
-    const KB_CALL_ROOM_RE = /^[A-Za-z0-9_-]{3,64}$/
-    /** Le fichier de secrets, ou `null` s'il n'est pas là (jamais d'erreur dure). */
-    const kbCallEnv = async () => {
-      try {
-        const home = await dshHome()
-        if (typeof home !== 'string' || home.length === 0) return null
-        const texte = await fs.readText(await fs.resolve(nodePathJoin(home, KB_CALL_ENV_REL)))
-        const out = {}
-        for (const ligne of String(texte).split(/\r?\n/)) {
-          const m = /^\s*([A-Z][A-Z0-9_]*)\s*=\s*(.*)$/.exec(ligne)
-          if (m === null) continue
-          out[m[1]] = m[2].trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1')
-        }
-        if (typeof out.LIVEKIT_URL !== 'string' || out.LIVEKIT_URL.length === 0) return null
-        if (typeof out.LIVEKIT_API_KEY !== 'string' || out.LIVEKIT_API_KEY.length === 0) return null
-        if (typeof out.LIVEKIT_API_SECRET !== 'string' || out.LIVEKIT_API_SECRET.length < 20) return null
-        return out
-      } catch (e) { return null }
-    }
-    const kbCallB64 = (buf) => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-    /** Jeton d'accès LiveKit : {exp, iss: clé API, sub: identité, video: {...}}. */
-    const kbCallToken = (env, args) => {
-      const now = Math.floor(Date.now() / 1000)
-      const ttlBrut = (typeof args.ttlSeconds === 'number' && isFinite(args.ttlSeconds) === true) ? Math.round(args.ttlSeconds) : 7200
-      // Borné, pas remplacé : une durée demandée est respectée quand elle a un
-      // sens, ramenée dans les bornes sinon — jamais silencieusement ignorée.
-      const ttl = Math.min(Math.max(ttlBrut, 60), 21600)
-      const entete = kbCallB64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-      // Un jeton d'administration ne quitte jamais le poste : il ne sert qu'aux
-      // appels Twirp (réveiller l'agent) — le client, lui, reçoit roomJoin seul.
-      const video = (args.admin === true)
-        ? { room: String(args.room), roomAdmin: true, roomList: true }
-        : { roomJoin: true, room: String(args.room), canPublish: true, canSubscribe: true, canPublishData: true }
-      const charge = kbCallB64(JSON.stringify({
-        exp: now + ttl,
-        iss: String(env.LIVEKIT_API_KEY),
-        sub: String(args.identity),
-        nbf: now - 10,
-        jti: randomUUID(),
-        name: String(args.identity),
-        video: video
-      }))
-      const sig = kbCallB64(createHmac('sha256', String(env.LIVEKIT_API_SECRET)).update(entete + '.' + charge).digest())
-      return { token: entete + '.' + charge + '.' + sig, expiresIn: ttl }
-    }
-    /** Ce que le client a le droit de savoir de l'appel — jamais un secret. */
-    const kbCallStatus = async () => {
-      const env = await kbCallEnv()
-      return {
-        ok: true,
-        secrets: (env === null ? 'absente' : 'posee'),
-        url: (env === null ? null : String(env.LIVEKIT_URL)),
-        provider: (env === null || typeof env.LIVEAVATAR_API_KEY !== 'string' || env.LIVEAVATAR_API_KEY.length === 0) ? 'none' : 'liveavatar',
-        avatar: (env === null || typeof env.LIVEAVATAR_AVATAR_ID !== 'string' ? null : String(env.LIVEAVATAR_AVATAR_ID)),
-        sandbox: (env !== null && String(env.LIVEAVATAR_SANDBOX) === '1')
-      }
-    }
-    /** Le jeton d'une salle d'appel : le client le reçoit, l'agent le forge pareil. */
-    const kbCallMint = async (body) => {
-      const env = await kbCallEnv()
-      if (env === null) return { ok: false, error: 'secrets livekit absents' }
-      const demandes = (body !== null && body !== undefined && typeof body === 'object') ? body : {}
-      const roomDemande = str(demandes.room)
-      const room = (roomDemande !== null && KB_CALL_ROOM_RE.test(String(roomDemande)) === true) ? String(roomDemande) : ('kyber-appel-' + Date.now().toString(36))
-      const identiteDemandee = str(demandes.identity)
-      const identity = (identiteDemandee !== null && String(identiteDemandee).trim().length >= 1 && String(identiteDemandee).trim().length <= 64) ? String(identiteDemandee).trim() : ('moi-' + randomUUID().slice(0, 8))
-      const jeton = kbCallToken(env, { room: room, identity: identity, ttlSeconds: demandes.ttlSeconds })
-      // Un appel, c'est trois choses : une salle, un jeton, et un agent réveillé.
-      // L'agent est démarré au premier appel puis laissé en vie ; le dispatch
-      // explicite évite qu'il entre dans une salle par accident. Un échec de
-      // l'agent ne refuse pas l'appel : l'humain peut parler seul, et la réponse
-      // le dit (`agent.dispatched: false`) au lieu de mentir par omission.
-      const agent = { running: false, dispatched: false }
-      if (demandes.agent !== false) {
-        const demarrage = await kbCallAgentStart({ sessionId: demandes.sessionId, kyberId: demandes.kyberId })
-        agent.running = demarrage.running === true
-        if (typeof demarrage.error === 'string') agent.error = demarrage.error
-        if (agent.running === true) {
-          const pret = await kbCallAgentAttendre(demarrage.depart, 12000)
-          agent.ready = pret
-          const envoi = await kbCallDispatch(env, room)
-          agent.dispatched = envoi.ok === true
-          if (envoi.ok !== true) { agent.dispatchError = envoi.error; if (typeof envoi.detail === 'string') agent.dispatchDetail = envoi.detail }
-        }
-      }
-      return { ok: true, url: String(env.LIVEKIT_URL), room: room, identity: identity, token: jeton.token, expiresIn: jeton.expiresIn, agent: agent }
-    }
-
-    // ── L'agent d'appel : un worker LiveKit lancé par l'hôte ────────────────
-    // Il vit dans le dépôt (`appel/agent.py`), lit les secrets du poste, et
-    // reçoit sa salle par dispatch explicite. Son texte entendu repart vers la
-    // session par `/kybernos/call/utterance` — un vrai tour DSH (§13.6).
-    const KB_CALL_AGENT_NAME = 'kybernos-appel'
-    const kbCallExec = (cmd, argv, options) => new Promise((resolve) => {
-      const o = Object.assign({ timeout: 8000, maxBuffer: 4194304 }, (options !== null && typeof options === 'object') ? options : {})
-      execFile(cmd, argv, o, (error, stdout, stderr) => resolve({ error: (error === null || error === undefined) ? null : error, stdout: String(stdout ?? ''), stderr: String(stderr ?? '') }))
-    })
-    const kbCallJournal = async () => {
-      const home = await dshHome()
-      if (typeof home !== 'string' || home.length === 0) return null
-      return nodePathJoin(home, 'kybernos', 'logs', 'appel-agent.log')
-    }
-    /** Les appels Twirp parlent https, jamais wss. */
-    const kbCallTwirp = async (env, service, methode, corps, token) => {
-      const base = String(env.LIVEKIT_URL).replace(/^wss:/, 'https:').replace(/^ws:/, 'http:')
-      try {
-        const res = await fetch(base + '/twirp/' + service + '/' + methode, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
-          body: JSON.stringify(corps ?? {}),
-          signal: AbortSignal.timeout(10000),
-        })
-        const texte = await res.text()
-        let charge = null
-        try { charge = JSON.parse(texte) } catch (e) { charge = null }
-        return { status: res.status, charge: charge, texte: texte.slice(0, 200) }
-      } catch (e) { return { status: 0, charge: null, texte: errText(e) } }
-    }
-    /** Réveille l'agent sur CETTE salle — jamais en double : un seul envoi. */
-    const kbCallDispatch = async (env, room) => {
-      const admin = kbCallToken(env, { room: room, identity: 'kybernos-hote', ttlSeconds: 600, admin: true })
-      const r = await kbCallTwirp(env, 'livekit.AgentDispatchService', 'CreateDispatch', { room: room, agent_name: KB_CALL_AGENT_NAME }, admin.token)
-      if (r.status === 200) return { ok: true }
-      const code = (r.charge !== null && typeof r.charge.code === 'string') ? r.charge.code : ('HTTP ' + String(r.status))
-      return { ok: false, error: code, detail: (r.charge !== null && typeof r.charge.msg === 'string') ? String(r.charge.msg).slice(0, 160) : r.texte }
-    }
-    /** L'interpréteur de l'agent : le venv dédié, jamais le python système. */
-    const kbCallPython = async () => {
-      const home = await dshHome()
-      if (typeof home !== 'string' || home.length === 0) return null
-      const p = nodePathJoin(home, 'kybernos', 'appel-venv', 'bin', 'python')
-      try { return existsSync(p) === true ? p : null } catch (e) { return null }
-    }
-    const kbCallAgentPy = () => nodePathJoin(pluginDir, 'appel', 'agent.py')
-    const kbCallAgentPid = async () => {
-      const r = await kbCallExec('pgrep', ['-f', kbCallAgentPy()])
-      const pid = Number(String(r.stdout).trim().split(/\s+/)[0])
-      return (Number.isInteger(pid) === true && pid > 0) ? pid : null
-    }
-    const kbCallAgentEtat = async () => {
-      const pid = await kbCallAgentPid()
-      const python = await kbCallPython()
-      const journal = await kbCallJournal()
-      let derniere = null
-      try {
-        if (journal !== null && existsSync(journal) === true) {
-          const lignes = String(readFileSync(journal, 'utf8')).trim().split(/\r?\n/)
-          derniere = (lignes.length > 0) ? String(lignes[lignes.length - 1]).slice(0, 200) : null
-        }
-      } catch (e) { derniere = null }
-      return { ok: true, running: pid !== null, pid: pid, python: (python === null ? null : 'appel-venv'), log: journal, last: derniere }
-    }
-    /** Attend que le worker soit ENREGISTRÉ (journal), pour ne pas dispatcher dans le vide. */
-    const kbCallAgentAttendre = async (depart, budgetMs) => {
-      const journal = await kbCallJournal()
-      if (journal === null) return false
-      const fin = Date.now() + budgetMs
-      while (Date.now() < fin) {
-        try {
-          const suite = String(readFileSync(journal, 'utf8')).slice(typeof depart === 'number' ? depart : 0)
-          if (/registered worker/i.test(suite) === true) return true
-        } catch (e) { /* pas encore écrit */ }
-        await new Promise((resolve) => setTimeout(resolve, 400))
-      }
-      return false
-    }
-    const kbCallAgentStart = async (options) => {
-      const opts = (options !== null && typeof options === 'object') ? options : {}
-      const deja = await kbCallAgentPid()
-      if (deja !== null) return { ok: true, running: true, pid: deja, already: true, depart: 0 }
-      const python = await kbCallPython()
-      if (python === null) return { ok: false, running: false, error: 'venv appel absent (~/.dsh/kybernos/appel-venv)' }
-      const home = await dshHome()
-      if (typeof home !== 'string' || home.length === 0) return { ok: false, running: false, error: 'home DSH introuvable' }
-      const journal = await kbCallJournal()
-      let depart = 0
-      try { depart = statSync(journal).size } catch (e) { depart = 0 }
-      let fd = null
-      try { fd = openSync(journal, 'a') } catch (e) { fd = null }
-      const environnement = Object.assign({}, process.env, {
-        DSH_HOME: home,
-        KYBER_SESSION_ID: (str(opts.sessionId) ?? ''),
-        KYBER_ID: (str(opts.kyberId) ?? ''),
-      })
-      return await new Promise((resolve) => {
-        try {
-          // `start` : le worker de production. Sans sous-commande, le CLI de
-          // LiveKit Agents affiche son aide et sort — mesuré (04:26).
-          const enfant = execFile(python, [kbCallAgentPy(), 'start'], {
-            detached: true,
-            cwd: nodePathJoin(pluginDir, 'appel'),
-            env: environnement,
-            stdio: (fd === null) ? 'ignore' : ['ignore', fd, fd],
-          }, () => { /* le worker vit au-delà du parent : c'est voulu */ })
-          enfant.unref()
-          resolve({ ok: true, running: true, pid: enfant.pid ?? null, started: true, depart: depart })
-        } catch (e) { resolve({ ok: false, running: false, error: errText(e) }) }
-      })
-    }
-    const kbCallAgentStop = async () => {
-      const pid = await kbCallAgentPid()
-      if (pid === null) return { ok: true, running: false, stopped: null }
-      await kbCallExec('kill', [String(pid)])
-      return { ok: true, running: false, stopped: pid }
-    }
-
-    // ── La parole entre dans la session comme un VRAI tour (§13.6) ──────────
-    /** Cookie `dsh-auth-*` signé avec le secret navigateur persisté du poste. */
-    const kbRpcCookie = async () => {
-      const home = await dshHome()
-      if (typeof home !== 'string' || home.length === 0) return null
-      let brut = null
-      try { brut = readFileSync(nodePathJoin(home, '.credentials.yaml'), 'utf8') } catch (e) { return null }
-      const at = String(brut).indexOf('client-connection/browser-session')
-      if (at < 0) return null
-      const m = String(brut).slice(at).match(/secret:\s*(\S+)/)
-      if (m === null) return null
-      const secret = Buffer.from(m[1].replaceAll('-', '+').replaceAll('_', '/'), 'base64')
-      if (secret.byteLength !== 32) return null
-      const authority = '127.0.0.1:' + String(process.env.DSH_WEB_PORT ?? '3080')
-      const now = Date.now()
-      const corps = kbCallB64(Buffer.from(JSON.stringify({ version: 1, authority: authority, issuedAt: now, expiresAt: now + 86400000 }), 'utf8'))
-      const sig = kbCallB64(createHmac('sha256', secret).update(corps).digest())
-      return { cookie: 'dsh-auth-' + kbCallB64(createHash('sha256').update(authority).digest()) + '=v1.' + corps + '.' + sig, base: 'http://' + authority }
-    }
-    /** Un RPC local : même enveloppe et même cookie que `dsh-relance.mjs`. */
-    const kbCallRpc = async (auth, methode, args) => {
-      try {
-        const res = await fetch(auth.base + '/api/' + methode, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json', cookie: auth.cookie, origin: auth.base, 'sec-fetch-site': 'same-origin' },
-          body: JSON.stringify({ type: 'client-request', rpcId: randomUUID(), method: methode, payload: { args: args } }),
-          signal: AbortSignal.timeout(15000),
-        })
-        const texte = await res.text()
-        let corps = null
-        try { corps = JSON.parse(texte) } catch (e) { corps = null }
-        if (res.status !== 200) return { ok: false, error: 'HTTP ' + String(res.status), detail: texte.slice(0, 160) }
-        const resultat = (corps !== null && corps.result !== undefined) ? corps.result : null
-        if (resultat !== null && resultat.ok === false) return { ok: false, error: String((resultat.error ?? {}).code ?? 'rpc'), detail: String((resultat.error ?? {}).message ?? '').slice(0, 160) }
-        return { ok: true, value: (resultat === null ? null : resultat.value) }
-      } catch (e) { return { ok: false, error: errText(e) } }
-    }
-    /** Un texte dit à l'appel devient un tour de la session visée. */
-    const kbCallUtterance = async (body) => {
-      const demandes = (body !== null && body !== undefined && typeof body === 'object') ? body : {}
-      const sessionId = str(demandes.sessionId)
-      if (sessionId === null || /^session-[A-Za-z0-9-]{6,80}$/.test(String(sessionId)) === false) return { ok: false, error: 'session inconnue' }
-      const texte = str(demandes.text)
-      if (texte === null || String(texte).trim().length === 0) return { ok: false, error: 'texte requis' }
-      if (String(texte).length > 4000) return { ok: false, error: 'texte trop long (4000 caracteres max)' }
-      const mode = (str(demandes.mode) === 'steer') ? 'steer' : 'queue'
-      const auth = await kbRpcCookie()
-      if (auth === null) return { ok: false, error: 'cookie de session indisponible' }
-      const envoi = await kbCallRpc(auth, 'session/prompt', { request: { requestId: randomUUID(), sessionId: String(sessionId), mode: mode, content: [{ type: 'text', text: String(texte).trim() }] } })
-      if (envoi.ok !== true) return { ok: false, error: envoi.error, detail: envoi.detail ?? null }
-      return { ok: true, accepted: (envoi.value !== null && envoi.value !== undefined && envoi.value.accepted === true), sessionId: String(sessionId), mode: mode }
-    }
-
     // ── Visages d'équipe : une planche « deux sections », un avatar par rôle ──
     // Un SEUL appel image produit la scène d'équipe (section 1) ET les portraits
     // des membres (section 2) ; la découpe est locale et gratuite, donc
@@ -8264,6 +8009,11 @@ function boot(ctx) {
         return { key, source: str(rec.source) }
       } catch (e) { return { key: null, error: errText(e) } }
     }
+    // The audio models of the user's own providers (see models-audio.mjs): spoken to with the key the app already holds for them.
+    const kbModelsProviders = () => {
+      try { const ns = lireNamespace('llm-pi-ai').valeur; return (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { return {} }
+    }
+    const kbModelsAudio = createModelsAudio({ providers: kbModelsProviders, credential: async (ref) => (await kbVoiceKey(ref)).key, api: createProbe() })
     const kbVoiceDecodeAudio = (value) => {
       const raw = str(value)
       if (raw === null) return { error: 'audio manquant' }
@@ -8427,6 +8177,7 @@ function boot(ctx) {
       { id: 'piper', name: 'Piper', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'supertonic', name: 'Supertonic-3', kind: 'local', price: 'free', privacy: 'Stays on this Mac. Nothing leaves it.' },
       { id: 'edge', name: 'edge-tts', kind: 'cloud', price: 'free', privacy: 'The reply text is sent to Microsoft to be synthesised.' },
+      { id: 'models', name: 'Your models', kind: 'cloud', price: 'plan', privacy: 'The reply text is sent to the provider of the model you choose, with the key already set up in Models.' },
     ]
     // 31 langues déclarées par Supertonic-3 (aucune langue chinoise : vérifié).
     const KB_TTS_SUPERTONIC_LANGS = ['ar', 'bg', 'cs', 'da', 'de', 'el', 'en', 'es', 'et', 'fi', 'fr', 'hi', 'hr', 'hu', 'id', 'it', 'ja', 'ko', 'lt', 'lv', 'nl', 'pl', 'pt', 'ro', 'ru', 'sk', 'sl', 'sv', 'tr', 'uk', 'vi']
@@ -8441,7 +8192,6 @@ function boot(ctx) {
       { id: 'ar-SA-HamedNeural', label: 'ar-SA-Hamed', lang: 'ar' },
       { id: 'ar-EG-SalmaNeural', label: 'ar-EG-Salma', lang: 'ar' },
     ]
-    const kbTtsPython = 'python3'
     const kbTtsTmpRoot = () => {
       const base = (typeof tmpdir === 'function' ? tmpdir() : '/tmp')
       return joinPath(base, 'kybernos-tts')
@@ -8662,15 +8412,21 @@ function boot(ctx) {
     }
 
     // ── sondes de disponibilité (mises en cache le temps du processus) ───────
+    const kbTtsPicker = createPythonPicker(kbTtsExec)
     const kbTtsProbes = {}
     const kbTtsProbe = async (moduleName) => {
       const key = String(moduleName)
       const hit = kbTtsProbes[key]
       const now = Date.now()
       if (hit !== undefined && now - hit.at < KB_TTS_PROBE_TTL_MS) return hit.value
-      const res = await kbTtsExec(kbTtsPython, ['-c', 'import ' + key], { timeoutMs: 20000 })
-      kbTtsProbes[key] = { at: now, value: res.ok === true }
-      return res.ok === true
+      const found = (await kbTtsPicker.first(key)) !== null
+      kbTtsProbes[key] = { at: now, value: found }
+      return found
+    }
+    /** The interpreter to run an engine with: the first that imports its module ('python3' when none does). */
+    const kbTtsPythonFor = async (moduleName) => {
+      await kbTtsProbe(moduleName)
+      return kbTtsPicker.pythonOf(moduleName)
     }
 
     // ── inventaire des voix, moteur par moteur ───────────────────────────────
@@ -8724,7 +8480,7 @@ function boot(ctx) {
       let got = null
       if (helper !== null) {
         try { writeFileSync(textFile, 'x') } catch (e) { /* sans fichier : --list-voices n'en a pas besoin */ }
-        const res = await kbTtsExec(kbTtsPython, [helper, '--engine', 'edge', '--list-voices'], { timeoutMs: 30000 })
+        const res = await kbTtsExec(await kbTtsPythonFor('edge_tts'), [helper, '--engine', 'edge', '--list-voices'], { timeoutMs: 30000 })
         if (res.ok === true && res.out.trim().length > 2) {
           const parsed = parseJson(res.out.trim())
           if (parsed !== null && Array.isArray(parsed) === true && parsed.length > 0) got = parsed
@@ -8739,9 +8495,10 @@ function boot(ctx) {
     const kbTtsEngines = async () => {
       const out = []
       const isMac = process.platform === 'darwin'
-      const [superOk, edgeOk, piperVoices, sayVoices, edgeList] = await Promise.all([
+      const [superOk, edgeOk, piperOk, piperVoices, sayVoices, edgeList] = await Promise.all([
         kbTtsProbe('supertonic'),
         kbTtsProbe('edge_tts'),
+        kbTtsProbe('piper'),
         kbTtsPiperModels(),
         kbTtsSayVoices(),
         kbTtsEdgeVoices(),
@@ -8755,8 +8512,8 @@ function boot(ctx) {
           item.size = '0 Mo'
         } else if (cat.id === 'piper') {
           item.voices = piperVoices
-          item.ready = piperVoices.length > 0
-          item.reason = piperVoices.length > 0 ? null : 'aucun modele .onnx dans ~/.dsh/kybers/tts/piper'
+          item.ready = piperVoices.length > 0 && piperOk === true
+          item.reason = piperVoices.length === 0 ? 'aucun modele .onnx dans ~/.dsh/kybers/tts/piper' : (piperOk === true ? null : 'module python piper absent')
           if (piperVoices.length > 0) {
             let bytes = 0
             for (const v of piperVoices) { try { const st = await fs.stat(await fs.resolve(joinPath(await kbTtsDirOf('piper'), v.id))); if (st !== null && typeof st.size === 'number') bytes += st.size } catch (e) { /* taille inconnue */ } }
@@ -8773,6 +8530,16 @@ function boot(ctx) {
           item.sizeBytes = cachePoids
           item.size = cachePoids > 0 ? Math.round(cachePoids / 1048576) + ' Mo' : null
           item.note = 'voix multilingues : la langue se choisit separement'
+        } else if (cat.id === 'models') {
+          // The speaking models of the providers already set up in Models: one "voice" per model. No installation, no new key.
+          const found = []
+          for (const g of audioModelsOf(kbModelsProviders())) for (const m of g.models) if (m.kind === 'speak' && /voiceclone|voicedesign/i.test(m.id) === false) found.push({ id: g.provider + ':' + m.id, label: m.id + ' · ' + g.provider, lang: '' })
+          item.voices = found
+          item.ready = found.length > 0
+          item.reason = found.length > 0 ? null : 'aucun modele de voix dans vos fournisseurs'
+          item.size = '0 Mo'
+          item.sizeBytes = 0
+          item.note = 'utilise la cle deja configuree pour le fournisseur du modele'
         } else if (cat.id === 'edge') {
           item.ready = edgeOk === true
           item.reason = item.ready === true ? null : 'module python edge_tts absent'
@@ -8870,6 +8637,12 @@ function boot(ctx) {
           const argv = ['-v', voiceId, '-r', rate, '-f', textFile, '-o', rawFile]
           if (voiceId === null || voiceId === '') { argv.splice(0, 2) }
           res = await kbTtsExec('say', argv, { timeoutMs: KB_TTS_TIMEOUT.say })
+        } else if (engine === 'models') {
+          // The voice id is "<provider>:<model>". The provider's own server makes the sound; it is written as a WAV like the other engines'.
+          const sep = String(voiceId === null ? '' : voiceId).indexOf(':')
+          const made = await kbModelsAudio.speak({ provider: sep > 0 ? String(voiceId).slice(0, sep) : '', model: sep > 0 ? String(voiceId).slice(sep + 1) : '', text: text })
+          if (made.ok !== true) res = { ok: false, error: made.error !== undefined ? String(made.error) : String(made.code) }
+          else { try { writeFileSync(rawFile, made.audio); res = { ok: true } } catch (e) { res = { ok: false, error: errText(e) } } }
         } else {
           const helper = await kbTtsHelperPath()
           if (helper === null) return { ok: false, error: 'script des moteurs non ecrit' }
@@ -8880,7 +8653,7 @@ function boot(ctx) {
             const dir = await kbTtsDirOf('piper')
             argv.push('--model', joinPath(dir, String(voiceId)))
           }
-          res = await kbTtsExec(kbTtsPython, argv, { timeoutMs: KB_TTS_TIMEOUT[engine] === undefined ? 20000 : KB_TTS_TIMEOUT[engine] })
+          res = await kbTtsExec(await kbTtsPythonFor(engine === 'edge' ? 'edge_tts' : engine), argv, { timeoutMs: KB_TTS_TIMEOUT[engine] === undefined ? 20000 : KB_TTS_TIMEOUT[engine] })
         }
       } finally {
         try { rmSync(textFile, { force: true }) } catch (e) { /* deja efface */ }
@@ -10127,12 +9900,6 @@ function boot(ctx) {
         handler: serveVendor('leaflet.js', 'text/javascript; charset=utf-8') }), 'kybernos: route vendor leaflet js')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/vendor/leaflet.css',
         handler: serveVendor('leaflet.css', 'text/css; charset=utf-8') }), 'kybernos: route vendor leaflet css')
-      // ── LiveKit client 2.22.3 (Apache-2.0) : la jonction de salle du navigateur ──
-      // Build UMD et non ESM : le build ESM importe des spécificateurs nus
-      // (@livekit/protocol…) qu'un navigateur sans bundler ne sait pas résoudre —
-      // même raison que xyflow. Il est chargé à la demande, au premier appel.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/vendor/livekit-client.js',
-        handler: serveVendor('livekit-client.js', 'text/javascript; charset=utf-8') }), 'kybernos: route vendor livekit-client js')
       // ── kb-places.js : module client lu à chaud sur le disque du plugin ──
       // Évalué par le chargeur kbPlacesLoad() de client.js (fetch + new Function,
       // même patron que React Flow). Modifier le fichier puis recharger la page
@@ -10207,43 +9974,6 @@ function boot(ctx) {
           res.end(out.bytes)
         } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket */ } }
       } }), 'kybernos: route voice-sample-audio')
-      // L'appel : d'abord ce qui est vrai de la chaîne (jamais un secret)…
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/call/status', handler: async (req, res) => {
-        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
-        try { return sendJson(res, 200, await kbCallStatus()) } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
-      } }), 'kybernos: route call/status')
-      // …ensuite le jeton de salle, qui n'est délivré qu'à la même origine.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/call/token', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-        let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
-        const out = await kbCallMint(body)
-        return sendJson(res, (out.ok === true ? 200 : 503), out)
-      } }), 'kybernos: route call/token')
-      // L'agent d'appel : démarré par l'hôte, jamais par le client à l'aveugle.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/call/agent', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-        let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
-        const action = (body !== null && typeof body === 'object' && typeof body.action === 'string') ? body.action : 'status'
-        try {
-          if (action === 'start') return sendJson(res, 200, await kbCallAgentStart(body))
-          if (action === 'stop') return sendJson(res, 200, await kbCallAgentStop())
-          if (action === 'status') return sendJson(res, 200, await kbCallAgentEtat())
-          return sendJson(res, 400, { ok: false, error: 'action inconnue (start, stop, status)' })
-        } catch (e) { return sendJson(res, 500, { ok: false, error: errText(e) }) }
-      } }), 'kybernos: route call/agent')
-      // La parole entendue pendant l'appel entre dans la session — vrai tour DSH.
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/call/utterance', handler: async (req, res) => {
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
-        let body = null
-        try { body = await readJsonBody(req) } catch (e) { return sendJson(res, 400, { ok: false, error: errText(e) }) }
-        const out = await kbCallUtterance(body)
-        return sendJson(res, (out.ok === true ? 200 : 400), out)
-      } }), 'kybernos: route call/utterance')
       // Les modèles image réellement configurés (+ leur prix connu, leur sonde).
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/image-models', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
@@ -10420,6 +10150,44 @@ function boot(ctx) {
           : (quota === true ? ('dernier essai refuse (' + (kbAsrState.status === null ? 'quota' : 'HTTP ' + kbAsrState.status) + ') : ' + String(kbAsrState.error === null ? 'quota epuise' : kbAsrState.error)) : null)
         sendJson(res, 200, { ok: true, asr: { model: prof.asrModel, ready: ready, ref: prof.ref, baseUrl: prof.baseUrl, maxBytes: KB_VOICE_MAX_BYTES, reason: raison, quota: { exhausted: quota, status: kbAsrState.status, at: kbAsrState.at === null ? null : new Date(kbAsrState.at).toISOString(), message: kbAsrState.error } } })
       } }), 'kybernos: route voice/config')
+      // The audio models of the providers already set up in Models (names and kinds only): a call can reuse them without a new key.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
+        let providers = {}
+        try { const ns = lireNamespace('llm-pi-ai').valeur; providers = (ns !== null && ns !== undefined && ns.providers !== null && ns.providers !== undefined) ? ns.providers : {} } catch (e) { providers = {} }
+        sendJson(res, 200, { ok: true, providers: audioModelsOf(providers) })
+      } }), 'kybernos: route models/audio')
+      // Which way of asking one of those models works (a few words of text, or a second of silence, sent to the provider with the key the
+      // app already holds for it; the key never leaves this process and is not in the answer). On a click only: it is a call to the provider.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/probe', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        let body = {}
+        try { body = await readJsonBody(req, 4096) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        sendJson(res, 200, await kbModelsAudio.check({ provider: str(body.provider) ?? '', model: str(body.model) ?? '' }))
+      } }), 'kybernos: route models/audio/probe')
+      // Speak with one of those models, and listen with one: what a call uses when its voice or its ears are a model of the user's provider.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/speak', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        let body = {}
+        try { body = await readJsonBody(req, 8192) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        const said = str(body.text)
+        if (said === null || said.trim() === '' || said.length > 1500) return sendJson(res, 400, { ok: false, error: 'texte de 1 a 1500 caracteres attendu' })
+        const made = await kbModelsAudio.speak({ provider: str(body.provider) ?? '', model: str(body.model) ?? '', text: said })
+        sendJson(res, 200, made.ok === true ? { ok: true, family: made.family, audio: 'data:audio/wav;base64,' + made.audio.toString('base64') } : { ok: false, code: made.code, error: made.error })
+      } }), 'kybernos: route models/audio/speak')
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/models/audio/listen', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        let body = {}
+        try { body = await readJsonBody(req, 16777216) } catch (e) { return sendJson(res, 413, { ok: false, error: errText(e) }) }
+        const b64 = str(body.audio)
+        const wav = b64 === null ? null : Buffer.from(b64.replace(/^data:audio\/[a-z0-9.+-]+;base64,/i, ''), 'base64')
+        if (wav === null || wav.length < 100 || wav.length > 12582912) return sendJson(res, 400, { ok: false, error: 'audio WAV en base64 attendu (jusqu a 12 Mo)' })
+        const lang = str(body.language)
+        sendJson(res, 200, await kbModelsAudio.listen({ provider: str(body.provider) ?? '', model: str(body.model) ?? '', wav: wav, language: lang !== null && /^[a-z]{2}$/.test(lang) ? lang : undefined }))
+      } }), 'kybernos: route models/audio/listen')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/voice/transcribe', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
@@ -11147,9 +10915,18 @@ const KB_FEEDBACK_TITLE_MAX = 160
 const KB_FEEDBACK_BODY_MAX = 8000
 const KB_FEEDBACK_ERRORS_MAX = 20
 const KB_FEEDBACK_MAILTO_MAX = 1200
-const KB_FEEDBACK_API_DEFAULT = 'https://api.dev.kybernos.app'
+// GO-LIVE: the built-in server's address, used only when the cloud plugin's state file records none. This block is cut out and run by
+// tests, so it cannot import server-profile.mjs; scripts/test-no-legacy-hosts.mjs fails when it differs from BUILTIN_API there.
+const KB_FEEDBACK_API_DEFAULT = 'https://server-dev-7831.up.railway.app'
 
 const kbFeedbackClip = (value, limit) => (typeof value === 'string' ? value.slice(0, limit) : '')
+
+/** The end of a report longer than the relay accepts says so: a silent cut would hand the team a report that
+ *  stops mid-sentence, and the person would never know the last lines were lost. */
+const KB_FEEDBACK_CUT = '\n\n[... cut: the report was longer than ' + String(KB_FEEDBACK_BODY_MAX) + ' characters]'
+const kbFeedbackBodyClip = (text) => (text.length <= KB_FEEDBACK_BODY_MAX
+  ? text
+  : text.slice(0, KB_FEEDBACK_BODY_MAX - KB_FEEDBACK_CUT.length) + KB_FEEDBACK_CUT)
 
 /** Local outbox folder (<DSH home>/beta-reports). Pure: takes the DSH home itself. */
 const kbFeedbackOutboxDir = (dsh) => joinPath(String(dsh), 'beta-reports')
@@ -11177,13 +10954,73 @@ const kbFeedbackReport = (input, env) => {
     uuid: uuidOk ? e.uuid : null,
     kind: kind,
     title: kbFeedbackClip(textOf(src.title), KB_FEEDBACK_TITLE_MAX),
-    body: kbFeedbackClip(textOf(src.body), KB_FEEDBACK_BODY_MAX),
+    body: kbFeedbackBodyClip(kbFeedbackClip(textOf(src.body), 4 * KB_FEEDBACK_BODY_MAX)),
     reporter: kbFeedbackClip(textOf(src.reporter), 200),
     client: client,
     context: context,
     evidence: { errors: errors },
     consent: true,
   }
+}
+
+/** Secrets out of a text that leaves this machine through the person's own mail client or clipboard (the relay path is masked by the
+ *  server; this is the same rule for the path that goes around it). A port of the server's feedback redactor
+ *  (kybernos-server src/modules/feedback/redact.ts): the known shapes are caught, the words that merely mention a secret
+ *  (`token: expired`) are kept so the report stays readable. Every step is bounded or cannot backtrack (a hostile 64 KiB text costs
+ *  milliseconds). A heuristic, not a guarantee: the person still reads the draft before sending it. Pur. */
+const KB_MASK_KEYWORD = String.raw`api[_-]?key|(?:secret|private|access|signing|encryption|master)[_-]?key|(?:db|database|admin|root)[_-]?pass(?:word)?|secret|password|passwd|pwd|credentials?|token|session[_-]?id`
+const KB_MASK_SEPARATOR = String.raw`[ \t]{0,8}(?:\\?["'])?[ \t]{0,8}(?::=|=>|[:=])[ \t]{0,8}`
+const KB_MASK_HARMLESS = /^(?:undefined|null|none|nil|true|false|string|number|boolean|object|any|unknown|void|required|expired|invalid|missing|include|omit|same-origin|await|async|new|function|empty|revoked|denied|forbidden|unauthorized|expected|wrong|incorrect|rejected|\*+|x+)$/i
+const kbMaskHarmless = (value) => KB_MASK_HARMLESS.test(value) || value.includes('(') || value.startsWith('[object') || value.startsWith('[REDACTED')
+const KB_MASK_KEY_HEADER = /-----BEGIN [A-Z ]{0,30}PRIVATE KEY(?: BLOCK)?-----/g
+const KB_MASK_KEY_END = /-----END [A-Z ]{0,30}PRIVATE KEY(?: BLOCK)?-----/
+const kbMaskPrivateKeys = (text) => {
+  if (!text.includes('PRIVATE KEY')) return text
+  let out = ''
+  let last = 0
+  for (const header of text.matchAll(KB_MASK_KEY_HEADER)) {
+    if (header.index < last) continue
+    const from = header.index + header[0].length
+    const window = text.slice(from, from + 20000)
+    const end = KB_MASK_KEY_END.exec(window)
+    const stop = end === null ? from + Math.min(window.length, 4000) : from + end.index + end[0].length
+    out += text.slice(last, header.index) + '[REDACTED PRIVATE KEY]'
+    last = stop
+  }
+  return out + text.slice(last)
+}
+const KB_MASK_STEPS = [
+  kbMaskPrivateKeys,
+  (t) => t.replace(/\b(sk|kys)-[A-Za-z0-9_-]{6,}\b/g, '$1-[REDACTED]'),
+  (t) => t.replace(/\bkyd_[A-Za-z0-9_-]{8,}/g, 'kyd_[REDACTED]'),
+  (t) => t.replace(/\b(?:(?:sk|rk|pk)_(?:test|live)_|whsec_)[A-Za-z0-9]{6,}/g, '[REDACTED]'),
+  (t) => t.replace(/\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})/g, '[REDACTED]'),
+  (t) => t.replace(/\bAKIA[0-9A-Z]{16}\b/g, '[REDACTED]'),
+  (t) => t.replace(/\bxox[abprs]-[A-Za-z0-9-]{10,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bAIza[0-9A-Za-z_-]{35}/g, '[REDACTED]'),
+  (t) => t.replace(/\bglpat-[A-Za-z0-9_-]{16,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bnpm_[A-Za-z0-9]{30,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bhf_[A-Za-z0-9]{20,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bdop_v1_[a-f0-9]{30,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bya29\.[A-Za-z0-9_-]{20,}/g, '[REDACTED]'),
+  (t) => t.replace(/\bSG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}/g, '[REDACTED]'),
+  (t) => t.replace(/\beyJ[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]{0,4000}){0,2}/g, '[REDACTED]'),
+  (t) => t.replace(/\b(bearer|basic)\s{1,20}([A-Za-z0-9_\-.~+/=]{8,})/gi, (all, kind, token) => (/[0-9=+/._~-]/.test(token) || token.length >= 20 ? kind + ' [REDACTED]' : all)),
+  (t) => t.replace(/(\b(?:authorization|(?:set-)?cookie)["']?[ \t]{0,8}:[ \t]{0,8}["']?)[^"'\r\n]+/gi, '$1[REDACTED]'),
+  (t) => t.replace(/(:\/\/[^\s/:@]{1,64}:)[^\s/@?#]{1,128}@/g, '$1[REDACTED]@'),
+  (t) => t.replace(new RegExp(String.raw`(${KB_MASK_KEYWORD})(${KB_MASK_SEPARATOR}\\?(["']))((?:(?!\3)[^\r\n\\]){1,200})`, 'gi'),
+    (all, name, separator, _quote, value) => (kbMaskHarmless(value.trim()) ? all : name + separator + '[REDACTED]')),
+  (t) => t.replace(new RegExp(String.raw`(${KB_MASK_KEYWORD})(${KB_MASK_SEPARATOR})([^\s"',;}\\&)\]<>]{4,})`, 'gi'),
+    (all, name, separator, value) => (kbMaskHarmless(value) ? all : name + separator + '[REDACTED]')),
+]
+const KB_MASK_INVISIBLE = /[\p{Default_Ignorable_Code_Point}\p{Cf}]/gu
+const kbFeedbackMask = (value) => {
+  if (typeof value !== 'string') return ''
+  const run = (t) => { let out = t; for (const step of KB_MASK_STEPS) out = step(out); return out }
+  // A secret with invisible characters spread inside is found all the same: when the text without them holds something to mask, that text is kept.
+  const plain = value.replace(KB_MASK_INVISIBLE, '')
+  if (plain !== value) { const masked = run(plain); if (masked !== plain) return masked }
+  return run(value)
 }
 
 /** Rapport en clair, prêt à coller (repli mail). Pur. */
@@ -11207,7 +11044,7 @@ const kbFeedbackPlainText = (report) => {
     for (let i = 0; i < evidence.errors.length; i++) lines.push('- ' + String(evidence.errors[i]))
   }
   lines.push('', 'Rapport ' + String(r.uuid) + ' (relais automatique indisponible).')
-  return lines.join('\r\n')
+  return kbFeedbackMask(lines.join('\r\n'))
 }
 
 /** `mailto:` SANS destinataire : le rapport part par le client mail de
@@ -11215,7 +11052,7 @@ const kbFeedbackPlainText = (report) => {
  *  acceptée partout ; « copier le rapport complet » prend le reste. Pur. */
 const kbFeedbackMailto = (report, limit) => {
   const cap = typeof limit === 'number' ? limit : KB_FEEDBACK_MAILTO_MAX
-  const subject = 'Retour beta : ' + String(report === null || report === undefined ? '' : report.title)
+  const subject = kbFeedbackMask('Retour beta : ' + String(report === null || report === undefined ? '' : report.title))
   const body = kbFeedbackClip(kbFeedbackPlainText(report), cap)
   return 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body)
 }
@@ -11231,13 +11068,19 @@ const kbFeedbackVerdict = (status, text) => {
     && typeof parsed.issue === 'object' ? parsed.issue : null
   const url = issue !== null && typeof issue.url === 'string' && issue.url !== '' ? issue.url : null
   const raw = parsed !== null && parsed !== undefined && typeof parsed.error === 'string' ? parsed.error : ''
-  if (code === 201 && url !== null) return { ok: true, issue_url: url, error: null, deduped: false }
-  if (raw === 'already_sent' && url !== null) return { ok: true, issue_url: url, error: null, deduped: true }
+  // The relay holds a report's id for a while after a failed call (the call may have created the issue without the answer coming back):
+  // it says how long, and asking again sooner only gets `en_cours`.
+  const wait = parsed !== null && parsed !== undefined && typeof parsed.retry_after === 'number' && parsed.retry_after > 0 && parsed.retry_after <= 3600
+    ? Math.ceil(parsed.retry_after) : null
+  if (code === 201 && url !== null) return { ok: true, issue_url: url, error: null, deduped: false, retry_after: null }
+  if (raw === 'already_sent' && url !== null) return { ok: true, issue_url: url, error: null, deduped: true, retry_after: null }
   const known = ['already_sent', 'en_cours', 'github_indisponible', 'base_indisponible',
     'corps_trop_volumineux', 'invalid_json', 'invalid_uuid', 'invalid_kind',
     'invalid_title', 'invalid_body', 'consentement_requis', 'trop_de_demandes']
-  const error = known.indexOf(raw) >= 0 ? raw : (code === 0 ? 'reseau_indisponible' : 'refus_' + String(code))
-  return { ok: false, issue_url: null, error: error, deduped: false }
+  // A token the server no longer accepts (revoked from the web, expired) is a session to reconnect, not an opaque « refus_401 ».
+  const refused = code === 401 || code === 403 ? 'reconnexion_requise' : 'refus_' + String(code)
+  const error = known.indexOf(raw) >= 0 ? raw : (code === 0 ? 'reseau_indisponible' : refused)
+  return { ok: false, issue_url: null, error: error, deduped: false, retry_after: wait }
 }
 
 /** Lit la réponse d'un service HTTP hôte ou d'un `fetch` standard. Pur. */
@@ -11271,16 +11114,135 @@ const kbFeedbackCloudState = (dsh) => {
  *  un GET en lecture (constaté dans dsh-web-fetch-http), l'utiliser pour un
  *  envoi ferait un faux « succès ». Si le runtime interdit la sortie réseau,
  *  on le DIT (envoi_indisponible) et l'agent bascule sur le repli mail. */
+const KB_FEEDBACK_TIMEOUT_MS = 20000
+const KB_FEEDBACK_ANSWER_MAX = 1 << 20
+/** The relay's answer as text, never more than `KB_FEEDBACK_ANSWER_MAX` bytes of it (a real Response is read as a stream and cut). */
+const kbFeedbackAnswerText = async (res) => {
+  if (res.body !== null && res.body !== undefined && typeof res.body.getReader === 'function') {
+    const reader = res.body.getReader()
+    const chunks = []
+    let total = 0
+    for (;;) {
+      const part = await reader.read()
+      if (part.done === true) break
+      total += part.value.byteLength
+      chunks.push(part.value)
+      if (total > KB_FEEDBACK_ANSWER_MAX) { await reader.cancel().catch(() => {}); break }
+    }
+    return Buffer.concat(chunks).toString('utf8').slice(0, KB_FEEDBACK_ANSWER_MAX)
+  }
+  return typeof res.text === 'function' ? String(await res.text()).slice(0, KB_FEEDBACK_ANSWER_MAX) : ''
+}
 const kbFeedbackPost = async (url, token, report) => {
   if (typeof fetch !== 'function') throw new Error('fetch indisponible')
+  // A relay that accepts the connection and never answers must not hold the agent for ever, and a redirect must not carry the report
+  // (and the way to the person's account) to another host: both end as a failed send, which the outbox keeps for later.
+  const wait = Number(process.env.KYBERNOS_FEEDBACK_TIMEOUT_MS)
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + String(token) },
     body: JSON.stringify(report),
+    redirect: 'manual',
+    signal: AbortSignal.timeout(Number.isFinite(wait) && wait > 0 ? wait : KB_FEEDBACK_TIMEOUT_MS),
   })
   if (res === null || res === undefined) throw new Error('reponse vide')
-  const text = typeof res.text === 'function' ? await res.text() : ''
-  return { status: res.status, text: text }
+  if (res.status >= 300 && res.status < 400) throw new Error('redirection refusee')
+  return { status: res.status, text: await kbFeedbackAnswerText(res) }
+}
+
+/** Codes that a second attempt cannot change: the relay refused the CONTENT of the report. Everything else (service down, no network,
+ *  a session to reconnect, a rate limit, a 5xx) may succeed later, so the report stays in the outbox and leaves again. */
+const KB_FEEDBACK_PERMANENT = ['corps_trop_volumineux', 'invalid_json', 'invalid_uuid', 'invalid_kind', 'invalid_title', 'invalid_body',
+  'consentement_requis', 'uuid_indisponible', 'rapport_incomplet']
+const kbFeedbackRetryable = (error) => {
+  const code = String(error === undefined || error === null ? '' : error)
+  if (KB_FEEDBACK_PERMANENT.indexOf(code) >= 0) return false
+  const refus = /^refus_(\d{3})$/.exec(code)
+  return refus === null || Number(refus[1]) >= 500
+}
+const KB_FEEDBACK_SAME_MS = 24 * 3600 * 1000       // an identical report within a day is the same report
+const KB_FEEDBACK_RETRY_MS = 14 * 24 * 3600 * 1000  // a failed report is retried for two weeks
+const KB_FEEDBACK_FLUSH_MAX = 3                     // older failed reports resent after one success
+
+/** The Kybernos set's own version: the VERSION file `scripts/paquet.mjs` writes at the root of every archive (two levels above
+ *  this bundle). A value that is not a semver is refused, never invented. Pure: the path and the reader are given. */
+const kbFeedbackSuiteVersion = (path, read) => {
+  try {
+    const v = String(read(path, 'utf8')).trim()
+    return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(v) ? v : null
+  } catch (e) { return null }
+}
+
+/** The DSH version: `DSH_VERSION` when the host sets it, else the version of the `@deepseek-ai/dsh` package this process was started from. */
+const kbFeedbackDshVersion = () => {
+  const fromEnv = (typeof process !== 'undefined' && process.env !== undefined) ? str(process.env.DSH_VERSION) : null
+  if (fromEnv !== null && fromEnv.trim() !== '') return fromEnv.trim()
+  try {
+    let dir = dirname(realpathSync(process.argv[1]))
+    for (let i = 0; i < 8; i++) {
+      const file = nodePathJoin(dir, 'package.json')
+      if (existsSync(file)) {
+        const pkg = JSON.parse(readFileSync(file, 'utf8'))
+        if (pkg !== null && pkg.name === '@deepseek-ai/dsh' && typeof pkg.version === 'string') return pkg.version
+      }
+      const up = dirname(dir)
+      if (up === dir) break
+      dir = up
+    }
+  } catch (e) { /* not started from a package: the version stays unknown, never made up */ }
+  return null
+}
+
+/** One POST to the relay, whatever goes wrong: a verdict, never an exception. `net` = the network (or the runtime) failed. */
+const kbFeedbackSend = async (api, token, report) => {
+  try {
+    const read = kbFeedbackReadHttp(await kbFeedbackPost(String(api).replace(/\/+$/, '') + '/v1/feedback', token, report))
+    return Object.assign({ net: false }, kbFeedbackVerdict(read.status, read.text))
+  } catch (e) {
+    return { net: true, ok: false, issue_url: null, error: 'envoi_indisponible', deduped: false }
+  }
+}
+
+/** The outbox holds the RAW text of what a person wrote (it may contain a secret they pasted): only they read it. */
+const kbFeedbackWriteRecord = (file, record) => {
+  try { writeFileSync(file, JSON.stringify(record, null, 2) + '\n', { mode: 0o600 }) } catch (e) { return }
+  try { chmodSync(file, 0o600) } catch (e) { /* exotic filesystem */ }
+}
+const kbFeedbackReadOutbox = (dir) => {
+  const out = []
+  let names = []
+  try { names = readdirSync(dir) } catch (e) { return out }
+  for (const name of names) {
+    if (name.endsWith('.json') !== true) continue
+    const file = joinPath(dir, name)
+    try {
+      const record = JSON.parse(readFileSync(file, 'utf8'))
+      if (record !== null && typeof record === 'object' && record.report !== null && typeof record.report === 'object') out.push({ file: file, record: record })
+    } catch (e) { /* an unreadable trace is left alone */ }
+  }
+  return out
+}
+const kbFeedbackAge = (record) => {
+  const t = Date.parse(String(record.created_at))
+  return Number.isFinite(t) ? Date.now() - t : Infinity
+}
+
+/** After a success: failed reports of the last two weeks leave again under their own id (the relay deduplicates on it). Best effort. */
+const kbFeedbackFlush = async (dir, api, token, exceptUuid) => {
+  const pending = kbFeedbackReadOutbox(dir)
+    .filter((x) => x.record.status === 'echec' && kbFeedbackRetryable(x.record.error) && x.record.report.uuid !== exceptUuid
+      && kbFeedbackAge(x.record) < KB_FEEDBACK_RETRY_MS && !(Number(x.record.retry_at) > Date.now()))
+    .sort((x, y) => String(x.record.created_at).localeCompare(String(y.record.created_at)))
+    .slice(0, KB_FEEDBACK_FLUSH_MAX)
+  for (const item of pending) {
+    const verdict = await kbFeedbackSend(api, token, item.record.report)
+    item.record.status = verdict.ok ? 'envoye' : 'echec'
+    item.record.issue_url = verdict.issue_url
+    item.record.error = verdict.error
+    item.record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
+    kbFeedbackWriteRecord(item.file, item.record)
+    if (verdict.ok !== true) break          // the service is down again: do not hammer it
+  }
 }
 
 /** Exécution complète de l'outil : trace locale DANS TOUS LES CAS, puis envoi. */
@@ -11291,60 +11253,94 @@ const kbFeedbackExecute = async (args) => {
   const report = kbFeedbackReport(args, {
     uuid: typeof randomUUID === 'function' ? randomUUID() : null,
     os: osLabel,
-    dsh: (typeof process !== 'undefined' && process.env !== undefined) ? str(process.env.DSH_VERSION) : null,
-    revision: null,
+    dsh: kbFeedbackDshVersion(),
+    revision: kbFeedbackSuiteVersion(nodePathJoin(dirname(fileURLToPath(import.meta.url)), '..', '..', 'VERSION'), readFileSync),
     session_id: null,
   })
+  const asked = args !== null && args !== undefined && typeof args === 'object' ? args : {}
+  const truncated = String(asked.body === undefined || asked.body === null ? '' : asked.body).trim().length > KB_FEEDBACK_BODY_MAX
   const mailto = kbFeedbackMailto(report)
-  const fail = (code) => ({ ok: false, error: code, issue_url: null, deduped: false,
+  const fail = (code) => ({ ok: false, error: code, issue_url: null, deduped: false, truncated: truncated,
     mailto: mailto, report: report, outbox_file: null })
   if (report.uuid === null) return fail('uuid_indisponible')
   if (report.title === '' || report.body === '') return fail('rapport_incomplet')
 
   const dir = kbFeedbackOutboxDir(dsh)
-  const file = joinPath(dir, String(report.uuid) + '.json')
-  const record = { created_at: nowIso(), status: 'en_attente', issue_url: null, error: null, report: report }
-  const writeRecord = () => { try { writeFileSync(file, JSON.stringify(record, null, 2) + '\n') } catch (e) { /* trace = bonus */ } }
-  try { mkdirSync(dir, { recursive: true }) } catch (e) { /* deja la */ }
-  writeRecord()
+  try { mkdirSync(dir, { recursive: true, mode: 0o700 }) } catch (e) { /* deja la */ }
+  try { chmodSync(dir, 0o700) } catch (e) { /* not ours, or an exotic filesystem */ }
+
+  // The same report again (an agent that retries, a double click) is the SAME report: a sent one is not sent twice, a failed one
+  // is posted again under its first id, so the relay deduplicates it and the outbox keeps one record, not two.
+  const same = kbFeedbackReadOutbox(dir).filter((x) => x.record.report.kind === report.kind && x.record.report.title === report.title
+    && x.record.report.body === report.body && kbFeedbackAge(x.record) < KB_FEEDBACK_SAME_MS
+    && (x.record.status === 'envoye' || kbFeedbackRetryable(x.record.error) || x.record.status === 'en_attente'))
+    .sort((x, y) => String(y.record.created_at).localeCompare(String(x.record.created_at)))[0]
+  if (same !== undefined && same.record.status === 'envoye' && typeof same.record.issue_url === 'string') {
+    return { ok: true, error: null, issue_url: same.record.issue_url, deduped: true, truncated: truncated,
+      mailto: mailto, report: same.record.report, outbox_file: same.file }
+  }
+  if (same !== undefined && Number(same.record.retry_at) > Date.now()) {
+    // Asked again before the relay lets go of this report's id: say so without a round trip.
+    return { ok: false, error: 'en_cours', issue_url: null, deduped: false, truncated: truncated, retry_after: Math.ceil((Number(same.record.retry_at) - Date.now()) / 1000),
+      mailto: mailto, report: same.record.report, outbox_file: same.file }
+  }
+  if (same !== undefined) report.uuid = same.record.report.uuid
+  const file = same !== undefined ? same.file : joinPath(dir, String(report.uuid) + '.json')
+  const record = { created_at: same !== undefined ? same.record.created_at : nowIso(), status: 'en_attente', issue_url: null, error: null, report: report }
+  kbFeedbackWriteRecord(file, record)
 
   const state = kbFeedbackCloudState(dsh)
   const token = state !== null && typeof state.token === 'string' ? state.token : ''
   if (token === '') {
-    record.status = 'echec'; record.error = 'non_connecte'; writeRecord()
-    return { ok: false, error: 'non_connecte', issue_url: null, deduped: false,
+    record.status = 'echec'; record.error = 'non_connecte'; kbFeedbackWriteRecord(file, record)
+    return { ok: false, error: 'non_connecte', issue_url: null, deduped: false, truncated: truncated,
       mailto: mailto, report: report, outbox_file: file }
   }
   const api = state !== null && typeof state.api === 'string' && state.api !== '' ? state.api : KB_FEEDBACK_API_DEFAULT
-  let read = { status: 0, text: '' }
-  try {
-    read = kbFeedbackReadHttp(await kbFeedbackPost(api.replace(/\/+$/, '') + '/v1/feedback', token, report))
-  } catch (e) {
-    record.status = 'echec'; record.error = 'envoi_indisponible'; writeRecord()
-    return { ok: false, error: 'envoi_indisponible', issue_url: null, deduped: false,
-      mailto: mailto, report: report, outbox_file: file }
-  }
-  const verdict = kbFeedbackVerdict(read.status, read.text)
+  const verdict = await kbFeedbackSend(api, token, report)
   record.status = verdict.ok ? 'envoye' : 'echec'
   record.issue_url = verdict.issue_url
   record.error = verdict.error
-  writeRecord()
+  record.retry_at = verdict.retry_after === null || verdict.retry_after === undefined ? null : Date.now() + verdict.retry_after * 1000
+  kbFeedbackWriteRecord(file, record)
+  if (verdict.ok) { try { await kbFeedbackFlush(dir, api, token, report.uuid) } catch (e) { /* the report itself is already out */ } }
   return { ok: verdict.ok, error: verdict.error, issue_url: verdict.issue_url,
-    deduped: verdict.deduped === true, mailto: mailto, report: report, outbox_file: file }
+    deduped: verdict.deduped === true, truncated: truncated, retry_after: verdict.retry_after === undefined ? null : verdict.retry_after,
+    mailto: mailto, report: report, outbox_file: file }
+}
+
+/** What went wrong, in a sentence the agent can pass on in the user's language. */
+const KB_FEEDBACK_REASONS = {
+  github_indisponible: 'The team\'s issue tracker did not answer.',
+  base_indisponible: 'The Kybernos service could not store the report just now.',
+  en_cours: 'The same report is already being sent.',
+  trop_de_demandes: 'Too many reports were sent in the last hour.',
+  envoi_indisponible: 'This machine could not reach the Kybernos service.',
+  reseau_indisponible: 'This machine could not reach the Kybernos service.',
+  non_connecte: 'This DSH is not connected to a Kybernos account: connect it from the account card in the sidebar.',
+  reconnexion_requise: 'The Kybernos session of this DSH expired or was revoked: reconnect it from the account card in the sidebar.',
+  corps_trop_volumineux: 'The service found the report too large.',
 }
 
 /** Texte que lit l'agent : soit le lien de l'issue, soit le repli prêt à coller. */
 const kbFeedbackToolText = (value) => {
   const v = value !== null && value !== undefined && typeof value === 'object' ? value : {}
+  const cutNote = v.truncated === true ? '\nThe report was longer than ' + String(KB_FEEDBACK_BODY_MAX) + ' characters: its end was cut, say so to the user.' : ''
   if (v.ok === true) {
-    return 'Rapport transmis' + (v.deduped === true ? ' (deja depose)' : '') + ' : ' + String(v.issue_url)
-      + "\nDis-le a l'utilisateur en une phrase avec ce lien, puis propose d'y ajouter une capture ou une precision."
+    return 'Report sent' + (v.deduped === true ? ' (it had already been sent: same report, no second one)' : '') + ': ' + String(v.issue_url)
+      + '\nTell the user in one sentence, with this link, then offer to add a screenshot or a detail on the issue.' + cutNote
   }
-  const out = ['Le relais automatique n\'a pas repondu (' + String(v.error === undefined ? 'erreur' : v.error) + ').',
-    'Le rapport est CONSERVE localement et repartira. Rapport complet a copier :', '', kbFeedbackPlainText(v.report)]
-  if (v.mailto) out.push('', 'Lien mail : ' + String(v.mailto))
-  if (v.outbox_file) out.push('Trace locale : ' + String(v.outbox_file))
-  return out.join('\n')
+  const code = String(v.error === undefined || v.error === null ? 'error' : v.error)
+  const reason = KB_FEEDBACK_REASONS[code] !== undefined ? KB_FEEDBACK_REASONS[code] : 'The service refused the report (' + code + ').'
+  const wait = typeof v.retry_after === 'number' && v.retry_after > 0 ? ' The service asks to wait about ' + String(v.retry_after) + ' seconds before this same report is sent again.' : ''
+  const out = ['The report was NOT sent automatically (' + code + '). ' + reason + wait]
+  out.push(kbFeedbackRetryable(code)
+    ? 'It is KEPT on this machine and is sent again by itself with the next report that goes through. Full report to copy:'
+    : 'It is kept on this machine. Full report to copy:')
+  out.push('', kbFeedbackPlainText(v.report))
+  if (v.mailto) out.push('', 'Mail link: ' + String(v.mailto))
+  if (v.outbox_file) out.push('Local copy: ' + String(v.outbox_file))
+  return out.join('\n') + cutNote
 }
 
 const kbFeedbackRegisterTool = (harnessRef, args) => {
@@ -11368,6 +11364,8 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
           error: { type: 'string' },
           issue_url: { type: 'string' },
           deduped: { type: 'boolean' },
+          truncated: { type: 'boolean' },
+          retry_after: { type: 'number' },
           mailto: { type: 'string' },
           outbox_file: { type: 'string' },
           report: { type: 'json', required: true },
@@ -11381,35 +11379,16 @@ const kbFeedbackRegisterTool = (harnessRef, args) => {
   return true
 }
 
-/** Installe la skill `signaler-retour` dans <DSH home>/skills. Sans elle, le bouton
- *  ouvrirait un chat sur une commande inconnue : le plugin pousse donc sa
- *  propre skill au démarrage (idempotent : on n'écrit que si le contenu
- *  diffère, donc une mise à jour du plugin met la skill à jour). */
+/** Puts the skill `signaler-retour` into <DSH home>/skills. Without it the « Send feedback » button would open a chat on an unknown
+ *  command. It goes through the same careful seeding as every skill this plugin ships (seed-skills.mjs): absent → written, ours and
+ *  outdated → refreshed, and a skill the person wrote or edited under that name is NEVER overwritten (the shipped copy used to replace any
+ *  file that differed). True when the skill is there (ours or the person's). */
 const KB_FEEDBACK_SKILL = 'signaler-retour'
-const kbFeedbackSkillSource = () => {
-  try {
-    const here = dirname(fileURLToPath(import.meta.url))
-    // `joinPath(dir, name)` ne prend QUE deux arguments : on imbrique.
-    const candidates = [
-      joinPath(joinPath(joinPath(dirname(here), 'skills'), KB_FEEDBACK_SKILL), 'SKILL.md'),
-      joinPath(joinPath(joinPath(here, 'skills'), KB_FEEDBACK_SKILL), 'SKILL.md'),
-    ]
-    for (let i = 0; i < candidates.length; i++) {
-      try { if (existsSync(candidates[i]) === true) return readFileSync(candidates[i], 'utf8') } catch (e) { /* suivant */ }
-    }
-  } catch (e) { /* import.meta indisponible */ }
-  return null
-}
 const kbFeedbackEnsureSkill = (dsh) => {
-  const text = kbFeedbackSkillSource()
-  if (text === null || typeof text !== 'string' || text.trim() === '') return false
-  const dir = joinPath(joinPath(String(dsh), 'skills'), KB_FEEDBACK_SKILL)
-  const file = joinPath(dir, 'SKILL.md')
-  try { if (readFileSync(file, 'utf8') === text) return true } catch (e) { /* absente */ }
   try {
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(file, text)
-    return true
+    const sourceDir = joinPath(dirname(fileURLToPath(import.meta.url)), 'skills')
+    const r = seedSkills({ home: String(dsh), sourceDir, names: [KB_FEEDBACK_SKILL] })[0]
+    return r !== undefined && (r.action === 'created' || r.action === 'current' || r.action === 'updated' || r.action === 'kept')
   } catch (e) { return false }
 }
 
@@ -11541,6 +11520,7 @@ export function apply(ctx) {
 // est testée avec un `fetch` simulé et un HOME jetable.
 export {
     kbFeedbackReport,
+    kbFeedbackMask,
     kbFeedbackPlainText,
     kbFeedbackMailto,
     kbFeedbackVerdict,
@@ -11548,4 +11528,6 @@ export {
     kbFeedbackOutboxDir,
     kbFeedbackExecute,
     kbFeedbackEnsureSkill,
+    kbFeedbackSuiteVersion,
+    kbFeedbackToolText,
 }

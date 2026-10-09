@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème, une couleur d’accent, un fond et une police.",
-      "en": "In “Essentials” (open by default), pick a mode, a theme, an accent color, a background and a font."
+      "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème (livré ou à vous), un accent, un fond et une police.",
+      "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
     },
     {
       "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
@@ -17,8 +17,8 @@
       "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
     },
     {
-      "fr": "« Partage » exporte votre thème (YAML, JSON ou CSS) ou importe un fichier .json ; « Tout rétablir » revient à l’apparence native de DSH.",
-      "en": "“Sharing” exports your theme (YAML, JSON or CSS) or imports a .json file; “Reset all” goes back to DSH’s native look."
+      "fr": "« Partage » garde vos thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
+      "en": "“Sharing” keeps your themes (save, import, export); “Gallery” offers more to try and install."
     }
   ],
   "where": {

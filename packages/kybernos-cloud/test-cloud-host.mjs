@@ -32,10 +32,30 @@ let tokenValid = true
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
 // de la route (le claim fige un instantané, /v1/me remet le profil à jour).
+let spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000, credit_balance_usd: '5.43' }
 let meProfile = null
 // Force le statut de /v1/me (route cassée) independamment du jeton : sert au
 // test « un 401 sur /v1/me ne deconnecte pas ».
 let meForcedStatus = null
+// What `GET /v1/models` lists for a workspace named in `x-kybernos-workspace`: the team's own models (`byok/…`) are in ITS catalogue only.
+// `teamSpaceListed` adds that team to the account's workspaces.
+let teamSpaceListed = false
+// Headers added to every answer (the server tells a member inside the grace of the second-factor policy when it ends: X-Kybernos-Mfa-Grace-Ends) and a refusal of the
+// active space's plan read (a member without a factor, past the grace: 403 mfa_required_by_workspace).
+let extraHeaders = null
+let planRefusal = null
+// What `GET …/llm/budget` says of the signed-in person's windows (the server's own words: kind, window, scope, exhausted; the percent comes with the newer servers).
+let budgetBody = { windows: [
+  { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '0.10', remaining_usd: '0.90', exhausted: false, lifted_by_topup: false },
+  { kind: 'pool', window_seconds: 18000, scope: 'plan', limit_usd: '9.00', spent_usd: '0.10', remaining_usd: '8.90', exhausted: false, lifted_by_topup: false },
+] }
+const catalogByWorkspace = {
+  'ws-team': { data: [
+    { id: 'glm', object: 'model', kind: 'chat', display_name: 'GLM', source: 'platform' },
+    { id: 'byok/our-gpt', object: 'model', kind: 'chat', display_name: 'Our GPT', source: 'workspace' },
+    { id: 'embed', object: 'model', kind: 'embeddings' },
+  ] },
+}
 // Catalogue LiteLLM servi par GET /v1/models : mélange voulu de routes produit,
 // de jumeaux de fallback, de pools infra, d'embeddings et de modèles bruts —
 // seules les routes produit kybernos/* (hors fb/rg/embed) doivent survivre.
@@ -62,7 +82,7 @@ const SUPPORT_ITEM = {
 }
 const market = { mode: 'legacy', items: [SUPPORT_ITEM], hidden: [], pageSize: 200, listCalls: 0, failPage: null, endless: false, byAddressStatus: null }
 const teamApi = { workspace: '11111111-1111-4111-8111-111111111111', role: 'member', rows: [], next: 1, fail: null }
-const seen = { team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
+const seen = { team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
 // que l'Edge Function kybernos-referral-info exige un JWT web que le jeton
@@ -112,7 +132,7 @@ const api = createServer((req, res) => {
   req.on('end', () => {
     const body = raw === '' ? null : JSON.parse(raw)
     const send = (status, payload) => {
-      res.writeHead(status, { 'content-type': 'application/json' })
+      res.writeHead(status, { 'content-type': 'application/json', ...(extraHeaders !== null ? extraHeaders : {}) })
       res.end(JSON.stringify(payload))
     }
     // Team lessons: a small stand-in for /v1/workspaces/{id}/lessons (the real rules are the server's, tested there): roles come from
@@ -213,7 +233,11 @@ const api = createServer((req, res) => {
     }
     if (req.url === '/v1/models' && req.method === 'GET') {
       seen.modelsAuth.push(auth)
+      // The workspace the call is billed to, as the server reads it: `x-kybernos-workspace`, else the personal one. Its models are what `/v1/models` lists.
+      const named = typeof req.headers['x-kybernos-workspace'] === 'string' ? req.headers['x-kybernos-workspace'] : null
+      seen.modelsWorkspace.push(named)
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (named !== null && catalogByWorkspace[named] !== undefined) return send(200, catalogByWorkspace[named])
       return send(200, catalog)
     }
     if (req.url === '/v1/me' && req.method === 'GET') {
@@ -226,7 +250,20 @@ const api = createServer((req, res) => {
     if (req.url === '/v1/workspaces') {
       seen.authHeaders.push(auth)
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
-      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21' }] })
+      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21' }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
+    }
+    if (req.url === '/v1/workspaces/ws-1/llm/budget' || req.url === '/v1/workspaces/ws-team/llm/budget') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, budgetBody)
+    }
+    if (req.url === '/v1/workspaces/ws-team/plan') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, { source: 'subscription', status: 'active', plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 })
+    }
+    if (req.url === '/v1/workspaces/ws-1/plan') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      if (planRefusal !== null) return send(403, planRefusal)
+      return send(200, spacePlanBody)
     }
     if (req.url === '/v1/referral' && req.method === 'GET') {
       seen.referralAuth.push(auth)
@@ -539,8 +576,12 @@ try {
     '/kybernos-cloud/chats', '/kybernos-cloud/chats/push', '/kybernos-cloud/chats/detail',
     // Console Team: the read-only relay (test-relay.mjs) and the active server (test-server-switch.mjs).
     '/kybernos-cloud/relay', '/kybernos-cloud/server', '/kybernos-cloud/server/apply',
+    // The terms and privacy addresses of the active server (test-unplug-host.mjs).
+    '/kybernos-cloud/legal',
     // The console in the user's browser: a single-use link from the server (test-console-link.mjs).
     '/kybernos-cloud/console/link',
+    // What stopped the person's last call, in the server's words, for the quota notice (test-quota-notice.mjs and below).
+    '/kybernos-cloud/quota',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -713,14 +754,143 @@ try {
   assert.equal(choisi.body.state.active_workspace_id, 'ws-1')
   ok('espace actif : un id inconnu est refuse, un id connu est ecrit')
 
+  // The footer, the menu and the team features show the plan of the ACTIVE space (read from the server's /plan of that space),
+  // not the account-level word of /v1/me (« team » as soon as the person is in any team).
+  assert.deepEqual(choisi.body.state.space_plan, { workspace_id: 'ws-1', key: 'solo', name: 'Solo', level: 'Studio', label: 'Solo Studio', status: 'active', credit_balance_credits: 20000 })
+  const rafraichi = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(rafraichi.body.state.space_plan.label, 'Solo Studio')
+  assert.equal(JSON.stringify(rafraichi.body).includes(TOKEN), false)
+  // A team plan's level is a price band (« 1-5 seats »), not a name; a space with no plan has no label.
+  spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 }
+  assert.equal((await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan.label, 'Team')
+  spacePlanBody = { source: 'none', status: 'none', plan: null, level: null, seats: 1, credit_balance_credits: 0 }
+  const sansPlan = (await hit('/kybernos-cloud/refresh', 'POST')).body.state.space_plan
+  assert.equal(sansPlan.key, 'none')
+  assert.equal(sansPlan.label, null)
+  ok('espace actif : le plan de CET espace est lu au serveur (/plan), au changement d espace et au rafraichissement ; une formule Team ne montre pas sa tranche')
+
+  // ── The model route names the ACTIVE space ─────────────────────────────────
+  // DSH's chat calls the « kybernos » route with the device token and nothing else: without `x-kybernos-workspace` the server bills the PERSONAL
+  // workspace, so a team member's chat never used the team's plan, pool or shared models, whatever the Cloud card said was active. The route carries
+  // the header of the active space, and the catalogue it lists is that space's (a team's own models, `byok/…`, are in it and in no other).
+  teamSpaceListed = true
+  await hit('/kybernos-cloud/refresh', 'POST')
+  let spaceRoute = settingsStore['llm-pi-ai'].providers.kybernos
+  assert.equal(spaceRoute.headers !== undefined && spaceRoute.headers['x-kybernos-workspace'], 'ws-1', 'the route names the personal space once it is the active one')
+  assert.equal(seen.modelsWorkspace.at(-1), 'ws-1', 'the catalogue is read for that space')
+  const toTeam = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-team' })
+  assert.equal(toTeam.body.ok, true)
+  spaceRoute = settingsStore['llm-pi-ai'].providers.kybernos
+  assert.equal(spaceRoute.headers['x-kybernos-workspace'], 'ws-team', 'choosing the team rewrites the route: its calls now name the team')
+  assert.deepEqual(spaceRoute.models.map((m) => m.id), ['glm', 'byok/our-gpt'], 'the team\'s shared model is in the route, the embeddings model is not')
+  assert.equal(spaceRoute.models[1].name, 'Our GPT')
+  assert.equal(seen.modelsWorkspace.at(-1), 'ws-team', 'the catalogue was read for the team')
+  assert.equal(JSON.stringify(settingsStore['llm-pi-ai']).includes(TOKEN), false, 'the token is a reference in the route, never a value')
+  const writesAfterTeam = settingsCalls.length
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(settingsCalls.length, writesAfterTeam, 'a refresh with the same active space writes nothing')
+  const backToPersonal = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(backToPersonal.body.ok, true)
+  spaceRoute = settingsStore['llm-pi-ai'].providers.kybernos
+  assert.equal(spaceRoute.headers['x-kybernos-workspace'], 'ws-1')
+  assert.equal(spaceRoute.models.some((m) => m.id === 'byok/our-gpt'), false, 'leaving the team takes its models away')
+  // An owner shares a model with the team AFTER this DSH imported the catalogue: the next refresh brings it, and only a change rewrites the route.
+  await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-team' })
+  const writesBeforeShare = settingsCalls.length
+  catalogByWorkspace['ws-team'].data.push({ id: 'byok/our-claude', object: 'model', kind: 'chat', display_name: 'Our Claude', source: 'workspace' })
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.deepEqual(settingsStore['llm-pi-ai'].providers.kybernos.models.map((m) => m.id), ['glm', 'byok/our-gpt', 'byok/our-claude'], 'a model shared after the import shows up at the next refresh')
+  assert.equal(settingsCalls.length > writesBeforeShare, true)
+  const writesAfterShare = settingsCalls.length
+  await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(settingsCalls.length, writesAfterShare, 'the same catalogue again writes nothing')
+  catalogByWorkspace['ws-team'].data.pop()
+  await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  teamSpaceListed = false
+  await hit('/kybernos-cloud/refresh', 'POST')
+  ok('espace actif : la route modele nomme l espace actif (en-tete x-kybernos-workspace) et liste SON catalogue (les modeles partages de l equipe), au changement d espace')
+
+  // ── What the quota notice reads: the active space's plan and the windows that are used up ────────────────────────────────────────────────────
+  // DSH says « Request quota exhausted » for every refusal of a model call (its own, fixed words): the notice this plugin shows instead needs the facts,
+  // read from the server for the ACTIVE space with the device token, and nothing else.
+  const quotaNone = await hit('/kybernos-cloud/quota', 'GET')
+  assert.equal(quotaNone.body.ok, true)
+  assert.deepEqual(quotaNone.body.usage, [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 10, exhausted: false, resets_at: null },
+    { kind: 'pool', window_seconds: 18000, scope: 'plan', used_percent: 1, exhausted: false, resets_at: null },
+  ], 'nothing is used up: the windows read as the percent of what is spent (0.10 of 1.00 is 10, 0.10 of 9.00 is 1: never 0 once something was spent)')
+  assert.equal(quotaNone.body.workspace.id, 'ws-1')
+  const resetAt = new Date(Date.now() + 3 * 3600000).toISOString()
+  budgetBody = { windows: [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', limit_usd: '1.00', spent_usd: '1.20', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: resetAt },
+    { kind: 'member', window_seconds: 86400, scope: 'team', limit_usd: '0.10', spent_usd: '0.30', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: 'not a date' },
+    { kind: 'member', window_seconds: 2592000, scope: 'plan', limit_usd: '5.00', spent_usd: '1.50', remaining_usd: '3.50', exhausted: false, used_percent: 30, resets_at: null },
+    { kind: 'pool', window_seconds: 18000, scope: 'plan', limit_usd: '9.00', spent_usd: '9.50', remaining_usd: '0.00', exhausted: true, used_percent: 100, resets_at: resetAt },
+    { kind: 'member', window_seconds: 604800, scope: 'plan', limit_usd: null, spent_usd: '2.00', remaining_usd: null, exhausted: false, used_percent: null, resets_at: null },
+    // A server that does not give the percent yet: it is worked out from what was spent and the limit, by the same rule.
+    { kind: 'pool', window_seconds: 86400, scope: 'plan', limit_usd: '4.00', spent_usd: '1.00', remaining_usd: '3.00', exhausted: false },
+    { kind: 'pool', window_seconds: 2592000, scope: 'plan', limit_usd: '1000.00', spent_usd: '0.01', remaining_usd: '999.99', exhausted: false },
+    { kind: 'pool', window_seconds: 604800, scope: 'plan', limit_usd: '100.00', spent_usd: '99.90', remaining_usd: '0.10', exhausted: false },
+    { kind: 'other', window_seconds: 18000, scope: 'plan', used_percent: 50 },
+  ] }
+  spacePlanBody = { source: 'subscription', status: 'past_due', payment_blocked: true, plan: { key: 'team', name: 'Team', kind: 'team' }, level: '1-5 seats', seats: 5, credit_balance_credits: 0 }
+  const quotaOut = await hit('/kybernos-cloud/quota', 'GET')
+  assert.equal(quotaOut.body.ok, true)
+  assert.deepEqual(quotaOut.body.usage, [
+    { kind: 'member', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: resetAt },
+    { kind: 'pool', window_seconds: 18000, scope: 'plan', used_percent: 100, exhausted: true, resets_at: resetAt },
+    { kind: 'member', window_seconds: 86400, scope: 'team', used_percent: 100, exhausted: true, resets_at: null },
+    { kind: 'pool', window_seconds: 86400, scope: 'plan', used_percent: 25, exhausted: false, resets_at: null },
+    { kind: 'pool', window_seconds: 604800, scope: 'plan', used_percent: 99, exhausted: false, resets_at: null },
+    { kind: 'member', window_seconds: 2592000, scope: 'plan', used_percent: 30, exhausted: false, resets_at: null },
+    { kind: 'pool', window_seconds: 2592000, scope: 'plan', used_percent: 1, exhausted: false, resets_at: null },
+  ], 'every window of the active space as a percent, shortest first and the person\'s own before the pool; the unlimited and the unknown are left out; a time that is not a time is dropped; the percent is never 0 once something was spent, never 100 before it is used up')
+  assert.equal(quotaOut.body.payment_blocked, true)
+  assert.equal(quotaOut.body.plan, undefined, 'the plan is not in the answer: the card has it already')
+  assert.equal(quotaOut.body.workspace.name, 'My workspace')
+  const quotaText = JSON.stringify(quotaOut.body)
+  assert.equal(quotaText.includes(TOKEN), false, 'the token is not in the answer')
+  assert.equal(/_usd|limit|spent|remaining/.test(quotaText), false, 'no amount of money leaves the host: the allowance is a percentage')
+  tokenValid = false
+  const quotaDead = await hit('/kybernos-cloud/quota', 'GET')
+  assert.equal(quotaDead.body.ok, false, 'a server that refuses the token: no facts, the notice falls back to DSH\'s own words')
+  tokenValid = true
+  budgetBody = { windows: [] }
+  spacePlanBody = { source: 'subscription', status: 'active', plan: { key: 'solo', name: 'Solo', kind: 'individual' }, level: 'Studio', seats: 1, credit_balance_credits: 20000 }
+  ok('quota : toutes les fenetres de l espace ACTIF en pourcentage (jamais de montant), l etat du paiement, sans jeton')
+
+  // ── The card says when the space turns the person away ─────────────────────────────────────────────────────────────────────────────────────
+  // A workspace that asks its members for a second factor answers its routes 403 `mfa_required_by_workspace` to a member who has none once the grace is over, and DSH shows
+  // that member « API key is invalid » on a chat call (a 403 is AUTH to it, in its own fixed words). The card is this plugin's own surface: it carries the reason.
+  const choisiOk = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.equal(choisiOk.body.state.space_plan.mfa, undefined, 'nothing to say while nothing is asked')
+  extraHeaders = { 'x-kybernos-mfa-grace-ends': '2026-10-15T12:00:00.000Z' }
+  const inGrace = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.deepEqual(inGrace.body.state.space_plan.mfa, { state: 'grace', ends: '2026-10-15T12:00:00.000Z' }, 'inside the grace: when it ends')
+  assert.equal(inGrace.body.state.space_plan.key, 'solo', 'inside the grace the plan is read as usual')
+  extraHeaders = null
+  planRefusal = { workspace_id: 'ws-1', error: 'mfa_required_by_workspace', message: 'This workspace asks its members for a second factor, and you have none yet.' }
+  const turnedAway = await hit('/kybernos-cloud/space/active', 'POST', undefined, { workspace_id: 'ws-1' })
+  assert.deepEqual(turnedAway.body.state.space_plan.mfa, { state: 'blocked', ends: null }, 'past the grace: turned away')
+  assert.equal(turnedAway.body.state.space_plan.workspace_id, 'ws-1')
+  assert.equal(JSON.stringify(turnedAway.body).includes(TOKEN), false)
+  const refreshedBlocked = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(refreshedBlocked.body.state.space_plan.mfa.state, 'blocked', 'a refresh keeps saying it')
+  planRefusal = null
+  const freed = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(freed.body.state.space_plan.mfa, undefined, 'once the person has a factor the card says nothing more')
+  ok('espace actif : un second facteur exige (delai en cours, puis refus) est dit dans l etat de l espace, sans jeton')
+
   // 4b. Montée de formule : PAS de réécriture settings (le catalogue n'est pas
   //     filtré par formule — l'abonnement est appliqué par le proxy) ; seul le
   //     résumé change. Un refresh au même plan ne réimporte pas non plus.
   const writesBefore = settingsCalls.length
+  const fetchesBefore = seen.modelsAuth.length
   const refreshedTwice = await hit('/kybernos-cloud/refresh', 'POST')
   assert.equal(refreshedTwice.body.models.plan, 'pro')
   assert.equal(settingsCalls.length, writesBefore)
-  assert.equal(seen.modelsAuth.length, 1, 'pas de re-fetch du catalogue au refresh')
+  assert.equal(seen.modelsAuth.length, fetchesBefore + 1, 'un refresh relit le catalogue (une lecture) ...')
+  assert.equal(settingsCalls.length, writesBefore, '... et ne reecrit rien tant qu il est identique')
   ok('refresh : formule reflétee, catalogue non re-ecrit (pas de churn)')
 
   // 4c. Serveur plus ancien que la route (404) : le refresh ne casse pas et
@@ -1327,6 +1497,18 @@ try {
   assert.ok(ageOrder.every((v, i) => i === 0 || ageOrder[i - 1] <= v), 'les plus recents d abord')
   assert.equal((await hit('/kybernos-cloud/memory/list?limit=10&offset=55', 'GET')).body.items.length, 5, 'derniere page partielle')
   assert.equal((await hit('/kybernos-cloud/memory/list?limit=9999', 'GET')).body.limit, 200, 'la taille de page est plafonnee')
+  // A memory written on the web (or by another device) must show on this page when the person opens it or presses refresh: the 60 s cache
+  // serves the prompt and the paging, not the page's own « look again ». Within the cache the list stays; `fresh=1` reads the server.
+  const serverCount = memories.filter((m) => m.scope === 'account').length
+  const cached = await hit('/kybernos-cloud/memory/list?limit=5', 'GET')
+  assert.equal(cached.body.total, 60, 'inside the cache window the list is the cache (paging and filters do not call the server)')
+  const looked = await hit('/kybernos-cloud/memory/list?limit=5&fresh=1', 'GET')
+  assert.equal(looked.body.total, serverCount, 'fresh=1 reads the server: what another device wrote is there')
+  const afterLook = await hit('/kybernos-cloud/memory/list?limit=5', 'GET')
+  assert.equal(afterLook.body.total, serverCount, 'and the cache now holds that read')
+  ok('liste de memoire : fresh=1 relit le serveur, sans lui la liste reste celle du cache')
+  mod.memoryCache.account = rows
+  mod.memoryCache.at = Date.now()
   const pinnedOnly = await hit('/kybernos-cloud/memory/list?show=pinned&limit=100', 'GET')
   assert.equal(pinnedOnly.body.total, 5)
   const agentOnly = await hit('/kybernos-cloud/memory/list?src=agent&limit=100', 'GET')

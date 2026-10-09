@@ -115,7 +115,13 @@ function loadCatalog() {
  * That fallback is NOT the whole catalog: it is cached only briefly (a failure used to pin it
  * for an hour) and a scan that used it is never reported as complete.
  */
-const PROXY_APPS_URL = 'https://kybernos-proxy-production.up.railway.app/v1/connections/apps'
+// The public list used to come from the OLD Composio proxy, unauthenticated. The new server has the same list as `GET /v1/connections/apps`,
+// but it needs the account's token (the cloud plugin's host holds it, the page asks it: client.js `loadAll`). This host half has no token,
+// so it uses the local catalog unless an address is set on purpose (KYBERNOS_COMPOSIO_APPS_URL: a server's public list, or the old proxy).
+const PROXY_APPS_URL = (() => {
+  const raw = typeof process.env.KYBERNOS_COMPOSIO_APPS_URL === 'string' ? process.env.KYBERNOS_COMPOSIO_APPS_URL.trim() : ''
+  return /^https:\/\//.test(raw) ? raw : null
+})()
 const SLUGS_TTL_MS = 60 * 60 * 1000
 let candidateCache = null
 
@@ -132,13 +138,13 @@ function slugsPropres(liste) {
   return out
 }
 
-/** { slugs, complete }: complete is true when the list comes from the public catalog. */
+/** { slugs, complete }: complete is true when the list comes from the public catalog (only when KYBERNOS_COMPOSIO_APPS_URL is set). */
 async function candidateSlugs() {
   if (candidateCache !== null && Date.now() - candidateCache.at < candidateCache.ttl) return candidateCache
   let slugs = []
   try {
-    const out = await exchange(PROXY_APPS_URL, { method: 'GET' }, TIMEOUTS.proxyMs)
-    if (out.res.ok === true) {
+    const out = PROXY_APPS_URL === null ? null : await exchange(PROXY_APPS_URL, { method: 'GET' }, TIMEOUTS.proxyMs)
+    if (out !== null && out.res.ok === true) {
       const j = JSON.parse(out.raw)
       if (j !== null && j !== undefined && Array.isArray(j.apps) === true) slugs = slugsPropres(j.apps.map((a) => (a !== null && a !== undefined ? a.slug : '')))
     }

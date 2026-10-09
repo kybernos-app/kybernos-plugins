@@ -340,23 +340,10 @@ const kbMdUnwrap = (disk) => {
   if (typeof payload.at !== 'number' && typeof disk.at === 'number') return Object.assign({}, payload, { at: disk.at })
   return payload
 }
-/** Corps texte d'une réponse `ctx.web.fetch` — qui renvoie `{ body: { content } }`
- *  et non un objet `Response` : tester `typeof res.text === 'function'` ne
- *  pouvait jamais réussir, d'où « modelsdev-unavailable » en permanence. */
-const kbMdTextOf = (res) => {
-  if (res === null || res === undefined) return null
-  if (typeof res === 'string') return res
-  if (typeof res.body === 'string') return res.body
-  if (res.body !== null && res.body !== undefined && typeof res.body === 'object') {
-    if (typeof res.body.content === 'string') return res.body.content
-    if (typeof res.body.text === 'string') return res.body.text
-  }
-  if (typeof res.content === 'string') return res.content
-  if (typeof res.text === 'string') return res.text
-  return null
-}
-/** Relecture directe, hors service web : ce dernier tronque le corps à 100 000
- *  caractères alors que l'index pèse ~4,7 Mo (JSON.parse échouait à 100000). */
+/** Lecture directe, hors service web du moteur : ce dernier tronque le corps à 100 000 caractères alors que l'index pèse ~4,7 Mo
+ *  (JSON.parse échouait à 100000) et, surtout, il peut faire mourir tout le processus quand une connexion échoue sur-le-champ
+ *  (pas de route, pare-feu : son dispatcher est fermé pendant qu'une seconde tentative est encore armée). Le `fetch` global rejette
+ *  normalement. Le corps est lu par morceaux et coupé à `cap` octets : un tiers qui répond sans fin ne remplit pas la mémoire. */
 const kbMdFetchDirect = async (url, cap = 12000000, extra = null) => {
   try {
     const control = new AbortController()
@@ -364,8 +351,23 @@ const kbMdFetchDirect = async (url, cap = 12000000, extra = null) => {
     try {
       const headers = Object.assign({ accept: 'application/json' }, extra === null ? {} : extra)
       const res = await fetch(url, { signal: control.signal, headers })
-      if (res === null || res === undefined || typeof res.text !== 'function') return null
+      if (res === null || res === undefined) return null
       if (res.ok === false) return null
+      if (res.body !== null && res.body !== undefined && typeof res.body.getReader === 'function') {
+        const reader = res.body.getReader()
+        const chunks = []
+        let total = 0
+        for (;;) {
+          const part = await reader.read()
+          if (part.done === true) break
+          total += part.value.byteLength
+          if (total > cap) { await reader.cancel().catch(() => {}); return null }
+          chunks.push(part.value)
+        }
+        const text = Buffer.concat(chunks).toString('utf8')
+        return text.length > 0 ? text : null
+      }
+      if (typeof res.text !== 'function') return null
       const text = await res.text()
       return typeof text === 'string' && text.length > 0 && text.length <= cap ? text : null
     } finally { clearTimeout(timer) }
@@ -384,23 +386,13 @@ const kbMdLoad = async (web, force) => {
     }
   }
   if (modelsDevInflight !== null) return modelsDevInflight
-  if (web === null || web === undefined || typeof web.fetch !== 'function') {
-    // Pas de réseau : on sert le cache, même ancien — la route le dira « périmé »
-    // plutôt que de faire croire à un index frais.
-    return kbMdUnwrap(readJson(MODELSDEV_CACHE, null))
-  }
+  // `web` (le service du moteur) n'est plus appelé : voir kbMdFetchDirect. Le paramètre reste pour les appelants.
   modelsDevInflight = (async () => {
     try {
-      const res = await web.fetch({ url: 'https://models.dev/api.json' })
-      let raw = kbMdTextOf(res)
-      if (raw === null || (res !== null && res !== undefined && res.truncated === true)) {
-        // Corps tronqué par le service web (limite 100 000 caractères) : on relit
-        // l'index en direct, sinon `JSON.parse` jetait et on servait le cache.
-        const direct = await kbMdFetchDirect('https://models.dev/api.json')
-        if (direct === null) throw new Error(raw === null ? 'reponse vide' : 'index tronque par le service web et relecture directe impossible')
-        raw = direct
-      }
-      if (typeof raw !== 'string' || raw.length === 0) throw new Error('reponse vide')
+      // Pas de réseau : la lecture échoue, on sert le cache, même ancien — la route le dira « périmé » plutôt que de faire croire à
+      // un index frais.
+      const raw = await kbMdFetchDirect('https://models.dev/api.json')
+      if (raw === null) throw new Error('reponse vide')
       const data = JSON.parse(raw)
       // Index par « provider/modele » ET par id nu : la maquette cherche par id,
       // les routes pi-ai nomment souvent « provider/modele ».

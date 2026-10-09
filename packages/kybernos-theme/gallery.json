@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "kind": "kybernos-themes",
+  "publishedAt": "2026-10-08T00:00:00.000Z",
+  "seq": 1,
+  "themes": [
+    {
+      "id": "calcaire",
+      "v": 1,
+      "name": "Calcaire",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Gris pierre et vert mousse, calme.",
+        "en": "Stone grey and moss green, calm."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#4d7c0f",
+        "ov": {
+          "light:base": "#f5f6f4",
+          "light:l1": "#ffffff",
+          "light:l2": "#eceeea",
+          "light:side": "#eff1ed",
+          "light:input": "#ffffff"
+        },
+        "radius": "standard"
+      }
+    },
+    {
+      "id": "console-verte",
+      "v": 1,
+      "name": "Console verte",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Fond vert très sombre, accent de terminal, coins nets.",
+        "en": "Very dark green ground, terminal accent, sharp corners."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#22c55e",
+        "ov": {
+          "dark:base": "#0b120e",
+          "dark:l1": "#101a14",
+          "dark:l2": "#16231b",
+          "dark:side": "#0d1610",
+          "dark:input": "#16231b"
+        },
+        "radius": "sharp"
+      }
+    },
+    {
+      "id": "crepuscule",
+      "v": 1,
+      "name": "Crépuscule",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Prune profond et orange doux, coins arrondis.",
+        "en": "Deep plum and soft orange, rounded corners."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#fb923c",
+        "ov": {
+          "dark:base": "#1a1220",
+          "dark:l1": "#241a2c",
+          "dark:l2": "#2e2238",
+          "dark:side": "#1e1626",
+          "dark:input": "#2e2238"
+        },
+        "radius": "soft"
+      }
+    },
+    {
+      "id": "encre-papier",
+      "v": 1,
+      "name": "Encre & papier",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Sobre et éditorial : coins nets, texte à empattements, un seul accent d’encre.",
+        "en": "Plain and editorial: sharp corners, serif text, a single ink accent."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#1f2937",
+        "ov": {
+          "light:base": "#f6f7f8",
+          "light:l1": "#ffffff",
+          "light:l2": "#eef0f2",
+          "light:side": "#f1f3f5",
+          "light:input": "#ffffff"
+        },
+        "fontText": "georgia",
+        "radius": "sharp"
+      }
+    },
+    {
+      "id": "graphite",
+      "v": 1,
+      "name": "Graphite",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Gris neutres et accent acier : rien ne dépasse.",
+        "en": "Neutral greys and a steel accent: nothing sticks out."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#94a3b8",
+        "ov": {
+          "dark:base": "#121315",
+          "dark:l1": "#1a1b1e",
+          "dark:l2": "#232428",
+          "dark:side": "#16171a",
+          "dark:input": "#1e1f23"
+        },
+        "radius": "sharp"
+      }
+    },
+    {
+      "id": "lavande-brumeuse",
+      "v": 1,
+      "name": "Lavande brumeuse",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Clair, violet léger, très lisible.",
+        "en": "Light, a gentle violet, very readable."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#7c3aed",
+        "ov": {
+          "light:base": "#f8f6fd",
+          "light:l1": "#ffffff",
+          "light:l2": "#efebfa",
+          "light:side": "#f3f0fb",
+          "light:input": "#ffffff"
+        },
+        "fontText": "inter",
+        "radius": "soft"
+      }
+    },
+    {
+      "id": "ocean-nuit",
+      "v": 1,
+      "name": "Océan nuit",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Bleu marine profond et accent ciel.",
+        "en": "Deep navy with a sky-blue accent."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#0ea5e9",
+        "ov": {
+          "dark:base": "#0a1622",
+          "dark:l1": "#0f1e2e",
+          "dark:l2": "#152a3f",
+          "dark:side": "#0c1a28",
+          "dark:input": "#152a3f"
+        },
+        "fontText": "inter",
+        "radius": "standard"
+      }
+    },
+    {
+      "id": "sakura",
+      "v": 1,
+      "name": "Sakura",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Rose pâle, texte à empattements, coins très doux.",
+        "en": "Pale pink, serif text, very soft corners."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#db2777",
+        "ov": {
+          "light:base": "#fff7fa",
+          "light:l1": "#ffffff",
+          "light:l2": "#fdebf2",
+          "light:side": "#fceff5",
+          "light:input": "#ffffff"
+        },
+        "fontText": "georgia",
+        "radius": "soft"
+      }
+    }
+  ]
+}

@@ -106,6 +106,10 @@
       "nom": "@local/kybernos-changes"
     },
     {
+      "dir": "kybernos-call",
+      "nom": "@local/kybernos-call"
+    },
+    {
       "dir": "dsh-media-player",
       "nom": "@local/dsh-media-player"
     },
@@ -116,6 +120,10 @@
     {
       "dir": "dsh-db-viewer",
       "nom": "@local/dsh-db-viewer"
+    },
+    {
+      "dir": "kybernos-terminal",
+      "nom": "@local/kybernos-terminal"
     }
   ]
 }

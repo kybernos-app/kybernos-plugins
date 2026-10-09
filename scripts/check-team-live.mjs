@@ -27,7 +27,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer } from 'node:http'
 import { openLivePage, waitFor } from './live-page.mjs'
 import { startFakeTeamGateway } from './lib-fake-team-gateway.mjs'
-import { startRelayHost, OWNER_ID, SECOND_TEAM_ID } from './lib-fake-relay-host.mjs'
+import { startRelayHost, OWNER_ID, SECOND_TEAM_ID, THIRD_TEAM_ID } from './lib-fake-relay-host.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const LABELS_FILE = join(HERE, 'team-console-labels.json')
@@ -121,7 +121,8 @@ try {
         try { u = new URL(src) } catch (e) { u = null }
         check('the iframe URL is readable', u !== null)
         if (u !== null) {
-          check('it carries the gateway', (u.searchParams.get('gw') || '').startsWith('https://'))
+          // The new server has no admin gateway (the host relay replaced it): `gw` is there and empty. A server that names one (the old stack, as an opt-in) gets https.
+          check('it carries the gateway of the active server, or none (empty) when the server has none', u.searchParams.has('gw') && (u.searchParams.get('gw') === '' || (u.searchParams.get('gw') || '').startsWith('https://')))
           const dark = await page.evalJs(`(() => { const v = document.body.getAttribute('data-ds-dark-theme'); return v !== null && v !== 'false' })()`)
           check('it follows DSH\'s theme', u.searchParams.get('theme') === (dark.val === true ? 'dark' : 'light'), 'theme=' + u.searchParams.get('theme'))
           check('no key is in the URL', !u.searchParams.has('key') && !/sk-admin/i.test(src))
@@ -327,8 +328,10 @@ try {
         Object.defineProperty(frameWindow.navigator, 'clipboard', { value: { writeText: (t) => { copied = t; return Promise.resolve() } }, configurable: true })
         q('#copyTeamId').click(); await new Promise((r) => setTimeout(r, 300))
         res.copied = copied; res.toast = txt('#toast')
-        res.selFixed = q('.tswrap').classList.contains('fixed')
         q('#teamSel').click(); res.menuOpen = !q('#tsMenu').classList.contains('hidden')
+        res.menuHead = txt('#tsMenu .tshead')
+        res.menuRows = Array.from(document.querySelectorAll('#tsMenu .tsopt')).map((x) => x.innerText.replace(/\\s+/g, ' ').trim())
+        q('#teamSel').click()
         res.switcher = txt('#tsName')
         go('plan'); res.team = txt('.idrow') + ' | ' + q('#tdId').textContent
         go('plan'); res.plan = txt('#curName') + ' | ' + txt('#balance')
@@ -353,7 +356,7 @@ try {
       check('the Plan page: identity row, then the plan block, then credits and auto-recharge SIDE BY SIDE (the mockup\'s layout)', r && r.planOrder[0] < r.planOrder[1] && r.planOrder[1] < r.planOrder[2] && r.cols.length === 2 && r.cols[0].y === r.cols[1].y && r.cols[1].x > r.cols[0].x, r && JSON.stringify([r.planOrder, r.cols]))
       check('the workspace ID is a discreet circled « ID » (24 px at most), labelled for screen readers', r && r.idico.text === 'ID' && r.idico.w <= 24 && r.idico.h <= 24 && r.idico.label === 'Copy workspace ID', r && JSON.stringify(r.idico))
       check('clicking it copies the full workspace id and says « Workspace ID copied »', r && r.copied === '11111111-1111-4111-8111-111111111111' && /Workspace ID copied/.test(r.toast), r && JSON.stringify([r.copied, r.toast]))
-      check('inside the app the console\'s workspace selector only SHOWS the workspace (the app\'s own selector changes it): no menu opens', r && r.selFixed === true && r.menuOpen === false, r && JSON.stringify([r.selFixed, r.menuOpen]))
+      check('inside the app the console\'s workspace selector is live: its menu lists the account\'s workspaces (the current one ticked, with the role) and a « New team » row', r && r.menuOpen === true && /^switch workspace$/i.test(r.menuHead) && r.menuRows.length === 3 && /Acme Team.*Owner.*✓/.test(r.menuRows[0]) && /Beta Team.*Member/.test(r.menuRows[1]) && !/✓/.test(r.menuRows[1]) && /New team/.test(r.menuRows[2]), r && JSON.stringify(r.menuRows))
       check('no sample invitation is counted as pending', r && /· 0 pending ·/.test(r.team), r && r.team.slice(0, 200))
       check('the console called no gateway of its own (everything went through the relay)', r && r.network === 0, r && String(r.network))
       check('every path the console asked for is on the host route\'s allowlist', host.refused.length === 0, JSON.stringify(host.refused))
@@ -377,6 +380,44 @@ try {
         const txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
         return { switcher: txt('#tsName'), identity: txt('.idrow'), id: q('#tdId').textContent }`))).val
       check('with `ws` the console opens on the workspace the app has active, not on the first one', w2 && w2.switcher === 'Beta Team' && w2.identity.includes('Beta Team') && w2.id === SECOND_TEAM_ID, w2 && JSON.stringify(w2))
+
+      // The other direction: a choice made in the console is handed to the app, which makes it the active workspace, then the console reloads on it.
+      const live2 = `return !!document.querySelector('#kbKeyBanner') && /Live data/.test(document.querySelector('#kbKeyBanner').innerText) && document.querySelectorAll('#navList [data-nav]').length >= 5`
+      await page.send('Page.navigate', { url: host.url + '/parent.html' })
+      await waitFor(page, frame(live2), 20000)
+      await sleep(1200)
+      const sw = (await page.evalJs(frame(`
+        const q = (s) => document.querySelector(s), txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
+        const before = txt('#tsName')
+        q('#teamSel').click(); document.querySelectorAll('#tsMenu [data-relay-team]')[1].click()
+        await new Promise((r) => setTimeout(r, 2200))
+        return { before, switcher: txt('#tsName'), identity: txt('.idrow'), id: q('#tdId').textContent, sub: txt('#tsSub') }`))).val
+      check('picking another workspace in the console asks the app to make it the active one (once, by id)', host.switched.length === 1 && host.switched[0] === SECOND_TEAM_ID, JSON.stringify(host.switched))
+      check('and the console reloads on it: header, identity row and workspace id', sw && sw.before === 'Acme Team' && sw.switcher === 'Beta Team' && sw.identity.includes('Beta Team') && sw.id === SECOND_TEAM_ID && sw.sub === 'Member', sw && JSON.stringify(sw))
+
+      // « New team »: the name is asked in the console, the app creates it through the server, it becomes the active one.
+      const nt = (await page.evalJs(frame(`
+        const q = (s) => document.querySelector(s), txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
+        q('#teamSel').click(); q('#tsNew').click(); await new Promise((r) => setTimeout(r, 400))
+        const asked = !q('#overlay').classList.contains('hidden') && !!q('#ntIn')
+        q('#ntIn').value = 'Gamma Crew'; q('#ntGo').click()
+        await new Promise((r) => setTimeout(r, 2800))
+        return { asked, modalGone: q('#overlay').classList.contains('hidden'), switcher: txt('#tsName'), id: q('#tdId').textContent, toast: txt('#toast'), sub: txt('#tsSub') }`))).val
+      check('New team asks for a name in the console, sends it to the app, and the console opens on the new team (owner)', nt && nt.asked === true && nt.modalGone === true && host.created.length === 1 && host.created[0] === 'Gamma Crew' && nt.switcher === 'Gamma Crew' && nt.id === THIRD_TEAM_ID && nt.sub === 'Owner', nt && JSON.stringify([nt, host.created]))
+      check('no script error while switching and creating', errors.length === before, errors.slice(before, before + 1).join(' ').slice(0, 160))
+
+      // The server refuses the creation (plan limit, permission): nothing is created here, the console stays where it was and says so.
+      await page.send('Page.navigate', { url: host.url + '/parent.html?create=refused' })
+      await waitFor(page, frame(live2), 20000)
+      await sleep(1200)
+      const nr = (await page.evalJs(frame(`
+        const q = (s) => document.querySelector(s), txt = (s) => q(s).innerText.replace(/\\s+/g, ' ').trim()
+        const before = txt('#tsName')
+        q('#teamSel').click(); q('#tsNew').click(); await new Promise((r) => setTimeout(r, 400))
+        q('#ntIn').value = 'Too Many'; q('#ntGo').click()
+        await new Promise((r) => setTimeout(r, 2000))
+        return { before, switcher: txt('#tsName'), toast: txt('#toast'), rows: document.querySelectorAll('#tsMenu .tsopt').length }`))).val
+      check('a refused creation leaves the console on the same team and says the server did not allow it', nr && nr.switcher === nr.before && /did not allow/i.test(nr.toast), nr && JSON.stringify(nr))
 
       // Signed in, but the LLM service behind the relay is not configured: members and providers are live, nothing about credits is guessed.
       await page.send('Page.navigate', { url: host.url + '/parent.html?llm=down' })

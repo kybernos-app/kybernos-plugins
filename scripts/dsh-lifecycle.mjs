@@ -16,8 +16,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { execFile, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync, rmSync, statSync, symlinkSync, realpathSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, readdirSync, rmSync, statSync, symlinkSync, realpathSync, renameSync } from 'node:fs'
+import { homedir, tmpdir } from 'node:os'
 import { basename, join, dirname, resolve, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { auditerSurfaces } from '../packages/kybernos-maintenance/surfaces.mjs'
@@ -30,7 +30,7 @@ import {
 } from './lifecycle-engine.mjs'
 // La vérification d'une archive reçue : le manifeste du paquet est la seule
 // autorité sur ce qui a été livré (voir scripts/paquet.mjs).
-import { verifierManifest, cheminer, LIRE_SATELLITES, TOUS_LES_SATELLITES, verifierSatellite } from './paquet.mjs'
+import { verifierManifest, cheminer, LIRE_SATELLITES, TOUS_LES_SATELLITES, verifierSatellite, lireManifestDuDossier, verifierDossier, nomInstallation } from './paquet.mjs'
 // La règle des bases d'une installation (profil, moteur global, projet épinglé)
 // vit dans UN seul module, éprouvé par test-racine-dsh.mjs.
 import { basesPossibles } from './racine-dsh.mjs'
@@ -115,10 +115,59 @@ const nettoyerVerrousOrphelins = () => {
   try { if (existsSync(verrou)) { rmSync(verrou); console.log('  🧹 verrou orphelin retiré (' + verrou + ')') } } catch (e) { /* rien */ }
 }
 
+// Lier un binaire construit dans NOTRE arbre dans le préfixe GLOBAL de npm : c'est ce dossier qui est déjà
+// sur le PATH du testeur, donc son geste (`dsh web`) ne change pas. On ne suppose pas que le PATH y pointe
+// déjà (même piège qu'avant : « moteur posé » suivi de « aucun moteur lisible »). Rend le lien posé, ou null
+// quand npm ne dit pas où est le préfixe. `echouer(message)` interrompt (ou lève) selon l'appelant.
+async function lierDansLePrefixe (vrai, nom, echouer) {
+  const p = await execReel(['npm', 'prefix', '-g'])
+  const prefixe = (p.sortie || '').trim()
+  if (p.code !== 0 || prefixe === '') return null
+  const win = famille() === 'windows'
+  const bin = win ? prefixe : join(prefixe, 'bin')
+  mkdirSync(bin, { recursive: true })
+  const lien = join(bin, win ? nom + '.cmd' : nom)
+  rmSync(lien, { force: true })
+  if (existsSync(vrai) === false) echouer('🔴 le binaire ' + nom + ' n\'est pas là où npm l\'a installé : ' + vrai)
+  if (win) {
+    // Windows : un lien symbolique demande des droits ; un relais qui appelle
+    // le vrai .cmd par chemin ABSOLU marche sans rien supposer.
+    writeFileSync(lien, '@echo off\r\ncall "' + vrai + '" %*\r\n')
+  } else {
+    symlinkSync(vrai, lien)
+  }
+  const sepPath = win ? ';' : ':'
+  const actuel = process.env.PATH || ''
+  if (!actuel.split(sepPath).includes(bin)) process.env.PATH = bin + sepPath + actuel
+  return lien
+}
+
+// DSH installe les plugins d'un profil avec `pnpm` (`spawn pnpm ENOENT` sinon) et le site ne promet que Node et git :
+// sur une machine qui n'a pas pnpm, l'installation posait le moteur puis s'arrêtait au milieu (« pnpm was not found »).
+// On le pose comme le moteur : dans NOTRE arbre (npm), lié dans le préfixe global, jamais plus d'un geste de plus.
+async function assurerPnpm () {
+  const present = await execReel(['pnpm', '--version'], REPO, 30000)
+  if (present.code === 0) return
+  console.log('  ⬇ pnpm n\'est pas sur cette machine (DSH en a besoin pour installer les plugins) : npm le pose …')
+  const dossier = join(dirname(MOTEUR_DIR), 'outils', 'pnpm')
+  mkdirSync(dossier, { recursive: true })
+  writeFileSync(join(dossier, 'package.json'), JSON.stringify({ name: 'kybernos-outils-pnpm', version: '1.0.0', private: true, dependencies: { pnpm: '^11' } }, null, 2) + '\n')
+  const r = await execReel(['npm', 'install', '--no-audit', '--no-fund'], dossier, 600000)
+  const vrai = join(dossier, 'node_modules', '.bin', famille() === 'windows' ? 'pnpm.cmd' : 'pnpm')
+  if (r.code !== 0 || existsSync(vrai) === false) {
+    throw new Error('pnpm manque et npm n\'a pas pu le poser (' + (r.delaiDepasse === true ? 'délai dépassé' : (r.err || r.sortie || 'code ' + r.code).slice(0, 300)) + '). Installe-le toi-même (npm install -g pnpm) puis relance.')
+  }
+  const lien = await lierDansLePrefixe(vrai, 'pnpm', (m) => { throw new Error(m) })
+  const apres = await execReel(['pnpm', '--version'], REPO, 30000)
+  if (apres.code !== 0) throw new Error('pnpm a été posé' + (lien === null ? '' : ' (' + lien + ')') + ' mais ne répond pas : ouvre un NOUVEAU terminal puis relance.')
+  console.log('  ✓ pnpm ' + apres.sortie.trim() + ' posé' + (lien === null ? '' : ' (lié dans ' + lien + ')'))
+}
+
 // install pnpm avec sortie VISIBLE : un échec muet est un échec qu'on
 // confond avec un boot cassé. Le code de sortie est la seule vérité.
 const installerProfil = async () => {
   nettoyerVerrousOrphelins()
+  await assurerPnpm()
   const r = await execReel(['dsh', 'plugin', '--profile', 'web', 'install'], REPO)
   if (r.code !== 0) {
     console.log(r.sortie.slice(0, 800))
@@ -426,6 +475,23 @@ const portGui = opts.port
 
 const quitter = (code, ...messages) => { for (const m of messages) console.log(m); process.exit(code) }
 const journalOp = (op) => journaliser({ fs: fsReel, journal: JOURNAL, op })
+// Links left by an earlier Kybernos archive install (or pointing at a folder that is gone) are re-pointed by install/upgrade only.
+const liensReprise = []
+const rapporterLien = (nom, ancien) => { liensReprise.push({ nom, racine: String(ancien).slice('link:'.length).replace(/[\\/](?:packages[\\/])?[^\\/]+$/, '') }) }
+const versionDuDossier = (dossier) => { try { return readFileSync(join(dossier, 'VERSION'), 'utf8').trim() || null } catch (e) { return null } }
+const direLiensReprise = () => {
+  if (liensReprise.length === 0) return
+  console.log('     ↪ ' + liensReprise.length + ' lien(s) d\'une installation précédente ré-pointé(s) vers ' + REPO)
+  // A signed catalogue never offers an older suite, but a person can run an older archive's launcher: say so instead of doing it silently.
+  const nouvelle = versionDuDossier(REPO)
+  for (const racine of new Set(liensReprise.map((l) => l.racine))) {
+    const ancienne = versionDuDossier(racine)
+    if (nouvelle !== null && ancienne !== null && comparerVersions(nouvelle, ancienne) < 0) {
+      console.log('     ⚠ la suite ' + nouvelle + ' est plus ANCIENNE que celle qui était liée (' + ancienne + ') : c\'est un retour en arrière de version, pas une mise à jour')
+    }
+  }
+  liensReprise.length = 0
+}
 
 // ── vérification boot : ce que l'utilisateur voit ─────────────────────────
 // Sans --url : vérification HOST — le robot démarre un DSH sur un port libre
@@ -512,19 +578,111 @@ async function relancerDsh (port) {
 // Une archive reçue n'est utilisée qu'après vérification de ses empreintes :
 // une seule différence et on refuse — installer un paquet qu'on n'a pas pu
 // vérifier, c'est installer ce que quelqu'un a mis à la place.
+//
+// Mesuré le 2026-10-08 (bancs isolés, profil jetable) :
+//   · une archive reçue en FICHIER était extraite DIRECTEMENT dans `paquets/<nom>` (après un rmSync) AVANT d'être vérifiée : une
+//     archive truquée ou tronquée du même nom était « refusée » mais avait déjà remplacé l'installation vivante (les liens du
+//     profil pointent là). Désormais : extraction dans un dossier d'étape, vérification, PUIS échange.
+//   · le DOSSIER passé par `kybernos-install` / `kybernos-update` n'était jamais vérifié, malgré ce que disent leurs en-têtes.
+//   · le panneau Suite extrait l'archive dans un dossier TEMPORAIRE puis le supprime : les nouveaux liens du profil
+//     pointaient dans le vide et `dsh plugin install` plantait ensuite pour de bon. Un dossier d'archive situé sous le dossier
+//     temporaire du système est donc recopié (vérifié, par échange) dans `paquets/` avant d'être lié.
+const PAQUETS_DIR = join(DSH_HOME, 'kybernos', 'paquets')
+const NOM_SUR = /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/
+
+/** Ce dossier est-il sous le dossier temporaire du système (donc destiné à disparaître) ? */
+const dossierVolatil = (chemin) => {
+  try {
+    const tmp = realpathSync(tmpdir())
+    const c = realpathSync(chemin)
+    return c === tmp || c.startsWith(tmp.endsWith(sep) ? tmp : tmp + sep)
+  } catch (e) { return false }
+}
+
+const pidVivant = (pid) => { try { process.kill(pid, 0); return true } catch (e) { return e.code === 'EPERM' } }
+
+/** Reprend ce qu'un robot tué en pleine extraction ou en plein échange a laissé dans `paquets/`. */
+const remettreEnOrdrePaquets = () => {
+  if (existsSync(PAQUETS_DIR) === false) return
+  for (const nom of readdirSync(PAQUETS_DIR)) {
+    const etape = /^\.etape-(\d+)-/.exec(nom)
+    if (etape !== null && pidVivant(Number(etape[1])) === false) { rmSync(join(PAQUETS_DIR, nom), { recursive: true, force: true }); continue }
+    const avant = /^(.+)\.avant-(\d+)$/.exec(nom)
+    if (avant !== null && pidVivant(Number(avant[2])) === false) {
+      // Tué entre les deux renommages : l'installation vivante est restée de côté. On la remet.
+      if (existsSync(join(PAQUETS_DIR, avant[1])) === false) renameSync(join(PAQUETS_DIR, nom), join(PAQUETS_DIR, avant[1]))
+      else rmSync(join(PAQUETS_DIR, nom), { recursive: true, force: true })
+    }
+  }
+}
+
+/** Échange `etape` (déjà vérifié) contre `paquets/<nom>` : l'ancien reste de côté jusqu'à ce que le nouveau soit en place. */
+const poserDansPaquets = (etape, nom) => {
+  const cible = join(PAQUETS_DIR, nom)
+  const avant = cible + '.avant-' + process.pid
+  if (existsSync(cible)) renameSync(cible, avant)
+  try { renameSync(etape, cible) } catch (e) {
+    if (existsSync(avant)) renameSync(avant, cible)
+    throw e
+  }
+  rmSync(avant, { recursive: true, force: true })
+  return cible
+}
+
+const refuserArchive = (verdict, etape) => {
+  console.log('🔴 archive NON conforme — ' + verdict.ecarts.length + ' écart(s) :')
+  for (const e of verdict.ecarts.slice(0, 20)) console.log('   · ' + e.type + ' : ' + e.chemin)
+  if (etape !== null) rmSync(etape, { recursive: true, force: true })
+  quitter(1, '   rien n\'a été installé (ni modifié). Redemande l\'archive à qui te l\'a envoyée.')
+}
+
 async function preparerSource () {
   if (opts.source === null) return { origine: 'dépôt', chemin: REPO, manifest: null }
   const chemin = resolve(opts.source)
   if (!existsSync(chemin)) quitter(1, '🔴 source introuvable : ' + chemin)
   if (statSync(chemin).isDirectory()) {
+    const manifest = lireManifestDuDossier(chemin)
+    if (manifest === null && existsSync(join(chemin, 'manifest.json'))) {
+      // Un manifeste PRÉSENT mais illisible ne vaut pas « pas de manifeste » : sinon il suffirait de l'abîmer pour échapper à la vérification.
+      try { JSON.parse(readFileSync(join(chemin, 'manifest.json'), 'utf8')) } catch (e) {
+        quitter(1, '🔴 le manifest.json de ' + chemin + ' est illisible — je refuse d\'installer un dossier que je ne peux pas vérifier.')
+      }
+    }
+    if (manifest === null) {
+      // Un dépôt de développement (ou tout dossier qui ne vient pas d'une archive) n'a pas de manifeste : rien à rejouer.
+      REPO = chemin
+      COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
+      console.log('  Source : dossier ' + REPO)
+      return { origine: 'dossier', chemin: REPO, manifest: null }
+    }
+    const verdict = verifierDossier(chemin, manifest)
+    if (!verdict.ok) refuserArchive(verdict, null)
+    if (verdict.enTrop.length > 0) console.log('  ⚠ ' + verdict.enTrop.length + ' fichier(s) hors manifeste dans ' + chemin + ' (ex. ' + verdict.enTrop.slice(0, 3).join(', ') + ') — ignorés')
     REPO = chemin
+    if (dossierVolatil(chemin)) {
+      const nom = nomInstallation(manifest)
+      if (nom === null) quitter(1, '🔴 le manifeste de ' + chemin + ' ne donne pas un nom d\'installation sûr — je refuse.')
+      remettreEnOrdrePaquets()
+      mkdirSync(PAQUETS_DIR, { recursive: true })
+      const etape = join(PAQUETS_DIR, '.etape-' + process.pid + '-' + Date.now())
+      cpSync(chemin, etape, { recursive: true })
+      const copie = verifierDossier(etape, manifest)
+      if (!copie.ok) refuserArchive(copie, etape)
+      REPO = poserDansPaquets(etape, nom)
+      console.log('  Source : dossier temporaire ' + chemin + ' → copié dans ' + REPO + ' (il disparaîtra, pas l\'installation)')
+    } else {
+      console.log('  Source : dossier ' + REPO)
+    }
     COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
-    console.log('  Source : dossier ' + REPO)
-    return { origine: 'dossier', chemin: REPO, manifest: null }
+    console.log('  ' + manifest.total.fichiers + ' fichiers vérifiés, version ' + manifest.version)
+    return { origine: 'dossier', chemin: REPO, manifest }
   }
-  const nom = chemin.split('/').pop().replace(/\.tar\.gz$/, '')
-  const etape = join(DSH_HOME, 'kybernos', 'paquets', nom)
-  rmSync(etape, { recursive: true, force: true })
+  const nom = basename(chemin).replace(/\.tar\.gz$/, '')
+  if (NOM_SUR.test(nom) === false || nom.includes('..')) quitter(1, '🔴 nom d\'archive refusé : ' + basename(chemin))
+  remettreEnOrdrePaquets()
+  mkdirSync(PAQUETS_DIR, { recursive: true })
+  // Jamais dans `paquets/<nom>` directement : cette installation est peut-être celle qui tourne.
+  const etape = join(PAQUETS_DIR, '.etape-' + process.pid + '-' + Date.now())
   mkdirSync(etape, { recursive: true })
   // Piège Windows (n°3 de AGENTS.md) : un chemin d'archive en argument fichier
   // ferait lire « D: » comme un hôte distant — NOM du fichier + cwd du dossier.
@@ -532,19 +690,20 @@ async function preparerSource () {
   // Git-for-Windows : slashes partout (run 36993946467).
   const detar = await execReel(['tar', '-xzf', basename(chemin), '-C', etape.split(sep).join('/')],
     dirname(chemin))
-  if (detar.code !== 0) quitter(1, '🔴 archive illisible : ' + (detar.err || detar.sortie).slice(0, 300))
+  if (detar.code !== 0) {
+    rmSync(etape, { recursive: true, force: true })
+    quitter(1, '🔴 archive illisible : ' + (detar.err || detar.sortie).slice(0, 300) + '\n   rien n\'a été installé (ni modifié).')
+  }
   let manifest = null
   try { manifest = JSON.parse(readFileSync(join(etape, 'manifest.json'), 'utf8')) } catch (e) {
+    rmSync(etape, { recursive: true, force: true })
     quitter(1, '🔴 aucun manifest.json dans ' + chemin + ' — je refuse d\'installer une archive non vérifiable.')
   }
   const verdict = verifierManifest({ manifest, lire: (c) => readFileSync(join(etape, c)), presents: cheminer(etape, etape, '') })
-  if (!verdict.ok) {
-    console.log('🔴 archive NON conforme — ' + verdict.ecarts.length + ' écart(s) :')
-    for (const e of verdict.ecarts.slice(0, 20)) console.log('   · ' + e.type + ' : ' + e.chemin)
-    quitter(1, '   rien n\'a été installé. Redemande l\'archive à qui te l\'a envoyée.')
-  }
+  if (!verdict.ok) refuserArchive(verdict, etape)
+  const dossier = poserDansPaquets(etape, nom)
   console.log('  Source : archive ' + nom + ' — ' + manifest.total.fichiers + ' fichiers vérifiés, version ' + manifest.version)
-  REPO = etape
+  REPO = dossier
   COMPAT_CHEMIN = join(REPO, 'dsh-compat.json')
   return { origine: 'archive', chemin: REPO, manifest }
 }
@@ -633,30 +792,10 @@ async function installerMoteur (cible, opts = {}) {
   const moteur = join(projet, 'node_modules', '@deepseek-ai', 'dsh')
   if (existsSync(moteur) === false) echouer('🔴 npm n\'a pas posé @deepseek-ai/dsh dans ' + projet)
 
-  // Le binaire est lié dans le préfixe GLOBAL : c'est ce dossier qui est déjà
-  // sur le PATH du testeur, donc son geste (`dsh web`) ne change pas. On ne
-  // suppose pas que le PATH y pointe déjà (même piège qu'avant : « moteur posé »
-  // suivi de « aucun moteur lisible »).
-  const p = await execReel(['npm', 'prefix', '-g'])
-  const prefixe = (p.sortie || '').trim()
-  if (p.code === 0 && prefixe !== '') {
-    const win = famille() === 'windows'
-    const bin = win ? prefixe : join(prefixe, 'bin')
-    mkdirSync(bin, { recursive: true })
-    const vrai = join(projet, 'node_modules', '.bin', win ? 'dsh.cmd' : 'dsh')
-    const lien = join(bin, win ? 'dsh.cmd' : 'dsh')
-    rmSync(lien, { force: true })
-    if (existsSync(vrai) === false) echouer('🔴 le binaire dsh n\'est pas là où npm a installé : ' + vrai)
-    if (win) {
-      // Windows : un lien symbolique demande des droits ; un relais qui appelle
-      // le vrai .cmd par chemin ABSOLU marche sans rien supposer.
-      writeFileSync(lien, '@echo off\r\ncall "' + vrai + '" %*\r\n')
-    } else {
-      symlinkSync(vrai, lien)
-    }
-    const sep = win ? ';' : ':'
-    const actuel = process.env.PATH || ''
-    if (!actuel.split(sep).includes(bin)) process.env.PATH = bin + sep + actuel
+  // Le binaire est lié dans le préfixe GLOBAL (voir `lierDansLePrefixe`).
+  const vrai = join(projet, 'node_modules', '.bin', famille() === 'windows' ? 'dsh.cmd' : 'dsh')
+  const lien = await lierDansLePrefixe(vrai, 'dsh', echouer)
+  if (lien !== null) {
     // Le moteur vient de CHANGER : tout ce qui a été résolu avant (racine des
     // retouches, audit des surfaces) désignait l'ancien arbre.
     RACINE_CACHE = null
@@ -961,7 +1100,8 @@ async function faireInstall () {
     await installerProfil()
   }
   console.log('  🔗 liaison des paquets du dépôt vers le profil…')
-  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES })
+  alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
+  direLiensReprise()
   console.log('  📦 installation du profil (pnpm)…')
   await installerProfil()
   // Les retouches touchent les paquets `@deepseek-ai/*` du PROFIL (l'installation
@@ -1072,7 +1212,8 @@ if (ordre === 'upgrade') {
       console.log(`     ⚠ ${r.nom} n'est pas publié en ${cible} (dernière : ${r.derniere ?? 'inconnue'}) — retiré du profil`)
     }
     for (const b of alignement.bundlesRetires) console.log(`       ↳ bundle retiré : ${b}`)
-    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES })
+    alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
+    direLiensReprise()
     console.log('  🧶 re-pose des retouches du moteur…')
     await poserPatchs()
     console.log('  📦 installation du profil (pnpm)…')

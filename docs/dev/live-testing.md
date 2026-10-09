@@ -254,17 +254,21 @@ Nothing is stubbed: the page, real CDP mouse and key events, DSH's theme service
 layer, the wallpaper `<div>`, the font style tag, the `kybernos.theme.v1` store and the reload at
 boot are all real, and the assertions read **computed styles** (the 17 `--dsw-*` tokens on
 `<body>`, the wallpaper's `opacity`/`filter`, `--dsw-font-family`), never the source. It checks:
-the page (no Simple/Advanced switch: seven vertical tabs, « Essentiel » open after every load)
+the page (no Simple/Advanced switch: eight vertical tabs, « Essentiel » open after every load)
 and its controls; every dark and mode-less theme (stored, tokens equal to the pack's
 palette, wallpaper, pill) and « DSH default » giving back the 17 native values; persistence (a
 reload applies theme, accent, wallpaper, font and DSH's text size **before Settings is opened**);
 accent dots (a near-invisible accent is lightened to 3:1), hex field (invalid input marks `.bad`
 and changes nothing), picker and reset; wallpaper categories, the « None » tile, tiles, visibility
 / blur / tint, and whether it can actually be *seen*; the font selector (search without accents,
-arrows, Enter, Escape, click outside) and the text size; the seven tabs; Colors (what the page
+arrows, Enter, Escape, click outside) and the text size; the eight tabs; Colors (what the page
 shows equals the applied tokens, token editor, footer count, reset); Accessibility (contrast
-levels measured as WCAG ratios); « Reset all » (it *replaces* the state); Sharing (export, copy,
-import: only a `.json` is accepted, anything else is refused with a visible note); the « Animation » tab
+levels measured as WCAG ratios); « Reset all » (it *replaces* the state); Sharing (export of the current look, copy; a `.json` is
+imported as a THEME in My themes and applies nothing, anything else is refused with a visible note);
+**My themes** (`library`: save from Essentiel with its window, « modified » and « Update », apply, rename, export,
+delete, and — on the sandbox only — the copy on the disk coming back after the browser's is cleared);
+the **gallery** (`gallery`, sandbox only: the shipped catalogue read by the host, search, filter, *Try* stores
+nothing and is put back, *Install*, *Update*); the « Animation » tab
 and the thinking animation in DSH's bottom status line (below). A console error from `[kybernos-theme]`
 or an uncaught exception from one of its functions fails the section it happened in (a second CDP
 connection listens).
@@ -279,7 +283,11 @@ wallpaper's style — changes); it prints a `control | persisted | applied` tabl
 transparency tokens, image filter, fit, mirror, the preview), `forme` (ligatures, radius tokens, logo),
 `access` (reduced motion, focus ring with a real Tab key, 44 px, link underline, colour-blind palette),
 `boot` (every new key applied before Settings opens; « Reset all » removes the effects) and `sharing`
-(three real export formats, the copy argument, the CSS export’s 17 × 2 tokens, a JSON round trip).
+(three real export formats, the copy argument, the CSS export’s 17 × 2 tokens, a JSON file imported back as a theme).
+`library` and `gallery` **turn the host half on** for their own part (the run keeps it off otherwise), so they write
+under `<DSH_HOME>/kybernos`: they only run disk steps against an isolated instance (`source scripts/sandbox/env.sh`) and
+remove what they wrote. The signed catalogue is not in the script (it needs a key the sandbox trusts): see
+`docs/dev/theme-gallery.md`.
 `light` measures the contrast of **every visible text** of the page, its picker and its word pack in the
 Light scheme, **without touching the preference** (see the trap below), and checks that Dark kept its
 colours; `french` fails on any French an English interface still shows (see the trap below).
@@ -371,7 +379,7 @@ throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's;
   `onKeyDown` alone would not do — the dialog listens natively.
 - The first tile of every wallpaper category is « None »: real tiles start at index 1.
 - The tabs are indexed (`TAB` in the script): Essentiel, Verre et fond, Couleurs, Texte et forme,
-  **Animation**, Accessibilité, Partage (« Conversation » and « Terminal » are gone). A tab inserted in the middle moves every
+  **Animation**, Accessibilité, Partage, Galerie (« Conversation » and « Terminal » are gone). A tab inserted in the middle moves every
   index after it; the `advanced` section checks the names in order, so a shift is reported there first.
 - The wallpaper `<div>` has `pointer-events: none`, so `elementsFromPoint` never lists it: to
   know whether it is visible, look for an opaque element *above* each sampled point instead.
@@ -379,7 +387,7 @@ throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's;
 - The Light scheme is measured **without pressing Mode / Light**: the `light` section removes
   `data-ds-dark-theme` from `<body>` in the page only (client-side, never persisted; the guard keeps
   watching `html[data-ds-theme-source]`, and the attribute is put back in a `finally`). In each of 18
-  views (the seven tabs, the font list and the ambiance list with no match, the settings disclosure,
+  views (the first seven tabs, the font list and the ambiance list with no match, the settings disclosure,
   the picker's three tabs, the rotation filled and played in order, the word pack empty and with two
   words) it walks **every text node** of `.kbth-page`, `[data-kb=ld-picker]` and `[data-kb=ld-pack]` and
   computes the WCAG ratio from the computed colour over the first opaque background ancestor; any text
@@ -561,6 +569,41 @@ receives, and nothing else), adding an app with an API key (the key reaches the 
 the page or in the browser's storage), a refused add that may have gone through (one call, then « check the list »), a
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
+
+## A broken bundle must not stop DSH: `scripts/check-bundle-faults.mjs`
+
+```bash
+node scripts/check-bundle-faults.mjs [--only kybernos-atlas,dsh-mermaid] [--faults syntax,throw-apply] [--gui] [--port 3097]
+```
+
+AGENTS.md rule 2 as a measurement. In a copy of the tree served by a throw-away sandbox profile, the script breaks ONE bundle at a
+time (syntax error, throw at load, throw in `apply`, missing dependency, missing entry file, cut or missing `package.json`, a top-level
+`await` that never ends; with `--gui` also a broken, throwing or missing `client.js`), starts DSH and reports whether it started,
+whether every OTHER bundle still mounted its routes, whether the log names the entry that failed and, with `--gui`, whether the page
+still renders. It exits 1 on what a bundle can prevent. Measured 2026-10-08 on 34 bundles (272 host runs, 90 client runs):
+
+- DSH started in every run with a broken host half; the other bundles lost nothing; the failure is always in the log
+  (`dsh: warning: N entries did not activate` plus the stack); the GUI renders.
+- A broken `client.js` (any of the three faults, any bundle) replaces the **whole GUI** with the engine's « Failed to load plugins »
+  screen. That is the engine waiting for every client entry: a bundle cannot prevent it, only the release gate can (`node --check`
+  in CI, the signed archive).
+- A host half that never finishes loading (`tla-hang`) leaves the web server up and the GUI usable, but the `dsh web: http://…` banner
+  (the only place the login URL is printed) never appears. A host half that spins the CPU at load takes the whole process down.
+  Neither is fixable from a bundle: do not `await` the network at the top level of an `index.js`.
+
+The sandbox does not copy credentials and the script never touches `:3080`. Run it under a profile with no network if you want it
+to be certain that nothing leaves (a `sandbox-exec` profile denying outbound connections to everything but loopback works on macOS).
+
+### The server misbehaves
+
+`packages/kybernos-cloud/test-cloud-resilience.mjs` (hermetic) plays a programmable fake server against the REAL host routes: an
+answer of 96 MB, a redirect (307, 302), a poll that is not a verdict (429, 5xx, HTML), a captive-portal page in place of the workspace
+list, a body cut short, a Team list with entries that are not lessons. The same mistakes are covered, one file each, for the feedback
+send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skills/test-index.mjs`, 8), the models.dev read
+(`kybernos-models/test-no-engine-fetch.mjs`) and the TTL sweeper (`kybernos-computers/test-computers-host.mjs`).
+**Rules these tests pin:** a bundle's network read is bounded in size and time; a redirect is not followed; the engine's
+`ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
+firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.
 
 ## Traps
 

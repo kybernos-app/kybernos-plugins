@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Parlez à votre assistant, ou à un membre de votre équipe, à voix haute, depuis n'importe quelle session. L'assistant répond comme dans le chat, et ce qui se dit entre dans la discussion.",
+    "en": "Talk to your assistant, or to a team member, out loud, from any session. The assistant answers as it does in the chat, and what is said enters the conversation."
+  },
+  "steps": [
+    {
+      "fr": "Dans une session, cliquez le téléphone (voix) ou la caméra (vidéo) en haut à droite du chat. Pour un membre : Call ou Video sur sa carte.",
+      "en": "In a session, click the phone (voice) or the camera (video) at the top right of the chat. For a team member: Call or Video on its card."
+    },
+    {
+      "fr": "Autorisez le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parlez, il répond à voix haute.",
+      "en": "Allow the microphone in the browser. The call panel opens at the bottom right: speak, it answers out loud."
+    },
+    {
+      "fr": "« Raccrocher » termine l'appel, ou il raccroche seul après un long silence.",
+      "en": "“Hang up” ends the call, or it hangs up by itself after a long silence."
+    }
+  ],
+  "where": {
+    "fr": "En haut à droite du chat de toute session · Réglages › Appels",
+    "en": "Top right of the chat of any session · Settings › Calls",
+    "page": true
+  },
+  "good": {
+    "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau vous y conduit. Une voix enregistrée n'est clonée que si vous l'autorisez.",
+    "en": "Everything is set up in Settings › Calls: a preset, each provider's keys, then “Check everything”. If a call cannot start, the panel takes you there. A recorded voice is only cloned if you allow it."
+  }
+}

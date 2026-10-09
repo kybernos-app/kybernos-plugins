@@ -1,20 +1,19 @@
 <!DOCTYPE html>
-<html lang="fr" data-theme="dark">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
-<title>dsh-mermaid — chargement depuis &lt;head&gt; (body encore nul)</title>
+<title>dsh-mermaid — loaded from &lt;head&gt; (body still null)</title>
 <!--
-  Cas réel de la GUI : le chargeur de DSH évalue les bundles clients depuis
-  <head>, quand `document.body` est encore null. L'ancienne version observait
-  `document.body` → TypeError → « web boot: 1 entry did not activate » et plugin
-  inerte. Ce banc reproduit exactement cette chronologie : le bloc de code est
-  ajouté APRÈS le chargement du script (donc vu par l'observateur, pas par le
-  scan initial).
+  The GUI's real case: DSH's loader evaluates client bundles from <head>, when `document.body` is
+  still null. The old version observed `document.body` → TypeError → "web boot: 1 entry did not
+  activate" and an inert plugin. This bench reproduces exactly that timeline: the code block is
+  added AFTER the script has loaded (so it is seen by the observer, not by the initial scan), in
+  the DOM DSH 0.2 renders (label "Code block", source in [data-code-block-content]).
 -->
 <script>
   window.__ModuleLoader__ = {
     load({ id, factory }) {
-      const exports = factory(() => { throw new Error('require indisponible') })
+      const exports = factory(() => { throw new Error('require is not available') })
       window.__PLUGIN__ = { id, exports }
       window.__BODY_AT_BOOT__ = document.body === null
       if (exports && typeof exports.apply === 'function') {
@@ -31,12 +30,17 @@
 <script src="../client/client.js"></script>
 </head>
 <body>
-<h1>Chargement depuis &lt;head&gt; — body nul à l'évaluation du bundle</h1>
+<h1>Loaded from &lt;head&gt; — body null when the bundle is evaluated</h1>
 <div class="wrap">
   <div class="md-code-block" id="valide">
-    <div data-code-block-banner><div class="infostring">mermaid</div></div>
-    <pre class="plain"><code>graph LR
-  A[Profil web] --&gt; B[Rendu SVG]</code></pre>
+    <div class="bannerWrap"><div data-code-block-banner>
+      <div class="heading"><span>Code block</span></div>
+      <div class="actions"></div>
+    </div></div>
+    <div data-code-block-content>
+      <pre class="plain"><code>graph LR
+  A[Web profile] --&gt; B[SVG rendering]</code></pre>
+    </div>
   </div>
 </div>
 </body>

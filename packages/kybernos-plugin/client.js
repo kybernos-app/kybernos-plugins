@@ -441,6 +441,19 @@ let kbLocaleRead = () => 'en'
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de votre appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
       'kbac.security': { kybernos: 'Sécurité', en: 'Security' },
       'kbac.security.sub': { kybernos: 'Accès et sessions de votre compte Kybernos Cloud.', en: 'Access and sessions for your Kybernos Cloud account.' },
+      'kbac.out.security': { kybernos: 'Le mot de passe, la double authentification et les sessions se gèrent sur votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your password, two-factor authentication and sessions are managed on your Kybernos Cloud account. You are not signed in.' },
+      'kbac.out.referral': { kybernos: 'Votre code de parrainage arrive avec votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your referral code comes with your Kybernos Cloud account. You are not signed in.' },
+      'kbac.out.why': { kybernos: 'Pourquoi créer un compte', en: 'Why create an account' },
+      'kbac.out.models': { kybernos: 'Des modèles prêts à l\'emploi', en: 'Models ready to use' },
+      'kbac.out.models.sub': { kybernos: 'Les modèles de votre formule sont ajoutés automatiquement, sans clé d\'API à configurer.', en: 'The models of your plan are added automatically, with no API key to set up.' },
+      'kbac.out.memory': { kybernos: 'Une mémoire qui vous suit', en: 'A memory that follows you' },
+      'kbac.out.memory.sub': { kybernos: 'Vos souvenirs et vos leçons sont gardés sur votre compte et retrouvés sur chaque appareil.', en: 'Your memories and lessons are kept on your account and come back on every device.' },
+      'kbac.out.sync': { kybernos: 'Sessions et appareils synchronisés', en: 'Sessions and devices in sync' },
+      'kbac.out.sync.sub': { kybernos: 'Retrouvez votre travail d\'un appareil à l\'autre.', en: 'Pick your work up from one device to the next.' },
+      'kbac.out.credits': { kybernos: '500 crédits pour chaque ami invité', en: '500 credits for each friend you invite' },
+      'kbac.out.credits.sub': { kybernos: 'Vous et votre ami recevez chacun 500 crédits.', en: 'You and your friend get 500 credits each.' },
+      'kbac.out.cta': { kybernos: 'Créer un compte ou se connecter', en: 'Create an account or sign in' },
+      'kbac.out.local': { kybernos: 'DSH fonctionne aussi sans compte : le compte ajoute ce qui précède.', en: 'DSH also works without an account: the account adds what is listed above.' },
       'kbac.sec.password': { kybernos: 'Mot de passe', en: 'Password' },
       'kbac.sec.password.sub': { kybernos: 'Modifier votre mot de passe', en: 'Change your password' },
       'kbac.sec.change': { kybernos: 'Changer', en: 'Change' },
@@ -456,8 +469,6 @@ let kbLocaleRead = () => 'en'
       'kbac.support.terms.sub': { kybernos: 'Crédits, quotas, remboursements, usage équitable', en: 'Credits, quotas, refunds, fair use' },
       'kbac.support.privacy': { kybernos: 'Politique de confidentialité', en: 'Privacy policy' },
       'kbac.support.privacy.sub': { kybernos: 'Ce qui est stocké, ce qui ne l\'est jamais', en: 'What is stored, what is never stored' },
-      'kbac.support.status': { kybernos: 'Page d\'état', en: 'Status page' },
-      'kbac.support.status.sub': { kybernos: 'Proxy, fournisseurs et régions, en direct', en: 'Proxy, providers and regions, live' },
       'kbac.support.help.sub': { kybernos: 'Documentation et guides Kybernos', en: 'Kybernos documentation and guides' },
       'kbac.support.feedback.sub': { kybernos: 'Signaler un problème ou proposer une amélioration', en: 'Report a problem or suggest an improvement' },
       'kbac.open': { kybernos: 'Ouvrir', en: 'Open' },
@@ -569,19 +580,7 @@ let kbLocaleRead = () => 'en'
       'kbtc.appel': { kybernos: 'appel', en: 'call' },
       'kbtc.voir': { kybernos: 'Voir l’exécution', en: 'View execution' },
       'kbtc.done': { kybernos: 'Appel terminé', en: 'Call done' },
-      'kbh.titre': { kybernos: 'Validation requise', en: 'Validation required' },
-      'kbh.nq': { kybernos: ' questions', en: ' questions' },
-      'kbh.repondre': { kybernos: 'Répondre', en: 'Answer' },
-      'kbh.voir': { kybernos: 'Voir dans Workflows', en: 'View in Workflows' },
-      'kbh.repondu': { kybernos: 'Répondu par toi', en: 'Answered by you' },
-      'kbh.annule': { kybernos: 'Annulée', en: 'Cancelled' },
-      'kbh.interrompue': { kybernos: 'Interrompue', en: 'Interrupted' },
-      'kbh.erreur': { kybernos: 'Erreur', en: 'Error' },
-      'kbh.reponses': { kybernos: ' réponses', en: ' answers' },
-      'kbh.sur': { kybernos: ' sur ', en: ' of ' },
-      'kbh.sansreponse': { kybernos: 'Sans réponse', en: 'Left unanswered' },
-      'kbh.copier': { kybernos: 'Copier', en: 'Copy' },
-      'kbh.copie': { kybernos: 'Copié', en: 'Copied' },
+
       'status.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'status.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
       'status.declared': { kybernos: 'déclaré, non sondé', en: 'declared, not probed' },
@@ -1381,6 +1380,8 @@ let kbLocaleRead = () => 'en'
       'kbsd.public': { kybernos: 'Accès public', en: 'Public access' },
       'kbsd.public.sub': { kybernos: 'Toute personne avec le lien peut voir', en: 'Anyone with the link can view' },
       'kbsd.public.sub.off': { kybernos: 'Connectez Kybernos Cloud pour partager par lien', en: 'Connect Kybernos Cloud to share by link' },
+      'kbsd.public.sub.unavail': { kybernos: 'Les liens publics ne sont pas encore disponibles sur ce serveur', en: 'Public links are not yet available on this server' },
+      'kbui.store.unavail': { kybernos: 'Ce livrable ne peut pas être ouvert pour le moment', en: 'This deliverable cannot be opened right now' },
       'kbsd.public.sub.soon': { kybernos: 'Pas encore de lien public pour ce type d’élément', en: 'No public link for this kind of item yet' },
       'kbsd.badge.synced': { kybernos: 'Synchronisé', en: 'Synced' },
       'kbsd.badge.local': { kybernos: 'Local', en: 'Local' },
@@ -1742,7 +1743,7 @@ let kbLocaleRead = () => 'en'
       'kbui.ins.save.err': { kybernos: 'Réglages non enregistrés', en: 'Settings not saved' },
       'kbui.ins.empty': { kybernos: 'Équipe introuvable', en: 'Team not found' },
       'kbui.ins.err': { kybernos: 'Lecture impossible', en: 'Could not read' },
-      'kbws.menu': { kybernos: 'Mon espace', en: 'My workspace' },
+      'kbws.menu': { kybernos: 'Équipe', en: 'Team' },
       'kbws.sub': { kybernos: 'Formule, usage réel, modèles configurés, facturation et clés — tout au même endroit. Les données Usage et Modèles sont réelles ; les zones de démonstration sont étiquetées.', en: 'Plan, real usage, configured models, billing and keys — all in one place. Usage and Models data are real; demo areas are labelled.' },
       'kbws.tab.plan': { kybernos: 'Formule', en: 'Plan' },
       'kbws.tab.usage': { kybernos: 'Usage', en: 'Usage' },
@@ -2064,7 +2065,7 @@ let kbLocaleRead = () => 'en'
       'kbws.bill.type.team': { kybernos: 'Team · 6 sièges', en: 'Team · 6 seats' },
       'kbws.bill.type.onetime': { kybernos: 'Crédits à l\'unité · 110 000', en: 'One-time credits · 110,000' },
       'kbws.portal.eyebrow': { kybernos: 'Portail simulé — démo', en: 'Simulated portal — demo' },
-      'kbws.portal.back': { kybernos: '← Retour à Mon espace', en: '← Back to My workspace' },
+      'kbws.portal.back': { kybernos: '← Retour à l\'équipe', en: '← Back to Team' },
       'kbws.portal.nav.pm': { kybernos: 'Moyen de paiement', en: 'Payment method' },
       'kbws.portal.nav.addr': { kybernos: 'Adresse', en: 'Billing address' },
       'kbws.portal.nav.inv': { kybernos: 'Factures', en: 'Invoices' },
@@ -2653,6 +2654,35 @@ const kbt = (key) => {
   if (d !== null && d[key] !== undefined) return String(d[key])
   return entry.en !== undefined ? entry.en : key
 }
+
+// ── Settings nav: which title each cell stands for, whatever the language (<kb-nav-titles>) ──
+// The organiser below groups, orders and draws the icon of each Settings cell by its TITLE, normalised: it knows the French and English
+// titles and a few Spanish ones. Under any other translated language no title matched, so the menu lost its groups, its order and
+// its icons (« the language moves the menus »). Each cell is rendered by React with a KEY that is the id of the section it stands for
+// (« general », « kybernos-theme », « kbac-referral »…), the same in every language: that key, read from the cell's fiber, names the
+// title the organiser knows. A cell with no known key (a section added later, React internals that moved) keeps its drawn title.
+const KB_NAV_KEYS = {
+  general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
+  'kybernos-account': 'account', 'kbac-referral': 'referral', 'kybernos-data': 'data & privacy', 'kbac-appearance': 'appearance',
+  'kybernos-maintenance': 'about', 'kbac-security': 'security', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing',
+  'kbac-support': 'support & legal', plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
+  'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
+  'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
+}
+/** The React key of a nav cell, or null (never throws: the internals are not ours). */
+const kbNavKeyOf = (el) => {
+  try {
+    const name = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+    const key = name === undefined ? null : el[name].key
+    return typeof key === 'string' ? key : null
+  } catch (e) { return null }
+}
+/** texts: the normalised titles as drawn now; keys: the cells' React keys (null when unreadable). */
+const kbNavTitles = (texts, keys) => texts.map((t, i) => {
+  const key = keys[i]
+  return typeof key === 'string' && Object.prototype.hasOwnProperty.call(KB_NAV_KEYS, key) ? KB_NAV_KEYS[key] : t
+})
+// </kb-nav-titles>
 
 // ── Traduction de profondeur (chantier i18n du 2026-09-21) ──────────────────
 // Les vues internes (Projets, éditeur de kyber, lecteurs quiz/cartes/résumé/fiche,
@@ -7046,10 +7076,13 @@ return {
       engine: 'engine', quiz: 'quiz', cards: 'cards', flashcards: 'cards',
       deck: 'deck', exam: 'exam', pdf: 'pdf', sketchnote: 'sketch',
     }
-    // The server this DSH talks to (Select server): its web app, its console, its gateway. The built-in Kybernos Cloud is the
-    // answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
+    // The server this DSH talks to (Select server): its api, its web app, its console, its gateway. The built-in Kybernos Cloud is
+    // the answer until the cloud plugin has told us otherwise; a server that is not the default arrives through
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
-    const kbServer = { name: 'Kybernos Cloud', web: 'https://dev.kybernos.app', console: 'https://dev.kybernos.app/workspace-console', gateway: 'https://api.dev2.kybernos.app', workspace: '' }
+    // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
+    // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ. No gateway: the host relay replaced it.
+    const KB_BUILTIN_API = 'https://server-dev-7831.up.railway.app'
+    const kbServer = { name: 'Kybernos Cloud', api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API + '/workspace-console', gateway: '', workspace: '' }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
       const get = (url) => fetch(url, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
@@ -7060,6 +7093,7 @@ return {
         if (j !== null && j !== undefined && j.ok === true && j.server !== null && typeof j.server === 'object') {
           const sv = j.server
           if (typeof sv.name === 'string' && sv.name !== '') kbServer.name = sv.name
+          if (typeof sv.api === 'string' && sv.api !== '') kbServer.api = sv.api
           if (typeof sv.web === 'string' && sv.web !== '') kbServer.web = sv.web
           if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
           kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
@@ -7069,8 +7103,6 @@ return {
       })
     }
     try { void kbServerLoad() } catch (e) { /* no network layer: the defaults stand */ }
-    // The web app that carries the viewer.
-    const kbStoreWeb = () => kbServer.web
 
     const kbStoreArtifacts = async () => {
       try {
@@ -8406,6 +8438,10 @@ return {
         setSrv({ state: 'loading', share: null, artId: null, error: null })
         ;(async () => {
           try {
+            // Does this server have public links at all? Asked first, with an id that exists nowhere: a server without them (paused on the new
+            // server) answers « not on this server », and the control says so instead of offering something that cannot work.
+            const sonde = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=probe').then(kbSpJson)
+            if (sonde !== null && sonde.ok !== true && sonde.error === 'not_on_this_server') { if (vivant === true) setSrv({ state: 'unavail', share: null, artId: null, error: null }); return }
             const l = await fetch('/kybernos-cloud/artifacts?limit=200').then(kbSpJson)
             if (l === null || l.ok !== true || !Array.isArray(l.artifacts)) throw new Error(l !== null && l.error ? String(l.error) : 'lecture')
             const hits = l.artifacts.filter((a) => a !== null && typeof a === 'object' && a.title === item.titre).slice(0, 5)
@@ -8415,6 +8451,8 @@ return {
               const g = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=' + encodeURIComponent(a.id)).then(kbSpJson)
               // Lecture refusée (route absente côté serveur : 404, etc.) ≠ « pas de lien » :
               // l'état n'est pas confirmé, on le dit au lieu de supposer privé.
+              // The server has no public links at all (paused on the new server): said plainly below, the control is off.
+              if (g !== null && g.ok !== true && g.error === 'not_on_this_server') { if (vivant === true) setSrv({ state: 'unavail', share: null, artId: null, error: null }); return }
               if (g === null || g.ok !== true) throw new Error(((g !== null && g.error) ? String(g.error) : 'illisible') + ((g !== null && g.status) ? ' (HTTP ' + g.status + ')' : ''))
               if (g.share !== null && g.share !== undefined && g.share.audience !== 'only_me' && typeof g.share.slug === 'string') { trouve = g.share; artId = a.id; break }
             }
@@ -8476,9 +8514,10 @@ return {
         if (cle === null) { dire('err', T('kbsd.err.push', { m: (pousse !== null && pousse.error) ? pousse.error : '?' })); return null }
         const pose = await kbSpPost('/kybernos-cloud/shares/set', { resource_type: 'artifact', resource_id: cle, audience: 'link' }).then(kbSpJson)
         const slug = (pose !== null && pose.ok === true && pose.share !== null && pose.share !== undefined) ? pose.share.slug : null
+        if (pose !== null && pose.ok !== true && pose.error === 'not_on_this_server') { setSrv({ state: 'unavail', share: null, artId: null, error: null }); dire('err', T('kbsd.public.sub.unavail')); return null }
         if (slug === null || slug === undefined) { dire('err', T('kbsd.err.share', { m: (pose !== null && pose.error) ? pose.error : '?' })); return null }
         setSrv({ state: 'ok', share: { slug: slug, audience: 'link' }, artId: cle, error: null })
-        return 'https://kybernos.app/s/' + slug
+        return kbServer.web.replace(/\/+$/, '') + '/s/' + slug
       }
       const revoquer = async () => {
         if (srv.share === null || srv.artId === null) return true
@@ -8495,9 +8534,9 @@ return {
       if (publicReel === true) niveau = 'public'
       else if (acc.access === 'public' && livrable === true && lectureOk !== true) niveau = 'public'
       const publicConfirme = publicReel === true
-      const peutPublic = connecte === true && livrable === true
+      const peutPublic = connecte === true && livrable === true && srv.state !== 'unavail'
       const peutEquipe = equipe === true
-      const lienPublic = publicReel === true ? 'https://kybernos.app/s/' + srv.share.slug : null
+      const lienPublic = publicReel === true ? kbServer.web.replace(/\/+$/, '') + '/s/' + srv.share.slug : null
 
       const poserNiveau = async (cible) => {
         const ECHEC = { ok: false, lien: null }
@@ -8587,7 +8626,7 @@ return {
           on === true ? h('span', { className: 'kbsp-chk' }, Icon('check', 16)) : null)
         const initiale = nomEspace.trim().slice(0, 1).toUpperCase()
         const teamSous = peutEquipe === true ? T('kbsd.team.sub', { team: nomEspace }) : (connecte === true ? T('kbsd.team.sub.personal') : T('kbsd.team.sub.off'))
-        const pubSous = livrable !== true ? T('kbsd.public.sub.soon') : (connecte === true ? T('kbsd.public.sub') : T('kbsd.public.sub.off'))
+        const pubSous = livrable !== true ? T('kbsd.public.sub.soon') : (connecte !== true ? T('kbsd.public.sub.off') : (srv.state === 'unavail' ? T('kbsd.public.sub.unavail') : T('kbsd.public.sub')))
         const chargement = livrable === true && connecte === true && srv.state === 'loading'
         corps = h('div', { className: 'kbsp-body' },
           (info === 'help' ? h('div', { className: 'kbsp-box kbsp-help', 'data-kb': 'share-help-body' }, h('div', { className: 'kbsp-boxtxt' }, T(livrable === true ? 'kbsd.help.file' : 'kbsd.help.kyber'))) : null),
@@ -14002,160 +14041,6 @@ return {
           })),
           h('button', { type: 'button', className: 'kbtc-voir', onClick: () => { voir() } }, kbt('kbtc.voir') + ' →')))
     }
-    // ── S2b : carte validation HITL (ask_user_question) ─────────────────────
-    // Toolview keyé sur l'outil `ask_user_question` (priority -1 : masque la
-    // DetailsRow native, réversible). Données du contrat toolview : block
-    // running {callId, argsRaw} / réglé {'kind', call:{argsRaw}, isError,
-    // error, content} — mêmes champs que la rangée native ask-question.
-    // ANSWERING : la carte NE répond PAS elle-même — le waterfall user-questions
-    // appartient au QuestionComposer natif (il remplace le compositeur pendant
-    // la question ; answering direct depuis une 2e surface = double settlement).
-    // « Répondre » amène au compositeur natif (scroll + focus), « Voir dans
-    // Crew v2 » cible l'appel en attente. Maquette §2 : conteneur #221E2C bord
-    // #4A3D66 pulsé, ◆ 32×32 #2C2540/#B99CF0, titre 14/600, corps 13/1.45
-    // #B8B4AC, permissions 12 #8E8A82 mono, boutons 36px.
-    const KbHitlCard = (props) => {
-      const p = (props !== null && typeof props === 'object') ? props : {}
-      const sessionId = (typeof p.sessionId === 'string') ? p.sessionId : ''
-      const block = (p.block !== null && p.block !== undefined) ? p.block : null
-      const running = (block !== null && 'kind' in block) === false
-      const argsRaw = (block !== null) ? ((running === true) ? (typeof block.argsRaw === 'string' ? block.argsRaw : '') : ((block.call !== null && block.call !== undefined && typeof block.call.argsRaw === 'string') ? block.call.argsRaw : '')) : ''
-      const errCode = (running === false && block.isError === true && block.error !== null && block.error !== undefined && typeof block.error.code === 'string') ? block.error.code : null
-      // Questions depuis les args de l'appel.
-      let questions = []
-      try {
-        const a = argsRaw === '' ? null : JSON.parse(argsRaw)
-        if (a !== null && a !== undefined && Array.isArray(a.questions)) questions = a.questions.filter((q) => q !== null && typeof q.question === 'string')
-      } catch (e) { questions = [] }
-      // Réponses (réglé ok) : block.content[0].text → {answers:[{id,selected,custom}]}.
-      let reponses = null
-      if (running === false && errCode === null && block !== null && Array.isArray(block.content) && block.content.length === 1 && block.content[0] !== null && block.content[0].type === 'text') {
-        try {
-          const r = JSON.parse(block.content[0].text)
-          if (r !== null && r !== undefined && Array.isArray(r.answers)) reponses = r.answers
-        } catch (e) { reponses = null }
-      }
-      const st = running === true ? 'pending' : (errCode !== null ? (errCode === 'ASK_ABORTED' ? 'interrompue' : (errCode === 'ASK_CANCELLED' ? 'annulee' : 'erreur')) : 'repondu')
-      // Ligne « Permissions : … » extraite du texte de la question (v1).
-      const texteQ = questions.length > 0 ? String(questions[0].question) : ''
-      const permM = texteQ.match(/permissions?\s*[:：]\s*([^\n]+)/i)
-      const perms = (permM !== null) ? permM[1] : null
-      // Lignes réponse (question → sélection) après answering.
-      const lignes = (st === 'repondu') ? questions.map((q) => {
-        const rep = (reponses !== null) ? reponses.find((r) => r !== null && r !== undefined && r.id === q.id) : null
-        const sel = (rep !== null && rep !== undefined && Array.isArray(rep.selected) && rep.selected.length > 0) ? rep.selected.join(', ') : ((rep !== null && rep !== undefined && typeof rep.custom === 'string' && rep.custom !== '') ? rep.custom : null)
-        return { q: String(q.question), sel: sel }
-      }) : []
-      // Ce que la carte doit dire d'un coup d'œil : combien de réponses sur
-      // combien de questions (le compositeur natif laisse sauter une question —
-      // sa ligne revient alors « Sans réponse »), et de quoi copier les
-      // réponses d'un geste.
-      const nRepondues = lignes.filter((l) => l.sel !== null).length
-      const resume = (st !== 'repondu' || lignes.length === 0) ? ''
-        : (nRepondues === lignes.length
-          ? (lignes.length > 1 ? String(lignes.length) + kbt('kbh.reponses') : '')
-          : String(nRepondues) + kbt('kbh.sur') + String(lignes.length))
-      const copiePair = React.useState(false)
-      const copie = copiePair[0]
-      const setCopie = copiePair[1]
-      const copier = () => {
-        const txt = lignes.map((l) => l.q + ' → ' + (l.sel === null ? kbt('kbh.sansreponse') : l.sel)).join('\n')
-        let ecrit = false
-        try {
-          const nav = navigator
-          if (nav !== null && nav !== undefined && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
-            const p = nav.clipboard.writeText(txt)
-            if (p !== null && p !== undefined && typeof p.catch === 'function') p.catch(() => { /* refus du navigateur */ })
-            ecrit = true
-          }
-        } catch (e) { ecrit = false }
-        // Le bouton ne ment pas : sans presse-papiers, il reste « Copier ».
-        if (ecrit === false) return
-        setCopie(true)
-        setTimeout(() => { try { setCopie(false) } catch (e) { /* carte démontée */ } }, 1600)
-      }
-      const repondre = () => {
-        try {
-          const col = document.querySelector('.EvIC1a_scroll') || document.scrollingElement
-          if (col !== null) col.scrollTop = col.scrollHeight
-          setTimeout(() => {
-            const z = Array.from(document.querySelectorAll('textarea, [contenteditable="true"], input:not([type=hidden])')).filter((e) => { const b = e.getBoundingClientRect(); return b.height > 0 && b.top > window.innerHeight - 420 })[0]
-            if (z !== undefined) z.focus({ preventScroll: true })
-          }, 350)
-        } catch (e) { /* meilleur effort */ }
-      }
-      const voirCrew = () => {
-        const ouvrir = (callId) => { kbCrew2FocusOn(sessionId, callId); kbOpenCrewView(sessionId, 'workflows-v2'); kbClickViewTab(kbt('wv2.tab')) }
-        if (sessionId === '') return
-        host.call('kybers/calls', { sessionId: sessionId }).then((res) => {
-          const cible = (res !== null && res !== undefined && res.ok === true && Array.isArray(res.calls)) ? (res.calls.find((x) => x.st === 'waiting' || x.hitl === true) || null) : null
-          ouvrir(cible !== null ? cible.id : null)
-        }, () => { ouvrir(null) })
-      }
-      return h('div', { className: 'kbh-wrap', 'data-kb': 'hitl-card' },
-        running === true
-          ? h('div', { className: 'kbh-card', 'data-st': 'pending' },
-              h('div', { className: 'kbh-tete' },
-                h('span', { className: 'kbh-mono' }, '◆'),
-                h('div', { className: 'kbh-corps' },
-                  h('div', { className: 'kbh-titre' }, kbt('kbh.titre') + (questions.length > 1 ? ' · ' + String(questions.length) + kbt('kbh.nq') : '')),
-                  texteQ !== '' ? h('div', { className: 'kbh-question' }, texteQ) : null,
-                  perms !== null ? h('div', { className: 'kbh-perms' }, 'Permissions : ', h('code', null, perms)) : null)),
-              h('div', { className: 'kbh-actions' },
-                h('button', { type: 'button', className: 'kbh-rep', onClick: () => { repondre() } }, kbt('kbh.repondre') + ' →')))
-              // Item #1 recette-intake : l'ancien second bouton « View in Workflows → »
-              // (className 'kbh-crew', kbt('kbh.voir'), onClick voirCrew) est RETIRÉ de
-              // l'affichage — voirCrow/vokrCrew et la vue workflows-v2 restent joignables
-              // par l'onglet Workflows ; rien d'autre n'a changé.
-          : h('div', { className: 'kbh-suite' },
-              h('div', { className: 'kbh-okline', 'data-st': st, role: 'status' },
-                h('span', { className: 'kbh-ok-ico', 'aria-hidden': 'true' }, st === 'repondu' ? '✓' : (st === 'erreur' ? '!' : '–')),
-                h('span', { className: 'kbh-ok-txt' }, st === 'repondu' ? kbt('kbh.repondu') : (st === 'interrompue' ? kbt('kbh.interrompue') : (st === 'annulee' ? kbt('kbh.annule') : kbt('kbh.erreur')))),
-                resume !== '' ? h('span', { className: 'kbh-ok-n' }, resume) : null),
-              lignes.length > 0 ? h('div', { className: 'kbh-replist' }, lignes.map((l, i) =>
-                h('div', { key: String(i), className: 'kbh-repligne' + (l.sel === null ? ' kbh-repvide' : '') },
-                  h('span', { className: 'kbh-repq' }, l.q),
-                  h('span', { className: 'kbh-repv' }, l.sel === null ? kbt('kbh.sansreponse') : l.sel)))) : null,
-              (st === 'repondu' && lignes.length > 0) ? h('div', { className: 'kbh-actions kbh-actions-nues' },
-                h('button', { type: 'button', className: 'kbh-cop', onClick: () => { copier() } }, copie === true ? kbt('kbh.copie') : kbt('kbh.copier'))) : null))
-    }
-    const KBH_CSS = '' +
-      // Jetons DSH exclusivement : la carte suit le schéma clair comme sombre.
-      // (Avant : couleurs en dur sombres — carte illisible en clair, 28/09.)
-      '.kbh-wrap{margin:10px 0;display:flex;flex-direction:column}' +
-      '.kbh-card{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2)}' +
-      '.kbh-card[data-st=pending]{animation:kbhPulse 2s ease-in-out infinite}' +
-      '@keyframes kbhPulse{0%,100%{border-color:var(--dsw-alias-border-l2)}50%{border-color:var(--dsw-alias-brand-primary)}}' +
-      '@media(prefers-reduced-motion:reduce){.kbh-card[data-st=pending]{animation:none}}' +
-      '.kbh-tete{display:flex;align-items:flex-start;gap:12px}' +
-      '.kbh-mono{width:32px;height:32px;flex-shrink:0;border-radius:8px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-brand-primary);display:flex;align-items:center;justify-content:center;font-weight:700}' +
-      '.kbh-corps{flex-grow:1;min-width:0}' +
-      '.kbh-titre{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}' +
-      '.kbh-question{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary);margin-top:2px;white-space:pre-wrap;word-break:break-word}' +
-      '.kbh-perms{margin-top:4px;font-size:12px;color:var(--dsw-alias-label-tertiary)}' +
-      '.kbh-perms code{font-family:ui-monospace,Menlo,monospace}' +
-      '.kbh-actions{display:flex;gap:8px;padding-left:44px;align-items:center}' +
-      '.kbh-rep{height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-bg-base,#fff));font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      '.kbh-rep:hover{background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-brand-primary))}' +
-      '.kbh-crew{height:36px;padding:0 12px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      '.kbh-crew:hover{color:var(--dsw-alias-label-primary)}' +
-      // Carte réglée (UX du 23/09) : la question et la réponse s'empilent et
-      // passent à la ligne, au lieu d'être coupées à l'ellipse dans une bande de
-      // 38 px ; la question laissée de côté garde sa ligne, en gris.
-      '.kbh-suite{display:flex;flex-direction:column;gap:8px}' +
-      '.kbh-okline{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dsw-alias-state-success-primary)}' +
-      '.kbh-okline[data-st=interrompue],.kbh-okline[data-st=annulee]{color:var(--dsw-alias-state-warn-primary)}' +
-      '.kbh-okline[data-st=erreur]{color:var(--dsw-alias-state-error-primary)}' +
-      '.kbh-ok-ico{width:14px;height:14px;flex:none;box-sizing:border-box;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1;background:color-mix(in srgb,currentColor 18%,transparent)}' +
-      '.kbh-ok-n{font-weight:400;color:var(--dsw-alias-label-tertiary)}' +
-      '.kbh-replist{display:flex;flex-direction:column;gap:6px}' +
-      '.kbh-repligne{display:flex;flex-direction:column;gap:2px;box-sizing:border-box;padding:8px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}' +
-      '.kbh-repq{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:16px;overflow-wrap:anywhere}' +
-      '.kbh-repv{color:var(--dsw-alias-label-primary);font-size:13px;line-height:18px;overflow-wrap:anywhere}' +
-      '.kbh-repvide .kbh-repv{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font-style:italic}' +
-      '.kbh-actions-nues{padding-left:0}' +
-      '.kbh-cop{height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer;font-family:inherit}' +
-      '.kbh-cop:hover{border-color:var(--dsw-alias-border-l3);color:var(--dsw-alias-label-primary)}'
     const KBTC_CSS =
       '.kbtc-wrap{margin:10px 0;display:flex;flex-direction:column;gap:8px}' +
       '.kbtc-intro{font-size:14px;line-height:1.5;color:var(--dsw-alias-label-secondary)}' +
@@ -18210,7 +18095,19 @@ function renderFit(canvas, model, cam, opts){
       // l'app, dans un onglet.
       const openArtifact = (a) => {
         if (a !== null && a !== undefined && a.store === true) {
-          try { window.open(kbStoreWeb() + '/document/' + String(a.storeId), '_blank') } catch (e) { /* popup bloqué par le navigateur */ }
+          // The server hands a link to the file itself (`GET /v1/artifacts/{id}`: `url`, good for an hour); it has no hosted viewer page.
+          // The tab is opened first (a popup blocker only allows a window opened by the click), then pointed at the link.
+          let tab = null
+          try { tab = window.open('', '_blank') } catch (e) { tab = null }
+          fetch('/kybernos-cloud/artifacts/detail', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: String(a.storeId) }) })
+            .then((r) => r.json().catch(() => null))
+            .then((j) => {
+              const url = j !== null && j !== undefined && j.ok === true && j.artifact !== null && j.artifact !== undefined && typeof j.artifact.url === 'string' ? j.artifact.url : ''
+              if (url !== '' && tab !== null) { tab.location.href = url; return }
+              if (tab !== null) { try { tab.close() } catch (e) { /* already closed */ } }
+              try { window.alert(kbt('kbui.store.unavail')) } catch (e) { /* no dialog */ }
+            })
+            .catch(() => { if (tab !== null) { try { tab.close() } catch (e) { /* already closed */ } } })
           return
         }
         // Un seul chemin de prévisualisation (28/09) : le clic — comme l'icône
@@ -18394,6 +18291,13 @@ function renderFit(canvas, model, cam, opts){
               setNote(kbf('Création illisible : ') + ((lu !== null && lu !== undefined && lu.error) ? lu.error : kbf('raison inconnue')))
               return
             }
+            // A server with no public links (paused on the new server) is told BEFORE anything is uploaded: the file would sit in the account for nothing.
+            const sonde = await fetch('/kybernos-cloud/shares?resource_type=artifact&resource_id=probe').then((r) => r.json().catch(() => null))
+            if (sonde !== null && sonde !== undefined && sonde.ok !== true && sonde.error === 'not_on_this_server') {
+              setNote(kbt('kbsd.public.sub.unavail'))
+              try { timerSvc.timeout(() => setNote(null), 6000) } catch (e) { /* pas de timer */ }
+              return
+            }
             const pousse = await fetch('/kybernos-cloud/artifacts/push', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ title: a.name, filename: a.name, kind: kindDe(a.name), content_b64: b64Utf8(lu.text) }),
@@ -18412,7 +18316,7 @@ function renderFit(canvas, model, cam, opts){
               setNote(kbf('Partage refusé : ') + ((pose !== null && pose.error) ? pose.error : kbf('raison inconnue')))
               return
             }
-            const lien = 'https://kybernos.app/s/' + slug
+            const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
             try {
               await navigator.clipboard.writeText(lien)
               setNote(kbf('Lien de partage copié — ') + lien)
@@ -20693,140 +20597,22 @@ function renderFit(canvas, model, cam, opts){
           setFaces({ busy: faces.busy, lastMs: faces.lastMs, one: faces.one, msg: String((e !== null && e !== undefined && e.message !== undefined) ? e.message : e) })
         }
       }
-      // ── L'appel (LiveKit) : le membre décroche, parle, et le fil reçoit ──────
-      // Le SDK vient de l'hôte (`/kybernos/vendor/livekit-client.js`, UMD, 594 Ko,
-      // chargé au premier appel seulement) et le jeton aussi : le navigateur ne
-      // voit jamais un secret. L'hôte démarre l'agent et le réveille sur CETTE
-      // salle ; le texte entendu repart vers la session courante comme un vrai
-      // tour DSH (`/kybernos/call/utterance`) — c'est le « l'appel EST la
-      // discussion » du chantier voix.
-      const [kbCall, setKbCall] = React.useState(null)
-      const kbCallLive = React.useRef(null)   // { room, mic } — hors du rendu
-      const kbCallAudio = React.useRef(null)  // le conteneur des pistes reçues
-      const KB_CALL_JS = ['/kybernos/vendor/livekit-client.js', 'https://unpkg.com/livekit-client@2.22.3/dist/livekit-client.umd.js']
-      const kbCallLib = () => new Promise((resolve, reject) => {
-        if (window.LivekitClient !== undefined && window.LivekitClient !== null) { resolve(window.LivekitClient); return }
-        let i = 0
-        const essai = () => {
-          if (i >= KB_CALL_JS.length) { reject(new Error('LiveKit SDK unavailable')); return }
-          const s = document.createElement('script')
-          s.src = KB_CALL_JS[i++]
-          s.onload = () => ((window.LivekitClient !== undefined && window.LivekitClient !== null) ? resolve(window.LivekitClient) : essai())
-          s.onerror = essai
-          document.head.appendChild(s)
-        }
-        essai()
-      })
-      const kbCallFin = async (motif) => {
-        const etat = kbCallLive.current
-        kbCallLive.current = null
-        if (etat !== null) {
-          try { if (etat.mic !== null && etat.mic !== undefined) await etat.mic.stop() } catch (e) { /* déjà coupé */ }
-          try { await etat.room.disconnect() } catch (e) { /* déjà parti */ }
-        }
-        setKbCall((old) => ((old === null) ? null : (motif === undefined ? null : Object.assign({}, old, { phase: 'ended', note: motif }))))
+      // ── Calls live in @local/kybernos-call: this surface only asks for one through its seam ──
+      // No seam (the bundle is off or absent) → the Call / Video buttons stay hidden.
+      const kbCallSeam = () => {
+        try {
+          const seam = window.__KB_CALL__
+          return (seam !== undefined && seam !== null && typeof seam.open === 'function') ? seam : null
+        } catch (e) { return null }
       }
-      const kbCallOuvre = async (roleId, nom, mode) => {
+      // `chosen`: the member's entry of the voice list (engine, voice, lang), or a recording (custom) that no engine speaks yet.
+      const kbOpenCall = (roleId, name, mode, chosen) => {
+        const seam = kbCallSeam()
+        if (seam === null) return
         const sessionId = (() => { try { return kbCurrentSessionId() } catch (e) { return null } })()
-        setKbCall({ role: roleId, name: nom, mode: mode, phase: 'preparing', note: 'reading call settings…', lines: [], startedAt: null, agent: null, muted: false })
-        // 1) Les secrets du poste : sans eux on le dit, on n'invente pas un appel.
-        let etat = null
-        try {
-          const r = await fetch(kbApiBase() + '/call/status', { headers: { accept: 'application/json' } })
-          etat = await r.json()
-        } catch (e) { etat = null }
-        if (etat === null || etat.ok !== true) {
-          setKbCall((old) => Object.assign({}, old, { phase: 'error', note: 'the host route /call/status is not loaded — relaunch DSH once' }))
-          return
-        }
-        if (etat.secrets !== 'posee') {
-          setKbCall((old) => Object.assign({}, old, { phase: 'error', note: 'no call secrets on this host — see ~/.dsh/kybernos/livekit.env' }))
-          return
-        }
-        // 2) Le jeton : l'hôte démarre l'agent, le réveille sur une salle neuve,
-        //    et rend le tout. C'est lui qui sait, pas nous.
-        setKbCall((old) => Object.assign({}, old, { note: 'starting the agent…' }))
-        let jeton = null
-        try {
-          const r = await fetch(kbApiBase() + '/call/token', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ sessionId: sessionId, kyberId: kyberId, identity: 'moi' })
-          })
-          jeton = await r.json()
-        } catch (e) { jeton = null }
-        if (jeton === null || jeton.ok !== true) {
-          setKbCall((old) => Object.assign({}, old, { phase: 'error', note: (jeton !== null && typeof jeton.error === 'string') ? jeton.error : 'no call token' }))
-          return
-        }
-        const agent = (jeton.agent !== null && jeton.agent !== undefined) ? jeton.agent : null
-        // 3) La jonction : microphone publié, pistes reçues attachées au panneau.
-        setKbCall((old) => Object.assign({}, old, { note: 'joining the room…', agent: agent }))
-        try {
-          const lib = await kbCallLib()
-          const room = new lib.Room({ adaptiveStream: false, dynacast: false })
-          const brancher = (track) => {
-            try {
-              const el = track.attach()
-              if (kbCallAudio.current !== null) kbCallAudio.current.appendChild(el)
-              el.autoplay = true
-              el.playsInline = true
-              if (track.kind === 'video') { el.style.width = '100%'; el.style.height = '100%'; el.style.objectFit = 'cover' }
-            } catch (e) { /* piste sans image */ }
-          }
-          room.on(lib.RoomEvent.TrackSubscribed, (track) => brancher(track))
-          if (typeof lib.RoomEvent.TranscriptionReceived === 'string') {
-            room.on(lib.RoomEvent.TranscriptionReceived, (segments, participant) => {
-              try {
-                const texte = segments.map((s) => String(s.text || '')).join(' ').trim()
-                if (texte === '') return
-                const qui = (participant !== null && participant !== undefined && participant.identity !== undefined) ? String(participant.identity) : ''
-                setKbCall((old) => ((old === null) ? null : Object.assign({}, old, { lines: old.lines.concat([qui + ': ' + texte]).slice(-6) })))
-              } catch (e) { /* segments illisibles */ }
-            })
-          }
-          room.on(lib.RoomEvent.ParticipantDisconnected, () => {
-            setKbCall((old) => ((old === null) ? null : Object.assign({}, old, { note: 'the agent left the room' })))
-          })
-          room.on(lib.RoomEvent.Disconnected, () => {
-            setKbCall((old) => ((old === null) ? null : Object.assign({}, old, { phase: 'ended', note: 'call ended' })))
-          })
-          await room.connect(jeton.url, jeton.token)
-          const mic = await room.localParticipant.setMicrophoneEnabled(true)
-          kbCallLive.current = { room: room, mic: mic }
-          setKbCall((old) => Object.assign({}, old, {
-            phase: 'live', startedAt: Date.now(),
-            note: (agent !== null && agent.dispatched === true) ? ('voice ' + String(etat.avatar !== null && etat.avatar !== undefined ? etat.avatar : '') + ' · ' + String(jeton.room)) : 'nobody is listening on the other side yet'
-          }))
-        } catch (e) {
-          setKbCall((old) => Object.assign({}, old, { phase: 'error', note: 'could not join the room — ' + String((e !== null && e !== undefined && e.message !== undefined) ? e.message : e) }))
-        }
-      }
-      const kbCallCoupe = () => { if (kbCallLive.current !== null) { const r = kbCallLive.current.room; try { r.localParticipant.setMicrophoneEnabled(false) } catch (e) { /* rien */ } } }
-      const kbCallPanneau = () => {
-        if (kbCall === null) return null
-        const vivant = kbCall.phase === 'live'
-        const sec = (kbCall.startedAt === null) ? 0 : Math.max(0, Math.round((Date.now() - kbCall.startedAt) / 1000))
-        const note = (kbCall.agent !== null && kbCall.agent !== undefined && kbCall.agent.dispatched === false && kbCall.agent.dispatchError !== undefined)
-          ? ('agent not dispatched: ' + String(kbCall.agent.dispatchError))
-          : ((typeof kbCall.note === 'string') ? kbCall.note : '')
-        return h('div', { role: 'dialog', 'aria-label': 'Call panel', style: kbmS('position: fixed; right: 20px; bottom: 20px; z-index: 60; width: 340px; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 14px; box-shadow: 0 18px 48px rgba(0,0,0,0.22); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;') }, [
-          h('div', { style: kbmS('display: flex; align-items: center; gap: 10px;') }, [
-            h('span', { style: kbmS('width: 38px; height: 38px; border-radius: 10px; background: #16161A; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700;') }, (kbCall.mode === 'video' ? 'VID' : 'AUD')),
-            h('div', { style: kbmS('display: flex; flex-direction: column; gap: 2px; flex-grow: 1; min-width: 0;') }, [
-              h('span', { style: kbmS('font-size: 14px; font-weight: 700;') }, String(kbCall.name)),
-              h('span', { className: 'kbm-mono', style: kbmS('font-size: 11.5px; color: #9A9A9E;') }, kbCall.phase + (vivant ? ' · ' + String(Math.floor(sec / 60)) + ':' + String(sec % 60).padStart(2, '0') : ''))
-            ]),
-            h('button', { type: 'button', 'aria-label': 'Hang up', onClick: () => kbCallFin(), style: kbmS('height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer;') }, 'Hang up')
-          ]),
-          (note !== '') ? h('span', { style: kbmS('font-size: 12px; line-height: 1.45; color: #6B7280;') }, note) : null,
-          h('div', { ref: kbCallAudio, style: kbmS((kbCall.mode === 'video' ? 'height: 180px;' : 'height: 0px;') + ' border-radius: 10px; overflow: hidden; background: #16161A;') }),
-          (kbCall.lines.length > 0) ? h('div', { style: kbmS('display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow: auto;') }, kbCall.lines.map((l, i) => h('span', { key: i, style: kbmS('font-size: 12.5px; line-height: 1.45; color: #3F3F46;') }, l))) : null,
-          (vivant) ? h('div', { style: kbmS('display: flex; align-items: center; gap: 8px;') }, [
-            h('button', { type: 'button', onClick: kbCallCoupe, style: kbmS('height: 30px; padding: 0 12px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #3F3F46;') }, 'Mute me'),
-            h('span', { style: kbmS('font-size: 11.5px; color: #9A9A9E;') }, 'what is said here enters the thread')
-          ]) : null
-        ])
+        const voice = (chosen === null || chosen === undefined) ? null
+          : (chosen.custom === true ? { custom: true, id: String(chosen.id), name: String(chosen.name), rootId: rootId } : { engine: chosen.engine, voice: chosen.voice, lang: chosen.lang })
+        seam.open({ sessionId: sessionId, kyberId: kyberId, roleId: roleId, name: name, mode: mode, voice: voice })
       }
       // ── modal de voix custom (MediaRecorder / fichier ; échantillon gardé) ──
       // Le host range vraiment l'audio (`/kybernos/voice-sample`) : ce qui manque
@@ -21195,8 +20981,9 @@ function renderFit(canvas, model, cam, opts){
           voiceCallLabel: 'Voice call with ' + rs.name, videoCallLabel: 'Video call with ' + rs.name,
           voiceCallTip: 'Live call · this member joins the room and answers · voice ' + ((activeVoice !== null) ? activeVoice.name : '—'),
           videoCallTip: 'Live call · asks for the face track' + (hasAvatar ? '' : ' · no portrait yet, so voice only'),
-          callVoice: () => kbCallOuvre(id, rs.name, 'voice'),
-          callVideo: () => kbCallOuvre(id, rs.name, 'video'),
+          callVoice: () => kbOpenCall(id, rs.name, 'voice', activeVoice),
+          callVideo: () => kbOpenCall(id, rs.name, 'video', activeVoice),
+          hasCall: kbCallSeam() !== null,
           personaShort: (rs.look !== '' ? '“' + rs.look + '”' : 'No persona yet'),
           onPersona: (e) => { setCastOne(id, e.target.value); patchRole(id, { look: e.target.value }) },
           regenLabel: faceBusy ? 'Generating…' : (hasAvatar ? 'Regenerate portrait' : 'Generate portrait'),
@@ -21406,7 +21193,7 @@ function renderFit(canvas, model, cam, opts){
           key: 'kbm-file', ref: fileRef, type: 'file', accept: 'audio/*',
           style: { display: 'none' }, onChange: vmOnFile
         }),
-        [h('div', { style: kbmS("display: grid; gap: 24px; align-items: start; " + kbmP(gridStyle)) }, h('div', { style: kbmS("display: flex; flex-direction: column; gap: 18px; min-width: 0;") }, [h('section', { "aria-labelledby": "faces-title", style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 22px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("position: relative; height: 210px; border-radius: 10px; overflow: hidden; background: linear-gradient(170deg,#F1E6D5 0%,#E2CDAE 70%,#C9AE88 100%); display: flex; align-items: flex-end; justify-content: center; gap: 6px;") }, [h('div', { style: kbmS("position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #B89468;") }), kbmList(group.faces).map((a, idx) => h('div', { key: idx, style: kbmS("width: 110px; height: 150px; position: relative; " + kbmP(a.groupStyle)) }, h('svg', { width: "100%", height: "100%", viewBox: "4 6 56 58", "aria-hidden": "true" }, [h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: a.shirt }), h('path', { d: "M27 38h10v10H27z", fill: a.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: a.skin }), h('path', { d: a.hairD, fill: a.hair }), h('path', { d: a.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.4" })]))), ((group.busy) ? h('div', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #3F3F46;") }, "Generating team scene…") : null)]), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #9A9A9E;") }, kbmP(group.status))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 12px; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h2', { id: "faces-title", style: kbmS("margin: 0; font-size: 15px; font-weight: 600;") }, "Team faces"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How team faces are generated", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, h('span', { style: kbmS("display: block; font-size: 12.5px; line-height: 1.5; color: #3F3F46;") }, [h('b', { style: kbmS("color:#16161A;") }, "Group + crop:"), " one image call renders the team scene, then each portrait is cropped locally — free and repeatable. 9 faces max per sheet; beyond that roles keep their initials.", h('br', null), h('br', null), h('b', { style: kbmS("color:#16161A;") }, "Per portrait:"), " one call per role, on click. Sharper faces, cost grows with headcount."]))])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px;") }, "MODE"), h('div', { role: "group", "aria-label": "Generation mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(faceModes).map((fm, idx) => h('button', { key: idx, type: "button", "aria-pressed": fm.pressed, onClick: fm.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(fm.style)) }, kbmP(fm.label))))]), h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px; padding-top: 12px;") }, "MODEL"), h('div', { style: kbmS("flex-grow: 1; border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, kbmList(imageModels).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 3px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 38px; padding: 0 10px; border: none; border-radius: 7px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12.5px;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(m.provider)), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 30px; height: 30px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(m.note))])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 30px; height: 30px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null)])))]), ((panelVariant) ? h('div', { style: kbmS("margin-left: 74px; padding: 10px 12px; border-radius: 8px; background: #F7F7F8; font-size: 12px; line-height: 1.5; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("font-weight: 600; color: #16161A;") }, kbmP(faceNote.id)), " — " + kbmP(faceNote.note)]) : null), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-top: auto;") }, [h('button', { type: "button", onClick: group.generate, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; background: #16161A; color: #FFFFFF; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#F9A8D4", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" })), " " + kbmP(group.cta) + " "]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; color: #55555A; cursor: pointer;") , onClick: () => faceGo(true) }, "Re-crop (free, no call)"), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: 4px;") }, kbmP(group.cost))])])]), h('section', { style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('span', { style: kbmS("font-size: 15px; font-weight: 600;") }, "Model management"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How automatic model management works", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, [h('span', { style: kbmS("display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px;") }, "How Kybernos picks a model"), h('span', { style: kbmS("display: grid; grid-template-columns: 22px 1fr; row-gap: 8px; font-size: 12px; line-height: 1.45; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "01"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Read the role"), " — type, tier, required inputs, outputs, capabilities."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "02"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Filter"), " — models that match, pass their probe, have capacity."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "03"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Score"), " — benchmarks, price, latency, weighted by priority."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "04"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Primary + fallback"), " — best runs, next best on standby. Every run."])])])]), h('div', { role: "group", "aria-label": "Model management mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px; margin-left: 6px;") }, kbmList(modes).map((m, idx) => h('button', { key: idx, type: "button", "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(m.style)) }, kbmP(m.label))))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 16px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PRIORITY"), kbmList(priorities).map((p, idx) => h('button', { key: idx, type: "button", "aria-pressed": p.pressed, onClick: p.pick, style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; " + kbmP(p.style)) }, kbmP(p.label)))]), h('span', { className: "kbm-tip" }, [h('span', { tabIndex: "0", style: kbmS("height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed #D6D6D8; font-size: 12px; color: #9A9A9E; display: inline-flex; align-items: center; gap: 6px; cursor: help;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em;") }, "BUDGET"), "coming soon"]), h('span', { className: "kbm-tipbox right", role: "tooltip" }, "Monthly spend cap across all models — not available yet")])]), h('p', { style: kbmS("margin: 0; width: 100%; font-size: 12.5px; color: #6B7280;") }, kbmP(modeSummary))]), h('div', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 12px;") }, [h('h2', { style: kbmS("margin: 0; font-size: 18px; font-weight: 700;") }, "Team members"), h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.1em; color: #9A9A9E;") }, "ONE PERSONA · ONE PROMPT · ONE MODEL PER ROLE")]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;") , onClick: addRole }, "+ Add a role")]), kbmList(roles).map((r, idx) => h('article', { key: idx, style: kbmS("border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; " + kbmP(r.cardStyle)) }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 14px;") }, [h('div', { style: kbmS("width: 52px; height: 52px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 17px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.65);") }) : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h3', { style: kbmS("margin: 0; font-size: 16px; font-weight: 700;") }, kbmP(r.name)), h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #F3F3F4; font-size: 10px; letter-spacing: 0.08em; color: #77777B;") }, kbmP(r.tag)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: r.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.typeD })), kbmP(r.typeLabel)]), ((r.isAuto) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #16161A; color: #FFFFFF; font-size: 10px; letter-spacing: 0.06em;") }, "AUTO") : null)]), h('div', { className: "kbm-mono", style: kbmS("display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #55555A; flex-wrap: wrap;") }, [h('span', null, kbmP(r.modelLine)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid " + kbmP(r.hBorder) + "; background: " + kbmP(r.hBg) + "; color: " + kbmP(r.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.hColor) + ";") }), kbmP(r.hLabel)]), h('span', { style: kbmS("color: #9A9A9E;") }, kbmP(r.fallbackLine))]), h('div', { style: kbmS("font-size: 12.5px; color: #77777B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(r.personaShort))]), h('div', { style: kbmS("display: flex; gap: 6px; flex-shrink: 0;") }, [h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.voiceCallLabel, onClick: r.callVoice, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" })), "Call"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.voiceCallTip))]), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.videoCallLabel, onClick: r.callVideo, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 7h12v10H3zM15 10l6-3v10l-6-3" })), "Video"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.videoCallTip))])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.expandLabel, "aria-expanded": r.expandedAttr, onClick: r.toggle, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; color: #77777B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.chevron })))]), ((r.expanded) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 16px; padding-top: 14px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start;") }, [h('div', { style: kbmS("width: 96px; height: 96px; border-radius: 14px; overflow: hidden; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 28px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #3F3F46;") }, "Generating…") : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; min-width: 0;") }, [h('label', { htmlFor: (r.personaId), className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PERSONA — DESCRIBE THE FACE BEFORE GENERATING"), h('input', { id: r.personaId, type: "text", value: r.persona, onChange: r.onPersona, style: kbmS("height: 38px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 8px; font-size: 14px; font-family: inherit; color: #16161A; background: #FFFFFF;") }), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('button', { type: "button", onClick: r.regen, disabled: r.face.busy, style: kbmS("height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #16161A; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DB2777", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" })), " " + kbmP(r.regenLabel) + " "]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.regenHint))])])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Voice", style: kbmS("display: flex; gap: 4px; flex-wrap: wrap;") }, kbmList(r.voices).map((vc, idx) => h('button', { key: idx, type: "button", "aria-pressed": vc.pressed, onClick: vc.pick, style: kbmS("height: 30px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 6px; " + kbmP(vc.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#B45309", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" })), kbmP(vc.name) + " ", ((vc.custom) ? h('span', { className: "kbm-mono", style: kbmS("font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: #FEF3C7; color: #92400E;") }, "CUSTOM") : null)]))), h('button', { type: "button", onClick: r.preview, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: #3F3F46;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "#16A34A", "aria-hidden": "true" }, h('path', { d: "M7 5l12 7-12 7z" })), kbmP(r.previewLabel)]), h('button', { type: "button", onClick: r.openVoice, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 12.5px; color: #3F3F46; display: flex; align-items: center; gap: 5px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Custom voice · record or upload"]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, "shared by all members · sample kept on this host · not yet spoken")])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "SYSTEM PROMPT — THE DOCTRINE OF THIS ROLE"), h('div', { className: "kbm-mono", style: kbmS("padding: 12px 14px; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 10px; font-size: 12.5px; line-height: 1.6;") }, kbmP(r.prompt))]), h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TYPE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('div', { role: "group", "aria-label": "Model type", style: kbmS("display: flex; gap: 3px;") }, kbmList(r.types).map((t, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": t.label, "aria-pressed": t.pressed, onClick: t.pick, style: kbmS("width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(t.style)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: t.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: t.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(t.label))]))), h('span', { style: kbmS("font-size: 13px; font-weight: 500;") }, kbmP(r.typeLabel))])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TIER"), h('div', { style: kbmS("display: flex; align-items: center; gap: 12px;") }, [h('div', { role: "group", "aria-label": "Tier", style: kbmS("display: flex; gap: 4px;") }, kbmList(r.needs).map((n, idx) => h('button', { key: idx, type: "button", "aria-pressed": n.pressed, onClick: n.pick, className: "kbm-mono", style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; " + kbmP(n.style)) }, kbmP(n.label)))), ((r.showToggle) ? h('span', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: #55555A;") }, [" Kybernos manages this model ", h('button', { type: "button", role: "switch", "aria-checked": r.autoPressed, "aria-label": "Kybernos manages this model", onClick: r.toggleAuto, style: kbmS("width: 36px; height: 22px; border-radius: 999px; border: none; padding: 3px; cursor: pointer; display: flex; align-items: center; " + kbmP(r.trackStyle)) }, h('span', { style: kbmS("width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25);") }))]) : null)])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "REQUIRES"), h('div', { style: kbmS("display: flex; align-items: center; gap: 14px; flex-wrap: wrap;") }, [kbmList(r.filterGroups).map((g, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; color: #B0B0B3;") }, kbmP(g.label)), h('div', { role: "group", "aria-label": g.label, style: kbmS("display: flex; gap: 3px;") }, kbmList(g.items).map((f, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": f.aria, "aria-pressed": f.pressed, onClick: f.toggle, style: kbmS("width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(f.style)) }, h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: f.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", style: kbmS(kbmP(f.iconStyle)) }, h('path', { d: f.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(f.tip))])))])), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: auto;") }, kbmP(r.filterSummary))])])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("display: flex; align-items: center; justify-content: space-between;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, kbmP(r.listLabel)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.listHint))]), h('div', { style: kbmS("position: relative;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border: 1px solid #E4E4E4; border-radius: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#9A9A9E", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4" })), h('input', { type: "search", value: r.query, onChange: r.onQuery, placeholder: "Search any connected model, provider or type…", "aria-label": "Search models", style: kbmS("flex-grow: 1; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: #16161A;") }), h('button', { type: "button", onClick: r.runCheck, style: kbmS("height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid #E4E4E4; background: #FAFAFA; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 12h4l3-8 4 16 3-8h4" })), "Probe all "])]), ((r.suggestOpen) ? h('div', { role: "listbox", "aria-label": "Model suggestions", style: kbmS("position: absolute; top: 40px; left: 0; right: 0; z-index: 30; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.1); padding: 4px; display: flex; flex-direction: column;") }, [kbmList(r.suggestions).map((sg, idx) => [h('button', { key: idx, type: "button", role: "option", className: "kbm-ico-btn", onClick: sg.choose, style: kbmS("min-height: 36px; padding: 6px 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: sg.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: sg.typeD })), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-grow: 1;") }, kbmP(sg.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(sg.provider) + " · " + kbmP(sg.type)), h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(sg.hColor) + ";") })]), h('button', { key: 'f' + idx, type: "button", className: "kbm-ico-btn", title: sg.fbLabel, "aria-label": sg.fbLabel, disabled: sg.fbDisabled, onClick: sg.setFallback, style: kbmS("min-height: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; opacity: " + (sg.fbDisabled === true ? '0.4' : '1') + ';') }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; color: #7C3AED;") }, "\u21a9")])]), ((r.noSuggestion) ? h('span', { style: kbmS("padding: 8px 10px; font-size: 13px; color: #9A9A9E;") }, "No model found.") : null)]) : null)]), h('div', { style: kbmS("display: grid; gap: 12px; align-items: start; " + kbmP(r.listGrid)) }, [h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, [kbmList(r.models).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 4px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 42px; padding: 0 10px; border: none; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-shrink: 0;") }, kbmP(m.id)), ((m.isPick) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 6px; border-radius: 4px; background: #C33543; color: #FFFFFF; font-size: 10px;") }, "PRIMARY") : null), ((m.isFallback) ? h('span', { className: "kbm-mono", style: kbmS("padding: 1px 6px; border-radius: 4px; border: 1px solid #D6D6D8; color: #55555A; font-size: 10px;") }, "FALLBACK") : null), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; flex-shrink: 0;") }, kbmP(m.provider)), h('span', { style: kbmS("display: flex; align-items: center; gap: 3px; margin-left: 4px;") }, kbmList(m.capIcons).map((ic, idx) => h('svg', { key: idx, width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: ic.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: ic.d })))), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #9A9A9E; min-width: 46px; text-align: right;") }, kbmP(m.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #55555A; flex-wrap: wrap;") }, [kbmList(m.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(m.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin-top: 10px; font-size: 12px;") }, kbmList(m.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((m.hasBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px;") }, [h('span', { style: kbmS("font-weight: 600;") }, "Artificial Analysis"), h('span', { className: "kbm-mono" }, kbmP(m.aaScore) + " intelligence")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.aaRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px;") }, [h('span', { style: kbmS("font-weight: 600;") }, ["BenchLM ", h('span', { style: kbmS("font-weight: 400; color: #9A9A9E;") }, "· provisional")]), h('span', { className: "kbm-mono" }, kbmP(m.blScore) + " overall")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.blRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: block; margin-top: 10px; font-size: 11px; color: #9A9A9E;") }, kbmP(m.benchFoot))]) : null), ((m.noBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; line-height: 1.45; color: #77777B;") }, kbmP(m.note)) : null)])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 32px; height: 32px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.fbLabel, "aria-pressed": m.fbPressed, disabled: m.fbDisabled, onClick: m.setFallback, style: kbmS("width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.fbStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3" }))), h('span', { className: "kbm-tipbox right", role: "tooltip" }, kbmP(m.fbLabel))])])), ((r.hasHidden) ? h('div', { style: kbmS("padding: 9px 16px; border-top: 1px solid #F3F3F4; font-size: 12px; color: #9A9A9E;") }, kbmP(r.hiddenLabel)) : null)]), ((r.panelVariant) ? h('aside', { "aria-label": "Selected model details", style: kbmS("border: 1px solid #E4E4E4; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; letter-spacing: 0.08em; color: " + kbmP(r.panelTagColor) + ";") }, kbmP(r.panelTag)), h('span', { className: "kbm-mono", style: kbmS("font-size: 15px; font-weight: 600;") }, kbmP(r.panel.id)), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('span', { style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(r.panel.provider) + " · " + kbmP(r.panel.priceLabel) + " · " + kbmP(r.panel.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; border: 1px solid " + kbmP(r.panel.hBorder) + "; background: " + kbmP(r.panel.hBg) + "; color: " + kbmP(r.panel.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.panel.hColor) + ";") }), kbmP(r.panel.hLabel)])])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [kbmList(r.panel.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(r.panel.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; font-size: 12px;") }, kbmList(r.panel.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((r.panel.hasBench) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, "Artificial Analysis"), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.aaScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.aaRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, ["BenchLM ", h('span', { style: kbmS("font-size: 10px; font-weight: 400; color: #A1A1AA;") }, "provisional")]), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.blScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.blRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('span', { style: kbmS("font-size: 11px; line-height: 1.45; color: #77777B;") }, kbmP(r.panel.benchFoot))]) : null), ((r.panel.noBench) ? h('p', { style: kbmS("margin: 0; padding: 10px; border-radius: 8px; background: #FAFAFA; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(r.panel.note)) : null)]) : null)])]), ((r.isAuto) ? h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #F7F7F8; border: 1px solid #EEEEEE; font-size: 13px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "DECISION"), h('span', { className: "kbm-mono", style: kbmS("font-weight: 600;") }, kbmP(r.pickName)), h('span', { style: kbmS("color: #6B7280;") }, kbmP(r.pickReasonShort)), h('span', { style: kbmS("margin-left: auto; font-size: 12px; color: #9A9A9E;") }, kbmP(r.skipped))]) : null), ((r.showDownWarning) ? h('div', { role: "alert", style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FBD5D5; font-size: 13px; color: #9B1C1C;") }, [h('span', { style: kbmS("flex-grow: 1;") }, kbmP(r.downText)), h('button', { type: "button", onClick: r.enableAuto, style: kbmS("height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid #9B1C1C; background: #FFFFFF; color: #9B1C1C; font-size: 12px; font-weight: 600; cursor: pointer;") }, "Let Kybernos manage")]) : null)]) : null)]))])), ((vmView.open) ? h('div', { style: kbmS("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(22,22,26,0.32);") }, h('div', { role: "dialog", "aria-modal": "true", "aria-labelledby": "vm-title", style: kbmS("position: relative; top: 0; left: 0; transform: none; width: 560px; max-height: 88vh; overflow: auto; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 24px; display: flex; flex-direction: column; gap: 16px;") }, [h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 12px;") }, [h('div', { style: kbmS("flex-grow: 1; display: flex; flex-direction: column; gap: 6px;") }, [h('h2', { id: "vm-title", style: kbmS("margin: 0; font-size: 20px; font-weight: 700;") }, "Create a custom voice"), h('p', { style: kbmS("margin: 0; font-size: 13.5px; line-height: 1.5; color: #6B7280;") }, ["For ", h('b', { style: kbmS("color: #16161A;") }, kbmP(vmView.roleName)), ". Record or upload a consent recording and a sample. The sample is stored on this machine and shared by every member — no synthesis engine yet, so the voice is selectable but not yet spoken."])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": "Close", onClick: vmView.close, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #77777B; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M6 6l12 12M18 6L6 18" })))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('label', { htmlFor: "vm-name", className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE NAME"), h('input', { id: "vm-name", type: "text", value: vmView.name, onChange: vmView.onName, placeholder: "My custom voice", style: kbmS("height: 40px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 9px; font-size: 14px; font-family: inherit; color: #16161A;") })]), kbmList(vmView.steps).map((st, idx) => h('div', { key: idx, style: kbmS("border: 1px solid #EEEEEE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 3px;") }, [h('span', { style: kbmS("font-size: 14px; font-weight: 600;") }, kbmP(st.title)), h('span', { style: kbmS("font-size: 12.5px; line-height: 1.5; color: #6B7280;") }, kbmP(st.desc))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Input method", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(st.modes).map((md, idx) => h('button', { key: idx, type: "button", "aria-pressed": md.pressed, onClick: md.pick, style: kbmS("height: 28px; padding: 0 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; " + kbmP(md.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: md.d })), kbmP(md.label)]))), ((st.showStart) ? h('button', { type: "button", onClick: st.start, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Start recording"]) : null), ((st.showUpload) ? h('button', { type: "button", onClick: st.upload, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 13px; color: #3F3F46; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 16V4M7 9l5-5 5 5M4 20h16" })), "Choose a file · wav, mp3, m4a"]) : null), ((st.recording) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C;") }, [h('span', { className: "kbm-busy", style: kbmS("width: 9px; height: 9px; border-radius: 50%; background: #DC2626;") }), "Recording…"]), h('button', { type: "button", onClick: st.stop, style: kbmS("height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600;") }, "Stop")] : null), ((st.done) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 999px; background: #F0FDF4; border: 1px solid #BBF7D0; font-size: 12.5px; color: #15803D;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 12l5 5L20 7" })), kbmP(st.doneLabel)]), h('button', { type: "button", onClick: st.reset, style: kbmS("height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #55555A;") }, "Redo")] : null)])])), h('div', { style: kbmS("display: flex; justify-content: flex-end; gap: 8px;") }, [((vmView.err !== '') ? h('span', { role: "alert", style: kbmS("flex-grow: 1; font-size: 12.5px; line-height: 1.4; color: #9B1C1C; align-self: center;") }, kbmP(vmView.err)) : null), h('button', { type: "button", onClick: vmView.close, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 14px;") }, "Cancel"), h('button', { type: "button", disabled: vmView.cannotCreate, onClick: vmView.create, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; font-size: 14px; font-weight: 600; " + kbmP(vmView.createStyle)) }, "Create voice")])])) : null), kbCallPanneau()]
+        [h('div', { style: kbmS("display: grid; gap: 24px; align-items: start; " + kbmP(gridStyle)) }, h('div', { style: kbmS("display: flex; flex-direction: column; gap: 18px; min-width: 0;") }, [h('section', { "aria-labelledby": "faces-title", style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 18px 20px; display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 22px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("position: relative; height: 210px; border-radius: 10px; overflow: hidden; background: linear-gradient(170deg,#F1E6D5 0%,#E2CDAE 70%,#C9AE88 100%); display: flex; align-items: flex-end; justify-content: center; gap: 6px;") }, [h('div', { style: kbmS("position: absolute; left: 0; right: 0; bottom: 0; height: 36px; background: #B89468;") }), kbmList(group.faces).map((a, idx) => h('div', { key: idx, style: kbmS("width: 110px; height: 150px; position: relative; " + kbmP(a.groupStyle)) }, h('svg', { width: "100%", height: "100%", viewBox: "4 6 56 58", "aria-hidden": "true" }, [h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: a.shirt }), h('path', { d: "M27 38h10v10H27z", fill: a.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: a.skin }), h('path', { d: a.hairD, fill: a.hair }), h('path', { d: a.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.4" })]))), ((group.busy) ? h('div', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #3F3F46;") }, "Generating team scene…") : null)]), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #9A9A9E;") }, kbmP(group.status))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 12px; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h2', { id: "faces-title", style: kbmS("margin: 0; font-size: 15px; font-weight: 600;") }, "Team faces"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How team faces are generated", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, h('span', { style: kbmS("display: block; font-size: 12.5px; line-height: 1.5; color: #3F3F46;") }, [h('b', { style: kbmS("color:#16161A;") }, "Group + crop:"), " one image call renders the team scene, then each portrait is cropped locally — free and repeatable. 9 faces max per sheet; beyond that roles keep their initials.", h('br', null), h('br', null), h('b', { style: kbmS("color:#16161A;") }, "Per portrait:"), " one call per role, on click. Sharper faces, cost grows with headcount."]))])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px;") }, "MODE"), h('div', { role: "group", "aria-label": "Generation mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(faceModes).map((fm, idx) => h('button', { key: idx, type: "button", "aria-pressed": fm.pressed, onClick: fm.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(fm.style)) }, kbmP(fm.label))))]), h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 10px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E; width: 64px; padding-top: 12px;") }, "MODEL"), h('div', { style: kbmS("flex-grow: 1; border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, kbmList(imageModels).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 3px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 38px; padding: 0 10px; border: none; border-radius: 7px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12.5px;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(m.provider)), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 11.5px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 30px; height: 30px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: block; margin-top: 8px; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(m.note))])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 30px; height: 30px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null)])))]), ((panelVariant) ? h('div', { style: kbmS("margin-left: 74px; padding: 10px 12px; border-radius: 8px; background: #F7F7F8; font-size: 12px; line-height: 1.5; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("font-weight: 600; color: #16161A;") }, kbmP(faceNote.id)), " — " + kbmP(faceNote.note)]) : null), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-top: auto;") }, [h('button', { type: "button", onClick: group.generate, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; background: #16161A; color: #FFFFFF; font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#F9A8D4", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z" })), " " + kbmP(group.cta) + " "]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 38px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; color: #55555A; cursor: pointer;") , onClick: () => faceGo(true) }, "Re-crop (free, no call)"), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: 4px;") }, kbmP(group.cost))])])]), h('section', { style: kbmS("border: 1px solid #E4E4E4; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('span', { style: kbmS("font-size: 15px; font-weight: 600;") }, "Model management"), h('span', { className: "kbm-tip" }, [h('button', { type: "button", "aria-label": "How automatic model management works", style: kbmS("width: 18px; height: 18px; border-radius: 50%; border: 1px solid #C7C7C9; background: #FFFFFF; color: #77777B; font-size: 10px; font-weight: 700; cursor: help; padding: 0;") }, "i"), h('span', { className: "kbm-tipbox card below left", role: "tooltip" }, [h('span', { style: kbmS("display: block; font-size: 13px; font-weight: 600; margin-bottom: 10px;") }, "How Kybernos picks a model"), h('span', { style: kbmS("display: grid; grid-template-columns: 22px 1fr; row-gap: 8px; font-size: 12px; line-height: 1.45; color: #55555A;") }, [h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "01"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Read the role"), " — type, tier, required inputs, outputs, capabilities."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "02"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Filter"), " — models that match, pass their probe, have capacity."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "03"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Score"), " — benchmarks, price, latency, weighted by priority."]), h('span', { className: "kbm-mono", style: kbmS("color: #C33543;") }, "04"), h('span', null, [h('b', { style: kbmS("color:#16161A;") }, "Primary + fallback"), " — best runs, next best on standby. Every run."])])])]), h('div', { role: "group", "aria-label": "Model management mode", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px; margin-left: 6px;") }, kbmList(modes).map((m, idx) => h('button', { key: idx, type: "button", "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("height: 28px; padding: 0 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 500; " + kbmP(m.style)) }, kbmP(m.label))))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 16px; flex-wrap: wrap; row-gap: 8px; flex: 0 0 auto;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PRIORITY"), kbmList(priorities).map((p, idx) => h('button', { key: idx, type: "button", "aria-pressed": p.pressed, onClick: p.pick, style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 500; " + kbmP(p.style)) }, kbmP(p.label)))]), h('span', { className: "kbm-tip" }, [h('span', { tabIndex: "0", style: kbmS("height: 28px; padding: 0 10px; border-radius: 999px; border: 1px dashed #D6D6D8; font-size: 12px; color: #9A9A9E; display: inline-flex; align-items: center; gap: 6px; cursor: help;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em;") }, "BUDGET"), "coming soon"]), h('span', { className: "kbm-tipbox right", role: "tooltip" }, "Monthly spend cap across all models — not available yet")])]), h('p', { style: kbmS("margin: 0; width: 100%; font-size: 12.5px; color: #6B7280;") }, kbmP(modeSummary))]), h('div', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; margin-top: 4px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 12px;") }, [h('h2', { style: kbmS("margin: 0; font-size: 18px; font-weight: 700;") }, "Team members"), h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.1em; color: #9A9A9E;") }, "ONE PERSONA · ONE PROMPT · ONE MODEL PER ROLE")]), h('button', { type: "button", className: "kbm-pill", style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; font-size: 13px; font-weight: 600; cursor: pointer;") , onClick: addRole }, "+ Add a role")]), kbmList(roles).map((r, idx) => h('article', { key: idx, style: kbmS("border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 14px; " + kbmP(r.cardStyle)) }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 14px;") }, [h('div', { style: kbmS("width: 52px; height: 52px; border-radius: 12px; overflow: hidden; flex-shrink: 0; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 17px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.65);") }) : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px; flex-grow: 1; min-width: 0;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px;") }, [h('h3', { style: kbmS("margin: 0; font-size: 16px; font-weight: 700;") }, kbmP(r.name)), h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #F3F3F4; font-size: 10px; letter-spacing: 0.08em; color: #77777B;") }, kbmP(r.tag)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: r.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.typeD })), kbmP(r.typeLabel)]), ((r.isAuto) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 8px; border-radius: 999px; background: #16161A; color: #FFFFFF; font-size: 10px; letter-spacing: 0.06em;") }, "AUTO") : null)]), h('div', { className: "kbm-mono", style: kbmS("display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #55555A; flex-wrap: wrap;") }, [h('span', null, kbmP(r.modelLine)), h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; border: 1px solid " + kbmP(r.hBorder) + "; background: " + kbmP(r.hBg) + "; color: " + kbmP(r.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.hColor) + ";") }), kbmP(r.hLabel)]), h('span', { style: kbmS("color: #9A9A9E;") }, kbmP(r.fallbackLine))]), h('div', { style: kbmS("font-size: 12.5px; color: #77777B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(r.personaShort))]), h('div', { style: kbmS("display: flex; gap: 6px; flex-shrink: 0;") }, [h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.voiceCallLabel, onClick: r.callVoice, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" })), "Call"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.voiceCallTip))]), h('span', { className: "kbm-tip", style: { display: r.hasCall === true ? "" : "none" } }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.videoCallLabel, onClick: r.callVideo, style: kbmS("height: 34px; padding: 0 10px; border: 1px solid #E4E4E4; background: #FFFFFF; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: #3F3F46;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 7h12v10H3zM15 10l6-3v10l-6-3" })), "Video"]), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(r.videoCallTip))])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": r.expandLabel, "aria-expanded": r.expandedAttr, onClick: r.toggle, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; color: #77777B; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: r.chevron })))]), ((r.expanded) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 16px; padding-top: 14px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start;") }, [h('div', { style: kbmS("width: 96px; height: 96px; border-radius: 14px; overflow: hidden; position: relative; background: " + kbmP(r.color) + ";") }, [((r.face.ready) ? h('svg', { width: "100%", height: "100%", viewBox: "0 0 64 64", "aria-hidden": "true" }, [h('rect', { width: "64", height: "64", fill: r.face.bg }), h('path', { d: "M8 64c2-12 12-18 24-18s22 6 24 18z", fill: r.face.shirt }), h('path', { d: "M27 38h10v10H27z", fill: r.face.skin }), h('ellipse', { cx: "32", cy: "28", rx: "11", ry: "13", fill: r.face.skin }), h('path', { d: r.face.hairD, fill: r.face.hair }), h('path', { d: r.face.glassesD, fill: "none", stroke: "#1F2937", strokeWidth: "1.6" })]) : null), ((r.face.empty) ? h('span', { style: kbmS("position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-weight: 700; font-size: 28px;") }, kbmP(r.initial)) : null), ((r.face.busy) ? h('span', { className: "kbm-busy", style: kbmS("position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #3F3F46;") }, "Generating…") : null)]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; min-width: 0;") }, [h('label', { htmlFor: (r.personaId), className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "PERSONA — DESCRIBE THE FACE BEFORE GENERATING"), h('input', { id: r.personaId, type: "text", value: r.persona, onChange: r.onPersona, style: kbmS("height: 38px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 8px; font-size: 14px; font-family: inherit; color: #16161A; background: #FFFFFF;") }), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('button', { type: "button", onClick: r.regen, disabled: r.face.busy, style: kbmS("height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #16161A; background: #FFFFFF; font-size: 12.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DB2777", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z" })), " " + kbmP(r.regenLabel) + " "]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.regenHint))])])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Voice", style: kbmS("display: flex; gap: 4px; flex-wrap: wrap;") }, kbmList(r.voices).map((vc, idx) => h('button', { key: idx, type: "button", "aria-pressed": vc.pressed, onClick: vc.pick, style: kbmS("height: 30px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 6px; " + kbmP(vc.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#B45309", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" })), kbmP(vc.name) + " ", ((vc.custom) ? h('span', { className: "kbm-mono", style: kbmS("font-size: 9.5px; padding: 1px 5px; border-radius: 4px; background: #FEF3C7; color: #92400E;") }, "CUSTOM") : null)]))), h('button', { type: "button", onClick: r.preview, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; color: #3F3F46;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "#16A34A", "aria-hidden": "true" }, h('path', { d: "M7 5l12 7-12 7z" })), kbmP(r.previewLabel)]), h('button', { type: "button", onClick: r.openVoice, style: kbmS("height: 30px; padding: 0 11px; border-radius: 8px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 12.5px; color: #3F3F46; display: flex; align-items: center; gap: 5px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Custom voice · record or upload"]), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, "shared by all members · sample kept on this host · not yet spoken")])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "SYSTEM PROMPT — THE DOCTRINE OF THIS ROLE"), h('div', { className: "kbm-mono", style: kbmS("padding: 12px 14px; background: #FAFAFA; border: 1px solid #EEEEEE; border-radius: 10px; font-size: 12.5px; line-height: 1.6;") }, kbmP(r.prompt))]), h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px;") }, [h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TYPE"), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px;") }, [h('div', { role: "group", "aria-label": "Model type", style: kbmS("display: flex; gap: 3px;") }, kbmList(r.types).map((t, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": t.label, "aria-pressed": t.pressed, onClick: t.pick, style: kbmS("width: 30px; height: 30px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(t.style)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: t.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: t.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(t.label))]))), h('span', { style: kbmS("font-size: 13px; font-weight: 500;") }, kbmP(r.typeLabel))])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px; border-bottom: 1px solid #F3F3F4;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "TIER"), h('div', { style: kbmS("display: flex; align-items: center; gap: 12px;") }, [h('div', { role: "group", "aria-label": "Tier", style: kbmS("display: flex; gap: 4px;") }, kbmList(r.needs).map((n, idx) => h('button', { key: idx, type: "button", "aria-pressed": n.pressed, onClick: n.pick, className: "kbm-mono", style: kbmS("height: 28px; padding: 0 11px; border-radius: 999px; cursor: pointer; font-size: 12px; " + kbmP(n.style)) }, kbmP(n.label)))), ((r.showToggle) ? h('span', { style: kbmS("display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: #55555A;") }, [" Kybernos manages this model ", h('button', { type: "button", role: "switch", "aria-checked": r.autoPressed, "aria-label": "Kybernos manages this model", onClick: r.toggleAuto, style: kbmS("width: 36px; height: 22px; border-radius: 999px; border: none; padding: 3px; cursor: pointer; display: flex; align-items: center; " + kbmP(r.trackStyle)) }, h('span', { style: kbmS("width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0,0,0,0.25);") }))]) : null)])]), h('div', { style: kbmS("display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 12px; padding: 9px 14px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "REQUIRES"), h('div', { style: kbmS("display: flex; align-items: center; gap: 14px; flex-wrap: wrap;") }, [kbmList(r.filterGroups).map((g, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 6px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; color: #B0B0B3;") }, kbmP(g.label)), h('div', { role: "group", "aria-label": g.label, style: kbmS("display: flex; gap: 3px;") }, kbmList(g.items).map((f, idx) => h('span', { key: idx, className: "kbm-tip" }, [h('button', { type: "button", "aria-label": f.aria, "aria-pressed": f.pressed, onClick: f.toggle, style: kbmS("width: 28px; height: 28px; border-radius: 7px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(f.style)) }, h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: f.color, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true", style: kbmS(kbmP(f.iconStyle)) }, h('path', { d: f.d }))), h('span', { className: "kbm-tipbox", role: "tooltip" }, kbmP(f.tip))])))])), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; margin-left: auto;") }, kbmP(r.filterSummary))])])]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px;") }, [h('div', { style: kbmS("display: flex; align-items: center; justify-content: space-between;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, kbmP(r.listLabel)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(r.listHint))]), h('div', { style: kbmS("position: relative;") }, [h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 6px 0 12px; border: 1px solid #E4E4E4; border-radius: 8px;") }, [h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "#9A9A9E", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14zM20 20l-4-4" })), h('input', { type: "search", value: r.query, onChange: r.onQuery, placeholder: "Search any connected model, provider or type…", "aria-label": "Search models", style: kbmS("flex-grow: 1; border: none; outline: none; background: transparent; font-size: 13px; font-family: inherit; color: #16161A;") }), h('button', { type: "button", onClick: r.runCheck, style: kbmS("height: 26px; padding: 0 10px; border-radius: 6px; border: 1px solid #E4E4E4; background: #FAFAFA; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; color: #55555A;") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: "#16A34A", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M3 12h4l3-8 4 16 3-8h4" })), "Probe all "])]), ((r.suggestOpen) ? h('div', { role: "listbox", "aria-label": "Model suggestions", style: kbmS("position: absolute; top: 40px; left: 0; right: 0; z-index: 30; background: #FFFFFF; border: 1px solid #E4E4E4; border-radius: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.1); padding: 4px; display: flex; flex-direction: column;") }, [kbmList(r.suggestions).map((sg, idx) => [h('button', { key: idx, type: "button", role: "option", className: "kbm-ico-btn", onClick: sg.choose, style: kbmS("min-height: 36px; padding: 6px 10px; border: none; border-radius: 7px; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 10px; text-align: left;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: sg.typeColor, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: sg.typeD })), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-grow: 1;") }, kbmP(sg.id)), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E;") }, kbmP(sg.provider) + " · " + kbmP(sg.type)), h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(sg.hColor) + ";") })]), h('button', { key: 'f' + idx, type: "button", className: "kbm-ico-btn", title: sg.fbLabel, "aria-label": sg.fbLabel, disabled: sg.fbDisabled, onClick: sg.setFallback, style: kbmS("min-height: 36px; padding: 0 8px; border: none; border-radius: 7px; background: transparent; opacity: " + (sg.fbDisabled === true ? '0.4' : '1') + ';') }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; color: #7C3AED;") }, "\u21a9")])]), ((r.noSuggestion) ? h('span', { style: kbmS("padding: 8px 10px; font-size: 13px; color: #9A9A9E;") }, "No model found.") : null)]) : null)]), h('div', { style: kbmS("display: grid; gap: 12px; align-items: start; " + kbmP(r.listGrid)) }, [h('div', { style: kbmS("border: 1px solid #EEEEEE; border-radius: 10px; min-width: 0;") }, [kbmList(r.models).map((m, idx) => h('div', { key: idx, style: kbmS("display: flex; align-items: center; gap: 4px; padding: 4px 6px; " + kbmP(m.rowBorder)) }, [h('button', { type: "button", className: "kbm-row-btn", disabled: m.disabled, "aria-pressed": m.pressed, onClick: m.pick, style: kbmS("flex-grow: 1; min-width: 0; height: 42px; padding: 0 10px; border: none; border-radius: 8px; display: flex; align-items: center; gap: 10px; text-align: left; " + kbmP(m.style)) }, [h('span', { style: kbmS("width: 14px; height: 14px; border-radius: 50%; box-sizing: border-box; flex-shrink: 0; " + kbmP(m.radioStyle)) }), h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; flex-shrink: 0;") }, kbmP(m.id)), ((m.isPick) ? h('span', { className: "kbm-mono", style: kbmS("padding: 2px 6px; border-radius: 4px; background: #C33543; color: #FFFFFF; font-size: 10px;") }, "PRIMARY") : null), ((m.isFallback) ? h('span', { className: "kbm-mono", style: kbmS("padding: 1px 6px; border-radius: 4px; border: 1px solid #D6D6D8; color: #55555A; font-size: 10px;") }, "FALLBACK") : null), h('span', { style: kbmS("font-size: 12px; color: #9A9A9E; flex-shrink: 0;") }, kbmP(m.provider)), h('span', { style: kbmS("display: flex; align-items: center; gap: 3px; margin-left: 4px;") }, kbmList(m.capIcons).map((ic, idx) => h('svg', { key: idx, width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: ic.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: ic.d })))), h('span', { style: kbmS("flex-grow: 1;") }), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(m.metricShort)), h('span', { className: "kbm-mono", style: kbmS("font-size: 12px; color: #9A9A9E; min-width: 46px; text-align: right;") }, kbmP(m.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px; border-radius: 999px; font-size: 11px; min-width: 76px; box-sizing: border-box; border: 1px solid " + kbmP(m.hBorder) + "; background: " + kbmP(m.hBg) + "; color: " + kbmP(m.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(m.hColor) + ";") }), kbmP(m.hLabel)])]), ((m.tooltipMode) ? h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 7px; color: #2563EB; cursor: help; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))), h('span', { className: "kbm-tipbox card right", role: "tooltip" }, [h('span', { style: kbmS("display: flex; align-items: baseline; justify-content: space-between; gap: 8px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 13px; font-weight: 600;") }, kbmP(m.id)), h('span', { style: kbmS("font-size: 11px; color: #9A9A9E;") }, kbmP(m.provider) + " · " + kbmP(m.priceLabel))]), h('span', { style: kbmS("display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #55555A; flex-wrap: wrap;") }, [kbmList(m.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(m.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin-top: 10px; font-size: 12px;") }, kbmList(m.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((m.hasBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px;") }, [h('span', { style: kbmS("font-weight: 600;") }, "Artificial Analysis"), h('span', { className: "kbm-mono" }, kbmP(m.aaScore) + " intelligence")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.aaRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: flex; justify-content: space-between; font-size: 12px; margin-top: 10px;") }, [h('span', { style: kbmS("font-weight: 600;") }, ["BenchLM ", h('span', { style: kbmS("font-weight: 400; color: #9A9A9E;") }, "· provisional")]), h('span', { className: "kbm-mono" }, kbmP(m.blScore) + " overall")]), h('span', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 12px; margin-top: 6px; font-size: 11.5px; color: #55555A;") }, kbmList(m.blRows).map((b, idx) => h('span', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 6px;") }, [h('span', null, kbmP(b.k)), h('span', { className: "kbm-mono", style: kbmS("color: #16161A;") }, kbmP(b.v))]))), h('span', { style: kbmS("display: block; margin-top: 10px; font-size: 11px; color: #9A9A9E;") }, kbmP(m.benchFoot))]) : null), ((m.noBench) ? h('span', { style: kbmS("display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0; font-size: 12px; line-height: 1.45; color: #77777B;") }, kbmP(m.note)) : null)])]) : null), ((m.panelMode) ? h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.infoAria, "aria-pressed": m.infoPressed, onClick: m.showInfo, style: kbmS("width: 32px; height: 32px; border-radius: 7px; color: #2563EB; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.infoStyle)) }, h('svg', { width: "16", height: "16", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18zM12 11v5M12 8h.01" }))) : null), h('span', { className: "kbm-tip" }, [h('button', { type: "button", className: "kbm-ico-btn", "aria-label": m.fbLabel, "aria-pressed": m.fbPressed, disabled: m.fbDisabled, onClick: m.setFallback, style: kbmS("width: 32px; height: 32px; border-radius: 7px; display: flex; align-items: center; justify-content: center; padding: 0; " + kbmP(m.fbStyle)) }, h('svg', { width: "15", height: "15", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M9 14l-5-5 5-5M4 9h11a5 5 0 0 1 0 10h-3" }))), h('span', { className: "kbm-tipbox right", role: "tooltip" }, kbmP(m.fbLabel))])])), ((r.hasHidden) ? h('div', { style: kbmS("padding: 9px 16px; border-top: 1px solid #F3F3F4; font-size: 12px; color: #9A9A9E;") }, kbmP(r.hiddenLabel)) : null)]), ((r.panelVariant) ? h('aside', { "aria-label": "Selected model details", style: kbmS("border: 1px solid #E4E4E4; border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 4px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 10.5px; letter-spacing: 0.08em; color: " + kbmP(r.panelTagColor) + ";") }, kbmP(r.panelTag)), h('span', { className: "kbm-mono", style: kbmS("font-size: 15px; font-weight: 600;") }, kbmP(r.panel.id)), h('div', { style: kbmS("display: flex; align-items: center; gap: 8px; flex-wrap: wrap;") }, [h('span', { style: kbmS("font-size: 12px; color: #77777B;") }, kbmP(r.panel.provider) + " · " + kbmP(r.panel.priceLabel) + " · " + kbmP(r.panel.latencyLabel)), h('span', { className: "kbm-mono", style: kbmS("display: inline-flex; align-items: center; gap: 5px; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; border: 1px solid " + kbmP(r.panel.hBorder) + "; background: " + kbmP(r.panel.hBg) + "; color: " + kbmP(r.panel.hColor) + ";") }, [h('span', { style: kbmS("width: 6px; height: 6px; border-radius: 50%; background: " + kbmP(r.panel.hColor) + ";") }), kbmP(r.panel.hLabel)])])]), h('div', { style: kbmS("display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 12px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [kbmList(r.panel.inIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)])), h('span', { style: kbmS("color: #B0B0B3;") }, "→"), kbmList(r.panel.outIcons).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: " + kbmP(c.tint) + ";") }, [h('svg', { width: "12", height: "12", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 8px; font-size: 12px;") }, kbmList(r.panel.capRows).map((c, idx) => h('span', { key: idx, style: kbmS("display: inline-flex; align-items: center; gap: 5px; " + kbmP(c.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: c.c, strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: c.d })), kbmP(c.label)]))), ((r.panel.hasBench) ? h('div', { style: kbmS("display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid #F0F0F0;") }, [h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, "Artificial Analysis"), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.aaScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.aaRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('div', { style: kbmS("background: #1F1F22; color: #F4F4F5; border-radius: 8px; padding: 10px 12px;") }, [h('div', { style: kbmS("display: flex; align-items: baseline; gap: 6px;") }, [h('span', { style: kbmS("font-size: 12px; font-weight: 600; flex-grow: 1;") }, ["BenchLM ", h('span', { style: kbmS("font-size: 10px; font-weight: 400; color: #A1A1AA;") }, "provisional")]), h('span', { style: kbmS("font-size: 18px; font-weight: 700;") }, kbmP(r.panel.blScore))]), h('div', { style: kbmS("display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 10px; margin-top: 6px; font-size: 11px;") }, kbmList(r.panel.blRows).map((b, idx) => h('div', { key: idx, style: kbmS("display: flex; justify-content: space-between; gap: 4px;") }, [h('span', { style: kbmS("color: #A1A1AA;") }, kbmP(b.k)), h('span', null, kbmP(b.v))])))]), h('span', { style: kbmS("font-size: 11px; line-height: 1.45; color: #77777B;") }, kbmP(r.panel.benchFoot))]) : null), ((r.panel.noBench) ? h('p', { style: kbmS("margin: 0; padding: 10px; border-radius: 8px; background: #FAFAFA; font-size: 12px; line-height: 1.5; color: #55555A;") }, kbmP(r.panel.note)) : null)]) : null)])]), ((r.isAuto) ? h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #F7F7F8; border: 1px solid #EEEEEE; font-size: 13px;") }, [h('span', { className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "DECISION"), h('span', { className: "kbm-mono", style: kbmS("font-weight: 600;") }, kbmP(r.pickName)), h('span', { style: kbmS("color: #6B7280;") }, kbmP(r.pickReasonShort)), h('span', { style: kbmS("margin-left: auto; font-size: 12px; color: #9A9A9E;") }, kbmP(r.skipped))]) : null), ((r.showDownWarning) ? h('div', { role: "alert", style: kbmS("display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; background: #FEF2F2; border: 1px solid #FBD5D5; font-size: 13px; color: #9B1C1C;") }, [h('span', { style: kbmS("flex-grow: 1;") }, kbmP(r.downText)), h('button', { type: "button", onClick: r.enableAuto, style: kbmS("height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid #9B1C1C; background: #FFFFFF; color: #9B1C1C; font-size: 12px; font-weight: 600; cursor: pointer;") }, "Let Kybernos manage")]) : null)]) : null)]))])), ((vmView.open) ? h('div', { style: kbmS("position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(22,22,26,0.32);") }, h('div', { role: "dialog", "aria-modal": "true", "aria-labelledby": "vm-title", style: kbmS("position: relative; top: 0; left: 0; transform: none; width: 560px; max-height: 88vh; overflow: auto; background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 64px rgba(0,0,0,0.25); padding: 24px; display: flex; flex-direction: column; gap: 16px;") }, [h('div', { style: kbmS("display: flex; align-items: flex-start; gap: 12px;") }, [h('div', { style: kbmS("flex-grow: 1; display: flex; flex-direction: column; gap: 6px;") }, [h('h2', { id: "vm-title", style: kbmS("margin: 0; font-size: 20px; font-weight: 700;") }, "Create a custom voice"), h('p', { style: kbmS("margin: 0; font-size: 13.5px; line-height: 1.5; color: #6B7280;") }, ["For ", h('b', { style: kbmS("color: #16161A;") }, kbmP(vmView.roleName)), ". Record or upload a consent recording and a sample. The sample is stored on this machine and shared by every member — no synthesis engine yet, so the voice is selectable but not yet spoken."])]), h('button', { type: "button", className: "kbm-ico-btn", "aria-label": "Close", onClick: vmView.close, style: kbmS("width: 32px; height: 32px; border: none; background: transparent; border-radius: 8px; cursor: pointer; color: #77777B; display: flex; align-items: center; justify-content: center; padding: 0;") }, h('svg', { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", "aria-hidden": "true" }, h('path', { d: "M6 6l12 12M18 6L6 18" })))]), h('div', { style: kbmS("display: flex; flex-direction: column; gap: 6px;") }, [h('label', { htmlFor: "vm-name", className: "kbm-mono", style: kbmS("font-size: 11px; letter-spacing: 0.08em; color: #9A9A9E;") }, "VOICE NAME"), h('input', { id: "vm-name", type: "text", value: vmView.name, onChange: vmView.onName, placeholder: "My custom voice", style: kbmS("height: 40px; padding: 0 12px; border: 1px solid #E4E4E4; border-radius: 9px; font-size: 14px; font-family: inherit; color: #16161A;") })]), kbmList(vmView.steps).map((st, idx) => h('div', { key: idx, style: kbmS("border: 1px solid #EEEEEE; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;") }, [h('div', { style: kbmS("display: flex; flex-direction: column; gap: 3px;") }, [h('span', { style: kbmS("font-size: 14px; font-weight: 600;") }, kbmP(st.title)), h('span', { style: kbmS("font-size: 12.5px; line-height: 1.5; color: #6B7280;") }, kbmP(st.desc))]), h('div', { style: kbmS("display: flex; align-items: center; gap: 10px; flex-wrap: wrap;") }, [h('div', { role: "group", "aria-label": "Input method", style: kbmS("display: flex; gap: 2px; padding: 2px; background: #F3F3F4; border-radius: 8px;") }, kbmList(st.modes).map((md, idx) => h('button', { key: idx, type: "button", "aria-pressed": md.pressed, onClick: md.pick, style: kbmS("height: 28px; padding: 0 11px; border: none; border-radius: 6px; cursor: pointer; font-size: 12.5px; display: flex; align-items: center; gap: 5px; " + kbmP(md.style)) }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: md.d })), kbmP(md.label)]))), ((st.showStart) ? h('button', { type: "button", onClick: st.start, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#DC2626", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3" })), "Start recording"]) : null), ((st.showUpload) ? h('button', { type: "button", onClick: st.upload, style: kbmS("height: 34px; padding: 0 14px; border-radius: 9px; border: 1px dashed #C7C7C9; background: #FAFAFA; cursor: pointer; font-size: 13px; color: #3F3F46; display: flex; align-items: center; gap: 6px;") }, [h('svg', { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "#2563EB", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M12 16V4M7 9l5-5 5 5M4 20h16" })), "Choose a file · wav, mp3, m4a"]) : null), ((st.recording) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #B91C1C;") }, [h('span', { className: "kbm-busy", style: kbmS("width: 9px; height: 9px; border-radius: 50%; background: #DC2626;") }), "Recording…"]), h('button', { type: "button", onClick: st.stop, style: kbmS("height: 30px; padding: 0 12px; border-radius: 8px; border: none; background: #DC2626; color: #FFFFFF; cursor: pointer; font-size: 12.5px; font-weight: 600;") }, "Stop")] : null), ((st.done) ? [h('span', { style: kbmS("display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border-radius: 999px; background: #F0FDF4; border: 1px solid #BBF7D0; font-size: 12.5px; color: #15803D;") }, [h('svg', { width: "13", height: "13", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.4", strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": "true" }, h('path', { d: "M5 12l5 5L20 7" })), kbmP(st.doneLabel)]), h('button', { type: "button", onClick: st.reset, style: kbmS("height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 12.5px; color: #55555A;") }, "Redo")] : null)])])), h('div', { style: kbmS("display: flex; justify-content: flex-end; gap: 8px;") }, [((vmView.err !== '') ? h('span', { role: "alert", style: kbmS("flex-grow: 1; font-size: 12.5px; line-height: 1.4; color: #9B1C1C; align-self: center;") }, kbmP(vmView.err)) : null), h('button', { type: "button", onClick: vmView.close, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid #E4E4E4; background: #FFFFFF; cursor: pointer; font-size: 14px;") }, "Cancel"), h('button', { type: "button", disabled: vmView.cannotCreate, onClick: vmView.create, style: kbmS("height: 38px; padding: 0 16px; border-radius: 9px; border: none; font-size: 14px; font-weight: 600; " + kbmP(vmView.createStyle)) }, "Create voice")])])) : null)]
       ])
     }
     const ManifestView = (props) => {
@@ -22721,15 +22508,6 @@ function renderFit(canvas, model, cam, opts){
     ctx.effect(() => slots.inject('conversation.chat.node', () => slots.register(
       { name: 'conversation.chat.node', key: 'team-call' }, KbTeamCallCard)), 'kybers: carte chat team-call');
     ctx.effect(() => styles.insert(KBTC_CSS), 'kybers: styles carte team-call');
-    // S2b : carte validation HITL — toolview keyé ask_user_question. priority -1
-    // masque la rangée native ask-question (l'élection par cellule keyée garde
-    // la première entrée vivante par priority croissante ; la native est à 0) ;
-    // réversible (plugin off → rangée native de retour). L'answering reste au
-    // QuestionComposer natif (remplace le compositeur pendant la question) ;
-    // la carte amène à lui — cf. commentaire du composant.
-    ctx.effect(() => slots.inject('tool.call.toolview', () => slots.register(
-      { name: 'tool.call.toolview', key: 'ask_user_question', priority: -1, inject: (sessionId) => ({ sessionId: sessionId }) }, KbHitlCard)), 'kybers: carte chat validation HITL');
-    ctx.effect(() => styles.insert(KBH_CSS), 'kybers: styles carte validation HITL');
 
     // ── sonde d'usage : récupère les tokens côté client ──────────────────────
     // `conversation.view` n'expose que `sessionId`, `hooks`, `bindDraftMirror` et
@@ -24389,6 +24167,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           .then((r) => r.json().catch(() => null))
           .then((mat) => {
             const cle = mat !== null && mat !== undefined && typeof mat.id === 'string' ? mat.id : null
+            if (mat !== null && mat !== undefined && mat.ok !== true && mat.error === 'not_on_this_server') {
+              finir('erreur', kbt('kbsd.public.sub.unavail'))
+              return null
+            }
             if (mat === null || mat.ok !== true || cle === null) {
               finir('erreur', kbf('hébergement refusé : ') + ((mat !== null && mat.error) ? mat.error : kbf('raison inconnue')))
               return null
@@ -24403,7 +24185,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
               finir('erreur', kbf('partage refusé : ') + (pose.error !== undefined ? pose.error : kbf('raison inconnue')))
               return
             }
-            const lien = 'https://kybernos.app/s/' + slug
+            const lien = kbServer.web.replace(/\/+$/, '') + '/s/' + slug
             try {
               const nav = typeof navigator !== 'undefined' ? navigator : null
               if (nav !== null && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
@@ -25300,7 +25082,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
         <h2>${kbt('kbws.keys.title')}</h2><p class="muted" style="margin:6px 0 20px">${kbt('kbws.keys.sub')}</p>
         <div class="card">
           <div class="eyebrow">${kbt('kbws.keys.base')}</div>
-          <div class="row" style="margin-top:12px;flex-wrap:nowrap"><input class="input" readonly value="https://api.dev.kybernos.app" id="kbws-baseUrl"><button class="btn sm" data-copy="baseUrl">${kbt('kbws.keys.copy')}</button></div>
+          <div class="row" style="margin-top:12px;flex-wrap:nowrap"><input class="input" readonly value="" id="kbws-baseUrl"><button class="btn sm" data-copy="baseUrl">${kbt('kbws.keys.copy')}</button></div>
           <p class="small muted" style="margin-top:10px">${kbt('kbws.keys.basenote')}</p>
         </div>
         <div class="card">
@@ -25963,6 +25745,7 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       }
       // ══════════════ CLÉS API (démo étiquetée ; snippet = modèles RÉELS) ══════════════
       function renderKeys() {
+        $('baseUrl').value = kbServer.api
         $('keyList').innerHTML = S.keys.length > 0 ? S.keys.map((k, i) => `<div class="keyrow"><div><b>${kbwsEsc(k.id)}</b>${k.label !== '' ? ` <span class="muted small">· ${kbwsEsc(k.label)}</span>` : ''}<div class="small" style="color:var(--ok)">${kbt('kbws.keys.active')}</div></div>
           <button class="trash" data-del="${i}">${kbt('kbws.keys.revoke')}</button></div>`).join('') : `<p class="muted" style="margin-top:12px">${kbt('kbws.keys.none')}</p>`
         $('keyList').querySelectorAll('[data-del]').forEach((b) => {
@@ -26175,6 +25958,47 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
             .then((r) => r.json()).catch(() => ({ ok: false, status: 0, error: 'relais injoignable' }))
             .then((j) => repondre(fr, { kbApiReply: { id: id, ok: j !== null && j.ok === true, status: j !== null && typeof j.status === 'number' ? j.status : 0, body: j !== null && j.body !== undefined ? j.body : null, error: j !== null && typeof j.error === 'string' ? j.error : undefined } }))
         }
+        // The console's team menu asks THIS page to change the ACTIVE space (the one the Cloud card shows and the app bills), so the two
+        // selectors always agree: a `kbSwitchSpace` names one id, a `kbNewSpace` names a team to create. Both go to the same local host routes
+        // the Cloud card uses (the server stays the master: a refusal creates nothing here); the console is told the outcome, and the card
+        // is told to reload through an event. Nothing else is accepted from the frame.
+        const dire = (fr, ok, extra) => repondre(fr, { kbSpaceReply: Object.assign({ ok: ok }, extra) })
+        const posterHote = (route, payload) => fetch('/kybernos-cloud/space/' + route, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) })
+          .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
+        const prevenirCarte = () => { try { window.dispatchEvent(new Event('kybernos-cloud:space-changed')) } catch (e) { /* Event absent */ } }
+        const changerEspace = (fr, demande) => {
+          const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
+          if (id === '') { dire(fr, false, { error: 'espace_absent' }); return }
+          posterHote('active', { workspace_id: id }).then((j) => {
+            const ok = j !== null && j.ok === true
+            if (ok) { kbServer.workspace = id; prevenirCarte() }
+            dire(fr, ok, { id: id, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
+          })
+        }
+        const creerEspace = (fr, demande) => {
+          const nom = typeof demande.name === 'string' ? demande.name.trim().slice(0, 60) : ''
+          if (nom === '') { dire(fr, false, { created: true, error: 'nom_absent' }); return }
+          posterHote('create', { name: nom }).then((j) => {
+            const ok = j !== null && j.ok === true
+            const actif = ok && j.state !== null && typeof j.state === 'object' && typeof j.state.active_workspace_id === 'string' ? j.state.active_workspace_id : null
+            if (ok && actif !== null) { kbServer.workspace = actif; prevenirCarte() }
+            dire(fr, ok, { created: true, id: actif, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') })
+          })
+        }
+        // The console is read only in this frame (it has no session of its own); to change a plan it asks for its twin in the person's BROWSER. The host makes the
+        // single-use link and opens the SYSTEM browser itself: the server refuses a link that arrives as a navigation a page started (a tab opened from here is
+        // « cross-site » for it and ends on « link expired »), and accepts one the person's own OS opened. A host that cannot open a browser hands the address back
+        // and this page opens it (a server on the same site as this page accepts that).
+        const ouvrirNavigateur = (fr, demande) => {
+          const id = typeof demande.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(demande.id) ? demande.id : ''
+          fetch('/kybernos-cloud/console/link', { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(id === '' ? { open: true } : { workspace_id: id, open: true }) })
+            .then((r) => r.json()).catch(() => ({ ok: false, error: 'hote_injoignable' }))
+            .then((j) => {
+              const ok = j !== null && j.ok === true && (j.opened === true || typeof j.url === 'string')
+              if (ok && j.opened !== true) { try { window.open(j.url, '_blank', 'noopener,noreferrer') } catch (e) { /* ouverture impossible */ } }
+              repondre(fr, { kbBrowserReply: { ok: ok, error: ok ? null : String(j !== null && j.error !== undefined ? j.error : 'refuse') } })
+            })
+        }
         const sur = (ev) => {
           const fr = document.querySelector('.kbwsif iframe')
           if (fr === null || ev.source !== fr.contentWindow) return
@@ -26182,6 +26006,9 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
           if (kbWsOrigin() !== '*' && ev.origin !== kbWsOrigin()) return
           if (ev.data.kbConsoleReady === true) { envoyerCle(); repondre(fr, { kbApiReady: true }) }
           else if (ev.data.kbApi !== null && typeof ev.data.kbApi === 'object') relayer(fr, ev.data.kbApi)
+          else if (ev.data.kbSwitchSpace !== null && typeof ev.data.kbSwitchSpace === 'object') changerEspace(fr, ev.data.kbSwitchSpace)
+          else if (ev.data.kbNewSpace !== null && typeof ev.data.kbNewSpace === 'object') creerEspace(fr, ev.data.kbNewSpace)
+          else if (ev.data.kbOpenBrowser !== null && typeof ev.data.kbOpenBrowser === 'object') ouvrirNavigateur(fr, ev.data.kbOpenBrowser)
         }
         window.addEventListener('message', sur)
         return () => window.removeEventListener('message', sur)
@@ -28981,7 +28808,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     //    Au CLIC (retour du meme jour) : le cadeau n'ouvre plus l'onglet, il
     //    ouvre une CARTE — le code de parrainage en gros, « Partager », le lien
     //    en un clic, et le lien vers la page qui reste au pied de la carte. ──
-    const KB_REFERRAL_PAGE = 'https://dev.kybernos.app/profiles?section=referral'
+    // The referral card lives on the server's account page (`<web>/account`); the server's own host, never a legacy web app's.
+    const kbReferralPage = () => kbServer.web.replace(/\/+$/, '') + '/account'
     // Le code et le lien sont ceux de la page de parrainage, qui les tient d'une
     // session WEB Kybernos (fonction Supabase `kybernos-referral-info`, mesuree
     // le 24/09/2026 : 401 sans JWT web) que le plugin n'a pas — et l'API n'expose
@@ -29113,7 +28941,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
               // hote invente, et le tier suit tout seul.
               const rendu = typeof j.share_url === 'string' && j.share_url !== '' ? j.share_url : ''
               let origine = ''
-              try { origine = new URL(KB_REFERRAL_PAGE).origin } catch (e) { origine = '' }
+              try { origine = new URL(kbReferralPage()).origin } catch (e) { origine = '' }
               const lien = rendu !== '' ? rendu : (origine !== '' ? origine + '/r/' + code : '')
               setCloud({ code: code, link: lien })
               return
@@ -29131,14 +28959,14 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
         setEditing(false)
       }
       const copier = async (quoi) => {
-        const texte = quoi === 'code' ? codeAffiche : (lienAffiche !== '' ? lienAffiche : KB_REFERRAL_PAGE)
+        const texte = quoi === 'code' ? codeAffiche : (lienAffiche !== '' ? lienAffiche : kbReferralPage())
         if (texte === '') return
         try { await navigator.clipboard.writeText(texte); setCopied(quoi) } catch (e) { setCopied('') }
       }
       // Partager : la feuille native (macOS : AirDrop, Mail, Messages…) quand le
       // navigateur l'offre ; sinon on copie le lien, ce qui reste un partage.
       const partager = async () => {
-        const url = lienAffiche !== '' ? lienAffiche : KB_REFERRAL_PAGE
+        const url = lienAffiche !== '' ? lienAffiche : kbReferralPage()
         try {
           if (typeof navigator.share === 'function') {
             await navigator.share({ title: label, text: kbt('menu.referral.sharetext'), url: url })
@@ -29191,7 +29019,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h('button', { type: 'button', className: 'kbu-rel-share', onClick: partager }, Icon('link', 15), kbt('menu.referral.share')),
           h('button', { type: 'button', className: 'kbu-rel-ghost', onClick: () => copier('link') }, copied === 'link' ? kbt('menu.referral.copied') : kbt('menu.referral.copylink'))),
         h('div', { className: 'kbu-rel-foot' },
-          h('a', { className: 'kbu-rel-open', href: KB_REFERRAL_PAGE, target: '_blank', rel: 'noreferrer noopener' },
+          h('a', { className: 'kbu-rel-open', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' },
             kbt('menu.referral.openpage'), Icon('chevronRight', 13)),
           (aCode === true && editing === false)
             ? h('button', { type: 'button', className: 'kbu-rel-edit', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))
@@ -29615,6 +29443,44 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       (typeof props.href === 'string'
         ? h('a', { className: 'kbac-btn', href: props.href, target: '_blank', rel: 'noreferrer noopener' }, props.action, Icon('link', 13))
         : h('button', { type: 'button', className: 'kbac-btn', onClick: props.onClick }, props.action)))
+    // Signed out, these pages have nothing to act on: the buttons would open an account that does not exist and the referral
+    // code would be empty. They say so, and say why an account is worth creating. Only reasons the product already states
+    // elsewhere (the cloud bundle's model import and memory, the sidebar's sync line, the referral reward) are listed.
+    // 'loading' → 'connected' | 'disconnected'; when the state cannot be read (the cloud bundle is off) the page keeps
+    // its usual content ('unknown') rather than hiding it behind a sign-in that could not start.
+    const useKbCloud = () => {
+      const pair = React.useState('loading')
+      const phase = pair[0]
+      React.useEffect(() => {
+        let vivant = true
+        let dernier = 'loading'
+        const poser = (p) => { dernier = p; if (vivant === true) pair[1](p) }
+        const lire = () => fetch('/kybernos-cloud/status', { cache: 'no-store' })
+          .then((r) => r.json().catch(() => null))
+          .then((j) => { if (j !== null && typeof j === 'object' && typeof j.connected === 'boolean') poser(j.connected === true ? 'connected' : 'disconnected'); else if (dernier === 'loading') poser('unknown') })
+          .catch(() => { if (dernier === 'loading') poser('unknown') })
+        lire()
+        // Picks up an account created or connected from the card while this page stays open.
+        const voir = () => { if (dernier !== 'connected') lire() }
+        const timer = setInterval(voir, 4000)
+        window.addEventListener('focus', voir)
+        return () => { vivant = false; clearInterval(timer); window.removeEventListener('focus', voir) }
+      }, [])
+      return phase
+    }
+    const KbacSignedOut = (props) => h('div', { className: 'kbac-page', 'data-kb': 'kbac-signed-out' },
+      h(KbacHead, { title: kbt('kbac.' + props.page), sub: kbt('kbac.' + props.page + '.sub') }),
+      h('div', { className: 'kbac-out' },
+        h('p', { className: 'kbac-out-lead' }, kbt('kbac.out.' + props.page)),
+        h('h3', { className: 'kbac-out-why' }, kbt('kbac.out.why')),
+        h('ul', { className: 'kbac-out-list' }, ['models', 'memory', 'sync', 'credits'].map((k) =>
+          h('li', { key: k }, h('b', null, kbt('kbac.out.' + k)), h('span', null, kbt('kbac.out.' + k + '.sub'))))),
+        h('div', { className: 'kbac-out-acts' },
+          h('button', {
+            type: 'button', className: 'kbac-btn kbac-primary', 'data-kb': 'kbac-signed-out-cta',
+            onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* no window events here */ } },
+          }, kbt('kbac.out.cta'))),
+        h('p', { className: 'kbac-hint' }, kbt('kbac.out.local'))))
     const KbacReferral = () => {
       const [rel, setRel] = React.useState(kbReferralRead)
       const [draft, setDraft] = React.useState(() => { const r = kbReferralRead(); return r.link !== '' ? r.link : r.code })
@@ -29622,6 +29488,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       const [copied, setCopied] = React.useState('')
       const [cloud, setCloud] = React.useState(null)
       const [motif, setMotif] = React.useState('')
+      const session = useKbCloud()
       // Même route hôte que la carte du menu : le code du compte lié, jamais inventé.
       React.useEffect(() => {
         let vivant = true
@@ -29633,7 +29500,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             if (j.ok === true && code !== '') {
               const rendu = typeof j.share_url === 'string' && j.share_url !== '' ? j.share_url : ''
               let origine = ''
-              try { origine = new URL(KB_REFERRAL_PAGE).origin } catch (e) { origine = '' }
+              try { origine = new URL(kbReferralPage()).origin } catch (e) { origine = '' }
               setCloud({ code: code, link: rendu !== '' ? rendu : (origine !== '' ? origine + '/r/' + code : '') })
               return
             }
@@ -29652,17 +29519,20 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         setRel(v); kbReferralWrite(v); setEditing(false)
       }
       const copier = async (quoi) => {
-        const texte = quoi === 'code' ? code : (lien !== '' ? lien : KB_REFERRAL_PAGE)
+        const texte = quoi === 'code' ? code : (lien !== '' ? lien : kbReferralPage())
         if (texte === '') return
         try { await navigator.clipboard.writeText(texte); setCopied(quoi) } catch (e) { setCopied('') }
       }
       const partager = async () => {
-        const url = lien !== '' ? lien : KB_REFERRAL_PAGE
+        const url = lien !== '' ? lien : kbReferralPage()
         try {
           if (typeof navigator.share === 'function') { await navigator.share({ title: kbt('menu.referral.title'), text: kbt('menu.referral.sharetext'), url: url }); return }
         } catch (e) { /* refusé ou annulé : copie */ }
         await copier('link')
       }
+      if (session === 'loading') return h('div', { className: 'kbac-page' }, h(KbacHead, { title: kbt('kbac.referral'), sub: kbt('kbac.referral.sub') }))
+      // Signed out there is no code to show, share or copy. A code pasted by hand on this device keeps the page it set up.
+      if (session === 'disconnected' && rel.code === '' && rel.link === '') return h(KbacSignedOut, { page: 'referral' })
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.referral'), sub: kbt('kbac.referral.sub') }),
         h('div', { className: 'kbac-card' },
@@ -29693,7 +29563,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             (aCode === true && editing === false)
               ? h('button', { type: 'button', className: 'kbac-btn', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))
               : null,
-            h('a', { className: 'kbac-link', href: KB_REFERRAL_PAGE, target: '_blank', rel: 'noreferrer noopener' }, kbt('menu.referral.openpage'), Icon('chevronRight', 13)))))
+            h('a', { className: 'kbac-link', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' }, kbt('menu.referral.openpage'), Icon('chevronRight', 13)))))
     }
     const KbacAppearance = () => {
       const [pref, setPref] = React.useState('system')
@@ -29741,7 +29611,10 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           h('button', { type: 'button', className: 'kbac-link-btn', onClick: () => { kbOpenSettingsSection(['theme']) } }, kbt('kbac.appearance.openTheme'))))
     }
     const KbacSecurity = () => {
-      const href = kbacCloudBase() + '/profiles'
+      const href = kbacCloudBase() + '/account'
+      const session = useKbCloud()
+      if (session === 'loading') return h('div', { className: 'kbac-page' }, h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }))
+      if (session === 'disconnected') return h(KbacSignedOut, { page: 'security' })
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }),
         h('div', { className: 'kbac-list' },
@@ -29751,16 +29624,25 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')))
     }
     const KbacSupport = () => {
-      const base = kbacCloudBase()
+      // The terms and the privacy policy are where the SERVER says they are (`GET /v1/public/legal`, through the cloud host): its host serves
+      // no /legal page, and a document it does not configure has no row. There is no status page on the new server, so no row for one.
+      const legalPair = React.useState(null)
+      const legal = legalPair[0]
+      React.useEffect(() => {
+        let vivant = true
+        fetch('/kybernos-cloud/legal', { headers: { accept: 'application/json' } }).then((r) => r.json().catch(() => null))
+          .then((j) => { if (vivant === true && j !== null && j !== undefined && j.ok === true) legalPair[1]({ terms: j.terms, privacy: j.privacy }) })
+          .catch(() => { /* no legal rows */ })
+        return () => { vivant = false }
+      }, [])
       const feedback = () => {
         try { if (typeof kbOpenFeedbackChat === 'function') kbOpenFeedbackChat(kbt('kbui.feedback.draft')) } catch (e) { /* retour indisponible */ }
       }
       return h('div', { className: 'kbac-page' },
         h(KbacHead, { title: kbt('kbac.support'), sub: kbt('kbac.support.sub') }),
         h('div', { className: 'kbac-list' },
-          h(KbacRow, { label: kbt('kbac.support.terms'), desc: kbt('kbac.support.terms.sub'), action: kbt('kbac.open'), href: base + '/legal/terms' }),
-          h(KbacRow, { label: kbt('kbac.support.privacy'), desc: kbt('kbac.support.privacy.sub'), action: kbt('kbac.open'), href: base + '/legal/privacy' }),
-          h(KbacRow, { label: kbt('kbac.support.status'), desc: kbt('kbac.support.status.sub'), action: kbt('kbac.open'), href: base + '/legal/status' }),
+          legal !== null && legal.terms !== null && legal.terms !== undefined ? h(KbacRow, { key: 'terms', label: kbt('kbac.support.terms'), desc: kbt('kbac.support.terms.sub'), action: kbt('kbac.open'), href: legal.terms.url }) : null,
+          legal !== null && legal.privacy !== null && legal.privacy !== undefined ? h(KbacRow, { key: 'privacy', label: kbt('kbac.support.privacy'), desc: kbt('kbac.support.privacy.sub'), action: kbt('kbac.open'), href: legal.privacy.url }) : null,
           h(KbacRow, { label: kbt('kbui.helpdocs'), desc: kbt('kbac.support.help.sub'), action: kbt('kbac.open'), href: 'https://kybernos.app' }),
           h(KbacRow, { label: kbt('kbui.send.feedback'), desc: kbt('kbac.support.feedback.sub'), action: kbt('kbui.send.feedback'), onClick: feedback })))
     }
@@ -29796,6 +29678,14 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-in{flex:1 1 auto;min-width:0;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}
 .kbac-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbac-hint{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbac-out{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
+.kbac-out-lead{margin:0;font-size:14px;line-height:1.5;color:var(--dsw-alias-label-primary)}
+.kbac-out-why{margin:2px 0 0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
+.kbac-out-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.kbac-out-list li{display:flex;flex-direction:column;gap:2px;padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-brand-primary)}
+.kbac-out-list b{font-size:14px;font-weight:550;color:var(--dsw-alias-label-primary)}
+.kbac-out-list span{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
+.kbac-out-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .kbac-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .kbac-link{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto;font-size:13px;color:var(--dsw-alias-label-secondary);text-decoration:none}
 .kbac-link:hover{color:var(--dsw-alias-label-primary)}
@@ -29878,6 +29768,11 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'plugins': '<rect x="3" y="3" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="3" width="7" height="7" rx="1" ' + trait + '/><rect x="3" y="14" width="7" height="7" rx="1" ' + trait + '/><rect x="14" y="14" width="7" height="7" rx="1" ' + trait + '/>',
         'listing': '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" ' + trait + '/>',
         'built-in plugins': '<path d="M21 8l-9-5-9 5v8l9 5 9-5z" ' + trait + '/><path d="M3 8l9 5 9-5" ' + trait + '/><path d="M12 13v8" ' + trait + '/>',
+        // The pages the Suite's plugins add under « Third party plugins »: each its own picture instead of the shell's gear.
+        'auto routing': '<path d="M16 3h5v5" ' + trait + '/><path d="M8 3H3v5" ' + trait + '/><path d="M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3" ' + trait + '/><path d="m15 9 6-6" ' + trait + '/>',
+        'kybernos suite': '<path d="M19.44 7.85c-.05.32.06.65.29.88l1.57 1.57c.47.47.7 1.09.7 1.7s-.23 1.23-.7 1.7l-1.61 1.61a.98.98 0 0 1-.84.28c-.47-.07-.8-.48-.97-.93a2.5 2.5 0 1 0-3.21 3.21c.45.17.86.5.93.97a.98.98 0 0 1-.28.84l-1.61 1.61a2.4 2.4 0 0 1-1.7.7 2.4 2.4 0 0 1-1.7-.7l-1.57-1.57a1.03 1.03 0 0 0-.88-.29c-.49.07-.84.5-1.02.97a2.5 2.5 0 1 1-3.24-3.24c.46-.18.89-.53.97-1.02a1.03 1.03 0 0 0-.29-.88l-1.57-1.57A2.4 2.4 0 0 1 2 12c0-.62.24-1.23.7-1.7l1.53-1.53c.24-.24.58-.35.92-.3.52.08.88.53 1.07 1.01a2.5 2.5 0 1 0 3.26-3.26c-.48-.2-.93-.56-1.01-1.07-.05-.34.06-.68.3-.92l1.53-1.53A2.4 2.4 0 0 1 12 2c.62 0 1.23.24 1.7.7l1.57 1.57c.23.23.56.34.88.29.49-.07.84-.5 1.02-.97a2.5 2.5 0 1 1 3.24 3.24c-.46.18-.89.53-.97 1.02z" ' + trait + '/>',
+        'workers': '<rect x="4" y="4" width="16" height="16" rx="2" ' + trait + '/><rect x="9" y="9" width="6" height="6" rx="1" ' + trait + '/><path d="M15 2v2M15 20v2M2 15h2M2 9h2M20 15h2M20 9h2M9 2v2M9 20v2" ' + trait + '/>',
+        'calls': '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" ' + trait + '/>',
       }
       // Variantes de LANGUE des libellés : sous une langue traduite, le titre
       // affiché d'une cellule n'est plus fr/en et le reconnaissance par mot-clé
@@ -29904,6 +29799,18 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         }
         return -1
       }
+      // icône VARIÉE : le svg natif de la cellule reçoit le tracé du libellé (plusieurs items partageaient la même icône shell).
+      // Posée AVANT le tri par groupe : une page de plugin qui n'est dans aucun groupe garde sa place en queue, mais plus l'engrenage.
+      const poserIcone = (cellule, n) => {
+        const icone = ICONES[n]
+        const svg = cellule.querySelector('svg')
+        if (icone !== undefined && svg !== null && svg.dataset.kbIcon !== n) {
+          svg.dataset.kbIcon = n
+          svg.setAttribute('viewBox', '0 0 24 24')
+          svg.setAttribute('stroke-width', '1.75')
+          svg.innerHTML = icone
+        }
+      }
       let minuteur = null
       const organiser = () => {
         const listes = Array.from(document.querySelectorAll('[class*="navList"]'))
@@ -29913,12 +29820,15 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           if (cellules.length === 0) continue
           // le nav des Réglages se reconnaît à ses cellules connues (General,
           // Compte, Thème…) — les autres navs de l'app n'en portent aucune.
-          if (cellules.every((e) => rang(e.textContent) === -1)) continue
+          // Titles by what the cells stand for, not by how they are drawn in the language of the day (kbNavTitles).
+          const dessines = cellules.map((e) => norm(e.textContent))
+          const titres = kbNavTitles(dessines, cellules.map(kbNavKeyOf))
+          if (titres.every((t) => rang(t) === -1)) continue
           // Idempotence : si les cellules n'ont pas changé et que les
           // en-têtes sont déjà posés, on ne touche à rien — sinon
           // l'observateur se ré-amorce sur ses propres mutations et
           // boucle (constaté 30/09 : le nav clignotait hors ordre).
-          const signature = cellules.map((e) => norm(e.textContent)).join('|')
+          const signature = dessines.join('|')
           const tetes = liste.querySelectorAll('[data-kb="settings-group"]')
           if (liste.dataset.kbSig === signature && tetes.length === GROUPES.length) continue
           liste.dataset.kbSig = signature
@@ -29927,13 +29837,14 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           liste.dataset.kbSettings = '1'
           let vus = [false, false, false, false]
           cellules.forEach((cellule, idx) => {
-            const n = norm(cellule.textContent)
+            const n = titres[idx]
             let g = -1
             let wi = 0
             for (let k = 0; k < GROUPES.length; k++) {
               const pos = GROUPES[k].mots.indexOf(n)
               if (pos !== -1) { g = k; wi = pos; break }
             }
+            poserIcone(cellule, n)
             if (g === -1) { cellule.style.order = String(450 + idx); return }
             if (vus[g] !== true) {
               vus[g] = true
@@ -29958,16 +29869,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             cellule.style.order = String(g * 100 + 10 + wi)
             // « About » ferme la liste, après les pages que les plugins ajoutent (qui tombent à 450+).
             if (FIN_DE_LISTE.indexOf(n) !== -1) cellule.style.order = '9000'
-            // icône VARIÉE : le svg natif de la cellule reçoit le tracé du
-            // libellé (plusieurs items partageaient la même icône shell).
-            const icone = ICONES[n]
-            const svg = cellule.querySelector('svg')
-            if (icone !== undefined && svg !== null && svg.dataset.kbIcon !== n) {
-              svg.dataset.kbIcon = n
-              svg.setAttribute('viewBox', '0 0 24 24')
-              svg.setAttribute('stroke-width', '1.75')
-              svg.innerHTML = icone
-            }
           })
         }
       }
@@ -30252,6 +30153,46 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'Fichier': 'File',
         'Déposer un fichier .json': 'Drop a .json file',
         'Revenir aux valeurs par défaut du harness.': 'Back to the harness defaults.',
+        // ── Thème › Mes thèmes, Partage, Galerie ─────────────────────────────────────────────────────
+        'Livrés': 'Shipped', 'Mes thèmes': 'My themes', 'Galerie': 'Gallery', 'Enregistrer': 'Save', 'Enregistrer sous…': 'Save as…', 'Annuler': 'Cancel',
+        'Un thème règle les couleurs ; il peut aussi retenir la police et les coins. Gérez les vôtres dans': 'A theme sets the colors; it can also keep the font and the corners. Manage yours in',
+        'Aucun thème à vous pour l’instant. Réglez l’apparence puis « Enregistrer », importez un fichier dans': 'You have no theme of your own yet. Set the look, then “Save”, import a file in',
+        ', ou installez-en un depuis la': ', or install one from the',
+        'Enregistrer l’état actuel comme thème': 'Save the current look as a theme', 'Personnalisé': 'Custom', 'modifié': 'modified', 'livré': 'shipped', 'à vous': 'yours',
+        'Réglage libre : enregistrez-le pour le retrouver en un clic.': 'Free setting: save it to get it back in one click.',
+        'Mettre à jour': 'Update', 'Annuler les changements': 'Undo the changes', 'Rétablir': 'Reset',
+        'Enregistrer comme thème': 'Save as a theme', 'Nom': 'Name', 'Ce que le thème retient': 'What the theme keeps', 'Les couleurs et l’accent sont toujours retenus.': 'Colors and accent are always kept.',
+        'Couleurs et accent': 'Colors and accent', 'Coins': 'Corners', 'Verre et fond d’écran': 'Glass and wallpaper',
+        'Contraste, palette daltonien, cibles larges : ce sont vos besoins, pas un style. Décoché, un thème ne les change jamais.': 'Contrast, color-blind palette, large targets: these are your needs, not a style. Switched off, a theme never changes them.',
+        'Donnez un nom au thème.': 'Give the theme a name.', 'Ce nom existe déjà. Choisissez-en un autre.': 'That name already exists. Pick another one.',
+        'La bibliothèque est pleine (100 thèmes). Supprimez-en un dans Partage.': 'The library is full (100 themes). Delete one in Sharing.',
+        'La bibliothèque est pleine (100 thèmes). Supprimez-en un d’abord.': 'The library is full (100 themes). Delete one first.',
+        'Les thèmes que vous avez enregistrés ou importés.': 'The themes you saved or imported.', 'Aucun thème à vous': 'No theme of your own',
+        'Réglez l’apparence dans Essentiel puis enregistrez-la, ou importez un fichier ci-dessous.': 'Set the look in Essentials, then save it, or import a file below.',
+        'Enregistrer l’état actuel…': 'Save the current look…', 'Le disque de DSH ne répond pas : vos thèmes restent dans ce navigateur.': 'DSH’s disk does not answer: your themes stay in this browser.',
+        'Un fichier de thème (.json) s’ajoute à Mes thèmes. Il ne change rien tant que vous ne cliquez pas sur Appliquer. Un ancien fichier d’état complet devient lui aussi un thème.': 'A theme file (.json) is added to My themes. It changes nothing until you click Apply. An old file of the whole look becomes a theme too.',
+        'Choisir un fichier .json': 'Choose a .json file', 'Exporter l’état actuel': 'Export the current look',
+        'Le réglage en cours, tel quel : un fichier à partager ou à versionner. Pour un thème enregistré, utilisez « Exporter » sur sa ligne.': 'The current setting as it is: a file to share or to version. For a saved theme, use “Export” on its row.',
+        'Revenir aux valeurs par défaut du harness. Vos thèmes enregistrés restent dans Mes thèmes.': 'Back to the harness defaults. Your saved themes stay in My themes.',
+        'appliqué': 'applied', 'importé': 'imported', 'Appliquer': 'Apply', 'Renommer': 'Rename', 'Supprimer': 'Delete', 'Garder': 'Keep', 'Nouveau nom': 'New name', 'Télécharger': 'Download',
+        'Fichier trop gros : un thème fait quelques Ko. Rien n’a été modifié.': 'File too big: a theme is a few KB. Nothing was changed.',
+        'Fichier non reconnu : seul un fichier de thème Kybernos (.json) est accepté. Rien n’a été modifié.': 'File not recognized: only a Kybernos theme file (.json) is accepted. Nothing was changed.',
+        'Le téléchargement a échoué : utilisez Copier.': 'The download failed: use Copy.',
+        'Galerie de thèmes': 'Theme gallery',
+        'Un thème n’est qu’un fichier de réglages : il ne contient aucun code et ne charge rien d’extérieur. Installez-le, ou essayez-le d’abord.': 'A theme is only a settings file: it contains no code and loads nothing from outside. Install it, or try it first.',
+        'Livré avec Kybernos': 'Shipped with Kybernos', 'Catalogue signé': 'Signed catalog', 'Actualiser': 'Refresh', 'Actualisation…': 'Refreshing…',
+        'Le catalogue en ligne est injoignable : ce sont les thèmes livrés avec Kybernos.': 'The online catalog cannot be reached: these are the themes shipped with Kybernos.',
+        'Le catalogue en ligne est désactivé : ce sont les thèmes livrés avec Kybernos.': 'The online catalog is turned off: these are the themes shipped with Kybernos.',
+        'Le catalogue en ligne n’est pas encore activé : ce sont les thèmes livrés avec Kybernos.': 'The online catalog is not active yet: these are the themes shipped with Kybernos.',
+        'Rechercher un thème, un auteur': 'Search for a theme or an author', 'Rechercher un thème': 'Search for a theme', 'Tous': 'All',
+        'La galerie est vide': 'The gallery is empty', 'Aucun thème n’est publié pour l’instant.': 'No theme is published yet.',
+        'Aucun thème ne correspond': 'No theme matches', 'Essayez un autre mot, ou affichez tous les modes.': 'Try another word, or show all modes.', 'Effacer la recherche': 'Clear the search',
+        'Impossible de lire la galerie': 'Cannot read the gallery',
+        'Elle est lue par DSH, pas par la page. Si le plugin vient d’être mis à jour, redémarrez DSH. Vos thèmes restent disponibles dans Partage.': 'It is read by DSH, not by the page. If the plugin was just updated, restart DSH. Your themes remain available in Sharing.',
+        'Réessayer': 'Try again', 'par': 'by', 'Installer': 'Install', 'Essayer': 'Try', 'En essai': 'Trying', 'Installé': 'Installed',
+        'Essai de': 'Trial of', '. Rien n’est enregistré.': '. Nothing is saved.', 'Revenir à mon thème': 'Back to my theme',
+        // the names of the themes shipped in the gallery
+        'Neutre violet': 'Neutral violet', 'Calcaire': 'Limestone', 'Console verte': 'Green console', 'Encre & papier': 'Ink & paper', 'Lavande brumeuse': 'Misty lavender', 'Océan nuit': 'Night ocean'
       }
       // Fragments (ordre : du plus long au plus court) pour les phrases composées.
       const SUBS = [
@@ -30259,7 +30200,22 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         ['retire la couche de jetons : l’apparence native repasse telle quelle.', 'removes the token layer: the native look comes back as is.'],
         ['Thème : ', 'Theme: '], ['Fond ', 'Background '], ['« ', '“'], [' »', '”'],
       ]
+      // The line under a theme: « Clair · #c1552f · police Inter · coins doux · retient : couleurs et accent, police ».
+      const metaEn = (rest) => rest.replace('accent neutre', 'neutral accent').replace(' · police ', ' · font ').replace('DSH (défaut)', 'DSH (default)')
+        .replace(' · coins nets', ' · sharp corners').replace(' · coins standard', ' · standard corners').replace(' · coins doux', ' · soft corners')
+        .replace(' · retient : ', ' · keeps: ').replace('couleurs et accent', 'colors and accent').replace(', police', ', font').replace(', coins', ', corners')
+        .replace(', verre et fond d’écran', ', glass and wallpaper').replace(', accessibilité', ', accessibility')
+        .replace(' · un thème livré ne se modifie pas : enregistrez-en une copie.', ' · a shipped theme is not edited: save a copy.')
+      const REFUS = { 'sa signature n’est pas reconnue': 'its signature is not recognized', 'il est plus ancien que celui déjà connu': 'it is older than the one already known', 'il est mal formé': 'it is malformed', 'il est trop gros': 'it is too large' }
       const RX = [
+        [/^Thème « (.+) » enregistré dans Mes thèmes\.$/, 'Theme “$1” saved in My themes.'], [/^Thème « (.+) » mis à jour\.$/, 'Theme “$1” updated.'],
+        [/^« (.+) » est installé et appliqué\. Il est dans Mes thèmes\.$/, '“$1” is installed and applied. It is in My themes.'],
+        [/^« (.+) » est à jour \(version (\d+)\)\.$/, '“$1” is up to date (version $2).'], [/^« (.+) » supprimé\.$/, '“$1” deleted.'],
+        [/^« (.+) » est dans Mes thèmes( \(ancien fichier : tout le réglage est repris\))?\. Il n’est pas appliqué\.$/, (m0, n, old) => '“' + n + '” is in My themes' + (old === undefined ? '' : ' (old file: the whole look is taken)') + '. It is not applied.'],
+        [/^Supprimer « (.+) » \?$/, 'Delete “$1”?'], [/^Galerie · (.+)$/, 'Gallery · $1'], [/^1 thème$/, '1 theme'], [/^(\d+) thèmes$/, '$1 themes'], [/^theme-(.+\.json) · à partager ou à versionner$/, 'theme-$1 · to share or to version'],
+        [/^(Clair \+ sombre|Clair|Sombre)( · .+)$/, (m0, a, rest) => ({ 'Clair + sombre': 'Light + dark', Clair: 'Light', Sombre: 'Dark' }[a]) + metaEn(rest)],
+        [/^(.+ — )?(Clair \+ sombre|Clair|Sombre)( · .+)$/, (m0, n, a, rest) => (n === undefined ? '' : (EXACT[n.slice(0, -3)] || n.slice(0, -3)) + ' — ') + ({ 'Clair + sombre': 'Light + dark', Clair: 'Light', Sombre: 'Dark' }[a]) + metaEn(rest)],
+        [/^Le catalogue en ligne a été refusé(?: \((.+)\))? : ce sont les thèmes déjà connus qui s’affichent\.$/, (m0, why) => 'The online catalog was refused' + (why === undefined ? '' : ' (' + (REFUS[why] || why) + ')') + ': the themes already known are shown.'],
         [/^(\d+) jetons retouchés$/, '$1 tokens adjusted'], [/^1 jeton retouché$/, '1 token adjusted'], [/^17 jetons · /, '17 tokens · '], [/^(\d+) lignes?$/, '$1 lines'], [/^contraste (.+) sous le seuil AA$/, 'contrast $1 below the AA threshold'], [/^(\d+[.,]\d+:1) \((clair|sombre)\)$/, (m0, r, t) => r + (t === 'clair' ? ' (light)' : ' (dark)')],
         [/^Commandes slash · (\d+)$/, 'Slash commands · $1'], [/^Actions de message · (\d+)$/, 'Message actions · $1'],
         [/^Retirer (.+)$/, 'Remove $1'],
@@ -30267,7 +30223,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         [/^Couche (\d)( \((?:clair|sombre)\))?$/, (m0, n, t) => 'Layer ' + n + (t === undefined ? '' : (t.indexOf('clair') >= 0 ? ' (light)' : ' (dark)'))],
         [/^(Clair|Sombre) — pipette$/, (m0, m) => (m === 'Clair' ? 'Light' : 'Dark') + ' — eyedropper'],
       ]
-      const NOMS = ['Défaut DSH', 'Bleu profond', 'Aurore', 'Nébuleuse', 'Ambre', 'Minuit OLED', 'Papier', 'Clair net', 'Rose', 'Braise', 'Pierre & Nuage', 'Pulsation indigo', 'Pulsation minuit', 'Olivaie', 'Aube florale', 'Rêve de crépuscule', 'Brume de prune']
+      const NOMS = ['Défaut DSH', 'Bleu profond', 'Aurore', 'Nébuleuse', 'Ambre', 'Minuit OLED', 'Papier', 'Clair net', 'Neutre violet', 'Rose', 'Braise', 'Pierre & Nuage', 'Pulsation indigo', 'Pulsation minuit', 'Olivaie', 'Aube florale', 'Rêve de crépuscule', 'Brume de prune']
       const tr = (brut) => {
         const t = brut.trim()
         if (t === '' || /^[\x00-\x7f]*$/.test(t) && EXACT[t] === undefined && SUBS.every((x) => t.indexOf(x[0]) < 0) && RX.every((x) => x[0].test(t) === false)) return brut
@@ -30289,8 +30245,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       let minuteur = null
       const passe = () => {
         if (anglais() !== true) return
-        // + les deux fenêtres de l'onglet Animation du thème : posées hors de la page par un portail, elles seraient oubliées.
-        const racines = document.querySelectorAll('[data-slot="settings.section"],[data-kb="ld-picker"],[data-kb="ld-pack"]')
+        // + les fenêtres du thème (onglet Animation, enregistrement d'un thème) : posées hors de la page par un portail, elles seraient oubliées.
+        const racines = document.querySelectorAll('[data-slot="settings.section"],[data-kb="ld-picker"],[data-kb="ld-pack"],[data-kb="theme-save-dlg"]')
         for (let i = 0; i < racines.length; i++) {
           const w = document.createTreeWalker(racines[i], NodeFilter.SHOW_TEXT)
           let n = w.nextNode()

@@ -1,0 +1,22 @@
+{
+  "id": "console-verte",
+  "v": 1,
+  "name": "Console verte",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Fond vert très sombre, accent de terminal, coins nets.",
+    "en": "Very dark green ground, terminal accent, sharp corners."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#22c55e",
+    "ov": {
+      "dark:base": "#0b120e",
+      "dark:l1": "#101a14",
+      "dark:l2": "#16231b",
+      "dark:side": "#0d1610",
+      "dark:input": "#16231b"
+    },
+    "radius": "sharp"
+  }
+}

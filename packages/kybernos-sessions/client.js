@@ -398,6 +398,26 @@ window.__ModuleLoader__.load({
     // Ce que porte une ligne dont le titre n'est pas encore classé : l'icône
     // est là dès le premier nommage, la catégorie viendra au re-titrage.
     const CATEGORIE_DEFAUT = { ico: 'help', mot: 'Non classé' }
+    // The row's mark says its category and whether its work is committed, in the language of the interface: French is the source
+    // (the key kept in `data-mot`), English the pair, a translated language is looked up by its French text (same rule as the other plugins).
+    const langueUI = () => {
+      try { return String(typeof window.__KB_LANG_RESOLVE__ === 'function' ? window.__KB_LANG_RESOLVE__() : (document.documentElement.lang || 'en')) } catch (e) { return 'en' }
+    }
+    const ktMarque = (fr, en) => {
+      const l = langueUI()
+      if (l === 'kybernos' || l.slice(0, 2) === 'fr') return fr
+      if (l === 'en') return en
+      try {
+        const a = window.__KB_I18N_ACTIVE__
+        if (a !== null && a !== undefined && a.dict !== null && typeof a.dict === 'object' && typeof a.dict[fr] === 'string') return a.dict[fr]
+      } catch (e) { /* no dictionary: English */ }
+      return en
+    }
+    const MOTS_EN = {
+      'Non classé': 'Uncategorised', 'Fonctionnalité': 'Feature', 'Correctif': 'Fix', 'UI/design': 'UI/design', 'Documentation': 'Documentation',
+      'Intégration': 'Integration', 'Données': 'Data', 'Nettoyage': 'Cleanup', 'Question': 'Question', 'Catégorie': 'Category'
+    }
+    const motAffiche = (fr) => ktMarque(fr, MOTS_EN[fr] !== undefined ? MOTS_EN[fr] : fr)
     const TEINTE_GRISE = 'var(--dsw-alias-label-tertiary,#8a9096)'
     const TEINTE_VERTE = 'var(--dsw-alias-state-success-primary,#22c55e)'
     const SVG_GLYPHE = (n, size) => '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24"' +
@@ -929,8 +949,8 @@ window.__ModuleLoader__.load({
       marque.setAttribute('data-fait', fait ? '1' : '0')
       marque.setAttribute('style', '--kbs-ico:' + (fait ? TEINTE_VERTE : TEINTE_GRISE))
       marque.setAttribute('class', 'kbs-titre-ico' + (fait ? ' kbs-titre-ico--fait' : ''))
-      const mot = marque.getAttribute('data-mot') || 'Catégorie'
-      const etat = fait ? 'travail committé' : 'travail non committé'
+      const mot = motAffiche(marque.getAttribute('data-mot') || 'Catégorie')
+      const etat = fait ? ktMarque('travail committé', 'work committed') : ktMarque('travail non committé', 'work not committed')
       marque.setAttribute('aria-label', mot + ' — ' + etat)
       marque.setAttribute('title', mot + ' — ' + etat)
       return true

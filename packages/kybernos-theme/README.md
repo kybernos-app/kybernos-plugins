@@ -1,21 +1,22 @@
 # kybernos-theme
 
-Settings › **Theme**: ready-made themes, accent, wallpaper, font, colour tokens, contrast, and
-the **thinking animation** (the loader and the words DSH shows while the agent works).
+Settings › **Theme**: ready-made themes, **your own themes**, a **gallery** of themes to install, accent, wallpaper, font, colour tokens,
+contrast, and the **thinking animation** (the loader and the words DSH shows while the agent works).
 
-One page, seven vertical tabs, « Essentiel » open by default (there is no Simple/Advanced switch).
+One page, eight vertical tabs, « Essentiel » open by default (there is no Simple/Advanced switch).
 Every control stores a value (`DEF`) and something reads it: `test-client.mjs` refuses a control whose
 key is not in `DEF`, which is how 41 dead ones went unnoticed before.
 
 | Tab | What it really does, and how |
 |---|---|
-| Essentiel | theme, accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
+| Essentiel | theme (shipped and yours), accent, wallpaper, font, text size → `overrideTokens` layer, a fixed wallpaper `<div>`, `--dsw-font-family`, `setFontSize` |
 | Verre et fond | with a wallpaper: DSH's main surface (`--dsw-alias-bg-base`) becomes transparent so the wallpaper shows; sidebar, fields and menus get a chosen transparency (`--dsw-specific-sidebar-fill`, `-input-major`, `-menu`); frosted/liquid blur by `backdrop-filter` on DSH's stable hooks; wallpaper filters, fit and mirror |
 | Couleurs | the 17 pilotable tokens per scheme, accent ramp |
 | Texte et forme | text size, ligatures, radii (`--dsw-radius-*` ×0.25 / ×1 / ×1.5), logo and name |
 | Animation | the thinking animation (below) |
 | Accessibilité | contrast level, reduce animations, focus ring, 44 px targets, underlined links, colour-blind palette (success/error → blue/vermillion) |
-| Partage | export YAML / JSON / CSS (real files), JSON import, reset |
+| Partage | **My themes** (save, apply, rename, export, delete), import a theme file, export of the current look (YAML / JSON / CSS), reset |
+| Galerie | themes to **try** and **install** (shipped with Kybernos, plus a signed online catalogue), search, light/dark filter, updates |
 
 The CSS-only effects (glass, ligatures, brand, reduced motion, focus, targets, links) come from one
 pure function, `effetsCss(S)`, inserted as a single `<style>`; it only uses DSH's stable hooks
@@ -25,17 +26,64 @@ pure function, `effetsCss(S)`, inserted as a single `<style>`; it only uses DSH'
 
 | File | Half | Role |
 |---|---|---|
-| `client.js` | browser | the page, the colour engine, the thinking-animation runtime |
-| `index.js` | host | mounts two routes and seeds the two skills |
+| `client.js` | browser | the page, the colour engine, the theme library, the thinking-animation runtime |
+| `index.js` | host | mounts four routes and seeds the two skills |
 | `loader-store.mjs` | host | pure `node:fs` store behind `/kybernos-theme/loader-store` |
+| `preset-store.mjs` | host | pure `node:fs` store behind `/kybernos-theme/preset-store` (the theme library) |
+| `themes-catalogue.mjs` | host | pure rules of the gallery's catalogue: shape of a theme, Ed25519 signature, no rollback, shipped vs signed |
+| `themes-gallery.mjs` | host | disk and network behind `/kybernos-theme/gallery` (cache, bounded download, origin guards) |
+| `gallery.json` | data | the SHIPPED catalogue, built from `catalog/themes/*.json` by `scripts/themes-catalogue.mjs` |
+| `themes-pubkey.json` | data | the public key(s) that sign the online catalogue (empty until the maintainer embeds one) |
 | `seed-skills.mjs` | host | copies `skills/*/SKILL.md` into `<dsh home>/skills/` without overwriting user edits |
 | `skills/loader`, `skills/loading-text` | skills | the two skills (see `skills/README.md`) |
 | `vendor/lottie_light.min.js` | host asset | lottie-web 5.12.2 (MIT, see `vendor/NOTICES.md`), served lazily |
 
 Tests (all pure node, CI runs them): `test-client.mjs`, `test-loader-store.mjs`,
-`test-seed-skills.mjs`. `test-client.mjs` renders the page with `react-dom/server` when react is
+`test-preset-store.mjs`, `test-themes-catalogue.mjs`, `test-themes-gallery.mjs`, `test-seed-skills.mjs`
+(and `scripts/test-themes-catalogue.mjs` for the publishing side). `test-client.mjs` renders the page with `react-dom/server` when react is
 resolvable (`NODE_PATH=<a node_modules with react + react-dom>`) and skips that stage otherwise.
 The page on the real GUI is covered by `scripts/check-theme-live.mjs` (see `docs/dev/live-testing.md`).
+
+## My themes
+
+A **theme** is a name plus the settings it retains, grouped so that the person chooses what travels
+with it: colours and accent (always), font, corners, glass and wallpaper, accessibility. Accessibility
+is off by default when saving: contrast, the colour-blind palette and big targets are a need of the
+person, not a style, so a theme never changes them unless it was saved with them.
+
+- **Essentiel** shows the shipped themes, then *My themes* and a `+` button. The summary line under
+  them says which theme is in use and whether it is *modified*: a setting the theme retains has moved
+  (the mode is left out on purpose, DSH's own light/dark button changes it from elsewhere). A shipped
+  theme is never edited: *Save as…* makes a copy. Your own theme can be *updated* in place.
+- **Partage** is the library: apply, export (the JSON file is shown, with *Copy* and *Download*),
+  rename, delete (confirmed in place), and *Import*. Importing **adds** a theme and applies nothing; an
+  old export of the whole look (no frame) still imports, as a theme.
+- A theme is **data**, never code. The only values it can carry are the ones `sanitiserImport`
+  accepts: known keys, valid types and ranges, and fonts and wallpapers that already ship with this
+  plugin. A file cannot load a font, an image or anything else from outside; its name is drawn as text.
+  The same check runs when a file is imported, when the browser copy is read, and when the disk copy
+  comes back; `preset-store.mjs` checks the shape again on the way in and out (it cannot know the
+  fonts and wallpapers without copying their tables, so it leaves the meaning to the browser).
+- The file format: `{ "format": "kybernos-theme-preset", "version": 1, "name", "author"?, "settings": { … } }`.
+  `PRESET_GROUPS` in `client.js` lists what a theme may retain; `SETTINGS_KEYS` in `preset-store.mjs`
+  must stay equal to it (`test-client.mjs` fails when they drift).
+- Up to 100 themes, names up to 40 characters and unique (a name taken by a shipped theme counts).
+
+## The gallery
+
+**Galerie** lists themes to install. There are two catalogues and one answer: the **shipped** one
+(`gallery.json`, it travels inside the signed Suite archive and works offline) and the **online** one
+(`themes.catalog.json` + a detached Ed25519 signature, verified by the HOST before the page ever sees it,
+cached on disk and verified again on every read). The signed one shows when it is at least as recent as the
+shipped one; an older one is refused as a rollback; a refused or unreachable refresh changes nothing and the
+page says why. Opening the tab asks the online catalogue once (`themesCatalogueUrl` in
+`<dsh home>/kybernos/settings.json`, `""` turns it off); nothing else in this plugin uses the network.
+
+*Essayer* draws a theme without storing it (closing Settings or reloading gives the stored look back, any change
+made during a trial ends it; a theme of the other mode switches DSH's mode for the trial, and reload or closing Settings
+switches it back; only killing the tab in the middle can leave the new mode behind); *Installer* copies it into My themes (source « gallery », with its catalogue id
+and version); an installed copy gets *Mettre à jour* when the catalogue's version moves. A catalogue theme never
+carries accessibility settings. How it is published, signed and tested: `docs/dev/theme-gallery.md`.
 
 ## The thinking animation
 
@@ -83,6 +131,8 @@ contains any (see `loader-store.mjs`).
 | What | Where |
 |---|---|
 | theme (look) | `localStorage` `kybernos.theme.v1` |
+| My themes | `localStorage` `kybernos.theme.presets.v1`, copy on disk `<dsh home>/kybernos/theme-presets.json` (one document, the newer `updatedAt` wins as a whole) |
+| the online gallery catalogue | `<dsh home>/kybernos/themes-catalogue/` (the verified document and its signature) |
 | thinking-animation settings | `localStorage` `kybernos.theme.loader.v1`, copy on disk `<dsh home>/kybernos/loader-settings.json` |
 | the *selected* user animations (first paint) | `localStorage` `kybernos.theme.loader.cache.v1` |
 | imported animations | `<dsh home>/kybernos/loaders/<id>.json` |
@@ -94,8 +144,8 @@ what survives clearing site data, another browser, or DSH Desktop picking anothe
 `updatedAt` wins. Tests and live checks switch the disk off with
 `window.__KB_THEME_HOST_STORE__ = false` before the page loads.
 
-The host routes are **not hot-reloaded**: restart `dsh web` after changing `index.js` or
-`loader-store.mjs`. A page without them still works (imports stay in the browser until reload).
+The host routes are **not hot-reloaded**: restart `dsh web` after changing `index.js`,
+`loader-store.mjs`, `preset-store.mjs` or `themes-gallery.mjs`. A page without them still works (imports stay in the browser until reload).
 
 ## Limits worth knowing
 

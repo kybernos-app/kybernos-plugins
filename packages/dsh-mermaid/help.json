@@ -9,8 +9,8 @@
       "en": "Ask the agent for a diagram (if needed, say “in Mermaid”)."
     },
     {
-      "fr": "Sous le bloc de code étiqueté « mermaid », le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
-      "en": "Under the code block labelled “mermaid”, the diagram appears in your theme's colours; the raw code is hidden."
+      "fr": "Sous le bloc de code Mermaid, le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
+      "en": "Under the Mermaid code block, the diagram appears in your theme's colours; the raw code is hidden."
     },
     {
       "fr": "Le bouton « Code » sous le schéma montre le code ; « Diagramme » ramène le dessin.",
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Dans le chat, sous un bloc de code « mermaid » (pas d'écran de réglages)",
-    "en": "In the chat, under a “mermaid” code block (no settings screen)",
+    "fr": "Dans le chat, sous un bloc de code Mermaid (pas d'écran de réglages)",
+    "en": "In the chat, under a Mermaid code block (no settings screen)",
     "page": false
   },
   "good": {

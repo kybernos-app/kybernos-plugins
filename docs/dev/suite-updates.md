@@ -47,6 +47,18 @@ DSH is not restarted by the update itself.
 
 **A development checkout is never updated this way**: a git working tree (`.git` at the repo root) answers 409 `development-checkout` and the panel says to use git.
 
+## One click, and what "one click" means where
+
+*Update now* does the whole job: download, verify, install, then **restart DSH** (the hub's `POST /kybernos-hub/relaunch`, which starts `~/.dsh/tools/dsh-relance.mjs` detached; sessions that were running are woken up again afterwards). The dialog says so before the click. If the machine has no relaunch tool the dialog ends on "Restart DSH to finish", as before. Three kinds of install are told apart (`modeMiseAJour` in the maintenance client):
+
+| Install | What the dialog offers |
+|---|---|
+| an unpacked suite the Suite can update (no `.git`, not hosted) | *Update now*: install + restart |
+| a development checkout (a git working tree) | the git steps, unchanged: it is never replaced by an archive |
+| a **hosted instance** (a server or container: Coolify, Docker, a VPS template) | no install in place. It says the instance is rebuilt: redeploy or restart it so it starts from the latest version of the Dockerfile, force a build without cache if the build reuses it (a cached `git clone` layer keeps the old version), and keep the data volume attached |
+
+Hosted is decided by the hub (`detecterHebergement` in `suite-host.mjs`), and wins over "development checkout" because the image of a hosted instance is often built from a git clone. `KYBERNOS_HOSTED=1` forces it on and `=0` forces it off (a local DSH that happens to run in a container); otherwise the Kybernos gate's variables (`KYBERNOS_PUBLIC_HOST`, `KYBERNOS_GATE_PASSWORD`), the `COOLIFY_*` variables and Docker's `/.dockerenv` decide. A hosted instance answers 409 `hosted-instance` to `POST /kybernos-hub/update`, before anything is downloaded.
+
 ## The notification
 
 Nothing is installed without the user, but the user must hear about it. The Maintenance bundle (`packages/kybernos-maintenance`) owns the
@@ -58,6 +70,8 @@ as the Kybernos update (`fusionnerSigne`). When this install can apply it (not a
 `POST /kybernos-hub/update`, follows `/update/status` and ends on "Restart DSH to finish". A development checkout keeps the git steps. When there is no
 key, no release or nothing newer, the host's own answer stands (the `VERSION` published on `main`).
 
+A dismissed card is not the end of the reminder: the line stays until the update is applied. Signed in, it is in the account menu (with an amber dot on the profile tile). **Signed out there is no account menu**, so the same line lives in the sidebar footer, above "Sign in" (in the pairing state too); it opens the same dialog. "Skip this version" silences all of it.
+
 A bug hid all of this until 2026-10-05: `GET /kybernos-maintenance/update` answered 500 on every machine (`existsSync` was not imported), so no update
 was ever announced. `test-update.mjs` now runs the route's measure for real. **Installs of 1.0.0-beta.2 carry that bug**: they only learn of a newer suite
 through *Check for updates* in the Suite panel, once; `1.0.0-beta.3` is the first release that carries the fix and announces the next ones by itself.
@@ -67,6 +81,17 @@ archive, `DSH_HOME` and `HOME` isolated, own port) running the suite from the ar
 certificate, `NODE_EXTRA_CA_CERTS` for that process only, `catalogueUrl` pointing at it), and the update archive built with the robot forced to dry-run so the
 engine is never patched. The release is "published" by copying a newer signed document into the served folder; then: no card before, the card at the next
 launch, the dialog, Update now, the steps, the end.
+
+## Where an installed suite lives
+
+The profile's `@local/*` links point into the folder the robot installed from. Since 2026-10-08 that folder is checked against its own
+`manifest.json` before anything is touched (a changed or missing file refuses the install; a file the manifest does not know is only
+reported), an archive file is extracted into a staging folder, verified, and only then swapped into `DSH_HOME/kybernos/paquets/<name>`, and
+a release unpacked under the system temp folder (what the panel's « Update now » does, and deletes afterwards) is first copied there.
+`install` and `upgrade` re-point the links that still lead into an earlier archive's folder (or into a folder that is gone); a developer
+checkout (a git tree) is never re-pointed. Installing an older suite over a newer one works but says it is a version step back.
+`paquets/` is not pruned: old copies stay until someone removes them. `scripts/test-lifecycle-archive.mjs` (hermetic) covers all of it and
+`scripts/check-suite-update-tls.mjs` (live, needs `openssl`) replays the refused catalogues over a local https server.
 
 ## Routes
 

@@ -121,7 +121,7 @@ export function monterRoutes (webServer, hub, liens = {}) {
  *   POST /kybernos-hub/catalogue/refresh → ask the online (signed) catalogue; nothing is believed unless it verifies
  *   POST /kybernos-hub/update     → { confirm: true } — update the WHOLE suite from the verified release (202; poll the status)
  *   GET  /kybernos-hub/update/status → { etat: idle | telechargement | extraction | installation | termine | echec, … }
- * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub,
+ * deps: { catalogue, lireActivation(), ecrireActivation(obj), executer(argv), relancer(), hub, hebergement() (optional),
  *         cles(), versionSuite(), urlCatalogue(), lireCache(), ecrireCache({octets,signature}), telecharger(url,{max}),
  *         telechargerVers(url,{max}), extraire(fichier), executerArchive(racine), nettoyer(), racineDev(), plateforme }
  */
@@ -134,7 +134,7 @@ export function monterSuite (webServer, deps, liens = {}) {
   let tache = { etat: 'idle' }
   const evaluation = () => (enLigne ? evaluerCache({ lireCache: deps.lireCache, cles: deps.cles(), versionSuite: deps.versionSuite() }) : null)
   const distant = (ev) => (enLigne
-    ? etatDistant({ evaluation: ev, cle: deps.cles().length > 0, urlConfiguree: deps.urlCatalogue() !== '', plateforme: deps.plateforme, racineDev: deps.racineDev(), derniere })
+    ? etatDistant({ evaluation: ev, cle: deps.cles().length > 0, urlConfiguree: deps.urlCatalogue() !== '', plateforme: deps.plateforme, racineDev: deps.racineDev(), hebergement: typeof deps.hebergement === 'function' ? deps.hebergement() : null, derniere })
     : null)
   const suite = (req, res) => {
     if (req.method !== 'GET') return envoyer(res, 405, { ok: false, error: 'method-not-allowed' })
@@ -201,7 +201,7 @@ export function monterSuite (webServer, deps, liens = {}) {
     tache = { etat: 'telechargement', version: ev.doc.suite.version }
     // 202: the update takes minutes; the panel polls /update/status. `occupe` stays set until it ends, so no install or refresh runs under it.
     mettreAJour({
-      evaluation: ev, plateforme: deps.plateforme, racineDev: deps.racineDev(), telechargerVers: deps.telechargerVers, extraire: deps.extraire,
+      evaluation: ev, plateforme: deps.plateforme, racineDev: deps.racineDev(), hebergement: typeof deps.hebergement === 'function' ? deps.hebergement() : null, telechargerVers: deps.telechargerVers, extraire: deps.extraire,
       executer: deps.executerArchive, nettoyer: deps.nettoyer, progres: (etat) => { tache = { ...tache, etat } }
     }).then((r) => { tache = r.ok ? { etat: 'termine', version: r.version, relanceRequise: true } : { etat: 'echec', erreur: r.error, detail: r.detail ?? null } },
       (e) => { tache = { etat: 'echec', erreur: 'update-failed', detail: String(e?.message ?? e) } }).finally(() => { occupe = false })

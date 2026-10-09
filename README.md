@@ -58,11 +58,13 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`dsh-media-player`](packages/dsh-media-player/README.md) | Audio/video preview |
 | [`kybernos-cloud`](packages/kybernos-cloud/README.md) | Pairs DSH with a Kybernos Cloud account and imports the cloud model catalog |
 | [`kybernos-changes`](packages/kybernos-changes/README.md) | One chip under the composer: where this chat's work stands (changed, saved, on GitHub, in the project) and what to do next; Simple / Developer view |
+| [`kybernos-call`](packages/kybernos-call/README.md) | Voice calls from any chat session: a LiveKit room, a listening worker, the Call / Video buttons of team members |
 | [`kybernos-composio`](packages/kybernos-composio/README.md) | Composio integration: MCP connection and app catalog |
 | [`kybernos-flow`](packages/kybernos-flow/README.md) | Conversation flow without engine patches: auto-continue, queue-move |
 | [`kybernos-language`](packages/kybernos-language/README.md) | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
 | [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
 | [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
+| [`kybernos-terminal`](packages/kybernos-terminal/README.md) | Shell fences dressed as terminal windows, with a run button |
 | [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |
 | [`kybernos-sessions`](packages/kybernos-sessions/README.md) | Session and kyber memory status per folder |
 | [`kybernos-skills`](packages/kybernos-skills/README.md) | Skills catalog backed by DSH's native skill registry |

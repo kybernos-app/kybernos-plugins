@@ -197,6 +197,8 @@ window.__ModuleLoader__.load({
         .kbsd-range::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#e1502a;border:2px solid #fff;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.25)}
         .kbsd-outils{position:absolute;top:10px;left:10px;z-index:25;display:flex;gap:2px;background:rgba(255,255,255,.94);
           border-radius:9px;padding:3px;box-shadow:0 3px 12px rgba(28,42,28,.16)}
+        .kbsd-outils-idle{opacity:.55;transition:opacity .15s}
+        .kbsd-outils-idle:hover,.kbsd-outils-idle:focus-within{opacity:1}
         .kbsd-outil{border:0;background:transparent;font:inherit;font-size:10.5px;color:#6b6b68;padding:3px 8px;border-radius:6px;cursor:pointer}
         .kbsd-outil:hover{background:rgba(0,0,0,.05)}
         .kbsd-outil.on{background:#efefec;color:#1a1a1a;font-weight:650}
@@ -425,8 +427,21 @@ window.__ModuleLoader__.load({
               if (CTX !== null && SERVICE_SIDEBAR === null) {
                 try { SERVICE_SIDEBAR = CTX.get('sidebarRight') } catch { SERVICE_SIDEBAR = null }
               }
-              if (!SERVICE_SIDEBAR || typeof SERVICE_SIDEBAR.openTab !== 'function') return
-              try { SERVICE_SIDEBAR.openTab(KIND, {}) } catch { /* pas de session montée */ }
+              if (!SERVICE_SIDEBAR || typeof SERVICE_SIDEBAR.openTab !== 'function') return false
+              try { SERVICE_SIDEBAR.openTab(KIND, {}); return true } catch { return false /* no session mounted */ }
+            }
+
+            /** One step of the opening probe: `etat` = { versionVue, dejaOuvert }, `data` = the host's answer (null when
+             * unreachable), `ouvrir` = a function that opens the tab and says whether it did. Returns the new `etat`.
+             * A version is only remembered once its tab is really open: right after a page reload the sidebar service
+             * is not always there yet, and a failed attempt used to be swallowed (the flag was set before trying), so the
+             * tab then never opened by itself for the following decks. */
+            function pasSonde (etat, data, ouvrir) {
+              if (data === null || data === undefined) return etat
+              if (data.vide) return { versionVue: etat.versionVue, dejaOuvert: false }
+              if (etat.versionVue === data.version) return etat
+              if (etat.dejaOuvert || ouvrir() === true) return { versionVue: data.version, dejaOuvert: true }
+              return etat
             }
         
             function PanneauSlides () {
@@ -696,6 +711,9 @@ window.__ModuleLoader__.load({
                     },
                   },
                 })
+                // A double-click leaves the focus on the slide: without this the first keystrokes go nowhere until the
+                // user clicks into the small box. TipTap defers the focus itself, past the click that opened the box.
+                try { editeur.commands.focus('end') } catch { /* the editor is already gone */ }
                 return { host, editeur }
               }
         
@@ -927,8 +945,7 @@ window.__ModuleLoader__.load({
                               ]
                             : null,
                         ),
-                        S.outil !== 'voir'
-                          ? h('div', { className: 'kbsd-outils' },
+                        h('div', { className: 'kbsd-outils' + (S.outil === 'voir' ? ' kbsd-outils-idle' : '') },
                               outils.map(([cle, label]) => h('button', {
                                 key: cle, className: 'kbsd-outil' + (S.outil === cle ? ' on' : ''),
                                 onClick: () => { S.outil = cle; S.edition = null; S.editionRect = null; reveiller() },
@@ -943,8 +960,7 @@ window.__ModuleLoader__.load({
                               h('button', {
                                 className: 'kbsd-outil',
                                 onClick: () => { S.traits.set(S.vue, []); pousserTraits(S, S.vue); reveiller() },
-                              }, 'Tout effacer'))
-                          : null,
+                              }, 'Tout effacer')),
                       ),
                 ),
                 h('div', { className: 'kbsd-vignettes' },
@@ -1086,8 +1102,7 @@ window.__ModuleLoader__.load({
               // Sonde AU NIVEAU MODULE (motif kybernos-modeleur) : elle ouvre l'onglet
               // quand un deck arrive — le panneau ne peut pas le faire lui-même, son
               // propre sondage ne tourne qu'une fois monté.
-              let versionVue = null
-              let ONGLET_DEJA_OUVERT = false
+              let sonde = { versionVue: null, dejaOuvert: false }
               ctx.effect(() => {
                 const sonder = async () => {
                   let data = null
@@ -1096,9 +1111,7 @@ window.__ModuleLoader__.load({
                     const r = await fetch(url)
                     if (r.ok) data = await r.json()
                   } catch { /* l'hôte reviendra */ }
-                  if (data === null) return
-                  if (data.vide) { ONGLET_DEJA_OUVERT = false; return }
-                  if (versionVue !== data.version) { versionVue = data.version; if (!ONGLET_DEJA_OUVERT) { ONGLET_DEJA_OUVERT = true; ouvrirOnglet() } }
+                  sonde = pasSonde(sonde, data, ouvrirOnglet)
                 }
                 sonder()
                 const t = setInterval(sonder, 1200)
@@ -1115,7 +1128,7 @@ window.__ModuleLoader__.load({
               __test: {
                 normaliserDeck, normaliserSlide, budget, segments, texteVisible,
                 slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
-                progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide,
+                progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde,
               },
             }
       })(typeof __DSH_TIPTAP_NS !== 'undefined' ? __DSH_TIPTAP_NS : null)

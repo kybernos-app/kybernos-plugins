@@ -70,6 +70,62 @@ for (const k of ['memoKindFact', 'memoKindPreference', 'memoKindEvent', 'memoKin
   assert.ok(frKeys.has(k) && enKeys.has(k), 'cle dynamique manquante: ' + k)
 }
 sok(String(used.size) + ' cles litterales presentes en fr ET en (+4 construites dynamiquement)')
+// « Open the console in your browser » is gone: it asked the server for a link the old stack does not have (the tab opened, then closed with no word) and
+// it repeated « Teams settings ». The menu has ONE entry for the team console, and nothing in the client opens a tab for it.
+for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrowser", "ouvrirEspaceNavigateur", "window.open('', '_blank')"]) {
+  assert.ok(!clientSource.includes(needle), 'l entree « ouvrir dans le navigateur » ne doit plus exister: ' + needle)
+}
+assert.ok(clientSource.includes("entree('space-settings'"), 'l entree « Teams settings » reste')
+// The ONLY client call to the host's console-link route is the quota notice's button, and it asks the HOST to open the system browser (`open: true`): a tab opened by the
+// page and pointed at the link is « cross-site » and the server refuses it (« link expired »).
+assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length, 1, 'un seul appel client a /console/link : le bouton de la notice de quota')
+assert.ok(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/.test(clientSource), 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
+// The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
+for (const [needle, why] of [["wsNew: 'New team'", 'en: New team'], ["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
+  ["wsNew: 'Nouvelle équipe'", 'fr: Nouvelle équipe'], ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
+  assert.ok(clientSource.includes(needle), 'vocabulaire Team: ' + why)
+}
+for (const old of ["wsNew: 'New workspace'", "wsNewTitle: 'Create a workspace'", "wsNewName: 'Workspace name'", "wsNew: 'Nouvel espace'", "wsNewTitle: 'Créer un espace'"]) {
+  assert.ok(!clientSource.includes(old), 'ancien libellé « workspace » à la création: ' + old)
+}
+sok('Menu du compte : une seule entrée pour la console d équipe, création = Team (fr/en)')
+// Vocabulary (decided: the product speaks of TEAMS): no person-facing string of the cloud card says « workspace » / « espace », and the personal one is shown as « Personal » / « Personnel ».
+// The dictionaries are the only place such strings live; code, routes and comments keep the technical word.
+for (const [lang, block] of [['en', enBlock], ['fr', frBlock]]) {
+  const values = [...block.matchAll(/^ {8}[A-Za-z][A-Za-z0-9_]*: '((?:[^'\\]|\\.)*)'/gm)].map((m) => m[1])
+  const bad = values.filter((v) => /workspace|espace/i.test(v))
+  assert.deepEqual(bad, [], 'mot « workspace » / « espace » dans une chaine visible (' + lang + ') : on dit Team / équipe')
+}
+assert.ok(/wsPersonal: 'Personal'/.test(enBlock) && /wsPersonal: 'Personnel'/.test(frBlock), 'l espace personnel s affiche Personal / Personnel')
+assert.ok(clientSource.includes('nomAffiche(courant, t)') && clientSource.includes('nomAffiche(w, t)') && clientSource.includes('const nomAffiche = (w, t) =>'), 'la carte et la liste affichent le nom via nomAffiche, avec le traducteur de l appelant (Personal pour l espace personnel)')
+sok('vocabulaire Team : aucune chaine visible ne dit workspace / espace, l espace personnel = Personal / Personnel')
+// A refused creation always says so (with the server's code), and keeps the hosted page as an extra: never a dialog that silently does nothing.
+assert.ok(clientSource.includes("setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number'"), 'la creation refusee dit pourquoi (code serveur)')
+sok('creation d une equipe refusee : une phrase avec le code, la page hebergee reste proposee')
+// Page head (harmonisation audit, gap G8): the Account and the Data & privacy pages carry the same head as every other Settings page, a title and a sub-title
+// built with the classes the core plugin's single Settings head rule styles (.kb6-title / .kb8-sub), never a one-off style of their own.
+assert.ok(/const PageHead = \(props\) => h\('div', \{ className: 'kbpg-head' \},\s*h\('h2', \{ className: 'kb6-title' \}, props\.title\),\s*h\('p', \{ className: 'kb8-sub' \}, props\.sub\)\)/.test(clientSource), 'PageHead = h2.kb6-title + p.kb8-sub')
+assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('profCompte'\), sub: t\('accSub'\) \}\)/g) || []).length, 3, 'Account: the head is shown while loading, signed out and signed in')
+assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('dataNavLabel'\), sub: t\('dataSub'\) \}\)/g) || []).length, 2, 'Data & privacy: the head is shown signed out and signed in')
+assert.ok(/\.kbpg-head\{margin:0 0 6px\}/.test(clientSource), 'the head only adds the 6px that make the first card sit 20px under the sub-title')
+assert.equal(/\.kbpg-head[^{]*\{[^}]*font-size/.test(clientSource), false, 'the bundle sets no title size of its own: the shared Settings rule does')
+sok('Account and Data & privacy: same head (h2.kb6-title + p.kb8-sub) in every state, fr/en keys checked above')
+// Dead-code rider: the local Team page (`SpaceMain`, key `kybernos-cloud-space`: Plan / Usage / People / Billing / Synchronisation tabs) was removed as
+// unreachable. Its only doors were the last fallback of the « Teams settings » entry (behind the two bridges the mandatory master bundle sets
+// unconditionally) and the window event `kybernos-cloud:space`, which nothing in the repos dispatched. It stays removed: the component, its panel key,
+// its event, its tab list and helpers, and its strings in BOTH dictionaries (a dictionary line is also a line the Language page has to translate).
+for (const gone of ['SpaceMain', 'kybernos-cloud-space', "'kybernos-cloud:space'", 'const TABS = [', 'kbt-tabs', 'kbs-flip', 'ligneSync']) {
+  assert.equal(clientSource.includes(gone), false, 'removed with the local Team page, must not come back: ' + gone)
+}
+for (const cle of ['wsTabPlan', 'wsTabUsage', 'wsTabPeople', 'wsTabBilling', 'wsTabSync', 'wsPlanLabel', 'wsViewUsage', 'wsUsageNote', 'wsPeopleNote', 'wsBillingNote',
+  'syncTitle', 'syncNotServed', 'syncOn', 'syncOff', 'syncMemorySpace', 'syncSends', 'syncPull', 'syncPush', 'spaceAccount']) {
+  assert.equal((clientSource.match(new RegExp('^ {8}' + cle + ': ', 'gm')) || []).length, 0, cle + ' belonged to the local Team page and must not stay in a dictionary')
+}
+// The ways in the « Teams settings » entry has left: the console bridge, then the rich page of an older master; nothing else.
+assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 1)
+assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 1)
+assert.equal(/\.selectPanel\('/.test(clientSource), false, 'selectPanel only ever closes the profile page (selectPanel(null)): no call opens a panel by key')
+sok('page locale de l equipe : supprimee (composant, cle de panneau, evenement, onglets, 38 chaines fr/en)')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null
@@ -152,23 +208,30 @@ assert.equal(registered.options.id, 'kybernos-cloud')
 assert.equal(registered.options.order, 21)
 ok('bouton enregistre dans sidebar.footer.action (id=kybernos-cloud, order=21)')
 
-// La page de l'espace est PLEIN CADRE : enregistrée dans le slot `main` sous la
-// clé qu'ouvre layout.selectPanel — pas une surcouche.
-const page = registrations.filter((r) => r.options.name === 'main')[0]
-assert.ok(page !== undefined, 'la page de l espace doit etre enregistree dans le slot main')
-assert.equal(page.options.key, 'kybernos-cloud-space')
-assert.equal(typeof page.component, 'function')
-assert.equal(source.includes("selectPanel('kybernos-cloud-space')"), true, 'l engrenage doit ouvrir le panneau main')
-// Only the page's own body counts: the profile card, defined further down, legitimately owns a scrim.
-const spaceBody = source.slice(source.indexOf('const SpaceMain'), source.indexOf('SpaceMain.__testTabs'))
-assert.ok(spaceBody.length > 200, 'le corps de la page de l espace doit etre trouve')
-assert.equal(spaceBody.includes('kbc-scrim'), false, 'la page ne doit PAS etre une surcouche')
-ok('page de l espace enregistree dans le slot main (selectPanel, pas de surcouche)')
+// The only full-frame page this bundle still puts in the `main` slot is the profile page. The old local Team page (`SpaceMain`: Plan / Usage /
+// People / Billing / Synchronisation tabs, key `kybernos-cloud-space`) was removed as unreachable (dead-code rider): its only doors were the
+// last fallback of the « Teams settings » entry, behind two bridges the mandatory master bundle sets unconditionally, and a window event nothing
+// in the repos dispatched. The team console is the server-hosted one, opened by the master.
+const mains = registrations.filter((r) => r.options.name === 'main')
+assert.deepEqual(mains.map((r) => r.options.key), ['kybernos-cloud-profile'], 'the profile page is the only `main` page of the bundle')
+assert.equal(typeof mains[0].component, 'function')
+ok('slot main : la page profil seule (la page locale de l espace n existe plus)')
 
 assert.equal(inserted.length, 1)
 assert.ok(inserted[0].textContent.includes('.kbc-scrim'), 'le CSS de la carte doit etre injecte')
 assert.ok(inserted[0].textContent.includes('.kbf-profile'), 'le CSS de la rangee d identite doit etre injecte')
 ok('CSS injecte via styles.insert')
+
+// The two Settings pages of the account, rendered for real in their first (reading) state: each opens with the page head.
+for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile, preferences and instructions. They stay on this device.'], ['kybernos-data', 'Data &amp; privacy', 'Export your data, manage the device signed in here, or delete your account.']]) {
+  const reg = registrations.filter((r) => r.options.name === 'settings.section' && r.options.id === id)[0]
+  assert.ok(reg !== undefined, 'la section ' + id + ' doit etre enregistree')
+  const markup = renderToStaticMarkup(React.createElement(reg.component, null))
+  const head = '<div class="kbpg-head"><h2 class="kb6-title">' + title + '</h2><p class="kb8-sub">' + sub + '</p></div>'
+  assert.ok(markup.includes(head), id + ' : the page head is missing or changed — ' + markup.slice(0, 300))
+  assert.ok(markup.indexOf(head) < markup.indexOf('class="kbax-card') || markup.indexOf('class="kbax-card') < 0, id + ' : the head comes first')
+}
+ok('Account and Data & privacy pages open with the shared page head (title + sub-title)')
 
 // ── Rendu réel du composant (React) ─────────────────────────────────────────
 // L'état de connexion vient d'un effet fetch : au premier rendu la rangée est
@@ -317,56 +380,64 @@ const htmlConnecte = htmlDe(racineEl)
 // The unified card (04/10): ONE card carries the active space, "who · plan", the phone and the bell; a click opens the
 // account menu. No gear inside the row (DSH shows its own right beside it) and no menu until it is opened.
 assert.ok(htmlConnecte.includes('data-kb="workspace-card"'), 'la carte unifiee est la (un clic ouvre le menu)')
-assert.ok(htmlConnecte.includes('kbfp-cardname">My workspace<'), 'la carte montre l espace ACTIF')
-assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>MW<'), 'tuile d initiales de l espace')
-assert.ok(htmlConnecte.includes('dev · free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
+assert.ok(htmlConnecte.includes('kbfp-cardname">Personal<'), 'la carte montre l espace ACTIF (le personnel s affiche Personal)')
+assert.ok(htmlConnecte.includes('kbfp-tile') && htmlConnecte.includes('>PE<'), 'tuile d initiales de l espace (celles du nom affiche : Personal, pas My workspace)')
+assert.ok(htmlConnecte.includes('dev · Free'), 'sous-titre : qui · formule (partie locale de l email, pas un « — » muet)')
 assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')
 assert.equal(htmlConnecte.includes('kbfp-menu'), false, 'le menu n est pas rendu tant qu il n est pas ouvert')
 assert.equal(htmlConnecte.includes('kbf-wsgear'), false, 'aucun engrenage DANS la rangee du pied')
 assert.ok(htmlConnecte.includes('title="Notifications"'), 'la cloche est dans la carte')
 ok('carte unifiee : espace actif, qui · formule, mobile et cloche, menu ferme, aucun engrenage')
 
+// The meter of the card: the percent of the allowance that counts in the ACTIVE team, read from the host's /quota route. Nothing is drawn while the host has nothing to
+// say (the render above got the status JSON for /quota too: no windows, no meter), and a fresh read of 82% shows a bar, the figure and the sentence as its title.
+assert.equal(htmlConnecte.includes('workspace-card-usage'), false, 'sans fenetre de budget : aucun compteur sur la carte')
+// The first card's own read of the quota lands after its render: let it settle inside act before the next card is drawn.
+await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+racine.unmount()
+const statutConnecte = (await globalThis.fetch('/status')).json
+let quotaServi = { ok: true, workspace: { id: 'ws-1', name: 'My workspace', role: 'owner', personal: true }, payment_blocked: false, usage: [{ kind: 'member', window_seconds: 86400, scope: 'plan', used_percent: 82, exhausted: false, resets_at: null }] }
+let quotaLus = 0
+globalThis.fetch = async (url) => {
+  if (String(url).includes('/quota')) { quotaLus += 1; return { ok: true, status: 200, json: async () => quotaServi } }
+  return { ok: true, status: 200, json: statutConnecte }
+}
+const racineEl2 = element(doc)
+const racine2 = ReactClient.createRoot(racineEl2)
+await act(async () => {
+  racine2.render(createElement(registered.component, null))
+  await new Promise((r) => setTimeout(r, 20))
+})
+await act(async () => { await new Promise((r) => setTimeout(r, 20)) })
+const htmlCompteur = htmlDe(racineEl2)
+assert.ok(quotaLus >= 1, 'la carte lit le quota a l hote quand elle apparait')
+assert.ok(htmlCompteur.includes('data-kb="workspace-card-usage"') && htmlCompteur.includes('data-percent="82"') && htmlCompteur.includes('data-level="near"'), 'le compteur montre 82 % en ambre')
+assert.ok(htmlCompteur.includes('class="kbfp-usepct">82%<'), 'le chiffre est un pourcentage entier')
+assert.ok(htmlCompteur.includes('title="82% of your 24 hours allowance is used."'), 'la phrase derriere le compteur est son titre')
+assert.equal(/[$\u20ac]|token|_usd/i.test(htmlCompteur.slice(htmlCompteur.indexOf('workspace-card-usage'), htmlCompteur.indexOf('workspace-card-usage') + 400)), false, 'ni montant ni jeton sur la carte')
+racine2.unmount()
+ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase en titre, aucun montant)')
+
 
 // « Teams settings » is a NAMED entry of the account menu. It opens the console through a bridge the core plugin exposes,
-// then falls back to the rich space page, then to the local page: degrade, never break.
+// then falls back to the rich space page of the Kybernos panel (an older master): degrade, never break. There is no third, local page.
 assert.ok(source.includes("entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)"),
   'le menu doit porter une entree nommee pour les reglages de la team')
-for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace', "selectPanel('kybernos-cloud-space')"]) {
+for (const needle of ['window.__kbOpenWsConsole', 'window.__kbOpenWorkspace']) {
   assert.ok(source.includes(needle), 'repli de l entree Teams settings manquant: ' + needle)
 }
 assert.equal((source.match(/menuTeamsSettings:/g) || []).length, 2, 'menuTeamsSettings doit exister en fr ET en')
-ok('Teams settings : entree nommee du menu, pont vers la console puis deux replis, fr/en')
+ok('Teams settings : entree nommee du menu, pont vers la console puis un repli, fr/en')
 
-// « Open the console in your browser »: the page is the same one, where it can change things. DSH asks its host route for a single-use link (never the
-// device token in a URL), opens the tab INSIDE the click (a tab opened after the wait can be blocked) with no opener, and points it at the link; a refusal closes it.
-for (const needle of ["entree('space-browser', h(GlobeIcon", "callLocal('/console/link', 'POST'", "window.open('', '_blank')", 'onglet.opener = null', 'onSpaceBrowser: ouvrirEspaceNavigateur']) {
-  assert.ok(source.includes(needle), 'entree « ouvrir dans le navigateur » : element manquant: ' + needle)
-}
-assert.equal((source.match(/menuTeamsBrowser:/g) || []).length, 2, 'menuTeamsBrowser doit exister en fr ET en')
-ok('Ouvrir la console dans le navigateur : entree du menu, lien a usage unique demande a l hote, onglet ouvert dans le clic, fr/en')
 
-// Le câblage de la page : la liste des espaces, la route du choix, les cinq
-// directions inertes, et le lien vers la page hébergée.
+// Wiring that stays: the switcher (the list of teams, the choice route, the event another plugin can send) and the hosted-page link.
 for (const needle of [
   "callLocal('/space/active', 'POST'",
-  "'kybernos-cloud:space'",
   "'kybernos-cloud:switch'",
   "t('spaceUnknown')",
-  "t('syncNotServed')",
-  "t('wsTabPlan')",
-  "t('wsTabSync')",
 ]) {
-  assert.ok(source.includes(needle), 'cablage de la page d espace manquant: ' + needle)
+  assert.ok(source.includes(needle), 'cablage du selecteur d equipe manquant: ' + needle)
 }
-// Les cinq onglets de la maquette, dans l'ordre : la clé du panneau, la liste
-// des clés d'onglet, puis le dictionnaire de libellés (les cinq mêmes clés).
-assert.equal(source.includes("const TABS = ['plan', 'usage', 'people', 'billing', 'sync']"), true,
-  'les cinq onglets doivent etre declares dans l ordre de la maquette')
-const libelles = "{ plan: t('wsTabPlan'), usage: t('wsTabUsage'), people: t('wsTabPeople'), billing: t('wsTabBilling'), sync: t('wsTabSync') }"
-assert.equal(source.includes(libelles), true, 'le dictionnaire des libelles doit suivre le meme ordre')
-for (const cle of ['wsTabPlan', 'wsTabUsage', 'wsTabPeople', 'wsTabBilling', 'wsTabSync', 'wsPlanLabel', 'wsViewUsage']) {
-  assert.equal((source.match(new RegExp(cle + ':', 'g')) || []).length, 2, cle + ' doit exister en fr ET en')
-}
-ok('page de l espace : cinq onglets (Plan, Usage, People, Billing, Synchronisation) + fr/en')
+ok('selecteur d equipe : route du choix, evenement d ouverture, message d equipe inconnue')
 
 console.log('\n' + pass + ' verifications OK')

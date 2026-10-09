@@ -98,7 +98,7 @@
       "id": "kybernos-hub",
       "nom": "@local/kybernos-hub",
       "titre": "Suite",
-      "glyphe": "plug",
+      "glyphe": "suite",
       "famille": "base",
       "palier": "core",
       "version": "0.1.0",
@@ -165,8 +165,8 @@
         },
         "steps": [
           {
-            "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème, une couleur d’accent, un fond et une police.",
-            "en": "In “Essentials” (open by default), pick a mode, a theme, an accent color, a background and a font."
+            "fr": "Dans « Essentiel » (ouvert par défaut), choisissez un mode, un thème (livré ou à vous), un accent, un fond et une police.",
+            "en": "In “Essentials” (open by default), pick a mode, a theme (shipped or your own), an accent color, a background and a font."
           },
           {
             "fr": "« Verre et fond » règle transparence et flou une fois un fond choisi ; « Couleurs », « Texte et forme » et « Accessibilité » affinent.",
@@ -177,8 +177,8 @@
             "en": "“Animation”: choose the drawing and the words shown at the bottom of the chat while the agent works."
           },
           {
-            "fr": "« Partage » exporte votre thème (YAML, JSON ou CSS) ou importe un fichier .json ; « Tout rétablir » revient à l’apparence native de DSH.",
-            "en": "“Sharing” exports your theme (YAML, JSON or CSS) or imports a .json file; “Reset all” goes back to DSH’s native look."
+            "fr": "« Partage » garde vos thèmes (enregistrer, importer, exporter) ; « Galerie » en propose d’autres à essayer et installer.",
+            "en": "“Sharing” keeps your themes (save, import, export); “Gallery” offers more to try and install."
           }
         ],
         "where": {
@@ -1084,7 +1084,7 @@
       "id": "dsh-subagent-maison",
       "nom": "@local/dsh-subagent-maison",
       "titre": "Agent connectors",
-      "glyphe": "plug",
+      "glyphe": "agent",
       "famille": "connect",
       "palier": "core",
       "version": "0.1.0",
@@ -1348,7 +1348,7 @@
       "id": "kybernos-atlas",
       "nom": "@local/kybernos-atlas",
       "titre": "Atlas",
-      "glyphe": "route",
+      "glyphe": "map",
       "famille": "teams",
       "palier": "core",
       "version": "0.1.0",
@@ -1397,7 +1397,7 @@
       "id": "kybernos-changes",
       "nom": "@local/kybernos-changes",
       "titre": "Changes",
-      "glyphe": "flow",
+      "glyphe": "branch",
       "famille": "base",
       "palier": "core",
       "version": "0.1.0",
@@ -1439,6 +1439,51 @@
         "good": {
           "fr": "Elle ne s’affiche que dans un dossier de projet suivi par git, et remplace les quatre pastilles de suivi de Sessions ; désactivée, elles reviennent.",
           "en": "It only shows in a project folder tracked by git, and replaces the four tracking pills of Sessions; switch it off and they come back."
+        }
+      }
+    },
+    {
+      "id": "kybernos-call",
+      "nom": "@local/kybernos-call",
+      "titre": "Calls",
+      "glyphe": "phone",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 960,
+      "promesse": {
+        "fr": "Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.",
+        "en": "Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice."
+      },
+      "aide": {
+        "what": {
+          "fr": "Parlez à votre assistant, ou à un membre de votre équipe, à voix haute, depuis n'importe quelle session. L'assistant répond comme dans le chat, et ce qui se dit entre dans la discussion.",
+          "en": "Talk to your assistant, or to a team member, out loud, from any session. The assistant answers as it does in the chat, and what is said enters the conversation."
+        },
+        "steps": [
+          {
+            "fr": "Dans une session, cliquez le téléphone (voix) ou la caméra (vidéo) en haut à droite du chat. Pour un membre : Call ou Video sur sa carte.",
+            "en": "In a session, click the phone (voice) or the camera (video) at the top right of the chat. For a team member: Call or Video on its card."
+          },
+          {
+            "fr": "Autorisez le micro dans le navigateur. Le panneau d'appel s'ouvre en bas à droite : parlez, il répond à voix haute.",
+            "en": "Allow the microphone in the browser. The call panel opens at the bottom right: speak, it answers out loud."
+          },
+          {
+            "fr": "« Raccrocher » termine l'appel, ou il raccroche seul après un long silence.",
+            "en": "“Hang up” ends the call, or it hangs up by itself after a long silence."
+          }
+        ],
+        "where": {
+          "fr": "En haut à droite du chat de toute session · Réglages › Appels",
+          "en": "Top right of the chat of any session · Settings › Calls",
+          "page": true
+        },
+        "good": {
+          "fr": "Tout se règle dans Réglages › Appels : préréglage, clés, puis « Tout vérifier ». Si un appel ne peut pas démarrer, le panneau vous y conduit. Une voix enregistrée n'est clonée que si vous l'autorisez.",
+          "en": "Everything is set up in Settings › Calls: a preset, each provider's keys, then “Check everything”. If a call cannot start, the panel takes you there. A recorded voice is only cloned if you allow it."
         }
       }
     },
@@ -1517,8 +1562,8 @@
             "en": "Ask the agent for a diagram (if needed, say “in Mermaid”)."
           },
           {
-            "fr": "Sous le bloc de code étiqueté « mermaid », le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
-            "en": "Under the code block labelled “mermaid”, the diagram appears in your theme's colours; the raw code is hidden."
+            "fr": "Sous le bloc de code Mermaid, le schéma s'affiche aux couleurs de votre thème ; le code brut est masqué.",
+            "en": "Under the Mermaid code block, the diagram appears in your theme's colours; the raw code is hidden."
           },
           {
             "fr": "Le bouton « Code » sous le schéma montre le code ; « Diagramme » ramène le dessin.",
@@ -1530,8 +1575,8 @@
           }
         ],
         "where": {
-          "fr": "Dans le chat, sous un bloc de code « mermaid » (pas d'écran de réglages)",
-          "en": "In the chat, under a “mermaid” code block (no settings screen)",
+          "fr": "Dans le chat, sous un bloc de code Mermaid (pas d'écran de réglages)",
+          "en": "In the chat, under a Mermaid code block (no settings screen)",
           "page": false
         },
         "good": {
@@ -1615,6 +1660,51 @@
           "en": "SQL: one SELECT, WITH, PRAGMA or EXPLAIN statement"
         }
       ]
+    },
+    {
+      "id": "kybernos-terminal",
+      "nom": "@local/kybernos-terminal",
+      "titre": "Terminal",
+      "glyphe": "term",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 14,
+      "promesse": {
+        "fr": "Les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour les lancer.",
+        "en": "Command blocks in the chat as terminal windows, with a button to run them."
+      },
+      "aide": {
+        "what": {
+          "fr": "Habille les blocs de commandes du chat en fenêtres de terminal, avec un bouton pour lancer la commande et voir son résultat.",
+          "en": "Dresses the command blocks of the chat as terminal windows, with a button to run the command and see its result."
+        },
+        "steps": [
+          {
+            "fr": "Demandez à l'agent une commande à lancer : son bloc de code prend l'allure d'un terminal.",
+            "en": "Ask the agent for a command: its code block looks like a terminal window."
+          },
+          {
+            "fr": "Le bouton vert « Run » en haut du bloc exécute la commande sur votre ordinateur, sans demander confirmation.",
+            "en": "The green “Run” button at the top of the block runs the command on your computer, without asking first."
+          },
+          {
+            "fr": "Le résultat s'affiche sous le bloc ; la commande est arrêtée au bout de 30 secondes.",
+            "en": "The result appears under the block; the command is stopped after 30 seconds."
+          }
+        ],
+        "where": {
+          "fr": "Dans le chat, sur les blocs de commandes (pas d'écran de réglages)",
+          "en": "In the chat, on command blocks (no settings screen)",
+          "page": false
+        },
+        "good": {
+          "fr": "La commande s'exécute vraiment, avec vos droits, comme si vous la tapiez dans un terminal : relisez-la avant de cliquer. Le bouton ne marche que depuis votre session DSH ouverte.",
+          "en": "The command really runs, with your own rights, as if you typed it in a terminal: read it before you click. The button only works from your own signed-in DSH session."
+        }
+      }
     }
   ]
 }

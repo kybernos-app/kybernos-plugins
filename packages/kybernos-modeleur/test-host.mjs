@@ -69,7 +69,7 @@ const lireEtat = async (session) => {
   return u.json()
 }
 
-await definition.execute({ espace: '2d', prompt: 'un schéma de ligne de production' }, { agent: { id: 'session-t' } })
+await definition.execute({ espace: '2d', prompt: 'un schéma de ligne de production', ops: [{ op: 'line', x1: 0, y1: 0, x2: 4, y2: 4 }] }, { agent: { id: 'session-t' } })
 const etat = await lireEtat('session-t')
 ok('l\'état porte la version, le t0, la durée et l\'espace',
   Number.isInteger(etat.version) && Number.isInteger(etat.t0) && etat.dureeMs >= 1500 && etat.espace === '2d',
@@ -97,7 +97,7 @@ ok('modifier à travers un changement d\'espace repart en nouveau', vBasculé.mo
 
 ok('une session inconnue retombe sur la dernière commande',
   (await lireEtat('session-absente')).titre !== undefined)
-ok('un corps illisible ne casse pas la route', (await (await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', body: '{oops' })).json()).ok === true)
+ok('un corps illisible est refusé (400), il ne dépose pas de modèle vide', (await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', body: '{oops' })).status === 400)
 ok('une méthode non POST est refusée', (await fetch(`${base}/kybernos-modeleur/push`)).status === 405)
 ok('une origine étrangère est refusée',
   (await fetch(`${base}/kybernos-modeleur/state`, { headers: { Origin: 'https://evil.example' } })).status === 403)
@@ -158,6 +158,34 @@ const vAvantPush = etatAnnote.version
 await definition.execute({ espace: '3d', ops: [{ op: 'box', x: 0, y: 0, z: 0, w: 1, d: 1, h: 1 }] }, { agent: { id: 'session-t' } })
 ok('un nouveau modèle repart feuille neuve (ann vidée)',
   (await lireEtat('session-t')).ann.strokes.length === 0 && (await lireEtat('session-t')).version === vAvantPush + 1)
+
+// ── 2 ter. an empty call reopens the panel, it does not erase the model ─────
+// It used to replace the model, and the annotations drawn over it, by an empty one; a push with an unreadable
+// body did the same under the default session name, and became "the last model" for a panel naming no session.
+{
+  const SES = 'session-reouvre'
+  const sans = await definition.execute({}, { agent: { id: 'session-sans-modele' } })
+  ok('with no model to reopen, an empty call still answers ok', sans.ok === true)
+  await definition.execute({ espace: '3d', ops: [{ op: 'box', x: 0, y: 0, z: 0, w: 2, d: 2, h: 2 }, { op: 'box', x: 3, y: 0, z: 0, w: 2, d: 2, h: 2 }], titre: 'A garder' }, { agent: { id: SES } })
+  await fetch(`${base}/kybernos-modeleur/annote`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify({ sessionId: SES, strokes: [{ coul: '#2A6FD6', pts: [[0.1, 0.2], [0.4, 0.5]] }] }) })
+  const avantR = await lireEtat(SES)
+  const r = await definition.execute({}, { agent: { id: SES } })
+  const apresR = await lireEtat(SES)
+  ok('an empty call answers ok and says the panel was reopened', r.ok === true && /rouvert/.test(r.message), r.message)
+  ok('it keeps the model, its title and its version', apresR.ops.length === 2 && apresR.titre === 'A garder' && apresR.version === avantR.version, JSON.stringify([apresR.ops && apresR.ops.length, apresR.titre, apresR.version, avantR.version]))
+  ok('it keeps the strokes the user drew over it', Array.isArray(apresR.ann?.strokes) && apresR.ann.strokes.length === 1)
+  ok('it raises the reopen counter the panel watches', apresR.ouverture === avantR.ouverture + 1, `${avantR.ouverture} → ${apresR.ouverture}`)
+  ok('the agent can still read the strokes afterwards', (await definition.execute({ relire: true }, { agent: { id: SES } })).annotations.strokes.length === 1)
+  for (const [nom, corps] of [['unreadable', '{oops'], ['an empty object', '{}'], ['null', 'null'], ['a JSON array', '[]'], ['ops that is not an array', '{"ops":"x"}']]) {
+    const rep = await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: corps })
+    const j = await rep.json()
+    ok(`a push with ${nom} → 400 corps_illisible`, rep.status === 400 && j.ok === false && j.raison === 'corps_illisible', `${rep.status} ${JSON.stringify(j)}`)
+  }
+  const sansSession = await lireEtat()
+  ok('...and leaves no empty model behind: the state without a session is still the real one', sansSession.sessionId === SES && sansSession.ops.length === 2, JSON.stringify([sansSession.sessionId, sansSession.ops && sansSession.ops.length]))
+  const bonPush = await fetch(`${base}/kybernos-modeleur/push`, { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base }, body: JSON.stringify({ sessionId: SES, ops: [{ op: 'box', x: 0, y: 0, z: 0, w: 1, d: 1, h: 1 }] }) })
+  ok('a push with ops still works', bonPush.status === 200 && (await bonPush.json()).ok === true)
+}
 
 // ── 3. le montage cordis ────────────────────────────────────────────────────
 let outilVu = null

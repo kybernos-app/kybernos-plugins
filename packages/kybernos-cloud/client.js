@@ -58,18 +58,19 @@ window.__ModuleLoader__.load({
         workspaces: 'Teams',
         kybers: 'kybers',
         // ── l'espace : la rangée du pied devient un sélecteur, et sa page ──
-        spaceTitle: 'Espace de travail',
-        wsSwitchTitle: 'Changer d\'espace',
+        spaceTitle: 'Équipe',
+        wsSwitchTitle: 'Changer d\'équipe',
         wsSwitchSub: 'switch',
-        wsPageTitle: 'Mon espace',
-        wsPrev: 'Espace précédent',
-        wsNext: 'Espace suivant',
-        wsNew: 'Nouvel espace',
-        wsNewTitle: 'Créer un espace',
-        wsNewName: 'Nom de l\'espace',
+        wsPageTitle: 'Équipe',
+        wsPersonal: 'Personnel',
+        wsPrev: 'Équipe précédente',
+        wsNext: 'Équipe suivante',
+        wsNew: 'Nouvelle équipe',
+        wsNewTitle: 'Créer une équipe',
+        wsNewName: 'Nom de l\'équipe',
         wsNewCreate: 'Créer',
         wsNewHosted: 'Créer dans Kybernos',
-        wsNewErr: 'La création a été refusée par le serveur.',
+        wsNewErr: 'Le serveur a refusé de créer l\'équipe.',
         profTitle: 'Profil',
         profCompte: 'Compte',
         profParrain: 'Parrainage',
@@ -100,56 +101,15 @@ window.__ModuleLoader__.load({
         mobTitle: 'Télécharger l\'app mobile',
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
-        wsSettingsTitle: 'Réglage de l\'espace',
-        wsTabPlan: 'Plan',
-        wsTabUsage: 'Usage',
-        wsTabPeople: 'People',
-        wsTabBilling: 'Billing',
-        wsTabSync: 'Synchronisation',
-        wsPlanLabel: 'FORMULE ACTUELLE',
-        wsPlanPrice: '— par mois',
-        wsPlanSummary: 'Ce que cet espace porte :',
-        wsPlanVisible: 'espaces visibles depuis ce poste',
-        wsViewUsage: 'Voir l\'usage',
-        wsUsageTitle: 'Ce que ce poste sait de la consommation',
-        wsUsageNote: 'Le détail (crédits, appels, plafond de l\'espace) vit dans Kybernos : ici on n\'affiche que ce qui est déjà descendu.',
-        wsPeopleTitle: 'Qui travaille dans cet espace',
-        wsPeopleNote: 'L\'annuaire et les invitations vivent dans Kybernos — DSH ne les lit pas et n\'en invente aucun.',
-        wsBillingTitle: 'Paiement et factures',
-        wsBillingNote: 'La facturation vit dans Kybernos : rien n\'est modifiable depuis cet écran.',
+        wsSettingsTitle: 'Réglages d\'équipe',
         wsOpenHosted: 'Ouvrir dans Kybernos',
         wsClose: 'Fermer',
-        wsKybersOne: 'kyber',
-        wsKybersMany: 'kybers',
-        wsModelsOne: 'modèle',
-        wsModelsMany: 'modèles',
-        spaceSwitch: 'Changer d\'espace',
-        spaceActive: 'Espace actif',
+        spaceSwitch: 'Changer d\'équipe',
+        spaceActive: 'Équipe active',
         spaceSetup: 'Réglage de la synchronisation',
-        spaceAccount: 'Compte & appareils',
         spaceOpen: 'Ouvrir dans Kybernos',
         spaceMark: 'actif',
-        spaceUnknown: 'Espace inconnu — rien n\'a été changé.',
-        syncTitle: 'Synchronisation',
-        // Fail-closed : tant que le serveur ne sert pas la politique, on le DIT
-        // et les interrupteurs restent inertes (un interrupteur qui ne tient
-        // rien serait un mensonge).
-        syncNotServed: 'La politique de synchronisation n\'est pas encore servie par le serveur : les interrupteurs sont inactifs. Rien ne sort de cet espace en attendant.',
-        syncPull: 'Recevoir',
-        syncPush: 'Envoyer',
-        syncOn: 'Activé',
-        syncOff: 'Désactivé',
-        syncMemorySpace: 'Mémoire d\'espace',
-        syncMemorySpaceHint: 'Le savoir commun de l\'équipe — recevoir le descend, envoyer l\'enrichit.',
-        syncMemoryKybers: 'Mémoire des kybers',
-        syncMemoryKybersHint: 'Le savoir-faire d\'un rôle : une leçon suit le kyber, jamais le projet.',
-        syncSends: 'Envois explicites',
-        syncSendsHint: 'Artefacts et chats, un envoi à la fois, après un manifeste.',
-        syncDownTitle: 'Ce qui peut descendre',
-        syncUpTitle: 'Ce qui peut sortir',
-        syncUnknown: 'à lire dès que le serveur sert la politique',
-        syncNeverTitle: 'Ne sort jamais',
-        syncNeverBody: 'Le contenu des fichiers et des dossiers, les chats en masse, les secrets et les chemins de la machine.',
+        spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
         models: 'Modèles',
         modelsImport: 'Importer les modèles',
         modelsReimport: 'Réimporter',
@@ -215,17 +175,42 @@ window.__ModuleLoader__.load({
         // ── Refonte du pied (30/09, maquette « Menu ouvert ») ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
-        menuPlanCta: 'Passer à Pro',
+        menuPlanCta: 'Mettre à niveau',
         menuWebsite: 'Site web',
         menuHelp: 'Aide',
         menuUpdate: 'Mise à jour disponible',
         menuFeedback: 'Envoyer un retour',
         menuSettingsApp: 'Paramètres',
         menuTeamsSettings: 'Réglages d\'équipe',
-        menuTeamsBrowser: 'Ouvrir la console dans le navigateur',
+        quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
+        quotaPaymentAdmin: ' Réglez-le dans Facturation.',
+        quotaPaymentMember: ' Demandez à un propriétaire ou à un admin de {name}.',
+        quotaUsedUp: '{pct}\u00a0% de votre quota de {window}{cap} est utilisé — il revient {when}.',
+        quotaUsedUpTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé — il revient {when}.',
+        quotaNear: '{pct}\u00a0% de votre quota de {window}{cap} est utilisé.',
+        quotaNearTeam: '{pct}\u00a0% du quota de {window} de {name} est utilisé.',
+        quotaCap: ' (un plafond fixé dans {name})',
+        quotaBackMin: 'dans environ {n}\u00a0min',
+        quotaBackHours: 'dans environ {n}\u00a0h',
+        quotaBackDays: 'dans environ {n}\u00a0jours',
+        quotaBackUnknown: 'à mesure que l\'usage ancien sort de cette fenêtre, et il est entier {window} après votre dernier appel',
+        quotaMoreSolo: ' Passez à une formule supérieure ou ajoutez des crédits pour continuer maintenant.',
+        quotaMoreAdmin: ' Ajoutez des crédits ou relevez le plafond dans Formule et crédits.',
+        quotaMoreMember: ' Demandez plus de crédits à un propriétaire ou à un admin de {name}.',
+        quotaOpenConsole: 'Ouvrir Formule et crédits',
+        quotaClose: 'Fermer',
+        quotaWorkspace: 'cette équipe',
+        quotaHours: '{n} heures',
+        quotaDays: '{n} jours',
+        quotaMinutes: '{n} minutes',
+        mfaBlockedShort: 'Second facteur requis',
+        mfaBlockedLong: '{name} demande un second facteur à ses membres et vous n\'en avez pas : activez-en un dans votre compte Kybernos (Sécurité), puis rechargez.',
+        mfaGraceShort: 'Second facteur d\'ici le {date}',
+        mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'équipe vous sera fermée.',
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
         dataNavLabel: 'Données & confidentialité',
+        dataSub: 'Exportez vos données, gérez l\'appareil connecté ici ou supprimez votre compte.',
         dataLabel: 'Vos données',
         dataExportTitle: 'Export complet des données',
         dataExportSub: 'Toutes vos données (profil, conversations, transactions, artefacts) regroupées et envoyées par email sous forme de lien ZIP signé (7 jours).',
@@ -264,6 +249,7 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Soyez direct. Phrases courtes…',
         accSave: 'Enregistrer',
         accSaved: 'Enregistré ✓',
+        accSub: 'Votre profil, vos préférences et vos instructions. Ils restent sur cet appareil.',
         accAbout: 'À propos de vous',
         accPrefs: 'Préférences',
         accBirthPh: 'Choisir une date',
@@ -301,18 +287,19 @@ window.__ModuleLoader__.load({
         // vocabulaires pour la même chose.
         workspaces: 'Teams',
         kybers: 'kybers',
-        spaceTitle: 'Workspace',
-        wsSwitchTitle: 'Switch workspace',
+        spaceTitle: 'Team',
+        wsSwitchTitle: 'Switch team',
         wsSwitchSub: 'switch',
-        wsPageTitle: 'My workspace',
-        wsPrev: 'Previous workspace',
-        wsNext: 'Next workspace',
-        wsNew: 'New workspace',
-        wsNewTitle: 'Create a workspace',
-        wsNewName: 'Workspace name',
+        wsPageTitle: 'Team',
+        wsPersonal: 'Personal',
+        wsPrev: 'Previous team',
+        wsNext: 'Next team',
+        wsNew: 'New team',
+        wsNewTitle: 'Create a team',
+        wsNewName: 'Team name',
         wsNewCreate: 'Create',
         wsNewHosted: 'Create in Kybernos',
-        wsNewErr: 'The server refused the creation.',
+        wsNewErr: 'The server refused to create the team.',
         profTitle: 'Profile',
         profCompte: 'Account',
         profParrain: 'Referral',
@@ -343,53 +330,15 @@ window.__ModuleLoader__.load({
         mobTitle: 'Get the mobile app',
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
-        wsSettingsTitle: 'Workspace settings',
-        wsTabPlan: 'Plan',
-        wsTabUsage: 'Usage',
-        wsTabPeople: 'People',
-        wsTabBilling: 'Billing',
-        wsTabSync: 'Sync',
-        wsPlanLabel: 'CURRENT PLAN',
-        wsPlanPrice: '— per month',
-        wsPlanSummary: 'What this workspace holds:',
-        wsPlanVisible: 'workspaces visible from this machine',
-        wsViewUsage: 'View usage',
-        wsUsageTitle: 'What this machine knows about usage',
-        wsUsageNote: 'The detail (credits, calls, workspace cap) lives in Kybernos: only what already came down is shown here.',
-        wsPeopleTitle: 'Who works in this workspace',
-        wsPeopleNote: 'The directory and the invites live in Kybernos — DSH does not read them, and invents none.',
-        wsBillingTitle: 'Payment and invoices',
-        wsBillingNote: 'Billing lives in Kybernos: nothing can be changed from this screen.',
+        wsSettingsTitle: 'Team settings',
         wsOpenHosted: 'Open in Kybernos',
         wsClose: 'Close',
-        wsKybersOne: 'kyber',
-        wsKybersMany: 'kybers',
-        wsModelsOne: 'model',
-        wsModelsMany: 'models',
-        spaceSwitch: 'Switch workspace',
-        spaceActive: 'Active workspace',
+        spaceSwitch: 'Switch team',
+        spaceActive: 'Active team',
         spaceSetup: 'Sync settings',
-        spaceAccount: 'Account & devices',
         spaceOpen: 'Open in Kybernos',
         spaceMark: 'active',
-        spaceUnknown: 'Unknown workspace — nothing was changed.',
-        syncTitle: 'Sync',
-        syncNotServed: 'The server does not serve the sync policy yet: the switches are inactive. Nothing leaves this workspace meanwhile.',
-        syncPull: 'Receive',
-        syncPush: 'Send',
-        syncOn: 'On',
-        syncOff: 'Off',
-        syncMemorySpace: 'Workspace memory',
-        syncMemorySpaceHint: 'The team\'s shared knowledge — receiving brings it down, sending enriches it.',
-        syncMemoryKybers: 'Kyber memory',
-        syncMemoryKybersHint: 'Know-how of a role: a lesson follows the kyber, never the project.',
-        syncSends: 'Explicit sends',
-        syncSendsHint: 'Artifacts and chats, one send at a time, after a manifest.',
-        syncDownTitle: 'What may come down',
-        syncUpTitle: 'What may leave',
-        syncUnknown: 'readable as soon as the server serves the policy',
-        syncNeverTitle: 'Never leaves',
-        syncNeverBody: 'File and folder contents, chats in bulk, secrets and machine paths.',
+        spaceUnknown: 'Unknown team — nothing was changed.',
         models: 'Models',
         modelsImport: 'Import models',
         modelsReimport: 'Re-import',
@@ -454,15 +403,40 @@ window.__ModuleLoader__.load({
         footPairingAction: 'Show code',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
-        menuPlanCta: 'Upgrade to Pro',
+        menuPlanCta: 'Upgrade',
         menuWebsite: 'Website',
         menuHelp: 'Help',
         menuUpdate: 'Update available',
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
-        menuTeamsSettings: 'Teams settings',
-        menuTeamsBrowser: 'Open the console in your browser',
+        menuTeamsSettings: 'Team settings',
+        quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
+        quotaPaymentAdmin: ' Fix it in Billing.',
+        quotaPaymentMember: ' Ask an owner or admin of {name}.',
+        quotaUsedUp: '{pct}% of your {window} allowance{cap} is used — it comes back {when}.',
+        quotaUsedUpTeam: '{pct}% of the {window} allowance of {name} is used — it comes back {when}.',
+        quotaNear: '{pct}% of your {window} allowance{cap} is used.',
+        quotaNearTeam: '{pct}% of the {window} allowance of {name} is used.',
+        quotaCap: ' (a cap set in {name})',
+        quotaBackMin: 'in about {n}\u00a0min',
+        quotaBackHours: 'in about {n}\u00a0h',
+        quotaBackDays: 'in about {n}\u00a0days',
+        quotaBackUnknown: 'as older use leaves that window, and is whole again {window} after your last call',
+        quotaMoreSolo: ' Upgrade or add credits to go on now.',
+        quotaMoreAdmin: ' Add credits or raise the cap in Plan & Credits.',
+        quotaMoreMember: ' Ask an owner or admin of {name} for more credits.',
+        quotaOpenConsole: 'Open Plan & Credits',
+        quotaClose: 'Close',
+        quotaWorkspace: 'this team',
+        quotaHours: '{n} hours',
+        quotaDays: '{n} days',
+        quotaMinutes: '{n} minutes',
+        mfaBlockedShort: 'Second factor required',
+        mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
+        mfaGraceShort: 'Second factor by {date}',
+        mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the team is closed to you.',
         dataNavLabel: 'Data & privacy',
+        dataSub: 'Export your data, manage the device signed in here, or delete your account.',
         dataLabel: 'Your data',
         dataExportTitle: 'Full data export',
         dataExportSub: 'All your data (profile, conversations, transactions, artifacts) bundled and emailed as a signed ZIP link (7 days).',
@@ -501,6 +475,7 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Be direct. Short sentences…',
         accSave: 'Save',
         accSaved: 'Saved ✓',
+        accSub: 'Your profile, preferences and instructions. They stay on this device.',
         accAbout: 'About you',
         accPrefs: 'Preferences',
         accBirthPh: 'Pick a date',
@@ -603,17 +578,15 @@ window.__ModuleLoader__.load({
 .kbf-tightprofil{justify-content:center;width:auto;min-width:0;max-width:100%;padding:3px}
 .kbf-tightprofil .kbf-name,.kbf-tightprofil .kbf-plan,.kbf-tightprofil .kbf-dev{display:none}
 .kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-/* La page PLEIN CADRE (slot main) : elle vit dans la zone de contenu, pas
-   dans une surcouche. Mêmes onglets, mêmes contenus que la maquette. */
+/* Full-frame page (slot main): it lives in the content area, not in an overlay.
+   Only the profile page uses it now (the local Team page was removed as unreachable). */
 .kbp-page{display:flex;flex-direction:column;height:100%;overflow:auto;padding:24px 30px 40px;color:var(--dsw-alias-label-primary,#e9e9ee)}
 .kbp-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .kbp-title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
 .kbp-sub{display:block;margin-top:3px;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbp-back{margin-left:auto;padding:7px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer}
 .kbp-back:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbp-body{width:100%;max-width:900px;margin-top:4px}
 .kbp-card{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.22));border-radius:14px;padding:20px 22px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06))}
-.kbp-loading{padding:24px;color:var(--dsw-alias-label-tertiary,#8a8a93);font-size:13px}
 /* La page profil : menu de sections a gauche (comme dans Kybernos), contenu
    a droite. Le libelle actif porte un fond discret et une barre laterale. */
 .kbp-wrap{display:flex;gap:28px;align-items:flex-start;width:100%;max-width:900px;margin-top:18px}
@@ -625,16 +598,6 @@ window.__ModuleLoader__.load({
 .kbp-navbtn.kbp-navout:hover{background:rgba(242,90,90,.12);color:var(--dsw-alias-state-error-primary,#f25a5a)}
 .kbp-sec{flex:1 1 auto;min-width:0}
 
-/* La page : en-tête d'espace, onglets (style de la maquette), contenu. */
-.kbt-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 16px;border-bottom:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.18));padding-bottom:10px}
-.kbt-tab{padding:10px 18px;border:none;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8a93);font:inherit;font-size:13.5px;font-weight:500;cursor:pointer;white-space:nowrap}
-.kbt-tab[aria-selected="true"]{background:var(--dsw-alias-button-primary-fill,#3b82f6);color:var(--dsw-alias-label-primary-foreground,#fff);font-weight:600}
-.kbt-plan{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
-.kbt-label{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.1em;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbt-planline{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
-.kbt-planname{font-size:28px;font-weight:700;letter-spacing:-.02em}
-.kbt-planprice{font-size:15px;color:var(--dsw-alias-label-secondary,#8a8a93)}
-.kbt-plansum{font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary,#8a8a93)}
 .kbt-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
 .kbs-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
 .kbs-who{display:flex;align-items:center;gap:9px;min-width:0}
@@ -649,16 +612,7 @@ window.__ModuleLoader__.load({
 .kbs-sep{height:1px;margin:12px 0;background:var(--dsw-alias-border-l2,rgba(127,127,127,.22))}
 .kbs-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbs-row{display:flex;align-items:flex-start;gap:14px;padding:10px 0;border-top:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.16))}
-.kbs-row-txt{flex:1;min-width:0}
-.kbs-row-txt b{display:block;font-size:12.5px;font-weight:600;margin-bottom:2px}
-.kbs-row-txt span{display:block;font-size:11.5px;line-height:1.5;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbs-flip{display:inline-flex;gap:4px;flex:none;align-self:center}
-.kbs-flip button{min-width:64px;height:24px;padding:0 9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:999px;background:transparent;color:var(--dsw-alias-label-secondary,#8a8a93);font:inherit;font-size:11px;cursor:pointer}
-.kbs-flip button[aria-pressed="true"]{background:var(--dsw-alias-button-primary-fill,#3b82f6);border-color:var(--dsw-alias-button-primary-fill,#3b82f6);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbs-flip button:disabled{cursor:default;opacity:.55}
 .kbs-note{padding:9px 11px;border-radius:8px;border-left:3px solid var(--dsw-alias-state-warn-primary,#f59e0b);background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.10));font-size:11.5px;line-height:1.5}
-.kbs-recap{margin-top:12px;display:flex;flex-direction:column;gap:6px}
-.kbs-recap div{font-size:11.5px;color:var(--dsw-alias-label-secondary,#8a8a93)}
 .kbs-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .kbs-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
 .kbs-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
@@ -674,6 +628,13 @@ window.__ModuleLoader__.load({
 [class*="collapsed"] .kbf-offbtns .kbm-btn span{display:none}
 [class*="collapsed"] .kbf-offbtns .kbm-btn{padding:0 10px}
 .kbf-hint{margin:0;font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-secondary,#8a8a93)}
+.kbf-maj{display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:34px;padding:0 10px;border:1px solid color-mix(in srgb,#f5a524 40%,var(--dsw-alias-border-l2));border-radius:10px;background:color-mix(in srgb,#f5a524 9%,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;cursor:pointer;text-align:start}
+.kbf-maj:hover{background:color-mix(in srgb,#f5a524 16%,transparent)}
+.kbf-maj-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f5a524}
+.kbf-maj-t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550}
+.kbf-maj-v{flex:none;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;font-size:11.5px}
+[class*="collapsed"] .kbf-maj{justify-content:center;width:32px;height:32px;padding:0}
+[class*="collapsed"] .kbf-maj-t,[class*="collapsed"] .kbf-maj-v{display:none}
 .kbf-connect{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:34px;border:none;border-radius:10px;background:var(--dsw-alias-brand-primary,#4176e6);color:var(--dsw-alias-label-primary-foreground,#fff);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .kbf-connect:hover{filter:brightness(1.06)}
 /* Rail replié : l'identité se réduit à l'avatar, l'encart à une pastille. */
@@ -735,6 +696,14 @@ window.__ModuleLoader__.load({
 .kbfp-cardtxt{flex:1 1 auto;min-width:0;margin-inline-start:2px}
 .kbfp-cardname{display:block;font-size:14px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-cardsub{display:block;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* The allowance meter under the plan line: a thin bar and the percent used (never tokens or money); amber from 75 %, red when used up. */
+.kbfp-use{display:flex;align-items:center;gap:6px;margin-top:4px;min-width:0}
+.kbfp-usebar{flex:1 1 auto;min-width:24px;height:4px;border-radius:2px;background:var(--dsw-alias-border-l2);overflow:hidden}
+.kbfp-usefill{display:block;height:100%;border-radius:2px;background:var(--dsw-alias-label-secondary)}
+.kbfp-usepct{flex:none;min-width:30px;text-align:right;font-size:11px;line-height:1;font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary)}
+.kbfp-use[data-level="near"] .kbfp-usefill{background:var(--dsw-alias-state-warn-primary)}
+.kbfp-use[data-level="full"] .kbfp-usefill{background:var(--dsw-alias-state-error-primary)}
+.kbfp-use[data-level="full"] .kbfp-usepct{color:var(--dsw-alias-state-error-primary)}
 .kbfp-ico{flex:none;width:36px;height:36px;padding:0;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbfp-ico:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .kbfp-bellwrap{display:flex}
@@ -760,6 +729,11 @@ window.__ModuleLoader__.load({
 .kbfp-sub{position:fixed;width:248px;box-sizing:border-box;padding:8px;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-panel);color:var(--dsw-alias-label-primary);font-size:13px;animation:kbfp-menu-in .14s ease-out;z-index:63}
 @keyframes kbfp-menu-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion: reduce){.kbfp-menu{animation:none}}
+.kbqn{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:90;max-width:min(620px,92vw);box-sizing:border-box;display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:var(--dsw-alias-bg-layer-2,#2a2a30);box-shadow:var(--dsw-elevation-panel,0 8px 28px rgba(0,0,0,.35));color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px;line-height:1.45}
+.kbqn-text{flex:1 1 auto;min-width:0}
+.kbqn-act{flex:0 0 auto;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;border-radius:10px;padding:5px 10px;font:inherit;cursor:pointer;white-space:nowrap}
+.kbqn-act:hover{background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.14))}
+.kbqn-x{flex:0 0 auto;border:0;background:transparent;color:var(--dsw-alias-label-secondary,#a0a0aa);font-size:18px;line-height:1;cursor:pointer;padding:0 2px}
 .kbfp-mhead{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;box-sizing:border-box;padding:0 10px;border:none;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
 .kbfp-mhead:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbfp-mheadtxt{flex:1 1 auto;min-width:0}
@@ -820,6 +794,10 @@ window.__ModuleLoader__.load({
    and time zone picker. All in design-system tokens, nothing hard-coded
    except the avatar palette. */
 .kbax{display:flex;flex-direction:column;gap:14px;max-width:720px;position:relative}
+/* Page head of the Account and Data & privacy pages. The title (18/600) and the sub-title (13, 6px under it) are NOT styled here: the core plugin's
+   single Settings head rule styles every .kb6-title / .kb8-sub inside the dialog. Only the 6px below is ours: these pages stack their cards with a 14px
+   gap, and the first card has to sit 20px under the sub-title (as on the pages built with the core plugin's KbacHead). */
+.kbpg-head{margin:0 0 6px}
 .kbax-card{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
 .kbax-hero{flex-direction:row;align-items:center;gap:18px}
 .kbax-avwrap{position:relative;flex:none}
@@ -1037,6 +1015,20 @@ window.__ModuleLoader__.load({
     ], props)
 
     /** Initiales pour l'avatar : deux lettres au plus, jamais vides. */
+    /** The plan to show for the ACTIVE space. The host reads it from the server (`state.space_plan`); the account's own word
+     *  (`user.plan`, « team » as soon as the person is in any team) is only the fallback when that read is not there. `free` is
+     *  true for a space with no paid plan: the only case that is offered « Upgrade ». Never the raw lowercase key of an API. */
+    // The name a person sees for a workspace: the personal one is « Personal » (the server stores it as « My workspace »), a team keeps its own name. `t` is the
+    // translator of the caller (this helper lives outside the component that owns it).
+    const nomAffiche = (w, t) => (w !== null && typeof w === 'object' && (w.personal === true || w.name === 'My workspace') ? t('wsPersonal') : (w !== null && typeof w === 'object' && typeof w.name === 'string' ? w.name : ''))
+    const planDeEspace = (state, user) => {
+      const sp = state !== null && state !== undefined && state.space_plan !== undefined && state.space_plan !== null && typeof state.space_plan === 'object' ? state.space_plan : null
+      const cap = (m) => (typeof m === 'string' && m.trim() !== '' ? m.trim().charAt(0).toUpperCase() + m.trim().slice(1) : null)
+      if (sp !== null) return { label: cap(sp.label), free: sp.key === 'free' || sp.key === 'none' }
+      const brut = user !== null && user !== undefined && typeof user.plan === 'string' ? user.plan.trim() : ''
+      return { label: cap(brut), free: brut.toLowerCase() === 'free' }
+    }
+
     const initiales = (nom, email) => {
       const nomPropre = typeof nom === 'string' ? nom.trim() : ''
       const local = typeof email === 'string' && email.indexOf('@') > 0 ? email.slice(0, email.indexOf('@')) : ''
@@ -1086,6 +1078,106 @@ window.__ModuleLoader__.load({
     const kbAccWrite = (valeur) => {
       try { window.localStorage.setItem(KB_ACC_KEY, JSON.stringify(valeur)); return true } catch (e) { return false }
     }
+
+    // <quota-notice-text>
+    // DSH answers every refused model call with the same fixed words (« Request quota exhausted »): a window used up, a cap an admin set, a failed payment. This says
+    // what stopped the person, when it comes back and how to get more, from the server's facts for the active space. The allowance is always a PERCENTAGE of the window
+    // (the server's `used_percent`, relayed by the host as `usage`): never tokens, never dollars. Pure: facts and a translator in, a sentence out.
+    // `null` means no fact explains it (the server did not answer, or nothing is used up or close to it): the caller then keeps DSH's own words.
+    const quotaFill = (text, values) => String(text).replace(/\{(\w+)\}/g, (m, k) => (values[k] !== undefined ? String(values[k]) : m))
+    const quotaWindowLabel = (seconds, t) => {
+      const n = Number(seconds)
+      if (n === 86400) return quotaFill(t('quotaHours'), { n: 24 })
+      if (n > 0 && n % 86400 === 0) return quotaFill(t('quotaDays'), { n: n / 86400 })
+      if (n > 0 && n % 3600 === 0) return quotaFill(t('quotaHours'), { n: n / 3600 })
+      return quotaFill(t('quotaMinutes'), { n: Math.max(1, Math.round(n / 60)) })
+    }
+    // From this share of a window on, the notice says so even when nothing is used up yet.
+    const QUOTA_NEAR_PERCENT = 75
+    // « in about 3 h »: when a window that is used up has room again, from the server's time. Null when the server gave none (or one already past).
+    const quotaWhen = (iso, now, t) => {
+      const ms = typeof iso === 'string' ? Date.parse(iso) - now : NaN
+      if (!(ms > 0)) return null
+      const minutes = Math.ceil(ms / 60000)
+      if (minutes < 60) return quotaFill(t('quotaBackMin'), { n: minutes })
+      const hours = Math.round(minutes / 60)
+      return hours < 48 ? quotaFill(t('quotaBackHours'), { n: hours }) : quotaFill(t('quotaBackDays'), { n: Math.round(hours / 24) })
+    }
+    // The windows the host relayed, each with its percent; anything unreadable is left out.
+    const quotaWindows = (info) => (Array.isArray(info.usage) ? info.usage : [])
+      .filter((w) => w !== null && typeof w === 'object' && (w.kind === 'member' || w.kind === 'pool') && Number.isFinite(w.window_seconds) && Number.isFinite(w.used_percent))
+    // The window that turns calls away now. Calls are refused until EVERY used-up window has room again, so the one to name is the one that opens LAST (the later time the
+    // server gave, else the longer window), not the one that frees first; on a tie the person's own before the team's pool. The web app and the console name it the same way.
+    const quotaOpensAt = (w) => { const at = typeof w.resets_at === 'string' ? Date.parse(w.resets_at) : NaN; return Number.isFinite(at) ? at : 0 }
+    const quotaBlocking = (windows) => windows.filter((w) => w.exhausted === true)
+      .sort((a, b) => quotaOpensAt(b) - quotaOpensAt(a) || b.window_seconds - a.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))[0] || null
+    // The window closest to being used up (the longer one on a tie). Null for an empty list.
+    const quotaMostUsed = (windows) => windows.slice().sort((a, b) => b.used_percent - a.used_percent || b.window_seconds - a.window_seconds)[0] || null
+    const quotaPaymentText = (name, admin, t) => quotaFill(t('quotaPayment'), { name }) + (admin ? t('quotaPaymentAdmin') : quotaFill(t('quotaPaymentMember'), { name }))
+    // One window in a sentence: « 82% of your 24 hours allowance is used. », and for a used-up one « 100% of your 5 hours allowance is used — it comes back in about 3 h. ».
+    // A window of the team's pool is named after the team, a cap an admin set says where it was set.
+    const quotaWindowSentence = (w, name, t, now) => {
+      const team = w.kind === 'pool'
+      const window = quotaWindowLabel(w.window_seconds, t)
+      const cap = !team && w.scope === 'team' ? quotaFill(t('quotaCap'), { name }) : ''
+      if (w.exhausted !== true) return quotaFill(t(team ? 'quotaNearTeam' : 'quotaNear'), { pct: w.used_percent, window, cap, name })
+      const when = quotaWhen(w.resets_at, now, t) || quotaFill(t('quotaBackUnknown'), { window })
+      return quotaFill(t(team ? 'quotaUsedUpTeam' : 'quotaUsedUp'), { pct: 100, window, cap, name, when })
+    }
+    const quotaNoticeText = (info, t, now = Date.now()) => {
+      if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
+      const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
+      const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
+      const admin = ws.role === 'owner' || ws.role === 'admin'
+      const shared = ws.personal !== true
+      if (info.payment_blocked === true) return { text: quotaPaymentText(name, admin, t), action: admin }
+      const windows = quotaWindows(info)
+      const out = quotaBlocking(windows)
+      // Nothing used up: a gentle word when one window is close to it, nothing at all otherwise (the failing provider is another one).
+      const w = out !== null ? out : quotaMostUsed(windows.filter((x) => x.used_percent >= QUOTA_NEAR_PERCENT))
+      if (w === null) return null
+      const more = out === null ? '' : (shared ? (admin ? t('quotaMoreAdmin') : quotaFill(t('quotaMoreMember'), { name })) : t('quotaMoreSolo'))
+      return { text: quotaWindowSentence(w, name, t, now) + more, action: !shared || admin }
+    }
+    // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
+    // team's pool, a member and a personal space their own; a window that turns calls away is always the one shown, and a blocked payment reads 100%. Null: nothing to show
+    // (unlimited, or the server did not answer).
+    const quotaMeterOf = (info, t, now = Date.now()) => {
+      if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
+      const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
+      const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
+      const admin = ws.role === 'owner' || ws.role === 'admin'
+      if (info.payment_blocked === true) return { percent: 100, level: 'full', title: quotaPaymentText(name, admin, t) }
+      const windows = quotaWindows(info)
+      const poolFirst = ws.personal !== true && admin
+      const pool = windows.filter((x) => x.kind === 'pool')
+      const own = windows.filter((x) => x.kind === 'member')
+      const preferred = poolFirst ? pool : own
+      const w = quotaBlocking(windows) || quotaMostUsed(preferred.length > 0 ? preferred : (poolFirst ? own : pool))
+      if (w === null) return null
+      // Red only while calls are turned away; 100% of an allowance that a top-up balance lifts still lets them through (amber).
+      const level = w.exhausted === true ? 'full' : w.used_percent >= QUOTA_NEAR_PERCENT ? 'near' : 'ok'
+      return { percent: w.exhausted === true ? 100 : w.used_percent, level, title: quotaWindowSentence(w, name, t, now) }
+    }
+    // </quota-notice-text>
+    // How often the card's meter reads the allowance again while it is on screen (it also reads on focus and after a refusal).
+    const QUOTA_METER_REFRESH_MS = 120000
+
+    // <mfa-note-text>
+    // A workspace that asks its members for a second factor: inside the grace it says by when, after it the person is turned away (DSH can only say « API key is invalid »
+    // to them). `mfa` is what the host read for the active space (`space_plan.mfa`), `fmt` formats a date. Pure.
+    const mfaNoteText = (mfa, name, t, fmt) => {
+      if (mfa === null || mfa === undefined || typeof mfa !== 'object') return null
+      const who = typeof name === 'string' && name !== '' ? name : t('quotaWorkspace')
+      if (mfa.state === 'blocked') return { short: t('mfaBlockedShort'), long: quotaFill(t('mfaBlockedLong'), { name: who }) }
+      if (mfa.state === 'grace') {
+        const date = typeof mfa.ends === 'string' ? fmt(mfa.ends) : null
+        if (date === null || date === undefined) return null
+        return { short: quotaFill(t('mfaGraceShort'), { date }), long: quotaFill(t('mfaGraceLong'), { name: who, date }) }
+      }
+      return null
+    }
+    // </mfa-note-text>
 
     return {
       // On ne déclare QUE `slots` (seul service indispensable) : `locale` est
@@ -1233,6 +1325,8 @@ window.__ModuleLoader__.load({
           // parrainage chargé paresseusement, seulement en mode page.
           const [sect, setSect] = React.useState('compte')
           const [referral, setReferral] = React.useState({ phase: 'idle' })
+          // The terms and privacy addresses of the active server (`/kybernos-cloud/legal`): the new server hosts no /terms or /privacy page.
+          const [legal, setLegal] = React.useState(null)
           const [refCopied, setRefCopied] = React.useState(false)
 
           const refCharge = React.useRef(false)
@@ -1243,6 +1337,9 @@ window.__ModuleLoader__.load({
             callLocal('/referral', 'GET')
               .then((r) => { if (liveRef.current === true) setReferral({ phase: 'ready', data: r }) })
               .catch(() => { if (liveRef.current === true) setReferral({ phase: 'error' }) })
+            callLocal('/legal', 'GET')
+              .then((r) => { if (liveRef.current === true && r !== null && r.ok === true) setLegal({ terms: r.terms, privacy: r.privacy }) })
+              .catch(() => { /* no legal links: the section says so */ })
           }, [props.page, view.phase])
 
           const memoMap = () => {
@@ -1293,6 +1390,13 @@ window.__ModuleLoader__.load({
               const res = await callLocal('/poll', 'POST')
               if (res.connected === true) return settle({ phase: 'connected', state: res.state })
               if (res.status === 'pending') return
+              // The host keeps the pairing through a rate limit, a 5xx, a network drop or a page that is not the server's: try again
+              // on the next tick instead of showing an error that the next tick would have cleared.
+              if (res.ok === false && (res.error === 'reseau' || res.error === 'trop_de_demandes' || res.error === 'reponse_illisible' || res.error === 'reponse illisible')) {
+                const until = view.pairing !== undefined && view.pairing !== null ? Date.parse(view.pairing.expires_at) : NaN
+                if (Number.isFinite(until) && until < Date.now()) return settle({ phase: 'error', error: res.error })
+                return
+              }
               if (res.status === 'denied') return settle({ phase: 'disconnected', note: 'denied' })
               if (res.status === 'expired') return settle({ phase: 'disconnected', note: 'expired' })
               settle({ phase: 'error', error: res.error || 'reseau' })
@@ -1713,7 +1817,7 @@ window.__ModuleLoader__.load({
                       ? h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: () => { void copier() } }, refCopied === true ? t('refCopied') : t('refCopy'))
                       : null,
                     web !== null
-                      ? h('a', { className: 'kbs-link', href: web + '/referral', target: '_blank', rel: 'noreferrer' }, t('refOpen'))
+                      ? h('a', { className: 'kbs-link', href: web + '/account', target: '_blank', rel: 'noreferrer' }, t('refOpen'))
                       : null))
               } else if (sect === 'apparence') {
                 let pack = null
@@ -1774,20 +1878,21 @@ window.__ModuleLoader__.load({
                           h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPush(false) }, t('memoLessons'))),
                         memoNote !== null ? h('div', { className: 'kbc-note' }, String(memoNote)) : null,
                         web !== null
-                          ? h('div', { className: 'kbc-note' }, h('a', { className: 'kbs-link', href: web + '/workspace', target: '_blank', rel: 'noreferrer' }, t('wsOpenHosted')))
+                          ? h('div', { className: 'kbc-note' }, h('a', { className: 'kbs-link', href: web + '/workspace-console', target: '_blank', rel: 'noreferrer' }, t('wsOpenHosted')))
                           : null))
               } else {
                 section = h('div', { className: 'kbp-card kbp-sec' },
                   h('div', { className: 'kbs-sect' }, t('supTitle')),
                   h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('supNote')),
-                  web === null
+                  // Only what the server publishes (GET /v1/public/legal): a document it does not configure has no row; there is no support page.
+                  (legal === null || (legal.terms === null && legal.privacy === null))
                     ? h('div', { className: 'kbc-note' }, t('none'))
                     : h('div', { className: 'kbc-rows' },
-                      h(Row, { label: t('supSupport'), value: web + '/support' }),
-                      h(Row, { label: t('supPrivacy'), value: web + '/privacy' }),
-                      h(Row, { label: t('supTerms'), value: web + '/terms' })),
+                      legal.privacy === null ? null : h(Row, { key: 'privacy', label: t('supPrivacy'), value: legal.privacy.url }),
+                      legal.terms === null ? null : h(Row, { key: 'terms', label: t('supTerms'), value: legal.terms.url })),
                   h('div', { className: 'kbc-actions' },
-                    web === null ? null : h('a', { className: 'kbs-link', href: web + '/support', target: '_blank', rel: 'noreferrer' }, t('supSupport'))))
+                    legal !== null && legal.terms !== null ? h('a', { className: 'kbs-link', href: legal.terms.url, target: '_blank', rel: 'noreferrer' }, t('supTerms')) : null,
+                    legal !== null && legal.privacy !== null ? h('a', { className: 'kbs-link', href: legal.privacy.url, target: '_blank', rel: 'noreferrer' }, t('supPrivacy')) : null))
               }
 
               contenu = h('div', { className: 'kbp-wrap' },
@@ -1912,7 +2017,7 @@ window.__ModuleLoader__.load({
                     onClick: () => { void choisir(w && w.id) },
                   },
                   h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
-                  h('span', { className: 'kbs-name' }, (w && w.name) || t('none')),
+                  h('span', { className: 'kbs-name' }, w ? nomAffiche(w, t) || t('none') : t('none')),
                   h('span', { className: 'kbs-mark' }, on
                     ? t('spaceMark')
                     : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : '')))
@@ -1951,8 +2056,9 @@ window.__ModuleLoader__.load({
             try { res = await callLocal('/space/create', 'POST', { name: propre }) } catch (e) { res = null }
             setBusy(false)
             if (res !== null && res.ok === true) { props.onCreated(); props.onClose(); return }
-            if (res !== null && typeof res.web_url === 'string' && res.web_url !== '') { setHosted(res.web_url); return }
-            setErreur(t('wsNewErr'))
+            // Never a dialog that silently does nothing: the sentence says it was refused (with the server's code when there is one), and the hosted page stays offered.
+            if (res !== null && typeof res.web_url === 'string' && res.web_url !== '') setHosted(res.web_url)
+            setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number' && res.status > 0 ? ' (' + String(res.status) + ')' : ''))
           }
 
           return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
@@ -2059,9 +2165,11 @@ window.__ModuleLoader__.load({
           const espaces = Array.isArray(st.workspaces) ? st.workspaces : []
           const actif = typeof st.active_workspace_id === 'string' ? st.active_workspace_id : null
           const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-          const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
-          const plan = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
-          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
+          const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
+          const planInfo = planDeEspace(st, user)
+          const plan = planInfo.label !== null ? planInfo.label : t('none')
+          // The host reports the active server's web address in every connected state; with none, nothing is opened (never a literal host).
+          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : ''
 
           const switchPair = React.useState(false)
           const switchOpen = switchPair[0]
@@ -2144,7 +2252,7 @@ window.__ModuleLoader__.load({
             opts !== undefined && typeof opts.tail === 'string' ? h('span', { className: 'kbfp-mtail' }, opts.tail) : null,
             opts !== undefined && opts.ext === true ? h('span', { className: 'kbfp-mext', 'aria-hidden': 'true' }, h(ExtIcon, { size: 16 })) : null)
 
-          const ouvrirWeb = () => { try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
+          const ouvrirWeb = () => { if (web === '') return; try { window.open(web, '_blank', 'noopener') } catch (e) { /* ouverture impossible */ } }
           const envoyer = (nom) => { try { window.dispatchEvent(new Event('kybernos:menu:' + nom)) } catch (e) { /* Event absent */ } }
 
           // Blocks separated by a rule: Teams (space, plan, team settings) ·
@@ -2171,11 +2279,10 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbfp-mplan' },
                 h('div', { className: 'kbfp-mplanline' },
                   h('span', { className: 'kbfp-mplanname' }, plan),
-                  h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')))),
+                  // « Upgrade » only where there is something to upgrade from: a paying person, or a Team, is not offered it.
+                  planInfo.free === true ? h('button', { type: 'button', className: 'kbfp-mcta', 'data-kb': 'menu-plan-cta', onClick: ouvrirWeb }, t('menuPlanCta')) : null)),
               // "Teams settings" = the former "Workspace settings" (same action).
-              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace),
-              // The same console in the browser, where it can change things (here it is read-only): the server makes a single-use link for it.
-              entree('space-browser', h(GlobeIcon, { size: 18 }), t('menuTeamsBrowser'), props.onSpaceBrowser, { ext: true })),
+              entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
@@ -2228,124 +2335,6 @@ window.__ModuleLoader__.load({
               : null)
         }
 
-        // ── LA PAGE DE L'ESPACE, PLEIN CADRE (slot main) ─────────────────────
-        // Elle ne vit PAS dans une surcouche : `layout.selectPanel('kybernos-cloud-space')`
-        // ouvre la zone de contenu, comme les pages du plugin Kybernos. Cinq
-        // onglets (Plan, Usage, People, Billing, Synchronisation) ; ce qui n'est
-        // pas lisible depuis DSH est NOMMÉ et renvoyé à Kybernos.
-        const TABS = ['plan', 'usage', 'people', 'billing', 'sync']
-
-        const SpaceMain = () => {
-          const [etat, setEtat] = React.useState(null)
-          const [onglet, setOnglet] = React.useState('plan')
-          const [erreur, setErreur] = React.useState(false)
-          const vivant = React.useRef(true)
-          React.useEffect(() => () => { vivant.current = false }, [])
-          React.useEffect(() => {
-            const lire = async () => {
-              let res = null
-              try { res = await callLocal('/status', 'GET') } catch (e) { res = null }
-              if (vivant.current !== true) return
-              if (res !== null && res.connected === true) setEtat(res.state !== undefined && res.state !== null ? res.state : {})
-              else setErreur(true)
-            }
-            void lire()
-          }, [])
-
-          const libelle = { plan: t('wsTabPlan'), usage: t('wsTabUsage'), people: t('wsTabPeople'), billing: t('wsTabBilling'), sync: t('wsTabSync') }
-          const fermer = () => { try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel(null) } catch (e) { } }
-
-          if (etat === null) {
-            return h('div', { className: 'kbp-page' },
-              h('div', { className: 'kbp-head' }, h('h2', { className: 'kbp-title' }, t('spaceTitle'))),
-              h('div', { className: 'kbp-loading' }, erreur === true ? t('spaceUnknown') : t('loading')))
-          }
-
-          const user = etat.user !== undefined && etat.user !== null ? etat.user : {}
-          const espaces = Array.isArray(etat.workspaces) ? etat.workspaces : []
-          const actif = typeof etat.active_workspace_id === 'string' ? etat.active_workspace_id : null
-          const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-          const nom = courant !== null && courant.name ? courant.name : t('spaceTitle')
-          const formule = typeof user.plan === 'string' && user.plan !== '' ? user.plan : t('none')
-          const modele = etat.models !== undefined && etat.models !== null ? etat.models : null
-          const nbModeles = modele !== null && typeof modele.count === 'number' ? modele.count : 0
-          const nbKybers = courant !== null && typeof courant.kyber_count === 'number' ? courant.kyber_count : 0
-          const web = typeof etat.web_url === 'string' && etat.web_url !== '' ? etat.web_url : null
-          const lienHosted = (chemin, libelleLien) => (web === null ? null : h('a', {
-            className: 'kbs-link', href: web + chemin, target: '_blank', rel: 'noreferrer',
-          }, libelleLien))
-
-          const flip = (cle) => h('span', { className: 'kbs-flip', role: 'group' },
-            h('button', { type: 'button', 'aria-pressed': 'false', disabled: true, key: cle + '-on' }, t('syncOn')),
-            h('button', { type: 'button', 'aria-pressed': 'true', disabled: true, key: cle + '-off' }, t('syncOff')))
-          const ligneSync = (cle, titre, aide) => h('div', { className: 'kbs-row', key: cle },
-            h('span', { className: 'kbs-row-txt' }, h('b', null, titre), h('span', null, aide)), flip(cle))
-
-          const corps = () => {
-            if (onglet === 'plan') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbt-head' },
-                  h('span', { className: 'kbt-plan' },
-                    h('span', { className: 'kbt-label' }, t('wsPlanLabel')),
-                    h('span', { className: 'kbt-planline' },
-                      h('span', { className: 'kbt-planname' }, formule),
-                      h('span', { className: 'kbt-planprice' }, t('wsPlanPrice'))),
-                    h('span', { className: 'kbt-plansum' },
-                      t('wsPlanSummary') + ' ' + String(nbKybers) + ' '
-                      + (nbKybers === 1 ? t('wsKybersOne') : t('wsKybersMany')) + ', '
-                      + String(espaces.length) + ' ' + t('wsPlanVisible') + '.')),
-                  h('button', { type: 'button', className: 'kbs-link', onClick: () => setOnglet('usage') }, t('wsViewUsage'))))
-            }
-            if (onglet === 'usage') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbs-sect' }, t('wsUsageTitle')),
-                h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('wsUsageNote')),
-                h(Row, { label: t('models'), value: String(nbModeles) + ' ' + (nbModeles === 1 ? t('wsModelsOne') : t('wsModelsMany')) }),
-                h(Row, { label: t('kybers'), value: String(nbKybers) + ' ' + (nbKybers === 1 ? t('wsKybersOne') : t('wsKybersMany')) }),
-                h(Row, { label: t('plan'), value: formule }))
-            }
-            if (onglet === 'people') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbs-sect' }, t('wsPeopleTitle')),
-                h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('wsPeopleNote')))
-            }
-            if (onglet === 'billing') {
-              return h('div', { className: 'kbp-card' },
-                h('div', { className: 'kbs-sect' }, t('wsBillingTitle')),
-                h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('wsBillingNote')))
-            }
-            return h('div', { className: 'kbp-card' },
-              h('div', { className: 'kbs-sect' }, t('syncTitle')),
-              h('div', { className: 'kbs-note', style: { margin: '10px 0 4px' } }, t('syncNotServed')),
-              ligneSync('space', t('syncMemorySpace'), t('syncMemorySpaceHint')),
-              ligneSync('kybers', t('syncMemoryKybers'), t('syncMemoryKybersHint')),
-              ligneSync('sends', t('syncSends'), t('syncSendsHint')),
-              h('div', { className: 'kbs-recap' },
-                h('div', null, t('syncDownTitle') + ' : ' + t('syncUnknown')),
-                h('div', null, t('syncUpTitle') + ' : ' + t('syncUnknown')),
-                h('div', null, t('syncNeverTitle') + ' · ' + t('syncNeverBody'))))
-          }
-
-          return h('div', { className: 'kbp-page' },
-            h('div', { className: 'kbp-head' },
-              h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(nom, '')),
-              h('span', null,
-                h('h2', { className: 'kbp-title' }, nom),
-                h('span', { className: 'kbp-sub' }, formule + ' · ' + String(espaces.length) + ' ' + t('workspaces'))),
-              h('button', { type: 'button', className: 'kbp-back', onClick: fermer }, t('wsClose'))),
-            h('div', { className: 'kbp-body' },
-              h('div', { className: 'kbt-tabs', role: 'tablist' }, TABS.map((cle) => h('button', {
-                type: 'button', key: cle, role: 'tab', className: 'kbt-tab',
-                'aria-selected': onglet === cle ? 'true' : 'false',
-                onClick: () => setOnglet(cle),
-              }, libelle[cle]))),
-              corps(),
-              h('div', { className: 'kbs-actions' },
-                lienHosted('/workspace', t('wsOpenHosted')),
-                h('button', { type: 'button', className: 'kbs-link', onClick: () => { window.dispatchEvent(new Event('kybernos-cloud:open')) } }, t('spaceAccount')))))
-        }
-        SpaceMain.__testTabs = TABS
-
         // ── La rangée du bas du menu ─────────────────────────────────────────        // ── La rangée du bas du menu ─────────────────────────────────────────
         // Un seul composant pour les trois états, parce que la rangée CHANGE de
         // forme : connecté elle montre l'identité, sinon elle explique et
@@ -2359,12 +2348,21 @@ window.__ModuleLoader__.load({
           const [mobileOpen, setMobileOpen] = React.useState(false)
           // Update available: an amber dot on the card tile, the discreet
           // reminder that stays visible with the menu closed (kybernos-maintenance signal).
-          const [majDispo, setMajDispo] = React.useState(() => lireMaj() !== null)
+          const [majInfo, setMajInfo] = React.useState(() => lireMaj())
+          const majDispo = majInfo !== null
           React.useEffect(() => {
-            const sur = () => setMajDispo(lireMaj() !== null)
+            const sur = () => setMajInfo(lireMaj())
             window.addEventListener('kybernos:update', sur)
             return () => window.removeEventListener('kybernos:update', sur)
           }, [])
+          // Signed out (or pairing) there is no account menu to carry the "Update available" line, and the card of the launch is shown once:
+          // this line stays in the footer until the update is applied (or its version is skipped). It opens the same dialog.
+          const ouvrirMaj = () => { try { window.dispatchEvent(new Event('kybernos:menu:update')) } catch (e) { /* Event absent */ } }
+          const ligneMaj = majInfo === null ? null : h('button', {
+            type: 'button', className: 'kbf-maj', 'data-kb': 'foot-update', onClick: ouvrirMaj,
+          }, h('span', { className: 'kbf-maj-dot', 'aria-hidden': 'true' }),
+            h('span', { className: 'kbf-maj-t' }, t('menuUpdate')),
+            h('span', { className: 'kbf-maj-v' }, (majInfo.kind === 'moteur' ? 'DSH ' : '') + (typeof majInfo.version === 'string' ? majInfo.version : majInfo.cible)))
           // Largeur RÉELLE du créneau : en rail replié la rangée doit changer de
           // forme, sinon elle déborde (mesuré : 167 px dans un rail de 60 px).
           const racineRef = React.useRef(null)
@@ -2432,6 +2430,39 @@ window.__ModuleLoader__.load({
           // dans la rangée sans recharger la page.
           React.useEffect(() => { void load() }, [load, open])
 
+          // The team console (an iframe of another page) changed the active space through the host: re-read it, so the card and the
+          // console never show two different teams.
+          React.useEffect(() => {
+            const relire = () => { void load() }
+            window.addEventListener('kybernos-cloud:space-changed', relire)
+            return () => window.removeEventListener('kybernos-cloud:space-changed', relire)
+          }, [load])
+
+          // The meter of the card: how much of the allowance is used in the ACTIVE team (a percentage, never tokens or money), read from the host (it asks the
+          // server) when the card appears, when the active team changes, when the window comes back into view, every two minutes, and as soon as the quota notice
+          // has read a refusal. A failed read keeps the last figure; changing team clears it, so one team's percent is never shown under another's name.
+          const [quota, setQuota] = React.useState(null)
+          const quotaSpace = phase === 'connected' && typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
+          React.useEffect(() => {
+            setQuota(null)
+            if (quotaSpace === null) return undefined
+            let on = true
+            const read = () => {
+              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(r) }).catch(() => null)
+            }
+            read()
+            const seen = () => { if (document.visibilityState === 'visible') read() }
+            const timer = window.setInterval(read, QUOTA_METER_REFRESH_MS)
+            document.addEventListener('visibilitychange', seen)
+            window.addEventListener('kybernos-cloud:quota-read', read)
+            return () => {
+              on = false
+              window.clearInterval(timer)
+              document.removeEventListener('visibilitychange', seen)
+              window.removeEventListener('kybernos-cloud:quota-read', read)
+            }
+          }, [quotaSpace])
+
           // La fiche peut être ouverte depuis un autre plugin (page Models) :
           // même événement fenêtre que l'ancien bouton, rien de nouveau.
           React.useEffect(() => {
@@ -2440,17 +2471,11 @@ window.__ModuleLoader__.load({
             return () => window.removeEventListener('kybernos-cloud:open', ouvrir)
           }, [])
 
-          // Un autre plugin peut ouvrir la page de l'espace (même couture que
-          // la fiche compte) ou le sélecteur.
+          // Another plugin can open the team switcher (same seam as the account card).
           React.useEffect(() => {
-            const ouvrir = () => { try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybernos-cloud-space') } catch (e) { } }
             const ouvrirSelecteur = () => setMenuOpen(true)
-            window.addEventListener('kybernos-cloud:space', ouvrir)
             window.addEventListener('kybernos-cloud:switch', ouvrirSelecteur)
-            return () => {
-              window.removeEventListener('kybernos-cloud:space', ouvrir)
-              window.removeEventListener('kybernos-cloud:switch', ouvrirSelecteur)
-            }
+            return () => window.removeEventListener('kybernos-cloud:switch', ouvrirSelecteur)
           }, [])
 
           // État publié pour les AUTRES plugins du pied : la cloche des
@@ -2489,8 +2514,10 @@ window.__ModuleLoader__.load({
             const espaces = Array.isArray(state.workspaces) ? state.workspaces : []
             const actif = typeof state.active_workspace_id === 'string' ? state.active_workspace_id : null
             const courant = espaces.filter((w) => w !== null && w.id === actif)[0] || espaces[0] || null
-            const nomEspace = courant !== null && courant.name ? courant.name : t('spaceTitle')
-            const planEspace = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
+            const nomEspace = courant !== null && courant.name ? nomAffiche(courant, t) : t('spaceTitle')
+            const mfaNote = mfaNoteText(state.space_plan !== undefined && state.space_plan !== null ? state.space_plan.mfa : null, nomEspace, t, fmtDate)
+            const planEspace = planDeEspace(state, user).label !== null ? planDeEspace(state, user).label : t('none')
+            const meter = quota !== null ? quotaMeterOf(quota, t) : null
             const ouvrirPageEspace = () => {
               // « Réglage de l'espace » (02/10) : l'entrée ouvre la page EMBED
               // qui vivait jusqu'ici dans Paramètres ▸ Mon espace — l'iframe
@@ -2499,28 +2526,20 @@ window.__ModuleLoader__.load({
               // Le pont marche par contrat : le composant de la page vit dans
               // le plugin, et cette entrée se contente de demander son
               // ouverture — jamais de dupliquer l'iframe ici.
-              // Replis en cascade si le plugin n'expose pas le pont (version
-              // plus ancienne, profil sans le bundle) : la page riche « Mon
-              // espace » du panneau Kybernos, puis le gabarit local
-              // kybernos-cloud-space — on dégrade, on ne casse pas.
+              // Fallback if the plugin has no console bridge (a master older than
+              // 02/10): the rich « Mon espace » page of the Kybernos panel. No local
+              // page stands behind it any more (it was removed as unreachable): the
+              // master bundle is mandatory in the Suite (docs/beta/satellites.json)
+              // and sets both bridges unconditionally, so a missing bridge can only
+              // mean a stale master.
               const ouvrir = (typeof window !== 'undefined') ? window.__kbOpenWsConsole : null
               if (typeof ouvrir === 'function') {
-                try { ouvrir(); return } catch (e) { /* repli page riche */ }
+                try { ouvrir(); return } catch (e) { /* fall back to the rich page */ }
               }
               const ouvrirRiche = (typeof window !== 'undefined') ? window.__kbOpenWorkspace : null
               if (typeof ouvrirRiche === 'function') {
-                try { ouvrirRiche(); return } catch (e) { /* repli page locale */ }
+                try { ouvrirRiche() } catch (e) { /* nothing left to try: the click does nothing */ }
               }
-              try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel('kybernos-cloud-space') } catch (e) { /* layout indisponible */ }
-            }
-            const ouvrirEspaceNavigateur = () => {
-              // The tab is opened NOW, inside the click (a tab opened after the wait can be blocked), and pointed at the link once the server has made it.
-              let onglet = null
-              try { onglet = window.open('', '_blank'); if (onglet !== null) onglet.opener = null } catch (e) { onglet = null }
-              const fermer = () => { try { if (onglet !== null) onglet.close() } catch (e) { /* deja fermee */ } }
-              callLocal('/console/link', 'POST', actif === null ? {} : { workspace_id: actif }).then((r) => {
-                if (r !== null && r.ok === true && typeof r.url === 'string' && onglet !== null) { try { onglet.location.href = r.url } catch (e) { fermer() } } else fermer()
-              }).catch(fermer)
             }
             const shownName = displayName(user)
             const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
@@ -2581,14 +2600,19 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbfp-card' },
               h('button', {
                 type: 'button', className: 'kbfp-cardmain', title: t('wsPageTitle'),
-                'aria-label': t('wsPageTitle'), 'aria-haspopup': 'menu',
+                'aria-label': meter !== null ? t('wsPageTitle') + ' — ' + meter.title : t('wsPageTitle'), 'aria-haspopup': 'menu',
                 'aria-expanded': menuOpen === true ? 'true' : 'false',
                 onClick: () => { setNotifOpen(false); setMenuOpen(menuOpen !== true) },
               },
               h('span', { className: 'kbfp-tile', 'aria-hidden': 'true', 'data-update': majDispo === true ? 'true' : undefined }, initiales(nomEspace, '')),
               h('span', { className: 'kbfp-cardtxt' },
                 h('span', { className: 'kbfp-cardname' }, nomEspace),
-                h('span', { className: 'kbfp-cardsub' }, qui + ' · ' + planEspace))),
+                h('span', { className: 'kbfp-cardsub', title: mfaNote !== null ? mfaNote.long : undefined, 'data-kb': mfaNote !== null ? 'workspace-card-mfa' : undefined }, qui + ' · ' + planEspace + (mfaNote !== null ? ' · ⚠ ' + mfaNote.short : '')),
+                meter !== null
+                  ? h('span', { className: 'kbfp-use', 'data-kb': 'workspace-card-usage', 'data-level': meter.level, 'data-percent': String(meter.percent), title: meter.title },
+                    h('span', { className: 'kbfp-usebar', 'aria-hidden': 'true' }, h('span', { className: 'kbfp-usefill', style: { width: meter.percent + '%' } })),
+                    h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
+                  : null)),
               h('button', {
                 type: 'button', className: 'kbfp-ico',
                 title: t('mobTitle'), 'aria-label': t('mobTitle'),
@@ -2619,7 +2643,6 @@ window.__ModuleLoader__.load({
                   onAccount: clicProfil,
                   onSection: clicSection,
                   onSpace: ouvrirPageEspace,
-                  onSpaceBrowser: ouvrirEspaceNavigateur,
                   onLogout: () => { void seDeconnecter() },
                 })
                 : null),
@@ -2628,6 +2651,7 @@ window.__ModuleLoader__.load({
               : null)
           } else if (phase === 'pairing') {
             corps = h('div', { className: 'kbf-off' },
+              ligneMaj,
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, t('footPairing')),
               h('div', { className: 'kbf-offbtns' },
                 h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: openCard },
@@ -2639,6 +2663,7 @@ window.__ModuleLoader__.load({
           } else {
             const hint = phase === 'loading' ? t('loading') : t('footHint')
             corps = h('div', { className: 'kbf-off' },
+              ligneMaj,
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, hint),
               h('div', { className: 'kbf-offbtns' },
                 h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', onClick: openAndConnect },
@@ -2670,12 +2695,6 @@ window.__ModuleLoader__.load({
         ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
           { name: 'sidebar.footer.action', id: 'kybernos-cloud', order: 21 }, CloudFoot)),
         'kybernos-cloud: rangee de profil dans le pied de sidebar')
-        // La page de l'espace : PLEIN CADRE, dans la zone de contenu. Elle est
-        // ouverte par l'engrenage de la rangée d'espace (ou par l'événement
-        // `kybernos-cloud:space`), jamais dans une surcouche.
-        ctx.effect(() => slots.register(
-          { name: 'main', key: 'kybernos-cloud-space' }, SpaceMain),
-        'kybernos-cloud: page de l espace en plein cadre')
         // La page PROFIL, plein cadre elle aussi : le clic sur le nom du pied
         // de sidebar l'ouvre (comme dans Kybernos). C'est la fiche CloudCard
         // en gabarit page — aucune seconde implémentation.
@@ -2687,9 +2706,49 @@ window.__ModuleLoader__.load({
           { name: 'main', key: 'kybernos-cloud-profile' }, ProfileMain),
         'kybernos-cloud: page de profil en plein cadre')
 
+        // ── The quota notice ──────────────────────────────────────────────────────
+        // DSH's own notice says « Request quota exhausted » for every refusal; this one (claimed through the `shell.quota-notice` chain, QUOTA only) asks the host
+        // for the facts of the ACTIVE space and says what stopped the person, when it comes back and how to get more. If no fact explains it (the failing provider
+        // is another one, the server did not answer) it shows DSH's own message, so nothing is lost.
+        const KbQuotaNotice = (props) => {
+          const infoPair = React.useState(null)
+          const info = infoPair[0]
+          const setInfo = infoPair[1]
+          React.useEffect(() => {
+            let on = true
+            callLocal('/quota', 'GET').then((r) => {
+              if (on === true) setInfo({ r: r })
+              // A refused call changed the allowance: the card's meter reads it again now instead of at its next turn.
+              try { window.dispatchEvent(new Event('kybernos-cloud:quota-read')) } catch (e) { /* no window events here */ }
+            }).catch(() => { if (on === true) setInfo({ r: null }) })
+            return () => { on = false }
+          }, [])
+          React.useEffect(() => {
+            const id = window.setTimeout(() => { try { props.dismiss() } catch (e) { /* already gone */ } }, 15000)
+            return () => window.clearTimeout(id)
+          }, [])
+          const verdict = info !== null ? quotaNoticeText(info.r, t) : null
+          const text = verdict !== null ? verdict.text : String(props.message || '')
+          const openConsole = () => {
+            const wsId = info !== null && info.r !== null && info.r.workspace !== undefined ? info.r.workspace.id : undefined
+            // The HOST opens the system browser with the single-use link (the server refuses one that a page-opened tab brings); a host that could not hands the address back.
+            callLocal('/console/link', 'POST', typeof wsId === 'string' ? { workspace_id: wsId, open: true } : { open: true }).then((r) => {
+              if (r !== null && r !== undefined && r.ok === true && r.opened !== true && typeof r.url === 'string') { try { window.open(r.url, '_blank', 'noopener,noreferrer') } catch (e) { /* ouverture impossible */ } }
+            }).catch(() => null)
+            try { props.dismiss() } catch (e) { /* already gone */ }
+          }
+          return h('div', { className: 'kbqn', role: 'alert', 'data-kb': 'quota-notice' },
+            h('span', { className: 'kbqn-text' }, text),
+            verdict !== null && verdict.action === true ? h('button', { type: 'button', className: 'kbqn-act', 'data-kb': 'quota-notice-open', onClick: openConsole }, t('quotaOpenConsole')) : null,
+            h('button', { type: 'button', className: 'kbqn-x', 'aria-label': t('quotaClose'), onClick: () => { try { props.dismiss() } catch (e) { /* already gone */ } } }, '×'))
+        }
+        ctx.effect(() => slots.inject('shell.quota-notice', () => slots.register(
+          { name: 'shell.quota-notice', select: (owner) => (owner !== null && owner !== undefined && owner.code === 'QUOTA' ? owner : null), inject: () => ({}) }, KbQuotaNotice)),
+        'kybernos-cloud: notice de quota')
+
         // ── Onglet « Account » des RÉGLAGES (30/09 soir) ────────────────────
-        // Mêmes infos que la page profil de la webapp
-        // (/profiles?section=profile) : identité, formule, teams, espace
+        // Mêmes infos que la page compte du serveur
+        // (<web>/account) : identité, formule, teams, espace
         // actif, appareil, session — lues des routes locales, jamais
         // inventées. Le lien « Ouvrir dans Kybernos » pointe la page web.
         // ── Account page pickers (04/10) ────────────────────────────────────────
@@ -3117,6 +3176,15 @@ window.__ModuleLoader__.load({
             listbox)
         }
 
+        // ── Page head shared by the Account and Data & privacy pages ───────────
+        // Same markup as the core plugin's KbacHead (h2.kb6-title + p.kb8-sub): the one Settings
+        // head rule of the core plugin gives it the 18/600 title and the 13 sub-title, so these
+        // two pages cannot drift from the others. The core plugin lives in another bundle and
+        // exposes no component, hence the two class names here.
+        const PageHead = (props) => h('div', { className: 'kbpg-head' },
+          h('h2', { className: 'kb6-title' }, props.title),
+          h('p', { className: 'kb8-sub' }, props.sub))
+
         // ── Account page ───────────────────────────────────────────────────────
         const AccountSection = () => {
           const vuePair = React.useState({ phase: 'loading' })
@@ -3233,6 +3301,7 @@ window.__ModuleLoader__.load({
           // before we know), the button only if we really are not signed in.
           if (vue.phase === 'loading') {
             return h('div', { className: 'kbax', 'data-kb': 'settings-account', 'aria-busy': 'true', 'aria-label': t('loading') },
+              h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
               h('div', { className: 'kbax-card' }, h('div', { className: 'kbax-skel kbax-skel-head' })),
               h('div', { className: 'kbax-card' },
                 h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' }),
@@ -3241,6 +3310,7 @@ window.__ModuleLoader__.load({
           }
           if (vue.phase !== 'connected') {
             return h('div', { className: 'kbax', 'data-kb': 'settings-account' },
+              h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
               h('div', { className: 'kbax-card' },
                 h('p', { className: 'kbf-hint', style: { margin: 0 } }, vue.phase === 'pairing' ? t('footPairing') : t('footHint')),
                 h('button', {
@@ -3253,8 +3323,8 @@ window.__ModuleLoader__.load({
           const user = st.user !== undefined && st.user !== null ? st.user : {}
           const shownName = displayName(user)
           const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
-          const plan = typeof user.plan === 'string' && user.plan.trim() !== '' ? user.plan.trim() : t('none')
-          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : 'https://kybernos.app'
+          const plan = planDeEspace(st, user).label !== null ? planDeEspace(st, user).label : t('none')
+          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : ''
           const couleurAvatar = profil.color !== '' ? profil.color : '#4b4fe0'
           const glyphAvatar = initiales(profil.name !== '' ? profil.name : qui, user.email)
           const stylePhoto = profil.photo !== '' ? { backgroundImage: 'url(' + profil.photo + ')', backgroundSize: 'cover', backgroundPosition: 'center' } : {}
@@ -3266,6 +3336,7 @@ window.__ModuleLoader__.load({
             className: 'kbax', 'data-kb': 'settings-account',
             onKeyDown: (e) => { if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 's') { e.preventDefault(); enregistrer() } },
           },
+          h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
           // ── Identity ──
           h('div', { className: 'kbax-card kbax-hero' },
             h('div', { className: 'kbax-avwrap' },
@@ -3321,9 +3392,10 @@ window.__ModuleLoader__.load({
           // ── Account ──
           h('div', { className: 'kbs-actions', style: { marginTop: 0 } },
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: refreshing, onClick: () => { void charger() } }, refreshing ? t('accRefreshing') : t('refresh')),
-            h('a', {
+            // The account page of the server (`<web>/account`): profile, password, second factor, sessions, export, deletion.
+            web === '' ? null : h('a', {
               className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { textDecoration: 'none' },
-              href: web + '/profiles?section=profile', target: '_blank', rel: 'noreferrer',
+              href: web + '/account', target: '_blank', rel: 'noreferrer',
             }, t('wsOpenHosted')),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { color: 'var(--dsw-alias-state-error-primary)' }, onClick: () => { void seDeconnecter() } }, t('disconnect'))),
           // ── Save bar: stuck to the bottom, visible only when there is something to keep ──
@@ -3339,7 +3411,7 @@ window.__ModuleLoader__.load({
         'kybernos-cloud: onglet Account des reglages')
 
         // ── Onglet « Données & confidentialité » (30/09 soir) ───────────────
-        // Reprend la section data de la webapp (/profiles?section=data) :
+        // Reprend la section data de la page compte du serveur (<web>/account) :
         // export complet, sessions & appareils, suppression du compte.
         // Règle d'honnêteté : DSH ne porte pas le jeton web — les gestes qui
         // le réclament (export, suppression, autres sessions) renvoient à
@@ -3377,8 +3449,9 @@ window.__ModuleLoader__.load({
 
           const ouvrirKybernos = () => {
             const web = (vue.phase === 'connected' && typeof vue.state.web_url === 'string' && vue.state.web_url !== '')
-              ? vue.state.web_url : 'https://kybernos.app'
-            try { window.open(web + '/profiles?section=data', '_blank', 'noopener') } catch (e) { /* ouverture impossible */ }
+              ? vue.state.web_url : ''
+            if (web === '') return
+            try { window.open(web + '/account', '_blank', 'noopener') } catch (e) { /* ouverture impossible */ }
           }
 
           const panneau = (label, ...enfants) => h('div', { className: 'kbp-card' },
@@ -3386,6 +3459,7 @@ window.__ModuleLoader__.load({
 
           if (vue.phase !== 'connected') {
             return h('div', { 'data-kb': 'settings-data', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
+              h(PageHead, { title: t('dataNavLabel'), sub: t('dataSub') }),
               panneau(t('dataLabel'),
                 h('p', { className: 'kbf-hint', style: { margin: '10px 0 0' } }, vue.phase === 'loading' ? t('loading') : t('footHint')),
                 vue.phase === 'disconnected'
@@ -3402,6 +3476,7 @@ window.__ModuleLoader__.load({
           const rafraichi = fmtDate(st.refreshed_at) !== null ? fmtDate(st.refreshed_at) : t('none')
 
           return h('div', { 'data-kb': 'settings-data', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
+            h(PageHead, { title: t('dataNavLabel'), sub: t('dataSub') }),
             // ── Export complet ──
             panneau(t('dataExportTitle'),
               h('p', { style: { margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, t('dataExportSub')),
@@ -3430,10 +3505,12 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbm-setfield-hint' }, t('dataDevicesHere') + ' · ' + t('dataDevicesRefreshed') + ' ' + rafraichi)),
               h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } },
                 t('dataDevicesOthers') + ' ',
-                h('a', {
-                  href: ((typeof st.web_url === 'string' && st.web_url !== '') ? st.web_url : 'https://kybernos.app') + '/profiles?section=data',
-                  target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-link)' },
-                }, t('wsOpenHosted'))),
+                (typeof st.web_url === 'string' && st.web_url !== '')
+                  ? h('a', {
+                    href: st.web_url + '/account',
+                    target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-link)' },
+                  }, t('wsOpenHosted'))
+                  : null),
             ),
             // ── Suppression du compte ──
             panneau(t('dataDeleteTitle'),

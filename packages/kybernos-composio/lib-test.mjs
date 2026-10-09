@@ -1,4 +1,5 @@
 // Small helpers shared by this package's tests (not a test itself: the name does not start with "test").
+import './lib-proxy-env.mjs'
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, symlinkSync } from 'node:fs'
 import { tmpdir, homedir } from 'node:os'
 import { join, dirname } from 'node:path'

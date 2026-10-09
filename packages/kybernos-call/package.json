@@ -1,0 +1,21 @@
+{
+  "name": "@local/kybernos-call",
+  "version": "0.1.0",
+  "description": "Kybernos Calls: talk to your assistant or a team member by voice, from any chat session (LiveKit room, listening worker, optional animated face).",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  }
+}

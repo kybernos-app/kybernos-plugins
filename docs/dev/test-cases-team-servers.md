@@ -42,7 +42,7 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 
 | ID | Case | Where | Last run |
 |---|---|---|---|
-| SEL-01 | A profile needs only `api`; `web` and `console` are derived (the `api.x → x` convention); services and name are optional; http only for loopback; a present-but-invalid field refuses the whole profile (no silent fallback); credentials, query, fragment, very long URL, `javascript:`, an id with a slash or upper case, the reserved built-in id are refused; profiles are frozen | Auto `kybernos-cloud/test-server-profile.mjs` | 42/42 |
+| SEL-01 | A profile needs only `api`; `web` and `console` default to the server's OWN host (`<api>/workspace-console`; the old `api.x → x` convention is gone: it pointed at another host); services and name are optional; http only for loopback; a present-but-invalid field refuses the whole profile (no silent fallback); credentials, query, fragment, very long URL, `javascript:`, an id with a slash or upper case, the reserved built-in id are refused; profiles are frozen | Auto `kybernos-cloud/test-server-profile.mjs` | 42/42 |
 | SEL-02 | `services.llm`: absent / null = chat goes to the api host (today's behaviour), a URL = that service, `false` = the server has no Kybernos LLM (no chat base) | Auto, same file | pass |
 | SEL-03 | The registry: a missing, malformed or array file is « no registry »; valid entries are kept once each; invalid, duplicate and reserved ones are dropped and listed | Auto, same file | pass |
 | SEL-04 | The active server: registry choice, built-in by default, an unknown `active` falls back to the built-in server and says so, the environment override wins and carries the other fields, an invalid override is ignored; each server keeps its own connection file, the built-in keeps today's name | Auto, same file | pass |
@@ -53,6 +53,9 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 | SEL-14 | Leaving a server for one this DSH is not signed in to removes the route left behind (fails if the cleanup is removed: mutation-tested) | Auto, same file | pass |
 | SEL-15 | An unknown active server and a broken registry fall back to the built-in server, never a crash; each entry says whether this DSH is signed in to it (no token in the answer) | Auto, same file | pass |
 | SEL-16 | No server address is hard-coded in the cloud host any more | Auto, same file | pass |
+| SEL-17 | The built-in server is the NEW one (`BUILTIN_API`, one place to change at go-live): its web, console, LLM and connections endpoint are its own host, no gateway; an `api` override moves all of them; the old stack is one documented `servers.json` entry (the test reads the doc's block) | Auto `kybernos-cloud/test-server-profile.mjs` | pass |
+| SEL-18 | No old-stack hostname in shipped code (`packages/`), the page's and the feedback's fallbacks equal `BUILTIN_API`, every allowlisted exception is used and says why | Auto `scripts/test-no-legacy-hosts.mjs` | pass |
+| SEL-19 | A connection recorded for ANOTHER server (an install from before the new server became the default) is set aside, never used: its model route and credential are removed, its token reaches nobody | Auto `kybernos-cloud/test-unplug-host.mjs` | pass |
 | SEL-20 | The page's loader: the active server's console, web app and name replace the defaults; a server that names no gateway gets none; every failure (refused, non-OK, foreign answer, invalid server, no fetch) leaves the defaults and never throws | Auto `kybernos-plugin/test-server-client.mjs` (the loader is cut out of `client.js`) | 12/12 |
 | SEL-21 | The console, the cloud page and the store read the loaded server, not a literal; opening « Teams settings » asks for the active server before probing its console | Auto, same file | pass |
 | SEL-23 | The page's loader also reads the active workspace from `/kybernos-cloud/status`: carried when it is a string, empty when not signed in or malformed; the console URL carries `ws` only then | Auto `kybernos-plugin/test-server-client.mjs` | pass |
@@ -61,6 +64,14 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 | SEL-31 | The route table of the cloud host, including `/relay`, `/server`, `/server/apply` | Auto `kybernos-cloud/test-cloud-host.mjs` (it had been red since the relay merge; repaired) | 107/107 |
 
 ## C. The Team console (private app repo, `apps/app/public/workspace-console.html`)
+
+> **Since the new server became the default**, the console DSH shows is the NEW server's own copy (`src/modules/console/console.html` of
+> kybernos-server, « from now on this is the copy that is kept »), and it reads through the host relay only. These cases were written
+> against the old console: run on 2026-10-08 against the new one (`check-team-live.mjs --console-file`, hermetic), 37 checks pass (no
+> script error, no overflow, the menu opens the console with the active server's `gw`, empty) and 48 fail, all of them tied to the OLD
+> console: the label baseline (`team-console-labels.json`: pages `security`, `access`, `keys`, `providers` and ~70 labels no longer
+> exist) and the stand-in hosts (`lib-fake-team-gateway.mjs`, `lib-fake-relay-host.mjs`, the old API's data shapes). They must be
+> re-baselined against the new console; the live behaviour of the new console in DSH was checked by hand against the local replica.
 
 | ID | Case | Where | Last run |
 |---|---|---|---|
@@ -76,11 +87,9 @@ billing admin-only, five GET routes, 503 when unconfigured, generic 502/404, the
 
 ## Gaps (no automated home yet)
 
-- **The LLM numbers on screen.** The LLM gateway service (the console's and the relay's upstream) is not served anywhere: since
-  2026-10-01 22:03 `api.dev2.kybernos.app` is a deliberate second dev copy of the main API (commit `5f4bb96b`, « dev2 smoke green »),
-  where `/v1/teams/*` answers 404 (`docs/runbooks/infra-map.md` in the app repo). Until the gateway is deployed and `LLM_SERVICE_URL` /
-  `LLM_SERVICE_KEY` are set on `kybernos-proxy-dev`, plan, credits, usage and billing cannot be tested against anything real: the
-  relay answers 503 and REL-11 is the behaviour.
+- **The LLM numbers on screen.** On the OLD stack the LLM gateway service (the console's and the relay's upstream) was not served
+  anywhere (`/v1/teams/*` answered 404), so the relay answered 503 and REL-11 was the behaviour. The NEW server serves plan, credits,
+  usage and billing itself (`/v1/workspaces/{id}/llm/*`); the old stack is now only an opt-in (`docs/dev/servers.md`).
 - **Writes** (invites, roles, budgets, whitelist, keys, auto-recharge): not built, so not tested; the console says « Read-only for now ».
 - **Names and emails of members**: the main API keeps neither; the console shows ids.
 - **The relay from a web page** (not DSH): only the DSH broker exists.

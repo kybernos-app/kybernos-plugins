@@ -64,11 +64,15 @@ globalThis.fetch = async () => ({ ok: true, json: async () => ({ vide: true }) }
 globalThis.ResizeObserver = class { observe () {} disconnect () {} }
 
 // Faux React : `createElement` construit un arbre lisible, les crochets sont inertes.
+let deckPourTest = null // when set, the panel's initial state starts with this deck (see the tool bar check)
 const React = {
   createElement: (type, props, ...enfants) => ({ type, props: props || {}, enfants: enfants.flat(Infinity).filter((e) => e !== null && e !== undefined && e !== false) }),
   Fragment: 'Fragment',
   useReducer: (_r, init) => [init, () => {}],
-  useRef: (v) => ({ current: v === undefined ? null : v }),
+  useRef: (v) => {
+    if (deckPourTest !== null && v !== null && typeof v === 'object' && 'outil' in v) v.deck = deckPourTest
+    return { current: v === undefined ? null : v }
+  },
   useState: (v) => [typeof v === 'function' ? v() : v, () => {}],
   useEffect: () => {},
 }
@@ -226,6 +230,50 @@ ok('l\'état vide montre le guide et la démo', toutes.some((c) => c.includes('k
 ok('le chrome de lecture est présent (vignettes, barre, note)',
   toutes.some((c) => c === 'kbsd-vignettes') && toutes.some((c) => c === 'kbsd-bar') && toutes.some((c) => c === 'kbsd-note-bas'))
 ok('le titre d\'en-tête est rendu', JSON.stringify(rendu).includes('Slides'))
+
+// The tool bar (Voir / Texte / Pinceau / Gomme) is the only thing that changes the tool, and the tool starts on 'voir':
+// it used to be rendered only when the tool was not 'voir', so the brush and the eraser could never be picked.
+const trouver = (noeud, test) => {
+  if (noeud === null || typeof noeud !== 'object') return null
+  if (test(noeud)) return noeud
+  for (const e of (noeud.enfants || [])) { const r = trouver(e, test); if (r !== null) return r }
+  return null
+}
+deckPourTest = { version: 1, t0: Date.now() - 999_999, dureeMs: 10, titre: T.DEMOS[0].titre || 'demo', theme: 'sombre', mode: 'nouveau', slides: T.normaliserDeck(T.DEMOS[0].slides) }
+const avecDeck = panneau()
+deckPourTest = null
+const barre = trouver(avecDeck, (n) => n.props && typeof n.props.className === 'string' && n.props.className.split(' ').includes('kbsd-outils'))
+ok('with a deck, the tool bar is rendered from the default state (tool = voir)', barre !== null)
+const boutons = barre === null ? [] : barre.enfants.filter((e) => e && e.type === 'button' && String(e.props.className).split(' ').includes('kbsd-outil'))
+ok('the bar holds the four tools and "clear all"', boutons.length === 5, String(boutons.length))
+ok('the four tools are Voir, Texte, Pinceau, Gomme, in that order',
+  JSON.stringify(boutons.slice(0, 4).map((b) => b.enfants[0])) === JSON.stringify(['Voir', '✎ Texte', '✎ Pinceau', 'Gomme']),
+  JSON.stringify(boutons.slice(0, 4).map((b) => b.enfants[0])))
+ok('in the default state the bar is dimmed, not hidden', barre !== null && barre.props.className.includes('kbsd-outils-idle'))
+
+// The opening probe: the tab opens by itself when a deck arrives. A failed attempt (right after a page reload the
+// sidebar service is not always there yet) used to set the "already open" flag anyway, so no later deck ever
+// opened the tab on its own.
+{
+  let appels = 0
+  let reussit = false
+  const ouvrir = () => { appels += 1; return reussit }
+  const vide = { versionVue: null, dejaOuvert: false }
+  let etat = T.pasSonde(vide, { version: 1 }, ouvrir)
+  ok('PROBE: a failed opening is not remembered (it is retried at the next probe)', appels === 1 && etat.dejaOuvert === false && etat.versionVue === null, JSON.stringify(etat))
+  reussit = true
+  etat = T.pasSonde(etat, { version: 1 }, ouvrir)
+  ok('PROBE: the retry succeeds and the version is remembered', appels === 2 && etat.dejaOuvert === true && etat.versionVue === 1, JSON.stringify(etat))
+  etat = T.pasSonde(etat, { version: 1 }, ouvrir)
+  ok('PROBE: the same version does not open again', appels === 2)
+  etat = T.pasSonde(etat, { version: 2 }, ouvrir)
+  ok('PROBE: a newer deck does not re-open a tab that is already open, but is remembered', appels === 2 && etat.versionVue === 2)
+  etat = T.pasSonde(etat, { vide: true }, ouvrir)
+  ok('PROBE: an empty host resets the flag', etat.dejaOuvert === false && etat.versionVue === 2)
+  etat = T.pasSonde(etat, { version: 3 }, ouvrir)
+  ok('PROBE: the next deck opens the tab again', appels === 3 && etat.dejaOuvert === true && etat.versionVue === 3)
+  ok('PROBE: an unreachable host changes nothing', T.pasSonde(etat, null, ouvrir) === etat && appels === 3)
+}
 
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\nClient : ${echecs} échec(s).`)
 process.exit(echecs === 0 ? 0 : 1)

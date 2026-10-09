@@ -4,7 +4,8 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { DEFAULT_PROFILE, DEFAULT_SERVER_ID, activeServer, connectionsEndpoint, deriveWeb, llmBase, normalizeProfile, publicProfile, readRegistry, stateFileName } from './server-profile.mjs'
+import { BUILTIN_API, DEFAULT_PROFILE, DEFAULT_SERVER_ID, activeServer, connectionsEndpoint, deriveWeb, llmBase, normalizeProfile, publicProfile, readRegistry, stateFileName } from './server-profile.mjs'
+import { readFileSync } from 'node:fs'
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -20,7 +21,9 @@ console.log('a profile')
   const p = normalizeProfile({ id: 'acme', name: 'Acme', api: 'https://kb.acme.example/' })
   check('only `api` is required; web and console are derived from it', p.ok === true && p.profile.web === 'https://kb.acme.example' && p.profile.console === 'https://kb.acme.example/workspace-console' && p.profile.name === 'Acme', JSON.stringify(p))
   const k = normalizeProfile({ id: 'kb2', api: 'https://api.kybernos.example' })
-  check('the Kybernos convention (api.x → x) holds for web', k.ok === true && k.profile.web === 'https://kybernos.example' && deriveWeb('https://api.dev.kybernos.app') === 'https://dev.kybernos.app')
+  // The old rule (api.x → x) pointed a server at ANOTHER host (the legacy web app); a server serves its own pages (account, activation, console).
+  check('a server\'s pages live on its OWN host: the « api. » prefix is not stripped', k.ok === true && k.profile.web === 'https://api.kybernos.example' && k.profile.console === 'https://api.kybernos.example/workspace-console' && deriveWeb('https://api.kybernos.app') === 'https://api.kybernos.app', JSON.stringify(k))
+  check('the console of a server that names none is <api>/workspace-console, never a host derived from it', deriveWeb('https://api.kybernos.app/') + '/workspace-console' === 'https://api.kybernos.app/workspace-console' && normalizeProfile({ id: 'kb3', api: 'https://api.kybernos.app' }).profile.console === 'https://api.kybernos.app/workspace-console')
   check('the name falls back to the id', k.profile.name === 'kb2')
   const full = normalizeProfile({ id: 'big', api: 'https://a.example', web: 'https://w.example/app/', console: 'https://w.example/app/console', services: { llm: 'https://llm.example/', gateway: 'https://gw.example' } })
   check('explicit web, console and services are kept (trailing slashes cut)', full.ok === true && full.profile.web === 'https://w.example/app' && full.profile.console === 'https://w.example/app/console' && full.profile.services.llm === 'https://llm.example' && full.profile.services.gateway === 'https://gw.example', JSON.stringify(full))
@@ -51,7 +54,7 @@ console.log('the LLM of a server')
   check('no services: chat goes to the api host, as today', llm(undefined) === 'https://a.example/v1' && llm({}) === 'https://a.example/v1' && llm({ llm: null }) === 'https://a.example/v1')
   check('a separate LLM service: chat goes there, never to a host deduced from the account address', llm({ llm: 'https://llm.example' }) === 'https://llm.example/v1')
   check('a server with no Kybernos LLM has no chat base at all', llm({ llm: false }) === null)
-  check('the built-in server keeps today\'s routing (the api host)', llmBase(DEFAULT_PROFILE) === 'https://api.dev.kybernos.app/v1')
+  check('the built-in server routes chat to its own api host', llmBase(DEFAULT_PROFILE) === BUILTIN_API + '/v1')
   check('publicProfile says « none », « api » or the URL', publicProfile(normalizeProfile({ id: 'x', api: 'https://a.example', services: { llm: false } }).profile).llm === 'none' && publicProfile(DEFAULT_PROFILE).llm === 'api' && publicProfile(normalizeProfile({ id: 'x', api: 'https://a.example', services: { llm: 'https://l.example' } }).profile).llm === 'https://l.example')
 }
 
@@ -77,13 +80,51 @@ console.log('the connected apps of a server')
     const overridden = activeServer({ env: { KYBERNOS_CLOUD_API: 'http://127.0.0.1:9' }, registryFile: file })
     check('the registry server offers its endpoint', connectionsEndpoint(own.profile) === 'https://a.example/v1/mcp/connections', JSON.stringify(own.profile.services))
     check('an environment override of api leaves the endpoint behind: no token for the old host', connectionsEndpoint(overridden.profile) === null && publicProfile(overridden.profile).connections === false)
-    check('the server list says which servers offer them', own.servers.find((x) => x.id === 'x').connections === true && own.servers[0].connections === false)
+    check('the server list says which servers offer them', own.servers.find((x) => x.id === 'x').connections === true && own.servers[0].connections === true)
     rmSync(dir, { recursive: true, force: true })
   }
-  check('the built-in server offers none until the new server is the default', connectionsEndpoint(DEFAULT_PROFILE) === null && publicProfile(DEFAULT_PROFILE).connections === false)
+  check('the built-in server (the new one) offers them, on its own origin', connectionsEndpoint(DEFAULT_PROFILE) === BUILTIN_API + '/v1/mcp/connections' && publicProfile(DEFAULT_PROFILE).connections === true)
   check('publicProfile says whether connections are offered, never the address', publicProfile(normalizeProfile({ id: 'x', api: 'https://a.example', services: { connections: 'https://a.example/v1/mcp/connections' } }).profile).connections === true)
   check('the profile stays frozen with the new field', Object.isFrozen(normalizeProfile({ id: 'x', api: 'https://a.example', services: { connections: false } }).profile.services))
   check('connectionsEndpoint never throws on a missing or odd profile', connectionsEndpoint(null) === null && connectionsEndpoint({}) === null && connectionsEndpoint({ services: {} }) === null)
+}
+
+console.log('the built-in server is the NEW one')
+{
+  const OLD = /(^|[./])dev2?\.kybernos\.app|api\.dev2?\.kybernos|kybernos-proxy|\bkybernos\.app\b/
+  check('one place names it: BUILTIN_API is an https address', /^https:\/\/[a-z0-9.-]+$/.test(BUILTIN_API) && DEFAULT_PROFILE.api === BUILTIN_API, BUILTIN_API)
+  check('nothing of the old stack is left in the built-in profile (hosts of dev.kybernos.app, api.dev, api.dev2, the proxy)', OLD.test(JSON.stringify(DEFAULT_PROFILE)) === false, JSON.stringify(DEFAULT_PROFILE))
+  check('its web and its console are its OWN host (the server serves its pages and its console)', DEFAULT_PROFILE.web === BUILTIN_API && DEFAULT_PROFILE.console === BUILTIN_API + '/workspace-console')
+  check('it has no gateway (the relay replaced it) and no separate LLM service (same host)', DEFAULT_PROFILE.services.gateway === null && DEFAULT_PROFILE.services.llm === null && publicProfile(DEFAULT_PROFILE).gateway === null && publicProfile(DEFAULT_PROFILE).llm === 'api')
+  check('the built-in profile is frozen', Object.isFrozen(DEFAULT_PROFILE) && Object.isFrozen(DEFAULT_PROFILE.services))
+  const bare = activeServer({ env: {}, registryFile: join(dir, 'nope.json') })
+  check('with no registry and no environment, DSH talks to the new server and to nothing else', bare.profile.api === BUILTIN_API && bare.source === 'default' && bare.servers.length === 1 && bare.servers[0].api === BUILTIN_API)
+  // The environment override (tests, developers, the sandbox) re-points the BUILT-IN server: everything it derives follows.
+  const over = activeServer({ env: { KYBERNOS_CLOUD_API: 'http://127.0.0.1:9100/' }, registryFile: join(dir, 'nope.json') })
+  check('an override of api moves the built-in server\'s web, console and connections with it', over.profile.api === 'http://127.0.0.1:9100' && over.profile.web === 'http://127.0.0.1:9100' && over.profile.console === 'http://127.0.0.1:9100/workspace-console' && connectionsEndpoint(over.profile) === 'http://127.0.0.1:9100/v1/mcp/connections' && over.profile.services.gateway === null, JSON.stringify(over.profile))
+  check('and leaves nothing of the deployed server behind', JSON.stringify(over.profile).includes(new URL(BUILTIN_API).host) === false)
+}
+
+console.log('the old stack, kept as an explicit opt-in')
+{
+  // docs/dev/servers.md documents ONE servers.json entry for the old stack; the test reads THAT text, so the doc cannot drift from what DSH accepts.
+  const doc = readFileSync(new URL('../../docs/dev/servers.md', import.meta.url), 'utf8')
+  const block = doc.match(/<!-- legacy-entry -->\s*```json\s*([\s\S]*?)```/)
+  check('docs/dev/servers.md carries the entry', block !== null)
+  const registry = block === null ? null : JSON.parse(block[1])
+  const entry = registry === null ? null : registry.servers[0]
+  const norm = entry === null ? { ok: false } : normalizeProfile(entry)
+  check('the documented entry is a valid profile with its own id (never the built-in one)', norm.ok === true && norm.profile.id !== DEFAULT_SERVER_ID, JSON.stringify(norm))
+  if (norm.ok === true) {
+    const legacyFile = join(dir, 'legacy.json')
+    writeFileSync(legacyFile, JSON.stringify(registry))
+    check('the file in the doc names that entry as active', registry.active === norm.profile.id)
+    const a = activeServer({ env: {}, registryFile: legacyFile })
+    check('selecting it points DSH at the old stack (api, web, console, gateway) and nowhere else', a.source === 'registry' && a.profile.api !== BUILTIN_API && a.profile.web !== a.profile.api && a.profile.console.endsWith('/workspace-console') && typeof a.profile.services.gateway === 'string', JSON.stringify(a.profile))
+    check('it keeps its own connection file, so the new server\'s token never reaches it', stateFileName(a.profile) === 'kybernos-cloud-' + norm.profile.id + '.json')
+    check('and it does not offer the connections the old stack does not have', connectionsEndpoint(a.profile) === null)
+    check('leaving it (no registry) brings back the new server', activeServer({ env: {}, registryFile: join(dir, 'nope.json') }).profile.api === BUILTIN_API)
+  }
 }
 
 console.log('the registry')
@@ -105,7 +146,7 @@ console.log('which server is active')
   let a = activeServer({ env: {}, registryFile: file })
   check('the registry\'s choice', a.profile.id === 'acme' && a.source === 'registry' && a.error === undefined)
   check('the list always starts with the built-in server and marks nothing itself', a.servers.map((s) => s.id).join() === 'kybernos-cloud,acme,other')
-  check('each entry carries its api and what its LLM is, so a screen can list servers without a second call', a.servers.every((s) => typeof s.api === 'string' && ['api', 'none'].concat([]).concat(typeof s.llm === 'string' && s.llm.startsWith('https') ? [s.llm] : []).includes(s.llm)) && a.servers[0].api === 'https://api.dev.kybernos.app')
+  check('each entry carries its api and what its LLM is, so a screen can list servers without a second call', a.servers.every((s) => typeof s.api === 'string' && ['api', 'none'].concat([]).concat(typeof s.llm === 'string' && s.llm.startsWith('https') ? [s.llm] : []).includes(s.llm)) && a.servers[0].api === BUILTIN_API)
   a = activeServer({ env: {}, registryFile: join(dir, 'nope.json') })
   check('no registry: the built-in Kybernos Cloud', a.profile.id === DEFAULT_SERVER_ID && a.source === 'default')
   write({ active: DEFAULT_SERVER_ID, servers: [{ id: 'acme', api: 'https://kb.acme.example' }] })
