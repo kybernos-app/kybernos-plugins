@@ -198,7 +198,7 @@ async function lister () {
       })
     }
   }
-  return { ok: true, items }
+  return { ok: true, macos: MACOS, items }
 }
 
 // ── plugin ──────────────────────────────────────────────────────────────────

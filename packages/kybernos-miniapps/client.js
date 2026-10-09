@@ -142,8 +142,26 @@ window.__ModuleLoader__.load({
   </style></head><body>${corps}</body></html>`
     }
 
+    /**
+     * A player that lives in another bundle (Motion) can hand over a LIVE page of its own through
+     * `window.__KB_MINIAPP_EXPORTERS__[renderer](root) -> { titre, html }`: a copy of its canvas would be a still picture.
+     * The renderer is the one written on the root of the page it plays in (`data-renderer`). Null when nothing is registered.
+     */
+    async function exporterExterne (conf) {
+      try {
+        const racine = conf.racineDynamique !== undefined ? conf.racineDynamique : window.document.querySelector(conf.racine)
+        const renderer = racine && typeof racine.getAttribute === 'function' ? racine.getAttribute('data-renderer') : null
+        const f = renderer && window.__KB_MINIAPP_EXPORTERS__ ? window.__KB_MINIAPP_EXPORTERS__[renderer] : null
+        if (typeof f !== 'function') return null
+        const r = await f(racine)
+        return r && typeof r.html === 'string' && r.html.length > 0 ? { html: r.html, titre: String(r.titre || conf.defaut) } : null
+      } catch { return null }
+    }
+
     async function pageExport (conf) {
-      // export vivant quand le panneau le permet (Briques), sinon instantané
+      // a player's own live page first (Motion), then the live export of a panel that has one (Briques), else a still snapshot
+      const externe = await exporterExterne(conf)
+      if (externe !== null) return externe
       try {
         const vivant = await exportVivant(conf)
         if (vivant !== null) return { html: vivant, titre: vivantTitre(conf) }
@@ -318,6 +336,19 @@ window.__ModuleLoader__.load({
       return r.json()
     }
 
+    // For another bundle (Motion's export dialog): install an app from a page it built itself. `supported` becomes true once the host
+    // has said it runs on macOS (the same list call that says which apps exist); until then, or elsewhere, the caller hides the option.
+    const interfaceExterne = {
+      supported: false,
+      async install (o) {
+        const id = slugId(o && o.id)
+        const r = await post('/kybernos-miniapps/install', { id, titre: String((o && o.titre) || id).slice(0, 80), html: String((o && o.html) || ''), largeur: Number(o && o.largeur) || 520, hauteur: Number(o && o.hauteur) || 360, auto: false })
+        if (r && r.ok === true) installe.set(id, { auto: false })
+        return r
+      },
+    }
+    try { window.__KB_MINIAPPS__ = interfaceExterne } catch { /* no window */ }
+
     function toast (texte) {
       const t = window.document.createElement('div')
       t.className = 'kbmini-toast'
@@ -463,6 +494,7 @@ window.__ModuleLoader__.load({
       window.fetch('/kybernos-miniapps/list', { cache: 'no-store' })
         .then((r) => r.json())
         .then((r) => {
+          if (r && typeof r.macos === 'boolean') interfaceExterne.supported = r.macos
           if (!r || !Array.isArray(r.items)) return
           for (const it of r.items) installe.set(it.id, { auto: it.auto === true })
           for (const conf of PANNEAUX.concat(panneauxDynamiques())) majBouton(conf)
@@ -484,7 +516,7 @@ window.__ModuleLoader__.load({
     return {
       apply,
       inject: [],
-      __test: { kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu },
+      __test: { kbf, KB_FR_EN, serialiser, reglesApplicables, PANNEAUX, escTitre, jsonPourScript, sourceModule, placerMenu, pageExport, exporterExterne, interfaceExterne },
     }
   },
 })

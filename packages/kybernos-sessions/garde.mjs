@@ -131,6 +131,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-refs/client.js',
   'packages/kybernos-terminal/client/client.js',
   'packages/kybernos-slides/client.js',
+  'packages/kybernos-motion/client.js',
   'packages/kybernos-changes/client.js',
   'packages/kybernos-call/client.js',
 ]

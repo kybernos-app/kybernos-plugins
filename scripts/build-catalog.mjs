@@ -45,6 +45,7 @@ const FICHE = {
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
   'kybernos-bricks': ['create', 'Maquettes en briques, animées brique par brique.', 'Brick mockups, animated brick by brick.'],
   'kybernos-modeleur': ['create', 'Modèles 2D et 3D pilotés par le chat.', '2D and 3D models driven by the chat.'],
+  'kybernos-motion': ['create', 'Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo.', 'Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video.'],
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
@@ -65,7 +66,7 @@ const TITRES = {
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About & Maintenance', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Slash commands',
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto routing',
   'kybernos-flow': 'Flow', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal'
 }
@@ -73,7 +74,7 @@ const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
   'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
-  'kybernos-modeleur': 'box3d', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
+  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
   'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-call': 'phone', 'kybernos-terminal': 'term'
 }
