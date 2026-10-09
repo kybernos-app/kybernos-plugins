@@ -959,7 +959,9 @@ function expandChart (layer, g, m, alpha, t, P, ops, tag) {
   const labelBand = showLabels ? ls * 1.9 : 0
   const valueBand = showValues && kind !== 'pie' ? ls * 1.6 : 0
   const plotH = Math.max(1, h - labelBand - valueBand)
-  const fmt = (v) => fmtNumber(v, Math.abs(v) < 100 && v % 1 !== 0 ? 1 : 0, true, 'fr')
+  // whole numbers stay whole while a bar grows (no "33,6" on the way to 34); a data set with decimals keeps one
+  const wholeData = data.every((d) => Number.isInteger(d.value))
+  const fmt = (v) => (wholeData ? fmtNumber(Math.round(v), 0, true, 'fr') : fmtNumber(v, Math.abs(v) < 100 && v % 1 !== 0 ? 1 : 0, true, 'fr'))
   const label = (text, x, y, size, alphaK, align) => ops.push({ op: 'text', m, alpha: alpha * alphaK, text, x, y, size, weight: 500, family: 'sans', css: FAMILY_CSS.sans, fill: ink, align: align || 'center', maxW: Math.max(40, w / n * 0.95), lineHeight: 1.2, tracking: 0, ...tag })
   if (kind === 'bar') {
     const slot = w / n
