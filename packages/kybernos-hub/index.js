@@ -23,7 +23,7 @@ import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { creerHub, monterRoutes, monterSuite } from './hub-host.mjs'
 import { URL_PAR_DEFAUT } from './catalogue-distant.mjs'
-import { plateformeDe } from './suite-host.mjs'
+import { detecterHebergement, plateformeDe } from './suite-host.mjs'
 import { creerTelechargeurs } from './telechargement.mjs'
 
 export const name = 'kybernos-hub'
@@ -80,6 +80,8 @@ function suiteDeps (dshHome, hub) {
     }),
     // A git working tree is a development checkout: it is updated with git, never by replacing it with an archive.
     racineDev: () => existsSync(join(racineDepot, '.git')),
+    // A server or container deployment is rebuilt, not updated in place (see detecterHebergement).
+    hebergement: () => detecterHebergement({ env: process.env, existe: existsSync }),
     plateforme: plateformeDe(process.platform),
     ecrireActivation: (obj) => {
       mkdirSync(dirname(fichier), { recursive: true })

@@ -521,5 +521,42 @@ console.log('update notification: the signed release decides')
   check('idle says nothing', T.motMaj({ etat: 'idle' }) === '' && T.motMaj(null) === '')
 }
 
+// ── hosted instances, and "Update now" that also restarts ───────────────────
+console.log('update: hosted instance and one-click restart')
+{
+  const hote = { ok: true, checkedAt: 'T', pack: { installee: '1.0.0-beta.4', latest: '1.0.0-beta.4', disponible: false, joignable: true, depot: 'https://github.com/kybernos-app/kybernos-plugins', git: false }, moteur: {}, pending: null }
+  const signee = (o) => ({ cle: true, evaluation: 'ok', suite: '1.0.0-beta.5', plusRecent: true, miseAJour: { possible: true, raison: null }, hebergement: { heberge: false, raison: null }, ...o })
+  const hebergee = { heberge: true, raison: 'coolify' }
+
+  const local = T.fusionnerSigne(hote, signee({}))
+  check('MODE: a local install the Suite can update from here is "suite" (one click)', T.modeMiseAJour(local) === 'suite')
+  const heb = T.fusionnerSigne(hote, signee({ hebergement: hebergee, miseAJour: { possible: false, raison: 'hosted-instance' } }))
+  check('MODE: a hosted instance with a newer signed release is "heberge" (rebuild it), not a git or archive procedure', T.modeMiseAJour(heb) === 'heberge' && heb.pack.heberge === true && heb.pack.applicable === false && heb.pack.raison === 'hosted-instance', JSON.stringify(heb.pack))
+  const hebGit = T.fusionnerSigne({ ...hote, pack: { ...hote.pack, git: true } }, signee({ hebergement: hebergee, miseAJour: { possible: false, raison: 'hosted-instance' } }))
+  check('MODE: hosted wins over a git checkout (the image of a hosted instance is often built from a clone)', T.modeMiseAJour(hebGit) === 'heberge')
+  const dev = T.fusionnerSigne({ ...hote, pack: { ...hote.pack, git: true } }, signee({ miseAJour: { possible: false, raison: 'development-checkout' } }))
+  check('MODE: a development checkout stays "git" (its steps are unchanged)', T.modeMiseAJour(dev) === 'git')
+  check('MODE: an unpacked archive that cannot be updated from here stays "archive"', T.modeMiseAJour({ ...local, pack: { ...local.pack, applicable: false } }) === 'archive')
+  check('MODE: an engine update is "moteur", nothing pending is null', T.modeMiseAJour({ ...hote, pending: { kind: 'moteur', cible: '0.2.1' } }) === 'moteur' && T.modeMiseAJour(hote) === null && T.modeMiseAJour(null) === null)
+  // hosted is known from the hub even when nothing newer is signed (the host's own VERSION check can announce one)
+  const annonce = { ...hote, pack: { ...hote.pack, latest: '1.0.0-beta.5', disponible: true }, pending: { kind: 'kybernos', cible: '1.0.0-beta.5', installee: '1.0.0-beta.4', requis: false, note: '' } }
+  const marque = T.fusionnerSigne(annonce, signee({ plusRecent: false, hebergement: hebergee }))
+  check('hosted is flagged even when the signed release has nothing newer', marque.pack.heberge === true && marque.pending === annonce.pending && T.modeMiseAJour(marque) === 'heberge')
+  check('not hosted and nothing newer: the host answer is still returned untouched (same object)', T.fusionnerSigne(hote, signee({ plusRecent: false })) === hote)
+
+  // the restart that follows the install
+  const reponse = (statut, corps) => async () => ({ status: statut, json: async () => corps })
+  check('RESTART: the hub confirms (200, ok:true) → true', await T.updRelancer(reponse(200, { ok: true })) === true)
+  check('RESTART: no relaunch tool on this machine (500) → false, the dialog keeps saying "restart DSH"', await T.updRelancer(reponse(500, { ok: false, error: 'relaunch-tool-missing' })) === false)
+  check('RESTART: a refusal (400/403/409) → false', await T.updRelancer(reponse(400, { ok: false })) === false && await T.updRelancer(reponse(403, { ok: false })) === false && await T.updRelancer(reponse(409, { ok: false })) === false)
+  check('RESTART: a 200 that does not say ok → false', await T.updRelancer(reponse(200, {})) === false && await T.updRelancer(reponse(200, null)) === false)
+  check('RESTART: a network error or a non-JSON answer → false, never a throw', await T.updRelancer(async () => { throw new Error('offline') }) === false && await T.updRelancer(async () => ({ status: 200, json: async () => { throw new Error('html') } })) === false)
+  const vu = []
+  await T.updRelancer(async (url, opts) => { vu.push([url, opts.method, JSON.parse(opts.body)]); return { status: 200, json: async () => ({ ok: true }) } })
+  check('RESTART: it posts the explicit confirmation to the hub route', vu.length === 1 && vu[0][0] === '/kybernos-hub/relaunch' && vu[0][1] === 'POST' && vu[0][2].confirm === true, JSON.stringify(vu))
+  const mots = T.motMaj({ etat: 'relance', version: '1.0.0-beta.5' })
+  check('RESTART: the words say it is installed and restarting, in both languages, without "undefined"', /1\.0\.0-beta\.5/.test(mots) && !/undefined/.test(mots) && /(redémarre|restarting)/i.test(mots), mots)
+}
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

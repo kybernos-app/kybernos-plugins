@@ -47,6 +47,18 @@ DSH is not restarted by the update itself.
 
 **A development checkout is never updated this way**: a git working tree (`.git` at the repo root) answers 409 `development-checkout` and the panel says to use git.
 
+## One click, and what "one click" means where
+
+*Update now* does the whole job: download, verify, install, then **restart DSH** (the hub's `POST /kybernos-hub/relaunch`, which starts `~/.dsh/tools/dsh-relance.mjs` detached; sessions that were running are woken up again afterwards). The dialog says so before the click. If the machine has no relaunch tool the dialog ends on "Restart DSH to finish", as before. Three kinds of install are told apart (`modeMiseAJour` in the maintenance client):
+
+| Install | What the dialog offers |
+|---|---|
+| an unpacked suite the Suite can update (no `.git`, not hosted) | *Update now*: install + restart |
+| a development checkout (a git working tree) | the git steps, unchanged: it is never replaced by an archive |
+| a **hosted instance** (a server or container: Coolify, Docker, a VPS template) | no install in place. It says the instance is rebuilt: redeploy or restart it so it starts from the latest version of the Dockerfile, force a build without cache if the build reuses it (a cached `git clone` layer keeps the old version), and keep the data volume attached |
+
+Hosted is decided by the hub (`detecterHebergement` in `suite-host.mjs`), and wins over "development checkout" because the image of a hosted instance is often built from a git clone. `KYBERNOS_HOSTED=1` forces it on and `=0` forces it off (a local DSH that happens to run in a container); otherwise the Kybernos gate's variables (`KYBERNOS_PUBLIC_HOST`, `KYBERNOS_GATE_PASSWORD`), the `COOLIFY_*` variables and Docker's `/.dockerenv` decide. A hosted instance answers 409 `hosted-instance` to `POST /kybernos-hub/update`, before anything is downloaded.
+
 ## The notification
 
 Nothing is installed without the user, but the user must hear about it. The Maintenance bundle (`packages/kybernos-maintenance`) owns the
@@ -57,6 +69,8 @@ The **signed release decides**: each check also asks the Suite's `POST /kybernos
 as the Kybernos update (`fusionnerSigne`). When this install can apply it (not a git checkout) the dialog offers **Update now**, which starts
 `POST /kybernos-hub/update`, follows `/update/status` and ends on "Restart DSH to finish". A development checkout keeps the git steps. When there is no
 key, no release or nothing newer, the host's own answer stands (the `VERSION` published on `main`).
+
+A dismissed card is not the end of the reminder: the line stays until the update is applied. Signed in, it is in the account menu (with an amber dot on the profile tile). **Signed out there is no account menu**, so the same line lives in the sidebar footer, above "Sign in" (in the pairing state too); it opens the same dialog. "Skip this version" silences all of it.
 
 A bug hid all of this until 2026-10-05: `GET /kybernos-maintenance/update` answered 500 on every machine (`existsSync` was not imported), so no update
 was ever announced. `test-update.mjs` now runs the route's measure for real. **Installs of 1.0.0-beta.2 carry that bug**: they only learn of a newer suite

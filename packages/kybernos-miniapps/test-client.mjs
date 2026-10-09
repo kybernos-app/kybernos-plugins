@@ -69,5 +69,77 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
     root(['kbm-root', 'kbmp']).matches('.kbm-root.kbmo') === false && root(['kbm-root']).matches('.kbm-root.kbmo') === false && root(['kbm-root', 'kbmo']).matches('.kbm-root.kbmo') === true)
 }
 
+// ── the live export finds the engine the way DSH loaded it ──────────────────
+// The module is not in a <script> of the page: DSH's boot script lists its address in a JSON manifest (quotes escaped). The first
+// inline script that merely MENTIONED the module was taken for the engine, and the exported Bricks app opened with a bar and no scene.
+{
+  const MARQUE = 'kybernos-bricks/client'
+  const MODULE = "window.__ModuleLoader__.load({\n  id: '@local/kybernos-bricks/client',\n  factory: () => ({})\n})"
+  const BS = String.fromCharCode(92) // a backslash
+  // what the boot script really contains: a JSON manifest inside a string, with backslash-escaped quotes
+  const BOOT = 'var m = "[{' + BS + '"id' + BS + '":' + BS + '"@local/kybernos-bricks' + BS + '",' + BS + '"url' + BS + '":' + BS + '"plugins/??@local/kybernos-bricks/client.js&rev=ff7aa3035718' + BS + '",' + BS + '"rev' + BS + '":' + BS + '"ff7aa3035718' + BS + '"}]"'
+  const essai = async ({ scripts, reponses }) => {
+    const demandes = []
+    globalThis.window.document.scripts = scripts
+    globalThis.window.document.baseURI = 'http://127.0.0.1:3080/'
+    globalThis.window.fetch = async (url) => {
+      demandes.push(String(url))
+      const r = reponses[String(url)]
+      if (r === undefined) throw new Error('no route')
+      return { ok: r.ok !== false, text: async () => r.text }
+    }
+    return { texte: await T.sourceModule(MARQUE), demandes }
+  }
+  const URL_MODULE = 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=ff7aa3035718'
+
+  let r = await essai({ scripts: [{ textContent: BOOT }], reponses: { [URL_MODULE]: { text: MODULE } } })
+  ok('the boot script is NOT taken for the engine: its manifest address is followed, relative to the page', r.texte === MODULE && r.demandes.length === 1 && r.demandes[0] === URL_MODULE, JSON.stringify(r.demandes))
+
+  r = await essai({ scripts: [{ textContent: BOOT }, { textContent: MODULE }], reponses: {} })
+  ok('an inline script that DEFINES the module is used as it is, with no request', r.texte === MODULE && r.demandes.length === 0)
+
+  r = await essai({ scripts: [{ src: 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=1' }], reponses: { 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=1': { text: MODULE } } })
+  ok('a <script src> whose text defines the module is used', r.texte === MODULE)
+
+  r = await essai({ scripts: [{ src: 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=1' }], reponses: { 'http://127.0.0.1:3080/plugins/??@local/kybernos-bricks/client.js&rev=1': { text: '// something else that mentions kybernos-bricks/client' } } })
+  ok('...but a text that only mentions it is refused', r.texte === null)
+
+  r = await essai({ scripts: [{ textContent: BOOT }], reponses: { [URL_MODULE]: { text: 'not the module' } } })
+  ok('an address that serves something else gives null (the export then falls back to a still snapshot)', r.texte === null)
+
+  r = await essai({ scripts: [{ textContent: BOOT }], reponses: { [URL_MODULE]: { ok: false, text: 'nope' } } })
+  ok('an address that answers with an error gives null', r.texte === null)
+
+  r = await essai({ scripts: [{ textContent: BOOT }], reponses: {} })
+  ok('an address that does not answer at all gives null, it does not throw', r.texte === null)
+
+  r = await essai({ scripts: [{ textContent: 'var x = 1' }, { textContent: '' }, { src: 'http://127.0.0.1:3080/plugins/other.js' }], reponses: {} })
+  ok('a page without the module gives null and asks nothing', r.texte === null && r.demandes.length === 0)
+
+  const autre = BOOT.split('kybernos-bricks').join('kybernos-slides')
+  r = await essai({ scripts: [{ textContent: BOOT + autre }], reponses: { [URL_MODULE]: { text: MODULE } } })
+  ok('only the address of the asked module is followed, not the other modules of the manifest', r.demandes.length === 1 && r.demandes[0] === URL_MODULE, JSON.stringify(r.demandes))
+}
+
+// ── the menu stays inside the window ────────────────────────────────────────
+{
+  const P = T.placerMenu
+  const W = 1400, H = 900
+  const bouton = (left, top) => ({ left, right: left + 60, top, bottom: top + 24 })
+  let p = P(bouton(300, 100), 190, 120, W, H)
+  ok('room around the button: under it, left edges aligned', p.left === 300 && p.top === 130, JSON.stringify(p))
+  p = P(bouton(W - 70, 60), 190, 120, W, H)
+  ok('a button at the right edge: the menu is pulled back so it ends inside the window (it ran ~110 px out)', p.left + 190 <= W - 8 && p.left >= 8, JSON.stringify(p))
+  p = P(bouton(2, 60), 190, 120, W, H)
+  ok('a button at the left edge: the menu keeps a margin', p.left === 8, JSON.stringify(p))
+  p = P(bouton(300, H - 30), 190, 120, W, H)
+  ok('no room below: it opens above the button', p.top + 120 <= H - 30 && p.top >= 8, JSON.stringify(p))
+  p = P(bouton(300, 20), 190, 300, W, 200)
+  ok('a window smaller than the menu: it is pinned to the margin, never negative', p.top >= 8 && p.left >= 8, JSON.stringify(p))
+  const src = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+  ok('the menu uses it, with its measured size', /placerMenu\(r, menu\.offsetWidth \|\| 190, menu\.offsetHeight \|\| 120/.test(src))
+  ok('a sweep skipped by the throttle is replayed once the quiet period is over, not dropped', /balayageDiffere = setTimeout\(\(\) => \{ balayageDiffere = null; balayer\(\) \}, attente\)/.test(src) && !/< 200\) return/.test(src))
+}
+
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\n✗ ${echecs} échec(s)`)
 process.exit(echecs === 0 ? 0 : 1)

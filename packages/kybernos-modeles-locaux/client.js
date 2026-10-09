@@ -62,6 +62,7 @@ window.__ModuleLoader__.load({
         'kml.machine': { fr: 'Machine :', en: 'Machine:' },
         'kml.mesure': { fr: 'mesuré — sysctl', en: 'measured — sysctl' },
         'kml.ollama.absent': { fr: 'absent', en: 'not installed' },
+        'kml.ollama.arrete': { fr: "serveur arrêté : ouvrez l'app Ollama ou lancez « ollama serve »", en: 'server not running: open the Ollama app or run “ollama serve”' },
         'kml.ollama.note': { fr: 'installé au 1ᵉʳ téléchargement', en: 'installed on first download' },
         'kml.installer.ollama': { fr: 'Installer Ollama (brew)', en: 'Install Ollama (brew)' },
         'kml.reverifier': { fr: 'Revérifier', en: 'Re-check' },
@@ -532,6 +533,8 @@ window.__ModuleLoader__.load({
         }
 
         const ollamaAbsent = machine === null ? null : machine.ollama.present !== true
+        // The program is there but its server does not answer: the tile used to stay green and the list of models read as "none".
+        const ollamaArrete = machine !== null && machine.ollama.present === true && machine.ollama.serveur === false
         const hfInvalide = hfResult !== null && hfResult.ok !== true
         const hfVerdict = hfResult !== null && hfResult.ok === true ? hfResult : null
         const hfHorsChamp = hfVerdict !== null && hfVerdict.enChargeGo !== null && budgetGo !== null && hfVerdict.enChargeGo > budgetGo
@@ -564,11 +567,11 @@ window.__ModuleLoader__.load({
               machine === null
                 ? h('span', { className: 'kml-tuile-ligne' }, h('span', { className: 'kbm-dot', 'data-state': 'idle' }), '…')
                 : h('span', { className: 'kml-tuile-ligne' },
-                  h('span', { className: 'kbm-dot', 'data-state': ollamaAbsent === true ? 'warning' : 'done' }),
+                  h('span', { className: 'kbm-dot', 'data-state': (ollamaAbsent === true || ollamaArrete === true) ? 'warning' : 'done' }),
                   h('b', null, ollamaAbsent === true ? m('kml.ollama.absent') : 'Ollama ' + (machine.ollama.version || '')),
                   ollamaAbsent === true
                     ? h('span', { className: 'kml-tuile-note' }, m('kml.ollama.note'))
-                    : h('span', { className: 'kml-tuile-note' }, m('kml.moteur.port')),
+                    : h('span', { className: 'kml-tuile-note' }, ollamaArrete === true ? m('kml.ollama.arrete') : m('kml.moteur.port')),
                   ollamaAbsent === true && job !== null && job.cible === 'ollama' && job.running === true
                     ? h('span', { className: 'kml-prog-texte' }, 'brew install ollama — ' + (job.ligne || '…'))
                     : (ollamaAbsent === true
