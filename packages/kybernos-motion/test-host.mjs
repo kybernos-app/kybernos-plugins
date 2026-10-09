@@ -48,7 +48,7 @@ M.apply({
 })
 await new Promise((r) => setTimeout(r, 50)) // the tool registers asynchronously (it looks for defineTool)
 ok('apply: the tool is registered', tool !== null && tool.name === 'creer_motion')
-ok('apply: every route is mounted', ['state', 'scene', 'save', 'open', 'list', 'revisions', 'restore', 'asset', 'frame', 'export'].every((r) => routes.has('/kybernos-motion/' + r)), [...routes.keys()])
+ok('apply: every route is mounted', ['state', 'scene', 'save', 'open', 'list', 'revisions', 'restore', 'asset', 'frame', 'export', 'vendor/three.js', 'vendor/lottie.js'].every((r) => routes.has('/kybernos-motion/' + r)), [...routes.keys()])
 ok('apply: the tool can be executed through its definition', typeof tool.execute === 'function')
 
 const server = http.createServer((req, res) => {
@@ -148,6 +148,30 @@ ok('tool: creates the scene in the session folder', made.ok && made.chemin === j
   ok('export: a path outside is 403', (await call('POST', `/kybernos-motion/export?session=s1&format=mp4&path=${encodeURIComponent(join(elsewhere, 'a.miniapp.json'))}`, { raw: mp4 })).status === 403)
   const { readdirSync } = await import('node:fs')
   ok('export: no temp file is left behind', readdirSync(join(project, 'artifacts')).every((f) => !f.endsWith('.tmp')))
+}
+
+// ── the big libraries, served on demand ─────────────────────────────────────
+{
+  const t = await call('GET', '/kybernos-motion/vendor/three.js')
+  ok('vendor: three.js is served as JavaScript with a validator', t.status === 200 && t.type.includes('javascript') && t.buf.length > 100000, [t.status, t.type, t.buf && t.buf.length])
+  const etag = (await fetch(`http://127.0.0.1:${port}/kybernos-motion/vendor/three.js`)).headers.get('etag')
+  const again = await fetch(`http://127.0.0.1:${port}/kybernos-motion/vendor/three.js`, { headers: { 'if-none-match': etag } })
+  ok('vendor: a second visit gets 304, not 600 KB again', typeof etag === 'string' && again.status === 304)
+  const l = await call('GET', '/kybernos-motion/vendor/lottie.js')
+  ok('vendor: lottie is served too', l.status === 200 && l.buf.length > 50000)
+  ok('vendor: no way to ask for another file (the names are fixed)', (await call('GET', '/kybernos-motion/vendor/../index.js')).status === 404 && (await call('GET', '/kybernos-motion/vendor/other.js')).status === 404)
+  ok('vendor: the Lottie build has no expression engine (no eval, no new Function): a scene file may not carry code', !/new Function|eval\(/.test(l.buf.toString('utf8')))
+  ok('vendor: THREE is exposed as a global the client can find', t.buf.toString('utf8').includes('GLTFLoader') && t.buf.toString('utf8').includes('SkeletonUtils'))
+  ok('vendor: a foreign origin is still refused', (await call('GET', '/kybernos-motion/vendor/three.js', { headers: { origin: 'https://evil.example' } })).status === 403)
+}
+
+// ── a model next to a scene ──
+{
+  mkdirSync(join(project, 'artifacts', 'media'), { recursive: true })
+  const { glbWithClips } = await import('./lib-fixtures.mjs')
+  writeFileSync(join(project, 'artifacts', 'media', 'hero.glb'), glbWithClips(['Run']))
+  const m = await call('GET', `/kybernos-motion/asset?session=s1&scene=${encodeURIComponent(made.chemin)}&src=${encodeURIComponent('media/hero.glb')}`)
+  ok('asset: a .glb is served with the glTF type', m.status === 200 && m.type === 'model/gltf-binary' && m.buf[0] === 0x67, [m.status, m.type])
 }
 
 server.close()

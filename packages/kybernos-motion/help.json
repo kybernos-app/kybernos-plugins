@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Le chat crée des animations : titres, graphiques qui se dessinent, compteurs, particules, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
-    "en": "The chat creates animations: titles, charts that draw themselves, counters, particles, shapes that morph, with sound. You play them, adjust them and export them as video."
+    "fr": "Le chat crée des animations : titres, graphiques, compteurs, particules, 3D, personnages animés, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
+    "en": "The chat creates animations: titles, charts, counters, particles, 3D, animated characters, shapes that morph, with sound. You play them, adjust them and export them as video."
   },
   "steps": [
     {

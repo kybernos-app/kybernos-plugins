@@ -18,16 +18,22 @@
     "engine.mjs",
     "audio.mjs",
     "render2d.mjs",
+    "render-ext.mjs",
+    "assets-info.mjs",
     "client.js",
     "cordis.patch.yml",
+    "vendor/three.iife.js",
+    "vendor/lottie-canvas.min.js",
     "vendor/NOTICES.md",
     "vendor/LICENSE-mediabunny-MPL-2.0.txt",
+    "vendor/LICENSE-three-MIT.txt",
+    "vendor/LICENSE-lottie-web-MIT.md",
     "README.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "check": "node --check index.js && node --check client.js && node scripts/build.mjs --check",
-    "test": "node test-engine.mjs && node test-audio.mjs && node test-render.mjs && node test-motion-host.mjs && node test-host.mjs && node test-client.mjs"
+    "test": "node test-engine.mjs && node test-audio.mjs && node test-render.mjs && node test-render-ext.mjs && node test-assets-info.mjs && node test-motion-host.mjs && node test-host.mjs && node test-client.mjs"
   },
   "dsh": {
     "bundle": {

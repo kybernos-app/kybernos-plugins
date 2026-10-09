@@ -14,6 +14,7 @@
 import { createHash } from 'node:crypto'
 import { basename, dirname, extname, isAbsolute, join, resolve, sep } from 'node:path'
 import * as engine from './engine.mjs'
+import { inspectGlb, inspectLottie } from './assets-info.mjs'
 
 export const EXT = '.miniapp.json'
 export const KIND = 'motion'
@@ -28,6 +29,7 @@ export const LIMITS = {
 }
 export const ASSET_TYPES = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.avif': 'image/avif',
+  '.glb': 'model/gltf-binary', '.json': 'application/json', // a .json is only served when it is a Lottie file
   '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4', '.ogg': 'audio/ogg', '.oga': 'audio/ogg', '.flac': 'audio/flac', '.aac': 'audio/aac',
 }
 
@@ -259,7 +261,58 @@ export function createHost ({ fs, home, workspace, now = () => Date.now(), log =
     if (dirReal === null) return { ok: false, message: 'That file is outside what this session may read.' }
     const st = await fs.stat(real)
     if (!st.isFile() || st.size > LIMITS.asset) return { ok: false, message: 'That file is not usable (not a file, or over 25 MB).' }
+    if (ext === '.json') {
+      // only Lottie animations are served as JSON, never an arbitrary data file of the project
+      let text
+      try { text = await fs.readFile(real, 'utf8') } catch { return { ok: false, message: 'That file cannot be read.' } }
+      if (!inspectLottie(text).ok) return { ok: false, message: 'That .json file is not a Lottie animation.' }
+    }
     return { ok: true, path: real, type: ASSET_TYPES[ext], size: st.size }
+  }
+
+  /**
+   * What the agent needs to know about the files a scene points at: found or not, and for a model its animation clips, for a
+   * Lottie its length. A problem (missing file, a clip name the model does not have, Lottie expressions) is spelled out.
+   */
+  async function inspectAssets (scenePath, scene, sessionId) {
+    const a = engine.assetsOf(scene)
+    const list = []
+    const problems = []
+    const one = async (src, kind) => {
+      const r = await resolveAsset(scenePath, src, sessionId)
+      const info = { src, kind, found: r.ok === true }
+      if (!r.ok) { info.message = r.message; problems.push(`${kind} "${src}": ${r.message}`); list.push(info); return }
+      info.bytes = r.size
+      try {
+        if (kind === 'model') {
+          const g = inspectGlb(new Uint8Array(await fs.readFile(r.path)))
+          if (g.ok) { info.animations = g.animations; info.meshes = g.meshes; info.skinned = g.skins > 0; if (g.externalFiles > 0) problems.push(`model "${src}" points at ${g.externalFiles} file(s) outside itself: they are not loaded (embed them in the .glb).`) } else { info.found = false; info.message = g.message; problems.push(`model "${src}": ${g.message}`) }
+        } else if (kind === 'lottie') {
+          const l = inspectLottie(await fs.readFile(r.path, 'utf8'))
+          if (l.ok) { Object.assign(info, { seconds: l.seconds, fps: l.fps, size: [l.width, l.height], expressions: l.expressions }); if (l.expressions) problems.push(`lottie "${src}" uses expressions: they are never run, so some motion may be missing.`); if (l.externalImages > 0) problems.push(`lottie "${src}" points at ${l.externalImages} image(s) outside the file: they are not loaded (embed them in the Lottie).`) } else { info.found = false; info.message = l.message; problems.push(`lottie "${src}": ${l.message}`) }
+        }
+      } catch { info.found = false; info.message = 'The file cannot be read.'; problems.push(`${kind} "${src}": cannot be read.`) }
+      list.push(info)
+    }
+    for (const src of a.images) await one(src, 'image')
+    for (const src of a.lotties) await one(src, 'lottie')
+    for (const src of a.models) await one(src, 'model')
+    for (const src of a.sounds) await one(src, 'sound')
+    // a clip name must be one the model has
+    const walk = (layers) => {
+      for (const l of layers || []) {
+        if (l.type === 'scene3d') {
+          for (const o of l.objects || []) {
+            if (o.shape !== 'model' || o.clip === '') continue
+            const info = list.find((x) => x.kind === 'model' && x.src === o.src && x.found && Array.isArray(x.animations))
+            if (info && !info.animations.some((c) => c.name === o.clip)) problems.push(`layer "${l.name}": clip "${o.clip}" is not in ${o.src} (it has: ${info.animations.map((c) => c.name).join(', ') || 'no animation'}).`)
+          }
+        }
+        if (l.layers) walk(l.layers)
+      }
+    }
+    walk(scene.layers)
+    return { list, problems }
   }
 
   // ── what the user changed since the agent last wrote ─────────────────────
@@ -315,7 +368,7 @@ export function createHost ({ fs, home, workspace, now = () => Date.now(), log =
     return { ok: true }
   }
 
-  return { root, frameTimeoutMs, listScenes, resolveTarget, confineExisting, readDoc, saveScene, revisions, restore, resolveAsset, userEditsSince, setCurrent, getCurrent, wantFrame, pendingFrame, deliverFrame, sessionDir, allowedDir }
+  return { root, frameTimeoutMs, listScenes, inspectAssets, resolveTarget, confineExisting, readDoc, saveScene, revisions, restore, resolveAsset, userEditsSince, setCurrent, getCurrent, wantFrame, pendingFrame, deliverFrame, sessionDir, allowedDir }
 }
 
 // ── the agent's tool ──────────────────────────────────────────────────────────
@@ -332,7 +385,9 @@ export function toolOptions (host) {
       + 'Call with `scene` to write it; call with only `params` to change a few of its settings; call with neither to READ it back '
       + 'together with what the user changed since your last write. The result lists problems found in the scene '
       + '(text cut off, overlapping, unreadable, on screen too briefly): fix them and call again. '
-      + 'Use `voir` to get a PNG of one instant that you can read with your file-reading tool.\n'
+      + 'Use `voir` to get a PNG of one instant that you can read with your file-reading tool. '
+      + 'Files a scene uses (images, sounds, .glb models, Lottie .json) must be inside the project; the answer\'s `assets` says whether each was found, '
+      + 'a model\'s animation clip names (use one as `clip`) and a Lottie\'s length, and `assets_problems` lists what is wrong with them.\n'
       + 'A scene is {format:{width,height,fps,duration}, background, params:{name:value}, controls:[{id,label,type,options?}], layers:[...], audio:[...]}. '
       + 'Any property can be a number, a $param, or keyframes {k:[[time_s, value, ease?],...]} (ease: ' + engine.EASE_NAMES.join(', ') + ' or [x1,y1,x2,y2]). '
       + 'A layer without x,y sits at the centre of the frame; coordinates are in frame pixels, origin top-left. '
@@ -390,7 +445,8 @@ export async function runTool (host, sessionId, a) {
     host.setCurrent(sessionId, path, r.doc.title)
     const out = {
       ok: true, read: true, chemin: path, titre: r.doc.title, rev: r.doc.meta.rev,
-      changes_by_user: host.userEditsSince(r.doc), scene: stripRuntime(r.scene), inspect: brief(engine.inspect(r.scene)),
+      changes_by_user: host.userEditsSince(r.doc), scene: engine.compact(r.scene), inspect: brief(engine.inspect(r.scene)),
+      ...(await assetReport(host, path, r.scene, sessionId)),
     }
     if (typeof a.voir === 'number') out.voir = await previewFrame(host, sessionId, a.voir)
     return out
@@ -414,13 +470,22 @@ export async function runTool (host, sessionId, a) {
   const insp = engine.inspect(saved.scene)
   const out = {
     ok: true, chemin: path, titre: saved.title, rev: saved.rev,
-    dropped: saved.errors.slice(0, 15), inspect: brief(insp),
+    dropped: saved.errors.slice(0, 15), inspect: brief(insp), ...(await assetReport(host, path, saved.scene, sessionId)),
     message: `Saved r${saved.rev}. The user sees it in the Motion panel and in Livrables.`
       + (saved.errors.length ? ` ${saved.errors.length} thing(s) were ignored (see dropped).` : '')
       + (insp.warnings.length ? ` ${insp.warnings.length} readability warning(s): fix and call again.` : ' No readability warning.'),
   }
   if (typeof a.voir === 'number') out.voir = await previewFrame(host, sessionId, a.voir)
   return out
+}
+
+/** The files a scene uses, and what is wrong with them: `{}` when it uses none. */
+async function assetReport (host, path, scene, sessionId) {
+  if (typeof host.inspectAssets !== 'function') return {}
+  const a = engine.assetsOf(scene)
+  if (a.images.length + a.lotties.length + a.models.length + a.sounds.length === 0) return {}
+  const r = await host.inspectAssets(path, scene, sessionId)
+  return { assets: r.list, ...(r.problems.length ? { assets_problems: r.problems } : {}) }
 }
 
 async function exists2 (host, path) {

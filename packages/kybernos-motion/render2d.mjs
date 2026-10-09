@@ -2,6 +2,7 @@
 //
 //   paint(ctx, frame, opts)   opts: { width, height }   pixel size of the target canvas
 //                                   { images }           Map of src -> drawable (ImageBitmap, <img>, canvas)
+//                                   { external }         { scene3d(ctx, op), lottie(ctx, op) } from render-ext.mjs
 //
 // Knows nothing about scenes, keyframes or params: only rect, circle, line, poly, text and image. That is
 // what lets the same frame be painted on screen, into the exporter, or onto a recording context in a test.
@@ -129,6 +130,10 @@ export function paint (ctx, frame, opts) {
       drawText(ctx, op)
     } else if (op.op === 'image') {
       drawImage(ctx, op, o.images)
+    } else if (op.op === 'scene3d' || op.op === 'lottie') {
+      // drawn by renderers that are loaded on demand (render-ext.mjs); without one the layer simply shows nothing yet
+      const draw = o.external && o.external[op.op]
+      if (typeof draw === 'function') { try { draw(ctx, op) } catch (e) { /* one bad layer must not blank the frame */ } }
     }
     ctx.restore()
   }

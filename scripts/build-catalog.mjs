@@ -45,7 +45,7 @@ const FICHE = {
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
   'kybernos-bricks': ['create', 'Maquettes en briques, animées brique par brique.', 'Brick mockups, animated brick by brick.'],
   'kybernos-modeleur': ['create', 'Modèles 2D et 3D pilotés par le chat.', '2D and 3D models driven by the chat.'],
-  'kybernos-motion': ['create', 'Des animations créées par le chat, jouées et exportées en vidéo.', 'Animations made by the chat, played and exported as video.'],
+  'kybernos-motion': ['create', 'Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo.', 'Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video.'],
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],

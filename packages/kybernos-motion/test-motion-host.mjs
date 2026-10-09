@@ -3,7 +3,9 @@ import * as fsp from 'node:fs/promises'
 import { existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import * as engine from './engine.mjs'
 import * as H from './motion-host.mjs'
+import { glbWithClips, makeGlb, makeLottie } from './lib-fixtures.mjs'
 
 let fail = 0
 let n = 0
@@ -25,6 +27,7 @@ const workspace = {
 }
 const mk = (over) => H.createHost({ fs: fsp, home, workspace, ...over })
 const host = mk({ frameTimeoutMs: 80 })
+const engine_validate = (raw) => engine.validate(raw).scene
 const SCENE = { format: { duration: 4 }, params: { titre: 'Bonjour' }, layers: [{ type: 'text', name: 'T', text: '{titre}', x: 960, y: 540, size: 120 }] }
 
 ok('slug: accents, spaces, junk', H.slug('Intro Lancement été!') === 'intro-lancement-ete' && H.slug('???') === 'animation' && H.slug('a'.repeat(200)).length === 60)
@@ -121,6 +124,47 @@ const p1 = join(project, 'artifacts', 'a.miniapp.json')
   ok('asset: a missing file is refused', (await host.resolveAsset(p1, 'img/none.png', 's1')).ok === false)
   ok('asset: an absolute path outside is refused', (await host.resolveAsset(p1, join(elsewhere, 'secret.png'), 's1')).ok === false)
   ok('asset: a scene outside the project cannot be used as an anchor', (await host.resolveAsset(join(elsewhere, 'a.miniapp.json'), 'secret.png', 's1')).ok === false)
+}
+
+// ── models and Lottie files ─────────────────────────────────────────────────
+{
+  mkdirSync(join(project, 'artifacts', 'media'), { recursive: true })
+  writeFileSync(join(project, 'artifacts', 'media', 'hero.glb'), glbWithClips(['Walk', 'Run']))
+  writeFileSync(join(project, 'artifacts', 'media', 'hero.json'), JSON.stringify(makeLottie(3)))
+  writeFileSync(join(project, 'artifacts', 'media', 'data.json'), JSON.stringify({ some: 'project data', secret: 'x' }))
+  writeFileSync(join(project, 'artifacts', 'media', 'logo.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]))
+  const g = await host.resolveAsset(p1, 'media/hero.glb', 's1')
+  ok('asset: a .glb is served as a glTF binary', g.ok && g.type === 'model/gltf-binary', g)
+  const l = await host.resolveAsset(p1, 'media/hero.json', 's1')
+  ok('asset: a Lottie .json is served as JSON', l.ok && l.type === 'application/json', l)
+  const d = await host.resolveAsset(p1, 'media/data.json', 's1')
+  ok('asset: any other .json of the project is NOT served (this is not a file server)', d.ok === false && d.message.includes('not a Lottie'), d)
+  const scene3 = { format: { duration: 4 }, layers: [
+    { type: 'scene3d', name: 'Hero', objects: [{ shape: 'model', src: 'media/hero.glb', clip: 'Run' }, { shape: 'model', src: 'media/hero.glb', clip: 'Fly' }, { shape: 'model', src: 'media/missing.glb' }] },
+    { type: 'lottie', name: 'L', src: 'media/hero.json' }, { type: 'image', name: 'I', src: 'media/logo.png' }, { type: 'lottie', name: 'Bad', src: 'media/data.json' },
+  ] }
+  const sc = engine_validate(scene3)
+  const rep = await host.inspectAssets(p1, sc, 's1')
+  const byKind = (k) => rep.list.filter((x) => x.kind === k)
+  ok('assets: a model lists its clips', byKind('model').find((x) => x.src === 'media/hero.glb').animations.map((a) => a.name).join() === 'Walk,Run', rep.list)
+  ok('assets: a Lottie gives its length, rate and size', JSON.stringify(byKind('lottie')[0].size) === '[200,200]' && byKind('lottie')[0].seconds === 3 && byKind('lottie')[0].fps === 30, byKind('lottie')[0])
+  ok('assets: an image is found with its size in bytes', byKind('image')[0].found === true && byKind('image')[0].bytes === 4)
+  ok('assets: a missing model is reported as a problem', rep.problems.some((x) => x.includes('media/missing.glb')), rep.problems)
+  ok('assets: a clip the model does not have is reported with the ones it has', rep.problems.some((x) => x.includes('clip "Fly"') && x.includes('Walk, Run')), rep.problems)
+  ok('assets: a .json that is not a Lottie is reported', rep.problems.some((x) => x.includes('media/data.json')))
+  ok('assets: a good clip is not reported', !rep.problems.some((x) => x.includes('clip "Run"')))
+  writeFileSync(join(project, 'artifacts', 'media', 'wild.glb'), makeGlb({ asset: { version: '2.0' }, images: [{ uri: 'https://tracker.example/t.png' }], animations: [] }))
+  writeFileSync(join(project, 'artifacts', 'media', 'wild.json'), JSON.stringify({ ...makeLottie(1), assets: [{ id: 'i', p: 'img_0.png', u: 'images/' }] }))
+  const wild = await host.inspectAssets(p1, engine_validate({ layers: [{ type: 'scene3d', objects: [{ shape: 'model', src: 'media/wild.glb' }] }, { type: 'lottie', src: 'media/wild.json' }] }), 's1')
+  ok('assets: a model and a Lottie that point outside themselves are reported (they will not be loaded)', wild.problems.some((x) => x.includes('wild.glb') && x.includes('outside itself')) && wild.problems.some((x) => x.includes('wild.json') && x.includes('outside the file')), wild.problems)
+  const tool2 = H.toolOptions(host)
+  const made = await tool2.execute({ titre: 'Media', scene: scene3 }, { agent: { id: 's1' } })
+  ok('tool: the answer carries the asset report and its problems', made.ok && Array.isArray(made.assets) && made.assets.length === 5 && made.assets_problems.length >= 3, made)
+  const plain = await tool2.execute({ titre: 'Plain', scene: SCENE }, { agent: { id: 's1' } })
+  ok('tool: a scene with no files has no asset section', plain.ok && plain.assets === undefined && plain.assets_problems === undefined)
+  const back = await tool2.execute({ fichier: made.chemin }, { agent: { id: 's1' } })
+  ok('tool: reading hands the scene back in its COMPACT form (what is on disk), not the verbose normalised one', back.ok && JSON.stringify(back.scene).length < 1400 && back.scene.layers[0].objects[0].src === 'media/hero.glb' && !('rx' in back.scene.layers[0].objects[0]), JSON.stringify(back.scene).length)
+  ok('tool: the description tells the agent about files and clips', tool2.description.includes('animation clip names') && tool2.description.includes('- scene3d:') && tool2.description.includes('- lottie:'))
 }
 
 // ── listing ─────────────────────────────────────────────────────────────────

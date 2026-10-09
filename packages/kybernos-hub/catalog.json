@@ -996,15 +996,15 @@
       "version": "0.1.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 470,
+      "poids_ko": 1481,
       "promesse": {
-        "fr": "Des animations créées par le chat, jouées et exportées en vidéo.",
-        "en": "Animations made by the chat, played and exported as video."
+        "fr": "Des animations (titres, graphiques, 3D, personnages, son) créées par le chat et exportées en vidéo.",
+        "en": "Animations (titles, charts, 3D, characters, sound) made by the chat and exported as video."
       },
       "aide": {
         "what": {
-          "fr": "Le chat crée des animations : titres, graphiques qui se dessinent, compteurs, particules, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
-          "en": "The chat creates animations: titles, charts that draw themselves, counters, particles, shapes that morph, with sound. You play them, adjust them and export them as video."
+          "fr": "Le chat crée des animations : titres, graphiques, compteurs, particules, 3D, personnages animés, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
+          "en": "The chat creates animations: titles, charts, counters, particles, 3D, animated characters, shapes that morph, with sound. You play them, adjust them and export them as video."
         },
         "steps": [
           {

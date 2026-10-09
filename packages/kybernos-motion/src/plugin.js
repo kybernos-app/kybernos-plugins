@@ -1,5 +1,5 @@
 // src/plugin.js: body of the browser factory (assembled by scripts/build.mjs).
-// In scope from the assembler: `require` (DSH module loader), `engine`, `audio`, `render2d`, `Mediabunny`, `RUNTIME_SRC`.
+// In scope from the assembler: `require` (DSH module loader), `engine`, `audio`, `render2d`, `renderExt`, `Mediabunny`, `RUNTIME_SRC`.
 //
 // Two things live here:
 //   MotionPlayer  plays a motion scene; registered as the "motion" player of the Livrables page, the chat card and the popup
@@ -81,18 +81,82 @@ function controlsOf (scene) {
   return out
 }
 
-/* ══════════════════════ media: images and sounds of a scene ══════════════════════ */
+/* ══════════════════════ the big libraries, loaded only when a scene needs them ══════════════════════ */
 
-function createAssets (path) {
+// three.js and lottie-web are not in this bundle: the host serves them (/kybernos-motion/vendor/<name>.js) and they land in private
+// globals, so they never replace another bundle's `THREE` or `lottie`.
+const VENDOR_GLOBAL = { three: 'KbMotionThree', lottie: 'KbMotionLottie' }
+const vendorLoads = new Map()
+function loadVendor (name) {
+  const g = VENDOR_GLOBAL[name]
+  if (window[g]) return Promise.resolve(window[g])
+  if (vendorLoads.has(name)) return vendorLoads.get(name)
+  const p = new Promise((resolve, reject) => {
+    const el = document.createElement('script')
+    el.src = R + 'vendor/' + name + '.js'
+    el.onload = () => (window[g] ? resolve(window[g]) : reject(new Error(name + ' did not load')))
+    el.onerror = () => reject(new Error(name + ' is unavailable'))
+    document.head.appendChild(el)
+  })
+  p.catch(() => vendorLoads.delete(name))
+  vendorLoads.set(name, p)
+  return p
+}
+
+/* ══════════════════════ media: images, sounds, Lottie files and 3D models of a scene ══════════════════════ */
+
+function createAssets (path, opts) {
+  const o = opts || {}
   const images = new Map()
   const sounds = new Map()
+  const lotties = new Map()
+  const models = new Map()
   const failed = new Set()
+  const notes = [] // why something does not show (no WebGL, a library that did not load)
   let listener = null
+  const external = renderExt.createExternal({ three: () => window.KbMotionThree || null, lottie: () => window.KbMotionLottie || null, lotties, models, createCanvas: () => document.createElement('canvas') })
   const url = (src) => R + 'asset?' + q({ scene: path, src, session: SESSION_ID })
   const fetchBuf = async (src) => { const r = await fetch(url(src), { credentials: 'same-origin' }); if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer() }
   return {
-    images, sounds, failed,
+    images, sounds, lotties, models, failed, notes, external,
     onChange (fn) { listener = fn },
+    dispose () { try { external.dispose() } catch (e) { /* gone */ } },
+    /** Lottie files and 3D models (and the libraries that play them): only for a scene that has such layers. `skip3d` leaves 3D out (card thumbnails). */
+    async loadExternal (scene) {
+      const need = engine.needs(scene)
+      const a = engine.assetsOf(scene)
+      if (need.lottie) {
+        try {
+          await loadVendor('lottie')
+          for (const src of a.lotties) {
+            if (lotties.has(src) || failed.has(src)) continue
+            try {
+              const r = await fetch(url(src), { credentials: 'same-origin' })
+              if (!r.ok) throw new Error('HTTP ' + r.status)
+              lotties.set(src, JSON.parse(await r.text()))
+            } catch (e) { failed.add(src) }
+          }
+        } catch (e) { notes.push(String(e.message || e)) }
+      }
+      if (need.three && !o.skip3d) {
+        try {
+          const THREE = await loadVendor('three')
+          for (const src of a.models) {
+            if (models.has(src) || failed.has(src)) continue
+            try {
+              const r = await fetch(url(src), { credentials: 'same-origin' })
+              if (!r.ok) throw new Error('HTTP ' + r.status)
+              const buf = await r.arrayBuffer()
+              models.set(src, await new Promise((resolve, reject) => renderExt.createModelLoader(THREE).parse(buf, '', resolve, reject)))
+            } catch (e) { failed.add(src) }
+          }
+        } catch (e) { notes.push(String(e.message || e)) }
+      }
+      if (listener) listener()
+    },
+    /** The text of a vendored library (to embed in a standalone page). */
+    async vendorText (name) { const r = await fetch(R + 'vendor/' + name + '.js', { credentials: 'same-origin' }); return r.ok ? r.text() : null },
+    async lottieText (src) { const r = await fetch(url(src), { credentials: 'same-origin' }); return r.ok ? r.text() : null },
     async loadImages (scene) {
       for (const src of render2d.imagesOf(scene)) {
         if (images.has(src) || failed.has(src)) continue
@@ -164,7 +228,7 @@ function usePlayer (scene, path, opts) {
   const canvasRef = React.useRef(null)
   const st = React.useRef({ t: o.startAt || 0, playing: false, last: 0, raf: 0, loop: true })
   const [, force] = React.useReducer((x) => x + 1, 0)
-  const assets = React.useMemo(() => createAssets(path), [path])
+  const assets = React.useMemo(() => createAssets(path, { skip3d: o.compact === true }), [path, o.compact])
   const sound = React.useMemo(() => createAudioPreview(), [])
   const [muted, setMuted] = React.useState(false)
   const mutedRef = React.useRef(false)
@@ -183,16 +247,18 @@ function usePlayer (scene, path, opts) {
     const w = clamp(Math.round(((box && box.clientWidth) || 480) * dpr), 240, 1920)
     const hh = Math.max(2, Math.round((w * sc.format.height) / sc.format.width))
     if (cv.width !== w || cv.height !== hh) { cv.width = w; cv.height = hh }
-    try { render2d.paint(cv.getContext('2d'), engine.evaluate(sc, st.current.t, overrides.current), { width: w, height: hh, images: assets.images }) } catch (e) { /* a bad frame must not stop the player */ }
+    try { render2d.paint(cv.getContext('2d'), engine.evaluate(sc, st.current.t, overrides.current), { width: w, height: hh, images: assets.images, external: assets.external }) } catch (e) { /* a bad frame must not stop the player */ }
   }, [assets])
 
   React.useEffect(() => {
     if (!scene) return undefined
     assets.onChange(paintNow)
     assets.loadImages(scene)
+    assets.loadExternal(scene)
     paintNow()
     return () => assets.onChange(null)
   }, [scene, assets, paintNow])
+  React.useEffect(() => () => assets.dispose(), [assets])
   React.useEffect(() => { paintNow() })
   React.useEffect(() => {
     const box = canvasRef.current && canvasRef.current.parentElement
@@ -311,7 +377,7 @@ function MotionPlayer (props) {
   const path = props.path || ''
   const scene = parsed.ok ? parsed.scene : null
   const compact = props.compact === true
-  const player = usePlayer(scene, path, { startAt: scene ? scene.format.duration * 0.66 : 0 })
+  const player = usePlayer(scene, path, { startAt: scene ? scene.format.duration * 0.66 : 0, compact })
   const [hint, setHint] = React.useState(false)
   if (!parsed.ok) return h('div', { className: 'kbmt-root kbmt-bad' }, parsed.message)
   if (compact) return h('div', { className: 'kbmt-root kbmt-compact', 'data-kb': 'motion-player-compact' }, h('div', { className: 'kbmt-stage' }, h('canvas', { ref: player.canvasRef })))
@@ -358,11 +424,12 @@ async function exportVideo ({ scene, assets, height, fps, onProgress, isCancelle
     if (acodec) { as = new Mediabunny.AudioBufferSource({ codec: acodec, bitrate: 128000 }); output.addAudioTrack(as) }
   }
   await assets.loadImages(scene)
+  await assets.loadExternal(scene)
   await output.start()
   const total = Math.max(1, Math.round(scene.format.duration * fps))
   for (let i = 0; i < total; i++) {
     if (isCancelled()) { try { await output.cancel() } catch (e) { /* nothing to cancel */ } return null }
-    render2d.paint(ctx, engine.evaluate(scene, i / fps), { width: w, height: hh, images: assets.images })
+    render2d.paint(ctx, engine.evaluate(scene, i / fps), { width: w, height: hh, images: assets.images, external: assets.external })
     await vs.add(i / fps, 1 / fps)
     if (i % 4 === 0) { onProgress(i + 1, total); await new Promise((r) => setTimeout(r, 0)) }
   }
@@ -380,8 +447,22 @@ async function exportVideo ({ scene, assets, height, fps, onProgress, isCancelle
   return { bytes: new Uint8Array(output.target.buffer), format }
 }
 
+/** Everything a standalone page must carry: media as data URLs, Lottie files as text, and the libraries a scene needs. */
+async function gatherMedia (assets, scene) {
+  const a = engine.assetsOf(scene)
+  const out = { images: {}, sounds: {}, lotties: {}, models: {}, libs: { three: null, lottie: null } }
+  for (const src of a.images) { const d = await assets.dataUrl(src); if (d) out.images[src] = d }
+  for (const src of a.sounds) { const d = await assets.dataUrl(src); if (d) out.sounds[src] = d }
+  for (const src of a.lotties) { const t = await assets.lottieText(src); if (t) out.lotties[src] = t }
+  for (const src of a.models) { const d = await assets.dataUrl(src); if (d) out.models[src] = d }
+  const need = engine.needs(scene)
+  if (need.three) out.libs.three = await assets.vendorText('three')
+  if (need.lottie) out.libs.lottie = await assets.vendorText('lottie')
+  return out
+}
+
 /** A page that plays the scene by itself (no DSH, no network): the runtime, the scene and its media in one file. */
-function standaloneHTML ({ title, scene, images, sounds }) {
+function standaloneHTML ({ title, scene, images, sounds, lotties, models, libs }) {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
   const LS = String.fromCharCode(0x2028)
   const PS = String.fromCharCode(0x2029)
@@ -393,7 +474,10 @@ const cv = document.getElementById('cv'), ctx = cv.getContext('2d')
 const F = SCENE.format, D = F.duration
 let t = 0, playing = true, last = performance.now(), ac = null, node = null, muted = false
 const images = new Map()
-const loaded = Promise.all(Object.entries(MEDIA.images).map(async ([src, url]) => { try { images.set(src, await createImageBitmap(await (await fetch(url)).blob())) } catch (e) {} }))
+const lotties = new Map(), models = new Map()
+const external = renderExt.createExternal({ three: () => window.KbMotionThree || null, lottie: () => window.KbMotionLottie || null, lotties, models, createCanvas: () => document.createElement('canvas') })
+for (const [src, text] of Object.entries(MEDIA.lotties || {})) { try { lotties.set(src, JSON.parse(text)) } catch (e) {} }
+const loaded = Promise.all(Object.entries(MEDIA.images).map(async ([src, url]) => { try { images.set(src, await createImageBitmap(await (await fetch(url)).blob())) } catch (e) {} }).concat(Object.entries(MEDIA.models || {}).map(async ([src, url]) => { try { const buf = await (await fetch(url)).arrayBuffer(); models.set(src, await new Promise((ok, no) => renderExt.createModelLoader(window.KbMotionThree).parse(buf, '', ok, no))) } catch (e) {} })))
 const decoded = new Map()
 const soundsReady = Promise.all(Object.entries(MEDIA.sounds).map(async ([src, url]) => { try { const a = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 48000); const d = await a.decodeAudioData(await (await fetch(url)).arrayBuffer()); decoded.set(src, { rate: d.sampleRate, channels: Array.from({ length: Math.min(2, d.numberOfChannels) }, (_, i) => d.getChannelData(i)) }) } catch (e) {} }))
 let mixed = null
@@ -410,7 +494,7 @@ async function startSound () {
 }
 function stopSound () { try { if (node) { node.stop(); node.disconnect() } } catch (e) {} node = null }
 function fit () { const k = Math.min(innerWidth / F.width, (innerHeight - 44) / F.height); cv.style.width = F.width * k + 'px'; cv.style.height = F.height * k + 'px'; cv.width = Math.min(1920, Math.round(F.width * k * (devicePixelRatio || 1))); cv.height = Math.round(cv.width * F.height / F.width) }
-function draw () { render2d.paint(ctx, engine.evaluate(SCENE, t), { width: cv.width, height: cv.height, images }) }
+function draw () { render2d.paint(ctx, engine.evaluate(SCENE, t), { width: cv.width, height: cv.height, images, external }) }
 function frame (now) { if (playing) { t += (now - last) / 1000; if (t >= D) { t = 0; startSound() } } last = now; draw(); document.getElementById('bar').value = t / D * 1000; requestAnimationFrame(frame) }
 document.getElementById('pp').onclick = () => { playing = !playing; if (playing) { if (t >= D - .05) t = 0; last = performance.now(); startSound() } else stopSound(); document.getElementById('pp').textContent = playing ? '❚❚' : '▶' }
 document.getElementById('bar').oninput = (e) => { t = e.target.value / 1000 * D; if (playing) startSound() }
@@ -425,12 +509,16 @@ loaded.then(() => { requestAnimationFrame(frame); startSound() })
     '<style>html,body{margin:0;height:100%;background:#000;color:#eee;font:13px -apple-system,system-ui,sans-serif;overflow:hidden}body{display:flex;flex-direction:column;align-items:center;justify-content:center}canvas{display:block;max-width:100%}#ctl{display:flex;gap:10px;align-items:center;width:min(92vw,900px);height:44px}#ctl button{background:#222;color:#eee;border:1px solid #444;border-radius:7px;padding:5px 10px;cursor:pointer}#bar{flex:1}</style>',
     '</head><body><canvas id="cv"></canvas><div id="ctl"><button id="pp" aria-label="Play/Pause">❚❚</button><input id="bar" type="range" min="0" max="1000" value="0" aria-label="Position"><button id="mu" aria-label="Sound">♪</button></div>',
     `<script id="scene" type="application/json">${json(scene)}</script>`,
-    `<script id="media" type="application/json">${json({ images, sounds })}</script>`,
+    `<script id="media" type="application/json">${json({ images: images || {}, sounds: sounds || {}, lotties: lotties || {}, models: models || {} })}</script>`,
+  ].concat(
+    libs && libs.three ? ['<script>', libs.three.replace(/<\/script/gi, '<\\/script'), '</script>'] : [],
+    libs && libs.lottie ? ['<script>', libs.lottie.replace(/<\/script/gi, '<\\/script'), '</script>'] : [],
+    [
     '<script>',
     RUNTIME_SRC.replace(/<\//g, '<\\/'),
     player.replace(/<\//g, '<\\/'),
     '</script></body></html>',
-  ]
+    ])
   return lines.join('\n')
 }
 
@@ -480,13 +568,7 @@ function ExportModal ({ doc, player, onClose, onToast }) {
   const base = slugOf(doc.title)
   const heights = Array.from(new Set([Math.min(1080, scene.format.height), Math.min(720, scene.format.height), Math.min(480, scene.format.height)]))
   const est = (scene.format.duration * (Number(res) / 1080) * (fps === '60' ? 1.5 : 1)).toFixed(1).replace('.', ',')
-  const inlineMedia = async () => {
-    const images = {}
-    const sounds = {}
-    for (const src of render2d.imagesOf(scene)) { const d = await player.assets.dataUrl(src); if (d) images[src] = d }
-    for (const src of audio.sourcesOf(scene.audio)) { const d = await player.assets.dataUrl(src); if (d) sounds[src] = d }
-    return { images, sounds }
-  }
+  const inlineMedia = () => gatherMedia(player.assets, scene)
   const go = async () => {
     cancelled.current = false
     setPhase('work')
@@ -603,7 +685,9 @@ function MotionPanel () {
           cv.height = hh
           const assets = createAssets(docRef.current.path)
           await assets.loadImages(sc)
-          render2d.paint(cv.getContext('2d'), engine.evaluate(sc, f.t), { width: w, height: hh, images: assets.images })
+          await assets.loadExternal(sc)
+          render2d.paint(cv.getContext('2d'), engine.evaluate(sc, f.t), { width: w, height: hh, images: assets.images, external: assets.external })
+          assets.dispose()
           const blob = await new Promise((res) => cv.toBlob(res, 'image/png'))
           if (blob) await api('POST', 'frame?' + q({ id: f.id }), blob, { type: 'image/png' })
         } catch (e) { /* the agent's call times out with an instruction */ }
@@ -812,11 +896,7 @@ function registerPlayer () {
       if (!r.ok) return null
       const assets = createAssets(path)
       const scene = engine.validate(r.json.scene).scene
-      const images = {}
-      const sounds = {}
-      for (const src of render2d.imagesOf(scene)) { const d = await assets.dataUrl(src); if (d) images[src] = d }
-      for (const src of audio.sourcesOf(scene.audio)) { const d = await assets.dataUrl(src); if (d) sounds[src] = d }
-      return { titre: r.json.title, html: standaloneHTML({ title: r.json.title, scene, images, sounds }) }
+      return { titre: r.json.title, html: standaloneHTML({ title: r.json.title, scene, ...(await gatherMedia(assets, scene)) }) }
     }
   } catch (e) { /* the player is optional */ }
 }

@@ -15,14 +15,17 @@
 //      state answer: the agent's tool itself is covered by test-host.mjs);
 //   4. the real MP4 export (WebCodecs in Chrome): the file lands in artifacts/ and ffprobe reads H.264 and AAC;
 //   5. the Livrables page lists the scene, draws its thumbnail and opens the player; "Edit" brings the panel back;
-//   6. the live page the Mac app is built from plays by itself (no DSH around it).
+//   6. the live page the Mac app is built from plays by itself (no DSH around it);
+//   7. a 3D scene (WebGL), a glTF model with its animation clip and a Lottie file are drawn, deterministic, exported
+//      to a decodable MP4 whose frames contain the 3D pixels, and carried by the standalone page.
 //
 // SAFETY: the scene lives in <worktree>/artifacts/ and is removed at the end; no Mac app is installed.
 // Exit code 0 / 1 / 3.
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, clickText } from './live-page.mjs'
+import { makeLottie, makeRealGlb } from '../packages/kybernos-motion/lib-fixtures.mjs'
 
 const args = process.argv.slice(2)
 const shotDir = args.includes('--shots') ? args[args.indexOf('--shots') + 1] : null
@@ -48,8 +51,13 @@ const click = (sel) => val(`(() => { const e = document.querySelector(${JSON.str
 const dir = join(worktree, 'artifacts')
 const scenePath = join(dir, 'motion-live-check.miniapp.json')
 const mp4Path = join(dir, 'motion-live-check.mp4')
+const scene3dPath = join(dir, 'motion-live-3d.miniapp.json')
+const modelPath = join(dir, 'motion-live-model.miniapp.json')
+const mp4Path3d = join(dir, 'motion-live-3d.mp4')
+const mediaDir = join(dir, 'motion-live-media')
 const cleanup = () => {
-  for (const f of [scenePath, mp4Path, join(dir, 'motion-live-check-2.mp4')]) { try { rmSync(f, { force: true }) } catch (e) { /* gone */ } }
+  for (const f of [scenePath, mp4Path, join(dir, 'motion-live-check-2.mp4'), scene3dPath, modelPath, mp4Path3d]) { try { rmSync(f, { force: true }) } catch (e) { /* gone */ } }
+  try { rmSync(mediaDir, { recursive: true, force: true }) } catch (e) { /* gone */ }
   try { if (existsSync(dir) && readdirSync(dir).length === 0) rmdirSync(dir) } catch (e) { /* not empty: not ours */ }
 }
 const readScene = () => { try { return JSON.parse(readFileSync(scenePath, 'utf8')) } catch (e) { return null } }
@@ -175,6 +183,9 @@ try {
   check('the export finishes in the browser', done === true, await val(`(document.querySelector('.kbmt-modal') || { innerText: '' }).innerText.slice(0, 200)`))
   await shot('4-export-done')
   check('the video is written next to the scene, inside artifacts/', existsSync(mp4Path) && readFileSync(mp4Path).length > 2000, existsSync(mp4Path))
+  // what a browser makes of the file (the Livrables card plays it): its own idea of the length
+  const browserSeconds = await val(`(async () => { const v = document.createElement('video'); v.preload = 'metadata'; v.muted = true; v.src = ${JSON.stringify('/kybernos/art-raw?path=' )} + encodeURIComponent(${JSON.stringify(mp4Path)}); await new Promise((res) => { v.onloadedmetadata = res; v.onerror = res; setTimeout(res, 8000) }); return v.duration })()`, 15000)
+  console.log('    (the browser reads it as ' + browserSeconds + ' s)')
   if (existsSync(mp4Path)) {
     // ffprobe may be missing next to ffmpeg: read the stream lines ffmpeg prints, and decode the whole file to nowhere
     const info = spawnSync('ffmpeg', ['-hide_banner', '-i', mp4Path], { encoding: 'utf8' })
@@ -184,6 +195,7 @@ try {
       const dur = /Duration: (\d+):(\d+):(\d+\.\d+)/.exec(text)
       const seconds = dur ? Number(dur[1]) * 3600 + Number(dur[2]) * 60 + Number(dur[3]) : null
       const size = /Video: h264[^\n]*?(\d{3,4})x(\d{3,4})/.exec(text)
+      console.log('    (ffmpeg: duration ' + seconds + ' s' + (size ? ', ' + size[1] + 'x' + size[2] : '') + ')')
       check('ffmpeg reads H.264 video in 16:9, about the scene\'s 4 seconds', size !== null && Math.abs(Number(size[1]) / Number(size[2]) - 16 / 9) < 0.02 && seconds !== null && Math.abs(seconds - 4) < 0.5, { size: size && size.slice(1, 3), seconds })
       check('ffmpeg reads the sound track (AAC)', /Audio: aac/.test(text))
       const dec = spawnSync('ffmpeg', ['-v', 'error', '-i', mp4Path, '-f', 'null', '-'], { encoding: 'utf8' })
@@ -225,6 +237,104 @@ try {
   const back = await poll(() => val(`(() => { const p = document.querySelector('[data-kb="motion-panel"]'); return p ? p.getAttribute('data-kb-path') : null })()`), 20000)
   check('back in the chat, the Motion panel opens by itself on that scene', typeof back === 'string' && back.endsWith('motion-live-check.miniapp.json'), back)
   await shot('5-back-in-chat')
+
+  // ═══ 6. 3D, a glTF model, a Lottie ═══════════════════════════════════════════════════
+  console.log('\n── 6. 3D, a glTF model and a Lottie ──')
+  mkdirSync(mediaDir, { recursive: true })
+  writeFileSync(join(mediaDir, 'hero.glb'), makeRealGlb())
+  writeFileSync(join(mediaDir, 'hero.json'), JSON.stringify(makeLottie(2, 200)))
+  const webgl = await val(`!!document.createElement('canvas').getContext('webgl2')`)
+  if (webgl !== true) console.log('  ○ this browser has no WebGL: the 3D checks are skipped (Lottie is still checked)')
+  const saveScene = (path, scene, title) => val(`fetch('/kybernos-motion/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: ${JSON.stringify(path)}, scene: ${JSON.stringify(scene)}, what: 'live check', title: ${JSON.stringify(title)} }) }).then((r) => r.json()).then((j) => j.ok === true).catch(() => false)`)
+  const SCENE3 = {
+    format: { width: 1280, height: 720, fps: 30, duration: 3 }, background: '#0f1115',
+    layers: [
+      { type: 'scene3d', name: 'Monde', x: 640, y: 380, w: 900, h: 560, bg: '#203040', orbit: { k: [[0, 0], [3, 90, 'lin']] }, objects: [
+        { shape: 'box', x: -1.3, color: '#ff2020', ry: { k: [[0, 0], [3, 360, 'lin']] } },
+        { shape: 'sphere', x: 1.3, color: '#20ff20' },
+      ] },
+      { type: 'lottie', name: 'Perso', src: 'motion-live-media/hero.json', x: 200, y: 200, w: 300, h: 300 },
+    ],
+  }
+  check('a 3D + Lottie scene is saved', (await saveScene(scene3dPath, SCENE3, 'Live 3D')) === true)
+  // counts of pixels of a colour in the panel's canvas
+  const count = (rule) => val(`(() => { const c = document.querySelector('[data-kb="motion-canvas"]'); if (!c) return -1; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], b = d[i + 2]; if (${rule}) n++ } return n })()`)
+  const redBox = 'r > 170 && g < 80 && b < 80'
+  const greenBall = 'g > 170 && r < 90 && b < 90'
+  const orangeLottie = 'r > 200 && g > 60 && g < 130 && b < 80'
+  const seekTo = (frac) => val(`(() => { const s = document.querySelector('[data-kb="motion-timeline"] [role="slider"]'); const r = s.getBoundingClientRect(); const x = r.left + r.width * ${frac}; s.dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: r.top + 5, pointerId: 1, bubbles: true })); s.dispatchEvent(new PointerEvent('pointerup', { clientX: x, clientY: r.top + 5, pointerId: 1, bubbles: true })); return s.getAttribute('aria-valuenow') })()`)
+  const sceneShown = await poll(() => val(`(document.querySelector('[data-kb="motion-panel"] .kbmt-title strong') || { innerText: '' }).innerText === 'Live 3D'`), 15000)
+  check('the panel switches to the new scene by itself', sceneShown === true)
+  await seekTo(0.4)
+  const lottieOrange = await poll(async () => { const n = await count(orangeLottie); return n > 30 ? n : 0 }, 20000)
+  check('the Lottie square is drawn (orange pixels appear once the library and the file are loaded)', lottieOrange > 30, lottieOrange)
+  const notLoaded = await val(`typeof window.KbMotionLottie`)
+  check('lottie-web lives in its private global, nothing else is replaced', notLoaded === 'object' || notLoaded === 'function', notLoaded)
+  if (webgl === true) {
+    const reds = await poll(async () => { const n = await count(redBox); return n > 30 ? n : 0 }, 20000)
+    check('the 3D red box is drawn through WebGL (red pixels)', reds > 30, reds)
+    const greens = await count(greenBall)
+    check('the green sphere is drawn too', greens > 30, greens)
+    check('three.js lives in its private global', (await val(`typeof window.KbMotionThree`)) === 'object')
+    await shot('6-3d')
+    await seekTo(0.05)
+    const a = await val(`(() => { const c = document.querySelector('[data-kb="motion-canvas"]'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0; return h })()`)
+    await seekTo(0.7)
+    const b = await val(`(() => { const c = document.querySelector('[data-kb="motion-canvas"]'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0; return h })()`)
+    check('the picture changes with time (the box turns, the camera orbits, the square moves)', a !== b, [a, b])
+    await seekTo(0.4)
+    const again = await val(`(() => { const c = document.querySelector('[data-kb="motion-canvas"]'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0; return h })()`)
+    await seekTo(0.4)
+    const again2 = await val(`(() => { const c = document.querySelector('[data-kb="motion-canvas"]'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) | 0; return h })()`)
+    check('the same instant paints the same picture twice (deterministic, so preview = export)', again === again2, [again, again2])
+
+    // a model and its clip, alone in its scene
+    const SCENEM = { format: { width: 1280, height: 720, duration: 2 }, background: '#0f1115', layers: [{ type: 'scene3d', name: 'Seul', x: 640, y: 360, w: 800, h: 600, bg: '#203040', cz: 4, objects: [{ shape: 'model', src: 'motion-live-media/hero.glb', clip: 'Spin', s: 3 }] }] }
+    check('a scene with just the model is saved', (await saveScene(modelPath, SCENEM, 'Live model')) === true)
+    check('the panel shows it', await poll(() => val(`(document.querySelector('[data-kb="motion-panel"] .kbmt-title strong') || { innerText: '' }).innerText === 'Live model'`), 15000) === true)
+    const bg3 = 'Math.abs(r - 32) + Math.abs(g - 48) + Math.abs(b - 64) > 40'
+    await seekTo(0.02)
+    const m0 = await poll(async () => { const n = await count(bg3); return n > 100 ? n : 0 }, 20000)
+    check('the glTF model is drawn (pixels that are neither the scene\'s background nor the page\'s)', m0 > 100, m0)
+    const hashNow = () => val(`(() => { const c = document.querySelector('[data-kb="motion-canvas"]'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 0; for (let i = 0; i < d.length; i += 53) h = (h * 31 + d[i]) | 0; return h })()`)
+    const ha = await hashNow()
+    await seekTo(0.5)
+    const hb = await hashNow()
+    check('the model\'s own animation clip plays with the playhead (its pose changes)', ha !== hb, [ha, hb])
+    const nWide = await count(bg3)
+    await seekTo(0.02)
+    check('and it turns back when the playhead goes back (the clip time follows, no hidden clock)', (await hashNow()) === ha)
+    void nWide
+  }
+
+  // export the 3D scene to a real MP4, and rebuild the standalone page
+  await val(`fetch('/kybernos-motion/open', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path: ${JSON.stringify(scene3dPath)} }) }).then((r) => r.json())`)
+  check('the 3D scene is the open one again', await poll(() => val(`(document.querySelector('[data-kb="motion-panel"] .kbmt-title strong') || { innerText: '' }).innerText === 'Live 3D'`), 15000) === true)
+  await click('[data-act="export"]')
+  await poll(() => val(`!!document.querySelector('.kbmt-modal')`), 4000)
+  await val(`(() => { const r = Array.from(document.querySelectorAll('.kbmt-modal input[name="kbmt-res"]')).pop(); if (r) r.click() })()`)
+  await click('[data-act="export-go"]')
+  const done3 = await poll(() => val(`!!document.querySelector('.kbmt-modal [data-act="download"]')`), 120000)
+  check('the 3D + Lottie scene exports to MP4 in the browser', done3 === true, await val(`(document.querySelector('.kbmt-modal') || { innerText: '' }).innerText.slice(0, 200)`))
+  check('the video is next to its scene', existsSync(mp4Path3d) && readFileSync(mp4Path3d).length > 2000)
+  if (existsSync(mp4Path3d) && !spawnSync('ffmpeg', ['-version']).error) {
+    const dec = spawnSync('ffmpeg', ['-v', 'error', '-i', mp4Path3d, '-f', 'null', '-'], { encoding: 'utf8' })
+    check('and it decodes without an error', dec.status === 0 && String(dec.stderr).trim() === '', String(dec.stderr).slice(0, 200))
+    if (webgl === true) {
+      // one frame of the video (the 3D box is red): decode it and look at its colours
+      const png = spawnSync('ffmpeg', ['-v', 'error', '-ss', '1.0', '-i', mp4Path3d, '-frames:v', '1', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], { maxBuffer: 64 * 1024 * 1024 })
+      const px = png.stdout
+      let red = 0
+      for (let i = 0; i + 2 < px.length; i += 3) if (px[i] > 170 && px[i + 1] < 80 && px[i + 2] < 80) red++
+      check('a frame of the VIDEO shows the 3D red box (WebGL pixels made it into the encoder)', red > 100, red)
+    }
+  }
+  await val(`(() => { const b = Array.from(document.querySelectorAll('.kbmt-modal button')).find((x) => /Fermer|Close/.test(x.innerText)); if (b) b.click() })()`)
+
+  const root3 = await val(`(async () => { const panel = document.querySelector('[data-kb="motion-panel"]'); const f = window.__KB_MINIAPP_EXPORTERS__.motion; const r = await f(panel.parentElement); if (!r) return null; const fr = document.createElement('iframe'); fr.style.cssText = 'position:fixed;left:0;top:0;width:700px;height:460px;z-index:99999;background:#000'; fr.srcdoc = r.html; document.body.appendChild(fr); await new Promise((res) => setTimeout(res, 4500)); const d = fr.contentDocument; const c = d.getElementById('cv'); const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let red = 0, orange = 0; for (let i = 0; i < px.length; i += 4) { const R = px[i], G = px[i + 1], B = px[i + 2]; if (R > 170 && G < 80 && B < 80) red++; if (R > 200 && G > 60 && G < 130 && B < 80) orange++ } const out = JSON.stringify({ len: r.html.length, three: typeof fr.contentWindow.KbMotionThree, lottie: typeof fr.contentWindow.KbMotionLottie, red, orange }); fr.remove(); return out })()`, 40000)
+  const sa = (() => { try { return JSON.parse(root3) } catch (e) { return null } })()
+  check('the standalone page carries lottie-web and plays the Lottie by itself', sa !== null && sa.lottie !== 'undefined' && sa.orange > 20, root3)
+  if (webgl === true) check('and three.js, drawing the 3D scene by itself (no DSH, no network)', sa !== null && sa.three === 'object' && sa.red > 20, root3)
 } catch (e) {
   fail += 1
   console.log('  ✗ the check crashed — ' + (e && e.stack ? e.stack.split('\n').slice(0, 4).join(' | ') : String(e)))

@@ -264,6 +264,62 @@ ok('inspect: an empty scene is called empty', codes({ layers: [] }).includes('em
 ok('inspect: a layer that never draws is named', E.inspect({ layers: [{ type: 'rect', name: 'Fantôme', alpha: 0 }, { type: 'rect', name: 'Vu' }] }).warnings.some((w) => w.code === 'empty' && w.layer === 'Fantôme'))
 ok('inspect: an animated counter is not a short-read problem', !codes({ format: { duration: 4 }, layers: [{ type: 'number', value: { k: [[0, 0], [2, 9999]] }, size: 160 }] }).includes('short'))
 
+// ── 3D scenes and Lottie ────────────────────────────────────────────────────
+{
+  const v = E.validate({ layers: [{ type: 'scene3d', x: 960, y: 540, objects: [{ shape: 'sphere', y: 1, color: '#ff0000', evil: 1 }, { shape: 'banana' }, { shape: 'model' }, 'junk'] }] })
+  const L = v.scene.layers[0]
+  ok('scene3d: defaults for the window, camera and lights', L.w === 800 && L.h === 600 && L.fov === 40 && L.cz === 6 && L.sun === 1.4 && L.bg === null, L)
+  ok('scene3d: objects are normalised, the unknown key reported, an unknown shape falls back to box', L.objects.length === 3 && L.objects[0].shape === 'sphere' && L.objects[0].s === 1 && v.errors.some((e) => e.includes('objects[0].evil')) && L.objects[1].shape === 'box' && v.errors.some((e) => e.includes('"banana"')), v.errors)
+  ok('scene3d: a model needs a src', v.errors.some((e) => e.includes('a model needs src')))
+  ok('scene3d: a non-object entry is refused', v.errors.some((e) => e.includes('objects[3]: expected an object')))
+  ok('scene3d: objects not being a list is reported and becomes empty', E.validate({ layers: [{ type: 'scene3d', objects: 'x' }] }).scene.layers[0].objects.length === 0)
+  const many = E.validate({ layers: [{ type: 'scene3d', objects: Array.from({ length: 200 }, () => ({ shape: 'box' })) }] })
+  ok('scene3d: the object count is bounded', many.scene.layers[0].objects.length === E.LIMITS.objects3d)
+}
+{
+  const sc = { format: { duration: 6 }, layers: [{ type: 'scene3d', name: 'Cube', x: 500, y: 400, w: 400, h: 300, alpha: 0.8, cx: 0, cy: 1.5, cz: 6, lx: 0, ly: 0.5, lz: 0, orbit: { k: [[0, 0], [4, 360, 'lin']] }, objects: [
+    { shape: 'box', ry: { k: [[0, 0], [4, 180, 'lin']] }, s: 2, w: 1, h: 0.5, d: 1, color: { k: [[0, '#000000'], [4, '#ffffff', 'lin']] } },
+    { shape: 'sphere', opacity: 0 },
+    { shape: 'model', src: 'hero.glb', clip: 'Run', clipT0: 1, speed: 2, loop: false },
+  ] }] }
+  const f0 = E.evaluate(sc, 0)
+  const op0 = f0.ops[0]
+  ok('scene3d: one op with the window geometry, alpha and name', f0.ops.length === 1 && op0.op === 'scene3d' && op0.w === 400 && op0.h === 300 && op0.x === -200 && op0.y === -150 && op0.alpha === 0.8 && op0.layer === 'Cube', op0)
+  ok('scene3d: invisible objects are left out', op0.objects.length === 2 && op0.objects.every((o) => o.shape !== 'sphere'))
+  ok('scene3d: scale is s times w,h,d', JSON.stringify(op0.objects[0].scale) === '[2,1,2]', op0.objects[0].scale)
+  ok('scene3d: camera at orbit 0 is where it was put', JSON.stringify(op0.camera.pos.map((x) => Math.round(x * 1000) / 1000)) === '[0,1.5,6]' && JSON.stringify(op0.camera.look) === '[0,0.5,0]' && op0.camera.fov === 40, op0.camera)
+  const q = E.evaluate(sc, 1).ops[0].camera.pos
+  ok('scene3d: a quarter orbit (90 degrees at t=1) puts the camera on the side, same height and distance', Math.abs(q[0] - 6) < 1e-9 && Math.abs(q[2]) < 1e-9 && q[1] === 1.5, q)
+  ok('scene3d: rotation and colour animate', E.evaluate(sc, 2).ops[0].objects[0].rot[1] === 90 && E.evaluate(sc, 2).ops[0].objects[0].color === '#808080', E.evaluate(sc, 2).ops[0].objects[0])
+  const m0 = E.evaluate(sc, 0).ops[0].objects[1]
+  const m3 = E.evaluate(sc, 3).ops[0].objects[1]
+  ok('scene3d: a model gets its clip time ((t - clipT0) x speed), never negative', m0.clipTime === 0 && m0.clip === 'Run' && m0.src === 'hero.glb' && m3.clipTime === 4 && m3.loop === false, [m0, m3])
+  ok('scene3d: no visible object, no op (the layer then draws nothing)', E.evaluate({ layers: [{ type: 'scene3d', objects: [] }] }, 0).ops.length === 0)
+  ok('scene3d: it carries a box for inspection', E.opBox(op0) && Math.round(E.opBox(op0).x1 - E.opBox(op0).x0) === 400)
+}
+{
+  const sc = { layers: [{ type: 'lottie', name: 'Hero', src: 'hero.json', x: 300, y: 300, w: 200, h: 100, t0: 1, speed: 2, loop: false }] }
+  ok('lottie: nothing before t0', E.evaluate(sc, 0.5).ops.length === 0)
+  const o = E.evaluate(sc, 2).ops[0]
+  ok('lottie: an op with its box, the time into the animation and loop', o.op === 'lottie' && o.src === 'hero.json' && o.x === -100 && o.w === 200 && o.time === 2 && o.loop === false, o)
+  ok('lottie: no src draws nothing', E.evaluate({ layers: [{ type: 'lottie' }] }, 0).ops.length === 0)
+}
+{
+  const sc = { layers: [{ type: 'image', src: 'a.png' }, { type: 'group', layers: [{ type: 'lottie', src: 'x.json' }, { type: 'scene3d', objects: [{ shape: 'model', src: 'm.glb' }, { shape: 'box' }, { shape: 'model', src: 'm.glb' }] }] }], audio: [{ synth: 'ding' }, { src: 's.mp3' }, { src: 's.mp3' }] }
+  const a = E.assetsOf(sc)
+  ok('assetsOf: files by kind, each once, groups and objects included', a.images.join() === 'a.png' && a.lotties.join() === 'x.json' && a.models.join() === 'm.glb' && a.sounds.join() === 's.mp3', a)
+  ok('needs: only the libraries a scene uses', E.needs(sc).three === true && E.needs(sc).lottie === true && E.needs({ layers: [{ type: 'rect' }] }).three === false && E.needs({ layers: [{ type: 'rect' }] }).lottie === false)
+  const rows = E.timeline({ layers: [{ type: 'lottie', name: 'L', src: 'x.json', t0: 2 }, { type: 'scene3d', name: 'S', objects: [{ shape: 'box', ry: { k: [[1, 0], [3, 90]] } }] }] })
+  ok('timeline: a lottie starts at t0, a 3D scene shows its objects\' keyframes', rows[0].from === 2 && rows[1].keys.join() === '1,3', rows)
+  const full = E.validate({ layers: [{ type: 'scene3d', name: 'S', x: 0, y: 0, objects: [{ shape: 'sphere', y: 2, color: '#f00' }, { shape: 'model', src: 'a.glb', clip: 'Run' }] }, { type: 'lottie', name: 'L', src: 'a.json' }] }).scene
+  const c = E.compact(full)
+  ok('compact: 3D objects keep only what differs from the defaults', JSON.stringify(c.layers[0].objects[0]) === '{"shape":"sphere","y":2,"color":"#f00"}', c.layers[0].objects)
+  ok('compact: 3D and Lottie scenes validate back to the same scene', JSON.stringify(E.validate(c).scene) === JSON.stringify(full))
+  const dsc = E.describeComponents()
+  ok('describe: the 3D and Lottie components and the object properties are in the agent\'s catalogue', dsc.includes('- scene3d:') && dsc.includes('- lottie:') && dsc.includes('objects[] each: shape(box|sphere') && dsc.includes('clipT0'))
+  ok('inspect: a 3D scene with no object is called out', E.inspect({ layers: [{ type: 'scene3d', name: 'Vide', objects: [] }, { type: 'rect', name: 'Vu' }] }).warnings.some((w) => w.code === 'empty' && w.layer === 'Vide'))
+}
+
 // ── compact ─────────────────────────────────────────────────────────────────
 {
   const rich = { format: { width: 1280, height: 720, fps: 24, duration: 6 }, background: '#102030', params: { a: 'x', accent: '#ff8800' }, controls: [{ id: 'a', label: 'A' }],
@@ -309,7 +365,7 @@ ok('inspect: an animated counter is not a short-read problem', !codes({ format: 
     try {
       const layers = Array.from({ length: Math.floor(r() * 6) }, () => {
         const l = { type: types[Math.floor(r() * types.length)] }
-        for (const key of ['x', 'y', 'w', 'h', 'r', 'size', 'alpha', 'fill', 'stroke', 'text', 'value', 'data', 'colors', 'd', 'from', 'to', 'p', 'count', 'draw', 'layers', 'reveal']) if (r() < 0.4) l[key] = junkVal()
+        for (const key of ['x', 'y', 'w', 'h', 'r', 'size', 'alpha', 'fill', 'stroke', 'text', 'value', 'data', 'colors', 'd', 'from', 'to', 'p', 'count', 'draw', 'layers', 'reveal', 'objects', 'src', 't0', 'orbit', 'bg']) if (r() < 0.4) l[key] = junkVal()
         return l
       })
       const sc = { format: { duration: junkVal(), width: junkVal() }, params: junkVal(), background: junkVal(), layers, audio: junkVal() }

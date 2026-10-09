@@ -144,10 +144,28 @@ ok('q: builds a query string, skipping empties', T.q({ a: 'x y', b: '', c: null,
   ok('exporter: an unreadable scene gives null', (await win.__KB_MINIAPP_EXPORTERS__.motion(root)) === null)
 }
 
+// ── standalone with 3D and Lottie ───────────────────────────────────────────
+{
+  const scene = T.parseDoc(JSON.stringify({ kind: 'motion', data: [{ format: { duration: 2 }, layers: [{ type: 'scene3d', objects: [{ shape: 'model', src: 'hero.glb', clip: 'Run' }, { shape: 'box' }] }, { type: 'lottie', src: 'hero.json' }] }] })).scene
+  const html = T.standaloneHTML({ title: 'Hero', scene, images: {}, sounds: {}, lotties: { 'hero.json': '{"fr":30,"op":60,"layers":[]}' }, models: { 'hero.glb': 'data:model/gltf-binary;base64,AAAA' }, libs: { three: 'var KbMotionThree = {}; /* </script> */', lottie: 'var KbMotionLottie = {}; var s = "</SCRIPT>";' } })
+  const scripts = [...html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)]
+  ok('standalone 3D: the libraries come first, each in its own script, none closed early', scripts.length === 5 && scripts[2][2].includes('KbMotionThree') && scripts[3][2].includes('KbMotionLottie'), scripts.map((x) => x[2].slice(0, 30)))
+  ok('standalone 3D: a </script> inside a library is neutralised', !/<\/script>\s*\*\//.test(html) && !html.includes('"</SCRIPT>"'))
+  const media = JSON.parse(scripts[1][2])
+  ok('standalone 3D: the Lottie file travels as text and the model as a data URL', media.lotties['hero.json'].includes('"fr":30') && media.models['hero.glb'].startsWith('data:model/gltf-binary'))
+  let syntax = null
+  try { new Function(scripts[4][2]) } catch (e) { syntax = e }
+  ok('standalone 3D: the player code is valid JavaScript and builds the external renderers', syntax === null && scripts[4][2].includes('renderExt.createExternal') && scripts[4][2].includes('renderExt.createModelLoader(window.KbMotionThree)'), syntax && String(syntax))
+  const runtime = scripts[4][2].slice(0, scripts[4][2].indexOf('const SCENE ='))
+  const rt = new Function(runtime + '; return { engine, renderExt }')()
+  ok('standalone 3D: the embedded runtime has the 3D and Lottie renderers', typeof rt.renderExt.createExternal === 'function' && rt.engine.needs(scene).three === true)
+}
+
 // ── contract on the source ──────────────────────────────────────────────────
 const body = readFileSync(new URL('./src/plugin.js', import.meta.url), 'utf8')
 for (const hook of ["'motion-panel'", "'motion-player'", "'motion-canvas'", "'motion-timeline'", "'motion-empty'", "'motion-list'", "'motion-hint'"]) ok('hook ' + hook + ' exists', body.includes('data-kb\': ' + hook) || body.includes('"data-kb": ' + hook) || body.includes('\'data-kb\': ' + hook))
 for (const act of ['play', 'export', 'export-go', 'download', 'revisions', 'restore', 'list', 'cancel', 'edit']) ok('data-act ' + act + ' exists', body.includes(`'data-act': '${act}'`))
+ok('models are loaded through the safe loader only (a data file must not make the browser fetch anything)', !/new (window\.KbMotionThree|THREE)\.GLTFLoader\(/.test(body) && (body.match(/createModelLoader\(/g) || []).length === 2)
 ok('buttons are reset at zero specificity, so the component classes win', body.includes(':where(.kbmt-root) button{'))
 ok('colours come from DSH tokens with a fallback', body.includes('var(--dsw-alias-bg-layer-1,#fff)') && body.includes('var(--dsw-alias-label-primary,#0f1115)'))
 ok('only one style element, removed on cleanup', (body.match(/createElement\('style'\)/g) || []).length === 1 && body.includes('el.remove()'))

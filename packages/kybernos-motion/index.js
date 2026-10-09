@@ -1,6 +1,7 @@
 // @local/kybernos-motion, host half: the `creer_motion` tool and the routes the panel talks to.
 // The logic lives in motion-host.mjs (pure, tested); this file only wires DSH services to it.
-import { createWriteStream, existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { createWriteStream, existsSync, readFileSync } from 'node:fs'
 import * as fsp from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
@@ -90,6 +91,18 @@ async function readJson (req, limit = LIMITS.doc + 10_000) {
   try { return JSON.parse(b.toString('utf8') || '{}') } catch { return {} }
 }
 
+// The two big libraries (three.js, lottie-web) are not in client.js: they are fetched only when a scene needs them.
+// Fixed names, files that ship with this bundle, nothing taken from the request.
+const VENDOR = { three: 'three.iife.js', lottie: 'lottie-canvas.min.js' }
+const vendorCache = new Map()
+function vendorFile (name) {
+  if (!vendorCache.has(name)) {
+    const buf = readFileSync(new URL('./vendor/' + VENDOR[name], import.meta.url))
+    vendorCache.set(name, { buf, etag: '"' + createHash('sha1').update(buf).digest('hex').slice(0, 20) + '"' })
+  }
+  return vendorCache.get(name)
+}
+
 const q = (req) => new URL(req.url, 'http://127.0.0.1').searchParams
 const str = (v) => (typeof v === 'string' && v !== '' ? v : null)
 
@@ -173,6 +186,15 @@ export function mountRoutes (webServer, host) {
     const { createReadStream } = await import('node:fs')
     createReadStream(a.path).pipe(res)
   })
+
+  for (const name of Object.keys(VENDOR)) {
+    route(`vendor/${name}.js`, ['GET'], async (req, res) => {
+      const f = vendorFile(name)
+      if (req.headers['if-none-match'] === f.etag) { res.writeHead(304, { ETag: f.etag }); res.end(); return }
+      res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Content-Length': f.buf.length, 'Cache-Control': 'no-cache', ETag: f.etag, 'X-Content-Type-Options': 'nosniff' })
+      res.end(f.buf)
+    })
+  }
 
   route('frame', ['POST'], async (req, res) => {
     const p = q(req)

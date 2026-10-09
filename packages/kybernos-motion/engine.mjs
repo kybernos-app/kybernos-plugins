@@ -33,6 +33,7 @@ export const LIMITS = {
   audio: 32,
   particles: 1500,
   chartItems: 40,
+  objects3d: 60,
   path: 6000,
   points: 256,
 }
@@ -193,6 +194,17 @@ const TEXTSTYLE = {
   tracking: NUM(0, -20, 100),
 }
 
+// The things inside a scene3d layer. Positions are world units (a unit box is 1 across); angles are degrees.
+const SHAPES3D = ['box', 'sphere', 'cylinder', 'cone', 'torus', 'plane', 'ring', 'knot', 'capsule', 'model']
+export const OBJECT3D = {
+  shape: ENUM('box', SHAPES3D),
+  x: NUM(0, -1000, 1000), y: NUM(0, -1000, 1000), z: NUM(0, -1000, 1000),
+  rx: NUM(0, -3600, 3600), ry: NUM(0, -3600, 3600), rz: NUM(0, -3600, 3600),
+  s: NUM(1, 0, 1000), w: NUM(1, 0, 1000), h: NUM(1, 0, 1000), d: NUM(1, 0, 1000),
+  color: COL('#ffffff'), metal: NUM(0.1, 0, 1), rough: NUM(0.5, 0, 1), opacity: NUM(1, 0, 1), wire: BOOL(false),
+  src: STR('', 400, { anim: false }), clip: STR('', 120, { anim: false }), clipT0: NUM(0, 0, 300, { anim: false }), speed: NUM(1, -20, 20, { anim: false }), loop: BOOL(true),
+}
+
 export const COMPONENTS = {
   rect: {
     about: 'Rectangle (centred on x,y unless origin is tl). Rounded with r. A layer without x,y sits at the centre of the frame.',
@@ -233,6 +245,14 @@ export const COMPONENTS = {
   particles: {
     about: 'Deterministic particles: burst or stream between t0 and t1. Confetti, sparks, snow, smoke.',
     props: { ...XFORM, mode: ENUM('burst', ['burst', 'stream']), shape: ENUM('circle', ['circle', 'square', 'spark']), count: NUM(120, 1, LIMITS.particles, { anim: false, int: true }), t0: NUM(0, 0, 300, { anim: false }), t1: NUM(1, 0, 300, { anim: false }), life: NUM(1.6, 0.05, 60, { anim: false }), speed: NUM(380, 0, 5000, { anim: false }), speedVar: NUM(0.6, 0, 1, { anim: false }), angle: NUM(-90, -360, 360, { anim: false }), spread: NUM(360, 0, 360, { anim: false }), gravity: NUM(600, -5000, 5000, { anim: false }), drag: NUM(0, 0, 20, { anim: false }), size0: NUM(14, 0, 400, { anim: false }), size1: NUM(2, 0, 400, { anim: false }), spin: NUM(0, -50, 50, { anim: false }), fade: BOOL(true), seed: NUM(1, 0, 1e9, { anim: false, int: true }), colors: { t: 'list', kind: 'colors' } },
+  },
+  scene3d: {
+    about: 'A 3D scene in a w x h window centred on x,y: objects (box, sphere, cylinder, cone, torus, plane, ring, knot, capsule, or a glTF model with its animation clip), a camera that can orbit, lights.',
+    props: { ...XFORM, w: NUM(800, 10, 8000), h: NUM(600, 10, 8000), bg: COL(null), cx: NUM(0, -1000, 1000), cy: NUM(1.5, -1000, 1000), cz: NUM(6, -1000, 1000), lx: NUM(0, -1000, 1000), ly: NUM(0.5, -1000, 1000), lz: NUM(0, -1000, 1000), fov: NUM(40, 10, 120), orbit: NUM(0, -3600, 3600), ambient: NUM(0.6, 0, 5), sun: NUM(1.4, 0, 10), sunX: NUM(3, -1000, 1000), sunY: NUM(5, -1000, 1000), sunZ: NUM(4, -1000, 1000), objects: { t: 'list', kind: 'objects3d' } },
+  },
+  lottie: {
+    about: 'A Lottie animation (a .json file of the project, for instance a character) drawn in w x h at x,y, from time t0, looping if asked. Lottie expressions are never run.',
+    props: { ...XFORM, src: STR('', 400, { anim: false }), w: NUM(400, 1, 20000), h: NUM(400, 1, 20000), t0: NUM(0, 0, 300, { anim: false }), speed: NUM(1, -20, 20, { anim: false }), loop: BOOL(true) },
   },
   group: {
     about: 'Moves, turns, scales and fades its layers together. Children are relative to x,y.',
@@ -351,6 +371,20 @@ function normList (kind, v, where, errs) {
     }
     return out
   }
+  if (kind === 'objects3d') {
+    if (!Array.isArray(v)) { errs.push(`${where}.objects: expected a list of 3D objects`); return [] }
+    const out = []
+    v.slice(0, LIMITS.objects3d).forEach((raw, i) => {
+      const at = `${where}.objects[${i}]`
+      if (!isObj(raw)) { errs.push(`${at}: expected an object`); return }
+      const o = {}
+      for (const [name, spec] of Object.entries(OBJECT3D)) o[name] = normProp(name, spec, raw[name], at, errs)
+      for (const key of Object.keys(raw)) if (!(key in OBJECT3D)) errs.push(`${at}.${key}: not a property of a 3D object (ignored)`)
+      if (o.shape === 'model' && o.src === '') errs.push(`${at}: a model needs src (a .glb file of the project)`)
+      out.push(o)
+    })
+    return out
+  }
   return null
 }
 
@@ -372,7 +406,7 @@ function normLayer (raw, ctx, depth, where) {
     if (spec.t === 'list') {
       const l = normList(spec.kind, raw[name], where, ctx.errs)
       if (l !== null) layer[name] = l
-      else if (spec.kind === 'chart') layer[name] = []
+      else if (spec.kind === 'chart' || spec.kind === 'objects3d') layer[name] = []
       continue
     }
     layer[name] = normProp(name, spec, raw[name], where, ctx.errs)
@@ -481,7 +515,11 @@ export function compact (sceneIn) {
     const comp = COMPONENTS[layer.type]
     const out = { type: layer.type, name: layer.name }
     for (const [k, spec] of Object.entries(comp.props)) {
-      if (spec.t === 'list') { if (Array.isArray(layer[k]) && layer[k].length > 0) out[k] = layer[k]; continue }
+      if (spec.t === 'list') {
+        if (!Array.isArray(layer[k]) || layer[k].length === 0) continue
+        out[k] = spec.kind === 'objects3d' ? layer[k].map((o) => { const lo = {}; for (const [n, sp] of Object.entries(OBJECT3D)) if (!same(o[n], sp.def)) lo[n] = o[n]; return lo }) : layer[k]
+        continue
+      }
       const v = layer[k]
       if (v === undefined) continue
       if (depth === 0 && (k === 'x' || k === 'y')) { out[k] = v; continue }
@@ -757,8 +795,8 @@ function fmtNumber (n, decimals, group, locale) {
   } catch (e) { return String(Math.round(n)) }
 }
 
-function ctxFor (layer, t, P) {
-  const comp = COMPONENTS[layer.type].props
+function ctxFor (layer, t, P, table) {
+  const comp = table || COMPONENTS[layer.type].props
   const num = (k) => evalNum(layer[k], t, P, comp[k].def === null ? 0 : comp[k].def)
   const col = (k) => evalColor(layer[k], t, P, comp[k].def === null ? null : (isRef(comp[k].def) ? P[comp[k].def.slice(1)] : comp[k].def))
   const text = (k) => evalStr(layer[k], P, comp[k].def)
@@ -850,6 +888,40 @@ function emit (layers, parent, alphaIn, t, P, scene, ops, name) {
         const p = clamp(g.num('p'), 0, 1)
         const pts = a.pts.map((q, i) => [q[0] + (b.pts[i][0] - q[0]) * p, q[1] + (b.pts[i][1] - q[1]) * p])
         ops.push({ op: 'poly', m, alpha, pts: flat(pts), closed: true, fill: g.col('fill'), stroke: g.col('stroke'), lw: g.num('lw'), cap: 'round', ...tag })
+        break
+      }
+      case 'scene3d': {
+        const objects = (layer.objects || []).map((o, i) => {
+          const og = ctxFor(o, t, P, OBJECT3D)
+          const k = og.num('s')
+          return {
+            id: 'o' + i, shape: og.en('shape'),
+            pos: [og.num('x'), og.num('y'), og.num('z')], rot: [og.num('rx'), og.num('ry'), og.num('rz')], scale: [k * og.num('w'), k * og.num('h'), k * og.num('d')],
+            color: og.col('color'), metal: og.num('metal'), rough: og.num('rough'), opacity: og.num('opacity'), wire: og.bool('wire'),
+            src: o.src, clip: o.clip, clipTime: Math.max(0, (t - og.num('clipT0')) * og.num('speed')), loop: og.bool('loop'),
+          }
+        }).filter((o) => o.opacity > 0.002)
+        if (objects.length === 0) break
+        const w = g.num('w'); const h = g.num('h')
+        const look = [g.num('lx'), g.num('ly'), g.num('lz')]
+        const th = (g.num('orbit') * Math.PI) / 180
+        const dx = g.num('cx') - look[0]
+        const dz = g.num('cz') - look[2]
+        ops.push({
+          op: 'scene3d', m, alpha, x: -w / 2, y: -h / 2, w, h, bg: g.col('bg'),
+          camera: { pos: [look[0] + dx * Math.cos(th) + dz * Math.sin(th), g.num('cy'), look[2] - dx * Math.sin(th) + dz * Math.cos(th)], look, fov: g.num('fov') },
+          light: { ambient: g.num('ambient'), sun: g.num('sun'), pos: [g.num('sunX'), g.num('sunY'), g.num('sunZ')] },
+          objects, ...tag,
+        })
+        break
+      }
+      case 'lottie': {
+        const src = layer.src
+        if (typeof src !== 'string' || src === '') break
+        const w = g.num('w'); const h = g.num('h')
+        const t0 = g.num('t0')
+        if (t < t0) break
+        ops.push({ op: 'lottie', m, alpha, src, x: -w / 2, y: -h / 2, w, h, time: (t - t0) * g.num('speed'), loop: g.bool('loop'), ...tag })
         break
       }
       case 'chart':
@@ -1016,6 +1088,12 @@ function keyTimes (layer) {
     if (isObj(v) && Array.isArray(v.k)) for (const k of v.k) if (!out.includes(k[0])) out.push(k[0])
   }
   if (layer.type === 'particles') { if (!out.includes(layer.t0)) out.push(layer.t0); if (!out.includes(layer.t1) && layer.mode === 'stream') out.push(layer.t1) }
+  if (layer.type === 'lottie' && !out.includes(layer.t0)) out.push(layer.t0)
+  if (layer.type === 'scene3d') {
+    for (const o of layer.objects || []) {
+      for (const name of Object.keys(OBJECT3D)) { const v = o[name]; if (isObj(v) && Array.isArray(v.k)) for (const k of v.k) if (!out.includes(k[0])) out.push(k[0]) }
+    }
+  }
   return out.sort((a, b) => a - b)
 }
 
@@ -1045,7 +1123,7 @@ export function estimateTextWidth (text, size, weight, tracking) {
 function opBox (op) {
   const pts = []
   const add = (x, y) => pts.push(apply(op.m, x, y))
-  if (op.op === 'rect' || op.op === 'image') { add(op.x, op.y); add(op.x + op.w, op.y); add(op.x + op.w, op.y + op.h); add(op.x, op.y + op.h) }
+  if (op.op === 'rect' || op.op === 'image' || op.op === 'lottie' || op.op === 'scene3d') { add(op.x, op.y); add(op.x + op.w, op.y); add(op.x + op.w, op.y + op.h); add(op.x, op.y + op.h) }
   else if (op.op === 'circle') { add(op.x - op.r, op.y - op.r); add(op.x + op.r, op.y - op.r); add(op.x + op.r, op.y + op.r); add(op.x - op.r, op.y + op.r) }
   else if (op.op === 'line') { add(op.x1, op.y1); add(op.x2, op.y2) }
   else if (op.op === 'poly') for (let i = 0; i < op.pts.length; i += 2) add(op.pts[i], op.pts[i + 1])
@@ -1155,12 +1233,39 @@ export function inspect (sceneIn, overrides) {
   return { duration, size: `${width}x${height}`, layers, warnings }
 }
 
+/** Every file a scene points at, by kind: { images, lotties, models, sounds }. */
+export function assetsOf (sceneIn) {
+  const scene = sceneIn && sceneIn._n === true ? sceneIn : validate(sceneIn).scene
+  const out = { images: [], lotties: [], models: [], sounds: [] }
+  const add = (list, v) => { if (typeof v === 'string' && v !== '' && !list.includes(v)) list.push(v) }
+  const walk = (layers) => {
+    for (const l of layers || []) {
+      if (l.type === 'image') add(out.images, l.src)
+      else if (l.type === 'lottie') add(out.lotties, l.src)
+      else if (l.type === 'scene3d') for (const o of l.objects || []) if (o.shape === 'model') add(out.models, o.src)
+      if (l.layers) walk(l.layers)
+    }
+  }
+  walk(scene.layers)
+  for (const a of scene.audio || []) add(out.sounds, a.src)
+  return out
+}
+
+/** Which heavy libraries a scene needs: { three, lottie }. They are only fetched when this says so. */
+export function needs (sceneIn) {
+  const scene = sceneIn && sceneIn._n === true ? sceneIn : validate(sceneIn).scene
+  const out = { three: false, lottie: false }
+  const walk = (layers) => { for (const l of layers || []) { if (l.type === 'scene3d') out.three = true; if (l.type === 'lottie') out.lottie = true; if (l.layers) walk(l.layers) } }
+  walk(scene.layers)
+  return out
+}
+
 /** A compact catalogue of the components, for a tool description: what the agent may put in `layers`. */
 export function describeComponents () {
   const lines = []
   for (const [type, comp] of Object.entries(COMPONENTS)) {
     const names = Object.entries(comp.props).filter(([n]) => !(n in XFORM) || n === 'x' || n === 'y').map(([n, s]) => n + (s.t === 'enum' ? `(${s.list.join('|')})` : '')).join(', ')
-    lines.push(`- ${type}: ${comp.about} Props: ${names}.${comp.container ? ' Holds layers[].' : ''}`)
+    lines.push(`- ${type}: ${comp.about} Props: ${names}.${comp.container ? ' Holds layers[].' : ''}${type === 'scene3d' ? ' objects[] each: ' + Object.entries(OBJECT3D).map(([n, sp]) => n + (sp.t === 'enum' ? `(${sp.list.join('|')})` : '')).join(', ') + '.' : ''}`)
   }
   return lines.join('\n')
 }
