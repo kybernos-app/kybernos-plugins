@@ -345,6 +345,26 @@ ok('inspect: an animated counter is not a short-read problem', !codes({ format: 
   ok('compact: is deterministic', JSON.stringify(E.compact(a)) === JSON.stringify(E.compact(b)))
 }
 
+// ── the box of a chart's labels (found in a real agent-made scene: labels carry local offsets) ──
+{
+  const sc = { format: { duration: 3 }, layers: [
+    { type: 'chart', name: 'C', kind: 'bar', x: 960, y: 700, w: 700, h: 300, labelSize: 40, data: [{ label: 'A', value: 10 }, { label: 'B', value: 20 }], p: 1 },
+    { type: 'text', name: 'T', text: 'Un texte posé sur le graphique', x: 700, y: 640, size: 60 },
+  ] }
+  const f = E.evaluate(sc, 2)
+  const bars = f.ops.filter((o) => o.op === 'rect')
+  const label = (t) => E.opBox(f.ops.find((o) => o.op === 'text' && o.text === t))
+  const barBox = (i) => E.opBox(bars[i])
+  ok('chart label boxes sit where the labels are drawn: the category labels are BELOW the bars, not inside them', label('A').y0 >= barBox(0).y1 - 1 && label('B').y0 >= barBox(1).y1 - 1, [label('A'), barBox(0)])
+  ok('chart value labels sit ABOVE their bar', E.opBox(f.ops.find((o) => o.op === 'text' && o.text === '10')).y1 <= barBox(0).y0 + 1)
+  ok('a text laid over a chart is reported as overlapping it', codes(sc).includes('overlap'), E.inspect(sc).warnings)
+  const alone = { format: { duration: 3 }, layers: [sc.layers[0]] }
+  ok('the same chart alone raises no overlap or contrast warning', !codes(alone).includes('overlap') && !codes(alone).includes('contrast'), E.inspect(alone).warnings)
+  const t = E.evaluate({ layers: [{ type: 'text', text: 'abc', x: 100, y: 100, size: 50 }] }, 0).ops[0]
+  const shifted = { ...t, x: t.x + 30, y: t.y + 40 }
+  ok('a text op\'s own x,y move its box', Math.abs(E.opBox(shifted).x0 - E.opBox(t).x0 - 30) < 1e-9 && Math.abs(E.opBox(shifted).y0 - E.opBox(t).y0 - 40) < 1e-9)
+}
+
 // ── describe ────────────────────────────────────────────────────────────────
 {
   const d = E.describeComponents()
