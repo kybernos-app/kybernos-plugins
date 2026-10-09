@@ -74,9 +74,13 @@ console.log('a window that is used up')
   check('the team\'s pool used up turns everyone away: named after the team, not as the person\'s own', pool !== null && /^100% of the 5 hours allowance of Acme Crew is used \u2014 it comes back in about 1 h\./.test(pool.text) && /Ask an owner or admin of Acme Crew/.test(pool.text), pool && pool.text)
 
   const two = notice(facts(personal, [out(86400, { resets_at: inH(9) }), out(18000, { resets_at: inH(3) })]))
-  check('several windows used up: the shortest is the one named (it frees first)', two !== null && /5 hours/.test(two.text) && !/24 hours/.test(two.text), two && two.text)
-  const tie = notice(facts(team('owner'), [out(18000, { kind: 'pool', resets_at: inH(2) }), out(18000, { resets_at: inH(1) })]))
-  check('the same length: the person\'s own window before the team\'s pool', tie !== null && /^100% of your 5 hours/.test(tie.text), tie && tie.text)
+  check('several windows used up: the one that opens LAST is named (calls stay refused until it does), with its own time', two !== null && /^100% of your 24 hours/.test(two.text) && /in about 9 h\./.test(two.text) && !/5 hours/.test(two.text), two && two.text)
+  const noTime = notice(facts(personal, [out(18000), out(86400)]))
+  check('no time from the server (an older one): the longer window', noTime !== null && /^100% of your 24 hours/.test(noTime.text), noTime && noTime.text)
+  const later = notice(facts(team('owner'), [out(18000, { kind: 'pool', resets_at: inH(2) }), out(18000, { resets_at: inH(1) })]))
+  check('the same length: the one that opens later, here the team\'s pool', later !== null && /^100% of the 5 hours allowance of Acme Crew/.test(later.text) && /in about 2 h\./.test(later.text), later && later.text)
+  const tie = notice(facts(team('owner'), [out(18000, { kind: 'pool', resets_at: inH(2) }), out(18000, { resets_at: inH(2) })]))
+  check('the same length and the same time: the person\'s own window before the team\'s pool', tie !== null && /^100% of your 5 hours/.test(tie.text), tie && tie.text)
 }
 
 console.log('a window that is close to being used up')
