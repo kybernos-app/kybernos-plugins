@@ -427,8 +427,21 @@ window.__ModuleLoader__.load({
               if (CTX !== null && SERVICE_SIDEBAR === null) {
                 try { SERVICE_SIDEBAR = CTX.get('sidebarRight') } catch { SERVICE_SIDEBAR = null }
               }
-              if (!SERVICE_SIDEBAR || typeof SERVICE_SIDEBAR.openTab !== 'function') return
-              try { SERVICE_SIDEBAR.openTab(KIND, {}) } catch { /* pas de session montée */ }
+              if (!SERVICE_SIDEBAR || typeof SERVICE_SIDEBAR.openTab !== 'function') return false
+              try { SERVICE_SIDEBAR.openTab(KIND, {}); return true } catch { return false /* no session mounted */ }
+            }
+
+            /** One step of the opening probe: `etat` = { versionVue, dejaOuvert }, `data` = the host's answer (null when
+             * unreachable), `ouvrir` = a function that opens the tab and says whether it did. Returns the new `etat`.
+             * A version is only remembered once its tab is really open: right after a page reload the sidebar service
+             * is not always there yet, and a failed attempt used to be swallowed (the flag was set before trying), so the
+             * tab then never opened by itself for the following decks. */
+            function pasSonde (etat, data, ouvrir) {
+              if (data === null || data === undefined) return etat
+              if (data.vide) return { versionVue: etat.versionVue, dejaOuvert: false }
+              if (etat.versionVue === data.version) return etat
+              if (etat.dejaOuvert || ouvrir() === true) return { versionVue: data.version, dejaOuvert: true }
+              return etat
             }
         
             function PanneauSlides () {
@@ -698,6 +711,9 @@ window.__ModuleLoader__.load({
                     },
                   },
                 })
+                // A double-click leaves the focus on the slide: without this the first keystrokes go nowhere until the
+                // user clicks into the small box. TipTap defers the focus itself, past the click that opened the box.
+                try { editeur.commands.focus('end') } catch { /* the editor is already gone */ }
                 return { host, editeur }
               }
         
@@ -1086,8 +1102,7 @@ window.__ModuleLoader__.load({
               // Sonde AU NIVEAU MODULE (motif kybernos-modeleur) : elle ouvre l'onglet
               // quand un deck arrive — le panneau ne peut pas le faire lui-même, son
               // propre sondage ne tourne qu'une fois monté.
-              let versionVue = null
-              let ONGLET_DEJA_OUVERT = false
+              let sonde = { versionVue: null, dejaOuvert: false }
               ctx.effect(() => {
                 const sonder = async () => {
                   let data = null
@@ -1096,9 +1111,7 @@ window.__ModuleLoader__.load({
                     const r = await fetch(url)
                     if (r.ok) data = await r.json()
                   } catch { /* l'hôte reviendra */ }
-                  if (data === null) return
-                  if (data.vide) { ONGLET_DEJA_OUVERT = false; return }
-                  if (versionVue !== data.version) { versionVue = data.version; if (!ONGLET_DEJA_OUVERT) { ONGLET_DEJA_OUVERT = true; ouvrirOnglet() } }
+                  sonde = pasSonde(sonde, data, ouvrirOnglet)
                 }
                 sonder()
                 const t = setInterval(sonder, 1200)
@@ -1115,7 +1128,7 @@ window.__ModuleLoader__.load({
               __test: {
                 normaliserDeck, normaliserSlide, budget, segments, texteVisible,
                 slideActive, diffSlides, hitStroke, dessinerTraits, cleChamp,
-                progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide,
+                progression, appliquerAnnotations, THEMES, DEMOS, poidsSlide, pasSonde,
               },
             }
       })(typeof __DSH_TIPTAP_NS !== 'undefined' ? __DSH_TIPTAP_NS : null)

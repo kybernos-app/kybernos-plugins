@@ -251,5 +251,29 @@ ok('the four tools are Voir, Texte, Pinceau, Gomme, in that order',
   JSON.stringify(boutons.slice(0, 4).map((b) => b.enfants[0])))
 ok('in the default state the bar is dimmed, not hidden', barre !== null && barre.props.className.includes('kbsd-outils-idle'))
 
+// The opening probe: the tab opens by itself when a deck arrives. A failed attempt (right after a page reload the
+// sidebar service is not always there yet) used to set the "already open" flag anyway, so no later deck ever
+// opened the tab on its own.
+{
+  let appels = 0
+  let reussit = false
+  const ouvrir = () => { appels += 1; return reussit }
+  const vide = { versionVue: null, dejaOuvert: false }
+  let etat = T.pasSonde(vide, { version: 1 }, ouvrir)
+  ok('PROBE: a failed opening is not remembered (it is retried at the next probe)', appels === 1 && etat.dejaOuvert === false && etat.versionVue === null, JSON.stringify(etat))
+  reussit = true
+  etat = T.pasSonde(etat, { version: 1 }, ouvrir)
+  ok('PROBE: the retry succeeds and the version is remembered', appels === 2 && etat.dejaOuvert === true && etat.versionVue === 1, JSON.stringify(etat))
+  etat = T.pasSonde(etat, { version: 1 }, ouvrir)
+  ok('PROBE: the same version does not open again', appels === 2)
+  etat = T.pasSonde(etat, { version: 2 }, ouvrir)
+  ok('PROBE: a newer deck does not re-open a tab that is already open, but is remembered', appels === 2 && etat.versionVue === 2)
+  etat = T.pasSonde(etat, { vide: true }, ouvrir)
+  ok('PROBE: an empty host resets the flag', etat.dejaOuvert === false && etat.versionVue === 2)
+  etat = T.pasSonde(etat, { version: 3 }, ouvrir)
+  ok('PROBE: the next deck opens the tab again', appels === 3 && etat.dejaOuvert === true && etat.versionVue === 3)
+  ok('PROBE: an unreachable host changes nothing', T.pasSonde(etat, null, ouvrir) === etat && appels === 3)
+}
+
 console.log(echecs === 0 ? '\nClient : tout est vert.' : `\nClient : ${echecs} échec(s).`)
 process.exit(echecs === 0 ? 0 : 1)
