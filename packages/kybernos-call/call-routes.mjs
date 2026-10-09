@@ -7,6 +7,8 @@ import { join } from 'node:path'
 
 const errText = (e) => (e && e.message ? String(e.message) : String(e))
 const str = (v) => (typeof v === 'string' ? v : null)
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host (published by the core bundle; absent or failing, false).
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 
 export const ROUTES = {
   status: '/kybernos-call/status',
@@ -49,7 +51,7 @@ export const sameOriginStrict = (req) => {
     const sock = (req !== null && req.socket !== null && req.socket !== undefined) ? req.socket : null
     const port = (sock !== null && typeof sock.localPort === 'number') ? ':' + sock.localPort : ''
     const hosts = ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port]
-    return hosts.indexOf(u.host) >= 0
+    return hosts.indexOf(u.host) >= 0 || kbTrusted(u.host)
   } catch (e) { return false }
 }
 

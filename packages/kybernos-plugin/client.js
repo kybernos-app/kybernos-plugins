@@ -28562,6 +28562,20 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     }
     const kbBrandSame = (x, y) => (x === null && y === null) || (x !== null && y !== null && x.name === y.name && x.logo === y.logo)
     // KB-BRAND-CORE-END
+    // KB-HOSTED-CORE-BEGIN
+    // DSH 0.2.0-rc.2 keeps the UI settings in MEMORY, never on the host, for a browser whose page address is not
+    // loopback (dsh-client-ui-settings: `persistence = ctx.remote.$host.isLoopback ? "host" : "memory"`). On a hosted
+    // instance its "Preview Notice" therefore cannot be remembered: it comes back at every page load (measured:
+    // Continue, reload, the notice is there again). It is one entry of the `settings.onboarding` list slot, and an entry
+    // with the same id at a lower priority shadows it. Same loopback rule as DSH's own (`isLoopbackHostname`).
+    const kbIsLoopbackHost = (hostname) => {
+      if (typeof hostname !== 'string' || hostname === '') return true
+      const h = hostname.toLowerCase()
+      if (h === 'localhost' || h === '[::1]') return true
+      const parts = h.split('.')
+      return parts.length === 4 && parts[0] === '127' && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+    }
+    // KB-HOSTED-CORE-END
 
     let kbBrandOverride = null
     let kbBrandSource = null // who set it: 'cloud' (the effect below) or anything else (a Team module)
@@ -28642,6 +28656,12 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       { name: 'sidebar.brand.mark', priority: -1 }, KybernosSidebarMark)), 'kybers: marque kybernos')
     ctx.effect(() => slots.inject('sidebar.brand.name', () => slots.register(
       { name: 'sidebar.brand.name', priority: -1 }, KybernosSidebarName)), 'kybers: nom kybernos')
+    // Hosted instance (a browser that is not on loopback): DSH cannot remember its preview notice there, so do not show it
+    // at every load. On loopback DSH remembers the acknowledgement itself and the notice stays as it is.
+    if (!kbIsLoopbackHost(globalThis.location !== undefined ? globalThis.location.hostname : '')) {
+      ctx.effect(() => slots.inject('settings.onboarding', () => slots.register(
+        { name: 'settings.onboarding', id: 'welcome-notice', order: -100, priority: -1 }, () => null)), 'kybers: avis de preversion DSH (navigateur distant)')
+    }
     ctx.effect(() => slots.inject('conversation.hero.brand.mark', () => slots.register(
       { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosMark, { height: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')
 

@@ -153,5 +153,24 @@ console.log('the runner')
   check('a command over 500 characters is refused', (await executer({ commande: 'x'.repeat(501) })).ok === false)
 }
 
+console.log('a hosted instance (--trusted-host)')
+{
+  const KEY = Symbol.for('kybernos.trustedAuthority')
+  const ran = []
+  const rr = (origin) => ({ method: 'POST', headers: { origin }, socket: { localPort: 3080 } })
+  check('nothing published: a declared host\'s origin is refused', origineOK(rr('https://dsh.example.com')) === false)
+  globalThis[KEY] = (host) => host === 'dsh.example.com'
+  try {
+    check('a declared host\'s origin passes the origin check', origineOK(rr('https://dsh.example.com')) === true)
+    check('an undeclared host is still refused', origineOK(rr('https://evil.example')) === false)
+    const h = handlerFor({ lireSecret: () => SECRET, executer: async (b) => { ran.push(b); return { ok: true, code: 0, stdout: '', stderr: '', cwd: '/' } } })
+    ran.length = 0
+    let o = await call(h, { origin: 'https://dsh.example.com', cookie: cookieFor(SECRET, 'dsh.example.com') })
+    check('the shell stays closed there: a cookie for the declared host is not accepted → 401, nothing ran', o.status === 401 && ran.length === 0, JSON.stringify([o.status, ran.length]))
+    o = await call(h, { origin: 'https://dsh.example.com' })
+    check('and without any cookie → 401, nothing ran', o.status === 401 && ran.length === 0)
+  } finally { delete globalThis[KEY] }
+}
+
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
 process.exit(failed === 0 ? 0 : 1)

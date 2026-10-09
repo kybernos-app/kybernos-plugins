@@ -49,6 +49,9 @@ import { createConnections } from './connections-host.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 
 /**
  * The DSH home, resolved the way DSH does (@deepseek-ai/dsh-home-paths): a non-blank
@@ -1065,7 +1068,7 @@ const sameOriginStrict = (req) => {
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
     const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
     const port = sock !== null && typeof sock.localPort === 'number' ? ':' + sock.localPort : ''
-    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
+    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return false }
 }
 

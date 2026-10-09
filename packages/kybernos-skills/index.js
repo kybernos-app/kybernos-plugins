@@ -37,6 +37,9 @@ import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 
 // ── local helpers (semantic mirror of kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -64,7 +67,7 @@ const sameOrigin = (req) => {
     const u = new URL(source)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
     const port = (req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
-    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0
+    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return false }
 }
 

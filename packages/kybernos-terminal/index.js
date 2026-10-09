@@ -82,6 +82,10 @@ export function executer ({ commande, cwd } = {}) {
 
 const METHODES_LECTURE = ['GET', 'HEAD', 'OPTIONS']
 
+// Hosted instance: the origin may also be an authority declared to DSH with --trusted-host. This only widens the ORIGIN check: the
+// session-cookie check below still lists the loopback authorities, so the shell stays closed to anything that is not the local browser.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
+
 /** The hosts a request to this server may legitimately carry (127.0.0.1, localhost, [::1] on its own port). */
 function autorites (req) {
   const port = (req && req.socket && typeof req.socket.localPort === 'number') ? ':' + req.socket.localPort : ''
@@ -97,7 +101,7 @@ export function origineOK (req) {
   try {
     const u = new URL(o)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    return autorites(req).indexOf(u.host) >= 0
+    return autorites(req).indexOf(u.host) >= 0 || kbTrusted(u.host)
   } catch { return false }
 }
 
