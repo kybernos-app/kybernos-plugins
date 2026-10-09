@@ -102,6 +102,9 @@ export function deplacer (inbox, { messageId, beforeId }) {
 // DSH sert les routes des plugins AVANT son authentification : chaque route se
 // garde elle-même. L'origine est comparée à l'adresse RÉELLE d'écoute du socket
 // (un `Host` forgé ne la contourne pas — recette 2026-10).
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
 
 function hotesLocaux (req) {
@@ -116,7 +119,7 @@ export function sameOriginStrict (req) {
     if (source === null) return false
     const u = new URL(source)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    return hotesLocaux(req).includes(u.host)
+    return (hotesLocaux(req).includes(u.host) || kbTrusted(u.host))
   } catch { return false }
 }
 
@@ -127,7 +130,7 @@ export function sameOriginLax (req) {
     if (source === null) return true
     const u = new URL(source)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    return hotesLocaux(req).includes(u.host)
+    return (hotesLocaux(req).includes(u.host) || kbTrusted(u.host))
   } catch { return true }
 }
 

@@ -1,0 +1,28 @@
+# Kybernos on a server with Docker Compose.
+#   1. put the password in a .env file next to this one, in clear or as a scrypt verifier (single quotes, it contains $):
+#        KYBERNOS_GATE_PASSWORD=...           (at least 8 characters)
+#        KYBERNOS_GATE_PASSWORD_HASH='scrypt$...'   (made with: echo 'a long password' | node packages/kybernos-gate/bin/kybernos-gate.mjs hash)
+#        KYBERNOS_PUBLIC_HOST=kybernos.example.com
+#   2. docker compose up -d --build
+#   3. put a TLS reverse proxy (Caddy, Traefik, nginx) in front of 127.0.0.1:3080
+# Do not commit the .env file.
+services:
+  kybernos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        KB_REF: main
+    restart: unless-stopped
+    environment:
+      KYBERNOS_GATE_PASSWORD: ${KYBERNOS_GATE_PASSWORD:-}
+      KYBERNOS_GATE_PASSWORD_HASH: ${KYBERNOS_GATE_PASSWORD_HASH:-}
+      KYBERNOS_PUBLIC_HOST: ${KYBERNOS_PUBLIC_HOST:-}
+      KYBERNOS_GATE_USER: ${KYBERNOS_GATE_USER:-kybernos}
+    ports:
+      - "127.0.0.1:3080:3080"
+    volumes:
+      - kybernos-data:/home/node/.dsh
+
+volumes:
+  kybernos-data:

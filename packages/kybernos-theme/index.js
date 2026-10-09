@@ -32,6 +32,9 @@ import { serveLoaderStore } from './loader-store.mjs'
 import { servePresetStore } from './preset-store.mjs'
 import { loadKeys, loadShipped, serveGallery } from './themes-gallery.mjs'
 import { seedSkills } from './seed-skills.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 
 const here = dirname(fileURLToPath(import.meta.url))
 export const LOTTIE_FILE = join(here, 'vendor', 'lottie_light.min.js')
@@ -86,7 +89,7 @@ export const sameOriginStrict = (req) => {
     const source = sourceOf(req)
     if (source === null) return false
     const u = new URL(source)
-    return (u.protocol === 'http:' || u.protocol === 'https:') && hostsOf(req).indexOf(u.host) >= 0
+    return (u.protocol === 'http:' || u.protocol === 'https:') && (hostsOf(req).indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return false }
 }
 export const sameOriginLax = (req) => {
@@ -94,7 +97,7 @@ export const sameOriginLax = (req) => {
     const source = sourceOf(req)
     if (source === null) return true
     const u = new URL(source)
-    return (u.protocol === 'http:' || u.protocol === 'https:') && hostsOf(req).indexOf(u.host) >= 0
+    return (u.protocol === 'http:' || u.protocol === 'https:') && (hostsOf(req).indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return true }
 }
 const readJsonBody = async (req, maxBytes) => {

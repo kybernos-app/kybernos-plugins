@@ -82,6 +82,7 @@ const SUPPORT_ITEM = {
 }
 const market = { mode: 'legacy', items: [SUPPORT_ITEM], hidden: [], pageSize: 200, listCalls: 0, failPage: null, endless: false, byAddressStatus: null }
 const teamApi = { workspace: '11111111-1111-4111-8111-111111111111', role: 'member', rows: [], next: 1, fail: null }
+const invites = { calls: [], answer: null }
 const seen = { team: [], startBody: null, pollBodies: [], authHeaders: [], modelsAuth: [], modelsWorkspace: [], memoryAuth: [], marketAuth: [], marketUrls: [], referralAuth: [], embedCalls: [], puts: [], searches: [], writes: [] }
 
 // Parrainage : GET /v1/referral (route ajoutee au proxy le 24/09/2026, parce
@@ -270,6 +271,22 @@ const api = createServer((req, res) => {
       if (referralForcedStatus !== null) return send(referralForcedStatus, { error: 'lookup unavailable' })
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, referralBody)
+    }
+    // Members of a workspace, as the new server's contract has them: `POST /members` adds an EXISTING user ({ user_id, role }) and
+    // answers 400 `invalid_request` to anything else (an e-mail included); `POST /invitations` is the invitation by e-mail
+    // ({ email, role }, 201 + the invitation). `invites.answer` forces one refusal on either route; every call is recorded.
+    const memberRoute = /^\/v1\/workspaces\/([^/]+)\/(members|invitations)$/.exec(req.url)
+    if (memberRoute !== null && req.method === 'POST') {
+      invites.calls.push({ route: memberRoute[2], workspace: memberRoute[1], body, auth })
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'unauthorized', message: 'Sign in first.', request_id: 'r-401' })
+      if (invites.answer !== null) return send(invites.answer.status, invites.answer.body)
+      const invalid = { error: 'invalid_request', message: 'The request body is not valid.', request_id: 'r-400' }
+      if (memberRoute[2] === 'members') {
+        if (body === null || typeof body.user_id !== 'string' || ['owner', 'admin', 'member'].indexOf(body.role) < 0) return send(400, invalid)
+        return send(200, { success: true, workspace_id: memberRoute[1], user_id: body.user_id, role: body.role, status: 'active', was_member: false })
+      }
+      if (body === null || typeof body.email !== 'string' || ['admin', 'member'].indexOf(body.role) < 0) return send(400, invalid)
+      return send(201, { id: '22222222-2222-4222-8222-222222222222', email: body.email, role: body.role, created_at: NOW, expires_at: '2026-09-29T00:00:00Z' })
     }
     if (req.url === '/v1/session' && req.method === 'DELETE') {
       seen.authHeaders.push(auth)
@@ -2760,6 +2777,93 @@ try {
   market.mode = 'legacy'
   market.items = [SUPPORT_ITEM]
   market.hidden = []
+
+  // 10o. Inviting from the Share panel. An e-mail is an INVITATION (POST /invitations: pending invitation + the mail); only a user id is
+  //      added straight to the workspace (POST /members). The new server refuses an e-mail on /members with 400, so sending it there
+  //      meant that nobody could ever be invited by e-mail. The refusals the panel can act on come back as ONE word.
+  {
+    const invite = (body) => hit('/kybernos-cloud/members/invite', 'POST', undefined, body)
+    const refuse = (status, body) => { invites.answer = { status, body } }
+    const reply = (error, message) => ({ error, message: message || 'refused', request_id: 'r-x' })
+    const calls = () => invites.calls.length
+    const USER = '33333333-3333-4333-8333-333333333333'
+    // The earlier sections leave their own spaces in the state: pin the one the fake server knows, and put the state back after.
+    const invSaved = readFileSync(statePath, 'utf8')
+    writeFileSync(statePath, JSON.stringify({ ...JSON.parse(invSaved), workspaces: [{ id: 'ws-1', name: 'My workspace' }], active_workspace_id: 'ws-1' }, null, 2), { mode: 0o600 })
+    invites.calls.length = 0
+
+    // (1) an e-mail goes to /invitations with exactly { email, role } and the account token; the host says ok
+    const sent = await invite({ email: '  Ada@Example.TEST ', role: 'member' })
+    assert.deepEqual([sent.status, sent.body.ok, sent.body.status, sent.body.invited], [200, true, 201, true], JSON.stringify(sent.body))
+    assert.deepEqual(invites.calls.map((c) => c.route), ['invitations'], 'an e-mail is an invitation, not an addition of a user')
+    assert.equal(invites.calls[0].workspace, 'ws-1')
+    assert.deepEqual(invites.calls[0].body, { email: 'ada@example.test', role: 'member' })
+    assert.equal(invites.calls[0].auth, 'Bearer ' + TOKEN)
+    assert.equal(leaks(sent.body), false)
+    const asAdmin = await invite({ email: 'bob@example.test', role: 'admin' })
+    assert.deepEqual([asAdmin.body.ok, invites.calls[1].route, invites.calls[1].body], [true, 'invitations', { email: 'bob@example.test', role: 'admin' }])
+    ok('invite by e-mail: POST /invitations with exactly { email, role } and the bearer token, the host answers ok')
+
+    // (2) the refusals the panel can act on are one word, whatever the server's sentence
+    refuse(409, reply('already_member', 'This person is already a member.'))
+    assert.deepEqual([(await invite({ email: 'ada@example.test', role: 'member' })).body.error], ['already_member'])
+    refuse(409, reply('seat_limit', 'This workspace has no free seat: 5 of 5 are taken.'))
+    assert.equal((await invite({ email: 'ada@example.test', role: 'member' })).body.error, 'seat_limit')
+    refuse(409, reply('SEAT_LIMIT'))
+    assert.equal((await invite({ email: 'ada@example.test', role: 'member' })).body.error, 'seat_limit', 'the seat-limit code in any case')
+    refuse(403, reply('forbidden', 'Your role in this workspace does not allow this.'))
+    const forbidden = await invite({ email: 'ada@example.test', role: 'admin' })
+    assert.deepEqual([forbidden.body.ok, forbidden.body.error, forbidden.body.status], [false, 'forbidden', 403])
+    refuse(429, { error: 'Too Many Requests' })
+    assert.equal((await invite({ email: 'ada@example.test', role: 'member' })).body.error, 'rate_limited', 'a 429 is rate_limited whatever its body says')
+    refuse(429, reply('rate_limited', 'Too many invitations.'))
+    assert.equal((await invite({ email: 'ada@example.test', role: 'member' })).body.error, 'rate_limited')
+    // any other refusal keeps the server's own word and is NOT hidden as « indisponible »
+    for (const [status, code] of [[400, 'invalid_request'], [409, 'personal_workspace'], [502, 'mail_failed'], [500, 'internal_error']]) {
+      refuse(status, reply(code))
+      const other = await invite({ email: 'ada@example.test', role: 'member' })
+      assert.deepEqual([other.body.ok, other.body.error, other.body.status], [false, code, status], code)
+    }
+    // a server without the route (404), or that sends no mail (501), is « indisponible », as for the other member routes
+    refuse(404, { detail: 'Not Found' })
+    assert.deepEqual([(await invite({ email: 'ada@example.test', role: 'member' })).body.error], ['indisponible'])
+    refuse(501, reply('mail_disabled'))
+    const noMail = await invite({ email: 'ada@example.test', role: 'member' })
+    assert.deepEqual([noMail.body.error, noMail.body.status], ['indisponible', 501])
+    // no refusal ever comes back as a success, and the sentence of the server is not what the panel shows
+    refuse(409, reply('already_member', 'A long sentence naming the workspace.'))
+    assert.equal(JSON.stringify(await invite({ email: 'ada@example.test', role: 'member' }).then((r) => r.body)).includes('sentence'), false)
+    invites.answer = null
+    ok('invite by e-mail: already_member, seat_limit, forbidden and rate_limited come back as one word; other refusals keep their code and are not hidden')
+
+    // (3) a user id still goes to POST /members, as before (this is also how a role is changed)
+    invites.calls.length = 0
+    const added = await invite({ user_id: USER, role: 'admin' })
+    assert.deepEqual([added.body.ok, added.body.status], [true, 200])
+    assert.deepEqual(invites.calls.map((c) => c.route), ['members'])
+    assert.deepEqual(invites.calls[0].body, { role: 'admin', user_id: USER })
+    assert.equal(invites.calls[0].auth, 'Bearer ' + TOKEN)
+    ok('invite by user id: still POST /members with { user_id, role }')
+
+    // (4) an invalid e-mail, role or user id is refused before any request
+    invites.calls.length = 0
+    const nothing = [
+      [{ role: 'member' }, 'email requis'],
+      [{ email: 'not-an-email', role: 'member' }, 'email invalide'],
+      [{ email: 'ada@example.test', role: 'owner' }, 'role invalide (admin|member)'],
+      [{ email: 'ada@example.test', role: 'viewer' }, 'role invalide (admin|member)'],
+      [{ email: 'ada@example.test' }, 'role invalide (admin|member)'],
+      [{ user_id: 'not-a-uuid', role: 'member' }, 'user_id invalide'],
+      [{ user_id: USER, role: 'owner' }, 'role invalide (admin|member)'],
+    ]
+    for (const [body, error] of nothing) {
+      const refused = await invite(body)
+      assert.deepEqual([refused.body.ok, refused.body.error], [false, error], JSON.stringify(body))
+    }
+    assert.equal(calls(), 0, 'no request for a refused invitation')
+    ok('invite: an invalid e-mail, role or user id is refused before any request')
+    writeFileSync(statePath, invSaved, { mode: 0o600 })
+  }
 
   // 10p. On rend l'état à la section 9 : déconnecté. Le test « réseau
   //      injoignable » suppose qu'aucun état local ne subsiste — le laisser

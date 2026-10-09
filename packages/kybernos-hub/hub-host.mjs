@@ -4,6 +4,9 @@
 import { noterCasse, noterChargement, noterDemarrage, noterSante, normaliser, nomsValides, recommandation } from './boot-guard.mjs'
 import { basculer, charge, etatDistant, evaluerCache, installer, mettreAJour, plateformeDe, rafraichir } from './suite-host.mjs'
 import { catalogueEffectif } from './catalogue-distant.mjs'
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
 
 /**
  * @param {{lire: () => unknown, ecrire: (etat: object) => void, maintenant: () => string, nouvelId: () => string}} io
@@ -68,7 +71,7 @@ const origineOk = (req, strict) => {
     if (source === null) return strict === false
     const u = new URL(source)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
-    return hotesLocaux(req).includes(u.host)
+    return (hotesLocaux(req).includes(u.host) || kbTrusted(u.host))
   } catch { return strict === false }
 }
 export const sameOriginStrict = (req) => origineOk(req, true)

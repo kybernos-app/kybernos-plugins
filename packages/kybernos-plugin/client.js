@@ -1427,6 +1427,10 @@ let kbLocaleRead = () => 'en'
       'kbsd.err.readstate': { kybernos: 'État du lien illisible : {m}', en: 'Link state unreadable: {m}' },
       'kbsd.err.nolink': { kybernos: 'Aucun lien à copier', en: 'No link to copy' },
       'kbsd.err.invite': { kybernos: 'Invitation refusée {e} : {m}', en: 'Invitation refused {e}: {m}' },
+      'kbsd.err.invite.already_member': { kybernos: 'cette personne est déjà membre de l’espace', en: 'this person is already a member of the workspace' },
+      'kbsd.err.invite.seat_limit': { kybernos: 'plus de place libre : un propriétaire doit ajouter des places ou en libérer', en: 'no free seat: an owner has to add seats or make room' },
+      'kbsd.err.invite.forbidden': { kybernos: 'votre rôle ne permet pas d’inviter', en: 'your role does not allow inviting' },
+      'kbsd.err.invite.rate_limited': { kybernos: 'trop d’invitations en peu de temps, réessayez dans un moment', en: 'too many invitations in a short time, try again in a moment' },
       'kbsd.err.role': { kybernos: 'Changement de rôle refusé : {m}', en: 'Role change refused: {m}' },
       'kbsd.err.remove': { kybernos: 'Retrait refusé : {m}', en: 'Removal refused: {m}' },
       'kbsd.err.members': { kybernos: 'Membres illisibles : {m}', en: 'Members unreadable: {m}' },
@@ -8668,6 +8672,8 @@ return {
           if (j === null || j.ok !== true) return { err: (j !== null && j.error) ? String(j.error) : 'HTTP ' + r.status }
           return { ok: true }
         }
+        // The host answers the refusals it knows as one word (already_member, seat_limit, forbidden, rate_limited): say it in words.
+        const motInvitation = (w) => (['already_member', 'seat_limit', 'forbidden', 'rate_limited'].indexOf(w) !== -1 ? T('kbsd.err.invite.' + w) : w)
         const inviter = async () => {
           if (valide !== true || busy === true) return
           setBusy(true)
@@ -8677,7 +8683,7 @@ return {
             for (const e of bruts) {
               const res = await appelMembres('/kybernos-cloud/members/invite', { email: e, role: roleSrv(invRole) })
               if (res.unavail === true) { dire('err', T('kbsd.invite.unavail')); break }
-              if (res.err !== undefined) { dire('err', T('kbsd.err.invite', { e: e, m: res.err })); break }
+              if (res.err !== undefined) { dire('err', T('kbsd.err.invite', { e: e, m: motInvitation(res.err) })); break }
               ok += 1
             }
             if (ok > 0) { setMailTxt(''); dire('ok', ok + (ok > 1 ? kbf(' invitations envoyées') : kbf(' invitation envoyée'))); await chargerMembres() }
@@ -28556,6 +28562,20 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
     }
     const kbBrandSame = (x, y) => (x === null && y === null) || (x !== null && y !== null && x.name === y.name && x.logo === y.logo)
     // KB-BRAND-CORE-END
+    // KB-HOSTED-CORE-BEGIN
+    // DSH 0.2.0-rc.2 keeps the UI settings in MEMORY, never on the host, for a browser whose page address is not
+    // loopback (dsh-client-ui-settings: `persistence = ctx.remote.$host.isLoopback ? "host" : "memory"`). On a hosted
+    // instance its "Preview Notice" therefore cannot be remembered: it comes back at every page load (measured:
+    // Continue, reload, the notice is there again). It is one entry of the `settings.onboarding` list slot, and an entry
+    // with the same id at a lower priority shadows it. Same loopback rule as DSH's own (`isLoopbackHostname`).
+    const kbIsLoopbackHost = (hostname) => {
+      if (typeof hostname !== 'string' || hostname === '') return true
+      const h = hostname.toLowerCase()
+      if (h === 'localhost' || h === '[::1]') return true
+      const parts = h.split('.')
+      return parts.length === 4 && parts[0] === '127' && parts.every((part) => /^\d{1,3}$/.test(part) && Number(part) <= 255)
+    }
+    // KB-HOSTED-CORE-END
 
     let kbBrandOverride = null
     let kbBrandSource = null // who set it: 'cloud' (the effect below) or anything else (a Team module)
@@ -28636,6 +28656,12 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       { name: 'sidebar.brand.mark', priority: -1 }, KybernosSidebarMark)), 'kybers: marque kybernos')
     ctx.effect(() => slots.inject('sidebar.brand.name', () => slots.register(
       { name: 'sidebar.brand.name', priority: -1 }, KybernosSidebarName)), 'kybers: nom kybernos')
+    // Hosted instance (a browser that is not on loopback): DSH cannot remember its preview notice there, so do not show it
+    // at every load. On loopback DSH remembers the acknowledgement itself and the notice stays as it is.
+    if (!kbIsLoopbackHost(globalThis.location !== undefined ? globalThis.location.hostname : '')) {
+      ctx.effect(() => slots.inject('settings.onboarding', () => slots.register(
+        { name: 'settings.onboarding', id: 'welcome-notice', order: -100, priority: -1 }, () => null)), 'kybers: avis de preversion DSH (navigateur distant)')
+    }
     ctx.effect(() => slots.inject('conversation.hero.brand.mark', () => slots.register(
       { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosMark, { height: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')
 
