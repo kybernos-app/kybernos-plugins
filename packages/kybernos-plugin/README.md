@@ -16,8 +16,8 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   Team Insight, Quality Score), **Workspaces**, **Deliverables**, **Automations** (cron and webhook tasks) and **Resources**
   (Connectors tab only when `@local/kybernos-composio` is booted, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
   Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
-- In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards, a card for
-  `ask_user_question`, composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
+- In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,
+  composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
 - Settings sections **Tools**, **Voice**, Referral, Appearance (shortcut to Theme), Security, Support & legal; a first-run
   **onboarding** wizard. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in

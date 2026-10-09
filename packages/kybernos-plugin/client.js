@@ -580,19 +580,7 @@ let kbLocaleRead = () => 'en'
       'kbtc.appel': { kybernos: 'appel', en: 'call' },
       'kbtc.voir': { kybernos: 'Voir l’exécution', en: 'View execution' },
       'kbtc.done': { kybernos: 'Appel terminé', en: 'Call done' },
-      'kbh.titre': { kybernos: 'Validation requise', en: 'Validation required' },
-      'kbh.nq': { kybernos: ' questions', en: ' questions' },
-      'kbh.repondre': { kybernos: 'Répondre', en: 'Answer' },
-      'kbh.voir': { kybernos: 'Voir dans Workflows', en: 'View in Workflows' },
-      'kbh.repondu': { kybernos: 'Répondu par toi', en: 'Answered by you' },
-      'kbh.annule': { kybernos: 'Annulée', en: 'Cancelled' },
-      'kbh.interrompue': { kybernos: 'Interrompue', en: 'Interrupted' },
-      'kbh.erreur': { kybernos: 'Erreur', en: 'Error' },
-      'kbh.reponses': { kybernos: ' réponses', en: ' answers' },
-      'kbh.sur': { kybernos: ' sur ', en: ' of ' },
-      'kbh.sansreponse': { kybernos: 'Sans réponse', en: 'Left unanswered' },
-      'kbh.copier': { kybernos: 'Copier', en: 'Copy' },
-      'kbh.copie': { kybernos: 'Copié', en: 'Copied' },
+
       'status.ok': { kybernos: 'sondé OK', en: 'probe OK' },
       'status.fail': { kybernos: 'sonde en échec', en: 'probe failed' },
       'status.declared': { kybernos: 'déclaré, non sondé', en: 'declared, not probed' },
@@ -14053,160 +14041,6 @@ return {
           })),
           h('button', { type: 'button', className: 'kbtc-voir', onClick: () => { voir() } }, kbt('kbtc.voir') + ' →')))
     }
-    // ── S2b : carte validation HITL (ask_user_question) ─────────────────────
-    // Toolview keyé sur l'outil `ask_user_question` (priority -1 : masque la
-    // DetailsRow native, réversible). Données du contrat toolview : block
-    // running {callId, argsRaw} / réglé {'kind', call:{argsRaw}, isError,
-    // error, content} — mêmes champs que la rangée native ask-question.
-    // ANSWERING : la carte NE répond PAS elle-même — le waterfall user-questions
-    // appartient au QuestionComposer natif (il remplace le compositeur pendant
-    // la question ; answering direct depuis une 2e surface = double settlement).
-    // « Répondre » amène au compositeur natif (scroll + focus), « Voir dans
-    // Crew v2 » cible l'appel en attente. Maquette §2 : conteneur #221E2C bord
-    // #4A3D66 pulsé, ◆ 32×32 #2C2540/#B99CF0, titre 14/600, corps 13/1.45
-    // #B8B4AC, permissions 12 #8E8A82 mono, boutons 36px.
-    const KbHitlCard = (props) => {
-      const p = (props !== null && typeof props === 'object') ? props : {}
-      const sessionId = (typeof p.sessionId === 'string') ? p.sessionId : ''
-      const block = (p.block !== null && p.block !== undefined) ? p.block : null
-      const running = (block !== null && 'kind' in block) === false
-      const argsRaw = (block !== null) ? ((running === true) ? (typeof block.argsRaw === 'string' ? block.argsRaw : '') : ((block.call !== null && block.call !== undefined && typeof block.call.argsRaw === 'string') ? block.call.argsRaw : '')) : ''
-      const errCode = (running === false && block.isError === true && block.error !== null && block.error !== undefined && typeof block.error.code === 'string') ? block.error.code : null
-      // Questions depuis les args de l'appel.
-      let questions = []
-      try {
-        const a = argsRaw === '' ? null : JSON.parse(argsRaw)
-        if (a !== null && a !== undefined && Array.isArray(a.questions)) questions = a.questions.filter((q) => q !== null && typeof q.question === 'string')
-      } catch (e) { questions = [] }
-      // Réponses (réglé ok) : block.content[0].text → {answers:[{id,selected,custom}]}.
-      let reponses = null
-      if (running === false && errCode === null && block !== null && Array.isArray(block.content) && block.content.length === 1 && block.content[0] !== null && block.content[0].type === 'text') {
-        try {
-          const r = JSON.parse(block.content[0].text)
-          if (r !== null && r !== undefined && Array.isArray(r.answers)) reponses = r.answers
-        } catch (e) { reponses = null }
-      }
-      const st = running === true ? 'pending' : (errCode !== null ? (errCode === 'ASK_ABORTED' ? 'interrompue' : (errCode === 'ASK_CANCELLED' ? 'annulee' : 'erreur')) : 'repondu')
-      // Ligne « Permissions : … » extraite du texte de la question (v1).
-      const texteQ = questions.length > 0 ? String(questions[0].question) : ''
-      const permM = texteQ.match(/permissions?\s*[:：]\s*([^\n]+)/i)
-      const perms = (permM !== null) ? permM[1] : null
-      // Lignes réponse (question → sélection) après answering.
-      const lignes = (st === 'repondu') ? questions.map((q) => {
-        const rep = (reponses !== null) ? reponses.find((r) => r !== null && r !== undefined && r.id === q.id) : null
-        const sel = (rep !== null && rep !== undefined && Array.isArray(rep.selected) && rep.selected.length > 0) ? rep.selected.join(', ') : ((rep !== null && rep !== undefined && typeof rep.custom === 'string' && rep.custom !== '') ? rep.custom : null)
-        return { q: String(q.question), sel: sel }
-      }) : []
-      // Ce que la carte doit dire d'un coup d'œil : combien de réponses sur
-      // combien de questions (le compositeur natif laisse sauter une question —
-      // sa ligne revient alors « Sans réponse »), et de quoi copier les
-      // réponses d'un geste.
-      const nRepondues = lignes.filter((l) => l.sel !== null).length
-      const resume = (st !== 'repondu' || lignes.length === 0) ? ''
-        : (nRepondues === lignes.length
-          ? (lignes.length > 1 ? String(lignes.length) + kbt('kbh.reponses') : '')
-          : String(nRepondues) + kbt('kbh.sur') + String(lignes.length))
-      const copiePair = React.useState(false)
-      const copie = copiePair[0]
-      const setCopie = copiePair[1]
-      const copier = () => {
-        const txt = lignes.map((l) => l.q + ' → ' + (l.sel === null ? kbt('kbh.sansreponse') : l.sel)).join('\n')
-        let ecrit = false
-        try {
-          const nav = navigator
-          if (nav !== null && nav !== undefined && nav.clipboard !== undefined && nav.clipboard !== null && typeof nav.clipboard.writeText === 'function') {
-            const p = nav.clipboard.writeText(txt)
-            if (p !== null && p !== undefined && typeof p.catch === 'function') p.catch(() => { /* refus du navigateur */ })
-            ecrit = true
-          }
-        } catch (e) { ecrit = false }
-        // Le bouton ne ment pas : sans presse-papiers, il reste « Copier ».
-        if (ecrit === false) return
-        setCopie(true)
-        setTimeout(() => { try { setCopie(false) } catch (e) { /* carte démontée */ } }, 1600)
-      }
-      const repondre = () => {
-        try {
-          const col = document.querySelector('.EvIC1a_scroll') || document.scrollingElement
-          if (col !== null) col.scrollTop = col.scrollHeight
-          setTimeout(() => {
-            const z = Array.from(document.querySelectorAll('textarea, [contenteditable="true"], input:not([type=hidden])')).filter((e) => { const b = e.getBoundingClientRect(); return b.height > 0 && b.top > window.innerHeight - 420 })[0]
-            if (z !== undefined) z.focus({ preventScroll: true })
-          }, 350)
-        } catch (e) { /* meilleur effort */ }
-      }
-      const voirCrew = () => {
-        const ouvrir = (callId) => { kbCrew2FocusOn(sessionId, callId); kbOpenCrewView(sessionId, 'workflows-v2'); kbClickViewTab(kbt('wv2.tab')) }
-        if (sessionId === '') return
-        host.call('kybers/calls', { sessionId: sessionId }).then((res) => {
-          const cible = (res !== null && res !== undefined && res.ok === true && Array.isArray(res.calls)) ? (res.calls.find((x) => x.st === 'waiting' || x.hitl === true) || null) : null
-          ouvrir(cible !== null ? cible.id : null)
-        }, () => { ouvrir(null) })
-      }
-      return h('div', { className: 'kbh-wrap', 'data-kb': 'hitl-card' },
-        running === true
-          ? h('div', { className: 'kbh-card', 'data-st': 'pending' },
-              h('div', { className: 'kbh-tete' },
-                h('span', { className: 'kbh-mono' }, '◆'),
-                h('div', { className: 'kbh-corps' },
-                  h('div', { className: 'kbh-titre' }, kbt('kbh.titre') + (questions.length > 1 ? ' · ' + String(questions.length) + kbt('kbh.nq') : '')),
-                  texteQ !== '' ? h('div', { className: 'kbh-question' }, texteQ) : null,
-                  perms !== null ? h('div', { className: 'kbh-perms' }, 'Permissions : ', h('code', null, perms)) : null)),
-              h('div', { className: 'kbh-actions' },
-                h('button', { type: 'button', className: 'kbh-rep', onClick: () => { repondre() } }, kbt('kbh.repondre') + ' →')))
-              // Item #1 recette-intake : l'ancien second bouton « View in Workflows → »
-              // (className 'kbh-crew', kbt('kbh.voir'), onClick voirCrew) est RETIRÉ de
-              // l'affichage — voirCrow/vokrCrew et la vue workflows-v2 restent joignables
-              // par l'onglet Workflows ; rien d'autre n'a changé.
-          : h('div', { className: 'kbh-suite' },
-              h('div', { className: 'kbh-okline', 'data-st': st, role: 'status' },
-                h('span', { className: 'kbh-ok-ico', 'aria-hidden': 'true' }, st === 'repondu' ? '✓' : (st === 'erreur' ? '!' : '–')),
-                h('span', { className: 'kbh-ok-txt' }, st === 'repondu' ? kbt('kbh.repondu') : (st === 'interrompue' ? kbt('kbh.interrompue') : (st === 'annulee' ? kbt('kbh.annule') : kbt('kbh.erreur')))),
-                resume !== '' ? h('span', { className: 'kbh-ok-n' }, resume) : null),
-              lignes.length > 0 ? h('div', { className: 'kbh-replist' }, lignes.map((l, i) =>
-                h('div', { key: String(i), className: 'kbh-repligne' + (l.sel === null ? ' kbh-repvide' : '') },
-                  h('span', { className: 'kbh-repq' }, l.q),
-                  h('span', { className: 'kbh-repv' }, l.sel === null ? kbt('kbh.sansreponse') : l.sel)))) : null,
-              (st === 'repondu' && lignes.length > 0) ? h('div', { className: 'kbh-actions kbh-actions-nues' },
-                h('button', { type: 'button', className: 'kbh-cop', onClick: () => { copier() } }, copie === true ? kbt('kbh.copie') : kbt('kbh.copier'))) : null))
-    }
-    const KBH_CSS = '' +
-      // Jetons DSH exclusivement : la carte suit le schéma clair comme sombre.
-      // (Avant : couleurs en dur sombres — carte illisible en clair, 28/09.)
-      '.kbh-wrap{margin:10px 0;display:flex;flex-direction:column}' +
-      '.kbh-card{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:12px;background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2)}' +
-      '.kbh-card[data-st=pending]{animation:kbhPulse 2s ease-in-out infinite}' +
-      '@keyframes kbhPulse{0%,100%{border-color:var(--dsw-alias-border-l2)}50%{border-color:var(--dsw-alias-brand-primary)}}' +
-      '@media(prefers-reduced-motion:reduce){.kbh-card[data-st=pending]{animation:none}}' +
-      '.kbh-tete{display:flex;align-items:flex-start;gap:12px}' +
-      '.kbh-mono{width:32px;height:32px;flex-shrink:0;border-radius:8px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-brand-primary);display:flex;align-items:center;justify-content:center;font-weight:700}' +
-      '.kbh-corps{flex-grow:1;min-width:0}' +
-      '.kbh-titre{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}' +
-      '.kbh-question{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary);margin-top:2px;white-space:pre-wrap;word-break:break-word}' +
-      '.kbh-perms{margin-top:4px;font-size:12px;color:var(--dsw-alias-label-tertiary)}' +
-      '.kbh-perms code{font-family:ui-monospace,Menlo,monospace}' +
-      '.kbh-actions{display:flex;gap:8px;padding-left:44px;align-items:center}' +
-      '.kbh-rep{height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,var(--dsw-alias-bg-base,#fff));font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      '.kbh-rep:hover{background:var(--dsw-alias-button-primary-hover,var(--dsw-alias-brand-primary))}' +
-      '.kbh-crew{height:36px;padding:0 12px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap}' +
-      '.kbh-crew:hover{color:var(--dsw-alias-label-primary)}' +
-      // Carte réglée (UX du 23/09) : la question et la réponse s'empilent et
-      // passent à la ligne, au lieu d'être coupées à l'ellipse dans une bande de
-      // 38 px ; la question laissée de côté garde sa ligne, en gris.
-      '.kbh-suite{display:flex;flex-direction:column;gap:8px}' +
-      '.kbh-okline{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--dsw-alias-state-success-primary)}' +
-      '.kbh-okline[data-st=interrompue],.kbh-okline[data-st=annulee]{color:var(--dsw-alias-state-warn-primary)}' +
-      '.kbh-okline[data-st=erreur]{color:var(--dsw-alias-state-error-primary)}' +
-      '.kbh-ok-ico{width:14px;height:14px;flex:none;box-sizing:border-box;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:9px;line-height:1;background:color-mix(in srgb,currentColor 18%,transparent)}' +
-      '.kbh-ok-n{font-weight:400;color:var(--dsw-alias-label-tertiary)}' +
-      '.kbh-replist{display:flex;flex-direction:column;gap:6px}' +
-      '.kbh-repligne{display:flex;flex-direction:column;gap:2px;box-sizing:border-box;padding:8px 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}' +
-      '.kbh-repq{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:16px;overflow-wrap:anywhere}' +
-      '.kbh-repv{color:var(--dsw-alias-label-primary);font-size:13px;line-height:18px;overflow-wrap:anywhere}' +
-      '.kbh-repvide .kbh-repv{color:var(--dsw-alias-label-caption,var(--dsw-alias-label-tertiary));font-style:italic}' +
-      '.kbh-actions-nues{padding-left:0}' +
-      '.kbh-cop{height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-secondary);font-size:12px;cursor:pointer;font-family:inherit}' +
-      '.kbh-cop:hover{border-color:var(--dsw-alias-border-l3);color:var(--dsw-alias-label-primary)}'
     const KBTC_CSS =
       '.kbtc-wrap{margin:10px 0;display:flex;flex-direction:column;gap:8px}' +
       '.kbtc-intro{font-size:14px;line-height:1.5;color:var(--dsw-alias-label-secondary)}' +
@@ -22674,15 +22508,6 @@ function renderFit(canvas, model, cam, opts){
     ctx.effect(() => slots.inject('conversation.chat.node', () => slots.register(
       { name: 'conversation.chat.node', key: 'team-call' }, KbTeamCallCard)), 'kybers: carte chat team-call');
     ctx.effect(() => styles.insert(KBTC_CSS), 'kybers: styles carte team-call');
-    // S2b : carte validation HITL — toolview keyé ask_user_question. priority -1
-    // masque la rangée native ask-question (l'élection par cellule keyée garde
-    // la première entrée vivante par priority croissante ; la native est à 0) ;
-    // réversible (plugin off → rangée native de retour). L'answering reste au
-    // QuestionComposer natif (remplace le compositeur pendant la question) ;
-    // la carte amène à lui — cf. commentaire du composant.
-    ctx.effect(() => slots.inject('tool.call.toolview', () => slots.register(
-      { name: 'tool.call.toolview', key: 'ask_user_question', priority: -1, inject: (sessionId) => ({ sessionId: sessionId }) }, KbHitlCard)), 'kybers: carte chat validation HITL');
-    ctx.effect(() => styles.insert(KBH_CSS), 'kybers: styles carte validation HITL');
 
     // ── sonde d'usage : récupère les tokens côté client ──────────────────────
     // `conversation.view` n'expose que `sessionId`, `hooks`, `bindDraftMirror` et
