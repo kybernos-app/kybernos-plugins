@@ -70,6 +70,10 @@
       "nom": "@local/kybernos-modeleur"
     },
     {
+      "dir": "kybernos-motion",
+      "nom": "@local/kybernos-motion"
+    },
+    {
       "dir": "kybernos-miniapps",
       "nom": "@local/kybernos-miniapps"
     },

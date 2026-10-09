@@ -10770,6 +10770,10 @@ function boot(ctx) {
     // Every bundle's route guard reads this predicate: it is what lets a hosted instance behind a reverse
     // proxy (Origin = the public address) pass the guards, using the same `--trusted-host` list as DSH's own fence.
     publishTrustedAuthority(ctx)
+    // Bundles that write files into a session's project (Motion) ask the core where a session may work and whether a
+    // path is allowed (resolve-then-compare, symlinks included), instead of each re-deriving it. Read on every call by
+    // the other bundles; absent, they fall back to their own store.
+    try { globalThis[Symbol.for('kybernos.workspace')] = { sessionCwd: kbSessionCwd, pathAllowed: cheminAutorise } } catch (e) { /* a frozen global: the other bundles degrade */ }
     if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx.get('webServer'))
     else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(hostCtx.webServer))
 }

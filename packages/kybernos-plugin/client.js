@@ -17848,7 +17848,7 @@ function renderFit(canvas, model, cam, opts){
       const Comp = KB_MINIAPP_COMPONENTS[KB_MINIAPP_RENDERERS[cle] || 'generic']
       if (Comp === null || Comp === undefined) return p0.fallback
       return h('div', { className: 'kb6-minivis', ref: boxRef, 'aria-hidden': 'true' },
-        h('div', { className: 'kb6-minivis-in', style: { transform: 'scale(' + String(Math.max(scale, 0.05)) + ')' } }, h(Comp, { text: texte, name: p0.name })))
+        h('div', { className: 'kb6-minivis-in', style: { transform: 'scale(' + String(Math.max(scale, 0.05)) + ')' } }, h(Comp, { text: texte, name: p0.name, path: p0.path, compact: true })))
     }
 
     // ── MiniApp « technique » : la visite 3D d'une machine ─────────────────
@@ -17919,6 +17919,29 @@ function renderFit(canvas, model, cam, opts){
     // lignes-là — une entrée glissée dans la table serait perdue au retrait.
     KB_MINIAPP_RENDERERS.technique = 'technique'
     KB_MINIAPP_COMPONENTS.technique = KbTechniquePlay
+    // The door for players that live in another bundle (Motion): `window.__KB_MINIAPP__.register(name, Component)` adds a renderer and
+    // its component to the two tables above, so Livrables, the card thumbnails, the chat card and the popup all pick it up. A built-in
+    // renderer cannot be replaced. A bundle that loads before this point queues `[name, Component]` on `window.__KB_MINIAPP_PENDING__`;
+    // the queue is drained here. A player receives { text, name, path } (and `compact: true` when it is drawn as a card thumbnail).
+    // KB-MINIAPP-DOOR-BEGIN (run by test-miniapp-door.mjs)
+    {
+      const builtin = new Set(Object.keys(KB_MINIAPP_COMPONENTS))
+      const door = {
+        register (name, Component) {
+          if (typeof name !== 'string' || !/^[a-z][a-z0-9-]{0,30}$/.test(name) || builtin.has(name) || typeof Component !== 'function') return false
+          KB_MINIAPP_RENDERERS[name] = name
+          KB_MINIAPP_COMPONENTS[name] = Component
+          return true
+        },
+      }
+      try {
+        window.__KB_MINIAPP__ = door
+        const queued = window.__KB_MINIAPP_PENDING__
+        window.__KB_MINIAPP_PENDING__ = []
+        if (Array.isArray(queued)) queued.forEach((e) => { try { door.register(e[0], e[1]) } catch (x) { /* a bad registration must not stop the others */ } })
+      } catch (e) { /* no window: nothing to expose */ }
+    }
+    // KB-MINIAPP-DOOR-END
 
     // ── Runtime MiniApp générique ───────────────────────────────────────
     const KbMiniApp = ({ text, name, path, renderer, kind, meta }) => {
@@ -17944,7 +17967,7 @@ function renderFit(canvas, model, cam, opts){
       }, [kind])
 
       // Props passées au renderer spécifique
-      const rendererProps = { text: text, name: name }
+      const rendererProps = { text: text, name: name, path: path }
       if (renderer === 'quiz') {
         rendererProps.onScore = handleScore
         rendererProps.onEditParams = handleEditParams

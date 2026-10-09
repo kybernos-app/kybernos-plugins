@@ -58,6 +58,27 @@ ok('bundle client charge et expose __test', T !== null && typeof T.escTitre === 
   ok('M-04 : serialiser échappe le titre piégé', html.includes('<title>&lt;/title&gt;') === true && html.includes('</title><script>') === false, html.slice(0, 90))
 }
 
+// ── another bundle's live page (Motion): exporters and the install door ─────
+{
+  const racine = { getAttribute: (k) => (k === 'data-renderer' ? 'motion' : null) }
+  const conf = { racineDynamique: racine, defaut: 'Défaut' }
+  globalThis.window.__KB_MINIAPP_EXPORTERS__ = { motion: async (r) => (r === racine ? { titre: 'Live', html: '<html>live</html>' } : null) }
+  const ex = await T.pageExport(conf)
+  ok('a registered exporter provides the live page, before any snapshot', ex.html === '<html>live</html>' && ex.titre === 'Live', ex)
+  globalThis.window.__KB_MINIAPP_EXPORTERS__ = { motion: async () => null }
+  ok('an exporter that answers null falls through (the page is then a snapshot or live export)', (await T.exporterExterne(conf)) === null)
+  globalThis.window.__KB_MINIAPP_EXPORTERS__ = { motion: async () => { throw new Error('x') } }
+  ok('an exporter that throws never breaks the export', (await T.exporterExterne(conf)) === null)
+  globalThis.window.__KB_MINIAPP_EXPORTERS__ = {}
+  ok('no exporter for the renderer: null', (await T.exporterExterne(conf)) === null)
+  ok('a root with no data-renderer: null', (await T.exporterExterne({ racineDynamique: { getAttribute: () => null }, defaut: 'x' })) === null)
+  ok('install door: exposed on window, off until the host says macOS', globalThis.window.__KB_MINIAPPS__ === T.interfaceExterne && T.interfaceExterne.supported === false)
+  const posted = []
+  globalThis.window.fetch = async (url, init) => { posted.push([url, JSON.parse(init.body)]); return { json: async () => ({ ok: true }) } }
+  const r = await T.interfaceExterne.install({ id: 'Motion Intro!', titre: 'Intro', html: '<html>x</html>', largeur: 500, hauteur: 300 })
+  ok('install door: posts the page to the install route with a safe id', r.ok === true && posted[0][0] === '/kybernos-miniapps/install' && posted[0][1].id === 'motion-intro' && posted[0][1].html === '<html>x</html>' && posted[0][1].auto === false, posted)
+}
+
 {
   // `.kbm-` is a prefix shared by three bundles: the Modeleur panel, kybernos-models' Settings page (`.kbm-root.kbmp`) and the core's own Models
   // page (a bare `.kbm-root`). The Modeleur says `kbmo` on its root and the entry asks for it. The cross-bundle check, on every panel of the list

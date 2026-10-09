@@ -987,6 +987,55 @@
       ]
     },
     {
+      "id": "kybernos-motion",
+      "nom": "@local/kybernos-motion",
+      "titre": "Motion",
+      "glyphe": "motion",
+      "famille": "create",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 470,
+      "promesse": {
+        "fr": "Des animations créées par le chat, jouées et exportées en vidéo.",
+        "en": "Animations made by the chat, played and exported as video."
+      },
+      "aide": {
+        "what": {
+          "fr": "Le chat crée des animations : titres, graphiques qui se dessinent, compteurs, particules, formes qui changent, avec du son. Vous les lisez, les réglez et les exportez en vidéo.",
+          "en": "The chat creates animations: titles, charts that draw themselves, counters, particles, shapes that morph, with sound. You play them, adjust them and export them as video."
+        },
+        "steps": [
+          {
+            "fr": "Demandez une animation au chat (« un titre animé, fond sombre ») : l’onglet « Motion » s’ouvre seul à droite.",
+            "en": "Ask the chat for an animation (“an animated title, dark background”): the “Motion” tab opens by itself on the right."
+          },
+          {
+            "fr": "Lisez-la avec ▶ et déplacez le curseur sur la frise. Changez textes, couleurs ou nombres dans « Paramètres » : le chat voit vos retouches.",
+            "en": "Play it with ▶ and drag the cursor on the timeline. Change texts, colours or numbers under “Settings”: the chat sees your edits."
+          },
+          {
+            "fr": "« Exporter » donne une vidéo MP4, une page autonome ou un fichier de scène, rangé dans le dossier artifacts/ du projet.",
+            "en": "“Export” gives an MP4 video, a standalone page or a scene file, saved in the project’s artifacts/ folder."
+          },
+          {
+            "fr": "Retrouvez vos animations dans la page Livrables, ou avec « Animations » en haut du panneau.",
+            "en": "Find your animations on the Livrables page, or with “Animations” at the top of the panel."
+          }
+        ],
+        "where": {
+          "fr": "Barre latérale droite, onglet « Motion » (s’ouvre seul quand une animation arrive), et page Livrables",
+          "en": "Right sidebar, “Motion” tab (opens by itself when an animation arrives), and the Livrables page",
+          "page": false
+        },
+        "good": {
+          "fr": "Une animation est un simple fichier .miniapp.json du projet : copiez-le, versionnez-le, partagez-le. L’export vidéo se fait dans votre navigateur, rien n’est envoyé ailleurs.",
+          "en": "An animation is a plain .miniapp.json file in the project: copy it, version it, share it. Video export happens in your browser, nothing is sent elsewhere."
+        }
+      }
+    },
+    {
       "id": "kybernos-miniapps",
       "nom": "@local/kybernos-miniapps",
       "titre": "Mini-apps",
