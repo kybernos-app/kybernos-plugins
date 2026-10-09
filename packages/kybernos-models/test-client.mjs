@@ -600,6 +600,31 @@ console.log('\n── the model health chip (the alert of the study model, on th
   ok('kybernos-sessions no longer draws anything: no banner node, no anchor, no styles', !sessions.includes('kbr-sante') && !sessions.includes('santeDessiner') && !sessions.includes('santeAncrage'))
 }
 
+console.log('\n── a count typed in the model sheet (context window, max output) ──')
+{
+  const bl = (name) => { const i = src.indexOf('// ' + name + '-BEGIN'); const j = src.indexOf('// ' + name + '-END'); return src.slice(i, j) }
+  const { kbMNum } = new Function(bl('KB-DS-PURE') + bl('KB-NUM-PURE') + '\nreturn { kbMNum }')()
+  ok('"256K" is 256000 and "1M" is 1000000 (it used to write 256 and 1)', kbMNum('256K') === 256000 && kbMNum('1M') === 1e6 && kbMNum('64k') === 64000, [kbMNum('256K'), kbMNum('1M')].join())
+  ok('a decimal suffix works: "1.5M"', kbMNum('1.5M') === 1500000)
+  ok('plain counts and numbers still work: "131072", 131072', kbMNum('131072') === 131072 && kbMNum(131072) === 131072)
+  ok('grouped digits still work: "128 000", "128,000", "128_000", " 128000 "', ['128 000', '128,000', '128_000', ' 128000 '].every((t) => kbMNum(t) === 128000), ['128 000', '128,000', '128_000'].map(kbMNum).join())
+  ok('junk is refused, not read for its digits: "abc", "abc12", "12abc", "", null, undefined', ['abc', 'abc12', '12abc', '', null, undefined].every((t) => kbMNum(t) === null), ['abc', 'abc12', '12abc'].map(kbMNum).join())
+  ok('zero and negatives are refused', kbMNum(0) === null && kbMNum('0') === null && kbMNum('-5') === null && kbMNum(-5) === null)
+  ok('an absurd size is refused (12 800 064 000 was accepted as a max output)', kbMNum('12800064000') === null && kbMNum(12800064000) === null && kbMNum('100M') === 1e8 && kbMNum('101M') === null)
+  ok('NaN and Infinity are refused', kbMNum(NaN) === null && kbMNum(Infinity) === null)
+}
+
+console.log('\n── a refused value is shown, and taken back ──')
+{
+  const fn = (name) => { const i = src.indexOf('const ' + name + ' = '); return i < 0 ? '' : src.slice(i, i + 1400) }
+  const set = fn('kbmSet')
+  ok('kbmSet clears the error BEFORE saving (a synchronous refusal used to be wiped right after)', /mo\.error = null[\s\S]*?kbmSave\(mo, k, v, takeBack\)/.test(set) && !/kbmSave\(mo, k, v, takeBack\) !== true\) \{[^}]*\}\s*mo\.error = null/.test(set))
+  ok('a refused value is taken back: the previous override comes back, or the key goes', /takeBack = \(\) =>[\s\S]*?if \(had\) back\[k\] = previous[\s\S]*?else delete back\[k\]/.test(set))
+  ok('a refused count says what a count is', /wire === KB_REFUS\) \{ mo\.error = m\(k === 'context' \|\| k === 'outputLimit' \? 'kb\.models\.error\.number'/.test(src))
+  const num = /'kb\.models\.error\.number': \{ kybernos: '([^']+)', en: '([^']+)' \}/.exec(src)
+  ok('that message exists in French and English and names the K / M spelling', num !== null && /256K/.test(num[1]) && /256K/.test(num[2]))
+}
+
 console.log('\n── strings: every new key in French and English ──')
 const keys = [...src.matchAll(/'(kb\.(?:prov\.(?:off|on)\.[a-z.]+|prov\.add\.err\.parque|pv\.[a-z.]+|nat\.[a-z.]+|health\.[a-z.]+|fetch\.[a-z.]+|ds\.[a-z.]+))': \{ kybernos: '((?:[^'\\]|\\.)*)', en: '((?:[^'\\]|\\.)*)' \}/g)]
 ok('the new keys are all declared', keys.length >= 70, keys.length)
