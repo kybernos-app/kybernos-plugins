@@ -279,10 +279,24 @@ ok('rangee du bas : les 3 formes + etat publie + libelles fr/en')
 // L'etat connecte vient d'un effet fetch, donc renderToStaticMarkup ne
 // l'atteint pas : on verifie le cablage dans la source, la classe CSS ci-dessus
 // et la parite fr/en de l'info-bulle.
-for (const needle of ['kbc-v-fallback', 'email.slice(0, at)', "hint: shownName.fallback"]) {
+// The name (with its fallback to the e-mail's local part) is on the full page: the short card of the sidebar menu shows the e-mail, the plan and the teams only.
+for (const needle of ['kbc-v-fallback', 'email.slice(0, at)', "hint: pn.fallback ? t('nameFallback') : undefined"]) {
   assert.ok(source.includes(needle), 'cablage du repli manquant: ' + needle)
 }
 assert.equal((source.match(/nameFallback:/g) || []).length, 2, 'nameFallback doit exister en fr ET en')
+
+// The card of the sidebar menu is basic: the e-mail, the plan, the teams and the way out. The models import, the DSH chats and the account memory are not drawn on it
+// (they are on the full page), and neither are the name, the device and the session.
+{
+  const from = source.indexOf("} else if (view.phase === 'connected') {")
+  const to = source.indexOf("} else if (view.phase === 'revoked') {", from)
+  assert.ok(from > 0 && to > from, 'the connected branch of the card is where the test expects it')
+  const card = source.slice(from, to)
+  for (const gone of ["t('modelsImport')", "t('chatsTitle')", "t('memoTitle')", "t('device')", "t('session')", "label: t('name')"])
+    assert.equal(card.includes(gone), false, 'the card must not draw ' + gone)
+  for (const kept of ["label: t('email')", "label: t('plan')", "t('workspaces')", "t('disconnect')"])
+    assert.equal(card.includes(kept), true, 'the card must keep ' + kept)
+}
 ok('repli de nom : classe CSS + derivation partie locale + info-bulle fr/en')
 
 // ── Catalogue LiteLLM importé (fonctionnalité cloud n°1) ────────────────────
