@@ -31914,6 +31914,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'loc.err.connect': ['{id} is downloaded but couldn’t be connected. Open Settings → Ollama Local Models to connect it.', '{id} est téléchargé mais n’a pas pu être branché. Ouvre Réglages → Ollama Local Models pour le brancher.', '{id} se descargó pero no se pudo conectar. Abre Ajustes → Ollama Local Models para conectarlo.', 'تم تنزيل {id} لكن تعذّر ربطه. افتح الإعدادات ← Ollama Local Models لربطه.'],
       'fin.key': ['API key · {name}', 'Clé API · {name}', 'Clave API · {name}', 'مفتاح API · {name}'],
       'fin.local.n': ['Local model · {id}', 'Modèle local · {id}', 'Modelo local · {id}', 'نموذج محلي · {id}'],
+      'nm.t': ['This chat can’t answer yet', 'Ce chat ne peut pas encore répondre', 'Este chat aún no puede responder', 'لا يمكن لهذه المحادثة أن تجيب بعد'],
+      'nm.s.route': ['The model it uses, {route}, has no API key.', 'Le modèle qu’il utilise, {route}, n’a pas de clé API.', 'El modelo que usa, {route}, no tiene clave API.', 'النموذج الذي تستخدمه، {route}، بلا مفتاح API.'],
+      'nm.s.generic': ['The model it uses has no API key.', 'Le modèle qu’il utilise n’a pas de clé API.', 'El modelo que usa no tiene clave API.', 'النموذج الذي تستخدمه بلا مفتاح API.'],
+      'nm.field': ['API key for {route}', 'Clé API pour {route}', 'Clave API para {route}', 'مفتاح API لـ {route}'],
+      'nm.save': ['Save the key', 'Enregistrer la clé', 'Guardar la clave', 'احفظ المفتاح'],
+      'nm.saved': ['Key saved. Your message can go again.', 'Clé enregistrée. Ton message peut repartir.', 'Clave guardada. Tu mensaje puede volver a salir.', 'تم حفظ المفتاح. يمكن لرسالتك أن تنطلق من جديد.'],
+      'nm.resend': ['Put my message back in the box', 'Remettre mon message dans la zone de saisie', 'Volver a poner mi mensaje en el cuadro', 'أعد رسالتي إلى مربع الكتابة'],
+      'nm.resent': ['Your message is back in the box: press Enter.', 'Ton message est dans la zone de saisie : appuie sur Entrée.', 'Tu mensaje está en el cuadro: pulsa Intro.', 'رسالتك في مربع الكتابة: اضغط Enter.'],
+      'nm.or': ['Or another way:', 'Ou autrement :', 'O de otra forma:', 'أو بطريقة أخرى:'],
+      'nm.cloud': ['Sign in with Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
+      'nm.connected': ['Connected. Pick the new model in the selector below, then send your message again.', 'C’est connecté. Choisis le nouveau modèle dans le sélecteur ci-dessous, puis renvoie ton message.', 'Conectado. Elige el nuevo modelo en el selector de abajo y reenvía tu mensaje.', 'تم الربط. اختر النموذج الجديد من القائمة أدناه ثم أعد إرسال رسالتك.'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
       'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Models.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← Models.'],
     }
@@ -31965,6 +31976,34 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const lin = (v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4) }
       return 0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3]) < 0.18
     }
+    /**
+     * The failure that wants a model, read from the chat's nodes (`useChat((c) => c.nodes.valuesCache)`) and its
+     * navigation (`c.navigation.current`): `{ turn, route, ref, prompt }` or null. Only the LATEST turn counts, so
+     * the card is gone as soon as the person sends again, and back if that turn fails the same way. `route` and
+     * `ref` are read from the engine's own sentence; either is null when the sentence is not the one expected.
+     */
+    const kbObNeedModel = (nodes, nav) => {
+      if (!Array.isArray(nodes)) return null
+      const turns = Array.isArray(nav) ? nav : []
+      const last = turns.length > 0 ? turns[turns.length - 1] : null
+      const lastTurn = last !== null && last !== undefined && typeof last.turn === 'number' ? last.turn : null
+      let hit = null
+      for (const n of nodes) {
+        if (n === null || n === undefined || typeof n !== 'object' || n.kind !== 'turn-error' || n.data === null || typeof n.data !== 'object') continue
+        if (n.data.code !== 'MISSING_CREDENTIAL') continue
+        const turn = typeof n.data.turn === 'number' ? n.data.turn : null
+        if (hit === null || (turn !== null && (hit.turn === null || turn >= hit.turn))) hit = { turn: turn, message: typeof n.data.message === 'string' ? n.data.message : '' }
+      }
+      if (hit === null) return null
+      if (lastTurn !== null && hit.turn !== null && hit.turn < lastTurn) return null
+      const m = /provider route "([^"\n]{1,80})"; its profile resolves ([A-Z][A-Z0-9_]{1,78}_API_KEY)\b/.exec(hit.message)
+      return {
+        turn: hit.turn,
+        route: m === null ? null : m[1],
+        ref: m === null ? null : m[2],
+        prompt: last !== null && last !== undefined && typeof last.prompt === 'string' ? last.prompt : '',
+      }
+    }
     // KB-OB-CORE-END
 
     // KB-OB-UI-BEGIN
@@ -31978,6 +32017,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
+        standalone: false,
       }
       let root = null
       let pollTimer = null
@@ -32061,13 +32101,19 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
         // Leaving while a model is still downloading: it keeps downloading, and connects itself when it is done.
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
-        env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang })
+        // Opened from the chat's card (standalone), the wizard is not the first run: the onboarding file is left alone.
+        if (!S.standalone) env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang })
+        const connected = S.standalone && S.model !== null ? S.model : null
         close()
+        // Handed over to Settings is not connected yet: only a way that finished tells the card.
+        if (connected !== null && openSettingsNames === undefined && typeof env.onConnected === 'function') { try { env.onConnected(connected) } catch (e) { /* the card is gone */ } }
         if (openSettingsNames !== undefined) env.openSettings(openSettingsNames)
       }
 
       // ── the three ways of powering the agents ──
       const go = (screen) => { stopPoll(); if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } S.screen = screen; render(true) }
+      // After a way is connected: the first run goes on to its recap; from the chat's card the wizard just closes.
+      const afterConnect = () => { if (S.standalone) finish(); else go('done') }
       const pollOnce = async () => {
         pollTimer = null
         if (root === null || S.screen !== 'cloud-wait') return
@@ -32239,7 +32285,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         stopJob()
         S.model = 'local'
         watchInstall(S.localId)
-        go('done')
+        afterConnect()
       }
 
       // ── pieces ──
@@ -32308,6 +32354,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         return b
       }
       const eyebrow = (screen) => {
+        if (S.standalone) return h('span')
         const plan = kbObPlan(S.ready !== null)
         const n = plan.indexOf(kbObStepOf(screen)) + 1
         return h('p', 'kb-ob-eyebrow', T('step', { n: n, total: plan.length }))
@@ -32382,7 +32429,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
           s.appendChild(g)
           const a = actions()
-          a.appendChild(button('kb-ob-ghost', T('later'), () => go('later')))
+          a.appendChild(button('kb-ob-ghost', S.standalone ? T('close') : T('later'), () => { if (S.standalone) finish(); else go('later') }))
           s.appendChild(a)
           return s
         },
@@ -32419,7 +32466,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           st.appendChild(h('span', null, who() + plan + models))
           s.appendChild(st)
           const a = actions()
-          a.appendChild(primary(T('cont'), () => go('done')))
+          a.appendChild(primary(T('cont'), () => afterConnect()))
           s.appendChild(a)
           return s
         },
@@ -32524,7 +32571,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           st.appendChild(h('span', null, T(ok ? 'key.done.ok' : 'key.done.unk', { name: provName(S.provider) })))
           s.appendChild(st)
           const a = actions()
-          a.appendChild(primary(T('cont'), () => go('done')))
+          a.appendChild(primary(T('cont'), () => afterConnect()))
           s.appendChild(a)
           return s
         },
@@ -32582,7 +32629,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           st.appendChild(h('span', null, T('loc.done.s', { id: S.localId })))
           s.appendChild(st)
           const a = actions()
-          a.appendChild(primary(T('cont'), () => go('done')))
+          a.appendChild(primary(T('cont'), () => afterConnect()))
           s.appendChild(a)
           return s
         },
@@ -32634,7 +32681,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const plan = kbObPlan(S.ready !== null)
         const current = kbObStepOf(S.screen)
         const idx = plan.indexOf(current)
-        const pct = S.screen === 'welcome' ? 0 : (current === null ? 100 : ((idx + 1) / plan.length) * 100)
+        const pct = S.standalone ? 0 : (S.screen === 'welcome' ? 0 : (current === null ? 100 : ((idx + 1) / plan.length) * 100))
         const bar = h('div', 'kb-ob-bar')
         const fill = h('i')
         fill.style.width = pct + '%'
@@ -32669,12 +32716,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           lw.appendChild(menu)
         }
         right.appendChild(lw)
-        if (S.screen !== 'done' && S.screen !== 'later') right.appendChild(button('kb-ob-skip', T('skip'), () => finish()))
+        if (S.screen !== 'done' && S.screen !== 'later') right.appendChild(button('kb-ob-skip', S.standalone ? T('close') : T('skip'), () => finish()))
         top.appendChild(right)
         root.appendChild(top)
 
         const main = h('main', 'kb-ob-main')
-        const back = kbObBack(S.screen)
+        const back = S.standalone && S.screen === 'model' ? null : kbObBack(S.screen)
         if (back !== null) main.appendChild(button('kb-ob-back', T('back'), () => {
           if (S.screen === 'cloud-wait') { cancelCloud(); return }
           go(back)
@@ -32698,7 +32745,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.machine = init.machine
         S.job = init.job
         S.mode = init.mode
-        S.screen = 'welcome'
+        S.standalone = init.standalone === true
+        S.screen = S.standalone ? 'model' : 'welcome'
         root = h('div', 'kb-ob' + (init.dark === true ? ' kb-ob-dark' : ''))
         root.setAttribute('role', 'dialog')
         root.setAttribute('aria-modal', 'true')
@@ -32740,6 +32788,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     }
     // KB-OB-UI-END
 
+    // The way to open the wizard's model step on its own (the chat's card calls it); set by the boot below.
+    let kbObStandaloneOpen = null
     // ── boot: open on a fresh install, and on « Replay » ──
     ;(() => {
       let busy = false
@@ -32808,6 +32858,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           })
           if (opened !== true) busy = false
         } catch (e) { busy = false }
+      }
+      kbObStandaloneOpen = async (opts) => {
+        if (busy) return false
+        busy = true
+        try {
+          const probe = await kbObProbe(env)
+          const wizard = kbObMount({ ...env, onClose: () => { busy = false }, onConnected: opts !== null && opts !== undefined ? opts.onConnected : undefined })
+          const opened = wizard.open({
+            standalone: true, lang: kbObPickLang(appLanguage(), shellLanguage()), dark: isDark(), ready: null,
+            hasCloud: probe.hasCloud, hasLocal: probe.hasLocal, machine: probe.machine, job: null, mode: null,
+          })
+          if (opened !== true) busy = false
+          return opened === true
+        } catch (e) { busy = false; return false }
       }
       // A fresh install (or a newer wizard version) answers `completed:false`: the wizard opens at boot.
       try {
@@ -32925,6 +32989,105 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '@media (prefers-reduced-motion:reduce){.kb-ob,.kb-ob-step,.kb-ob-spin{animation:none}}',
     ].join(String.fromCharCode(10))
     ctx.effect(() => styles.insert(KB_OB_CSS), 'kybernos: onboarding styles')
+
+    // ── « This chat can't answer yet »: the moment the person needs a model ───────────────────────────────
+    // The engine's own sentence for a model whose key is missing (`MISSING_CREDENTIAL`) is a developer's: it stays
+    // where it is, in the failed turn. Right above the box, this card says it in a person's words and offers the
+    // shortest way out: the missing key itself, in one field (the reference is in the engine's sentence), or the
+    // ways of the first run (a Kybernos account, a model on this computer) through the wizard's own model step.
+    // It lives in `conversation.input.dock` (above the composer; its props carry `useChat` and `inputActions`) and
+    // disappears when the person sends again. Texts: the wizard's, in the language of the app (English by default).
+    const kbNmLang = () => {
+      let appChoice = null
+      try { appChoice = window.localStorage.getItem('kybernos.theme.lang') } catch (e) { appChoice = null }
+      let shell = null
+      try { shell = String(kbLocaleRead()) } catch (e) { shell = null }
+      return kbObPickLang(appChoice, shell)
+    }
+    const KbNeedModel = (props) => {
+      const p = props !== null && props !== undefined ? props : {}
+      const sid = typeof p.sessionId === 'string' ? p.sessionId : ''
+      const useChat = typeof p.useChat === 'function' ? p.useChat : null
+      const nodes = useChat !== null ? useChat((c) => { try { return c.nodes.valuesCache } catch (e) { return null } }) : null
+      const nav = useChat !== null ? useChat((c) => { try { return c.navigation.current } catch (e) { return null } }) : null
+      const need = kbObNeedModel(nodes, nav)
+      const stateKey = need === null ? '' : String(need.turn)
+      const draftPair = React.useState('')
+      const phasePair = React.useState('idle')
+      const awayPair = React.useState('')
+      const draft = draftPair[0]
+      const phase = phasePair[0]
+      React.useEffect(() => { draftPair[1](''); phasePair[1]('idle') }, [stateKey])
+      if (need === null || awayPair[0] === stateKey) return null
+      const lang = kbNmLang()
+      const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
+      const T = (key, vars) => kbObText(lang, key, vars)
+      const seam = (() => { try { const x = window.__KB_MODELS__; return x !== undefined && x !== null && typeof x.saveCredential === 'function' ? x : null } catch (e) { return null } })()
+      const canKey = need.ref !== null && seam !== null
+      const shape = kbObKeyShape(draft)
+      const save = async () => {
+        if (shape === null || seam === null || need.ref === null) return
+        phasePair[1]('saving')
+        let r = null
+        try { r = await seam.saveCredential(need.ref, shape) } catch (e) { r = null }
+        if (r !== null && r !== undefined && r.ok === true) { draftPair[1](''); phasePair[1]('saved') } else phasePair[1]('fail')
+      }
+      const putBack = () => { try { kbPrefillDraft(need.prompt, 0, sid) } catch (e) { /* the person types it again */ } phasePair[1]('back') }
+      const openWizard = () => {
+        if (typeof kbObStandaloneOpen === 'function') kbObStandaloneOpen({ onConnected: () => phasePair[1]('connected') })
+      }
+      const row = (...kids) => h('div', { className: 'kbnm-row' }, ...kids)
+      const body = []
+      body.push(h('div', { className: 'kbnm-t', key: 't' }, T('nm.t')))
+      body.push(h('div', { className: 'kbnm-s', key: 's' }, need.route !== null ? T('nm.s.route', { route: need.route }) : T('nm.s.generic')))
+      if (phase === 'connected') {
+        body.push(h('div', { className: 'kbnm-ok', key: 'c' }, T('nm.connected')))
+        body.push(row(h('button', { type: 'button', className: 'kbnm-btn', onClick: putBack, key: 'b' }, T('nm.resend'))))
+      } else if (phase === 'saved' || phase === 'back') {
+        body.push(h('div', { className: 'kbnm-ok', key: 'o' }, phase === 'back' ? T('nm.resent') : T('nm.saved')))
+        if (phase === 'saved') body.push(row(h('button', { type: 'button', className: 'kbnm-btn kbnm-primary', onClick: putBack, key: 'b' }, T('nm.resend'))))
+      } else {
+        if (canKey) {
+          body.push(h('label', { className: 'kbnm-lbl', htmlFor: 'kbnm-key', key: 'l' }, T('nm.field', { route: need.route })))
+          body.push(row(
+            h('input', {
+              id: 'kbnm-key', className: 'kbnm-in' + (phase === 'fail' ? ' err' : ''), type: 'password', value: draft, autoComplete: 'off', spellCheck: false,
+              placeholder: T('key.ph'), disabled: phase === 'saving', key: 'i',
+              onChange: (ev) => { draftPair[1](ev.target.value); if (phase === 'fail') phasePair[1]('idle') },
+              onKeyDown: (ev) => { if (ev.key === 'Enter' && shape !== null) { ev.preventDefault(); save() } },
+            }),
+            h('button', { type: 'button', className: 'kbnm-btn kbnm-primary', disabled: shape === null || phase === 'saving', onClick: save, key: 'b' }, T('nm.save'))))
+          if (phase === 'fail') body.push(h('div', { className: 'kbnm-err', role: 'alert', key: 'e' }, T('key.err.fail')))
+          body.push(h('div', { className: 'kbnm-or', key: 'or' }, T('nm.or')))
+        }
+        body.push(row(
+          h('button', { type: 'button', className: 'kbnm-btn', onClick: openWizard, key: 'w' }, T('nm.cloud')),
+          h('button', { type: 'button', className: 'kbnm-btn', onClick: openWizard, key: 'm' }, T('v.local.t'))))
+      }
+      return h('div', { className: 'kbnm', dir: L.rtl ? 'rtl' : 'ltr', lang: L.id, 'data-kb': 'need-model', role: 'region', 'aria-label': T('nm.t') },
+        h('button', { type: 'button', className: 'kbnm-x', 'aria-label': T('close'), onClick: () => awayPair[1](stateKey) }, '\u00d7'),
+        ...body)
+    }
+    ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
+      { name: 'conversation.input.dock', id: 'kybernos-need-model', order: 20 }, KbNeedModel)), 'kybers: carte « il manque un modèle »')
+    ctx.effect(() => styles.insert([
+      '.kbnm{position:relative;width:calc(100% - 32px);max-width:748px;margin:0 auto 10px;padding:14px 16px;box-sizing:border-box;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-2);display:flex;flex-direction:column;gap:8px}',
+      '.kbnm-t{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary);padding-inline-end:24px}',
+      '.kbnm-s,.kbnm-or{font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}',
+      '.kbnm-lbl{font-size:12.5px;color:var(--dsw-alias-label-secondary);margin-top:2px}',
+      '.kbnm-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}',
+      '.kbnm-in{flex:1;min-width:180px;height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;direction:ltr;text-align:start}',
+      '.kbnm-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}',
+      '.kbnm-in.err{border-color:var(--dsw-alias-state-error-primary)}',
+      '.kbnm-btn{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--dsw-alias-border-l1);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:500;cursor:pointer}',
+      '.kbnm-btn:hover{border-color:var(--dsw-alias-label-secondary)}',
+      '.kbnm-btn[disabled]{opacity:.45;cursor:default}',
+      '.kbnm-primary{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-layer-1);border-color:transparent}',
+      '.kbnm-ok{font-size:13px;color:var(--dsw-alias-state-success-primary)}',
+      '.kbnm-err{font-size:12.5px;color:var(--dsw-alias-state-error-primary)}',
+      '.kbnm-x{position:absolute;top:8px;inset-inline-end:8px;width:24px;height:24px;border:0;border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font-size:18px;line-height:1;cursor:pointer}',
+      '.kbnm-x:hover{color:var(--dsw-alias-label-primary);background:var(--dsw-alias-bg-layer-3)}',
+    ].join(String.fromCharCode(10))), 'kybers: styles carte « il manque un modèle »')
 
   },
 }

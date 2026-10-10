@@ -13,7 +13,7 @@ const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-EN
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark, kbObKeyShape, kbObProviderFromKey'
+const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark, kbObKeyShape, kbObProviderFromKey, kbObNeedModel'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -95,6 +95,34 @@ eq('the cream page of the site', dark('rgb(246, 244, 238)'), false)
 eq('white', dark('rgb(255, 255, 255)'), false)
 eq('black', dark('rgba(0, 0, 0, 1)'), true)
 eq('transparent says nothing', [dark('rgba(0, 0, 0, 0)'), dark('transparent'), dark('')], [null, null, null])
+
+/* ── 7b. The card: a failed turn that wants a model ──────────────────────── */
+// The shapes below are the ones read from the real chat (useChat): nodes.valuesCache and navigation.current.
+const SENTENCE = 'llm-pi-ai: no credential for provider route "xiaomi-token-plan-ams"; its profile resolves XIAOMI_TOKEN_PLAN_AMS_API_KEY, which is not set — store XIAOMI_TOKEN_PLAN_AMS_API_KEY through the credentials service'
+const errNode = (turn, code, message) => ({ key: turn + ':turn-error', kind: 'turn-error', data: { kind: 'error', seq: 19, turn, step: 1, message, code } })
+const other = { key: '12:turn-process1', kind: 'turn-process', data: { turn: 1 } }
+const need = mod.kbObNeedModel
+eq('no nodes, junk: nothing', [need(null, []), need(undefined, null), need('x', 7), need({}, [])].every((v) => v === null), true)
+eq('no failed turn: nothing', need([other], [{ turn: 1, prompt: 'hi' }]), null)
+eq('another failure code: nothing (the card is only for a missing key)', need([errNode(1, 'RATE_LIMIT', 'slow down')], [{ turn: 1, prompt: 'hi' }]), null)
+eq('a missing key is read: the route, the reference, the message to put back',
+  JSON.stringify(need([other, errNode(1, 'MISSING_CREDENTIAL', SENTENCE)], [{ turn: 1, prompt: 'Hello, are you there?' }])),
+  JSON.stringify({ turn: 1, route: 'xiaomi-token-plan-ams', ref: 'XIAOMI_TOKEN_PLAN_AMS_API_KEY', prompt: 'Hello, are you there?' }))
+eq('a sentence of another shape still shows the card, without a route or a reference',
+  JSON.stringify(need([errNode(2, 'MISSING_CREDENTIAL', 'something else')], [{ turn: 1, prompt: 'a' }, { turn: 2, prompt: 'b' }])),
+  JSON.stringify({ turn: 2, route: null, ref: null, prompt: 'b' }))
+eq('only the latest turn counts: after a new message the card is gone',
+  need([errNode(1, 'MISSING_CREDENTIAL', SENTENCE)], [{ turn: 1, prompt: 'a' }, { turn: 2, prompt: 'b' }]), null)
+eq('and it is back when that new turn fails the same way',
+  need([errNode(1, 'MISSING_CREDENTIAL', SENTENCE), errNode(2, 'MISSING_CREDENTIAL', SENTENCE)], [{ turn: 1, prompt: 'a' }, { turn: 2, prompt: 'b' }]).turn, 2)
+eq('a reference that is not a *_API_KEY name is not taken',
+  need([errNode(1, 'MISSING_CREDENTIAL', 'provider route "x"; its profile resolves PATH, which is not set')], [{ turn: 1, prompt: 'a' }]).ref, null)
+eq('a route cannot carry a quote or a line break out of the sentence',
+  need([errNode(1, 'MISSING_CREDENTIAL', 'provider route "a\nb"; its profile resolves K_API_KEY, x')], [{ turn: 1, prompt: 'a' }]).route, null)
+eq('every text the card asks for exists', [...src.matchAll(/\bT\('(nm\.[a-z.]+)'/g)].map((m) => m[1]).filter((k, i, a) => a.indexOf(k) === i && mod.KB_OB_T[k] === undefined), [])
+eq('the card sits above the composer, in the input dock', /name: 'conversation\.input\.dock', id: 'kybernos-need-model'/.test(src), true)
+eq('the card reads the failure from the chat, not from the DOM', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(src), true)
+eq('the card puts the message back, it does not send it', /kbPrefillDraft\(need\.prompt/.test(src) && !/inputActions\.submit|\.submit\(\)/.test(src.slice(src.indexOf('const KbNeedModel'), src.indexOf('const KbNeedModel') + 6000)), true)
 
 /* ── 8. Reading the client file ──────────────────────────────────────────── */
 eq('the UI block holds no personal path', /\/Users\//.test(core[1] + ui[1]), false)

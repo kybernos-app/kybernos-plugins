@@ -103,6 +103,22 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
 - **Not done yet:** « a model already works » only knows the connected account and a pulled Ollama model (a key
   already in the profile is not detected); nothing reads `profil` and `uiMode`.
 
+### « This chat can't answer yet » (`KbNeedModel`)
+
+When the latest turn of a chat failed with `MISSING_CREDENTIAL` (the model's key is not set), a card sits right above the box
+(slot `conversation.input.dock`, `order: 20`). The engine's own sentence stays in the failed turn; the card says it in a person's words
+(the four shipped languages, the app's language first), and offers the shortest way out:
+
+- **the missing key itself**: one field, labelled with the route; the reference (`*_API_KEY`) and the route are read from the
+  engine's sentence (`kbObNeedModel`, tested). Saved by `window.__KB_MODELS__.saveCredential(ref, key)`; then « Put my message back
+  in the box » (`kbPrefillDraft`: the person presses Enter, nothing is sent for them);
+- **the ways of the first run** (a Kybernos account, a model on this computer): the wizard's model step on its own
+  (`kbObStandaloneOpen`: no steps, no onboarding file written). The connection does not change the chat's model: the card says to
+  pick the new one in the selector.
+
+It reads the chat through `useChat((c) => c.nodes.valuesCache)` and `c.navigation.current` (shapes measured on the real GUI), and is gone as
+soon as the person sends again; it comes back if that new turn fails the same way.
+
 ## Tests
 
 ```bash

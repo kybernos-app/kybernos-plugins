@@ -3974,6 +3974,21 @@ window.__ModuleLoader__.load({
           return made.keyOk === false ? { ok: false, reason: 'key_not_stored' } : { ok: true, slug: made.slug, existed: false }
         } catch (e) { return { ok: false, reason: 'refused' } }
       }
+      /** Store one credential by its reference, for a route that is already declared and only lacks its key (the chat's card
+       *  names it from the engine's own sentence). The reference must be a `*_API_KEY` name: nothing else is written here. */
+      const kbQuickCredential = async (ref, key) => {
+        if (typeof ref !== 'string' || !/^[A-Z][A-Z0-9_]{1,78}_API_KEY$/.test(ref)) return { ok: false, reason: 'bad_reference' }
+        const value = typeof key === 'string' ? key.trim() : ''
+        if (value === '') return { ok: false, reason: 'empty' }
+        const api = kbMApi()
+        if (api === null || api.credentials === null || api.credentials === undefined) return { ok: false, reason: 'unavailable' }
+        try {
+          const stored = await kbPvCredential(api, ref, value)
+          if (stored !== true) return { ok: false, reason: 'key_not_stored' }
+          try { await kbMLoad() } catch (e) { /* the page refreshes on its next load */ }
+          return { ok: true }
+        } catch (e) { return { ok: false, reason: 'refused' } }
+      }
       // KB-QK-END
       // KB-FETCH-PURE-BEGIN
       // ── Fetch available models: ask the engine which models a provider serves ──
@@ -4349,7 +4364,7 @@ window.__ModuleLoader__.load({
           ctx.effect(() => { kbPoseControles(); return styles.insert(CSS) }, 'kybernos-models: styles')
           // The first-run wizard (kybernos-plugin) saves a pasted key through this; it checks the function is there.
           ctx.effect(() => {
-            const seam = { saveKey: kbQuickKey, providers: KB_QK_PROVIDERS.slice() }
+            const seam = { saveKey: kbQuickKey, saveCredential: kbQuickCredential, providers: KB_QK_PROVIDERS.slice() }
             try { window.__KB_MODELS__ = seam } catch (e) { /* no window */ }
             return () => { try { if (window.__KB_MODELS__ === seam) delete window.__KB_MODELS__ } catch (e) { /* no window */ } }
           }, 'kybernos-models: wizard seam')

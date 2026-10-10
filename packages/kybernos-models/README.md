@@ -211,5 +211,9 @@ node scripts/build-provider-catalog.mjs --md /tmp/mdv
 l'écriture du flux « Add provider » (`kbPvCreate`), ou, quand la route est déjà déclarée, seulement sa clé (référence
 `apiKeyEnv` posée si absente, puis `credentials.set`). Répond `{ok:true, slug, existed}` ou `{ok:false, reason}` ; la raison
 est un code (`unknown_provider`, `empty`, `unavailable`, `readonly`, `write_refused`, `key_not_stored`, `refused`), jamais le
-texte d'un fournisseur. Test : `node packages/kybernos-models/test-key-check.mjs` (route) ; le seam lui-même est vérifié
+texte d'un fournisseur.
+
+`saveCredential(ref, key)` ne pose QUE le secret : pour une route déjà déclarée à laquelle il manque sa clé (la carte « ce chat ne
+peut pas encore répondre » de `kybernos-plugin` lit la référence dans la phrase du moteur). `ref` doit être un nom `*_API_KEY` ;
+`{ok:true}` ou `{ok:false, reason}` (`bad_reference`, `empty`, `unavailable`, `key_not_stored`, `refused`). Test : `node packages/kybernos-models/test-key-check.mjs` (route) ; le seam lui-même est vérifié
 sur le bac à sable par `scripts/check-onboarding-live.mjs`.
