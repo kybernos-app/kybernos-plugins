@@ -27,8 +27,11 @@ const SECRET_PATTERNS = Object.freeze([
   ['aws_access_key', /AKIA[0-9A-Z]{16}/],
   ['github_pat', /gh[pousr]_[A-Za-z0-9]{30,}/],
   ['slack_token', /xox[abp]-[A-Za-z0-9-]{10,}/],
-  ['openai_key', /sk-[A-Za-z0-9]{20,}/],
+  // Anthropic's `sk-ant-…` first: the OpenAI expression below also matches it, and the kind that is reported is the first that matches.
   ['anthropic_key', /sk-ant-[A-Za-z0-9_-]{20,}/],
+  // `\b` and `_-` in the class: a project key is `sk-proj-` + a long run with `-` and `_` inside (and `sk-svcacct-`, `sk-admin-`); the older shape
+  // `sk-[A-Za-z0-9]{20,}` stopped at the first hyphen and let every one of them through. `\b` keeps `task-…` and `risk-…` words out.
+  ['openai_key', /\bsk-[A-Za-z0-9_-]{20,}/],
   ['private_key_block', /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/],
   ['generic_bearer', /bearer\s+[a-z0-9._~+/-]{22,}={0,2}/i],
   ['google_api_key', /AIza[0-9A-Za-z_-]{35}/]

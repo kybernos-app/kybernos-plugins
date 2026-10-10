@@ -105,6 +105,16 @@ const files = (name, more = []) => [{ path: 'SKILL.md', content: skillMd(name) }
     assert.equal(JSON.stringify(r).includes(text), false, kind + ': the secret is never returned')
     assert.equal(findSecret(f).kind, kind)
   }
+  // The key shapes OpenAI issues today have hyphens and underscores inside: `sk-proj-…`, `sk-svcacct-…`, `sk-admin-…`.
+  for (const shape of ['sk-proj-' + 'AbCd_Ef-12'.repeat(8), 'sk-svcacct-' + 'Zy9_x-0K'.repeat(6), 'sk-admin-' + 'q'.repeat(30)]) {
+    const f = [{ path: 'SKILL.md', content: skillMd('a') }, { path: 'notes.md', content: 'key: ' + shape + '\n' }]
+    assert.equal(findSecret(f).kind, 'openai_key', shape.slice(0, 12))
+    assert.equal(validateTeamSkill({ name: 'a', files: f }).reason, 'scan_rejected', shape.slice(0, 12))
+  }
+  // Words that merely contain « sk- » are not keys.
+  for (const word of ['the risk-assessment-framework-of-the-whole-team', 'task-management-and-planning-for-every-sprint', 'sk-learn is a library']) {
+    assert.equal(findSecret([{ path: 'x.md', content: word }]), null, word)
+  }
   assert.equal(findSecret(files('a')), null)
   assert.equal(findSecret([{ path: 'x.md', content: 'Bearer token' }]), null, 'the word alone is not a secret')
   ok('each secret pattern of the server is caught with its file and line, and the secret itself is never in the answer')
