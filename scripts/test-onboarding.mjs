@@ -119,6 +119,8 @@ eq('a reference that is not a *_API_KEY name is not taken',
   need([errNode(1, 'MISSING_CREDENTIAL', 'provider route "x"; its profile resolves PATH, which is not set')], [{ turn: 1, prompt: 'a' }]).ref, null)
 eq('a route cannot carry a quote or a line break out of the sentence',
   need([errNode(1, 'MISSING_CREDENTIAL', 'provider route "a\nb"; its profile resolves K_API_KEY, x')], [{ turn: 1, prompt: 'a' }]).route, null)
+eq('the model is chosen after each way is connected: the account, the key and the local model', [/autoSelect\('kybernos'\)/.test(src), /autoSelect\(S\.provider\)/.test(src), /autoSelect\('ollama-local', S\.localId\)/.test(src)].join(), 'true,true,true')
+eq('the chat\'s card asks for it on behalf of that chat, forced', /body\.sessionId = env\.sessionId; body\.force = true/.test(src), true)
 eq('every text the card asks for exists', [...src.matchAll(/\bT\('(nm\.[a-z.]+)'/g)].map((m) => m[1]).filter((k, i, a) => a.indexOf(k) === i && mod.KB_OB_T[k] === undefined), [])
 eq('the card sits above the composer, in the input dock', /name: 'conversation\.input\.dock', id: 'kybernos-need-model'/.test(src), true)
 eq('the card reads the failure from the chat, not from the DOM', /useChat\(\(c\) => \{ try \{ return c\.nodes\.valuesCache/.test(src), true)
@@ -130,7 +132,7 @@ eq('the old wizard\'s texts are gone from the dictionary', /'ob\.(bienvenue|meti
 eq('Arabic is a right-to-left base of the app too', /KB_RTL_BASES = \[[^\]]*'ar'/.test(src), true)
 eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
   ['/kybernos-cloud/disconnect', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status', '/kybernos-models/key/check',
-    '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
+    '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
 // The pages it hands over to are named by the id the Settings nav gives them (language-proof), and must be ids that nav knows.
 const navKeys = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
 const known = new Set([...navKeys.matchAll(/(?:'([a-z0-9-]+)'|\b([a-z]+)):\s*'/g)].map((m) => m[1] || m[2]))

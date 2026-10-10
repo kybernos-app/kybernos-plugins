@@ -8,6 +8,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { selectAfterConnect } from './default-model.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -9837,6 +9838,28 @@ function boot(ctx) {
           ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang }
           : { ok: false, error: 'write failed' })
       } }), 'kybernos: onboarding route')
+      // After a way to a model is connected (the first-run wizard, the chat's card): make that model the one the next
+      // message uses, when the profile's default could not answer. The rules are in default-model.mjs. The engine's
+      // services are read at call time: a host without one answers `services-unavailable`, never an exception.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/model/auto', handler: async (req, res) => {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
+        const body = await readJsonBody(req)
+        const deps = {
+          llm: ctx.get('llm'),
+          agentDefaultModel: ctx.get('agentDefaultModel'),
+          sessionController: ctx.get('sessionController'),
+          settings: ctx.get('settings'),
+          credentials: ctx.get('credentials'),
+        }
+        const out = await selectAfterConnect(deps, {
+          provider: str(body.provider) || '',
+          model: str(body.model) || undefined,
+          sessionId: str(body.sessionId) || undefined,
+          force: body.force === true,
+        })
+        sendJson(res, 200, out)
+      } }), 'kybernos: model auto-select route')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icons', handler: (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
         const catalog = readIconCatalog()

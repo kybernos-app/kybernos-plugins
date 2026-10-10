@@ -217,7 +217,9 @@ it as done), walks the screens, and answers three things over CDP so that nothin
 Cloud pairing routes, the key check (a provider's API is never asked about a made-up key) and the installer with its progress
 (no `brew`, no `ollama pull`). What it reads or writes for real: the host's onboarding route and file, the machine probe, and
 both seams (`window.__KB_MODELS__`, `window.__KB_LOCAL__`): the credential and the provider routes land in the sandbox's
-`.credentials.yaml` and `cordis.patch.yml`, checked by name, never by value. Host code changed since the sandbox started: `stop.sh`, `start.sh`.
+`.credentials.yaml` and `cordis.patch.yml`, checked by name, never by value. The check also reads the profile's default model
+(the `agent-default-model` entry of `cordis.patch.yml`) to see that connecting a way switched it, and restores the credentials
+and the patch it started from (it waits ~7 s after each restore: the profile hot-reloads). Host code changed since the sandbox started: `stop.sh`, `start.sh`.
 
 ## The help of every plugin: `scripts/check-help-live.mjs`
 
