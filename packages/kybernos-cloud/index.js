@@ -388,6 +388,15 @@ const pollPairing = async () => {
       device_label: state.device_label !== undefined ? state.device_label : deviceLabel(),
     }
     writeState(next)
+    // The claim carries the person, not their workspaces: read them (and the active space's plan) NOW, so the card, the model route's
+    // workspace header and the Team features start from the right space instead of the account-level word, until a page asks. This
+    // imports the catalogue too (cause `claim`); a server that cannot answer the lists leaves the claim standing, and the import
+    // below is the old behaviour.
+    const fresh = await readProfile('claim').catch(() => null)
+    if (fresh !== null && fresh.ok === true && fresh.connected === true) {
+      return { ok: true, connected: true, state: fresh.state, models: fresh.models, import_error: fresh.import_error }
+    }
+    if (fresh !== null && fresh.connected === false && fresh.status === 'revoked') return { ok: true, connected: false, status: 'revoked' }
     // Connexion = import du catalogue (fonctionnalité cloud n°1). L'import ne
     // throw jamais et ne remet jamais en cause le claim qui vient d'aboutir :
     // un catalogue indisponible se voit, se resynchronise, ne bloque rien.
@@ -428,7 +437,7 @@ const catalogChanged = async (state, known) => {
   return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
 }
 
-const refreshProfile = async () => {
+const readProfile = async (cause) => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false, status: 'none' }
   // Deux lectures en parallèle : le profil (/v1/me, ajouté côté serveur pour
@@ -483,7 +492,7 @@ const refreshProfile = async () => {
   if (known === null || known.provider !== PROVIDER_ID || routeSpace !== activeId) {
     // Nothing imported yet, or the route names another space than the active one (the list of spaces was not known at the claim, or the active one
     // is gone): import for the active space. An import for the same space is a no-op (fingerprint), so this is not churn.
-    const imported = await importCatalog('refresh')
+    const imported = await importCatalog(cause)
     models = imported.summary !== undefined ? imported.summary : null
     if (imported.ok !== true) import_error = imported.error
   } else if (await catalogChanged(next, known)) {
@@ -499,6 +508,23 @@ const refreshProfile = async () => {
     models = publicModels(known)
   }
   return { ok: true, connected: true, state: publicState(readState()), models, ...(import_error !== undefined ? { import_error } : {}) }
+}
+/** Route: read the profile, the workspaces and the active space's plan again. */
+const refreshProfile = () => readProfile('refresh')
+
+// ── Keeping the account's picture current ─────────────────────────────────────────────────────────────────────────────
+// The list of workspaces, the active one, its plan and the model route's `x-kybernos-workspace` are read at the claim and whenever a page asks
+// (`/refresh`). Nothing else read them: a person removed from a team, a team deleted, a plan changed on the web or a token revoked from the account
+// page left DSH naming a workspace the server no longer knew (every model call a 404 about a header the person never wrote, a card still showing
+// the old plan) until they happened to open the account page. A slow tick, no page needed, so a headless DSH heals too. Never throws, never
+// overlaps itself, and a read the server could not answer changes nothing (readProfile keeps the picture it has).
+const PROFILE_REFRESH_TUNING = { firstMs: 3000, tickMs: 5 * 60 * 1000 }
+let profileRefreshing = false
+const profileRefreshTick = async () => {
+  if (profileRefreshing === true) return null
+  if (isConnected(readState()) !== true) return null
+  profileRefreshing = true
+  try { return await readProfile('refresh') } catch (e) { return null } finally { profileRefreshing = false }
 }
 
 const disconnect = async () => {
@@ -2827,6 +2853,15 @@ const tidyTick = async (now = Date.now()) => {
   }
 }
 
+const mountProfileRefresh = (ctx) => {
+  ctx.effect(() => {
+    const first = setTimeout(() => { void profileRefreshTick() }, PROFILE_REFRESH_TUNING.firstMs)
+    const timer = setInterval(() => { void profileRefreshTick() }, PROFILE_REFRESH_TUNING.tickMs)
+    if (typeof first.unref === 'function') first.unref()
+    if (typeof timer.unref === 'function') timer.unref()
+    return () => { clearTimeout(first); clearInterval(timer) }
+  }, 'kybernos-cloud: periodic profile read')
+}
 const mountTidySchedule = (ctx) => {
   ctx.effect(() => {
     const first = setTimeout(() => { void tidyTick() }, TIDY_TUNING.firstMs)
@@ -3970,6 +4005,7 @@ export function apply(ctx) {
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
+  try { mountProfileRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] periodic profile read: ' + String((e && e.message) || e)) }
   autoImportAtBoot(ctx, aside)
 }
 
@@ -3977,6 +4013,8 @@ export function apply(ctx) {
 // surface publique n'est promise.
 export {
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
+  // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
+  profileRefreshTick, PROFILE_REFRESH_TUNING,
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
