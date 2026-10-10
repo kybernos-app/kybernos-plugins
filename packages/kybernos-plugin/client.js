@@ -28486,33 +28486,35 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 @media (max-width:600px){.kbsp-inv{flex-wrap:wrap}.kbsp-in{flex-basis:100%}.kbsp-sel{flex:1;max-width:none}}
 `), 'kybers: styles maquette v7')
 
-    // ── Brand: the K pastille, the "Kybernos" wordmark, the tab icon and title ─────────────
-    // The mark is a red pastille holding a white K, with a small chat-bubble tail at the
-    // bottom-left. The K is the logo AND the favicon. In the wordmark the pastille is the first
-    // letter: "<pastille>ybernos". The geometry lives in ONE string (KB_BRAND_INNER) that feeds
-    // both the React mark and the favicon data URI. The block between the markers is pure (no DOM,
-    // no React) and is run as-is by scripts/test-brand.mjs.
+    // ── Brand: the K, the "Kybernos" wordmark, the tab icon and title ──────────────────────
+    // The mark is a red K whose stem carries three white dots: the typing dots of a chat. It is the logo AND
+    // the favicon, the same one as the public site and the app (apps/app brand-mark.tsx, decided 2026-10-06).
+    // In the wordmark the K is the first letter: "<K>ybernos". The geometry lives in ONE function (kbBrandArt)
+    // that feeds the React mark, the wizard and the favicon data URI. The block between the markers is pure
+    // (no DOM, no React) and is run as-is by scripts/test-brand.mjs.
     // KB-BRAND-CORE-BEGIN
     const KB_BRAND_NAME = 'Kybernos'
     const KB_BRAND_RED = '#f2372a'
-    // The K is 36 units high (y 14..50) and sits in a 41.5 x 49 body: ~6.5 units of padding.
-    const KB_BRAND_VIEWBOX = '6 6 49 57'
-    const KB_BRAND_RATIO = 49 / 57
-    const KB_BRAND_INNER =
-      '<rect x="11.5" y="7.5" width="41.5" height="49" rx="8" fill="' + KB_BRAND_RED + '"/>' +
-      '<polygon points="12.5,52 9.5,61 24,56.5" fill="' + KB_BRAND_RED + '" stroke="' + KB_BRAND_RED + '" stroke-width="1.4" stroke-linejoin="round"/>' +
-      '<g fill="#fff" stroke="#fff" stroke-width="1.4" stroke-linejoin="round">' +
-      '<rect x="18" y="14" width="9" height="36"/><polygon points="35,14 45,14 27,42.3 27,26.6"/>' +
-      '<polygon points="27,36 36,50 46.5,50 34.3,30.8 27,30.8"/></g>'
-    // Wordmark metrics as fractions of the font size: the pastille is .98f wide and 1.14f high
-    // and dips .26f under the baseline, so the K (cap height .72f) stands on the baseline.
-    const KB_WORDMARK = { width: 0.98, height: 1.14, drop: 0.26 }
+    // The K is 32.5 x 36 units: a stem 13 wide, an arm and a leg from x = 13. The three dots sit on the stem.
+    const KB_BRAND_VIEWBOX = '0 0 32.5 36'
+    const KB_BRAND_RATIO = 32.5 / 36
+    const kbBrandArt = (dot) =>
+      '<g fill="' + KB_BRAND_RED + '"><rect x="0" y="0" width="13" height="36"/>' +
+      '<polygon points="21,0 31,0 13,28.3 13,12.6"/><polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g>' +
+      '<g fill="#fff"><circle cx="6.5" cy="7.5" r="' + dot + '"/><circle cx="6.5" cy="18" r="' + dot + '"/><circle cx="6.5" cy="28.5" r="' + dot + '"/></g>'
+    const KB_BRAND_INNER = kbBrandArt(2.8)
+    // At tab-icon size the dots would be perforations: they are bigger there, and the K has a little air around it.
+    const KB_BRAND_FAVICON_VIEWBOX = '-3 -1 38.5 38'
+    const KB_BRAND_FAVICON_INNER = kbBrandArt(3.3)
+    // Wordmark metrics as fractions of the font size: the K is .93f high (1.28 x the cap height: at text size a K of the
+    // cap height, with a thin stem, would be perforated by its dots) and stands on the baseline; .075f of air before the y.
+    const KB_WORDMARK = { width: 0.84, height: 0.9306, gap: 0.075 }
     const KB_BRAND_LOGO_RE = /^data:image\/(?:png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/]+={0,2}$/
     const KB_BRAND_LOGO_MAX = 262144
     const KB_BRAND_NAME_MAX = 40
 
     const kbBrandFaviconHref = () => 'data:image/svg+xml,' + encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + KB_BRAND_VIEWBOX + '">' + KB_BRAND_INNER + '</svg>')
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + KB_BRAND_FAVICON_VIEWBOX + '">' + KB_BRAND_FAVICON_INNER + '</svg>')
 
     // A Team module may rename and re-logo the product. Only a name and a data-URI logo are
     // accepted (an image in <img> cannot run script); anything else is dropped. "Powered by
@@ -28600,7 +28602,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       },
         h('svg', {
           width: f * KB_WORDMARK.width, height: f * KB_WORDMARK.height, viewBox: KB_BRAND_VIEWBOX,
-          style: { flex: 'none', position: 'relative', top: f * KB_WORDMARK.drop + 'px' },
+          style: { flex: 'none', marginInlineEnd: f * KB_WORDMARK.gap + 'px' },
           'aria-hidden': 'true',
           dangerouslySetInnerHTML: { __html: KB_BRAND_INNER },
         }),
@@ -28612,12 +28614,12 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 
     // Sidebar brand row. DSH renders the mark and the name as two sibling boxes of a flex row
     // with an 8px gap (measured on 0.2.0-rc.2: brandIdentity, 24px high, align-items:center), and
-    // renders the SAME mark slot in the collapsed rail — so the mark slot holds the pastille alone
-    // and the name slot holds "ybernos", pulled back over the gap so the pastille touches the
-    // word like any other letter. The pastille is nudged down so the K stands on the text baseline.
+    // renders the SAME mark slot in the collapsed rail — so the mark slot holds the K alone and
+    // the name slot holds "ybernos", pulled back over the gap so the K stands before the y like any
+    // other letter. The K is nudged up so its foot stands on the text baseline.
     const KB_SIDEBAR_FONT = 19
     const KB_SIDEBAR_ROW_GAP = 8
-    const KB_SIDEBAR_MARK_NUDGE = 1.1
+    const KB_SIDEBAR_MARK_NUDGE = -1.9
     const KybernosSidebarMark = () => {
       const ov = useBrandOverride()
       if (ov !== null && ov.logo !== null) {
@@ -28636,9 +28638,9 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
           h(KybernosPoweredBy))
       }
       // Right-to-left rows put the mark on the right: the letters would read backwards, so the
-      // name is written in full there and the pastille stays a plain badge.
+      // name is written in full there and the K stays a plain badge.
       if (rtl) return h('span', { dir: 'ltr', style: Object.assign({}, base, { fontWeight: 800, fontSize: '15px' }) }, KB_BRAND_NAME)
-      return h('span', { dir: 'ltr', style: Object.assign({}, base, { lineHeight: 1, marginInlineStart: -(KB_SIDEBAR_ROW_GAP - 0.08 * KB_SIDEBAR_FONT) + 'px' }) }, 'ybernos')
+      return h('span', { dir: 'ltr', style: Object.assign({}, base, { lineHeight: 1, marginInlineStart: -(KB_SIDEBAR_ROW_GAP - KB_WORDMARK.gap * KB_SIDEBAR_FONT) + 'px' }) }, 'ybernos')
     }
     // Single slots: the native brand registers at priority 0, and the lowest
     // priority renders — so shadow it at -1 to replace the DSH wordmark.
@@ -28656,7 +28658,7 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
       { name: 'conversation.hero.brand.mark' }, (p) => h(KybernosMark, { height: (p !== null && p !== undefined && typeof p.size === 'number' ? p.size : 34) + 10 }))), 'kybers: logo hero')
 
     // Tab icon: DSH links its own favicon.svg / favicon-dark.svg. Point every icon link at the
-    // pastille (all of them, so the light/dark media variants agree) and put it back on dispose.
+    // K (all of them, so the light/dark media variants agree) and put it back on dispose.
     // Re-applied when DSH swaps the link, which it may do on a theme change.
     ctx.effect(() => {
       const originals = new Map()
@@ -31963,12 +31965,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const lin = (v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4) }
       return 0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3]) < 0.18
     }
-    // The K of the public site and its favicon: a red K whose stem carries three white dots (the typing dots of a chat).
-    const KB_OB_MARK_VIEWBOX = '0 0 32.5 36'
-    const KB_OB_MARK_INNER =
-      '<g class="kb-ob-r"><rect x="0" y="0" width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/>' +
-      '<polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g>' +
-      '<g class="kb-ob-w"><circle cx="6.5" cy="7.5" r="2.8"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="6.5" cy="28.5" r="2.8"/></g>'
     // KB-OB-CORE-END
 
     // KB-OB-UI-BEGIN
@@ -32022,12 +32018,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       const mark = (height) => {
         const s = h('span', 'kb-ob-mark')
-        s.innerHTML = '<svg viewBox="' + KB_OB_MARK_VIEWBOX + '" style="height:' + height + 'px" aria-hidden="true">' + KB_OB_MARK_INNER + '</svg>'
+        s.innerHTML = '<svg viewBox="' + KB_BRAND_VIEWBOX + '" style="height:' + height + 'px" aria-hidden="true">' + KB_BRAND_INNER + '</svg>'
         return s
       }
       const wordmark = () => {
         const w = h('span', 'kb-ob-wm')
-        w.innerHTML = '<svg viewBox="' + KB_OB_MARK_VIEWBOX + '" aria-hidden="true">' + KB_OB_MARK_INNER + '</svg><span>ybernos</span>'
+        w.innerHTML = '<svg viewBox="' + KB_BRAND_VIEWBOX + '" aria-hidden="true">' + KB_BRAND_INNER + '</svg><span>ybernos</span>'
         w.setAttribute('role', 'img')
         w.setAttribute('aria-label', 'Kybernos')
         return w
@@ -32852,8 +32848,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-wm{display:inline-flex;align-items:flex-end;font-size:21px;font-weight:700;line-height:1;letter-spacing:.01em;color:var(--ink);direction:ltr;unicode-bidi:isolate}',
       '.kb-ob-wm svg{height:.9306em;width:auto;margin-bottom:.135em;margin-inline-end:.075em;flex:none;display:block}',
       '.kb-ob-mark svg{width:auto;display:block}',
-      '.kb-ob-r rect,.kb-ob-r polygon{fill:var(--red)}',
-      '.kb-ob-w circle{fill:var(--white)}',
       '.kb-ob-lang{position:relative}',
       '.kb-ob-lang-btn{display:flex;gap:6px;align-items:center;background:none;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12.5px;font-weight:500;color:var(--ink2);cursor:pointer}',
       '.kb-ob-lang-btn:hover{border-color:var(--ink3);color:var(--ink)}',

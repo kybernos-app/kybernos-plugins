@@ -1,46 +1,53 @@
-# Brand: the K pastille, the wordmark, the tab icon
+# Brand: the K, the wordmark, the tab icon
 
-The Kybernos mark is a **red pastille holding a white K**, with a small
-chat-bubble tail at the bottom-left. The K is the logo **and** the favicon. In the
-wordmark the pastille is the first letter: `<pastille>ybernos`.
+The Kybernos mark is a **red K whose stem carries three white dots**: the typing dots of a chat. The K is the
+logo **and** the favicon, and it is the same artwork as the public site and the app (`apps/app/src/components/brand-mark.tsx`,
+decided 2026-10-06; it replaced the bubble pastille of 2026-10-04). In the wordmark the K is the first
+letter: `<K>ybernos`.
 
-There is no image file anywhere (AGENTS.md rule 4): the artwork is one SVG string
-in the code.
+There is no image file anywhere (AGENTS.md rule 4): the artwork is one function in the code.
 
 ## Where it lives
 
 | What | Where |
 |---|---|
-| Artwork, metrics, favicon URI, override sanitiser, title rewrite | `packages/kybernos-plugin/client.js`, block `KB-BRAND-CORE-BEGIN … END` (pure: no DOM, no React) |
+| Artwork (`kbBrandArt`), metrics, favicon URI, override sanitiser, title rewrite | `packages/kybernos-plugin/client.js`, block `KB-BRAND-CORE-BEGIN … END` (pure: no DOM, no React) |
 | React pieces (mark, wordmark, "Powered by", sidebar slots, favicon and title effects) | same file, right after the block |
+| The first-run wizard's K | the same `KB_BRAND_VIEWBOX` / `KB_BRAND_INNER`: one K in the product |
+| The sign-in page of the gate | `packages/kybernos-gate/core/page.mjs` (`K_ART`, a copy: the gate has no dependency) |
 | Tests | `node scripts/test-brand.mjs` runs the block as-is, plus static checks on the wiring |
 
 ## Geometry
 
-- `viewBox` `6 6 49 57`: the body is 41.5 × 49 with 8 units of corner radius; the K is 36 units high
-  (`y 14..50`), so it has about 6.5 units of padding.
-- Wordmark metrics, as fractions of the font size `f`: the pastille is `.98 f` wide and `1.14 f` high
-  and dips `.26 f` below the baseline. That puts the K on the baseline with a height of `.72 f`, the
-  cap height. The test checks these three numbers against the viewBox.
+- `viewBox` `0 0 32.5 36`: a stem 13 wide, an arm and a leg from `x = 13`. The three dots are circles of radius 2.8
+  at `cx = 6.5` (the middle of the stem) and `cy = 7.5, 18, 28.5`.
+- At tab-icon size the dots would be perforations: the favicon uses radius 3.3 and a padded box `-3 -1 38.5 38`
+  (the file `apps/app/public/favicon.svg` of the site).
+- Wordmark metrics, as fractions of the font size `f`: the K is `.93 f` high (1.28 × the cap height of Inter, `.727`: at text
+  size a K of the cap height, with a thin stem, would be perforated by its dots), `.84 f` wide, stands on the baseline
+  (its foot is the bottom of its box: nothing hangs under it), and `.075 f` of air before the `y`. `test-brand.mjs`
+  checks these numbers against the viewBox.
 - Colours: `#f2372a` and white. Nothing else.
 
 ## Where it shows
 
 | Surface | How |
 |---|---|
-| Sidebar brand row | slots `sidebar.brand.mark` (pastille alone) and `sidebar.brand.name` (`ybernos`), both at priority -1 |
-| Conversation hero | slot `conversation.hero.brand.mark` (pastille alone) |
-| Tab icon | every `link[rel~=icon]` is pointed at a data URI of the pastille, and put back when the plugin is disposed |
+| Sidebar brand row | slots `sidebar.brand.mark` (the K alone) and `sidebar.brand.name` (`ybernos`), both at priority -1 |
+| Conversation hero | slot `conversation.hero.brand.mark` (the K alone) |
+| Tab icon | every `link[rel~=icon]` is pointed at a data URI of the K, and put back when the plugin is disposed |
 | Tab title | `DeepSeek Harness` is replaced by the brand name |
+| First-run wizard, About, the gate's sign-in page | the wordmark |
 
 DSH renders the mark slot twice (expanded row and collapsed rail) and the name slot once, in a flex row
 with an 8 px gap (measured on DSH 0.2.0-rc.2, `brandIdentity`, 24 px high). So the mark slot holds the
-pastille alone, and the name slot pulls `ybernos` back over the gap (1.5 px between the pastille and the
-`y`). The pastille is nudged down 1.1 px so the K stands on the text baseline. If a DSH bump changes the
-row (gap, height), re-measure with `scripts/live-page.mjs` and update `KB_SIDEBAR_*`.
+K alone, and the name slot pulls `ybernos` back over the gap (`.075 f` = 1.4 px between the K and the
+`y` at 19 px). The K is nudged up by 1.9 px (`KB_SIDEBAR_MARK_NUDGE`) so its foot stands on the text baseline; measured on the
+live GUI: the foot is within 0.1 px of the baseline. If a DSH bump changes the row (gap, height, font), re-measure with
+`scripts/live-page.mjs` and update `KB_SIDEBAR_*`.
 
 Right-to-left rows put the mark on the right, which would make the letters read backwards, so there the
-name slot writes `Kybernos` in full and the pastille stays a badge.
+name slot writes `Kybernos` in full and the K stays a badge.
 
 ## Contract for other bundles
 
@@ -49,7 +56,7 @@ fall back to plain text.
 
 | Member | What |
 |---|---|
-| `Mark({ height })` | the pastille, `height` in px |
+| `Mark({ height })` | the K, `height` in px |
 | `Wordmark({ size })` | the full wordmark, `size` = font size in px; always left-to-right |
 | `PoweredBy()` | the "Powered by Kybernos" line |
 | `getOverride()`, `setOverride(raw)`, `subscribe(fn)` | the Team brand seam, below |
