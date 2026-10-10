@@ -63,7 +63,7 @@ const nouvellePage = async () => {
   p.on('pageerror', (e) => erreurs.push(String(e).slice(0, 200)))
   await p.goto(base, { waitUntil: 'domcontentloaded' })
   await p.waitForTimeout(8000)
-  for (let i = 0; i < 4; i++) { const passer = p.locator('.kb-ob-passer'); if (await passer.count()) { await passer.first().click(); await p.waitForTimeout(1000) } }
+  for (let i = 0; i < 4; i++) { const passer = p.locator('.kb-ob-skip'); if (await passer.count()) { await passer.first().click(); await p.waitForTimeout(1000) } }
   // DSH first-run dialogs: preview notice, then API-key prompt.
   await p.getByRole('button', { name: 'Continue' }).first().click({ timeout: 2500 }).catch(() => {})
   await p.waitForTimeout(600)

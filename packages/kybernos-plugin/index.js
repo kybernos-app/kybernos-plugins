@@ -8,6 +8,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
 // Mesuré : notre bundle monte APRÈS `dsh-web-app`, donc les enfants de preset
@@ -9784,82 +9785,58 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         sendJson(res, 200, await saveMenuState(await readJsonBody(req)))
       } }), 'kybernos: route menu-save')
-      // ── onboarding : pages de bienvenue, jouées à l'installation du plugin ──
-      // L'état vit dans ~/.dsh/kybernos/onboarding.json et le fichier est CRÉÉ
-      // par la première lecture : une installation neuve répond donc
-      // `completed:false`, et le client ouvre le wizard au chargement de la
-      // GUI. POST {action:'complete'} clôt le parcours (avec les choix
-      // métier/affichage) ; POST {action:'replay'} remet `completed:false` —
-      // c'est le bouton « Replay » en tête de Kybernos Settings (bundle
-      // kybernos-sessions, via l'événement fenêtre kybernos:onboarding).
-      const KB_ONBOARDING_VERSION = 1
-      const onboardingChemin = (home) => joinPath(home, 'kybernos/onboarding.json')
-      const onboardingDefaut = () => ({
-        version: KB_ONBOARDING_VERSION,
-        completed: false,
-        installedAt: new Date().toISOString(),
-        completedAt: null,
-        profil: null,
-        uiMode: null
-      })
-      const onboardingEcrire = async (etat) => {
+      // ── onboarding: the state of the first-run wizard ──
+      // It lives in ~/.dsh/kybernos/onboarding.json and the first read CREATES the file, so a
+      // fresh install answers `completed:false` and the page opens the wizard. POST
+      // {action:'complete'} closes it (with the choices: profession, display mode, how the agents
+      // are powered, language); POST {action:'replay'} reopens it (the « Replay » button at the top
+      // of Kybernos Settings, bundle kybernos-sessions, through the window event
+      // kybernos:onboarding). The rules themselves are in onboarding-state.mjs.
+      const onboardingPath = (home) => joinPath(home, 'kybernos/onboarding.json')
+      const onboardingWrite = async (state) => {
         const home = await dshHomeOrNull()
         if (home === null) return false
         try {
-          await writeTextScoped(home, onboardingChemin(home), JSON.stringify(etat, null, 2) + String.fromCharCode(10))
+          await writeTextScoped(home, onboardingPath(home), JSON.stringify(state, null, 2) + String.fromCharCode(10))
           return true
         } catch (e) { return false }
       }
-      const onboardingLire = async () => {
+      const onboardingRead = async () => {
         const home = await dshHomeOrNull()
         if (home === null) return null
         try {
-          const target = await fs.resolve(onboardingChemin(home))
+          const target = await fs.resolve(onboardingPath(home))
           const info = await fs.stat(target).catch(() => null)
           if (!isFile(info)) {
-            const defaut = onboardingDefaut()
-            return (await onboardingEcrire(defaut)) === true ? defaut : null
+            const fresh = onboardingDefault()
+            return (await onboardingWrite(fresh)) === true ? fresh : null
           }
-          const lu = JSON.parse(await fs.readText(target))
-          return (lu !== null && typeof lu === 'object') ? lu : null
+          const read = JSON.parse(await fs.readText(target))
+          return (read !== null && typeof read === 'object') ? read : null
         } catch (e) { return null }
       }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/onboarding', handler: async (req, res) => {
         if (req.method === 'GET') {
-          const etat = await onboardingLire()
-          if (etat === null) return sendJson(res, 200, { ok: false, error: 'etat onboarding illisible' })
-          return sendJson(res, 200, { ok: true,
-            completed: etat.completed === true && etat.version === KB_ONBOARDING_VERSION,
-            version: KB_ONBOARDING_VERSION,
-            installedAt: etat.installedAt || null,
-            completedAt: etat.completedAt || null,
-            profil: etat.profil || null,
-            uiMode: etat.uiMode || null })
+          const state = await onboardingRead()
+          if (state === null) return sendJson(res, 200, { ok: false, error: 'onboarding state unreadable' })
+          return sendJson(res, 200, { ok: true, ...onboardingView(state) })
         }
-        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
-        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origin refused' })
         const body = await readJsonBody(req)
         const action = str(body.action)
-        const etat = (await onboardingLire()) || onboardingDefaut()
+        const state = (await onboardingRead()) || onboardingDefault()
         if (action === 'replay') {
-          etat.completed = false
-          etat.completedAt = null
-          const ecrit = await onboardingEcrire(etat)
-          return sendJson(res, 200, ecrit === true ? { ok: true, completed: false } : { ok: false, error: 'ecriture impossible' })
+          const written = await onboardingWrite(onboardingReplay(state))
+          return sendJson(res, 200, written === true ? { ok: true, completed: false } : { ok: false, error: 'write failed' })
         }
-        if (action !== 'complete') return sendJson(res, 400, { ok: false, error: 'action complete ou replay attendue' })
-        const profil = str(body.profil)
-        const uiMode = str(body.uiMode)
-        etat.version = KB_ONBOARDING_VERSION
-        etat.completed = true
-        etat.completedAt = new Date().toISOString()
-        etat.profil = profil === null ? null : profil.slice(0, 60)
-        etat.uiMode = uiMode === null ? null : uiMode.slice(0, 60)
-        const ecrit = await onboardingEcrire(etat)
-        sendJson(res, 200, ecrit === true
-          ? { ok: true, completed: true, profil: etat.profil, uiMode: etat.uiMode }
-          : { ok: false, error: 'ecriture impossible' })
-      } }), 'kybernos: route onboarding')
+        if (action !== 'complete') return sendJson(res, 400, { ok: false, error: 'action complete or replay expected' })
+        const next = onboardingComplete(state, body)
+        const written = await onboardingWrite(next)
+        sendJson(res, 200, written === true
+          ? { ok: true, completed: true, profil: next.profil, uiMode: next.uiMode, model: next.model, lang: next.lang }
+          : { ok: false, error: 'write failed' })
+      } }), 'kybernos: onboarding route')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/icons', handler: (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
         const catalog = readIconCatalog()

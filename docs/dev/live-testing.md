@@ -205,6 +205,18 @@ host's `fichiers`, the four pills stepping aside), every state through the seam,
 window and the seam missing. **Every POST of `/kybernos-sessions/*` is answered inside the page by the check** (fail-closed):
 the sandbox runs git in the user's real repository folder, so a real commit must be impossible, whatever the page asks.
 
+## The first-run wizard: `scripts/check-onboarding-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs
+```
+
+On the sandbox the home is fresh, so the wizard opens by itself through the new host route (put `completed:false` in
+the sandbox's `kybernos/onboarding.json` first: `setup.sh` writes it as done). The check goes through the screens, takes the
+API-key path to the hand-off to Settings and reads the file the host wrote. On `:3080` it swaps the core bundle for this
+worktree's and answers the onboarding route itself. In both cases the Kybernos Cloud pairing routes are answered by the
+check, never by a real server.
+
 ## The help of every plugin: `scripts/check-help-live.mjs`
 
 Each bundle has a `packages/<dir>/help.json` (what it is, how to use it, where to find it, one thing worth knowing, in French and
