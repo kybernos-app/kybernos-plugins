@@ -149,6 +149,10 @@ sok('carte : la ligne Plan dit le plan de l espace actif (comme la pastille), le
 // The team switcher's list names the personal space the way the card and the chip do (« Personal »), not by the server's name for it (« My workspace »).
 assert.ok(clientSource.includes("h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none'))"), 'la liste du selecteur d equipe passe par nomAffiche')
 sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
+// The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
+// « Rita Rich · Solo Studio » until the card was opened.
+assert.ok(/window\.setInterval\(again, 30000\)[\s\S]{0,200}visibilitychange[\s\S]{0,200}'focus'/.test(clientSource), 'le pied relit /status tout seul (toutes les 30 s, au retour de la fenetre)')
+sok('pied de sidebar : la pastille relit /status toute seule (30 s, retour de fenetre), elle ne reste plus connectee apres une revocation')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null

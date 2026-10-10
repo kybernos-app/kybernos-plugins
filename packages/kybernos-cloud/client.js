@@ -2356,6 +2356,17 @@ window.__ModuleLoader__.load({
           // dans la rangée sans recharger la page.
           React.useEffect(() => { void load() }, [load, open])
 
+          // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
+          // chip followed only when the card was opened or closed: measured, it said « Rita Rich · Solo Studio » for 45 s after the host had signed out. /status
+          // is a local read: every 30 s while the window is visible, and when it comes back into view.
+          React.useEffect(() => {
+            const again = () => { if (document.visibilityState === 'visible') void load() }
+            const timer = window.setInterval(again, 30000)
+            document.addEventListener('visibilitychange', again)
+            window.addEventListener('focus', again)
+            return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again) }
+          }, [load])
+
           // The team console (an iframe of another page) changed the active space through the host: re-read it, so the card and the
           // console never show two different teams.
           React.useEffect(() => {
