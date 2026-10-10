@@ -142,6 +142,10 @@ assert.ok(clientSource.includes("label: t('pairingExpires'), value: fmtTime(pair
 assert.equal(/label: t\('session'\), value: fmtDate\(pairing\.expires_at\)/.test(clientSource), false, 'plus de « Session <date> » pour un code qui expire dans dix minutes')
 assert.ok(/view\.note === 'denied' \? t\('pairingDenied'\) : t\('pairingExpired'\)/.test(clientSource), 'refus et expiration ont chacun leur phrase (pas « session révoquée »)')
 sok('la carte parle en phrases : codes internes traduits (reseau, trop_de_demandes, ...), heure de validité du code, refus / expiration distincts d une révocation')
+// The card's plan row is the ACTIVE team's plan label (what the footer chip says), not the account-level word of the profile: « Plan team » next to a chip that
+// said « Solo Studio » was measured right after a pairing.
+assert.ok(/label: t\('plan'\), value: \(st\.space_plan !== undefined && st\.space_plan !== null && typeof st\.space_plan\.label === 'string'/.test(clientSource), 'la ligne Plan de la carte lit le libelle de l espace actif avant le mot du compte')
+sok('carte : la ligne Plan dit le plan de l espace actif (comme la pastille), le mot du compte seulement en repli')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null

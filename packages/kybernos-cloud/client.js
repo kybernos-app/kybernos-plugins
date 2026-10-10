@@ -1628,7 +1628,9 @@ window.__ModuleLoader__.load({
             // account's other tools (models, DSH chats, memory) are on the full page (a click on the name in the sidebar footer), not here.
             body.push(h('div', { className: 'kbc-rows', key: 'r' },
               h(Row, { label: t('email'), value: user.email || t('none') }),
-              h(Row, { label: t('plan'), value: user.plan || t('none') })))
+              // The plan of the ACTIVE team, as the footer chip says it (the profile's `plan` is the account's word and reads « team » as soon as the person is in
+              // any team, next to a chip that says « Solo Studio »): the card said « Plan team » for a personal Solo Studio space right after the pairing.
+              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') })))
             body.push(h('div', { key: 'wl' },
               h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('workspaces')),
               h('div', { className: 'kbc-ws' }, workspaces.length === 0
