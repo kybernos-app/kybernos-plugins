@@ -11104,9 +11104,9 @@ const kbFeedbackVerdict = (status, text) => {
   try { parsed = JSON.parse(String(text === undefined || text === null ? '' : text)) } catch (e) { parsed = null }
   const issue = parsed !== null && parsed !== undefined && parsed.issue !== null && parsed.issue !== undefined
     && typeof parsed.issue === 'object' ? parsed.issue : null
-  // The address is read out by the agent (« tell the user, with this link ») and opened by the person: only a plain https address of a
-  // sane length is one. Anything else (a javascript: URL, prose with line breaks, a few hundred KB) is not a link, and is never handed on.
-  const url = issue !== null && typeof issue.url === 'string' && issue.url.length <= KB_FEEDBACK_URL_MAX && /^https:\/\/[^\s\u0000-\u001f\u007f]+$/.test(issue.url) ? issue.url : null
+  // The address is read out by the agent (« tell the user, with this link ») and opened by the person: only a plain https address (http only
+  // for a loopback host: the stand-ins of the test environments, as the server profile allows) of a sane length is one. Anything else (a javascript: URL, prose with line breaks, a few hundred KB) is not a link, and is never handed on.
+  const url = issue !== null && typeof issue.url === 'string' && issue.url.length <= KB_FEEDBACK_URL_MAX && /^(?:https:\/\/|http:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d{1,5})?\/)[^\s\u0000-\u001f\u007f]+$/.test(issue.url) ? issue.url : null
   const raw = parsed !== null && parsed !== undefined && typeof parsed.error === 'string' ? parsed.error : ''
   // The relay holds a report's id for a while after a failed call (the call may have created the issue without the answer coming back):
   // it says how long, and asking again sooner only gets `en_cours`.
