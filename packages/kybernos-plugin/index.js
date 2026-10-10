@@ -11064,13 +11064,17 @@ const kbFeedbackMailto = (report, limit) => {
 /** Réponse du relais → verdict exploitable par l'agent. Pur.
  *  201 = issue créée ; 409 `already_sent` AVEC url = déjà déposé (succès
  *  dédupliqué : c'est le rejeu du MÊME rapport, pas un échec). */
+/** The longest issue address handed on: a GitHub issue link is about 60 characters. */
+const KB_FEEDBACK_URL_MAX = 2048
 const kbFeedbackVerdict = (status, text) => {
   const code = typeof status === 'number' ? status : 0
   let parsed = null
   try { parsed = JSON.parse(String(text === undefined || text === null ? '' : text)) } catch (e) { parsed = null }
   const issue = parsed !== null && parsed !== undefined && parsed.issue !== null && parsed.issue !== undefined
     && typeof parsed.issue === 'object' ? parsed.issue : null
-  const url = issue !== null && typeof issue.url === 'string' && issue.url !== '' ? issue.url : null
+  // The address is read out by the agent (« tell the user, with this link ») and opened by the person: only a plain https address of a
+  // sane length is one. Anything else (a javascript: URL, prose with line breaks, a few hundred KB) is not a link, and is never handed on.
+  const url = issue !== null && typeof issue.url === 'string' && issue.url.length <= KB_FEEDBACK_URL_MAX && /^https:\/\/[^\s\u0000-\u001f\u007f]+$/.test(issue.url) ? issue.url : null
   const raw = parsed !== null && parsed !== undefined && typeof parsed.error === 'string' ? parsed.error : ''
   // The relay holds a report's id for a while after a failed call (the call may have created the issue without the answer coming back):
   // it says how long, and asking again sooner only gets `en_cours`.

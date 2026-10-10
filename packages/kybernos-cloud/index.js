@@ -428,6 +428,9 @@ const catalogChanged = async (state, known) => {
   return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
 }
 
+/** The server's own error envelope (`{ error: 'unauthorized', message, request_id }`), as opposed to JSON some intermediary wrote. */
+const isServerRefusal = (body) => body !== null && typeof body === 'object' && Array.isArray(body) !== true && typeof body.error === 'string' && body.error !== ''
+
 const refreshProfile = async () => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false, status: 'none' }
@@ -445,9 +448,10 @@ const refreshProfile = async () => {
   // déploiement de /v1/me, la route répondait 401 à un jeton valide (elle
   // tombait dans le régime « master key » du middleware) ; s'y fier pour
   // déconnecter aurait éjecté tous les utilisateurs sur un bug serveur.
-  // Only the server's own refusal (a JSON error) is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server
-  // speaking about this token, and signing the person out on it also throws away the models imported for them.
-  if ((ws.status === 401 || ws.status === 403) && ws.body !== null && typeof ws.body === 'object') {
+  // Only the server's own refusal is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server speaking about
+  // this token, and signing the person out on it also throws away the models imported for them. JSON alone does not make it the server
+  // (a gateway answers `{}`, `[]` or `{ message: 'Forbidden' }` too): the server's error envelope names its error as a string.
+  if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body)) {
     // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
     // modèles importés ne serviraient plus à rien (le proxy refuserait les
     // appels) : ils partent avec la session.
