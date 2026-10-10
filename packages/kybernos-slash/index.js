@@ -37,13 +37,50 @@ const sendJson = (res, status, payload) => {
   } catch (e) { try { res.writeHead(500); res.end('{}') } catch (e2) { /* socket closed */ } }
 }
 
+// Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
+// (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
+const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
+// Host fence (scripts/test-route-hosts.mjs). DSH serves plugin routes BEFORE its own authentication, and a page that rebinds its own name to this machine
+// (DNS rebinding) reaches them with its own name as Host, no cookie and, on a same-origin GET, no Origin (a browser sends none): a guard that looks at the
+// Origin alone lets every read through. Every route of this bundle refuses a Host that is not this listener's (the port the socket is bound to, on
+// 127.0.0.1 / localhost / [::1], or an authority declared with --trusted-host) before its own guard runs. A request with no socket (a test) is not judged.
+const kbHostOK = (req) => {
+  try {
+    const host = req.headers !== null && req.headers !== undefined && typeof req.headers.host === 'string' ? req.headers.host : null
+    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
+    if (host === null || sock === null || typeof sock.localPort !== 'number') return true
+    const port = ':' + sock.localPort
+    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
+  } catch (e) { return false }
+}
+const kbFenced = (service) => {
+  if (service === null || service === undefined || typeof service.register !== 'function') return service
+  const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
+    ? Object.assign({}, route, {
+      handler: (req, res, ...rest) => {
+        if (kbHostOK(req) !== true) {
+          try { res.writeHead(403, { 'content-type': 'application/json; charset=utf-8' }); res.end('{"ok":false,"error":"origin refused"}') } catch (e) { /* closed */ }
+          return undefined
+        }
+        return route.handler(req, res, ...rest)
+      },
+    })
+    : route)
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+}
+
 const sameOrigin = (req) => {
   try {
-    const origin = req.headers && typeof req.headers.origin === 'string' ? req.headers.origin : null
-    const hostHeader = req.headers && typeof req.headers.host === 'string' ? req.headers.host : null
-    if (origin === null || hostHeader === null) return true
+    const origin = req.headers && typeof req.headers.origin === 'string' ? req.headers.origin : ''
+    if (origin === '') return true
     const u = new URL(origin)
-    return u.host === hostHeader
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
+    // A real connection: the origin is compared with what THIS listener really is (the socket's port), never with the client-supplied Host header
+    // alone (a page that rebinds its own name sends the same authority as Host and as Origin). No socket = a synthetic caller (a test).
+    if (sock === null || typeof sock.localPort !== 'number') return typeof req.headers.host === 'string' && u.host === req.headers.host
+    const port = ':' + sock.localPort
+    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return false }
 }
 
@@ -330,6 +367,7 @@ export function applyMutation(store, body) {
 }
 
 const mountWebRoutes = (ctx, webServerSvc) => {
+  webServerSvc = kbFenced(webServerSvc)
   // The web server's "exact" registry is indexed by PATH, not by (path, method):
   // "Duplicate paths throw" (dsh-host-webserver/lib/index.js, `exact` table).
   // Registering a GET *and* a POST on `/kybernos/slash/entries` therefore makes

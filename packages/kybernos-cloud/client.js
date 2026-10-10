@@ -161,6 +161,14 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnexion requise',
         revokedBody: 'Cette session a été révoquée depuis Kybernos.',
         errorTitle: 'Connexion impossible',
+        errNet: 'DSH ne joint pas le serveur Kybernos. Vérifiez la connexion, puis réessayez.',
+        errBusy: 'Trop de tentatives en peu de temps. Attendez une minute, puis réessayez.',
+        errStart: 'Le serveur Kybernos n\'a pas accepté la demande de connexion. Réessayez dans un instant.',
+        errProfile: 'Votre compte n\'a pas pu être lu à l\'instant. Réessayez dans un instant.',
+        errUnreadable: 'Le serveur a répondu quelque chose que DSH ne comprend pas. Réessayez ; si cela dure, vérifiez l\'adresse du serveur.',
+        pairingExpires: 'Code valable jusqu\'à',
+        pairingDenied: 'La connexion a été refusée dans le navigateur. Recommencez si c\'était une erreur.',
+        pairingExpired: 'Le code a expiré avant d\'être confirmé. Recommencez.',
         retry: 'Réessayer',
         close: 'Fermer',
         none: '—',
@@ -390,6 +398,14 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnection required',
         revokedBody: 'This session was revoked from Kybernos.',
         errorTitle: 'Could not connect',
+        errNet: 'DSH cannot reach the Kybernos server. Check the connection, then try again.',
+        errBusy: 'Too many attempts in a short time. Wait a minute, then try again.',
+        errStart: 'The Kybernos server did not accept the connection request. Try again in a moment.',
+        errProfile: 'Your account could not be read just now. Try again in a moment.',
+        errUnreadable: 'The server answered something DSH cannot read. Try again; if it keeps happening, check the address of the server.',
+        pairingExpires: 'Code valid until',
+        pairingDenied: 'The connection was refused in the browser. Start again if it was a mistake.',
+        pairingExpired: 'The code expired before it was confirmed. Start again.',
         retry: 'Retry',
         close: 'Close',
         none: '—',
@@ -1124,7 +1140,15 @@ window.__ModuleLoader__.load({
       const when = quotaWhen(w.resets_at, now, t) || quotaFill(t('quotaBackUnknown'), { window })
       return quotaFill(t(team ? 'quotaUsedUpTeam' : 'quotaUsedUp'), { pct: 100, window, cap, name, when })
     }
-    const quotaNoticeText = (info, t, now = Date.now()) => {
+    // The server's clock minus this page's, taken when the facts arrive (`server_time` is the server's own stamp on them): a window's `resets_at` is the SERVER's
+    // time, and a person's clock can be hours off (measured: three hours ahead turned « about 24 h » into « about 21 h »). Zero when unknown.
+    const quotaStamp = (facts) => {
+      if (facts === null || facts === undefined || typeof facts !== 'object' || typeof facts.server_time !== 'string') return facts
+      const at = Date.parse(facts.server_time)
+      return Number.isFinite(at) ? Object.assign({}, facts, { skew_ms: at - Date.now() }) : facts
+    }
+    const quotaSkew = (info) => (info !== null && info !== undefined && typeof info === 'object' && Number.isFinite(info.skew_ms) ? Math.max(-2592000000, Math.min(2592000000, info.skew_ms)) : 0)
+    const quotaNoticeText = (info, t, now = Date.now() + quotaSkew(info)) => {
       if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
@@ -1142,7 +1166,7 @@ window.__ModuleLoader__.load({
     // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
     // team's pool, a member and a personal space their own; a window that turns calls away is always the one shown, and a blocked payment reads 100%. Null: nothing to show
     // (unlimited, or the server did not answer).
-    const quotaMeterOf = (info, t, now = Date.now()) => {
+    const quotaMeterOf = (info, t, now = Date.now() + quotaSkew(info)) => {
       if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
@@ -1281,6 +1305,25 @@ window.__ModuleLoader__.load({
           if (Number.isNaN(d.getTime())) return null
           const l = lang()
           return d.toLocaleDateString(l === 'en' ? 'en-GB' : l === 'fr' ? 'fr-FR' : l, { day: '2-digit', month: 'short', year: 'numeric' })
+        }
+        // The hour a pairing code stops working (a date alone said « Session 10 Oct 2026 », as if the connection lasted until then).
+        const fmtTime = (iso) => {
+          if (typeof iso !== 'string' || iso === '') return null
+          const d = new Date(iso)
+          if (Number.isNaN(d.getTime())) return null
+          const l = lang()
+          return d.toLocaleTimeString(l === 'en' ? 'en-GB' : l === 'fr' ? 'fr-FR' : l, { hour: '2-digit', minute: '2-digit' })
+        }
+        // What the card says for a failure the host reports with one of its internal codes (French words, kept for the tests and the logs):
+        // a sentence the person can act on. A code nobody mapped is shown as it is, after the title, so nothing is hidden from a bug report.
+        const errorWords = (code) => {
+          const c = String(code === undefined || code === null ? '' : code)
+          if (c === 'reseau' || c === 'injoignable' || c === 'reseau_indisponible') return t('errNet')
+          if (c === 'trop_de_demandes') return t('errBusy')
+          if (c === 'demarrage_impossible') return t('errStart')
+          if (c === 'profil_indisponible') return t('errProfile')
+          if (c === 'reponse_illisible' || c === 'reponse illisible') return t('errUnreadable')
+          return c
         }
 
         // Nom affiché. `kybernos_users.name` est vide pour l'instant : AUCUN
@@ -1561,7 +1604,7 @@ window.__ModuleLoader__.load({
           } else if (view.phase === 'disconnected') {
             body.push(h('div', { className: 'kbc-body', key: 'b' }, t('subtitle')))
             if (view.note === 'expired' || view.note === 'denied') {
-              body.push(h('div', { className: 'kbc-note kbc-warn', key: 'n' }, t('revokedBody')))
+              body.push(h('div', { className: 'kbc-note kbc-warn', key: 'n' }, view.note === 'denied' ? t('pairingDenied') : t('pairingExpired')))
             }
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: connect }, t('connect'))))
@@ -1570,7 +1613,7 @@ window.__ModuleLoader__.load({
             body.push(h('div', { className: 'kbc-body', key: 'b' }, t('pairingBody')))
             body.push(h('div', { className: 'kbc-code', key: 'c' }, pairing.user_code || t('none')))
             if (pairing.expires_at !== undefined && pairing.expires_at !== null) {
-              body.push(h(Row, { key: 'e', label: t('session'), value: fmtDate(pairing.expires_at) || t('none') }))
+              body.push(h(Row, { key: 'e', label: t('pairingExpires'), value: fmtTime(pairing.expires_at) || t('none') }))
             }
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: openPage }, t('openPage')),
@@ -1585,7 +1628,9 @@ window.__ModuleLoader__.load({
             // account's other tools (models, DSH chats, memory) are on the full page (a click on the name in the sidebar footer), not here.
             body.push(h('div', { className: 'kbc-rows', key: 'r' },
               h(Row, { label: t('email'), value: user.email || t('none') }),
-              h(Row, { label: t('plan'), value: user.plan || t('none') })))
+              // The plan of the ACTIVE team, as the footer chip says it (the profile's `plan` is the account's word and reads « team » as soon as the person is in
+              // any team, next to a chip that says « Solo Studio »): the card said « Plan team » for a personal Solo Studio space right after the pairing.
+              h(Row, { label: t('plan'), value: (st.space_plan !== undefined && st.space_plan !== null && typeof st.space_plan.label === 'string' && st.space_plan.label !== '' ? st.space_plan.label : null) || user.plan || t('none') })))
             body.push(h('div', { key: 'wl' },
               h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('workspaces')),
               h('div', { className: 'kbc-ws' }, workspaces.length === 0
@@ -1603,7 +1648,7 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: connect }, t('reconnect'))))
           } else {
             body.push(h('div', { className: 'kbc-body kbc-err', key: 'b' }, t('errorTitle')))
-            body.push(h('div', { className: 'kbc-note', key: 'n' }, String(view.error || '')))
+            body.push(h('div', { className: 'kbc-note', key: 'n' }, errorWords(view.error)))
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: load }, t('retry'))))
           }
@@ -1868,7 +1913,7 @@ window.__ModuleLoader__.load({
                   },
                   h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
                   h('span', { className: 'kbfp-wstxt' },
-                    h('span', { className: 'kbfp-wsname' }, (w && w.name) || t('none')),
+                    h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none')),
                     h('span', { className: 'kbfp-wssub' }, on === true
                       ? t('spaceMark')
                       : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : ''))),
@@ -2311,6 +2356,17 @@ window.__ModuleLoader__.load({
           // dans la rangée sans recharger la page.
           React.useEffect(() => { void load() }, [load, open])
 
+          // The host reads the account again by itself (a token revoked from the account page, a removal from a team: index.js `profileRefreshTick`), and the
+          // chip followed only when the card was opened or closed: measured, it said « Rita Rich · Solo Studio » for 45 s after the host had signed out. /status
+          // is a local read: every 30 s while the window is visible, and when it comes back into view.
+          React.useEffect(() => {
+            const again = () => { if (document.visibilityState === 'visible') void load() }
+            const timer = window.setInterval(again, 30000)
+            document.addEventListener('visibilitychange', again)
+            window.addEventListener('focus', again)
+            return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', again); window.removeEventListener('focus', again) }
+          }, [load])
+
           // The team console (an iframe of another page) changed the active space through the host: re-read it, so the card and the
           // console never show two different teams.
           React.useEffect(() => {
@@ -2329,7 +2385,7 @@ window.__ModuleLoader__.load({
             if (quotaSpace === null) return undefined
             let on = true
             const read = () => {
-              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(r) }).catch(() => null)
+              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(quotaStamp(r)) }).catch(() => null)
             }
             read()
             const seen = () => { if (document.visibilityState === 'visible') read() }
@@ -2598,7 +2654,7 @@ window.__ModuleLoader__.load({
           React.useEffect(() => {
             let on = true
             callLocal('/quota', 'GET').then((r) => {
-              if (on === true) setInfo({ r: r })
+              if (on === true) setInfo({ r: quotaStamp(r) })
               // A refused call changed the allowance: the card's meter reads it again now instead of at its next turn.
               try { window.dispatchEvent(new Event('kybernos-cloud:quota-read')) } catch (e) { /* no window events here */ }
             }).catch(() => { if (on === true) setInfo({ r: null }) })

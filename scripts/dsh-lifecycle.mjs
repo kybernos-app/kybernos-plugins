@@ -497,7 +497,13 @@ const direLiensReprise = () => {
 // Sans --url : vérification HOST — le robot démarre un DSH sur un port libre
 // et lit sa sortie ; un warning « did not activate » ou un crash = échec.
 // Avec --url : boot-check complet sur la vraie page (carte Failed, surfaces).
-async function verifierBoot (url) {
+// What a failing boot looks like in DSH's output. A line that matches is a failure of THIS boot; whether it is the suite's doing is decided
+// by comparing with the same check made before anything was written (`avant`): a warning that was already there (a third-party plugin,
+// a provider registered twice: the owner's own profile prints one at every start) is not ours and must not roll an install back.
+const MOTIF_ECHEC_BOOT = /did not activate|startup failed|Error:/i
+const lignesEnEchec = (sortie) => [...new Set(String(sortie).split('\n').map((l) => l.trim()).filter((l) => l !== '' && MOTIF_ECHEC_BOOT.test(l)))]
+
+async function verifierBoot (url, { avant = null } = {}) {
   if (url !== null && url !== undefined) {
     const r = await execReel(['node', join(ICI, 'boot-check.mjs')], process.env)
     return { ok: r.code === 0, sortie: r.sortie + r.err, code: r.code }
@@ -543,8 +549,25 @@ async function verifierBoot (url) {
   tuable.kill()
   await Promise.race([mort, attendre(5000)])
   const s = String(sortie)
-  const ko = /did not activate|startup failed|Error:/i.test(s)
-  return { ok: !ko, sortie: s, code: ko ? 1 : 0 }
+  const echecs = lignesEnEchec(s)
+  const nouveaux = avant === null ? echecs : echecs.filter((l) => !avant.has(l))
+  const ko = nouveaux.length > 0
+  return { ok: !ko, sortie: s, code: ko ? 1 : 0, echecs, nouveaux }
+}
+
+/** The boot check made BEFORE the first write: the set of failure lines that exist without us (null when there is no profile yet). */
+async function etatDeDepartDuBoot () {
+  if (opts.url !== null || !existsSync(join(PROFIL_DIR, 'package.json'))) return null
+  console.log('  🔎 démarrage de référence (ce qui échoue déjà avant nous ne nous sera pas reproché)…')
+  const depart = await verifierBoot(null)
+  if (depart.echecs.length > 0) {
+    console.log('     ℹ ' + depart.echecs.length + ' ligne(s) d\'échec déjà là avant l\'installation, non imputées au plugin :')
+    for (const l of depart.echecs.slice(0, 3)) console.log('       · ' + l.slice(0, 200))
+  }
+  return new Set(depart.echecs)
+}
+const direEchecBoot = (boot) => {
+  for (const l of boot.nouveaux.slice(0, 4)) console.log('     · ' + l.slice(0, 220))
 }
 
 // ── DOCTOR : lire, ne jamais écrire ───────────────────────────────────────
@@ -1088,6 +1111,7 @@ async function faireInstall () {
       instructionsRedemarrage(famille(), portGui))
   }
   const versions = { global: cible, plugin: await versionDuPlugin({ exec: execReel, repoDir: REPO }) }
+  const bootAvant = await etatDeDepartDuBoot()
   const photo = await photoAvantTout(versions)
   // Sur une machine NEUVE, le profil n'existe pas encore : `alignerLiens` et
   // `poserPatchs` ecrivent DEDANS (package.json, cordis.patch.yml). L'ordre
@@ -1095,15 +1119,26 @@ async function faireInstall () {
   // profil existait deja. Mesure du 23/09/2026 en scenario B isole : ENOENT
   // package.json des `alignerLiens`. On demande donc d'abord a DSH de creer le
   // profil (194 ms sur un HOME nu), puis on le remplit.
+  // One way out for every step below that can fail for reasons nobody controls (pnpm: no network, a registry that is down, a
+  // full disk, a store in use; a patch that no longer fits): put the photo back, say it in words, journal it. Before this, a
+  // pnpm failure escaped as a raw stack trace with the links already written to package.json, no restore and no journal line.
+  const abandonner = async (e) => {
+    const date = new Date().toISOString()
+    console.log('  ❌ ' + e.message)
+    console.log('  ↩ retour à l\'état d\'avant la photo')
+    await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
+    await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: e.message, photo: photo.dossier })
+    quitter(1, '\n🔴 installation interrompue avant la fin — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+  }
   if (!existsSync(join(PROFIL_DIR, 'package.json'))) {
     console.log('  🧱 le profil n\'existe pas encore — DSH le crée (cas normal d\'une machine neuve)…')
-    await installerProfil()
+    try { await installerProfil() } catch (e) { await abandonner(e) }
   }
   console.log('  🔗 liaison des paquets du dépôt vers le profil…')
   alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
   direLiensReprise()
   console.log('  📦 installation du profil (pnpm)…')
-  await installerProfil()
+  try { await installerProfil() } catch (e) { await abandonner(e) }
   // Les retouches touchent les paquets `@deepseek-ai/*` du PROFIL (l'installation
   // globale ne porte que le paquet `dsh` depuis 0.1.7). Les poser avant le pnpm
   // du profil revient a patcher un dossier vide : mesure du 23/09/2026 en
@@ -1116,18 +1151,14 @@ async function faireInstall () {
   } catch (e) {
     // Une retouche non posable est une fonctionnalite perdue : on ne continue
     // pas et on ne laisse pas non plus une stack trace au testeur.
-    const date = new Date().toISOString()
-    console.log('  ❌ ' + e.message)
-    console.log('  ↩ retour à l\'état d\'avant la photo')
-    await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
-    await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: e.message, photo: photo.dossier })
-    quitter(1, '\n🔴 installation interrompue avant la fin — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+    await abandonner(e)
   }
   console.log('  🔎 vérification du boot…')
-  const boot = await verifierBoot(opts.url)
+  const boot = await verifierBoot(opts.url, { avant: bootAvant })
   const date = new Date().toISOString()
   if (!boot.ok) {
     console.log('  ❌ le boot échoue — retour à l\'état d\'avant la photo')
+    direEchecBoot(boot)
     await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
     await poserPatchs({ tolerance: true })
     await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: 'boot échoué, photo remise', photo: photo.dossier })
@@ -1190,6 +1221,7 @@ if (ordre === 'upgrade') {
   console.log('\n  Plan : ' + plan.join(' → '))
   if (opts.dry) quitter(0, '\n  (dry-run : rien n\'a été modifié)')
 
+  const bootAvant = await etatDeDepartDuBoot()
   const photo = await photoAvantTout({ global: depuis, plugin: versions.plugin })
   const date = new Date().toISOString()
   try {
@@ -1219,8 +1251,8 @@ if (ordre === 'upgrade') {
     console.log('  📦 installation du profil (pnpm)…')
     await installerProfil()
     console.log('  🔎 vérification du boot…')
-    const boot = await verifierBoot(opts.url)
-    if (!boot.ok) throw new Error('boot échoué')
+    const boot = await verifierBoot(opts.url, { avant: bootAvant })
+    if (!boot.ok) { direEchecBoot(boot); throw new Error('boot échoué') }
     await journalOp({ date, quoi: 'moteur', de: depuis, vers: cible, resultat: 'reussi', photo: photo.dossier })
     quitter(0, `\n🟢 mise à jour réussie : moteur ${depuis} → ${cible}, plugin ${versions.plugin}. Recharge la page DSH.`)
   } catch (e) {
@@ -1232,7 +1264,9 @@ if (ordre === 'upgrade') {
       try { await installerMoteur(depuis, { tolere: true }) } catch (e) { console.log('  ⚠ retour du moteur ' + depuis + ' : ' + (e.message || e)) }
     }
     await poserPatchs({ tolerance: true })
-    await installerProfil()
+    // The same pnpm that just failed may fail again (no network): the profile files are already back from the photo, so say so
+    // and finish the journal instead of dying here with a stack trace.
+    try { await installerProfil() } catch (e2) { console.log('  ⚠ la remise en ordre du profil (pnpm) a échoué aussi : ' + (e2.message || e2) + ' — package.json et le lockfile sont ceux de la photo ; relance quand pnpm répond') }
     await journalOp({ date, quoi: 'moteur', de: cible, vers: depuis, resultat: 'retour-arriere', raison: String(e.message || e).slice(0, 200), photo: photo.dossier })
     quitter(1, '\n🟠 la mise à jour a échoué — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
   }
@@ -1243,7 +1277,7 @@ if (ordre === 'rollback') {
   const avant = await versionDuGlobal({ exec: execReel })
   const r = await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: opts.photo, profilDir: PROFIL_DIR })
   console.log('  📸 photo restaurée : ' + r.dossier + ' (' + r.recopies.join(', ') + ')')
-  await installerProfil()
+  try { await installerProfil() } catch (e) { console.log('  ⚠ pnpm a échoué après la restauration : ' + (e.message || e) + ' — package.json, lockfile et cordis.patch.yml sont ceux de la photo ; relance quand pnpm répond') }
   await poserPatchs({ tolerance: true })
   const apres = await versionDuGlobal({ exec: execReel })
   await journalOp({ date: new Date().toISOString(), quoi: 'moteur', de: avant, vers: apres, resultat: 'retour-arriere', raison: 'rollback demandé', photo: r.dossier })

@@ -324,7 +324,9 @@ const apiCall = async (path, options = {}) => {
     if (readable !== true && res.status >= 200 && res.status < 300) return { status: 0, body: null, error: 'invalid_response' }
     // When the workspace asks its members for a second factor, a member who has none is told when the grace ends on every answer of that workspace.
     const grace = res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('x-kybernos-mfa-grace-ends') : null
-    return { status: res.status, body: parsed, grace: typeof grace === 'string' && grace !== '' ? grace : null }
+    // The server's own clock, for the times it names (a used-up window comes back at ITS time; the person's clock can be hours off).
+    const date = res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('date') : null
+    return { status: res.status, body: parsed, grace: typeof grace === 'string' && grace !== '' ? grace : null, date: typeof date === 'string' && date !== '' ? date : null }
   } catch (e) {
     return { status: 0, body: null, error: String((e && e.message) || e) }
   } finally {
@@ -342,7 +344,8 @@ const startPairing = async () => {
     body: { client: CLIENT_NAME, version: CLIENT_VERSION, device_label: deviceLabel() },
   })
   if (res.status !== 200 || res.body === null || typeof res.body.device_id !== 'string') {
-    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : 'demarrage_impossible', status: res.status }
+    // Status 0 is the network (down, refused, timed out, a body that was not JSON): « cannot reach », not « the server said no ».
+    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : (res.status === 0 ? 'reseau' : 'demarrage_impossible'), status: res.status }
   }
   const ttl = typeof res.body.expires_in === 'number' ? res.body.expires_in : 600
   const state = {
@@ -388,6 +391,15 @@ const pollPairing = async () => {
       device_label: state.device_label !== undefined ? state.device_label : deviceLabel(),
     }
     writeState(next)
+    // The claim carries the person, not their workspaces: read them (and the active space's plan) NOW, so the card, the model route's
+    // workspace header and the Team features start from the right space instead of the account-level word, until a page asks. This
+    // imports the catalogue too (cause `claim`); a server that cannot answer the lists leaves the claim standing, and the import
+    // below is the old behaviour.
+    const fresh = await readProfile('claim').catch(() => null)
+    if (fresh !== null && fresh.ok === true && fresh.connected === true) {
+      return { ok: true, connected: true, state: fresh.state, models: fresh.models, import_error: fresh.import_error }
+    }
+    if (fresh !== null && fresh.connected === false && fresh.status === 'revoked') return { ok: true, connected: false, status: 'revoked' }
     // Connexion = import du catalogue (fonctionnalité cloud n°1). L'import ne
     // throw jamais et ne remet jamais en cause le claim qui vient d'aboutir :
     // un catalogue indisponible se voit, se resynchronise, ne bloque rien.
@@ -428,7 +440,10 @@ const catalogChanged = async (state, known) => {
   return key(known.ids) !== key(cat.models.map((e) => e.id)) || (known.embed === undefined || known.embed === null ? null : known.embed) !== (cat.embed === undefined || cat.embed === null ? null : cat.embed)
 }
 
-const refreshProfile = async () => {
+/** The server's own error envelope (`{ error: 'unauthorized', message, request_id }`), as opposed to JSON some intermediary wrote. */
+const isServerRefusal = (body) => body !== null && typeof body === 'object' && Array.isArray(body) !== true && typeof body.error === 'string' && body.error !== ''
+
+const readProfile = async (cause) => {
   const state = readState()
   if (!isConnected(state)) return { ok: true, connected: false, status: 'none' }
   // Deux lectures en parallèle : le profil (/v1/me, ajouté côté serveur pour
@@ -445,9 +460,10 @@ const refreshProfile = async () => {
   // déploiement de /v1/me, la route répondait 401 à un jeton valide (elle
   // tombait dans le régime « master key » du middleware) ; s'y fier pour
   // déconnecter aurait éjecté tous les utilisateurs sur un bug serveur.
-  // Only the server's own refusal (a JSON error) is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server
-  // speaking about this token, and signing the person out on it also throws away the models imported for them.
-  if ((ws.status === 401 || ws.status === 403) && ws.body !== null && typeof ws.body === 'object') {
+  // Only the server's own refusal is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server speaking about
+  // this token, and signing the person out on it also throws away the models imported for them. JSON alone does not make it the server
+  // (a gateway answers `{}`, `[]` or `{ message: 'Forbidden' }` too): the server's error envelope names its error as a string.
+  if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body)) {
     // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
     // modèles importés ne serviraient plus à rien (le proxy refuserait les
     // appels) : ils partent avec la session.
@@ -483,7 +499,7 @@ const refreshProfile = async () => {
   if (known === null || known.provider !== PROVIDER_ID || routeSpace !== activeId) {
     // Nothing imported yet, or the route names another space than the active one (the list of spaces was not known at the claim, or the active one
     // is gone): import for the active space. An import for the same space is a no-op (fingerprint), so this is not churn.
-    const imported = await importCatalog('refresh')
+    const imported = await importCatalog(cause)
     models = imported.summary !== undefined ? imported.summary : null
     if (imported.ok !== true) import_error = imported.error
   } else if (await catalogChanged(next, known)) {
@@ -499,6 +515,23 @@ const refreshProfile = async () => {
     models = publicModels(known)
   }
   return { ok: true, connected: true, state: publicState(readState()), models, ...(import_error !== undefined ? { import_error } : {}) }
+}
+/** Route: read the profile, the workspaces and the active space's plan again. */
+const refreshProfile = () => readProfile('refresh')
+
+// ── Keeping the account's picture current ─────────────────────────────────────────────────────────────────────────────
+// The list of workspaces, the active one, its plan and the model route's `x-kybernos-workspace` are read at the claim and whenever a page asks
+// (`/refresh`). Nothing else read them: a person removed from a team, a team deleted, a plan changed on the web or a token revoked from the account
+// page left DSH naming a workspace the server no longer knew (every model call a 404 about a header the person never wrote, a card still showing
+// the old plan) until they happened to open the account page. A slow tick, no page needed, so a headless DSH heals too. Never throws, never
+// overlaps itself, and a read the server could not answer changes nothing (readProfile keeps the picture it has).
+const PROFILE_REFRESH_TUNING = { firstMs: 3000, tickMs: 5 * 60 * 1000 }
+let profileRefreshing = false
+const profileRefreshTick = async () => {
+  if (profileRefreshing === true) return null
+  if (isConnected(readState()) !== true) return null
+  profileRefreshing = true
+  try { return await readProfile('refresh') } catch (e) { return null } finally { profileRefreshing = false }
 }
 
 const disconnect = async () => {
@@ -1044,11 +1077,38 @@ const readJsonBody = async (req, cap) => {
   } catch (e) { return {} }
 }
 
-/** Même garde que les autres routes locales : jamais cross-origin. */
+/** The authority a request must name to be about THIS listener: the port the socket is really bound to, on 127.0.0.1 / localhost / [::1], or an authority the
+ *  operator declared to DSH (`--trusted-host`). Null when the request has no socket (a test, a synthetic caller): nothing to compare with. */
+const listenerAuthority = (req) => {
+  const sock = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? req.socket : null
+  if (sock === null || typeof sock.localPort !== 'number') return null
+  const port = ':' + sock.localPort
+  return (authority) => ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(authority) >= 0 || kbTrusted(authority)
+}
+/** False when the Host header names an authority that is not this listener's: a page that rebinds its own name to this machine (DNS rebinding) reaches the
+ *  routes with Host = its own name. DSH serves plugin routes BEFORE its own authentication and its `/api` Host fence does not cover them, so this is the
+ *  fence. Applied to every route, the open ones (status, server, models) included. */
+const hostAllowed = (req) => {
+  try {
+    const mine = listenerAuthority(req)
+    const host = req.headers !== null && req.headers !== undefined && typeof req.headers.host === 'string' ? req.headers.host : null
+    return mine === null || host === null || mine(host) === true
+  } catch (e) { return false }
+}
+
+/** Même garde que les autres routes locales : jamais cross-origin.
+ *  On a real connection the Origin is compared with what THIS listener really is, never with the Host header alone: « Origin.host === Host » let a page
+ *  that rebinds its name send the same attacker-chosen authority as both (measured in the pre-production acceptance: memory/add and space/create
+ *  answered 200 to Host = Origin = attacker.example). A request with no socket keeps the old comparison. */
 const sameOrigin = (req) => {
   try {
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : null
     const host = typeof req.headers.host === 'string' ? req.headers.host : null
+    const mine = listenerAuthority(req)
+    if (mine !== null) {
+      if (host !== null && mine(host) !== true) return false
+      return origin === null ? true : mine(new URL(origin).host) === true
+    }
     if (origin === null || host === null) return true
     return new URL(origin).host === host
   } catch (e) {
@@ -1231,11 +1291,15 @@ const quotaFacts = async () => {
   const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
   const usage = (Array.isArray(budget.body.windows) ? budget.body.windows : []).map(budgetWindowView).filter((w) => w !== null)
     .sort((a, b) => a.window_seconds - b.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))
+  // The server's own clock, as it stamped the answer (a Date header, one-second resolution): the page subtracts ITS clock when it receives this, so a used-up
+  // window's `resets_at` (the server's time) is told against the server's now, whatever the person's clock says. Null when the server sent no usable Date.
+  const stamped = Date.parse(String(budget.date !== null && budget.date !== undefined ? budget.date : plan.date))
   return {
     ok: true,
     workspace: { id, name: known !== undefined && typeof known.name === 'string' ? known.name : null, role: known !== undefined && typeof known.role === 'string' ? known.role : null, personal: known !== undefined && known.personal === true },
     payment_blocked: plan.body.payment_blocked === true,
     usage,
+    server_time: Number.isFinite(stamped) ? new Date(stamped).toISOString() : null,
   }
 }
 
@@ -2827,6 +2891,15 @@ const tidyTick = async (now = Date.now()) => {
   }
 }
 
+const mountProfileRefresh = (ctx) => {
+  ctx.effect(() => {
+    const first = setTimeout(() => { void profileRefreshTick() }, PROFILE_REFRESH_TUNING.firstMs)
+    const timer = setInterval(() => { void profileRefreshTick() }, PROFILE_REFRESH_TUNING.tickMs)
+    if (typeof first.unref === 'function') first.unref()
+    if (typeof timer.unref === 'function') timer.unref()
+    return () => { clearTimeout(first); clearInterval(timer) }
+  }, 'kybernos-cloud: periodic profile read')
+}
 const mountTidySchedule = (ctx) => {
   ctx.effect(() => {
     const first = setTimeout(() => { void tidyTick() }, TIDY_TUNING.firstMs)
@@ -3934,6 +4007,8 @@ const mountWebRoutes = (ctx, webServer) => {
         res.setHeader('Vary', 'Origin')
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
       }
+      // A Host that is not this listener's is a rebound page: refused before anything is read, whatever the route (the open ones included).
+      if (hostAllowed(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
@@ -3970,6 +4045,7 @@ export function apply(ctx) {
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] rafraîchissement mémoire: ' + String((e && e.message) || e)) }
   try { mountTidySchedule(ctx) } catch (e) { console.error('[kybernos-cloud] nettoyage planifié: ' + String((e && e.message) || e)) }
+  try { mountProfileRefresh(ctx) } catch (e) { console.error('[kybernos-cloud] periodic profile read: ' + String((e && e.message) || e)) }
   autoImportAtBoot(ctx, aside)
 }
 
@@ -3977,6 +4053,8 @@ export function apply(ctx) {
 // surface publique n'est promise.
 export {
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
+  // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
+  profileRefreshTick, PROFILE_REFRESH_TUNING, sameOrigin, hostAllowed,
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).

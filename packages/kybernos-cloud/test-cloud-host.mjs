@@ -863,6 +863,7 @@ try {
     { kind: 'pool', window_seconds: 2592000, scope: 'plan', used_percent: 1, exhausted: false, resets_at: null },
   ], 'every window of the active space as a percent, shortest first and the person\'s own before the pool; the unlimited and the unknown are left out; a time that is not a time is dropped; the percent is never 0 once something was spent, never 100 before it is used up')
   assert.equal(quotaOut.body.payment_blocked, true)
+  assert.ok(typeof quotaOut.body.server_time === 'string' && Math.abs(Date.parse(quotaOut.body.server_time) - Date.now()) < 5000, 'the server\'s own stamp travels with the facts, so the page can say « back in 5 h » in the server\'s time: ' + quotaOut.body.server_time)
   assert.equal(quotaOut.body.plan, undefined, 'the plan is not in the answer: the card has it already')
   assert.equal(quotaOut.body.workspace.name, 'My workspace')
   const quotaText = JSON.stringify(quotaOut.body)
@@ -2879,9 +2880,9 @@ try {
   const down = await hit('/kybernos-cloud/start', 'POST')
   assert.equal(down.status, 200)
   assert.equal(down.body.ok, false)
-  assert.equal(down.body.error, 'demarrage_impossible')
+  assert.equal(down.body.error, 'reseau', 'a server that cannot be reached is « reseau » (the card says so), not « the server refused »')
   assert.equal(existsSync(statePath), false)
-  ok('API injoignable : echec explicite, aucun etat ecrit')
+  ok('API injoignable : echec explicite (reseau), aucun etat ecrit')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

@@ -40,6 +40,34 @@ import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS }
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
+// Host fence (scripts/test-route-hosts.mjs). DSH serves plugin routes BEFORE its own authentication, and a page that rebinds its own name to this machine
+// (DNS rebinding) reaches them with its own name as Host, no cookie and, on a same-origin GET, no Origin (a browser sends none): a guard that looks at the
+// Origin alone lets every read through. Every route of this bundle refuses a Host that is not this listener's (the port the socket is bound to, on
+// 127.0.0.1 / localhost / [::1], or an authority declared with --trusted-host) before its own guard runs. A request with no socket (a test) is not judged.
+const kbHostOK = (req) => {
+  try {
+    const host = req.headers !== null && req.headers !== undefined && typeof req.headers.host === 'string' ? req.headers.host : null
+    const sock = req.socket !== null && req.socket !== undefined ? req.socket : null
+    if (host === null || sock === null || typeof sock.localPort !== 'number') return true
+    const port = ':' + sock.localPort
+    return ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(host) >= 0 || kbTrusted(host)
+  } catch (e) { return false }
+}
+const kbFenced = (service) => {
+  if (service === null || service === undefined || typeof service.register !== 'function') return service
+  const fence = (route) => (route !== null && typeof route === 'object' && typeof route.handler === 'function'
+    ? Object.assign({}, route, {
+      handler: (req, res, ...rest) => {
+        if (kbHostOK(req) !== true) {
+          try { res.writeHead(403, { 'content-type': 'application/json; charset=utf-8' }); res.end('{"ok":false,"error":"origin refused"}') } catch (e) { /* closed */ }
+          return undefined
+        }
+        return route.handler(req, res, ...rest)
+      },
+    })
+    : route)
+  return new Proxy(service, { get: (target, key) => (key === 'register' ? (route) => target.register(fence(route)) : (typeof target[key] === 'function' ? target[key].bind(target) : target[key])) })
+}
 
 // ── local helpers (semantic mirror of kybernos-plugin/index.js:2696-2724, base daed42e) ──────────────────
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -1189,6 +1217,7 @@ const createSkill = async ({ ctx, root, name, description, whenToUse, body, mode
 
 // ── mounting the routes (mirror of :2728-2729 and :2873-2874, base daed42e) ──────────────────────────────────────
 const mountWebRoutes = (ctx, webServerSvc) => {
+  webServerSvc = kbFenced(webServerSvc)
   const GET = (path, label, fn) => ctx.effect(() => webServerSvc.register({ kind: 'exact', path, handler: async (req, res) => {
     if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'get_required' })
     try { sendJson(res, 200, await fn(req)) } catch (e) { sendJson(res, 200, { ok: false, error: 'request_failed' }) }

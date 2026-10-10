@@ -19,9 +19,10 @@ const source = readFileSync(join(here, 'client.js'), 'utf8')
 const from = source.indexOf('// <quota-notice-text>')
 const to = source.indexOf('// </quota-notice-text>')
 check('the sentence builder is where the test expects it', from > 0 && to > from)
-const built = from > 0 && to > from ? new Function(source.slice(from, to) + '\nreturn { quotaNoticeText, quotaMeterOf }')() : { quotaNoticeText: () => null, quotaMeterOf: () => null }
+const built = from > 0 && to > from ? new Function(source.slice(from, to) + '\nreturn { quotaNoticeText, quotaMeterOf, quotaStamp }')() : { quotaNoticeText: () => null, quotaMeterOf: () => null }
 const quotaNoticeText = built.quotaNoticeText
 const quotaMeterOf = built.quotaMeterOf
+const quotaStamp = built.quotaStamp
 
 // The dictionary of one language, read from the source (the same strings the page uses): French comes first in client.js, English last.
 const dictOf = (lang) => source.slice(lang === 'en' ? source.lastIndexOf('menuTeamsSettings:') : source.indexOf('menuTeamsSettings:'))
@@ -163,6 +164,30 @@ console.log('what it does not claim')
   check('an unlimited window (no percent) is never mentioned', notice(facts(personal, [win(18000, null)])) === null)
   const x = notice(facts({ id: 'w', name: '<b>x</b>', role: 'member', personal: false }, [], { payment_blocked: true }))
   check('a team name is text (the page puts it in a text node), never interpreted here', x !== null && x.text.includes('<b>x</b>'))
+}
+
+console.log('a person\'s clock that is wrong')
+{
+  // `resets_at` is the SERVER's time. The host measures the server's clock minus the machine's (`skew_ms`) and the page adds it to its own clock; without it a clock
+  // three hours ahead turned « about 24 h » into « about 21 h » on the card (measured in the pre-production acceptance).
+  const realNow = Date.now
+  const win24 = [out(86400, { resets_at: inH(24) })]
+  try {
+    for (const hours of [3, -3, 0]) {
+      Date.now = () => NOW + hours * 3600000          // this machine's clock, `hours` away from the server's
+      // What the page does when the facts arrive: it subtracts its own clock from the server's stamp.
+      const arrived = quotaStamp(facts(personal, win24, { server_time: new Date(NOW).toISOString() }))
+      const withSkew = plain(quotaNoticeText(arrived, t))
+      check('clock ' + (hours >= 0 ? '+' : '') + hours + ' h with the server\'s stamp: still « in about 24 h »', withSkew !== null && /in about 24 h\./.test(withSkew.text), withSkew && withSkew.text)
+      const meter = quotaMeterOf(arrived, t)
+      check('the card\'s meter says the same', meter !== null && /about 24 h/.test(meter.title.replace(/\u00a0/g, ' ')), meter && meter.title)
+    }
+    Date.now = () => NOW + 3 * 3600000
+    const none = plain(quotaNoticeText(facts(personal, win24), t))
+    check('no stamp (an older host): the machine\'s clock is all there is, as before', none !== null && /in about 21 h\./.test(none.text), none && none.text)
+    const nonsense = plain(quotaNoticeText(quotaStamp(facts(personal, win24, { server_time: 'soon' })), t))
+    check('a stamp that is not a time is ignored', nonsense !== null && /in about 21 h\./.test(nonsense.text), nonsense && nonsense.text)
+  } finally { Date.now = realNow }
 }
 
 console.log('the registration')

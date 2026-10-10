@@ -126,6 +126,33 @@ assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 1)
 assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 1)
 assert.equal(/\.selectPanel\('/.test(clientSource), false, 'selectPanel only ever closes the profile page (selectPanel(null)): no call opens a panel by key')
 sok('page locale de l equipe : supprimee (composant, cle de panneau, evenement, onglets, 38 chaines fr/en)')
+// The card says what went wrong in a sentence, never in the host's internal code (found in the pre-production acceptance: « Could not connect »
+// followed by `demarrage_impossible`, for a server that was down, one that answered 503 and a portal page alike). Every code the host's pairing
+// and refresh routes return to the card has a sentence in both dictionaries, and the pairing's own rows say what they are (the hour the code
+// stops working, not a date under « Session »; a refused or expired request is not a « revoked session »).
+for (const code of ['reseau', 'trop_de_demandes', 'demarrage_impossible', 'profil_indisponible', 'reponse_illisible']) {
+  assert.ok(clientSource.includes("'" + code + "'") && /const errorWords = /.test(clientSource), 'le code ' + code + ' doit avoir une phrase')
+}
+assert.equal(/String\(view\.error \|\| ''\)/.test(clientSource), false, 'la carte n affiche plus view.error tel quel')
+assert.ok(clientSource.includes('errorWords(view.error)'), 'la carte passe view.error par errorWords')
+for (const key of ['errNet', 'errBusy', 'errStart', 'errProfile', 'errUnreadable', 'pairingExpires', 'pairingDenied', 'pairingExpired']) {
+  assert.ok(frKeys.has(key) && enKeys.has(key), 'phrase manquante (fr et en): ' + key)
+}
+assert.ok(clientSource.includes("label: t('pairingExpires'), value: fmtTime(pairing.expires_at)"), 'l appairage dit jusqu a quelle heure le code est valable')
+assert.equal(/label: t\('session'\), value: fmtDate\(pairing\.expires_at\)/.test(clientSource), false, 'plus de « Session <date> » pour un code qui expire dans dix minutes')
+assert.ok(/view\.note === 'denied' \? t\('pairingDenied'\) : t\('pairingExpired'\)/.test(clientSource), 'refus et expiration ont chacun leur phrase (pas « session révoquée »)')
+sok('la carte parle en phrases : codes internes traduits (reseau, trop_de_demandes, ...), heure de validité du code, refus / expiration distincts d une révocation')
+// The card's plan row is the ACTIVE team's plan label (what the footer chip says), not the account-level word of the profile: « Plan team » next to a chip that
+// said « Solo Studio » was measured right after a pairing.
+assert.ok(/label: t\('plan'\), value: \(st\.space_plan !== undefined && st\.space_plan !== null && typeof st\.space_plan\.label === 'string'/.test(clientSource), 'la ligne Plan de la carte lit le libelle de l espace actif avant le mot du compte')
+sok('carte : la ligne Plan dit le plan de l espace actif (comme la pastille), le mot du compte seulement en repli')
+// The team switcher's list names the personal space the way the card and the chip do (« Personal »), not by the server's name for it (« My workspace »).
+assert.ok(clientSource.includes("h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none'))"), 'la liste du selecteur d equipe passe par nomAffiche')
+sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
+// The footer chip re-reads the host's /status by itself: after the host signs the device out (a token revoked from the account page) it said
+// « Rita Rich · Solo Studio » until the card was opened.
+assert.ok(/window\.setInterval\(again, 30000\)[\s\S]{0,200}visibilitychange[\s\S]{0,200}'focus'/.test(clientSource), 'le pied relit /status tout seul (toutes les 30 s, au retour de la fenetre)')
+sok('pied de sidebar : la pastille relit /status toute seule (30 s, retour de fenetre), elle ne reste plus connectee apres une revocation')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null

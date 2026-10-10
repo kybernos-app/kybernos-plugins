@@ -93,6 +93,18 @@ checkout (a git tree) is never re-pointed. Installing an older suite over a newe
 `paquets/` is not pruned: old copies stay until someone removes them. `scripts/test-lifecycle-archive.mjs` (hermetic) covers all of it and
 `scripts/check-suite-update-tls.mjs` (live, needs `openssl`) replays the refused catalogues over a local https server.
 
+## What the robot refuses, and what it does not charge to the suite
+
+`./kybernos-install` and `./kybernos-update` (and the panel's « Update now », which runs the robot inside the archive) end with a boot check: a DSH
+is started on the new profile and its output is read. Two rules keep that check honest:
+
+- **Only what is new counts.** The same check is made once *before* the first write; a failure line that was already there (a third-party
+  plugin, a provider registered twice: the owner's own profile prints `dsh: warning: 1 entry did not activate` at every start) is shown as
+  « already there before the install, not charged to the plugin » and does not roll the install back. Before 2026-10-10 every `did not activate`
+  or `Error:` line was charged to the suite, so such a machine could never be installed or updated, and the robot did not even say which line.
+- **A failing step puts everything back.** The profile install (pnpm: no network, a registry that is down, a full disk) goes through the same way
+  out as an engine patch that cannot be applied: the photo is restored, the journal gets a line, the person reads a sentence, not a stack trace.
+
 ## Routes
 
 | Route | |
