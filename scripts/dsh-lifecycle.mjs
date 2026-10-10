@@ -1095,15 +1095,26 @@ async function faireInstall () {
   // profil existait deja. Mesure du 23/09/2026 en scenario B isole : ENOENT
   // package.json des `alignerLiens`. On demande donc d'abord a DSH de creer le
   // profil (194 ms sur un HOME nu), puis on le remplit.
+  // One way out for every step below that can fail for reasons nobody controls (pnpm: no network, a registry that is down, a
+  // full disk, a store in use; a patch that no longer fits): put the photo back, say it in words, journal it. Before this, a
+  // pnpm failure escaped as a raw stack trace with the links already written to package.json, no restore and no journal line.
+  const abandonner = async (e) => {
+    const date = new Date().toISOString()
+    console.log('  ❌ ' + e.message)
+    console.log('  ↩ retour à l\'état d\'avant la photo')
+    await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
+    await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: e.message, photo: photo.dossier })
+    quitter(1, '\n🔴 installation interrompue avant la fin — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+  }
   if (!existsSync(join(PROFIL_DIR, 'package.json'))) {
     console.log('  🧱 le profil n\'existe pas encore — DSH le crée (cas normal d\'une machine neuve)…')
-    await installerProfil()
+    try { await installerProfil() } catch (e) { await abandonner(e) }
   }
   console.log('  🔗 liaison des paquets du dépôt vers le profil…')
   alignerLiens({ fs: fsReel, profilDir: PROFIL_DIR, repoDir: REPO, anciensDepots: ANCIENS_DEPOTS, packages: PACKAGES, actives: ACTIVES, reprendre: true, rapporter: rapporterLien })
   direLiensReprise()
   console.log('  📦 installation du profil (pnpm)…')
-  await installerProfil()
+  try { await installerProfil() } catch (e) { await abandonner(e) }
   // Les retouches touchent les paquets `@deepseek-ai/*` du PROFIL (l'installation
   // globale ne porte que le paquet `dsh` depuis 0.1.7). Les poser avant le pnpm
   // du profil revient a patcher un dossier vide : mesure du 23/09/2026 en
@@ -1116,12 +1127,7 @@ async function faireInstall () {
   } catch (e) {
     // Une retouche non posable est une fonctionnalite perdue : on ne continue
     // pas et on ne laisse pas non plus une stack trace au testeur.
-    const date = new Date().toISOString()
-    console.log('  ❌ ' + e.message)
-    console.log('  ↩ retour à l\'état d\'avant la photo')
-    await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
-    await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: e.message, photo: photo.dossier })
-    quitter(1, '\n🔴 installation interrompue avant la fin — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
+    await abandonner(e)
   }
   console.log('  🔎 vérification du boot…')
   const boot = await verifierBoot(opts.url)
@@ -1232,7 +1238,9 @@ if (ordre === 'upgrade') {
       try { await installerMoteur(depuis, { tolere: true }) } catch (e) { console.log('  ⚠ retour du moteur ' + depuis + ' : ' + (e.message || e)) }
     }
     await poserPatchs({ tolerance: true })
-    await installerProfil()
+    // The same pnpm that just failed may fail again (no network): the profile files are already back from the photo, so say so
+    // and finish the journal instead of dying here with a stack trace.
+    try { await installerProfil() } catch (e2) { console.log('  ⚠ la remise en ordre du profil (pnpm) a échoué aussi : ' + (e2.message || e2) + ' — package.json et le lockfile sont ceux de la photo ; relance quand pnpm répond') }
     await journalOp({ date, quoi: 'moteur', de: cible, vers: depuis, resultat: 'retour-arriere', raison: String(e.message || e).slice(0, 200), photo: photo.dossier })
     quitter(1, '\n🟠 la mise à jour a échoué — ta machine est revenue à l\'état d\'avant. Rien n\'a changé.')
   }
@@ -1243,7 +1251,7 @@ if (ordre === 'rollback') {
   const avant = await versionDuGlobal({ exec: execReel })
   const r = await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: opts.photo, profilDir: PROFIL_DIR })
   console.log('  📸 photo restaurée : ' + r.dossier + ' (' + r.recopies.join(', ') + ')')
-  await installerProfil()
+  try { await installerProfil() } catch (e) { console.log('  ⚠ pnpm a échoué après la restauration : ' + (e.message || e) + ' — package.json, lockfile et cordis.patch.yml sont ceux de la photo ; relance quand pnpm répond') }
   await poserPatchs({ tolerance: true })
   const apres = await versionDuGlobal({ exec: execReel })
   await journalOp({ date: new Date().toISOString(), quoi: 'moteur', de: avant, vers: apres, resultat: 'retour-arriere', raison: 'rollback demandé', photo: r.dossier })

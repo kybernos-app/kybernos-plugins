@@ -146,6 +146,7 @@ const profile = path.join(process.env.DSH_HOME, 'profiles', 'web')
 const a = process.argv.slice(2)
 if (a[0] === '--version') { console.log('0.2.0-rc.2'); process.exit(0) }
 if (a[0] === 'plugin') {            // like pnpm: every link: dependency must exist, node_modules is rebuilt from them
+  if (process.env.FAKE_DSH_PLUGIN_FAIL === '1') { console.error('ERR_PNPM_META_FETCH_FAIL: GET https://registry.npmjs.org/x: fetch failed'); process.exit(1) }
   const pj = path.join(profile, 'package.json')
   fs.mkdirSync(profile, { recursive: true })
   if (!fs.existsSync(pj)) fs.writeFileSync(pj, JSON.stringify({ name: 'dsh-profile-web', private: true, dependencies: {}, dsh: { profile: { bundles: [] } } }, null, 2) + '\\n')
@@ -184,7 +185,7 @@ process.exit(1)`)
   mkdirSync(TMP, { recursive: true })
   const PROFIL = join(DSH_HOME, 'profiles', 'web')
   const env = { PATH: BIN + ':' + dirname(process.execPath) + ':/usr/bin:/bin', HOME, DSH_HOME, TMPDIR: TMP, FAKE_NPM_PREFIX: FAKE_PREFIX, LANG: 'C' }
-  const lancer = (dossierPaquet, args) => spawnSync(process.execPath, [join(dossierPaquet, 'scripts', 'dsh-lifecycle.mjs'), ...args, '--port', '9519'], { env, encoding: 'utf8', timeout: 120000, cwd: RACINE })
+  const lancer = (dossierPaquet, args, envSup = {}) => spawnSync(process.execPath, [join(dossierPaquet, 'scripts', 'dsh-lifecycle.mjs'), ...args, '--port', '9519'], { env: { ...env, ...envSup }, encoding: 'utf8', timeout: 120000, cwd: RACINE })
   const sortie = (r) => (r.stdout || '') + (r.stderr || '')
   const liens = () => Object.fromEntries(Object.entries(lireJson(join(PROFIL, 'package.json')).dependencies).filter(([, v]) => v.startsWith('link:')).map(([k, v]) => [k, v.slice(5)]))
   const tousVers = (racine) => { const l = liens(); return Object.keys(l).length > 0 && Object.values(l).every((v) => v.startsWith(racine + '/') && existsSync(v)) }
@@ -283,6 +284,25 @@ process.exit(1)`)
   ok('running an OLDER release’s update over a newer install works but says it is a version step back', r.status === 0 && /plus ANCIENNE/.test(sortie(r)) && /1\.0\.0/.test(sortie(r)) && /1\.1\.0/.test(sortie(r)), sortie(r).slice(-500))
   r = lancer(v2, ['upgrade', '--source', v2])
   ok('…and the newer release goes forward again without a warning', r.status === 0 && /plus ANCIENNE/.test(sortie(r)) === false, sortie(r).slice(-300))
+
+  // 9. pnpm (the profile install) fails: no network, a registry that is down, a full disk. The robot used to let the error escape
+  //    (a raw stack trace), with the links already written to package.json, no restore, no journal line, no word about it.
+  const v4 = fabriquerPaquet(join(RACINE, 'pkgs', 'v4'), '1.3.0', NOMS_2)
+  const pjAvantEchec = readFileSync(join(PROFIL, 'package.json'), 'utf8')
+  const lockAvantEchec = readFileSync(join(PROFIL, 'pnpm-lock.yaml'), 'utf8')
+  const journalAvantEchec = existsSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl')) ? readFileSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl'), 'utf8') : ''
+  r = lancer(v4, ['install', '--source', v4], { FAKE_DSH_PLUGIN_FAIL: '1' })
+  ok('an install whose pnpm step fails exits 1 with words, not a stack trace', r.status === 1 && /Node\.js v\d|at (async )?installerProfil|\n    at /.test(sortie(r)) === false && /(revenue|retour).{0,40}état d'avant/.test(sortie(r)), sortie(r).slice(-500))
+  ok('…the profile is exactly what it was (package.json and lockfile put back from the photo)', readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantEchec && readFileSync(join(PROFIL, 'pnpm-lock.yaml'), 'utf8') === lockAvantEchec)
+  const journalApres = existsSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl')) ? readFileSync(join(DSH_HOME, 'lifecycle', 'journal.jsonl'), 'utf8') : ''
+  const nouvelles = journalApres.slice(journalAvantEchec.length).trim().split('\n').filter((l) => l !== '').map((l) => JSON.parse(l))
+  ok('…and the failure is in the journal (one line, result « echec », with the reason)', nouvelles.length === 1 && nouvelles[0].resultat === 'echec' && /pnpm|registry/i.test(nouvelles[0].raison), JSON.stringify(nouvelles))
+  r = lancer(v4, ['upgrade', '--source', v4], { FAKE_DSH_PLUGIN_FAIL: '1' })
+  ok('an update whose pnpm step fails (also during the clean-up that follows the restore) exits 1 with words, not a stack trace', r.status === 1 && /Node\.js v\d|at (async )?installerProfil|\n    at /.test(sortie(r)) === false && /(revenue|retour).{0,40}état d'avant/.test(sortie(r)), sortie(r).slice(-500))
+  ok('…and the profile is exactly what it was', readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantEchec)
+  r = lancer(v4, ['install', '--source', v4])
+  ok('…and the same install works once pnpm answers again', r.status === 0 && tousVersOuDev(v4), sortie(r).slice(-300))
+  r = lancer(v2, ['upgrade', '--source', v2])
 
   writeFileSync(join(dossierTar, 'bon', '..tar.gz'), octets)
   ok('an archive whose NAME would resolve to the paquets folder itself is refused before anything is deleted', lancer(v2, ['upgrade', '--source', join(dossierTar, 'bon', '..tar.gz')]).status === 1 && existsSync(installe) && verif(installe).ok === true)
