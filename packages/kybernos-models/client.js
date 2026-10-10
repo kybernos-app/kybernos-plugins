@@ -3928,6 +3928,53 @@ window.__ModuleLoader__.load({
         await kbMLoad()
       }
       // KB-PV-ACTIONS-END
+      // KB-QK-BEGIN
+      // ── A key pasted outside this page: the first-run wizard's seam (window.__KB_MODELS__) ───────────────
+      // The wizard asks for a provider and a key, nothing else; the write is the one the Add provider flow makes (kbPvCreate,
+      // or, when the route is already declared, only its key), so a key saved from the wizard looks exactly like one saved here.
+      // The four providers the wizard offers: the address and the key reference come from the shipped catalogue.
+      const KB_QK_PROVIDERS = ['anthropic', 'openai', 'deepseek', 'google']
+      const kbQkEntry = async (provider) => {
+        let entry = catDe(provider)
+        if (entry === null || typeof entry.url !== 'string' || entry.url === '') {
+          try {
+            const r = await fetch('/kybernos-models/providers', { headers: { accept: 'application/json' } })
+            const b = r.status === 200 ? await r.json() : null
+            if (b !== null && Array.isArray(b.providers) && b.providers.length > 0) { KB_CATALOGUE = kbCatalogueFusion(b.providers); entry = catDe(provider) }
+          } catch (e) { entry = null }
+        }
+        return entry !== null && typeof entry.url === 'string' && entry.url !== '' ? entry : null
+      }
+      /** @returns {Promise<{ok:true,slug:string,existed:boolean}|{ok:false,reason:string}>} reason is a code, never a provider's words */
+      const kbQuickKey = async (provider, key) => {
+        if (KB_QK_PROVIDERS.indexOf(provider) < 0) return { ok: false, reason: 'unknown_provider' }
+        const value = typeof key === 'string' ? key.trim() : ''
+        if (value === '') return { ok: false, reason: 'empty' }
+        const api = kbMApi()
+        if (api === null || api.settings === null) return { ok: false, reason: 'unavailable' }
+        try {
+          await kbMLoad()
+          if (KBM.loadError !== null && KBM.loadError !== undefined) return { ok: false, reason: 'unavailable' }
+          if (KBM.writable !== true) return { ok: false, reason: 'readonly' }
+          const entry = await kbQkEntry(provider)
+          if (entry === null) return { ok: false, reason: 'unknown_provider' }
+          const declared = kbMOBJ(KBM.userProviders)[provider]
+          if (kbPvIsObj(declared)) {
+            // Already a route of this profile: only its key is missing or stale.
+            const ref = typeof declared.apiKeyEnv === 'string' && declared.apiKeyEnv !== '' ? declared.apiKeyEnv : kbPvKeyRef(provider)
+            if (ref !== declared.apiKeyEnv) {
+              const resp = await kbMMutateRetry(api, [{ op: 'set', path: ['providers', provider, 'apiKeyEnv'], value: ref }])
+              if (resp.ok !== true) return { ok: false, reason: 'write_refused' }
+            }
+            const stored = await kbPvCredential(api, ref, value)
+            await kbMLoad()
+            return stored === true ? { ok: true, slug: provider, existed: true } : { ok: false, reason: 'key_not_stored' }
+          }
+          const made = await kbPvCreate({ tab: 'catalog', prov: provider, id: provider, name: entry.nom, url: entry.url, proto: 'openai-completions', key: value, models: [] })
+          return made.keyOk === false ? { ok: false, reason: 'key_not_stored' } : { ok: true, slug: made.slug, existed: false }
+        } catch (e) { return { ok: false, reason: 'refused' } }
+      }
+      // KB-QK-END
       // KB-FETCH-PURE-BEGIN
       // ── Fetch available models: ask the engine which models a provider serves ──
       // Measured on DSH 0.2.0-rc.2 (`llm.discoverModels(settingsNs, request)`, the call the native page makes): a route
@@ -4300,6 +4347,12 @@ window.__ModuleLoader__.load({
             return
           }
           ctx.effect(() => { kbPoseControles(); return styles.insert(CSS) }, 'kybernos-models: styles')
+          // The first-run wizard (kybernos-plugin) saves a pasted key through this; it checks the function is there.
+          ctx.effect(() => {
+            const seam = { saveKey: kbQuickKey, providers: KB_QK_PROVIDERS.slice() }
+            try { window.__KB_MODELS__ = seam } catch (e) { /* no window */ }
+            return () => { try { if (window.__KB_MODELS__ === seam) delete window.__KB_MODELS__ } catch (e) { /* no window */ } }
+          }, 'kybernos-models: wizard seam')
           // Trois sièges sur la page Models native : la carte Kybernos Cloud
           // AVANT la liste des fournisseurs (siège settings.models.header que
           // le harnais déclare dans sa section Models), le catalogue détaillé

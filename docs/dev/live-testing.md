@@ -211,11 +211,13 @@ the sandbox runs git in the user's real repository folder, so a real commit must
 source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs
 ```
 
-On the sandbox the home is fresh, so the wizard opens by itself through the new host route (put `completed:false` in
-the sandbox's `kybernos/onboarding.json` first: `setup.sh` writes it as done). The check goes through the screens, takes the
-API-key path to the hand-off to Settings and reads the file the host wrote. On `:3080` it swaps the core bundle for this
-worktree's and answers the onboarding route itself. In both cases the Kybernos Cloud pairing routes are answered by the
-check, never by a real server.
+Sandbox only (it refuses `:3080`, exit 3): it really saves a key and connects a model, which is the point, so it must write to
+an instance that is nobody's. It writes `completed:false` in the sandbox's `kybernos/onboarding.json` itself (`setup.sh` writes
+it as done), walks the screens, and answers three things over CDP so that nothing leaves the machine or runs for real: the Kybernos
+Cloud pairing routes, the key check (a provider's API is never asked about a made-up key) and the installer with its progress
+(no `brew`, no `ollama pull`). What it reads or writes for real: the host's onboarding route and file, the machine probe, and
+both seams (`window.__KB_MODELS__`, `window.__KB_LOCAL__`): the credential and the provider routes land in the sandbox's
+`.credentials.yaml` and `cordis.patch.yml`, checked by name, never by value. Host code changed since the sandbox started: `stop.sh`, `start.sh`.
 
 ## The help of every plugin: `scripts/check-help-live.mjs`
 

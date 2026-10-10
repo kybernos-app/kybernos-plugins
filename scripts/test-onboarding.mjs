@@ -12,7 +12,7 @@ const src = readFileSync(root + 'packages/kybernos-plugin/client.js', 'utf8')
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, KB_OB_MARK_VIEWBOX, KB_OB_MARK_INNER, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark'
+const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, KB_OB_MARK_VIEWBOX, KB_OB_MARK_INNER, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark, kbObKeyShape, kbObProviderFromKey'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -42,6 +42,8 @@ eq('a text for every profession', mod.KB_OB_PROFILES.filter((p) => mod.KB_OB_T['
 eq('a title and a description for every display mode', mod.KB_OB_MODES.filter((m) => mod.KB_OB_T['mode.' + m + '.t'] === undefined || mod.KB_OB_T['mode.' + m + '.d'] === undefined), [])
 eq('the profession ids are the ones the previous wizard stored', mod.KB_OB_PROFILES, ['soft', 'entre', 'qa', 'produit', 'design', 'etudes', 'finance', 'medias', 'commerce', 'marketing', 'legal', 'autres'])
 eq('the display mode ids are the ones the previous wizard stored', mod.KB_OB_MODES, ['code', 'bureau'])
+eq('every message of the key form has a text', ['format', 'invalid', 'denied', 'unreach', 'fail'].filter((k) => mod.KB_OB_T['key.err.' + k] === undefined), [])
+eq('every refusal of an installation has a text', ['noengine', 'busy', 'failed', 'connect'].filter((k) => mod.KB_OB_T['loc.err.' + k] === undefined), [])
 eq('expired and refused pairings each have a title and a text', ['expired', 'denied'].filter((k) => mod.KB_OB_T['err.' + k + '.t'] === undefined || mod.KB_OB_T['err.' + k + '.s'] === undefined), [])
 const asked = new Set()
 // Only whole keys: the families built by concatenation ('p.' + id, 'mode.' + id + '.t', 'err.' + kind + '.s') are checked above.
@@ -74,10 +76,16 @@ eq('an unknown key answers itself', T('en', 'nope.nothing'), 'nope.nothing')
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
 eq('three numbered steps when no model works yet', mod.kbObPlan(false), ['job', 'mode', 'model'])
 eq('the model step drops out when one works', mod.kbObPlan(true), ['job', 'mode'])
-eq('screens of the model step share one number', ['model', 'key', 'local', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), ['model', 'model', 'model', 'model', 'model', 'model'])
+eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(10).fill('model'))
 eq('welcome and the end screens have no number', ['welcome', 'done', 'later'].map((s) => mod.kbObStepOf(s)), [null, null, null])
-eq('back goes one screen up', ['job', 'mode', 'model', 'key', 'local', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'mode', 'model', 'model', 'model', 'model'])
-eq('there is no back from welcome, from the end, or once connected', ['welcome', 'done', 'later', 'cloud-ok'].map((s) => mod.kbObBack(s)), [null, null, null, null])
+eq('back goes one screen up', ['job', 'mode', 'model', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'mode', 'model', 'model', 'local', 'model', 'model'])
+eq('there is no back from welcome, from the end, mid-download, or once something is connected',
+  ['welcome', 'done', 'later', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObBack(s)), Array(7).fill(null))
+
+/* ── 5b. The pasted key ──────────────────────────────────────────────────── */
+eq('a key is one printable string of 8 to 400 characters', [mod.kbObKeyShape('sk-ant-api03-abcdefghij'), mod.kbObKeyShape('  sk-0123456789 \n')], ['sk-ant-api03-abcdefghij', 'sk-0123456789'])
+eq('what is not a key is refused', ['', 'short', 'with space 123456789', 'tab\tkey-0123456789', 'é-0123456789ab', 'x'.repeat(401), 42, null, undefined].map((v) => mod.kbObKeyShape(v)), Array(9).fill(null))
+eq('the provider is named by the prefixes that are unambiguous', [mod.kbObProviderFromKey('sk-ant-api03-x'), mod.kbObProviderFromKey('AIzaSyabc'), mod.kbObProviderFromKey('sk-proj-abc'), mod.kbObProviderFromKey(''), mod.kbObProviderFromKey(7)], ['anthropic', 'google', null, null, null])
 
 /* ── 6. Light or dark ────────────────────────────────────────────────────── */
 const dark = mod.kbObIsDark
@@ -97,8 +105,16 @@ eq('no script, handler or colour literal: the CSS paints it', /<script|\son[a-z]
 eq('the UI block holds no personal path', /\/Users\//.test(core[1] + ui[1]), false)
 eq('the old wizard\'s texts are gone from the dictionary', /'ob\.(bienvenue|metier|slogan|suivant)/.test(src), false)
 eq('Arabic is a right-to-left base of the app too', /KB_RTL_BASES = \[[^\]]*'ar'/.test(src), true)
-eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos|modeles-locaux)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
-  ['/kybernos-cloud/disconnect', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status', '/modeles-locaux/machine'])
+eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
+  ['/kybernos-cloud/disconnect', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status', '/kybernos-models/key/check',
+    '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
+// The pages it hands over to are named by the id the Settings nav gives them (language-proof), and must be ids that nav knows.
+const navKeys = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
+const known = new Set([...navKeys.matchAll(/(?:'([a-z0-9-]+)'|\b([a-z]+)):\s*'/g)].map((m) => m[1] || m[2]))
+const handedTo = new Set([...ui[1].matchAll(/finish\(\[([^\]]+)\]\)/g)].flatMap((m) => [...m[1].matchAll(/'([a-z0-9-]+)'/g)].map((x) => x[1])))
+eq('the wizard hands over to pages that exist in the Settings nav', [...handedTo].filter((k) => !known.has(k)), [])
+eq('and to the three it needs', [...handedTo].sort(), ['kybernos-models', 'kybernos-ollama', 'models'])
+eq('the two seams it reads are the ones the bundles publish', [/__KB_MODELS__/.test(ui[1]), /__KB_LOCAL__/.test(ui[1])], [true, true])
 
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)
