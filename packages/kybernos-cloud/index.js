@@ -1073,11 +1073,38 @@ const readJsonBody = async (req, cap) => {
   } catch (e) { return {} }
 }
 
-/** Même garde que les autres routes locales : jamais cross-origin. */
+/** The authority a request must name to be about THIS listener: the port the socket is really bound to, on 127.0.0.1 / localhost / [::1], or an authority the
+ *  operator declared to DSH (`--trusted-host`). Null when the request has no socket (a test, a synthetic caller): nothing to compare with. */
+const listenerAuthority = (req) => {
+  const sock = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? req.socket : null
+  if (sock === null || typeof sock.localPort !== 'number') return null
+  const port = ':' + sock.localPort
+  return (authority) => ['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(authority) >= 0 || kbTrusted(authority)
+}
+/** False when the Host header names an authority that is not this listener's: a page that rebinds its own name to this machine (DNS rebinding) reaches the
+ *  routes with Host = its own name. DSH serves plugin routes BEFORE its own authentication and its `/api` Host fence does not cover them, so this is the
+ *  fence. Applied to every route, the open ones (status, server, models) included. */
+const hostAllowed = (req) => {
+  try {
+    const mine = listenerAuthority(req)
+    const host = req.headers !== null && req.headers !== undefined && typeof req.headers.host === 'string' ? req.headers.host : null
+    return mine === null || host === null || mine(host) === true
+  } catch (e) { return false }
+}
+
+/** Même garde que les autres routes locales : jamais cross-origin.
+ *  On a real connection the Origin is compared with what THIS listener really is, never with the Host header alone: « Origin.host === Host » let a page
+ *  that rebinds its name send the same attacker-chosen authority as both (measured in the pre-production acceptance: memory/add and space/create
+ *  answered 200 to Host = Origin = attacker.example). A request with no socket keeps the old comparison. */
 const sameOrigin = (req) => {
   try {
     const origin = typeof req.headers.origin === 'string' ? req.headers.origin : null
     const host = typeof req.headers.host === 'string' ? req.headers.host : null
+    const mine = listenerAuthority(req)
+    if (mine !== null) {
+      if (host !== null && mine(host) !== true) return false
+      return origin === null ? true : mine(new URL(origin).host) === true
+    }
     if (origin === null || host === null) return true
     return new URL(origin).host === host
   } catch (e) {
@@ -3976,6 +4003,8 @@ const mountWebRoutes = (ctx, webServer) => {
         res.setHeader('Vary', 'Origin')
         if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
       }
+      // A Host that is not this listener's is a rebound page: refused before anything is read, whatever the route (the open ones included).
+      if (hostAllowed(req) !== true) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (req.method !== route.method) return sendJson(res, 405, { ok: false, error: route.method + ' attendu' })
       if (route.guarded === true && sameOrigin(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
       if (route.strict === true && sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
@@ -4021,7 +4050,7 @@ export function apply(ctx) {
 export {
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
-  profileRefreshTick, PROFILE_REFRESH_TUNING,
+  profileRefreshTick, PROFILE_REFRESH_TUNING, sameOrigin, hostAllowed,
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
