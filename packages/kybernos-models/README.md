@@ -38,6 +38,7 @@ Toutes répondent en JSON ; les écritures exigent la même origine (`Origin` é
 | `GET /kybernos-models/annotations` | `{ok, models:{ 'route/id': {…} }}` |
 | `POST /kybernos-models/annotations/save` | `{ok, key, fields, count}` — `{key, fields}` ; clé `route/id` (≤ 300, segments non vides) ; `fields:null` purge la clé ; une valeur `null`/`''` retire le champ |
 | `POST /kybernos-models/journal` | `{ok, line}` — une ligne par tentative d'écriture ; `GET …?limit=N` relit les N dernières |
+| `POST /kybernos-models/key/check` | `{ok, result}` — `{provider, key}` : un GET en lecture seule sur la liste de modèles du fournisseur (adresse choisie ici dans une table de quatre : anthropic, openai, deepseek, google ; redirection refusée ; fetch global, jamais `web.fetch`). `result` : `ok`, `invalid`, `denied`, `rate_limited`, `unreachable`, `unexpected`. Ni la clé ni la réponse ne reviennent. Même origine exigée. Utilisée par l'assistant de premier lancement de `kybernos-plugin`. |
 | `GET /kybernos-models/modelsdev?route=&id=&force=1` | `{ok, at, stale, match:{…}|null}` ; `modelsdev-unavailable` si aucun index |
 
 L'index models.dev est mis en cache 6 h dans `$DSH_HOME/kybernos-models/modelsdev.json`,
@@ -203,3 +204,12 @@ node scripts/build-provider-catalog.mjs --md /tmp/mdv
 - La clé collée dans le formulaire part à `remote.credentials.set(<variable>, <clé>)` — le
   même coffre que le flux natif et la carte Kybernos Cloud, jamais `settings.yaml`.
 - Sans l'hôte à jour, le client retombe sur la courte liste intégrée (`PROV_CATALOG`).
+
+## Seam pour l'assistant de premier lancement
+
+`window.__KB_MODELS__ = { saveKey(provider, key), providers }` (publié par `apply`, retiré au `dispose`). `saveKey` fait
+l'écriture du flux « Add provider » (`kbPvCreate`), ou, quand la route est déjà déclarée, seulement sa clé (référence
+`apiKeyEnv` posée si absente, puis `credentials.set`). Répond `{ok:true, slug, existed}` ou `{ok:false, reason}` ; la raison
+est un code (`unknown_provider`, `empty`, `unavailable`, `readonly`, `write_refused`, `key_not_stored`, `refused`), jamais le
+texte d'un fournisseur. Test : `node packages/kybernos-models/test-key-check.mjs` (route) ; le seam lui-même est vérifié
+sur le bac à sable par `scripts/check-onboarding-live.mjs`.

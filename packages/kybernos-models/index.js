@@ -29,6 +29,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { checkKey } from './key-check.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -287,6 +288,20 @@ export const kbSameOriginStrict = (req) => {
     const port = req.socket && typeof req.socket.localPort === 'number' ? ':' + req.socket.localPort : ''
     return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
   } catch (e) { return false }
+}
+
+/** Mount the first-run wizard's key check on a webServer-like `{ register }`: same-origin POST only, answers one word
+ *  (`ok`, `invalid`, `denied`, `rate_limited`, `unreachable`, `unexpected`), never the key or the provider's answer. */
+export const kbKeyMount = (register, options = {}) => {
+  register({ kind: 'exact', path: '/kybernos-models/key/check', handler: async (req, res) => {
+    if (req.method !== 'POST') { sendJson(res, 405, { ok: false, error: 'method' }); return }
+    if (kbSameOriginStrict(req) !== true) { sendJson(res, 403, { ok: false, error: 'origin' }); return }
+    const body = await readBody(req)
+    if (!isPlainObject(body)) { sendJson(res, 400, { ok: false, error: 'bad-json' }); return }
+    const out = await checkKey(body.provider, body.key, options)
+    if (out.ok !== true) { sendJson(res, 400, { ok: false, error: out.error }); return }
+    sendJson(res, 200, { ok: true, result: out.result })
+  } })
 }
 
 /** Mount the four parked-provider routes on a webServer-like `{ register }`. */
@@ -900,6 +915,8 @@ export function apply(ctx) {
 
       // Parked ("disabled") providers: list, park, take, forget.
       kbPkMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
+      // The first-run wizard asks the provider whether a pasted key is accepted, before saving it.
+      kbKeyMount((route) => hostCtx.effect(() => webServer.register(route), 'kybernos-models: ' + route.path))
 
       // Journal des écritures : chaque tentative du panneau (champ réel ou
       // annotation) y laisse une ligne, avec la réponse du harnais. C'est la

@@ -205,6 +205,20 @@ host's `fichiers`, the four pills stepping aside), every state through the seam,
 window and the seam missing. **Every POST of `/kybernos-sessions/*` is answered inside the page by the check** (fail-closed):
 the sandbox runs git in the user's real repository folder, so a real commit must be impossible, whatever the page asks.
 
+## The first-run wizard: `scripts/check-onboarding-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs
+```
+
+Sandbox only (it refuses `:3080`, exit 3): it really saves a key and connects a model, which is the point, so it must write to
+an instance that is nobody's. It writes `completed:false` in the sandbox's `kybernos/onboarding.json` itself (`setup.sh` writes
+it as done), walks the screens, and answers three things over CDP so that nothing leaves the machine or runs for real: the Kybernos
+Cloud pairing routes, the key check (a provider's API is never asked about a made-up key) and the installer with its progress
+(no `brew`, no `ollama pull`). What it reads or writes for real: the host's onboarding route and file, the machine probe, and
+both seams (`window.__KB_MODELS__`, `window.__KB_LOCAL__`): the credential and the provider routes land in the sandbox's
+`.credentials.yaml` and `cordis.patch.yml`, checked by name, never by value. Host code changed since the sandbox started: `stop.sh`, `start.sh`.
+
 ## The help of every plugin: `scripts/check-help-live.mjs`
 
 Each bundle has a `packages/<dir>/help.json` (what it is, how to use it, where to find it, one thing worth knowing, in French and

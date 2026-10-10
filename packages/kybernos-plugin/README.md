@@ -20,7 +20,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
 - Settings sections **Tools**, **Voice**, Referral, Appearance (shortcut to Theme), Security, Support & legal; a first-run
-  **onboarding** wizard. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
+  **onboarding** wizard (see « First-run onboarding » below). An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
   DSH's locale service even when `kybernos-language` is off.
 
 ## Host routes
@@ -75,9 +75,42 @@ switched off with a `SKILL.md.disabled`, is never touched.
   `edge-tts` sends text to Microsoft. In the browser `kb-places.js` uses photon.komoot.io, nominatim.openstreetmap.org, CARTO tiles
   and a jsdelivr fallback. Helpers: `tools/visages-equipe.py`.
 
+## First-run onboarding
+
+A full-screen wizard (plain DOM, `KB-OB-*` blocks of `client.js`) opens once on a fresh install, and again from the
+« Replay » button at the top of Kybernos Settings (`kybernos-sessions` fires the window event `kybernos:onboarding`).
+It is a single column in the look of dev.kybernos.app (light or dark, whichever the page behind it is) with the K logo.
+
+- **Screens:** welcome, profession, display mode, then « which model do you want to work with? ». The model screen is
+  skipped when a model already works (Kybernos Cloud connected, or a pulled Ollama model); otherwise it offers:
+  - **the account** (`/kybernos-cloud/start` + `poll`): the wizard shows the code, the person types it on the page that
+    opens (the page never displays it: ADR 0009 of the server), and the connection is picked up by itself;
+  - **an API key** for Anthropic, OpenAI, DeepSeek or Google: pasted in the wizard, checked with the provider
+    (`POST /kybernos-models/key/check`, one word back), then saved by `window.__KB_MODELS__.saveKey`, the same write as
+    the Add provider flow. Another provider, or `kybernos-models` off, is handed to Settings;
+  - **a local model**: the recommendation and the connection come from `window.__KB_LOCAL__` of
+    `kybernos-modeles-locaux`; the download is the host's own `/modeles-locaux/installer` job (Homebrew, macOS), with a
+    progress bar. Leaving the wizard mid-download keeps it going and connects the model when it ends.
+  A way whose bundle is off is not shown; the hand-over to Settings names the page by its nav id, so it works in every
+  language.
+- **Closing:** Skip, the cross and Escape all record what was chosen so far; it is never asked twice.
+- **Texts:** shipped here for English (the default), French, Spanish and Arabic (right-to-left), in `KB_OB_T`. They are
+  not read from the translation runtime: that one needs a model, and this wizard is what gets the person one. The
+  wizard's language is its own (menu in its header); it starts from the app's language and never changes it.
+- **State:** `$DSH_HOME/kybernos/onboarding.json`, rules in `onboarding-state.mjs`. `profil` and `uiMode` keep the ids
+  of the previous wizard; `model` (`cloud`, `key`, `local`, `later`) and `lang` are new and read as `null` in an older
+  file. The version stays at 1 on purpose: raising it would reopen the wizard for every existing user.
+- **Not done yet:** « a model already works » only knows the connected account and a pulled Ollama model (a key
+  already in the profile is not detected); nothing reads `profil` and `uiMode`.
+
 ## Tests
 
 ```bash
+node scripts/test-onboarding.mjs                       # KB-OB-CORE block: texts in 4 languages, language choice, steps, theme probe, K artwork
+node packages/kybernos-plugin/test-onboarding-state.mjs  # the state file: version, answers, replay, older files
+node packages/kybernos-models/test-key-check.mjs       # the key check: where a key may go, the one-word answer, the route's guards
+node packages/kybernos-modeles-locaux/test-seam.mjs    # the recommendation and the route profile the wizard shares with the panel
+source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs   # the wizard on the sandbox: account, key saved, model connected, hand-over (refuses :3080)
 node packages/kybernos-plugin/test-i18n-store.mjs      # 60 checks: disk translation store and its route, temp dir
 node packages/kybernos-plugin/test-i18n-translate.mjs  # 47: translate batches against a fake llm.stream
 node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtime> block with fake locale and storage

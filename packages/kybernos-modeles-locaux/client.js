@@ -283,6 +283,40 @@ window.__ModuleLoader__.load({
         "@media (max-width: 900px) { .kml-tuiles { grid-template-columns: 1fr; } }\n" +
         "@media (max-width: 720px) { .kml-mod { flex-wrap: wrap; } .kml-mod-etat { align-items: flex-start; } .kml-mod-actions { justify-content: flex-start; } .kml-hf-saisie { min-width: 100%; } }\n"
 
+      // ── le profil de la route locale, et ce que le premier lancement de Kybernos en utilise ──
+      // Le panneau (brancher) et l'assistant de premier lancement (window.__KB_LOCAL__, plus bas) construisent
+      // la route de la même façon : un seul endroit.
+      const kbBuildProfile = (existing, mod) => {
+        const prof = existing !== null && existing !== undefined ? JSON.parse(JSON.stringify(existing)) : {}
+        if (typeof prof.api !== 'string' || prof.api.length === 0) prof.api = 'openai-completions'
+        if (typeof prof.baseURL !== 'string' || prof.baseURL.length === 0) prof.baseURL = BASE_LOCALE
+        // pi-ai refuse un fournisseur sans clé (« No API key », mesuré 27/09)
+        // même pour un moteur local qui l'ignore : clé factice au coffre.
+        if (typeof prof.apiKeyEnv !== 'string' || prof.apiKeyEnv.length === 0) prof.apiKeyEnv = 'OLLAMA_LOCAL_API_KEY'
+        const modeles = Array.isArray(prof.models) ? prof.models.filter((x) => x && x.id !== mod.id) : []
+        // Les qwen3.5 « pensent » par défaut et l'endpoint OpenAI d'Ollama ne
+        // coupe ça que par reasoning_effort (mesuré 27/09 : « think:false »
+        // ignoré, « reasoning_effort:'none' » → réponse immédiate). On déclare
+        // donc les niveaux (off→none, low, medium, high) et le compat qui
+        // laisse pi-ai envoyer le paramètre — le sélecteur apparaît dans DSH.
+        const pense = /^(qwen3([.\-_]|$)|qwen3\.5|deepseek-r1|qwq)/.test(mod.id)
+        const entree = { id: mod.id, name: mod.id, contextWindow: 32768, input: (mod.input || ['text', 'image']).slice() }
+        if (pense === true) {
+          entree.reasoningEfforts = { off: 'none', low: 'low', medium: 'medium', high: 'high' }
+          entree.compat = { supportsReasoningEffort: true }
+        }
+        modeles.push(entree)
+        prof.models = modeles
+        return prof
+      }
+      // La recommandation : le PLUS GRAND modèle qui tient dans la RAM mesurée. Le catalogue est trié du plus
+      // grand au plus petit : le premier qui passe le filtre EST le plus grand qui convient (mesuré 27/09 :
+      // prendre le DERNIER faisait porter « Recommandé » à gemma4:e4b au lieu du 9B).
+      const kbRecommend = (ramGo) => {
+        const possibles = CATALOGUE.filter((mod) => ramGo === null || ramGo === undefined || mod.ramMin <= ramGo)
+        return possibles.length > 0 ? possibles[0] : null
+      }
+
       // ── accès services ───────────────────────────────────────────────────
       let kbCtx = null
       const kbMApi = () => {
@@ -416,27 +450,7 @@ window.__ModuleLoader__.load({
           }
         }
         const brancher = async (mod) => {
-          const prof = ollamaLocal !== null ? JSON.parse(JSON.stringify(ollamaLocal)) : {}
-          if (typeof prof.api !== 'string' || prof.api.length === 0) prof.api = 'openai-completions'
-          if (typeof prof.baseURL !== 'string' || prof.baseURL.length === 0) prof.baseURL = BASE_LOCALE
-          // pi-ai refuse un fournisseur sans clé (« No API key », mesuré 27/09)
-          // même pour un moteur local qui l'ignore : clé factice au coffre.
-          if (typeof prof.apiKeyEnv !== 'string' || prof.apiKeyEnv.length === 0) prof.apiKeyEnv = 'OLLAMA_LOCAL_API_KEY'
-          const modeles = Array.isArray(prof.models) ? prof.models.filter((x) => x && x.id !== mod.id) : []
-          // Les qwen3.5 « pensent » par défaut et l'endpoint OpenAI d'Ollama ne
-          // coupe ça que par reasoning_effort (mesuré 27/09 : « think:false »
-          // ignoré, « reasoning_effort:'none' » → réponse immédiate). On déclare
-          // donc les niveaux (off→none, low, medium, high) et le compat qui
-          // laisse pi-ai envoyer le paramètre — le sélecteur apparaît dans DSH.
-          const pense = /^(qwen3([.\-_]|$)|qwen3\.5|deepseek-r1|qwq)/.test(mod.id)
-          const entree = { id: mod.id, name: mod.id, contextWindow: 32768, input: (mod.input || ['text', 'image']).slice() }
-          if (pense === true) {
-            entree.reasoningEfforts = { off: 'none', low: 'low', medium: 'medium', high: 'high' }
-            entree.compat = { supportsReasoningEffort: true }
-          }
-          modeles.push(entree)
-          prof.models = modeles
-          await muter([{ op: 'set', path: ['providers', ROUTE_LOCALE], value: prof }])
+          await muter([{ op: 'set', path: ['providers', ROUTE_LOCALE], value: kbBuildProfile(ollamaLocal, mod) }])
         }
         const debrancher = async (id) => {
           if (ollamaLocal === null) return
@@ -468,14 +482,7 @@ window.__ModuleLoader__.load({
           if (ramGo !== null && ec <= ramGo) return 'juste'
           return 'lourd'
         }
-        // La recommandation : le PLUS GRAND modèle qui tient dans la RAM mesurée.
-        // Le catalogue est trié du plus grand au plus petit : le premier qui
-        // passe le filtre EST le plus grand qui convient (mesuré 27/09 : prendre
-        // le DERNIER faisait porter « Recommandé » à gemma4:e4b au lieu du 9B).
-        const reco = (() => {
-          const possibles = CATALOGUE.filter((mod) => ramGo === null || mod.ramMin <= ramGo)
-          return possibles.length > 0 ? possibles[0] : null
-        })()
+        const reco = kbRecommend(ramGo)
         const visibles = CATALOGUE.filter((mod) => {
           if (budget === 'compatibles') return etatDe(mod) === 'compatible'
           if (budget === 'reco') return mod === reco
@@ -644,10 +651,42 @@ window.__ModuleLoader__.load({
                   : null))))
       }
 
+      // Brancher un modèle déjà tiré, hors du panneau : ce que l'assistant de premier lancement fait quand son
+      // téléchargement est fini. Même profil que le bouton « Brancher » (kbBuildProfile), même canal (settings.mutate).
+      /** @returns {Promise<{ok:true}|{ok:false,reason:string}>} reason est un code */
+      const kbConnect = async (id) => {
+        const mod = CATALOGUE.find((x) => x.id === id)
+        if (mod === undefined) return { ok: false, reason: 'unknown_model' }
+        const api = kbMApi()
+        if (api === null || api.settings === null) return { ok: false, reason: 'unavailable' }
+        try {
+          const resp = await api.settings.describe()
+          if (resp === null || resp === undefined || resp.ok !== true) return { ok: false, reason: 'unavailable' }
+          if (resp.value.writable !== true) return { ok: false, reason: 'readonly' }
+          const namespaces = Array.isArray(resp.value.namespaces) ? resp.value.namespaces : []
+          const vue = namespaces.filter((n) => n.ns === KB_NS)[0]
+          if (vue === undefined) return { ok: false, reason: 'unavailable' }
+          const value = vue.value && typeof vue.value === 'object' ? vue.value : {}
+          const providers = value.providers && typeof value.providers === 'object' ? value.providers : {}
+          const existing = providers[ROUTE_LOCALE] && typeof providers[ROUTE_LOCALE] === 'object' ? providers[ROUTE_LOCALE] : null
+          const done = await api.settings.mutate(KB_NS, [{ op: 'set', path: ['providers', ROUTE_LOCALE], value: kbBuildProfile(existing, mod) }], typeof vue.revision === 'number' ? vue.revision : undefined)
+          return done !== null && done !== undefined && done.ok === true ? { ok: true } : { ok: false, reason: 'write_refused' }
+        } catch (e) { return { ok: false, reason: 'refused' } }
+      }
+
       return {
         inject: ['slots', 'remote', 'remote.settings', 'remote.llm', 'locale'],
         apply(ctx) {
           kbCtx = ctx
+          // The first-run wizard (kybernos-plugin) asks for the recommendation and connects a pulled model through this.
+          ctx.effect(() => {
+            const seam = {
+              recommend: (ramGo) => { const r = kbRecommend(ramGo); return r === null ? null : { id: r.id, tailleGo: r.tailleGo, ramMin: r.ramMin } },
+              connect: kbConnect,
+            }
+            try { window.__KB_LOCAL__ = seam } catch (e) { /* no window */ }
+            return () => { try { if (window.__KB_LOCAL__ === seam) delete window.__KB_LOCAL__ } catch (e) { /* no window */ } }
+          }, 'modeles-locaux: wizard seam')
           try {
             const svc = ctx.get('locale')
             const lu = typeof svc === 'string' ? svc : (svc !== null && svc !== undefined ? (svc.locale || svc.current || svc.lang) : null)

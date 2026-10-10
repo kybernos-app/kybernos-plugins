@@ -40,3 +40,12 @@ KB_SHOT=/tmp/kml-gui.png node scripts/check-modeles-locaux-live.mjs  # 10/10 —
                                      # détection réelle, reco sur qwen3.5:9b (Chrome headless
                                      # éphémère + cookie de session posé via CDP)
 ```
+
+## Seam pour l'assistant de premier lancement
+
+`window.__KB_LOCAL__ = { recommend(ramGo), connect(id) }` (publié par `apply`, retiré au `dispose`). `recommend` rend
+`{id, tailleGo, ramMin}` (le même choix que le badge « Recommandé » du panneau, `kbRecommend`) ou `null`. `connect(id)` branche
+un modèle déjà tiré avec le MÊME profil que le bouton « Brancher » (`kbBuildProfile`, partagé) et le même canal
+(`settings.mutate`) ; `{ok:true}` ou `{ok:false, reason}` (`unknown_model`, `unavailable`, `readonly`, `write_refused`,
+`refused`). L'installation elle-même reste le job de l'hôte (`/modeles-locaux/installer`). Test :
+`node packages/kybernos-modeles-locaux/test-seam.mjs`.

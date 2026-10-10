@@ -2110,39 +2110,6 @@ let kbLocaleRead = () => 'en'
       'kbws.keys.revoket': { kybernos: 'Révoquer la clé %s ?', en: 'Revoke key %s?' },
       'kbws.keys.revokeq': { kybernos: 'Toute configuration opencode qui l\'utilise cesse de fonctionner immédiatement.', en: 'Any opencode config using it stops working immediately.' },
       'kbws.keys.revoked': { kybernos: 'Clé révoquée', en: 'Key revoked' },
-      // ── onboarding : pages de bienvenue jouées à l'installation ──────────────
-      // Parcours en trois écrans (bienvenue → métier → affichage), libellés
-      // portés par KB_T comme tout le chrome du plugin.
-      'ob.bienvenue.titre': { kybernos: 'Bienvenue dans Kybernos', en: 'Welcome to Kybernos' },
-      'ob.bienvenue.sous': { kybernos: 'Ton espace de travail avec une équipe d’agents IA. Deux préférences à régler — 30 secondes.', en: 'Your workspace with a team of AI agents. Two preferences to set — 30 seconds.' },
-      'ob.metier.titre': { kybernos: 'Et toi, tu fais quoi ?', en: 'What do you do?' },
-      'ob.metier.sous': { kybernos: 'Choisis ce qui ressemble le plus à ton quotidien.', en: 'Choose the closest match to your everyday work.' },
-      'ob.profil.soft': { kybernos: 'Software / Data / IA', en: 'Software / Data / AI' },
-      'ob.profil.entre': { kybernos: 'Entrepreneuriat / Freelance / OPC', en: 'Entrepreneurship / Freelancing / OPC' },
-      'ob.profil.qa': { kybernos: 'QA / Opérations / Sécurité', en: 'QA / Operations / Security' },
-      'ob.profil.produit': { kybernos: 'Produit / Projet / Solutions', en: 'Product / Project / Solutions' },
-      'ob.profil.design': { kybernos: 'UI / UX / Design visuel', en: 'UI / UX / Visual Design' },
-      'ob.profil.etudes': { kybernos: 'Étudiants / Enseignement / Recherche', en: 'Students / Teaching / Research' },
-      'ob.profil.finance': { kybernos: 'Finance / Comptabilité / Conseil', en: 'Finance / Accounting / Consulting' },
-      'ob.profil.medias': { kybernos: 'Médias / Création de contenu', en: 'Media / Content Creation' },
-      'ob.profil.commerce': { kybernos: 'Opérations / Commerce / Service client', en: 'Operations / Commerce / Customer Service' },
-      'ob.profil.marketing': { kybernos: 'Marketing / Marque / PR', en: 'Marketing / Brand / PR' },
-      'ob.profil.legal': { kybernos: 'Légal / Administration / RH', en: 'Legal / Administration / HR' },
-      'ob.profil.autres': { kybernos: 'Autres métiers', en: 'Other professions' },
-      'ob.mode.titre': { kybernos: 'Choisis ton affichage', en: 'Choose your UI mode' },
-      'ob.mode.sous': { kybernos: 'Comment veux-tu que Kybernos montre son travail ?', en: 'How would you like Kybernos to show its work?' },
-      'ob.mode.code.t': { kybernos: 'Mode Code', en: 'Coding mode' },
-      'ob.mode.code.d': { kybernos: 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', en: 'I want to see code, command output, and change details throughout the development process.' },
-      'ob.mode.bureau.t': { kybernos: 'Mode Bureau', en: 'Office mode' },
-      'ob.mode.bureau.d': { kybernos: 'Je suis l’avancement et les résultats, sans les détails techniques.', en: 'I focus on task progress and results, without technical details.' },
-      'ob.suivant': { kybernos: 'Suivant', en: 'Next' },
-      'ob.finir': { kybernos: 'Terminer', en: 'Finish' },
-      'ob.passer': { kybernos: 'Passer', en: 'Skip' },
-      'ob.retour': { kybernos: 'Retour', en: 'Back' },
-      'ob.fermer': { kybernos: 'Fermer', en: 'Close' },
-      'ob.slogan': { kybernos: 'Simple, rapide, prêt à vibrer !', en: 'Simple, Fast, Vibe-Ready!' },
-      'ob.slogan.l1': { kybernos: 'Des équipes d’agents qui avancent pour toi.', en: 'Tackle complex goals with multiple agents.' },
-      'ob.slogan.l2': { kybernos: 'Garde le contrôle, où que tu sois.', en: 'Stay in control, wherever you are.' },
     }
 // ── Pont de langue (chantier RTL/arabe, 2026-09-25) ─────────────────────────
 // La page Réglages ▸ Thème ▸ Langue traduit à la demande (moteur LLM du plugin
@@ -31783,276 +31750,1187 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
     })()
 
-    // ═══ Onboarding — pages de bienvenue, jouées à l'installation du plugin ═══
-    // Repère visuel : écran gauche sombre (les étapes) + panneau droit bleu
-    // (logo et promesse), points de progression, Retour / Passer — le parcours
-    // d'accueil classique, habillé aux couleurs de Kybernos.
-    // DÉCLENCHEMENT À L'INSTALLATION : au boot, GET /kybernos/onboarding — l'hôte
-    // CRÉE le marqueur ~/.dsh/kybernos/onboarding.json à la première lecture,
-    // donc une installation neuve répond `completed:false` et le wizard s'ouvre.
-    // ✕ et « Passer » clôturent (POST complete — l'utilisateur a vu les pages) ;
-    // Échap referme SANS clôturer : le wizard se rejouera au prochain
-    // démarrage. REJOUER : le bouton en tête de Kybernos Settings (bundle
-    // kybernos-sessions) émet l'événement fenêtre `kybernos:onboarding`
-    // {action:'replay'} → POST replay, puis ouverture. DOM vanilla volontaire :
-    // une surcouche plein écran qui ne doit rien devoir au cycle React du shell.
-    ;(() => {
-      let etape = 0
-      let profil = null
-      let modeAffichage = null
-      let velo = null
-      let surTouche = null
+    // ═══ Onboarding: the first-run wizard ═══════════════════════════════════════════
+    // Opens once, on a fresh install (GET /kybernos/onboarding answers `completed:false`; the
+    // host CREATES ~/.dsh/kybernos/onboarding.json on that first read). Four screens at most:
+    // welcome, profession, display mode, and « which model do you want to work with? », which is
+    // skipped when a model already works. « Skip », the cross and Escape all close it and record
+    // what was chosen so far: it is never asked twice. Replay: the button at the top of Kybernos
+    // Settings (bundle kybernos-sessions) fires the window event `kybernos:onboarding`.
+    //
+    // The texts are SHIPPED here for English, French, Spanish and Arabic, and are NOT read from the
+    // translation runtime: that one needs a model, and this wizard is what gets the person one.
+    // English is the default. The wizard's language is its own (picked in its header); it follows
+    // the language the app already has, and never changes it.
+    //
+    // The wizard is plain DOM on purpose: a full-screen layer that owes nothing to the shell's React
+    // cycle. The pure part below is tested by scripts/test-onboarding.mjs, which runs the block as-is.
 
-      const svg = (contenu, taille) => '<svg xmlns="http://www.w3.org/2000/svg" width="' + String(taille) + '" height="' + String(taille) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + contenu + '</svg>'
-      const IC = {
-        code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
-        fusee: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
-        bouclier: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
-        gabarit: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
-        crayon: '<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>',
-        toque: '<path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/>',
-        serviette: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
-        video: '<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
-        boutique: '<path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 21v-6h6v6"/>',
-        megaphone: '<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
-        balance: '<path d="M12 3v18"/><path d="M5 7l7-4 7 4"/><path d="M5 7l-3 7a3.5 3.5 0 0 0 6 0L5 7z"/><path d="M19 7l-3 7a3.5 3.5 0 0 0 6 0l-3-7z"/><path d="M2 21h20"/>',
-        points: '<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
-        coche: '<polyline points="20 6 9 17 4 12"/>',
-        croix: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>'
+    // KB-OB-CORE-BEGIN
+    const KB_OB_LANGS = [
+      { id: 'en', name: 'English', short: 'EN', rtl: false },
+      { id: 'fr', name: 'Français', short: 'FR', rtl: false },
+      { id: 'es', name: 'Español', short: 'ES', rtl: false },
+      { id: 'ar', name: 'العربية', short: 'AR', rtl: true },
+    ]
+    // The ids are the ones the previous wizard stored in onboarding.json: an existing file stays valid.
+    const KB_OB_PROFILES = ['soft', 'entre', 'qa', 'produit', 'design', 'etudes', 'finance', 'medias', 'commerce', 'marketing', 'legal', 'autres']
+    const KB_OB_MODES = ['code', 'bureau']
+    // Where each provider hands out keys. The wizard only shows the address: it opens nothing by itself.
+    const KB_OB_PROVIDERS = [
+      { id: 'anthropic', name: 'Anthropic', host: 'console.anthropic.com', path: '/settings/keys' },
+      { id: 'openai', name: 'OpenAI', host: 'platform.openai.com', path: '/api-keys' },
+      { id: 'deepseek', name: 'DeepSeek', host: 'platform.deepseek.com', path: '/api_keys' },
+      { id: 'google', name: 'Google Gemini', host: 'aistudio.google.com', path: '/apikey' },
+      { id: 'other', name: null, host: null, path: '' },
+    ]
+    // [en, fr, es, ar]. English is the fallback of every other language.
+    const KB_OB_T = {
+      'skip': ['Skip', 'Passer', 'Omitir', 'تخطي'],
+      'back': ['Back', 'Retour', 'Atrás', 'رجوع'],
+      'cont': ['Continue', 'Continuer', 'Continuar', 'متابعة'],
+      'start': ['Get started', 'Commencer', 'Empezar', 'ابدأ'],
+      'close': ['Close', 'Fermer', 'Cerrar', 'إغلاق'],
+      'langs': ['Language', 'Langue', 'Idioma', 'اللغة'],
+      'step': ['Step {n} of {total}', 'Étape {n} sur {total}', 'Paso {n} de {total}', 'الخطوة {n} من {total}'],
+      'wel.t': ['Welcome to Kybernos', 'Bienvenue dans Kybernos', 'Te damos la bienvenida a Kybernos', 'مرحبًا بك في Kybernos'],
+      'wel.s': ['A team of AI agents in one workspace. A few quick settings — and you can skip them all.', 'Une équipe d’agents IA dans un seul espace de travail. Quelques réglages — et tu peux tout passer.', 'Un equipo de agentes de IA en un solo espacio de trabajo. Unos ajustes rápidos — y puedes saltártelos todos.', 'فريق من وكلاء الذكاء الاصطناعي في مساحة عمل واحدة. بضعة إعدادات سريعة — ويمكنك تخطيها كلها.'],
+      'job.t': ['What do you do?', 'Et toi, tu fais quoi ?', '¿A qué te dedicas?', 'ما مجال عملك؟'],
+      'job.s': ['Choose the closest match to your everyday work.', 'Choisis ce qui ressemble le plus à ton quotidien.', 'Elige lo que más se parezca a tu día a día.', 'اختر ما يشبه عملك اليومي أكثر.'],
+      'p.soft': ['Software / Data / AI', 'Software / Data / IA', 'Software / Datos / IA', 'البرمجة / البيانات / الذكاء الاصطناعي'],
+      'p.entre': ['Entrepreneurship / Freelancing', 'Entrepreneuriat / Freelance', 'Emprendimiento / Freelance', 'ريادة الأعمال / العمل الحر'],
+      'p.qa': ['QA / Operations / Security', 'QA / Opérations / Sécurité', 'QA / Operaciones / Seguridad', 'ضمان الجودة / العمليات / الأمن'],
+      'p.produit': ['Product / Project / Solutions', 'Produit / Projet / Solutions', 'Producto / Proyecto / Soluciones', 'المنتج / المشاريع / الحلول'],
+      'p.design': ['UI / UX / Visual Design', 'UI / UX / Design visuel', 'UI / UX / Diseño visual', 'واجهات وتجربة المستخدم / التصميم'],
+      'p.etudes': ['Students / Teaching / Research', 'Étudiants / Enseignement / Recherche', 'Estudiantes / Docencia / Investigación', 'الطلاب / التعليم / البحث'],
+      'p.finance': ['Finance / Accounting / Consulting', 'Finance / Comptabilité / Conseil', 'Finanzas / Contabilidad / Consultoría', 'المالية / المحاسبة / الاستشارات'],
+      'p.medias': ['Media / Content Creation', 'Médias / Création de contenu', 'Medios / Creación de contenido', 'الإعلام / صناعة المحتوى'],
+      'p.commerce': ['Operations / Commerce / Customer Service', 'Opérations / Commerce / Service client', 'Operaciones / Comercio / Atención al cliente', 'العمليات / التجارة / خدمة العملاء'],
+      'p.marketing': ['Marketing / Brand / PR', 'Marketing / Marque / PR', 'Marketing / Marca / RR. PP.', 'التسويق / العلامة التجارية / العلاقات العامة'],
+      'p.legal': ['Legal / Administration / HR', 'Légal / Administration / RH', 'Legal / Administración / RR. HH.', 'القانون / الإدارة / الموارد البشرية'],
+      'p.autres': ['Other professions', 'Autres métiers', 'Otras profesiones', 'مهن أخرى'],
+      'mode.t': ['Choose your UI mode', 'Choisis ton affichage', 'Elige tu modo de visualización', 'اختر طريقة العرض'],
+      'mode.s': ['How would you like Kybernos to show its work?', 'Comment veux-tu que Kybernos montre son travail ?', '¿Cómo quieres que Kybernos muestre su trabajo?', 'كيف تريد أن يعرض Kybernos عمله؟'],
+      'mode.code.t': ['Coding mode', 'Mode Code', 'Modo Código', 'وضع البرمجة'],
+      'mode.code.d': ['I want to see code, command output, and change details throughout the development process.', 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', 'Quiero ver el código, la salida de los comandos y el detalle de los cambios durante todo el trabajo.', 'أريد رؤية الشيفرة ومخرجات الأوامر وتفاصيل التغييرات طوال العمل.'],
+      'mode.bureau.t': ['Office mode', 'Mode Bureau', 'Modo Oficina', 'وضع المكتب'],
+      'mode.bureau.d': ['I focus on task progress and results, without technical details.', 'Je suis l’avancement et les résultats, sans les détails techniques.', 'Sigo el avance y los resultados, sin detalles técnicos.', 'أتابع التقدّم والنتائج دون التفاصيل التقنية.'],
+      'brain.t': ['Which model do you want to work with?', 'Avec quel modèle veux-tu travailler ?', '¿Con qué modelo quieres trabajar?', 'بأي نموذج تريد أن تعمل؟'],
+      'brain.s': ['Your agents need an AI model to answer. Pick the simplest option for you; you can change it later in Settings.', 'Tes agents ont besoin d’un modèle d’IA pour répondre. Prends le plus simple pour toi ; tu pourras en changer dans Réglages.', 'Tus agentes necesitan un modelo de IA para responder. Elige lo más sencillo para ti; podrás cambiarlo más tarde en Ajustes.', 'يحتاج وكلاؤك إلى نموذج ذكاء اصطناعي ليجيبوا. اختر الأبسط لك؛ يمكنك تغييره لاحقًا من الإعدادات.'],
+      'v.cloud.t': ['Start right away', 'Démarrer tout de suite', 'Empezar ahora', 'ابدأ فورًا'],
+      'v.cloud.d': ['A Kybernos account, free to begin with. No API key to manage: you sign in from your browser and it’s connected.', 'Un compte Kybernos, gratuit pour commencer. Pas de clé API à gérer : tu te connectes dans ton navigateur et c’est branché.', 'Una cuenta Kybernos, gratis para empezar. Sin claves API que gestionar: inicias sesión en tu navegador y queda conectado.', 'حساب Kybernos، مجاني للبداية. لا مفاتيح API لإدارتها: تسجّل الدخول من متصفحك ويتم الربط.'],
+      'v.cloud.tag': ['No API key', 'Sans clé API', 'Sin clave API', 'بلا مفتاح API'],
+      'v.key.t': ['I already have an API key', 'J’ai déjà une clé API', 'Ya tengo una clave API', 'لدي مفتاح API'],
+      'v.key.d': ['Anthropic, OpenAI, DeepSeek, Google… I’ll guide you if you don’t know where to find it.', 'Anthropic, OpenAI, DeepSeek, Google… Je te guide si tu ne sais pas où la trouver.', 'Anthropic, OpenAI, DeepSeek, Google… Te guío si no sabes dónde encontrarla.', 'Anthropic وOpenAI وDeepSeek وGoogle… سأرشدك إن لم تعرف أين تجده.'],
+      'v.local.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
+      'v.local.d': ['Free and private: nothing leaves your machine. Needs some disk space.', 'Gratuit et privé : rien ne quitte ta machine. Demande un peu de place disque.', 'Gratis y privado: nada sale de tu equipo. Ocupa algo de espacio en disco.', 'مجاني وخاص: لا شيء يغادر جهازك. يحتاج إلى بعض المساحة على القرص.'],
+      'v.local.tag': ['{gb} GB detected', '{gb} Go détectés', '{gb} GB detectados', 'تم اكتشاف {gb} غيغابايت'],
+      'later': ['I’ll do it later', 'Je verrai plus tard', 'Lo haré más tarde', 'سأفعل ذلك لاحقًا'],
+      'wait.t': ['Finish in your browser', 'Termine dans ton navigateur', 'Termina en tu navegador', 'أكمل في متصفحك'],
+      'wait.s': ['The Kybernos page is open. Sign in or create your account there, then type the code below. You’ll come back here on your own.', 'La page Kybernos est ouverte. Connecte-toi ou crée ton compte, puis saisis le code ci-dessous. Tu reviens ici tout seul.', 'La página de Kybernos está abierta. Inicia sesión o crea tu cuenta y escribe el código de abajo. Volverás aquí automáticamente.', 'صفحة Kybernos مفتوحة. سجّل الدخول أو أنشئ حسابك هناك، ثم اكتب الرمز أدناه. ستعود إلى هنا تلقائيًا.'],
+      'wait.code': ['Type this code on the page that just opened.', 'Saisis ce code sur la page qui vient de s’ouvrir.', 'Escribe este código en la página que se acaba de abrir.', 'اكتب هذا الرمز في الصفحة التي فُتحت للتو.'],
+      'wait.state': ['Waiting for your confirmation…', 'En attente de ta confirmation…', 'Esperando tu confirmación…', 'في انتظار تأكيدك…'],
+      'wait.note': ['Your password is typed in the browser, never in Kybernos.', 'Ton mot de passe est saisi dans le navigateur, jamais dans Kybernos.', 'Tu contraseña se escribe en el navegador, nunca en Kybernos.', 'تُكتب كلمة المرور في المتصفح، وليس في Kybernos أبدًا.'],
+      'wait.copy': ['Copy code', 'Copier le code', 'Copiar código', 'نسخ الرمز'],
+      'wait.copied': ['Copied', 'Copié', 'Copiado', 'تم النسخ'],
+      'wait.reopen': ['Reopen the page', 'Rouvrir la page', 'Reabrir la página', 'إعادة فتح الصفحة'],
+      'cancel': ['Cancel', 'Annuler', 'Cancelar', 'إلغاء'],
+      'ok.t': ['You’re connected', 'Tu es connecté', 'Has iniciado sesión', 'تم تسجيل دخولك'],
+      'ok.line': ['{who} · {models}', '{who} · {models}', '{who} · {models}', '{who} · {models}'],
+      'ok.models': ['{n} models ready', '{n} modèles prêts', '{n} modelos listos', '{n} نموذجًا جاهزًا'],
+      'err.t': ['We couldn’t reach Kybernos', 'On n’a pas pu joindre Kybernos', 'No hemos podido contactar con Kybernos', 'تعذّر الوصول إلى Kybernos'],
+      'err.s': ['Check your connection. Nothing is lost, and you can go another way.', 'Vérifie ta connexion. Rien n’est perdu, et tu peux avancer autrement.', 'Comprueba tu conexión. No se ha perdido nada y puedes seguir de otra forma.', 'تحقق من اتصالك. لم يضع شيء، ويمكنك المتابعة بطريقة أخرى.'],
+      'err.expired.t': ['That code has expired', 'Ce code a expiré', 'Ese código ha caducado', 'انتهت صلاحية هذا الرمز'],
+      'err.expired.s': ['Nothing was connected. Start again to get a new one.', 'Rien n’a été connecté. Recommence pour en obtenir un nouveau.', 'No se ha conectado nada. Empieza de nuevo para obtener uno nuevo.', 'لم يتم ربط أي شيء. ابدأ من جديد للحصول على رمز جديد.'],
+      'err.denied.t': ['The request was refused', 'La demande a été refusée', 'Se rechazó la solicitud', 'تم رفض الطلب'],
+      'err.denied.s': ['Nothing was connected. You can try again, or go another way.', 'Rien n’a été connecté. Tu peux réessayer, ou avancer autrement.', 'No se ha conectado nada. Puedes volver a intentarlo o seguir de otra forma.', 'لم يتم ربط أي شيء. يمكنك المحاولة مجددًا أو المتابعة بطريقة أخرى.'],
+      'retry': ['Try again', 'Réessayer', 'Reintentar', 'إعادة المحاولة'],
+      'usekey': ['Use an API key', 'Utiliser une clé API', 'Usar una clave API', 'استخدام مفتاح API'],
+      'laterbtn': ['Later', 'Plus tard', 'Más tarde', 'لاحقًا'],
+      'key.t': ['Your API key', 'Ta clé API', 'Tu clave API', 'مفتاح API الخاص بك'],
+      'key.s': ['Choose your key’s provider, and I’ll show you where to get it.', 'Choisis le fournisseur de ta clé, je te montre où la trouver.', 'Elige el proveedor de tu clave y te muestro dónde conseguirla.', 'اختر مزوّد مفتاحك وسأريك أين تجده.'],
+      'prov.other': ['Other provider', 'Autre fournisseur', 'Otro proveedor', 'مزوّد آخر'],
+      'key.g1': ['Open {host} and sign in.', 'Ouvre {host} et connecte-toi.', 'Abre {host} e inicia sesión.', 'افتح {host} وسجّل الدخول.'],
+      'key.g2': ['Create a key — call it “Kybernos”.', 'Crée une clé — appelle-la « Kybernos ».', 'Crea una clave y llámala «Kybernos».', 'أنشئ مفتاحًا وسمّه «Kybernos».'],
+      'key.g3': ['Copy it, then paste it below.', 'Copie-la, puis colle-la ci-dessous.', 'Cópiala y pégala abajo.', 'انسخه ثم الصقه أدناه.'],
+      'key.o1': ['In your provider’s console, get the service address and your key.', 'Dans l’espace de ton fournisseur, récupère l’adresse du service et ta clé.', 'En el panel de tu proveedor, obtén la dirección del servicio y tu clave.', 'من لوحة مزوّدك، احصل على عنوان الخدمة ومفتاحك.'],
+      'key.o2': ['You’ll paste them in Settings → Models.', 'Tu les colleras dans Réglages → Models.', 'Las pegarás en Ajustes → Models.', 'ستلصقهما في الإعدادات ← Models.'],
+      'key.note': ['The key stays on this computer and is only sent to your provider. Some providers ask for a payment method before you can create one.', 'La clé reste sur cet ordinateur et n’est envoyée qu’à ton fournisseur. Certains demandent un moyen de paiement avant d’en créer une.', 'La clave se queda en este ordenador y solo se envía a tu proveedor. Algunos piden un método de pago antes de crear una.', 'يبقى المفتاح على هذا الحاسوب ولا يُرسل إلا إلى مزوّدك. بعض المزوّدين يطلبون وسيلة دفع قبل إنشاء مفتاح.'],
+      'key.open': ['Open Settings → Models', 'Ouvrir Réglages → Models', 'Abrir Ajustes → Models', 'فتح الإعدادات ← Models'],
+      'key.nokey': ['No key? We’ll handle it — sign in instead', 'Pas de clé ? On s’en occupe — me connecter', '¿Sin clave? Nos encargamos: iniciar sesión', 'لا مفتاح؟ نتولى الأمر — سجّل الدخول'],
+      'loc.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
+      'loc.s': ['Free and private: nothing leaves your machine. In return it’s slower and less capable than an online model on long tasks.', 'Gratuit et privé : rien ne quitte ta machine. En contrepartie, c’est plus lent et moins capable qu’un modèle en ligne sur les longues tâches.', 'Gratis y privado: nada sale de tu equipo. A cambio, es más lento y menos capaz que un modelo en línea en tareas largas.', 'مجاني وخاص: لا شيء يغادر جهازك. في المقابل هو أبطأ وأقل قدرة من نموذج عبر الإنترنت في المهام الطويلة.'],
+      'loc.machine': ['Your machine', 'Ta machine', 'Tu equipo', 'جهازك'],
+      'loc.machine.v': ['{chip} · {gb} GB of memory', '{chip} · {gb} Go de mémoire', '{chip} · {gb} GB de memoria', '{chip} · ذاكرة {gb} غيغابايت'],
+      'loc.engine': ['Local engine', 'Moteur local', 'Motor local', 'المحرك المحلي'],
+      'loc.engine.yes': ['Ollama {v}', 'Ollama {v}', 'Ollama {v}', 'Ollama {v}'],
+      'loc.engine.no': ['Ollama — to install', 'Ollama — à installer', 'Ollama — por instalar', 'Ollama — يلزم تثبيته'],
+      'loc.pulled': ['Models on this machine', 'Modèles sur cette machine', 'Modelos en este equipo', 'النماذج على هذا الجهاز'],
+      'loc.pulled.n': ['{n}', '{n}', '{n}', '{n}'],
+      'loc.hint': ['Settings → Models shows what fits your machine and installs it for you.', 'Réglages → Models te montre ce qui tient sur ta machine et l’installe pour toi.', 'Ajustes → Models te muestra lo que cabe en tu equipo y lo instala por ti.', 'تعرض لك الإعدادات ← Models ما يناسب جهازك وتثبّته لك.'],
+      'loc.go': ['Open local models', 'Ouvrir les modèles locaux', 'Abrir modelos locales', 'فتح النماذج المحلية'],
+      'loc.other': ['Choose another way', 'Choisir autrement', 'Elegir otra opción', 'اختيار طريقة أخرى'],
+      'fin.t': ['You’re all set', 'C’est prêt', 'Todo listo', 'كل شيء جاهز'],
+      'fin.s': ['Here’s what is set up. You can change everything later in Settings.', 'Voilà ce qui est en place. Tout se change plus tard dans Réglages.', 'Esto es lo que está configurado. Puedes cambiarlo todo más tarde en Ajustes.', 'هذا ما تم إعداده. يمكنك تغيير كل شيء لاحقًا من الإعدادات.'],
+      'fin.job': ['Profession', 'Métier', 'Profesión', 'المهنة'],
+      'fin.mode': ['Display', 'Affichage', 'Visualización', 'العرض'],
+      'fin.model': ['Model', 'Modèle', 'Modelo', 'النموذج'],
+      'fin.none': ['Not specified', 'Non précisé', 'Sin especificar', 'غير محدد'],
+      'fin.cloud': ['Kybernos Cloud', 'Kybernos Cloud', 'Kybernos Cloud', 'Kybernos Cloud'],
+      'fin.cloud.n': ['Kybernos Cloud · {n} models', 'Kybernos Cloud · {n} modèles', 'Kybernos Cloud · {n} modelos', 'Kybernos Cloud · {n} نموذجًا'],
+      'fin.local': ['Local model', 'Modèle local', 'Modelo local', 'نموذج محلي'],
+      'fin.open': ['Open Kybernos', 'Ouvrir Kybernos', 'Abrir Kybernos', 'افتح Kybernos'],
+      'key.paste': ['Paste your key here', 'Colle ta clé ici', 'Pega tu clave aquí', 'الصق مفتاحك هنا'],
+      'key.ph': ['Paste your API key', 'Colle ta clé API', 'Pega tu clave API', 'الصق مفتاح API هنا'],
+      'key.reco': ['Provider recognised: {name}', 'Fournisseur reconnu : {name}', 'Proveedor reconocido: {name}', 'تم التعرف على المزوّد: {name}'],
+      'key.save': ['Check and save', 'Vérifier et enregistrer', 'Comprobar y guardar', 'تحقق واحفظ'],
+      'key.checking': ['Checking your key…', 'Je vérifie ta clé…', 'Comprobando tu clave…', 'جارٍ التحقق من مفتاحك…'],
+      'key.err.format': ['That doesn’t look like an API key: it is one string, with no spaces.', 'Ça ne ressemble pas à une clé API : c’est une seule suite de caractères, sans espace.', 'Eso no parece una clave API: es una sola cadena, sin espacios.', 'هذا لا يشبه مفتاح API: هو سلسلة واحدة بلا مسافات.'],
+      'key.err.invalid': ['{name} answered “invalid key”. Check that it’s complete, with no spaces, and that it comes from {name}.', '{name} a répondu « clé invalide ». Vérifie qu’elle est complète, sans espace, et qu’elle vient bien de {name}.', '{name} respondió «clave no válida». Comprueba que esté completa, sin espacios, y que sea de {name}.', 'أجاب {name} «مفتاح غير صالح». تأكد من أنه كامل وبلا مسافات وأنه من {name}.'],
+      'key.err.denied': ['{name} refused this key. Check its permissions, and that billing is set up on your {name} account.', '{name} a refusé cette clé. Vérifie ses autorisations et que la facturation est activée sur ton compte {name}.', '{name} rechazó esta clave. Comprueba sus permisos y que la facturación esté activada en tu cuenta de {name}.', 'رفض {name} هذا المفتاح. تحقق من صلاحياته ومن تفعيل الفوترة في حسابك لدى {name}.'],
+      'key.err.unreach': ['We couldn’t reach {name} to check it. Check your connection, or save it anyway and you’ll see at your first message.', 'On n’a pas pu joindre {name} pour la vérifier. Vérifie ta connexion, ou enregistre-la quand même et tu verras au premier message.', 'No hemos podido contactar con {name} para comprobarla. Comprueba tu conexión o guárdala igualmente y lo verás en tu primer mensaje.', 'تعذّر الوصول إلى {name} للتحقق. تحقق من اتصالك أو احفظه على أي حال وسترى عند أول رسالة.'],
+      'key.err.fail': ['The key could not be saved. You can add it in Settings → AI Provider & Models.', 'La clé n’a pas pu être enregistrée. Tu peux l’ajouter dans Réglages → AI Provider & Models.', 'No se pudo guardar la clave. Puedes añadirla en Ajustes → AI Provider & Models.', 'تعذّر حفظ المفتاح. يمكنك إضافته من الإعدادات ← AI Provider & Models.'],
+      'key.again': ['Check again', 'Vérifier à nouveau', 'Comprobar de nuevo', 'تحقق مجددًا'],
+      'key.anyway': ['Save anyway', 'Enregistrer quand même', 'Guardar igualmente', 'احفظ على أي حال'],
+      'key.done.t': ['Key saved', 'Clé enregistrée', 'Clave guardada', 'تم حفظ المفتاح'],
+      'key.done.ok': ['{name} accepted your key. It’s ready in the model picker.', '{name} a accepté ta clé. Elle est prête dans le sélecteur de modèles.', '{name} aceptó tu clave. Ya está en el selector de modelos.', 'قبل {name} مفتاحك. أصبح جاهزًا في قائمة النماذج.'],
+      'key.done.unk': ['Saved for {name}. We couldn’t check it just now: you’ll see at your first message.', 'Enregistrée pour {name}. On n’a pas pu la vérifier maintenant : tu le verras au premier message.', 'Guardada para {name}. No pudimos comprobarla ahora: lo verás en tu primer mensaje.', 'تم الحفظ لدى {name}. تعذّر التحقق الآن: سترى عند أول رسالة.'],
+      'loc.reco': ['Recommended for you', 'Recommandé pour toi', 'Recomendado para ti', 'الموصى به لك'],
+      'loc.reco.v': ['{id} · ≈ {gb} GB', '{id} · ≈ {gb} Go', '{id} · ≈ {gb} GB', '{id} · ≈ {gb} غيغابايت'],
+      'loc.install': ['Install {id} (≈ {gb} GB)', 'Installer {id} (≈ {gb} Go)', 'Instalar {id} (≈ {gb} GB)', 'تثبيت {id} (≈ {gb} غيغابايت)'],
+      'loc.ins.t': ['Installing {id}', 'Installation de {id}', 'Instalando {id}', 'جارٍ تثبيت {id}'],
+      'loc.ins.prep': ['Preparing… the local engine is set up first if it’s missing.', 'Préparation… le moteur local est installé d’abord s’il manque.', 'Preparando… el motor local se instala primero si falta.', 'جارٍ التحضير… يُثبَّت المحرك المحلي أولًا إن كان مفقودًا.'],
+      'loc.ins.pct': ['Downloading… {pct}%', 'Téléchargement… {pct} %', 'Descargando… {pct} %', 'جارٍ التنزيل… {pct}%'],
+      'loc.ins.cont': ['Continue while it downloads', 'Continuer pendant le téléchargement', 'Continuar mientras se descarga', 'متابعة أثناء التنزيل'],
+      'loc.ins.note': ['You can carry on: the download goes on in the background and the model connects itself when it’s done.', 'Tu peux continuer : le téléchargement se poursuit en arrière-plan et le modèle se branche tout seul à la fin.', 'Puedes continuar: la descarga sigue en segundo plano y el modelo se conecta solo al terminar.', 'يمكنك المتابعة: يستمر التنزيل في الخلفية ويُربط النموذج تلقائيًا عند الانتهاء.'],
+      'loc.done.t': ['Model ready', 'Modèle prêt', 'Modelo listo', 'النموذج جاهز'],
+      'loc.done.s': ['{id} is connected. It’s in the model picker.', '{id} est branché. Il est dans le sélecteur de modèles.', '{id} está conectado. Está en el selector de modelos.', 'تم ربط {id}. ستجده في قائمة النماذج.'],
+      'loc.err.t': ['The installation didn’t finish', 'L’installation ne s’est pas terminée', 'La instalación no terminó', 'لم يكتمل التثبيت'],
+      'loc.err.noengine': ['Ollama isn’t installed, and it can’t be installed from here on this system. Install it from ollama.com/download, then come back.', 'Ollama n’est pas installé, et il ne peut pas l’être d’ici sur ce système. Installe-le depuis ollama.com/download, puis reviens.', 'Ollama no está instalado y no se puede instalar desde aquí en este sistema. Instálalo desde ollama.com/download y vuelve.', 'Ollama غير مثبّت ولا يمكن تثبيته من هنا على هذا النظام. ثبّته من ollama.com/download ثم عد.'],
+      'loc.err.busy': ['Another installation is already running. Wait for it to finish, then try again.', 'Une autre installation est déjà en cours. Attends qu’elle se termine, puis réessaie.', 'Ya hay otra instalación en curso. Espera a que termine y vuelve a intentarlo.', 'هناك تثبيت آخر قيد التنفيذ. انتظر حتى ينتهي ثم أعد المحاولة.'],
+      'loc.err.failed': ['The download stopped before the end. You can try again.', 'Le téléchargement s’est arrêté avant la fin. Tu peux réessayer.', 'La descarga se detuvo antes del final. Puedes volver a intentarlo.', 'توقف التنزيل قبل اكتماله. يمكنك المحاولة مجددًا.'],
+      'loc.err.connect': ['{id} is downloaded but couldn’t be connected. Open Settings → Ollama Local Models to connect it.', '{id} est téléchargé mais n’a pas pu être branché. Ouvre Réglages → Ollama Local Models pour le brancher.', '{id} se descargó pero no se pudo conectar. Abre Ajustes → Ollama Local Models para conectarlo.', 'تم تنزيل {id} لكن تعذّر ربطه. افتح الإعدادات ← Ollama Local Models لربطه.'],
+      'fin.key': ['API key · {name}', 'Clé API · {name}', 'Clave API · {name}', 'مفتاح API · {name}'],
+      'fin.local.n': ['Local model · {id}', 'Modèle local · {id}', 'Modelo local · {id}', 'نموذج محلي · {id}'],
+      'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
+      'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Models.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← Models.'],
+    }
+    /** The wizard's first language: what the person already picked in the app, else the shell's, else English. */
+    const kbObPickLang = (appChoice, shell) => {
+      const fold = (v) => {
+        if (typeof v !== 'string' || v === '') return null
+        const base = v === 'kybernos' ? 'fr' : v.split(/[-_]/)[0].toLowerCase()
+        return KB_OB_LANGS.some((l) => l.id === base) ? base : null
       }
-      const PROFILS = [
-        { cle: 'soft', ico: 'code' },
-        { cle: 'entre', ico: 'fusee' },
-        { cle: 'qa', ico: 'bouclier' },
-        { cle: 'produit', ico: 'gabarit' },
-        { cle: 'design', ico: 'crayon' },
-        { cle: 'etudes', ico: 'toque' },
-        { cle: 'finance', ico: 'serviette' },
-        { cle: 'medias', ico: 'video' },
-        { cle: 'commerce', ico: 'boutique' },
-        { cle: 'marketing', ico: 'megaphone' },
-        { cle: 'legal', ico: 'balance' },
-        { cle: 'autres', ico: 'points' }
-      ]
-      const MODES = [
-        { cle: 'code', ico: 'code' },
-        { cle: 'bureau', ico: 'gabarit' }
-      ]
+      return fold(appChoice) || fold(shell) || 'en'
+    }
+    /** A text in a language, with {name} placeholders filled. A missing key answers the key itself. */
+    const kbObText = (lang, key, vars) => {
+      const row = KB_OB_T[key]
+      if (row === undefined) return key
+      const i = KB_OB_LANGS.findIndex((l) => l.id === lang)
+      let out = row[i >= 0 && row[i] !== undefined ? i : 0]
+      if (vars !== undefined && vars !== null) for (const k of Object.keys(vars)) out = out.split('{' + k + '}').join(String(vars[k]))
+      return out
+    }
+    /** The numbered steps: the model step drops out when a model already works. */
+    const kbObPlan = (modelReady) => (modelReady === true ? ['job', 'mode'] : ['job', 'mode', 'model'])
+    /** Which numbered step a screen belongs to (null = none: welcome and the end screens). */
+    const kbObStepOf = (screen) => {
+      if (screen === 'job' || screen === 'mode') return screen
+      if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' ||
+        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
+      return null
+    }
+    /** Where « Back » goes from a screen (null = nowhere). */
+    const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', key: 'model', local: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    /** A pasted key as it will be sent: trimmed, one printable-ASCII string of 8 to 400 characters, or null. */
+    const kbObKeyShape = (value) => {
+      const clean = typeof value === 'string' ? value.trim() : ''
+      return /^[\x21-\x7e]{8,400}$/.test(clean) ? clean : null
+    }
+    /** The provider a key's own prefix names, or null (« sk- » alone is OpenAI's and DeepSeek's: it names none). */
+    const kbObProviderFromKey = (value) => {
+      const v = typeof value === 'string' ? value.trim() : ''
+      if (v.indexOf('sk-ant-') === 0) return 'anthropic'
+      if (v.indexOf('AIza') === 0) return 'google'
+      return null
+    }
+    /** Dark when the page behind the wizard is: the luminance of its background colour, `rgb(…)` or `rgba(…)`. */
+    const kbObIsDark = (cssColor) => {
+      const m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)(?:[\s,/]+([\d.]+))?/.exec(String(cssColor))
+      if (m === null || (m[4] !== undefined && Number(m[4]) === 0)) return null
+      const lin = (v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4) }
+      return 0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3]) < 0.18
+    }
+    // The K of the public site and its favicon: a red K whose stem carries three white dots (the typing dots of a chat).
+    const KB_OB_MARK_VIEWBOX = '0 0 32.5 36'
+    const KB_OB_MARK_INNER =
+      '<g class="kb-ob-r"><rect x="0" y="0" width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/>' +
+      '<polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g>' +
+      '<g class="kb-ob-w"><circle cx="6.5" cy="7.5" r="2.8"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="6.5" cy="28.5" r="2.8"/></g>'
+    // KB-OB-CORE-END
 
-      const el = (tag, classe, texte) => {
-        const n = document.createElement(tag)
-        if (classe !== null && classe !== undefined) n.className = classe
-        if (texte !== null && texte !== undefined) n.textContent = texte
+    // KB-OB-UI-BEGIN
+    // `env` carries everything outside the page's own objects: the document, fetch, window.open and
+    // the page's language. That is what lets scripts/ and a bare browser tab drive the same code.
+    const kbObMount = (env) => {
+      const doc = env.document
+      const win = env.window
+      const S = {
+        screen: 'welcome', lang: 'en', job: null, mode: null, model: null,
+        ready: null, hasCloud: false, hasLocal: false, machine: null,
+        provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
+        keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
+      }
+      let root = null
+      let pollTimer = null
+      let jobTimer = null
+      let copyTimer = null
+      let keyHandler = null
+      let finished = false
+
+      const T = (key, vars) => kbObText(S.lang, key, vars)
+      const lang = () => KB_OB_LANGS.find((l) => l.id === S.lang) || KB_OB_LANGS[0]
+      const h = (tag, cls, text) => {
+        const n = doc.createElement(tag)
+        if (cls !== undefined && cls !== null) n.className = cls
+        if (text !== undefined && text !== null) n.textContent = text
         return n
       }
-      const fermer = () => {
-        if (velo !== null) { try { velo.remove() } catch (e) { /* deja parti */ } velo = null }
-        if (surTouche !== null) {
-          try { document.removeEventListener('keydown', surTouche) } catch (e) { /* rien a retirer */ }
-          surTouche = null
-        }
-      }
-      const post = (corps) => {
-        try {
-          return fetch('/kybernos/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corps) }).catch(() => null)
-        } catch (e) { return null }
-      }
-      const terminer = () => {
-        fermer()
-        post({ action: 'complete', profil: profil, uiMode: modeAffichage })
-      }
-      // Carte radio (métiers en grille, modes en pile large) : la sélection se
-      // peint EN PLACE — redessiner toute l'étape relancerait son animation à
-      // chaque clic. Avec une description, le texte forme une COLONNE sous le
-      // titre (jamais sur la même ligne flex : c'est là que titre et
-      // description se chevauchaient dès que la description passait sur deux
-      // lignes).
-      const carte = (ico, titre, desc, actif, groupe, ecrire) => {
-        const b = el('button', 'kb-ob-carte' + (actif === true ? ' on' : ''))
+      const button = (cls, text, onClick) => {
+        const b = h('button', cls, text)
         b.type = 'button'
-        b.setAttribute('role', 'radio')
-        b.setAttribute('aria-checked', actif === true ? 'true' : 'false')
-        const i = el('span', 'kb-ob-ico')
-        i.innerHTML = svg(IC[ico], desc === null ? 20 : 22)
-        const r = el('span', 'kb-ob-rond')
-        r.innerHTML = svg(IC.coche, 11)
-        b.appendChild(i)
-        if (desc === null) {
-          b.appendChild(el('span', 'kb-ob-carte-t', titre))
-        } else {
-          const col = el('span', 'kb-ob-carte-col')
-          col.appendChild(el('span', 'kb-ob-carte-t', titre))
-          col.appendChild(el('span', 'kb-ob-carte-d', desc))
-          b.classList.add('kb-ob-carte-l')
-          b.appendChild(col)
-        }
-        b.appendChild(r)
-        b.addEventListener('click', () => {
-          ecrire()
-          const fils = groupe === null || groupe === undefined ? [] : Array.prototype.slice.call(groupe.children)
-          for (const f of fils) {
-            const on = f === b
-            f.classList.toggle('on', on)
-            f.setAttribute('aria-checked', on ? 'true' : 'false')
-          }
-        })
+        b.addEventListener('click', onClick)
         return b
       }
-      const blocActions = () => {
-        const actions = el('div', 'kb-ob-actions')
-        const suivant = el('button', 'kb-ob-suivant', etape === 2 ? kbt('ob.finir') : kbt('ob.suivant'))
-        suivant.type = 'button'
-        suivant.addEventListener('click', () => { if (etape < 2) { etape += 1; dessiner() } else terminer() })
-        const passer = el('button', 'kb-ob-passer', kbt('ob.passer'))
-        passer.type = 'button'
-        passer.addEventListener('click', terminer)
-        actions.appendChild(suivant); actions.appendChild(passer)
-        return { actions: actions, suivant: suivant }
+      const icon = (inner, size) => {
+        const s = h('span', 'kb-ob-ico')
+        s.innerHTML = '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>'
+        return s
       }
-      const etapeBienvenue = () => {
-        const c = el('div', 'kb-ob-etape')
-        c.appendChild(el('h1', 'kb-ob-h1', kbt('ob.bienvenue.titre')))
-        c.appendChild(el('p', 'kb-ob-sous', kbt('ob.bienvenue.sous')))
-        return c
+      const IC = {
+        account: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>',
+        key: '<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 21 2"/><path d="M17 6l3 3"/><path d="M15 8l2 2"/>',
+        laptop: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/>',
+        chevron: '<polyline points="9 6 15 12 9 18"/>',
+        check: '<polyline points="20 6 9 17 4 12"/>',
+        lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+        info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
+        globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18"/>',
+        close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
       }
-      const etapeMetier = () => {
-        const c = el('div', 'kb-ob-etape')
-        c.appendChild(el('h1', 'kb-ob-h1', kbt('ob.metier.titre')))
-        c.appendChild(el('p', 'kb-ob-sous', kbt('ob.metier.sous')))
-        const g = el('div', 'kb-ob-grille')
-        g.setAttribute('role', 'radiogroup')
-        g.setAttribute('aria-label', kbt('ob.metier.titre'))
-        for (const pr of PROFILS) g.appendChild(carte(pr.ico, kbt('ob.profil.' + pr.cle), null, profil === pr.cle, g, () => { profil = pr.cle }))
-        c.appendChild(g)
-        return c
+      const mark = (height) => {
+        const s = h('span', 'kb-ob-mark')
+        s.innerHTML = '<svg viewBox="' + KB_OB_MARK_VIEWBOX + '" style="height:' + height + 'px" aria-hidden="true">' + KB_OB_MARK_INNER + '</svg>'
+        return s
       }
-      const etapeMode = () => {
-        const c = el('div', 'kb-ob-etape')
-        c.appendChild(el('h1', 'kb-ob-h1', kbt('ob.mode.titre')))
-        c.appendChild(el('p', 'kb-ob-sous', kbt('ob.mode.sous')))
-        const g = el('div', 'kb-ob-pile')
-        g.setAttribute('role', 'radiogroup')
-        g.setAttribute('aria-label', kbt('ob.mode.titre'))
-        for (const mo of MODES) {
-          g.appendChild(carte(mo.ico, kbt('ob.mode.' + mo.cle + '.t'), kbt('ob.mode.' + mo.cle + '.d'), modeAffichage === mo.cle, g, () => { modeAffichage = mo.cle }))
+      const wordmark = () => {
+        const w = h('span', 'kb-ob-wm')
+        w.innerHTML = '<svg viewBox="' + KB_OB_MARK_VIEWBOX + '" aria-hidden="true">' + KB_OB_MARK_INNER + '</svg><span>ybernos</span>'
+        w.setAttribute('role', 'img')
+        w.setAttribute('aria-label', 'Kybernos')
+        return w
+      }
+      const webUrl = (u) => (typeof u === 'string' && /^https?:\/\/[^\s]+$/.test(u) ? u : null)
+      const call = async (path, method, body) => {
+        try {
+          const res = await env.fetch(path, {
+            method: method,
+            cache: 'no-store',
+            headers: body === undefined ? undefined : { 'content-type': 'application/json' },
+            body: body === undefined ? undefined : JSON.stringify(body),
+          })
+          return await res.json()
+        } catch (e) { return null }
+      }
+
+      // ── leaving ──
+      const stopPoll = () => { if (pollTimer !== null) { win.clearTimeout(pollTimer); pollTimer = null } }
+      const close = () => {
+        stopPoll()
+        if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null }
+        S.keyDraft = ''
+        if (copyTimer !== null) win.clearTimeout(copyTimer)
+        if (keyHandler !== null) { try { doc.removeEventListener('keydown', keyHandler, true) } catch (e) { /* already gone */ } keyHandler = null }
+        if (root !== null) { try { root.remove() } catch (e) { /* already gone */ } root = null }
+        if (typeof env.onClose === 'function') env.onClose()
+      }
+      const finish = (openSettingsNames) => {
+        if (finished) return
+        finished = true
+        const reachedModel = kbObStepOf(S.screen) === 'model' || S.screen === 'later'
+        const model = S.model !== null ? S.model : (reachedModel ? 'later' : null)
+        // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ».
+        if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+        // Leaving while a model is still downloading: it keeps downloading, and connects itself when it is done.
+        if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
+        env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang })
+        close()
+        if (openSettingsNames !== undefined) env.openSettings(openSettingsNames)
+      }
+
+      // ── the three ways of powering the agents ──
+      const go = (screen) => { stopPoll(); if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } S.screen = screen; render(true) }
+      const pollOnce = async () => {
+        pollTimer = null
+        if (root === null || S.screen !== 'cloud-wait') return
+        const r = await call('/kybernos-cloud/poll', 'POST')
+        if (root === null || S.screen !== 'cloud-wait') return
+        if (r !== null && r.ok === true && r.connected === true) {
+          S.account = r.state !== undefined && r.state !== null && r.state.user !== undefined ? r.state.user : null
+          S.models = r.models !== undefined && r.models !== null && typeof r.models.count === 'number' ? r.models.count : null
+          S.model = 'cloud'
+          go('cloud-ok')
+          return
         }
-        c.appendChild(g)
-        return c
+        if (r !== null && r.ok === true && (r.status === 'expired' || r.status === 'denied')) { S.error = r.status; go('cloud-err'); return }
+        // Anything else (a network blip, a rate limit) says nothing about the request: ask again.
+        pollTimer = win.setTimeout(pollOnce, 2000)
       }
-      const dessiner = () => {
-        if (velo === null) {
-          velo = el('div', 'kb-ob-velo')
-          velo.setAttribute('role', 'dialog')
-          velo.setAttribute('aria-modal', 'true')
-          velo.setAttribute('aria-label', kbt('ob.bienvenue.titre'))
-          const gauche = el('div', 'kb-ob-gauche')
-          const barre = el('div', 'kb-ob-barre')
-          const retour = el('button', 'kb-ob-retour', '← ' + kbt('ob.retour'))
-          retour.type = 'button'
-          retour.addEventListener('click', () => { if (etape > 0) { etape -= 1; dessiner() } })
-          const points = el('div', 'kb-ob-points')
-          for (let i = 0; i < 3; i++) points.appendChild(el('span', 'kb-ob-point'))
-          const croix = el('button', 'kb-ob-croix')
-          croix.type = 'button'
-          croix.setAttribute('aria-label', kbt('ob.fermer'))
-          croix.innerHTML = svg(IC.croix, 16)
-          croix.addEventListener('click', terminer)
-          barre.appendChild(retour); barre.appendChild(points); barre.appendChild(croix)
-          const corps = el('div', 'kb-ob-corps')
-          gauche.appendChild(barre); gauche.appendChild(corps)
-          const droite = el('div', 'kb-ob-droite')
-          droite.appendChild(el('div', 'kb-ob-logo', 'K'))
-          droite.appendChild(el('div', 'kb-ob-slogan', kbt('ob.slogan')))
-          droite.appendChild(el('p', 'kb-ob-ligne', kbt('ob.slogan.l1')))
-          droite.appendChild(el('p', 'kb-ob-ligne', kbt('ob.slogan.l2')))
-          velo.appendChild(gauche); velo.appendChild(droite)
-          try { document.body.appendChild(velo) } catch (e) { velo = null; return }
+      const startCloud = async () => {
+        S.error = null
+        S.pairing = null
+        go('cloud-wait')
+        const r = await call('/kybernos-cloud/start', 'POST')
+        if (root === null || S.screen !== 'cloud-wait') return
+        if (r === null || r.ok !== true) { S.error = 'net'; go('cloud-err'); return }
+        if (r.connected === true) {
+          S.account = r.state !== undefined && r.state !== null && r.state.user !== undefined ? r.state.user : null
+          S.model = 'cloud'
+          go('cloud-ok')
+          return
         }
-        const corps = velo.querySelector('.kb-ob-corps')
-        if (corps === null) return
-        while (corps.firstChild !== null) corps.removeChild(corps.firstChild)
-        const pts = velo.querySelectorAll('.kb-ob-point')
-        for (let i = 0; i < pts.length; i++) pts[i].classList.toggle('on', i === etape)
-        const retour = velo.querySelector('.kb-ob-retour')
-        if (retour !== null) retour.style.visibility = etape === 0 ? 'hidden' : 'visible'
-        const contenu = etape === 0 ? etapeBienvenue() : (etape === 1 ? etapeMetier() : etapeMode())
-        const bloc = blocActions()
-        contenu.appendChild(bloc.actions)
-        corps.appendChild(contenu)
-        try { bloc.suivant.focus({ preventScroll: true }) } catch (e) { /* focus refusé */ }
+        const p = r.pairing
+        if (p === undefined || p === null || typeof p.user_code !== 'string') { S.error = 'net'; go('cloud-err'); return }
+        S.pairing = { code: p.user_code, url: webUrl(p.activation_url) }
+        if (S.pairing.url !== null) env.open(S.pairing.url)
+        render(false)
+        pollTimer = win.setTimeout(pollOnce, 2000)
       }
-      const ouvrir = () => {
-        etape = 0
-        dessiner()
-        if (velo === null) return
-        surTouche = (ev) => { if (ev !== null && ev !== undefined && ev.key === 'Escape') fermer() }
-        try { document.addEventListener('keydown', surTouche) } catch (e) { /* document absent */ }
+      const cancelCloud = async () => {
+        stopPoll()
+        await call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
+        if (root !== null) go('model')
       }
-      const rejouer = () => {
-        const p = post({ action: 'replay' })
-        if (p !== null && typeof p.then === 'function') p.then(() => ouvrir())
-        else ouvrir()
+      const copyCode = () => {
+        if (S.pairing === null) return
+        try {
+          const p = win.navigator.clipboard.writeText(S.pairing.code)
+          if (p !== undefined && typeof p.catch === 'function') p.catch(() => { /* clipboard refused */ })
+        } catch (e) { return }
+        S.copied = true
+        render(false)
+        if (copyTimer !== null) win.clearTimeout(copyTimer)
+        copyTimer = win.setTimeout(() => { S.copied = false; if (root !== null) render(false) }, 1500)
       }
-      // À l'installation : une installation neuve (ou une version de parcours
-      // plus récente) répond `completed:false` — le wizard s'ouvre au boot.
+
+      // ── a key pasted here, a model pulled here ──
+      // Both go through the page that already owns the write (kybernos-models, kybernos-modeles-locaux): they publish a
+      // function on window for this wizard, and when it is not there (the bundle is off) the wizard hands over to Settings.
+      const modelsSeam = () => { try { const x = win.__KB_MODELS__; return x !== undefined && x !== null && typeof x.saveKey === 'function' ? x : null } catch (e) { return null } }
+      const localSeam = () => { try { const x = win.__KB_LOCAL__; return x !== undefined && x !== null && typeof x.recommend === 'function' && typeof x.connect === 'function' ? x : null } catch (e) { return null } }
+      const provName = (id) => { const p = KB_OB_PROVIDERS.find((x) => x.id === id); return p !== undefined && p.name !== null ? p.name : T('prov.other') }
+      const gbOf = (reco) => (typeof reco.tailleGo === 'number' ? String(reco.tailleGo) : '?')
+      const refocusKey = () => {
+        const el = root !== null ? root.querySelector('#kb-ob-key') : null
+        if (el === null) return
+        try { el.focus({ preventScroll: true }); const n = el.value.length; el.setSelectionRange(n, n) } catch (e) { /* focus refused */ }
+      }
+      const saveKey = async (verdict) => {
+        const seam = modelsSeam()
+        if (seam === null) { S.keyMsg = 'fail'; render(false); return }
+        S.keyMsg = 'checking'
+        render(false)
+        let r = null
+        try { r = await seam.saveKey(S.provider, S.keyDraft) } catch (e) { r = null }
+        if (root === null || S.screen !== 'key') return
+        if (r !== null && r !== undefined && r.ok === true) {
+          S.keyDraft = ''
+          S.keyVerdict = verdict
+          S.model = 'key'
+          go('key-done')
+        } else { S.keyMsg = 'fail'; render(false) }
+      }
+      const submitKey = async () => {
+        const shape = kbObKeyShape(S.keyDraft)
+        if (shape === null) { S.keyMsg = 'format'; render(false); return }
+        S.keyDraft = shape
+        S.keyMsg = 'checking'
+        render(false)
+        const chk = await call('/kybernos-models/key/check', 'POST', { provider: S.provider, key: shape })
+        if (root === null || S.screen !== 'key') return
+        // A host that has not been restarted since the route was added answers nothing useful: the key is saved unchecked.
+        const verdict = chk !== null && chk.ok === true && typeof chk.result === 'string' ? chk.result : 'unchecked'
+        if (verdict === 'invalid' || verdict === 'denied') { S.keyMsg = verdict; render(false); refocusKey(); return }
+        if (verdict === 'unreachable') { S.keyMsg = 'unreach'; render(false); return }
+        await saveKey(verdict)
+      }
+      const progressPct = () => (S.job !== null && typeof S.job.pct === 'number' ? Math.max(4, Math.min(100, S.job.pct)) : 4)
+      const progressText = () => {
+        if (S.job === null || typeof S.job.pct !== 'number') return T('loc.ins.prep')
+        const bytes = S.job.octets !== null && S.job.octets !== undefined && typeof S.job.octets === 'object' ? ' · ' + S.job.octets.recu + ' / ' + S.job.octets.total : ''
+        return T('loc.ins.pct', { pct: S.job.pct }) + bytes
+      }
+      const stopJob = () => { if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } }
+      // The pull goes on in the host whether this page is open or not; what only this page can do is connect the model
+      // when it is done. If the person leaves the wizard meanwhile, this is what is left running (40 minutes at most).
+      const watchInstall = (id) => {
+        let tries = 0
+        const tick = async () => {
+          tries += 1
+          const r = await call('/modeles-locaux/installation', 'GET')
+          const job = r !== null && r.ok === true ? r.job : null
+          if (job !== null && job !== undefined && job.running !== true) {
+            if (job.ok === true && job.cible === id) { const seam = localSeam(); if (seam !== null) { try { await seam.connect(id) } catch (e) { /* the model stays pulled; Settings connects it */ } } }
+            return
+          }
+          if (tries < 1200) win.setTimeout(tick, 2000)
+        }
+        win.setTimeout(tick, 2000)
+      }
+      const connectLocal = async () => {
+        const seam = localSeam()
+        let r = null
+        try { r = seam !== null ? await seam.connect(S.localId) : null } catch (e) { r = null }
+        if (root === null) return
+        if (r !== null && r !== undefined && r.ok === true) { S.model = 'local'; go('local-done') } else { S.localError = 'connect'; go('local-err') }
+      }
+      const jobTick = async () => {
+        jobTimer = null
+        if (root === null || S.screen !== 'local-install') return
+        const r = await call('/modeles-locaux/installation', 'GET')
+        if (root === null || S.screen !== 'local-install') return
+        const job = r !== null && r.ok === true ? r.job : null
+        if (job !== null && job !== undefined) {
+          if (job.running === true) {
+            S.job = job
+            // Only the bar and its line change: a whole redraw every tick would take the focus from the buttons.
+            if (S.refs !== null) { S.refs.sub.textContent = progressText(); S.refs.fill.style.width = progressPct() + '%' }
+            jobTimer = win.setTimeout(jobTick, 700)
+            return
+          }
+          if (job.annule === true) { go('local'); return }
+          if (job.ok === true) { await connectLocal(); return }
+          S.localError = 'failed'
+          go('local-err')
+          return
+        }
+        jobTimer = win.setTimeout(jobTick, 700)
+      }
+      const startInstall = async (reco) => {
+        S.localId = reco.id
+        S.job = null
+        S.localError = null
+        go('local-install')
+        // The click is the person's agreement: the engine is set up first when it is missing.
+        const r = await call('/modeles-locaux/installer', 'POST', { cible: reco.id, installeMoteur: true })
+        if (root === null || S.screen !== 'local-install') return
+        if (r === null || r.ok !== true) {
+          const code = r !== null && typeof r.error === 'string' ? r.error : ''
+          S.localError = code === 'occupe' ? 'busy' : (code === 'brew-indisponible' || code === 'ollama-absent' ? 'noengine' : 'failed')
+          go('local-err')
+          return
+        }
+        jobTimer = win.setTimeout(jobTick, 700)
+      }
+      const cancelInstall = async () => {
+        stopJob()
+        await call('/modeles-locaux/annuler', 'POST', {})
+        if (root !== null) go('local')
+      }
+      const detachInstall = () => {
+        stopJob()
+        S.model = 'local'
+        watchInstall(S.localId)
+        go('done')
+      }
+
+      // ── pieces ──
+      const rowOption = (ico, title, desc, tag, onClick) => {
+        const b = h('button', 'kb-ob-row')
+        b.type = 'button'
+        const ic = h('span', 'kb-ob-ic')
+        ic.appendChild(icon(IC[ico], 18))
+        const tx = h('span', 'kb-ob-tx')
+        const t = h('span', 'kb-ob-t', title)
+        if (tag !== null) t.appendChild(h('span', 'kb-ob-tag', tag))
+        tx.appendChild(t)
+        tx.appendChild(h('span', 'kb-ob-d', desc))
+        b.appendChild(ic)
+        b.appendChild(tx)
+        const go2 = h('span', 'kb-ob-go')
+        go2.appendChild(icon(IC.chevron, 18))
+        b.appendChild(go2)
+        b.addEventListener('click', onClick)
+        return b
+      }
+      const radioRow = (title, desc, on, onClick) => {
+        const b = h('button', 'kb-ob-row' + (on ? ' on' : ''))
+        b.type = 'button'
+        b.setAttribute('role', 'radio')
+        b.setAttribute('aria-checked', on ? 'true' : 'false')
+        const tx = h('span', 'kb-ob-tx')
+        tx.appendChild(h('span', 'kb-ob-t', title))
+        tx.appendChild(h('span', 'kb-ob-d', desc))
+        b.appendChild(tx)
+        const dot = h('span', 'kb-ob-dot')
+        dot.appendChild(icon(IC.check, 11))
+        b.appendChild(dot)
+        b.addEventListener('click', onClick)
+        return b
+      }
+      const chip = (label, on, onClick) => {
+        const b = h('button', 'kb-ob-chip' + (on ? ' on' : ''), label)
+        b.type = 'button'
+        b.setAttribute('role', 'radio')
+        b.setAttribute('aria-checked', on ? 'true' : 'false')
+        b.addEventListener('click', onClick)
+        return b
+      }
+      const note = (text, ico) => {
+        const n = h('div', 'kb-ob-note')
+        n.appendChild(icon(IC[ico === undefined ? 'lock' : ico], 14))
+        n.appendChild(h('span', null, text))
+        return n
+      }
+      const recap = (rows) => {
+        const box = h('div', 'kb-ob-recap')
+        for (const r of rows) {
+          const line = h('div')
+          line.appendChild(h('span', null, r[0]))
+          line.appendChild(h('b', null, r[1]))
+          box.appendChild(line)
+        }
+        return box
+      }
+      const step = () => h('section', 'kb-ob-step')
+      const actions = () => h('div', 'kb-ob-actions')
+      const primary = (text, onClick) => {
+        const b = button('kb-ob-btn kb-ob-primary', text, onClick)
+        b.setAttribute('data-kb-ob-primary', '1')
+        return b
+      }
+      const eyebrow = (screen) => {
+        const plan = kbObPlan(S.ready !== null)
+        const n = plan.indexOf(kbObStepOf(screen)) + 1
+        return h('p', 'kb-ob-eyebrow', T('step', { n: n, total: plan.length }))
+      }
+      const afterMode = () => (S.ready !== null ? 'done' : 'model')
+      const who = () => {
+        const a = S.account
+        if (a !== null && typeof a === 'object' && typeof a.email === 'string') return a.email
+        return T('fin.cloud')
+      }
+      const modelLabel = () => {
+        if (S.model === 'key') return T('fin.key', { name: provName(S.provider) })
+        if (S.model === 'local' && S.localId !== null) return T('fin.local.n', { id: S.localId })
+        if (S.model === 'cloud' || S.ready === 'cloud') return S.models !== null ? T('fin.cloud.n', { n: S.models }) : T('fin.cloud')
+        if (S.ready === 'local') return T('fin.local')
+        return T('fin.none')
+      }
+
+      // ── screens ──
+      const screens = {
+        welcome: () => {
+          const s = step()
+          const hero = h('div', 'kb-ob-hero')
+          hero.appendChild(mark(58))
+          s.appendChild(hero)
+          s.appendChild(h('h1', null, T('wel.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('wel.s')))
+          const a = actions()
+          a.appendChild(primary(T('start'), () => go('job')))
+          s.appendChild(a)
+          return s
+        },
+        job: () => {
+          const s = step()
+          s.appendChild(eyebrow('job'))
+          s.appendChild(h('h1', null, T('job.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('job.s')))
+          const g = h('div', 'kb-ob-chips')
+          g.setAttribute('role', 'radiogroup')
+          for (const id of KB_OB_PROFILES) g.appendChild(chip(T('p.' + id), S.job === id, () => { S.job = id; render(false) }))
+          s.appendChild(g)
+          const a = actions()
+          a.appendChild(primary(T('cont'), () => go('mode')))
+          s.appendChild(a)
+          return s
+        },
+        mode: () => {
+          const s = step()
+          s.appendChild(eyebrow('mode'))
+          s.appendChild(h('h1', null, T('mode.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('mode.s')))
+          const g = h('div', 'kb-ob-rows')
+          g.setAttribute('role', 'radiogroup')
+          for (const id of KB_OB_MODES) g.appendChild(radioRow(T('mode.' + id + '.t'), T('mode.' + id + '.d'), S.mode === id, () => { S.mode = id; render(false) }))
+          s.appendChild(g)
+          const a = actions()
+          a.appendChild(primary(T('cont'), () => go(afterMode())))
+          s.appendChild(a)
+          return s
+        },
+        model: () => {
+          const s = step()
+          s.appendChild(eyebrow('model'))
+          s.appendChild(h('h1', null, T('brain.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('brain.s')))
+          const g = h('div', 'kb-ob-rows')
+          if (S.hasCloud) g.appendChild(rowOption('account', T('v.cloud.t'), T('v.cloud.d'), T('v.cloud.tag'), () => { startCloud() }))
+          g.appendChild(rowOption('key', T('v.key.t'), T('v.key.d'), null, () => go('key')))
+          if (S.hasLocal) {
+            const gb = S.machine !== null && typeof S.machine.ramGo === 'number' ? T('v.local.tag', { gb: S.machine.ramGo }) : null
+            g.appendChild(rowOption('laptop', T('v.local.t'), T('v.local.d'), gb, () => go('local')))
+          }
+          s.appendChild(g)
+          const a = actions()
+          a.appendChild(button('kb-ob-ghost', T('later'), () => go('later')))
+          s.appendChild(a)
+          return s
+        },
+        'cloud-wait': () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('wait.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('wait.s')))
+          const code = h('div', 'kb-ob-code')
+          code.appendChild(h('b', null, S.pairing !== null ? S.pairing.code : '…'))
+          code.appendChild(h('small', null, T('wait.code')))
+          s.appendChild(code)
+          const st = h('div', 'kb-ob-state')
+          st.appendChild(h('span', 'kb-ob-spin'))
+          st.appendChild(h('span', null, T('wait.state')))
+          s.appendChild(st)
+          s.appendChild(note(T('wait.note')))
+          const a = actions()
+          const pair = h('div', 'kb-ob-pair')
+          pair.appendChild(button('kb-ob-btn kb-ob-second', S.copied ? T('wait.copied') : T('wait.copy'), copyCode))
+          pair.appendChild(button('kb-ob-btn kb-ob-second', T('wait.reopen'), () => { if (S.pairing !== null && S.pairing.url !== null) env.open(S.pairing.url) }))
+          a.appendChild(pair)
+          a.appendChild(button('kb-ob-ghost', T('cancel'), cancelCloud))
+          s.appendChild(a)
+          return s
+        },
+        'cloud-ok': () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('ok.t')))
+          const planName = (S.account !== null && typeof S.account === 'object' && typeof S.account.plan === 'string') ? S.account.plan : ''
+          const plan = planName !== '' ? ' · ' + planName.charAt(0).toUpperCase() + planName.slice(1) : ''
+          const models = S.models !== null ? ' · ' + T('ok.models', { n: S.models }) : ''
+          const st = h('div', 'kb-ob-state ok')
+          st.appendChild(icon(IC.check, 18))
+          st.appendChild(h('span', null, who() + plan + models))
+          s.appendChild(st)
+          const a = actions()
+          a.appendChild(primary(T('cont'), () => go('done')))
+          s.appendChild(a)
+          return s
+        },
+        'cloud-err': () => {
+          const s = step()
+          const kind = S.error === 'expired' || S.error === 'denied' ? S.error : null
+          s.appendChild(h('h1', null, kind === null ? T('err.t') : T('err.' + kind + '.t')))
+          s.appendChild(h('p', 'kb-ob-sub', kind === null ? T('err.s') : T('err.' + kind + '.s')))
+          const a = actions()
+          a.appendChild(primary(T('retry'), () => { startCloud() }))
+          a.appendChild(button('kb-ob-btn kb-ob-second', T('usekey'), () => go('key')))
+          a.appendChild(button('kb-ob-ghost', T('laterbtn'), () => go('later')))
+          s.appendChild(a)
+          return s
+        },
+        key: () => {
+          const s = step()
+          s.appendChild(eyebrow('key'))
+          s.appendChild(h('h1', null, T('key.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('key.s')))
+          const g = h('div', 'kb-ob-chips kb-ob-chips-tight')
+          g.setAttribute('role', 'radiogroup')
+          for (const p of KB_OB_PROVIDERS) g.appendChild(chip(p.name !== null ? p.name : T('prov.other'), S.provider === p.id, () => { S.provider = p.id; S.keyMsg = null; render(false) }))
+          s.appendChild(g)
+          const prov = KB_OB_PROVIDERS.find((p) => p.id === S.provider) || KB_OB_PROVIDERS[0]
+          const list = h('ol', 'kb-ob-guide')
+          if (prov.host !== null) {
+            const li = h('li')
+            const a = h('a', 'kb-ob-link', prov.host + prov.path)
+            a.href = 'https://' + prov.host + prov.path
+            a.target = '_blank'
+            a.rel = 'noopener noreferrer'
+            const parts = T('key.g1').split('{host}')
+            li.appendChild(h('span', null, parts[0]))
+            li.appendChild(a)
+            li.appendChild(h('span', null, parts[1] !== undefined ? parts[1] : ''))
+            list.appendChild(li)
+            list.appendChild(h('li', null, T('key.g2')))
+            list.appendChild(h('li', null, T('key.g3')))
+          } else {
+            list.appendChild(h('li', null, T('key.o1')))
+            list.appendChild(h('li', null, T('key.o2')))
+          }
+          s.appendChild(list)
+          const a = actions()
+          // A provider the wizard knows, and the page that saves keys is there: the key is pasted here. Anything else
+          // (another provider, the bundle off) is handed to Settings, which already knows how.
+          if (S.provider !== 'other' && modelsSeam() !== null) {
+            const name = provName(S.provider)
+            const lbl = h('label', 'kb-ob-lbl', T('key.paste'))
+            lbl.setAttribute('for', 'kb-ob-key')
+            s.appendChild(lbl)
+            const input = h('input', 'kb-ob-field' + (S.keyMsg !== null && S.keyMsg !== 'checking' ? ' err' : ''))
+            input.id = 'kb-ob-key'
+            input.type = 'password'
+            input.value = S.keyDraft
+            input.placeholder = T('key.ph')
+            input.disabled = S.keyMsg === 'checking'
+            input.setAttribute('autocomplete', 'off')
+            input.setAttribute('autocapitalize', 'off')
+            input.setAttribute('spellcheck', 'false')
+            input.addEventListener('input', () => {
+              S.keyDraft = input.value
+              const named = kbObProviderFromKey(S.keyDraft)
+              if (named !== null && named !== S.provider) { S.provider = named; S.keyMsg = null; render(false); refocusKey(); return }
+              if (S.keyMsg !== null && S.keyMsg !== 'checking') { S.keyMsg = null; render(false); refocusKey(); return }
+              const save = root !== null ? root.querySelector('[data-kb-ob-primary]') : null
+              if (save !== null) save.disabled = kbObKeyShape(S.keyDraft) === null
+            })
+            input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && kbObKeyShape(S.keyDraft) !== null && S.keyMsg !== 'checking') { ev.preventDefault(); submitKey() } })
+            s.appendChild(input)
+            if (S.keyMsg === 'checking') {
+              const st = h('div', 'kb-ob-state')
+              st.appendChild(h('span', 'kb-ob-spin'))
+              st.appendChild(h('span', null, T('key.checking')))
+              s.appendChild(st)
+            } else if (S.keyMsg !== null) {
+              const st = h('div', 'kb-ob-state err')
+              st.setAttribute('role', 'alert')
+              st.appendChild(h('span', null, T('key.err.' + S.keyMsg, { name: name })))
+              s.appendChild(st)
+            }
+            s.appendChild(note(T('key.note')))
+            const save = primary(S.keyMsg === 'unreach' ? T('key.again') : T('key.save'), () => { submitKey() })
+            save.disabled = S.keyMsg === 'checking' || kbObKeyShape(S.keyDraft) === null
+            a.appendChild(save)
+            if (S.keyMsg === 'unreach') a.appendChild(button('kb-ob-btn kb-ob-second', T('key.anyway'), () => { saveKey('unchecked') }))
+          } else {
+            s.appendChild(note(T('key.note')))
+            a.appendChild(primary(T('key.open'), () => { S.model = 'key'; finish(['kybernos-models', 'models']) }))
+          }
+          if (S.hasCloud && S.keyMsg !== 'checking') a.appendChild(button('kb-ob-ghost', T('key.nokey'), () => { S.keyDraft = ''; startCloud() }))
+          s.appendChild(a)
+          return s
+        },
+        'key-done': () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('key.done.t')))
+          const ok = S.keyVerdict === 'ok' || S.keyVerdict === 'rate_limited'
+          const st = h('div', 'kb-ob-state ok')
+          st.appendChild(icon(IC.check, 18))
+          st.appendChild(h('span', null, T(ok ? 'key.done.ok' : 'key.done.unk', { name: provName(S.provider) })))
+          s.appendChild(st)
+          const a = actions()
+          a.appendChild(primary(T('cont'), () => go('done')))
+          s.appendChild(a)
+          return s
+        },
+        local: () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('loc.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('loc.s')))
+          const m = S.machine
+          const seam = localSeam()
+          const reco = seam !== null && m !== null ? seam.recommend(typeof m.ramGo === 'number' ? m.ramGo : null) : null
+          const rows = []
+          if (m !== null) {
+            if (typeof m.chip === 'string' && typeof m.ramGo === 'number') rows.push([T('loc.machine'), T('loc.machine.v', { chip: m.chip, gb: m.ramGo })])
+            if (m.ollama !== undefined && m.ollama !== null) {
+              rows.push([T('loc.engine'), m.ollama.present === true ? T('loc.engine.yes', { v: m.ollama.version || '' }).trim() : T('loc.engine.no')])
+              if (m.ollama.present === true && Array.isArray(m.ollama.models)) rows.push([T('loc.pulled'), T('loc.pulled.n', { n: m.ollama.models.length })])
+            }
+          }
+          if (reco !== null) rows.push([T('loc.reco'), T('loc.reco.v', { id: reco.id, gb: gbOf(reco) })])
+          if (rows.length > 0) s.appendChild(recap(rows))
+          // Ollama is set up through Homebrew, which the host only drives on a Mac.
+          const noEngine = m !== null && m.ollama !== undefined && m.ollama !== null && m.ollama.present !== true && m.platform !== 'darwin'
+          if (noEngine) s.appendChild(h('p', 'kb-ob-hint', T('loc.err.noengine')))
+          else s.appendChild(h('p', 'kb-ob-hint', T('loc.hint')))
+          const a = actions()
+          if (reco !== null && !noEngine) a.appendChild(primary(T('loc.install', { id: reco.id, gb: gbOf(reco) }), () => { startInstall(reco) }))
+          else a.appendChild(primary(T('loc.go'), () => { S.model = 'local'; finish(['kybernos-ollama', 'models']) }))
+          a.appendChild(button('kb-ob-ghost', T('loc.other'), () => go('model')))
+          s.appendChild(a)
+          return s
+        },
+        'local-install': () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('loc.ins.t', { id: S.localId })))
+          const sub = h('p', 'kb-ob-sub', progressText())
+          s.appendChild(sub)
+          const bar = h('div', 'kb-ob-bar2')
+          const fill = h('i')
+          fill.style.width = progressPct() + '%'
+          bar.appendChild(fill)
+          s.appendChild(bar)
+          S.refs = { sub: sub, fill: fill }
+          s.appendChild(note(T('loc.ins.note'), 'info'))
+          const a = actions()
+          a.appendChild(primary(T('loc.ins.cont'), () => { detachInstall() }))
+          a.appendChild(button('kb-ob-ghost', T('cancel'), () => { cancelInstall() }))
+          s.appendChild(a)
+          return s
+        },
+        'local-done': () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('loc.done.t')))
+          const st = h('div', 'kb-ob-state ok')
+          st.appendChild(icon(IC.check, 18))
+          st.appendChild(h('span', null, T('loc.done.s', { id: S.localId })))
+          s.appendChild(st)
+          const a = actions()
+          a.appendChild(primary(T('cont'), () => go('done')))
+          s.appendChild(a)
+          return s
+        },
+        'local-err': () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('loc.err.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('loc.err.' + (S.localError || 'failed'), { id: S.localId })))
+          const a = actions()
+          if (S.localError === 'connect') a.appendChild(primary(T('loc.go'), () => { S.model = 'local'; finish(['kybernos-ollama', 'models']) }))
+          else a.appendChild(primary(T('retry'), () => go('local')))
+          a.appendChild(button('kb-ob-ghost', T('loc.other'), () => go('model')))
+          s.appendChild(a)
+          return s
+        },
+        done: () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('fin.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('fin.s')))
+          s.appendChild(recap([
+            [T('fin.job'), S.job !== null ? T('p.' + S.job) : T('fin.none')],
+            [T('fin.mode'), S.mode !== null ? T('mode.' + S.mode + '.t') : T('fin.none')],
+            [T('fin.model'), modelLabel()],
+          ]))
+          const a = actions()
+          a.appendChild(primary(T('fin.open'), () => finish()))
+          s.appendChild(a)
+          return s
+        },
+        later: () => {
+          const s = step()
+          s.appendChild(h('h1', null, T('fin0.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('fin0.s')))
+          const a = actions()
+          a.appendChild(primary(T('fin.open'), () => finish()))
+          s.appendChild(a)
+          return s
+        },
+      }
+
+      // ── frame ──
+      const render = (focus) => {
+        if (root === null) return
+        const L = lang()
+        root.setAttribute('dir', L.rtl ? 'rtl' : 'ltr')
+        root.setAttribute('lang', L.id)
+        root.setAttribute('aria-label', T('wel.t'))
+        while (root.firstChild !== null) root.removeChild(root.firstChild)
+
+        const plan = kbObPlan(S.ready !== null)
+        const current = kbObStepOf(S.screen)
+        const idx = plan.indexOf(current)
+        const pct = S.screen === 'welcome' ? 0 : (current === null ? 100 : ((idx + 1) / plan.length) * 100)
+        const bar = h('div', 'kb-ob-bar')
+        const fill = h('i')
+        fill.style.width = pct + '%'
+        bar.appendChild(fill)
+        root.appendChild(bar)
+
+        const top = h('header', 'kb-ob-top')
+        top.appendChild(wordmark())
+        const right = h('div', 'kb-ob-right')
+        const lw = h('div', 'kb-ob-lang')
+        const lb = h('button', 'kb-ob-lang-btn')
+        lb.type = 'button'
+        lb.setAttribute('aria-haspopup', 'menu')
+        lb.setAttribute('aria-expanded', S.menu ? 'true' : 'false')
+        lb.setAttribute('aria-label', T('langs'))
+        lb.appendChild(icon(IC.globe, 14))
+        lb.appendChild(h('span', null, L.short))
+        lb.addEventListener('click', (ev) => { ev.stopPropagation(); S.menu = !S.menu; render(false) })
+        lw.appendChild(lb)
+        if (S.menu) {
+          const menu = h('div', 'kb-ob-menu')
+          menu.setAttribute('role', 'menu')
+          for (const l of KB_OB_LANGS) {
+            const item = h('button', l.id === S.lang ? 'on' : null, l.name)
+            item.type = 'button'
+            item.setAttribute('role', 'menuitemradio')
+            item.setAttribute('aria-checked', l.id === S.lang ? 'true' : 'false')
+            item.setAttribute('lang', l.id)
+            item.addEventListener('click', (ev) => { ev.stopPropagation(); S.lang = l.id; S.menu = false; render(false) })
+            menu.appendChild(item)
+          }
+          lw.appendChild(menu)
+        }
+        right.appendChild(lw)
+        if (S.screen !== 'done' && S.screen !== 'later') right.appendChild(button('kb-ob-skip', T('skip'), () => finish()))
+        top.appendChild(right)
+        root.appendChild(top)
+
+        const main = h('main', 'kb-ob-main')
+        const back = kbObBack(S.screen)
+        if (back !== null) main.appendChild(button('kb-ob-back', T('back'), () => {
+          if (S.screen === 'cloud-wait') { cancelCloud(); return }
+          go(back)
+        }))
+        const build = screens[S.screen]
+        main.appendChild(build !== undefined ? build() : screens.welcome())
+        root.appendChild(main)
+
+        if (focus === true) {
+          const p = root.querySelector('[data-kb-ob-primary]')
+          const first = p !== null ? p : root.querySelector('.kb-ob-row, .kb-ob-chip')
+          if (first !== null) { try { first.focus({ preventScroll: true }) } catch (e) { /* focus refused */ } }
+        }
+      }
+
+      const open = (init) => {
+        S.lang = init.lang
+        S.ready = init.ready
+        S.hasCloud = init.hasCloud
+        S.hasLocal = init.hasLocal
+        S.machine = init.machine
+        S.job = init.job
+        S.mode = init.mode
+        S.screen = 'welcome'
+        root = h('div', 'kb-ob' + (init.dark === true ? ' kb-ob-dark' : ''))
+        root.setAttribute('role', 'dialog')
+        root.setAttribute('aria-modal', 'true')
+        root.addEventListener('click', () => { if (S.menu) { S.menu = false; render(false) } })
+        keyHandler = (ev) => {
+          if (ev.key !== 'Escape' || root === null) return
+          ev.stopPropagation()
+          if (S.menu) { S.menu = false; render(false); return }
+          finish()
+        }
+        doc.addEventListener('keydown', keyHandler, true)
+        try { doc.body.appendChild(root) } catch (e) { root = null; return false }
+        render(true)
+        return true
+      }
+      return { open, close, state: S }
+    }
+
+    /** What decides the wizard's shape before it opens: is there already a model, and which ways are on offer. */
+    const kbObProbe = async (env) => {
+      const get = async (path) => {
+        try {
+          const ctl = typeof env.window.AbortController === 'function' ? new env.window.AbortController() : null
+          const timer = ctl !== null ? env.window.setTimeout(() => ctl.abort(), 2500) : null
+          const res = await env.fetch(path, { cache: 'no-store', signal: ctl !== null ? ctl.signal : undefined })
+          if (timer !== null) env.window.clearTimeout(timer)
+          return await res.json()
+        } catch (e) { return null }
+      }
+      const both = await Promise.all([get('/kybernos-cloud/status'), get('/modeles-locaux/machine')])
+      const cloud = both[0]
+      const local = both[1]
+      const hasCloud = cloud !== null && typeof cloud === 'object' && cloud.ok === true
+      const machine = local !== null && typeof local === 'object' && local.ok === true && local.machine !== undefined ? local.machine : null
+      let ready = null
+      if (hasCloud && cloud.connected === true) ready = 'cloud'
+      else if (machine !== null && machine.ollama !== undefined && machine.ollama !== null && Array.isArray(machine.ollama.models) && machine.ollama.models.length > 0) ready = 'local'
+      return { hasCloud, hasLocal: machine !== null, machine, ready }
+    }
+    // KB-OB-UI-END
+
+    // ── boot: open on a fresh install, and on « Replay » ──
+    ;(() => {
+      let busy = false
+      const win = window
+      const env = {
+        document,
+        window: win,
+        fetch: (url, init) => win.fetch(url, init),
+        open: (url) => { try { win.open(url, '_blank', 'noopener,noreferrer') } catch (e) { /* popup blocked */ } },
+        post: (body) => {
+          try {
+            return win.fetch('/kybernos/onboarding', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null)
+          } catch (e) { return null }
+        },
+        // Settings is a dialog of the shell: press its button, then the cell of the page we want (by its title).
+        openSettings: (names) => {
+          try {
+            const trigger = document.querySelector('[class*="settingsArea"] button[class*="trigger"]') || document.querySelector('button[aria-label="Settings"]')
+            if (trigger === null) return
+            trigger.click()
+            const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '').replace(/\s+/g, ' ').trim()
+            let tries = 0
+            const tick = () => {
+              tries += 1
+              const cells = Array.prototype.slice.call(document.querySelectorAll('nav button'))
+              // `names` are the sections' own ids (« kybernos-models »), read from the cell's React key: that works in every
+              // language. The English title is the fallback for when the shell's internals moved.
+              for (const name of names) {
+                let hit = cells.find((c) => { try { return kbNavKeyOf(c) === name } catch (e) { return false } })
+                if (hit === undefined && typeof KB_NAV_KEYS === 'object' && typeof KB_NAV_KEYS[name] === 'string') hit = cells.find((c) => norm(c.textContent) === KB_NAV_KEYS[name])
+                if (hit !== undefined) { hit.click(); return }
+              }
+              if (tries < 25) win.setTimeout(tick, 120)
+            }
+            win.setTimeout(tick, 150)
+          } catch (e) { /* the shell moved: the person opens Settings by hand */ }
+        },
+      }
+      const appLanguage = () => { try { return win.localStorage.getItem('kybernos.theme.lang') } catch (e) { return null } }
+      const shellLanguage = () => { try { return String(kbLocaleRead()) } catch (e) { return null } }
+      const isDark = () => {
+        try {
+          const a = kbObIsDark(win.getComputedStyle(document.body).backgroundColor)
+          if (a !== null) return a
+          const b = kbObIsDark(win.getComputedStyle(document.documentElement).backgroundColor)
+          if (b !== null) return b
+          return win.matchMedia('(prefers-color-scheme: dark)').matches === true
+        } catch (e) { return false }
+      }
+      const show = async (saved) => {
+        if (busy) return
+        busy = true
+        try {
+          const probe = await kbObProbe(env)
+          const wizard = kbObMount({ ...env, onClose: () => { busy = false } })
+          const known = (list, v) => (typeof v === 'string' && list.indexOf(v) >= 0 ? v : null)
+          const opened = wizard.open({
+            lang: kbObPickLang(typeof saved.lang === 'string' && saved.lang !== '' ? saved.lang : appLanguage(), shellLanguage()),
+            dark: isDark(),
+            ready: probe.ready,
+            hasCloud: probe.hasCloud,
+            hasLocal: probe.hasLocal,
+            machine: probe.machine,
+            job: known(KB_OB_PROFILES, saved.profil),
+            mode: known(KB_OB_MODES, saved.uiMode),
+          })
+          if (opened !== true) busy = false
+        } catch (e) { busy = false }
+      }
+      // A fresh install (or a newer wizard version) answers `completed:false`: the wizard opens at boot.
       try {
-        fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } })
+        win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } })
           .then((r) => r.json())
-          .then((j) => { if (j !== null && j !== undefined && j.ok === true && j.completed === false) ouvrir() })
-          .catch(() => { /* hôte plus ancien : route absente, silencieux */ })
-      } catch (e) { /* fetch indisponible (harnais) */ }
-      // Rejouer : émis par le bouton en tête de Kybernos Settings.
+          .then((j) => { if (j !== null && j !== undefined && j.ok === true && j.completed === false) show(j) })
+          .catch(() => { /* an older host: no route, nothing to show */ })
+      } catch (e) { /* no fetch (test harness) */ }
+      // Replay: fired by the button at the top of Kybernos Settings.
       try {
-        window.addEventListener('kybernos:onboarding', (ev) => {
-          if (ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && ev.detail.action === 'replay') rejouer()
+        win.addEventListener('kybernos:onboarding', (ev) => {
+          if (ev === null || ev === undefined || ev.detail === null || ev.detail === undefined || ev.detail.action !== 'replay') return
+          win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } })
+            .then((r) => r.json())
+            .catch(() => null)
+            .then((saved) => {
+              const posted = env.post({ action: 'replay' })
+              const next = () => show(saved !== null && saved !== undefined && saved.ok === true ? saved : {})
+              if (posted !== null && typeof posted.then === 'function') posted.then(next)
+              else next()
+            })
         })
-      } catch (e) { /* window absent (harnais) */ }
+      } catch (e) { /* no window (test harness) */ }
     })()
     const KB_OB_CSS = [
-      '.kb-ob-velo{position:fixed;inset:0;z-index:2147483000;display:flex;background:#0d0f12;color:#e8eaed;animation:kbObApparait .25s ease}',
-      '.kb-ob-gauche{flex:1.2;min-width:0;display:flex;flex-direction:column}',
-      '.kb-ob-droite{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:center;padding:8vh 4vw;background:linear-gradient(160deg,#0a1c34 0%,#113560 48%,#1b4c88 100%)}',
-      '.kb-ob-droite::before,.kb-ob-droite::after{content:\'\';position:absolute;inset:-25%;pointer-events:none;background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.07) 50%,transparent 58%);transform:rotate(6deg)}',
-      '.kb-ob-droite::after{background:linear-gradient(115deg,transparent 62%,rgba(255,255,255,.05) 70%,transparent 78%);transform:rotate(6deg) translateX(-8%)}',
-      '.kb-ob-logo{width:118px;height:118px;border-radius:28px;background:#0c0e11;color:#fff;display:flex;align-items:center;justify-content:center;font-size:62px;font-weight:800;letter-spacing:-.03em;box-shadow:0 18px 50px rgba(0,0,0,.45);margin-bottom:6vh;position:relative}',
-      '.kb-ob-slogan{font-size:clamp(32px,4.2vw,56px);font-weight:800;letter-spacing:-.02em;color:#fff;margin:0 0 3vh;position:relative}',
-      '.kb-ob-ligne{font-size:clamp(14px,1.25vw,19px);color:#c9d6ea;margin:0;line-height:1.55;position:relative}',
-      '.kb-ob-barre{display:flex;align-items:center;gap:12px;padding:18px 22px}',
-      '.kb-ob-retour{background:none;border:0;color:#8a8f98;font-size:13px;cursor:pointer;padding:6px 8px;border-radius:8px}',
-      '.kb-ob-retour:hover{color:#e8eaed;background:#171a1f}',
-      '.kb-ob-points{flex:1;display:flex;justify-content:center;gap:8px}',
-      '.kb-ob-point{width:22px;height:4px;border-radius:2px;background:#262b33;transition:background .2s,width .2s}',
-      '.kb-ob-point.on{background:#fff;width:30px}',
-      '.kb-ob-croix{background:none;border:0;color:#8a8f98;cursor:pointer;padding:6px;border-radius:8px;display:flex}',
-      '.kb-ob-croix:hover{color:#e8eaed;background:#171a1f}',
-      '.kb-ob-corps{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 max(6vw,40px) 7vh;overflow:auto}',
-      '.kb-ob-etape{width:100%;max-width:640px;margin:0 auto;animation:kbObMonte .28s ease}',
-      '.kb-ob-h1{font-size:26px;font-weight:700;margin:0 0 8px}',
-      '.kb-ob-sous{font-size:15px;color:#9aa0a8;margin:0 0 6px}',
-      '.kb-ob-grille{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}',
-      '.kb-ob-pile{display:flex;flex-direction:column;gap:12px;margin-top:22px}',
-      '.kb-ob-carte{display:flex;align-items:center;gap:12px;padding:15px 16px;background:#15181d;border:1px solid #262b33;border-radius:14px;cursor:pointer;color:#e8eaed;text-align:start;font-size:14px;line-height:1.35;transition:border-color .15s,background .15s}',
-      '.kb-ob-carte:hover{border-color:#3a414c}',
-      '.kb-ob-carte.on{border-color:#e8eaed;background:#1c2027}',
-      '.kb-ob-carte-l{padding:18px;gap:14px}',
-      '.kb-ob-carte-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}',
-      '.kb-ob-carte-t{min-width:0}',
-      '.kb-ob-carte-d{font-size:12.5px;color:#9aa0a8;line-height:1.45}',
-      '.kb-ob-ico{width:20px;height:20px;color:#b7bcc4;flex:none;display:flex}',
-      '.kb-ob-ico svg{width:20px;height:20px}',
-      '.kb-ob-rond{margin-inline-start:auto;width:20px;height:20px;border-radius:50%;border:1.5px solid #4a505a;flex:none;display:flex;align-items:center;justify-content:center;color:transparent}',
-      '.kb-ob-carte.on .kb-ob-rond{background:#fff;border-color:#fff;color:#0d0f12}',
-      '.kb-ob-actions{margin-top:26px;display:flex;flex-direction:column;align-items:stretch}',
-      '.kb-ob-suivant{width:100%;padding:14px;border-radius:12px;border:0;background:#fff;color:#0d0f12;font-size:15px;font-weight:600;cursor:pointer}',
-      '.kb-ob-suivant:hover{background:#e6e8eb}',
-      '.kb-ob-passer{margin:14px auto 0;background:none;border:0;color:#8a8f98;font-size:14px;cursor:pointer;padding:6px 10px;border-radius:8px}',
-      '.kb-ob-passer:hover{color:#e8eaed}',
-      '@keyframes kbObApparait{from{opacity:0}}',
-      '@keyframes kbObMonte{from{opacity:0;transform:translateY(10px)}}',
-      '@media (max-width:860px){.kb-ob-droite{display:none}}',
-      '@media (prefers-reduced-motion:reduce){.kb-ob-velo,.kb-ob-etape{animation:none}}'
+      '.kb-ob{position:fixed;inset:0;z-index:2147483000;display:flex;flex-direction:column;overflow:auto;box-sizing:border-box;',
+      '--bg:#F6F4EE;--bg2:#FFFFFF;--ink:#17171A;--ink2:#4F4D46;--ink3:#68655C;--line:#DDD8CB;--wash:#F0E7DA;--blue:#2662C4;--green:#2F6B54;--red:#f2372a;--white:#ffffff;',
+      'background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Arabic",sans-serif;animation:kbObIn .25s ease}',
+      '.kb-ob-dark{--bg:#17181A;--bg2:#1F2124;--ink:#F4F2EC;--ink2:#A5A29A;--ink3:#928F87;--line:#2E3134;--wash:#24211D;--blue:#7AAAFF;--green:#6FB394}',
+      '.kb-ob *{box-sizing:border-box}',
+      '.kb-ob button{font-family:inherit}',
+      '.kb-ob-bar{height:2px;background:var(--line);flex:none}',
+      '.kb-ob-bar i{display:block;height:100%;width:0;background:var(--ink);transition:width .35s ease}',
+      '.kb-ob-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:22px clamp(20px,5vw,48px);flex:none}',
+      '.kb-ob-right{display:flex;align-items:center;gap:18px}',
+      '.kb-ob-skip,.kb-ob-back,.kb-ob-ghost{background:none;border:0;padding:6px 2px;font-size:14px;color:var(--ink3);cursor:pointer;text-align:center}',
+      '.kb-ob-skip:hover,.kb-ob-back:hover,.kb-ob-ghost:hover{color:var(--ink)}',
+      '.kb-ob-wm{display:inline-flex;align-items:flex-end;font-size:21px;font-weight:700;line-height:1;letter-spacing:.01em;color:var(--ink);direction:ltr;unicode-bidi:isolate}',
+      '.kb-ob-wm svg{height:.9306em;width:auto;margin-bottom:.135em;margin-inline-end:.075em;flex:none;display:block}',
+      '.kb-ob-mark svg{width:auto;display:block}',
+      '.kb-ob-r rect,.kb-ob-r polygon{fill:var(--red)}',
+      '.kb-ob-w circle{fill:var(--white)}',
+      '.kb-ob-lang{position:relative}',
+      '.kb-ob-lang-btn{display:flex;gap:6px;align-items:center;background:none;border:1px solid var(--line);border-radius:99px;padding:5px 11px;font-size:12.5px;font-weight:500;color:var(--ink2);cursor:pointer}',
+      '.kb-ob-lang-btn:hover{border-color:var(--ink3);color:var(--ink)}',
+      '.kb-ob-menu{position:absolute;top:calc(100% + 8px);inset-inline-end:0;z-index:5;min-width:170px;padding:6px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.14)}',
+      '.kb-ob-menu button{display:flex;justify-content:space-between;gap:16px;width:100%;padding:9px 12px;border:0;border-radius:10px;background:none;color:var(--ink);font-size:14px;text-align:start;cursor:pointer}',
+      '.kb-ob-menu button:hover{background:var(--wash)}',
+      '.kb-ob-menu button.on{font-weight:600}',
+      '.kb-ob-main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:56px clamp(20px,5vw,48px) 9vh;position:relative}',
+      '.kb-ob-back{position:absolute;top:8px;inset-inline-start:clamp(20px,5vw,48px)}',
+      '.kb-ob-back::before{content:"\\2190 "}',
+      '.kb-ob[dir="rtl"] .kb-ob-back::before{content:"\\2192 "}',
+      '.kb-ob-step{width:100%;max-width:520px;animation:kbObRise .3s ease}',
+      '.kb-ob-eyebrow{margin:0 0 14px;font-size:13px;color:var(--ink3)}',
+      '.kb-ob h1{margin:0 0 10px;font-size:clamp(26px,3.2vw,34px);line-height:1.2;font-weight:500;letter-spacing:-.02em;color:var(--ink)}',
+      '.kb-ob-sub{margin:0;font-size:16px;line-height:1.6;color:var(--ink2)}',
+      '.kb-ob-hint{margin:18px 0 0;font-size:14px;line-height:1.55;color:var(--ink2)}',
+      '.kb-ob-hero{margin-bottom:22px}',
+      '.kb-ob-rows{display:flex;flex-direction:column;gap:10px;margin-top:26px}',
+      '.kb-ob-row{display:flex;align-items:center;gap:14px;width:100%;padding:16px 18px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:border-color .15s}',
+      '.kb-ob-row:hover{border-color:var(--ink3)}',
+      '.kb-ob-row.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}',
+      '.kb-ob-ic{flex:none;width:38px;height:38px;border-radius:50%;background:var(--wash);color:var(--ink);display:flex;align-items:center;justify-content:center}',
+      '.kb-ob-ico{display:flex}',
+      '.kb-ob-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}',
+      '.kb-ob-t{font-size:15.5px;font-weight:500;display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
+      '.kb-ob-d{font-size:13.5px;line-height:1.5;color:var(--ink2)}',
+      '.kb-ob-go{color:var(--ink3);flex:none;display:flex}',
+      '.kb-ob[dir="rtl"] .kb-ob-go svg{transform:scaleX(-1)}',
+      '.kb-ob-tag{font-size:11.5px;font-weight:500;padding:2px 9px;border-radius:99px;background:var(--wash);color:var(--ink2)}',
+      '.kb-ob-dot{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:transparent}',
+      '.kb-ob-row.on .kb-ob-dot{background:var(--ink);border-color:var(--ink);color:var(--bg)}',
+      '.kb-ob-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}',
+      '.kb-ob-chips-tight{margin-top:20px}',
+      '.kb-ob-chip{padding:9px 15px;border-radius:99px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font-size:14px;cursor:pointer;transition:border-color .15s}',
+      '.kb-ob-chip:hover{border-color:var(--ink3)}',
+      '.kb-ob-chip.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}',
+      '.kb-ob-actions{display:flex;flex-direction:column;gap:10px;margin-top:30px}',
+      '.kb-ob-ghost{align-self:center;padding:8px 10px}',
+      '.kb-ob-btn{height:52px;border-radius:999px;border:1px solid transparent;font-size:15.5px;font-weight:500;cursor:pointer;padding:0 26px}',
+      '.kb-ob-primary{background:var(--ink);color:var(--bg)}',
+      '.kb-ob-primary:hover{opacity:.9}',
+      '.kb-ob-second{background:var(--wash);border-color:var(--line);color:var(--ink)}',
+      '.kb-ob-second:hover{border-color:var(--ink3)}',
+      '.kb-ob-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
+      '.kb-ob-pair .kb-ob-btn{padding:0 10px;height:48px;font-size:14.5px;white-space:nowrap}',
+      '.kb-ob-guide{list-style:none;margin:22px 0 0;padding:0;counter-reset:s;display:flex;flex-direction:column;gap:11px}',
+      '.kb-ob-guide li{counter-increment:s;display:flex;gap:6px;flex-wrap:wrap;align-items:baseline;font-size:14.5px;line-height:1.55;color:var(--ink2);padding-inline-start:34px;position:relative}',
+      '.kb-ob-guide li::before{content:counter(s);position:absolute;inset-inline-start:0;top:1px;width:22px;height:22px;border-radius:50%;background:var(--wash);color:var(--ink);font-size:12px;font-weight:500;display:flex;align-items:center;justify-content:center}',
+      '.kb-ob-link{color:var(--blue);text-decoration:underline;text-underline-offset:3px;direction:ltr;unicode-bidi:isolate}',
+      '.kb-ob-note{display:flex;gap:8px;margin-top:18px;font-size:13px;line-height:1.55;color:var(--ink3)}',
+      '.kb-ob-note .kb-ob-ico{margin-top:2px;flex:none}',
+      '.kb-ob-state{display:flex;gap:10px;align-items:center;margin-top:22px;font-size:14.5px;color:var(--ink2)}',
+      '.kb-ob-state.ok{color:var(--green)}',
+      '.kb-ob-state.err{color:var(--red);align-items:flex-start;line-height:1.5}',
+      '.kb-ob-lbl{display:block;margin:24px 0 8px;font-size:13.5px;color:var(--ink2)}',
+      '.kb-ob-field{width:100%;height:50px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:var(--bg2);color:var(--ink);font:14px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;direction:ltr;text-align:start}',
+      '.kb-ob-field:focus{outline:none;border-color:var(--ink)}',
+      '.kb-ob-field.err{border-color:var(--red)}',
+      '.kb-ob-field:disabled{opacity:.6}',
+      '.kb-ob-bar2{height:6px;border-radius:3px;background:var(--line);margin-top:24px;overflow:hidden}',
+      '.kb-ob-bar2 i{display:block;height:100%;width:0;background:var(--blue);border-radius:3px;transition:width .3s linear}',
+      '.kb-ob-primary[disabled]{opacity:.35;cursor:default}',
+      '.kb-ob-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);animation:kbObTurn .8s linear infinite;flex:none}',
+      '.kb-ob-code{margin-top:26px;padding:20px;border:1px solid var(--line);border-radius:16px;background:var(--bg2);text-align:center}',
+      '.kb-ob-code b{display:block;font:500 30px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.16em;direction:ltr;color:var(--ink)}',
+      '.kb-ob-code small{display:block;margin-top:8px;font-size:13px;color:var(--ink3)}',
+      '.kb-ob-recap{margin-top:26px;border:1px solid var(--line);border-radius:16px;background:var(--bg2);overflow:hidden}',
+      '.kb-ob-recap div{display:flex;justify-content:space-between;gap:16px;padding:15px 18px;font-size:14.5px}',
+      '.kb-ob-recap div+div{border-top:1px solid var(--line)}',
+      '.kb-ob-recap span{color:var(--ink3)}',
+      '.kb-ob-recap b{font-weight:500;text-align:end}',
+      '@keyframes kbObIn{from{opacity:0}}',
+      '@keyframes kbObRise{from{opacity:0;transform:translateY(8px)}}',
+      '@keyframes kbObTurn{to{transform:rotate(360deg)}}',
+      '@media (prefers-reduced-motion:reduce){.kb-ob,.kb-ob-step,.kb-ob-spin{animation:none}}',
     ].join(String.fromCharCode(10))
-    ctx.effect(() => styles.insert(KB_OB_CSS), 'kybernos: styles de l onboarding')
+    ctx.effect(() => styles.insert(KB_OB_CSS), 'kybernos: onboarding styles')
 
   },
 }
