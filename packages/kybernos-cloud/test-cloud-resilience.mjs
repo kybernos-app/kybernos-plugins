@@ -232,6 +232,17 @@ try {
       assert.notEqual(r.body.status, 'revoked', status + ' html must not sign the person out')
       assert.equal(readState().token, TOKEN, status + ' html: the session is kept')
     }
+    // JSON is not enough: a gateway or a proxy in front of the server writes JSON refusals too (`{}`, `[]`, `{ message: 'Forbidden' }`).
+    // Only the server's own error envelope (`{ error: '<code>', message, request_id }`) says « this token is dead ».
+    for (const [label, status, body] of [['401 {}', 401, {}], ['401 []', 401, []], ['403 { message }', 403, { message: 'Forbidden', request_id: 'abc' }],
+      ['401 { error: {…} }', 401, { error: { code: 'x' } }], ['403 { errors: […] }', 403, { errors: [{ code: 10000 }], success: false }]]) {
+      connected(); fake.workspacesAnswer = { status, body }
+      const r = await hit('/kybernos-cloud/refresh', 'POST')
+      assert.equal(r.body.ok, false, label + ': ' + JSON.stringify(r.body).slice(0, 160))
+      assert.notEqual(r.body.status, 'revoked', label + ' is not the server speaking: it must not sign the person out')
+      assert.equal(readState().token, TOKEN, label + ': the session is kept')
+      assert.deepEqual(readState().workspaces.map((w) => w.id), [WS], label + ': the workspace list is kept')
+    }
     // The server's own refusal (its JSON error) is the revocation, and it signs the device out.
     connected(); fake.workspacesAnswer = { status: 401, body: { error: 'unauthorized', message: 'Sign in required.' } }
     const revoked = await hit('/kybernos-cloud/refresh', 'POST')
