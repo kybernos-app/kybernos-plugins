@@ -32,6 +32,11 @@ const check = (label, ok, detail) => {
 const shotDir = process.env.KB_SHOT_DIR || join(tmpdir(), 'kb-onboarding-live')
 mkdirSync(shotDir, { recursive: true })
 const read = (rel) => { try { return readFileSync(join(dshHome, rel), 'utf8') } catch (e) { return '' } }
+// The card test stores a made-up credential for the chat's own model: put the file back as it was, so that the next
+// run starts from a model that still has no key (and a message sent then fails locally, never reaching a provider).
+const credsFile = join(dshHome, '.credentials.yaml')
+let credsBackup = null
+try { credsBackup = readFileSync(credsFile, 'utf8') } catch (e) { credsBackup = null }
 
 // A fresh install: the sandbox's setup writes the file as done; the wizard opens only when it says otherwise.
 mkdirSync(join(dshHome, 'kybernos'), { recursive: true })
@@ -197,6 +202,63 @@ try {
   check('the recap names the model', (await q(`document.querySelector('.kb-ob-recap').textContent`)).includes('qwen3.5:9b'))
   await press('Open Kybernos')
 
+  /* ── 6. the moment of need: a chat whose model has no key ──────────────────────────────────────────── */
+  // A real message, in the sandbox's chat: the engine refuses it locally (no credential), nothing leaves the machine.
+  const stateBefore = read('kybernos/onboarding.json')
+  const typeInComposer = async (text) => {
+    const box = await q(`(() => { const e = document.querySelector('[contenteditable="true"], textarea'); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + 40, y: r.top + r.height / 2 } })()`)
+    if (!box) return false
+    for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x: box.x, y: box.y, button: 'left', clickCount: 1 })
+    await page.send('Input.insertText', { text })
+    await sleep(300)
+    for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    return true
+  }
+  await page.send('Page.reload', { ignoreCache: true })
+  await waitFor(page, `document.body && document.body.innerText.length > 40`, 30000)
+  await sleep(2500)
+  check('a message is sent from the home box', await typeInComposer('Hello, are you there?'))
+  const card = await waitFor(page, `!!document.querySelector('[data-kb="need-model"]')`, 25000)
+  check('the card appears above the box when the model has no key', card === true)
+  if (card === true) {
+    const cardText = await q(`document.querySelector('[data-kb="need-model"]').innerText`)
+    check('it says it in a person\'s words, with the route', /can.t answer yet/.test(cardText) && /has no API key/.test(cardText), JSON.stringify(cardText))
+    const route = (/The model it uses, ([^,]+), has no API key/.exec(cardText) || [])[1]
+    check('the route is read from the engine\'s sentence', typeof route === 'string' && route.length > 0, JSON.stringify(cardText))
+    check('the field names that route', (await q(`document.querySelector('.kbnm-lbl').textContent`)) === 'API key for ' + route)
+    check('the engine\'s own sentence is still there (the card does not replace it)', (await q(`document.body.innerText.includes('MISSING_CREDENTIAL')`)) === true)
+    await page.shot(join(shotDir, 'need-model-card.png'))
+    // save the key of that route
+    const typeKey2 = async (v) => q(`(() => { const i = document.querySelector('#kbnm-key'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ${JSON.stringify(v)}); i.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
+    check('Save is disabled until something key-shaped is typed', (await q(`document.querySelector('.kbnm-primary').disabled`)) === true)
+    await typeKey2('sk-card-test-0123456789abcdef')
+    await sleep(300)
+    check('and enabled after', (await q(`document.querySelector('.kbnm-primary').disabled`)) === false)
+    await q(`document.querySelector('.kbnm-primary').click()`)
+    check('the key is saved', (await waitFor(page, `document.querySelector('[data-kb="need-model"]').innerText.includes('Key saved')`, 8000)) !== null)
+    const expectedRef = route.toUpperCase().replace(/[^A-Z0-9]+/g, '_') + '_API_KEY'
+    check('the credential of that very reference exists, by name', read('.credentials.yaml').includes(expectedRef), expectedRef)
+    check('the typed key is nowhere but in the credential store', !read('profiles/web/cordis.patch.yml').includes('sk-card-test-0123456789abcdef') && !read('kybernos/onboarding.json').includes('sk-card-test'))
+    await q(`document.querySelector('.kbnm-primary').click()`)
+    await sleep(600)
+    check('the message is put back in the box, not sent', (await q(`(document.querySelector('[contenteditable="true"]') || {}).innerText`)).includes('Hello, are you there?'))
+    check('and the card says so', (await q(`document.querySelector('[data-kb="need-model"]').innerText`)).includes('press Enter'))
+    // the other ways: the wizard's model step, on its own, writing nothing of the first run
+    await page.send('Page.reload', { ignoreCache: true })
+    await waitFor(page, `document.body && document.body.innerText.length > 40`, 30000)
+    await sleep(2500)
+    await typeInComposer('Hello again')
+    check('the card is back for the new failed turn', (await waitFor(page, `!!document.querySelector('[data-kb="need-model"]')`, 25000)) === true)
+    const wizardOpened = await q(`(() => { const b = [...document.querySelectorAll('[data-kb="need-model"] button')].find((x) => x.textContent.trim() === 'Sign in with Kybernos'); if (!b) return false; b.click(); return true })()`)
+    check('the card opens the wizard', wizardOpened === true && (await waitFor(page, `!!document.querySelector('.kb-ob')`, 8000)) === true)
+    check('it opens on the model step, with no numbered steps', (await h1()) === 'Which model do you want to work with?' && (await q(`!document.querySelector('.kb-ob-eyebrow')`)) === true)
+    check('it can be closed', (await press('Close')) === true && (await q(`document.querySelector('.kb-ob') === null`)) === true)
+    check('it left the onboarding file as it was', read('kybernos/onboarding.json') === stateBefore)
+    await q(`document.querySelector('[data-kb="need-model"] .kbnm-x').click()`)
+    await sleep(300)
+    check('the card can be dismissed', (await q(`document.querySelector('[data-kb="need-model"]') === null`)) === true)
+  }
+
   check('no page error', page.errs.filter((e) => /kybernos|onboarding|kb-ob|is not defined|is not a function|Cannot read/i.test(e)).length === 0, JSON.stringify(page.errs.slice(0, 3)))
   console.log('     screenshots: ' + shotDir)
 } catch (e) {
@@ -204,6 +266,8 @@ try {
   console.log('FAIL ' + String(e && e.message ? e.message : e))
 } finally {
   await live.close()
+  // Back to the credentials the instance had before this run.
+  try { if (credsBackup !== null) writeFileSync(credsFile, credsBackup) } catch (e) { /* the sandbox is nobody's */ }
 }
 console.log(fails === 0 ? '\nall checks passed' : '\n' + fails + ' check(s) FAILED')
 process.exit(fails === 0 ? 0 : 1)
