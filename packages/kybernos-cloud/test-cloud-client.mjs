@@ -146,6 +146,9 @@ sok('la carte parle en phrases : codes internes traduits (reseau, trop_de_demand
 // said « Solo Studio » was measured right after a pairing.
 assert.ok(/label: t\('plan'\), value: \(st\.space_plan !== undefined && st\.space_plan !== null && typeof st\.space_plan\.label === 'string'/.test(clientSource), 'la ligne Plan de la carte lit le libelle de l espace actif avant le mot du compte')
 sok('carte : la ligne Plan dit le plan de l espace actif (comme la pastille), le mot du compte seulement en repli')
+// The team switcher's list names the personal space the way the card and the chip do (« Personal »), not by the server's name for it (« My workspace »).
+assert.ok(clientSource.includes("h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none'))"), 'la liste du selecteur d equipe passe par nomAffiche')
+sok('selecteur d equipe : l espace personnel s y appelle Personal / Personnel, comme la pastille')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null

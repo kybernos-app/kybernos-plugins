@@ -1913,7 +1913,7 @@ window.__ModuleLoader__.load({
                   },
                   h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
                   h('span', { className: 'kbfp-wstxt' },
-                    h('span', { className: 'kbfp-wsname' }, (w && w.name) || t('none')),
+                    h('span', { className: 'kbfp-wsname' }, (w && nomAffiche(w, t)) || t('none')),
                     h('span', { className: 'kbfp-wssub' }, on === true
                       ? t('spaceMark')
                       : (w && w.kyber_count !== undefined ? String(w.kyber_count) + ' ' + t('kybers') : ''))),
