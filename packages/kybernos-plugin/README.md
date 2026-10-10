@@ -93,6 +93,13 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
     progress bar. Leaving the wizard mid-download keeps it going and connects the model when it ends.
   A way whose bundle is off is not shown; the hand-over to Settings names the page by its nav id, so it works in every
   language.
+- **The model is chosen for them:** connecting only adds models to the selector, so after each connection the wizard asks
+  the host (`POST /kybernos/model/auto`, rules in `default-model.mjs`) to make a model of that provider the default one, when
+  the profile's current default could not answer (its provider is not routable, or its key is not set). A default that
+  works is never touched. The model is picked among the provider's general-purpose ones (never an embedding, a voice or an
+  image model; `kybernos/auto` first for the account, the newest `sonnet`/`flash`/… for a key). From the chat's card the
+  request carries the chat's id and `force`: that chat takes the model through the engine's own `selectModel`, which also saves
+  the default. An older host without the route answers nothing, and the person picks in the selector as before.
 - **Closing:** Skip, the cross and Escape all record what was chosen so far; it is never asked twice.
 - **Texts:** shipped here for English (the default), French, Spanish and Arabic (right-to-left), in `KB_OB_T`. They are
   not read from the translation runtime: that one needs a model, and this wizard is what gets the person one. The
@@ -101,7 +108,8 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   of the previous wizard; `model` (`cloud`, `key`, `local`, `later`) and `lang` are new and read as `null` in an older
   file. The version stays at 1 on purpose: raising it would reopen the wizard for every existing user.
 - **Not done yet:** « a model already works » only knows the connected account and a pulled Ollama model (a key
-  already in the profile is not detected); nothing reads `profil` and `uiMode`.
+  already in the profile is not detected); nothing reads `profil` and `uiMode`. The account's model is chosen by name
+  (`kybernos/auto` when the server lists it, else its first model): what the server means by its default is not known here.
 
 ### « This chat can't answer yet » (`KbNeedModel`)
 
@@ -113,8 +121,8 @@ When the latest turn of a chat failed with `MISSING_CREDENTIAL` (the model's key
   engine's sentence (`kbObNeedModel`, tested). Saved by `window.__KB_MODELS__.saveCredential(ref, key)`; then « Put my message back
   in the box » (`kbPrefillDraft`: the person presses Enter, nothing is sent for them);
 - **the ways of the first run** (a Kybernos account, a model on this computer): the wizard's model step on its own
-  (`kbObStandaloneOpen`: no steps, no onboarding file written). The connection does not change the chat's model: the card says to
-  pick the new one in the selector.
+  (`kbObStandaloneOpen`: no steps, no onboarding file written). The model of that provider is then chosen for the chat itself
+  (see « The model is chosen for them »), and the card says so; with an older host it says to pick the new model in the selector.
 
 It reads the chat through `useChat((c) => c.nodes.valuesCache)` and `c.navigation.current` (shapes measured on the real GUI), and is gone as
 soon as the person sends again; it comes back if that new turn fails the same way.
@@ -124,6 +132,7 @@ soon as the person sends again; it comes back if that new turn fails the same wa
 ```bash
 node scripts/test-onboarding.mjs                       # KB-OB-CORE block: texts in 4 languages, language choice, steps, theme probe, K artwork
 node packages/kybernos-plugin/test-onboarding-state.mjs  # the state file: version, answers, replay, older files
+node packages/kybernos-plugin/test-default-model.mjs   # which model is chosen after a connection, who is switched, who is left alone
 node packages/kybernos-models/test-key-check.mjs       # the key check: where a key may go, the one-word answer, the route's guards
 node packages/kybernos-modeles-locaux/test-seam.mjs    # the recommendation and the route profile the wizard shares with the panel
 source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs   # the wizard on the sandbox: account, key saved, model connected, hand-over (refuses :3080)

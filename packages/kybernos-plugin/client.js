@@ -31924,6 +31924,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'nm.resent': ['Your message is back in the box: press Enter.', 'Ton message est dans la zone de saisie : appuie sur Entrée.', 'Tu mensaje está en el cuadro: pulsa Intro.', 'رسالتك في مربع الكتابة: اضغط Enter.'],
       'nm.or': ['Or another way:', 'Ou autrement :', 'O de otra forma:', 'أو بطريقة أخرى:'],
       'nm.cloud': ['Sign in with Kybernos', 'Me connecter à Kybernos', 'Iniciar sesión en Kybernos', 'تسجيل الدخول إلى Kybernos'],
+      'auto.set': ['{model} is now the model of your chats.', '{model} est maintenant le modèle de tes conversations.', '{model} es ahora el modelo de tus conversaciones.', 'أصبح {model} نموذج محادثاتك.'],
+      'nm.connected.set': ['Connected: {model} is now this chat’s model. Your message can go again.', 'C’est connecté : {model} est maintenant le modèle de ce chat. Ton message peut repartir.', 'Conectado: {model} es ahora el modelo de este chat. Tu mensaje puede volver a salir.', 'تم الربط: أصبح {model} نموذج هذه المحادثة. يمكن لرسالتك أن تنطلق من جديد.'],
       'nm.connected': ['Connected. Pick the new model in the selector below, then send your message again.', 'C’est connecté. Choisis le nouveau modèle dans le sélecteur ci-dessous, puis renvoie ton message.', 'Conectado. Elige el nuevo modelo en el selector de abajo y reenvía tu mensaje.', 'تم الربط. اختر النموذج الجديد من القائمة أدناه ثم أعد إرسال رسالتك.'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
       'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Models.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← Models.'],
@@ -32017,7 +32019,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
-        standalone: false,
+        standalone: false, picked: null,
       }
       let root = null
       let pollTimer = null
@@ -32104,12 +32106,32 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // Opened from the chat's card (standalone), the wizard is not the first run: the onboarding file is left alone.
         if (!S.standalone) env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang })
         const connected = S.standalone && S.model !== null ? S.model : null
+        const picked = S.picked
         close()
         // Handed over to Settings is not connected yet: only a way that finished tells the card.
-        if (connected !== null && openSettingsNames === undefined && typeof env.onConnected === 'function') { try { env.onConnected(connected) } catch (e) { /* the card is gone */ } }
+        if (connected !== null && openSettingsNames === undefined && typeof env.onConnected === 'function') { try { env.onConnected(connected, picked) } catch (e) { /* the card is gone */ } }
         if (openSettingsNames !== undefined) env.openSettings(openSettingsNames)
       }
 
+      // ── making the connected model the one the next message uses ──
+      // Connecting only adds models to the selector. The host switches the profile's default (and, from the chat's card,
+      // that chat) to a model of the provider that was just connected, when the default could not answer. An older host
+      // without the route answers nothing: the person then picks the model in the selector, as before.
+      const autoSelect = async (provider, model) => {
+        S.picked = null
+        const body = { provider: provider }
+        if (typeof model === 'string' && model !== '') body.model = model
+        if (S.standalone && typeof env.sessionId === 'string' && env.sessionId !== '') { body.sessionId = env.sessionId; body.force = true }
+        const r = await call('/kybernos/model/auto', 'POST', body)
+        if (r !== null && r.ok === true && r.switched === true && typeof r.model === 'string') S.picked = { provider: r.provider, model: r.model, scope: r.scope }
+      }
+      const pickedLine = () => {
+        if (S.picked === null) return null
+        const st = h('div', 'kb-ob-state ok')
+        st.appendChild(icon(IC.check, 18))
+        st.appendChild(h('span', null, T('auto.set', { model: S.picked.model })))
+        return st
+      }
       // ── the three ways of powering the agents ──
       const go = (screen) => { stopPoll(); if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } S.screen = screen; render(true) }
       // After a way is connected: the first run goes on to its recap; from the chat's card the wizard just closes.
@@ -32123,6 +32145,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.account = r.state !== undefined && r.state !== null && r.state.user !== undefined ? r.state.user : null
           S.models = r.models !== undefined && r.models !== null && typeof r.models.count === 'number' ? r.models.count : null
           S.model = 'cloud'
+          await autoSelect('kybernos')
+          if (root === null) return
           go('cloud-ok')
           return
         }
@@ -32140,6 +32164,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (r.connected === true) {
           S.account = r.state !== undefined && r.state !== null && r.state.user !== undefined ? r.state.user : null
           S.model = 'cloud'
+          await autoSelect('kybernos')
+          if (root === null) return
           go('cloud-ok')
           return
         }
@@ -32191,6 +32217,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           S.keyDraft = ''
           S.keyVerdict = verdict
           S.model = 'key'
+          await autoSelect(S.provider)
+          if (root === null) return
           go('key-done')
         } else { S.keyMsg = 'fail'; render(false) }
       }
@@ -32224,7 +32252,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const r = await call('/modeles-locaux/installation', 'GET')
           const job = r !== null && r.ok === true ? r.job : null
           if (job !== null && job !== undefined && job.running !== true) {
-            if (job.ok === true && job.cible === id) { const seam = localSeam(); if (seam !== null) { try { await seam.connect(id) } catch (e) { /* the model stays pulled; Settings connects it */ } } }
+            if (job.ok === true && job.cible === id) {
+              const seam = localSeam()
+              if (seam !== null) {
+                try {
+                  const done = await seam.connect(id)
+                  if (done !== null && done !== undefined && done.ok === true) await call('/kybernos/model/auto', 'POST', { provider: 'ollama-local', model: id })
+                } catch (e) { /* the model stays pulled; Settings connects it */ }
+              }
+            }
             return
           }
           if (tries < 1200) win.setTimeout(tick, 2000)
@@ -32236,7 +32272,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         let r = null
         try { r = seam !== null ? await seam.connect(S.localId) : null } catch (e) { r = null }
         if (root === null) return
-        if (r !== null && r !== undefined && r.ok === true) { S.model = 'local'; go('local-done') } else { S.localError = 'connect'; go('local-err') }
+        if (r !== null && r !== undefined && r.ok === true) { S.model = 'local'; await autoSelect('ollama-local', S.localId); if (root === null) return; go('local-done') } else { S.localError = 'connect'; go('local-err') }
       }
       const jobTick = async () => {
         jobTimer = null
@@ -32465,6 +32501,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           st.appendChild(icon(IC.check, 18))
           st.appendChild(h('span', null, who() + plan + models))
           s.appendChild(st)
+          const line = pickedLine()
+          if (line !== null) s.appendChild(line)
           const a = actions()
           a.appendChild(primary(T('cont'), () => afterConnect()))
           s.appendChild(a)
@@ -32570,6 +32608,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           st.appendChild(icon(IC.check, 18))
           st.appendChild(h('span', null, T(ok ? 'key.done.ok' : 'key.done.unk', { name: provName(S.provider) })))
           s.appendChild(st)
+          const line = pickedLine()
+          if (line !== null) s.appendChild(line)
           const a = actions()
           a.appendChild(primary(T('cont'), () => afterConnect()))
           s.appendChild(a)
@@ -32628,6 +32668,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           st.appendChild(icon(IC.check, 18))
           st.appendChild(h('span', null, T('loc.done.s', { id: S.localId })))
           s.appendChild(st)
+          const line = pickedLine()
+          if (line !== null) s.appendChild(line)
           const a = actions()
           a.appendChild(primary(T('cont'), () => afterConnect()))
           s.appendChild(a)
@@ -32864,7 +32906,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         busy = true
         try {
           const probe = await kbObProbe(env)
-          const wizard = kbObMount({ ...env, onClose: () => { busy = false }, onConnected: opts !== null && opts !== undefined ? opts.onConnected : undefined })
+          const wizard = kbObMount({
+            ...env, onClose: () => { busy = false },
+            onConnected: opts !== null && opts !== undefined ? opts.onConnected : undefined,
+            sessionId: opts !== null && opts !== undefined && typeof opts.sessionId === 'string' ? opts.sessionId : undefined,
+          })
           const opened = wizard.open({
             standalone: true, lang: kbObPickLang(appLanguage(), shellLanguage()), dark: isDark(), ready: null,
             hasCloud: probe.hasCloud, hasLocal: probe.hasLocal, machine: probe.machine, job: null, mode: null,
@@ -33015,9 +33061,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const draftPair = React.useState('')
       const phasePair = React.useState('idle')
       const awayPair = React.useState('')
+      const pickedPair = React.useState('')
       const draft = draftPair[0]
       const phase = phasePair[0]
-      React.useEffect(() => { draftPair[1](''); phasePair[1]('idle') }, [stateKey])
+      React.useEffect(() => { draftPair[1](''); phasePair[1]('idle'); pickedPair[1]('') }, [stateKey])
       if (need === null || awayPair[0] === stateKey) return null
       const lang = kbNmLang()
       const L = KB_OB_LANGS.find((l) => l.id === lang) || KB_OB_LANGS[0]
@@ -33034,14 +33081,19 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       const putBack = () => { try { kbPrefillDraft(need.prompt, 0, sid) } catch (e) { /* the person types it again */ } phasePair[1]('back') }
       const openWizard = () => {
-        if (typeof kbObStandaloneOpen === 'function') kbObStandaloneOpen({ onConnected: () => phasePair[1]('connected') })
+        if (typeof kbObStandaloneOpen === 'function') {
+          kbObStandaloneOpen({
+            sessionId: sid !== '' ? sid : undefined,
+            onConnected: (kind, picked) => { pickedPair[1](picked !== null && picked !== undefined && typeof picked.model === 'string' ? picked.model : ''); phasePair[1]('connected') },
+          })
+        }
       }
       const row = (...kids) => h('div', { className: 'kbnm-row' }, ...kids)
       const body = []
       body.push(h('div', { className: 'kbnm-t', key: 't' }, T('nm.t')))
       body.push(h('div', { className: 'kbnm-s', key: 's' }, need.route !== null ? T('nm.s.route', { route: need.route }) : T('nm.s.generic')))
       if (phase === 'connected') {
-        body.push(h('div', { className: 'kbnm-ok', key: 'c' }, T('nm.connected')))
+        body.push(h('div', { className: 'kbnm-ok', key: 'c' }, pickedPair[0] !== '' ? T('nm.connected.set', { model: pickedPair[0] }) : T('nm.connected')))
         body.push(row(h('button', { type: 'button', className: 'kbnm-btn', onClick: putBack, key: 'b' }, T('nm.resend'))))
       } else if (phase === 'saved' || phase === 'back') {
         body.push(h('div', { className: 'kbnm-ok', key: 'o' }, phase === 'back' ? T('nm.resent') : T('nm.saved')))
