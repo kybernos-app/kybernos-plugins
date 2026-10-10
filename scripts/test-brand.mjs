@@ -10,7 +10,7 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/client.js', 'utf8')
 const m = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-END/)
 if (m === null) { console.error('BLOCK KB-BRAND-CORE NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_BRAND_NAME, KB_BRAND_RED, KB_BRAND_VIEWBOX, KB_BRAND_RATIO, KB_BRAND_INNER, KB_WORDMARK, KB_BRAND_LOGO_MAX, KB_BRAND_NAME_MAX, kbBrandFaviconHref, kbBrandSanitize, kbBrandRetitle, kbBrandFromCloud, kbBrandSame'
+const names = 'KB_BRAND_NAME, KB_BRAND_RED, KB_BRAND_VIEWBOX, KB_BRAND_RATIO, KB_BRAND_INNER, KB_BRAND_FAVICON_VIEWBOX, KB_BRAND_FAVICON_INNER, kbBrandArt, KB_WORDMARK, KB_BRAND_LOGO_MAX, KB_BRAND_NAME_MAX, kbBrandFaviconHref, kbBrandSanitize, kbBrandRetitle, kbBrandFromCloud, kbBrandSame'
 const mod = await import('data:text/javascript,' + encodeURIComponent(m[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -21,26 +21,30 @@ const eq = (label, got, want) => {
 const near = (label, got, want, tol) => eq(label + ' (±' + tol + ')', Math.abs(got - want) <= tol, true)
 
 /* ── 1. Geometry: the numbers the wordmark relies on ─────────────────────── */
+// The K is 32.5 x 36 units (the artwork of the public site): the viewBox is exactly its box.
 const [vx, vy, vw, vh] = mod.KB_BRAND_VIEWBOX.split(' ').map(Number)
+eq('the viewBox is the K\'s own box', [vx, vy, vw, vh].join(' '), '0 0 32.5 36')
 near('ratio matches the viewBox', mod.KB_BRAND_RATIO, vw / vh, 1e-9)
-// The pastille is .98f wide and 1.14f high: the width is the height times the ratio.
+// The K is .93f high: 1.28 x the cap height of Inter (.727), as on the site (BrandWordmark: CAP * K_SCALE).
+near('the K is 1.28 x the cap height', mod.KB_WORDMARK.height, 0.727 * 1.28, 0.002)
 near('wordmark width follows the ratio', mod.KB_WORDMARK.height * mod.KB_BRAND_RATIO, mod.KB_WORDMARK.width, 0.005)
-// The K is 36 units high: its height as a fraction of the font size is the cap height (~.72).
-near('K height equals the cap height', (36 / vh) * mod.KB_WORDMARK.height, 0.72, 0.01)
-// The K foot (y = 50) sits on the baseline: the pastille dips (viewBox bottom - 50) units below it.
-near('drop puts the K on the baseline', ((vy + vh - 50) / vh) * mod.KB_WORDMARK.height, mod.KB_WORDMARK.drop, 0.005)
+// Nothing hangs below the baseline: the foot of the K is the bottom of its box.
+eq('the wordmark has no drop: the K stands on the baseline', mod.KB_WORDMARK.drop, undefined)
+near('the air between the K and the y is .075 of the font size', mod.KB_WORDMARK.gap, 0.075, 1e-9)
 
-/* ── 2. The shared SVG: one source for the mark and the favicon ──────────── */
-const open = (tag) => (mod.KB_BRAND_INNER.match(new RegExp('<' + tag + '[\\s>/]', 'g')) || []).length
-eq('three polygons/rects of K plus body and tail are present', open('rect') + open('polygon'), 5)
-eq('the inner markup is balanced (one <g>)', open('g') === 1 && (mod.KB_BRAND_INNER.match(/<\/g>/g) || []).length === 1, true)
+/* ── 2. The shared SVG: one source for the mark, the wizard and the favicon ─ */
+const open = (tag, inner = mod.KB_BRAND_INNER) => (inner.match(new RegExp('<' + tag + '[\\s>/]', 'g')) || []).length
+eq('a stem, an arm and a leg, and three dots', [open('rect'), open('polygon'), open('circle')].join(','), '1,2,3')
+eq('the inner markup is balanced (two <g>)', open('g') === 2 && (mod.KB_BRAND_INNER.match(/<\/g>/g) || []).length === 2, true)
 eq('no script or event handler in the artwork', /<script|\son[a-z]+=/i.test(mod.KB_BRAND_INNER), false)
 eq('only the brand red and white are used', [...new Set(mod.KB_BRAND_INNER.match(/#[0-9a-f]{3,6}/gi))].sort().join(','), '#f2372a,#fff')
+eq('the dots sit on the stem (x = half its width) and inside the K', [...mod.KB_BRAND_INNER.matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/g)].every((c) => Number(c[1]) === 6.5 && Number(c[2]) - Number(c[3]) > 0 && Number(c[2]) + Number(c[3]) < 36), true)
 const fav = mod.kbBrandFaviconHref()
 eq('favicon is an SVG data URI', fav.startsWith('data:image/svg+xml,'), true)
 const favSvg = decodeURIComponent(fav.slice('data:image/svg+xml,'.length))
-eq('favicon declares the SVG namespace and the viewBox', favSvg.includes('xmlns="http://www.w3.org/2000/svg"') && favSvg.includes('viewBox="' + mod.KB_BRAND_VIEWBOX + '"'), true)
-eq('favicon embeds the same artwork as the mark', favSvg.includes(mod.KB_BRAND_INNER), true)
+eq('favicon declares the SVG namespace and its own, padded viewBox', favSvg.includes('xmlns="http://www.w3.org/2000/svg"') && favSvg.includes('viewBox="' + mod.KB_BRAND_FAVICON_VIEWBOX + '"'), true)
+eq('the favicon is the same K with bigger dots', favSvg.includes(mod.KB_BRAND_FAVICON_INNER) && mod.KB_BRAND_FAVICON_INNER.includes('r="3.3"') && mod.KB_BRAND_INNER.includes('r="2.8"') && mod.KB_BRAND_FAVICON_INNER.replace(/r="3.3"/g, 'r="2.8"') === mod.KB_BRAND_INNER, true)
+eq('the padded viewBox still holds the whole K', (() => { const [x, y, w, h] = mod.KB_BRAND_FAVICON_VIEWBOX.split(' ').map(Number); return x <= 0 && y <= 0 && x + w >= 32.5 && y + h >= 36 })(), true)
 eq('favicon stays small (< 1.5 KB)', fav.length < 1500, true)
 
 /* ── 3. Team override: only a name and a data-URI logo get through ───────── */
@@ -103,6 +107,8 @@ eq('same brand: null against a brand', mod.kbBrandSame(null, { name: 'A', logo: 
 
 /* ── 6. The client really wires the block in (static) ─────────────────────── */
 eq('the old circle logo is gone', src.includes('KB_LOGO_RED') || src.includes('KybernosLogo'), false)
+eq('the old bubble pastille is gone (one K in the product)', /rx="8" fill="' \+ KB_BRAND_RED|9\.5,61 24,56\.5/.test(src), false)
+eq('the wizard draws the brand\'s K, not a copy of its own', /KB_BRAND_VIEWBOX \+ '" style="height:/.test(src) && !src.includes('KB_OB_MARK'), true)
 eq('the sidebar mark slot is shadowed', /name: 'sidebar\.brand\.mark', priority: -1 \}, KybernosSidebarMark/.test(src), true)
 eq('the sidebar name slot is shadowed', /name: 'sidebar\.brand\.name', priority: -1 \}, KybernosSidebarName/.test(src), true)
 eq('the contract for other bundles is published', src.includes('window.__KB_BRAND__ = {'), true)

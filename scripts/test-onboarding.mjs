@@ -9,10 +9,11 @@ import { fileURLToPath } from 'node:url'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const src = readFileSync(root + 'packages/kybernos-plugin/client.js', 'utf8')
+const brand = src.match(/\/\/ KB-BRAND-CORE-BEGIN([\s\S]*?)\/\/ KB-BRAND-CORE-END/)
 const core = src.match(/\/\/ KB-OB-CORE-BEGIN([\s\S]*?)\/\/ KB-OB-CORE-END/)
 const ui = src.match(/\/\/ KB-OB-UI-BEGIN([\s\S]*?)\/\/ KB-OB-UI-END/)
 if (core === null || ui === null) { console.error('BLOCKS KB-OB-CORE / KB-OB-UI NOT FOUND in packages/kybernos-plugin/client.js'); process.exit(1) }
-const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, KB_OB_MARK_VIEWBOX, KB_OB_MARK_INNER, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark, kbObKeyShape, kbObProviderFromKey'
+const names = 'KB_OB_LANGS, KB_OB_PROFILES, KB_OB_MODES, KB_OB_PROVIDERS, KB_OB_T, kbObPickLang, kbObText, kbObPlan, kbObStepOf, kbObBack, kbObIsDark, kbObKeyShape, kbObProviderFromKey'
 const mod = await import('data:text/javascript,' + encodeURIComponent(core[1] + '\nexport { ' + names + ' }'))
 
 let fails = 0
@@ -94,12 +95,6 @@ eq('the cream page of the site', dark('rgb(246, 244, 238)'), false)
 eq('white', dark('rgb(255, 255, 255)'), false)
 eq('black', dark('rgba(0, 0, 0, 1)'), true)
 eq('transparent says nothing', [dark('rgba(0, 0, 0, 0)'), dark('transparent'), dark('')], [null, null, null])
-
-/* ── 7. The K: the artwork of the public site ───────────────────────────── */
-const count = (tag) => (mod.KB_OB_MARK_INNER.match(new RegExp('<' + tag + '[\\s>/]', 'g')) || []).length
-eq('the viewBox is the site\'s', mod.KB_OB_MARK_VIEWBOX, '0 0 32.5 36')
-eq('a stem, two arms and three dots', [count('rect'), count('polygon'), count('circle')], [1, 2, 3])
-eq('no script, handler or colour literal: the CSS paints it', /<script|\son[a-z]+=|#[0-9a-f]{3,6}/i.test(mod.KB_OB_MARK_INNER), false)
 
 /* ── 8. Reading the client file ──────────────────────────────────────────── */
 eq('the UI block holds no personal path', /\/Users\//.test(core[1] + ui[1]), false)

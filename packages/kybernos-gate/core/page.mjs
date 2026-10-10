@@ -44,10 +44,12 @@ const escapeHtml = (text) => String(text).replace(/[&<>"']/gu, (c) => ({ '&': '&
 // JSON inside a <script>: `<`, `>` and `&` are written as unicode escapes so the data can never close the tag.
 const jsonForScript = (value) => JSON.stringify(value).replace(/[<>&]/gu, (c) => '\\u00' + c.charCodeAt(0).toString(16).padStart(2, '0'))
 
-const K_PATH = 'M0 0H15V13.5L23 0H34L24 19.5L36 40H24L15.5 28V40H0Z M4 8a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0Z M4 20a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0Z M4 32a3.5 3.5 0 1 0 7 0a3.5 3.5 0 1 0-7 0Z'
+// The K of the product (apps/app brand-mark.tsx, the favicon of the public site): a red K whose stem carries three white dots.
+const K_ART = '<g class="k"><rect width="13" height="36"/><polygon points="21,0 31,0 13,28.3 13,12.6"/><polygon points="13,22 22,36 32.5,36 20.3,16.8 13,16.8"/></g>' +
+  '<g class="d"><circle cx="6.5" cy="7.5" r="2.8"/><circle cx="6.5" cy="18" r="2.8"/><circle cx="6.5" cy="28.5" r="2.8"/></g>'
 
 const CSS = `
-:root{--kb-red:#f03025;--kb-accent:#ff7a1a;--font:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
+:root{--kb-red:#f2372a;--kb-accent:#ff7a1a;--font:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Arial,sans-serif;
 --bg-page:#f9fafb;--bg-card:#fff;--text-1:#0f1115;--text-2:#61666b;--border-2:#0000001a;--primary:#0f1115;--primary-text:#fff;
 --danger:#ec1313;--warn:#dd8629;--warn-bg:#fef5e7;--ok:#22c55e;--ok-bg:#e6faed;--track:#ebeef2}
 @media (prefers-color-scheme:dark){:root{--bg-page:#151517;--bg-card:#1b1b1c;--text-1:#f9fafb;--text-2:#adb2b8;--border-2:#ffffff1f;
@@ -56,8 +58,8 @@ const CSS = `
 body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg-page);color:var(--text-1);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
 main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;gap:20px}
 .card{width:100%;max-width:400px;background:var(--bg-card);border:1px solid var(--border-2);border-radius:12px;padding:32px 28px 28px}
-.wm{display:inline-flex;align-items:baseline;font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1;margin-bottom:22px}
-.wm svg{height:.95em;width:.855em;margin-right:-.11em;transform:translateY(.04em);flex:none}.wm .k{fill:var(--kb-red)}
+.wm{display:inline-flex;align-items:baseline;font-size:34px;font-weight:700;letter-spacing:.01em;line-height:1;margin-bottom:22px}
+.wm svg{height:.93em;width:.84em;margin-right:.075em;flex:none}.wm .k{fill:var(--kb-red)}.wm .d{fill:#fff}
 h1{margin:0 0 6px;font-size:20px;line-height:1.3;font-weight:600}.sub{margin:0 0 22px;color:var(--text-2);font-size:14px}
 label.f{display:block;font-size:13px;font-weight:600;margin-bottom:6px}.field{position:relative}.field.u{margin-bottom:16px}
 input{width:100%;height:44px;padding:0 44px 0 14px;font:inherit;color:var(--text-1);background:var(--bg-card);border:1px solid var(--border-2);border-radius:10px;outline:none}
@@ -80,7 +82,7 @@ input:focus-visible{border-color:var(--kb-accent);box-shadow:0 0 0 3px color-mix
 .foot{color:var(--text-2);font-size:12.5px;text-align:center;max-width:400px}.hide{display:none!important}
 `
 
-const wordmark = `<div class="wm" role="img" aria-label="Kybernos"><svg viewBox="0 0 36 40" aria-hidden="true"><path class="k" fill-rule="evenodd" d="${K_PATH}"/></svg><span>ybernos</span></div>`
+const wordmark = `<div class="wm" role="img" aria-label="Kybernos"><svg viewBox="0 0 32.5 36" aria-hidden="true">${K_ART}</svg><span>ybernos</span></div>`
 const EYE_ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
 const EYE_OFF = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.9 17.9A10.9 10.9 0 0 1 12 19c-6.4 0-10-7-10-7a18.7 18.7 0 0 1 4.1-5M9.9 5.2A9.9 9.9 0 0 1 12 5c6.4 0 10 7 10 7a18.6 18.6 0 0 1-2.2 3.2M1 1l22 22"/></svg>'
 const ICON_ERR = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v5.5M12 16.5h.01"/></svg>'
