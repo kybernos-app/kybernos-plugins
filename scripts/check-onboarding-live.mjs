@@ -93,6 +93,22 @@ try {
   console.log('     theme: ' + ((await q(`document.querySelector('.kb-ob').classList.contains('kb-ob-dark')`)) ? 'dark' : 'light'))
   await goEnglish()
   check('the wizard speaks English', (await h1()) === 'Welcome to Kybernos')
+  // The language menu: each language changes the texts, Arabic also flips the layout and keeps the logo left-to-right.
+  const pickLanguage = async (id) => {
+    await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
+    await q(`document.querySelector('.kb-ob-menu button[lang="${id}"]').click()`); await sleep(200)
+  }
+  await pickLanguage('fr')
+  check('French', (await h1()) === 'Bienvenue dans Kybernos' && (await q(`document.querySelector('.kb-ob').getAttribute('lang')`)) === 'fr')
+  await pickLanguage('es')
+  check('Spanish', (await h1()) === 'Te damos la bienvenida a Kybernos')
+  await pickLanguage('ar')
+  check('Arabic reads right-to-left', (await q(`document.querySelector('.kb-ob').getAttribute('dir')`)) === 'rtl' && (await h1()) === 'مرحبًا بك في Kybernos')
+  check('the logo stays left-to-right in Arabic', (await q(`getComputedStyle(document.querySelector('.kb-ob-wm')).direction`)) === 'ltr')
+  check('nothing runs off the page in Arabic', (await q(`document.querySelector('.kb-ob').scrollWidth <= document.querySelector('.kb-ob').clientWidth`)) === true)
+  await page.shot(join(shotDir, 'arabic.png'))
+  await goEnglish()
+  check('and back to English', (await h1()) === 'Welcome to Kybernos' && (await q(`document.querySelector('.kb-ob').getAttribute('dir')`)) === 'ltr')
   await toModelStep()
   const step = await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`)
   check('the model step is numbered', /^Step \d of \d$/.test(String(step)), String(step))
