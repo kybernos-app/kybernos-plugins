@@ -41,7 +41,7 @@ const lireJson = (chemin) => JSON.parse(readFileSync(chemin, 'utf8'))
 
 // ── a synthetic release: the real robot + its import closure, three or four tiny bundles, a manifest ──────────────────────
 const PLATEFORME = 'test'
-function fabriquerPaquet (dossier, version, dirs) {
+function fabriquerPaquet (dossier, version, dirs, extraIndex = {}) {
   const robot = paquet.fermetureModules(REPO, ['scripts/dsh-lifecycle.mjs'])
   for (const chemin of robot) { mkdirSync(dirname(join(dossier, chemin)), { recursive: true }); cpSync(join(REPO, chemin), join(dossier, chemin)) }
   ecrire(join(dossier, 'scripts', 'patches.json'), '[]\n')
@@ -49,7 +49,7 @@ function fabriquerPaquet (dossier, version, dirs) {
   ecrire(join(dossier, 'dsh-compat.json'), JSON.stringify({ dsh: { min: '0.1.0', max: '9.9.9', testees: ['0.2.0-rc.2'] } }, null, 2) + '\n')
   for (const d of dirs) {
     ecrire(join(dossier, 'packages', d, 'package.json'), JSON.stringify({ name: '@local/' + d, version, type: 'module' }) + '\n')
-    ecrire(join(dossier, 'packages', d, 'index.js'), `export const name = '${d}'\nexport const release = '${version}'\n`)
+    ecrire(join(dossier, 'packages', d, 'index.js'), `export const name = '${d}'\nexport const release = '${version}'\n` + (extraIndex[d] || ''))
   }
   ecrire(join(dossier, 'VERSION'), version + '\n')
   const liste = readdirRecursif(dossier).filter((c) => c !== 'manifest.json')
@@ -165,6 +165,8 @@ if (a[0] === 'plugin') {            // like pnpm: every link: dependency must ex
 }
 if (a[0] === 'web') {               // the boot check: every bundle of the profile must load
   console.log('dsh web: http://127.0.0.1:1')
+  // a boot problem that has nothing to do with the suite (another plugin, a provider registered twice...): present before AND after
+  if (process.env.FAKE_DSH_WARN === '1') console.log('dsh: warning: 1 entry did not activate\\ncodex (@deepseek-ai/dsh-subagent-codex): SubagentError: a subagent provider named "codex" is already registered')
   const p = JSON.parse(fs.readFileSync(path.join(profile, 'package.json'), 'utf8'))
   for (const b of p.dsh.profile.bundles) {
     if (!b.startsWith('@local/')) continue
@@ -302,6 +304,20 @@ process.exit(1)`)
   ok('…and the profile is exactly what it was', readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantEchec)
   r = lancer(v4, ['install', '--source', v4])
   ok('…and the same install works once pnpm answers again', r.status === 0 && tousVersOuDev(v4), sortie(r).slice(-300))
+  r = lancer(v2, ['upgrade', '--source', v2])
+
+  // 10. a boot warning that was ALREADY there before the install (a third-party plugin, a provider registered twice: the real
+  //     profile of the owner prints « 1 entry did not activate / codex already registered » at every start) must not be charged
+  //     to the suite: the boot check used to match any `did not activate` / `Error:` line and rolled every install and update back.
+  const v5 = fabriquerPaquet(join(RACINE, 'pkgs', 'v5'), '1.4.0', NOMS_2)
+  r = lancer(v5, ['upgrade', '--source', v5], { FAKE_DSH_WARN: '1' })
+  ok('an update is not rolled back for a boot warning that was already there before it started', r.status === 0 && tousVersOuDev(v5), sortie(r).slice(-500))
+  ok('…and the robot says the warning was already there', /déjà là avant|déjà présent/.test(sortie(r)), sortie(r).slice(-300))
+  const v6 = fabriquerPaquet(join(RACINE, 'pkgs', 'v6'), '1.5.0', NOMS_2, { 'kybernos-alpha': '// THROW_AT_LOAD\n' })
+  const pjAvantV6 = readFileSync(join(PROFIL, 'package.json'), 'utf8')
+  r = lancer(v6, ['upgrade', '--source', v6], { FAKE_DSH_WARN: '1' })
+  ok('…but a bundle of THIS release that fails to load is still refused, even next to the old warning', r.status === 1 && readFileSync(join(PROFIL, 'package.json'), 'utf8') === pjAvantV6, sortie(r).slice(-500))
+  ok('…and the robot names the failing bundle (not only « the boot fails »)', /kybernos-alpha did not activate/.test(sortie(r)), sortie(r).slice(-500))
   r = lancer(v2, ['upgrade', '--source', v2])
 
   writeFileSync(join(dossierTar, 'bon', '..tar.gz'), octets)

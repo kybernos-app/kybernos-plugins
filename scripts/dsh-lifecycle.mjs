@@ -497,7 +497,13 @@ const direLiensReprise = () => {
 // Sans --url : vérification HOST — le robot démarre un DSH sur un port libre
 // et lit sa sortie ; un warning « did not activate » ou un crash = échec.
 // Avec --url : boot-check complet sur la vraie page (carte Failed, surfaces).
-async function verifierBoot (url) {
+// What a failing boot looks like in DSH's output. A line that matches is a failure of THIS boot; whether it is the suite's doing is decided
+// by comparing with the same check made before anything was written (`avant`): a warning that was already there (a third-party plugin,
+// a provider registered twice: the owner's own profile prints one at every start) is not ours and must not roll an install back.
+const MOTIF_ECHEC_BOOT = /did not activate|startup failed|Error:/i
+const lignesEnEchec = (sortie) => [...new Set(String(sortie).split('\n').map((l) => l.trim()).filter((l) => l !== '' && MOTIF_ECHEC_BOOT.test(l)))]
+
+async function verifierBoot (url, { avant = null } = {}) {
   if (url !== null && url !== undefined) {
     const r = await execReel(['node', join(ICI, 'boot-check.mjs')], process.env)
     return { ok: r.code === 0, sortie: r.sortie + r.err, code: r.code }
@@ -543,8 +549,25 @@ async function verifierBoot (url) {
   tuable.kill()
   await Promise.race([mort, attendre(5000)])
   const s = String(sortie)
-  const ko = /did not activate|startup failed|Error:/i.test(s)
-  return { ok: !ko, sortie: s, code: ko ? 1 : 0 }
+  const echecs = lignesEnEchec(s)
+  const nouveaux = avant === null ? echecs : echecs.filter((l) => !avant.has(l))
+  const ko = nouveaux.length > 0
+  return { ok: !ko, sortie: s, code: ko ? 1 : 0, echecs, nouveaux }
+}
+
+/** The boot check made BEFORE the first write: the set of failure lines that exist without us (null when there is no profile yet). */
+async function etatDeDepartDuBoot () {
+  if (opts.url !== null || !existsSync(join(PROFIL_DIR, 'package.json'))) return null
+  console.log('  🔎 démarrage de référence (ce qui échoue déjà avant nous ne nous sera pas reproché)…')
+  const depart = await verifierBoot(null)
+  if (depart.echecs.length > 0) {
+    console.log('     ℹ ' + depart.echecs.length + ' ligne(s) d\'échec déjà là avant l\'installation, non imputées au plugin :')
+    for (const l of depart.echecs.slice(0, 3)) console.log('       · ' + l.slice(0, 200))
+  }
+  return new Set(depart.echecs)
+}
+const direEchecBoot = (boot) => {
+  for (const l of boot.nouveaux.slice(0, 4)) console.log('     · ' + l.slice(0, 220))
 }
 
 // ── DOCTOR : lire, ne jamais écrire ───────────────────────────────────────
@@ -1088,6 +1111,7 @@ async function faireInstall () {
       instructionsRedemarrage(famille(), portGui))
   }
   const versions = { global: cible, plugin: await versionDuPlugin({ exec: execReel, repoDir: REPO }) }
+  const bootAvant = await etatDeDepartDuBoot()
   const photo = await photoAvantTout(versions)
   // Sur une machine NEUVE, le profil n'existe pas encore : `alignerLiens` et
   // `poserPatchs` ecrivent DEDANS (package.json, cordis.patch.yml). L'ordre
@@ -1130,10 +1154,11 @@ async function faireInstall () {
     await abandonner(e)
   }
   console.log('  🔎 vérification du boot…')
-  const boot = await verifierBoot(opts.url)
+  const boot = await verifierBoot(opts.url, { avant: bootAvant })
   const date = new Date().toISOString()
   if (!boot.ok) {
     console.log('  ❌ le boot échoue — retour à l\'état d\'avant la photo')
+    direEchecBoot(boot)
     await restaurerPhoto({ fs: fsReel, photosDir: PHOTOS_DIR, photoDossier: photo.dossier, profilDir: PROFIL_DIR })
     await poserPatchs({ tolerance: true })
     await journalOp({ date, quoi: 'plugin', de: '—', vers: versions.plugin, resultat: 'echec', raison: 'boot échoué, photo remise', photo: photo.dossier })
@@ -1196,6 +1221,7 @@ if (ordre === 'upgrade') {
   console.log('\n  Plan : ' + plan.join(' → '))
   if (opts.dry) quitter(0, '\n  (dry-run : rien n\'a été modifié)')
 
+  const bootAvant = await etatDeDepartDuBoot()
   const photo = await photoAvantTout({ global: depuis, plugin: versions.plugin })
   const date = new Date().toISOString()
   try {
@@ -1225,8 +1251,8 @@ if (ordre === 'upgrade') {
     console.log('  📦 installation du profil (pnpm)…')
     await installerProfil()
     console.log('  🔎 vérification du boot…')
-    const boot = await verifierBoot(opts.url)
-    if (!boot.ok) throw new Error('boot échoué')
+    const boot = await verifierBoot(opts.url, { avant: bootAvant })
+    if (!boot.ok) { direEchecBoot(boot); throw new Error('boot échoué') }
     await journalOp({ date, quoi: 'moteur', de: depuis, vers: cible, resultat: 'reussi', photo: photo.dossier })
     quitter(0, `\n🟢 mise à jour réussie : moteur ${depuis} → ${cible}, plugin ${versions.plugin}. Recharge la page DSH.`)
   } catch (e) {
