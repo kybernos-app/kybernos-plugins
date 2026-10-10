@@ -1140,7 +1140,15 @@ window.__ModuleLoader__.load({
       const when = quotaWhen(w.resets_at, now, t) || quotaFill(t('quotaBackUnknown'), { window })
       return quotaFill(t(team ? 'quotaUsedUpTeam' : 'quotaUsedUp'), { pct: 100, window, cap, name, when })
     }
-    const quotaNoticeText = (info, t, now = Date.now()) => {
+    // The server's clock minus this page's, taken when the facts arrive (`server_time` is the server's own stamp on them): a window's `resets_at` is the SERVER's
+    // time, and a person's clock can be hours off (measured: three hours ahead turned « about 24 h » into « about 21 h »). Zero when unknown.
+    const quotaStamp = (facts) => {
+      if (facts === null || facts === undefined || typeof facts !== 'object' || typeof facts.server_time !== 'string') return facts
+      const at = Date.parse(facts.server_time)
+      return Number.isFinite(at) ? Object.assign({}, facts, { skew_ms: at - Date.now() }) : facts
+    }
+    const quotaSkew = (info) => (info !== null && info !== undefined && typeof info === 'object' && Number.isFinite(info.skew_ms) ? Math.max(-2592000000, Math.min(2592000000, info.skew_ms)) : 0)
+    const quotaNoticeText = (info, t, now = Date.now() + quotaSkew(info)) => {
       if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
@@ -1158,7 +1166,7 @@ window.__ModuleLoader__.load({
     // The small meter on the card of the active team: the percent of the window that counts, and the sentence behind it (its title). An owner or admin of a team sees the
     // team's pool, a member and a personal space their own; a window that turns calls away is always the one shown, and a blocked payment reads 100%. Null: nothing to show
     // (unlimited, or the server did not answer).
-    const quotaMeterOf = (info, t, now = Date.now()) => {
+    const quotaMeterOf = (info, t, now = Date.now() + quotaSkew(info)) => {
       if (info === null || info === undefined || typeof info !== 'object' || info.ok !== true) return null
       const ws = info.workspace !== null && typeof info.workspace === 'object' ? info.workspace : {}
       const name = typeof ws.name === 'string' && ws.name !== '' ? ws.name : t('quotaWorkspace')
@@ -2364,7 +2372,7 @@ window.__ModuleLoader__.load({
             if (quotaSpace === null) return undefined
             let on = true
             const read = () => {
-              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(r) }).catch(() => null)
+              callLocal('/quota', 'GET').then((r) => { if (on === true && r !== null && r !== undefined && r.ok === true) setQuota(quotaStamp(r)) }).catch(() => null)
             }
             read()
             const seen = () => { if (document.visibilityState === 'visible') read() }
@@ -2633,7 +2641,7 @@ window.__ModuleLoader__.load({
           React.useEffect(() => {
             let on = true
             callLocal('/quota', 'GET').then((r) => {
-              if (on === true) setInfo({ r: r })
+              if (on === true) setInfo({ r: quotaStamp(r) })
               // A refused call changed the allowance: the card's meter reads it again now instead of at its next turn.
               try { window.dispatchEvent(new Event('kybernos-cloud:quota-read')) } catch (e) { /* no window events here */ }
             }).catch(() => { if (on === true) setInfo({ r: null }) })

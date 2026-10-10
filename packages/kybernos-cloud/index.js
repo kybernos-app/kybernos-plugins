@@ -324,7 +324,9 @@ const apiCall = async (path, options = {}) => {
     if (readable !== true && res.status >= 200 && res.status < 300) return { status: 0, body: null, error: 'invalid_response' }
     // When the workspace asks its members for a second factor, a member who has none is told when the grace ends on every answer of that workspace.
     const grace = res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('x-kybernos-mfa-grace-ends') : null
-    return { status: res.status, body: parsed, grace: typeof grace === 'string' && grace !== '' ? grace : null }
+    // The server's own clock, for the times it names (a used-up window comes back at ITS time; the person's clock can be hours off).
+    const date = res.headers !== undefined && res.headers !== null && typeof res.headers.get === 'function' ? res.headers.get('date') : null
+    return { status: res.status, body: parsed, grace: typeof grace === 'string' && grace !== '' ? grace : null, date: typeof date === 'string' && date !== '' ? date : null }
   } catch (e) {
     return { status: 0, body: null, error: String((e && e.message) || e) }
   } finally {
@@ -1258,11 +1260,15 @@ const quotaFacts = async () => {
   const known = Array.isArray(state.workspaces) ? state.workspaces.filter((w) => w !== null && typeof w === 'object' && w.id === id)[0] : undefined
   const usage = (Array.isArray(budget.body.windows) ? budget.body.windows : []).map(budgetWindowView).filter((w) => w !== null)
     .sort((a, b) => a.window_seconds - b.window_seconds || (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1))
+  // The server's own clock, as it stamped the answer (a Date header, one-second resolution): the page subtracts ITS clock when it receives this, so a used-up
+  // window's `resets_at` (the server's time) is told against the server's now, whatever the person's clock says. Null when the server sent no usable Date.
+  const stamped = Date.parse(String(budget.date !== null && budget.date !== undefined ? budget.date : plan.date))
   return {
     ok: true,
     workspace: { id, name: known !== undefined && typeof known.name === 'string' ? known.name : null, role: known !== undefined && typeof known.role === 'string' ? known.role : null, personal: known !== undefined && known.personal === true },
     payment_blocked: plan.body.payment_blocked === true,
     usage,
+    server_time: Number.isFinite(stamped) ? new Date(stamped).toISOString() : null,
   }
 }
 
