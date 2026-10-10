@@ -2879,9 +2879,9 @@ try {
   const down = await hit('/kybernos-cloud/start', 'POST')
   assert.equal(down.status, 200)
   assert.equal(down.body.ok, false)
-  assert.equal(down.body.error, 'demarrage_impossible')
+  assert.equal(down.body.error, 'reseau', 'a server that cannot be reached is « reseau » (the card says so), not « the server refused »')
   assert.equal(existsSync(statePath), false)
-  ok('API injoignable : echec explicite, aucun etat ecrit')
+  ok('API injoignable : echec explicite (reseau), aucun etat ecrit')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

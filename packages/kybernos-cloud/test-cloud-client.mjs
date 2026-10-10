@@ -126,6 +126,22 @@ assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 1)
 assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 1)
 assert.equal(/\.selectPanel\('/.test(clientSource), false, 'selectPanel only ever closes the profile page (selectPanel(null)): no call opens a panel by key')
 sok('page locale de l equipe : supprimee (composant, cle de panneau, evenement, onglets, 38 chaines fr/en)')
+// The card says what went wrong in a sentence, never in the host's internal code (found in the pre-production acceptance: « Could not connect »
+// followed by `demarrage_impossible`, for a server that was down, one that answered 503 and a portal page alike). Every code the host's pairing
+// and refresh routes return to the card has a sentence in both dictionaries, and the pairing's own rows say what they are (the hour the code
+// stops working, not a date under « Session »; a refused or expired request is not a « revoked session »).
+for (const code of ['reseau', 'trop_de_demandes', 'demarrage_impossible', 'profil_indisponible', 'reponse_illisible']) {
+  assert.ok(clientSource.includes("'" + code + "'") && /const errorWords = /.test(clientSource), 'le code ' + code + ' doit avoir une phrase')
+}
+assert.equal(/String\(view\.error \|\| ''\)/.test(clientSource), false, 'la carte n affiche plus view.error tel quel')
+assert.ok(clientSource.includes('errorWords(view.error)'), 'la carte passe view.error par errorWords')
+for (const key of ['errNet', 'errBusy', 'errStart', 'errProfile', 'errUnreadable', 'pairingExpires', 'pairingDenied', 'pairingExpired']) {
+  assert.ok(frKeys.has(key) && enKeys.has(key), 'phrase manquante (fr et en): ' + key)
+}
+assert.ok(clientSource.includes("label: t('pairingExpires'), value: fmtTime(pairing.expires_at)"), 'l appairage dit jusqu a quelle heure le code est valable')
+assert.equal(/label: t\('session'\), value: fmtDate\(pairing\.expires_at\)/.test(clientSource), false, 'plus de « Session <date> » pour un code qui expire dans dix minutes')
+assert.ok(/view\.note === 'denied' \? t\('pairingDenied'\) : t\('pairingExpired'\)/.test(clientSource), 'refus et expiration ont chacun leur phrase (pas « session révoquée »)')
+sok('la carte parle en phrases : codes internes traduits (reseau, trop_de_demandes, ...), heure de validité du code, refus / expiration distincts d une révocation')
 console.log('  ' + staticPass + ' verifications statiques OK')
 
 let React = null

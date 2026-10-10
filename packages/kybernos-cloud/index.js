@@ -342,7 +342,8 @@ const startPairing = async () => {
     body: { client: CLIENT_NAME, version: CLIENT_VERSION, device_label: deviceLabel() },
   })
   if (res.status !== 200 || res.body === null || typeof res.body.device_id !== 'string') {
-    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : 'demarrage_impossible', status: res.status }
+    // Status 0 is the network (down, refused, timed out, a body that was not JSON): « cannot reach », not « the server said no ».
+    return { ok: false, error: res.status === 429 ? 'trop_de_demandes' : (res.status === 0 ? 'reseau' : 'demarrage_impossible'), status: res.status }
   }
   const ttl = typeof res.body.expires_in === 'number' ? res.body.expires_in : 600
   const state = {

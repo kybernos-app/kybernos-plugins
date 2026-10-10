@@ -161,6 +161,14 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnexion requise',
         revokedBody: 'Cette session a été révoquée depuis Kybernos.',
         errorTitle: 'Connexion impossible',
+        errNet: 'DSH ne joint pas le serveur Kybernos. Vérifiez la connexion, puis réessayez.',
+        errBusy: 'Trop de tentatives en peu de temps. Attendez une minute, puis réessayez.',
+        errStart: 'Le serveur Kybernos n\'a pas accepté la demande de connexion. Réessayez dans un instant.',
+        errProfile: 'Votre compte n\'a pas pu être lu à l\'instant. Réessayez dans un instant.',
+        errUnreadable: 'Le serveur a répondu quelque chose que DSH ne comprend pas. Réessayez ; si cela dure, vérifiez l\'adresse du serveur.',
+        pairingExpires: 'Code valable jusqu\'à',
+        pairingDenied: 'La connexion a été refusée dans le navigateur. Recommencez si c\'était une erreur.',
+        pairingExpired: 'Le code a expiré avant d\'être confirmé. Recommencez.',
         retry: 'Réessayer',
         close: 'Fermer',
         none: '—',
@@ -390,6 +398,14 @@ window.__ModuleLoader__.load({
         revokedTitle: 'Reconnection required',
         revokedBody: 'This session was revoked from Kybernos.',
         errorTitle: 'Could not connect',
+        errNet: 'DSH cannot reach the Kybernos server. Check the connection, then try again.',
+        errBusy: 'Too many attempts in a short time. Wait a minute, then try again.',
+        errStart: 'The Kybernos server did not accept the connection request. Try again in a moment.',
+        errProfile: 'Your account could not be read just now. Try again in a moment.',
+        errUnreadable: 'The server answered something DSH cannot read. Try again; if it keeps happening, check the address of the server.',
+        pairingExpires: 'Code valid until',
+        pairingDenied: 'The connection was refused in the browser. Start again if it was a mistake.',
+        pairingExpired: 'The code expired before it was confirmed. Start again.',
         retry: 'Retry',
         close: 'Close',
         none: '—',
@@ -1282,6 +1298,25 @@ window.__ModuleLoader__.load({
           const l = lang()
           return d.toLocaleDateString(l === 'en' ? 'en-GB' : l === 'fr' ? 'fr-FR' : l, { day: '2-digit', month: 'short', year: 'numeric' })
         }
+        // The hour a pairing code stops working (a date alone said « Session 10 Oct 2026 », as if the connection lasted until then).
+        const fmtTime = (iso) => {
+          if (typeof iso !== 'string' || iso === '') return null
+          const d = new Date(iso)
+          if (Number.isNaN(d.getTime())) return null
+          const l = lang()
+          return d.toLocaleTimeString(l === 'en' ? 'en-GB' : l === 'fr' ? 'fr-FR' : l, { hour: '2-digit', minute: '2-digit' })
+        }
+        // What the card says for a failure the host reports with one of its internal codes (French words, kept for the tests and the logs):
+        // a sentence the person can act on. A code nobody mapped is shown as it is, after the title, so nothing is hidden from a bug report.
+        const errorWords = (code) => {
+          const c = String(code === undefined || code === null ? '' : code)
+          if (c === 'reseau' || c === 'injoignable' || c === 'reseau_indisponible') return t('errNet')
+          if (c === 'trop_de_demandes') return t('errBusy')
+          if (c === 'demarrage_impossible') return t('errStart')
+          if (c === 'profil_indisponible') return t('errProfile')
+          if (c === 'reponse_illisible' || c === 'reponse illisible') return t('errUnreadable')
+          return c
+        }
 
         // Nom affiché. `kybernos_users.name` est vide pour l'instant : AUCUN
         // chemin produit ne l'écrit (l'écran Profils garde le nom en local).
@@ -1561,7 +1596,7 @@ window.__ModuleLoader__.load({
           } else if (view.phase === 'disconnected') {
             body.push(h('div', { className: 'kbc-body', key: 'b' }, t('subtitle')))
             if (view.note === 'expired' || view.note === 'denied') {
-              body.push(h('div', { className: 'kbc-note kbc-warn', key: 'n' }, t('revokedBody')))
+              body.push(h('div', { className: 'kbc-note kbc-warn', key: 'n' }, view.note === 'denied' ? t('pairingDenied') : t('pairingExpired')))
             }
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: connect }, t('connect'))))
@@ -1570,7 +1605,7 @@ window.__ModuleLoader__.load({
             body.push(h('div', { className: 'kbc-body', key: 'b' }, t('pairingBody')))
             body.push(h('div', { className: 'kbc-code', key: 'c' }, pairing.user_code || t('none')))
             if (pairing.expires_at !== undefined && pairing.expires_at !== null) {
-              body.push(h(Row, { key: 'e', label: t('session'), value: fmtDate(pairing.expires_at) || t('none') }))
+              body.push(h(Row, { key: 'e', label: t('pairingExpires'), value: fmtTime(pairing.expires_at) || t('none') }))
             }
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: openPage }, t('openPage')),
@@ -1603,7 +1638,7 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: connect }, t('reconnect'))))
           } else {
             body.push(h('div', { className: 'kbc-body kbc-err', key: 'b' }, t('errorTitle')))
-            body.push(h('div', { className: 'kbc-note', key: 'n' }, String(view.error || '')))
+            body.push(h('div', { className: 'kbc-note', key: 'n' }, errorWords(view.error)))
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: load }, t('retry'))))
           }
