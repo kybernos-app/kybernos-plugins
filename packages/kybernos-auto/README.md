@@ -16,15 +16,36 @@ the candidates before it answers, keeps a circuit breaker per model, and hands b
   badge). Each model says WHY it is skipped (cause, retry time, last error). It refreshes every 60 s; "Check now" probes the
   whitelist for real.
 
+## Chat fallback (main-session failover, opt-in)
+
+Auto protects delegations; this protects the person's own chat. With `autoFailover` on (the "Chat fallback" switch of
+the Auto routing page, off by default), a step whose model cannot answer is served by the next healthy whitelist model
+instead of ending the turn on an error. No engine patch: it uses DSH's own `agent/request` and `agent/request-error`
+waterfalls (`failover.mjs`).
+
+- **When**: a failure retrying cannot fix (`AUTH`, `UNKNOWN_MODEL`, `INVALID_MODEL`, `NO_ADAPTER`) moves on at once. A
+  transient one (`RATE_LIMIT`, `QUOTA`, `OVERLOADED`, `SERVER`, `TIMEOUT`, `TRANSPORT`, `NETWORK`) first goes through the
+  engine's own retries and moves on only when those gave up. A cancelled turn, a context-window or invalid-request
+  failure, and anything else are never failed over.
+- **Which model**: the chosen model stays the primary; then the whitelist in its order, minus the models whose breaker
+  is open. The breaker is the SAME as the delegations' (`auto-health.json`): a refused key opens it for 10 minutes, a
+  model that could not serve just now for 1, 2, 4, 8 then 10 minutes, then one trial decides. A model that failed is
+  never asked twice for the same step, so the chain is finite, and the primary comes back as soon as its pause ends.
+- **What does not carry over**: the reasoning effort and the output cap of the primary (both are model-specific).
+- **Scope**: every agent of this DSH, delegations' children included. The fallback is always a model of YOUR whitelist,
+  and the switch is the opt-in.
+- **Seen**: the page shows the last move ("Last fallback: a → b (CODE)"), the health table shows why a model is
+  skipped, and the log has one line per move.
+
 ## Host routes
 
 JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` routes answer `405` otherwise.
 
 | Route | Purpose |
 | --- | --- |
-| `GET /kybernos-auto/state?sessionId=` | `{global, whitelist, classifier, sessionOn, sante[], total, disponibles, chaud, sondeEnCours, plafond, ttlSondeS, checkedAt, intervalS}`; each `sante` entry: `{modele, etat (jamais\|ok\|degrade\|down), disjoncteur (closed\|open\|half-open), jusqua, cause, consecutive, calls, errors, erreurPct, lastLatencyMs, cacheHitPct, lastError, sonde}` |
+| `GET /kybernos-auto/state?sessionId=` | `{global, whitelist, classifier, sessionOn, sante[], total, disponibles, chaud, failover:{enabled,last}, sondeEnCours, plafond, ttlSondeS, checkedAt, intervalS}`; each `sante` entry: `{modele, etat (jamais\|ok\|degrade\|down), disjoncteur (closed\|open\|half-open), jusqua, cause, consecutive, calls, errors, erreurPct, lastLatencyMs, cacheHitPct, lastError, sonde}` |
 | `POST /kybernos-auto/session` | `{sessionId, on}` turns Auto on or off for one session |
-| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique strings, 200 chars max), `autoRouting` (boolean), `autoClassifier` |
+| `POST /kybernos-auto/settings` | any of `autoWhitelist` (unique strings, 200 chars max), `autoRouting` (boolean), `autoFailover` (boolean), `autoClassifier` |
 | `POST /kybernos-auto/report` | `{modele, latenceMs?, erreur?, code?, message?, inputTokens?, cacheReadTokens?}` outcome of one delegation; an error keeps its reason and feeds the breaker |
 | `POST /kybernos-auto/router` | `{demande, sessionId?, exclure?[], sonde?}` returns `{actif, classe, via, modele, verifie, candidats[], chaine[], ecartes[], sondes, sonde, delai, plafond, raison}` |
 | `POST /kybernos-auto/probe` | `{models?[]}` probes the whitelist (or the whitelist models named; any other is ignored) for real, ignoring the verdict cache; a run that ended under 5 s ago is not repeated; 503 when the llm service is absent |
@@ -33,7 +54,7 @@ JSON; the exact-origin guard answers `403` (an absent `Origin` passes). `POST` r
 
 All under `$DSH_HOME/kybernos/` (default `~/.dsh/kybernos/`):
 
-- `settings.json`: keys `autoRouting`, `autoWhitelist`, `autoClassifier`. The file is shared (the core reads
+- `settings.json`: keys `autoRouting`, `autoFailover`, `autoWhitelist`, `autoClassifier`. The file is shared (the core reads
   `pairingToken`, `gatewayBase`, `wsAdminKey`; `kybernos-sessions` writes its own keys): a save here merges into what is on
   disk, writes atomically, keeps the file's permissions, and refuses to overwrite a file that is unreadable or not a JSON
   object (a copy of a corrupt one is kept as `settings.json.corrupt-<time>`, and the route answers 500 with the reason).

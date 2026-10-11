@@ -85,6 +85,15 @@ export function apresIssue (rec, issue, maintenant) {
   }
   noterErreur(r, issue, maintenant)
   if (etat === 'reseau') return r // the transport failed, not the model: the breaker is left alone
+  if (etat === 'bascule') {
+    // The person's own chat could not be served by this model and moved to the next one (failover.mjs): set it aside
+    // for a pause that doubles with each consecutive failure (1, 2, 4, 8, then 10 minutes), then ONE trial decides.
+    r.consecutive = (Number(r.consecutive) || 0) + 1
+    const pause = Math.min(PAUSE_MIN_MS * Math.pow(2, Math.min(r.consecutive, 8) - 1), PAUSE_MAX_MS)
+    r.openUntil = Math.max(Number(r.openUntil) || 0, maintenant + pause)
+    r.openReason = causeDe(String(issue.code))
+    return r
+  }
   if (etat === 'limite') {
     r.openUntil = Math.max(Number(r.openUntil) || 0, maintenant + PAUSE_LIMITE_MS)
     r.openReason = 'limit'
