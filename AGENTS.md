@@ -12,6 +12,7 @@ Kybernos plugins for DSH. Open core: this repo is Apache-2.0; paid modules live 
 7. **No secrets.** Never commit `.env`, tokens, tester codes.
 8. **A branch does not outlive its merge by more than a day.** After a merge into `dev`: `bash scripts/worktree-clean.sh --base dev` (dry run; `--apply` to do it) removes the worktrees and local branches whose work is in `dev`, after a verified bundle of every ref, and never anything that holds work `dev` does not have. A branch worth keeping becomes a tag (`git tag archive/<name> <branch>`), not a branch.
 9. **The shared tree's `dev` has two copies.** `origin` is public, so the integration branch is also pushed to the private `backup` remote after every commit or merge on it (a `post-commit` and `post-merge` hook in `.git/hooks`, not versioned: reinstall them with the same two lines on a new machine). On GitHub, `dev` cannot be deleted or force-pushed (ruleset `protect-dev-light`).
+10. **Answer short, summarise the output.** What the maintainer reads after a task is a few lines: the result first, what was checked (and what was skipped), and the one decision or action that is theirs. Command output, test logs and long reports are summarised, never pasted or recapped step by step; the detail lives in the commit message, the docs or memory, and is given on request. A maintainer who has to ask twice for this was not listened to the first time.
 
 Before pushing: `node scripts/garde-depot.mjs && node scripts/test-lifecycle-engine.mjs && node scripts/test-paquet.mjs`.
 
