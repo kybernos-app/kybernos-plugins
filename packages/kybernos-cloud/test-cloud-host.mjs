@@ -599,10 +599,57 @@ try {
     '/kybernos-cloud/console/link',
     // What stopped the person's last call, in the server's words, for the quota notice (test-quota-notice.mjs and below).
     '/kybernos-cloud/quota',
+    // The Account page's custom instructions, as a marked section of <DSH home>/AGENTS.md (test-instructions.mjs holds the file logic).
+    '/kybernos-cloud/instructions', '/kybernos-cloud/instructions/save',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
   ok(String(expectedPaths.length) + ' routes /kybernos-cloud/* montees (catalogue + artefacts + memoire)')
+
+  // Custom instructions → <DSH home>/AGENTS.md. The write is strict: a request that names no origin of this server is refused.
+  // These calls carry a socket (as on a real connection), because the strict guard compares the Origin with the listener's real port.
+  {
+    const ci_home = join(stateDir, 'instr-home')
+    mkdirSync(ci_home, { recursive: true })
+    const ci_saved = process.env.DSH_HOME
+    process.env.DSH_HOME = ci_home
+    const ci_call = async (path, method, origin, body) => {
+      const req = fakeReq(method, origin, body, path)
+      req.socket = { localPort: 3080 }
+      const res = fakeRes()
+      await routes.get(path)(req, res)
+      return res
+    }
+    const ci_self = 'http://127.0.0.1:3080'
+    try {
+      const file = join(ci_home, 'AGENTS.md')
+      const empty = await ci_call('/kybernos-cloud/instructions', 'GET')
+      assert.equal(empty.status, 200)
+      assert.deepEqual([empty.body.ok, empty.body.present, empty.body.text, empty.body.file], [true, false, '', file])
+      const noOrigin = await ci_call('/kybernos-cloud/instructions/save', 'POST', undefined, { text: 'x' })
+      assert.equal(noOrigin.status, 403)
+      const foreign = await ci_call('/kybernos-cloud/instructions/save', 'POST', 'https://evil.example', { text: 'x' })
+      assert.equal(foreign.status, 403)
+      assert.equal(existsSync(file), false)
+      ok('instructions : l\'ecriture sans origine ou d\'une autre origine est refusee, rien n\'est ecrit')
+      const wrote = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 'Be direct.' })
+      assert.equal(wrote.body.ok, true)
+      assert.ok(readFileSync(file, 'utf8').includes('Be direct.'))
+      const back = await ci_call('/kybernos-cloud/instructions', 'GET')
+      assert.deepEqual([back.body.present, back.body.text], [true, 'Be direct.'])
+      const notText = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: 7 })
+      assert.deepEqual([notText.body.ok, notText.body.error], [false, 'bad-text'])
+      const noBody = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self)
+      assert.deepEqual([noBody.body.ok, noBody.body.error], [false, 'bad-text'])
+      assert.equal((await ci_call('/kybernos-cloud/instructions/save', 'GET', ci_self)).status, 405)
+      const cleared = await ci_call('/kybernos-cloud/instructions/save', 'POST', ci_self, { text: '' })
+      assert.deepEqual([cleared.body.ok, cleared.body.present], [true, false])
+      assert.ok(!readFileSync(file, 'utf8').includes('Be direct.'))
+      ok('instructions : lecture, ecriture, texte invalide refuse, champ vide = section retiree')
+    } finally {
+      if (ci_saved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = ci_saved
+    }
+  }
 
   // Non lié : la route du parrainage ne fabrique RIEN — pas de code, motif
   // explicite. Un code inventé côté plugin ferait partager un lien mort.

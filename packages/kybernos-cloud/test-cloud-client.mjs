@@ -110,6 +110,14 @@ assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('dataNavLabel'\), su
 assert.ok(/\.kbpg-head\{margin:0 0 6px\}/.test(clientSource), 'the head only adds the 6px that make the first card sit 20px under the sub-title')
 assert.equal(/\.kbpg-head[^{]*\{[^}]*font-size/.test(clientSource), false, 'the bundle sets no title size of its own: the shared Settings rule does')
 sok('Account and Data & privacy: same head (h2.kb6-title + p.kb8-sub) in every state, fr/en keys checked above')
+// Custom instructions: the field is written to the host's AGENTS.md (the agents read that file), the other fields stay in this browser.
+// Two paths, because the router indexes by path (a GET and a POST on one path would mask each other).
+assert.ok(/callLocal\('\/instructions'\)/.test(clientSource) && /callLocal\('\/instructions\/save', 'POST', \{ text: profil\.instructions \}\)/.test(clientSource), 'the page reads and writes the instructions through the host')
+// A failed write keeps the text unsaved (still dirty) and says why; the other fields are saved either way.
+assert.ok(/ecrit = Object\.assign\(\{\}, profil, \{ instructions: saved\.instructions \}\)/.test(clientSource) && /setFlash\(echec === ''\)/.test(clientSource), 'a failed write leaves the instructions unsaved and the page says so')
+// Without the route (an older host) the field stays browser-side and the old note is shown.
+assert.ok(/hostFile !== '' \? quotaFill\(t\('accInstrHost'\), \{ file: hostFile \}\) : t\('accLocalNote'\)/.test(clientSource), 'the note says where the text went, or that it stays on this device')
+sok('instructions : written to the host AGENTS.md, unsaved on failure with the reason, browser-side without the route')
 // Dead-code rider: the local Team page (`SpaceMain`, key `kybernos-cloud-space`: Plan / Usage / People / Billing / Synchronisation tabs) was removed as
 // unreachable. Its only doors were the last fallback of the « Teams settings » entry (behind the two bridges the mandatory master bundle sets
 // unconditionally) and the window event `kybernos-cloud:space`, which nothing in the repos dispatched. It stays removed: the component, its panel key,
@@ -250,7 +258,7 @@ assert.ok(inserted[0].textContent.includes('.kbf-profile'), 'le CSS de la rangee
 ok('CSS injecte via styles.insert')
 
 // The two Settings pages of the account, rendered for real in their first (reading) state: each opens with the page head.
-for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile, preferences and instructions. They stay on this device.'], ['kybernos-data', 'Data &amp; privacy', 'Export your data, manage the device signed in here, or delete your account.']]) {
+for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile and preferences stay on this device. Your instructions are written to the AGENTS.md of the machine running DSH.'], ['kybernos-data', 'Data &amp; privacy', 'Export your data, manage the device signed in here, or delete your account.']]) {
   const reg = registrations.filter((r) => r.options.name === 'settings.section' && r.options.id === id)[0]
   assert.ok(reg !== undefined, 'la section ' + id + ' doit etre enregistree')
   const markup = renderToStaticMarkup(React.createElement(reg.component, null))
