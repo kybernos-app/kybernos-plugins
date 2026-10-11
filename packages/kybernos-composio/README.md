@@ -26,7 +26,7 @@ switch off, delete.
     apps linked once to their Kybernos account through the server's own Composio Platform project, so every agent of
     theirs uses them with no key on this machine (ADR 0008 of the Kybernos server). A switch above the list chooses
     between this and the personal key (one at a time, the last choice is remembered). The list shows a state per
-    connection (active, pending, failed, expired, disabled), the quota ("3 of 4", a pending request counts), and the
+    connection (active, pending, failed, expired, disabled), the quota ("3 of 4", a pending request counts; when the server says the plan does not include connections, `entitled: false`, the quota gives way to « Included in paid plans », the add button is off and « See the plans » opens the server's web app, while the person's own Composio key mode is untouched), and the
     actions on hover (cancel a pending one, remove, retry or reconnect). "Connect an app" searches the server's
     catalogue (48 apps at a time, "Show more" for the rest; the apps that connect in one click come first: measured
     on the real Platform catalogue, only 123 of 1,601 have a managed sign-in, the others take an API key), then either sends the person to the app's own page in a new tab (the row stays pending and the page
