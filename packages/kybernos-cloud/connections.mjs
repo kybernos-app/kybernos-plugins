@@ -52,7 +52,8 @@ export const connectionsFailure = (status, body, { named = false } = {}) => {
       const existing = isConnectionId(e.id) && typeof e.toolkit === 'string' ? { id: e.id, toolkit: e.toolkit, status: STATUSES.includes(e.status) ? e.status : 'pending' } : undefined
       return { error: 'pending_exists', existing }
     }
-    if (c === 'connection_limit') return { error: 'connection_limit', limit: num(body.limit), count: num(body.count) }
+    // `entitled: false` is the plan being the reason (the server's flat detail); absent on an older server, and then the page only knows a limit.
+    if (c === 'connection_limit') return { error: 'connection_limit', limit: num(body.limit), count: num(body.count), ...(typeof body.entitled === 'boolean' ? { entitled: body.entitled } : {}) }
     return { error: 'conflict' }
   }
   if (status === 413) return { error: 'too_large' }
@@ -89,7 +90,7 @@ export const asConnection = (r) => {
   }
 }
 
-/** `GET /v1/connections` → `{ configured, connections, limit, count, stale }`, or null when the answer is not that. */
+/** `GET /v1/connections` → `{ configured, connections, limit, entitled, count, stale }`, or null when the answer is not that. */
 export const asConnectionList = (body) => {
   const b = obj(body)
   if (!Array.isArray(b.connections)) return null
@@ -98,6 +99,8 @@ export const asConnectionList = (body) => {
     configured: b.configured !== false,
     connections,
     limit: Number.isFinite(b.limit) ? b.limit : null,
+    // Whether the plan includes connecting apps at all; null from a server that does not say (a limit of 0 is then only a limit).
+    entitled: typeof b.entitled === 'boolean' ? b.entitled : null,
     // The server counts the pending ones too; without its number, what was actually read.
     count: Number.isFinite(b.count) ? b.count : connections.length,
     stale: b.stale === true,

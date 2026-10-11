@@ -206,13 +206,13 @@ per refusal, row mappers, JSON-RPC), host half in `connections-host.mjs` (routes
 
 | Route | Does |
 | --- | --- |
-| `GET /kybernos-cloud/connections[?refresh=1]` | `{ offered, connected, connections: [{id, toolkit, status, accountType, alias, isDefault, createdAt, failure}], limit, count, stale }`; `status` is `pending`, `active`, `failed`, `expired` or `disabled` |
+| `GET /kybernos-cloud/connections[?refresh=1]` | `{ offered, connected, connections: [{id, toolkit, status, accountType, alias, isDefault, createdAt, failure}], limit, entitled, count, web, stale }`; `status` is `pending`, `active`, `failed`, `expired` or `disabled` |
 | `GET …/connections/apps` | the toolkits that may be connected: `{ apps: [{slug, name, categories, description, needsApiKey}] }` (no logo: it is a third-party address) |
 | `GET …/connections/item?id=` | one connection, reconciled at the server on the spot: what the page **polls** (every 5 s) while an add is pending |
 | `POST …/connections/link` `{toolkit, api_key?, alias?}` | starts one: `{ connection: {id, status}, redirectUrl }` (the page opens `redirectUrl` in a new tab); never a `redirect_uri` (the server uses its own page), never a user id; an `api_key` is sent in this one call and never kept, logged or answered back |
 | `POST …/connections/delete` `{id}` | disconnects, at the third party and in the server's table |
 
-Refusals are one word: `connection_limit` (with `limit` and `count`), `pending_exists` (with `existing: {id, toolkit, status}`, so the page can offer
+Refusals are one word: `connection_limit` (with `limit`, `count` and, from a server that says it, `entitled`: `false` means the plan does not include connecting apps, so the page offers the plans instead of a limit to reach), `pending_exists` (with `existing: {id, toolkit, status}`, so the page can offer
 « cancel it »), `needs_api_key`, `connection_failed` (the app refused the key), `upstream_unavailable` (with `checkFirst`: an add that may have gone through, so **list before trying again**; an add is
 never sent twice), `connections_disabled`, `reconnect_required`, `not_found`, `not_on_this_server`, `network`. Nothing leaves the machine when
 the server does not offer connections or the account is not connected.
