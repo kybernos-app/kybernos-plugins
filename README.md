@@ -66,6 +66,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
 | [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
 | [`kybernos-mobile`](packages/kybernos-mobile/README.md) | Phone layout of the DSH shell: sidebar as a drawer, Settings stacked, panels kept on screen (below 700 px) |
+| [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |
 | [`kybernos-terminal`](packages/kybernos-terminal/README.md) | Shell fences dressed as terminal windows, with a run button |
 | [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |
 | [`kybernos-sessions`](packages/kybernos-sessions/README.md) | Session and kyber memory status per folder |

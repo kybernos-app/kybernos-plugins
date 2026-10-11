@@ -135,6 +135,7 @@ export const FICHIERS_CHAUDS = [
   'packages/kybernos-motion/client.js',
   'packages/kybernos-changes/client.js',
   'packages/kybernos-call/client.js',
+  'packages/kybernos-websearch/client.js',
 ]
 export const TTL_CLAIM_MS = 180 * 1000
 
