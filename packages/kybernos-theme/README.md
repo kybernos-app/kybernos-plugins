@@ -27,9 +27,10 @@ pure function, `effetsCss(S)`, inserted as a single `<style>`; it only uses DSH'
 | File | Half | Role |
 |---|---|---|
 | `client.js` | browser | the page, the colour engine, the theme library, the thinking-animation runtime |
-| `index.js` | host | mounts four routes and seeds the two skills |
+| `index.js` | host | mounts five routes, puts the boot sheet in the index through `webserver/index-inject`, seeds the two skills |
 | `loader-store.mjs` | host | pure `node:fs` store behind `/kybernos-theme/loader-store` |
 | `preset-store.mjs` | host | pure `node:fs` store behind `/kybernos-theme/preset-store` (the theme library) |
+| `boot-store.mjs` | host | the boot sheet: the token layer and font the browser half last applied, validated, stored under `<dsh home>/kybernos/theme-boot.json` and rendered as `<style id="kbth-boot">` (see below) |
 | `themes-catalogue.mjs` | host | pure rules of the gallery's catalogue: shape of a theme, Ed25519 signature, no rollback, shipped vs signed |
 | `themes-gallery.mjs` | host | disk and network behind `/kybernos-theme/gallery` (cache, bounded download, origin guards) |
 | `gallery.json` | data | the SHIPPED catalogue, built from `catalog/themes/*.json` by `scripts/themes-catalogue.mjs` |
@@ -39,10 +40,29 @@ pure function, `effetsCss(S)`, inserted as a single `<style>`; it only uses DSH'
 | `vendor/lottie_light.min.js` | host asset | lottie-web 5.12.2 (MIT, see `vendor/NOTICES.md`), served lazily |
 
 Tests (all pure node, CI runs them): `test-client.mjs`, `test-loader-store.mjs`,
-`test-preset-store.mjs`, `test-themes-catalogue.mjs`, `test-themes-gallery.mjs`, `test-seed-skills.mjs`
+`test-preset-store.mjs`, `test-boot-store.mjs`, `test-themes-catalogue.mjs`, `test-themes-gallery.mjs`, `test-seed-skills.mjs`
 (and `scripts/test-themes-catalogue.mjs` for the publishing side). `test-client.mjs` renders the page with `react-dom/server` when react is
 resolvable (`NODE_PATH=<a node_modules with react + react-dom>`) and skips that stage otherwise.
 The page on the real GUI is covered by `scripts/check-theme-live.mjs` (see `docs/dev/live-testing.md`).
+
+## First paint (the boot sheet)
+
+The look used to come back only when this bundle's JavaScript activated. On a slow link that is long
+after the shell has painted: measured on the sandbox with a link throttled to 250 KB/s, the page showed
+DSH's default palette from 4.3 s to 38.5 s before the theme applied. Now the browser half posts what it
+**persisted** (the token layer and the font, never a trial being previewed) to `POST /kybernos-theme/boot`;
+the host validates it, keeps it in `<dsh home>/kybernos/theme-boot.json`, and adds it to every index render
+through DSH's own `webserver/index-inject` seam (the seam DSH's built-in theme bootstrap uses) as a
+`<style id="kbth-boot">` right after `<head>`. The browser half removes the sheet two frames after its own
+layer is in place, so the sheet can never outvote a later choice.
+
+- What crosses the route ends up inside a `<style>` of every page, so it is never taken as CSS: token names
+  must be `--dsw-*`, values are matched against a strict grammar (hex, rgb[a], hsl[a], lengths), the font
+  against a stack grammar, and the sheet is built from the validated parts only (`boot-store.mjs`).
+- Not in the sheet: the wallpaper (a `div` the browser half adds) and the effects sheet (glass, motion,
+  focus ring). They still appear when the bundle activates.
+- Without the seam (a DSH that does not emit `webserver/index-inject`) nothing is injected and the page
+  behaves as before.
 
 ## My themes
 

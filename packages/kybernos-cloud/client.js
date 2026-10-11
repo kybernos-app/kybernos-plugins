@@ -257,7 +257,7 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Soyez direct. Phrases courtes…',
         accSave: 'Enregistrer',
         accSaved: 'Enregistré ✓',
-        accSub: 'Votre profil, vos préférences et vos instructions. Ils restent sur cet appareil.',
+        accSub: 'Votre profil et vos préférences restent sur cet appareil. Vos instructions sont écrites dans le AGENTS.md de la machine qui fait tourner DSH.',
         accAbout: 'À propos de vous',
         accPrefs: 'Préférences',
         accBirthPh: 'Choisir une date',
@@ -273,6 +273,11 @@ window.__ModuleLoader__.load({
         accDiscard: 'Annuler',
         accRefreshing: 'Actualisation…',
         accLocalNote: 'Ces champs restent sur cet appareil — la page profil de la webapp les garde, elle aussi, côté navigateur : le serveur ne les sert pas.',
+        accInstrHost: 'Écrites dans {file} : tous les agents les lisent, dans les nouvelles conversations.',
+        accInstrErr: 'Enregistrées sur cet appareil, mais pas dans AGENTS.md ({why}).',
+        accInstrWhyReserved: 'le texte contient un repère réservé de Kybernos',
+        accInstrWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrigez-la ou supprimez-la à la main',
+        accInstrWhyWrite: 'le fichier n\'a pas pu être écrit',
         themeLight: 'Clair',
         themeDark: 'Sombre',
       },
@@ -491,7 +496,7 @@ window.__ModuleLoader__.load({
         accInstructionsPh: 'Be direct. Short sentences…',
         accSave: 'Save',
         accSaved: 'Saved ✓',
-        accSub: 'Your profile, preferences and instructions. They stay on this device.',
+        accSub: 'Your profile and preferences stay on this device. Your instructions are written to the AGENTS.md of the machine running DSH.',
         accAbout: 'About you',
         accPrefs: 'Preferences',
         accBirthPh: 'Pick a date',
@@ -507,6 +512,11 @@ window.__ModuleLoader__.load({
         accDiscard: 'Discard',
         accRefreshing: 'Refreshing…',
         accLocalNote: 'These fields stay on this device — the webapp profile page keeps them browser-side too: the server does not serve them.',
+        accInstrHost: 'Written to {file}: every agent reads them, in new chats.',
+        accInstrErr: 'Saved on this device, but not written to AGENTS.md ({why}).',
+        accInstrWhyReserved: 'the text contains a reserved Kybernos marker',
+        accInstrWhyDamaged: 'the Kybernos section of AGENTS.md is damaged: fix or delete it by hand',
+        accInstrWhyWrite: 'the file could not be written',
         themeLight: 'Light',
         themeDark: 'Dark',
       },
@@ -1071,12 +1081,11 @@ window.__ModuleLoader__.load({
       return body
     }
 
-    // ── Profil local (onglet Account des Réglages, 30/09 soir) ─────────────
-    // Les champs naissance / localisation / langue / instructions de la page
-    // profil de la webapp vivent dans SON navigateur (store local, le serveur
-    // ne les sert pas). DSH fait de même côté apparail : localStorage, jamais
-    // de réseau. Le jour où une route serveur les rend, seul ceReadWrite
-    // change.
+    // ── Local profile (the Account tab of Settings) ─────────────────────────
+    // Birth date, location, language and colour live in THIS browser (localStorage, never the network), as the
+    // webapp's profile page does with its own. The custom instructions are the exception: the agents read them
+    // from <DSH home>/AGENTS.md, so the page also writes them there (GET /instructions, POST /instructions/save),
+    // and the browser copy is only the fallback when the host does not offer the route.
     const KB_ACC_KEY = 'kb8.account-profile'
     const kbAccVide = () => ({ name: '', birth: '', location: '', instructions: '', color: '', photo: '', tz: '' })
     const kbAccRead = () => {
@@ -3176,6 +3185,32 @@ window.__ModuleLoader__.load({
           const photoErrPair = React.useState(false)
           const photoErr = photoErrPair[0]
           const setPhotoErr = photoErrPair[1]
+          // The instructions live in the AGENTS.md of the machine running DSH (the agents read that file); the other fields stay in this browser.
+          // `hostFile` is its path, '' while unknown or when the host does not offer the route (then the field stays browser-side, as before).
+          const hostFilePair = React.useState('')
+          const hostFile = hostFilePair[0]
+          const setHostFile = hostFilePair[1]
+          const instrErrPair = React.useState('')
+          const instrErr = instrErrPair[0]
+          const setInstrErr = instrErrPair[1]
+          React.useEffect(() => {
+            let alive = true
+            callLocal('/instructions').then((r) => {
+              if (alive !== true || r === null || r.ok !== true || typeof r.file !== 'string' || typeof r.text !== 'string') return
+              setHostFile(r.file)
+              const local = kbAccRead().instructions
+              if (r.text !== '') {
+                // The file is what the agents read: it wins over what this browser remembers, unless the person has already typed since.
+                setProfil((p) => (p.instructions === local ? Object.assign({}, p, { instructions: r.text }) : p))
+                setSaved((s) => Object.assign({}, s, { instructions: r.text }))
+                kbAccWrite(Object.assign({}, kbAccRead(), { instructions: r.text }))
+              } else if (local !== '') {
+                // Typed here before the field reached the agents: shown as unsaved, so that one click on Save sends it.
+                setSaved((s) => Object.assign({}, s, { instructions: '' }))
+              }
+            }).catch(() => { /* the field stays browser-side */ })
+            return () => { alive = false }
+          }, [])
           const dirty = JSON.stringify(profil) !== JSON.stringify(saved)
           const maj = (patch) => { setProfil((p) => Object.assign({}, p, patch)); setFlash(false) }
           // Photo : recadrée carré 256 px, JPEG, gardée en data URI sur l'appareil.
@@ -3200,9 +3235,20 @@ window.__ModuleLoader__.load({
             }
             lecteur.readAsDataURL(fichier)
           }
-          const enregistrer = () => {
+          const enregistrer = async () => {
             if (dirty !== true) return
-            if (kbAccWrite(profil) === true) { setSaved(profil); setFlash(true) }
+            let ecrit = profil
+            let echec = ''
+            if (hostFile !== '' && profil.instructions !== saved.instructions) {
+              const r = await callLocal('/instructions/save', 'POST', { text: profil.instructions }).catch(() => null)
+              if (r === null || r.ok !== true) {
+                // The other fields are saved; the instructions stay unsaved (still dirty), so that Save can be pressed again.
+                echec = r !== null && typeof r.error === 'string' ? r.error : 'write-failed'
+                ecrit = Object.assign({}, profil, { instructions: saved.instructions })
+              }
+            }
+            setInstrErr(echec)
+            if (kbAccWrite(ecrit) === true) { setSaved(ecrit); setFlash(echec === '') }
           }
           const annuler = () => { setProfil(saved); setFlash(false) }
           const detecter = () => {
@@ -3325,7 +3371,10 @@ window.__ModuleLoader__.load({
               onChange: (e) => maj({ instructions: e.target.value }),
             }),
             h('div', { className: 'kbax-count' }, String(profil.instructions.length) + ' / ' + String(INSTR_MAX)),
-            h('p', { className: 'kbm-setform-unavailable', style: { margin: '2px 0 0' } }, t('accLocalNote'))),
+            h('p', { className: 'kbm-setform-unavailable', style: { margin: '2px 0 0' } },
+              hostFile !== '' ? quotaFill(t('accInstrHost'), { file: hostFile }) : t('accLocalNote')),
+            instrErr === '' ? null : h('p', { className: 'kbm-setfield-invalid', style: { margin: '4px 0 0' } },
+              quotaFill(t('accInstrErr'), { why: t(instrErr === 'reserved' ? 'accInstrWhyReserved' : (instrErr === 'markers-damaged' ? 'accInstrWhyDamaged' : 'accInstrWhyWrite')) }))),
           // ── Account ──
           h('div', { className: 'kbs-actions', style: { marginTop: 0 } },
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: refreshing, onClick: () => { void charger() } }, refreshing ? t('accRefreshing') : t('refresh')),

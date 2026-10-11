@@ -49,6 +49,7 @@ import { createConnections } from './connections-host.mjs'
 import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, removalChunks, readStudyModel, brainGroups } from './tidy.mjs'
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
+import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -3888,6 +3889,11 @@ const legalRoute = async () => {
 // asked of a server that does not offer them (`services.connections`), and nothing is sent without the account's own token.
 const connections = createConnections({ apiCall, readState, isConnected, server, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
 
+// The Account page's "Custom instructions", kept as a marked section of `<DSH home>/AGENTS.md` (instructions.mjs): DSH's own loader hands
+// that file to every agent. The page asks for the file's path so it can say where the text went (a hosted DSH is not the person's device).
+const instructionsRead = async () => readInstructions(agentsFile(dshHome()))
+const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHome()), body !== null && typeof body === 'object' ? body.text : undefined)
+
 const ROUTES = [
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
@@ -3942,6 +3948,10 @@ const ROUTES = [
   { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
   // The facts behind a refused model call (the quota notice): the active space's plan, its payment, and the windows of the person that are used up.
   { path: '/kybernos-cloud/quota', method: 'GET', guarded: true, run: quotaFacts },
+  // Distinct paths: the router indexes by path, so a GET and a POST on one path would mask each other. The write is strict (a request that
+  // names no origin is refused): it changes a file the agents read.
+  { path: '/kybernos-cloud/instructions', method: 'GET', guarded: true, run: instructionsRead },
+  { path: '/kybernos-cloud/instructions/save', method: 'POST', guarded: true, strict: true, body: true, cap: 16384, run: instructionsSave },
   { path: '/kybernos-cloud/members/invite', method: 'POST', guarded: true, body: true, cap: 8192, run: membersInvite },
   { path: '/kybernos-cloud/members/remove', method: 'POST', guarded: true, body: true, cap: 8192, run: membersRemove },
   // Mémoire du compte (fonctionnalité cloud n°2) : lecture, écriture, recherche,

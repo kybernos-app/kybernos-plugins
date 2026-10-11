@@ -13,7 +13,8 @@ import {
   createLoaderStore, handleLoaderStore, serveLoaderStore, sanitizeLoader, sanitizeSettings, sanitizeWords, svgProblem, decodeEntities,
   LIMITS, MAX_BODY_BYTES, DEFAULT_SETTINGS,
 } from './loader-store.mjs'
-import { apply, resolveDshHome, sameOriginLax, sameOriginStrict, serveLottie, LOTTIE_FILE, ROUTES, SEEDED_SKILLS, SKILLS_DIR } from './index.js'
+import { apply, bootSheetRows, resetBootSheet, resolveDshHome, sameOriginLax, sameOriginStrict, serveLottie, LOTTIE_FILE, ROUTES, SEEDED_SKILLS, SKILLS_DIR } from './index.js'
+import { writeBoot } from './boot-store.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 let failed = 0
@@ -612,8 +613,11 @@ console.log('host plugin (index.js) with a fake ctx')
     const registered = []
     const effects = []
     const svc = { register: (route) => { if (opts.throwOn !== undefined && opts.throwOn(route)) throw new Error('duplicate exact route'); registered.push(route); return () => {} } }
+    const handlers = new Map()
     const ctx = {
+      handlers,
       effect: (fn, label) => { effects.push(label); return fn() },
+      on: (event, fn) => { handlers.set(event, fn); return () => handlers.delete(event) },
       inject: (names, fn) => {
         if (opts.injectThrows) throw new Error('inject exploded')
         ctx.injected = names
@@ -642,9 +646,9 @@ console.log('host plugin (index.js) with a fake ctx')
     try { apply(ctx) } catch (e) { threw = e }
     check('apply does not throw', threw === null)
     check('it waits for the webServer service (ctx.inject([\'webServer\']))', JSON.stringify(ctx.injected) === JSON.stringify(['webServer']))
-    check('it registers exactly four exact routes (loader store, theme library, gallery, Lottie)', registered.length === 4 && registered.every((r) => r.kind === 'exact' && typeof r.handler === 'function') && registered.map((r) => r.path).sort().join() === [ROUTES.gallery, ROUTES.lottie, ROUTES.presets, ROUTES.store].sort().join(), JSON.stringify(registered.map((r) => r.path)))
-    check('the paths are the documented ones', ROUTES.store === '/kybernos-theme/loader-store' && ROUTES.presets === '/kybernos-theme/preset-store' && ROUTES.gallery === '/kybernos-theme/gallery' && ROUTES.lottie === '/kybernos-theme/vendor/lottie.js')
-    check('each registration goes through ctx.effect, with a label', effects.length === 4 && effects.every((l) => typeof l === 'string' && l.startsWith('kybernos-theme:')), effects.join())
+    check('it registers exactly five exact routes (loader store, theme library, gallery, boot sheet, Lottie)', registered.length === 5 && registered.every((r) => r.kind === 'exact' && typeof r.handler === 'function') && registered.map((r) => r.path).sort().join() === [ROUTES.boot, ROUTES.gallery, ROUTES.lottie, ROUTES.presets, ROUTES.store].sort().join(), JSON.stringify(registered.map((r) => r.path)))
+    check('the paths are the documented ones', ROUTES.store === '/kybernos-theme/loader-store' && ROUTES.presets === '/kybernos-theme/preset-store' && ROUTES.gallery === '/kybernos-theme/gallery' && ROUTES.boot === '/kybernos-theme/boot' && ROUTES.lottie === '/kybernos-theme/vendor/lottie.js')
+    check('each registration goes through ctx.effect, with a label (five routes and the boot sheet)', effects.length === 6 && effects.every((l) => typeof l === 'string' && l.startsWith('kybernos-theme:')), effects.join())
 
     const store = registered.find((r) => r.path === ROUTES.store).handler
     let res = await send(store, { method: 'POST', headers: sameOrigin, body: { op: 'put-loader', loader: rec({ id: 'host1' }) } })
@@ -705,17 +709,53 @@ console.log('host plugin (index.js) with a fake ctx')
     apply(fakeCtx().ctx)
     check('a skill the user edited is left alone', readFileSync(join(hostHome, 'skills', 'loader', 'SKILL.md'), 'utf8').includes('my own version'))
 
+    // the boot sheet: the browser half's token layer and font, painted on the first frame
+    {
+      const bootHome = join(resolveDshHome(), 'kybernos')
+      const snap = { v: 1, tokens: { '--dsw-alias-bg-base': { light: '#f6f1e7', dark: '#1b1a17' } }, font: null }
+      const fresh = fakeCtx()
+      apply(fresh.ctx)
+      const inject = fresh.ctx.handlers.get('webserver/index-inject')
+      check('the host listens to DSH\'s index-inject seam', typeof inject === 'function')
+      resetBootSheet()
+      let table = []
+      inject(table)
+      check('nothing posted yet: the page is served as it is', table.length === 0)
+      writeBoot(bootHome, snap)
+      resetBootSheet()
+      table = []
+      inject(table)
+      check('a stored snapshot becomes one head row with the id the browser half removes', table.length === 1 && table[0].kind === 'html' && table[0].placement === 'head' && table[0].html.startsWith('<style id="kbth-boot">html body:not([data-ds-dark-theme]){--dsw-alias-bg-base:#f6f1e7}') && table[0].html.endsWith('</style>'), table)
+      const bootRoute = fresh.registered.find((r) => r.path === ROUTES.boot).handler
+      const posted = await send(bootRoute, { method: 'POST', headers: sameOrigin, body: { tokens: { '--dsw-alias-bg-base': { light: '#ffffff', dark: '#000000' } }, font: null } })
+      table = []
+      inject(table)
+      check('a POST to the route updates the sheet without a restart', posted.status === 200 && table.length === 1 && table[0].html.includes('--dsw-alias-bg-base:#ffffff'), table)
+      const refused = await send(bootRoute, { method: 'POST', headers: {}, body: snap })
+      check('a write that names no origin of this server is refused', refused.status === 403)
+      writeBoot(bootHome, { v: 1, tokens: {}, font: null })
+      resetBootSheet()
+      check('an emptied snapshot adds no row', bootSheetRows().length === 0)
+      const throwing = { push: () => { throw new Error('table closed') } }
+      errors.length = 0
+      let threwInject = null
+      try { writeBoot(bootHome, snap); resetBootSheet(); inject(throwing) } catch (e) { threwInject = e }
+      check('a table that refuses the row does not stop the page', threwInject === null && errors.some((e) => /boot sheet not injected/.test(e)), errors)
+      writeBoot(bootHome, { v: 1, tokens: {}, font: null })
+      resetBootSheet()
+    }
+
     // failures never escape
     const boom = fakeCtx({ throwOn: () => true })
     errors.length = 0
     threw = null
     try { apply(boom.ctx) } catch (e) { threw = e }
     check('a register that throws does not escape apply', threw === null && errors.length >= 1, errors.join(' | '))
-    check('… each route is tried on its own (all four reported)', errors.filter((e) => /not mounted/.test(e)).length === 4, errors.join(' | '))
+    check('… each route is tried on its own (all five reported)', errors.filter((e) => /not mounted/.test(e)).length === 5, errors.join(' | '))
     const first = fakeCtx({ throwOn: (r) => r.path === ROUTES.store })
     threw = null
     try { apply(first.ctx) } catch (e) { threw = e }
-    check('one failing route does not stop the others', threw === null && first.registered.length === 3 && first.registered.every((r) => r.path !== ROUTES.store) && first.registered.some((r) => r.path === ROUTES.lottie))
+    check('one failing route does not stop the others', threw === null && first.registered.length === 4 && first.registered.every((r) => r.path !== ROUTES.store) && first.registered.some((r) => r.path === ROUTES.lottie))
     threw = null
     try { apply(fakeCtx({ injectThrows: true }).ctx) } catch (e) { threw = e }
     check('ctx.inject throwing does not escape apply', threw === null)
