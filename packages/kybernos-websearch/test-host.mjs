@@ -136,12 +136,24 @@ console.error = (...a) => logs.push(a.join(' '))
 const registered = []
 const effectLog = []
 const makeCtx = (services) => {
-  const ctx = {
+  // Like DSH: a service is readable through get(); a property read of a service this plugin did not inject THROWS.
+  const ctx = new Proxy({
     get: (n) => services[n],
-    inject: (deps, cb) => { if (deps.every((d) => services[d] !== undefined)) cb(Object.assign({}, services, { get: ctx.get })) },
-    effect: (fn, label) => { effectLog.push(label); return fn() },
-    ...services
-  }
+    pending: [],
+    inject: (deps, cb) => {
+      const run = () => cb(new Proxy({ get: ctx.get }, { get: (target, key) => (deps.includes(key) ? services[key] : target[key]) }))
+      if (!deps.every((d) => services[d] !== undefined)) { ctx.pending.push({ deps, run }); return }
+      run()
+    },
+    flush: () => { for (const p of ctx.pending.splice(0)) if (p.deps.every((d) => services[d] !== undefined)) p.run() },
+    effect: (fn, label) => { effectLog.push(label); return fn() }
+  }, {
+    get: (target, key) => {
+      if (key in target) return target[key]
+      if (typeof key === 'string' && services[key] !== undefined) throw new Error('cannot get property "' + key + '" without inject')
+      return undefined
+    }
+  })
   return ctx
 }
 let threw = null
@@ -152,7 +164,16 @@ try {
 } catch (e) { threw = e }
 ok('apply() with no service, an empty context or nothing at all never throws', threw === null, threw && threw.message)
 apply(makeCtx({ web: { registerSearchProvider: (p) => { registered.push(p); return () => {} }, searchProviderId: 'deepseek-official' }, webServer: web }))
-ok('apply() registers the provider with the web seam and mounts the routes', registered.length === 1 && registered[0].id === PROVIDER_ID && effectLog.length === 5, effectLog.length)
+ok('apply() registers the provider with the web seam and mounts the routes, with the web server already there (a hot activation)', registered.length === 1 && registered[0].id === PROVIDER_ID && effectLog.length === 5, effectLog.length)
+const before = routes.length
+effectLog.length = 0
+const lateServices = {}
+const lateCtx = makeCtx(lateServices)
+apply(lateCtx)
+const mountedEarly = effectLog.length
+lateServices.webServer = web
+lateCtx.flush()
+ok('apply() with no web server yet mounts nothing, then mounts the routes when it is injected', mountedEarly === 0 && effectLog.length === 5 && routes.length === before + 5, [mountedEarly, effectLog.length, routes.length - before])
 apply(makeCtx({ web: { registerSearchProvider: () => { throw new Error('WEB_DUPLICATE_PROVIDER') } } }))
 console.log = origLog
 console.error = origErr

@@ -96,15 +96,26 @@ export function apply (ctx) {
     })
 
     // The Settings page's routes. A DSH with no web server goes without the page and still searches.
-    const monter = (hote) => {
+    // The service is read with `ctx.get`: a property read (`ctx.webServer`) throws when the plugin did not declare the
+    // injection, which is what a hot activation hits (measured on the real DSH, 2026-10-12).
+    const mountOn = (server) => {
       try {
-        mountRoutes(hote.webServer, svc, (fn, label) => ctx.effect(fn, label))
+        if (server === undefined || server === null) throw new Error('no web server')
+        mountRoutes(server, svc, (fn, label) => ctx.effect(fn, label))
       } catch (e) {
         console.error('[kybernos-websearch] routes not mounted: ' + String((e && e.message) || e))
       }
     }
-    if (ctx.get('webServer') !== undefined) monter(ctx)
-    else ctx.inject(['webServer'], monter)
+    const direct = ctx.get('webServer')
+    if (direct !== undefined && direct !== null) mountOn(direct)
+    else {
+      ctx.inject(['webServer'], (c) => {
+        let server
+        try { server = c.webServer } catch (e) { server = undefined }
+        if ((server === undefined || server === null) && typeof c.get === 'function') server = c.get('webServer')
+        mountOn(server)
+      })
+    }
   } catch (e) {
     console.log('[kybernos-websearch] disabled: ' + String((e && e.message) || e))
   }
