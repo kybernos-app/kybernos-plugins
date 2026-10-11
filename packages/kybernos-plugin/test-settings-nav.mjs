@@ -28,6 +28,18 @@ const unknown = /cellule\.style\.order = String\((\d+) \+ idx\)/.exec(block)
 check('9000 sits after every page a plugin can add (unknown labels start at 450)', unknown !== null && Number(unknown[1]) + 200 < 9000, unknown && unknown[1])
 check('About is still a known label, so the Settings nav is still recognised from it', /'about', 'a propos'/.test(block))
 
+console.log('the Kybernos section')
+const kyb = /titre: kbt\('settings\.group\.kybernos'\), mots: \[([^\]]*)\]/.exec(block)
+const kybWords = kyb === null ? [] : kyb[1].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter((w) => w !== '')
+check('there is a Kybernos section', kyb !== null)
+check('it opens with the Suite', kybWords[0] === 'kybernos suite', kybWords.slice(0, 3))
+const rank = (w) => kybWords.indexOf(w)
+check('then the models, the routing that picks one, what the agents keep, and the comfort pages last (value, then importance)',
+  rank('kybernos suite') === 0 && rank('ai provider & models') > 0 && rank('ai provider & models') < rank('auto routing') && rank('auto routing') < rank('memory & lessons') && rank('memory & lessons') < rank('workers') && rank('workers') < rank('calls') && rank('language') < rank('theme') && rank('theme') === kybWords.length - 1, kybWords)
+check('it sits right after Account, before the shell\'s own Settings', block.indexOf("settings.group.account") < block.indexOf("settings.group.kybernos") && block.indexOf("settings.group.kybernos") < block.indexOf("settings.group.settings"))
+check('the Desktop divider follows its section, not an index (a section can be added before it)', /GROUPES\[g\]\.bureau === true/.test(block) && /bureau: true/.test(block) && !/if \(g === 2\)/.test(block))
+check('the « seen » flags follow the number of sections', /const vus = GROUPES\.map\(\(\) => false\)/.test(block))
+
 console.log('room at the end, smaller names')
 check('the Settings list is marked, so only it is restyled', block.indexOf("liste.dataset.kbSettings = '1'") > 0)
 check('it gets room under the last tab', /\[class\*="navList"\]\[data-kb-settings\]\{padding-bottom:\d+px\}/.test(SRC))

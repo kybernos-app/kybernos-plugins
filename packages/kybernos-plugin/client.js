@@ -424,6 +424,7 @@ let kbLocaleRead = () => 'en'
       'menu.referral.copied': { kybernos: 'Copié', en: 'Copied' },
       // ── groupes du menu Réglages (maquette « Settings Menu », 30/09 soir) ──
       'settings.group.account': { kybernos: 'Compte', en: 'Account' },
+      'settings.group.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
       'settings.group.settings': { kybernos: 'Réglages', en: 'Settings' },
       'settings.group.desktop': { kybernos: 'Réglages du poste', en: 'Desktop settings' },
       'settings.group.plugins': { kybernos: 'Plugins tiers', en: 'Third Party Plugins' },
@@ -29716,10 +29717,29 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
             .replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
         } catch (e) { return String(s || '').toLowerCase().trim() }
       }
+      // Sections, in order. « Kybernos » opens with the Suite, then the pages our plugins add, by what they bring and how much the rest
+      // leans on them (the models, then what picks one, then what the agents keep, do and reach, then comfort). The order INSIDE a section is
+      // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
+      // `bureau`: the section that follows the « Desktop » divider.
       const GROUPES = [
         { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'apparence', 'appearance', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal', 'serveurs', 'servers'] },
-        { titre: kbt('settings.group.settings'), mots: ['general', 'langue', 'language', 'memory & lessons', 'commandes', 'commands', 'mon espace', 'my workspace', 'atlas'] },
-        { titre: kbt('settings.group.desktop'), mots: ['theme', 'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models', 'models', 'ollama local models', 'voix', 'voice', 'outils', 'tools', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
+        { titre: kbt('settings.group.kybernos'), mots: [
+          'kybernos suite',
+          'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
+          'auto routing',
+          'memory & lessons',
+          'workers',
+          'outils', 'tools',
+          'calls', 'appels',
+          'commandes', 'commands',
+          'atlas',
+          'ollama local models',
+          'voix', 'voice',
+          'langue', 'language',
+          'theme'
+        ] },
+        { titre: kbt('settings.group.settings'), mots: ['general', 'mon espace', 'my workspace'] },
+        { titre: kbt('settings.group.desktop'), bureau: true, mots: ['models', 'agent presets', 'plugins kybernos', 'kybernos plugins', 'about', 'a propos'] },
         { titre: kbt('settings.group.plugins'), mots: ['plugins', 'listing', 'built-in plugins'] },
       ]
       // Icônes VARIÉES du nav (maquette « Settings Menu ») : tracés Lucide
@@ -29833,7 +29853,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           Array.from(tetes).forEach((e) => e.remove())
           Array.from(liste.querySelectorAll('[data-kb="settings-divider"]')).forEach((e) => e.remove())
           liste.dataset.kbSettings = '1'
-          let vus = [false, false, false, false]
+          const vus = GROUPES.map(() => false)
           cellules.forEach((cellule, idx) => {
             const n = titres[idx]
             let g = -1
@@ -29851,7 +29871,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
               tete.setAttribute('role', 'presentation')
               tete.textContent = GROUPES[g].titre
               tete.style.order = String(g * 100)
-              if (g === 2) {
+              if (GROUPES[g].bureau === true) {
                 // séparateur « Desktop » : tout ce qui suit est propre à l'app desktop
                 const sep = document.createElement('div')
                 sep.dataset.kb = 'settings-divider'
