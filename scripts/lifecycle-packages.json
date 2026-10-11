@@ -98,6 +98,10 @@
       "nom": "@local/kybernos-refs"
     },
     {
+      "dir": "kybernos-mobile",
+      "nom": "@local/kybernos-mobile"
+    },
+    {
       "dir": "kybernos-memory",
       "nom": "@local/kybernos-memory"
     },
