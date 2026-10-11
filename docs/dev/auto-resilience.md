@@ -61,6 +61,27 @@ Routing a request probes at most ten candidates, three at a time, and gives up p
 unprobed, flagged). The probe is the same as the Study-model health check: its code is duplicated in
 `kybernos-auto/sonde.mjs` (a verbatim block, enforced by a test) because bundles cannot import each other.
 
+## The person's own chat (opt-in failover)
+
+Everything above protects delegations. The chat itself used to stop on the first refused key or dead provider. With
+`autoFailover` on, `failover.mjs` hooks DSH's `agent/request` (replace the call configuration) and `agent/request-error`
+(`{ kind: 'retry' }` runs the request waterfall again) and serves the step from the first eligible model of
+`[chosen model, ...whitelist]`, with the SAME breaker and health file as above. It needed no engine seam: the two events
+are DSH's own, and the engine's loop calls the request waterfall again on every attempt of a step.
+
+- A refused key, a gone model or a missing adapter moves on at once; a rate limit, server error, timeout or transport
+  failure goes through `llm-retry` first and moves on only when it gave up. Cancelled turns, context-window and
+  invalid-request failures are never failed over.
+- A model that failed is excluded for the rest of the step (the chain is finite); its pause is 1, 2, 4, 8 then 10 minutes
+  (`bascule` in `resilience.mjs`), after which one trial decides and the chosen model is served again.
+- The fallback does not inherit the primary's reasoning effort or output cap.
+- It works with no web server (headless, TUI): the hooks are mounted by `apply` before the routes.
+
+Played for real on 0.2.0-rc.2 and 0.2.1-alpha.2 with a `headless` profile and two local fake providers (one answering 401
+or 500, one answering): refused key and server error move to the second provider and the answer reaches stdout; with the
+switch off the 401 ends the turn as before; with both down the engine's own error stands after one try each; a healthy
+primary writes no health file.
+
 ## Not done
 
 - **Subtasks**: DSH has no seam that intercepts a delegation's model, so the caller still writes the override. Moving the retry
@@ -70,7 +91,7 @@ unprobed, flagged). The probe is the same as the Study-model health check: its c
 
 ## Tests
 
-`packages/kybernos-auto/test-resilience.mjs` (breaker, triage, probe-first, router, routes with a fake llm), `test-cli.mjs` (the
+`packages/kybernos-auto/test-resilience.mjs` (breaker, triage, probe-first, router, routes with a fake llm), `test-failover.mjs` (the chat failover with fake agent events and the real breaker), `test-cli.mjs` (the
 command against the real host over HTTP), `test-host.mjs`, `test-client.mjs`. On the real GUI, read-only (the page's client
 swapped in, the host module served on a temporary home with a fake llm): the status of each model with its reason and retry time,
 "Check now" busy state and its effect.

@@ -342,6 +342,9 @@ window.__ModuleLoader__.load({
         setAjouter('')
       }
 
+      const failoverInfo = etat.failover !== undefined && etat.failover !== null ? etat.failover : { enabled: false, last: null }
+      const failoverOn = failoverInfo.enabled === true
+      const failoverLast = failoverInfo.last !== undefined ? failoverInfo.last : null
       return h('div', { className: 'kaa-page', 'data-kb': 'auto-settings' },
         h('h4', { className: 'kb6-title', style: { fontSize: '26px', fontWeight: 800, letterSpacing: '-.01em' } }, 'Auto routing ', h('span', { className: 'kaa-tag' }, 'session')),
         h('p', { className: 'kaa-intro' }, kt(
@@ -350,8 +353,8 @@ window.__ModuleLoader__.load({
         h('div', { className: 'kaa-cache' },
           h('span', { 'aria-hidden': 'true' }, '⚡ '),
           h('span', null, kt('Optimisé cache : ', 'Cache-optimized: '), kt(
-            "le modèle de session n'est jamais changé ; seules les délégations sont routées.",
-            "the session model is never switched; only delegated work is routed."))),
+            "le modèle de session n'est jamais changé ; seules les délégations sont routées (sauf si le repli du chat, plus bas, est activé).",
+            "the session model is never switched; only delegated work is routed (unless the chat fallback, below, is on)."))),
         h('div', { className: 'kaa-ligne' },
           h('div', { className: 'kaa-ligne-txt' },
             h('b', null, kt('Toutes les sessions', 'All sessions')),
@@ -360,6 +363,22 @@ window.__ModuleLoader__.load({
             type: 'button', className: 'kaa-switch-btn' + (etat.global === true ? ' on' : ''), 'data-kb': 'auto-global-toggle',
             'aria-pressed': String(etat.global === true), 'aria-label': kt('Toutes les sessions', 'All sessions'),
             onClick: () => ecrire({ autoRouting: etat.global !== true })
+          }, h('span', null))),
+        h('div', { className: 'kaa-ligne' },
+          h('div', { className: 'kaa-ligne-txt' },
+            h('b', null, kt('Repli du chat', 'Chat fallback')),
+            h('span', null, kt(
+              'Activé : quand le modèle de votre chat ne peut pas répondre (clé refusée, fournisseur en panne), la même étape part vers le modèle suivant de la whitelist, puis le vôtre est réessayé après une pause. Le modèle de repli peut avoir un autre coût ; ni l\'effort de raisonnement ni le plafond de sortie ne sont repris. Désactivé par défaut.',
+              'On: when your chat\'s own model cannot answer (key refused, provider down), the same step goes to the next whitelist model, then yours is tried again after a pause. The fallback model may cost differently; neither the reasoning effort nor the output cap carry over. Off by default.')),
+            failoverOn && failoverLast !== null
+              ? h('span', { className: 'kaa-why', 'data-kb': 'auto-failover-last' },
+                kt('Dernier repli : ', 'Last fallback: '), failoverLast.from, ' → ', failoverLast.to, ' (', failoverLast.code, ') · ',
+                Math.max(0, Math.round((maintenant - failoverLast.at) / 1000)) + ' s', kt(' plus tôt', ' ago'))
+              : null),
+          h('button', {
+            type: 'button', className: 'kaa-switch-btn' + (failoverOn ? ' on' : ''), 'data-kb': 'auto-failover-toggle',
+            'aria-pressed': String(failoverOn), 'aria-label': kt('Repli du chat', 'Chat fallback'),
+            onClick: () => ecrire({ autoFailover: !failoverOn })
           }, h('span', null))),
         h('div', { className: 'kaa-ligne' },
           h('div', { className: 'kaa-ligne-txt' },

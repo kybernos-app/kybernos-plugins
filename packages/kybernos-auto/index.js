@@ -20,6 +20,7 @@ import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { DELAI_DEFAUT, normaliserListe, sonderUn } from './sonde.mjs'
 import { TTL_SONDE_MS, apresIssue, issueDeRapport, plafondEssais, resoudre, triCandidats, vueModele } from './resilience.mjs'
+import { createFailover } from './failover.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -161,7 +162,9 @@ export function lireReglagesAuto (fichier) {
   return {
     whitelist: whitelistValide === true ? brut.autoWhitelist : [],
     classifier: typeof brut.autoClassifier === 'string' ? brut.autoClassifier : '',
-    global: brut.autoRouting === true
+    global: brut.autoRouting === true,
+    // Opt-in: the chat itself moves to the next whitelist model when its own cannot answer (failover.mjs).
+    failover: brut.autoFailover === true
   }
 }
 
@@ -372,6 +375,23 @@ const lireCorps = (req) => new Promise((res) => {
   req.on('end', () => { try { res(JSON.parse(corps || '{}')) } catch { res({}) } })
 })
 
+/** The main-session failover (failover.mjs) wired to the files of this DSH home: the switch is `autoFailover` in
+ *  settings.json, the breaker is the delegations' (auto-health.json), the fallbacks are the whitelist's text models. */
+export function creerFailover (opts = {}) {
+  const home = opts.home || dshHome()
+  const reglagesFichier = opts.reglagesPath || join(home, 'kybernos', 'settings.json')
+  const santeFichier = opts.santePath || join(home, 'kybernos', 'auto-health.json')
+  const horloge = opts.horloge || (() => Date.now())
+  return createFailover({
+    settings: () => ({ enabled: lireReglagesAuto(reglagesFichier).failover === true }),
+    health: () => lireSante(santeFichier),
+    note: (modele, issue) => { noterIssue(santeFichier, modele, issue, { rapport: true, maintenant: horloge() }) },
+    fallbacks: () => candidats(lireReglagesAuto(reglagesFichier).whitelist, 'agent-task'),
+    now: horloge,
+    log: opts.log || ((ligne) => console.log('[kybernos-auto] ' + ligne))
+  })
+}
+
 export function monterRoutes (webServerSvc, opts = {}) {
   webServerSvc = kbFenced(webServerSvc)
   const home = opts.home || dshHome()
@@ -397,6 +417,12 @@ export function monterRoutes (webServerSvc, opts = {}) {
   let sondeToutEnCours = null
   let derniereSonde = 0
 
+  // Main-session failover (opt-in, `autoFailover`), see creerFailover. `apply` makes it and mounts its hooks before
+  // there is a web server (a profile without one, headless or TUI, gets the failover too); the page only reads its view.
+  const failover = opts.failover !== undefined && opts.failover !== null
+    ? opts.failover
+    : creerFailover({ reglagesPath: reglagesFichier, santePath: santeFichier, horloge })
+
   const etatComplet = (sessionId) => {
     const reg = lireReglagesAuto(reglagesFichier)
     const sessions = lireSessions(sessionsFichier)
@@ -411,6 +437,7 @@ export function monterRoutes (webServerSvc, opts = {}) {
       sessionOn: on, sante,
       total: sante.length, disponibles: sante.filter((v) => v.etat !== 'down').length,
       chaud: sains.length > 0 ? sains[0].modele : null,
+      failover: failover.view(),
       sondeEnCours: sondeToutEnCours !== null, plafond: plafondEssais(), ttlSondeS: Math.round(TTL_SONDE_MS / 1000),
       checkedAt: maintenant, intervalS: 60
     }
@@ -451,6 +478,10 @@ export function monterRoutes (webServerSvc, opts = {}) {
       // Disjoncteur GLOBAL hérité : true force Auto sur toutes les sessions.
       if (typeof corps.autoRouting !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoRouting : booléen attendu' }); return }
       maj.autoRouting = corps.autoRouting
+    }
+    if (corps.autoFailover !== undefined) {
+      if (typeof corps.autoFailover !== 'boolean') { envoyer(res, 400, { ok: false, erreur: 'autoFailover : booléen attendu' }); return }
+      maj.autoFailover = corps.autoFailover
     }
     if (corps.autoClassifier !== undefined) {
       if (typeof corps.autoClassifier !== 'string' || corps.autoClassifier.length > 200) {
@@ -545,9 +576,38 @@ export function monterRoutes (webServerSvc, opts = {}) {
     })
     envoyer(res, 200, r)
   } })
+
+  return { failover }
+}
+
+/** The three events of the main-session failover (failover.mjs). Each registration is guarded on its own: a DSH
+ *  that lacks one of them goes without the feature, and nothing here can stop it from starting. */
+export function mountFailover (ctx, failover) {
+  const hooks = [
+    ['agent/request', (payload, next) => failover.onRequest(payload, next), undefined],
+    // First in line: the transient failures are handed on with `next()` to the engine's own retries, the immediate ones are not.
+    ['agent/request-error', (payload, next) => failover.onRequestError(payload, next), { prepend: true }],
+    ['agent/assistant-stream', (payload) => failover.onStream(payload), undefined]
+  ]
+  for (const [event, handler, options] of hooks) {
+    try {
+      ctx.effect(() => (options === undefined ? ctx.on(event, handler) : ctx.on(event, handler, options)), 'kybernos-auto: failover ' + event)
+    } catch (e) {
+      console.error('[kybernos-auto] failover: ' + event + ' not hooked', e)
+    }
+  }
 }
 
 export function apply (ctx) {
+  // The failover needs no web server: its hooks are mounted first, and guarded on their own.
+  let failover = null
+  try {
+    failover = creerFailover()
+    mountFailover(ctx, failover)
+  } catch (e) {
+    failover = null
+    console.error('[kybernos-auto] failover non monte', e)
+  }
   try {
     const monter = (hostCtx) => {
       // The llm service is read AT CALL TIME, as a getter, not at mount: DSH may publish it after this plugin, and a plugin
@@ -559,7 +619,7 @@ export function apply (ctx) {
           return svc === null || svc === undefined || typeof svc.stream !== 'function' ? undefined : svc.stream.bind(svc)
         }
       }
-      monterRoutes(hostCtx.webServer, { llm: llmParesseux })
+      monterRoutes(hostCtx.webServer, { llm: llmParesseux, failover })
       console.log('[kybernos-auto] routes /kybernos-auto/* enregistrees (state, session, settings, router, report, probe)')
     }
     if (ctx.get('webServer') !== undefined) monter(ctx)
