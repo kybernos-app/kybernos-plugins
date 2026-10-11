@@ -102,6 +102,10 @@
       "nom": "@local/kybernos-mobile"
     },
     {
+      "dir": "kybernos-websearch",
+      "nom": "@local/kybernos-websearch"
+    },
+    {
       "dir": "kybernos-memory",
       "nom": "@local/kybernos-memory"
     },

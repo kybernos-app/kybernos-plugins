@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+// kybernos-websearch: browser half, contract only (the page itself is checked on a real GUI: scripts/check-websearch-live.mjs).
+import { readFileSync } from 'node:fs'
+import vm from 'node:vm'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const HERE = dirname(fileURLToPath(import.meta.url))
+const src = readFileSync(join(HERE, 'client.js'), 'utf8')
+
+let fail = 0
+const ok = (name, cond, detail) => {
+  if (cond === true) console.log('  ✓ ' + name)
+  else { fail += 1; console.log('  ✗ ' + name + (detail !== undefined ? ' → ' + String(detail).slice(0, 200) : '')) }
+}
+
+// ── load the factory the way DSH does, with a fake React and a fake slots service ──────────────────
+let loaded = null
+const slotsLog = []
+const sandbox = {
+  window: {
+    __KB_LANG_RESOLVE__: () => 'en',
+    __ModuleLoader__: { load: (m) => { loaded = m } }
+  },
+  document: { createElement: () => ({ dataset: {}, remove () {} }), head: { append () {} } },
+  console
+}
+vm.createContext(sandbox)
+vm.runInContext(src, sandbox)
+ok('the module registers itself with the loader under its package name', loaded !== null && loaded.id === '@local/kybernos-websearch' && typeof loaded.factory === 'function')
+
+const React = {
+  createElement: (type, props, ...children) => ({ type, props: props || {}, children }),
+  useState: (v) => [v, () => {}],
+  useEffect: () => {}
+}
+const plugin = loaded.factory((name) => (name === 'react' ? React : null))
+ok('the factory returns a plugin object that waits for slots', plugin !== null && typeof plugin === 'object' && typeof plugin.apply === 'function' && Array.isArray(plugin.inject) && plugin.inject.includes('slots'))
+
+const registered = []
+const ctx = {
+  slots: { inject: (name, fn) => { slotsLog.push(name); registered.push(fn()); return () => {} }, register: (meta, render) => ({ meta, render }) },
+  effect: (fn) => fn()
+}
+plugin.apply(ctx)
+ok('apply() adds exactly one Settings section', slotsLog.length === 1 && slotsLog[0] === 'settings.section' && registered.length === 1)
+const registerArgs = registered[0]
+ok('the section is « Web Search », order 15, id kybernos-websearch-page', registerArgs.meta.id === 'kybernos-websearch-page' && registerArgs.meta.label === 'Web Search' && registerArgs.meta.order === 15 && registerArgs.meta.name === 'settings.section')
+ok('a missing slots service is not an error', (() => { try { plugin.apply({}); return true } catch (e) { return false } })())
+
+// ── what the page says about an engine ─────────────────────────────────────────────────────────────
+const { statusOf, accessBadge } = plugin.__test
+const base = { id: 'x', access: 'free', enabled: true, configured: true, health: {} }
+ok('status: switched off, key missing, paused, answered, ready', [
+  statusOf({ ...base, enabled: false }).cls === 'off',
+  statusOf({ ...base, access: 'key', configured: false }).cls === 'warn',
+  statusOf({ ...base, health: { pausedUntil: Date.now() + 1000, kind: 'blocked' } }).cls === 'down',
+  statusOf({ ...base, health: { lastOkAt: Date.now(), lastCount: 5, lastMs: 800 } }).cls === 'ok',
+  statusOf(base).txt === 'Ready'
+].every(Boolean))
+ok('badge: free engines say NO KEY, keyed ones KEY', accessBadge({ access: 'free' }).txt === 'NO KEY' && accessBadge({ access: 'key' }).txt === 'KEY')
+
+// ── hygiene (same rules as the other bundles) ───────────────────────────────────────────────────────
+const hook = (id) => src.indexOf("'data-kb': '" + id + "'") !== -1
+ok('stable data-kb hooks for tests and live scripts', ['websearch-page', 'websearch-list', 'websearch-engine', 'websearch-switch', 'websearch-key-input', 'websearch-test-result', 'websearch-domains', 'websearch-last'].every(hook))
+ok('no six-digit hard-coded colour (theme tokens with a fallback only)', !/#[0-9a-fA-F]{6}\b/.test(src), (src.match(/#[0-9a-fA-F]{6}\b/g) || []).slice(0, 3))
+ok('no French in a title or aria-label that does not go through kt()', !/(title|aria-label)'?:\s*'[^']*[éèàêçù][^']*'/.test(src))
+ok('the key is typed in a password field and never rendered back', /type: 'password'/.test(src) && !/value: secretRef/.test(src))
+ok('external links carry noopener', /rel: 'noopener noreferrer'/.test(src))
+ok('only this plugin\'s own routes are called', (src.match(/'\/[a-z-]+\/[a-z]+'/g) || []).every((p) => p.startsWith("'/kybernos-websearch/")))
+ok('the style tag is removed with the plugin', /tag\.remove\(\)/.test(src))
+ok('the CSS prefix is private to this bundle', (src.match(/\.kwse-/g) || []).length > 20 && !/\.kbws-|\.kws-/.test(src))
+
+console.log('\n' + (fail === 0 ? 'ALL CHECKS OK' : fail + ' check(s) FAILED'))
+process.exit(fail === 0 ? 0 : 1)
