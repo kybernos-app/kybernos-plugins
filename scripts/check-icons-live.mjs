@@ -101,6 +101,18 @@ try {
   const tooSmall = cards.filter((c) => c.w < 20 || c.h < 20)
   check('every drawn glyph is at least 20px', tooSmall.length === 0, tooSmall)
 
+  // The tiles are the web Plugins page's (a gradient per plugin, 24% corners, a 64 grid), the panel uses the room it has, and the
+  // direct link of a module opens that module's own Settings page.
+  const tiles = await page.evalJs(`JSON.stringify([...document.querySelectorAll('[data-kb="suite-card"] .kbsu-ico')].map((e) => { const s = e.querySelector('svg'); const cs = getComputedStyle(e); return { grad: /linear-gradient/.test(cs.backgroundImage), radius: cs.borderRadius, vb: s ? s.getAttribute('viewBox') : null, from: e.style.getPropertyValue('--from') !== '' } }))`)
+  const tl = JSON.parse(tiles && typeof tiles.val === 'string' ? tiles.val : '[]')
+  check('every tile is a gradient with a 64-grid drawing and its own colours', tl.length > 0 && tl.every((t) => t.grad && t.vb === '0 0 64 64' && t.from), tl.filter((t) => !(t.grad && t.vb === '0 0 64 64' && t.from)).slice(0, 3))
+  const room = await page.evalJs(`(() => { const r = document.querySelector('.kbsu'); return r ? Math.round(r.getBoundingClientRect().width) : 0 })()`)
+  check('the panel is wider than the 720px every other Settings page keeps to', room.val > 900, room.val)
+  const jumped = await page.evalJs(`(() => { const b = document.querySelector('[data-kb="suite-card"][data-id="kybernos-models"] [data-kb="suite-reglages"]'); if (!b) return 'no link'; b.click(); return 'clicked' })()`)
+  await sleep(1500)
+  const gone = await page.evalJs(`!document.querySelector('.kbsu')`)
+  check('the Settings link of a module leaves the Suite for that module\'s page', jumped.val === 'clicked' && gone.val === true, [jumped.val, gone.val])
+
   if (SHOTS !== null) await page.shot(join(SHOTS, 'suite-glyphs.png'))
 } finally {
   await live.close()

@@ -346,17 +346,27 @@ window.__ModuleLoader__.load({
       '.kbsu-chip.fam{border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-secondary);font-weight:500}',
       '.kbsu-chip.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 16%,transparent);color:var(--dsw-alias-state-success-primary)}',
       '.kbsu-chip.warn{background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-state-warn-primary)}',
-      '.kbsu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:10px}',
-      '.kbsu-card{display:flex;flex-direction:column;gap:9px;padding:13px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
+      '.kbsu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}',
+      '.kbsu-card{display:flex;flex-direction:column;gap:9px;padding:18px;border-radius:18px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1);min-width:0}',
       '.kbsu-card.open{grid-column:1/-1}',
       '.kbsu-card.dim{opacity:.85}',
-      '.kbsu-top{display:flex;gap:10px;align-items:flex-start}',
+      '.kbsu-top{display:flex;gap:12px;align-items:center}',
       // The module's artwork: a glyph on a tile coloured by its family (--c).
-      '.kbsu-ico{width:40px;height:40px;border-radius:11px;background:radial-gradient(120% 120% at 20% 10%,color-mix(in srgb,var(--c) 70%,#fff) 0,var(--c) 38%,color-mix(in srgb,var(--c) 55%,#000) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 2px 6px rgba(0,0,0,.18);display:grid;place-items:center;flex:none}',
-      '.kbsu-ico svg{width:26px;height:26px}.kbsu-ico.mid{width:52px;height:52px;border-radius:14px}.kbsu-ico.mid svg{width:35px;height:35px}.kbsu-ico.big{width:76px;height:76px;border-radius:19px}.kbsu-ico.big svg{width:51px;height:51px}',
+      // The tile is the web Plugins page's: a diagonal gradient (--from, --to), 24% corners, its SVG on a 64 grid filling it.
+      '.kbsu-ico{width:40px;height:40px;border-radius:24%;background:linear-gradient(135deg,var(--from),var(--to));overflow:hidden;display:block;flex:none}',
+      '.kbsu-ico svg{width:100%;height:100%;display:block}.kbsu-ico.card{width:56px;height:56px}.kbsu-ico.mid{width:64px;height:64px}.kbsu-ico.big{width:84px;height:84px}',
+      // Use the room Settings gives: its own rule caps every section at 720px, a module grid has no reason to wait in a column.
+      '[class$="_options"] [data-slot="settings.section"]>.kbsu{max-width:none}',
+      // Actions that wait for a hover (or the keyboard): the module's own Settings page and its page.
+            '.kbsu-acts{display:flex;gap:6px;margin-inline-start:auto;opacity:0;transition:opacity .15s;pointer-events:none}',
+      '.kbsu-card:hover .kbsu-acts,.kbsu-card:focus-within .kbsu-acts,.kbsu-row:hover .kbsu-rowacts,.kbsu-row:focus-within .kbsu-rowacts{opacity:1;pointer-events:auto}',
+      '@media (hover:none){.kbsu-acts,.kbsu-rowacts{opacity:1;pointer-events:auto}}',
+      '.kbsu-act{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:500 12.5px inherit;cursor:pointer}',
+      '.kbsu-act:hover{background:var(--dsw-alias-bg-layer-3)}.kbsu-act .i{width:14px;height:14px}',
+      '.kbsu-act.kbsu-rowacts{opacity:0;transition:opacity .15s;pointer-events:none}',
       '.kbsu svg .a{fill:rgba(255,255,255,.30)}.kbsu svg .b{fill:rgba(255,255,255,.58)}.kbsu svg .w{fill:#fff}.kbsu svg .d{fill:rgba(0,0,0,.22)}.kbsu svg .l{fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}',
       '.kbsu-name{min-width:0;flex:1}',
-      '.kbsu-name b{display:block;font-size:14.5px;font-weight:650;overflow-wrap:anywhere}',
+      '.kbsu-name b{display:block;font-size:17px;font-weight:600;letter-spacing:-.2px;overflow-wrap:anywhere}',
       '.kbsu-name small{display:block;color:var(--dsw-alias-label-tertiary);font:11.5px ui-monospace,Menlo,monospace}',
       '.kbsu-card{cursor:pointer}.kbsu-card:hover{border-color:var(--dsw-alias-label-tertiary)}.kbsu-card.open{cursor:default}',
       '.kbsu-row{cursor:pointer}',
@@ -364,8 +374,9 @@ window.__ModuleLoader__.load({
       '.kbsu-fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}',
       '.kbsu-vedette{padding:16px;gap:12px}',
       '.kbsu-tag{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#ff7a1a;font-weight:700}',
-      '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}',
+      '.kbsu-vedette .kbsu-promise{font-size:13.5px;color:var(--dsw-alias-label-secondary);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
       '.kbsu-promise{margin:0;color:var(--dsw-alias-label-secondary);font-size:13px}',
+      '.kbsu-card .kbsu-promise{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;min-height:4.35em}',
       '.kbsu-badges{display:flex;flex-wrap:wrap;gap:6px}',
       '.kbsu-b{font:600 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.04em;padding:4px 7px;border-radius:6px;border:1px solid var(--dsw-alias-border-l2);color:var(--dsw-alias-label-tertiary)}',
       '.kbsu-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:auto}',
@@ -492,6 +503,45 @@ window.__ModuleLoader__.load({
       term:'<rect class="a" x="3" y="5" width="26" height="22" rx="4"/><path class="b" d="M3 9a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><rect class="l" x="3" y="5" width="26" height="22" rx="4"/><circle class="w" cx="7.5" cy="8.5" r="1.1"/><circle class="w" cx="11" cy="8.5" r="1.1"/><circle class="w" cx="14.5" cy="8.5" r="1.1"/><path class="l" d="M8 17l4 3-4 3M15 23h7"/>'
 }
 
+    // The tile of a plugin, as the Plugins page of the Kybernos web app draws it: a diagonal gradient (one pair of colours per plugin),
+    // two soft circles for depth, a light inner edge, and a small illustration on a 64 x 64 grid. [from, to, illustration].
+    // A module the web page has no illustration for yet (see `artwork`) keeps its glyph on the same tile, coloured by its family.
+    const ART = {
+      "kybernos-plugin": ["#3a3f4e", "#0f1117", "<g><polygon points=\"32,33 54,44 32,55 10,44\" fill=\"rgba(255,255,255,0.38)\"/><polygon points=\"32,24 54,35 32,46 10,35\" fill=\"rgba(255,255,255,0.72)\"/><polygon points=\"32,15 54,26 32,37 10,26\" fill=\"#ffffff\"/><circle cx=\"32\" cy=\"26\" r=\"3\" fill=\"rgba(0,0,0,0.25)\"/></g>"],
+      "kybernos-hub": ["#475569", "#0f172a", "<g><rect x=\"8\" y=\"14\" width=\"48\" height=\"36\" rx=\"9\" fill=\"none\" stroke=\"rgba(255,255,255,0.38)\" stroke-width=\"3\"/><polyline points=\"12,35 22,35 27,22 34,47 39,30 43,35 52,35\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"49\" cy=\"21\" r=\"3\" fill=\"#ffffff\"/></g>"],
+      "kybernos-theme": ["#f472b6", "#9333ea", "<g><path d=\"M32 9 C17 9 8 19 8 32 C8 45 18 55 31 55 C36 55 38 52 38 49 C38 46 40 44 43 44 L48 44 C53 44 56 41 56 36 C56 20 46 9 32 9 Z\" fill=\"#ffffff\"/><circle cx=\"21\" cy=\"28\" r=\"4.2\" fill=\"#f472b6\"/><circle cx=\"32\" cy=\"20\" r=\"4.2\" fill=\"#fbbf24\"/><circle cx=\"44\" cy=\"25\" r=\"4.2\" fill=\"#38bdf8\"/><circle cx=\"22\" cy=\"41\" r=\"4.2\" fill=\"#4ade80\"/></g>"],
+      "kybernos-sessions": ["#38bdf8", "#1d4ed8", "<g><rect x=\"7\" y=\"13\" width=\"34\" height=\"12\" rx=\"4\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"7\" y=\"29\" width=\"34\" height=\"12\" rx=\"4\" fill=\"rgba(255,255,255,0.72)\"/><circle cx=\"43\" cy=\"39\" r=\"16\" fill=\"#ffffff\"/><polyline points=\"43,29 43,39 50,43\" fill=\"none\" stroke=\"#1d4ed8\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-skills": ["#fbbf24", "#ea580c", "<g><rect x=\"8\" y=\"11\" width=\"32\" height=\"42\" rx=\"6\" fill=\"#ffffff\"/><rect x=\"14\" y=\"19\" width=\"16\" height=\"3.5\" rx=\"1.75\" fill=\"#ea580c\" opacity=\"0.4\"/><rect x=\"14\" y=\"26\" width=\"20\" height=\"3.5\" rx=\"1.75\" fill=\"#ea580c\" opacity=\"0.25\"/><rect x=\"14\" y=\"33\" width=\"14\" height=\"3.5\" rx=\"1.75\" fill=\"#ea580c\" opacity=\"0.25\"/><path d=\"M46 13 L49.3 20.7 L57 24 L49.3 27.3 L46 35 L42.7 27.3 L35 24 L42.7 20.7 Z\" fill=\"#ffffff\" stroke=\"#ea580c\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/><path d=\"M51 40 L52.8 44.2 L57 46 L52.8 47.8 L51 52 L49.2 47.8 L45 46 L49.2 44.2 Z\" fill=\"rgba(255,255,255,0.72)\"/></g>"],
+      "kybernos-models": ["#a78bfa", "#6d28d9", "<g><g stroke=\"rgba(255,255,255,0.38)\" stroke-width=\"2\"><line x1=\"13\" y1=\"20\" x2=\"32\" y2=\"25\"/><line x1=\"13\" y1=\"20\" x2=\"32\" y2=\"41\"/><line x1=\"13\" y1=\"32\" x2=\"32\" y2=\"25\"/><line x1=\"13\" y1=\"32\" x2=\"32\" y2=\"41\"/><line x1=\"13\" y1=\"44\" x2=\"32\" y2=\"25\"/><line x1=\"13\" y1=\"44\" x2=\"32\" y2=\"41\"/><line x1=\"32\" y1=\"25\" x2=\"51\" y2=\"20\"/><line x1=\"32\" y1=\"25\" x2=\"51\" y2=\"32\"/><line x1=\"32\" y1=\"41\" x2=\"51\" y2=\"32\"/><line x1=\"32\" y1=\"41\" x2=\"51\" y2=\"44\"/></g><circle cx=\"13\" cy=\"20\" r=\"5\" fill=\"#ffffff\"/><circle cx=\"13\" cy=\"32\" r=\"5\" fill=\"#ffffff\"/><circle cx=\"13\" cy=\"44\" r=\"5\" fill=\"#ffffff\"/><circle cx=\"32\" cy=\"25\" r=\"5.5\" fill=\"rgba(255,255,255,0.72)\"/><circle cx=\"32\" cy=\"41\" r=\"5.5\" fill=\"rgba(255,255,255,0.72)\"/><circle cx=\"51\" cy=\"20\" r=\"5\" fill=\"#ffffff\"/><circle cx=\"51\" cy=\"32\" r=\"5\" fill=\"#ffffff\"/><circle cx=\"51\" cy=\"44\" r=\"5\" fill=\"#ffffff\"/></g>"],
+      "kybernos-modeles-locaux": ["#34d399", "#047857", "<g><rect x=\"11\" y=\"12\" width=\"42\" height=\"30\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"14.5\" y=\"15.5\" width=\"35\" height=\"23\" rx=\"2\" fill=\"#047857\"/><rect x=\"26\" y=\"21\" width=\"12\" height=\"12\" rx=\"2\" fill=\"#ffffff\"/><g stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"29\" y1=\"18\" x2=\"29\" y2=\"21\"/><line x1=\"35\" y1=\"18\" x2=\"35\" y2=\"21\"/><line x1=\"29\" y1=\"33\" x2=\"29\" y2=\"36\"/><line x1=\"35\" y1=\"33\" x2=\"35\" y2=\"36\"/><line x1=\"22\" y1=\"25\" x2=\"26\" y2=\"25\"/><line x1=\"22\" y1=\"29\" x2=\"26\" y2=\"29\"/><line x1=\"38\" y1=\"25\" x2=\"42\" y2=\"25\"/><line x1=\"38\" y1=\"29\" x2=\"42\" y2=\"29\"/></g><path d=\"M5 47 H59 L55 53 H9 Z\" fill=\"rgba(255,255,255,0.72)\"/></g>"],
+      "kybernos-cloud": ["#60a5fa", "#2563eb", "<g><path d=\"M19 47 C11 47 7 42 7 37 C7 31 12 28 17 29 C18 21 25 15 33 15 C41 15 47 21 47 28 C54 28 58 33 58 38 C58 43 54 47 48 47 Z\" fill=\"#ffffff\"/><path d=\"M25 42 V30 M20 35 L25 30 L30 35\" fill=\"none\" stroke=\"#2563eb\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M40 30 V42 M35 37 L40 42 L45 37\" fill=\"none\" stroke=\"#2563eb\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-auto": ["#fb923c", "#c2410c", "<g><circle cx=\"11\" cy=\"32\" r=\"5\" fill=\"#ffffff\"/><line x1=\"16\" y1=\"32\" x2=\"22\" y2=\"32\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><polygon points=\"30,21 41,32 30,43 19,32\" fill=\"#ffffff\"/><g fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"38,25 44,16 48,16\"/><line x1=\"41\" y1=\"32\" x2=\"48\" y2=\"32\"/><polyline points=\"38,39 44,48 48,48\"/></g><circle cx=\"53\" cy=\"16\" r=\"4.5\" fill=\"#ffffff\"/><circle cx=\"53\" cy=\"32\" r=\"4.5\" fill=\"rgba(255,255,255,0.72)\"/><circle cx=\"53\" cy=\"48\" r=\"4.5\" fill=\"rgba(255,255,255,0.38)\"/></g>"],
+      "kybernos-workers": ["#94a3b8", "#334155", "<g><rect x=\"17\" y=\"9\" width=\"40\" height=\"30\" rx=\"5\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"7\" y=\"19\" width=\"46\" height=\"35\" rx=\"5\" fill=\"#ffffff\"/><rect x=\"7\" y=\"19\" width=\"46\" height=\"9\" rx=\"5\" fill=\"#334155\" opacity=\"0.18\"/><circle cx=\"13\" cy=\"23.5\" r=\"1.7\" fill=\"#334155\"/><circle cx=\"18.5\" cy=\"23.5\" r=\"1.7\" fill=\"#334155\"/><circle cx=\"24\" cy=\"23.5\" r=\"1.7\" fill=\"#334155\"/><polyline points=\"14,36 21,41 14,46\" fill=\"none\" stroke=\"#334155\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"26\" y1=\"46\" x2=\"38\" y2=\"46\" stroke=\"#334155\" stroke-width=\"3.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-computers": ["#2dd4bf", "#0f766e", "<g><rect x=\"6\" y=\"16\" width=\"40\" height=\"28\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"10\" y=\"20\" width=\"32\" height=\"20\" rx=\"2\" fill=\"#0f766e\"/><rect x=\"22\" y=\"44\" width=\"8\" height=\"6\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"15\" y=\"50\" width=\"22\" height=\"4\" rx=\"2\" fill=\"rgba(255,255,255,0.72)\"/><g transform=\"translate(-6 0)\"><path d=\"M44 31 C40 31 38 29 38 26 C38 23 40 21 43 21.5 C44 17 48 14 52 15 C56 16 59 19 59 23 C62 23 63 25.5 63 28 C63 30 61 31 59 31 Z\" fill=\"#ffffff\" stroke=\"#0f766e\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/></g></g>"],
+      "kybernos-slides": ["#fb7185", "#be123c", "<g><rect x=\"7\" y=\"9\" width=\"50\" height=\"35\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"13\" y=\"15\" width=\"20\" height=\"4\" rx=\"2\" fill=\"#be123c\" opacity=\"0.4\"/><rect x=\"13\" y=\"33\" width=\"6\" height=\"6\" fill=\"#be123c\" opacity=\"0.35\"/><rect x=\"22\" y=\"28\" width=\"6\" height=\"11\" fill=\"#be123c\" opacity=\"0.55\"/><rect x=\"31\" y=\"23\" width=\"6\" height=\"16\" fill=\"#be123c\" opacity=\"0.8\"/><circle cx=\"47\" cy=\"30\" r=\"6\" fill=\"#be123c\" opacity=\"0.25\"/><path d=\"M32 44 V50 M22 57 L32 50 L42 57\" fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-bricks": ["#f97316", "#b45309", "<g><rect x=\"6\" y=\"40\" width=\"25\" height=\"14\" rx=\"2\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"33\" y=\"40\" width=\"25\" height=\"14\" rx=\"2\" fill=\"#ffffff\"/><rect x=\"10\" y=\"36\" width=\"7\" height=\"4\" rx=\"1\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"47\" y=\"36\" width=\"7\" height=\"4\" rx=\"1\" fill=\"#ffffff\"/><rect x=\"19\" y=\"25\" width=\"26\" height=\"14\" rx=\"2\" fill=\"#ffffff\"/><rect x=\"23\" y=\"21\" width=\"7\" height=\"4\" rx=\"1\" fill=\"#ffffff\"/><rect x=\"34\" y=\"21\" width=\"7\" height=\"4\" rx=\"1\" fill=\"#ffffff\"/></g>"],
+      "kybernos-modeleur": ["#818cf8", "#4338ca", "<g><polygon points=\"32,9 53,21 32,33 11,21\" fill=\"#ffffff\"/><polygon points=\"11,21 32,33 32,55 11,43\" fill=\"rgba(255,255,255,0.72)\"/><polygon points=\"32,33 53,21 53,43 32,55\" fill=\"rgba(255,255,255,0.38)\"/><circle cx=\"32\" cy=\"33\" r=\"2.6\" fill=\"rgba(0,0,0,0.25)\"/></g>"],
+      "kybernos-miniapps": ["#22d3ee", "#0e7490", "<g><rect x=\"8\" y=\"9\" width=\"48\" height=\"46\" rx=\"7\" fill=\"#ffffff\"/><rect x=\"8\" y=\"9\" width=\"48\" height=\"10\" rx=\"7\" fill=\"#0e7490\" opacity=\"0.18\"/><circle cx=\"14.5\" cy=\"14\" r=\"1.8\" fill=\"#0e7490\"/><circle cx=\"20\" cy=\"14\" r=\"1.8\" fill=\"#0e7490\"/><circle cx=\"25.5\" cy=\"14\" r=\"1.8\" fill=\"#0e7490\"/><rect x=\"14\" y=\"25\" width=\"16\" height=\"12\" rx=\"3\" fill=\"#0e7490\" opacity=\"0.85\"/><rect x=\"34\" y=\"25\" width=\"16\" height=\"12\" rx=\"3\" fill=\"#0e7490\" opacity=\"0.45\"/><rect x=\"14\" y=\"41\" width=\"16\" height=\"9\" rx=\"3\" fill=\"#0e7490\" opacity=\"0.45\"/><rect x=\"34\" y=\"41\" width=\"16\" height=\"9\" rx=\"3\" fill=\"#0e7490\" opacity=\"0.85\"/></g>"],
+      "dsh-mermaid": ["#f472b6", "#be185d", "<g><g fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M32 20 V24 H16 V28\"/><path d=\"M32 20 V24 H48 V28\"/><path d=\"M16 39 V43 H32 V47\"/><path d=\"M48 39 V43 H32\"/></g><rect x=\"22\" y=\"9\" width=\"20\" height=\"11\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"6\" y=\"28\" width=\"20\" height=\"11\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"38\" y=\"28\" width=\"20\" height=\"11\" rx=\"4\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"22\" y=\"47\" width=\"20\" height=\"11\" rx=\"4\" fill=\"#ffffff\"/></g>"],
+      "dsh-db-viewer": ["#4ade80", "#15803d", "<g><path d=\"M14 16 V46 C14 51 22 54 32 54 C42 54 50 51 50 46 V16 Z\" fill=\"rgba(255,255,255,0.72)\"/><path d=\"M14 16 C14 21 22 24 32 24 C42 24 50 21 50 16 C50 11 42 8 32 8 C22 8 14 11 14 16 Z\" fill=\"#ffffff\"/><path d=\"M14 28 C14 33 22 36 32 36 C42 36 50 33 50 28\" fill=\"none\" stroke=\"#15803d\" stroke-width=\"2.2\" opacity=\"0.5\"/><path d=\"M14 40 C14 45 22 48 32 48 C42 48 50 45 50 40\" fill=\"none\" stroke=\"#15803d\" stroke-width=\"2.2\" opacity=\"0.5\"/></g>"],
+      "dsh-media-player": ["#c084fc", "#7e22ce", "<g><rect x=\"7\" y=\"9\" width=\"50\" height=\"32\" rx=\"5\" fill=\"#ffffff\"/><polygon points=\"27,16 27,34 43,25\" fill=\"#7e22ce\"/><rect x=\"8\" y=\"47\" width=\"3\" height=\"6\" rx=\"1.5\" fill=\"#ffffff\"/><rect x=\"13\" y=\"44.5\" width=\"3\" height=\"11\" rx=\"1.5\" fill=\"#ffffff\"/><rect x=\"18\" y=\"42\" width=\"3\" height=\"16\" rx=\"1.5\" fill=\"#ffffff\"/><rect x=\"23\" y=\"45.5\" width=\"3\" height=\"9\" rx=\"1.5\" fill=\"#ffffff\"/><rect x=\"28\" y=\"43.5\" width=\"3\" height=\"13\" rx=\"1.5\" fill=\"#ffffff\"/><rect x=\"33\" y=\"41\" width=\"3\" height=\"18\" rx=\"1.5\" fill=\"#ffffff\"/><rect x=\"38\" y=\"45\" width=\"3\" height=\"10\" rx=\"1.5\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"43\" y=\"43\" width=\"3\" height=\"14\" rx=\"1.5\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"48\" y=\"46.5\" width=\"3\" height=\"7\" rx=\"1.5\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"53\" y=\"44\" width=\"3\" height=\"12\" rx=\"1.5\" fill=\"rgba(255,255,255,0.72)\"/></g>"],
+      "kybernos-composio": ["#818cf8", "#4f46e5", "<g><rect x=\"13\" y=\"26\" width=\"26\" height=\"17\" rx=\"5\" fill=\"#ffffff\"/><rect x=\"19\" y=\"13\" width=\"5\" height=\"14\" rx=\"2.5\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"29\" y=\"13\" width=\"5\" height=\"14\" rx=\"2.5\" fill=\"rgba(255,255,255,0.72)\"/><path d=\"M26 43 V48 C26 54 32 54 38 54 H44\" fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"46\" y=\"9\" width=\"10\" height=\"10\" rx=\"3\" fill=\"#ffffff\"/><rect x=\"46\" y=\"22\" width=\"10\" height=\"10\" rx=\"3\" fill=\"rgba(255,255,255,0.72)\"/><rect x=\"46\" y=\"35\" width=\"10\" height=\"10\" rx=\"3\" fill=\"rgba(255,255,255,0.38)\"/></g>"],
+      "kybernos-flow": ["#a3e635", "#4d7c0f", "<g><rect x=\"7\" y=\"12\" width=\"36\" height=\"10\" rx=\"4\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"11\" y=\"27\" width=\"36\" height=\"10\" rx=\"4\" fill=\"#ffffff\"/><rect x=\"7\" y=\"42\" width=\"36\" height=\"10\" rx=\"4\" fill=\"rgba(255,255,255,0.38)\"/><circle cx=\"17\" cy=\"32\" r=\"1.5\" fill=\"#4d7c0f\"/><circle cx=\"22\" cy=\"32\" r=\"1.5\" fill=\"#4d7c0f\"/><circle cx=\"27\" cy=\"32\" r=\"1.5\" fill=\"#4d7c0f\"/><path d=\"M54 24 V12 M50 16 L54 12 L58 16\" fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M54 40 V52 M50 48 L54 52 L58 48\" fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-refs": ["#fbbf24", "#b45309", "<g><rect x=\"7\" y=\"13\" width=\"50\" height=\"4\" rx=\"2\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"7\" y=\"22\" width=\"28\" height=\"4\" rx=\"2\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"38\" y=\"19\" width=\"19\" height=\"10\" rx=\"5\" fill=\"#ffffff\"/><circle cx=\"44\" cy=\"24\" r=\"2.4\" fill=\"#b45309\"/><rect x=\"48.5\" y=\"22.5\" width=\"6\" height=\"3\" rx=\"1.5\" fill=\"#b45309\" opacity=\"0.5\"/><rect x=\"7\" y=\"36\" width=\"44\" height=\"4\" rx=\"2\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"7\" y=\"45\" width=\"20\" height=\"4\" rx=\"2\" fill=\"rgba(255,255,255,0.38)\"/><rect x=\"30\" y=\"42\" width=\"19\" height=\"10\" rx=\"5\" fill=\"rgba(255,255,255,0.72)\"/><circle cx=\"36\" cy=\"47\" r=\"2.4\" fill=\"#b45309\"/></g>"],
+      "kybernos-slash": ["#e879f9", "#a21caf", "<g><rect x=\"7\" y=\"9\" width=\"50\" height=\"36\" rx=\"10\" fill=\"#ffffff\"/><polygon points=\"15,44 12,56 28,45\" fill=\"#ffffff\"/><line x1=\"37\" y1=\"16\" x2=\"27\" y2=\"38\" stroke=\"#a21caf\" stroke-width=\"5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"15\" y1=\"28\" x2=\"21\" y2=\"28\" stroke=\"#a21caf\" stroke-width=\"3\" opacity=\"0.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><line x1=\"43\" y1=\"28\" x2=\"49\" y2=\"28\" stroke=\"#a21caf\" stroke-width=\"3\" opacity=\"0.35\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-language": ["#2dd4bf", "#0369a1", "<g><rect x=\"6\" y=\"9\" width=\"32\" height=\"26\" rx=\"7\" fill=\"#ffffff\"/><polygon points=\"12,34 11,43 20,35\" fill=\"#ffffff\"/><path d=\"M15 28 L22 15 L29 28 M17.5 24 H26.5\" fill=\"none\" stroke=\"#0369a1\" stroke-width=\"2.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"26\" y=\"29\" width=\"32\" height=\"26\" rx=\"7\" fill=\"rgba(255,255,255,0.72)\"/><polygon points=\"52,54 53,62 45,55\" fill=\"rgba(255,255,255,0.72)\"/><path d=\"M34 38 H50 M42 35 V38 M37 49 L47 41 M37 41 L48 49\" fill=\"none\" stroke=\"#0369a1\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-maintenance": ["#94a3b8", "#475569", "<g><g transform=\"rotate(45 30 32)\"><rect x=\"26\" y=\"26\" width=\"8\" height=\"30\" rx=\"4\" fill=\"#ffffff\"/><circle cx=\"30\" cy=\"20\" r=\"11\" fill=\"#ffffff\"/><rect x=\"26\" y=\"6\" width=\"8\" height=\"13\" fill=\"#475569\"/></g><circle cx=\"49\" cy=\"49\" r=\"9\" fill=\"#4ade80\" stroke=\"#ffffff\" stroke-width=\"2.5\"/><polyline points=\"44.5,49 48,52.5 54,45.5\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></g>"],
+      "kybernos-relance": ["#fb7185", "#9f1239", "<g><path d=\"M50 32 A18 18 0 1 1 44.7 19.3\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"5.5\" stroke-linecap=\"round\"/><polygon points=\"49,14 41,21 52,25\" fill=\"#ffffff\"/><line x1=\"32\" y1=\"24\" x2=\"32\" y2=\"33\" stroke=\"#ffffff\" stroke-width=\"4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M25.5 29.5 A8 8 0 1 0 38.5 29.5\" fill=\"none\" stroke=\"rgba(255,255,255,0.72)\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g>"]
+    }
+    const TUILE = '<circle cx="58" cy="4" r="30" fill="#fff" opacity=".1"/><circle cx="4" cy="62" r="22" fill="#000" opacity=".08"/><rect x=".75" y=".75" width="62.5" height="62.5" rx="14.6" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="1.5"/>'
+    // Where a module's own Settings page is: the id of the section it registers (`settings.section`), the same in every language.
+    const REGLAGES = {
+      'kybernos-plugin': 'kybernos-tools', 'kybernos-cloud': 'kybernos-account', 'kybernos-models': 'kybernos-models', 'kybernos-auto': 'kybernos-auto-page',
+      'kybernos-modeles-locaux': 'kybernos-ollama', 'kybernos-memory': 'kybernos-memory', 'kybernos-theme': 'kybernos-theme', 'kybernos-language': 'kybernos-language',
+      'kybernos-slash': 'kybernos-slash', 'kybernos-atlas': 'kybernos-atlas', 'kybernos-workers': 'kybernos-workers', 'kybernos-maintenance': 'kybernos-maintenance',
+      'kybernos-call': 'kybernos-call'
+    }
+
     const ICONES = {
       box: 'M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16ZM3.3 7l8.7 5 8.7-5M12 22V12',
       plug: 'M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z',
@@ -512,8 +562,18 @@ window.__ModuleLoader__.load({
       const h = React.createElement
       const ic = (nom, extra) => h('svg', { className: 'i' + (extra ? ' ' + extra : ''), viewBox: '0 0 24 24', 'aria-hidden': 'true' }, h('path', { d: ICONES[nom] || ICONES.box }))
       // The module's artwork: its glyph on a tile coloured by its family. `taille` = '' | 'mid' | 'big'.
-      const artwork = (m, fam, taille) => h('span', { className: 'kbsu-ico' + (taille ? ' ' + taille : ''), style: { '--c': (fam && fam.couleur) || '#5b6fd6' }, 'aria-hidden': 'true' },
-        h('svg', { viewBox: '0 0 32 32', dangerouslySetInnerHTML: { __html: GLYPHES[m.glyphe] || GLYPHES.cube } }))
+      const artwork = (m, fam, taille) => {
+        const a = ART[m.id]
+        const c = (fam && fam.couleur) || '#5b6fd6'
+        const cls = 'kbsu-ico' + (taille ? ' ' + taille : '')
+        if (a !== undefined) {
+          return h('span', { className: cls, style: { '--from': a[0], '--to': a[1] }, 'aria-hidden': 'true' },
+            h('svg', { viewBox: '0 0 64 64', dangerouslySetInnerHTML: { __html: TUILE + a[2] } }))
+        }
+        // No illustration on the web page for this one yet: its glyph, larger, on the same tile in its family's colour.
+        return h('span', { className: cls, style: { '--from': 'color-mix(in srgb,' + c + ' 72%,#fff)', '--to': 'color-mix(in srgb,' + c + ' 60%,#000)' }, 'aria-hidden': 'true' },
+          h('svg', { viewBox: '0 0 64 64', dangerouslySetInnerHTML: { __html: TUILE + '<g transform="translate(8 8) scale(1.5)">' + (GLYPHES[m.glyphe] || GLYPHES.cube) + '</g>' } }))
+      }
       const slots = scope.slots
       const gestionnaire = () => {
         try {
@@ -539,6 +599,19 @@ window.__ModuleLoader__.load({
             try { scope.layout.selectPanel('plugins') } catch (e) { /* panel unavailable */ }
           }
         : null
+      const cleNav = (el) => {
+        try {
+          const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+          const cle = nom === undefined ? null : el[nom].key
+          return typeof cle === 'string' ? cle : null
+        } catch (e) { return null }
+      }
+      const celluleReglages = (id) => {
+        const section = REGLAGES[id]
+        if (section === undefined || typeof document === 'undefined') return null
+        try { return Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => cleNav(e) === section) || null } catch (e) { return null }
+      }
+      const ouvrirReglages = (id) => { const c = celluleReglages(id); if (c !== null) { try { c.click() } catch (e) { /* the app's markup moved: nothing to open */ } } }
       const lireJson = (url) => fetch(url, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
 
       const Panneau = () => {
@@ -745,17 +818,24 @@ window.__ModuleLoader__.load({
           ? h('span', { className: 'kbsu-chip warn', title: kt('Cette version de DSH n’est pas dans la zone testée.', 'This DSH version is not in the tested range.') }, kt('Non testé sur votre DSH', 'Not tested on your DSH'))
           : (pleine && verdict === 'ok' ? h('span', { className: 'kbsu-chip ok' }, kt('Compatible avec DSH ', 'Works with DSH ') + (charge.maint && charge.maint.global ? charge.maint.global : '')) : null)
 
+        // What waits for the hover: the module's own Settings page (when it has one and it is there), and its page here.
+        const actionsSurvol = (m, p) => {
+          const direct = p.etat === 'active' && celluleReglages(m.id) !== null
+          return h('div', { className: 'kbsu-acts' },
+            direct ? h('button', { type: 'button', className: 'kbsu-act', 'data-kb': 'suite-reglages', title: kt('Ouvrir la page de réglages de ce module', 'Open this module’s Settings page'), onClick: () => ouvrirReglages(m.id) }, ic('plug'), kt('Réglages', 'Settings')) : null,
+            h('button', { type: 'button', className: 'kbsu-act', 'data-kb': 'suite-fiche-btn', onClick: () => { setDetail(m.id); setOngletFiche('description') } }, kt('Détails', 'Details')))
+        }
         const carte = (m, vedette) => {
           const p = cardParts(m, false)
           const version = 'v' + (p.bundle !== null && typeof p.bundle.version === 'string' ? p.bundle.version : m.version)
           return h('article', { key: m.id, className: 'kbsu-card' + (vedette ? ' kbsu-vedette' : '') + (p.estOuvert ? ' open' : '') + (p.etat === 'safe' ? ' dim' : ''), 'data-kb': 'suite-card', 'data-id': m.id, 'data-etat': p.etat, tabIndex: 0, 'aria-label': titreDe(m) + ', ' + kt('ouvrir sa page', 'open its page'), onClick: ouvrirFiche(m.id), onKeyDown: clavierFiche(m.id) },
-            h('div', { className: 'kbsu-top' }, artwork(m, p.fam, vedette ? 'mid' : ''), h('div', { className: 'kbsu-name' },
+            h('div', { className: 'kbsu-top' }, artwork(m, p.fam, vedette ? 'mid' : 'card'), h('div', { className: 'kbsu-name' },
               vedette && m.accroche ? h('div', { className: 'kbsu-tag' }, kt(m.accroche.fr, m.accroche.en)) : null,
-              h('b', null, titreDe(m)), h('small', null, m.id + ' · ' + version))),
+              h('b', null, titreDe(m)), h('small', { title: m.id }, kt('par Kybernos · ', 'by Kybernos · ') + version))),
             h('p', { className: 'kbsu-promise' }, vedette && m.description ? kt(m.description.fr, m.description.en) : kt(m.promesse.fr, m.promesse.en)),
-            h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), m.socle ? h('span', { className: 'kbsu-b' }, kt('SOCLE', 'BASE')) : null, chipCompat(false)),
+            h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), m.socle ? h('span', { className: 'kbsu-b' }, kt('Toujours actif', 'Always on')) : null, chipCompat(false)),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
-            h('div', { className: 'kbsu-foot' }, p.statut, p.install, p.reglages !== null || p.sw !== null ? h('span', { className: 'kbsu-right' }, p.reglages, p.sw) : null),
+            h('div', { className: 'kbsu-foot' }, p.statut, p.install, actionsSurvol(m, p), p.reglages !== null || p.sw !== null ? h('span', { className: 'kbsu-right' }, p.reglages, p.sw) : null),
             p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null)
         }
 
@@ -789,7 +869,7 @@ window.__ModuleLoader__.load({
             h('div', { className: 'kbsu-crumb' }, h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-retour', onClick: () => setDetail(null) }, ic('back'), 'Kybernos Suite'), h('span', null, '/'), h('span', null, titreDe(m))),
             h('section', { className: 'kbsu-hero' }, artwork(m, p.fam, 'big'),
               h('div', { className: 'kbsu-htitle' }, h('h4', null, titreDe(m)), h('p', null, accroche), h('div', { className: 'kbsu-badges' }, chipFamille(p.fam), p.statut, chipCompat(true))),
-              h('div', { className: 'kbsu-hact' }, p.install, p.reglages, p.sw)),
+              h('div', { className: 'kbsu-hact' }, p.install, p.reglages, p.etat === 'active' && celluleReglages(m.id) !== null ? h('button', { type: 'button', className: 'kbsu-btn ghost sm', 'data-kb': 'suite-reglages', onClick: () => ouvrirReglages(m.id) }, ic('plug'), kt('Ouvrir les réglages', 'Open Settings')) : null, p.sw)),
             notes[m.id] ? h('p', { className: 'kbsu-note', role: 'status' }, notes[m.id]) : null,
             p.estOuvert ? h('div', { className: 'kbsu-cfg', 'data-kb': 'suite-config' }, h(p.comp, { key: m.nom })) : null,
             h('div', { className: 'kbsu-cols' },
@@ -866,7 +946,7 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbsu-rowname' }, h('b', { title: m.id }, titreDe(m)), h('span', { className: 'kbsu-promise', title: kt(m.promesse.fr, m.promesse.en) }, kt(m.promesse.fr, m.promesse.en))),
               h('span', { className: 'kbsu-famcol' }, h('span', { className: 'kbsu-b kbsu-famtag', title: p.fam.fr ? kt(p.fam.fr, p.fam.en) : undefined }, p.fam.fr ? kt(p.fam.fr, p.fam.en) : '')),
               p.statut,
-              h('span', { className: 'kbsu-right kbsu-rowact' }, p.install, p.reglages, p.sw),
+              h('span', { className: 'kbsu-right kbsu-rowact' }, p.install, p.reglages, p.etat === 'active' && celluleReglages(m.id) !== null ? h('button', { type: 'button', className: 'kbsu-act kbsu-rowacts', 'data-kb': 'suite-reglages', title: kt('Ouvrir la page de réglages de ce module', 'Open this module’s Settings page'), onClick: () => ouvrirReglages(m.id) }, ic('plug'), kt('Réglages', 'Settings')) : null, p.sw),
               h('span', { className: 'kbsu-mv' },
                 h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-up', disabled: i === 0, 'aria-label': kt('Monter ', 'Move up ') + titreDe(m), title: kt('Monter', 'Move up'), onClick: () => moveRow(m.id, -1) }, ic('up')),
                 h('button', { type: 'button', className: 'kbsu-ib', 'data-kb': 'suite-down', disabled: i === n - 1, 'aria-label': kt('Descendre ', 'Move down ') + titreDe(m), title: kt('Descendre', 'Move down'), onClick: () => moveRow(m.id, 1) }, ic('down')))),
