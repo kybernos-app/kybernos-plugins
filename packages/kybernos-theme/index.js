@@ -12,6 +12,10 @@
 //        JSON document under <dsh home>/kybernos (see preset-store.mjs)
 //   GET|POST /kybernos-theme/gallery   the theme gallery: the shipped catalogue (gallery.json) or the
 //        signed online one, verified and cached under <dsh home>/kybernos (see themes-gallery.mjs)
+//   POST     /kybernos-theme/boot   what the browser half applies (token layer, font), kept under
+//        <dsh home>/kybernos and put into every index render through DSH's `webserver/index-inject`
+//        seam as a `<style id="kbth-boot">`, so a themed page paints its own colours on the first
+//        frame instead of flashing DSH's default (see boot-store.mjs)
 //   GET      /kybernos-theme/vendor/lottie.js   the vendored Lottie runtime
 //        (vendor/lottie_light.min.js, MIT, see vendor/NOTICES.md), served locally so
 //        nothing is fetched from a CDN
@@ -21,8 +25,8 @@
 // Rules this file keeps: it only touches the plugin seams (ctx.inject, ctx.effect),
 // patches nothing in the engine, and no failure escapes apply(): a missing service, a
 // route that cannot be registered or a skill that cannot be copied is logged and the
-// rest still starts. Not yet built: routes for the wallpaper and anti-flash injection
-// before hydration (webserver/index-inject).
+// rest still starts. Not yet built: the wallpaper in the boot sheet (it is a div the browser
+// half adds, so it still appears with the bundle).
 import { createHash } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -32,6 +36,7 @@ import { serveLoaderStore } from './loader-store.mjs'
 import { servePresetStore } from './preset-store.mjs'
 import { loadKeys, loadShipped, serveGallery } from './themes-gallery.mjs'
 import { seedSkills } from './seed-skills.mjs'
+import { BOOT_ID, readBoot, renderBootCss, serveBoot } from './boot-store.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -70,7 +75,7 @@ export const SKILLS_DIR = join(here, 'skills')
 export const GALLERY_FILE = join(here, 'gallery.json')
 export const THEMES_KEYS_FILE = join(here, 'themes-pubkey.json')
 export const SEEDED_SKILLS = ['loader', 'loading-text']
-export const ROUTES = { store: '/kybernos-theme/loader-store', presets: '/kybernos-theme/preset-store', gallery: '/kybernos-theme/gallery', lottie: '/kybernos-theme/vendor/lottie.js' }
+export const ROUTES = { store: '/kybernos-theme/loader-store', presets: '/kybernos-theme/preset-store', gallery: '/kybernos-theme/gallery', boot: '/kybernos-theme/boot', lottie: '/kybernos-theme/vendor/lottie.js' }
 
 const logError = (what, e) => { try { if (e === undefined) console.error('[kybernos-theme] ' + what); else console.error('[kybernos-theme] ' + what, e) } catch (e2) { /* console unavailable */ } }
 const str = (v) => (typeof v === 'string' && v.length > 0 ? v : null)
@@ -172,6 +177,29 @@ export function serveLottie(req, res, file = LOTTIE_FILE) {
   } catch (e) { /* socket closed */ }
 }
 
+// ── the boot sheet ─────────────────────────────────────────────────────────────
+// The CSS text of the last snapshot the browser half posted (read from disk on the first index render, then kept).
+// `null` = not read yet; `''` = nothing to paint early.
+let bootCss = null
+export const resetBootSheet = () => { bootCss = null }
+const loadBootCss = () => {
+  const home = resolveDshHome()
+  if (home === null) return ''
+  const snapshot = readBoot(join(home, 'kybernos'))
+  return snapshot === null ? '' : renderBootCss(snapshot)
+}
+/** One row per index render, straight after `<head>`: DSH's own theme bootstrap uses the same seam. */
+export function bootSheetRows() {
+  if (bootCss === null) bootCss = loadBootCss()
+  return bootCss === '' ? [] : [{ kind: 'html', placement: 'head', html: '<style id="' + BOOT_ID + '">' + bootCss + '</style>' }]
+}
+function mountBootSheet(ctx) {
+  ctx.effect(() => ctx.on('webserver/index-inject', (table) => {
+    // The page must still be served when the sheet cannot be read or built.
+    try { table.push(...bootSheetRows()) } catch (e) { logError('boot sheet not injected', e) }
+  }), 'kybernos-theme: boot sheet')
+}
+
 // ── wiring ───────────────────────────────────────────────────────────────────────
 function mountRoutes(ctx, webServerSvc) {
   webServerSvc = kbFenced(webServerSvc)
@@ -195,6 +223,9 @@ function mountRoutes(ctx, webServerSvc) {
     home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, send: sendJson,
     shipped: () => loadShipped(GALLERY_FILE), keys: () => loadKeys(THEMES_KEYS_FILE),
   }), 'kybernos-theme: route gallery')
+  mount(ROUTES.boot, (req, res) => serveBoot(req, res, {
+    home: dshHomeOrNull, sameOriginStrict, readJson: readJsonBody, send: sendJson, changed: (css) => { bootCss = css },
+  }), 'kybernos-theme: route boot')
   mount(ROUTES.lottie, (req, res) => serveLottie(req, res), 'kybernos-theme: route vendor lottie')
 }
 
@@ -216,6 +247,9 @@ export function apply(ctx) {
       } catch (e) { logError('route mounting failed', e) }
     })
   } catch (e) { logError('start failed: routes /kybernos-theme/* not mounted', e) }
+  try {
+    mountBootSheet(ctx)
+  } catch (e) { logError('boot sheet not mounted', e) }
   try {
     seedOwnSkills()
   } catch (e) { logError('skills not installed', e) }

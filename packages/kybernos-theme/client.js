@@ -473,7 +473,12 @@ window.__ModuleLoader__.load({
           return out
         } catch (e) { return { ...DEF } }
       }
-      const writeState = (s) => { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch (e) { /* quota */ } }
+      // The host is told what is PERSISTED, never a trial being previewed: closing the tab during a trial must not make the
+      // next load paint a theme nobody kept (see posterBoot).
+      const writeState = (s) => {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch (e) { /* quota */ }
+        try { posterBoot(s) } catch (e) { /* the host is not told: one more flash on the next load */ }
+      }
 
       // ══════════════════════════════════════════════════════════════════════
       // 4. APPLICATION — les vrais câbles.
@@ -522,9 +527,8 @@ window.__ModuleLoader__.load({
       /** La couche de jetons : 17 variables, une paire {light, dark} chacune.
        *  En configuration natives, la couche est retirée — le DSH d'origine
        *  passe alors tel quel, sans même une redondance par-dessus. */
-      const appliquerJetons = (themeSvc, S) => {
-        if (layerDispose !== null) { try { layerDispose() } catch (e) { /* déjà retirée */ } layerDispose = null }
-        if (estNaturel(S)) return
+      const jetonsDe = (S) => {
+        if (estNaturel(S)) return null
         const lvl = S.contrastMode === 'max' ? 2 : (S.contrastMode === 'plus' ? 1 : 0)
         const wpo = WPS.find((w) => w.id === S.wp) || WPS[0]
         const o = { acc: S.acc, ov: S.ov, lvl, cb: S.cbSafe, tint: wpo.id !== 'none' ? S.tint : 0, dom: wpo.dom }
@@ -545,7 +549,49 @@ window.__ModuleLoader__.load({
         if (S.radius !== 'standard') {
           Object.keys(RADIUS_DEF).forEach((n) => { const v = Math.max(0, Math.round(RADIUS_DEF[n] * RADIUS_ECHELLE[S.radius])) + 'px'; jetons['--dsw-radius-' + n] = { light: v, dark: v } })
         }
-        try { layerDispose = themeSvc.overrideTokens('kybernos-theme', jetons) } catch (e) { layerDispose = null }
+        return jetons
+      }
+
+      // ── The first-paint sheet (anti-flash v2) ────────────────────────────────────────────────────────
+      // This layer only applies when the bundle activates, which on a slow link is long after the shell has
+      // painted (measured: 34 s with a throttled 250 KB/s link), so the page showed DSH's default palette until
+      // then. The host keeps the last applied state (tokens + font, POST /kybernos-theme/boot) and puts it in
+      // every index render as `<style id="kbth-boot">` (boot-store.mjs). The sheet is scaffolding: it is removed
+      // as soon as the real layer is in place.
+      const BOOT_ID = 'kbth-boot'
+      /** What the host paints first: the same layer and font as the ones applied here, from the same function. */
+      const bootSnapshot = (S) => {
+        const f = FONTS.find((x) => x.id === S.fontText) || FONTS[0]
+        return { v: 1, tokens: jetonsDe(S) || {}, font: typeof f.stack === 'string' ? f.stack : null }
+      }
+      const bootHostUrl = () => { try { return new URL('kybernos-theme/boot', document.baseURI).pathname } catch (e) { return '/kybernos-theme/boot' } }
+      let bootEnvoye = ''
+      /** Fire and forget: a refusal only costs a flash on the next load. The same look is never sent twice. */
+      const posterBoot = (S) => {
+        try {
+          const corps = JSON.stringify(bootSnapshot(S))
+          if (corps === bootEnvoye || typeof fetch !== 'function') return
+          bootEnvoye = corps
+          const r = fetch(bootHostUrl(), { method: 'POST', headers: { 'content-type': 'application/json' }, body: corps })
+          if (r !== null && r !== undefined && typeof r.catch === 'function') r.catch(() => { bootEnvoye = '' })
+        } catch (e) { bootEnvoye = '' }
+      }
+      /** Removes the sheet once the layer is in (two frames later: DSH's presenter writes the variables inline). */
+      const retirerFeuilleBoot = () => {
+        try {
+          const el = typeof document.getElementById === 'function' ? document.getElementById(BOOT_ID) : null
+          if (el === null || el === undefined) return
+          const retirer = () => { try { el.remove() } catch (e) { /* déjà retirée */ } }
+          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { requestAnimationFrame(retirer) })
+          else retirer()
+        } catch (e) { /* not in a browser */ }
+      }
+
+      const appliquerJetons = (themeSvc, S) => {
+        if (layerDispose !== null) { try { layerDispose() } catch (e) { /* déjà retirée */ } layerDispose = null }
+        const jetons = jetonsDe(S)
+        if (jetons === null) { retirerFeuilleBoot(); return }
+        try { layerDispose = themeSvc.overrideTokens('kybernos-theme', jetons); retirerFeuilleBoot() } catch (e) { layerDispose = null }
       }
 
       /** Le fond d'écran : une div fixe sous l'application (motif éprouvé
@@ -678,6 +724,7 @@ window.__ModuleLoader__.load({
        *  valeur dans le store (pour que la page Réglages dise la vérité), et on
        *  recopie tout changement natif venu d'ailleurs. */
       const appliquerBoot = (themeSvc, S) => {
+        posterBoot(S)
         appliquerJetons(themeSvc, S)
         appliquerFond(S)
         appliquerPolice(S)
@@ -3231,7 +3278,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative,
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
           ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
-          appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page,
+          appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,
           PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
           presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,

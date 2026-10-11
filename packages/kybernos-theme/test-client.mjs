@@ -25,6 +25,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { SETTINGS_KEYS, sanitizeLibrary } from './preset-store.mjs'
 import { A11Y_KEYS, sanitizeDocument } from './themes-catalogue.mjs'
+import { cleanBoot, renderBootCss } from './boot-store.mjs'
 
 let pass = 0
 let fail = 0
@@ -1143,6 +1144,78 @@ section('theme gallery: install, update and the host (fake host)')
   check('a full library refuses an install', T.galInstall(t1) === null)
   fresh()
 }
+// ═══ anti-flash v2: the boot sheet ══════════════════════════════════════════
+section('boot sheet (anti-flash v2)')
+{
+  // What the page posts has to pass the host's grammar for every look the bundle can produce, or that look would still flash.
+  const states = T.SKINS.map((sk) => ({ ...T.DEF, ...T.skinPatch(sk) }))
+  states.push({ ...T.DEF, acc: '#ff6a00', contrastMode: 'max', cbSafe: true })
+  states.push({ ...T.DEF, skin: 'custom', wp: T.WPS[1].id, tint: 30, radius: 'soft', sidebarLinked: true })
+  states.push({ ...T.DEF, skin: 'custom', radius: 'sharp', ov: { 'light:base': '#abcdef' } })
+  const refused = states.map((S) => cleanBoot(T.bootSnapshot(S))).filter((r) => r.ok !== true).map((r) => r.error)
+  check('every theme, accent, contrast level and corner style passes the host grammar (' + states.length + ' looks)', refused.length === 0, refused)
+  check('and the natural DSH look posts nothing to paint', (() => { const n = T.bootSnapshot(T.DEF); return Object.keys(n.tokens).length === 0 && n.font === null })())
+  const themed = { ...T.DEF, ...T.skinPatch(T.SKINS.find((sk) => sk.id !== 'dsh')) }
+  const { ctx: themedCtx, calls: themedCalls } = mkCtx()
+  T.appliquerJetons(themedCtx.theme, themed)
+  check('the posted tokens are the layer DSH receives, not a second computation', JSON.stringify(T.bootSnapshot(themed).tokens) === JSON.stringify(themedCalls.overrideTokens[0].tokens))
+  const sheet = renderBootCss(cleanBoot(T.bootSnapshot({ ...themed, fontText: 'georgia' })).snapshot)
+  check('the sheet carries both schemes and the font', /^html body:not\(\[data-ds-dark-theme\]\)\{--dsw-/.test(sheet) && sheet.includes('html body[data-ds-dark-theme]{--dsw-') && sheet.endsWith(':root{--dsw-font-family:Georgia, \'Times New Roman\', serif !important}'), sheet.slice(-120))
+
+  // The host is told what is PERSISTED: once, never a trial, and again after a refusal.
+  const posts = []
+  const realFetch = globalThis.fetch
+  let reject = false
+  globalThis.fetch = (url, init) => { posts.push({ url: String(url), body: JSON.parse(init.body) }); return reject ? Promise.reject(new Error('offline')) : Promise.resolve({ ok: true }) }
+  try {
+    T.posterBoot({ ...T.DEF, acc: '#123456', skin: 'custom' })
+    posts.length = 0
+    T.posterBoot(themed); T.posterBoot(themed)
+    check('the same look is posted once', posts.length === 1 && posts[0].url.endsWith('/kybernos-theme/boot') && Object.keys(posts[0].body.tokens).length > 0, posts.length)
+    T.writeState({ ...themed, acc: '#654321' })
+    check('saving a look posts it', posts.length === 2 && posts[1].body.tokens !== undefined)
+    const before = posts.length
+    T.appliquerTout(mkCtx().ctx.theme, { ...themed, acc: '#0a0b0c' })
+    check('a trial that is only previewed posts nothing (closing the tab must not keep it)', posts.length === before)
+    reject = true
+    T.posterBoot({ ...themed, acc: '#222222' })
+    await Promise.resolve(); await Promise.resolve()
+    reject = false
+    posts.length = 0
+    T.posterBoot({ ...themed, acc: '#222222' })
+    check('a refused post is sent again next time', posts.length === 1)
+    let threw = null
+    globalThis.fetch = () => { throw new Error('no network stack') }
+    try { T.posterBoot({ ...themed, acc: '#333333' }) } catch (e) { threw = e }
+    check('a fetch that throws does not escape', threw === null)
+  } finally { globalThis.fetch = realFetch }
+
+  // The sheet leaves once the real layer is there, and only then.
+  const sheetEl = { removed: false, remove() { this.removed = true } }
+  const frames = []
+  const realRaf = globalThis.requestAnimationFrame
+  globalThis.requestAnimationFrame = (fn) => { frames.push(fn); return frames.length }
+  document.getElementById = (id) => (id === T.BOOT_ID && sheetEl.removed === false ? sheetEl : null)
+  try {
+    T.appliquerJetons(mkCtx().ctx.theme, themed)
+    check('the sheet stays for the frame in which DSH applies the layer', sheetEl.removed === false && frames.length === 1)
+    frames.shift()()
+    check('...and the next one', sheetEl.removed === false && frames.length === 1)
+    frames.shift()()
+    check('...then it is removed', sheetEl.removed === true)
+    sheetEl.removed = false
+    frames.length = 0
+    T.appliquerJetons(mkCtx({ overrideThrows: true }).ctx.theme, themed)
+    check('a layer DSH refused keeps the sheet (it is the only look there is)', sheetEl.removed === false && frames.length === 0)
+    T.appliquerJetons(mkCtx().ctx.theme, T.DEF)
+    check('the DSH look needs no sheet: it goes', frames.length === 1)
+    check('the id in the page is the one the host injects', T.BOOT_ID === 'kbth-boot')
+  } finally {
+    if (realRaf === undefined) delete globalThis.requestAnimationFrame; else globalThis.requestAnimationFrame = realRaf
+    delete document.getElementById
+  }
+}
+
 section('page render (react-dom/server)')
 let React = null, renderToStaticMarkup = null
 try {
