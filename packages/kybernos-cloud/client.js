@@ -1081,12 +1081,11 @@ window.__ModuleLoader__.load({
       return body
     }
 
-    // ── Profil local (onglet Account des Réglages, 30/09 soir) ─────────────
-    // Les champs naissance / localisation / langue / instructions de la page
-    // profil de la webapp vivent dans SON navigateur (store local, le serveur
-    // ne les sert pas). DSH fait de même côté apparail : localStorage, jamais
-    // de réseau. Le jour où une route serveur les rend, seul ceReadWrite
-    // change.
+    // ── Local profile (the Account tab of Settings) ─────────────────────────
+    // Birth date, location, language and colour live in THIS browser (localStorage, never the network), as the
+    // webapp's profile page does with its own. The custom instructions are the exception: the agents read them
+    // from <DSH home>/AGENTS.md, so the page also writes them there (GET /instructions, POST /instructions/save),
+    // and the browser copy is only the fallback when the host does not offer the route.
     const KB_ACC_KEY = 'kb8.account-profile'
     const kbAccVide = () => ({ name: '', birth: '', location: '', instructions: '', color: '', photo: '', tz: '' })
     const kbAccRead = () => {

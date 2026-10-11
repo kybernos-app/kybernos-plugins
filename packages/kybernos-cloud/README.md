@@ -66,6 +66,26 @@ Le résumé (`count`, `plan`, `imported_at`, `settings`, `credential`) voyage
 aussi dans `state` des réponses `/status`, `/poll` et `/refresh`. Les ids
 complets restent dans la route de détail.
 
+## Custom instructions (Account page)
+
+The "Custom instructions" field of the Account page used to live in the browser only, so no agent read it.
+It is now a marked section of `<DSH home>/AGENTS.md`, which DSH's own `dsh-agent-instructions` loader hands
+to every new chat (user-global file first, then the project's):
+
+| Route | Answer |
+|---|---|
+| `GET /kybernos-cloud/instructions` | `{ok, present, text, file}`: the section's text and the file's path (the page says where the text went) |
+| `POST /kybernos-cloud/instructions/save` | body `{text}` (at most 2000 characters; an empty text removes the section) → `{ok, present, changed, file}` or `{ok:false, error}` |
+
+- `instructions.mjs` owns the file logic: the section sits between `<!-- kybernos:custom-instructions v1 -->` and
+  its closing marker, is replaced in place, and everything else in the file is left byte for byte. A Windows
+  file keeps its line ends, a symlinked `AGENTS.md` stays a symlink, a write is tmp + rename.
+- A marker typed in the field is refused (`reserved`), and a file with an opening marker but no closing one is
+  refused (`markers-damaged`) instead of guessed at.
+- The write is strict same-origin like the other mutating routes, and the page keeps the text unsaved with the
+  reason when the write fails. Without the route (an older host) the field stays browser-side.
+- Applies to **new** chats: DSH loads the file for the first request of a conversation.
+
 ## Mémoire du compte (fonctionnalité cloud n°2)
 
 DSH n'a **aucune mémoire native** : son plan d'instructions est plafonné à
