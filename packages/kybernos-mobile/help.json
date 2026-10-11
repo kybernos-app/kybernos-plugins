@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Sur un téléphone, l’écran de DSH devient utilisable : le menu s’ouvre en tiroir par-dessus la conversation et les réglages s’empilent au lieu d’écraser le texte.",
+    "en": "On a phone, the DSH screen becomes usable: the menu opens as a drawer over the conversation and Settings stack instead of squeezing the text."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez DSH depuis votre téléphone : la conversation prend toute la largeur, avec un bouton menu en haut à gauche.",
+      "en": "Open DSH from your phone: the conversation takes the full width, with a menu button at the top left."
+    },
+    {
+      "fr": "Touchez le bouton menu : vos sessions et vos pages arrivent en tiroir. Touchez une session, ou la zone assombrie, et le tiroir se referme.",
+      "en": "Tap the menu button: your sessions and pages slide in as a drawer. Tap a session, or the dimmed area, and the drawer closes."
+    },
+    {
+      "fr": "Dans les réglages, la liste des pages défile en bandeau sous la recherche et le contenu occupe toute la largeur.",
+      "en": "In Settings, the list of pages scrolls as a strip under the search and the content uses the full width."
+    }
+  ],
+  "where": {
+    "fr": "Automatique sur un écran étroit (700 px et moins) ; rien ne change sur un ordinateur (aucune page de réglages)",
+    "en": "Automatic on a narrow screen (700 px and below); nothing changes on a computer (no settings page)",
+    "page": false
+  },
+  "good": {
+    "fr": "Seul le cadre de DSH est adapté : certaines pages de réglages de plugins gardent une mise en page de bureau et peuvent rester étroites.",
+    "en": "Only DSH’s frame is adapted: some plugin settings pages keep a desktop layout and may stay narrow."
+  }
+}
