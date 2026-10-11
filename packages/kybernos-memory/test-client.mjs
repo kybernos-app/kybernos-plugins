@@ -160,16 +160,16 @@ check('no other bundle uses the kbmem- prefix', others.length === 0, others)
 check('the page never calls a cloud URL directly: only same-origin local routes', !/https?:\/\//.test(SOURCE.replace(/\/\/.*$/gm, '').replace(/<path[^>]*>/g, '')) )
 
 // ── nav placement: DSH's Settings nav is grouped by label (kybernos-plugin); a label it does not know falls to the
-// bottom, under "Third Party Plugins" (seen on the real GUI). Ours is designed to sit right under Language.
+// bottom, under "Third Party Plugins" (seen on the real GUI). Ours sits in the Kybernos section, after Auto Routing.
 console.log('settings nav')
 {
   const label = (/label: '(Memory & Lessons)'/.exec(SOURCE) || [])[1]
   const nav = readFileSync(join(HERE, '..', 'kybernos-plugin', 'client.js'), 'utf8')
-  const row = /titre: kbt\('settings\.group\.settings'\), mots: \[([^\]]*)\]/.exec(nav)
-  const words = row === null ? [] : row[1].split(',').map((w) => w.trim().replace(/^'|'$/g, ''))
+  const row = /titre: kbt\('settings\.group\.kybernos'\), mots: \[([^\]]*)\]/.exec(nav)
+  const words = row === null ? [] : row[1].split(',').map((w) => w.trim().replace(/^'|'$/g, '')).filter((w) => w !== '')
   const at = words.indexOf((label || '').toLowerCase())
   check('the nav label is the one the page registers', label === 'Memory & Lessons')
-  check('the Settings group of the shell lists it right after Language', at > 0 && words[at - 1] === 'language', words)
+  check('the Kybernos section lists it right after Auto Routing', at > 0 && words[at - 1] === 'auto routing', words)
   check('it has its own icon (else it wears the generic gear)', nav.indexOf("'memory & lessons': '<path") >= 0)
 }
 

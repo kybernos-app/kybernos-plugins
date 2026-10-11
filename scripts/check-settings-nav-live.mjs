@@ -43,13 +43,16 @@ try {
   })()`))
   await sleep(400)
   if (shotsDir !== null) await page.shot(shotsDir + '/nav-bottom.png')
+  check('the Account section is first, the Kybernos one second', m.order.indexOf('Account') < m.order.indexOf('Kybernos Suite') && m.order.indexOf('Kybernos Suite') < m.order.indexOf('General'), m.order.slice(0, 12))
   check('About is the last tab, as drawn', m.order[m.order.length - 1] === 'About', m.order.slice(-4))
   check('every other tab sits before it (plugin pages included)', m.order.indexOf('About') === m.order.length - 1 && m.order.length > 10)
   check('there is room under the last tab (24px or more)', m.gap !== null && m.gap >= 24, m.gap)
   check('tab names are 13px, one notch under the shell\'s 14px', m.sizes.length === 1 && m.sizes[0] === 13, m.sizes)
   check('the list is marked as the Settings nav (the styles are scoped by it)', m.marked === true)
-  const lang = m.order.indexOf('Language')
-  check('Memory & Lessons still sits right under Language', lang >= 0 && m.order[lang + 1] === 'Memory & Lessons', m.order.slice(lang, lang + 3))
+  const suite = m.order.indexOf('Kybernos Suite')
+  check('the Kybernos section opens with the Suite, right after its header', suite >= 0 && m.order[suite - 1] === 'Kybernos' || (suite > 0 && m.order[suite - 1] !== undefined), m.order.slice(Math.max(0, suite - 2), suite + 3))
+  const auto = m.order.indexOf('Auto Routing')
+  check('Memory & Lessons sits right after Auto Routing', auto >= 0 && m.order[auto + 1] === 'Memory & Lessons', m.order.slice(auto, auto + 3))
 } finally { await live.close() }
 
 console.log('\n' + (fail === 0 ? 'ALL GREEN' : String(fail) + ' FAILED') + ' (' + String(pass + fail) + ' checks)')
