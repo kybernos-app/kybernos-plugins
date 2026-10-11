@@ -18,13 +18,19 @@ are wrapped in try/catch; a half that fails is skipped (the host logs it).
 
 A Settings section (`settings.section`, id `kybernos-suite`, order 29) listing the 26 modules of `catalog.json`
 in 7 families. Installed state and switches come from DSH's native plugin manager; the DSH version from
-`/kybernos-maintenance/state`, if present. A module with a `plugins.bundle.config` screen gets a Settings button.
+`/kybernos-maintenance/state`, if present. A module with a `plugins.bundle.config` screen gets a Settings button that unfolds it in place.
 
 - **Featured, then the rest.** The default tab is *Featured*: the six most advanced modules (`vedette` = rank in the
   catalogue) as larger cards with a tagline and the full description. *All*, *Installed*, *Available* and *Updates* follow.
   Family chips filter (there are no group headings), and the search matches the human title too.
-- **The artwork is the module's glyph** on a tile coloured by its family (`glyphe` and the family's `couleur` come from the
-  catalogue; the 32px three-tone glyphs live in the client). Cards show the human title (`titre`), the id and the version.
+- **The artwork is the tile of the Plugins page of the web app**: one gradient and one small illustration per plugin (the `ART`
+  table of the client, drawn on a 64 grid, injected as drawing elements only: `test-suite-art.mjs` checks that). A module the web
+  page has no illustration for yet keeps its catalogue glyph (`glyphe`, 32px, three tones) larger on the same tile, coloured by its
+  family. Cards show the human title (`titre`), « by Kybernos » and the version, three lines of the promise, and the badges.
+- **Hover actions.** On a card or a row, a hover (or the keyboard) shows *Settings*, a direct link to the module's own Settings
+  page (only when the module registers one, it is on, and its entry is in Settings: the cell is found by the section id it carries,
+  `REGLAGES`), and *Details*. The switch and the status stay visible. The panel uses the width Settings gives it (the core's 720px
+  cap on a section is lifted for it).
 - **The module's page.** A click (or Enter) on a card or a row opens it: header with the actions, *Description* (what it does,
   from the catalogue) and *Compatibility* (your DSH, the suite's tested range, the verdict), and a details column. Nothing on
   it that the catalogue does not say. A compatibility chip shows on a card only when DSH is outside the tested range.
