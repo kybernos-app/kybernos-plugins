@@ -77,10 +77,17 @@ try {
 
   let lastUrl = null
   let announced = false
+  let lastSig = null // one line each time the phone's link changes: a link that drops and resumes in a loop shows here
   console.log('\nThe phone link is ready on ' + backend.phoneOrigin)
   await host('POST', 'pair')
   for (;;) {
     st = await host('GET', 'status')
+    const dv = Array.isArray(st.devices) && st.devices.length > 0 ? st.devices[0] : null
+    const sig = dv === null ? 'none' : [dv.online, dv.state, dv.last_seen_at].join('|')
+    if (sig !== lastSig) {
+      lastSig = sig
+      console.log('  . ' + new Date().toTimeString().slice(0, 8) + '  phone: ' + (dv === null ? 'no paired phone' : 'online=' + dv.online + ' state=' + dv.state + ' seen=' + (dv.last_seen_at === null ? '-' : new Date(dv.last_seen_at).toTimeString().slice(0, 8))))
+    }
     const p = st.pairing
     if (p === null || p === undefined) {
       if (st.devices.length > 0 && st.devices.some((d) => d.online)) {
