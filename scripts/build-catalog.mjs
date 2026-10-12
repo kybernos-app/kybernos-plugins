@@ -38,6 +38,7 @@ const FICHE = {
   'kybernos-models': ['models', 'Catalogue de modèles : recherche, comparaison, prix.', 'Model catalogue: search, compare, prices.'],
   'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
   'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de votre liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
+  'kybernos-free-llms': ['models', 'Modèles gratuits OpenCode Zen, sans compte ni clé API.', 'Free OpenCode Zen models, no account or API key.'],
   'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
   'kybernos-call': ['base', 'Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
   'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
@@ -49,6 +50,7 @@ const FICHE = {
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
   'kybernos-mobile': ['base', 'DSH sur votre téléphone : l’écran s’adapte, et avec une offre payante un code QR relie le téléphone à cet ordinateur.', 'DSH on your phone: the screen adapts, and with a paid plan a QR code links the phone to this computer.'],
+  'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand vous en ajoutez une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
   'dsh-db-viewer': ['data', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],
   'dsh-media-player': ['create', 'Lecteur audio et vidéo dans la barre latérale.', 'Audio and video player in the sidebar.'],
@@ -66,16 +68,16 @@ const TITRES = {
   'kybernos-plugin': 'Kybernos Core', 'kybernos-hub': 'Suite', 'kybernos-theme': 'Theme', 'kybernos-language': 'Language',
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About & Maintenance', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Slash commands',
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto routing',
-  'kybernos-flow': 'Flow', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Mobile', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Mobile', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal'
 }
 const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
   'kybernos-maintenance': 'info', 'kybernos-skills': 'bolt', 'kybernos-slash': 'slash', 'kybernos-relance': 'refresh', 'kybernos-models': 'cpu',
-  'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
-  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-mobile': 'mobile', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
+  'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-free-llms': 'doc', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
+  'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
   'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-call': 'phone', 'kybernos-terminal': 'term'
 }

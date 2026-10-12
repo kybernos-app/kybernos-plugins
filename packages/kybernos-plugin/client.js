@@ -2636,7 +2636,7 @@ const kbt = (key) => {
 const KB_NAV_KEYS = {
   general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
   'kybernos-account': 'account', 'kbac-referral': 'referral', 'kybernos-data': 'data & privacy', 'kbac-appearance': 'appearance',
-  'kybernos-maintenance': 'about', 'kbac-security': 'security', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing',
+  'kybernos-maintenance': 'about', 'kbac-security': 'security', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
   'kbac-support': 'support & legal', plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
@@ -29730,6 +29730,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           'memory & lessons',
           'workers',
           'outils', 'tools',
+          'web search',
           'calls', 'appels',
           'commandes', 'commands',
           'atlas',
@@ -29774,6 +29775,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         'voice': '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" ' + trait + '/><path d="M19 10v1a7 7 0 0 1-14 0v-1" ' + trait + '/><line x1="12" y1="19" x2="12" y2="22" ' + trait + '/>',
         'outils': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
         'tools': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" ' + trait + '/>',
+        'web search': '<circle cx="11" cy="11" r="7" ' + trait + '/><path d="m20 20-3.5-3.5" ' + trait + '/><path d="M4 11h14M11 4c2 2 3 4.5 3 7s-1 5-3 7c-2-2-3-4.5-3-7s1-5 3-7z" ' + trait + '/>',
         'agent presets': '<rect x="4" y="8" width="16" height="12" rx="2" ' + trait + '/><line x1="12" y1="8" x2="12" y2="5" ' + trait + '/><circle cx="9" cy="14" r="1" fill="currentColor"/><circle cx="15" cy="14" r="1" fill="currentColor"/><line x1="2" y1="13" x2="4" y2="13" ' + trait + '/><line x1="20" y1="13" x2="22" y2="13" ' + trait + '/>',
         'about': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
         'a propos': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="M12 16v-4" ' + trait + '/><path d="M12 8h.01" ' + trait + '/>',
@@ -31847,6 +31849,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'v.local.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
       'v.local.d': ['Free and private: nothing leaves your machine. Needs some disk space.', 'Gratuit et privé : rien ne quitte ta machine. Demande un peu de place disque.', 'Gratis y privado: nada sale de tu equipo. Ocupa algo de espacio en disco.', 'مجاني وخاص: لا شيء يغادر جهازك. يحتاج إلى بعض المساحة على القرص.'],
       'v.local.tag': ['{gb} GB detected', '{gb} Go détectés', '{gb} GB detectados', 'تم اكتشاف {gb} غيغابايت'],
+      'v.free.t': ['Free models, no account', 'Des modèles gratuits, sans compte', 'Modelos gratis, sin cuenta', 'نماذج مجانية، بلا حساب'],
+      'v.free.d': ['OpenCode’s free tier, wired in right away. Free means the prompts you send may be kept by OpenCode to improve their models — don’t send anything sensitive.', 'La couche gratuite d’OpenCode, branchée tout de suite. Gratuit signifie que les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles — n’y envoie rien de sensible.', 'La capa gratuita de OpenCode, conectada al instante. Gratis significa que los prompts que envías pueden ser guardados por OpenCode para mejorar sus modelos: no envíes nada sensible.', 'طبقة OpenCode المجانية، موصولة فورًا. المجاني يعني أن الرسائل المرسلة قد يحتفظ بها OpenCode لتحسين نماذجه — لا ترسل شيئًا حساسًا.'],
+      'v.free.tag': ['No account', 'Sans compte', 'Sin cuenta', 'بلا حساب'],
+      'free.t': ['Free models, ready to use', 'Des modèles gratuits, prêts à l’emploi', 'Modelos gratis, listos para usar', 'نماذج مجانية، جاهزة للاستخدام'],
+      'free.s': ['These models are free because OpenCode may keep the prompts you send to improve them. Tick below to say you understand, then start.', 'Ces modèles sont gratuits parce qu’OpenCode peut conserver les prompts que tu envoies pour les améliorer. Coche ci-dessous pour dire que tu comprends, puis commence.', 'Estos modelos son gratis porque OpenCode puede conservar los prompts que envías para mejorarlos. Marca abajo para confirmar que lo entiendes, luego empieza.', 'هذه النماذج مجانية لأن OpenCode قد يحتفظ بالرسائل التي ترسلها لتحسينها. ضع علامة أدناه لتؤكد أنك تفهم، ثم ابدأ.'],
+      'free.ack': ['I understand my prompts may be kept.', 'Je comprends que mes prompts peuvent être conservés.', 'Entiendo que mis prompts pueden ser guardados.', 'أفهم أن رسائلي قد يتم الاحتفاظ بها.'],
+      'free.start': ['Use free models', 'Utiliser les modèles gratuits', 'Usar los modelos gratis', 'استخدم النماذج المجانية'],
       'later': ['I’ll do it later', 'Je verrai plus tard', 'Lo haré más tarde', 'سأفعل ذلك لاحقًا'],
       'wait.t': ['Finish in your browser', 'Termine dans ton navigateur', 'Termina en tu navegador', 'أكمل في متصفحك'],
       'wait.s': ['The Kybernos page is open. Sign in or create your account there, then type the code below. You’ll come back here on your own.', 'La page Kybernos est ouverte. Connecte-toi ou crée ton compte, puis saisis le code ci-dessous. Tu reviens ici tout seul.', 'La página de Kybernos está abierta. Inicia sesión o crea tu cuenta y escribe el código de abajo. Volverás aquí automáticamente.', 'صفحة Kybernos مفتوحة. سجّل الدخول أو أنشئ حسابك هناك، ثم اكتب الرمز أدناه. ستعود إلى هنا تلقائيًا.'],
@@ -31973,12 +31982,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     /** Which numbered step a screen belongs to (null = none: welcome and the end screens). */
     const kbObStepOf = (screen) => {
       if (screen === 'job' || screen === 'mode') return screen
-      if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' ||
+      if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' || screen === 'free' ||
         screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
       return null
     }
     /** Where « Back » goes from a screen (null = nowhere). */
-    const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', key: 'model', local: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
     /** A pasted key as it will be sent: trimmed, one printable-ASCII string of 8 to 400 characters, or null. */
     const kbObKeyShape = (value) => {
       const clean = typeof value === 'string' ? value.trim() : ''
@@ -32039,7 +32048,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         ready: null, hasCloud: false, hasLocal: false, machine: null,
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
-        standalone: false, picked: null,
+        standalone: false, picked: null, freeAck: false,
       }
       let root = null
       let pollTimer = null
@@ -32077,6 +32086,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
         globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18"/>',
         close: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+        sparkles: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/>',
       }
       const mark = (height) => {
         const s = h('span', 'kb-ob-mark')
@@ -32125,6 +32135,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
         // Opened from the chat's card (standalone), the wizard is not the first run: the onboarding file is left alone.
         if (!S.standalone) env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang })
+        // Free models (no account): wire them in on the first run, but only when the person brings no
+        // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
+        // re-checks both guardrails before writing the route, so a stale client can never force it.
+        if (!S.standalone && S.model === 'free') {
+          call('/free-llms/auto-enable', 'POST', {
+            acknowledged: S.freeAck === true,
+            hasOwnModel: S.ready !== null || (S.model !== null && S.model !== 'free' && S.model !== 'later'),
+          })
+        }
         const connected = S.standalone && S.model !== null ? S.model : null
         const picked = S.picked
         close()
@@ -32483,6 +32502,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             const gb = S.machine !== null && typeof S.machine.ramGo === 'number' ? T('v.local.tag', { gb: S.machine.ramGo }) : null
             g.appendChild(rowOption('laptop', T('v.local.t'), T('v.local.d'), gb, () => go('local')))
           }
+          g.appendChild(rowOption('sparkles', T('v.free.t'), T('v.free.d'), T('v.free.tag'), () => go('free')))
           s.appendChild(g)
           const a = actions()
           a.appendChild(button('kb-ob-ghost', S.standalone ? T('close') : T('later'), () => { if (S.standalone) finish(); else go('later') }))
@@ -32717,6 +32737,27 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           ]))
           const a = actions()
           a.appendChild(primary(T('fin.open'), () => finish()))
+          s.appendChild(a)
+          return s
+        },
+        free: () => {
+          const s = step()
+          s.appendChild(eyebrow('free'))
+          s.appendChild(h('h1', null, T('free.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('free.s')))
+          const ack = h('label', 'kb-ob-freeack')
+          const box = h('input')
+          box.type = 'checkbox'
+          box.checked = S.freeAck === true
+          box.addEventListener('change', () => { S.freeAck = box.checked; render(false) })
+          ack.appendChild(box)
+          ack.appendChild(h('span', null, T('free.ack')))
+          s.appendChild(ack)
+          const a = actions()
+          const use = primary(T('free.start'), () => { S.model = 'free'; finish() })
+          use.disabled = S.freeAck !== true
+          a.appendChild(use)
+          a.appendChild(button('kb-ob-ghost', T('later'), () => go('later')))
           s.appendChild(a)
           return s
         },
@@ -33029,6 +33070,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-link{color:var(--blue);text-decoration:underline;text-underline-offset:3px;direction:ltr;unicode-bidi:isolate}',
       '.kb-ob-note{display:flex;gap:8px;margin-top:18px;font-size:13px;line-height:1.55;color:var(--ink3)}',
       '.kb-ob-note .kb-ob-ico{margin-top:2px;flex:none}',
+      '.kb-ob-freeack{display:flex;align-items:flex-start;gap:10px;margin-top:22px;font-size:14px;line-height:1.55;color:var(--ink);cursor:pointer}',
+      '.kb-ob-freeack input{flex:none;width:16px;height:16px;margin:3px 0 0;accent-color:var(--blue);cursor:pointer}',
       '.kb-ob-state{display:flex;gap:10px;align-items:center;margin-top:22px;font-size:14.5px;color:var(--ink2)}',
       '.kb-ob-state.ok{color:var(--green)}',
       '.kb-ob-state.err{color:var(--red);align-items:flex-start;line-height:1.5}',

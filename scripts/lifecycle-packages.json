@@ -46,6 +46,10 @@
       "nom": "@local/kybernos-flow"
     },
     {
+      "dir": "kybernos-free-llms",
+      "nom": "@local/kybernos-free-llms"
+    },
+    {
       "dir": "kybernos-composio",
       "nom": "@local/kybernos-composio"
     },
@@ -100,6 +104,10 @@
     {
       "dir": "kybernos-mobile",
       "nom": "@local/kybernos-mobile"
+    },
+    {
+      "dir": "kybernos-websearch",
+      "nom": "@local/kybernos-websearch"
     },
     {
       "dir": "kybernos-memory",

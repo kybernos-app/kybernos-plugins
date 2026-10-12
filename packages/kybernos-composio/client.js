@@ -328,6 +328,9 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.meter.nolimit': { fr: '{count} connexion(s)', en: '{count} connection(s)' },
       'kb.cp.kc.meter.note': { fr: 'Une demande en attente compte aussi.', en: 'A pending request counts too.' },
       'kb.cp.kc.full': { fr: 'Limite atteinte ({limit} sur {limit}) : retirez une connexion pour en ajouter. Le maximum dépend de votre offre.', en: 'Limit reached ({limit} of {limit}): remove a connection to add one. The maximum depends on your plan.' },
+      'kb.cp.kc.pro.title': { fr: 'Inclus dans les formules payantes', en: 'Included in paid plans' },
+      'kb.cp.kc.pro.body': { fr: 'Les connexions Kybernos font partie des formules payantes : vos apps sont reliées une fois à votre compte et tous vos agents les utilisent. Votre propre clé Composio reste utilisable gratuitement dans l’autre mode.', en: 'Kybernos connections are part of the paid plans: your apps are linked once to your account and all your agents use them. Your own Composio key still works for free in the other mode.' },
+      'kb.cp.kc.pro.cta': { fr: 'Voir les formules', en: 'See the plans' },
       'kb.cp.kc.empty': { fr: 'Aucune app connectée. Connectez Gmail, GitHub ou Slack : vos agents pourront les utiliser aussitôt.', en: 'No app connected. Connect Gmail, GitHub or Slack: your agents can use them right away.' },
       'kb.cp.kc.st.active': { fr: 'Actif', en: 'Active' },
       'kb.cp.kc.st.pending': { fr: 'En attente', en: 'Pending' },
@@ -382,6 +385,7 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.reconnect_required': { fr: 'Votre session Kybernos a pris fin. Connectez votre compte à nouveau.', en: 'Your Kybernos session has ended. Connect your account again.' },
       'kb.cp.kc.err.network': { fr: 'Le serveur Kybernos est injoignable. Réessayez dans un instant.', en: 'The Kybernos server cannot be reached. Try again in a moment.' },
       'kb.cp.kc.err.connection_limit': { fr: 'Limite atteinte ({count} sur {limit}). Retirez une connexion pour en ajouter.', en: 'Limit reached ({count} of {limit}). Remove a connection to add one.' },
+      'kb.cp.kc.err.not_in_plan': { fr: 'Votre formule n’inclut pas les connexions Kybernos.', en: 'Your plan does not include Kybernos connections.' },
       'kb.cp.kc.err.pending_exists': { fr: 'Une connexion {app} attend déjà votre accord. Terminez-la, ou annulez-la pour en commencer une autre.', en: 'A {app} connection is already waiting for your authorization. Finish it, or cancel it to start another.' },
       'kb.cp.kc.err.needs_api_key': { fr: 'Cette app se connecte avec une clé API : collez-la dans le champ ci-dessous.', en: 'This app connects with an API key: paste it in the field below.' },
       'kb.cp.kc.err.upstream_unavailable': { fr: 'Le serveur n’a pas pu joindre Composio. Un instant, puis réessayez.', en: 'The server could not reach Composio. Wait a moment, then try again.' },
@@ -648,17 +652,19 @@ window.__ModuleLoader__.load({
       const j = r !== null && r !== undefined ? r.json : null
       if (r === null || r === undefined || r.status !== 200 || j === null || typeof j !== 'object' || typeof j.ok !== 'boolean' || typeof j.offered !== 'boolean') return null
       if (j.offered === false) return { offered: false }
-      const view = { offered: true, connected: j.connected !== false, connections: [], limit: null, count: 0, stale: false, error: null, details: {} }
+      const view = { offered: true, connected: j.connected !== false, connections: [], limit: null, entitled: null, web: typeof j.web === 'string' && j.web.length > 0 ? j.web : null, count: 0, stale: false, error: null, details: {} }
       if (j.ok === true) {
         view.connections = Array.isArray(j.connections) ? j.connections.filter((c) => c !== null && typeof c === 'object' && typeof c.id === 'string') : []
         view.limit = Number.isFinite(j.limit) ? j.limit : null
+        // false: the plan is why the limit is 0 (an older server says nothing: null, and a limit is only a limit).
+        view.entitled = typeof j.entitled === 'boolean' ? j.entitled : null
         view.count = Number.isFinite(j.count) ? j.count : view.connections.length
         view.stale = j.stale === true
         return view
       }
       if (j.connected === false) return view
       view.error = typeof j.error === 'string' && j.error.length > 0 ? j.error : 'other'
-      view.details = { limit: j.limit, count: j.count, existing: j.existing, checkFirst: j.checkFirst === true }
+      view.details = { limit: j.limit, count: j.count, existing: j.existing, checkFirst: j.checkFirst === true, entitled: j.entitled }
       return view
     }
     /** The view to keep after a new answer: a failed call never empties a list we already had, nor hides a mode we already showed. */
@@ -666,7 +672,7 @@ window.__ModuleLoader__.load({
       const had = prev !== null && prev !== undefined && prev.offered === true
       if (next === null) return had ? Object.assign({}, prev, { error: 'network', details: {} }) : { offered: false }
       if (next.offered !== true || next.error === null || had === false || next.connected === false) return next
-      return Object.assign({}, next, { connections: prev.connections, limit: prev.limit, count: prev.count, stale: true })
+      return Object.assign({}, next, { connections: prev.connections, limit: prev.limit, entitled: prev.entitled, web: prev.web, count: prev.count, stale: true })
     }
     /** The chip of a connection: its colour family and its words. */
     const kbCpConnState = (status) => {
@@ -689,7 +695,7 @@ window.__ModuleLoader__.load({
       const w = String(word === null || word === undefined ? '' : word)
       const d = details !== null && details !== undefined && typeof details === 'object' ? details : {}
       // An add that may have gone through is not « try again »: the sentence says to look at the list first.
-      const key = w === 'upstream_unavailable' && d.checkFirst === true ? 'kb.cp.kc.err.upstream_check' : 'kb.cp.kc.err.' + w
+      const key = w === 'upstream_unavailable' && d.checkFirst === true ? 'kb.cp.kc.err.upstream_check' : (w === 'connection_limit' && d.entitled === false ? 'kb.cp.kc.err.not_in_plan' : 'kb.cp.kc.err.' + w)
       const known = STR[key] !== undefined
       let s = known ? kbt(key) : kbt('kb.cp.kc.err.other').replace('{code}', w.length > 0 ? w : '?')
       const existing = d.existing !== null && d.existing !== undefined && typeof d.existing === 'object' ? d.existing : {}
@@ -1669,17 +1675,23 @@ window.__ModuleLoader__.load({
           pair !== null && pair.failed === true ? h('div', { className: 'kbcp-err', role: 'alert' }, kbCpCloudErr('signin_failed')) : null,
           err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, kbCpCloudErr(err.error, err.details)) : null)
       }
+      // The plan does not include connecting apps: no meter of "0 of 0", no add button, the reason and the way to the plans. What was connected before stays listed and usable.
+      const locked = kc.entitled === false
+      const openPlans = () => { try { window.open(kc.web, '_blank', 'noopener') } catch (e) { /* the browser refused: nothing to do */ } }
       const shown = kc.connections.map(row).filter((x) => x !== null)
       const meter = []
       if (kc.limit !== null) for (let i = 0; i < kc.limit && i < 20; i++) meter.push(h('i', { key: i, className: i < kc.connections.length ? (kc.connections[i].status === 'pending' ? 'pend' : 'on') : '' }))
       const bannerErr = err !== null ? err : (kc.error !== null ? { error: kc.error, details: kc.details } : null)
       return h('div', { className: 'kbcp-kc' },
         h('div', { className: 'kbcp-kcmeter' },
-          h('b', null, kc.limit !== null ? kbt('kb.cp.kc.meter').replace('{count}', String(kc.count)).replace('{limit}', String(kc.limit)) : kbt('kb.cp.kc.meter.nolimit').replace('{count}', String(kc.count))),
-          kc.limit !== null ? h('span', { className: 'kbcp-kcbar', 'aria-hidden': 'true' }, meter) : null,
-          h('span', { className: 'kbcp-help2' }, kbt('kb.cp.kc.meter.note')),
-          h('button', { type: 'button', className: 'kbcp-btn primary', style: { marginLeft: 'auto' }, 'data-kb': 'kc-add', disabled: full, onClick: () => setModal({ preset: null }) }, Icon('plus', 13), ' ' + kbt('kb.cp.kc.add'))),
-        full ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.full').replace(/\{limit\}/g, String(kc.limit))) : null,
+          h('b', null, locked ? kbt('kb.cp.kc.pro.title') : kc.limit !== null ? kbt('kb.cp.kc.meter').replace('{count}', String(kc.count)).replace('{limit}', String(kc.limit)) : kbt('kb.cp.kc.meter.nolimit').replace('{count}', String(kc.count))),
+          kc.limit !== null && locked === false ? h('span', { className: 'kbcp-kcbar', 'aria-hidden': 'true' }, meter) : null,
+          locked ? null : h('span', { className: 'kbcp-help2' }, kbt('kb.cp.kc.meter.note')),
+          h('button', { type: 'button', className: 'kbcp-btn primary', style: { marginLeft: 'auto' }, 'data-kb': 'kc-add', disabled: full || locked, onClick: () => setModal({ preset: null }) }, Icon('plus', 13), ' ' + kbt('kb.cp.kc.add'))),
+        locked ? h('div', { className: 'kbcp-note', role: 'status', 'data-kb': 'kc-pro' },
+          h('div', null, kbt('kb.cp.kc.pro.body')),
+          kc.web !== null ? h('button', { type: 'button', className: 'kbcp-btn', style: { marginTop: 8 }, 'data-kb': 'kc-pro-plans', onClick: openPlans }, kbt('kb.cp.kc.pro.cta')) : null)
+          : (full ? h('div', { className: 'kbcp-help2' }, kbt('kb.cp.kc.full').replace(/\{limit\}/g, String(kc.limit))) : null),
         props.note !== null ? h('div', { className: 'kbcp-toast', role: 'status' }, props.note) : null,
         kc.stale === true && bannerErr === null ? h('div', { className: 'kbcp-note warn', role: 'status' }, kbt('kb.cp.kc.stale'), ' ', h('button', { type: 'button', className: 'kbcp-btn', onClick: () => props.reload(true) }, kbt('kb.cp.kc.refresh'))) : null,
         bannerErr !== null ? h('div', { className: 'kbcp-err', role: 'alert' },
@@ -1688,7 +1700,7 @@ window.__ModuleLoader__.load({
           bannerErr.error === 'reconnect_required' ? h('button', { type: 'button', className: 'kbcp-btn', style: { marginLeft: 8 }, onClick: signIn }, kbt('kb.cp.kc.signin.go')) : null,
           err !== null ? h('button', { type: 'button', className: 'kbcp-btn', style: { marginLeft: 8 }, 'aria-label': kbt('kb.cp.dismiss'), onClick: () => setErr(null) }, Icon('x', 12)) : null) : null,
         shown.length === 0
-          ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kc.connections.length > 0 ? kbt('kb.cp.empty') : kbt('kb.cp.kc.empty')))
+          ? (locked ? null : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kc.connections.length > 0 ? kbt('kb.cp.empty') : kbt('kb.cp.kc.empty'))))
           : h('div', { className: 'kbcp-mlist' }, shown),
         modal !== null ? h(KcAddModal, {
           apps: apps, preset: modal.preset, limit: kc.limit, count: kc.count,

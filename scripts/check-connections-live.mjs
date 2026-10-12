@@ -42,7 +42,7 @@ const TOKEN = 'kyd-live-stand-in-token'
 const NEW_TOKEN = 'kyd-live-claimed-token'
 const KEY = 'sk-live-THE-API-KEY-1234567890'
 const calls = []
-const st = { limit: 4, seq: 0, failNextLink: false, claimed: false, polls: 0, conns: [] }
+const st = { limit: 4, entitled: true, seq: 0, failNextLink: false, claimed: false, polls: 0, conns: [] }
 const uuid = () => { st.seq += 1; return '00000000-0000-4000-8000-' + String(st.seq).padStart(12, '0') }
 const mk = (toolkit, status, extra) => Object.assign({ id: uuid(), toolkit, status, account_type: 'oauth', alias: null, is_default: false, created_at: new Date().toISOString(), _polls: 0 }, extra || {})
 const pub = (c) => ({ id: c.id, toolkit: c.toolkit, status: c.status, account_type: c.account_type, alias: c.alias, is_default: c.is_default, created_at: c.created_at, ...(c.failure ? { failure: c.failure } : {}) })
@@ -73,7 +73,7 @@ const stub = createServer((req, res) => {
     const auth = req.headers.authorization
     if (auth !== 'Bearer ' + TOKEN && auth !== 'Bearer ' + NEW_TOKEN) return json(res, 401, { error: 'unauthorized' })
     const one = /^\/v1\/connections\/([0-9a-f-]{36})$/.exec(url.pathname)
-    if (url.pathname === '/v1/connections' && req.method === 'GET') return json(res, 200, { configured: true, connections: st.conns.map(pub), limit: st.limit, count: st.conns.length })
+    if (url.pathname === '/v1/connections' && req.method === 'GET') return json(res, 200, { configured: true, connections: st.conns.map(pub), limit: st.limit, entitled: st.entitled, count: st.conns.length })
     if (url.pathname === '/v1/connections/apps') return json(res, 200, { configured: true, apps: APPS })
     if (one && req.method === 'GET') {
       const c = st.conns.find((x) => x.id === one[1])
@@ -90,7 +90,7 @@ const stub = createServer((req, res) => {
     if (url.pathname === '/v1/connections/link' && req.method === 'POST') {
       const b = body || {}
       if (st.failNextLink) { st.failNextLink = false; return json(res, 502, { error: 'upstream_unavailable', retry: 'check_first', message: 'SECRET Composio said ' + KEY }) }
-      if (st.conns.length >= st.limit) return json(res, 409, { error: 'connection_limit', limit: st.limit, count: st.conns.length })
+      if (st.conns.length >= st.limit) return json(res, 409, { error: 'connection_limit', limit: st.limit, count: st.conns.length, entitled: st.entitled })
       const app = APPS.find((a) => a.slug === b.toolkit)
       if (!app) return json(res, 404, { error: 'not_found' })
       if (st.conns.some((c) => c.toolkit === b.toolkit && c.status === 'pending')) { const e = st.conns.find((c) => c.toolkit === b.toolkit && c.status === 'pending'); return json(res, 409, { error: 'pending_exists', existing: { id: e.id, toolkit: e.toolkit, status: e.status } }) }
@@ -304,6 +304,21 @@ try {
   const back = await waitFor(page, `!!document.querySelector('[data-kb-conn]') && !document.querySelector('[data-kb="kc-signin"]')`, 25000)
   check('once approved the connections appear, with no click', back !== null, await rows())
   check('...and the new token is the one used from then on', calls.slice(callsBefore).some((c) => c.path.startsWith('/v1/connections') && c.auth === 'Bearer ' + NEW_TOKEN))
+
+  console.log('a plan without connections')
+  // The server's `entitled: false` (the plan is why the limit is 0): the page says so, offers the plans, and keeps the meter and the add button out of the way.
+  st.entitled = false; st.limit = 0; st.conns = []
+  await page.send('Page.reload', {})
+  if ((await openPage()) !== true) { check('the page reopens', false); throw new Error('page did not reopen') }
+  await clickJs('[data-kb="mode-kybernos"]')
+  const locked = await waitFor(page, `!!document.querySelector('[data-kb="kc-pro"]')`, 15000)
+  check('the plan does not include connections: the page says so', locked !== null, await text('.kbcp-kc'))
+  check('...with its own title, not "0 of 0" and not a limit to reach', /0\D+0/.test(String(await text('.kbcp-kc'))) === false && !(await exists('.kbcp-kcbar')) && !/(Limite atteinte|Limit reached)/.test(String(await text('.kbcp-kc'))), await text('.kbcp-kc'))
+  check('the add button cannot be used', (await ev(`document.querySelector('[data-kb="kc-add"]').disabled`)) === true)
+  check('the way to the plans is offered (the server\'s web app, from the profile)', await exists('[data-kb="kc-pro-plans"]'))
+  check('the empty-list invitation to connect Gmail is not shown (it would be a promise the plan does not keep)', !/(Connectez Gmail|Connect Gmail)/.test(String(await text('.kbcp-kc'))))
+  await shot('11-locked')
+  st.entitled = true; st.limit = 4; reseed()
 
   console.log('the server stops offering connections')
   registry(undefined)

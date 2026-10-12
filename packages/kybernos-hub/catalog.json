@@ -643,6 +643,55 @@
       }
     },
     {
+      "id": "kybernos-free-llms",
+      "nom": "@local/kybernos-free-llms",
+      "titre": "Free LLMs",
+      "glyphe": "doc",
+      "famille": "models",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 74,
+      "promesse": {
+        "fr": "Modèles gratuits OpenCode Zen, sans compte ni clé API.",
+        "en": "Free OpenCode Zen models, no account or API key."
+      },
+      "aide": {
+        "what": {
+          "fr": "Branche des modèles de langage gratuits sur DSH, sans compte ni clé API, en passant par la couche gratuite d’OpenCode Zen.",
+          "en": "Wires free language models into DSH with no account or API key, through OpenCode Zen’s free tier."
+        },
+        "steps": [
+          {
+            "fr": "La page liste les modèles gratuits disponibles en ce moment, lus directement depuis OpenCode.",
+            "en": "The page lists the free models available right now, read straight from OpenCode."
+          },
+          {
+            "fr": "Cochez « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
+            "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
+          },
+          {
+            "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+            "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+          },
+          {
+            "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",
+            "en": "“Remove” takes the provider away without touching anything else."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Free LLMs (OpenCode)",
+          "en": "Settings › Free LLMs (OpenCode)",
+          "page": true
+        },
+        "good": {
+          "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
+          "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
+        }
+      }
+    },
+    {
       "id": "kybernos-composio",
       "nom": "@local/kybernos-composio",
       "titre": "Connectors",
@@ -1359,6 +1408,51 @@
         "good": {
           "fr": "Réservé aux offres payantes : le lien passe par un relais Kybernos qui ne peut pas lire vos messages. Sans offre, DSH reste utilisable en local, et l’écran s’adapte quand même.",
           "en": "Paid plans only: the link goes through a Kybernos relay that cannot read your messages. Without a plan, DSH stays usable locally and the screen still adapts."
+        }
+      }
+    },
+    {
+      "id": "kybernos-websearch",
+      "nom": "@local/kybernos-websearch",
+      "titre": "Web search",
+      "glyphe": "search",
+      "famille": "connect",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 60,
+      "promesse": {
+        "fr": "La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand vous en ajoutez une, et le suivant prend le relais si l’un échoue.",
+        "en": "Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails."
+      },
+      "aide": {
+        "what": {
+          "fr": "Donne la recherche web à vos agents, avec ou sans clé : des moteurs gratuits marchent tout de suite, et si l’un échoue le suivant prend le relais.",
+          "en": "Gives your agents web search, with or without a key: free engines work right away, and when one fails the next one takes over."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez Réglages › Web Search : la liste montre les moteurs dans l’ordre où ils sont essayés, avec « sans clé » ou « clé ».",
+            "en": "Open Settings › Web Search: the list shows the engines in the order they are tried, marked “no key” or “key”."
+          },
+          {
+            "fr": "Pour un moteur à clé, cliquez son nom, collez la clé, enregistrez, puis « Tester ». Montez-le avec les flèches pour qu’il passe en premier.",
+            "en": "For a keyed engine, click its name, paste the key, save, then “Test”. Move it up with the arrows so it goes first."
+          },
+          {
+            "fr": "Pour une recherche privée, mettez l’adresse de votre SearXNG. « Sites » garde ou exclut des sites précis.",
+            "en": "For a private search, enter the address of your SearXNG. “Sites” keeps or excludes specific websites."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Web Search",
+          "en": "Settings › Web Search",
+          "page": true
+        },
+        "good": {
+          "fr": "Les moteurs sans clé passent par des pages publiques : ils peuvent demander une vérification anti-robot. Un moteur à clé ou votre SearXNG est plus fiable.",
+          "en": "Engines without a key use public pages: they may ask for an anti-bot check. A keyed engine or your own SearXNG is more reliable."
         }
       }
     },

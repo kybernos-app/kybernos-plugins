@@ -63,7 +63,10 @@ export const createConnections = ({ apiCall, readState, isConnected, server, log
     const made = await rest(g, connectionsPaths.list + (queryOf(req).get('refresh') === '1' ? '?refresh=1' : ''))
     if (made.ok !== true) return made
     const list = asConnectionList(made.body)
-    return list === null ? { ok: false, offered: true, connected: true, error: 'invalid_response' } : { ok: true, offered: true, connected: true, ...list }
+    // `web`: the active server's web app, where the plans are: the page offers it when the plan does not include connections. The profile's address is
+    // the one the open half already vetted (https, or loopback in development).
+    const web = server().profile !== null && typeof server().profile === 'object' && typeof server().profile.web === 'string' ? server().profile.web : null
+    return list === null ? { ok: false, offered: true, connected: true, error: 'invalid_response' } : { ok: true, offered: true, connected: true, ...list, web }
   }
 
   const appsRoute = async () => {
