@@ -1320,45 +1320,45 @@
     {
       "id": "kybernos-mobile",
       "nom": "@local/kybernos-mobile",
-      "titre": "Phone layout",
+      "titre": "Mobile",
       "glyphe": "mobile",
       "famille": "base",
       "palier": "core",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "socle": false,
       "defaut": "actif",
-      "poids_ko": 16,
+      "poids_ko": 60,
       "promesse": {
-        "fr": "DSH devient utilisable sur un téléphone : le menu s’ouvre en tiroir, les réglages s’empilent, rien ne sort de l’écran.",
-        "en": "DSH becomes usable on a phone: the menu opens as a drawer, Settings stack, nothing leaves the screen."
+        "fr": "DSH sur votre téléphone : l’écran s’adapte, et avec une offre payante un code QR relie le téléphone à cet ordinateur.",
+        "en": "DSH on your phone: the screen adapts, and with a paid plan a QR code links the phone to this computer."
       },
       "aide": {
         "what": {
-          "fr": "Sur un téléphone, l’écran de DSH devient utilisable : le menu s’ouvre en tiroir par-dessus la conversation et les réglages s’empilent au lieu d’écraser le texte.",
-          "en": "On a phone, the DSH screen becomes usable: the menu opens as a drawer over the conversation and Settings stack instead of squeezing the text."
+          "fr": "Pilotez DSH depuis votre téléphone : scannez un code QR et la page de votre ordinateur s’ouvre sur le téléphone, avec un écran adapté. Le lien est chiffré de bout en bout.",
+          "en": "Drive DSH from your phone: scan a QR code and your computer’s page opens on the phone, on a screen made for it. The link is end-to-end encrypted."
         },
         "steps": [
           {
-            "fr": "Ouvrez DSH depuis votre téléphone : la conversation prend toute la largeur, avec un bouton menu en haut à gauche.",
-            "en": "Open DSH from your phone: the conversation takes the full width, with a menu button at the top left."
+            "fr": "Sur l’ordinateur, touchez le bouton téléphone en bas de la barre latérale : un code QR s’affiche.",
+            "en": "On the computer, tap the phone button at the bottom of the sidebar: a QR code appears."
           },
           {
-            "fr": "Touchez le bouton menu : vos sessions et vos pages arrivent en tiroir. Touchez une session, ou la zone assombrie, et le tiroir se referme.",
-            "en": "Tap the menu button: your sessions and pages slide in as a drawer. Tap a session, or the dimmed area, and the drawer closes."
+            "fr": "Sur le téléphone, scannez le code avec l’appareil photo et ouvrez le lien. Un code à 4 chiffres s’affiche.",
+            "en": "On the phone, scan the code with the camera and open the link. A 4-digit code appears."
           },
           {
-            "fr": "Dans les réglages, la liste des pages défile en bandeau sous la recherche et le contenu occupe toute la largeur.",
-            "en": "In Settings, the list of pages scrolls as a strip under the search and the content uses the full width."
+            "fr": "Sur l’ordinateur, vérifiez que le code est le même et touchez Autoriser : DSH s’ouvre sur le téléphone.",
+            "en": "On the computer, check the code is the same and click Allow: DSH opens on the phone."
           }
         ],
         "where": {
-          "fr": "Automatique sur un écran étroit (700 px et moins) ; rien ne change sur un ordinateur (aucune page de réglages)",
-          "en": "Automatic on a narrow screen (700 px and below); nothing changes on a computer (no settings page)",
-          "page": false
+          "fr": "Bouton téléphone en bas de la barre latérale, et Réglages › Mobile pour retirer un téléphone",
+          "en": "Phone button at the bottom of the sidebar, and Settings › Mobile to remove a phone",
+          "page": true
         },
         "good": {
-          "fr": "Seul le cadre de DSH est adapté : certaines pages de réglages de plugins gardent une mise en page de bureau et peuvent rester étroites.",
-          "en": "Only DSH’s frame is adapted: some plugin settings pages keep a desktop layout and may stay narrow."
+          "fr": "Réservé aux offres payantes : le lien passe par un relais Kybernos qui ne peut pas lire vos messages. Sans offre, DSH reste utilisable en local, et l’écran s’adapte quand même.",
+          "en": "Paid plans only: the link goes through a Kybernos relay that cannot read your messages. Without a plan, DSH stays usable locally and the screen still adapts."
         }
       }
     },
