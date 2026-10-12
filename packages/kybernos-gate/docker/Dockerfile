@@ -1,6 +1,6 @@
 # Kybernos on a server, in one container: DSH + the Kybernos plugins + the Kybernos Gate (sign-in page) in front.
 #
-#   docker build -t kybernos --build-arg KB_REF=main .
+#   docker build -t kybernos --build-arg KB_REF=v1.0.0-beta.6 .      (a release tag: see "Build arguments" below)
 #   docker run -d -p 127.0.0.1:3080:3080 -v kybernos-data:/home/node/.dsh \
 #     -e KYBERNOS_GATE_PASSWORD='a long password' -e KYBERNOS_PUBLIC_HOST=kybernos.example.com kybernos
 #
@@ -11,7 +11,11 @@
 #      and the gate listens on 3080, asks for the password, and proxies to DSH. Put a TLS reverse proxy in front.
 #
 # Build arguments
-#   KB_REF   branch or tag of the plugins repository to install (default: main)
+#   KB_REF   what to install from the plugins repository: a release tag (e.g. v1.0.0-beta.6: reproducible) or `main`
+#            (the last release; the default; it moves only when a release is cut). Never `dev`, which is the integration
+#            branch and changes every day, and never a work branch. The repository is cloned AT BUILD TIME and nothing
+#            in the container fetches anything later: restarting it, or redeploying with the build cache, runs the same
+#            code. To update, change KB_REF to the new tag and rebuild without the cache (`docker compose build --no-cache`).
 #   DSH_VER  DSH version; keep it inside the range declared in dsh-compat.json
 #
 # Runtime environment (see packages/kybernos-gate/README.md for all of them)

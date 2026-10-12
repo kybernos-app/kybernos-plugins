@@ -88,7 +88,7 @@ A hash keeps the clear password off the disk. In a `.env` file, write the verifi
 ```sh
 cd packages/kybernos-gate/docker
 printf 'KYBERNOS_GATE_PASSWORD=%s\nKYBERNOS_PUBLIC_HOST=kybernos.example.com\n' 'a long password' > .env   # do not commit it
-docker compose up -d --build        # the image clones the plugins repository: build argument KB_REF picks the branch or tag
+docker compose up -d --build        # the image clones the plugins repository at build time: build argument KB_REF picks a release tag or main
 ```
 
 The container listens on `127.0.0.1:3080` only: put your TLS proxy in front of it (Caddy, Traefik, nginx, or Coolify's own).
@@ -101,6 +101,21 @@ the first screen is the chat. Both only happen while DSH has no workspace yet; a
 
 Coolify: create a Docker Compose or Dockerfile application from the same files, set the two variables above, expose port 3080
 and let Coolify's proxy carry the domain and the TLS certificate. Do **not** also turn on its basic authentication: the gate replaces it.
+
+### Which version to install, and how to update
+
+- **`KB_REF` is what the image installs.** For a server other people rely on, use a **release tag** (for example `v1.0.0-beta.6`):
+  the same tag always builds the same code. `main` (the default) is the last release; it moves only when a release is cut.
+  **Never `dev`** (the integration branch: it changes every day and is not a release) and never a work branch.
+- **The code is fixed when the image is built.** The repository is cloned during `docker build` and nothing in the container
+  fetches anything afterwards: restarting the container, or redeploying with the build cache, runs the same code and shows the same
+  version.
+- **To update**, change `KB_REF` to the new tag and rebuild **without the cache**: `docker compose build --no-cache && docker compose up -d`.
+  On Coolify, set `KB_REF` as a build variable and redeploy without the build cache (a plain restart or redeploy keeps the old clone).
+  Keep the `~/.dsh` volume: it holds the profile, the settings and the sessions.
+- **An existing volume keeps its profile**: it is seeded from the image only while it is empty, so after an update run
+  `cd /opt/kybernos-plugins && ./kybernos-install` in the container (`--dry` shows what it would change) to link the bundles the
+  new release adds.
 
 ## Configuration
 

@@ -28,6 +28,10 @@ docker compose up -d --build
 
 Then put a TLS reverse proxy (Caddy, Traefik, nginx, Coolify) in front of `127.0.0.1:3080`.
 
+The image installs `KB_REF` of this repository (a release tag such as `v1.0.0-beta.6`, or `main` = the last release; never `dev`).
+It is cloned when the image is built: to update, change `KB_REF` and rebuild with `docker compose build --no-cache`; a restart
+or a cached redeploy keeps the old version. Details: [`packages/kybernos-gate/README.md`](packages/kybernos-gate/README.md#which-version-to-install-and-how-to-update).
+
 **On a Linux server without Docker**: install Node 22.19+, pnpm and DSH, run `./kybernos-install`, start `dsh web` on `127.0.0.1:3081`
 with `--trusted-host <your domain>`, then start the gate (`node packages/kybernos-gate/bin/kybernos-gate.mjs`). The step-by-step
 commands, the two systemd units, a Caddy example and every setting are in [`packages/kybernos-gate/README.md`](packages/kybernos-gate/README.md);
