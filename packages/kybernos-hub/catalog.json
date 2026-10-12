@@ -1938,6 +1938,51 @@
           "en": "The plan is counted by the server, as a percentage; the cost of your keys is worked out on this computer, nothing is sent."
         }
       }
+    },
+    {
+      "id": "kybernos-multi-device",
+      "nom": "@local/kybernos-multi-device",
+      "titre": "Workspaces & devices",
+      "glyphe": "devices",
+      "famille": "base",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 48,
+      "promesse": {
+        "fr": "Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille.",
+        "en": "Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works."
+      },
+      "aide": {
+        "what": {
+          "fr": "Un workspace peut avoir un dossier de votre ordinateur, ou aucun : sans dossier, Kybernos en crée un pour vous dans Documents/Kybernos.",
+          "en": "A workspace can have a folder of your computer, or none: without a folder, Kybernos creates one for you in Documents/Kybernos."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez Workspaces et cliquez Create : donnez un nom, puis choisissez « Sans dossier » ou un dossier de votre ordinateur.",
+            "en": "Open Workspaces and click Create: give it a name, then pick “No folder” or a folder of your computer."
+          },
+          {
+            "fr": "Le même choix apparaît quand vous ajoutez un workspace depuis la barre latérale ou depuis un nouveau chat.",
+            "en": "The same choice appears when you add a workspace from the sidebar or from a new chat."
+          },
+          {
+            "fr": "Ouvrez un workspace, onglet Détails : le dossier de travail y est affiché, et « Avancé » montre un aperçu de ce qui viendra.",
+            "en": "Open a workspace, Details tab: its working folder is shown there, and “Advanced” previews what is coming."
+          }
+        ],
+        "where": {
+          "fr": "Workspaces › Create, et le « + » de la barre latérale",
+          "en": "Workspaces › Create, and the “+” of the sidebar",
+          "page": false
+        },
+        "good": {
+          "fr": "Le dossier est fixé à la création : pour travailler dans un autre dossier, créez un autre workspace. Le téléphone ouvre toute la page de l'ordinateur, pas un workspace.",
+          "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
+        }
+      }
     }
   ]
 }

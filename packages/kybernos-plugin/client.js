@@ -1169,13 +1169,13 @@ let kbLocaleRead = () => 'en'
       'kbui.create': { kybernos: 'Créer', en: 'Create' },
       'kbui.new.folder': { kybernos: 'Nouveau dossier', en: 'New folder' },
       'kbui.new.project': { kybernos: 'Nouveau projet', en: 'New project' },
-      'kbui.new.project.picking': { kybernos: 'Choix du dossier…', en: 'Choosing a folder…' },
+      'kbui.new.project.picking': { kybernos: 'Nouveau workspace…', en: 'New workspace…' },
       'kbui.new.project.creating': { kybernos: 'Création du projet…', en: 'Creating the project…' },
       'kbui.new.project.created': { kybernos: 'Projet créé : ', en: 'Project created: ' },
       'kbui.new.project.nopicker': { kybernos: 'Sélection de dossier indisponible sur ce poste.', en: 'Folder selection is unavailable on this host.' },
       'kbui.new.project.noworkspaces': { kybernos: 'Service des espaces de travail indisponible.', en: 'Workspace service unavailable.' },
       'kbui.new.project.noid': { kybernos: 'Espace de travail créé sans identifiant.', en: 'Workspace created without an id.' },
-      'kbui.new.project.hint': { kybernos: 'Choisir un dossier : il devient un projet.', en: 'Pick a folder: it becomes a project.' },
+      'kbui.new.project.hint': { kybernos: 'Un workspace, avec ou sans dossier de votre ordinateur.', en: 'A workspace, with or without a folder of your computer.' },
       'kbui.no.kyber': { kybernos: 'Aucune Agent Team pour l’instant. Créez-en une avec « Nouvelle Agent Team ».', en: 'No Agent Team yet. Create one with “New Agent Team”.' },
       'kbui.no.engine': { kybernos: 'Aucun moteur disponible.', en: 'No engine available.' },
       'kbui.no.icon': { kybernos: 'Aucune icône ne correspond.', en: 'No icon matches.' },
@@ -15162,11 +15162,20 @@ return {
         setProjCreateErr(null)
         setProjCreateOk(null)
         const picker = (uiWorkspaceSvc !== null && uiWorkspaceSvc !== undefined && typeof uiWorkspaceSvc.pickDirectory === 'function') ? uiWorkspaceSvc : null
-        if (picker === null) { setProjCreateErr(kbt('kbui.new.project.nopicker')); return }
+        // The multi-device satellite offers one dialog: no folder (a private folder it creates) or a folder of the
+        // computer. Absent, or unable to show it, the native chooser is the whole flow, as before.
+        let mdSeam = null
+        try { mdSeam = globalThis[Symbol.for('kybernos.multiDevice')] } catch (e) { mdSeam = null }
+        const mdOk = mdSeam !== null && mdSeam !== undefined && typeof mdSeam.choose === 'function'
+        if (picker === null && mdOk !== true) { setProjCreateErr(kbt('kbui.new.project.nopicker')); return }
         let dir = null
         try {
           setProjCreate('picking')
-          dir = await picker.pickDirectory()
+          if (mdOk === true) {
+            try { dir = await mdSeam.choose() } catch (e) { dir = picker !== null ? await picker.pickDirectory() : null }
+          } else {
+            dir = await picker.pickDirectory()
+          }
         } catch (e) {
           setProjCreate(null)
           setProjCreateErr(errText(e))
@@ -15319,6 +15328,14 @@ return {
         })(),
         h(KbPager, { page: vp.page, setPage: vp.setPage, pages: vp.pages }),
         (wsShare !== null ? h(KbShareDialog, { item: wsShare, onClose: () => setWsShare(null) }) : null))
+    }
+    // The multi-device satellite's cards for the Details tab (`part`: 'folder' or 'advanced'). Null when it is off or fails.
+    const kbMdExtras = (part, wsItem) => {
+      try {
+        const md = globalThis[Symbol.for('kybernos.multiDevice')]
+        if (md === undefined || md === null || typeof md.detailsExtras !== 'function' || wsItem === null || wsItem === undefined) return null
+        return md.detailsExtras({ part: part, workspaceId: wsItem.workspaceId, title: wsItem.title, path: typeof wsItem.path === 'string' ? wsItem.path : null })
+      } catch (e) { return null }
     }
     const ProjectDetail = (p0) => {
       const s = useStore()
@@ -15692,12 +15709,16 @@ return {
                 style: Object.assign({}, field, { height: '84px', padding: '12px 14px', lineHeight: '1.5', resize: 'vertical', fontFamily: 'inherit' }),
               }),
               h('span', { className: 'kb8-sub' }, kbt('ui.description.hint') + ' (' + String(descDraft.length) + '/280)')),
+            // The folder card of the multi-device satellite (nothing when it is off).
+            kbMdExtras('folder', ws),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'ICON'),
               kbLookIcon({ icons: allIcons, query: iconQ, onQuery: setIconQ, icon: iconDraft, onPick: (n) => updateDetails({ icon: n }) })),
             h('div', { style: card },
               h('span', { className: 'kb8-parent' }, 'COLOUR'),
               kbLookColor(colorDraft, (c) => updateDetails({ color: c }))),
+            // The folded "Advanced" preview of the multi-device satellite (nothing when it is off).
+            kbMdExtras('advanced', ws),
             h('span', { className: 'kb8-sub' }, 'Changing the name, icon or colour updates the project everywhere in DHS.'))
         }
         if (tab === 'Threads') {
