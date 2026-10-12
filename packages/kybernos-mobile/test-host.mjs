@@ -1,11 +1,11 @@
 // kybernos-mobile, host half: the stylesheet row, the route, and the stylesheet's own promises.
 //   node packages/kybernos-mobile/test-host.mjs
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 // The remote half is not started here (it has its own tests): this file is about the layout and the routes' fences.
 process.env.KYBERNOS_MOBILE_REMOTE = '0'
-const { CSS_FILE, ROUTE, SHEET_ID, REMOTE_PREFIX, REMOTE_ROUTES, apply, resetCache, serveRemote, serveSheet, sheetRows } = await import('./index.js')
+const { CSS_FILE, ROUTE, SHEET_ID, REMOTE_PREFIX, REMOTE_ROUTES, apply, resetCache, serveRemote, serveSheet, sheetCss, sheetRows } = await import('./index.js')
 const REMOTE_COUNT = Object.keys(REMOTE_ROUTES).length
 
 let failed = 0
@@ -48,6 +48,8 @@ console.log('the stylesheet')
   check('a touch device lying down is a phone too (a phone in landscape is wider than 700 px)', /@media\s*\(max-width:\s*700px\),\s*\(max-height:\s*500px\)\s*and\s*\(pointer:\s*coarse\)/.test(withoutComments))
   check('the composer is one row: the "/" button and the artifact button are parked, not deleted', /conversation\.input\.right"\] > \*/.test(withoutComments) && /conversation\.input\.left"\] > :not\(/.test(withoutComments) && /flex-wrap:\s*nowrap/.test(withoutComments) && /opacity:\s*0 !important/.test(withoutComments))
   check('the header actions are parked (rendered, invisible, one pixel) so the "..." sheet can click them', /\[data-team-action\],[\s\S]{0,400}position:\s*fixed !important[\s\S]{0,300}opacity:\s*0 !important/.test(withoutComments))
+  check('the tab row is parked while the first tab (Chat) is shown, and comes back on the other views', /\[role="tablist"\]\[data-conversation-tabs\]:has\(> \[role="tab"\]:first-child\[aria-selected="true"\]\)/.test(withoutComments))
+  check('the rating card is one star until a tap opens it', /\.kbq-rating:not\(\[data-kbmob-open\]\)/.test(withoutComments) && /\.kbq-rating\[data-kbmob-open\] \.kbq-rating-question/.test(withoutComments))
   check('the sheet is styled with DSH tokens', /\.kbmob-sheet \{[^}]*var\(--dsw-alias-bg-layer-1/.test(withoutComments))
   check('the model name is shown (DSH hides it in its compact variant)', /conversation\.input\.model"\] button > span \{\s*display:\s*inline !important/.test(withoutComments))
   check('the stats strip under the card is hidden on a phone', /\[data-composer-dock\]\s*\{\s*display:\s*none !important/.test(withoutComments))
@@ -58,6 +60,24 @@ console.log('the stylesheet')
   check('the iOS no-zoom field size is on a coarse pointer only', /\(pointer:\s*coarse\)\s*\{[^}]*\{[^}]*\}[\s\S]*font-size:\s*16px/.test(withoutComments))
   check('colours come from DSH tokens with a fallback', [...withoutComments.matchAll(/var\(--dsw-[a-z0-9-]+,\s*[^)]+\)/g)].length >= 3)
   check('no hard-coded colour outside a token fallback or the mask', [...withoutComments.matchAll(/#[0-9a-fA-F]{3,8}\b/g)].every((m) => /var\([^)]*#/.test(withoutComments.slice(Math.max(0, m.index - 70), m.index + 10))))
+}
+
+console.log('the stylesheet follows the file')
+{
+  const dir = mkdtempSync(join(tmpdir(), 'kbmob-css-'))
+  const f = join(dir, 'm.css')
+  writeFileSync(f, '.a{color:red}')
+  resetCache()
+  const first = sheetCss(f)
+  check('the first read is the file', first === '.a{color:red}')
+  writeFileSync(f, '.a{color:blue}')
+  const t = new Date(Date.now() + 5000)
+  utimesSync(f, t, t)
+  check('an edit on disk reaches the next read, with no restart', sheetCss(f) === '.a{color:blue}')
+  rmSync(f)
+  check('a file that went away keeps the last good copy', sheetCss(f) === '.a{color:blue}')
+  rmSync(dir, { recursive: true, force: true })
+  resetCache()
 }
 
 console.log('the route')

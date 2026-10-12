@@ -337,4 +337,52 @@ console.log('the "..." sheet: what a phone parked')
   disposer()
 }
 
+
+console.log('views and rating on a phone')
+{
+  const dom = makeDom({ collapsed: true })
+  const t = load(dom).factory().__test
+  const styleOf = (e) => e.st
+  const tab = (label, selected, parked) => ({
+    parentElement: { parentElement: null, st: { position: parked ? 'fixed' : 'static', opacity: parked ? '0' : '1' } }, st: { position: 'static', opacity: '1' },
+    getAttribute: (k) => (k === 'aria-label' ? null : (k === 'aria-selected' ? String(selected) : null)), closest: () => null, textContent: label,
+  })
+  const out = t.parkedActions({ querySelectorAll: () => [tab('Chat', true, true), tab('Journal', false, true), tab('Trajectory', false, true)] }, styleOf).map((x) => x.label)
+  check('the other views are listed, the one shown is not', out.length === 2 && out[0] === 'Journal' && out[1] === 'Trajectory', out)
+  const shown = t.parkedActions({ querySelectorAll: () => [tab('Chat', false, false), tab('Journal', true, false)] }, styleOf)
+  check('with the tab row visible nothing is parked, so nothing is listed', shown.length === 0)
+  check('the tab row is among the candidates', /data-conversation-tabs/.test(t.ACTION_BUTTONS))
+}
+{
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom).factory()
+  let disposer = null
+  globalThis.window.getComputedStyle = (e) => e.st
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const attrs = {}
+  const card = { attrs, hasAttribute: (k) => Object.prototype.hasOwnProperty.call(attrs, k), setAttribute: (k, v) => { attrs[k] = String(v) } }
+  const star = { closest: (sel) => (sel === '.kbq-rating' ? card : null) }
+  let prevented = false; let stopped = false
+  const fire = () => dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: star, preventDefault () { prevented = true }, stopPropagation () { stopped = true } }))
+  fire()
+  check('the first tap on the collapsed rating opens the five stars and goes no further', attrs['data-kbmob-open'] === '1' && prevented === true && stopped === true, attrs)
+  prevented = false; stopped = false
+  fire()
+  check('once open, a tap is DSH\'s (it rates)', prevented === false && stopped === false)
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom, { narrow: false }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const attrs = {}
+  const card = { hasAttribute: (k) => k in attrs, setAttribute: (k, v) => { attrs[k] = v } }
+  dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: { closest: () => card }, preventDefault () {}, stopPropagation () {} }))
+  check('on a wide screen the rating card is left as it is', Object.keys(attrs).length === 0)
+  disposer()
+}
+
 process.exit(failed === 0 ? 0 : 1)
