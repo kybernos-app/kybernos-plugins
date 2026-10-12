@@ -229,6 +229,14 @@ both seams (`window.__KB_MODELS__`, `window.__KB_LOCAL__`): the credential and t
 (the `agent-default-model` entry of `cordis.patch.yml`) to see that connecting a way switched it, and restores the credentials
 and the patch it started from (it waits ~7 s after each restore: the profile hot-reloads). Host code changed since the sandbox started: `stop.sh`, `start.sh`.
 
+It also plays the free-account offer: the offer comes after the display mode, « Use my own model instead » reaches the model
+screen, Cancel of the pairing returns to the offer, and an account of a plan with no model (the stand-in poll answers
+`models.count: 0`) leads to the free models' acknowledgement; nothing is wired before the box is ticked, then the host is asked
+(`/free-llms/auto-enable`, answered by the check: the real route would call a third party) and a free model is made the default.
+Two things the sandbox imposes: the profile it was cloned from may already default to a model that works without a key (the free
+models), so the check first replaces such a default by a route of the profile whose key the sandbox lacks; and a profile write
+can be refused (`write_refused`) while the engine reloads, which is why the wizard asks again a few seconds later.
+
 ## The help of every plugin: `scripts/check-help-live.mjs`
 
 Each bundle has a `packages/<dir>/help.json` (what it is, how to use it, where to find it, one thing worth knowing, in French and
