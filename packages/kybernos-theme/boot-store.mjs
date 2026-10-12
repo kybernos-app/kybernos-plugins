@@ -68,7 +68,8 @@ export function renderBootCss (snapshot) {
     parts.push('html body:not([data-ds-dark-theme]){' + names.map((n) => n + ':' + snapshot.tokens[n].light).join(';') + '}')
     parts.push('html body[data-ds-dark-theme]{' + names.map((n) => n + ':' + snapshot.tokens[n].dark).join(';') + '}')
   }
-  if (typeof snapshot.font === 'string' && snapshot.font !== '') parts.push(':root{--dsw-font-family:' + snapshot.font + ' !important}')
+  // `body` as well as `:root`: DSH 0.2.1-alpha.2 declares --dsw-font-family again on `body`, which shadows a `:root` rule.
+  if (typeof snapshot.font === 'string' && snapshot.font !== '') parts.push(':root,body{--dsw-font-family:' + snapshot.font + ' !important}')
   return parts.join('')
 }
 

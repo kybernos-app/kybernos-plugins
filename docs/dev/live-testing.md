@@ -373,8 +373,8 @@ banner is hidden by that flag, so one step turns it back on **and blocks the rou
 ### ⚠ A theme can persist DSH's mode and font size — on your machine
 
 The plugin drives DSH's own theme service: every change calls `setTheme(mode)` and
-`setFontSize(px)`, which DSH stores in the profile (`ui-theme` in `cordis.patch.yml`), not in the
-throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's; it now
+`setFontSize(px)` (`setFontSize('text', px)` on 0.2.1-alpha.2), which DSH stores in the profile (`ui-theme` in
+`cordis.patch.yml`), not in the throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's; it now
 *adopts* DSH's size into the store, and a check pins that.) So the script:
 
 1. reads that file before it starts, and uses the stored mode as the one to keep;
@@ -430,6 +430,20 @@ throw-away browser. (A boot used to write the plugin's own size, 15, over DSH's;
   the throw-away headless Chrome sometimes has throttled for seconds: before reading a view the check adds a canary
   text (« Copier ») and waits until it reads « Copy », so a late translation is not mistaken for a missing one. A
   string that is French in a window's `aria-label` shows up here but not on screen: it is a leftover.
+- **The mode found decides the values.** The sandbox is a clone of the user's profile, so it is Light when the
+  user's DSH is. Anything that depends on the scheme must be looked up for the scheme that is displayed
+  (`displayedDark()`, `CB_PALETTE`, `NATIVE[V.base]`), never assumed Dark: seven checks once failed on a Light
+  sandbox for that reason alone (a bright accent is darkened under 3:1 on a white layer, the base colour is white,
+  the colour-blind palette has a Light pair), while the same sections were green on Dark. The Dark-only steps
+  (« DSH default », « Reset all ») run only when the mode found is Dark: to cover them, set `ui-theme.preference`
+  to `dark` in the **sandbox's own** `cordis.patch.yml` (hot-reloaded in a few seconds), never in the real one.
+  A change of the plugin's host half (`boot-store.mjs`, `index.js`) needs the sandbox restarted; the browser half
+  (`client.js`) only a page reload.
+- DSH 0.2.1-alpha.2 renamed two things the Essentiel tab drives: the theme service takes a role
+  (`setFontSize('text', px)`, snapshot `fontSizes.text`, not `fontSize`), and its token sheet declares
+  `--dsw-font-family` again on `body`, which shadows a rule that only targets `:root`. The `font` section pins
+  both: the text size really moves `--dsh-content-font-size` on `<body>`, and `getComputedStyle(body).fontFamily`
+  starts with Georgia once it is picked.
 - Several agents may share one DSH: another session switching the real GUI to Light during the
   run is caught by the mode guard above, and is not a failure of the page. A switch of DSH's
   *language* reloads every open page and flips labels mid-run: each section compares `<html lang>` at its

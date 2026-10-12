@@ -54,9 +54,10 @@ console.log('the sheet')
   const css = renderBootCss(cleanBoot(GOOD).snapshot)
   check('light selector, dark selector, then the font', css === 'html body:not([data-ds-dark-theme]){--dsw-alias-bg-base:#f6f1e7;--dsw-specific-menu:#ffffffe6;--dsw-radius-md:12px}'
     + 'html body[data-ds-dark-theme]{--dsw-alias-bg-base:#1b1a17;--dsw-specific-menu:#2a2822e6;--dsw-radius-md:12px}'
-    + ":root{--dsw-font-family:'Iowan Old Style', Georgia, serif !important}", css)
+    + ":root,body{--dsw-font-family:'Iowan Old Style', Georgia, serif !important}", css)
   check('nothing for the DSH look', renderBootCss({ v: 1, tokens: {}, font: null }) === '' && renderBootCss(null) === '')
-  check('the font alone is enough', renderBootCss({ v: 1, tokens: {}, font: 'serif' }) === ':root{--dsw-font-family:serif !important}')
+  check('the font alone is enough', renderBootCss({ v: 1, tokens: {}, font: 'serif' }) === ':root,body{--dsw-font-family:serif !important}')
+  check('the font rule reaches `body` too (0.2.1-alpha.2 declares the variable there again, which shadows `:root`)', /^:root,body\{/.test(renderBootCss({ v: 1, tokens: {}, font: 'serif' })))
   check('the id the browser half removes is the one in the contract', BOOT_ID === 'kbth-boot')
 }
 
