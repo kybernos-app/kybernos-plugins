@@ -117,7 +117,9 @@ window.__ModuleLoader__.load({
           try {
             if (typeof el.closest === 'function' && el.closest('[data-open-target]') !== null) continue
             if (!isParked(el, styleOf)) continue
-            const label = String(el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').trim()
+            const long = String(el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').trim()
+            // "Commands: browse, run, edit or create slash commands and actions": the name is what comes before the colon
+            const label = long.length > 24 && long.indexOf(':') > 1 ? long.slice(0, long.indexOf(':')).trim() : long
             if (label === '' || seen.indexOf(label) >= 0) continue
             seen.push(label)
             out.push({ label, el })
@@ -168,6 +170,7 @@ window.__ModuleLoader__.load({
           b.type = 'button'
           b.className = 'kbmob-sheet-row'
           if (icon !== null && icon !== undefined) b.appendChild(icon)
+          else { const none = document.createElement('span'); none.className = 'kbmob-sheet-noico'; try { if (none.style) none.style.cssText = 'flex:none;width:22px;height:22px' } catch (err) { /* no style */ } b.appendChild(none) }
           const t = document.createElement('span')
           t.textContent = label
           b.appendChild(t)
