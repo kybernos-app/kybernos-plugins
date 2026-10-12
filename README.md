@@ -65,7 +65,7 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-language`](packages/kybernos-language/README.md) | Language page: every ISO 639-1 language, Kybernos and DSH screens translated by the configured LLM (progress, pause, resume), right-to-left. Translations are saved on your disk (`~/.dsh/kybernos/i18n/<lang>.json`), the browser keeps a copy |
 | [`kybernos-modeles-locaux`](packages/kybernos-modeles-locaux/README.md) | Local models panel: detects the machine, installs an Ollama model |
 | [`kybernos-refs`](packages/kybernos-refs/README.md) | Markdown links become compact reference chips |
-| [`kybernos-mobile`](packages/kybernos-mobile/README.md) | Phone layout of the DSH shell: sidebar as a drawer, Settings stacked, panels kept on screen (below 700 px) |
+| [`kybernos-mobile`](packages/kybernos-mobile/README.md) | The phone: DSH usable on a narrow screen (drawer, stacked Settings), and on a paid plan a QR code that links a phone to this computer, end to end encrypted |
 | [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |
 | [`kybernos-terminal`](packages/kybernos-terminal/README.md) | Shell fences dressed as terminal windows, with a run button |
 | [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |

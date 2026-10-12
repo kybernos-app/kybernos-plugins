@@ -3,7 +3,10 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { CSS_FILE, ROUTE, SHEET_ID, apply, resetCache, serveSheet, sheetRows } from './index.js'
+// The remote half is not started here (it has its own tests): this file is about the layout and the routes' fences.
+process.env.KYBERNOS_MOBILE_REMOTE = '0'
+const { CSS_FILE, ROUTE, SHEET_ID, REMOTE_PREFIX, REMOTE_ROUTES, apply, resetCache, serveRemote, serveSheet, sheetRows } = await import('./index.js')
+const REMOTE_COUNT = Object.keys(REMOTE_ROUTES).length
 
 let failed = 0
 const check = (name, ok, detail) => {
@@ -79,7 +82,8 @@ console.log('mounting')
   let threw = null
   try { apply(ctx) } catch (e) { threw = e }
   check('apply does not throw', threw === null)
-  check('it listens to index-inject and mounts one route', handlers.has('webserver/index-inject') && routes.length === 1 && routes[0].path === ROUTE && routes[0].kind === 'exact', routes)
+  check('it listens to index-inject and mounts the stylesheet route first', handlers.has('webserver/index-inject') && routes.length >= 1 && routes[0].path === ROUTE && routes[0].kind === 'exact', routes)
+  check('and the remote half\'s routes after it, all exact', routes.length === 1 + REMOTE_COUNT && routes.slice(1).every((r) => r.kind === 'exact' && r.path.startsWith(REMOTE_PREFIX)), routes.map((r) => r.path))
   const table = []
   handlers.get('webserver/index-inject')(table)
   check('the handler adds the row', table.length === 1 && table[0].html.includes('@media (max-width: 700px)'))
@@ -94,7 +98,7 @@ console.log('mounting')
   const late = []
   const lateCtx = { effect: (fn) => fn(), on: () => () => {}, get: () => undefined, inject: (names, fn) => { late.push(names); fn({ webServer: svc }) } }
   apply(lateCtx)
-  check('without the service yet it waits for it, then mounts the route', JSON.stringify(late) === JSON.stringify([['webServer']]) && routes.length === 2)
+  check('without the service yet it waits for it, then mounts the route', JSON.stringify(late) === JSON.stringify([['webServer']]) && routes.length === 2 * (1 + REMOTE_COUNT))
   // a DSH without ctx.on (or whose effect throws) must still start
   const broken = { effect: () => { throw new Error('no effect') }, on: () => () => {}, get: () => undefined, inject: () => { throw new Error('no inject') } }
   console.error = () => {}
@@ -102,6 +106,23 @@ console.log('mounting')
   try { apply(broken) } catch (e) { brokenThrew = e }
   console.error = realError
   check('a context that refuses everything still lets DSH start', brokenThrew === null)
+}
+
+console.log('the remote routes\' fences')
+{
+  const good = { host: '127.0.0.1:3080', origin: 'http://127.0.0.1:3080' }
+  const go = (name, method, headers, port = 3080) => { const r = res(); serveRemote(name, req(method, headers, port), r); return r }
+  // a fence refusal answers synchronously; a request that passes goes on to the lazily loaded half (here: not running -> 503)
+  check('a page that rebinds its own name is refused', go('status', 'GET', { host: 'attacker.example:3080', origin: 'http://attacker.example:3080' }).status === 403)
+  check('a request with no Origin and no Referer is refused (reads too)', go('status', 'GET', { host: '127.0.0.1:3080' }).status === 403)
+  check('a foreign Origin is refused', go('pair', 'POST', { host: '127.0.0.1:3080', origin: 'https://evil.example' }).status === 403)
+  check('a foreign Referer is refused', go('status', 'GET', { host: '127.0.0.1:3080', referer: 'https://evil.example/x' }).status === 403)
+  check('a request that came through the phone link is refused, whatever its Origin', go('devices/revoke', 'POST', { ...good, 'x-kybernos-tunnel': '1' }).status === 403)
+  check('the wrong method is 405', go('status', 'POST', good).status === 405 && go('pair', 'GET', good).status === 405)
+  check('an unknown route is 404', go('nope', 'GET', good).status === 404)
+  const ok = go('status', 'GET', { host: '127.0.0.1:3080', referer: 'http://127.0.0.1:3080/#/settings' })
+  await new Promise((r) => setTimeout(r, 200))
+  check('the page itself gets through to the remote half', ok.status === 503 || ok.status === 200, ok.status)
 }
 
 rmSync(dir, { recursive: true, force: true })

@@ -2015,10 +2015,10 @@ window.__ModuleLoader__.load({
         }
 
         // ── L'APP MOBILE (bouton téléphone du pied) ───────────────────────────
-        // Popover ancré au-dessus du pied, avec un QR FICTIF : grille
-        // déterministe (jamais deux fois la même pour un scanner, mais stable
-        // d'un rendu à l'autre) et trois carrés de repère. Quand l'app existera,
-        // le SVG sera remplacé par l'URL réelle — rien d'autre à toucher.
+        // Popover ancré au-dessus du pied. Quand le bundle kybernos-mobile est là il publie
+        // `window.__KB_MOBILE__.Panel` : le vrai QR d'appairage (ou « inclus dans les offres
+        // payantes »), et ce panneau n'est plus qu'un cadre. Sans lui, l'aperçu d'avant : un QR
+        // FICTIF, grille déterministe (stable d'un rendu à l'autre) et trois carrés de repère.
         const MobilePanel = (props) => {
           React.useEffect(() => {
             const onKey = (ev) => { if (ev.key === 'Escape') props.onClose() }
@@ -2034,6 +2034,16 @@ window.__ModuleLoader__.load({
             document.addEventListener('mousedown', dehors)
             return () => document.removeEventListener('mousedown', dehors)
           }, [props.onClose])
+          // The phone link's own panel, when the bundle that owns it is there. Anything it throws falls back to the preview.
+          let Remote = null
+          try {
+            const seam = window.__KB_MOBILE__
+            if (seam !== undefined && seam !== null && typeof seam.Panel === 'function') Remote = seam.Panel
+          } catch (e) { Remote = null }
+          if (Remote !== null) {
+            return h('div', { className: 'kbf-pop kbf-popcenter kbf-popremote', ref: popRef, role: 'dialog', 'aria-label': t('mobTitle'), 'data-kb': 'mobile-panel' },
+              h(Remote, { onClose: props.onClose, web: props.web, onManage: props.onManage }))
+          }
           // Faux modules : hash simple, déterministe, réparti sur 21×21.
           const modules = []
           for (let y = 0; y < 21; y++) {
@@ -2593,7 +2603,11 @@ window.__ModuleLoader__.load({
                 })
                 : null),
             mobileOpen === true
-              ? h(MobilePanel, { onClose: () => setMobileOpen(false) })
+              ? h(MobilePanel, {
+                onClose: () => setMobileOpen(false),
+                web: typeof state.web_url === 'string' ? state.web_url : '',
+                onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Mobile') },
+              })
               : null)
           } else if (phase === 'pairing') {
             corps = h('div', { className: 'kbf-off' },

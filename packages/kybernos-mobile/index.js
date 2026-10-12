@@ -76,6 +76,49 @@ export function serveSheet (req, res, file = CSS_FILE) {
   } catch (e) { try { res.writeHead(500); res.end('') } catch (e2) { /* socket closed */ } }
 }
 
+// ── The remote half: QR pairing and the relay link ───────────────────────────────────────────────────────────────────
+// Its routes are the person's gestures (Settings › Mobile and the sidebar's phone panel). They are registered here,
+// synchronously and behind the Host and Origin fences, but their answers come from `remote-mount.mjs`, loaded lazily
+// and inside its own try/catch: a failure there can never reach the phone layout above or stop DSH from starting.
+export const REMOTE_PREFIX = '/kybernos-mobile/remote/'
+export const REMOTE_ROUTES = Object.freeze({
+  status: 'GET', pair: 'POST', 'pair/approve': 'POST', 'pair/deny': 'POST', 'pair/cancel': 'POST', 'devices/revoke': 'POST', 'devices/revoke-all': 'POST',
+})
+export const TUNNEL_HEADER = 'x-kybernos-tunnel'
+
+/** A request that arrived through the phone link carries this marker (set by the remote half, never by a phone): a phone
+ *  never manages phones, so these routes refuse it. */
+export const tunnelled = (req) => { try { return req.headers !== null && req.headers !== undefined && req.headers[TUNNEL_HEADER] !== undefined } catch (e) { return true } }
+
+// Every route here shows or changes who can reach this computer: an Origin or a Referer is required and must be this page's.
+export const sameOriginStrict = (req) => {
+  try {
+    const h = req.headers !== null && req.headers !== undefined ? req.headers : {}
+    const source = typeof h.origin === 'string' && h.origin !== '' ? h.origin : (typeof h.referer === 'string' && h.referer !== '' ? h.referer : null)
+    if (source === null) return false
+    const u = new URL(source)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false
+    const port = req.socket !== null && req.socket !== undefined && typeof req.socket.localPort === 'number' ? ':' + req.socket.localPort : ''
+    return (['127.0.0.1' + port, 'localhost' + port, '[::1]' + port].indexOf(u.host) >= 0 || kbTrusted(u.host))
+  } catch (e) { return false }
+}
+
+let remoteModule = null
+const loadRemote = () => { if (remoteModule === null) remoteModule = import('./remote-mount.mjs'); return remoteModule }
+const refuse = (res, status, error) => { try { res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }); res.end(JSON.stringify({ ok: false, error })) } catch (e) { /* socket closed */ } }
+
+export function serveRemote (name, req, res) {
+  try {
+    if (hostOK(req) !== true) return refuse(res, 403, 'origin-refused')
+    if (tunnelled(req) === true) return refuse(res, 403, 'refused-on-phone')
+    const want = REMOTE_ROUTES[name]
+    if (want === undefined) return refuse(res, 404, 'not-found')
+    if (req.method !== want) return refuse(res, 405, 'method-not-allowed')
+    if (sameOriginStrict(req) !== true) return refuse(res, 403, 'origin-refused')
+    loadRemote().then((m) => m.route(name, req, res)).catch((e) => { logError('remote half unavailable', e); refuse(res, 503, 'remote-unavailable') })
+  } catch (e) { refuse(res, 500, 'internal') }
+}
+
 export function apply (ctx) {
   // A failure here must never stop DSH from starting: log it and let the rest go on.
   try {
@@ -86,9 +129,23 @@ export function apply (ctx) {
   try {
     const mount = (svc) => {
       try { ctx.effect(() => svc.register({ kind: 'exact', path: ROUTE, handler: (req, res) => serveSheet(req, res) }), 'kybernos-mobile: route stylesheet') } catch (e) { logError('route not mounted', e) }
+      // The remote half's routes: separate from the stylesheet's, so one cannot take the other down.
+      for (const name of Object.keys(REMOTE_ROUTES)) {
+        try { ctx.effect(() => svc.register({ kind: 'exact', path: REMOTE_PREFIX + name, handler: (req, res) => serveRemote(name, req, res) }), 'kybernos-mobile: route remote ' + name) } catch (e) { logError('remote route not mounted', e) }
+      }
     }
     const svc = ctx.get('webServer')
     if (svc !== undefined && svc !== null) mount(svc)
     else ctx.inject(['webServer'], (host) => { try { mount(host.webServer) } catch (e) { logError('route not mounted', e) } })
   } catch (e) { logError('start failed: route not mounted', e) }
+  // The link itself: reconnects the phones paired earlier. With none paired this reads one file and does nothing else.
+  if (process.env.KYBERNOS_MOBILE_REMOTE === '0') return
+  try {
+    ctx.effect(() => {
+      let live = true
+      let mod = null
+      loadRemote().then((m) => { if (live !== true) return undefined; mod = m; return m.start(ctx) }).catch((e) => logError('remote link not started', e))
+      return () => { live = false; try { if (mod !== null) mod.stop() } catch (e) { /* closing */ } }
+    }, 'kybernos-mobile: remote link')
+  } catch (e) { logError('remote link not mounted', e) }
 }
