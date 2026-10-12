@@ -27,8 +27,13 @@ drew under the iPhone's home indicator.
   as a **drawer** over the chat: same entries in the same order (New chat, Kybers, Workspaces, Creations, Automations,
   Skills, Connectors, Automation tasks, Pinned, the folders and their sessions, the account card), 48 px rows, 16 px text.
   The drawer is 84 % of the screen wide (330 px at most): the rest is the dimmed chat, with no grey strip between. **A tap
-  on the dimmed chat, or a swipe to the left, closes it**, and so does picking a session or a page. A drawer DSH left open
-  on a phone in landscape is closed once at start and after a turn of the screen, unless the person opened it.
+  on the dimmed chat, or a swipe to the left, closes it**, and so does picking a session, a page or a global panel (the
+  page is then the whole screen). The close goes through DSH's own collapse button, found by its shortcut where DSH draws
+  one and **by where it is** otherwise: DSH draws no `aria-keyshortcuts` on an Android phone (measured 2026-10-13), so a
+  tap that waited for a shortcut did nothing there. A drawer DSH left open on a phone in landscape is closed once at start
+  and after a turn of the screen, unless the person opened it.
+- A page's **title** is moved down when it would start under the menu button (the title row is marked
+  `data-kbmob-lead`; the title is the page's `h1`, else the largest text of its first 110 px).
 - **Header**: one row of 56 px (DSH gives it 76 px for two rows): the title and the page-level actions (Teams, voice
   call, "More actions", right bar). The tab row (Chat, Journal, Trajectory) is parked while Chat is the view shown, and
   comes back on the other views; the sheet below lists the views. Agent Team, share,
@@ -110,6 +115,9 @@ GUI `scripts/check-mobile-live.mjs` (the layout, a 390 px phone emulated in a sa
 (seven devices, dark and light, screenshots and measures on the real DOM with the working tree's stylesheet and
 client), `scripts/check-mobile-tour.mjs` (a tour of every screen, a page of the sidebar, Settings, the menus: sideways
 scroll, a control that leaves the screen or is cut by its box, targets under 36 px, text under 11 px; `--device WxH`,
-`--light`, `--deployed`, `--shots <dir>`) and
+`--light`, `--deployed`, `--mac`, `--shots <dir>`; an Android phone by default: it also taps a page row, taps the dimmed
+chat and swipes, and the drawer must go each time), `scripts/check-mobile-remote-pages.mjs` (a paired Android phone through
+the stand-in relay with a slow uplink: the drawer, the Skills page, a restart of the computer's DSH while the phone is open)
+and
 `scripts/check-mobile-remote-live.mjs` (the QR code decoded by Chrome, a second browser as the phone, approval,
 revocation, a plan without the feature).

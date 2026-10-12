@@ -250,6 +250,10 @@ export async function startFakeRelay (options = {}) {
       const room = state.rooms.get(sid)
       const other = room && room[role === 'host' ? 'phone' : 'host']
       if (other) other.send(data, true)
+      // a slow uplink at the computer's home: the relay reads the computer's socket no faster than this, so the computer's
+      // own send buffer fills (tests of what a big download does to the small answers queued behind it)
+      const bps = Number(options.uplinkBytesPerSecond) || 0
+      if (bps > 0 && role === 'host') { try { socket.pause(); setTimeout(() => { try { socket.resume() } catch (e) { /* closed */ } }, Math.ceil(data.length / bps * 1000)) } catch (e) { /* closed */ } }
     }
     peer.onclose = () => {
       if (sid === null) return

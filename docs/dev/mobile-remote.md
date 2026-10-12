@@ -186,3 +186,14 @@ not the phone link's. Only one ngrok session can be online at a time on a free a
 What this still does not prove: Safari on an iPhone and Chrome on an Android phone (the service worker and the WebSocket
 shim are the same code, but the engines are not), a phone that sleeps and wakes on another network, and a real deployment's
 origin (`REMOTE_PHONE_URL` on the platform, one replica).
+
+
+## Frames leave in counter order (2026-10-13)
+
+The channel requires every frame's counter to be exactly the next one (a relay can neither replay, drop nor reorder). The
+computer therefore sends the frames of a link **one at a time, in the order they were asked**, and waits for a backed-up
+socket (`highWater`, 512 KB) *inside* that queue and *before* sealing. A wait after the seal let a frame sealed first leave
+last whenever the computer's uplink was slower than the answers (a real home line, never a loopback): the phone then
+rejected that frame and every later one ("e2e: frame out of order"), and nothing loaded again until the phone reconnected.
+The phone page leaves the connection after three such frames in a row, which starts a new channel (counters at zero).
+`test-remote-host.mjs` backs the socket up (a `bufferedAmount` the test controls) and sends a late burst of small requests.

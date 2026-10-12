@@ -332,6 +332,10 @@
   [data-kbmob-fit~="stack"] > :first-child {
     flex: 1 1 180px !important;
   }
+  /* the title of a page (marked by client.js) starts under the menu button, fixed in the corner: moved below it */
+  [data-kbmob-lead] {
+    margin-top: 30px !important;
+  }
   [data-kbmob-fit~="keep"] {
     min-width: min-content !important;
   }
