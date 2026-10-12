@@ -7,7 +7,7 @@ page reaches it through that plugin's routes; the account token never leaves the
 
 ## The page
 
-Settings → **Memory & Lessons** (right after Language). It opens straight on the data; the switches live
+Settings → **Memory & Lessons** (in the Kybernos group, after Auto Routing). It opens straight on the data; the switches live
 one click away.
 
 - **Memories** (account): list, search by words, filters (Show: all / pinned / sent to the model ·
@@ -212,8 +212,11 @@ node packages/kybernos-memory/test-client.mjs        # the page's pure pieces, m
 node packages/kybernos-cloud/test-dedupe.mjs         # near-duplicate detection (pure)
 node packages/kybernos-cloud/test-mapproj.mjs        # the map's positions, clusters and names (pure)
 node packages/kybernos-cloud/test-tidy.mjs           # settings, schedule, auto line, Study-model question/answer (fake llm)
-node scripts/check-memory-live.mjs --shots /tmp/mem  # the REAL GUI, read-only (needs dsh web restarted once)
+node scripts/check-memory-live.mjs --shots /tmp/mem  # a live GUI (KB_HOST: the real one, or a sandbox), read-only
 ```
+
+On an instance with nothing to list (a fresh sandbox is not connected to Kybernos Cloud and has no lesson) the
+live check SKIPs the row and count checks and asserts the empty state instead; it never seeds data.
 
 The page itself (React) was driven end to end in a real browser while it was built — filters, pages,
 add / edit / forget / undo, lessons edit / delete, both switch groups, not-connected, revoked session —

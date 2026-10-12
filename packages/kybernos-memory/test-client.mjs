@@ -133,7 +133,7 @@ console.log('mounting')
 const calls = { slot: [], effects: [] }
 const ctx = { slots: { inject: (name, cb) => { cb(); return () => {} }, register: (meta, comp) => { calls.slot.push({ meta, comp }); return () => {} } }, effect: (fn, label) => { const d = fn(); calls.effects.push({ label, d }) } }
 mod.apply(ctx)
-check('registers one settings section, right after Language', calls.slot.length === 1 && calls.slot[0].meta.name === 'settings.section' && calls.slot[0].meta.id === 'kybernos-memory' && calls.slot[0].meta.order === 3 && calls.slot[0].meta.label === 'Memory & Lessons')
+check('registers one settings section (its drawn place is the shell menu grouping\'s: scripts/test-live-checks.mjs)',calls.slot.length === 1 && calls.slot[0].meta.name === 'settings.section' && calls.slot[0].meta.id === 'kybernos-memory' && calls.slot[0].meta.order === 3 && calls.slot[0].meta.label === 'Memory & Lessons')
 check('the section renders the page component', typeof calls.slot[0].comp === 'function')
 check('styles are inserted once, tagged with the plugin, and can be removed', tags.length === 1 && tags[0].dataset.plugin === '@local/kybernos-memory' && typeof calls.effects[0].d === 'function')
 check('every effect is labelled (cordis disposers)', calls.effects.length === 2 && calls.effects.every((e) => /^kybernos-memory:/.test(e.label)))
