@@ -53,7 +53,9 @@ window.__ModuleLoader__.load({
         code: ['m16 18 6-6-6-6', 'm8 6-6 6 6 6'],
         lock: ['M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
         file: ['M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z', 'M14 3v5h5'],
-        alert: ['M12 9v4', 'M12 17h.01', 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z']
+        alert: ['M12 9v4', 'M12 17h.01', 'M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'],
+        refresh: ['M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8', 'M21 3v5h-5'],
+        globe: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M2 12h20', 'M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z']
       }
       const icon = (name, size) => h('svg', {
         key: 'i' + name + size,
@@ -106,8 +108,9 @@ window.__ModuleLoader__.load({
         'he.real_path_outside_root': { fr: 'Le chemin réel sort du dossier de skills : refusé.', en: 'The real path leaves the skills folder: refused.' },
         'he.timeout': { fr: 'Délai dépassé.', en: 'Timed out.' },
         'he.network_unavailable': { fr: 'Réseau indisponible.', en: 'Network unavailable.' },
-        'he.index_url_refused': { fr: 'KYBERNOS_SKILLS_INDEX_URL refusée (https, ou http sur la boucle locale).', en: 'KYBERNOS_SKILLS_INDEX_URL refused (https, or http on loopback).' },
-        'he.index_unavailable': { fr: 'Index indisponible (HTTP {http}).', en: 'Index unavailable (HTTP {http}).' },
+        'he.index_url_refused': { fr: 'Adresse de l’index refusée : https, ou http sur cette machine ; sans identifiant, sans paramètres.', en: 'Index address refused: https, or http on this machine; no credentials, no parameters.' },
+        'he.index_url_env': { fr: 'L’adresse est imposée par la variable KYBERNOS_SKILLS_INDEX_URL : modifiez-la là.', en: 'The address is set by the KYBERNOS_SKILLS_INDEX_URL variable: change it there.' },
+        'he.index_unavailable': { fr: 'L’index n’a pas répondu (HTTP {http}).', en: 'The index did not answer (HTTP {http}).' },
         'he.query_too_short': { fr: 'Recherche : au moins 2 caractères.', en: 'Search: at least 2 characters.' },
         'he.invalid_source': { fr: 'Source invalide (attendu : propriétaire/dépôt).', en: 'Invalid source (expected owner/repo).' },
         'he.not_github': { fr: 'Source non GitHub ({source}) : cette route n’installe que depuis un dépôt GitHub.', en: 'Not a GitHub source ({source}): this route only installs from a GitHub repository.' },
@@ -190,7 +193,6 @@ window.__ModuleLoader__.load({
         'card.dup': { fr: 'doublon', en: 'duplicate' },
         'card.noedit': { fr: 'non modifiable', en: 'not editable' },
         'mod.on': { fr: 'Modifié le {d}', en: 'Modified {d}' },
-        'mod.on.lc': { fr: 'modifié le {d}', en: 'modified {d}' },
         'mod.unknown': { fr: 'date inconnue', en: 'unknown date' },
         'card.copyTitle': { fr: 'Copier l\'invocation à coller dans le composeur', en: 'Copy the invocation to paste in the composer' },
         'cover.alt': { fr: 'Illustration de {name}', en: 'Illustration for {name}' },
@@ -218,6 +220,27 @@ window.__ModuleLoader__.load({
         'd.query': { fr: 'Interrogation de l\'index…', en: 'Querying the index…' },
         'd.down': { fr: 'Index indisponible', en: 'Index unavailable' },
         'd.direct': { fr: 'L\'installation directe reste possible par « Importer depuis GitHub ».', en: 'Direct install is still possible via “Import from GitHub”.' },
+        'd.hint': { fr: 'C’est souvent passager : réessayez dans un instant. Vos skills installés et l’onglet Team ne sont pas touchés.', en: 'This is often temporary: try again in a moment. Your installed skills and the Team tab are not affected.' },
+        'd.retry': { fr: 'Réessayer', en: 'Try again' },
+        // The source the Discover index is read from (the relay), and the setting that names another one.
+        'src.line': { fr: 'Source', en: 'Source' },
+        'src.default': { fr: 'relais Kybernos (par défaut)', en: 'Kybernos relay (default)' },
+        'src.custom': { fr: 'adresse personnalisée', en: 'custom address' },
+        'src.env': { fr: 'imposée par KYBERNOS_SKILLS_INDEX_URL', en: 'set by KYBERNOS_SKILLS_INDEX_URL' },
+        'src.refused': { fr: 'adresse refusée', en: 'address refused' },
+        'src.change': { fr: 'Changer', en: 'Change' },
+        'src.title': { fr: 'Source de l’index', en: 'Index source' },
+        'src.sub': { fr: 'L’onglet Discover lit un relais en lecture seule de l’index skills.sh. Aucun identifiant n’est envoyé, et la réponse est bornée en taille.', en: 'The Discover tab reads a read-only relay of the skills.sh index. No credential is sent, and the answer is capped in size.' },
+        'src.field': { fr: 'Adresse du relais', en: 'Relay address' },
+        'src.hint': { fr: 'https://… (ou http://localhost… pour un essai sur cette machine). Laissez vide pour le relais Kybernos.', en: 'https://… (or http://localhost… for a test on this machine). Leave empty for the Kybernos relay.' },
+        'src.envnote': { fr: 'La variable d’environnement KYBERNOS_SKILLS_INDEX_URL décide de l’adresse : elle prime sur ce réglage. Modifiez-la là pour changer de source.', en: 'The KYBERNOS_SKILLS_INDEX_URL environment variable decides the address: it overrides this setting. Change it there to change the source.' },
+        'src.reset': { fr: 'Utiliser le relais Kybernos', en: 'Use the Kybernos relay' },
+        'src.save': { fr: 'Enregistrer', en: 'Save' },
+        'src.saving': { fr: 'Enregistrement…', en: 'Saving…' },
+        'src.savedCustom': { fr: 'Source de l’index : {host}', en: 'Index source: {host}' },
+        'src.savedDefault': { fr: 'Source de l’index : relais Kybernos', en: 'Index source: Kybernos relay' },
+        'err.source': { fr: 'enregistrement impossible', en: 'could not save' },
+        'feat.th.when': { fr: 'MODIFIÉ', en: 'MODIFIED' },
         'feat.sub': { fr: 'mis en avant — liste tenue à l\'étoile, dans l\'ordre du fichier', en: 'featured — list kept by star, in file order' },
         'th.result': { fr: 'RÉSULTAT', en: 'RESULT' },
         'th.state': { fr: 'ÉTAT', en: 'STATE' },
@@ -468,6 +491,56 @@ window.__ModuleLoader__.load({
       }
       const PAGE = 6
 
+      // ── skeleton screens ──────────────────────────────────────────────────────────────────────
+      // ONE helper for every list of the GUI, published by the core plugin (window.__KB_SKEL__): bones in the SAME boxes as the
+      // real rows (same classes: nothing moves when the data lands), a soft shimmer, a short fade-in for the real rows, and no
+      // motion under prefers-reduced-motion. Read at render time and optional: without the core, a list says « Loading… » as before.
+      const skel = () => {
+        try {
+          const k = window.__KB_SKEL__
+          return (k !== null && k !== undefined && typeof k.bone === 'function' && typeof k.wrap === 'function') ? k : null
+        } catch (e) { return null }
+      }
+      const bone = (w, hgt, extra, radius) => { const k = skel(); return k === null ? null : k.bone(w, hgt, extra, radius) }
+      // The class suffix that fades the i-th real row in (first screenful only).
+      const appear = (i) => { const k = skel(); return k !== null && typeof k.appear === 'function' ? k.appear(i) : '' }
+      // `kind`: 'cards' (Yours), 'rows' (the ranking), 'team' (the team table). Null when the core's helper is not there.
+      const skeletonOf = (kind, n) => {
+        const k = skel()
+        if (k === null) return null
+        const idx = Array.from({ length: n }, (_, i) => i)
+        if (kind === 'cards') {
+          return k.wrap(t('y.loading'), '', h('div', { className: 'kb8-grid' }, idx.map((i) => h('div', { key: 'sk' + i, className: 'kb8-card static kb-sk-row' },
+            h('div', { className: 'kb-row', style: { minHeight: 40, flexWrap: 'nowrap' } },
+              bone(38, 38, null, 13),
+              h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '6px', flex: '1' } }, bone(i % 2 === 0 ? '55%' : '40%', 13), bone('45%', 10)),
+              bone(36, 20, 'pill'), bone(26, 26, 'round')),
+            h('div', { className: 'desc', style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '9px', height: 61, minHeight: 61 } }, bone('94%', 10), bone('82%', 10), bone('58%', 10)),
+            h('div', { className: 'kb8-pills', style: { height: 26, alignItems: 'center' } }, bone(52, 20, 'pill')),
+            h('div', { className: 'foot', style: { height: 33, boxSizing: 'border-box' } }, bone(14, 14, 'round'), bone(110, 10), h('span', { className: 'grow' }), bone(72, 22, 'pill'))))))
+        }
+        if (kind === 'team') {
+          return k.wrap(t('tm.loading'), 'kbs-table kbt', [
+            h('div', { key: 'hd', className: 'kbt-head' }, h('span', null), h('span', null, t('tm.th.skill')), h('span', null, t('tm.th.by')), h('span', null, t('tm.th.version')), h('span', null)),
+            idx.map((i) => h('div', { key: 'r' + i, className: 'kbs-row kb-sk-row' },
+              h('span', { className: 'who' }, bone(30, 30, null, 10)),
+              h('span', { className: 'kbt-name' }, bone(i % 2 === 0 ? '46%' : '34%', 13), bone('70%', 10)),
+              h('span', { className: 'kbt-by' }, bone('60%', 11), bone('40%', 10)),
+              h('span', { className: 'badges' }, bone(54, 20, 'pill')),
+              h('span', { className: 'kbt-act' }, bone(80, 30, null, 9))))])
+        }
+        return k.wrap(t('d.query'), 'kbs-table', [
+          h('div', { key: 'hd', className: 'kbs-head' },
+            h('span', { className: 'rank' }, '#'), h('span', { className: 'who' }, 'SKILL'), h('span', { className: 'src' }, 'SOURCE'),
+            h('span', { className: 'badges' }, t('th.state')), h('span', { className: 'inst' }, 'INSTALLATIONS')),
+          idx.map((i) => h('div', { key: 'r' + i, className: 'kbs-row kb-sk-row' },
+            h('span', { className: 'rank' }, bone(18, 10)),
+            h('span', { className: 'who' }, bone(30, 30, null, 10), bone(i % 3 === 0 ? '55%' : (i % 3 === 1 ? '40%' : '48%'), 13)),
+            h('span', { className: 'src' }, bone('62%', 11)),
+            h('span', { className: 'badges' }, bone(50, 20, 'pill')),
+            h('span', { className: 'inst' }, bone(36, 11))))])
+      }
+
       const CSS = `
 .kbs-root{display:flex;flex-direction:column;flex:1;min-height:0}
 /* Third exception to the mockup (see header): the Yours/Discover banner
@@ -673,30 +746,27 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-copy{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);border-radius:999px;padding:3px 9px;font-family:ui-monospace,monospace;font-size:11px;cursor:pointer}
 .kbs-root .kbs-copy:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* — Featured: cards with a cover image — same tokens as .kb8-card (bg-layer-1, border-l1,
-   radius 16): the row must read like the rest of the tabs, not like a
-   marketplace dropped next to them. Hover = l2 border, WITHOUT lift (the other cards do not lift). */
+/* — Featured: the same rows as the ranking below it (same grid, same height); the cover, when there is one, is the row's tile. */
 .kbs-root .kbs-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
 .kbs-root .kbs-feat-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .kbs-root .kbs-feat-head .t{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
 .kbs-root .kbs-feat-head .s{font-size:12px;color:var(--dsw-alias-label-caption)}
-.kbs-root .kbs-feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
-.kbs-root .kbs-feat-card{position:relative;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden;
-  display:flex;flex-direction:column;cursor:pointer;transition:border-color .12s}
-.kbs-root .kbs-feat-card:hover{border-color:var(--dsw-alias-border-l2)}
-.kbs-root .kbs-feat-cover{height:148px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);overflow:hidden}
-.kbs-root .kbs-feat-cover img{max-width:100%;max-height:100%;object-fit:contain;display:block}
-.kbs-root .kbs-feat-cover .kb8-tile.lg{width:64px;height:64px;border-radius:19px}
-.kbs-root .kbs-feat-body{padding:13px 15px 14px;display:flex;flex-direction:column;gap:7px;flex:1}
-.kbs-root .kbs-feat-name{font-size:15px;font-weight:700;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbs-root .kbs-clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);min-height:39px}
-.kbs-root .kbs-feat-foot{display:flex;align-items:center;gap:8px;margin-top:auto;border-top:1px solid var(--dsw-alias-border-l1);padding-top:11px}
-.kbs-root .kbs-feat-foot .when{font-size:12px;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-row .who .kb8-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbs-root .kbs-row.feat .kbs-fdesc{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-row.feat .rank{display:flex;justify-content:flex-end}
+.kbs-root .kb8-tile.kbs-cover{overflow:hidden;padding:0}
+.kbs-root .kb8-tile.kbs-cover img{width:100%;height:100%;object-fit:cover;display:block}
 .kbs-root .kbs-star-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);
   background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);cursor:pointer;padding:0;flex:0 0 auto}
 .kbs-root .kbs-star-btn:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
 .kbs-root .kbs-star-btn.on{color:#f7c46c;border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 45%,transparent);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
-.kbs-root .kbs-feat-card .kbs-star-btn{position:absolute;top:9px;right:9px;background:color-mix(in srgb,var(--dsw-alias-bg-layer-1) 78%,transparent);backdrop-filter:blur(4px)}
+/* — Where the index is read from — */
+.kbs-root .kbs-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbs-root .kbs-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kbs-root .kbs-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.kbs-root .kbs-link:hover{background:var(--dsw-alias-bg-layer-2)}
 /* — Team skills: the table reuses the one from Discover (same tokens), only the columns change — */
 .kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{display:grid;grid-template-columns:44px minmax(200px,1.7fr) minmax(120px,1fr) 210px 150px;align-items:center;gap:14px;padding:8px 18px}
 .kbs-root .kbt .kbt-head{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);border-bottom:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
@@ -740,6 +810,20 @@ window.__ModuleLoader__.load({
 .kbs-root .kbt-cap{font-size:12px;color:var(--dsw-alias-label-caption);line-height:1.5}
 .kbs-root .kbt-sheet{width:660px}
 .kbs-root .kb8-primary[disabled]{opacity:.45;cursor:default}
+/* Tables that follow the width of THEIR column, not of the window: below 720 px the STATE column steps aside, below 480 the
+   source too, so the last column — the one that says how installed a skill is — is never the one that gets cut off. */
+.kbs-root .kb8-page{container-type:inline-size}
+@container (max-width:720px){
+.kbs-root .kbs-head,.kbs-root .kbs-row{grid-template-columns:36px minmax(0,1.6fr) minmax(0,1fr) 108px;gap:10px;padding:8px 12px}
+.kbs-root .kbs-head .badges,.kbs-root .kbs-row .badges{display:none}
+.kbs-root .kbt .kbt-head,.kbs-root .kbt .kbs-row{grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:8px 12px}
+.kbs-root .kbt .kbt-head>:nth-child(3),.kbs-root .kbt .kbt-head>:nth-child(4),.kbs-root .kbt .kbs-row .kbt-by,.kbs-root .kbt .kbs-row .badges{display:none}
+}
+@container (max-width:480px){
+.kbs-root .kbs-head,.kbs-root .kbs-row{grid-template-columns:30px minmax(0,1fr) 108px}
+.kbs-root .kbs-head .src,.kbs-root .kbs-row .src{display:none}
+.kbs-root .kbs-row.feat .kbs-fdesc{display:none}
+}
 `
 
       // ── route access ────────────────────────────────────────────────────
@@ -770,7 +854,11 @@ window.__ModuleLoader__.load({
         if (code === '') return fallback
         if (STR['he.' + code] === undefined) return code
         const text = t('he.' + code, { source: j.source, name: j.name, http: j.http, count: j.count, max: j.max, dest: j.dest })
-        return typeof j.detail === 'string' && j.detail !== '' ? text + ' — ' + j.detail : text
+        // The relay's own words are added when they say more than the sentence ("index unavailable" under « The index did not answer »
+        // was the same thing twice).
+        const detail = typeof j.detail === 'string' ? j.detail.trim() : ''
+        if (detail === '' || /^(the )?(skills )?index (is )?(un)?available\.?$/i.test(detail)) return text
+        return text + ' — ' + detail
       }
       const skillKey = (s) => String(s.root) + '\u0000' + String(s.name)
 
@@ -800,7 +888,17 @@ window.__ModuleLoader__.load({
         const [catError, setCatError] = React.useState('')
         const [disc, setDisc] = React.useState(null)
         const [discPhase, setDiscPhase] = React.useState('idle')
-        const [discError, setDiscError] = React.useState('')
+        // The last failure of the index: { text, code, http }. `discTick` re-asks (« Try again »); `manualRetry` tells the effect that
+        // the user asked, so it does not add its own automatic second attempt on top.
+        const [discErr, setDiscErr] = React.useState(null)
+        const [discTick, setDiscTick] = React.useState(0)
+        const manualRetry = React.useRef(false)
+        // The relay the index is read from ({ origin: default | setting | env, host, url, refused, editable }), the window that
+        // names another one, and what it is doing.
+        const [src, setSrc] = React.useState(null)
+        const [srcOpen, setSrcOpen] = React.useState(false)
+        const [srcBusy, setSrcBusy] = React.useState(false)
+        const [srcErr, setSrcErr] = React.useState('')
         const [audit, setAudit] = React.useState(null)     // security audits of the open skill
         const [busy, setBusy] = React.useState({})
         const [errors, setErrors] = React.useState({})
@@ -896,17 +994,25 @@ window.__ModuleLoader__.load({
         // The workspace may have changed in the sidebar since the last look: read again whenever the tab is opened.
         React.useEffect(() => { if (mode === 'team') loadTeam() }, [mode])
 
+        const loadSource = React.useCallback(() => {
+          getJson('/kybernos-skills/index-source').then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && j.source !== null && typeof j.source === 'object') setSrc(j.source)
+          }).catch(() => { /* a host from before this setting has no such route: the line is simply not shown */ })
+        }, [])
+
         React.useEffect(() => {
           loadCatalogue()
           loadFeatured()
           loadTeam()
+          loadSource()
           getJson('/kybernos-skills/status').then((j) => {
             if (alive.current !== true) return
             if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.roots)) {
               setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
             }
           }).catch(() => { /* without roots, the modals fall back on the host, which revalidates everything */ })
-        }, [loadCatalogue, loadFeatured, loadTeam])
+        }, [loadCatalogue, loadFeatured, loadTeam, loadSource])
 
         // One request for the three paginated views, another for the search, one for the curated
         // set. The server announces `total` and `hasMore`: pagination guesses nothing, and that is
@@ -917,28 +1023,41 @@ window.__ModuleLoader__.load({
         React.useEffect(() => {
           if (mode !== 'discover') return undefined
           let stopped = false
+          let retryTimer = null
+          const auto = manualRetry.current !== true
+          manualRetry.current = false
           setDiscPhase('loading')
           const route = discKind === 'search'
             ? '/kybernos-skills/search?q=' + encodeURIComponent(dneedle) + '&limit=100'
             : (discKind === 'curated'
               ? '/kybernos-skills/curated'
               : '/kybernos-skills/index?view=' + encodeURIComponent(iview) + '&page=' + ipage + '&perPage=' + iper)
-          // The debounce only makes sense for typing: the other requests start from a click.
-          const timer = setTimeout(() => {
+          // A relay that answers 502 / 503 / 504, or a network that blinks, is usually back a moment later: the page asks once more
+          // by itself before saying anything. A refused address, a 404 or an unreadable answer is not transient, and a second
+          // attempt after that one is the user's (« Try again »).
+          const transient = (j) => j !== null && typeof j === 'object' && (j.error === 'timeout' || j.error === 'network_unavailable' ||
+            (j.error === 'index_unavailable' && [500, 502, 503, 504].indexOf(j.http) >= 0))
+          const fail = (j, text) => {
+            setDiscPhase('error')
+            setDiscErr({ text, code: (j !== null && typeof j === 'object' && typeof j.error === 'string') ? j.error : 'noanswer', http: (j !== null && typeof j === 'object') ? j.http : undefined })
+          }
+          const go = (first) => {
             getJson(route).then((j) => {
               if (stopped === true || alive.current !== true) return
-              if (j !== null && typeof j === 'object' && j.ok === true) { setDisc(j); setDiscPhase('ready'); setDiscError('') }
-              else { setDiscPhase('error'); setDiscError(why(j, t('err.index'))) }
+              if (j !== null && typeof j === 'object' && j.ok === true) { setDisc(j); setDiscPhase('ready'); setDiscErr(null); return }
+              if (first === true && auto === true && transient(j) === true) { retryTimer = setTimeout(() => go(false), 1500); return }
+              fail(j, why(j, t('err.index')))
             }).catch(() => {
               if (stopped === true || alive.current !== true) return
-              // This `catch` is the one for OUR route: if it fails, the index has nothing to do with it.
-            // Blaming skills.sh here would be a diagnostic lie — the error state says
-            // just below where the index comes from and what it requires.
-            setDiscPhase('error'); setDiscError(t('err.noanswer'))
+              // This `catch` is the one for OUR route (DSH itself): the index has nothing to do with it, and the state says so.
+              if (first === true && auto === true) { retryTimer = setTimeout(() => go(false), 1500); return }
+              fail(null, t('err.noanswer'))
             })
-          }, discKind === 'search' ? 350 : 0)
-          return () => { stopped = true; clearTimeout(timer) }
-        }, [mode, dneedle, discKind, iview, ipage, iper])
+          }
+          // The debounce only makes sense for typing: the other requests start from a click.
+          const timer = setTimeout(() => go(true), discKind === 'search' ? 350 : 0)
+          return () => { stopped = true; clearTimeout(timer); if (retryTimer !== null) clearTimeout(retryTimer) }
+        }, [mode, dneedle, discKind, iview, ipage, iper, discTick])
 
         // Any filter change goes back to the first page: otherwise we can end up
         // on an empty page after narrowing a search.
@@ -1082,6 +1201,28 @@ window.__ModuleLoader__.load({
             }
           } catch (e) { /* fallback below */ }
           setNotice({ kind: 'err', text: t('copy.unavail') })
+        }
+
+        // « Try again » on the index: the same request once more, with no automatic extra attempt.
+        const retryDiscover = () => { manualRetry.current = true; setDiscTick((n) => n + 1) }
+
+        // Names another relay (or, with an empty address, puts the Kybernos one back). The host validates with the same rule as the
+        // environment variable; what it answers is shown as it is. A new source drops what was shown from the old one.
+        const saveSource = (url) => {
+          if (srcBusy === true) return
+          setSrcBusy(true); setSrcErr('')
+          postJson('/kybernos-skills/index-source/set', { url }).then((j) => {
+            if (alive.current !== true) return
+            setSrcBusy(false)
+            if (j !== null && typeof j === 'object' && j.ok === true && j.source !== null && typeof j.source === 'object') {
+              setSrc(j.source); setSrcOpen(false)
+              setNotice({ kind: 'ok', text: j.source.origin === 'setting' ? t('src.savedCustom', { host: j.source.host }) : t('src.savedDefault') })
+              setDisc(null); setDiscErr(null); setIpage(0); manualRetry.current = true; setDiscTick((n) => n + 1)
+            } else setSrcErr(why(j, t('err.source')))
+          }).catch(() => {
+            if (alive.current !== true) return
+            setSrcBusy(false); setSrcErr(t('err.unavail', { r: 'index-source' }))
+          })
         }
 
         const count = catPhase === 'ready' ? String(skills.length) : '0'
@@ -1246,7 +1387,7 @@ window.__ModuleLoader__.load({
           primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus'))
 
         const renderTeam = () => {
-          if (tsum.phase === 'loading') return h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.loading')))
+          if (tsum.phase === 'loading') return skeletonOf('team', 5) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.loading')))
           if (tsum.phase !== 'ready') return h(TeamLocked, { kind: tsum.phase === 'locked' ? tsum.kind : 'other', detail: tsum.detail, onRetry: loadTeam, onBack: () => setMode('yours') })
           return h(TeamSkills, {
             sum: tsum, local: skills, roots, needle: q.team, view: teamView, onView: setTeamView, ver: teamVer, openId: teamOpen, onOpen: setTeamOpen,
@@ -1254,11 +1395,11 @@ window.__ModuleLoader__.load({
           })
         }
 
-        const yourCard = (s) => {
+        const yourCard = (s, i) => {
           const k = skillKey(s)
           const on = s.active === true
           const err = errors[k]
-          return h('div', { key: k, className: 'kb8-card static' },
+          return h('div', { key: k, className: 'kb8-card static' + appear(i) },
             h('div', { className: 'kb-row' },
               tile(s.name, 'pkg'),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
@@ -1300,42 +1441,40 @@ window.__ModuleLoader__.load({
         // detail page fills from here, with no duplicated state.
         const featNames = React.useMemo(() => new Set(feat.items.filter((it) => it.found !== false).map((it) => it.name)), [feat])
 
-        // Cover: the folder's image if it exists, otherwise the PIVOT TILE (tile(), same look
+        // Cover: the folder's image if it exists (as the row's small tile), otherwise the PIVOT TILE (tile(), same look
         // as the cards of the other tabs) — never a visual that falls outside the theme.
         const coverArt = (it) => {
           if (it.cover !== null && it.cover !== undefined && it.cover !== '') {
-            return h('img', {
+            return h('span', { className: 'kb8-tile kbs-sm kbs-cover' }, h('img', {
               src: it.cover, alt: t('cover.alt', { name: it.name }), loading: 'lazy',
               onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the dark tile is enough */ } }
-            })
+            }))
           }
-          return tile(it.name, 'pkg', 'lg')
+          return tile(it.name, 'pkg', 'kbs-sm')
         }
 
-        // Click on a Featured card = find the skill in Yours (pre-filled filter):
-        // the Discover detail page is an INSTALL page, it has nothing to say about a local skill.
-        const featCard = (it) => h('div', {
-          key: it.name, className: 'kbs-feat-card',
+        // Featured rows are the SAME rows as the ranking below (same columns, same height): a card here and a row there made
+        // the page read as two lists. A click finds the skill in Yours (pre-filled filter): the Discover detail page is an
+        // INSTALL page, it has nothing to say about a local skill. The star at the left takes it off the list.
+        const featRow = (it, i) => h('div', {
+          key: it.name, className: 'kbs-row feat' + appear(i), 'data-kb': 'feat-row', title: it.description !== '' ? it.description : undefined,
           onClick: () => { setMode('yours'); setQ((m) => ({ ...m, yours: it.name })); setDetail(null) }
         },
-          h('div', { className: 'kbs-feat-cover' }, coverArt(it)),
-          h('div', { className: 'kbs-feat-body' },
-            h('span', { className: 'kbs-feat-name', title: it.name }, it.name),
-            h('span', { className: 'kbs-clamp2' }, it.description !== '' ? it.description : t('card.nodesc')),
-            h('div', { className: 'kbs-feat-foot' },
-              h('span', { className: 'kb8-pill' }, it.source || t('feat.localskill')),
-              h('span', { className: 'when' }, it.modifiedAt !== '' ? t('mod.on.lc', { d: today(it.modifiedAt) }) : ''),
-              h('span', { style: { flex: '1' } }),
-              h('button', {
-                type: 'button', className: 'kbs-star-btn on', title: t('feat.remove'),
-                onClick: (e) => { e.stopPropagation(); toggleFeatured(it.name) }
-              }, icon('star', 14)))))
+          h('span', { className: 'rank' }, h('button', {
+            type: 'button', className: 'kbs-star-btn on', title: t('feat.remove'), 'aria-label': t('feat.remove') + ' — ' + it.name,
+            onClick: (e) => { e.stopPropagation(); toggleFeatured(it.name) }
+          }, icon('star', 14))),
+          h('span', { className: 'who' }, coverArt(it), h('span', { className: 'kb8-name' }, it.name),
+            h('span', { className: 'kbs-fdesc' }, it.description !== '' ? it.description : t('card.nodesc'))),
+          h('span', { className: 'kb8-parent src kbs-nowrap' }, it.source || t('feat.localskill')),
+          h('span', { className: 'badges' }, it.active === false ? h('span', { className: 'kb8-pill warn' }, t('card.disabled')) : h('span', { className: 'kb8-pill ok' }, t('card.active'))),
+          h('span', { className: 'inst' }, typeof it.modifiedAt === 'string' && Number.isNaN(Date.parse(it.modifiedAt)) === false ? today(it.modifiedAt) : ''))
 
         const installed = (x) => skills.some((s) => s.name === x.name)
 
         const ligne = (x, i) => h('div', {
           key: x.source + '/' + x.name,
-          className: 'kbs-row' + (installed(x) ? ' has' : ''),
+          className: 'kbs-row' + (installed(x) ? ' has' : '') + appear(i),
           onClick: () => { setDetail(x); setModal(null); setAudit(null) }
         },
           h('span', { className: 'rank' }, String(discFrom + i)),
@@ -1386,7 +1525,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'kb8-name' }, title), h('span', { className: 'kb8-parent' }, hint))
 
         const renderYours = () => {
-          if (catPhase === 'loading' && cat === null) return h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('y.loading')))
+          if (catPhase === 'loading' && cat === null) return skeletonOf('cards', 6) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('y.loading')))
           if (catPhase === 'error') return h('div', { className: 'kb-empty' },
             h('span', { className: 'kb8-name' }, t('y.loadfail')), h('span', { className: 'kb8-parent' }, catError),
             h('button', { type: 'button', className: 'kb8-ghost', onClick: loadCatalogue }, t('y.retry')))
@@ -1400,27 +1539,69 @@ window.__ModuleLoader__.load({
             pagerYours(shownYours.length, filtered.length))
         }
 
+        // Where the ranking comes from, and the way to change it. The address in use is shown as a host, never as a credential.
+        const renderSourceLine = () => {
+          if (src === null) return null
+          const where = src.origin === 'env' ? t('src.env') : (src.origin === 'setting' ? t('src.custom') : t('src.default'))
+          return h('div', { className: 'kbs-srcline', 'data-kb': 'index-source' },
+            icon('globe', 14),
+            h('span', { className: 'k' }, t('src.line')),
+            src.refused === true
+              ? h('span', { className: 'kb8-pill warn' }, t('src.refused'))
+              : h('span', { className: 'v', title: src.url !== null ? src.url : undefined }, src.host),
+            h('span', { className: 'w' }, '· ' + where),
+            h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'index-source-change', onClick: () => { setSrcErr(''); setSrcOpen(true) } }, t('src.change')))
+        }
+
+        // The featured list is local (it does not wait for the index), so it is drawn at once — and above the bones — which is also
+        // what keeps the ranking from jumping down when it arrives. Only on page 1 of the ranking, without a search: it highlights,
+        // it takes part neither in sorting nor in filtering. Same ROWS as the ranking (see featRow).
+        const renderFeatured = () => {
+          const featShown = feat.items.filter((it) => it.found !== false)
+          if (feat.phase !== 'ready' || discKind === 'search' || dneedle !== '' || discPage !== 0 || featShown.length === 0) return null
+          return h('div', { key: 'feat', className: 'kbs-feat' },
+            h('div', { className: 'kbs-feat-head' },
+              h('span', { className: 't' }, 'Featured'),
+              h('span', { className: 's' }, featShown.length + ' ' + t('feat.sub'))),
+            h('div', { className: 'kbs-table', 'data-kb': 'feat-table' },
+              h('div', { className: 'kbs-head' },
+                h('span', { className: 'rank' }, ''),
+                h('span', { className: 'who' }, 'SKILL'),
+                h('span', { className: 'src' }, 'SOURCE'),
+                h('span', { className: 'badges' }, t('th.state')),
+                h('span', { className: 'inst' }, t('feat.th.when'))),
+              featShown.map(featRow)))
+        }
+
         const renderDiscover = () => {
-          if (discPhase === 'loading' && disc === null) return h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('d.query')))
+          const sourceLine = renderSourceLine()
+          if (discPhase === 'loading' && disc === null) {
+            // Bones: the featured list (known already), a pager's worth of space, then rows in the ranking's own grid.
+            const bones = skeletonOf('rows', 8)
+            return h('div', null, sourceLine, renderFeatured(),
+              bones === null ? h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('d.query')))
+                : [h('div', { key: 'pg', className: 'kbs-pager haut', 'aria-hidden': 'true' }, bone(112, 38, null, 11), [0, 1, 2, 3, 4].map((i) => h('span', { key: i }, bone(38, 38, null, 11))), bone(96, 38, null, 11)), h('div', { key: 'sk' }, bones)])
+          }
           if (discPhase === 'error') {
-            return h('div', { className: 'kb-empty' },
-              h('span', { className: 'kb8-name' }, t('d.down')),
-              h('span', { className: 'kb8-parent' }, discError),
-              h('span', { className: 'kb8-parent' }, t('d.direct')))
+            // The failure is THIS tab's: Yours and Team do not depend on the index and are untouched. A clear sentence, a way to
+            // ask again, and — the address being the user's to change — a way to change it.
+            const refused = discErr !== null && discErr.code === 'index_url_refused'
+            return h('div', null, sourceLine,
+              h('div', { className: 'kb-empty', role: 'alert', 'data-kb': 'disc-error' },
+                icon('alert', 24),
+                h('span', { className: 'kb8-name' }, t('d.down')),
+                h('span', { className: 'kb8-parent' }, discErr !== null ? discErr.text : ''),
+                refused === true ? null : h('span', { className: 'kb8-parent' }, t('d.hint')),
+                h('div', { className: 'kb-row', style: { justifyContent: 'center', marginTop: '4px' } },
+                  refused === true ? null : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'disc-retry', onClick: retryDiscover }, icon('refresh', 15), h('span', null, t('d.retry'))),
+                  src !== null && src.editable !== false
+                    ? h('button', { type: 'button', className: refused === true ? 'kb8-primary' : 'kb8-ghost', 'data-kb': 'disc-change-source', onClick: () => { setSrcErr(''); setSrcOpen(true) } }, t('src.change'))
+                    : null),
+                h('span', { className: 'kb8-parent' }, t('d.direct'))))
           }
           return h('div', null,
-            // Featured row: only on page 1 of the ranking, without a search — it highlights,
-            // it takes part neither in sorting nor in filtering.
-            feat.phase === 'ready' && discKind !== 'search' && dneedle === '' && discPage === 0 &&
-              feat.items.some((it) => it.found !== false)
-              ? h('div', { className: 'kbs-feat' },
-                  h('div', { className: 'kbs-feat-head' },
-                    h('span', { className: 't' }, 'Featured'),
-                    h('span', { className: 's' }, feat.items.filter((it) => it.found !== false).length +
-                      ' ' + t('feat.sub'))),
-                  h('div', { className: 'kbs-feat-grid' },
-                    feat.items.filter((it) => it.found !== false).map(featCard)))
-              : null,
+            sourceLine,
+            renderFeatured(),
             discShown.length === 0 ? null : pagerIndex(true),
             h('div', { className: 'kbs-table' + (discPhase === 'loading' ? ' loading' : '') },
               h('div', { className: 'kbs-head' },
@@ -1496,6 +1677,7 @@ window.__ModuleLoader__.load({
         }
 
         const renderModal = () => {
+          if (srcOpen === true) return h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource })
           if (teamSheet === true && tsum.phase === 'ready') return h(ProposeSheet, {
             local: skills, ws: tsum.workspaceName || '', admin: teamRoleAdmin(tsum.role), onClose: () => setTeamSheet(false),
             onDone: (name) => {
@@ -1605,6 +1787,47 @@ window.__ModuleLoader__.load({
                 type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true,
                 onClick: () => props.onSubmit({ name, description, whenToUse, body: content, root, modelInvocable: quiet !== true })
               }, icon('wand', 15), props.busy.__modal === true ? t('m.creating') : t('m.createBtn')))))
+      }
+
+      // The index source: the relay the Discover tab reads. The address is the user's to name (a company server, a test), with the
+      // SAME rule as the KYBERNOS_SKILLS_INDEX_URL variable; when that variable is set it decides and this window only says so.
+      function SourceModal(props) {
+        const s0 = props.source
+        const editable = s0 === null || s0.editable !== false
+        const [value, setValue] = React.useState(s0 !== null && s0.origin === 'setting' && typeof s0.url === 'string' ? s0.url : '')
+        React.useEffect(() => {
+          const onKey = (e) => { if (e !== null && e.key === 'Escape') { e.stopPropagation(); props.onClose() } }
+          document.addEventListener('keydown', onKey, true)
+          return () => document.removeEventListener('keydown', onKey, true)
+        }, [])
+        const now = s0 === null ? '' : (s0.refused === true ? t('src.refused') : s0.host) + ' · ' + (s0.origin === 'env' ? t('src.env') : (s0.origin === 'setting' ? t('src.custom') : t('src.default')))
+        return h('div', { className: 'kb-overlay', onClick: props.onClose },
+          h('div', { className: 'kb-modal', 'data-kb': 'index-source-modal', role: 'dialog', 'aria-label': t('src.title'), onClick: (e) => e.stopPropagation() },
+            h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('src.title')), h('span', { style: { flex: '1' } }),
+              h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('m.cancel'), onClick: props.onClose }, '✕')),
+            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('src.sub')),
+            now !== '' ? h('div', { className: 'kb-note' }, icon('globe', 14), h('span', null, now)) : null,
+            editable === true
+              ? h('div', { className: 'kbs-fields' },
+                  h('span', { className: 'kbs-label' }, t('src.field')),
+                  h('input', {
+                    className: 'kbs-input', 'data-kb': 'index-source-input', value, spellCheck: false, autoFocus: true,
+                    placeholder: s0 !== null && typeof s0.defaultUrl === 'string' ? s0.defaultUrl : 'https://skills.kybernos.app/v1',
+                    onChange: (e) => setValue(e.target.value),
+                    onKeyDown: (e) => { if (e.key === 'Enter') { e.preventDefault(); props.onSubmit(value) } }
+                  }),
+                  h('span', { className: 'kb8-mono' }, t('src.hint')))
+              : h('div', { className: 'kb-callout' }, icon('info', 16), h('span', null, t('src.envnote'))),
+            props.error ? h('div', { className: 'kbs-err', role: 'alert' }, props.error) : null,
+            h('div', { className: 'kbs-actions' },
+              editable === true && s0 !== null && s0.origin === 'setting'
+                ? h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'index-source-reset', disabled: props.busy === true, onClick: () => props.onSubmit('') }, t('src.reset'))
+                : null,
+              h('span', { style: { flex: '1' } }),
+              h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
+              editable === true
+                ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'index-source-save', disabled: props.busy === true, onClick: () => props.onSubmit(value) }, props.busy === true ? t('src.saving') : t('src.save'))
+                : null)))
       }
 
       // Import modal: a GitHub source as owner/repo, prefilled from the open detail page.
@@ -2048,7 +2271,7 @@ window.__ModuleLoader__.load({
         }
         const row = (s, i) => {
           const rel = view === 'mine' || s.status === 'retired' ? null : relationOf(s)
-          return h('div', { key: s.id, className: 'kbs-row' + (rel !== null && (rel.kind === 'installed' || rel.kind === 'update') ? ' has' : ''), onClick: () => props.onOpen(s.id) },
+          return h('div', { key: s.id, className: 'kbs-row' + (rel !== null && (rel.kind === 'installed' || rel.kind === 'update') ? ' has' : '') + appear(i), onClick: () => props.onOpen(s.id) },
             h('span', { className: 'who' }, tile(s.name, 'pkg', 'kbs-sm')),
             h('span', { className: 'kbt-name' }, h('span', { className: 'n' }, s.name),
               h('span', { className: 'd' }, view === 'mine' && s.status === 'rejected' ? (s.reviewNote ? t('tm.r.rejectedWith', { note: s.reviewNote }) : t('tm.r.noNote')) : s.description)),
@@ -2058,7 +2281,7 @@ window.__ModuleLoader__.load({
         }
 
         let body
-        if (list.phase === 'loading' && list.skills.length === 0) body = h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.loading')))
+        if (list.phase === 'loading' && list.skills.length === 0) body = skeletonOf('team', 5) || h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('tm.loading')))
         else if (list.phase === 'error') body = h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-name' }, list.error), h('button', { type: 'button', className: 'kb8-ghost', onClick: reload }, t('tm.retry')))
         else if (view === 'proposed') {
           body = rows.length === 0
