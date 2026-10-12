@@ -213,6 +213,19 @@ host's `fichiers`, the four pills stepping aside), every state through the seam,
 window and the seam missing. **Every POST of `/kybernos-sessions/*` is answered inside the page by the check** (fail-closed):
 the sandbox runs git in the user's real repository folder, so a real commit must be impossible, whatever the page asks.
 
+## The Usage plugin: `scripts/check-usage-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-usage-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (exit 3 against `:3080`). It reports six sessions through the real `/kybernos-usage/observe` route (own key, local
+model, Kybernos model) and checks the booking (a first sight is a baseline, the next report a delta on today, the plan model
+kept apart), then opens Settings › Usage and checks the plan block (not signed in), the by-model and by-session lists, the
+period switch, the budget saved through the real route, a 390 px window and the absence of console errors. The chip is only
+checked to stay absent: a sandbox has no key, so no turn and no `tokenUsage`; the chip drawn from a real turn is seen once on a
+keyed machine. The only thing written is the sandbox's own usage ledger.
+
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
 ```bash

@@ -41,6 +41,7 @@ const FICHE = {
   'kybernos-free-llms': ['models', 'Modèles gratuits OpenCode Zen, sans compte ni clé API.', 'Free OpenCode Zen models, no account or API key.'],
   'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
   'kybernos-call': ['base', 'Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
+  'kybernos-usage': ['base', 'Ce que votre plan a consommé, et ce que vos propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
   'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
   'kybernos-atlas': ['teams', 'La carte de votre espace : projets, kybers, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, kybers, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
@@ -71,7 +72,7 @@ const TITRES = {
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Mobile', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
-  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal'
+  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal'
 }
 const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
@@ -79,7 +80,7 @@ const GLYPHES = {
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-free-llms': 'doc', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
   'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-call': 'phone', 'kybernos-terminal': 'term'
+  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-call': 'phone', 'kybernos-terminal': 'term'
 }
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written
