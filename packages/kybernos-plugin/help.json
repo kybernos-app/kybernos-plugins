@@ -1,24 +1,24 @@
 {
   "what": {
-    "fr": "Le cœur de Kybernos : des Kybers (équipes d’agents) que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
-    "en": "The heart of Kybernos: Kybers (teams of agents) you start from a chat, what they create, automations, voice and tool choices."
+    "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
+    "en": "The heart of Kybernos: Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
   },
   "steps": [
     {
-      "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit le Kyber.",
-      "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Kyber."
+      "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’Agent Team.",
+      "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
     },
     {
-      "fr": "« Kybers » : parcourez, créez et modifiez vos Kybers. « Workspaces » rassemble vos projets et leurs conversations.",
-      "en": "“Kybers”: browse, create and edit your Kybers. “Workspaces” gathers your projects and their chats."
+      "fr": "« Agent Teams » : parcourez, créez et modifiez vos Agent Teams. « Workspaces » rassemble vos projets et leurs conversations.",
+      "en": "“Agent Teams”: browse, create and edit your Agent Teams. “Workspaces” gathers your projects and their chats."
     },
     {
-      "fr": "« Créations » garde les fichiers produits ; « Automations » lance un Kyber seul, à l’heure choisie ou quand un message arrive.",
-      "en": "“Creations” keeps the files produced; “Automations” starts a Kyber on its own, at a chosen time or when a message arrives."
+      "fr": "« Créations » garde les fichiers produits ; « Automations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
+      "en": "“Creations” keeps the files produced; “Automations” starts an Agent Team on its own, at a chosen time or when a message arrives."
     },
     {
-      "fr": "Dans un chat, l’onglet « Journal » retrace ce que le Kyber a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
-      "en": "In a chat, the “Journal” tab traces what the Kyber ran. The “Tools” and “Voice” pages are in Settings."
+      "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’Agent Team a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
+      "en": "In a chat, the “Journal” tab traces what the Agent Team ran. The “Tools” and “Voice” pages are in Settings."
     }
   ],
   "where": {

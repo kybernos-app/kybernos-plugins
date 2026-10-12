@@ -163,7 +163,7 @@ def instructions(meta: CallMeta, override: str | None = None) -> str:
     """The voice model's brief for this call. `override` (KYBER_INSTRUCTIONS) wins when set."""
     if override:
         return override
-    who = meta.name or "the Kyber"
+    who = meta.name or "the Agent Team"
     if meta.language == "auto":
         speak = "the language the user speaks"
     else:

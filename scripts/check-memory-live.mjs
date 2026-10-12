@@ -167,7 +167,7 @@ try {
   check('Team is either available, or locked with the reason', scopeBtns.length === 2 && (scopeBtns[1].off === false || (scopeBtns[1].off === true && /Team plan|No team workspace|Sign in|Restart DSH|Checking/.test(scopeBtns[1].t) && scopeBtns[1].why !== '')), scope)
   await ev(`document.querySelector('[data-act=filter]').click()`); await sleep(300)
   const groups = await ev(`JSON.stringify([...document.querySelectorAll('.kbmem-mg')].map(e => e.textContent.trim()))`)
-  check('filter menu offers Status and Added (plus Kyber when kybers exist)', ['Status', 'Added'].every((g) => (groups || '').indexOf(g) >= 0) && (groups || '').indexOf('Scope') < 0, groups)
+  check('filter menu offers Status and Added (plus Agent Team when agent teams exist)', ['Status', 'Added'].every((g) => (groups || '').indexOf(g) >= 0) && (groups || '').indexOf('Scope') < 0, groups)
   await shot('02-lessons-filter')
   await ev(`document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))`); await sleep(200)
 

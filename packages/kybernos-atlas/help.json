@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Une carte en lecture seule de votre espace : projets, kybers, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
-    "en": "A read-only map of your workspace: projects, kybers, skills, memory, lessons, automations and apps, how they connect, and what is broken."
+    "fr": "Une carte en lecture seule de votre espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+    "en": "A read-only map of your workspace: projects, agent teams, skills, memory, lessons, automations and apps, how they connect, and what is broken."
   },
   "steps": [
     {
@@ -13,8 +13,8 @@
       "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
     },
     {
-      "fr": "Dans « Around », choisissez un projet ou un kyber dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
-      "en": "In “Around”, pick a project or a kyber in “Start from”: four columns show who works there and what they use."
+      "fr": "Dans « Around », choisissez un projet ou une Agent Team dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+      "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
     },
     {
       "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",

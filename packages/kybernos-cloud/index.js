@@ -2247,7 +2247,7 @@ const renderMemoryChunk = (state, info) => {
     }
     for (const local of Object.keys(plan.kyber)) {
       if (plan.kyber[local].chosen.length === 0) continue
-      parts.push('', 'Mémoire du kyber « ' + local + ' » :')
+      parts.push('', 'Mémoire de l’Agent Team « ' + local + ' » :')
       plan.kyber[local].chosen.forEach((m) => parts.push(memoryLine(m)))
       if (plan.kyber[local].omitted > 0) parts.push('- … (' + String(plan.kyber[local].omitted) + ' autres non envoyés)')
     }

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Atlas: a read-only map of how projects, kybers, skills, memories, lessons, automations and apps fit together, with a list of what is broken or unused.",
+  "description": "Atlas: a read-only map of how projects, agent teams, skills, memories, lessons, automations and apps fit together, with a list of what is broken or unused.",
   "main": "index.js",
   "exports": {
     ".": "./index.js",

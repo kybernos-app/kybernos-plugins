@@ -1,6 +1,6 @@
 # kybernos-atlas
 
-A read-only map of how the things you set up fit together: **projects, kybers,
+A read-only map of how the things you set up fit together: **projects, agent teams,
 skills, memory, lessons, automations and apps**. It adds one Settings page,
 **Atlas**, with a Help button that explains how to read it.
 
@@ -16,7 +16,7 @@ to the host and needs no engine patch.
 
 | Part | What it is |
 |---|---|
-| **Around** | Pick a project or a kyber in *Start from* (searchable). Four columns: *Project*, *Kybers & automations*, *Skills & apps*, *Memory & lessons*. Hover a name to light up its lines, click it for details. |
+| **Around** | Pick a project or an agent team in *Start from* (searchable). Four columns: *Project*, *Agent Teams & automations*, *Skills & apps*, *Memory & lessons*. Hover a name to light up its lines, click it for details. |
 | **Rings** | The whole workspace: one ring per layer, the workspace in the middle, each project keeping the same wedge on every ring. |
 | **Circle** | Every node on one ring, grouped by project. Links cross the middle. |
 | **Areas** | One cluster per project. Lines between clusters show what crosses projects. |
@@ -27,8 +27,8 @@ to the host and needs no engine patch.
 | **To check** | Broken references and things that look wrong, each with the reason. Click one to see it on the map. |
 | **Help** | The legend: solid lines, dashed lines, crossed-out red names, the words used, and what is not shown. |
 
-Lines: **solid** = written in a file (a kyber lists a skill); **dashed** =
-guessed from a name (an app that matches one of a kyber's tools); a
+Lines: **solid** = written in a file (an agent team lists a skill); **dashed** =
+guessed from a name (an app that matches one of an agent team's tools); a
 **crossed-out red name** = a reference to something that no longer exists.
 
 ### In the drawings
@@ -41,19 +41,19 @@ hides the dashed (inferred) lines. Shape is the kind, colour is the project, a b
 links, a dashed ring marks something in *To check*, and a red cross marks a broken reference.
 
 Lessons are **off by default** in the drawings: a real workspace has dozens (the host returns the
-newest few per kyber) and they bury everything else. The *Lessons* button adds them.
+newest few per agent team) and they bury everything else. The *Lessons* button adds them.
 
 ### What "To check" lists
 
 Only things that are provably wrong:
 
-- a kyber or project declares a skill that is not among the installed skills;
+- an agent team or project declares a skill that is not among the installed skills;
 - a declared skill is inactive;
 - two skills share a name in two folders (only one is used);
 - an automation whose last run failed.
 
 A skill nobody declares is **not** listed: skills are mostly used by name, on
-demand, so that would be noise. Nor is an app that no kyber lists.
+demand, so that would be noise. Nor is an app that no agent team lists.
 
 ## Where the data comes from
 
@@ -63,10 +63,10 @@ named in a banner and the rest still draw.
 | Source | Route | Gives |
 |---|---|---|
 | Projects | DSH workspace store + `GET /kybernos/load` (`workspaceUi`) | names, declared skills, sessions per project |
-| Kybers | `GET /kybernos/load` | definitions, roles, declared skills, tools |
-| Which kyber worked where | `POST /kybernos/project-data` (read-only) | active kybers per session, so kyber ↔ project |
+| Agent Teams | `GET /kybernos/load` | definitions, roles, declared skills, tools |
+| Which agent team worked where | `POST /kybernos/project-data` (read-only) | active agent teams per session, so agent team ↔ project |
 | Skills | `GET /kybernos-skills/skills` | installed skills |
-| Lessons | `GET /kybernos-sessions/state` | the 5 newest lessons per kyber, and totals |
+| Lessons | `GET /kybernos-sessions/state` | the 5 newest lessons per agent team, and totals |
 | Memory | `GET /kybernos-cloud/memory` | counts only (needs a linked kybernos.app account) |
 | Automations | `POST /kybernos/tasks` `{action:'list'}` (read-only) | schedule and last runs |
 | Apps | `GET /kybernos/composio/connections`, `GET /kybernos-miniapps/list` | connected apps |
@@ -75,15 +75,15 @@ Things worth knowing:
 
 - **Runs** are only drawn from the last 14 days of each automation's history, and only in the drawings.
 - **Account memory is one node with a count.** It can hold hundreds of facts and
-  is not tied to a project or a kyber, so it is never drawn fact by fact.
-- **Lessons**: the host only returns the 5 newest per kyber; the kyber's card
+  is not tied to a project or an agent team, so it is never drawn fact by fact.
+- **Lessons**: the host only returns the 5 newest per agent team; the agent team's card
   says how many older ones exist.
-- **kyber ↔ project is derived** from the kybers that were active in a project's
+- **agent team ↔ project is derived** from the agent teams that were active in a project's
   40 most recent sessions (the host reads at most 40 per call). There is no field
-  that declares it, and it is only recorded when a kyber was activated in a
-  session, so many projects show few kybers. The Map opens on the best-connected
-  project or kyber for that reason.
-- **app ↔ kyber is inferred** from a tool-name match. Nothing declares it.
+  that declares it, and it is only recorded when an agent team was activated in a
+  session, so many projects show few agent teams. The Map opens on the best-connected
+  project or agent team for that reason.
+- **app ↔ agent team is inferred** from a tool-name match. Nothing declares it.
 - The automations list is read through the plugin's own route; the task store also
   holds each task's prompt and, for webhook tasks, a secret. The client copies only
   `id`, `name`, `schedule`, `active` and `history`, and a test checks that nothing
@@ -98,13 +98,13 @@ The details card has an **Open** button when the thing has a page in Kybernos:
 | Node | Opens |
 |---|---|
 | Skill | Skills |
-| Kyber (one with a definition) | the kyber's page |
+| Agent Team (one with a definition) | the agent team's page |
 | Project | the project's page |
 | Automation | Automations |
 | App (a connected toolkit) | Connectors |
 | Run | its session |
 
-Memory, lessons, mini apps, a kyber known only by its lessons and the workspace itself have no page of
+Memory, lessons, mini apps, an agent team known only by its lessons and the workspace itself have no page of
 their own, so they only offer *Copy*. The Settings dialog is closed afterwards so the page is visible.
 
 How: the main plugin exposes `window.__KB_OPEN__(patch)` (in `kybernos-plugin/client.js`), the same
