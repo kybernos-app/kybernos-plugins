@@ -75,7 +75,17 @@ try {
     check('a tap on the dimmed chat closes it', closed.collapsed === true && closed.drawerRight <= 0, closed)
 
     await tap(menu[0], menu[1]); await sleep(1000)
-    const row = await center('[data-row-key^="session:"]')
+    // a row the finger can actually reach: the drawer's list scrolls under its footer card, so bring one to the middle
+    // of the list and check that the row (not the footer) is what is under that point
+    const row = await ev(`(() => {
+      const e = Array.from(document.querySelectorAll('[data-row-key^="session:"]')).find((x) => x.getBoundingClientRect().height > 0)
+      if (!e) return null
+      e.scrollIntoView({ block: 'center' })
+      const r = e.getBoundingClientRect(); const x = r.left + 60; const y = r.top + r.height / 2
+      const hit = document.elementFromPoint(x, y)
+      return hit && hit.closest('[data-row-key]') === e ? [x, y] : null
+    })()`)
+    await sleep(300)
     if (row !== null) {
       await tap(row[0], row[1]); await sleep(2500)
       const picked = await snapshot()
@@ -88,6 +98,9 @@ try {
 
   console.log('settings')
   await page.send('Page.reload', {}); await sleep(4500)
+  // on a phone the account card lives in the drawer: open it first, like a person does
+  const drawerBtn = await center('[data-kb="mobile-menu"]')
+  if (drawerBtn !== null) { await tap(drawerBtn[0], drawerBtn[1]); await sleep(1000) }
   const opened = await openSettings(page, { minCells: 3 })
   check('Settings opens', opened === true)
   if (opened === true) {

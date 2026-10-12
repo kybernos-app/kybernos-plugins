@@ -272,6 +272,9 @@ console.log('the "..." sheet: what a phone parked')
   check('"open in Finder" is never offered on a phone', !out.some((x) => /Finder/.test(x.label)))
   check('an element is parked when an ancestor is fixed and invisible', t.isParked(parkedEl, styleOf) === true && t.isParked(shownEl, styleOf) === false)
   check('a style that cannot be read means "not parked"', t.isParked({ parentElement: null }, () => { throw new Error('gone') }) === false)
+  const longEl = mk('Commands: browse, run, edit or create slash commands and actions', true)
+  const shortLabels = t.parkedActions({ querySelectorAll: () => [longEl, mk('Share…', true)] }, styleOf).map((x) => x.label)
+  check('a long label is shortened to its name (what comes before the colon)', shortLabels[0] === 'Commands' && shortLabels[1] === 'Share…', shortLabels)
   check('the selectors name DSH\'s stable slots, not hashed classes', /conversation\.session\.header\.actions/.test(t.ACTION_BUTTONS) && /data-composer-card/.test(t.ACTION_BUTTONS) && !/\._[A-Za-z0-9]{4,}_/.test(t.ACTION_BUTTONS))
 }
 {

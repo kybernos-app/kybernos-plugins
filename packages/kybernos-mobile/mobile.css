@@ -409,7 +409,8 @@
   .kbmob-sheet-row:active {
     background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .2));
   }
-  .kbmob-sheet-row svg {
+  .kbmob-sheet-row svg,
+  .kbmob-sheet-noico {
     flex: none;
     width: 22px;
     height: 22px;

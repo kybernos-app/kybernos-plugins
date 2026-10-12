@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // Visual and measured check of the phone layout on the REAL GUI's DOM, for the stylesheet in the working tree.
 //
-//   node scripts/check-mobile-visual.mjs [--css <file>] [--shots <dir>] [--only <WxH>] [--host <host:port>]
+//   node scripts/check-mobile-visual.mjs [--css <file>] [--deployed] [--shots <dir>] [--only <WxH>] [--host <host:port>]
 //
 // A throw-away headless Chrome opens the DSH at KB_HOST (default 127.0.0.1:3080, signed in by cookie), emulates each
 // device, replaces the page's `#kbmob-sheet` with the stylesheet you are working on (default
 // packages/kybernos-mobile/mobile.css), opens a conversation and the drawer, takes screenshots and measures:
 // no sideways scroll, a one-row composer of 44 px targets with a readable model name, a title that is not squeezed
 // to nothing, rows of 44 px in the drawer, a 16 px field, and, above 700 px, that the sheet changed nothing.
-// Nothing is written to the user's DSH: only a view is emulated and sessions are opened, never sent to.
+// With --deployed nothing is injected: the page runs what this DSH serves (stylesheet AND client half), which also
+// proves the "..." sheet. Nothing is written to the user's DSH: only a view is emulated and sessions are opened, never sent to.
 // Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down).
 import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -21,6 +22,7 @@ const arg = (name, def) => (args.indexOf(name) >= 0 ? args[args.indexOf(name) + 
 const cssFile = arg('--css', join(here, '..', 'packages', 'kybernos-mobile', 'mobile.css'))
 const shotsDir = arg('--shots', null)
 const only = arg('--only', null)
+const deployed = args.indexOf('--deployed') >= 0
 if (arg('--host', null) !== null) process.env.KB_HOST = arg('--host', null)
 if (shotsDir !== null) mkdirSync(shotsDir, { recursive: true })
 const CSS = readFileSync(cssFile, 'utf8')
@@ -54,7 +56,7 @@ const center = (sel, text) => ev(`(() => {
   const r = e.getBoundingClientRect()
   return [r.left + Math.min(60, r.width / 2), r.top + r.height / 2]
 })()`)
-const injectCss = () => ev(`(() => {
+const injectCss = () => deployed ? Promise.resolve(true) : ev(`(() => {
   let s = document.getElementById('kbmob-sheet')
   if (!s) { s = document.createElement('style'); s.id = 'kbmob-sheet'; document.head.insertBefore(s, document.head.firstChild) }
   s.textContent = ${JSON.stringify(CSS)}
@@ -171,6 +173,25 @@ try {
       check('nothing changes: the menu button stays hidden', m.menuDisplay === null || m.menuDisplay === 'none', m.menuDisplay)
       check('nothing changes: the sidebar column is in the grid', m.cols !== null && m.cols >= 2, m.cols)
       check('nothing changes: the stats strip is not hidden', m.dockDisplay === null || m.dockDisplay !== 'none', m.dockDisplay)
+    }
+
+    // the "..." sheet (client half): only when this DSH serves the client that builds it
+    if (phone && deployed && w <= 700) {
+      const more = await ev(`(() => { const b = Array.from(document.querySelectorAll('[data-slot="conversation.session.header.utilities"] button')).find((x) => !x.closest('[data-open-target]') && x.getBoundingClientRect().width > 2); if (!b) return null; const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2] })()`)
+      check('the header has a visible "More actions" button', more !== null, more)
+      if (more !== null) {
+        await tap(more[0], more[1]); await sleep(900)
+        const sheet = await ev(`(() => { const p = document.querySelector('.kbmob-sheet'); if (!p) return null; const rows = Array.from(p.querySelectorAll('.kbmob-sheet-row')).map((r) => (r.textContent || '').trim()); const b = p.getBoundingClientRect(); return JSON.stringify({ rows, bottom: Math.round(b.bottom), vh: innerHeight, left: Math.round(b.left), right: Math.round(b.right) }) })()`)
+        if (shotsDir !== null) await page.shot(join(shotsDir, name + '-4-sheet.png'))
+        const info = sheet === null ? null : JSON.parse(sheet)
+        check('a tap on it opens the sheet', info !== null)
+        if (info !== null) {
+          check('the sheet lists the parked actions and DSH\'s own menu last (3 rows or more)', info.rows.length >= 3, info.rows)
+          check('the sheet sits at the bottom edge of the screen', Math.abs(info.bottom - info.vh) <= 2 && info.left === 0, info)
+          await tap(Math.round(w / 2), 60); await sleep(600)
+          check('a tap on the dimmed page closes it', await ev(`!document.querySelector('.kbmob-sheet')`) === true)
+        }
+      }
     }
 
     // the right bar, full screen on a phone
