@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par kyber.",
-    "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per kyber."
+    "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par Agent Team.",
+    "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per agent team."
   },
   "steps": [
     {
@@ -27,7 +27,7 @@
     "page": true
   },
   "good": {
-    "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par kyber.",
-    "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per kyber."
+    "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par Agent Team.",
+    "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per agent team."
   }
 }

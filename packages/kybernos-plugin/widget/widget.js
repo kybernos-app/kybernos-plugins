@@ -194,7 +194,7 @@
     c.appendChild(g)
     var intro = document.createElement('div')
     intro.className = 'kbwgt-ligne'
-    intro.textContent = 'Before chatting you accept the terms of this kyber, and you sign in with your Kybernos account.'
+    intro.textContent = 'Before chatting you accept the terms of this agent team, and you sign in with your Kybernos account.'
     c.appendChild(intro)
     var ls = document.createElement('div')
     ls.className = 'kbwgt-ligne'
@@ -336,7 +336,7 @@
           vus = 1
           var att = document.createElement('div')
           att.className = 'kbwgt-sys'
-          att.textContent = 'Sent — this kyber answers here.'
+          att.textContent = 'Sent — this agent team answers here.'
           msgs.appendChild(att)
           msgs.scrollTop = msgs.scrollHeight
           rafraichir()

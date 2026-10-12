@@ -77,7 +77,7 @@ class Instructions(unittest.TestCase):
         self.assertIn("the language the user speaks", instructions(CallMeta(language="auto")))
 
     def test_without_a_name(self):
-        self.assertIn("You are the Kyber", instructions(CallMeta()))
+        self.assertIn("You are the Agent Team", instructions(CallMeta()))
 
     def test_an_unknown_code_is_passed_through(self):
         self.assertIn("Answer in sv", instructions(CallMeta(language="sv")))

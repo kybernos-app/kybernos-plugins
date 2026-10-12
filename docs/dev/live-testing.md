@@ -542,7 +542,7 @@ by real clicks and reads what is visible:
 - text carrying `⟦…⟧` went through the translation system;
 - text without it is a **leftover**: `FR left` is French nobody translated
   (hardcoded in a plugin, or a plugin with its own table), `EN left` is English
-  from DSH itself, or data (session titles, kyber descriptions, workspace names).
+  from DSH itself, or data (session titles, agent team descriptions, workspace names).
 
 It runs two passes: the first lets the live translation of hardcoded settings text
 learn each page, the audit waits for that to settle, the second measures.
@@ -657,7 +657,7 @@ mapping from the engine's structures. In a sandbox with no model key a run ends 
 `data-task`), `board-calendar`, `board-week`, `board-day`, `board-event`, `board-month`, `board-mcell`, `board-detail`,
 `board-banner`, `board-action` (`data-act`). Exit 0 / 1 / 3.
 
-## The Creations, Kybers and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
+## The Creations, Agent Teams and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
 
 ```bash
 source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # an isolated instance serving this checkout (restart it after a host edit)
@@ -671,7 +671,7 @@ instance's DSH home (both put back at the end). It plays, on real clicks and key
   a row has no « View » / « expand » button, its quick actions are hidden at rest, shown on hover and on keyboard focus, always
   shown with no hover (touch), the name keeps its width at 400 px; a Data row says what it holds, a Data card is a table or a few
   fields, an opened Data creation is a table or a tree with « View source » one click away;
-- **kybers**: the sidebar entry says « Kybers »; the tab row does not move between the Kybers and Marketplace tabs (1400 and 640 px);
+- **agent teams**: the sidebar entry says « Agent Teams »; the tab row does not move between the Agent Teams and Marketplace tabs (1400 and 640 px);
 - **skills**: a stand-in relay (loopback) answers 502 → the message, the automatic second attempt, « Try again » and « Change »,
   the other tabs untouched; the source line; a bad address refused with the variable's rule; the Featured list and the ranking
   are the same rows; at 640 px nothing is cut off at the right;
@@ -679,7 +679,7 @@ instance's DSH home (both put back at the end). It plays, on real clicks and key
   its bones were), no shimmer under `prefers-reduced-motion`, only the first twelve rows fade in. The rules and the helper are in
   `skeleton-screens.md`.
 
-A check that has nothing to compare (no creation, no Kyber, nothing featured in the instance) says so and moves on. Exit 0 / 1 / 3.
+A check that has nothing to compare (no creation, no Agent Team, nothing featured in the instance) says so and moves on. Exit 0 / 1 / 3.
 
 ## A broken bundle must not stop DSH: `scripts/check-bundle-faults.mjs`
 

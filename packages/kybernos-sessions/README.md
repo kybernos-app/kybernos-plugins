@@ -53,7 +53,7 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
 - CLI tools, not loaded by DSH: `garde.mjs` (agent hook: `--isoler`, `--claim|--release <hot file>`, `--check`,
   `--veille [--install|--uninstall|--etat]`; state in `kybernos/{hot-claims.json,last-good/,veille-bundle.log}`; the permanent
   `--veille` writes a macOS LaunchAgent and puts back the last parsable copy of a hot client file, so never run it while someone
-  edits one) and `proof-sync.mjs` (mirrors kyber lessons into `<project>/.kybers/`).
+  edits one) and `proof-sync.mjs` (mirrors agent team lessons into `<project>/.kybers/`).
 
 ## DSH seams, network
 
@@ -61,7 +61,7 @@ Under `/kybernos-sessions/`. Every action route is a **dry run unless the body h
   `ctx.get('remote.settings').describe()` (read-only, `llm-pi-ai` namespace, in try/catch, not in `inject`), DSH's own
   `POST /api/session/list` and `/api/session/page` with the browser cookie, DOM observers. No `remote.*` in `package.json`.
 - `git` and `gh` run through `execFile` (15 s / 20 s); push, fetch and PRs go to the repo's `origin`.
-- The decision brain posts the session title (or a kyber mission list) to `https://ai-gateway.vercel.sh/v1/evaluate` (model
+- The decision brain posts the session title (or an agent team mission list) to `https://ai-gateway.vercel.sh/v1/evaluate` (model
   `typesafe-ai/jev`); nothing is sent without `VERCEL_AI_GATEWAY_API_KEY` (env, else `.credentials.yaml`) or when `decisionBrain`
   is `none`. The health probe makes one tiny real call per configured model through DSH's `llm`.
 

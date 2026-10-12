@@ -102,7 +102,7 @@ console.log('filters')
 check('no active filter by default, on either tab', T.activeFilters('memories', T.defaultFilters()).length === 0 && T.activeFilters('lessons', T.defaultFilters()).length === 0)
 const act = T.activeFilters('memories', { ...T.defaultFilters(), added: '1h', src: 'capture' })
 check('each non-default filter is one chip with its own key and default', act.length === 2 && act.every((c) => typeof c.key === 'string' && c.def !== undefined) && act.some((c) => c.text === 'Added: Last hour') && act.some((c) => c.text === 'Source: Auto-capture'))
-check('a kyber filter is a chip too', T.activeFilters('lessons', { ...T.defaultFilters(), kyber: 'audit' }).some((c) => c.key === 'kyber' && c.text === 'Kyber: audit' && c.def === ''))
+check('an agent team filter is a chip too', T.activeFilters('lessons', { ...T.defaultFilters(), kyber: 'audit' }).some((c) => c.key === 'kyber' && c.text === 'Agent Team: audit' && c.def === ''))
 check('the Scope (Mine | Team) is a segmented control of the Lessons tab, no longer a filter group', !T.GROUPS.lessons.some((g) => g.key === 'scope') && T.defaultFilters().scope === 'mine' && /label: 'Scope'/.test(SOURCE))
 
 // ── words

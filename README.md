@@ -73,8 +73,8 @@ Each folder under [`packages/`](packages) is an independent DSH bundle (`package
 | [`kybernos-mobile`](packages/kybernos-mobile/README.md) | The phone: DSH usable on a narrow screen (drawer, stacked Settings), and on a paid plan a QR code that links a phone to this computer, end to end encrypted |
 | [`kybernos-websearch`](packages/kybernos-websearch/README.md) | Web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain |
 | [`kybernos-terminal`](packages/kybernos-terminal/README.md) | Shell fences dressed as terminal windows, with a run button |
-| [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per kyber (compatible with `memory.cjs`), switches, tools |
-| [`kybernos-sessions`](packages/kybernos-sessions/README.md) | Session and kyber memory status per folder |
+| [`kybernos-memory`](packages/kybernos-memory/README.md) | Lessons learned: read, written and injected per agent team (compatible with `memory.cjs`), switches, tools |
+| [`kybernos-sessions`](packages/kybernos-sessions/README.md) | Session and agent team memory status per folder |
 | [`kybernos-skills`](packages/kybernos-skills/README.md) | Skills catalog backed by DSH's native skill registry |
 | [`kybernos-slash`](packages/kybernos-slash/README.md) | Slash commands and message actions |
 

@@ -15,8 +15,8 @@
     },
     {
       "id": "teams",
-      "fr": "Kybers",
-      "en": "Kybers",
+      "fr": "Agent Teams",
+      "en": "Agent Teams",
       "couleur": "#1a9a8a"
     },
     {
@@ -57,30 +57,30 @@
       "defaut": null,
       "poids_ko": 8090,
       "promesse": {
-        "fr": "Le cœur : Kybers, ressources, réglages et préréglages.",
-        "en": "The core: Kybers, resources, settings and presets."
+        "fr": "Le cœur : Agent Teams, ressources, réglages et préréglages.",
+        "en": "The core: Agent Teams, resources, settings and presets."
       },
       "aide": {
         "what": {
-          "fr": "Le cœur de Kybernos : des Kybers (équipes d’agents) que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
-          "en": "The heart of Kybernos: Kybers (teams of agents) you start from a chat, what they create, automations, voice and tool choices."
+          "fr": "Le cœur de Kybernos : des Agent Teams (des équipes d’agents sur une mission) que vous lancez depuis un chat, leurs créations, des automations, la voix et le choix des outils.",
+          "en": "The heart of Kybernos: Agent Teams (teams of agents on a mission) you start from a chat, what they create, automations, voice and tool choices."
         },
         "steps": [
           {
-            "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit le Kyber.",
-            "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Kyber."
+            "fr": "Dans le menu « Kybernos » de la barre latérale, « New chat » ouvre une conversation ; la flèche à côté choisit l’Agent Team.",
+            "en": "In the sidebar’s “Kybernos” menu, “New chat” opens a conversation; the arrow next to it picks the Agent Team."
           },
           {
-            "fr": "« Kybers » : parcourez, créez et modifiez vos Kybers. « Workspaces » rassemble vos projets et leurs conversations.",
-            "en": "“Kybers”: browse, create and edit your Kybers. “Workspaces” gathers your projects and their chats."
+            "fr": "« Agent Teams » : parcourez, créez et modifiez vos Agent Teams. « Workspaces » rassemble vos projets et leurs conversations.",
+            "en": "“Agent Teams”: browse, create and edit your Agent Teams. “Workspaces” gathers your projects and their chats."
           },
           {
-            "fr": "« Créations » garde les fichiers produits ; « Automations » lance un Kyber seul, à l’heure choisie ou quand un message arrive.",
-            "en": "“Creations” keeps the files produced; “Automations” starts a Kyber on its own, at a chosen time or when a message arrives."
+            "fr": "« Créations » garde les fichiers produits ; « Automations » lance une Agent Team seule, à l’heure choisie ou quand un message arrive.",
+            "en": "“Creations” keeps the files produced; “Automations” starts an Agent Team on its own, at a chosen time or when a message arrives."
           },
           {
-            "fr": "Dans un chat, l’onglet « Journal » retrace ce que le Kyber a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
-            "en": "In a chat, the “Journal” tab traces what the Kyber ran. The “Tools” and “Voice” pages are in Settings."
+            "fr": "Dans un chat, l’onglet « Journal » retrace ce que l’Agent Team a exécuté. Les pages « Outils » et « Voix » sont dans les Réglages.",
+            "en": "In a chat, the “Journal” tab traces what the Agent Team ran. The “Tools” and “Voice” pages are in Settings."
           }
         ],
         "where": {
@@ -1468,13 +1468,13 @@
       "defaut": "actif",
       "poids_ko": 140,
       "promesse": {
-        "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par kyber, filtres, interrupteurs.",
-        "en": "The Memory & Lessons learned page: account memory and lessons per kyber, filters, on/off switches."
+        "fr": "La page Memory & Lessons learned : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.",
+        "en": "The Memory & Lessons learned page: account memory and lessons per agent team, filters, on/off switches."
       },
       "aide": {
         "what": {
-          "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par kyber.",
-          "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per kyber."
+          "fr": "Une page pour voir et corriger ce que Kybernos retient : vos souvenirs (dans votre compte) et les leçons que les agents tirent de leur travail, par Agent Team.",
+          "en": "One page to see and fix what Kybernos remembers: your memories (kept in your account) and the lessons agents learn from their work, per agent team."
         },
         "steps": [
           {
@@ -1500,8 +1500,8 @@
           "page": true
         },
         "good": {
-          "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par kyber.",
-          "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per kyber."
+          "fr": "Les souvenirs vivent dans votre compte Kybernos Cloud (à connecter, même en offre Free) ; les leçons restent sur cet ordinateur, rangées par Agent Team.",
+          "en": "Memories live in your Kybernos Cloud account (connect it first, any plan including Free); lessons stay on this computer, kept per agent team."
         }
       },
       "vedette": 3,
@@ -1510,8 +1510,8 @@
         "en": "What the agents remember"
       },
       "description": {
-        "fr": "La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque kyber, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
-        "en": "The Memory & Lessons learned page: the account memories and the lessons of every kyber, with search, filters and switches. Search ranks by relevance, locally."
+        "fr": "La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.",
+        "en": "The Memory & Lessons learned page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally."
       },
       "points": [
         {
@@ -1519,8 +1519,8 @@
           "en": "Account memories: list, search, filters (pinned, source, date), add, edit, forget with Undo"
         },
         {
-          "fr": "Leçons de chaque kyber : filtres, modification, suppression (archivée, pas perdue)",
-          "en": "Lessons of every kyber: filters, edit, delete (archived, not lost)"
+          "fr": "Leçons de chaque Agent Team : filtres, modification, suppression (archivée, pas perdue)",
+          "en": "Lessons of every agent team: filters, edit, delete (archived, not lost)"
         },
         {
           "fr": "Recherche classée par pertinence, en local : accents, pluriels et mots rares pris en compte",
@@ -1544,13 +1544,13 @@
       "defaut": null,
       "poids_ko": 168,
       "promesse": {
-        "fr": "La carte de votre espace : projets, kybers, skills, mémoire, et ce qui est cassé.",
-        "en": "A map of your workspace: projects, kybers, skills, memory, and what is broken."
+        "fr": "La carte de votre espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.",
+        "en": "A map of your workspace: projects, agent teams, skills, memory, and what is broken."
       },
       "aide": {
         "what": {
-          "fr": "Une carte en lecture seule de votre espace : projets, kybers, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
-          "en": "A read-only map of your workspace: projects, kybers, skills, memory, lessons, automations and apps, how they connect, and what is broken."
+          "fr": "Une carte en lecture seule de votre espace : projets, Agent Teams, skills, mémoire, leçons, automatisations et applications, comment ils se relient, et ce qui est cassé.",
+          "en": "A read-only map of your workspace: projects, agent teams, skills, memory, lessons, automations and apps, how they connect, and what is broken."
         },
         "steps": [
           {
@@ -1562,8 +1562,8 @@
             "en": "Click “Update”: nothing is read before you do, and the header says how long ago the map was read."
           },
           {
-            "fr": "Dans « Around », choisissez un projet ou un kyber dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
-            "en": "In “Around”, pick a project or a kyber in “Start from”: four columns show who works there and what they use."
+            "fr": "Dans « Around », choisissez un projet ou une Agent Team dans « Start from » : quatre colonnes montrent qui y travaille et ce qu’il utilise.",
+            "en": "In “Around”, pick a project or an agent team in “Start from”: four columns show who works there and what they use."
           },
           {
             "fr": "Les autres onglets montrent la même carte autrement ; « To check » liste ce qui est cassé, « Help » explique les traits.",
@@ -1790,17 +1790,17 @@
       },
       "aide": {
         "what": {
-          "fr": "Affiche en lecture seule la petite base SQLite que garde un kyber : schéma en diagramme, graphiques, tableaux et zone de requête.",
-          "en": "Shows, read-only, the small SQLite database a kyber keeps: schema as a diagram, charts, tables and a query box."
+          "fr": "Affiche en lecture seule la petite base SQLite que garde une Agent Team : schéma en diagramme, graphiques, tableaux et zone de requête.",
+          "en": "Shows, read-only, the small SQLite database an agent team keeps: schema as a diagram, charts, tables and a query box."
         },
         "steps": [
           {
-            "fr": "Ouvrez l'onglet « Base de données » dans la barre latérale droite : le titre « Base du kyber » et une liste de bases apparaissent.",
-            "en": "Open the “Base de données” tab in the right sidebar: the title “Base du kyber” and a list of databases appear."
+            "fr": "Ouvrez l'onglet « Base de données » dans la barre latérale droite : le titre « Base de l’Agent Team » et une liste de bases apparaissent.",
+            "en": "Open the “Base de données” tab in the right sidebar: the title “Base de l’Agent Team” and a list of databases appear."
           },
           {
-            "fr": "Choisissez la base d'un kyber dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
-            "en": "Pick a kyber's database in the list; the “↻” button reads it again if it just changed."
+            "fr": "Choisissez la base d'une Agent Team dans la liste ; le bouton « ↻ » la relit si elle vient de changer.",
+            "en": "Pick an agent team's database in the list; the “↻” button reads it again if it just changed."
           },
           {
             "fr": "Passez d'une vue à l'autre : « Diagramme », « Graphiques », « Données » (un tableau à la fois) ou « SQL ».",
@@ -1817,18 +1817,18 @@
           "page": false
         },
         "good": {
-          "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base de kyber, l'onglet le dit. Interface en français.",
-          "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no kyber database, the tab says so. Interface in French only."
+          "fr": "Lecture seule : rien ne peut être modifié ici, la zone SQL n'accepte que SELECT, WITH, PRAGMA et EXPLAIN. Sans base d'Agent Team, l'onglet le dit. Interface en français.",
+          "en": "Read-only: nothing can be changed here, and the SQL box only accepts SELECT, WITH, PRAGMA and EXPLAIN. With no agent team database, the tab says so. Interface in French only."
         }
       },
       "vedette": 4,
       "accroche": {
-        "fr": "Lire la base d’un kyber dans le chat",
-        "en": "Read a kyber’s database in the chat"
+        "fr": "Lire la base d’une Agent Team dans le chat",
+        "en": "Read an agent team’s database in the chat"
       },
       "description": {
-        "fr": "Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde un kyber, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.",
-        "en": "A read-only SQLite viewer in the right sidebar: the small database a kyber keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page."
+        "fr": "Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde une Agent Team, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.",
+        "en": "A read-only SQLite viewer in the right sidebar: the small database an agent team keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page."
       },
       "points": [
         {

@@ -217,7 +217,7 @@ export const renderLessonsChunk = (context) => {
     if (settings.context !== true) return ''
     const plan = planLessons(sessionIdOf(context), { relevant: settings.relevant === true })
     if (plan.chosen.length === 0) return ''
-    const lines = [CHUNK_HEAD + ' Lessons learned on this machine' + (plan.kyber === null ? '' : ' (your kyber: ' + plan.kyber + ')') + ':']
+    const lines = [CHUNK_HEAD + ' Lessons learned on this machine' + (plan.kyber === null ? '' : ' (your agent team: ' + plan.kyber + ')') + ':']
     plan.chosen.forEach((l) => lines.push(lessonLine(l)))
     if (plan.omitted > 0) lines.push('- … (' + String(plan.omitted) + ' more not shown: lesson_search to look them up)')
     lines.push('', 'Record a new lesson with lesson_write only when an expectation was contradicted: one falsifiable sentence.')
@@ -235,13 +235,13 @@ const DEFAULT_KYBER = 'default'
 
 const lessonWriteTool = () => ({
   name: 'lesson_write',
-  description: 'Records a lesson learned in a kyber: ONE falsifiable sentence, only when an expectation was contradicted. Never fabricate one to fill a box.',
+  description: 'Records a lesson learned in an agent team: ONE falsifiable sentence, only when an expectation was contradicted. Never fabricate one to fill a box.',
   parameters: {
     type: 'object',
     additionalProperties: false,
     properties: {
       text: { type: 'string', description: 'The lesson, one sentence (cut at ' + String(LESSON_MAX_CHARS) + ' characters).' },
-      kyber: { type: 'string', description: 'The kyber the lesson belongs to. Default: "default".' },
+      kyber: { type: 'string', description: 'The agent team the lesson belongs to. Default: "default".' },
       tags: { type: 'array', items: { type: 'string' }, description: 'Up to 5 short lower-case tags.' },
     },
     required: ['text'],
@@ -265,13 +265,13 @@ const lessonWriteTool = () => ({
 
 const lessonSearchTool = () => ({
   name: 'lesson_search',
-  description: 'Looks up lessons learned (every kyber, or one). Lessons it returns count as used, which keeps them from being evicted.',
+  description: 'Looks up lessons learned (every agent team, or one). Lessons it returns count as used, which keeps them from being evicted.',
   parameters: {
     type: 'object',
     additionalProperties: false,
     properties: {
       q: { type: 'string', description: 'Words to look for.' },
-      kyber: { type: 'string', description: 'Restrict to one kyber.' },
+      kyber: { type: 'string', description: 'Restrict to one agent team.' },
     },
     required: ['q'],
   },
@@ -400,7 +400,7 @@ const lessonsListRoute = async (req) => {
     ok: true, ...listed,
     filters: { kyber: isKyberId(kyber) ? kyber : null, used: params.get('used') === '1', added: params.get('added') === null ? 'any' : params.get('added'), q: params.get('q') === null ? '' : params.get('q') },
     search: { mode: 'relevance', relevance: true },
-    injection: { scope: 'the kyber of the session, plus default', cap: plan.cap, defaultSent: plan.chosen.length, defaultOmitted: plan.omitted },
+    injection: { scope: 'the agent team of the session, plus default', cap: plan.cap, defaultSent: plan.chosen.length, defaultOmitted: plan.omitted },
     // the chat this page is open next to (`?session=`): how many lessons were picked for its latest message
     picked: pickedFor(params.get('session')),
     settings: readSettings(),
