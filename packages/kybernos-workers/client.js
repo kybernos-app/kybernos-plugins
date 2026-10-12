@@ -655,7 +655,25 @@ window.__ModuleLoader__.load({
           } catch (e) { /* publishing is optional */ }
         })
 
-        if (loaded.state === 'loading') return h('div', { className: 'kbwk' }, h('div', { className: 'kbwk-empty' }, kt('Chargement des workers…', 'Loading workers…')))
+        if (loaded.state === 'loading') {
+          // The page's own head, then bones in the rows' own grid (the core plugin publishes one skeleton helper for every list,
+          // window.__KB_SKEL__); without it, the line of text as before.
+          let k = null
+          try { k = window.__KB_SKEL__ } catch (e) { k = null }
+          if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbwk' }, h('div', { className: 'kbwk-empty' }, kt('Chargement des workers…', 'Loading workers…')))
+          return h('div', { className: 'kbwk' },
+            h('div', { className: 'kbwk-page' },
+              h('div', { className: 'kbwk-head' },
+                h('div', null, h('h4', null, 'Workers'),
+                  h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else.'))),
+                h('span', { className: 'kbwk-hbtn' }, k.bone(120, 36, null, 18), k.bone(104, 36, null, 18))),
+              h('div', { className: 'kbwk-count' }, k.bone(64, 14), k.bone(78, 14)),
+              k.wrap(kt('Chargement des workers…', 'Loading workers…'), 'kbwk-list', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbwk-item' },
+                h('div', { className: 'kbwk-row kb-sk-row' },
+                  h('span', { style: { display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 } }, k.bone(34, 34, null, 10),
+                    h('span', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, k.bone(i % 2 === 0 ? '40%' : '30%', 13), k.bone('62%', 10))),
+                  k.bone(96, 22, 'pill'), k.bone(40, 12), k.bone(150, 30, null, 9), k.bone(18, 18, 'round')))))))
+        }
         if (loaded.state === 'error') {
           return h('div', { className: 'kbwk' },
             h('div', { className: 'kbwk-head' }, h('div', null, h('h4', null, 'Workers'))),

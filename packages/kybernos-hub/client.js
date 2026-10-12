@@ -680,7 +680,31 @@ window.__ModuleLoader__.load({
           return () => { if (typeof debrancher === 'function') debrancher() }
         }, [])
 
-        if (charge.etat === 'loading') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
+        if (charge.etat === 'loading') {
+          // The page's own head, then bones in the cards' own grid (one skeleton helper for every list, published by the core
+          // plugin as window.__KB_SKEL__); without it, the line of text as before.
+          let k = null
+          try { k = window.__KB_SKEL__ } catch (e) { k = null }
+          if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
+          return h('div', { className: 'kbsu', 'data-kb': 'suite' },
+            h('div', { className: 'kbsu-head' },
+              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+              h('div', { className: 'kbsu-headr' },
+                h('span', { className: 'kbsu-right' }, k.bone(150, 34, null, 10), k.bone(190, 34, null, 10)),
+                h('div', { className: 'kbsu-meta' }, k.bone(240, 12)))),
+            h('div', { className: 'kbsu-bar' },
+              h('div', { style: { display: 'flex', gap: 6 } }, [0, 1, 2, 3].map((i) => k.bone(i === 0 ? 92 : 70, 32, 'pill'))),
+              h('span', { className: 'kbsu-right' }, k.bone(220, 36, null, 11))),
+            h('div', { className: 'kbsu-fams' }, [0, 1, 2, 3, 4].map((i) => k.bone(i === 0 ? 130 : 96, 28, 'pill'))),
+            h('div', { className: 'kbsu-subbar' }, k.bone(230, 12)),
+            k.wrap(kt('Chargement de la suite…', 'Loading the suite…'), 'kbsu-grid', [0, 1, 2, 3, 4, 5].map((i) => h('div', { key: 'sk' + i, className: 'kbsu-card kb-sk-row' },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+                k.bone(44, 44, null, 14),
+                h('span', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, k.bone(i % 2 === 0 ? '55%' : '40%', 14), k.bone('35%', 10)),
+                k.bone(40, 22, 'pill')),
+              h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: '4.35em' } }, k.bone('94%', 10), k.bone('82%', 10), k.bone('58%', 10)),
+              h('div', { style: { display: 'flex', gap: 8 } }, k.bone(70, 22, 'pill'), k.bone(54, 22, 'pill'))))))
+        }
         if (charge.etat === 'error') {
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),

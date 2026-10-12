@@ -141,6 +141,13 @@ window.__ModuleLoader__.load({
         } catch (e) { return { ok: false, error: String(e && e.message ? e.message : e) } }
       }
 
+      const skelHelper = () => {
+        try {
+          const k = window.__KB_SKEL__
+          return (k !== null && k !== undefined && typeof k.bone === 'function' && typeof k.wrap === 'function') ? k : null
+        } catch (e) { return null }
+      }
+
       // ── the panel ────────────────────────────────────────────────────────
       const Panel = () => {
         const [status, setStatus] = React.useState(null)
@@ -196,7 +203,12 @@ window.__ModuleLoader__.load({
           h('p', { className: 'kfl-avertis' }, m('kfl.avertis')),
 
           h('div', { className: 'kfl-section' }, m('kfl.liste')),
-          models.length === 0
+          // Not read yet: bones in the rows' own box (the shared skeleton helper of the core plugin, window.__KB_SKEL__), instead of
+          // the « no free model » line that then got replaced. Without the helper the line shows, as before.
+          (status === null && erreur === null && skelHelper() !== null)
+            ? skelHelper().wrap(m('kfl.liste'), 'kfl-liste', [0, 1, 2].map((i) => h('div', { className: 'kfl-mod kb-sk-row', key: 'sk' + i },
+              skelHelper().bone(10, 10, 'round'), skelHelper().bone(i % 2 === 0 ? '46%' : '36%', 13), skelHelper().bone(34, 18, 'pill'))))
+            : models.length === 0
             ? h('p', { className: 'kfl-note' }, catalogOk === false && status !== null && status.catalogError
               ? m('kfl.catalogue.err', { err: String(status.catalogError) })
               : m('kfl.vide'))

@@ -36,9 +36,34 @@ return k === null ? loadingText : k.wrap('Loading…', 'my-table', rows.map((r, 
 
 ## Where it is applied
 
-Creations (cards and list, with the tiles and the line under them), Kybers (cards and rows) and the Marketplace's kybernos.app
-block, Workspaces, Automations, Skills (Yours, Discover, Team). The Automations page had its own skeleton with its own
-animation; it now uses this one. See the pull request for what is *not* covered and why.
+| Where | Bundle | Seen live |
+|---|---|---|
+| Creations (cards and list, with the tiles and the line under them) | kybernos-plugin | yes, shift 0 px |
+| Kybers (cards and rows), the Marketplace's kybernos.app block | kybernos-plugin | yes |
+| Workspaces, and the tabs of a project page (Threads, Documents, Goals, Budget…) | kybernos-plugin | yes |
+| Automations (it had its own skeleton and animation; it uses this one now) | kybernos-plugin | yes, shift 0 px |
+| Settings › Tools, Voice engines | kybernos-plugin | yes |
+| Skills: Yours, Discover, Team | kybernos-skills | yes, shift 0 px |
+| Settings › Workers, Kybernos Suite | kybernos-workers, kybernos-hub | yes, within 3 px |
+| Settings › Web Search, Free LLMs | kybernos-websearch, kybernos-free-llms | yes, shift 0 px |
+| Connectors: Yours, Discover | kybernos-composio | yes (same card height) |
+| Settings › Memory & Lessons | kybernos-memory | bones yes; no signed-in data to compare the rows with |
+| Settings › AI Provider & Models (table body) | kybernos-models | by reading the code only: the page reads through an RPC the live check cannot hold |
+
+Left as they are, and why:
+
+- **Theme gallery** (kybernos-theme) already has its own tile skeleton (own CSS, reduced motion handled). The file is French
+  throughout, so touching it triggers the translate-when-touched rule: a separate piece of work.
+- **Atlas** (kybernos-atlas) shows a staged page with one progress line per source it reads: more informative than bones, and
+  not a list.
+- **Account page, memories list** (kybernos-cloud) needs a signed-in Kybernos account to render at all; there is no account
+  in the isolated instance, so it could not be seen.
+- **Workspace usage dashboard** (a standalone page built with `innerHTML`): an imperative render path with no component to hang
+  the helper on.
+- **Crew follow-up**: a crew card's height depends on the roles it declares, so bones could not match the real cards (a
+  guess would shift the page, which is the thing the skeleton is there to avoid).
+- **Insight**, **Runs**, the **session teams** popover and the in-row line of a chat-content search: a status line or a
+  chart, not a list that has rows to draw (the popover's data is already there by the time it is opened: its badge counts it).
 
 ## Checking it
 
