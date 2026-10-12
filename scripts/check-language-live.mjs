@@ -210,12 +210,18 @@ try {
   check('the message states the cause AND that what was done is kept', /needs an API key that isn’t set/.test(mid2) && /already translated is kept/.test(mid2), mid2)
   check('"Stopped at N%" and "Resume translation"', /Stopped at \d+%/.test(mid2) && /Resume translation/.test(mid2), mid2)
   await val(`window.__KB_TEST__.failAfter = null`)
-  const keptBefore = Number(await val(`Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.it')||'{}')).length + Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.it')||'{}')).length`))
-  const callsBefore2 = Number(await val('window.__KB_TEST__.calls'))
+  // What the failed run kept, by the name each text has on the wire: the resume must send none of them, and
+  // everything else (the size of the corpus is NOT a constant here: it grows with every bundle and DSH version).
+  const keptWires = JSON.parse(await val(`JSON.stringify(Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.it')||'{}')).map((k) => 'kb:' + k).concat(Object.keys(JSON.parse(localStorage.getItem('kybernos.i18n.dsh.it')||'{}')).map((k) => 'dsh:' + k)))`))
+  const keptBefore = keptWires.length
+  const batchesBefore2 = Number(await val('window.__KB_TEST__.batches.length'))
   await clickSel('[data-lang="it"] [data-act="start"]')
   check('the resume starts from what was done and finishes', (await waitReady('it', 60000)) !== null, await rowText('it'))
-  const sentAfter = Number(await val(`window.__KB_TEST__.batches.slice(${callsBefore2}).reduce((n, b) => n + b.n, 0)`))
-  check('the resume sent only what was missing (not the ' + keptBefore + ' already translated)', sentAfter > 0 && sentAfter < 4941 - keptBefore + 200, { keptBefore, sentAfter })
+  const sentKeys = JSON.parse(await val(`JSON.stringify(window.__KB_TEST__.batches.slice(${batchesBefore2}).filter((b) => b.source === 'fr').reduce((a, b) => a.concat(b.keys), []))`))
+  const totalIt = Number(await val(`(JSON.parse(localStorage.getItem('kybernos.i18n.meta.it') || '{}')).total`))
+  const keptSet = new Set(keptWires)
+  const resent = sentKeys.filter((w) => keptSet.has(w)).length
+  check('the resume sent only what was missing (not the ' + keptBefore + ' already translated)', keptBefore > 0 && totalIt > keptBefore && resent === 0 && sentKeys.length === totalIt - keptBefore, { keptBefore, sent: sentKeys.length, resent, total: totalIt })
 
   // ═══ 5. removing a language ══════════════════════════════════════════════
   console.log('\n── removing a language ──')
@@ -231,13 +237,14 @@ try {
   // ═══ 5b. an older installation: the translation is not lost ═══════════════
   console.log('\n── older installation: the translation has not disappeared ──')
   // What the previous engine left behind: Kybernos' tables only — no progress record, no registry, no DSH half.
-  const legacyN = Number(await val(`(() => {
+  const legacyIds = JSON.parse(await val(`(() => {
     const T = window.__KB_T__, P = window.__KB_FR_EN__, d = {}
     for (const k of Object.keys(T)) d[k] = '⟦' + ((T[k] && T[k].kybernos) || k) + '⟧'
     for (const p of Object.keys(P)) if (d[p] === undefined) d[p] = '⟦' + p + '⟧'
     localStorage.setItem('kybernos.i18n.sw', JSON.stringify(d))
-    return Object.keys(d).length
+    return JSON.stringify(Object.keys(d))
   })()`))
+  const legacyN = legacyIds.length
   await openSettings(LANGUAGE)
   await sleep(1200)
   const sw = String(await rowText('sw'))
@@ -253,10 +260,18 @@ try {
   await openSettings(LANGUAGE)
   const swOn = String(await rowText('sw'))
   check('"Use anyway" activates the language; incomplete, it keeps a button to finish it', /In use/.test(swOn) && /Resume translation/.test(swOn), swOn)
+  // The row says how many texts are left: that is the number the resume has to send (the DSH half, and the texts
+  // bundles published since: packs). Nothing here is a constant of the corpus, which grows with every bundle.
+  const textsLeft = Number(String((/([\d,.\s]+) texts left/.exec(swOn) || [])[1]).replace(/\D/g, ''))
+  const batchesSw = Number(await val('window.__KB_TEST__.batches.length'))
   await clickSel('[data-lang="sw"] [data-act="start"]')
   await waitFor(page, `(() => { const r = document.querySelector('[data-lang="sw"]'); return !!r && /Ready ·/.test(r.innerText) })()`, 90000)
-  const swSent = Number(await val(`window.__KB_TEST__.batches.reduce((a, b) => a + b.n, 0)`))
-  check('the resume sends ONLY what was missing (the DSH half), not the Kybernos texts already translated', swSent > 1500 && swSent < legacyN + 200 && swSent < 3200, { swSent, legacyN })
+  // Only the run's own batches (source "fr"): the live layer, which works while sw is the active language, sends "auto" ones.
+  const swKeys = JSON.parse(await val(`JSON.stringify(window.__KB_TEST__.batches.slice(${batchesSw}).filter((b) => b.source === 'fr').reduce((a, b) => a.concat(b.keys), []))`))
+  const legacyWires = new Set(legacyIds.map((id) => 'kb:' + id))
+  const swResent = swKeys.filter((w) => legacyWires.has(w)).length
+  const swTolerance = Math.max(5, Math.floor(textsLeft * 0.005)) // DSH namespaces register late: the total may move by a few
+  check('the resume sends ONLY what was missing (the DSH half and the new texts), not the Kybernos texts already translated', swKeys.length > 0 && swResent === 0 && Math.abs(swKeys.length - textsLeft) <= swTolerance, { sent: swKeys.length, textsLeft, resent: swResent, legacyN })
   check('the original translations are kept as they were', Number(await val(`Object.values(JSON.parse(localStorage.getItem('kybernos.i18n.sw'))).filter((v) => /^⟦/.test(v)).length`)) >= legacyN)
   await clickSel('[data-lang="en"] [data-act="use"]')
   await sleep(2500)

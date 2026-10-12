@@ -353,6 +353,51 @@ console.log('\n── engine: partial and resume ──')
   check('40 more texts (plugin update): to be completed', T.isComplete('es') === false)
 }
 
+// ── engine: a resume sends exactly what the language does not hold ────────
+// The live check used to bound this with constants (4 941 texts, "legacy + 200"): the corpus grew (packs from other
+// bundles, DSH namespaces) and the check went red although the engine sent exactly the missing texts. What stays
+// pinned here, with no constant: the number sent equals plan.total - held (the "N texts left" of the row), and not
+// one text the language already holds is sent again.
+console.log('\n── engine: resume sends exactly the missing texts ──')
+{
+  reset(); setSource()
+  // Packs other bundles publish join the corpus, next to the tables and DSH's namespaces.
+  globalThis.window.__KB_I18N_PACKS__ = [{ id: 'kybernos-cloud', keys: { plan: { fr: 'Votre forfait', en: 'Your plan' }, seats: { fr: 'Places', en: 'Seats' } } }]
+  try {
+    const plan = T.buildPlan('sw')
+    // What an older engine left behind: the Kybernos tables only (no progress record, no DSH half, no packs).
+    const old = {}
+    for (const k of Object.keys(KB_T)) old[k] = 'SW:' + k
+    for (const p of Object.keys(KB_FR_EN)) if (old[p] === undefined) old[p] = 'SW:' + p
+    localStorage.setItem('kybernos.i18n.sw', JSON.stringify(old))
+    const heldWires = new Set(plan.items.filter((it) => it.store === 'kb' && typeof old[it.id] === 'string').map((it) => it.wire))
+    const held = T.heldBy('sw', plan)
+    check('older installation: the plan counts what the tables hold, not the packs nor DSH', held.done === heldWires.size && held.done > 0 && held.done < plan.total, { held: held.done, total: plan.total })
+    const host = installHost(translateAll)
+    const r = await T.runTranslation('sw', opts())
+    const sent = host.calls.flatMap((c) => Object.keys(c.batch))
+    check('resume: sends exactly total - held (the "N texts left" of the row)', r.ok === true && sent.length === plan.total - held.done, { sent: sent.length, total: plan.total, held: held.done })
+    check('… not one text the language already holds, and each text once', sent.every((w) => !heldWires.has(w)) && new Set(sent).size === sent.length)
+    check('… what it sends is the packs and DSH, which the older engine never had', sent.includes('kb:cloud.plan') && sent.includes('kb:cloud.seats') && sent.some((w) => w.startsWith('dsh:')), sent.filter((w) => !w.startsWith('dsh:')).slice(0, 3))
+    check('… the held translations are kept as they were, and the language ends complete', T.i18nRead('sw').k0 === 'SW:k0' && r.missing === 0 && T.isComplete('sw'), r)
+  } finally { delete globalThis.window.__KB_I18N_PACKS__ }
+}
+{
+  // A run cut half-way (a model that fails), then resumed: only what the failed run did not keep.
+  reset(); setSource()
+  let n = 0
+  installHost((body) => (++n > 2 ? { json: { ok: false, error: 'p/m : MISSING_CREDENTIAL — the key is not set' } } : translateAll(body)))
+  const r1 = await T.runTranslation('it', opts())
+  const keptWires = new Set(Object.keys(T.i18nRead('it')).map((id) => 'kb:' + id).concat(Object.keys(T.dshRead('it')).map((id) => 'dsh:' + id)))
+  check('a failure half-way keeps what was translated, and says so', r1.ok === false && r1.done > 0 && r1.done === keptWires.size && r1.done < r1.total, { done: r1.done, kept: keptWires.size, total: r1.total })
+  const host = installHost(translateAll)
+  const r2 = await T.runTranslation('it', opts())
+  const sent = host.calls.flatMap((c) => Object.keys(c.batch))
+  check('resume after a failure: exactly total - kept is sent', r2.ok === true && sent.length === r2.total - keptWires.size, { sent: sent.length, total: r2.total, kept: keptWires.size })
+  check('… none of the kept texts is sent again', sent.every((w) => !keptWires.has(w)))
+  check('… and the language ends complete', r2.done === r2.total && T.isComplete('it'))
+}
+
 // ── engine: fallback route, pause, storage ────────────────────────────────
 console.log('\n── engine: fallback model, pause, storage ──')
 {

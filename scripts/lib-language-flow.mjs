@@ -20,8 +20,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // The LLM, stubbed in the page: every string comes back as ⟦text⟧ after a short
 // delay. `window.__KB_TEST__` steers it from the test (`fail`, `failAfter` = fail once
-// that many calls were made, `delay`) and keeps
-// what was asked (`calls`, `batches`).
+// that many calls were made, `delay`) and keeps what was asked: `calls`, and `batches` (language, English
+// name, source, `n` and the wire names of each batch in `keys`, so a test can tell WHICH texts a run sent).
 export const STUB = `(() => {
   const real = window.fetch.bind(window)
   window.__KB_TEST__ = { fail: false, failAfter: null, delay: 150, calls: 0, batches: [] }
@@ -33,7 +33,7 @@ export const STUB = `(() => {
       await new Promise((r) => setTimeout(r, T.delay))
       if (init.signal && init.signal.aborted) throw new DOMException('Aborted', 'AbortError')
       const body = JSON.parse(init.body)
-      T.batches.push({ lang: body.lang, name: body.langName, source: body.source, n: Object.keys(body.batch).length })
+      T.batches.push({ lang: body.lang, name: body.langName, source: body.source, n: Object.keys(body.batch).length, keys: Object.keys(body.batch) })
       const json = (o) => new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } })
       if (T.fail || (T.failAfter !== null && T.calls > T.failAfter)) return json({ ok: false, error: 'ollama-cloud/deepseek-v4.1-flash : MISSING_CREDENTIAL — OLLAMA_CLOUD_API_KEY is not set' })
       const tr = {}
