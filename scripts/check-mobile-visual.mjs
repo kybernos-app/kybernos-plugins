@@ -84,6 +84,8 @@ const measure = () => ev(`(() => {
   const frame = document.querySelector('[data-slot="root"] > div')
   const menu = document.querySelector('[data-kb="mobile-menu"]')
   const rating = document.querySelector('.kbq-rating')
+  const tabs = document.querySelector('[role="tablist"][data-conversation-tabs]')
+  const hdr2 = document.querySelector('[data-slot="conversation.header"] > header')
   return JSON.stringify({
     vw: innerWidth, vh: innerHeight, scrollW: document.documentElement.scrollWidth,
     coarse: matchMedia('(pointer: coarse)').matches,
@@ -97,7 +99,9 @@ const measure = () => ev(`(() => {
     titleW: hdr ? Math.round(hdr.getBoundingClientRect().width) : null,
     cols: frame ? getComputedStyle(frame).gridTemplateColumns.split(' ').length : null,
     menuDisplay: menu ? getComputedStyle(menu).display : null,
-    ratingDisplay: rating ? getComputedStyle(rating).display : null,
+    ratingW: rating ? Math.round(rating.getBoundingClientRect().width) : null,
+    tabsVisible: tabs ? (() => { const r = tabs.getBoundingClientRect(); return r.width > 4 && r.height > 4 })() : null,
+    headerBottom: hdr2 ? Math.round(hdr2.getBoundingClientRect().bottom) : null,
     header: Array.from(document.querySelectorAll('button')).filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.top >= 0 && r.top < 60 && r.left >= 0 }).map((b) => (b.getAttribute('aria-label') || b.getAttribute('data-act') || 'btn').slice(0, 18) + '@' + Math.round(b.getBoundingClientRect().left) + '+' + Math.round(b.getBoundingClientRect().width)),
   })
 })()`).then((j) => (j === null ? null : JSON.parse(j)))
@@ -166,12 +170,15 @@ try {
       check('composer: the model name is readable', m.modelLabelW !== null && m.modelLabelW >= 40 && (m.modelLabelText || '').length > 2, { w: m.modelLabelW, t: m.modelLabelText })
       check('composer: the field is 16 px', m.inputFont !== null && m.inputFont >= 16, m.inputFont)
       check('composer: the stats strip is gone', m.dockDisplay === null || m.dockDisplay === 'none', m.dockDisplay)
-      check('the rating card is gone', m.ratingDisplay === null || m.ratingDisplay === 'none', m.ratingDisplay)
+      check('the rating card is one star (44 px) until it is tapped', m.ratingW === null || m.ratingW <= 48, m.ratingW)
+      check('the tab row is out of the header on the Chat view', m.tabsVisible === null || m.tabsVisible === false, m.tabsVisible)
+      check('the header is one row (56 px) with its tab row parked', m.headerBottom === null || m.headerBottom <= 60, m.headerBottom)
       check('the title keeps room (not squeezed behind the actions)', m.titleW === null || m.titleW >= 60, m.titleW)
       check('drawer rows are at least 44 px', drawerRow !== null && drawerRow >= 44, drawerRow)
     } else {
       check('nothing changes: the menu button stays hidden', m.menuDisplay === null || m.menuDisplay === 'none', m.menuDisplay)
       check('nothing changes: the sidebar column is in the grid', m.cols !== null && m.cols >= 2, m.cols)
+      check('nothing changes: the tab row stays', m.tabsVisible === null || m.tabsVisible === true, m.tabsVisible)
       check('nothing changes: the stats strip is not hidden', m.dockDisplay === null || m.dockDisplay !== 'none', m.dockDisplay)
     }
 

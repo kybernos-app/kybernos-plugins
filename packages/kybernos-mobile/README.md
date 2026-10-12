@@ -26,7 +26,9 @@ drew under the iPhone's home indicator.
   Skills, Connectors, Automation tasks, Pinned, the folders and their sessions, the account card), 48 px rows, 16 px text.
   A tap on the dimmed chat closes it, and so does picking a session or a page. A drawer DSH left open on a phone in
   landscape is closed once at start and after a turn of the screen, unless the person opened it.
-- **Header**: the title and the page-level actions (Teams, voice call, "More actions", right bar). Agent Team, share,
+- **Header**: one row of 56 px (DSH gives it 76 px for two rows): the title and the page-level actions (Teams, voice
+  call, "More actions", right bar). The tab row (Chat, Journal, Trajectory) is parked while Chat is the view shown, and
+  comes back on the other views; the sheet below lists the views. Agent Team, share,
   chat ID, video call and call settings are **parked** (rendered, invisible, one pixel: DSH's popovers keep an anchor):
   a tap on "More actions" opens a bottom sheet that lists them, with the composer's parked "/" , artifact and
   execution-environment buttons, in DSH's own labels; its last row opens DSH's own menu. "Open in Finder" is dropped.
@@ -35,7 +37,7 @@ drew under the iPhone's home indicator.
   the input-device list is dropped; the environment shows in the row when it is not the default. The stats strip under
   the card (speed, cache, memory, context) is hidden. On a 320 to 360 px phone dictation, the voice call and the Teams
   chip wait in the sheet.
-- **Conversation**: the rating card under every answer is hidden.
+- **Conversation**: the rating card under an answer is one star (44 px); the first tap opens the five.
 - **Right bar** (the "Start" launcher, files, changes, details): a full-screen layer, with DSH's own full-screen state
   honoured.
 - **Settings**: the page list becomes a scrolling strip under the search box, and the page uses the full width.
@@ -43,8 +45,8 @@ drew under the iPhone's home indicator.
   44 px; the page draws under the notch (`viewport-fit=cover`) and the drawer, the menu button and the composer pad
   with `env(safe-area-inset-*)`.
 
-Not done yet (planned, see the mockup): the Chat / Journal / Trajectory tabs as a dropdown under the title, rating
-behind one star, the landscape header (still about 100 px of 390).
+A style edit reaches the next page load without restarting DSH (the host re-reads `mobile.css` when its modification
+time changes); a change to the host half (`index.js`) still needs a restart.
 
 ### The phone link
 

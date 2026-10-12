@@ -94,7 +94,7 @@ window.__ModuleLoader__.load({
       // ── the "..." sheet: the header actions a phone has no room for ───────────────────────────────────────────────
       // mobile.css PARKS them (fixed, invisible, 1 px, still rendered: DSH's popovers keep an anchor). The phone's
       // "More actions" button opens this sheet instead of DSH's menu; its last row hands over to DSH's own menu.
-      const ACTION_BUTTONS = '[data-slot="conversation.session.header.actions"] button, [data-slot="conversation.session.header.utilities"] button, [data-slot="conversation.session.header.corner"] button, [data-composer-card] button, [data-kb="computer-env-button"]'
+      const ACTION_BUTTONS = '[data-slot="conversation.session.header.actions"] button, [data-slot="conversation.session.header.utilities"] button, [data-slot="conversation.session.header.corner"] button, [data-composer-card] button, [data-kb="computer-env-button"], [role="tablist"][data-conversation-tabs] button'
       const MORE_BUTTON = '[data-slot="conversation.session.header.utilities"] button'
       /** Parked by mobile.css: the element or one of its four nearest ancestors is fixed and invisible. */
       const isParked = (el, styleOf) => {
@@ -117,6 +117,8 @@ window.__ModuleLoader__.load({
           try {
             if (typeof el.closest === 'function' && el.closest('[data-open-target]') !== null) continue
             if (!isParked(el, styleOf)) continue
+            // the view that is shown is not an action (the other views are)
+            if (el.getAttribute('aria-selected') === 'true') continue
             const long = String(el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').trim()
             // "Commands: browse, run, edit or create slash commands and actions": the name is what comes before the colon
             const label = long.length > 24 && long.indexOf(':') > 1 ? long.slice(0, long.indexOf(':')).trim() : long
@@ -225,6 +227,22 @@ window.__ModuleLoader__.load({
         }
         document.addEventListener('click', onMore, true)
         undo.push(() => { document.removeEventListener('click', onMore, true); closeSheet() })
+
+        // The rating card under an answer is one star on a phone (mobile.css): the first tap opens the five.
+        const onRate = (e) => {
+          try {
+            if (!narrow()) return
+            const t = e.target
+            if (t === null || t === undefined || typeof t.closest !== 'function') return
+            const card = t.closest('.kbq-rating')
+            if (card === null || card.hasAttribute('data-kbmob-open')) return
+            e.preventDefault()
+            e.stopPropagation()
+            card.setAttribute('data-kbmob-open', '1')
+          } catch (err) { /* the card is DSH's: leave it alone */ }
+        }
+        document.addEventListener('click', onRate, true)
+        undo.push(() => document.removeEventListener('click', onRate, true))
 
         // iOS only draws under the notch and the home indicator with viewport-fit=cover; mobile.css pads with env().
         try {

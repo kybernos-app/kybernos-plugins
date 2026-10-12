@@ -10,7 +10,7 @@
 // Rules this file keeps: it only touches plugin seams (ctx.on, ctx.effect, the web server service), patches nothing in
 // the engine, and no failure escapes apply(): a missing service, an unreadable file or a refused row is logged and
 // the rest still starts.
-import { readFileSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -22,13 +22,16 @@ export const CSS_FILE = join(here, 'mobile.css')
 
 const logError = (what, e) => { try { if (e === undefined) console.error('[kybernos-mobile] ' + what); else console.error('[kybernos-mobile] ' + what, e) } catch (e2) { /* console unavailable */ } }
 
-// The stylesheet, read once and kept; `null` = not read yet, `''` = unreadable (nothing is injected then).
+// The stylesheet, kept in memory and re-read when the file changes on disk (a style edit reaches the next page load
+// without restarting DSH); `null` = not read yet, `''` = unreadable (nothing is injected then).
 let cached = null
-export const resetCache = () => { cached = null }
+let cachedAt = 0
+export const resetCache = () => { cached = null; cachedAt = 0 }
 export function sheetCss (file = CSS_FILE) {
-  if (cached === null) {
-    try { cached = readFileSync(file, 'utf8') } catch (e) { logError('mobile.css unreadable', e); cached = '' }
-  }
+  let at = 0
+  try { at = statSync(file).mtimeMs } catch (e) { at = -1 }
+  if (cached !== null && (at === cachedAt || at === -1)) return cached
+  try { cached = readFileSync(file, 'utf8'); cachedAt = at } catch (e) { if (cached === null) { logError('mobile.css unreadable', e); cached = '' } }
   return cached
 }
 /** One head row per index render. `</style` inside the file would close the element early: refused. */

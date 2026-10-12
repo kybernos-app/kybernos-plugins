@@ -61,14 +61,22 @@
 
   /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call
    *    and call settings are PARKED: out of the header but still rendered, so DSH's popovers keep an anchor and the
-   *    "..." sheet (client.js) can list and click them. "Open in Finder" is of no use on a phone and is dropped. */
+   *    "..." sheet (client.js) can list and click them. "Open in Finder" is of no use on a phone and is dropped.
+   *    The tab row (Chat, Journal, Trajectory) is parked while the first tab (Chat) is the one shown: it comes back
+   *    on the other views, and the sheet lists the views. */
+  /* DSH gives the header 76 px for its two rows (actions, tabs): one row is 56 px, in line with the menu button. */
   [data-slot="conversation.header"] > header {
     padding-left: 52px !important;
+    padding-top: calc(6px + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: 6px !important;
+    min-height: 56px !important;
+    align-items: center;
   }
   [data-slot="conversation.session.header.actions"] > [data-team-action],
   [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
   [data-slot="conversation.session.header.actions"] [data-act="call-video"],
-  [data-slot="conversation.session.header.actions"] [data-act="call-setup"] {
+  [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [role="tablist"][data-conversation-tabs]:has(> [role="tab"]:first-child[aria-selected="true"]) {
     position: fixed !important;
     top: 52px !important;
     left: 50% !important;
@@ -220,9 +228,37 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* 5. The conversation: the rating card is the one thing that repeats under every answer. */
-  .kbq-rating {
+  /* 5. The rating card under an answer is one star; a tap opens the five (client.js marks the card open). */
+  .kbq-rating:not([data-kbmob-open]) {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    justify-content: center !important;
+    border-radius: 22px !important;
+    overflow: hidden !important;
+    cursor: pointer;
+  }
+  .kbq-rating:not([data-kbmob-open]) > * {
     display: none !important;
+  }
+  .kbq-rating:not([data-kbmob-open])::before {
+    content: "\2606";
+    font-size: 22px;
+    line-height: 1;
+    color: var(--dsw-alias-label-tertiary, currentColor);
+  }
+  .kbq-rating[data-kbmob-open] .kbq-rating-question {
+    display: none !important;
+  }
+  .kbq-rating[data-kbmob-open] .kbq-rating-etoile {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 8px !important;
+  }
+  .kbq-rating[data-kbmob-open] .kbq-rating-etoile svg {
+    width: 24px !important;
+    height: 24px !important;
   }
 
   /* 6. The right bar (files, changes, details) is a full-screen layer while it is open. DSH marks that state itself
