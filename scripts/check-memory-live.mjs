@@ -14,11 +14,22 @@
 // in the right place), it renders with the real theme tokens, its numbers match what the host routes
 // return, and the pill shows up in a chat's status row and opens its card.
 //
+// The instance is KB_HOST (127.0.0.1:3080 by default; `source scripts/sandbox/env.sh` points it at a
+// sandbox). The page and the host routes it is compared with are always the SAME instance.
+//
+// It never invents data: on an instance with nothing to list (not connected to Kybernos Cloud, no lesson yet,
+// which is what a fresh sandbox is) the checks that need rows say SKIP, and the empty state is checked instead.
+//
 // Needs `dsh web` restarted after kybernos-memory was linked into the profile (a new bundle's client is
 // only declared at boot). Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down, section
 // not there yet).
 import { mkdirSync } from 'node:fs'
 import { openLivePage, waitFor, clickText, openSettings } from './live-page.mjs'
+
+// Where the page sits in the Settings nav: inside the « Kybernos » group (GROUPES in packages/kybernos-plugin/client.js),
+// after these and before those. scripts/test-live-checks.mjs keeps both lists in line with GROUPES.
+const NAV_ABOVE = ['Kybernos Suite', 'AI Provider & Models', 'Auto Routing']
+const NAV_BELOW = ['Workers', 'Language', 'Theme']
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
@@ -38,9 +49,11 @@ const ev = async (js) => { const r = await page.evalJs(js, 8000); return r.err ?
 const text = (sel) => ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? e.textContent.replace(/\\s+/g, ' ').trim() : null })()`)
 const count = (sel) => ev(`document.querySelectorAll(${JSON.stringify(sel)}).length`)
 const shot = async (name) => { if (shotsDir !== null) await page.shot(shotsDir + '/' + name + '.png') }
-const local = async (path) => { try { return await (await fetch('http://127.0.0.1:3080' + path, { headers: await cookieHeader() })).json() } catch (e) { return null } }
+// The host routes are read from the SAME instance the page is opened on (KB_HOST, set by sandbox/env.sh), never from
+// a fixed :3080: against a sandbox the page would show the sandbox's numbers and be compared with the real DSH's.
+const local = async (path) => { try { return await (await fetch('http://' + live.authority + path, { headers: await cookieHeader() })).json() } catch (e) { return null } }
 const { cookieDeSession } = await import('./cdp-lib.mjs')
-const cookieHeader = async () => { const c = cookieDeSession('127.0.0.1:3080'); return c === null ? {} : { cookie: c.nom + '=' + c.valeur } }
+const cookieHeader = async () => { const c = cookieDeSession(live.authority); return c === null ? {} : { cookie: c.nom + '=' + c.valeur } }
 const click = async (x, y) => { await page.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }); await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 }); await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'left', clickCount: 1 }) }
 
 try {
@@ -64,20 +77,41 @@ try {
   const navFound = await ev(`(() => { const c = [...document.querySelectorAll('[class*="navCell"]')].find(e => e.textContent.trim() === 'Memory & Lessons'); if (!c) return false; c.scrollIntoView({ block: 'center' }); (c.querySelector('button,[role=button]') || c).click(); return true })()`)
   if (navFound !== true) { console.error('○ inconclusive: no « Memory & Lessons » entry in the Settings nav (the client is only declared at boot: restart dsh web)'); await shot('no-nav'); await live.close(); process.exit(3) }
   check('the nav entry exists and opens the page', (await waitFor(page, `!!document.querySelector('.kbmem-page')`, 8000)) !== null)
-  // The first screen is data: wait for the title and for the first rows instead of a fixed delay (a cold GUI is slower).
-  await waitFor(page, `!!document.querySelector('.kbmem-h1') && document.querySelectorAll('.kbmem-r').length > 0`, 15000)
+  // The first screen is data: wait for the title and for the first rows (or, when there is nothing to list, for the empty state
+  // that explains why) instead of a fixed delay (a cold GUI is slower).
+  await waitFor(page, `!!document.querySelector('.kbmem-h1') && (document.querySelectorAll('.kbmem-r').length > 0 || (!!document.querySelector('.kbmem-empty') && !document.querySelector('.kbmem-spin')))`, 15000)
   await sleep(400)
   await shot('01-page')
 
   check('title', (await text('.kbmem-h1')) === 'Memory & Lessons learned')
-  // Visual order, not DOM order: the shell lays the nav out with CSS `order`.
-  check('the section sits right after Language in the nav (as drawn, not in DOM order)', (await ev(`(() => { const cells = [...document.querySelectorAll('[class*="navCell"]')].map(c => ({ t: c.textContent.trim(), y: c.getBoundingClientRect().top })).sort((a, b) => a.y - b.y); const i = cells.findIndex(c => c.t === 'Memory & Lessons'); return i > 0 && cells[i - 1].t === 'Language' })()`)) === true)
-  check('data first: list rows, no switches on the first screen', (await count('.kbmem-r')) > 0 && (await count('.kbmem-srow')) === 0)
+  // Visual order, not DOM order: the shell lays the nav out with CSS `order` and the Kybernos plugin groups the cells under headers
+  // (GROUPES). Where the page sits is therefore read from what is drawn: its group header, what is above it, what is below.
+  const navAt = JSON.parse((await ev(`JSON.stringify((() => {
+    const list = [...document.querySelectorAll('[class*="navList"]')].find(l => l.querySelector('[class*="navCell"]'))
+    if (!list) return null
+    const items = [...list.children].map(e => { const r = e.getBoundingClientRect(); return { t: e.textContent.trim(), head: e.dataset.kb === 'settings-group', y: r.top, h: r.height } }).filter(x => x.h > 0).sort((a, b) => a.y - b.y)
+    const idx = (t) => items.findIndex(x => !x.head && x.t === t)
+    const i = idx('Memory & Lessons')
+    if (i < 0) return null
+    const head = items.slice(0, i).reverse().find(x => x.head)
+    const above = ${JSON.stringify(NAV_ABOVE)}.filter(t => idx(t) >= 0)
+    const below = ${JSON.stringify(NAV_BELOW)}.filter(t => idx(t) >= 0)
+    return { group: head ? head.t : null, above, below, aboveOk: above.every(t => idx(t) < i), belowOk: below.every(t => idx(t) > i) }
+  })())`)) || 'null')
+  check('the section sits in the Kybernos group of the nav, after ' + NAV_ABOVE.join(', ') + ' and before ' + NAV_BELOW.join(', ') + ' (as drawn, not in DOM order)', navAt !== null && navAt.group === 'Kybernos' && navAt.aboveOk === true && navAt.belowOk === true, navAt)
+  // « Data first » is about what the page offers when it HAS data. An instance with nothing to list (not connected to Kybernos Cloud, no
+  // memory yet) legitimately shows no row: the empty state, which says why, is then the first screen — and still no switches.
+  const memRows = memList !== null && memList.ok === true && memList.total > 0
+  if (memRows) check('data first: list rows, no switches on the first screen', (await count('.kbmem-r')) > 0 && (await count('.kbmem-srow')) === 0)
+  else {
+    console.log('  – SKIP list rows: this instance has no memory to list (' + (memList !== null && memList.ok === true ? 'none yet' : 'not connected to Kybernos Cloud') + ')')
+    check('data first: nothing to list, so the first screen is an empty state that says why, and no switches', (await count('.kbmem-r')) === 0 && (await count('.kbmem-empty')) >= 1 && (await count('.kbmem-srow')) === 0)
+  }
   if (memList !== null && memList.ok === true) {
     const tabs = await text('.kbmem-row2')
     check('the Memories count is the host\'s total', tabs.indexOf('Memories' + String(memList.total)) >= 0, { tabs, host: memList.total })
     check('the status line says how many memories are sent', new RegExp('of ' + String(memList.counts.all) + ' sent each turn').test(await text('.kbmem-st')), await text('.kbmem-st'))
-    check('the pager matches the host', (await text('.kbmem-pager span')) === '1–' + String(Math.min(25, memList.total)) + ' of ' + String(memList.total), await text('.kbmem-pager span'))
+    if (memList.total > 0) check('the pager matches the host', (await text('.kbmem-pager span')) === '1–' + String(Math.min(25, memList.total)) + ' of ' + String(memList.total), await text('.kbmem-pager span'))
   } else {
     console.log('  – SKIP memory numbers: the cloud memory route does not answer (not connected?)')
   }
@@ -99,7 +133,7 @@ try {
     const first = strip(String(await text('.kbmem-r .kbmem-tx') || ''))
     check('the first result has BOTH words (« ' + picks.join(' ') + ' »)', picks.every((w) => first.indexOf(strip(w)) >= 0), first.slice(0, 80))
     const total = await text('.kbmem-pager span')
-    check('the list narrowed to the matches', /of \d+$/.test(total || '') && Number(/of (\d+)$/.exec(total)[1]) <= memList.total, total)
+    check('the list narrowed to the matches', /of \d+$/.test(total || '') && (!memRows || Number(/of (\d+)$/.exec(total)[1]) <= memList.total), total)
     await shot('01b-relevance-two-words')
     await setSearch(picks[0].toUpperCase().slice(0, -1)); await sleep(1400)
     check('case and a missing last letter do not matter (prefix)', (await count('.kbmem-r')) > 0)

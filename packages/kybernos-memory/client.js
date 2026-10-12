@@ -1,6 +1,8 @@
 // kybernos-memory — browser half: the « Memory & Lessons learned » settings page.
 //
-//   settings section « Memory & Lessons » ... settings.section (order 3, right after Language)
+//   settings section « Memory & Lessons » ... settings.section (order 3; where it is DRAWN is decided by the
+//                                             Settings menu grouping in kybernos-plugin: « Kybernos » group,
+//                                             after Auto Routing and before Workers)
 //   Memories tab ............................ the account memory (cloud): list, search, filters,
 //                                             pages, add / edit / forget — host routes of
 //                                             @local/kybernos-cloud (`/kybernos-cloud/memory/*`)
