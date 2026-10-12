@@ -4041,8 +4041,36 @@ const mountWebRoutes = (ctx, webServer) => {
   console.log('[kybernos-cloud] routes /kybernos-cloud/* enregistrees (start, poll, status, refresh, disconnect, models, models/sync, referral, artifacts, memory/*)')
 }
 
+// ── A narrow seam for sibling bundles ─────────────────────────────────────────────────────────────────────────────────
+// A bundle that needs ONE authenticated call to the active server (kybernos-mobile: the phone link's pairing and relay
+// tickets) reaches it through `globalThis[Symbol.for('kybernos.cloud')].call(path, { method, body })`. It never receives
+// the account token: this file adds it. Only the path prefixes below are reachable, so the seam is not a general proxy.
+const SEAM_PREFIXES = ['/v1/remote/']
+const SEAM_METHODS = ['GET', 'POST', 'DELETE']
+const SEAM_PATH = /^\/v1\/remote\/[A-Za-z0-9_\-/]{0,200}$/u
+const cloudSeamCall = async (path, options) => {
+  const p = typeof path === 'string' ? path : ''
+  if (SEAM_PREFIXES.some((prefix) => p.startsWith(prefix)) !== true || SEAM_PATH.test(p) !== true || p.includes('//') || p.includes('..')) return { status: 0, body: null, error: 'path_refused' }
+  const o = options !== null && typeof options === 'object' ? options : {}
+  const method = typeof o.method === 'string' ? o.method.toUpperCase() : 'GET'
+  if (SEAM_METHODS.includes(method) !== true) return { status: 0, body: null, error: 'method_refused' }
+  let body = null
+  if (o.body !== undefined && o.body !== null) {
+    if (typeof o.body !== 'object' || Array.isArray(o.body) || JSON.stringify(o.body).length > 8192) return { status: 0, body: null, error: 'body_refused' }
+    body = o.body
+  }
+  const state = readState()
+  if (!isConnected(state)) return { status: 0, body: null, error: 'not_connected' }
+  const r = await apiCall(p, { method, body, token: state.token, timeoutMs: 15000 })
+  return { status: r.status, body: r.body, ...(r.error !== undefined ? { error: r.error } : {}) }
+}
+const publishCloudSeam = (target = globalThis) => {
+  try { target[Symbol.for('kybernos.cloud')] = Object.freeze({ version: 1, call: cloudSeamCall }) } catch (e) { /* a frozen global: the other bundles degrade */ }
+}
+
 export function apply(ctx) {
   hostCtx = ctx
+  try { publishCloudSeam() } catch (e) { console.error('[kybernos-cloud] seam: ' + String((e && e.message) || e)) }
   // Before anything can use a token: a connection of another server (an install from before the new server became the default) is set aside.
   const aside = setAsideForeignConnection()
   if (ctx.get('webServer') !== undefined) mountWebRoutes(ctx, ctx.get('webServer'))
@@ -4062,6 +4090,7 @@ export function apply(ctx) {
 // Exportés pour le test hors-DSH (scripts/test-cloud-host.mjs) : aucune autre
 // surface publique n'est promise.
 export {
+  cloudSeamCall, publishCloudSeam, SEAM_PREFIXES,
   dshHome, resolveApi, stateFile, server, serverApply, serverRoute, deviceLabel, publicState, ROUTES, importCatalog, CRED_REF, PROVIDER_ID, connections,
   // Keeping the picture of the account current (test: kybernos-cloud/test-profile-refresh.mjs).
   profileRefreshTick, PROFILE_REFRESH_TUNING, sameOrigin, hostAllowed,

@@ -152,8 +152,47 @@ console.log('when the shortcut was rebound')
   check('with the drawer open and no shortcut it does nothing rather than click something else', open.toggleClicks.length === 0)
 }
 
+console.log('the phone link, mounted apart from the layout')
+{
+  const fakeReact = { createElement: (...a) => ({ a }) }
+  const run = ({ withSlots = true, withRequire = true, injectThrows = false } = {}) => {
+    const dom = makeDom({ collapsed: true })
+    const def = load(dom, { lang: 'en' })
+    const plugin = def.factory(withRequire ? (name) => (name === 'react' ? fakeReact : undefined) : undefined)
+    const effects = []; const disposers = []; const injected = []; const registered = []; const styles = []
+    dom.head.appendChild = (c) => { styles.push(c); return c }
+    const origCreate = dom.doc.createElement
+    dom.doc.createElement = (t) => { const e = origCreate(t); e.dataset = {}; return e }
+    const slots = { inject: (name, fn) => { injected.push(name); return fn() }, register: (spec, comp) => { registered.push(spec); return () => {} } }
+    const ctx = {
+      effect: (fn, label) => { effects.push(label); const d = fn(); disposers.push(d); return d },
+      inject: (names, cb) => { if (injectThrows) throw new Error('no inject'); injected.push(names.join(',')); cb(withSlots ? { slots } : {}) },
+    }
+    let threw = null
+    try { plugin.apply(ctx) } catch (e) { threw = e }
+    return { dom, plugin, effects, disposers, injected, registered, styles, threw }
+  }
+  const full = run()
+  check('it needs no DSH service up front (the layout must always mount)', full.plugin.inject === undefined)
+  check('the phone panel is published for the sidebar\'s button', typeof globalThis.window.__KB_MOBILE__ === 'object' && typeof globalThis.window.__KB_MOBILE__.Panel === 'function' && globalThis.window.__KB_MOBILE__.version === 1)
+  check('the Settings section is « Mobile »', full.registered.length === 1 && full.registered[0].name === 'settings.section' && full.registered[0].id === 'kybernos-mobile' && full.registered[0].label === 'Mobile', full.registered)
+  check('its styles are its own, under a prefix nobody else uses', full.styles.length === 1 && /\.kbmr-/.test(full.styles[0].textContent) && !/\.kbmob-/.test(full.styles[0].textContent))
+  check('every effect is labelled', full.effects.every((l) => /^kybernos-mobile: /.test(l)) && full.effects.length === 4, full.effects)
+  full.disposers.forEach((d) => { if (typeof d === 'function') d() })
+  check('the cleanups take the seam and the styles away', globalThis.window.__KB_MOBILE__ === undefined && full.styles[0].removed === true)
+
+  const noSlots = run({ withSlots: false })
+  check('without the slots service the panel still works and nothing throws', noSlots.threw === null && typeof globalThis.window.__KB_MOBILE__.Panel === 'function' && noSlots.registered.length === 0)
+  const noReq = run({ withRequire: false })
+  check('without React the layout still mounts and the link stays off', noReq.threw === null && noReq.dom.body.children.some((c) => c.className === 'kbmob-menu') && globalThis.window.__KB_MOBILE__ === undefined)
+  const noInject = run({ injectThrows: true })
+  check('a DSH that refuses inject cannot break the layout', noInject.threw === null && noInject.dom.body.children.some((c) => c.className === 'kbmob-menu'))
+}
+
 console.log('the file')
 {
+  check('the phone link uses its own class prefix, not the layout\'s', /className: 'kbmr-/.test(SOURCE) && !/className: 'kbmob-[a-z]/.test(SOURCE.slice(SOURCE.indexOf('buildRemoteUi'))))
+  check('the QR code is the only place colours are named, as words (a scanner needs black on white)', /fill: 'white'/.test(SOURCE) && /fill: 'black'/.test(SOURCE))
   check('user-visible text goes through the French/English picker', /kt\('Ouvrir le menu', 'Open the menu'\)/.test(SOURCE))
   check('no hard-coded theme colour', !/#[0-9a-fA-F]{3,8}\b/.test(SOURCE))
   check('the bundle keeps no state (no storage)', !/localStorage|sessionStorage|indexedDB/.test(SOURCE))
