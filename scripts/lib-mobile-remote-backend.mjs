@@ -50,6 +50,12 @@ async function startFake () {
     pairingsAsked: () => relay.state.authCalls.filter((c) => c === 'POST /v1/remote/pairings').length,
     serverDevices: async () => relay.state.devices.size,
     setPhoneLink: async (on) => { relay.state.entitled = on === true },
+    /** Cut the phone's connection to the relay while its page stays open (what a locked phone does). Returns how many were cut. */
+    dropPhoneLink: async () => {
+      let n = 0
+      for (const room of relay.state.rooms.values()) if (room.phone) { room.phone.close(); n += 1 }
+      return n
+    },
     ciphertextOnly: () => {
       const sealed = relay.state.samples.filter((s) => !s.startsWith('{'))
       return relay.state.framesBinary > 50 && sealed.length > 40 && sealed.every((s) => !/"t"\s*:|<html|"method"/u.test(s))
@@ -206,6 +212,7 @@ async function startReal ({ serverDir, port = 8797, log = () => {} }) {
       },
       remoteStatus: async () => (await call('GET', '/v1/remote/devices', { token })).body,
       setPhoneLink: async (on) => { await publishFree(on === true) },
+      dropPhoneLink: async () => null,
       ciphertextOnly: () => null,
       serverLog: () => server.lines.slice(),
       close,

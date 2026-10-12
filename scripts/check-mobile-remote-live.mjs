@@ -168,6 +168,37 @@ try {
   if (backend.ciphertextOnly() !== null) check('the relay saw only ciphertext after the handshake', backend.ciphertextOnly() === true)
   await shot(P, '4-running-phone')
 
+  // 3b. the phone is locked for a few seconds: its connection to the relay drops, the PAGE STAYS OPEN (nothing reloads it).
+  //     The tunnelled sockets of DSH's page must be told, or the page believes they are still open and never reconnects:
+  //     the chat then no longer answers (measured on a real Android phone, 2026-10-12).
+  console.log('the phone is locked, then woken')
+  const beforeLock = JSON.parse(await ev(P, `JSON.stringify(window.__kb)`))
+  const cut = await backend.dropPhoneLink()
+  if (cut === null) console.log('  ○ not played: the relay is the real server (one phone socket cannot be cut from here)')
+  else {
+    check('the relay cut the phone\'s connection', cut >= 1, cut)
+    const back3 = await until(P, `window.__kb.state === 'running' && (document.getElementById('veil').hidden === true)`, 30000)
+    check('the phone resumes by itself (no new code, no approval) and the veil goes', back3 === true, await ev(P, `JSON.stringify({ state: window.__kb.state, veil: document.getElementById('veil').textContent, log: window.__kb.log })`))
+    const reopened = await until(P, `window.__kb.wsOpen > ${beforeLock.wsOpen}`, 25000)
+    check('DSH\'s own streaming socket opens again by itself', reopened === true, await ev(P, `JSON.stringify({ wsOpen: window.__kb.wsOpen, was: ${beforeLock.wsOpen}, wsMsgs: window.__kb.wsMsgs, log: window.__kb.log })`))
+    const probe = await ev(P, `(async () => {
+      const w = document.getElementById('app').contentWindow
+      const http = await w.fetch('/', { cache: 'no-store' }).then((r) => r.status, () => 0)
+      const sock = await new Promise((resolve) => {
+        let done = false
+        const s = new w.WebSocket('/api/remote.mux')
+        const fin = (v) => { if (!done) { done = true; try { s.close() } catch (e) { /* gone */ } resolve(v) } }
+        s.addEventListener('open', () => fin('open'))
+        s.addEventListener('close', (e) => fin('closed:' + e.code))
+        setTimeout(() => fin('timeout'), 10000)
+      })
+      return { http, sock }
+    })()`, 25000)
+    check('a request goes through the resumed tunnel', probe !== null && probe.http === 200, probe)
+    check('and so does a new streaming socket', probe !== null && probe.sock === 'open', probe)
+    await shot(P, '3b-after-lock')
+  }
+
   // 4. the phone page is reloaded: no QR code any more, the paired phone resumes by itself
   console.log('the phone comes back')
   const firstLoadBytes = kb.bytes

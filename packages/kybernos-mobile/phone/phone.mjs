@@ -105,7 +105,7 @@ function deviceLabel () {
 }
 
 // ── the tunnel: requests of the DSH page, through the service worker and the shim ───────────────────────────────
-const session = { channel: null, ws: null, ports: new Map(), seq: 0, saved: null, frameReady: false }
+const session = { channel: null, ws: null, ports: new Map(), headed: new Set(), sockets: new Set(), seq: 0, saved: null, frameReady: false }
 
 async function sendEnc (header, body) {
   if (session.channel === null || session.ws === null || session.ws.readyState !== 1) return false
@@ -128,7 +128,7 @@ function onServiceWorkerMessage (ev) {
 
 function onFrameFromComputer (header, body) {
   switch (header.t) {
-    case 'res': { const p = session.ports.get(header.id); if (p) p.postMessage({ t: 'res', status: header.status, headers: header.headers || {}, enc: header.enc || null }); return }
+    case 'res': { const p = session.ports.get(header.id); if (p) { session.headed.add(header.id); p.postMessage({ t: 'res', status: header.status, headers: header.headers || {}, enc: header.enc || null }) } return }
     case 'chunk': {
       const p = session.ports.get(header.id)
       if (!p) return
@@ -137,7 +137,7 @@ function onFrameFromComputer (header, body) {
       p.postMessage({ t: 'chunk', buf: copy }, [copy])
       return
     }
-    case 'end': { const p = session.ports.get(header.id); if (p) { p.postMessage({ t: 'end' }); session.ports.delete(header.id) } return }
+    case 'end': { const p = session.ports.get(header.id); if (p) { p.postMessage({ t: 'end' }); session.ports.delete(header.id); session.headed.delete(header.id) } return }
     case 'ws-open': kb.wsOpen += 1; toFrame({ kbws: 'open', id: header.id, protocol: header.protocol || '' }); return
     case 'ws-msg': {
       kb.wsMsgs += 1
@@ -145,7 +145,7 @@ function onFrameFromComputer (header, body) {
       else { const copy = body.slice().buffer; toFrame({ kbws: 'msg', id: header.id, bin: copy }, [copy]) }
       return
     }
-    case 'ws-close': toFrame({ kbws: 'close', id: header.id, code: header.code || 1006 }); return
+    case 'ws-close': session.sockets.delete(header.id); toFrame({ kbws: 'close', id: header.id, code: header.code || 1006 }); return
     case 'refused': kb.refusals += 1; return
     case 'bye': if (header.reason === 'revoked') void revoked(); return
     default: log('unknown frame ' + String(header.t).slice(0, 20))
@@ -157,9 +157,9 @@ window.addEventListener('message', (ev) => {
   if (ev.origin !== location.origin || ev.source !== $('app').contentWindow) return
   const d = ev.data
   if (d === null || typeof d !== 'object' || typeof d.kbws !== 'string') return
-  if (d.kbws === 'open') void sendEnc({ t: 'ws-open', id: d.id, path: d.path, protocols: d.protocols })
+  if (d.kbws === 'open') { session.sockets.add(d.id); void sendEnc({ t: 'ws-open', id: d.id, path: d.path, protocols: d.protocols }) }
   else if (d.kbws === 'msg') void sendEnc({ t: 'ws-msg', id: d.id, text: typeof d.text === 'string' }, typeof d.text === 'string' ? te.encode(d.text) : new Uint8Array(d.bin))
-  else if (d.kbws === 'close') void sendEnc({ t: 'ws-close', id: d.id, code: d.code })
+  else if (d.kbws === 'close') { session.sockets.delete(d.id); void sendEnc({ t: 'ws-close', id: d.id, code: d.code }) }
 })
 
 async function revoked () {
@@ -250,8 +250,21 @@ async function connectAndHandshake ({ sid, mode, phoneId, hostIdPub, code }) {
 
 let retryTimer = null
 let retryDelay = 1500
-function onPeerDown () { if (kb.state === 'running') { veil(STR.peerDown); scheduleResume() } }
-function onRelayDown () { session.channel = null; if (kb.state === 'running') { veil(STR.relayDown); scheduleResume() } else if (kb.state === 'connecting') scheduleResume() }
+/** The encrypted channel is gone (the phone slept, the network changed, the computer went away). The DSH page does not know it:
+ *  its tunnelled sockets would stay "open" for ever, so it would never reconnect and the chat would not answer. Tell it:
+ *  its sockets are closed (its own reconnection logic only runs on a close it is told about) and its requests in flight end. */
+function dropTunnel () {
+  for (const id of session.sockets) toFrame({ kbws: 'close', id, code: 1006 })
+  session.sockets.clear()
+  for (const [id, port] of session.ports) {
+    if (!session.headed.has(id)) port.postMessage({ t: 'res', status: 503, headers: { 'content-type': 'text/plain' } })
+    port.postMessage({ t: 'end' })
+  }
+  session.ports.clear()
+  session.headed.clear()
+}
+function onPeerDown () { dropTunnel(); if (kb.state === 'running') { veil(STR.peerDown); scheduleResume() } }
+function onRelayDown () { session.channel = null; dropTunnel(); if (kb.state === 'running') { veil(STR.relayDown); scheduleResume() } else if (kb.state === 'connecting') scheduleResume() }
 function scheduleResume () {
   clearTimeout(retryTimer)
   retryTimer = setTimeout(() => { void resume(true) }, retryDelay)
