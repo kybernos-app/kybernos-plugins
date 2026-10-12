@@ -105,17 +105,35 @@ try {
   check('Settings opens', opened === true)
   if (opened === true) {
     await sleep(1200)
-    const s = JSON.parse(await ev(`(() => {
+    // a phone shows the list of pages first (a column of rows, not a strip), and the page once one is picked
+    const list = JSON.parse(await ev(`(() => {
       const p = document.querySelector('[data-shortcut-modal="settings"]'); const n = p.querySelector('nav'); const c = n.nextElementSibling
+      const rows = Array.from(n.querySelectorAll('nav > div:last-child > button')).filter((b) => b.getBoundingClientRect().width > 0)
       const a = n.getBoundingClientRect(); const b = c.getBoundingClientRect()
-      const list = n.lastElementChild
-      return JSON.stringify({ navW: Math.round(a.width), navH: Math.round(a.height), contentTop: Math.round(b.top), contentW: Math.round(b.width), stripScrolls: list.scrollWidth > list.clientWidth, scrollW: document.documentElement.scrollWidth, vw: innerWidth })
+      const tops = rows.slice(0, 12).map((r) => Math.round(r.getBoundingClientRect().top)).sort((x, y) => x - y)
+      const lefts = rows.slice(0, 12).map((r) => Math.round(r.getBoundingClientRect().left))
+      return JSON.stringify({ navW: Math.round(a.width), rows: rows.length, tops, lefts, pageW: Math.round(b.width), pageShown: b.width > 0 && getComputedStyle(c).display !== 'none', picked: p.hasAttribute('data-kbmob-page'), scrollW: document.documentElement.scrollWidth, vw: innerWidth })
     })()`))
-    if (shotsDir !== null) await page.shot(shotsDir + '/phone-settings.png')
-    check('the navigation is a strip above the page, not a column beside it', s.navW >= 360 && s.navH < 300 && s.contentTop >= s.navH - 2, s)
-    check('the page has the whole width', s.contentW >= 340, s)
-    check('the strip scrolls sideways (every page stays reachable)', s.stripScrolls === true, s)
-    check('nothing makes the dialog wider than the screen', s.scrollW === s.vw, s)
+    if (shotsDir !== null) await page.shot(shotsDir + '/phone-settings-list.png')
+    check('the list of pages is a column of rows across the whole width', list.navW >= 340 && list.rows >= 3 && list.tops.every((t, k) => k === 0 || t - list.tops[k - 1] >= 36) && new Set(list.lefts).size === 1, list)
+    check('the page waits for a pick: it is not squeezed beside the list', list.pageShown === false && list.picked === false, list)
+    check('nothing makes the dialog wider than the screen', list.scrollW === list.vw, list)
+    const pick = await ev(`(() => { const p = document.querySelector('[data-shortcut-modal="settings"]'); const rows = Array.from(p.querySelectorAll('nav > div:last-child > button')).filter((b) => b.getBoundingClientRect().width > 0); const r = rows[1] || rows[0]; if (!r) return false; r.click(); return true })()`)
+    check('a page can be picked from the list', pick === true)
+    await sleep(900)
+    const page1 = JSON.parse(await ev(`(() => {
+      const p = document.querySelector('[data-shortcut-modal="settings"]'); const c = p.children[1]
+      const b = c.getBoundingClientRect()
+      return JSON.stringify({ picked: p.hasAttribute('data-kbmob-page'), back: c.getAttribute('data-kbmob-back'), pageW: Math.round(b.width), pageH: Math.round(b.height), navShown: p.querySelector('nav').getBoundingClientRect().width > 0 && getComputedStyle(p.querySelector('nav')).display !== 'none', scrollW: document.documentElement.scrollWidth, vw: innerWidth })
+    })()`))
+    if (shotsDir !== null) await page.shot(shotsDir + '/phone-settings-page.png')
+    check('the picked page has the whole width, under a back bar, and the list is out of the way', page1.picked === true && page1.pageW >= 340 && typeof page1.back === 'string' && page1.back.length > 0 && page1.navShown === false, page1)
+    check('the page does not scroll the dialog sideways', page1.scrollW === page1.vw, page1)
+    // the back bar is the top 56 px of the page
+    const bar = await ev(`(() => { const c = document.querySelector('[data-shortcut-modal="settings"]').children[1]; const r = c.getBoundingClientRect(); return [r.left + 40, r.top + 28] })()`)
+    await tap(bar[0], bar[1]); await sleep(700)
+    const back = await ev(`!document.querySelector('[data-shortcut-modal="settings"]').hasAttribute('data-kbmob-page')`)
+    check('a tap on the back bar returns to the list', back === true)
   }
 } finally {
   try { await page.send('Emulation.clearDeviceMetricsOverride', {}); await page.send('Emulation.setTouchEmulationEnabled', { enabled: false }) } catch (e) { /* the browser is closing */ }
