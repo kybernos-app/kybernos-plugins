@@ -3852,7 +3852,7 @@ function boot(ctx) {
           if (existsSync(joinPath(joinPath(roots[i].path, kyberId), 'kyber.yml')) === true) { rootPath = roots[i].path; resolvedRootId = roots[i].id; break }
         }
       }
-      if (rootPath === null) return { ok: false, error: 'kyber introuvable dans les racines connues' }
+      if (rootPath === null) return { ok: false, error: 'Agent Team introuvable dans les racines connues' }
       const dir = joinPath(rootPath, kyberId)
       if (existsSync(joinPath(dir, 'kyber.yml')) === false) return { ok: false, error: 'kyber.yml absent: ' + dir }
       const to = Date.now()
@@ -3861,7 +3861,7 @@ function boot(ctx) {
       // 1. ledger (une ligne = une exécution de rôle)
       let ledgerText = null
       try { ledgerText = readFileSync(joinPath(joinPath(dir, 'memory'), 'ledger.jsonl'), 'utf8') } catch (e) { ledgerText = null }
-      if (ledgerText === null) notes.push('aucun ledger pour ce kyber (memory/ledger.jsonl absent) : « runs » vient alors des seuls workflow tracés dans les journaux')
+      if (ledgerText === null) notes.push('aucun ledger pour cette Agent Team (memory/ledger.jsonl absent) : « runs » vient alors des seuls workflow tracés dans les journaux')
       const ledger = kbInsightLedger(ledgerText, from, to)
       if (ledger.unreadable > 0) notes.push(ledger.unreadable + ' ligne(s) de ledger illisible(s), ignorée(s)')
       if (ledger.undated > 0) notes.push(ledger.undated + ' ligne(s) de ledger sans date valide, exclue(s) de la période')
@@ -3983,7 +3983,7 @@ function boot(ctx) {
         runNames: roll.runNames,
         top: { skills: roll.skills, connectors: roll.connectors, tools: roll.tools },
         methods: {
-          runs: ledgerRuns > 0 ? 'ledger du kyber : une ligne = une exécution de rôle' : 'runs de workflow dont un agent est étiqueté ' + kyberId + '-<rôle>',
+          runs: ledgerRuns > 0 ? 'ledger de l’Agent Team : une ligne = une exécution de rôle' : 'runs de workflow dont un agent est étiqueté ' + kyberId + '-<rôle>',
           uniqueUsers: 'sessions DSH distinctes qui ont soit porté un run étiqueté « ' + kyberId + '-<rôle> », soit activé cette équipe dans la période (registre ~/.dsh/kybers/.active, horodaté à la dernière activation ; installation locale : une session = une personne au clavier)',
           versions: 'version courante + sauvegardes kyber.yml.bak-* écrites par l’hôte',
           engagement: 'messages du journal, dans la fenêtre [run-start, run-end] des runs attribués ; la carte Sessions compte les sessions ayant activé l’équipe ou porté un run',
@@ -4010,7 +4010,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id de kyber invalide' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
         const roots = await rootsFor(str(req.sessionId))
         let rootPath = null
         for (let i = 0; i < roots.length; i += 1) if (roots[i].id === rootId) rootPath = roots[i].path
@@ -5495,7 +5495,7 @@ function boot(ctx) {
           }
         } catch (e) { warnings.push('agentPresets.list: ' + errText(e)) }
       }
-      if (home === null) warnings.push('home DSH introuvable: les kybers installes hors du depot ne sont pas listes')
+      if (home === null) warnings.push('home DSH introuvable: les Agent Teams installees hors du depot ne sont pas listees')
 
       const roots = []
       // Libelles affiches par la galerie (le client affiche aussi le chemin) :
@@ -7090,7 +7090,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id de kyber invalide' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
         const rootsUi = await rootsFor()
         let rootPath = null
         for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
@@ -7385,7 +7385,7 @@ function boot(ctx) {
         const rootId = str(req.rootId)
         const kyberId = str(req.kyberId)
         if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id de kyber invalide' }
+        if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
         const dataUrl = str(req.dataUrl)
         if (dataUrl === null || dataUrl.length < 32) return { ok: false, error: 'image requise' }
         const m = /^data:([^;,]+);base64,([A-Za-z0-9+/=\s]+)$/.exec(dataUrl)
@@ -7504,7 +7504,7 @@ function boot(ctx) {
         const rootPath = await kbSampleRoot(req.rootId)
         if (rootPath === null) return { ok: false, error: 'racine inconnue' }
         const kyberId = str(req.kyberId)
-        if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id de kyber invalide' }
+        if (kyberId === null || /^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
         const name = String(str(req.name) !== null ? req.name : '').trim()
         if (name.length < 1 || name.length > 40) return { ok: false, error: 'nom de voix requis (1 a 40 caracteres)' }
         if (req.consent !== true) return { ok: false, error: 'consentement explicite requis' }
@@ -7680,7 +7680,7 @@ function boot(ctx) {
       const rootId = str(req.rootId)
       const kyberId = str(req.kyberId)
       if (rootId === null || kyberId === null) return { ok: false, error: 'rootId et kyberId requis' }
-      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id de kyber invalide' }
+      if (/^[a-z0-9][a-z0-9-]*$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide' }
       const rootsUi = await rootsFor()
       let rootPath = null
       for (const r of rootsUi) { if (r.id === rootId) rootPath = r.path }
@@ -7728,7 +7728,7 @@ function boot(ctx) {
         mkdirSync(workDir, { recursive: true })
         if (recrop === true) {
           const rel = memo !== null ? str(memo.rel) : null
-          if (rel === null || rel.indexOf('.kyber-avatars/') !== 0 || rel.indexOf('..') >= 0) return { ok: false, error: 'aucune planche mémorisée pour ce kyber' }
+          if (rel === null || rel.indexOf('.kyber-avatars/') !== 0 || rel.indexOf('..') >= 0) return { ok: false, error: 'aucune planche mémorisée pour cette Agent Team' }
           const t = await fs.resolve(joinPath(rootPath, rel))
           const info = await fs.stat(t).catch(() => null)
           if (isFile(info) !== true) return { ok: false, error: 'planche mémorisée introuvable' }
@@ -10299,7 +10299,7 @@ function boot(ctx) {
         const req = (args !== null && args !== undefined && typeof args === 'object') ? args : {}
         const kyberId = str(req.kyberId).trim()
         const yml = str(req.yml)
-        if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'id de kyber invalide (minuscules, chiffres, tirets)' }
+        if (/^[a-z0-9][a-z0-9-]{1,62}$/.test(kyberId) === false) return { ok: false, error: 'id d’Agent Team invalide (minuscules, chiffres, tirets)' }
         if (yml.length === 0 || yml.length > 60000) return { ok: false, error: 'yml absent ou trop long' }
         if (yml.indexOf('topology:') !== 0) return { ok: false, error: 'yml refuse: doit commencer par topology:' }
         try {

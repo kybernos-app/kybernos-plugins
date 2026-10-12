@@ -39,7 +39,7 @@ return k === null ? loadingText : k.wrap('Loading…', 'my-table', rows.map((r, 
 | Where | Bundle | Seen live |
 |---|---|---|
 | Creations (cards and list, with the tiles and the line under them) | kybernos-plugin | yes, shift 0 px |
-| Kybers (cards and rows), the Marketplace's kybernos.app block | kybernos-plugin | yes |
+| Agent Teams (cards and rows), the Marketplace's kybernos.app block | kybernos-plugin | yes |
 | Workspaces, and the tabs of a project page (Threads, Documents, Goals, Budget…) | kybernos-plugin | yes |
 | Automations (it had its own skeleton and animation; it uses this one now) | kybernos-plugin | yes, shift 0 px |
 | Settings › Tools, Voice engines | kybernos-plugin | yes |

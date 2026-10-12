@@ -132,7 +132,7 @@ export function valider(topo) {
     if (!st.roles || st.roles.length === 0) erreurs.push('« ' + st.id + ' » : au moins un rôle requis')
     if (topo.roles && topo.roles.length > 0) {
       for (const r of st.roles || []) {
-        if (topo.roles.indexOf(r) < 0) erreurs.push('« ' + st.id + ' » : rôle « ' + r + ' » absent des rôles du kyber')
+        if (topo.roles.indexOf(r) < 0) erreurs.push('« ' + st.id + ' » : rôle « ' + r + ' » absent des rôles de l’Agent Team')
       }
     }
     for (const entree of st.inputs || []) {

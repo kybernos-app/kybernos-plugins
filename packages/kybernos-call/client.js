@@ -860,7 +860,7 @@ body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.
               (p.slot === 'listen' || p.slot === 'face' || p.slot === 'speak') && !p.clone ? h('button', { key: 'u', type: 'button', className: 'kbcl-btn kbcl-pri', style: { marginLeft: 'auto' }, 'data-act': 'use-' + p.id, disabled: c.busy || (used && typeof p.engine !== 'string') || (p.id === 'models-asr' && !(p.config && p.config.model)), onClick: useIt }, used ? (typeof p.engine === 'string' ? kt('Utiliser cette voix', 'Use this voice') : kt('Utilisé', 'In use')) : kt('Utiliser pour les appels', 'Use for calls')) : null
             ]),
             p.slot === 'speak' && !p.clone ? h('div', { key: 'fb', className: 'kbcl-sub' }, kt('Si ce fournisseur échoue, la voix du Mac prend le relais : l’appel n’est jamais muet.', 'If this provider fails, the Mac voice takes over: a call is never silent.')) : null,
-            p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’un Kyber est un enregistrement. Créez la voix depuis la carte du Kyber.', 'Used when a Kyber’s voice is a recording. Create the voice from the Kyber’s card.')) : null
+            p.clone ? h('div', { key: 'cn', className: 'kbcl-sub' }, kt('Sert quand la voix d’une Agent Team est un enregistrement. Créez la voix depuis la carte de l’Agent Team.', 'Used when an Agent Team’s voice is a recording. Create the voice from the Agent Team’s card.')) : null
           ]
         ])
       }

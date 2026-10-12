@@ -2163,7 +2163,7 @@ window.__ModuleLoader__.load({
           h('button', { className: 'kbs-minibtn', 'data-kbs-act': 'open-memory', onClick: () => { fermer('notes'); ouvrirReglagesSection('Memory & Lessons') } }, 'Open Memory & Lessons ›')),
         onClose: () => fermer('notes'),
         details: h('div', null,
-          sectionNote('Kyber ledger', h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
+          sectionNote('Agent Team ledger', h('div', { className: 'kbs-memo' }, memFaites.map(ligneMemo))),
           h('dl', { style: { margin: '10px 0 0', display: 'flex', flexDirection: 'column', gap: 9 } },
             Ligne('Runs recorded', String(memoire.records.length), 'rb'),
             Ligne('Lessons written', String(memoire.lessons.length), 'lb'),
@@ -2171,7 +2171,7 @@ window.__ModuleLoader__.load({
             Ligne('Memories saved', String(memoire.souvenirs.length), 'mb'),
             Ligne('Storage', h('code', { className: 'kbs-code-in' }, '~/.dsh/kybers/' + (kyber || '<kyber>') + '/memory'), 'st')),
           h(Copier, { key: 'cpm', texte: 'memory written in this chat\n' + memoire.souvenirs.map((x) => '- memory saved [' + (x.kind || '?') + '] ' + x.text).concat(memFaites.map((x) => '- ' + libelleMemo(x) + ' [' + (x.kyber || '?') + '] ' + (texteMemo(x) || ''))).join('\n') }),
-          h(Copier, { key: 'cpl', texte: (kyber || 'kyber') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
+          h(Copier, { key: 'cpl', texte: (kyber || 'agent team') + ' — lessons from this chat\n' + leconsSession.map((l) => '- ' + libelleMemo(l) + ' ' + (l.type === 'lesson' ? l.text : 'lesson #' + l.index)).join('\n') })) })
 
       const carte = (id) => {
         if (id === 'local') return h(Pop, { idCarte: 'local', name: 'Local', icon: 'laptop', accent: w.accent, titre: w.titre, texte: w.texte,
@@ -2645,7 +2645,7 @@ window.__ModuleLoader__.load({
             h('div', { className: natif ? natif.title : undefined }, 'Decision Brain'),
             h('div', { className: natif ? natif.desc : undefined }, decision === 'none'
               ? 'Off: nothing else classifies. The decision route answers “brain off”, and every caller keeps its own rule.'
-              : 'Answers one closed question at a time — which kyber runs a request, which category (so which icon) a chat gets. It needs a model served by the evaluation API (/v1/evaluate), not a chat model'
+              : 'Answers one closed question at a time — which agent team runs a request, which category (so which icon) a chat gets. It needs a model served by the evaluation API (/v1/evaluate), not a chat model'
                 + (connusDecision.length === 0
                   ? ' — the host did not announce its list: restart DSH to get it.'
                   : ': ' + connusDecision.join(', ') + '.'))),

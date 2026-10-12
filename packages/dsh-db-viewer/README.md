@@ -1,12 +1,12 @@
 # `@local/dsh-db-viewer`
 
-A read-only SQLite viewer in DSH's right sidebar: it shows the small database a kyber keeps
+A read-only SQLite viewer in DSH's right sidebar: it shows the small database an agent team keeps
 (`donnees.sqlite`) as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.
 
 ## What the user sees
 
 A right-sidebar tab type titled "Base de données" (kind `dsh-db-viewer`). It has a database picker (one
-entry per kyber that has a database), a refresh button and four views:
+entry per agent team that has a database), a refresh button and four views:
 
 - **Diagramme**: entity cards with a coloured header, type / column / PK / KEY rows and crow's-foot links
   drawn from the foreign keys. Cards can be dragged; positions are not saved.

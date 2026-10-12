@@ -34,7 +34,7 @@ const estGit = existsSync(join(kybersHome, '.git'))
 
 const kybers = etatMemoire(kybersHome)
 if (kybers.length === 0) {
-  console.log('aucune mémoire de kyber trouvée dans ' + kybersHome)
+  console.log('aucune mémoire d’Agent Team trouvée dans ' + kybersHome)
   process.exit(0)
 }
 
@@ -71,10 +71,10 @@ ${lecons}
   writeFileSync(join(dir, 'VERSION.md'),
 `# ${k.id} — versions
 
-${estGit ? '' : '> The kybers folder is not a git repository yet — no versions to show.\n'}
+${estGit ? '' : '> The \`kybers\` folder is not a git repository yet — no versions to show.\n'}
 | Commit | Date | Change |
 |---|---|---|
-${lignes || '| — | — | no version has touched this kyber since the initial commit |'}
+${lignes || '| — | — | no version has touched this agent team since the initial commit |'}
 `)
   console.log('✓ ' + k.id + ' → ' + join('.kybers', k.id))
 }

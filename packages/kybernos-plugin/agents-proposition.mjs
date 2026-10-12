@@ -1,7 +1,7 @@
 // ── "Force de proposition": the global rule of the Kybernos agents ──────────
 // (02/10/2026) The shared "system prompt" of the DSH agents lives in
 // `<DSH home>/AGENTS.md` (~/.dsh by default) — one file PER MACHINE, never in the
-// package. So that every user of the plugin gets the "kyber/skill matching" reflex,
+// package. So that every user of the plugin gets the "Agent Team/skill matching" reflex,
 // the plugin's boot LAYS the section into that file, idempotently: marked, never
 // rewritten, never removed. Same contract as `preset-compaction.mjs`: a boot seam,
 // not an engine patch.
@@ -21,18 +21,18 @@ const TITRE_EXISTANT = 'Force de proposition dès l\'ouverture d\'un chat'
 const SECTION = [
   '',
   MARQUEUR_OUVERT,
-  '## Force de proposition — matching systématique kyber/skill (posée par le plugin Kybernos)',
+  '## Force de proposition — matching systématique Agent Team/skill (posée par le plugin Kybernos)',
   '',
   'À chaque demande (et à chaque changement de sujet), AVANT de proposer une',
   'ressource, passer la demande dans le double étage — jamais au flair :',
   '',
   '1. **Score lexical en front** : confronter les 1-2 phrases de la demande aux',
-  '   missions des kybers installés (`~/.dsh/kybers/`) et aux descriptions des',
-  '   skills du catalogue ; garder les 2 meilleurs de chaque.',
+  '   missions des Agent Teams installées (`~/.dsh/kybers/`) et aux descriptions',
+  '   des skills du catalogue ; garder les 2 meilleurs de chaque.',
   '2. **Arbitre** si le lexical hésite (scores proches ou aucun net) : une',
   '   question fermée au Decision Brain (réglage `decisionBrain`, défaut',
-  '   typesafe-ai/jev) : « demande X → kyber/skill parmi A, B, aucun ? réponds',
-  '   un seul mot ».',
+  '   typesafe-ai/jev) : « demande X → Agent Team/skill parmi A, B, aucun ?',
+  '   réponds un seul mot ».',
   '',
   'Ne proposer QUE les gagnants — nommés, en une phrase de mission, avec une',
   'question fermée (« je le lance ? »). Une skill se propose, elle ne se charge',

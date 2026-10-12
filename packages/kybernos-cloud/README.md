@@ -1,7 +1,7 @@
 # Kybernos Cloud — plugin DSH
 
 Connecte DSH à un compte **Kybernos Cloud** et affiche le profil dans l'interface :
-email, nom, formule, workspaces (nom + nombre de kybers) et état de la session.
+email, nom, formule, workspaces (nom + nombre d’Agent Teams) et état de la session.
 À la connexion, **import automatique des modèles** du proxy Kybernos LiteLLM
 (glm, deepseek…) selon l'abonnement — voir « Catalogue de modèles importé ».
 
@@ -96,7 +96,7 @@ donc là où ils sont déjà modélisés : la table `kybernos.memories` de son c
 Quand le compte est connecté, ce half fait trois choses :
 
 1. **Il lit** `GET /v1/memories?scope=account` (et `?scope=kyber&kyber_id=` pour
-   chaque kyber relié) avec le jeton du compte, et remplit un cache. Le cache est **rechargé** quand il a plus de 60 s (minuteur du plugin, libéré avec lui), juste après toute écriture (outil, capture, carte) et à l'ouverture de la page ; une lecture qui échoue **garde** l'ancien contenu et remonte l'erreur au lieu de vider le prompt.
+   chaque Agent Team reliée) avec le jeton du compte, et remplit un cache. Le cache est **rechargé** quand il a plus de 60 s (minuteur du plugin, libéré avec lui), juste après toute écriture (outil, capture, carte) et à l'ouverture de la page ; une lecture qui échoue **garde** l'ancien contenu et remonte l'erreur au lieu de vider le prompt.
 2. **Il injecte** le résultat dans le prompt, à chaque assemblage, via
    `ctx.systemPrompt.context({ name: 'kybernos:memory', order: 130, text })`.
    Le texte est **synchrone** (il lit le cache — jamais le réseau dans un
@@ -109,7 +109,7 @@ Quand le compte est connecté, ce half fait trois choses :
    récent, coupe au premier dépassement » ne gardait que les plus vieux : sur un compte
    à 631 souvenirs, seuls 12 épinglés entraient et rien de ce que le modèle venait
    d'apprendre. Quand des souvenirs restent dehors, le chunk le dit et renvoie à
-   `memory_search`. Les kybers reliés ont leur part (30 %) pour qu'un groupe n'affame
+   `memory_search`. Les Agent Teams reliées ont leur part (30 %) pour qu'un groupe n'affame
    pas l'autre. C'est une étape **provisoire** : la vraie réponse est une recherche par
    pertinence côté serveur. Le contenu est neutralisé : un souvenir ne
    peut pas fabriquer une ligne de chunk.
@@ -142,12 +142,12 @@ Routes locales (mêmes gardes same-origin et méthode stricte que les autres) :
 
 | Route | Méthode | Rôle |
 | --- | --- | --- |
-| `/kybernos-cloud/memory` | GET | liste du compte + kybers cloud + correspondance + compteurs de leçons |
+| `/kybernos-cloud/memory` | GET | liste du compte + Agent Teams cloud + correspondance + compteurs de leçons |
 | `/kybernos-cloud/memory/add` | POST | ajoute un souvenir (`{content, kind, source?, pinned?}`) |
 | `/kybernos-cloud/memory/update` | POST | épingle / détache / change la rétention (`{id, …}`) |
 | `/kybernos-cloud/memory/delete` | POST | oublie un souvenir (`{id}`) |
 | `/kybernos-cloud/memory/search` | GET | cherche (`?q=`) |
-| `/kybernos-cloud/memory/map` | POST | écrit la correspondance kyber local → kyber cloud |
+| `/kybernos-cloud/memory/map` | POST | écrit la correspondance Agent Team locale → Agent Team cloud |
 | `/kybernos-cloud/memory/lessons` | POST | pousse les leçons locales (`dryRun` par défaut) |
 | `/kybernos-cloud/memory/list` | GET | liste **paginée et filtrée** du compte (`limit`, `offset`, `show`, `src`, `added`, `q`) |
 | `/kybernos-cloud/memory/settings` | GET | les interrupteurs `memories`, `context`, `capture`, et `capture` : où en est la dernière capture (en mémoire seulement) |
@@ -177,11 +177,11 @@ sur `/memory` se masqueraient l'une l'autre (défaut trouvé par la suite host).
   chose que ce que lit le modèle. La recherche est textuelle (`search.mode: exact`,
   `relevance: false`).
 
-### Correspondance des kybers
+### Correspondance des Agent Teams
 
 Les identifiants n'ont rien en commun (locaux : `default`, `dev-team`… ; cloud :
 `kg52d53f4ce522`…). La correspondance est donc **explicite et inspectable**
-(`state.kyberMap`, éditable depuis la carte), jamais devinée : un kyber local non
+(`state.kyberMap`, éditable depuis la carte), jamais devinée : une Agent Team locale non
 relié ne pousse rien, et le rapport de poussée le dit. Les leçons montent en
 `scope=kyber`, `kind=policy`, avec **déduplication avant écriture** (un contenu
 déjà présent n'est pas réécrit). Les plus récentes passent en premier si le
@@ -195,7 +195,7 @@ plafond de 40 coupe.
 - une lecture refusée (401) **se dit refusée** — elle ne se déguise jamais en
   « aucun souvenir » (une liste vide et un jeton mort ne se ressemblent pas) ;
 - `kyber_id` n'est **pas exposé au modèle** : un modèle ne doit pas pouvoir viser
-  le kyber d'un autre (spec serveur §7) ;
+  l’Agent Team d'une autre (spec serveur §7) ;
 - l'injection est fail-open (pas de chunk ⇒ le tour continue), la lecture est
   fail-loud (l'erreur remonte jusqu'à la carte).
 
@@ -256,7 +256,7 @@ checked for each tool where DSH is installed, `NO_DSH_ENGINE=1` skips them).
 Le half client d'un plugin Cordis doit tenir dans **un seul** `client.js` : le
 loader DSH évalue `window.__ModuleLoader__.load({ id, factory })`, il n'y a ni
 bundler ni import de fichier voisin. Ce package garde donc l'intégration cloud
-isolée du plugin `@local/kybernos` (le plugin local kybers), ce qui évite les
+isolée du plugin `@local/kybernos` (le plugin local des Agent Teams), ce qui évite les
 collisions d'écriture et rend chaque moitié livrable indépendamment.
 
 ## Comment ça marche (device code flow, RFC 8628)

@@ -150,7 +150,7 @@ try {
   writeFileSync(join(kybers, '.active', SESSION_A), JSON.stringify({ kyber: 'dev-team', ts: iso(1) }))
   const forA = mod.renderLessonsChunk(ctxFor(SESSION_A))
   assert.ok(forA.startsWith('[KYBERNOS LESSONS]'))
-  assert.ok(forA.includes('your kyber: dev-team'))
+  assert.ok(forA.includes('your agent team: dev-team'))
   assert.ok(forA.includes('dev-team: restart expo after edits') && forA.includes('general: say what you verified'), 'the session\'s kyber and default')
   assert.equal(forA.includes('audit: confirm a finding twice'), false, 'another kyber\'s lessons are NOT injected')
   assert.ok(forA.includes('#expo'))

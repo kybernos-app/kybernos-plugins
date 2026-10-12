@@ -2765,7 +2765,7 @@ try {
     market.listCalls = 0
     const nope = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'nope' })
     assert.equal(nope.body.ok, false)
-    assert.equal(nope.body.error, 'ce kyber n\'est plus publie sous l\'id « nope »')
+    assert.equal(nope.body.error, 'cette Agent Team n\'est plus publiee sous l\'id « nope »')
     assert.deepEqual(urlsSince(mark).slice(0, 2), ['/v1/marketplace/nope', '/v1/marketplace'], 'a 404 on the address: the pages of the list are read before saying it is gone')
     assert.equal(urlsSince(mark).length, 4)
     ok('an item that exists nowhere: the address says 404, the three pages say so too, and only then « plus publie »')
@@ -2778,7 +2778,7 @@ try {
     assert.equal(part.body.ok, true)
     assert.equal(part.body.partiel, true)
     assert.equal(part.body.items.length, 200)
-    assert.match(part.body.motif, /^catalogue incomplet : la page 2 est indisponible \(code 502\), 200 kyber\(s\) lus$/)
+    assert.match(part.body.motif, /^catalogue incomplet : la page 2 est indisponible \(code 502\), 200 Agent Team\(s\) lue\(s\)$/)
     market.listCalls = 0
     const mark = seen.marketUrls.length
     const lost = await hit('/kybernos-cloud/marketplace/install', 'POST', undefined, { slug: 'nope' })

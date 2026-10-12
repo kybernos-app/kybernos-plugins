@@ -86,7 +86,7 @@ needs nothing: it is the one chosen on its card. A voice made from a recording n
    (a lead-in ending with a colon takes its list), without code, tables, links, markup, emoji or arrows, cut at a sentence end under 450
    characters; the rest stays in the thread. While a call is live the host adds a short brief to that session's system prompt
    (`call-brief.mjs`, a `systemPrompt.context` chunk that is empty outside a call): answer in one to three spoken sentences, no menu of
-   options, kybers or skills, no closing question, detail after a blank line. Measured on the first call: the answer was "Paris" and a
+   options, agent teams or skills, no closing question, detail after a blank line. Measured on the first call: the answer was "Paris" and a
    voice then read the menu the assistant adds under every answer. If the session is still working after 10 s the voice says one short
    "one moment" in the call's language (it was 3.5 s and came at every turn). Without a session, or on an engine with no event stream,
    the small model answers, so a call is never silent.

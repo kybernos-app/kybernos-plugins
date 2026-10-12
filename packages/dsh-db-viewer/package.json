@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Visualiseur de bases SQLite des kybers dans la sidebar droite DSH — onglets Diagramme (style drawdb), Données et SQL.",
+  "description": "Visualiseur de bases SQLite des Agent Teams dans la sidebar droite DSH — onglets Diagramme (style drawdb), Données et SQL.",
   "license": "Apache-2.0",
   "main": "index.js",
   "exports": {

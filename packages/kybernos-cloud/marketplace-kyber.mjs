@@ -153,14 +153,14 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     }
     if (panne !== null) {
       if (page === 1) return { ok: false, items: [], motif: 'catalogue ' + panne, echec: true }
-      note = 'catalogue incomplet : la page ' + page + ' est ' + panne + ', ' + items.length + ' kyber(s) lus'
+      note = 'catalogue incomplet : la page ' + page + ' est ' + panne + ', ' + items.length + ' Agent Team(s) lue(s)'
       break
     }
     const brut = rep.body !== null && typeof rep.body === 'object' && Array.isArray(rep.body.items) ? rep.body.items : null
     if (brut === null) {
       // Not a page of the catalogue. On the first page that is the answer's own reason; later it is a broken server.
       if (page === 1) return Object.assign(normaliserCatalogue(rep.body), { ok: false })
-      note = 'catalogue incomplet : la page ' + page + ' est illisible, ' + items.length + ' kyber(s) lus'
+      note = 'catalogue incomplet : la page ' + page + ' est illisible, ' + items.length + ' Agent Team(s) lue(s)'
       break
     }
     for (const it of brut) {
@@ -173,17 +173,17 @@ export const lireCatalogue = async (lirePage, limites = {}) => {
     const limite = 'catalogue incomplet : lecture limitee a ' + page + ' page(s), limite du plugin'
     if (items.length > lim.items) {
       items.length = lim.items
-      note = limite + ' (' + items.length + ' kyber(s) gardes)'
+      note = limite + ' (' + items.length + ' Agent Team(s) gardee(s))'
       break
     }
     // An old server has no `has_more`: this was the only page.
     if (rep.body.has_more !== true) break
     const dernier = brut.length > 0 ? brut[brut.length - 1] : null
     const curseur = dernier !== null && typeof dernier === 'object' && typeof dernier.id === 'string' && dernier.id !== '' ? dernier.id : null
-    if (curseur === null) note = 'catalogue incomplet : la page ' + page + ' annonce une suite sans dire ou la reprendre, ' + items.length + ' kyber(s) lus'
-    else if (curseurs.has(curseur)) note = 'catalogue incomplet : le serveur repete la page ' + page + ', ' + items.length + ' kyber(s) lus'
-    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' kyber(s) lus)'
-    else if (Date.now() - debut > lim.budgetMs) note = 'catalogue incomplet : delai depasse apres ' + page + ' page(s), ' + items.length + ' kyber(s) lus'
+    if (curseur === null) note = 'catalogue incomplet : la page ' + page + ' annonce une suite sans dire ou la reprendre, ' + items.length + ' Agent Team(s) lue(s)'
+    else if (curseurs.has(curseur)) note = 'catalogue incomplet : le serveur repete la page ' + page + ', ' + items.length + ' Agent Team(s) lue(s)'
+    else if (page >= lim.pages || items.length >= lim.items) note = limite + ' (' + items.length + ' Agent Team(s) lue(s))'
+    else if (Date.now() - debut > lim.budgetMs) note = 'catalogue incomplet : delai depasse apres ' + page + ' page(s), ' + items.length + ' Agent Team(s) lue(s)'
     curseurs.add(curseur)
     avant = curseur
   }
@@ -219,8 +219,8 @@ export const resoudreItem = async (slug, { lireItem, lirePage, limites }) => {
   if (cat.echec === true) return { erreur: cat.motif }
   const trouve = cat.items.filter((i) => i.slug === slug)[0]
   if (trouve !== undefined) return { item: trouve }
-  if (cat.partiel === true) return { erreur: 'ce kyber n\'a pas ete trouve sous l\'id « ' + slug + ' » (' + cat.motif + ')' }
-  return { erreur: 'ce kyber n\'est plus publie sous l\'id « ' + slug + ' »' }
+  if (cat.partiel === true) return { erreur: 'cette Agent Team n\'a pas ete trouvee sous l\'id « ' + slug + ' » (' + cat.motif + ')' }
+  return { erreur: 'cette Agent Team n\'est plus publiee sous l\'id « ' + slug + ' »' }
 }
 
 // ── YAML scalars ────────────────────────────────────────────────────────────
@@ -368,6 +368,6 @@ export const ymlDuKyber = (item) => {
 export const verdictInstallation = (existants, slug, { ecraser = false } = {}) => {
   const noms = Array.isArray(existants) ? existants.filter((n) => typeof n === 'string') : []
   const pris = noms.indexOf(slug) >= 0
-  if (pris === true && ecraser !== true) return { action: 'refus', motif: 'un kyber « ' + slug + ' » existe deja', cible: slug }
-  return { action: 'ecrire', motif: pris === true ? 'ecrasement demande explicitement' : 'nouveau kyber', cible: slug }
+  if (pris === true && ecraser !== true) return { action: 'refus', motif: 'une Agent Team « ' + slug + ' » existe deja', cible: slug }
+  return { action: 'ecrire', motif: pris === true ? 'ecrasement demande explicitement' : 'nouvelle Agent Team', cible: slug }
 }
