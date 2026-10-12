@@ -77,7 +77,7 @@ try {
   }
 
   // ── the pages, as steps from a clean state ─────────────────────────────────
-  const MAIN = [['Agent Teams'], ['Workspaces'], [['Deliverables', 'Creations', 'Livrables', 'Créations']], ['Automations'], [['Skills', 'Compétences']], [['Connectors', 'Connecteurs']]]
+  const MAIN = [[['Kybers', 'Agent Teams']], ['Workspaces'], [['Deliverables', 'Creations', 'Livrables', 'Créations']], ['Automations'], [['Skills', 'Compétences']], [['Connectors', 'Connecteurs']]]
   const pages = [{ name: 'Home (new chat)', run: async () => {}, root: null }]
   for (const [label] of MAIN) pages.push({ name: 'View · ' + (Array.isArray(label) ? label[0] : label), run: async () => { await reload(); if (!(await clickAny(label))) throw new Error('could not click ' + JSON.stringify(label)); await sleep(1500) }, root: null })
   pages.push({ name: 'Menu · account', run: async () => { await reload(); await clickAccount(); await sleep(1200) }, root: null })

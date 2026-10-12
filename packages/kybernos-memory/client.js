@@ -495,12 +495,14 @@ window.__ModuleLoader__.load({
 .kbmem-seg button.on{background:var(--m-primary);color:var(--m-primary-ink)}
 .kbmem-seg button[disabled]{opacity:.45;pointer-events:none}
 .kbmem-seg.sm{height:32px}.kbmem-seg.sm button{height:24px;padding:0 10px;font-size:12px}
-.kbmem-cnt{font-size:11px;font-weight:600;opacity:.65;font-variant-numeric:tabular-nums}
+.kbmem-cnt{font-size:11px;font-weight:600;color:var(--m-ink2);font-variant-numeric:tabular-nums}
 .kbmem-row2{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .kbmem-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .kbmem-field{flex-basis:200px}
 .kbmem-field{display:flex;gap:8px;align-items:center;flex:1;min-width:0;height:36px;padding:0 12px;border-radius:var(--m-r-md);background:var(--m-fill);color:var(--m-muted)}
 .kbmem-field input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--m-ink);font:inherit}
+/* the browser's default placeholder is a mid grey: 2.6:1 on the dark field */
+.kbmem-field input::placeholder{color:var(--m-ink2)}
 .kbmem-modes{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:var(--m-surf);flex:none}
 .kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
 .kbmem-modes button.on{background:var(--m-primary);color:var(--m-primary-ink)}
@@ -788,7 +790,26 @@ window.__ModuleLoader__.load({
           h('button', { type: 'button', 'data-act': 'clear', onClick: onClear }, 'Clear filters'))
       }
 
-      const MemoryRow = ({ m, selected, onOpen, ctxOn }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : ''), 'data-id': m.id, onClick: () => onOpen(m) },
+      // Skeleton rows while a list is read for the first time. The core plugin publishes ONE helper for every list
+      // (window.__KB_SKEL__: same box as the real rows, a soft shimmer, a short fade-in, nothing under reduced motion);
+      // without it the old spinner shows, as before.
+      const kbSkel = () => {
+        try {
+          const k = window.__KB_SKEL__
+          return (k !== null && k !== undefined && typeof k.bone === 'function' && typeof k.wrap === 'function') ? k : null
+        } catch (e) { return null }
+      }
+      const appear = (i) => { const k = kbSkel(); return k !== null && typeof k.appear === 'function' ? k.appear(i) : '' }
+      const SkelRows = (n) => {
+        const k = kbSkel()
+        if (k === null) return h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
+        return k.wrap('Loading…', 'kbmem-list', Array.from({ length: n }, (_, i) => h('div', { key: 'sk' + i, className: 'kbmem-r kb-sk-row' },
+          h('span', { style: { marginTop: 7, display: 'flex' } }, k.bone(8, 8, 'round')),
+          h('span', { className: 'kbmem-tx', style: { display: 'flex', flexDirection: 'column', gap: 6 } }, k.bone(i % 3 === 0 ? '92%' : (i % 3 === 1 ? '74%' : '58%'), 12), i % 2 === 0 ? k.bone('46%', 12) : null),
+          h('span', { className: 'kbmem-mt' }, k.bone(96, 12)))))
+      }
+
+      const MemoryRow = ({ m, selected, onOpen, ctxOn, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': m.id, onClick: () => onOpen(m) },
         h('span', { className: 'kbmem-kd ' + m.kind, title: KIND_LABEL[m.kind] || m.kind }),
         h('span', { className: 'kbmem-tx' }, m.content),
         h('span', { className: 'kbmem-mt' },
@@ -799,7 +820,7 @@ window.__ModuleLoader__.load({
           h('span', null, ORIGIN_LABEL[m.origin] || m.origin),
           h('span', { style: { minWidth: 30, textAlign: 'end' } }, ageLabel(m.ageMinutes))))
 
-      const LessonRow = ({ l, selected, onOpen }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : ''), 'data-id': l.id, onClick: () => onOpen(l) },
+      const LessonRow = ({ l, selected, onOpen, i }) => h('button', { type: 'button', className: 'kbmem-r' + (selected ? ' sel' : '') + appear(i), 'data-id': l.id, onClick: () => onOpen(l) },
         h('span', { className: 'kbmem-kd lesson' }),
         h('span', { className: 'kbmem-tx' }, l.text),
         h('span', { className: 'kbmem-mt' },
@@ -888,9 +909,9 @@ window.__ModuleLoader__.load({
       }
 
       // ── Team lessons: the Team tab, proposing, reviewing ─────────────────────────────────────────────────
-      const TeamRow = ({ l, mineView, onOpen }) => {
+      const TeamRow = ({ l, mineView, onOpen, i }) => {
         const [label, tone] = teamStatusChip(l)
-        return h('button', { type: 'button', className: 'kbmem-r', 'data-id': l.id, 'data-status': l.status, onClick: () => onOpen(l) },
+        return h('button', { type: 'button', className: 'kbmem-r' + appear(i), 'data-id': l.id, 'data-status': l.status, onClick: () => onOpen(l) },
           h('span', { className: 'kbmem-kd lesson' }),
           h('span', { className: 'kbmem-tx' }, l.text,
             h('span', { className: 'kbmem-tmeta' }, teamMeta(l).join(' · '),
@@ -984,13 +1005,13 @@ window.__ModuleLoader__.load({
         const after = (message) => { setSheet(null); bump(); notify(message) }
         const pending = team.counts === undefined || team.counts === null ? 0 : team.counts.pending
         let body
-        if (d.loading && d.lessons.length === 0 && d.error === null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
+        if (d.loading && d.lessons.length === 0 && d.error === null) body = SkelRows(5)
         else if (!d.ok) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico('users')), h('h3', null, 'Team lessons are not available'), h('div', null, friendlyError(d.error)))
         else if (shown.length === 0) body = h('div', { className: 'kbmem-empty', 'data-team': 'empty' }, h('div', { className: 'kbmem-ill' }, Ico('users')),
           q.trim() !== '' ? [h('h3', { key: 'h' }, 'No match'), h('div', { key: 'd' }, 'No team lesson has those words.')]
             : view === 'mine' ? [h('h3', { key: 'h' }, 'You have not proposed anything yet'), h('div', { key: 'd' }, 'Propose a lesson your team should know: an owner or admin reads it, then every agent of the team does.')]
               : [h('h3', { key: 'h' }, 'No approved lesson yet'), h('div', { key: 'd' }, admin ? 'Add the first one, or review what members propose.' : 'Propose one: when an owner or admin approves it, every agent of the team reads it.')])
-        else body = h('div', { className: 'kbmem-list', style: d.loading ? { opacity: 0.6 } : null }, shown.map((l) => h(TeamRow, { key: l.id, l, mineView: view === 'mine', onOpen: (x) => setSheet({ kind: 'open', lesson: x }) })))
+        else body = h('div', { className: 'kbmem-list', style: d.loading ? { opacity: 0.6 } : null }, shown.map((l, i) => h(TeamRow, { key: l.id, i, l, mineView: view === 'mine', onOpen: (x) => setSheet({ kind: 'open', lesson: x }) })))
         return h('div', { 'data-team': 'pane' },
           h('div', { className: 'kbmem-tools' },
             h('label', { className: 'kbmem-field' }, Ico('search'), h('input', { 'aria-label': 'Search', placeholder: 'Search team lessons…', value: q, onChange: (e) => setQ(e.target.value) })),
@@ -1309,7 +1330,7 @@ window.__ModuleLoader__.load({
         const byMeaning = sr !== null && sr.mode === 'meaning'
 
         let body
-        if (list.loading && list.items.length === 0 && list.ok === false && list.error === null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-spin' }))
+        if (list.loading && list.items.length === 0 && list.ok === false && list.error === null) body = SkelRows(6)
         else if (!list.ok && list.error !== null) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(mems ? 'cloud' : 'alert')),
           h('h3', null, notFound ? (mems ? 'Memories are not available' : 'Lessons are not available') : 'Could not load'), h('div', null, friendlyError(list.error)))
         else if (list.items.length === 0) body = h('div', { className: 'kbmem-empty' }, h('div', { className: 'kbmem-ill' }, Ico(String(qd).trim() !== '' || active.length > 0 ? 'search' : (mems ? 'brain' : 'bulb'))),
@@ -1318,9 +1339,9 @@ window.__ModuleLoader__.load({
             : (mems ? [h('h3', { key: 'h' }, 'Nothing remembered yet'), h('div', { key: 'd' }, 'Memories appear as you work: Kybernos can capture them at the end of a turn, an agent can save one, or you can add your own.')]
               : [h('h3', { key: 'h' }, 'No lesson yet'), h('div', { key: 'd' }, 'A lesson is written when an agent finds an expectation was contradicted. They are stored per kyber, on this machine.')]))
         else body = h('div', null,
-          h('div', { className: 'kbmem-list', style: list.loading ? { opacity: .6 } : null }, list.items.map((it) => mems
-            ? h(MemoryRow, { key: it.id, m: it, ctxOn, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
-            : h(LessonRow, { key: it.id, l: it, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
+          h('div', { className: 'kbmem-list', style: list.loading ? { opacity: .6 } : null }, list.items.map((it, i) => mems
+            ? h(MemoryRow, { key: it.id, i, m: it, ctxOn, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (m) => setSheet({ kind: 'mem', item: m }) })
+            : h(LessonRow, { key: it.id, i, l: it, selected: sheet !== null && sheet.item !== undefined && sheet.item.id === it.id, onOpen: (l) => setSheet({ kind: 'les', item: l }) }))),
           h(Pager, { total: list.total, page, size, onPage: setPage, onSize: (n) => { setSize(n); setPage(1) } }))
 
         return h('div', null,

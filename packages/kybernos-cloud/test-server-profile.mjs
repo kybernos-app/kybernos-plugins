@@ -91,7 +91,8 @@ console.log('the connected apps of a server')
 
 console.log('the built-in server is the NEW one')
 {
-  const OLD = /(^|[./])dev2?\.kybernos\.app|api\.dev2?\.kybernos|kybernos-proxy|\bkybernos\.app\b/
+  // `kybernos.app` alone was the old web app; `api.kybernos.app` is the new server itself (the built-in address since 2026-10-12).
+  const OLD = /(^|[./])dev2?\.kybernos\.app|api\.dev2?\.kybernos|kybernos-proxy|(?<!api\.)\bkybernos\.app\b/
   check('one place names it: BUILTIN_API is an https address', /^https:\/\/[a-z0-9.-]+$/.test(BUILTIN_API) && DEFAULT_PROFILE.api === BUILTIN_API, BUILTIN_API)
   check('nothing of the old stack is left in the built-in profile (hosts of dev.kybernos.app, api.dev, api.dev2, the proxy)', OLD.test(JSON.stringify(DEFAULT_PROFILE)) === false, JSON.stringify(DEFAULT_PROFILE))
   check('its web and its console are its OWN host (the server serves its pages and its console)', DEFAULT_PROFILE.web === BUILTIN_API && DEFAULT_PROFILE.console === BUILTIN_API + '/workspace-console')

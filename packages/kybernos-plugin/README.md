@@ -12,8 +12,8 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 
 ## What the user sees
 
-- Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Agent Teams** (gallery, create / edit / info pages,
-  Team Insight, Quality Score), **Workspaces**, **Deliverables**, **Automations** (cron and webhook tasks) and **Resources**
+- Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Kybers** (gallery and Marketplace tabs, create / edit / info pages,
+  Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron and webhook tasks) and **Resources**
   (Connectors tab only when `@local/kybernos-composio` is booted, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
   Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
 - In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,

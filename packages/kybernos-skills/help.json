@@ -13,8 +13,8 @@
       "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
     },
     {
-      "fr": "« Discover » classe les skills publics de skills.sh : ouvrez une fiche, lisez ses audits de sécurité, puis « Installer ».",
-      "en": "“Discover” ranks the public skills of skills.sh: open one, read its security audits, then “Install”."
+      "fr": "« Discover » classe les skills publics : ouvrez une fiche, lisez ses audits, puis « Installer ». « Source » choisit le serveur.",
+      "en": "“Discover” ranks the public skills: open one, read its audits, then “Install”. “Source” picks the server it reads from."
     },
     {
       "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",

@@ -251,7 +251,8 @@ window.__ModuleLoader__.load({
 .kbch-stp::before{content:"";position:absolute;top:9px;left:-50%;width:100%;height:2.5px;background:var(--dsw-alias-border-l2,rgba(255,255,255,.12))}
 .kbch-stp:first-child::before{display:none}
 .kbch-stp i{position:relative;z-index:1;width:20px;height:20px;border-radius:50%;box-sizing:border-box;display:grid;place-items:center;border:2px solid var(--dsw-alias-border-l3,rgba(255,255,255,.2));background:var(--dsw-alias-bg-layer-2,#2c2c2e)}
-.kbch-stp.done i{background:var(--dsw-alias-state-success-primary,#22c55e);border-color:var(--dsw-alias-state-success-primary,#22c55e);color:var(--dsw-alias-label-primary-foreground,#0f1115)}
+/* Ink on the green: the label pair of the brand fill turns white on it in the light scheme (2.3:1); the dark ink is 8.1:1. */
+.kbch-stp.done i{background:var(--dsw-alias-state-success-primary,#22c55e);border-color:var(--dsw-alias-state-success-primary,#22c55e);color:var(--kbch-ink-on-green,#0f1115)}
 .kbch-stp.done::before{background:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbch-stp.now i{border-color:var(--dsw-alias-state-business-primary,#7aaaff)}
 .kbch-stp.wait i{border-color:var(--dsw-alias-state-warn-primary,#f59e0b)}

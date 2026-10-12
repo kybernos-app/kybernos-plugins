@@ -8,9 +8,14 @@
  *  Usage: node packages/kybernos-skills/test-index.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+// The saved setting lives under the DSH home: this test gets its own, so it never reads or writes the user's.
+const home = mkdtempSync(join(tmpdir(), 'kb-skills-index-'))
+process.env.DSH_HOME = home
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -155,7 +160,82 @@ try {
     ok('an endless relay answer is cut after a few MB and reported as a failure (memory +' + Math.round(grownMb) + ' MB)')
   }
 
+  // 9. The address is also a setting of the page: same validation as the variable, the variable wins, nothing falls back.
+  {
+    delete process.env.KYBERNOS_SKILLS_INDEX_URL
+    mod.resetDiscoverCache()
+    const cfg = mod.configOf()
+    const settingFile = join(home, 'kybernos', 'skills-index.json')
+    assert.equal(mod.describeIndexSource(cfg).origin, 'default')
+    assert.equal(mod.describeIndexSource(cfg).url, 'https://skills.kybernos.app/v1')
+    assert.equal(mod.describeIndexSource(cfg).editable, true)
+
+    // a bad address is refused with the same words as the variable, writes nothing, and sends nothing
+    for (const bad of ['http://example.com/v1', 'ftp://127.0.0.1/v1', 'https://user:pw@example.com/v1', 'https://example.com/v1?x=1', 'https://example.com/v1#frag', 'not a url']) {
+      const before = seen.length
+      const r = mod.setIndexSource(cfg, bad)
+      assert.deepEqual([r.ok, r.error], [false, 'index_url_refused'], bad)
+      assert.equal(existsSync(settingFile), false, bad + ' must not be saved')
+      assert.equal(seen.length, before)
+      assert.equal(mod.checkIndexUrl(bad), null, 'the variable and the setting share one validator: ' + bad)
+    }
+    // a good one is saved (private file), reported, and used
+    const saved = mod.setIndexSource(cfg, base + '/')
+    assert.equal(saved.ok, true, JSON.stringify(saved))
+    assert.equal(saved.source.origin, 'setting')
+    assert.equal(saved.source.url, base, 'normalised: no trailing slash')
+    assert.equal(saved.source.host, '127.0.0.1:' + server.address().port)
+    assert.equal(JSON.parse(readFileSync(settingFile, 'utf8')).url, base)
+    assert.equal(statSync(settingFile).mode & 0o077, 0, 'the setting is private to the user')
+    answer = () => ({ status: 200, body: { data: [hit('viaSetting', 1)], pagination: { total: 1, hasMore: false } } })
+    const used = await mod.indexSkills({ view: 'all-time', page: '0', perPage: '1' })
+    assert.equal(used.ok, true, JSON.stringify(used))
+    assert.equal(used.skills[0].name, 'viaSetting')
+    assert.equal(seen.at(-1).url, '/v1/skills?view=all-time&page=0&per_page=1')
+    assert.equal(seen.at(-1).headers.authorization, undefined, 'a custom relay gets no credential either')
+    ok('the page can name another relay: same validation as the variable, saved privately, used at once, no credential sent')
+
+    // the variable wins over the setting, and the page may not change it while it is set
+    process.env.KYBERNOS_SKILLS_INDEX_URL = 'http://127.0.0.1:1/never'
+    const viaEnv = mod.describeIndexSource(cfg)
+    assert.deepEqual([viaEnv.origin, viaEnv.editable], ['env', false])
+    assert.equal(mod.setIndexSource(cfg, base).error, 'index_url_env')
+    assert.equal(mod.setIndexSource(cfg, '').error, 'index_url_env')
+    assert.equal(JSON.parse(readFileSync(settingFile, 'utf8')).url, base, 'the file is untouched while the variable decides')
+    process.env.KYBERNOS_SKILLS_INDEX_URL = 'https://user:pw@example.com/v1'
+    const bad = mod.describeIndexSource(cfg)
+    assert.deepEqual([bad.origin, bad.refused, bad.url, bad.host], ['env', true, null, null], 'a refused address is never echoed back (it may hold a password)')
+    delete process.env.KYBERNOS_SKILLS_INDEX_URL
+    ok('the variable wins, the page is told it is not editable, and a refused address is not repeated to the screen')
+
+    // an answer from one relay is never served for another
+    mod.resetDiscoverCache()
+    answer = () => ({ status: 200, body: { data: [hit('relay-A', 1)], pagination: { total: 1, hasMore: false } } })
+    assert.equal((await mod.indexSkills({ view: 'hot', page: '0', perPage: '1' })).skills[0].name, 'relay-A')
+    answer = () => ({ status: 200, body: { data: [hit('relay-B', 1)], pagination: { total: 1, hasMore: false } } })
+    const other = createServer((req, res) => { seen.push({ url: req.url, headers: req.headers, method: req.method }); const a = answer(req.url); res.writeHead(a.status, { 'content-type': 'application/json' }); res.end(JSON.stringify(a.body)) })
+    await new Promise((resolve) => other.listen(0, '127.0.0.1', resolve))
+    assert.equal(mod.setIndexSource(cfg, 'http://127.0.0.1:' + other.address().port + '/v1').ok, true)
+    assert.equal((await mod.indexSkills({ view: 'hot', page: '0', perPage: '1' })).skills[0].name, 'relay-B', 'the cache was dropped with the address')
+    other.close()
+    ok('changing the relay drops what the previous one answered')
+
+    // a file that cannot be read is a value that was set: refused, never replaced by the default; an empty address recovers
+    writeFileSync(settingFile, '{ not json')
+    mod.resetDiscoverCache()
+    const before = seen.length
+    const broken = await mod.indexSkills({ view: 'all-time', page: '0', perPage: '1' })
+    assert.deepEqual([broken.ok, broken.error], [false, 'index_url_refused'])
+    assert.equal(seen.length, before)
+    assert.equal(mod.describeIndexSource(cfg).refused, true)
+    assert.equal(mod.setIndexSource(cfg, '').ok, true)
+    assert.equal(existsSync(settingFile), false)
+    assert.equal(mod.describeIndexSource(cfg).origin, 'default')
+    ok('a damaged setting is refused (no silent fallback) and an empty address puts the default back')
+  }
+
   console.log('\n' + pass + ' verifications OK')
 } finally {
   server.close()
+  try { rmSync(home, { recursive: true, force: true }) } catch (e) { /* temp folder */ }
 }

@@ -320,7 +320,8 @@ window.__ModuleLoader__.load({
       '.kbsu-dot.warn{background:var(--dsw-alias-state-warn-primary)}',
       '.kbsu-btn{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 13px;border-radius:10px;border:0;font-weight:600;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kbsu-btn.ghost{background:transparent;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);font-weight:500}',
-      '.kbsu-btn.accent{background:#ff7a1a;color:#fff}',
+      // Ink on the literal orange: white on #ff7a1a is 2.6:1, #0f1115 is 7.2:1.
+      '.kbsu-btn.accent{background:#ff7a1a;color:#0f1115}',
       '.kbsu-btn.sm{height:28px;padding:0 11px;border-radius:8px;font-size:12.5px}',
       '.kbsu svg.i{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}',
       '.kbsu .spin{animation:kbsuspin .9s linear infinite}@keyframes kbsuspin{to{transform:rotate(360deg)}}',
@@ -336,6 +337,8 @@ window.__ModuleLoader__.load({
       '.kbsu-seg .c{font:12px ui-monospace,Menlo,monospace;margin-inline-start:6px}',
       '.kbsu-search{flex:1 1 220px;min-width:0;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}',
       '.kbsu-search input{flex:1;min-width:0;background:transparent;border:0;color:inherit;font:inherit;padding:8px 0;outline:none}',
+      // the browser's default placeholder is a mid grey: 3.4:1 on the dark layer
+      '.kbsu-search input::placeholder{color:var(--dsw-alias-label-secondary)}',
       '.kbsu-summary{font-size:12.5px;color:var(--dsw-alias-label-tertiary);min-height:1.4em}',
       // family filter chips (no group headings: the chips filter, each card carries its family)
       '.kbsu-fams{display:flex;flex-wrap:wrap;gap:6px}',
@@ -382,6 +385,8 @@ window.__ModuleLoader__.load({
       '.kbsu-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-top:auto}',
       '.kbsu-st{font-size:12.5px;color:var(--dsw-alias-label-tertiary);display:inline-flex;gap:6px;align-items:center;min-width:0}',
       '.kbsu-st.ok{color:var(--dsw-alias-state-success-primary)}.kbsu-st.warn{color:var(--dsw-alias-state-warn-primary)}.kbsu-st.bad{color:var(--dsw-alias-state-error-primary)}',
+      // Light scheme: the state tokens are fills (green 2.3:1, amber 2.2:1, the orange tagline 2.6:1 on white); the ink is mixed toward the text colour.
+      'body:not([data-ds-dark-theme]) .kbsu-st.ok{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-st.warn{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-st.bad{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 70%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kbsu-tag{color:color-mix(in srgb,#ff7a1a 55%,var(--dsw-alias-label-primary))}',
       '.kbsu-steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px;counter-reset:kbsu-s}',
       '.kbsu-steps li{display:flex;gap:10px;align-items:flex-start;color:var(--dsw-alias-label-secondary);counter-increment:kbsu-s}',
       '.kbsu-steps li::before{content:counter(kbsu-s);flex:none;width:20px;height:20px;border-radius:50%;margin-top:0;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
@@ -680,7 +685,31 @@ window.__ModuleLoader__.load({
           return () => { if (typeof debrancher === 'function') debrancher() }
         }, [])
 
-        if (charge.etat === 'loading') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
+        if (charge.etat === 'loading') {
+          // The page's own head, then bones in the cards' own grid (one skeleton helper for every list, published by the core
+          // plugin as window.__KB_SKEL__); without it, the line of text as before.
+          let k = null
+          try { k = window.__KB_SKEL__ } catch (e) { k = null }
+          if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbsu' }, h('div', { className: 'kbsu-empty' }, kt('Chargement de la suite…', 'Loading the suite…')))
+          return h('div', { className: 'kbsu', 'data-kb': 'suite' },
+            h('div', { className: 'kbsu-head' },
+              h('div', null, h('h4', null, 'Kybernos Suite'), h('p', null, kt('Les modules Kybernos de ce poste. Activez, installez ou ouvrez les paramètres sans quitter les Réglages.', 'The Kybernos modules on this machine. Switch, install or open settings without leaving Settings.'))),
+              h('div', { className: 'kbsu-headr' },
+                h('span', { className: 'kbsu-right' }, k.bone(150, 34, null, 10), k.bone(190, 34, null, 10)),
+                h('div', { className: 'kbsu-meta' }, k.bone(240, 12)))),
+            h('div', { className: 'kbsu-bar' },
+              h('div', { style: { display: 'flex', gap: 6 } }, [0, 1, 2, 3].map((i) => k.bone(i === 0 ? 92 : 70, 32, 'pill'))),
+              h('span', { className: 'kbsu-right' }, k.bone(220, 36, null, 11))),
+            h('div', { className: 'kbsu-fams' }, [0, 1, 2, 3, 4].map((i) => k.bone(i === 0 ? 130 : 96, 28, 'pill'))),
+            h('div', { className: 'kbsu-subbar' }, k.bone(230, 12)),
+            k.wrap(kt('Chargement de la suite…', 'Loading the suite…'), 'kbsu-grid', [0, 1, 2, 3, 4, 5].map((i) => h('div', { key: 'sk' + i, className: 'kbsu-card kb-sk-row' },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+                k.bone(44, 44, null, 14),
+                h('span', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, k.bone(i % 2 === 0 ? '55%' : '40%', 14), k.bone('35%', 10)),
+                k.bone(40, 22, 'pill')),
+              h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: '4.35em' } }, k.bone('94%', 10), k.bone('82%', 10), k.bone('58%', 10)),
+              h('div', { style: { display: 'flex', gap: 8 } }, k.bone(70, 22, 'pill'), k.bone(54, 22, 'pill'))))))
+        }
         if (charge.etat === 'error') {
           return h('div', { className: 'kbsu' },
             h('div', { className: 'kbsu-head' }, h('div', null, h('h4', null, 'Kybernos Suite'))),

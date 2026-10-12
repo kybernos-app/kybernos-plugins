@@ -256,6 +256,7 @@ window.__ModuleLoader__.load({
         ".kml-mod-chip { width: 30px; height: 30px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }\n" +
         ".kml-mod-chip[data-famille='q'] { background: color-mix(in srgb, var(--dsw-alias-brand-primary) 14%, transparent); color: var(--dsw-alias-brand-primary); }\n" +
         ".kml-mod-chip[data-famille='g'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 14%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
+        "body:not([data-ds-dark-theme]) .kml-mod-chip[data-famille='g'] { color: color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary)); }\n" +
         ".kml-mod-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }\n" +
         ".kml-mod-tete { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }\n" +
         ".kml-mod-nom { font-family: var(--ds-font-family-code, monospace); font-size: 14px; font-weight: 600; color: var(--dsw-alias-label-primary); }\n" +
@@ -528,7 +529,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbm-tag', 'data-tone': 'outline' }, 'Q4'),
                 mod === reco ? h('span', { className: 'kbm-tag', 'data-tone': 'success' }, m('kml.reco.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null),
-              h('span', { className: 'kml-mod-desc' }, mod.desc + ' · ' + mod.score)),
+              h('span', { className: 'kml-mod-desc', title: mod.desc + ' · ' + mod.score }, mod.desc + ' · ' + mod.score)),
             h('span', { className: 'kml-mod-etat' },
               h('span', { className: 'kml-etat' },
                 h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : 'error') }),

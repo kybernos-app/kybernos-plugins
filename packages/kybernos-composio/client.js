@@ -766,7 +766,8 @@ window.__ModuleLoader__.load({
    stable despite the hashed classes. */
 .kbcp-kbfpill{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .kbcp-kbfpill:hover{background:rgba(128,128,128,.12)}
-.kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#fff;font-weight:600}
+/* Ink on the literal orange: white on #ff7a1a is 2.6:1, #0f1115 is 7.2:1. */
+.kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#0f1115;font-weight:600}
 .kbcp-kbfbadge{min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:rgba(128,128,128,.25);font-size:10.5px;line-height:16px;text-align:center}
 .kbcp-kbfpill.on .kbcp-kbfbadge{background:rgba(255,255,255,.3)}
 [data-plugin-panel].kbcp-kbf-on [data-plugin-group="official"]{display:none !important}
@@ -838,7 +839,7 @@ window.__ModuleLoader__.load({
 /* Custom connectors: list section + modal form. */
 .kb7-cxsec{display:flex;flex-direction:column;gap:8px;max-width:1180px}
 .kb7-cxtitle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:6px 0 0}
-.kb7-cxcount{font-size:11px;font-weight:600;opacity:.6}
+.kb7-cxcount{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kb7-cxrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px}
 .kb7-cxname{font-size:13px;font-weight:600}
 .kb7-cxpath{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.55;word-break:break-all}
@@ -2056,6 +2057,19 @@ window.__ModuleLoader__.load({
 
       // (29/09) App card shared by "Yours" and "Discover":
       // one single rendering, no clone card that drifts.
+      // Skeleton cards while the apps are read for the first time: the card's own classes, so the grid does not move when the
+      // data lands. One helper for every list of the GUI, published by the core plugin (window.__KB_SKEL__); without it the
+      // line of text shows, as before.
+      const skelCards = (n) => {
+        let k = null
+        try { k = window.__KB_SKEL__ } catch (e) { k = null }
+        if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return null
+        return k.wrap(kbt('kb.cp.loading'), '', h('div', { className: 'kb7-grid' }, Array.from({ length: n }, (_, i) => h('div', { key: 'sk' + i, className: 'kb7-card kb-sk-row' },
+          h('div', { className: 'kb7-lr' }, k.bone(42, 42, null, 12),
+            h('div', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, k.bone(i % 2 === 0 ? '55%' : '40%', 14), k.bone('30%', 11))),
+          h('div', { className: 'kb7-desc', style: { display: 'flex', flexDirection: 'column', gap: 7 } }, k.bone('94%', 10), k.bone('72%', 10)),
+          h('div', { className: 'kb7-foot' }, k.bone(70, 22, 'pill'))))))
+      }
       const appCard = (a) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
@@ -2150,7 +2164,7 @@ window.__ModuleLoader__.load({
           kcMode ? h(KybernosPanel, { kc: kc, reload: reloadKc, patch: patchKc, flash: flash, note: cxNote, query: qn }) : yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
                 h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
-                yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading'))))
+                yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : (skelCards(6) || h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')))))
             : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a)))
         ) : null,
         // ── MCP servers ─────────────────────────────────────────────────────
@@ -2166,7 +2180,8 @@ window.__ModuleLoader__.load({
             cats.slice(0, 14).map((c) => h('button', { type: 'button', key: c, className: 'kb7-chip' + (chip === c ? ' on' : ''), onClick: () => { setChipFb(c); setPage(1) } }, c)),
             h('button', { type: 'button', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
             apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null),
-          ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null,
+          (ready === false || (busy === true && Object.keys(conns).length === 0)) && shown.length === 0 && skelCards(9) !== null ? skelCards(9)
+            : (ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null),
           h('div', { className: 'kb7-grid' }, shown.map((a) => appCard(a))),
           ready === true && list.length === 0 && busy === false ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.empty'))) : null,
           pages > 1 ? h('div', { className: 'kb7-chips', style: { justifyContent: 'center' } },

@@ -39,13 +39,13 @@ Code: `packages/kybernos-cloud/server-profile.mjs` (pure, `test-server-profile.m
 ## The built-in server (and the go-live checklist)
 
 With no registry and no environment override, DSH talks to the built-in server and to nothing else. It is the new server:
-`BUILTIN_API` in `server-profile.mjs` is **the one place that names it** (dev today: a Railway-generated address; the production
-name is not final). Everything else follows from it: web and console are its own host, chat goes to `<api>/v1/chat/completions`
+`BUILTIN_API` in `server-profile.mjs` is **the one place that names it** (`https://api.kybernos.app`, the production server, since
+2026-10-12; before that it was the dev server's Railway-generated address). Everything else follows from it: web and console are its own host, chat goes to `<api>/v1/chat/completions`
 (`services.llm` null = same host), the connected apps' MCP endpoint is `<api>/v1/mcp/connections`, there is no gateway.
 
-At go-live, change `BUILTIN_API` and run `node scripts/test-no-legacy-hosts.mjs`. It checks the two literals that cannot import it
-(the page's fallback in `packages/kybernos-plugin/client.js`, `KB_FEEDBACK_API_DEFAULT` in `packages/kybernos-plugin/index.js`) and
-tells you which one to edit; it also fails on any old-stack hostname in shipped code (the allowlist is in the test, with a reason
+To point the plugins at another server, change `BUILTIN_API` and run `node scripts/test-no-legacy-hosts.mjs`. It checks the literals that cannot import it
+(the page's fallback in `packages/kybernos-plugin/client.js`, `KB_FEEDBACK_API_DEFAULT` in `packages/kybernos-plugin/index.js`, the E2B
+template's base URL) and tells you which one to edit; it also fails on any old-stack hostname in shipped code (the allowlist is in the test, with a reason
 per entry). If a separate web app exists by then, give the built-in profile a `web` there (the discovery document of the server
 publishes it when it is configured).
 

@@ -1384,6 +1384,15 @@ window.__ModuleLoader__.load({
             : null)
       }
 
+      // One skeleton helper for every list of the GUI, published by the core plugin (window.__KB_SKEL__: bones in the
+      // boxes of the real rows, a soft shimmer, nothing under reduced motion). Without it the old line of text shows.
+      const skelOf = () => {
+        try {
+          const k = window.__KB_SKEL__
+          return (k !== null && k !== undefined && typeof k.bone === 'function' && typeof k.wrap === 'function') ? k : null
+        } catch (e) { return null }
+      }
+
       /** Une ligne de la liste dense — et, quand elle est ouverte, l'éditeur de
        *  la maquette en dialogue. Le dialogue vit DANS la ligne (position fixe) :
        *  les hooks de la ligne restent valables tels quels. */
@@ -2278,6 +2287,16 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbmp-th kbmp-c-context', key: 'context' }, kbmSortHead('context', m('kb.models.col.context'))),
               h('div', { className: 'kbmp-th kbmp-c-source', key: 'source' }, m('kb.models.col.source')),
               h('div', { className: 'kbmp-th kbmp-c-act', key: 'act' })),
+            toutes.length === 0 && KBM.loading === true && skelOf() !== null
+              ? skelOf().wrap(m('kb.models.loading'), '', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbm-item kbmp-lig kb-sk-row' },
+                h('div', { className: 'kbmp-cols' },
+                  h('div', { className: 'kbmp-c kbmp-cmodel' }, skelOf().bone(i % 2 === 0 ? '62%' : '48%', 13), skelOf().bone('40%', 10)),
+                  h('div', { className: 'kbmp-c kbmp-cprov' }, skelOf().bone(16, 16, 'round'), skelOf().bone('60%', 12)),
+                  h('div', { className: 'kbmp-c kbmp-ccaps' }, skelOf().bone(70, 14)),
+                  h('div', { className: 'kbmp-c kbmp-cctx' }, skelOf().bone(40, 12)),
+                  h('div', { className: 'kbmp-c kbmp-csrc' }, skelOf().bone(70, 12)),
+                  h('div', { className: 'kbmp-c kbmp-cact' }, skelOf().bone(18, 18, null, 5))))))
+              : null,
             toutes.length === 0 && KBM.loading !== true
               ? h('div', { className: 'kbmp-vide kbmp-empty' }, KBM.live === true ? m('kb.models.empty.live') : m('kb.models.empty'))
               : null,
@@ -2444,7 +2463,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbm-root kbmp', 'data-slot': 'kybernos-models-header' },
           // A component, not a call: KybernosHero owns hooks, and a conditional call would change the hook order of Panel.
           UI.tab === 'providers' ? h(KybernosHero, null) : null,
-          KBM.live === true && KBM.loading === true ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
+          KBM.live === true && KBM.loading === true && skelOf() === null ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
             m('kb.models.loaderror') + ' : ' + String(KBM.loadError),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'reload', onClick: () => { kbMLoad() } }, m('kb.models.reload'))) : null,
@@ -2735,6 +2754,10 @@ window.__ModuleLoader__.load({
         // ── sélecteur de presets + badge « free models · quota » (02/10) ─────
         '.kbmp-free{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 7px;border-radius:9px;font-size:10.5px;line-height:14px;font-weight:600;color:#0b7a3b;background:rgba(34,197,94,.16);white-space:nowrap}',
         '.kbmp-free-sm{height:16px;padding:0 6px;font-size:10px}',
+        // The dark green ink is for the light scheme; on the dark layers it was 1.9:1 (dark green on a dark green tint).
+        'body[data-ds-dark-theme] .kbmp-free{color:var(--dsw-alias-state-success-primary)}',
+        // Light scheme: the capability tints are 500-level colours (emerald 2.5:1, amber 2.2:1 on white); darkened as a whole.
+        'body:not([data-ds-dark-theme]) .kbmp-capi{filter:brightness(.72)}',
         '.kbmp-free-lien{color:inherit;text-decoration:none;font-weight:700}',
         '.kbmp-free-lien:hover{text-decoration:underline}',
         '[dir="rtl"] .kbmp-free{direction:ltr}',
@@ -2763,6 +2786,8 @@ window.__ModuleLoader__.load({
         '.kbmp-search{flex:1 1 240px;min-width:200px}',
         '.kbmp-loupe{flex:none;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-search .kbm-in-input::-webkit-search-cancel-button{display:none}',
+        // the shared input's placeholder is label-dimmed: 1.6:1 on the dark layer, 1.3:1 on white
+        '.kbmp-search .kbm-in-input::placeholder,.kbm-in-input.kbpv-in::placeholder{color:var(--dsw-alias-label-secondary)}',
         '.kbmp-menus{display:flex;gap:6px;align-items:center;flex-wrap:wrap}',
         '.kbmp-menu{position:relative}',
         '.kbmp-trig{gap:5px;white-space:nowrap;padding:0 10px;font-size:12.5px}',
@@ -2784,6 +2809,7 @@ window.__ModuleLoader__.load({
         '.kbmp-cap .kbmp-capi{display:inline-flex}',
         '.kbmp-cap.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
         '.kbmp-cap.on .kbmp-capi{color:currentColor!important}',
+        'body:not([data-ds-dark-theme]) .kbmp-cap.on .kbmp-capi{filter:none}',
         // La table du panneau vit dans une colonne de 556 ou 720 px (la boîte
         // Réglages) : cinq colonnes, dont une seule se partage la place. Le
         // modèle porte nom + « id · route · type · prix » — plus aucune

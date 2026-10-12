@@ -616,6 +616,30 @@ the page or in the browser's storage), a refused add that may have gone through 
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
 
+## The Creations, Kybers and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # an isolated instance serving this checkout (restart it after a host edit)
+node scripts/check-pages-live.mjs [--shots <dir>]
+```
+
+It **refuses to run against 127.0.0.1:3080**: the Skills steps write the index-source setting and the Featured list of the
+instance's DSH home (both put back at the end). It plays, on real clicks and keys:
+
+- **creations**: « Customize » is a small control on the hint line (not a tile, tiles on one row), its panel hangs under it;
+  a row has no « View » / « expand » button, its quick actions are hidden at rest, shown on hover and on keyboard focus, always
+  shown with no hover (touch), the name keeps its width at 400 px; a Data row says what it holds, a Data card is a table or a few
+  fields, an opened Data creation is a table or a tree with « View source » one click away;
+- **kybers**: the sidebar entry says « Kybers »; the tab row does not move between the Kybers and Marketplace tabs (1400 and 640 px);
+- **skills**: a stand-in relay (loopback) answers 502 → the message, the automatic second attempt, « Try again » and « Change »,
+  the other tabs untouched; the source line; a bad address refused with the variable's rule; the Featured list and the ranking
+  are the same rows; at 640 px nothing is cut off at the right;
+- **skeletons**: the host's answer held back over CDP `Fetch`, bones drawn in the box of the real rows (the first row lands where
+  its bones were), no shimmer under `prefers-reduced-motion`, only the first twelve rows fade in. The rules and the helper are in
+  `skeleton-screens.md`.
+
+A check that has nothing to compare (no creation, no Kyber, nothing featured in the instance) says so and moves on. Exit 0 / 1 / 3.
+
 ## A broken bundle must not stop DSH: `scripts/check-bundle-faults.mjs`
 
 ```bash
@@ -650,6 +674,38 @@ send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skil
 **Rules these tests pin:** a bundle's network read is bounded in size and time; a redirect is not followed; the engine's
 `ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
 firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.
+
+## What a person would see wrong: `scripts/check-display-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh
+node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--schemes dark,light,neutre] [--only home,settings]
+```
+
+A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
+home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the account card
+(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Mobile) and the first-run wizard, with
+real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
+and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
+`/kybernos-cloud/status`, `/kybernos-mobile/remote/*`, `/kybernos/onboarding`): no server is called, nothing is written.
+
+Per view it measures, from computed styles and boxes (not from the source):
+
+- **contrast**: every visible text, input value, placeholder and small icon against its effective background, layer by layer
+  (opacity groups, gradients at their worst stop, CSS-mask glyphs read as ink); 4.5:1, 3:1 for large text and icons. A switch whose
+  knob merges with its track is listed too. Disabled controls are measured but not counted;
+- **clipping**: a box that leaves the box that really contains it (containing-block chain: an absolutely positioned popover is not
+  blamed on a static `overflow:hidden` parent) or the viewport, with no scrolling to reach it. Thumbnails and ellipsised inline
+  text are skipped as deliberate crops;
+- **cut labels**: text that overflows its own `overflow:hidden` box with no `title` or `aria-label` anywhere above it;
+- **layout jumps**: `layout-shift` entries (>= 0.02) that are not caused by the person's own click.
+
+`<out>/report.json` lists each finding with a selector, the screenshot where it was outlined (`<out>/shots`, numbered boxes) and
+where it was seen; findings are grouped across schemes. Keep the output outside git. Traps: DSH's mode is persisted by its theme
+service, so each pass sets it through the real Theme page and a run needs its own sandbox (`KB_SANDBOX_ROOT`, a port of its own);
+findings on the DSH shell itself (classes with a hashed prefix such as `VOzbGW_navCell`) are not the plugins' to fix.
+
+The same rules, read from the source, are `scripts/test-display-rules.mjs` (run by CI).
 
 ## Traps
 

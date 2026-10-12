@@ -498,6 +498,8 @@ window.__ModuleLoader__.load({
       'background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kaa-classifier{flex:none;width:280px;height:34px;padding:0 12px;font:500 13px ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-primary);',
       'background:var(--dsw-alias-bg-layer-1);border:0.5px solid var(--dsw-alias-border-l2);border-radius:10px}',
+      // the browser's default placeholder is a mid grey: 3.4:1 on the dark layer
+      '.kaa-ajout-in::placeholder,.kaa-classifier::placeholder{color:var(--dsw-alias-label-secondary)}',
       '.kaa-sante{margin:14px 0 0}',
       '.kaa-sante-tete{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}',
       '.kaa-sante-tete b{font-size:14px;font-weight:600}',

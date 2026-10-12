@@ -600,7 +600,7 @@ window.__ModuleLoader__.load({
    reel, clair comme sombre. Les valeurs de repli ne servent qu'avant la
    synchronisation (voir kbSyncTheme) et n ont aucune valeur de marque. */
 :root{--kb-ink:var(--dsw-alias-label-primary,#111827);--kb-ink2:var(--dsw-alias-label-secondary,#333d4d);
-  --kb-muted:var(--dsw-alias-label-tertiary,#5b6577);--kb-caption:var(--dsw-alias-label-caption,#6b7587);
+  --kb-muted:var(--dsw-alias-label-tertiary,#5b6577);--kb-caption:var(--dsw-alias-label-tertiary,#6b7587);
   --kb-line:var(--dsw-alias-border-l1,#d3dbe8);--kb-line2:var(--dsw-alias-border-l2,#dbe2ec);--kb-line3:var(--dsw-alias-border-l3,#c7cfdd);
   --kb-surface:var(--dsw-alias-bg-layer-1,#fff);--kb-surface2:var(--dsw-alias-bg-layer-2,#f7f7f5);--kb-surface3:var(--dsw-alias-bg-layer-3,#fff);
   --kb-menu:var(--dsw-specific-menu,var(--dsw-alias-bg-layer-3,#fff));--kb-fill:var(--dsw-alias-bg-module-platform,#eff1f4);
@@ -890,6 +890,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
 .kbsl-sub{font-size:14px;line-height:1.55;color:var(--kb-muted);max-width:640px}
 .kbsl-tabs{display:flex;gap:4px;align-items:center;border-bottom:1px solid var(--kb-line);padding-bottom:6px}
 .kbsl-search{height:32px;padding:0 10px;border-radius:8px;border:1px solid var(--kb-line);background:transparent;color:inherit;font:inherit;font-size:13px}
+/* the browser's default placeholder is a mid grey: 3.0:1 on the dark fill */
+.kbsl-search::placeholder{color:var(--kb-ink2)}
 .kbsl-tab{padding:5px 11px;border-radius:8px;font-size:13px;color:var(--kb-muted);background:none;border:0}
 .kbsl-tab.on{background:var(--kb-hover);color:var(--kb-ink)}
 .kbsl-lrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;border:1px solid transparent;flex-wrap:nowrap;min-width:0}
@@ -950,7 +952,7 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
       // preference systeme.
       const KB_THEME_TOKENS = [
         ['--kb-ink', '--dsw-alias-label-primary'], ['--kb-ink2', '--dsw-alias-label-secondary'],
-        ['--kb-muted', '--dsw-alias-label-tertiary'], ['--kb-caption', '--dsw-alias-label-caption'],
+        ['--kb-muted', '--dsw-alias-label-tertiary'], ['--kb-caption', '--dsw-alias-label-tertiary'], // caption is 3.2:1 on the menu's dark fill, 2.1:1 on white
         ['--kb-line', '--dsw-alias-border-l1'], ['--kb-line2', '--dsw-alias-border-l2'], ['--kb-line3', '--dsw-alias-border-l3'],
         ['--kb-surface', '--dsw-alias-bg-layer-1'], ['--kb-surface2', '--dsw-alias-bg-layer-2'], ['--kb-surface3', '--dsw-alias-bg-layer-3'],
         ['--kb-menu', '--dsw-specific-menu'], ['--kb-hover', '--dsw-alias-interactive-bg-hover'],
@@ -2105,7 +2107,8 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         }
         return h('div', { className: 'kbsl-lrow' + (ui.flashId === id ? ' kbsl-flash' : '') },
           h('span', { className: 'kbsl-tile sm' }, h(KbIcon, { name: e.icon || 'terminal', size: 16 })),
-          h('button', { type: 'button', className: 'kbsl-lmain', onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) },
+          // The row cuts its name and description with an ellipsis (the whole line at 390 px): the title is the way to read them.
+          h('button', { type: 'button', className: 'kbsl-lmain', title: (e.kind === 'action' ? '' : '/' + nameOf(e) + ' · ') + title + (L(e.description) ? ' — ' + L(e.description) : ''), onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) },
             h('span', { className: 'kbsl-ltitle' },
               e.kind === 'action' ? null : h('span', { className: 'kbsl-mono', style: { color: 'var(--kb-accent)', fontWeight: 500, fontSize: '13.5px' } }, '/' + nameOf(e)),
               h('span', null, title)),

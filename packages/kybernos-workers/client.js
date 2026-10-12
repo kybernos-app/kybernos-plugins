@@ -221,7 +221,9 @@ window.__ModuleLoader__.load({
       '.kbwk-count b{color:var(--dsw-alias-label-primary)}',
       '.kbwk-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:30px;padding:0 12px;border-radius:9px;border:0;font-weight:600;font-size:13px;white-space:nowrap;background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground)}',
       '.kbwk-btn.ghost{background:transparent;color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l2);font-weight:500}',
-      '.kbwk-btn.accent{background:#ff7a1a;color:#fff}',
+      // Ink on the literal orange and on the success green: white on #ff7a1a is 2.6:1 and white on the green 2.3:1 in
+      // both schemes (the sweep of scripts/check-display-live.mjs); #0f1115 is 7.2:1 and 8.1:1.
+      '.kbwk-btn.accent{background:#ff7a1a;color:#0f1115}',
       '.kbwk-btn.ico{width:30px;padding:0}',
       '.kbwk-btn.big{height:32px;padding:0 13px;border-radius:10px}',
       '.kbwk-relance{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:10px 14px;border-radius:12px;border:1px solid #ff7a1a;background:color-mix(in srgb,#ff7a1a 14%,transparent)}',
@@ -265,8 +267,8 @@ window.__ModuleLoader__.load({
       '.kbwk-todo{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}',
       '.kbwk-todo>li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start}',
       '.kbwk-n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}',
-      '.kbwk-todo>li.done .kbwk-n{background:var(--dsw-alias-state-success-primary);color:#fff}',
-      '.kbwk-todo>li.cur .kbwk-n{background:#ff7a1a;color:#fff}',
+      '.kbwk-todo>li.done .kbwk-n{background:var(--dsw-alias-state-success-primary);color:#0f1115}',
+      '.kbwk-todo>li.cur .kbwk-n{background:#ff7a1a;color:#0f1115}',
       '.kbwk-todo>li.wait{opacity:.6}',
       '.kbwk-todo b{font-size:13.5px}',
       '.kbwk-todo p{margin:2px 0 0;color:var(--dsw-alias-label-secondary);font-size:13px}',
@@ -322,8 +324,8 @@ window.__ModuleLoader__.load({
       '.kbwk-tabs button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--dsw-alias-border-l2);background:transparent;border-radius:999px;padding:3px 11px 3px 4px;font-size:12.5px;color:var(--dsw-alias-label-secondary)}',
       '.kbwk-tabs button .kbwk-n{width:19px;height:19px;font-size:11px}',
       '.kbwk-tabs button[aria-current="step"]{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l3)}',
-      '.kbwk-tabs button.done .kbwk-n{background:var(--dsw-alias-state-success-primary);color:#fff}',
-      '.kbwk-tabs button[aria-current="step"] .kbwk-n{background:#ff7a1a;color:#fff}',
+      '.kbwk-tabs button.done .kbwk-n{background:var(--dsw-alias-state-success-primary);color:#0f1115}',
+      '.kbwk-tabs button[aria-current="step"] .kbwk-n{background:#ff7a1a;color:#0f1115}',
       '.kbwk-say{padding:12px 16px 4px}',
       '.kbwk-say h4{margin:0 0 3px;font-size:15px}',
       '.kbwk-say p{font-size:13.5px}',
@@ -655,7 +657,25 @@ window.__ModuleLoader__.load({
           } catch (e) { /* publishing is optional */ }
         })
 
-        if (loaded.state === 'loading') return h('div', { className: 'kbwk' }, h('div', { className: 'kbwk-empty' }, kt('Chargement des workers…', 'Loading workers…')))
+        if (loaded.state === 'loading') {
+          // The page's own head, then bones in the rows' own grid (the core plugin publishes one skeleton helper for every list,
+          // window.__KB_SKEL__); without it, the line of text as before.
+          let k = null
+          try { k = window.__KB_SKEL__ } catch (e) { k = null }
+          if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kbwk' }, h('div', { className: 'kbwk-empty' }, kt('Chargement des workers…', 'Loading workers…')))
+          return h('div', { className: 'kbwk' },
+            h('div', { className: 'kbwk-page' },
+              h('div', { className: 'kbwk-head' },
+                h('div', null, h('h4', null, 'Workers'),
+                  h('p', null, kt('Des assistants de code installés sur votre ordinateur. Votre agent principal peut leur confier des tâches pendant que vous faites autre chose.', 'Coding assistants installed on your computer. Your main agent can hand them tasks while you do something else.'))),
+                h('span', { className: 'kbwk-hbtn' }, k.bone(120, 36, null, 18), k.bone(104, 36, null, 18))),
+              h('div', { className: 'kbwk-count' }, k.bone(64, 14), k.bone(78, 14)),
+              k.wrap(kt('Chargement des workers…', 'Loading workers…'), 'kbwk-list', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbwk-item' },
+                h('div', { className: 'kbwk-row kb-sk-row' },
+                  h('span', { style: { display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 } }, k.bone(34, 34, null, 10),
+                    h('span', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, k.bone(i % 2 === 0 ? '40%' : '30%', 13), k.bone('62%', 10))),
+                  k.bone(96, 22, 'pill'), k.bone(40, 12), k.bone(150, 30, null, 9), k.bone(18, 18, 'round')))))))
+        }
         if (loaded.state === 'error') {
           return h('div', { className: 'kbwk' },
             h('div', { className: 'kbwk-head' }, h('div', null, h('h4', null, 'Workers'))),
