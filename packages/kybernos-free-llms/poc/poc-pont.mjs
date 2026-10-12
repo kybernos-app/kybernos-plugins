@@ -1,8 +1,21 @@
 // PoC — pont Free LLMs : le vrai fil openai-completions de pi-ai vers la
 // couche gratuite d'OpenCode Zen (sans compte), avec la réécriture minimale
 // qui satisfait le contrat des 4 barrières mesuré le 12/10/2026.
-const { stream: streamFil } = await import('/Users/miled/.dsh/kybernos/moteur/0.2.1-alpha.2/node_modules/@earendil-works/pi-ai/dist/api/openai-completions.js')
 import { createServer } from 'node:http'
+import { readdirSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+// The engine DSH runs on this machine: DSH_ENGINE (a folder), else the newest tree under <DSH home>/kybernos/moteur.
+const engineRoot = () => {
+  if (process.env.DSH_ENGINE) return process.env.DSH_ENGINE
+  const base = join(process.env.DSH_HOME || join(homedir(), '.dsh'), 'kybernos', 'moteur')
+  const newest = readdirSync(base).sort().pop()
+  if (!newest) throw new Error('no engine under ' + base + ' (set DSH_ENGINE)')
+  return join(base, newest)
+}
+const { stream: streamFil } = await import(pathToFileURL(join(engineRoot(), 'node_modules/@earendil-works/pi-ai/dist/api/openai-completions.js')).href)
 
 // ── le contrat gratuit, mesuré barrière par barrière ───────────────────────
 const B62 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'

@@ -8,7 +8,7 @@
 //
 // Which of these were played against the live service is written in README.md, not here.
 import {
-  cleanText, hostOf, parseBraveHtml, parseDuckHtml, parseDuckLite, isDuckChallenge, parseExaText, parseMcpBody, safeUrl, stripTags
+  cleanText, parseBraveHtml, parseDuckHtml, parseDuckLite, isDuckChallenge, parseExaText, parseMcpBody, safeUrl, stripTags
 } from './parse.mjs'
 
 export class EngineError extends Error {
@@ -386,7 +386,3 @@ export const DEFAULT_ORDER = ['searxng', 'custom', 'brave-api', 'tavily', 'serpe
 /** Engines that start switched off: the encyclopedia is a different thing from a web search. */
 export const OFF_BY_DEFAULT = ['wikipedia']
 
-export const engineById = (id) => ENGINES.find((e) => e.id === id) || null
-
-/** Hostname an engine talks to, for the page ("brave.com"). */
-export const engineHost = (e) => hostOf(e.home || '')

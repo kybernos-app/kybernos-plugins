@@ -10,7 +10,6 @@
 import { DEFAULT_PORT, GATEWAY_PATH } from './wiring.mjs'
 
 export const PROVIDER_ID = 'opencode-free'
-export const SETTINGS_NS = 'llm-pi-ai'
 /** The gateway this bundle mounts, on DSH's default port. index.js passes the real port (wiring.mjs `gatewayBase`). */
 export const BASE_URL = 'http://127.0.0.1:' + DEFAULT_PORT + GATEWAY_PATH
 /** Credential ref the route's `apiKeyEnv` names; index.js stores the free tier's marker there (wiring.mjs `ensureFreeKey`). */

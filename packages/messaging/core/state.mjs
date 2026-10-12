@@ -40,10 +40,6 @@ export function saveState(file, state) {
   return state;
 }
 
-export function chatEntry(state, chatId) {
-  return state.chats[String(chatId)] || null;
-}
-
 export function ensureChat(state, chatId, { workspace }) {
   const key = String(chatId);
   if (!state.chats[key]) {

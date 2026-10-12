@@ -37,12 +37,9 @@ export const GATEWAY_REPLY_PATH = '/widget/api/reply'
 /** §7 : la route de décision de la télécommande, suffixée par l'identifiant d'action. */
 export const GATEWAY_DECISION_PATH = '/telecommande/action/'
 /** §3 : la file a CINQ états — le dernier (terminal télécommande) porte deux valeurs. */
-export const GATEWAY_NB_ETATS = 5
 export const GATEWAY_ETATS = ['empile', 'tire', 'en cours', 'repondu', 'approuve', 'refuse']
 /** États d'où plus rien ne repart : l'item a atteint son sort. */
 export const GATEWAY_ETATS_TERMINAUX = ['repondu', 'approuve', 'refuse', 'echec']
-/** §7 : token d'appairage opaque 256 bits, préfixe `kya-`, illimité jusqu'à révocation. */
-export const GATEWAY_TOKEN_PREFIXE = 'kya-'
 /** Version du fichier de file local. */
 export const GATEWAY_VERSION_FILE = 1
 /** §8 : la route des réglages de sync par catégorie — auth famille télécommande. */
