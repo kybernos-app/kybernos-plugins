@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Visual and measured check of the phone layout on the REAL GUI's DOM, for the stylesheet in the working tree.
 //
-//   node scripts/check-mobile-visual.mjs [--css <file>] [--deployed] [--shots <dir>] [--only <WxH>] [--host <host:port>]
+//   node scripts/check-mobile-visual.mjs [--css <file>] [--client <file>] [--deployed] [--shots <dir>] [--only <WxH>] [--host <host:port>]
 //
 // A throw-away headless Chrome opens the DSH at KB_HOST (default 127.0.0.1:3080, signed in by cookie), emulates each
 // device, replaces the page's `#kbmob-sheet` with the stylesheet you are working on (default
-// packages/kybernos-mobile/mobile.css), opens a conversation and the drawer, takes screenshots and measures:
+// packages/kybernos-mobile/mobile.css) and serves the working tree's client.js in place of the deployed one, opens a conversation and the drawer, takes screenshots and measures:
 // no sideways scroll, a one-row composer of 44 px targets with a readable model name, a title that is not squeezed
 // to nothing, rows of 44 px in the drawer, a 16 px field, and, above 700 px, that the sheet changed nothing.
 // With --deployed nothing is injected: the page runs what this DSH serves (stylesheet AND client half), which also
@@ -14,12 +14,13 @@
 import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { openLivePage } from './live-page.mjs'
+import { openLivePage, swapPluginClient } from './live-page.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const args = process.argv.slice(2)
 const arg = (name, def) => (args.indexOf(name) >= 0 ? args[args.indexOf(name) + 1] : def)
 const cssFile = arg('--css', join(here, '..', 'packages', 'kybernos-mobile', 'mobile.css'))
+const clientFile = arg('--client', join(here, '..', 'packages', 'kybernos-mobile', 'client.js'))
 const shotsDir = arg('--shots', null)
 const only = arg('--only', null)
 const deployed = args.indexOf('--deployed') >= 0
@@ -46,6 +47,8 @@ const DEVICES = [
 
 const live = await openLivePage({ width: 1400, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
 const { page } = live
+// the working tree's browser half too (swapped into the page's bundle, in this throw-away browser), unless --deployed
+const swap = deployed ? { swapped: 0 } : await swapPluginClient(page, '@local/kybernos-mobile', clientFile)
 const ev = async (js, ms = 20000) => { const r = await page.evalJs(js, ms); return r.err ? null : r.val }
 const tap = async (x, y) => { for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x, y, button: 'left', clickCount: 1 }) }
 const center = (sel, text) => ev(`(() => {
@@ -109,6 +112,7 @@ const measure = () => ev(`(() => {
 try {
   for (const [name, w, h, phone] of DEVICES) {
     console.log('\n' + name)
+    if (!deployed && swap.swapped === 0 && name === DEVICES[0][0]) console.log('  ○ the working tree\'s client.js is NOT in the page yet (swapped on the first reload)')
     await page.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 2, mobile: w <= 900 })
     await page.send('Emulation.setTouchEmulationEnabled', { enabled: w <= 900 })
     await page.send('Page.reload', {})

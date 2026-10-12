@@ -21,11 +21,14 @@ sliver once opened, the title collapsed to 0 px behind eight header buttons, the
 with the model name hidden, the right bar never appeared (DSH stacks it under the chat at 0 px high), and the page
 drew under the iPhone's home indicator.
 
+- **Text is 18 % larger** (`text-size-adjust: 118%`, what Android's and iOS's "font size" setting use): DSH draws a lot
+  of its text at 10 to 12 px, in `px`, which no `rem` trick reaches. Boxes keep their size, text grows.
 - The conversation takes the whole screen. A **menu button** (44 px) sits in the top-left corner and opens the sidebar
   as a **drawer** over the chat: same entries in the same order (New chat, Kybers, Workspaces, Creations, Automations,
   Skills, Connectors, Automation tasks, Pinned, the folders and their sessions, the account card), 48 px rows, 16 px text.
-  A tap on the dimmed chat closes it, and so does picking a session or a page. A drawer DSH left open on a phone in
-  landscape is closed once at start and after a turn of the screen, unless the person opened it.
+  The drawer is 84 % of the screen wide (330 px at most): the rest is the dimmed chat, with no grey strip between. **A tap
+  on the dimmed chat, or a swipe to the left, closes it**, and so does picking a session or a page. A drawer DSH left open
+  on a phone in landscape is closed once at start and after a turn of the screen, unless the person opened it.
 - **Header**: one row of 56 px (DSH gives it 76 px for two rows): the title and the page-level actions (Teams, voice
   call, "More actions", right bar). The tab row (Chat, Journal, Trajectory) is parked while Chat is the view shown, and
   comes back on the other views; the sheet below lists the views. Agent Team, share,
@@ -40,7 +43,14 @@ drew under the iPhone's home indicator.
 - **Conversation**: the rating card under an answer is one star (44 px); the first tap opens the five.
 - **Right bar** (the "Start" launcher, files, changes, details): a full-screen layer, with DSH's own full-screen state
   honoured.
-- **Settings**: the page list becomes a scrolling strip under the search box, and the page uses the full width.
+- **Settings** is a list of pages (rows of 40 px, vertical), then, once one is picked, the page under a "back" bar
+  (« ‹ Settings »): not a strip of tabs. In a page, a setting is its text, then its control under it when the text would
+  be left with less than 180 px.
+- **Pages** (Kybers, Workspaces, Creations, Automations, Skills, Connectors): DSH sizes its grids and toolbars for a desktop
+  (330 px card columns, a toolbar of 592 px). The browser half **measures** the page and marks what does not fit
+  (`data-kbmob-fit`): a card grid gets columns that fit, a toolbar that overflows (or squeezes a search field to 4 px, or a
+  button's label under the next one) wraps, a strip of tabs or a segmented control slides sideways, a row of cards that is
+  cut without a scroller wraps. Controls are at least 36 px. A conversation is left to DSH.
 - Dialogs, menus and lists never leave the screen; on a coarse pointer, fields are 16 px and menu rows are at least
   44 px; the page draws under the notch (`viewport-fit=cover`) and the drawer, the menu button and the composer pad
   with `env(safe-area-inset-*)`.
@@ -63,7 +73,7 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 |---|---|---|
 | `mobile.css` | data | the whole layout, in one `@media (max-width: 700px)` block; keyed on DSH's stable hooks (`data-slot`, `data-sidebar-collapsed`, `data-rightbar-*`, `data-shell-*`, `role`), never on its hashed class names |
 | `index.js` | host | puts `mobile.css` in every index render (`webserver/index-inject`), serves it at `GET /kybernos-mobile/mobile.css`, and registers the phone link's routes behind the Host and Origin fences |
-| `client.js` | browser | the menu button, the drawer taps, closing a drawer DSH left open, `viewport-fit=cover`; the phone panel (`window.__KB_MOBILE__.Panel`, shown by the sidebar's phone button) and the Settings › Mobile page |
+| `client.js` | browser | the menu button, the drawer taps and swipe, closing a drawer DSH left open, the "..." sheet, Settings' list and back bar, the rating star, the page measures (`fitKinds`), `viewport-fit=cover`; the phone panel (`window.__KB_MOBILE__.Panel`, shown by the sidebar's phone button) and the Settings › Mobile page |
 | `remote-mount.mjs` | host | loaded lazily and in its own try/catch: builds the link manager from this DSH's surroundings |
 | `remote-host.mjs` | host | pairing, paired phones, one outbound relay connection per phone, and the replay of a phone's requests against this DSH |
 | `remote-local.mjs` | host | the DSH home, DSH's own port, and the session cookie the replay needs |
@@ -93,10 +103,13 @@ The full protocol, the server's contract and the security model are in [`docs/de
 
 ## Tests
 
-`test-host.mjs` (the row, the routes and their fences), `test-client.mjs` (the contract, the tap decisions, the
-stylesheet's rules), `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
+`test-host.mjs` (the row, the routes and their fences, the stylesheet's promises), `test-client.mjs` (the contract, the
+tap and swipe decisions, the sheet, the page measures, Settings), `test-remote-e2e.mjs` (the handshake and its attacks), `test-remote-host.mjs` (a real pairing,
 replay and revocation through a stand-in relay and a stand-in DSH), `test-qr.mjs`, `test-dsh-home.mjs`; and on the real
 GUI `scripts/check-mobile-live.mjs` (the layout, a 390 px phone emulated in a sandbox DSH), `scripts/check-mobile-visual.mjs`
-(seven devices, dark and light, screenshots and measures on the real DOM with the working tree's stylesheet) and
+(seven devices, dark and light, screenshots and measures on the real DOM with the working tree's stylesheet and
+client), `scripts/check-mobile-tour.mjs` (a tour of every screen, a page of the sidebar, Settings, the menus: sideways
+scroll, a control that leaves the screen or is cut by its box, targets under 36 px, text under 11 px; `--device WxH`,
+`--light`, `--deployed`, `--shots <dir>`) and
 `scripts/check-mobile-remote-live.mjs` (the QR code decoded by Chrome, a second browser as the phone, approval,
 revocation, a plan without the feature).

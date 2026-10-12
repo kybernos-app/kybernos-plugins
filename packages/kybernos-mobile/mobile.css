@@ -13,6 +13,40 @@
  * template is an inline style.
  */
 @media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
+  /* 0. Text: the browser's own text scaling, 118 %. DSH draws a lot of its text at 10 to 12 px (tags, counts, hints), in
+   *    px, which no rem trick reaches; this is what Android's and iOS's "font size" settings use. Boxes keep their
+   *    size, text grows. A phone's own font setting is multiplied by it. */
+  html {
+    -webkit-text-size-adjust: 118%;
+    text-size-adjust: 118%;
+  }
+
+  /* A finger on a page's own controls (cards, toolbars, message actions): at least 36 px, in the page. They come first
+   * and have the weight of one element and one attribute: the header, the composer and the drawer say their own sizes
+   * after them (same weight, later), and DSH's own rules for a control (one class) lose. */
+  [data-slot="main"] button,
+  [data-slot="main"] [role="button"],
+  [data-slot="main"] [role="tab"] {
+    min-height: 36px;
+  }
+  /* an icon on its own is that wide; a button with a label keeps the width of its label (a min-width would let a flex row
+   * squeeze it below that, and its text would be cut under the next button) */
+  [data-slot="main"] button:where(:has(> svg:only-child)),
+  [data-slot="main"] [role="button"]:where(:has(> svg:only-child)),
+  [data-slot="main"] .kb6-helpbtn {
+    min-width: 36px;
+  }
+  [data-slot="main"] input:where(:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"])) {
+    min-height: 40px;
+  }
+  /* Nothing in a page is wider than the page: DSH's cards and toolbars are sized for a desktop. A box that sets no
+   * maximum of its own is capped at its container. */
+  :where([data-slot="main"] :is(div, nav, ul, ol, section, header, form, fieldset)) {
+    max-width: 100%;
+  }
+  /* A box is never made narrower than its content (no min-width: 0): two buttons side by side must not squeeze each
+   * other, the row wraps instead (client.js marks it, see data-kbmob-fit below). */
+
   /* 1. The frame: the side columns leave the grid, the main column is the whole screen. */
   [data-slot="root"] > div:has(> [data-shell-overlay]) {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -23,7 +57,7 @@
   [data-slot="root"] > div:has(> [data-shell-overlay]) > div:has(> [data-slot="sidebar"]) {
     position: fixed !important;
     inset: 0 auto 0 0;
-    width: min(86vw, 340px) !important;
+    width: min(84vw, 330px) !important;
     max-width: none !important;
     z-index: 60;
     transform: translateX(-105%);
@@ -47,16 +81,35 @@
     z-index: 55;
     background: rgba(0, 0, 0, .45);
   }
+  /* DSH draws its sidebar 280 px wide whatever its container: fill the drawer (the grey strip was the container). */
+  [data-slot="root"] > div:has(> [data-shell-overlay]) > div:has(> [data-slot="sidebar"]) > [data-slot="sidebar"] > *,
+  [data-slot="root"] > div:has(> [data-shell-overlay]) > div:has(> [data-slot="sidebar"]) > :not([data-slot="sidebar"]) {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+  }
   /* The drawer is the desktop sidebar, same entries in the same order, at the size of a finger. */
   [data-slot="sidebar"] button {
     min-height: 44px;
   }
-  [data-slot="sidebar"] [data-row-key] {
+  [data-slot="sidebar"] [data-row-key],
+  [data-slot="sidebar"] [role="button"],
+  [data-slot="sidebar"] a {
     min-height: 48px;
+  }
+  /* the icon-only buttons of a section header (search, view options, add): a 36 px target, still three in a row. DSH
+   * sized the boxes around them for 28 px icons (28 + 4 + 28 = 60 px, hidden overflow): they follow the icons. */
+  [data-slot="sidebar"] button:has(> svg:only-child) {
+    min-width: 36px;
+  }
+  [data-slot="sidebar"] div:has(> button > svg:only-child),
+  [data-slot="sidebar"] div:has(> span > button > svg:only-child),
+  [data-slot="sidebar"] div:has(> div > button > svg:only-child) {
+    width: auto !important;
+    max-width: none !important;
   }
   [data-slot="sidebar"] [data-slot^="sidebar.panellist"] button {
     min-height: 48px;
-    font-size: 16px;
   }
 
   /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call
@@ -261,6 +314,45 @@
     height: 24px !important;
   }
 
+  /* What client.js marked as wider than the page (a card grid with 330 px columns in a 304 px page, a toolbar of 592 px):
+   * columns that fit, a row that wraps. The marks are its measure, not a guess at DSH's class names. */
+  [data-kbmob-fit~="grid"] {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)) !important;
+  }
+  [data-kbmob-fit~="wrap"] {
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    row-gap: 8px;
+  }
+  /* a setting (or a card's header): the text keeps 180 px at least, the controls go under it when they do not fit */
+  [data-kbmob-fit~="stack"] {
+    flex-wrap: wrap !important;
+    row-gap: 10px;
+  }
+  [data-kbmob-fit~="stack"] > :first-child {
+    flex: 1 1 180px !important;
+  }
+  [data-kbmob-fit~="keep"] {
+    min-width: min-content !important;
+  }
+  /* a strip of tabs or a segmented control wider than the page slides sideways, as the tab bars of the phone do */
+  [data-kbmob-fit~="scroll"] {
+    overflow-x: auto !important;
+    scrollbar-width: none;
+  }
+  [data-kbmob-fit~="scroll"]::-webkit-scrollbar {
+    display: none;
+  }
+  /* the search field of a wrapped toolbar takes its own line; the buttons share the next ones */
+  [data-kbmob-fit~="wrap"] > :has(input) {
+    flex: 1 1 100%;
+  }
+  /* a menu's rows (DSH draws them 35.6 px high) are rows for a finger */
+  [role="menu"] [role="menuitem"],
+  [role="listbox"] [role="option"] {
+    min-height: 40px;
+  }
+
   /* 6. The right bar (files, changes, details) is a full-screen layer while it is open. DSH marks that state itself
    *    (data-rightbar-fullscreen) and, left alone, stacks the bar under the chat at 0 px high on a phone. */
   [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-rightbar-collapsed]) > [data-rightbar-col],
@@ -280,39 +372,88 @@
     min-height: 44px;
   }
 
-  /* 7. Settings: the navigation becomes a strip above the page instead of a 248 px column next to it. */
+  /* The skill buttons under an answer (summarise, ...) are two icons in a row: the row of actions is crowded on a phone and
+   * squeezed them into a column of two. */
+  .kbsl-acts {
+    flex-wrap: nowrap !important;
+    flex-shrink: 0;
+  }
+
+  /* 7. Settings: a list of pages first, then the page with a "back" bar (client.js sets data-kbmob-page when a page is
+   *    picked and clears it on the bar). DSH draws a 248 px column next to the page, which does not fit a phone. */
   [data-shortcut-modal="settings"] {
     flex-direction: column !important;
   }
-  [data-shortcut-modal="settings"] > nav {
+  /* the header row of a page (a button, the close cross) is 54 px high, its button 40 px lower than its top */
+  [data-shortcut-modal="settings"] > div:nth-child(2) > div:first-child {
+    height: auto !important;
+    min-height: 64px;
+    padding-bottom: 8px;
+    flex-shrink: 0;
+  }
+  [data-shortcut-modal="settings"] button,
+  [data-shortcut-modal="settings"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+    min-height: 40px;
+  }
+  [data-shortcut-modal="settings"] button {
+    min-width: 40px;
+  }
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav {
     width: 100% !important;
-    flex: 0 0 auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0;
     max-height: none !important;
+    overflow-y: auto !important;
+  }
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav + div {
+    display: none !important;
   }
   [data-shortcut-modal="settings"] > nav > div:first-child {
     height: auto !important;
   }
-  [data-shortcut-modal="settings"] > nav > div:last-child {
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child {
     display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 4px;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    gap: 2px;
     height: auto !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    padding-bottom: 8px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    overflow: visible !important;
+    padding: 8px 0 24px;
   }
-  [data-shortcut-modal="settings"] > nav > div:last-child > button {
-    flex: 0 0 auto !important;
-    width: auto !important;
-    white-space: nowrap;
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button {
+    flex: none !important;
+    width: 100% !important;
+    min-height: 56px;
+    justify-content: flex-start !important;
+    gap: 14px;
+    padding: 0 14px !important;
+    font-size: 17px;
+    white-space: normal;
   }
-  [data-shortcut-modal="settings"] > nav + div {
+  [data-shortcut-modal="settings"]:not([data-kbmob-page]) > nav > div:last-child > button svg {
+    width: 22px;
+    height: 22px;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav {
+    display: none !important;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div {
     flex: 1 1 0 !important;
     min-width: 0 !important;
+    min-height: 0;
     width: 100% !important;
+  }
+  [data-shortcut-modal="settings"][data-kbmob-page] > nav + div::before {
+    content: "\2039\00a0\00a0" attr(data-kbmob-back);
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    padding: 0 8px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   /* 8. Nothing leaves the screen. */

@@ -1,11 +1,12 @@
 // kybernos-mobile: browser half.
 //
-// The look of the phone layout is mobile.css (the host puts it in the page before the first paint). This half is the
-// three things a stylesheet cannot do:
+// The look of the phone layout is mobile.css (the host puts it in the page before the first paint). This half is what
+// a stylesheet cannot do:
 //
 //   · a menu button in the corner (on a phone the sidebar is a drawer; its own open button is hidden with it),
-//   · a tap on the dimmed chat closes the drawer,
-//   · picking a session or a page in the drawer closes it, so the chat is what you see next.
+//   · a tap on the dimmed chat, or a swipe to the left, closes the drawer,
+//   · picking a session or a page in the drawer closes it, so the chat is what you see next,
+//   · a page's grid or toolbar that is wider than the screen is marked, and mobile.css makes it fit.
 //
 // It never keeps a state of its own: the drawer is open when DSH says its sidebar is not collapsed, and it is opened
 // and closed by clicking DSH's own toggle (the button with the "<modifiers>+B" shortcut, found by that shortcut and
@@ -130,6 +131,89 @@ window.__ModuleLoader__.load({
         return out
       }
 
+      /** A swipe to the left (from a finger down at `from` to a finger up at `to`) is a request to close the drawer. */
+      const swipeCloses = (from, to) => {
+        if (from === null || from === undefined || to === null || to === undefined) return false
+        const dx = to.x - from.x
+        const dy = to.y - from.y
+        return dx <= -56 && Math.abs(dy) < Math.abs(dx) * 0.6
+      }
+
+      /** What a page's element needs to fit a phone, from what it does now, as a list of kinds:
+       *   'grid'   a card grid whose columns are wider than its box gets columns that fit;
+       *   'wrap'   a toolbar that does not wrap and is wider than its box, or squeezes one of its items below what that
+       *            item needs (a search field of 4 px, a button whose label runs under the next one), wraps;
+       *   'scroll' a strip of tabs or a segmented control wider than its box slides sideways;
+       *   'keep'   an item of a row that was squeezed below its content (min-width: 0) keeps its content's width, so the
+       *            row has to wrap;
+       *   'stack'  a row whose first item is the text that takes what is left (flex: 1 1 0%) and the rest are its
+       *            controls (a setting: label and select): the controls go under the text when the text would be left
+       *            with less than 180 px.
+       *  A scroller or a clipped box is that on purpose (a code block): left alone, unless it clips cards. */
+      const fitKinds = (el, styleOf) => {
+        const out = []
+        try {
+          const st = styleOf(el)
+          if (el.clientWidth < 1) return out
+          if (st.overflowX === 'hidden' || st.overflowX === 'clip') {
+            // A strip of cards that hides what does not fit and cannot be scrolled: the cards beyond the edge are out of
+            // reach. They wrap (a row of text that is cut with an ellipsis has no cards in it: left alone).
+            if ((st.display === 'flex' || st.display === 'inline-flex') && st.flexDirection === 'row' && st.flexWrap === 'nowrap') {
+              const box = el.getBoundingClientRect()
+              for (const kid of Array.prototype.slice.call(el.children, 0, 40)) {
+                const r = kid.getBoundingClientRect()
+                const isCard = typeof kid.querySelector === 'function' && (kid.tagName === 'BUTTON' || kid.querySelector('button, a, [role="button"]') !== null)
+                if (r.width >= 120 && isCard && r.right > box.right + 2) { out.push('wrap'); break }
+              }
+            }
+            return out
+          }
+          if (st.overflowX !== 'visible') return out
+          const wide = el.scrollWidth > el.clientWidth + 1
+          if (typeof el.getAttribute === 'function' && /^(tablist|radiogroup)$/.test(String(el.getAttribute('role') || ''))) {
+            if (wide) out.push('scroll')
+            return out
+          }
+          if (st.display === 'grid' || st.display === 'inline-grid') {
+            if (wide) out.push('grid')
+            return out
+          }
+          if ((st.display === 'flex' || st.display === 'inline-flex') && st.flexDirection === 'row' && st.flexWrap === 'nowrap') {
+            let squeezed = wide
+            if (!squeezed) {
+              // Pushed out on the left (justify-content: flex-end) leaves no scrollWidth to show for it, and a squeezed item
+              // keeps its text but not its box: both are read from the items.
+              const box = el.getBoundingClientRect()
+              const kids = Array.prototype.slice.call(el.children, 0, 40)
+              for (const kid of kids) {
+                const r = kid.getBoundingClientRect()
+                if (r.width < 1) continue
+                if (r.left < box.left - 1 || r.right > box.right + 1) { squeezed = true; break }
+                if (kid.scrollWidth > kid.clientWidth + 1 && styleOf(kid).overflowX === 'visible') { squeezed = true; break }
+                if (r.width < 120 && typeof kid.querySelector === 'function' && kid.querySelector('input') !== null) { squeezed = true; break }
+              }
+            }
+            if (squeezed) out.push('wrap')
+            const first = el.children.length >= 2 ? el.children[0] : null
+            if (first !== null && first !== undefined) {
+              const fs = styleOf(first)
+              if (parseFloat(fs.flexGrow) >= 1 && /^0(px|%)?$/.test(String(fs.flexBasis))) out.push('stack')
+            }
+          }
+          // an item of a flex row that was squeezed below its content: its content runs out of its box
+          const up = el.parentElement
+          if (wide && up !== null && up !== undefined && st.minWidth === '0px' && st.flexShrink !== '0') {
+            const ps = styleOf(up)
+            if ((ps.display === 'flex' || ps.display === 'inline-flex') && /^row/.test(String(ps.flexDirection))) out.push('keep')
+          }
+        } catch (err) { /* an element that went away */ }
+        return out
+      }
+      const FIT_ATTR = 'data-kbmob-fit'
+      const BOXES = ':is(div, nav, ul, ol, section, header, form, fieldset)'
+      const PAGE_BOXES = '[data-slot="main"] ' + BOXES
+      const SETTINGS_BOXES = '[data-shortcut-modal="settings"] ' + BOXES
+
       const mount = () => {
         const undo = []
         // The stylesheet normally arrives with the page (index-inject). When it did not, link it.
@@ -228,6 +312,32 @@ window.__ModuleLoader__.load({
         document.addEventListener('click', onMore, true)
         undo.push(() => { document.removeEventListener('click', onMore, true); closeSheet() })
 
+        // Settings on a phone: a list of pages, then the page. A pick sets data-kbmob-page (mobile.css hides the list and
+        // shows the page under a "back" bar, a pseudo-element of the page); a tap on that bar clears it.
+        const onSettings = (e) => {
+          try {
+            if (!narrow()) return
+            const t = e.target
+            if (t === null || t === undefined || typeof t.closest !== 'function') return
+            const modal = t.closest('[data-shortcut-modal="settings"]')
+            if (modal === null) return
+            const page = modal.children !== undefined ? modal.children[1] : null
+            if (!modal.hasAttribute('data-kbmob-page')) {
+              const btn = t.closest('nav > div:last-child > button')
+              if (btn !== null && page !== null && page !== undefined) {
+                setTimeout(() => {
+                  try { modal.setAttribute('data-kbmob-page', '1'); page.setAttribute('data-kbmob-back', kt('Réglages', 'Settings')) } catch (err) { /* gone */ }
+                }, 0)
+              }
+            } else if (page !== null && page !== undefined && t === page) {
+              const r = page.getBoundingClientRect()
+              if (e.clientY - r.top < 56) { e.stopPropagation(); modal.removeAttribute('data-kbmob-page') }
+            }
+          } catch (err) { /* DSH's own settings then */ }
+        }
+        document.addEventListener('click', onSettings, true)
+        undo.push(() => document.removeEventListener('click', onSettings, true))
+
         // The rating card under an answer is one star on a phone (mobile.css): the first tap opens the five.
         const onRate = (e) => {
           try {
@@ -243,6 +353,75 @@ window.__ModuleLoader__.load({
         }
         document.addEventListener('click', onRate, true)
         undo.push(() => document.removeEventListener('click', onRate, true))
+
+        // A swipe to the left on the open drawer, or on the dimmed chat beside it, closes it (as a tap there does).
+        let from = null
+        const onTouchStart = (e) => {
+          try {
+            const t = e.touches !== undefined && e.touches.length === 1 ? e.touches[0] : null
+            from = t !== null && drawerOpen() ? { x: t.clientX, y: t.clientY } : null
+          } catch (err) { from = null }
+        }
+        const onTouchEnd = (e) => {
+          try {
+            const start = from
+            from = null
+            const t = e.changedTouches !== undefined ? e.changedTouches[0] : null
+            if (start === null || t === null || t === undefined || !drawerOpen()) return
+            if (swipeCloses(start, { x: t.clientX, y: t.clientY })) closeDrawer()
+          } catch (err) { /* no touch data */ }
+        }
+        try {
+          document.addEventListener('touchstart', onTouchStart, { passive: true })
+          document.addEventListener('touchend', onTouchEnd, { passive: true })
+          undo.push(() => { try { document.removeEventListener('touchstart', onTouchStart); document.removeEventListener('touchend', onTouchEnd) } catch (err) { /* gone */ } })
+        } catch (err) { /* no touch events */ }
+
+        // The pages' own grids and toolbars are sized for a desktop (a card column of 330 px in a 304 px page, a row of
+        // 592 px): the ones that do not fit are marked, mobile.css gives the mark its rule. A mark stays (a fitted box no
+        // longer overflows, it would flip back at once) and only acts inside the phone media query. A conversation is left to
+        // DSH. The scan follows the page's own changes, a few hundred ms after the last one.
+        let fitTimer = null
+        let fitLater = null
+        let fitSince = 0
+        const fit = () => {
+          try {
+            if (!narrow()) return
+            // a conversation is DSH's own; a page, and the Settings window over anything, are measured
+            const chat = document.querySelector('[data-composer-card]') !== null
+            const boxes = Array.prototype.slice.call(document.querySelectorAll(chat ? SETTINGS_BOXES : PAGE_BOXES + ', ' + SETTINGS_BOXES), 0, 4000)
+            for (const el of boxes) {
+              if (el.hasAttribute(FIT_ATTR)) continue
+              const kinds = fitKinds(el, (x) => getComputedStyle(x))
+              if (kinds.length > 0) el.setAttribute(FIT_ATTR, kinds.join(' '))
+            }
+          } catch (err) { /* DSH's own layout then */ }
+        }
+        // 350 ms after the last change, at the latest 1.5 s after the first; then once more, for what a page draws late.
+        const askFit = () => {
+          const now = Date.now()
+          if (fitTimer === null) fitSince = now
+          else clearTimeout(fitTimer)
+          fitTimer = setTimeout(() => {
+            fitTimer = null
+            fit()
+            if (fitLater === null) fitLater = setTimeout(() => { fitLater = null; fit() }, 1200)
+          }, now - fitSince > 1500 ? 0 : 350)
+        }
+        try {
+          const watch = new MutationObserver(askFit)
+          watch.observe(document.body, { childList: true, subtree: true })
+          window.addEventListener('resize', askFit)
+          askFit()
+          undo.push(() => {
+            try {
+              watch.disconnect()
+              window.removeEventListener('resize', askFit)
+              if (fitTimer !== null) clearTimeout(fitTimer)
+              if (fitLater !== null) clearTimeout(fitLater)
+            } catch (err) { /* gone */ }
+          })
+        } catch (err) { /* no observer: the pages are DSH's own */ }
 
         // iOS only draws under the notch and the home indicator with viewport-fit=cover; mobile.css pads with env().
         try {
@@ -569,7 +748,7 @@ window.__ModuleLoader__.load({
             }
           } catch (e) { try { console.warn('[kybernos-mobile] phone link disabled:', e) } catch (e2) { /* no console */ } }
         },
-        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON }
+        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR }
       }
     } catch (e) {
       try { console.warn('[kybernos-mobile] disabled:', e) } catch (e2) { /* no console */ }

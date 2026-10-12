@@ -385,4 +385,124 @@ console.log('views and rating on a phone')
   disposer()
 }
 
+console.log('a swipe closes the drawer')
+{
+  const t = load(makeDom({ collapsed: false })).factory().__test
+  check('a swipe to the left closes', t.swipeCloses({ x: 200, y: 400 }, { x: 100, y: 410 }) === true)
+  check('a short move does not', t.swipeCloses({ x: 200, y: 400 }, { x: 160, y: 400 }) === false)
+  check('a swipe to the right does not', t.swipeCloses({ x: 100, y: 400 }, { x: 220, y: 400 }) === false)
+  check('a diagonal (a scroll that drifts) does not', t.swipeCloses({ x: 200, y: 300 }, { x: 130, y: 400 }) === false)
+  check('without a start or an end it does not', t.swipeCloses(null, { x: 0, y: 0 }) === false && t.swipeCloses({ x: 0, y: 0 }, undefined) === false)
+
+  const run = (collapsed, from, to) => {
+    const dom = makeDom({ collapsed })
+    const plugin = load(dom).factory()
+    let disposer = null
+    plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+    const start = dom.listeners.find((l) => l.ev === 'touchstart')
+    const end = dom.listeners.find((l) => l.ev === 'touchend')
+    if (start !== undefined) start.fn({ touches: [{ clientX: from.x, clientY: from.y }] })
+    if (end !== undefined) end.fn({ changedTouches: [{ clientX: to.x, clientY: to.y }] })
+    const out = { registered: start !== undefined && end !== undefined, clicks: dom.toggleClicks.length }
+    disposer()
+    out.removed = dom.listeners.filter((l) => l.ev === 'touchstart' || l.ev === 'touchend').length === 0
+    return out
+  }
+  const open = run(false, { x: 250, y: 300 }, { x: 120, y: 310 })
+  check('the touch listeners are registered and removed with the plugin', open.registered && open.removed, open)
+  check('a swipe to the left on an open drawer clicks DSH\'s toggle', open.clicks === 1, open)
+  check('the same swipe with the drawer closed does nothing', run(true, { x: 250, y: 300 }, { x: 120, y: 310 }).clicks === 0)
+}
+
+console.log('what a page needs to fit a phone')
+{
+  const t = load(makeDom()).factory().__test
+  const box = (o) => ({
+    clientWidth: 304, scrollWidth: 304, children: [], parentElement: null,
+    getAttribute: () => null, getBoundingClientRect: () => ({ left: 0, right: o.clientWidth || 304, width: o.clientWidth || 304 }),
+    ...o
+  })
+  const styles = new Map()
+  const styleOf = (e) => styles.get(e) || { overflowX: 'visible', display: 'block', flexDirection: 'row', flexWrap: 'nowrap', flexGrow: '0', flexBasis: 'auto', flexShrink: '1', minWidth: 'auto' }
+  const st = (e, s) => { styles.set(e, { overflowX: 'visible', display: 'block', flexDirection: 'row', flexWrap: 'nowrap', flexGrow: '0', flexBasis: 'auto', flexShrink: '1', minWidth: 'auto', ...s }); return e }
+
+  const wideGrid = st(box({ scrollWidth: 330 }), { display: 'grid' })
+  check('a card grid wider than its box gets columns that fit', JSON.stringify(t.fitKinds(wideGrid, styleOf)) === '["grid"]')
+  check('a grid that fits is left alone', t.fitKinds(st(box({}), { display: 'grid' }), styleOf).length === 0)
+  const wideRow = st(box({ scrollWidth: 592 }), { display: 'flex' })
+  check('a toolbar wider than its box wraps', t.fitKinds(wideRow, styleOf).indexOf('wrap') >= 0)
+  check('a row that wraps already is left alone', t.fitKinds(st(box({ scrollWidth: 592 }), { display: 'flex', flexWrap: 'wrap' }), styleOf).length === 0)
+  check('a clipped or scrolling box is that on purpose', t.fitKinds(st(box({ scrollWidth: 592 }), { display: 'flex', overflowX: 'auto' }), styleOf).length === 0)
+  const strip = box({ scrollWidth: 604, clientWidth: 304 })
+  strip.getBoundingClientRect = () => ({ left: 0, right: 304, width: 304 })
+  strip.children = [box({ getBoundingClientRect: () => ({ left: 0, right: 300, width: 300 }), querySelector: () => ({}) }), box({ getBoundingClientRect: () => ({ left: 308, right: 608, width: 300 }), querySelector: () => ({}) })]
+  st(strip, { display: 'flex', overflowX: 'hidden' })
+  check('a strip of cards that hides the ones beyond its edge wraps', JSON.stringify(t.fitKinds(strip, styleOf)) === '["wrap"]')
+  const ellipsis = box({ scrollWidth: 604, clientWidth: 304 })
+  ellipsis.getBoundingClientRect = () => ({ left: 0, right: 304, width: 304 })
+  ellipsis.children = [box({ getBoundingClientRect: () => ({ left: 0, right: 600, width: 600 }), querySelector: () => null })]
+  st(ellipsis, { display: 'flex', overflowX: 'hidden' })
+  check('a row of text cut with an ellipsis is left alone', t.fitKinds(ellipsis, styleOf).length === 0)
+  check('a column is not a toolbar', t.fitKinds(st(box({ scrollWidth: 592 }), { display: 'flex', flexDirection: 'column' }), styleOf).length === 0)
+  check('a plain block that is wide (a long word) is left alone', t.fitKinds(st(box({ scrollWidth: 592 }), {}), styleOf).length === 0)
+
+  const tabs = st(box({ scrollWidth: 316, clientWidth: 264, getAttribute: (k) => (k === 'role' ? 'tablist' : null) }), { display: 'flex' })
+  check('a strip of tabs wider than its box slides sideways', JSON.stringify(t.fitKinds(tabs, styleOf)) === '["scroll"]')
+
+  const pushedOut = box({ children: [], scrollWidth: 304 })
+  pushedOut.children = [box({ getBoundingClientRect: () => ({ left: -66, right: -40, width: 26 }) }), box({})]
+  st(pushedOut, { display: 'flex' })
+  check('a row that pushes an item out on the left (justify-content: flex-end) wraps', t.fitKinds(pushedOut, styleOf).indexOf('wrap') >= 0)
+
+  const squeezedText = box({ scrollWidth: 304 })
+  squeezedText.children = [box({ clientWidth: 80, scrollWidth: 134, getBoundingClientRect: () => ({ left: 0, right: 80, width: 80 }) }), box({})]
+  st(squeezedText, { display: 'flex' })
+  check('a row that squeezes an item below its content wraps', t.fitKinds(squeezedText, styleOf).indexOf('wrap') >= 0)
+
+  const search = box({ scrollWidth: 304 })
+  search.children = [box({ clientWidth: 26, scrollWidth: 26, querySelector: () => ({}), getBoundingClientRect: () => ({ left: 0, right: 26, width: 26 }) }), box({})]
+  st(search, { display: 'flex' })
+  check('a search field squeezed to nothing wraps its row', t.fitKinds(search, styleOf).indexOf('wrap') >= 0)
+
+  const setting = box({ scrollWidth: 304 })
+  const text = st(box({}), { display: 'flex', flexDirection: 'column', flexGrow: '1', flexBasis: '0%' })
+  setting.children = [text, box({})]
+  st(setting, { display: 'flex' })
+  check('a setting (text that takes what is left, then its control) stacks', t.fitKinds(setting, styleOf).indexOf('stack') >= 0)
+  const card = box({ scrollWidth: 304 })
+  card.children = [st(box({}), { display: 'block', flexGrow: '0', flexBasis: 'auto' }), box({})]
+  st(card, { display: 'flex' })
+  check('a row that starts with an icon is not a setting', t.fitKinds(card, styleOf).indexOf('stack') < 0)
+
+  const parent = st(box({}), { display: 'flex', flexDirection: 'row' })
+  const squeezed = st(box({ clientWidth: 80, scrollWidth: 134, parentElement: parent }), { display: 'block', minWidth: '0px' })
+  check('an item squeezed below its content keeps its content width', t.fitKinds(squeezed, styleOf).indexOf('keep') >= 0)
+  const inColumn = st(box({ clientWidth: 80, scrollWidth: 134, parentElement: st(box({}), { display: 'flex', flexDirection: 'column' }) }), { display: 'block', minWidth: '0px' })
+  check('an item of a column is not squeezed sideways', t.fitKinds(inColumn, styleOf).indexOf('keep') < 0)
+  check('an element that throws is left alone', t.fitKinds({ get clientWidth () { throw new Error('gone') } }, styleOf).length === 0)
+}
+
+console.log('Settings on a phone: a list of pages, then a page under a back bar')
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom, { lang: 'en' }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const modalAttrs = {}
+  const pageAttrs = {}
+  const page = { setAttribute: (k, v) => { pageAttrs[k] = v }, getBoundingClientRect: () => ({ top: 0 }) }
+  const modal = { children: [{}, page], hasAttribute: (k) => k in modalAttrs, setAttribute: (k, v) => { modalAttrs[k] = v }, removeAttribute: (k) => { delete modalAttrs[k] } }
+  const fire = (target, clientY) => dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target, clientY, preventDefault () {}, stopPropagation () {} }))
+  const inModal = (extra) => ({ closest: (sel) => (sel === '[data-shortcut-modal="settings"]' ? modal : (extra && extra[sel]) || null) })
+  fire(inModal({ 'nav > div:last-child > button': {} }), 100)
+  await new Promise((r) => setTimeout(r, 20))
+  check('picking a page in the list shows the page', modalAttrs['data-kbmob-page'] === '1', modalAttrs)
+  check('the back bar is labelled in the page language', pageAttrs['data-kbmob-back'] === 'Settings', pageAttrs)
+  fire(page, 300)
+  check('a tap in the page is the page\'s own', 'data-kbmob-page' in modalAttrs)
+  fire(Object.assign(page, { closest: (sel) => (sel === '[data-shortcut-modal="settings"]' ? modal : null) }), 20)
+  check('a tap on the back bar goes back to the list', !('data-kbmob-page' in modalAttrs), modalAttrs)
+  disposer()
+}
+
 process.exit(failed === 0 ? 0 : 1)
