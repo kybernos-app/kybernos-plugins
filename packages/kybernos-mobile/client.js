@@ -9,7 +9,8 @@
 //
 // It never keeps a state of its own: the drawer is open when DSH says its sidebar is not collapsed, and it is opened
 // and closed by clicking DSH's own toggle (the button with the "<modifiers>+B" shortcut, found by that shortcut and
-// not by its label, which is translated). Nothing of the layout runs above 700 px.
+// not by its label, which is translated). Nothing of the layout runs above 700 px, except on a touch device lying down
+// (a phone in landscape is wider than 700 px but at most 500 px high).
 //
 // The second half of the file is the phone LINK (Settings › Mobile and the sidebar's phone panel): see buildRemoteUi.
 // It is mounted apart, in its own try/catch, and only when DSH offers the `slots` service: whatever happens there, the
@@ -21,7 +22,7 @@ window.__ModuleLoader__.load({
   id: '@local/kybernos-mobile',
   factory(require) {
     try {
-      const MEDIA = '(max-width: 700px)'
+      const MEDIA = '(max-width: 700px), (max-height: 500px) and (pointer: coarse)'
       const SHEET_ID = 'kbmob-sheet'
       const LINK_ID = 'kbmob-sheet-link'
       const MENU_CLASS = 'kbmob-menu'
@@ -53,11 +54,13 @@ window.__ModuleLoader__.load({
         } catch (e) { /* no toggle: the buttons do nothing */ }
         return null
       }
+      // set when the person opens the drawer with the menu button: a turn of the screen must not close that one.
+      let opened = false
       const flip = () => {
         const b = toggle()
         if (b !== null && b !== undefined) { try { b.click() } catch (e) { /* the toggle went away */ } }
       }
-      const closeDrawer = () => { if (drawerOpen()) flip() }
+      const closeDrawer = () => { opened = false; if (drawerOpen()) flip() }
 
       /** Click handling, as a pure function of the event target: what the page should do with this tap. */
       const decide = (target, frameEl, open) => {
@@ -105,7 +108,7 @@ window.__ModuleLoader__.load({
         button.setAttribute('data-kb', 'mobile-menu')
         button.setAttribute('aria-label', kt('Ouvrir le menu', 'Open the menu'))
         button.appendChild(menuIcon())
-        button.addEventListener('click', (e) => { e.stopPropagation(); flip() })
+        button.addEventListener('click', (e) => { e.stopPropagation(); opened = !drawerOpen(); flip() })
         document.body.appendChild(button)
         undo.push(() => button.remove())
 
@@ -115,6 +118,30 @@ window.__ModuleLoader__.load({
         }
         document.addEventListener('click', onClick, true)
         undo.push(() => document.removeEventListener('click', onClick, true))
+
+        // An open sidebar is an open drawer over the chat. DSH leaves its sidebar open above its own breakpoint, which a
+        // phone in landscape is: close it when the phone condition starts to hold, at start and after a turn of the
+        // screen, unless the person opened the drawer themselves (the menu button marks that).
+        // iOS only draws under the notch and the home indicator with viewport-fit=cover; mobile.css pads with env().
+        try {
+          const meta = document.querySelector('meta[name="viewport"]')
+          const before = meta !== null && meta !== undefined ? String(meta.getAttribute('content') || '') : null
+          if (before !== null && !/viewport-fit/.test(before)) {
+            meta.setAttribute('content', before + ', viewport-fit=cover')
+            undo.push(() => { try { meta.setAttribute('content', before) } catch (err) { /* gone */ } })
+          }
+        } catch (err) { /* no meta */ }
+
+        const settle = () => { try { if (narrow() && drawerOpen() && !opened) closeDrawer() } catch (err) { /* no shell yet */ } }
+        let tries = 0
+        const first = setInterval(() => {
+          tries += 1
+          if (frame() !== null && frame() !== undefined) { settle(); clearInterval(first) } else if (tries > 24) clearInterval(first)
+        }, 250)
+        undo.push(() => clearInterval(first))
+        let turn = null
+        const onTurn = () => { if (turn !== null) clearTimeout(turn); turn = setTimeout(settle, 300) }
+        try { window.addEventListener('resize', onTurn); undo.push(() => { try { window.removeEventListener('resize', onTurn) } catch (err) { /* gone */ } }) } catch (err) { /* no window events */ }
         return () => { for (const f of undo.reverse()) { try { f() } catch (e) { /* already gone */ } } }
       }
 

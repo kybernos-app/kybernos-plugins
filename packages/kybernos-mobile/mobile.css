@@ -1,14 +1,18 @@
 /* kybernos-mobile: the DSH shell on a phone.
  *
- * Everything below is inside one media query (max-width: 700px): above it nothing changes. Selectors use DSH's own
- * stable hooks (data-slot, data-sidebar-collapsed, data-rightbar-*, data-shell-*, role, aria-keyshortcuts), never its
- * hashed class names (they change with every build). Measured on DSH 0.2.1-alpha.2 at 390 px: the sidebar pushes
- * the chat to a 100 px sliver once opened, Settings squeezes its content to one word per line.
+ * The same app, the same organisation: only the layout changes with the width. Everything below is inside one
+ * condition, "a phone": a viewport at most 700 px wide, or a touch device lying down (at most 500 px high with a
+ * coarse pointer: a phone in landscape is 844 px wide and would otherwise get the desktop shell). Above it nothing
+ * changes. Selectors use DSH's own stable hooks (data-slot, data-sidebar-collapsed, data-rightbar-*, data-shell-*,
+ * data-composer-*, data-model-compact, role), never its hashed class names (they change with every build).
+ * Measured on DSH 0.2.1-alpha.2 at 390 px: the sidebar pushed the chat to a 100 px sliver once opened, Settings
+ * squeezed its content to one word per line, the title collapsed to 0 px behind eight header buttons, and the
+ * composer was two rows of 28 px targets with the model name hidden.
  *
  * `!important` is deliberate: this sheet is the first in <head> (index-inject), DSH's own come after it, and the grid
  * template is an inline style.
  */
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
   /* 1. The frame: the side columns leave the grid, the main column is the whole screen. */
   [data-slot="root"] > div:has(> [data-shell-overlay]) {
     grid-template-columns: minmax(0, 1fr) !important;
@@ -28,6 +32,7 @@
     background: var(--dsw-alias-bg-layer-1, #1b1b1d);
     box-shadow: 0 0 32px rgba(0, 0, 0, .35);
     overflow: hidden;
+    padding-top: env(safe-area-inset-top, 0px);
   }
   [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-sidebar-collapsed]) > div:has(> [data-slot="sidebar"]) {
     transform: none;
@@ -42,23 +47,167 @@
     z-index: 55;
     background: rgba(0, 0, 0, .45);
   }
-  /* The conversation's header gives its left corner to the menu button. */
+  /* The drawer is the desktop sidebar, same entries in the same order, at the size of a finger. */
+  [data-slot="sidebar"] button {
+    min-height: 44px;
+  }
+  [data-slot="sidebar"] [data-row-key] {
+    min-height: 48px;
+  }
+  [data-slot="sidebar"] [data-slot^="sidebar.panellist"] button {
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call,
+   *    call settings and "open in Finder" stay on the computer for now (they are not hidden from the app, only here). */
   [data-slot="conversation.header"] > header {
     padding-left: 52px !important;
   }
+  [data-slot="conversation.session.header.actions"] > [data-team-action],
+  [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
+  [data-slot="conversation.session.header.actions"] [data-act="call-video"],
+  [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [data-slot="conversation.session.header.utilities"] [data-open-target] {
+    display: none !important;
+  }
+  /* The Teams chip keeps its icon and its count, not its label. */
+  [data-slot="conversation.session.header.actions"] button > span:nth-child(2) {
+    display: none !important;
+  }
+  [data-slot="conversation.session.header.actions"] button,
+  [data-slot="conversation.session.header.utilities"] button,
+  [data-slot="conversation.session.header.corner"] button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  [role="tablist"][data-conversation-tabs] > button {
+    min-height: 44px;
+    font-size: 15px;
+  }
 
-  /* 3. The right bar (files, changes, details) is a full-screen layer while it is open. */
-  [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-rightbar-collapsed]) > [data-rightbar-col] {
+  /* 4. The composer: the field, then ONE row (add, model, access, dictate, send). The "/" button, the artifact button
+   *    and the input-device list are one tap away in the "+" menu (or typed: "/" in the field); the execution
+   *    environment keeps a dot. The model name is readable: DSH hides it in its compact variant. */
+  [data-composer-input],
+  [data-composer-placeholder] {
+    font-size: 16px !important;
+  }
+  [data-composer-card] [data-model-compact] {
+    display: flex !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
+  }
+  [data-composer-card] [data-model-compact] > div {
+    display: contents !important;
+  }
+  /* order: add, model, access, environment, dictate, send */
+  [data-composer-card] [data-model-compact] > :first-child > button:first-of-type { order: 1; }
+  [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.model"]) {
+    order: 2;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex !important;
+  }
+  [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.permission"]) { order: 3; }
+  [data-composer-card] [data-model-compact] [data-kb="computer-env-selector"] { order: 4; }
+  [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.activity"]) { order: 5; }
+  [data-composer-card] [data-model-compact] > :last-child > button:last-child { order: 6; }
+  [data-composer-card] [data-slot="conversation.input.left"] > :not([data-kb="computer-env-selector"]),
+  [data-composer-card] [data-slot="conversation.input.right"],
+  [data-composer-card] [data-slot="conversation.input.activity"] button + button {
+    display: none !important;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] {
+    display: block;
+    min-width: 0;
+    flex: 1 1 0;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] > div {
+    width: 100%;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] button {
+    width: 100%;
+    max-width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] button > span {
+    display: inline !important;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    font-size: 15px;
+  }
+  /* The execution environment only shows when it is not the default ("This machine"): one dot, then its menu. */
+  [data-composer-card] [data-kb="computer-env-selector"]:has([data-kb="computer-env-button"][data-on="false"]) {
+    display: none !important;
+  }
+  [data-composer-card] [data-kb="computer-env-button"] {
+    font-size: 0;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+  [data-composer-card] [data-kb="computer-env-button"] > span {
+    width: 10px;
+    height: 10px;
+    margin: 0;
+  }
+  /* The access button keeps its shield, not its chevron; the model keeps its name, not its decorative icon. */
+  [data-composer-card] [data-slot="conversation.input.permission"] button > span:last-child {
+    display: none !important;
+  }
+  [data-composer-card] [data-slot="conversation.input.model"] button > svg:first-child {
+    display: none !important;
+  }
+  [data-composer-card] button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  [data-composer-card] [data-slot="conversation.input.permission"] button,
+  [data-composer-card] [data-slot="conversation.input.activity"] button {
+    min-width: 40px;
+  }
+  /* The stats strip under the card (speed, cache, memory, context) does not belong on a phone. */
+  [data-composer-dock] {
+    display: none !important;
+  }
+  [data-slot="conversation.composer"] {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* 5. The conversation: the rating card is the one thing that repeats under every answer. */
+  .kbq-rating {
+    display: none !important;
+  }
+
+  /* 6. The right bar (files, changes, details) is a full-screen layer while it is open. DSH marks that state itself
+   *    (data-rightbar-fullscreen) and, left alone, stacks the bar under the chat at 0 px high on a phone. */
+  [data-slot="root"] > div:has(> [data-shell-overlay]):not([data-rightbar-collapsed]) > [data-rightbar-col],
+  [data-slot="root"] > div:has(> [data-shell-overlay])[data-rightbar-fullscreen] > [data-rightbar-col] {
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
+    height: 100dvh !important;
     max-width: 100vw !important;
     min-width: 0 !important;
     z-index: 70;
     background: var(--dsw-alias-bg-base, #151517);
   }
 
-  /* 4. Settings: the navigation becomes a strip above the page instead of a 248 px column next to it. */
+  [data-rightbar-col] button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* 7. Settings: the navigation becomes a strip above the page instead of a 248 px column next to it. */
   [data-shortcut-modal="settings"] {
     flex-direction: column !important;
   }
@@ -93,7 +242,7 @@
     width: 100% !important;
   }
 
-  /* 5. Nothing leaves the screen. */
+  /* 8. Nothing leaves the screen. */
   [role="dialog"] {
     max-width: calc(100vw - 16px) !important;
     max-height: 100dvh;
@@ -103,11 +252,23 @@
   }
 }
 
+/* A very narrow phone (320 to 360 px): the model name and the title come first, dictation and the voice call wait. */
+@media (max-width: 360px) {
+  [data-composer-card] [data-slot="conversation.input.activity"],
+  [data-composer-card] div:has(> [data-slot="conversation.input.activity"]) {
+    display: none !important;
+  }
+  [data-slot="conversation.session.header.actions"] [data-act="call-voice"],
+  [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):has(span) {
+    display: none !important;
+  }
+}
+
 /* A finger, not a pointer: bigger targets for the rows DSH draws small, and a 16 px field (below that iOS zooms in
- * on focus and never zooms back). Only on a coarse pointer, and only on a narrow screen. */
-@media (max-width: 700px) and (pointer: coarse) {
+ * on focus and never zooms back). Only on a coarse pointer, and only on a phone. */
+@media (max-width: 700px) and (pointer: coarse), (max-height: 500px) and (pointer: coarse) {
   [role="menuitem"], [role="option"], [role="tab"] {
-    min-height: 40px;
+    min-height: 44px;
   }
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea, select {
     font-size: 16px !important;
@@ -118,20 +279,20 @@
 .kbmob-menu {
   display: none;
 }
-@media (max-width: 700px) {
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
   .kbmob-menu {
     position: fixed;
-    top: 8px;
-    left: 8px;
+    top: calc(6px + env(safe-area-inset-top, 0px));
+    left: 6px;
     z-index: 45;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--dsw-alias-label-primary, currentColor);
     cursor: pointer;
