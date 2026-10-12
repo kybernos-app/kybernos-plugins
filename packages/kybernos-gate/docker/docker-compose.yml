@@ -12,6 +12,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
+        # A release tag (v1.0.0-beta.6) pins the server; `main` is the last release. Never `dev`. The clone happens at
+        # build time: to update, change this and run `docker compose build --no-cache` (see the gate's README).
         KB_REF: main
     restart: unless-stopped
     environment:
