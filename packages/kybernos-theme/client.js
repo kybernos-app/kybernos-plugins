@@ -6,7 +6,7 @@
 //   mode (Système/Clair/Sombre) .... ctx.theme.setTheme()      — préférence native
 //   9 thèmes prêts + accent ........ ctx.theme.overrideTokens() — 17 jetons {light,dark}
 //   fond d'écran (24 fonds) ........ <div> fixe sous l'app     — motif dream-skin
-//   police + taille ................ --dsw-font-family + ctx.theme.setFontSize()
+//   police + taille ................ --dsw-font-family + ctx.theme.setFontSize() (px; 'text', px since 0.2.1-alpha.2)
 //   jetons (Avancé) ................ le même overrideTokens, par paire de schémas
 //
 // Tout ce que cette page applique est mesuré par makeTheme (porté tel quel de
@@ -288,11 +288,10 @@ window.__ModuleLoader__.load({
 
       const ACCS = ['#4176E6', '#679EFE', '#2DD4BF', '#22A06B', '#34D399', '#F59E0B', '#FB923C', '#EC4899', '#A855F7', '#7C3AED', '#0EA5E9', '#0F1115']
 
-      // Polices — piles système éprouvées (même mécanisme que le pack police
-      // kybernos : --dsw-font-family sur :root).
-      // Catalogue = les 9 polices du studio + les 21 de l'ancien « Colour Pack »
-      // (kybernos-plugin) : rien ne disparaît, l'ordre suit les groupes
-      // sans / serif / mono de la page supprimée.
+      // Fonts: proven system stacks, applied through --dsw-font-family on :root and on body (since
+      // 0.2.1-alpha.2, see appliquerPolice). The catalogue is the studio's 9 fonts plus the 21 of the old
+      // « Colour Pack » (kybernos-plugin): nothing disappears, the order follows the sans / serif / mono
+      // groups of the page that was removed.
       const FONTS = [
         // Sans serif
         { id: 'dsh', name: 'DSH (défaut)', stack: null },
@@ -672,10 +671,13 @@ window.__ModuleLoader__.load({
         if (css !== '') effetsDispose = styles.insert(css)
       }
 
+      // `:root` AND `body`: DSH 0.2.1-alpha.2 declares `--dsw-font-family` again on `body` (its own font list
+      // goes ahead of the built-in stack there), which shadows a rule that only targets `:root` — the chosen
+      // family then reached nothing. Both selectors are harmless on the engines that only declare it on `:root`.
       const appliquerPolice = (S) => {
         if (fontDispose !== null) { try { fontDispose() } catch (e) { /* déjà retiré */ } fontDispose = null }
         const f = FONTS.find((x) => x.id === S.fontText) || FONTS[0]
-        if (f.stack !== null) fontDispose = styles.insert(':root{--dsw-font-family:' + f.stack + ' !important;}')
+        if (f.stack !== null) fontDispose = styles.insert(':root,body{--dsw-font-family:' + f.stack + ' !important;}')
       }
 
       const appliquerMode = (themeSvc, S) => {
@@ -686,9 +688,22 @@ window.__ModuleLoader__.load({
         }
       }
 
+      /** Does DSH's theme service take a font ROLE (`setFontSize('text', px)`)? 0.2.1-alpha.2 does, and its snapshot
+       *  carries `fontSizes: { text, code, terminal }`. Earlier engines: `setFontSize(px)` and `fontSize`. The old
+       *  call on the new service throws (the role would be the size), so the size was silently never written. */
+      const tailleParRole = (themeSvc) => {
+        try {
+          const snap = themeSvc.getTheme()
+          return snap !== null && typeof snap === 'object' && snap.fontSizes !== null && typeof snap.fontSizes === 'object'
+        } catch (e) { return false }
+      }
+
       const appliquerTaille = (themeSvc, S) => {
         const px = Math.max(12, Math.min(17, Math.round(Number(S.fs) || 15)))
-        try { themeSvc.setFontSize(px) } catch (e) { /* hors plage */ }
+        try {
+          if (tailleParRole(themeSvc)) themeSvc.setFontSize('text', px)
+          else themeSvc.setFontSize(px)
+        } catch (e) { /* hors plage */ }
       }
 
       const appliquerTout = (themeSvc, S) => {
@@ -734,11 +749,14 @@ window.__ModuleLoader__.load({
         // (même classe de bug que le mode). On l'ADOPTE, voir tailleNative.
       }
 
-      /** La taille de texte native de DSH (12–17), quand l'instantané la porte. */
+      /** DSH's own text size (12–17) when the snapshot carries it: `fontSizes.text` (0.2.1-alpha.2), else `fontSize`
+       *  (earlier engines). */
       const tailleNative = (themeSvc, snapArg) => {
         try {
           const snap = (snapArg !== null && snapArg !== undefined) ? snapArg : ((themeSvc === null || themeSvc === undefined || typeof themeSvc.getTheme !== 'function') ? null : themeSvc.getTheme())
-          const n = (snap !== null && snap !== undefined) ? Number(snap.fontSize) : NaN
+          const brute = (snap === null || snap === undefined) ? undefined
+            : ((snap.fontSizes !== null && typeof snap.fontSizes === 'object') ? snap.fontSizes.text : snap.fontSize)
+          const n = brute === undefined ? NaN : Number(brute)
           return (Number.isFinite(n) && n >= 12 && n <= 17) ? Math.round(n) : null
         } catch (e) { return null }
       }
@@ -3275,7 +3293,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         // Read-only handles for test-client.mjs (same convention as kybernos-language).
         __test: {
           makeTheme, ratio, HEX, toHex, mix, SKINS, WPS, WPCATS, FONTS, ACCS, TOKMAP, DEF, STORE_KEY,
-          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative,
+          skinPatch, skinAccent, legacyAdopt, readState, writeState, estNaturel, surprendre, sanitiserImport, schemeSombre, effetsCss, exportTexte, filtreFond, ajustementFond, avecAlpha, valeursValides, appliquerEffets, ENUMS, RANGES, BOOLS, RADIUS_DEF, jetonsRetouches, tailleNative, appliquerTaille,
           LD_PRESETS, LD_PACKS, LD_DEF, LD_SIZES, LD_KEY, ld, ldClean, ldRead, ldSet, ldHash, ldChoose, ldChooseWord, ldWordList, ldById, ldPackById, ldNode, ldDestroy, ldCleanSvg, ldImport,
           ldDecorate, ldStart, ldStop, ldApplyText, ldPull, ldAddRecord, ldDelRecord, ldPutWords, ldCacheRead, AnimationPane, LdSummary, LdView,
           appliquerBoot, appliquerTout, appliquerJetons, appliquerFond, appliquerPolice, Page, bootSnapshot, posterBoot, retirerFeuilleBoot, jetonsDe, BOOT_ID,

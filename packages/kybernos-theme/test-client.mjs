@@ -72,14 +72,18 @@ const modele = definition.factory(() => FAKE_REACT)
 const T = modele.__test
 
 // A fake DSH theme service that records every call.
-const mkCtx = ({ pref = 'system', overrideThrows = false, noTheme = false, fontSize } = {}) => {
-  const calls = { overrideTokens: [], disposed: 0, setTheme: [], setFontSize: [], sections: [], effects: [] }
+// `roles: true` plays DSH 0.2.1-alpha.2's service: setFontSize(role, px) (the one-argument form THROWS there, as in the
+// engine: the size lands in the role slot) and a snapshot that carries `fontSizes: { text, code, terminal }`.
+const mkCtx = ({ pref = 'system', overrideThrows = false, noTheme = false, fontSize, roles = false } = {}) => {
+  const calls = { overrideTokens: [], disposed: 0, setTheme: [], setFontSize: [], setFontSizeRole: [], sections: [], effects: [] }
   const listeners = new Map()
   const theme = noTheme ? undefined : {
     overrideTokens(id, tokens) { if (overrideThrows) throw new Error('refused'); calls.overrideTokens.push({ id, tokens }); return () => { calls.disposed += 1 } },
     setTheme(m) { calls.setTheme.push(m) },
-    setFontSize(px) { calls.setFontSize.push(px) },
-    getTheme: () => ({ preference: pref, fontSize }),
+    setFontSize: roles
+      ? (role, px) => { if (!['text', 'code', 'terminal'].includes(role) || !Number.isInteger(px)) throw new TypeError('font role ' + role); calls.setFontSizeRole.push([role, px]) }
+      : (px) => { calls.setFontSize.push(px) },
+    getTheme: () => (roles ? { preference: pref, fontSizes: { text: fontSize, code: 11, terminal: 13 } } : { preference: pref, fontSize }),
   }
   const locale = { getLocale: () => ({ active: 'fr' }), bind: () => (k, p) => (k === 'chat.deepDivingFor' ? 'Deep diving for ' + (p && p.duration) + ' ···' : 'Deep diving') }
   const ctx = {
@@ -278,7 +282,7 @@ section('boot: what is applied, what is not')
   check('...with the right opacity and blur', wp.style.opacity === '0.7' && wp.style.filter === 'blur(8px)', { o: wp.style.opacity, f: wp.style.filter })
   check('...a gradient/colour goes through the `background` shorthand (not backgroundImage)', typeof wp.style.background === 'string' && wp.style.background.length > 0 && wp.style.backgroundImage === undefined)
   const fontTag = dom.head.find((e) => /--dsw-font-family/.test(e.textContent))
-  check('a non-default font is posted as --dsw-font-family on :root', fontTag && /Georgia/.test(fontTag.textContent) && /:root/.test(fontTag.textContent))
+  check('a non-default font is posted as --dsw-font-family on :root AND body (0.2.1-alpha.2 declares it on body: a :root-only rule is shadowed)', fontTag && /Georgia/.test(fontTag.textContent) && /^:root,body\{/.test(fontTag.textContent.trim()), fontTag && fontTag.textContent)
   check('...even when a size is stored: the stored 17 is not pushed to DSH', m.calls.setFontSize.length === 0)
 
   // Applying again must dispose the previous layer first (no stacking).
@@ -360,6 +364,29 @@ section('boot: adopting DSH\'s own text size')
   m.listeners.get('theme/change')({ preference: 'dark', fontSize: 13 })
   check('a later change of DSH\'s size (Settings › General) is followed', stored().fs === 13)
   check('tailleNative reads 12–17 only', T.tailleNative(null, { fontSize: 12 }) === 12 && T.tailleNative(null, { fontSize: 17 }) === 17 && T.tailleNative(null, { fontSize: 11 }) === null && T.tailleNative(null, { fontSize: '16' }) === 16 && T.tailleNative(null, null) === null)
+
+  // DSH 0.2.1-alpha.2 renamed both ends: the snapshot carries fontSizes.text and the service takes (role, px).
+  // Reading only `fontSize` made the size never adopted; calling setFontSize(px) threw and was swallowed.
+  m = boot({ fs: 15 }, { roles: true, fontSize: 16 })
+  check('0.2.1-alpha.2: DSH\'s size (fontSizes.text = 16) is ADOPTED into the store', stored() !== null && stored().fs === 16 && m.calls.setFontSizeRole.length === 0, stored())
+  m = boot({ fs: 15 }, { roles: true, fontSize: 15 })
+  m.listeners.get('theme/change')({ preference: 'dark', fontSizes: { text: 13, code: 11, terminal: 13 } })
+  check('0.2.1-alpha.2: a later change of DSH\'s text size is followed', stored().fs === 13, stored())
+  check('0.2.1-alpha.2: the code and terminal sizes are never mistaken for the text size', T.tailleNative(null, { fontSizes: { text: 99, code: 12, terminal: 13 } }) === null && T.tailleNative(null, { fontSizes: { code: 12 } }) === null && T.tailleNative(null, { fontSizes: { text: 16, code: 11, terminal: 13 } }) === 16)
+  let r = mkCtx({ roles: true, fontSize: 15 })
+  T.appliquerTaille(r.ctx.theme, { ...T.DEF, fs: 16 })
+  check('0.2.1-alpha.2: the page\'s text size goes through setFontSize(\'text\', px)', JSON.stringify(r.calls.setFontSizeRole) === '[["text",16]]', r.calls.setFontSizeRole)
+  r = mkCtx({ fontSize: 15 })
+  T.appliquerTaille(r.ctx.theme, { ...T.DEF, fs: 16 })
+  check('earlier engines: still setFontSize(px)', JSON.stringify(r.calls.setFontSize) === '[16]', r.calls.setFontSize)
+  r = mkCtx({ roles: true, fontSize: 15 })
+  T.appliquerTaille(r.ctx.theme, { ...T.DEF, fs: 40 })
+  check('a size outside 12–17 is clamped before it is sent', JSON.stringify(r.calls.setFontSizeRole) === '[["text",17]]', r.calls.setFontSizeRole)
+  r = mkCtx({ roles: true, fontSize: 15 })
+  r.ctx.theme.getTheme = () => { throw new Error('not ready') }
+  let threw = false
+  try { T.appliquerTaille(r.ctx.theme, { ...T.DEF, fs: 16 }) } catch (e) { threw = true }
+  check('a service that cannot answer getTheme() never makes the call throw', threw === false)
 }
 
 section('wallpaper, import, counters, brand colour (found by the live check)')
@@ -1160,7 +1187,7 @@ section('boot sheet (anti-flash v2)')
   T.appliquerJetons(themedCtx.theme, themed)
   check('the posted tokens are the layer DSH receives, not a second computation', JSON.stringify(T.bootSnapshot(themed).tokens) === JSON.stringify(themedCalls.overrideTokens[0].tokens))
   const sheet = renderBootCss(cleanBoot(T.bootSnapshot({ ...themed, fontText: 'georgia' })).snapshot)
-  check('the sheet carries both schemes and the font', /^html body:not\(\[data-ds-dark-theme\]\)\{--dsw-/.test(sheet) && sheet.includes('html body[data-ds-dark-theme]{--dsw-') && sheet.endsWith(':root{--dsw-font-family:Georgia, \'Times New Roman\', serif !important}'), sheet.slice(-120))
+  check('the sheet carries both schemes and the font', /^html body:not\(\[data-ds-dark-theme\]\)\{--dsw-/.test(sheet) && sheet.includes('html body[data-ds-dark-theme]{--dsw-') && sheet.endsWith(':root,body{--dsw-font-family:Georgia, \'Times New Roman\', serif !important}'), sheet.slice(-120))
 
   // The host is told what is PERSISTED: once, never a trial, and again after a refusal.
   const posts = []

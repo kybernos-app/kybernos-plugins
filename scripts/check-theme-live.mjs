@@ -334,7 +334,6 @@ const settleMode = async () => {
   await sleep(250)
   return !!ok
 }
-const alive = () => val(`document.body ? document.body.innerText.length : 0`)
 
 /** Opens Settings › Theme from a clean page (and retries: the first click on the account footer can miss). */
 const openTheme = async ({ fresh = false, settle = true } = {}) => {
@@ -687,9 +686,14 @@ try {
     await typeInto(Q.hexInput, 'ec4899')
     const st6 = await until(async () => { const s = await store(); return s.acc && sameColor(s.acc, '#ec4899') ? s : null }, 2000)
     check('a valid 6-digit hex (« ec4899 ») sets the accent and the brand token', !!st6 && sameColor((await readTokens())[V.brand], '#ec4899'), st6 && st6.acc)
-    await setColor(`document.querySelector('.kbth-sw input[type=color]')`, '#00ff88')
-    const stp = await until(async () => { const s = await store(); return s.acc && sameColor(s.acc, '#00ff88') ? s : null }, 2000)
-    check('the colour picker (native <input type=color>) sets the accent too', !!stp && sameColor((await readTokens())[V.brand], '#00ff88'), stp && stp.acc)
+    // A colour that reads at 3:1 or more on layer 1 in BOTH schemes (about 4.9:1 on Dark, 3.5:1 on Light): the token is
+    // then the picked colour itself whatever the mode found. A bright green such as #00ff88 is lightened/darkened under
+    // 3:1 on a white layer, as the dots are (checked above): asserting « token === picked colour » with it only held on Dark.
+    const PICKED = '#3b82f6'
+    await setColor(`document.querySelector('.kbth-sw input[type=color]')`, PICKED)
+    const stp = await until(async () => { const s = await store(); return s.acc && sameColor(s.acc, PICKED) ? s : null }, 2000)
+    const tokPicked = await readTokens()
+    check('the colour picker (native <input type=color>) sets the accent too (stored, and the brand token is the picked colour: ' + PICKED + ' reads at ' + contrast(PICKED, tokPicked[V.l1]).toFixed(1) + ':1 on layer 1)', !!stp && contrast(PICKED, tokPicked[V.l1]) >= 3 && sameColor(tokPicked[V.brand], PICKED), { acc: stp && stp.acc, brand: tokPicked[V.brand], l1: tokPicked[V.l1] })
     await clickEl(`document.querySelector('.kbth-acc .kbth-btn')`)
     const stn = await until(async () => { const s = await store(); return s.acc === null ? s : null }, 2000)
     const tn = await readTokens()
@@ -1625,6 +1629,10 @@ try {
     return 1
   }
   const bodyVar = (v) => val(`getComputedStyle(document.body).getPropertyValue(${JSON.stringify(v)}).trim()`)
+  // The checks below run in whatever mode DSH was found in (the sandbox clones the user's profile: often Light), so a
+  // value that depends on the scheme is looked up for the scheme that is DISPLAYED, never assumed to be Dark.
+  const displayedDark = () => val(`document.body.hasAttribute('data-ds-dark-theme')`)
+  const CB_PALETTE = { dark: { ok: '#56B4E9', err: '#FF8A3D' }, light: { ok: '#0072B2', err: '#B84A00' } }   // success / error, colour-blind safe
   const cs = (sel, prop) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? getComputedStyle(e)[${JSON.stringify(prop)}] : null })()`)
   const backdrop = async (sel) => (await val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const c = getComputedStyle(e); return c.backdropFilter || c.webkitBackdropFilter || 'none' })()`))
   const SIDEBAR = '[data-slot="sidebar"]'
@@ -1649,7 +1657,8 @@ try {
     await goTab(TAB.verre)
     const wp0 = await readWallpaper()
     check('the wallpaper layer exists at boot (aurore, opacity 1), and the tab no longer shows the « choose a background » note', wp0.count === 1 && wp0.opacity === '1' && (await val(`document.querySelectorAll('.kbth-adv-pane .kbth-note').length`)) === 0, { wp: wp0.count, opacity: wp0.opacity })
-    check('--dsw-alias-bg-base computes to a fully transparent #151517 (alpha 0) while a wallpaper is on, so the layer shows through', sameColor(await bodyVar(V.base), '#151517') && alphaOf(await bodyVar(V.base)) === 0, await bodyVar(V.base))
+    // The native base colour is #151517 on Dark and white on Light: the layer keeps it and only zeroes its alpha.
+    check('--dsw-alias-bg-base computes to the native base colour (' + NATIVE[V.base] + ') at alpha 0 while a wallpaper is on, so the layer shows through', sameColor(await bodyVar(V.base), NATIVE[V.base]) && alphaOf(await bodyVar(V.base)) === 0, { got: await bodyVar(V.base), native: NATIVE[V.base] })
     check('sidebar transparency 25 % → --dsw-specific-sidebar-fill alpha .75; fields 20 % → --dsw-specific-input-major alpha .8; menus 10 % → --dsw-specific-menu alpha .9', Math.abs(alphaOf(await bodyVar('--dsw-specific-sidebar-fill')) - 0.75) < 0.02 && Math.abs(alphaOf(await bodyVar('--dsw-specific-input-major')) - 0.8) < 0.02 && Math.abs(alphaOf(await bodyVar('--dsw-specific-menu')) - 0.9) < 0.02, { side: await bodyVar('--dsw-specific-sidebar-fill'), input: await bodyVar('--dsw-specific-input-major'), menu: await bodyVar('--dsw-specific-menu') })
     check('frosted glass: backdrop-filter is blur(18px) on the sidebar and on the composer card', (await backdrop(SIDEBAR)) === 'blur(18px)' && (await backdrop(COMPOSER)) === 'blur(18px)', { sidebar: await backdrop(SIDEBAR), composer: await backdrop(COMPOSER) })
     const pv = () => val(`(() => { const p = document.querySelector('[data-kb=glass-preview]'); const s = p.querySelector('.kbth-gpv-side'); const m = p.querySelector('.kbth-gpv-input'); return JSON.stringify({ side: getComputedStyle(s).backgroundColor, input: getComputedStyle(m).backgroundColor, bf: getComputedStyle(s).backdropFilter }) })()`).then((x) => JSON.parse(x))
@@ -1810,7 +1819,9 @@ try {
       const c1 = { ok: await succ(), err: await errv(), pill: (await readPage()).pills[0] }
       await clickEl(toggleQ('cb')); await sleep(400)
       const c2 = { ok: await succ(), err: await errv(), pill: (await readPage()).pills[0] }
-      check('« Palette daltonisme »: success → #56B4E9 and error → #FF8A3D on Dark, and on its own it posts the layer (the pill no longer says « DSH native »)', sameColor(c1.ok, '#56B4E9') && sameColor(c1.err, '#FF8A3D') && !/native|natif/i.test(c1.pill || '') && /native|natif/i.test(c0.pill || ''), { before: c0, on: c1 })
+      const cbDark = await displayedDark()
+      const cbWant = cbDark ? CB_PALETTE.dark : CB_PALETTE.light
+      check('« Palette daltonisme »: success → ' + cbWant.ok + ' and error → ' + cbWant.err + ' on ' + (cbDark ? 'Dark' : 'Light') + ', and on its own it posts the layer (the pill no longer says « DSH native »)', sameColor(c1.ok, cbWant.ok) && sameColor(c1.err, cbWant.err) && !/native|natif/i.test(c1.pill || '') && /native|natif/i.test(c0.pill || ''), { before: c0, on: c1, want: cbWant })
       check('… off gives DSH’s own success/error colours and the « DSH native » pill back', sameColor(c2.ok, c0.ok) && sameColor(c2.err, c0.err) && /native|natif/i.test(c2.pill || ''), { before: c0, after: c2 })
     } finally {
       await val(`(() => { const a = document.getElementById('kb-probe'); if (a) a.remove() })()`)
@@ -1833,7 +1844,7 @@ try {
       lig: (await cs('body', 'fontVariantLigatures')) === 'none',
       brand: (await cs('[data-slot="sidebar.brand.name"]', 'display')) === 'none',
       liquid: (await backdrop(COMPOSER)) === 'blur(30px) saturate(1.65) brightness(1.06)',
-      cb: sameColor(await bodyVar(V.ok), '#56B4E9') && sameColor(await bodyVar(V.err), '#FF8A3D'),
+      cb: sameColor(await bodyVar(V.ok), (await displayedDark() ? CB_PALETTE.dark : CB_PALETTE.light).ok) && sameColor(await bodyVar(V.err), (await displayedDark() ? CB_PALETTE.dark : CB_PALETTE.light).err),
       sidebar: Math.abs(alphaOf(await bodyVar('--dsw-specific-sidebar-fill')) - 0.6) < 0.02,
       base: alphaOf(await bodyVar(V.base)) === 0,
     }
@@ -1929,7 +1940,6 @@ try {
     cards = await cardsInfo()
     check('removing one frees a slot: stored sel of 3, the other cards are enabled again', cards.filter((c) => c.on).length === 3 && cards.filter((c) => !c.on).every((c) => !c.disabled), cards.filter((c) => c.disabled).length)
     const chosenIds = (await ldGet()).sel
-    const chosenNames = cards.filter((c) => c.on).map((c) => c.name)
     await clickEl(`document.querySelectorAll('.kbth-pillb')[1]`)
     await sleep(200)
     const fMono = await cardsInfo()
@@ -2470,8 +2480,11 @@ try {
     if (LIGHT_RULE.length < 10) { console.log('  · the plugin’s Light rule could not be read from its stylesheet'); check('the plugin’s « small texts in Light » rule is present in client.js (≥ 10 selectors)', false, LIGHT_RULE) ; return }
     await openTheme({ fresh: true })
     const origAttr = await val(`document.body.getAttribute('data-ds-dark-theme')`)
-    const darkOn = () => val(`document.body.setAttribute('data-ds-dark-theme', ${JSON.stringify(origAttr === null ? '' : origAttr)})`)
-    const setLight = async () => { await val(`document.body.removeAttribute('data-ds-dark-theme')`); await sleep(350); await val(`document.body.removeAttribute('data-ds-dark-theme')`); await sleep(150) }
+    // A DSH that is natively Light has no attribute to remove: it is already measured in Light, there is no Dark to emulate
+    // (setting the attribute would paint the page Dark), and the « Dark did not change » comparison has nothing to compare.
+    const nativeLight = origAttr === null
+    const darkOn = () => (nativeLight ? Promise.resolve() : val(`document.body.setAttribute('data-ds-dark-theme', ${JSON.stringify(origAttr)})`))
+    const setLight = async () => { if (nativeLight) { await sleep(150); return } await val(`document.body.removeAttribute('data-ds-dark-theme')`); await sleep(350); await val(`document.body.removeAttribute('data-ds-dark-theme')`); await sleep(150) }
     const inspect = async () => JSON.parse(await val(`JSON.stringify((${INSPECT_IN_PAGE})(['.kbth-page', '[data-kb=ld-picker]', '[data-kb=ld-pack]', '[data-kb=theme-save-dlg]'], ${JSON.stringify(LIGHT_RULE.concat(LIGHT_EXTRA))}))`, 12000))
     const lightShot = async (name) => { const f = join(tmpdir(), 'kb-theme-light-' + name + '.png'); try { await page.shot(f); console.log('  · screenshot (Light, temp folder, never committed): ' + f) } catch (e) { console.log('  · the screenshot failed: ' + short(e.message)) } }
     const SHOTS = { 'Essentiel': 'essentiel', 'Animation': 'animation', 'Animation › picker › examples': 'picker', 'Verre et fond': 'verre', 'Accessibilité': 'access', 'Animation › word pack': 'pack' }
@@ -2513,6 +2526,7 @@ try {
       for (const l of d.lifted) {
         seenLifted.set(l.sel, (seenLifted.get(l.sel) || 0) + l.n)
         if (LIGHT_RULE.indexOf(l.sel) < 0) continue
+        if (nativeLight) continue
         const bad = l.colors.filter((c) => !sameColor(c, dark.tert) && !sameColor(c, dark.cap))
         darkSeen.push({ view: name, sel: l.sel, colors: l.colors })
         if (bad.length) darkWrong.push(name + ' ' + l.sel + ' ' + bad.join(' / '))
@@ -2581,7 +2595,8 @@ try {
     const notSeen = LIGHT_RULE.filter((sel) => !seenLifted.has(sel))
     check('the selectors the plugin lifts in Light were really on screen and measured (' + (LIGHT_RULE.length - notSeen.length) + ' of ' + LIGHT_RULE.length + '; not reached: ' + (notSeen.join(', ') || 'none') + ')', LIGHT_RULE.length - notSeen.length >= LIGHT_RULE.length * 0.75, notSeen)
     if (notSeen.length) note('Light scheme: selectors of the plugin’s Light rule that no view of the run could show: ' + notSeen.join(', '))
-    check('Dark did not change: on every view, each lifted selector still computes DSH’s tertiary (' + dark.tert + ') or caption (' + dark.cap + ') colour, never the secondary one', darkWrong.length === 0, darkWrong.slice(0, 6))
+    if (nativeLight) console.log('  · skipped « Dark did not change »: DSH is natively Light, so there is no Dark scheme to compare (run it on a Dark profile)')
+    else check('Dark did not change: on every view, each lifted selector still computes DSH’s tertiary (' + dark.tert + ') or caption (' + dark.cap + ') colour, never the secondary one', darkWrong.length === 0, darkWrong.slice(0, 6))
     const darkSet = {}
     for (const d of darkSeen) for (const c of d.colors) (darkSet[d.sel] = darkSet[d.sel] || new Set()).add(c)
     console.log('  · Dark colours of the lifted selectors: ' + Object.keys(darkSet).map((k) => k + '=' + Array.from(darkSet[k]).join('|')).join(' ; ').slice(0, 900))
@@ -2723,13 +2738,11 @@ try {
     const settingsFile = join(dir, 'loader-settings.json')
     const wordsFile = join(dir, 'loading-text.json')
     const lottieFile = fileURLToPath(new URL('../packages/kybernos-theme/vendor/lottie_light.min.js', import.meta.url))
-    const diskMark = errors.length
     let active = true
     let fetchOn = false
     const disk = { mode: 'up', requests: [], lottie: [] }
     const rd = (f) => { try { return JSON.parse(readFileSync(f, 'utf8')) } catch (e) { return null } }
     const files = () => { try { return readdirSync(loadersDir).sort() } catch (e) { return [] } }
-    const waitFile = (f, ms = 3500) => until(() => existsSync(f), ms, 100)
     const waitGone = (f, ms = 3500) => until(() => !existsSync(f), ms, 100)
     try {
       const { serveLoaderStore } = await import(new URL('../packages/kybernos-theme/loader-store.mjs', import.meta.url).href)
