@@ -39,6 +39,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `POST create {root?,name,description,whenToUse?,body?,modelInvocable?}` | writes a valid `SKILL.md` |
 | `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
+| `GET index-source` · `POST index-source/set {url}` | which relay the Discover index is read from (`origin`: `default`, `setting` or `env`; `editable: false` while the variable decides), and the setting that names another one (an empty `url` puts the default back) |
 | `POST team/pack {root,name}` | reads a skill of a writable root into a Team proposal: text files only, no hidden file or symlink, secret scan, the SHA-256 version |
 | `POST team/install {root?,name,version,files,teamId?,replace?}` | writes a Team skill (checks every path and the version first), atomically, **never over an existing folder** — except `replace: true` over a team skill whose files still hash to the version it was installed at |
 
@@ -48,6 +49,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   `~/.agents/skills`; writability is judged on the real path (a symlink leaving the root stays visible but read-only).
 - `~/.dsh/kybernos-skills.json`: journal of the last 50 toggles (0600); not a source of truth (active = `SKILL.md` present).
 - `<skill folder>/.kybernos-team.json`: written by a Team install (the approved version and the team skill id, hidden, never part of what a proposal sends); it lets the catalogue say `teamVersion` and `teamModified` and lets Update replace a folder nobody edited.
+- `~/.dsh/kybernos/skills-index.json` (0600): the relay the user named on the Discover tab (`{version, url, updatedAt}`); absent = the Kybernos relay.
 - `~/.dsh/kybernos/skills-featured.json` (0600) and `~/.dsh/kybernos/skills-featured/<name>.{png,webp,jpg,jpeg,svg}` (covers).
 - Reads the first event of `<DSH_HOME or ~/.dsh>/sessions/<project>/<session>/session.v3.jsonl.zstd` to learn an idle session's
   folder (so its project skills show). Temp dir `kybernos-skill-*` during install. Env: `DSH_HOME`, and optionally `KYBERNOS_SKILLS_INDEX_URL` (below).
@@ -61,9 +63,13 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 - Network, two fixed hosts, no caller URL followed: `https://codeload.github.com` (install; `source` must match `owner/repo`) and
   `https://skills.kybernos.app/v1` (index, search, curated, audits; a bare GET, no credential; good answers cached
   5 min in memory). That is Kybernos's relay of the skills.sh API (`services/skills-index`, which holds the one Vercel token and
-  caches answers at the CDN). `KYBERNOS_SKILLS_INDEX_URL` points DSH at another relay (https, or http on a loopback address): a
-  value that is set but invalid refuses the call and never falls back to the default. It also runs `tar`. If the relay is down,
-  *Yours* and GitHub import still work and *Discover* says the index is unavailable.
+  caches answers at the CDN). Another relay is named by the `KYBERNOS_SKILLS_INDEX_URL` variable or by the setting on the Discover
+  tab (**Source › Change**; the page shows which relay is in use): https, or http on a loopback address, no user name or password,
+  no query or fragment — **one validator for both**. The variable wins; a value that is set but invalid (either way, a damaged
+  settings file included) refuses the call and never falls back to the default. The answer is still read with a size cap, no
+  credential is sent whatever the relay, and what one relay answered is never served for another. It also runs `tar`. If the
+  relay is down, *Yours* and GitHub import still work and *Discover* says so, with **Try again** (one automatic second attempt
+  first, for a 5xx or a network blink) and **Change** (the source).
 - `generer-pochettes.mjs` (manual, optional) draws Featured covers through an Alibaba image endpoint, with a `qwen-token-plan`
   key read from `~/.dsh/kybernos-models/providers.json`.
 
@@ -71,7 +77,7 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 `node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the four POST routes
 mounted on a fake context. `test-index.mjs` covers the Discover routes against a local stand-in for the relay (what is asked,
-that no credential is sent, failures not cached, the address override). `test-dsh-home.mjs` covers `DSH_HOME`. `test-client-strings.mjs` checks the client's words (every key in French and English, every answer word has a sentence). `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan), the disk half of `team/pack` and `team/install`, the team mark and the replace-only-if-untouched swap, on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
+that no credential is sent, failures not cached, the address override and the saved setting: same validation, the variable wins, a damaged file is refused, a change drops the cache). `test-dsh-home.mjs` covers `DSH_HOME`. `test-client-strings.mjs` checks the client's words (every key in French and English, every answer word has a sentence). `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan), the disk half of `team/pack` and `team/install`, the team mark and the replace-only-if-untouched swap, on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
 and toggle logic is not tested; CI also syntax-checks the bundle (`node --check packages/kybernos-skills/*.js`).
 The host exports its functions "for the harness" (`catalogueOf`, `toggleSkill`, `createSkill`, `installSkill`, …) but no other
 harness is in this repo.

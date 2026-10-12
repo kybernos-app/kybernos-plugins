@@ -17,7 +17,7 @@ export const FICHIER_CATALOGUE = join(REPO, 'packages', 'kybernos-hub', 'catalog
 export const FAMILLES = [
   { id: 'base', fr: 'Fondations', en: 'Foundations', couleur: '#5b6fd6' },
   { id: 'models', fr: 'Modèles', en: 'Models', couleur: '#8a5bd6' },
-  { id: 'teams', fr: 'Équipes d’agents', en: 'Agent teams', couleur: '#1a9a8a' },
+  { id: 'teams', fr: 'Kybers', en: 'Kybers', couleur: '#1a9a8a' },
   { id: 'create', fr: 'Créer dans le chat', en: 'Create in the chat', couleur: '#e8630a' },
   { id: 'data', fr: 'Données', en: 'Data', couleur: '#0f8fb5' },
   { id: 'connect', fr: 'Connecteurs et machines', en: 'Connectors and machines', couleur: '#d6458a' },
@@ -26,7 +26,7 @@ export const FAMILLES = [
 
 // dir → [family, promise fr, promise en]
 const FICHE = {
-  'kybernos-plugin': ['base', 'Le cœur : équipes d’agents, ressources, réglages et préréglages.', 'The core: agent teams, resources, settings and presets.'],
+  'kybernos-plugin': ['base', 'Le cœur : Kybers, ressources, réglages et préréglages.', 'The core: Kybers, resources, settings and presets.'],
   'kybernos-hub': ['base', 'Ce panneau, la garde de démarrage et le mode sans échec.', 'This panel, the boot guard and safe mode.'],
   'kybernos-theme': ['base', 'Thème, palettes, fond, police et animation de réflexion.', 'Theme, palettes, background, font and thinking animation.'],
   'kybernos-language': ['base', 'Langue de l’interface : toutes les langues ISO, traduction de Kybernos et de DSH, sens de lecture.', 'Interface language: every ISO language, translation of Kybernos and DSH, reading direction.'],

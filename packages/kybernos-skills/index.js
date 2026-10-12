@@ -10,12 +10,14 @@
 // Reimplementing this scan was the direct cause of flaw A3 (two roots resolving to the
 // same physical folder showed every skill twice, all read-only).
 //
-// TEN routes on the webServer service. TWO outbound NETWORK flows, read-only, to fixed hosts
+// The routes below are on the webServer service. TWO outbound NETWORK flows, read-only, to fixed hosts
 // (codeload.github.com to install, the kybernos-skills-index relay for the index) — see the NETWORK section.
 //   GET  /kybernos-skills/skills    : the registry catalogue + the DISABLED skills. ?q= filters.
 //   GET  /kybernos-skills/index     : the PAGINATED public index (?view=all-time|trending|hot&page=&perPage=)
 //   GET  /kybernos-skills/search    : fuzzy search over the whole index (?q=, 2 characters minimum)
 //   GET  /kybernos-skills/curated   : the first-party set, grouped by owner
+//   GET  /kybernos-skills/index-source      : which relay the index is read from (and whether the page may change it)
+//   POST /kybernos-skills/index-source/set  : names another relay (same validation as KYBERNOS_SKILLS_INDEX_URL), or puts the default back
 //   GET  /kybernos-skills/audit     : the security audits of a skill (?source=&skill=)
 //   GET  /kybernos-skills/status    : writable roots, registry scope
 //   POST /kybernos-skills/toggle    : enabled/disabled toggle by RENAMING
@@ -674,7 +676,8 @@ const toggleSkill = async ({ ctx, root, name, active, config, sessionId }) => {
 // READ-only, to FIXED hosts:
 //   · codeload.github.com  — a repository's archive, to install a skill;
 //   · skills.kybernos.app/v1 — our read-only relay of the skills.sh index (ranking, search, curated, audits);
-//     see services/skills-index/README.md. It holds the one Vercel token, so no user needs one.
+//     see services/skills-index/README.md. It holds the one Vercel token, so no user needs one. The page lets the user
+//     point at another relay (a company server): see « Where the index is read from » below.
 // No caller-supplied URL is followed: `source` is validated as owner/repo BEFORE any
 // request, and the skill name remains subject to the same pattern as elsewhere. Redirects are followed
 // (codeload redirects) but the initial host is never chosen by the client.
@@ -691,7 +694,8 @@ const CODELOAD = 'https://codeload.github.com'
 // authenticates with a Vercel OIDC token that only a Vercel deployment receives and renews. We used to ask every user for one
 // (pulled with the Vercel CLI, valid ~12 h), so Discover was empty for anyone but the developer. The relay in services/skills-index holds
 // it once and serves the same JSON, cached; the plugin sends no credential at all.
-// KYBERNOS_SKILLS_INDEX_URL points DSH at another relay (a company server, a test): https, or http on a loopback address only.
+// Another relay (a company server, a test) is named by the KYBERNOS_SKILLS_INDEX_URL variable, or by the setting the Discover tab
+// offers (<DSH home>/kybernos/skills-index.json): https, or http on a loopback address only, no credentials in the address.
 // A value that is set but invalid refuses the call: a typo must never fall back to another address.
 const INDEX_API_DEFAULT = 'https://skills.kybernos.app/v1'
 const VIEWS = ['all-time', 'trending', 'hot']
@@ -761,10 +765,12 @@ const queryParam = (req, key) => {
   } catch (e) { return '' }
 }
 
-// The relay's base URL: the default, or the validated override. null = an override that is set but not acceptable.
-const indexApiBase = () => {
-  const raw = process.env.KYBERNOS_SKILLS_INDEX_URL
-  if (typeof raw !== 'string' || raw.trim() === '') return INDEX_API_DEFAULT
+// ── Where the index is read from ───────────────────────────────────────────────────────────────────────────────
+// ONE validator names an acceptable relay address, for the environment variable and for the saved setting alike: what one
+// refuses the other refuses. https, or http on a loopback address; no user name or password, no query, no fragment.
+// Returns the normalised address (no trailing slash), or null.
+const checkIndexUrl = (raw) => {
+  if (typeof raw !== 'string') return null
   try {
     const u = new URL(raw.trim())
     const loopback = u.hostname === '127.0.0.1' || u.hostname === 'localhost' || u.hostname === '[::1]'
@@ -772,6 +778,71 @@ const indexApiBase = () => {
     if (schemeOk && u.username === '' && u.password === '' && u.search === '' && u.hash === '') return u.href.replace(/\/+$/, '')
   } catch (e) { /* refused below */ }
   return null
+}
+
+const indexSettingPath = (cfg) => join(cfg.dsh, 'kybernos', 'skills-index.json')
+
+// What the saved setting holds: null (none), or { raw } — `raw` is '' when the file exists but cannot be read, which is
+// refused like any other invalid value (it was set, so it is not silently replaced by the default).
+const readIndexSetting = (cfg) => {
+  let text
+  try { text = readFileSync(indexSettingPath(cfg), 'utf8') } catch (e) { return null }
+  try {
+    const parsed = JSON.parse(text)
+    return { raw: parsed !== null && typeof parsed === 'object' && typeof parsed.url === 'string' ? parsed.url : '' }
+  } catch (e) { return { raw: '' } }
+}
+
+/** Which relay is in use, and why: the variable wins (an operator's choice), then the saved setting, then the default.
+ *  `url` is null when what was set is refused. */
+const indexSource = (cfg) => {
+  const env = process.env.KYBERNOS_SKILLS_INDEX_URL
+  if (typeof env === 'string' && env.trim() !== '') {
+    const url = checkIndexUrl(env)
+    return { origin: 'env', url, refused: url === null }
+  }
+  const saved = readIndexSetting(cfg)
+  if (saved !== null) {
+    const url = checkIndexUrl(saved.raw)
+    return { origin: 'setting', url, refused: url === null }
+  }
+  return { origin: 'default', url: INDEX_API_DEFAULT, refused: false }
+}
+
+// The relay's base URL: the default, or the validated override. null = an override that is set but not acceptable.
+const indexApiBase = () => {
+  const s = indexSource(configOf())
+  return s.refused ? null : s.url
+}
+
+/** What the page is told about the source: the address in use (never an address that was refused: it may carry a credential
+ *  somebody typed), where it comes from, and whether the page may change it (not when the variable decides). */
+const describeIndexSource = (cfg) => {
+  const s = indexSource(cfg)
+  let host = null
+  try { host = s.url === null ? null : new URL(s.url).host } catch (e) { host = null }
+  return { origin: s.origin, url: s.url, host, refused: s.refused, defaultUrl: INDEX_API_DEFAULT, editable: s.origin !== 'env' }
+}
+
+/** Saves the setting (an empty address puts the default back). Same validation as the variable; refused while the variable is set. */
+const setIndexSource = (cfg, rawUrl) => {
+  const env = process.env.KYBERNOS_SKILLS_INDEX_URL
+  if (typeof env === 'string' && env.trim() !== '') return { ok: false, error: 'index_url_env' }
+  const path = indexSettingPath(cfg)
+  const text = typeof rawUrl === 'string' ? rawUrl.trim() : ''
+  if (text === '') {
+    try { rmSync(path, { force: true }) } catch (e) { return { ok: false, error: 'write_failed', dest: path } }
+  } else {
+    const url = checkIndexUrl(text)
+    if (url === null) return { ok: false, error: 'index_url_refused' }
+    try {
+      mkdirSync(dirname(path), { recursive: true })
+      writeFileSync(path, JSON.stringify({ version: 1, url, updatedAt: new Date().toISOString() }, null, 2) + '\n')
+      try { chmodSync(path, 0o600) } catch (e) { /* best effort, like the journal */ }
+    } catch (e) { return { ok: false, error: 'write_failed', dest: path } }
+  }
+  discoverCache.clear()
+  return { ok: true, source: describeIndexSource(cfg) }
 }
 
 // One read-only GET to the relay. No credential is sent. A failure never carries the relay's own text beyond its `message`.
@@ -833,7 +904,9 @@ const normalizeHit = (raw) => {
 // In-memory cache only (never on disk), and the dshmarket doctrine is kept: a network failure
 // is NEVER answered from the cache — otherwise the outage would look like a valid answer.
 const discoverCache = new Map()
-const cachedDiscover = async (key, produce) => {
+const cachedDiscover = async (key0, produce) => {
+  // An answer from one relay is never served for another (the address is part of the key).
+  const key = String(indexApiBase()) + '|' + key0
   const hit = discoverCache.get(key)
   if (hit !== undefined && Date.now() - hit.at < DISCOVER_TTL_MS) return hit.data
   const data = await produce()
@@ -1256,6 +1329,10 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 
   GET('/kybernos-skills/curated', 'kybernos-skills: route curated', async () => curatedSkills())
 
+  // The relay in use, and the setting that names another one. GET and POST sit on two paths (the exact table is keyed by path).
+  GET('/kybernos-skills/index-source', 'kybernos-skills: route index source', async () => ({ ok: true, source: describeIndexSource(configOf()) }))
+  POST('/kybernos-skills/index-source/set', 'kybernos-skills: route index source set', async (body) => setIndexSource(configOf(), body.url))
+
   GET('/kybernos-skills/audit', 'kybernos-skills: route audit', async (req) => auditSkill(
     queryParam(req, 'source'), queryParam(req, 'skill')
   ))
@@ -1387,7 +1464,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── named exports for the harness (testability: explicit paths, nothing wired) + apply ────────────────
-export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin }
+export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
 
 export function apply(ctx) {
   // Safety net mirroring kybernos-plugin/index.js:2876-2884 (base): a mount error must not

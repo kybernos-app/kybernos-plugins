@@ -616,6 +616,30 @@ the page or in the browser's storage), a refused add that may have gone through 
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
 
+## The Creations, Kybers and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # an isolated instance serving this checkout (restart it after a host edit)
+node scripts/check-pages-live.mjs [--shots <dir>]
+```
+
+It **refuses to run against 127.0.0.1:3080**: the Skills steps write the index-source setting and the Featured list of the
+instance's DSH home (both put back at the end). It plays, on real clicks and keys:
+
+- **creations**: « Customize » is a small control on the hint line (not a tile, tiles on one row), its panel hangs under it;
+  a row has no « View » / « expand » button, its quick actions are hidden at rest, shown on hover and on keyboard focus, always
+  shown with no hover (touch), the name keeps its width at 400 px; a Data row says what it holds, a Data card is a table or a few
+  fields, an opened Data creation is a table or a tree with « View source » one click away;
+- **kybers**: the sidebar entry says « Kybers »; the tab row does not move between the Kybers and Marketplace tabs (1400 and 640 px);
+- **skills**: a stand-in relay (loopback) answers 502 → the message, the automatic second attempt, « Try again » and « Change »,
+  the other tabs untouched; the source line; a bad address refused with the variable's rule; the Featured list and the ranking
+  are the same rows; at 640 px nothing is cut off at the right;
+- **skeletons**: the host's answer held back over CDP `Fetch`, bones drawn in the box of the real rows (the first row lands where
+  its bones were), no shimmer under `prefers-reduced-motion`, only the first twelve rows fade in. The rules and the helper are in
+  `skeleton-screens.md`.
+
+A check that has nothing to compare (no creation, no Kyber, nothing featured in the instance) says so and moves on. Exit 0 / 1 / 3.
+
 ## A broken bundle must not stop DSH: `scripts/check-bundle-faults.mjs`
 
 ```bash

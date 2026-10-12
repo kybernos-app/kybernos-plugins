@@ -804,7 +804,7 @@ try {
     const cov = await coverage()
     await shot('03b-wallpaper-home')
     check('the wallpaper is VISIBLE on the main screen at 100 % visibility: a clear majority of the sampled points of the main area have no opaque surface above the layer (' + cov.visible + ' of ' + cov.total + ')', cov.visible >= cov.total * 0.8, cov)
-    for (const [names, label] of [[['Skills', 'Compétences'], 'Skills'], [['Creations', 'Créations', 'Livrables', 'Deliverables'], 'Creations'], [['Agent Teams', 'Équipes d’agents', 'Équipes'], 'Agent Teams']]) {
+    for (const [names, label] of [[['Skills', 'Compétences'], 'Skills'], [['Creations', 'Créations', 'Livrables', 'Deliverables'], 'Creations'], [['Kybers', 'Agent Teams', 'Équipes d’agents', 'Équipes'], 'Kybers']]) {
       let clicked = false
       for (const n of names) { if (await flow.click(n)) { clicked = true; break } }
       await sleep(1500)
