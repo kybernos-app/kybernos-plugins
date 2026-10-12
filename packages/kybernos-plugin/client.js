@@ -2866,12 +2866,7 @@ const KB_FR_EN = {
   'Le navigateur a suspendu l audio : recliquez le micro (un clic sur la page suffit à l autoriser)': 'The browser suspended audio: click the mic again (a click on the page is enough to allow it)',
   'Lecture de l’inventaire…': 'Reading the inventory…',
   'Lecture des connexions Composio…': 'Reading the Composio connections…',
-  'Lecture des documents du projet…': 'Reading the project documents…',
   'Lecture des kyber.yml…': 'Reading the kyber.yml files…',
-  'Lecture des kybers du projet…': 'Reading the project kybers…',
-  'Lecture des objectifs du projet…': 'Reading the project goals…',
-  'Lecture des threads…': 'Reading the threads…',
-  'Lecture du budget du projet…': 'Reading the project budget…',
   'Les kybers de ce projet ne déclarent aucun outil (connector).': 'This project’s kybers declare no tool (connector).',
   'Les kybers de ce projet ne déclarent aucun skill.': 'This project’s kybers declare no skill.',
   'Lien copié (Hosted only)': 'Link copied (Hosted only)',
@@ -15086,7 +15081,13 @@ return {
         return undefined
       }, [s.projectId])
       React.useEffect(() => () => { if (timerRef.current !== null) { try { clearTimeout(timerRef.current) } catch (e) { /* deja nettoye */ } } }, [])
-      const empty = (label) => h('div', { className: 'kb9-empty' }, label)
+      // A tab whose data is not read yet passes PROJ_LOADING instead of a sentence: bones in the box of the rows, not a line of text.
+      const PROJ_LOADING = 'kb:project-loading'
+      const projSkel = () => kbSkelWrap(kbt('kbui.loading'), '', h('div', { className: 'kb8-rows' }, [0, 1, 2, 3].map((i) => h('div', { key: 'sk' + i, className: 'kb8-row kb-sk-row' },
+        kbBone(36, 36, null, 12),
+        h('span', { style: { display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, gap: '6px' } }, kbBone(i % 2 === 0 ? '34%' : '26%', 13), kbBone('52%', 10)),
+        kbBone(70, 22, 'pill')))))
+      const empty = (label) => (label === PROJ_LOADING ? projSkel() : h('div', { className: 'kb9-empty' }, label))
       const hit = (t) => q === '' || String(t).toLowerCase().indexOf(q.toLowerCase()) >= 0
       // ── Donnees du projet absentes de la charge utile ──────────────────────
       // Trois choses ne sont connues que du host : quels kybers ont tourne dans
@@ -15396,7 +15397,7 @@ return {
         if (tab === 'Threads') {
           // Plus de maquette : soit de vrais threads, soit un etat vide explicite.
           if (threadsRows.length === 0) {
-            return empty(projLoading === true ? kbf('Lecture des threads…') : kbf('Aucun thread dans ce projet pour l’instant — ouvre un chat dans ce projet et il apparaitra ici.'))
+            return empty(projLoading === true ? PROJ_LOADING : kbf('Aucun thread dans ce projet pour l’instant — ouvre un chat dans ce projet et il apparaitra ici.'))
           }
           return h(React.Fragment, null,
             pagerTop(threadsVp),
@@ -15411,7 +15412,7 @@ return {
         if (tab === kbt('kbui.documents')) {
           // Les documents ENVOYES par l'utilisateur dans les threads du projet.
           if (docsRows.length === 0) {
-            return empty(projLoading === true ? kbf('Lecture des documents du projet…') : kbf('Aucun document envoyé dans les threads de ce projet pour l’instant.'))
+            return empty(projLoading === true ? PROJ_LOADING : kbf('Aucun document envoyé dans les threads de ce projet pour l’instant.'))
           }
           // Reconnaitre une piece : six « image.png » identiques cohabitaient dans
           // cette liste. Le host connait la date d'envoi et le thread d'origine —
@@ -15485,7 +15486,7 @@ return {
         if (tab === kbt('kbui.objectifs')) {
           // Les objectifs REELLEMENT en cours dans les threads du projet.
           return goalRows.length === 0
-            ? empty(projLoading === true ? kbf('Lecture des objectifs du projet…') : kbf('Aucun objectif en cours dans les threads de ce projet.'))
+            ? empty(projLoading === true ? PROJ_LOADING : kbf('Aucun objectif en cours dans les threads de ce projet.'))
             : h(React.Fragment, null,
               pagerTop(goalsVp),
               h('div', { className: 'kb8-rows' }, pageOf(goalRows, goalsVp).map((g) => {
@@ -15559,7 +15560,7 @@ return {
           // = détacher. Persisté côté host (workspace-skills), comme les
           // détails de la fiche — aucun état purement local.
           if (skillRows.length === 0) {
-            return empty(projLoading === true ? kbf('Lecture des kybers du projet…')
+            return empty(projLoading === true ? PROJ_LOADING
               : (projActiveIds.length === 0
                 ? kbf('Aucun kyber n’a encore tourné dans les threads de ce projet.')
                 : kbf('Aucune compétence détectée dans l’environnement — installe un kyber qui en déclare, ou importe-en une depuis le dépôt.')))
@@ -15645,7 +15646,7 @@ return {
             return h(React.Fragment, null,
               h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
               empty(projLoading === true
-                ? kbf('Lecture des kybers du projet…')
+                ? PROJ_LOADING
                 : (connsReal !== null && connsReal.configured === true
                   ? kbf('Aucun outil déclaré ni connexion réelle pour ce projet.')
                   : (projActiveIds.length === 0 ? kbf('Aucun kyber n’a encore tourné dans les threads de ce projet.') : kbf('Les kybers de ce projet ne déclarent aucun outil (connector).')))))
@@ -15684,7 +15685,7 @@ return {
         }
         // ── Budget : uniquement des chiffres reels, aucun graphe invente ──────
         if (budgetRows.length === 0 && spentNow === null) {
-          return empty(projLoading === true ? kbf('Lecture du budget du projet…') : kbf('Aucun budget déclaré par les kybers de ce projet (bloc budget: du kyber.yml).'))
+          return empty(projLoading === true ? PROJ_LOADING : kbf('Aucun budget déclaré par les kybers de ce projet (bloc budget: du kyber.yml).'))
         }
         const cardBoxB = { flex: 1, minWidth: '220px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }
         const remaining = spentNow === null ? null : Math.max(0, budgetTotal - spentNow)
@@ -26794,7 +26795,29 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
           h('p', { className: 'kbt2-sub' }, kbToolsTxt({ fr: 'Active des capacités expérimentales et branche des outils externes sur un profil DSH. Chaque changement s’écrit dans le fichier de config du profil.', en: 'Enable experimental capabilities and connect external tools to a DSH profile. Each change is written to the profile’s config file.' })),
           h('p', { className: 'kbt2-sub', style: { marginTop: 4, fontSize: 12, color: 'var(--dsw-alias-label-caption)' } }, kbf('Rien n’est à chaud : la relance applique. Un aperçu d’abord, puis l’écriture — sauvegarde datée avant, retour arrière ensuite.'))))
       const colonne = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }
-      if (st.state === 'loading' && st.data === null) return h('div', { className: 'kbt2-sec', 'aria-busy': 'true' }, entete(), h('div', { className: 'kb9-empty' }, kbf('Lecture de l’état réel…')))
+      // First read: the page's own head, then bones in the boxes of the profile block and of the cards (the shared skeleton helper).
+      if (st.state === 'loading' && st.data === null) {
+        return h('div', { className: 'kbt2-sec', 'aria-busy': 'true' }, entete(),
+          kbSkelWrap(kbf('Lecture de l’état réel…'), 'kbt2-sec', [
+            h('section', { key: 'prof', className: 'kbt2-stat kb-sk-row', style: { flexDirection: 'column', alignItems: 'stretch', gap: 12, minHeight: 106, boxSizing: 'border-box' } },
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } }, kbBone(150, 30, null, 9), kbBone('40%', 12)),
+              h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, paddingTop: 12, borderTop: '1px solid var(--dsw-alias-border-l1)' } }, kbBone(84, 24, 'pill'), kbBone(104, 24, 'pill'), kbBone(170, 24, 'pill'))),
+            h('section', { key: 'preset', className: 'kbt2-stat kb-sk-row', style: { minHeight: 116, boxSizing: 'border-box' } },
+              h('div', { style: { flex: '1 1 220px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 } }, kbBone(190, 14), kbBone('62%', 11)),
+              kbBone(280, 44, null, 10)),
+            h('div', { key: 'bar', className: 'kbt2-barre', style: { justifyContent: 'space-between', minHeight: 34 } },
+              h('div', { style: { display: 'flex', gap: 6 } }, kbBone(64, 34, 'pill'), kbBone(200, 34, 'pill'), kbBone(150, 34, 'pill')),
+              kbBone(130, 34, 'pill')),
+            h('div', { key: 'grp', style: { display: 'flex', flexDirection: 'column', gap: 10 } },
+              h('div', { style: { height: 33, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 6, paddingBottom: 2 } }, kbBone(220, 14), kbBone(300, 11)),
+              h('div', { className: 'kbt2-grid' }, [0, 1, 2, 3, 4, 5].map((i) => h('article', { key: 'c' + i, className: 'kbt2-card kb-sk-row' },
+                h('div', { style: { display: 'flex', alignItems: 'center', gap: 12 } },
+                  kbBone(38, 38, null, 12),
+                  h('span', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, kbBone(i % 2 === 0 ? '55%' : '42%', 14), kbBone('30%', 10)),
+                  kbBone(64, 22, 'pill')),
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8, minHeight: 60 } }, kbBone('92%', 10), kbBone('70%', 10)),
+                kbBone('100%', 6, 'pill')))))]))
+      }
       // Erreur de lecture : le message ET un moyen d en sortir (relire), plus de cul-de-sac.
       if (st.state === 'error') return h('div', { className: 'kbt2-sec' }, entete(),
         h('div', { className: 'kb9-empty', role: 'alert', 'data-kb': 'tool-error', style: colonne },
@@ -27479,7 +27502,11 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
           h('div', { className: 'kbt-micro-btns', role: 'group', 'aria-label': kbt('kbui.mic.title') },
             h('button', { type: 'button', className: 'kbt-micro-b' + (micro.value === 'kybernos' ? ' on' : ''), 'aria-pressed': String(micro.value === 'kybernos'), onClick: () => { kbvSrcSet('kybernos') } }, 'Kybernos'),
             h('button', { type: 'button', className: 'kbt-micro-b' + (micro.value === 'native' ? ' on' : ''), 'aria-pressed': String(micro.value === 'native'), onClick: () => { kbvSrcSet('native') } }, 'Native DSH'))),
-        (vue.etat === 'chargement' ? h('div', { className: 'kb9-empty' }, kbt('kbui.reading.engine')) : null),
+        // Bones in the engine rows' own box (the shared skeleton helper) instead of a line that the list then pushed down.
+        (vue.etat === 'chargement'
+          ? kbSkelWrap(kbt('kbui.reading.engine'), 'kbt-liste', [0, 1, 2].map((i) => h('div', { key: 'sk' + i, className: 'kbt-row kb-sk-row' },
+            kbBone(34, 34, null, 10), h('span', { style: { display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 } }, kbBone(i % 2 === 0 ? '30%' : '24%', 13), kbBone('52%', 10)), kbBone(64, 22, 'pill'))))
+          : null),
         (vue.etat === 'ok' ? h('div', { className: 'kbt-cols' }, listeMoteurs, fiche) : null))
     }
     ctx.effect(() => slots.inject('settings.section', () => slots.register(

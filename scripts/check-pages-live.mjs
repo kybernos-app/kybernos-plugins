@@ -14,14 +14,16 @@
 //               tabs are untouched); the source is shown, a bad address is refused with the variable's rule, a good one is used;
 //               the Featured list and the ranking are the same rows (same columns, same height);
 //   skeleton  : with the host's answer held back, each list draws bones in the box of its real rows (the first row sits where
-//               the real one will), announces « loading » once, and shimmers — and not under prefers-reduced-motion.
+//               the real one will), announces « loading » once, and shimmers — and not under prefers-reduced-motion. The
+//               lists of the Settings pages (Workers, Suite, Tools, Voice, Web Search, Free LLMs, Memory), the Connectors and
+//               the project page's tabs too.
 //
 // It REFUSES to run against 127.0.0.1:3080 (the real DSH) unless --allow-real. Named check-*, not test-*: CI runs every
 // test-*.mjs with no DSH. Exit code: 0 all green, 1 a check failed, 3 inconclusive (GUI down / a page did not open).
 import { createServer } from 'node:http'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { openLivePage, waitFor, clickText } from './live-page.mjs'
+import { openLivePage, openSettings, waitFor, clickText } from './live-page.mjs'
 
 const args = process.argv.slice(2)
 const ALLOW_REAL = args.includes('--allow-real')
@@ -300,6 +302,77 @@ try {
     else check(L.name + ': the first row sits where the real one lands (shift ' + (during === null ? '?' : after - during) + ' px)', during !== null && Math.abs(after - during) <= 6, { during, after })
     await stopHolding()
   }
+  // The lists of the other bundles and of the Settings pages: same helper, same checks (bones announced once, the first row where
+  // the real one lands within 8 px: a banner above a list may differ in a page that has several states).
+  console.log('skeletons: other lists')
+  const settingsCell = async (label) => {
+    for (let i = 0; i < 20; i += 1) {
+      const c = await ev(`(() => { const e = Array.from(document.querySelectorAll('[class*="navCell"]')).find((x) => x.innerText.trim() === ${q(label)}); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 } })()`)
+      if (c !== null && c.__err === undefined) {
+        for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x: c.x, y: c.y, button: 'left', clickCount: 1 })
+        return true
+      }
+      await sleep(500)
+    }
+    return false
+  }
+  const others = [
+    { name: 'Settings › Workers', pattern: '*kybernos-workers/state*', nav: 'Workers', row: '.kbwk-row' },
+    { name: 'Settings › Kybernos Suite', pattern: '*kybernos-hub/suite*', nav: 'Kybernos Suite', row: '.kbsu-card' },
+    { name: 'Settings › Tools', pattern: '*kybernos/tools/state*', nav: 'Tools', row: '.kbt2-card' },
+    { name: 'Settings › Voice', pattern: '*kybernos/tts*', nav: 'Voice', row: '.kbt-row' },
+    { name: 'Settings › Web Search', pattern: '*kybernos-websearch/state*', nav: 'Web Search', row: '.kwse-row' },
+    { name: 'Settings › Free LLMs', pattern: '*free-llms/status*', nav: 'Free LLMs (OpenCode)', row: '.kfl-mod' },
+    { name: 'Settings › Memory & Lessons', pattern: '*kybernos-cloud/memory*', nav: 'Memory & Lessons', row: '.kbmem-r', skipCompare: true },
+  ]
+  for (const L of others) {
+    await holdRoute(L.pattern)
+    await reload(5500)
+    await ev(`(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /^Configure later$/i.test(x.textContent.trim())); if (b) b.click(); return !!b })()`)
+    const opened = await openSettings(page).catch(() => false)
+    const clicked = opened === true && (await settingsCell(L.nav))
+    await sleep(1500)
+    const sk = await ev(`(() => { const w = document.querySelector('.kb-sk'); return w ? { bones: w.querySelectorAll('.kb-sk-bone').length, role: w.getAttribute('role'), label: w.getAttribute('aria-label') } : null })()`)
+    const during = await top(L.row + '.kb-sk-row')
+    await shot('skeleton-' + L.nav.replace(/[^a-z]+/gi, '-').toLowerCase())
+    await releaseRoute()
+    await sleep(4000)
+    const after = await top(L.row + ':not(.kb-sk-row)')
+    check(L.name + ': bones while the answer is held, announced once, gone when it arrives', clicked === true && sk !== null && sk.bones >= 4 && sk.role === 'status' && (await ev(`!document.querySelector('.kb-sk')`)) === true, { clicked, sk })
+    if (L.skipCompare === true || after === null) console.log('  ○ ' + L.name + ': nothing real to compare the bones with in this instance')
+    else check(L.name + ': the first row sits where the real one lands (shift ' + (during === null ? '?' : after - during) + ' px)', during !== null && Math.abs(after - during) <= 8, { during, after })
+    await stopHolding()
+  }
+  // Connectors: Discover / Yours apps, and the project page's tabs
+  await holdRoute('*kybernos/composio*')
+  await reload(5500)
+  await clickText(page, 'Connectors')
+  await sleep(1500)
+  const conn = await ev(`(() => { const w = document.querySelector('.kb-sk'); return w ? w.querySelectorAll('.kb-sk-bone').length : null })()`)
+  check('Connectors: bones in the apps\' own cards while the catalogue is read', conn !== null && conn >= 12, conn)
+  await releaseRoute()
+  await sleep(3500)
+  check('…and gone when it has arrived', (await ev(`!document.querySelector('.kb-sk')`)) === true)
+  await stopHolding()
+  await holdRoute('*kybernos/project-data*')
+  await reload(5500)
+  await clickText(page, 'Workspaces')
+  await sleep(2000)
+  const pc = await center('[data-kb=project-card]')
+  if (pc === null || pc.__err) console.log('  ○ no project in this instance: the project page tabs are skipped')
+  else {
+    for (const t of ['mouseMoved', 'mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x: pc.x - 100, y: pc.y - 40, button: 'left', clickCount: 1 })
+    await sleep(2000)
+    await clickText(page, 'Threads')
+    await sleep(800)
+    const pb = await ev(`(() => { const w = document.querySelector('.kb-sk'); return w ? w.querySelectorAll('.kb-sk-bone').length : null })()`)
+    check('Workspace › Threads: bones while the project’s data is read (it was a line of text)', pb !== null && pb >= 8, pb)
+    await releaseRoute()
+    await sleep(3000)
+    check('…and the real state (rows or the empty message) replaces them', (await ev(`!document.querySelector('.kb-sk')`)) === true)
+  }
+  await stopHolding()
+
   // reduced motion: no shimmer, no movement
   await holdRoute('*kybernos/load*')
   await page.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })

@@ -1384,6 +1384,15 @@ window.__ModuleLoader__.load({
             : null)
       }
 
+      // One skeleton helper for every list of the GUI, published by the core plugin (window.__KB_SKEL__: bones in the
+      // boxes of the real rows, a soft shimmer, nothing under reduced motion). Without it the old line of text shows.
+      const skelOf = () => {
+        try {
+          const k = window.__KB_SKEL__
+          return (k !== null && k !== undefined && typeof k.bone === 'function' && typeof k.wrap === 'function') ? k : null
+        } catch (e) { return null }
+      }
+
       /** Une ligne de la liste dense — et, quand elle est ouverte, l'éditeur de
        *  la maquette en dialogue. Le dialogue vit DANS la ligne (position fixe) :
        *  les hooks de la ligne restent valables tels quels. */
@@ -2278,6 +2287,16 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kbmp-th kbmp-c-context', key: 'context' }, kbmSortHead('context', m('kb.models.col.context'))),
               h('div', { className: 'kbmp-th kbmp-c-source', key: 'source' }, m('kb.models.col.source')),
               h('div', { className: 'kbmp-th kbmp-c-act', key: 'act' })),
+            toutes.length === 0 && KBM.loading === true && skelOf() !== null
+              ? skelOf().wrap(m('kb.models.loading'), '', [0, 1, 2, 3, 4].map((i) => h('div', { key: 'sk' + i, className: 'kbm-item kbmp-lig kb-sk-row' },
+                h('div', { className: 'kbmp-cols' },
+                  h('div', { className: 'kbmp-c kbmp-cmodel' }, skelOf().bone(i % 2 === 0 ? '62%' : '48%', 13), skelOf().bone('40%', 10)),
+                  h('div', { className: 'kbmp-c kbmp-cprov' }, skelOf().bone(16, 16, 'round'), skelOf().bone('60%', 12)),
+                  h('div', { className: 'kbmp-c kbmp-ccaps' }, skelOf().bone(70, 14)),
+                  h('div', { className: 'kbmp-c kbmp-cctx' }, skelOf().bone(40, 12)),
+                  h('div', { className: 'kbmp-c kbmp-csrc' }, skelOf().bone(70, 12)),
+                  h('div', { className: 'kbmp-c kbmp-cact' }, skelOf().bone(18, 18, null, 5))))))
+              : null,
             toutes.length === 0 && KBM.loading !== true
               ? h('div', { className: 'kbmp-vide kbmp-empty' }, KBM.live === true ? m('kb.models.empty.live') : m('kb.models.empty'))
               : null,
@@ -2444,7 +2463,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbm-root kbmp', 'data-slot': 'kybernos-models-header' },
           // A component, not a call: KybernosHero owns hooks, and a conditional call would change the hook order of Panel.
           UI.tab === 'providers' ? h(KybernosHero, null) : null,
-          KBM.live === true && KBM.loading === true ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
+          KBM.live === true && KBM.loading === true && skelOf() === null ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
             m('kb.models.loaderror') + ' : ' + String(KBM.loadError),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'reload', onClick: () => { kbMLoad() } }, m('kb.models.reload'))) : null,

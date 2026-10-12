@@ -168,6 +168,16 @@ window.__ModuleLoader__.load({
           detail)
       }
 
+      // The page's head and its explanation: static text, so the skeleton draws the same (nothing moves when the engines arrive).
+      const pageHead = () => h(React.Fragment, null,
+        h('div', { className: 'kwse-head' },
+          h('h4', null, kt('Recherche web', 'Web Search')),
+          (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-websearch' }) : null)),
+        h('p', { className: 'kwse-intro' }, kt(
+          'Les agents cherchent sur le web avec le premier moteur de cette liste qui répond. Les moteurs « sans clé » marchent tout de suite ; ajoutez une clé pour qu’un moteur à clé passe en premier. Un moteur qui échoue est mis en pause, le suivant prend le relais.',
+          'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.'))
+      )
+
       const Page = () => {
         const [state, setState] = React.useState(null)
         const [msg, setMsg] = React.useState('')
@@ -182,7 +192,21 @@ window.__ModuleLoader__.load({
           const t = setInterval(read, 20000)
           return () => clearInterval(t)
         }, [])
-        if (state === null) return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' }, msg !== '' ? h('p', { className: 'kwse-err' }, msg) : '…')
+        if (state === null) {
+          if (msg !== '') return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' }, h('p', { className: 'kwse-err' }, msg))
+          // First read: bones in the engine rows' own box (the shared skeleton helper of the core plugin, window.__KB_SKEL__);
+          // a bare « … » without it, as before.
+          let k = null
+          try { k = window.__KB_SKEL__ } catch (e) { k = null }
+          if (k === null || k === undefined || typeof k.bone !== 'function' || typeof k.wrap !== 'function') return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' }, '…')
+          return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
+            pageHead(),
+            k.wrap(kt('Chargement…', 'Loading…'), 'kwse-list', [0, 1, 2, 3].map((i) => h('div', { key: 'sk' + i, className: 'kwse-row kb-sk-row' },
+              h('div', { className: 'kwse-row-main' },
+                k.bone(22, 40, null, 6),
+                h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 } }, k.bone(i % 2 === 0 ? 110 : 84, 14), k.bone(58, 18, 'pill'), k.bone(70, 11)),
+                k.bone(36, 20, 'pill'))))))
+        }
 
         const patch = (p) => api('/kybernos-websearch/settings', p)
           .then((j) => { if (j && j.ok === true) { setState(j); setMsg('') } else setMsg(String((j && j.error) || 'Rejected.')) })
@@ -221,12 +245,7 @@ window.__ModuleLoader__.load({
         const last = state.last
 
         return h('div', { className: 'kwse-page', 'data-kb': 'websearch-page' },
-          h('div', { className: 'kwse-head' },
-            h('h4', null, kt('Recherche web', 'Web Search')),
-            (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-websearch' }) : null)),
-          h('p', { className: 'kwse-intro' }, kt(
-            'Les agents cherchent sur le web avec le premier moteur de cette liste qui répond. Les moteurs « sans clé » marchent tout de suite ; ajoutez une clé pour qu’un moteur à clé passe en premier. Un moteur qui échoue est mis en pause, le suivant prend le relais.',
-            'Agents search the web with the first engine in this list that answers. “No key” engines work right away; add a key so a keyed engine goes first. An engine that fails is paused and the next one takes over.')),
+          pageHead(),
           wrongPin
             ? h('p', { className: 'kwse-banner', 'data-kb': 'websearch-banner' }, kt(
               'DSH est réglé sur un autre fournisseur (« ' + state.pinned + ' ») : cette liste n’est pas utilisée tant que la ligne « web » du profil n’est pas revenue à « ' + state.provider + ' ».',
