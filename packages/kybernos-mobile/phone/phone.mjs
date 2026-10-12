@@ -197,12 +197,21 @@ async function connectAndHandshake ({ sid, mode, phoneId, hostIdPub, code }) {
   let channel = null
   let peerUp = false
   const early = [] // encrypted frames that arrived before the channel existed
+  let bad = 0
   const handle = async (u8) => {
     try {
       const { header, body } = e2e.unpackFrame(await channel.open(u8))
+      bad = 0
       if (header.t === 'approved' || header.t === 'ready' || header.t === 'denied') mail.put('decision', header)
       else onFrameFromComputer(header, body)
-    } catch (e) { log('frame: ' + String(e.message || e)) }
+    } catch (e) {
+      log('frame: ' + String(e.message || e))
+      // The channel requires every counter to be exactly the next one: once one frame is lost or late, every later one
+      // fails the same way and nothing would ever load again. Three in a row: leave the connection, the resume that follows
+      // starts a new channel (new keys, counters at zero), as for a network that changed.
+      bad += 1
+      if (bad >= 3 && session.ws === ws && kb.state === 'running') { bad = 0; kb.resyncs = (kb.resyncs || 0) + 1; try { ws.close() } catch (err) { /* closed */ } }
+    }
   }
   const handlers = {
     control: (m) => {

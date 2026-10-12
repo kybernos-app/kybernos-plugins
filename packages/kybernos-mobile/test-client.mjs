@@ -414,6 +414,37 @@ console.log('a swipe closes the drawer')
   check('the same swipe with the drawer closed does nothing', run(true, { x: 250, y: 300 }, { x: 120, y: 310 }).clicks === 0)
 }
 
+console.log('the toggle of a phone: DSH draws no keyboard shortcut there')
+{
+  const rect = (l, tp, w, h) => ({ left: l, top: tp, width: w, height: h, right: l + w, bottom: tp + h })
+  const btn = (name, r) => ({ name, getBoundingClientRect: () => r })
+  const withButtons = (collapsed, buttons) => {
+    const dom = makeDom({ collapsed, withToggle: false })
+    dom.doc.querySelectorAll = (sel) => (/data-slot="sidebar"\] button/.test(sel) ? buttons : [])
+    dom.doc.querySelector = ((orig) => (sel) => (/data-slot="sidebar"\] button/.test(sel) ? (buttons[0] || null) : orig(sel)))(dom.doc.querySelector)
+    return dom
+  }
+  const header = [btn('new-session', rect(16, 14, 230, 44)), btn('collapse', rect(254, 14, 36, 44)), btn('start-chat', rect(252, 73, 38, 52)), btn('row-icon', rect(250, 400, 36, 44))]
+  const open = withButtons(false, header)
+  const t = load(open).factory().__test
+  check('open: the collapse button is the narrow one at the end of the first row', t.toggle() !== null && t.toggle().name === 'collapse', t.toggle() && t.toggle().name)
+  check('the wide "new session" button and the narrow ones lower down are not taken for it', t.collapseButton().name === 'collapse')
+  const closed = withButtons(true, [btn('open-sidebar', rect(-309, 14, 36, 44)), btn('kybernos', rect(-309, 66, 36, 366))])
+  const tc = load(closed).factory().__test
+  check('closed: the first button of the sidebar is its open button', tc.toggle() !== null && tc.toggle().name === 'open-sidebar')
+  // a tap on the dimmed chat reaches DSH's collapse button even with no shortcut
+  const plugin = load(open).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const clicked = []
+  header.forEach((b) => { b.click = () => clicked.push(b.name) })
+  open.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: open.frame, stopPropagation () {}, preventDefault () {} }))
+  check('a tap on the dimmed chat clicks that collapse button', clicked.length === 1 && clicked[0] === 'collapse', clicked)
+  disposer()
+  const none = withButtons(false, [])
+  check('with no sidebar button at all, nothing is clicked and nothing throws', load(none).factory().__test.toggle() === null)
+}
+
 console.log('what a page needs to fit a phone')
 {
   const t = load(makeDom()).factory().__test
@@ -480,6 +511,24 @@ console.log('what a page needs to fit a phone')
   const inColumn = st(box({ clientWidth: 80, scrollWidth: 134, parentElement: st(box({}), { display: 'flex', flexDirection: 'column' }) }), { display: 'block', minWidth: '0px' })
   check('an item of a column is not squeezed sideways', t.fitKinds(inColumn, styleOf).indexOf('keep') < 0)
   check('an element that throws is left alone', t.fitKinds({ get clientWidth () { throw new Error('gone') } }, styleOf).length === 0)
+}
+
+console.log('a page title is not left under the menu button')
+{
+  const t = load(makeDom()).factory().__test
+  const at = (top) => ({ getBoundingClientRect: () => ({ top }), matches: () => false })
+  const title = Object.assign(at(30), {})
+  const row = Object.assign(at(30), {})
+  const head = Object.assign(at(30), {})
+  const page = Object.assign(at(0), {})
+  title.parentElement = row; row.parentElement = head; head.parentElement = page; page.parentElement = null
+  check('the outermost ancestor that starts at the title\'s height is the one to move', t.leadTarget(title, 60) === head)
+  const clear = Object.assign(at(70), { parentElement: null })
+  check('a title that is already clear of the button is left alone', t.leadTarget(clear, 60) === null)
+  check('no title: nothing to do', t.leadTarget(null, 60) === null)
+  const inMain = Object.assign(at(30), {})
+  inMain.parentElement = Object.assign(at(30), { matches: (sel) => /data-slot="main"/.test(sel) })
+  check('the page container is never moved', t.leadTarget(inMain, 60) === inMain)
 }
 
 console.log('Settings on a phone: a list of pages, then a page under a back bar')

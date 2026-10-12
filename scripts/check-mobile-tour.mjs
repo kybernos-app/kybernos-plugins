@@ -6,9 +6,10 @@
 //   - the page scrolling sideways, or a control leaving the screen;
 //   - a control a finger cannot hit (under 36 px);
 //   - a control cut by the box that holds it (overflow hidden);
+//   - a page title under the menu button; the drawer that must close by a tap, a swipe and a pick;
 //   - text under 11 px.
 //
-//   node scripts/check-mobile-tour.mjs [--device 360x800] [--css <file>] [--client <file>] [--deployed] [--shots <dir>] [--light]
+//   node scripts/check-mobile-tour.mjs [--device 360x800] [--css <file>] [--client <file>] [--deployed] [--shots <dir>] [--light] [--mac]
 //
 // Like check-mobile-visual.mjs, a throw-away headless Chrome signs in to the DSH at KB_HOST (default
 // 127.0.0.1:3080) and replaces `#kbmob-sheet` with the working tree's stylesheet, and the plugin's browser half with
@@ -43,6 +44,11 @@ const tap = async (x, y) => { for (const t of ['mouseMoved', 'mousePressed', 'mo
 const swap = deployed ? { swapped: 0 } : await swapPluginClient(page, '@local/kybernos-mobile', clientFile)
 await page.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 2.5, mobile: true })
 await page.send('Emulation.setTouchEmulationEnabled', { enabled: true })
+// An Android phone, unless --mac: DSH draws no keyboard shortcut (aria-keyshortcuts) there, which the drawer's buttons
+// must not depend on (measured on a real phone, 2026-10-13: a tap on the dimmed chat did nothing).
+if (args.indexOf('--mac') < 0) {
+  await page.send('Emulation.setUserAgentOverride', { userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36', platform: 'Linux armv8l', userAgentMetadata: { platform: 'Android', platformVersion: '14', architecture: '', model: 'Pixel 8', mobile: true, brands: [{ brand: 'Chromium', version: '130' }], fullVersionList: [{ brand: 'Chromium', version: '130.0.0.0' }] } })
+}
 const boot = async () => {
   await page.send('Page.reload', {})
   await sleep(6500)
@@ -69,7 +75,15 @@ const audit = () => ev(`(() => {
   const scrolls = (e) => { for (let p = e.parentElement, i = 0; p && i < 8; p = p.parentElement, i += 1) { const c = getComputedStyle(p); if (/(auto|scroll)/.test(c.overflowX) && p.scrollWidth > p.clientWidth + 2) return true } return false }
   // cut by a box that hides its overflow (a control wider than the row that holds it): not a scroller, a clipped control
   const clipped = (e, r) => { for (let p = e.parentElement, i = 0; p && i < 8; p = p.parentElement, i += 1) { const c = getComputedStyle(p); if (/(auto|scroll)/.test(c.overflowX)) return false; if (/(hidden|clip)/.test(c.overflowX)) { const pr = p.getBoundingClientRect(); if (pr.width > 2 && (r.right > pr.right + 2 || r.left < pr.left - 2)) return true } } return false }
-  const out = { vw, vh, sideways: document.documentElement.scrollWidth > vw + 1, leaves: [], small: [], tiny: [], cut: [] }
+  const out = { vw, vh, sideways: document.documentElement.scrollWidth > vw + 1, leaves: [], small: [], tiny: [], cut: [], title: null }
+  // a page's title must not start under the menu button (fixed in the corner)
+  const menu = document.querySelector('[data-kb="mobile-menu"]')
+  const h1 = document.querySelector('[data-slot="main"] h1') || (() => { let best = null; let size = 0; for (const e of Array.from(document.querySelectorAll('[data-slot="main"] *')).slice(0, 600)) { if (e.children.length > 0) continue; const r = e.getBoundingClientRect(); if (r.width < 1 || r.top > 110 || r.bottom < 0 || !(e.textContent || '').trim()) continue; const fs = parseFloat(getComputedStyle(e).fontSize); if (fs >= 22 && fs > size) { best = e; size = fs } } return best })()
+  if (menu && h1 && !document.querySelector('[data-composer-card]')) {
+    const m = menu.getBoundingClientRect(); const t = h1.getBoundingClientRect()
+    const overlapX = t.left < m.right && t.right > m.left; const gap = t.top - m.bottom
+    if (m.width > 0 && t.width > 0 && overlapX && gap < 6) out.title = 'title at ' + Math.round(t.top) + ' px, the menu button ends at ' + Math.round(m.bottom)
+  }
   const seen = {}
   for (const e of document.querySelectorAll('button, [role=button], [role=tab], [role=menuitem], [role=option], a[href], input:not([type=hidden]), textarea, select, [role=switch]')) {
     if (!shown(e)) continue
@@ -98,11 +112,12 @@ const report = async (name, extra) => {
   if (shotsDir !== null) await page.shot(join(shotsDir, 'tour-' + W + 'x' + H + '-' + name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.png'))
   const a = await audit()
   if (a === null) { console.log('  ? ' + name + ': audit unavailable'); return }
-  const bad = a.sideways || a.leaves.length > 0 || a.small.length > 0 || a.tiny.length > 0 || a.cut.length > 0
+  const bad = a.sideways || a.leaves.length > 0 || a.small.length > 0 || a.tiny.length > 0 || a.cut.length > 0 || a.title !== null
   if (bad) problems += 1
   console.log((bad ? '  ✗ ' : '  ✓ ') + name)
   if (a.sideways) console.log('      the page scrolls sideways')
   if (a.leaves.length) console.log('      leaves the screen: ' + a.leaves.slice(0, 6).join(' | '))
+  if (a.title !== null) console.log('      the title is under the menu button: ' + a.title)
   if (a.cut.length) console.log('      cut by its container: ' + a.cut.slice(0, 6).join(' | '))
   if (a.small.length) console.log('      under 36 px: ' + a.small.slice(0, 8).join(' | ') + (a.small.length > 8 ? ' (+' + (a.small.length - 8) + ')' : ''))
   if (a.tiny.length) console.log('      text under 11 px: ' + a.tiny.slice(0, 6).join(' | ') + (a.tiny.length > 6 ? ' (+' + (a.tiny.length - 6) + ')' : ''))
@@ -119,6 +134,20 @@ const clickText = (txt) => ev(`(() => {
   if (!e) return false
   e.scrollIntoView({ block: 'center' }); e.click(); return true
 })()`)
+const rowCenter = (txt) => ev(`(() => {
+  const want = ${JSON.stringify(txt.toLowerCase())}
+  const list = Array.from(document.querySelectorAll('[data-slot="sidebar"] button, [data-slot="sidebar"] a, [data-slot="sidebar"] [role=button]')).filter((e) => { const r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 })
+  const e = list.find((x) => (x.innerText || x.getAttribute('aria-label') || '').replace(/\\s+/g, ' ').trim().toLowerCase().startsWith(want))
+  if (!e) return null
+  e.scrollIntoView({ block: 'center' })
+  const r = e.getBoundingClientRect()
+  return [Math.round(r.left + Math.min(60, r.width / 2)), Math.round(r.top + r.height / 2)]
+})()`)
+const swipeLeft = async (x1, y, x2) => {
+  await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x1, y }] })
+  for (let k = 1; k <= 6; k += 1) await page.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x1 + (x2 - x1) * k / 6, y }] })
+  await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+}
 const escape = () => page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape' }).then(() => page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape' }))
 
 try {
@@ -131,6 +160,13 @@ try {
   await report('home (new chat)')
   await openDrawer()
   await report('drawer')
+  // the drawer goes without the person having to find its own icon: a tap on the dimmed chat, then a swipe to the left
+  await tap(W - 8, Math.round(H / 2)); await sleep(900)
+  if (await drawerOpen()) { problems += 1; console.log('  ✗ drawer: a tap on the dimmed chat did not close it'); await closeDrawer() } else console.log('  ✓ drawer closes by a tap on the dimmed chat')
+  await openDrawer()
+  await swipeLeft(Math.round(W * 0.7), Math.round(H / 2), Math.round(W * 0.15)); await sleep(900)
+  if (await drawerOpen()) { problems += 1; console.log('  ✗ drawer: a swipe to the left did not close it'); await closeDrawer() } else console.log('  ✓ drawer closes by a swipe to the left')
+  await openDrawer()
   // The list of sessions arrives a moment after the page, and a click on a row can land while it is still being drawn:
   // try again until a conversation is on screen (its composer has the model slot). A tour that opened no conversation
   // has not seen its screens, and says so below.
@@ -153,16 +189,21 @@ try {
   await ev(`(() => { const b = document.querySelector('button[data-sidebar-right-expand]'); if (b) b.click(); return !!b })()`)
   await sleep(1500)
   await report('right bar (Start)')
-  await ev(`(() => { const b = Array.from(document.querySelectorAll('button[aria-keyshortcuts*="Shift"]')).find((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0 }); if (b) b.click(); return !!b })()`)
+  // closed by its own collapse button (DSH draws no shortcut on a phone), the shortcut button on a desktop UA
+  await ev(`(() => { const b = Array.from(document.querySelectorAll('button[data-sidebar-right-toggle], button[aria-keyshortcuts*="Shift"]')).find((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0 }); if (b) b.click(); return !!b })()`)
   await sleep(900)
 
   console.log('pages of the sidebar')
   // (the first entry is "Kybers" or "Agent Teams", after the profile's wording)
   for (const label of ['Kybers', 'Workspaces', 'Creations', 'Automations', 'Skills', 'Connectors', 'Automation tasks']) {
     await openDrawer()
-    const hit = (await clickText(label)) || (label === 'Kybers' ? await clickText('Agent Teams') : false)
-    if (!hit) { problems += 1; console.log('  ✗ ' + label + ': not in the drawer'); continue }
-    await sleep(2200); await closeDrawer()
+    // a finger: the row is tapped where it is, and the drawer must go by itself (the page is then the whole screen)
+    const at = await rowCenter(label) || (label === 'Kybers' ? await rowCenter('Agent Teams') : null)
+    if (at === null) { problems += 1; console.log('  ✗ ' + label + ': not in the drawer'); continue }
+    await tap(at[0], at[1])
+    await sleep(1600)
+    if (await drawerOpen()) { problems += 1; console.log('  ✗ ' + label + ': picking it left the drawer open over the page'); await closeDrawer() }
+    await sleep(1000)
     await report(label)
   }
 

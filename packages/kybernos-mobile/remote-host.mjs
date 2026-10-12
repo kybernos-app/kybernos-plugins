@@ -26,7 +26,7 @@ export const REMOTE_TUNING = Object.freeze({
   maxInflight: 48,
   maxBodyBytes: 32 * 1024 * 1024,
   maxDevices: 8,
-  highWater: 4 * 1024 * 1024,
+  highWater: 512 * 1024, // what may wait in the computer's socket: small answers queue behind at most this much
 })
 
 // ── what a phone may not ask for ─────────────────────────────────────────────────────────────────────────────────
@@ -172,12 +172,22 @@ export function createRemote (deps) {
     return false
   }
   const sendJsonPlain = (link, obj) => rawSend(link, te.encode(JSON.stringify(obj)), true) // handshake: binary JSON
-  async function sendFrame (link, header, body) {
-    if (link.channel === null) return false
-    const sealed = await link.channel.seal(e2e.packFrame(header, body))
-    // do not let a slow phone pile up megabytes in memory
-    for (let i = 0; i < 400 && link.ws !== null && link.ws.bufferedAmount > T.highWater; i += 1) await sleep(25)
-    return rawSend(link, sealed, true)
+  /** One frame to the phone. The frames of a link leave ONE AT A TIME, in the order they were asked: the phone requires the
+   *  counter of each frame to be exactly the next one, so a frame that is sealed first and sent last desynchronises the
+   *  channel for good (every later frame is then dropped by the phone: measured 2026-10-13, a page that never loaded on a
+   *  phone while the computer's uplink was slower than the answers). The wait for a backed-up socket is therefore inside
+   *  the queue and BEFORE the seal: a request that arrives while the socket drains does not overtake the ones waiting. */
+  function sendFrame (link, header, body) {
+    const run = async () => {
+      if (link.channel === null) return false
+      // do not let a slow uplink pile up megabytes in memory, nor put a small answer behind them
+      for (let i = 0; i < 1200 && link.ws !== null && link.ws.bufferedAmount > T.highWater; i += 1) await sleep(25)
+      if (link.channel === null) return false
+      return rawSend(link, await link.channel.seal(e2e.packFrame(header, body)), true)
+    }
+    const turn = (link.sendTail || Promise.resolve()).then(run, run)
+    link.sendTail = turn.catch(() => false)
+    return turn
   }
 
   // ── serving the phone ──

@@ -28,11 +28,12 @@ window.__ModuleLoader__.load({
       const LINK_ID = 'kbmob-sheet-link'
       const MENU_CLASS = 'kbmob-menu'
       // The left sidebar's toggle carries the shortcut "<modifiers>+B" (Alt+Meta+B on a Mac, another pair elsewhere);
-      // the right bar's has Shift in it. The label is translated, the shortcut is not.
+      // the right bar's has Shift in it. The label is translated, the shortcut is not. A phone has none (see collapseButton).
       const TOGGLE = 'button[aria-keyshortcuts$="+B"]:not([aria-keyshortcuts*="Shift"])'
       const FIRST_IN_SIDEBAR = '[data-slot="sidebar"] button'
-      // What a tap on closes the drawer: a session, one of our own sidebar entries, DSH's page list (Plugins, …).
-      const PICKS = '[data-row-key^="session:"], .kb4-item, .kb4-newchat, [data-slot^="sidebar.panellist"] button'
+      // What a tap on closes the drawer: a session, one of our own sidebar entries, DSH's page list (Plugins, ...) and its
+      // global panels (Automation tasks: the buttons of a nav in the sidebar).
+      const PICKS = '[data-row-key^="session:"], .kb4-item, .kb4-newchat, [data-slot^="sidebar.panellist"] button, [data-slot="sidebar"] nav > button'
 
       const lang = () => { try { return String(window.__KB_LANG_RESOLVE__ ? window.__KB_LANG_RESOLVE__() : '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
       const kt = (fr, en) => (lang() === 'en' ? en : fr)
@@ -45,13 +46,28 @@ window.__ModuleLoader__.load({
         const f = frame()
         return f !== null && f !== undefined && !f.hasAttribute('data-sidebar-collapsed')
       }
-      /** DSH's own sidebar toggle, found by its shortcut. A DSH where that shortcut was rebound: while the drawer is
-       *  closed the first button of the sidebar is its open button (the close button is DSH's own, in the drawer). */
+      /** The collapse button of the OPEN drawer, found by where it is: the narrow button at the end of the sidebar's first
+       *  row. DSH draws no `aria-keyshortcuts` on a phone (measured on Android, 2026-10-13: none at all), and its label is
+       *  translated. Of the narrow buttons of the sidebar, the highest one (ties: the right-most). */
+      const collapseButton = () => {
+        try {
+          let best = null
+          for (const b of Array.prototype.slice.call(document.querySelectorAll(FIRST_IN_SIDEBAR))) {
+            const r = b.getBoundingClientRect()
+            if (r.width < 1 || r.height < 1 || r.width > 56) continue
+            if (best === null || r.top < best.top - 1 || (Math.abs(r.top - best.top) <= 1 && r.left > best.left)) best = { el: b, top: r.top, left: r.left }
+          }
+          return best === null ? null : best.el
+        } catch (e) { return null }
+      }
+      /** DSH's own sidebar toggle: by its shortcut where DSH draws one; else, while the drawer is closed, the first button
+       *  of the sidebar is its open button; else, while it is open, its collapse button (see collapseButton). */
       const toggle = () => {
         try {
           const byShortcut = document.querySelector(TOGGLE)
           if (byShortcut !== null && byShortcut !== undefined) return byShortcut
           if (!drawerOpen()) return document.querySelector(FIRST_IN_SIDEBAR)
+          return collapseButton()
         } catch (e) { /* no toggle: the buttons do nothing */ }
         return null
       }
@@ -208,6 +224,43 @@ window.__ModuleLoader__.load({
           }
         } catch (err) { /* an element that went away */ }
         return out
+      }
+      /** The element to move down so that a page's title does not start under the menu button (fixed in the top-left
+       *  corner, 44 px high): the title and the ancestors that start at the same height, the outermost of them. `null` when
+       *  the title is already clear of the button or there is none. */
+      const leadTarget = (title, clearTop) => {
+        try {
+          if (title === null || title === undefined) return null
+          const top = title.getBoundingClientRect().top
+          if (top >= clearTop) return null
+          let el = title
+          for (let i = 0; i < 6; i += 1) {
+            const up = el.parentElement
+            if (up === null || up === undefined) break
+            if (typeof up.matches === 'function' && up.matches('[data-slot="main"], body')) break
+            if (Math.abs(up.getBoundingClientRect().top - top) > 2) break
+            el = up
+          }
+          return el
+        } catch (err) { return null }
+      }
+      const LEAD_ATTR = 'data-kbmob-lead'
+      /** The title of the page in view: its h1, else (Skills draws a div) the largest text of the first 110 px. */
+      const pageTitle = () => {
+        try {
+          const h = document.querySelector('[data-slot="main"] h1')
+          if (h !== null && h !== undefined) return h
+          let best = null
+          let size = 0
+          for (const e of Array.prototype.slice.call(document.querySelectorAll('[data-slot="main"] *'), 0, 600)) {
+            if (e.children.length > 0) continue
+            const r = e.getBoundingClientRect()
+            if (r.width < 1 || r.top > 110 || r.bottom < 0 || String(e.textContent || '').trim() === '') continue
+            const fs = parseFloat(getComputedStyle(e).fontSize)
+            if (fs >= 22 && fs > size) { best = e; size = fs }
+          }
+          return best
+        } catch (err) { return null }
       }
       const FIT_ATTR = 'data-kbmob-fit'
       const BOXES = ':is(div, nav, ul, ol, section, header, form, fieldset)'
@@ -394,6 +447,11 @@ window.__ModuleLoader__.load({
               if (el.hasAttribute(FIT_ATTR)) continue
               const kinds = fitKinds(el, (x) => getComputedStyle(x))
               if (kinds.length > 0) el.setAttribute(FIT_ATTR, kinds.join(' '))
+            }
+            // a page's title starts under the menu button: the title row is moved down (the mark stays, the page is the same)
+            if (!chat) {
+              const lead = leadTarget(pageTitle(), 60)
+              if (lead !== null && !lead.hasAttribute(LEAD_ATTR)) lead.setAttribute(LEAD_ATTR, '1')
             }
           } catch (err) { /* DSH's own layout then */ }
         }
@@ -748,7 +806,7 @@ window.__ModuleLoader__.load({
             }
           } catch (e) { try { console.warn('[kybernos-mobile] phone link disabled:', e) } catch (e2) { /* no console */ } }
         },
-        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR }
+        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON, swipeCloses, fitKinds, FIT_ATTR, collapseButton, leadTarget, LEAD_ATTR }
       }
     } catch (e) {
       try { console.warn('[kybernos-mobile] disabled:', e) } catch (e2) { /* no console */ }
