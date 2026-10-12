@@ -587,7 +587,7 @@ window.__ModuleLoader__.load({
 .kbf-idrow .kbf-profile{flex:1 1 auto;min-width:0}
 .kbf-mobbtn{flex:0 0 auto;width:36px;height:36px;border-radius:10px}
 .kbf-popscrim{position:static}
-.kbf-pop{position:absolute;left:0;bottom:calc(100% + 8px);z-index:61;width:252px;padding:8px;border-radius:13px;background:var(--dsw-alias-bg-layer-2,#191920);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));box-shadow:0 12px 32px rgba(0,0,0,.4);color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px}
+.kbf-pop{position:absolute;left:0;bottom:calc(100% + 8px);z-index:61;box-sizing:border-box;width:min(252px,100%);padding:8px;border-radius:13px;background:var(--dsw-alias-bg-layer-2,#191920);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));box-shadow:0 12px 32px rgba(0,0,0,.4);color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px}
 .kbf-poptitle{padding:6px 10px 8px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 /* Le QR factice : dessine une grille deterministe (faux modules + 3 carrés de
    repere) — assez pour une maquette, jamais assez pour tromper un scanner. */
