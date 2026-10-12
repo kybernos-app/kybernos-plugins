@@ -113,8 +113,8 @@ export async function createFlow(page) {
     await page.send('Input.insertText', { text })
     await sleep(450)
   }
-  // « Agent Teams » is in the sidebar of every DSH; « studio » / « my workspace » only in the user's own.
-  const shellReady = `/studio|my workspace|agent teams/i.test(document.body ? document.body.innerText : '')`
+  // « Kybers » (« Agent Teams » on a core from before the rename) is in the sidebar of every DSH; « studio » / « my workspace » only in the user's own.
+  const shellReady = `/studio|my workspace|kybers|agent teams/i.test(document.body ? document.body.innerText : '')`
   // A fresh instance (the sandbox) opens on an API-key dialog that covers the page after every load; the user's own DSH does not.
   const freshInstance = (process.env.KB_HOST || '127.0.0.1:3080') !== '127.0.0.1:3080'
   const reload = async () => {
