@@ -7,10 +7,13 @@
 // gateway fills `Authorization` from the credential store (a `public` marker)
 // at request time, so nothing secret lives in the settings namespace.
 
+import { DEFAULT_PORT, GATEWAY_PATH } from './wiring.mjs'
+
 export const PROVIDER_ID = 'opencode-free'
 export const SETTINGS_NS = 'llm-pi-ai'
-export const BASE_URL = 'http://127.0.0.1:8848/v1'
-/** Credential ref the gateway resolves at call time; not written into settings. */
+/** The gateway this bundle mounts, on DSH's default port. index.js passes the real port (wiring.mjs `gatewayBase`). */
+export const BASE_URL = 'http://127.0.0.1:' + DEFAULT_PORT + GATEWAY_PATH
+/** Credential ref the route's `apiKeyEnv` names; index.js stores the free tier's marker there (wiring.mjs `ensureFreeKey`). */
 export const CREDENTIAL_REF = 'OPENCODE_FREE_API_KEY'
 
 /** Pi-ai refuses a request without an apiKey; the gateway owns the real value. */

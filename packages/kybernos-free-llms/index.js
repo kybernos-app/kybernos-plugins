@@ -19,6 +19,7 @@ import {
   OPENCODE_USER_AGENT, applyContract, contractHeaders, classifyError,
 } from './gateway-contract.mjs'
 import { PROVIDER_ID, CREDENTIAL_REF, buildProfile, profileSummary } from './profile.mjs'
+import { gatewayBase, routeNeedsRepair, ensureFreeKey } from './wiring.mjs'
 import {
   defaultFreeLlmState, shouldAutoEnable, recordEnable, recordDisable, publicView,
 } from './free-llm-state.mjs'
@@ -299,20 +300,52 @@ const writeState = async (state) => {
   } catch (e) { return false }
 }
 
+/** The loopback address of the gateway this bundle mounts: DSH's own web server, never a guessed port. */
+const currentGatewayBase = (req) => {
+  const server = service('webServer')
+  return gatewayBase({
+    serverPort: server !== null ? server.port : undefined,
+    envPort: process.env.DSH_PORT,
+    hostHeader: req !== undefined && req !== null && req.headers ? req.headers.host : undefined,
+  })
+}
+
 /** Write or clear the `opencode-free` provider route through the settings service. */
-const writeRoute = async (models) => {
+const writeRoute = async (models, req) => {
   const svc = service('settings')
   if (svc === null || typeof svc.mutate !== 'function') return { wrote: false, reason: 'settings_absent' }
   try {
     if (Array.isArray(models) && models.length > 0) {
-      await svc.mutate('llm-pi-ai', [{ op: 'set', path: ['providers', PROVIDER_ID], value: buildProfile({ models }) }], undefined)
-    } else {
-      await svc.mutate('llm-pi-ai', [{ op: 'unset', path: ['providers', PROVIDER_ID] }], undefined)
+      const baseURL = currentGatewayBase(req)
+      await svc.mutate('llm-pi-ai', [{ op: 'set', path: ['providers', PROVIDER_ID], value: buildProfile({ models, baseURL }) }], undefined)
+      // The route names OPENCODE_FREE_API_KEY and llm-pi-ai refuses the turn when it does not resolve: store the
+      // free tier's marker (never over a value that is already there).
+      await ensureFreeKey(service('credentials'), CREDENTIAL_REF)
+      return { wrote: true, baseURL }
     }
+    await svc.mutate('llm-pi-ai', [{ op: 'unset', path: ['providers', PROVIDER_ID] }], undefined)
     return { wrote: true }
   } catch (e) {
     return { wrote: false, reason: 'settings_refused' }
   }
+}
+
+/**
+ * Repair a route written by an earlier version: it pointed at a port nothing listens on and its key was never stored,
+ * so every chat on a free model failed. Runs once after boot; a route already on the right address is left alone.
+ */
+const repairWiring = async () => {
+  const state = await readState()
+  if (state.wired !== true) return 'not_wired'
+  await ensureFreeKey(service('credentials'), CREDENTIAL_REF)
+  const base = currentGatewayBase(null)
+  if (routeNeedsRepair(state, base) !== true) return 'ok'
+  const found = await fetchFreeModels()
+  if (found.models.length === 0) return 'no_free_models'
+  const route = await writeRoute(found.models, null)
+  if (route.wrote !== true) return route.reason
+  await writeState({ ...(await readState()), routeBase: route.baseURL })
+  return 'repaired'
 }
 
 export function apply(ctx) {
@@ -373,9 +406,9 @@ export function apply(ctx) {
         if (!acknowledged) { sendJson(res, 400, { ok: false, error: 'acknowledgement_required' }); return }
         const found = await fetchFreeModels()
         if (found.models.length === 0) { sendJson(res, 502, { ok: false, error: 'no_free_models', catalogError: found.error }); return }
-        const route = await writeRoute(found.models)
+        const route = await writeRoute(found.models, req)
         if (route.wrote !== true) { sendJson(res, 200, { ok: false, error: route.reason }); return }
-        const state = recordEnable(await readState(), { acknowledged, auto })
+        const state = { ...recordEnable(await readState(), { acknowledged, auto }), routeBase: route.baseURL }
         await writeState(state)
         sendJson(res, 200, { ok: true, models: found.models, state: publicView(state) })
       } }), 'free-llms: enable')
@@ -408,12 +441,31 @@ export function apply(ctx) {
         }
         const found = await fetchFreeModels()
         if (found.models.length === 0) { sendJson(res, 200, { ok: false, skipped: true, reason: 'no_free_models' }); return }
-        const route = await writeRoute(found.models)
+        const route = await writeRoute(found.models, req)
         if (route.wrote !== true) { sendJson(res, 200, { ok: false, skipped: true, reason: route.reason }); return }
-        const next = recordEnable(state, { acknowledged: true, auto: true })
+        const next = { ...recordEnable(state, { acknowledged: true, auto: true }), routeBase: route.baseURL }
         await writeState(next)
         sendJson(res, 200, { ok: true, models: found.models, state: publicView(next) })
       } }), 'free-llms: auto-enable')
+
+      // Shortly after boot, repair a route an earlier version wrote (wrong address, key never stored). The settings
+      // and credentials services can be a moment late at boot, so a failed attempt is tried again, three times at most.
+      scope.effect(() => {
+        const delays = [10000, 60000, 300000]
+        const final = new Set(['ok', 'repaired', 'not_wired'])
+        let attempt = 0
+        let timer = null
+        const arm = () => {
+          timer = setTimeout(() => {
+            repairWiring().then((outcome) => {
+              if (!final.has(outcome) && attempt < delays.length - 1) { attempt += 1; arm() }
+            }).catch(() => { if (attempt < delays.length - 1) { attempt += 1; arm() } })
+          }, delays[attempt])
+          if (typeof timer.unref === 'function') timer.unref()
+        }
+        arm()
+        return () => { if (timer !== null) clearTimeout(timer) }
+      }, 'free-llms: repair wiring')
     })
   } catch (bootError) {
     try { console.error('[kybernos-free-llms] routes could not be mounted', bootError) } catch (e2) { /* no console */ }
