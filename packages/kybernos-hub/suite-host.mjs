@@ -46,13 +46,29 @@ export function lireActivation ({ catalogue, brut }) {
   return { file: true, actifs: liste }
 }
 
+/**
+ * Pure. What the panel lists when the signed release is the catalogue shown. A release describes the suite as it was published; a copy
+ * of the suite can be AHEAD of it (a development checkout, a build made after the release) and then holds modules the release does not
+ * know yet. Those modules are installed, they can be switched (activation is read from the shipped catalogue) and they have their own
+ * Settings page, so hiding them made the Suite say less than the machine had. They are appended after the release's own, marked
+ * `local: true`. Only when the release is NOT strictly newer than this copy: a newer release is what an update would bring, and a
+ * module it dropped must not come back from the old copy.
+ */
+export function avecLesModulesDeCetteCopie ({ catalogue, effectif }) {
+  if (effectif === null || typeof effectif !== 'object' || effectif.source !== 'signe') return effectif
+  if (effectif.suite !== null && typeof effectif.suite === 'object' && effectif.suite.plusRecent === true) return effectif
+  const connus = new Set(effectif.modules.map((m) => m.id))
+  const en_plus = catalogue.modules.filter((m) => !connus.has(m.id)).map((m) => ({ ...m, local: true }))
+  return en_plus.length === 0 ? effectif : { ...effectif, modules: effectif.modules.concat(en_plus) }
+}
+
 /** The payload of GET /kybernos-hub/suite. `effectif` is the catalogue to show (the signed online one when there is one, else the shipped
  *  one); activation is always resolved against the SHIPPED catalogue, which decides what can be switched. `distant` says what the online
  *  catalogue amounts to (see etatDistant). */
 export function charge ({ catalogue, brut, etatHub, effectif, distant }) {
   const act = lireActivation({ catalogue, brut })
   const actifs = new Set(act.actifs)
-  const vu = effectif ?? { ...catalogue, source: 'embarque' }
+  const vu = avecLesModulesDeCetteCopie({ catalogue, effectif: effectif ?? { ...catalogue, source: 'embarque' } })
   // The help of a module ships with the suite: the signed online catalogue carries the versions and the promises, and a module it
   // describes without a help keeps the one that shipped.
   const aides = new Map(catalogue.modules.filter((m) => m.aide !== undefined).map((m) => [m.id, m.aide]))
