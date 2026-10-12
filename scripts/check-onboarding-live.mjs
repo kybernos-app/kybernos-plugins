@@ -41,6 +41,17 @@ try { credsBackup = readFileSync(credsFile, 'utf8') } catch (e) { credsBackup = 
 const patchFile = join(dshHome, 'profiles/web/cordis.patch.yml')
 let patchBackup = null
 try { patchBackup = readFileSync(patchFile, 'utf8') } catch (e) { patchBackup = null }
+// The profile this sandbox was cloned from may already work without a key (the free models are often its default): every
+// section below starts from a model that has NO key, so such a default is replaced by one that does not work.
+if (patchBackup !== null) {
+  const m = /(- id: agent-default-model[\s\S]*?config:\s*\n\s*provider: )([^\n]+)(\n\s*model: )([^\n]+)/.exec(patchBackup)
+  if (m !== null && /^\s*(opencode-free|ollama-local|kybernos)\s*$/.test(m[2])) {
+    // a route the profile really has, whose key the sandbox lacks: the engine then answers MISSING_CREDENTIAL, as the card expects
+    const keyless = /\n\s{6}zai-coding-cn:\n/.test(patchBackup) ? ['zai-coding-cn', 'glm-5.3-flash'] : ['anthropic', 'claude-sonnet-4-5']
+    patchBackup = patchBackup.replace(m[0], m[1] + keyless[0] + m[3] + keyless[1])
+    try { writeFileSync(patchFile, patchBackup); await new Promise((resolve) => setTimeout(resolve, 8000)) } catch (e) { /* the sandbox is nobody's */ }
+  }
+}
 const defaultModelOf = () => {
   const m = /- id: agent-default-model[\s\S]*?config:\s*\n\s*provider: ([^\n]+)\n\s*model: ([^\n]+)/.exec(read('profiles/web/cordis.patch.yml'))
   return m === null ? null : m[1].trim() + '/' + m[2].trim()
@@ -59,12 +70,31 @@ writeFileSync(join(dshHome, 'kybernos/onboarding.json'), JSON.stringify({ versio
 const live = await openLivePage()
 const page = live.page
 try {
-  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [] }
+  const fake = { keyVerdict: 'ok', installPolls: 0, calls: [], accountConnected: false, freeBody: null }
   const json = (body) => Buffer.from(JSON.stringify(body), 'utf8').toString('base64')
-  const answers = (url, method) => {
+  const answers = (url, method, postData) => {
     const path = new URL(url).pathname
     if (path === '/kybernos-cloud/start') { fake.calls.push('cloud-start'); return { ok: true, connected: false, status: 'pending', pairing: { user_code: 'KB4-7QX2', activation_url: 'https://server.example.test/cloud/cli/activate?deviceId=d1', expires_at: '2099-01-01T00:00:00Z' } } }
-    if (path === '/kybernos-cloud/poll') { fake.calls.push('cloud-poll'); return { ok: true, connected: false, status: 'pending' } }
+    if (path === '/kybernos-cloud/poll') {
+      fake.calls.push('cloud-poll')
+      // an account of the Free plan: connected, and the plan brings no model
+      if (fake.accountConnected) return { ok: true, connected: true, state: { user: { email: 'amina@example.com', plan: 'free' } }, models: { count: 0 } }
+      return { ok: true, connected: false, status: 'pending' }
+    }
+    // The free models are fetched from a third party by the real route: answered here, nothing leaves the machine.
+    if (path === '/free-llms/auto-enable') {
+      fake.calls.push('free-enable')
+      try { fake.freeBody = JSON.parse(postData || '{}') } catch (e) { fake.freeBody = null }
+      return { ok: true, models: ['mimo-v2.6-flash-free'] }
+    }
+    // Only the free provider is answered here: the other ways read the REAL route (the default model is checked on disk).
+    if (path === '/kybernos/model/auto') {
+      let body = {}
+      try { body = JSON.parse(postData || '{}') } catch (e) { body = {} }
+      if (body.provider !== 'opencode-free') return null
+      fake.calls.push('model-auto')
+      return { ok: true, switched: true, provider: 'opencode-free', model: 'mimo-v2.6-flash-free', scope: 'default' }
+    }
     if (path === '/kybernos-cloud/disconnect') { fake.calls.push('cloud-disconnect'); return { ok: true } }
     if (path === '/kybernos-models/key/check') { fake.calls.push('key-check'); return { ok: true, result: fake.keyVerdict } }
     if (path === '/modeles-locaux/installer') { fake.calls.push('install-start'); return { ok: true, demarre: true, cmd: 'ollama pull qwen3.5:9b' } }
@@ -78,14 +108,14 @@ try {
   page.on('Fetch.requestPaused', async (p) => {
     if (p.responseStatusCode !== undefined) return
     let body = null
-    try { body = answers(p.request.url, p.request.method) } catch (e) { body = null }
+    try { body = answers(p.request.url, p.request.method, p.request.postData) } catch (e) { body = null }
     try {
       if (body === null) await page.send('Fetch.continueRequest', { requestId: p.requestId })
       else await page.send('Fetch.fulfillRequest', { requestId: p.requestId, responseCode: 200, responseHeaders: [{ name: 'content-type', value: 'application/json' }], body: json(body) })
     } catch (e) { /* the page moved on */ }
   })
   await page.send('Fetch.enable', { patterns: ['kybernos-cloud/start', 'kybernos-cloud/poll', 'kybernos-cloud/disconnect', 'kybernos-models/key/check',
-    'modeles-locaux/installer', 'modeles-locaux/installation'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' })) })
+    'modeles-locaux/installer', 'modeles-locaux/installation', 'free-llms/auto-enable', 'kybernos/model/auto'].map((x) => ({ urlPattern: '*/' + x + '*', requestStage: 'Request' })) })
   await page.send('Page.reload', { ignoreCache: true })
 
   const q = async (expr) => (await page.evalJs(expr, 8000)).val
@@ -98,12 +128,15 @@ try {
     return ok === true
   }
   const h1 = async () => q(`(document.querySelector('.kb-ob h1') || {}).textContent`)
-  const seen = (text) => waitFor(page, `[...document.querySelectorAll('.kb-ob h1')].some((e) => e.textContent.trim() === ${JSON.stringify(text)})`, 8000)
+  const seen = (text, ms = 8000) => waitFor(page, `[...document.querySelectorAll('.kb-ob h1')].some((e) => e.textContent.trim() === ${JSON.stringify(text)})`, ms)
+  // A connected model becomes the default a few seconds later: the route is hot-applied, the wizard asks again meanwhile.
+  const nowTheModel = (id) => waitFor(page, `((document.querySelector('.kb-ob') || {}).innerText || '').includes(${JSON.stringify(id + ' is now the model of your chats')})`, 20000)
   const goEnglish = async () => {
     await q(`document.querySelector('.kb-ob-lang-btn').click()`); await sleep(150)
     await q(`document.querySelector('.kb-ob-menu button[lang="en"]').click()`); await sleep(150)
   }
-  const toModelStep = async () => { await press('Get started'); await press('Continue'); await press('Continue') }
+  const toOfferStep = async () => { await press('Get started'); await press('Continue'); await press('Continue') }
+  const toModelStep = async () => { await toOfferStep(); await press('Use my own model instead') }
   const typeKey = async (value) => q(`(() => { const i = document.querySelector('#kb-ob-key'); i.value = ${JSON.stringify(value)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
 
   /* ── 1. the first run, through the sandbox's own host route ─────────────────────────────────────────────── */
@@ -128,7 +161,15 @@ try {
   await page.shot(join(shotDir, 'arabic.png'))
   await goEnglish()
   check('and back to English', (await h1()) === 'Welcome to Kybernos' && (await q(`document.querySelector('.kb-ob').getAttribute('dir')`)) === 'ltr')
-  await toModelStep()
+  // the free account is offered right after the display mode, before any technical choice
+  await toOfferStep()
+  check('after the display mode, the free account is offered', (await h1()) === 'Create your free account', String(await h1()))
+  const points = await q(`[...document.querySelectorAll('.kb-ob-pts li b')].map((e) => e.textContent.trim())`)
+  check('it says what it brings in three points, with the partner\'s limits and the prompt notice', Array.isArray(points) && points.length === 3 && /confidential/i.test(points[1]), JSON.stringify(points))
+  check('the offer belongs to the last numbered step', /^Step 3 of 3$/.test(String(await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`))))
+  check('it can be left for another way', (await q(`[...document.querySelectorAll('.kb-ob button')].some((b) => b.textContent.trim() === 'Use my own model instead')`)) === true)
+  await page.shot(join(shotDir, 'offer.png'))
+  await press('Use my own model instead')
   const step = await q(`(document.querySelector('.kb-ob-eyebrow') || {}).textContent`)
   check('the model step is numbered', /^Step \d of \d$/.test(String(step)), String(step))
   const rows = await q(`[...document.querySelectorAll('.kb-ob-row .kb-ob-t')].map((e) => e.textContent.trim())`)
@@ -136,14 +177,16 @@ try {
   check('the three ways are offered', Array.isArray(rows) && rows.length === 3, JSON.stringify(rows))
   await page.shot(join(shotDir, 'model-step.png'))
 
-  /* ── 2. the account: the code is shown, the page is opened, a pending pairing is polled, Cancel cleans up ── */
-  await press('Start right away')
+  /* ── 2. the account, from the offer: the code is shown, the page is opened, a pending pairing is polled, Cancel cleans up ── */
+  check('Back from the model step returns to the offer', (await press('Back')) === true && (await h1()) === 'Create your free account')
+  await press('Create my free account')
   await sleep(500)
   check('the pairing code is shown to be typed on the page', (await q(`(document.querySelector('.kb-ob-code b') || {}).textContent`)) === 'KB4-7QX2')
   await sleep(2600)
   check('the pairing is polled while it is pending', fake.calls.filter((c) => c === 'cloud-poll').length >= 1, JSON.stringify(fake.calls))
   await press('Cancel')
-  check('Cancel clears the pending pairing and returns to the choice', fake.calls.includes('cloud-disconnect') && (await h1()) === 'Which model do you want to work with?')
+  check('Cancel clears the pending pairing and returns to the offer', fake.calls.includes('cloud-disconnect') && (await h1()) === 'Create your free account', String(await h1()))
+  await press('Use my own model instead')
 
   /* ── 3. another provider: handed over to Settings, in any language ───────────────────────────────────── */
   await press('I already have an API key')
@@ -208,18 +251,50 @@ try {
   const reco = await q(`(document.querySelector('.kb-ob-recap') || {}).textContent`)
   check('the machine and the recommendation are shown', typeof reco === 'string' && /qwen3\.5:9b/.test(reco), String(reco))
   fake.installPolls = 0
+  // what the connection answered, for the failure detail below
+  await q(`(() => { const seam = window.__KB_LOCAL__; if (!seam || seam.__spied) return false; const c = seam.connect; seam.connect = async (id) => { const r = await c(id); window.__kbLastConnect = r; return r }; seam.__spied = true; return true })()`)
   await press('Install qwen3.5:9b')
   await sleep(700)
-  check('the progress screen is shown while it downloads', (await h1()) === 'Installing qwen3.5:9b' || (await seen('Model ready')) !== null)
+  check('the progress screen is shown while it downloads', (await h1()) === 'Installing qwen3.5:9b' || (await seen('Model ready', 30000)) !== null)
   await page.shot(join(shotDir, 'installing.png'))
-  check('when it is done the model is connected', (await seen('Model ready')) !== null)
+  const ready5 = await seen('Model ready', 30000)
+  check('when it is done the model is connected', ready5 !== null, JSON.stringify({ connect: await q(`window.__kbLastConnect || null`), h1: await h1(), calls: fake.calls, polls: fake.installPolls, text: String(await q(`(document.querySelector('.kb-ob') || {}).innerText`)).slice(0, 300) }))
+  await nowTheModel('qwen3.5:9b')
   const patch2 = read('profiles/web/cordis.patch.yml')
   check('the local route lists the model', /ollama-local/.test(patch2) && /qwen3\.5:9b/.test(patch2))
   check('and it became the default model', defaultModelOf() === 'ollama-local/qwen3.5:9b', String(defaultModelOf()))
-  check('the screen says so', (await q(`document.querySelector('.kb-ob').innerText`)).includes('qwen3.5:9b is now the model of your chats'))
+  check('the screen says so', String(await q(`(document.querySelector('.kb-ob') || {}).innerText`)).includes('qwen3.5:9b is now the model of your chats'))
   await press('Continue')
   check('the recap names the model', (await q(`document.querySelector('.kb-ob-recap').textContent`)).includes('qwen3.5:9b'))
   await press('Open Kybernos')
+  await backToTheStartingPoint()
+
+  /* ── 5b. the offer, accepted: an account whose plan brings no model gets the free community models, with their notice ── */
+  fake.accountConnected = true
+  fake.calls.length = 0
+  fake.freeBody = null
+  check('Replay reopens the wizard for the offer', await replay())
+  await goEnglish()
+  await toOfferStep()
+  await press('Create my free account')
+  check('the account is made without leaving the wizard', (await seen('You\u2019re connected')) !== null)
+  const okLine = String(await q(`(document.querySelector('.kb-ob-state.ok') || {}).innerText`))
+  check('it names the Free plan and does not claim models it does not have', /Free/.test(okLine) && !/models ready/.test(okLine), JSON.stringify(okLine))
+  await press('Continue')
+  check('with no model in the plan, the free models are offered with their notice', (await seen('Free models, ready to use')) !== null)
+  check('there is no way back to the account that was just made', (await q(`!document.querySelector('.kb-ob-back')`)) === true)
+  check('nothing is wired before the acknowledgement', !fake.calls.includes('free-enable') && (await q(`document.querySelector('.kb-ob-primary').disabled`)) === true)
+  await q(`document.querySelector('.kb-ob-freeack input').click()`)
+  await sleep(200)
+  await press('Use free models')
+  check('the wizard closes', (await waitFor(page, `document.querySelector('.kb-ob') === null`, 8000)) === true)
+  await sleep(2400)
+  check('the host was asked to wire them, with the acknowledgement and no model of the person\'s own', fake.calls.includes('free-enable') && fake.freeBody !== null && fake.freeBody.acknowledged === true && fake.freeBody.hasOwnModel === false, JSON.stringify([fake.calls, fake.freeBody]))
+  check('and to make a free model the default', fake.calls.includes('model-auto'), JSON.stringify(fake.calls))
+  let st5 = null
+  try { st5 = JSON.parse(read('kybernos/onboarding.json')) } catch (e) { st5 = null }
+  check('the onboarding file records the account as the way', st5 !== null && st5.completed === true && st5.model === 'cloud', JSON.stringify(st5))
+  fake.accountConnected = false
   await backToTheStartingPoint()
 
   /* ── 6. the moment of need: a chat whose model has no key ──────────────────────────────────────────── */
@@ -267,8 +342,9 @@ try {
     check('the card opens the wizard again, for a model on this computer', (await cardButton('A model on this computer')) === true && (await waitFor(page, `!!document.querySelector('.kb-ob')`, 8000)) === true)
     check('the local way is offered', await press('A model on this computer'))
     check('and installed', await press('Install qwen3.5:9b'))
-    check('the model is connected', (await seen('Model ready')) !== null)
-    check('and the screen says it is now the model', (await q(`document.querySelector('.kb-ob').innerText`)).includes('qwen3.5:9b is now the model of your chats'))
+    check('the model is connected', (await seen('Model ready', 30000)) !== null)
+    await nowTheModel('qwen3.5:9b')
+    check('and the screen says it is now the model', String(await q(`(document.querySelector('.kb-ob') || {}).innerText`)).includes('qwen3.5:9b is now the model of your chats'))
     await press('Continue')
     check('the card says this chat has the model now', (await waitFor(page, `document.querySelector('${cardSel}') && document.querySelector('${cardSel}').innerText.includes('is now this chat')`, 8000)) !== null)
     check('the default model is the connected one', defaultModelOf() === 'ollama-local/qwen3.5:9b', String(defaultModelOf()))
@@ -285,7 +361,9 @@ try {
   check('the card is back for a new failed turn', card2 === true)
   if (card2 === true) {
     // The route of THIS failed turn: the profile's default is whatever the instance had, and what matters is that the
-    // card names it and saves the key of that very reference.
+    // card names it and saves the key of that very reference. The profile is reloaded a moment after the restore above:
+    // the card may still name the model connected in the previous section until it is redrawn.
+    await waitFor(page, `(() => { const c = document.querySelector('${cardSel}'); return !!c && !/ollama-local/.test(c.innerText) })()`, 25000)
     const text2 = await q(`document.querySelector('${cardSel}').innerText`)
     route = (/The model it uses, ([^,]+), has no API key/.exec(text2) || [])[1]
     check('the card names the route of this turn', typeof route === 'string' && route.length > 0, JSON.stringify(text2))
@@ -300,10 +378,17 @@ try {
       held = (await q(`(document.querySelector('#kbnm-key') || {}).value`)) === 'sk-card-test-0123456789abcdef'
     }
     check('and enabled after', held && (await q(`document.querySelector('.kbnm-primary').disabled`)) === false)
+    // The route the card names AT THE MOMENT of saving: the chat may have been given another model since (section A selected
+    // the local one for it), and the key saved is the one of the route the card shows.
+    const routeAtSave = (/The model it uses, ([^,]+), has no API key/.exec(String(await q(`document.querySelector('${cardSel}').innerText`))) || [])[1] || route
     await q(`document.querySelector('.kbnm-primary').click()`)
     check('the key is saved', (await waitFor(page, `document.querySelector('${cardSel}').innerText.includes('Key saved')`, 8000)) !== null)
-    const expectedRef = route.toUpperCase().replace(/[^A-Z0-9]+/g, '_') + '_API_KEY'
-    check('the credential of that very reference exists, by name', read('.credentials.yaml').includes(expectedRef), expectedRef)
+    const expectedRef = routeAtSave.toUpperCase().replace(/[^A-Z0-9]+/g, '_') + '_API_KEY'
+    // The engine writes its credential file a moment after it answers: look for the name for a few seconds.
+    let named = false
+    for (let i = 0; i < 12 && !named; i += 1) { named = read('.credentials.yaml').includes(expectedRef); if (!named) await sleep(500) }
+    const credNames = (read('.credentials.yaml').match(/^\s{2,}([A-Za-z0-9_.\/-]+):/gm) || []).map((x) => x.trim().replace(/:$/, ''))
+    check('the credential of that very reference exists, by name', named, JSON.stringify({ expectedRef, route, credNames, card: String(await q(`(document.querySelector('${cardSel}') || {}).innerText`)).slice(0, 200) }))
     check('the typed key is nowhere but in the credential store', !read('profiles/web/cordis.patch.yml').includes('sk-card-test-0123456789abcdef') && !read('kybernos/onboarding.json').includes('sk-card-test'))
     await q(`document.querySelector('.kbnm-primary').click()`)
     await sleep(600)

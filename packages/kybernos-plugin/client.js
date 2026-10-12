@@ -31856,6 +31856,18 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'free.s': ['These models are free because OpenCode may keep the prompts you send to improve them. Tick below to say you understand, then start.', 'Ces modèles sont gratuits parce qu’OpenCode peut conserver les prompts que tu envoies pour les améliorer. Coche ci-dessous pour dire que tu comprends, puis commence.', 'Estos modelos son gratis porque OpenCode puede conservar los prompts que envías para mejorarlos. Marca abajo para confirmar que lo entiendes, luego empieza.', 'هذه النماذج مجانية لأن OpenCode قد يحتفظ بالرسائل التي ترسلها لتحسينها. ضع علامة أدناه لتؤكد أنك تفهم، ثم ابدأ.'],
       'free.ack': ['I understand my prompts may be kept.', 'Je comprends que mes prompts peuvent être conservés.', 'Entiendo que mis prompts pueden ser guardados.', 'أفهم أن رسائلي قد يتم الاحتفاظ بها.'],
       'free.start': ['Use free models', 'Utiliser les modèles gratuits', 'Usar los modelos gratis', 'استخدم النماذج المجانية'],
+      'offer.t': ['Create your free account', 'Crée ton compte gratuit', 'Crea tu cuenta gratuita', 'أنشئ حسابك المجاني'],
+      'offer.s': ['Get free AI models right away, with no API key and no card. It takes about a minute, in your browser.', 'Des modèles d’IA gratuits tout de suite, sans clé API et sans carte. Une minute environ, dans ton navigateur.', 'Modelos de IA gratuitos al instante, sin clave API ni tarjeta. Un minuto aproximadamente, en tu navegador.', 'نماذج ذكاء اصطناعي مجانية فورًا، بلا مفتاح API وبلا بطاقة. تستغرق دقيقة تقريبًا في متصفحك.'],
+      'offer.b1': ['Free models, connected for you', 'Des modèles gratuits, branchés pour toi', 'Modelos gratuitos, conectados por ti', 'نماذج مجانية نربطها لك'],
+      'offer.b1d': ['Offered free by a partner and called from this computer. Their own usage limits apply.', 'Offerts gratuitement par un partenaire et appelés depuis cet ordinateur. Leurs propres limites d’usage s’appliquent.', 'Los ofrece gratis un socio y se llaman desde este ordenador. Se aplican sus propios límites de uso.', 'يقدّمها شريك مجانًا وتُستدعى من هذا الحاسوب. تنطبق حدود الاستخدام الخاصة به.'],
+      'offer.b2': ['Keep confidential work out of them', 'Garde le travail confidentiel à l’écart', 'Deja fuera el trabajo confidencial', 'أبعد العمل السري عنها'],
+      'offer.b2d': ['Free models may keep your prompts to improve themselves. Your files and conversations stay on this computer.', 'Les modèles gratuits peuvent conserver tes messages pour s’améliorer. Tes fichiers et conversations restent sur cet ordinateur.', 'Los modelos gratuitos pueden conservar tus mensajes para mejorar. Tus archivos y conversaciones se quedan en este ordenador.', 'قد تحتفظ النماذج المجانية برسائلك لتحسين نفسها. تبقى ملفاتك ومحادثاتك على هذا الحاسوب.'],
+      'offer.b3': ['Same account for what comes next', 'Le même compte pour la suite', 'La misma cuenta para lo que viene', 'الحساب نفسه لما سيأتي'],
+      'offer.b3d': ['More models and paid plans later, only if you want them.', 'Plus de modèles et des formules payantes plus tard, seulement si tu les veux.', 'Más modelos y planes de pago más adelante, solo si los quieres.', 'نماذج أكثر وخطط مدفوعة لاحقًا، فقط إن أردتها.'],
+      'offer.go': ['Create my free account', 'Créer mon compte gratuit', 'Crear mi cuenta gratuita', 'إنشاء حسابي المجاني'],
+      'offer.have': ['I already have an account', 'J’ai déjà un compte', 'Ya tengo una cuenta', 'لدي حساب بالفعل'],
+      'offer.own': ['Use my own model instead', 'Utiliser plutôt mon propre modèle', 'Usar mi propio modelo', 'استخدام نموذجي الخاص بدلًا من ذلك'],
+      'offer.opt': ['Optional — you can also do this later from the app.', 'Facultatif — tu peux aussi le faire plus tard depuis l’app.', 'Opcional: también puedes hacerlo más tarde desde la app.', 'اختياري — يمكنك فعل ذلك لاحقًا من التطبيق أيضًا.'],
       'later': ['I’ll do it later', 'Je verrai plus tard', 'Lo haré más tarde', 'سأفعل ذلك لاحقًا'],
       'wait.t': ['Finish in your browser', 'Termine dans ton navigateur', 'Termina en tu navegador', 'أكمل في متصفحك'],
       'wait.s': ['The Kybernos page is open. Sign in or create your account there, then type the code below. You’ll come back here on your own.', 'La page Kybernos est ouverte. Connecte-toi ou crée ton compte, puis saisis le code ci-dessous. Tu reviens ici tout seul.', 'La página de Kybernos está abierta. Inicia sesión o crea tu cuenta y escribe el código de abajo. Volverás aquí automáticamente.', 'صفحة Kybernos مفتوحة. سجّل الدخول أو أنشئ حسابك هناك، ثم اكتب الرمز أدناه. ستعود إلى هنا تلقائيًا.'],
@@ -31983,11 +31995,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
     const kbObStepOf = (screen) => {
       if (screen === 'job' || screen === 'mode') return screen
       if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' || screen === 'free' ||
-        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
+        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err' || screen === 'offer') return 'model'
       return null
     }
-    /** Where « Back » goes from a screen (null = nowhere). */
-    const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    /**
+     * Where « Back » goes from a screen (null = nowhere). `hasOffer`: the free-account offer sits between the display
+     * mode and the model step, so the model step goes back to it (it is absent when Kybernos Cloud is not there).
+     */
+    const kbObBack = (screen, hasOffer) => ({ job: 'welcome', mode: 'job', offer: 'mode', model: hasOffer === true ? 'offer' : 'mode', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
     /** A pasted key as it will be sent: trimmed, one printable-ASCII string of 8 to 400 characters, or null. */
     const kbObKeyShape = (value) => {
       const clean = typeof value === 'string' ? value.trim() : ''
@@ -32049,6 +32064,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
         standalone: false, picked: null, freeAck: false,
+        // the free-account offer: shown, where the account was started from, and whether the free models are wired after it
+        offered: false, origin: null, fromAccount: false, freeWire: false,
       }
       let root = null
       let pollTimer = null
@@ -32113,6 +32130,20 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         } catch (e) { return null }
       }
 
+      // ── the free community models ──
+      // The host re-checks the acknowledgement and that nothing else works. Writing the route alone leaves the profile's default
+      // model on a provider the person has no key for, so the free model is made the default too, a few times: the route is
+      // hot-applied a moment after it is written.
+      const wireFreeModels = async () => {
+        const own = S.ready !== null || S.model === 'key' || S.model === 'local' || (S.model === 'cloud' && S.models !== null && S.models > 0)
+        const r = await call('/free-llms/auto-enable', 'POST', { acknowledged: S.freeAck === true, hasOwnModel: own })
+        if (r === null || r.ok !== true) return
+        for (const wait of [1500, 3000, 4500]) {
+          await new Promise((resolve) => win.setTimeout(resolve, wait))
+          if (await askAuto({ provider: 'opencode-free' }) !== 'wait') return
+        }
+      }
+
       // ── leaving ──
       const stopPoll = () => { if (pollTimer !== null) { win.clearTimeout(pollTimer); pollTimer = null } }
       const close = () => {
@@ -32138,12 +32169,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
-        if (!S.standalone && S.model === 'free') {
-          call('/free-llms/auto-enable', 'POST', {
-            acknowledged: S.freeAck === true,
-            hasOwnModel: S.ready !== null || (S.model !== null && S.model !== 'free' && S.model !== 'later'),
-          })
-        }
+        if (!S.standalone && (S.model === 'free' || S.freeWire === true)) wireFreeModels()
         const connected = S.standalone && S.model !== null ? S.model : null
         const picked = S.picked
         close()
@@ -32156,13 +32182,33 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // Connecting only adds models to the selector. The host switches the profile's default (and, from the chat's card,
       // that chat) to a model of the provider that was just connected, when the default could not answer. An older host
       // without the route answers nothing: the person then picks the model in the selector, as before.
+      // One ask: 'done' (switched), 'wait' (the route was written a moment ago and the engine has not applied it yet) or 'stop'.
+      const askAuto = async (body) => {
+        const r = await call('/kybernos/model/auto', 'POST', body)
+        if (r !== null && r.ok === true && r.switched === true && typeof r.model === 'string') {
+          S.picked = { provider: r.provider, model: r.model, scope: r.scope }
+          return 'done'
+        }
+        if (r !== null && r.ok === true && r.switched === false && (r.reason === 'provider-not-routable' || r.reason === 'no-model')) return 'wait'
+        return 'stop'
+      }
+      // A route is hot-applied a few seconds after it is written (a model on this computer, free models): the screen does not
+      // wait for it, the choice follows and the line « is now the model of your chats » appears when it is made.
+      const retryAuto = async (body) => {
+        for (const wait of [2500, 3000, 4000]) {
+          await new Promise((resolve) => win.setTimeout(resolve, wait))
+          const out = await askAuto(body)
+          if (out === 'wait') continue
+          if (out === 'done' && root !== null) render(false)
+          return
+        }
+      }
       const autoSelect = async (provider, model) => {
         S.picked = null
         const body = { provider: provider }
         if (typeof model === 'string' && model !== '') body.model = model
         if (S.standalone && typeof env.sessionId === 'string' && env.sessionId !== '') { body.sessionId = env.sessionId; body.force = true }
-        const r = await call('/kybernos/model/auto', 'POST', body)
-        if (r !== null && r.ok === true && r.switched === true && typeof r.model === 'string') S.picked = { provider: r.provider, model: r.model, scope: r.scope }
+        if (await askAuto(body) === 'wait') retryAuto(body)
       }
       const pickedLine = () => {
         if (S.picked === null) return null
@@ -32172,9 +32218,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         return st
       }
       // ── the three ways of powering the agents ──
-      const go = (screen) => { stopPoll(); if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } S.screen = screen; render(true) }
+      const go = (screen) => { stopPoll(); if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } if (screen === 'offer') S.offered = true; S.screen = screen; render(true) }
       // After a way is connected: the first run goes on to its recap; from the chat's card the wizard just closes.
       const afterConnect = () => { if (S.standalone) finish(); else go('done') }
+      // After an account made from the offer: an account whose plan brings no model leaves the person with nothing to talk to,
+      // so the free community models are offered (with their acknowledgement); an account that brings models is done.
+      const afterAccount = () => {
+        if (!S.standalone && S.origin === 'offer' && !(S.models !== null && S.models > 0)) { S.fromAccount = true; go('free'); return }
+        afterConnect()
+      }
       const pollOnce = async () => {
         pollTimer = null
         if (root === null || S.screen !== 'cloud-wait') return
@@ -32218,7 +32270,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const cancelCloud = async () => {
         stopPoll()
         await call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
-        if (root !== null) go('model')
+        if (root !== null) go(S.origin === 'offer' ? 'offer' : 'model')
       }
       const copyCode = () => {
         if (S.pairing === null) return
@@ -32275,6 +32327,17 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         if (verdict === 'unreachable') { S.keyMsg = 'unreach'; render(false); return }
         await saveKey(verdict)
       }
+      // A write refused right after another change of the profile (the engine is still reloading it) is asked again a
+      // little later: the model is pulled, the person should not have to connect it by hand for that.
+      const connectModel = async (seam, id) => {
+        let r = null
+        for (const wait of [0, 3000, 5000]) {
+          if (wait > 0) await new Promise((resolve) => win.setTimeout(resolve, wait))
+          try { r = await seam.connect(id) } catch (e) { r = null }
+          if (r !== null && r !== undefined && (r.ok === true || r.reason !== 'write_refused')) return r
+        }
+        return r
+      }
       const progressPct = () => (S.job !== null && typeof S.job.pct === 'number' ? Math.max(4, Math.min(100, S.job.pct)) : 4)
       const progressText = () => {
         if (S.job === null || typeof S.job.pct !== 'number') return T('loc.ins.prep')
@@ -32295,8 +32358,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               const seam = localSeam()
               if (seam !== null) {
                 try {
-                  const done = await seam.connect(id)
-                  if (done !== null && done !== undefined && done.ok === true) await call('/kybernos/model/auto', 'POST', { provider: 'ollama-local', model: id })
+                  const done = await connectModel(seam, id)
+                  if (done !== null && done !== undefined && done.ok === true) await askAuto({ provider: 'ollama-local', model: id })
                 } catch (e) { /* the model stays pulled; Settings connects it */ }
               }
             }
@@ -32309,7 +32372,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const connectLocal = async () => {
         const seam = localSeam()
         let r = null
-        try { r = seam !== null ? await seam.connect(S.localId) : null } catch (e) { r = null }
+        try { r = seam !== null ? await connectModel(seam, S.localId) : null } catch (e) { r = null }
         if (root === null) return
         if (r !== null && r !== undefined && r.ok === true) { S.model = 'local'; await autoSelect('ollama-local', S.localId); if (root === null) return; go('local-done') } else { S.localError = 'connect'; go('local-err') }
       }
@@ -32434,7 +32497,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         const n = plan.indexOf(kbObStepOf(screen)) + 1
         return h('p', 'kb-ob-eyebrow', T('step', { n: n, total: plan.length }))
       }
-      const afterMode = () => (S.ready !== null ? 'done' : 'model')
+      const afterMode = () => (S.ready !== null ? 'done' : (S.hasCloud ? 'offer' : 'model'))
       const who = () => {
         const a = S.account
         if (a !== null && typeof a === 'object' && typeof a.email === 'string') return a.email
@@ -32490,13 +32553,39 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(a)
           return s
         },
+        offer: () => {
+          const s = step()
+          s.appendChild(eyebrow('offer'))
+          s.appendChild(h('h1', null, T('offer.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('offer.s')))
+          const pts = h('ul', 'kb-ob-pts')
+          for (const [ico, key] of [['check', 'offer.b1'], ['laptop', 'offer.b2'], ['account', 'offer.b3']]) {
+            const li = h('li')
+            const ic = h('span', 'kb-ob-ptic')
+            ic.appendChild(icon(IC[ico], 16))
+            li.appendChild(ic)
+            const tx = h('div')
+            tx.appendChild(h('b', null, T(key)))
+            tx.appendChild(h('span', 'kb-ob-ptd', T(key + 'd')))
+            li.appendChild(tx)
+            pts.appendChild(li)
+          }
+          s.appendChild(pts)
+          const a = actions()
+          a.appendChild(primary(T('offer.go'), () => { S.origin = 'offer'; startCloud() }))
+          a.appendChild(button('kb-ob-btn kb-ob-second', T('offer.have'), () => { S.origin = 'offer'; startCloud() }))
+          a.appendChild(button('kb-ob-ghost', T('offer.own'), () => go('model')))
+          s.appendChild(a)
+          s.appendChild(h('p', 'kb-ob-note', T('offer.opt')))
+          return s
+        },
         model: () => {
           const s = step()
           s.appendChild(eyebrow('model'))
           s.appendChild(h('h1', null, T('brain.t')))
           s.appendChild(h('p', 'kb-ob-sub', T('brain.s')))
           const g = h('div', 'kb-ob-rows')
-          if (S.hasCloud) g.appendChild(rowOption('account', T('v.cloud.t'), T('v.cloud.d'), T('v.cloud.tag'), () => { startCloud() }))
+          if (S.hasCloud && (S.standalone || S.offered !== true)) g.appendChild(rowOption('account', T('v.cloud.t'), T('v.cloud.d'), T('v.cloud.tag'), () => { S.origin = 'model'; startCloud() }))
           g.appendChild(rowOption('key', T('v.key.t'), T('v.key.d'), null, () => go('key')))
           if (S.hasLocal) {
             const gb = S.machine !== null && typeof S.machine.ramGo === 'number' ? T('v.local.tag', { gb: S.machine.ramGo }) : null
@@ -32536,7 +32625,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           s.appendChild(h('h1', null, T('ok.t')))
           const planName = (S.account !== null && typeof S.account === 'object' && typeof S.account.plan === 'string') ? S.account.plan : ''
           const plan = planName !== '' ? ' · ' + planName.charAt(0).toUpperCase() + planName.slice(1) : ''
-          const models = S.models !== null ? ' · ' + T('ok.models', { n: S.models }) : ''
+          const models = S.models !== null && S.models > 0 ? ' · ' + T('ok.models', { n: S.models }) : ''
           const st = h('div', 'kb-ob-state ok')
           st.appendChild(icon(IC.check, 18))
           st.appendChild(h('span', null, who() + plan + models))
@@ -32544,7 +32633,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const line = pickedLine()
           if (line !== null) s.appendChild(line)
           const a = actions()
-          a.appendChild(primary(T('cont'), () => afterConnect()))
+          a.appendChild(primary(T('cont'), () => afterAccount()))
           s.appendChild(a)
           return s
         },
@@ -32754,7 +32843,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           ack.appendChild(h('span', null, T('free.ack')))
           s.appendChild(ack)
           const a = actions()
-          const use = primary(T('free.start'), () => { S.model = 'free'; finish() })
+          const use = primary(T('free.start'), () => { if (S.fromAccount) S.freeWire = true; else S.model = 'free'; finish() })
           use.disabled = S.freeAck !== true
           a.appendChild(use)
           a.appendChild(button('kb-ob-ghost', T('later'), () => go('later')))
@@ -32824,7 +32913,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         root.appendChild(top)
 
         const main = h('main', 'kb-ob-main')
-        const back = S.standalone && S.screen === 'model' ? null : kbObBack(S.screen)
+        const back = (S.standalone && S.screen === 'model') || (S.screen === 'free' && S.fromAccount) ? null : kbObBack(S.screen, S.hasCloud && !S.standalone)
         if (back !== null) main.appendChild(button('kb-ob-back', T('back'), () => {
           if (S.screen === 'cloud-wait') { cancelCloud(); return }
           go(back)
@@ -33070,6 +33159,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-link{color:var(--blue);text-decoration:underline;text-underline-offset:3px;direction:ltr;unicode-bidi:isolate}',
       '.kb-ob-note{display:flex;gap:8px;margin-top:18px;font-size:13px;line-height:1.55;color:var(--ink3)}',
       '.kb-ob-note .kb-ob-ico{margin-top:2px;flex:none}',
+      '.kb-ob-pts{list-style:none;margin:26px 0 0;padding:0;display:flex;flex-direction:column;gap:16px}',
+      '.kb-ob-pts li{display:flex;gap:14px;align-items:flex-start}',
+      '.kb-ob-ptic{flex:none;width:30px;height:30px;border-radius:50%;background:var(--wash);color:var(--ink);display:flex;align-items:center;justify-content:center;margin-top:1px}',
+      '.kb-ob-pts b{display:block;font-size:15.5px;font-weight:500}',
+      '.kb-ob-ptd{display:block;margin-top:2px;font-size:13.5px;line-height:1.5;color:var(--ink2)}',
       '.kb-ob-freeack{display:flex;align-items:flex-start;gap:10px;margin-top:22px;font-size:14px;line-height:1.55;color:var(--ink);cursor:pointer}',
       '.kb-ob-freeack input{flex:none;width:16px;height:16px;margin:3px 0 0;accent-color:var(--blue);cursor:pointer}',
       '.kb-ob-state{display:flex;gap:10px;align-items:center;margin-top:22px;font-size:14.5px;color:var(--ink2)}',

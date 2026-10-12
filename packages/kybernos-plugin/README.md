@@ -86,8 +86,17 @@ A full-screen wizard (plain DOM, `KB-OB-*` blocks of `client.js`) opens once on 
 « Replay » button at the top of Kybernos Settings (`kybernos-sessions` fires the window event `kybernos:onboarding`).
 It is a single column in the look of dev.kybernos.app (light or dark, whichever the page behind it is) with the K logo.
 
-- **Screens:** welcome, profession, display mode, then « which model do you want to work with? ». The model screen is
-  skipped when a model already works (Kybernos Cloud connected, or a pulled Ollama model); otherwise it offers:
+- **Screens:** welcome, profession, display mode, then **the free account offer**, then « which model do you want to work
+  with? ». Both are skipped when a model already works (Kybernos Cloud connected, or a pulled Ollama model).
+  - **The offer** (`offer`, step 3 of 3, only when Kybernos Cloud is there): « Create your free account », with what it
+    brings said plainly (free models from a partner, their own limits, prompts that may be kept, nothing confidential in
+    them). « Create my free account » and « I already have an account » both start the pairing below; « Use my own model
+    instead » goes to the model screen. After the account is made: an account that brings models is done; an account
+    whose plan brings **no model** goes to the free community models' acknowledgement screen and, once ticked, the host
+    wires them (`POST /free-llms/auto-enable`, which re-checks the acknowledgement) and a free model is made the default
+    model. Nothing is wired before the person ticks. The free models are called from the person's computer, not from the
+    Kybernos server: no allowance of ours applies to them, and the server's guardrails do not see them.
+  - The model screen then offers (the account row is not repeated after the offer):
   - **the account** (`/kybernos-cloud/start` + `poll`): the wizard shows the code, the person types it on the page that
     opens (the page never displays it: ADR 0009 of the server), and the connection is picked up by itself;
   - **an API key** for Anthropic, OpenAI, DeepSeek or Google: pasted in the wizard, checked with the provider

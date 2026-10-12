@@ -77,9 +77,11 @@ eq('an unknown key answers itself', T('en', 'nope.nothing'), 'nope.nothing')
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
 eq('three numbered steps when no model works yet', mod.kbObPlan(false), ['job', 'mode', 'model'])
 eq('the model step drops out when one works', mod.kbObPlan(true), ['job', 'mode'])
-eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(11).fill('model'))
+eq('screens of the model step share one number', ['model', 'offer', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(12).fill('model'))
 eq('welcome and the end screens have no number', ['welcome', 'done', 'later'].map((s) => mod.kbObStepOf(s)), [null, null, null])
 eq('back goes one screen up', ['job', 'mode', 'model', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'mode', 'model', 'model', 'local', 'model', 'model'])
+eq('the free-account offer sits between the display mode and the model step', [mod.kbObBack('offer'), mod.kbObBack('model', true), mod.kbObBack('model', false), mod.kbObBack('model')], ['mode', 'offer', 'mode', 'mode'])
+eq('every string of the offer exists in the four languages', ['offer.t', 'offer.s', 'offer.b1', 'offer.b1d', 'offer.b2', 'offer.b2d', 'offer.b3', 'offer.b3d', 'offer.go', 'offer.have', 'offer.own', 'offer.opt'].map((k) => (Array.isArray(mod.KB_OB_T[k]) && mod.KB_OB_T[k].length === 4 && mod.KB_OB_T[k].every((v) => typeof v === 'string' && v.length > 0))), Array(12).fill(true))
 eq('there is no back from welcome, from the end, mid-download, or once something is connected',
   ['welcome', 'done', 'later', 'cloud-ok', 'key-done', 'local-install', 'local-done'].map((s) => mod.kbObBack(s)), Array(7).fill(null))
 
