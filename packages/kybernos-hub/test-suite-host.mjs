@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { activesResolues, basculer, charge, desactivesAEcrire, installer, lireActivation } from './suite-host.mjs'
+import { activesResolues, avecLesModulesDeCetteCopie, basculer, charge, desactivesAEcrire, installer, lireActivation } from './suite-host.mjs'
 import { monterSuite } from './hub-host.mjs'
 import * as moteur from '../../scripts/lifecycle-engine.mjs'
 
@@ -48,6 +48,25 @@ console.log('── payload ──')
   ok('a switched-off module reads voulu=false', p.modules.find((m) => m.id === 'kybernos-slides').voulu === false)
   ok('the socle always reads voulu=true', p.modules.filter((m) => m.socle).every((m) => m.voulu === true))
   ok('catalogue source is labelled as embedded', p.catalogue.source === 'embarque')
+}
+
+console.log('── a signed release older in content than this copy ──')
+{
+  // The release as it was published: the same suite version as the copy here, without the modules added since.
+  const sansLesNouveaux = catalogue.modules.filter((m) => m.id !== 'kybernos-mobile' && m.id !== 'kybernos-websearch')
+  const signe = { schema: catalogue.schema, familles: catalogue.familles, modules: sansLesNouveaux, source: 'signe', suite: { version: '1.0.0', publieLe: '2026-10-09T00:00:00.000Z', plusRecent: false } }
+  const p = charge({ catalogue, brut: null, etatHub: { ok: true }, effectif: signe })
+  ok('the modules of this copy that the release does not know are listed', ['kybernos-mobile', 'kybernos-websearch'].every((id) => p.modules.some((m) => m.id === id)))
+  ok('they are marked local, the release\'s own are not', p.modules.filter((m) => m.local === true).map((m) => m.id).sort().join() === 'kybernos-mobile,kybernos-websearch')
+  ok('the release\'s modules come first, in its order', p.modules.slice(0, sansLesNouveaux.length).map((m) => m.id).join() === sansLesNouveaux.map((m) => m.id).join())
+  ok('a listed local module can be switched like any other (voulu follows the activation file)', p.modules.find((m) => m.id === 'kybernos-mobile').voulu === true && charge({ catalogue, brut: { actives: [], desactives: [nomDe('kybernos-mobile')] }, etatHub: null, effectif: signe }).modules.find((m) => m.id === 'kybernos-mobile').voulu === false)
+  ok('the release stays the source of the entries it knows (its version wins)', charge({ catalogue, brut: null, effectif: { ...signe, modules: signe.modules.map((m) => (m.id === 'kybernos-models' ? { ...m, version: '9.9.9' } : m)) } }).modules.find((m) => m.id === 'kybernos-models').version === '9.9.9')
+  // A strictly newer release is what an update would bring: a module it dropped does not come back from the old copy.
+  const plusRecent = { ...signe, suite: { ...signe.suite, plusRecent: true } }
+  ok('a strictly newer release is shown as it is', charge({ catalogue, brut: null, effectif: plusRecent }).modules.length === sansLesNouveaux.length)
+  ok('the shipped catalogue alone is untouched', charge({ catalogue, brut: null }).modules.length === NB_MODULES && charge({ catalogue, brut: null }).modules.every((m) => m.local !== true))
+  ok('nothing missing from the release: the same object comes back', (() => { const entier = { ...signe, modules: catalogue.modules }; return avecLesModulesDeCetteCopie({ catalogue, effectif: entier }) === entier })())
+  ok('hostile input does not throw', [null, undefined, 42, { source: 'signe', modules: [] }].every((e) => { try { avecLesModulesDeCetteCopie({ catalogue, effectif: e }); return true } catch (x) { return false } }) || false)
 }
 
 console.log('── switching ──')
