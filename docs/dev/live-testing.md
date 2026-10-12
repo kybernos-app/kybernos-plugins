@@ -675,6 +675,38 @@ send (`kybernos-plugin/test-feedback.mjs`, 13), the skills relay (`kybernos-skil
 `ctx.web.fetch` is not used for a request of ours (its HTTP provider kills the whole process when a connect fails at once: no route, a
 firewall answering EPERM); a promise started with `void` carries a `.catch`, because an unhandled rejection ends DSH.
 
+## What a person would see wrong: `scripts/check-display-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh
+node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--schemes dark,light,neutre] [--only home,settings]
+```
+
+A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
+home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the account card
+(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Mobile) and the first-run wizard, with
+real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
+and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
+`/kybernos-cloud/status`, `/kybernos-mobile/remote/*`, `/kybernos/onboarding`): no server is called, nothing is written.
+
+Per view it measures, from computed styles and boxes (not from the source):
+
+- **contrast**: every visible text, input value, placeholder and small icon against its effective background, layer by layer
+  (opacity groups, gradients at their worst stop, CSS-mask glyphs read as ink); 4.5:1, 3:1 for large text and icons. A switch whose
+  knob merges with its track is listed too. Disabled controls are measured but not counted;
+- **clipping**: a box that leaves the box that really contains it (containing-block chain: an absolutely positioned popover is not
+  blamed on a static `overflow:hidden` parent) or the viewport, with no scrolling to reach it. Thumbnails and ellipsised inline
+  text are skipped as deliberate crops;
+- **cut labels**: text that overflows its own `overflow:hidden` box with no `title` or `aria-label` anywhere above it;
+- **layout jumps**: `layout-shift` entries (>= 0.02) that are not caused by the person's own click.
+
+`<out>/report.json` lists each finding with a selector, the screenshot where it was outlined (`<out>/shots`, numbered boxes) and
+where it was seen; findings are grouped across schemes. Keep the output outside git. Traps: DSH's mode is persisted by its theme
+service, so each pass sets it through the real Theme page and a run needs its own sandbox (`KB_SANDBOX_ROOT`, a port of its own);
+findings on the DSH shell itself (classes with a hashed prefix such as `VOzbGW_navCell`) are not the plugins' to fix.
+
+The same rules, read from the source, are `scripts/test-display-rules.mjs` (run by CI).
+
 ## Traps
 
 - **These scripts are deliberately NOT named `test-*.mjs`.** CI runs every

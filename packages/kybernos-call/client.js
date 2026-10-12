@@ -514,6 +514,9 @@ window.__ModuleLoader__.load({
 .kbcl-chip.kbcl-ok{color:${T.ok};border-color:${T.ok}}
 .kbcl-chip.kbcl-warn{color:${T.warn};border-color:${T.warn}}
 .kbcl-chip.kbcl-err{color:${T.err};border-color:${T.err}}
+/* Light scheme: the state tokens are fills (green 2.3:1, amber 2.2:1 on white); the ink is mixed toward the text colour. */
+body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-ok{color:color-mix(in srgb,${T.ok} 55%,var(--dsw-alias-label-primary))}
+body:not([data-ds-dark-theme]) .kbcl-chip.kbcl-warn{color:color-mix(in srgb,${T.warn} 50%,var(--dsw-alias-label-primary))}
 .kbcl-notice{font-size:12.5px;padding:8px 12px;border-radius:8px;border:1px solid ${T.line};color:${T.mute}}
 .kbcl-notice.kbcl-bad{border-color:${T.err};color:${T.err}}
 .kbcl-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}

@@ -145,7 +145,8 @@ window.__ModuleLoader__.load({
         .kbsd-badge{margin-left:auto;flex:none;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:99px;
           background:var(--dsw-alias-bg-module-platform,rgba(0,0,0,.05));color:var(--dsw-alias-label-secondary,#6b6b68)}
         .kbsd-badge.run{background:#37B5C4;color:#08262a}
-        .kbsd-badge.ia{background:#1f9d57;color:#fff}
+        /* white on #1f9d57 is 3.5:1 for 10.5px text; #0f1115 is 5.4:1 */
+        .kbsd-badge.ia{background:#1f9d57;color:#0f1115}
         .kbsd-scene{flex:1;min-height:120px;display:flex;align-items:center;justify-content:center;
           background:#e9e7e2;padding:10px;position:relative;overflow:hidden}
         .kbsd-wrap{position:relative}

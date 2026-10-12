@@ -495,12 +495,14 @@ window.__ModuleLoader__.load({
 .kbmem-seg button.on{background:var(--m-primary);color:var(--m-primary-ink)}
 .kbmem-seg button[disabled]{opacity:.45;pointer-events:none}
 .kbmem-seg.sm{height:32px}.kbmem-seg.sm button{height:24px;padding:0 10px;font-size:12px}
-.kbmem-cnt{font-size:11px;font-weight:600;opacity:.65;font-variant-numeric:tabular-nums}
+.kbmem-cnt{font-size:11px;font-weight:600;color:var(--m-ink2);font-variant-numeric:tabular-nums}
 .kbmem-row2{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .kbmem-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 .kbmem-field{flex-basis:200px}
 .kbmem-field{display:flex;gap:8px;align-items:center;flex:1;min-width:0;height:36px;padding:0 12px;border-radius:var(--m-r-md);background:var(--m-fill);color:var(--m-muted)}
 .kbmem-field input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--m-ink);font:inherit}
+/* the browser's default placeholder is a mid grey: 2.6:1 on the dark field */
+.kbmem-field input::placeholder{color:var(--m-ink2)}
 .kbmem-modes{display:inline-flex;gap:2px;padding:2px;border-radius:999px;background:var(--m-surf);flex:none}
 .kbmem-modes button{display:inline-flex;gap:4px;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:600;color:var(--m-ink2);white-space:nowrap}
 .kbmem-modes button.on{background:var(--m-primary);color:var(--m-primary-ink)}

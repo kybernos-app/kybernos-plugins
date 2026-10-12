@@ -311,6 +311,8 @@ window.__ModuleLoader__.load({
         '.kwse-badge{font-size:9.5px;font-weight:600;letter-spacing:.05em;padding:1px 6px;border-radius:5px;background:var(--dsw-alias-bg-layer-3,#eee);color:var(--dsw-alias-label-secondary,#555)}',
         '.kwse-badge.free{color:var(--dsw-alias-state-success-primary,#0a7)}',
         '.kwse-badge.key{color:var(--dsw-alias-state-warn-primary,#a60)}',
+        // Light scheme: the state tokens are fills (green 2.3:1, amber 2.2:1 on white); the ink is mixed toward the text colour.
+        'body:not([data-ds-dark-theme]) .kwse-badge.free{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}body:not([data-ds-dark-theme]) .kwse-badge.key{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}',
         '.kwse-status{flex-basis:100%;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary,#888)}',
         '.kwse-dot{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none;background:var(--dsw-alias-border-l3,#bbb)}',
         '.kwse-dot.ok{background:var(--dsw-alias-state-success-primary,#0a7)}',
@@ -336,6 +338,8 @@ window.__ModuleLoader__.load({
         '.kwse-block b{font-size:14px;font-weight:600}',
         '.kwse-block span{font-size:12.5px;color:var(--dsw-alias-label-tertiary,#888)}',
         '.kwse-area{width:100%;box-sizing:border-box;padding:8px 10px;font:500 12.5px ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-primary,inherit);background:var(--dsw-alias-bg-layer-1,transparent);border:0.5px solid var(--dsw-alias-border-l2,#ddd);border-radius:10px;resize:vertical}',
+        // the browser's default placeholder is a mid grey: 3.4:1 on the dark layer
+        '.kwse-area::placeholder{color:var(--dsw-alias-label-secondary,inherit)}',
         '.kwse-inline{display:flex;flex-wrap:wrap;gap:18px}',
         '.kwse-inline label{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dsw-alias-label-secondary,#666)}',
         '.kwse-num{width:64px;height:30px;padding:0 8px;font:inherit;color:var(--dsw-alias-label-primary,inherit);background:var(--dsw-alias-bg-layer-1,transparent);border:0.5px solid var(--dsw-alias-border-l2,#ddd);border-radius:8px}',

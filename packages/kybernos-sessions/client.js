@@ -131,10 +131,11 @@ window.__ModuleLoader__.load({
 .kbs-seg.on{background:var(--dsw-alias-state-success-primary,#22c55e)}
 .kbs-sdot{width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;
   justify-content:center;box-sizing:border-box}
-.kbs-sdot.done{background:var(--dsw-alias-state-success-primary,#22c55e);color:#fff;border:0}
+/* Ink on the state fills (--acc is a state token or a pastel): white on them is 2.1 to 2.8:1, #0f1115 is 5.4:1 or more. */
+.kbs-sdot.done{background:var(--dsw-alias-state-success-primary,#22c55e);color:#0f1115;border:0}
 .kbs-sdot.next{border:2.5px solid var(--acc);background:transparent}
 .kbs-sdot.todo{border:2px solid var(--dsw-alias-border-l3,rgba(255,255,255,.18));background:transparent}
-.kbs-sdot.blocked{background:var(--acc);color:#fff;border:0}
+.kbs-sdot.blocked{background:var(--acc);color:#0f1115;border:0}
 .kbs-sl{font-size:12.5px;color:var(--dsw-alias-label-secondary,#cfd3d6);white-space:nowrap}
 .kbs-sl.todo{color:var(--dsw-alias-label-tertiary,#8a9096)}
 .kbs-sl.next,.kbs-sl.blocked{font-weight:600}
@@ -156,7 +157,7 @@ window.__ModuleLoader__.load({
 
 /* action principale + plan dry-run */
 .kbs-act{margin-top:14px}
-.kbs-btn{width:100%;height:40px;border:0;border-radius:12px;background:var(--acc);color:#fff;
+.kbs-btn{width:100%;height:40px;border:0;border-radius:12px;background:var(--acc);color:#0f1115;
   font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;padding:0 14px}
 .kbs-btn:hover{filter:brightness(1.1)}
 .kbs-hint{margin:6px 0 0;font-size:12.5px;line-height:1.4;color:var(--dsw-alias-label-tertiary,#8a9096);
