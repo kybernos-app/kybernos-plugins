@@ -156,3 +156,27 @@ node packages/kybernos-cloud/test-cloud-seam.mjs
 source scripts/sandbox/env.sh && scripts/sandbox/start.sh
 node scripts/check-mobile-remote-live.mjs --shots <dir>
 ```
+
+### Against the real server, and with a real phone
+
+The same live check runs against the REAL server instead of the stand-in relay (`--real`): `kybernos-server`'s
+`scripts/replica.ts` (the application on an embedded Postgres, stand-ins for payments and models, a made-up owner) behind
+a public https tunnel (`ngrok`, the person's own account). The phone page is then served from a real https origin, the plan
+that lists `remote` is published through the server's own admin API, and the DSH is connected by the device approval a
+person goes through. It adds the checks of what a stranger finds at the public address (the phone page and nothing else).
+
+```sh
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh
+export KYBERNOS_SERVER_DIR=<kybernos-server checkout, branch with the phone link>
+node scripts/check-mobile-remote-live.mjs --real --shots <dir>   # a headless Chrome plays the phone, through the tunnel
+node scripts/mobile-remote-up.mjs                                # the same set-up for a REAL phone: the QR code is drawn in the terminal
+```
+
+`mobile-remote-up.mjs` waits for the phone's 4-digit check, shows it, and asks `y/N` before it approves (the gesture the
+Settings page offers). Ctrl-C closes the tunnel and the server and puts the isolated DSH's files back. One thing a person
+sees only here: ngrok's free plan shows a one-time warning page on the first visit; tap « Visit Site ». It is the tunnel's,
+not the phone link's. Only one ngrok session can be online at a time on a free account.
+
+What this still does not prove: Safari on an iPhone and Chrome on an Android phone (the service worker and the WebSocket
+shim are the same code, but the engines are not), a phone that sleeps and wakes on another network, and a real deployment's
+origin (`REMOTE_PHONE_URL` on the platform, one replica).

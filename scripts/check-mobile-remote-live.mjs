@@ -4,19 +4,26 @@
 //
 //   source scripts/sandbox/env.sh && scripts/sandbox/start.sh        # an isolated instance serving this checkout
 //   node scripts/check-mobile-remote-live.mjs [--shots <dir>]
+//   KYBERNOS_SERVER_DIR=<kybernos-server checkout> node scripts/check-mobile-remote-live.mjs --real [--shots <dir>]
+//
+// Without --real the relay is the stand-in of the bundle. With --real it is the REAL Kybernos server (the application on an
+// embedded Postgres, scripts/replica.ts there) behind a public https tunnel (ngrok): the phone page is served from a real https
+// origin, the plan that lists the phone link is published through the server's own admin API, and the DSH is connected the way a
+// person's is (device approval). The relay's side of the conversation is then only what the server itself answers.
 //
 // It writes a server entry and a connection into the isolated instance (and puts them back), never into the real DSH.
 // The host half only loads when that instance starts: restart it (scripts/sandbox/stop.sh, then start.sh) after a host edit.
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { connect } from './cdp-lib.mjs'
 import { openLivePage, waitFor } from './live-page.mjs'
-import { startFakeRelay } from '../packages/kybernos-mobile/remote-fake-relay.mjs'
+import { startBackend } from './lib-mobile-remote-backend.mjs'
 
 const args = process.argv.slice(2)
 const shotsDir = args.indexOf('--shots') >= 0 ? args[args.indexOf('--shots') + 1] : null
+const REAL = args.includes('--real')
 const HOST = process.env.KB_HOST || '127.0.0.1:3080'
 const DSH_HOME = process.env.DSH_HOME || ''
 if (HOST === '127.0.0.1:3080') { console.error('✗ this check pairs a phone with the DSH it talks to, and that is the real one (127.0.0.1:3080). Use the isolated instance (scripts/sandbox/).'); process.exit(2) }
@@ -29,17 +36,9 @@ const check = (name, ok, detail) => {
   if (ok === true) { pass += 1; console.log('  ✓ ' + name) } else { fail += 1; console.log('  ✗ ' + name + (detail === undefined ? '' : ' — ' + JSON.stringify(detail).slice(0, 300))) }
 }
 
-// ── the stand-in relay and server ────────────────────────────────────────────────────────────────────────────────
-const relay = await startFakeRelay({ entitled: true, maxDevices: 4 })
-const SERVERS = join(DSH_HOME, 'kybernos', 'servers.json')
-const STATE = join(DSH_HOME, 'kybernos-cloud-live-mobile.json')
-const keep = (file) => { if (existsSync(file)) { const bak = file + '.live-mobile-bak'; renameSync(file, bak); return bak } return null }
-const unkeep = (file, bak) => { rmSync(file, { force: true }); if (bak !== null) renameSync(bak, file) }
-const bakServers = keep(SERVERS)
-const bakState = keep(STATE)
-mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true })
-writeFileSync(SERVERS, JSON.stringify({ active: 'live-mobile', servers: [{ id: 'live-mobile', name: 'Live stand-in', api: relay.url, web: relay.url, services: { llm: false } }] }))
-writeFileSync(STATE, JSON.stringify({ token: 'kyd-live-mobile-token', user: { id: 'u1', name: 'Live Tester', plan: 'solo' }, workspaces: [] }))
+// ── what the phone link talks to, and the isolated DSH pointed at it ────────────────────────────────────────────
+const backend = await startBackend({ real: REAL, serverDir: process.env.KYBERNOS_SERVER_DIR, log: (m) => console.log('  . ' + m) }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
+const ORIGIN = backend.phoneOrigin
 
 // ── a second, signed-out browser: the phone ──────────────────────────────────────────────────────────────────────
 async function openPhone () {
@@ -56,12 +55,36 @@ async function openPhone () {
   const page = await connect(target)
   await page.send('Runtime.enable', {})
   await page.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 2, mobile: true })
+  // ngrok's free plan puts a one-time warning page in front of what looks like a browser's first visit (a person taps through it once).
+  // This check says what it is instead, so the page under test is the one that answers.
+  if (REAL) {
+    await page.send('Network.enable', {})
+    await page.send('Emulation.setUserAgentOverride', { userAgent: 'KybernosPhoneCheck/1.0 (iPhone; headless)' })
+    await page.send('Network.setExtraHTTPHeaders', { headers: { 'ngrok-skip-browser-warning': '1' } })
+  }
   return { page, close: async () => { try { page.close() } catch (e) { /* gone */ } try { chrome.kill() } catch (e) { /* gone */ } await sleep(300); try { rmSync(profile, { recursive: true, force: true }) } catch (e) { /* busy */ } } }
 }
 
 let desktop = null
 let phone = null
 try {
+  if (REAL) {
+    // What a stranger finds at the public address: the phone page and the relay, nothing of the API behind them.
+    console.log('the public address')
+    const get = async (base, path) => { try { return await fetch(base + path, { headers: { 'ngrok-skip-browser-warning': '1' }, redirect: 'manual' }) } catch (e) { return null } }
+    const pagePublic = await get(ORIGIN, '/__kb/')
+    check('it is https', ORIGIN.startsWith('https://'), ORIGIN)
+    check('it serves the phone page', pagePublic !== null && pagePublic.status === 200 && /html/u.test(pagePublic.headers.get('content-type') || ''))
+    check('and it is not cached anywhere', pagePublic !== null && /no-store/u.test(pagePublic.headers.get('cache-control') || ''))
+    for (const path of ['/healthz', '/v1/me', '/v1/remote/devices', '/api/auth/get-session', '/admin']) {
+      const r = await get(ORIGIN, path)
+      check('it serves nothing else: ' + path + ' is 404', r !== null && r.status === 404, r === null ? null : r.status)
+    }
+    const apiPage = await get(backend.api, '/__kb/')
+    check('the API\'s own address does not serve the phone page', apiPage !== null && apiPage.status === 404, apiPage === null ? null : apiPage.status)
+    const lim = await backend.remoteStatus()
+    check('the server says the link is configured and the plan has it', lim.configured === true && lim.entitled === true, lim)
+  }
   desktop = await openLivePage({ width: 1300, height: 900 }).catch((e) => { console.error('○ inconclusive: ' + e.message); process.exit(3) })
   const D = desktop.page
   const ev = async (page, js, ms) => { const r = await page.evalJs(js, ms || 8000); return r.err ? { __err: r.err } : r.val }
@@ -99,8 +122,8 @@ try {
     return r.length ? r[0].rawValue : null
   })()`
   const link = await ev(D, decode, 15000)
-  check('Chrome decodes the QR code into the pairing link', typeof link === 'string' && new RegExp('^' + relay.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/__kb/#[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{80,}$').test(link), typeof link === 'string' ? link.slice(0, 80) : link)
-  check('the server was asked for exactly one pairing', relay.state.authCalls.filter((c) => c === 'POST /v1/remote/pairings').length === 1, relay.state.authCalls)
+  check('Chrome decodes the QR code into the pairing link', typeof link === 'string' && new RegExp('^' + ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/__kb/#[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{16,}\\.[A-Za-z0-9_-]{80,}$').test(link), typeof link === 'string' ? link.slice(0, 80) : link)
+  if (backend.pairingsAsked() !== null) check('the server was asked for exactly one pairing', backend.pairingsAsked() === 1, backend.pairingsAsked())
 
   // 2. the settings page, reached from the panel
   console.log('Settings › Mobile')
@@ -142,14 +165,13 @@ try {
   check('its composer is there', dom !== null && dom.composer === true)
   const kb = JSON.parse(await ev(P, `JSON.stringify(window.__kb)`))
   check('requests and the streaming socket went through the tunnel', kb.req > 20 && kb.wsOpen >= 1 && kb.wsMsgs >= 1, kb)
-  const sealed = relay.state.samples.filter((s) => !s.startsWith('{'))
-  check('the relay saw only ciphertext after the handshake', relay.state.framesBinary > 50 && sealed.length > 40 && sealed.every((s) => !/"t"\s*:|<html|"method"/u.test(s)))
+  if (backend.ciphertextOnly() !== null) check('the relay saw only ciphertext after the handshake', backend.ciphertextOnly() === true)
   await shot(P, '4-running-phone')
 
   // 4. the phone page is reloaded: no QR code any more, the paired phone resumes by itself
   console.log('the phone comes back')
   const firstLoadBytes = kb.bytes
-  await P.send('Page.navigate', { url: relay.url + '/__kb/' })
+  await P.send('Page.navigate', { url: ORIGIN + '/__kb/' })
   const back = await until(P, `window.__kb && window.__kb.state === 'running'`, 30000)
   check('reloading the phone page resumes with no new code and no approval', back === true, await ev(P, `JSON.stringify(window.__kb || null)`))
   await sleep(4000)
@@ -171,13 +193,13 @@ try {
   await click(D, '[data-kb="mobile-revoke-confirm"]')
   const revoked = await until(P, `window.__kb.state === 'revoked'`, 20000)
   check('revoking cuts the phone off', revoked === true, await ev(P, `JSON.stringify(window.__kb.state)`))
-  check('the server forgot the device', relay.state.devices.size === 0)
+  check('the server forgot the device', (await backend.serverDevices()) === 0)
   check('the list is empty again', await until(D, `document.querySelectorAll('[data-kb="mobile-device"]').length === 0`, 10000))
   await shot(P, '6-revoked-phone')
 
   // 6. a plan without the feature
   console.log('a plan without the phone link')
-  relay.state.entitled = false
+  await backend.setPhoneLink(false)
   await click(D, '[data-kb="mobile-new-code"]')
   await sleep(300)
   await ev(D, `(() => { const b = document.querySelector('[data-kb="mobile-pair"]'); if (b) b.click(); return !!b })()`)
@@ -191,9 +213,7 @@ try {
 } finally {
   if (phone !== null) await phone.close()
   if (desktop !== null) await desktop.close()
-  await relay.close()
-  unkeep(SERVERS, bakServers)
-  unkeep(STATE, bakState)
+  await backend.close()
 }
 console.log('\n' + pass + ' passed, ' + fail + ' failed')
 process.exit(fail === 0 ? 0 : 1)
