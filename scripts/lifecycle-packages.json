@@ -46,6 +46,10 @@
       "nom": "@local/kybernos-flow"
     },
     {
+      "dir": "kybernos-free-llms",
+      "nom": "@local/kybernos-free-llms"
+    },
+    {
       "dir": "kybernos-composio",
       "nom": "@local/kybernos-composio"
     },

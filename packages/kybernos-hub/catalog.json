@@ -643,6 +643,55 @@
       }
     },
     {
+      "id": "kybernos-free-llms",
+      "nom": "@local/kybernos-free-llms",
+      "titre": "Free LLMs",
+      "glyphe": "doc",
+      "famille": "models",
+      "palier": "core",
+      "version": "1.0.0",
+      "socle": false,
+      "defaut": "actif",
+      "poids_ko": 74,
+      "promesse": {
+        "fr": "Modèles gratuits OpenCode Zen, sans compte ni clé API.",
+        "en": "Free OpenCode Zen models, no account or API key."
+      },
+      "aide": {
+        "what": {
+          "fr": "Branche des modèles de langage gratuits sur DSH, sans compte ni clé API, en passant par la couche gratuite d’OpenCode Zen.",
+          "en": "Wires free language models into DSH with no account or API key, through OpenCode Zen’s free tier."
+        },
+        "steps": [
+          {
+            "fr": "La page liste les modèles gratuits disponibles en ce moment, lus directement depuis OpenCode.",
+            "en": "The page lists the free models available right now, read straight from OpenCode."
+          },
+          {
+            "fr": "Cochez « J’ai compris que mes prompts peuvent être conservés », puis « Brancher sur DSH » : le fournisseur et ses modèles sont créés.",
+            "en": "Tick “I understand my prompts may be retained”, then “Connect to DSH”: the provider and its models are created."
+          },
+          {
+            "fr": "« Tester un modèle » vérifie que la couche gratuite répond encore, et l’affiche en clair — y compris quand OpenCode la verrouille.",
+            "en": "“Probe a model” checks the free tier still answers, and says so plainly — including when OpenCode locks it."
+          },
+          {
+            "fr": "« Retirer » enlève le fournisseur sans rien supprimer d’autre.",
+            "en": "“Remove” takes the provider away without touching anything else."
+          }
+        ],
+        "where": {
+          "fr": "Réglages › Free LLMs (OpenCode)",
+          "en": "Settings › Free LLMs (OpenCode)",
+          "page": true
+        },
+        "good": {
+          "fr": "Rien n’est envoyé sans votre action. Modèles gratuits : les prompts peuvent être conservés, n’y mettez rien de sensible.",
+          "en": "Nothing is sent without your action. Free models: prompts may be retained, so do not put anything sensitive there."
+        }
+      }
+    },
+    {
       "id": "kybernos-composio",
       "nom": "@local/kybernos-composio",
       "titre": "Connectors",

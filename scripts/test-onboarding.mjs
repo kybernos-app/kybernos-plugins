@@ -77,7 +77,7 @@ eq('an unknown key answers itself', T('en', 'nope.nothing'), 'nope.nothing')
 /* ── 5. The steps ────────────────────────────────────────────────────────── */
 eq('three numbered steps when no model works yet', mod.kbObPlan(false), ['job', 'mode', 'model'])
 eq('the model step drops out when one works', mod.kbObPlan(true), ['job', 'mode'])
-eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(10).fill('model'))
+eq('screens of the model step share one number', ['model', 'key', 'key-done', 'local', 'local-install', 'local-done', 'local-err', 'free', 'cloud-wait', 'cloud-ok', 'cloud-err'].map((s) => mod.kbObStepOf(s)), Array(11).fill('model'))
 eq('welcome and the end screens have no number', ['welcome', 'done', 'later'].map((s) => mod.kbObStepOf(s)), [null, null, null])
 eq('back goes one screen up', ['job', 'mode', 'model', 'key', 'local', 'local-err', 'cloud-wait', 'cloud-err'].map((s) => mod.kbObBack(s)), ['welcome', 'job', 'mode', 'model', 'model', 'local', 'model', 'model'])
 eq('there is no back from welcome, from the end, mid-download, or once something is connected',
@@ -130,8 +130,8 @@ eq('the card puts the message back, it does not send it', /kbPrefillDraft\(need\
 eq('the UI block holds no personal path', /\/Users\//.test(core[1] + ui[1]), false)
 eq('the old wizard\'s texts are gone from the dictionary', /'ob\.(bienvenue|metier|slogan|suivant)/.test(src), false)
 eq('Arabic is a right-to-left base of the app too', /KB_RTL_BASES = \[[^\]]*'ar'/.test(src), true)
-eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
-  ['/kybernos-cloud/disconnect', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status', '/kybernos-models/key/check',
+eq('the wizard never calls a host route it does not know', [...ui[1].matchAll(/'(\/(?:kybernos-cloud|kybernos-models|kybernos|modeles-locaux|free-llms)[^']*)'/g)].map((m) => m[1]).filter((p, i, a) => a.indexOf(p) === i).sort(),
+  ['/free-llms/auto-enable', '/kybernos-cloud/disconnect', '/kybernos-cloud/poll', '/kybernos-cloud/start', '/kybernos-cloud/status', '/kybernos-models/key/check',
     '/kybernos/model/auto', '/modeles-locaux/annuler', '/modeles-locaux/installation', '/modeles-locaux/installer', '/modeles-locaux/machine'])
 // The pages it hands over to are named by the id the Settings nav gives them (language-proof), and must be ids that nav knows.
 const navKeys = src.match(/const KB_NAV_KEYS = \{([\s\S]*?)\n\}/)[1]
