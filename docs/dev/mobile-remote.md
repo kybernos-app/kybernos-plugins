@@ -120,6 +120,12 @@ The phone page does not care which: it reads the sid from the QR fragment and fr
 refuses to start with the API's own host as the phone origin (`REMOTE_PHONE_URL`), because the service worker takes
 over every request of the origin it is served from.
 
+**Decision (owner, 2026-10-12): launch with ONE origin** (for example `https://phone.kybernos.app`; the name is the owner's).
+One certificate, one DNS record, nothing to provision per pairing. The price is the second bullet above: a phone keeps one
+computer, and pairing another replaces the first. The wildcard (`<sid>.m.…`) stays possible later with no change to the
+page. What the owner sets for the launch: the DNS name pointing at the server, `REMOTE_PHONE_URL=https://<that name>`, and one
+replica (the relay's rooms live in memory). The end user installs nothing and sees an ordinary https link in the QR code.
+
 The phone page files the web origin must serve (all from `packages/kybernos-mobile/`, byte for byte):
 
 | URL | File |
