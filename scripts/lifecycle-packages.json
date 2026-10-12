@@ -140,6 +140,10 @@
     {
       "dir": "kybernos-terminal",
       "nom": "@local/kybernos-terminal"
+    },
+    {
+      "dir": "kybernos-usage",
+      "nom": "@local/kybernos-usage"
     }
   ]
 }

@@ -13,7 +13,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 ## What the user sees
 
 - Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Kybers** (gallery and Marketplace tabs, create / edit / info pages,
-  Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron and webhook tasks) and **Resources**
+  Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron, one-time and webhook tasks, as **Columns**, **Calendar** or **List**) and **Resources**
   (Connectors tab only when `@local/kybernos-composio` is booted, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
   Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
 - In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,
@@ -38,11 +38,48 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Teams, projects | `load` `yaml` `save` `create` `ui-save` `menu-save` `active-set` `project-data` `workspace-ui-save` `workspace-skills` `pins` `share` `avatar*` `member-*` `team-portraits` `team-cap` `yml-proposer` `yml-appliquer` |
 | Runs, insight | `runs` `runs-index` `calls` `calls-index` `search-content` `insight` `insight-save` `workspace-usage` `quality*` `aa` `ws-console-key` `starters-suggest` `compaction` `salary-detect` (purpose not verified) |
 | Deliverables | `art-origin\|read\|previews\|reveal\|raw\|action\|progress\|load` `doc-raw` |
-| Automations | `tasks` (POST; scheduler ticks every 30 s), `hooks` (public webhook: secret + 60/h default limit) |
+| Automations | `tasks` (POST; scheduler ticks every 30 s), `tasks/occurrences` (GET `?from=&to=`, read-only: when the active scheduled automations will run, see "The Automations board"), `hooks` (public webhook: secret + 60/h default limit) |
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
 | Language, static | `i18n-{translate,models,store}` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
+
+## The Automations board
+
+The Automations page has three views behind one switch in the shared toolbar: **Columns**, **Calendar** and **List**. The List is the
+screen that was there before and is still the default; the choice is kept per browser (`kybernos.toolbar.automations`), and an older
+stored `cards` reads as `list`. Search, facets and favourites of the toolbar apply to all three.
+
+- **Columns** are states of RUNS, not a ranking (nothing is draggable): *Upcoming* (the stored next run of each active scheduled
+  automation), *Running*, *To approve* (a run the engine holds for a person, then the last run of an automation when it failed, 7
+  days) and *Done, last 7 days*. A webhook-only automation has no time: it is a chip above the columns. Paused ones are counted in a
+  footnote, not drawn. Actions: Run now (the existing `run-now`), See session, Approve / Refuse, Retry, See journal.
+- **Calendar**: a week (default) or a month of days in the browser's zone. Past runs come from each automation's `history`, planned
+  runs from `GET /kybernos/tasks/occurrences`; several runs of one automation in a day fold into "name ×N". A click opens a strip with
+  the run, its state and the same actions. A day of the month grid opens its week.
+- **States**: skeleton while the host has not answered; the existing first-automation screen when there is none (it names the
+  `automation-creator` interview); a banner with a retry when the host stops answering or when an automation is more than three
+  minutes overdue (the scheduler is not running); columns and week stack on a narrow panel, the month stays a grid.
+
+What it knows, and where from (nothing is invented; what it cannot know it says):
+
+| Fact | Source | When it is not known |
+| --- | --- | --- |
+| a run, its time, "failed" and its reason | `history` of `tasks.json` (last 20 entries per automation) | a day with no entry has no run: a past slot is never drawn as done |
+| a future run | `tasks/occurrences`, expanded with the scheduler's own matcher (`kbComputeNextRun`, same code as the tick) | the page shows the past and each stored next run; a note says the plan is unavailable |
+| "can never fire" (a date that passed, `0 0 31 2 *`) | the same matcher, `kbNeverRuns`, with the scheduler's own message | |
+| running, waiting for an approval, a question, a plan review | the engine's session status in the browser (`uiSession.sessionStatus` and `sessions.list`), the data its own sidebar shows; played live against a real engine with a stub model (`check-automations-board-live.mjs --stub-model`) | a session the page cannot see (deleted, not listed yet) is "started": no outcome is claimed and no button leads nowhere |
+| ended | the engine lists the session and it is neither running nor waiting | said as "the session has ended", never as "succeeded": the board cannot read the result |
+
+Not available: the team or kyber an automation belongs to (`tasks.json` has no such field, so the card shows its approval mode),
+costs (a separate plugin will own them), a run's duration and its outcome beyond the above, and runs older than the last 20 of an
+automation. Approve / Refuse answer the request the engine holds, with the same call as its own approval panel, and only exist while
+that request is pending in this browser: with no page open, such a run waits (README "Automation approvals" below).
+
+The route is bounded: a window of at most 45 days, 200 runs per automation, 1000 in all, 800 ms. A schedule too dense to list is
+reported as truncated with the instant the list stops. It reads `tasks.json` and writes nothing; it has the guard of `tasks`
+(same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
+(host) and the `KB-AUTOBOARD` block of `client.js` (browser).
 
 ## Files, settings, env
 
@@ -156,6 +193,10 @@ node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtim
 node scripts/test-pins-host.mjs                        # KB-PINS-CORE block of index.js
 node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cron, validation, store, trigger
 node packages/kybernos-plugin/test-automation-creator.mjs  # 64: the shipped skill's script, run with sh on a temp DSH_HOME (lock, stale lock, ten writers at once)
+node packages/kybernos-plugin/test-automation-occurrences.mjs  # the future runs: the same instants as the scheduler's matcher, bounds, what cannot fire
+node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD block: columns, week and month grids, what the page refuses to claim, texts in both languages
+node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
+node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the three views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
 node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)
 node scripts/test-shipped-skills-wiring.mjs            # the real index.js seeds under DSH_HOME, not under the other HOME
 node scripts/test-automation-creator-parity.mjs        # the skill validates crons and zones exactly like the scheduler

@@ -213,6 +213,19 @@ host's `fichiers`, the four pills stepping aside), every state through the seam,
 window and the seam missing. **Every POST of `/kybernos-sessions/*` is answered inside the page by the check** (fail-closed):
 the sandbox runs git in the user's real repository folder, so a real commit must be impossible, whatever the page asks.
 
+## The Usage plugin: `scripts/check-usage-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-usage-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (exit 3 against `:3080`). It reports six sessions through the real `/kybernos-usage/observe` route (own key, local
+model, Kybernos model) and checks the booking (a first sight is a baseline, the next report a delta on today, the plan model
+kept apart), then opens Settings › Usage and checks the plan block (not signed in), the by-model and by-session lists, the
+period switch, the budget saved through the real route, a 390 px window and the absence of console errors. The chip is only
+checked to stay absent: a sandbox has no key, so no turn and no `tokenUsage`; the chip drawn from a real turn is seen once on a
+keyed machine. The only thing written is the sandbox's own usage ledger.
+
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
 ```bash
@@ -615,6 +628,34 @@ receives, and nothing else), adding an app with an API key (the key reaches the 
 the page or in the browser's storage), a refused add that may have gone through (one call, then « check the list »), a
 second request for an app that is already waiting, removing, the quota, the sign-in shown when the account is not connected
 (and the new token used afterwards) and the mode gone when the server stops offering it. Exit 0 / 1 / 3.
+
+## The Automations board: `scripts/check-automations-board-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && scripts/sandbox/start.sh     # an isolated instance serving this checkout (restart it after a host edit)
+node scripts/check-automations-board-live.mjs [--shots <dir>] [--stub-model]
+```
+
+The three views of the Automations page (Columns, Calendar, List). It **refuses to run against 127.0.0.1:3080 and against any
+`DSH_HOME` that is not under `.kybernos-sandbox`**: it writes the instance's `kybernos/tasks.json` (seven automations: a daily, a
+weekly, an every-6-hours, a one-time, a webhook-only, a failing one, a paused one; the scheduler adopts them, which is the real
+path) and puts the file back. It plays, on real clicks: the switch and its persisted choice (a stored `cards` opens the List), the
+columns and what each holds, the calendar (week, month, folding, planned runs, the detail strip, previous / today / next), 375 px,
+the host held back or refused over CDP `Fetch` (loading skeleton, banner and retry), French, an automation that can never fire,
+the empty page, and **« Run now »**: the host starts a real session, and the board must say no more than the engine's own sidebar.
+
+`--stub-model` adds what a real model makes rare, with a **stub OpenAI-compatible endpoint started by the check**: it adds a
+`kbstub` provider to the *sandbox's* `cordis.patch.yml` (the original is copied back afterwards), restarts the sandbox with
+`KB_STUB_KEY` set, and plays a model that never answers (the run is *running*, and the engine's sidebar says « Running »), then a
+model that calls `bash` with `sandbox_permissions` (the engine turns it into an approval request: the run *waits*, the card shows the
+engine's own words, the sidebar says « Waiting for approval »), answered once with Refuse and once with Approve. The check reads
+what the model got back (a refusal, then the output of `echo`). It restarts the sandbox twice, so the browser page is reloaded.
+
+Without `--stub-model` a run that is running or waiting is not seen live: the pure test `test-automation-board.mjs` covers the
+mapping from the engine's structures. In a sandbox with no model key a run ends at once, so « Run now » alone only ever shows
+`ended`. The board's own `data-kb` hooks: `board-columns`, `board-col` (`data-col`), `board-card` (`data-col`, `data-state`,
+`data-task`), `board-calendar`, `board-week`, `board-day`, `board-event`, `board-month`, `board-mcell`, `board-detail`,
+`board-banner`, `board-action` (`data-act`). Exit 0 / 1 / 3.
 
 ## The Creations, Kybers and Skills pages, and the skeleton screens: `scripts/check-pages-live.mjs`
 
