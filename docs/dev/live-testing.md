@@ -98,6 +98,14 @@ confirmation, a right-to-left language, DSH's own screens following the language
 the DSH language selector listing it, hardcoded settings pages translated live,
 and the stored-language restore described above. Exit code 0 / 1 / 3.
 
+The two resume checks (after a failure half-way, and an older installation that holds the Kybernos tables only) hold no
+constant about the size of the corpus, which grows with every bundle and every DSH version (DSH's own dictionaries are about
+half of it): they compare what the run **sent** with what the row says is **left** (`total − kept`), and fail if any text
+the language already held went out again. The stub keeps the wire names of every batch (`__KB_TEST__.batches[].keys`) for that,
+and a run's own batches (`source: 'fr'`) are told apart from the live layer's (`source: 'auto'`).
+On a **fresh sandbox** two checks read ✗ by design, « the account menu … is translated live » and « the chat and session
+titles are never touched »: they need a signed-in account and existing chats, which a sandbox does not have.
+
 The page carries stable hooks for this: `[data-lang="<id>"]` on a row,
 `[data-act="start|pause|use|use-now|menu|remove|…"]` on its buttons,
 `[data-iso="<code>"]` on the picker entries. Use them instead of clicking by text:
