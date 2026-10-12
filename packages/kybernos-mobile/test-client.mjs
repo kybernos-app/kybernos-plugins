@@ -250,4 +250,88 @@ console.log('a phone lying down')
   disposer()
 }
 
+
+console.log('the "..." sheet: what a phone parked')
+{
+  // pure helpers, on fake elements
+  const mk = (label, parked, extra) => {
+    const parent = { parentElement: null, st: { position: parked ? 'fixed' : 'static', opacity: parked ? '0' : '1' } }
+    const el = Object.assign({ parentElement: parent, st: { position: 'static', opacity: '1' }, getAttribute: (k) => (k === 'aria-label' ? label : null), closest: () => null, textContent: label }, extra || {})
+    return el
+  }
+  const dom = makeDom({ collapsed: true })
+  const t = load(dom).factory().__test
+  const styleOf = (e) => e.st
+  const parkedEl = mk('Share…', true)
+  const shownEl = mk('More actions', false)
+  const dupEl = mk('Share…', true)
+  const finderEl = mk('Open in Finder', true, { closest: (sel) => (sel === '[data-open-target]' ? {} : null) })
+  const root = { querySelectorAll: () => [parkedEl, shownEl, dupEl, finderEl] }
+  const out = t.parkedActions(root, styleOf)
+  check('only parked actions are listed', out.length === 1 && out[0].label === 'Share…', out.map((x) => x.label))
+  check('"open in Finder" is never offered on a phone', !out.some((x) => /Finder/.test(x.label)))
+  check('an element is parked when an ancestor is fixed and invisible', t.isParked(parkedEl, styleOf) === true && t.isParked(shownEl, styleOf) === false)
+  check('a style that cannot be read means "not parked"', t.isParked({ parentElement: null }, () => { throw new Error('gone') }) === false)
+  check('the selectors name DSH\'s stable slots, not hashed classes', /conversation\.session\.header\.actions/.test(t.ACTION_BUTTONS) && /data-composer-card/.test(t.ACTION_BUTTONS) && !/\._[A-Za-z0-9]{4,}_/.test(t.ACTION_BUTTONS))
+}
+{
+  // the tap on "More actions": the sheet opens, a row clicks the parked action, the last row hands over to DSH's menu
+  const dom = makeDom({ collapsed: true })
+  const clicks = []
+  const parked = { tag: 'button', parentElement: { parentElement: null, st: { position: 'fixed', opacity: '0' } }, st: { position: 'static', opacity: '1' }, getAttribute: (k) => (k === 'aria-label' ? 'Share…' : null), closest: () => null, textContent: 'Share…', querySelector: () => null, click () { clicks.push('share') } }
+  const more = { tag: 'button', closest: (sel) => (sel === '[data-slot="conversation.session.header.utilities"] button' ? more : null), click () { clicks.push('more') } }
+  const realQuery = dom.doc.querySelector
+  dom.doc.querySelectorAll = (sel) => (/conversation\.session\.header\.actions/.test(sel) ? [parked] : [])
+  dom.body.removeChild = undefined
+  const plugin = load(dom).factory()
+  let disposer = null
+  globalThis.window.getComputedStyle = (e) => e.st
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const watcher = dom.listeners.filter((l) => l.ev === 'click' && l.cap === true)
+  let prevented = false; let stopped = false
+  const ev = { target: more, preventDefault () { prevented = true }, stopPropagation () { stopped = true } }
+  watcher.forEach((l) => l.fn(ev))
+  const panel = dom.body.children.find((c) => c.className === 'kbmob-sheet')
+  check('a tap on "More actions" opens the sheet instead of DSH\'s menu', panel !== undefined && prevented === true && stopped === true)
+  check('the sheet lists the parked action and DSH\'s own menu last', panel !== undefined && panel.children.length >= 4, panel && panel.children.map((c) => c.className))
+  const rows = panel.children.filter((c) => c.className === 'kbmob-sheet-row')
+  await new Promise((r) => { rows[0].listeners.find((l) => l.ev === 'click').fn({ stopPropagation () {} }); setTimeout(r, 120) })
+  check('a row clicks the parked action', clicks.indexOf('share') >= 0, clicks)
+  check('the sheet closed with it', dom.body.children.find((c) => c.className === 'kbmob-sheet') === undefined || dom.body.children.find((c) => c.className === 'kbmob-sheet').removed === true)
+  // second open, last row: DSH's own menu, and our watcher lets that click through
+  watcher.forEach((l) => l.fn({ target: more, preventDefault () {}, stopPropagation () {} }))
+  const panel2 = dom.body.children.filter((c) => c.className === 'kbmob-sheet').pop()
+  const rows2 = panel2.children.filter((c) => c.className === 'kbmob-sheet-row')
+  await new Promise((r) => { rows2[rows2.length - 1].listeners.find((l) => l.ev === 'click').fn({ stopPropagation () {} }); setTimeout(r, 120) })
+  check('the last row clicks DSH\'s own "More actions" button', clicks.indexOf('more') >= 0, clicks)
+  void realQuery
+  disposer()
+}
+{
+  // nothing parked (a page without a conversation): DSH's menu is left alone
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom).factory()
+  let disposer = null
+  globalThis.window.getComputedStyle = (e) => e.st
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  const more = { closest: (sel) => (/utilities/.test(sel) ? more : null) }
+  let prevented = false
+  dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: more, preventDefault () { prevented = true }, stopPropagation () {} }))
+  check('with nothing parked the tap goes through to DSH', prevented === false && dom.body.children.every((c) => c.className !== 'kbmob-sheet'))
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  dom.doc.querySelectorAll = () => []
+  const plugin = load(dom, { narrow: false }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  let prevented = false
+  const more = { closest: (sel) => (/utilities/.test(sel) ? more : null) }
+  dom.listeners.filter((l) => l.ev === 'click' && l.cap === true).forEach((l) => l.fn({ target: more, preventDefault () { prevented = true }, stopPropagation () {} }))
+  check('on a wide screen the sheet never opens', prevented === false)
+  disposer()
+}
+
 process.exit(failed === 0 ? 0 : 1)
