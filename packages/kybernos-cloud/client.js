@@ -788,7 +788,10 @@ window.__ModuleLoader__.load({
 .kbfp-mlab{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kbfp-mext{flex:none;color:var(--dsw-alias-label-tertiary)}
 .kbfp-mamber > svg{color:var(--dsw-alias-state-warn-primary)}
-.kbfp-mout{color:var(--dsw-alias-state-error-primary)}
+/* the amber token is a fill: 2.2:1 on white as the gift icon of the menu */
+body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary))}
+/* the plain error token is 4.2:1 on the dark menu; mixed 20% toward the text colour it is 5.5:1 there and 6.3:1 on white */
+.kbfp-mout{color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 80%,var(--dsw-alias-label-primary))}
 .kbfp-mout > svg{color:inherit}
 .kbfp-seg{display:flex;gap:2px;padding:2px;border-radius:8px;background:var(--dsw-alias-bg-base)}
 .kbfp-seg button{width:28px;height:24px;padding:0;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary);display:flex;align-items:center;justify-content:center;cursor:pointer}
@@ -1918,6 +1921,8 @@ window.__ModuleLoader__.load({
                     type: 'button', key: String((w && w.id) || i),
                     className: 'kbfp-wsitem' + (on === true ? ' on' : ''),
                     role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
+                    // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
+                    title: (w && nomAffiche(w, t)) || undefined,
                     onClick: () => { void choisir(w && w.id) },
                   },
                   h('span', { className: 'kbfp-wstile', 'aria-hidden': 'true' }, initiales(w && w.name, '')),
@@ -1949,6 +1954,8 @@ window.__ModuleLoader__.load({
                   return h('button', {
                     type: 'button', key: String((w && w.id) || i), className: 'kbs-item',
                     role: 'menuitem', 'aria-current': on ? 'true' : 'false', disabled: busy,
+                    // The name is cut with an ellipsis in a narrow list: the title is the only way to read a long one in full.
+                    title: (w && nomAffiche(w, t)) || undefined,
                     onClick: () => { void choisir(w && w.id) },
                   },
                   h('span', { className: 'kbf-avatar', 'aria-hidden': 'true' }, initiales(w && w.name, '')),

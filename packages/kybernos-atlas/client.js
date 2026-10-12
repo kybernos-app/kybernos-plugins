@@ -900,7 +900,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
 .kbat-mono{font-family:var(--ds-font-family-code,ui-monospace,Menlo,monospace);font-size:11.5px}
 .kbat-acts{display:flex;flex-wrap:wrap;gap:6px}
 .kbat-acts .kbat-btn{height:28px;padding-inline:12px;font-size:12px}
-.kbat-ro{margin:0;color:var(--dsw-alias-label-caption);font-size:12px}
+.kbat-ro{margin:0;color:var(--dsw-alias-label-tertiary);font-size:12px}
 .kbat-list{max-height:78vh;min-height:420px;overflow:auto}
 .kbat-listbar{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--dsw-alias-border-l1);position:sticky;top:0;background:var(--dsw-alias-bg-layer-1);z-index:2}
 .kbat-filter{flex:1;max-width:340px}

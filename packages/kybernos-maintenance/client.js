@@ -110,12 +110,15 @@ window.__ModuleLoader__.load({
 .kbmz-dot{width:10px;height:10px;border-radius:5px;flex:none;margin-top:5px;background:var(--kbmz-tdot)}
 .kbmz-status-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
 .kbmz-kicker{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--kbmz-tc)}
+/* Light scheme: the tone colours are fills-grade (amber 2.6:1, green 2.6:1 on the pale tint); mixed toward the text colour. */
+body:not([data-ds-dark-theme]) .kbmz-kicker{color:color-mix(in srgb,var(--kbmz-tc) 55%,var(--dsw-alias-label-primary))}
 .kbmz-verdict{font-size:14px;line-height:1.45;color:var(--dsw-alias-label-primary)}
 .kbmz-problemes{margin:4px 0 0;padding-inline-start:18px;font-size:13px;color:var(--dsw-alias-label-primary)}
 .kbmz-problemes li{margin:3px 0}
 .kbmz-status[data-tone="ok"]{--kbmz-ton:rgba(52,199,89,.35);--kbmz-tbg:rgba(52,199,89,.08);--kbmz-tc:#2fae52;--kbmz-tdot:#34c759}
 .kbmz-status[data-tone="info"]{--kbmz-ton:rgba(59,158,255,.38);--kbmz-tbg:rgba(59,158,255,.08);--kbmz-tc:#3b9eff;--kbmz-tdot:#3b9eff}
 .kbmz-status[data-tone="warn"]{--kbmz-ton:rgba(245,165,36,.4);--kbmz-tbg:rgba(245,165,36,.08);--kbmz-tc:#d98a0b;--kbmz-tdot:#f5a524}
+body[data-ds-dark-theme] .kbmz-status[data-tone="warn"]{--kbmz-tc:#f5a524}
 .kbmz-status[data-tone="bad"]{--kbmz-ton:rgba(255,92,92,.4);--kbmz-tbg:rgba(255,92,92,.08);--kbmz-tc:#e5484d;--kbmz-tdot:#ff5c5c}
 /* Three key numbers */
 .kbmz-tuiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}

@@ -114,6 +114,8 @@ window.__ModuleLoader__.load({
         ".kfl-titre { margin: 0; font-size: 18px; line-height: 1.3; font-weight: 600; letter-spacing: -.01em; color: var(--dsw-alias-label-primary); }\n" +
         ".kfl-soustitre { margin: 6px 0 14px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.5; }\n" +
         ".kfl-avertis { margin: 0 0 14px; padding: 10px 12px; border: 0.5px solid color-mix(in srgb, var(--dsw-alias-state-warn-primary) 35%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 8%, transparent); color: var(--dsw-alias-state-warn-label, var(--dsw-alias-state-warn-primary)); font-size: 13px; line-height: 1.5; }\n" +
+        "body:not([data-ds-dark-theme]) .kfl-avertis { color: color-mix(in srgb,var(--dsw-alias-state-warn-primary) 50%,var(--dsw-alias-label-primary)); }\n" +
+        "body[data-ds-dark-theme] .kfl-avertis { color: var(--dsw-alias-state-warn-primary); }\n" +
         ".kfl-section { margin: 0 0 8px; font-size: 12px; line-height: 18px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--dsw-alias-label-tertiary); }\n" +
         ".kfl-liste { display: flex; flex-direction: column; gap: 6px; margin: 0 0 12px; }\n" +
         ".kfl-mod { display: flex; align-items: center; gap: 12px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 10px; background: var(--dsw-alias-bg-layer-1); padding: 10px 12px; }\n" +
@@ -214,7 +216,7 @@ window.__ModuleLoader__.load({
               : m('kfl.vide'))
             : h('div', { className: 'kfl-liste' }, models.map((id) => h('div', { className: 'kfl-mod', key: id },
               h('span', { className: 'kbm-dot', 'data-state': 'done' }),
-              h('span', { className: 'kfl-mod-nom' }, id),
+              h('span', { className: 'kfl-mod-nom', title: id }, id),
               h('span', { className: 'kbm-tag', 'data-tone': 'neutral' }, 'free')))),
 
           h('label', { className: 'kfl-accuse' },

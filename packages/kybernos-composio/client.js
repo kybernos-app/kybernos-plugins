@@ -766,7 +766,8 @@ window.__ModuleLoader__.load({
    stable despite the hashed classes. */
 .kbcp-kbfpill{height:28px;padding:0 11px;border-radius:999px;border:1px solid rgba(128,128,128,.35);background:transparent;color:inherit;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .kbcp-kbfpill:hover{background:rgba(128,128,128,.12)}
-.kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#fff;font-weight:600}
+/* Ink on the literal orange: white on #ff7a1a is 2.6:1, #0f1115 is 7.2:1. */
+.kbcp-kbfpill.on{background:#ff7a1a;border-color:#ff7a1a;color:#0f1115;font-weight:600}
 .kbcp-kbfbadge{min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:rgba(128,128,128,.25);font-size:10.5px;line-height:16px;text-align:center}
 .kbcp-kbfpill.on .kbcp-kbfbadge{background:rgba(255,255,255,.3)}
 [data-plugin-panel].kbcp-kbf-on [data-plugin-group="official"]{display:none !important}
@@ -838,7 +839,7 @@ window.__ModuleLoader__.load({
 /* Custom connectors: list section + modal form. */
 .kb7-cxsec{display:flex;flex-direction:column;gap:8px;max-width:1180px}
 .kb7-cxtitle{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin:6px 0 0}
-.kb7-cxcount{font-size:11px;font-weight:600;opacity:.6}
+.kb7-cxcount{font-size:11px;font-weight:600;color:var(--dsw-alias-label-secondary)}
 .kb7-cxrow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(128,128,128,.25);border-radius:12px}
 .kb7-cxname{font-size:13px;font-weight:600}
 .kb7-cxpath{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.55;word-break:break-all}

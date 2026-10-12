@@ -2754,6 +2754,10 @@ window.__ModuleLoader__.load({
         // ── sélecteur de presets + badge « free models · quota » (02/10) ─────
         '.kbmp-free{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 7px;border-radius:9px;font-size:10.5px;line-height:14px;font-weight:600;color:#0b7a3b;background:rgba(34,197,94,.16);white-space:nowrap}',
         '.kbmp-free-sm{height:16px;padding:0 6px;font-size:10px}',
+        // The dark green ink is for the light scheme; on the dark layers it was 1.9:1 (dark green on a dark green tint).
+        'body[data-ds-dark-theme] .kbmp-free{color:var(--dsw-alias-state-success-primary)}',
+        // Light scheme: the capability tints are 500-level colours (emerald 2.5:1, amber 2.2:1 on white); darkened as a whole.
+        'body:not([data-ds-dark-theme]) .kbmp-capi{filter:brightness(.72)}',
         '.kbmp-free-lien{color:inherit;text-decoration:none;font-weight:700}',
         '.kbmp-free-lien:hover{text-decoration:underline}',
         '[dir="rtl"] .kbmp-free{direction:ltr}',
@@ -2782,6 +2786,8 @@ window.__ModuleLoader__.load({
         '.kbmp-search{flex:1 1 240px;min-width:200px}',
         '.kbmp-loupe{flex:none;color:var(--dsw-alias-label-tertiary)}',
         '.kbmp-search .kbm-in-input::-webkit-search-cancel-button{display:none}',
+        // the shared input's placeholder is label-dimmed: 1.6:1 on the dark layer, 1.3:1 on white
+        '.kbmp-search .kbm-in-input::placeholder,.kbm-in-input.kbpv-in::placeholder{color:var(--dsw-alias-label-secondary)}',
         '.kbmp-menus{display:flex;gap:6px;align-items:center;flex-wrap:wrap}',
         '.kbmp-menu{position:relative}',
         '.kbmp-trig{gap:5px;white-space:nowrap;padding:0 10px;font-size:12.5px}',
@@ -2803,6 +2809,7 @@ window.__ModuleLoader__.load({
         '.kbmp-cap .kbmp-capi{display:inline-flex}',
         '.kbmp-cap.on{background:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-inverted)}',
         '.kbmp-cap.on .kbmp-capi{color:currentColor!important}',
+        'body:not([data-ds-dark-theme]) .kbmp-cap.on .kbmp-capi{filter:none}',
         // La table du panneau vit dans une colonne de 556 ou 720 px (la boîte
         // Réglages) : cinq colonnes, dont une seule se partage la place. Le
         // modèle porte nom + « id · route · type · prix » — plus aucune

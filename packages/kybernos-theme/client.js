@@ -1519,7 +1519,8 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-sec-d{font-size:12px;color:var(--dsw-alias-label-tertiary)}
 .kbth-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .kbth-lb{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);width:130px;flex:none}
-.kbth-hint{font-size:11px;color:var(--dsw-alias-label-caption, var(--dsw-alias-label-tertiary));line-height:1.45}
+/* tertiary, not caption: caption is #81858c on the dark layers (3.8:1) and #adb2b8 on white (2.1:1); tertiary is 5.9:1 and 3.7:1 */
+.kbth-hint{font-size:11px;color:var(--dsw-alias-label-tertiary);line-height:1.45}
 .kbth-link{appearance:none;border:0;background:none;padding:0;font:inherit;color:var(--dsw-alias-label-primary);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .kbth-link:hover{color:var(--dsw-alias-brand-primary)}
 /* Avertissement de conflit dream-skin — stylé avec les jetons DSH */
@@ -1646,13 +1647,15 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 .kbth-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0}
 .kbth-toggle-label{font-size:13px;font-weight:500;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;gap:4px}
 .kbth-toggle-hint{font-size:11px;color:var(--dsw-alias-label-tertiary);cursor:help}
-.kbth-toggle{appearance:none;border:0;width:40px;height:22px;border-radius:11px;background:var(--dsw-alias-bg-layer-3);cursor:pointer;position:relative;transition:background .15s;flex:none}
+/* The off track is a tint of the text colour: layer-3 is white in the light scheme, so a white knob sat on an invisible track. */
+.kbth-toggle{appearance:none;border:0;width:40px;height:22px;border-radius:11px;background:color-mix(in srgb,var(--dsw-alias-label-primary) 22%,transparent);cursor:pointer;position:relative;transition:background .15s;flex:none}
 .kbth-toggle.on{background:var(--dsw-alias-brand-primary)}
 .kbth-toggle-knob{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-bg-layer-1);transition:transform .15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .kbth-toggle.on .kbth-toggle-knob{transform:translateX(18px)}
 /* ── Rampe de couleurs ───────────────────────────────────────────────── */
 .kbth-ramp{display:flex;gap:0;border-radius:8px;overflow:hidden;margin-top:8px}
-.kbth-ramp-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+/* min-width:0 so eleven steps shrink to a 330 px column instead of leaving the ramp's box by 10 px (390 px window) */
+.kbth-ramp-step{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px}
 .kbth-ramp-swatch{width:100%;height:28px}
 .kbth-ramp-label{font-size:9px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 /* ── Jetons enrichis ─────────────────────────────────────────────────── */
@@ -1737,12 +1740,12 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-ldt{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .kbth-lds{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px 10px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);min-width:0;color:var(--dsw-alias-label-secondary)}
 .kbth-lds.cur{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
-.kbth-lds.empty{border-style:dashed;background:transparent;color:var(--dsw-alias-label-caption);justify-content:center;min-height:96px;font-size:12px}
+.kbth-lds.empty{border-style:dashed;background:transparent;color:var(--dsw-alias-label-tertiary);justify-content:center;min-height:96px;font-size:12px}
 .kbth-lds-pv{height:56px;display:flex;align-items:center;justify-content:center}
 .kbth-lds-nm{font-size:12px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dsw-alias-label-primary)}
 .kbth-lds-x{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer;display:flex;align-items:center;justify-content:center}
 .kbth-lds-x:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.kbth-lds-ord{position:absolute;top:7px;left:9px;font-size:11px;color:var(--dsw-alias-label-caption);font-variant-numeric:tabular-nums}
+.kbth-lds-ord{position:absolute;top:7px;left:9px;font-size:11px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
 @media(max-width:480px){.kbth-ldt{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* Réglages repliés */
 .kbth-disc{appearance:none;width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;text-align:start;color:var(--dsw-alias-label-primary);font:inherit}
@@ -1782,6 +1785,8 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-gbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .kbth-search{flex:1;min-width:180px;border:1px solid var(--dsw-alias-border-l2);border-radius:10px;padding:8px 12px;font-size:13px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
 .kbth-search:focus{outline:0;border-color:var(--dsw-alias-brand-primary)}
+/* the browser's default placeholder is a mid grey: 3.4:1 on the dark layer */
+.kbth-search::placeholder{color:var(--dsw-alias-label-secondary)}
 .kbth-src{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-tertiary)}
 .kbth-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
 .kbth-card{display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l2);border-radius:14px;background:var(--dsw-alias-bg-layer-1);overflow:hidden;min-width:0}
@@ -1803,7 +1808,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
 .kbth-trial{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;margin-bottom:18px;border-radius:12px;background:var(--dsw-alias-state-warn-tertiary);border:1px solid var(--dsw-alias-state-warn-secondary);color:var(--dsw-alias-state-warn-label);font-size:13px}
 .kbth-trial b{font-weight:600}
 .kbth-trial-sp{flex:1;min-width:8px}
-.kbth-grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption);font-weight:600}
+.kbth-grp{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);font-weight:600}
 /* Fenêtre */
 .kbth-mback{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2147483000}
 .kbth-mdlg{position:fixed;z-index:2147483001;left:50%;top:50%;transform:translate(-50%,-50%);width:min(720px,calc(100vw - 32px));max-height:min(86vh,800px);display:flex;flex-direction:column;background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);border:1px solid var(--dsw-alias-border-l3);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.6);outline:none;font-size:14px}
@@ -1856,6 +1861,8 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
    (#ADB2B8, 2,1:1) : sous le seuil AA de 4,5:1. Dans CETTE page, en clair seulement, ils prennent
    label-secondary (5,7:1). Le sombre n'y gagne rien et garde sa hiérarchie. Mesuré sur la GUI réelle. */
 body:not([data-ds-dark-theme]) :is(.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
+/* The "in use" pill is a brand fill with its own label pair: the grey of the rule above made it 3.3:1 (1.4:1 in Neutral violet). */
+body:not([data-ds-dark-theme]) .kbth-pill.ok{color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* ── Encre des notes (AAA / AA / grand texte / échec) ───────────────────────────────────────
    Les teintes d'état de DSH sont des fonds d'état, pas des encres : en clair, #22C55E fait 2,2:1 sur blanc.
    Une variable par note ET par schéma, lue par le CSS : elle suit le schéma affiché sans que le script ait
