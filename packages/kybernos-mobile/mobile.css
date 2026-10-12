@@ -59,15 +59,29 @@
     font-size: 16px;
   }
 
-  /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call,
-   *    call settings and "open in Finder" stay on the computer for now (they are not hidden from the app, only here). */
+  /* 3. The conversation's header: the title and the page-level actions first. Agent Team, share, chat ID, video call
+   *    and call settings are PARKED: out of the header but still rendered, so DSH's popovers keep an anchor and the
+   *    "..." sheet (client.js) can list and click them. "Open in Finder" is of no use on a phone and is dropped. */
   [data-slot="conversation.header"] > header {
     padding-left: 52px !important;
   }
   [data-slot="conversation.session.header.actions"] > [data-team-action],
   [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):not(:has(span)),
   [data-slot="conversation.session.header.actions"] [data-act="call-video"],
-  [data-slot="conversation.session.header.actions"] [data-act="call-setup"],
+  [data-slot="conversation.session.header.actions"] [data-act="call-setup"] {
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
   [data-slot="conversation.session.header.utilities"] [data-open-target] {
     display: none !important;
   }
@@ -115,7 +129,20 @@
   [data-composer-card] [data-model-compact] div:has(> [data-slot="conversation.input.activity"]) { order: 5; }
   [data-composer-card] [data-model-compact] > :last-child > button:last-child { order: 6; }
   [data-composer-card] [data-slot="conversation.input.left"] > :not([data-kb="computer-env-selector"]),
-  [data-composer-card] [data-slot="conversation.input.right"],
+  [data-composer-card] [data-slot="conversation.input.right"] > * {
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
   [data-composer-card] [data-slot="conversation.input.activity"] button + button {
     display: none !important;
   }
@@ -145,9 +172,19 @@
     text-align: left;
     font-size: 15px;
   }
-  /* The execution environment only shows when it is not the default ("This machine"): one dot, then its menu. */
+  /* The execution environment only shows in the row when it is not the default ("This machine"): one dot, then its menu.
+   * Parked otherwise: the "..." sheet lists it. */
   [data-composer-card] [data-kb="computer-env-selector"]:has([data-kb="computer-env-button"][data-on="false"]) {
-    display: none !important;
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
   [data-composer-card] [data-kb="computer-env-button"] {
     font-size: 0;
@@ -260,7 +297,18 @@
   }
   [data-slot="conversation.session.header.actions"] [data-act="call-voice"],
   [data-slot="conversation.session.header.actions"] > div:not([data-kb]):not([data-team-action]):has(span) {
-    display: none !important;
+    position: fixed !important;
+    top: 52px !important;
+    left: 50% !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 }
 
@@ -305,5 +353,70 @@
    * :has(), so the frame is named by its place: the only child of the root slot.) */
   body:has([data-slot="root"] > div:not([data-sidebar-collapsed])) .kbmob-menu {
     display: none;
+  }
+}
+
+/* The "..." sheet (built by client.js): the header actions a phone has no room for, one tap away. */
+.kbmob-sheet-mask,
+.kbmob-sheet {
+  display: none;
+}
+@media (max-width: 700px), (max-height: 500px) and (pointer: coarse) {
+  .kbmob-sheet-mask {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: rgba(0, 0, 0, .45);
+  }
+  .kbmob-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 81;
+    display: block;
+    max-height: 80dvh;
+    overflow-y: auto;
+    padding: 8px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px 20px 0 0;
+    background: var(--dsw-alias-bg-layer-1, #1b1b1d);
+    color: var(--dsw-alias-label-primary, currentColor);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, .35);
+  }
+  .kbmob-sheet-title {
+    margin: 6px 8px 8px;
+    font-size: 13px;
+    color: var(--dsw-alias-label-caption, currentColor);
+  }
+  .kbmob-sheet-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    font-size: 16px;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kbmob-sheet-row:active {
+    background: var(--dsw-alias-bg-layer-2, rgba(127, 127, 127, .2));
+  }
+  .kbmob-sheet-row svg {
+    flex: none;
+    width: 22px;
+    height: 22px;
+  }
+  .kbmob-sheet-sep {
+    height: 1px;
+    margin: 6px 8px;
+    background: var(--dsw-alias-border-l1, rgba(127, 127, 127, .2));
   }
 }

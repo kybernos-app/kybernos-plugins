@@ -70,7 +70,8 @@ const closeRightBar = async () => {
   await sleep(900)
 }
 const measure = () => ev(`(() => {
-  const vis = (e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' }
+  // parked actions (the "..." sheet lists them) are rendered but invisible and one pixel wide: they are not on screen
+  const vis = (e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); let p = e; let parked = false; for (let i = 0; i < 5 && p; i++) { const c = getComputedStyle(p); if (c.position === 'fixed' && c.opacity === '0') parked = true; p = p.parentElement } return r.width > 2 && r.height > 2 && !parked && cs.visibility !== 'hidden' && cs.display !== 'none' }
   const buttons = Array.from(document.querySelectorAll('[data-composer-card] button')).filter(vis)
   const tops = buttons.map((b) => b.getBoundingClientRect().top)
   const model = document.querySelector('[data-composer-card] [data-slot="conversation.input.model"] button')

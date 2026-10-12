@@ -91,6 +91,41 @@ window.__ModuleLoader__.load({
         return svg
       }
 
+      // ── the "..." sheet: the header actions a phone has no room for ───────────────────────────────────────────────
+      // mobile.css PARKS them (fixed, invisible, 1 px, still rendered: DSH's popovers keep an anchor). The phone's
+      // "More actions" button opens this sheet instead of DSH's menu; its last row hands over to DSH's own menu.
+      const ACTION_BUTTONS = '[data-slot="conversation.session.header.actions"] button, [data-slot="conversation.session.header.utilities"] button, [data-slot="conversation.session.header.corner"] button, [data-composer-card] button, [data-kb="computer-env-button"]'
+      const MORE_BUTTON = '[data-slot="conversation.session.header.utilities"] button'
+      /** Parked by mobile.css: the element or one of its four nearest ancestors is fixed and invisible. */
+      const isParked = (el, styleOf) => {
+        let e = el
+        for (let i = 0; i < 5 && e !== null && e !== undefined; i += 1) {
+          let st = null
+          try { st = styleOf(e) } catch (err) { st = null }
+          if (st !== null && st !== undefined && st.position === 'fixed' && String(st.opacity) === '0') return true
+          e = e.parentElement
+        }
+        return false
+      }
+      /** The parked actions of the page, by label (DSH's own, so they are in the language of the page), no duplicates. */
+      const parkedActions = (root, styleOf) => {
+        const out = []
+        const seen = []
+        let list = []
+        try { list = Array.prototype.slice.call(root.querySelectorAll(ACTION_BUTTONS)) } catch (err) { list = [] }
+        for (const el of list) {
+          try {
+            if (typeof el.closest === 'function' && el.closest('[data-open-target]') !== null) continue
+            if (!isParked(el, styleOf)) continue
+            const label = String(el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent || '').trim()
+            if (label === '' || seen.indexOf(label) >= 0) continue
+            seen.push(label)
+            out.push({ label, el })
+          } catch (err) { /* an element that went away */ }
+        }
+        return out
+      }
+
       const mount = () => {
         const undo = []
         // The stylesheet normally arrives with the page (index-inject). When it did not, link it.
@@ -119,9 +154,75 @@ window.__ModuleLoader__.load({
         document.addEventListener('click', onClick, true)
         undo.push(() => document.removeEventListener('click', onClick, true))
 
-        // An open sidebar is an open drawer over the chat. DSH leaves its sidebar open above its own breakpoint, which a
-        // phone in landscape is: close it when the phone condition starts to hold, at start and after a turn of the
-        // screen, unless the person opened the drawer themselves (the menu button marks that).
+        // The "..." sheet: a tap on the header's "More actions" lists what the phone parked, then DSH's own menu.
+        let sheet = null
+        let bypass = false
+        const closeSheet = () => {
+          if (sheet === null) return
+          try { sheet.mask.remove(); sheet.panel.remove() } catch (err) { /* gone */ }
+          try { document.removeEventListener('keydown', sheet.onKey, true) } catch (err) { /* gone */ }
+          sheet = null
+        }
+        const row = (label, icon, run) => {
+          const b = document.createElement('button')
+          b.type = 'button'
+          b.className = 'kbmob-sheet-row'
+          if (icon !== null && icon !== undefined) b.appendChild(icon)
+          const t = document.createElement('span')
+          t.textContent = label
+          b.appendChild(t)
+          b.addEventListener('click', (e) => { try { e.stopPropagation() } catch (err) { /* synthetic */ } closeSheet(); setTimeout(run, 60) })
+          return b
+        }
+        const openSheet = (items, more) => {
+          closeSheet()
+          const mask = document.createElement('button')
+          mask.type = 'button'
+          mask.className = 'kbmob-sheet-mask'
+          mask.setAttribute('aria-label', kt('Fermer', 'Close'))
+          mask.addEventListener('click', (e) => { try { e.stopPropagation() } catch (err) { /* synthetic */ } closeSheet() })
+          const panel = document.createElement('div')
+          panel.className = 'kbmob-sheet'
+          panel.setAttribute('role', 'menu')
+          const title = document.createElement('div')
+          title.className = 'kbmob-sheet-title'
+          title.textContent = kt('Cette session', 'This session')
+          panel.appendChild(title)
+          for (const it of items) {
+            let icon = null
+            try { const svg = it.el.querySelector('svg'); if (svg !== null && svg !== undefined) icon = svg.cloneNode(true) } catch (err) { icon = null }
+            panel.appendChild(row(it.label, icon, () => { try { it.el.click() } catch (err) { /* the action went away */ } }))
+          }
+          const sep = document.createElement('div')
+          sep.className = 'kbmob-sheet-sep'
+          panel.appendChild(sep)
+          panel.appendChild(row(kt('Autres actions', 'More actions'), null, () => {
+            bypass = true
+            try { more.click() } catch (err) { /* the button went away */ } finally { bypass = false }
+          }))
+          const onKey = (e) => { if (e && e.key === 'Escape') closeSheet() }
+          document.addEventListener('keydown', onKey, true)
+          document.body.appendChild(mask)
+          document.body.appendChild(panel)
+          sheet = { mask, panel, onKey }
+        }
+        const onMore = (e) => {
+          try {
+            if (bypass || !narrow()) return
+            const t = e.target
+            if (t === null || t === undefined || typeof t.closest !== 'function') return
+            const hit = t.closest(MORE_BUTTON)
+            if (hit === null || hit.closest('[data-open-target]') !== null) return
+            const items = parkedActions(document, (x) => window.getComputedStyle(x))
+            if (items.length === 0) return
+            e.preventDefault()
+            e.stopPropagation()
+            openSheet(items, hit)
+          } catch (err) { /* DSH's own menu opens then */ }
+        }
+        document.addEventListener('click', onMore, true)
+        undo.push(() => { document.removeEventListener('click', onMore, true); closeSheet() })
+
         // iOS only draws under the notch and the home indicator with viewport-fit=cover; mobile.css pads with env().
         try {
           const meta = document.querySelector('meta[name="viewport"]')
@@ -132,6 +233,9 @@ window.__ModuleLoader__.load({
           }
         } catch (err) { /* no meta */ }
 
+        // An open sidebar is an open drawer over the chat. DSH leaves its sidebar open above its own breakpoint, which a
+        // phone in landscape is: close it when the phone condition starts to hold, at start and after a turn of the
+        // screen, unless the person opened the drawer themselves (the menu button marks that).
         const settle = () => { try { if (narrow() && drawerOpen() && !opened) closeDrawer() } catch (err) { /* no shell yet */ } }
         let tries = 0
         const first = setInterval(() => {
@@ -444,7 +548,7 @@ window.__ModuleLoader__.load({
             }
           } catch (e) { try { console.warn('[kybernos-mobile] phone link disabled:', e) } catch (e2) { /* no console */ } }
         },
-        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS }
+        __test: { decide, drawerOpen, narrow, toggle, PICKS, TOGGLE, FIRST_IN_SIDEBAR, MEDIA, SHEET_ID, MENU_CLASS, isParked, parkedActions, ACTION_BUTTONS, MORE_BUTTON }
       }
     } catch (e) {
       try { console.warn('[kybernos-mobile] disabled:', e) } catch (e2) { /* no console */ }

@@ -27,11 +27,14 @@ drew under the iPhone's home indicator.
   A tap on the dimmed chat closes it, and so does picking a session or a page. A drawer DSH left open on a phone in
   landscape is closed once at start and after a turn of the screen, unless the person opened it.
 - **Header**: the title and the page-level actions (Teams, voice call, "More actions", right bar). Agent Team, share,
-  chat ID, video call, call settings and "open in Finder" are hidden here for now (they stay on the computer).
+  chat ID, video call and call settings are **parked** (rendered, invisible, one pixel: DSH's popovers keep an anchor):
+  a tap on "More actions" opens a bottom sheet that lists them, with the composer's parked "/" , artifact and
+  execution-environment buttons, in DSH's own labels; its last row opens DSH's own menu. "Open in Finder" is dropped.
 - **Composer**: the field, then one row: add, **model (the name is readable)**, access, dictate, send. The "/" button,
-  the artifact button and the input-device list are hidden (type "/" in the field; the "+" menu has the commands);
-  the execution environment only shows when it is not the default. The stats strip under the card (speed, cache,
-  memory, context) is hidden. On a 320 to 360 px phone dictation and the voice call wait.
+  the artifact button and the default execution environment are parked (the sheet lists them; type "/" in the field);
+  the input-device list is dropped; the environment shows in the row when it is not the default. The stats strip under
+  the card (speed, cache, memory, context) is hidden. On a 320 to 360 px phone dictation, the voice call and the Teams
+  chip wait in the sheet.
 - **Conversation**: the rating card under every answer is hidden.
 - **Right bar** (the "Start" launcher, files, changes, details): a full-screen layer, with DSH's own full-screen state
   honoured.
@@ -40,8 +43,8 @@ drew under the iPhone's home indicator.
   44 px; the page draws under the notch (`viewport-fit=cover`) and the drawer, the menu button and the composer pad
   with `env(safe-area-inset-*)`.
 
-Not done yet (planned, see the mockup): the header's hidden actions in the "..." menu, the Chat / Journal / Trajectory
-tabs as a dropdown under the title, the execution environment and "/" in the "+" menu, rating behind one star.
+Not done yet (planned, see the mockup): the Chat / Journal / Trajectory tabs as a dropdown under the title, rating
+behind one star, the landscape header (still about 100 px of 390).
 
 ### The phone link
 
