@@ -7110,7 +7110,7 @@ return {
     // /kybernos-cloud/server (packages/kybernos-cloud/server-profile.mjs), and a page opened later reads what was loaded last.
     // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
     // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ. No gateway: the host relay replaced it.
-    const KB_BUILTIN_API = 'https://server-dev-7831.up.railway.app'
+    const KB_BUILTIN_API = 'https://api.kybernos.app'
     const kbServer = { name: 'Kybernos Cloud', api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API + '/workspace-console', gateway: '', workspace: '' }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
