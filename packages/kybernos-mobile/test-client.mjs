@@ -30,6 +30,7 @@ const makeDom = ({ narrow = true, collapsed = true, sheet = true, withToggle = t
   const toggle = el('button')
   const firstInSidebar = el('button')
   const body = el('body'); const head = el('head')
+  const meta = el('meta'); meta.attrs.content = 'width=device-width, initial-scale=1'
   const doc = {
     body, head,
     createElement: (t) => el(t),
@@ -39,13 +40,14 @@ const makeDom = ({ narrow = true, collapsed = true, sheet = true, withToggle = t
       if (sel === '[data-slot="root"] > div') return frame
       if (sel === 'button[aria-keyshortcuts$="+B"]:not([aria-keyshortcuts*="Shift"])') return withToggle ? toggle : null
       if (sel === '[data-slot="sidebar"] button') return firstInSidebar
+      if (sel === 'meta[name="viewport"]') return meta
       return null
     },
     baseURI: 'http://127.0.0.1:3080/',
     addEventListener: (ev, fn, cap) => listeners.push({ ev, fn, cap }),
     removeEventListener: (ev, fn) => { const i = listeners.findIndex((l) => l.ev === ev && l.fn === fn); if (i >= 0) listeners.splice(i, 1) }
   }
-  return { doc, frame, toggle, firstInSidebar, listeners, toggleClicks, body, head }
+  return { doc, frame, toggle, firstInSidebar, listeners, toggleClicks, body, head, meta }
 }
 const load = (dom, { narrow = true, lang = 'fr' } = {}) => {
   let def = null
@@ -70,7 +72,7 @@ console.log('the runner contract')
   globalThis.window = { __ModuleLoader__: { load: (d) => { defB = d } }, matchMedia: () => { throw new Error('boom') } }
   globalThis.document = broken.doc
   const realWarn = console.warn; console.warn = () => {}
-  try { new Function('window', 'document', SOURCE.replace("const MEDIA = '(max-width: 700px)'", "const MEDIA = (() => { throw new Error('init failed') })()"))(globalThis.window, globalThis.document); const p = defB.factory(); broke = p } catch (e) { broke = 'threw' } finally { console.warn = realWarn }
+  try { new Function('window', 'document', SOURCE.replace("const MEDIA = '(max-width: 700px), (max-height: 500px) and (pointer: coarse)'", "const MEDIA = (() => { throw new Error('init failed') })()"))(globalThis.window, globalThis.document); const p = defB.factory(); broke = p } catch (e) { broke = 'threw' } finally { console.warn = realWarn }
   check('a failing initialisation degrades to an inert plugin', broke !== 'threw' && typeof broke.apply === 'function')
 }
 
@@ -199,4 +201,53 @@ console.log('the file')
 }
 
 console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
+
+console.log('a phone lying down')
+{
+  const dom = makeDom({ collapsed: false })
+  const t = load(dom).factory().__test
+  check('the phone condition also holds for a touch device at most 500 px high', /max-height: 500px\) and \(pointer: coarse\)/.test(t.MEDIA) && /max-width: 700px/.test(t.MEDIA), t.MEDIA)
+}
+{
+  // DSH leaves its sidebar open above its own breakpoint: on a phone in landscape that is an open drawer over the chat
+  const dom = makeDom({ collapsed: false })
+  const plugin = load(dom).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  await new Promise((r) => setTimeout(r, 450))
+  check('an open sidebar the person did not ask for is closed once the shell is there', dom.toggleClicks.length === 1 && dom.toggleClicks[0] === dom.toggle, dom.toggleClicks.length)
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  await new Promise((r) => setTimeout(r, 450))
+  check('a closed drawer is left alone', dom.toggleClicks.length === 0, dom.toggleClicks.length)
+  const button = dom.body.children.find((c) => c.className === 'kbmob-menu')
+  button.listeners.find((l) => l.ev === 'click').fn({ stopPropagation () {} })
+  dom.frame.attrs = {}
+  check('the menu button opened it', dom.toggleClicks.length === 1)
+  disposer()
+}
+{
+  const dom = makeDom({ collapsed: true })
+  const plugin = load(dom).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  check('the viewport lets the page draw under the notch (env() safe areas)', /viewport-fit=cover/.test(dom.meta.attrs.content) && /width=device-width/.test(dom.meta.attrs.content), dom.meta.attrs.content)
+  disposer()
+  check('and the viewport is put back when the plugin leaves', dom.meta.attrs.content === 'width=device-width, initial-scale=1', dom.meta.attrs.content)
+}
+{
+  const dom = makeDom({ collapsed: false })
+  const plugin = load(dom, { narrow: false }).factory()
+  let disposer = null
+  plugin.apply({ effect: (fn) => { disposer = fn(); return disposer } })
+  await new Promise((r) => setTimeout(r, 450))
+  check('on a wide screen the sidebar is never closed for the person', dom.toggleClicks.length === 0, dom.toggleClicks.length)
+  disposer()
+}
+
 process.exit(failed === 0 ? 0 : 1)
