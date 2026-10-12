@@ -407,6 +407,59 @@ writeFileSync(file, good)
 }
 
 
+/* ── When the scheduled automations will run: GET /kybernos/tasks/occurrences ── */
+{
+  const OCC = '/kybernos/tasks/occurrences'
+  const get = (query, headers) => call('GET', undefined, headers || {}, OCC + (query === undefined ? '' : '?' + query))
+  const DAY = 86400000
+  eq('POST is refused', (await call('POST', '{}', {}, OCC)).status, 405)
+  eq('no Origin or Referer is refused', (await get('', { origin: '' })).status, 403)
+  eq('a foreign Origin is refused', (await get('', { origin: 'http://evil.example' })).status, 403)
+  eq('a Referer from this page is enough for a browser GET', (await get('', { origin: undefined, referer: 'http://127.0.0.1:3080/' })).status, 200)
+  eq('no session cookie: 401', (await get('', { cookie: '' })).status, 401)
+  eq('a cookie signed with another secret: 401', (await get('', { cookie: cookieFor('127.0.0.1:3080', Date.now() + DAY, randomBytes(32)) })).status, 401)
+
+  const now = Date.now()
+  const mk = async (name, schedule, active) => (await api({ action: 'create', task: task({ name, schedule, active }) })).json.task
+  const daily = await mk('occ daily', { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' })
+  const paused = await mk('occ paused', { mode: 'cron', cron: '0 8 * * *', tz: 'UTC' }, false)
+  const hookOnly = await mk('occ hook', { mode: 'webhook' })
+  const once = await mk('occ once', { mode: 'once', at: new Date(now + 2 * DAY).toISOString().slice(0, 16), tz: 'UTC' })
+  const asked = await get('from=' + encodeURIComponent(new Date(now).toISOString()) + '&to=' + encodeURIComponent(new Date(now + 3 * DAY).toISOString()))
+  eq('the answer is ok and says what it covers', asked.status + ':' + asked.json.ok + ':' + typeof asked.json.now + ':' + (Date.parse(asked.json.to) - Date.parse(asked.json.from) <= 3 * DAY), '200:true:string:true')
+  const mine = (id) => asked.json.occurrences.filter((o) => o.id === id).map((o) => o.at)
+  eq('a daily 08:00 UTC automation has its 08:00 UTC slots of the next three days', mine(daily.id).length >= 2 && mine(daily.id).every((a) => /T08:00:00\.000Z$/.test(a)), true)
+  eq('...the first one is after now', Date.parse(mine(daily.id)[0]) > now, true)
+  eq('a paused automation is not planned', mine(paused.id).length, 0)
+  eq('a webhook-only automation is not planned', mine(hookOnly.id).length, 0)
+  eq('a one-time automation is planned on its date', mine(once.id).length, 1)
+  eq('the occurrences are sorted by time', asked.json.occurrences.map((o) => o.at).join() === asked.json.occurrences.map((o) => o.at).sort().join(), true)
+  eq('the answer holds only ids and times (no prompt, no secret)', asked.json.occurrences.every((o) => Object.keys(o).sort().join() === 'at,id') && JSON.stringify(asked.json).indexOf('Write the report') < 0, true)
+
+  eq('no query: now and a week', (await get()).json.ok, true)
+  eq('an unreadable date is a 400 with a reason', (await get('from=yesterday')).status + ':' + (await get('from=yesterday')).json.error, '400:from must be a date')
+  eq('a window over 45 days is refused', (await get('from=' + encodeURIComponent(new Date(now).toISOString()) + '&to=' + encodeURIComponent(new Date(now + 60 * DAY).toISOString()))).json.error, 'range too long (45 days at most)')
+  eq('an end before the start is refused', (await get('from=' + encodeURIComponent(new Date(now + DAY).toISOString()) + '&to=' + encodeURIComponent(new Date(now).toISOString()))).status, 400)
+  const past = await get('from=2020-01-01T00:00:00Z&to=2020-01-08T00:00:00Z')
+  eq('the past is not expanded (it is the history\'s)', past.status + ':' + past.json.ok + ':' + past.json.occurrences.length, '200:true:0')
+
+  // An active automation that can never fire (written by hand): said, in the scheduler's words
+  const all = onDisk()
+  all.push({ id: 'st-never', name: 'never', prompt: 'p', active: true, nextRun: null, history: [], schedule: { mode: 'cron', cron: '0 0 31 2 *', tz: 'UTC' } })
+  writeFileSync(file, JSON.stringify(all, null, 2))
+  const never = await get()
+  eq('a cron that never matches is reported with the scheduler\'s message', JSON.stringify(never.json.cannotFire.filter((c) => c.id === 'st-never')), '[{"id":"st-never","error":"this schedule never fires"}]')
+  writeFileSync(file, JSON.stringify(onDisk().filter((x) => x.id !== 'st-never'), null, 2))
+
+  // A store that cannot be trusted is an answer, like on the route above, and is left alone
+  const goodText = readFileSync(file, 'utf8')
+  writeFileSync(file, goodText.slice(0, 25))
+  const corrupt = await get()
+  eq('corrupt file: 200 with the code, nothing planned', corrupt.status + ':' + corrupt.json.ok + ':' + corrupt.json.code, '200:false:tasks-corrupt')
+  eq('...and left untouched', readFileSync(file, 'utf8'), goodText.slice(0, 25))
+  writeFileSync(file, goodText)
+  eq('read only: no automation was changed by all of the above', JSON.stringify(onDisk().filter((x) => [daily.id, paused.id, hookOnly.id, once.id].includes(x.id)).map((x) => x.updatedAt)) === JSON.stringify([daily, paused, hookOnly, once].map((x) => x.updatedAt)), true)
+}
 
 /* ── The lock shared with the automation-creator skill ───────────────────── */
 {

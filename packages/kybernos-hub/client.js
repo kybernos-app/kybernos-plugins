@@ -507,7 +507,8 @@ window.__ModuleLoader__.load({
       phone:'<path class="a" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3z"/><path class="l" d="M8 4h5l2.5 6.5-3.2 2a16 16 0 0 0 7.2 7.2l2-3.2 6.5 2.5v5a3 3 0 0 1-3 3A21 21 0 0 1 5 7a3 3 0 0 1 3-3zM20 5.5a7.5 7.5 0 0 1 6.5 6.5M20 10a3 3 0 0 1 2 2"/>',
       mobile:'<rect class="a" x="9" y="3" width="14" height="26" rx="4"/><rect class="l" x="9" y="3" width="14" height="26" rx="4"/><path class="l" d="M14 7h4"/><path class="w" d="M16 24.5h.01"/>',
       search:'<circle class="a" cx="13.5" cy="13.5" r="10"/><circle class="l" cx="13.5" cy="13.5" r="10"/><path class="b" d="M8 11.5a6 6 0 0 1 6-5"/><path class="l" d="M21 21l8 8"/><path class="l" d="M3.5 13.5h20M13.5 3.5c3 3 4 6 4 10s-1 7-4 10"/>',
-      term:'<rect class="a" x="3" y="5" width="26" height="22" rx="4"/><path class="b" d="M3 9a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><rect class="l" x="3" y="5" width="26" height="22" rx="4"/><circle class="w" cx="7.5" cy="8.5" r="1.1"/><circle class="w" cx="11" cy="8.5" r="1.1"/><circle class="w" cx="14.5" cy="8.5" r="1.1"/><path class="l" d="M8 17l4 3-4 3M15 23h7"/>'
+      term:'<rect class="a" x="3" y="5" width="26" height="22" rx="4"/><path class="b" d="M3 9a4 4 0 0 1 4-4h18a4 4 0 0 1 4 4v3H3z"/><rect class="l" x="3" y="5" width="26" height="22" rx="4"/><circle class="w" cx="7.5" cy="8.5" r="1.1"/><circle class="w" cx="11" cy="8.5" r="1.1"/><circle class="w" cx="14.5" cy="8.5" r="1.1"/><path class="l" d="M8 17l4 3-4 3M15 23h7"/>',
+      gauge:'<circle class="a" cx="16" cy="16" r="13"/><path class="b" d="M5 18a11 11 0 0 1 22 0z"/><circle class="l" cx="16" cy="16" r="13"/><path class="l" d="M16 18l5.5-6.5M9 23h14"/><circle class="w" cx="16" cy="18" r="1.8"/>'
 }
 
     // The tile of a plugin, as the Plugins page of the Kybernos web app draws it: a diagonal gradient (one pair of colours per plugin),
