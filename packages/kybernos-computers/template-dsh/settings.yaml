@@ -7,7 +7,7 @@ llm-pi-ai:
     kybernos:
       displayName: Kybernos Cloud
       api: openai-completions
-      baseURL: https://server-dev-7831.up.railway.app/v1
+      baseURL: https://api.kybernos.app/v1
       apiKeyEnv: KYBERNOS_API_KEY
       models:
         - id: kybernos/doer

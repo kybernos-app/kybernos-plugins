@@ -10953,7 +10953,7 @@ const KB_FEEDBACK_ERRORS_MAX = 20
 const KB_FEEDBACK_MAILTO_MAX = 1200
 // GO-LIVE: the built-in server's address, used only when the cloud plugin's state file records none. This block is cut out and run by
 // tests, so it cannot import server-profile.mjs; scripts/test-no-legacy-hosts.mjs fails when it differs from BUILTIN_API there.
-const KB_FEEDBACK_API_DEFAULT = 'https://server-dev-7831.up.railway.app'
+const KB_FEEDBACK_API_DEFAULT = 'https://api.kybernos.app'
 
 const kbFeedbackClip = (value, limit) => (typeof value === 'string' ? value.slice(0, limit) : '')
 
