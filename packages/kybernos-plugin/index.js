@@ -42,6 +42,7 @@ import { createPythonPicker } from './tts-python.mjs'
 import { audioKindOf, audioModelsOf, providerBase } from './audio-models.mjs'
 import { createProbe } from './audio-probe.mjs'
 import { createModelsAudio } from './models-audio.mjs'
+import { expandOccurrences, parseOccurrenceRange } from './automation-occurrences.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -10420,6 +10421,33 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks')
+      // ── When the scheduled automations will run: GET /kybernos/tasks/occurrences?from=&to= ──────────────
+      // Read-only, for the Automations calendar. It answers with the scheduler's OWN matcher (kbComputeNextRun
+      // and kbNeverRuns of the tested core block), not a second cron engine, and with the same guard as the
+      // route above: the automations list is what it exposes. Bounded in range, count and time
+      // (automation-occurrences.mjs). A page that gets no answer still shows the past and the next run.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/tasks/occurrences', handler: async (req, res) => {
+        if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        try {
+          const q = queryOf(req)
+          const nowMs = Date.now()
+          const range = parseOccurrenceRange(q.get('from'), q.get('to'), nowMs)
+          if (range.ok !== true) return sendJson(res, 400, { ok: false, error: range.error })
+          const tasks = await kbTasksRead()
+          const plan = expandOccurrences(tasks, range, {
+            computeNextRun: kbComputeNextRun, neverRuns: kbNeverRuns, noNextRunError: kbNoNextRunError, isValidTimeZone: kbIsValidTimeZone,
+          })
+          sendJson(res, 200, { ok: true, now: new Date(nowMs).toISOString(), from: new Date(range.fromMs).toISOString(), to: new Date(range.toMs).toISOString(), occurrences: plan.occurrences, cannotFire: plan.cannotFire, warnings: plan.warnings, truncated: plan.truncated })
+        } catch (e) {
+          // Same convention as the route above: an untrustworthy store is an answer the page can show.
+          const code = e !== null && typeof e === 'object' ? e.code : undefined
+          if (code === 'tasks-corrupt' || code === 'tasks-unreadable') return sendJson(res, 200, { ok: false, code, error: String(e.message) })
+          try { console.error('[kybers] tasks/occurrences route:', errText(e)) } catch (e2) { /* console unavailable */ }
+          sendJson(res, 500, { ok: false, error: 'internal error' })
+        }
+      } }), 'kybernos: route tasks/occurrences')
       // ══════════════════════════════════════════════════════════════════════
       // OUTILS (onglet « Outils ») — etat reel et activation cadree.
       //

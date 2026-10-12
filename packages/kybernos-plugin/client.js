@@ -50,6 +50,7 @@ let kbLocaleRead = () => 'en'
       'tb.view.cards': { kybernos: 'Cartes', en: 'Cards' },
       'tb.view.list': { kybernos: 'Liste', en: 'List' },
       'tb.view.calendar': { kybernos: 'Calendrier', en: 'Calendar' },
+      'tb.view.columns': { kybernos: 'Colonnes', en: 'Columns' },
       'tb.search.toggle': { kybernos: 'Recherche', en: 'Search' },
       'tb.summary.mod.recent': { kybernos: 'Plus récents', en: 'Most recent' },
       'tb.summary.mod.old': { kybernos: 'Plus anciens', en: 'Oldest first' },
@@ -343,6 +344,66 @@ let kbLocaleRead = () => 'en'
       'tasks.cron': { kybernos: 'Expression cron', en: 'Cron expression' },
       'tasks.timezone': { kybernos: 'Fuseau', en: 'Time zone' },
       'tasks.trigger.plushook': { kybernos: '+ webhook', en: '+ webhook' },
+      // The Columns and Calendar views of the Automations page.
+      'tasks.board.cols.upcoming': { kybernos: 'À venir', en: 'Upcoming' },
+      'tasks.board.cols.running': { kybernos: 'En cours', en: 'Running' },
+      'tasks.board.cols.approve': { kybernos: 'À valider', en: 'To approve' },
+      'tasks.board.cols.done': { kybernos: 'Terminées, 7 jours', en: 'Done, last 7 days' },
+      'tasks.board.empty.upcoming': { kybernos: 'Rien de prévu.', en: 'Nothing planned.' },
+      'tasks.board.empty.running': { kybernos: 'Aucune exécution en cours.', en: 'Nothing is running.' },
+      'tasks.board.empty.approve': { kybernos: 'Rien n’attend votre accord.', en: 'Nothing is waiting for you.' },
+      'tasks.board.empty.done': { kybernos: 'Rien de terminé cette semaine.', en: 'Nothing finished this week.' },
+      'tasks.board.hooks': { kybernos: 'Sur événement, hors colonnes :', en: 'On event, outside the columns:' },
+      'tasks.board.hooks.cal': { kybernos: 'Sur événement, sans heure :', en: 'On event, no time:' },
+      'tasks.board.hook.last': { kybernos: 'dernier déclenchement : {when}', en: 'last triggered: {when}' },
+      'tasks.board.hook.never': { kybernos: 'jamais déclenchée', en: 'never triggered' },
+      'tasks.board.paused.one': { kybernos: '{n} automation en pause n’apparaît pas ici.', en: '{n} paused automation is not shown here.' },
+      'tasks.board.paused.many': { kybernos: '{n} automations en pause n’apparaissent pas ici.', en: '{n} paused automations are not shown here.' },
+      'tasks.board.foot': { kybernos: 'Les colonnes montrent des exécutions : une même automation peut figurer dans « À venir » et dans « Terminées ».', en: 'The columns show runs: one automation can be in “Upcoming” and in “Done” at the same time.' },
+      'tasks.board.more': { kybernos: '… et {n} de plus', en: '… and {n} more' },
+      'tasks.board.act.session': { kybernos: 'Voir la session', en: 'See session' },
+      'tasks.board.act.see': { kybernos: 'Voir', en: 'See' },
+      'tasks.board.act.journal': { kybernos: 'Voir le journal', en: 'See journal' },
+      'tasks.board.act.approve': { kybernos: 'Approuver', en: 'Approve' },
+      'tasks.board.act.refuse': { kybernos: 'Refuser', en: 'Refuse' },
+      'tasks.board.act.retry': { kybernos: 'Relancer', en: 'Retry' },
+      'tasks.board.st.due': { kybernos: 'Prête : le planificateur la lance à son prochain passage.', en: 'Due: the scheduler starts it on its next pass.' },
+      'tasks.board.st.running': { kybernos: 'Session en cours.', en: 'Session running.' },
+      'tasks.board.st.approval': { kybernos: 'Attend votre accord.', en: 'Waiting for your approval.' },
+      'tasks.board.st.question': { kybernos: 'Attend votre réponse dans la session.', en: 'Waiting for your answer in the session.' },
+      'tasks.board.st.plan': { kybernos: 'Attend votre relecture du plan dans la session.', en: 'Waiting for your review of the plan in the session.' },
+      'tasks.board.st.failed': { kybernos: 'Échec : {why}', en: 'Failed: {why}' },
+      'tasks.board.st.failed.plain': { kybernos: 'Échec.', en: 'Failed.' },
+      'tasks.board.st.ended': { kybernos: 'La session est terminée. Ouvrez-la pour voir le résultat.', en: 'The session has ended. Open it to see the result.' },
+      'tasks.board.st.started': { kybernos: 'Lancée. L’état de sa session n’est pas visible ici.', en: 'Started. The state of its session is not visible here.' },
+      'tasks.board.chip.planned': { kybernos: 'Prévue', en: 'Planned' },
+      'tasks.board.chip.running': { kybernos: 'En cours', en: 'Running' },
+      'tasks.board.chip.waiting': { kybernos: 'Attend votre accord', en: 'Waiting for you' },
+      'tasks.board.chip.failed': { kybernos: 'Échec', en: 'Failed' },
+      'tasks.board.chip.ended': { kybernos: 'Terminée', en: 'Finished' },
+      'tasks.board.chip.started': { kybernos: 'Lancée', en: 'Started' },
+      'tasks.board.cal.prev': { kybernos: 'Précédent', en: 'Previous' },
+      'tasks.board.cal.next': { kybernos: 'Suivant', en: 'Next' },
+      'tasks.board.cal.today': { kybernos: 'Aujourd’hui', en: 'Today' },
+      'tasks.board.cal.week': { kybernos: 'Semaine', en: 'Week' },
+      'tasks.board.cal.month': { kybernos: 'Mois', en: 'Month' },
+      'tasks.board.cal.scale': { kybernos: 'Échelle', en: 'Scale' },
+      'tasks.board.cal.nothing': { kybernos: 'Rien de prévu', en: 'Nothing planned' },
+      'tasks.board.cal.hint': { kybernos: 'Touchez une exécution pour la détailler, la lancer ou l’approuver.', en: 'Tap a run to see it, start it or approve it.' },
+      'tasks.board.cal.runs': { kybernos: '{n} exécutions', en: '{n} runs' },
+      'tasks.board.cal.inzone': { kybernos: '{time} en {zone}', en: '{time} in {zone}' },
+      'tasks.board.cal.openday': { kybernos: 'Ouvrir la semaine du {day}', en: 'Open the week of {day}' },
+      'tasks.board.cal.truncated': { kybernos: 'Certaines automations tournent trop souvent pour tout lister : leurs prochaines exécutions ne sont affichées que jusqu’à un certain point.', en: 'Some automations run too often to list every run: their upcoming runs are only shown up to a point.' },
+      'tasks.board.cal.noplan': { kybernos: 'Les prochaines exécutions ne se calculent pas pour l’instant : la page montre les exécutions passées et les prochaines échéances connues.', en: 'Upcoming runs cannot be worked out right now: the page shows past runs and the next known due times.' },
+      'tasks.board.cannot': { kybernos: '{name} ne partira pas : {why}', en: '{name} will not start: {why}' },
+      'tasks.board.banner.title': { kybernos: 'Le planificateur ne répond pas.', en: 'The scheduler is not answering.' },
+      'tasks.board.banner.body': { kybernos: 'Aucune automation ne se lance tant qu’il est arrêté. Ce que vous voyez date de {when}.', en: 'No automation starts while it is stopped. What you see is from {when}.' },
+      'tasks.board.overdue.title': { kybernos: 'Le planificateur semble arrêté.', en: 'The scheduler seems to be stopped.' },
+      'tasks.board.overdue.body': { kybernos: '{n} automation(s) devaient partir il y a plus de trois minutes. Elles ne partent que tant que DSH tourne.', en: '{n} automation(s) should have started more than three minutes ago. They only start while DSH is running.' },
+      'tasks.board.approved': { kybernos: 'Approuvé. La session reprend.', en: 'Approved. The session continues.' },
+      'tasks.board.refused': { kybernos: 'Refusé. L’agent voit que l’action a été refusée.', en: 'Refused. The agent sees that the action was refused.' },
+      'tasks.board.answer.err': { kybernos: 'Réponse impossible : la demande n’est plus en attente.', en: 'Could not answer: the request is no longer pending.' },
+      'tasks.board.crash': { kybernos: 'Cette vue n’a pas pu s’afficher. La vue Liste fonctionne.', en: 'This view could not be shown. The List view still works.' },
       'tasks.delete.title': { kybernos: 'Supprimer « {name} » ?', en: 'Delete “{name}”?' },
       'tasks.delete.body': { kybernos: 'Son planning, son URL de webhook et son historique sont supprimés. Les chats déjà lancés sont conservés. Cette action est définitive.', en: 'Its schedule, its webhook URL and its run history are removed. Chats it already started are kept. This cannot be undone.' },
       'tasks.load.error.title': { kybernos: 'Impossible de charger vos automations', en: 'Your automations could not be loaded' },
@@ -3448,6 +3509,11 @@ const LUCIDE = {
   box: ['M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z', 'm3.3 7 8.7 5 8.7-5', 'M12 22V12'],
   presentation: ['M2 3h20', 'M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3', 'm7 21 5-5 5 5'],
   hardDrive: ['M22 12H2', 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z', 'M6 16h.01', 'M10 16h.01'],
+  // The Automations board (Columns view, calendar controls, status signs, banner).
+  columns: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M9 3v18', 'M15 3v18'],
+  chevronLeft: ['m15 18-6-6 6-6'],
+  pause: ['M15 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z', 'M7 4h2a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z'],
+  triangleAlert: ['m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3', 'M12 9v4', 'M12 17h.01'],
 }
 const Icon = (name, size) => {
   const d = LUCIDE[name]
@@ -4863,6 +4929,266 @@ const KB_TASK_ERRORS = {
 }
 const kbTaskError = (message, tr) => (Object.prototype.hasOwnProperty.call(KB_TASK_ERRORS, message) === true ? tr(KB_TASK_ERRORS[message]) : String(message))
 // KB-TASKS-CLIENT-END
+// KB-AUTOBOARD-BEGIN
+// The Automations board (the Columns and Calendar views): its pure part, tested by test-automation-board.mjs, which
+// extracts this block. No React, no DOM, no host call, no translation: a function of the tasks of tasks.json, of the
+// future occurrences the host planned with the scheduler's own matcher (GET /kybernos/tasks/occurrences), and of
+// what the engine says about the sessions of the runs. Nothing is inferred beyond that:
+//  - a run is an entry of an automation's history (the host keeps the last 20): a day with no entry has no run
+//    here, whatever its cron says, and a past slot is never drawn as « done » by itself;
+//  - « running » and « waiting » come from the engine's own session status, and only for a session this page
+//    can see; a session it cannot see is `started`, an outcome not claimed.
+const KB_BOARD_WINDOW_DAYS = 7
+const KB_BOARD_DONE_MAX = 20
+// The tick is 30 s: three minutes late is a scheduler that is not running, not a busy tick.
+const KB_BOARD_OVERDUE_MS = 180000
+const KB_BOARD_DAY_MS = 86400000
+const kbBoardPad = (n) => (n < 10 ? '0' + String(n) : String(n))
+// `cards` is what the shared toolbar stored before this page had three views: it reads as `list`, the old screen.
+const kbBoardView = (mode) => (mode === 'columns' || mode === 'calendar' ? mode : 'list')
+const kbBoardFmts = new Map()
+const kbBoardFmt = (zone) => {
+  const key = typeof zone === 'string' ? zone : ''
+  let f = kbBoardFmts.get(key)
+  if (f === undefined) {
+    const opts = { hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }
+    try { f = new Intl.DateTimeFormat('en-US', key === '' ? opts : Object.assign({ timeZone: key }, opts)) } catch (e) { f = new Intl.DateTimeFormat('en-US', opts) }
+    if (kbBoardFmts.size > 40) kbBoardFmts.clear()
+    kbBoardFmts.set(key, f)
+  }
+  return f
+}
+// The wall clock of an instant in a zone ('' is the browser's own).
+const kbBoardParts = (ms, zone) => {
+  const p = {}
+  for (const x of kbBoardFmt(zone).formatToParts(new Date(ms))) { if (x.type !== 'literal') p[x.type] = x.value }
+  return { y: Number(p.year), mo: Number(p.month), d: Number(p.day), h: Number(p.hour) % 24, mi: Number(p.minute) }
+}
+const kbBoardDayKey = (ms, zone) => { const p = kbBoardParts(ms, zone); return String(p.y) + '-' + kbBoardPad(p.mo) + '-' + kbBoardPad(p.d) }
+const kbBoardHm = (ms, zone) => { const p = kbBoardParts(ms, zone); return kbBoardPad(p.h) + ':' + kbBoardPad(p.mi) }
+// Calendar days are plain 'YYYY-MM-DD' keys: arithmetic on them needs no zone (a day is a day).
+const kbBoardKeyUtc = (key) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key)); return m === null ? NaN : Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) }
+const kbBoardKeyOf = (utc) => { const d = new Date(utc); return String(d.getUTCFullYear()) + '-' + kbBoardPad(d.getUTCMonth() + 1) + '-' + kbBoardPad(d.getUTCDate()) }
+const kbBoardAddDays = (key, n) => kbBoardKeyOf(kbBoardKeyUtc(key) + n * KB_BOARD_DAY_MS)
+// Weeks start on Monday.
+const kbBoardWeekStart = (key) => kbBoardAddDays(key, -((new Date(kbBoardKeyUtc(key)).getUTCDay() + 6) % 7))
+const kbBoardWeekKeys = (todayKey, offset) => {
+  const start = kbBoardAddDays(kbBoardWeekStart(todayKey), 7 * offset)
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => kbBoardAddDays(start, i))
+}
+// The weeks of a month, whole weeks, so the grid has no hole: { year, month (1-12), weeks: [[key x 7]...], first, last }.
+const kbBoardMonthGrid = (todayKey, offset) => {
+  const m = /^(\d{4})-(\d{2})/.exec(String(todayKey))
+  const base = Number(m[1]) * 12 + (Number(m[2]) - 1) + offset
+  const year = Math.floor(base / 12)
+  const month = (base % 12 + 12) % 12 + 1
+  const first = String(year) + '-' + kbBoardPad(month) + '-01'
+  const last = kbBoardKeyOf(Date.UTC(year, month, 0))
+  const weeks = []
+  const end = kbBoardAddDays(kbBoardWeekStart(last), 6)
+  for (let k = kbBoardWeekStart(first); k <= end; k = kbBoardAddDays(k, 7)) weeks.push([0, 1, 2, 3, 4, 5, 6].map((i) => kbBoardAddDays(k, i)))
+  return { year, month, weeks, first, last }
+}
+// How many weeks away the week of `dayKey` is from this week (what a click on a day of the month grid opens).
+const kbBoardWeekOffset = (todayKey, dayKey) => Math.round((kbBoardKeyUtc(kbBoardWeekStart(dayKey)) - kbBoardKeyUtc(kbBoardWeekStart(todayKey))) / (7 * KB_BOARD_DAY_MS))
+// The labels that depend on a language (never on the zone): the keys are days, read at noon UTC.
+const kbBoardDayName = (key, locale, style) => { try { return new Intl.DateTimeFormat(locale, { weekday: style === 'long' ? 'long' : 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
+const kbBoardMonthName = (year, month, locale) => { try { return new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' }).format(Date.UTC(year, month - 1, 15)) } catch (e) { return String(month) } }
+const kbBoardDayLong = (key, locale) => { try { return new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(kbBoardKeyUtc(key) + 12 * 3600000) } catch (e) { return key } }
+const kbBoardWeekTitle = (keys, locale) => {
+  const a = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[0])
+  const b = /^(\d{4})-(\d{2})-(\d{2})$/.exec(keys[keys.length - 1])
+  const nameA = kbBoardMonthName(Number(a[1]), Number(a[2]), locale)
+  const nameB = kbBoardMonthName(Number(b[1]), Number(b[2]), locale)
+  return String(Number(a[3])) + (a[2] !== b[2] ? ' ' + nameA : '') + (a[1] !== b[1] ? ' ' + a[1] : '') + ' – ' + String(Number(b[3])) + ' ' + nameB + ' ' + b[1]
+}
+const kbBoardMonthTitle = (grid, locale) => kbBoardMonthName(grid.year, grid.month, locale) + ' ' + String(grid.year)
+// « Today · 08:00 », « Tomorrow · 08:00 », « Wed 14 Oct · 08:00 »: the day in the viewer's zone, never invented.
+const kbBoardWhen = (ms, nowMs, zone, locale) => {
+  const key = kbBoardDayKey(ms, zone)
+  const today = kbBoardDayKey(nowMs, zone)
+  const diff = Math.round((kbBoardKeyUtc(key) - kbBoardKeyUtc(today)) / KB_BOARD_DAY_MS)
+  let day = kbBoardDayLong(key, locale)
+  if (diff >= -1 && diff <= 1) {
+    try { const w = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }).format(diff, 'day'); day = w.charAt(0).toUpperCase() + w.slice(1) } catch (e) { /* the date stays */ }
+  }
+  return day + ' · ' + kbBoardHm(ms, zone)
+}
+// « in 12 minutes », « in 3 hours », « in 2 days » in the viewer's language; '' when the engine has no formatter.
+const kbBoardIn = (ms, nowMs, locale) => {
+  const minutes = Math.max(0, Math.round((ms - nowMs) / 60000))
+  try {
+    const f = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+    if (minutes < 60) return f.format(minutes, 'minute')
+    if (minutes < 2880) return f.format(Math.round(minutes / 60), 'hour')
+    return f.format(Math.round(minutes / 1440), 'day')
+  } catch (e) { return '' }
+}
+// What the engine says about a session, as a lookup: sessionId -> { running, waiting: 'approval' | 'question' |
+// 'plan-review' | null, pending } or null when this page cannot tell (the list is not loaded, or the session is
+// not in it). `listSnap` is sessions.list.getSnapshot(), `statusMap` the Map of uiSession.sessionStatus.
+const kbBoardLiveOf = (listSnap, statusMap) => {
+  if (listSnap === null || typeof listSnap !== 'object' || listSnap.phase !== 'ready' || listSnap.byId === null || typeof listSnap.byId !== 'object') return () => null
+  return (sessionId) => {
+    if (typeof sessionId !== 'string' || Object.prototype.hasOwnProperty.call(listSnap.byId, sessionId) !== true) return null
+    const row = listSnap.byId[sessionId]
+    if (row === null || row === undefined || typeof row !== 'object') return null
+    const st = statusMap !== null && statusMap !== undefined && typeof statusMap.get === 'function' ? statusMap.get(sessionId) : null
+    const known = st !== null && st !== undefined && typeof st === 'object'
+    const pending = known === true && st.pendingInteraction !== null && st.pendingInteraction !== undefined && typeof st.pendingInteraction === 'object' ? st.pendingInteraction : null
+    const kind = pending !== null && (pending.kind === 'approval' || pending.kind === 'question' || pending.kind === 'plan-review') ? pending.kind : null
+    const running = known === true && typeof st.running === 'boolean' ? st.running : row.running === true
+    return { running: running === true, waiting: kind, pending: kind === 'approval' ? pending : null }
+  }
+}
+// The state of one run: 'failed' (it did not start: the reason is on the entry), 'waiting' (the engine holds a
+// question for the person), 'running', 'ended' (the engine lists the session and it is neither running nor
+// waiting), 'started' (the run began and this page cannot see its session: the outcome is not claimed).
+const kbBoardRunState = (status, live) => {
+  if (status === 'error') return 'failed'
+  if (live === null || live === undefined) return 'started'
+  if (live.waiting !== null) return 'waiting'
+  return live.running === true ? 'running' : 'ended'
+}
+// Every run of every automation, from the histories: { key, taskId, atMs, state, sessionId, via, error, last, live }.
+const kbBoardRuns = (tasks, liveOf, nowMs) => {
+  const out = []
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    if (t === null || typeof t !== 'object' || typeof t.id !== 'string') continue
+    const hist = Array.isArray(t.history) === true ? t.history : []
+    for (let i = 0; i < hist.length; i += 1) {
+      const e = hist[i]
+      if (e === null || typeof e !== 'object') continue
+      const atMs = Date.parse(e.at)
+      if (Number.isFinite(atMs) !== true || atMs > nowMs + 60000) continue
+      const sessionId = typeof e.sessionId === 'string' && e.sessionId.length > 0 ? e.sessionId : null
+      const status = e.status === 'error' ? 'error' : (e.status === 'queued' ? 'queued' : 'fired')
+      const live = status === 'fired' && sessionId !== null && typeof liveOf === 'function' ? liveOf(sessionId) : null
+      out.push({ key: t.id + '@' + String(e.at) + '#' + String(i), taskId: t.id, atMs, state: kbBoardRunState(status, live), sessionId, via: e.via === 'webhook' ? 'webhook' : 'schedule', error: typeof e.error === 'string' ? e.error : '', last: i === hist.length - 1, live: live === undefined ? null : live })
+    }
+  }
+  return out
+}
+const kbBoardMode = (t) => (t !== null && typeof t === 'object' && t.schedule !== null && typeof t.schedule === 'object' ? t.schedule.mode : null)
+// Paused is an automation switched off by the person. A one-time automation that ran switches itself off: it is done, not paused.
+const kbBoardIsPaused = (t) => t.active === false && !(kbBoardMode(t) === 'once' && Array.isArray(t.history) === true && t.history.length > 0)
+// The ids of the active automations the scheduler should have started more than three minutes ago.
+const kbBoardOverdue = (tasks, nowMs) => {
+  const out = []
+  for (const t of Array.isArray(tasks) ? tasks : []) {
+    if (t === null || typeof t !== 'object' || t.active !== true || (kbBoardMode(t) !== 'cron' && kbBoardMode(t) !== 'once')) continue
+    const due = Date.parse(t.nextRun)
+    if (Number.isFinite(due) === true && nowMs - due > KB_BOARD_OVERDUE_MS) out.push(String(t.id))
+  }
+  return out
+}
+// The planned runs of the calendar: the host's occurrences of the automations still active here.
+const kbBoardPlanned = (tasks, plan) => {
+  const active = new Set()
+  for (const t of Array.isArray(tasks) ? tasks : []) { if (t !== null && typeof t === 'object' && t.active === true && typeof t.id === 'string') active.add(t.id) }
+  const out = []
+  const occ = plan !== null && plan !== undefined && Array.isArray(plan.occurrences) === true ? plan.occurrences : []
+  for (let i = 0; i < occ.length; i += 1) {
+    const o = occ[i]
+    if (o === null || typeof o !== 'object' || active.has(o.id) !== true) continue
+    const atMs = Date.parse(o.at)
+    if (Number.isFinite(atMs) !== true) continue
+    out.push({ key: String(o.id) + '@' + String(o.at) + '#p', taskId: o.id, atMs, state: 'planned', sessionId: null, via: 'schedule', error: '', last: false, live: null })
+  }
+  return out
+}
+// The four columns. Runs, not automations: one automation can be in two of them.
+//   upcoming  the next run of each active scheduled automation (its stored next run, else the host's plan)
+//   running   runs whose session is running
+//   approve   runs the engine holds for the person, then the last run of an automation when it failed (7 days)
+//   done      runs of the last 7 days whose session ended or cannot be seen (the newest 20)
+// Webhook-only automations have no time: `hooks`. Paused ones are counted, not drawn.
+const kbBoardColumns = (tasks, runs, plan, nowMs) => {
+  const list = (Array.isArray(tasks) ? tasks : []).filter((t) => t !== null && typeof t === 'object' && typeof t.id === 'string')
+  const firstPlanned = new Map()
+  const occ = plan !== null && plan !== undefined && Array.isArray(plan.occurrences) === true ? plan.occurrences : []
+  for (const o of occ) {
+    if (o === null || typeof o !== 'object') continue
+    const atMs = Date.parse(o.at)
+    if (Number.isFinite(atMs) === true && (firstPlanned.has(o.id) !== true || atMs < firstPlanned.get(o.id))) firstPlanned.set(o.id, atMs)
+  }
+  const pausedIds = new Set()
+  const upcoming = []
+  const hooks = []
+  for (const t of list) {
+    if (kbBoardIsPaused(t) === true) { pausedIds.add(t.id); continue }
+    const mode = kbBoardMode(t)
+    if (mode === 'webhook') {
+      const hist = Array.isArray(t.history) === true ? t.history : []
+      let lastAtMs = null
+      for (const e of hist) { const at = e !== null && typeof e === 'object' ? Date.parse(e.at) : NaN; if (Number.isFinite(at) === true && (lastAtMs === null || at > lastAtMs)) lastAtMs = at }
+      hooks.push({ taskId: t.id, lastAtMs })
+      continue
+    }
+    if (t.active !== true) continue
+    let atMs = Date.parse(t.nextRun)
+    if (Number.isFinite(atMs) !== true) atMs = firstPlanned.has(t.id) === true ? firstPlanned.get(t.id) : null
+    if (atMs === null) continue
+    upcoming.push({ taskId: t.id, atMs, due: atMs <= nowMs })
+  }
+  upcoming.sort((a, b) => a.atMs - b.atMs)
+  const within = (r) => nowMs - r.atMs <= KB_BOARD_WINDOW_DAYS * KB_BOARD_DAY_MS
+  const running = runs.filter((r) => r.state === 'running').sort((a, b) => b.atMs - a.atMs)
+  const waiting = runs.filter((r) => r.state === 'waiting').sort((a, b) => a.atMs - b.atMs)
+  const failed = runs.filter((r) => r.state === 'failed' && r.last === true && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
+  const done = runs.filter((r) => (r.state === 'ended' || r.state === 'started') && within(r) === true && pausedIds.has(r.taskId) !== true).sort((a, b) => b.atMs - a.atMs)
+  return {
+    upcoming, running, approve: waiting.concat(failed), done: done.slice(0, KB_BOARD_DONE_MAX), doneMore: Math.max(0, done.length - KB_BOARD_DONE_MAX),
+    hooks, paused: pausedIds.size, cannotFire: plan !== null && plan !== undefined && Array.isArray(plan.cannotFire) === true ? plan.cannotFire : [],
+    overdue: kbBoardOverdue(list, nowMs),
+  }
+}
+// The runs and planned runs of each visible day, a same automation's runs of one day folded into one entry.
+// Precedence of the folded state: waiting, failed, running, then `mixed` (past and planned together), planned, ended, started.
+const kbBoardGroupState = (items) => {
+  const has = (s) => items.some((i) => i.state === s)
+  for (const s of ['waiting', 'failed', 'running']) { if (has(s) === true) return s }
+  const past = items.some((i) => i.state === 'ended' || i.state === 'started')
+  if (has('planned') === true) return past === true ? 'mixed' : 'planned'
+  return has('ended') === true ? 'ended' : 'started'
+}
+const kbBoardDays = (items, dayKeys, zone) => {
+  const wanted = new Set(dayKeys)
+  const byDay = new Map()
+  for (const it of items) {
+    const key = kbBoardDayKey(it.atMs, zone)
+    if (wanted.has(key) !== true) continue
+    if (byDay.has(key) !== true) byDay.set(key, [])
+    byDay.get(key).push(it)
+  }
+  const out = new Map()
+  for (const key of dayKeys) {
+    const day = (byDay.get(key) || []).slice().sort((a, b) => a.atMs - b.atMs)
+    const byTask = new Map()
+    for (const it of day) {
+      if (byTask.has(it.taskId) !== true) byTask.set(it.taskId, [])
+      byTask.get(it.taskId).push(it)
+    }
+    const groups = []
+    for (const [taskId, its] of byTask) groups.push({ key: 'g:' + taskId + '@' + key, taskId, atMs: its[0].atMs, items: its, n: its.length, state: kbBoardGroupState(its) })
+    groups.sort((a, b) => a.atMs - b.atMs)
+    out.set(key, groups)
+  }
+  return out
+}
+// The text of a question the engine holds: the localized copy of the asker when it has one for this language,
+// else its English, else its reason, else the name of the tool. Never the arguments (the page never has them).
+const kbBoardReason = (pending, lang) => {
+  if (pending === null || pending === undefined || typeof pending !== 'object') return ''
+  const d = pending.displayReason
+  if (typeof d === 'string' && d.length > 0) return d
+  if (d !== null && d !== undefined && typeof d === 'object') {
+    for (const k of [String(lang), String(lang).split(/[-_]/)[0], 'en']) { if (typeof d[k] === 'string' && d[k].length > 0) return d[k] }
+  }
+  if (typeof pending.reason === 'string' && pending.reason.length > 0) return pending.reason
+  return typeof pending.toolName === 'string' ? pending.toolName : ''
+}
+// KB-AUTOBOARD-END
 const kbApiBase = () => {
   try { return new URL('kybernos', document.baseURI).pathname.replace(/\/$/, '') } catch (e) { return '/kybernos' }
 }
@@ -7636,7 +7962,7 @@ return {
       if (raw.period === '7' || raw.period === '30' || raw.period === 'all') out.period = raw.period
       if (typeof raw.fav === 'boolean') out.fav = raw.fav
       else if (typeof raw.favoritesOnly === 'boolean') out.fav = raw.favoritesOnly
-      if (raw.viewMode === 'list' || raw.viewMode === 'cards') out.viewMode = raw.viewMode
+      if (raw.viewMode === 'list' || raw.viewMode === 'cards' || raw.viewMode === 'columns' || raw.viewMode === 'calendar') out.viewMode = raw.viewMode
       // Vue du filtre personnalisée (Livrables, 29/09) : liste d'ids de tuiles
       // affichées. Absente → la page retombe sur sa vue par défaut.
       if (Array.isArray(raw.vis) === true) out.vis = raw.vis.filter((x) => typeof x === 'string').slice(0, 80)
@@ -7647,7 +7973,7 @@ return {
       const base = {
         query: '', sort: (defaults && typeof defaults.sort === 'string' && defaults.sort !== 'date') ? defaults.sort : 'modified',
         dir: 'desc', types: [], period: 'all', fav: false,
-        viewMode: (defaults && defaults.viewMode === 'list') ? 'list' : 'cards',
+        viewMode: (defaults && (defaults.viewMode === 'list' || defaults.viewMode === 'columns' || defaults.viewMode === 'calendar')) ? defaults.viewMode : 'cards',
       }
       const saved = React.useMemo(() => {
         try {
@@ -7752,7 +8078,8 @@ return {
     // Props :
     //   state {query,sort,dir,types,period,fav,viewMode}, onUpdate(patch), onReset(),
     //   searchPlaceholder, sortOptions[{id,label}], facets{type:{options:[{id,label,count}]}, period:true},
-    //   views:['cards','list','calendar'], total, shown, showFav:false, hideView:true, onAdd, addLabel, trailing
+    //   views:['cards','list','calendar','columns'], viewLabels:true (names beside the icons), hideSort:true (a view that is not an ordered
+    //   list), total, shown, showFav:false, hideView:true, onAdd, addLabel, trailing
     const KbToolbar = (props) => {
       const st = (props.state !== null && typeof props.state === 'object') ? props.state : {}
       const upd = typeof props.onUpdate === 'function' ? props.onUpdate : (() => {})
@@ -7765,10 +8092,14 @@ return {
       // Certaines pages n'ont aucune notion de favori : leur étoile restait
       // cliquable et sans effet. `showFav: false` la retire. `hideView: true`
       // masque la section Vue du menu pour les pages qui n'ont qu'une mise en
-      // page (les Automations) — le viewMode persisté y reste sans effet.
+      // page (Connecteurs) — le viewMode persisté y reste sans effet.
       const showFav = props.showFav !== false
       const hideView = props.hideView === true
-      const viewMode = st.viewMode === 'list' ? 'list' : 'cards'
+      const viewMode = (st.viewMode === 'list' || st.viewMode === 'columns' || st.viewMode === 'calendar') ? st.viewMode : 'cards'
+      // `hideSort`: a page whose views are not an ordered list (the Automations board) has no sort to offer.
+      // `viewLabels`: the switch shows the name of each view beside its icon (a three-way choice is not guessed from icons).
+      const hideSort = props.hideSort === true
+      const viewLabels = props.viewLabels === true
       const sortOptions = Array.isArray(props.sortOptions) === true ? props.sortOptions : []
       const facets = (props.facets !== null && typeof props.facets === 'object') ? props.facets : {}
       const menuPair = React.useState(null)
@@ -7810,10 +8141,10 @@ return {
       const showFilters = hasTypeFacet === true || showPeriod === true
       const filterCount = types.length + (period !== 'all' ? 1 : 0)
       const filterActive = filterCount > 0
-      const hasMenu = showFilters === true || sortOptions.length > 0
-      const viewIds = (Array.isArray(props.views) === true && props.views.length > 0) ? props.views.filter((v) => v === 'cards' || v === 'list' || v === 'calendar') : ['cards', 'list']
-      const viewIcon = (id) => (id === 'cards' ? Icon('grid', 16) : (id === 'calendar' ? Icon('calendar', 16) : Icon('list', 16)))
-      const viewLabel = (id) => (id === 'cards' ? kbt('tb.view.cards') : (id === 'calendar' ? kbt('tb.view.calendar') : kbt('tb.view.list')))
+      const hasMenu = showFilters === true || (hideSort !== true && sortOptions.length > 0)
+      const viewIds = (Array.isArray(props.views) === true && props.views.length > 0) ? props.views.filter((v) => v === 'cards' || v === 'list' || v === 'calendar' || v === 'columns') : ['cards', 'list']
+      const viewIcon = (id) => (id === 'cards' ? Icon('grid', 16) : (id === 'calendar' ? Icon('calendar', 16) : (id === 'columns' ? Icon('columns', 16) : Icon('list', 16))))
+      const viewLabel = (id) => (id === 'cards' ? kbt('tb.view.cards') : (id === 'calendar' ? kbt('tb.view.calendar') : (id === 'columns' ? kbt('tb.view.columns') : kbt('tb.view.list'))))
       const popItem = (key, label, on, onClick, extra) => h('button', { type: 'button', key: key, className: 'kb6-tb-popitem' + (on === true ? ' on' : ''), onClick: onClick, 'aria-pressed': on === true ? 'true' : 'false' },
         h('span', { className: 'kb6-tb-popcheck' }, on === true ? Icon('check', 13) : null),
         h('span', { className: 'kb6-tb-poplab' }, label),
@@ -7837,15 +8168,17 @@ return {
         }
         menuKids.push(h('div', { key: 's1', className: 'kb6-tb-popsep' }))
       }
-      if (sortOptions.length > 0) {
+      if (sortOptions.length > 0 && hideSort !== true) {
         menuKids.push(h('div', { key: 'sh', className: 'kb6-tb-pophead' }, kbt('tb.sort.by')))
         for (const o of sortOptions) menuKids.push(popItem('s:' + o.id, o.label, sort === o.id, () => pickSort(o.id)))
         menuKids.push(h('div', { key: 's2', className: 'kb6-tb-popsep' }))
       }
-      menuKids.push(h('div', { key: 'dh', className: 'kb6-tb-pophead' }, kbt('kbui.sort') + ' \u2192'))
-      menuKids.push(h('div', { key: 'db', className: 'kb6-tb-segwrap' },
-        segBtn('da', kbt('tb.dir.asc'), dir === 'asc', () => { upd({ dir: 'asc' }) }),
-        segBtn('dd', kbt('tb.dir.desc'), dir === 'desc', () => { upd({ dir: 'desc' }) })))
+      if (hideSort !== true) {
+        menuKids.push(h('div', { key: 'dh', className: 'kb6-tb-pophead' }, kbt('kbui.sort') + ' \u2192'))
+        menuKids.push(h('div', { key: 'db', className: 'kb6-tb-segwrap' },
+          segBtn('da', kbt('tb.dir.asc'), dir === 'asc', () => { upd({ dir: 'asc' }) }),
+          segBtn('dd', kbt('tb.dir.desc'), dir === 'desc', () => { upd({ dir: 'desc' }) })))
+      }
       return h('div', { className: 'kb6-toolbar', 'data-kb': 'toolbar', ref: wrapRef },
         h('div', { className: 'kb6-tb-row' },
           h('div', { className: 'kb6-tb-tools' },
@@ -7856,7 +8189,7 @@ return {
               (searchShown === true ? h('button', { type: 'button', className: 'kb6-tb-clear', 'aria-label': query.length > 0 ? kbt('tb.clear.search') : kbt('tb.search.toggle'), title: query.length > 0 ? kbt('tb.clear.search') : kbt('tb.search.toggle'), onClick: () => { if (query.length > 0) upd({ query: '' }); else setSearchOpen(false) } }, Icon('x', 12)) : null)),
             (showFav === true ? h('button', { type: 'button', 'data-kb': 'toggle-favorites', className: 'kb6-tb-ghost' + (fav === true ? ' on' : ''), title: fav === true ? kbt('kbui.showall') : kbt('kbui.favorites.only'), 'aria-label': kbt('kbui.toggle.favorites'), 'aria-pressed': fav === true ? 'true' : 'false', onClick: () => upd({ fav: !(fav === true) }) }, Icon('star', 17)) : null),
             (hideView === true ? null : h('div', { className: 'kb6-tb-viewgrp', role: 'group', 'aria-label': kbt('tb.view') },
-              viewIds.map((id) => h('button', { type: 'button', key: id, className: 'kb6-tb-vbtn' + (viewMode === id ? ' on' : ''), 'aria-label': viewLabel(id), 'aria-pressed': viewMode === id ? 'true' : 'false', title: viewLabel(id), onClick: () => upd({ viewMode: id }) }, viewIcon(id))))),
+              viewIds.map((id) => h('button', { type: 'button', key: id, className: 'kb6-tb-vbtn' + (viewMode === id ? ' on' : '') + (viewLabels === true ? ' lab' : ''), 'data-kb': 'view-' + id, 'aria-label': viewLabel(id), 'aria-pressed': viewMode === id ? 'true' : 'false', title: viewLabel(id), onClick: () => upd({ viewMode: id }) }, viewIcon(id), (viewLabels === true ? h('span', { className: 'kb6-tb-vlab' }, viewLabel(id)) : null))))),
             (hasMenu === true ? h('div', { className: 'kb6-tb-mwrap', 'data-kb': 'order-control' },
               h('button', { type: 'button', className: 'kb6-tb-ghost' + (menu === 'main' ? ' open' : ''), 'aria-label': kbt('tb.menu.aria'), title: kbt('tb.menu.aria'), 'aria-expanded': menu === 'main' ? 'true' : 'false', 'aria-haspopup': 'menu', onClick: () => setMenu(menu === 'main' ? null : 'main') },
                 Icon('sliders-horizontal', 17),
@@ -19102,6 +19435,323 @@ function renderFit(canvas, model, cam, opts){
             h('button', { type: 'button', className: 'kb-task-btn', autoFocus: true, onClick: p.onClose }, kbt('tasks.cancel')),
             h('button', { type: 'button', className: 'kb-task-btn danger', disabled: busy === true, onClick: go }, p.confirmLabel))))
     }
+    // ── The Columns and Calendar views of the Automations page ────────────────────────────────────────
+    // What decides which run is in which column, and what a day holds, is the KB-AUTOBOARD block at the top of
+    // this file (tested). This part fetches what that block needs, and draws it: the host's plan of the next
+    // runs, the engine's own status of the sessions, and the actions of a run. It invents no state: a session
+    // this page cannot see is « started » and the card says it does not know more.
+    const kbBoardLocale = () => { const l = String(kbLangResolve()); return l === 'kybernos' ? 'fr' : (l.split(/[-_]/)[0] || 'en') }
+    // Its own fetch, not host.call: a host that predates the route answers 404, and host.call reads a 404 as
+    // « this host has no routes at all » and switches every other route of the page off until it is reloaded.
+    const kbBoardFetchPlan = async (fromIso, toIso) => {
+      try {
+        const res = await fetch(kbApiBase() + '/tasks/occurrences?from=' + encodeURIComponent(fromIso) + '&to=' + encodeURIComponent(toIso), { method: 'GET' })
+        if (res.status === 404) return { ok: false, error: 'unavailable' }
+        let json = null
+        if ((res.headers.get('content-type') || '').indexOf('application/json') >= 0) { try { json = await res.json() } catch (e) { json = null } }
+        if (json !== null && typeof json === 'object') return json
+        return { ok: false, error: 'HTTP ' + String(res.status) }
+      } catch (e) { return { ok: false, error: errText(e) } }
+    }
+    const kbBoardBones = (rows) => h('div', { className: 'kbbd-cols' }, [0, 1, 2, 3].map((c) => h('div', { key: c, className: 'kbbd-col' },
+      h('div', { className: 'kbbd-colhead' }, kbBone('46%', 13)),
+      h('div', { className: 'kbbd-cards' }, [0, 1].slice(0, rows === undefined ? 2 : rows).map((i) => h('div', { key: i, className: 'kbbd-card' },
+        h('div', { className: 'kbbd-top' }, kbBone('42%', 12)),
+        h('div', { style: { marginTop: 10 } }, kbBone(i === 0 ? '78%' : '64%', 14)),
+        h('div', { style: { marginTop: 8 } }, kbBone('58%', 11))))))))
+    const kbBoardSkeleton = (view) => kbSkelWrap(kbt('tasks.loading'), 'kbbd-skel',
+      view === 'calendar'
+        ? h('div', { className: 'kbbd-week' }, [0, 1, 2, 3, 4, 5, 6].map((d) => h('div', { key: d, className: 'kbbd-day' },
+          h('div', { style: { marginBottom: 8 } }, kbBone('44%', 12)),
+          h('div', { style: { display: 'grid', gap: 5 } }, [0, 1].map((i) => kbBone('100%', 30, undefined, 8))))))
+        : kbBoardBones(2))
+    // A view that fails to draw must not take the page down: the person is sent back to the List.
+    class KbBoardBoundary extends React.Component {
+      constructor(p) { super(p); this.state = { err: false } }
+      static getDerivedStateFromError() { return { err: true } }
+      componentDidCatch(e) { try { console.error('KYBERNOS board:', e !== null && e !== undefined && e.message ? e.message : e) } catch (e2) { /* console */ } }
+      render() {
+        if (this.state.err === true) {
+          return h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty', 'data-kb': 'board-crash' }, kbt('tasks.board.crash'),
+            h('div', { style: { marginTop: 12 } }, h('button', { type: 'button', className: 'kba-btn', onClick: () => { try { this.props.onList() } catch (e) { /* nothing more to do */ } } }, kbt('tb.view.list')))))
+        }
+        return this.props.children
+      }
+    }
+    // props: view ('columns' | 'calendar'), tasks (the automations to draw, already filtered by the toolbar),
+    // rawTasks (what the host last gave: a new array at each poll), loadErr, onRetry, act(action, id),
+    // openSession(sessionId), openTask(taskId), toast(text).
+    const KbAutoBoard = (props) => {
+      const view = props.view === 'calendar' ? 'calendar' : 'columns'
+      const calPair = React.useState({ mode: 'week', offset: 0, sel: null })
+      const cal = calPair[0]
+      const setCal = calPair[1]
+      const nowPair = React.useState(() => Date.now())
+      const nowMs = nowPair[0]
+      const setNowMs = nowPair[1]
+      const planPair = React.useState(null)
+      const plan = planPair[0]
+      const setPlan = planPair[1]
+      const planErrPair = React.useState(null)
+      const planErr = planErrPair[0]
+      const setPlanErr = planErrPair[1]
+      const seenPair = React.useState(() => Date.now())
+      const seenAt = seenPair[0]
+      const setSeenAt = seenPair[1]
+      const bump = React.useState(0)[1]
+      const zone = kbMachineTz()
+      const locale = kbBoardLocale()
+      const tasks = kbTasksList(props.tasks)
+      React.useEffect(() => {
+        const iv = setInterval(() => setNowMs(Date.now()), 30000)
+        return () => { clearInterval(iv) }
+      }, [])
+      // The time of the last list the host gave: what the banner says the page is showing when it stops answering.
+      React.useEffect(() => { if (props.loadErr === null || props.loadErr === undefined) setSeenAt(Date.now()) }, [props.rawTasks])
+      // The engine's own view of the sessions (running, waiting for a person): any change draws the board again.
+      React.useEffect(() => {
+        const off = []
+        try {
+          const ui = ctx.get('uiSession')
+          if (ui !== undefined && ui !== null && ui.sessionStatus !== undefined && typeof ui.sessionStatus.subscribe === 'function') off.push(ui.sessionStatus.subscribe(() => bump((n) => n + 1)))
+        } catch (e) { /* without it, runs read as started */ }
+        try {
+          if (sessionsSvc !== undefined && sessionsSvc !== null && sessionsSvc.list !== undefined && typeof sessionsSvc.list.subscribe === 'function') off.push(sessionsSvc.list.subscribe(() => bump((n) => n + 1)))
+        } catch (e) { /* same */ }
+        return () => { for (const f of off) { try { if (typeof f === 'function') f() } catch (e) { /* already gone */ } } }
+      }, [])
+      const todayKey = kbBoardDayKey(nowMs, zone)
+      const weekKeys = view === 'calendar' && cal.mode === 'week' ? kbBoardWeekKeys(todayKey, cal.offset) : null
+      const grid = view === 'calendar' && cal.mode === 'month' ? kbBoardMonthGrid(todayKey, cal.offset) : null
+      const visible = weekKeys !== null ? weekKeys : (grid !== null ? [].concat.apply([], grid.weeks) : [])
+      // The plan: what the scheduler's own matcher says will run, for the days on screen (the columns ask for a week).
+      React.useEffect(() => {
+        let dead = false
+        const t0 = Date.now()
+        let fromMs = t0
+        let toMs = t0 + 8 * 86400000
+        if (view === 'calendar' && visible.length > 0) {
+          fromMs = Math.max(t0, kbBoardKeyUtc(visible[0]) - 14 * 3600000)
+          toMs = kbBoardKeyUtc(visible[visible.length - 1]) + 86400000 + 14 * 3600000
+        }
+        if (toMs <= fromMs) { setPlan({ occurrences: [], cannotFire: [], truncated: [] }); setPlanErr(null); return undefined }
+        kbBoardFetchPlan(new Date(fromMs).toISOString(), new Date(toMs).toISOString()).then((r) => {
+          if (dead === true) return
+          if (r !== null && r !== undefined && r.ok === true) { setPlan(r); setPlanErr(null) } else setPlanErr(r !== null && r !== undefined && typeof r.error === 'string' ? r.error : 'error')
+        })
+        return () => { dead = true }
+      }, [view, cal.mode, cal.offset, todayKey, props.rawTasks])
+      let listSnap = null
+      try { listSnap = sessionsSvc.list.getSnapshot() } catch (e) { listSnap = null }
+      let statusMap = null
+      try { statusMap = ctx.get('uiSession').sessionStatus.getSnapshot() } catch (e) { statusMap = null }
+      const liveOf = kbBoardLiveOf(listSnap, statusMap)
+      const byId = new Map()
+      for (const t of tasks) byId.set(t.id, t)
+      const runs = kbBoardRuns(tasks, liveOf, nowMs)
+      const C = kbBoardColumns(tasks, runs, plan, nowMs)
+      const nameOf = (id) => { const t = byId.get(id); return t !== undefined ? String(t.name || t.id) : String(id) }
+      const openSession = (sid) => { if (typeof sid === 'string' && sid.length > 0) props.openSession(sid) }
+      // Answer the request the ENGINE holds for that session: the same call its own approval panel makes.
+      // `shownKey` is the identity of the request the card was showing: a newer request of the same session is not answered blind.
+      const answerOf = async (sid, outcome, shownKey) => {
+        let pending = null
+        try { pending = kbBoardLiveOf(sessionsSvc.list.getSnapshot(), ctx.get('uiSession').sessionStatus.getSnapshot())(sid).pending } catch (e) { pending = null }
+        if (pending === null || typeof pending.answer !== 'function' || pending.answerable === false || pending.key !== shownKey) { props.toast(kbt('tasks.board.answer.err')); return }
+        try { await pending.answer(outcome); props.toast(kbt(outcome === 'rejected' ? 'tasks.board.refused' : 'tasks.board.approved')) } catch (e) { props.toast(kbt('tasks.board.answer.err')) }
+      }
+      const btn = (key, action, label, onClick, pri, icon) => h('button', { key: key, type: 'button', className: 'kba-btn kbbd-btn' + (pri === true ? ' pri' : ''), 'data-kb': 'board-action', 'data-act': action, onClick: (e) => { try { e.stopPropagation() } catch (e2) { /* synthetic */ } onClick() } }, (icon !== undefined ? icon : null), label)
+      // The actions of a run, by its state. Nothing is offered that the page cannot do.
+      const actionsOf = (it) => {
+        const out = []
+        const sid = it.sessionId
+        if (it.state === 'planned') out.push(btn('launch', 'launch', kbt('tasks.runnow'), () => props.act('run-now', it.taskId), false, Icon('play', 12)))
+        if (it.state === 'waiting' && it.live !== null && it.live.waiting === 'approval') {
+          out.push(btn('approve', 'approve', kbt('tasks.board.act.approve'), () => answerOf(sid, 'allowed-once', it.live.pending.key), true))
+          out.push(btn('refuse', 'refuse', kbt('tasks.board.act.refuse'), () => answerOf(sid, 'rejected', it.live.pending.key), false))
+        }
+        if (it.state === 'waiting' && sid !== null) out.push(btn('see', 'see', kbt('tasks.board.act.see'), () => openSession(sid), false))
+        if (it.state === 'running' && sid !== null) out.push(btn('session', 'session', kbt('tasks.board.act.session'), () => openSession(sid), false))
+        if (it.state === 'failed') {
+          out.push(btn('retry', 'retry', kbt('tasks.board.act.retry'), () => props.act('run-now', it.taskId), false))
+          out.push(btn('journal', 'journal', kbt('tasks.board.act.journal'), () => props.openTask(it.taskId), false))
+        }
+        // A session the page cannot see (deleted, or not in the list) is not offered: the button would lead nowhere.
+        if (it.state === 'ended' && sid !== null) out.push(btn('session', 'session', kbt('tasks.board.act.session'), () => openSession(sid), false))
+        return out
+      }
+      const kbClip160 = (s) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > 160 ? t.slice(0, 159) + '…' : t }
+      const whyOf = (it) => {
+        if (it.state === 'waiting') {
+          if (it.live !== null && it.live.waiting === 'approval') { const r = kbBoardReason(it.live.pending, locale); return r !== '' ? r : kbt('tasks.board.st.approval') }
+          return kbt(it.live !== null && it.live.waiting === 'plan-review' ? 'tasks.board.st.plan' : 'tasks.board.st.question')
+        }
+        if (it.state === 'running') return kbt('tasks.board.st.running')
+        if (it.state === 'failed') { const why = kbClip160(it.error); return why !== '' ? kbt('tasks.board.st.failed').replace('{why}', why) : kbt('tasks.board.st.failed.plain') }
+        if (it.state === 'ended') return kbt('tasks.board.st.ended')
+        if (it.state === 'started') return kbt('tasks.board.st.started')
+        return ''
+      }
+      const CHIP = { planned: 'tasks.board.chip.planned', mixed: 'tasks.board.chip.planned', running: 'tasks.board.chip.running', waiting: 'tasks.board.chip.waiting', failed: 'tasks.board.chip.failed', ended: 'tasks.board.chip.ended', started: 'tasks.board.chip.started' }
+      const CHIPCLS = { running: 'run', waiting: 'warn', failed: 'err', ended: 'ok' }
+      const stateChip = (state) => h('span', { className: 'kbbd-chip ' + (CHIPCLS[state] || ''), 'data-state': state }, kbt(CHIP[state] || 'tasks.board.chip.started'))
+      const cadence = (t) => {
+        const p = kbTriggerParts(t, kbt)
+        const label = p.label + (p.hooked === true ? ' ' + kbt('tasks.trigger.plushook') : '')
+        const hook = t.schedule !== null && typeof t.schedule === 'object' && t.schedule.mode === 'webhook'
+        return h('span', { className: 'kbbd-chip', title: label }, Icon(hook === true ? 'zap' : 'clock', 11), h('span', { className: 'kbbd-chip-t' }, label))
+      }
+      const whoOf = (t, it) => (t.approvals === 'auto' ? kbt('tasks.auto') : kbt('tasks.ask')) + (it !== null && it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')
+      // One card. `col` is the column; `it` a run, or { taskId, atMs, due } for the upcoming column.
+      const card = (col, it) => {
+        const t = byId.get(it.taskId)
+        if (t === undefined) return null
+        let cls = 'kbbd-card'
+        let status = ''
+        let acts = []
+        let top = null
+        if (col === 'upcoming') {
+          status = it.due === true ? kbt('tasks.board.st.due') : kbBoardIn(it.atMs, nowMs, locale)
+          acts = actionsOf({ state: 'planned', taskId: it.taskId, sessionId: null, live: null })
+        } else {
+          status = whyOf(it)
+          acts = actionsOf(it)
+          if (it.state === 'waiting') cls += ' waiting'
+          if (it.state === 'failed') cls += ' fail'
+          if (it.state === 'running') top = h('span', { className: 'kbbd-pulse', 'aria-hidden': 'true' })
+        }
+        return h('article', { key: col + ':' + (it.key || it.taskId), className: cls, 'data-kb': 'board-card', 'data-col': col, 'data-state': col === 'upcoming' ? 'planned' : it.state, 'data-task': it.taskId },
+          h('div', { className: 'kbbd-top' }, cadence(t), h('span', { className: 'kbbd-when' }, top, kbBoardWhen(it.atMs, nowMs, zone, locale))),
+          h('h4', null, nameOf(it.taskId)),
+          h('div', { className: 'kbbd-who' }, whoOf(t, col === 'upcoming' ? null : it)),
+          (status !== '' ? h('p', { className: 'kbbd-st' }, status) : null),
+          (acts.length > 0 ? h('div', { className: 'kbbd-acts' }, acts) : null))
+      }
+      // The banner: the host stopped answering, or the scheduler is behind (an automation overdue by more than 3 minutes).
+      const banner = (() => {
+        if (props.loadErr !== null && props.loadErr !== undefined && props.rawTasks !== null) {
+          return h('div', { className: 'kbbd-banner err', role: 'alert', 'data-kb': 'board-banner' },
+            Icon('triangleAlert', 16),
+            h('div', { className: 'kbbd-bt' }, h('b', null, kbt('tasks.board.banner.title')), h('span', null, kbt('tasks.board.banner.body').replace('{when}', kbBoardHm(seenAt, zone)))),
+            h('button', { type: 'button', className: 'kba-btn', 'data-kb': 'board-retry', onClick: () => { try { props.onRetry() } catch (e) { /* the next poll retries */ } } }, kbt('tasks.retry')))
+        }
+        if (C.overdue.length > 0) {
+          return h('div', { className: 'kbbd-banner warn', role: 'status', 'data-kb': 'board-banner' },
+            Icon('triangleAlert', 16),
+            h('div', { className: 'kbbd-bt' }, h('b', null, kbt('tasks.board.overdue.title')), h('span', null, kbt('tasks.board.overdue.body').replace('{n}', String(C.overdue.length)))))
+        }
+        return null
+      })()
+      const hooksRow = (key) => (C.hooks.length === 0 ? null : h('div', { className: 'kbbd-hooks', 'data-kb': 'board-hooks' },
+        h('span', null, kbt(key)),
+        C.hooks.map((x) => h('button', { key: x.taskId, type: 'button', className: 'kbbd-chip hook', title: nameOf(x.taskId), onClick: () => props.openTask(x.taskId) },
+          Icon('zap', 11), h('span', { className: 'kbbd-chip-t' }, nameOf(x.taskId) + ' · ' + (x.lastAtMs !== null ? kbt('tasks.board.hook.last').replace('{when}', kbBoardWhen(x.lastAtMs, nowMs, zone, locale)) : kbt('tasks.board.hook.never')))))))
+      if (view === 'columns') {
+        const col = (id, titleKey, emptyKey, entries, extra) => h('section', { key: id, className: 'kbbd-col c-' + id + (id === 'approve' && entries.length > 0 ? ' attn' : ''), 'data-kb': 'board-col', 'data-col': id, 'aria-label': kbt(titleKey) },
+          h('h3', { className: 'kbbd-colhead' }, h('span', { className: 'kbbd-dot' }), kbt(titleKey), h('span', { className: 'kbbd-cnt' }, String(entries.length))),
+          h('div', { className: 'kbbd-cards' }, entries.length > 0 ? entries.map((it) => card(id, it)) : h('div', { className: 'kbbd-emptycol' }, kbt(emptyKey)), extra))
+        const cannot = C.cannotFire.map((c) => h('div', { key: c.id, className: 'kbbd-note', 'data-kb': 'board-cannot' }, Icon('triangleAlert', 12), h('span', null, kbt('tasks.board.cannot').replace('{name}', nameOf(c.id)).replace('{why}', kbTaskError(c.error, kbt)))))
+        const more = C.doneMore > 0 ? h('div', { className: 'kbbd-emptycol' }, kbt('tasks.board.more').replace('{n}', String(C.doneMore))) : null
+        return h('div', { className: 'kbbd-root', 'data-kb': 'board-columns' },
+          banner,
+          hooksRow('tasks.board.hooks'),
+          h('div', { className: 'kbbd-cols' },
+            col('upcoming', 'tasks.board.cols.upcoming', 'tasks.board.empty.upcoming', C.upcoming, cannot),
+            col('running', 'tasks.board.cols.running', 'tasks.board.empty.running', C.running, null),
+            col('approve', 'tasks.board.cols.approve', 'tasks.board.empty.approve', C.approve, null),
+            col('done', 'tasks.board.cols.done', 'tasks.board.empty.done', C.done, more)),
+          h('p', { className: 'kbbd-foot' }, (C.paused > 0 ? kbt(C.paused === 1 ? 'tasks.board.paused.one' : 'tasks.board.paused.many').replace('{n}', String(C.paused)) + ' ' : '') + kbt('tasks.board.foot')))
+      }
+      // ── Calendar: a week of day columns, or a month of status dots ─────────────────────────────
+      const days = kbBoardDays(runs.concat(kbBoardPlanned(tasks, plan)), visible, zone)
+      let selected = null
+      if (cal.sel !== null) { for (const gs of days.values()) { for (const g of gs) { if (g.key === cal.sel) selected = g } } }
+      const sign = (state) => {
+        if (state === 'failed') return h('span', { className: 'kbbd-sgn err' }, Icon('x', 13))
+        if (state === 'ended') return h('span', { className: 'kbbd-sgn ok' }, Icon('check', 13))
+        if (state === 'waiting') return h('span', { className: 'kbbd-sgn warn' }, Icon('pause', 13))
+        if (state === 'running') return h('span', { className: 'kbbd-sgn' }, h('span', { className: 'kbbd-pulse' }))
+        if (state === 'started') return h('span', { className: 'kbbd-sgn idle' }, h('span', { className: 'kbbd-pip' }))
+        return null
+      }
+      const evBtn = (g) => {
+        const t = byId.get(g.taskId)
+        const nm = nameOf(g.taskId) + (g.n > 1 ? ' ×' + String(g.n) : '')
+        const hm = kbBoardHm(g.atMs, zone)
+        return h('button', { key: g.key, type: 'button', className: 'kbbd-ev ' + (g.state === 'mixed' ? 'planned' : g.state) + (cal.sel === g.key ? ' sel' : ''), 'data-kb': 'board-event', 'data-state': g.state, 'data-task': g.taskId, 'aria-pressed': cal.sel === g.key ? 'true' : 'false',
+          'aria-label': nm + ', ' + hm + ', ' + kbt(CHIP[g.state] || 'tasks.board.chip.started'), title: nm + (t !== undefined ? ' · ' + kbTriggerParts(t, kbt).label : ''),
+          onClick: () => setCal((c) => Object.assign({}, c, { sel: c.sel === g.key ? null : g.key })) },
+          (g.n > 1 ? null : h('span', { className: 'kbbd-tm' }, hm)), h('span', { className: 'kbbd-nm' }, nm), sign(g.state === 'mixed' ? 'planned' : g.state))
+      }
+      let body = null
+      let title = ''
+      if (weekKeys !== null) {
+        title = kbBoardWeekTitle(weekKeys, locale)
+        body = h('div', { className: 'kbbd-week', 'data-kb': 'board-week' }, weekKeys.map((key) => {
+          const gs = days.get(key) || []
+          return h('div', { key, className: 'kbbd-day' + (key === todayKey ? ' today' : ''), 'data-kb': 'board-day', 'data-day': key },
+            h('h5', null, kbBoardDayName(key, locale), ' ', h('b', null, String(Number(key.slice(8))))),
+            h('div', { className: 'kbbd-evs' }, gs.length > 0 ? gs.map(evBtn) : h('span', { className: 'kbbd-when' }, kbt('tasks.board.cal.nothing'))))
+        }))
+      } else if (grid !== null) {
+        title = kbBoardMonthTitle(grid, locale)
+        const head = grid.weeks[0].map((key) => h('div', { key: 'h' + key, className: 'kbbd-mh' }, kbBoardDayName(key, locale)))
+        const cells = []
+        for (const wk of grid.weeks) {
+          for (const key of wk) {
+            const gs = days.get(key) || []
+            const seen = new Set()
+            const dots = []
+            for (const g of gs) {
+              for (const it of g.items) {
+                const k = it.taskId + ':' + it.state
+                if (seen.has(k) === true) continue
+                seen.add(k)
+                dots.push(h('i', { key: k, className: it.state === 'failed' ? 'err' : (it.state === 'waiting' ? 'warn' : (it.state === 'running' ? 'run' : (it.state === 'planned' ? 'planned' : (it.state === 'ended' ? 'ok' : 'idle')))), title: nameOf(it.taskId) }))
+              }
+            }
+            cells.push(h('button', { key, type: 'button', className: 'kbbd-mc' + (key === todayKey ? ' today' : '') + (key >= grid.first && key <= grid.last ? '' : ' out'), 'data-kb': 'board-mcell', 'data-day': key,
+              title: kbt('tasks.board.cal.openday').replace('{day}', kbBoardDayLong(key, locale)),
+              onClick: () => setCal({ mode: 'week', offset: kbBoardWeekOffset(todayKey, key), sel: null }) },
+            h('b', null, String(Number(key.slice(8)))), h('span', { className: 'kbbd-dots' }, dots)))
+          }
+        }
+        body = h('div', { className: 'kbbd-month', 'data-kb': 'board-month' }, head, cells)
+      }
+      const nav = (delta) => setCal((c) => Object.assign({}, c, { offset: c.offset + delta, sel: null }))
+      const bar = h('div', { className: 'kbbd-calbar' },
+        h('div', { className: 'kbbd-ctl' },
+          h('button', { type: 'button', className: 'kba-btn kbbd-btn', 'data-kb': 'board-prev', 'aria-label': kbt('tasks.board.cal.prev'), title: kbt('tasks.board.cal.prev'), onClick: () => nav(-1) }, Icon('chevronLeft', 14)),
+          h('button', { type: 'button', className: 'kba-btn kbbd-btn', 'data-kb': 'board-today', onClick: () => setCal((c) => Object.assign({}, c, { offset: 0, sel: null })) }, kbt('tasks.board.cal.today')),
+          h('button', { type: 'button', className: 'kba-btn kbbd-btn', 'data-kb': 'board-next', 'aria-label': kbt('tasks.board.cal.next'), title: kbt('tasks.board.cal.next'), onClick: () => nav(1) }, Icon('chevronRight', 14)),
+          h('span', { className: 'kbbd-caltitle', 'data-kb': 'board-title' }, title)),
+        h('span', { className: 'kbbd-seg', role: 'group', 'aria-label': kbt('tasks.board.cal.scale') },
+          ['week', 'month'].map((mode) => h('button', { key: mode, type: 'button', 'data-kb': 'board-mode', 'data-v': mode, 'aria-pressed': cal.mode === mode ? 'true' : 'false', onClick: () => setCal({ mode, offset: 0, sel: null }) }, kbt(mode === 'week' ? 'tasks.board.cal.week' : 'tasks.board.cal.month')))))
+      const legend = h('div', { className: 'kbbd-legend' }, [['ok', 'ended'], ['warn', 'waiting'], ['err', 'failed'], ['run', 'running'], ['idle', 'started'], ['planned', 'planned']].map((x) => h('span', { key: x[1] }, h('i', { className: x[0] }), kbt(CHIP[x[1]]))))
+      let detail = h('p', { className: 'kbbd-foot' }, kbt('tasks.board.cal.hint'))
+      if (selected !== null) {
+        const t = byId.get(selected.taskId)
+        const taz = t !== undefined && t.schedule !== null && typeof t.schedule === 'object' && typeof t.schedule.tz === 'string' && t.schedule.tz !== '' && t.schedule.tz !== zone ? t.schedule.tz : ''
+        detail = h('div', { className: 'kbbd-detail', 'data-kb': 'board-detail' },
+          h('div', { className: 'kbbd-detail-head' }, h('h4', null, nameOf(selected.taskId)), (selected.n > 1 ? h('span', { className: 'kbbd-when' }, kbt('tasks.board.cal.runs').replace('{n}', String(selected.n))) : null)),
+          selected.items.map((it) => h('div', { key: it.key, className: 'kbbd-detail-row' },
+            h('span', { className: 'kbbd-detail-when' }, kbBoardWhen(it.atMs, nowMs, zone, locale) + (taz !== '' ? ' · ' + kbt('tasks.board.cal.inzone').replace('{time}', kbBoardHm(it.atMs, taz)).replace('{zone}', taz) : '')),
+            stateChip(it.state),
+            h('span', { className: 'kbbd-detail-why' }, whyOf(it) + (it.via === 'webhook' ? ' · ' + kbt('tasks.trigger.webhook') : '')),
+            h('span', { className: 'kbbd-detail-acts' }, actionsOf(it)))))
+      }
+      const truncated = plan !== null && Array.isArray(plan.truncated) === true && plan.truncated.length > 0
+      return h('div', { className: 'kbbd-root', 'data-kb': 'board-calendar' },
+        banner,
+        hooksRow('tasks.board.hooks.cal'),
+        bar,
+        body,
+        legend,
+        (planErr !== null ? h('p', { className: 'kbbd-foot', 'data-kb': 'board-noplan' }, kbt('tasks.board.cal.noplan')) : null),
+        (truncated === true ? h('p', { className: 'kbbd-foot', 'data-kb': 'board-truncated' }, kbt('tasks.board.cal.truncated')) : null),
+        detail,
+        (C.paused > 0 ? h('p', { className: 'kbbd-foot' }, kbt(C.paused === 1 ? 'tasks.board.paused.one' : 'tasks.board.paused.many').replace('{n}', String(C.paused))) : null))
+    }
     const ScheduledTasksPage = () => {
       const tasksPair = React.useState(null)
       const tasks = tasksPair[0]
@@ -19120,6 +19770,10 @@ function renderFit(canvas, model, cam, opts){
       // vide la sélection au lieu d'empiler un pseudo-type inerte) et tout choix
       // de sens marque `dirTouched`, même contrat que Kybers et Projets.
       const tbAuto = useToolbarState('automations', { sort: 'name', viewMode: 'list' })
+      // Three views: Columns, Calendar, List (the old screen, still the default). The shared toolbar stored `cards`
+      // for this page before it had three: it reads as `list` and is rewritten once, silently.
+      const boardView = kbBoardView(tbAuto[0].viewMode)
+      React.useEffect(() => { if (tbAuto[0].viewMode === 'cards') tbAuto[1]({ viewMode: 'list' }) }, [tbAuto[0].viewMode])
       const onAutoUpdate = (patch) => {
         let next = patch
         if (next !== null && typeof next === 'object' && Array.isArray(next.types) === true && next.types.indexOf('all') >= 0) next = Object.assign({}, next, { types: [] })
@@ -19345,7 +19999,7 @@ function renderFit(canvas, model, cam, opts){
       // Le bandeau de la barre lit `state.dir` : lui passer la vue dérivée (même
       // contrat que Projets), sinon il annonçait « Nom Z → A » pendant que la
       // liste triait A → Z.
-      const tbAutoView = Object.assign({}, tbAuto[0], { dir: autoDir })
+      const tbAutoView = Object.assign({}, tbAuto[0], { dir: autoDir, viewMode: boardView })
       const filtered = filteredSorted.slice().sort((x, y) => {
         const fx = auFavOf(x) === true ? 1 : 0
         const fy = auFavOf(y) === true ? 1 : 0
@@ -19688,6 +20342,14 @@ function renderFit(canvas, model, cam, opts){
       // ── écran liste : tâches réelles uniquement ──────────────────────────
       // Action primaire du gabarit : `trailing` de la barre quand elle est là,
       // `.kb6-headacts` sinon (liste vide → pas de barre) — même position.
+      const boardEl = boardView === 'list' ? null : h(KbBoardBoundary, { key: boardView, onList: () => tbAuto[1]({ viewMode: 'list' }) },
+        h(KbAutoBoard, {
+          view: boardView, tasks: filtered.map((a) => a._t), rawTasks: tasks, loadErr: loadErr,
+          onRetry: () => { setLoadErr(null); refresh() },
+          act: act, toast: toast,
+          openSession: (sid) => { try { uiWorkspaceSvc.openSession(sid) } catch (er) { /* navigation indisponible */ } },
+          openTask: (id) => { setDetail(id); setTab('sessions'); setNodeSel(null) },
+        }))
       const autoActions = [
         h('button', { type: 'button', key: 'new', className: 'kb8-primary kba-new-btn', 'data-kb': 'new-automation', onClick: () => { try { kbStartChatText(kbt('tasks.wiz.chat.launch')) } catch (e) { /* chat indisponible : repli assistant */ setWiz({ cstep: 0, userMsg: '', ans: null, test: false }) } } },
           Icon('plus', 14), ' ', kbt('kbui.create')),
@@ -19704,7 +20366,9 @@ function renderFit(canvas, model, cam, opts){
             ? h(KbToolbar, {
               state: tbAutoView,
               onUpdate: onAutoUpdate,
-              hideView: true,
+              views: ['columns', 'calendar', 'list'],
+              viewLabels: true,
+              hideSort: boardView !== 'list',
               searchPlaceholder: kbt('kbui.search.task'),
               sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }, { id: 'sessions', label: kbt('tasks.sort.mostsessions') }, { id: 'recent', label: kbt('tasks.sort.recent') }],
               facets: { type: { options: [
@@ -19723,12 +20387,13 @@ function renderFit(canvas, model, cam, opts){
         // Barre unifiée (comme Projets et Kybers) : les anciens chips
         // Toutes / Actives / Attention requise deviennent la facette `type`
         // (compteurs sur la liste complète), Favoris devient l'étoile de la
-        // barre. Pas de contrôle cartes/liste ici : une seule mise en page.
-        (kbListState(tasks, loadErr) === 'loading' ? kbaSkeleton() : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
+        // barre. Trois vues (Colonnes, Calendrier, Liste) : la Liste est l'écran d'origine, inchangé ; les deux autres
+        // sont le tableau (KbAutoBoard) et partagent la recherche, les facettes et les favoris de la barre.
+        (kbListState(tasks, loadErr) === 'loading' ? (boardView === 'list' ? kbaSkeleton() : kbBoardSkeleton(boardView)) : kbListState(tasks, loadErr) === 'error' ? kbaLoadError() : (list.length === 0 || filtered.length === 0)
           ? (list.length === 0
             ? kbaOnboard(false)
             : h('div', { className: 'kba-card' }, h('div', { className: 'kba-empty' }, kbt('tb.empty.title'))))
-          : h('div', { className: 'kba-card' },
+          : (boardEl !== null ? boardEl : h('div', { className: 'kba-card' },
             h('div', { className: 'kba-rowline kba-rowline-head' },
               h('div', { className: 'kba-rowhead' },
                 h('span', { className: 'kba-tabver' }, kbt('tasks.col.name')),
@@ -19750,7 +20415,7 @@ function renderFit(canvas, model, cam, opts){
                 h('span', { className: 'kba-last' + (a.lastCls !== '' ? ' ' + a.lastCls : '') }, h('span', { className: 'kba-kdot ' + a.lastCls }), h('span', { className: 'kba-ell' }, a.lastLabel)),
                 h('span', { className: 'kba-td-num' }, String(a.sessions))),
               h('span', { role: 'switch', 'aria-checked': a.active === true ? 'true' : 'false', 'aria-label': kbt('tasks.toggle.aria'), className: 'kba-toggle' + (a.active === true ? ' on' : ''), tabIndex: 0, onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act('toggle', a._t.id, { active: a._t.active === false }) } }, onClick: () => act('toggle', a._t.id, { active: a._t.active === false }) },
-                h('span', { className: 'kba-toggle-knob' })))))),
+                h('span', { className: 'kba-toggle-knob' }))))))),
         (msg !== null ? h('div', { className: 'kba-toast', role: 'status' }, h('span', { className: 'kba-kdot ok' }), h('span', { style: { flex: 1 } }, msg), h('button', { type: 'button', 'aria-label': kbt('tasks.dismiss'), onClick: () => setMsg(null) }, '\u2715')) : null),
         (confirmAsk !== null ? h(KbConfirm, { title: confirmAsk.title, body: confirmAsk.body, confirmLabel: confirmAsk.confirmLabel, onConfirm: confirmAsk.onConfirm, onClose: () => setConfirm(null) }) : null),
         (modal !== null ? h(KbTaskModal, { task: modal, onClose: () => setModal(null), onSaved: (m, extra) => { setModal(null); toast(m); refresh(); if (extra !== null && extra !== undefined && typeof extra.openWebhookOf === 'string') { setDetail(extra.openWebhookOf); setTab('hook') } } }) : null))
@@ -28408,8 +29073,6 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 /* Portée du prototype validé (docs/handoff/automations/maquette-v3) aux jetons
    DSH : mêmes structures, matière exclusivement en --dsw-*. */
 .kba-root{display:flex;flex-direction:column;gap:18px;min-height:0;flex:1;box-sizing:border-box;padding:30px 28px 36px;padding-left:max(28px,calc((100% - 1084px) / 2));padding-right:max(28px,calc((100% - 1084px) / 2));max-height:100%;overflow-y:auto;overflow-x:hidden}
-.kba-header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
-.kba-title{margin:0;font-size:16px;line-height:24px;font-weight:500;color:var(--dsw-alias-label-primary)}
 .kba-subtitle{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary);max-width:62ch}
 /* (28/09, gabarit) Bouton primaire unifié : .kba-new-btn n'est plus qu'un
    alias de .kb8-primary — une seule implémentation. */
@@ -28477,6 +29140,114 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-toggle.on .kba-toggle-knob{left:21px}
 .kba-empty{padding:34px 16px;font-size:14px;color:var(--dsw-alias-label-secondary);line-height:1.6}
 .kba-empty b{color:var(--dsw-alias-label-primary)}
+/* ── Automations board: the Columns and Calendar views (prefix kbbd-) ─────────────────────────────────
+   Port of the approved « Tableau des automatisations » mock-up (12/10): same structure, tokens only. The
+   board lays itself out by the width of its own panel (container query) AND by the viewport (media query), so
+   a narrow panel on a wide screen and a phone both stack, and nothing scrolls sideways at 375 px. */
+.kbbd-root{display:flex;flex-direction:column;gap:12px;min-width:0;container-type:inline-size}
+.kbbd-banner{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:12px;border:1px solid var(--dsw-alias-state-error-primary,#d92d20);background:var(--dsw-alias-bg-layer-2,#f6f6f6);color:var(--dsw-alias-label-primary,#111)}
+.kbbd-banner.warn{border-color:var(--dsw-alias-state-warn-primary,#b54708)}
+.kbbd-banner.err>svg{color:var(--dsw-alias-state-error-primary,#d92d20)}
+.kbbd-banner.warn>svg{color:var(--dsw-alias-state-warn-primary,#b54708)}
+.kbbd-bt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.kbbd-bt span{color:var(--dsw-alias-label-secondary,#555)}
+.kbbd-hooks{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#777)}
+.kbbd-chip{display:inline-flex;align-items:center;gap:5px;height:20px;max-width:100%;min-width:0;padding:0 8px;border-radius:10px;font:inherit;font-size:11.5px;font-weight:500;border:1px solid var(--dsw-alias-border-l3,#cfcfcf);background:transparent;color:var(--dsw-alias-label-secondary,#555);white-space:nowrap;overflow:hidden}
+.kbbd-chip-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.kbbd-chip.ok{color:var(--dsw-alias-state-success-primary,#067647);border-color:color-mix(in srgb,var(--dsw-alias-state-success-primary,#067647) 50%,transparent)}
+.kbbd-chip.warn{color:var(--dsw-alias-state-warn-primary,#b54708);border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#b54708) 50%,transparent)}
+.kbbd-chip.err{color:var(--dsw-alias-state-error-primary,#d92d20);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#d92d20) 50%,transparent)}
+.kbbd-chip.run{color:var(--dsw-alias-state-business-primary,#175cd3);border-color:color-mix(in srgb,var(--dsw-alias-state-business-primary,#175cd3) 50%,transparent)}
+button.kbbd-chip{cursor:pointer;height:auto;min-height:20px;padding:2px 8px;line-height:1.35}
+button.kbbd-chip:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
+.kbbd-cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start}
+.kbbd-col{background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e6e6e6);border-radius:16px;padding:10px;min-width:0}
+.kbbd-col.attn{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#b54708) 55%,transparent)}
+.kbbd-colhead{margin:2px 4px 10px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-cnt{margin-inline-start:auto;font-weight:500;font-size:12px;color:var(--dsw-alias-label-tertiary,#777);font-variant-numeric:tabular-nums}
+.kbbd-dot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#777);flex:none}
+.kbbd-col.c-running .kbbd-dot{background:var(--dsw-alias-state-business-primary,#175cd3)}
+.kbbd-col.c-approve .kbbd-dot{background:var(--dsw-alias-state-warn-primary,#b54708)}
+.kbbd-col.c-done .kbbd-dot{background:var(--dsw-alias-state-success-primary,#067647)}
+.kbbd-cards{display:grid;gap:8px}
+.kbbd-card{border:1px solid var(--dsw-alias-border-l2,#dcdcdc);border-radius:12px;background:var(--dsw-alias-bg-layer-2,#f6f6f6);padding:10px 12px;min-width:0}
+.kbbd-card.fail{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#d92d20) 50%,transparent)}
+.kbbd-card.waiting{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#b54708) 50%,transparent)}
+.kbbd-top{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between;margin-bottom:6px;min-width:0}
+.kbbd-card h4{margin:0;font-size:13.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-who{margin-top:2px;font-size:12px;color:var(--dsw-alias-label-tertiary,#777)}
+.kbbd-st{margin:8px 0 0;font-size:12.5px;color:var(--dsw-alias-label-secondary,#555);overflow-wrap:anywhere}
+.kbbd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.kbbd-btn{height:28px;padding:0 10px;font-size:12.5px;border-radius:8px}
+.kbbd-when{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-tertiary,#777);font-variant-numeric:tabular-nums}
+.kbbd-pulse{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-state-business-primary,#175cd3);display:inline-block;animation:kbbdPulse 1.4s ease-in-out infinite}
+@keyframes kbbdPulse{50%{opacity:.35}}
+.kbbd-emptycol{padding:14px 8px;text-align:center;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#777)}
+.kbbd-note{display:flex;gap:6px;align-items:flex-start;padding:6px 8px;font-size:12px;color:var(--dsw-alias-state-warn-primary,#b54708)}
+.kbbd-note span{color:var(--dsw-alias-label-secondary,#555);min-width:0;overflow-wrap:anywhere}
+.kbbd-foot{margin:0;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#777);max-width:78ch}
+.kbbd-calbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.kbbd-ctl{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0}
+.kbbd-caltitle{font-weight:600;font-size:15px;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-seg{display:inline-flex;padding:2px;border:1px solid var(--dsw-alias-border-l2,#dcdcdc);border-radius:10px;background:var(--dsw-alias-bg-layer-1,#fff)}
+.kbbd-seg button{border:0;background:transparent;padding:5px 10px;border-radius:8px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--dsw-alias-label-secondary,#555)}
+.kbbd-seg button[aria-pressed="true"]{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0);color:var(--dsw-alias-label-primary,#111);font-weight:600}
+.kbbd-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.kbbd-day{background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e6e6e6);border-radius:14px;padding:8px;min-height:190px;min-width:0}
+.kbbd-day.today{border-color:var(--dsw-alias-state-business-primary,#175cd3)}
+.kbbd-day h5{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-secondary,#555);display:flex;gap:6px;align-items:baseline}
+.kbbd-day h5 b{font-size:15px;color:var(--dsw-alias-label-primary,#111);font-variant-numeric:tabular-nums}
+.kbbd-day.today h5 b{color:var(--dsw-alias-state-business-primary,#175cd3)}
+.kbbd-evs{display:grid;gap:5px}
+.kbbd-ev{position:relative;display:flex;flex-direction:column;gap:1px;align-items:flex-start;width:100%;text-align:start;padding-block:5px;padding-inline:7px 22px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2,#dcdcdc);background:var(--dsw-alias-bg-layer-2,#f6f6f6);cursor:pointer;font:inherit;font-size:12px;line-height:1.3;min-width:0;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-ev:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
+.kbbd-ev.planned{border-style:dashed;background:transparent}
+.kbbd-ev.failed{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary,#d92d20) 55%,transparent)}
+.kbbd-ev.waiting{border-color:color-mix(in srgb,var(--dsw-alias-state-warn-primary,#b54708) 55%,transparent)}
+.kbbd-ev.sel{outline:2px solid var(--dsw-alias-state-business-primary,#175cd3);outline-offset:1px}
+.kbbd-tm{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-tertiary,#777);flex:none}
+.kbbd-nm{min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.kbbd-sgn{position:absolute;top:5px;inset-inline-end:6px;width:14px;display:inline-flex;justify-content:center;color:var(--dsw-alias-label-tertiary,#777)}
+.kbbd-sgn.ok{color:var(--dsw-alias-state-success-primary,#067647)}
+.kbbd-sgn.err{color:var(--dsw-alias-state-error-primary,#d92d20)}
+.kbbd-sgn.warn{color:var(--dsw-alias-state-warn-primary,#b54708)}
+.kbbd-pip{width:7px;height:7px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#777);display:inline-block}
+.kbbd-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.kbbd-mh{font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--dsw-alias-label-tertiary,#777);padding:0 4px;overflow:hidden;text-overflow:ellipsis}
+.kbbd-mc{display:block;text-align:start;background:var(--dsw-alias-bg-base,#fff);border:1px solid var(--dsw-alias-border-l1,#e6e6e6);border-radius:10px;min-height:72px;padding:6px;font:inherit;font-size:12px;min-width:0;cursor:pointer;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-mc:hover{background:var(--dsw-alias-interactive-bg-hover,#f0f0f0)}
+.kbbd-mc.out{opacity:.45}
+.kbbd-mc.today{border-color:var(--dsw-alias-state-business-primary,#175cd3)}
+.kbbd-mc b{font-variant-numeric:tabular-nums}
+.kbbd-dots{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.kbbd-dots i,.kbbd-legend i{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-label-tertiary,#777);display:inline-block;flex:none}
+.kbbd-dots i.ok,.kbbd-legend i.ok{background:var(--dsw-alias-state-success-primary,#067647)}
+.kbbd-dots i.err,.kbbd-legend i.err{background:var(--dsw-alias-state-error-primary,#d92d20)}
+.kbbd-dots i.warn,.kbbd-legend i.warn{background:var(--dsw-alias-state-warn-primary,#b54708)}
+.kbbd-dots i.run,.kbbd-legend i.run{background:var(--dsw-alias-state-business-primary,#175cd3)}
+.kbbd-dots i.planned,.kbbd-legend i.planned{background:transparent;border:1.5px solid var(--dsw-alias-label-tertiary,#777)}
+.kbbd-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dsw-alias-label-tertiary,#777)}
+.kbbd-legend span{display:inline-flex;gap:6px;align-items:center}
+.kbbd-detail{border:1px solid var(--dsw-alias-border-l2,#dcdcdc);border-radius:14px;background:var(--dsw-alias-bg-layer-2,#f6f6f6);padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.kbbd-detail-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.kbbd-detail h4{margin:0;font-size:14px;color:var(--dsw-alias-label-primary,#111)}
+.kbbd-detail-row{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12.5px;min-width:0}
+.kbbd-detail-when{font-variant-numeric:tabular-nums;color:var(--dsw-alias-label-secondary,#555)}
+.kbbd-detail-why{flex:1 1 220px;min-width:0;color:var(--dsw-alias-label-tertiary,#777);overflow-wrap:anywhere}
+.kbbd-detail-acts{display:flex;gap:6px;flex-wrap:wrap}
+.kb6-tb-vbtn.lab{width:auto;padding:0 12px;gap:6px;font:inherit;font-size:12.5px}
+.kb6-tb-vlab{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.kbbd-pulse{animation:none}}
+@media (max-width:1000px){.kbbd-cols{grid-template-columns:repeat(2,minmax(0,1fr))}.kbbd-week{grid-template-columns:repeat(2,minmax(0,1fr))}.kbbd-day{min-height:0}}
+@media (max-width:640px){
+  .kbbd-cols,.kbbd-week{grid-template-columns:minmax(0,1fr)}
+  .kbbd-month{gap:3px}.kbbd-mc{min-height:54px;padding:4px}
+  .kb6-tb-vbtn.lab .kb6-tb-vlab{display:none}.kb6-tb-vbtn.lab{width:38px;padding:0}
+}
+@supports (container-type:inline-size){
+  @container (max-width:900px){.kbbd-cols{grid-template-columns:repeat(2,minmax(0,1fr))}.kbbd-week{grid-template-columns:repeat(2,minmax(0,1fr))}.kbbd-day{min-height:0}}
+  @container (max-width:560px){.kbbd-cols,.kbbd-week{grid-template-columns:minmax(0,1fr)}.kbbd-month{gap:3px}.kbbd-mc{min-height:54px;padding:4px}}
+}
 /* ── Accueil onboarding « première automation » (maquette 30/09) ────────────
    Port du mock validé (maquette-automation/) en matière DSH : titre centré,
    trois cartes-portes, CTA « Commencer » + note. Grille fluide et matière
@@ -28496,8 +29267,6 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-ob-p{margin:0;font-size:13.5px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
 .kba-ob-cta{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;row-gap:6px;margin-top:14px}
 .kba-ob-ctanote{font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-tertiary);max-width:52ch}
-.kba-help-btn{font-size:13px;font-weight:600;padding:0 11px;width:32px;height:32px;justify-content:center}
-.kba-help-btn[aria-expanded="true"]{background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-border-l2)}
 .kba-crumb{border:0;background:transparent;color:var(--dsw-alias-label-secondary);padding:0;font:inherit;font-size:13px;cursor:pointer}
 .kba-crumb:hover{color:var(--dsw-alias-label-primary);text-decoration:underline}
 /* détail */
@@ -28548,7 +29317,6 @@ body:not([data-ds-dark-theme]) .kbt-micro-warn{color:color-mix(in srgb,var(--dsw
 .kba-ln{display:flex}
 .kba-ln i{font-style:normal;width:38px;text-align:right;padding-right:13px;color:var(--dsw-alias-label-tertiary);flex:none;opacity:.7}
 .kba-ln.cm span{color:var(--dsw-alias-label-tertiary)}
-.kba-kw{color:var(--dsw-alias-state-warn-primary)}
 @media (max-width:900px){
   .kba-rowhead{display:none}
   .kba-rowbtn{grid-template-columns:1fr;gap:4px}
