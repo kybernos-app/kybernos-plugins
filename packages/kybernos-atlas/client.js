@@ -201,7 +201,7 @@ window.__ModuleLoader__.load({
         if (d && d.mission !== '') bits.push(cut(firstSentence(d.mission), 140) + '.')
         if (d && d.roles.length) bits.push('Roles: ' + d.roles.join(', ') + '.')
         if (l) bits.push(l.total + (l.total === 1 ? ' lesson' : ' lessons') + ', ' + l.runs + (l.runs === 1 ? ' run.' : ' runs.'))
-        if (!d) bits.unshift('No kyber definition found; only its lessons and runs remain.')
+        if (!d) bits.unshift('No agent team definition found; only its lessons and runs remain.')
         add({ id: 'k:' + kid, kind: 'kyber', file: d ? d.file : '', rootId: d ? d.rootId : '', label: d ? d.name : kid, area: mainWs(kid), days: l ? daysSince(l.lastActivity, now) : null, path: '~/.dsh/kybers/' + kid, note: bits.join(' ') || 'No description.', sub: d ? (d.roles.length ? 'Roles: ' + d.roles.slice(0, 3).join(', ') : '') : 'lessons only' })
         for (const wid of Object.keys(obj(kyberWs[kid]))) link('k:' + kid, 'p:' + wid, 'derived')
       }
@@ -217,7 +217,7 @@ window.__ModuleLoader__.load({
           // A skill kept inside a kyber's own folder: real, just not in the shared catalogue.
           const lo = localOf[low(name)]; const lid = 's:local:' + lo.kid + ':' + low(lo.name)
           if (localNodes[lid] === undefined) {
-            localNodes[lid] = add({ id: lid, kind: 'skill', label: lo.name, area: byId['k:' + lo.kid].area, days: null, path: '~/.dsh/kybers/' + lo.kid + '/skills/' + lo.name, note: 'A skill kept inside the kyber “' + byId['k:' + lo.kid].label + '”, not in the shared catalogue.' })
+            localNodes[lid] = add({ id: lid, kind: 'skill', label: lo.name, area: byId['k:' + lo.kid].area, days: null, path: '~/.dsh/kybers/' + lo.kid + '/skills/' + lo.name, note: 'A skill kept inside the agent team “' + byId['k:' + lo.kid].label + '”, not in the shared catalogue.' })
             link(lid, 'k:' + lo.kid, 'declared')
           }
           if (ownerId !== 'k:' + lo.kid) link(ownerId, lid, 'declared')
@@ -254,14 +254,14 @@ window.__ModuleLoader__.load({
       // Memory. Account memory is one node (it applies to every kyber). Cloud kybers keep a count per workspace.
       const mem = src.memory
       if (mem && mem.connected) {
-        add({ id: 'm:account', kind: 'memory', label: 'Account memory', area: 'none', days: null, path: 'kybernos.app · account', note: mem.accountCount + ' facts kept in your account' + (mem.pinned ? ', ' + mem.pinned + ' pinned' : '') + '. They apply to every kyber, so they are not drawn one by one.' })
+        add({ id: 'm:account', kind: 'memory', label: 'Account memory', area: 'none', days: null, path: 'kybernos.app · account', note: mem.accountCount + ' facts kept in your account' + (mem.pinned ? ', ' + mem.pinned + ' pinned' : '') + '. They apply to every agent team, so they are not drawn one by one.' })
         for (const c of mem.cloud) {
           add({ id: 'm:cloud:' + c.id, kind: 'memory', label: c.name + ' memory', area: workspaces.some((w) => w.id === c.workspaceId) ? 'p:' + c.workspaceId : 'none', days: null, path: 'kybernos.app · ' + c.name, note: c.count + (c.count === 1 ? ' fact' : ' facts') + ' kept for “' + c.name + '”.' })
           link('m:cloud:' + c.id, 'p:' + c.workspaceId, 'declared')
         }
         for (const kid of Object.keys(mem.byKyber)) {
           if (byId['k:' + kid] === undefined || mem.byKyber[kid] === 0) continue
-          add({ id: 'm:kyber:' + kid, kind: 'memory', label: byId['k:' + kid].label + ' memory', area: byId['k:' + kid].area, days: null, path: 'kybernos.app · kyber ' + kid, note: mem.byKyber[kid] + ' facts kept for this kyber.' })
+          add({ id: 'm:kyber:' + kid, kind: 'memory', label: byId['k:' + kid].label + ' memory', area: byId['k:' + kid].area, days: null, path: 'kybernos.app · agent team ' + kid, note: mem.byKyber[kid] + ' facts kept for this agent team.' })
           link('m:kyber:' + kid, 'k:' + kid, 'declared')
         }
       }
@@ -316,12 +316,12 @@ window.__ModuleLoader__.load({
     }
     const COLS = [
       { title: 'Project', groups: [['area', '']] },
-      { title: 'Kybers & automations', groups: [['kyber', 'Kybers'], ['routine', 'Automations']] },
+      { title: 'Agent Teams & automations', groups: [['kyber', 'Agent Teams'], ['routine', 'Automations']] },
       { title: 'Skills & apps', groups: [['skill', 'Skills'], ['app', 'Apps']] },
       { title: 'Memory & lessons', groups: [['memory', 'Memory'], ['lesson', 'Lessons']] }
     ]
     const COL_OF = { area: 0, kyber: 1, routine: 1, skill: 2, app: 2, memory: 3, lesson: 3 }
-    const KIND_NAME = { area: 'Project', kyber: 'Kyber', routine: 'Automation', skill: 'Skill', app: 'App', memory: 'Memory', lesson: 'Lesson' }
+    const KIND_NAME = { area: 'Project', kyber: 'Agent Team', routine: 'Automation', skill: 'Skill', app: 'App', memory: 'Memory', lesson: 'Lesson' }
     const KIND_ORDER = ['area', 'kyber', 'routine', 'skill', 'app', 'memory', 'lesson']
     const byKindThenLabel = (a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.label.localeCompare(b.label)
     const CAP = 5
@@ -336,7 +336,7 @@ window.__ModuleLoader__.load({
         case 'routine': return has('tasks') ? { label: 'Automations', patch: { view: 'tasks' } } : null
         case 'app': return n.id.indexOf('a:toolkit:') === 0 && has('connectors') ? { label: 'Connectors', patch: { view: 'connectors' } } : null
         case 'area': return n.path !== '' && has('project') ? { label: 'Projects', patch: { view: 'project', projectId: n.path } } : null
-        case 'kyber': return n.file && has('teaminfo') ? { label: 'Kybers', patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
+        case 'kyber': return n.file && has('teaminfo') ? { label: 'Agent Teams', patch: { view: 'teaminfo', detailPath: n.file, detailRoot: n.rootId } } : null
         case 'run': return n.run && n.run.sessionId ? { label: 'the session', session: n.run.sessionId } : null
         default: return null
       }
@@ -373,7 +373,7 @@ window.__ModuleLoader__.load({
       const out = []
       const proj = g.nodes.filter((n) => n.kind === 'area'); const ky = g.nodes.filter((n) => n.kind === 'kyber')
       if (proj.length) { out.push({ head: 'Projects' }); proj.forEach((n) => out.push({ id: n.id, label: n.label, sub: n.deg + ' links' })) }
-      if (ky.length) { out.push({ head: 'Kybers' }); ky.sort((a, b) => a.label.localeCompare(b.label)).forEach((n) => out.push({ id: n.id, label: n.label, sub: n.deg + ' links' })) }
+      if (ky.length) { out.push({ head: 'Agent Teams' }); ky.sort((a, b) => a.label.localeCompare(b.label)).forEach((n) => out.push({ id: n.id, label: n.label, sub: n.deg + ' links' })) }
       return out
     }
     // Where the Map opens: the project or kyber with the most links, so the first view is never empty
@@ -391,7 +391,7 @@ window.__ModuleLoader__.load({
     // and every layout, so test-client.mjs can check them without a browser.
     const CANVAS_VIEWS = ['rings', 'circle', 'areas', 'links', 'timeline', 'orbit']
     const LAYERS = ['core', 'projects', 'kybers', 'knowledge', 'skills', 'automations', 'apps', 'runs']
-    const LAYER_NAME = { core: 'Workspace', projects: 'Projects', kybers: 'Kybers', knowledge: 'Memory & lessons', skills: 'Skills', automations: 'Automations', apps: 'Apps', runs: 'Runs' }
+    const LAYER_NAME = { core: 'Workspace', projects: 'Projects', kybers: 'Agent Teams', knowledge: 'Memory & lessons', skills: 'Skills', automations: 'Automations', apps: 'Apps', runs: 'Runs' }
     const LAYER_OF = { root: 'core', area: 'projects', kyber: 'kybers', memory: 'knowledge', lesson: 'knowledge', skill: 'skills', routine: 'automations', app: 'apps', run: 'runs' }
     const KIND_NAME_ALL = Object.assign({ root: 'Workspace', run: 'Run' }, KIND_NAME)
     const RING_R = [0, 125, 210, 295, 380, 460, 530, 600]
@@ -524,7 +524,7 @@ window.__ModuleLoader__.load({
     }
 
     // ══ 2. LOADING ═══════════════════════════════════════════════════════════
-    const SOURCES = [['projects', 'Projects'], ['kybers', 'Kybers'], ['skills', 'Skills'], ['lessons', 'Lessons'], ['memory', 'Memory (cloud)'], ['automations', 'Automations'], ['apps', 'Apps']]
+    const SOURCES = [['projects', 'Projects'], ['kybers', 'Agent Teams'], ['skills', 'Skills'], ['lessons', 'Lessons'], ['memory', 'Memory (cloud)'], ['automations', 'Automations'], ['apps', 'Apps']]
     const TIMEOUT = 15000
     async function getJson (url, init) {
       const ctl = typeof AbortController === 'function' ? new AbortController() : null
@@ -1032,7 +1032,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           h('p', { className: 'kbat-lead' }, 'The Atlas shows how the things you set up fit together. It reads your files and plugins only when you click Update, and never edits or stores anything.'),
           h('section', null, h('h3', null, 'The views'),
             h('dl', null,
-              h('dt', null, 'Around'), h('dd', null, 'Pick a project or a kyber in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.'),
+              h('dt', null, 'Around'), h('dd', null, 'Pick a project or an agent team in “Start from”. Four columns show who works there, what they use and what they know. Hover a name to light up its lines.'),
               h('dt', null, 'Rings'), h('dd', null, 'The whole workspace: one ring per layer, the workspace in the middle, each project keeping its wedge.'),
               h('dt', null, 'Circle'), h('dd', null, 'Every node on one ring, grouped by project. Links cross the middle.'),
               h('dt', null, 'Areas'), h('dd', null, 'One cluster per project. Lines between clusters show what crosses projects.'),
@@ -1040,25 +1040,25 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
               h('dt', null, 'Timeline'), h('dd', null, 'Automation runs of the last 14 days on top, everything else by last change below.'),
               h('dt', null, 'Orbit'), h('dd', null, 'The rings as a stack that turns on its own. Drag to turn it.'),
               h('dt', null, 'List'), h('dd', null, 'The same things as a table. The text version of every drawing.'))),
-          h('section', null, h('h3', null, 'In the drawings'), h('p', null, 'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, a kyber, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.')),
+          h('section', null, h('h3', null, 'In the drawings'), h('p', null, 'Click a dot for details; the card has an Open button when the thing has a page in Kybernos (a skill, an agent team, a project, an automation, a connector, or the session of a run). Search finds a name and flies to it. Click a legend chip to isolate it. Names shows every name, Motion lets the dots drift, and Lessons adds the lessons, which are many and so off by default. Ctrl or ⌘ + scroll, or the + and − buttons, zoom.')),
           h('section', null, h('h3', null, 'The lines'),
             h('ul', { className: 'kbat-key' },
-              h('li', null, line(undefined), h('span', null, h('b', null, 'Solid. '), 'Written in a file. For example, a kyber lists a skill.')),
-              h('li', null, line('4 4'), h('span', null, h('b', null, 'Dashed. '), 'Guessed from a name. For example, an app that matches one of a kyber’s tools.')),
+              h('li', null, line(undefined), h('span', null, h('b', null, 'Solid. '), 'Written in a file. For example, an agent team lists a skill.')),
+              h('li', null, line('4 4'), h('span', null, h('b', null, 'Dashed. '), 'Guessed from a name. For example, an app that matches one of an agent team’s tools.')),
               h('li', null, h('span', { className: 'kbat-ghostkey' }, 'brand-voice'), h('span', null, h('b', null, 'Crossed out, red. '), 'Points to something that no longer exists, such as a skill that is not installed.')))),
           h('section', null, h('h3', null, 'To check'), h('p', null, 'Red items are broken links. Amber items look wrong, for example an automation whose last run failed. Click one to see where it is on the map. Skills that nobody declares are not listed: skills are mostly used by name, on demand.')),
           h('section', null, h('h3', null, 'Words'),
             h('dl', null,
               h('dt', null, 'Project'), h('dd', null, 'A workspace in DSH.'),
-              h('dt', null, 'Kyber'), h('dd', null, 'An agent with its own roles, skills and lessons.'),
-              h('dt', null, 'Skill'), h('dd', null, 'A reusable instruction set a kyber or a project can use.'),
+              h('dt', null, 'Agent Team'), h('dd', null, 'A team of agents with its own roles, skills and lessons.'),
+              h('dt', null, 'Skill'), h('dd', null, 'A reusable instruction set an agent team or a project can use.'),
               h('dt', null, 'Memory'), h('dd', null, 'Facts kept in your kybernos.app account. Needs a linked account.'),
-              h('dt', null, 'Lesson'), h('dd', null, 'Something a kyber learned from a past run. The most recent few are shown.'),
+              h('dt', null, 'Lesson'), h('dd', null, 'Something an agent team learned from a past run. The most recent few are shown.'),
               h('dt', null, 'Automation'), h('dd', null, 'A scheduled task. Its last run is shown on its card.'))),
           h('section', null, h('h3', null, 'What you will not see'),
             h('ul', null,
               h('li', null, 'Sessions. Automation runs only appear in the drawings, and only the last 14 days.'),
-              h('li', null, 'Which kyber worked in which project, beyond each project’s 40 most recent sessions. It is only known when a kyber was activated in a session.'),
+              h('li', null, 'Which agent team worked in which project, beyond each project’s 40 most recent sessions. It is only known when an agent team was activated in a session.'),
               h('li', null, 'Account memory fact by fact. It can hold hundreds, so it is one node with a count.'),
               h('li', null, 'Memories, when no account is linked.'),
               h('li', null, 'Links no file declares. Names are the only thing it guesses from.'))),
@@ -1089,7 +1089,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
           h('svg', { width: 10, height: 10, viewBox: '0 0 10 10', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' }, h('path', { d: 'M2 3.5 5 6.5 8 3.5' }))),
         open ? h('div', { className: 'kbat-pop' },
           h('input', {
-            ref: input, type: 'search', value: q, placeholder: 'Search a project, kyber, skill…', 'aria-label': 'Search',
+            ref: input, type: 'search', value: q, placeholder: 'Search a project, agent team, skill…', 'aria-label': 'Search',
             onChange: (e) => { setQ(e.target.value); setIdx(0) },
             onKeyDown: (e) => {
               if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (options.length) setIdx((idx + (e.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length) }
@@ -1128,7 +1128,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         const ro = new ResizeObserver(() => measure()); ro.observe(host)
         return () => ro.disconnect()
       }, [measure])
-      if (!model) return h('div', { className: 'kbat-state' }, h('p', null, 'Pick a project or a kyber in “Start from”.'))
+      if (!model) return h('div', { className: 'kbat-state' }, h('p', null, 'Pick a project or an agent team in “Start from”.'))
       const cur = hot || p.sel
       const ids = new Set(); const nbs = new Set()
       model.cols.forEach((c) => c.groups.forEach((gr) => { gr.items.forEach((n) => ids.add(n.id)); gr.ghosts.forEach((x) => ids.add(x.id)) }))
@@ -1149,9 +1149,9 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
         onClick: () => p.onSelect(x.src), onPointerEnter: () => setHot(x.id), onPointerLeave: () => setHot(null)
       }, h('span', { className: 'kbat-pt' }, h('b', null, x.label), h('i', null, x.sub)), h('span', { className: 'kbat-pw' }, h(Glyph, { kind: 'warn', size: 13 })))
       const focusNode = model.focus
-      const noMemoryNote = g.memory ? 'Account memory (' + g.memory.accountCount + ' facts) is shared by every kyber.' : 'Not read. Link your kybernos.app account to see memory.'
+      const noMemoryNote = g.memory ? 'Account memory (' + g.memory.accountCount + ' facts) is shared by every agent team.' : 'Not read. Link your kybernos.app account to see memory.'
       return h('div', { className: 'kbat-around' },
-        h('p', { className: 'kbat-cap' }, 'Around ', h('b', null, focusNode.label), '. ', focusNode.kind === 'area' ? 'Who works on this project, what they use and what they know.' : 'Where this kyber is used, what it uses and what it knows.', ' Hover a name to follow its lines.'),
+        h('p', { className: 'kbat-cap' }, 'Around ', h('b', null, focusNode.label), '. ', focusNode.kind === 'area' ? 'Who works on this project, what they use and what they know.' : 'Where this agent team is used, what it uses and what it knows.', ' Hover a name to follow its lines.'),
         h('div', { className: 'kbat-grid', ref: gridRef, 'data-hover': on ? '1' : undefined },
           h('svg', { className: 'kbat-lines', width: geo.w, height: geo.h, 'aria-hidden': 'true' },
             geo.paths.map((q) => h('path', { key: q.key, d: q.d, 'data-inf': q.inf ? '1' : undefined, 'data-hot': on && (q.s === cur || q.t === cur) ? '1' : undefined }))),
@@ -1443,7 +1443,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       const failedNames = SOURCES.filter((s) => st.status[s[0]] && st.status[s[0]].state === 'failed').map((s) => s[1])
       const skippedMemory = st.status.memory && st.status.memory.state === 'skipped'
       const notes = []
-      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so kybers are not tied to projects. Click Update in a moment.')
+      if (st.result && st.result.src.storeReady === false) notes.push('Sessions were not ready, so agent teams are not tied to projects. Click Update in a moment.')
       if (skippedMemory) notes.push('Memories were not read, so any problem with them is not listed.')
       if (failedNames.length) notes.push(failedNames.join(', ') + (failedNames.length === 1 ? ' was' : ' were') + ' not read, so related problems are not listed.')
       const flyTo = (id) => { setTimeout(() => { if (canvasApi.current) canvasApi.current.fly(id) }, 40) }
@@ -1483,7 +1483,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       if (loading) body = h('div', { className: 'kbat-state', role: 'status' }, h('h2', null, 'Reading the Atlas'), h('p', null, 'Reading seven sources on this computer. Nothing leaves it.'), h(SourceList, { status: st.status }))
       else if (st.phase === 'error') body = h('div', { className: 'kbat-state', role: 'alert' }, h('h2', null, 'The Atlas could not be read'), h('p', null, 'None of the sources answered. DSH may be restarting. Wait a moment, then try again.'), h(SourceList, { status: st.status }), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Try again'))
       else if (st.phase === 'idle') body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing read yet'), h('p', null, 'The Atlas reads your files and plugins only when you ask. Opening this page reads nothing.'), h('button', { type: 'button', className: 'kbat-btn', 'data-primary': 'true', onClick: load }, 'Update'))
-      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add kybers, skills, automations and memories. Create a kyber or install a skill, then click Update.'))
+      else if (empty) body = h('div', { className: 'kbat-state' }, h('h2', null, 'Nothing to map yet'), h('p', null, 'The Atlas fills in as you add agent teams, skills, automations and memories. Create an agent team or install a skill, then click Update.'))
       else {
         const cap = CAPTION[tab]
         body = h('div', { className: 'kbat-body' },
@@ -1509,7 +1509,7 @@ body[data-ds-dark-theme] .kbat-page{--kbat-p0:#3987e5;--kbat-p1:#d95926;--kbat-p
       }
       return h('div', { className: 'kbat-page', 'data-kb': 'atlas', 'data-size': size, ref: rootRef },
         h('header', { className: 'kbat-head' },
-          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, 'Every project, kyber, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits or stores anything.')),
+          h('div', null, h('h1', { className: 'kbat-title' }, 'Atlas'), h('p', { className: 'kbat-sub' }, 'Every project, agent team, skill, memory, lesson, automation and app, and how they point to each other. It only reads; it never edits or stores anything.')),
           h('div', { className: 'kbat-headr' },
             h('span', { className: 'kbat-built', role: 'status' }, h('span', { className: 'kbat-dot', 'data-t': dotT }), builtTxt),
             h('button', { type: 'button', className: 'kbat-btn', onClick: () => setHelp(true), 'aria-haspopup': 'dialog' }, 'Help'),

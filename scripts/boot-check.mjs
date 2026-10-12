@@ -245,10 +245,10 @@ const main = async () => {
       showButton: /Show details|Afficher les détails/i.test(text),
       degraded: /\\[kybernos\\]/.test(text),
       // innerText ne voit que le panneau ouvert : selon l'onglet choisi et la
-      // vue restaurée, la ligne « AI Teams » restait repliée et le contrôle
+      // vue restaurée, la ligne « Agent Teams » restait repliée et le contrôle
       // passait au rouge alors que le plugin était bien monté. On lit donc aussi
       // la ligne du menu dans le DOM (.kb4-item), panneau ouvert ou non.
-      kybersMenu: /AI Teams/.test(text) || [].slice.call(document.querySelectorAll('.kb4-item')).some((b) => /AI Teams/.test(b.textContent || '')),
+      kybersMenu: /Agent Teams/.test(text) || [].slice.call(document.querySelectorAll('.kb4-item')).some((b) => /Agent Teams/.test(b.textContent || '')),
       views: /Kybernos/.test(text),
       interactive,
       sample: text.split('\\n').map((l) => l.trim()).filter((l) => l !== '').slice(0, 12),
@@ -261,7 +261,7 @@ const main = async () => {
   const slotCrashes = errors.filter((e) => /slot entry crashed/i.test(e))
   ok('aucune erreur de chargement du plugin', kybernosErrors.length === 0, kybernosErrors.slice(0, 2).join(' | '))
   ok('aucune entree de slot ne crashe', slotCrashes.length === 0, slotCrashes.slice(0, 2).join(' | '))
-  ok('le menu Kybernos (« AI Teams ») est enregistré', probe.kybersMenu === true)
+  ok('le menu Kybernos (« Agent Teams ») est enregistré', probe.kybersMenu === true)
   ok('les vues Kybernos sont enregistrées', probe.views === true)
 
   // ── géométrie du pied de sidebar : le cadeau d'invitation et la rangée

@@ -135,10 +135,10 @@ export const construireQuestion = (kybers, opts = {}) => {
   for (const k of liste) criteria[k.id] = k.mission
   criteria.aucun = typeof opts.aucun === 'string' && opts.aucun !== ''
     ? opts.aucun
-    : 'aucun kyber de la liste ne couvre cette demande'
+    : 'aucune Agent Team de la liste ne couvre cette demande'
   return {
     type: 'choice',
-    instructions: 'Pick the kyber whose mission matches the request. Judge the mission, not the words: a request may borrow one kyber\'s vocabulary while asking for another\'s work. Answer "aucun" when no listed mission covers the request.',
+    instructions: 'Pick the agent team whose mission matches the request. Judge the mission, not the words: a request may borrow one agent team\'s vocabulary while asking for another\'s work. Answer "aucun" when no listed mission covers the request.',
     criteria
   }
 }
@@ -284,7 +284,7 @@ export async function selectionnerKyber (kybers, demande, opts = {}) {
   const seuil = typeof opts.seuil === 'number' && opts.seuil > 0 && opts.seuil <= 1 ? opts.seuil : SEUIL_DEFAUT
   const question = construireQuestion(kybers, opts)
   if (question === null) {
-    return { ok: false, code: 'SANS-KYBER', erreur: 'aucun kyber à départager', ms: 0, seuil }
+    return { ok: false, code: 'SANS-KYBER', erreur: 'aucune Agent Team à départager', ms: 0, seuil }
   }
   const texte = demande === undefined || demande === null ? '' : String(demande)
   if (texte.trim() === '') {

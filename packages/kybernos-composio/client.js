@@ -137,7 +137,7 @@ window.__ModuleLoader__.load({
       'composio.keyhelp2': { fr: 'Menu Settings ▸ API Keys, puis Generate new key.', en: 'Menu Settings ▸ API Keys, then Generate new key.' },
       'composio.keyhelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus : elle est enregistrée sur votre machine.', en: 'Paste the key (it starts with ck_…) above: it is saved on your machine.' },
       'kb.cp.title': { fr: 'Connections', en: 'Connections' },
-      'kb.cp.sub': { fr: 'Les comptes par lesquels vos Kybers agissent, via Composio. Plusieurs connexions par app — une par compte, boîte ou région.', en: 'The accounts your Kybers act through, via Composio. Multiple connections per app — one per account, mailbox or region.' },
+      'kb.cp.sub': { fr: 'Les comptes par lesquels vos Agent Teams agissent, via Composio. Plusieurs connexions par app, une par compte.', en: 'The accounts your Agent Teams act through, via Composio — several connections per app, one per account.' },
       'kb.cp.search': { fr: 'Chercher une app — Slack, GitHub, facturation…', en: 'Search an app — Slack, GitHub, billing…' },
       'kb.cp.chipall': { fr: 'Toutes', en: 'All' },
       'kb.cp.chipconn': { fr: 'Connectées', en: 'Connected' },
@@ -185,7 +185,7 @@ window.__ModuleLoader__.load({
       'kb.cp.tab.discover': { fr: 'Découvrir', en: 'Discover' },
       'kb.cp.info': { fr: 'À propos des connecteurs locaux', en: 'About Local Connectors' },
       'kb.cp.help.title': { fr: 'Connecteurs locaux — mode d’emploi', en: 'Local Connectors — how it works' },
-      'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Kybers. Découvrir : le catalogue complet, connexion en un clic. Serveurs MCP : vos propres serveurs (HTTP distant ou commande locale). Les agents du chat lisent la même clé côté machine (~/.dsh/.env).', en: 'Yours: apps already linked to your Kybers. Discover: the full catalog, one-click connect. MCP servers: your own servers (remote HTTP or local command). Chat agents read the same key on this machine (~/.dsh/.env).' },
+      'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Agent Teams. Découvrir : le catalogue complet, connexion en un clic. Serveurs MCP : vos propres serveurs (HTTP distant ou commande locale). Les agents du chat lisent la même clé côté machine (~/.dsh/.env).', en: 'Yours: apps already linked to your Agent Teams. Discover: the full catalog, one-click connect. MCP servers: your own servers (remote HTTP or local command). Chat agents read the same key on this machine (~/.dsh/.env).' },
       'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue vous attend.', en: 'No app connected yet — the catalog is waiting for you.' },
       // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },

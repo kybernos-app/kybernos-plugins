@@ -17,7 +17,7 @@ export const FICHIER_CATALOGUE = join(REPO, 'packages', 'kybernos-hub', 'catalog
 export const FAMILLES = [
   { id: 'base', fr: 'Fondations', en: 'Foundations', couleur: '#5b6fd6' },
   { id: 'models', fr: 'Modèles', en: 'Models', couleur: '#8a5bd6' },
-  { id: 'teams', fr: 'Kybers', en: 'Kybers', couleur: '#1a9a8a' },
+  { id: 'teams', fr: 'Agent Teams', en: 'Agent Teams', couleur: '#1a9a8a' },
   { id: 'create', fr: 'Créer dans le chat', en: 'Create in the chat', couleur: '#e8630a' },
   { id: 'data', fr: 'Données', en: 'Data', couleur: '#0f8fb5' },
   { id: 'connect', fr: 'Connecteurs et machines', en: 'Connectors and machines', couleur: '#d6458a' },
@@ -26,7 +26,7 @@ export const FAMILLES = [
 
 // dir → [family, promise fr, promise en]
 const FICHE = {
-  'kybernos-plugin': ['base', 'Le cœur : Kybers, ressources, réglages et préréglages.', 'The core: Kybers, resources, settings and presets.'],
+  'kybernos-plugin': ['base', 'Le cœur : Agent Teams, ressources, réglages et préréglages.', 'The core: Agent Teams, resources, settings and presets.'],
   'kybernos-hub': ['base', 'Ce panneau, la garde de démarrage et le mode sans échec.', 'This panel, the boot guard and safe mode.'],
   'kybernos-theme': ['base', 'Thème, palettes, fond, police et animation de réflexion.', 'Theme, palettes, background, font and thinking animation.'],
   'kybernos-language': ['base', 'Langue de l’interface : toutes les langues ISO, traduction de Kybernos et de DSH, sens de lecture.', 'Interface language: every ISO language, translation of Kybernos and DSH, reading direction.'],
@@ -43,7 +43,7 @@ const FICHE = {
   'kybernos-call': ['base', 'Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
   'kybernos-usage': ['base', 'Ce que votre plan a consommé, et ce que vos propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
   'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
-  'kybernos-atlas': ['teams', 'La carte de votre espace : projets, kybers, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, kybers, skills, memory, and what is broken.'],
+  'kybernos-atlas': ['teams', 'La carte de votre espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, agent teams, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
   'kybernos-bricks': ['create', 'Maquettes en briques, animées brique par brique.', 'Brick mockups, animated brick by brick.'],
   'kybernos-modeleur': ['create', 'Modèles 2D et 3D pilotés par le chat.', '2D and 3D models driven by the chat.'],
@@ -61,7 +61,7 @@ const FICHE = {
   'dsh-subagent-maison': ['connect', 'Les connecteurs d’OpenCode, Gemini, Qwen et Hermes que la page Workers allume.', 'The OpenCode, Gemini, Qwen and Hermes connectors that the Workers page turns on.'],
   'kybernos-workers': ['connect', 'Installe, vérifie et expose à l’agent principal Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes et ZCode.', 'Installs, checks and exposes to the main agent Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode.'],
   'kybernos-cloud': ['cloud', 'Compte Kybernos, modèles du proxy, mémoire du compte.', 'Kybernos account, proxy models, account memory.'],
-  'kybernos-memory': ['cloud', 'La page Memory & Lessons learned : mémoire du compte et leçons par kyber, filtres, interrupteurs.', 'The Memory & Lessons learned page: account memory and lessons per kyber, filters, on/off switches.']
+  'kybernos-memory': ['cloud', 'La page Memory & Lessons learned : mémoire du compte et leçons par Agent Team, filtres, interrupteurs.', 'The Memory & Lessons learned page: account memory and lessons per agent team, filters, on/off switches.']
 }
 
 // dir → human title (the id stays visible under it) and the glyph the client draws for it.
@@ -117,21 +117,21 @@ const VEDETTES = {
   'kybernos-memory': {
     accroche: { fr: 'Ce que les agents ont retenu', en: 'What the agents remember' },
     description: {
-      fr: 'La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque kyber, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.',
-      en: 'The Memory & Lessons learned page: the account memories and the lessons of every kyber, with search, filters and switches. Search ranks by relevance, locally.'
+      fr: 'La page Memory & Lessons learned : les souvenirs du compte et les leçons de chaque Agent Team, avec recherche, filtres et interrupteurs. La recherche classe par pertinence, en local.',
+      en: 'The Memory & Lessons learned page: the account memories and the lessons of every agent team, with search, filters and switches. Search ranks by relevance, locally.'
     },
     points: [
       { fr: 'Souvenirs du compte : liste, recherche, filtres (épinglés, source, date), ajout, modification, oubli avec annulation', en: 'Account memories: list, search, filters (pinned, source, date), add, edit, forget with Undo' },
-      { fr: 'Leçons de chaque kyber : filtres, modification, suppression (archivée, pas perdue)', en: 'Lessons of every kyber: filters, edit, delete (archived, not lost)' },
+      { fr: 'Leçons de chaque Agent Team : filtres, modification, suppression (archivée, pas perdue)', en: 'Lessons of every agent team: filters, edit, delete (archived, not lost)' },
       { fr: 'Recherche classée par pertinence, en local : accents, pluriels et mots rares pris en compte', en: 'Search ranked by relevance, locally: accents, plurals and rare words handled' },
       { fr: 'Options : ce qui est envoyé au modèle, capture automatique, recherche par sens', en: 'Options: what is sent to the model, automatic capture, search by meaning' }
     ]
   },
   'dsh-db-viewer': {
-    accroche: { fr: 'Lire la base d’un kyber dans le chat', en: 'Read a kyber’s database in the chat' },
+    accroche: { fr: 'Lire la base d’une Agent Team dans le chat', en: 'Read an agent team’s database in the chat' },
     description: {
-      fr: 'Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde un kyber, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.',
-      en: 'A read-only SQLite viewer in the right sidebar: the small database a kyber keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.'
+      fr: 'Une visionneuse SQLite en lecture seule dans la barre latérale : la petite base que garde une Agent Team, en diagramme, en graphiques, en tableaux et avec une zone SELECT. Rien ne peut être écrit depuis la page.',
+      en: 'A read-only SQLite viewer in the right sidebar: the small database an agent team keeps, as a diagram, charts, tables and a SELECT box. Nothing can be written from the page.'
     },
     points: [
       { fr: 'Diagramme : une carte par table, avec les liens tirés des clés étrangères', en: 'Diagram: a card per table, with the links drawn from the foreign keys' },

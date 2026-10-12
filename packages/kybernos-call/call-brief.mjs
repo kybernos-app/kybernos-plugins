@@ -7,7 +7,7 @@
 export const CALL_BRIEF = [
   'LIVE VOICE CALL. The user is talking to you on a voice call: what you write is read aloud as soon as you write it.',
   '- Answer only what was asked, in one to three short sentences, in the language the user is speaking. Plain spoken prose: no lists, tables, headings, code, emoji or links.',
-  '- Do not add menus of options, suggestions of kybers, agents or skills, or a closing question such as "anything else?". Do not narrate what you are about to do before using a tool.',
+  '- Do not add menus of options, suggestions of agent teams, agents or skills, or a closing question such as "anything else?". Do not narrate what you are about to do before using a tool.',
   '- Only the FIRST paragraph of each message is spoken. If the answer needs detail, give the gist in that first paragraph and put the detail after a blank line: it stays in the thread and is not read aloud.'
 ].join('\n')
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Checks the display fixes of the Creations, Kybers and Skills pages, and the skeleton screens, against a REAL DSH GUI.
+// Checks the display fixes of the Creations, Agent Teams and Skills pages, and the skeleton screens, against a REAL DSH GUI.
 //
 //   source scripts/sandbox/env.sh && node scripts/check-pages-live.mjs [--shots <dir>]
 //
@@ -9,7 +9,8 @@
 //               a row opens with a click (no « View » or « expand » button), its quick actions show on hover and on keyboard
 //               focus, always on a device with no hover, and the name keeps its width at 400 px; a Data creation says what it
 //               holds (no « { » or « [ »), opens as a table or a tree with its source one button away;
-//   kybers    : the sidebar entry and the page say « Kybers »; the tab row does not move when you switch tabs (1400 and 640 px);
+//   agent teams : the sidebar entry and the page say « Agent Teams » (the one name of what the user builds), nothing says « Kyber »;
+//               the tab row does not move when you switch tabs (1400 and 640 px);
 //   skills    : the relay answers 502 → a clear message, an automatic second attempt, « Try again » and « Change » (the other
 //               tabs are untouched); the source is shown, a bad address is refused with the variable's rule, a good one is used;
 //               the Featured list and the ranking are the same rows (same columns, same height);
@@ -185,10 +186,10 @@ try {
     }
   }
 
-  // ═══ Kybers ═════════════════════════════════════════════════════════════════════════════════════════════════════
-  console.log('kybers')
-  const navKybers = await clickText(page, 'Kybers')
-  check('the sidebar entry that opens the Kybers page says « Kybers »', navKybers === true)
+  // ═══ Agent Teams ═════════════════════════════════════════════════════════════════════════════════════════════════════
+  console.log('agent teams')
+  const navAgentTeams = await clickText(page, 'Agent Teams')
+  check('the sidebar entry that opens the Agent Teams page says « Agent Teams »', navAgentTeams === true)
   await sleep(2500)
   for (const w of [1400, 640]) {
     await size(w, 900)
@@ -196,8 +197,8 @@ try {
     const a = await ev(`({ title: document.querySelector('.kb6-title') && document.querySelector('.kb6-title').innerText, tabs: Math.round(document.querySelector('.kb6-utabs').getBoundingClientRect().top) })`)
     await click('.kb6-utab', 1)
     const b = await ev(`({ title: document.querySelector('.kb6-title') && document.querySelector('.kb6-title').innerText, tabs: Math.round(document.querySelector('.kb6-utabs').getBoundingClientRect().top) })`)
-    check('switching Kybers → Marketplace at ' + w + ' px moves nothing (title « Kybers » on both, tab row at ' + a.tabs + ' px)', a.tabs === b.tabs && a.title === 'Kybers' && b.title === 'Kybers', { a, b })
-    await shot('kybers-marketplace-' + w)
+    check('switching Agent Teams → Marketplace at ' + w + ' px moves nothing (title « Agent Teams » on both, tab row at ' + a.tabs + ' px)', a.tabs === b.tabs && a.title === 'Agent Teams' && b.title === 'Agent Teams', { a, b })
+    await shot('agent-teams-marketplace-' + w)
   }
   await size(1400, 900)
   await click('.kb6-utab', 0)
@@ -278,7 +279,7 @@ try {
   const lists = [
     { name: 'Creations (cards)', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Creations'); await sleep(500); await cardsView() }, first: '.kb6-grid > :first-child' },
     { name: 'Creations (list)', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Creations'); await sleep(500); await listView() }, first: '.kb6-lrows > :first-child' },
-    { name: 'Kybers', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Kybers') }, first: '.kb8-grid > :first-child, .kb8-rows > :first-child' },
+    { name: 'Agent Teams', pattern: '*kybernos/load*', go: async () => { await clickText(page, 'Agent Teams') }, first: '.kb8-grid > :first-child, .kb8-rows > :first-child' },
     { name: 'Skills › Yours', pattern: '*kybernos-skills/skills*', go: async () => { await clickText(page, 'Skills') }, first: '.kb8-card.static' },
     { name: 'Skills › Discover', pattern: '*kybernos-skills/index?view*', go: async () => { await clickText(page, 'Skills'); await sleep(2500); await clickText(page, 'Discover') }, first: '.kbs-table:not([data-kb=feat-table]) .kbs-row' },
   ]

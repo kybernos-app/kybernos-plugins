@@ -1,6 +1,6 @@
 # `@local/kybernos` (`packages/kybernos-plugin`)
 
-The core Kybernos bundle: agent teams ("kybers") with their crew views, a run journal, automations, a tools catalog, voice, a
+The core Kybernos bundle: agent teams (each one defined by a `kyber.yml`) with their crew views, a run journal, automations, a tools catalog, voice, a
 language runtime and ~85 host routes. `client.js` (~31k lines) and `index.js` (~11k) are too big to read linearly: this page comes
 from slot registrations, route tables, section banners and the tests.
 
@@ -12,7 +12,7 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 
 ## What the user sees
 
-- Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Kybers** (gallery and Marketplace tabs, create / edit / info pages,
+- Sidebar entry **Kybernos** (`sidebar.panellist`) opening a main panel: **Agent Teams** (gallery and Marketplace tabs, create / edit / info pages,
   Insight, Quality Score), **Workspaces**, **Creations**, **Automations** (cron, one-time and webhook tasks, as **Columns**, **Calendar** or **List**) and **Resources**
   (Connectors tab only when `@local/kybernos-composio` is booted, Skills tab, Documents tab off via `KB_SHOW_DOCS`). "Kybernos
   Hosted" is off via `KB_SHOW_HOSTED`. The Skills tab mounts the slot `main.kybernos-skills`, with a core page as fallback.
@@ -71,7 +71,7 @@ What it knows, and where from (nothing is invented; what it cannot know it says)
 | running, waiting for an approval, a question, a plan review | the engine's session status in the browser (`uiSession.sessionStatus` and `sessions.list`), the data its own sidebar shows; played live against a real engine with a stub model (`check-automations-board-live.mjs --stub-model`) | a session the page cannot see (deleted, not listed yet) is "started": no outcome is claimed and no button leads nowhere |
 | ended | the engine lists the session and it is neither running nor waiting | said as "the session has ended", never as "succeeded": the board cannot read the result |
 
-Not available: the team or kyber an automation belongs to (`tasks.json` has no such field, so the card shows its approval mode),
+Not available: the Agent Team an automation belongs to (`tasks.json` has no such field, so the card shows its approval mode),
 costs (a separate plugin will own them), a run's duration and its outcome beyond the above, and runs older than the last 20 of an
 automation. Approve / Refuse answer the request the engine holds, with the same call as its own approval panel, and only exist while
 that request is pending in this browser: with no page open, such a run waits (README "Automation approvals" below).

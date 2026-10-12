@@ -101,11 +101,11 @@ let kbLocaleRead = () => 'en'
       'crew.who.m': { kybernos: 'équipe', en: 'team' },
       'menu.tasks': { kybernos: 'Automations', en: 'Automations' },
       'tasks.title': { kybernos: 'Automations', en: 'Automations' },
-      'tasks.subtitle': { kybernos: 'Des Kybers qui démarrent seuls — sur un planning, un email, un message ou un webhook.', en: 'Kybers that start by themselves — on a schedule, an email, a message or a webhook.' },
+      'tasks.subtitle': { kybernos: 'Des Agent Teams qui démarrent seules — sur un planning, un email, un message ou un webhook.', en: 'Agent Teams that start by themselves — on a schedule, an email, a message or a webhook.' },
       'tasks.filter.all': { kybernos: 'Toutes', en: 'All' },
       'tasks.filter.active': { kybernos: 'Actives', en: 'Active' },
       'tasks.filter.attention': { kybernos: 'Attention requise', en: 'Needs attention' },
-      'tasks.col.name': { kybernos: 'NOM · KYBER', en: 'NAME · KYBER' },
+      'tasks.col.name': { kybernos: 'NOM · AGENT TEAM', en: 'NAME · AGENT TEAM' },
       'tasks.col.trigger': { kybernos: 'DÉCLENCHEUR', en: 'TRIGGER' },
       'tasks.col.origin': { kybernos: 'ORIGINE', en: 'ORIGIN' },
       'tasks.col.lastsession': { kybernos: 'DERNIÈRE SESSION', en: 'LAST SESSION' },
@@ -125,11 +125,11 @@ let kbLocaleRead = () => 'en'
       'deliv.tasks.desc': { kybernos: 'Sessions qui partent toutes seules à l\'heure choisie.', en: 'Sessions that start on their own at the chosen time.' },
       'deliv.qa.1': { kybernos: 'Crée un {type} à partir de la conversation en cours.', en: 'Create a {type} from the current conversation.' },
       'deliv.qa.2': { kybernos: 'Propose un plan de {type} pour ce projet.', en: 'Propose a {type} plan for this project.' },
-      'deliv.qa.3': { kybernos: 'Améliore le dernier {type} produit par vos Kybers.', en: 'Improve the latest {type} produced by your Kybers.' },
+      'deliv.qa.3': { kybernos: 'Améliore le dernier {type} produit par vos Agent Teams.', en: 'Improve the latest {type} produced by your Agent Teams.' },
       // With no type chosen ("All"): "a {type}" does not agree with "creation".
       'deliv.qa.1.any': { kybernos: 'Imagine une création à partir de la conversation en cours.', en: 'Come up with a creation from the current conversation.' },
       'deliv.qa.2.any': { kybernos: 'Propose un plan de création pour ce projet.', en: 'Propose a creation plan for this project.' },
-      'deliv.qa.3.any': { kybernos: 'Améliore la dernière création produite par vos Kybers.', en: 'Improve the latest creation produced by your Kybers.' },
+      'deliv.qa.3.any': { kybernos: 'Améliore la dernière création produite par vos Agent Teams.', en: 'Improve the latest creation produced by your Agent Teams.' },
       // Sélection multi-types + panneau « Choisir les types affichés » (29/09).
       'deliv.multihint': { kybernos: 'Sélectionnez un ou plusieurs types — ils se combinent.', en: 'Select one or more types — they combine.' },
       'deliv.clearsel': { kybernos: 'Effacer la sélection', en: 'Clear selection' },
@@ -163,7 +163,7 @@ let kbLocaleRead = () => 'en'
       'deliv.data.nodata': { kybernos: 'Aucune donnée dans ce fichier.', en: 'No data in this file.' },
       'deliv.loaderr': { kybernos: 'Impossible de charger les créations', en: 'Could not load your creations' },
       'deliv.retry': { kybernos: 'Réessayer', en: 'Try again' },
-      'deliv.type.deck.desc': { kybernos: 'Présentations que vos Kybers construisent à partir d\'un brief, de vos notes ou de vos données. Modifiez chaque slide, puis présentez ou exportez.', en: 'Presentation decks your Kybers build from a brief, your notes or your data. Edit every slide, then present or export.' },
+      'deliv.type.deck.desc': { kybernos: 'Présentations que vos Agent Teams construisent à partir d\'un brief, de vos notes ou de vos données. Modifiez chaque slide, puis présentez ou exportez.', en: 'Presentation decks your Agent Teams build from a brief, your notes or your data. Edit every slide, then present or export.' },
       'deliv.type.cards.desc': { kybernos: 'Flashcards pour réviser et mémoriser — question au recto, réponse au verso.', en: 'Flashcards to review and memorise — question on the front, answer on the back.' },
       'deliv.type.quiz.desc': { kybernos: 'Questions pour tester la compréhension, avec correction automatique.', en: 'Comprehension questions with automatic grading.' },
       'deliv.type.doc.desc': { kybernos: 'Documents structurés — notes, specs et comptes rendus prêts à partager.', en: 'Structured documents — notes, specs and summaries ready to share.' },
@@ -175,7 +175,7 @@ let kbLocaleRead = () => 'en'
       'deliv.type.engine.desc': { kybernos: 'Diagrammes explicatifs animés.', en: 'Animated explanatory diagrams.' },
       'deliv.type.resume.desc': { kybernos: 'Résumés condensés d\'échanges longs.', en: 'Condensed summaries of long threads.' },
       'deliv.type.fiche.desc': { kybernos: 'Fiches de révision par sujet.', en: 'Revision sheets by topic.' },
-      'deliv.type.other.desc': { kybernos: 'Tout le reste produit par vos Kybers.', en: 'Everything else your Kybers produced.' },
+      'deliv.type.other.desc': { kybernos: 'Tout le reste produit par vos Agent Teams.', en: 'Everything else your Agent Teams produced.' },
       'deliv.fam.slides': { kybernos: 'Slides', en: 'Slides' },
       'deliv.fam.slides.desc': { kybernos: 'Présentations — decks DSH et fichiers PowerPoint.', en: 'Presentations — DSH decks and PowerPoint files.' },
       'deliv.fam.websites': { kybernos: 'Sites web', en: 'Websites' },
@@ -187,7 +187,7 @@ let kbLocaleRead = () => 'en'
       'deliv.fam.images': { kybernos: 'Images', en: 'Images' },
       'deliv.fam.images.desc': { kybernos: 'Visuels, captures et schémas générés.', en: 'Generated visuals, captures and diagrams.' },
       'deliv.fam.av': { kybernos: 'Audio & vidéo', en: 'Audio & Video' },
-      'deliv.fam.av.desc': { kybernos: 'Extraits sonores et clips vidéo produits par vos Kybers.', en: 'Sound bites and video clips produced by your Kybers.' },
+      'deliv.fam.av.desc': { kybernos: 'Extraits sonores et clips vidéo produits par vos Agent Teams.', en: 'Sound bites and video clips produced by your Agent Teams.' },
       'tasks.form.title': { kybernos: 'Planifier une tâche', en: 'Schedule task' },
       'tasks.name': { kybernos: 'Nom', en: 'Name' },
       'tasks.prompt': { kybernos: 'Prompt', en: 'Prompt' },
@@ -220,7 +220,6 @@ let kbLocaleRead = () => 'en'
       'tasks.updated': { kybernos: 'Tâche mise à jour.', en: 'Task updated.' },
       'tasks.ran': { kybernos: 'Exécution lancée — la session apparaît dans vos chats.', en: 'Run started — the session appears in your chats.' },
       'tasks.queued': { kybernos: 'En file — elle partira au prochain réveil du bureau.', en: 'Queued — it will fire when the desktop wakes next.' },
-      'tasks.empty': { kybernos: 'Aucune automation encore. Créez-en une pour qu’un Kyber travaille tout seul, à heure fixe ou sur commande.', en: 'No automation yet. Create one and a Kyber will work on its own, on schedule or on demand.' },
       'tasks.help': { kybernos: 'Aide', en: 'Help' },
       'tasks.help.close': { kybernos: 'Fermer l’aide', en: 'Close help' },
       'tasks.none.yet': { kybernos: 'Pas encore de session', en: 'No session yet' },
@@ -263,11 +262,11 @@ let kbLocaleRead = () => 'en'
       'tasks.wiz.f.do': { kybernos: 'Faire', en: 'Do' },
       'tasks.wiz.f.then': { kybernos: 'Ensuite', en: 'Then' },
       'tasks.wiz.f.approval': { kybernos: 'Approbation', en: 'Approval' },
-      'tasks.wiz.f.team': { kybernos: 'Kyber', en: 'Kyber' },
+      'tasks.wiz.f.team': { kybernos: 'Agent Team', en: 'Agent Team' },
       'tasks.wiz.v.when': { kybernos: 'Le déclencheur réel sera choisi à l\u2019activation (planning)', en: 'The real trigger is picked at activation (schedule)' },
       'tasks.wiz.v.do': { kybernos: 'Classer (urgent · billing · other), puis router', en: 'Classify (urgent · billing · other), then route' },
       'tasks.wiz.v.then': { kybernos: 'Rédiger une réponse dans le fil', en: 'Draft a reply in the thread' },
-      'tasks.wiz.v.approval': { kybernos: 'Me demander d’abord — le Kyber n’envoie jamais seul', en: 'Ask me first — the Kyber never sends alone' },
+      'tasks.wiz.v.approval': { kybernos: 'Me demander d’abord — l’Agent Team n’envoie jamais seule', en: 'Ask me first — the Agent Team never sends alone' },
       'tasks.wiz.v.team': { kybernos: 'Support-Team · DOER + CHECKER', en: 'Support-Team · DOER + CHECKER' },
       'tasks.wiz.q.when': { kybernos: '« planning »', en: '“schedule”' },
       'tasks.wiz.q.do': { kybernos: '« trie la demande »', en: '“triage the request”' },
@@ -288,7 +287,7 @@ let kbLocaleRead = () => 'en'
       'tasks.wiz.placeholder': { kybernos: 'Décrivez l\u2019automation…', en: 'Describe the automation…' },
       'tasks.wiz.r.res': { kybernos: 'Résultat', en: 'Result' },
       'tasks.wiz.r.mail': { kybernos: 'Email', en: 'Email' },
-      'tasks.wiz.r.team': { kybernos: 'Le Kyber ferait…', en: 'Kyber would…' },
+      'tasks.wiz.r.team': { kybernos: 'L’Agent Team ferait…', en: 'The Agent Team would…' },
       'tasks.wiz.r.ok': { kybernos: 'RUN', en: 'RUN' },
       'tasks.wiz.r.wait': { kybernos: 'ASK', en: 'ASK' },
       'tasks.wiz.r.skip': { kybernos: 'SKIP', en: 'SKIP' },
@@ -335,7 +334,7 @@ let kbLocaleRead = () => 'en'
       'tasks.status.queued': { kybernos: 'en file', en: 'queued' },
       'tasks.status.error': { kybernos: 'échec', en: 'failed' },
       'tasks.sessions.openchat': { kybernos: 'Ouvrir le chat', en: 'Open chat' },
-      'tasks.sessions.hint': { kybernos: 'Chaque session est un chat réel avec le Kyber. Ouvrez-en une pour lire ce que les agents ont fait.', en: 'Each session is a real chat with the Kyber. Open one to follow what the agents did.' },
+      'tasks.sessions.hint': { kybernos: 'Chaque session est un chat réel avec l’Agent Team. Ouvrez-en une pour lire ce que les agents ont fait.', en: 'Each session is a real chat with the Agent Team. Open one to follow what the agents did.' },
       'tasks.everyday8': { kybernos: 'Chaque jour, 8:00', en: 'Every day, 8:00' },
       'tasks.weekdays8': { kybernos: 'Jours ouvrés, 8:00', en: 'Weekdays, 8:00' },
       'tasks.monday8': { kybernos: 'Chaque lundi, 8:00', en: 'Every Monday, 8:00' },
@@ -427,7 +426,7 @@ let kbLocaleRead = () => 'en'
       'tasks.err.notfound': { kybernos: 'Automation introuvable.', en: 'Automation not found.' },
       'tasks.err.active': { kybernos: 'Valeur d’activation invalide.', en: 'Invalid on/off value.' },
       'deliverables.title': { kybernos: 'Créations', en: 'Creations' },
-      'deliverables.desc': { kybernos: 'Tout ce que vos Kybers ont produit — pages, scripts, docs et decks. Ouvrez-en un pour le visualiser.', en: 'Everything your Kybers produced — pages, scripts, docs and decks. Open one to view it.' },
+      'deliverables.desc': { kybernos: 'Tout ce que vos Agent Teams ont produit — pages, scripts, docs et decks. Ouvrez-en un pour le visualiser.', en: 'Everything your Agent Teams produced — pages, scripts, docs and decks. Open one to view it.' },
       'deliverables.empty': { kybernos: 'Aucune création générée pour l\'instant.', en: 'No creations yet.' },
       'deliverables.share': { kybernos: 'Partager', en: 'Share' },
       'deliverables.copied': { kybernos: 'Chemin copié', en: 'Path copied' },
@@ -450,7 +449,7 @@ let kbLocaleRead = () => 'en'
       'deliverables.notfound': { kybernos: 'Aperçu indisponible', en: 'Preview unavailable' },
       'deliverables.folder': { kybernos: 'Dossier', en: 'Reveal' },
       'kb.cp.title': { kybernos: 'Connections', en: 'Connections' },
-      'kb.cp.sub': { kybernos: 'Les comptes par lesquels vos Kybers agissent, via Composio. Plusieurs connexions par app — une par compte, boîte ou région.', en: 'Accounts your Kybers act through, brokered by Composio. Several connections per app — one per account, mailbox or region.' },
+      'kb.cp.sub': { kybernos: 'Les comptes par lesquels vos Agent Teams agissent, via Composio. Plusieurs connexions par app, une par compte.', en: 'The accounts your Agent Teams act through, via Composio — several connections per app, one per account.' },
       'kb.cp.search': { kybernos: 'Chercher dans le catalogue — WhatsApp, Slack, GitHub, facturation…', en: 'Search the catalog — WhatsApp, Slack, GitHub, billing…' },
       'kb.cp.nokey': { kybernos: 'Clé Composio requise — réglez-la sur la page du plugin Composio (Paramètres → Plugins → Composio).', en: 'Composio key required — set it on the Composio plugin page (Settings → Plugins → Composio).' },
       'kb.cp.chipall': { kybernos: 'Tous', en: 'All' },
@@ -461,14 +460,12 @@ let kbLocaleRead = () => 'en'
       'kb.cp.connect': { kybernos: 'Connecter', en: 'Connect' },
       'kb.cp.empty': { kybernos: 'Aucune app ne correspond.', en: 'No matching app.' },
       'connectors.title': { kybernos: 'Connecteurs', en: 'Connections' },
-      'connectors.desc': { kybernos: 'Les comptes par lesquels vos Kybers agissent — plusieurs connexions par app, selon le compte ou la région.', en: 'Accounts your Kybers act through — several connections per app.' },
       'connectors.search': { kybernos: 'Rechercher dans le catalogue — WhatsApp, Slack, GitHub…', en: 'Search the catalog — WhatsApp, Slack, GitHub…' },
       'connectors.connected': { kybernos: 'Connectés', en: 'Connected' },
       'connectors.all': { kybernos: 'Toutes', en: 'All' },
       'connectors.connect': { kybernos: 'Connecter', en: 'Connect' },
       'connectors.disconnect': { kybernos: 'Déconnecter', en: 'Disconnect' },
-      'connectors.note': { kybernos: 'Exemples d\'apps connectables — le câblage réel passera par les connecteurs du kyber.', en: 'Sample apps — real wiring goes through the kyber connectors.' },
-      'menu.aiteams': { kybernos: 'Kybers', en: 'Kybers' },
+      'menu.aiteams': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'menu.crew': { kybernos: 'Équipe Kybernos', en: 'Kybernos Crew' },
       'menu.crewmodel': { kybernos: 'Exécution modèle', en: 'Model Execution' },
       'menu.runs': { kybernos: 'Runs', en: 'Runs' },
@@ -476,17 +473,17 @@ let kbLocaleRead = () => 'en'
       'menu.deliverables': { kybernos: 'Créations', en: 'Creations' },
       'menu.hosted': { kybernos: 'Kybernos Hosted', en: 'Kybernos Hosted' },
       'menu.newchat': { kybernos: 'New chat', en: 'New chat' },
-      'menu.newchat.sub': { kybernos: 'avec vos Kybers', en: 'with your Kybers' },
+      'menu.newchat.sub': { kybernos: 'avec vos Agent Teams', en: 'with your Agent Teams' },
       'menu.newchat.with': { kybernos: 'avec', en: 'with' },
       'menu.newchat.pick': { kybernos: 'Démarrer ce chat avec', en: 'Start this chat with' },
-      'menu.newchat.newteam': { kybernos: 'Nouveau Kyber', en: 'New Kyber' },
+      'menu.newchat.newteam': { kybernos: 'Nouvelle Agent Team', en: 'New Agent Team' },
       'menu.newchat.seeall': { kybernos: 'tout voir', en: 'see all' },
-      'menu.newchat.noteam': { kybernos: 'Aucun Kyber installé pour l’instant.', en: 'No Kyber installed yet.' },
+      'menu.newchat.noteam': { kybernos: 'Aucune Agent Team installée pour l’instant.', en: 'No Agent Team installed yet.' },
       'menu.newchat.plain': { kybernos: 'Chat simple', en: 'Simple chat' },
-      'menu.newchat.plain.sub': { kybernos: 'sans Kyber · aucune liaison', en: 'no Kyber · nothing attached' },
+      'menu.newchat.plain.sub': { kybernos: 'aucune Agent Team liée', en: 'no Agent Team attached' },
       'menu.newchat.agent': { kybernos: 'agent', en: 'agent' },
       'menu.newchat.agents': { kybernos: 'agents', en: 'agents' },
-      'ui.team.guide': { kybernos: 'Kybers', en: 'Kybers' },
+      'ui.team.guide': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'menu.referral.title': { kybernos: 'Partagez Kybernos avec un ami', en: 'Share Kybernos with a friend' },
       'menu.referral.sub': { kybernos: '500 crédits chacun', en: 'Get 500 credits each' },
       // ── la carte d'invitation (popover du cadeau, 24/09/2026) ──────────────
@@ -570,7 +567,7 @@ let kbLocaleRead = () => 'en'
       'kbtg.close': { kybernos: 'Fermer', en: 'Close' },
       'kbtg.empty': { kybernos: 'Aucune équipe en session — les appels apparaissent dès qu’un crew travaille.', en: 'No team in session — calls appear once a crew works.' },
       'kbtg.loading': { kybernos: 'Lecture des appels…', en: 'Reading calls…' },
-      'kbtg.kybers': { kybernos: 'Kybers', en: 'Kybers' },
+      'kbtg.kybers': { kybernos: 'Agent Teams', en: 'Agent Teams' },
       'kbtg.connectors': { kybernos: 'Connecteurs', en: 'Connectors' },
       'kbtg.gate.exam': { kybernos: 'Examiner', en: 'Review' },
       'kbtg.opencrew': { kybernos: 'Ouvrir Workflows', en: 'Open Workflows' },
@@ -597,7 +594,7 @@ let kbLocaleRead = () => 'en'
       'kb2v.nocalls': { kybernos: 'Aucune équipe n’a encore tourné dans cette session.', en: 'No team has run in this session yet.' },
       'kb2v.nopick': { kybernos: 'Clique un nœud du canevas ou une ligne du journal.', en: 'Click a canvas node or a journal row.' },
       'kb2v.legend.t': { kybernos: 'déclencheur', en: 'trigger' },
-      'kb2v.legend.k': { kybernos: 'kyber', en: 'kyber' },
+      'kb2v.legend.k': { kybernos: 'Agent Team', en: 'agent team' },
       'kb2v.legend.a': { kybernos: 'agent', en: 'agent' },
       'kb2v.legend.x': { kybernos: 'connecteur', en: 'connector' },
       'kb2v.legend.h': { kybernos: 'validation humaine', en: 'human validation' },
@@ -705,7 +702,7 @@ let kbLocaleRead = () => 'en'
       'ui.due.overdue': { kybernos: 'échéance dépassée', en: 'overdue' },
       'ui.hostresponse': { kybernos: 'réponse Host invalide', en: 'invalid host response' },
       'ui.allotted': { kybernos: ' alloués', en: ' allotted' },
-      'ui.budget.declared': { kybernos: 'budget déclaré par le kyber « ', en: 'budget declared by the kyber “' },
+      'ui.budget.declared': { kybernos: 'budget déclaré par l’Agent Team « ', en: 'budget declared by the agent team “' },
       'ui.budget.rates': { kybernos: ' » · tarifs models.dev en USD × ', en: '” · models.dev pricing in USD × ' },
       'ui.budget.spent': { kybernos: ' consommés (tarifs models.dev)', en: ' consumed (models.dev pricing)' },
       'ui.nousage': { kybernos: 'session sans usage relevé', en: 'session with no recorded usage' },
@@ -719,7 +716,7 @@ let kbLocaleRead = () => 'en'
       'ui.unmeasured': { kybernos: 'lignes sans mesure : ', en: 'rows without measurement: ' },
       'ui.noteam': { kybernos: 'aucune équipe active détectée sur cette session — repli sur les sessions enfants du journal', en: 'no active team in this session — falling back to the log\'s child sessions' },
       'ui.teamagents': { kybernos: 'Agents de l\'équipe', en: 'Team agents' },
-      'ui.role.undeclared': { kybernos: 'provider/modèle non déclarés dans le kyber', en: 'provider/model not declared in the kyber' },
+      'ui.role.undeclared': { kybernos: 'provider/modèle non déclarés dans l’Agent Team', en: 'provider/model not declared in the agent team' },
       'ui.role.notinharness': { kybernos: 'modèle absent de la config du harness (casse exacte requise)', en: 'model missing from the harness config (exact case required)' },
       'ui.role.noimage': { kybernos: 'besoin image, modèle sans entrée image', en: 'needs image, model has no image input' },
       'ui.role.unreachable': { kybernos: 'rôle non atteignable : aucune étape ne le cite', en: 'unreachable role: no stage references it' },
@@ -728,24 +725,24 @@ let kbLocaleRead = () => 'en'
       'ui.hidden.many': { kybernos: ' masqués par le filtre', en: ' hidden by the filter' },
       'ui.cited': { kybernos: 'cités par une étape sans être déclarés : ', en: 'referenced by a stage without being declared: ' },
       'ui.unconfirmed': { kybernos: 'agents non confirmés', en: 'unconfirmed agents' },
-      'ui.list.title': { kybernos: 'Kybers · agents et modèles', en: 'Kybers · agents and models' },
+      'ui.list.title': { kybernos: 'Agent Teams · agents et modèles', en: 'Agent Teams · agents and models' },
       'ui.resolution': { kybernos: 'résolution : ', en: 'resolution: ' },
       'ui.realprobe': { kybernos: 'sonde réelle : ', en: 'real probe: ' },
       'ui.targets': { kybernos: ' cibles testées', en: ' targets tested' },
       'ui.noyaml': { kybernos: 'aucun kyber.yml trouvé', en: 'no kyber.yml found' },
       'ui.failedmid': { kybernos: ' en échec / ', en: ' failed / ' },
       'ui.unprobedmid': { kybernos: ' non sondés / ', en: ' not probed / ' },
-      'ui.filter': { kybernos: 'filtrer : kyber, agent, modèle…', en: 'filter: kyber, agent, model…' },
+      'ui.filter': { kybernos: 'filtrer : Agent Team, agent, modèle…', en: 'filter: agent team, agent, model…' },
       'ui.expandall': { kybernos: 'tout déplier', en: 'expand all' },
-      'ui.team.title': { kybernos: 'Kybers · équipe & budget', en: 'Kybers · team & budget' },
-      'ui.team.title2': { kybernos: 'Kybers · équipe', en: 'Kybers · team' },
+      'ui.team.title': { kybernos: 'Agent Teams · équipe & budget', en: 'Agent Teams · crew & budget' },
+      'ui.team.title2': { kybernos: 'Agent Teams · équipe', en: 'Agent Teams · crew' },
       'ui.team.meta': { kybernos: 'budget, équipe, artefacts', en: 'budget, team, artifacts' },
       'ui.showteam': { kybernos: 'Afficher la fiche de l\'équipe', en: 'Show the team card' },
       'ui.team.word': { kybernos: 'Équipe ', en: 'Team ' },
       'ui.roles.count': { kybernos: ' rôles.', en: ' roles.' },
       'ui.hideroles': { kybernos: 'Masquer les rôles', en: 'Hide roles' },
       'ui.showroles': { kybernos: 'Voir les rôles', en: 'Show roles' },
-      'ui.panel.sub': { kybernos: 'Chaque Kyber est une équipe avec ses outils, son budget et ses objectifs. Épinglez ceux où vous vivez.', en: 'Every Kyber is a team with its tools, budget and goals. Pin the ones you live in.' },
+      'ui.panel.sub': { kybernos: 'Chaque Agent Team a ses outils, son budget et ses objectifs. Épinglez celles où vous vivez.', en: 'Every Agent Team has its tools, budget and goals. Pin the ones you live in.' },
       'ui.readonly': { kybernos: 'Plugin en lecture seule — la création passe par le skill kyber-authoring.', en: 'Plugin is read-only — creation goes through the kyber-authoring skill.' },
       'ui.saved': { kybernos: 'Enregistré. Backup : ', en: 'Saved. Backup: ' },
       'ui.identitysaved': { kybernos: 'Identité enregistrée.', en: 'Identity saved.' },
@@ -767,27 +764,27 @@ let kbLocaleRead = () => 'en'
       'ui.displayname': { kybernos: 'Nom affiché', en: 'Display name' },
       'ui.saveidentity': { kybernos: 'Enregistrer l\'identité', en: 'Save identity' },
       'ui.teamproviders': { kybernos: 'Rôles — provider / modèle par rôle', en: 'Roles — provider / model per role' },
-      'ui.teamnotfound': { kybernos: 'Kyber introuvable.', en: 'Kyber not found.' },
-      'kbui.team.backall': { kybernos: 'Tous les Kybers', en: 'All Kybers' },
+      'ui.teamnotfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
+      'kbui.team.backall': { kybernos: 'Toutes les Agent Teams', en: 'All Agent Teams' },
       'kbui.team.reading': { kybernos: 'lecture…', en: 'reading…' },
-      'kbui.team.folderonly': { kybernos: 'Le dossier du kyber ne contient que kyber.yml.', en: 'The Kyber folder only contains kyber.yml.' },
+      'kbui.team.folderonly': { kybernos: 'Le dossier de l’Agent Team ne contient que kyber.yml.', en: 'The Agent Team folder only contains kyber.yml.' },
       'kbui.team.due': { kybernos: 'échéance ', en: 'due ' },
       'kbui.team.budget.none': { kybernos: 'aucun — bloc budget: absent du kyber.yml', en: 'none — no budget: block in kyber.yml' },
       'kbui.team.budget.undeclared': { kybernos: 'montant non déclaré', en: 'amount not declared' },
       'kbui.team.budget.declared': { kybernos: 'déclaré dans le kyber.yml', en: 'declared in kyber.yml' },
       'ui.liveteam.head': { kybernos: '🛰 Équipe live (Agent Teams)', en: '🛰 Live team (Agent Teams)' },
       'ui.rosterunavailable': { kybernos: 'Roster indisponible ici — utilisez le bouton Agent Teams dans le header de la conversation.', en: 'Roster unavailable here — use the Agent Teams button in the conversation header.' },
-      'ui.nosession': { kybernos: 'aucune session connue pour ce kyber', en: 'no known session for this kyber' },
+      'ui.nosession': { kybernos: 'aucune session connue pour cette Agent Team', en: 'no known session for this agent team' },
       'ui.opensession': { kybernos: 'ouvrir la session', en: 'open the session' },
       'ui.noartifact': { kybernos: 'Aucun artefact produit dans ce workspace.', en: 'No artifact produced in this workspace.' },
-      'ui.noskills': { kybernos: 'Aucun dossier skills/ dans ce kyber.', en: 'No skills/ folder in this kyber.' },
+      'ui.noskills': { kybernos: 'Aucun dossier skills/ dans cette Agent Team.', en: 'No skills/ folder in this agent team.' },
       'ui.budgettotal': { kybernos: 'Budget total (€)', en: 'Total budget (€)' },
       'ui.absentmid': { kybernos: ' — absent', en: ' — absent' },
       'ui.nomatch': { kybernos: 'aucun agent ne correspond au filtre', en: 'no agent matches the filter' },
       'ui.taskbudget': { kybernos: 'Budget de la tâche', en: 'Task budget' },
       'ui.viewedit': { kybernos: 'Visualiser et modifier', en: 'View and edit' },
       'ui.opensession.verb': { kybernos: 'Ouvrir la session', en: 'Open the session' },
-      'ui.addkyber': { kybernos: 'Ajouter un Kyber', en: 'Add a Kyber' },
+      'ui.addkyber': { kybernos: 'Ajouter une Agent Team', en: 'Add an Agent Team' },
       'ui.start': { kybernos: 'début', en: 'start' },
       'ui.subsession': { kybernos: 'Sous-session', en: 'Sub-session' },
       'ui.attempts.sub': { kybernos: ' pour ce rôle dans ce run', en: ' for this role in this run' },
@@ -838,7 +835,7 @@ let kbLocaleRead = () => 'en'
       'crew.gaps.pill': { kybernos: 'écarts ', en: 'gaps ' },
       'crew.declared.head': { kybernos: 'DÉCLARÉ — ', en: 'DECLARED — ' },
       'crew.nodef': { kybernos: 'Définition absente de ce poste : rôles inconnus.', en: 'Definition missing on this machine: unknown roles.' },
-      'crew.noroles': { kybernos: 'Ce kyber ne déclare aucun rôle.', en: 'This kyber declares no role.' },
+      'crew.noroles': { kybernos: 'Cette Agent Team ne déclare aucun rôle.', en: 'This agent team declares no role.' },
       'crew.stages.colon': { kybernos: 'étages :', en: 'stages:' },
       'crew.executed.head': { kybernos: 'EXÉCUTÉ — coéquipiers du crew', en: 'EXECUTED — crew teammates' },
       'crew.noprefixed': { kybernos: 'Aucun coéquipier préfixé « ', en: 'No teammate prefixed “' },
@@ -878,7 +875,7 @@ let kbLocaleRead = () => 'en'
       'crew.crew': { kybernos: 'crew', en: 'crew' },
       'crew.crews': { kybernos: 'crews', en: 'crews' },
       'crew.declared': { kybernos: 'Déclaré', en: 'Declared' },
-      'crew.declared.meta': { kybernos: 'ce que chaque kyber déclare, ce qui a tourné, où est l’écart', en: 'what each kyber declares, what ran, where the gap is' },
+      'crew.declared.meta': { kybernos: 'ce que chaque Agent Team déclare, ce qui a tourné, où est l’écart', en: 'what each agent team declares, what ran, where the gap is' },
       'crew.declared.n': { kybernos: ' déclarés', en: ' declared' },
       'crew.declared.one': { kybernos: ' déclaré', en: ' declared' },
       'crew.declared.title': { kybernos: 'CREWS DÉCLARÉS', en: 'DECLARED CREWS' },
@@ -898,11 +895,11 @@ let kbLocaleRead = () => 'en'
       'crew.legend': { kybernos: '✓ conforme · ≠ écart de modèle · ○ non tenu · ✕ agent en échec', en: '✓ matches · ≠ model gap · ○ not held · ✕ agent failed' },
       'crew.llmtime': { kybernos: 'temps LLM ', en: 'LLM time ' },
       'crew.matches': { kybernos: 'conforme', en: 'matches' },
-      'crew.matrix.note': { kybernos: 'Le modèle inscrit dans le kyber n\'est pas forcément celui qui s\'exécute : Agent Teams ne lit pas cette table. Les lignes marquées à gauche sont des écarts.', en: 'The model written in the kyber is not necessarily the one that runs: Agent Teams does not read this table. Rows flagged on the left are gaps.' },
+      'crew.matrix.note': { kybernos: 'Le modèle inscrit dans le kyber.yml n\'est pas forcément celui qui s\'exécute : Agent Teams ne lit pas cette table. Les lignes marquées à gauche sont des écarts.', en: 'The model written in kyber.yml is not necessarily the one that runs: Agent Teams does not read this table. Rows flagged on the left are gaps.' },
       'crew.member': { kybernos: 'membre', en: 'member' },
       'crew.members': { kybernos: 'membres', en: 'members' },
       'crew.modality': { kybernos: 'modalité ', en: 'modality ' },
-      'crew.model.sub': { kybernos: 'Un crew par kyber actif de la session : ce qu\'il déclare, ce qui a tourné, où est l\'écart.', en: 'One crew per kyber active in this session: what it declares, what actually ran, where the gap is.' },
+      'crew.model.sub': { kybernos: 'Un crew par Agent Team active de la session : ce qu\'elle déclare, ce qui a tourné, où est l\'écart.', en: 'One crew per agent team active in this session: what it declares, what actually ran, where the gap is.' },
       'crew.modeldeclared': { kybernos: 'Modèle déclaré', en: 'Declared model' },
       'crew.modelexecuted': { kybernos: 'Modèle exécuté', en: 'Executed model' },
       'crew.modelprojected': { kybernos: 'Modèle projeté', en: 'Projected model' },
@@ -910,13 +907,13 @@ let kbLocaleRead = () => 'en'
       'crew.needs': { kybernos: 'Besoins déclarés', en: 'Declared needs' },
       'crew.next': { kybernos: 'Suivant ›', en: 'Next ›' },
       'crew.noactive': { kybernos: ' sans crew actif', en: ' with no active crew' },
-      'crew.noactivekyber': { kybernos: 'Aucun kyber actif pour cette session : .active/<sessionId> est vide ou absent (formats v2 et legacy acceptés).', en: 'No kyber active in this session: .active/<sessionId> is empty or missing (v2 and legacy formats accepted).' },
+      'crew.noactivekyber': { kybernos: 'Aucune Agent Team active pour cette session : .active/<sessionId> est vide ou absent (formats v2 et legacy acceptés).', en: 'No agent team active in this session: .active/<sessionId> is empty or missing (v2 and legacy formats accepted).' },
       'crew.noagent': { kybernos: 'aucun agent rattaché', en: 'no agent attached' },
       'crew.noagent.long': { kybernos: '— (aucun agent rattaché)', en: '— (no agent attached)' },
       'crew.noagentteams': { kybernos: 'Agent Teams indisponible sur ce client.', en: 'Agent Teams unavailable on this client.' },
       'crew.nocost': { kybernos: 'Coût non calculable : aucun tarif models.dev pour ', en: 'Cost not computable: no models.dev pricing for ' },
       'crew.nocrew': { kybernos: 'aucun crew actif pour cette session', en: 'no active crew in this session' },
-      'crew.loading': { kybernos: 'Chargement des kybers…', en: 'Loading kybers…' },
+      'crew.loading': { kybernos: 'Chargement des Agent Teams…', en: 'Loading agent teams…' },
       'runs.loading': { kybernos: 'Chargement des runs…', en: 'Loading runs…' },
       'voice.cap.checking': { kybernos: 'Voix : vérification des capacités…', en: 'Voice: checking capabilities…' },
       'voice.dictate.stop': { kybernos: 'Arrêter et dicter', en: 'Stop and dictate' },
@@ -951,7 +948,7 @@ let kbLocaleRead = () => 'en'
       'crew.nothingtocompare': { kybernos: 'Aucun crew actif : rien à comparer.', en: 'No active crew: nothing to compare.' },
       'crew.offcrew': { kybernos: 'hors crew ', en: 'off crew ' },
       'crew.offcrew.badge': { kybernos: 'hors crew', en: 'off crew' },
-      'crew.offcrew.meta': { kybernos: 'agents Agent Teams rattachés à aucun kyber de cette session', en: 'Agent Teams members attached to no kyber in this session' },
+      'crew.offcrew.meta': { kybernos: 'membres du roster Agent Teams rattachés à aucune Agent Team de cette session', en: 'Agent Teams roster members attached to no agent team in this session' },
       'crew.orchestrator': { kybernos: 'orchestrateur seul · ', en: 'orchestrator only · ' },
       'crew.orchestrator.only': { kybernos: ' orchestrateur seul', en: ' orchestrator only' },
       'crew.origin': { kybernos: 'origine : ', en: 'origin: ' },
@@ -987,7 +984,7 @@ let kbLocaleRead = () => 'en'
       'crew.step': { kybernos: 'étape', en: 'step' },
       'crew.steps': { kybernos: 'étapes', en: 'steps' },
       'crew.steps.mid': { kybernos: ' · LLM ', en: ' · LLM ' },
-      'crew.sub': { kybernos: 'Ce que les kybers ont réellement fait dans cette session : rôles tenus, modèle réellement exécuté, tokens, durée et coût par agent — lus dans la sous-session de chaque coéquipier.', en: 'What the kybers actually did in this session: roles held, model actually executed, tokens, duration and cost per agent — read from each teammate\'s sub-session.' },
+      'crew.sub': { kybernos: 'Ce que les Agent Teams ont réellement fait dans cette session : rôles tenus, modèle réellement exécuté, tokens, durée et coût par agent — lus dans la sous-session de chaque coéquipier.', en: 'What the agent teams actually did in this session: roles held, model actually executed, tokens, duration and cost per agent — read from each teammate\'s sub-session.' },
       'crew.teammate': { kybernos: 'Coéquipier', en: 'Teammate' },
       'crew.teammates': { kybernos: 'coéquipiers ', en: 'teammates ' },
       'crew.title': { kybernos: 'Crew — suivi d’exécution', en: 'Crew — execution follow-up' },
@@ -1012,8 +1009,8 @@ let kbLocaleRead = () => 'en'
       // La valeur `en` reproduit le texte source d’origine.
       'kbui.uploadimage': { kybernos: ' Importer une image', en: ' Upload image' },
       'kbui.useicon': { kybernos: ' Utiliser une icône', en: ' Use icon' },
-      'kbui.guidedchat': { kybernos: 'Un chat guidé — il demande ce que le kyber doit faire', en: 'A guided chat — it asks what the kyber should do' },
-      'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et créations. Ouvrez-le pour voir ce que les Kybers y ont produit.', en: 'A project holds its own chats, documents, goals and creations. Open one to see what the Kybers produced there.' },
+      'kbui.guidedchat': { kybernos: 'Un chat guidé — il demande ce que l’Agent Team doit faire', en: 'A guided chat — it asks what the agent team should do' },
+      'kbui.project.holds': { kybernos: 'Un projet a ses propres chats, documents, objectifs et créations. Ouvrez-le pour voir ce que les Agent Teams y ont produit.', en: 'A project holds its own chats, documents, goals and creations. Open one to see what the Agent Teams produced there.' },
       'kbui.sort.az': { kybernos: 'A → Z', en: 'A → Z' },
       'kbui.apps.askfor': { kybernos: 'APPLICATIONS DEMANDÉES', en: 'APPS IT WILL ASK FOR' },
       'kbui.actions': { kybernos: 'Actions', en: 'Actions' },
@@ -1021,7 +1018,9 @@ let kbLocaleRead = () => 'en'
       'kbui.add.skill': { kybernos: 'Ajouter une compétence', en: 'Add a skill' },
       'kbui.add.tag': { kybernos: 'Ajouter une étiquette…', en: 'Add a tag…' },
       'kbui.agent': { kybernos: 'Agent', en: 'Agent' },
-      'kbui.agentteams': { kybernos: 'Équipes d’agents', en: 'Agent Teams' },
+      'kbui.agentteams': { kybernos: 'Agent Teams', en: 'Agent Teams' },
+      'kbat.col.def': { kybernos: 'Définition (kyber.yml)', en: 'Definition (kyber.yml)' },
+      'kbat.col.runtime': { kybernos: 'Exécution (Agent Teams)', en: 'Runtime (Agent Teams)' },
       'kbat.col.what': { kybernos: 'Ce que c’est', en: 'What it is' },
       'kbat.col.how': { kybernos: 'Comment l’appeler', en: 'How you call it' },
       'kbat.hr1.a': { kybernos: 'Ce que c’est', en: 'What it is' },
@@ -1038,7 +1037,7 @@ let kbLocaleRead = () => 'en'
       'kbat.hr5.a': { kybernos: 'Limite', en: 'Limit' },
       'kbat.hr5.c': { kybernos: '8 membres maximum, roster figé', en: '8 members maximum, frozen roster' },
       'kbat.hr6.a': { kybernos: 'Face à un sous-agent', en: 'vs. subagent' },
-      'kbat.hr6.c': { kybernos: 'Un sous-agent est un délégué jetable qui hérite de votre modèle ; une équipe d’agents fait tourner des coéquipiers nommés, chacun avec son propre modèle', en: 'A subagent is a throwaway delegate that inherits your model; an Agent Team runs named teammates with their own model' },
+      'kbat.hr6.c': { kybernos: 'Un sous-agent est un délégué jetable qui hérite de votre modèle ; une Agent Team fait tourner des coéquipiers nommés, chacun avec son propre modèle', en: 'A subagent is a throwaway delegate that inherits your model; an Agent Team runs named teammates with their own model' },
       'kbat.hr7.a': { kybernos: 'Une seule IA', en: 'One AI only' },
       'kbat.hr7.b': { kybernos: 'Une équipe à un seul rôle est valide', en: 'A single-role team is valid' },
       'kbat.hr7.c': { kybernos: 'Appelez cette IA directement (chat ou appel) — ni session, ni lead', en: 'Call that AI directly (chat or call) — no session, no lead' },
@@ -1049,10 +1048,10 @@ let kbLocaleRead = () => 'en'
       'kbat.c1.a': { kybernos: 'sous-agent', en: 'subagent' },
       'kbat.c1.b': { kybernos: 'Un délégué jetable. Hérite de votre modèle, sans routage, sans mémoire, sans équipe. Pour décharger un morceau de travail indépendant.', en: 'A throwaway delegate. Inherits your model, no routing, no memory, no team. For unloading one independent chunk of work.' },
       'kbat.c1.c': { kybernos: 'Appel direct', en: 'Direct call' },
-      'kbat.c2.a': { kybernos: 'Équipe d’agents (DSH natif)', en: 'Agent Team (native DSH)' },
+      'kbat.c2.a': { kybernos: 'Runtime Agent Teams (DSH natif)', en: 'Agent Teams runtime (native DSH)' },
       'kbat.c2.b': { kybernos: 'Le runtime d’équipe : coéquipiers nommés, tableau de tâches partagé, messages. Il sait faire tourner un équipage — mais rien du métier.', en: 'The team runtime: named teammates, a shared task board, messages. It knows how to run a crew — but nothing about the business.' },
       'kbat.c2.c': { kybernos: 'Session + Lead', en: 'Session + Lead' },
-      'kbat.c3.a': { kybernos: 'Kyber', en: 'Kyber' },
+      'kbat.c3.a': { kybernos: 'Agent Team', en: 'Agent Team' },
       'kbat.c3.b': { kybernos: 'La définition métier (kyber.yml) : mission, rôles (prompt + modèle), skills, connecteurs, topologie, DoD. Kybernos décrit — DSH exécute.', en: 'The business definition (kyber.yml): mission, roles (prompt + model), skills, connectors, topology, DoD. Kybernos describes — DSH executes.' },
       'kbat.c3.c': { kybernos: 'Lu par le Lead, exécuté sur DSH', en: 'Read by the Lead, run on DSH' },
       'kbat.warn': { kybernos: 'L’interlocuteur est celui qui porte la mission : une seule IA = lui parler directement ; plusieurs = parler au Lead. Même en appel direct, le Lead de session garde la mémoire partagée et la règle de risque.', en: 'The interlocutor is whoever owns the mission: one AI = talk to it directly; several = talk to the Lead. Even on a direct call, the session Lead keeps the shared memory and the risk rule.' },
@@ -1060,7 +1059,7 @@ let kbLocaleRead = () => 'en'
       'kbat.soon': { kybernos: 'bientôt', en: 'soon' },
       'kbui.marketplace.tab': { kybernos: 'Marketplace', en: 'Marketplace' },
       'kbui.at.executes': { kybernos: 'Agent Teams l’exécute (agents réels, tâches partagées).', en: 'Agent Teams executes it (real agents, shared tasks).' },
-      'kbui.agents.declares': { kybernos: 'Agents déclarés par ce Kyber', en: 'Agents this Kyber declares' },
+      'kbui.agents.declares': { kybernos: 'Agents déclarés par cette Agent Team', en: 'Agents this Agent Team declares' },
       'kbui.agents': { kybernos: 'agents', en: 'agents' },
       'kbui.allfolders': { kybernos: 'Tous les dossiers', en: 'All folders' },
       'kbui.hosted.alsoexists': { kybernos: 'Existe aussi dans Kybernos Hosted', en: 'Also exists in Kybernos Hosted' },
@@ -1071,7 +1070,7 @@ let kbLocaleRead = () => 'en'
       'kbui.best.quality': { kybernos: 'Meilleure qualité', en: 'Best quality' },
       'kbui.best.value': { kybernos: 'Meilleur rapport', en: 'Best value' },
       'kbui.budget': { kybernos: 'Budget', en: 'Budget' },
-      'kbui.buildteam': { kybernos: 'Construire le Kyber', en: 'Build the Kyber' },
+      'kbui.buildteam': { kybernos: 'Construire l’Agent Team', en: 'Build the Agent Team' },
       'kbui.composio.absent': { kybernos: 'Paquet @local/kybernos-composio absent.', en: 'Bundle @local/kybernos-composio absent.' },
       'kbui.crew.tag': { kybernos: 'ÉQUIPE ', en: 'CREW ' },
       'kbui.cache': { kybernos: 'Cache : ', en: 'Cache: ' },
@@ -1084,8 +1083,8 @@ let kbLocaleRead = () => 'en'
       'kbui.team': { kybernos: 'Équipe', en: 'Team' },
       'kbui.comingsoon': { kybernos: 'Bientôt disponible', en: 'Coming soon' },
       'kbui.connecteurs': { kybernos: 'Connecteurs', en: 'Connectors' },
-      'kbui.conn.team.declared': { kybernos: 'Ce que ce Kyber réclame', en: 'What this Kyber claims' },
-      'kbui.conn.team.none': { kybernos: 'Aucun outil réclamé par ce Kyber (champ tools: de ses rôles).', en: 'No tool claimed by this Kyber (tools: field of its roles).' },
+      'kbui.conn.team.declared': { kybernos: 'Ce que cette Agent Team réclame', en: 'What this Agent Team claims' },
+      'kbui.conn.team.none': { kybernos: 'Aucun outil réclamé par cette Agent Team (champ tools: de ses rôles).', en: 'No tool claimed by this Agent Team (tools: field of its roles).' },
       'kbui.conn.enable': { kybernos: 'Activer', en: 'Enable' },
       'kbui.conn.disable': { kybernos: 'Désactiver', en: 'Disable' },
       'kbui.conn.confirm': { kybernos: 'Confirmer la désactivation', en: 'Confirm disable' },
@@ -1098,10 +1097,10 @@ let kbLocaleRead = () => 'en'
       'kbui.conn.global': { kybernos: ' La connexion est globale, pas seulement ce projet.', en: ' The connection is global, not just this project.' },
       'kbui.conn.openlink': { kybernos: 'Ouvrir le lien d’autorisation', en: 'Open the authorization link' },
       'kbui.couleur': { kybernos: 'Couleur', en: 'Colour' },
-      'kbui.create.kyber': { kybernos: 'Créer un Kyber avec Kybernos', en: 'Create a Kyber with Kybernos' },
+      'kbui.create.kyber': { kybernos: 'Créer une Agent Team avec Kybernos', en: 'Create an Agent Team with Kybernos' },
       'kbui.custom': { kybernos: 'Personnalisé', en: 'Custom' },
       'kbui.dangerzone': { kybernos: 'Zone sensible', en: 'Danger zone' },
-      'kbui.delete.kyber': { kybernos: 'Supprimer ce Kyber', en: 'Delete this Kyber' },
+      'kbui.delete.kyber': { kybernos: 'Supprimer cette Agent Team', en: 'Delete this Agent Team' },
       'kbui.devise': { kybernos: 'Devise', en: 'Currency' },
       'kbui.discuter': { kybernos: 'Discuter', en: 'Chat' },
       'kbui.doc.library': { kybernos: 'Bibliothèque de documents', en: 'Document library' },
@@ -1127,7 +1126,7 @@ let kbLocaleRead = () => 'en'
       'kbui.embed.snippet': { kybernos: 'Extrait à intégrer', en: 'Embed snippet' },
       'kbui.envoyer': { kybernos: 'Envoyer', en: 'Send' },
       'kbui.error': { kybernos: 'Erreur : ', en: 'Error: ' },
-      'kbui.resources.sub': { kybernos: 'Tout ce que vos Kybers lisent et où ils réécrivent. Les fichiers vivent ici une fois et alimentent n’importe quel projet.', en: 'Everything your Kybers read from and write back into. Files live here once and feed any project.' },
+      'kbui.resources.sub': { kybernos: 'Tout ce que vos Agent Teams lisent et où ils réécrivent. Les fichiers vivent ici une fois et alimentent n’importe quel projet.', en: 'Everything your Agent Teams read from and write back into. Files live here once and feed any project.' },
       'kbui.fallback.engine': { kybernos: 'Moteur de repli', en: 'Fallback engine' },
       'kbui.favori': { kybernos: 'Favori', en: 'Favorite' },
       'kbui.format': { kybernos: 'Format', en: 'Format' },
@@ -1139,20 +1138,20 @@ let kbLocaleRead = () => 'en'
       'kbui.tts.headsup': { kybernos: 'Attention : ce moteur envoie le texte de la réponse à ', en: 'Heads-up: this engine sends the reply text to ' },
       'kbui.healthcheck.all': { kybernos: 'Tout vérifier', en: 'Healthcheck all' },
       'kbui.helpdocs': { kybernos: 'Aide et documentation', en: 'Help & docs' },
-      'kbui.hire.kyber': { kybernos: 'Embaucher un Kyber depuis le Marketplace', en: 'Hire a Kyber from the Marketplace' },
-      'kbui.hosted.means': { kybernos: 'Hosted signifie que ce Kyber existe aussi dans Kybernos Hosted.', en: 'Hosted means this Kyber also exists in Kybernos Hosted.' },
+      'kbui.hire.kyber': { kybernos: 'Embaucher une Agent Team depuis le Marketplace', en: 'Hire an Agent Team from the Marketplace' },
+      'kbui.hosted.means': { kybernos: 'Hosted signifie que cette Agent Team existe aussi dans Kybernos Hosted.', en: 'Hosted means this Agent Team also exists in Kybernos Hosted.' },
       'kbui.hosted.vs.plugin': { kybernos: 'Hosted face au plugin open source', en: 'Hosted vs the open-source plugin' },
-      'kbui.import.github': { kybernos: 'Importer un « Kyber Manifest » depuis GitHub', en: 'Import a "Kyber Manifest" from GitHub' },
+      'kbui.import.github': { kybernos: 'Importer un « Agent Team Manifest » depuis GitHub', en: 'Import an "Agent Team Manifest" from GitHub' },
       'kbui.import.workspace': { kybernos: 'Importer mon espace de travail', en: 'Import my workspace' },
       'kbui.kybernos.hosted': { kybernos: 'KYBERNOS HOSTED', en: 'KYBERNOS HOSTED' },
       'kbui.keep.opensource': { kybernos: 'Garder le plugin open source', en: 'Keep the open-source plugin' },
-      'kbui.kyber.notfound': { kybernos: 'Kyber introuvable.', en: 'Kyber not found.' },
-      'kbui.kyber.dot': { kybernos: 'Kyber · ', en: 'Kyber · ' },
+      'kbui.kyber.notfound': { kybernos: 'Agent Team introuvable.', en: 'Agent Team not found.' },
+      'kbui.kyber.dot': { kybernos: 'Agent Team · ', en: 'Agent Team · ' },
       'kbui.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
       'kbui.traces.run': { kybernos: 'Kybernos trace le run et compare le déclaré à l’exécuté.', en: 'Kybernos traces the run and compares declared against executed.' },
-      'kbui.kybers': { kybernos: 'Kybers', en: 'Kybers' },
-      'kbui.kybers.vs.at': { kybernos: 'Kybers et Agent Teams : deux choses différentes', en: 'Kybers and Agent Teams: two different things' },
-      'kbui.kybers.built': { kybernos: 'Des Kybers déjà construits par d’autres', en: 'Kybers other people already built' },
+      'kbui.kybers': { kybernos: 'Agent Teams', en: 'Agent Teams' },
+      'kbui.kybers.vs.at': { kybernos: 'Une Agent Team : ce que vous déclarez et ce qui l’exécute', en: 'An Agent Team: what you declare and what runs it' },
+      'kbui.kybers.built': { kybernos: 'Des Agent Teams déjà construites par d’autres', en: 'Agent Teams other people already built' },
       'kbui.language': { kybernos: 'Langue', en: 'Language' },
       'kbui.last.healthcheck': { kybernos: 'Dernière vérification globale : ', en: 'Last global healthcheck: ' },
       'kbui.legal': { kybernos: 'Mentions légales et conformité', en: 'Legal & compliance' },
@@ -1165,8 +1164,8 @@ let kbLocaleRead = () => 'en'
       'kbui.sort.mostagents': { kybernos: 'Plus d’agents', en: 'Most agents' },
       'kbui.sort.mostdeliverables': { kybernos: 'Plus de créations', en: 'Most creations' },
       'kbui.sort.mostthreads': { kybernos: 'Plus de fils', en: 'Most threads' },
-      'kbui.move.team': { kybernos: 'Transférer un Kyber en un clic', en: 'Move a Kyber over in one click' },
-      'kbui.new.kyber': { kybernos: 'Nouveau Kyber', en: 'New Kyber' },
+      'kbui.move.team': { kybernos: 'Transférer une Agent Team en un clic', en: 'Move an Agent Team over in one click' },
+      'kbui.new.kyber': { kybernos: 'Nouvelle Agent Team', en: 'New Agent Team' },
       'kbui.create': { kybernos: 'Créer', en: 'Create' },
       'kbui.new.folder': { kybernos: 'Nouveau dossier', en: 'New folder' },
       'kbui.new.project': { kybernos: 'Nouveau projet', en: 'New project' },
@@ -1177,7 +1176,7 @@ let kbLocaleRead = () => 'en'
       'kbui.new.project.noworkspaces': { kybernos: 'Service des espaces de travail indisponible.', en: 'Workspace service unavailable.' },
       'kbui.new.project.noid': { kybernos: 'Espace de travail créé sans identifiant.', en: 'Workspace created without an id.' },
       'kbui.new.project.hint': { kybernos: 'Choisir un dossier : il devient un projet.', en: 'Pick a folder: it becomes a project.' },
-      'kbui.no.kyber': { kybernos: 'Aucun Kyber pour l’instant. Créez-en un avec « Nouveau Kyber ».', en: 'No Kyber yet. Create one with “New Kyber”.' },
+      'kbui.no.kyber': { kybernos: 'Aucune Agent Team pour l’instant. Créez-en une avec « Nouvelle Agent Team ».', en: 'No Agent Team yet. Create one with “New Agent Team”.' },
       'kbui.no.engine': { kybernos: 'Aucun moteur disponible.', en: 'No engine available.' },
       'kbui.no.icon': { kybernos: 'Aucune icône ne correspond.', en: 'No icon matches.' },
       'kbui.no.project.match': { kybernos: 'Aucun projet ne correspond à « ', en: 'No project matches “' },
@@ -1189,7 +1188,7 @@ let kbLocaleRead = () => 'en'
       'kbui.opensource.plugin': { kybernos: 'PLUGIN OPEN SOURCE', en: 'OPEN-SOURCE PLUGIN' },
       'kbui.objectifs': { kybernos: 'Objectifs', en: 'Goals' },
       'kbui.open': { kybernos: 'Ouvrir', en: 'Open' },
-      'kbui.overview.tabs': { kybernos: 'Vue d’ensemble · Santé · Kybers · Édition', en: 'Overview · Health · Kybers · Edit' },
+      'kbui.overview.tabs': { kybernos: 'Vue d’ensemble · Santé · Agent Teams · Édition', en: 'Overview · Health · Agent Teams · Edit' },
       'kbui.page': { kybernos: 'Page ', en: 'Page ' },
       'kbui.password': { kybernos: 'Protection par mot de passe', en: 'Password protection' },
       'kbui.plugins': { kybernos: 'Plugins', en: 'Plugins' },
@@ -1241,7 +1240,7 @@ let kbLocaleRead = () => 'en'
       'kbui.run': { kybernos: 'Exécuter', en: 'Run' },
       'kbui.run.dot': { kybernos: 'Run · ', en: 'Run · ' },
       'kbui.runs.unavailable': { kybernos: 'Runs indisponibles', en: 'Runs unavailable' },
-      'kbui.hosted.same': { kybernos: 'Mêmes Kybers, mêmes chats, mêmes créations — déplacés hors de votre machine.', en: 'Same Kybers, same chats, same creations — moved off your hardware.' },
+      'kbui.hosted.same': { kybernos: 'Mêmes Agent Teams, mêmes chats, mêmes créations — déplacés hors de votre machine.', en: 'Same Agent Teams, same chats, same creations — moved off your hardware.' },
       'kbui.save.now': { kybernos: 'Enregistrer maintenant', en: 'Save now' },
       'kbui.search': { kybernos: 'Rechercher ', en: 'Search ' },
       'kbui.icons.suffix': { kybernos: ' icônes…', en: ' icons…' },
@@ -1252,16 +1251,16 @@ let kbLocaleRead = () => 'en'
       'kbui.help.title': { kybernos: 'Aide', en: 'Help' },
       'kbui.help.sub': { kybernos: 'L’essentiel pour s’y retrouver.', en: 'The essentials to find your way around.' },
       'kbui.help.start': { kybernos: 'Pour démarrer', en: 'Getting started' },
-      'kbui.help.s1': { kybernos: '« Nouveau chat » ouvre une conversation ; choisissez le Kyber à côté du bouton.', en: '“New chat” opens a conversation; pick the Kyber next to the button.' },
+      'kbui.help.s1': { kybernos: '« Nouveau chat » ouvre une conversation ; choisissez l’Agent Team à côté du bouton.', en: '“New chat” opens a conversation; pick the Agent Team next to the button.' },
       'kbui.help.s2': { kybernos: 'Tapez / pour les commandes, @ pour citer un fichier ou une session.', en: 'Type / for commands, @ to mention a file or a session.' },
-      'kbui.help.s3': { kybernos: 'Tout ce que vos Kybers produisent arrive dans Créations.', en: 'Everything your Kybers produce lands in Creations.' },
+      'kbui.help.s3': { kybernos: 'Tout ce que vos Agent Teams produisent arrive dans Créations.', en: 'Everything your Agent Teams produce lands in Creations.' },
       'kbui.help.map': { kybernos: 'La barre latérale', en: 'The sidebar' },
-      'kbui.help.d.teams': { kybernos: 'vos équipes IA, chacune avec sa mission', en: 'your AI teams, each on a mission' },
+      'kbui.help.d.teams': { kybernos: 'vos Agent Teams, chacune avec sa mission', en: 'your Agent Teams, each on a mission' },
       'kbui.help.d.ws': { kybernos: 'vos projets et leurs conversations', en: 'your projects and their chats' },
-      'kbui.help.d.creations': { kybernos: 'les fichiers produits par vos Kybers', en: 'the files your Kybers produced' },
+      'kbui.help.d.creations': { kybernos: 'les fichiers produits par vos Agent Teams', en: 'the files your Agent Teams produced' },
       'kbui.help.d.auto': { kybernos: 'des sessions qui partent à l’heure choisie', en: 'sessions that start at a chosen time' },
       'kbui.help.d.skills': { kybernos: 'des consignes réutilisables pour vos agents', en: 'reusable instructions for your agents' },
-      'kbui.help.d.conn': { kybernos: 'les applications que vos Kybers peuvent utiliser', en: 'the apps your Kybers can use' },
+      'kbui.help.d.conn': { kybernos: 'les applications que vos Agent Teams peuvent utiliser', en: 'the apps your Agent Teams can use' },
       'kbui.help.more': { kybernos: 'Besoin d’un coup de main ?', en: 'Need a hand?' },
       'kbui.help.updates': { kybernos: 'Rechercher une mise à jour', en: 'Check for updates' },
       'kbui.help.website': { kybernos: 'Site web', en: 'Website' },
@@ -1294,7 +1293,7 @@ let kbLocaleRead = () => 'en'
       'kbui.rating.issue.format': { kybernos: 'Mauvais format', en: 'Wrong format' },
       'kbui.rating.issue.unsafe': { kybernos: 'Trop prudent', en: 'Unsafe / over-cautious' },
       'kbui.session.dot': { kybernos: 'Session · ', en: 'Session · ' },
-      'kbui.shown.kyber': { kybernos: 'Affiché dans la barre latérale, l’en-tête et partout où ce Kyber apparaît.', en: 'Shown in the sidebar, the header and everywhere this Kyber appears.' },
+      'kbui.shown.kyber': { kybernos: 'Affiché dans la barre latérale, l’en-tête et partout où cette Agent Team apparaît.', en: 'Shown in the sidebar, the header and everywhere this Agent Team appears.' },
       'kbui.shown.project': { kybernos: 'Affiché dans la barre latérale, la grille des projets et partout où ce projet apparaît.', en: 'Shown in the sidebar, the project grid and everywhere this project appears.' },
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
       'kbui.skills': { kybernos: 'Compétences', en: 'Skills' },
@@ -1334,12 +1333,12 @@ let kbLocaleRead = () => 'en'
       'kbui.starters.close': { kybernos: 'Fermer', en: 'Close' },
       'kbui.starters.more': { kybernos: 'Plus d’idées', en: 'More ideas' },
       'kbui.starters.fieldColor': { kybernos: 'Couleur', en: 'Colour' },
-      'kbui.starters.colorHint': { kybernos: 'La même palette que la fiche du Kyber. Vide = la couleur du Kyber.', en: 'The same palette as the Kyber page. Empty = the Kyber colour.' },
+      'kbui.starters.colorHint': { kybernos: 'La même palette que la fiche de l’Agent Team. Vide = la couleur de l’Agent Team.', en: 'The same palette as the Agent Team page. Empty = the Agent Team colour.' },
       'kbui.starters.brain': { kybernos: 'Proposer avec Kybernos Brain', en: 'Suggest with Kybernos Brain' },
       'kbui.starters.brain.look': { kybernos: 'Le Brain relit la mission et propose une icône et une couleur pour chaque suggestion — les textes ne bougent pas.', en: 'The Brain reads the mission and suggests an icon and a colour for each starter — the texts stay put.' },
-      'kbui.starters.brain.full': { kybernos: 'Le Brain lit la mission du Kyber et propose 4 suggestions complètes (icône, couleur, texte).', en: 'The Brain reads the Kyber mission and suggests 4 complete starters (icon, colour, text).' },
+      'kbui.starters.brain.full': { kybernos: 'Le Brain lit la mission de l’Agent Team et propose 4 suggestions complètes (icône, couleur, texte).', en: 'The Brain reads the Agent Team’s mission and suggests 4 complete starters (icon, colour, text).' },
       'kbui.starters.brain.choice': { kybernos: 'Le Brain vise 4 suggestions : compléter les manquantes, ou tout refaire.', en: 'The Brain aims for 4 starters: complete the missing ones, or redo them all.' },
-      'kbui.starters.brain.ask': { kybernos: 'Le Kyber a déjà des suggestions — viser 4 au total :', en: 'The Kyber already has starters — aim for 4 in total:' },
+      'kbui.starters.brain.ask': { kybernos: 'L’Agent Team a déjà des suggestions — viser 4 au total :', en: 'The Agent Team already has starters — aim for 4 in total:' },
       'kbui.starters.brain.complete': { kybernos: 'Compléter', en: 'Complete' },
       'kbui.starters.brain.redo': { kybernos: 'Tout refaire', en: 'Redo all' },
       'kbui.starters.brain.cancel': { kybernos: 'Annuler', en: 'Cancel' },
@@ -1358,7 +1357,7 @@ let kbLocaleRead = () => 'en'
       'kbui.tag': { kybernos: 'Étiquette', en: 'Tag' },
       'kbui.rate.usdeur': { kybernos: 'Taux USD→EUR', en: 'USD→EUR rate' },
       'kbui.test.text': { kybernos: 'Texte de test', en: 'Test text' },
-      'kbui.skills.sub': { kybernos: 'Les capacités que vos Kybers peuvent appeler. Importez-en une depuis une URL de dépôt — les dépôts privés passent par Composio.', en: 'The capabilities your Kybers can call. Import one from a repository URL — private repos go through Composio.' },
+      'kbui.skills.sub': { kybernos: 'Les capacités que vos Agent Teams peuvent appeler. Importez-en une depuis une URL de dépôt — les dépôts privés passent par Composio.', en: 'The capabilities your Agent Teams can call. Import one from a repository URL — private repos go through Composio.' },
       'kbui.skills.hint': { kybernos: 'Cochez les compétences rattachées à ce projet — la sélection est enregistrée automatiquement.', en: 'Check the skills attached to this project — the selection saves automatically.' },
       'kbui.skills.savefail': { kybernos: 'Échec de l’enregistrement de la sélection : ', en: 'Could not save the selection: ' },
       'kbui.skills.browse': { kybernos: 'Parcourir le dépôt', en: 'Browse the repository' },
@@ -1373,21 +1372,21 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.detach': { kybernos: 'Détacher de ce projet', en: 'Detach from this project' },
       'kbui.skills.one': { kybernos: 'rattachée à ce projet', en: 'attached to this project' },
       'kbui.skills.many': { kybernos: 'rattachées à ce projet', en: 'attached to this project' },
-      'kbui.skills.hintteam': { kybernos: 'Cochez les compétences rattachées à ce Kyber — la sélection est écrite dans son kyber.yml.', en: 'Check the skills attached to this Kyber — the selection is written to its kyber.yml.' },
-      'kbui.skills.oneteam': { kybernos: 'rattachée à ce Kyber', en: 'attached to this Kyber' },
-      'kbui.skills.manyteam': { kybernos: 'rattachées à ce Kyber', en: 'attached to this Kyber' },
-      'kbui.skills.ghostteam': { kybernos: 'rattachée à ce Kyber (plus détectée)', en: 'attached to this Kyber (no longer detected)' },
-      'kbui.kyber.declares': { kybernos: 'Le kyber déclare l’équipe (rôles, ordre, modèle déclaré).', en: 'The kyber declares the crew (roles, order, declared model).' },
-      'kbui.model.caveat': { kybernos: 'Le modèle qu’un kyber déclare n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model a kyber declares is not necessarily the one that runs: Agent Teams does not read that table yet.' },
+      'kbui.skills.hintteam': { kybernos: 'Cochez les compétences rattachées à cette Agent Team — la sélection est écrite dans son kyber.yml.', en: 'Check the skills attached to this Agent Team — the selection is written to its kyber.yml.' },
+      'kbui.skills.oneteam': { kybernos: 'rattachée à cette Agent Team', en: 'attached to this Agent Team' },
+      'kbui.skills.manyteam': { kybernos: 'rattachées à cette Agent Team', en: 'attached to this Agent Team' },
+      'kbui.skills.ghostteam': { kybernos: 'rattachée à cette Agent Team (plus détectée)', en: 'attached to this Agent Team (no longer detected)' },
+      'kbui.kyber.declares': { kybernos: 'Le kyber.yml déclare l’équipe (rôles, ordre, modèle déclaré).', en: 'kyber.yml declares the crew (roles, order, declared model).' },
+      'kbui.model.caveat': { kybernos: 'Le modèle déclaré dans le kyber.yml n’est pas forcément celui qui tourne : Agent Teams ne lit pas encore cette table.', en: 'The model declared in kyber.yml is not necessarily the one that runs: Agent Teams does not read that table yet.' },
       'kbui.plugin.free': { kybernos: 'Le plugin reste libre et ouvert. Lancez-le, forkez-le, livrez-le — hosted existe pour le travail qui ne peut pas attendre que votre machine se réveille.', en: 'The plugin stays free and open. Run it, fork it, ship it — hosted exists for the work that cannot wait for your laptop to wake up.' },
-      'kbui.chat.bound': { kybernos: 'Ce chat est lié à ce Kyber', en: 'This chat is bound to this Kyber' },
+      'kbui.chat.bound': { kybernos: 'Ce chat est lié à cette Agent Team', en: 'This chat is bound to this Agent Team' },
       'kbui.three.gestures': { kybernos: 'Trois gestes pour tout organiser', en: 'Three gestures to organise everything' },
       'kbui.title': { kybernos: 'Titre', en: 'Title' },
       'kbui.tokens': { kybernos: 'Jetons', en: 'Tokens' },
       'kbui.project.toplevel': { kybernos: 'Projet de premier niveau', en: 'Top-level project' },
       'kbui.total': { kybernos: 'Total ', en: 'Total ' },
       'kbui.tags.hint': { kybernos: 'Jusqu’à 10 étiquettes, 1 à 30 caractères chacune. Les suggestions viennent de vos catégories et des étiquettes déjà utilisées dans cet espace de travail.', en: 'Up to 10 tags, 1–30 characters each. Suggestions come from your categories and the tags already used in this workspace.' },
-      'kbui.upload.manifest': { kybernos: 'Importer un « Kyber Manifest »', en: 'Upload a "Kyber Manifest"' },
+      'kbui.upload.manifest': { kybernos: 'Importer un « Agent Team Manifest »', en: 'Upload an "Agent Team Manifest"' },
       'kbui.file.machine': { kybernos: 'Depuis un fichier de votre machine', en: 'From a file on your machine' },
       'kbui.voice': { kybernos: 'Voix', en: 'Voice' },
       'kbui.mic.title': { kybernos: 'Micro du composer', en: 'Composer microphone' },
@@ -1405,7 +1404,7 @@ let kbLocaleRead = () => 'en'
       'kbui.widget.colour': { kybernos: 'Couleur du widget', en: 'Widget colour' },
       'kbui.workspaces.unavailable': { kybernos: 'Espaces de travail indisponibles', en: 'Workspaces unavailable' },
       'kbui.yaml.raw': { kybernos: 'YAML brut', en: 'Raw YAML' },
-      'kbui.hosted.keepworking': { kybernos: 'Vos Kybers continuent de travailler après avoir fermé le capot.', en: 'Your Kybers keep working after you close the lid.' },
+      'kbui.hosted.keepworking': { kybernos: 'Vos Agent Teams continuent de travailler après avoir fermé le capot.', en: 'Your Agent Teams keep working after you close the lid.' },
       'kbui.workspace.export': { kybernos: 'Votre espace de travail de plugin s’exporte en fichier. Hosted l’importe intégralement — équipes, documents, objectifs et fils gardent leur historique.', en: 'Your plugin workspace exports as a file. Hosted imports it whole — teams, documents, goals and threads keep their history.' },
       'kbui.mission.example': { kybernos: 'ex. Répondre à chaque prospect entrant dans l’heure, le qualifier et réserver l’appel.', en: 'e.g. Answer every inbound lead within the hour, qualify it, and book the call.' },
       'kbui.fallback.from': { kybernos: 'repli depuis ', en: 'fallback from ' },
@@ -1425,9 +1424,9 @@ let kbLocaleRead = () => 'en'
       'kbui.all': { kybernos: 'Tout', en: 'All' },
       // The page header (title + this sentence) is the same on both tabs, so the tab row does not move when you switch;
       // what is specific to a tab is said in its own first line (`kbui.teams.sub`, `kbui.marketplace.sub`).
-      'kbui.kybers.loaderr': { kybernos: 'Impossible de lire vos Kybers', en: 'Could not read your Kybers' },
-      'kbui.kybers.about': { kybernos: 'Un Kyber est une équipe IA sur une mission — un seul membre ou plusieurs, jusqu’à un modèle par rôle.', en: 'A Kyber is an AI team on a mission — one member or several, up to one model per role.' },
-      'kbui.teams.sub': { kybernos: 'Ouvrez-en un : ses sections apparaissent dans un second menu, ses chats dans leur propre panneau. La liste est groupée selon l’endroit d’où chaque Kyber est lu — le dossier DSH, ou ce dépôt de travail.', en: 'Open one: its sections appear in a second menu, its chats in their own panel. The list is grouped by where each Kyber is read from — the DSH home, or this workspace repository.' },
+      'kbui.kybers.loaderr': { kybernos: 'Impossible de lire vos Agent Teams', en: 'Could not read your Agent Teams' },
+      'kbui.kybers.about': { kybernos: 'Une Agent Team est une équipe d’agents sur une mission — un seul membre ou plusieurs, jusqu’à un modèle par rôle.', en: 'An Agent Team is a team of agents on a mission — one member or several, up to one model per role.' },
+      'kbui.teams.sub': { kybernos: 'Ouvrez-en une : ses sections apparaissent dans un second menu, ses chats dans leur propre panneau. La liste est groupée selon l’endroit d’où chaque Agent Team est lue — le dossier DSH, ou ce dépôt de travail.', en: 'Open one: its sections appear in a second menu, its chats in their own panel. The list is grouped by where each Agent Team is read from — the DSH home, or this workspace repository.' },
       'kbui.filters': { kybernos: ' Filtres', en: ' Filters' },
       'kbui.saved': { kybernos: ' Enregistré', en: ' Saved' },
       'kbui.new': { kybernos: 'Nouveau', en: 'New' },
@@ -1438,7 +1437,7 @@ let kbLocaleRead = () => 'en'
       'kbui.project.sub': { kybernos: 'Un projet est un espace de travail à part entière — les chats, documents, objectifs et créations qui appartiennent à un même travail.', en: 'A project is a workspace of its own — the chats, documents, goals and creations that belong to one piece of work.' },
       'kbui.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'kbui.copylink.hosted': { kybernos: 'Copier le lien (Hosted uniquement)', en: 'Copy link (Hosted only)' },
-      'kbui.createteam.chat': { kybernos: 'Créer le Kyber et ouvrir le chat', en: 'Create the Kyber and open the chat' },
+      'kbui.createteam.chat': { kybernos: 'Créer l’Agent Team et ouvrir le chat', en: 'Create the Agent Team and open the chat' },
       'kbui.creating': { kybernos: 'Création…', en: 'Creating…' },
       'kbui.theme.dark': { kybernos: 'Thème sombre', en: 'Dark theme' },
       'kbui.theme.light': { kybernos: 'Thème clair', en: 'Light theme' },
@@ -1447,11 +1446,11 @@ let kbLocaleRead = () => 'en'
       'kbui.details': { kybernos: 'Détails', en: 'Details' },
       'kbui.duplicate': { kybernos: 'Dupliquer', en: 'Duplicate' },
       'kbsd.title.file': { kybernos: 'Partager ce fichier', en: 'Share this file' },
-      'kbsd.title.kyber': { kybernos: 'Partager ce kyber', en: 'Share this kyber' },
+      'kbsd.title.kyber': { kybernos: 'Partager cette Agent Team', en: 'Share this agent team' },
       'kbsd.title.project': { kybernos: 'Partager ce projet', en: 'Share this project' },
       'kbsd.help': { kybernos: 'Aide sur les niveaux de partage', en: 'Help on sharing levels' },
       'kbsd.help.file': { kybernos: 'Privé : seuls vous et les personnes invitées. Accès équipe : les membres de l’espace actif (enregistré sur cet appareil). Accès public : toute personne avec le lien peut voir ce fichier ; repasser en Privé révoque le lien.', en: 'Private: only you and the people you invite. Team access: members of the active space (saved on this device). Public access: anyone with the link can view this file; going back to Private revokes the link.' },
-      'kbsd.help.kyber': { kybernos: 'Privé : seuls vous et les personnes invitées. Accès équipe : les membres de l’espace actif (enregistré sur cet appareil). Le lien public des kybers n’est pas encore disponible.', en: 'Private: only you and the people you invite. Team access: members of the active space (saved on this device). Public links for kybers are not available yet.' },
+      'kbsd.help.kyber': { kybernos: 'Privé : seuls vous et les personnes invitées. Accès équipe : les membres de l’espace actif (enregistré sur cet appareil). Le lien public des Agent Teams n’est pas encore disponible.', en: 'Private: only you and the people you invite. Team access: members of the active space (saved on this device). Public links for agent teams are not available yet.' },
       'kbsd.private': { kybernos: 'Privé', en: 'Private' },
       'kbsd.private.sub': { kybernos: 'Seulement vous et les personnes invitées', en: 'Only you and the people you invite' },
       'kbsd.team': { kybernos: 'Accès équipe', en: 'Team access' },
@@ -1477,7 +1476,7 @@ let kbLocaleRead = () => 'en'
       'kbsd.personal.short': { kybernos: 'Espace personnel : un seul membre, invitations indisponibles.', en: 'Personal space: a single member, invitations unavailable.' },
       'kbsd.whats': { kybernos: 'Qu’est-ce qui est partagé ?', en: 'What’s shared?' },
       'kbsd.shared.h': { kybernos: 'Partagé avec tous les membres', en: 'Shared with all members' },
-      'kbsd.shared.b': { kybernos: 'Instructions, fichiers, kybers rattachés et créations du projet.', en: 'Instructions, files, attached kybers and the project’s creations.' },
+      'kbsd.shared.b': { kybernos: 'Instructions, fichiers, Agent Teams rattachées et créations du projet.', en: 'Instructions, files, attached agent teams and the project’s creations.' },
       'kbsd.personal.h': { kybernos: 'Reste personnel', en: 'Stays personal' },
       'kbsd.personal.b': { kybernos: 'Identifiants des connecteurs, tâches planifiées et consommation de crédits.', en: 'Connector credentials, scheduled tasks and credit usage.' },
       'kbsd.email.ph': { kybernos: 'Adresses e-mail', en: 'Enter email addresses' },
@@ -1522,10 +1521,10 @@ let kbLocaleRead = () => 'en'
       'kbui.showall': { kybernos: 'Tout afficher', en: 'Show all' },
       'kbui.toggle.favorites': { kybernos: 'Basculer les favoris', en: 'Toggle favorites' },
       'kbui.gpus.own': { kybernos: 'Des GPU qu’il faut posséder', en: 'GPUs you have to own' },
-      'kbui.kyber.wouldbuild': { kybernos: 'Voici le kyber que je construirais', en: 'Here is the kyber I would build' },
+      'kbui.kyber.wouldbuild': { kybernos: 'Voici l’Agent Team que je construirais', en: 'Here is the agent team I would build' },
       'kbui.highrisk': { kybernos: 'Risque élevé', en: 'High risk' },
       'kbui.install': { kybernos: 'Installer', en: 'Install' },
-      'kbui.install.kyber': { kybernos: 'Installer ce Kyber', en: 'Install this Kyber' },
+      'kbui.install.kyber': { kybernos: 'Installer cette Agent Team', en: 'Install this Agent Team' },
       'kbui.installed': { kybernos: 'Installé', en: 'Installed' },
       'kbui.installing': { kybernos: 'Installation…', en: 'Installing…' },
       'kbui.name': { kybernos: 'Nom', en: 'Name' },
@@ -1541,7 +1540,7 @@ let kbLocaleRead = () => 'en'
       'kbui.market.cloud.local': { kybernos: 'Livrés avec le plugin', en: 'Shipped with the plugin' },
       'kbui.market.cloud.done': { kybernos: ' installé depuis kybernos.app — à compléter : ', en: ' installed from kybernos.app — to complete: ' },
       'kbui.retry.create': { kybernos: 'Réessayer la création', en: 'Retry create' },
-      'kbui.search.kyber': { kybernos: 'Rechercher un Kyber, une catégorie, un objectif…', en: 'Search a Kyber, a category, a goal…' },
+      'kbui.search.kyber': { kybernos: 'Rechercher une Agent Team, une catégorie, un objectif…', en: 'Search an Agent Team, a category, a goal…' },
       'kbui.search.template': { kybernos: 'Rechercher un modèle, une catégorie, une mission…', en: 'Search a template, a category, a mission…' },
       'kbui.search.project': { kybernos: 'Rechercher un projet par nom ou description…', en: 'Search a project by name or description…' },
       'kbui.search.deliverable': { kybernos: 'Rechercher une création…', en: 'Search a creation…' },
@@ -1576,9 +1575,8 @@ let kbLocaleRead = () => 'en'
       'kbui.frag.running': { kybernos: 'En cours · ', en: 'Running · ' },
       'kbui.frag.skills': { kybernos: 'Compétences · ', en: 'Skills · ' },
       'kbui.frag.workflow': { kybernos: 'Workflow · ', en: 'Workflow · ' },
-      'kbui.crew.edit.sub': { kybernos: 'Les rôles sont éditables : prompt, fournisseur et modèle par rôle. Les changements s’écrivent dans le kyber.yml ci-dessous (une sauvegarde .bak est posée à côté). L’identifiant d’un rôle ne se renomme pas ici — les étapes du workflow y font référence.', en: 'Roles are editable: prompt, provider and model per role. Changes are written to the kyber.yml below (a .bak backup is placed alongside). A role id cannot be renamed here — workflow stages reference it.' },
       // ── Visages d'équipe (onglet Team) ─────────────────────────────────────
-      'kbui.visages.title': { kybernos: 'Visages du Kyber', en: 'Kyber faces' },
+      'kbui.visages.title': { kybernos: 'Visages de l’Agent Team', en: 'Agent Team faces' },
       'kbui.visages.sub': { kybernos: 'Un SEUL appel image produit la scène d’équipe (section 1) et un portrait par rôle (section 2). La découpe est locale, donc gratuite et rejouable. Compte environ 0,04 $ par équipe, quel que soit l’effectif.', en: 'ONE image call produces the team scene (section 1) and one portrait per role (section 2). The crop is local, hence free and repeatable. Budget about $0.04 per team, whatever the headcount.' },
       'kbui.visages.cast': { kybernos: 'Casting — corrige la description de chaque personne avant de générer', en: 'Casting — fix each person’s description before generating' },
       'kbui.visages.go': { kybernos: 'Générer les visages', en: 'Generate the faces' },
@@ -1667,7 +1665,6 @@ let kbLocaleRead = () => 'en'
       'kbui.saved.check': { kybernos: '✓ Enregistré', en: '✓ Saved' },
       'kbui.retry.save': { kybernos: 'Réessayer d’enregistrer', en: 'Retry save' },
       'kbui.autosave': { kybernos: 'Enregistrement auto', en: 'Auto-save' },
-      'kbui.search.kyber.short': { kybernos: 'Rechercher un Kyber…', en: 'Search a Kyber…' },
       'kbui.toolbar.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.tools': { kybernos: 'Outils', en: 'Tools' },
       'kbui.cards': { kybernos: 'Cartes', en: 'Cards' },
@@ -1678,14 +1675,14 @@ let kbLocaleRead = () => 'en'
       'kbui.insight': { kybernos: 'Insight', en: 'Insight' },
       // ── Onglet « Widget » (fiche AI Team) — besoin validé avec l'utilisateur ─
       'kbw.tab': { kybernos: 'Widget', en: 'Widget' },
-      'kbw.sub': { kybernos: 'Un widget est une porte publique vers ce kyber, posée sur un site. Le visiteur crée un compte Kybernos, accepte VOS conditions, puis discute.', en: 'A widget is a public door to this kyber, on any site. The visitor creates a Kybernos account, accepts YOUR terms, then chats.' },
+      'kbw.sub': { kybernos: 'Un widget est une porte publique vers cette Agent Team, posée sur un site. Le visiteur crée un compte Kybernos, accepte VOS conditions, puis discute.', en: 'A widget is a public door to this agent team, on any site. The visitor creates a Kybernos account, accepts YOUR terms, then chats.' },
       'kbw.new': { kybernos: '+ Nouveau widget', en: '+ New widget' },
       'kbw.convs': { kybernos: 'Conversations', en: 'Conversations' },
-      'kbw.convs.empty': { kybernos: 'Rien pour l’instant — les sessions qui activent ce kyber apparaîtront ici.', en: 'Nothing yet — sessions running this kyber will appear here.' },
+      'kbw.convs.empty': { kybernos: 'Rien pour l’instant — les sessions qui activent cette Agent Team apparaîtront ici.', en: 'Nothing yet — sessions running this agent team will appear here.' },
       'kbw.one': { kybernos: 'widget', en: 'widget' },
       'kbw.many': { kybernos: 'widgets', en: 'widgets' },
       'kbw.empty': { kybernos: 'Aucun widget pour l’instant. Créez-en un, copiez sa ligne d’embed, collez-la sur votre site.', en: 'No widget yet. Create one, copy its embed line, paste it on your site.' },
-      'kbw.empty2': { kybernos: 'Le visiteur ouvre la bulle, se connecte à Kybernos, accepte les conditions — et discute avec ce kyber.', en: 'The visitor opens the bubble, signs in to Kybernos, accepts the terms — and chats with this kyber.' },
+      'kbw.empty2': { kybernos: 'Le visiteur ouvre la bulle, se connecte à Kybernos, accepte les conditions — et discute avec cette Agent Team.', en: 'The visitor opens the bubble, signs in to Kybernos, accepts the terms — and chats with this agent team.' },
       'kbw.edit': { kybernos: 'Éditer', en: 'Edit' },
       'kbw.delete': { kybernos: 'Supprimer', en: 'Delete' },
       'kbw.confirm': { kybernos: 'Confirmer', en: 'Confirm' },
@@ -1693,7 +1690,7 @@ let kbLocaleRead = () => 'en'
       'kbw.off': { kybernos: 'Widget en pause — l’embed n’affiche rien', en: 'Widget paused — the embed shows nothing' },
       'kbw.label': { kybernos: 'NOM INTERNE', en: 'INTERNAL NAME' },
       'kbw.slug': { kybernos: 'SLUG — IDENTITÉ PUBLIQUE', en: 'SLUG — PUBLIC IDENTITY' },
-      'kbw.slug.hint': { kybernos: 'Unique dans ce kyber : c’est l’identité de la porte, pour le lien et le widget.', en: 'Unique within this kyber: it is the identity of the door, for the link and the widget.' },
+      'kbw.slug.hint': { kybernos: 'Unique dans cette Agent Team : c’est l’identité de la porte, pour le lien et le widget.', en: 'Unique within this agent team: it is the identity of the door, for the link and the widget.' },
       'kbw.slug.dup': { kybernos: 'Ce slug est déjà pris par un autre widget.', en: 'This slug is already taken by another widget.' },
       'kbw.slug.bad': { kybernos: 'Lettres minuscules, chiffres et tirets — 2 à 40 caractères.', en: 'Lowercase letters, digits and dashes — 2 to 40 characters.' },
       'kbw.appearance': { kybernos: 'APPARENCE', en: 'APPEARANCE' },
@@ -1722,23 +1719,23 @@ let kbLocaleRead = () => 'en'
       'kbw.chip.hint': { kybernos: 'Tapez /widget slug=… titre=… couleur=… puis cliquez ici pour appliquer.', en: 'Type /widget slug=… title=… colour=… then click here to apply.' },
       'kbw.applied': { kybernos: 'Widget « {slug} » enregistré.', en: 'Widget “{slug}” saved.' },
       'kbw.listed': { kybernos: 'Liste copiée dans le composeur — envoyez-la pour la garder au fil.', en: 'List placed in the composer — send it to keep it in the thread.' },
-      'kbw.none': { kybernos: 'Aucun widget — créez-en un depuis l’onglet Widget de ce kyber.', en: 'No widget — create one from this kyber’s Widget tab.' },
+      'kbw.none': { kybernos: 'Aucun widget — créez-en un depuis l’onglet Widget de cette Agent Team.', en: 'No widget — create one from this agent team’s Widget tab.' },
       'kbui.quality': { kybernos: 'Quality Score', en: 'Quality Score' },
       'kbui.quality.vedette': { kybernos: 'Score Qualité Global', en: 'Overall Quality Score' },
       'kbui.quality.tendance': { kybernos: 'Tendance du score, point par jour', en: 'Score trend, day by day' },
       'kbui.quality.approbation': { kybernos: 'Taux d’approbation', en: 'Approval rate' },
       'kbui.quality.completion': { kybernos: 'Taux de complétion', en: 'Completion rate' },
-      'kbui.quality.equipe': { kybernos: 'Efficacité du Kyber', en: 'Kyber effectiveness' },
+      'kbui.quality.equipe': { kybernos: 'Efficacité de l’Agent Team', en: 'Agent Team effectiveness' },
       'kbui.quality.skills': { kybernos: 'Pertinence prompts/skills', en: 'Prompt/skill relevance' },
       'kbui.quality.reactivite': { kybernos: 'Réactivité', en: 'Responsiveness' },
       'kbui.quality.promptlab': { kybernos: 'Prompt Lab', en: 'Prompt Lab' },
-      'kbui.quality.promptlab.sub': { kybernos: 'Améliorer les réponses du kyber — boucle critique ou défi entre modèles.', en: 'Improve this kyber’s answers — critique loop or model challenge.' },
+      'kbui.quality.promptlab.sub': { kybernos: 'Améliorer les réponses de l’Agent Team — boucle critique ou défi entre modèles.', en: 'Improve this agent team’s answers — critique loop or model challenge.' },
       'kbui.quality.miner': { kybernos: 'Feedback Miner', en: 'Feedback Miner' },
       'kbui.quality.miner.sub': { kybernos: 'Analyse les 👎 des dernières sessions et propose des améliorations concrètes.', en: 'Analyze recent 👎 feedback and propose concrete improvements.' },
       'kbui.quality.boucle': { kybernos: 'Boucle question → réponse → critique', en: 'Question → answer → critique loop' },
       'kbui.quality.defi': { kybernos: 'Défi : 3 modèles en relais', en: 'Challenge: 3 models in relay' },
       'kbui.quality.sources': { kybernos: 'Sources et réserves', en: 'Sources and caveats' },
-      'kbui.ins.sub': { kybernos: 'Ce que ce Kyber a réellement fait : exécutions, sessions, tokens, économies. Chaque chiffre vient du ledger du kyber, des journaux de session ou des sauvegardes de kyber.yml — aucune donnée de démonstration.', en: 'What this Kyber actually did: executions, sessions, tokens, savings. Every number comes from the kyber ledger, the session journals or the kyber.yml backups — no demo data.' },
+      'kbui.ins.sub': { kybernos: 'Ce que cette Agent Team a réellement fait : exécutions, sessions, tokens, économies. Chaque chiffre vient du ledger de l’Agent Team, des journaux de session ou des sauvegardes de kyber.yml — aucune donnée de démonstration.', en: 'What this Agent Team actually did: executions, sessions, tokens, savings. Every number comes from the Agent Team’s ledger, the session journals or the kyber.yml backups — no demo data.' },
       'kbui.ins.period': { kybernos: 'Période', en: 'Period' },
       'kbui.ins.d7': { kybernos: '7 derniers jours', en: 'Last 7 days' },
       'kbui.ins.d30': { kybernos: '30 derniers jours', en: 'Last 30 days' },
@@ -1827,7 +1824,7 @@ let kbLocaleRead = () => 'en'
       'kbui.ws.openbrowser': { kybernos: 'Ouvrir dans le navigateur', en: 'Open in browser' },
       'kbui.ins.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
       'kbui.ins.save.err': { kybernos: 'Réglages non enregistrés', en: 'Settings not saved' },
-      'kbui.ins.empty': { kybernos: 'Kyber introuvable', en: 'Kyber not found' },
+      'kbui.ins.empty': { kybernos: 'Agent Team introuvable', en: 'Agent Team not found' },
       'kbui.ins.err': { kybernos: 'Lecture impossible', en: 'Could not read' },
       'kbws.menu': { kybernos: 'Équipe', en: 'Team' },
       'kbws.sub': { kybernos: 'Formule, usage réel, modèles configurés, facturation et clés — tout au même endroit. Les données Usage et Modèles sont réelles ; les zones de démonstration sont étiquetées.', en: 'Plan, real usage, configured models, billing and keys — all in one place. Usage and Models data are real; demo areas are labelled.' },
@@ -1926,7 +1923,7 @@ let kbLocaleRead = () => 'en'
       'kbws.rule.saved': { kybernos: 'Règle enregistrée · démo', en: 'Rule saved · demo' },
       'kbws.u.title': { kybernos: 'Consommation', en: 'Usage analytics' },
       'kbws.u.admin': { kybernos: 'Admin', en: 'Admin' },
-      'kbws.u.sub': { kybernos: 'Filtres par période, membre, Kyber et modèle. Cliquez une ligne ci-dessous pour filtrer dessus.', en: 'Filter by period, member, Kyber and model. Click a row below to filter on it.' },
+      'kbws.u.sub': { kybernos: 'Filtres par période, membre, Agent Team et modèle. Cliquez une ligne ci-dessous pour filtrer dessus.', en: 'Filter by period, member, Agent Team and model. Click a row below to filter on it.' },
       'kbws.u.export': { kybernos: 'Exporter', en: 'Export' },
       'kbws.u.eyebrow': { kybernos: 'Période · %s', en: 'Period · %s' },
       'kbws.u.unit': { kybernos: '≈ %s tokens', en: '≈ %s tokens' },
@@ -1940,8 +1937,8 @@ let kbLocaleRead = () => 'en'
       'kbws.u.f.to': { kybernos: 'Au', en: 'To' },
       'kbws.u.f.member': { kybernos: 'Membre', en: 'Member' },
       'kbws.u.f.member.all': { kybernos: 'Tous les membres', en: 'All members' },
-      'kbws.u.f.kyber': { kybernos: 'Kyber', en: 'Kyber' },
-      'kbws.u.f.kyber.all': { kybernos: 'Tous les Kybers', en: 'All Kybers' },
+      'kbws.u.f.kyber': { kybernos: 'Agent Team', en: 'Agent Team' },
+      'kbws.u.f.kyber.all': { kybernos: 'Toutes les Agent Teams', en: 'All Agent Teams' },
       'kbws.u.f.model': { kybernos: 'Modèle', en: 'Model' },
       'kbws.u.f.model.all': { kybernos: 'Tous les modèles', en: 'All models' },
       'kbws.u.pmonth': { kybernos: 'Ce mois', en: 'This month' },
@@ -1959,20 +1956,20 @@ let kbLocaleRead = () => 'en'
       'kbws.u.kpi.avg': { kybernos: 'Moyenne / jour', en: 'Daily average' },
       'kbws.u.bmember': { kybernos: 'Par membre', en: 'By member' },
       'kbws.u.bmember.sub': { kybernos: 'Installation locale : l\'usage n\'est pas attribué par personne.', en: 'Local install: usage is not attributed per person.' },
-      'kbws.u.bteam': { kybernos: 'Par Kyber', en: 'By Kyber' },
-      'kbws.u.bteam.sub': { kybernos: 'Quels Kybers ont consommé. Cliquez pour filtrer.', en: 'Which Kybers consumed. Click to filter.' },
+      'kbws.u.bteam': { kybernos: 'Par Agent Team', en: 'By Agent Team' },
+      'kbws.u.bteam.sub': { kybernos: 'Quelles Agent Teams ont consommé. Cliquez pour filtrer.', en: 'Which Agent Teams consumed. Click to filter.' },
       'kbws.u.bmodel': { kybernos: 'Par modèle', en: 'By model' },
       'kbws.u.bmodel.sub': { kybernos: 'Les modèles Kybernos gratuits affichent 0,00 $. Cliquez pour filtrer.', en: 'Free Kybernos models show $0.00. Click to filter.' },
       'kbws.u.nousage': { kybernos: 'Aucun usage pour ces filtres.', en: 'No usage for these filters.' },
       'kbws.u.chip.member': { kybernos: 'Membre : %s', en: 'Member: %s' },
-      'kbws.u.chip.kyber': { kybernos: 'Kyber : %s', en: 'Kyber: %s' },
+      'kbws.u.chip.kyber': { kybernos: 'Agent Team : %s', en: 'Agent Team: %s' },
       'kbws.u.chip.model': { kybernos: 'Modèle : %s', en: 'Model: %s' },
       'kbws.x.title': { kybernos: 'Exporter l\'usage', en: 'Export usage' },
       'kbws.x.filters': { kybernos: 'Filtres actuels : %s', en: 'Current filters: %s' },
       'kbws.x.format': { kybernos: 'Format', en: 'Format' },
       'kbws.x.rows': { kybernos: 'Lignes', en: 'Rows' },
       'kbws.x.gran.day': { kybernos: 'Une ligne par jour', en: 'One row per day' },
-      'kbws.x.gran.team': { kybernos: 'Totaux par Kyber', en: 'Totals per Kyber' },
+      'kbws.x.gran.team': { kybernos: 'Totaux par Agent Team', en: 'Totals per Agent Team' },
       'kbws.x.gran.model': { kybernos: 'Totaux par modèle', en: 'Totals per model' },
       'kbws.x.gran.member': { kybernos: 'Totaux par membre', en: 'Totals per member' },
       'kbws.x.copy': { kybernos: 'Copier (%s)', en: 'Copy (%s)' },
@@ -2100,12 +2097,12 @@ let kbLocaleRead = () => 'en'
       'kbws.prof.in': { kybernos: 'Entrée', en: 'In' },
       'kbws.prof.out': { kybernos: 'Sortie', en: 'Out' },
       'kbws.prof.d.reader': { kybernos: 'Reçoit la connaissance de l\'équipe, ne partage rien.', en: 'Receives team knowledge, shares nothing.' },
-      'kbws.prof.d.contrib': { kybernos: 'Reçoit tout, partage la mémoire Kyber et les Artifacts.', en: 'Receives everything, shares Kyber memory and Artifacts.' },
+      'kbws.prof.d.contrib': { kybernos: 'Reçoit tout, partage la mémoire de l’Agent Team et les Artifacts.', en: 'Receives everything, shares Agent Team memory and Artifacts.' },
       'kbws.prof.d.maint': { kybernos: 'Sync complète, Skills et Connecteurs compris.', en: 'Full sync, including Skills and Connectors.' },
       'kbws.prof.d.iso': { kybernos: 'Rien n\'entre, rien ne sort.', en: 'Nothing comes in, nothing goes out.' },
       'kbws.prof.d.custom': { kybernos: 'Profil dérivé d\'un membre (exceptions incluses).', en: 'Profile derived from a member (overrides included).' },
-      'kbws.comp.kyber': { kybernos: 'Mémoire Kyber', en: 'Kyber memory' },
-      'kbws.comp.kyber.d': { kybernos: 'Leçons d’un rôle de Kyber · suit le Kyber, jamais le projet', en: 'Lessons of a Kyber role · follows the Kyber, never the project' },
+      'kbws.comp.kyber': { kybernos: 'Mémoire d’Agent Team', en: 'Agent Team memory' },
+      'kbws.comp.kyber.d': { kybernos: 'Leçons d’un rôle d’Agent Team · suit l’Agent Team, jamais le projet', en: 'Lessons of an Agent Team role · follows the Agent Team, never the project' },
       'kbws.comp.proj': { kybernos: 'Mémoire projet', en: 'Project memory' },
       'kbws.comp.proj.d': { kybernos: 'Spécifications, décisions, conventions', en: 'Specs, decisions, conventions' },
       'kbws.comp.chat': { kybernos: 'Chats', en: 'Chats' },
@@ -2118,13 +2115,6 @@ let kbLocaleRead = () => 'en'
       'kbws.comp.skill.d': { kybernos: 'Skills personnalisées', en: 'Custom skills' },
       'kbws.comp.conn': { kybernos: 'Connecteurs', en: 'Connectors' },
       'kbws.comp.conn.d': { kybernos: 'Composio · config seule, jamais de jetons', en: 'Composio · config only, never tokens' },
-      'kbws.short.kyber': { kybernos: 'Kyber', en: 'Kyber' },
-      'kbws.short.proj': { kybernos: 'Projet', en: 'Project' },
-      'kbws.short.chat': { kybernos: 'Chat', en: 'Chat' },
-      'kbws.short.art': { kybernos: 'Artef.', en: 'Artif.' },
-      'kbws.short.prj': { kybernos: 'Proj.', en: 'Proj.' },
-      'kbws.short.skill': { kybernos: 'Skills', en: 'Skills' },
-      'kbws.short.conn': { kybernos: 'Conn.', en: 'Conn.' },
       'kbws.bill.portal': { kybernos: 'Portail de facturation', en: 'Billing portal' },
       'kbws.bill.hosted': { kybernos: 'Hébergé par Stripe. Ouvrez-le pour :', en: 'Hosted by Stripe. Open it to:' },
       'kbws.bill.pm1': { kybernos: 'Mettre à jour le moyen de paiement (ajouter, remplacer, retirer une carte)', en: 'Update your payment method (add, replace or remove a card)' },
@@ -2170,12 +2160,12 @@ let kbLocaleRead = () => 'en'
       'kbws.portal.saved': { kybernos: 'Enregistré · démo', en: 'Saved · demo' },
       'kbws.portal.inv.none': { kybernos: 'Aucune facture pour l\'instant.', en: 'No invoice yet.' },
       'kbws.keys.title': { kybernos: 'Clés API', en: 'API keys' },
-      'kbws.keys.sub': { kybernos: 'Reliez vos Kybers à opencode avec une clé d\'espace de travail.', en: 'Connect your Kybers to opencode with a workspace API key.' },
+      'kbws.keys.sub': { kybernos: 'Reliez vos Agent Teams à opencode avec une clé d\'espace de travail.', en: 'Connect your Agent Teams to opencode with a workspace API key.' },
       'kbws.keys.base': { kybernos: 'URL de base', en: 'Base URL' },
       'kbws.keys.basenote': { kybernos: 'L\'URL du proxy. opencode ajoute /v1 automatiquement.', en: 'The proxy base URL. opencode appends /v1 automatically.' },
       'kbws.keys.copy': { kybernos: 'Copier', en: 'Copy' },
       'kbws.keys.create': { kybernos: 'Créer une clé', en: 'Create a key' },
-      'kbws.keys.createnote': { kybernos: 'Une clé d\'espace vaut pour tous les Kybers. Le secret n\'est affiché qu\'une fois.', en: 'A workspace key works for every Kyber. The secret is shown only once.' },
+      'kbws.keys.createnote': { kybernos: 'Une clé d\'espace vaut pour toutes les Agent Teams. Le secret n\'est affiché qu\'une fois.', en: 'A workspace key works for every Agent Team. The secret is shown only once.' },
       'kbws.keys.label': { kybernos: 'Libellé (optionnel)', en: 'Label (optional)' },
       'kbws.keys.createbtn': { kybernos: 'Créer la clé', en: 'Create key' },
       'kbws.keys.secret': { kybernos: 'Copiez le secret maintenant.', en: 'Copy your secret now.' },
@@ -2185,7 +2175,7 @@ let kbLocaleRead = () => 'en'
       'kbws.keys.revoke': { kybernos: 'Révoquer', en: 'Revoke' },
       'kbws.keys.none': { kybernos: 'Aucune clé pour l\'instant.', en: 'No keys yet.' },
       'kbws.keys.snippet': { kybernos: 'Extrait opencode', en: 'opencode snippet' },
-      'kbws.keys.snipnote': { kybernos: 'Collez ceci dans ~/.config/opencode/opencode.json pour parler à vos Kybers depuis opencode.', en: 'Paste this into ~/.config/opencode/opencode.json to talk to your Kybers from opencode.' },
+      'kbws.keys.snipnote': { kybernos: 'Collez ceci dans ~/.config/opencode/opencode.json pour parler à vos Agent Teams depuis opencode.', en: 'Paste this into ~/.config/opencode/opencode.json to talk to your Agent Teams from opencode.' },
       'kbws.keys.copysnip': { kybernos: 'Copier l\'extrait', en: 'Copy snippet' },
       'kbws.keys.created': { kybernos: 'Clé créée · démo', en: 'Key created · demo' },
       'kbws.keys.copied': { kybernos: 'Copié', en: 'Copied' },
@@ -2849,12 +2839,12 @@ const KB_FR_EN = {
   'Afficher le détail': 'Show the detail',
   'Afficher les points': 'Show the points',
   'Aucun bloc `budget:` dans les kyber.yml du projet.': 'No `budget:` block in the project kyber.yml files.',
-  'Aucun budget déclaré par les kybers de ce projet (bloc budget: du kyber.yml).': 'No budget declared by this project’s kybers (budget: block of kyber.yml).',
+  'Aucun budget déclaré par les Agent Teams de ce projet (bloc budget: du kyber.yml).': 'No budget declared by this project’s agent teams (budget: block of kyber.yml).',
   'Aucun budget déclaré pour y rapporter cette dépense.': 'No declared budget to report this spend against.',
   'Aucun document envoyé dans les threads de ce projet pour l’instant.': 'No document sent in this project’s threads for now.',
-  'Aucun kyber n’a encore tourné dans les threads de ce projet.': 'No kyber has run in this project’s threads yet.',
+  'Aucune Agent Team n’a encore tourné dans les threads de ce projet.': 'No agent team has run in this project’s threads yet.',
   'La liste ci-dessous est le catalogue de compétences de l’environnement.': 'The list below is the environment’s skill catalog.',
-  'Aucune compétence détectée dans l’environnement — installe un kyber qui en déclare, ou importe-en une depuis le dépôt.': 'No skill detected in the environment — install a kyber that declares one, or import one from the repository.',
+  'Aucune compétence détectée dans l’environnement — installe une Agent Team qui en déclare, ou importe-en une depuis le dépôt.': 'No skill detected in the environment — install an agent team that declares one, or import one from the repository.',
   'Détacher ': 'Detach ',
   'Rattacher ': 'Attach ',
   'Chercher une compétence…': 'Search for a skill…',
@@ -2887,10 +2877,10 @@ const KB_FR_EN = {
   'Aucune session ne correspond.': 'No session matches.',
   'Aucune échéance déclarée.': 'No declared deadline.',
   'Bonne réponse : ': 'Correct answer: ',
-  'BUDGET DÉCLARÉ PAR LES KYBERS DU PROJET': 'BUDGET DECLARED BY THE PROJECT KYBERS',
+  'BUDGET DÉCLARÉ PAR LES AGENT TEAMS DU PROJET': 'BUDGET DECLARED BY THE PROJECT AGENT TEAMS',
   'Budget forecast 2026.xlsx': 'Budget forecast 2026.xlsx', // donnée de démo, pas un libellé
   'Budgets you can trust': 'Budgets you can trust', // donnée de démo, pas un libellé
-  'Ce que le Kyber doit faire à chaque déclenchement…': 'What the Kyber must do on every trigger…',
+  'Ce que l’Agent Team doit faire à chaque déclenchement…': 'What the Agent Team must do on every trigger…',
   'Cet item ne déclare pas de bonne réponse — artefact à corriger.': 'This item declares no correct answer — artifact to fix.',
   'Composants chargés par ce déploiement. Le panneau natif gère l’activation.': 'Components loaded by this deployment. The native panel handles activation.',
   'Composio injoignable : seuls les outils déclarés sont affichés.': 'Composio unreachable: only declared tools are listed.',
@@ -2898,7 +2888,7 @@ const KB_FR_EN = {
   'Connexions réelles Composio — ': 'Real Composio connections — ',
   'Dupliqué': 'Duplicated',
   'Automation clonée : ': 'Automation cloned: ',
-  'Kyber cloné : ': 'Kyber cloned: ',
+  'Agent Team clonée : ': 'Agent Team cloned: ',
   ' — la copie atterrit dans la racine workspace (limite de l’hôte).': ' — the copy lands in the workspace root (host limitation).',
   'Clonage…': 'Cloning…',
   'Clonage refusé : ': 'Clone refused: ',
@@ -2906,7 +2896,7 @@ const KB_FR_EN = {
   'Export impossible': 'Export failed',
   'Démarrage de session indisponible': 'Session start unavailable',
   'Dépose tes cours : la crew en tire des quiz, des flashcards et des résumés que tu rejoues jusqu’à ce que ce soit su.': 'Drop your courses: the crew turns them into quizzes, flashcards and summaries you replay until you know them.',
-  'Détail par kyber': 'Detail by kyber',
+  'Détail par Agent Team': 'Detail by agent team',
   'Enregistrement vide': 'Empty recording',
   'Enregistrement…': 'Saving…',
   'Enregistrer': 'Save',
@@ -2923,13 +2913,12 @@ const KB_FR_EN = {
   'Recherche impossible': 'Search unavailable',
   'Fichier non trouvé': 'File not found',
   'Fichier trop volumineux pour l’aperçu (max 1,2 Mo)': 'File too large to preview (max 1.2 MB)',
-  'Kybers · budget & équipe': 'Kybers · budget & équipe',
+  'Agent Teams · budget & équipe': 'Agent Teams · budget & crew',
   'Le navigateur a suspendu l audio : recliquez le micro (un clic sur la page suffit à l autoriser)': 'The browser suspended audio: click the mic again (a click on the page is enough to allow it)',
   'Lecture de l’inventaire…': 'Reading the inventory…',
   'Lecture des connexions Composio…': 'Reading the Composio connections…',
   'Lecture des kyber.yml…': 'Reading the kyber.yml files…',
-  'Les kybers de ce projet ne déclarent aucun outil (connector).': 'This project’s kybers declare no tool (connector).',
-  'Les kybers de ce projet ne déclarent aucun skill.': 'This project’s kybers declare no skill.',
+  'Les Agent Teams de ce projet ne déclarent aucun outil (connector).': 'This project’s agent teams declare no tool (connector).',
   'Lien copié (Hosted only)': 'Link copied (Hosted only)',
   'Micro ': 'Mic ',
   'Micro déjà utilisé par une autre application': 'Microphone already used by another application',
@@ -2976,7 +2965,7 @@ const KB_FR_EN = {
   'étape sans identifiant kebab-case : ': 'stage needs a kebab-case id: ',
   ' » : au moins un rôle requis': ' ”: at least one role required',
   ' » : rôle « ': ' ”: role “',
-  ' » absent des rôles du kyber': '” missing from the kyber roles',
+  ' » absent des rôles de l’Agent Team': '” missing from the agent team roles',
   ' » ne peut pas se lire lui-même en entrée': ' ” cannot read itself as input',
   ' » est une réfutation : il faut une étape cible en entrée': ' ” is a refutation: it needs a target stage as input',
   ' » réfute « ': ' ” refutes “',
@@ -3067,9 +3056,8 @@ const KB_FR_EN = {
   'Privé': 'Private',
   'Lien public': 'Public link',
   'Partager cette création': 'Share this creation',
-  'Partager ce kyber': 'Share this kyber',
+  'Partager cette Agent Team': 'Share this agent team',
   'Création': 'Creation',
-  'Kyber': 'Kyber',
   'Visible uniquement par vous': 'Only you can see it',
   'Espace ': 'Space ',
   'Visible par tous les membres de l’espace': 'Visible to every member of the space',
@@ -3143,7 +3131,7 @@ const KB_FR_EN = {
   '. Le graphe ci-dessus est rechargé.': '. The graph above was reloaded.',
   '✗ Proposition refusée par le contrôle local : ': '✗ Proposal rejected by the local check: ',
   'Aller-retour — ce que DSH relit dans cette proposition :': 'Round-trip — what DSH reads back from this proposal:',
-  'Appliquer au kyber « ': 'Apply to kyber "',
+  'Appliquer à l’Agent Team « ': 'Apply to agent team "',
   'Rejeter': 'Reject',
   'une fois': 'once',
   'par élément': 'per item',
@@ -3173,11 +3161,11 @@ const KB_FR_EN = {
   'Consommé (models.dev)': 'Consumed (models.dev)',
   'Taux USD → EUR': 'USD → EUR rate',
   'Échéance': 'Deadline',
-  'budget déclaré par le kyber « ': 'budget declared by kyber "',
+  'budget déclaré par l’Agent Team « ': 'budget declared by agent team "',
   ' » (bloc budget: du kyber.yml)': '" (budget: block of kyber.yml)',
   'consommés sur la période (tarifs models.dev)': 'consumed over the period (models.dev pricing)',
   'taux du payload (llm.usdEur)': 'rate from the payload (llm.usdEur)',
-  'Aucun budget déclaré par ce kyber (bloc budget: du kyber.yml) — l’affichage reste une absence, jamais un zéro maquillé.': 'No budget declared by this kyber (budget: block of kyber.yml) — the display stays an absence, never a dressed-up zero.',
+  'Aucun budget déclaré par cette Agent Team (bloc budget: du kyber.yml) — l’affichage reste une absence, jamais un zéro maquillé.': 'No budget declared by this agent team (budget: block of kyber.yml) — the display stays an absence, never a dressed-up zero.',
   'Bonne réponse (Quality Score)': 'Good answer (Quality Score)',
   'Bonne réponse': 'Good answer',
   'Réponse à améliorer (Quality Score)': 'Answer to improve (Quality Score)',
@@ -4578,7 +4566,7 @@ function valider(topo) {
     if (!st.roles || st.roles.length === 0) erreurs.push('« ' + st.id + kbf(' » : au moins un rôle requis'))
     if (topo.roles && topo.roles.length > 0) {
       for (const r of st.roles || []) {
-        if (topo.roles.indexOf(r) < 0) erreurs.push('« ' + st.id + kbf(' » : rôle « ') + r + kbf(' » absent des rôles du kyber'))
+        if (topo.roles.indexOf(r) < 0) erreurs.push('« ' + st.id + kbf(' » : rôle « ') + r + kbf(' » absent des rôles de l’Agent Team'))
       }
     }
     for (const entree of st.inputs || []) {
@@ -7258,7 +7246,7 @@ return {
       })
     } catch (e) { /* pas de window (hors navigateur) */ }
     const kbStartTeamChat = () => {
-      const text = '/skill-ai-team-creator Help me create a Kyber. First ask me what the skill should do.'
+      const text = '/skill-ai-team-creator Help me create an Agent Team. First ask me what the skill should do.'
       kbStartChatText(text)
     }
     ctx.effect(() => styles.insert(CSS), 'kybers: styles de la sidebar')
@@ -7739,7 +7727,7 @@ return {
       }
       const sum = data.summary;
       if (sum !== null && sum !== undefined) {
-        body.push(h('div', { className: 'kb2-note', key: 'sum' }, sum.kybers + ' kybers · ' + sum.roles + kbt('kbui.frag.agents3') + sum.ok + kbt('kbui.frag.ok') + sum.fail + kbt('ui.failedmid') + sum.declared + kbt('ui.unprobedmid') + sum.absent + ' absents'));
+        body.push(h('div', { className: 'kb2-note', key: 'sum' }, sum.kybers + ' agent teams · ' + sum.roles + kbt('kbui.frag.agents3') + sum.ok + kbt('kbui.frag.ok') + sum.fail + kbt('ui.failedmid') + sum.declared + kbt('ui.unprobedmid') + sum.absent + ' absents'));
       }
       return h('div', null, body);
     }
@@ -8328,7 +8316,7 @@ return {
           h('div', { className: 'kbg-title' }, kbt('kbui.kybers')),
           h('div', { className: 'kbg-sub' }, kbt('ui.panel.sub'))) : null),
         h('div', { className: 'kbg-search' },
-          h('input', { type: 'search', placeholder: 'Rechercher un Kyber…', value: s.pq || '', onChange: (e) => set({ pq: e.target.value }) })),
+          h('input', { type: 'search', placeholder: 'Rechercher une Agent Team…', value: s.pq || '', onChange: (e) => set({ pq: e.target.value }) })),
         h('div', { className: 'kbg-chipsrow' },
           h('div', { className: 'kbg-chips' },
             chips.map((c) => h('button', { type: 'button', key: 'c' + c, className: 'kbg-chip' + (chip === c ? ' kbg-chip-on' : ''), onClick: () => set({ pchip: c }) }, chipLabel(c)))),
@@ -8461,7 +8449,7 @@ return {
       if (kyber === null) {
         return h('div', { className: 'kbg-root' },
           h('button', { type: 'button', className: 'kbg-open', onClick: () => set({ view: 'gallery' }) }, '← Galerie'),
-          h('div', { className: 'kbg-note' }, 'kyber introuvable.'))
+          h('div', { className: 'kbg-note' }, 'Agent Team introuvable.'))
       }
       const writable = true
       const roles = kyber.roles || []
@@ -9541,7 +9529,7 @@ return {
             try { load() } catch (e) { /* rechargement */ }
             setPreview(null)
             setHubTab('teams')
-            notify('“' + tpl.name + '” installed — edit its prompts in Kybers')
+            notify('“' + tpl.name + '” installed — edit its prompts in Agent Teams')
           } else {
             notify('Install failed: ' + ((res && res.error) ? res.error : 'host unavailable'))
           }
@@ -9586,7 +9574,7 @@ return {
           })
           if (res !== null && res !== undefined && res.ok === true) {
             try { load() } catch (e2) { /* rechargement */ }
-            notify(kbf('Kyber cloné : ') + nom + kbf(' — la copie atterrit dans la racine workspace (limite de l’hôte).'))
+            notify(kbf('Agent Team clonée : ') + nom + kbf(' — la copie atterrit dans la racine workspace (limite de l’hôte).'))
           } else {
             notify(kbf('Clonage refusé : ') + ((res !== null && res !== undefined && typeof res.error === 'string') ? res.error : kbf('raison inconnue')))
           }
@@ -9676,7 +9664,7 @@ return {
           h('h2', { className: 'kb8-help-h' }, kbt('kbui.kybers.vs.at')),
           h('button', { type: 'button', className: 'kb8-help-close', title: kbt('kbui.close'), 'aria-label': kbt('kbui.close'), onClick: () => setHelpOpen(false) }, '✕')),
         h('table', null,
-          h('thead', null, h('tr', null, h('th', null, ''), h('th', null, kbt('kbui.kybers')), h('th', null, kbt('kbui.agentteams')))),
+          h('thead', null, h('tr', null, h('th', null, ''), h('th', null, kbt('kbat.col.def')), h('th', null, kbt('kbat.col.runtime')))),
           h('tbody', null, helpRows.map((r) => h('tr', { key: r[0] }, h('td', null, r[0]), h('td', null, r[1]), h('td', null, r[2]))))),
         h('ol', { className: 'kb8-help-steps' },
           h('li', { key: 'st1' }, kbt('kbui.kyber.declares')),
@@ -9828,7 +9816,7 @@ return {
       const build = () => {
         const prof = kbProfileFor(obj)
         const word = obj.trim().split(/\s+/).filter((w) => w.length > 4)[0] || prof.cat
-        setDraft({ name: prof.cat + ' Kyber', cat: prof.cat, mission: obj.trim(), members: prof.roles.map((r) => ({ role: r[0], prompt: r[1] })), apps: prof.apps.map((a) => ({ name: a, on: true })) })
+        setDraft({ name: prof.cat + ' Agent Team', cat: prof.cat, mission: obj.trim(), members: prof.roles.map((r) => ({ role: r[0], prompt: r[1] })), apps: prof.apps.map((a) => ({ name: a, on: true })) })
         setStep(1)
       }
       const savingPair = React.useState(null)
@@ -9852,7 +9840,7 @@ return {
       }
       const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
       return h('div', { className: 'kb8-page' },
-        h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'gallery' }) }, '‹ Back to Kybers'),
+        h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'gallery' }) }, '‹ Back to Agent Teams'),
         h('h1', { className: 'kb8-h1' }, step === 0 ? kbt('kbui.new.kyber') : kbt('kbui.kyber.wouldbuild')),
         (step === 0 ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: '13px' } },
           h('span', { className: 'kb8-sub' }, kbt('kbui.start.objective')),
@@ -10550,7 +10538,7 @@ return {
     // Espace de travail). L'onglet Kyber est l'écran existant, inchangé.
     const KbiOngletsInsight = (props) => {
       const onglets = [
-        { cle: 'kyber', nom: 'Kyber' },
+        { cle: 'kyber', nom: 'Agent Team' },
         { cle: 'projet', nom: kbf('Projet') },
         { cle: 'ws', nom: 'Espace de travail' }
       ]
@@ -11023,8 +11011,8 @@ return {
       const kbiIAOuvrir = (genre) => {
         const nom = nomDe(vE.appliquee)
         const msg = genre === 'creer'
-          ? "en utilisant le skill 'insight-principe', créer un dashboard pour le Kyber '" + kyberId + "'."
-          : "en utilisant le skill 'insight-principe', améliorer le dashboard 'Vue " + nom + "' pour le Kyber '" + kyberId + "'."
+          ? "en utilisant le skill 'insight-principe', créer un dashboard pour l’Agent Team '" + kyberId + "'."
+          : "en utilisant le skill 'insight-principe', améliorer le dashboard 'Vue " + nom + "' pour l’Agent Team '" + kyberId + "'."
         try { kbStartChatText(msg); setAnno(kbf('Nouveau chat ouvert avec le pré-message.')) } catch (e) { setAnno(msg) }
       }
       const kbiCarteVue = (v) => h('div', { key: v.cle, className: 'kbi-card-vue' + (v.archivee === true ? ' kbi-card-vue-archivee' : ''), 'data-kb': 'preset-' + v.cle, 'data-sel': vE.appliquee === v.cle ? '1' : '0', 'data-ouvert': ouvert === v.cle ? '1' : '0', style: { '--kbi-c': couleurDe(v.cle) }, onMouseEnter: () => setApercu(v.cle), onMouseLeave: () => setApercu(null) },
@@ -11168,11 +11156,11 @@ return {
               h('span', { className: 'kbi-sub kbi-caption' }, caption))),
           section('budget', kbf('Budget'),
             h('div', { className: 'kbi-grid4' },
-              hcard(kbf('Budget déclaré'), bgMontant, bgMontantSub, kbf('budget déclaré par le kyber « ') + kyberId + kbf(' » (bloc budget: du kyber.yml)')),
+              hcard(kbf('Budget déclaré'), bgMontant, bgMontantSub, kbf('budget déclaré par l’Agent Team « ') + kyberId + kbf(' » (bloc budget: du kyber.yml)')),
               hcard(kbf('Consommé (models.dev)'), bgConsomme, bgConsommeSub, kbf('consommés sur la période (tarifs models.dev)')),
               hcard(kbf('Taux USD → EUR'), bgFx, kbf('taux du payload (llm.usdEur)')),
               hcard(kbf('Échéance'), bgEcheance, bgEcheanceSub)),
-            (bgAbsent === true ? h('p', { className: 'kbi-empty-in' }, kbf('Aucun budget déclaré par ce kyber (bloc budget: du kyber.yml) — l’affichage reste une absence, jamais un zéro maquillé.')) : null)),
+            (bgAbsent === true ? h('p', { className: 'kbi-empty-in' }, kbf('Aucun budget déclaré par cette Agent Team (bloc budget: du kyber.yml) — l’affichage reste une absence, jamais un zéro maquillé.')) : null)),
           section('top', kbt('kbui.ins.top'),
             h('div', { className: 'kbi-grid3' },
               topCard(kbt('kbui.ins.top.skills'), Array.isArray(top.skills) === true ? top.skills : [], kbt('kbui.ins.top.noskills')),
@@ -12008,7 +11996,7 @@ return {
                   (wfProp.lecture !== null) ? h('div', { style: { border: '1px solid rgba(201,164,92,.4)', borderRadius: '10px', padding: '8px 10px', fontSize: '12.5px', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'pre-wrap' } }, h('span', { style: { fontWeight: 600, color: '#C9A45C' } }, kbf('Aller-retour — ce que DSH relit dans cette proposition :')), h('div', null, wfProp.lecture)) : null,
                   (wfProp.avertissements.length > 0) ? h('div', { style: { color: 'var(--dsw-alias-state-warn-primary)', fontSize: '12px' } }, wfProp.avertissements.map((e, i) => h('div', { key: 'pwa' + String(i) }, '⚠ ' + e))) : null,
                   h('div', { style: { display: 'flex', gap: '8px' } },
-                    h('button', { type: 'button', className: 'kb8-chip', style: { borderColor: 'rgba(201,164,92,.5)', color: '#C9A45C' }, onClick: () => { try { wfAppliquer() } catch (e) { /* application */ } } }, 'Appliquer au kyber « ' + String((kyber !== null && kyber !== undefined) ? kyber.id : '?') + ' »'),
+                    h('button', { type: 'button', className: 'kb8-chip', style: { borderColor: 'rgba(201,164,92,.5)', color: '#C9A45C' }, onClick: () => { try { wfAppliquer() } catch (e) { /* application */ } } }, 'Appliquer à l’Agent Team « ' + String((kyber !== null && kyber !== undefined) ? kyber.id : '?') + ' »'),
                     h('button', { type: 'button', className: 'kb8-chip', onClick: () => setWfProp(null) }, 'Rejeter'))) : null) : null))
         }
         if (tab === 'Identity') return h('div', { style: card },
@@ -12304,7 +12292,7 @@ return {
       const saveLabel = saving === 'saving' ? kbt('kbui.saving') : (saving === 'pending' ? kbt('kbui.unsaved') : (saving === 'ok' ? kbt('kbui.saved.check') : (saving === 'err' ? kbt('kbui.retry.save') : kbt('kbui.autosave'))))
       const saveColor = saving === 'err' ? 'var(--dsw-alias-state-error-primary)' : (saving === 'ok' ? 'var(--dsw-alias-state-success-primary)' : 'var(--dsw-alias-label-secondary)')
       return h('div', { className: 'kb8-page' },
-        h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => { if (saving === 'pending') { try { saveNow() } catch (e) { /* sauvegarde */ } } set({ view: 'gallery' }) } }, '‹ Back to Kybers'),
+        h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => { if (saving === 'pending') { try { saveNow() } catch (e) { /* sauvegarde */ } } set({ view: 'gallery' }) } }, '‹ Back to Agent Teams'),
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' } },
           h('span', { className: 'kb8-tile', style: { width: '44px', height: '44px', borderRadius: '14px', background: draft.color !== '' ? draft.color : 'var(--dsw-alias-bg-layer-2)', color: draft.color !== '' ? kbOnColor(draft.color) : 'var(--dsw-alias-label-primary)', overflow: 'hidden', position: 'relative' } },
             h('img', { src: kbAvatarUrl(rootId, kyber.id) + '&v=' + avRev, alt: '', onError: (ev) => { try { ev.currentTarget.style.display = 'none' } catch (e) { /* img */ } }, style: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } }),
@@ -12429,7 +12417,7 @@ return {
         return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
           toolbar,
           h('span', { className: 'kb8-sub', 'data-kb': 'team-skills-hint' }, kbt('kbui.skills.hintteam') + ' (0 ' + kbt('kbui.skills.manyteam') + ')'),
-          h('span', { className: 'kb8-sub', 'data-kb': 'team-skills-emptynote' }, kbf('Aucune compétence détectée dans l’environnement — installe un kyber qui en déclare, ou importe-en une depuis le dépôt.')))
+          h('span', { className: 'kb8-sub', 'data-kb': 'team-skills-emptynote' }, kbf('Aucune compétence détectée dans l’environnement — installe une Agent Team qui en déclare, ou importe-en une depuis le dépôt.')))
       }
       const attachedCountT = teamRows.filter((r) => r.attached === true).length
       const countLabelT = String(attachedCountT) + ' ' + kbt(attachedCountT === 1 ? 'kbui.skills.oneteam' : 'kbui.skills.manyteam')
@@ -15880,8 +15868,8 @@ return {
           if (skillRows.length === 0) {
             return empty(projLoading === true ? PROJ_LOADING
               : (projActiveIds.length === 0
-                ? kbf('Aucun kyber n’a encore tourné dans les threads de ce projet.')
-                : kbf('Aucune compétence détectée dans l’environnement — installe un kyber qui en déclare, ou importe-en une depuis le dépôt.')))
+                ? kbf('Aucune Agent Team n’a encore tourné dans les threads de ce projet.')
+                : kbf('Aucune compétence détectée dans l’environnement — installe une Agent Team qui en déclare, ou importe-en une depuis le dépôt.')))
           }
           const attachedCount = skillRows.filter((r) => r.attached === true).length
           const countLabel = String(attachedCount) + ' ' + kbt(attachedCount === 1 ? 'kbui.skills.one' : 'kbui.skills.many')
@@ -15893,7 +15881,7 @@ return {
             : h('div', { className: 'kb8-docfield', key: k }, h('span', { className: 'kb8-parent' }, lab), h('span', { className: 'kb8-docval', title: String(val) }, String(val))))
           return h(React.Fragment, null,
             (projActiveIds.length === 0 ? h('div', { className: 'kb8-sub', style: { marginBottom: '8px' }, 'data-kb': 'project-skills-emptynote' },
-              kbf('Aucun kyber n’a encore tourné dans les threads de ce projet.') + ' ' + kbf('La liste ci-dessous est le catalogue de compétences de l’environnement.')) : null),
+              kbf('Aucune Agent Team n’a encore tourné dans les threads de ce projet.') + ' ' + kbf('La liste ci-dessous est le catalogue de compétences de l’environnement.')) : null),
             h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' } },
               h('span', { className: 'kb8-sub', style: { flex: 1, minWidth: '220px' }, 'data-kb': 'project-skills-hint' },
                 kbt('kbui.skills.hint') + ' (' + countLabel + ')'),
@@ -15967,7 +15955,7 @@ return {
                 ? PROJ_LOADING
                 : (connsReal !== null && connsReal.configured === true
                   ? kbf('Aucun outil déclaré ni connexion réelle pour ce projet.')
-                  : (projActiveIds.length === 0 ? kbf('Aucun kyber n’a encore tourné dans les threads de ce projet.') : kbf('Les kybers de ce projet ne déclarent aucun outil (connector).')))))
+                  : (projActiveIds.length === 0 ? kbf('Aucune Agent Team n’a encore tourné dans les threads de ce projet.') : kbf('Les Agent Teams de ce projet ne déclarent aucun outil (connector).')))))
           }
           return h(React.Fragment, null,
             h('span', { className: 'kb8-parent', 'data-kb': 'connectors-source' }, connsNote),
@@ -16003,7 +15991,7 @@ return {
         }
         // ── Budget : uniquement des chiffres reels, aucun graphe invente ──────
         if (budgetRows.length === 0 && spentNow === null) {
-          return empty(projLoading === true ? PROJ_LOADING : kbf('Aucun budget déclaré par les kybers de ce projet (bloc budget: du kyber.yml).'))
+          return empty(projLoading === true ? PROJ_LOADING : kbf('Aucun budget déclaré par les Agent Teams de ce projet (bloc budget: du kyber.yml).'))
         }
         const cardBoxB = { flex: 1, minWidth: '220px', background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }
         const remaining = spentNow === null ? null : Math.max(0, budgetTotal - spentNow)
@@ -16011,10 +15999,10 @@ return {
         return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' } },
           h('div', { style: { display: 'flex', gap: '14px', flexWrap: 'wrap' } },
             h('div', { style: cardBoxB },
-              h('span', { className: 'kb8-parent' }, kbf('BUDGET DÉCLARÉ PAR LES KYBERS DU PROJET')),
+              h('span', { className: 'kb8-parent' }, kbf('BUDGET DÉCLARÉ PAR LES AGENT TEAMS DU PROJET')),
               h('span', { className: 'kb8-h1' }, budgetRows.length === 0 ? '—' : (kbMoney(budgetTotal, budgetCurrency))),
               usedPct === null ? null : h('div', { className: 'kb9-bar' }, h('span', { style: { width: usedPct + '%' } })),
-              h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbf('Aucun bloc `budget:` dans les kyber.yml du projet.') : (budgetRows.length + (budgetRows.length === 1 ? ' kyber' : ' kybers') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
+              h('span', { className: 'kb8-parent' }, budgetRows.length === 0 ? kbf('Aucun bloc `budget:` dans les kyber.yml du projet.') : (budgetRows.length + (budgetRows.length === 1 ? ' agent team' : ' agent teams') + ' · ' + budgetRows.map((r) => r.kyber).join(', '))),
               h('span', { className: 'kb8-parent' }, budgetDeadline === null ? kbf('Aucune échéance déclarée.') : (kbf('Échéance la plus proche : ') + budgetDeadline))),
             h('div', { style: cardBoxB },
               h('span', { className: 'kb8-parent' }, 'CONSOMMATION DE CETTE SESSION'),
@@ -16022,14 +16010,14 @@ return {
               h('span', { className: 'kb8-parent' }, spentNow === null ? 'Le host ne remonte pas encore de consommation pour cette session.' : (budgetTotal > 0 ? ('Reste ' + kbMoney(remaining, budgetCurrency) + kbf(' sur le budget déclaré')) : kbf('Aucun budget déclaré pour y rapporter cette dépense.'))),
               h('span', { className: 'kb8-parent' }, usageNow !== null && typeof usageNow.spentUsd === 'number' ? kbMoney(usageNow.spentUsd, 'USD') : ''))),
           h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
-            h('span', { className: 'kb8-name' }, kbf('Détail par kyber')),
+            h('span', { className: 'kb8-name' }, kbf('Détail par Agent Team')),
             h('div', { className: 'kb8-rows' }, budgetRows.map((r) => h('div', { className: 'kb8-row', key: r.kyber },
               h('span', { className: 'kb8-tile' }, Icon('chart', 16)),
               h('span', { className: 'kb8-name', style: { flex: 1 } }, r.kyber),
               h('span', { className: 'kb8-parent' }, kbMoney(r.total, r.currency) + (r.deadline === null ? '' : ' · ' + r.deadline)))))),
           h('div', { style: { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '10px' } },
             h('span', { className: 'kb8-name' }, 'Comment ces chiffres sont obtenus'),
-            h('span', { className: 'kb8-parent' }, 'Budget : bloc `budget:` des kyber.yml des kybers qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.')))
+            h('span', { className: 'kb8-parent' }, 'Budget : bloc `budget:` des kyber.yml des Agent Teams qui ont tourné dans les threads de ce projet. Consommation : usage réel remonté par le host pour la session courante. Aucune estimation, aucun graphe inventé.')))
       })()
       return h('div', { className: 'kb8-page' },
         h('button', { type: 'button', className: 'kb8-primary', style: { alignSelf: 'flex-start', background: 'transparent', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-primary)' }, onClick: () => set({ view: 'projects' }) }, '‹ Back to projects'),
@@ -19305,7 +19293,7 @@ function renderFit(canvas, model, cam, opts){
             h('input', { type: 'text', value: name, autoFocus: true, maxLength: 120, onChange: (e) => setName(e.target.value), placeholder: kbt('tasks.name.placeholder') })),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.prompt')),
-            h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que le Kyber doit faire à chaque déclenchement…') })),
+            h('textarea', { value: prompt, maxLength: 8000, onChange: (e) => setPrompt(e.target.value), placeholder: kbf('Ce que l’Agent Team doit faire à chaque déclenchement…') })),
           h('div', { className: 'kb-task-f' },
             h('label', null, kbt('tasks.repeats')),
             h('div', { className: 'kb-task-chips' }, presets.map((pr) => h('button', { type: 'button', key: pr.id, className: 'kb-task-chip' + (presetOn(pr) === true ? ' on' : ''), onClick: () => { if (pr.id === 'webhook') { setMode('webhook') } else if (pr.id === 'once') { setMode('once') } else { setMode('cron'); setCron(pr.cron) } } }, pr.label)))),
@@ -20422,12 +20410,12 @@ function renderFit(canvas, model, cam, opts){
     }
 
     const KB_MOCK_SKILLS = [
-      { name: 'Invoice chaser', repo: 'acme/invoice-chaser', desc: 'Builds a polite, escalating dunning email for each overdue invoice and stops on payment.', status: kbt('kbui.operational'), risk: 'Medium risk', health: [1, 1, 1, 1], tags: ['Private', kbt('kbui.documents'), 'v2.4.1'], kybers: '2 Kybers' },
-      { name: 'Standup summarizer', repo: 'platon-oss/standup-summarizer', desc: 'Reads the raw activity feed and emits a chronological standup note with blockers.', status: 'Needs watching', risk: kbt('kbui.highrisk'), health: [1, 1, 0, 1], tags: ['Public', 'Communication', 'v1.9.0'], kybers: '2 Kybers' },
-      { name: 'Churn radar', repo: 'acme/churn-radar', desc: 'Scores seat usage decay over the last 8 weeks and flags accounts drifting away.', status: 'Failing', risk: 'Medium risk', health: [0, 0, 0, 0], tags: ['Private', 'Data', 'v0.8.3'], kybers: '1 Kyber' },
-      { name: 'Changelog drafter', repo: 'acme/changelog-craft', desc: 'Consumes merged PR titles and turns them into a categorised changelog entry.', status: kbt('kbui.operational'), risk: kbt('kbui.highrisk'), health: [0, 1, 1, 1], tags: ['Private', kbt('kbui.documents'), 'v1.2.0'], kybers: '1 Kyber' },
-      { name: 'Onboarding prober', repo: 'platon-oss/onboard-probe', desc: 'Generates a 5-day activation checklist per workspace from the template and usage facts.', status: kbt('kbui.operational'), risk: kbt('kbui.highrisk'), health: [0, 1, 1, 1], tags: ['Public', 'Productivity', 'v2.0.0'], kybers: '2 Kybers' },
-      { name: 'Web Scraper', repo: 'openskills/web-scraper', desc: 'Fetches and cleans a page into markdown, with configurable depth and rate limiting.', status: kbt('kbui.operational'), risk: 'Low risk', health: [0, 1, 1, 1], tags: ['Public', 'Developer', 'v3.0.2'], kybers: '1 Kyber' },
+      { name: 'Invoice chaser', repo: 'acme/invoice-chaser', desc: 'Builds a polite, escalating dunning email for each overdue invoice and stops on payment.', status: kbt('kbui.operational'), risk: 'Medium risk', health: [1, 1, 1, 1], tags: ['Private', kbt('kbui.documents'), 'v2.4.1'], kybers: '2 Agent Teams' },
+      { name: 'Standup summarizer', repo: 'platon-oss/standup-summarizer', desc: 'Reads the raw activity feed and emits a chronological standup note with blockers.', status: 'Needs watching', risk: kbt('kbui.highrisk'), health: [1, 1, 0, 1], tags: ['Public', 'Communication', 'v1.9.0'], kybers: '2 Agent Teams' },
+      { name: 'Churn radar', repo: 'acme/churn-radar', desc: 'Scores seat usage decay over the last 8 weeks and flags accounts drifting away.', status: 'Failing', risk: 'Medium risk', health: [0, 0, 0, 0], tags: ['Private', 'Data', 'v0.8.3'], kybers: '1 Agent Team' },
+      { name: 'Changelog drafter', repo: 'acme/changelog-craft', desc: 'Consumes merged PR titles and turns them into a categorised changelog entry.', status: kbt('kbui.operational'), risk: kbt('kbui.highrisk'), health: [0, 1, 1, 1], tags: ['Private', kbt('kbui.documents'), 'v1.2.0'], kybers: '1 Agent Team' },
+      { name: 'Onboarding prober', repo: 'platon-oss/onboard-probe', desc: 'Generates a 5-day activation checklist per workspace from the template and usage facts.', status: kbt('kbui.operational'), risk: kbt('kbui.highrisk'), health: [0, 1, 1, 1], tags: ['Public', 'Productivity', 'v2.0.0'], kybers: '2 Agent Teams' },
+      { name: 'Web Scraper', repo: 'openskills/web-scraper', desc: 'Fetches and cleans a page into markdown, with configurable depth and rate limiting.', status: kbt('kbui.operational'), risk: 'Low risk', health: [0, 1, 1, 1], tags: ['Public', 'Developer', 'v3.0.2'], kybers: '1 Agent Team' },
     ]
 
     const KB_MOCK_DOCS = {
@@ -20448,7 +20436,7 @@ function renderFit(canvas, model, cam, opts){
     }
 
     const KB_MOCK_HOSTED = [
-      ['Kybers, not one assistant', 'Several agents under a manager, each with its own memory, budget and role — they hand work to each other instead of to you.'],
+      ['Agent Teams, not one assistant','Several agents under a manager, each with its own memory, budget and role — they hand work to each other instead of to you.'],
       ['A workspace for humans too', 'Invite your colleagues: shared projects, threads and creations, roles and seats, comments on the work.'],
       ['One document library', 'Files live once and feed every project, thread and team. Versioned, searchable, never re-uploaded.'],
       ['Shared resources', kbf('Skills, connectors and documents are workspace-level — attach them per project instead of rebuilding them per bot.')],
@@ -20753,7 +20741,7 @@ function renderFit(canvas, model, cam, opts){
         }).catch(() => { /* route absente : pas de section */ })
         return () => { vivant = false }
       }, [kId])
-      if (kyber === null || kId === '') return h('div', { className: 'kbg-empty' }, 'Widget : kyber introuvable')
+      if (kyber === null || kId === '') return h('div', { className: 'kbg-empty' }, 'Widget : Agent Team introuvable')
       const liste = (items !== null && items !== undefined && Array.isArray(items) === true) ? items : []
       const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '11px' }
       const fieldStyle = { height: '40px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 12px', fontSize: '13px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }
@@ -21016,7 +21004,7 @@ function renderFit(canvas, model, cam, opts){
               body: JSON.stringify({ entry: {
                 id: 'widget', slug: 'widget', kind: 'slash', order: 40,
                 label: { fr: 'Widget — configurer le widget public', en: 'Widget — configure the public widget' },
-                description: { fr: 'Remplis les champs : la ligne /widget clé=valeur… se pose dans le composeur. Clique ensuite la puce Widget (sous la zone de saisie) pour l’appliquer aux réglages de ce kyber.', en: 'Fill the fields: the /widget key=value… line lands in the composer. Then click the Widget chip (under the input) to apply it to this kyber’s settings.' },
+                description: { fr: 'Remplis les champs : la ligne /widget clé=valeur… se pose dans le composeur. Clique ensuite la puce Widget (sous la zone de saisie) pour l’appliquer aux réglages de cette Agent Team.', en: 'Fill the fields: the /widget key=value… line lands in the composer. Then click the Widget chip (under the input) to apply it to this agent team’s settings.' },
                 template: '/widget slug={slug} nom="{nom}" titre="{titre}" accueil="{accueil}" couleur={couleur} position={position} terms={terms} privacy={privacy} footer="{footer}"',
                 fields: [
                   { key: 'slug', label: { fr: 'Slug (identifiant public)', en: 'Slug (public identity)' }, type: 'text', placeholder: { fr: 'sales-team', en: 'sales-team' } },
@@ -22962,7 +22950,7 @@ function renderFit(canvas, model, cam, opts){
     // skills (kyber-selection) n'ait pas à deviner.
     const kbTeamKickoff = (t) => {
       const parts = []
-      parts.push('Work with the kyber "' + t.label + '" (id: ' + t.id + ' · ' + kbTeamSub(t) + ').')
+      parts.push('Work with the Agent Team "' + t.label + '" (id: ' + t.id + ' · ' + kbTeamSub(t) + ').')
       const mission = String(t.mission === null || t.mission === undefined ? '' : t.mission).trim()
       if (mission !== '') parts.push('Mission: ' + mission.slice(0, 400))
       parts.push('Start by telling me how you plan to organise the work, then wait for my go-ahead.')
@@ -25060,11 +25048,11 @@ function renderFit(canvas, model, cam, opts){
       let sub = 'lecture des kyber.yml…';
       if (s.error !== null) sub = 'erreur : ' + s.error;
       else if (sum !== null && sum !== undefined) {
-        sub = sum.kybers + ' kybers · ' + sum.roles + kbt('kbui.frag.agents2') + sum.ok + kbf(' modèles sondés OK · ') + sum.fail + kbf(' en échec · ') + sum.declared + kbf(' non sondés · ') + sum.absent + ' absents';
+        sub = sum.kybers + ' agent teams · ' + sum.roles + kbt('kbui.frag.agents2') + sum.ok + kbf(' modèles sondés OK · ') + sum.fail + kbf(' en échec · ') + sum.declared + kbf(' non sondés · ') + sum.absent + ' absents';
       }
       return h('div', { className: 'kb2-run' },
         h('div', { className: 'kb2-run-main' },
-          h('div', { className: 'kb2-run-title' }, kbf('Kybers · budget & équipe')),
+          h('div', { className: 'kb2-run-title' }, kbf('Agent Teams · budget & équipe')),
           h('div', { className: 'kb2-run-sub' }, sub)),
         h('button', { type: 'button', className: 'kb2-runbtn', onClick: openPanel }, kbf('Ouvrir la sidebar')));
     };
@@ -25872,7 +25860,6 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       ]
       const kbwsAll = (i, o, l) => { const m = {}; for (const c of KBWS_COMP) m[c[0]] = [i, o, l]; return m }
       for (const p of S.profiles) p.s = Object.assign(kbwsAll(p.all[0], p.all[1], p.all[2]), p.over || {})
-      const KBWS_SHORT = { kyber: kbt('kbws.short.kyber'), proj: kbt('kbws.short.proj'), chat: kbt('kbws.short.chat'), art: kbt('kbws.short.art'), prj: kbt('kbws.short.prj'), skill: kbt('kbws.short.skill'), conn: kbt('kbws.short.conn') }
       const KBWS_TIERS = [
         { id: 'free', name: 'Free', price: 0, credits: 2000, head: kbt('kbws.tier.free.h'), sub: kbt('kbws.tier.free.s') },
         { id: 'l1', name: 'Solo L1', price: 20, credits: 20000, head: kbt('kbws.tier.l1.h'), sub: kbt('kbws.tier.l1.s') },
@@ -31528,7 +31515,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         try { dLang = localeSvc.addLanguage({ id: 'kybernos', label: 'Français', fallback: 'en' }) } catch (e) { /* already registered (update race) */ }
         try { dDict = localeSvc.register('conversation', 'kybernos', {
           'hero.headline': kbt('kbui.kybernos'),
-          'hero.preview': 'avec vos kybers',
+          'hero.preview': 'avec vos Agent Teams',
         }) } catch (e) { /* dictionnaire déjà présent */ }
         // On ne force plus la locale « kybernos » : l'app suit la locale DSH
         // (anglais par défaut). La locale reste disponible dans le sélecteur.

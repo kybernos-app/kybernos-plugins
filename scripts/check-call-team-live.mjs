@@ -100,7 +100,7 @@ const panel = () => val(`(() => { const p = document.querySelector('[data-kb="ky
 const hangUp = async () => { await val(`(() => { const b = document.querySelector('[data-kb="kybernos-call-panel"] [data-act="hangup"]'); if (b) b.click() })()`); await poll(async () => (await panel()) === null, 4000) }
 const openTeamTab = async () => {
   for (let i = 0; i < 12; i += 1) { await sleep(500); if (await val(`/Add an API key to get started/.test(document.body.innerText)`)) { await clickText('Configure later'); await sleep(600) } else if (i > 3) break }
-  if (!(await clickText('Kybers')) && !(await clickText('Agent Teams'))) return false
+  if (!(await clickText('Agent Teams')) && !(await clickText('Kybers'))) return false
   await sleep(2000)
   if (!(await poll(() => clickText(TEAM), 12000))) return false
   await sleep(2000)

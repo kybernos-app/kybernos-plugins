@@ -802,7 +802,7 @@ window.__ModuleLoader__.load({
 
           const kids = []
           kids.push(h('div', { className: 'dshdb-bar', key: 'bar' },
-            h('span', { className: 'dshdb-title' }, 'Base du kyber'),
+            h('span', { className: 'dshdb-title' }, 'Base de l’Agent Team'),
             h('select', {
               className: 'dshdb-select', value: baseId === null ? '' : baseId,
               onChange: (e) => setBaseId(e.target.value),
@@ -819,7 +819,7 @@ window.__ModuleLoader__.load({
 
           if (erreur !== null) kids.push(h('div', { className: 'dshdb-err', key: 'err' }, erreur))
           if (bases !== null && bases.length === 0) {
-            kids.push(h('div', { className: 'dshdb-note', key: 'vide' }, 'Aucune base pour l’instant — un kyber la crée avec « crm.cjs init ».'))
+            kids.push(h('div', { className: 'dshdb-note', key: 'vide' }, 'Aucune base pour l’instant — une Agent Team la crée avec « crm.cjs init ».'))
           } else if (baseId !== null && schema !== null) {
             if (onglet === 'diagramme') kids.push(h(Diagramme, { key: 'v', schema }))
             else if (onglet === 'graphiques') kids.push(h(Graphiques, { key: 'v', baseId, schema }))
@@ -865,7 +865,7 @@ window.__ModuleLoader__.load({
               title: () => 'Base de données',
               // L'hôte du guide appelle title()/description() : des chaînes nues font
               // crasher l'entrée de slot (cf. leçon kybers : « entry.title is not a function »).
-              guide: [{ title: () => 'Base de données', description: () => 'Diagramme, graphiques, données et SQL des petites bases SQLite des kybers' }],
+              guide: [{ title: () => 'Base de données', description: () => 'Diagramme, graphiques, données et SQL des petites bases SQLite des Agent Teams' }],
             }), 'dsh-db-viewer: type d onglet sidebar droite'))
           }
           // `slots.inject` (contrat du runner) est CONSCIENT de la déclaration : le

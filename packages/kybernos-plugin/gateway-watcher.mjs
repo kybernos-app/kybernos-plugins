@@ -232,7 +232,7 @@ export function kyberYml (payload) {
   const p = (payload !== null && payload !== undefined && typeof payload === 'object') ? payload : {}
   const crew = Array.isArray(p.crew) ? p.crew.filter((a) => a !== null && a !== undefined && typeof a === 'object') : []
   const sort = []
-  sort.push('# Kyber synchronisé depuis kybernos.app — catégorie « equipes », contrat gateway §8.')
+  sort.push('# Agent Team synchronisée depuis kybernos.app — catégorie « equipes », contrat gateway §8.')
   sort.push('# Projection minimale écrite par le watcher @local/kybernos : ce fichier est')
   sort.push('# RÉÉCRIT à chaque changement cloud — une édition locale ne remonte pas.')
   sort.push('# Nom : ' + String(p.name === null || p.name === undefined ? '' : p.name))

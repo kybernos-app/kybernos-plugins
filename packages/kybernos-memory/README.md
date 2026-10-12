@@ -13,8 +13,8 @@ one click away.
 - **Memories** (account): list, search by words, filters (Show: all / pinned / sent to the model ·
   Source: auto-capture / agent / you / sync · Added: last minute / hour / today / 7 days), pages of 25,
   50 or 100, add, edit (text, retention, pinned) and forget with an Undo.
-- **Lessons learned** (every kyber, local files): list, filters (kyber, used at least once, added),
-  pages, edit (text, tags) and delete — a deleted lesson goes to the kyber's `lessons.archive.jsonl`.
+- **Lessons learned** (every agent team, local files): list, filters (agent team, used at least once, added),
+  pages, edit (text, tags) and delete — a deleted lesson goes to the agent team's `lessons.archive.jsonl`.
 - **Team lessons** (Lessons learned → *Team*, on a Team workspace only; locked with the reason otherwise): the lessons an owner or
   admin of the workspace approved, which every agent of the team reads. See « Team lessons » below.
 - **Options**: a classic settings page (breadcrumb + rows like General's) with the two switch groups —
@@ -37,12 +37,12 @@ one click away.
   memories match equally). It costs nothing to the history: the engine appends a new « runtime context »
   snapshot whenever the text changes, so the pick is made once per message, kept while the topic is the
   same, and not changed again for 3 turns. The page's counts and « Sent » chips stay the base selection.
-- **Pick by relevance, for the lessons** (Options → Lessons learned, on by default, local): a kyber holds up to 50
+- **Pick by relevance, for the lessons** (Options → Lessons learned, on by default, local): an agent team holds up to 50
   lessons and the block fits about a third of them, so the base selection (most used, then newest) never sends an old,
-  never-used lesson. The same picker as the memories' ranks the lessons of the chat's kyber and `default` against the human's
+  never-used lesson. The same picker as the memories' ranks the lessons of the chat's agent team and `default` against the human's
   latest message (`agent/inbox/claimed`, `source.kind: 'user'`; tags count as text) and sends the clear matches first — at most
   4, within 40 % of the lessons budget, and only if the question is selective (more than 10 qualifying lessons means none
-  stands out). It never reads another kyber's lessons, and it costs nothing to the history: the pick is made once per message,
+  stands out). It never reads another agent team's lessons, and it costs nothing to the history: the pick is made once per message,
   kept while the topic holds, not changed within 3 turns, and byte-identical across the steps of one message (a lesson
   written mid-turn waits for the next one). The Memory pill's Lessons tab says « Picked for your latest message: 2 lessons »
   (`GET /kybernos-memory/lessons?session=` answers `picked: { count, turn }`).
@@ -56,11 +56,11 @@ one click away.
 - **Tidy up** (Options → *Clean up now*, the schedule, then a banner on the page): finds near-duplicates among the
   memories and among the lessons, on this machine. Suggestions are groups (« Merge 3 into 1 », « Remove the outdated
   one »): the most complete item stays, or the one you pick, optionally with edited text; pinned memories are never
-  removed; lessons only meet inside their own kyber. **A group that is 80 % alike or more is merged by itself**
+  removed; lessons only meet inside their own agent team. **A group that is 80 % alike or more is merged by itself**
   (setting *When it finds near-duplicates*: « Merge close matches by itself », the default, or « Ask me first »);
   the weaker ones wait for *Merge*, *Edit the kept one*, *Keep both* (remembered, and takeable back) or *Accept all*.
   Every merge is archived first and can be undone for 30 days (restored memories come back as new memories,
-  restored lessons exactly as they were; a lesson Undo refuses when the kyber would pass 50). The kept lesson
+  restored lessons exactly as they were; a lesson Undo refuses when the agent team would pass 50). The kept lesson
   inherits the tags and the uses of the others. A negation (« do not X » vs « X ») or another number (« port 3000 »
   vs « 3080 ») is never « the same fact », whatever the word overlap.
   *Run automatically* (Off / When DSH starts / Daily / Weekly (default) / Every 50 new) starts a run while DSH runs:
@@ -97,7 +97,7 @@ A lesson is one line of `<kybers>/<kyber>/memory/lessons.jsonl`:
 `{ ts, text (≤ 500 chars), tags (≤ 5), uses, lastUsed }`. The file is written by
 `~/.dsh/kybers/memory.cjs` (the agent runs it after a contradicted expectation) and by this
 bundle. Both follow the same rules, and the suite proves it against the real CLI when it is on
-the machine: text cut at 500 chars, tags lower-cased, **50 lessons per kyber**, the least
+the machine: text cut at 500 chars, tags lower-cased, **50 lessons per agent team**, the least
 useful one (fewest `uses`, then oldest) leaves into `lessons.archive.jsonl` — never the one
 just written, never destroyed. Differences, on purpose: an identical lesson is stored once,
 every rewrite is atomic, and a deletion goes to the archive too.
@@ -106,13 +106,13 @@ every rewrite is atomic, and a deletion goes to the archive too.
 
 | | |
 |---|---|
-| **Prompt** | chunk `kybernos:lessons` (order 135, ≤ 2 400 chars **frame included**): the lessons of the kyber the session runs (`~/.dsh/kybers/.active/<sessionId>`) get 70 % of the budget, `default` the rest. Most used first, then newest; a lesson too long for what is left is skipped. Never the lessons of another kyber. The chunk says when lessons were left out. |
+| **Prompt** | chunk `kybernos:lessons` (order 135, ≤ 2 400 chars **frame included**): the lessons of the agent team the session runs (`~/.dsh/kybers/.active/<sessionId>`) get 70 % of the budget, `default` the rest. Most used first, then newest; a lesson too long for what is left is skipped. Never the lessons of another agent team. The chunk says when lessons were left out. |
 | **Tools** | `lesson_write` (text, kyber, tags — validated, deduplicated) and `lesson_search`. A lesson that a search returns counts as used: it is the only use this bundle can see, and the signal the cap relies on (1 lesson in 212 had `uses > 0` before). |
 | **Switches** | `lessons` (agents may save and look lessons up), `context` (lessons are injected) and `relevant` (the lessons that match the latest message go first), all on by default, in `kybernos-memory.json` (0600). `lessons = off` injects one line telling agents not to record lessons — a global rule or the `memory.cjs` habit would otherwise go on. A patch with an unknown key or a non-boolean applies nothing. |
 | **Routes** | `GET /kybernos-memory/lessons` (limit, offset, kyber, used, added, q), `GET /kybernos-memory/kybers`, `POST …/lessons/add`, `…/lessons/update`, `…/lessons/delete`, `GET …/settings`, `POST …/settings/set`. Same-origin only, one path per route (the web server indexes by path). |
 
-Kyber ids and session ids end up in paths: only plain names pass (`^[A-Za-z0-9][A-Za-z0-9._-]*$`,
-no `..`), and a typo never creates a kyber.
+Agent Team ids and session ids end up in paths: only plain names pass (`^[A-Za-z0-9][A-Za-z0-9._-]*$`,
+no `..`), and a typo never creates an agent team.
 
 ## Limits, said plainly
 
@@ -142,10 +142,10 @@ duplicate; it becomes an *unclear pair* (`unclearPairs`: Jaccard ≥ 0.5, or a c
 | | Memories (`kybernos-cloud`) | Lessons (`kybernos-memory`) |
 |---|---|---|
 | Routes | `GET /kybernos-cloud/memory/tidy`, `POST …/tidy/scan`, `…/tidy/apply`, `…/tidy/dismiss`, `…/tidy/undo`, `…/tidy/settings` | the same under `/kybernos-memory/tidy` |
-| Compared inside | the memory's kind | the kyber |
+| Compared inside | the memory's kind | the agent team |
 | Apply | edit the kept memory if asked, delete the others on the server | merge tags / uses / last use into the kept lesson, delete the others (each also goes to `lessons.archive.jsonl`) |
 | Archive (30 days) | the removed rows and the kept one's old text, in `kybernos-cloud-tidy-archive.json` | the removed rows and the kept one's old fields, in `kybernos-memory.tidy-archive.json` |
-| Undo | recreates the removed memories (new ids), puts the old text back | puts the rows back as they were; `kyber_plein` if the kyber would pass 50 lessons |
+| Undo | recreates the removed memories (new ids), puts the old text back | puts the rows back as they were; `kyber_plein` if the agent team would pass 50 lessons |
 | State | `kybernos-cloud-tidy.json` (scan, kept-apart pairs, log, settings, last run, judged pairs) | `kybernos-memory.tidy.json` (same) |
 
 **A run** (`tidyRun`, from « Clean up now » or the schedule): look (local groups, and the Study model's suggestions
@@ -187,8 +187,8 @@ from the platform's own lessons (server-side, global).
   The proposer can withdraw their own. Decisions are the server's and final; the names shown (« Proposed by Sara M. ») are what the
   client sent and are informational only.
 - **What agents read**: an approved lesson goes into the system prompt as the block `[KYBERNOS TEAM LESSONS]`
-  (`ctx.inject`, chunk `kybernos:team-lessons`, order 136, right after the personal lessons). It holds the lessons for the kyber of the
-  chat and the general ones — never another kyber's — inside about 760 characters, newest first; the ones that match the latest
+  (`ctx.inject`, chunk `kybernos:team-lessons`, order 136, right after the personal lessons). It holds the lessons for the agent team of the
+  chat and the general ones — never another agent team's — inside about 760 characters, newest first; the ones that match the latest
   message (same picker as the lessons' relevance, within half of that budget) come first. The list is re-read at most every 5 minutes
   and a failed read keeps the last good list (it is tried again a minute later), so a network error never empties the block or stops a turn;
   only a workspace that no longer exists empties it. It is off when *Use your
