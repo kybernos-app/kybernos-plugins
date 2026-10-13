@@ -240,6 +240,25 @@ window.__ModuleLoader__.load({
         'src.savedCustom': { fr: 'Source de l’index : {host}', en: 'Index source: {host}' },
         'src.savedDefault': { fr: 'Source de l’index : relais Kybernos', en: 'Index source: Kybernos relay' },
         'err.source': { fr: 'enregistrement impossible', en: 'could not save' },
+        // ── Settings page « Skills » (catalogue): the routes that decide where skills come from ──
+        'set.nav': { fr: 'Compétences', en: 'Skills' },
+        'set.h1': { fr: 'Compétences — catalogue', en: 'Skills — catalogue' },
+        'set.lead': { fr: 'D’où viennent les skills de ce profil : la source de l’index (Discover) et les dossiers dans lesquels les installations sont écrites.', en: 'Where this profile’s skills come from: the index source (Discover) and the folders installs are written to.' },
+        'set.srcH': { fr: 'Source de l’index', en: 'Index source' },
+        'set.srcSub': { fr: 'Le classement de l’onglet Discover est lu à cette adresse (relais en lecture seule de l’index skills.sh).', en: 'The Discover ranking is read at this address (a read-only relay of the skills.sh index).' },
+        'set.srcMissing': { fr: 'La route /kybernos-skills/index-source ne répond pas sur cet hôte.', en: 'The /kybernos-skills/index-source route is not answering on this host.' },
+        'set.rootsH': { fr: 'Dossiers modifiables', en: 'Writable folders' },
+        'set.rootsSub': { fr: 'La création et l’installation de skills s’écrivent uniquement dans ces dossiers.', en: 'Skill creation and installs are written only to these folders.' },
+        'set.rootExists': { fr: 'présent', en: 'present' },
+        'set.rootMissing': { fr: 'à créer', en: 'will be created' },
+        'set.rootWrite': { fr: 'écriture', en: 'write' },
+        'set.rootRead': { fr: 'lecture seule', en: 'read-only' },
+        'set.rootsMissing': { fr: 'La route /kybernos-skills/status ne répond pas sur cet hôte.', en: 'The /kybernos-skills/status route is not answering on this host.' },
+        'set.countsH': { fr: 'Aperçu du profil', en: 'Profile at a glance' },
+        'set.installed': { fr: 'skills installés', en: 'skills installed' },
+        'set.active': { fr: 'actifs', en: 'active' },
+        'set.disabled': { fr: 'désactivés', en: 'disabled' },
+        'set.featured': { fr: 'mis en avant', en: 'featured' },
         'feat.th.when': { fr: 'MODIFIÉ', en: 'MODIFIED' },
         'feat.sub': { fr: 'mis en avant — liste tenue à l\'étoile, dans l\'ordre du fichier', en: 'featured — list kept by star, in file order' },
         'th.result': { fr: 'RÉSULTAT', en: 'RESULT' },
@@ -251,7 +270,17 @@ window.__ModuleLoader__.load({
         'det.provenance': { fr: 'Provenance', en: 'Provenance' },
         'det.unknownSrc': { fr: 'source inconnue', en: 'unknown source' },
         'det.what': { fr: 'Ce que fait l\'installation', en: 'What installing does' },
-        'det.whatBody': { fr: 'L\'archive du dépôt est téléchargée, le dossier du skill est trouvé par son frontmatter, puis COPIÉ dans la racine choisie. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître.', en: 'The repo archive is downloaded, the skill folder is found through its frontmatter, then COPIED into the chosen root. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up.' },
+        'det.whatBody': { fr: 'Installer télécharge l\'archive du dépôt {source} depuis GitHub, y trouve le dossier du skill « {name} » (son frontmatter porte name et description), puis le COPIE dans votre dossier de skills ({dest}). Le skill y est actif au prochain tour de vos agents. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître. Rien d\'autre n\'est écrit.', en: 'Installing downloads the archive of the {source} repository from GitHub, finds the “{name}” skill folder inside it (its frontmatter carries name and description), then COPIES it into your skills folder ({dest}). The skill is available to your agents on their next turn. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up. Nothing else is written.' },
+        'det.installTip': { fr: 'Télécharge {source} depuis GitHub et copie le skill « {name} » dans votre dossier de skills ({dest}) : disponible pour vos agents au prochain tour.', en: 'Downloads {source} from GitHub and copies the “{name}” skill into your skills folder ({dest}): available to your agents on their next turn.' },
+        'det.installHelp': { fr: 'Ce bouton télécharge le dépôt {source} depuis GitHub, y trouve le skill « {name} » puis le copie dans votre dossier de skills ({dest}) — disponible pour vos agents au prochain tour.', en: 'This button downloads the {source} repository from GitHub, finds the “{name}” skill inside it and copies it into your skills folder ({dest}) — available to your agents on their next turn.' },
+        'det.skillTitle': { fr: 'Ce skill', en: 'This skill' },
+        'det.row.owner': { fr: 'Publié par', en: 'Published by' },
+        'det.row.id': { fr: 'Identifiant de l\'index', en: 'Index id' },
+        'det.row.repo': { fr: 'Dépôt source', en: 'Source repository' },
+        'det.row.type': { fr: 'Type de source', en: 'Source type' },
+        'det.row.installs': { fr: 'Installations (index)', en: 'Installs (index)' },
+        'det.row.page': { fr: 'Page skills.sh', en: 'skills.sh page' },
+        'det.row.noPage': { fr: 'non fournie par l\'index', en: 'not provided by the index' },
         'det.rootph': { fr: '<racine>', en: '<root>' },
         'det.checks': { fr: 'Vérification', en: 'Checks' },
         'det.local.what': { fr: 'Ce qu\'il fait', en: 'What it does' },
@@ -845,6 +874,33 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-head .src,.kbs-root .kbs-row .src{display:none}
 .kbs-root .kbs-row.feat .kbs-fdesc{display:none}
 }
+/* — Settings page « Skills » (catalogue): its own scope (.kbss-page), not .kbs-root, so nothing
+   here can reach the Skills panel; the shared input/link/note vocabulary is re-stated here because
+   the kbs-* rules above are scoped to .kbs-root — */
+.kbss-page{display:flex;flex-direction:column;gap:22px;width:100%;max-width:720px;box-sizing:border-box}
+.kbss-page .kbss-h1{margin:0;font-size:18px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kbss-page .kbss-lead{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-card{display:flex;flex-direction:column;gap:12px;padding:16px 18px;border:1px solid var(--dsw-alias-border-l1);border-radius:14px;background:var(--dsw-alias-bg-layer-1)}
+.kbss-page .kbss-h2{margin:0;font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbss-page .kbss-sub{margin:0;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-srcline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-srcline svg{flex:0 0 auto;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-srcline .k{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-srcline .v{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.kbss-page .kbss-link{background:none;border:none;padding:3px 6px;border-radius:7px;color:var(--dsw-alias-brand-primary);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.kbss-page .kbss-link:hover{background:var(--dsw-alias-bg-layer-2)}
+.kbss-page .kbss-fields{display:flex;flex-direction:column;gap:8px}
+.kbss-page .kbss-label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-input{width:100%;box-sizing:border-box;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:10px;color:var(--dsw-alias-label-primary);font:inherit;font-size:13.5px;padding:10px 12px}
+.kbss-page .kbss-input:focus{outline:none;border-color:var(--kb-switch-on,#4d7cfe)}
+.kbss-page .kbss-actions{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+.kbss-page .kbss-err{font-size:13px;color:var(--dsw-alias-state-error-primary)}
+.kbss-page .kbss-note{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dsw-alias-label-caption)}
+.kbss-page .kbss-root-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 12px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;background:var(--dsw-alias-bg-layer-2);font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-root-row .p{font-family:ui-monospace,monospace;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
+.kbss-page .kbss-kpis{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbss-page .kbss-kpis .n{font-size:17px;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbss-page .kbss-hint{margin:0;font-size:12px;line-height:1.5;color:var(--dsw-alias-label-caption)}
 `
 
       // ── route access ────────────────────────────────────────────────────
@@ -921,6 +977,9 @@ window.__ModuleLoader__.load({
         const [srcBusy, setSrcBusy] = React.useState(false)
         const [srcErr, setSrcErr] = React.useState('')
         const [audit, setAudit] = React.useState(null)     // security audits of the open skill
+        // Curated owners (GET /kybernos-skills/curated), kept to say who PUBLISHES a skill: an index
+        // entry carries `source` (owner/repo) but no owner label of its own.
+        const [curatedOwners, setCuratedOwners] = React.useState(null)
         const [busy, setBusy] = React.useState({})
         const [errors, setErrors] = React.useState({})
         const [notice, setNotice] = React.useState(null)
@@ -1035,6 +1094,22 @@ window.__ModuleLoader__.load({
         // The workspace may have changed in the sidebar since the last look: read again whenever the tab is opened.
         React.useEffect(() => { if (mode === 'team') loadTeam() }, [mode])
 
+        const loadCuratedOwners = React.useCallback(() => {
+          getJson('/kybernos-skills/curated').then((j) => {
+            if (alive.current !== true) return
+            const owners = (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.owners)) ? j.owners : []
+            const map = {}
+            for (const o of owners) {
+              const owner = o !== null && typeof o === 'object' && typeof o.owner === 'string' ? o.owner : ''
+              if (owner === '') continue
+              for (const s of (Array.isArray(o.skills) ? o.skills : [])) {
+                if (s !== null && typeof s === 'object' && typeof s.name === 'string' && map[s.name] === undefined) map[s.name] = owner
+              }
+            }
+            setCuratedOwners(map)
+          }).catch(() => { /* no curated set (route or relay absent): the owner row is simply not shown */ })
+        }, [])
+
         const loadSource = React.useCallback(() => {
           getJson('/kybernos-skills/index-source').then((j) => {
             if (alive.current !== true) return
@@ -1047,13 +1122,14 @@ window.__ModuleLoader__.load({
           loadFeatured()
           loadTeam()
           loadSource()
+          loadCuratedOwners()
           getJson('/kybernos-skills/status').then((j) => {
             if (alive.current !== true) return
             if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.roots)) {
               setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
             }
           }).catch(() => { /* without roots, the modals fall back on the host, which revalidates everything */ })
-        }, [loadCatalogue, loadFeatured, loadTeam, loadSource])
+        }, [loadCatalogue, loadFeatured, loadTeam, loadSource, loadCuratedOwners])
 
         // One request for the three paginated views, another for the search, one for the curated
         // set. The server announces `total` and `hasMore`: pagination guesses nothing, and that is
@@ -1277,8 +1353,8 @@ window.__ModuleLoader__.load({
         }
 
         // ── fragments ─────────────────────────────────────────────────────────
-        const primary = (label, act, ic, disabled) => h('button', {
-          type: 'button', className: 'kb8-primary', onClick: act, disabled: disabled === true
+        const primary = (label, act, ic, disabled, title) => h('button', {
+          type: 'button', className: 'kb8-primary', onClick: act, disabled: disabled === true, title: title
         }, ic ? icon(ic, 15) : null, h('span', null, label))
 
         const renderSortMenu = () => {
@@ -1703,6 +1779,23 @@ window.__ModuleLoader__.load({
         const renderDetail = () => {
           const x = detail
           const already = skills.some((s) => s.name === x.name)
+          // What this SPECIFIC skill is, and what installing it will REALLY do: the values come from
+          // the skill's own record (index entry + curated set); nothing is invented when a field is
+          // absent (no version exists in the catalogue data, so none is ever shown).
+          const destRoot = roots.length > 0 ? roots[0].path : '~/.dsh/skills'
+          const owner = curatedOwners !== null ? curatedOwners[x.name] : undefined
+          const skillRows = []
+          if (owner !== undefined && owner !== '') skillRows.push(['det.row.owner', owner])
+          skillRows.push(['det.row.id', String(x.id || (x.source + '/' + x.name))])
+          skillRows.push(['det.row.repo', String(x.source || '')])
+          skillRows.push(['det.row.type', x.sourceType !== '' && x.sourceType !== undefined ? String(x.sourceType) : t('det.unknownSrc')])
+          skillRows.push(['det.row.installs', nf(x.installs)])
+          if (x.url !== '' && x.url !== undefined && x.url !== null) {
+            skillRows.push(['det.row.page', h('a', { href: String(x.url), target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-brand-primary,#4f8cff)' } }, String(x.url))])
+          } else {
+            skillRows.push(['det.row.page', t('det.row.noPage')])
+          }
+          const skillRow = ([key, value]) => h('div', { key: key, className: 'row' }, h('span', null, t(key)), h('span', { className: 'kb8-mono', style: { textAlign: 'right', overflowWrap: 'anywhere' } }, value))
           return h('div', null,
             h('button', { type: 'button', className: 'kb-back', onClick: () => setDetail(null) }, icon('back', 15), ' Discover › ' + x.name),
             h('div', { className: 'kb-detail-head' },
@@ -1721,10 +1814,21 @@ window.__ModuleLoader__.load({
                       onClick: () => toggleFeatured(x.name)
                     }, icon('star', 14)))
                 : (x.installable === true
-                  ? primary(t('btn.install'), () => openModal('install'), 'plus')
+                  // The button names the skill it installs, and its tooltip says PRECISELY what will
+                  // happen (download the repo archive, copy the skill into the chosen root).
+                  ? h('span', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' } },
+                      h('button', {
+                        type: 'button', className: 'kb8-primary', title: t('det.installTip', { source: x.source, name: x.name, dest: destRoot }),
+                        onClick: () => openModal('install')
+                      }, icon('plus', 15), h('span', null, t('btn.install'))),
+                      h('span', { style: { maxWidth: '330px', textAlign: 'right', fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-caption)' } },
+                        t('det.installHelp', { source: x.source, name: x.name, dest: destRoot })))
                   : h('span', { className: 'kb8-pill warn', title: x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng') }, t('row.cantInstall')))),
             h('div', { className: 'kb-cols' },
               h('div', { style: { display: 'flex', flexDirection: 'column', gap: '22px' } },
+                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
+                  h('span', { className: 'kb-section-label' }, t('det.skillTitle')),
+                  h('div', { className: 'kb-local-rows' }, skillRows.map(skillRow))),
                 h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
                   h('span', { className: 'kb-section-label' }, t('det.provenance')),
                   h('div', { className: 'kb8-pills' },
@@ -1735,7 +1839,7 @@ window.__ModuleLoader__.load({
                 h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
                   h('span', { className: 'kb-section-label' }, t('det.what')),
                   h('p', { className: 'kb8-sub', style: { maxWidth: 'none', fontSize: '15px' } },
-                    t('det.whatBody')),
+                    t('det.whatBody', { source: x.source, name: x.name, dest: destRoot })),
                   h('pre', { style: { margin: '0', background: 'var(--dsw-alias-bg-base)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', padding: '12px 14px', fontFamily: 'ui-monospace,monospace', fontSize: '12.5px', color: 'var(--dsw-alias-label-secondary)', overflow: 'auto' } },
                     'POST /kybernos-skills/install\n{ "source": "' + x.source + '", "name": "' + x.name + '", "root": "' + t('det.rootph') + '" }'))),
               h('div', { className: 'kb-panel' },
@@ -1745,7 +1849,7 @@ window.__ModuleLoader__.load({
                 h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('shield', 15)),
                   h('span', null, t('det.frontmatter'))),
                 h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('folder', 15)),
-                  h('span', null, t('det.target', { p: (roots.length > 0 ? roots[0].path : '~/.dsh/skills') }))),
+                  h('span', null, t('det.target', { p: destRoot }))),
                 h('div', { className: 'kbs-audit', style: { borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '11px' } },
                   h('span', { className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
                   audit === null || audit.phase === 'loading'
@@ -1934,15 +2038,23 @@ window.__ModuleLoader__.load({
             field(t('m.repo'), h('input', { className: 'kbs-input', value: source, placeholder: 'anthropics/skills', onChange: (e) => setSource(e.target.value) }),
               t('m.examples')),
             field(t('m.skillInRepo'), h('input', { className: 'kbs-input', value: name, placeholder: 'skill-creator', onChange: (e) => setName(e.target.value) })),
-            field(t('m.destRoot'), h('select', { className: 'kbs-select', value: root, onChange: (e) => setRoot(e.target.value) },
+            // Destination, then the exact effect of the button below — before the click, not after.
+            field(t('m.destRoot'), h('select', {
+              className: 'kbs-select', value: root, onChange: (e) => setRoot(e.target.value),
+              title: t('det.installTip', { source: source.trim() || t('det.rootph'), name: name.trim() || t('det.rootph'), dest: root !== '' ? root : t('m.defroot') })
+            },
               props.roots.length === 0
                 ? h('option', { value: '' }, t('m.defroot'))
                 : props.roots.map((r) => h('option', { key: r.path, value: r.path }, r.path + (r.exists === true ? '' : '  ' + t('m.willCreate')))))),
+            h('div', { className: 'kb-note', 'data-kb': 'install-effect' },
+              icon('info', 14),
+              h('span', null, t('det.installHelp', { source: source.trim() || t('det.rootph'), name: name.trim() || t('det.rootph'), dest: root !== '' ? root : t('m.defroot') }))),
             props.error ? h('div', { className: 'kbs-err' }, props.error) : null,
             h('div', { className: 'kbs-actions' },
               h('button', { type: 'button', className: 'kb8-ghost', onClick: props.onClose }, t('m.cancel')),
               h('button', {
                 type: 'button', className: 'kb8-primary', disabled: props.busy.__modal === true,
+                title: t('det.installTip', { source: source.trim() || t('det.rootph'), name: name.trim() || t('det.rootph'), dest: root !== '' ? root : t('m.defroot') }),
                 onClick: () => props.onSubmit({ source: source.trim(), name: name.trim(), root })
               }, icon('github', 15), props.busy.__modal === true ? t('m.downloading') : t('btn.install')))))
       }
@@ -2393,6 +2505,140 @@ window.__ModuleLoader__.load({
           body)
       }
 
+      // ── Settings page « Skills » (catalogue) ─────────────────────────────────────────────────────
+      // Everything here comes from routes the host already serves (index-source, index-source/set,
+      // status, skills, featured): the page names where skills come from and where they are written,
+      // and changes the relay. Nothing is invented, and a route that is absent is said so.
+      function SkillsSettingsPage() {
+        const [src, setSrc] = React.useState(null)
+        const [srcOpen, setSrcOpen] = React.useState(false)
+        const [srcBusy, setSrcBusy] = React.useState(false)
+        const [srcErr, setSrcErr] = React.useState('')
+        const [roots, setRoots] = React.useState(null)          // null = route not answering
+        const [counts, setCounts] = React.useState(null)        // { installed, active, disabled, featured }
+        const alive = React.useRef(true)
+        React.useEffect(() => () => { alive.current = false }, [])
+
+        React.useEffect(() => {
+          getJson('/kybernos-skills/index-source').then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && j.source !== null && typeof j.source === 'object') setSrc(j.source)
+          }).catch(() => { /* a host from before this setting answers nothing: the card says so */ })
+          getJson('/kybernos-skills/status').then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.roots)) {
+              setRoots(j.roots.filter((r) => r !== null && typeof r.path === 'string'))
+            } else setRoots([])
+          }).catch(() => { if (alive.current === true) setRoots([]) })
+          // Counts of THIS profile's catalogue (the /skills route answers the same shape as the panel's
+          // catalogue); the Featured list is its own route. A failure simply leaves the section out.
+          getJson('/kybernos-skills/skills').then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.skills)) {
+              const list = j.skills
+              setCounts({
+                installed: list.length,
+                active: list.filter((s) => s !== null && typeof s === 'object' && s.active === true).length,
+                disabled: list.filter((s) => s !== null && typeof s === 'object' && s.active !== true).length,
+                featured: null
+              })
+            }
+          }).catch(() => { /* the counts are a bonus, never an error */ })
+          getJson('/kybernos-skills/featured').then((j) => {
+            if (alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.items)) {
+              setCounts((c) => (c === null ? { installed: 0, active: 0, disabled: 0, featured: j.items.length } : Object.assign({}, c, { featured: j.items.length })))
+            }
+          }).catch(() => { /* same */ })
+        }, [])
+
+        // Same write as the Discover tab's source line (POST /index-source/set): the host validates the
+        // address with the rule of the KYBERNOS_SKILLS_INDEX_URL variable and answers the new state.
+        const saveSource = (url) => {
+          if (srcBusy === true) return
+          setSrcBusy(true); setSrcErr('')
+          postJson('/kybernos-skills/index-source/set', { url }).then((j) => {
+            if (alive.current !== true) return
+            setSrcBusy(false)
+            if (j !== null && typeof j === 'object' && j.ok === true && j.source !== null && typeof j.source === 'object') {
+              setSrc(j.source); setSrcOpen(false)
+            } else setSrcErr(why(j, t('err.source')))
+          }).catch(() => {
+            if (alive.current !== true) return
+            setSrcBusy(false); setSrcErr(t('err.unavail', { r: 'index-source' }))
+          })
+        }
+
+        // The relay card: the host as a code line (never a credential), where it comes from, and the
+        // button that names another one. The modal is the panel's own window (SourceModal), reused as is.
+        const sourceCard = () => {
+          const where = src === null ? '' : (src.origin === 'env' ? t('src.env') : (src.origin === 'setting' ? t('src.custom') : t('src.default')))
+          return h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-source' },
+            h('h3', { className: 'kbss-h2' }, t('set.srcH')),
+            h('p', { className: 'kbss-sub' }, t('set.srcSub')),
+            src === null
+              ? h('p', { className: 'kbss-sub' }, t('set.srcMissing'))
+              : h('div', { className: 'kbss-srcline', 'data-kb': 'index-source' },
+                  icon('globe', 14),
+                  h('span', { className: 'k' }, t('src.line')),
+                  src.refused === true
+                    ? h('span', { className: 'kb8-pill warn' }, t('src.refused'))
+                    : h('span', { className: 'v', title: src.url !== null ? src.url : undefined }, src.host),
+                  h('span', { className: 'w' }, '\u00b7 ' + where),
+                  h('button', {
+                    type: 'button', className: 'kbss-link', 'data-kb': 'index-source-change',
+                    disabled: srcBusy === true, onClick: () => { setSrcErr(''); setSrcOpen(true) }
+                  }, t('src.change'))),
+            srcErr === '' ? null : h('div', { className: 'kbss-err', role: 'alert' }, srcErr),
+            srcOpen === true
+              ? h(SourceModal, { source: src, busy: srcBusy, error: srcErr, onClose: () => setSrcOpen(false), onSubmit: saveSource })
+              : null)
+        }
+
+        // The write policy: the only folders the host writes to (GET /status answers them with
+        // their origin and whether they exist on disk). A root the host reports as read-only
+        // stays visible with the word "read-only", never with a write it does not have.
+        const rootsCard = () => h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-roots' },
+          h('h3', { className: 'kbss-h2' }, t('set.rootsH')),
+          h('p', { className: 'kbss-sub' }, t('set.rootsSub')),
+          roots === null || roots.length === 0
+            ? h('p', { className: 'kbss-sub' }, t('set.rootsMissing'))
+            : roots.map((r) => h('div', { key: r.path, className: 'kbss-root-row', 'data-kb': 'skills-settings-root' },
+                icon('folder', 14),
+                h('span', { className: 'p', title: r.path }, r.path),
+                h('span', { className: 'kb8-pill' }, r.source),
+                h('span', { className: 'kb8-pill' + (r.exists === true ? ' ok' : ' warn') }, r.exists === true ? t('set.rootExists') : t('set.rootMissing')),
+                h('span', { className: 'kb8-pill' + (r.writable === false ? ' warn' : ' ok') }, r.writable === false ? t('set.rootRead') : t('set.rootWrite')))))
+
+        const countsCard = () => counts === null
+          ? null
+          : h('div', { className: 'kbss-card', 'data-kb': 'skills-settings-counts' },
+              h('h3', { className: 'kbss-h2' }, t('set.countsH')),
+              h('div', { className: 'kbss-kpis' },
+                h('span', null, h('span', { className: 'n' }, nf(counts.installed)), ' ', t('set.installed')),
+                h('span', null, h('span', { className: 'n' }, nf(counts.active)), ' ', t('set.active')),
+                h('span', null, h('span', { className: 'n' }, nf(counts.disabled)), ' ', t('set.disabled')),
+                counts.featured === null ? null : h('span', null, h('span', { className: 'n' }, nf(counts.featured)), ' ', t('set.featured'))))
+
+        return h('div', { className: 'kbss-page', 'data-kb': 'kybernos-skills-settings' },
+          h('h2', { className: 'kbss-h1' }, t('set.h1')),
+          h('p', { className: 'kbss-lead' }, t('set.lead')),
+          sourceCard(),
+          rootsCard(),
+          countsCard())
+      }
+
+      /** A settings page that fails to render must never take the Settings dialog down with it. */
+      class KbSettingsBoundary extends React.Component {
+        constructor (props) { super(props); this.state = { failed: false } }
+        static getDerivedStateFromError () { return { failed: true } }
+        componentDidCatch (e) { try { console.error('[kybernos-skills] settings page crashed:', e) } catch (e2) { /* console gone */ } }
+        render () {
+          if (this.state.failed !== true) return this.props.children
+          return h('div', { className: 'kbss-page', role: 'alert' }, h('p', { className: 'kbss-err' }, t('y.loadfail')))
+        }
+      }
+
       // Stylesheet set ONCE, by id, and refreshed on every apply of the
       // module. Before, it lived in a ctx.effect: when the plugin reloaded
       // (patchReload) the previous effect was unmounted, the stylesheet
@@ -2431,6 +2677,20 @@ window.__ModuleLoader__.load({
         slots.inject('main.kybernos-skills', () => slots.register(
           { name: 'main.kybernos-skills' },
           KybernosSkills))
+        // ── the catalogue's Settings page ──
+        // Same seat as the other bundles' settings pages (kybernos-websearch, kybernos-usage, …):
+        // settings.section { id, order, label }. The label is a FUNCTION so it follows the current
+        // language (models' page does the same); the order sits between the core's Voice (25) and
+        // Commands (27). Registered LAST and guarded: a slot that is not there yet is never fatal.
+        try {
+          slots.inject('settings.section', () => slots.register(
+            { name: 'settings.section', id: 'kybernos-skills', order: 26, label: () => t('set.nav') },
+            (props) => {
+              try { return h(KbSettingsBoundary, props, h(SkillsSettingsPage, props)) } catch (e) { return null }
+            }))
+        } catch (kbSettingsError) {
+          try { console.warn('[kybernos-skills] settings section not mounted', kbSettingsError) } catch (e2) { /* console gone */ }
+        }
       }
 
       return {
