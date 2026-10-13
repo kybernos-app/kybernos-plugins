@@ -80,4 +80,15 @@ ok('the public view never leaks a value outside the vocabulary', () => {
   assert.equal(view.lang, null)
 })
 
+ok('the memory id is kept across a replay, and only an opaque printable id is accepted', () => {
+  const first = complete(defaultState(NOW), { profil: 'etudes', memoryId: 'mem_01HZX' }, NOW)
+  assert.equal(first.memoryId, 'mem_01HZX')
+  assert.equal(publicView(first).memoryId, 'mem_01HZX')
+  const again = complete(replay(first), { profil: 'soft' }, NOW)
+  assert.equal(again.memoryId, 'mem_01HZX', 'a replay that wrote nothing keeps the id: the next write updates that memory')
+  assert.equal(complete(again, { memoryId: 'mem_NEW' }, NOW).memoryId, 'mem_NEW')
+  for (const bad of ['', '  ', 'has space', 'x\ny', 12, {}, null]) assert.equal(complete(defaultState(NOW), { memoryId: bad }, NOW).memoryId, null)
+  assert.equal(defaultState(NOW).memoryId, null)
+})
+
 console.log(count + ' checks passed')

@@ -2593,11 +2593,20 @@ window.__ModuleLoader__.load({
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'onboarding-replay' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
             h('div', { className: natif ? natif.title : undefined }, 'Onboarding'),
-            h('div', { className: natif ? natif.desc : undefined }, 'The welcome pages ran when the plugin was installed. Replay them to redo your profession and UI-mode choices.')),
+            h('div', { className: natif ? natif.desc : undefined }, 'The welcome pages ran when the plugin was installed. Replay them to redo your profession, display mode, models and starter kit.')),
           h('button', {
             type: 'button', className: 'kbr-choix on', 'data-kbr': 'onboarding-replay-btn',
             onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'replay' } })) } catch (e) { /* contexte sans window */ } }
           }, 'Replay')),
+        // The kit alone, later: the wizard's own page opens on the profession saved at the first run.
+        h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'starter-kit' },
+          h('div', { className: natif ? natif.rowText : 'kbr-txt' },
+            h('div', { className: natif ? natif.title : undefined }, 'Starter kit'),
+            h('div', { className: natif ? natif.desc : undefined }, 'Skills and agent teams that fit your profession. Open it any time to add more, or after a change of work.')),
+          h('button', {
+            type: 'button', className: 'kbr-choix on', 'data-kbr': 'starter-kit-btn',
+            onClick: () => { try { window.dispatchEvent(new CustomEvent('kybernos:onboarding', { detail: { action: 'kit' } })) } catch (e) { /* contexte sans window */ } }
+          }, 'Open')),
         h('p', { className: natif ? natif.desc : 'kbr-intro' }, 'Small switches that change how the Kybernos plugins work with your chats. Saved on this machine, right away.'),
         h('div', { className: natif ? natif.row : 'kbr-row', 'data-kbr': 'rename-after-recap' },
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },

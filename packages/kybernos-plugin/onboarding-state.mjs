@@ -29,6 +29,12 @@ const lang = (value) => {
   return clean !== null && LANG_RE.test(clean) ? clean : null
 }
 
+/** An id the cloud memory handed back (opaque, printable, short), or null. */
+const memoryId = (value) => {
+  const clean = text(value, 80)
+  return clean !== null && /^[\x21-\x7e]+$/.test(clean) ? clean : null
+}
+
 /** A model choice from MODEL_CHOICES, or null. */
 const modelChoice = (value) => (typeof value === 'string' && MODEL_CHOICES.indexOf(value) >= 0 ? value : null)
 
@@ -42,6 +48,7 @@ export const defaultState = (now = new Date()) => ({
   uiMode: null,
   model: null,
   lang: null,
+  memoryId: null,
 })
 
 /** What GET answers: the completion flag already folds the version in. */
@@ -54,6 +61,7 @@ export const publicView = (state) => ({
   uiMode: state.uiMode || null,
   model: modelChoice(state.model),
   lang: lang(state.lang),
+  memoryId: memoryId(state.memoryId),
 })
 
 /** The person went through (or left) the wizard: record the choices, stamp the date. */
@@ -68,6 +76,8 @@ export const complete = (state, body, now = new Date()) => {
     uiMode: text(input.uiMode),
     model: modelChoice(input.model),
     lang: lang(input.lang),
+    // The memory the wizard wrote about the profession: kept across replays so a replay updates it instead of adding another.
+    memoryId: memoryId(input.memoryId) || memoryId(state.memoryId),
   }
 }
 
