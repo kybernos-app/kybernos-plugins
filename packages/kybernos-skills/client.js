@@ -257,6 +257,7 @@ window.__ModuleLoader__.load({
         'det.local.what': { fr: 'Ce qu\'il fait', en: 'What it does' },
         'det.local.when': { fr: 'Quand l\'utiliser', en: 'When to use it' },
         'det.local.body': { fr: 'Le corps du SKILL.md n\'est pas inclus dans les données de ce skill.', en: 'The SKILL.md body is not included in this skill\'s data.' },
+        'det.local.loading': { fr: 'Chargement du contenu réel du skill…', en: 'Loading the skill\'s real contents…' },
         'det.declared': { fr: 'Installations déclarées par l\'index', en: 'Installs reported by the index' },
         'det.frontmatter': { fr: 'Frontmatter relu avant copie : name et description obligatoires', en: 'Frontmatter re-read before copying: name and description required' },
         'det.target': { fr: 'Cible : {p}', en: 'Target: {p}' },
@@ -931,6 +932,21 @@ window.__ModuleLoader__.load({
         // The sheet's active tab lives in the parent so it survives the sheet being remounted
         // when the parent re-renders (toggle, toast, polling). Reset on open, not on render.
         const [localTab, setLocalTab] = React.useState('overview')
+        // The skill's REAL SKILL.md body, fetched from the host (GET /kybernos-skills/skill-body) when the
+        // sheet opens — the real instructions, not a placeholder. Kept in the parent so it survives re-renders.
+        const [localBody, setLocalBody] = React.useState({ state: 'idle', text: '' })
+        React.useEffect(() => {
+          if (local === null) { setLocalBody({ state: 'idle', text: '' }); return }
+          let alive = true
+          setLocalBody({ state: 'loading', text: '' })
+          const root = local.root !== null && local.root !== undefined ? encodeURIComponent(local.root) : ''
+          getJson('/kybernos-skills/skill-body?root=' + root + '&name=' + encodeURIComponent(local.name)).then((j) => {
+            if (!alive) return
+            if (j && j.ok === true && typeof j.body === 'string') setLocalBody({ state: 'ready', text: j.body })
+            else setLocalBody({ state: 'empty', text: '' })
+          }).catch(() => { if (alive) setLocalBody({ state: 'empty', text: '' }) })
+          return () => { alive = false }
+        }, [local])
         // Featured: the highlighted list, controlled by the user. `items` follows the order of the
         // file; an item `found:false` (skill gone from the registry) is skipped at render, not erased.
         const [feat, setFeat] = React.useState({ phase: 'idle', items: [] })
@@ -1633,15 +1649,6 @@ window.__ModuleLoader__.load({
         // The skill's own text, for the Contents tab. The catalogue record carries the frontmatter fields
         // (description, whenToUse); a body is shown only when the host really has one (body/markdown/readme),
         // never invented from the description the Overview tab already shows.
-        const localBodyOf = (s) => {
-          const body = s !== null && s !== undefined ? s.body : undefined
-          if (typeof body === 'string' && body.trim() !== '') return body
-          const md = s !== null && s !== undefined ? s.markdown : undefined
-          if (typeof md === 'string' && md.trim() !== '') return md
-          const rm = s !== null && s !== undefined ? s.readme : undefined
-          if (typeof rm === 'string' && rm.trim() !== '') return rm
-          return t('det.local.body')
-        }
         // A local skill's sheet: a sheet, not the Discover INSTALL page (which speaks of a repo, installs and
         // third-party audits). Its rows use the skill's own words (description, whenToUse), not the install page's
         // labels. The tab state is local to the sheet and resets when the card changes.
@@ -1688,7 +1695,9 @@ window.__ModuleLoader__.load({
                     ? h('div', { className: 'row' }, h('span', null, t('det.local.when')), h('span', null, String(s.whenToUse).trim()))
                     : null,
                   err ? h('div', { className: 'kbs-err' }, err) : null)
-              : h('pre', { className: 'kb-local-body' }, localBodyOf(s)))
+              : h('pre', { className: 'kb-local-body' },
+                  localBody.state === 'loading' ? t('det.local.loading')
+                    : (localBody.state === 'ready' && localBody.text.trim() !== '' ? localBody.text : t('det.local.body'))))
         }
 
         const renderDetail = () => {

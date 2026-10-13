@@ -79,7 +79,7 @@ const built = ['timeout', 'network_unavailable', 'not_github', 'body_too_large']
 for (const w of built) assert.ok(host.includes("'" + w + "'"), w + ' is no longer in the host: drop it from this list')
 const codes = new Set([...literal, ...built])
 // Nobody reads these on the screen: an image route, a method guard of a route the page never gets wrong, a note the page does not show.
-const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable'])
+const unseen = new Set(['get_required', 'post_required', 'no_cover', 'cover_unreadable', 'bad_name', 'bad_root', 'bad_path', 'not_found'])
 const noHe = [...codes].filter((w) => !unseen.has(w) && !dict.has('he.' + w))
 assert.deepEqual(noHe, [], 'host codes with no sentence on the screen: ' + noHe.join(', '))
 const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(k.slice(3)))
