@@ -1,0 +1,45 @@
+{
+  "name": "@local/kybernos-dashboards",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dashboards: a page before Agent Teams, built and changed by chat with the dashboard-builder skill (cards, animated charts, calendar, list, kanban, notes, carousel, flow, sankey) from your own sources, with a live preview in the right sidebar.",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "model.mjs",
+    "chart-core.mjs",
+    "presets.mjs",
+    "dashboard-host.mjs",
+    "seed-skills.mjs",
+    "skills/dashboard-builder/SKILL.md",
+    "skills/dashboard-sources/SKILL.md",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node --check index.js && node --check client.js && node scripts/build.mjs --check",
+    "test": "node test-model.mjs && node test-chart-core.mjs && node test-presets.mjs && node test-host.mjs && node test-client.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  }
+}

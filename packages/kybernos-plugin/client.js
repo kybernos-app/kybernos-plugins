@@ -1297,6 +1297,8 @@ let kbLocaleRead = () => 'en'
       'kbui.shown.project': { kybernos: 'Affiché dans la barre latérale, la grille des projets et partout où ce projet apparaît.', en: 'Shown in the sidebar, the project grid and everywhere this project appears.' },
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
       'kbui.skills': { kybernos: 'Compétences', en: 'Skills' },
+      'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' },
+      'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Activez-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
       'kbui.start.objective': { kybernos: 'Partez de l’objectif. J’écris les membres, leurs prompts et les applications nécessaires.', en: 'Start from the objective. I write the members, their prompts and the apps they need.' },
@@ -3408,6 +3410,8 @@ const LUCIDE = {
   cpu: ['M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z', 'M8 9a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1z', 'M12 20v2', 'M12 2v2', 'M17 20v2', 'M17 2v2', 'M2 12h2', 'M2 17h2', 'M2 7h2', 'M20 12h2', 'M20 17h2', 'M20 7h2', 'M7 20v2', 'M7 2v2'],
   puzzle: ['M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z'],
   panelRight: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z', 'M15 3v18'],
+  // Dashboards menu row (lucide layout-dashboard, rects written as paths).
+  layoutDashboard: ['M4 3h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 3h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z', 'M15 12h5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1z', 'M4 16h5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1z'],
   mic: ['M12 19v3', 'M19 10v2a7 7 0 0 1-14 0v-2', 'M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0z'],
   volume: ['M11 5 6 9H2v6h4l5 4V5z', 'M15.54 8.46a5 5 0 0 1 0 7.07', 'M19.07 4.93a10 10 0 0 1 0 14.14'],
   play: ['M6 3 20 12 6 21V3z'],
@@ -14881,6 +14885,7 @@ return {
         if (s.view === 'gallery' || s.view === 'marketplace' || s.view === undefined) return h(TeamsHub, props)
         if (s.view === 'artifacts') return h(ArtifactsPage, props)
         if (s.view === 'skills') return h(KbSkillsView, props)
+        if (s.view === 'dashboards') return h(KbDashboardsView, props)
         if (s.view === 'connectors') return h(KbConnectorsView, props)
         if (s.view === 'documents') return h(KbDocumentsView, props)
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
@@ -19217,6 +19222,8 @@ function renderFit(canvas, model, cam, opts){
         (artShare !== null ? h(KbShareDialog, { item: artShare, onClose: () => setArtShare(null) }) : null)))
     }
     const KB_CP = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-composio') } catch (e) { return false } })()
+    // The Dashboards satellite is in the boot list: its menu row shows, and its page mounts on 'main.kybernos-dashboards'.
+    const KB_DB = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-dashboards') } catch (e) { return false } })()
     const kbComposio = (() => { try { return require('@local/kybernos-composio/client').composio } catch (e) { return null } })()
     const ComposioPage = (kbComposio !== null && kbComposio !== undefined && kbComposio.page !== undefined) ? kbComposio.page : () => h('div', { className: 'kbg-empty' }, kbt('kbui.composio.absent'))
 
@@ -22882,6 +22889,26 @@ function renderFit(canvas, model, cam, opts){
       return h(SkillsPage, { sessionId: sid })
     }
 
+    // ── Dashboards: the page is the satellite's (`@local/kybernos-dashboards`), mounted on the child slot
+    // 'main.kybernos-dashboards' declared with the `main` registration below. Same recipe as SkillsMount: subscription
+    // only, no assumption on load order; an empty slot (bundle switched off since the row was drawn) says so.
+    const DashboardsMount = () => {
+      const pair = React.useState(0)
+      const setTick = pair[1]
+      React.useEffect(() => {
+        let n = 0
+        let stop = null
+        try { stop = slots.subscribe('main.kybernos-dashboards', () => setTick(n = n + 1)) } catch (e) { stop = null }
+        return () => { try { if (typeof stop === 'function') stop() } catch (e) { /* already cleaned */ } }
+      }, [])
+      let entries = []
+      try { entries = slots.entriesOfSlot('main.kybernos-dashboards') || [] } catch (e) { entries = [] }
+      const first = entries.length > 0 ? entries[0] : null
+      if (first !== null && first !== undefined && first.component !== null && first.component !== undefined) return h(first.component, null)
+      return h('p', { className: 'kbg-empty' }, kbt('kbui.dashboards.off'))
+    }
+    const KbDashboardsView = () => h('div', { className: 'kbg-root', 'data-kb-page': 'dashboards' }, h(DashboardsMount, null))
+
     // ── Skills and Connectors: one page each ─────────────────────────────────
     // They shared the "Resources" page and its tab selector; they are
     // now two sidebar entries. Fixed page title (28/09 template:
@@ -23235,7 +23262,7 @@ function renderFit(canvas, model, cam, opts){
     }
     // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
-    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []) })
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []) })
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     const SalesMenu = (p0) => {
       const s = useStore()
@@ -23348,6 +23375,7 @@ function renderFit(canvas, model, cam, opts){
               onClick: (e) => { try { e.stopPropagation() } catch (e2) { /* pas d'evenement */ } set({ newChatOpen: pickOpen === true ? false : true }) },
             }, h('span', { className: 'kb4-chev' }, Icon('chevronDown', 14)))),
           (pickOpen === true ? kbTeamPicker(teams, sel, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }), pickAnchor) : null)),
+        (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
@@ -23444,7 +23472,7 @@ function renderFit(canvas, model, cam, opts){
     KybersMain.__testStartersFromUi = kbStartersFromUi
     // Idem pour la rangée de suggestions qui vit dans le chat (dock du composer).
     KybersMain.__testChatStarters = KbChatStarters
-    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: panneau principal galerie');
+    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: panneau principal galerie');
     // ── Onglets absorbés par Crew v2 (décision du 26/09) ─────────────────────
     // Les vues « Kybernos Crew » (order 11), « Crew Model Execution » (order 12)
     // et « Runs » (order 13) ne sont plus enregistrées : leurs infos utiles

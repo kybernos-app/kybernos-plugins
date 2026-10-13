@@ -226,6 +226,34 @@ period switch, the budget saved through the real route, a 390 px window and the 
 checked to stay absent: a sandbox has no key, so no turn and no `tokenUsage`; the chip drawn from a real turn is seen once on a
 keyed machine. The only thing written is the sandbox's own usage ledger.
 
+## The Dashboards plugin: `scripts/check-dashboards-live.mjs` and `scripts/check-dashboards-render.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-dashboards-live.mjs --shots /tmp/shots
+```
+
+Sandbox only (exit 3 against `:3080`; `setup.sh` adds the bundle to the cloned profile). In the real page it checks the host
+routes through the page's own origin, the **Dashboards** row of the Kybernos menu (it must sit right before Agent Teams and
+open the page the bundle provides), the gallery and a preset drawn with this DSH's real data, that the entrance animations
+exist and finish, and the right-pane tab: a dashboard filed under the chat on screen
+(`POST /kybernos-dashboards/open {id, session}`, the session being `window.__KB_DASHBOARDS__.session()`) opens the tab by
+itself. The pane check runs first on purpose: the tab only shows inside a chat, and the menu step leaves the chat. A sandbox has
+no key and no automations, so the widgets show their empty states; the agent writing through its tool during a real
+conversation is not played here (it needs a model). The only thing written is the sandbox's own dashboards folder.
+
+```bash
+KB_NODE_MODULES=<a node_modules with react, react-dom, esbuild, playwright-core> node scripts/check-dashboards-render.mjs
+```
+
+Needs no DSH at all: it bundles React, loads the built `client.js` in headless Chromium and answers the page's `fetch` from
+the real host logic (a temp folder) and fixture answers for the other bundles' routes. It plays what a sandbox cannot:
+screenshots in light, dark, a 480 px pane and a phone; the motion (a rise per bar, a card counting up, every animation of a
+visible widget finishing, nothing moving under reduced motion); editing (a widened widget, a note, a colour, a kanban card
+become revisions by the person); and the agent's tool writing while the page is open (the page picks it up and flashes the
+widget). Two traps met: a full-page screenshot enlarges the viewport, so the page must be walked first or the widgets below the
+fold are still at their start frame; and a loaded machine (a test loop running beside it) slows the animations, so it waits for
+them to finish instead of sleeping.
+
 ## The first-run wizard: `scripts/check-onboarding-live.mjs`
 
 ```bash

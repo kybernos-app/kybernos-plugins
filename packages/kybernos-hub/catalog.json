@@ -1983,6 +1983,55 @@
           "en": "The folder is fixed at creation: to work in another folder, create another workspace. The phone opens the whole page of the computer, not one workspace."
         }
       }
+    },
+    {
+      "id": "kybernos-dashboards",
+      "nom": "@local/kybernos-dashboards",
+      "titre": "Dashboards",
+      "glyphe": "dash",
+      "famille": "teams",
+      "palier": "core",
+      "version": "0.1.0",
+      "socle": false,
+      "defaut": null,
+      "poids_ko": 185,
+      "promesse": {
+        "fr": "Des dashboards construits par chat, pour suivre vos Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.",
+        "en": "Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes."
+      },
+      "aide": {
+        "what": {
+          "fr": "Une page Dashboards avant Agent Teams : le chat construit vos tableaux de bord (Agent Teams, automations, usage, livrables) avec des graphiques animés, un calendrier, un kanban et des notes.",
+          "en": "A Dashboards page before Agent Teams: the chat builds your dashboards (Agent Teams, automations, usage, deliverables) with animated charts, a calendar, a kanban and notes."
+        },
+        "steps": [
+          {
+            "fr": "Ouvrez « Dashboards » dans le menu, puis « Créer un dashboard avec l’IA », ou partez d’un preset.",
+            "en": "Open “Dashboards” in the menu, then “Create a dashboard with AI”, or start from a preset."
+          },
+          {
+            "fr": "Répondez aux quelques questions du chat : il choisit les widgets adaptés et vous montre le plan avant de construire.",
+            "en": "Answer the chat’s few questions: it picks the right widgets and shows you the plan before building."
+          },
+          {
+            "fr": "Le dashboard s’affiche en direct dans l’onglet « Dashboard » à droite. Demandez n’importe quel changement.",
+            "en": "The dashboard shows live in the “Dashboard” tab on the right. Ask for any change."
+          },
+          {
+            "fr": "« Modifier la mise en page » déplace et redimensionne ; les notes et le kanban manuel se modifient sur place.",
+            "en": "“Edit layout” moves and resizes; notes and the manual kanban are edited in place."
+          }
+        ],
+        "where": {
+          "fr": "Menu Kybernos › Dashboards (avant Agent Teams), barre latérale droite › Dashboard",
+          "en": "Kybernos menu › Dashboards (before Agent Teams), right sidebar › Dashboard",
+          "page": true
+        },
+        "good": {
+          "fr": "Un dashboard est un simple fichier, sans code, qui ne lit que des sources de cet ordinateur. Les tokens sont comptés, pas l’argent.",
+          "en": "A dashboard is a plain file with no code, reading only sources on this computer. Tokens are counted, not money."
+        }
+      }
     }
   ]
 }
