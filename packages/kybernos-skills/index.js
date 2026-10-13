@@ -1316,6 +1316,28 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     return { ok: true, ...catalogue, skills, query: q }
   })
 
+  // ── the skill's REAL body (UB: « ajouter les infos réelles du skill ») ─────────────────────────────────────
+  // Read-only: the SKILL.md of one skill, so the sheet can show the real instructions instead of a
+  // placeholder. `root` must be one of the known skill roots and `name` a plain skill folder name; the
+  // resolved path must stay inside that root (no `..`, no symlink escape).
+  GET('/kybernos-skills/skill-body', 'kybernos-skills: route skill body', async (req) => {
+    const root = queryParam(req, 'root')
+    const name = queryParam(req, 'name')
+    if (SKILL_NAME_RE.test(name) === false) return { ok: false, error: 'bad_name' }
+    const cfg = configOf()
+    const knownRoots = writableRootsOf(cfg).map((p) => realpathSafe(p)).filter((p) => p !== null)
+    const rootReal = realpathSafe(root)
+    if (rootReal === null || knownRoots.includes(rootReal) === false) return { ok: false, error: 'bad_root' }
+    const folder = realpathSafe(join(rootReal, name))
+    if (folder === null || folder.startsWith(rootReal + '/') === false) return { ok: false, error: 'bad_path' }
+    const file = join(folder, MARKER_ACTIVE)
+    if (existsSync(file) === false) return { ok: false, error: 'not_found' }
+    const text = readFileSync(file, 'utf8')
+    // Strip the frontmatter block (--- … ---) so the sheet shows the instructions, not the metadata.
+    const body = text.replace(/^---\s*\n[\s\S]*?\n---\s*\n?/, '').trim()
+    return { ok: true, body }
+  })
+
   // ── remote index, through the relay: paginated, 50 per page by default ───────────────────────────────────
   GET('/kybernos-skills/index', 'kybernos-skills: route index', async (req) => indexSkills({
     view: queryParam(req, 'view'),
