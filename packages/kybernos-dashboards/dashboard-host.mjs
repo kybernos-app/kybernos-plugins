@@ -12,7 +12,7 @@
 // hidden or archived, is in `index.json` next to them. The agent never writes a path: it names a dashboard by its id.
 import { createHash } from 'node:crypto'
 import { join } from 'node:path'
-import { KIND, LIMITS, VERSION, describeCatalogue, inspectDashboard, slug, sourcesOf, validateDashboard } from './model.mjs'
+import { KIND, LIMITS, VERSION, describeCatalogue, inspectDashboard, shapeOf, slug, sourcesOf, validateDashboard } from './model.mjs'
 import { PRESETS } from './presets.mjs'
 
 export const EXT = '.miniapp.json'
@@ -141,7 +141,7 @@ export function createHost ({ fs, home, now = () => Date.now(), log = () => {} }
         id, name: r.dashboard.name, desc: r.dashboard.desc, widgets: r.dashboard.widgets.length,
         sources: sourcesOf(r.dashboard).map((s) => s.provider), rev: r.rev, by: last ? last.by : 'user', updatedAt: mtimeMs,
         hidden: f.hidden, archived: f.archived, isDefault: idx.default === id,
-        shape: r.dashboard.widgets.map((w) => ({ w: w.w, h: w.h, type: w.type })),
+        shape: r.dashboard.widgets.map((w) => shapeOf(w)),
       })
     }
     out.sort((a, b) => b.updatedAt - a.updatedAt)

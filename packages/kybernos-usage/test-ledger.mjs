@@ -81,6 +81,17 @@ const obs = (usage, extra = {}) => ({ sessionId: 's1', provider: 'deepseek', mod
   ok('summary: 7 days, oldest first, ends today', s.daily.length === 7 && s.daily[6].day === '2026-10-12' && s.daily[0].day === '2026-10-06')
   ok('summary: totals by model add the days', s.models['deepseek/deepseek-pro'].u === 200 && s.models['deepseek/deepseek-pro'].cr === 3000, JSON.stringify(s.models))
   ok('summary: session listed with its model tokens', s.sessions.length === 1 && s.sessions[0].title === 'Note Team')
+  ok('summary: sessionCount counts the sessions of the period', s.sessionCount === 1, s.sessionCount)
+  {
+    // the page list is cut at 40, the count is not
+    const big = emptyLedger()
+    for (let i = 0; i < 55; i++) {
+      applyObservation(big, { sessionId: 'c' + i, provider: 'p', model: 'm', usage: U(1, 1, 1) }, new Date(2026, 9, 12, 8, i % 60))
+      applyObservation(big, { sessionId: 'c' + i, provider: 'p', model: 'm', usage: U(2, 2, 2) }, new Date(2026, 9, 12, 9, i % 60))
+    }
+    const b = summarize(big, { days: 7, now: T0 })
+    ok('summary: 55 sessions, 40 listed, 55 counted', b.sessions.length === 40 && b.sessionCount === 55, [b.sessions.length, b.sessionCount])
+  }
   ok('summary: before kept apart', s.before['deepseek/deepseek-pro'].cr === 1000)
   ok('summary: since = first dated day', s.since === '2026-10-10')
   ok('summary clamps the window', summarize(l, { days: 99999, now: T0 }).daily.length === MAX_DAYS)

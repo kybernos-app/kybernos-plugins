@@ -1584,32 +1584,16 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'index-source-change', onClick: () => { setSrcErr(''); setSrcOpen(true) } }, t('src.change')))
         }
 
-        // The featured list is local (it does not wait for the index), so it is drawn at once — and above the bones — which is also
-        // what keeps the ranking from jumping down when it arrives. Only on page 1 of the ranking, without a search: it highlights,
-        // it takes part neither in sorting nor in filtering. Same ROWS as the ranking (see featRow).
-        const renderFeatured = () => {
-          const featShown = feat.items.filter((it) => it.found !== false)
-          if (feat.phase !== 'ready' || discKind === 'search' || dneedle !== '' || discPage !== 0 || featShown.length === 0) return null
-          return h('div', { key: 'feat', className: 'kbs-feat' },
-            h('div', { className: 'kbs-feat-head' },
-              h('span', { className: 't' }, 'Featured'),
-              h('span', { className: 's' }, featShown.length + ' ' + t('feat.sub'))),
-            h('div', { className: 'kbs-table', 'data-kb': 'feat-table' },
-              h('div', { className: 'kbs-head' },
-                h('span', { className: 'rank' }, ''),
-                h('span', { className: 'who' }, 'SKILL'),
-                h('span', { className: 'src' }, 'SOURCE'),
-                h('span', { className: 'badges' }, t('th.state')),
-                h('span', { className: 'inst' }, t('feat.th.when'))),
-              featShown.map(featRow)))
-        }
-
+        // ONE list, featured first (UB-12): the featured rows are prepended to the ranking table on
+        // page 1 without a search, instead of sitting in a second, separate table above it.
+        const featRows = (feat.phase === 'ready' && discKind === 'index' && dneedle === '' && discPage === 0)
+          ? feat.items.filter((it) => it.found !== false).map(featRow) : []
         const renderDiscover = () => {
           const sourceLine = renderSourceLine()
           if (discPhase === 'loading' && disc === null) {
             // Bones: the featured list (known already), a pager's worth of space, then rows in the ranking's own grid.
             const bones = skeletonOf('rows', 8)
-            return h('div', null, sourceLine, renderFeatured(),
+            return h('div', null, sourceLine,
               bones === null ? h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('d.query')))
                 : [h('div', { key: 'pg', className: 'kbs-pager haut', 'aria-hidden': 'true' }, bone(112, 38, null, 11), [0, 1, 2, 3, 4].map((i) => h('span', { key: i }, bone(38, 38, null, 11))), bone(96, 38, null, 11)), h('div', { key: 'sk' }, bones)])
           }
@@ -1617,7 +1601,7 @@ window.__ModuleLoader__.load({
             // The failure is THIS tab's: Yours and Team do not depend on the index and are untouched. A clear sentence, a way to
             // ask again, and — the address being the user's to change — a way to change it.
             const refused = discErr !== null && discErr.code === 'index_url_refused'
-            return h('div', null, sourceLine,
+            return h('div', null,
               h('div', { className: 'kb-empty', role: 'alert', 'data-kb': 'disc-error' },
                 icon('alert', 24),
                 h('span', { className: 'kb8-name' }, t('d.down')),
@@ -1632,8 +1616,7 @@ window.__ModuleLoader__.load({
           }
           return h('div', null,
             sourceLine,
-            renderFeatured(),
-            discShown.length === 0 ? null : pagerIndex(true),
+            discShown.length === 0 && featRows.length === 0 ? null : pagerIndex(true),
             h('div', { className: 'kbs-table' + (discPhase === 'loading' ? ' loading' : '') },
               h('div', { className: 'kbs-head' },
                 h('span', { className: 'rank' }, '#'),
@@ -1643,7 +1626,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'inst' }, 'INSTALLATIONS')),
               discShown.length === 0
                 ? empty(t('y.noresult'), discKind === 'search' ? t('d.empty.search') : t('d.empty.page'))
-                : discShown.map(ligne)),
+                : featRows.concat(discShown.map(ligne))),
             discShown.length === 0 ? null : pagerIndex())
         }
 

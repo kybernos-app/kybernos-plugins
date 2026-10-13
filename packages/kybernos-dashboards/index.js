@@ -7,7 +7,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createHost, toolOptions, TOOL } from './dashboard-host.mjs'
 import { PRESETS } from './presets.mjs'
-import { sourcesOf, validateDashboard } from './model.mjs'
+import { shapeOf, sourcesOf, validateDashboard } from './model.mjs'
 import { seedSkills } from './seed-skills.mjs'
 
 export const name = 'kybernos-dashboards'
@@ -102,7 +102,7 @@ const str = (v) => (typeof v === 'string' && v !== '' ? v : null)
 /** What the page needs to list the presets: their shape, never the whole definition. */
 export const presetSummary = () => PRESETS.map((p) => {
   const v = validateDashboard({ name: p.name, desc: p.desc, widgets: p.widgets })
-  return { id: p.id, name: p.name, desc: p.desc, widgets: v.dashboard.widgets.length, sources: sourcesOf(v.dashboard).map((s) => s.provider), shape: v.dashboard.widgets.map((w) => ({ w: w.w, h: w.h, type: w.type })) }
+  return { id: p.id, name: p.name, desc: p.desc, widgets: v.dashboard.widgets.length, sources: sourcesOf(v.dashboard).map((s) => s.provider), shape: v.dashboard.widgets.map((w) => shapeOf(w)) }
 })
 
 export function mountRoutes (webServer, host) {

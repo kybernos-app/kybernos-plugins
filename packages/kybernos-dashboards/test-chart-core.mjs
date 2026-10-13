@@ -135,5 +135,19 @@ ok('countUpAt survives garbage', C.countUpAt(NaN, undefined, 'x') === 0)
   ok('roundedRightPath: grows to the right', C.roundedRightPath(10, 20, 100, 14, 4).startsWith('M10,20H106Q110,20'))
 }
 
+// ── heatmap ─────────────────────────────────────────────────────────────────
+{
+  // Tue 13 Oct 2026 is a Tuesday: the first cell of a run starting there is row 1 (Monday is row 0)
+  const days = ['2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19', '2026-10-20']
+  const L = C.heatmapLayout({ keys: days, values: [0, 1, 4, 9, 16, 0, 100, 25], W: 400, H: 140 })
+  ok('heatmap: a cell per day, a week per column', L.cells.length === 8 && L.weeks === 2, [L.cells.length, L.weeks])
+  ok('heatmap: Monday is the top row, the first day (a Tuesday) sits on row 1', L.cells[0].y === L.size + 3 && L.cells[6].y === 0 && L.cells[6].x > L.cells[0].x, L.cells.map((c) => [c.x, c.y]))
+  ok('heatmap: the busiest day is level 4, an empty one is level 0, the others in between', L.cells[6].level === 4 && L.cells[0].level === 0 && L.cells[1].level >= 1 && L.cells[1].level <= 2, L.cells.map((c) => c.level))
+  ok('heatmap: square root scale keeps small days visible next to a huge one (4 of 100 is level 1, 25 of 100 level 2)', L.cells[2].level === 1 && L.cells[7].level === 2, [L.cells[2].level, L.cells[7].level])
+  ok('heatmap: the grid fits its box and is centred', L.width <= 400 && L.height <= 140 && L.cells.every((c) => c.x >= 0 && c.x + c.s <= 400 && c.y + c.s <= 140))
+  ok('heatmap: nothing in, nothing out', C.heatmapLayout({ keys: [], values: [], W: 100, H: 100 }).cells.length === 0)
+  ok('heatmap: junk values do not throw', C.heatmapLayout({ keys: ['x'], values: [NaN], W: 100, H: 100 }).cells[0].level === 0)
+}
+
 console.log(fail === 0 ? 'chart-core: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)

@@ -123,6 +123,32 @@ body[data-ds-dark-theme] .kbdb,[data-ds-dark-theme] .kbdb{--kbdb-s1:#3987e5;--kb
 .kbdb-w[data-type="flow"] .kbdb-chart{min-width:680px}
 .kbdb-note-small{color:var(--kbdb-t3);font-size:11.5px;margin-top:4px}
 
+/* heatmap, table, text card */
+.kbdb-hm{transform-box:fill-box;transform-origin:50% 50%;animation:kbdb-pop .45s var(--kbdb-spring) both;animation-delay:calc(var(--c,0) * 14ms);animation-play-state:paused;transition:filter .15s}
+[data-inview] .kbdb-hm{animation-play-state:running}
+.kbdb-hm:hover{filter:brightness(1.3)}
+.kbdb-hm0{fill:color-mix(in srgb,var(--kbdb-t3) 16%,var(--kbdb-l1))}
+.kbdb-hm1{fill:color-mix(in srgb,var(--kbdb-s1) 32%,var(--kbdb-l1))}
+.kbdb-hm2{fill:color-mix(in srgb,var(--kbdb-s1) 56%,var(--kbdb-l1))}
+.kbdb-hm3{fill:color-mix(in srgb,var(--kbdb-s1) 80%,var(--kbdb-l1))}
+.kbdb-hm4{fill:var(--kbdb-s1)}
+.kbdb-hmkey{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:6px;color:var(--kbdb-t3);font-size:11px}
+.kbdb-hmkey i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.kbdb-hmkey i.kbdb-hm0{background:color-mix(in srgb,var(--kbdb-t3) 16%,var(--kbdb-l1))}
+.kbdb-hmkey i.kbdb-hm1{background:color-mix(in srgb,var(--kbdb-s1) 32%,var(--kbdb-l1))}
+.kbdb-hmkey i.kbdb-hm2{background:color-mix(in srgb,var(--kbdb-s1) 56%,var(--kbdb-l1))}
+.kbdb-hmkey i.kbdb-hm3{background:color-mix(in srgb,var(--kbdb-s1) 80%,var(--kbdb-l1))}
+.kbdb-hmkey i.kbdb-hm4{background:var(--kbdb-s1)}
+.kbdb-dt{overflow:auto;flex:1;min-height:0}
+.kbdb-dt table{width:100%;border-collapse:collapse;font-size:13px}
+.kbdb-dt th{position:sticky;top:0;z-index:1;background:var(--kbdb-l1);text-align:left;font-weight:500;color:var(--kbdb-t3);font-size:12px;padding:6px 8px;border-bottom:1px solid var(--kbdb-b2);white-space:nowrap}
+.kbdb-dt th.n,.kbdb-dt td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kbdb-dt td{padding:7px 8px;border-bottom:1px solid var(--kbdb-b1);animation:kbdb-fade .35s ease both;animation-delay:calc(var(--i,0) * 45ms)}
+.kbdb-dt td .lb{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.kbdb-dt td .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.kbdb-dt td.bar{background:linear-gradient(90deg,color-mix(in srgb,var(--kbdb-s1) 24%,transparent) var(--p,0%),transparent var(--p,0%))}
+.kbdb-kpi-v.t{font-size:20px;line-height:1.3;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
 /* chart motion */
 .kbdb-bar{transform-box:fill-box;transform-origin:50% 100%;animation:kbdb-rise .6s var(--kbdb-spring) both;animation-delay:calc(var(--i,0) * 26ms + var(--s,0) * 45ms);animation-play-state:paused;transition:filter .15s,transform .15s}
 [data-inview] .kbdb-bar{animation-play-state:running}
@@ -273,9 +299,15 @@ body[data-ds-dark-theme] .kbdb,[data-ds-dark-theme] .kbdb{--kbdb-s1:#3987e5;--kb
 .kbdb-gcard .gh{display:flex;align-items:center;gap:8px}
 .kbdb-gcard h3{margin:0;font-size:15px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbdb-gcard p{margin:0;color:var(--kbdb-t2);font-size:12.5px}
-.kbdb-gmini{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:6px;gap:3px;padding:8px;border-radius:10px;background:var(--kbdb-l2);height:96px;overflow:hidden;align-content:start}
-.kbdb-gmini i{grid-column:span var(--w);grid-row:span var(--h);border-radius:3px;background:var(--kbdb-b3);transition:background-color .2s}
-.kbdb-gcard:hover .kbdb-gmini i{background:var(--kbdb-t4)}
+.kbdb-gmini{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:var(--rh,7px);gap:3px;padding:8px;border-radius:10px;background:var(--kbdb-l2);height:112px;overflow:hidden;align-content:start}
+.kbdb-gmini i{grid-column:span var(--w);grid-row:span var(--h);border-radius:4px;background:var(--kbdb-l1);border:1px solid var(--kbdb-b2);overflow:hidden;transition:border-color .2s,transform .25s var(--kbdb-spring)}
+.kbdb-gmini i[data-type="note"]{background:var(--kbdb-warn-t);border-color:transparent}
+.kbdb-gmini svg{display:block;width:100%;height:100%}
+.kbdb-gmini .mi-ink{fill:var(--kbdb-t2)}
+.kbdb-gmini .mi-dim{fill:var(--kbdb-t4)}
+.kbdb-gmini .mi-line{stroke:var(--kbdb-t4);stroke-width:1;fill:none}
+.kbdb-gcard:hover .kbdb-gmini i{border-color:var(--kbdb-t4)}
+.kbdb-gcard:hover .kbdb-gmini i:nth-child(odd){transform:translateY(-1px)}
 .kbdb-gmeta{display:flex;gap:6px;flex-wrap:wrap}
 .kbdb-gcard .acts{display:flex;gap:8px;align-items:center;margin-top:auto}
 .kbdb-gempty{padding:28px 16px;border:1px dashed var(--kbdb-b3);border-radius:14px;text-align:center;color:var(--kbdb-t2);display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -563,6 +595,18 @@ function paintDonut (data, size, o) {
   return svgOpen(size, size, opts.label || 'Donut') + g + '</svg>'
 }
 
+/** A calendar heatmap: a square per day, a week per column, each pops in from the left. `data` is model.chartData's answer. */
+function paintHeatmap (data, W, H, o) {
+  const opts = o || {}
+  const L = chart.heatmapLayout({ keys: data.labels.map((l) => l.key), values: data.totals, W, H })
+  let g = ''
+  for (const c of L.cells) {
+    const tip = '<b>' + esc(fmtLabel(c.key, opts.lang)) + '</b><span>' + esc(num(c.v)) + (data.unit ? ' ' + esc(data.unit) : '') + '</span>'
+    g += '<rect class="kbdb-hm kbdb-hm' + c.level + '" style="--c:' + Math.min(c.col, 60) + '" x="' + c.x + '" y="' + c.y + '" width="' + c.s + '" height="' + c.s + '" rx="' + Math.max(2, Math.round(c.s * 0.2)) + '" data-tip="' + esc(tip) + '"/>'
+  }
+  return svgOpen(W, Math.max(1, Math.ceil(L.height)), opts.label || 'Heatmap') + g + '</svg>'
+}
+
 /** A sankey: ribbons drawn from the left, nodes growing, labels fading in. `sk` is model.sankeyData's answer. */
 function paintSankey (sk, W, H, o) {
   const opts = o || {}
@@ -626,7 +670,7 @@ function paintSpark (values, w, h) {
 // painters of paint.js and the helpers of data.js).
 const React = require('react')
 const h = React.createElement
-const { useState, useEffect, useRef, useMemo, useCallback } = React
+const { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } = React
 
 /* ── icons ── */
 const ICONS = {
@@ -751,8 +795,8 @@ function CardBody ({ wd, table, stale, inView, now }) {
   const text = model.formatNumber(v, wd.format) + (wd.unit ? ' ' + wd.unit : '')
   const sparkHtml = useMemo(() => (c.spark ? paintSpark(c.spark, 96, 34) : ''), [c.spark])
   return h('div', { className: 'kbdb-kpi' + (c.st === 'warn' ? ' warn' : '') + (stale ? ' kbdb-stale' : '') },
-    h('div', null,
-      h('div', { className: 'kbdb-kpi-v', 'data-kb': 'dashboards-value' }, text),
+    h('div', { style: { minWidth: 0 } },
+      h('div', { className: 'kbdb-kpi-v' + (c.label !== undefined ? ' t' : ''), 'data-kb': 'dashboards-value', title: c.label !== undefined ? c.label : undefined }, c.label !== undefined ? (c.label === '' ? '—' : c.label) : text),
       c.sub !== '' ? h('div', { className: 'kbdb-kpi-s' }, h('span', { className: 'kbdb-dot' + (c.st === 'warn' ? ' warn' : (c.st === 'fail' ? ' err' : '')) }), c.sub) : null),
     sparkHtml !== '' ? h('span', { dangerouslySetInnerHTML: { __html: sparkHtml } }) : null)
 }
@@ -778,6 +822,7 @@ function ChartBody ({ wd, table, stale, asTable }) {
     else if (wd.kind === 'bars') svg = paintBars(data, w, ht, o)
     else if (wd.kind === 'line' || wd.kind === 'area') svg = paintLine(data, w, ht, wd.kind === 'area', o)
     else if (donutInfo) svg = paintDonut(data, Math.max(80, Math.min(w * 0.5, ht)), { label: wd.title, caption: wd.unit || '' })
+    else if (wd.kind === 'heatmap') svg = paintHeatmap(data, w, ht, o)
   }
   const onMove = (e) => {
     const t = e.target
@@ -799,7 +844,26 @@ function ChartBody ({ wd, table, stale, asTable }) {
   }
   return h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } },
     multi ? h('div', { dangerouslySetInnerHTML: { __html: legendHtml(data.series) } }) : null,
-    h('div', { className: 'kbdb-chart' + (stale ? ' kbdb-stale' : ''), ref, onMouseMove: onMove, dangerouslySetInnerHTML: { __html: svg } }))
+    h('div', { className: 'kbdb-chart' + (stale ? ' kbdb-stale' : ''), ref, onMouseMove: onMove, dangerouslySetInnerHTML: { __html: svg } }),
+    wd.kind === 'heatmap' ? h('div', { className: 'kbdb-hmkey', 'aria-hidden': 'true' }, kt('Moins', 'Less'), [0, 1, 2, 3, 4].map((l) => h('i', { key: l, className: 'kbdb-hm' + l })), kt('Plus', 'More')) : null)
+}
+
+/* ── table ── */
+function TableBody ({ wd, table, stale }) {
+  const d = useMemo(() => model.tableData(table, wd), [table, wd])
+  if (d.rows.length === 0) return h(Empty, null, kt('Aucune ligne.', 'No rows.'))
+  const now = Date.now()
+  const show = (c, v) => (c.type === 'number' ? model.formatNumber(Number(v), c.format) : ((c.type === 'time' || c.type === 'date') ? fmtWhen(v, c.type, now) : String(v)))
+  return h('div', { className: 'kbdb-dt' + (stale ? ' kbdb-stale' : '') },
+    h('table', null,
+      h('thead', null, h('tr', null, d.columns.map((c) => h('th', { key: c.field, className: c.type === 'number' ? 'n' : '' }, c.label)))),
+      h('tbody', null, d.rows.map((row, i) => h('tr', { key: i, style: { '--i': Math.min(i, 14) } }, row.map((cl, k) => {
+        const c = d.columns[k]
+        const text = show(c, cl.v)
+        const inner = k === 0 && wd.swatch ? h('span', { className: 'lb' }, h('i', { className: 'sw kbdb-s' + ((i % 6) + 1) }), text) : text
+        const style = c.bar && c.max > 0 ? { '--p': Math.max(2, Math.round((Number(cl.v) / c.max) * 100)) + '%' } : undefined
+        return h('td', { key: k, className: (c.type === 'number' ? 'n' : '') + (c.bar ? ' bar' : ''), style }, inner)
+      }))))))
 }
 
 /* ── calendar ── */
@@ -1017,6 +1081,7 @@ function Widget ({ wd, index, tick, edit, flash, onPatch, onRemove, onMove, onWi
       case 'card': body = h(CardBody, common); break
       case 'chart': body = h(ChartBody, Object.assign({ asTable }, common)); break
       case 'calendar': body = h(CalendarBody, common); break
+      case 'table': body = h(TableBody, common); break
       case 'list': body = h(ListBody, common); break
       case 'kanban': body = h(KanbanBody, common); break
       case 'carousel': body = h(CarouselBody, Object.assign({ railRef }, common)); break
@@ -1129,8 +1194,66 @@ function changedIds (before, after) {
   return new Set(after.filter((w) => old.get(w.id) !== JSON.stringify(w)).map((w) => w.id))
 }
 
+/** A tiny coloured sketch of one widget for the gallery cards: its kind of chart, a sparkline on a card, the colours the real one uses. */
+function miniGlyph (s) {
+  const bar = (i, v, c) => '<rect class="kbdb-s' + c + '" x="' + (4 + i * 7) + '" y="' + (27 - v) + '" width="5" height="' + v + '" rx="1"/>'
+  switch (s.type) {
+    case 'card':
+      return '<rect class="mi-ink" x="5" y="6" width="17" height="7" rx="2"/><rect class="mi-dim" x="5" y="17" width="27" height="3" rx="1.5"/>'
+        + (s.spark ? '<polyline class="kbdb-k1" points="29,26 33,21 37,23 42,12" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' : '<rect class="kbdb-s2" x="5" y="23" width="10" height="3" rx="1.5"/>')
+    case 'chart': {
+      const k = s.kind
+      if (k === 'stacked') return [10, 16, 12, 19, 14, 21].map((v, i) => bar(i, v, 1) + bar(i, Math.round(v * 0.45), 2)).join('')
+      if (k === 'bars') return [[34, 1], [26, 2], [20, 3], [12, 4]].map((r, i) => '<rect class="kbdb-s' + r[1] + '" x="4" y="' + (4 + i * 6) + '" width="' + r[0] + '" height="4" rx="2"/>').join('')
+      if (k === 'line') return '<polyline class="kbdb-k1" points="3,22 11,15 18,18 27,8 36,12 45,5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><polyline class="kbdb-k2" points="3,25 14,21 24,23 34,18 45,19" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=".8"/>'
+      if (k === 'area') return '<path class="kbdb-s1" fill-opacity=".25" d="M3 27 L3 21 L11 15 L18 18 L27 8 L36 12 L45 6 L45 27 Z"/><polyline class="kbdb-k1" points="3,21 11,15 18,18 27,8 36,12 45,6" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+      if (k === 'donut') return '<g transform="rotate(-90 24 15)"><circle cx="24" cy="15" r="9" fill="none" stroke-width="5" class="kbdb-k1" stroke-dasharray="30 57"/><circle cx="24" cy="15" r="9" fill="none" stroke-width="5" class="kbdb-k2" stroke-dasharray="15 57" stroke-dashoffset="-30"/><circle cx="24" cy="15" r="9" fill="none" stroke-width="5" class="kbdb-k3" stroke-dasharray="9 57" stroke-dashoffset="-45"/></g>'
+      if (k === 'heatmap') {
+        const lv = [0, 1, 0, 2, 0, 3, 1, 0, 2, 4, 1, 0, 3, 2, 0, 1, 4, 3, 0, 2, 1, 0, 3, 4]
+        return lv.map((l, i) => '<rect class="kbdb-hm' + l + '" x="' + (3 + Math.floor(i / 4) * 7.4) + '" y="' + (3 + (i % 4) * 6.2) + '" width="5.6" height="5" rx="1.2"/>').join('')
+      }
+      return [8, 14, 10, 18, 12, 21, 15].map((v, i) => bar(i, v, 1)).join('')
+    }
+    case 'table':
+      return '<rect class="mi-dim" x="4" y="4" width="40" height="2.5" rx="1"/>' + [0, 1, 2].map((i) => '<rect class="kbdb-s' + (i + 1) + '" x="4" y="' + (10 + i * 6) + '" width="4" height="4" rx="1"/><rect class="mi-ink" x="11" y="' + (10.5 + i * 6) + '" width="' + (14 - i * 2) + '" height="3" rx="1.5"/><rect class="kbdb-s1" fill-opacity=".45" x="29" y="' + (10.5 + i * 6) + '" width="' + (15 - i * 4) + '" height="3" rx="1.5"/>').join('')
+    case 'calendar':
+      return [0, 1, 2, 3, 4, 5, 6].map((i) => '<rect class="mi-line" x="' + (3 + i * 6.2) + '" y="3" width="5.2" height="24" rx="1.4" style="fill:var(--kbdb-l2)"/>').join('')
+        + '<rect class="kbdb-tone-ok" x="4" y="7" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-ok" x="16.4" y="11" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-err" x="22.6" y="7" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-ok" x="28.8" y="15" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-idle" x="35" y="9" width="3.2" height="3.2" rx="1"/>'
+    case 'list':
+      return [0, 1, 2, 3].map((i) => '<circle class="' + (i === 2 ? 'kbdb-tone-err' : 'kbdb-tone-ok') + '" cx="6" cy="' + (6 + i * 6.2) + '" r="1.7"/><rect class="mi-ink" x="11" y="' + (4.7 + i * 6.2) + '" width="' + (22 - (i % 2) * 6) + '" height="2.6" rx="1.3"/><rect class="mi-dim" x="37" y="' + (4.9 + i * 6.2) + '" width="7" height="2.2" rx="1.1"/>').join('')
+    case 'kanban':
+      return [0, 1, 2].map((c) => '<rect x="' + (3 + c * 15) + '" y="3" width="13.5" height="24" rx="2" style="fill:var(--kbdb-l2)"/>' + [0, 1, 2].slice(0, 3 - c).map((r) => '<rect class="kbdb-s' + (c + 1) + '" fill-opacity=".85" x="' + (4.5 + c * 15) + '" y="' + (5.5 + r * 7) + '" width="10.5" height="5" rx="1.4"/>').join('')).join('')
+    case 'carousel':
+      return [0, 1, 2, 3].map((i) => '<rect x="' + (2 + i * 12) + '" y="5" width="10.5" height="20" rx="2" style="fill:var(--kbdb-l2)"/><rect class="kbdb-s' + ((i % 5) + 1) + '" fill-opacity=".8" x="' + (3 + i * 12) + '" y="6" width="8.5" height="9" rx="1.4"/><rect class="mi-ink" x="' + (3.5 + i * 12) + '" y="18" width="7.5" height="2" rx="1"/>').join('')
+    case 'note':
+      return '<rect class="mi-ink" x="5" y="6" width="26" height="2.6" rx="1.3"/><rect class="mi-dim" x="5" y="12" width="36" height="2.2" rx="1.1"/><rect class="mi-dim" x="5" y="17" width="31" height="2.2" rx="1.1"/><rect class="mi-dim" x="5" y="22" width="20" height="2.2" rx="1.1"/>'
+    case 'flow':
+      return '<path class="mi-line" d="M15 10 H21 M33 10 H36 M15 10 C19 10 19 21 23 21 M31 21 H36" style="stroke:var(--kbdb-t4)"/>'
+        + '<rect class="kbdb-s1" x="3" y="6" width="12" height="8" rx="2.4"/><rect class="kbdb-s2" x="21" y="6" width="12" height="8" rx="2.4"/><rect class="kbdb-tone-ok" x="36" y="6" width="9" height="8" rx="2.4"/><rect class="kbdb-tone-err" x="23" y="17" width="9" height="8" rx="2.4"/>'
+    case 'sankey':
+      return '<path class="kbdb-s1" fill-opacity=".45" d="M7 4 C22 4 26 6 41 6 L41 14 C26 14 22 13 7 13 Z"/><path class="kbdb-s2" fill-opacity=".45" d="M7 15 C22 15 26 17 41 17 L41 22 C26 22 22 23 7 23 Z"/>'
+        + '<rect class="kbdb-s1" x="4" y="4" width="3" height="9" rx="1"/><rect class="kbdb-s2" x="4" y="15" width="3" height="8" rx="1"/><rect class="kbdb-s1" x="41" y="6" width="3" height="8" rx="1"/><rect class="kbdb-s2" x="41" y="17" width="3" height="5" rx="1"/>'
+    default:
+      return '<rect class="mi-dim" x="4" y="4" width="40" height="22" rx="3"/>'
+  }
+}
 function Mini ({ shape }) {
-  return h('span', { className: 'kbdb-gmini' }, (shape || []).map((s, i) => h('i', { key: i, style: { '--w': s.w, '--h': Math.max(1, Math.round(s.h * 1.9)) } })))
+  const ref = useRef(null)
+  const [rh, setRh] = useState(7)
+  const key = JSON.stringify(shape || [])
+  // the whole dashboard has to fit the box: once the browser has placed the widgets, the row height is what makes the rows fill it
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (el === null || typeof getComputedStyle !== 'function') return
+    const rows = getComputedStyle(el).gridTemplateRows.split(' ').filter((x) => x !== '').length
+    if (rows === 0) return
+    const free = el.clientHeight - 16 - (rows - 1) * 3
+    setRh(Math.max(2, Math.min(9, Math.floor((free / rows) * 10) / 10)))
+  }, [key])
+  return h('span', { className: 'kbdb-gmini', ref, 'aria-hidden': 'true', style: { '--rh': rh + 'px' } }, (shape || []).map((s, i) => h('i', {
+    key: i, 'data-type': s.type, 'data-kind': s.kind || undefined, style: { '--w': s.w, '--h': Math.max(1, s.h) },
+    dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 48 30" preserveAspectRatio="' + (s.kind === 'donut' || s.type === 'flow' ? 'xMidYMid meet' : 'none') + '">' + miniGlyph(s) + '</svg>' },
+  })))
 }
 
 function DashboardsPage () {
@@ -1525,5 +1648,5 @@ return {
   // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
   inject: ['slots', 'sidebarRightTabs'],
   apply,
-  __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, CSS },
+  __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, CSS },
 }

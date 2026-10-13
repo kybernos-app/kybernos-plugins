@@ -279,6 +279,34 @@ export function sankeyLayout ({ cols, links, W, H, nodeW = 10, gap = 10, margin 
 
 // ── flow ─────────────────────────────────────────────────────────────────────
 
+/**
+ * A calendar heatmap: one square per day, a week per column (Monday on top), the oldest day at the left.
+ * keys: 'YYYY-MM-DD' in time order, values: numbers. -> { cells:[{i,key,x,y,s,level,v}], weeks, size, width, height, max }
+ * level 0 is "nothing"; 1..4 are the busier days, on a square-root scale so one huge day does not wash out the rest.
+ */
+export function heatmapLayout ({ keys, values, W, H, gap = 3, maxCell = 30, minCell = 5 }) {
+  const n = Math.min(arrLen(keys), arrLen(values))
+  if (n === 0) return { cells: [], weeks: 0, size: 0, width: 0, height: 0, max: 0 }
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(keys[0]))
+  const first = m === null ? 0 : (new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay() + 6) % 7
+  const weeks = Math.ceil((first + n) / 7)
+  const s = clamp(Math.floor(Math.min((fin(W) - gap * (weeks - 1)) / weeks, (fin(H) - gap * 6) / 7)), minCell, maxCell)
+  const width = weeks * s + (weeks - 1) * gap
+  const x0 = Math.max(0, Math.round((fin(W) - width) / 2))
+  let max = 0
+  for (let i = 0; i < n; i++) max = Math.max(max, fin(values[i]))
+  const cells = []
+  for (let i = 0; i < n; i++) {
+    const v = Math.max(0, fin(values[i]))
+    const col = Math.floor((first + i) / 7)
+    const row = (first + i) % 7
+    const level = v <= 0 || max <= 0 ? 0 : Math.min(4, 1 + Math.floor(Math.sqrt(v / max) * 4 - 1e-9))
+    cells.push({ i, key: String(keys[i]), col, row, x: x0 + col * (s + gap), y: row * (s + gap), s, level, v })
+  }
+  return { cells, weeks, size: s, width, height: 7 * s + 6 * gap, max }
+}
+const arrLen = (a) => (Array.isArray(a) ? a.length : 0)
+
 export const FLOW_NODE = { w: 180, h: 56 }
 /** A cubic from the right edge of node a to the left edge of node b, and a rough length for dash animation. */
 export function flowEdgePath (a, b, nw = FLOW_NODE.w, nh = FLOW_NODE.h) {

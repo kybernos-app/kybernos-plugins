@@ -252,6 +252,45 @@ const tableOf = (id, params) => M.buildTable({ provider: id, params: params || {
 ok('sourcesOf lists each provider once with its widgets', same(M.sourcesOf({ widgets: [{ id: 'a', source: { provider: 'usage.daily' } }, { id: 'b', source: { provider: 'usage.daily' } }, { id: 'c' }] }).map((s) => s.provider + ':' + s.widgets.join('+')), ['usage.daily:a+b']))
 ok('describeCatalogue names every provider and widget type', M.PROVIDER_IDS.every((id) => M.describeCatalogue().providers.includes(id)) && M.WIDGET_TYPES.every((t) => M.describeCatalogue().widgets.includes('- ' + t + ' ')))
 
+// ── usage.models, usage.totals, top, per, table, heatmap ───────────────────────
+{
+  const mt = M.buildTable({ provider: 'usage.models', params: { days: 14 } }, PARTS['usage.models'], NOW)
+  const all = mt.rows.reduce((a, r) => a + r.tokens, 0)
+  ok('usage.models: one row per model, biggest first, shares add up to 100', mt.rows.length === 3 && mt.rows[0].tokens >= mt.rows[1].tokens && Math.abs(mt.rows.reduce((a, r) => a + r.share, 0) - 100) < 0.5 && mt.rows[0].provider === 'anthropic', mt.rows.map((r) => [r.model, r.share]))
+  ok('usage.models: input + output + cache = tokens on every row', mt.rows.every((r) => r.tokens === r.input + r.output + r.cache_read + r.cache_write) && all > 0)
+  ok('usage.models: no models, no rows', M.buildTable({ provider: 'usage.models' }, { summary: { daily: [], models: {} } }, NOW).rows.length === 0)
+  const tt = M.buildTable({ provider: 'usage.totals', params: { days: 14 } }, PARTS['usage.totals'], NOW)
+  ok('usage.totals: one row, the count of sessions is the ledger\'s, not the 40 listed', tt.rows.length === 1 && tt.rows[0].sessions === 121 && tt.rows[0].models === 3 && tt.rows[0].tokens === all, tt.rows[0])
+  ok('usage.totals: active days are the days with tokens', tt.rows[0].active_days > 0 && tt.rows[0].active_days <= 14, tt.rows[0].active_days)
+  ok('usage.totals: an older host (no sessionCount) falls back to the list', M.buildTable({ provider: 'usage.totals' }, { summary: { daily: [], models: {}, sessions: [{}, {}] } }, NOW).rows[0].sessions === 2)
+  ok('usage.totals: an unreadable answer is an empty table', M.buildTable({ provider: 'usage.totals' }, {}, NOW).rows.length === 0)
+
+  const top = M.validateDashboard({ widgets: [{ type: 'card', title: 'Fav', source: { provider: 'usage.models', params: { days: 14 } }, metric: { agg: 'top', field: 'model', by: 'tokens' }, sub: { template: '{v}% of all tokens', metric: { agg: 'max', field: 'share' } } }] }).dashboard.widgets[0]
+  const cd = M.cardData(mt, top)
+  ok('card top: names the model that weighs most', cd.label === mt.rows[0].model && cd.text === mt.rows[0].model, [cd.label, cd.text])
+  ok('card top: the sub line keeps its number', cd.sub === Math.round(mt.rows[0].share * 10) / 10 + '% of all tokens' || cd.sub === mt.rows[0].share + '% of all tokens', cd.sub)
+  ok('card top: without by it is the most frequent value', M.cardData(M.buildTable({ provider: 'usage.daily', params: { days: 14 } }, PARTS['usage.daily'], NOW), M.validateDashboard({ widgets: [{ type: 'card', source: { provider: 'usage.daily' }, metric: { agg: 'top', field: 'model' } }] }).dashboard.widgets[0]).label !== '')
+  ok('card top: inspect asks for a field', M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'card', title: 'x', source: { provider: 'usage.daily' }, metric: { agg: 'top' } }] }).dashboard).some((w) => w.includes('top') && w.includes('metric.field')))
+  const per = M.validateDashboard({ widgets: [{ type: 'card', title: 'x', source: { provider: 'usage.totals' }, metric: { agg: 'sum', field: 'tokens' }, per: 22000 }, { type: 'card', title: 'y', source: { provider: 'usage.totals' }, metric: { agg: 'sum', field: 'tokens' }, per: -4 }] }).dashboard.widgets
+  const tot = tt.rows[0].tokens
+  ok('card per: the number is divided, a bad divisor is ignored', Math.abs(M.cardData(tt, per[0]).value - tot / 22000) < 1e-9 && per[1].per === undefined && M.cardData(tt, per[1]).value === tot)
+
+  const tb = M.validateDashboard({ widgets: [{ type: 'table', title: 'Models', source: { provider: 'usage.models', params: { days: 14 } }, columns: [{ field: 'model', label: 'Model' }, { field: 'output', label: 'Out', format: 'compact', bar: true }, { field: 'share', format: 'percent' }, { field: '' }], sort: '-tokens', limit: 2, swatch: true }] })
+  const tw = tb.dashboard.widgets[0]
+  ok('table: columns are cleaned, an empty field dropped, defaults filled', tw.type === 'table' && tw.columns.length === 3 && tw.columns[1].bar === true && tw.columns[2].format === 'percent' && tw.columns[0].format === 'compact' && tw.swatch === true && tw.limit === 2, tw)
+  const td = M.tableData(mt, tw)
+  ok('table: sorted, cut, with the label of a column from the source when none is given', td.rows.length === 2 && td.total === 3 && td.columns[2].label === 'Share of all tokens (%)' && td.rows[0][0].v === mt.rows[0].model && td.columns[1].max === Math.max(...mt.rows.slice(0, 2).map((r) => r.output)), td.columns)
+  ok('table: a table with no column is refused', M.validateDashboard({ widgets: [{ type: 'table', title: 'x', source: { provider: 'usage.models' }, columns: [] }] }).dashboard.widgets.length === 0)
+  ok('table: inspect names a field that is not a column', M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'table', title: 'x', source: { provider: 'usage.models' }, columns: [{ field: 'nope' }] }] }).dashboard).some((w) => w.includes('"nope"')))
+
+  const hmw = M.validateDashboard({ widgets: [{ type: 'chart', title: 'Days', kind: 'heatmap', x: 'day', y: 'tokens', agg: 'sum', source: { provider: 'usage.daily', params: { days: 14 } } }] }).dashboard
+  ok('heatmap: a chart kind, no warning on a date column', hmw.widgets[0].kind === 'heatmap' && M.inspectDashboard(hmw).length === 0, M.inspectDashboard(hmw))
+  ok('heatmap: inspect says a text column is not a date', M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'chart', title: 'x', kind: 'heatmap', x: 'model', y: 'tokens', source: { provider: 'usage.daily' } }] }).dashboard).some((w) => w.includes('date column')))
+  const dd = M.chartData(M.buildTable({ provider: 'usage.daily', params: { days: 14 } }, PARTS['usage.daily'], NOW), hmw.widgets[0])
+  ok('heatmap: one total per day of the period, zeros kept', dd.labels.length === 14 && dd.totals.length === 14 && dd.totals.some((v) => v === 0) && dd.totals.some((v) => v > 0))
+  ok('shapeOf: a chart tells its kind, a card its sparkline, nothing else is added', JSON.stringify(M.shapeOf({ w: 4, h: 2, type: 'chart', kind: 'heatmap' })) === '{"w":4,"h":2,"type":"chart","kind":"heatmap"}' && M.shapeOf({ w: 3, h: 2, type: 'card', spark: { x: 'day' } }).spark === true && M.shapeOf({ w: 3, h: 2, type: 'list' }).kind === undefined)
+}
+
 // ── a flow with live numbers on its nodes ──────────────────────────────────────
 {
   const v = M.validateDashboard({ name: 'F', widgets: [{

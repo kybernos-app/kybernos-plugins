@@ -131,8 +131,16 @@ console.log('gallery')
   const { ctx, page } = await open()
   await mount(page, PAGE)
   await page.waitForSelector('[data-kb="dashboards-preset"]')
-  check('the gallery offers the presets', (await page.locator('[data-kb="dashboards-preset"]').count()) >= 4)
+  check('the gallery offers the presets', (await page.locator('[data-kb="dashboards-preset"]').count()) >= 9)
+  // the sketch of each preset is coloured: real hues from the chart palette, not greys
+  const minis = await page.locator('[data-kb="dashboards-preset"] .kbdb-gmini').evaluateAll((els) => els.map((m) => {
+    const rects = Array.from(m.querySelectorAll('svg .kbdb-s1, svg .kbdb-s2, svg .kbdb-k1, svg .kbdb-hm4'))
+    const sat = rects.map((r) => { const cs = getComputedStyle(r); const c = (cs.fill !== 'none' && cs.fill !== '' ? cs.fill : cs.stroke).match(/\d+(\.\d+)?/g) || []; const v = c.slice(0, 3).map(Number); return v.length === 3 ? Math.max(...v) - Math.min(...v) : 0 })
+    return { svgs: m.querySelectorAll('svg').length, coloured: sat.filter((x) => x > 40).length }
+  }))
+  check('every preset sketch has a picture per widget, in colour', minis.length >= 9 && minis.every((m) => m.svgs >= 5 && m.coloured >= 2), minis)
   check('an empty list says so and offers the AI', (await page.locator('.kbdb-gempty').count()) === 1 && (await page.locator('[data-act="create"]').count()) === 1)
+  await page.waitForTimeout(1800) // the cards fade in one after the other: shoot them once they are all there
   await shot(page, '01-gallery-empty')
   await page.click('[data-act="create"]')
   const sent = await page.evaluate(() => window.__chat)
@@ -194,7 +202,7 @@ let usageId = null
 
 // ── 3. dark, and the other presets ───────────────────────────────────────────
 console.log('dark and the other presets')
-for (const id of ['automations-health', 'agent-teams', 'workspace-pulse', 'automation-flow', 'work-pipeline', 'token-routes']) {
+for (const id of ['automations-health', 'agent-teams', 'workspace-pulse', 'automation-flow', 'work-pipeline', 'token-routes', 'usage-overview', 'usage-models']) {
   const made = JSON.parse((await hostCall('POST', '/kybernos-dashboards/preset', JSON.stringify({ preset: id }))).body)
   const { ctx, page } = await open({ dark: true, scheme: 'dark' })
   await mount(page, PAGE)
@@ -219,6 +227,25 @@ for (const id of ['automations-health', 'agent-teams', 'workspace-pulse', 'autom
   if (id === 'automation-flow') {
     const failedTone = await page.locator('.kbdb-fnode[data-nid="failed"] circle').last().evaluate((el) => el.getAttribute('style') || '')
     check('automation-flow: a failed run turns its node red', /--kbdb-err/.test(failedTone), failedTone)
+  }
+  if (id === 'usage-overview') {
+    // the six tiles, a heatmap of 120 days in blue levels, and the favourite model named (text, not a number)
+    const fav = await page.locator('.kbdb-w[data-type="card"]').filter({ hasText: 'Favorite model' }).locator('.kbdb-kpi-v').first().textContent()
+    check('usage-overview: the favorite model is named', /sonnet|deepseek|qwen/i.test(fav || ''), fav)
+    const cells = await page.locator('.kbdb-w .kbdb-hm').evaluateAll((els) => els.map((e) => (e.getAttribute('class') || '').match(/kbdb-hm(\d)/)[1]))
+    check('usage-overview: the heatmap has a square per day with several levels', cells.length === 120 && new Set(cells).size >= 3, [cells.length, Array.from(new Set(cells))])
+    const tile = await page.locator('.kbdb-w[data-type="card"]').filter({ hasText: 'Sessions' }).locator('.kbdb-kpi-v').first().textContent()
+    check('usage-overview: sessions are the count of the ledger, not the 40 listed', /^121$/.test((tile || '').trim()), tile)
+    const key = await page.locator('.kbdb-hmkey').count()
+    check('usage-overview: the heatmap has its Less/More key', key === 1, key)
+  }
+  if (id === 'usage-models') {
+    const rows = await page.locator('.kbdb-dt tbody tr').count()
+    const sw = await page.locator('.kbdb-dt .sw').count()
+    const pct = await page.locator('.kbdb-dt tbody tr').first().locator('td').last().textContent()
+    check('usage-models: a table of the models with a swatch and a share', rows === 3 && sw === 3 && /%$/.test((pct || '').trim()), [rows, sw, pct])
+    const bar = await page.locator('.kbdb-dt td.bar').first().evaluate((el) => getComputedStyle(el).backgroundImage)
+    check('usage-models: the share column draws its bar', /linear-gradient/.test(bar), bar)
   }
   if (id === 'work-pipeline' || id === 'automation-flow' || id === 'token-routes') {
     const ribbons = await page.locator('.kbdb-w[data-type="sankey"] svg path').count()

@@ -29,7 +29,10 @@ export function fixturesAt (now) {
       { id: 's-team', title: 'Team server review', seen: iso(now - DAY), models: { 'anthropic/sonnet-5-5': { u: 900000, o: 300000, cr: 400000, cw: 10000 }, 'deepseek-official/deepseek-v4': { u: 400000, o: 100000, cr: 0, cw: 0 } } },
       { id: 's-admin', title: 'Invoices', seen: iso(now - 3 * DAY), models: { 'openrouter/qwen-local': { u: 300000, o: 90000, cr: 0, cw: 0 } } },
     ]
-    return { ok: true, period: { days, from: daily[0].day, to: daily[daily.length - 1].day }, daily, models: {}, sessions, before: { 'anthropic/sonnet-5-5': { u: 10, o: 5, cr: 0, cw: 0 } }, since: daily[0].day, budget: { usd: 40, alert: true } }
+    // the totals by model over the period, as the ledger sums them
+    const models = {}
+    for (const d of daily) for (const k of Object.keys(d.models)) { const t = models[k] || (models[k] = { u: 0, o: 0, cr: 0, cw: 0 }); for (const c of ['u', 'o', 'cr', 'cw']) t[c] += d.models[k][c] }
+    return { ok: true, period: { days, from: daily[0].day, to: daily[daily.length - 1].day }, daily, models, sessionCount: 121, sessions, before: { 'anthropic/sonnet-5-5': { u: 10, o: 5, cr: 0, cw: 0 } }, since: daily[0].day, budget: { usd: 40, alert: true } }
   }
 
   /** POST /kybernos/tasks {action:'list'} */
@@ -87,6 +90,8 @@ export function fixturesAt (now) {
   const PARTS = {
     'usage.daily': { summary: usageSummary(14) },
     'usage.sessions': { summary: usageSummary(14) },
+    'usage.models': { summary: usageSummary(14) },
+    'usage.totals': { summary: usageSummary(14) },
     'automations.runs': { tasks: tasksList() },
     'automations.list': { tasks: tasksList() },
     'automations.timeline': { tasks: tasksList(), occurrences: occurrences() },
