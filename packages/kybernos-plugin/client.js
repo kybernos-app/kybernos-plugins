@@ -33051,11 +33051,13 @@ html.wv2-actif [data-composer-seat]{display:none !important}
 
     // ═══ Onboarding: the first-run wizard ═══════════════════════════════════════════
     // Opens once, on a fresh install (GET /kybernos/onboarding answers `completed:false`; the
-    // host CREATES ~/.dsh/kybernos/onboarding.json on that first read). Four screens at most:
-    // welcome, profession, display mode, and « which model do you want to work with? », which is
-    // skipped when a model already works. « Skip », the cross and Escape all close it and record
-    // what was chosen so far: it is never asked twice. Replay: the button at the top of Kybernos
-    // Settings (bundle kybernos-sessions) fires the window event `kybernos:onboarding`.
+    // host CREATES ~/.dsh/kybernos/onboarding.json on that first read). Screens: welcome, profession,
+    // display mode, « which models should Kybernos use? » (a Kybernos account or an own key, the
+    // other ways one line below; never skipped, so a replay is where an account gets added) and a
+    // starter kit of skills and agent teams that fit the profession. « Skip », the cross and Escape
+    // all close it and record what was chosen so far: it is never asked twice. Replay and
+    // « Starter kit »: the buttons at the top of Kybernos Settings (bundle kybernos-sessions) fire
+    // the window event `kybernos:onboarding` with `action: 'replay' | 'kit'`.
     //
     // The texts are SHIPPED here for English, French, Spanish and Arabic, and are NOT read from the
     // translation runtime: that one needs a model, and this wizard is what gets the person one.
@@ -33114,35 +33116,11 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'mode.code.d': ['I want to see code, command output, and change details throughout the development process.', 'Je veux voir le code, les sorties de commandes et le détail des changements tout au long du chantier.', 'Quiero ver el código, la salida de los comandos y el detalle de los cambios durante todo el trabajo.', 'أريد رؤية الشيفرة ومخرجات الأوامر وتفاصيل التغييرات طوال العمل.'],
       'mode.bureau.t': ['Office mode', 'Mode Bureau', 'Modo Oficina', 'وضع المكتب'],
       'mode.bureau.d': ['I focus on task progress and results, without technical details.', 'Je suis l’avancement et les résultats, sans les détails techniques.', 'Sigo el avance y los resultados, sin detalles técnicos.', 'أتابع التقدّم والنتائج دون التفاصيل التقنية.'],
-      'brain.t': ['Which model do you want to work with?', 'Avec quel modèle veux-tu travailler ?', '¿Con qué modelo quieres trabajar?', 'بأي نموذج تريد أن تعمل؟'],
-      'brain.s': ['Your agents need an AI model to answer. Pick the simplest option for you; you can change it later in Settings.', 'Tes agents ont besoin d’un modèle d’IA pour répondre. Prends le plus simple pour toi ; tu pourras en changer dans Réglages.', 'Tus agentes necesitan un modelo de IA para responder. Elige lo más sencillo para ti; podrás cambiarlo más tarde en Ajustes.', 'يحتاج وكلاؤك إلى نموذج ذكاء اصطناعي ليجيبوا. اختر الأبسط لك؛ يمكنك تغييره لاحقًا من الإعدادات.'],
-      'v.cloud.t': ['Start right away', 'Démarrer tout de suite', 'Empezar ahora', 'ابدأ فورًا'],
-      'v.cloud.d': ['A Kybernos account, free to begin with. No API key to manage: you sign in from your browser and it’s connected.', 'Un compte Kybernos, gratuit pour commencer. Pas de clé API à gérer : tu te connectes dans ton navigateur et c’est branché.', 'Una cuenta Kybernos, gratis para empezar. Sin claves API que gestionar: inicias sesión en tu navegador y queda conectado.', 'حساب Kybernos، مجاني للبداية. لا مفاتيح API لإدارتها: تسجّل الدخول من متصفحك ويتم الربط.'],
-      'v.cloud.tag': ['No API key', 'Sans clé API', 'Sin clave API', 'بلا مفتاح API'],
-      'v.key.t': ['I already have an API key', 'J’ai déjà une clé API', 'Ya tengo una clave API', 'لدي مفتاح API'],
-      'v.key.d': ['Anthropic, OpenAI, DeepSeek, Google… I’ll guide you if you don’t know where to find it.', 'Anthropic, OpenAI, DeepSeek, Google… Je te guide si tu ne sais pas où la trouver.', 'Anthropic, OpenAI, DeepSeek, Google… Te guío si no sabes dónde encontrarla.', 'Anthropic وOpenAI وDeepSeek وGoogle… سأرشدك إن لم تعرف أين تجده.'],
       'v.local.t': ['A model on this computer', 'Un modèle sur cet ordinateur', 'Un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
-      'v.local.d': ['Free and private: nothing leaves your machine. Needs some disk space.', 'Gratuit et privé : rien ne quitte ta machine. Demande un peu de place disque.', 'Gratis y privado: nada sale de tu equipo. Ocupa algo de espacio en disco.', 'مجاني وخاص: لا شيء يغادر جهازك. يحتاج إلى بعض المساحة على القرص.'],
-      'v.local.tag': ['{gb} GB detected', '{gb} Go détectés', '{gb} GB detectados', 'تم اكتشاف {gb} غيغابايت'],
-      'v.free.t': ['Free models, no account', 'Des modèles gratuits, sans compte', 'Modelos gratis, sin cuenta', 'نماذج مجانية، بلا حساب'],
-      'v.free.d': ['OpenCode’s free tier, wired in right away. Free means the prompts you send may be kept by OpenCode to improve their models — don’t send anything sensitive.', 'La couche gratuite d’OpenCode, branchée tout de suite. Gratuit signifie que les prompts envoyés peuvent être conservés par OpenCode pour améliorer leurs modèles — n’y envoie rien de sensible.', 'La capa gratuita de OpenCode, conectada al instante. Gratis significa que los prompts que envías pueden ser guardados por OpenCode para mejorar sus modelos: no envíes nada sensible.', 'طبقة OpenCode المجانية، موصولة فورًا. المجاني يعني أن الرسائل المرسلة قد يحتفظ بها OpenCode لتحسين نماذجه — لا ترسل شيئًا حساسًا.'],
-      'v.free.tag': ['No account', 'Sans compte', 'Sin cuenta', 'بلا حساب'],
       'free.t': ['Free models, ready to use', 'Des modèles gratuits, prêts à l’emploi', 'Modelos gratis, listos para usar', 'نماذج مجانية، جاهزة للاستخدام'],
       'free.s': ['These models are free because OpenCode may keep the prompts you send to improve them. Tick below to say you understand, then start.', 'Ces modèles sont gratuits parce qu’OpenCode peut conserver les prompts que tu envoies pour les améliorer. Coche ci-dessous pour dire que tu comprends, puis commence.', 'Estos modelos son gratis porque OpenCode puede conservar los prompts que envías para mejorarlos. Marca abajo para confirmar que lo entiendes, luego empieza.', 'هذه النماذج مجانية لأن OpenCode قد يحتفظ بالرسائل التي ترسلها لتحسينها. ضع علامة أدناه لتؤكد أنك تفهم، ثم ابدأ.'],
       'free.ack': ['I understand my prompts may be kept.', 'Je comprends que mes prompts peuvent être conservés.', 'Entiendo que mis prompts pueden ser guardados.', 'أفهم أن رسائلي قد يتم الاحتفاظ بها.'],
       'free.start': ['Use free models', 'Utiliser les modèles gratuits', 'Usar los modelos gratis', 'استخدم النماذج المجانية'],
-      'offer.t': ['Create your free account', 'Crée ton compte gratuit', 'Crea tu cuenta gratuita', 'أنشئ حسابك المجاني'],
-      'offer.s': ['Get free AI models right away, with no API key and no card. It takes about a minute, in your browser.', 'Des modèles d’IA gratuits tout de suite, sans clé API et sans carte. Une minute environ, dans ton navigateur.', 'Modelos de IA gratuitos al instante, sin clave API ni tarjeta. Un minuto aproximadamente, en tu navegador.', 'نماذج ذكاء اصطناعي مجانية فورًا، بلا مفتاح API وبلا بطاقة. تستغرق دقيقة تقريبًا في متصفحك.'],
-      'offer.b1': ['Free models, connected for you', 'Des modèles gratuits, branchés pour toi', 'Modelos gratuitos, conectados por ti', 'نماذج مجانية نربطها لك'],
-      'offer.b1d': ['Offered free by a partner and called from this computer. Their own usage limits apply.', 'Offerts gratuitement par un partenaire et appelés depuis cet ordinateur. Leurs propres limites d’usage s’appliquent.', 'Los ofrece gratis un socio y se llaman desde este ordenador. Se aplican sus propios límites de uso.', 'يقدّمها شريك مجانًا وتُستدعى من هذا الحاسوب. تنطبق حدود الاستخدام الخاصة به.'],
-      'offer.b2': ['Keep confidential work out of them', 'Garde le travail confidentiel à l’écart', 'Deja fuera el trabajo confidencial', 'أبعد العمل السري عنها'],
-      'offer.b2d': ['Free models may keep your prompts to improve themselves. Your files and conversations stay on this computer.', 'Les modèles gratuits peuvent conserver tes messages pour s’améliorer. Tes fichiers et conversations restent sur cet ordinateur.', 'Los modelos gratuitos pueden conservar tus mensajes para mejorar. Tus archivos y conversaciones se quedan en este ordenador.', 'قد تحتفظ النماذج المجانية برسائلك لتحسين نفسها. تبقى ملفاتك ومحادثاتك على هذا الحاسوب.'],
-      'offer.b3': ['Same account for what comes next', 'Le même compte pour la suite', 'La misma cuenta para lo que viene', 'الحساب نفسه لما سيأتي'],
-      'offer.b3d': ['More models and paid plans later, only if you want them.', 'Plus de modèles et des formules payantes plus tard, seulement si tu les veux.', 'Más modelos y planes de pago más adelante, solo si los quieres.', 'نماذج أكثر وخطط مدفوعة لاحقًا، فقط إن أردتها.'],
-      'offer.go': ['Create my free account', 'Créer mon compte gratuit', 'Crear mi cuenta gratuita', 'إنشاء حسابي المجاني'],
-      'offer.have': ['I already have an account', 'J’ai déjà un compte', 'Ya tengo una cuenta', 'لدي حساب بالفعل'],
-      'offer.own': ['Use my own model instead', 'Utiliser plutôt mon propre modèle', 'Usar mi propio modelo', 'استخدام نموذجي الخاص بدلًا من ذلك'],
-      'offer.opt': ['Optional — you can also do this later from the app.', 'Facultatif — tu peux aussi le faire plus tard depuis l’app.', 'Opcional: también puedes hacerlo más tarde desde la app.', 'اختياري — يمكنك فعل ذلك لاحقًا من التطبيق أيضًا.'],
       'later': ['I’ll do it later', 'Je verrai plus tard', 'Lo haré más tarde', 'سأفعل ذلك لاحقًا'],
       'wait.t': ['Finish in your browser', 'Termine dans ton navigateur', 'Termina en tu navegador', 'أكمل في متصفحك'],
       'wait.s': ['The Kybernos page is open. Sign in or create your account there, then type the code below. You’ll come back here on your own.', 'La page Kybernos est ouverte. Connecte-toi ou crée ton compte, puis saisis le code ci-dessous. Tu reviens ici tout seul.', 'La página de Kybernos está abierta. Inicia sesión o crea tu cuenta y escribe el código de abajo. Volverás aquí automáticamente.', 'صفحة Kybernos مفتوحة. سجّل الدخول أو أنشئ حسابك هناك، ثم اكتب الرمز أدناه. ستعود إلى هنا تلقائيًا.'],
@@ -33154,7 +33132,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'wait.reopen': ['Reopen the page', 'Rouvrir la page', 'Reabrir la página', 'إعادة فتح الصفحة'],
       'cancel': ['Cancel', 'Annuler', 'Cancelar', 'إلغاء'],
       'ok.t': ['You’re connected', 'Tu es connecté', 'Has iniciado sesión', 'تم تسجيل دخولك'],
-      'ok.line': ['{who} · {models}', '{who} · {models}', '{who} · {models}', '{who} · {models}'],
       'ok.models': ['{n} models ready', '{n} modèles prêts', '{n} modelos listos', '{n} نموذجًا جاهزًا'],
       'err.t': ['We couldn’t reach Kybernos', 'On n’a pas pu joindre Kybernos', 'No hemos podido contactar con Kybernos', 'تعذّر الوصول إلى Kybernos'],
       'err.s': ['Check your connection. Nothing is lost, and you can go another way.', 'Vérifie ta connexion. Rien n’est perdu, et tu peux avancer autrement.', 'Comprueba tu conexión. No se ha perdido nada y puedes seguir de otra forma.', 'تحقق من اتصالك. لم يضع شيء، ويمكنك المتابعة بطريقة أخرى.'],
@@ -33200,7 +33177,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'fin.open': ['Open Kybernos', 'Ouvrir Kybernos', 'Abrir Kybernos', 'افتح Kybernos'],
       'key.paste': ['Paste your key here', 'Colle ta clé ici', 'Pega tu clave aquí', 'الصق مفتاحك هنا'],
       'key.ph': ['Paste your API key', 'Colle ta clé API', 'Pega tu clave API', 'الصق مفتاح API هنا'],
-      'key.reco': ['Provider recognised: {name}', 'Fournisseur reconnu : {name}', 'Proveedor reconocido: {name}', 'تم التعرف على المزوّد: {name}'],
       'key.save': ['Check and save', 'Vérifier et enregistrer', 'Comprobar y guardar', 'تحقق واحفظ'],
       'key.checking': ['Checking your key…', 'Je vérifie ta clé…', 'Comprobando tu clave…', 'جارٍ التحقق من مفتاحك…'],
       'key.err.format': ['That doesn’t look like an API key: it is one string, with no spaces.', 'Ça ne ressemble pas à une clé API : c’est une seule suite de caractères, sans espace.', 'Eso no parece una clave API: es una sola cadena, sin espacios.', 'هذا لا يشبه مفتاح API: هو سلسلة واحدة بلا مسافات.'],
@@ -33245,6 +33221,41 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       'nm.connected': ['Connected. Pick the new model in the selector below, then send your message again.', 'C’est connecté. Choisis le nouveau modèle dans le sélecteur ci-dessous, puis renvoie ton message.', 'Conectado. Elige el nuevo modelo en el selector de abajo y reenvía tu mensaje.', 'تم الربط. اختر النموذج الجديد من القائمة أدناه ثم أعد إرسال رسالتك.'],
       'fin0.t': ['You can start', 'Tu peux commencer', 'Ya puedes empezar', 'يمكنك البدء'],
       'fin0.s': ['Your agents will need a model to answer. Connect one whenever you like, in Settings → Models.', 'Pour que tes agents répondent, il faudra un modèle. Branches-en un quand tu veux, dans Réglages → Models.', 'Tus agentes necesitarán un modelo para responder. Conecta uno cuando quieras, en Ajustes → Models.', 'سيحتاج وكلاؤك إلى نموذج ليجيبوا. اربط واحدًا متى شئت من الإعدادات ← Models.'],
+      // The model question (two answers, the other ways one quiet line below).
+      'm.t': ['Which models should Kybernos use?', 'Quels modèles Kybernos doit-il utiliser ?', '¿Qué modelos debe usar Kybernos?', 'أي النماذج يجب أن يستخدمها Kybernos؟'],
+      'm.s': ['You can change this any time in Settings.', 'Tu pourras changer cela à tout moment dans Réglages.', 'Podrás cambiarlo en cualquier momento en Ajustes.', 'يمكنك تغيير ذلك في أي وقت من الإعدادات.'],
+      'm.k': ['Kybernos models', 'Modèles Kybernos', 'Modelos de Kybernos', 'نماذج Kybernos'],
+      'm.rec': ['Recommended', 'Recommandé', 'Recomendado', 'موصى به'],
+      'm.kd': ['A free account to begin, no card and no key. It uses your plan’s models and credits when it has them, and free models otherwise.', 'Un compte gratuit pour commencer, sans carte ni clé. Il utilise les modèles et les crédits de ton offre quand elle en a, des modèles gratuits sinon.', 'Una cuenta gratuita para empezar, sin tarjeta ni clave. Usa los modelos y créditos de tu plan cuando los tiene, y modelos gratuitos si no.', 'حساب مجاني للبداية، بلا بطاقة ولا مفتاح. يستخدم نماذج خطتك ورصيدها عند توفرها، ونماذج مجانية في غير ذلك.'],
+      'm.o': ['My own API key', 'Ma propre clé API', 'Mi propia clave API', 'مفتاح API الخاص بي'],
+      'm.od': ['Anthropic, OpenAI, DeepSeek, Google or another provider. The key stays on this computer.', 'Anthropic, OpenAI, DeepSeek, Google ou un autre fournisseur. La clé reste sur cet ordinateur.', 'Anthropic, OpenAI, DeepSeek, Google u otro proveedor. La clave se queda en este ordenador.', 'Anthropic وOpenAI وDeepSeek وGoogle أو مزوّد آخر. يبقى المفتاح على هذا الحاسوب.'],
+      'm.other': ['Other ways:', 'Autres façons :', 'Otras formas:', 'طرق أخرى:'],
+      'm.local': ['a model on this computer', 'un modèle sur cet ordinateur', 'un modelo en este ordenador', 'نموذج على هذا الحاسوب'],
+      'm.free': ['free community models, no account', 'modèles gratuits communautaires, sans compte', 'modelos gratuitos de la comunidad, sin cuenta', 'نماذج مجتمعية مجانية، بلا حساب'],
+      'm.conn': ['Connected · {who}', 'Connecté · {who}', 'Conectado · {who}', 'متصل · {who}'],
+      'm.later': ['Decide later', 'Décider plus tard', 'Decidir más tarde', 'أقرر لاحقًا'],
+      'm.keep': ['Keep as is', 'Garder tel quel', 'Dejarlo así', 'إبقاء كما هو'],
+      // The starter kit: skills and agent teams that fit the profession.
+      'k.t': ['A starter kit for {job}', 'Un kit de départ pour {job}', 'Un kit inicial para {job}', 'مجموعة بداية لـ {job}'],
+      'k.t0': ['Start with these', 'Pour commencer', 'Para empezar', 'ابدأ بهذه'],
+      'k.s': ['Skills and agent teams that fit your work. Tick what you want: everything is optional and can be removed later.', 'Des skills et des Agent Teams qui collent à ton travail. Coche ce que tu veux : tout est facultatif et se retire plus tard.', 'Skills y Agent Teams que encajan con tu trabajo. Marca lo que quieras: todo es opcional y se puede quitar después.', 'مهارات وفرق وكلاء تناسب عملك. حدّد ما تريد: كل شيء اختياري ويمكن إزالته لاحقًا.'],
+      'k.skills': ['Skills', 'Skills', 'Skills', 'المهارات'],
+      'k.teams': ['Agent Teams', 'Agent Teams', 'Agent Teams', 'فرق الوكلاء'],
+      'k.src': ['from {src}', 'depuis {src}', 'de {src}', 'من {src}'],
+      'k.add': ['Add {n} selected', 'Ajouter les {n} sélectionnés', 'Añadir los {n} seleccionados', 'إضافة المحدد ({n})'],
+      'k.none': ['Nothing selected', 'Rien de sélectionné', 'Nada seleccionado', 'لم يتم تحديد شيء'],
+      'k.skip': ['Not now', 'Pas maintenant', 'Ahora no', 'ليس الآن'],
+      'k.done': ['Installed', 'Installé', 'Instalado', 'مثبّت'],
+      'k.soon': ['Soon', 'Bientôt', 'Pronto', 'قريبًا'],
+      'k.note': ['Nothing runs by itself: a skill is a file, a team is a folder. You start them from the chat.', 'Rien ne tourne tout seul : un skill est un fichier, une équipe un dossier. Tu les lances depuis le chat.', 'Nada se ejecuta solo: un skill es un archivo y un equipo una carpeta. Los inicias desde el chat.', 'لا شيء يعمل من تلقاء نفسه: المهارة ملف والفريق مجلد. تشغّلها من المحادثة.'],
+      'k.busy': ['Adding {i} of {n}…', 'Ajout {i} sur {n}…', 'Añadiendo {i} de {n}…', 'جارٍ إضافة {i} من {n}…'],
+      'k.err': ['{n} could not be added. You can find them later in Skills and in Agent Teams.', '{n} n’ont pas pu être ajoutés. Tu les trouveras plus tard dans Skills et dans Agent Teams.', 'No se pudieron añadir {n}. Los encontrarás más tarde en Skills y en Agent Teams.', 'تعذّرت إضافة {n}. يمكنك إيجادها لاحقًا في المهارات وفي فرق الوكلاء.'],
+      'fin.kit': ['Starter kit', 'Kit de départ', 'Kit inicial', 'مجموعة البداية'],
+      'fin.kit.n': ['{n} added', '{n} ajoutés', '{n} añadidos', 'تمت إضافة {n}'],
+      'fin.mem': ['Saved to your memory', 'Enregistré dans ta mémoire', 'Guardado en tu memoria', 'تم الحفظ في ذاكرتك'],
+      'fin.mem.d': ['Agents read it to talk to you the right way. You can edit or forget it in Settings → Memory & Lessons.', 'Les agents le lisent pour te parler comme il faut. Tu peux le modifier ou l’oublier dans Réglages → Memory & Lessons.', 'Los agentes lo leen para hablarte como corresponde. Puedes editarlo u olvidarlo en Ajustes → Memory & Lessons.', 'يقرأه الوكلاء ليخاطبوك بالطريقة المناسبة. يمكنك تعديله أو نسيانه من الإعدادات ← Memory & Lessons.'],
+      'mem.job': ['Works as: {job}.', 'Métier : {job}.', 'Profesión: {job}.', 'المهنة: {job}.'],
+      'mem.mode': ['Prefers: {mode}.', 'Préfère : {mode}.', 'Prefiere: {mode}.', 'يفضّل: {mode}.'],
     }
     /** The wizard's first language: what the person already picked in the app, else the shell's, else English. */
     const kbObPickLang = (appChoice, shell) => {
@@ -33264,20 +33275,115 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       if (vars !== undefined && vars !== null) for (const k of Object.keys(vars)) out = out.split('{' + k + '}').join(String(vars[k]))
       return out
     }
-    /** The numbered steps: the model step drops out when a model already works. */
-    const kbObPlan = (modelReady) => (modelReady === true ? ['job', 'mode'] : ['job', 'mode', 'model'])
-    /** Which numbered step a screen belongs to (null = none: welcome and the end screens). */
+    /** The numbered steps. The model step is always there: a replay is where an account or a key gets added. */
+    const kbObPlan = () => ['job', 'mode', 'model', 'kit']
+    /** Which numbered step a screen belongs to (null = none: welcome and the end screen). */
     const kbObStepOf = (screen) => {
-      if (screen === 'job' || screen === 'mode') return screen
+      if (screen === 'job' || screen === 'mode' || screen === 'kit') return screen
       if (screen === 'model' || screen === 'key' || screen === 'key-done' || screen === 'local' || screen === 'local-install' || screen === 'local-done' || screen === 'local-err' || screen === 'free' ||
-        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err' || screen === 'offer') return 'model'
+        screen === 'cloud-wait' || screen === 'cloud-ok' || screen === 'cloud-err') return 'model'
       return null
     }
-    /**
-     * Where « Back » goes from a screen (null = nowhere). `hasOffer`: the free-account offer sits between the display
-     * mode and the model step, so the model step goes back to it (it is absent when Kybernos Cloud is not there).
-     */
-    const kbObBack = (screen, hasOffer) => ({ job: 'welcome', mode: 'job', offer: 'mode', model: hasOffer === true ? 'offer' : 'mode', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+    /** Where « Back » goes from a screen (null = nowhere). */
+    const kbObBack = (screen) => ({ job: 'welcome', mode: 'job', model: 'mode', kit: 'model', key: 'model', local: 'model', free: 'model', 'local-err': 'local', 'cloud-wait': 'model', 'cloud-err': 'model' }[screen] || null)
+
+    // The starter kit offered after the model step, by profession (the ids of KB_OB_PROFILES).
+    // A skill is { name, source, d: [English, French] }: every pair was checked on 2026-10-14 to exist exactly once in its
+    // GitHub repository, because the install route (/kybernos-skills/install) refuses anything else. The other languages
+    // read English. `teams` are ids of the Agent Teams marketplace of this bundle (KB_MARKET_TEAMS); `soon` are templates of
+    // the Kybernos server that are not ported to the plugin yet: listed, greyed, never installed.
+    const kbObSkill = (name, source, en, fr) => ({ name, source, d: [en, fr] })
+    const KB_OB_AK = 'anthropics/knowledge-work-plugins'
+    const KB_OB_AS = 'anthropics/skills'
+    const KB_OB_AL = 'anthropics/claude-for-legal'
+    const KB_OB_KITS = {
+      etudes: { skills: [
+        kbObSkill('study-plan', KB_OB_AL, 'Plan revision sessions up to the exam', 'Planifie les sessions de révision jusqu’à l’examen'),
+        kbObSkill('flashcards', KB_OB_AL, 'Turn notes into cards you replay', 'Transforme tes notes en cartes à rejouer'),
+        kbObSkill('pdf', KB_OB_AS, 'Read and extract your course PDFs', 'Lit et extrait tes cours en PDF'),
+        kbObSkill('docx', KB_OB_AS, 'Write and format papers', 'Rédige et met en forme tes devoirs'),
+      ], teams: ['studencik', 'research-desk'], soon: [] },
+      soft: { skills: [
+        kbObSkill('code-review', KB_OB_AK, 'Review a change for bugs and clarity', 'Relit un changement : bugs et clarté'),
+        kbObSkill('testing-strategy', KB_OB_AK, 'Decide what to test and how', 'Décide quoi tester et comment'),
+        kbObSkill('sql-queries', KB_OB_AK, 'Write and check SQL', 'Écrit et vérifie du SQL'),
+        kbObSkill('statistical-analysis', KB_OB_AK, 'Read a dataset without fooling yourself', 'Lit un jeu de données sans se tromper'),
+      ], teams: [], soon: ['Data Analyst'] },
+      entre: { skills: [
+        kbObSkill('draft-outreach', KB_OB_AK, 'Write outreach people answer', 'Écrit des messages de prospection qui obtiennent une réponse'),
+        kbObSkill('campaign-plan', KB_OB_AK, 'Plan a campaign end to end', 'Planifie une campagne de bout en bout'),
+        kbObSkill('docx', KB_OB_AS, 'Quotes, proposals, contracts', 'Devis, propositions, contrats'),
+        kbObSkill('xlsx', KB_OB_AS, 'Track money and pipeline', 'Suit l’argent et le pipeline'),
+      ], teams: ['inbound-closer'], soon: ['Back-office Finance'] },
+      qa: { skills: [
+        kbObSkill('testing-strategy', KB_OB_AK, 'Decide what to test and how', 'Décide quoi tester et comment'),
+        kbObSkill('incident-response', KB_OB_AK, 'Run an incident calmly', 'Conduit un incident calmement'),
+        kbObSkill('webapp-testing', KB_OB_AS, 'Drive a web app and check it', 'Pilote une appli web et la vérifie'),
+      ], teams: [], soon: [] },
+      produit: { skills: [
+        kbObSkill('write-spec', KB_OB_AK, 'Turn an idea into a spec', 'Transforme une idée en spécification'),
+        kbObSkill('roadmap-update', KB_OB_AK, 'Keep the roadmap current', 'Tient la feuille de route à jour'),
+        kbObSkill('sprint-planning', KB_OB_AK, 'Plan a sprint with capacity in mind', 'Planifie un sprint selon la capacité'),
+        kbObSkill('user-research', KB_OB_AK, 'Plan and read user research', 'Prépare et lit une étude utilisateur'),
+      ], teams: [], soon: ['PM Assistant'] },
+      design: { skills: [
+        kbObSkill('design-critique', KB_OB_AK, 'Get a structured critique of a design', 'Obtient une critique structurée d’un design'),
+        kbObSkill('ux-copy', KB_OB_AK, 'Write interface text', 'Rédige les textes d’interface'),
+        kbObSkill('frontend-design', KB_OB_AS, 'Build polished interfaces in code', 'Construit des interfaces soignées en code'),
+      ], teams: [], soon: [] },
+      finance: { skills: [
+        kbObSkill('financial-statements', KB_OB_AK, 'Read and explain statements', 'Lit et explique des états financiers'),
+        kbObSkill('reconciliation', KB_OB_AK, 'Match two sets of records', 'Rapproche deux jeux d’écritures'),
+        kbObSkill('variance-analysis', KB_OB_AK, 'Explain what moved versus plan', 'Explique les écarts par rapport au plan'),
+        kbObSkill('xlsx', KB_OB_AS, 'Build and fix spreadsheets', 'Construit et corrige des tableurs'),
+      ], teams: [], soon: ['Back-office Finance'] },
+      medias: { skills: [
+        kbObSkill('content-creation', KB_OB_AK, 'Draft posts, scripts and pages', 'Rédige posts, scripts et pages'),
+        kbObSkill('brand-voice-enforcement', KB_OB_AK, 'Keep a consistent voice', 'Garde une voix cohérente'),
+        kbObSkill('pptx', KB_OB_AS, 'Build slide decks', 'Construit des présentations'),
+      ], teams: [], soon: ['Content Studio'] },
+      commerce: { skills: [
+        kbObSkill('ticket-triage', KB_OB_AK, 'Sort and prioritise support tickets', 'Trie et priorise les tickets'),
+        kbObSkill('xlsx', KB_OB_AS, 'Stock, orders and reports', 'Stocks, commandes et rapports'),
+        kbObSkill('docx', KB_OB_AS, 'Procedures and customer letters', 'Procédures et courriers clients'),
+      ], teams: [], soon: ['E-commerce Operator', 'Support Concierge'] },
+      marketing: { skills: [
+        kbObSkill('campaign-plan', KB_OB_AK, 'Plan a campaign end to end', 'Planifie une campagne de bout en bout'),
+        kbObSkill('brand-voice-enforcement', KB_OB_AK, 'Keep every text in your brand’s voice', 'Garde tous les textes dans la voix de ta marque'),
+        kbObSkill('seo-audit', KB_OB_AK, 'Audit a page or a site for search', 'Audite une page ou un site pour le SEO'),
+        kbObSkill('content-creation', KB_OB_AK, 'Draft posts, emails and pages', 'Rédige posts, e-mails et pages'),
+      ], teams: [], soon: ['Community Manager', 'Growth Hacker'] },
+      legal: { skills: [
+        kbObSkill('review-contract', KB_OB_AK, 'Review a contract against your playbook', 'Relit un contrat selon ta grille'),
+        kbObSkill('compliance-check', KB_OB_AK, 'Check a document against a policy', 'Vérifie un document au regard d’une politique'),
+        kbObSkill('docx', KB_OB_AS, 'Write and format documents', 'Rédige et met en forme des documents'),
+      ], teams: [], soon: ['Legal Compliance', 'Recruiter'] },
+      autres: { skills: [
+        kbObSkill('pdf', KB_OB_AS, 'Read and extract PDFs', 'Lit et extrait des PDF'),
+        kbObSkill('docx', KB_OB_AS, 'Write and format documents', 'Rédige et met en forme des documents'),
+        kbObSkill('xlsx', KB_OB_AS, 'Build and fix spreadsheets', 'Construit et corrige des tableurs'),
+        kbObSkill('pptx', KB_OB_AS, 'Build slide decks', 'Construit des présentations'),
+      ], teams: ['research-desk'], soon: [] },
+    }
+    /** The kit of a profession (an unknown or empty one gets the general kit). */
+    const kbObKitFor = (job) => (typeof job === 'string' && KB_OB_KITS[job] !== undefined ? KB_OB_KITS[job] : KB_OB_KITS.autres)
+    /** A skill's one-line description in a language (French, else English). */
+    const kbObSkillText = (lang, skill) => (lang === 'fr' ? skill.d[1] : skill.d[0])
+    /** What is ticked when the kit opens: every skill and available team that is not installed yet. Keys: `s:<name>`, `t:<id>`. */
+    const kbObKitDefaults = (kit, installed) => {
+      const have = installed !== null && typeof installed === 'object' ? installed : {}
+      const skills = Array.isArray(have.skills) ? have.skills : []
+      const teams = Array.isArray(have.teams) ? have.teams : []
+      return kit.skills.filter((s) => skills.indexOf(s.name) < 0).map((s) => 's:' + s.name)
+        .concat(kit.teams.filter((id) => teams.indexOf(id) < 0).map((id) => 't:' + id))
+    }
+    /** The sentence kept in the person's memory about the profession and display mode, or null when neither is known. */
+    const kbObMemoryText = (lang, job, mode) => {
+      const parts = []
+      if (typeof job === 'string' && KB_OB_PROFILES.indexOf(job) >= 0) parts.push(kbObText(lang, 'mem.job', { job: kbObText(lang, 'p.' + job) }))
+      if (typeof mode === 'string' && KB_OB_MODES.indexOf(mode) >= 0) parts.push(kbObText(lang, 'mem.mode', { mode: kbObText(lang, 'mode.' + mode + '.t') }))
+      return parts.length > 0 ? parts.join(' ') : null
+    }
     /** A pasted key as it will be sent: trimmed, one printable-ASCII string of 8 to 400 characters, or null. */
     const kbObKeyShape = (value) => {
       const clean = typeof value === 'string' ? value.trim() : ''
@@ -33339,8 +33445,14 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         provider: 'anthropic', menu: false, pairing: null, account: null, models: null, error: null, copied: false,
         keyDraft: '', keyMsg: null, keyVerdict: null, localId: null, job: null, localError: null, refs: null,
         standalone: false, picked: null, freeAck: false,
-        // the free-account offer: shown, where the account was started from, and whether the free models are wired after it
-        offered: false, origin: null, fromAccount: false, freeWire: false,
+        // the model step: which answer is ticked, whether the free step came right after an account, and whether the free models are wired after it
+        pick: 'k', fromAccount: false, freeWire: false,
+        // what the account probe saw (an email, a count of models), for the connected line of the model step
+        accountEmail: null, accountModels: null,
+        // the starter kit: what is installed, what is ticked, the run in progress, and what failed
+        kitInstalled: null, kitSel: null, kitBusy: null, kitFailed: 0, kitAdded: 0, kitDone: false, kitOnly: false,
+        // the memory written about the profession: its id, and where the write stands (null, 'saving', 'saved', 'failed')
+        memoryId: null, memState: null,
       }
       let root = null
       let pollTimer = null
@@ -33433,14 +33545,16 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const finish = (openSettingsNames) => {
         if (finished) return
         finished = true
-        const reachedModel = kbObStepOf(S.screen) === 'model' || S.screen === 'later'
-        const model = S.model !== null ? S.model : (reachedModel ? 'later' : null)
+        const reachedModel = kbObStepOf(S.screen) === 'model' || S.screen === 'kit' || S.screen === 'done'
+        // A model that already works counts as the choice; leaving the step without any is « later ».
+        const model = S.model !== null ? S.model : (reachedModel ? (S.ready !== null ? S.ready : 'later') : null)
         // An abandoned pairing would sit on the host until it expires: the card of Kybernos Cloud does the same on « Cancel ».
         if (S.screen === 'cloud-wait') call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
         // Leaving while a model is still downloading: it keeps downloading, and connects itself when it is done.
         if (S.screen === 'local-install' && S.localId !== null) { S.model = 'local'; watchInstall(S.localId) }
-        // Opened from the chat's card (standalone), the wizard is not the first run: the onboarding file is left alone.
-        if (!S.standalone) env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang })
+        // Opened from the chat's card or from « Starter kit » in Settings (standalone), the wizard is not the first run: the
+        // onboarding file is left alone.
+        if (!S.standalone) env.post({ action: 'complete', profil: S.job, uiMode: S.mode, model: model, lang: S.lang, memoryId: S.memoryId })
         // Free models (no account): wire them in on the first run, but only when the person brings no
         // working model of their own AND acknowledged the prompt-retention notice (S.freeAck). The host
         // re-checks both guardrails before writing the route, so a stale client can never force it.
@@ -33493,13 +33607,22 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         return st
       }
       // ── the three ways of powering the agents ──
-      const go = (screen) => { stopPoll(); if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null } if (screen === 'offer') S.offered = true; S.screen = screen; render(true) }
-      // After a way is connected: the first run goes on to its recap; from the chat's card the wizard just closes.
-      const afterConnect = () => { if (S.standalone) finish(); else go('done') }
-      // After an account made from the offer: an account whose plan brings no model leaves the person with nothing to talk to,
-      // so the free community models are offered (with their acknowledgement); an account that brings models is done.
+      const go = (screen) => {
+        stopPoll()
+        if (jobTimer !== null) { win.clearTimeout(jobTimer); jobTimer = null }
+        S.screen = screen
+        render(true)
+        if (screen === 'kit') kitLoad()
+        if (screen === 'done') memoryWrite()
+      }
+      // After a way is connected: the first run goes on to the starter kit; from the chat's card the wizard just closes.
+      const afterConnect = () => { if (S.standalone) finish(); else go('kit') }
+      // « Decide later »: nothing is connected, the kit does not need a model.
+      const decideLater = () => { if (S.model === null && S.ready === null) S.model = 'later'; afterConnect() }
+      // After an account: one whose plan brings no model leaves the person with nothing to talk to (unless a model already
+      // works), so the free community models are offered, with their acknowledgement; an account that brings models goes on.
       const afterAccount = () => {
-        if (!S.standalone && S.origin === 'offer' && !(S.models !== null && S.models > 0)) { S.fromAccount = true; go('free'); return }
+        if (!S.standalone && S.ready === null && !(S.models !== null && S.models > 0)) { S.fromAccount = true; go('free'); return }
         afterConnect()
       }
       const pollOnce = async () => {
@@ -33545,7 +33668,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const cancelCloud = async () => {
         stopPoll()
         await call('/kybernos-cloud/disconnect', 'POST', { confirm: true })
-        if (root !== null) go(S.origin === 'offer' ? 'offer' : 'model')
+        if (root !== null) go('model')
       }
       const copyCode = () => {
         if (S.pairing === null) return
@@ -33701,6 +33824,91 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         afterConnect()
       }
 
+      // ── the starter kit ──
+      // What is installed is read from the two places that own it: the skills registry (disabled skills included) and the Agent
+      // Teams loader. A skill goes through the install route of the Skills page, a team through the same `kybers/create` the
+      // marketplace uses; both refuse what exists already, and what is installed is never ticked, so a replay doubles nothing.
+      const kitSelection = () => {
+        if (S.kitSel === null) S.kitSel = new Set(kbObKitDefaults(kbObKitFor(S.job), S.kitInstalled))
+        return S.kitSel
+      }
+      const kitLoad = async () => {
+        if (S.kitInstalled !== null) return
+        let skills = []
+        const sk = await call('/kybernos-skills/skills', 'GET')
+        if (sk !== null && sk.ok === true && Array.isArray(sk.skills)) skills = sk.skills.map((x) => (x !== null && typeof x === 'object' ? x.name : null)).filter((n) => typeof n === 'string')
+        let teams = []
+        try {
+          const r = await host.call('kybers/load', {})
+          if (r !== null && r !== undefined && r.ok === true && Array.isArray(r.roots)) {
+            for (const rt of r.roots) for (const k of (Array.isArray(rt.kybers) ? rt.kybers : [])) if (k !== null && typeof k === 'object' && typeof k.id === 'string') teams.push(k.id)
+          }
+        } catch (e) { teams = [] }
+        if (root === null) return
+        S.kitInstalled = { skills: skills, teams: teams }
+        S.kitSel = null
+        if (S.screen === 'kit') render(false)
+      }
+      const kitApply = async () => {
+        const kit = kbObKitFor(S.job)
+        const sel = kitSelection()
+        const todo = []
+        for (const sk of kit.skills) if (sel.has('s:' + sk.name)) todo.push({ team: null, skill: sk })
+        for (const id of kit.teams) if (sel.has('t:' + id)) todo.push({ team: id, skill: null })
+        if (todo.length === 0) { if (S.kitOnly) finish(); else go('done'); return }
+        S.kitBusy = { i: 0, n: todo.length }
+        S.kitAdded = 0
+        S.kitFailed = 0
+        render(false)
+        for (const item of todo) {
+          if (root === null) return
+          S.kitBusy.i += 1
+          render(false)
+          let ok = false
+          if (item.skill !== null) {
+            const r = await call('/kybernos-skills/install', 'POST', { source: item.skill.source, name: item.skill.name })
+            ok = r !== null && (r.ok === true || r.error === 'already_installed')
+          } else {
+            const tpl = KB_MARKET_TEAMS.find((t) => t.id === item.team)
+            if (tpl !== undefined) {
+              try {
+                const r = await host.call('kybers/create', {
+                  name: tpl.name, id: tpl.id, mission: tpl.mission, topology: tpl.topology, roles: tpl.roles, skills: tpl.skills, stages: tpl.stages,
+                  ui: { name: tpl.name, icon: tpl.icon, color: tpl.color, category: tpl.category, tags: tpl.tags },
+                })
+                ok = r !== null && r !== undefined && r.ok === true
+              } catch (e) { ok = false }
+            }
+          }
+          if (ok) S.kitAdded += 1
+          else S.kitFailed += 1
+        }
+        if (root === null) return
+        S.kitBusy = null
+        S.kitInstalled = null
+        S.kitSel = null
+        if (S.kitOnly) { S.kitDone = true; render(false); kitLoad() } else go('done')
+      }
+
+      // ── the profession in the person's memory ──
+      // With a Kybernos account the profession and the display mode are written as ONE pinned memory the agents read; a replay
+      // updates that memory (its id is kept in the onboarding file) instead of adding another. Without an account nothing is
+      // written: the answers stay in the onboarding file, as before. Never blocks the wizard: a failure only drops the line.
+      const memoryWrite = async () => {
+        if (S.standalone || S.memState !== null) return
+        if (!(S.ready === 'cloud' || S.model === 'cloud')) return
+        const text = kbObMemoryText(S.lang, S.job, S.mode)
+        if (text === null) return
+        S.memState = 'saving'
+        let r = null
+        if (S.memoryId !== null) r = await call('/kybernos-cloud/memory/update', 'POST', { id: S.memoryId, content: text })
+        if (r === null || r.ok !== true) r = await call('/kybernos-cloud/memory/add', 'POST', { kind: 'fact', source: 'taught', pinned: true, content: text })
+        const m = r !== null && r.ok === true && r.memory !== null && typeof r.memory === 'object' ? r.memory : null
+        if (m !== null && typeof m.id === 'string') S.memoryId = m.id
+        S.memState = m !== null ? 'saved' : 'failed'
+        if (root !== null && S.screen === 'done') render(false)
+      }
+
       // ── pieces ──
       const rowOption = (ico, title, desc, tag, onClick) => {
         const b = h('button', 'kb-ob-row')
@@ -33720,14 +33928,28 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         b.addEventListener('click', onClick)
         return b
       }
-      const radioRow = (title, desc, on, onClick) => {
+      const radioRow = (title, desc, on, onClick, extra) => {
+        const more = extra !== undefined && extra !== null ? extra : {}
         const b = h('button', 'kb-ob-row' + (on ? ' on' : ''))
         b.type = 'button'
         b.setAttribute('role', 'radio')
         b.setAttribute('aria-checked', on ? 'true' : 'false')
+        if (more.ico !== undefined) {
+          const ic = h('span', 'kb-ob-ic')
+          ic.appendChild(icon(IC[more.ico], 18))
+          b.appendChild(ic)
+        }
         const tx = h('span', 'kb-ob-tx')
-        tx.appendChild(h('span', 'kb-ob-t', title))
+        const t = h('span', 'kb-ob-t', title)
+        if (typeof more.tag === 'string') t.appendChild(h('span', 'kb-ob-tag kb-ob-rec', more.tag))
+        tx.appendChild(t)
         tx.appendChild(h('span', 'kb-ob-d', desc))
+        if (typeof more.status === 'string') {
+          const st = h('span', 'kb-ob-st')
+          st.appendChild(icon(IC.check, 14))
+          st.appendChild(h('span', null, more.status))
+          tx.appendChild(st)
+        }
         b.appendChild(tx)
         const dot = h('span', 'kb-ob-dot')
         dot.appendChild(icon(IC.check, 11))
@@ -33768,11 +33990,21 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       }
       const eyebrow = (screen) => {
         if (S.standalone) return h('span')
-        const plan = kbObPlan(S.ready !== null)
+        const plan = kbObPlan()
         const n = plan.indexOf(kbObStepOf(screen)) + 1
         return h('p', 'kb-ob-eyebrow', T('step', { n: n, total: plan.length }))
       }
-      const afterMode = () => (S.ready !== null ? 'done' : (S.hasCloud ? 'offer' : 'model'))
+      // The model step is never skipped: a replay is where an account or a key gets added.
+      const continueModel = () => {
+        if (S.pick === 'o' || !S.hasCloud) { go('key'); return }
+        if (S.ready === 'cloud') { afterConnect(); return }
+        startCloud()
+      }
+      const connectedLine = () => {
+        const who = S.accountEmail !== null ? S.accountEmail : T('fin.cloud')
+        const n = S.accountModels !== null && S.accountModels > 0 ? ' · ' + T('ok.models', { n: S.accountModels }) : ''
+        return T('m.conn', { who: who }) + n
+      }
       const who = () => {
         const a = S.account
         if (a !== null && typeof a === 'object' && typeof a.email === 'string') return a.email
@@ -33824,52 +34056,116 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           for (const id of KB_OB_MODES) g.appendChild(radioRow(T('mode.' + id + '.t'), T('mode.' + id + '.d'), S.mode === id, () => { S.mode = id; render(false) }))
           s.appendChild(g)
           const a = actions()
-          a.appendChild(primary(T('cont'), () => go(afterMode())))
+          a.appendChild(primary(T('cont'), () => go('model')))
           s.appendChild(a)
-          return s
-        },
-        offer: () => {
-          const s = step()
-          s.appendChild(eyebrow('offer'))
-          s.appendChild(h('h1', null, T('offer.t')))
-          s.appendChild(h('p', 'kb-ob-sub', T('offer.s')))
-          const pts = h('ul', 'kb-ob-pts')
-          for (const [ico, key] of [['check', 'offer.b1'], ['laptop', 'offer.b2'], ['account', 'offer.b3']]) {
-            const li = h('li')
-            const ic = h('span', 'kb-ob-ptic')
-            ic.appendChild(icon(IC[ico], 16))
-            li.appendChild(ic)
-            const tx = h('div')
-            tx.appendChild(h('b', null, T(key)))
-            tx.appendChild(h('span', 'kb-ob-ptd', T(key + 'd')))
-            li.appendChild(tx)
-            pts.appendChild(li)
-          }
-          s.appendChild(pts)
-          const a = actions()
-          a.appendChild(primary(T('offer.go'), () => { S.origin = 'offer'; startCloud() }))
-          a.appendChild(button('kb-ob-btn kb-ob-second', T('offer.have'), () => { S.origin = 'offer'; startCloud() }))
-          a.appendChild(button('kb-ob-ghost', T('offer.own'), () => go('model')))
-          s.appendChild(a)
-          s.appendChild(h('p', 'kb-ob-note', T('offer.opt')))
           return s
         },
         model: () => {
           const s = step()
           s.appendChild(eyebrow('model'))
-          s.appendChild(h('h1', null, T('brain.t')))
-          s.appendChild(h('p', 'kb-ob-sub', T('brain.s')))
+          s.appendChild(h('h1', null, T('m.t')))
+          s.appendChild(h('p', 'kb-ob-sub', T('m.s')))
           const g = h('div', 'kb-ob-rows')
-          if (S.hasCloud && (S.standalone || S.offered !== true)) g.appendChild(rowOption('account', T('v.cloud.t'), T('v.cloud.d'), T('v.cloud.tag'), () => { S.origin = 'model'; startCloud() }))
-          g.appendChild(rowOption('key', T('v.key.t'), T('v.key.d'), null, () => go('key')))
-          if (S.hasLocal) {
-            const gb = S.machine !== null && typeof S.machine.ramGo === 'number' ? T('v.local.tag', { gb: S.machine.ramGo }) : null
-            g.appendChild(rowOption('laptop', T('v.local.t'), T('v.local.d'), gb, () => go('local')))
+          g.setAttribute('role', 'radiogroup')
+          const kybernos = S.hasCloud && S.pick !== 'o'
+          if (S.hasCloud) {
+            g.appendChild(radioRow(T('m.k'), T('m.kd'), kybernos, () => { S.pick = 'k'; render(false) },
+              { ico: 'account', tag: T('m.rec'), status: S.ready === 'cloud' ? connectedLine() : undefined }))
           }
-          g.appendChild(rowOption('sparkles', T('v.free.t'), T('v.free.d'), T('v.free.tag'), () => go('free')))
+          g.appendChild(radioRow(T('m.o'), T('m.od'), !kybernos, () => { S.pick = 'o'; render(false) }, { ico: 'key' }))
           s.appendChild(g)
-          const a = actions()
-          a.appendChild(button('kb-ob-ghost', S.standalone ? T('close') : T('later'), () => { if (S.standalone) finish(); else go('later') }))
+          // The two other ways stay one quiet line away: nothing that worked before is taken out.
+          const others = h('p', 'kb-ob-others')
+          others.appendChild(h('span', null, T('m.other') + ' '))
+          if (S.hasLocal) {
+            others.appendChild(button('kb-ob-lk', T('m.local'), () => go('local')))
+            others.appendChild(h('span', null, ' · '))
+          }
+          others.appendChild(button('kb-ob-lk', T('m.free'), () => go('free')))
+          s.appendChild(others)
+          const a = h('div', 'kb-ob-actions kb-ob-actions-row')
+          const settled = S.ready !== null || S.model !== null
+          if (S.standalone) a.appendChild(button('kb-ob-ghost', T('close'), () => finish()))
+          else a.appendChild(button('kb-ob-ghost', settled ? T('m.keep') : T('m.later'), () => decideLater()))
+          a.appendChild(primary(T('cont'), () => continueModel()))
+          s.appendChild(a)
+          return s
+        },
+        kit: () => {
+          const s = step()
+          if (!S.kitOnly) s.appendChild(eyebrow('kit'))
+          s.appendChild(h('h1', null, S.job !== null ? T('k.t', { job: T('p.' + S.job) }) : T('k.t0')))
+          s.appendChild(h('p', 'kb-ob-sub', T('k.s')))
+          // Opened later from Settings, the kit lets the person look at another profession's kit.
+          if (S.kitOnly) {
+            const pg = h('div', 'kb-ob-chips kb-ob-chips-tight')
+            pg.setAttribute('role', 'radiogroup')
+            for (const id of KB_OB_PROFILES) pg.appendChild(chip(T('p.' + id), S.job === id, () => { S.job = id; S.kitSel = null; S.kitDone = false; render(false) }))
+            s.appendChild(pg)
+          }
+          const kit = kbObKitFor(S.job)
+          const have = S.kitInstalled
+          const sel = kitSelection()
+          const busy = S.kitBusy !== null
+          const kitRow = (key, title, desc, meta, o) => {
+            const done = o.done === true
+            const off = done || o.soon === true || busy
+            const b = h('button', 'kb-ob-kit' + (done ? ' done' : (sel.has(key) ? ' on' : '')) + (o.soon === true ? ' soon' : ''))
+            b.type = 'button'
+            b.disabled = off
+            const cb = h('span', 'kb-ob-cb')
+            cb.appendChild(icon(IC.check, 11))
+            b.appendChild(cb)
+            if (typeof o.initials === 'string') {
+              const av = h('span', 'kb-ob-av', o.initials)
+              if (typeof o.color === 'string') av.style.background = o.color
+              b.appendChild(av)
+            }
+            const tx = h('span', 'kb-ob-kt')
+            tx.appendChild(h('b', null, title))
+            if (desc !== '') tx.appendChild(h('small', null, desc))
+            if (meta !== '') tx.appendChild(h('span', 'kb-ob-meta', meta))
+            b.appendChild(tx)
+            if (done || o.soon === true) b.appendChild(h('span', 'kb-ob-chip2', done ? T('k.done') : T('k.soon')))
+            if (!off) b.addEventListener('click', () => { if (sel.has(key)) sel.delete(key); else sel.add(key); render(false) })
+            return b
+          }
+          const group = (titleKey, n) => {
+            const hd = h('h2', 'kb-ob-kitgrp', T(titleKey))
+            hd.appendChild(h('em', null, String(n)))
+            return hd
+          }
+          const sk = h('div', 'kb-ob-kitbox')
+          sk.appendChild(group('k.skills', kit.skills.length))
+          for (const x of kit.skills) sk.appendChild(kitRow('s:' + x.name, x.name, kbObSkillText(S.lang, x), T('k.src', { src: x.source }), { done: have !== null && have.skills.indexOf(x.name) >= 0 }))
+          s.appendChild(sk)
+          const teams = kit.teams.map((id) => KB_MARKET_TEAMS.find((t) => t.id === id)).filter((t) => t !== undefined)
+          if (teams.length > 0 || kit.soon.length > 0) {
+            const tb = h('div', 'kb-ob-kitbox')
+            tb.appendChild(group('k.teams', teams.length + kit.soon.length))
+            for (const t of teams) tb.appendChild(kitRow('t:' + t.id, t.name, typeof t.desc === 'string' ? t.desc : '', '', { done: have !== null && have.teams.indexOf(t.id) >= 0, initials: t.name.slice(0, 2).toUpperCase(), color: t.color }))
+            for (const name of kit.soon) tb.appendChild(kitRow('x:' + name, name, '', '', { soon: true, initials: name.slice(0, 2).toUpperCase() }))
+            s.appendChild(tb)
+          }
+          s.appendChild(note(T('k.note'), 'info'))
+          if (S.kitDone) {
+            const st = h('div', 'kb-ob-state' + (S.kitFailed > 0 ? ' err' : ' ok'))
+            st.appendChild(icon(IC.check, 18))
+            st.appendChild(h('span', null, S.kitFailed > 0 ? T('k.err', { n: S.kitFailed }) : T('fin.kit.n', { n: S.kitAdded })))
+            s.appendChild(st)
+          }
+          // Sticky: the list is long, the button must not end up below the fold.
+          const a = h('div', 'kb-ob-actions kb-ob-actions-row kb-ob-sticky')
+          if (S.kitOnly && S.kitDone) {
+            a.appendChild(primary(T('close'), () => finish()))
+          } else {
+            a.appendChild(button('kb-ob-ghost', S.kitOnly ? T('close') : T('k.skip'), () => { if (S.kitOnly) finish(); else go('done') }))
+            const n = sel.size
+            const label = busy ? T('k.busy', { i: S.kitBusy.i, n: S.kitBusy.n }) : (n === 0 ? T('k.none') : T('k.add', { n: n }))
+            const add = primary(label, () => { kitApply() })
+            add.disabled = busy || n === 0 || have === null
+            a.appendChild(add)
+          }
           s.appendChild(a)
           return s
         },
@@ -33920,7 +34216,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           const a = actions()
           a.appendChild(primary(T('retry'), () => { startCloud() }))
           a.appendChild(button('kb-ob-btn kb-ob-second', T('usekey'), () => go('key')))
-          a.appendChild(button('kb-ob-ghost', T('laterbtn'), () => go('later')))
+          a.appendChild(button('kb-ob-ghost', T('laterbtn'), () => decideLater()))
           s.appendChild(a)
           return s
         },
@@ -34092,13 +34388,30 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         },
         done: () => {
           const s = step()
-          s.appendChild(h('h1', null, T('fin.t')))
-          s.appendChild(h('p', 'kb-ob-sub', T('fin.s')))
+          // Nothing connected yet: the recap says what to do about it instead of a plain « all set ».
+          const noModel = S.ready === null && (S.model === null || S.model === 'later')
+          s.appendChild(h('h1', null, noModel ? T('fin0.t') : T('fin.t')))
+          s.appendChild(h('p', 'kb-ob-sub', noModel ? T('fin0.s') : T('fin.s')))
           s.appendChild(recap([
             [T('fin.job'), S.job !== null ? T('p.' + S.job) : T('fin.none')],
             [T('fin.mode'), S.mode !== null ? T('mode.' + S.mode + '.t') : T('fin.none')],
             [T('fin.model'), modelLabel()],
+            [T('fin.kit'), S.kitAdded > 0 ? T('fin.kit.n', { n: S.kitAdded }) : T('k.skip')],
           ]))
+          if (S.kitFailed > 0) {
+            const st = h('div', 'kb-ob-state err')
+            st.appendChild(h('span', null, T('k.err', { n: S.kitFailed })))
+            s.appendChild(st)
+          }
+          if (S.memState === 'saved') {
+            const mem = h('div', 'kb-ob-mem')
+            mem.appendChild(icon(IC.info, 16))
+            const tx = h('div')
+            tx.appendChild(h('b', null, T('fin.mem')))
+            tx.appendChild(h('span', null, T('fin.mem.d')))
+            mem.appendChild(tx)
+            s.appendChild(mem)
+          }
           const a = actions()
           a.appendChild(primary(T('fin.open'), () => finish()))
           s.appendChild(a)
@@ -34118,19 +34431,10 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           ack.appendChild(h('span', null, T('free.ack')))
           s.appendChild(ack)
           const a = actions()
-          const use = primary(T('free.start'), () => { if (S.fromAccount) S.freeWire = true; else S.model = 'free'; finish() })
+          const use = primary(T('free.start'), () => { if (S.fromAccount) S.freeWire = true; else S.model = 'free'; afterConnect() })
           use.disabled = S.freeAck !== true
           a.appendChild(use)
-          a.appendChild(button('kb-ob-ghost', T('later'), () => go('later')))
-          s.appendChild(a)
-          return s
-        },
-        later: () => {
-          const s = step()
-          s.appendChild(h('h1', null, T('fin0.t')))
-          s.appendChild(h('p', 'kb-ob-sub', T('fin0.s')))
-          const a = actions()
-          a.appendChild(primary(T('fin.open'), () => finish()))
+          a.appendChild(button('kb-ob-ghost', T('later'), () => decideLater()))
           s.appendChild(a)
           return s
         },
@@ -34145,7 +34449,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         root.setAttribute('aria-label', T('wel.t'))
         while (root.firstChild !== null) root.removeChild(root.firstChild)
 
-        const plan = kbObPlan(S.ready !== null)
+        const plan = kbObPlan()
         const current = kbObStepOf(S.screen)
         const idx = plan.indexOf(current)
         const pct = S.standalone ? 0 : (S.screen === 'welcome' ? 0 : (current === null ? 100 : ((idx + 1) / plan.length) * 100))
@@ -34183,12 +34487,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           lw.appendChild(menu)
         }
         right.appendChild(lw)
-        if (S.screen !== 'done' && S.screen !== 'later') right.appendChild(button('kb-ob-skip', S.standalone ? T('close') : T('skip'), () => finish()))
+        if (S.screen !== 'done') right.appendChild(button('kb-ob-skip', S.standalone ? T('close') : T('skip'), () => finish()))
         top.appendChild(right)
         root.appendChild(top)
 
         const main = h('main', 'kb-ob-main')
-        const back = (S.standalone && S.screen === 'model') || (S.screen === 'free' && S.fromAccount) ? null : kbObBack(S.screen, S.hasCloud && !S.standalone)
+        const back = (S.standalone && (S.screen === 'model' || S.screen === 'kit')) || (S.screen === 'free' && S.fromAccount) ? null : kbObBack(S.screen)
         if (back !== null) main.appendChild(button('kb-ob-back', T('back'), () => {
           if (S.screen === 'cloud-wait') { cancelCloud(); return }
           go(back)
@@ -34213,7 +34517,12 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         S.job = init.job
         S.mode = init.mode
         S.standalone = init.standalone === true
-        S.screen = S.standalone ? 'model' : 'welcome'
+        S.kitOnly = S.standalone && init.kitOnly === true
+        S.accountEmail = typeof init.accountEmail === 'string' ? init.accountEmail : null
+        S.accountModels = typeof init.accountModels === 'number' ? init.accountModels : null
+        S.memoryId = typeof init.memoryId === 'string' ? init.memoryId : null
+        S.pick = init.hasCloud === true ? 'k' : 'o'
+        S.screen = S.kitOnly ? 'kit' : (S.standalone ? 'model' : 'welcome')
         root = h('div', 'kb-ob' + (init.dark === true ? ' kb-ob-dark' : ''))
         root.setAttribute('role', 'dialog')
         root.setAttribute('aria-modal', 'true')
@@ -34227,6 +34536,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         doc.addEventListener('keydown', keyHandler, true)
         try { doc.body.appendChild(root) } catch (e) { root = null; return false }
         render(true)
+        if (S.screen === 'kit') kitLoad()
         return true
       }
       return { open, close, state: S }
@@ -34249,9 +34559,15 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       const hasCloud = cloud !== null && typeof cloud === 'object' && cloud.ok === true
       const machine = local !== null && typeof local === 'object' && local.ok === true && local.machine !== undefined ? local.machine : null
       let ready = null
-      if (hasCloud && cloud.connected === true) ready = 'cloud'
-      else if (machine !== null && machine.ollama !== undefined && machine.ollama !== null && Array.isArray(machine.ollama.models) && machine.ollama.models.length > 0) ready = 'local'
-      return { hasCloud, hasLocal: machine !== null, machine, ready }
+      let accountEmail = null
+      let accountModels = null
+      if (hasCloud && cloud.connected === true) {
+        ready = 'cloud'
+        const st = cloud.state !== undefined && cloud.state !== null && typeof cloud.state === 'object' ? cloud.state : {}
+        if (st.user !== undefined && st.user !== null && typeof st.user.email === 'string') accountEmail = st.user.email
+        if (st.models !== undefined && st.models !== null && typeof st.models.count === 'number') accountModels = st.models.count
+      } else if (machine !== null && machine.ollama !== undefined && machine.ollama !== null && Array.isArray(machine.ollama.models) && machine.ollama.models.length > 0) ready = 'local'
+      return { hasCloud, hasLocal: machine !== null, machine, ready, accountEmail, accountModels }
     }
     // KB-OB-UI-END
 
@@ -34322,6 +34638,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             machine: probe.machine,
             job: known(KB_OB_PROFILES, saved.profil),
             mode: known(KB_OB_MODES, saved.uiMode),
+            accountEmail: probe.accountEmail,
+            accountModels: probe.accountModels,
+            memoryId: typeof saved.memoryId === 'string' ? saved.memoryId : null,
           })
           if (opened !== true) busy = false
         } catch (e) { busy = false }
@@ -34344,6 +34663,24 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           return opened === true
         } catch (e) { busy = false; return false }
       }
+      // The starter kit on its own (Settings → Starter kit): the kit of the profession saved at the first run, nothing else.
+      const kitStandaloneOpen = async () => {
+        if (busy) return false
+        busy = true
+        try {
+          let saved = null
+          try { saved = await win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } }).then((r) => r.json()) } catch (e) { saved = null }
+          const wizard = kbObMount({ ...env, onClose: () => { busy = false } })
+          const known = (list, v) => (typeof v === 'string' && list.indexOf(v) >= 0 ? v : null)
+          const opened = wizard.open({
+            standalone: true, kitOnly: true, lang: kbObPickLang(appLanguage(), shellLanguage()), dark: isDark(), ready: null,
+            hasCloud: false, hasLocal: false, machine: null,
+            job: saved !== null && saved.ok === true ? known(KB_OB_PROFILES, saved.profil) : null, mode: null,
+          })
+          if (opened !== true) busy = false
+          return opened === true
+        } catch (e) { busy = false; return false }
+      }
       // A fresh install (or a newer wizard version) answers `completed:false`: the wizard opens at boot.
       try {
         win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } })
@@ -34354,7 +34691,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       // Replay: fired by the button at the top of Kybernos Settings.
       try {
         win.addEventListener('kybernos:onboarding', (ev) => {
-          if (ev === null || ev === undefined || ev.detail === null || ev.detail === undefined || ev.detail.action !== 'replay') return
+          if (ev === null || ev === undefined || ev.detail === null || ev.detail === undefined) return
+          if (ev.detail.action === 'kit') { kitStandaloneOpen(); return }
+          if (ev.detail.action !== 'replay') return
           win.fetch('/kybernos/onboarding', { headers: { accept: 'application/json' } })
             .then((r) => r.json())
             .catch(() => null)
@@ -34461,6 +34800,36 @@ html.wv2-actif [data-composer-seat]{display:none !important}
       '.kb-ob-recap div+div{border-top:1px solid var(--line)}',
       '.kb-ob-recap span{color:var(--ink3)}',
       '.kb-ob-recap b{font-weight:500;text-align:end}',
+      '.kb-ob-rec{background:var(--ink);color:var(--bg)}',
+      '.kb-ob-ic .kb-ob-ico{display:flex}',
+      '.kb-ob-st{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12.5px;line-height:1.4;color:var(--green)}',
+      '.kb-ob-others{margin:18px 0 0;font-size:13.5px;line-height:1.7;color:var(--ink3)}',
+      '.kb-ob-lk{background:none;border:0;padding:0;font:inherit;color:var(--blue);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+      '.kb-ob-actions-row{flex-direction:row;justify-content:flex-end;align-items:center;gap:10px}',
+      '.kb-ob-actions-row .kb-ob-btn{height:48px;padding:0 24px;min-width:150px}',
+      '.kb-ob-actions-row .kb-ob-ghost{align-self:center}',
+      '.kb-ob-kitbox{margin-top:24px}',
+      '.kb-ob-sticky{position:sticky;bottom:0;margin-top:12px;padding:14px 0;background:var(--bg);z-index:2}',
+      '.kb-ob-kitgrp{margin:0 0 10px;font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink3);display:flex;justify-content:space-between;align-items:baseline}',
+      '.kb-ob-kitgrp em{font-style:normal;letter-spacing:0;text-transform:none;font-weight:400}',
+      '.kb-ob-kit{display:flex;gap:12px;align-items:flex-start;width:100%;padding:13px 16px;margin:0 0 8px;text-align:start;color:var(--ink);background:var(--bg2);border:1px solid var(--line);border-radius:14px;cursor:pointer}',
+      '.kb-ob-kit:hover:not([disabled]){border-color:var(--ink3)}',
+      '.kb-ob-kit[disabled]{cursor:default}',
+      '.kb-ob-kit.done{opacity:.8}',
+      '.kb-ob-kit.soon{opacity:.55}',
+      '.kb-ob-cb{flex:none;width:18px;height:18px;margin-top:2px;border-radius:5px;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;color:transparent}',
+      '.kb-ob-kit.on .kb-ob-cb{background:var(--ink);border-color:var(--ink);color:var(--bg)}',
+      '.kb-ob-kit.done .kb-ob-cb{background:var(--green);border-color:var(--green);color:#fff}',
+      '.kb-ob-kit.soon .kb-ob-cb{visibility:hidden}',
+      '.kb-ob-av{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;background:var(--ink3)}',
+      '.kb-ob-kt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}',
+      '.kb-ob-kt b{font-size:15px;font-weight:500}',
+      '.kb-ob-kt small{font-size:13px;line-height:1.5;color:var(--ink2)}',
+      '.kb-ob-meta{margin-top:3px;font-size:11.5px;color:var(--ink3);direction:ltr;unicode-bidi:isolate;text-align:start}',
+      '.kb-ob-chip2{flex:none;font-size:11.5px;padding:2px 9px;border-radius:99px;background:var(--wash);color:var(--ink3);white-space:nowrap}',
+      '.kb-ob-mem{display:flex;gap:10px;margin-top:20px;padding:13px 15px;border:1px dashed var(--line);border-radius:14px;font-size:13.5px;line-height:1.55;color:var(--ink2)}',
+      '.kb-ob-mem .kb-ob-ico{flex:none;margin-top:2px;color:var(--ink3)}',
+      '.kb-ob-mem b{display:block;color:var(--ink);font-weight:500}',
       '@keyframes kbObIn{from{opacity:0}}',
       '@keyframes kbObRise{from{opacity:0;transform:translateY(8px)}}',
       '@keyframes kbObTurn{to{transform:rotate(360deg)}}',

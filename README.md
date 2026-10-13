@@ -6,10 +6,18 @@ Plugins that turn DSH (the DeepSeek harness) into an agent workspace: crew workf
 
 ## Install
 
+Download the archive of your system from the [latest release](https://github.com/kybernos-app/kybernos-plugins/releases/latest)
+(or clone this repository), extract it in a new folder, and from there:
+
 ```sh
 ./kybernos-install --dry   # shows what would change, touches nothing
 ./kybernos-install         # checks the archive, installs DSH if missing, links the bundles, restores a snapshot if DSH fails to restart
+dsh web --no-open --port 3080   # then open http://127.0.0.1:3080/
 ```
+
+Needs Node.js 22 or later. The first run opens a few welcome pages (your profession, display mode, which models to use, a
+starter kit of skills and agent teams for your profession); each can be skipped and replayed from Settings.
+The full guide (Windows, update, rollback, safe mode, the welcome pages) is [`docs/install.md`](docs/install.md).
 
 ## Install on a server or with Docker
 

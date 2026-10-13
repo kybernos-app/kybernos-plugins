@@ -123,27 +123,40 @@ A full-screen wizard (plain DOM, `KB-OB-*` blocks of `client.js`) opens once on 
 « Replay » button at the top of Kybernos Settings (`kybernos-sessions` fires the window event `kybernos:onboarding`).
 It is a single column in the look of dev.kybernos.app (light or dark, whichever the page behind it is) with the K logo.
 
-- **Screens:** welcome, profession, display mode, then **the free account offer**, then « which model do you want to work
-  with? ». Both are skipped when a model already works (Kybernos Cloud connected, or a pulled Ollama model).
-  - **The offer** (`offer`, step 3 of 3, only when Kybernos Cloud is there): « Create your free account », with what it
-    brings said plainly (free models from a partner, their own limits, prompts that may be kept, nothing confidential in
-    them). « Create my free account » and « I already have an account » both start the pairing below; « Use my own model
-    instead » goes to the model screen. After the account is made: an account that brings models is done; an account
-    whose plan brings **no model** goes to the free community models' acknowledgement screen and, once ticked, the host
-    wires them (`POST /free-llms/auto-enable`, which re-checks the acknowledgement) and a free model is made the default
-    model. Nothing is wired before the person ticks. The free models are called from the person's computer, not from the
-    Kybernos server: no allowance of ours applies to them, and the server's guardrails do not see them.
-  - The model screen then offers (the account row is not repeated after the offer):
-  - **the account** (`/kybernos-cloud/start` + `poll`): the wizard shows the code, the person types it on the page that
-    opens (the page never displays it: ADR 0009 of the server), and the connection is picked up by itself;
-  - **an API key** for Anthropic, OpenAI, DeepSeek or Google: pasted in the wizard, checked with the provider
+- **Screens:** welcome, profession, display mode, **« Which models should Kybernos use? »**, then **a starter kit**.
+  Numbered steps: `job`, `mode`, `model`, `kit`. **No step is skipped**, whatever already works: a replay is where an
+  account or a key is added later (before, a connected account or a pulled model skipped the model step and with it the
+  account offer, so a replay could never create one).
+  - **The model question** (`model`, step 3 of 4): two answers, the Kybernos account (recommended, only when Kybernos
+    Cloud is there) or the person's own API key; a model on this computer and the free community models are one quiet
+    line below. « Continue » follows the ticked answer; « Decide later » (« Keep as is » when something already works)
+    goes on without connecting. When an account is connected, its row says who and how many models.
+  - **The account** (`/kybernos-cloud/start` + `poll`): the wizard shows the code, the person types it on the page that
+    opens (the page never displays it: ADR 0009 of the server), and the connection is picked up by itself. An account
+    whose plan brings **no model** (and no other model works) goes to the free community models' acknowledgement screen
+    and, once ticked, the host wires them (`POST /free-llms/auto-enable`, which re-checks the acknowledgement) and a free
+    model is made the default. Nothing is wired before the person ticks. The free models are called from the person's
+    computer, not from the Kybernos server: no allowance of ours applies to them, and the server's guardrails do not see them.
+  - **An API key** for Anthropic, OpenAI, DeepSeek or Google: pasted in the wizard, checked with the provider
     (`POST /kybernos-models/key/check`, one word back), then saved by `window.__KB_MODELS__.saveKey`, the same write as
-    the Add provider flow. Another provider, or `kybernos-models` off, is handed to Settings;
-  - **a local model**: the recommendation and the connection come from `window.__KB_LOCAL__` of
+    the Add provider flow. Another provider, or `kybernos-models` off, is handed to Settings.
+  - **A local model**: the recommendation and the connection come from `window.__KB_LOCAL__` of
     `kybernos-modeles-locaux`; the download is the host's own `/modeles-locaux/installer` job (Homebrew, macOS), with a
     progress bar. Leaving the wizard mid-download keeps it going and connects the model when it ends.
   A way whose bundle is off is not shown; the hand-over to Settings names the page by its nav id, so it works in every
   language.
+- **The starter kit** (`kit`, step 4 of 4): skills and agent teams that fit the profession (`KB_OB_KITS`, by the ids of
+  `KB_OB_PROFILES`; an unknown profession gets the general kit). Everything installable is ticked, what is installed is
+  marked and not ticked again (a replay doubles nothing). A **skill** is `{ name, source }` and goes through the install
+  route of the Skills page (`POST /kybernos-skills/install`, a GitHub archive, never over an existing folder); each pair
+  was checked to exist exactly once in its repository (an ambiguous name is refused by the route). A **team** is an id of
+  `KB_MARKET_TEAMS` and goes through the same `kybers/create` as the Agent Teams marketplace (so it lands in the
+  workspace root, like a marketplace install). The server's templates that the plugin does not have yet are listed greyed
+  (`soon`), never installed. The kit also opens on its own: **Settings → Kybernos Settings → Starter kit → Open**
+  (`kybernos:onboarding` with `action: 'kit'`, the profession saved at the first run, another one can be looked at).
+- **The profession in memory:** with a Kybernos account, the recap writes ONE pinned `fact` memory (« Works as: … Prefers: … »,
+  source `taught`) through `/kybernos-cloud/memory/add`; its id is kept in `onboarding.json` (`memoryId`) so a replay updates
+  that memory instead of adding another. Without an account nothing is written: the answers stay in the onboarding file.
 - **The model is chosen for them:** connecting only adds models to the selector, so after each connection the wizard asks
   the host (`POST /kybernos/model/auto`, rules in `default-model.mjs`) to make a model of that provider the default one, when
   the profile's current default could not answer (its provider is not routable, or its key is not set). A default that
@@ -156,10 +169,11 @@ It is a single column in the look of dev.kybernos.app (light or dark, whichever 
   not read from the translation runtime: that one needs a model, and this wizard is what gets the person one. The
   wizard's language is its own (menu in its header); it starts from the app's language and never changes it.
 - **State:** `$DSH_HOME/kybernos/onboarding.json`, rules in `onboarding-state.mjs`. `profil` and `uiMode` keep the ids
-  of the previous wizard; `model` (`cloud`, `key`, `local`, `later`) and `lang` are new and read as `null` in an older
-  file. The version stays at 1 on purpose: raising it would reopen the wizard for every existing user.
+  of the previous wizard; `model` (`cloud`, `key`, `local`, `later`), `lang` and `memoryId` are new and read as `null` in
+  an older file. The version stays at 1 on purpose: raising it would reopen the wizard for every existing user.
 - **Not done yet:** « a model already works » only knows the connected account and a pulled Ollama model (a key
-  already in the profile is not detected); nothing reads `profil` and `uiMode`. The account's model is chosen by name
+  already in the profile is not detected); the kit is proposed at the first run and from Settings, not yet when memory
+  learns a profession on its own; the server's team templates are not ported (listed as « soon »). The account's model is chosen by name
   (`kybernos/auto` when the server lists it, else its first model): what the server means by its default is not known here.
 
 ### « This chat can't answer yet » (`KbNeedModel`)
@@ -171,7 +185,7 @@ When the latest turn of a chat failed with `MISSING_CREDENTIAL` (the model's key
 - **the missing key itself**: one field, labelled with the route; the reference (`*_API_KEY`) and the route are read from the
   engine's sentence (`kbObNeedModel`, tested). Saved by `window.__KB_MODELS__.saveCredential(ref, key)`; then « Put my message back
   in the box » (`kbPrefillDraft`: the person presses Enter, nothing is sent for them);
-- **the ways of the first run** (a Kybernos account, a model on this computer): the wizard's model step on its own
+- **the ways of the first run** (a Kybernos account, a model on this computer): the wizard's model question on its own
   (`kbObStandaloneOpen`: no steps, no onboarding file written). The model of that provider is then chosen for the chat itself
   (see « The model is chosen for them »), and the card says so; with an older host it says to pick the new model in the selector.
 
