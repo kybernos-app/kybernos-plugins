@@ -37,22 +37,22 @@ window.__ModuleLoader__.load({
       const CATALOGUE = [
         { id: 'qwen3.5:9b', famille: 'q', initiale: 'Qw', tailleGo: 6.1, ramMin: 16, score: 'II 32 · MMMU-Pro 69 %',
           input: ['text', 'image'], badges: ['Vision', 'Tools', 'Thinking'],
-          desc: 'Le meilleur sous 10B — rentre avec DSH + Chrome ouverts (16 Go).' },
+          desc: 'kml.desc.9b' },
         { id: 'qwen3.5:4b', famille: 'q', initiale: 'Qw', tailleGo: 3.1, ramMin: 8, score: 'II 27 · MMMU-Pro 65 %',
           input: ['text', 'image'], badges: ['Vision', 'Tools'],
-          desc: 'Marge maximale — le choix des machines à 8 Go.' },
+          desc: 'kml.desc.4b' },
         { id: 'qwen3.5:2b', famille: 'q', initiale: 'Qw', tailleGo: null, ramMin: 4, score: 'II 16',
           input: ['text', 'image'], badges: ['Vision'],
-          desc: 'Pour les petites machines — taille Q4 non mesurée.' },
+          desc: 'kml.desc.2b' },
         { id: 'gemma4:e4b', famille: 'g', initiale: 'Gm', tailleGo: 3.6, ramMin: 8, score: 'audio natif · embarqué',
           input: ['text', 'image', 'audio'], badges: ['Vision', 'Audio'],
-          desc: 'Alternative on-device si le 9B s\u2019avère lent.' },
+          desc: 'kml.desc.gemma' },
         { id: 'qwen3:14b', famille: 'q', initiale: 'Qw', tailleGo: 9.0, ramMin: 16, score: 'tools · thinking (Q4, Ollama)',
           input: ['text'], badges: ['Tools', 'Thinking'],
-          desc: 'Génération précédente — au-dessus du budget avec DSH ouvert.' },
+          desc: 'kml.desc.14b' },
         { id: 'qwen3-coder:30b', famille: 'q', initiale: 'Qw', tailleGo: 18.6, ramMin: 32, score: 'MoE 30B-A3B · code (Q4, Ollama)',
           input: ['text'], badges: ['Code', 'Tools'],
-          desc: 'Hors budget sur cette machine — rien ne sera téléchargé.' },
+          desc: 'kml.desc.coder30' },
       ]
 
       // ── i18n minimal (fr d'abord, en en repli) ───────────────────────────
@@ -118,8 +118,17 @@ window.__ModuleLoader__.load({
         'kml.hf.metal': { fr: 'Metal (Apple Silicon)', en: 'Metal (Apple Silicon)' },
         'kml.hf.metal.cpu': { fr: 'CPU (accélérateur non détecté)', en: 'CPU (no accelerator detected)' },
         'kml.installer.hf.hors-champ': { fr: 'Trop lourd pour cette machine — rien ne sera téléchargé.', en: 'Too heavy for this machine — nothing will be downloaded.' },
+        // (13/10) Catalogue descriptions — i18n wrap (was bare French only).
+        'kml.desc.9b': { fr: 'Le meilleur sous 10B — rentre avec DSH + Chrome ouverts (16 Go).', en: 'Best under 10B — fits with DSH + Chrome open (16 GB).' },
+        'kml.desc.4b': { fr: 'Marge maximale — le choix des machines à 8 Go.', en: 'Maximum headroom — the pick for 8 GB machines.' },
+        'kml.desc.2b': { fr: 'Pour les petites machines — taille Q4 non mesurée.', en: 'For small machines — Q4 size not measured.' },
+        'kml.desc.gemma': { fr: 'Alternative on-device si le 9B s\u2019avère lent.', en: 'On-device alternative if the 9B turns out slow.' },
+        'kml.desc.14b': { fr: 'Génération précédente — au-dessus du budget avec DSH ouvert.', en: 'Previous generation — over budget with DSH open.' },
+        'kml.desc.coder30': { fr: 'Hors budget sur cette machine — rien ne sera téléchargé.', en: 'Over budget on this machine — nothing will be downloaded.' },
       }
       let kbLocaleRead = () => 'en'
+      // Text separator, locale-aware: French ' : ', English ': '.
+      const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 ? ' : ' : ': ')
       const m = (key, vars) => {
         let lang = 'en'
         try { lang = String(kbLocaleRead()) } catch (e) { lang = 'en' }
@@ -406,7 +415,7 @@ window.__ModuleLoader__.load({
                 clearInterval(jobVivant.current)
                 jobVivant.current = null
                 chargerMachine(true)
-                setErreur(r.job.ok === true ? null : (r.job.annule === true ? null : (m('kml.erreur') + ' : ' + String(r.job.ligne || r.job.cmd))))
+                setErreur(r.job.ok === true ? null : (r.job.annule === true ? null : (m('kml.erreur') + sep() + String(r.job.ligne || r.job.cmd))))
               }
             }
           }, 600)
@@ -421,7 +430,7 @@ window.__ModuleLoader__.load({
           setErreur(null)
           const r = await jsonPost('/modeles-locaux/installer', { cible, installeMoteur: avecMoteur === true })
           if (r.ok !== true) {
-            setErreur(m('kml.erreur') + ' : ' + String(r.error || 'refus') + (r.astuce ? ' — ' + r.astuce : ''))
+            setErreur(m('kml.erreur') + sep() + String(r.error || 'refus') + (r.astuce ? ' — ' + r.astuce : ''))
             return
           }
           setJob({ cible, cmd: r.cmd, running: true, pct: null, octets: null, ligne: '' })
@@ -439,14 +448,14 @@ window.__ModuleLoader__.load({
             const raw = await api.settings.mutate(KB_NS, ops, revision)
             const resp = raw === null || raw === undefined ? { ok: false } : raw
             if (resp.ok !== true) {
-              setErreur(m('kml.erreur') + ' : ' + String(resp.error && (resp.error.code || resp.error.message) ? (resp.error.code || resp.error.message) : 'refus'))
+              setErreur(m('kml.erreur') + sep() + String(resp.error && (resp.error.code || resp.error.message) ? (resp.error.code || resp.error.message) : 'refus'))
               return false
             }
             if (resp.value && typeof resp.value.revision === 'number') setRevision(resp.value.revision)
             await chargerDoc()
             return true
           } catch (e) {
-            setErreur(m('kml.erreur') + ' : ' + String(e && e.message ? e.message : e))
+            setErreur(m('kml.erreur') + sep() + String(e && e.message ? e.message : e))
             return false
           }
         }
@@ -529,7 +538,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbm-tag', 'data-tone': 'outline' }, 'Q4'),
                 mod === reco ? h('span', { className: 'kbm-tag', 'data-tone': 'success' }, m('kml.reco.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null),
-              h('span', { className: 'kml-mod-desc', title: mod.desc + ' · ' + mod.score }, mod.desc + ' · ' + mod.score)),
+              h('span', { className: 'kml-mod-desc', title: m(mod.desc) + ' · ' + mod.score }, m(mod.desc) + ' · ' + mod.score)),
             h('span', { className: 'kml-mod-etat' },
               h('span', { className: 'kml-etat' },
                 h('span', { className: 'kbm-dot', 'data-state': etat === 'compatible' ? 'done' : (etat === 'juste' ? 'warning' : 'error') }),
@@ -561,7 +570,7 @@ window.__ModuleLoader__.load({
               ? tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
                   h('span', { className: 'kbm-dot', 'data-state': 'idle' }),
-                  machineErreur === null ? 'détection…' : (m('kml.erreur') + ' : ' + machineErreur)), 'm')
+                  machineErreur === null ? 'détection…' : (m('kml.erreur') + sep() + machineErreur)), 'm')
               : tuile(m('kml.tuile.machine'),
                 h('span', { className: 'kml-tuile-ligne' },
                   h('span', { className: 'kbm-dot', 'data-state': 'done' }),

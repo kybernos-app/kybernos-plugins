@@ -2651,7 +2651,10 @@ window.__ModuleLoader__.load({
                   : ': ' + connusDecision.join(', ') + '.'))),
           h('select', {
             className: natif && natif.sel ? natif.sel : 'kbr-select',
-            style: natif ? { minWidth: '120px', maxWidth: '160px', title: decision || undefined } : undefined, 'data-kbr': 'decision-brain-select', 'aria-label': 'Decision Brain',
+            // Recette 2026-10 (V-C): the decision model ids are long
+            // (provider/model); give the select room and a hover title so the
+            // full id stays reachable where it truncates.
+            style: natif ? { minWidth: '150px', maxWidth: '240px' } : undefined, title: decision || undefined, 'data-kbr': 'decision-brain-select', 'aria-label': 'Decision Brain',
             value: decision,
             onChange: (ev) => changerDecision(ev.target.value)
           },

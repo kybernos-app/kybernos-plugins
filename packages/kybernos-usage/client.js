@@ -68,6 +68,7 @@ window.__ModuleLoader__.load({
         detailHint: ['Détail : Réglages › Kybernos › Usage', 'Detail: Settings › Kybernos › Usage'],
         window5h: ['Fenêtre glissante de {n} h', 'Rolling {n} h window'],
         windowDays: ['{n} jours', '{n} days'],
+        windowDays1: ['{n} jour', '{n} day'],
         windowHours: ['{n} h', '{n} h'],
         teamPool: ['Équipe · {w} (partagé)', 'Team · {w} (shared)'],
         resetsIn: ['se libère dans environ {t}', 'frees up in about {t}'],
@@ -130,10 +131,14 @@ window.__ModuleLoader__.load({
       const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
       const num = (v) => { const n = typeof v === 'number' ? v : parseFloat(v); return Number.isFinite(n) ? n : null }
       const decimal = (s) => (lang().slice(0, 2) === 'fr' || lang() === 'kybernos' ? s.replace('.', ',') : s)
+      // Money, locale-aware (F23): French writes « 5,64 $ », English writes
+      // « $5.64 » — the unit follows the locale, not one fixed layout.
       const fmtMoney = (n) => {
         if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
-        if (n > 0 && n < 0.01) return decimal('<0.01') + NB + '$'
-        return decimal(n.toFixed(2)) + NB + '$'
+        const fr = lang().slice(0, 2) === 'fr' || lang() === 'kybernos'
+        if (n > 0 && n < 0.01) return fr ? decimal('<0,01') + NB + '$' : '<$0.01'
+        const amount = decimal(n.toFixed(2))
+        return fr ? amount + NB + '$' : '$' + amount
       }
       const fmtTok = (n) => {
         if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
@@ -215,7 +220,7 @@ window.__ModuleLoader__.load({
         const pct = num(w.used_percent)
         if (secs === null || pct === null) return null
         let label
-        if (secs % 86400 === 0) label = L('windowDays', { n: secs / 86400 })
+        if (secs % 86400 === 0) { const d = secs / 86400; label = d === 1 ? L('windowDays1', { n: d }) : L('windowDays', { n: d }) }
         else if (secs % 3600 === 0 && secs <= 6 * 3600) label = L('window5h', { n: secs / 3600 })
         else label = L('windowHours', { n: Math.round(secs / 3600) })
         if (w.kind === 'pool') label = L('teamPool', { w: label })
@@ -643,7 +648,7 @@ window.__ModuleLoader__.load({
             h('h3', null, L('perDay'), h('small', null, a.peak > 0 ? L('peak', { v: fmtMoney(a.peak) }) : '')),
             h('div', { className: 'kbus-chart' },
               h('div', { className: 'kbus-bars', role: 'img', 'aria-label': L('perDay') },
-                a.daily.map((d, i) => h('span', { key: d.day, className: 'b' + (d.day === today ? ' today' : ''), title: d.day + ' : ' + fmtMoney(d.cost), style: { height: Math.max(2, a.peak > 0 ? d.cost / a.peak * 100 : 2) + '%' } }))),
+                a.daily.map((d, i) => h('span', { key: d.day, className: 'b' + (d.day === today ? ' today' : ''), title: d.day + (lang().slice(0, 2) === 'fr' || lang() === 'kybernos' ? ' : ' : ': ') + fmtMoney(d.cost), style: { height: Math.max(2, a.peak > 0 ? d.cost / a.peak * 100 : 2) + '%' } }))),
               h('div', { className: 'kbus-axis' }, h('span', null, a.daily.length > 0 ? a.daily[0].day.slice(5) : ''), h('span', null, L('pToday')))))
           let rows
           if (tab === 'models') {

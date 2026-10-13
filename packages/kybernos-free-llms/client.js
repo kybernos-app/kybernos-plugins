@@ -47,6 +47,8 @@ window.__ModuleLoader__.load({
         'kfl.page.titre': { fr: 'Free LLMs (OpenCode)', en: 'Free LLMs (OpenCode)' },
       }
       let kbLocaleRead = () => 'en'
+      // Text separator, locale-aware: French ' : ', English ': '.
+      const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 ? ' : ' : ': ')
       const m = (key, vars) => {
         let lang = 'en'
         try { lang = String(kbLocaleRead()) } catch (e) { lang = 'en' }
@@ -165,7 +167,7 @@ window.__ModuleLoader__.load({
             setAck((s.state && s.state.acknowledged === true) || false)
             setErreur(null)
           } else {
-            setErreur(m('kfl.erreur') + ' : ' + String((s && s.error) || 'status'))
+            setErreur(m('kfl.erreur') + sep() + String((s && s.error) || 'status'))
           }
         }, [])
 
@@ -176,7 +178,7 @@ window.__ModuleLoader__.load({
           const r = await jsonPost('/free-llms/enable', { acknowledged: ack === true })
           setBusy(null)
           if (r && r.ok === true) { await refresh() } else {
-            setErreur(m('kfl.erreur') + ' : ' + String((r && r.error) || 'refus'))
+            setErreur(m('kfl.erreur') + sep() + String((r && r.error) || 'refus'))
           }
         }
         const deconnecter = async () => {

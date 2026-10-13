@@ -44,6 +44,9 @@ window.__ModuleLoader__.load({
       // injecté et `ctx` n'existe qu'après apply().
       let kbCtx = null
       let kbLocaleRead = () => 'en'
+      // Text separator, locale-aware: French ' : ', English ': ' (kbLocaleRead
+      // is reassigned in apply(); reading it per call keeps this up to date).
+      const sep = () => (String(kbLocaleRead()).toLowerCase().indexOf('fr') === 0 || String(kbLocaleRead()) === 'kybernos' ? ' : ' : ': ')
       const KB_M_T = {
         'kb.models.surface.entry': { kybernos: 'Fournisseur IA & modèles', en: 'AI Provider & Models' },
         'kb.models.surface.hint': { kybernos: 'Vos fournisseurs et leurs modèles, au même endroit.', en: 'Your providers and their models, in one place.' },
@@ -836,7 +839,7 @@ window.__ModuleLoader__.load({
           mo.error = m('kb.models.remove.note')
           kbmNotify()
         }).catch((e) => {
-          mo.error = m('kb.models.error.reseau') + ' : ' + String(e && e.message ? e.message : e)
+          mo.error = m('kb.models.error.reseau') + sep() + String(e && e.message ? e.message : e)
           kbmNotify()
         })
       }
@@ -2395,7 +2398,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kbmh-hero-feat-i' }, Ic('check', 14)), m('kb.hero.f.guard'))),
             KBM.live === true && KBM.loadError !== null
               ? h('div', { className: 'kbm-warn', 'data-kbmh': 'loaderror' },
-                m('kb.models.loaderror') + ' : ' + String(KBM.loadError))
+                m('kb.models.loaderror') + sep() + String(KBM.loadError))
               : null),
           h('div', { className: 'kbmh-hero-cta' },
             h('button', {
@@ -2465,7 +2468,7 @@ window.__ModuleLoader__.load({
           UI.tab === 'providers' ? h(KybernosHero, null) : null,
           KBM.live === true && KBM.loading === true && skelOf() === null ? h('div', { className: 'kbmp-vide', 'data-kbm': 'loading' }, m('kb.models.loading')) : null,
           KBM.live === true && KBM.loadError !== null ? h('div', { className: 'kbm-warn', 'data-kbm': 'loaderror' },
-            m('kb.models.loaderror') + ' : ' + String(KBM.loadError),
+            m('kb.models.loaderror') + sep() + String(KBM.loadError),
             h('button', { type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline', 'data-kbm': 'reload', onClick: () => { kbMLoad() } }, m('kb.models.reload'))) : null,
           // Deux onglets, un seul contenu visible à la fois :
           //  · « Providers » montre l'UX NATIF de DSH (les rangées avec
@@ -3263,7 +3266,7 @@ window.__ModuleLoader__.load({
               mo.error = m('kb.models.error.conflict')
               setTimeout(() => { kbMLoad() }, 400)
             } else {
-              mo.error = m('kb.models.error.refus') + ' : ' + String(resp.error && resp.error.message ? resp.error.message : code)
+              mo.error = m('kb.models.error.refus') + sep() + String(resp.error && resp.error.message ? resp.error.message : code)
             }
             kbmNotify()
             return false
@@ -3277,7 +3280,7 @@ window.__ModuleLoader__.load({
           kbmNotify()
           return true
         } catch (e) {
-          mo.error = m('kb.models.error.reseau') + ' : ' + String(e && e.message ? e.message : e)
+          mo.error = m('kb.models.error.reseau') + sep() + String(e && e.message ? e.message : e)
           kbmNotify()
           return false
         }
@@ -4317,7 +4320,7 @@ window.__ModuleLoader__.load({
             // L'index indisponible n'est PAS « modèle inconnu » : le dire juste.
             mo.remote = {}
             mo.synced = false
-            mo.error = body.error === 'modelsdev-unavailable' ? m('kb.models.error.index') : (m('kb.models.error.reseau') + ' : ' + String(body.error === undefined ? 'inconnu' : body.error))
+            mo.error = body.error === 'modelsdev-unavailable' ? m('kb.models.error.index') : (m('kb.models.error.reseau') + sep() + String(body.error === undefined ? 'inconnu' : body.error))
           } else if (body !== null && body.match !== null && body.match !== undefined) {
             mo.remote = Object.assign({}, body.match)
             mo.stale = body.stale === true
@@ -4331,7 +4334,7 @@ window.__ModuleLoader__.load({
         } catch (e) {
           mo.loading = false
           mo.synced = false
-          mo.error = m('kb.models.error.reseau') + ' : ' + String(e && e.message ? e.message : e)
+          mo.error = m('kb.models.error.reseau') + sep() + String(e && e.message ? e.message : e)
           kbmNotify()
           return false
         }

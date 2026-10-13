@@ -254,6 +254,9 @@ window.__ModuleLoader__.load({
         'det.whatBody': { fr: 'L\'archive du dépôt est téléchargée, le dossier du skill est trouvé par son frontmatter, puis COPIÉ dans la racine choisie. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître.', en: 'The repo archive is downloaded, the skill folder is found through its frontmatter, then COPIED into the chosen root. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up.' },
         'det.rootph': { fr: '<racine>', en: '<root>' },
         'det.checks': { fr: 'Vérification', en: 'Checks' },
+        'det.local.what': { fr: 'Ce qu\'il fait', en: 'What it does' },
+        'det.local.when': { fr: 'Quand l\'utiliser', en: 'When to use it' },
+        'det.local.body': { fr: 'Le corps du SKILL.md n\'est pas inclus dans les données de ce skill.', en: 'The SKILL.md body is not included in this skill\'s data.' },
         'det.declared': { fr: 'Installations déclarées par l\'index', en: 'Installs reported by the index' },
         'det.frontmatter': { fr: 'Frontmatter relu avant copie : name et description obligatoires', en: 'Frontmatter re-read before copying: name and description required' },
         'det.target': { fr: 'Cible : {p}', en: 'Target: {p}' },
@@ -262,6 +265,11 @@ window.__ModuleLoader__.load({
         'det.auditNone': { fr: 'aucun audit publié pour ce skill', en: 'no audit published for this skill' },
         'det.audited': { fr: 'audité', en: 'audited' },
         'det.unknown': { fr: 'inconnu', en: 'unknown' },
+        'det.tab.overview': { fr: 'Aperçu', en: 'Overview' },
+        'det.tab.body': { fr: 'Contenu', en: 'Contents' },
+        'det.root': { fr: 'Dossier', en: 'Folder' },
+        'det.modified': { fr: 'Modifié', en: 'Modified' },
+        'det.unknownDate': { fr: 'date inconnue', en: 'unknown date' },
         'det.thirdParty': { fr: 'Le contenu vient d\'un dépôt tiers : DSH ne l\'audite pas ; ces verdicts sont ceux publiés par skills.sh.', en: 'The content comes from a third-party repo: DSH does not audit it; these verdicts are the ones published by skills.sh.' },
         'cap.detail': { fr: 'fiche du skill', en: 'skill details' },
         'cap.yours': { fr: 'installés dans ce profil · {a} actifs sur {n}', en: 'installed in this profile · {a} of {n} active' },
@@ -475,6 +483,8 @@ window.__ModuleLoader__.load({
         return lang
       }
       const isEn = () => tlang().slice(0, 2).toLowerCase() === 'en'
+      // Text separator, locale-aware: French ' : ', English ': '.
+      const sep = () => (isEn() ? ': ' : ' : ')
       const t = (key, vars) => {
         const row = STR[key]
         if (row === null || row === undefined) return key
@@ -701,6 +711,16 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-preview-body pre{background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px 14px;overflow:auto;font-size:12.5px}
 .kbs-root .kb-preview-body ul{margin:0 0 12px;padding-left:20px}
 .kbs-root .kb-preview-body li{margin:5px 0}
+/* Local skill sheet (a Yours card opens it): its own head and rows, reusing the pivot's tokens. */
+.kbs-root .kb-local{display:flex;flex-direction:column;gap:16px;max-width:980px}
+.kbs-root .kb-local-tabs{display:flex;gap:8px}
+.kbs-root .kb-local-rows{display:flex;flex-direction:column;gap:10px}
+.kbs-root .kb-local-rows .row{display:flex;gap:14px;align-items:baseline;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);border-top:1px solid var(--dsw-alias-border-l1);padding-top:10px}
+.kbs-root .kb-local-rows .row>span:first-child{min-width:120px;color:var(--dsw-alias-label-caption);flex:none}
+.kbs-root .kb-local-body{margin:0;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l1);border-radius:10px;padding:12px 14px;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.6;color:var(--dsw-alias-label-secondary);white-space:pre-wrap;overflow:auto;max-height:60vh}
+/* A card that opens a sheet says so: pointer and hover, instead of the skeleton's static class (cursor:default). */
+.kbs-root .kb8-card{cursor:pointer}
+.kbs-root .kb8-card:focus-visible{outline:2px solid var(--dsw-alias-border-focus,#4d7cfe);outline-offset:2px}
 .kbs-root .kb-menu-wrap{position:relative;display:inline-flex}
 /* The three popovers of the panel (Create, Sort, Filters) take the exact tokens of the core plugin's
    .kb6-tb-pop: l1 border, radius 13, shadow 0 14px 34px .3. They used to float higher
@@ -906,6 +926,11 @@ window.__ModuleLoader__.load({
         const [roots, setRoots] = React.useState([])
         const [modal, setModal] = React.useState(null)                        // null | create | install
         const [detail, setDetail] = React.useState(null)
+        // A card of the Yours tab opens the skill's LOCAL sheet (UB-13/FV1); `detail` stays the Discover sheet.
+        const [local, setLocal] = React.useState(null)
+        // The sheet's active tab lives in the parent so it survives the sheet being remounted
+        // when the parent re-renders (toggle, toast, polling). Reset on open, not on render.
+        const [localTab, setLocalTab] = React.useState('overview')
         // Featured: the highlighted list, controlled by the user. `items` follows the order of the
         // file; an item `found:false` (skill gone from the registry) is skipped at render, not erased.
         const [feat, setFeat] = React.useState({ phase: 'idle', items: [] })
@@ -1399,7 +1424,13 @@ window.__ModuleLoader__.load({
           const k = skillKey(s)
           const on = s.active === true
           const err = errors[k]
-          return h('div', { key: k, className: 'kb8-card static' + appear(i) },
+          // The card opens the local sheet (UB-13/FV1): its inner buttons stop the propagation and keep their own action.
+          return h('div', {
+            key: k, className: 'kb8-card' + appear(i), role: 'button', tabIndex: 0,
+            'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-card-' + k,
+            onClick: () => { setLocal(s); setLocalTab('overview'); setDetail(null); setModal(null) },
+            onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLocal(s); setLocalTab('overview'); setDetail(null); setModal(null) } }
+          },
             h('div', { className: 'kb-row' },
               tile(s.name, 'pkg'),
               h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
@@ -1408,13 +1439,13 @@ window.__ModuleLoader__.load({
               s.writable === true
                 ? h('button', {
                     type: 'button', className: 'kb-sw' + (on ? ' on' : ''), title: on ? t('card.disable') : t('card.enable'),
-                    disabled: busy[k] === true, onClick: () => toggle(s)
+                    disabled: busy[k] === true, onClick: (e) => { e.stopPropagation(); toggle(s) }
                   }, h('i', null))
                 : h('span', { className: 'kb8-pill' }, t('card.readonly')),
               h('button', {
                 type: 'button', className: 'kbs-star-btn' + (featNames.has(s.name) ? ' on' : ''),
                 title: featNames.has(s.name) ? t('feat.remove') : t('feat.add'),
-                onClick: () => toggleFeatured(s.name)
+                onClick: (e) => { e.stopPropagation(); toggleFeatured(s.name) }
               }, icon('star', 14))),
             h('div', { className: 'desc' }, s.description !== '' ? s.description : t('card.nodesc')),
             h('div', { className: 'kb8-pills' },
@@ -1427,7 +1458,7 @@ window.__ModuleLoader__.load({
               h('span', { className: 'grow' }),
               h('button', {
                 type: 'button', className: 'kbs-copy', title: t('card.copyTitle'),
-                onClick: () => copy('/' + s.name)
+                onClick: (e) => { e.stopPropagation(); copy('/' + s.name) }
               }, icon('code', 12), '/' + s.name)),
             err ? h('div', { className: 'kbs-err' }, err) : null)
         }
@@ -1553,32 +1584,16 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'index-source-change', onClick: () => { setSrcErr(''); setSrcOpen(true) } }, t('src.change')))
         }
 
-        // The featured list is local (it does not wait for the index), so it is drawn at once — and above the bones — which is also
-        // what keeps the ranking from jumping down when it arrives. Only on page 1 of the ranking, without a search: it highlights,
-        // it takes part neither in sorting nor in filtering. Same ROWS as the ranking (see featRow).
-        const renderFeatured = () => {
-          const featShown = feat.items.filter((it) => it.found !== false)
-          if (feat.phase !== 'ready' || discKind === 'search' || dneedle !== '' || discPage !== 0 || featShown.length === 0) return null
-          return h('div', { key: 'feat', className: 'kbs-feat' },
-            h('div', { className: 'kbs-feat-head' },
-              h('span', { className: 't' }, 'Featured'),
-              h('span', { className: 's' }, featShown.length + ' ' + t('feat.sub'))),
-            h('div', { className: 'kbs-table', 'data-kb': 'feat-table' },
-              h('div', { className: 'kbs-head' },
-                h('span', { className: 'rank' }, ''),
-                h('span', { className: 'who' }, 'SKILL'),
-                h('span', { className: 'src' }, 'SOURCE'),
-                h('span', { className: 'badges' }, t('th.state')),
-                h('span', { className: 'inst' }, t('feat.th.when'))),
-              featShown.map(featRow)))
-        }
-
+        // ONE list, featured first (UB-12): the featured rows are prepended to the ranking table on
+        // page 1 without a search, instead of sitting in a second, separate table above it.
+        const featRows = (feat.phase === 'ready' && discKind === 'index' && dneedle === '' && discPage === 0)
+          ? feat.items.filter((it) => it.found !== false).map(featRow) : []
         const renderDiscover = () => {
           const sourceLine = renderSourceLine()
           if (discPhase === 'loading' && disc === null) {
             // Bones: the featured list (known already), a pager's worth of space, then rows in the ranking's own grid.
             const bones = skeletonOf('rows', 8)
-            return h('div', null, sourceLine, renderFeatured(),
+            return h('div', null, sourceLine,
               bones === null ? h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('d.query')))
                 : [h('div', { key: 'pg', className: 'kbs-pager haut', 'aria-hidden': 'true' }, bone(112, 38, null, 11), [0, 1, 2, 3, 4].map((i) => h('span', { key: i }, bone(38, 38, null, 11))), bone(96, 38, null, 11)), h('div', { key: 'sk' }, bones)])
           }
@@ -1586,7 +1601,7 @@ window.__ModuleLoader__.load({
             // The failure is THIS tab's: Yours and Team do not depend on the index and are untouched. A clear sentence, a way to
             // ask again, and — the address being the user's to change — a way to change it.
             const refused = discErr !== null && discErr.code === 'index_url_refused'
-            return h('div', null, sourceLine,
+            return h('div', null,
               h('div', { className: 'kb-empty', role: 'alert', 'data-kb': 'disc-error' },
                 icon('alert', 24),
                 h('span', { className: 'kb8-name' }, t('d.down')),
@@ -1601,8 +1616,7 @@ window.__ModuleLoader__.load({
           }
           return h('div', null,
             sourceLine,
-            renderFeatured(),
-            discShown.length === 0 ? null : pagerIndex(true),
+            discShown.length === 0 && featRows.length === 0 ? null : pagerIndex(true),
             h('div', { className: 'kbs-table' + (discPhase === 'loading' ? ' loading' : '') },
               h('div', { className: 'kbs-head' },
                 h('span', { className: 'rank' }, '#'),
@@ -1612,8 +1626,69 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'inst' }, 'INSTALLATIONS')),
               discShown.length === 0
                 ? empty(t('y.noresult'), discKind === 'search' ? t('d.empty.search') : t('d.empty.page'))
-                : discShown.map(ligne)),
+                : featRows.concat(discShown.map(ligne))),
             discShown.length === 0 ? null : pagerIndex())
+        }
+
+        // The skill's own text, for the Contents tab. The catalogue record carries the frontmatter fields
+        // (description, whenToUse); a body is shown only when the host really has one (body/markdown/readme),
+        // never invented from the description the Overview tab already shows.
+        const localBodyOf = (s) => {
+          const body = s !== null && s !== undefined ? s.body : undefined
+          if (typeof body === 'string' && body.trim() !== '') return body
+          const md = s !== null && s !== undefined ? s.markdown : undefined
+          if (typeof md === 'string' && md.trim() !== '') return md
+          const rm = s !== null && s !== undefined ? s.readme : undefined
+          if (typeof rm === 'string' && rm.trim() !== '') return rm
+          return t('det.local.body')
+        }
+        // A local skill's sheet: a sheet, not the Discover INSTALL page (which speaks of a repo, installs and
+        // third-party audits). Its rows use the skill's own words (description, whenToUse), not the install page's
+        // labels. The tab state is local to the sheet and resets when the card changes.
+        const LocalDetail = ({ s, onClose, tab, setTab }) => {
+          const k = skillKey(s)
+          const err = errors[k]
+          const on = s.active === true
+          return h('div', { className: 'kb-local', role: 'region', 'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-local-detail' },
+            h('div', { className: 'kb-detail-head' },
+              tile(s.name, 'pkg', 'lg'),
+              h('div', { className: 'meta' },
+                h('div', { className: 'kb-row', style: { gap: '9px' } },
+                  h('span', { className: 'kb8-h1', style: { fontSize: '22px' } }, s.name),
+                  on ? h('span', { className: 'kb8-pill ok' }, t('card.active')) : h('span', { className: 'kb8-pill warn' }, t('card.disabled'))),
+                h('span', { className: 'kb8-parent kbs-nowrap' }, (s.source || '') + ' · ' + String(s.root || ''))),
+              s.writable === true
+                ? h('button', {
+                    type: 'button', className: 'kb-sw' + (on ? ' on' : ''), title: on ? t('card.disable') : t('card.enable'),
+                    disabled: busy[k] === true, onClick: () => toggle(s)
+                  }, h('i', null))
+                : h('span', { className: 'kb8-pill' }, t('card.readonly')),
+              h('button', {
+                type: 'button', className: 'kb8-ghost', onClick: onClose, 'aria-label': t('m.cancel')
+              }, icon('back', 15), h('span', null, t('m.cancel')))),
+            h('div', { className: 'kb8-pills' },
+              on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
+              s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
+              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null),
+            h('div', { className: 'kb-local-tabs', role: 'tablist' },
+              h('button', {
+                type: 'button', role: 'tab', 'aria-selected': tab === 'overview' ? 'true' : 'false',
+                className: 'kb8-chip' + (tab === 'overview' ? ' on' : ''), onClick: () => setTab('overview')
+              }, t('det.tab.overview')),
+              h('button', {
+                type: 'button', role: 'tab', 'aria-selected': tab === 'body' ? 'true' : 'false',
+                className: 'kb8-chip' + (tab === 'body' ? ' on' : ''), onClick: () => setTab('body')
+              }, t('det.tab.body'))),
+            tab === 'overview'
+              ? h('div', { className: 'kb-local-rows' },
+                  h('div', { className: 'row' }, h('span', null, t('det.root')), h('span', { className: 'kb8-mono' }, String(s.root || ''))),
+                  h('div', { className: 'row' }, h('span', null, t('det.modified')), h('span', { className: 'kb8-mono' }, s.modifiedAt !== '' ? today(s.modifiedAt) : t('det.unknownDate'))),
+                  h('div', { className: 'row' }, h('span', null, t('det.local.what')), h('span', null, s.description !== '' ? s.description : t('card.nodesc'))),
+                  s.whenToUse !== undefined && s.whenToUse !== null && String(s.whenToUse).trim() !== ''
+                    ? h('div', { className: 'row' }, h('span', null, t('det.local.when')), h('span', null, String(s.whenToUse).trim()))
+                    : null,
+                  err ? h('div', { className: 'kbs-err' }, err) : null)
+              : h('pre', { className: 'kb-local-body' }, localBodyOf(s)))
         }
 
         const renderDetail = () => {
@@ -1720,13 +1795,16 @@ window.__ModuleLoader__.load({
           return null
         }
 
-        const body = detail !== null
+        const body = local !== null
+          ? LocalDetail({ s: (skills.find((x) => skillKey(x) === skillKey(local)) || local), tab: localTab, setTab: setLocalTab, onClose: () => setLocal(null) })
+          : (detail !== null
           ? renderDetail()
-          : h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover()))
+          : h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
 
         // (1 Oct) Same header as "Connections": title + subtitle on the left, main action on the right, then a
         // control row (sub-tabs on the left, search / filter / sort on the right).
-        const capTxt = detail !== null ? t('cap.detail') : (mode === 'yours'
+        const sheetOpen = local !== null || detail !== null
+        const capTxt = sheetOpen ? t('cap.detail') : (mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length })
           : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank'))))
         return h('div', { className: 'kbs-root' },
@@ -1735,19 +1813,19 @@ window.__ModuleLoader__.load({
               h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)),
               h('h2', { className: 'kbs-h1' }, 'Skills'),
               h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
-            detail === null && mode !== 'team' ? renderAdd() : null),
+            sheetOpen === false && mode !== 'team' ? renderAdd() : null),
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
               h('div', { className: 'kbsub-group', role: 'tablist' },
-                h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null) } },
+                h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'yours' ? 'true' : 'false', className: 'kb-seg' + (mode === 'yours' ? ' on' : ''), onClick: () => { setMode('yours'); setDetail(null); setLocal(null) } },
                   'Yours ', h('span', { className: 'count' }, count)),
-                h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null) } },
+                h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'discover' ? 'true' : 'false', className: 'kb-seg' + (mode === 'discover' ? ' on' : ''), onClick: () => { setMode('discover'); setDetail(null); setLocal(null) } },
                   'Discover ', h('span', { className: 'count' }, disc !== null && Array.isArray(disc.skills) ? String(disc.skills.length) : '—')),
-                tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setTeamOpen(null) } },
+                tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
-            mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : (detail === null ? renderToolbar() : null)),
+            mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : (sheetOpen === false ? renderToolbar() : null)),
           h('div', { className: 'kb8-page' }, body),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
@@ -2019,7 +2097,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.text')),
                 h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.secret')),
                 h('span', { className: 'kb8-pill ok' }, t('tm.p.ck.size', { n: d.count, kb: kbOf(d.bytes) })))) : null,
-            d !== null && d.scripts.length > 0 ? banner('warn', 'alert', t('tm.script') + ' : ' + d.scripts.join(', ')) : null,
+            d !== null && d.scripts.length > 0 ? banner('warn', 'alert', t('tm.script') + sep() + d.scripts.join(', ')) : null,
             h('div', { className: 'kbs-fields' }, h('span', { className: 'kbs-label' }, props.admin ? t('tm.p.noteAdmin') : t('tm.p.note')),
               h('textarea', { className: 'kbs-area', style: { minHeight: '70px', fontFamily: 'inherit', fontSize: '13px' }, value: note, maxLength: 280, onChange: (e) => setNote(e.target.value) })),
             err !== '' ? h('div', { className: 'kbs-err' }, err) : null,

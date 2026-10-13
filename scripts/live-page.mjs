@@ -56,6 +56,7 @@ export async function openLivePage(opts = {}) {
     } catch (e) { /* Chrome still starting */ }
   }
   const close = async () => {
+    try { await Promise.race([page.send('Browser.close', {}), sleep(2500)]) } catch (e) { /* already gone */ }
     try { chrome.kill() } catch (e) { /* gone */ }
     await sleep(300)
     try { rmSync(profile, { recursive: true, force: true }) } catch (e) { /* busy */ }

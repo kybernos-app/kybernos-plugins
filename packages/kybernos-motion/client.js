@@ -1879,6 +1879,8 @@ window.__ModuleLoader__.load({
 
         const lang = () => { try { return String(window.__KB_LANG_RESOLVE__?.() || '').split(/[-_]/)[0] } catch (e) { return 'fr' } }
         const kt = (fr, en) => (lang() === 'en' ? en : fr)
+        // Text separator, locale-aware: French ' : ', English ': '.
+        const sep = () => (lang() === 'en' ? ': ' : ' : ')
         const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
         const fmtT = (t) => { const m = Math.floor(t / 60); const s = (t % 60).toFixed(1); return m + ':' + (s.length < 4 ? '0' + s : s) }
         const slugOf = (s) => String(s || 'animation').toLowerCase().normalize('NFD').replace(/\p{M}+/gu, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'animation'
@@ -2595,7 +2597,7 @@ window.__ModuleLoader__.load({
             draft.current = next
             setDoc({ ...d, scene: engine.validate(next).scene })
             clearTimeout(timer.current)
-            const what = ctl.label + ' : ' + (kind === 'text' ? '« ' + String(value).slice(0, 40) + ' »' : shown || String(value))
+            const what = ctl.label + sep() + (kind === 'text' ? '« ' + String(value).slice(0, 40) + ' »' : shown || String(value))
             if (kind === 'text') timer.current = setTimeout(() => save(what), 700)
             else save(what)
           }
