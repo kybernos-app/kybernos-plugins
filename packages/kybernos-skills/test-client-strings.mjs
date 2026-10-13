@@ -86,4 +86,12 @@ const orphan = [...dict.keys()].filter((k) => k.startsWith('he.') && !codes.has(
 assert.deepEqual(orphan, [], 'sentences for a code the host never sends: ' + orphan.join(', '))
 ok('the older routes answer in codes (' + codes.size + '), and every one the page can show has a French and an English sentence')
 
+// 2. The "Yours" card opens its local sheet (UB-13) without hijacking its inner buttons:
+//    the switch and the star must stop propagation, and the keyboard handler must ignore keys
+//    that come from those inner buttons.
+assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggle\(s\) \}/.test(src), 'the active switch stops propagation before toggling')
+assert.ok(/onClick: \(e\) => \{ e\.stopPropagation\(\); toggleFeatured\(s\.name\) \}/.test(src), 'the Featured star stops propagation before toggling')
+assert.ok(/onKeyDown: \(e\) => \{ if \(e\.target !== e\.currentTarget\) return;/.test(src), 'the card keyboard handler ignores keys from inner buttons')
+ok('the Yours card opens its sheet without hijacking the inner switch/star (mouse + keyboard)')
+
 console.log('\n' + pass + ' verifications OK')

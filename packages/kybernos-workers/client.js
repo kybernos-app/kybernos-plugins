@@ -693,7 +693,7 @@ window.__ModuleLoader__.load({
         // closed-equation counters (every worker counts exactly once)
         let ready = 0
         for (const w of workers) if (statusOf(w, busy[w.id]) === 'pret') ready += 1
-        const toFix = workers.length - ready
+        const toCheck = workers.length - ready
         const anyBusy = Object.keys(busy).length > 0
 
         // An older Suite knows nothing of the help card's action button: the guide then gets a button of its own.
@@ -867,7 +867,7 @@ window.__ModuleLoader__.load({
                 typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-workers', action: { label: kt('Essayer la démo', 'Try the demo'), onClick: () => setGuide(true) } }) : null,
                 !helpHasAction ? h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-guide', onClick: () => setGuide(true) }, kt('Guide et démo', 'Guide and demo')) : null,
                 h('button', { type: 'button', className: 'kbwk-btn ghost big', 'data-kb': 'wk-all', disabled: anyBusy, onClick: checkAll }, ic('refresh', anyBusy ? 'spin' : ''), kt('Tout vérifier', 'Check all')))),
-            h('div', { className: 'kbwk-count' }, h('span', null, h('b', null, ready), ' ' + kt(ready > 1 ? 'prêts' : 'prêt', 'ready')), h('span', null, h('b', null, toFix), ' ' + kt('à régler', 'to fix'))),
+            h('div', { className: 'kbwk-count' }, h('span', null, h('b', null, ready), ' ' + kt(ready > 1 ? 'prêts' : 'prêt', 'ready')), h('span', null, h('b', null, toCheck), ' ' + kt('à vérifier', 'to check'))),
             pending > 0 ? h('div', { className: 'kbwk-relance', role: 'status' }, h('b', null, kt('Changement en attente. ', 'Change pending. ')), kt('Relancez DSH pour l’appliquer (panneau Kybernos Suite › Relancer DSH).', 'Restart DSH to apply it (Kybernos Suite panel › Restart DSH).')) : null,
             h('ul', { className: 'kbwk-list', role: 'list' }, workers.map(item)),
             h('p', { className: 'kbwk-note' }, kt('Vérifier n’appelle aucun modèle : cela ne dépense rien sur l’abonnement de l’agent. « Prêt » veut dire que tout ce qui se vérifie gratuitement est bon ; la première vraie tâche reste le test final.', 'Checking calls no model, so it spends nothing on the worker’s subscription. "Ready" means everything checkable without spending is fine; the first real delegation remains the final test.')),

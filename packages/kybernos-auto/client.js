@@ -171,7 +171,7 @@ window.__ModuleLoader__.load({
       sante.className = 'kaa-sante-mini'
       sante.setAttribute('data-kb', 'auto-health-mini')
       panneau.append(ligne, pastille, sante)
-      refs = { sous, sw, pt, ptxt, sante }
+      refs = { sous, sw, pt, ptxt, sante, pastille }
     }
 
     const rendrePanneau = () => {
@@ -188,7 +188,9 @@ window.__ModuleLoader__.load({
         : kt('Cette session seulement', 'This session only')
       refs.sw.setAttribute('aria-pressed', String(on))
       refs.sw.className = 'kaa-switch-btn' + (on ? ' on' : '')
-      refs.pt.className = 'kaa-dot ' + (total === 0 ? 'warn' : (disponibles === 0 ? 'down' : (disponibles < total ? 'warn' : 'ok')))
+      const ton = (total === 0 ? 'warn' : (disponibles === 0 ? 'down' : (disponibles < total ? 'warn' : 'ok')))
+      refs.pt.className = 'kaa-dot ' + ton
+      if (refs.pastille) refs.pastille.className = 'kaa-pop-dispo ' + ton
       refs.ptxt.textContent = total === 0
         ? kt('Aucun modèle dans la whitelist', 'No model in the whitelist')
         : disponibles + kt(' sur ', ' of ') + total + (total > 1 ? kt(' modèles disponibles', ' models available') : kt(' modèle disponible', ' model available'))
@@ -465,6 +467,8 @@ window.__ModuleLoader__.load({
       '.kaa-switch-btn span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--dsw-alias-label-primary-foreground);transition:left 120ms ease}',
       '.kaa-switch-btn.on span{left:16px}',
       '.kaa-pop-dispo{display:flex;align-items:center;gap:6px;margin:2px 8px 2px;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 16%,transparent);color:var(--dsw-alias-label-primary);font-size:13px}',
+      '.kaa-pop-dispo.ok{background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 12%,transparent)}',
+      '.kaa-pop-dispo.down{background:color-mix(in srgb,var(--dsw-alias-state-error-primary) 14%,transparent)}',
       '.kaa-tag{font-size:11px;font-weight:500;vertical-align:middle;padding:2px 6px;border-radius:6px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}',
       '.kaa-warm{font-size:10.5px;font-weight:500;margin-inline-start:6px;padding:1px 6px;border-radius:6px;white-space:nowrap;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-brand-primary)}',
       '.kaa-bar{display:block;height:6px;margin-top:3px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);overflow:hidden}',

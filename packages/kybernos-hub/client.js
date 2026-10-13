@@ -549,7 +549,9 @@ window.__ModuleLoader__.load({
       'kybernos-plugin': 'kybernos-tools', 'kybernos-cloud': 'kybernos-account', 'kybernos-models': 'kybernos-models', 'kybernos-auto': 'kybernos-auto-page',
       'kybernos-modeles-locaux': 'kybernos-ollama', 'kybernos-memory': 'kybernos-memory', 'kybernos-theme': 'kybernos-theme', 'kybernos-language': 'kybernos-language',
       'kybernos-slash': 'kybernos-slash', 'kybernos-atlas': 'kybernos-atlas', 'kybernos-workers': 'kybernos-workers', 'kybernos-maintenance': 'kybernos-maintenance',
-      'kybernos-call': 'kybernos-call'
+      'kybernos-call': 'kybernos-call',
+      'kybernos-websearch': 'kybernos-websearch-page', 'kybernos-free-llms': 'kybernos-free-llms',
+      'kybernos-usage': 'kybernos-usage', 'kybernos-mobile': 'kybernos-mobile'
     }
 
     const ICONES = {

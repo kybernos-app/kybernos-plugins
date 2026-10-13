@@ -3387,6 +3387,12 @@ const kbf = (fr) => {
 // Source strings for the language plugin's translation engine (kybernos-language
 // reads them instead of scraping this file's source).
 try { if (typeof window !== 'undefined') { window.__KB_T__ = KB_T; window.__KB_FR_EN__ = KB_FR_EN } } catch (e) { /* outside a browser */ }
+// Text separator, locale-aware: French style ' : ', English style ': '.
+// RULE (keep the bundles in step): 'en' -> ': ', every other language keeps the French ' : ' (RTL and
+// other locales use the French colon spacing). Duplicated per bundle (no shared module) — a behaviour
+// change here must be mirrored in kybernos-skills/kybernos-motion (sep) and kybernos-usage/kybernos-models.
+const kbfSep = () => (kbLangResolve() === KB_LANG_FALLBACK ? ': ' : ' : ')
+
 
 // ── icônes Lucide (SVG inline, aucune dépendance) ───────────────────────────
 const LUCIDE = {
@@ -11084,13 +11090,13 @@ return {
         (kbiLectureTexte !== null ? h('div', { className: 'kbi-lecture', style: { '--kbi-c': couleurDe(vE.appliquee) }, 'data-kb': 'insight-lecture' }, h('span', { className: 'kbi-lab' }, kbf('Lecture — skill insight-principe')), h('p', { className: 'kbi-sub' }, kbiLectureTexte)) : null),
         (anno !== '' ? h('div', { className: 'kbi-note', role: 'status', 'data-kb': 'insight-annonce' }, anno) : null),
         (busy === true && data === null ? h('div', { className: 'kbi-note' }, kbt('kbui.ins.loading')) : null),
-        (err !== null ? h('div', { className: 'kbi-note kbi-note-err' }, kbt('kbui.ins.err') + ' : ' + err) : null),
+        (err !== null ? h('div', { className: 'kbi-note kbi-note-err' }, kbt('kbui.ins.err') + kbfSep() + err) : null),
         (data === null ? null : h('div', { className: 'kbi-body', 'data-blocs': blocsActifs.join(' ') },
           section(kbt('kbui.ins.key'),
             h('div', { 'data-kb-bloc': 'cles', className: 'kbi-grid4' },
               hcard(kbt('kbui.ins.runs'), kbiNum(key.runs), runSource, methods.runs),
               hcard(kbt('kbui.ins.users'), kbiNum(key.uniqueUsers), kbt('kbui.ins.users.sub'), methods.uniqueUsers),
-              hcard(kbt('kbui.ins.last'), lastAt === null ? kbt('kbui.ins.last.none') : lastAt, key.workflowRuns > 0 ? kbf('runs de workflow tracés') + ' : ' + kbiNum(key.workflowRuns) : '' , null),
+              hcard(kbt('kbui.ins.last'), lastAt === null ? kbt('kbui.ins.last.none') : lastAt, key.workflowRuns > 0 ? kbf('runs de workflow tracés') + kbfSep() + kbiNum(key.workflowRuns) : '' , null),
               hcard(kbt('kbui.ins.versions'), kbiNum(key.versionsSaved), kbt('kbui.ins.versions.sub'), methods.versions))),
           section(kbt('kbui.ins.usage'),
             h('div', { 'data-kb-bloc': 'usage', className: 'kbi-grid2' },
@@ -11141,7 +11147,7 @@ return {
               h('div', { className: 'kbi-sim-actions' },
                 h('button', { type: 'button', className: 'kbi-btn kbi-btn-on', 'data-kb': 'insight-detect', disabled: det === 'busy', onClick: () => detectSalary() }, det === 'busy' ? kbt('kbui.ins.sim.detecting') : kbt('kbui.ins.sim.detect')),
                 h('span', { className: 'kbi-sub' }, kbt('kbui.ins.sim.editable'))),
-              (why !== null ? h('span', { className: 'kbi-sub' }, kbf('Estimation du modèle') + ' : ' + why) : null),
+              (why !== null ? h('span', { className: 'kbi-sub' }, kbf('Estimation du modèle') + kbfSep() + why) : null),
               (det !== null && det !== 'busy' ? h('span', { className: 'kbi-sub kbi-err' }, det) : null),
               h('div', { className: 'kbi-sim-out' },
                 h('div', { className: 'kbi-sim-kpi' },
@@ -11173,7 +11179,7 @@ return {
           h('details', { 'data-kb-bloc': 'sources', className: 'kbi-sources' },
             h('summary', {}, kbt('kbui.ins.sources')),
             h('div', { className: 'kbi-src-list' },
-              Object.keys(methods).map((k) => h('p', { key: k, className: 'kbi-src' }, h('b', {}, k + ' : '), methods[k])),
+              Object.keys(methods).map((k) => h('p', { key: k, className: 'kbi-src' }, h('b', {}, k + kbfSep()), methods[k])),
               (notes.length === 0 ? h('p', { className: 'kbi-src' }, kbf('Aucune réserve : toutes les sources attendues ont répondu.')) : notes.map((n, i) => h('p', { key: 'n' + i, className: 'kbi-src kbi-src-warn' }, n))))))))
     }
     // ── Onglet « Quality Score » de la fiche AI Team ────────────────────────
@@ -11552,7 +11558,7 @@ return {
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px' } },
             h('span', { className: 'kbq-kpilab' }, kbt('kbui.quality.vedette')),
             h('span', { className: 'kbq-kpisub' }, kbf('composite pondéré : approbation 30 · complétion 25 · équipe 20 · skills 15 · réactivité 10')),
-            spark !== null ? h('span', { title: kbt('kbui.quality.tendance') + ' : ' + spark.lo + ' → ' + spark.hi },
+            spark !== null ? h('span', { title: kbt('kbui.quality.tendance') + kbfSep() + spark.lo + ' → ' + spark.hi },
               h('svg', { className: 'kbq-spark', width: spark.W, height: spark.H, viewBox: '0 0 ' + spark.W + ' ' + spark.H, 'aria-hidden': 'true' },
                 h('polyline', { points: spark.pts, fill: 'none', stroke: 'currentColor', strokeWidth: 1.5 }))) : null)),
         h('div', { style: { marginLeft: 'auto', display: 'flex', gap: '6px' }, role: 'tablist', 'aria-label': kbf('Fenêtre') },
@@ -12226,7 +12232,7 @@ return {
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'team-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
-                'aria-label': ((c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable')) + ' : ' + c.name,
+                'aria-label': ((c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connTeamArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable')) + kbfSep() + c.name,
                 onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connTeamAgir(c) },
                 'data-arm': connTeamArm === c.key ? '1' : '0',
                 style: { width: '28px', height: '28px', flex: '0 0 auto' },
@@ -15935,7 +15941,7 @@ return {
               h('span', { style: k.attached === true ? pillAttached : pillStyle, 'data-kb': 'project-skill-pill' }, k.attached === true ? 'ATTACHED' : 'AVAILABLE'),
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-skill-info',
-                title: kbt('kbui.skill.info'), 'aria-label': kbt('kbui.skill.info') + ' : ' + k.name,
+                title: kbt('kbui.skill.info'), 'aria-label': kbt('kbui.skill.info') + kbfSep() + k.name,
                 onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); setSkillOpen(skillOpen === k.key ? null : k.key) },
                 // 28 px au lieu des 40 px de la classe : cette ligne est dense.
                 style: { width: '28px', height: '28px', flex: '0 0 auto' },
@@ -15995,7 +16001,7 @@ return {
               h('button', {
                 type: 'button', className: 'kb8-iconbtn', 'data-kb': 'project-conn-toggle',
                 title: (c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable'),
-                'aria-label': ((c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable')) + ' : ' + c.name,
+                'aria-label': ((c.real === true && c.account !== null && c.account !== undefined && c.account !== '') ? (connArm === c.key ? kbt('kbui.conn.confirm') : kbt('kbui.conn.disable')) : kbt('kbui.conn.enable')) + kbfSep() + c.name,
                 onClick: (e) => { if (e !== undefined && e.stopPropagation !== undefined) e.stopPropagation(); connAgir(c) },
                 'data-arm': connArm === c.key ? '1' : '0',
                 // 28 px au lieu des 40 px de la classe : cette ligne est dense.
@@ -24029,7 +24035,7 @@ function renderFit(canvas, model, cam, opts){
       // Repli : si le réglage cesse de dire « native », c'est la barre qui
       // reprend la main — la pastille disparaît d'elle-même.
       if (kbvSrc.known !== true || kbvSrc.value !== 'native') return null
-      const titre = kbf('Micro du composer') + ' : ' + kbf('Natif DSH')
+      const titre = kbf('Micro du composer') + kbfSep() + kbf('Natif DSH')
       const basculer = () => setOpen((o) => o === false)
       return h('div', { className: 'kbv-chip', 'data-kbr': 'voice-source-chip' },
         h('div', { className: 'kbv-group' },
@@ -27422,7 +27428,7 @@ html [class$="_options"] .kbth-head>.kbth-sub+*{margin-top:20px}
           if (e.driver !== null && e.driver !== undefined) {
             const actifs = Array.isArray(e.drivers) ? e.drivers : []
             const actif = actifs.filter((d) => d.id === e.driver)[0]
-            if (primaryOnly !== true) out.push(h('span', { className: 'kbt2-pilote', key: 'actif' }, kbf('Pilote') + ' : ' + kbf(String(actif !== undefined ? actif.label : e.driver))))
+            if (primaryOnly !== true) out.push(h('span', { className: 'kbt2-pilote', key: 'actif' }, kbf('Pilote') + kbfSep() + kbf(String(actif !== undefined ? actif.label : e.driver))))
           }
           out.push(h('button', { type: 'button', key: 'rm', className: 'kbo-btn', disabled: busy !== null, 'data-kb': 'tool-revert', title: primaryOnly === true ? kbf('Retirer (restaurer la sauvegarde)') : null, style: { whiteSpace: 'nowrap' }, onClick: () => envoyer(e.id, 'revert', false) },
             busy === e.id + ':revert' ? kbf('Retrait…') : (primaryOnly === true ? kbf('Retirer') : kbf('Retirer (restaurer la sauvegarde)'))))
@@ -31637,6 +31643,15 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           status: kbf('Session active · 1 action humaine requise'),
         }
         const AN = 'Anthropic · via LiteLLM'
+        // kbf() only carries strings present in KB_FR_EN: register the two
+        // literals this module renders through it (the phrase-translation
+        // engine reads KB_FR_EN as its source).
+        ;(function () {
+          try {
+            if (KB_FR_EN['Run en cours'] === undefined) KB_FR_EN['Run en cours'] = 'Run in progress'
+            if (KB_FR_EN['Aucune exécution dans cette session pour l’instant.'] === undefined) KB_FR_EN['Aucune exécution dans cette session pour l’instant.'] = 'No runs in this session yet.'
+          } catch (e) { /* translation table not writable: strings stay French */ }
+        })()
 
         /* ── jeu de démonstration : 4 exécutions (maquette) ────────────────── */
         const WV_RUNS = [
@@ -32107,9 +32122,9 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               id: m.id || 'session', workspace: m.workspace || '—',
               date: wv2Hms(t0) + ' · ' + rs.length + ' runs',
               title: m.title || kbf('Journal d exécution'),
-              status: rs.some((r) => !r.endedAt) ? 'Run en cours' : rs.length + kbf(' runs · journal réel'),
+              status: rs.some((r) => !r.endedAt) ? kbf('Run en cours') : rs.length + kbf(' runs · journal réel'),
             },
-            demo: false, pricing: (meta && meta.pricing) || null, base: wv2Hms(t0), span: span, now: now, runs: mapped, graphs: graphs,
+            demo: false, vide: 0, pricing: (meta && meta.pricing) || null, base: wv2Hms(t0), span: span, now: now, runs: mapped, graphs: graphs,
           }
         }
         function wv2Source(S) {
@@ -32746,6 +32761,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
               }, (S.srcs.length ? S.srcs : [{ key: 'demo', label: kbf('Jeu de démonstration') }]).map((o) =>
                 El('option', { key: o.key, value: o.key }, o.label))),
               M.src.demo ? El('span', { className: 'wv2-demo' }, M.src.vide ? kbf('aucun run réel · jeu de démonstration') : kbf('jeu de démonstration')) : null,
+              // Empty real journal (UB-7): the mockup above already says « aucun run réel · jeu de
+              // démonstration » when M.src.vide is set. Sample data never poses as real runs.
               El('div', { className: 'wv2-pill' }, WV2Led('wait', true), El('span', null, M.src.meta.status)),
               El('button', { type: 'button', className: 'wv2-btn', 'aria-expanded': !!M.exp.open, onClick: () => setExp({ open: !S.exp.open }) },
                 El('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' },

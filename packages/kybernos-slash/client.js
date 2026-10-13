@@ -140,14 +140,23 @@ window.__ModuleLoader__.load({
         return out
       }
 
-      // ── Libellés : une chaîne, ou {fr,en,ar} (règle 9) ────────────────────
-      const LANG = (() => {
+      // ── Labels: a string, or {fr,en} (rule 9) ────────────────────────────
+      // (13/10) Language read at render time via the shared resolver
+      // __KB_LANG_RESOLVE__ (set by kybernos-plugin): 'kybernos' = default
+      // French, 'en' = English, otherwise the base. Same rule as kbslLabel and
+      // the other bundles.
+      const kbslLang = () => {
         try {
-          const l = (typeof navigator !== 'undefined' && navigator.language) ? String(navigator.language).slice(0, 2).toLowerCase() : 'en'
-          return l === 'fr' ? 'fr' : 'en'
+          let r = (typeof window !== 'undefined' && typeof window.__KB_LANG_RESOLVE__ === 'function') ? String(window.__KB_LANG_RESOLVE__()) : null
+          if (r === null) {
+            const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
+            r = (a && a.lang !== null && a.lang !== undefined) ? String(a.lang) : ((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) ? document.documentElement.lang : ((typeof navigator !== 'undefined' && navigator.language) || 'en'))
+          }
+          const base = r.toLowerCase().split(/[-_]/)[0]
+          return (r.toLowerCase() === 'kybernos' || base === 'fr') ? 'fr' : 'en'
         } catch (e) { return 'en' }
-      })()
-      const L = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? (v[LANG] || v.en || v.fr || '') : String(v)))
+      }
+      const L = (v) => (v === null || v === undefined ? '' : (typeof v === 'object' ? (v[kbslLang()] || v.en || v.fr || '') : String(v)))
 
       // ── Accès aux entrées du hôte ─────────────────────────────────────────
       const API = '/kybernos/slash/entries'
@@ -2075,22 +2084,22 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         return h('div', { className: 'kbsl-scope kbsl-page' },
           h('div', { className: 'kbsl-head' },
             h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-slash' }) : null)),
-            h('span', { className: 'kbsl-h1' }, 'Commandes & actions'),
-            h('span', { className: 'kbsl-sub' }, 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.')),
+            h('span', { className: 'kbsl-h1' }, L({ fr: 'Commandes & actions', en: 'Commands & actions' })),
+            h('span', { className: 'kbsl-sub' }, L({ fr: 'Un même modèle : du texte inséré, ou un formulaire en ligne. Tape / pour lancer une commande, ou utilise le bouton sous un message.', en: 'One template: inserted text, or an inline form. Type / to run a command, or use the button under a message.' }))),
           h('div', { className: 'kbsl-tabs' },
-            h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'slash' ? ' on' : ''), onClick: () => { setTab('slash'); setQ('') } }, 'Commandes slash' + (listOf('slash').length > 0 ? ' · ' + String(listOf('slash').length) : '')),
-            h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'action' ? ' on' : ''), onClick: () => { setTab('action'); setQ('') } }, 'Actions de message' + (listOf('action').length > 0 ? ' · ' + String(listOf('action').length) : '')),
-            h('input', { className: 'kbsl-search', type: 'search', value: q, placeholder: 'Rechercher une commande…', 'aria-label': 'Rechercher une commande', style: { marginInlineStart: 'auto', width: '220px' }, onChange: (e) => setQ(e.target.value) })),
+            h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'slash' ? ' on' : ''), onClick: () => { setTab('slash'); setQ('') } }, L({ fr: 'Commandes slash', en: 'Slash commands' }) + (listOf('slash').length > 0 ? ' · ' + String(listOf('slash').length) : '')),
+            h('button', { type: 'button', className: 'kbsl-tab' + (tab === 'action' ? ' on' : ''), onClick: () => { setTab('action'); setQ('') } }, L({ fr: 'Actions de message', en: 'Message actions' }) + (listOf('action').length > 0 ? ' · ' + String(listOf('action').length) : '')),
+            h('input', { className: 'kbsl-search', type: 'search', value: q, placeholder: L({ fr: 'Rechercher une commande…', en: 'Search for a command…' }), 'aria-label': L({ fr: 'Rechercher une commande', en: 'Search for a command' }), style: { marginInlineStart: 'auto', width: '220px' }, onChange: (e) => setQ(e.target.value) })),
           h('div', { style: { display: 'flex', flexDirection: 'column', gap: '2px' } },
-            rows.length === 0 ? h('span', { className: 'kbsl-help' }, needle !== '' ? 'Aucune commande ne correspond à « ' + q + ' ».' : (tab === 'slash' ? 'Aucune commande slash pour l’instant.' : 'Aucune action de message pour l’instant.')) : null,
+            rows.length === 0 ? h('span', { className: 'kbsl-help' }, needle !== '' ? L({ fr: 'Aucune commande ne correspond à « ' + q + ' ».', en: 'No command matches “' + q + '”.' }) : (tab === 'slash' ? L({ fr: 'Aucune commande slash pour l’instant.', en: 'No slash command yet.' }) : L({ fr: 'Aucune action de message pour l’instant.', en: 'No message action yet.' }))) : null,
             rows.map((e) => h(KbSettingsRow, { key: idOf(e), entry: e }))),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
             h('button', { type: 'button', className: 'kbsl-btn kbsl-dashed sm', onClick: () => kbOpenEditor('create', tab === 'action' ? 'action' : 'slash', null, {}) },
-              h(KbIcon, { name: 'plus', size: 16, weight: 2.2 }), tab === 'action' ? 'Nouvelle action' : 'Nouvelle commande'),
+              h(KbIcon, { name: 'plus', size: 16, weight: 2.2 }), tab === 'action' ? L({ fr: 'Nouvelle action', en: 'New action' }) : L({ fr: 'Nouvelle commande', en: 'New command' })),
             h('button', { type: 'button', className: 'kbsl-aibtn', onClick: () => kbStartWithAI('') },
-              h(KbIcon, { name: 'sparkles', size: 16, weight: 2 }), 'Créer avec l’IA')),
+              h(KbIcon, { name: 'sparkles', size: 16, weight: 2 }), L({ fr: 'Créer avec l’IA', en: 'Create with AI' }))),
           h('details', { className: 'kbsl-json' },
-            h('summary', null, 'JSON stocké — ce que l’hôte garde vraiment'),
+            h('summary', null, L({ fr: 'JSON stocké — ce que l’hôte garde vraiment', en: 'Stored JSON — what the host actually keeps' })),
             h('pre', { className: 'kbsl-mono' }, JSON.stringify(store.entries, null, 2))),
           store.error !== null ? h('span', { className: 'kbsl-err' }, String(store.error)) : null)
       }
@@ -2101,9 +2110,9 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
         const title = L(e.label) || nameOf(e)
         if (ui.confirmId === id) {
           return h('div', { className: 'kbsl-lrow', style: { background: 'color-mix(in srgb,var(--kb-danger) 14%,transparent)' } },
-            h('span', { style: { flex: 1, fontSize: '13.5px' } }, 'Supprimer ', h('strong', null, title), ' ? Annulable juste après.'),
-            h('button', { type: 'button', className: 'kbsl-btn kbsl-ghost sm', onClick: () => { ui.confirmId = null; notify() } }, 'Garder'),
-            h('button', { type: 'button', className: 'kbsl-btn kbsl-danger sm', onClick: () => kbDeleteEntry(e) }, 'Supprimer'))
+            h('span', { style: { flex: 1, fontSize: '13.5px' } }, L({ fr: 'Supprimer ', en: 'Delete ' }), h('strong', null, title), L({ fr: ' ? Annulable juste après.', en: '? Can be undone right after.' })),
+            h('button', { type: 'button', className: 'kbsl-btn kbsl-ghost sm', onClick: () => { ui.confirmId = null; notify() } }, L({ fr: 'Garder', en: 'Keep' })),
+            h('button', { type: 'button', className: 'kbsl-btn kbsl-danger sm', onClick: () => kbDeleteEntry(e) }, L({ fr: 'Supprimer', en: 'Delete' })))
         }
         return h('div', { className: 'kbsl-lrow' + (ui.flashId === id ? ' kbsl-flash' : '') },
           h('span', { className: 'kbsl-tile sm' }, h(KbIcon, { name: e.icon || 'terminal', size: 16 })),
@@ -2113,10 +2122,10 @@ button.kbsl-tile.lg:hover{border-color:var(--kb-accent)}
               e.kind === 'action' ? null : h('span', { className: 'kbsl-mono', style: { color: 'var(--kb-accent)', fontWeight: 500, fontSize: '13.5px' } }, '/' + nameOf(e)),
               h('span', null, title)),
             h('span', { className: 'kbsl-desc kbsl-clip', style: { fontSize: '12.5px', color: 'var(--kb-muted)' } }, L(e.description))),
-          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? 'Demande ' + String((e.fields || []).length) + ' réponse(s) via un formulaire avant de lancer' : 'Se lance directement, sans formulaire' }, runOf(e) === 'form' ? String((e.fields || []).length) + ' champs' : 'direct'),
-          h('button', { type: 'button', 'data-kb-edit': id, className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': 'Modifier', 'aria-label': 'Modifier ' + title, onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) }, h(KbIcon, { name: 'square-pen', size: 15 })),
-          h('button', { type: 'button', className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': 'Dupliquer', 'aria-label': 'Dupliquer ' + title, onClick: () => kbDuplicate(e) }, h(KbIcon, { name: 'copy', size: 15 })),
-          h('button', { type: 'button', className: 'kbsl-ibtn sm danger kbsl-tt lf', 'data-tip': 'Supprimer', 'aria-label': 'Supprimer ' + title, onClick: () => { ui.confirmId = id; notify() } }, h(KbIcon, { name: 'trash', size: 15 })))
+          h('span', { className: 'kbsl-chip kbsl-tt b', 'data-tip': runOf(e) === 'form' ? L({ fr: 'Demande ' + String((e.fields || []).length) + ' réponse(s) via un formulaire avant de lancer', en: 'Asks for ' + String((e.fields || []).length) + ' answer(s) in a form before running' }) : L({ fr: 'Se lance directement, sans formulaire', en: 'Runs directly, no form' }) }, runOf(e) === 'form' ? String((e.fields || []).length) + ' ' + L({ fr: 'champs', en: 'fields' }) : L({ fr: 'direct', en: 'direct' })),
+          h('button', { type: 'button', 'data-kb-edit': id, className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Modifier', en: 'Edit' }), 'aria-label': L({ fr: 'Modifier', en: 'Edit' }) + ' ' + title, onClick: () => kbOpenEditor('edit', e.kind === 'action' ? 'action' : 'slash', e) }, h(KbIcon, { name: 'square-pen', size: 15 })),
+          h('button', { type: 'button', className: 'kbsl-ibtn sm kbsl-tt lf', 'data-tip': L({ fr: 'Dupliquer', en: 'Duplicate' }), 'aria-label': L({ fr: 'Dupliquer', en: 'Duplicate' }) + ' ' + title, onClick: () => kbDuplicate(e) }, h(KbIcon, { name: 'copy', size: 15 })),
+          h('button', { type: 'button', className: 'kbsl-ibtn sm danger kbsl-tt lf', 'data-tip': L({ fr: 'Supprimer', en: 'Delete' }), 'aria-label': L({ fr: 'Supprimer', en: 'Delete' }) + ' ' + title, onClick: () => { ui.confirmId = id; notify() } }, h(KbIcon, { name: 'trash', size: 15 })))
       }
 
       // ══════════════════════════════════════════════════════════════════════

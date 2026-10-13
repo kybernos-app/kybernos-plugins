@@ -65,6 +65,13 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   ok('money, French', T.fmtMoney(0.4783) === '0,48' + NB + '$')
   ok('money below a cent', T.fmtMoney(0.004) === '<0,01' + NB + '$')
   ok('money rejects junk', T.fmtMoney(NaN) === '—' && T.fmtMoney('x') === '—')
+  // F23: the unit follows the locale — « 5,64 $ » in French, « $5.64 » in English.
+  {
+    const prev = globalThis.window.__KB_LANG_RESOLVE__
+    globalThis.window.__KB_LANG_RESOLVE__ = () => 'en'
+    ok('money, English: unit before the amount', T.fmtMoney(5.64) === '$5.64', T.fmtMoney(5.64))
+    globalThis.window.__KB_LANG_RESOLVE__ = prev
+  }
   ok('tokens', T.fmtTok(240000) === '240' + NB + 'k' && T.fmtTok(3400000) === '3,4' + NB + 'M' && T.fmtTok(512) === '512')
   ok('percent', T.fmtPct(0.376) === '38' + NB + '%')
   ok('price from a models.dev match', JSON.stringify(T.priceOf({ costIn: '0.6', costOut: '2.4', cacheRead: '0.06', cacheWrite: '' })) === JSON.stringify({ in: 0.6, out: 2.4, cr: 0.06, cw: null }))
@@ -99,6 +106,18 @@ ok('stable test hooks exist', ['kybernos-usage-pill', 'kybernos-usage-card', 'ky
   const x = T.windowView({ kind: 'member', window_seconds: 18000, used_percent: 100, exhausted: true, resets_at: '2026-10-12T11:40:00.000Z' }, '2026-10-12T10:00:00.000Z')
   ok('window: used up tells when it frees up, on the server clock', x.back === '1 h 40', String(x.back))
   ok('window: 30 days', T.windowView({ kind: 'member', window_seconds: 2592000, used_percent: 21, exhausted: false }, null).label === '30 jours')
+
+  // windowDays1 branch: singular for exactly one day, plural otherwise. The
+  // L() calls in windowView use string literals (the used-string regex
+  // /L\(\s*'([A-Za-z0-9]+)'/g requires them) so both sides stay reachable.
+  const w1 = T.windowView({ kind: 'member', window_seconds: 86400, used_percent: 50, exhausted: false }, null)
+  ok('window: 86400 s -> singular French day label', w1.label === '1 jour', String(w1.label))
+  const w2 = T.windowView({ kind: 'member', window_seconds: 172800, used_percent: 50, exhausted: false }, null)
+  ok('window: 172800 s -> plural French days label', w2.label === '2 jours', String(w2.label))
+  ok('windowDays1 English singular', T.L('windowDays1', { n: 1 }) === '1 day' || T.L('windowDays1', { n: 1 }) === '1 jour', T.L('windowDays1', { n: 1 }))
+  ok('windowDays English plural', T.L('windowDays', { n: 2 }) === '2 days' || T.L('windowDays', { n: 2 }) === '2 jours', T.L('windowDays', { n: 2 }))
+  ok('windowDays1 pair: fr singular, en singular', T.S.windowDays1[0] === '{n} jour' && T.S.windowDays1[1] === '{n} day', JSON.stringify(T.S.windowDays1))
+  ok('windowDays pair: fr plural, en plural', T.S.windowDays[0] === '{n} jours' && T.S.windowDays[1] === '{n} days', JSON.stringify(T.S.windowDays))
   ok('window: team pool is named', T.windowView({ kind: 'pool', window_seconds: 2592000, used_percent: 47 }, null).label.startsWith('Équipe'))
   ok('window: junk is dropped', T.windowView(null, null) === null && T.windowView({ window_seconds: 'x' }, null) === null)
   ok('window: percent is clamped', T.windowView({ kind: 'member', window_seconds: 3600, used_percent: 180 }, null).pct === 100)

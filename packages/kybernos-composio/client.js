@@ -2024,7 +2024,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { width: 9, height: 9, borderRadius: 5, background: on ? '#22c55e' : '#facc15', flex: 'none' } }),
           h('div', { style: { flex: 1, minWidth: 0 } },
             h('div', { className: 'kb7-accname' }, a.label || a.id || kbt('kb.cp.account')),
-            h('div', { className: 'kb7-accid' }, a.id),
+            h('div', { className: 'kb7-accid', title: a.id }, (typeof a.id === 'string' && a.id.length > 12) ? (a.id.slice(0, 5) + '\u2022\u2022\u2022\u2022' + a.id.slice(-3)) : a.id),
             h('div', { className: 'kb7-accst ' + (on ? 'on' : 'pend') }, on ? kbt('kb.cp.active') : kbt('kb.cp.pend'))),
           h('button', { type: 'button', className: 'kbcp-btn', title: kbt('kb.cp.remove'), onClick: (e) => { e.stopPropagation(); removeAccount(slug, a.id) } }, Icon('trash', 13)))
       }

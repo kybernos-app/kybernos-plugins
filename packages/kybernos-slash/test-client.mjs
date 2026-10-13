@@ -1,0 +1,106 @@
+// Test the slash plugin's i18n: every L({fr, en}) call must have both sides filled, and kbslLang must
+// correctly resolve 'fr' vs 'en' based on window.__KB_I18N_ACTIVE__.lang, document.documentElement.lang, or navigator.language.
+// kbslLang is not exported from the module (no test hook), so its logic is mirrored here for isolated testing.
+//   node packages/kybernos-slash/test-client.mjs
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
+
+let failed = 0
+const check = (name, ok, detail) => {
+  console.log((ok ? '  ✓ ' : '  ✗ ') + name + (ok || detail === undefined ? '' : '  — ' + detail))
+  if (!ok) failed += 1
+}
+
+const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
+
+console.log('L({fr, en}) calls')
+{
+  // Every L({ fr: '...', en: '...' }) literal must have both sides non-empty.
+  // Match the literal pairs in the source (single-quoted strings).
+  const pairs = [...src.matchAll(/L\(\s*\{\s*fr:\s*'([^']*)'\s*,\s*en:\s*'([^']*)'\s*\}\)/g)]
+  check('L({fr, en}) literal pairs found', pairs.length > 0, 'count=' + pairs.length)
+  const emptyFr = pairs.filter((p) => p[1].trim() === '')
+  check('every fr side is non-empty', emptyFr.length === 0, emptyFr.map((p) => p[2]).join(','))
+  const emptyEn = pairs.filter((p) => p[2].trim() === '')
+  check('every en side is non-empty', emptyEn.length === 0, emptyEn.map((p) => p[1]).join(','))
+  // Also catch L({fr: '...' + ...}) concatenated strings: both sides must exist.
+  // A simpler check: count all L({ fr: ... occurrences and make sure none is missing an en: field.
+  const lCalls = [...src.matchAll(/L\(\s*\{\s*fr:/g)]
+  check('every L({fr:...}) call has an en: field', lCalls.every((m) => {
+    const after = src.slice(m.index, m.index + 500)
+    return /en:\s*'/.test(after)
+  }), 'L calls=' + lCalls.length)
+}
+
+// mirror of kbslLang from client.js (not exported; duplicate logic here for isolated testing).
+// Prefers the shared resolver __KB_LANG_RESOLVE__ (set by kybernos-plugin); 'kybernos' means the
+// default French, 'en' means English, otherwise the language base decides.
+const kbslLang = () => {
+  try {
+    let r = (typeof window !== 'undefined' && typeof window.__KB_LANG_RESOLVE__ === 'function') ? String(window.__KB_LANG_RESOLVE__()) : null
+    if (r === null) {
+      const a = (typeof window !== 'undefined') ? window.__KB_I18N_ACTIVE__ : null
+      r = (a && a.lang !== null && a.lang !== undefined) ? String(a.lang) : ((typeof document !== 'undefined' && document.documentElement && document.documentElement.lang) ? document.documentElement.lang : ((typeof navigator !== 'undefined' && navigator.language) || 'en'))
+    }
+    const base = r.toLowerCase().split(/[-_]/)[0]
+    return (r.toLowerCase() === 'kybernos' || base === 'fr') ? 'fr' : 'en'
+  } catch (e) { return 'en' }
+}
+
+console.log('kbslLang: mirror of kbslLang from client.js')
+{
+  // __KB_LANG_RESOLVE__ = 'kybernos' (default French) → 'fr'  (the regression this guards against)
+  globalThis.window = { __KB_LANG_RESOLVE__: () => 'kybernos' }
+  check('__KB_LANG_RESOLVE__ = "kybernos" → "fr"', kbslLang() === 'fr', kbslLang())
+
+  // __KB_LANG_RESOLVE__ = 'en' → 'en'
+  globalThis.window = { __KB_LANG_RESOLVE__: () => 'en' }
+  check('__KB_LANG_RESOLVE__ = "en" → "en"', kbslLang() === 'en', kbslLang())
+
+  // __KB_LANG_RESOLVE__ = 'fr-FR' → 'fr'
+  globalThis.window = { __KB_LANG_RESOLVE__: () => 'fr-FR' }
+  check('__KB_LANG_RESOLVE__ = "fr-FR" → "fr"', kbslLang() === 'fr', kbslLang())
+
+  // resolver absent → __KB_I18N_ACTIVE__ = { lang: 'fr' } → 'fr'
+  globalThis.window = { __KB_I18N_ACTIVE__: { lang: 'fr' } }
+  check('window.__KB_I18N_ACTIVE__.lang = fr → "fr"', kbslLang() === 'fr', kbslLang())
+
+  // window.__KB_I18N_ACTIVE__ = { lang: 'en' } → 'en'
+  globalThis.window = { __KB_I18N_ACTIVE__: { lang: 'en' } }
+  check('window.__KB_I18N_ACTIVE__.lang = en → "en"', kbslLang() === 'en', kbslLang())
+
+  // window.__KB_I18N_ACTIVE__ absent → fallback to document.documentElement.lang
+  globalThis.window = {}
+  globalThis.document = { documentElement: { lang: 'fr' } }
+  check('no __KB_I18N_ACTIVE__, documentElement.lang = fr → "fr"', kbslLang() === 'fr', kbslLang())
+
+  globalThis.document = { documentElement: { lang: 'en' } }
+  check('no __KB_I18N_ACTIVE__, documentElement.lang = en → "en"', kbslLang() === 'en', kbslLang())
+
+  // No window, no document → fallback to navigator.language
+  // (navigator is a getter on globalThis in newer Node; override it via Object.defineProperty)
+  globalThis.window = undefined
+  globalThis.document = undefined
+  Object.defineProperty(globalThis, 'navigator', { value: { language: 'fr-FR' }, writable: true, configurable: true })
+  check('navigator.language = fr-FR → "fr"', kbslLang() === 'fr', kbslLang())
+
+  Object.defineProperty(globalThis, 'navigator', { value: { language: 'en-US' }, writable: true, configurable: true })
+  check('navigator.language = en-US → "en"', kbslLang() === 'en', kbslLang())
+
+  // __KB_I18N_ACTIVE__ = { lang: 'fr' } wins over documentElement.lang = 'en'
+  globalThis.window = { __KB_I18N_ACTIVE__: { lang: 'fr' } }
+  globalThis.document = { documentElement: { lang: 'en' } }
+  check('__KB_I18N_ACTIVE__.lang = fr wins over documentElement.lang = en', kbslLang() === 'fr', kbslLang())
+}
+
+console.log('non-regression: __KB_I18N_ACTIVE__ is read in client.js')
+{
+  check('client.js references __KB_I18N_ACTIVE__', src.includes('__KB_I18N_ACTIVE__'), 'not found in source')
+  check('client.js references __KB_LANG_RESOLVE__', src.includes('__KB_LANG_RESOLVE__'), 'not found in source')
+  check('client.js treats "kybernos" as French', src.includes("'kybernos'"), 'kybernos case missing')
+  check('client.js references kbslLang', src.includes('kbslLang'), 'not found in source')
+}
+
+console.log(failed === 0 ? '\nOK' : `\n${failed} failure(s)`)
+process.exit(failed === 0 ? 0 : 1)
