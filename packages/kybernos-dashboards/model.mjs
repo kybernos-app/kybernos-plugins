@@ -311,7 +311,7 @@ export const WIDGETS = {
   kanban: { w: 8, h: 5, bound: false, about: 'Bound: groupBy = field, columns = [{value,label}], label, sub (fields). Manual (manual:true): cols = [{t, c:[[title, sub]]}] that the user drags.' },
   note: { w: 4, h: 3, bound: false, about: 'Free text, or a checklist (check:[[text, done]]). tint: amber | green | blue | pink. Written in the dashboard file itself.' },
   carousel: { w: 12, h: 3, bound: true, about: 'Cards you scroll sideways. label, sub, kind = fields; limit.' },
-  flow: { w: 12, h: 5, bound: false, about: 'Nodes and links, like a pipeline. nodes:[{id,t,k,s,sub,x,y}] s = ok | warn | fail | run | idle; edges:[[from,to,"f"?]] ("f" = on failure).' },
+  flow: { w: 12, h: 5, bound: false, about: 'Nodes and links, like a pipeline. nodes:[{id,t,k,s,sub,x,y,bind?}] s = ok | warn | fail | run | idle; edges:[[from,to,"f"?]] ("f" = on failure). A node can show a live number: bind:{source:{provider,params},metric:{agg,field,where},template:"{v} runs",warnAbove?,failAbove?} (the node\'s state turns warn/fail above the threshold). x 0..780, y 0..160, a node is 180x56.' },
   sankey: { w: 8, h: 5, bound: true, about: 'Where a quantity goes, in 2 or 3 stages. stages = [field, field, field?], value = numeric field, where.' },
 }
 export const WIDGET_TYPES = Object.keys(WIDGETS)
@@ -444,7 +444,17 @@ function cleanWidget (raw, i, errors, usedIds) {
       w.nodes = arr(raw.nodes).slice(0, LIMITS.nodes).filter(isObj).map((n, k) => {
         let nid = slug(n.id, 'n' + (k + 1)); for (let c = 2; used.has(nid); c++) nid = slug(n.id, 'n') + '-' + c
         used.add(nid)
-        return { id: nid, t: cut(n.t, 40), k: cut(n.k, 20), s: NODE_STATES.includes(n.s) ? n.s : 'idle', sub: cut(n.sub, 60), x: clampInt(n.x, 0, 780, (k % 4) * 230 + 30), y: clampInt(n.y, 0, 160, Math.floor(k / 4) * 90 + 20) }
+        const node = { id: nid, t: cut(n.t, 40), k: cut(n.k, 20), s: NODE_STATES.includes(n.s) ? n.s : 'idle', sub: cut(n.sub, 60), x: clampInt(n.x, 0, 780, (k % 4) * 230 + 30), y: clampInt(n.y, 0, 160, Math.floor(k / 4) * 90 + 20) }
+        if (isObj(n.bind)) {
+          // a live number on the node: a source and a metric, the same pieces as a card (a bad source drops the number, not the node)
+          const src = cleanSource(n.bind.source, errors, at + '.nodes[' + k + '].bind')
+          if (src !== null) {
+            node.bind = { source: src, metric: cleanMetric(n.bind.metric, 'count'), template: cut(n.bind.template, 60) || '{v}' }
+            if (typeof n.bind.warnAbove === 'number' && Number.isFinite(n.bind.warnAbove)) node.bind.warnAbove = n.bind.warnAbove
+            if (typeof n.bind.failAbove === 'number' && Number.isFinite(n.bind.failAbove)) node.bind.failAbove = n.bind.failAbove
+          }
+        }
+        return node
       })
       w.edges = arr(raw.edges).slice(0, LIMITS.edges).filter((e) => Array.isArray(e) && used.has(slug(e[0], '')) && used.has(slug(e[1], ''))).map((e) => [slug(e[0], ''), slug(e[1], ''), e[2] === 'f' ? 'f' : ''])
       if (w.nodes.length === 0) { errors.push(at + ': a flow needs nodes'); return null }
@@ -522,6 +532,16 @@ export function inspectDashboard (d) {
     if (w.type === 'carousel') { need(w, cols, w.label, 'label', false); need(w, cols, w.sub, 'sub', false); need(w, cols, w.kindField, 'kind', false) }
     if (w.type === 'sankey') { for (const s of w.stages) need(w, cols, s, 'stage', false); need(w, cols, w.value, 'value', true); if (w.value === undefined) out.push('widget "' + w.id + '": a sankey without value counts rows') }
     if (w.type === 'note' && !w.text && !(w.check && w.check.length)) out.push('widget "' + w.id + '": the note is empty')
+    if (w.type === 'flow') {
+      for (const n of arr(w.nodes)) {
+        if (!n.bind) continue
+        const pc = PROVIDERS[n.bind.source.provider].columns
+        const c = n.bind.metric.field === undefined ? undefined : pc.find((x) => x.id === n.bind.metric.field)
+        if (n.bind.metric.field !== undefined && c === undefined) out.push('widget "' + w.id + '": node "' + n.id + '" metric.field "' + n.bind.metric.field + '" is not a column of ' + n.bind.source.provider + ' (columns: ' + pc.map((x) => x.id).join(', ') + ')')
+        else if (c !== undefined && ['sum', 'avg', 'min', 'max'].includes(n.bind.metric.agg) && c.type !== 'number') out.push('widget "' + w.id + '": node "' + n.id + '" metric.field "' + n.bind.metric.field + '" is ' + c.type + ', not a number')
+        for (const cnd of arr(n.bind.metric.where)) if (!pc.some((x) => x.id === cnd.field)) out.push('widget "' + w.id + '": node "' + n.id + '" filters on "' + cnd.field + '", not a column of ' + n.bind.source.provider)
+      }
+    }
     if (w.type === 'flow' && w.edges.length === 0 && w.nodes.length > 1) out.push('widget "' + w.id + '": the flow has several nodes and no edge')
   }
   if (ws.length === 0) out.push('the dashboard has no widget yet')
@@ -533,11 +553,13 @@ export function inspectDashboard (d) {
 /** The sources a dashboard reads: [{ provider, label, widgets }]. */
 export function sourcesOf (d) {
   const by = new Map()
-  for (const w of arr(d && d.widgets)) {
-    if (!w.source) continue
-    const id = w.source.provider
+  const add = (id, wid) => {
     if (!by.has(id)) by.set(id, { provider: id, label: PROVIDERS[id] ? PROVIDERS[id].label : id, widgets: [] })
-    by.get(id).widgets.push(w.id)
+    if (!by.get(id).widgets.includes(wid)) by.get(id).widgets.push(wid)
+  }
+  for (const w of arr(d && d.widgets)) {
+    if (w.source) add(w.source.provider, w.id)
+    if (w.type === 'flow') for (const n of arr(w.nodes)) if (n.bind && n.bind.source) add(n.bind.source.provider, w.id)
   }
   return Array.from(by.values())
 }
@@ -615,6 +637,27 @@ export function formatNumber (v, format) {
 const colType = (t, id) => { const c = arr(t.columns).find((x) => x.id === id); return c === undefined ? 'string' : c.type }
 /** The colour a run state keeps in every chart: done is green, failed red, queued amber; the others are quiet greys. */
 export const stateTone = (v) => ({ done: 'ok', failed: 'err', queued: 'warn', upcoming: 'idle', paused: 'mute', none: 'mute' })[String(v)]
+
+/** The distinct sources the nodes of a flow read: [{ key, source }], key = the source as a string (what the page indexes its tables by). */
+export function flowSources (w) {
+  const by = new Map()
+  for (const n of arr(w && w.nodes)) {
+    if (!n.bind) continue
+    const key = n.bind.source.provider + '|' + JSON.stringify(n.bind.source.params)
+    if (!by.has(key)) by.set(key, { key, source: n.bind.source })
+  }
+  return Array.from(by.values())
+}
+/** A flow node as drawn: with a bind and the source's table, its line is the live number and its state follows the thresholds. */
+export function liveNode (n, t) {
+  if (!n.bind || !t) return n
+  const m = n.bind.metric
+  const v = aggregate(applyWhere(t.rows, m.where), m.agg, m.field)
+  let st = n.s
+  if (typeof n.bind.failAbove === 'number' && v > n.bind.failAbove) st = 'fail'
+  else if (typeof n.bind.warnAbove === 'number' && v > n.bind.warnAbove) st = 'warn'
+  return Object.assign({}, n, { sub: String(n.bind.template).replace(/\{v\}/g, formatNumber(v, 'number')), s: st })
+}
 
 export function cardData (t, w) {
   const rows = applyWhere(t.rows, w.metric.where)
@@ -747,6 +790,7 @@ export function calendarData (t, w, nowMs) {
 }
 
 /** Stages of values -> nodes by column and links [fromCol, fromIdx, toCol, toIdx, value], the shape chart-core's sankey lays out. */
+const cellName = (v) => { const t = v === undefined || v === null ? '' : String(v); return t === '' ? '(none)' : t }
 export function sankeyData (t, w) {
   const rows = applyWhere(t.rows, w.where)
   const stages = w.stages
@@ -758,7 +802,7 @@ export function sankeyData (t, w) {
     const v = w.value === undefined ? 1 : cellNum(r[w.value])
     if (v <= 0) continue
     for (let c = 0; c < stages.length - 1; c++) {
-      const a = nodeOf(c, String(r[stages[c]])); const b = nodeOf(c + 1, String(r[stages[c + 1]]))
+      const a = nodeOf(c, cellName(r[stages[c]])); const b = nodeOf(c + 1, cellName(r[stages[c + 1]]))
       const key = c + ':' + a + ':' + b
       links.set(key, (links.get(key) || 0) + v)
     }

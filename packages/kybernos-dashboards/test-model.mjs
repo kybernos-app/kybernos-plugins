@@ -252,5 +252,43 @@ const tableOf = (id, params) => M.buildTable({ provider: id, params: params || {
 ok('sourcesOf lists each provider once with its widgets', same(M.sourcesOf({ widgets: [{ id: 'a', source: { provider: 'usage.daily' } }, { id: 'b', source: { provider: 'usage.daily' } }, { id: 'c' }] }).map((s) => s.provider + ':' + s.widgets.join('+')), ['usage.daily:a+b']))
 ok('describeCatalogue names every provider and widget type', M.PROVIDER_IDS.every((id) => M.describeCatalogue().providers.includes(id)) && M.WIDGET_TYPES.every((t) => M.describeCatalogue().widgets.includes('- ' + t + ' ')))
 
+// ── a flow with live numbers on its nodes ──────────────────────────────────────
+{
+  const v = M.validateDashboard({ name: 'F', widgets: [{
+    type: 'flow', title: 'Pipe',
+    nodes: [
+      { id: 'run', t: 'Run', s: 'ok', bind: { source: { provider: 'automations.runs', params: { days: 14 } }, metric: { agg: 'count' }, template: '{v} runs' } },
+      { id: 'bad', t: 'Failed', s: 'ok', bind: { source: { provider: 'automations.runs', params: { days: 14 } }, metric: { agg: 'count', where: [{ field: 'state', op: '=', value: 'failed' }] }, template: '{v} failed', failAbove: 0 } },
+      { id: 'ghost', t: 'Ghost', bind: { source: { provider: 'nope.nothing' }, metric: { agg: 'count' } } },
+      { id: 'plain', t: 'Plain', sub: 'by hand' },
+    ],
+    edges: [['run', 'bad', 'f']],
+  }] })
+  const f = v.dashboard.widgets[0]
+  ok('flow: a bound node keeps its source, metric, template and thresholds', f.nodes[0].bind && f.nodes[0].bind.source.provider === 'automations.runs' && f.nodes[0].bind.template === '{v} runs' && f.nodes[1].bind.failAbove === 0, f.nodes.map((n) => n.bind))
+  ok('flow: an unknown source drops the number, not the node', f.nodes.length === 4 && f.nodes[2].bind === undefined && v.errors.some((e) => e.includes('nope.nothing')), v.errors)
+  ok('flow: a node with no bind stays as written', f.nodes[3].bind === undefined && f.nodes[3].sub === 'by hand')
+  ok('flow: sources are listed once each, keyed', M.flowSources(f).length === 1 && M.flowSources(f)[0].key.startsWith('automations.runs|'), M.flowSources(f))
+  ok('sourcesOf: the sources of the nodes count for the flow', same(M.sourcesOf(v.dashboard).map((s) => [s.provider, s.widgets]), [['automations.runs', [f.id]]]), M.sourcesOf(v.dashboard))
+  const t = M.buildTable({ provider: 'automations.runs', params: { days: 14 } }, PARTS['automations.runs'], NOW)
+  const total = t.rows.length
+  const failed = t.rows.filter((r) => r.state === 'failed').length
+  const a = M.liveNode(f.nodes[0], t)
+  const b = M.liveNode(f.nodes[1], t)
+  ok('liveNode: the line is the number, in the template', a.sub === total + ' runs' && a.s === 'ok', a.sub)
+  ok('liveNode: a threshold turns the state', failed > 0 ? b.s === 'fail' && b.sub === failed + ' failed' : b.s === 'ok', [b.s, b.sub])
+  ok('liveNode: no table keeps the node as written, a plain node is untouched', M.liveNode(f.nodes[0], null) === f.nodes[0] && M.liveNode(f.nodes[3], t) === f.nodes[3])
+  ok('liveNode: the saved node is not changed (the page draws a copy)', f.nodes[0].sub === '' && f.nodes[1].s === 'ok')
+  ok('inspect: a field that is not a column of the node\'s source is named', M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'flow', nodes: [{ id: 'a', t: 'A', bind: { source: { provider: 'usage.daily' }, metric: { agg: 'sum', field: 'nope' } } }] }] }).dashboard).some((w) => w.includes('node "a"') && w.includes('"nope"')))
+  ok('inspect: a sum of a text column is named', M.inspectDashboard(M.validateDashboard({ widgets: [{ type: 'flow', nodes: [{ id: 'a', t: 'A', bind: { source: { provider: 'usage.daily' }, metric: { agg: 'sum', field: 'model' } } }] }] }).dashboard).some((w) => w.includes('not a number')))
+  ok('catalogue: the flow documents bind', M.describeCatalogue().widgets.includes('bind:{source'))
+}
+{
+  // a blank cell is a node called (none), not an empty label
+  const t = { columns: [], rows: [{ a: 'x', b: '' }, { a: 'y', b: 'z' }], meta: {} }
+  const s = M.sankeyData(t, { stages: ['a', 'b'], where: [] })
+  ok('sankey: an empty cell is named', s.cols[1].some((n) => n.name === '(none)') && s.cols.every((c) => c.every((n) => n.name !== '')), s.cols)
+}
+
 console.log(fail === 0 ? 'model: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)

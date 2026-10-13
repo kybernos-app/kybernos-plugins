@@ -14,7 +14,7 @@ const ok = (name, cond, detail) => {
   console.log('FAIL ' + name + (detail === undefined ? '' : ' :: ' + JSON.stringify(detail)))
 }
 
-ok('there are presets, with unique ids', PRESETS.length >= 4 && new Set(PRESET_IDS).size === PRESETS.length && PRESET_IDS.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)))
+ok('there are presets, with unique ids', PRESETS.length >= 7 && new Set(PRESET_IDS).size === PRESETS.length && PRESET_IDS.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)))
 
 for (const p of PRESETS) {
   const v = M.validateDashboard({ name: p.name, desc: p.desc, widgets: p.widgets })
@@ -32,6 +32,15 @@ for (const p of PRESETS) {
   // draw every widget with the fixtures: nothing throws, and the preset is not an empty page
   let drawn = 0
   for (const w of v.dashboard.widgets) {
+    if (w.type === 'flow') {
+      // a flow with bound nodes: every number is read from its own source, and none is left as written
+      const bound = w.nodes.filter((n) => n.bind)
+      const live = bound.map((n) => M.liveNode(n, M.buildTable(n.bind.source, PARTS[n.bind.source.provider], NOW)))
+      ok(p.id + ': ' + w.id + ' has a number on most nodes', bound.length >= Math.ceil(w.nodes.length / 2), [bound.length, w.nodes.length])
+      ok(p.id + ': ' + w.id + ' draws a live number on every bound node', live.every((n) => /\d/.test(n.sub)), live.map((n) => n.sub))
+      drawn += 1
+      continue
+    }
     if (w.source === undefined) { drawn += 1; continue }
     const t = M.buildTable(w.source, PARTS[w.source.provider], NOW)
     let out
@@ -51,5 +60,11 @@ for (const p of PRESETS) {
   ok(p.id + ': every widget has something to show with realistic data', drawn === v.dashboard.widgets.length, { drawn, of: v.dashboard.widgets.length })
 }
 
+{
+  const types = new Set()
+  for (const p of PRESETS) for (const w of M.validateDashboard({ widgets: p.widgets }).dashboard.widgets) types.add(w.type)
+  ok('the presets together show every kind of widget', M.WIDGET_TYPES.every((x) => types.has(x)), M.WIDGET_TYPES.filter((x) => !types.has(x)))
+  ok('a flow preset and a sankey preset exist', PRESETS.some((p) => p.widgets.some((w) => w.type === 'flow')) && PRESETS.some((p) => p.widgets.some((w) => w.type === 'sankey')))
+}
 console.log(fail === 0 ? 'presets: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)

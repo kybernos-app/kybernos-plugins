@@ -598,12 +598,13 @@ function paintFlow (wd, o) {
   })
   wd.nodes.forEach((n, i) => {
     const col = n.s === 'ok' ? 'var(--kbdb-ok)' : n.s === 'warn' ? 'var(--kbdb-warn)' : n.s === 'fail' ? 'var(--kbdb-err)' : n.s === 'run' ? 'var(--kbdb-accent)' : 'var(--kbdb-t3)'
-    g += '<g class="kbdb-fnode" data-nid="' + esc(n.id) + '" style="--i:' + i + '" transform="translate(' + n.x + ',' + n.y + ')">'
+    // the position is an outer group: the entrance animation sets a CSS transform on the node, which would replace a translate()
+    g += '<g transform="translate(' + n.x + ',' + n.y + ')"><g class="kbdb-fnode" data-nid="' + esc(n.id) + '" style="--i:' + i + '">'
       + '<rect class="nb" width="' + NW + '" height="' + NH + '" rx="12"/>'
       + '<circle class="kbdb-fport" cx="0" cy="' + NH / 2 + '" r="4.5"/><circle class="kbdb-fport" cx="' + NW + '" cy="' + NH / 2 + '" r="4.5"/>'
       + '<text class="nk" x="14" y="17">' + esc(n.k) + '</text>'
       + '<circle class="' + (n.s === 'run' ? 'st-run' : '') + '" cx="' + (NW - 16) + '" cy="13" r="4" style="fill:' + (n.s === 'idle' ? 'transparent' : col) + ';stroke:' + col + ';stroke-width:1.5"/>'
-      + '<text class="nt" x="14" y="35">' + esc(cutText(n.t, 22)) + '</text><text class="ns" x="14" y="50">' + esc(cutText(n.sub, 28)) + '</text></g>'
+      + '<text class="nt" x="14" y="35">' + esc(cutText(n.t, 22)) + '</text><text class="ns" x="14" y="50">' + esc(cutText(n.sub, 28)) + '</text></g></g>'
   })
   return '<svg class="kbdb-flowsvg" viewBox="0 0 960 220" width="100%" height="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + esc(opts.label || 'Flow') + '">' + g + '</svg>'
 }
@@ -709,6 +710,27 @@ function useSourceData (source, tick) {
     let dead = false
     setSt((s) => ({ state: s.table !== null ? 'refreshing' : 'loading', table: s.table, at: s.at, partial: false }))
     readSource(source, false).then((r) => { if (!dead) setSt({ state: r.state, table: r.table, at: r.at, partial: r.partial }) })
+    return () => { dead = true }
+  }, [key, tick])
+  return st
+}
+
+// the numbers on the nodes of a flow: one read per distinct source, the tables indexed by model.flowSources keys
+function useFlowData (wd, tick) {
+  const list = useMemo(() => (wd.type === 'flow' ? model.flowSources(wd) : []), [wd])
+  const key = list.map((x) => x.key).join(';')
+  const [st, setSt] = useState({ state: list.length > 0 ? 'loading' : 'none', tables: {}, at: 0, partial: false })
+  useEffect(() => {
+    if (list.length === 0) { setSt({ state: 'none', tables: {}, at: 0, partial: false }); return undefined }
+    let dead = false
+    setSt((s) => ({ state: Object.keys(s.tables).length > 0 ? 'refreshing' : 'loading', tables: s.tables, at: s.at, partial: false }))
+    Promise.all(list.map((x) => readSource(x.source, false))).then((rs) => {
+      if (dead) return
+      const tables = {}
+      let bad = 0
+      rs.forEach((r, i) => { if (r.state === 'ok') tables[list[i].key] = r.table; else bad += 1 })
+      setSt({ state: bad === rs.length ? 'error' : 'ok', tables, at: Date.now(), partial: bad > 0 || rs.some((r) => r.partial) })
+    })
     return () => { dead = true }
   }, [key, tick])
   return st
@@ -854,19 +876,63 @@ function KanbanBody ({ wd, table, stale, onPatch }) {
 }
 
 /* ── note ── */
+// The text of an editable box, line by line. Enter in a contenteditable leaves <div> and <br> children, and textContent
+// glues the lines ("good" + "hello" -> "goodhello"), so the box is read as lines the way the page lays them out: a block
+// starts a line, and a <br> ends one unless it is the last child of its parent (that one only marks the end, or the empty
+// line of a block) or sits right before a block (the block starts the next line by itself).
+const isBlockEl = (n) => n !== undefined && n.nodeType === 1 && /^(DIV|P|LI|H[1-6])$/.test(n.nodeName)
+function editableText (root) {
+  const lines = ['']
+  let started = false
+  const walk = (n) => {
+    const kids = Array.from(n.childNodes)
+    kids.forEach((c, i) => {
+      if (c.nodeType === 3) {
+        if (c.data !== '') { lines[lines.length - 1] += c.data; started = true }
+      } else if (c.nodeName === 'BR') {
+        if (i < kids.length - 1 && !isBlockEl(kids[i + 1])) lines.push('')
+        started = true
+      } else if (c.nodeType === 1) {
+        if (isBlockEl(c)) { if (started) lines.push(''); started = true }
+        walk(c)
+      }
+    })
+  }
+  walk(root)
+  return lines.join('\n')
+}
+// what a box keeps once you leave it: the text, and the box itself rewritten as that text (what you see is what is saved)
+function leaveBox (el, oneLine) {
+  let t = editableText(el)
+  if (oneLine) t = t.replace(/\s*\n\s*/g, ' ').trim()
+  if (el.textContent !== t) el.textContent = t
+  return t
+}
+// a paste is plain text: no fonts, colours or blocks from wherever it was copied
+const pastePlain = (oneLine) => (e) => {
+  const cd = e.clipboardData
+  if (!cd) return
+  e.preventDefault()
+  let t = cd.getData('text/plain')
+  if (oneLine) t = t.replace(/\s*\n\s*/g, ' ')
+  try { document.execCommand('insertText', false, t) } catch (_) {}
+}
+// one-line boxes (title, checklist item): Enter validates, it does not start a second line
+const enterLeaves = (e) => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur() } }
+
 function NoteBody ({ wd, onPatch }) {
   const has = Array.isArray(wd.check)
   const save = (patch) => { if (typeof onPatch === 'function') onPatch(patch) }
   const setCheck = (i, fn) => { const next = wd.check.map((c) => c.slice()); fn(next[i]); save({ check: next }) }
   return h(React.Fragment, null,
-    h('div', { className: 'kbdb-ntitle', contentEditable: true, suppressContentEditableWarning: true, 'data-ph': kt('Titre', 'Title'), onBlur: (e) => save({ title: e.currentTarget.textContent }) }, wd.title),
+    h('div', { className: 'kbdb-ntitle', contentEditable: true, suppressContentEditableWarning: true, 'data-ph': kt('Titre', 'Title'), onKeyDown: enterLeaves, onPaste: pastePlain(true), onBlur: (e) => save({ title: leaveBox(e.currentTarget, true) }) }, wd.title),
     has
       ? h('div', { className: 'kbdb-nbody', style: { whiteSpace: 'normal' } },
         wd.check.map((c, i) => h('div', { key: i, className: 'kbdb-check' + (c[1] ? ' done' : '') },
           h('button', { type: 'button', 'aria-label': kt('Cocher', 'Toggle'), 'aria-pressed': c[1] === 1, onClick: () => setCheck(i, (row) => { row[1] = row[1] ? 0 : 1 }) }, c[1] ? Ic('check', 12) : null),
-          h('span', { contentEditable: true, suppressContentEditableWarning: true, onBlur: (e) => setCheck(i, (row) => { row[0] = e.currentTarget.textContent }) }, c[0]))),
+          h('span', { contentEditable: true, suppressContentEditableWarning: true, onKeyDown: enterLeaves, onPaste: pastePlain(true), onBlur: (e) => { const t = leaveBox(e.currentTarget, true); setCheck(i, (row) => { row[0] = t }) } }, c[0]))),
         h('button', { type: 'button', className: 'kbdb-addi', onClick: () => save({ check: wd.check.concat([[kt('Nouvel élément', 'New item'), 0]]) }) }, '+ ' + kt('Ajouter un élément', 'Add an item')))
-      : h('div', { className: 'kbdb-nbody', contentEditable: true, suppressContentEditableWarning: true, 'data-ph': kt('Écrivez ici', 'Write something'), onBlur: (e) => save({ text: e.currentTarget.textContent }) }, wd.text || ''))
+      : h('div', { className: 'kbdb-nbody', contentEditable: true, suppressContentEditableWarning: true, 'data-ph': kt('Écrivez ici', 'Write something'), onPaste: pastePlain(false), onBlur: (e) => save({ text: leaveBox(e.currentTarget, false) }) }, wd.text || ''))
 }
 
 /* ── carousel ── */
@@ -883,11 +949,16 @@ function CarouselBody ({ wd, table, stale, railRef }) {
 }
 
 /* ── flow and sankey ── */
-function FlowBody ({ wd, onPatch, edit }) {
+function FlowBody ({ wd, onPatch, edit, flowTables }) {
   const ref = useRef(null)
   const [nodes, setNodes] = useState(wd.nodes)
   useEffect(() => { setNodes(wd.nodes) }, [wd.nodes])
-  const html = useMemo(() => paintFlow(Object.assign({}, wd, { nodes }), { label: wd.title, failLabel: kt('en cas d’échec', 'on failure') }), [wd, nodes])
+  // drawn with the live numbers; dragging and saving keep to the nodes as written
+  const html = useMemo(() => {
+    const tables = flowTables || {}
+    const shown = nodes.map((n) => (n.bind ? model.liveNode(n, tables[n.bind.source.provider + '|' + JSON.stringify(n.bind.source.params)]) : n))
+    return paintFlow(Object.assign({}, wd, { nodes: shown }), { label: wd.title, failLabel: kt('en cas d’échec', 'on failure') })
+  }, [wd, nodes, flowTables])
   const onDown = (e) => {
     const g = e.target.closest ? e.target.closest('.kbdb-fnode') : null
     const svg = ref.current ? ref.current.querySelector('svg') : null
@@ -925,6 +996,7 @@ function Widget ({ wd, index, tick, edit, flash, onPatch, onRemove, onMove, onWi
   const railRef = useRef(null)
   const inView = useInView(root)
   const src = useSourceData(wd.source, tick)
+  const flow = useFlowData(wd, tick)
   const [asTable, setAsTable] = useState(false)
   const [dragging, setDragging] = useState(false)
   const [over, setOver] = useState(false)
@@ -935,11 +1007,12 @@ function Widget ({ wd, index, tick, edit, flash, onPatch, onRemove, onMove, onWi
 
   let body
   if (bound && (src.state === 'loading' || src.state === 'none')) body = h(Skeleton, { type: wd.type })
+  else if (wd.type === 'flow' && flow.state === 'loading') body = h(Skeleton, { type: 'flow' })
   else if (bound && src.state === 'error') {
     body = h('div', { className: 'kbdb-err-note' }, h('span', null, kt('Cette source n’a pas répondu.', 'This source did not answer.')),
       h('button', { type: 'button', className: 'kbdb-btn sm', onClick: () => { if (typeof onRetry === 'function') onRetry() } }, kt('Réessayer', 'Try again')))
   } else {
-    const common = { wd, table: src.table, stale, inView, onPatch, edit }
+    const common = { wd, table: src.table, stale, inView, onPatch, edit, flowTables: flow.tables }
     switch (wd.type) {
       case 'card': body = h(CardBody, common); break
       case 'chart': body = h(ChartBody, Object.assign({ asTable }, common)); break
@@ -963,10 +1036,16 @@ function Widget ({ wd, index, tick, edit, flash, onPatch, onRemove, onMove, onWi
           h('button', { key: 'l', type: 'button', className: 'kbdb-ib', 'aria-label': kt('Défiler à gauche', 'Scroll left'), onClick: () => railRef.current && railRef.current.scrollBy({ left: -212, behavior: 'smooth' }) }, Ic('left', 14)),
           h('button', { key: 'r', type: 'button', className: 'kbdb-ib', 'aria-label': kt('Défiler à droite', 'Scroll right'), onClick: () => railRef.current && railRef.current.scrollBy({ left: 212, behavior: 'smooth' }) }, Ic('right', 14))] : null,
         hasTable ? h('button', { type: 'button', className: 'kbdb-ib', 'aria-pressed': asTable, 'aria-label': kt('Voir en tableau', 'Show as a table'), title: kt('Voir en tableau', 'Show as a table'), onClick: () => setAsTable((v) => !v) }, Ic('table', 14)) : null))
-  const noteFoot = (isNote || !bound) ? h('div', { className: 'kbdb-wf' }, h('span', { className: 'sp' }, Ic('pencil', 12), ' ', isNote ? kt('Écrit ici, enregistré dans ce dashboard', 'Written here, saved in this dashboard') : kt('Cartes à vous, enregistrées dans ce dashboard', 'Cards are yours, saved in this dashboard'))) : null
+  // what the footer reports: the widget's own source, or for a flow the sources of its nodes
+  const liveFlow = wd.type === 'flow' && flow.state !== 'none'
+  const status = liveFlow ? { state: flow.state, at: flow.at, partial: flow.partial, table: null } : src
+  const footLabel = liveFlow
+    ? (() => { const ls = Array.from(new Set(model.flowSources(wd).map((x) => (model.PROVIDERS[x.source.provider] ? model.PROVIDERS[x.source.provider].label : x.source.provider)))); return ls.length > 2 ? ls.length + ' ' + kt('sources', 'sources') : ls.join(' + ') })()
+    : label
+  const noteFoot = ((isNote || !bound) && !liveFlow) ? h('div', { className: 'kbdb-wf' }, h('span', { className: 'sp' }, Ic('pencil', 12), ' ', isNote ? kt('Écrit ici, enregistré dans ce dashboard', 'Written here, saved in this dashboard') : (wd.type === 'flow' ? kt('Dessiné ici, enregistré dans ce dashboard', 'Drawn here, saved in this dashboard') : kt('Cartes à vous, enregistrées dans ce dashboard', 'Cards are yours, saved in this dashboard')))) : null
   const foot = noteFoot !== null ? noteFoot : h('div', { className: 'kbdb-wf' },
-    h('span', { className: 'kbdb-dot' + (src.state === 'error' ? ' err' : (src.partial || stale ? ' warn' : '')) }),
-    h('span', { className: 'sp', title: src.table && src.table.meta.note ? src.table.meta.note : '' }, label + ' · ' + (src.state === 'error' ? kt('illisible', 'unreadable') : (src.at ? kt('lu ', 'read ') + ago(src.at) : kt('lecture…', 'reading…'))) + (src.table && src.table.meta.note ? ' · ⓘ' : '')))
+    h('span', { className: 'kbdb-dot' + (status.state === 'error' ? ' err' : (status.partial || status.state === 'refreshing' ? ' warn' : '')) }),
+    h('span', { className: 'sp', title: status.table && status.table.meta.note ? status.table.meta.note : '' }, footLabel + ' · ' + (status.state === 'error' ? kt('illisible', 'unreadable') : (status.at ? kt('lu ', 'read ') + ago(status.at) : kt('lecture…', 'reading…'))) + (status.table && status.table.meta.note ? ' · ⓘ' : '')))
   const edit_ = h('div', { className: 'kbdb-we' },
     h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Glisser pour déplacer', 'Drag to move'), title: kt('Glisser pour déplacer', 'Drag to move'), onMouseDown: () => { if (root.current) root.current.setAttribute('draggable', 'true') } }, Ic('grip', 14)),
     h('button', { type: 'button', className: 'kbdb-ib', 'aria-label': kt('Plus étroit', 'Narrower'), onClick: () => onWiden(-1) }, Ic('minus', 14)),
@@ -1213,7 +1292,7 @@ function DashboardsPage () {
             h('span', { className: 'hd' }, kt('Sources lues par ce dashboard', 'Sources this dashboard reads')),
             sources.length === 0 ? h('span', { className: 'foot' }, kt('Aucune : ce dashboard ne contient que vos notes.', 'None: this dashboard only holds your notes.')) : sources.map((s) => h('div', { key: s.provider, className: 'src' }, h('span', { className: 'kbdb-dot', style: { marginTop: 6 } }), h('span', { className: 'tx' }, h('b', { style: { fontWeight: 500 } }, s.label), h('i', null, s.provider + ' · ' + s.widgets.length + ' widget' + (s.widgets.length > 1 ? 's' : ''))))),
             h('span', { className: 'foot' }, kt('Les sources sont lues sur cet ordinateur. Un fichier dashboard ne peut lire que ces sources.', 'Sources are read on this computer. A dashboard file can only read these sources.'))) : null),
-        h('button', { type: 'button', className: 'kbdb-btn' + (busy ? ' busy' : ''), onClick: refresh }, h('span', { className: 'kbdb-spin' }, Ic('refresh', 14)), kt('Actualiser', 'Refresh')),
+        h('button', { type: 'button', className: 'kbdb-btn' + (busy ? ' busy' : ''), 'data-act': 'refresh', onClick: refresh }, h('span', { className: 'kbdb-spin' }, Ic('refresh', 14)), kt('Actualiser', 'Refresh')),
         h('span', { className: 'kbdb-rel' },
           h('button', { type: 'button', className: 'kbdb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': pop === 'history', onClick: async () => { if (pop === 'history') { setPop(''); return } await flush(); const r = await api('GET', 'revisions?id=' + encodeURIComponent(dash.id)); setRevs(r.ok ? r.json.revisions : []); setPop('history') } }, Ic('clock', 14), kt('Historique', 'History')),
           pop === 'history' ? h('div', { className: 'kbdb-pop r' },

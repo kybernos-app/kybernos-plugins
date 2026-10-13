@@ -46,9 +46,15 @@ Pick the form from the data, and say why in one short line each:
 | rows with a state | `list` |
 | items to scan by state | `kanban` (bound to a field, columns you name) |
 | a few files or items to browse | `carousel` |
-| steps and what depends on what | `flow` |
-| where a quantity goes in stages | `sankey` |
+| steps and what depends on what, with a number at each step | `flow` (give a node `bind` to show a live number) |
+| where a quantity goes in stages (2 or 3 fields) | `sankey` |
 | the person's own words or checklist | `note` |
+
+A `flow` node is a step. Without `bind` it is a label you write by hand; with
+`bind:{source, metric, template, warnAbove?, failAbove?}` it shows a number read from a
+source ("12 runs") and turns amber or red above a threshold. Prefer bound nodes: a flow
+of idle boxes tells the person nothing. A `sankey` needs two or three columns of the
+source as `stages` and a numeric `value` (`tokens`, `runs`, `size`...).
 
 Rules:
 - A dashboard has 6 to 12 widgets. Start with the numbers that matter, then the charts,
@@ -56,6 +62,14 @@ Rules:
 - One idea per widget; a title that says what it shows ("Tokens per day"), not what it is.
 - Never a dual axis, never more than six series (the tool folds the rest into "Other").
 - A `note` is for the person; do not write a note instead of a missing source.
+
+## 3b. Presets are examples
+
+The catalogue also lists the presets (`usage-tokens`, `automations-health`, `agent-teams`,
+`workspace-pulse`, `automation-flow`, `work-pipeline`, `token-routes`). When the person
+asks for something close to one, start from it (`preset`) and adjust with `ops` instead of
+rebuilding. `automation-flow` and `work-pipeline` are the examples of a live `flow`;
+`token-routes` and `work-pipeline` of a `sankey`.
 
 ## 4. Show the plan, then build
 

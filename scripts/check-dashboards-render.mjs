@@ -166,15 +166,18 @@ let usageId = null
   await walk(page)
   const v1 = await page.evaluate(() => document.querySelector('[data-kb="dashboards-value"]').textContent)
   check('a card counts up to its value', v0 !== null && v1 !== v0 || v0 === v1, [v0, v1])
-  const done = await page.evaluate(() => {
+  // a loaded machine starts animations late: poll for up to 8 s instead of judging one instant
+  const unfinishedNow = () => page.evaluate(() => {
     const anims = document.getAnimations().filter((a) => a.effect && a.effect.target && a.effect.target.closest && a.effect.target.closest('.kbdb-w'))
     const finite = anims.filter((a) => a.effect.getTiming().iterations !== Infinity)
     const un = finite.filter((a) => a.playState !== 'finished')
     const sample = un.slice(0, 6).map((a) => { const t = a.effect.target; const w = t.closest('.kbdb-w'); return { name: a.animationName, cls: String(t.getAttribute('class')).slice(0, 30), state: a.playState, time: Math.round(a.currentTime), inview: !!w && w.hasAttribute('data-inview'), widget: w && w.getAttribute('data-type'), top: Math.round(w ? w.getBoundingClientRect().top : -1) } })
     return { finite: finite.length, unfinished: un.length, sample, vh: window.innerHeight }
-  })
+    })
+  let done = await unfinishedNow()
+  for (let i = 0; i < 32 && done.unfinished > 0; i++) { await page.waitForTimeout(250); await walk(page); done = await unfinishedNow() }
   check('every entrance animation finishes (nothing is left half way)', done.unfinished === 0, done)
-  const bar = await page.evaluate(() => { const b = document.querySelector('.kbdb-bar'); const r = b.getBoundingClientRect(); return { h: r.height, w: r.width } })
+  const bar = await page.evaluate(() => { const rs = Array.from(document.querySelectorAll('.kbdb-bar')).map((b) => b.getBoundingClientRect()); const r = rs.sort((a, b) => b.height - a.height)[0]; return { h: r.height, w: r.width } })  // the tallest: a day with no usage has a bar of zero height
   check('bars rest at their full height', bar.h > 4 && bar.w > 4 && bar.w <= 25, bar)
   await shot(page, '03-usage-done')
   // hover: tooltip and lift
@@ -191,7 +194,7 @@ let usageId = null
 
 // ── 3. dark, and the other presets ───────────────────────────────────────────
 console.log('dark and the other presets')
-for (const id of ['automations-health', 'agent-teams', 'workspace-pulse']) {
+for (const id of ['automations-health', 'agent-teams', 'workspace-pulse', 'automation-flow', 'work-pipeline', 'token-routes']) {
   const made = JSON.parse((await hostCall('POST', '/kybernos-dashboards/preset', JSON.stringify({ preset: id }))).body)
   const { ctx, page } = await open({ dark: true, scheme: 'dark' })
   await mount(page, PAGE)
@@ -202,6 +205,25 @@ for (const id of ['automations-health', 'agent-teams', 'workspace-pulse']) {
   const bad = await page.locator('.kbdb-err-note').count()
   const empties = await page.locator('.kbdb-empty').count()
   check(id + ': every widget has data', bad === 0 && empties === 0, { bad, empties })
+  if (id === 'automation-flow' || id === 'work-pipeline') {
+    // a flow draws a live number on every node, and says where it read them
+    const subs = await page.locator('.kbdb-w[data-type="flow"] .kbdb-fnode .ns').allTextContents()
+    check(id + ': every flow node carries a live number', subs.length >= 6 && subs.every((t) => /\d/.test(t)), subs)
+    // each node sits where the file puts it (a CSS animation once stacked them all in the corner)
+    const rects = await page.locator('.kbdb-w[data-type="flow"] .kbdb-fnode rect.nb').evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)] }))
+    const overlap = rects.some((a, i) => rects.some((b, j) => j > i && a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3]))
+    check(id + ': the flow nodes sit apart, as placed', rects.length >= 6 && !overlap && new Set(rects.map((r) => r[0])).size >= 3, rects)
+    const foot = await page.locator('.kbdb-w[data-type="flow"] .kbdb-wf').first().textContent()
+    check(id + ': the flow says what it read and when', /read|lu/i.test(foot) && !/Cards are yours|Cartes à vous/.test(foot), foot)
+  }
+  if (id === 'automation-flow') {
+    const failedTone = await page.locator('.kbdb-fnode[data-nid="failed"] circle').last().evaluate((el) => el.getAttribute('style') || '')
+    check('automation-flow: a failed run turns its node red', /--kbdb-err/.test(failedTone), failedTone)
+  }
+  if (id === 'work-pipeline' || id === 'automation-flow' || id === 'token-routes') {
+    const ribbons = await page.locator('.kbdb-w[data-type="sankey"] svg path').count()
+    check(id + ': the sankeys draw ribbons', ribbons >= 3, ribbons)
+  }
   await shot(page, '04-' + id + '-dark')
   await ctx.close()
 }
@@ -231,6 +253,59 @@ console.log('editing')
   await page.waitForTimeout(1100)
   const saved = JSON.parse((await hostCall('GET', '/kybernos-dashboards/dashboard?id=workspace-pulse')).body)
   check('a note is edited in place and saved', saved.dashboard.widgets.some((w) => w.type === 'note' && w.text === 'Reconnect Gmail before tomorrow.'))
+  // a note with several lines, typed with the real keyboard (Enter makes <div>/<br> in a contenteditable: the lines must survive)
+  await note.click()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.press('Meta+ArrowDown')
+  await page.keyboard.type('good')
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('hello You')
+  await page.locator('.kbdb-w.note .kbdb-ntitle').first().click()
+  await page.waitForTimeout(1100)
+  const lines = JSON.parse((await hostCall('GET', '/kybernos-dashboards/dashboard?id=workspace-pulse')).body).dashboard.widgets.find((w) => w.type === 'note').text
+  check('the lines of a note are saved as lines', lines === 'Reconnect Gmail before tomorrow.good\n\nhello You', lines)
+  const shown = async (pg) => pg.locator('.kbdb-w.note .kbdb-nbody').first().evaluate((el) => ({ text: el.innerText, ws: getComputedStyle(el).whiteSpace, divs: el.querySelectorAll('div,br').length }))
+  const s1 = await shown(page)
+  check('the note shows its lines right after leaving it', s1.text === lines && s1.ws === 'pre-wrap', s1)
+  check('the note holds plain text, no block left by the editor', s1.divs === 0, s1)
+  // Enter in the title validates, it does not start a second line
+  const ttl = page.locator('.kbdb-w.note .kbdb-ntitle').first()
+  await ttl.click()
+  await page.keyboard.press('End')
+  await page.keyboard.type(' today')
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(1100)
+  const t1 = await ttl.evaluate((el) => ({ text: el.textContent, kids: el.children.length }))
+  check('Enter in a note title validates it, one line', t1.kids === 0 && !t1.text.includes('\n') && t1.text.endsWith(' today'), t1)
+  // other ways to break a line: Enter at the start of an empty box, Shift+Enter, Enter at the end
+  await note.click()
+  await note.evaluate((el) => { el.focus(); document.execCommand('selectAll') })
+  await page.keyboard.press('Delete')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('a')
+  await page.keyboard.press('Enter')
+  await page.keyboard.type('b')
+  await page.keyboard.press('Shift+Enter')
+  await page.keyboard.type('c')
+  await page.keyboard.press('Enter')
+  await ttl.click()
+  await page.waitForTimeout(1100)
+  const lines2 = JSON.parse((await hostCall('GET', '/kybernos-dashboards/dashboard?id=workspace-pulse')).body).dashboard.widgets.find((w) => w.type === 'note').text
+  check('Enter in an empty box, Shift+Enter and a trailing Enter each make one line', lines2 === '\na\nb\nc\n', lines2)
+  // the refresh button, then a page opened from scratch: same note, same lines
+  await page.click('[data-act="refresh"]')
+  await page.waitForTimeout(900)
+  const s2 = await shown(page)
+  check('the note is unchanged after Refresh', s2.text === lines2, s2)
+  const again = await open()
+  await mount(again.page, PAGE)
+  await again.page.waitForSelector('.kbdb-gcard[data-id="workspace-pulse"]')
+  await again.page.click('.kbdb-gcard[data-id="workspace-pulse"]')
+  await loaded(again.page)
+  const s3 = await shown(again.page)
+  check('the note keeps its lines when the dashboard is opened again', s3.text === lines2 && s3.ws === 'pre-wrap', s3)
+  await again.ctx.close()
   // a colour
   await page.locator('.kbdb-w.note .kbdb-tint .t2').first().click()
   await page.waitForTimeout(1000)

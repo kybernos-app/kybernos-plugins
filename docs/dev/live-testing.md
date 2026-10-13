@@ -237,7 +237,7 @@ routes through the page's own origin, the **Dashboards** row of the Kybernos men
 open the page the bundle provides), the gallery and a preset drawn with this DSH's real data, that the entrance animations
 exist and finish, and the right-pane tab: a dashboard filed under the chat on screen
 (`POST /kybernos-dashboards/open {id, session}`, the session being `window.__KB_DASHBOARDS__.session()`) opens the tab by
-itself. The pane check runs first on purpose: the tab only shows inside a chat, and the menu step leaves the chat. A sandbox has
+itself; a note is typed with real editing commands (Enter makes `<div>` in a contenteditable) and must be saved and shown as lines; the flow preset must draw a live number on every node, placed apart. The pane check runs first on purpose: the tab only shows inside a chat, and the menu step leaves the chat. A sandbox has
 no key and no automations, so the widgets show their empty states; the agent writing through its tool during a real
 conversation is not played here (it needs a model). The only thing written is the sandbox's own dashboards folder.
 
@@ -250,7 +250,7 @@ the real host logic (a temp folder) and fixture answers for the other bundles' r
 screenshots in light, dark, a 480 px pane and a phone; the motion (a rise per bar, a card counting up, every animation of a
 visible widget finishing, nothing moving under reduced motion); editing (a widened widget, a note, a colour, a kanban card
 become revisions by the person); and the agent's tool writing while the page is open (the page picks it up and flashes the
-widget). Two traps met: a full-page screenshot enlarges the viewport, so the page must be walked first or the widgets below the
+widget). Four traps met: `fill()` of Playwright sets the text without any Enter, so a note test must type with the keyboard (`textContent` glues the lines of a contenteditable); an SVG node carrying both a `transform` attribute and a CSS-animated transform loses its position (put the position on an outer group); a full-page screenshot enlarges the viewport, so the page must be walked first or the widgets below the
 fold are still at their start frame; and a loaded machine (a test loop running beside it) slows the animations, so it waits for
 them to finish instead of sleeping.
 

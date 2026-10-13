@@ -16,7 +16,7 @@ dashboard shown live in the right sidebar like a mini app.
   are edited in place. Every change is a revision (the History menu restores one).
 - **Widgets**: card (count-up, sparkline), chart (columns, stacked, bars, line, area, donut, each with a table view),
   calendar (a week), list (with an All / Failed filter), kanban (bound to a field, or manual and draggable), notes and
-  checklists (colours), carousel, flow (nodes you drag), sankey.
+  checklists (colours), carousel, flow (nodes you drag; a node can carry a live number read from a source, `bind`), sankey.
 - **Motion**: charts draw themselves when they scroll into view (bars rise with a stagger, lines draw and an end dot pings,
   donut slices sweep, ribbons flow, cards count up), with hover lifts and a crosshair on lines. Everything is off under
   `prefers-reduced-motion`.
@@ -85,7 +85,7 @@ limits) are seeded into `<dsh home>/skills` on start; a copy the person edited i
 | --- | --- | --- |
 | `model.mjs` | both | Pure: providers, widget schema, validate, inspect, query, shapers. No DOM, no disk, no import. |
 | `chart-core.mjs` | both | Pure: scales, layouts (columns, bars, lines, donut, sankey, flow) and motion maths (easings, count-up, stagger). |
-| `presets.mjs` | host | The shipped dashboards, as data. |
+| `presets.mjs` | host | The shipped dashboards, as data: usage, automations health, Agent Teams, workspace pulse, and three that show a live flow and sankeys (automation pipeline, skill to deliverable, token routes). |
 | `dashboard-host.mjs` | host | Files, revisions, flags, the tool. No `ctx`: everything is injected. |
 | `index.js` | host | Wires DSH services: the tool, the guarded routes, the skills. |
 | `src/plugin.js`, `client.js` | client | The page, the pane, the player, the painters and the stylesheet. `client.js` is **generated** by `scripts/build.mjs` from `src/plugin.js` and the two pure modules. |
