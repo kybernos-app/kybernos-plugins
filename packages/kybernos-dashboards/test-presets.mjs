@@ -14,7 +14,7 @@ const ok = (name, cond, detail) => {
   console.log('FAIL ' + name + (detail === undefined ? '' : ' :: ' + JSON.stringify(detail)))
 }
 
-ok('there are presets, with unique ids', PRESETS.length >= 7 && new Set(PRESET_IDS).size === PRESETS.length && PRESET_IDS.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)))
+ok('there are presets, with unique ids', PRESETS.length >= 9 && new Set(PRESET_IDS).size === PRESETS.length && PRESET_IDS.every((id) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)))
 
 for (const p of PRESETS) {
   const v = M.validateDashboard({ name: p.name, desc: p.desc, widgets: p.widgets })
@@ -50,6 +50,7 @@ for (const p of PRESETS) {
         case 'chart': out = M.chartData(t, w); drawn += out.empty ? 0 : 1; break
         case 'list': out = M.listData(t, w); drawn += out.length > 0 ? 1 : 0; break
         case 'kanban': out = M.kanbanData(t, w); drawn += out.some((c) => c.total > 0) ? 1 : 0; break
+        case 'table': out = M.tableData(t, w); drawn += out.rows.length > 0 ? 1 : 0; break
         case 'calendar': out = M.calendarData(t, w, NOW); drawn += out.some((d) => d.events.length > 0) ? 1 : 0; break
         case 'carousel': out = M.carouselData(t, w); drawn += out.length > 0 ? 1 : 0; break
         case 'sankey': out = M.sankeyData(t, w); drawn += out.empty ? 0 : 1; break

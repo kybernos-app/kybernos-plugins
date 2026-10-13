@@ -20,7 +20,7 @@ window.__ModuleLoader__.load({
 
       const KIND = 'dashboard'
       const VERSION = 1
-      const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3 }
+      const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3, tableCols: 6 }
 
       const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
       const arr = (v) => (Array.isArray(v) ? v : [])
@@ -118,6 +118,50 @@ window.__ModuleLoader__.load({
               return { session: str(s.id), title: cut(s.title, 80) || str(s.id).slice(0, 8), seen: str(s.seen), day: at === null ? '' : dayKey(at), tokens, models: Object.keys(ms).length }
             })
             return table(PROVIDERS['usage.sessions'].columns, rows)
+          },
+        },
+        'usage.models': {
+          label: 'Tokens per model',
+          about: 'The tokens used in the period, one row per model (totals, not per day), with its share of all tokens.',
+          params: { days: 'number 1..120, default 14' },
+          period: true,
+          columns: [col('model', 'Model', 'string'), col('provider', 'Provider', 'string'), col('tokens', 'Tokens', 'number'), col('input', 'Input tokens', 'number'), col('output', 'Output tokens', 'number'), col('cache_read', 'Cache read tokens', 'number'), col('cache_write', 'Cache write tokens', 'number'), col('share', 'Share of all tokens (%)', 'number')],
+          routes: (p) => [{ key: 'summary', method: 'GET', path: '/kybernos-usage/summary?days=' + clampInt(p.days, 1, 120, 14) }],
+          build: (parts) => {
+            const ms = obj(obj(parts.summary).models)
+            const rows = Object.keys(ms).map((k) => {
+              const t = obj(ms[k])
+              const u = num(t.u); const o = num(t.o); const cr = num(t.cr); const cw = num(t.cw)
+              const m = modelKey(k)
+              return { model: m.model, provider: m.provider, tokens: u + o + cr + cw, input: u, output: o, cache_read: cr, cache_write: cw, share: 0 }
+            }).filter((r) => r.tokens > 0)
+            const all = rows.reduce((a, r) => a + r.tokens, 0)
+            for (const r of rows) r.share = all > 0 ? Math.round((r.tokens / all) * 1000) / 10 : 0
+            rows.sort((a, b) => b.tokens - a.tokens || (a.model < b.model ? -1 : 1))
+            return table(PROVIDERS['usage.models'].columns, rows)
+          },
+        },
+        'usage.totals': {
+          label: 'Usage totals',
+          about: 'One row with the totals of the period: sessions, active days, tokens (input, output, cache), models used and the first day measured.',
+          params: { days: 'number 1..120, default 14' },
+          period: true,
+          columns: [col('sessions', 'Sessions', 'number'), col('active_days', 'Active days', 'number'), col('tokens', 'Tokens', 'number'), col('input', 'Input tokens', 'number'), col('output', 'Output tokens', 'number'), col('cache_read', 'Cache read tokens', 'number'), col('cache_write', 'Cache write tokens', 'number'), col('models', 'Models used', 'number'), col('since', 'First day measured', 'date')],
+          routes: (p) => [{ key: 'summary', method: 'GET', path: '/kybernos-usage/summary?days=' + clampInt(p.days, 1, 120, 14) }],
+          build: (parts) => {
+            const j = obj(parts.summary)
+            if (!Array.isArray(j.daily)) return table(PROVIDERS['usage.totals'].columns, [])
+            const ms = obj(j.models)
+            const sum = { u: 0, o: 0, cr: 0, cw: 0 }
+            for (const k of Object.keys(ms)) { const t = obj(ms[k]); sum.u += num(t.u); sum.o += num(t.o); sum.cr += num(t.cr); sum.cw += num(t.cw) }
+            let active = 0
+            for (const d of arr(j.daily)) {
+              const dm = obj(obj(d).models)
+              if (Object.keys(dm).some((k) => { const t = obj(dm[k]); return num(t.u) + num(t.o) + num(t.cr) + num(t.cw) > 0 })) active += 1
+            }
+            // the ledger lists up to 40 sessions; `sessionCount` is how many there were before that cut (older hosts do not send it)
+            const sessions = typeof j.sessionCount === 'number' && Number.isFinite(j.sessionCount) ? j.sessionCount : arr(j.sessions).length
+            return table(PROVIDERS['usage.totals'].columns, [{ sessions, active_days: active, tokens: sum.u + sum.o + sum.cr + sum.cw, input: sum.u, output: sum.o, cache_read: sum.cr, cache_write: sum.cw, models: Object.keys(ms).length, since: str(j.since) }])
           },
         },
         'automations.runs': {
@@ -303,18 +347,19 @@ window.__ModuleLoader__.load({
 
       // ── 3. the widget catalogue ──────────────────────────────────────────────────
 
-      const CHART_KINDS = ['columns', 'stacked', 'bars', 'line', 'area', 'donut']
-      const AGGS = ['sum', 'count', 'distinct', 'avg', 'min', 'max', 'last']
+      const CHART_KINDS = ['columns', 'stacked', 'bars', 'line', 'area', 'donut', 'heatmap']
+      const AGGS = ['sum', 'count', 'distinct', 'avg', 'min', 'max', 'last', 'top']
       const TINTS = ['', 'amber', 'green', 'blue', 'pink']
       const NODE_STATES = ['ok', 'warn', 'fail', 'run', 'idle']
       const FORMATS = ['number', 'compact', 'percent']
 
       const WIDGETS = {
-        card: { w: 3, h: 2, bound: true, about: 'One number with a short line under it and an optional sparkline. metric:{agg,field,where} (agg: sum|count|distinct|avg|min|max|last), format (number|compact|percent), unit, alertAbove (number turns the card amber), sub:{template:"{v} failed", metric:{...}, state, warnAbove}, spark:{x,y,agg}.' },
-        chart: { w: 6, h: 4, bound: true, about: 'kind: columns | stacked | bars (ranked, horizontal) | line | area | donut. x = field to group by, y = numeric field (omit to count rows), series = field to split by, agg, where, sort, limit.' },
+        card: { w: 3, h: 2, bound: true, about: 'One number with a short line under it and an optional sparkline. metric:{agg,field,where,by?} (agg: sum|count|distinct|avg|min|max|last|top; top shows the value of field that weighs most, by = a numeric field, else the most frequent: "Favorite model"), per (divide the number, e.g. 22000 to say "x times a short novel"), format (number|compact|percent), unit, alertAbove (number turns the card amber), sub:{template:"{v} failed", metric:{...}, state, warnAbove}, spark:{x,y,agg}.' },
+        chart: { w: 6, h: 4, bound: true, about: 'kind: columns | stacked | bars (ranked, horizontal) | line | area | donut | heatmap (one cell per day, weeks as columns, x must be a date column). x = field to group by, y = numeric field (omit to count rows), series = field to split by, agg, where, sort, limit.' },
         calendar: { w: 8, h: 5, bound: true, about: 'A week (Monday to Sunday) of events. at = time field, label = text field, state = state field. Best with automations.timeline.' },
         list: { w: 4, h: 5, bound: true, about: 'Rows with a state dot. label (main text), sub, when = fields; state = state field; sort ("-at"), limit; failedChip adds an All/Failed filter.' },
         kanban: { w: 8, h: 5, bound: false, about: 'Bound: groupBy = field, columns = [{value,label}], label, sub (fields). Manual (manual:true): cols = [{t, c:[[title, sub]]}] that the user drags.' },
+        table: { w: 6, h: 4, bound: true, about: 'Rows and columns of the source. columns:[{field,label?,format? (number|compact|percent),bar?}] (the first is the row label), sort ("-tokens"), limit, where, swatch (a colour square before the label, the same hue as the same rank in a chart). bar:true draws a numeric column as a bar.' },
         note: { w: 4, h: 3, bound: false, about: 'Free text, or a checklist (check:[[text, done]]). tint: amber | green | blue | pink. Written in the dashboard file itself.' },
         carousel: { w: 12, h: 3, bound: true, about: 'Cards you scroll sideways. label, sub, kind = fields; limit.' },
         flow: { w: 12, h: 5, bound: false, about: 'Nodes and links, like a pipeline. nodes:[{id,t,k,s,sub,x,y,bind?}] s = ok | warn | fail | run | idle; edges:[[from,to,"f"?]] ("f" = on failure). A node can show a live number: bind:{source:{provider,params},metric:{agg,field,where},template:"{v} runs",warnAbove?,failAbove?} (the node\'s state turns warn/fail above the threshold). x 0..780, y 0..160, a node is 180x56.' },
@@ -339,6 +384,7 @@ window.__ModuleLoader__.load({
         const agg = AGGS.includes(m.agg) ? m.agg : defAgg
         const o = { agg }
         if (str(m.field) !== '') o.field = cut(m.field, 40)
+        if (agg === 'top' && str(m.by) !== '') o.by = cut(m.by, 40)
         const w = cleanWhere(m.where)
         if (w.length > 0) o.where = w
         return o
@@ -381,6 +427,7 @@ window.__ModuleLoader__.load({
             w.format = FORMATS.includes(raw.format) ? raw.format : 'number'
             if (str(raw.unit) !== '') w.unit = cut(raw.unit, 16)
             if (typeof raw.alertAbove === 'number' && Number.isFinite(raw.alertAbove)) w.alertAbove = raw.alertAbove
+            if (typeof raw.per === 'number' && Number.isFinite(raw.per) && raw.per > 0) w.per = raw.per
             if (isObj(raw.sub)) {
               w.sub = { template: cut(raw.sub.template, 80) || '{v}' }
               if (isObj(raw.sub.metric)) w.sub.metric = cleanMetric(raw.sub.metric, 'count')
@@ -437,6 +484,19 @@ window.__ModuleLoader__.load({
             w.tint = TINTS.includes(raw.tint) ? raw.tint : ''
             if (Array.isArray(raw.check)) w.check = raw.check.slice(0, LIMITS.items).filter((c) => Array.isArray(c) || typeof c === 'string').map((c) => (Array.isArray(c) ? [cut(c[0], 160), c[1] ? 1 : 0] : [cut(c, 160), 0]))
             else w.text = String(raw.text === undefined || raw.text === null ? '' : raw.text).slice(0, LIMITS.text)
+            break
+          }
+          case 'table': {
+            w.columns = arr(raw.columns).slice(0, LIMITS.tableCols).filter((c) => isObj(c) && str(c.field) !== '').map((c) => {
+              const col = { field: cut(c.field, 40), label: cut(c.label, 40), format: FORMATS.includes(c.format) ? c.format : 'compact' }
+              if (c.bar === true) col.bar = true
+              return col
+            })
+            if (w.columns.length === 0) { errors.push(at + ': a table needs columns:[{field, label?, format?, bar?}]'); return null }
+            const wh = cleanWhere(raw.where); if (wh.length > 0) w.where = wh
+            if (str(raw.sort) !== '') w.sort = cut(raw.sort, 41)
+            w.limit = clampInt(raw.limit, 1, 40, 12)
+            w.swatch = raw.swatch === true
             break
           }
           case 'carousel': {
@@ -521,6 +581,10 @@ window.__ModuleLoader__.load({
           if (w.type === 'card') {
             if (numericAgg(w.metric)) need(w, cols, w.metric.field, 'metric.field', true)
             else if (w.metric && w.metric.field) need(w, cols, w.metric.field, 'metric.field', false)
+            if (w.metric && w.metric.agg === 'top') {
+              if (w.metric.field === undefined) out.push('widget "' + w.id + '": agg "top" needs metric.field (the value to name)')
+              if (w.metric.by !== undefined) need(w, cols, w.metric.by, 'metric.by', true)
+            }
             if (w.spark) { need(w, cols, w.spark.x, 'spark.x', false); need(w, cols, w.spark.y, 'spark.y', true) }
             if (w.w < 2) out.push('widget "' + w.id + '": a card narrower than 2 columns is hard to read')
           }
@@ -529,8 +593,18 @@ window.__ModuleLoader__.load({
             if (w.y !== undefined) need(w, cols, w.y, 'y', w.agg !== 'count' && w.agg !== 'last')
             need(w, cols, w.series, 'series', false)
             if (w.w < 4) out.push('widget "' + w.id + '": a chart narrower than 4 columns is hard to read')
+            if (w.kind === 'heatmap') {
+              const xc = cols === null ? undefined : cols.find((c) => c.id === w.x)
+              if (xc !== undefined && xc.type !== 'date') out.push('widget "' + w.id + '": a heatmap needs a date column on x, "' + w.x + '" is ' + xc.type)
+              if (w.series !== undefined) out.push('widget "' + w.id + '": a heatmap ignores series')
+            }
             if (w.kind === 'donut' && w.series !== undefined) out.push('widget "' + w.id + '": a donut ignores series; use kind "stacked" to split by it')
             if (w.source && !supportsPeriod(w.source.provider) && w.source.params.days !== undefined) out.push('widget "' + w.id + '": ' + w.source.provider + ' has no period filter, it shows the current state')
+          }
+          if (w.type === 'table') {
+            for (const c of w.columns) need(w, cols, c.field, 'column', c.bar === true)
+            if (w.sort) need(w, cols, w.sort.replace(/^-/, ''), 'sort', false)
+            if (w.w < 4) out.push('widget "' + w.id + '": a table narrower than 4 columns is hard to read')
           }
           if (w.type === 'calendar') { need(w, cols, w.at, 'at', false); need(w, cols, w.label, 'label', false); need(w, cols, w.state, 'state', false) }
           if (w.type === 'list') { need(w, cols, w.label, 'label', false); need(w, cols, w.sub, 'sub', false); need(w, cols, w.when, 'when', false); need(w, cols, w.state, 'state', false) }
@@ -554,6 +628,14 @@ window.__ModuleLoader__.load({
         const seen = new Map()
         for (const w of ws) { const k = w.type + '|' + w.title; if (w.title !== '' && seen.has(k)) out.push('widgets "' + seen.get(k) + '" and "' + w.id + '" have the same type and title'); else seen.set(k, w.id) }
         return out
+      }
+
+      /** What a gallery card needs to sketch a widget: its place, its type and the one thing that changes the picture. */
+      function shapeOf (w) {
+        const o = { w: w.w, h: w.h, type: w.type }
+        if (w.type === 'chart') o.kind = w.kind
+        if (w.type === 'card' && w.spark) o.spark = true
+        return o
       }
 
       /** The sources a dashboard reads: [{ provider, label, widgets }]. */
@@ -654,25 +736,45 @@ window.__ModuleLoader__.load({
         }
         return Array.from(by.values())
       }
+      /** One metric over rows: { v, label }. `top` answers with the value of `field` that weighs most (`by` summed, else most rows). */
+      function measure (rows, m) {
+        if (m.agg === 'top' && m.field !== undefined && m.field !== '') {
+          const w = new Map()
+          for (const r of rows) {
+            const k = r[m.field] === undefined || r[m.field] === null ? '' : String(r[m.field])
+            if (k === '') continue
+            w.set(k, (w.get(k) || 0) + (m.by !== undefined && m.by !== '' ? cellNum(r[m.by]) : 1))
+          }
+          let best = ''; let bw = -1
+          for (const [k, v] of w) if (v > bw || (v === bw && k < best)) { best = k; bw = v }
+          return { v: bw < 0 ? 0 : bw, label: best }
+        }
+        return { v: aggregate(rows, m.agg, m.field), label: null }
+      }
+
       /** A flow node as drawn: with a bind and the source's table, its line is the live number and its state follows the thresholds. */
       function liveNode (n, t) {
         if (!n.bind || !t) return n
         const m = n.bind.metric
-        const v = aggregate(applyWhere(t.rows, m.where), m.agg, m.field)
+        const r = measure(applyWhere(t.rows, m.where), m)
+        const v = r.v
         let st = n.s
         if (typeof n.bind.failAbove === 'number' && v > n.bind.failAbove) st = 'fail'
         else if (typeof n.bind.warnAbove === 'number' && v > n.bind.warnAbove) st = 'warn'
-        return Object.assign({}, n, { sub: String(n.bind.template).replace(/\{v\}/g, formatNumber(v, 'number')), s: st })
+        return Object.assign({}, n, { sub: String(n.bind.template).replace(/\{v\}/g, r.label !== null ? r.label : formatNumber(v, 'number')), s: st })
       }
 
       function cardData (t, w) {
         const rows = applyWhere(t.rows, w.metric.where)
-        const v = aggregate(rows, w.metric.agg, w.metric.field)
+        const m0 = measure(rows, w.metric)
+        const v = typeof w.per === 'number' && w.per > 0 ? m0.v / w.per : m0.v
         const out = { value: v, text: formatNumber(v, w.format) + (w.unit ? ' ' + w.unit : ''), sub: '', st: 'ok', spark: null, empty: t.rows.length === 0 }
+        if (m0.label !== null) { out.label = m0.label; out.text = m0.label }
         if (w.sub) {
           const m = w.sub.metric ? w.sub.metric : w.metric
-          const sv = aggregate(applyWhere(t.rows, m.where), m.agg, m.field)
-          out.sub = String(w.sub.template || '{v}').replace(/\{v\}/g, formatNumber(sv, 'number')).replace(/\{total\}/g, formatNumber(v, 'number'))
+          const sm = measure(applyWhere(t.rows, m.where), m)
+          const sv = sm.v
+          out.sub = String(w.sub.template || '{v}').replace(/\{v\}/g, sm.label !== null ? sm.label : formatNumber(sv, 'number')).replace(/\{total\}/g, formatNumber(v, 'number'))
           out.st = w.sub.state !== undefined ? w.sub.state : (typeof w.sub.warnAbove === 'number' && sv > w.sub.warnAbove ? 'warn' : 'ok')
           out.subValue = sv
         }
@@ -761,6 +863,26 @@ window.__ModuleLoader__.load({
         return rows.slice(0, w.limit || 12).map((r) => ({ title: String(r[w.label] === undefined ? '' : r[w.label]), sub: w.sub ? String(r[w.sub] === undefined ? '' : r[w.sub]) : '', subType, when: w.when ? String(r[w.when] === undefined ? '' : r[w.when]) : '', whenType, state: w.state ? String(r[w.state] === undefined ? '' : r[w.state]) : '' }))
       }
 
+      /**
+       * What a table draws: { columns:[{field,label,type,format,bar,max}], rows:[[{v,t}...]] , total }. Sorted ("-tokens"), cut at limit.
+       * `max` is the largest value of a bar column (the bar of a row is its share of that).
+       */
+      function tableData (t, w) {
+        let rows = applyWhere(t.rows, w.where)
+        if (w.sort) {
+          const desc = w.sort.startsWith('-'); const f = desc ? w.sort.slice(1) : w.sort
+          rows = rows.slice().sort((a, b) => { const x = a[f]; const y = b[f]; const c = typeof x === 'number' && typeof y === 'number' ? x - y : (String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0); return desc ? -c : c })
+        }
+        const total = rows.length
+        rows = rows.slice(0, w.limit || 12)
+        const columns = w.columns.map((c) => {
+          const type = colType(t, c.field)
+          const max = c.bar === true ? rows.reduce((a, r) => Math.max(a, cellNum(r[c.field])), 0) : 0
+          return { field: c.field, label: c.label !== '' ? c.label : (arr(t.columns).find((x) => x.id === c.field) || { label: c.field }).label, type, format: c.format, bar: c.bar === true, max }
+        })
+        return { columns, rows: rows.map((r) => columns.map((c) => ({ v: r[c.field] === undefined || r[c.field] === null ? '' : r[c.field], t: c.type }))), total }
+      }
+
       function kanbanData (t, w) {
         if (w.manual === true) return w.cols.map((c) => ({ title: c.t, cards: c.c.map((k) => ({ title: k[0], sub: k[1], subType: 'string' })), total: c.c.length }))
         const rows = applyWhere(t.rows, w.where)
@@ -825,7 +947,7 @@ window.__ModuleLoader__.load({
         const kept = out.filter((l) => remap[l[0]].has(l[1]) && remap[l[2]].has(l[3])).map((l) => [l[0], remap[l[0]].get(l[1]), l[2], remap[l[2]].get(l[3]), l[4]])
         return { cols: nodes, links: kept, total: nodes[0].reduce((a, n) => a + n.v, 0), empty: kept.length === 0 }
       }
-      return { KIND, VERSION, LIMITS, slug, dayKey, PROVIDERS, PROVIDER_IDS, planFor, buildTable, supportsPeriod, CHART_KINDS, AGGS, TINTS, NODE_STATES, FORMATS, WIDGETS, WIDGET_TYPES, validateDashboard, emptyDashboard, inspectDashboard, sourcesOf, describeCatalogue, applyWhere, aggregate, formatNumber, stateTone, flowSources, liveNode, cardData, chartData, listData, kanbanData, carouselData, calendarData, sankeyData }
+      return { KIND, VERSION, LIMITS, slug, dayKey, PROVIDERS, PROVIDER_IDS, planFor, buildTable, supportsPeriod, CHART_KINDS, AGGS, TINTS, NODE_STATES, FORMATS, WIDGETS, WIDGET_TYPES, validateDashboard, emptyDashboard, inspectDashboard, shapeOf, sourcesOf, describeCatalogue, applyWhere, aggregate, formatNumber, stateTone, flowSources, measure, liveNode, cardData, chartData, listData, tableData, kanbanData, carouselData, calendarData, sankeyData }
       })()
       const chart = (() => {
       // kybernos-dashboards: chart geometry and motion maths. Pure: numbers in, numbers and path strings out. No DOM, no clock,
@@ -1109,6 +1231,34 @@ window.__ModuleLoader__.load({
 
       // ── flow ─────────────────────────────────────────────────────────────────────
 
+      /**
+       * A calendar heatmap: one square per day, a week per column (Monday on top), the oldest day at the left.
+       * keys: 'YYYY-MM-DD' in time order, values: numbers. -> { cells:[{i,key,x,y,s,level,v}], weeks, size, width, height, max }
+       * level 0 is "nothing"; 1..4 are the busier days, on a square-root scale so one huge day does not wash out the rest.
+       */
+      function heatmapLayout ({ keys, values, W, H, gap = 3, maxCell = 30, minCell = 5 }) {
+        const n = Math.min(arrLen(keys), arrLen(values))
+        if (n === 0) return { cells: [], weeks: 0, size: 0, width: 0, height: 0, max: 0 }
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(keys[0]))
+        const first = m === null ? 0 : (new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])).getDay() + 6) % 7
+        const weeks = Math.ceil((first + n) / 7)
+        const s = clamp(Math.floor(Math.min((fin(W) - gap * (weeks - 1)) / weeks, (fin(H) - gap * 6) / 7)), minCell, maxCell)
+        const width = weeks * s + (weeks - 1) * gap
+        const x0 = Math.max(0, Math.round((fin(W) - width) / 2))
+        let max = 0
+        for (let i = 0; i < n; i++) max = Math.max(max, fin(values[i]))
+        const cells = []
+        for (let i = 0; i < n; i++) {
+          const v = Math.max(0, fin(values[i]))
+          const col = Math.floor((first + i) / 7)
+          const row = (first + i) % 7
+          const level = v <= 0 || max <= 0 ? 0 : Math.min(4, 1 + Math.floor(Math.sqrt(v / max) * 4 - 1e-9))
+          cells.push({ i, key: String(keys[i]), col, row, x: x0 + col * (s + gap), y: row * (s + gap), s, level, v })
+        }
+        return { cells, weeks, size: s, width, height: 7 * s + 6 * gap, max }
+      }
+      const arrLen = (a) => (Array.isArray(a) ? a.length : 0)
+
       const FLOW_NODE = { w: 180, h: 56 }
       /** A cubic from the right edge of node a to the left edge of node b, and a rough length for dash animation. */
       function flowEdgePath (a, b, nw = FLOW_NODE.w, nh = FLOW_NODE.h) {
@@ -1128,7 +1278,7 @@ window.__ModuleLoader__.load({
           y: r1(hi === lo ? h / 2 : h - inset - ((fin(v) - lo) / (hi - lo)) * (h - 2 * inset)),
         }))
       }
-      return { clamp01, lerp, easeOutCubic, countUpAt, staggerDelay, niceTicks, roundedTopPath, roundedRightPath, columnsLayout, hbarsLayout, smoothPath, lineLayout, donutLayout, sankeyLayout, FLOW_NODE, flowEdgePath, sparkPoints }
+      return { clamp01, lerp, easeOutCubic, countUpAt, staggerDelay, niceTicks, roundedTopPath, roundedRightPath, columnsLayout, hbarsLayout, smoothPath, lineLayout, donutLayout, sankeyLayout, heatmapLayout, FLOW_NODE, flowEdgePath, sparkPoints }
       })()
       return (function (model, chart) {
         // ── src/plugin.js
@@ -1256,6 +1406,32 @@ window.__ModuleLoader__.load({
         .kbdb-w[data-type="flow"] .kbdb-wb{overflow-x:auto}
         .kbdb-w[data-type="flow"] .kbdb-chart{min-width:680px}
         .kbdb-note-small{color:var(--kbdb-t3);font-size:11.5px;margin-top:4px}
+
+        /* heatmap, table, text card */
+        .kbdb-hm{transform-box:fill-box;transform-origin:50% 50%;animation:kbdb-pop .45s var(--kbdb-spring) both;animation-delay:calc(var(--c,0) * 14ms);animation-play-state:paused;transition:filter .15s}
+        [data-inview] .kbdb-hm{animation-play-state:running}
+        .kbdb-hm:hover{filter:brightness(1.3)}
+        .kbdb-hm0{fill:color-mix(in srgb,var(--kbdb-t3) 16%,var(--kbdb-l1))}
+        .kbdb-hm1{fill:color-mix(in srgb,var(--kbdb-s1) 32%,var(--kbdb-l1))}
+        .kbdb-hm2{fill:color-mix(in srgb,var(--kbdb-s1) 56%,var(--kbdb-l1))}
+        .kbdb-hm3{fill:color-mix(in srgb,var(--kbdb-s1) 80%,var(--kbdb-l1))}
+        .kbdb-hm4{fill:var(--kbdb-s1)}
+        .kbdb-hmkey{display:flex;align-items:center;justify-content:flex-end;gap:4px;margin-top:6px;color:var(--kbdb-t3);font-size:11px}
+        .kbdb-hmkey i{width:11px;height:11px;border-radius:3px;display:inline-block}
+        .kbdb-hmkey i.kbdb-hm0{background:color-mix(in srgb,var(--kbdb-t3) 16%,var(--kbdb-l1))}
+        .kbdb-hmkey i.kbdb-hm1{background:color-mix(in srgb,var(--kbdb-s1) 32%,var(--kbdb-l1))}
+        .kbdb-hmkey i.kbdb-hm2{background:color-mix(in srgb,var(--kbdb-s1) 56%,var(--kbdb-l1))}
+        .kbdb-hmkey i.kbdb-hm3{background:color-mix(in srgb,var(--kbdb-s1) 80%,var(--kbdb-l1))}
+        .kbdb-hmkey i.kbdb-hm4{background:var(--kbdb-s1)}
+        .kbdb-dt{overflow:auto;flex:1;min-height:0}
+        .kbdb-dt table{width:100%;border-collapse:collapse;font-size:13px}
+        .kbdb-dt th{position:sticky;top:0;z-index:1;background:var(--kbdb-l1);text-align:left;font-weight:500;color:var(--kbdb-t3);font-size:12px;padding:6px 8px;border-bottom:1px solid var(--kbdb-b2);white-space:nowrap}
+        .kbdb-dt th.n,.kbdb-dt td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+        .kbdb-dt td{padding:7px 8px;border-bottom:1px solid var(--kbdb-b1);animation:kbdb-fade .35s ease both;animation-delay:calc(var(--i,0) * 45ms)}
+        .kbdb-dt td .lb{display:inline-flex;align-items:center;gap:8px;min-width:0}
+        .kbdb-dt td .sw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+        .kbdb-dt td.bar{background:linear-gradient(90deg,color-mix(in srgb,var(--kbdb-s1) 24%,transparent) var(--p,0%),transparent var(--p,0%))}
+        .kbdb-kpi-v.t{font-size:20px;line-height:1.3;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
         /* chart motion */
         .kbdb-bar{transform-box:fill-box;transform-origin:50% 100%;animation:kbdb-rise .6s var(--kbdb-spring) both;animation-delay:calc(var(--i,0) * 26ms + var(--s,0) * 45ms);animation-play-state:paused;transition:filter .15s,transform .15s}
@@ -1407,9 +1583,15 @@ window.__ModuleLoader__.load({
         .kbdb-gcard .gh{display:flex;align-items:center;gap:8px}
         .kbdb-gcard h3{margin:0;font-size:15px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .kbdb-gcard p{margin:0;color:var(--kbdb-t2);font-size:12.5px}
-        .kbdb-gmini{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:6px;gap:3px;padding:8px;border-radius:10px;background:var(--kbdb-l2);height:96px;overflow:hidden;align-content:start}
-        .kbdb-gmini i{grid-column:span var(--w);grid-row:span var(--h);border-radius:3px;background:var(--kbdb-b3);transition:background-color .2s}
-        .kbdb-gcard:hover .kbdb-gmini i{background:var(--kbdb-t4)}
+        .kbdb-gmini{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-rows:var(--rh,7px);gap:3px;padding:8px;border-radius:10px;background:var(--kbdb-l2);height:112px;overflow:hidden;align-content:start}
+        .kbdb-gmini i{grid-column:span var(--w);grid-row:span var(--h);border-radius:4px;background:var(--kbdb-l1);border:1px solid var(--kbdb-b2);overflow:hidden;transition:border-color .2s,transform .25s var(--kbdb-spring)}
+        .kbdb-gmini i[data-type="note"]{background:var(--kbdb-warn-t);border-color:transparent}
+        .kbdb-gmini svg{display:block;width:100%;height:100%}
+        .kbdb-gmini .mi-ink{fill:var(--kbdb-t2)}
+        .kbdb-gmini .mi-dim{fill:var(--kbdb-t4)}
+        .kbdb-gmini .mi-line{stroke:var(--kbdb-t4);stroke-width:1;fill:none}
+        .kbdb-gcard:hover .kbdb-gmini i{border-color:var(--kbdb-t4)}
+        .kbdb-gcard:hover .kbdb-gmini i:nth-child(odd){transform:translateY(-1px)}
         .kbdb-gmeta{display:flex;gap:6px;flex-wrap:wrap}
         .kbdb-gcard .acts{display:flex;gap:8px;align-items:center;margin-top:auto}
         .kbdb-gempty{padding:28px 16px;border:1px dashed var(--kbdb-b3);border-radius:14px;text-align:center;color:var(--kbdb-t2);display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -1697,6 +1879,18 @@ window.__ModuleLoader__.load({
           return svgOpen(size, size, opts.label || 'Donut') + g + '</svg>'
         }
 
+        /** A calendar heatmap: a square per day, a week per column, each pops in from the left. `data` is model.chartData's answer. */
+        function paintHeatmap (data, W, H, o) {
+          const opts = o || {}
+          const L = chart.heatmapLayout({ keys: data.labels.map((l) => l.key), values: data.totals, W, H })
+          let g = ''
+          for (const c of L.cells) {
+            const tip = '<b>' + esc(fmtLabel(c.key, opts.lang)) + '</b><span>' + esc(num(c.v)) + (data.unit ? ' ' + esc(data.unit) : '') + '</span>'
+            g += '<rect class="kbdb-hm kbdb-hm' + c.level + '" style="--c:' + Math.min(c.col, 60) + '" x="' + c.x + '" y="' + c.y + '" width="' + c.s + '" height="' + c.s + '" rx="' + Math.max(2, Math.round(c.s * 0.2)) + '" data-tip="' + esc(tip) + '"/>'
+          }
+          return svgOpen(W, Math.max(1, Math.ceil(L.height)), opts.label || 'Heatmap') + g + '</svg>'
+        }
+
         /** A sankey: ribbons drawn from the left, nodes growing, labels fading in. `sk` is model.sankeyData's answer. */
         function paintSankey (sk, W, H, o) {
           const opts = o || {}
@@ -1760,7 +1954,7 @@ window.__ModuleLoader__.load({
         // painters of paint.js and the helpers of data.js).
         const React = require('react')
         const h = React.createElement
-        const { useState, useEffect, useRef, useMemo, useCallback } = React
+        const { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } = React
 
         /* ── icons ── */
         const ICONS = {
@@ -1885,8 +2079,8 @@ window.__ModuleLoader__.load({
           const text = model.formatNumber(v, wd.format) + (wd.unit ? ' ' + wd.unit : '')
           const sparkHtml = useMemo(() => (c.spark ? paintSpark(c.spark, 96, 34) : ''), [c.spark])
           return h('div', { className: 'kbdb-kpi' + (c.st === 'warn' ? ' warn' : '') + (stale ? ' kbdb-stale' : '') },
-            h('div', null,
-              h('div', { className: 'kbdb-kpi-v', 'data-kb': 'dashboards-value' }, text),
+            h('div', { style: { minWidth: 0 } },
+              h('div', { className: 'kbdb-kpi-v' + (c.label !== undefined ? ' t' : ''), 'data-kb': 'dashboards-value', title: c.label !== undefined ? c.label : undefined }, c.label !== undefined ? (c.label === '' ? '—' : c.label) : text),
               c.sub !== '' ? h('div', { className: 'kbdb-kpi-s' }, h('span', { className: 'kbdb-dot' + (c.st === 'warn' ? ' warn' : (c.st === 'fail' ? ' err' : '')) }), c.sub) : null),
             sparkHtml !== '' ? h('span', { dangerouslySetInnerHTML: { __html: sparkHtml } }) : null)
         }
@@ -1912,6 +2106,7 @@ window.__ModuleLoader__.load({
             else if (wd.kind === 'bars') svg = paintBars(data, w, ht, o)
             else if (wd.kind === 'line' || wd.kind === 'area') svg = paintLine(data, w, ht, wd.kind === 'area', o)
             else if (donutInfo) svg = paintDonut(data, Math.max(80, Math.min(w * 0.5, ht)), { label: wd.title, caption: wd.unit || '' })
+            else if (wd.kind === 'heatmap') svg = paintHeatmap(data, w, ht, o)
           }
           const onMove = (e) => {
             const t = e.target
@@ -1933,7 +2128,26 @@ window.__ModuleLoader__.load({
           }
           return h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 } },
             multi ? h('div', { dangerouslySetInnerHTML: { __html: legendHtml(data.series) } }) : null,
-            h('div', { className: 'kbdb-chart' + (stale ? ' kbdb-stale' : ''), ref, onMouseMove: onMove, dangerouslySetInnerHTML: { __html: svg } }))
+            h('div', { className: 'kbdb-chart' + (stale ? ' kbdb-stale' : ''), ref, onMouseMove: onMove, dangerouslySetInnerHTML: { __html: svg } }),
+            wd.kind === 'heatmap' ? h('div', { className: 'kbdb-hmkey', 'aria-hidden': 'true' }, kt('Moins', 'Less'), [0, 1, 2, 3, 4].map((l) => h('i', { key: l, className: 'kbdb-hm' + l })), kt('Plus', 'More')) : null)
+        }
+
+        /* ── table ── */
+        function TableBody ({ wd, table, stale }) {
+          const d = useMemo(() => model.tableData(table, wd), [table, wd])
+          if (d.rows.length === 0) return h(Empty, null, kt('Aucune ligne.', 'No rows.'))
+          const now = Date.now()
+          const show = (c, v) => (c.type === 'number' ? model.formatNumber(Number(v), c.format) : ((c.type === 'time' || c.type === 'date') ? fmtWhen(v, c.type, now) : String(v)))
+          return h('div', { className: 'kbdb-dt' + (stale ? ' kbdb-stale' : '') },
+            h('table', null,
+              h('thead', null, h('tr', null, d.columns.map((c) => h('th', { key: c.field, className: c.type === 'number' ? 'n' : '' }, c.label)))),
+              h('tbody', null, d.rows.map((row, i) => h('tr', { key: i, style: { '--i': Math.min(i, 14) } }, row.map((cl, k) => {
+                const c = d.columns[k]
+                const text = show(c, cl.v)
+                const inner = k === 0 && wd.swatch ? h('span', { className: 'lb' }, h('i', { className: 'sw kbdb-s' + ((i % 6) + 1) }), text) : text
+                const style = c.bar && c.max > 0 ? { '--p': Math.max(2, Math.round((Number(cl.v) / c.max) * 100)) + '%' } : undefined
+                return h('td', { key: k, className: (c.type === 'number' ? 'n' : '') + (c.bar ? ' bar' : ''), style }, inner)
+              }))))))
         }
 
         /* ── calendar ── */
@@ -2151,6 +2365,7 @@ window.__ModuleLoader__.load({
               case 'card': body = h(CardBody, common); break
               case 'chart': body = h(ChartBody, Object.assign({ asTable }, common)); break
               case 'calendar': body = h(CalendarBody, common); break
+              case 'table': body = h(TableBody, common); break
               case 'list': body = h(ListBody, common); break
               case 'kanban': body = h(KanbanBody, common); break
               case 'carousel': body = h(CarouselBody, Object.assign({ railRef }, common)); break
@@ -2263,8 +2478,66 @@ window.__ModuleLoader__.load({
           return new Set(after.filter((w) => old.get(w.id) !== JSON.stringify(w)).map((w) => w.id))
         }
 
+        /** A tiny coloured sketch of one widget for the gallery cards: its kind of chart, a sparkline on a card, the colours the real one uses. */
+        function miniGlyph (s) {
+          const bar = (i, v, c) => '<rect class="kbdb-s' + c + '" x="' + (4 + i * 7) + '" y="' + (27 - v) + '" width="5" height="' + v + '" rx="1"/>'
+          switch (s.type) {
+            case 'card':
+              return '<rect class="mi-ink" x="5" y="6" width="17" height="7" rx="2"/><rect class="mi-dim" x="5" y="17" width="27" height="3" rx="1.5"/>'
+                + (s.spark ? '<polyline class="kbdb-k1" points="29,26 33,21 37,23 42,12" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' : '<rect class="kbdb-s2" x="5" y="23" width="10" height="3" rx="1.5"/>')
+            case 'chart': {
+              const k = s.kind
+              if (k === 'stacked') return [10, 16, 12, 19, 14, 21].map((v, i) => bar(i, v, 1) + bar(i, Math.round(v * 0.45), 2)).join('')
+              if (k === 'bars') return [[34, 1], [26, 2], [20, 3], [12, 4]].map((r, i) => '<rect class="kbdb-s' + r[1] + '" x="4" y="' + (4 + i * 6) + '" width="' + r[0] + '" height="4" rx="2"/>').join('')
+              if (k === 'line') return '<polyline class="kbdb-k1" points="3,22 11,15 18,18 27,8 36,12 45,5" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><polyline class="kbdb-k2" points="3,25 14,21 24,23 34,18 45,19" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" opacity=".8"/>'
+              if (k === 'area') return '<path class="kbdb-s1" fill-opacity=".25" d="M3 27 L3 21 L11 15 L18 18 L27 8 L36 12 L45 6 L45 27 Z"/><polyline class="kbdb-k1" points="3,21 11,15 18,18 27,8 36,12 45,6" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+              if (k === 'donut') return '<g transform="rotate(-90 24 15)"><circle cx="24" cy="15" r="9" fill="none" stroke-width="5" class="kbdb-k1" stroke-dasharray="30 57"/><circle cx="24" cy="15" r="9" fill="none" stroke-width="5" class="kbdb-k2" stroke-dasharray="15 57" stroke-dashoffset="-30"/><circle cx="24" cy="15" r="9" fill="none" stroke-width="5" class="kbdb-k3" stroke-dasharray="9 57" stroke-dashoffset="-45"/></g>'
+              if (k === 'heatmap') {
+                const lv = [0, 1, 0, 2, 0, 3, 1, 0, 2, 4, 1, 0, 3, 2, 0, 1, 4, 3, 0, 2, 1, 0, 3, 4]
+                return lv.map((l, i) => '<rect class="kbdb-hm' + l + '" x="' + (3 + Math.floor(i / 4) * 7.4) + '" y="' + (3 + (i % 4) * 6.2) + '" width="5.6" height="5" rx="1.2"/>').join('')
+              }
+              return [8, 14, 10, 18, 12, 21, 15].map((v, i) => bar(i, v, 1)).join('')
+            }
+            case 'table':
+              return '<rect class="mi-dim" x="4" y="4" width="40" height="2.5" rx="1"/>' + [0, 1, 2].map((i) => '<rect class="kbdb-s' + (i + 1) + '" x="4" y="' + (10 + i * 6) + '" width="4" height="4" rx="1"/><rect class="mi-ink" x="11" y="' + (10.5 + i * 6) + '" width="' + (14 - i * 2) + '" height="3" rx="1.5"/><rect class="kbdb-s1" fill-opacity=".45" x="29" y="' + (10.5 + i * 6) + '" width="' + (15 - i * 4) + '" height="3" rx="1.5"/>').join('')
+            case 'calendar':
+              return [0, 1, 2, 3, 4, 5, 6].map((i) => '<rect class="mi-line" x="' + (3 + i * 6.2) + '" y="3" width="5.2" height="24" rx="1.4" style="fill:var(--kbdb-l2)"/>').join('')
+                + '<rect class="kbdb-tone-ok" x="4" y="7" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-ok" x="16.4" y="11" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-err" x="22.6" y="7" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-ok" x="28.8" y="15" width="3.2" height="3.2" rx="1"/><rect class="kbdb-tone-idle" x="35" y="9" width="3.2" height="3.2" rx="1"/>'
+            case 'list':
+              return [0, 1, 2, 3].map((i) => '<circle class="' + (i === 2 ? 'kbdb-tone-err' : 'kbdb-tone-ok') + '" cx="6" cy="' + (6 + i * 6.2) + '" r="1.7"/><rect class="mi-ink" x="11" y="' + (4.7 + i * 6.2) + '" width="' + (22 - (i % 2) * 6) + '" height="2.6" rx="1.3"/><rect class="mi-dim" x="37" y="' + (4.9 + i * 6.2) + '" width="7" height="2.2" rx="1.1"/>').join('')
+            case 'kanban':
+              return [0, 1, 2].map((c) => '<rect x="' + (3 + c * 15) + '" y="3" width="13.5" height="24" rx="2" style="fill:var(--kbdb-l2)"/>' + [0, 1, 2].slice(0, 3 - c).map((r) => '<rect class="kbdb-s' + (c + 1) + '" fill-opacity=".85" x="' + (4.5 + c * 15) + '" y="' + (5.5 + r * 7) + '" width="10.5" height="5" rx="1.4"/>').join('')).join('')
+            case 'carousel':
+              return [0, 1, 2, 3].map((i) => '<rect x="' + (2 + i * 12) + '" y="5" width="10.5" height="20" rx="2" style="fill:var(--kbdb-l2)"/><rect class="kbdb-s' + ((i % 5) + 1) + '" fill-opacity=".8" x="' + (3 + i * 12) + '" y="6" width="8.5" height="9" rx="1.4"/><rect class="mi-ink" x="' + (3.5 + i * 12) + '" y="18" width="7.5" height="2" rx="1"/>').join('')
+            case 'note':
+              return '<rect class="mi-ink" x="5" y="6" width="26" height="2.6" rx="1.3"/><rect class="mi-dim" x="5" y="12" width="36" height="2.2" rx="1.1"/><rect class="mi-dim" x="5" y="17" width="31" height="2.2" rx="1.1"/><rect class="mi-dim" x="5" y="22" width="20" height="2.2" rx="1.1"/>'
+            case 'flow':
+              return '<path class="mi-line" d="M15 10 H21 M33 10 H36 M15 10 C19 10 19 21 23 21 M31 21 H36" style="stroke:var(--kbdb-t4)"/>'
+                + '<rect class="kbdb-s1" x="3" y="6" width="12" height="8" rx="2.4"/><rect class="kbdb-s2" x="21" y="6" width="12" height="8" rx="2.4"/><rect class="kbdb-tone-ok" x="36" y="6" width="9" height="8" rx="2.4"/><rect class="kbdb-tone-err" x="23" y="17" width="9" height="8" rx="2.4"/>'
+            case 'sankey':
+              return '<path class="kbdb-s1" fill-opacity=".45" d="M7 4 C22 4 26 6 41 6 L41 14 C26 14 22 13 7 13 Z"/><path class="kbdb-s2" fill-opacity=".45" d="M7 15 C22 15 26 17 41 17 L41 22 C26 22 22 23 7 23 Z"/>'
+                + '<rect class="kbdb-s1" x="4" y="4" width="3" height="9" rx="1"/><rect class="kbdb-s2" x="4" y="15" width="3" height="8" rx="1"/><rect class="kbdb-s1" x="41" y="6" width="3" height="8" rx="1"/><rect class="kbdb-s2" x="41" y="17" width="3" height="5" rx="1"/>'
+            default:
+              return '<rect class="mi-dim" x="4" y="4" width="40" height="22" rx="3"/>'
+          }
+        }
         function Mini ({ shape }) {
-          return h('span', { className: 'kbdb-gmini' }, (shape || []).map((s, i) => h('i', { key: i, style: { '--w': s.w, '--h': Math.max(1, Math.round(s.h * 1.9)) } })))
+          const ref = useRef(null)
+          const [rh, setRh] = useState(7)
+          const key = JSON.stringify(shape || [])
+          // the whole dashboard has to fit the box: once the browser has placed the widgets, the row height is what makes the rows fill it
+          useLayoutEffect(() => {
+            const el = ref.current
+            if (el === null || typeof getComputedStyle !== 'function') return
+            const rows = getComputedStyle(el).gridTemplateRows.split(' ').filter((x) => x !== '').length
+            if (rows === 0) return
+            const free = el.clientHeight - 16 - (rows - 1) * 3
+            setRh(Math.max(2, Math.min(9, Math.floor((free / rows) * 10) / 10)))
+          }, [key])
+          return h('span', { className: 'kbdb-gmini', ref, 'aria-hidden': 'true', style: { '--rh': rh + 'px' } }, (shape || []).map((s, i) => h('i', {
+            key: i, 'data-type': s.type, 'data-kind': s.kind || undefined, style: { '--w': s.w, '--h': Math.max(1, s.h) },
+            dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 48 30" preserveAspectRatio="' + (s.kind === 'donut' || s.type === 'flow' ? 'xMidYMid meet' : 'none') + '">' + miniGlyph(s) + '</svg>' },
+          })))
         }
 
         function DashboardsPage () {
@@ -2659,7 +2932,7 @@ window.__ModuleLoader__.load({
           // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
           inject: ['slots', 'sidebarRightTabs'],
           apply,
-          __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, CSS },
+          __test: { model, chart, fmtLabel, paintColumns, paintBars, paintLine, paintDonut, paintHeatmap, miniGlyph, paintSankey, paintFlow, paintSpark, legendHtml, fmtWhen, ago, changedIds, createMessage, improveMessage, addMessage, CSS },
         }
       })(model, chart)
     } catch (error) {

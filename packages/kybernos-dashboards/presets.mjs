@@ -128,4 +128,33 @@ export const PRESETS = [
       { type: 'list', title: 'Sessions that used the most', label: 'title', sub: 'day', when: 'seen', source: { provider: 'usage.sessions', params: { days: 30 } }, sort: '-tokens', limit: 8, w: 12, h: 4 },
     ],
   },
+  {
+    id: 'usage-overview',
+    name: 'Usage overview',
+    desc: 'Sessions, tokens, active days and your favourite model at a glance, with a heatmap of the days you worked.',
+    widgets: [
+      { type: 'card', title: 'Sessions', source: { provider: 'usage.totals', params: { days: 120 } }, metric: { agg: 'sum', field: 'sessions' }, sub: { template: 'that used tokens, 120 days' }, w: 4, h: 2 },
+      { type: 'card', title: 'Total tokens', source: { provider: 'usage.totals', params: { days: 120 } }, metric: { agg: 'sum', field: 'tokens' }, format: 'compact', sub: { template: '{v} output tokens', metric: { agg: 'sum', field: 'output' } }, w: 4, h: 2 },
+      { type: 'card', title: 'Active days', source: { provider: 'usage.totals', params: { days: 120 } }, metric: { agg: 'sum', field: 'active_days' }, sub: { template: 'days with at least one token' }, w: 4, h: 2 },
+      { type: 'card', title: 'Models used', source: { provider: 'usage.totals', params: { days: 120 } }, metric: { agg: 'sum', field: 'models' }, sub: { template: 'different models, 120 days' }, w: 4, h: 2 },
+      { type: 'card', title: 'Served from cache', source: { provider: 'usage.totals', params: { days: 120 } }, metric: { agg: 'sum', field: 'cache_read' }, format: 'compact', sub: { template: 'tokens you did not pay twice' }, w: 4, h: 2 },
+      { type: 'card', title: 'Favorite model', source: { provider: 'usage.models', params: { days: 120 } }, metric: { agg: 'top', field: 'model', by: 'tokens' }, sub: { template: '{v}% of all tokens', metric: { agg: 'max', field: 'share' } }, w: 4, h: 2 },
+      { type: 'chart', title: 'Tokens per day, 120 days', kind: 'heatmap', x: 'day', y: 'tokens', agg: 'sum', source: { provider: 'usage.daily', params: { days: 120 } }, w: 12, h: 4 },
+      { type: 'card', title: 'Compared with a short novel', source: { provider: 'usage.totals', params: { days: 120 } }, metric: { agg: 'sum', field: 'tokens' }, per: 22000, unit: '×', sub: { template: 'more tokens than The Little Prince (about 22,000)' }, w: 12, h: 2 },
+    ],
+  },
+  {
+    id: 'usage-models',
+    name: 'Usage by model',
+    desc: 'Which models carry your tokens, day by day, with input, output and share for each.',
+    widgets: [
+      { type: 'card', title: 'Tokens, 30 days', source: { provider: 'usage.totals', params: { days: 30 } }, metric: { agg: 'sum', field: 'tokens' }, format: 'compact', sub: { template: 'across {v} models', metric: { agg: 'sum', field: 'models' } }, w: 3, h: 2 },
+      { type: 'card', title: 'Input tokens', source: { provider: 'usage.totals', params: { days: 30 } }, metric: { agg: 'sum', field: 'input' }, format: 'compact', sub: { template: 'new input, not cached' }, w: 3, h: 2 },
+      { type: 'card', title: 'Output tokens', source: { provider: 'usage.totals', params: { days: 30 } }, metric: { agg: 'sum', field: 'output' }, format: 'compact', sub: { template: 'written by the models' }, w: 3, h: 2 },
+      { type: 'card', title: 'Cache read', source: { provider: 'usage.totals', params: { days: 30 } }, metric: { agg: 'sum', field: 'cache_read' }, format: 'compact', sub: { template: 'tokens served from cache' }, w: 3, h: 2 },
+      { type: 'chart', title: 'Tokens per day, by model', kind: 'stacked', x: 'day', y: 'tokens', series: 'model', agg: 'sum', source: { provider: 'usage.daily', params: { days: 30 } }, w: 12, h: 5 },
+      { type: 'table', title: 'Models, 30 days', columns: [{ field: 'model', label: 'Model' }, { field: 'input', label: 'In', format: 'compact' }, { field: 'output', label: 'Out', format: 'compact' }, { field: 'share', label: 'Share', format: 'percent', bar: true }], sort: '-tokens', limit: 8, swatch: true, source: { provider: 'usage.models', params: { days: 30 } }, w: 7, h: 4 },
+      { type: 'chart', title: 'Share by model', kind: 'donut', x: 'model', y: 'tokens', agg: 'sum', source: { provider: 'usage.daily', params: { days: 30 } }, w: 5, h: 4 },
+    ],
+  },
 ]

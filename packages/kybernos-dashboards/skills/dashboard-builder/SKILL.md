@@ -39,9 +39,11 @@ Pick the form from the data, and say why in one short line each:
 |---|---|
 | one number, optionally with a trend | `card` (with `spark` when there is a time axis) |
 | a quantity over days | `chart` `columns` (one series) or `stacked` (split by a field) |
+| activity over many days, as a grid | `chart` `heatmap` (one cell per day, weeks as columns) |
 | a continuous trend | `chart` `line` or `area` |
 | a ranking | `chart` `bars` |
 | a share of a whole (6 parts or fewer) | `chart` `donut` |
+| the same few fields for many rows (a ranking with its numbers) | `table` (`swatch` colours the label like the chart beside it) |
 | events on dates | `calendar` |
 | rows with a state | `list` |
 | items to scan by state | `kanban` (bound to a field, columns you name) |
@@ -66,7 +68,8 @@ Rules:
 ## 3b. Presets are examples
 
 The catalogue also lists the presets (`usage-tokens`, `automations-health`, `agent-teams`,
-`workspace-pulse`, `automation-flow`, `work-pipeline`, `token-routes`). When the person
+`workspace-pulse`, `automation-flow`, `work-pipeline`, `token-routes`, `usage-overview`,
+`usage-models`). When the person
 asks for something close to one, start from it (`preset`) and adjust with `ops` instead of
 rebuilding. `automation-flow` and `work-pipeline` are the examples of a live `flow`;
 `token-routes` and `work-pipeline` of a `sankey`.

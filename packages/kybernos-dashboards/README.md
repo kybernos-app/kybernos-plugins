@@ -14,7 +14,7 @@ dashboard shown live in the right sidebar like a mini app.
   flash. *Open full page* goes to the Dashboards page.
 - **Edit layout** moves (grip), resizes (− / +) and removes widgets. Notes, checklists and the cards of a manual kanban
   are edited in place. Every change is a revision (the History menu restores one).
-- **Widgets**: card (count-up, sparkline), chart (columns, stacked, bars, line, area, donut, each with a table view),
+- **Widgets**: card (count-up, sparkline, or a name: the favourite model), chart (columns, stacked, bars, line, area, donut, a calendar heatmap, each with a table view), table (rows and columns, with a colour swatch and share bars),
   calendar (a week), list (with an All / Failed filter), kanban (bound to a field, or manual and draggable), notes and
   checklists (colours), carousel, flow (nodes you drag; a node can carry a live number read from a source, `bind`), sankey.
 - **Motion**: charts draw themselves when they scroll into view (bars rise with a stagger, lines draw and an end dot pings,
@@ -28,7 +28,7 @@ computer, read when the page opens or you refresh. Nothing leaves the machine.
 
 | Source | Route | Has a period |
 | --- | --- | --- |
-| `usage.daily`, `usage.sessions` | `GET /kybernos-usage/summary` | yes (`days`) |
+| `usage.daily`, `usage.sessions`, `usage.models`, `usage.totals` | `GET /kybernos-usage/summary` | yes (`days`) |
 | `automations.runs` | `POST /kybernos/tasks {action:'list'}` | yes (`days`) |
 | `automations.list` | same | no |
 | `automations.timeline` | tasks + `GET /kybernos/tasks/occurrences` | the week (`weekOffset`) |
@@ -84,8 +84,8 @@ limits) are seeded into `<dsh home>/skills` on start; a copy the person edited i
 | File | Half | Role |
 | --- | --- | --- |
 | `model.mjs` | both | Pure: providers, widget schema, validate, inspect, query, shapers. No DOM, no disk, no import. |
-| `chart-core.mjs` | both | Pure: scales, layouts (columns, bars, lines, donut, sankey, flow) and motion maths (easings, count-up, stagger). |
-| `presets.mjs` | host | The shipped dashboards, as data: usage, automations health, Agent Teams, workspace pulse, and three that show a live flow and sankeys (automation pipeline, skill to deliverable, token routes). |
+| `chart-core.mjs` | both | Pure: scales, layouts (columns, bars, lines, donut, heatmap, sankey, flow) and motion maths (easings, count-up, stagger). |
+| `presets.mjs` | host | The shipped dashboards, as data: usage, automations health, Agent Teams, workspace pulse, three that show a live flow and sankeys (automation pipeline, skill to deliverable, token routes) and two that rebuild the overview and the models views of a usage page (usage overview, usage by model). |
 | `dashboard-host.mjs` | host | Files, revisions, flags, the tool. No `ctx`: everything is injected. |
 | `index.js` | host | Wires DSH services: the tool, the guarded routes, the skills. |
 | `src/plugin.js`, `client.js` | client | The page, the pane, the player, the painters and the stylesheet. `client.js` is **generated** by `scripts/build.mjs` from `src/plugin.js` and the two pure modules. |
@@ -111,3 +111,4 @@ it) renders the real client in headless Chromium against the real host logic, ta
 - A context variable (one dashboard read for another Agent Team, as Insight does per team).
 - Scheduled snapshots through Automations, and a trend history for sources that have none.
 - Atlas and a map as widgets.
+- Messages and the busiest hour of the day (the usage page of an editor shows them): the usage ledger keeps tokens per day, model and session only, so there is nothing to read. Recording the hour of each observation would give a busiest hour from that day on, not a history.

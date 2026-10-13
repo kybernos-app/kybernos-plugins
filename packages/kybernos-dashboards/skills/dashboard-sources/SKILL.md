@@ -16,6 +16,8 @@ on this computer and read what DSH already holds. Get the exact list and columns
 |---|---|---|
 | Tokens used, by day, model, provider | `usage.daily` | has a period (`days`); tokens, not money |
 | Which sessions used the most | `usage.sessions` | has a period; newest 40 |
+| Totals of the period by model, with the share of each | `usage.models` | has a period; one row per model; for a table or a "favorite model" card |
+| Sessions, active days, tokens, models used in one row | `usage.totals` | has a period; one row; sessions are counted in full, not capped at 40 |
 | What automations did | `automations.runs` | last 20 runs kept per automation; has a period |
 | State of each automation | `automations.list` | last result: done, failed, none, paused |
 | What is planned or happened this week | `automations.timeline` | past runs and planned runs, Monday to Sunday |
@@ -31,6 +33,8 @@ on this computer and read what DSH already holds. Get the exact list and columns
   page prices tokens when it draws them and that a dashboard shows tokens.
 - **A source without a period shows the current state.** When the person asks for "the
   last 30 days" of such a source, say it cannot be filtered by period.
+- **Messages and the busiest hour are not measured.** The usage ledger keeps tokens per day,
+  model and session, nothing about messages or the time of day. Do not invent them.
 - **Automation history is short**: each automation keeps its last 20 runs.
 - **Connected apps are not sources yet.** If someone asks for Stripe, GitHub, Gmail or a
   calendar, say that dashboards read local data for now, and offer the closest local

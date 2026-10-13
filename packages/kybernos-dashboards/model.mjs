@@ -14,7 +14,7 @@
 
 export const KIND = 'dashboard'
 export const VERSION = 1
-export const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3 }
+export const LIMITS = { widgets: 24, title: 120, desc: 240, text: 4000, items: 40, cols: 6, cards: 40, nodes: 14, edges: 24, name: 60, doc: 400000, stages: 3, tableCols: 6 }
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 const arr = (v) => (Array.isArray(v) ? v : [])
@@ -112,6 +112,50 @@ export const PROVIDERS = {
         return { session: str(s.id), title: cut(s.title, 80) || str(s.id).slice(0, 8), seen: str(s.seen), day: at === null ? '' : dayKey(at), tokens, models: Object.keys(ms).length }
       })
       return table(PROVIDERS['usage.sessions'].columns, rows)
+    },
+  },
+  'usage.models': {
+    label: 'Tokens per model',
+    about: 'The tokens used in the period, one row per model (totals, not per day), with its share of all tokens.',
+    params: { days: 'number 1..120, default 14' },
+    period: true,
+    columns: [col('model', 'Model', 'string'), col('provider', 'Provider', 'string'), col('tokens', 'Tokens', 'number'), col('input', 'Input tokens', 'number'), col('output', 'Output tokens', 'number'), col('cache_read', 'Cache read tokens', 'number'), col('cache_write', 'Cache write tokens', 'number'), col('share', 'Share of all tokens (%)', 'number')],
+    routes: (p) => [{ key: 'summary', method: 'GET', path: '/kybernos-usage/summary?days=' + clampInt(p.days, 1, 120, 14) }],
+    build: (parts) => {
+      const ms = obj(obj(parts.summary).models)
+      const rows = Object.keys(ms).map((k) => {
+        const t = obj(ms[k])
+        const u = num(t.u); const o = num(t.o); const cr = num(t.cr); const cw = num(t.cw)
+        const m = modelKey(k)
+        return { model: m.model, provider: m.provider, tokens: u + o + cr + cw, input: u, output: o, cache_read: cr, cache_write: cw, share: 0 }
+      }).filter((r) => r.tokens > 0)
+      const all = rows.reduce((a, r) => a + r.tokens, 0)
+      for (const r of rows) r.share = all > 0 ? Math.round((r.tokens / all) * 1000) / 10 : 0
+      rows.sort((a, b) => b.tokens - a.tokens || (a.model < b.model ? -1 : 1))
+      return table(PROVIDERS['usage.models'].columns, rows)
+    },
+  },
+  'usage.totals': {
+    label: 'Usage totals',
+    about: 'One row with the totals of the period: sessions, active days, tokens (input, output, cache), models used and the first day measured.',
+    params: { days: 'number 1..120, default 14' },
+    period: true,
+    columns: [col('sessions', 'Sessions', 'number'), col('active_days', 'Active days', 'number'), col('tokens', 'Tokens', 'number'), col('input', 'Input tokens', 'number'), col('output', 'Output tokens', 'number'), col('cache_read', 'Cache read tokens', 'number'), col('cache_write', 'Cache write tokens', 'number'), col('models', 'Models used', 'number'), col('since', 'First day measured', 'date')],
+    routes: (p) => [{ key: 'summary', method: 'GET', path: '/kybernos-usage/summary?days=' + clampInt(p.days, 1, 120, 14) }],
+    build: (parts) => {
+      const j = obj(parts.summary)
+      if (!Array.isArray(j.daily)) return table(PROVIDERS['usage.totals'].columns, [])
+      const ms = obj(j.models)
+      const sum = { u: 0, o: 0, cr: 0, cw: 0 }
+      for (const k of Object.keys(ms)) { const t = obj(ms[k]); sum.u += num(t.u); sum.o += num(t.o); sum.cr += num(t.cr); sum.cw += num(t.cw) }
+      let active = 0
+      for (const d of arr(j.daily)) {
+        const dm = obj(obj(d).models)
+        if (Object.keys(dm).some((k) => { const t = obj(dm[k]); return num(t.u) + num(t.o) + num(t.cr) + num(t.cw) > 0 })) active += 1
+      }
+      // the ledger lists up to 40 sessions; `sessionCount` is how many there were before that cut (older hosts do not send it)
+      const sessions = typeof j.sessionCount === 'number' && Number.isFinite(j.sessionCount) ? j.sessionCount : arr(j.sessions).length
+      return table(PROVIDERS['usage.totals'].columns, [{ sessions, active_days: active, tokens: sum.u + sum.o + sum.cr + sum.cw, input: sum.u, output: sum.o, cache_read: sum.cr, cache_write: sum.cw, models: Object.keys(ms).length, since: str(j.since) }])
     },
   },
   'automations.runs': {
@@ -297,18 +341,19 @@ export const supportsPeriod = (id) => (PROVIDERS[id] ? PROVIDERS[id].period === 
 
 // ── 3. the widget catalogue ──────────────────────────────────────────────────
 
-export const CHART_KINDS = ['columns', 'stacked', 'bars', 'line', 'area', 'donut']
-export const AGGS = ['sum', 'count', 'distinct', 'avg', 'min', 'max', 'last']
+export const CHART_KINDS = ['columns', 'stacked', 'bars', 'line', 'area', 'donut', 'heatmap']
+export const AGGS = ['sum', 'count', 'distinct', 'avg', 'min', 'max', 'last', 'top']
 export const TINTS = ['', 'amber', 'green', 'blue', 'pink']
 export const NODE_STATES = ['ok', 'warn', 'fail', 'run', 'idle']
 export const FORMATS = ['number', 'compact', 'percent']
 
 export const WIDGETS = {
-  card: { w: 3, h: 2, bound: true, about: 'One number with a short line under it and an optional sparkline. metric:{agg,field,where} (agg: sum|count|distinct|avg|min|max|last), format (number|compact|percent), unit, alertAbove (number turns the card amber), sub:{template:"{v} failed", metric:{...}, state, warnAbove}, spark:{x,y,agg}.' },
-  chart: { w: 6, h: 4, bound: true, about: 'kind: columns | stacked | bars (ranked, horizontal) | line | area | donut. x = field to group by, y = numeric field (omit to count rows), series = field to split by, agg, where, sort, limit.' },
+  card: { w: 3, h: 2, bound: true, about: 'One number with a short line under it and an optional sparkline. metric:{agg,field,where,by?} (agg: sum|count|distinct|avg|min|max|last|top; top shows the value of field that weighs most, by = a numeric field, else the most frequent: "Favorite model"), per (divide the number, e.g. 22000 to say "x times a short novel"), format (number|compact|percent), unit, alertAbove (number turns the card amber), sub:{template:"{v} failed", metric:{...}, state, warnAbove}, spark:{x,y,agg}.' },
+  chart: { w: 6, h: 4, bound: true, about: 'kind: columns | stacked | bars (ranked, horizontal) | line | area | donut | heatmap (one cell per day, weeks as columns, x must be a date column). x = field to group by, y = numeric field (omit to count rows), series = field to split by, agg, where, sort, limit.' },
   calendar: { w: 8, h: 5, bound: true, about: 'A week (Monday to Sunday) of events. at = time field, label = text field, state = state field. Best with automations.timeline.' },
   list: { w: 4, h: 5, bound: true, about: 'Rows with a state dot. label (main text), sub, when = fields; state = state field; sort ("-at"), limit; failedChip adds an All/Failed filter.' },
   kanban: { w: 8, h: 5, bound: false, about: 'Bound: groupBy = field, columns = [{value,label}], label, sub (fields). Manual (manual:true): cols = [{t, c:[[title, sub]]}] that the user drags.' },
+  table: { w: 6, h: 4, bound: true, about: 'Rows and columns of the source. columns:[{field,label?,format? (number|compact|percent),bar?}] (the first is the row label), sort ("-tokens"), limit, where, swatch (a colour square before the label, the same hue as the same rank in a chart). bar:true draws a numeric column as a bar.' },
   note: { w: 4, h: 3, bound: false, about: 'Free text, or a checklist (check:[[text, done]]). tint: amber | green | blue | pink. Written in the dashboard file itself.' },
   carousel: { w: 12, h: 3, bound: true, about: 'Cards you scroll sideways. label, sub, kind = fields; limit.' },
   flow: { w: 12, h: 5, bound: false, about: 'Nodes and links, like a pipeline. nodes:[{id,t,k,s,sub,x,y,bind?}] s = ok | warn | fail | run | idle; edges:[[from,to,"f"?]] ("f" = on failure). A node can show a live number: bind:{source:{provider,params},metric:{agg,field,where},template:"{v} runs",warnAbove?,failAbove?} (the node\'s state turns warn/fail above the threshold). x 0..780, y 0..160, a node is 180x56.' },
@@ -333,6 +378,7 @@ const cleanMetric = (raw, defAgg) => {
   const agg = AGGS.includes(m.agg) ? m.agg : defAgg
   const o = { agg }
   if (str(m.field) !== '') o.field = cut(m.field, 40)
+  if (agg === 'top' && str(m.by) !== '') o.by = cut(m.by, 40)
   const w = cleanWhere(m.where)
   if (w.length > 0) o.where = w
   return o
@@ -375,6 +421,7 @@ function cleanWidget (raw, i, errors, usedIds) {
       w.format = FORMATS.includes(raw.format) ? raw.format : 'number'
       if (str(raw.unit) !== '') w.unit = cut(raw.unit, 16)
       if (typeof raw.alertAbove === 'number' && Number.isFinite(raw.alertAbove)) w.alertAbove = raw.alertAbove
+      if (typeof raw.per === 'number' && Number.isFinite(raw.per) && raw.per > 0) w.per = raw.per
       if (isObj(raw.sub)) {
         w.sub = { template: cut(raw.sub.template, 80) || '{v}' }
         if (isObj(raw.sub.metric)) w.sub.metric = cleanMetric(raw.sub.metric, 'count')
@@ -431,6 +478,19 @@ function cleanWidget (raw, i, errors, usedIds) {
       w.tint = TINTS.includes(raw.tint) ? raw.tint : ''
       if (Array.isArray(raw.check)) w.check = raw.check.slice(0, LIMITS.items).filter((c) => Array.isArray(c) || typeof c === 'string').map((c) => (Array.isArray(c) ? [cut(c[0], 160), c[1] ? 1 : 0] : [cut(c, 160), 0]))
       else w.text = String(raw.text === undefined || raw.text === null ? '' : raw.text).slice(0, LIMITS.text)
+      break
+    }
+    case 'table': {
+      w.columns = arr(raw.columns).slice(0, LIMITS.tableCols).filter((c) => isObj(c) && str(c.field) !== '').map((c) => {
+        const col = { field: cut(c.field, 40), label: cut(c.label, 40), format: FORMATS.includes(c.format) ? c.format : 'compact' }
+        if (c.bar === true) col.bar = true
+        return col
+      })
+      if (w.columns.length === 0) { errors.push(at + ': a table needs columns:[{field, label?, format?, bar?}]'); return null }
+      const wh = cleanWhere(raw.where); if (wh.length > 0) w.where = wh
+      if (str(raw.sort) !== '') w.sort = cut(raw.sort, 41)
+      w.limit = clampInt(raw.limit, 1, 40, 12)
+      w.swatch = raw.swatch === true
       break
     }
     case 'carousel': {
@@ -515,6 +575,10 @@ export function inspectDashboard (d) {
     if (w.type === 'card') {
       if (numericAgg(w.metric)) need(w, cols, w.metric.field, 'metric.field', true)
       else if (w.metric && w.metric.field) need(w, cols, w.metric.field, 'metric.field', false)
+      if (w.metric && w.metric.agg === 'top') {
+        if (w.metric.field === undefined) out.push('widget "' + w.id + '": agg "top" needs metric.field (the value to name)')
+        if (w.metric.by !== undefined) need(w, cols, w.metric.by, 'metric.by', true)
+      }
       if (w.spark) { need(w, cols, w.spark.x, 'spark.x', false); need(w, cols, w.spark.y, 'spark.y', true) }
       if (w.w < 2) out.push('widget "' + w.id + '": a card narrower than 2 columns is hard to read')
     }
@@ -523,8 +587,18 @@ export function inspectDashboard (d) {
       if (w.y !== undefined) need(w, cols, w.y, 'y', w.agg !== 'count' && w.agg !== 'last')
       need(w, cols, w.series, 'series', false)
       if (w.w < 4) out.push('widget "' + w.id + '": a chart narrower than 4 columns is hard to read')
+      if (w.kind === 'heatmap') {
+        const xc = cols === null ? undefined : cols.find((c) => c.id === w.x)
+        if (xc !== undefined && xc.type !== 'date') out.push('widget "' + w.id + '": a heatmap needs a date column on x, "' + w.x + '" is ' + xc.type)
+        if (w.series !== undefined) out.push('widget "' + w.id + '": a heatmap ignores series')
+      }
       if (w.kind === 'donut' && w.series !== undefined) out.push('widget "' + w.id + '": a donut ignores series; use kind "stacked" to split by it')
       if (w.source && !supportsPeriod(w.source.provider) && w.source.params.days !== undefined) out.push('widget "' + w.id + '": ' + w.source.provider + ' has no period filter, it shows the current state')
+    }
+    if (w.type === 'table') {
+      for (const c of w.columns) need(w, cols, c.field, 'column', c.bar === true)
+      if (w.sort) need(w, cols, w.sort.replace(/^-/, ''), 'sort', false)
+      if (w.w < 4) out.push('widget "' + w.id + '": a table narrower than 4 columns is hard to read')
     }
     if (w.type === 'calendar') { need(w, cols, w.at, 'at', false); need(w, cols, w.label, 'label', false); need(w, cols, w.state, 'state', false) }
     if (w.type === 'list') { need(w, cols, w.label, 'label', false); need(w, cols, w.sub, 'sub', false); need(w, cols, w.when, 'when', false); need(w, cols, w.state, 'state', false) }
@@ -548,6 +622,14 @@ export function inspectDashboard (d) {
   const seen = new Map()
   for (const w of ws) { const k = w.type + '|' + w.title; if (w.title !== '' && seen.has(k)) out.push('widgets "' + seen.get(k) + '" and "' + w.id + '" have the same type and title'); else seen.set(k, w.id) }
   return out
+}
+
+/** What a gallery card needs to sketch a widget: its place, its type and the one thing that changes the picture. */
+export function shapeOf (w) {
+  const o = { w: w.w, h: w.h, type: w.type }
+  if (w.type === 'chart') o.kind = w.kind
+  if (w.type === 'card' && w.spark) o.spark = true
+  return o
 }
 
 /** The sources a dashboard reads: [{ provider, label, widgets }]. */
@@ -648,25 +730,45 @@ export function flowSources (w) {
   }
   return Array.from(by.values())
 }
+/** One metric over rows: { v, label }. `top` answers with the value of `field` that weighs most (`by` summed, else most rows). */
+export function measure (rows, m) {
+  if (m.agg === 'top' && m.field !== undefined && m.field !== '') {
+    const w = new Map()
+    for (const r of rows) {
+      const k = r[m.field] === undefined || r[m.field] === null ? '' : String(r[m.field])
+      if (k === '') continue
+      w.set(k, (w.get(k) || 0) + (m.by !== undefined && m.by !== '' ? cellNum(r[m.by]) : 1))
+    }
+    let best = ''; let bw = -1
+    for (const [k, v] of w) if (v > bw || (v === bw && k < best)) { best = k; bw = v }
+    return { v: bw < 0 ? 0 : bw, label: best }
+  }
+  return { v: aggregate(rows, m.agg, m.field), label: null }
+}
+
 /** A flow node as drawn: with a bind and the source's table, its line is the live number and its state follows the thresholds. */
 export function liveNode (n, t) {
   if (!n.bind || !t) return n
   const m = n.bind.metric
-  const v = aggregate(applyWhere(t.rows, m.where), m.agg, m.field)
+  const r = measure(applyWhere(t.rows, m.where), m)
+  const v = r.v
   let st = n.s
   if (typeof n.bind.failAbove === 'number' && v > n.bind.failAbove) st = 'fail'
   else if (typeof n.bind.warnAbove === 'number' && v > n.bind.warnAbove) st = 'warn'
-  return Object.assign({}, n, { sub: String(n.bind.template).replace(/\{v\}/g, formatNumber(v, 'number')), s: st })
+  return Object.assign({}, n, { sub: String(n.bind.template).replace(/\{v\}/g, r.label !== null ? r.label : formatNumber(v, 'number')), s: st })
 }
 
 export function cardData (t, w) {
   const rows = applyWhere(t.rows, w.metric.where)
-  const v = aggregate(rows, w.metric.agg, w.metric.field)
+  const m0 = measure(rows, w.metric)
+  const v = typeof w.per === 'number' && w.per > 0 ? m0.v / w.per : m0.v
   const out = { value: v, text: formatNumber(v, w.format) + (w.unit ? ' ' + w.unit : ''), sub: '', st: 'ok', spark: null, empty: t.rows.length === 0 }
+  if (m0.label !== null) { out.label = m0.label; out.text = m0.label }
   if (w.sub) {
     const m = w.sub.metric ? w.sub.metric : w.metric
-    const sv = aggregate(applyWhere(t.rows, m.where), m.agg, m.field)
-    out.sub = String(w.sub.template || '{v}').replace(/\{v\}/g, formatNumber(sv, 'number')).replace(/\{total\}/g, formatNumber(v, 'number'))
+    const sm = measure(applyWhere(t.rows, m.where), m)
+    const sv = sm.v
+    out.sub = String(w.sub.template || '{v}').replace(/\{v\}/g, sm.label !== null ? sm.label : formatNumber(sv, 'number')).replace(/\{total\}/g, formatNumber(v, 'number'))
     out.st = w.sub.state !== undefined ? w.sub.state : (typeof w.sub.warnAbove === 'number' && sv > w.sub.warnAbove ? 'warn' : 'ok')
     out.subValue = sv
   }
@@ -753,6 +855,26 @@ export function listData (t, w, chip) {
   }
   const subType = w.sub ? colType(t, w.sub) : 'string'
   return rows.slice(0, w.limit || 12).map((r) => ({ title: String(r[w.label] === undefined ? '' : r[w.label]), sub: w.sub ? String(r[w.sub] === undefined ? '' : r[w.sub]) : '', subType, when: w.when ? String(r[w.when] === undefined ? '' : r[w.when]) : '', whenType, state: w.state ? String(r[w.state] === undefined ? '' : r[w.state]) : '' }))
+}
+
+/**
+ * What a table draws: { columns:[{field,label,type,format,bar,max}], rows:[[{v,t}...]] , total }. Sorted ("-tokens"), cut at limit.
+ * `max` is the largest value of a bar column (the bar of a row is its share of that).
+ */
+export function tableData (t, w) {
+  let rows = applyWhere(t.rows, w.where)
+  if (w.sort) {
+    const desc = w.sort.startsWith('-'); const f = desc ? w.sort.slice(1) : w.sort
+    rows = rows.slice().sort((a, b) => { const x = a[f]; const y = b[f]; const c = typeof x === 'number' && typeof y === 'number' ? x - y : (String(x) < String(y) ? -1 : String(x) > String(y) ? 1 : 0); return desc ? -c : c })
+  }
+  const total = rows.length
+  rows = rows.slice(0, w.limit || 12)
+  const columns = w.columns.map((c) => {
+    const type = colType(t, c.field)
+    const max = c.bar === true ? rows.reduce((a, r) => Math.max(a, cellNum(r[c.field])), 0) : 0
+    return { field: c.field, label: c.label !== '' ? c.label : (arr(t.columns).find((x) => x.id === c.field) || { label: c.field }).label, type, format: c.format, bar: c.bar === true, max }
+  })
+  return { columns, rows: rows.map((r) => columns.map((c) => ({ v: r[c.field] === undefined || r[c.field] === null ? '' : r[c.field], t: c.type }))), total }
 }
 
 export function kanbanData (t, w) {
