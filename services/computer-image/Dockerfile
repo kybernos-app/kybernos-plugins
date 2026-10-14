@@ -20,6 +20,26 @@ ARG BASE=kybernos-computer-base:latest
 FROM ${BASE}
 
 USER root
+
+# Nobody is at an unattended computer's approval prompt. DSH's default permission preset asks for a command's approval, so a run that
+# needs a tool (a script for an arithmetic, a file write) waits for ever: measured, a one-minute task still open after ten minutes. The
+# machine is the boundary (ADR 0052 § 11: assume model-written code is hostile; the VM, not DSH's file jail, is what holds it), so fresh
+# sessions start on the preset that never asks. The asking presets stay in the table; an automation that wants a person's OK is the
+# approval inbox's job (ADR 0052 § 15), not a prompt nobody sees.
+RUN cat >> /opt/dsh-seed/profiles/web/cordis.patch.yml <<'YAML'
+- id: permission
+  name: "@deepseek-ai/dsh-permission-presets"
+  config:
+    presets:
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+    defaultPreset: danger-full-access
+YAML
+
 COPY entrypoint.sh /usr/local/bin/kybernos-computer-entrypoint
 RUN chmod 0755 /usr/local/bin/kybernos-computer-entrypoint
 ENTRYPOINT ["/usr/local/bin/kybernos-computer-entrypoint"]

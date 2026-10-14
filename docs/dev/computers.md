@@ -51,8 +51,36 @@ created and driven by the server's driver (`pnpm computers:live` in the server r
 | an automation made before a suspend is still there after the wake | yes |
 | a run due **while asleep** is fired by the computer's own scheduler after the wake | 5.4 s after the wake call (`history[0].status: "fired"`) |
 
-**Not checked:** a real model run (this is where the cost of one run is written down), a cron over days, the meter against the
-platform's own, and the machine calling its server (`ready`, `heartbeat`, `schedule`, `runs`: the server must be reachable from Fly).
+## What a real run costs
+
+Measured on this image (DSH 0.2.1-alpha.2, the suite at `v1.0.0-beta.8`, the `agent-preset` the suite installs, **no desktop or browser
+driver**), with GLM-5.3 on the z.ai coding plan, 2026-10-14; the same image run in Docker on a Mac (the tokens are the model's, not the
+host's), an automation made through the page and fired with `run-now`, its tokens read from the session's own projection:
+
+| Run | Steps | Model time | Uncached input | Cache read | Output |
+|---|---|---|---|---|---|
+| « Reply with the single word OK », **first call of the day** | 1 | 5.2 s | **14,779** | 0 | 3 |
+| the same, a minute later | 1 | 4.5 to 4.7 s | 59 to 620 | 14,144 to 14,720 | 3 |
+| 30 CSV rows in the prompt, total revenue, best region and top product by a script | 2 | 15.4 s | 1,318 | 30,144 | 754 |
+
+The answer of the third run was exactly the gold one. **A trivial run sends about 14.8 k input tokens**: that is the prompt (the
+system prompt and the tool definitions), not the task; the study's own full profile sends 47.4 k for the same one-line task.
+At z.ai's API list price (1.40 USD in, 4.40 out, 0.26 cache read per million tokens; models.dev) that is about **0.021 USD cold, 0.005
+warm, 0.013 for the CSV run**; a 15-minute cron is 2,880 runs a month, 13 to 60 USD a month of model cost at list price depending on
+whether the cache is still warm between two runs. The coding plan is a flat fee and lists 0.
+
+## Traps met by the first real runs
+
+- **A run that needs a tool waits for ever on the default permission preset** (`workspace-write`, approval `ask`): the session sat open,
+  one tool step done and the second never started, with nobody at the prompt. `approvals: auto` on the automation does not help (it only
+  declines to force the asking preset). The image therefore sets `defaultPreset: danger-full-access` (approval `never`): the machine is the
+  boundary. An automation that wants a person's OK is the server's approval inbox (a later step), not a prompt.
+- **The plugin's automations route does not take a `model`**: a task is fired with the profile's default model (`agent-default-model`),
+  so the image's profile decides which model a computer uses.
+
+**Not checked:** a cron over days, the meter against the platform's own, the machine calling its server (`ready`, `heartbeat`,
+`schedule`, `runs`: the server must be reachable from Fly), the model route of the platform itself (`KYBERNOS_API` with the
+computer's token as the key: the run above used a provider key), and the egress guard.
 
 ## Traps met
 
