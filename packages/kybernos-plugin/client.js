@@ -31678,11 +31678,6 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           loopIdle: { cls: 'e-queued', dash: '3 5', w: 1.5, lc: 'e-queued' },
           loopHit: { cls: 'e-err', dash: '6 4', w: 2 },
         }
-        const WV_META = {
-          id: 'ses_8K2Q-4471', workspace: 'atlas-finance', date: '26 sept. 2026',
-          title: "Journal d'exécution — Opérations finance & support",
-          status: kbf('Session active · 1 action humaine requise'),
-        }
         const AN = 'Anthropic · via LiteLLM'
         // kbf() only carries strings present in KB_FR_EN: register the two
         // literals this module renders through it (the phrase-translation
@@ -31694,396 +31689,18 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           } catch (e) { /* translation table not writable: strings stay French */ }
         })()
 
-        /* ── jeu de démonstration : 4 exécutions (maquette) ────────────────── */
-        const WV_RUNS = [
-          { id: 'run_01', kind: 'webhook', title: kbf('Relance paiement échoué'), source: 'Stripe · invoice.payment_failed', by: kbf('stripe-webhook (HMAC vérifié)'), start: '23:14:02', status: 'pending', steps: [
-            { a: 'system', n: kbf('Réception webhook'), w: 'Gateway Kybernos', m: 'POST /hooks/stripe', p: 'Signature HMAC-SHA256 valide', t0: 0, t1: 110, i: 'evt_1Q8xR2 · 2,1 Ko', o: kbf('run_01 créé · clé d idempotence OK') },
-            { a: 'orch', n: 'Planification', w: 'Orchestrateur', m: 'claude-haiku-4-5', p: AN, t0: 110, t1: 1450, tin: 1180, tout: 212, c: 0.0021, i: kbf('Événement + politique « relance-impayés v3 »'), o: kbf('Plan 5 étapes · 1 gate humaine (montant > 500 €)') },
-            { a: 'connector', n: kbf('Lecture client'), w: 'Stripe API', m: 'GET /v1/customers/cus_Q8…', p: kbf('Clé restreinte · lecture seule'), t0: 1450, t1: 1890, i: 'customer_id cus_Q8…', o: kbf('Atlas SARL · impayé 1 240 € · 2e échec') },
-            { a: 'connector', n: 'Historique CRM', w: 'HubSpot', m: 'GET /crm/v3/contacts', p: 'OAuth · scope lecture', t0: 1890, t1: 2710, i: 'Domaine atlas-sarl.fr', o: '14 interactions · dernier contact le 12/09' },
-            { a: 'doer', n: kbf('Rédaction de la relance'), w: 'Agent Relance', m: 'claude-sonnet-5', p: AN, t0: 2710, t1: 9840, tin: 3412, tout: 684, c: 0.0205, i: 'Contexte client + gabarit relance niveau 2', o: 'Email FR · 182 mots · ton cordial · lien de paiement' },
-            { a: 'checker', n: kbf('Contrôle conformité'), w: 'Checker Politique', m: 'mistral-large', p: kbf('Mistral · hébergé UE'), t0: 9840, t1: 12960, tin: 2140, tout: 156, c: 0.0052, i: kbf('Brouillon + règles RGPD et charte de ton'), o: kbf('Conforme → transmis à la gate humaine'), note: kbf('Aucune donnée sensible exposée · IBAN masqué · ton conforme à la charte') },
-            { a: 'human', n: "Approbation d'envoi", w: 'Sarah M.', m: 'Finance · approbatrice N1', p: 'Slack #finance-approvals', t0: 12960, t1: 42000, st: 'pending', gate: 1, i: 'Brouillon validé par le Checker', o: 'En attente de décision', note: 'Règle : montant > 500 € → validation humaine obligatoire · SLA 2 h · rappel automatique à 30 min' },
-            { a: 'connector', n: "Envoi de l'email", w: 'Gmail', m: 'users.messages.send', p: 'OAuth · relances@atlas', t0: 42000, t1: 42000, st: 'queued', i: 'Bloqué par la gate humaine (étape 07)', o: '—' },
-          ] },
-          { id: 'run_02', kind: 'human', title: kbf('Synthèse des tickets P1'), source: kbf('Chat · « Résume les tickets P1 de la semaine »'), by: 'Miled E. (admin)', start: '23:09:47', status: 'ok', steps: [
-            { a: 'system', n: kbf('Requête reçue'), w: 'Interface chat', m: 'chat_19f2', p: kbf('SSO · rôle admin'), t0: 0, t1: 80, i: kbf('« Résume les tickets P1 de la semaine »'), o: kbf('run_02 créé') },
-            { a: 'orch', n: 'Planification', w: 'Orchestrateur', m: 'claude-haiku-4-5', p: AN, t0: 80, t1: 1320, tin: 960, tout: 188, c: 0.0017, i: kbf('Requête + outils autorisés'), o: kbf('Plan 4 étapes · boucle Doer/Checker, 2 essais max') },
-            { a: 'connector', n: 'Recherche des tickets', w: 'Jira Cloud', m: 'JQL priority = P1 AND created >= -7d', p: 'OAuth · lecture', t0: 1320, t1: 3180, i: kbf('Requête JQL'), o: '23 tickets · 4 projets' },
-            { a: 'doer', n: kbf('Synthèse v1'), w: 'Agent Analyste', m: 'claude-opus-5-5', p: AN, t0: 3180, t1: 31400, tin: 18450, tout: 1320, c: 0.0561, i: kbf('23 tickets (texte intégral)'), o: kbf('Synthèse 420 mots · 6 thèmes') },
-            { a: 'checker', n: kbf('Vérification factuelle'), w: 'Checker Factuel', m: 'claude-haiku-4-5', p: AN, t0: 31400, t1: 38900, tin: 19800, tout: 340, c: 0.0081, st: 'rejected', i: kbf('Synthèse v1 + 23 tickets sources'), o: kbf('Rejeté → renvoyé au Doer avec motif'), note: kbf('2 références inexistantes citées : PRJ-4412, PRJ-4419') },
-            { a: 'doer', n: kbf('Synthèse v2 (retry 1/2)'), w: 'Agent Analyste', m: 'claude-opus-5-5', p: AN, t0: 38900, t1: 61200, tin: 20100, tout: 1190, c: 0.0584, i: kbf('Synthèse v1 + motif de rejet'), o: kbf('Synthèse 398 mots · références corrigées') },
-            { a: 'checker', n: kbf('Vérification factuelle'), w: 'Checker Factuel', m: 'claude-haiku-4-5', p: AN, t0: 61200, t1: 66900, tin: 19650, tout: 120, c: 0.0079, i: kbf('Synthèse v2 + 23 tickets sources'), o: kbf('Validé'), note: kbf('23 références sur 23 vérifiées') },
-            { a: 'connector', n: kbf('Publication du résumé'), w: 'Slack', m: 'chat.postMessage', p: 'Bot · #prod-incidents', t0: 66900, t1: 71200, i: kbf('Synthèse validée · 398 mots'), o: kbf('Message posté · 5 réactions') },
-            { a: 'orch', n: kbf('Délégation des tickets'), w: 'Orchestrateur', m: 'spawn sous-workflow', p: AN, t0: 71200, t1: 72000, tin: 780, tout: 96, c: 0.0013, i: '5 actions de suivi', o: kbf('run_04 créé'), child: 3 },
-          ] },
-          { id: 'run_03', kind: 'cron', title: 'Rapport quotidien ops', source: 'Cron · 0 23 * * *', by: 'scheduler-kybernos', start: '23:00:00', status: 'error', steps: [
-            { a: 'system', n: kbf('Déclenchement cron'), w: 'Scheduler Kybernos', m: '0 23 * * *', p: 'Planificateur interne', t0: 0, t1: 200, i: 'cron 23:00', o: kbf('run_03 créé') },
-            { a: 'connector', n: kbf('Lecture des métriques'), w: 'PostgreSQL', m: 'SELECT · lecture seule', p: 'Compte lecture seule', t0: 200, t1: 2400, i: kbf('Requête métriques du jour'), o: '1 284 lignes · 8 services' },
-            { a: 'doer', n: kbf('Rédaction du rapport'), w: 'Agent Reporting', m: 'llama-3.3-70b', p: 'Local · vLLM (GPU interne)', t0: 2400, t1: 19800, tin: 6200, tout: 1480, c: 0, i: kbf('Métriques + gabarit du rapport'), o: 'Rapport Markdown · 2 pages', note: kbf('Modèle local : coût d inférence non imputé (infra)') },
-            { a: 'checker', n: kbf('Contrôle du format'), w: 'Checker Format', m: 'claude-haiku-4-5', p: AN, t0: 19800, t1: 23100, tin: 7800, tout: 90, c: 0.0034, i: kbf('Rapport + schéma attendu'), o: kbf('Validé') },
-            { a: 'connector', n: kbf('Dépôt du rapport'), w: 'Google Drive', m: 'files.create', p: 'Compte de service', t0: 23100, t1: 53100, st: 'error', i: 'rapport-2026-09-26.md', o: kbf('Échec après 3 tentatives'), note: kbf('Timeout 10 s × 3 tentatives · backoff exponentiel · escaladé à l astreinte') },
-            { a: 'human', n: 'Alerte astreinte', w: 'Karim B.', m: 'Ops · astreinte', p: 'SMS + Slack #ops', t0: 53100, t1: 54000, i: kbf('Échec connecteur Google Drive'), o: kbf('Accusé de réception à 23:00:54') },
-          ] },
-          { id: 'run_04', kind: 'agent', title: 'Tickets de suivi P1', source: kbf('Parent : run_02 · étape 09'), by: kbf('Orchestrateur (délégation)'), start: '23:10:55', status: 'ok', parent: 1, steps: [
-            { a: 'orch', n: 'Planification', w: 'Orchestrateur', m: 'claude-haiku-4-5', p: AN, t0: 0, t1: 900, tin: 820, tout: 140, c: 0.0014, i: '5 actions de suivi', o: kbf('Plan 4 étapes') },
-            { a: 'doer', n: kbf('Rédaction des tickets'), w: 'Agent Ops', m: 'claude-sonnet-5', p: AN, t0: 900, t1: 14200, tin: 5400, tout: 980, c: 0.0309, i: kbf('Synthèse run_02 + composants'), o: kbf('5 tickets · assignés par composant') },
-            { a: 'checker', n: kbf('Contrôle des doublons'), w: 'Checker Ops', m: 'mistral-small', p: kbf('Mistral · hébergé UE'), t0: 14200, t1: 17800, tin: 3100, tout: 60, c: 0.0007, i: '5 tickets + backlog ouvert', o: kbf('Validé'), note: kbf('0 doublon détecté sur 5 tickets') },
-            { a: 'connector', n: kbf('Création des tickets'), w: 'Jira Cloud', m: 'POST /rest/api/3/issue ×5', p: kbf('OAuth · écriture'), t0: 17800, t1: 22600, i: '5 tickets', o: 'PRJ-4501 → PRJ-4505' },
-            { a: 'connector', n: 'Notification', w: 'Slack', m: 'chat.postMessage', p: 'Bot · #prod-incidents', t0: 22600, t1: 23300, i: kbf('Liens des 5 tickets'), o: kbf('Fil de discussion mis à jour') },
-          ] },
-        ]
-
-        /* ── graphes d exécution (maquette, un par exécution) ──────────────── */
-        const WV_GRAPHS = [
-          { nodes: [
-              { id: 't', c: 0, kind: 'trigger', t: 'Webhook Stripe', sub: 'payment_failed', steps: [0] },
-              { id: 'o', c: 1, t: 'Orchestrateur', sub: 'claude-haiku-4-5', steps: [1] },
-              { id: 's', c: 2, r: 'u', t: 'Stripe API', sub: 'GET customer', steps: [2] },
-              { id: 'h', c: 2, r: 'd', t: 'HubSpot', sub: 'GET contacts', steps: [3] },
-              { id: 'd', c: 3, t: 'Agent Relance', sub: 'claude-sonnet-5', steps: [4] },
-              { id: 'k', c: 4, t: 'Checker Politique', sub: 'mistral-large', steps: [5] },
-              { id: 'g', c: 5, t: 'Validation', sub: 'Sarah M. · Finance', steps: [6] },
-              { id: 'm', c: 6, t: 'Gmail', sub: 'messages.send', steps: [7] },
-              { id: 'e', c: 7, kind: 'end' }],
-            edges: [
-              { f: 't', t: 'o', k: 'ok' }, { f: 'o', t: 's', k: 'ok' }, { f: 'o', t: 'h', k: 'ok' },
-              { f: 's', t: 'd', k: 'ok' }, { f: 'h', t: 'd', k: 'ok' }, { f: 'd', t: 'k', k: 'ok' },
-              { f: 'k', t: 'g', k: 'active' }, { f: 'g', t: 'm', k: 'queued' }, { f: 'm', t: 'e', k: 'queued' },
-              { f: 'k', t: 'd', k: 'loopIdle', l: 'si rejet', depth: 46 },
-              { f: 'g', t: 'd', k: 'loopIdle', l: 'si refus humain', depth: 96 }] },
-          { nodes: [
-              { id: 't', c: 0, kind: 'trigger', t: 'Chat Kybernos', sub: 'Miled E. · admin', steps: [0] },
-              { id: 'o', c: 1, t: 'Orchestrateur', sub: 'claude-haiku-4-5', steps: [1] },
-              { id: 'j', c: 2, t: 'Jira Cloud', sub: 'JQL · P1 / 7 j', steps: [2] },
-              { id: 'd', c: 3, t: 'Agent Analyste', sub: 'claude-opus-5-5', steps: [3, 5] },
-              { id: 'k', c: 4, t: 'Checker Factuel', sub: 'claude-haiku-4-5', steps: [4, 6] },
-              { id: 's', c: 5, t: 'Slack', sub: '#prod-incidents', steps: [7] },
-              { id: 'p', c: 6, t: 'Sous-workflow', sub: 'spawn run_04', steps: [8] },
-              { id: 'e', c: 7, kind: 'end' }],
-            edges: [
-              { f: 't', t: 'o', k: 'ok' }, { f: 'o', t: 'j', k: 'ok' }, { f: 'j', t: 'd', k: 'ok' },
-              { f: 'd', t: 'k', k: 'ok' }, { f: 'k', t: 'd', k: 'loopHit', l: 'rejet ×1 → retry', depth: 70 },
-              { f: 'k', t: 's', k: 'ok' }, { f: 's', t: 'p', k: 'ok' }, { f: 'p', t: 'e', k: 'ok' }] },
-          { nodes: [
-              { id: 't', c: 0, kind: 'trigger', t: 'Cron 23:00', sub: '0 23 * * *', steps: [0] },
-              { id: 'p', c: 1, t: 'PostgreSQL', sub: 'lecture seule', steps: [1] },
-              { id: 'd', c: 2, t: 'Agent Reporting', sub: 'llama-3.3-70b local', steps: [2] },
-              { id: 'k', c: 3, t: 'Checker Format', sub: 'claude-haiku-4-5', steps: [3] },
-              { id: 'g', c: 4, t: 'Google Drive', sub: 'files.create', steps: [4] },
-              { id: 'a', c: 5, r: 'd', t: 'Astreinte', sub: 'Karim B. · Ops', steps: [5] },
-              { id: 'e', c: 6, kind: 'end' }],
-            edges: [
-              { f: 't', t: 'p', k: 'ok' }, { f: 'p', t: 'd', k: 'ok' }, { f: 'd', t: 'k', k: 'ok' },
-              { f: 'k', t: 'g', k: 'ok' }, { f: 'g', t: 'e', k: 'queued', l: 'succès (non atteint)' },
-              { f: 'g', t: 'a', k: 'err', l: 'on error' }, { f: 'a', t: 'e', k: 'err' },
-              { f: 'k', t: 'd', k: 'loopIdle', l: 'si rejet', depth: 46 }] },
-          { nodes: [
-              { id: 't', c: 0, kind: 'trigger', t: 'Délégation', sub: 'parent run_02', steps: [], parent: 1 },
-              { id: 'o', c: 1, t: 'Orchestrateur', sub: 'claude-haiku-4-5', steps: [0] },
-              { id: 'd', c: 2, t: 'Agent Ops', sub: 'claude-sonnet-5', steps: [1] },
-              { id: 'k', c: 3, t: 'Checker Ops', sub: 'mistral-small', steps: [2] },
-              { id: 'j', c: 4, t: 'Jira Cloud', sub: 'POST issue ×5', steps: [3] },
-              { id: 's', c: 5, t: 'Slack', sub: '#prod-incidents', steps: [4] },
-              { id: 'e', c: 6, kind: 'end' }],
-            edges: [
-              { f: 't', t: 'o', k: 'ok' }, { f: 'o', t: 'd', k: 'ok' }, { f: 'd', t: 'k', k: 'ok' },
-              { f: 'k', t: 'j', k: 'ok' }, { f: 'j', t: 's', k: 'ok' }, { f: 's', t: 'e', k: 'ok' },
-              { f: 'k', t: 'd', k: 'loopIdle', l: 'si doublon', depth: 46 }] },
-        ]
-
-        /* ── feuille de style : tokens DSH uniquement ──────────────────────── */
-        const WV2_CSS = `
-.wv2-root{
-  --wv-mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-  --wv-ink:var(--dsw-alias-label-primary);--wv-mut:var(--dsw-alias-label-secondary);--wv-faint:var(--dsw-alias-label-tertiary);
-  --wv-panel:var(--dsw-alias-bg-layer-1);--wv-box:var(--dsw-alias-bg-layer-2);--wv-page:var(--dsw-alias-bg-base);
-  --wv-line:var(--dsw-alias-border-l1);--wv-line2:var(--dsw-alias-border-l2);--wv-line3:var(--dsw-alias-border-l3);
-  --wv-hover:var(--dsw-alias-interactive-bg-hover);--wv-on:var(--dsw-alias-interactive-bg-active);
-  --wv-accent:var(--dsw-alias-state-warn-primary);--wv-accent-ink:var(--dsw-alias-state-warn-label);--wv-accent-soft:var(--dsw-alias-state-warn-tertiary);
-  --wv-brand:var(--dsw-alias-state-business-primary);
-  --wv-ok:var(--dsw-alias-state-success-primary);--wv-ok-soft:var(--dsw-alias-state-success-tertiary);
-  --wv-warn:var(--dsw-alias-state-warn-primary);--wv-warn-ink:var(--dsw-alias-state-warn-secondary);
-  --wv-err:var(--dsw-alias-state-error-primary);--wv-err-ink:var(--dsw-alias-state-error-secondary);--wv-err-soft:var(--dsw-alias-interactive-bg-hover-danger);
-  --wv-idle:var(--dsw-alias-state-idle-primary);--wv-idle-soft:var(--dsw-alias-bg-module-platform);
-  --wv-act-orch:var(--dsw-static-deepseek-450,#5686fe);--wv-act-doer:var(--dsw-static-amber-500,#f59e0b);
-  --wv-act-checker:var(--dsw-static-green-500,#22c55e);--wv-act-connector:var(--dsw-static-blue-300,#93c5fd);
-  --wv-act-human:var(--dsw-static-red-400,#f25a5a);--wv-act-system:var(--dsw-static-neutral-500,#7f8287);
-  display:flex;flex-direction:column;gap:12px;padding:24px;min-height:100%;box-sizing:border-box;
-  background:var(--wv-page);color:var(--wv-ink);font-size:13px;line-height:1.45;
-}
-.wv2-root *{box-sizing:border-box}
-.wv2-mono{font-family:var(--wv-mono)}
-.wv2-panel{display:flex;flex-direction:column;gap:12px;padding:16px 20px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px}
-.wv2-h2{margin:0;font-size:15px;font-weight:600}
-.wv2-h3{margin:0;font-size:14px;font-weight:600;white-space:nowrap}
-.wv2-hint{font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut);min-width:0;text-align:end}
-.wv2-lbl{font-size:11px;color:var(--wv-mut);text-transform:uppercase;letter-spacing:.6px}
-.wv2-grow{flex-grow:1}
-/* pastille LED d état */
-.wv2-led{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--wv-idle)}
-.wv2-led.t-ok{background:var(--wv-ok)}.wv2-led.t-wait{background:var(--wv-warn)}.wv2-led.t-err{background:var(--wv-err)}
-.wv2-pulse{animation:wv2-pulse 1.6s ease-in-out infinite}
-@keyframes wv2-pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.wv2-soft{animation:wv2-soft 2.2s ease-in-out infinite}
-@keyframes wv2-soft{0%,100%{opacity:1}50%{opacity:.72}}
-@media (prefers-reduced-motion: reduce){.wv2-pulse,.wv2-soft{animation:none}}
-/* boutons & chips */
-.wv2-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border:0;border-radius:6px;
-  background:var(--dsw-alias-button-primary-fill);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-.wv2-btn:hover{background:var(--dsw-alias-button-primary-hover)}
-.wv2-ghost{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border:1px solid var(--wv-line3);border-radius:6px;
-  background:transparent;color:var(--wv-ink);font:inherit;font-size:13px;cursor:pointer}
-.wv2-ghost:hover{background:var(--wv-hover)}
-.wv2-chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--wv-line3);
-  background:transparent;color:var(--wv-mut);font:inherit;font-size:12px;cursor:pointer}
-.wv2-chip:hover{background:var(--wv-hover)}
-.wv2-chip.on{background:var(--wv-accent-soft);border-color:var(--wv-accent);color:var(--wv-accent-ink)}
-.wv2-sq{width:12px;height:12px;border-radius:3px;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.wv2-sq.on{background:var(--wv-accent);border-color:var(--wv-accent)}
-.wv2-sq svg{display:block}
-/* en-tête */
-.wv2-head{display:flex;flex-direction:column;gap:14px}
-.wv2-head-r{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.wv2-brand{font-family:var(--wv-mono);font-size:13px;font-weight:600;letter-spacing:3px;color:var(--wv-accent)}
-.wv2-rule{width:1px;height:32px;background:var(--wv-line2)}
-.wv2-ident{display:flex;flex-direction:column;gap:3px;flex-grow:1;min-width:240px}
-.wv2-idline{font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut)}
-.wv2-h1{margin:0;font-size:20px;font-weight:600}
-.wv2-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--wv-accent);background:var(--wv-accent-soft);border-radius:999px}
-.wv2-pill span{font-family:var(--wv-mono);font-size:12px;color:var(--wv-accent-ink)}
-.wv2-demo{padding:2px 8px;border:1px dashed var(--wv-line3);border-radius:999px;font-size:10.5px;color:var(--wv-faint)}
-/* période (brush + KPI) */
-.wv2-rng{font-family:var(--wv-mono);font-size:14px;font-weight:600;color:var(--wv-brand)}
-.wv2-brush{position:relative;height:64px;border-radius:6px;background:var(--wv-box);border:1px solid var(--wv-line2);overflow:hidden;cursor:crosshair;touch-action:none}
-.wv2-ov-lanes{position:absolute;left:0;right:0;top:8px;display:flex;flex-direction:column;gap:5px;pointer-events:none}
-.wv2-ov-lane{position:relative;height:7px}
-.wv2-ov-seg{position:absolute;top:0;height:7px;border-radius:1px}
-.wv2-ov-mask{position:absolute;top:0;bottom:0;background:var(--wv-page);opacity:.62;pointer-events:none}
-.wv2-ov-sel{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--wv-brand) 12%,transparent);pointer-events:none}
-.wv2-ov-h{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;background:var(--wv-brand);pointer-events:none}
-.wv2-ov-h i{position:absolute;top:24px;left:-3px;width:9px;height:16px;border-radius:2px;background:var(--wv-brand)}
-.wv2-ov-now{position:absolute;top:0;bottom:0;width:1px;background:var(--wv-warn);pointer-events:none}
-.wv2-ticks{display:flex;justify-content:space-between;font-family:var(--wv-mono);font-size:10px;color:var(--wv-faint)}
-.wv2-kpis{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
-@media (max-width:1280px){.wv2-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.wv2-kpi{display:flex;flex-direction:column;gap:3px;padding:10px 12px;background:var(--wv-box);border:1px solid var(--wv-line2);border-radius:8px;min-width:0}
-.wv2-kpi .k{font-size:11px;color:var(--wv-mut);text-transform:uppercase;letter-spacing:.5px}
-.wv2-kpi .v{font-family:var(--wv-mono);font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-kpi .s{font-family:var(--wv-mono);font-size:10.5px;color:var(--wv-mut);line-height:1.35;min-height:28px}
-/* chronologie */
-.wv2-tl-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.wv2-legend{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--wv-mut)}
-.wv2-swatch{width:8px;height:8px;border-radius:2px;flex-shrink:0}
-.wv2-tl-ticks{display:flex;align-items:center;gap:12px;height:16px}
-.wv2-tl-ticks .wv2-ticks{flex-grow:1}
-.wv2-row{display:flex;align-items:center;gap:12px;width:100%;height:36px;padding:0;border:0;border-radius:6px;cursor:pointer;text-align:start;
-  background:transparent;color:var(--wv-ink);font:inherit}
-.wv2-row:hover{background:var(--wv-hover)}
-.wv2-row.on{background:var(--wv-on);box-shadow:inset 0 0 0 1px var(--wv-accent)}
-.wv2-row-id{width:300px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding-inline-start:10px;min-width:0}
-.wv2-row-id .id{font-family:var(--wv-mono);font-size:11px;color:var(--wv-accent)}
-.wv2-row-id .ti{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-row-id .tr{font-family:var(--wv-mono);font-size:10px;color:var(--wv-faint);white-space:nowrap}
-.wv2-track{flex-grow:1;position:relative;height:22px;border-radius:3px;background-color:var(--wv-box);
-  background-image:linear-gradient(to right,var(--wv-line2) 1px,transparent 1px);background-size:20% 100%}
-.wv2-seg{position:absolute;top:12px;height:7px;border-radius:1px}
-.wv2-mark{position:absolute;top:3px;width:7px;height:7px;margin-left:-3px;transform:rotate(45deg);background:var(--wv-accent);box-shadow:0 0 0 1.5px var(--wv-page)}
-.wv2-track .lb{position:absolute;top:5px;font-family:var(--wv-mono);font-size:10px;color:var(--wv-mut);white-space:nowrap;
-  background:color-mix(in srgb,var(--wv-panel) 85%,transparent);padding:0 4px;border-radius:3px}
-/* exécution + graphe */
-.wv2-runbar{display:flex;align-items:center;gap:24px;flex-wrap:wrap;padding-bottom:10px;border-bottom:1px solid var(--wv-line)}
-.wv2-runbar .rt{font-family:var(--wv-mono);font-size:12px;color:var(--wv-accent)}
-.wv2-runbar .rti{font-size:15px;font-weight:600}
-.wv2-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-family:var(--wv-mono);font-size:10px;letter-spacing:.5px;
-  border:1px solid var(--wv-line2);color:var(--wv-mut)}
-.wv2-stat{display:flex;flex-direction:column;gap:1px}
-.wv2-stat .k{font-size:10.5px;color:var(--wv-faint);text-transform:uppercase;letter-spacing:.5px}
-.wv2-stat .v{font-family:var(--wv-mono);font-size:13px}
-.wv2-canvas{position:relative;height:290px;border-radius:8px;background:var(--wv-box);border:1px solid var(--wv-line2);overflow-x:auto;overflow-y:hidden}
-.wv2-grid{position:absolute;inset:0;background-image:radial-gradient(var(--wv-line2) 1px,transparent 1px);background-size:24px 24px}
-.wv2-plot{position:relative;width:1350px;height:290px}
-.wv2-node{position:absolute;width:156px;height:64px;border-radius:8px;background:var(--wv-panel);border:1px solid var(--wv-line3);cursor:pointer;
-  padding:7px 9px;display:flex;flex-direction:column;gap:2px;overflow:hidden;color:var(--wv-ink);font:inherit;text-align:left}
-.wv2-node:hover{background:var(--wv-hover)}
-.wv2-node.on{border-color:var(--wv-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--wv-accent) 18%,transparent)}
-.wv2-node.idle{opacity:.6}
-.wv2-node .nt{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-node .ns{font-family:var(--wv-mono);font-size:9.5px;color:var(--wv-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-node .nm{font-family:var(--wv-mono);font-size:10px;color:var(--wv-mut);margin-top:auto;padding-inline-end:50px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-letter{position:absolute;top:6px;right:6px;width:15px;height:15px;border-radius:4px;display:flex;align-items:center;justify-content:center;
-  font-family:var(--wv-mono);font-size:9.5px;font-weight:700;color:var(--wv-page)}
-.wv2-port{position:absolute;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--wv-line3)}
-.wv2-port.in{left:-4px}.wv2-port.out{right:-4px}
-.wv2-badge{position:absolute;bottom:5px;right:7px;padding:1px 6px;border-radius:5px;font-family:var(--wv-mono);font-size:9px;border:1px solid}
-.wv2-tone-ok{background:var(--wv-ok-soft);color:var(--wv-ok);border-color:var(--wv-ok)}
-.wv2-tone-wait{background:var(--wv-accent-soft);color:var(--wv-warn-ink);border-color:var(--wv-accent)}
-.wv2-tone-err{background:var(--wv-err-soft);color:var(--wv-err-ink);border-color:var(--wv-err)}
-.wv2-tone-idle{background:var(--wv-idle-soft);color:var(--wv-idle);border-color:var(--wv-line3)}
-.wv2-edge{fill:none}
-.wv2-edge.e-ok{stroke:var(--wv-line3)}
-.wv2-edge.e-active{stroke:var(--wv-warn)}
-.wv2-edge.e-err{stroke:var(--wv-err)}
-.wv2-edge.e-queued{stroke:var(--wv-line2)}
-.wv2-flow{stroke-dasharray:6 6;animation:wv2-flow 1.1s linear infinite}
-@keyframes wv2-flow{to{stroke-dashoffset:-12}}
-@media (prefers-reduced-motion: reduce){.wv2-flow{animation:none}}
-.wv2-elabel{font-family:var(--wv-mono);font-size:9.5px}
-/* cascade + détail */
-.wv2-row2{display:flex;gap:12px;align-items:stretch}
-.wv2-cas{flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:4px}
-.wv2-cas-head{display:flex;align-items:center;gap:12px;padding:0 12px;height:20px;font-size:11px;color:var(--wv-mut)}
-.wv2-cas-head .wv2-ticks{flex-grow:1}
-.wv2-crow{display:flex;align-items:center;gap:12px;width:100%;height:50px;padding:0 12px;border:0;border-radius:6px;cursor:pointer;text-align:start;
-  background:transparent;color:var(--wv-ink);font:inherit}
-.wv2-crow:hover{background:var(--wv-hover)}
-.wv2-crow.on{background:var(--wv-on);box-shadow:inset 0 0 0 1px var(--wv-accent)}
-.wv2-cnum{width:22px;font-family:var(--wv-mono);font-size:11px;color:var(--wv-faint)}
-.wv2-cname{width:250px;display:flex;flex-direction:column;gap:4px;min-width:0}
-.wv2-cname .n{display:flex;align-items:center;gap:8px;min-width:0;font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-cname .w{font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-ctrack{flex-grow:1;position:relative;height:20px;background:var(--wv-box);border-radius:3px}
-.wv2-cbar{position:absolute;top:4px;height:12px;border-radius:2px}
-.wv2-cbar.pending{animation:wv2-soft 2.2s ease-in-out infinite}
-.wv2-band{position:absolute;top:-6px;bottom:-6px;background:color-mix(in srgb,var(--wv-brand) 10%,transparent);
-  border-left:1px solid color-mix(in srgb,var(--wv-brand) 50%,transparent);border-right:1px solid color-mix(in srgb,var(--wv-brand) 50%,transparent)}
-.wv2-aside{width:380px;flex-shrink:0;display:flex;flex-direction:column;gap:14px;padding:20px;background:var(--wv-panel);border:1px solid var(--wv-line);border-radius:10px}
-.wv2-kv{display:flex;flex-direction:column;border-top:1px solid var(--wv-line)}
-.wv2-kv .r{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--wv-line)}
-.wv2-kv .r .k{width:84px;flex-shrink:0;font-size:12px;color:var(--wv-mut)}
-.wv2-kv .r .v{font-family:var(--wv-mono);font-size:12px;word-break:break-word}
-.wv2-io{padding:10px;background:var(--wv-box);border:1px solid var(--wv-line2);border-radius:6px;font-family:var(--wv-mono);font-size:12px;line-height:1.5}
-.wv2-note{display:flex;gap:10px;padding:10px 12px;border-radius:6px;background:var(--wv-box);border:1px solid;font-size:12px;line-height:1.5}
-.wv2-note.t-ok{border-color:var(--wv-ok)}.wv2-note.t-wait{border-color:var(--wv-accent)}.wv2-note.t-err{border-color:var(--wv-err)}.wv2-note.t-idle{border-color:var(--wv-line3)}
-.wv2-gate{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:8px;background:var(--wv-accent-soft);border:1px solid var(--wv-accent)}
-.wv2-gate .gt{font-size:13px;font-weight:600;color:var(--wv-accent-ink)}
-.wv2-gate .gs{font-size:12px;color:var(--wv-mut);line-height:1.5}
-.wv2-approve{flex-grow:1;height:36px;border:0;border-radius:6px;background:var(--wv-ok);color:var(--wv-page);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-.wv2-reject{flex-grow:1;height:36px;border:1px solid var(--wv-err);border-radius:6px;background:transparent;color:var(--wv-err-ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-.wv2-decision{padding:12px;border-radius:8px;background:var(--wv-box);border:1px solid;font-size:12px;line-height:1.5}
-.wv2-decision.t-ok{border-color:var(--wv-ok)}.wv2-decision.t-err{border-color:var(--wv-err)}
-/* analyse */
-.wv2-an{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-@media (max-width:1100px){.wv2-an{grid-template-columns:1fr}}
-.wv2-mrow{display:flex;align-items:center;gap:10px;height:20px}
-.wv2-mrow .mn{width:128px;font-family:var(--wv-mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wv2-mrow .mc{width:26px;font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut)}
-.wv2-mrow .mv{width:92px;text-align:right;font-family:var(--wv-mono);font-size:12px}
-.wv2-mbar{flex-grow:1;height:8px;background:var(--wv-box);border-radius:2px;overflow:hidden}
-.wv2-mbar i{display:block;height:8px;border-radius:2px;background:var(--wv-accent)}
-.wv2-actbar{display:flex;gap:2px;height:14px;border-radius:3px;overflow:hidden;background:var(--wv-box)}
-.wv2-actgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px}
-.wv2-actgrid .r{display:flex;align-items:center;gap:8px}
-.wv2-actgrid .r .l{font-size:12px;flex-grow:1}
-.wv2-actgrid .r .t{font-family:var(--wv-mono);font-size:12px;width:88px;text-align:right;white-space:nowrap}
-.wv2-actgrid .r .p{width:34px;text-align:right;font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut)}
-.wv2-conn{display:flex;align-items:center;gap:10px;height:18px}
-.wv2-conn .cn{font-size:12px;flex-grow:1}
-.wv2-conn .cc{width:30px;text-align:right;font-family:var(--wv-mono);font-size:12px;color:var(--wv-mut)}
-.wv2-conn .cl{width:64px;text-align:right;font-family:var(--wv-mono);font-size:12px}
-.wv2-conn .cs{width:82px;font-size:11px}
-/* export */
-.wv2-exp{position:absolute;top:88px;right:44px;z-index:20;width:400px;display:flex;flex-direction:column;gap:14px;padding:18px;
-  background:var(--wv-panel);border:1px solid var(--wv-line3);border-radius:10px;box-shadow:0 18px 50px var(--dsw-alias-bg-mask-1)}
-.wv2-exp-head{display:flex;align-items:center;justify-content:space-between}
-.wv2-exp-x{width:28px;height:28px;border:0;background:transparent;border-radius:6px;cursor:pointer;color:var(--wv-mut);display:flex;align-items:center;justify-content:center}
-.wv2-exp-x:hover{background:var(--wv-hover)}
-.wv2-optgrid{display:grid;gap:6px}
-.wv2-optgrid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
-.wv2-optgrid.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
-.wv2-opt{display:flex;flex-direction:column;gap:2px;padding:8px;text-align:start;border-radius:6px;cursor:pointer;
-  background:transparent;border:1px solid var(--wv-line3);color:var(--wv-ink);font:inherit}
-.wv2-opt.on{background:var(--wv-accent-soft);border-color:var(--wv-accent)}
-.wv2-opt .ol{font-size:12px;font-weight:600}
-.wv2-opt .os{font-family:var(--wv-mono);font-size:10px;color:var(--wv-mut)}
-.wv2-check{display:flex;align-items:center;gap:8px;padding:6px 0;border:0;background:transparent;cursor:pointer;text-align:start;font-size:12px;color:var(--wv-ink);font:inherit}
-.wv2-code{padding:10px;border-radius:6px;background:var(--wv-box);border:1px solid var(--wv-line2);font-family:var(--wv-mono);font-size:11px;line-height:1.6;color:var(--wv-mut);word-break:break-all}
-.wv2-done{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--wv-ok-soft);border:1px solid var(--wv-ok);font-size:12px;color:var(--wv-ok)}
-/* sélecteurs (source de données, style de nœud) */
-.wv2-sel{height:32px;max-width:340px;padding:0 10px;border:1px solid var(--wv-line3);border-radius:6px;background:var(--wv-box);color:var(--wv-ink);font:inherit;font-size:12px;cursor:pointer}
-.wv2-sel:hover{background:var(--wv-hover)}
-/* scène du graphe : zoom molette + panoramique */
-.wv2-canvas{overflow:hidden;cursor:grab}
-.wv2-canvas.panning{cursor:grabbing}
-.wv2-stage{transform-origin:0 0}
-.wv2-vcontrols{display:flex;align-items:center;gap:6px}
-.wv2-vbtn{width:26px;height:26px;border:1px solid var(--wv-line3);border-radius:6px;background:transparent;color:var(--wv-ink);font:inherit;font-size:14px;line-height:1;cursor:pointer}
-.wv2-vbtn:hover{background:var(--wv-hover)}
-.wv2-vpct{width:44px;text-align:center;font-family:var(--wv-mono);font-size:11px;color:var(--wv-mut)}
-/* nœuds : déplaçables à la souris */
-.wv2-node{cursor:grab;touch-action:none}
-.wv2-node.dragging{cursor:grabbing}
-/* style « flow » : carte claire à la xyflow, comme l onglet Workflows */
-.wv2-node.st-flow{background:var(--dsw-alias-bg-layer-2);border:1px solid var(--dsw-alias-border-l2);border-radius:3px;padding:8px 10px;
-  box-shadow:0 1px 2px color-mix(in srgb,var(--dsw-alias-bg-mask-1) 55%,transparent)}
-.wv2-node.st-flow:hover{background:var(--dsw-alias-bg-layer-3)}
-.wv2-node.st-flow.on{border-color:var(--dsw-alias-label-tertiary);box-shadow:0 2px 6px color-mix(in srgb,var(--dsw-alias-bg-mask-1) 70%,transparent)}
-.wv2-node.st-flow .wv2-letter{display:none}
-.wv2-node.st-flow .nt{font-size:12px}
-.wv2-node.st-flow .wv2-port{width:6px;height:6px;margin-top:-3px;border:0;background:var(--dsw-alias-label-secondary)}
-.wv2-node.st-flow .wv2-port.in{left:-3px}
-.wv2-node.st-flow .wv2-port.out{right:-3px}
-.wv2-node.st-flow .wv2-badge{border:0;background:transparent;padding:0 2px}
-/* style « journal » : terminal mono, liseré de couleur d acteur */
-.wv2-node.st-log{background:var(--dsw-alias-bg-base);border:1px solid var(--wv-line2);border-left:2px solid var(--wv-nc,var(--wv-mut));border-radius:2px;padding:7px 8px}
-.wv2-node.st-log:hover{background:var(--wv-hover)}
-.wv2-node.st-log.on{border-color:var(--wv-line3);border-left-color:var(--wv-accent);box-shadow:inset 0 0 0 1px var(--wv-accent)}
-.wv2-node.st-log .wv2-letter{display:none}
-.wv2-node.st-log .nt{font-family:var(--wv-mono);font-size:11px}
-.wv2-node.st-log .nt::before{content:'▸ ';color:var(--wv-nc,var(--wv-mut))}
-.wv2-node.st-log .wv2-badge{border:0;background:transparent;padding:0 1px}
-.wv2-node.st-log .wv2-badge::before{content:'['}
-.wv2-node.st-log .wv2-badge::after{content:']'}
-/* l'onglet workflows-v2 masque le bandeau de saisie du chat : toute la hauteur au journal */
-html.wv2-actif [data-composer-seat]{display:none !important}
-`
-
-        /* ── formatage ─────────────────────────────────────────────────────── */
-        const wvSec = (hms) => { const p = hms.split(':').map(Number); return (p[0] - 23) * 3600 + p[1] * 60 + p[2] }
-        const wvEur = (v, d) => (!v ? '0 €' : v.toFixed(d === undefined ? 4 : d).replace('.', ',') + ' €')
-        const wvDur = (ms) => {
-          if (ms <= 0) return '0 s'
-          if (ms < 1000) return Math.round(ms) + ' ms'
-          const s = ms / 1000
-          if (s < 60) return s.toFixed(1).replace('.', ',') + ' s'
-          const m = Math.floor(s / 60)
-          return m + ' min ' + String(Math.round(s % 60)).padStart(2, '0') + ' s'
-        }
-        const wvTok = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-        const wvClock = (start, ms) => {
-          const p = start.split(':').map(Number)
-          const t = p[0] * 3600 + p[1] * 60 + p[2] + Math.floor(ms / 1000)
-          const z = (x) => String(x).padStart(2, '0')
-          return z(Math.floor(t / 3600) % 24) + ':' + z(Math.floor(t / 60) % 60) + ':' + z(t % 60)
-        }
-        const wvAt = (sec) => wvClock('23:00:00', sec * 1000)
-        const wvPct = (x) => x.toFixed(2) + '%'
-        const wvFirstIssue = (D, i) => {
-          const st = D[i].steps
-          for (let j = 0; j < st.length; j++) {
-            const k = st[j].st
-            if (k === 'pending' || k === 'error' || k === 'rejected') return j
-          }
-          return 0
-        }
-        const wvRunSpan = (D, i) => {
-          const r = D[i]
-          let t = 0
-          r.steps.forEach((s) => { if (s.t1 > t) t = s.t1 })
-          return [r.sp0, r.sp0 + t / 1000]
-        }
-
         /* ── couche source : d où viennent les données ──────────────────────── */
         // Deux sources, au choix dans le sélecteur du haut : le jeu de
         // démonstration de la maquette, ou les VRAIES données des runs de
         // workflow (GET /kybernos/runs, journal réel). Jamais d invention :
         // wv2Reel ne remplit que ce que le journal contient.
-        function wv2JeuDemo() {
+        // UB-7: no demo dataset — an empty journal is shown as empty (real runs only).
+        function wv2Vide() {
           return {
-            meta: Object.assign({}, WV_META), demo: true,
-            base: '23:00:00', span: 900, now: 884,
-            runs: WV_RUNS.map((r) => Object.assign({}, r, { sp0: wvSec(r.start) })),
-            graphs: WV_GRAPHS,
+            meta: { id: 'vide', workspace: '—', date: '', title: kbf('Journal d exécution'), status: kbf('aucun run réel') },
+            demo: false, vide: 1,
+            base: '00:00:00', span: 900, now: 0,
+            runs: [], graphs: [],
           }
         }
         function wv2Hms(ms) {
@@ -32169,7 +31786,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
           }
         }
         function wv2Source(S) {
-          return (S && S.data) || wv2JeuDemo()
+          return (S && S.data) || wv2Vide()
         }
 
         /* ── modèle de vue : état → tout ce que les sections affichent ─────── */
@@ -32608,8 +32225,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             let cancel = false
             const base = []
             if (S.sessionId) base.push({ key: 'courante', label: kbf('Session courante · réel') })
-            base.push({ key: 'demo', label: kbf('Jeu de démonstration') })
-            setS((s) => (s.srcSel ? s : Object.assign({}, s, { srcSel: s.sessionId ? 'courante' : 'demo' })))
+            setS((s) => (s.srcSel ? s : Object.assign({}, s, { srcSel: s.sessionId ? 'courante' : null })))
             set({ srcs: base })
             return () => { cancel = true }
           }, [])
@@ -32642,9 +32258,8 @@ html.wv2-actif [data-composer-seat]{display:none !important}
             let cancel = false
             const reset = { run: 0, step: 0, decision: null, npos: {}, view: { x: 0, y: 0, k: 1 } }
             const enDemo = () => set(Object.assign({ data: wv2JeuDemo(), range: [540, 900] }, reset))
-            if (S.srcSel === 'demo') { enDemo(); return }
-            const sid = S.srcSel === 'courante' ? S.sessionId : S.srcSel
-            if (!sid) { enDemo(); return }
+                        const sid = S.srcSel === 'courante' ? S.sessionId : S.srcSel
+            if (!sid) { enVide(); return }
             const metaOpt = (S.srcs.find((o) => o.key === S.srcSel) || {}).meta
             fetch('/kybernos/runs?sessionId=' + encodeURIComponent(sid))
               .then((r) => r.json())
@@ -32801,7 +32416,6 @@ html.wv2-actif [data-composer-seat]{display:none !important}
                 onChange: (e) => set({ srcSel: e.target.value }),
               }, (S.srcs.length ? S.srcs : [{ key: 'demo', label: kbf('Jeu de démonstration') }]).map((o) =>
                 El('option', { key: o.key, value: o.key }, o.label))),
-              M.src.demo ? El('span', { className: 'wv2-demo' }, M.src.vide ? kbf('aucun run réel · jeu de démonstration') : kbf('jeu de démonstration')) : null,
               // Empty real journal (UB-7): the mockup above already says « aucun run réel · jeu de
               // démonstration » when M.src.vide is set. Sample data never poses as real runs.
               El('div', { className: 'wv2-pill' }, WV2Led('wait', true), El('span', null, M.src.meta.status)),

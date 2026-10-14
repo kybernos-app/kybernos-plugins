@@ -32,7 +32,7 @@ export const ID_PRESET_KYBERNOS = 'kybernos-standard'
 // « kybernos-standa… » sur 85 px (constat de la campagne visuelle). Un nom court
 // suffit — l'identifiant, lui, reste `kybernos-standard` (il est durable : ne pas
 // le renommer).
-export const NOM_PRESET_KYBERNOS = 'Kybernos'
+export const NOM_PRESET_KYBERNOS = 'Kybernos compact'
 
 // Text shown under the name in the mode picker. A preset that names itself
 // also carries its own description (DSH only translates its own); without it
