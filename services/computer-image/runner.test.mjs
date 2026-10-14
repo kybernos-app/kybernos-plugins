@@ -97,6 +97,14 @@ test('a turn that cannot be run is acknowledged failed with a code, never with w
     assert.deepEqual(empty.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'empty_answer' })
   } finally { empty.restore() }
 
+  // When DSH said what ended it, the code goes with the failure (and only a code).
+  closed('s-1')
+  const why = standIn({ answer: { ok: true, text: '', tools: 0, failure: 'turn_error.model_not_found' } })
+  try {
+    assert.equal(await runOne({ id: 'job-4b' }, { pollMs: 5 }), 'empty_answer.turn_error.model_not_found')
+    assert.deepEqual(why.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'empty_answer.turn_error.model_not_found' })
+  } finally { why.restore() }
+
   const slow = standIn({ start: { ok: true, sessionId: 's-open' } })
   try {
     assert.equal(await runOne({ id: 'job-5' }, { pollMs: 5, timeoutMs: 60 }), 'run_timeout')
