@@ -36,6 +36,7 @@
 // catalogue). L'abonnement (glm, deepseek… accessibles selon la formule) est
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
 import { spawn } from 'node:child_process'
+import { timingSafeEqual } from 'node:crypto'
 import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -3903,6 +3904,79 @@ const connections = createConnections({ apiCall, readState, isConnected, server,
 const instructionsRead = async () => readInstructions(agentsFile(dshHome()))
 const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHome()), body !== null && typeof body === 'object' ? body.text : undefined)
 
+// ── A turn handed to this computer by the platform (ADR 0053 § 13.4) ───────────────────────────────
+// A message the person wrote in a chat on their phone arrives as a turn addressed to THIS computer. The computer's runner (services/computer-image/runner.mjs, a process next to DSH) claims
+// it with the computer's token and asks DSH to answer through these two routes, over loopback: `POST /kybernos-cloud/turn { prompt }` starts a session and queues the prompt,
+// `POST /kybernos-cloud/turn/answer { sessionId }` reads the last words of it. Both need the computer's own token (`KYBERNOS_COMPUTER_TOKEN`, which only exists on a cloud computer) and a
+// same-origin call: on a machine that is not a cloud computer they answer `unavailable`. The session keeps the profile's permission, as an automation set to `auto` does: nobody is there
+// to answer an approval, so what lets a chat message reach this is the platform owner's own switch for it.
+const turnAuthorized = (req) => {
+  const id = String(process.env.KYBERNOS_COMPUTER_ID || '')
+  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  if (id === '' || token === '') return false
+  const given = String((req && req.headers && req.headers.authorization) || '')
+  const want = 'Bearer ' + token
+  if (given.length !== want.length) return false
+  try { return timingSafeEqual(Buffer.from(given), Buffer.from(want)) } catch (e) { return false }
+}
+const turnStart = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
+  if (prompt === '') return { ok: false, error: 'a prompt is expected' }
+  const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
+  if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') return { ok: false, error: 'sessions_unavailable' }
+  const unwrap = (res) => {
+    if (res === null || typeof res !== 'object') return null
+    if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : 'refused')
+    const v = res.value !== undefined && res.value !== null ? res.value : res
+    return typeof v.sessionId === 'string' ? v.sessionId : null
+  }
+  const sessionId = unwrap(await sc.create({}))
+  if (sessionId === null) return { ok: false, error: 'no_session' }
+  // Lets the session settle before the turn is assembled, as an automation's fire does.
+  await new Promise((resolve) => setTimeout(resolve, 750))
+  const controller = new AbortController()
+  const ack = await sc.prompt({
+    requestId: 'kb-turn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    sessionId,
+    mode: 'queue',
+    content: [{ type: 'text', text: prompt.slice(0, 100000) }],
+  }, controller.signal)
+  if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
+  return { ok: true, sessionId }
+}
+const turnAnswer = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
+  if (/^[A-Za-z0-9_-]{1,80}$/.test(sessionId) === false) return { ok: false, error: 'a session id is expected' }
+  const persistence = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionPersistence') : undefined
+  if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') return { ok: false, error: 'persistence_unavailable' }
+  let events = []
+  const handle = await persistence.open(sessionId, 'read')
+  try {
+    const read = await handle.read()
+    events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : []
+  } finally {
+    try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* deja ferme */ }
+  }
+  let text = ''
+  let tools = 0
+  for (const ev of events) {
+    if (ev === null || ev === undefined) continue
+    if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) tools += 1
+    if (ev.type !== 'assistant/message') continue
+    const message = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.message : null
+    if (message === null || message === undefined || Array.isArray(message.content) !== true) continue
+    const parts = []
+    for (const block of message.content) {
+      if (block !== null && block !== undefined && block.type === 'text' && typeof block.text === 'string') parts.push(block.text)
+    }
+    // The last message that has words is the answer: a message that only called a tool has none.
+    if (parts.join('').trim() !== '') text = parts.join('\n')
+  }
+  return { ok: true, text, tools }
+}
+
 const ROUTES = [
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
@@ -3920,6 +3994,9 @@ const ROUTES = [
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
+  // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
+  { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
+  { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
   { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
