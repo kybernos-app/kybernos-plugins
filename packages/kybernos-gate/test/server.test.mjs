@@ -352,3 +352,95 @@ test('a flood of simultaneous guesses from one client is serialised, not run in 
   assert.ok(statuses.some((s) => s === 429))
   await gate.close()
 })
+
+// ── the way into a cloud computer: a link the platform made ──
+// One stand-in for the platform per test, closed with its gate: nothing is left listening for the next test or for the end of the file.
+const GOOD = 'good-ticket-good-ticket-good-ticket-xx'
+const BUSY = 'busy-ticket-busy-ticket-busy-ticket-x'
+async function startTicketGate (extra = {}) {
+  const platform = []
+  const server = http.createServer((req, res) => {
+    const chunks = []
+    req.on('data', (c) => chunks.push(c))
+    req.on('end', () => {
+      let ticket = ''
+      try { ticket = JSON.parse(Buffer.concat(chunks).toString('utf8')).ticket } catch (e) { /* not json */ }
+      platform.push({ url: req.url, auth: req.headers.authorization, ticket })
+      const good = ticket === GOOD && platform.filter((p) => p.ticket === ticket).length === 1
+      res.writeHead(ticket === BUSY ? 503 : good ? 200 : 410, { 'content-type': 'application/json', connection: 'close' })
+      res.end(JSON.stringify(good ? { ok: true } : { error: 'ticket_invalid' }))
+    })
+  })
+  await new Promise((r) => server.listen(0, '127.0.0.1', r))
+  const url = `http://127.0.0.1:${server.address().port}/v1/computer/tickets/redeem`
+  const started = await startGate({ KYBERNOS_GATE_TICKET_URL: url, KYBERNOS_GATE_TICKET_TOKEN: 'kyd_the-computers-own-token', ...extra })
+  const close = async () => {
+    await started.gate.close()
+    server.closeAllConnections?.()
+    await new Promise((r) => server.close(() => r()))
+  }
+  return { ...started, platform, close }
+}
+const noPassword = { KYBERNOS_GATE_PASSWORD: '' }
+
+test('a gate with a ticket service and no password signs a browser in with a good link, once, and has no password sign-in', async () => {
+  const { port, platform, close } = await startTicketGate(noPassword)
+  try {
+    const ok = await request(port, 'GET', '/__gate/ticket?t=' + GOOD, { headers: NAV })
+    assert.equal(ok.status, 200)
+    assert.match(ok.text, /location\.replace\("\/"\)/)
+    assert.match(ok.headers['content-security-policy'], /nonce-/)
+    const cookies = [].concat(ok.headers['set-cookie']).map((c) => c.split(';')[0]).join('; ')
+    assert.ok(cookies.startsWith('kybernos_gate='))
+    // The platform was asked with the computer's own token, and given the link.
+    assert.equal(platform[0].auth, 'Bearer kyd_the-computers-own-token')
+    assert.equal(platform[0].ticket, GOOD)
+    // The cookie is the session: DSH is reached with it.
+    const page = await request(port, 'GET', '/', { headers: { ...NAV, cookie: cookies } })
+    assert.equal(page.status, 200)
+    assert.match(page.text, /DSH index/)
+    // The same link again is refused: the platform spent it.
+    const again = await request(port, 'GET', '/__gate/ticket?t=' + GOOD, { headers: NAV })
+    assert.equal(again.status, 403)
+    assert.equal(again.headers['set-cookie'], undefined)
+    // No password sign-in exists, and a visitor with no session is told where to come from, not sent to a form.
+    assert.equal((await post(port, loginBody('kybernos', PASSWORD))).status, 403)
+    assert.equal((await request(port, 'GET', '/', { headers: NAV })).status, 403)
+    assert.equal((await request(port, 'GET', '/__gate/login', { headers: NAV })).status, 403)
+  } finally { await close() }
+})
+
+test('a link that is not shaped like one never reaches the platform', async () => {
+  const { port, platform, close } = await startTicketGate(noPassword)
+  try {
+    for (const t of ['', 'x', 'a b', '<script>']) {
+      const r = await request(port, 'GET', '/__gate/ticket?t=' + encodeURIComponent(t), { headers: NAV })
+      assert.equal(r.status, 403, JSON.stringify(t))
+    }
+    assert.equal(platform.length, 0)
+  } finally { await close() }
+})
+
+test('a busy platform is not a refusal: the link is not counted against the visitor and nothing is signed in', async () => {
+  const { port, close } = await startTicketGate(noPassword)
+  try {
+    const busy = await request(port, 'GET', '/__gate/ticket?t=' + BUSY, { headers: NAV })
+    assert.equal(busy.status, 503)
+    assert.ok(busy.headers['retry-after'])
+    assert.equal(busy.headers['set-cookie'], undefined)
+  } finally { await close() }
+})
+
+test('a password and a ticket service can both be on, and half a ticket configuration is refused at start', async () => {
+  const { port, close } = await startTicketGate()
+  try {
+    assert.equal((await post(port, loginBody('kybernos', PASSWORD))).status, 200)
+    assert.equal((await request(port, 'GET', '/__gate/ticket?t=' + GOOD, { headers: NAV })).status, 200)
+  } finally { await close() }
+  const { gate, port: p2 } = await startGate()
+  assert.equal((await request(p2, 'GET', '/__gate/ticket?t=' + GOOD)).status, 404)
+  await gate.close()
+  const home = mkdtempSync(join(tmpdir(), 'kb-gate-cfg-'))
+  await assert.rejects(() => loadConfig({ KYBERNOS_GATE_TICKET_URL: 'https://api.example.com/x', DSH_HOME: home }), /both KYBERNOS_GATE_TICKET_URL and KYBERNOS_GATE_TICKET_TOKEN/)
+  await assert.rejects(() => loadConfig({ KYBERNOS_GATE_TICKET_URL: 'http://api.example.com/x', KYBERNOS_GATE_TICKET_TOKEN: 'kyd_x', DSH_HOME: home }), /must be https/)
+})

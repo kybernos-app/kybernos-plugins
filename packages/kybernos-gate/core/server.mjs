@@ -85,7 +85,65 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     req.on('error', () => resolve(null))
   })
 
+  /** The cookies of a signed-in browser: the gate's own session and, once, DSH's (one sign-in). */
+  const signedInCookies = (req) => {
+    const secure = isSecure(req)
+    const cookies = [serializeCookie(SESSION_COOKIE, signSession(config.secret, { now: now(), ttlMs }), { maxAgeSeconds: Math.floor(ttlMs / 1000), secure })]
+    if (config.dshSignIn) {
+      const dsh = mintDshCookie({ secret: readDshSecret(config.dshHome), hostHeader: req.headers.host, now: now(), ttlMs, secure })
+      if (dsh !== null) cookies.push(dsh.header)
+      else if (!warnedDsh) { warnedDsh = true; log('[gate] DSH session secret unreadable: the user will meet DSH\'s own sign-in page') }
+    }
+    return cookies
+  }
+
+  /**
+   * `GET /__gate/ticket?t=<link>`: the way into a cloud computer. The platform made the link when a person who may open this computer
+   * asked to; the gate asks the platform, with the computer's own token, whether it is good (once, within a minute), and only then signs
+   * the browser in. The answer is a page that navigates by script, not a redirect: the cookies are SameSite=Strict, and a redirect that
+   * continues a cross-site navigation would be sent without them.
+   */
+  async function ticket (req, res, url) {
+    if (config.ticket === null) return sendText(res, 404, 'not found')
+    if (req.method !== 'GET') return sendText(res, 405, 'method not allowed', { allow: 'GET' })
+    const key = clientIp(req)
+    const state = limiter.check(key)
+    if (state.locked) return sendText(res, 429, 'too many attempts', { 'retry-after': String(state.retryAfter) })
+    const t = url.searchParams.get('t') ?? ''
+    const refuse = () => {
+      const after = limiter.fail(key)
+      log(`[gate] ticket refused from ${key}${after.locked ? ` (locked ${after.retryAfter}s)` : ''}`)
+      return sendText(res, 403, 'This link is not valid any more: open the computer again from the Kybernos console.')
+    }
+    if (!/^[A-Za-z0-9_-]{20,128}$/u.test(t)) return refuse()
+    let answered
+    try {
+      const r = await fetch(config.ticket.url, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${config.ticket.token}`, 'content-type': 'application/json' },
+        body: JSON.stringify({ ticket: t }),
+        signal: AbortSignal.timeout(8000)
+      })
+      answered = r.status
+      await r.text().catch(() => '')
+    } catch (e) {
+      log('[gate] ticket service unreachable')
+      return sendText(res, 502, 'The platform could not be reached: try again in a moment.', { 'retry-after': '3' })
+    }
+    if (answered === 429 || answered >= 500) return sendText(res, 503, 'The platform is busy: try again in a moment.', { 'retry-after': '3' })
+    if (answered !== 200) return refuse()
+    limiter.succeed(key)
+    log(`[gate] ticket ok from ${key}`)
+    const n = nonce()
+    const next = safeNext(url.searchParams.get('next') ?? '/')
+    const html = `<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Opening…</title>` +
+      `<p style="font:16px system-ui;margin:3rem auto;max-width:28rem">Opening your computer…</p>` +
+      `<script nonce="${n}">location.replace(${JSON.stringify(next)})</script>`
+    return sendHtml(res, 200, html, n, { 'set-cookie': signedInCookies(req) })
+  }
+
   async function login (req, res) {
+    if (config.verifier === null) return sendJson(res, 404, { ok: false, error: 'disabled' })
     if (!originOk(req)) return sendJson(res, 403, { ok: false, error: 'origin' })
     if (!/^application\/json\b/iu.test(String(req.headers['content-type'] ?? ''))) return sendJson(res, 415, { ok: false, error: 'content-type' })
     const key = clientIp(req)
@@ -106,13 +164,7 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
       const passOk = await verifyPassword(body.password, config.verifier)
       if (userOk && passOk) {
         limiter.succeed(key)
-        const secure = isSecure(req)
-        const cookies = [serializeCookie(SESSION_COOKIE, signSession(config.secret, { now: now(), ttlMs }), { maxAgeSeconds: Math.floor(ttlMs / 1000), secure })]
-        if (config.dshSignIn) {
-          const dsh = mintDshCookie({ secret: readDshSecret(config.dshHome), hostHeader: req.headers.host, now: now(), ttlMs, secure })
-          if (dsh !== null) cookies.push(dsh.header)
-          else if (!warnedDsh) { warnedDsh = true; log('[gate] DSH session secret unreadable: the user will meet DSH\'s own sign-in page') }
-        }
+        const cookies = signedInCookies(req)
         log(`[gate] login ok from ${key}`)
         return sendJson(res, 200, { ok: true, next: safeNext(body.next) }, { 'set-cookie': cookies })
       }
@@ -138,7 +190,9 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
   function gateRoute (req, res, url) {
     const route = url.pathname.slice(PREFIX.length)
     if (route === 'health') return req.method === 'GET' || req.method === 'HEAD' ? sendText(res, 200, 'ok') : sendText(res, 405, 'method not allowed')
+    if (route === 'ticket') return ticket(req, res, url)
     if (route === 'login') {
+      if (config.verifier === null) return sendText(res, 403, 'This computer is opened from the Kybernos console: use its Open button.')
       if (req.method === 'POST') return login(req, res)
       if (req.method !== 'GET' && req.method !== 'HEAD') return sendText(res, 405, 'method not allowed', { allow: 'GET, HEAD, POST' })
       const next = safeNext(url.searchParams.get('next') ?? '/')
@@ -162,6 +216,7 @@ export function createGate (config, { limiter = createLimiter(), log = (line) =>
     if (url.pathname.startsWith(PREFIX)) return gateRoute(req, res, url)
     if (isAuthed(req)) return proxy.web(req, res, () => unavailable(req, res))
     // The query string is dropped on purpose: it may carry a token and has no business in the sign-in URL.
+    if (isNavigation(req) && config.verifier === null) return sendText(res, 403, 'This computer is opened from the Kybernos console: use its Open button.')
     if (isNavigation(req)) return redirect(res, `${PREFIX}login?next=${encodeURIComponent(safeNext(url.pathname))}`)
     return sendJson(res, 401, { error: 'unauthorized' })
   }
