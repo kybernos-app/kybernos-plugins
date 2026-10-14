@@ -66,6 +66,12 @@ window.__ModuleLoader__.load({
         'kml.ollama.note': { fr: 'installé au 1ᵉʳ téléchargement', en: 'installed on first download' },
         'kml.installer.ollama': { fr: 'Installer Ollama (brew)', en: 'Install Ollama (brew)' },
         'kml.reverifier': { fr: 'Revérifier', en: 'Re-check' },
+        // (13/10) Refresh = real scan for newly installed models, with a
+        // visible "Searching…" state and a result line afterwards.
+        'kml.scan.encours': { fr: 'Recherche…', en: 'Searching…' },
+        'kml.scan.nouveaux': { fr: '{n} nouveau(x) modèle(s) détecté(s) : {ids}', en: '{n} new model(s) detected: {ids}' },
+        'kml.scan.aucun': { fr: 'Aucun nouveau modèle', en: 'No new models' },
+        'kml.scan.tag': { fr: 'Nouveau', en: 'New' },
         'kml.tuile.machine': { fr: 'Machine · mesuré (sysctl)', en: 'Machine · measured (sysctl)' },
         'kml.tuile.budget': { fr: 'Budget mémoire modèle · estimé', en: 'Model memory budget · estimated' },
         'kml.budget.note': { fr: '≈ RAM − 5 Go, DSH + Chrome ouverts', en: '≈ RAM − 5 GB, DSH + Chrome open' },
@@ -227,6 +233,12 @@ window.__ModuleLoader__.load({
         ".kbm-tag[data-tone='success'] { background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent); color: var(--dsw-alias-state-success-primary); }\n" +
         ".kbm-tag[data-tone='warning'] { background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 12%, transparent); color: var(--dsw-alias-state-warn-primary); }\n" +
         ".kbm-tag[data-tone='danger'] { background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent); color: var(--dsw-alias-state-error-primary); }\n" +
+        ".kml-scan-btn { display: inline-flex; align-items: center; gap: 4px; }\n" +
+        ".kml-spin { display: inline-flex; animation: kml-rot 0.9s linear infinite; }\n" +
+        "@keyframes kml-rot { to { transform: rotate(360deg); } }\n" +
+        ".kml-scan-result { margin: 6px 0 0; font-size: 12px; }\n" +
+        ".kml-scan-result[data-ok='true'] { color: var(--dsw-alias-state-success-primary); }\n" +
+        ".kml-scan-result[data-ok='false'] { color: var(--dsw-alias-label-tertiary); }\n" +
         ".kbm-dot { position: relative; display: inline-block; flex: none; width: 10px; height: 10px; }\n" +
         ".kbm-dot::after { content: ''; position: absolute; inset: 20%; border-radius: 50%; background: currentColor; }\n" +
         ".kbm-dot[data-state='done'] { color: var(--dsw-alias-state-success-primary); }\n" +
@@ -376,6 +388,9 @@ window.__ModuleLoader__.load({
         const [hfResult, setHfResult] = React.useState(null)
         const [revision, setRevision] = React.useState(null)
         const [writable, setWritable] = React.useState(true)
+        // Refresh scan: 'inactif' | 'encours' | 'fini' + the ids found new.
+        const [scan, setScan] = React.useState('inactif')
+        const [scanNouveaux, setScanNouveaux] = React.useState(null)
         const jobVivant = React.useRef(null)
 
         // ── lectures réelles ───────────────────────────────────────────────
@@ -386,6 +401,20 @@ window.__ModuleLoader__.load({
             else setMachineErreur(String(r.error || 'machine'))
           } catch (e) { setMachineErreur(String(e && e.message ? e.message : e)) }
         }, [])
+        // Refresh = a REAL interrogation of the Ollama server (/api/tags via
+        // /modeles-locaux/decouvrir), diffed against the ids seen last time.
+        // The button shows "Searching…" while it runs, then the result.
+        const lancerScan = React.useCallback(async () => {
+          setScan('encours')
+          try {
+            const r = await jsonPost('/modeles-locaux/decouvrir', {})
+            if (r.ok === true) {
+              setScanNouveaux(Array.isArray(r.nouveaux) ? r.nouveaux : [])
+              await chargerMachine(true)
+            } else setScanNouveaux([])
+          } catch (e) { setScanNouveaux([]) }
+          setScan('fini')
+        }, [chargerMachine])
         const chargerDoc = React.useCallback(async () => {
           const api = kbMApi()
           if (api === null || api.settings === null) return
@@ -493,6 +522,8 @@ window.__ModuleLoader__.load({
           return 'lourd'
         }
         const reco = kbRecommend(ramGo)
+        // Ids found by the last Refresh scan: highlighted with a "New" tag.
+        const idsNouveaux = scanNouveaux !== null ? new Set(scanNouveaux.map((x) => x.id)) : new Set()
         const visibles = CATALOGUE.filter((mod) => {
           if (budget === 'compatibles') return etatDe(mod) === 'compatible'
           if (budget === 'reco') return mod === reco
@@ -537,6 +568,7 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kml-mod-nom' }, mod.id),
                 h('span', { className: 'kbm-tag', 'data-tone': 'outline' }, 'Q4'),
                 mod === reco ? h('span', { className: 'kbm-tag', 'data-tone': 'success' }, m('kml.reco.tag')) : null,
+                idsNouveaux.has(mod.id) ? h('span', { className: 'kbm-tag', 'data-tone': 'warning' }, m('kml.scan.tag')) : null,
                 mod.tailleGo !== null && mod.tailleGo <= 4 ? h('span', { className: 'kbm-tag', 'data-tone': 'quiet' }, m('kml.leger.tag')) : null),
               h('span', { className: 'kml-mod-desc', title: m(mod.desc) + ' · ' + mod.score }, m(mod.desc) + ' · ' + mod.score)),
             h('span', { className: 'kml-mod-etat' },
@@ -575,7 +607,11 @@ window.__ModuleLoader__.load({
                 h('span', { className: 'kml-tuile-ligne' },
                   h('span', { className: 'kbm-dot', 'data-state': 'done' }),
                   h('b', null, (machine.chip || machine.arch) + (ramGo !== null ? ' · ' + ramGo + ' Go RAM' : '')),
-                  h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', onClick: () => chargerMachine(true), 'aria-label': m('kml.reverifier') }, Ic('refresh', 12))), 'm'),
+                  h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-ghost', onClick: lancerScan, disabled: scan === 'encours',
+                    'aria-label': scan === 'encours' ? m('kml.scan.encours') : m('kml.reverifier') },
+                  scan === 'encours'
+                    ? h('span', { className: 'kml-scan-btn' }, h('span', { className: 'kml-spin' }, Ic('refresh', 12)), ' ', m('kml.scan.encours'))
+                    : Ic('refresh', 12))), 'm'),
             tuile(m('kml.tuile.budget'),
               h('span', { className: 'kml-tuile-ligne' },
                 h('b', null, budgetGo === null ? '—' : '≈ ' + budgetGo + ' Go'),
@@ -594,6 +630,12 @@ window.__ModuleLoader__.load({
                     : (ollamaAbsent === true
                       ? h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => installer('ollama') }, Ic('download', 12), m('kml.installer.ollama'))
                       : null)), 'e')),
+          scan === 'fini' && scanNouveaux !== null
+            ? h('p', { className: 'kml-scan-result', 'data-ok': scanNouveaux.length > 0, role: 'status' },
+              scanNouveaux.length > 0
+                ? m('kml.scan.nouveaux', { n: String(scanNouveaux.length), ids: scanNouveaux.map((x) => x.id).join(', ') })
+                : m('kml.scan.aucun'))
+            : null,
           erreur !== null ? h('p', { className: 'kml-erreur' }, erreur) : null,
           h('div', { className: 'kml-hf-tete' },
             h('button', { className: 'kbm-btn kbm-btn-sm kbm-btn-outline', onClick: () => setHfOuvre(!hfOuvre), 'aria-expanded': hfOuvre === true },

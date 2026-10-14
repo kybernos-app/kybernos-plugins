@@ -362,7 +362,9 @@ window.__ModuleLoader__.load({
       plug: '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
       chart: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
       broom: '<path d="M14 10 21 3"/><path d="m9 8 7 7-2.2 2.2A4 4 0 0 1 11 18.4L4 20l1.6-7a4 4 0 0 1 1.2-2.8z"/><path d="m9.6 13.6-1.5 6.8"/><path d="m12.6 16.6-1.4 4.2"/>',
-      help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+      help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+      // Neutral dot for unclassified sessions (user request: the '?' help-circle read as an error).
+      point: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>'
     }
     const svg = (n, size, sw) => h('svg', {
       width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor',
@@ -398,7 +400,7 @@ window.__ModuleLoader__.load({
     // du chantier : gris par défaut, vert quand le travail est committé.
     // Ce que porte une ligne dont le titre n'est pas encore classé : l'icône
     // est là dès le premier nommage, la catégorie viendra au re-titrage.
-    const CATEGORIE_DEFAUT = { ico: 'help', mot: 'Non classé' }
+    const CATEGORIE_DEFAUT = { ico: 'point', mot: 'Non classé' }
     // The row's mark says its category and whether its work is committed, in the language of the interface: French is the source
     // (the key kept in `data-mot`), English the pair, a translated language is looked up by its French text (same rule as the other plugins).
     const langueUI = () => {

@@ -101,6 +101,9 @@ window.__ModuleLoader__.load({
         mobTitle: 'Télécharger l\'app mobile',
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
+        // Help explaining what the phone link really is (asked 13/10): a web app
+        // that opens the same interface and talks straight to this machine.
+        mobHelp: 'Kybernos Mobile est une web app : votre téléphone ouvre la même interface que cette application et se connecte directement à cette machine. Le Mac doit être allumé et connecté à Internet.',
         wsSettingsTitle: 'Réglages d\'équipe',
         wsOpenHosted: 'Ouvrir dans Kybernos',
         wsClose: 'Fermer',
@@ -343,6 +346,9 @@ window.__ModuleLoader__.load({
         mobTitle: 'Get the mobile app',
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
+        // Help explaining what the phone link really is (asked 13/10): a web app
+        // that opens the same interface and talks straight to this machine.
+        mobHelp: 'Kybernos Mobile is a web app: your phone opens the same interface as this application and connects directly to this machine. The Mac must be on and connected to the Internet.',
         wsSettingsTitle: 'Team settings',
         wsOpenHosted: 'Open in Kybernos',
         wsClose: 'Close',
@@ -2071,7 +2077,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                 className: 'kbf-qr', viewBox: '0 0 21 21', shapeRendering: 'crispEdges',
                 'aria-hidden': 'true', role: 'presentation',
               }, h('g', { fill: '#111' }, modules, carre(0, 0), carre(14, 0), carre(0, 14))),
-              h('div', { className: 'kbf-qrnote' }, t('mobScan') + ' ' + t('mobSoon')))
+              h('div', { className: 'kbf-qrnote' }, t('mobScan') + ' ' + t('mobSoon')),
+              h('div', { className: 'kbf-qrnote', 'data-kb': 'mobile-help' }, t('mobHelp')))
         }
 
         // ── LE MENU UNIFIÉ DE LA CARTE (refonte 30/09, maquette « Menu ouvert »)
@@ -2578,7 +2585,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   : null)),
               h('button', {
                 type: 'button', className: 'kbfp-ico',
-                title: t('mobTitle'), 'aria-label': t('mobTitle'),
+                // Tooltip carries the full explanation (web app, direct link to
+                // this machine, Mac must be on and online) — asked 13/10.
+                title: t('mobTitle') + ' — ' + t('mobHelp'), 'aria-label': t('mobTitle') + ' — ' + t('mobHelp'),
                 'aria-expanded': mobileOpen === true ? 'true' : 'false',
                 onClick: () => setMobileOpen(mobileOpen !== true),
               }, h(PhoneIcon, { size: 19 })),
