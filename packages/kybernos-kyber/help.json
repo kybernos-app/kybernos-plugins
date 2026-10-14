@@ -1,0 +1,29 @@
+{
+  "what": {
+    "fr": "Un onglet Kyber dans le panneau de droite : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, sur une seule page.",
+    "en": "A Kyber tab in the right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on, on one page."
+  },
+  "steps": [
+    {
+      "fr": "Ouvrez le panneau de droite d'un chat, le bouton « + », puis choisissez Kyber.",
+      "en": "Open a chat's right-hand panel, press the “+” button and pick Kyber."
+    },
+    {
+      "fr": "Voyez si Telegram est connecté, et si votre ordinateur est en veille ou éveillé.",
+      "en": "See whether Telegram is connected, and whether your computer is asleep or awake."
+    },
+    {
+      "fr": "« Ouvrir le bot » vous mène à Telegram ; « Gérer dans mon compte » à la page de votre compte, où le code se saisit.",
+      "en": "“Open the bot” takes you to Telegram; “Manage in my account” to your account page, where the code is typed."
+    }
+  ],
+  "where": {
+    "fr": "Dans un chat, panneau de droite › Kyber",
+    "en": "In a chat, right-hand panel › Kyber",
+    "page": false
+  },
+  "good": {
+    "fr": "L'onglet lit seulement : il ne connecte ni ne déconnecte rien. Votre ordinateur vous demande l'accord dans Telegram avant d'agir.",
+    "en": "The tab only reads: it connects and disconnects nothing. Your computer asks for your approval in Telegram before it acts."
+  }
+}

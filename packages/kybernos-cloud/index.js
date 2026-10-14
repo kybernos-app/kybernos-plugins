@@ -36,6 +36,7 @@
 // catalogue). L'abonnement (glm, deepseek… accessibles selon la formule) est
 // appliqué par le proxy à chaque requête — ce plugin ne filtre rien.
 import { spawn } from 'node:child_process'
+import { timingSafeEqual } from 'node:crypto'
 import { chmodSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, hostname } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -254,6 +255,12 @@ const mergeUser = (cached, profile) => {
     const value = profile[key]
     if (typeof value === 'string' && value.trim() !== '') next[key] = value.trim()
   }
+  // The email comes from the claim and is never overwritten. A cloud computer has no claim (it is born connected, with its own token): the
+  // server's answer fills it in when there is none, so the account has a face there.
+  if (typeof next.email !== 'string' || next.email.trim() === '') {
+    const mail = typeof profile.email === 'string' ? profile.email.trim() : ''
+    if (mail !== '' && mail.length <= 254 && mail.includes('@')) next.email = mail
+  }
   return next
 }
 
@@ -464,7 +471,8 @@ const readProfile = async (cause) => {
   // Only the server's own refusal is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server speaking about
   // this token, and signing the person out on it also throws away the models imported for them. JSON alone does not make it the server
   // (a gateway answers `{}`, `[]` or `{ message: 'Forbidden' }` too): the server's error envelope names its error as a string.
-  if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body)) {
+  // `computer_route_not_allowed` is a cloud computer's restricted token meeting a route outside its list: the token is alive, nothing was revoked.
+  if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body) && ws.body.error !== 'computer_route_not_allowed') {
     // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
     // modèles importés ne serviraient plus à rien (le proxy refuserait les
     // appels) : ils partent avec la session.
@@ -947,7 +955,9 @@ const serverRoute = async () => {
     if (id === active.profile.id) return isConnected(readState())
     try { return isConnected(JSON.parse(readFileSync(join(dshHome(), stateFileName({ id })), 'utf8'))) } catch (e) { return false }
   }
-  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected }
+  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
+    // A cloud computer (the platform names it in the machine's environment): the suite there is the person's own, but the server's console cannot be framed by its page.
+    computer: typeof process.env.KYBERNOS_COMPUTER_ID === 'string' && process.env.KYBERNOS_COMPUTER_ID !== '' }
 }
 
 /** POST /kybernos-cloud/server/apply: the registry changed (the Select server module wrote it): make DSH follow. What the
@@ -3894,7 +3904,255 @@ const connections = createConnections({ apiCall, readState, isConnected, server,
 const instructionsRead = async () => readInstructions(agentsFile(dshHome()))
 const instructionsSave = async (req, body) => writeInstructions(agentsFile(dshHome()), body !== null && typeof body === 'object' ? body.text : undefined)
 
+// ── A turn handed to this computer by the platform (ADR 0053 § 13.4) ───────────────────────────────
+// A message the person wrote in a chat on their phone arrives as a turn addressed to THIS computer. The computer's runner (services/computer-image/runner.mjs, a process next to DSH) claims
+// it with the computer's token and asks DSH to answer through these two routes, over loopback: `POST /kybernos-cloud/turn { prompt }` starts a session and queues the prompt,
+// `POST /kybernos-cloud/turn/answer { sessionId }` reads the last words of it. Both need the computer's own token (`KYBERNOS_COMPUTER_TOKEN`, which only exists on a cloud computer) and a
+// same-origin call: on a machine that is not a cloud computer they answer `unavailable`. The session keeps the profile's permission, as an automation set to `auto` does: nobody is there
+// to answer an approval, so what lets a chat message reach this is the platform owner's own switch for it.
+const turnAuthorized = (req) => {
+  const id = String(process.env.KYBERNOS_COMPUTER_ID || '')
+  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  if (id === '' || token === '') return false
+  const given = String((req && req.headers && req.headers.authorization) || '')
+  const want = 'Bearer ' + token
+  if (given.length !== want.length) return false
+  try { return timingSafeEqual(Buffer.from(given), Buffer.from(want)) } catch (e) { return false }
+}
+// The sessions this route made (in memory, bounded): `turn/continue` may queue one more prompt in those and in no other session of the machine.
+const turnSessions = new Set()
+/** The platform's turn (a runner job) each of those sessions belongs to: what a question to the person is asked ABOUT. */
+const turnJobs = new Map()
+/** Sessions whose person said « for the rest of this task »: the gate does not ask again in them. */
+const turnAllowAll = new Set()
+const TURN_JOB_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const rememberTurnSession = (id, jobId) => {
+  turnSessions.add(id)
+  if (typeof jobId === 'string' && TURN_JOB_RE.test(jobId)) turnJobs.set(id, jobId)
+  if (turnSessions.size > 200) {
+    const old = turnSessions.values().next().value
+    turnSessions.delete(old)
+    turnJobs.delete(old)
+    turnAllowAll.delete(old)
+  }
+}
+
+// ── The person is asked before their computer acts (ADR 0053 § 14) ───────────────────────────────
+// A session made for a turn is gated: the tools that can change something (a command, a file, a connector) wait for the person's tap in their chat, asked through the platform. The gate
+// is the plugin's own (`tools/pre-execute`, which DSH awaits as long as it takes): the profile stays `danger-full-access` for everything else on the machine, and DSH's own approval card
+// is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
+const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch'])
+const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
+const turnRootOf = (ctx, id) => {
+  // A sub-agent's call is its root session's.
+  let current = id
+  for (let depth = 0; depth < 6 && typeof current === 'string'; depth += 1) {
+    if (turnSessions.has(current)) return current
+    const sessions = ctx.get('sessions')
+    const live = sessions !== undefined && sessions !== null && typeof sessions.get === 'function' ? sessions.get(current) : undefined
+    const parent = live && live.header ? live.header.parentSession : undefined
+    current = typeof parent === 'string' && parent !== '' ? parent : undefined
+  }
+  return null
+}
+const turnApprovalSubject = (exec) => {
+  const name = String((exec && exec.name) || '')
+  const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
+  const text = (v) => (typeof v === 'string' ? v : '')
+  if (name === 'bash') return { kind: 'shell', summary: text(args.command) || text(args.description) || 'bash' }
+  if (name === 'write') return { kind: 'write', summary: text(args.file_path) || 'write' }
+  if (name === 'edit') return { kind: 'edit', summary: text(args.file_path) || 'edit' }
+  let shown = ''
+  try { shown = JSON.stringify(args) } catch (e) { shown = '' }
+  const summary = (name + ' ' + shown).trim()
+  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary }
+}
+const turnPlatform = async (method, path, body) => {
+  const api = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
+  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  if (api === '' || token === '') return { status: 0, json: null }
+  try {
+    const r = await fetch(api + path, {
+      method,
+      headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    })
+    let json = null
+    try { json = JSON.parse(await r.text()) } catch (e) { /* not json */ }
+    return { status: r.status, json }
+  } catch (e) { return { status: 0, json: null } }
+}
+const turnGate = (ctx) => async (exec, next) => {
+  if (String(process.env.KYBERNOS_COMPUTER_ID || '') === '') return next()
+  const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+  if (root === null) return next()
+  const name = String((exec && exec.name) || '')
+  if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
+  const refuse = (why) => ({ kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' })
+  const jobId = turnJobs.get(root)
+  if (jobId === undefined) return refuse('it could not be asked')
+  const subject = turnApprovalSubject(exec)
+  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: subject.summary.slice(0, 2000) })
+  if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return refuse('it could not be asked')
+  const id = made.json.id
+  const stop = Date.now() + TURN_GATE_WAIT_MS
+  while (Date.now() < stop) {
+    if (exec && exec.signal && exec.signal.aborted === true) return refuse('the task was stopped')
+    await new Promise((resolve) => setTimeout(resolve, Number(process.env.KYBERNOS_TURN_GATE_POLL_MS || 2000)))
+    const got = await turnPlatform('GET', '/v1/computer/approvals?id=' + encodeURIComponent(id))
+    const state = got.status === 200 && got.json !== null ? got.json.state : null
+    if (state === 'allowed') return next()
+    if (state === 'allowed_turn') { turnAllowAll.add(root); return next() }
+    if (state === 'denied') return refuse('they refused it')
+    if (state === 'expired') return refuse('they did not answer in time')
+  }
+  return refuse('they did not answer in time')
+}
+const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', turnGate(ctx)) }
+const turnStart = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
+  if (prompt === '') return { ok: false, error: 'a prompt is expected' }
+  const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
+  if (sc === undefined || sc === null || typeof sc.create !== 'function' || typeof sc.prompt !== 'function') return { ok: false, error: 'sessions_unavailable' }
+  const unwrap = (res) => {
+    if (res === null || typeof res !== 'object') return null
+    if (res.ok === false) throw new Error(res.error !== null && res.error !== undefined && res.error.message !== undefined ? String(res.error.message) : 'refused')
+    const v = res.value !== undefined && res.value !== null ? res.value : res
+    return typeof v.sessionId === 'string' ? v.sessionId : null
+  }
+  const sessionId = unwrap(await sc.create({}))
+  if (sessionId === null) return { ok: false, error: 'no_session' }
+  // Known to the gate BEFORE the prompt is queued: the first tool call must already find it gated.
+  rememberTurnSession(sessionId, body.jobId)
+  // Lets the session settle before the turn is assembled, as an automation's fire does.
+  await new Promise((resolve) => setTimeout(resolve, 750))
+  const controller = new AbortController()
+  const ack = await sc.prompt({
+    requestId: 'kb-turn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    sessionId,
+    mode: 'queue',
+    content: [{ type: 'text', text: prompt.slice(0, 100000) }],
+  }, controller.signal)
+  if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
+  return { ok: true, sessionId }
+}
+// One more prompt in a session this route made: the runner asks for the words when a turn ended without any.
+const turnContinue = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
+  const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
+  if (turnSessions.has(sessionId) !== true || prompt === '') return { ok: false, error: 'unknown_session' }
+  const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
+  if (sc === undefined || sc === null || typeof sc.prompt !== 'function') return { ok: false, error: 'sessions_unavailable' }
+  const controller = new AbortController()
+  const ack = await sc.prompt({
+    requestId: 'kb-turn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    sessionId,
+    mode: 'queue',
+    content: [{ type: 'text', text: prompt.slice(0, 4000) }],
+  }, controller.signal)
+  if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
+  return { ok: true }
+}
+const turnAnswer = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
+  if (/^[A-Za-z0-9_-]{1,80}$/.test(sessionId) === false) return { ok: false, error: 'a session id is expected' }
+  const persistence = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionPersistence') : undefined
+  if (persistence === undefined || persistence === null || typeof persistence.open !== 'function') return { ok: false, error: 'persistence_unavailable' }
+  let events = []
+  const handle = await persistence.open(sessionId, 'read')
+  try {
+    const read = await handle.read()
+    events = read !== null && read !== undefined && Array.isArray(read.events) === true ? read.events : []
+  } finally {
+    try { if (handle !== null && handle !== undefined && typeof handle.close === 'function') await handle.close() } catch (e) { /* deja ferme */ }
+  }
+  let text = ''
+  let tools = 0
+  // What ended a turn that has no words, as a code: the type of the last event that says an error, and its `code` when it has one that is a code. Never a message (a message may carry the
+  // person's words or a provider's): the runner passes this to the platform as the reason of a failed turn, where an owner can read it.
+  let failure = ''
+  let lastBlocks = ''
+  const codeOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,60}$/.test(v) ? v.toLowerCase() : '')
+  for (const ev of events) {
+    if (ev === null || ev === undefined) continue
+    if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) tools += 1
+    if (typeof ev.type === 'string' && /error|fail|refus/i.test(ev.type)) {
+      const data = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data : {}
+      failure = [codeOf(ev.type.replace(/[\/]/g, '_')), codeOf(data.code)].filter((x) => x !== '').join('.').slice(0, 80)
+    }
+    if (ev.type !== 'assistant/message') continue
+    const message = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.message : null
+    if (message === null || message === undefined || Array.isArray(message.content) !== true) continue
+    const parts = []
+    const kinds = []
+    for (const block of message.content) {
+      if (block !== null && block !== undefined && typeof block.type === 'string' && kinds.length < 6) kinds.push(codeOf(block.type.replace(/[\\/]/g, '_')))
+      if (block !== null && block !== undefined && block.type === 'text' && typeof block.text === 'string') parts.push(block.text)
+    }
+    lastBlocks = kinds.filter((k) => k !== '').join('-')
+    // The last message that has words is the answer: a message that only called a tool has none.
+    if (parts.join('').trim() !== '') text = parts.join('\n')
+  }
+  // No error event: how the session ended, by the type of its last event (`ended_turn_end`), so that « no words » is never a mystery.
+  if (text === '' && failure === '' && events.length > 0) {
+    const last = events[events.length - 1]
+    const kind = last !== null && last !== undefined && typeof last.type === 'string' ? codeOf(last.type.replace(/[\\/]/g, '_')) : ''
+    failure = kind === '' ? '' : ('ended_' + kind).slice(0, 80)
+  }
+  // What the last message of the model was made of (`thinking`, `tool_use`, `text`): types only, so that an answer with no words says whether the model only thought or only called a tool.
+  if (text === '' && lastBlocks !== '') failure = (failure + '.b_' + lastBlocks).replace(/^\./, '').slice(0, 90)
+  return { ok: true, text, tools, ...(text === '' && failure !== '' ? { failure } : {}) }
+}
+
+// ── The Kyber tab's data (ADR 0053 § 14): where the person's assistant answers, and the computer it works on ───
+// Read-only, from the active server with the account's token: the Telegram door's state (`GET /v1/me/telegram`) and the person's `Home` computer in their personal workspace. A device
+// cannot link or unlink a chat (the server asks for a signed-in session): this route only says what is, and the tab sends the person to the bot and to their account page for the rest.
+const kyberRoute = async () => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: true, connected: false }
+  const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 15000 })
+  const [tg, ws] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces')])
+  const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
+  const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
+  let home = null
+  if (personal !== undefined && typeof personal.id === 'string') {
+    const c = await get('/v1/workspaces/' + encodeURIComponent(personal.id) + '/computers')
+    const rows = c.status === 200 && c.body !== null && Array.isArray(c.body.computers) ? c.body.computers : []
+    const found = rows.find((r) => r !== null && typeof r === 'object' && String(r.name).toLowerCase() === 'home')
+    if (found !== undefined) {
+      home = {
+        state: String(found.state || ''),
+        desired: String(found.desired || ''),
+        mode: String(found.mode || ''),
+        region: String(found.region || ''),
+        last_active_at: typeof found.last_active_at === 'string' ? found.last_active_at : null,
+        version: typeof found.reported_version === 'string' ? found.reported_version : null,
+        network: found.network !== null && typeof found.network === 'object' ? String(found.network.mode || '') : '',
+      }
+    }
+  }
+  const t = tg.status === 200 && tg.body !== null && typeof tg.body === 'object' ? tg.body : null
+  return {
+    ok: true,
+    connected: true,
+    telegram: t === null ? null : {
+      configured: t.configured === true,
+      enabled: t.enabled === true,
+      bot: typeof t.bot_username === 'string' ? t.bot_username : null,
+      linked: t.linked !== null && typeof t.linked === 'object'
+        ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
+        : null,
+    },
+    home,
+  }
+}
+
 const ROUTES = [
+  { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },
@@ -3911,6 +4169,10 @@ const ROUTES = [
   { path: '/kybernos-cloud/marketplace', method: 'GET', guarded: false, run: marketplaceRoute },
   { path: '/kybernos-cloud/marketplace/install', method: 'POST', guarded: true, body: true, cap: 32768, run: marketplaceInstallRoute },
   { path: '/kybernos-cloud/server', method: 'GET', guarded: false, run: serverRoute },
+  // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
+  { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
+  { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
+  { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
   { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },
@@ -4077,6 +4339,7 @@ export function apply(ctx) {
   else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(ctx, hostCtx.webServer))
   // Mémoire : le chunk dans le prompt, les deux outils, la capture de fin de
   // tour. Chaque montage est indépendant et tolère l'absence de son service.
+  try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] garde des tours: ' + String((e && e.message) || e)) }
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connexions: ' + String((e && e.message) || e)) }

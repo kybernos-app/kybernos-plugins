@@ -1298,6 +1298,8 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
       'kbui.skills': { kybernos: 'Compétences', en: 'Skills' },
       'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' },
+      'kbui.kyber': { kybernos: 'Kyber', en: 'Kyber' },
+      'kbui.kyber.off': { kybernos: 'Le module Kyber n’est pas actif. Activez-le dans la Suite.', en: 'The Kyber module is not active. Switch it on in the Suite.' },
       'kbui.dashboards.off': { kybernos: 'Le module Dashboards n’est pas actif. Activez-le dans la Suite.', en: 'The Dashboards module is not active. Switch it on in the Suite.' },
       'kbui.sort': { kybernos: 'Trier', en: 'Sort' },
       'kbui.speed': { kybernos: 'Vitesse · ', en: 'Speed · ' },
@@ -1822,6 +1824,8 @@ let kbLocaleRead = () => 'en'
       'kbui.ws.open': { kybernos: 'Ouvrir', en: 'Open' },
       'kbui.ws.down.t': { kybernos: 'Console indisponible', en: 'Console unavailable' },
       'kbui.ws.down.d': { kybernos: 'Impossible de joindre la console du workspace ({host}). Vérifiez votre connexion, puis réessayez.', en: 'Could not reach the workspace console ({host}). Check your connection, then try again.' },
+      'kbui.ws.computer.t': { kybernos: 'La console se gère dans votre navigateur', en: 'The console is managed in your browser' },
+      'kbui.ws.computer.d': { kybernos: 'Cet ordinateur cloud est le vôtre, mais la console du workspace ({host}) s\'ouvre dans votre navigateur, avec votre connexion habituelle.', en: 'This cloud computer is yours, but the workspace console ({host}) opens in your own browser, signed in as usual.' },
       'kbui.ws.retry': { kybernos: 'Réessayer', en: 'Try again' },
       'kbui.ws.openbrowser': { kybernos: 'Ouvrir dans le navigateur', en: 'Open in browser' },
       'kbui.ins.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
@@ -7420,7 +7424,7 @@ return {
     // GO-LIVE: the built-in server is the NEW one. This literal cannot import server-profile.mjs (a browser script), so it repeats
     // BUILTIN_API from there; scripts/test-no-legacy-hosts.mjs fails when the two differ. No gateway: the host relay replaced it.
     const KB_BUILTIN_API = 'https://api.kybernos.app'
-    const kbServer = { name: 'Kybernos Cloud', api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API + '/workspace-console', gateway: '', workspace: '' }
+    const kbServer = { name: 'Kybernos Cloud', api: KB_BUILTIN_API, web: KB_BUILTIN_API, console: KB_BUILTIN_API + '/workspace-console', gateway: '', workspace: '', computer: false }
     const kbServerLoad = () => {
       if (typeof fetch !== 'function') return Promise.resolve(kbServer)
       const get = (url) => fetch(url, { credentials: 'same-origin' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
@@ -7436,6 +7440,7 @@ return {
           if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
           kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
         }
+        kbServer.computer = j !== null && j !== undefined && j.computer === true
         kbServer.workspace = st !== null && st !== undefined && st.state !== null && typeof st.state === 'object' && typeof st.state.active_workspace_id === 'string' ? st.state.active_workspace_id : ''
         return kbServer
       })
@@ -14892,6 +14897,7 @@ return {
         if (s.view === 'artifacts') return h(ArtifactsPage, props)
         if (s.view === 'skills') return h(KbSkillsView, props)
         if (s.view === 'dashboards') return h(KbDashboardsView, props)
+        if (s.view === 'kyber') return h(KbKyberView, props)
         if (s.view === 'connectors') return h(KbConnectorsView, props)
         if (s.view === 'documents') return h(KbDocumentsView, props)
         if (s.view === 'tasks') return h(ScheduledTasksPage, props)
@@ -19267,6 +19273,8 @@ function renderFit(canvas, model, cam, opts){
     const KB_CP = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-composio') } catch (e) { return false } })()
     // The Dashboards satellite is in the boot list: its menu row shows, and its page mounts on 'main.kybernos-dashboards'.
     const KB_DB = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-dashboards') } catch (e) { return false } })()
+    // The Kyber satellite is in the boot list: its menu row shows, and its page mounts on 'main.kybernos-kyber'.
+    const KB_KY = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-kyber') } catch (e) { return false } })()
     const kbComposio = (() => { try { return require('@local/kybernos-composio/client').composio } catch (e) { return null } })()
     const ComposioPage = (kbComposio !== null && kbComposio !== undefined && kbComposio.page !== undefined) ? kbComposio.page : () => h('div', { className: 'kbg-empty' }, kbt('kbui.composio.absent'))
 
@@ -22951,6 +22959,23 @@ function renderFit(canvas, model, cam, opts){
       return h('p', { className: 'kbg-empty' }, kbt('kbui.dashboards.off'))
     }
     const KbDashboardsView = () => h('div', { className: 'kbg-root', 'data-kb-page': 'dashboards' }, h(DashboardsMount, null))
+    // ── Kyber: the page is the satellite's (`@local/kybernos-kyber`), mounted on the child slot 'main.kybernos-kyber'. Same recipe as Dashboards.
+    const KyberMount = () => {
+      const pair = React.useState(0)
+      const setTick = pair[1]
+      React.useEffect(() => {
+        let n = 0
+        let stop = null
+        try { stop = slots.subscribe('main.kybernos-kyber', () => setTick(n = n + 1)) } catch (e) { stop = null }
+        return () => { try { if (typeof stop === 'function') stop() } catch (e) { /* already cleaned */ } }
+      }, [])
+      let entries = []
+      try { entries = slots.entriesOfSlot('main.kybernos-kyber') || [] } catch (e) { entries = [] }
+      const first = entries.length > 0 ? entries[0] : null
+      if (first !== null && first !== undefined && first.component !== null && first.component !== undefined) return h(first.component, null)
+      return h('p', { className: 'kbg-empty' }, kbt('kbui.kyber.off'))
+    }
+    const KbKyberView = () => h('div', { className: 'kbg-root', 'data-kb-page': 'kyber' }, h(KyberMount, null))
 
     // ── Skills and Connectors: one page each ─────────────────────────────────
     // They shared the "Resources" page and its tab selector; they are
@@ -23305,7 +23330,7 @@ function renderFit(canvas, model, cam, opts){
     }
     // The pages this sidebar really has, so a caller shows an Open button only for a page that exists here
     // (a getter: KB_CP is only known once the menu renders). Keep it in step with the rows of SalesMenu.
-    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []) })
+    Object.defineProperty(kbOpenPage, 'views', { get: () => ['teaminfo', 'project', 'tasks', 'skills'].concat(KB_CP === true ? ['connectors'] : []).concat(KB_DB === true ? ['dashboards'] : []).concat(KB_KY === true ? ['kyber'] : []) })
     try { if (typeof window !== 'undefined') window.__KB_OPEN__ = kbOpenPage } catch (e) { /* outside a browser */ }
     const SalesMenu = (p0) => {
       const s = useStore()
@@ -23418,6 +23443,7 @@ function renderFit(canvas, model, cam, opts){
               onClick: (e) => { try { e.stopPropagation() } catch (e2) { /* pas d'evenement */ } set({ newChatOpen: pickOpen === true ? false : true }) },
             }, h('span', { className: 'kb4-chev' }, Icon('chevronDown', 14)))),
           (pickOpen === true ? kbTeamPicker(teams, sel, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null }), pickAnchor) : null)),
+        (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => openPage({ view: 'kyber' })) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
@@ -23515,7 +23541,7 @@ function renderFit(canvas, model, cam, opts){
     KybersMain.__testStartersFromUi = kbStartersFromUi
     // Idem pour la rangée de suggestions qui vit dans le chat (dock du composer).
     KybersMain.__testChatStarters = KbChatStarters
-    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: panneau principal galerie');
+    ctx.effect(() => slots.register({ name: 'main', key: 'kybers', children: { 'main.kybernos-skills': { kind: 'single', scope: 'root' }, 'main.kybernos-dashboards': { kind: 'single', scope: 'root' }, 'main.kybernos-kyber': { kind: 'single', scope: 'root' } } }, KybersMain), 'kybers: panneau principal galerie');
     // ── Onglets absorbés par Crew v2 (décision du 26/09) ─────────────────────
     // Les vues « Kybernos Crew » (order 11), « Crew Model Execution » (order 12)
     // et « Runs » (order 13) ne sont plus enregistrées : leurs infos utiles
@@ -27195,10 +27221,20 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       }, [])
       // Ask the cloud plugin which server is active BEFORE probing its console: opening « Teams settings » after a server switch
       // must reach the new server's console, not the one loaded at startup.
-      React.useEffect(() => { kbServerLoad().then(() => probe()) }, [])
+      React.useEffect(() => { kbServerLoad().then(() => { if (kbServer.computer === true) setReach('computer'); else probe() }) }, [])
       if (reach !== 'ok') {
         let hote = kbWsConsole()
         try { hote = new URL(kbWsConsole()).host } catch (e) { /* unreadable URL: we display it as is */ }
+        // A cloud computer: the server's console refuses to be framed by a page that is not on the person's own machine, so it is not framed there
+        // (a blank « refused to connect ») but opened in the person's browser, where they are signed in as usual.
+        if (reach === 'computer') {
+          return h('div', { className: 'kbwsif' },
+            h('div', { className: 'kbwsif-down', role: 'status' },
+              h('div', { className: 'kbwsif-downt' }, kbt('kbui.ws.computer.t')),
+              h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.computer.d').replace('{host}', hote)),
+              h('div', { className: 'kbwsif-downa' },
+                h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark), target: '_blank', rel: 'noopener noreferrer' }, kbt('kbui.ws.openbrowser')))))
+        }
         return h('div', { className: 'kbwsif' },
           reach === 'checking'
             ? h('div', { className: 'kbwsif-wait', 'aria-busy': 'true' })
