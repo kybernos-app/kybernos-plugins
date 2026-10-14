@@ -18694,6 +18694,38 @@ function renderFit(canvas, model, cam, opts){
       const popShare = popSharePair[0]
       const setPopShare = popSharePair[1]
       const kind = kbArtType(name)
+      const popWidthPair = React.useState(null)
+      const popWidth = popWidthPair[0]
+      const setPopWidth = popWidthPair[1]
+      const contentLeft = () => {
+        try {
+          const root = document.querySelector('.kbg-root')
+          const left = (root !== null && root !== undefined) ? root.getBoundingClientRect().left : 280
+          return Math.max(280, left)
+        } catch (e) { return 280 }
+      }
+      const popMaxWidth = () => Math.max(500, window.innerWidth - contentLeft() - 16)
+      const startPopResize = (ev) => {
+        try {
+          ev.preventDefault()
+          const pop = ev.currentTarget.parentElement
+          const startW = pop.getBoundingClientRect().width
+          const startX = ev.clientX
+          const maxW = popMaxWidth()
+          const onMove = (mv) => {
+            try { setPopWidth(Math.min(Math.max(startW + (startX - mv.clientX), 500), maxW)) } catch (e) { /* keep last width */ }
+          }
+          const onUp = () => {
+            try { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp) } catch (e) { /* listeners gone */ }
+          }
+          document.addEventListener('mousemove', onMove)
+          document.addEventListener('mouseup', onUp)
+        } catch (e) { /* resize is best effort */ }
+      }
+      const popFull = popWidth !== null && popWidth >= popMaxWidth() - 1
+      const togglePopFull = () => {
+        try { setPopWidth(popFull === true ? null : popMaxWidth()) } catch (e) { /* toggle best effort */ }
+      }
       // Origine (28/09) : retrouver le chat et la section qui ont livré la
       // dernière version du fichier. La recherche interroge les journaux de
       // session côté hôte (`/kybernos/art-origin`) et ne tourne qu'au clic.
@@ -18717,13 +18749,15 @@ function renderFit(canvas, model, cam, opts){
       }, [])
       return h('div', { className: 'kb6-popwrap', 'data-kb': 'art-popup' },
         h('div', { className: 'kb6-popscrim', onClick: onClose, 'aria-hidden': 'true' }),
-        h('div', { className: 'kb6-pop', role: 'dialog', 'aria-label': name, 'aria-modal': 'true' },
+        h('div', { className: 'kb6-pop', role: 'dialog', 'aria-label': name, 'aria-modal': 'true', style: (popWidth !== null) ? { width: popWidth + 'px' } : null },
+          h('div', { className: 'kb6-popresize', 'data-kb': 'art-popup-resize', title: kbf('Redimensionner (glisser le bord gauche)'), onMouseDown: startPopResize }),
           h('div', { className: 'kb6-pophead' },
             h('span', { className: 'kb6-vico', 'data-kb': 'artpop-ico' }, kbTiSvg(kbTiOfName(name), 30)),
             h('div', { className: 'kb6-poptitle' },
               h('div', { className: 'kb6-popname' }, name),
               h('div', { className: 'kb6-popsub' }, kind.label + ' · ' + path)),
             h('div', { className: 'kb6-popactions' },
+              h('button', { type: 'button', className: 'kb6-popx' + (popFull === true ? ' on' : ''), 'data-kb': 'art-popup-full', 'aria-pressed': popFull === true ? 'true' : 'false', title: kbf('Plein écran'), onClick: togglePopFull }, Icon('maximize2', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-share', title: kbt('kbui.share'), 'aria-label': kbt('kbui.share'), onClick: (e) => setPopShare({ kind: 'deliverable', id: path, titre: name, path: path, anchor: kbAncreDe(e.currentTarget) }) }, Icon('share', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-origin', title: kbf('Retrouver le chat et la section qui ont livré ce fichier'), 'aria-label': kbf('Retrouver l’origine'), onClick: findOrigin }, Icon('rotateCcw', 14)),
               h('button', { type: 'button', className: 'kb6-popx', 'data-kb': 'art-popup-close', title: kbf('Fermer (Échap)'), 'aria-label': kbf('Fermer'), onClick: onClose }, '✕'))),
@@ -18891,8 +18925,9 @@ function renderFit(canvas, model, cam, opts){
       // la recherche : seule la rangée de filtres (tuiles + facette) le retire.
       const fineTiles = present.filter((t) => !KB_ART_FAMILIES.some((f) => typed.every((a) => a.type.id !== t.id || kbArtFamille(a.name) === f.id)))
       const visSaved = (Array.isArray(tbArts[0].vis) === true) ? tbArts[0].vis : null
+      const isRenderedMiniApp = (a) => (/\.miniapp\.json$/i).test(String(a.name || ''))
       const tileDefs = KB_ART_FAMILIES.map((f) => ({ kind: 'fam', id: f.id, label: kbt('deliv.fam.' + f.id), desc: kbt('deliv.fam.' + f.id + '.desc'), count: typed.filter((a) => kbArtFamille(a.name) === f.id).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.family[f.id], 34) }))
-        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.type[t.id] || 'other', 34) })))
+        .concat(KB_ART_TYPES.filter((t) => t.id !== 'other' && t.id !== 'doc').map((t) => ({ kind: 'type', id: t.id, label: t.label, desc: kbt('deliv.type.' + t.id + '.desc'), count: typed.filter((a) => a.type.id === t.id && (t.id !== 'miniapp' || isRenderedMiniApp(a) === true)).length, color: 'var(--dsw-alias-brand-primary)', bg: 'var(--dsw-alias-interactive-bg-hover)', glyph: kbTiSvg(KB_TI.type[t.id] || 'other', 34) })))
       // (02/10) `vis` devient une liste de types MASQUÉS : mémoriser les
       // affichés figeait la rangée à l'instant de la sauvegarde — un type
       // devenu présent plus tard (ex. miniapp) n'apparaissait jamais (constaté
@@ -18922,7 +18957,9 @@ function renderFit(canvas, model, cam, opts){
       }
       const resetTiles = () => tbArts[1]({ vis: undefined })
       const filtered = typed
-        .filter((a) => selTypes.length === 0 || selTypes.some((sid) => kbArtFamille(a.name) === sid || a.type.id === sid))
+        .filter((a) => selTypes.length === 0 || selTypes.some((sid) => (sid === 'miniapp')
+          ? (a.type.id === 'miniapp' && isRenderedMiniApp(a) === true)
+          : (kbArtFamille(a.name) === sid || a.type.id === sid)))
         .filter((a) => q.trim() === '' || (String(a.name) + ' ' + String(a.workspace || '')).toLowerCase().indexOf(q.trim().toLowerCase()) >= 0)
         // Favoris (constat 28/09) : le bouton ☆ posait st.fav sans que cette
         // chaîne le lise — le filtre restait inopérant (0 épingle → 6 cartes).
@@ -29638,6 +29675,10 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 /* Popup détaché : marge et coins arrondis au lieu du bandeau collé pleine
    hauteur (28/09 — « le popup ne s'affiche pas comme il faut »). */
 .kb6-pop{position:relative;width:min(880px,72vw);height:calc(100% - 32px);margin:16px 16px 16px 0;background:var(--dsw-alias-bg-base);border:1px solid var(--dsw-alias-border-l2);border-radius:14px;display:flex;flex-direction:column;box-shadow:-16px 0 48px rgba(0,0,0,.28)}
+/* Detail dialog resize handle (user request, 2026-10-13 recipe): a slim
+   col-resize strip on the dialog's LEFT edge. */
+.kb6-popresize{position:absolute;top:0;bottom:0;left:0;width:8px;z-index:3;cursor:col-resize;border-radius:14px 0 0 14px}
+.kb6-popx.on{background:var(--dsw-alias-brand-primary)}
 .kb6-pophead{display:flex;align-items:flex-start;gap:12px;padding:14px 18px;border-bottom:1px solid var(--dsw-alias-border-l1);flex:none}
 .kb6-poptitle{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .kb6-popname{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

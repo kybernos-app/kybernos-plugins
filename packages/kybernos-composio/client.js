@@ -31,6 +31,9 @@ window.__ModuleLoader__.load({
     // truth, served by GET /kybernos/composio/catalog (in-memory cache on the host).
     const CATALOG_URL = '/kybernos/composio/catalog'
     let CATALOG = []
+    // Known apps pinned at the HEAD of the Discover grid (page 1). Slugs are the
+    // real Composio toolkit ids as they appear in catalog.js (checked there).
+    const POPULAR = ['gmail', 'googlecalendar', 'slack', 'notion', 'airtable']
     let CAT_BY_SLUG = {}
     let catalogLoad = null
     // catOk: true ONLY after a valid, NON-EMPTY catalog has loaded.
@@ -187,6 +190,25 @@ window.__ModuleLoader__.load({
       'kb.cp.help.title': { fr: 'Connecteurs locaux — mode d’emploi', en: 'Local Connectors — how it works' },
       'kb.cp.help': { fr: 'Vos connexions : les apps déjà reliées à vos Agent Teams. Découvrir : le catalogue complet, connexion en un clic. Serveurs MCP : vos propres serveurs (HTTP distant ou commande locale). Les agents du chat lisent la même clé côté machine (~/.dsh/.env).', en: 'Yours: apps already linked to your Agent Teams. Discover: the full catalog, one-click connect. MCP servers: your own servers (remote HTTP or local command). Chat agents read the same key on this machine (~/.dsh/.env).' },
       'kb.cp.yours.empty': { fr: 'Aucune app connectée pour l’instant — le catalogue vous attend.', en: 'No app connected yet — the catalog is waiting for you.' },
+      'kb.cp.popular': { fr: 'Populaire', en: 'Popular' },
+      // ── Settings page (Settings ▸ Connectors) ──
+      'kb.cp.set.nav': { fr: 'Connecteurs', en: 'Connectors' },
+      'kb.cp.set.h1': { fr: 'Connecteurs', en: 'Connectors' },
+      'kb.cp.set.lead': { fr: 'Clé Composio, connexions actives et mode de composition — la page Connectors reste l’endroit où brancher une app.', en: 'Composio key, active connections and compose mode — the Connectors page is still where you link an app.' },
+      'kb.cp.set.keyH': { fr: 'Clé Composio', en: 'Composio key' },
+      'kb.cp.set.key.on': { fr: 'Configurée', en: 'Configured' },
+      'kb.cp.set.key.off': { fr: 'Non configurée', en: 'Not configured' },
+      'kb.cp.set.key.src.env': { fr: 'fournie par l’environnement', en: 'provided by the environment' },
+      'kb.cp.set.key.src.setting': { fr: 'enregistrée ici', en: 'saved here' },
+      'kb.cp.set.key.src.none': { fr: 'source inconnue', en: 'unknown source' },
+      'kb.cp.set.connH': { fr: 'Connexions', en: 'Connections' },
+      'kb.cp.set.connSub': { fr: 'Les apps reliées à votre clé, avec leurs comptes.', en: 'The apps linked to your key, with their accounts.' },
+      'kb.cp.set.connNone': { fr: 'Aucune connexion active pour l’instant.', en: 'No active connection yet.' },
+      'kb.cp.set.modeH': { fr: 'Mode de composition', en: 'Compose mode' },
+      'kb.cp.set.mode.personal': { fr: 'Votre propre clé', en: 'Your own key' },
+      'kb.cp.set.mode.kybernos': { fr: 'Kybernos Cloud', en: 'Kybernos Cloud' },
+      'kb.cp.set.modeSub': { fr: 'Vu en lecture seule : le choix se fait depuis la page Connectors, onglet « Vos connexions ».', en: 'Read-only here: the choice is made on the Connectors page, in the “Yours” tab.' },
+      'kb.cp.set.open': { fr: 'Ouvrir Connectors', en: 'Open Connectors' },
       // (POC) "Kybernos" pill of the engine's Plugins page.
       'kb.cp.kbf.help': { fr: 'Ne montrer que les plugins Kybernos (@local/kybernos-*)', en: 'Show only Kybernos plugins (@local/kybernos-*)' },
       'kb.cp.yours.go': { fr: 'Parcourir le catalogue', en: 'Browse the catalog' },
@@ -983,6 +1005,22 @@ window.__ModuleLoader__.load({
 .kbcp-kcapp b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbcp-kcapp small{font-size:11px;opacity:.6}
 .kbcp-kcrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}
+/* ── Discover popular pin + Yours empty-state illustration ── */
+.kb7-pill.pop{color:var(--dsw-alias-brand-primary,#635bff);border-color:var(--dsw-alias-brand-primary,#635bff)}
+.kb7-emptyart{display:flex;align-items:center;justify-content:center;color:var(--dsw-alias-label-tertiary,#8a8f98);padding-bottom:2px}
+/* ── Settings page (Settings ▸ Connectors): same card language as the skills page ── */
+.kbcp-set-page{display:flex;flex-direction:column;gap:14px;max-width:760px}
+.kbcp-set-card{display:flex;flex-direction:column;gap:8px;padding:14px 16px;border:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.25));border-radius:14px;background:var(--dsw-alias-bg-layer-2,transparent)}
+.kbcp-set-h2{margin:0;font-size:14px;font-weight:700;color:var(--dsw-alias-label-primary)}
+.kbcp-set-sub{margin:0;font-size:12.5px;color:var(--dsw-alias-label-secondary)}
+.kbcp-set-kpis{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:13px;color:var(--dsw-alias-label-secondary)}
+.kbcp-set-app{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.15))}
+.kbcp-set-appname{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary);min-width:120px}
+.kbcp-set-accl{display:flex;flex-wrap:wrap;gap:6px}
+.kbcp-set-dot{width:8px;height:8px;border-radius:5px;flex:none;background:#22c55e}
+.kbcp-set-dot.pend{background:#facc15}
+.kbcp-set-acc{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dsw-alias-label-secondary);border:1px solid var(--dsw-alias-border-l1,rgba(128,128,128,.2));border-radius:999px;padding:2px 9px}
+.kbcp-set-actions{display:flex;align-items:center;gap:10px}
 `
 
     // ── Key config (bundle page, Plugins) ────────────────────────────────────
@@ -2014,6 +2052,11 @@ window.__ModuleLoader__.load({
         else tbPair[1](patch)
       }
       const pages = Math.max(1, Math.ceil(list.length / PAGE))
+      // (Discover) Known apps pinned at the HEAD of the grid: a stable sort that
+      // moves only the POPULAR slugs above the rest and keeps the existing
+      // A -> Z order inside both groups. Pagination is computed after the pin,
+      // so the known apps always land on page 1.
+      list = list.slice().sort((a, b) => (POPULAR.indexOf(a.s) >= 0 ? 0 : 1) - (POPULAR.indexOf(b.s) >= 0 ? 0 : 1))
       const cur = Math.min(page, pages)
       const shown = list.slice((cur - 1) * PAGE, cur * PAGE)
       const totalConn = Object.values(conns).reduce((n, v) => n + ((v && v.accounts) ? v.accounts.length : 0), 0)
@@ -2082,6 +2125,7 @@ window.__ModuleLoader__.load({
           accs.length > 0 ? h('div', { className: 'kb7-bars' }, accs.map((x, i) => h('span', { key: i, className: 'kb7-bar' + (String(x.status).toUpperCase() === 'ACTIVE' ? '' : ' pend') }))) : null,
           h('div', { className: 'kb7-foot' },
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : h('span', null),
+            POPULAR.indexOf(a.s) >= 0 ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
             accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
       }
       // "Yours": linked apps (at least one account), A -> Z, without
@@ -2102,21 +2146,25 @@ window.__ModuleLoader__.load({
       const kcMode = effMode === 'kybernos'
 
       return h('div', { className: 'kb7-root' },
-        h('div', { className: 'kb7-head', style: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 } },
-          h('div', { style: { flex: 1, minWidth: 0 } },
-            // (29/09) h2: the page already carries its title (kb6-title): a single
-            // heading level per page, the section subtitle stays an h2.
-            h('div', { className: 'kb7-titlerow' },
-              h('h2', { className: 'kb7-h1' }, kbt('kb.cp.title')),
-              h('button', { type: 'button', className: 'kb7-infobtn' + (helpOpen === true ? ' on' : ''), 'aria-label': kbt('kb.cp.info'), title: kbt('kb.cp.info'), 'aria-expanded': helpOpen === true ? 'true' : 'false', 'data-kb': 'connectors-help', onClick: () => setHelpOpen(!helpOpen) }, Icon('info', 14))),
-            h('p', { className: 'kb7-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
+        // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
+        // Same structure as the Kybers page: title + "?" help glued to it, subtitle
+        // under, primary action on the RIGHT of the header row (.kb6-headacts).
+        // The kb6-* and kb8-* styles belong to the kybernos bundle's stylesheet,
+        // which is already in the document where this page mounts (its Resources pivot).
+        h('div', { className: 'kb6-headrow' },
+          h('div', { className: 'kb6-headcol' },
+            h('div', { className: 'kb6-titlerow' },
+              h('h1', { className: 'kb6-title' }, kbt('kb.cp.title')),
+              h('button', { type: 'button', className: 'kb6-helpbtn' + (helpOpen === true ? ' on' : ''), 'aria-label': kbt('kb.cp.info'), title: kbt('kb.cp.info'), 'aria-expanded': helpOpen === true ? 'true' : 'false', 'data-kb': 'connectors-help', onClick: () => setHelpOpen(!helpOpen) }, '?')),
+            h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
-          h('div', { className: 'kbcp-addwrap' },
-            h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
-            menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
-              h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
-              h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint')))) : null)),
+          h('div', { className: 'kb6-headacts' },
+            h('div', { className: 'kbcp-addwrap' },
+              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
+              menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint')))) : null))),
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -2163,6 +2211,10 @@ window.__ModuleLoader__.load({
             h('span', { className: 'kbcp-help2' }, kbt(kcMode ? 'kb.cp.kc.mode.hint.kybernos' : 'kb.cp.kc.mode.hint.personal'))) : null,
           kcMode ? h(KybernosPanel, { kc: kc, reload: reloadKc, patch: patchKc, flash: flash, note: cxNote, query: qn }) : yoursList.length === 0
             ? (ready === true ? h('div', { className: 'kb7-emptybox' },
+                // Mini illustration (plain inline SVG, no image) when NOTHING is
+                // connected yet: a plug, plus the existing sentence and the
+                // "browse the catalog" action.
+                yoursPool.length > 0 ? null : kbCpEmptyArt(),
                 h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
                 yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : (skelCards(6) || h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')))))
             : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a)))
@@ -2489,6 +2541,110 @@ window.__ModuleLoader__.load({
       } catch (e) { }
     }
 
+    // ── Settings page (Settings ▸ Connectors) ─────────────────────────────────
+    // Same seat as the other bundles' settings pages (settings.section slot, like
+    // kybernos-skills order 26 / kybernos-websearch). READ-ONLY content, no invented
+    // data: the Composio key state (GET /key), the active connections with their
+    // accounts (GET /connections, batched like the main page), the compose mode the
+    // user already chose on the Connectors page (localStorage, exposed by the mode
+    // toggle there), and a shortcut that opens the Connectors page itself.
+    const kbCpEmptyArt = () => h('div', { className: 'kb7-emptyart', 'aria-hidden': 'true' },
+      h('svg', { viewBox: '0 0 48 48', width: 52, height: 52, fill: 'none' },
+        h('path', { d: 'M18 6v8M30 6v8', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round' }),
+        h('path', { d: 'M13 14h22v7a11 11 0 0 1-22 0v-7Z', stroke: 'currentColor', strokeWidth: 3, strokeLinejoin: 'round' }),
+        h('path', { d: 'M24 32v6a6 6 0 0 0 6 6h4', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round', opacity: 0.55 })))
+
+    function ComposioSettingsPage() {
+      const [key, setKey] = React.useState(null)        // GET /key: { configured, source }
+      const [conns, setConns] = React.useState(null)    // { slug: [{ label, status }] }, null = loading
+      const alive = React.useRef(true)
+      React.useEffect(() => () => { alive.current = false }, [])
+      React.useEffect(() => {
+        kbCpHost('/key').then((r) => {
+          if (alive.current === true && r.status === 200 && r.json !== null && typeof r.json === 'object') setKey(r.json)
+        }).catch(() => { /* the card simply stays on "not configured" */ })
+        ;(async () => {
+          try {
+            const list = await kbCpCatalog()
+            const acc = {}
+            for (let i = 0; i < list.length; i += 40) {
+              const sl = list.slice(i, i + 40).map((a) => a && a.s).filter((x) => typeof x === 'string' && x.length > 0)
+              const r = await kbCpHost('/connections?toolkits=' + encodeURIComponent(sl.join(',')))
+              if (r.status !== 200 || r.json === null) break
+              for (const c of (Array.isArray(r.json.connections) ? r.json.connections : [])) {
+                const s = String((c && c.toolkit) || '').toLowerCase()
+                const acs = (Array.isArray(c && c.accounts) ? c.accounts : [])
+                  .map((a) => ({ label: String((a && (a.alias || a.accountType || a.id)) || ''), status: String((a && a.status) || '').toUpperCase() }))
+                if (s.length > 0 && acs.length > 0) acc[s] = acs
+              }
+            }
+            if (alive.current === true) setConns(acc)
+          } catch (e) { if (alive.current === true) setConns({}) }
+        })()
+      }, [])
+      // Real sources from the host: 'env' | 'env-file' | 'file' (the environment DSH
+      // was started with), 'setting' (saved from this GUI), anything else ('credentials',
+      // a future value) reads as an unknown origin rather than a wrong claim.
+      const srcText = () => {
+        if (key === null) return ''
+        const s = String(key.source || '')
+        if (s === 'env' || s === 'env-file' || s === 'file') return kbt('kb.cp.set.key.src.env')
+        if (s === 'setting') return kbt('kb.cp.set.key.src.setting')
+        return kbt('kb.cp.set.key.src.none')
+      }
+      const totalAcc = conns === null ? 0 : Object.values(conns).reduce((n, v) => n + v.length, 0)
+      const connCard = () => h('div', { className: 'kbcp-set-card', 'data-kb': 'composio-settings-connections' },
+        h('h3', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.connH')),
+        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.set.connSub')),
+        conns === null
+          ? h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.loading'))
+          : totalAcc === 0
+            ? h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.set.connNone'))
+            : h('div', null, Object.keys(conns).sort((a, b) => String(nameOf(a)).localeCompare(String(nameOf(b)))).map((s) =>
+                h('div', { className: 'kbcp-set-app', key: s },
+                  AppLogo(s, 26),
+                  h('span', { className: 'kbcp-set-appname' }, nameOf(s)),
+                  h('span', { className: 'kbcp-set-accl' }, conns[s].map((a, i) =>
+                    h('span', { className: 'kbcp-set-acc', key: i },
+                      h('span', { className: 'kbcp-set-dot' + (a.status === 'ACTIVE' ? '' : ' pend') }),
+                      a.label || kbt('kb.cp.account'))))))))
+      const modeCard = () => h('div', { className: 'kbcp-set-card', 'data-kb': 'composio-settings-mode' },
+        h('h3', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.modeH')),
+        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.set.modeSub')),
+        h('div', { className: 'kbcp-set-kpis' },
+          h('span', null, kbCpModeGet() === 'kybernos' ? kbt('kb.cp.set.mode.kybernos') : kbt('kb.cp.set.mode.personal'))))
+      const keyCard = () => h('div', { className: 'kbcp-set-card', 'data-kb': 'composio-settings-key' },
+        h('h3', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.keyH')),
+        h('div', { className: 'kbcp-set-kpis' },
+          h('span', null,
+            h('span', { className: 'kb7-pill' + (key !== null && key.configured === true ? '' : ' pend') }, key === null ? kbt('kb.cp.loading') : (key.configured === true ? kbt('kb.cp.set.key.on') : kbt('kb.cp.set.key.off'))),
+            key !== null && key.configured === true ? h('span', null, ' · ' + srcText()) : null)))
+      const openPage = () => { try { window.dispatchEvent(new CustomEvent('kb-open-resources', { detail: { tab: 'composio' } })) } catch (e) { /* no host listening: nothing breaks */ } }
+      return h('div', { className: 'kbcp-set-page', 'data-kb': 'kybernos-composio-settings' },
+        h('h2', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.h1')),
+        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.set.lead')),
+        keyCard(),
+        connCard(),
+        modeCard(),
+        h('div', { className: 'kbcp-set-actions' },
+          h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'composio-settings-open', onClick: openPage }, kbt('kb.cp.set.open'))))
+    }
+
+    /** A settings page that fails to render must never take the Settings dialog down with it.
+     * Guarded definition: the test harness (and any non-DOM loader) provides a React stub
+     * without Component — there the boundary degrades to a pass-through. */
+    const KbCpSettingsBoundary = (React !== null && React !== undefined && typeof React.Component === 'function')
+      ? class extends React.Component {
+          constructor (props) { super(props); this.state = { failed: false } }
+          static getDerivedStateFromError () { return { failed: true } }
+          componentDidCatch (e) { try { console.error('[kybernos-composio] settings page crashed:', e) } catch (e2) { /* console gone */ } }
+          render () {
+            if (this.state.failed !== true) return this.props.children
+            return h('div', { className: 'kbcp-set-page', role: 'alert' }, h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.yours.empty')))
+          }
+        }
+      : (props) => (props !== null && props !== undefined ? props.children : null)
+
     // ── mount ─────────────────────────────────────────────────────────────────
     function apply(ctx) {
       localeSvc = ctx.get('locale')
@@ -2498,6 +2654,17 @@ window.__ModuleLoader__.load({
       kbfMontre(ctx)
       slots.inject('plugins.bundle.config', () => slots.register(
         { name: 'plugins.bundle.config', key: '@local/kybernos-composio' }, ComposioKeyConfig))
+      // Settings ▸ Connectors: same seat as the other bundles (settings.section,
+      // order 30, after kybernos-skills 26 and slash 27). Label is a FUNCTION so it
+      // follows the current language. Registered LAST and guarded: a missing slot
+      // is never fatal (AGENTS.md rule 2).
+      try {
+        slots.inject('settings.section', () => slots.register(
+          { name: 'settings.section', id: 'kybernos-composio', order: 30, label: () => kbt('kb.cp.set.nav') },
+          (props) => { try { return h(KbCpSettingsBoundary, props, h(ComposioSettingsPage, props)) } catch (e) { return null } }))
+      } catch (kbCpSettingsError) {
+        try { console.warn('[kybernos-composio] settings section not mounted', kbCpSettingsError) } catch (e2) { /* console gone */ }
+      }
     }
 
     return {
