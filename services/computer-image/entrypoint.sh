@@ -26,6 +26,12 @@ sh "$LIB/egress.sh"
 runuser -u node -- sh -c '[ -d "$DSH_HOME/profiles/web" ] || { mkdir -p "$DSH_HOME"; cp -a /opt/dsh-seed/. "$DSH_HOME"/; }'
 runuser -u node -- sh "$LIB/render-profile.sh"
 
+# The suite's cloud plugin talks to the platform this computer belongs to, as its owner (the token is the computer's own, restricted).
+if [ -n "${KYBERNOS_API:-}" ] && [ -n "${KYBERNOS_COMPUTER_TOKEN:-}" ]; then
+  export KYBERNOS_CLOUD_API="${KYBERNOS_API%/}"
+  runuser -u node -- node "$LIB/link-account.mjs"
+fi
+
 # 3. The way into the page is the platform's link: the gate asks the platform, with the computer's own token, whether it is good.
 if [ -n "${KYBERNOS_API:-}" ] && [ -n "${KYBERNOS_COMPUTER_TOKEN:-}" ] && [ -z "${KYBERNOS_GATE_TICKET_URL:-}" ]; then
   export KYBERNOS_GATE_TICKET_URL="${KYBERNOS_API%/}/v1/computer/tickets/redeem"
