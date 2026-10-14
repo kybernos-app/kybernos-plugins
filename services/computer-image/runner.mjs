@@ -150,8 +150,11 @@ export async function runOne (job, options = {}) {
     const read = await dsh('/kybernos-cloud/turn/answer', { sessionId })
     const text = read.json && read.json.ok === true && typeof read.json.text === 'string' ? read.json.text.trim() : ''
     if (text === '') {
-      await ack(job.id, { status: 'failed', error: 'empty_answer' })
-      return 'empty_answer'
+      // A turn that ended with no words says why when DSH said so: a code, never a message. That is what an owner reads in the platform's journal of the job.
+      const why = read.json && typeof read.json.failure === 'string' && /^[a-z0-9_.:-]{1,80}$/u.test(read.json.failure) ? read.json.failure : ''
+      const error = why === '' ? 'empty_answer' : failCode(('empty_answer.' + why).slice(0, 100))
+      await ack(job.id, { status: 'failed', error })
+      return error
     }
     await emit('answered')
     const done = await ack(job.id, { status: 'done', result: { assistant_message: text.slice(0, 100_000) } })

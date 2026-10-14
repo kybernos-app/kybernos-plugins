@@ -3961,9 +3961,17 @@ const turnAnswer = async (req, body) => {
   }
   let text = ''
   let tools = 0
+  // What ended a turn that has no words, as a code: the type of the last event that says an error, and its `code` when it has one that is a code. Never a message (a message may carry the
+  // person's words or a provider's): the runner passes this to the platform as the reason of a failed turn, where an owner can read it.
+  let failure = ''
+  const codeOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,60}$/.test(v) ? v.toLowerCase() : '')
   for (const ev of events) {
     if (ev === null || ev === undefined) continue
     if (typeof ev.type === 'string' && ev.type.startsWith('tool/')) tools += 1
+    if (typeof ev.type === 'string' && /error|fail|refus/i.test(ev.type)) {
+      const data = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data : {}
+      failure = [codeOf(ev.type.replace(/[\/]/g, '_')), codeOf(data.code)].filter((x) => x !== '').join('.').slice(0, 80)
+    }
     if (ev.type !== 'assistant/message') continue
     const message = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.message : null
     if (message === null || message === undefined || Array.isArray(message.content) !== true) continue
@@ -3974,7 +3982,13 @@ const turnAnswer = async (req, body) => {
     // The last message that has words is the answer: a message that only called a tool has none.
     if (parts.join('').trim() !== '') text = parts.join('\n')
   }
-  return { ok: true, text, tools }
+  // No error event: how the session ended, by the type of its last event (`ended_turn_end`), so that « no words » is never a mystery.
+  if (text === '' && failure === '' && events.length > 0) {
+    const last = events[events.length - 1]
+    const kind = last !== null && last !== undefined && typeof last.type === 'string' ? codeOf(last.type.replace(/[\\/]/g, '_')) : ''
+    failure = kind === '' ? '' : ('ended_' + kind).slice(0, 80)
+  }
+  return { ok: true, text, tools, ...(text === '' && failure !== '' ? { failure } : {}) }
 }
 
 const ROUTES = [
