@@ -254,6 +254,12 @@ const mergeUser = (cached, profile) => {
     const value = profile[key]
     if (typeof value === 'string' && value.trim() !== '') next[key] = value.trim()
   }
+  // The email comes from the claim and is never overwritten. A cloud computer has no claim (it is born connected, with its own token): the
+  // server's answer fills it in when there is none, so the account has a face there.
+  if (typeof next.email !== 'string' || next.email.trim() === '') {
+    const mail = typeof profile.email === 'string' ? profile.email.trim() : ''
+    if (mail !== '' && mail.length <= 254 && mail.includes('@')) next.email = mail
+  }
   return next
 }
 
@@ -948,7 +954,9 @@ const serverRoute = async () => {
     if (id === active.profile.id) return isConnected(readState())
     try { return isConnected(JSON.parse(readFileSync(join(dshHome(), stateFileName({ id })), 'utf8'))) } catch (e) { return false }
   }
-  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected }
+  return { ok: true, server: publicProfile(active.profile), source: active.source, error: active.error, servers: active.servers.map((x) => Object.assign({ active: x.id === active.profile.id, connected: connectedTo(x.id) }, x)), rejected: active.rejected,
+    // A cloud computer (the platform names it in the machine's environment): the suite there is the person's own, but the server's console cannot be framed by its page.
+    computer: typeof process.env.KYBERNOS_COMPUTER_ID === 'string' && process.env.KYBERNOS_COMPUTER_ID !== '' }
 }
 
 /** POST /kybernos-cloud/server/apply: the registry changed (the Select server module wrote it): make DSH follow. What the
