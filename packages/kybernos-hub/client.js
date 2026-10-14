@@ -1117,6 +1117,125 @@ window.__ModuleLoader__.load({
       return { version: 1, actions: true, Help }
     }
 
+    // The Voice Settings page belongs to another bundle (@local/kybernos) that does not mount the
+    // shared help button itself, and the hub cannot edit that page. So the hub watches for the page
+    // in the Settings dialog and pins its own « ? How it works » button in its top-right corner —
+    // the same markup (data-kb="help-button" / "help-panel", data-id="voice"), the same CSS and the
+    // same behaviour as the plugin pages: the card opens on click, closes on ✕, on Escape (the
+    // Settings dialog behind it stays put) and on an outside click.
+    const AIDE_VOIX = {
+      what: {
+        fr: 'Voice ajoute la voix à vos sessions : dictez dans le composer au lieu de taper, et faites lire les réponses à voix haute. L’accès au micro est demandé à la première utilisation ; rien n’est enregistré entre les sessions.',
+        en: 'Voice adds speech to your sessions — dictate into the composer instead of typing, and have replies read aloud. Microphone access is asked the first time; nothing is recorded between sessions.'
+      },
+      steps: [
+        { fr: 'Dans « Réglages › Voice », choisissez le moteur de synthèse, la langue et la voix, puis « Tester » pour écouter.', en: 'In “Settings › Voice”, pick the synthesis engine, the language and the voice, then “Test” to hear it.' },
+        { fr: 'Choisissez le micro du composer (« Kybernos » ou « Native DSH »), puis dictez depuis le micro du composer au lieu de taper.', en: 'Pick the composer microphone (“Kybernos” or “Native DSH”), then dictate from the composer’s microphone instead of typing.' },
+        { fr: 'Faites lire une réponse à voix haute avec « Read aloud », ou activez la lecture automatique des réponses.', en: 'Have a reply read aloud with “Read aloud”, or turn on automatic reading of the replies.' }
+      ],
+      where: { fr: 'Réglages › Voice', en: 'Settings › Voice' }
+    }
+    const installerAideVoix = () => {
+      let carte = null
+      const fermer = () => { if (carte !== null) { carte.remove(); carte = null } }
+      // The card hangs from the “start” edge: the button sits at the right edge of the page, so the
+      // card must grow toward the left to stay on screen (same reasoning as Help's side state).
+      const montrer = (bouton) => {
+        fermer()
+        const c = document.createElement('section')
+        c.className = 'kbhp-pop start'
+        c.id = 'kbhp-voice'
+        c.setAttribute('role', 'dialog')
+        c.setAttribute('aria-label', kt('Voix', 'Voice') + ' — ' + kt('Comment ça marche', 'How it works'))
+        c.setAttribute('data-kb', 'help-panel')
+        c.setAttribute('data-id', 'voice')
+        const x = document.createElement('button')
+        x.type = 'button'
+        x.className = 'kbhp-x'
+        x.setAttribute('aria-label', kt('Fermer', 'Close'))
+        x.addEventListener('click', fermer)
+        const t = document.createElement('h4')
+        t.textContent = kt('Voix', 'Voice')
+        const w = document.createElement('p')
+        w.textContent = kt(AIDE_VOIX.what.fr, AIDE_VOIX.what.en)
+        const hw = document.createElement('h5')
+        hw.textContent = kt('Comment l’utiliser', 'How to use it')
+        const ol = document.createElement('ol')
+        ol.className = 'kbsu-steps'
+        for (const st of AIDE_VOIX.steps) {
+          const li = document.createElement('li')
+          li.textContent = kt(st.fr, st.en)
+          ol.appendChild(li)
+        }
+        const ou = document.createElement('p')
+        ou.className = 'kbsu-where'
+        const ob = document.createElement('b')
+        ob.textContent = kt('Où le trouver : ', 'Where to find it: ')
+        ou.appendChild(ob)
+        ou.appendChild(document.createTextNode(kt(AIDE_VOIX.where.fr, AIDE_VOIX.where.en)))
+        c.appendChild(x); c.appendChild(t); c.appendChild(w); c.appendChild(hw); c.appendChild(ol); c.appendChild(ou)
+        bouton.parentElement.appendChild(c)
+        carte = c
+        bouton.setAttribute('aria-expanded', 'true')
+      }
+      const basculer = (e) => {
+        const bouton = e.currentTarget
+        e.stopPropagation()
+        if (carte !== null) { fermer(); bouton.setAttribute('aria-expanded', 'false') } else montrer(bouton)
+      }
+      const decorer = (page) => {
+        if (page.querySelector('[data-kb="help-button"][data-id="voice"]') !== null) return
+        const wrap = document.createElement('span')
+        wrap.className = 'kbhp-wrap'
+        wrap.setAttribute('data-kb', 'help')
+        wrap.setAttribute('data-id', 'voice')
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.className = 'kbhp-btn'
+        b.setAttribute('data-kb', 'help-button')
+        b.setAttribute('data-id', 'voice')
+        b.setAttribute('aria-expanded', 'false')
+        b.setAttribute('aria-controls', 'kbhp-voice')
+        b.title = kt('Comment ça marche', 'How it works')
+        b.addEventListener('click', basculer)
+        const q = document.createElement('span')
+        q.className = 'kbhp-q'
+        q.setAttribute('aria-hidden', 'true')
+        q.textContent = '?'
+        const l = document.createElement('span')
+        l.textContent = kt('Comment ça marche', 'How it works')
+        b.appendChild(q); b.appendChild(l); wrap.appendChild(b)
+        // The page root is the positioning context: the button floats at its top-right corner,
+        // above the page content but below the help card (z-index 60).
+        if (getComputedStyle(page).position === 'static') page.style.position = 'relative'
+        wrap.style.cssText = 'position:absolute;top:14px;inset-inline-end:18px;z-index:55;'
+        page.appendChild(wrap)
+      }
+      const balayer = () => {
+        try {
+          for (const page of document.querySelectorAll('[data-slot="settings.section"] .kbt-page')) decorer(page)
+          // The page unmounted with the card open (Settings closed, another page picked): close too.
+          if (carte !== null && carte.isConnected === false) carte = null
+        } catch (e) { /* a DOM the hub cannot read: the page then simply has no help button */ }
+      }
+      let observateur = null
+      try {
+        observateur = new MutationObserver(balayer)
+        observateur.observe(document.body, { childList: true, subtree: true })
+        balayer()
+      } catch (e) { /* no MutationObserver: the page then simply has no help button */ }
+      // Listeners installed once: Escape closes the card and only the card (capture, like Help),
+      // an outside click closes it too.
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && carte !== null) { e.stopPropagation(); fermer() }
+      }, true)
+      document.addEventListener('mousedown', (e) => {
+        if (carte === null) return
+        const wrap = carte.parentElement
+        if (wrap === null || (!wrap.contains(e.target) && !carte.contains(e.target))) { fermer() }
+      })
+    }
+
     const monterSuite = (ctx, scope, require) => {
       try {
         const slots = scope.slots
@@ -1124,6 +1243,7 @@ window.__ModuleLoader__.load({
         const React = typeof require === 'function' ? require('react') : null
         if (React == null) return
         try { window.__KB_HELP__ = construireAide(React) } catch (e) { /* the pages then simply have no help button */ }
+        try { installerAideVoix() } catch (e) { /* the Voice page then simply has no help button */ }
         ctx.effect(() => { const s = document.createElement('style'); s.dataset.plugin = '@local/kybernos-hub'; s.textContent = CSS; document.head.appendChild(s); return () => s.remove() }, 'kybernos-hub: suite styles')
         const Panneau = construirePanneau(React, scope, ctx)
         ctx.effect(() => slots.inject('settings.section', () => slots.register(

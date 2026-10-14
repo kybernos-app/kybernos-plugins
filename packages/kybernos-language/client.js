@@ -213,6 +213,10 @@ window.__ModuleLoader__.load({
 .kbth-banner{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.5;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-3)}
 .kbth-banner b{color:var(--dsw-alias-label-primary);font-weight:600}
 .kbth-banner.warn{border:1px solid var(--dsw-alias-state-warn-primary,#f59e0b)}
+.kbth-fold>summary{display:flex;align-items:center;gap:6px;cursor:pointer;list-style:none;font-weight:600;color:var(--dsw-alias-label-primary)}
+.kbth-fold>summary::-webkit-details-marker{display:none}
+.kbth-fold>summary .kbth-chev{display:inline-block;transition:transform .15s ease}
+.kbth-fold[open]>summary .kbth-chev{transform:rotate(90deg)}
 .kbth-bar.stale>i{background:var(--dsw-alias-label-tertiary)}
 .kbth-ex{font:11.5px/1.6 ui-monospace,Menlo,monospace;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
 .kbth-check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dsw-alias-label-secondary);cursor:pointer}
@@ -440,12 +444,11 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         runsInTab: ['Ça tourne dans cet onglet. Vous pouvez quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne fermez pas l’onglet : s’il se ferme, la traduction reprend toute seule à la prochaine ouverture de Kybernos.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation resumes by itself the next time Kybernos opens.'],
         runsInTabManual: ['Ça tourne dans cet onglet. Vous pouvez quitter cette page et travailler ailleurs : le rond en bas de la barre latérale suit l’avancement. Ne fermez pas l’onglet : s’il se ferme, la traduction s’arrête et il faudra appuyer sur Reprendre.', 'This runs in this tab. You can leave this page and work elsewhere: the ring at the bottom of the sidebar follows the progress. Do not close the tab: if it closes, the translation stops and you will have to press Resume.'],
         cutNote: ['La traduction s’est arrêtée avec l’onglet. Ce qui est déjà traduit est conservé : appuyez sur Reprendre.', 'The translation stopped with the tab. What is already translated is kept: press Resume.'],
+        pseudoSummary: ['{n} textes à vérifier · marques de test', '{n} texts to check · test marks'],
         pseudoTitle: ['{n} textes ressemblent à des marques de test.', '{n} texts look like test marks.'],
         pseudoBody: ['Ce ne sont pas de vraies traductions : ils ne sont pas comptés, et utilisés tels quels ils s’afficheraient entourés de crochets. « Retraduire » les remplace par de vraies traductions.', 'They are not real translations: they are not counted, and used as they are they would show up wrapped in brackets. “Translate again” replaces them with real translations.'],
         repair: ['Retraduire ces textes', 'Translate these texts again'],
         tipRepair: ['Retire les marques de test de cette langue, puis traduit ces textes avec le modèle choisi. Le reste est conservé.', 'Removes the test marks from this language, then translates those texts with the chosen model. Everything else is kept.'],
-        showExamples: ['Voir des exemples', 'Show examples'],
-        hideExamples: ['Masquer les exemples', 'Hide examples'],
         autoLabel: ['Reprendre automatiquement une traduction coupée, à l’ouverture de Kybernos', 'Resume an interrupted translation automatically when Kybernos opens'],
         tipAuto: ['Si l’onglet est fermé pendant une traduction, elle reprend toute seule à la prochaine ouverture. Décochez pour reprendre à la main.', 'If the tab is closed during a translation, it resumes by itself the next time Kybernos opens. Untick to resume by hand.'],
         chipTitle: ['Traduction en {name} : {pct} %. Cliquez pour ouvrir la page Langue.', 'Translating {name}: {pct}%. Click to open the Language page.'],
@@ -1309,7 +1312,6 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const [askRemove, setAskRemove] = React.useState(null)
         const [details, setDetails] = React.useState(false)
         const [, setTick] = React.useState(0)
-        const [pseudoOpen, setPseudoOpen] = React.useState(null)
         const [autoOn, setAutoOn] = React.useState(autoResumeOn)
         // Open the first time (nothing translated yet), then as the user left it.
         const [helpOpen, setHelpOpen] = React.useState(() => {
@@ -1466,12 +1468,16 @@ html[dir="rtl"] .kbth-page{direction:rtl}
             if (left !== null && left.lang === id) body.push(h('div', { key: 'cut', className: 'kbth-banner warn', role: 'status', 'data-note': 'cut' }, L('cutNote')))
           }
           if (pseudo.n > 0 && !running) {
-            body.push(h('div', { key: 'pseudo', className: 'kbth-banner warn', role: 'status', 'data-note': 'pseudo' },
+            // Collapsed by default: one summary line with the count and a chevron
+            // (native <details>). Blocking errors stay outside this fold.
+            body.push(h('details', { key: 'pseudo', className: 'kbth-banner warn kbth-fold', 'data-note': 'pseudo' },
+              h('summary', null,
+                h('span', { className: 'kbth-chev', 'aria-hidden': true }, '▸'),
+                L('pseudoSummary', { n: fmtN(pseudo.n) })),
               h('div', null, h('b', null, L('pseudoTitle', { n: fmtN(pseudo.n) })), ' ', L('pseudoBody')),
               h('div', { className: 'kbth-row', style: { gap: 8 } },
-                h('button', { className: 'kbth-btn primary', type: 'button', 'data-act': 'repair', title: L('tipRepair'), disabled: models.length === 0, onClick: () => start(id) }, L('repair')),
-                h('button', { className: 'kbth-link', type: 'button', 'data-act': 'pseudo-details', onClick: () => setPseudoOpen(pseudoOpen === id ? null : id) }, L(pseudoOpen === id ? 'hideExamples' : 'showExamples'))),
-              pseudoOpen === id ? h('div', { className: 'kbth-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text))) : null))
+                h('button', { className: 'kbth-btn primary', type: 'button', 'data-act': 'repair', title: L('tipRepair'), disabled: models.length === 0, onClick: () => start(id) }, L('repair'))),
+              h('div', { className: 'kbth-ex' }, pseudo.examples.map((x) => h('div', { key: x.store + x.id }, x.id + ' → ' + x.text)))))
           }
           if (st === 'failed') {
             const key = friendlyError(snap.error)
