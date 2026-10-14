@@ -797,6 +797,20 @@ try {
   assert.equal(refreshed.body.models.plan, 'pro')
   ok('refresh : /v1/me rafraichit nom + formule, email du claim preserve')
 
+  // 4b. A cloud computer is born connected with no claim, so its state has no email: the server's answer fills it in (the account has a
+  //     face there), once, and what is there is never overwritten.
+  const claimless = JSON.parse(readFileSync(statePath, 'utf8'))
+  delete claimless.user.email
+  writeFileSync(statePath, JSON.stringify(claimless))
+  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro', email: 'owner@example.test' }
+  const filled = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(filled.body.state.user.email, 'owner@example.test')
+  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro', email: 'other@example.test' }
+  const kept = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.equal(kept.body.state.user.email, 'owner@example.test')
+  meProfile = { id: 'u-1', name: 'Miled', plan: 'pro' }
+  ok('computer sans claim : l\'email du serveur complete le compte, sans jamais ecraser')
+
 
   // ── L'espace actif ────────────────────────────────────────────────────────
   // Le sélecteur du pied de sidebar écrit ce choix. Deux certitudes : un id

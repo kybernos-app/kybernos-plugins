@@ -1820,6 +1820,8 @@ let kbLocaleRead = () => 'en'
       'kbui.ws.open': { kybernos: 'Ouvrir', en: 'Open' },
       'kbui.ws.down.t': { kybernos: 'Console indisponible', en: 'Console unavailable' },
       'kbui.ws.down.d': { kybernos: 'Impossible de joindre la console du workspace ({host}). Vérifiez votre connexion, puis réessayez.', en: 'Could not reach the workspace console ({host}). Check your connection, then try again.' },
+      'kbui.ws.computer.t': { kybernos: 'La console se gère dans votre navigateur', en: 'The console is managed in your browser' },
+      'kbui.ws.computer.d': { kybernos: 'Cet ordinateur cloud est le vôtre, mais la console du workspace ({host}) s\'ouvre dans votre navigateur, avec votre connexion habituelle.', en: 'This cloud computer is yours, but the workspace console ({host}) opens in your own browser, signed in as usual.' },
       'kbui.ws.retry': { kybernos: 'Réessayer', en: 'Try again' },
       'kbui.ws.openbrowser': { kybernos: 'Ouvrir dans le navigateur', en: 'Open in browser' },
       'kbui.ins.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
@@ -7426,6 +7428,7 @@ return {
           if (typeof sv.console === 'string' && sv.console !== '') kbServer.console = sv.console
           kbServer.gateway = typeof sv.gateway === 'string' ? sv.gateway : ''
         }
+        kbServer.computer = j !== null && j !== undefined && j.computer === true
         kbServer.workspace = st !== null && st !== undefined && st.state !== null && typeof st.state === 'object' && typeof st.state.active_workspace_id === 'string' ? st.state.active_workspace_id : ''
         return kbServer
       })
@@ -27103,10 +27106,20 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
       }, [])
       // Ask the cloud plugin which server is active BEFORE probing its console: opening « Teams settings » after a server switch
       // must reach the new server's console, not the one loaded at startup.
-      React.useEffect(() => { kbServerLoad().then(() => probe()) }, [])
+      React.useEffect(() => { kbServerLoad().then(() => { if (kbServer.computer === true) setReach('computer'); else probe() }) }, [])
       if (reach !== 'ok') {
         let hote = kbWsConsole()
         try { hote = new URL(kbWsConsole()).host } catch (e) { /* unreadable URL: we display it as is */ }
+        // A cloud computer: the server's console refuses to be framed by a page that is not on the person's own machine, so it is not framed there
+        // (a blank « refused to connect ») but opened in the person's browser, where they are signed in as usual.
+        if (reach === 'computer') {
+          return h('div', { className: 'kbwsif' },
+            h('div', { className: 'kbwsif-down', role: 'status' },
+              h('div', { className: 'kbwsif-downt' }, kbt('kbui.ws.computer.t')),
+              h('p', { className: 'kbwsif-downd' }, kbt('kbui.ws.computer.d').replace('{host}', hote)),
+              h('div', { className: 'kbwsif-downa' },
+                h('a', { className: 'kb6-btn', href: kbConsoleUrl(dark), target: '_blank', rel: 'noopener noreferrer' }, kbt('kbui.ws.openbrowser')))))
+        }
         return h('div', { className: 'kbwsif' },
           reach === 'checking'
             ? h('div', { className: 'kbwsif-wait', 'aria-busy': 'true' })
