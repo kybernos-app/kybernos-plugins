@@ -126,7 +126,7 @@ try {
   await val(`document.querySelector('[data-kb="kybernos-kyber-refresh"]').click()`)
   await sleep(800)
   s = (await paneText()) || ''
-  check('a door that is off says so and offers no bot link', /pas activée|not turned on/.test(s) && (await hrefOf('kybernos-kyber-bot')) === null, s.slice(0, 200))
+  check('a door that is off says so and shows no bot button at all', /pas activée|not turned on/.test(s) && (await val(`document.querySelector('[data-kb="kybernos-kyber-bot"]') === null`)) === true, s.slice(0, 200))
   await feed({ ok: true, connected: false }, SERVER)
   await val(`document.querySelector('[data-kb="kybernos-kyber-refresh"]').click()`)
   await sleep(800)

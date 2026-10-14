@@ -148,7 +148,7 @@ window.__ModuleLoader__.load({
           tg.state === 'linked' && tg.paused ? h('p', { className: 'kbky-warn' }, L('paused')) : null,
           tg.state === 'linked' && tg.blocked ? h('p', { className: 'kbky-warn' }, L('blocked')) : null,
           h('div', { className: 'kbky-actions' },
-            tg.botUrl !== '' ? h(Link, { href: tg.botUrl, kb: 'kybernos-kyber-bot' }, L('openBot')) : null,
+            typeof tg.botUrl === 'string' && tg.botUrl !== '' ? h(Link, { href: tg.botUrl, kb: 'kybernos-kyber-bot' }, L('openBot')) : null,
             v.accountUrl !== '' ? h(Link, { href: v.accountUrl, kb: 'kybernos-kyber-account' }, L('manage')) : null))
         const hm = v.home
         const stateKey = hm === null ? '' : 'st_' + hm.state
