@@ -100,6 +100,21 @@ try {
   check('the links open in a new tab, without opener', (await val(`(() => { const a = document.querySelector('[data-kb="kybernos-kyber-bot"]'); return !!a && a.target === '_blank' && /noopener/.test(a.rel) })()`)) === true)
   await shot('1-linked')
 
+  console.log('\n── 2b. the menu row and its page ──')
+  const rowPos = await val(`(() => { const e = Array.from(document.querySelectorAll('button, a, [role="button"], [role="menuitem"]')).filter((x) => (x.innerText || '').trim() === 'Kyber' && x.getClientRects().length > 0 && x.getBoundingClientRect().x < 300)[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
+  check('the sidebar has a Kyber row in its menu', typeof rowPos === 'string', rowPos)
+  if (typeof rowPos === 'string') {
+    const { x, y } = JSON.parse(rowPos)
+    await mouse(x, y)
+    const page2 = await poll(() => val(`(() => { const p = document.querySelector('[data-kb="kybernos-kyber-page"]'); return !!p && p.getClientRects().length > 0 })()`), 15000)
+    check('the row opens the Kyber page', page2 === true)
+    await val(`(() => { const b = document.querySelector('[data-kb="kybernos-kyber-page"] [data-kb="kybernos-kyber-refresh"]'); if (b) b.click(); return true })()`)
+    await sleep(900)
+    const pt = (await val(`(() => { const p = document.querySelector('[data-kb="kybernos-kyber-page"]'); return p ? p.innerText : null })()`)) || ''
+    check('the page shows the two cards', /Miled @milede/.test(pt) && /En veille|Asleep/.test(pt), pt.slice(0, 200))
+    await shot('1b-page')
+  }
+
   console.log('\n── 3. the states before that ──')
   await feed({ ok: true, connected: true, telegram: { configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, home: null }, SERVER)
   await val(`document.querySelector('[data-kb="kybernos-kyber-refresh"]').click()`)

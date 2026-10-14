@@ -57,10 +57,14 @@ assert.equal(dict.get('kbui.marketplace.tab').en, 'Marketplace')
 ok('the sidebar entry, the page title, the right-panel tab and the chip all say « Agent Teams » (EN and FR); the second tab says « Marketplace »')
 
 // 2. « Kyber » is not a label, in any string of the dictionary, in either language
+// The one exception, on purpose: « Kyber » is also the name of the person's OWN assistant (ADR 0053: the one that answers them on Telegram and works on their
+// computer), and its menu row and page say so. It is allowed on exactly these keys; an Agent Team is still never called a Kyber.
+const ASSISTANT_KEYS = new Set(['kbui.kyber', 'kbui.kyber.off'])
 const kyberLabels = []
-for (const [k, v] of dict) for (const lang of ['en', 'kybernos']) { const at = kyberLeft(v[lang]); if (at !== null) kyberLabels.push(k + ' (' + lang + '): …' + at + '…') }
+for (const [k, v] of dict) for (const lang of ['en', 'kybernos']) { if (ASSISTANT_KEYS.has(k)) continue; const at = kyberLeft(v[lang]); if (at !== null) kyberLabels.push(k + ' (' + lang + '): …' + at + '…') }
 assert.deepEqual(kyberLabels, [], 'a « Kyber » label is back: it is an Agent Team')
-ok('no string of the dictionary calls an Agent Team a « Kyber » (only kyber.yml and the other technical words remain)')
+assert.equal(dict.get('kbui.kyber').en, 'Kyber')
+ok('no string of the dictionary calls an Agent Team a « Kyber » (only kyber.yml, the other technical words, and the name of the person\'s own assistant remain)')
 
 // 3. nor « AI Team »
 const aiTeam = []
@@ -138,7 +142,14 @@ for (const d of readdirSync(PACKAGES)) {
 }
 files.push(join(PACKAGES, 'kybernos-hub', 'catalog.json'))
 const helpBad = []
-for (const f of files) for (const s of jsonStrings(JSON.parse(readFileSync(f, 'utf8')))) {
+// The tab of the person's own assistant says « Kyber » (ASSISTANT_KEYS above): its help and its catalogue entry are not scanned for the word.
+const withoutAssistant = (f) => {
+  const j = JSON.parse(readFileSync(f, 'utf8'))
+  if (f.includes('kybernos-kyber')) return {}
+  if (j !== null && typeof j === 'object' && Array.isArray(j.modules)) j.modules = j.modules.filter((m) => m === null || typeof m !== 'object' || m.id !== 'kybernos-kyber')
+  return j
+}
+for (const f of files) for (const s of jsonStrings(withoutAssistant(f))) {
   const at = kyberLeft(s)
   if (at !== null) helpBad.push(f.slice(PACKAGES.length + 1) + ': …' + at + '…')
   if (/\b(?:un|le|ce|du|au|aucun)\s+Agent Teams?\b/i.test(s) || /\ba Agent Team/i.test(s)) helpBad.push(f.slice(PACKAGES.length + 1) + ' (grammar): ' + s)
@@ -148,9 +159,10 @@ ok('the help.json of every bundle (' + (files.length - 1) + ') and the catalogue
 
 // 11. the strings of the other bundles' browser halves: a capitalised « Kyber(s) » alone in a line of code is a label
 const clientFiles = []
+// kybernos-kyber is the person's own assistant's tab: its name is the label (ASSISTANT_KEYS above), not an Agent Team called a Kyber.
 for (const d of readdirSync(PACKAGES)) for (const rel of ['client.js', 'client/client.js', 'src/plugin.js']) {
   const f = join(PACKAGES, d, rel)
-  if (existsSync(f) && d !== 'kybernos-plugin') clientFiles.push(f)
+  if (existsSync(f) && d !== 'kybernos-plugin' && d !== 'kybernos-kyber') clientFiles.push(f)
 }
 const labelBad = []
 for (const f of clientFiles) {

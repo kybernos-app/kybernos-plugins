@@ -165,6 +165,7 @@ window.__ModuleLoader__.load({
       // ═══ style: DSH tokens with a fallback, never a hard-coded theme colour ══════════════════════════════════════
       const CSS = [
         '.kbky{box-sizing:border-box;height:100%;overflow:auto;padding:10px 12px 20px;color:var(--dsw-alias-label-primary,#222);font-size:var(--dsh-content-font-size-secondary,13.5px)}',
+        '.kbky-page{box-sizing:border-box;height:100%;max-width:760px;margin:0 auto;padding:18px 20px}',
         '.kbky-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 2px 10px}',
         '.kbky-h{margin:0;font-size:16px;font-weight:600}',
         '.kbky-card{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.1));border-radius:14px;padding:6px 14px 12px;margin-top:10px}',
@@ -180,7 +181,11 @@ window.__ModuleLoader__.load({
         '.kbky-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
       ].join('\n')
 
+      /** The page the menu row opens: the same two cards, with room. */
+      const Page = () => h('div', { className: 'kbky-page', 'data-kb': 'kybernos-kyber-page' }, h(Pane))
+
       const TYPE_ID = 'kybernos-kyber'
+      const SLOT_PAGE = 'main.kybernos-kyber'
       const KIND = 'kybernos-kyber'
       const SLOT_PANE = 'sidebar.right.pane.tab'
       const STYLE_ID = 'kybernos-kyber-styles'
@@ -214,6 +219,8 @@ window.__ModuleLoader__.load({
               guide: [{ title: () => L('title'), description: () => L('tabHint') }],
             }), 'kybernos-kyber: sidebar tab type')
           }
+          // the page: the child slot the core's menu row opens
+          ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, () => { try { return h(Page) } catch (e) { return null } })), 'kybernos-kyber: page')
           ctx.effect(() => ctx.slots.inject(SLOT_PANE, () => ctx.slots.register(
             { name: SLOT_PANE, key: TYPE_ID },
             () => { try { return h(Pane) } catch (e) { return null } }
