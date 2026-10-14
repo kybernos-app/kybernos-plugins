@@ -37,6 +37,10 @@ docker buildx build --platform linux/amd64 -t kybernos-computer:<tag> \
 | `KYBERNOS_COMPUTER_MODEL` (optional, default `auto`) | the model the profile asks the platform's route for: `render-profile.sh` writes the `kybernos` provider (`$KYBERNOS_API/v1`, the computer's token as the key) and the default model before DSH starts |
 | `DSH_HOME`, `KYBERNOS_WORKSPACE` | set by the entrypoint to `/data/dsh` and `/data/work` on the volume, so that sessions, memory, skills and automations survive a restart, a cold start and a wake |
 
+## Signed in to its owner's account
+
+A computer's page must not open on the first-run wizard: its sign-in tries the built-in server, which the machine's network policy does not let out (« We couldn't reach Kybernos »). The entrypoint therefore (`link-account.mjs`) writes the cloud plugin's connection file (`<DSH home>/kybernos-cloud.json`) with the computer's own restricted token, points the plugin at `KYBERNOS_API` (`KYBERNOS_CLOUD_API`) and marks the wizard done once (`kybernos/onboarding.json`; a replay from the settings stays possible). What the plugin learns afterwards (the name, the plan, the workspaces) is kept across boots. The platform's token list allows the three reads the suite makes for that (`GET /v1/me`, `GET /v1/workspaces`, the plan of its own workspace), and the plugin reads a restricted token's `403 computer_route_not_allowed` as « not on the list », not as a revoked sign-in (a release before this one signs the computer out on it: the platform must be a version that has the reads).
+
 ## What it was checked to do
 
 On the real platform (Fly.io, `ams`, `shared-cpu-1x` 2 GB, one 2 GB volume, 2026-10-14; one sample each, direction and not a guarantee),

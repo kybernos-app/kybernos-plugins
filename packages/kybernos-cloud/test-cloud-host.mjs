@@ -29,6 +29,8 @@ const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
 // ── Faux Kybernos ───────────────────────────────────────────────────────────
 let pollCount = 0
 let tokenValid = true
+// A cloud computer's restricted token: the server answers a route outside the token's list with its own envelope, a 403 `computer_route_not_allowed`.
+let computerRestricted = false
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
 // de la route (le claim fige un instantané, /v1/me remet le profil à jour).
@@ -250,6 +252,7 @@ const api = createServer((req, res) => {
     }
     if (req.url === '/v1/workspaces') {
       seen.authHeaders.push(auth)
+      if (computerRestricted === true) return send(403, { error: 'computer_route_not_allowed', message: 'A cloud computer cannot call this route.' })
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21' }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
     }
@@ -1109,6 +1112,17 @@ try {
   settingsEnabled = true
   credentialsEnabled = true
   ok('settings/credentials absents : import degrade, motif explicite')
+
+  // 6d. A cloud computer's token is restricted to a short list of routes: the refusal of one of them is the server's own envelope, and it
+  //     is not a revocation (the token is alive): the connection stays, nothing imported goes.
+  computerRestricted = true
+  const restrictedRefresh = await hit('/kybernos-cloud/refresh', 'POST')
+  assert.notEqual(restrictedRefresh.body.status, 'revoked', 'a route outside a restricted token\'s list does not sign the computer out')
+  assert.equal(restrictedRefresh.body.error, 'profil_indisponible')
+  assert.equal(existsSync(statePath), true)
+  assert.notEqual(settingsStore['llm-pi-ai'].providers.kybernos, undefined)
+  computerRestricted = false
+  ok('jeton restreint d\'un computer : 403 computer_route_not_allowed ne deconnecte pas')
 
   // 7. Révocation côté serveur (jeton mort → « Reconnexion requise ») : le
   //    catalogue importé part avec la session (route + credential).

@@ -464,7 +464,8 @@ const readProfile = async (cause) => {
   // Only the server's own refusal is a revocation: a firewall's or a proxy's page that says 401 / 403 is not the server speaking about
   // this token, and signing the person out on it also throws away the models imported for them. JSON alone does not make it the server
   // (a gateway answers `{}`, `[]` or `{ message: 'Forbidden' }` too): the server's error envelope names its error as a string.
-  if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body)) {
+  // `computer_route_not_allowed` is a cloud computer's restricted token meeting a route outside its list: the token is alive, nothing was revoked.
+  if ((ws.status === 401 || ws.status === 403) && isServerRefusal(ws.body) && ws.body.error !== 'computer_route_not_allowed') {
     // Jeton révoqué depuis l'app Kybernos → « Reconnexion requise ». Les
     // modèles importés ne serviraient plus à rien (le proxy refuserait les
     // appels) : ils partent avec la session.
