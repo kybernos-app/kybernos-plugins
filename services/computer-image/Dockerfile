@@ -31,6 +31,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends nftables \
 # The gate of THIS checkout: it knows the platform's link (the base's own copy was cloned at a release tag that does not).
 COPY packages/kybernos-gate/ /opt/kybernos-plugins/packages/kybernos-gate/
 
+# The cloud plugin of THIS checkout too: it fills a computer's account (e-mail) from the server and tells the page it is on a computer (the
+# release's copy differs from it by a dozen lines, all of them this). The page bundle is patched, not replaced (it differs by hundreds of
+# lines): see patch-console.mjs, which fails the build when its anchors are not found.
+COPY packages/kybernos-cloud/index.js /opt/kybernos-plugins/packages/kybernos-cloud/index.js
+COPY services/computer-image/patch-console.mjs /tmp/patch-console.mjs
+RUN node /tmp/patch-console.mjs /opt/kybernos-plugins/packages/kybernos-plugin/client.js && rm /tmp/patch-console.mjs
+
 # Nobody is at an unattended computer's approval prompt. DSH's default permission preset asks for a command's approval, so a run that
 # needs a tool (a script for an arithmetic, a file write) waits for ever: measured, a one-minute task still open after ten minutes. The
 # machine is the boundary (ADR 0052 § 11: assume model-written code is hostile; the VM, not DSH's file jail, is what holds it), so fresh
