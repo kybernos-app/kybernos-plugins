@@ -156,7 +156,7 @@ export async function runOne (job, options = {}) {
       return 'no_message'
     }
     await emit('started')
-    const started = await dsh('/kybernos-cloud/turn', { prompt })
+    const started = await dsh('/kybernos-cloud/turn', { prompt, jobId: job.id })
     const sessionId = started.json && started.json.ok === true ? started.json.sessionId : null
     if (started.status !== 200 || typeof sessionId !== 'string') {
       await ack(job.id, { status: 'failed', error: 'dsh_failed' })

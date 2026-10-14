@@ -1169,8 +1169,9 @@ try {
       assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: 'x' }, 'Bearer kyd_computer')).body.error, 'sessions_unavailable', 'sans le service de sessions')
 
       const prompts = []
+      let nextSession = 's-9'
       fakeSessionController = {
-        create: async () => ({ ok: true, value: { sessionId: 's-9' } }),
+        create: async () => ({ ok: true, value: { sessionId: nextSession } }),
         prompt: async (request) => { prompts.push(request); return { ok: true } },
       }
       const started = await turnHit('/kybernos-cloud/turn', { prompt: '  Post this to my webhook ' }, 'Bearer kyd_computer')
@@ -1194,6 +1195,69 @@ try {
       const read = await turnHit('/kybernos-cloud/turn/answer', { sessionId: 's-9' }, 'Bearer kyd_computer')
       assert.deepEqual([read.body.ok, read.body.text, read.body.tools], [true, 'Done: HTTP 200.', 1])
       assert.equal((await turnHit('/kybernos-cloud/turn/answer', { sessionId: '../x' }, 'Bearer kyd_computer')).body.ok, false, 'un id de session invalide')
+
+      // The gate (ADR 0053 § 14): the person is asked, through the platform, before a tool that can change something runs in a session this route made.
+      {
+        const JOB = '01a13c61-b776-7159-86ed-befa11b6bf35'
+        process.env.KYBERNOS_API = 'https://api.example.test'
+        process.env.KYBERNOS_TURN_GATE_POLL_MS = '5'
+        const gate = agentHooks.get('tools/pre-execute')
+        assert.equal(typeof gate, 'function', 'la garde est montee')
+        const seen = []
+        let answers = ['pending', 'allowed']
+        let unreachable = false
+        const realFetch = globalThis.fetch
+        globalThis.fetch = async (url, init = {}) => {
+          const u = new URL(String(url))
+          seen.push({ method: init.method, path: u.pathname, body: init.body ? JSON.parse(init.body) : null, auth: init.headers && init.headers.authorization })
+          if (unreachable) throw new Error('down')
+          if (init.method === 'POST') return new Response(JSON.stringify({ id: 'ap-1', state: 'pending', expires_at: '2099-01-01T00:00:00Z' }), { status: 200 })
+          return new Response(JSON.stringify({ id: 'ap-1', state: answers.shift() ?? 'pending' }), { status: 200 })
+        }
+        const allowed = async () => ({ kind: 'allow' })
+        const run = (name, args, session = 's-gate', signal = new AbortController().signal) => gate({ name, arguments: args, agent: { id: session }, signal }, allowed)
+        try {
+          nextSession = 's-gate'
+          await turnHit('/kybernos-cloud/turn', { prompt: 'do it', jobId: JOB }, 'Bearer kyd_computer')
+          // What cannot change anything, and a session this route did not make, pass without a question.
+          assert.deepEqual(await run('read', { file_path: '/x' }), { kind: 'allow' })
+          assert.deepEqual(await run('bash', { command: 'ls' }, 'someone-elses-session'), { kind: 'allow' })
+          assert.equal(seen.length, 0, 'aucune question pour une lecture ni pour une autre session')
+          // A command waits for the answer, and goes when it is yes. The question carries the real command line, the turn and the computer's own token.
+          assert.deepEqual(await run('bash', { command: 'curl -X POST https://hooks.example.test/x', description: 'harmless' }), { kind: 'allow' })
+          const post = seen.find((c) => c.method === 'POST')
+          assert.deepEqual(post.body, { job_id: JOB, kind: 'shell', summary: 'curl -X POST https://hooks.example.test/x' })
+          assert.equal(post.auth, 'Bearer kyd_computer')
+          // A no, an expired question, a platform that cannot be reached and a stopped task are refusals, never passes.
+          answers = ['denied']
+          const denied = await run('bash', { command: 'rm -rf ~' })
+          assert.equal(denied.kind, 'deny')
+          assert.match(denied.reason, /did not allow this action/)
+          answers = ['expired']
+          assert.equal((await run('write', { file_path: '/home/node/a.txt', content: 'x' })).kind, 'deny')
+          const stopper = new AbortController()
+          stopper.abort()
+          answers = ['pending', 'pending']
+          assert.equal((await run('edit', { file_path: '/home/node/a.txt' }, 's-gate', stopper.signal)).kind, 'deny')
+          unreachable = true
+          assert.equal((await run('mcp__gmail__send_email', { to: 'x@example.test' })).kind, 'deny')
+          unreachable = false
+          // « For the rest of this task »: the next call in that session is not asked about.
+          answers = ['allowed_turn']
+          assert.deepEqual(await run('bash', { command: 'ls' }), { kind: 'allow' })
+          const before = seen.length
+          assert.deepEqual(await run('bash', { command: 'ls -la' }), { kind: 'allow' })
+          assert.equal(seen.length, before, 'plus de question pour la suite de cette tache')
+          // A session with no turn behind it (a restart lost it) cannot be asked about: a refusal.
+          nextSession = 's-nojob'
+          await turnHit('/kybernos-cloud/turn', { prompt: 'no job id' }, 'Bearer kyd_computer')
+          assert.equal((await run('bash', { command: 'ls' }, 's-nojob')).kind, 'deny')
+        } finally {
+          globalThis.fetch = realFetch
+          nextSession = 's-9'
+          delete process.env.KYBERNOS_TURN_GATE_POLL_MS
+        }
+      }
 
       // One more prompt, only in a session this route made; and a turn with no words says what its last message was made of.
       const more = await turnHit('/kybernos-cloud/turn/continue', { sessionId: 's-9', prompt: 'Now say the result.' }, 'Bearer kyd_computer')
