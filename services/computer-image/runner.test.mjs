@@ -39,6 +39,7 @@ const standIn = (options = {}) => {
     if (u.host === '127.0.0.1:3081') {
       if (u.pathname === '/kybernos-cloud/turn') return json(200, options.start ?? { ok: true, sessionId: 's-1' })
       if (u.pathname === '/kybernos-cloud/turn/answer') return json(200, options.answer ?? { ok: true, text: 'Posted: HTTP 200.', tools: 1 })
+      if (u.pathname === '/kybernos-cloud/turn/continue') return json(200, { ok: true })
     }
     if (u.pathname.endsWith('/context')) return options.context === null ? json(500, {}) : json(200, options.context ?? CONTEXT)
     if (u.pathname.endsWith('/events') || u.pathname.endsWith('/ack')) return json(200, {})
@@ -49,7 +50,9 @@ const standIn = (options = {}) => {
 
 test('the prompt is the person\'s last message, with the conversation before it as background', () => {
   const p = buildPrompt(CONTEXT)
-  assert.match(p, /personal assistant, working on their own cloud computer/)
+  assert.match(p, /personal assistant of a person, working on their own cloud computer/)
+  const named = buildPrompt({ ...CONTEXT, source: 'telegram', person: { name: 'Miled' } })
+  assert.match(named, /personal assistant of Miled, working on their own cloud computer\. They wrote to you from a Telegram chat on their phone/)
   assert.match(p, /\[person\]\nhello/)
   assert.match(p, /\[assistant\]\nHi, what can I do\?/)
   assert.match(p, /Their message:\n\nPOST \{"a":1\} to https:\/\/hooks\.example\.test\/x$/)
@@ -64,7 +67,7 @@ test('a turn: context, the session in DSH, its closed turn, the answer, and the 
   closed('s-1')
   const s = standIn()
   try {
-    const out = await runOne({ id: 'job-1', next_event_seq: 4 }, { pollMs: 5 })
+    const out = await runOne({ id: 'job-1', next_event_seq: 4 }, { pollMs: 5, openMs: 30 })
     assert.equal(out, 'done')
     const post = s.calls.find((c) => c.path === '/kybernos-cloud/turn')
     assert.equal(post.headers.authorization, 'Bearer kyd_test_token')
@@ -80,34 +83,55 @@ test('a turn: context, the session in DSH, its closed turn, the answer, and the 
 test('a turn that cannot be run is acknowledged failed with a code, never with words', async () => {
   const noContext = standIn({ context: null })
   try {
-    assert.equal(await runOne({ id: 'job-2' }, { pollMs: 5 }), 'context_unavailable')
+    assert.equal(await runOne({ id: 'job-2' }, { pollMs: 5, openMs: 30 }), 'context_unavailable')
     assert.deepEqual(noContext.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'context_unavailable' })
   } finally { noContext.restore() }
 
   const noSession = standIn({ start: { ok: false, error: 'unavailable' } })
   try {
-    assert.equal(await runOne({ id: 'job-3' }, { pollMs: 5 }), 'dsh_failed')
+    assert.equal(await runOne({ id: 'job-3' }, { pollMs: 5, openMs: 30 }), 'dsh_failed')
     assert.deepEqual(noSession.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'dsh_failed' })
   } finally { noSession.restore() }
 
   closed('s-1')
   const empty = standIn({ answer: { ok: true, text: '  ', tools: 0 } })
   try {
-    assert.equal(await runOne({ id: 'job-4' }, { pollMs: 5 }), 'empty_answer')
+    assert.equal(await runOne({ id: 'job-4' }, { pollMs: 5, openMs: 30 }), 'empty_answer')
     assert.deepEqual(empty.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'empty_answer' })
   } finally { empty.restore() }
+
+  // A turn that ended with no words is asked for them once, in the same session, and the answer that comes is the one acknowledged.
+  closed('s-1')
+  let reads = 0
+  const nudged = standIn({})
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (url, init) => {
+    const u = new URL(String(url))
+    if (u.pathname === '/kybernos-cloud/turn/answer') {
+      reads += 1
+      return new Response(JSON.stringify(reads === 1 ? { ok: true, text: '', tools: 1, failure: 'ended_turn_end.b_thinking' } : { ok: true, text: 'Found 3 places.', tools: 1 }), { status: 200 })
+    }
+    return realFetch(url, init)
+  }
+  try {
+    assert.equal(await runOne({ id: 'job-nudge' }, { pollMs: 5, openMs: 30 }), 'done')
+    const sent = nudged.calls.find((c) => c.path === '/kybernos-cloud/turn/continue')
+    assert.equal(sent.body.sessionId, 's-1')
+    assert.match(sent.body.prompt, /Reply now, in one short message/)
+    assert.deepEqual(nudged.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'done', result: { assistant_message: 'Found 3 places.' } })
+  } finally { nudged.restore() }
 
   // When DSH said what ended it, the code goes with the failure (and only a code).
   closed('s-1')
   const why = standIn({ answer: { ok: true, text: '', tools: 0, failure: 'turn_error.model_not_found' } })
   try {
-    assert.equal(await runOne({ id: 'job-4b' }, { pollMs: 5 }), 'empty_answer.turn_error.model_not_found')
+    assert.equal(await runOne({ id: 'job-4b' }, { pollMs: 5, openMs: 30 }), 'empty_answer.turn_error.model_not_found')
     assert.deepEqual(why.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'empty_answer.turn_error.model_not_found' })
   } finally { why.restore() }
 
   const slow = standIn({ start: { ok: true, sessionId: 's-open' } })
   try {
-    assert.equal(await runOne({ id: 'job-5' }, { pollMs: 5, timeoutMs: 60 }), 'run_timeout')
+    assert.equal(await runOne({ id: 'job-5' }, { pollMs: 5, openMs: 30, timeoutMs: 60 }), 'run_timeout')
     assert.deepEqual(slow.calls.find((c) => c.path.endsWith('/ack')).body, { status: 'failed', error: 'run_timeout' })
   } finally { slow.restore() }
 })

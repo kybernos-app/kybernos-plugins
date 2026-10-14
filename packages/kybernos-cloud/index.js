@@ -3919,6 +3919,12 @@ const turnAuthorized = (req) => {
   if (given.length !== want.length) return false
   try { return timingSafeEqual(Buffer.from(given), Buffer.from(want)) } catch (e) { return false }
 }
+// The sessions this route made (in memory, bounded): `turn/continue` may queue one more prompt in those and in no other session of the machine.
+const turnSessions = new Set()
+const rememberTurnSession = (id) => {
+  turnSessions.add(id)
+  if (turnSessions.size > 200) turnSessions.delete(turnSessions.values().next().value)
+}
 const turnStart = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
   const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
@@ -3943,7 +3949,26 @@ const turnStart = async (req, body) => {
     content: [{ type: 'text', text: prompt.slice(0, 100000) }],
   }, controller.signal)
   if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
+  rememberTurnSession(sessionId)
   return { ok: true, sessionId }
+}
+// One more prompt in a session this route made: the runner asks for the words when a turn ended without any.
+const turnContinue = async (req, body) => {
+  if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
+  const sessionId = body !== null && typeof body === 'object' && typeof body.sessionId === 'string' ? body.sessionId : ''
+  const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
+  if (turnSessions.has(sessionId) !== true || prompt === '') return { ok: false, error: 'unknown_session' }
+  const sc = hostCtx !== null && hostCtx !== undefined ? hostCtx.get('sessionController') : undefined
+  if (sc === undefined || sc === null || typeof sc.prompt !== 'function') return { ok: false, error: 'sessions_unavailable' }
+  const controller = new AbortController()
+  const ack = await sc.prompt({
+    requestId: 'kb-turn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    sessionId,
+    mode: 'queue',
+    content: [{ type: 'text', text: prompt.slice(0, 4000) }],
+  }, controller.signal)
+  if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
+  return { ok: true }
 }
 const turnAnswer = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
@@ -3964,6 +3989,7 @@ const turnAnswer = async (req, body) => {
   // What ended a turn that has no words, as a code: the type of the last event that says an error, and its `code` when it has one that is a code. Never a message (a message may carry the
   // person's words or a provider's): the runner passes this to the platform as the reason of a failed turn, where an owner can read it.
   let failure = ''
+  let lastBlocks = ''
   const codeOf = (v) => (typeof v === 'string' && /^[A-Za-z0-9_.:-]{1,60}$/.test(v) ? v.toLowerCase() : '')
   for (const ev of events) {
     if (ev === null || ev === undefined) continue
@@ -3976,9 +4002,12 @@ const turnAnswer = async (req, body) => {
     const message = ev.data !== null && ev.data !== undefined && typeof ev.data === 'object' ? ev.data.message : null
     if (message === null || message === undefined || Array.isArray(message.content) !== true) continue
     const parts = []
+    const kinds = []
     for (const block of message.content) {
+      if (block !== null && block !== undefined && typeof block.type === 'string' && kinds.length < 6) kinds.push(codeOf(block.type.replace(/[\\/]/g, '_')))
       if (block !== null && block !== undefined && block.type === 'text' && typeof block.text === 'string') parts.push(block.text)
     }
+    lastBlocks = kinds.filter((k) => k !== '').join('-')
     // The last message that has words is the answer: a message that only called a tool has none.
     if (parts.join('').trim() !== '') text = parts.join('\n')
   }
@@ -3988,6 +4017,8 @@ const turnAnswer = async (req, body) => {
     const kind = last !== null && last !== undefined && typeof last.type === 'string' ? codeOf(last.type.replace(/[\\/]/g, '_')) : ''
     failure = kind === '' ? '' : ('ended_' + kind).slice(0, 80)
   }
+  // What the last message of the model was made of (`thinking`, `tool_use`, `text`): types only, so that an answer with no words says whether the model only thought or only called a tool.
+  if (text === '' && lastBlocks !== '') failure = (failure + '.b_' + lastBlocks).replace(/^\./, '').slice(0, 90)
   return { ok: true, text, tools, ...(text === '' && failure !== '' ? { failure } : {}) }
 }
 
@@ -4011,6 +4042,7 @@ const ROUTES = [
   // A turn the platform addressed to this computer (ADR 0053 § 13.4): started, then read, by the computer's own runner (token and same origin).
   { path: '/kybernos-cloud/turn', method: 'POST', strict: true, body: true, cap: 200000, run: turnStart },
   { path: '/kybernos-cloud/turn/answer', method: 'POST', strict: true, body: true, cap: 4096, run: turnAnswer },
+  { path: '/kybernos-cloud/turn/continue', method: 'POST', strict: true, body: true, cap: 8192, run: turnContinue },
   // The terms and privacy addresses of the active server (public document, no token).
   { path: '/kybernos-cloud/legal', method: 'GET', guarded: true, run: legalRoute },
   { path: '/kybernos-cloud/server/apply', method: 'POST', guarded: true, run: serverApply },

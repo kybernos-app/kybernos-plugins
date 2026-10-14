@@ -39,8 +39,10 @@ export function buildPrompt (context) {
   if (at < 0) return null
   const earlier = messages.slice(Math.max(0, at - EARLIER_MESSAGES), at)
   const history = earlier.map((m) => `[${m.role === 'user' ? 'person' : 'assistant'}]\n${clip(m.content)}`).join('\n\n')
+  const person = clip(context && context.person && context.person.name).trim().slice(0, 60)
+  const via = context && context.source === 'telegram' ? 'a Telegram chat on their phone' : 'a chat on their phone'
   return [
-    `You are ${name}, the person's personal assistant, working on their own cloud computer. They wrote to you from a chat on their phone. Answer in the language they write in, briefly and in plain text: your answer is sent back to that chat as one message. When they ask you to do something, do it with your tools, then say what you did and what came back.`,
+    `You are ${name}, the personal assistant of ${person === '' ? 'a person' : person}, working on their own cloud computer. They wrote to you from ${via}. Answer in the language they write in, briefly and in plain text: your answer is sent back to that chat as one message. When they ask you to do something, do it with your tools, then say what you did and what came back.`,
     history === '' ? '' : `The conversation so far, oldest first:\n\n${history}`,
     `Their message:\n\n${clip(messages[at].content)}`
   ].filter((part) => part !== '').join('\n\n')
@@ -102,6 +104,9 @@ async function ack (jobId, body) {
   return false
 }
 
+/** What a turn with no words is asked once: the words, now. */
+const NUDGE = 'Your last turn ended without a message to the person. Reply now, in one short message: what you did and what you found, or why you could not do it.'
+
 /** Runs one claimed job to its acknowledgement. Returns what it ended as, for the log and the tests. */
 export async function runOne (job, options = {}) {
   const poll = options.pollMs ?? 1000
@@ -119,6 +124,26 @@ export async function runOne (job, options = {}) {
     if (r.status === 409 || r.status === 404) lost = true
     else if (r.status === 200 && r.json && r.json.cancel === true) cancelled = true
   }, Math.max(5000, Math.floor((LEASE_SECONDS * 1000) / 3)))
+  const deadline = Date.now() + timeout
+  /** Waits for the session's turn to close: 'closed', 'timeout', 'lost' or 'canceled'. */
+  const waitClosed = async (sessionId) => {
+    for (;;) {
+      if (lost) return 'lost'
+      if (cancelled) return 'canceled'
+      const st = sessionState(sessionId)
+      if (st !== null && st.closed) return 'closed'
+      if (Date.now() > deadline) return 'timeout'
+      await sleep(poll)
+    }
+  }
+  const readText = async (sessionId) => {
+    const r = await dsh('/kybernos-cloud/turn/answer', { sessionId })
+    const ok = r.json && r.json.ok === true
+    return {
+      text: ok && typeof r.json.text === 'string' ? r.json.text.trim() : '',
+      why: ok && typeof r.json.failure === 'string' && /^[a-z0-9_.:-]{1,90}$/u.test(r.json.failure) ? r.json.failure : ''
+    }
+  }
   try {
     const ctx = await platform('POST', `/v1/runner/jobs/${job.id}/context`)
     if (ctx.status !== 200 || ctx.json === null) {
@@ -138,26 +163,41 @@ export async function runOne (job, options = {}) {
       return 'dsh_failed'
     }
     await emit('model-call')
-    const deadline = Date.now() + timeout
-    for (;;) {
-      if (lost) return 'lease_lost'
-      if (cancelled) { await ack(job.id, { status: 'canceled' }); return 'canceled' }
-      const s = sessionState(sessionId)
-      if (s !== null && s.closed) break
-      if (Date.now() > deadline) { await ack(job.id, { status: 'failed', error: 'run_timeout' }); return 'run_timeout' }
-      await sleep(poll)
+    let waited = await waitClosed(sessionId)
+    if (waited === 'lost') return 'lease_lost'
+    if (waited === 'canceled') { await ack(job.id, { status: 'canceled' }); return 'canceled' }
+    if (waited === 'timeout') { await ack(job.id, { status: 'failed', error: 'run_timeout' }); return 'run_timeout' }
+    let answer = await readText(sessionId)
+    // A turn that ended with no words is asked for them once, in the same session: a model that only thought, or only called a tool, says what it found.
+    if (answer.text === '') {
+      const before = sessionState(sessionId)
+      const more = await dsh('/kybernos-cloud/turn/continue', { sessionId, prompt: NUDGE })
+      if (more.json && more.json.ok === true) {
+        // The new turn must open before it can close: the projection changes, or its turn is open, within a few seconds.
+        const opened = Date.now() + (options.openMs ?? 20_000)
+        for (;;) {
+          const st = sessionState(sessionId)
+          if (st === null || st.closed === false || (before !== null && st.at !== before.at) || Date.now() > opened) break
+          await sleep(Math.min(poll, 250))
+        }
+        waited = await waitClosed(sessionId)
+        if (waited === 'lost') return 'lease_lost'
+        if (waited === 'canceled') { await ack(job.id, { status: 'canceled' }); return 'canceled' }
+        if (waited === 'closed') {
+          const again = await readText(sessionId)
+          if (again.text !== '') answer = again
+          else if (again.why !== '') answer = { text: '', why: again.why }
+        }
+      }
     }
-    const read = await dsh('/kybernos-cloud/turn/answer', { sessionId })
-    const text = read.json && read.json.ok === true && typeof read.json.text === 'string' ? read.json.text.trim() : ''
-    if (text === '') {
+    if (answer.text === '') {
       // A turn that ended with no words says why when DSH said so: a code, never a message. That is what an owner reads in the platform's journal of the job.
-      const why = read.json && typeof read.json.failure === 'string' && /^[a-z0-9_.:-]{1,80}$/u.test(read.json.failure) ? read.json.failure : ''
-      const error = why === '' ? 'empty_answer' : failCode(('empty_answer.' + why).slice(0, 100))
+      const error = answer.why === '' ? 'empty_answer' : failCode(('empty_answer.' + answer.why).slice(0, 100))
       await ack(job.id, { status: 'failed', error })
       return error
     }
     await emit('answered')
-    const done = await ack(job.id, { status: 'done', result: { assistant_message: text.slice(0, 100_000) } })
+    const done = await ack(job.id, { status: 'done', result: { assistant_message: answer.text.slice(0, 100_000) } })
     return done ? 'done' : 'ack_refused'
   } catch (e) {
     await ack(job.id, { status: 'failed', error: failCode('run_failed') })

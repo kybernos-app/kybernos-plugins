@@ -610,7 +610,7 @@ try {
     // The Account page's custom instructions, as a marked section of <DSH home>/AGENTS.md (test-instructions.mjs holds the file logic).
     '/kybernos-cloud/instructions', '/kybernos-cloud/instructions/save',
     // A turn the platform handed to this computer (ADR 0053 § 13.4): started and read by the computer's own runner.
-    '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer',
+    '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer', '/kybernos-cloud/turn/continue',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -1194,6 +1194,26 @@ try {
       const read = await turnHit('/kybernos-cloud/turn/answer', { sessionId: 's-9' }, 'Bearer kyd_computer')
       assert.deepEqual([read.body.ok, read.body.text, read.body.tools], [true, 'Done: HTTP 200.', 1])
       assert.equal((await turnHit('/kybernos-cloud/turn/answer', { sessionId: '../x' }, 'Bearer kyd_computer')).body.ok, false, 'un id de session invalide')
+
+      // One more prompt, only in a session this route made; and a turn with no words says what its last message was made of.
+      const more = await turnHit('/kybernos-cloud/turn/continue', { sessionId: 's-9', prompt: 'Now say the result.' }, 'Bearer kyd_computer')
+      assert.equal(more.body.ok, true)
+      assert.equal(prompts[prompts.length - 1].content[0].text, 'Now say the result.')
+      assert.equal((await turnHit('/kybernos-cloud/turn/continue', { sessionId: 'other-session', prompt: 'x' }, 'Bearer kyd_computer')).body.error, 'unknown_session')
+      assert.equal((await turnHit('/kybernos-cloud/turn/continue', { sessionId: 's-9', prompt: 'x' }, 'Bearer nope')).body.error, 'unavailable')
+      fakeSessionPersistence = {
+        open: async () => ({
+          read: async () => ({ events: [
+            { type: 'assistant/message', data: { message: { content: [{ type: 'thinking', thinking: 'secret words' }, { type: 'tool_use', name: 'bash' }] } } },
+            { type: 'turn/end', data: {} },
+          ] }),
+          close: async () => {},
+        }),
+      }
+      const empty = await turnHit('/kybernos-cloud/turn/answer', { sessionId: 's-9' }, 'Bearer kyd_computer')
+      assert.equal(empty.body.text, '')
+      assert.equal(empty.body.failure, 'ended_turn_end.b_thinking-tool_use')
+      assert.equal(JSON.stringify(empty.body).includes('secret words'), false, 'jamais les mots, seulement les types')
     } finally {
       fakeSessionController = undefined
       fakeSessionPersistence = undefined
