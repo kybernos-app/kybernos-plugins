@@ -45,6 +45,7 @@ const FICHE = {
   'kybernos-multi-device': ['base', 'Des workspaces avec ou sans dossier : Create propose un dossier privé, et Détails montre où le workspace travaille.', 'Workspaces with or without a folder: Create offers a private folder, and Details shows where the workspace works.'],
   'kybernos-dashboards': ['teams', 'Des dashboards construits par chat, pour suivre vos Agent Teams, automations, usage et livrables : cartes, graphiques animés, calendrier, kanban, notes.', 'Dashboards built by chat to follow your Agent Teams, automations, usage and deliverables: cards, animated charts, calendar, kanban, notes.'],
   'kybernos-summary': ['base', 'Un onglet Résumé dans le panneau de droite du chat : agents, progression, compétences et outils utilisés, fichiers écrits.', 'A Summary tab in the chat\'s right-hand panel: agents, progress, skills and tools used, files written.'],
+  'kybernos-kyber': ['base', 'Un onglet Kyber dans le panneau de droite du chat : où votre assistant vous répond (Telegram) et l\'ordinateur cloud sur lequel il travaille.', 'A Kyber tab in the chat\'s right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on.'],
   'kybernos-changes': ['base', 'Où en est votre travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite.', 'Where your work stands (changed, saved, on GitHub, in the project) and what to do next.'],
   'kybernos-atlas': ['teams', 'La carte de votre espace : projets, Agent Teams, skills, mémoire, et ce qui est cassé.', 'A map of your workspace: projects, agent teams, skills, memory, and what is broken.'],
   'kybernos-slides': ['create', 'Decks écrits en direct dans la barre latérale.', 'Decks written live in the sidebar.'],
@@ -75,7 +76,7 @@ const TITRES = {
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
   'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Mobile', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
-  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary'
+  'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kyber'
 }
 const GLYPHES = {
   'kybernos-plugin': 'cube', 'kybernos-hub': 'suite', 'kybernos-theme': 'palette', 'kybernos-language': 'lang', 'kybernos-sessions': 'chat',
@@ -83,7 +84,7 @@ const GLYPHES = {
   'kybernos-modeles-locaux': 'home', 'kybernos-auto': 'route', 'kybernos-flow': 'flow', 'kybernos-free-llms': 'doc', 'kybernos-slides': 'slides', 'kybernos-bricks': 'bricks',
   'kybernos-modeleur': 'box3d', 'kybernos-motion': 'motion', 'kybernos-miniapps': 'app', 'kybernos-refs': 'link', 'kybernos-mobile': 'mobile', 'kybernos-websearch': 'search', 'dsh-mermaid': 'flowc', 'dsh-db-viewer': 'db',
   'dsh-media-player': 'play', 'kybernos-composio': 'plug', 'kybernos-computers': 'pc', 'kybernos-workers': 'wrench', 'dsh-subagent-maison': 'agent', 'kybernos-cloud': 'cloud',
-  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-multi-device': 'devices', 'kybernos-call': 'phone', 'kybernos-terminal': 'term', 'kybernos-dashboards': 'dash', 'kybernos-summary': 'summary'
+  'kybernos-memory': 'brain', 'kybernos-atlas': 'map', 'kybernos-changes': 'branch', 'kybernos-usage': 'gauge', 'kybernos-multi-device': 'devices', 'kybernos-call': 'phone', 'kybernos-terminal': 'term', 'kybernos-dashboards': 'dash', 'kybernos-summary': 'summary', 'kybernos-kyber': 'kyber'
 }
 
 // Featured = the most advanced modules; `vedette` is the rank in this list. Each one carries a tagline, a description and the points of what it does, written

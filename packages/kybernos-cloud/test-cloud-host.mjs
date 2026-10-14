@@ -31,6 +31,10 @@ let pollCount = 0
 let tokenValid = true
 // A cloud computer's restricted token: the server answers a route outside the token's list with its own envelope, a 403 `computer_route_not_allowed`.
 let computerRestricted = false
+// The Kyber tab (ADR 0053 § 14): the personal workspace flag and what the server says of the Telegram door and of the person's Home computer.
+let kyberPersonal = false
+let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
+let kyberHome = { name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
 // de la route (le claim fige un instantané, /v1/me remet le profil à jour).
@@ -250,11 +254,19 @@ const api = createServer((req, res) => {
       if (meProfile === null) return send(404, { detail: 'Not Found' })
       return send(200, meProfile)
     }
+    if (req.url === '/v1/me/telegram' && req.method === 'GET') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, kyberTelegram)
+    }
+    if (req.url === '/v1/workspaces/ws-1/computers' && req.method === 'GET') {
+      if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+      return send(200, { computers: [{ name: 'Other', state: 'running' }, kyberHome], policy: {}, standing: {} })
+    }
     if (req.url === '/v1/workspaces') {
       seen.authHeaders.push(auth)
       if (computerRestricted === true) return send(403, { error: 'computer_route_not_allowed', message: 'A cloud computer cannot call this route.' })
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
-      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21' }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
+      return send(200, { workspaces: [{ id: 'ws-1', name: 'My workspace', kyber_count: 2, created_at: '2026-09-04 15:31:21', ...(kyberPersonal === true ? { personal: true } : {}) }, ...(teamSpaceListed === true ? [{ id: 'ws-team', name: 'Acme Crew', kyber_count: 0, created_at: '2026-10-08 10:00:00' }] : [])] })
     }
     if (req.url === '/v1/workspaces/ws-1/llm/budget' || req.url === '/v1/workspaces/ws-team/llm/budget') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
@@ -611,6 +623,8 @@ try {
     '/kybernos-cloud/instructions', '/kybernos-cloud/instructions/save',
     // A turn the platform handed to this computer (ADR 0053 § 13.4): started and read by the computer's own runner.
     '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer', '/kybernos-cloud/turn/continue',
+    // The Kyber tab's data (ADR 0053 § 14).
+    '/kybernos-cloud/kyber',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -1144,6 +1158,25 @@ try {
   assert.notEqual(settingsStore['llm-pi-ai'].providers.kybernos, undefined)
   computerRestricted = false
   ok('jeton restreint d\'un computer : 403 computer_route_not_allowed ne deconnecte pas')
+
+  // 6f. The Kyber tab's data (ADR 0053 § 14): the door's state and the person's Home computer, read-only, from the active server.
+  {
+    kyberPersonal = true
+    const r = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
+    assert.equal(r.status, 200)
+    assert.equal(r.body.connected, true)
+    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
+    assert.deepEqual(r.body.home, { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public' })
+    assert.equal(leaks(r.body), false, 'jamais le jeton')
+    // A person with no Home yet, and a door that is not set up: the tab says so, it does not fail.
+    kyberHome = { name: 'Notes', state: 'running' }
+    kyberTelegram = { configured: false, enabled: false, bot_username: null, linked: null }
+    const none = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
+    assert.equal(none.body.home, null)
+    assert.deepEqual(none.body.telegram, { configured: false, enabled: false, bot: null, linked: null })
+    kyberPersonal = false
+    ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton')
+  }
 
   // 6e. A turn the platform handed to this computer (ADR 0053 § 13.4): only the computer's own token, a same-origin call, and DSH's session seams.
   {

@@ -4108,7 +4108,51 @@ const turnAnswer = async (req, body) => {
   return { ok: true, text, tools, ...(text === '' && failure !== '' ? { failure } : {}) }
 }
 
+// ── The Kyber tab's data (ADR 0053 § 14): where the person's assistant answers, and the computer it works on ───
+// Read-only, from the active server with the account's token: the Telegram door's state (`GET /v1/me/telegram`) and the person's `Home` computer in their personal workspace. A device
+// cannot link or unlink a chat (the server asks for a signed-in session): this route only says what is, and the tab sends the person to the bot and to their account page for the rest.
+const kyberRoute = async () => {
+  const state = readState()
+  if (!isConnected(state)) return { ok: true, connected: false }
+  const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 15000 })
+  const [tg, ws] = await Promise.all([get('/v1/me/telegram'), get('/v1/workspaces')])
+  const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
+  const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true)
+  let home = null
+  if (personal !== undefined && typeof personal.id === 'string') {
+    const c = await get('/v1/workspaces/' + encodeURIComponent(personal.id) + '/computers')
+    const rows = c.status === 200 && c.body !== null && Array.isArray(c.body.computers) ? c.body.computers : []
+    const found = rows.find((r) => r !== null && typeof r === 'object' && String(r.name).toLowerCase() === 'home')
+    if (found !== undefined) {
+      home = {
+        state: String(found.state || ''),
+        desired: String(found.desired || ''),
+        mode: String(found.mode || ''),
+        region: String(found.region || ''),
+        last_active_at: typeof found.last_active_at === 'string' ? found.last_active_at : null,
+        version: typeof found.reported_version === 'string' ? found.reported_version : null,
+        network: found.network !== null && typeof found.network === 'object' ? String(found.network.mode || '') : '',
+      }
+    }
+  }
+  const t = tg.status === 200 && tg.body !== null && typeof tg.body === 'object' ? tg.body : null
+  return {
+    ok: true,
+    connected: true,
+    telegram: t === null ? null : {
+      configured: t.configured === true,
+      enabled: t.enabled === true,
+      bot: typeof t.bot_username === 'string' ? t.bot_username : null,
+      linked: t.linked !== null && typeof t.linked === 'object'
+        ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
+        : null,
+    },
+    home,
+  }
+}
+
 const ROUTES = [
+  { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },

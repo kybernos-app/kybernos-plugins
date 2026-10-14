@@ -1,0 +1,12 @@
+{
+  "name": "@local/kybernos-kyber",
+  "version": "0.1.0",
+  "description": "A Kyber tab in the right sidebar: where your assistant answers you (Telegram) and the cloud computer it works on, on one page.",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.js", "./client": "./client.js" },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": { "platform": "web", "immediately": true }
+  }
+}
