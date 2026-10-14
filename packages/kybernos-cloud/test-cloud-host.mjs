@@ -500,6 +500,9 @@ const fakeTools = {
     return () => registeredTools.delete(definition.name)
   },
 }
+// The session seams of DSH, for the turns a cloud computer is handed (ADR 0053 § 13.4): off until a step needs them.
+let fakeSessionController
+let fakeSessionPersistence
 const ctx = {
   get: (name) => {
     if (name === 'webServer') return webServer
@@ -508,6 +511,8 @@ const ctx = {
     if (name === 'systemPrompt') return fakeSystemPrompt
     if (name === 'tools') return fakeTools
     if (name === 'llm' && llmEnabled === true) return fakeLlm
+    if (name === 'sessionController') return fakeSessionController
+    if (name === 'sessionPersistence') return fakeSessionPersistence
     return undefined
   },
   inject: (_list, cb) => cb(ctx),
@@ -604,6 +609,8 @@ try {
     '/kybernos-cloud/quota',
     // The Account page's custom instructions, as a marked section of <DSH home>/AGENTS.md (test-instructions.mjs holds the file logic).
     '/kybernos-cloud/instructions', '/kybernos-cloud/instructions/save',
+    // A turn the platform handed to this computer (ADR 0053 § 13.4): started and read by the computer's own runner.
+    '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -1137,6 +1144,66 @@ try {
   assert.notEqual(settingsStore['llm-pi-ai'].providers.kybernos, undefined)
   computerRestricted = false
   ok('jeton restreint d\'un computer : 403 computer_route_not_allowed ne deconnecte pas')
+
+  // 6e. A turn the platform handed to this computer (ADR 0053 § 13.4): only the computer's own token, a same-origin call, and DSH's session seams.
+  {
+    const turnHit = async (path, body, authorization, origin = 'http://127.0.0.1:3080') => {
+      const req = fakeReq('POST', origin, body, path)
+      // The runner calls over the loopback listener: the strict guard compares the origin with the socket's own port.
+      req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      if (authorization !== undefined) req.headers.authorization = authorization
+      const res = fakeRes()
+      await routes.get(path)(req, res)
+      return res
+    }
+    const savedEnv = { id: process.env.KYBERNOS_COMPUTER_ID, token: process.env.KYBERNOS_COMPUTER_TOKEN }
+    try {
+      delete process.env.KYBERNOS_COMPUTER_ID
+      delete process.env.KYBERNOS_COMPUTER_TOKEN
+      assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: 'x' }, 'Bearer kyd_computer')).body.error, 'unavailable', 'pas un computer : indisponible')
+      process.env.KYBERNOS_COMPUTER_ID = 'cmp-1'
+      process.env.KYBERNOS_COMPUTER_TOKEN = 'kyd_computer'
+      assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: 'x' }, 'Bearer kyd_other')).body.error, 'unavailable', 'mauvais jeton')
+      assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: 'x' })).body.error, 'unavailable', 'sans jeton')
+      assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: 'x' }, 'Bearer kyd_computer', 'https://evil.example')).status, 403, 'cross-origin refuse')
+      assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: 'x' }, 'Bearer kyd_computer')).body.error, 'sessions_unavailable', 'sans le service de sessions')
+
+      const prompts = []
+      fakeSessionController = {
+        create: async () => ({ ok: true, value: { sessionId: 's-9' } }),
+        prompt: async (request) => { prompts.push(request); return { ok: true } },
+      }
+      const started = await turnHit('/kybernos-cloud/turn', { prompt: '  Post this to my webhook ' }, 'Bearer kyd_computer')
+      assert.deepEqual([started.body.ok, started.body.sessionId], [true, 's-9'])
+      assert.equal(prompts[0].sessionId, 's-9')
+      assert.equal(prompts[0].content[0].text, 'Post this to my webhook')
+      assert.equal(prompts[0].mode, 'queue')
+      assert.equal((await turnHit('/kybernos-cloud/turn', { prompt: '   ' }, 'Bearer kyd_computer')).body.ok, false, 'un prompt vide est refuse')
+
+      fakeSessionPersistence = {
+        open: async () => ({
+          read: async () => ({ events: [
+            { type: 'assistant/message', data: { message: { content: [{ type: 'text', text: 'On it.' }] } } },
+            { type: 'tool/call', data: {} },
+            { type: 'assistant/message', data: { message: { content: [{ type: 'tool_use', name: 'bash' }] } } },
+            { type: 'assistant/message', data: { message: { content: [{ type: 'text', text: 'Done: HTTP 200.' }] } } },
+          ] }),
+          close: async () => {},
+        }),
+      }
+      const read = await turnHit('/kybernos-cloud/turn/answer', { sessionId: 's-9' }, 'Bearer kyd_computer')
+      assert.deepEqual([read.body.ok, read.body.text, read.body.tools], [true, 'Done: HTTP 200.', 1])
+      assert.equal((await turnHit('/kybernos-cloud/turn/answer', { sessionId: '../x' }, 'Bearer kyd_computer')).body.ok, false, 'un id de session invalide')
+    } finally {
+      fakeSessionController = undefined
+      fakeSessionPersistence = undefined
+      if (savedEnv.id === undefined) delete process.env.KYBERNOS_COMPUTER_ID
+      else process.env.KYBERNOS_COMPUTER_ID = savedEnv.id
+      if (savedEnv.token === undefined) delete process.env.KYBERNOS_COMPUTER_TOKEN
+      else process.env.KYBERNOS_COMPUTER_TOKEN = savedEnv.token
+    }
+    ok('un tour confie a un computer : son jeton, la meme origine et les sessions de DSH, rien d\'autre')
+  }
 
   // 7. Révocation côté serveur (jeton mort → « Reconnexion requise ») : le
   //    catalogue importé part avec la session (route + credential).

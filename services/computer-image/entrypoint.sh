@@ -41,5 +41,9 @@ fi
 # 4. The reporter: says to the platform that the computer is up, that it is busy, what it runs and which runs ended.
 runuser -u node -- node "$LIB/reporter.mjs" &
 
+# 4b. The turn runner: takes the turns the platform addressed to THIS computer (a message the person wrote in a chat on their phone), has DSH answer them with its own tools, and hands
+# the answer back. It claims nothing else: the platform pins the token to its own turns (ADR 0053 § 13.4).
+runuser -u node -- node "$LIB/runner.mjs" &
+
 # 5. The image's own entrypoint (DSH on loopback, restarted if it stops, then the gate) as `node`.
 exec runuser -u node -- sh /opt/kybernos-plugins/packages/kybernos-gate/docker/entrypoint.sh

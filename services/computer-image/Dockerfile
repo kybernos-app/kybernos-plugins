@@ -58,7 +58,7 @@ RUN cat >> /opt/dsh-seed/profiles/web/cordis.patch.yml <<'YAML'
 YAML
 
 COPY services/computer-image/entrypoint.sh /usr/local/bin/kybernos-computer-entrypoint
-COPY services/computer-image/egress.sh services/computer-image/render-profile.sh services/computer-image/reporter.mjs services/computer-image/link-account.mjs /usr/local/lib/kybernos-computer/
+COPY services/computer-image/egress.sh services/computer-image/render-profile.sh services/computer-image/reporter.mjs services/computer-image/runner.mjs services/computer-image/link-account.mjs /usr/local/lib/kybernos-computer/
 RUN chmod 0755 /usr/local/bin/kybernos-computer-entrypoint /usr/local/lib/kybernos-computer/egress.sh /usr/local/lib/kybernos-computer/render-profile.sh
 ENTRYPOINT ["/usr/local/bin/kybernos-computer-entrypoint"]
 CMD []
