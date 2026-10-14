@@ -1,8 +1,9 @@
 #!/bin/sh
-# A cloud computer's entrypoint. It runs as root for one thing: the volume Fly mounts at /data belongs to root and DSH runs as the
-# unprivileged `node` user, never as root (the agent runs model-written code with the permissions of its user).
+# A cloud computer's entrypoint. It runs as root for three things: the volume Fly mounts at /data belongs to root, the outbound policy
+# is a firewall, and DSH runs as the unprivileged `node` user, never as root (the agent runs model-written code with its permissions).
 set -eu
 
+LIB=/usr/local/lib/kybernos-computer
 DATA="${KYBERNOS_DATA:-/data}"
 mkdir -p "$DATA/dsh" "$DATA/work"
 # Once: a volume that big is not walked at every boot.
@@ -16,6 +17,23 @@ fi
 export HOME=/home/node
 export DSH_HOME="${DSH_HOME:-$DATA/dsh}"
 export KYBERNOS_WORKSPACE="${KYBERNOS_WORKSPACE:-$DATA/work}"
+export DSH_PORT="${DSH_PORT:-3081}"
 
-# The image's own entrypoint (DSH on loopback, restarted if it stops, then the gate) as `node`.
+# 1. The outbound policy, before anything of the agent runs.
+sh "$LIB/egress.sh"
+
+# 2. The profile: seeded from the image's copy on the first boot (as `node`, so that it is node's), then the model route rendered.
+runuser -u node -- sh -c '[ -d "$DSH_HOME/profiles/web" ] || { mkdir -p "$DSH_HOME"; cp -a /opt/dsh-seed/. "$DSH_HOME"/; }'
+runuser -u node -- sh "$LIB/render-profile.sh"
+
+# 3. The way into the page is the platform's link: the gate asks the platform, with the computer's own token, whether it is good.
+if [ -n "${KYBERNOS_API:-}" ] && [ -n "${KYBERNOS_COMPUTER_TOKEN:-}" ] && [ -z "${KYBERNOS_GATE_TICKET_URL:-}" ]; then
+  export KYBERNOS_GATE_TICKET_URL="${KYBERNOS_API%/}/v1/computer/tickets/redeem"
+  export KYBERNOS_GATE_TICKET_TOKEN="$KYBERNOS_COMPUTER_TOKEN"
+fi
+
+# 4. The reporter: says to the platform that the computer is up, that it is busy, what it runs and which runs ended.
+runuser -u node -- node "$LIB/reporter.mjs" &
+
+# 5. The image's own entrypoint (DSH on loopback, restarted if it stops, then the gate) as `node`.
 exec runuser -u node -- sh /opt/kybernos-plugins/packages/kybernos-gate/docker/entrypoint.sh

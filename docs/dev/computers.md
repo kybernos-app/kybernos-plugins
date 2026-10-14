@@ -32,8 +32,9 @@ docker buildx build --platform linux/amd64 -t kybernos-computer:<tag> \
 |---|---|
 | `KYBERNOS_API`, `KYBERNOS_COMPUTER_ID`, `KYBERNOS_COMPUTER_TOKEN` | its server, its id and its **restricted** token (a device token of its owner that the server holds to a short list of routes). Nothing else secret: a connector's credential, a key and the owner's password never enter the machine. |
 | `KYBERNOS_PUBLIC_HOST` | its own host name: given to `dsh web --trusted-host`, so that DSH's fence and the plugins' route guards accept the platform's address |
-| `KYBERNOS_GATE_PASSWORD` or `_HASH` | the gate refuses to start without one (the entry of a person into the page is the platform's single-use ticket, a later step) |
-| `KYBERNOS_EGRESS_MODE`, `KYBERNOS_EGRESS_ALLOW` | the network policy of the computer. **The image has no guard that holds it yet**: Fly offers no control of outbound traffic, so until the guard exists the mode is declared and not held |
+| `KYBERNOS_GATE_PASSWORD` or `_HASH` | the gate refuses to start without one (a person enters the page with the platform's single-use ticket: `GET /__gate/ticket?t=…`, redeemed with the computer's own token; the password stays for a development machine) |
+| `KYBERNOS_EGRESS_MODE`, `KYBERNOS_EGRESS_ALLOW` | the network policy of the computer. held **by the machine itself** (`egress.sh`, nftables, for every process in it): `closed` lets out the platform's address only, `list` adds the named hosts, `public` any public address. Fly offers no control of outbound traffic and its kernel has no `owner` match, so the rules are the whole machine's. It fails closed: a policy that cannot be applied stops the start. `KYBERNOS_EGRESS_GUARD=off` is for a development machine and the log says so |
+| `KYBERNOS_COMPUTER_MODEL` (optional, default `auto`) | the model the profile asks the platform's route for: `render-profile.sh` writes the `kybernos` provider (`$KYBERNOS_API/v1`, the computer's token as the key) and the default model before DSH starts |
 | `DSH_HOME`, `KYBERNOS_WORKSPACE` | set by the entrypoint to `/data/dsh` and `/data/work` on the volume, so that sessions, memory, skills and automations survive a restart, a cold start and a wake |
 
 ## What it was checked to do
@@ -78,12 +79,31 @@ whether the cache is still warm between two runs. The coding plan is a flat fee 
 - **The plugin's automations route does not take a `model`**: a task is fired with the profile's default model (`agent-default-model`),
   so the image's profile decides which model a computer uses.
 
-**Not checked:** a cron over days, the meter against the platform's own, the machine calling its server (`ready`, `heartbeat`,
-`schedule`, `runs`: the server must be reachable from Fly), the model route of the platform itself (`KYBERNOS_API` with the
-computer's token as the key: the run above used a provider key), and the egress guard.
+## What the play check does, end to end
+
+The server repository's `scripts/computers-play.ts` serves a platform behind a tunnel with the Fly driver and this image, and
+`scripts/computers-play-check.ts` does what a person does, in order (2026-10-14, image `p5`, two runs, 79 and 82 s):
+
+| Step | Result |
+|---|---|
+| create, boot, and `POST /v1/computer/ready` reaches the platform | 37 to 40 s |
+| « Open »: the single-use link is accepted by the gate once, refused the second time | yes, 2 cookies |
+| an automation made and fired on the computer; its run goes through **the platform's model route** (the computer's token as the key) | run counted, model use read from the ledger: about 0.021 USD for the trivial run |
+| the computer reported its automation (`schedule`) and its ended run (`runs`) and beats (`heartbeat`) | yes |
+| sleep, wake, delete | 3 s, 3 s, nothing left at the provider |
+| the platform's meter against the provider's machine events | within 3 s |
+
+**Not checked:** a cron over days, the egress guard against a hostile process (only that the platform stays reachable and the
+machine's DNS survives), and a machine running longer than 5 minutes (see the trial trap below).
 
 ## Traps met
 
+- **A trial organisation stops every machine after 5 minutes** (`Trial machine stopping. To run for longer than 5m0s, add a credit
+  card`): the machine goes `stopped`, whatever the platform wants. A real test of anything longer needs a card on the organisation.
+- **The guard must let ICMPv6 neighbour discovery through.** Fly's network is IPv6 (the resolver is `fdaa::3`): with a drop policy and
+  no `icmpv6 type { nd-neighbor-solicit, nd-neighbor-advert, … }` rule, name resolution stops a few minutes after the boot
+  (`EAI_AGAIN` for every name) and the reporter never says `ready`. Docker on a Mac is IPv4 only and cannot show it: check on Fly
+  (`POST /apps/{app}/machines/{id}/exec` of the Machines API runs a command inside).
 - **amd64.** An image built on Apple Silicon without `--platform linux/amd64` does not start on Fly.
 - **The machine creation call is slow the first time**: Fly answers it once the image is there (more than 20 s for an image it has not
   seen), and its `wait` call is a long poll. A client timeout of 20 s reports an unreachable platform for a machine that was made.

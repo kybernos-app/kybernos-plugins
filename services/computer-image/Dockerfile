@@ -1,25 +1,35 @@
 # The image of a cloud computer (ADR 0052 § 9, in the server repository): the hosted Kybernos image of packages/kybernos-gate/docker
-# (DSH, the plugins at a release tag, the gate in front of DSH) with one change, a root entrypoint that makes the volume the
-# profile and the workspace live on.
+# (DSH, the plugins at a release tag, the gate in front of DSH) with what a computer adds: the volume's owner, an outbound policy it
+# holds itself, the model route rendered from its environment, the gate opened by the platform's link, and a reporter.
+#
+# The context is the repository root (the gate's code is taken from the checkout, not from the tag the base was cloned at):
 #
 #   docker buildx build --platform linux/amd64 -t kybernos-computer-base:<tag> \
 #     --build-arg DSH_VER=0.2.1-alpha.2 --build-arg KB_REF=v1.0.0-beta.8 packages/kybernos-gate/docker
-#   docker buildx build --platform linux/amd64 -t kybernos-computer:<tag> \
-#     --build-arg BASE=kybernos-computer-base:<tag> services/computer-image
+#   docker buildx build --platform linux/amd64 -t kybernos-computer:<tag> -f services/computer-image/Dockerfile \
+#     --build-arg BASE=kybernos-computer-base:<tag> --build-arg VERSION=<tag> .
 #
 # Fly runs amd64: build for it (Apple Silicon builds arm64 by default, which Fly cannot run).
 #
 # What the platform gives the machine (nothing else, and never a connector's credential):
-#   KYBERNOS_API, KYBERNOS_COMPUTER_ID, KYBERNOS_COMPUTER_TOKEN   its server, its id, its restricted token
+#   KYBERNOS_API, KYBERNOS_COMPUTER_ID, KYBERNOS_COMPUTER_TOKEN   its server, its id and its restricted token
 #   KYBERNOS_PUBLIC_HOST                                         its own host name, for DSH's fence and the plugins' guards
-#   KYBERNOS_GATE_PASSWORD (or _HASH)                            the gate refuses to start without one
-#   KYBERNOS_EGRESS_MODE, KYBERNOS_EGRESS_ALLOW                  the network policy (an egress guard in the image is not built)
-# The volume is mounted at /data: the DSH profile (/data/dsh) and the agent's workspace (/data/work) are on it, so that a
-# restart, a cold start and a wake keep sessions, memory, skills and automations.
+#   KYBERNOS_EGRESS_MODE, KYBERNOS_EGRESS_ALLOW                  the outbound policy, held by egress.sh (nftables)
+#   KYBERNOS_COMPUTER_MODEL                                      the model it starts its sessions on (default `auto`)
+# The volume is mounted at /data: the DSH profile (/data/dsh) and the agent's workspace (/data/work) are on it, so that a restart, a
+# cold start and a wake keep sessions, memory, skills and automations.
 ARG BASE=kybernos-computer-base:latest
 FROM ${BASE}
 
 USER root
+ARG VERSION=dev
+ENV KYBERNOS_IMAGE_VERSION=${VERSION}
+
+RUN apt-get update && apt-get install -y --no-install-recommends nftables \
+    && rm -rf /var/lib/apt/lists/*
+
+# The gate of THIS checkout: it knows the platform's link (the base's own copy was cloned at a release tag that does not).
+COPY packages/kybernos-gate/ /opt/kybernos-plugins/packages/kybernos-gate/
 
 # Nobody is at an unattended computer's approval prompt. DSH's default permission preset asks for a command's approval, so a run that
 # needs a tool (a script for an arithmetic, a file write) waits for ever: measured, a one-minute task still open after ten minutes. The
@@ -40,7 +50,8 @@ RUN cat >> /opt/dsh-seed/profiles/web/cordis.patch.yml <<'YAML'
     defaultPreset: danger-full-access
 YAML
 
-COPY entrypoint.sh /usr/local/bin/kybernos-computer-entrypoint
-RUN chmod 0755 /usr/local/bin/kybernos-computer-entrypoint
+COPY services/computer-image/entrypoint.sh /usr/local/bin/kybernos-computer-entrypoint
+COPY services/computer-image/egress.sh services/computer-image/render-profile.sh services/computer-image/reporter.mjs /usr/local/lib/kybernos-computer/
+RUN chmod 0755 /usr/local/bin/kybernos-computer-entrypoint /usr/local/lib/kybernos-computer/egress.sh /usr/local/lib/kybernos-computer/render-profile.sh
 ENTRYPOINT ["/usr/local/bin/kybernos-computer-entrypoint"]
 CMD []
