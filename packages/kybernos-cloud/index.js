@@ -4000,7 +4000,7 @@ const turnGate = (ctx) => async (exec, next) => {
   while (Date.now() < stop) {
     if (exec && exec.signal && exec.signal.aborted === true) return refuse('the task was stopped')
     await new Promise((resolve) => setTimeout(resolve, Number(process.env.KYBERNOS_TURN_GATE_POLL_MS || 2000)))
-    const got = await turnPlatform('GET', '/v1/computer/approvals/' + encodeURIComponent(id))
+    const got = await turnPlatform('GET', '/v1/computer/approvals?id=' + encodeURIComponent(id))
     const state = got.status === 200 && got.json !== null ? got.json.state : null
     if (state === 'allowed') return next()
     if (state === 'allowed_turn') { turnAllowAll.add(root); return next() }
