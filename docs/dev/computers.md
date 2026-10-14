@@ -113,4 +113,4 @@ machine's DNS survives), and a machine running longer than 5 minutes (see the tr
 - **Name resolution.** A fresh `*.fly.dev` name can be cached as absent by a local resolver for a while: a check goes by address
   (`curl --resolve`).
 - **The registry.** `docker login registry.fly.io` takes an organisation token as the password; it lands in the Docker credential
-  store: `docker logout registry.fly.io` when the push is done. The repository name is an app of the organisation.
+  store: `docker logout registry.fly.io` when the push is done. The repository name is an app of the organisation. An image lives in **one organisation's registry**: machines of another organisation cannot pull it. `services/computer-image/push-image.sh` creates the registry app and pushes the local image for an organisation (`FLY_ORG`, `FLY_API_TOKEN` in the environment) and prints the `COMPUTERS_FLY_ORG` / `COMPUTERS_FLY_IMAGE` to set on the platform.
