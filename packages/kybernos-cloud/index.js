@@ -3921,10 +3921,95 @@ const turnAuthorized = (req) => {
 }
 // The sessions this route made (in memory, bounded): `turn/continue` may queue one more prompt in those and in no other session of the machine.
 const turnSessions = new Set()
-const rememberTurnSession = (id) => {
+/** The platform's turn (a runner job) each of those sessions belongs to: what a question to the person is asked ABOUT. */
+const turnJobs = new Map()
+/** Sessions whose person said « for the rest of this task »: the gate does not ask again in them. */
+const turnAllowAll = new Set()
+const TURN_JOB_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const rememberTurnSession = (id, jobId) => {
   turnSessions.add(id)
-  if (turnSessions.size > 200) turnSessions.delete(turnSessions.values().next().value)
+  if (typeof jobId === 'string' && TURN_JOB_RE.test(jobId)) turnJobs.set(id, jobId)
+  if (turnSessions.size > 200) {
+    const old = turnSessions.values().next().value
+    turnSessions.delete(old)
+    turnJobs.delete(old)
+    turnAllowAll.delete(old)
+  }
 }
+
+// ── The person is asked before their computer acts (ADR 0053 § 14) ───────────────────────────────
+// A session made for a turn is gated: the tools that can change something (a command, a file, a connector) wait for the person's tap in their chat, asked through the platform. The gate
+// is the plugin's own (`tools/pre-execute`, which DSH awaits as long as it takes): the profile stays `danger-full-access` for everything else on the machine, and DSH's own approval card
+// is never raised. Whatever goes wrong (no job, the platform unreachable, no answer in time) is a refusal, never a pass.
+const TURN_GATE_SAFE_TOOLS = new Set(['read', 'read_image', 'web_search', 'web_fetch'])
+const TURN_GATE_WAIT_MS = 10 * 60_000 + 15_000
+const turnRootOf = (ctx, id) => {
+  // A sub-agent's call is its root session's.
+  let current = id
+  for (let depth = 0; depth < 6 && typeof current === 'string'; depth += 1) {
+    if (turnSessions.has(current)) return current
+    const sessions = ctx.get('sessions')
+    const live = sessions !== undefined && sessions !== null && typeof sessions.get === 'function' ? sessions.get(current) : undefined
+    const parent = live && live.header ? live.header.parentSession : undefined
+    current = typeof parent === 'string' && parent !== '' ? parent : undefined
+  }
+  return null
+}
+const turnApprovalSubject = (exec) => {
+  const name = String((exec && exec.name) || '')
+  const args = exec && exec.arguments !== null && typeof exec.arguments === 'object' ? exec.arguments : {}
+  const text = (v) => (typeof v === 'string' ? v : '')
+  if (name === 'bash') return { kind: 'shell', summary: text(args.command) || text(args.description) || 'bash' }
+  if (name === 'write') return { kind: 'write', summary: text(args.file_path) || 'write' }
+  if (name === 'edit') return { kind: 'edit', summary: text(args.file_path) || 'edit' }
+  let shown = ''
+  try { shown = JSON.stringify(args) } catch (e) { shown = '' }
+  const summary = (name + ' ' + shown).trim()
+  return { kind: name.startsWith('mcp__') ? 'connector' : 'other', summary }
+}
+const turnPlatform = async (method, path, body) => {
+  const api = String(process.env.KYBERNOS_API || '').replace(/\/+$/u, '')
+  const token = String(process.env.KYBERNOS_COMPUTER_TOKEN || '')
+  if (api === '' || token === '') return { status: 0, json: null }
+  try {
+    const r = await fetch(api + path, {
+      method,
+      headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(15_000),
+    })
+    let json = null
+    try { json = JSON.parse(await r.text()) } catch (e) { /* not json */ }
+    return { status: r.status, json }
+  } catch (e) { return { status: 0, json: null } }
+}
+const turnGate = (ctx) => async (exec, next) => {
+  if (String(process.env.KYBERNOS_COMPUTER_ID || '') === '') return next()
+  const root = turnRootOf(ctx, exec && exec.agent ? exec.agent.id : undefined)
+  if (root === null) return next()
+  const name = String((exec && exec.name) || '')
+  if (TURN_GATE_SAFE_TOOLS.has(name) || turnAllowAll.has(root)) return next()
+  const refuse = (why) => ({ kind: 'deny', reason: 'The person did not allow this action (' + why + '). Do not try it again: say so in your answer.' })
+  const jobId = turnJobs.get(root)
+  if (jobId === undefined) return refuse('it could not be asked')
+  const subject = turnApprovalSubject(exec)
+  const made = await turnPlatform('POST', '/v1/computer/approvals', { job_id: jobId, kind: subject.kind, summary: subject.summary.slice(0, 2000) })
+  if (made.status !== 200 || made.json === null || typeof made.json.id !== 'string') return refuse('it could not be asked')
+  const id = made.json.id
+  const stop = Date.now() + TURN_GATE_WAIT_MS
+  while (Date.now() < stop) {
+    if (exec && exec.signal && exec.signal.aborted === true) return refuse('the task was stopped')
+    await new Promise((resolve) => setTimeout(resolve, Number(process.env.KYBERNOS_TURN_GATE_POLL_MS || 2000)))
+    const got = await turnPlatform('GET', '/v1/computer/approvals/' + encodeURIComponent(id))
+    const state = got.status === 200 && got.json !== null ? got.json.state : null
+    if (state === 'allowed') return next()
+    if (state === 'allowed_turn') { turnAllowAll.add(root); return next() }
+    if (state === 'denied') return refuse('they refused it')
+    if (state === 'expired') return refuse('they did not answer in time')
+  }
+  return refuse('they did not answer in time')
+}
+const mountTurnGate = (ctx) => { ctx.on('tools/pre-execute', turnGate(ctx)) }
 const turnStart = async (req, body) => {
   if (turnAuthorized(req) !== true) return { ok: false, error: 'unavailable' }
   const prompt = body !== null && typeof body === 'object' && typeof body.prompt === 'string' ? body.prompt.trim() : ''
@@ -3939,6 +4024,8 @@ const turnStart = async (req, body) => {
   }
   const sessionId = unwrap(await sc.create({}))
   if (sessionId === null) return { ok: false, error: 'no_session' }
+  // Known to the gate BEFORE the prompt is queued: the first tool call must already find it gated.
+  rememberTurnSession(sessionId, body.jobId)
   // Lets the session settle before the turn is assembled, as an automation's fire does.
   await new Promise((resolve) => setTimeout(resolve, 750))
   const controller = new AbortController()
@@ -3949,7 +4036,6 @@ const turnStart = async (req, body) => {
     content: [{ type: 'text', text: prompt.slice(0, 100000) }],
   }, controller.signal)
   if (ack !== null && typeof ack === 'object' && ack.ok === false) return { ok: false, error: 'prompt_refused' }
-  rememberTurnSession(sessionId)
   return { ok: true, sessionId }
 }
 // One more prompt in a session this route made: the runner asks for the words when a turn ended without any.
@@ -4209,6 +4295,7 @@ export function apply(ctx) {
   else ctx.inject(['webServer'], (hostCtx) => mountWebRoutes(ctx, hostCtx.webServer))
   // Mémoire : le chunk dans le prompt, les deux outils, la capture de fin de
   // tour. Chaque montage est indépendant et tolère l'absence de son service.
+  try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] garde des tours: ' + String((e && e.message) || e)) }
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connexions: ' + String((e && e.message) || e)) }
