@@ -1338,21 +1338,21 @@
       },
       "aide": {
         "what": {
-          "fr": "Les liens des messages du chat deviennent de petites pastilles grises avec le nom du site, en fin de phrase : les longues adresses ne coupent plus la lecture.",
-          "en": "Links in chat messages become small grey chips with the site name at the end of the sentence, so long addresses stop breaking the reading."
+          "fr": "Les liens d’un message deviennent une seule pastille de source en fin de phrase : le nom du site, une initiale colorée, et « +2 » s’il y a plusieurs sources. Elles ne bougent plus.",
+          "en": "A message’s links become one source chip at the end of the sentence: the site name, a coloured initial, and “+2” when there are several sources. The chips no longer move."
         },
         "steps": [
           {
-            "fr": "Lisez une réponse du chat qui contient des liens : chacun devient une pastille grise, par exemple « llm-stats », au bout de sa phrase.",
-            "en": "Read a chat answer that contains links: each one becomes a grey chip, for example “llm-stats”, at the end of its sentence."
+            "fr": "Lisez une réponse du chat qui contient des liens : chaque phrase porte une seule pastille, par exemple « arxiv +1 », au bout de la phrase.",
+            "en": "Read a chat answer that contains links: each sentence carries one chip, for example “arxiv +1”, at its end."
           },
           {
-            "fr": "Cliquez une pastille : une carte montre le titre du lien, le site et l’adresse complète.",
-            "en": "Click a chip: a card shows the link’s title, the site and the full address."
+            "fr": "Cliquez la pastille : une carte liste toutes les sources de la phrase, avec le texte du lien et le site.",
+            "en": "Click the chip: a card lists every source of the sentence, with the link’s text and the site."
           },
           {
-            "fr": "Cliquez « Ouvrir ↗ » dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
-            "en": "Click “Ouvrir ↗” in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
+            "fr": "Cliquez une source dans la carte pour ouvrir la page dans un nouvel onglet ; Échap ou un clic ailleurs ferme la carte.",
+            "en": "Click a source in the card to open the page in a new tab; Esc or a click elsewhere closes the card."
           }
         ],
         "where": {
@@ -1361,8 +1361,8 @@
           "page": false
         },
         "good": {
-          "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir. Le bouton « Ouvrir ↗ » reste en français.",
-          "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it. The “Ouvrir ↗” button stays in French."
+          "fr": "La carte montre le texte du lien, pas le vrai titre de la page : rien n’est téléchargé pour la remplir, et aucune icône de site n’est demandée au réseau (l’initiale colorée la remplace).",
+          "en": "The card shows the link’s text, not the page’s real title: nothing is downloaded to fill it, and no site icon is requested from the network (the coloured initial stands in for it)."
         }
       }
     },
