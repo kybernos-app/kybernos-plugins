@@ -32,7 +32,10 @@ const REELS = [
   ['Serveur Hetzner et services Coolify', 'integration'],
   ['Nettoyage Docker libérer espace', 'nettoyage'],
   ['Automatisation étude à la demande', 'fonctionnalite'],
-  ['Greeting', 'question']
+  ['Greeting', 'question'],
+  ['Recherche des derniers modèles open source', 'question'],
+  ['Skills équipe : sélecteur sur la fiche', 'ui'],
+  ['Installation et mise à jour sur Linux', 'integration']
 ]
 for (const [titre, attendu] of REELS) ok('« ' + titre + ' » → ' + attendu, cat(titre) === attendu, classerLocalement(titre))
 
@@ -49,8 +52,8 @@ ok('accents and case are ignored (THÈME / theme / Thème)', cat('THÈME') === '
 ok('a short stem is a whole word: « ui » is not in « quiz », « bug » not in « debugger »', cat('Quiz de culture') === null && cat('Debugger') === null)
 ok('...but a 3-letter stem takes its common inflections (bugs, fixed)', cat('Les bugs du menu') === 'correctif' && cat('Fixed the layout crash') === 'correctif')
 ok('an exact-word rule is not a prefix: « quelque » is not « quel », « memory » not « memo », « logout » not « logo », « commentaire » not « comment »',
-  cat('Ajouter quelque chose') === null && cat('Memory and lessons') === null && classerLocalement('Logout').score === 0 && cat('Logo') === 'ui' && cat('Commentaires du code') === null,
-  [cat('Ajouter quelque chose'), cat('Memory and lessons'), classerLocalement('Logout').score, cat('Logo'), cat('Commentaires du code')])
+  cat('Ajouter quelque chose') === null && cat('Memorandum du projet') === null && classerLocalement('Logout').score === 0 && cat('Logo') === 'ui' && cat('Commentaires du code') === null,
+  [cat('Ajouter quelque chose'), cat('Memorandum du projet'), classerLocalement('Logout').score, cat('Logo'), cat('Commentaires du code')])
 ok('a long stem is a word start: « nettoy » → nettoyage, nettoyer', cat('Nettoyer les logs') === 'nettoyage' && cat('Nettoyage du repo') === 'nettoyage')
 ok('a word counts once per category: « creer » is not also « cree »', classerLocalement('Créer un nouveau thème').score === 3, classerLocalement('Créer un nouveau thème'))
 ok('a question mark makes a question', cat('Comment créer un thème ?') === 'question' && cat('Le thème ?') === 'question' && cat('Le thème') === 'ui')
@@ -75,6 +78,8 @@ console.log('\n── through the route: the fallback fires only when the brain 
   mkdirSync(join(racine, 'kybernos'), { recursive: true })
   writeFileSync(join(racine, 'kybernos', 'settings.json'), '{}')
   let reponseCerveau = null
+  let horloge = 1_000_000
+  const MIN = 60 * 1000
   const appels = []
   const decision = {
     decider: async () => reponseCerveau,
@@ -82,7 +87,7 @@ console.log('\n── through the route: the fallback fires only when the brain 
     selectionnerCategorie: async (t) => { appels.push(['categorie', t]); return reponseCerveau }
   }
   const routes = {}
-  monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: join(racine, 'kybernos', 'settings.json'), categoriesPath: join(racine, 'kybernos', 'categories.json'), sessionsHome: join(racine, 'sessions'), decision })
+  monterRoutes({ register: (r) => { routes[r.path] = r.handler } }, { reglagesPath: join(racine, 'kybernos', 'settings.json'), categoriesPath: join(racine, 'kybernos', 'categories.json'), sessionsHome: join(racine, 'sessions'), decision, maintenant: () => horloge })
   const PORT = 3080
   const requete = (corps) => ({ method: 'POST', url: '/kybernos-sessions/decision', headers: { origin: 'http://127.0.0.1:' + PORT }, socket: { localPort: PORT }, on (ev, cb) { if (ev === 'data') cb(JSON.stringify(corps)); if (ev === 'end') cb() } })
   const reponse = () => { const r = { code: null, corps: null, writeHead (c) { r.code = c }, end (s) { try { r.corps = JSON.parse(s) } catch (e) { r.corps = s } } }; return r }
@@ -98,7 +103,22 @@ console.log('\n── through the route: the fallback fires only when the brain 
   r = await poser({ categorie: 'Tendances des agents IA' })
   ok('the brain is switched off → local verdict (the caller keeps its own rule)', r.corps.motif === 'local' && r.corps.categorie === 'donnees', r.corps)
 
+  // The brain failed: for 5 minutes it is not called again for a category (the list asks for a dozen rows at once), the local
+  // verdict answers at once; after that it is tried again.
+  appels.length = 0
+  reponseCerveau = { ok: false, code: 'HTTP-403', erreur: 'x', ms: 1, seuil: 0.6 }
+  await poser({ categorie: 'Nettoyage Docker libérer espace' })
+  await poser({ categorie: 'Tendances des agents IA' })
+  ok('a brain that just failed is not called again at once (rest period)', appels.length === 0, appels)
+  r = await poser({ categorie: 'Projet Mars' })
+  ok('...and a title with no signal still gets the brain\'s own failure, from the rest period', r.corps.ok === false && r.corps.code === 'HTTP-403', r.corps)
+  horloge += 4 * MIN
+  await poser({ categorie: 'Nettoyage Docker libérer espace' })
+  ok('still at rest 4 minutes later', appels.length === 0, appels)
+  horloge += 2 * MIN
   reponseCerveau = { ok: true, categorie: 'ui', confiance: 0.9, motif: 'choisi', seuil: 0.6, probabilites: {} }
+  r = await poser({ categorie: 'Nettoyage Docker libérer espace' })
+  ok('after 5 minutes the brain is asked again, and its answer wins', appels.length === 1 && r.corps.motif === 'choisi' && r.corps.categorie === 'ui', { appels, corps: r.corps })
   r = await poser({ categorie: 'Nettoyage Docker libérer espace' })
   ok('the brain chose → its verdict is kept, never replaced by the local one', r.corps.motif === 'choisi' && r.corps.categorie === 'ui', r.corps)
   reponseCerveau = { ok: true, categorie: null, confiance: 0.4, motif: 'sous-le-seuil', seuil: 0.6, probabilites: {} }
@@ -106,6 +126,11 @@ console.log('\n── through the route: the fallback fires only when the brain 
   ok('the brain answered « not sure » → that answer is kept (it did answer)', r.corps.motif === 'sous-le-seuil' && r.corps.categorie === null, r.corps)
 
   reponseCerveau = { ok: false, code: 'HTTP-403', erreur: 'x', ms: 1, seuil: 0.6 }
+  appels.length = 0
+  horloge += 10 * MIN
+  await poser({ categorie: 'Nettoyage du repo' })
+  await poser({ categorie: 'Nettoyage du repo', modele: 'typesafe-ai/jev' })
+  ok('a request that names its own model is never held back by the rest period', appels.length === 2, appels)
   r = await poser({ kybers: [{ id: 'k', mission: 'm' }], demande: 'Nettoyage du repo' })
   ok('the kyber routing question never gets a local answer', r.corps.ok === false && r.corps.motif === undefined, r.corps)
   r = await poser({ questions: { q: { type: 'boolean' } }, state: 'Nettoyage du repo' })
@@ -117,6 +142,26 @@ console.log('\n── through the route: the fallback fires only when the brain 
   rmSync(racine, { recursive: true, force: true })
 }
 
+console.log('\n── coverage on the registry\'s own titles (measured 2026-10-15: 113 titles an agent or the brain had classified) ──')
+{
+  // A frozen sample of real titles and the category they got, to keep the keyword lists honest: more coverage must not cost accuracy.
+  const ECHANTILLON = [
+    ['ui', 'Nommage des chats, réglages Kybernos et barre de statut allégée'], ['ui', 'Pinned : réordonnancement façon Workspaces et repli'],
+    ['ui', 'Crew éditable : prompts + sélecteur modèle (fiche Team)'], ['ui', 'Goal en chat : objectif, tours et barre sur deux lignes'],
+    ['ui', 'Panneau de partage : reprise au pixel près'], ['ui', 'Skills Featured : rangée cartes à pochette, liste manuelle à l\'étoile'],
+    ['correctif', 'Onglet Team : non-regression des parcours et correctif fallback'], ['correctif', 'Chasse aux bugs visuels — 11 correctifs prouvés'],
+    ['fonctionnalite', 'Relance DSH : accord, reprise des sessions, coupure réseau'], ['fonctionnalite', 'Modeleur 2D/3D : dessiner des modèles depuis le chat'],
+    ['fonctionnalite', 'Doublage Short EN : voix clonées, lipsync et QC itérative'], ['fonctionnalite', 'Redesign slash-creation : plans, jetons DSH resolus, portier durci'],
+    ['integration', 'Recette beta : installation et mise a jour prouvees sur Linux et Windows'], ['integration', 'Kybernos : code de parrainage lu sur le compte'],
+    ['question', 'Matchs des Bleus en septembre (Soccerway)'], ['donnees', 'Quality Score : KPIs réels, tendance et scoping dans la fiche AI Team']
+  ]
+  let juste = 0
+  let classe = 0
+  for (const [attendu, titre] of ECHANTILLON) { const c = cat(titre); if (c !== null) { classe += 1; if (c === attendu) juste += 1 } }
+  ok('the sample is mostly classified (' + classe + '/' + ECHANTILLON.length + ')', classe >= Math.ceil(ECHANTILLON.length * 0.7), { classe })
+  ok('and mostly right when it is (' + juste + '/' + classe + ')', juste >= Math.ceil(classe * 0.6), { juste, classe })
+}
+
 console.log('\n── the page: it takes a local verdict, and re-judges a row whose title changed ──')
 {
   const client = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'client.js'), 'utf8')
@@ -124,6 +169,11 @@ console.log('\n── the page: it takes a local verdict, and re-judges a row wh
     /v\.ok === true && \(v\.motif === 'choisi' \|\| v\.motif === 'local'\)/.test(client))
   ok('an auto-classified row comes back to the queue when its title changed (« Greeting » becomes the real subject)',
     /CATEGORIES_AUTO\[id\] === true && avant !== undefined && avant !== null && String\(avant\.titre \|\| ''\) !== texte/.test(client))
+  ok('a session no category fits shows a speech bubble, not a dot (« no icon was created »), and the question category a bubble with a « ? »',
+    /const CATEGORIE_DEFAUT = \{ ico: 'chat', mot: 'Non classé' \}/.test(client) && /question: \{ ico: 'chatq', mot: 'Question' \}/.test(client) &&
+    /\n\s+chat: '<path d="M7\.9 20A9 9 0 1 0 4 16\.1L2 22Z"\/>',/.test(client) && /'\\u\{2753\}': 'chatq'/.test(client))
+  ok('a dozen rows are classified per pass, and a pass runs soon after new rows appear (it was 3 per 30 s: a long list took minutes)',
+    /AUTOCAT_FILE\.length >= 12/.test(client) && /Date\.now\(\) - dernierePompe > 5000/.test(client))
   ok('...and a row classified by an agent or another browser (no local record) does not',
     /if \(!\(CATEGORIES_AUTO\[id\] === true && avant !== undefined/.test(client))
 }

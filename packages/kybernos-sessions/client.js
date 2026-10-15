@@ -363,7 +363,11 @@ window.__ModuleLoader__.load({
       chart: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
       broom: '<path d="M14 10 21 3"/><path d="m9 8 7 7-2.2 2.2A4 4 0 0 1 11 18.4L4 20l1.6-7a4 4 0 0 1 1.2-2.8z"/><path d="m9.6 13.6-1.5 6.8"/><path d="m12.6 16.6-1.4 4.2"/>',
       help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-      // Neutral dot for unclassified sessions (user request: the '?' help-circle read as an error).
+      // A speech bubble for a session no category could be given to: a chat is a conversation, whatever else it is. (The dot it
+      // replaces read as « no icon was created »; the '?' help-circle before it read as an error.) `chatq` is the QUESTION
+      // category: the same bubble with a question mark inside, so the two are never confused.
+      chat: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+      chatq: '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
       point: '<circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/>'
     }
     const svg = (n, size, sw) => h('svg', {
@@ -389,7 +393,7 @@ window.__ModuleLoader__.load({
       '\u{1F50C}': 'plug', // 🔌 intégration
       '\u{1F4CA}': 'chart', // 📊 données
       '\u{1F9F9}': 'broom', // 🧹 nettoyage
-      '\u{2753}': 'help' // ❓ question
+      '\u{2753}': 'chatq' // ❓ question
     }
     const MOTS_GLYPHE = {
       '\u{1F6E0}': 'Fonctionnalité', '\u{1F41B}': 'Correctif', '\u{1F3A8}': 'UI/design',
@@ -400,7 +404,7 @@ window.__ModuleLoader__.load({
     // du chantier : gris par défaut, vert quand le travail est committé.
     // Ce que porte une ligne dont le titre n'est pas encore classé : l'icône
     // est là dès le premier nommage, la catégorie viendra au re-titrage.
-    const CATEGORIE_DEFAUT = { ico: 'point', mot: 'Non classé' }
+    const CATEGORIE_DEFAUT = { ico: 'chat', mot: 'Non classé' }
     // The row's mark says its category and whether its work is committed, in the language of the interface: French is the source
     // (the key kept in `data-mot`), English the pair, a translated language is looked up by its French text (same rule as the other plugins).
     const langueUI = () => {
@@ -468,7 +472,7 @@ window.__ModuleLoader__.load({
       integration: { ico: 'plug', mot: 'Intégration' },
       donnees: { ico: 'chart', mot: 'Données' },
       nettoyage: { ico: 'broom', mot: 'Nettoyage' },
-      question: { ico: 'help', mot: 'Question' }
+      question: { ico: 'chatq', mot: 'Question' }
     }
     const CLE_CATEGORIES = 'kybernos.sessions.categories.v1'
     let CATEGORIES = {} // sessionId → slug
@@ -590,7 +594,7 @@ window.__ModuleLoader__.load({
       if (typeof fetch !== 'function' || typeof localStorage === 'undefined' || localStorage === null) return
       const lignes = document.querySelectorAll('[class*="sessionRow"]')
       for (let i = 0; i < lignes.length; i++) {
-        if (AUTOCAT_FILE.length >= 3) break // trois décisions par passe, jamais une rafale
+        if (AUTOCAT_FILE.length >= 12) break // douze décisions par passe (400 ms entre deux), jamais une rafale
         const ligne = lignes[i]
         const el = ligne.querySelector('[class*="title"]')
         if (el === null || el === undefined) continue
@@ -1244,6 +1248,7 @@ window.__ModuleLoader__.load({
       return false
     }
 
+    let dernierePompe = 0
     const planifier = (mutations) => {
       if (commitDansMutations(mutations) && typeof relire === 'function') {
         LISTE.t = 0
@@ -1255,7 +1260,11 @@ window.__ModuleLoader__.load({
       }
       if (prevu) return
       prevu = true
-      const tic = () => { prevu = false; decorerTitres(); filtrerListe() }
+      const tic = () => {
+        prevu = false; decorerTitres(); filtrerListe()
+        // De nouvelles lignes sans catégorie : on les classe sans attendre le prochain cycle de 30 s (au plus une fois toutes les 5 s).
+        if (typeof Date !== 'undefined' && Date.now() - dernierePompe > 5000) { dernierePompe = Date.now(); setTimeout(() => { try { pomperAutocat() } catch (e) { /* retenté */ } }, 1500) }
+      }
       if (typeof window !== 'undefined' && window.requestAnimationFrame) window.requestAnimationFrame(tic)
       else setTimeout(tic, 16)
     }

@@ -15,7 +15,7 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   by the naming CLI (`scripts/session-titre.mjs`) or, when absent, guessed from the title by the decision brain. **When the brain
   gives no verdict at all** (gateway error such as HTTP 403, brain switched off, key missing) the host falls back to
   `classement-local.mjs`: a cautious keyword classifier on the title (French and English, accents and case ignored, one hit per
-  word, a minimum score and a lead over the second category, otherwise nothing: the row keeps its dot). The answer is labelled
+  word, a minimum score and a lead over the second category, otherwise nothing: the row keeps its neutral speech bubble). The answer is labelled
   `motif: 'local'` and never contradicts a brain verdict (even « not sure »). A row whose title changes after an automatic
   classification is judged again (« Greeting » becomes the real subject).
 - **Settings ▸ General ▸ Kybernos Settings** (slot `settings.general.item`, order -30): replay onboarding, *Rename Chat session
