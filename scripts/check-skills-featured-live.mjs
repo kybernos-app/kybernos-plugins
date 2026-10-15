@@ -132,6 +132,26 @@ try {
   await shot('featured-plain')
   await js("document.querySelector('[data-kb=pick-bg-tint]').click()")
 
+  // list view: the shared bar's switch, one row per pick, the same gestures, and back
+  const viewBtns = await js("Array.from(document.querySelectorAll('.kbs-root .kb6-tb-vbtn')).map((b) => b.getAttribute('data-kb'))")
+  check('the shared bar offers the cards / list switch on Featured', Array.isArray(viewBtns) && viewBtns.indexOf('view-list') >= 0 && viewBtns.indexOf('view-cards') >= 0, viewBtns)
+  await js("document.querySelector('.kbs-root [data-kb=view-list]').click()")
+  await sleep(500)
+  check('the list view draws one row per pick (24) and no card', (await js("document.querySelectorAll('[data-kb=pick-row]').length")) === 24 && (await js("document.querySelectorAll('[data-kb=pick-card]').length")) === 0)
+  check('a row has its thumbnail, creator, count and the verdict', await js("(() => { const r = document.querySelector('[data-kb=pick-row]'); return !!r.querySelector('.kbsf-th') && !!r.querySelector('.kbsf-by .kbsf-av') && !!r.querySelector('.kbsf-cnt svg') && !!r.querySelector('.kbsf-pills .kbsf-pill') })()"))
+  check('the row actions are always there (no hover needed)', await js("(() => { const r = document.querySelector('[data-kb=pick-row] .kbsf-racts'); const b = r.querySelector('[data-kb=pick-details]'); return !!b && b.getBoundingClientRect().width > 0 && getComputedStyle(r).opacity === '1' })()"))
+  check('the row is the same pick as the card (installed flag and figure)', await js("(() => { const r = document.querySelector('[data-kb=pick-row]'); return /211\\.2k/.test(r.innerText) })()"))
+  check('the choice is kept in this browser', await js("JSON.parse(window.localStorage.getItem('kybernos.skills.views')).featured === 'list'"))
+  await shot('featured-list')
+  await js("document.querySelector('[data-kb=pick-details]').click()")
+  await waitFor(page, "!!document.querySelector('[data-kb=disc-panel]')", 8000)
+  check('Details from a row opens the same panel', await js("document.querySelector('[data-kb=disc-panel] .kbs-panel-top').innerText.includes('›')"))
+  await shot('featured-list-panel')
+  await js("document.querySelector('[data-kb=disc-panel] button[aria-label]').click()")
+  await js("document.querySelector('.kbs-root [data-kb=view-cards]').click()")
+  await sleep(400)
+  check('back to cards, the grid is there again', (await js("document.querySelectorAll('[data-kb=pick-card]').length")) === 24)
+
   // the other tabs still work
   await js("Array.from(document.querySelectorAll('.kbsub-group [role=tab]')).find((b) => b.innerText.startsWith('Yours')).click()")
   await sleep(600)

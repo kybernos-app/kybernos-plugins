@@ -126,12 +126,13 @@ try {
   assert.match(src, /h\('div', \{ className: 'kbsf-trow' \},\s*h\('div', \{ className: 'kbsf-title' \}, title\),\s*h\('div', \{ className: 'kbsf-side' \}/, 'the creator and the count sit on the right of the title')
   const card = src.slice(src.indexOf('const pickCard = '), src.indexOf('const renderFeatured = '))
   assert.ok(!/'\/' \+ p\.id\s*\)\s*\)\s*,\s*h\('p'/.test(card) && !/className: 'kbs-copy'/.test(card), 'no /name link on the card')
-  assert.match(card, /icon\('dl', 13\), nf\(p\.installs\)/, 'the count is an icon and a figure')
+  const parts = src.slice(src.indexOf('const pickCover = '), src.indexOf('const pickCard = '))
+  assert.match(parts, /icon\('dl', 13\), nf\(p\.installs\)/, 'the count is an icon and a figure')
   assert.ok(!/' installs'/.test(card) && !/ installs/.test(card.replace(/t\('pick\.count'/g, '')), 'the card never writes the word « installs » beside the count')
   ok('the card: creator and count on the right of the title, no /name link, the count as an icon and a figure')
 
   assert.match(src, /@media \(hover:hover\)\{\s*\.kbs-root \.kbsf-card \.kbsf-acts\{opacity:0\}\s*\.kbs-root \.kbsf-card:hover \.kbsf-acts,\.kbs-root \.kbsf-card:focus-within \.kbsf-acts\{opacity:1\}/, 'actions on hover and on focus, always on touch')
-  assert.match(card, /setAskInstall\(x\)/, 'Install goes through the same confirmation as Discover')
+  assert.match(parts, /setAskInstall\(x\)/, 'Install goes through the same confirmation as Discover')
   assert.match(src, /const fromFeatured = mode === 'featured'[\s\S]*setMode\(fromFeatured \? 'featured' : 'yours'\)/, 'after an install from Featured the page stays on Featured')
   ok('Install and Details show on hover and focus (always on touch); Install opens the usual confirmation and the page stays on Featured')
 
@@ -139,6 +140,17 @@ try {
   assert.match(src, /kbsf-grid' \+ \(coverBg === 'plain' \? ' kbsf-plain' : ''\)/)
   assert.match(src, /\.kbs-root \.kbsf-plain \.kbsf-pic\{background:var\(--dsw-alias-bg-layer-2\)\}/)
   ok('the cover background is a Tint or Plain choice, kept per browser')
+
+  // the list view: the same pick as a row, switched by the shared bar like Yours and Discover
+  assert.match(src, /featured: j !== null && j\.featured === 'list' \? 'list' : 'cards'/, 'the choice is kept with the other two tabs')
+  assert.match(src, /viewMode: views\.featured \}/, 'the bar shows the current view')
+  assert.match(src, /patch\.viewMode !== undefined\) setView\('featured', patch\.viewMode === 'list' \? 'list' : 'cards'\)/, 'and writes it back')
+  assert.match(src, /views\.featured === 'list'\s*\? h\('div', \{ className: 'kbsf-list'[\s\S]*list\.map\(pickRow\)/, 'the list view draws a row per pick')
+  const row = src.slice(src.indexOf('const pickRow = '), src.indexOf('// Pager based on the SERVER'))
+  assert.match(row, /pickBy\(p\), pickCnt\(p\)/, 'the row has the creator and the count')
+  assert.match(row, /pickButtons\(p, x, isIn, openIt\)/, 'and the same two gestures as the card')
+  assert.ok(!/'\/' \+ p\.id\)\s*\)/.test(row.replace(/copy\('\/' \+ p\.id\)/g, '')), 'no /name link in the row either')
+  ok('the list view: a row per pick with the creator, the count, the verdicts and the same actions; the shared bar switches it, per browser')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {
