@@ -14,7 +14,7 @@ console.log('contract')
 ok('the factory is wrapped: a load error returns a disabled plugin', /catch \(err\) \{[\s\S]*return \{ apply \(\) \{/.test(SRC))
 ok('nothing is ever written to the page as HTML from a result', !/\.innerHTML\s*=\s*[^'`]*\b(r|m|it|hit|result|text|title|q)\b/.test(SRC) && (SRC.match(/\.innerHTML =/g) || []).length === 1)
 ok('the only innerHTML is the static icon constants of this file', /s\.innerHTML = inner \/\/ static constants/.test(SRC))
-ok('every network call is to this plugin, or to two routes the page already uses', [...SRC.matchAll(/(?:post|getJson)\('([^']+)'/g)].map((m) => m[1]).every((u) => /^\/kybernos-search\/|^\/kybernos-cloud\/memory$|^\/kybernos\/state$/.test(u)))
+ok('every network call is to this plugin, or to two routes the page already uses', [...SRC.matchAll(/(?:post|getJson)\('([^']+)'/g)].map((m) => m[1]).every((u) => /^\/kybernos-search\/|^\/kybernos-cloud\/memory$|^\/kybernos\/load$/.test(u)))
 ok('no engine patch, no eval, no remote script', !/\beval\(|new Function|importScripts|XMLHttpRequest|WebSocket/.test(SRC))
 ok('the hooks of the live checks', ['search-dialog', 'search-input', 'search-header'].every((h) => SRC.includes("'" + h + "'")) && /data-act', 'scope'/.test(SRC) && /'data-act', 'result'/.test(SRC))
 ok('the three ways in: the global opener, the shortcut, the header icon', SRC.includes('window.__KB_SEARCH__ = { open: openDialog') && /String\(e\.key\)\.toLowerCase\(\) === 'k'/.test(SRC) && /\[class\*="searchButton"\]/.test(SRC))
@@ -66,7 +66,7 @@ if (JSDOM === null) {
     if (u === '/kybernos-search/start') return reply({ ok: true, state: 'building', done: 1, total: 2, chats: 1 }, 202)
     if (u === '/kybernos-search/status') return reply({ ok: true, state: 'ready', done: 2, total: 2, chats: 2, updatedAt: Date.now(), errors: 0, sources: 0 })
     if (u === '/kybernos-cloud/memory') return reply({ ok: true, account: [{ id: 'm1', content: 'Le thème sombre est préféré', kind: 'preference', pinned: true }] })
-    if (u === '/kybernos/state') return reply({ data: { artifacts: [{ id: 'a1', title: 'Slides thème de marque', kind: 'slides' }] } })
+    if (u === '/kybernos/load') return reply({ ok: true, artifacts: [{ path: '/w/p/slides-theme-de-marque.html', name: 'slides-theme-de-marque.html', mtimeMs: Date.now(), workspace: 'proj' }] })
     return reply({}, 404)
   }
   let def = null
@@ -91,7 +91,7 @@ if (JSDOM === null) {
   await sleep(400)
   const q = calls.filter((c) => c[0] === '/kybernos-search/query').pop()
   ok('a query asks the host for the host scopes only', q !== undefined && q[1].q === 'theme' && JSON.stringify(q[1].scopes) === '["chat","skill","lesson"]', q)
-  ok('memories and creations are read from the routes the page already uses', calls.some((c) => c[0] === '/kybernos-cloud/memory') && calls.some((c) => c[0] === '/kybernos/state'))
+  ok('memories and creations are read from the routes the page already uses', calls.some((c) => c[0] === '/kybernos-cloud/memory') && calls.some((c) => c[0] === '/kybernos/load'))
   const rows = [...doc.querySelectorAll('[data-act="result"]')]
   ok('results from all scopes are listed, grouped', rows.length === 3, rows.length)
   const html = doc.querySelector('.kbsr-list').innerHTML
