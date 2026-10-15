@@ -610,6 +610,29 @@ window.__ModuleLoader__.load({
         }
       }
 
+      // ── the top icon: at the very top of the sidebar, beside « Collapse sidebar » ────────────────────────────────
+      // It replaces the menu row. Found by the label of the collapse button (the sidebar's own), borrowing its class so it looks like
+      // DSH's own icon buttons; only while the sidebar is open (a collapsed one has no such button, and no room).
+      const sweepTop = () => {
+        if (document.querySelector('[data-kb="search-top"]') !== null) return
+        let collapse = null
+        for (const b of document.querySelectorAll('button')) {
+          const r = b.getBoundingClientRect()
+          if (r.width === 0 || r.height === 0 || r.top < 0 || r.top > 80 || r.left > 360) continue
+          if (/collapse|réduire|replier|masquer/i.test(String(b.getAttribute('aria-label') || b.title || '')) && /sidebar|barre|panneau/i.test(String(b.getAttribute('aria-label') || b.title || ''))) { collapse = b; break }
+        }
+        if (collapse === null || collapse.parentNode === null) return
+        const b = document.createElement('button')
+        b.type = 'button'
+        b.setAttribute(HEADER_ATTR, 'search-top')
+        b.setAttribute('aria-label', kt('Rechercher partout', 'Search everywhere'))
+        b.title = kt('Rechercher partout (⌘K)', 'Search everywhere (⌘K)')
+        b.className = String(collapse.className).replace(/\bwide\b|_wide\b/g, '') + ' kbsr-hdr kbsr-top'
+        b.appendChild(svgIcon(ICON_SEARCH_PLUS, 16))
+        b.addEventListener('click', (ev) => { ev.stopPropagation(); openDialog() })
+        collapse.parentNode.insertBefore(b, collapse)
+      }
+
       return {
         name: 'kybernos-search',
         apply (ctx) {
@@ -633,11 +656,12 @@ window.__ModuleLoader__.load({
           const later = (records) => {
             if (scheduled !== null) return
             if (Array.isArray(records) && records.length > 0 && records.every((r) => r.target && r.target.closest && r.target.closest('.kbsr-scrim'))) return
-            scheduled = setTimeout(() => { scheduled = null; try { sweepHeader() } catch (e) { /* the header moved: no icon */ } }, 250)
+            scheduled = setTimeout(() => { scheduled = null; try { sweepHeader() } catch (e) { /* the header moved: no icon */ } try { sweepTop() } catch (e) { /* the sidebar top moved: no icon */ } }, 250)
           }
           let observer = null
           try { observer = new MutationObserver(later); observer.observe(document.body, { childList: true, subtree: true }) } catch (e) { observer = null }
           try { sweepHeader() } catch (e) { /* no header yet */ }
+          try { sweepTop() } catch (e) { /* no sidebar yet */ }
 
           const cleanup = () => {
             document.removeEventListener('keydown', onKey, true)
@@ -645,7 +669,7 @@ window.__ModuleLoader__.load({
             if (scheduled !== null) clearTimeout(scheduled)
             closeDialog()
             style.remove()
-            document.querySelectorAll('[data-kb="search-header"]').forEach((n) => n.remove())
+            document.querySelectorAll('[data-kb="search-header"], [data-kb="search-top"]').forEach((n) => n.remove())
             try { delete window.__KB_SEARCH__ } catch (e) { /* gone */ }
           }
           if (ctx !== null && ctx !== undefined && typeof ctx.effect === 'function') ctx.effect(() => cleanup, 'kybernos-search: popup, shortcut and header icon')

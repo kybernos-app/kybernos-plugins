@@ -202,12 +202,11 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('tinted tiles, the strip, and the headline / Beta badge are wired without an engine patch')
 }
 
-// 6e. Search everywhere (kybernos-search): the menu row only asks the bundle to open, and only when the bundle is in the boot list
+// 6e. Search everywhere (kybernos-search) is no longer a menu row: the bundle draws its own icon at the top of the sidebar (and ⌘K)
 {
-  assert.ok(/const KB_SR = .*'@local\/kybernos-search'/.test(src), 'the row follows the bundle being present')
-  assert.ok(/KB_SR === true \? row\('search', Icon\('search', 15\), kbt\('kbui\.searchall'\)/.test(src) && /window\.__KB_SEARCH__\.open\(\)/.test(src), 'the row opens the bundle\'s popup, guarded')
-  assert.ok(/'kbui\.searchall': \{ kybernos: 'Rechercher partout', en: 'Search everywhere' \}/.test(src), 'the row has both languages')
-  ok('the Search everywhere menu row is wired to the kybernos-search opener, in both languages')
+  assert.ok(!/row\('search', Icon\('search', 15\)/.test(src), 'no menu row for it any more')
+  assert.ok(!/const KB_SR = /.test(src) && !/'kbui\.searchall'/.test(src), 'and none of its dead code: the flag, the string')
+  ok('the Search everywhere menu row is gone (its icon is the bundle\'s, at the top of the sidebar)')
 }
 
 // 6f. a dictionary key is declared ONCE: the later of two silently wins. (« kbui.search » was declared twice: the menu row's

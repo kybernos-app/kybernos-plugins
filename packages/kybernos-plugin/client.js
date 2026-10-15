@@ -1309,7 +1309,6 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
       'kbui.skills': { kybernos: 'Compétences', en: 'Skills' },
       'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' },
-      'kbui.searchall': { kybernos: 'Rechercher partout', en: 'Search everywhere' },
       'kbui.kyber': { kybernos: 'Kyber', en: 'Kyber' },
       'kbui.cloudcomputer': { kybernos: 'Cloud Computer', en: 'Cloud Computer' },
       'kbui.automations.set': { kybernos: 'Automatisations', en: 'Automations' },
@@ -19611,7 +19610,6 @@ function renderFit(canvas, model, cam, opts){
     const KB_CP = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-composio') } catch (e) { return false } })()
     // The Dashboards satellite is in the boot list: its menu row shows, and its page mounts on 'main.kybernos-dashboards'.
     const KB_DB = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-dashboards') } catch (e) { return false } })()
-    const KB_SR = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-search') } catch (e) { return false } })()
     // The Kyber satellite is in the boot list: its menu row shows, and its page mounts on 'main.kybernos-kyber'.
     const KB_KY = (() => { try { const b = ((window.__DSH_BOOT__ || {}).entries) || []; return b.some((e) => e !== null && e !== undefined && e.id === '@local/kybernos-kyber') } catch (e) { return false } })()
     const kbComposio = (() => { try { return require('@local/kybernos-composio/client').composio } catch (e) { return null } })()
@@ -23827,8 +23825,7 @@ function renderFit(canvas, model, cam, opts){
           (kbNcDot(ncCloud.kind) === '' ? null : h('span', { className: 'kb4-dot ' + kbNcDot(ncCloud.kind), 'aria-label': kbt('kbnc.cc.' + ncCloud.kind) }))) : null),
         (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => openPage({ view: 'kyber' })) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
-        // Search everywhere (kybernos-search): the popup is its own bundle's; this row only asks it to open (also ⌘K, and an icon in the Workspaces header).
-        (KB_SR === true ? row('search', Icon('search', 15), kbt('kbui.searchall'), null, false, () => { try { if (window.__KB_SEARCH__ && typeof window.__KB_SEARCH__.open === 'function') window.__KB_SEARCH__.open() } catch (e) { /* the bundle is not there */ } }) : null),
+        // Search everywhere (kybernos-search) is no longer a menu row: its icon sits at the top of the sidebar, next to « Collapse », and ⌘K opens it.
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).
