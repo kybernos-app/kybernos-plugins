@@ -733,6 +733,12 @@ clicks:
   Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
   no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
   menu's embedded ones: nothing replaces the entries in Settings.
+- **The « Kybernos » section of Settings** (kybernos-cloud's `kybernos-local`: what stays on this computer): one group header « Kybernos »
+  (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two
+  server actions say so and are disabled, the instructions field works. Connected: the instructions are saved through the host's file
+  routes into the **sandbox's own `<DSH home>/AGENTS.md`** (read back after a reload, removed when emptied, a reserved marker refused;
+  the file is put back as it was at the end), « Import models » and « Send DSH chats » call their host routes (answered in the page) and a
+  refused re-import says so.
 - **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
   `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is

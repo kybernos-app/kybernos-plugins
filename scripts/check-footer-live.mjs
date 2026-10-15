@@ -70,7 +70,7 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED }
+const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 // The GETs the real frame makes for each page of the account group (what the server's console asks its parent for): Overview and the two entries DSH's footer
@@ -118,6 +118,7 @@ const startConsole = async (opts = {}) => {
   return c
 }
 const REGISTRY = join(DSH_HOME, 'kybernos', 'servers.json')
+const agentsBefore = existsSync(join(DSH_HOME, 'AGENTS.md')) ? readFileSync(join(DSH_HOME, 'AGENTS.md'), 'utf8') : null
 const registryBefore = existsSync(REGISTRY) ? readFileSync(REGISTRY, 'utf8') : null
 const setRegistry = (active, list) => { mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true }); writeFileSync(REGISTRY, JSON.stringify({ active, servers: list.map((c, i) => ({ id: 'stub-' + (i + 1), name: 'Stand-in ' + (i + 1), api: c.origin })) })) }
 const restoreRegistry = () => { try { if (registryBefore === null) rmSync(REGISTRY, { force: true }); else writeFileSync(REGISTRY, registryBefore) } catch (e) { /* the sandbox is throw-away */ } }
@@ -129,6 +130,8 @@ const mouse = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed'
 const key = async (k, code) => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: k, code, windowsVirtualKeyCode: k === 'Escape' ? 27 : 0 }) }
 const centre = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return r.width === 0 ? null : { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
 const press = async (sel) => { const c = await centre(sel); if (c === null || c === undefined || c.err !== undefined) return false; await mouse(c.x, c.y); return true }
+// A click from the page itself (a button that may sit below the fold of a long Settings page).
+const jsClick = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e) { e.scrollIntoView({ block: 'center' }); e.click() } })()`)
 const exists = async (sel) => (await val(`document.querySelector(${JSON.stringify(sel)}) !== null`)) === true
 const text = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? (e.innerText || '').replace(/\\s+/g, ' ').trim() : null })()`)
 const rect = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } })()`)
@@ -175,6 +178,8 @@ const answerFor = (path, req) => {
   if (path === '/kybernos-cloud/billing/checkout' && fake.checkout !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.checkout === 'function' ? fake.checkout() : fake.checkout } }
   if (path === '/kybernos-cloud/billing/portal' && fake.portal !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.portal === 'function' ? fake.portal() : fake.portal } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
+  if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
+  if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
   if (path === '/kybernos-mobile/remote/status' && fake.remote !== null) { fake.calls.push('remote-status'); return { body: fake.remote } }
   return null
 }
@@ -268,6 +273,15 @@ try {
     check('and closes our menu', !(await exists('[data-kb="off-menu"]')))
     check('no native popover appeared on the way', (await nativeSeen()).length === 0, await nativeSeen())
     await shot('3-settings-from-menu')
+    // The « Kybernos » section of Settings shows whether connected or not: the instructions need no server, the two other actions say so.
+    await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === 'kybernos-local' }); if (c) c.click() })()`)
+    await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
+    await sleep(500)
+    check('signed out: the Kybernos section opens (instructions, models, chats)', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
+    check('signed out: the two actions that need a server say so, and cannot be pressed', (await val(`document.querySelectorAll('[data-kb="ky-signed-out"]').length`)) === 2
+      && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === true && document.querySelector('[data-kb="ky-chats-run"]').disabled === true`)) === true)
+    check('signed out: the instructions field is still usable (it is a file of this computer)', (await val(`document.querySelector('[data-kb="ky-instr-field"]').disabled`)) === false && /on this computer/i.test((await text('[data-kb="ky-instr-note"]')) || ''), await text('[data-kb="ky-instr-note"]'))
+    await shot('3b-kybernos-section-signed-out')
     await clean()
 
     // ── 2. What the other plugins do: click the old trigger from a script ───────────────────────────────────
@@ -449,7 +463,9 @@ try {
     const over = await relayAfter('overview', 3)
     check('Overview: the profile, the sessions and the referral card are not refused', ['/v1/me', '/v1/sessions', '/v1/referral'].every((p) => over.relay.some((x) => x.p === p)) && notRefused(over), over.relay)
     const data = await relayAfter('data', 0)
-    check('My data: no read at all, so nothing for the relay to refuse', data.relay.length === 0, data.relay)
+    // The page itself reads nothing; the real frame's shell reads the profile and the teams list on every page (both are on the allowlist).
+    check('My data: nothing the relay refuses' + (consoleFile === null ? ' (and the page reads nothing at all)' : ''), notRefused(data) && (consoleFile !== null || data.relay.length === 0), data.relay)
+    console.log('    reads seen by the relay: ' + JSON.stringify({ security: security.relay.map((x) => x.p), support: support.relay.map((x) => x.p), devices: devices.relay.map((x) => x.p), overview: over.relay.map((x) => x.p), data: data.relay.map((x) => x.p) }))
     // The writes of the second factor and anything else under /v1/me/mfa stay off the allowlist (the unit test pins the rule; here the real route).
     const refusedLive = await val(`fetch('/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/me/mfa/setup')).then((r) => r.json())`)
     check('a sub-path of the second factor (a write) is still refused by the real route', refusedLive !== null && refusedLive.ok === false && refusedLive.error === 'chemin refuse', refusedLive)
@@ -546,6 +562,16 @@ try {
     check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Remote Control)',
       cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
     await shot('11-settings-without-account-entries')
+    // The group header that held « Account » is « Kybernos » now, and it is the only one: the servers entry stays first under it, then the section of what
+    // stays on this computer, then the Suite. Read from the layout (the organiser orders by CSS), headers and cells together.
+    // The organiser (a debounced observer) draws the group headers a moment after the cells: wait for them.
+    await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 3`, 6000)
+    await sleep(400)
+    const flow = (await val(`(() => { const list = Array.from(document.querySelectorAll('[class*="navList"]')).find((l) => l.querySelector('[class*="navCell"]')); return Array.from(list.children).map((c) => { const n = Object.keys(c).find((k) => k.indexOf('__reactFiber$') === 0); return { t: (c.textContent || '').trim(), key: n === undefined ? null : c[n].key, y: Math.round(c.getBoundingClientRect().top), head: c.getAttribute('data-kb') === 'settings-group' } }).filter((x) => x.y > 0 || x.head).sort((a, b) => a.y - b.y) })()`)) || []
+    const heads = flow.filter((x) => x.head).map((x) => x.t)
+    check('the group headers are Kybernos, Settings, Desktop, Plugins: no « Account » header any more, and « Kybernos » only once', heads[0] === 'Kybernos' && heads.filter((h) => h === 'Kybernos').length === 1 && !heads.includes('Account'), heads)
+    const at = flow.findIndex((x) => x.head && x.t === 'Kybernos')
+    check('under it: Servers (kept where it was), the Kybernos section, then the Suite', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers' && flow[at + 2] && flow[at + 2].key === 'kybernos-local' && flow[at + 3] && flow[at + 3].key === 'kybernos-suite', flow.slice(at, at + 5))
     // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
     const openCell = async (cellKey) => {
       await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${JSON.stringify(cellKey)} }); if (c) c.click() })()`)
@@ -558,6 +584,58 @@ try {
     check('Remote Control still opens, with its own page', /remote control|phone/i.test(remote) && remote.length > 20, remote.slice(0, 160))
     const appearance = await openCell('kbac-appearance')
     check('Appearance still opens (the shortcut to Theme)', /theme|appearance/i.test(appearance), appearance.slice(0, 160))
+
+    // ── The « Kybernos » section: the custom instructions through the host's file routes, the model re-import, the DSH chats ─────────────────────────────────
+    console.log('The Kybernos section of Settings — what stays on this computer')
+    await openCell('kybernos-local')
+    await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
+    await sleep(500)
+    check('the section opens: instructions, models and chats are there', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
+    const AGENTS = join(DSH_HOME, 'AGENTS.md')
+    const note = (await text('[data-kb="ky-instr-note"]')) || ''
+    check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md)', /on this computer/i.test(note) && note.includes(AGENTS), note)
+    const setField = (value) => val(`(() => { const t = document.querySelector('[data-kb="ky-instr-field"]'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(t, ${JSON.stringify(value)}); t.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+    const field = () => val(`document.querySelector('[data-kb="ky-instr-field"]').value`)
+    const INSTR = 'Answer in short sentences. Say what you checked.'
+    check('Save is not offered before anything changed', (await val(`document.querySelector('[data-kb="ky-instr-save"]').disabled`)) === true)
+    await setField(INSTR)
+    check('typing offers Save', (await val(`document.querySelector('[data-kb="ky-instr-save"]').disabled`)) === false)
+    await jsClick('[data-kb="ky-instr-save"]')
+    await waitFor(page, `document.querySelector('[data-kb="ky-instr-saved"]') !== null`, 5000)
+    check('Save: the page says Saved', await exists('[data-kb="ky-instr-saved"]'))
+    const written = existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : ''
+    check('and the host wrote the marked section of AGENTS.md (what every agent reads)', written.includes('<!-- kybernos:custom-instructions v1 -->') && written.includes(INSTR), written.slice(0, 200))
+    await reload()
+    await val(`window.__kbOpenDshSettings()`)
+    await settingsOpen()
+    await openCell('kybernos-local')
+    await waitFor(page, `document.querySelector('[data-kb="ky-instr-field"]') !== null && document.querySelector('[data-kb="ky-instr-field"]').value !== ''`, 5000)
+    check('after a reload the field reads it back from the file', (await field()) === INSTR, await field())
+    // Emptying the field and saving removes the section (the rest of the file is the person\'s).
+    await setField('')
+    await jsClick('[data-kb="ky-instr-save"]'); await sleep(700)
+    check('an emptied field removes the section from AGENTS.md', !(existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : '').includes('kybernos:custom-instructions'))
+    // A marker typed in the field is refused with the reason, and nothing is written.
+    await setField('x <!-- kybernos:custom-instructions v1 --> y')
+    await jsClick('[data-kb="ky-instr-save"]'); await sleep(700)
+    check('a reserved marker in the text is refused, with the reason', /reserved Kybernos marker/.test((await text('[data-kb="ky-instr-error"]')) || ''), await text('[data-kb="ky-instr-error"]'))
+    await setField('')
+
+    // Models and chats: the host's routes are answered in the page; the section runs them and says what happened.
+    fake.sync = { ok: true, models: { count: 3, plan: 'free', settings: true } }
+    fake.push = { ok: true, scanned: 4, pushed: 4 }
+    fake.calls.length = 0
+    check('connected: the two server actions can be pressed and no sign-in note is shown', (await exists('[data-kb="ky-signed-out"]')) === false && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === false && document.querySelector('[data-kb="ky-chats-run"]').disabled === false`)) === true)
+    await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
+    check('Import models asks the host to re-import the catalogue', fake.calls.includes('models-sync'), fake.calls)
+    await jsClick('[data-kb="ky-chats-run"]'); await sleep(600)
+    check('Send DSH chats asks the host to send the directory', fake.calls.includes('chats-push'), fake.calls)
+    fake.sync = { ok: false, error: 'reseau' }
+    await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
+    check('a refused re-import says so (and offers to try again)', (await exists('[data-kb="ky-models-error"]')) && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled`)) === false, await text('[data-kb="ky-models"]'))
+    fake.sync = null
+    fake.push = null
+    await shot('11b-kybernos-section')
     await clean()
 
     // ── 8. The Upgrade dialog ─────────────────────────────────────────────────────────────────────────────────
@@ -693,6 +771,8 @@ try {
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
   }
 } finally {
+  // The Kybernos section writes the sandbox's own AGENTS.md: put it back as it was.
+  try { if (agentsBefore === null) rmSync(join(DSH_HOME, 'AGENTS.md'), { force: true }); else writeFileSync(join(DSH_HOME, 'AGENTS.md'), agentsBefore) } catch (e) { /* the sandbox is throw-away */ }
   try { rmSync(join(DSH_HOME, 'kybernos-cloud-stub-1.json'), { force: true }) } catch (e) { /* none */ }
   restoreRegistry()
   for (const c of consoles) { try { await c.close() } catch (e) { /* closed */ } }

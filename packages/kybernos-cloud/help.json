@@ -17,8 +17,8 @@
       "en": "The bottom of the sidebar shows your workspace and plan; click it for “Account”, “Settings” or “Log out”."
     },
     {
-      "fr": "Vos souvenirs du compte se gèrent dans Réglages › Memory & Lessons (si ce module est installé).",
-      "en": "Your account memories are managed in Settings › Memory & Lessons (if that module is installed)."
+      "fr": "Réglages › Kybernos : vos instructions, le réimport des modèles, l'envoi des chats DSH. Souvenirs du compte : Memory & Lessons.",
+      "en": "Settings › Kybernos: your instructions, model re-import, DSH chats. Account memories: Settings › Memory & Lessons."
     }
   ],
   "where": {

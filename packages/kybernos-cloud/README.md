@@ -66,14 +66,17 @@ Le résumé (`count`, `plan`, `imported_at`, `settings`, `credential`) voyage
 aussi dans `state` des réponses `/status`, `/poll` et `/refresh`. Les ids
 complets restent dans la route de détail.
 
-## Custom instructions (no page calls them any more)
+## Settings › Kybernos (what stays on this computer)
 
-> The Account page of DSH's Settings, which held the field, was removed (the account's pages are embedded pages of the
-> server's console now). No DSH page calls `/kybernos-cloud/instructions[/save]` at the moment; the routes, `instructions.mjs`
-> and its tests are kept so the field can come back on an embedded page. Product decision pending: bring the field back or
-> drop the host half.
+The one Settings section of this bundle (`kybernos-local`, `KybernosSection` in `client.js`) holds the three local functions that used to sit
+on the removed Account pages. It is shown whether connected or not; what needs a server says so when signed out (buttons disabled).
+The account's own pages (profile, security, devices, data, support) are the server's embedded pages, opened from the footer menu.
 
-The "Custom instructions" field of the Account page used to live in the browser only, so no agent read it.
+- **Custom instructions**: the field and its Save, through the two host routes below (a marked section of `<DSH home>/AGENTS.md`).
+- **Models**: « Re-import » runs `POST /kybernos-cloud/models/sync` and shows what the last import did (count, plan, date).
+- **DSH chats**: « Send DSH chats » runs `POST /kybernos-cloud/chats/push` and shows the last send.
+
+The "Custom instructions" field used to live in the browser only, so no agent read it.
 It is now a marked section of `<DSH home>/AGENTS.md`, which DSH's own `dsh-agent-instructions` loader hands
 to every new chat (user-global file first, then the project's):
 

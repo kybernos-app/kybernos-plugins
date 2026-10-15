@@ -206,6 +206,39 @@ window.__ModuleLoader__.load({
         upFeatTeamMembers: 'Membres de l\'équipe',
         upFeatTeamLessons: 'Leçons partagées',
         upFeatTeamSkills: 'Compétences partagées',
+        kyNav: 'Kybernos',
+        kyTitle: 'Kybernos',
+        kySub: 'Ce que Kybernos garde sur cet ordinateur.',
+        kyInstrTitle: 'Instructions personnalisées',
+        kyInstrPh: 'Soyez direct. Phrases courtes…',
+        kyInstrNote: 'Gardées sur cet ordinateur, dans {file} : tous les agents les lisent, dans les nouvelles conversations.',
+        kyInstrNone: 'Le fichier des instructions n\'a pas pu être lu sur cet ordinateur.',
+        kyInstrErr: 'Pas enregistrées : {why}.',
+        kyWhyReserved: 'le texte contient un repère réservé de Kybernos',
+        kyWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrigez-la ou supprimez-la à la main',
+        kyWhyLong: 'le texte dépasse {max} caractères',
+        kyWhyUnreadable: 'le fichier n\'a pas pu être lu',
+        kyWhyWrite: 'le fichier n\'a pas pu être écrit',
+        kySave: 'Enregistrer',
+        kySaving: 'Enregistrement…',
+        kySaved: 'Enregistré ✓',
+        kyModelsTitle: 'Modèles',
+        kyModelsCount: '{n} modèles · formule {plan}',
+        kyModelsNone: 'Aucun modèle importé',
+        kyLastOn: 'dernier import le {date}',
+        kyModelsNote: 'Relit le catalogue de modèles du serveur actif et ajoute ceux que votre formule inclut dans Réglages › Models.',
+        kyModelsWarn: 'Import partiel : la route du fournisseur n\'a pas pu être écrite dans les réglages — « Réimporter » réessaie.',
+        kyModelsFail: 'Réimport impossible — réessayez.',
+        kyImport: 'Importer les modèles',
+        kyReimport: 'Réimporter',
+        kyImporting: 'Import…',
+        kyChatsTitle: 'Chats DSH',
+        kyChatsNote: 'Envoie la liste de vos sessions DSH (projet et date, jamais le contenu) à Kybernos.',
+        kyChatsSend: 'Envoyer les chats DSH',
+        kyChatsSending: 'Envoi…',
+        kyChatsLast: 'Dernier envoi',
+        kyChatsFail: 'Envoi impossible — réessayez.',
+        kyNeedServer: 'Demande un serveur Kybernos : connectez-vous d\'abord (le bouton en bas de la barre latérale).',
       },
       en: {
         menu: 'Kybernos Cloud',
@@ -371,6 +404,39 @@ window.__ModuleLoader__.load({
         upFeatTeamMembers: 'Team members',
         upFeatTeamLessons: 'Shared lessons',
         upFeatTeamSkills: 'Shared skills',
+        kyNav: 'Kybernos',
+        kyTitle: 'Kybernos',
+        kySub: 'What Kybernos keeps on this computer.',
+        kyInstrTitle: 'Custom instructions',
+        kyInstrPh: 'Be direct. Short sentences…',
+        kyInstrNote: 'Kept on this computer, in {file}: every agent reads them, in new chats.',
+        kyInstrNone: 'The instructions file could not be read on this computer.',
+        kyInstrErr: 'Not saved: {why}.',
+        kyWhyReserved: 'the text contains a reserved Kybernos marker',
+        kyWhyDamaged: 'the Kybernos section of AGENTS.md is damaged: fix or delete it by hand',
+        kyWhyLong: 'the text is longer than {max} characters',
+        kyWhyUnreadable: 'the file could not be read',
+        kyWhyWrite: 'the file could not be written',
+        kySave: 'Save',
+        kySaving: 'Saving…',
+        kySaved: 'Saved ✓',
+        kyModelsTitle: 'Models',
+        kyModelsCount: '{n} models · plan {plan}',
+        kyModelsNone: 'No models imported',
+        kyLastOn: 'last import on {date}',
+        kyModelsNote: 'Re-reads the active server\'s model catalogue and adds the ones your plan includes to Settings › Models.',
+        kyModelsWarn: 'Partial import: the provider route could not be written to settings — "Re-import" tries again.',
+        kyModelsFail: 'Re-import failed — try again.',
+        kyImport: 'Import models',
+        kyReimport: 'Re-import',
+        kyImporting: 'Importing…',
+        kyChatsTitle: 'DSH chats',
+        kyChatsNote: 'Sends the list of your DSH sessions (project and date, never the content) to Kybernos.',
+        kyChatsSend: 'Send DSH chats',
+        kyChatsSending: 'Sending…',
+        kyChatsLast: 'Last send',
+        kyChatsFail: 'Send failed — try again.',
+        kyNeedServer: 'Needs a Kybernos server: sign in first (the button at the bottom of the sidebar).',
       },
     }
 
@@ -655,6 +721,19 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
    est redevenu un empilement simple, la carte est le dernier élément visible
    (l'engrenage natif est masqué, son panneau s'ouvre depuis le menu). */
 .kbfp-cardwrap{position:relative;width:100%;min-width:0;display:flex;justify-content:flex-start}
+.kbl-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
+.kbl-head{margin:0 0 6px}
+.kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
+.kbl-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
+.kbl-area{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:1.45;resize:vertical}
+.kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
+.kbl-area:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}
+.kbl-area:disabled{opacity:.6}
+.kbl-count{align-self:flex-end;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbl-line{margin:0;font-size:14px;color:var(--dsw-alias-label-primary)}
+.kbl-note{margin:0}
+.kbl-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbl-ok{font-size:13px;color:var(--dsw-alias-label-secondary)}
 `
 
     /** Téléphone (appareil appairé) — tracé Lucide, comme le reste du pied. */
@@ -2494,6 +2573,165 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         ctx.effect(() => slots.inject('shell.quota-notice', () => slots.register(
           { name: 'shell.quota-notice', select: (owner) => (owner !== null && owner !== undefined && owner.code === 'QUOTA' ? owner : null), inject: () => ({}) }, KbQuotaNotice)),
         'kybernos-cloud: notice de quota')
+
+        // ── The « Kybernos » section of DSH's Settings ────────────────────────────────────────────────────────────
+        // What stays on THIS computer: the custom instructions (a marked section of <DSH home>/AGENTS.md, read by every agent), the re-import of the active
+        // server's model catalogue and the send of the DSH chats' directory (project and date, never the content). The account's own pages (profile,
+        // security, devices, data, support) are the server's embedded pages, opened from the footer menu: nothing of them is here. The section shows whether
+        // the person is connected or not: the instructions need no server, the two other actions say so when signed out.
+        const KY_INSTR_MAX = 2000
+        const KybernosSection = () => {
+          const [conn, setConn] = React.useState('loading')
+          const [models, setModels] = React.useState(null)
+          const [lastPush, setLastPush] = React.useState(null)
+          const [text, setText] = React.useState('')
+          const [saved, setSaved] = React.useState('')
+          const [file, setFile] = React.useState('')
+          const [instr, setInstr] = React.useState('loading')
+          const [instrErr, setInstrErr] = React.useState('')
+          const [flash, setFlash] = React.useState(false)
+          const [busy, setBusy] = React.useState('')
+          const [fail, setFail] = React.useState({ models: false, chats: false })
+          const live = React.useRef(true)
+          React.useEffect(() => () => { live.current = false }, [])
+
+          const readStatus = React.useCallback(async () => {
+            let st = null
+            try { st = await callLocal('/status', 'GET') } catch (e) { st = null }
+            if (live.current !== true) return
+            if (st !== null && st.connected === true) {
+              const s = st.state !== undefined && st.state !== null ? st.state : {}
+              setConn('in')
+              setModels(s.models !== undefined ? s.models : null)
+              setLastPush(s.chats_last_push !== undefined ? s.chats_last_push : null)
+            } else {
+              setConn('out')
+            }
+          }, [])
+          React.useEffect(() => { void readStatus() }, [readStatus])
+          // The page follows the card: a connection made or ended there is seen here without leaving the section.
+          React.useEffect(() => {
+            const again = () => { void readStatus() }
+            window.addEventListener('focus', again)
+            window.addEventListener('kybernos-cloud:space-changed', again)
+            return () => { window.removeEventListener('focus', again); window.removeEventListener('kybernos-cloud:space-changed', again) }
+          }, [readStatus])
+
+          React.useEffect(() => {
+            let alive = true
+            callLocal('/instructions', 'GET').then((r) => {
+              if (alive !== true) return
+              if (r !== null && r.ok === true && typeof r.file === 'string' && typeof r.text === 'string') {
+                setFile(r.file); setText(r.text); setSaved(r.text); setInstr('ready')
+              } else {
+                setInstr(r !== null && r.error === 'markers-damaged' ? 'damaged' : 'unavailable')
+              }
+            }).catch(() => { if (alive === true) setInstr('unavailable') })
+            return () => { alive = false }
+          }, [])
+
+          const dirty = instr === 'ready' && text !== saved
+          const save = async () => {
+            if (dirty !== true || busy !== '') return
+            setBusy('save'); setInstrErr(''); setFlash(false)
+            let r = null
+            try { r = await callLocal('/instructions/save', 'POST', { text: text }) } catch (e) { r = null }
+            if (live.current !== true) return
+            setBusy('')
+            if (r !== null && r.ok === true) {
+              // The host trims the text: what is kept is what the field then shows.
+              const kept = text.replace(/\r\n/g, '\n').trim()
+              setText(kept); setSaved(kept); setFlash(true)
+            } else {
+              setInstrErr(r !== null && typeof r.error === 'string' ? r.error : 'write-failed')
+            }
+          }
+          const instrWhy = (code) => {
+            if (code === 'reserved') return t('kyWhyReserved')
+            if (code === 'markers-damaged') return t('kyWhyDamaged')
+            if (code === 'too-long') return quotaFill(t('kyWhyLong'), { max: KY_INSTR_MAX })
+            if (code === 'unreadable') return t('kyWhyUnreadable')
+            return t('kyWhyWrite')
+          }
+
+          const run = async (which, path) => {
+            if (busy !== '' || conn !== 'in') return
+            setBusy(which)
+            setFail((f) => Object.assign({}, f, { [which]: false }))
+            let bad = false
+            try {
+              const r = await callLocal(path, 'POST')
+              bad = r === null || r.ok !== true
+            } catch (e) { bad = true }
+            await readStatus()
+            if (live.current !== true) return
+            setFail((f) => Object.assign({}, f, { [which]: bad }))
+            setBusy('')
+          }
+
+          const count = models !== null && typeof models.count === 'number' ? models.count : 0
+          const when = models !== null ? fmtDate(models.imported_at) : null
+          const signedOut = conn === 'out'
+          const needSignIn = signedOut ? h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-signed-out' }, t('kyNeedServer')) : null
+
+          return h('div', { className: 'kbl-page', 'data-kb': 'ky-section' },
+            h('div', { className: 'kbl-head' },
+              h('h2', { className: 'kb6-title' }, t('kyTitle')),
+              h('p', { className: 'kb8-sub' }, t('kySub'))),
+
+            h('div', { className: 'kbl-card', 'data-kb': 'ky-instructions' },
+              h('div', { className: 'kbl-sect' }, t('kyInstrTitle')),
+              h('textarea', {
+                className: 'kbl-area', rows: 6, maxLength: KY_INSTR_MAX, value: text, placeholder: t('kyInstrPh'),
+                disabled: instr !== 'ready' || busy === 'save', 'data-kb': 'ky-instr-field',
+                onChange: (e) => { setText(e.target.value); setFlash(false) },
+              }),
+              h('div', { className: 'kbl-count' }, String(text.length) + ' / ' + String(KY_INSTR_MAX)),
+              h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-instr-note' },
+                instr === 'ready' ? quotaFill(t('kyInstrNote'), { file: file })
+                  : (instr === 'damaged' ? t('kyWhyDamaged') : (instr === 'loading' ? t('loading') : t('kyInstrNone')))),
+              instrErr === '' ? null : h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-instr-error' }, quotaFill(t('kyInstrErr'), { why: instrWhy(instrErr) })),
+              h('div', { className: 'kbl-actions' },
+                h('button', {
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: dirty !== true || busy === 'save',
+                  'data-kb': 'ky-instr-save', onClick: () => { void save() },
+                }, busy === 'save' ? t('kySaving') : t('kySave')),
+                flash === true ? h('span', { className: 'kbl-ok', 'data-kb': 'ky-instr-saved' }, t('kySaved')) : null)),
+
+            h('div', { className: 'kbl-card', 'data-kb': 'ky-models' },
+              h('div', { className: 'kbl-sect' }, t('kyModelsTitle')),
+              h('p', { className: 'kbl-line', 'data-kb': 'ky-models-state' },
+                count > 0
+                  ? quotaFill(t('kyModelsCount'), { n: count, plan: (models !== null && models.plan) || t('none') }) + (when !== null ? ' · ' + quotaFill(t('kyLastOn'), { date: when }) : '')
+                  : (signedOut ? '—' : t('kyModelsNone'))),
+              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyModelsNote')),
+              count > 0 && models.settings !== true ? h('p', { className: 'kbm-setfield-invalid kbl-note' }, t('kyModelsWarn')) : null,
+              fail.models === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-models-error' }, t('kyModelsFail')) : null,
+              needSignIn,
+              h('div', { className: 'kbl-actions' },
+                h('button', {
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-models-run',
+                  onClick: () => { void run('models', '/models/sync') },
+                }, busy === 'models' ? t('kyImporting') : (count > 0 ? t('kyReimport') : t('kyImport'))))),
+
+            h('div', { className: 'kbl-card', 'data-kb': 'ky-chats' },
+              h('div', { className: 'kbl-sect' }, t('kyChatsTitle')),
+              h('p', { className: 'kbl-line', 'data-kb': 'ky-chats-state' },
+                lastPush !== null && lastPush.ok === true
+                  ? t('kyChatsLast') + ' · ' + String(lastPush.pushed === undefined ? 0 : lastPush.pushed) + (fmtDate(lastPush.at) !== null ? ' · ' + fmtDate(lastPush.at) : '')
+                  : (lastPush !== null && lastPush.ok === false ? t('kyChatsFail') : '—')),
+              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyChatsNote')),
+              fail.chats === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-chats-error' }, t('kyChatsFail')) : null,
+              needSignIn,
+              h('div', { className: 'kbl-actions' },
+                h('button', {
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-chats-run',
+                  onClick: () => { void run('chats', '/chats/push') },
+                }, busy === 'chats' ? t('kyChatsSending') : t('kyChatsSend')))))
+        }
+        ctx.effect(() => slots.inject('settings.section', () => slots.register(
+          { name: 'settings.section', id: 'kybernos-local', order: 11, label: t('kyNav') }, KybernosSection)),
+        'kybernos-cloud: section Kybernos des reglages (ce qui reste sur cet ordinateur)')
       },
     }
   },

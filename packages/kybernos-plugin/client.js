@@ -498,7 +498,6 @@ let kbLocaleRead = () => 'en'
       'menu.referral.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'menu.referral.copied': { kybernos: 'Copié', en: 'Copied' },
       // ── groupes du menu Réglages (maquette « Settings Menu », 30/09 soir) ──
-      'settings.group.account': { kybernos: 'Compte', en: 'Account' },
       'settings.group.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
       'settings.group.settings': { kybernos: 'Réglages', en: 'Settings' },
       'settings.group.desktop': { kybernos: 'Réglages du poste', en: 'Desktop settings' },
@@ -2914,6 +2913,8 @@ const KB_NAV_KEYS = {
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'remote control',
+  // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
+  'kybernos-local': 'kybernos',
 }
 /** The React key of a nav cell, or null (never throws: the internals are not ours). */
 const kbNavKeyOf = (el) => {
@@ -31871,8 +31872,11 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
       // `bureau`: the section that follows the « Desktop » divider.
       const GROUPES = [
-        { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'serveurs', 'servers'] },
+        // One group: the servers entry (the private Select server module), the section of what stays on this computer (kybernos-cloud's
+        // `kybernos-local`), then the Suite and our plugins' pages. The account's own pages are not in Settings (the footer menu opens them).
         { titre: kbt('settings.group.kybernos'), mots: [
+          'serveurs', 'servers',
+          'kybernos',
           'kybernos suite',
           'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
           'auto routing',
@@ -31910,6 +31914,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'appearance': '<circle cx="13.5" cy="6.5" r=".5" ' + trait + '/><circle cx="17.5" cy="10.5" r=".5" ' + trait + '/><circle cx="8.5" cy="7.5" r=".5" ' + trait + '/><circle cx="6.5" cy="12.5" r=".5" ' + trait + '/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" ' + trait + '/>',
         'serveurs': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
         'servers': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
+        'kybernos': '<rect x="3" y="4" width="18" height="12" rx="2" ' + trait + '/><path d="M2 20h20" ' + trait + '/>',
         'general': '<path d="M4 7h10M18 7h2M4 17h2M10 17h10" ' + trait + '/><circle cx="16" cy="7" r="2" ' + trait + '/><circle cx="8" cy="17" r="2" ' + trait + '/>',
         'commandes': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
         'commands': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
