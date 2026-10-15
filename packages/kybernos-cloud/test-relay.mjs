@@ -37,14 +37,22 @@ const writeState = (state) => writeFileSync(process.env.KYBERNOS_CLOUD_STATE, JS
 const connected = { token: TOKEN, user: { email: 'a@b.test' }, workspaces: [{ id: W1, name: 'Acme' }, { id: W2, name: 'Other' }], active_workspace_id: W1 }
 
 const mod = await import('./index.js')
-const { relayCheck, sameOriginStrict } = mod
+const { relayCheck, sameOriginStrict, relayRules } = mod
 const route = mod.ROUTES.find((r) => r.path === '/kybernos-cloud/relay')
 
 console.log('what the allowlist names')
 {
   for (const ok of ['/v1/me', '/v1/sessions', '/v1/referral', '/v1/me/mfa', '/v1/public/legal', '/v1/workspaces', '/v1/workspaces/' + W1 + '/members', '/v1/workspaces/' + W1 + '/providers', '/v1/workspaces/' + W1 + '/models',
     '/v1/workspaces/' + W1 + '/llm/budget', '/v1/workspaces/' + W2 + '/llm/catalog', '/v1/workspaces/' + W1 + '/llm/billing', '/v1/workspaces/' + W1 + '/llm/usage',
-    '/v1/workspaces/' + W1 + '/llm/usage?from=2026-09-01&to=2026-09-25', '/v1/workspaces/' + W1.toUpperCase() + '/llm/models']) {
+    '/v1/workspaces/' + W1 + '/llm/usage?from=2026-09-01&to=2026-09-25', '/v1/workspaces/' + W1.toUpperCase() + '/llm/models',
+    // The team's metadata the frame's pages draw (Members, Models, Billing, Team security, Computers).
+    '/v1/workspaces/' + W1 + '/invitations', '/v1/workspaces/' + W1 + '/security', '/v1/workspaces/' + W1 + '/computers', '/v1/workspaces/' + W1 + '/computers/usage',
+    '/v1/workspaces/' + W1 + '/llm/member-limits', '/v1/workspaces/' + W1 + '/llm/byok', '/v1/workspaces/' + W1 + '/llm/byok/credentials',
+    '/v1/workspaces/' + W1 + '/llm/byok/models', '/v1/workspaces/' + W1 + '/llm/provider-policy', '/v1/workspaces/' + W1 + '/llm/provider-acceptances',
+    '/v1/workspaces/' + W2.toUpperCase() + '/invitations',
+    // The two most personal ones (each behind its own switch): the person's API keys and the team's trail.
+    '/v1/keys', '/v1/keys?limit=200', '/v1/keys?limit=200&workspace_id=' + W1, '/v1/keys?workspace_id=' + W2.toUpperCase(),
+    '/v1/workspaces/' + W1 + '/audit', '/v1/workspaces/' + W1 + '/audit?limit=50', '/v1/workspaces/' + W1 + '/audit?limit=100&before=' + WX]) {
     check('allowed: ' + ok.replace(W1, 'W1').replace(W2, 'W2'), relayCheck(ok, connected).ok === true, JSON.stringify(relayCheck(ok, connected)))
   }
   const canonical = relayCheck('/v1/workspaces/' + W1 + '/llm/usage?to=2026-09-25T00:00:00Z&from=2026-09-01', connected)
@@ -61,7 +69,7 @@ console.log('what it refuses')
     check('refused: ' + label, r.ok === false, JSON.stringify(r))
     if (why !== undefined) check('  … as ' + why, r.error === why, r.error)
   }
-  no('another API route (keys)', '/v1/keys')
+  no('another API route (the admin\'s)', '/v1/admin/whoami')
   no('the sessions with a query', '/v1/sessions?limit=9')
   no('a sub-path of the sessions (revoking one is a write)', '/v1/sessions/abc')
   no('a sub-path of the referral', '/v1/referral/claim')
@@ -73,6 +81,41 @@ console.log('what it refuses')
   no('another public route', '/v1/public/plans')
   no('the public prefix alone', '/v1/public')
   no('the second factor with a trailing slash', '/v1/me/mfa/')
+  // The team's metadata reads: exact paths, a team of this account, no query, no sub-path, no trailing slash.
+  for (const name of ['invitations', 'security', 'computers', 'computers/usage', 'llm/member-limits', 'llm/byok', 'llm/byok/credentials', 'llm/byok/models', 'llm/provider-policy', 'llm/provider-acceptances']) {
+    const base = '/v1/workspaces/' + W1 + '/' + name
+    no(name + ' with a query', base + '?limit=5')
+    no(name + ' with a suffix', base + '/x')
+    no(name + ' with a trailing slash', base + '/')
+    no(name + ' of a team that is not the account\'s', '/v1/workspaces/' + WX + '/' + name, 'espace_inconnu')
+    no(name + ' of an id that is not a uuid', '/v1/workspaces/not-a-uuid/' + name)
+  }
+  no('one computer (its detail is not named)', '/v1/workspaces/' + W1 + '/computers/' + WX)
+  no('the computers policy', '/v1/workspaces/' + W1 + '/computers/policy')
+  no('a credential by id (the detail and every write are not named)', '/v1/workspaces/' + W1 + '/llm/byok/credentials/' + WX)
+  no('a model by id', '/v1/workspaces/' + W1 + '/llm/byok/models/' + WX)
+  no('one invitation', '/v1/workspaces/' + W1 + '/invitations/' + WX)
+  no('the trail\'s export (a file, another route)', '/v1/workspaces/' + W1 + '/audit/export')
+  no('the trail with a key the server does not take', '/v1/workspaces/' + W1 + '/audit?limit=50&actor=u-1')
+  no('the trail with a zero limit', '/v1/workspaces/' + W1 + '/audit?limit=0')
+  no('the trail with a limit over the server\'s 100', '/v1/workspaces/' + W1 + '/audit?limit=101')
+  no('the trail with a limit that is not a plain integer', '/v1/workspaces/' + W1 + '/audit?limit=5e1')
+  no('the trail with a signed limit', '/v1/workspaces/' + W1 + '/audit?limit=-5')
+  no('the trail with a leading zero limit', '/v1/workspaces/' + W1 + '/audit?limit=050')
+  no('the trail with an empty limit', '/v1/workspaces/' + W1 + '/audit?limit=')
+  no('the trail with a cursor that is not a uuid', '/v1/workspaces/' + W1 + '/audit?before=abc')
+  no('the trail with a repeated cursor', '/v1/workspaces/' + W1 + '/audit?before=' + WX + '&before=' + WX)
+  no('the trail of a team that is not the account\'s', '/v1/workspaces/' + WX + '/audit?limit=50', 'espace_inconnu')
+  no('the trail with a date (it takes none)', '/v1/workspaces/' + W1 + '/audit?from=2026-09-01')
+  no('the keys with a cursor (no pagination)', '/v1/keys?before=' + WX)
+  no('the keys with a limit over the server\'s 200', '/v1/keys?limit=201')
+  no('the keys with a zero limit', '/v1/keys?limit=0')
+  no('the keys with a key the server does not take', '/v1/keys?limit=10&user_id=u-1')
+  no('the keys of a workspace that is not a uuid', '/v1/keys?workspace_id=not-a-uuid')
+  no('the keys of a workspace that is not the account\'s', '/v1/keys?workspace_id=' + WX, 'espace_inconnu')
+  no('the keys with a repeated workspace', '/v1/keys?workspace_id=' + W1 + '&workspace_id=' + W2)
+  no('a key by id (revoking one is a write)', '/v1/keys/' + WX)
+  no('the keys with a trailing slash', '/v1/keys/')
   no('the account\'s Telegram link', '/v1/me/telegram')
   no('device pairing', '/v1/device/start')
   no('the LLM keys', '/v1/workspaces/' + W1 + '/llm/keys')
@@ -95,6 +138,24 @@ console.log('what it refuses')
   no('a very long target', '/v1/workspaces/' + W1 + '/llm/usage?from=' + '2'.repeat(400))
   no('a workspace that is not one of the account\'s', '/v1/workspaces/' + WX + '/llm/budget', 'espace_inconnu')
   no('a workspace id that is not a uuid', '/v1/workspaces/not-a-uuid/members')
+}
+
+console.log('the two personal reads are behind their own switches')
+{
+  const off = relayRules({ apiKeysList: false, auditTrail: false })
+  const keysOnly = relayRules({ apiKeysList: true, auditTrail: false })
+  const trailOnly = relayRules({ apiKeysList: false, auditTrail: true })
+  const verdict = (target, rules) => relayCheck(target, connected, rules).ok === true
+  const KEYS = '/v1/keys?limit=200&workspace_id=' + W1
+  const TRAIL = '/v1/workspaces/' + W1 + '/audit?limit=50'
+  check('both switches are on in the shipped list', verdict(KEYS, mod.RELAY_RULES) && verdict(TRAIL, mod.RELAY_RULES))
+  check('both off: neither path is reachable, and the rest of the list is the same', !verdict(KEYS, off) && !verdict(TRAIL, off) && verdict('/v1/me', off) && verdict('/v1/workspaces/' + W1 + '/invitations', off) && verdict('/v1/workspaces/' + W1 + '/llm/usage?group_by=detail', off))
+  check('the keys list alone: reachable, and the trail is not', verdict(KEYS, keysOnly) && !verdict(TRAIL, keysOnly))
+  check('the trail alone: reachable, and the keys are not', verdict(TRAIL, trailOnly) && !verdict(KEYS, trailOnly))
+  check('with no options at all (a call with nothing set) neither is named: withheld is the default of the builder', !verdict(KEYS, relayRules()) && !verdict(TRAIL, relayRules()))
+  const host = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.js'), 'utf8')
+  check('the two switches are named constants a host can set to false in one line', /^const RELAY_ALLOW_API_KEYS_LIST = true$/m.test(host) && /^const RELAY_ALLOW_TEAM_AUDIT_TRAIL = true$/m.test(host))
+  check('and the shipped list is built from exactly those two', /const RELAY_RULES = relayRules\(\{ apiKeysList: RELAY_ALLOW_API_KEYS_LIST, auditTrail: RELAY_ALLOW_TEAM_AUDIT_TRAIL \}\)/.test(host))
 }
 
 console.log('who may ask (strict origin)')
@@ -125,7 +186,7 @@ console.log('the route')
   const forbidden = await route.run({ url: '/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/workspaces/' + W2 + '/members') })
   check('a status the server refuses comes back as it is (ok:false, 403), not as a success', forbidden.ok === false && forbidden.status === 403)
   const before = seen.length
-  const refused = await route.run({ url: '/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/keys') })
+  const refused = await route.run({ url: '/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/admin/whoami') })
   check('a path off the allowlist is refused with no call at all', refused.ok === false && refused.error === 'chemin refuse' && seen.length === before)
   check('no p parameter: refused with no call', (await route.run({ url: '/kybernos-cloud/relay' })).ok === false && seen.length === before)
   // The two paths the embedded Security and Support & legal pages read: called on the main API as plain GETs, with the token as Authorization.
@@ -142,11 +203,13 @@ console.log('the wiring (drift tests)')
   const here = dirname(fileURLToPath(import.meta.url))
   const host = readFileSync(join(here, 'index.js'), 'utf8')
   check('the dispatcher applies the strict guard to strict routes', host.indexOf('route.strict === true && sameOriginStrict(req) === false') > 0)
-  check('every relay rule is a GET-only read: none names keys, invites or a write', RELAY_NO_WRITE(mod.RELAY_RULES))
+  check('every relay rule is an exact GET-only read: none names a write or an export', RELAY_NO_WRITE(mod.RELAY_RULES) && RELAY_NO_WRITE(relayRules({ apiKeysList: true, auditTrail: true })))
 }
 
 function RELAY_NO_WRITE (rules) {
-  return rules.every((r) => !/keys|invite|remove|checkout|subscribe/.test(r.re.source))
+  // Every rule is an exact read path: none names a verb of a write (a key's secret, an invitation to send, a removal, a checkout, a rotation, a ticket, a hook, a
+  // second-factor setup) or a path continued after the name it ends on. The keys and invitations are LISTS here (their writes are other methods and other paths).
+  return rules.every((r) => r.re.source.endsWith('$') && !/remove|checkout|subscribe|rotate|ticket|hooks|setup|verify|revoke|export|mint|create|policy\/|start|stop|pause|resume/.test(r.re.source))
 }
 
 api.close()

@@ -74,18 +74,35 @@ const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, 
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 // The GETs the real frame makes for each page of the account group (what the server's console asks its parent for): Overview and the two entries DSH's footer
-// opens (`#account`, `#referral`), Security, Devices, My data (none), Support & legal (`#support`).
+// opens (`#account`, `#referral`), Security, Devices, My data (none), Support & legal (`#support`); and, for the team on screen (`{ws}`), the team's pages
+// (Plan, Usage, Members, Models, Billing, API keys, Team security, Computers): ADR 0054 §§ 16-17.
 const FRAME_READS = {
   account: ['/v1/me', '/v1/sessions', '/v1/referral'], referral: ['/v1/me', '/v1/sessions', '/v1/referral'], overview: ['/v1/me', '/v1/sessions', '/v1/referral'],
   security: ['/v1/me/mfa'], devices: ['/v1/sessions'], data: [], support: ['/v1/public/legal'],
+  computers: ['/v1/workspaces/{ws}/computers', '/v1/workspaces/{ws}/computers/usage'],
+  keys: ['/v1/keys?limit=200&workspace_id={ws}'],
+  tsecurity: ['/v1/workspaces/{ws}/security', '/v1/workspaces/{ws}/llm/provider-policy', '/v1/workspaces/{ws}/llm/provider-acceptances'],
+  members: ['/v1/workspaces/{ws}/members', '/v1/workspaces/{ws}/invitations', '/v1/workspaces/{ws}/llm/member-limits', '/v1/workspaces/{ws}/audit?limit=50'],
+  providers: ['/v1/workspaces/{ws}/llm/models', '/v1/workspaces/{ws}/llm/byok', '/v1/workspaces/{ws}/llm/byok/credentials', '/v1/workspaces/{ws}/llm/byok/models'],
+  billing: ['/v1/workspaces/{ws}/llm/billing'],
+  usage: ['/v1/workspaces/{ws}/llm/usage?group_by=detail'],
+  plan: ['/v1/workspaces/{ws}/llm/billing', '/v1/workspaces/{ws}/llm/budget', '/v1/workspaces/{ws}/members'],
 }
-// What the stand-in server answers on its API side (the host's relay calls it with the device token).
+// What the stand-in server answers on its API side (the host's relay calls it with the device token); a team's reads answer by the name they end on.
 const API_BODIES = {
   '/v1/me': { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
   '/v1/sessions': { sessions: [] },
   '/v1/referral': { code: 'AB12CD', share_url: 'https://example.invalid/r/AB12CD' },
   '/v1/me/mfa': { enabled: false, methods: [] },
   '/v1/public/legal': { terms: null, privacy: null },
+  '/v1/workspaces': { workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }, { id: W_TEAM, name: 'Studio', personal: false, role: 'owner' }] },
+  '/v1/keys': { keys: [], has_more: false },
+}
+const TEAM_BODIES = {
+  members: { members: [{ user_id: 'u-1', name: 'Dev Person', email: 'dev@example.test', role: 'owner' }] },
+  billing: { plan: null, invoices: [], provider_available: true }, budget: { windows: [] }, models: { models: [] }, usage: { rows: [], truncated: false },
+  invitations: { invitations: [] }, 'member-limits': { caps: [] }, byok: { allowed: true, reason: null, custom_endpoints: false, providers: [] }, credentials: { credentials: [] },
+  'provider-policy': {}, 'provider-acceptances': { items: [] }, security: { require_mfa: false, grace_days: 0 }, computers: { computers: [], policy: null, standing: null }, audit: { entries: [] },
 }
 // A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts. Its page
 // also makes the reads the real frame makes for the page the address names (through the parent's relay), and its API side answers them and records the Authorization it saw.
@@ -100,14 +117,16 @@ const startConsole = async (opts = {}) => {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
       if (opts.file !== undefined && opts.file !== null) { res.end(readFileSync(opts.file, 'utf8')); return }
       res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>'
-        + '<script>var reads=' + JSON.stringify(FRAME_READS) + ';var page=String(location.hash||"").slice(1).split("&")[0];'
-        + 'addEventListener("message",function(ev){if(ev.source===parent&&ev.data&&ev.data.kbApiReady===true)(reads[page]||[]).forEach(function(p,i){parent.postMessage({kbApi:{id:"r"+i,method:"GET",path:p}},"*")})});'
+        + '<script>var reads=' + JSON.stringify(FRAME_READS) + ';var page=String(location.hash||"").slice(1).split("&")[0];var ws=new URLSearchParams(location.search).get("ws")||"";'
+        + 'addEventListener("message",function(ev){if(ev.source===parent&&ev.data&&ev.data.kbApiReady===true)(reads[page]||[]).forEach(function(p,i){parent.postMessage({kbApi:{id:"r"+i,method:"GET",path:p.split("{ws}").join(ws)}},"*")})});'
         + 'parent.postMessage({kbConsoleReady:true},"*")</script>')
       return
     }
-    if (API_BODIES[path] !== undefined && req.method === 'GET') {
+    const team = /^\/v1\/workspaces\/[0-9a-f-]{36}\/(?:llm\/(?:byok\/)?)?(?:computers\/)?([a-z-]+)$/.exec(path)
+    const body = API_BODIES[path] !== undefined ? API_BODIES[path] : (team !== null && TEAM_BODIES[team[1]] !== undefined ? TEAM_BODIES[team[1]] : null)
+    if (body !== null && req.method === 'GET') {
       api.push({ url: req.url, auth: req.headers.authorization || null })
-      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(API_BODIES[path]))
+      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(body))
       return
     }
     res.writeHead(404); res.end()
@@ -442,13 +461,13 @@ try {
     const stateFile = join(DSH_HOME, 'kybernos-cloud-stub-1.json')
     writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
       workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }], active_workspace_id: W_PERSONAL }), { mode: 0o600 })
-    const relayAfter = async (slug, want) => {
+    const relayAfter = async (slug, want, settle = 500) => {
       await val(`window.__kbRelay = []`)
       S.api.length = 0
       await val(`window.__kbOpenWsConsole(${JSON.stringify(slug)})`)
       await waitFrame()
       await waitFor(page, `window.__kbRelay.length >= ${want}`, 6000)
-      await sleep(500)
+      await sleep(settle)
       return { relay: (await val('window.__kbRelay')) || [], api: S.api.slice() }
     }
     const notRefused = (r) => r.relay.every((x) => x.error !== 'chemin refuse' && x.error !== 'non connecte')
@@ -471,6 +490,67 @@ try {
     check('a sub-path of the second factor (a write) is still refused by the real route', refusedLive !== null && refusedLive.ok === false && refusedLive.error === 'chemin refuse', refusedLive)
     check('no token anywhere in what the page saw of the relay', JSON.stringify([security.relay, support.relay, devices.relay, over.relay]).indexOf('kys-live-check') < 0)
     await shot('16-frame-security')
+    // The frame's team pages (ADR 0054 §§ 16-17): the team on screen is the active one, the account's own. Every read these pages make must get through the relay,
+    // the most personal two (the person's API keys, the team's trail) included: a refusal would show as « could not load » on the page.
+    console.log('The frame\'s team pages — their reads are not refused by the relay')
+    writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
+      workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }, { id: W_TEAM, name: 'Studio', personal: false, role: 'owner' }], active_workspace_id: W_TEAM }), { mode: 0o600 })
+    fake.status = CLOUD(W_TEAM)
+    await reload()
+    const teamPaths = (r) => r.relay.map((x) => x.p)
+    const sawTeam = (r, suffix) => teamPaths(r).some((p) => p.toLowerCase().startsWith('/v1/workspaces/' + W_TEAM + suffix))
+    const TEAM_PAGES = [
+      ['computers', 'Computers', ['/computers', '/computers/usage']],
+      ['keys', 'API keys', null],
+      ['tsecurity', 'Team security', ['/security']],
+      ['members', 'Members', ['/members', '/invitations']],
+      ['providers', 'Models', ['/llm/models', '/llm/byok']],
+      ['billing', 'Billing', ['/llm/billing']],
+      ['usage', 'Usage', ['/llm/usage']],
+    ]
+    const teamSeen = {}
+    const teamApi = {}
+    // Runs a script INSIDE the frame (CDP: an isolated world of the framed document, whatever its origin): the Members page loads the trail only when its
+    // « Activity » tab is shown, which is a click in the frame.
+    const frameEval = async (js) => {
+      const tree = await page.send('Page.getFrameTree', {})
+      const ft = tree && tree.result ? tree.result.frameTree : null
+      const kids = (ft && ft.childFrames) || []
+      const fr = kids.find((c) => String(c.frame.url).indexOf(S.origin) === 0)
+      if (fr === undefined) return null
+      const w = await page.send('Page.createIsolatedWorld', { frameId: fr.frame.id, worldName: 'kb-check' })
+      const ctx = w && w.result ? w.result.executionContextId : undefined
+      if (ctx === undefined) return null
+      const r = await page.send('Runtime.evaluate', { contextId: ctx, expression: js, returnByValue: true })
+      return r && r.result && r.result.result ? r.result.result.value : null
+    }
+    for (const [slug, label, suffixes] of TEAM_PAGES) {
+      const got = await relayAfter(slug, 1, 1800)
+      teamSeen[slug] = teamPaths(got)
+      teamApi[slug] = got.api
+      const want = suffixes === null ? ['/v1/keys?limit=200&workspace_id=' + W_TEAM] : suffixes.map((x) => '/v1/workspaces/' + W_TEAM + x)
+      check(label + ': its reads are not refused by the relay and the ones the page makes got through (' + want.map((x) => x.replace('/v1/workspaces/' + W_TEAM, '…')).join(', ') + ')',
+        notRefused(got) && want.every((w) => teamPaths(got).some((p) => p.toLowerCase().startsWith(w.toLowerCase()))), got.relay.map((x) => (x.error !== null ? '[' + x.error + '] ' : '') + x.p.replace('/v1/workspaces/' + W_TEAM, '…')))
+    }
+    // The two personal ones are named on their own, with what the server saw. The trail is read when the Members page's « Activity » tab is shown: in the
+    // real page that is a click in the frame (the stand-in page reads it with the page itself).
+    await val(`window.__kbRelay = []`)
+    await val(`window.__kbOpenWsConsole('members')`)
+    await waitFrame()
+    await sleep(1500)
+    if (consoleFile !== null) {
+      const clicked = await frameEval(`(() => { const b = document.querySelector('#subTabs button[data-s="act"]'); if (b) b.click(); return !!b })()`)
+      check('the frame\'s « Activity » tab was there to press (the trail is read when it is shown)', clicked === true, clicked)
+      await sleep(1500)
+    }
+    const trail = { relay: (await val('window.__kbRelay')) || [] }
+    check('the team\'s trail (the audit, owners and admins) is read through the relay with a bounded page size, and not refused',
+      trail.relay.some((x) => /\/audit\?limit=\d+/.test(x.p)) && notRefused(trail), trail.relay.map((x) => (x.error !== null ? '[' + x.error + '] ' : '') + x.p.replace('/v1/workspaces/' + W_TEAM, '…')))
+    check('the keys list reached the server with the token in Authorization and the workspace named',
+      (teamApi.keys || []).some((x) => x.url === '/v1/keys?limit=200&workspace_id=' + W_TEAM && x.auth === 'Bearer kys-live-check-0123456789'), teamApi.keys)
+    console.log('    team reads seen by the relay: ' + JSON.stringify(teamSeen))
+    // With the switches off the same two reads would be refused — pinned by test-relay.mjs (both ways); here only the shipped list answers.
+    fake.status = CLOUD(W_PERSONAL)
     rmSync(stateFile, { force: true })
     if (S !== A) { setRegistry('stub-1', [A]); await reload() }
     await openPage('space-settings')

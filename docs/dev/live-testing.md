@@ -724,6 +724,10 @@ clicks:
   host half: restart the sandbox after editing `packages/kybernos-cloud/index.js`.** By default the stand-in page makes the reads the real
   frame makes; `--console-file <html>` serves the server's real console page instead (render it with
   `node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))"`).
+  The same scene then makes the team on screen the active one and opens the frame's **team pages** (Computers, API keys, Team security, Members, Models,
+  Billing, Usage): every read must get through the relay, the two personal ones included (`/v1/keys?limit=200&workspace_id=…` with the token in
+  `Authorization`, and the trail `…/audit?limit=…`, which the real page reads when its Members « Activity » tab is shown: the check presses that tab INSIDE the
+  frame through CDP, an isolated world of the framed document). The stand-in server's team answers are only as thin as the page needs to ask for the next read.
 - **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
   Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
