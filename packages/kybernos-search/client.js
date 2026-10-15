@@ -588,7 +588,7 @@ window.__ModuleLoader__.load({
           const native = header.querySelector('[class*="searchButton"]')
           if (native === null) continue
           if (header.querySelector('[data-kb="search-header"]') !== null) continue
-          const like = header.querySelector('[class*="iconButton"]')
+          const like = header.querySelector('[class*="headerActions"] [class*="iconButton"]') || header.querySelector('[class*="iconButton"]')
           const b = document.createElement('button')
           b.type = 'button'
           b.setAttribute(HEADER_ATTR, 'search-header')
@@ -598,7 +598,15 @@ window.__ModuleLoader__.load({
           b.className = (like !== null ? String(like.className).replace(/\bwide\b|_wide\b/g, '') : 'kbsr-hdr-own') + ' kbsr-hdr'
           b.appendChild(svgIcon(ICON_SEARCH_PLUS, 16))
           b.addEventListener('click', (ev) => { ev.stopPropagation(); openDialog() })
-          native.insertAdjacentElement('afterend', b)
+          // Two things measured on the real GUI: the native search button sits in a 28 px slot that clips what is added to it, and the
+          // group of the other icon buttons has a FIXED width of 60 px (a third button there pushes « Add workspace » out of the
+          // header). So the icon is a child of the header itself, right before that group; the header lays itself out around it.
+          const actions = header.querySelector('[class*="headerActions"]')
+          if (actions !== null && actions.parentNode === header) header.insertBefore(b, actions)
+          else {
+            const slot = native.closest('[class*="searchSlot"]')
+            ;(slot !== null && slot.parentNode === header ? slot : native).insertAdjacentElement('afterend', b)
+          }
         }
       }
 

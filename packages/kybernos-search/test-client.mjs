@@ -18,7 +18,7 @@ ok('every network call is to this plugin, or to two routes the page already uses
 ok('no engine patch, no eval, no remote script', !/\beval\(|new Function|importScripts|XMLHttpRequest|WebSocket/.test(SRC))
 ok('the hooks of the live checks', ['search-dialog', 'search-input', 'search-header'].every((h) => SRC.includes("'" + h + "'")) && /data-act', 'scope'/.test(SRC) && /'data-act', 'result'/.test(SRC))
 ok('the three ways in: the global opener, the shortcut, the header icon', SRC.includes('window.__KB_SEARCH__ = { open: openDialog') && /String\(e\.key\)\.toLowerCase\(\) === 'k'/.test(SRC) && /\[class\*="searchButton"\]/.test(SRC))
-ok('the native search is not touched: the icon is inserted AFTER it', /native\.insertAdjacentElement\('afterend', b\)/.test(SRC) && !/native\.remove|native\.style|native\.addEventListener/.test(SRC))
+ok('the native search is not touched: our icon goes in the actions group, never inside its slot', /header\.insertBefore\(b, actions\)/.test(SRC) && !/native\.remove|native\.style|native\.addEventListener/.test(SRC))
 ok('tool outputs and archived chats are not offered (they are not built)', !/archiv|tool output|sorties d/i.test(SRC.replace(/\/\/.*$/gm, '')))
 ok('every visible string goes through kt (fr, en)', !/\.textContent = '[A-Z][a-z]+ [a-z]/.test(SRC) && !/createTextNode\('[A-Za-z]{4,}/.test(SRC))
 
@@ -53,7 +53,7 @@ if (JSDOM === null) {
   console.log('  - jsdom is not importable: the DOM part is skipped (set KYBERNOS_JSDOM=<path to jsdom/lib/api.js>)')
 } else {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-  const dom = new JSDOM('<!doctype html><body><div class="x_sectionHeader"><span>Workspaces</span><button class="x_searchButton" aria-label="Search sessions"></button><button class="x_iconButton x_wide" aria-label="View options"></button></div></body>',
+  const dom = new JSDOM('<!doctype html><body><div class="x_sectionHeader"><span class="x_sectionLabel">Workspaces</span><div class="x_searchSlot"><button class="x_searchButton" aria-label="Search sessions"></button></div><div class="x_headerActions"><button class="x_iconButton x_wide" aria-label="View options"></button><button class="x_iconButton" aria-label="Add workspace"></button></div></div></body>',
     { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://127.0.0.1:3080/' })
   const w = dom.window
   const calls = []
@@ -79,8 +79,8 @@ if (JSDOM === null) {
   const doc = w.document
   ok('the plugin registers and exposes its opener', def.id === '@local/kybernos-search' && typeof w.__KB_SEARCH__.open === 'function')
   const hdr = doc.querySelector('[data-kb="search-header"]')
-  ok('the icon sits right after the native search button, borrowing the look of the icon buttons', hdr !== null && hdr.previousElementSibling.getAttribute('aria-label') === 'Search sessions' && /x_iconButton/.test(hdr.className) && !/wide/.test(hdr.className))
-  ok('the native search button is untouched', doc.querySelector('.x_searchButton').getAttribute('aria-label') === 'Search sessions' && doc.querySelector('.x_searchButton').className === 'x_searchButton')
+  ok('the icon is a child of the header, right before its icon group (NOT in the 28 px search slot, which clips it, NOT in the 60 px group, which would push a button out)', hdr !== null && hdr.parentElement.className === 'x_sectionHeader' && hdr.nextElementSibling.className === 'x_headerActions' && hdr.closest('.x_searchSlot') === null && doc.querySelector('.x_headerActions').children.length === 2 && /x_iconButton/.test(hdr.className) && !/wide/.test(hdr.className))
+  ok('the native search button and its slot are untouched', doc.querySelector('.x_searchButton').className === 'x_searchButton' && doc.querySelector('.x_searchSlot').children.length === 1)
   hdr.dispatchEvent(new w.MouseEvent('click', { bubbles: true }))
   ok('the icon opens the dialog', doc.querySelector('[data-kb="search-dialog"]') !== null && doc.activeElement === doc.querySelector('[data-kb="search-input"]'))
   await sleep(50)
