@@ -136,6 +136,11 @@ export const baseUrlOf = (doc, specUrl) => {
       if (ok !== null) return ok.href.replace(/\/+$/, '')
     } catch (e) { /* the next server */ }
   }
+  // OpenAPI: with no `servers` (or an empty list) the default is `/`, relative to where the spec was read from.
+  if (!Array.isArray(doc.servers) || doc.servers.length === 0) {
+    const ok = safeUrl(new URL('/', specUrl).href)
+    if (ok !== null) return ok.href.replace(/\/+$/, '')
+  }
   return null
 }
 
@@ -316,7 +321,7 @@ export const createOpenapi = ({ home, fetchFn = fetch, log = () => {} }) => {
       version: typeof info.version === 'string' ? info.version.slice(0, 30) : '',
       baseUrl: baseUrlOf(parsed.doc, got.url),
       total: ops.length,
-      operations: ops.map((o) => ({ id: o.id, method: o.method, path: o.path, summary: o.summary, write: o.write })),
+      operations: ops.map((o) => ({ id: o.id, method: o.method, path: o.path, summary: o.summary, write: o.write, needs: o.params.filter((p) => p.required).map((p) => p.name) })),
     }
   }
 

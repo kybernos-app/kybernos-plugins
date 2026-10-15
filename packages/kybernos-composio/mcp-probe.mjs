@@ -7,7 +7,8 @@
 import { spawn } from 'node:child_process'
 import { exchange, decodeRpc, mcpFailure, failureCode } from './mcp-http.mjs'
 
-export const PROBE_LIMITS = { httpMs: 12000, stdioMs: 20000, tools: 200, stderrChars: 400, pages: 5 }
+// 20 s for a remote server: a real one (GitMCP) takes about 10 s just to answer `initialize`.
+export const PROBE_LIMITS = { httpMs: 20000, stdioMs: 20000, tools: 200, stderrChars: 400, pages: 5 }
 const PROTOCOL = '2024-11-05'
 const CLIENT = { name: 'kybernos-connector-test', version: '1.0' }
 
@@ -49,11 +50,17 @@ const serverOf = (result) => {
 
 // ── streamable-http ─────────────────────────────────────────────────────────
 
+/** Whether the address ends in /sse (the path of the legacy SSE transport), query and trailing slash aside. */
+export const isSseAddress = (url) => {
+  try { return /\/sse\/?$/i.test(new URL(String(url)).pathname) } catch (e) { return false }
+}
+
 /**
  * Probes a streamable-http server. `headers` are plain values (secrets already resolved).
  * Resolves { ok: true, ms, server, tools } or { ok: false, ms, code, message, hint? }, where `code`
  * is the failure vocabulary the Composio calls already use: 401, 403, 404, 429, another status,
- * timeout, offline, bad-response, rpc-error. Never rejects.
+ * timeout, offline, bad-response, rpc-error. `hint` is 'oauth' (a 401 with an OAuth challenge) or
+ * 'sse' (an address ending in /sse that a streamable-http client cannot use). Never rejects.
  */
 export async function probeHttp({ url, headers, timeoutMs, secrets }) {
   const t0 = Date.now()
@@ -101,6 +108,9 @@ export async function probeHttp({ url, headers, timeoutMs, secrets }) {
   } catch (e) {
     const code = failureCode(e)
     const out = { ok: false, ms: Date.now() - t0, code: code, message: redact(e !== null && e !== undefined && typeof e.detail === 'string' ? e.detail : '', secrets, 200) }
+    // The old transport of MCP servers lives at `…/sse` and wants a GET: a POST there is refused (405, 404, 400) or answered with
+    // something that is not a reply. Say what to look for instead of a bare status.
+    if (hint === null && isSseAddress(url) && ['400', '404', '405', 'bad-response'].includes(code)) hint = 'sse'
     if (hint !== null) out.hint = hint
     return out
   }
