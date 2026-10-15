@@ -638,6 +638,9 @@ try {
     '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer', '/kybernos-cloud/turn/continue',
     // The Kyber tab's data (ADR 0053 § 14), and the Home computer's three actions (wake, put to sleep, open).
     '/kybernos-cloud/kyber',
+    // Kyby: the Telegram pairing by QR or link, where a message runs, and the person's conversation (test-kyby.mjs holds their rules).
+    '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/state', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/telegram/settings', '/kybernos-cloud/telegram/unlink',
+    '/kybernos-cloud/kyby', '/kybernos-cloud/kyby/send',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
     // The Upgrade dialog: the plans and their quotes, the payment page and the billing portal (test-billing-proxy.mjs holds their rules).
     '/kybernos-cloud/plans', '/kybernos-cloud/plans/quote', '/kybernos-cloud/billing/checkout', '/kybernos-cloud/billing/portal',
@@ -1181,15 +1184,16 @@ try {
     const r = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(r.status, 200)
     assert.equal(r.body.connected, true)
-    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
-    assert.deepEqual(r.body.home, { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public', paused_reason: null })
+    assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false }, home_target: 'cloud' })
+    // `manual_control` is true when the server does not say (an older server): the buttons stay; false (the Free plan) hides them.
+    assert.deepEqual(r.body.home, { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public', paused_reason: null, manual_control: true })
     assert.equal(leaks(r.body), false, 'jamais le jeton')
     // A person with no Home yet, and a door that is not set up: the tab says so, it does not fail.
     kyberHome = { name: 'Notes', state: 'running' }
     kyberTelegram = { configured: false, enabled: false, bot_username: null, linked: null }
     const none = await hit('/kybernos-cloud/kyber', 'GET', 'http://127.0.0.1:3080')
     assert.equal(none.body.home, null)
-    assert.deepEqual(none.body.telegram, { configured: false, enabled: false, bot: null, linked: null })
+    assert.deepEqual(none.body.telegram, { configured: false, enabled: false, bot: null, linked: null, home_target: 'cloud' })
     kyberPersonal = false
     ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton')
   }

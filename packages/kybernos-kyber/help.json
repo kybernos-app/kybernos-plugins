@@ -1,29 +1,29 @@
 {
   "what": {
-    "fr": "Un onglet Kyby dans le panneau de droite : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, sur une seule page.",
-    "en": "A Kyby tab in the right-hand panel: where your assistant answers you (Telegram) and the cloud computer it works on, on one page."
+    "fr": "Kyby, votre assistant : une conversation ici (la même que sur Telegram), Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+    "en": "Kyby, your assistant: a conversation here (the same one as on Telegram), Telegram to connect in one move, and the computer it works on."
   },
   "steps": [
     {
-      "fr": "Ouvrez le panneau de droite d'un chat, le bouton « + », puis choisissez Kyby.",
-      "en": "Open a chat's right-hand panel, press the “+” button and pick Kyby."
+      "fr": "Ouvrez « Kyby » dans le menu : la conversation est en bas, le bandeau « Canaux » en haut.",
+      "en": "Open “Kyby” in the menu: the conversation is at the bottom, the “Channels” strip at the top."
     },
     {
-      "fr": "Voyez si Telegram est connecté, et si votre ordinateur est en veille ou éveillé.",
-      "en": "See whether Telegram is connected, and whether your computer is asleep or awake."
+      "fr": "Pour connecter Telegram, scannez le code avec votre téléphone (ou touchez « Ouvrir Telegram »), touchez Démarrer, puis « Oui, c'est moi ».",
+      "en": "To connect Telegram, scan the code with your phone (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
     },
     {
-      "fr": "« Ouvrir le bot » vous mène à Telegram ; « Gérer dans mon compte » à la page de votre compte, où le code se saisit.",
-      "en": "“Open the bot” takes you to Telegram; “Manage in my account” to your account page, where the code is typed."
+      "fr": "Dans « Où Kyby travaille », choisissez l'ordinateur que Kyby utilise pour vos messages Telegram.",
+      "en": "In “Where Kyby works”, pick the computer Kyby uses for your Telegram messages."
     }
   ],
   "where": {
-    "fr": "Dans un chat, panneau de droite › Kyby",
-    "en": "In a chat, right-hand panel › Kyby",
-    "page": false
+    "fr": "Menu › Kyby",
+    "en": "Menu › Kyby",
+    "page": true
   },
   "good": {
-    "fr": "L'onglet lit seulement : il ne connecte ni ne déconnecte rien. Votre ordinateur vous demande l'accord dans Telegram avant d'agir.",
-    "en": "The tab only reads: it connects and disconnects nothing. Your computer asks for your approval in Telegram before it acts."
+    "fr": "Rien n'est connecté sans votre accord dans Telegram. Avant d'agir sur l'ordinateur de Kyby, il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
+    "en": "Nothing is connected without your approval in Telegram. Before acting on Kyby's computer, it asks you: Allow, Refuse, or Allow for this task."
   }
 }
