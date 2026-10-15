@@ -81,6 +81,26 @@ reported as truncated with the instant the list stops. It reads `tasks.json` and
 (same origin, signed browser session) and the Host fence of every route of the bundle. Pure logic: `automation-occurrences.mjs`
 (host) and the `KB-AUTOBOARD` block of `client.js` (browser).
 
+## Automations settings, and DSH's own « Automation tasks »
+
+Settings › Automations has two switches, kept in `$DSH_HOME/kybernos/automation-settings.json` (rules in `automation-settings.mjs`):
+
+- **Pause all automations**: the scheduler's tick does nothing while it is on. What came due fires once at the first tick after it is
+  turned off (the scheduler's own catch-up); nothing is lost or skipped.
+- **Show DSH's own « Automation tasks » list**: off by default. DSH's own scheduled-tasks entry overlaps the Automations page, so the
+  menu hides it (the row is found by the React key `schedules`, the same in every language). It is a separate store: the tasks it
+  lists are not the ones of this page, and they are one switch away.
+
+`GET/POST /kybernos/automation-settings` has the guards of `tasks` (same origin, and a signed session to change). The route is host
+code: it needs a DSH restart; until then the page says so and the native entry stays hidden.
+
+## The new-chat cards
+
+On a blank chat, a dock entry (`kybernos-newchat`, order 25) shows **Build ›**, **Create ›** and the **Cloud Computer**, before the team's
+conversation starters (`kybernos-starters`, order 30), which are not touched. A template prefills the composer and never sends (a
+starter still sends). A template is offered only if the bundle it needs is installed. The Cloud Computer card and the menu row read
+`GET /kybernos-cloud/kyber` (read only) and open the Kyber page. The pure part is the `KB-NEWCHAT` block of `client.js`.
+
 ## Files, settings, env
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,
@@ -209,6 +229,8 @@ node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cr
 node packages/kybernos-plugin/test-automation-creator.mjs  # 64: the shipped skill's script, run with sh on a temp DSH_HOME (lock, stale lock, ten writers at once)
 node packages/kybernos-plugin/test-automation-occurrences.mjs  # the future runs: the same instants as the scheduler's matcher, bounds, what cannot fire
 node packages/kybernos-plugin/test-automation-board.mjs  # the KB-AUTOBOARD block: columns, week and month grids, what the page refuses to claim, texts in both languages
+node packages/kybernos-plugin/test-automation-settings.mjs  # the two switches, the guard of the route, the held tick
+node packages/kybernos-plugin/test-newchat.mjs         # the cards, the Cloud Computer state, the hidden native entry, the starters pinned
 node scripts/test-tasks-route.mjs                      # the tasks route, the tick, webhooks, and tasks/occurrences (guards, bounds, corrupt store)
 node scripts/check-automations-board-live.mjs [--stub-model]  # live GUI, on a sandbox only: the three views, Run now, banner, French, 375 px; with a stub model: running, waiting, Approve / Refuse
 node packages/kybernos-plugin/test-seed-skills.mjs     # 27: skill seeding (a user's own skill is never overwritten)

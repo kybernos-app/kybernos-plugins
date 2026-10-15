@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
 import { selectAfterConnect } from './default-model.mjs'
+import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 // ── Le filet du compactage, sans retouche du moteur (23/09/2026) ────────────
@@ -2657,7 +2658,32 @@ function boot(ctx) {
       fire: (task) => kbFireTask(task),
       onError: (m) => { try { console.error('[kybers] scheduled tasks: ' + m) } catch (e) { /* console unavailable */ } },
     })
-    const kbTasksTick = () => kbTasksTrigger.tick()
+    // The Automations settings (automation-settings.mjs): ~/.dsh/kybernos/automation-settings.json, next to tasks.json.
+    // Read on every tick (a 30 s timer: one small file), and fail-open: a missing or damaged file never stops the automations.
+    const kbAutoSettingsFileOf = async () => {
+      const t = await kbTasksFileOf()
+      return t.slice(0, t.lastIndexOf('/')) + '/automation-settings.json'
+    }
+    const kbAutoSettingsRead = async () => {
+      try { return autoSettingsNormalize(JSON.parse(readFileSync(await kbAutoSettingsFileOf(), 'utf8'))) } catch (e) { return autoSettingsNormalize(null) }
+    }
+    const kbAutoSettingsWrite = async (state) => {
+      const p = await kbAutoSettingsFileOf()
+      try { mkdirSync(p.slice(0, p.lastIndexOf('/')), { recursive: true }) } catch (e) { /* already there */ }
+      const temp = p + '.tmp-' + String(process.pid) + '-' + Date.now().toString(36)
+      try {
+        writeFileSync(temp, JSON.stringify(state, null, 2) + String.fromCharCode(10), { encoding: 'utf8', mode: 0o600 })
+        renameSync(temp, p)
+      } catch (e) {
+        try { unlinkSync(temp) } catch (e2) { /* nothing to clean */ }
+        throw e
+      }
+    }
+    // « Pause all » holds the tick, not the store: nothing is lost, and what came due fires once at the first tick after it is off.
+    const kbTasksTick = async () => {
+      if (autoSettingsPaused(await kbAutoSettingsRead()) === true) return { fired: 0, paused: true }
+      return kbTasksTrigger.tick()
+    }
     // CRUD exposé au client (route unique /kybernos/tasks, action dans le corps).
     const kbTasksHandle = async (body) => {
       const action = str(body.action)
@@ -10421,6 +10447,19 @@ function boot(ctx) {
           sendJson(res, 500, { ok: false, error: 'internal error' })
         }
       } }), 'kybernos: route tasks')
+      // ── The Automations settings page: GET (what the sidebar and the page read) / POST { showNativeTasks?, paused? } ──
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/automation-settings', handler: async (req, res) => {
+        if (req.method !== 'GET' && req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET or POST expected' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        if (req.method === 'GET') return sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(await kbAutoSettingsRead())))
+        if (await kbTasksAuthorized(req) !== true) return sendJson(res, 401, { ok: false, error: 'sign-in required' })
+        let body = null
+        try { body = await readJsonBody(req, 2000) } catch (e) { return sendJson(res, 413, { ok: false, error: 'request body too large' }) }
+        const next = autoSettingsApply(await kbAutoSettingsRead(), body)
+        if (next.ok !== true) return sendJson(res, 400, { ok: false, error: next.error })
+        try { await kbAutoSettingsWrite(next.state) } catch (e) { return sendJson(res, 500, { ok: false, error: 'write failed' }) }
+        sendJson(res, 200, Object.assign({ ok: true }, autoSettingsView(next.state)))
+      } }), 'kybernos: route automation-settings')
       // ── When the scheduled automations will run: GET /kybernos/tasks/occurrences?from=&to= ──────────────
       // Read-only, for the Automations calendar. It answers with the scheduler's OWN matcher (kbComputeNextRun
       // and kbNeverRuns of the tested core block), not a second cron engine, and with the same guard as the
