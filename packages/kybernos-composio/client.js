@@ -33,7 +33,7 @@ window.__ModuleLoader__.load({
     let CATALOG = []
     // Known apps pinned at the HEAD of the Discover grid (page 1). Slugs are the
     // real Composio toolkit ids as they appear in catalog.js (checked there).
-    const POPULAR = ['gmail', 'googlecalendar', 'slack', 'notion', 'airtable']
+    const POPULAR = ['gmail', 'googlecalendar', 'googledrive', 'outlook', 'slack', 'notion', 'github', 'linear', 'trello', 'asana', 'airtable', 'hubspot']
     let CAT_BY_SLUG = {}
     let catalogLoad = null
     // catOk: true ONLY after a valid, NON-EMPTY catalog has loaded.
@@ -420,6 +420,90 @@ window.__ModuleLoader__.load({
       'kb.cp.kc.err.bad_request': { fr: 'Demande refusée : vérifiez l’app et la clé.', en: 'Request refused: check the app and the key.' },
       'kb.cp.kc.err.forbidden': { fr: 'Ce compte ne peut pas utiliser les connexions.', en: 'This account cannot use connections.' },
       'kb.cp.kc.err.other': { fr: 'Réponse inattendue du serveur ({code}).', en: 'Unexpected answer from the server ({code}).' },
+      // Discover: the known apps get their own section, same cards.
+      'kb.cp.popularH': { fr: 'Populaires', en: 'Popular' },
+      'kb.cp.allapps': { fr: 'Toutes les apps', en: 'All apps' },
+      // Settings › Connectors: which service connects the apps for the agents.
+      'kb.cp.pv.lead': { fr: 'Quel service relie vos apps (Gmail, Slack, Notion…) pour vos agents. Un seul à la fois : vos agents voient celui que vous choisissez ici.', en: 'Which service connects your apps (Gmail, Slack, Notion…) for your agents. One at a time: your agents see the one you choose here.' },
+      'kb.cp.pv.composio': { fr: 'Composio — votre propre clé', en: 'Composio — your own key' },
+      'kb.cp.pv.composio.sub': { fr: 'Vous apportez votre clé Composio. Vos comptes vivent dans votre projet Composio ; la clé reste sur cet ordinateur.', en: 'You bring your Composio key. Your accounts live in your Composio project; the key stays on this computer.' },
+      'kb.cp.pv.you': { fr: 'Vous le gérez', en: 'You manage it' },
+      'kb.cp.pv.kybernos': { fr: 'Kybernos Cloud', en: 'Kybernos Cloud' },
+      'kb.cp.pv.kybernos.sub': { fr: 'Les connexions sont gérées par votre compte Kybernos : pas de clé à gérer, et vos comptes vous suivent d’un appareil à l’autre.', en: 'Connections are handled by your Kybernos account: no key to manage, and your accounts follow you across your devices.' },
+      'kb.cp.pv.paid': { fr: 'Offres payantes', en: 'Paid plans' },
+      'kb.cp.pv.included': { fr: 'Inclus dans votre offre', en: 'Included in your plan' },
+      'kb.cp.pv.signin': { fr: 'Se connecter à Kybernos', en: 'Sign in to Kybernos' },
+      'kb.cp.pv.signedout': { fr: 'Pas connecté', en: 'Not signed in' },
+      'kb.cp.pv.notplan': { fr: 'Non inclus dans votre offre', en: 'Not included in your plan' },
+      'kb.cp.pv.plans': { fr: 'Voir les offres', en: 'See plans' },
+      'kb.cp.pv.notoffered': { fr: 'Ce serveur Kybernos ne la propose pas encore.', en: 'This Kybernos server does not offer it yet.' },
+      'kb.cp.pv.connected': { fr: 'Connecté · {n} app(s)', en: 'Connected · {n} app(s)' },
+      'kb.cp.pv.connectedOf': { fr: 'Connecté · {n} sur {limit} apps', en: 'Connected · {n} of {limit} apps' },
+      'kb.cp.pv.manage': { fr: 'Gérer les connexions', en: 'Manage connections' },
+      'kb.cp.pv.foot': { fr: 'Changer de service ne supprime rien et ne déconnecte rien chez l’autre. Les outils Kybernos Cloud ne sont proposés aux agents que lorsque Kybernos Cloud est choisi ; ceux de Composio suivent la clé enregistrée.', en: 'Switching deletes nothing and disconnects nothing at the other one. Kybernos Cloud tools are offered to agents only while Kybernos Cloud is selected; Composio’s follow the saved key.' },
+      'kb.cp.pv.err': { fr: 'Le choix n’a pas pu être enregistré.', en: 'The choice could not be saved.' },
+      // Add menu: an API from an OpenAPI spec, and Add with AI.
+      'kb.cp.add.api': { fr: 'API depuis une spec OpenAPI', en: 'API from an OpenAPI spec' },
+      'kb.cp.add.apihint': { fr: 'Une adresse de spec et une clé : chaque opération devient un outil', en: 'A spec address and a key: each operation becomes a tool' },
+      'kb.cp.add.ai': { fr: 'Ajouter avec l’IA', en: 'Add with AI' },
+      'kb.cp.add.aihint': { fr: 'Dites ce que vous voulez brancher, l’IA cherche comment', en: 'Say what you want to connect, the AI finds how' },
+      'kb.cp.add.new': { fr: 'Nouveau', en: 'New' },
+      'kb.cp.api.title': { fr: 'Ajouter une API depuis une spec OpenAPI', en: 'Add an API from an OpenAPI spec' },
+      'kb.cp.api.step1': { fr: 'Étape 1 sur 2 · Kybernos lit la spec et transforme chaque opération en outil que vos agents peuvent appeler.', en: 'Step 1 of 2 · Kybernos reads the spec and turns each operation into a tool your agents can call.' },
+      'kb.cp.api.step2': { fr: 'Étape 2 sur 2 · Choisissez ce que vos agents peuvent faire. Les opérations en lecture sont cochées ; ce qui modifie des données reste décoché tant que vous ne l’activez pas.', en: 'Step 2 of 2 · Choose what your agents may do. Read-only operations are on; anything that changes data stays off until you turn it on.' },
+      'kb.cp.api.url': { fr: 'Adresse de la spec (JSON)', en: 'Spec address (JSON)' },
+      'kb.cp.api.auth': { fr: 'Authentification', en: 'Authentication' },
+      'kb.cp.api.auth.none': { fr: 'Aucune', en: 'None' },
+      'kb.cp.api.auth.bearer': { fr: 'Jeton Bearer', en: 'Bearer token' },
+      'kb.cp.api.auth.header': { fr: 'En-tête personnalisé', en: 'Custom header' },
+      'kb.cp.api.auth.query': { fr: 'Paramètre d’adresse', en: 'Query parameter' },
+      'kb.cp.api.auth.basic': { fr: 'Basic (utilisateur:mot de passe)', en: 'Basic (user:password)' },
+      'kb.cp.api.authname': { fr: 'Nom de l’en-tête ou du paramètre', en: 'Header or parameter name' },
+      'kb.cp.api.key': { fr: 'Clé', en: 'Key' },
+      'kb.cp.api.keynote': { fr: 'La clé est gardée sur cet ordinateur et envoyée uniquement à l’adresse de l’API, jamais là où la spec est hébergée. Elle ne s’affiche plus ensuite.', en: 'The key is kept on this computer and sent only to the API’s own address, never to wherever the spec is hosted. It is not shown again.' },
+      'kb.cp.api.read': { fr: 'Lire la spec', en: 'Read the spec' },
+      'kb.cp.api.reading': { fr: 'Lecture…', en: 'Reading…' },
+      'kb.cp.api.name': { fr: 'Nom du connecteur', en: 'Name of the connector' },
+      'kb.cp.api.base': { fr: 'Adresse de l’API', en: 'API address' },
+      'kb.cp.api.ops': { fr: '{n} opérations', en: '{n} operations' },
+      'kb.cp.api.reads': { fr: 'Lectures', en: 'Reads' },
+      'kb.cp.api.none': { fr: 'Aucune', en: 'None' },
+      'kb.cp.api.writenote': { fr: 'Une opération qui modifie des données demande quand même votre accord à chaque usage, comme tout outil.', en: 'A write operation still asks for your approval at each use, like any tool.' },
+      'kb.cp.api.back': { fr: 'Retour', en: 'Back' },
+      'kb.cp.api.add': { fr: 'Ajouter · {n} outils', en: 'Add · {n} tools' },
+      'kb.cp.api.adding': { fr: 'Ajout…', en: 'Adding…' },
+      'kb.cp.api.added': { fr: 'API ajoutée : {n} outils disponibles pour vos agents.', en: 'API added: {n} tools available to your agents.' },
+      'kb.cp.api.tag': { fr: 'API', en: 'API' },
+      'kb.cp.api.tools': { fr: 'Actif · {n} outils', en: 'Active · {n} tools' },
+      'kb.cp.api.test': { fr: 'Tester', en: 'Test' },
+      'kb.cp.api.reached': { fr: 'Joignable · HTTP {status}', en: 'Reachable · HTTP {status}' },
+      'kb.cp.api.unreached': { fr: 'Pas de réponse utile : {why}', en: 'No useful answer: {why}' },
+      'kb.cp.api.notest': { fr: 'Aucune opération en lecture à tester.', en: 'No read operation to test.' },
+      'kb.cp.api.remove': { fr: 'Retirer', en: 'Remove' },
+      'kb.cp.api.removeconfirm': { fr: 'Retirer « {name} » ? Ses outils disparaissent pour vos agents.', en: 'Remove “{name}”? Its tools disappear for your agents.' },
+      'kb.cp.api.err.bad_address': { fr: 'Adresse refusée : https uniquement (http seulement pour cet ordinateur).', en: 'Address refused: https only (http only for this computer).' },
+      'kb.cp.api.err.bad_auth': { fr: 'Authentification invalide : vérifiez le nom de l’en-tête ou du paramètre.', en: 'Invalid authentication: check the header or parameter name.' },
+      'kb.cp.api.err.spec_unauthorized': { fr: 'La spec n’est pas lisible sans identifiants. Elle doit être publique : la clé n’est jamais envoyée là où elle est hébergée.', en: 'The spec is not readable without credentials. It must be public: the key is never sent to where it is hosted.' },
+      'kb.cp.api.err.spec_http': { fr: 'L’adresse de la spec a répondu par une erreur.', en: 'The spec address answered with an error.' },
+      'kb.cp.api.err.spec_too_large': { fr: 'La spec est trop grande (plus de 5 Mo).', en: 'The spec is too large (over 5 MB).' },
+      'kb.cp.api.err.yaml_unsupported': { fr: 'Cette spec est en YAML : pour l’instant seul le JSON est lu. Cherchez l’adresse « openapi.json » de l’API.', en: 'This spec is YAML: only JSON is read for now. Look for the API’s “openapi.json” address.' },
+      'kb.cp.api.err.swagger2_unsupported': { fr: 'Swagger 2 n’est pas pris en charge : il faut OpenAPI 3.', en: 'Swagger 2 is not supported: OpenAPI 3 is needed.' },
+      'kb.cp.api.err.not_openapi': { fr: 'Ce n’est pas une spec OpenAPI 3.', en: 'This is not an OpenAPI 3 spec.' },
+      'kb.cp.api.err.not_json': { fr: 'Ce n’est pas du JSON.', en: 'This is not JSON.' },
+      'kb.cp.api.err.no_operations': { fr: 'Aucune opération utilisable dans cette spec.', en: 'No usable operation in this spec.' },
+      'kb.cp.api.err.no_base_url': { fr: 'La spec ne donne pas d’adresse d’API utilisable : renseignez-la.', en: 'The spec gives no usable API address: enter it.' },
+      'kb.cp.api.err.bad_name': { fr: 'Nom invalide : lettres minuscules, chiffres et tirets (2 à 31 caractères).', en: 'Invalid name: lowercase letters, digits and hyphens (2 to 31 characters).' },
+      'kb.cp.api.err.bad_operations': { fr: 'Choisissez au moins une opération (100 au plus).', en: 'Choose at least one operation (100 at most).' },
+      'kb.cp.api.err.timeout': { fr: 'Pas de réponse à temps.', en: 'No answer in time.' },
+      'kb.cp.api.err.network': { fr: 'L’adresse est injoignable.', en: 'The address cannot be reached.' },
+      'kb.cp.api.err.store_write_failed': { fr: 'L’enregistrement a échoué sur cet ordinateur.', en: 'Saving failed on this computer.' },
+      'kb.cp.api.err.other': { fr: 'Échec ({code}).', en: 'Failed ({code}).' },
+      'kb.cp.ai.title': { fr: 'Ajouter avec l’IA', en: 'Add with AI' },
+      'kb.cp.ai.lead': { fr: 'Ouvre un nouveau chat avec la demande déjà écrite, et le skill qui sait brancher un serveur. Rien n’est écrit tant que vous n’avez pas confirmé.', en: 'Opens a new chat with the request already written, and the skill that knows how to connect a server. Nothing is written until you confirm.' },
+      'kb.cp.ai.label': { fr: 'Que voulez-vous brancher ?', en: 'What do you want to connect?' },
+      'kb.cp.ai.ph': { fr: 'Linear, Pennylane, ma base interne…', en: 'Linear, Pennylane, my internal tool…' },
+      'kb.cp.ai.open': { fr: 'Ouvrir le chat', en: 'Open the chat' },
+      'kb.cp.ai.prompt': { fr: 'Utilise le skill connecteur-personnalise : branche-moi sur « {what} ». Cherche le serveur MCP officiel. S’il n’y a qu’une API (spec OpenAPI), donne-moi l’adresse de la spec et le type de clé qu’il faut, pour que je l’ajoute avec « API depuis une spec OpenAPI ». Dis-moi ce qu’il faut (adresse, connexion, droits) et ce que ça permet, puis attends mon accord avant d’ajouter quoi que ce soit.', en: 'Use the connecteur-personnalise skill: connect me to “{what}”. Look for the official MCP server. If there is only an API (an OpenAPI spec), give me the spec address and the kind of key it needs, so I can add it with “API from an OpenAPI spec”. Tell me what it needs (address, sign-in, scopes) and what it can do, then wait for my OK before adding anything.' },
     }
 
     const kbt = (key) => {
@@ -990,6 +1074,34 @@ window.__ModuleLoader__.load({
 [class*="_markdown_"] a.kbcp-carte-action{color:var(--dsw-alias-label-primary-foreground,#18181b);text-decoration:none}
 .kbcp-carte-ghost{flex-shrink:0;display:inline-flex;align-items:center;height:28px;padding:0 11px;border-radius:7px;border:1px solid var(--dsw-alias-border-l3,#ffffff29);color:var(--dsw-alias-label-secondary,#cfd3d6);font-size:11.5px}
 /* ── Kybernos connections mode: the mode switch, the quota meter, the app picker of the add window ── */
+.kb7-seclab{display:flex;align-items:center;gap:8px;margin:18px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;font-weight:600}
+.kb7-seclab span{font-weight:500;text-transform:none;letter-spacing:0;padding:0 7px;border-radius:7px;background:rgba(128,128,128,.18)}
+.kbcp-pv{display:flex;gap:14px;padding:16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2,rgba(128,128,128,.3));background:var(--dsw-alias-bg-layer-2,transparent);margin:0 0 12px}
+.kbcp-pv.sel{border-color:var(--dsw-alias-brand-primary,#6c8cff);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary,#6c8cff)}
+.kbcp-pv.off{opacity:.85}
+.kbcp-pv-rad{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dsw-alias-border-l2,rgba(128,128,128,.5));margin-top:2px;position:relative;cursor:pointer;background:transparent;padding:0}
+.kbcp-pv.off .kbcp-pv-rad{cursor:default}
+.kbcp-pv.sel .kbcp-pv-rad{border-color:var(--dsw-alias-brand-primary,#6c8cff)}
+.kbcp-pv.sel .kbcp-pv-rad::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--dsw-alias-brand-primary,#6c8cff)}
+.kbcp-pv-b{flex:1;min-width:0}
+.kbcp-pv-h{margin:0 0 3px;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;cursor:pointer}
+.kbcp-pv.off .kbcp-pv-h{cursor:default}
+.kbcp-pv-p{margin:0 0 10px;font-size:13px;opacity:.85}
+.kbcp-pv-state{display:flex;align-items:center;gap:8px;font-size:12.5px;margin-top:8px}
+.kbcp-pv-dot{width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-state-success-primary,#2fbf71)}
+.kbcp-pv-dot.w{background:var(--dsw-static-amber-500,#f59e0b)}
+.kbcp-pv-dot.n{background:rgba(128,128,128,.6)}
+.kbcp-pv-foot{margin:4px 0 0;font-size:12.5px;opacity:.7}
+.kbcp-new{margin-inline-start:auto;font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--dsw-alias-brand-primary,#6c8cff);color:var(--dsw-alias-label-primary-foreground,#fff)}
+.kbcp-menu hr{width:100%;border:0;border-top:1px solid rgba(128,128,128,.25);margin:4px 0}
+.kbcp-ops{border:1px solid rgba(128,128,128,.25);border-radius:12px;overflow:hidden;margin:6px 0 4px;max-height:280px;overflow-y:auto}
+.kbcp-op{display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid rgba(128,128,128,.18);font-size:13px}
+.kbcp-op:last-child{border-bottom:0}
+.kbcp-op code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;opacity:.85}
+.kbcp-op small{opacity:.6;font-size:12px}
+.kbcp-meth{flex:none;width:54px;text-align:center;font-size:10.5px;font-weight:700;padding:2px 0;border-radius:5px;background:rgba(47,191,113,.18)}
+.kbcp-meth.w{background:rgba(245,158,11,.2)}
+.kbcp-meth.d{background:rgba(229,72,77,.2)}
 .kbcp-modebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 14px}
 .kbcp-kc{display:flex;flex-direction:column;gap:12px;max-width:1180px}
 .kbcp-kcmeter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:13px}
@@ -1400,6 +1512,165 @@ window.__ModuleLoader__.load({
               h('div', { className: 'kb7-frow' },
                 h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
                 h('button', { type: 'button', className: 'kbcp-btn primary', disabled: busy || servers.length === 0 || servers.every((sv) => blockers(sv).length > 0 || sel[sv.source] === false), onClick: doImport }, kbt('kb.cp.imp.go')))))))
+    }
+
+    // ── API from an OpenAPI spec, and Add with AI ───────────────────────────────────────────────────────────
+    // The host (openapi.mjs) reads the spec, keeps the key privately and registers one native tool per chosen operation. The page
+    // only collects the address, the key and the choice, and shows the saved APIs next to the MCP servers.
+    const KB_CP_NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/
+    const kbCpApiName = (title) => String(title === null || title === undefined ? '' : title).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 31).replace(/-+$/, '')
+    const kbCpApiErr = (word) => {
+      const k = 'kb.cp.api.err.' + String(word)
+      return STR[k] !== undefined ? kbt(k) : kbt('kb.cp.api.err.other').replace('{code}', word === undefined || word === null ? '?' : String(word))
+    }
+    const ApiModal = (props) => {
+      const [step, setStep] = React.useState(1)
+      const [url, setUrl] = React.useState('')
+      const [authType, setAuthType] = React.useState('bearer')
+      const [authName, setAuthName] = React.useState('')
+      const [key, setKey] = React.useState('')
+      const [spec, setSpec] = React.useState(null)
+      const [chosen, setChosen] = React.useState({})
+      const [name, setName] = React.useState('')
+      const [base, setBase] = React.useState('')
+      const [busy, setBusy] = React.useState(false)
+      const [err, setErr] = React.useState(null)
+      const auth = () => (authType === 'header' || authType === 'query' ? { type: authType, name: authName.trim() } : { type: authType })
+      const ops = spec !== null && Array.isArray(spec.operations) ? spec.operations : []
+      const picked = ops.filter((o) => chosen[o.id] === true).map((o) => o.id)
+      const read = async () => {
+        setBusy(true); setErr(null)
+        const r = await kbCpHost('/openapi', 'POST', { action: 'read', url: url.trim(), auth: auth() })
+        setBusy(false)
+        if (r.status !== 200 || r.json === null || r.json.ok !== true) { setErr(kbCpApiErr(r.json !== null ? r.json.error : 'network')); return }
+        const list = Array.isArray(r.json.operations) ? r.json.operations : []
+        const init = {}
+        let n = 0
+        for (const o of list) if (o.write !== true && n < 100) { init[o.id] = true; n += 1 }
+        setSpec(r.json); setChosen(init); setName(kbCpApiName(r.json.title)); setBase(typeof r.json.baseUrl === 'string' ? r.json.baseUrl : ''); setStep(2)
+      }
+      const add = async () => {
+        if (KB_CP_NAME_RE.test(name) !== true) { setErr(kbCpApiErr('bad_name')); return }
+        setBusy(true); setErr(null)
+        const r = await kbCpHost('/openapi', 'POST', { action: 'add', name: name, url: url.trim(), baseUrl: base.trim(), auth: auth(), key: key.trim(), operations: picked })
+        setBusy(false)
+        if (r.status !== 200 || r.json === null || r.json.ok !== true) { setErr(kbCpApiErr(r.json !== null ? r.json.error : 'network')); return }
+        props.onDone(Array.isArray(r.json.tools) ? r.json.tools.length : picked.length)
+      }
+      const setAll = (reads) => { const n = {}; let c = 0; if (reads) for (const o of ops) if (o.write !== true && c < 100) { n[o.id] = true; c += 1 } setChosen(n) }
+      const needName = authType === 'header' || authType === 'query'
+      const step1 = [
+        h('div', { key: 'u' },
+          h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-url' }, kbt('kb.cp.api.url')),
+          h('input', { className: 'kb7-finput', id: 'kbcp-api-url', value: url, placeholder: 'https://api.example.com/openapi.json', spellCheck: false, autoFocus: true, onChange: (e) => { setUrl(e.target.value); setErr(null) } })),
+        h('div', { key: 'a', className: 'kb7-frow' },
+          h('div', { style: { flex: 1 } },
+            h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-auth' }, kbt('kb.cp.api.auth')),
+            h('select', { className: 'kb7-finput', id: 'kbcp-api-auth', value: authType, onChange: (e) => setAuthType(e.target.value) },
+              ['bearer', 'header', 'query', 'basic', 'none'].map((t) => h('option', { key: t, value: t }, kbt('kb.cp.api.auth.' + t))))),
+          needName ? h('div', { style: { flex: 1 } },
+            h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-authname' }, kbt('kb.cp.api.authname')),
+            h('input', { className: 'kb7-finput', id: 'kbcp-api-authname', value: authName, placeholder: authType === 'header' ? 'X-API-Key' : 'api_key', spellCheck: false, onChange: (e) => setAuthName(e.target.value) })) : null),
+        authType === 'none' ? null : h('div', { key: 'k' },
+          h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-key' }, kbt('kb.cp.api.key')),
+          h('input', { className: 'kb7-finput', id: 'kbcp-api-key', type: 'password', autoComplete: 'off', value: key, onChange: (e) => setKey(e.target.value) })),
+        h('div', { key: 'n', className: 'kbcp-help2' }, kbt('kb.cp.api.keynote')),
+      ]
+      const step2 = [
+        h('div', { key: 'nm', className: 'kb7-frow' },
+          h('div', { style: { flex: 1 } },
+            h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-name' }, kbt('kb.cp.api.name')),
+            h('input', { className: 'kb7-finput', id: 'kbcp-api-name', value: name, spellCheck: false, onChange: (e) => { setName(e.target.value); setErr(null) } })),
+          h('div', { style: { flex: 2 } },
+            h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-api-base' }, kbt('kb.cp.api.base')),
+            h('input', { className: 'kb7-finput', id: 'kbcp-api-base', value: base, spellCheck: false, onChange: (e) => setBase(e.target.value) }))),
+        h('div', { key: 'hd', className: 'kb7-frow', style: { alignItems: 'center' } },
+          h('span', { className: 'kb7-flabel', style: { flex: 1, margin: 0 } }, kbt('kb.cp.api.ops').replace('{n}', String(spec !== null ? spec.total : 0))),
+          h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setAll(true) }, kbt('kb.cp.api.reads')),
+          h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setAll(false) }, kbt('kb.cp.api.none'))),
+        h('div', { key: 'ops', className: 'kbcp-ops', 'data-kb': 'api-ops' }, ops.map((o) =>
+          h('label', { className: 'kbcp-op', key: o.id },
+            h('input', { type: 'checkbox', checked: chosen[o.id] === true, onChange: (e) => { const on = e.target.checked; setChosen((prev) => Object.assign({}, prev, { [o.id]: on })) } }),
+            h('span', { className: 'kbcp-meth' + (o.method === 'GET' ? '' : (o.method === 'DELETE' ? ' d' : ' w')) }, o.method),
+            h('code', { title: o.path }, o.path),
+            h('small', null, o.summary)))),
+        h('div', { key: 'wn', className: 'kbcp-help2' }, kbt('kb.cp.api.writenote')),
+      ]
+      return h('div', { className: 'kb7-overlay', onClick: props.onClose },
+        h('div', { className: 'kb7-modal', style: { maxWidth: 680 }, role: 'dialog', 'aria-modal': 'true', 'aria-label': kbt('kb.cp.api.title'), 'data-kb': 'api-modal', onClick: (e) => e.stopPropagation() },
+          h('div', { className: 'kb7-mhead' },
+            h('div', { style: { flex: 1, minWidth: 0 } },
+              h('div', { className: 'kb7-mname' }, step === 2 && spec !== null ? spec.title : kbt('kb.cp.api.title')),
+              h('div', { className: 'kb7-mcat' }, kbt(step === 1 ? 'kb.cp.api.step1' : 'kb.cp.api.step2'))),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
+          h('div', { className: 'kb7-form' },
+            step === 1 ? step1 : step2,
+            err !== null ? h('div', { className: 'kbcp-note bad', role: 'alert' }, err) : null,
+            h('div', { className: 'kb7-actions', style: { justifyContent: 'flex-end' } },
+              step === 2 ? h('button', { type: 'button', className: 'kbcp-btn', disabled: busy, onClick: () => { setStep(1); setErr(null) } }, kbt('kb.cp.api.back')) : h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
+              step === 1
+                ? h('button', { type: 'button', className: 'kbcp-btn primary', 'data-act': 'api-read', disabled: busy || url.trim() === '' || (needName && authName.trim() === ''), onClick: read }, busy ? kbt('kb.cp.api.reading') : kbt('kb.cp.api.read'))
+                : h('button', { type: 'button', className: 'kbcp-btn primary', 'data-act': 'api-add', disabled: busy || picked.length === 0 || name === '', onClick: add }, busy ? kbt('kb.cp.api.adding') : kbt('kb.cp.api.add').replace('{n}', String(picked.length)))))))
+    }
+
+    /** The saved API connectors, in the MCP servers tab: same rows, an « API » tag, a test that only ever runs a read, and remove. */
+    const ApiList = (props) => {
+      const [tests, setTests] = React.useState({})
+      const [confirmDel, setConfirmDel] = React.useState(null)
+      const setTest = (nom, v) => setTests((prev) => Object.assign({}, prev, { [nom]: v }))
+      const runTest = async (it) => {
+        const op = it.operations.find((o) => o.method === 'GET' && o.write !== true && /\{[^}]+\}/.test(o.path) === false)
+        if (op === undefined) { setTest(it.name, { bad: true, text: kbt('kb.cp.api.notest') }); return }
+        setTest(it.name, { busy: true })
+        const r = await kbCpHost('/openapi', 'POST', { action: 'test', name: it.name, operationId: op.id, args: {} })
+        if (r.status === 200 && r.json !== null && r.json.ok === true && r.json.reached === true) setTest(it.name, { text: kbt('kb.cp.api.reached').replace('{status}', String(r.json.status)) })
+        else setTest(it.name, { bad: true, text: kbt('kb.cp.api.unreached').replace('{why}', r.json !== null && typeof r.json.text === 'string' && r.json.text !== '' ? r.json.text.split('\n')[0].slice(0, 160) : kbCpApiErr(r.json !== null ? r.json.error : 'network')) })
+      }
+      const remove = async (it) => {
+        setConfirmDel(null)
+        await kbCpHost('/openapi', 'POST', { action: 'remove', name: it.name })
+        props.reload()
+      }
+      return h('div', { className: 'kbcp-mlist', 'data-kb': 'api-list', style: { marginTop: 12 } }, props.items.map((it) => {
+        const t = tests[it.name]
+        return h('div', { className: 'kbcp-mrow', key: it.name, 'data-kb-api': it.name },
+          h('div', { className: 'kbcp-mmain' },
+            h('div', { className: 'kbcp-mid' },
+              h('div', { className: 'kbcp-mname' }, it.name, h('span', { className: 'kb7-cxtype http' }, kbt('kb.cp.api.tag')), it.hasKey ? null : h('span', { className: 'kbcp-src' }, kbt('kb.cp.api.auth.none'))),
+              h('div', { className: 'kbcp-mtarget' }, it.title + ' · ' + it.host)),
+            h('span', { className: 'kbcp-chip ' + (it.live > 0 ? 'ok' : ''), 'data-kb-state': 'api-tools' }, h('i'), kbt('kb.cp.api.tools').replace('{n}', String(it.live))),
+            h('div', { className: 'kbcp-macts' },
+              h('button', { type: 'button', className: 'kbcp-btn', disabled: t !== undefined && t.busy === true, onClick: () => runTest(it) }, kbt('kb.cp.api.test')),
+              h('button', { type: 'button', className: 'kbcp-btn', 'aria-label': kbt('kb.cp.api.remove') + ' ' + it.name, onClick: () => setConfirmDel(it.name) }, Icon('trash', 13)))),
+          t !== undefined && t.busy !== true ? h('div', { className: 'kbcp-detail' + (t.bad ? ' warn' : '') }, h('span', null, t.text)) : null,
+          confirmDel === it.name ? h('div', { className: 'kbcp-confirm' },
+            h('p', null, kbt('kb.cp.api.removeconfirm').replace('{name}', it.name)),
+            h('button', { type: 'button', className: 'kbcp-btn', style: { color: 'var(--dsw-alias-state-error-primary,#f25a5a)' }, onClick: () => remove(it) }, kbt('kb.cp.api.remove')),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setConfirmDel(null) }, kbt('kb.cp.form.cancel'))) : null)
+      }))
+    }
+
+    /** « Add with AI »: a new chat with the request written, handed to kybernos-plugin's bridge (it opens the chat, nothing is sent). */
+    const AiModal = (props) => {
+      const [what, setWhat] = React.useState('')
+      const go = () => {
+        const w = what.trim().slice(0, 120).replace(/[“”"«»]/g, '')
+        if (w === '') return
+        try { window.dispatchEvent(new CustomEvent('kb-open-chat-text', { detail: { text: kbt('kb.cp.ai.prompt').replace('{what}', w) } })) } catch (e) { /* no page to hand it to */ }
+        props.onClose()
+      }
+      return h('div', { className: 'kb7-overlay', onClick: props.onClose },
+        h('div', { className: 'kb7-modal', style: { maxWidth: 560 }, role: 'dialog', 'aria-modal': 'true', 'aria-label': kbt('kb.cp.ai.title'), 'data-kb': 'ai-modal', onClick: (e) => e.stopPropagation() },
+          h('div', { className: 'kb7-mhead' },
+            h('div', { style: { flex: 1, minWidth: 0 } }, h('div', { className: 'kb7-mname' }, kbt('kb.cp.ai.title')), h('div', { className: 'kb7-mcat' }, kbt('kb.cp.ai.lead'))),
+            h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose, 'aria-label': kbt('kb.cp.close') }, Icon('x', 14))),
+          h('div', { className: 'kb7-form' },
+            h('div', null,
+              h('label', { className: 'kb7-flabel', htmlFor: 'kbcp-ai-what' }, kbt('kb.cp.ai.label')),
+              h('input', { className: 'kb7-finput', id: 'kbcp-ai-what', value: what, placeholder: kbt('kb.cp.ai.ph'), autoFocus: true, onChange: (e) => setWhat(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') go() } })),
+            h('div', { className: 'kb7-actions', style: { justifyContent: 'flex-end' } },
+              h('button', { type: 'button', className: 'kbcp-btn', onClick: props.onClose }, kbt('kb.cp.form.cancel')),
+              h('button', { type: 'button', className: 'kbcp-btn primary', 'data-act': 'ai-open', disabled: what.trim() === '', onClick: go }, kbt('kb.cp.ai.open'))))))
     }
 
     // The MCP servers tab. Each row says what DSH says of the server; its actions (test, edit, delete,
@@ -1826,6 +2097,9 @@ window.__ModuleLoader__.load({
       const [roots, setRoots] = React.useState(null)
       const [menuOpen, setMenuOpen] = React.useState(false)
       const [importOpen, setImportOpen] = React.useState(false)
+      const [apiOpen, setApiOpen] = React.useState(false)
+      const [aiOpen, setAiOpen] = React.useState(false)
+      const [apis, setApis] = React.useState([])
       const [recent, setRecent] = React.useState({})
       // Kybernos connections, the second mode of "Yours": null until the cloud half has answered, { offered: false } when this server
       // (or an older cloud half on this machine) does not offer it, and then the mode is not shown at all.
@@ -1837,7 +2111,23 @@ window.__ModuleLoader__.load({
       }, [])
       React.useEffect(() => { reloadKc(false) }, [reloadKc])
       const patchKc = React.useCallback((conn) => setKc((prev) => (prev === null || prev.offered !== true ? prev : Object.assign({}, prev, { connections: prev.connections.map((c) => (c.id === conn.id ? conn : c)) }))), [])
-      const setMode = (m) => { setModeState(m); kbCpModeSet(m) }
+      // The choice also reaches the host (Settings › Connectors reads it, and kybernos-cloud stops offering its tools when Composio is chosen).
+      const setMode = (m) => { setModeState(m); kbCpModeSet(m); kbCpHost('/provider', 'POST', { provider: m === 'kybernos' ? 'kybernos' : 'composio' }).catch(() => { /* a convenience: the page keeps its own state */ }) }
+      const loadApis = React.useCallback(async () => {
+        const r = await kbCpHost('/openapi')
+        setApis(r.status === 200 && r.json !== null && r.json.ok === true && Array.isArray(r.json.items) ? r.json.items : [])
+      }, [])
+      React.useEffect(() => {
+        let dead = false
+        loadApis()
+        // What Settings chose wins over what this browser remembered.
+        kbCpHost('/provider').then((r) => {
+          if (dead === true || r.status !== 200 || r.json === null) return
+          const pv = r.json.provider
+          if (pv === 'composio' || pv === 'kybernos') { const m = pv === 'kybernos' ? 'kybernos' : 'personal'; kbCpModeSet(m); setModeState(m) }
+        }).catch(() => { /* the browser's own choice stays */ })
+        return () => { dead = true }
+      }, [])
       const touch = React.useCallback((noms) => setRecent((prev) => { const n = Object.assign({}, prev); for (const x of noms) n[x] = Date.now(); return n }), [])
 
       const loadConnecteurs = React.useCallback(async () => {
@@ -2051,14 +2341,19 @@ window.__ModuleLoader__.load({
         if (patch.dir !== undefined) tbPair[1](Object.assign({}, patch, { dirTouched: true }))
         else tbPair[1](patch)
       }
-      const pages = Math.max(1, Math.ceil(list.length / PAGE))
       // (Discover) Known apps pinned at the HEAD of the grid: a stable sort that
       // moves only the POPULAR slugs above the rest and keeps the existing
       // A -> Z order inside both groups. Pagination is computed after the pin,
       // so the known apps always land on page 1.
       list = list.slice().sort((a, b) => (POPULAR.indexOf(a.s) >= 0 ? 0 : 1) - (POPULAR.indexOf(b.s) >= 0 ? 0 : 1))
+      // With no search and no filter the known apps get their own section above the catalogue, drawn with the SAME cards;
+      // the catalogue below (and its pages) is what is left. Any search or filter shows one list, as before.
+      const popSplit = qn.length === 0 && chip === 'all'
+      const popList = popSplit ? POPULAR.map((sl) => list.find((a) => a.s === sl)).filter((a) => a !== undefined) : []
+      const mainList = popList.length > 0 ? list.filter((a) => POPULAR.indexOf(a.s) < 0) : list
+      const pages = Math.max(1, Math.ceil(mainList.length / PAGE))
       const cur = Math.min(page, pages)
-      const shown = list.slice((cur - 1) * PAGE, cur * PAGE)
+      const shown = mainList.slice((cur - 1) * PAGE, cur * PAGE)
       const totalConn = Object.values(conns).reduce((n, v) => n + ((v && v.accounts) ? v.accounts.length : 0), 0)
 
       const accountRow = (slug, a) => {
@@ -2113,7 +2408,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kb7-desc', style: { display: 'flex', flexDirection: 'column', gap: 7 } }, k.bone('94%', 10), k.bone('72%', 10)),
           h('div', { className: 'kb7-foot' }, k.bone(70, 22, 'pill'))))))
       }
-      const appCard = (a) => {
+      const appCard = (a, inPop) => {
         const st = statusOf(a.s)
         const accs = accOf(a.s)
         return h('button', { type: 'button', className: 'kb7-card', key: a.s, onClick: () => setOpen(a) },
@@ -2125,7 +2420,7 @@ window.__ModuleLoader__.load({
           accs.length > 0 ? h('div', { className: 'kb7-bars' }, accs.map((x, i) => h('span', { key: i, className: 'kb7-bar' + (String(x.status).toUpperCase() === 'ACTIVE' ? '' : ' pend') }))) : null,
           h('div', { className: 'kb7-foot' },
             st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : h('span', null),
-            POPULAR.indexOf(a.s) >= 0 ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
+            POPULAR.indexOf(a.s) >= 0 && inPop !== true ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
             accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
       }
       // "Yours": linked apps (at least one account), A -> Z, without
@@ -2164,7 +2459,12 @@ window.__ModuleLoader__.load({
               h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
               menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
                 h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint')))) : null))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
+                h('hr', null),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } },
+                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } },
+                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null))),
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -2175,7 +2475,7 @@ window.__ModuleLoader__.load({
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'discover' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'discover' ? ' on' : ''), 'data-kb': 'subtab-discover', onClick: () => setVtab('discover') },
               kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'mcp' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'mcp' ? ' on' : ''), 'data-kb': 'subtab-mcp', onClick: () => setVtab('mcp') },
-              kbt('kb.cp.tab.mcp'), cx.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length)) : null)),
+              kbt('kb.cp.tab.mcp'), cx.length + apis.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length + apis.length)) : null)),
           // Unified bar on the RIGHT of the row (mockup): visible on
           // "Discover" only; Refresh / Load all as trailing items.
           (kbTb !== null && vtab !== 'mcp' ? h(kbTb.KbToolbar, {
@@ -2220,7 +2520,9 @@ window.__ModuleLoader__.load({
             : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a)))
         ) : null,
         // ── MCP servers ─────────────────────────────────────────────────────
-        vtab === 'mcp' ? h(McpPanel, { items: cx, hostOld: hostOld, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
+        vtab === 'mcp' ? h('div', null,
+          cx.length > 0 || apis.length === 0 ? h(McpPanel, { items: cx, hostOld: hostOld, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
+          apis.length > 0 ? h(ApiList, { items: apis, reload: loadApis, toast: flash }) : null) : null,
         // ── Discover ────────────────────────────────────────────────────────
         vtab === 'discover' ? h('div', { className: 'kb7-panel' },
           // The unified bar lives in the control row above;
@@ -2234,6 +2536,9 @@ window.__ModuleLoader__.load({
             apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null),
           (ready === false || (busy === true && Object.keys(conns).length === 0)) && shown.length === 0 && skelCards(9) !== null ? skelCards(9)
             : (ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null),
+          popList.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-popular' }, kbt('kb.cp.popularH'), h('span', null, String(popList.length))) : null,
+          popList.length > 0 ? h('div', { className: 'kb7-grid' }, popList.map((a) => appCard(a, true))) : null,
+          popList.length > 0 && shown.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-all' }, kbt('kb.cp.allapps'), h('span', null, String(mainList.length))) : null,
           h('div', { className: 'kb7-grid' }, shown.map((a) => appCard(a))),
           ready === true && list.length === 0 && busy === false ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.empty'))) : null,
           pages > 1 ? h('div', { className: 'kb7-chips', style: { justifyContent: 'center' } },
@@ -2255,7 +2560,9 @@ window.__ModuleLoader__.load({
           onChanged: (noms) => { touch(noms); loadConnecteurs() },
           onDone: (n, noms) => savedServers(noms, kbt('kb.cp.imp.done').replace('{n}', String(n))),
           onClose: () => setImportOpen(false),
-        }) : null)
+        }) : null,
+        apiOpen === true ? h(ApiModal, { onClose: () => setApiOpen(false), onDone: (n) => { setApiOpen(false); setVtab('mcp'); loadApis(); flash(kbt('kb.cp.api.added').replace('{n}', String(n))) } }) : null,
+        aiOpen === true ? h(AiModal, { onClose: () => setAiOpen(false) }) : null)
     }
 
     // ── resource cards in the chat ───────────────────────────────────────────
@@ -2555,14 +2862,31 @@ window.__ModuleLoader__.load({
         h('path', { d: 'M24 32v6a6 6 0 0 0 6 6h4', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round', opacity: 0.55 })))
 
     function ComposioSettingsPage() {
-      const [key, setKey] = React.useState(null)        // GET /key: { configured, source }
-      const [conns, setConns] = React.useState(null)    // { slug: [{ label, status }] }, null = loading
+      const [key, setKey] = React.useState(null)            // GET /key: { configured, source }
+      const [conns, setConns] = React.useState(null)        // { slug: [{ label, status }] }, null = loading
+      const [provider, setProvider] = React.useState(undefined) // GET /provider: 'composio' | 'kybernos' | null (nothing chosen); undefined = loading
+      const [kc, setKc] = React.useState(undefined)         // the Kybernos Cloud half, as the page reads it; undefined = loading, null = does not answer
+      const [saveErr, setSaveErr] = React.useState(false)
       const alive = React.useRef(true)
       React.useEffect(() => () => { alive.current = false }, [])
-      React.useEffect(() => {
+      const loadKey = React.useCallback(() => {
         kbCpHost('/key').then((r) => {
           if (alive.current === true && r.status === 200 && r.json !== null && typeof r.json === 'object') setKey(r.json)
         }).catch(() => { /* the card simply stays on "not configured" */ })
+      }, [])
+      // The key panel in the card says « kbcp-key » once it saved or removed the key.
+      React.useEffect(() => {
+        try { window.addEventListener('kbcp-key', loadKey) } catch (e) { /* no window */ }
+        return () => { try { window.removeEventListener('kbcp-key', loadKey) } catch (e) { /* no window */ } }
+      }, [])
+      React.useEffect(() => {
+        loadKey()
+        kbCpHost('/provider').then((r) => {
+          if (alive.current !== true) return
+          const v = r.status === 200 && r.json !== null ? r.json.provider : null
+          setProvider(v === 'composio' || v === 'kybernos' ? v : null)
+        }).catch(() => { if (alive.current === true) setProvider(null) })
+        kbCpCloud('/connections').then((r) => { if (alive.current === true) setKc(kbCpCloudView(r)) }).catch(() => { if (alive.current === true) setKc(null) })
         ;(async () => {
           try {
             const list = await kbCpCatalog()
@@ -2582,16 +2906,25 @@ window.__ModuleLoader__.load({
           } catch (e) { if (alive.current === true) setConns({}) }
         })()
       }, [])
-      // Real sources from the host: 'env' | 'env-file' | 'file' (the environment DSH
-      // was started with), 'setting' (saved from this GUI), anything else ('credentials',
-      // a future value) reads as an unknown origin rather than a wrong claim.
-      const srcText = () => {
-        if (key === null) return ''
-        const s = String(key.source || '')
-        if (s === 'env' || s === 'env-file' || s === 'file') return kbt('kb.cp.set.key.src.env')
-        if (s === 'setting') return kbt('kb.cp.set.key.src.setting')
-        return kbt('kb.cp.set.key.src.none')
+      // Kybernos Cloud can be chosen only when this server offers it, the account is signed in and the plan includes it.
+      const offered = kc !== undefined && kc !== null && kc.offered === true
+      const signedIn = offered && kc.connected !== false
+      const inPlan = signedIn && kc.entitled !== false
+      const keyOn = key !== null && key.configured === true
+      // Nothing chosen yet: what is in use today is what shows as selected (a saved key first), so the page never claims a change.
+      const effective = provider === 'composio' || provider === 'kybernos' ? provider : (keyOn || inPlan !== true ? 'composio' : 'kybernos')
+      const choose = (next) => {
+        if (next === effective && provider === next) return
+        if (next === 'kybernos' && inPlan !== true) return
+        const prev = provider
+        setSaveErr(false)
+        setProvider(next)
+        kbCpModeSet(next === 'kybernos' ? 'kybernos' : 'personal')
+        kbCpHost('/provider', 'POST', { provider: next }).then((r) => {
+          if (r.status !== 200 || r.json === null || r.json.ok !== true) { if (alive.current === true) { setProvider(prev); setSaveErr(true) } }
+        }).catch(() => { if (alive.current === true) { setProvider(prev); setSaveErr(true) } })
       }
+      const openPage = () => { try { window.dispatchEvent(new CustomEvent('kb-open-resources', { detail: { tab: 'composio' } })) } catch (e) { /* no host listening: nothing breaks */ } }
       const totalAcc = conns === null ? 0 : Object.values(conns).reduce((n, v) => n + v.length, 0)
       const connCard = () => h('div', { className: 'kbcp-set-card', 'data-kb': 'composio-settings-connections' },
         h('h3', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.connH')),
@@ -2608,24 +2941,56 @@ window.__ModuleLoader__.load({
                     h('span', { className: 'kbcp-set-acc', key: i },
                       h('span', { className: 'kbcp-set-dot' + (a.status === 'ACTIVE' ? '' : ' pend') }),
                       a.label || kbt('kb.cp.account'))))))))
-      const modeCard = () => h('div', { className: 'kbcp-set-card', 'data-kb': 'composio-settings-mode' },
-        h('h3', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.modeH')),
-        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.set.modeSub')),
-        h('div', { className: 'kbcp-set-kpis' },
-          h('span', null, kbCpModeGet() === 'kybernos' ? kbt('kb.cp.set.mode.kybernos') : kbt('kb.cp.set.mode.personal'))))
-      const keyCard = () => h('div', { className: 'kbcp-set-card', 'data-kb': 'composio-settings-key' },
-        h('h3', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.keyH')),
-        h('div', { className: 'kbcp-set-kpis' },
-          h('span', null,
-            h('span', { className: 'kb7-pill' + (key !== null && key.configured === true ? '' : ' pend') }, key === null ? kbt('kb.cp.loading') : (key.configured === true ? kbt('kb.cp.set.key.on') : kbt('kb.cp.set.key.off'))),
-            key !== null && key.configured === true ? h('span', null, ' · ' + srcText()) : null)))
-      const openPage = () => { try { window.dispatchEvent(new CustomEvent('kb-open-resources', { detail: { tab: 'composio' } })) } catch (e) { /* no host listening: nothing breaks */ } }
+      const radio = (id, on, enabled) => h('button', { type: 'button', className: 'kbcp-pv-rad', role: 'radio', 'aria-checked': on ? 'true' : 'false', 'aria-label': kbt(id === 'kybernos' ? 'kb.cp.pv.kybernos' : 'kb.cp.pv.composio'), disabled: !enabled, 'data-kb': 'provider-' + id, onClick: () => choose(id) })
+      const composioCard = () => h('div', { className: 'kbcp-pv' + (effective === 'composio' ? ' sel' : ''), 'data-kb': 'provider-card-composio' },
+        radio('composio', effective === 'composio', true),
+        h('div', { className: 'kbcp-pv-b' },
+          h('div', { className: 'kbcp-pv-h', onClick: () => choose('composio') }, kbt('kb.cp.pv.composio'), h('span', { className: 'kb7-pill' }, kbt('kb.cp.pv.you'))),
+          h('p', { className: 'kbcp-pv-p' }, kbt('kb.cp.pv.composio.sub')),
+          h(ComposioKeyConfig, null),
+          h('div', { className: 'kbcp-pv-state' },
+            h('span', { className: 'kbcp-pv-dot' + (keyOn ? '' : ' n') }),
+            key === null ? kbt('kb.cp.loading') : (keyOn ? kbt('kb.cp.set.key.on') + ' · ' + srcText() : kbt('kb.cp.set.key.off')))))
+      const srcText = () => {
+        if (key === null) return ''
+        const sv = String(key.source || '')
+        if (sv === 'env' || sv === 'env-file' || sv === 'file') return kbt('kb.cp.set.key.src.env')
+        if (sv === 'setting') return kbt('kb.cp.set.key.src.setting')
+        return kbt('kb.cp.set.key.src.none')
+      }
+      const kybernosBody = () => {
+        if (kc === undefined) return h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot n' }), kbt('kb.cp.loading'))
+        if (offered !== true) return h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot n' }), kbt('kb.cp.pv.notoffered'))
+        if (signedIn !== true) {
+          return h('div', null,
+            h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'provider-signin', onClick: openPage }, kbt('kb.cp.pv.signin'))),
+            h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot n' }), kbt('kb.cp.pv.signedout')))
+        }
+        if (inPlan !== true) {
+          return h('div', null,
+            kc.web !== null ? h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'provider-plans', onClick: () => { const u = kbCpWebUrl(kc.web); if (u !== null) { try { window.open(u, '_blank', 'noopener') } catch (e) { /* cannot open */ } } } }, kbt('kb.cp.pv.plans'))) : null,
+            h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot w' }), kbt('kb.cp.pv.notplan')))
+        }
+        return h('div', null,
+          h('div', { className: 'kbcp-set-actions' }, h('button', { type: 'button', className: 'kbcp-btn', 'data-kb': 'provider-manage', onClick: openPage }, kbt('kb.cp.pv.manage'))),
+          h('div', { className: 'kbcp-pv-state' }, h('span', { className: 'kbcp-pv-dot' }),
+            Number.isFinite(kc.limit) && kc.limit > 0 ? kbt('kb.cp.pv.connectedOf').replace('{n}', String(kc.count)).replace('{limit}', String(kc.limit)) : kbt('kb.cp.pv.connected').replace('{n}', String(kc.count))))
+      }
+      const kybernosCard = () => h('div', { className: 'kbcp-pv' + (effective === 'kybernos' ? ' sel' : '') + (inPlan === true ? '' : ' off'), 'data-kb': 'provider-card-kybernos' },
+        radio('kybernos', effective === 'kybernos', inPlan === true),
+        h('div', { className: 'kbcp-pv-b' },
+          h('div', { className: 'kbcp-pv-h', onClick: () => choose('kybernos') }, kbt('kb.cp.pv.kybernos'),
+            h('span', { className: 'kb7-pill' + (inPlan === true ? '' : ' pop') }, inPlan === true ? kbt('kb.cp.pv.included') : kbt('kb.cp.pv.paid'))),
+          h('p', { className: 'kbcp-pv-p' }, kbt('kb.cp.pv.kybernos.sub')),
+          kybernosBody()))
       return h('div', { className: 'kbcp-set-page', 'data-kb': 'kybernos-composio-settings' },
         h('h2', { className: 'kbcp-set-h2' }, kbt('kb.cp.set.h1')),
-        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.set.lead')),
-        keyCard(),
+        h('p', { className: 'kbcp-set-sub' }, kbt('kb.cp.pv.lead')),
+        composioCard(),
+        kybernosCard(),
+        saveErr === true ? h('div', { className: 'kbcp-note bad', role: 'alert' }, kbt('kb.cp.pv.err')) : null,
+        h('p', { className: 'kbcp-pv-foot' }, kbt('kb.cp.pv.foot')),
         connCard(),
-        modeCard(),
         h('div', { className: 'kbcp-set-actions' },
           h('button', { type: 'button', className: 'kbcp-btn primary', 'data-kb': 'composio-settings-open', onClick: openPage }, kbt('kb.cp.set.open'))))
     }

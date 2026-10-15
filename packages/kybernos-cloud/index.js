@@ -3897,7 +3897,15 @@ const legalRoute = async () => {
 
 // Kybernos connections (ADR 0008 of the server): the routes the connectors page calls, and three native tools for the agents. Nothing is
 // asked of a server that does not offer them (`services.connections`), and nothing is sent without the account's own token.
-const connections = createConnections({ apiCall, readState, isConnected, server, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
+// Which provider Settings › Connectors selected (kybernos-composio writes `<DSH home>/kybernos/connectors.json`): read each time, it is a
+// few bytes, and anything unreadable means « nothing chosen ».
+const connectorsProvider = () => {
+  try {
+    const v = JSON.parse(readFileSync(join(dshHome(), 'kybernos', 'connectors.json'), 'utf8'))
+    return v !== null && typeof v === 'object' && (v.provider === 'composio' || v.provider === 'kybernos') ? v.provider : null
+  } catch (e) { return null }
+}
+const connections = createConnections({ apiCall, readState, isConnected, server, providerChoice: connectorsProvider, log: (m) => console.error('[kybernos-cloud] connexions: ' + m) })
 
 // The Account page's "Custom instructions", kept as a marked section of `<DSH home>/AGENTS.md` (instructions.mjs): DSH's own loader hands
 // that file to every agent. The page asks for the file's path so it can say where the text went (a hosted DSH is not the person's device).
