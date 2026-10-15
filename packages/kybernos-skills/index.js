@@ -45,6 +45,7 @@ import { homedir, tmpdir } from 'node:os'
 import { join, dirname, basename, relative, sep, isAbsolute, resolve as resolvePath } from 'node:path'
 import { execFileSync, spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { createHash } from 'node:crypto'
 import { validateTeamSkill, skillVersion, frontmatterOfText, TEAM_SKILL_LIMITS } from './team-skills.mjs'
 import { readPicks } from './featured-picks.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
@@ -601,6 +602,62 @@ const coverFileOf = (cfg, name) => {
     if (existsSync(p)) return p
   }
   return null
+}
+
+// ── The cover of a pick, fetched from the relay ONCE ─────────────────────────────────────────────────────────
+// A pick ships with the SHA-256 of its cover (featured-picks.json). When the covers folder has no file for it, the host asks the relay
+// for `/covers/<id>.webp`, checks the bytes (size, WebP signature, the shipped hash) and keeps them in the covers folder. A relay that
+// is down, another relay (a company's), or an answer that is not the picture that was shipped leaves the tile in place: the hash is what
+// makes the relay's word unnecessary. Only an id of the shipped list can start a request, and only at the fixed path under the relay.
+const COVER_MAX_BYTES = 600 * 1024
+const COVER_TIMEOUT_MS = 15000
+const COVER_RETRY_MS = 10 * 60 * 1000
+const coverMiss = new Map()      // id -> the time before which the relay is not asked again (an offline machine does not hammer it)
+const coverPending = new Map()   // id -> the request in progress (24 cards ask at once)
+let picksCache = null
+const picksOnce = () => { if (picksCache === null) picksCache = readPicks(PICKS_FILE); return picksCache }
+
+const fetchCover = async (cfg, id, sha256) => {
+  const base = indexApiBase()
+  if (base === null) return null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), COVER_TIMEOUT_MS)
+  try {
+    const res = await fetch(base + '/covers/' + id + '.webp', {
+      signal: controller.signal,
+      redirect: 'error',
+      headers: { accept: 'image/webp', 'user-agent': 'kybernos-skills' }
+    })
+    if (res.status !== 200) return null
+    const buf = await readBounded(res, COVER_MAX_BYTES)
+    if (buf === null || buf.length < 12) return null
+    if (buf.toString('latin1', 0, 4) !== 'RIFF' || buf.toString('latin1', 8, 12) !== 'WEBP') return null
+    if (createHash('sha256').update(buf).digest('hex') !== sha256) return null
+    const dir = featuredCoversDir(cfg)
+    mkdirSync(dir, { recursive: true })
+    const final = join(dir, id + '.webp')
+    const tmp = join(dir, '.' + id + '.' + process.pid + '.tmp')
+    writeFileSync(tmp, buf)
+    renameSync(tmp, final)   // atomic: a reader never sees half a picture
+    return final
+  } catch (e) { return null } finally { clearTimeout(timer) }
+}
+
+/** The path of the cover file for `id`: the one already in the folder, else the one fetched from the relay now, else null. */
+const ensureCover = (cfg, id, picks) => {
+  if (SKILL_NAME_RE.test(id) === false) return Promise.resolve(null)
+  const have = coverFileOf(cfg, id)
+  if (have !== null) return Promise.resolve(have)
+  const pick = (picks ?? picksOnce()).items.find((p) => p.id === id)
+  if (pick === undefined || typeof pick.coverSha256 !== 'string') return Promise.resolve(null)
+  if ((coverMiss.get(id) ?? 0) > Date.now()) return Promise.resolve(null)
+  if (coverPending.has(id)) return coverPending.get(id)
+  const job = fetchCover(cfg, id, pick.coverSha256).then((file) => {
+    if (file === null) coverMiss.set(id, Date.now() + COVER_RETRY_MS)
+    return file
+  }).finally(() => { coverPending.delete(id) })
+  coverPending.set(id, job)
+  return job
 }
 
 const skillEntryOf = (rootPath, cfg, resolved) => {
@@ -1769,8 +1826,8 @@ const mountWebRoutes = (ctx, webServerSvc) => {
   })
 
   // ── Featured picks: what Kybernos proposes, as data (the screen merges it with what is installed) ──────────────────
-  // Static, read-only, no secret: a cover URL is given only when its file is in the covers folder, so that the screen draws its own tile
-  // otherwise instead of a broken image.
+  // Static, read-only, no secret: a cover URL is given when its file is in the covers folder or when the pick ships the hash of its cover
+  // (the cover route then fetches it from the relay once); a pick with neither draws the screen's own tile.
   GET('/kybernos-skills/picks', 'kybernos-skills: route picks', async () => {
     const cfg = configOf()
     const picks = readPicks(PICKS_FILE)
@@ -1778,7 +1835,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
       ok: true,
       asOf: picks.asOf,
       categories: picks.categories,
-      items: picks.items.map((it) => ({ ...it, cover: coverFileOf(cfg, it.id) !== null ? '/kybernos-skills/cover/' + it.id : null }))
+      items: picks.items.map((it) => ({ ...it, cover: coverFileOf(cfg, it.id) !== null || it.coverSha256 !== null ? '/kybernos-skills/cover/' + it.id : null }))
     }
   })
 
@@ -1812,7 +1869,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
     if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'get_required' })
     const pathname = new URL(req.url ?? '/', 'http://x').pathname
     const name = decodeURIComponent(pathname.slice('/kybernos-skills/cover/'.length))
-    const file = SKILL_NAME_RE.test(name) ? coverFileOf(configOf(), name) : null
+    const file = SKILL_NAME_RE.test(name) ? await ensureCover(configOf(), name) : null
     if (file === null) return sendJson(res, 404, { ok: false, error: 'no_cover' })
     try {
       const ext = file.slice(file.lastIndexOf('.') + 1)
@@ -1825,7 +1882,7 @@ const mountWebRoutes = (ctx, webServerSvc) => {
 }
 
 // ── named exports for the harness (testability: explicit paths, nothing wired) + apply ────────────────
-export { dshHome, catalogueOf, toggleSkill, createSkill, installSkill, readSkill, revealSkill, duplicateSkill, deleteSkill, previewSkill, openLocal, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
+export { ensureCover, dshHome, catalogueOf, toggleSkill, createSkill, installSkill, readSkill, revealSkill, duplicateSkill, deleteSkill, previewSkill, openLocal, indexSkills, searchSkills, curatedSkills, auditSkill, packSkill, installTeamSkill, resetDiscoverCache, configOf, journalPath, resolveInRoot, writableRootFor, layoutOf, SOURCE_RANK, sameOrigin, checkIndexUrl, describeIndexSource, setIndexSource }
 
 export function apply(ctx) {
   // Safety net mirroring kybernos-plugin/index.js:2876-2884 (base): a mount error must not
