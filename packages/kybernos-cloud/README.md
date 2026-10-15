@@ -412,3 +412,22 @@ la déconnexion. Le test client rejoue le contrat
   demandes en attente expirent au bout de 10 minutes.
 - **« Reconnexion requise »** → la session a été révoquée (ou a expiré côté
   serveur, TTL glissant de 30 jours sans appel) : cliquez « Se reconnecter ».
+
+## Kyby (ADR 0053 of kybernos-server)
+
+The routes the **Kyby** page (`kybernos-kyber`) uses; the shapes and the words of a refusal are in `kyby.mjs`, tested by
+`test-kyby.mjs`. All add the account's token; every refusal is a short code word, never the server's text.
+
+| Route | Does |
+|---|---|
+| `GET /kybernos-cloud/kyber` | the door's state (`telegram.home_target`), the person's Home computer (`manual_control`: false on the Free plan) |
+| `POST /kybernos-cloud/telegram/pairing` | asks for a pairing: `{ id, link, bot, expires_at, qr: { size, modules } }` (the QR is computed here, `qr.mjs`) |
+| `GET /kybernos-cloud/telegram/pairing/state?id=` | `{ state: waiting\|scanned\|done\|declined\|expired, reason?, sender? }` |
+| `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | « it is not me » |
+| `POST /kybernos-cloud/telegram/settings` `{home_target: cloud\|ask}` | where a Telegram message runs |
+| `POST /kybernos-cloud/telegram/unlink` | disconnects the account's Telegram |
+| `GET /kybernos-cloud/kyby[?after=<position>]` | the person's one conversation: the last page, or what came after a position |
+| `POST /kybernos-cloud/kyby/send` `{message, client_turn_id}` | one hosted turn on that thread, with the door's model |
+
+`qr.mjs` is a byte-for-byte copy of `kybernos-mobile/qr.mjs` (bundles do not import each other): `node scripts/test-qr-drift.mjs`
+fails when they part. The footer publishes `window.__KB_UPGRADE__.open()` so a page can open the Upgrade dialog.

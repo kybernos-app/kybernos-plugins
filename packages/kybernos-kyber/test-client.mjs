@@ -83,4 +83,34 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('a network word that is not one is dropped', T.derive({ ok: true, connected: true, telegram: null, home: { state: 'running', network: '<b>' } }, server).home.network === '')
 }
 
+
+// ── Kyby: the plan, the setting, the pairing, the strip, the chat words ──────────────────────────
+{
+  const k = (home, tg) => T.derive({ ok: true, connected: true, telegram: Object.assign({ configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, tg || {}), home }, server)
+  ok('a server that does not know manual_control keeps the buttons', k({ state: 'suspended' }).home.manualControl === true)
+  ok('manual_control false (the Free plan) is carried', k({ state: 'suspended', manual_control: false }).home.manualControl === false)
+  ok('the paused reason is a word of ours, not the server\'s', k({ state: 'suspended', paused_reason: 'hours' }).home.paused === 'hours' && k({ state: 'suspended', paused_reason: 'DROP TABLE' }).home.paused === 'other' && k({ state: 'suspended' }).home.paused === '')
+  ok('the setting is cloud unless the server says ask', k(null).telegram.homeTarget === 'cloud' && k(null, { home_target: 'ask' }).telegram.homeTarget === 'ask' && k(null, { home_target: 'mac' }).telegram.homeTarget === 'cloud')
+}
+{
+  const now = Date.parse('2026-10-15T10:00:00Z')
+  const exp = '2026-10-15T10:04:00Z'
+  const f = (p) => T.pairingFace(p, now)
+  ok('no pairing yet', f(null).kind === 'none')
+  ok('waiting: the seconds left, from the server\'s expiry', f({ id: 'x', state: 'waiting', expiresAt: exp }).kind === 'waiting' && f({ id: 'x', state: 'waiting', expiresAt: exp }).left === 240)
+  ok('scanned: the sender is carried', f({ id: 'x', state: 'scanned', expiresAt: exp, sender: 'Miled (@milede)' }).sender === 'Miled (@milede)')
+  ok('past its expiry it is expired, whatever the state said', f({ id: 'x', state: 'waiting', expiresAt: '2026-10-15T09:59:00Z' }).kind === 'expired' && f({ id: 'x', state: 'expired' }).kind === 'expired')
+  ok('declined carries one of three reasons, anything else is « user »', f({ state: 'declined', reason: 'taken' }).reason === 'taken' && f({ state: 'declined', reason: 'botmade' }).reason === 'botmade' && f({ state: 'declined', reason: 'sql' }).reason === 'user')
+  ok('done and an error are their own faces', f({ state: 'done' }).kind === 'done' && f({ error: 'rate_limited' }).code === 'rate_limited')
+  ok('the clock reads m:ss', T.clock(0) === '0:00' && T.clock(65) === '1:05' && T.clock(299.9) === '4:59')
+}
+{
+  ok('the strip is open until Telegram is connected, folded after, and the person\'s choice wins', T.stripIsOpen(null, false) === true && T.stripIsOpen(null, true) === false && T.stripIsOpen(true, true) === true && T.stripIsOpen(false, false) === false)
+  ok('a refusal code with no words of ours says « could not be sent »', T.chatError('insufficient_quota') === 'err_insufficient_quota' && T.chatError('select_*') === 'err_refused' && T.chatError('unreachable') === 'err_unreachable')
+  ok('a turn is answered by an assistant message after its position, not before', T.answered([{ role: 'assistant', position: 2 }, { role: 'user', position: 3 }], 3) === false && T.answered([{ role: 'assistant', position: 4 }], 3) === true)
+  ok('WhatsApp and WeChat have a mark', typeof T.BRAND.whatsapp === 'function' && typeof T.BRAND.wechat === 'function' && typeof T.BRAND.telegram === 'function')
+  ok('the assistant has one name, in both languages, and no « Kyber »', T.NAME === 'Kyby' && T.S.title[0] === 'Kyby' && T.S.title[1] === 'Kyby' && !Object.values(T.S).some((p) => /\bKyber\b/.test(p[0] + ' ' + p[1])))
+  ok('every other channel says « soon » and is never offered', T.L('soon') === 'Bientôt' && /BRAND\.\w+\(22\)/.test(src) && !/whatsapp[^\n]*onClick/i.test(src))
+}
+
 process.exit(fail > 0 ? 1 : 0)

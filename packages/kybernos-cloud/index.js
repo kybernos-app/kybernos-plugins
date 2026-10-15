@@ -51,6 +51,7 @@ import { normalizeTidySettings, patchTidySettings, tidyDue, tidyNext, pickAuto, 
 import { zstdDecompressSync } from 'node:zlib'
 import { activeServer, stateFileName, llmBase, publicProfile } from './server-profile.mjs'
 import { agentsFile, readInstructions, writeInstructions } from './instructions.mjs'
+import { createKybyRoutes } from './kyby.mjs'
 // Hosted instance: also accept the authorities declared to DSH with --trusted-host. The core bundle publishes the predicate
 // (kybernos-plugin/trusted-authority.mjs); absent or failing, it answers false and the guard stays loopback-only.
 const kbTrusted = (host) => { try { const f = globalThis[Symbol.for('kybernos.trustedAuthority')]; return typeof f === 'function' && f(host) === true } catch (e) { return false } }
@@ -4292,6 +4293,8 @@ const kyberRoute = async () => {
         network: found.network !== null && typeof found.network === 'object' ? String(found.network.mode || '') : '',
         // Why it does not run when it should (hours used up, a budget, a guard…): the card says it instead of offering a wake that is refused.
         paused_reason: typeof found.paused_reason === 'string' ? found.paused_reason : null,
+        // Whether this plan lets the person wake it, put it to sleep and open it by hand. Absent (an older server): the buttons stay, as before.
+        manual_control: found.manual_control === false ? false : true,
       }
     }
   }
@@ -4306,6 +4309,8 @@ const kyberRoute = async () => {
       linked: t.linked !== null && typeof t.linked === 'object'
         ? { display: String(t.linked.display || ''), linked_at: String(t.linked.linked_at || ''), paused: t.linked.paused === true, blocked: t.linked.blocked === true }
         : null,
+      // Where a Telegram message runs (kyby.mjs HOME_TARGETS); an older server has no such setting.
+      home_target: t.home_target === 'ask' ? 'ask' : 'cloud',
     },
     home,
   }
@@ -4359,8 +4364,20 @@ const computerAction = async (verb) => {
   return { ok: true, state: String(c.state || ''), desired: String(c.desired || '') }
 }
 
+// Kyby (ADR 0053): the Telegram pairing by QR code or link, where a message runs, and the person's own conversation with their Kyby.
+// The pure half, and what each answer means, is kyby.mjs; the calls are made here with the account's token.
+const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
+
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
+  // A pairing creates a link that, once opened in Telegram and confirmed there, connects the chat: same origin, strictly.
+  { path: '/kybernos-cloud/telegram/pairing', method: 'POST', guarded: true, strict: true, run: () => kyby.pairingStart() },
+  { path: '/kybernos-cloud/telegram/pairing/state', method: 'GET', guarded: true, run: (req) => kyby.pairingState(req) },
+  { path: '/kybernos-cloud/telegram/pairing/cancel', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.pairingCancel(req, body) },
+  { path: '/kybernos-cloud/telegram/settings', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: (req, body) => kyby.settings(req, body) },
+  { path: '/kybernos-cloud/telegram/unlink', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: () => kyby.unlink() },
+  { path: '/kybernos-cloud/kyby', method: 'GET', guarded: true, run: (req) => kyby.chat(req) },
+  { path: '/kybernos-cloud/kyby/send', method: 'POST', guarded: true, strict: true, body: true, cap: 200000, run: (req, body) => kyby.send(req, body) },
   { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
   { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
   { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
