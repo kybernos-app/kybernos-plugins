@@ -513,7 +513,9 @@ window.__ModuleLoader__.load({
       if (ligne === null || ligne === undefined || typeof ligne.getAttribute !== 'function') return ''
       const cle = String(ligne.getAttribute('data-row-key') || '')
       const i = cle.indexOf('session:')
-      return i === -1 ? '' : cle.slice(8)
+      if (i !== -1) return cle.slice(8)
+      // A row of the Pinned section (kybernos-plugin): a session row, same id, other attribute.
+      return String(ligne.getAttribute('data-kbpin-kind') || '') === 'session' ? String(ligne.getAttribute('data-kbpin-id') || '') : ''
     }
 
     // Catégorie d'une ligne : le REGISTRE d'abord, le pictogramme du titre en
@@ -1135,9 +1137,11 @@ window.__ModuleLoader__.load({
     // nommage la ligne reçoit l'icône « non classé » (❓). Le pictogramme reste
     // la source de la VRAIE catégorie quand il existe, mais l'icône, elle, est
     // posée sans lui — et remplacée dès qu'un titre classé arrive.
+    const elementTitre = (ligne) => ligne.querySelector('.kbpin_open') || ligne.querySelector('[class*="title"]')
+
     const iconeDeLigne = (ligne) => {
       if (ligne === null || ligne === undefined) return false
-      const el = ligne.querySelector('[class*="title"]')
+      const el = elementTitre(ligne)
       if (el === null || el === undefined) return false
       const noeud = noeudTexte(el)
       const texte = noeud === null ? '' : (noeud.nodeValue || '')
@@ -1193,7 +1197,8 @@ window.__ModuleLoader__.load({
 
     const decorerTitres = () => {
       if (typeof document === 'undefined') return 0
-      const lignes = document.querySelectorAll('[class*="sessionRow"]')
+      // The native session rows AND the rows of the Pinned section: one chat, one icon, wherever it is listed.
+      const lignes = document.querySelectorAll('[class*="sessionRow"], .kbpin_row[data-kbpin-kind="session"]')
       let n = 0
       for (let i = 0; i < lignes.length; i++) { try { if (iconeDeLigne(lignes[i])) n++ } catch (e) {} }
       return n
