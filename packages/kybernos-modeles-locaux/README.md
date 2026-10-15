@@ -67,7 +67,7 @@ verified catalogue, under `<DSH home>/kybernos/modeles-locaux-catalogue/`.
 node packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs   # rules of belief, refresh against a local server, the route
 node packages/kybernos-modeles-locaux/test-machine.mjs
 node packages/kybernos-modeles-locaux/test-seam.mjs
-KB_SHOT=/tmp/kml-gui.png node scripts/check-modeles-locaux-live.mjs   # the panel rendered, real detection
+source scripts/sandbox/env.sh && node scripts/check-ollama-search-live.mjs   # the real page: the three steps, the answer, where the list comes from
 ```
 
 ## Seam for the first-run wizard
