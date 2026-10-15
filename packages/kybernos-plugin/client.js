@@ -24326,6 +24326,8 @@ function renderFit(canvas, model, cam, opts){
       const setAct = actPair[1]
       const cloud = useNcCloud()
       if (blank !== '1') return null
+      // Kyby's own chat is not a place to start building: its strip is all that sits above the composer.
+      try { if (window.__KB_KYBER__ && typeof window.__KB_KYBER__.isKybySession === 'function' && window.__KB_KYBER__.isKybySession(sid) === true) return null } catch (e) { /* the cards stay */ }
       const prefill = (id) => {
         try {
           const act = (p.inputActions !== null && p.inputActions !== undefined) ? p.inputActions : null

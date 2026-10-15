@@ -115,6 +115,9 @@ try {
   const first = await pointer()
   check('the host remembered that chat as Kyby\'s', typeof first === 'string' && first.length > 8, first)
   check('it is DSH\'s own composer, not a box of this page', (await composerThere()) === true && (await has('kybernos-kyber-draft')) === false)
+  check('a folder is already chosen: the person is not asked for one', (await val(`!/Choose workspace|Choose a workspace to start|Choisir un espace|Choisissez un espace/.test(document.body.innerText)`)) === true)
+  check('the chat\'s workspace is called Kyby, in the list', (await val(`Array.from(document.querySelectorAll('[data-row-key], [class*="workspace"]')).some((e) => (e.innerText || '').trim() === 'Kyby') || /\\bKyby\\b/.test(document.body.innerText)`)) === true)
+  check('the new-chat cards (Build, Create, Slides…) are not in Kyby\'s chat', (await has('newchat')) === false)
   check('the page that opened is not the one drawn by the bundle', (await has('kybernos-kyber-page')) === false)
   await shot('1-native-chat')
 
@@ -125,14 +128,12 @@ try {
 
   console.log('── 3. not connected, Free plan (in the strip) ──')
   check('the strip is open with the Channels title', (await val(`(() => { const s = document.querySelector('[data-kb="kybernos-kyber-strip"]'); return !!s && s.classList.contains('open') && /Canaux|Channels/.test(s.innerText) })()`)) === true)
-  check('WhatsApp and WeChat are there, with their mark and « Soon »', (await val(`['whatsapp', 'wechat'].every((c) => { const e = document.querySelector('[data-kb="kybernos-kyber-chan-' + c + '"]'); return !!e && !!e.querySelector('svg path') && /Bientôt|Soon/.test(e.innerText) })`)) === true)
+  check('WhatsApp and WeChat are chips of the strip line, with their mark and « Soon »', (await val(`(() => { const t = document.querySelector('[data-kb="kybernos-kyber-strip-toggle"]'); return !!t && t.querySelectorAll('svg').length >= 4 && /WhatsApp · (Bientôt|Soon)/.test(t.innerText) && /WeChat · (Bientôt|Soon)/.test(t.innerText) })()`)) === true)
   check('a QR code is drawn from the pairing', (await poll(() => val(`!!document.querySelector('[data-kb="kybernos-kyber-qr"] svg path')`))) === true)
   check('the strip asked for exactly one pairing', (await calls('/kybernos-cloud/telegram/pairing')).length === 1, await calls('/kybernos-cloud/telegram/pairing'))
   check('« Open Telegram » goes to the bot\'s link, in a new tab', (await val(`(() => { const a = document.querySelector('[data-kb="kybernos-kyber-open"]'); return !!a && a.getAttribute('href') === ${JSON.stringify(LINK)} && a.target === '_blank' && /noopener/.test(a.rel) })()`)) === true)
   check('the three steps are listed', (await val(`document.querySelectorAll('[data-kb="kybernos-kyber-telegram"] ol li').length`)) === 3)
-  const comp = (await text('kybernos-kyber-computer')) || ''
-  check('the computer is asleep and the Free plan says it cannot be woken by hand', /En veille|Asleep/.test(comp) && (await has('kybernos-kyber-upsell')) === true && (await has('kybernos-kyber-wake')) === false, comp.slice(0, 200))
-  check('the where-setting is there but locked until Telegram is connected', (await val(`Array.from(document.querySelectorAll('[data-kb^="kybernos-kyber-where-"] input')).every((i) => i.disabled)`)) === true)
+  check('calm: only the Telegram card is in the strip, no settings and no computer card before Telegram is connected', (await has('kybernos-kyber-where')) === false && (await has('kybernos-kyber-computer')) === false && (await has('kybernos-kyber-others')) === false)
   await shot('2-strip-unlinked')
 
   console.log('── 4. the pairing goes by itself ──')
@@ -143,6 +144,8 @@ try {
   check('the strip folds itself once connected, so the chat is in view', (await val(`!document.querySelector('[data-kb="kybernos-kyber-channels"]')`)) === true)
   await click('kybernos-kyber-strip-toggle')
   check('opened, the Telegram card is the connected one', (await poll(() => val(`/Connecté : Miled|Connected: Miled/.test((document.querySelector('[data-kb="kybernos-kyber-telegram"]') || {}).innerText || '')`), 5000)) === true)
+  check('connected: the settings wait behind a disclosure, closed', (await val(`(() => { const d = document.querySelector('[data-kb="kybernos-kyber-settings"]'); return !!d && d.open === false })()`)) === true)
+  await val(`document.querySelector('[data-kb="kybernos-kyber-settings"]').open = true`)
   check('the where-setting is now open, « My Mac » stays greyed', (await val(`Array.from(document.querySelectorAll('[data-kb="kybernos-kyber-where-cloud"] input, [data-kb="kybernos-kyber-where-ask"] input')).every((i) => !i.disabled) && document.querySelector('[data-kb="kybernos-kyber-where-mac"] input').disabled`)) === true)
   await shot('3-connected')
 
@@ -182,16 +185,10 @@ try {
   await page.send('Emulation.clearDeviceMetricsOverride', {})
 
   console.log('── 10. the strip is above no other chat ──')
-  const before = await sessionCount()
-  const newChat = await val(`(() => { const e = Array.from(document.querySelectorAll('button')).filter((x) => /New chat|Nouvelle conversation/.test((x.innerText || '').trim()) && x.getClientRects().length > 0)[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`)
-  if (typeof newChat === 'string') {
-    const q = JSON.parse(newChat)
-    await mouse(q.x, q.y)
-    await sleep(2500)
-    check('another chat has no Kyby strip', (await has('kybernos-kyber-dock')) === false, { before, after: await sessionCount() })
-  } else {
-    check('another chat has no Kyby strip (no « New chat » button found: the page itself is not Kyby\'s chat)', (await has('kybernos-kyber-dock')) === true || true)
-  }
+  // « New chat » starts in the workspace you are in, and Kyby's chat has its own: before its first message it is the blank that a new chat
+  // there takes back (it is still Kyby's chat), so another chat is checked by what decides the strip, not by a click.
+  const kybySid = await pointer()
+  check('only the remembered chat is Kyby\'s: any other session id is not', (await val(`window.__KB_KYBER__.isKybySession(${JSON.stringify(kybySid)}) === true && window.__KB_KYBER__.isKybySession('session-00000000-0000-0000-0000-000000000000') === false && window.__KB_KYBER__.isKybySession('') === false`)) === true)
 
   console.log('── 11. the page ──')
   const opened = await val(`(async () => { try { return String(await window.__KB_OPEN__({ view: 'kyber' })) } catch (e) { return 'err' } })()`)

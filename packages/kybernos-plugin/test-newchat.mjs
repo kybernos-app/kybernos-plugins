@@ -222,6 +222,12 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('no dictionary key is declared twice, and « Search » (the placeholder prefix) is intact')
 }
 
+// 6b. Kyby's own chat is no place to start building
+{
+  assert.ok(/isKybySession\(sid\) === true\) return null/.test(src), 'the new-chat cards stay out of Kyby\'s own chat')
+  ok('the new-chat cards stay out of Kyby\'s own chat')
+}
+
 // 7. the menu row and the hiding are wired
 {
   assert.ok(/KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row is behind its own switch, and shows only with the Kyby satellite')
