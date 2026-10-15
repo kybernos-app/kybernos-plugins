@@ -33,8 +33,11 @@ let tokenValid = true
 let computerRestricted = false
 // The Kyber tab (ADR 0053 § 14): the personal workspace flag and what the server says of the Telegram door and of the person's Home computer.
 let kyberPersonal = false
+// What the server answers to POST …/computers/{id}/resume | suspend | ticket (the computers module, ADR 0052): a status and a body.
+let computerActionAnswer = null
+const computerActionSeen = []
 let kyberTelegram = { configured: true, enabled: true, bot_username: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } }
-let kyberHome = { name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
+let kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public', allow: [] } }
 // Profil servi par GET /v1/me : null → 404 (serveur plus ancien que la route),
 // sinon la valeur renvoyée. Il ÉVOLUE en cours de test : c'est l'objet même
 // de la route (le claim fige un instantané, /v1/me remet le profil à jour).
@@ -257,6 +260,16 @@ const api = createServer((req, res) => {
     if (req.url === '/v1/me/telegram' && req.method === 'GET') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
       return send(200, kyberTelegram)
+    }
+    {
+      const m = /^\/v1\/workspaces\/ws-1\/computers\/cmp-home\/(resume|suspend|ticket)$/.exec(req.url)
+      if (m !== null && req.method === 'POST') {
+        if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
+        computerActionSeen.push(m[1])
+        if (computerActionAnswer !== null) return send(computerActionAnswer.status, computerActionAnswer.body)
+        if (m[1] === 'ticket') return send(200, { url: 'https://cmp-home.computers.test/__gate/ticket?t=single-use', expires_in: 60, computer_id: 'cmp-home' })
+        return send(200, { computer: { id: 'cmp-home', state: m[1] === 'resume' ? 'resuming' : 'suspending', desired: m[1] === 'resume' ? 'running' : 'suspended' } })
+      }
     }
     if (req.url === '/v1/workspaces/ws-1/computers' && req.method === 'GET') {
       if (tokenValid !== true || auth !== 'Bearer ' + TOKEN) return send(401, { error: 'invalid session' })
@@ -623,8 +636,9 @@ try {
     '/kybernos-cloud/instructions', '/kybernos-cloud/instructions/save',
     // A turn the platform handed to this computer (ADR 0053 § 13.4): started and read by the computer's own runner.
     '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer', '/kybernos-cloud/turn/continue',
-    // The Kyber tab's data (ADR 0053 § 14).
+    // The Kyber tab's data (ADR 0053 § 14), and the Home computer's three actions (wake, put to sleep, open).
     '/kybernos-cloud/kyber',
+    '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
   ]
   for (const path of expectedPaths) assert.ok(routes.has(path), 'route attendue absente: ' + path)
   assert.equal(routes.size, expectedPaths.length)
@@ -1166,7 +1180,7 @@ try {
     assert.equal(r.status, 200)
     assert.equal(r.body.connected, true)
     assert.deepEqual(r.body.telegram, { configured: true, enabled: true, bot: 'kybernos_bot', linked: { display: 'Miled @milede', linked_at: '2026-10-14T20:34:35.000Z', paused: false, blocked: false } })
-    assert.deepEqual(r.body.home, { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public' })
+    assert.deepEqual(r.body.home, { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', version: 'p12', network: 'public', paused_reason: null })
     assert.equal(leaks(r.body), false, 'jamais le jeton')
     // A person with no Home yet, and a door that is not set up: the tab says so, it does not fail.
     kyberHome = { name: 'Notes', state: 'running' }
@@ -1176,6 +1190,63 @@ try {
     assert.deepEqual(none.body.telegram, { configured: false, enabled: false, bot: null, linked: null })
     kyberPersonal = false
     ok('onglet Kyber : l\'etat de la porte Telegram et du Home de la personne, sans jeton')
+  }
+
+  // 6g. The Home computer's actions: wake, put to sleep, open. The page never names a computer; the server's refusals come back as codes.
+  {
+    const act = async (verb, origin = 'http://127.0.0.1:3080') => {
+      const path = '/kybernos-cloud/computer/' + verb
+      const req = fakeReq('POST', origin, {}, path)
+      req.socket = { localPort: 3080, remoteAddress: '127.0.0.1' }
+      const res = fakeRes()
+      await routes.get(path)(req, res)
+      return res
+    }
+    kyberPersonal = true
+    kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', paused_reason: null, name: 'Home', state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-14T22:50:00.000Z', reported_version: 'p12', network: { mode: 'public' } }
+    computerActionAnswer = null
+    computerActionSeen.length = 0
+    const wake = await act('resume')
+    assert.equal(wake.status, 200); assert.equal(wake.body.ok, true); assert.equal(wake.body.state, 'resuming'); assert.equal(wake.body.desired, 'running')
+    const sleep = await act('suspend')
+    assert.equal(sleep.body.ok, true); assert.equal(sleep.body.desired, 'suspended')
+    const open = await act('open')
+    assert.equal(open.body.ok, true); assert.equal(open.body.url, 'https://cmp-home.computers.test/__gate/ticket?t=single-use')
+    assert.deepEqual(computerActionSeen, ['resume', 'suspend', 'ticket'], 'the three calls went to the Home computer, in order')
+    assert.equal(leaks(wake.body) || leaks(open.body), false, 'jamais le jeton')
+    ok('actions du Home : reveil, mise en veille, ouverture (le serveur decide, la page ne nomme rien)')
+
+    // The server's own refusals come back as short codes; an unknown one is just « refused ».
+    computerActionAnswer = { status: 409, body: { error: 'always_on', message: 'An always-on computer does not sleep.' } }
+    assert.equal((await act('suspend')).body.error, 'always_on')
+    computerActionAnswer = { status: 409, body: { error: 'run_hours_exhausted' } }
+    assert.equal((await act('resume')).body.error, 'run_hours_exhausted')
+    computerActionAnswer = { status: 500, body: { error: 'database exploded', message: 'secret details' } }
+    const refused = await act('resume')
+    assert.equal(refused.body.ok, false); assert.equal(refused.body.error, 'refused'); assert.equal(JSON.stringify(refused.body).includes('secret details'), false)
+    ok('actions du Home : les refus du serveur passent en codes courts, jamais en texte')
+
+    // A ticket is only ever an address the server names for THIS computer, over https, with no credentials.
+    for (const url of ['https://evil.example/__gate/ticket?t=x', 'http://cmp-home.computers.test/__gate/ticket?t=x', 'https://u:p@cmp-home.computers.test/x', 'javascript:alert(1)', '']) {
+      computerActionAnswer = { status: 200, body: { url, expires_in: 60, computer_id: 'cmp-home' } }
+      const bad = await act('open')
+      assert.equal(bad.body.ok, false, 'refused: ' + url)
+      assert.equal(bad.body.url, undefined)
+    }
+    ok('actions du Home : un ticket n\'est ouvert que sur l\'adresse nommee pour CET ordinateur, en https')
+
+    // No Home yet, not signed in, a foreign page: nothing is called.
+    computerActionAnswer = null
+    computerActionSeen.length = 0
+    kyberHome = { name: 'Notes', state: 'running' }
+    assert.equal((await act('resume')).body.error, 'no_computer')
+    kyberHome = { id: 'cmp-home', origin_host: 'cmp-home.computers.test', name: 'Home', state: 'running' }
+    assert.equal((await act('resume', 'https://evil.example')).status, 403, 'a foreign origin is refused before anything')
+    assert.equal((await act('resume', 'null')).status, 403)
+    assert.deepEqual(computerActionSeen, [], 'no call reached the server')
+    assert.equal(routes.get('/kybernos-cloud/computer/resume') !== undefined && routes.get('/kybernos-cloud/computer/unknown'), undefined)
+    kyberPersonal = false
+    ok('actions du Home : pas de Home, origine etrangere : rien n\'est appele')
   }
 
   // 6e. A turn the platform handed to this computer (ADR 0053 § 13.4): only the computer's own token, a same-origin call, and DSH's session seams.

@@ -1342,6 +1342,24 @@ let kbLocaleRead = () => 'en'
       'kbnc.cc.none': { kybernos: 'Pas encore créé', en: 'Not made yet' },
       'kbnc.cc.signedout': { kybernos: 'Connectez-vous pour l’utiliser', en: 'Sign in to use it' },
       'kbnc.cc.other': { kybernos: 'État inconnu', en: 'State unknown' },
+      'kbnc.cc.stopped': { kybernos: 'Arrêté', en: 'Stopped' },
+      'kbnc.cc.act.resume': { kybernos: 'Réveiller', en: 'Wake up' },
+      'kbnc.cc.act.suspend': { kybernos: 'Mettre en veille', en: 'Put to sleep' },
+      'kbnc.cc.act.open': { kybernos: 'Ouvrir', en: 'Open' },
+      'kbnc.cc.act.busy': { kybernos: 'En cours…', en: 'Working…' },
+      'kbnc.cc.hours': { kybernos: 'Les heures d’exécution du mois sont épuisées.', en: 'This month’s run hours are used up.' },
+      'kbnc.cc.err.always_on': { kybernos: 'Un ordinateur toujours allumé ne se met pas en veille.', en: 'An always-on computer does not go to sleep.' },
+      'kbnc.cc.err.run_hours_exhausted': { kybernos: 'Les heures d’exécution du mois sont épuisées.', en: 'This month’s run hours are used up.' },
+      'kbnc.cc.err.computer_deleting': { kybernos: 'L’ordinateur est en cours de suppression.', en: 'The computer is being deleted.' },
+      'kbnc.cc.err.computers_off_for_workspace': { kybernos: 'Les ordinateurs cloud sont désactivés pour cet espace.', en: 'Cloud computers are turned off for this workspace.' },
+      'kbnc.cc.err.not_allowed_to_open': { kybernos: 'Vous ne pouvez pas ouvrir cet ordinateur.', en: 'You may not open this computer.' },
+      'kbnc.cc.err.computer_not_ready': { kybernos: 'L’ordinateur n’est pas encore prêt.', en: 'The computer is not ready yet.' },
+      'kbnc.cc.err.owner_left': { kybernos: 'Son propriétaire a quitté l’espace.', en: 'Its owner left the workspace.' },
+      'kbnc.cc.err.rate_limited': { kybernos: 'Trop de demandes : réessayez dans une minute.', en: 'Too many requests: try again in a minute.' },
+      'kbnc.cc.err.no_computer': { kybernos: 'Pas encore d’ordinateur.', en: 'No computer yet.' },
+      'kbnc.cc.err.not_connected': { kybernos: 'Connectez-vous à Kybernos.', en: 'Sign in to Kybernos.' },
+      'kbnc.cc.err.refused': { kybernos: 'Le serveur a refusé.', en: 'The server refused.' },
+      'kbnc.cc.err.unreachable': { kybernos: 'DSH ne répond pas.', en: 'DSH did not answer.' },
       'kbnc.cc.sub.awake': { kybernos: 'Continue de travailler quand votre portable est éteint.', en: 'Keeps working when your laptop is off.' },
       'kbnc.cc.sub.none': { kybernos: 'Créé à votre premier message Telegram qui demande d’agir.', en: 'Made at your first Telegram message that asks it to act.' },
       'kbnc.cc.last': { kybernos: 'Dernière activité : ', en: 'Last active: ' },
@@ -5284,11 +5302,11 @@ const KB_NC_CREATE = [
 const kbNcTemplates = (group, bootIds) => group.filter((t) => t.needs === null || (Array.isArray(bootIds) === true && bootIds.indexOf(t.needs) >= 0))
 const kbNcObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
 // What the server calls the states of a computer, and what the card says.
-const KB_NC_STATES = { running: 'awake', suspended: 'asleep', creating: 'starting', resuming: 'waking', suspending: 'suspending', failed: 'failed' }
+const KB_NC_STATES = { running: 'awake', suspended: 'asleep', creating: 'starting', resuming: 'waking', suspending: 'suspending', stopped: 'stopped', failed: 'failed' }
 /** The Cloud Computer, from the answer of GET /kybernos-cloud/kyber. Never throws; an answer it cannot read is 'unknown'. */
 const kbNcCloud = (answer) => {
   const k = kbNcObj(answer)
-  const none = (kind) => ({ kind, version: '', lastActive: '', network: '' })
+  const none = (kind) => ({ kind, version: '', lastActive: '', network: '', mode: '', pausedReason: '' })
   if (k === null || k.ok !== true) return none('unknown')
   if (k.connected !== true) return none('signedout')
   const home = kbNcObj(k.home)
@@ -5299,10 +5317,29 @@ const kbNcCloud = (answer) => {
     version: typeof home.version === 'string' ? home.version : '',
     lastActive: typeof home.last_active_at === 'string' ? home.last_active_at : '',
     network: ['public', 'closed', 'list'].indexOf(String(home.network)) >= 0 ? String(home.network) : '',
+    // « sleep » computers go to sleep; an « always » one does not (the server refuses the sleep: 409 always_on).
+    mode: ['sleep', 'always'].indexOf(String(home.mode)) >= 0 ? String(home.mode) : '',
+    pausedReason: typeof home.paused_reason === 'string' ? home.paused_reason : '',
   }
 }
 /** The dot of the menu row and of the card: 'on' | 'busy' | 'off' | 'bad' | '' (nothing to say). */
-const kbNcDot = (kind) => ({ awake: 'on', starting: 'busy', waking: 'busy', suspending: 'busy', asleep: 'off', failed: 'bad' })[kind] || ''
+const kbNcDot = (kind) => ({ awake: 'on', starting: 'busy', waking: 'busy', suspending: 'busy', asleep: 'off', stopped: 'off', failed: 'bad' })[kind] || ''
+/** What the person can do with the computer now, as the verbs the host takes (POST /kybernos-cloud/computer/<verb>). Never offers what the server refuses. */
+const kbNcActions = (cloud) => {
+  const c = kbNcObj(cloud)
+  if (c === null) return []
+  if (c.kind === 'awake') return c.mode === 'always' ? ['open'] : ['open', 'suspend']
+  // A wake is refused while the month's run hours are used up: it is not offered, the card says why.
+  if (c.kind === 'asleep' || c.kind === 'stopped' || c.kind === 'failed') return c.pausedReason === 'hours' ? [] : ['resume']
+  return []
+}
+/** The server's short refusal code → the key of the sentence the card shows. Anything else is « refused »; a network failure is « unreachable ». */
+const KB_NC_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected']
+const kbNcRefusalKey = (answer) => {
+  const a = kbNcObj(answer)
+  if (a === null) return 'unreachable'
+  return KB_NC_REFUSALS.indexOf(String(a.error)) >= 0 ? String(a.error) : 'refused'
+}
 /** DSH's own « Automation tasks » menu row: by the key React gives it (the same in every language), else by its label. */
 const kbNcIsNativeSchedules = (key, label) => key === 'schedules' || (key === null && String(label === undefined || label === null ? '' : label).trim().toLowerCase() === 'automation tasks')
 /** Is that row hidden? Yes, unless the person asked for it back in Settings > Automations. */
@@ -23448,6 +23485,18 @@ function renderFit(canvas, model, cam, opts){
         for (const f of kbNcCloudStore.subs.slice()) { try { f() } catch (e) { /* a gone subscriber */ } }
       })
     }
+    // After an action the state moves for a few seconds (waking, going to sleep): read it again every 3 s until it settles.
+    const kbNcCloudBurst = () => {
+      let n = 0
+      const tick = () => {
+        kbNcCloudStore.at = 0
+        kbNcCloudLoad()
+        n += 1
+        const k = kbNcCloudStore.value.kind
+        if (n < 10 && (n < 2 || k === 'starting' || k === 'waking' || k === 'suspending')) setTimeout(tick, 3000)
+      }
+      setTimeout(tick, 800)
+    }
     // The hook: the state of the Cloud Computer ('unknown' when the cloud bundle is off or the answer cannot be read).
     const useNcCloud = () => {
       const pair = React.useState(kbNcCloudStore.value)
@@ -23955,6 +24004,9 @@ function renderFit(canvas, model, cam, opts){
       const openPair = React.useState(null)
       const open = openPair[0]
       const setOpen = openPair[1]
+      const actPair = React.useState({ verb: null, note: null })
+      const act = actPair[0]
+      const setAct = actPair[1]
       const cloud = useNcCloud()
       if (blank !== '1') return null
       const prefill = (id) => {
@@ -23980,6 +24032,28 @@ function renderFit(canvas, model, cam, opts){
         h('span', { className: 'kb8-nc-body' },
           h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
           h('span', { className: 'kb8-nc-d' }, sub)))
+      const openKyber = () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }
+      // One action: the host acts on the person's own Home computer (it is never named here). « Open » gets its tab at the click
+      // (a popup blocker lets only that through) and the address is put in it once the server has answered.
+      const runAction = (verb) => {
+        if (act.verb !== null) return
+        let tab = null
+        if (verb === 'open') { try { tab = window.open('', '_blank'); if (tab !== null) tab.opener = null } catch (e) { tab = null } }
+        setAct({ verb, note: null })
+        fetch('/kybernos-cloud/computer/' + verb, { method: 'POST', headers: { 'content-type': 'application/json' }, credentials: 'same-origin', body: '{}' })
+          .then((r) => r.json().catch(() => null)).catch(() => null).then((j) => {
+            if (j === null || j === undefined || j.ok !== true) {
+              if (tab !== null) { try { tab.close() } catch (e) { /* already gone */ } }
+              setAct({ verb: null, note: kbt('kbnc.cc.err.' + kbNcRefusalKey(j)) })
+              setTimeout(() => setAct((x) => (x.note === null ? x : { verb: null, note: null })), 6000)
+              return
+            }
+            setAct({ verb: null, note: null })
+            if (verb === 'open') { try { if (tab !== null && typeof j.url === 'string') tab.location.href = j.url } catch (e) { /* the tab was closed */ } return }
+            kbNcCloudBurst()
+          })
+      }
+      const ccActions = kbNcActions(cloud)
       const ccSub = cloud.kind === 'awake' || cloud.kind === 'asleep' || cloud.kind === 'other'
         ? (cloud.kind === 'awake' ? kbt('kbnc.cc.sub.awake') : (cloud.lastActive !== '' ? kbt('kbnc.cc.last') + kbFmtWhen(cloud.lastActive) : kbt('kbnc.cc.' + cloud.kind)))
         : cloud.kind === 'none' ? kbt('kbnc.cc.sub.none') : kbt('kbnc.cc.' + cloud.kind)
@@ -23988,17 +24062,33 @@ function renderFit(canvas, model, cam, opts){
           card('build', 'wrench', kbt('kbnc.build') + ' ›', kbt('kbnc.build.sub'), () => setOpen('build')),
           card('create', 'shapes', kbt('kbnc.create') + ' ›', kbt('kbnc.create.sub'), () => setOpen('create')),
           (cloud.kind === 'unknown' ? null
-            : card('cloud', 'monitor', kbt('kbui.cloudcomputer'), ccSub, () => { try { if (typeof window.__KB_OPEN__ === 'function') window.__KB_OPEN__({ view: 'kyber' }) } catch (e) { /* no page to open */ } }, kbNcDot(cloud.kind)))))
+            : h('div', { key: 'cloud', className: 'kb8-nc-card kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
+              h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
+                h('span', { className: 'kb8-nc-ico' }, Icon('monitor', 18)),
+                h('span', { className: 'kb8-nc-body' },
+                  h('span', { className: 'kb8-nc-t' }, kbNcDot(cloud.kind) === '' ? null : h('i', { className: 'kb8-nc-dot ' + kbNcDot(cloud.kind) }), kbt('kbui.cloudcomputer')),
+                  h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: act.note !== null ? act.note : undefined },
+                    act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))))),
+              (ccActions.length > 0 ? h('span', { className: 'kb8-nc-acts' }, ccActions.map((verb) =>
+                h('button', { type: 'button', key: verb, className: 'kb8-nc-act' + (verb === 'suspend' ? ' ghost' : ''), 'data-kb': 'newchat-cloud-' + verb, disabled: act.verb !== null, onClick: () => runAction(verb) }, kbt('kbnc.cc.act.' + verb)))) : null)))))
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: cartes du nouveau chat');
     ctx.effect(() => styles.insert(`
 /* Cards of the new chat: same inset as the starters' rows, tokens only. The starters below are not restyled. */
 .kb8-nc{display:flex;flex-direction:column;gap:10px;padding:0 16px 10px}
-.kb8-nc-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kb8-nc-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.6fr);gap:10px}
 .kb8-nc-card{display:flex;align-items:center;gap:11px;min-width:0;padding:10px 12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .12s}
 .kb8-nc-card:hover{background:var(--dsw-alias-bg-layer-3);border-color:var(--dsw-alias-border-l2)}
-.kb8-nc-card:focus-visible,.kb8-nc-tile:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kb8-nc-card:focus-visible,.kb8-nc-tile:focus-visible,.kb8-nc-main:focus-visible,.kb8-nc-act:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kb8-nc-cloud{cursor:default;padding:0;gap:0;align-items:stretch;flex-wrap:nowrap}
+.kb8-nc-cloud:hover{background:var(--dsw-alias-bg-layer-2);border-color:var(--dsw-alias-border-l1)}
+.kb8-nc-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1;padding:10px 6px 10px 12px;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:14px}
+.kb8-nc-main:hover{background:var(--dsw-alias-bg-layer-3)}
+.kb8-nc-acts{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:6px 10px 6px 4px;flex:none}
+.kb8-nc-act{height:26px;padding:0 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.kb8-nc-act.ghost{background:transparent;color:var(--dsw-alias-label-secondary);font-weight:500}
+.kb8-nc-act:disabled{opacity:.5;cursor:default}
 .kb8-nc-ico{width:36px;height:36px;flex:none;border-radius:11px;display:flex;align-items:center;justify-content:center;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .kb8-nc-body{display:flex;flex-direction:column;gap:2px;min-width:0}
 .kb8-nc-t{font-size:13.5px;font-weight:600;color:var(--dsw-alias-label-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

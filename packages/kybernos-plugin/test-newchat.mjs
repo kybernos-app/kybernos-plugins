@@ -19,7 +19,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREATE, kbNcTemplates, kbNcCloud, kbNcDot, kbNcIsNativeSchedules, kbNcHideNative })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREATE, kbNcTemplates, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative })')
 
 // 1. templates are offered only when the bundle they need is installed
 {
@@ -74,6 +74,31 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('the native Automation tasks entry is hidden by default and comes back when asked')
 }
 
+// 3b. what the person can do with the computer, from its state: never what the server would refuse
+{
+  const k = (home) => api.kbNcCloud({ ok: true, connected: true, home })
+  const acts = (c) => JSON.parse(JSON.stringify(api.kbNcActions(c)))
+  assert.deepEqual(acts(k({ state: 'running', mode: 'sleep' })), ['open', 'suspend'])
+  assert.deepEqual(acts(k({ state: 'running', mode: 'always' })), ['open'], 'an always-on computer is not offered a sleep (409 always_on)')
+  assert.deepEqual(acts(k({ state: 'suspended', mode: 'sleep' })), ['resume'])
+  assert.deepEqual(acts(k({ state: 'stopped' })), ['resume'])
+  assert.deepEqual(acts(k({ state: 'failed' })), ['resume'])
+  assert.deepEqual(acts(k({ state: 'suspended', paused_reason: 'hours' })), [], 'no wake while the run hours are used up (409 run_hours_exhausted)')
+  for (const state of ['creating', 'resuming', 'suspending', 'weird']) assert.deepEqual(acts(k({ state })), [], state + ': nothing to do while it moves')
+  for (const c of [api.kbNcCloud(null), api.kbNcCloud({ ok: true, connected: false }), api.kbNcCloud({ ok: true, connected: true, home: null })]) assert.deepEqual(acts(c), [])
+  assert.deepEqual(acts(null), [])
+  assert.equal(api.kbNcCloud({ ok: true, connected: true, home: { state: 'running', mode: 'x' } }).mode, '', 'an unknown mode is not trusted')
+  assert.equal(api.kbNcRefusalKey({ ok: false, error: 'always_on' }), 'always_on')
+  assert.equal(api.kbNcRefusalKey({ ok: false, error: 'database exploded' }), 'refused', 'a code nobody planned is « refused », never shown')
+  assert.equal(api.kbNcRefusalKey(null), 'unreachable')
+  // every sentence the card can show exists in both languages
+  for (const key of ['resume', 'suspend', 'open', 'busy']) assert.ok(new RegExp("'kbnc\\.cc\\.act\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'act.' + key)
+  for (const key of ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited', 'no_computer', 'not_connected', 'refused', 'unreachable']) {
+    assert.ok(new RegExp("'kbnc\\.cc\\.err\\." + key + "': \\{ kybernos: '[^']+', en: '[^']+' \\}").test(src), 'err.' + key)
+  }
+  ok('the actions follow the state and never offer what the server refuses; every refusal has its sentence in both languages')
+}
+
 // ── wiring ────────────────────────────────────────────────────────────────────────────────────────────────
 // 5. the starters are untouched, and the new cards sit before them in the dock
 {
@@ -93,6 +118,22 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   assert.ok(/blank !== '1'\) return null/.test(c), 'it effaces itself once the chat is not blank, like the starters')
   assert.ok(/act\.setDraft\(/.test(c) && !/act\.submit\(/.test(c), 'a template prefills the composer and never submits')
   ok('the cards show on a blank chat only and a template never sends')
+}
+
+// 6b. the card's actions: the host picks the computer, « Open » cannot be hijacked by the page it opens
+{
+  const c = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 14000)
+  assert.ok(/fetch\('\/kybernos-cloud\/computer\/' \+ verb, \{ method: 'POST'/.test(c), 'the actions call the host, by POST')
+  assert.ok(!/computer_?[Ii]d|workspace_?[Ii]d/.test(c), 'the page never names a computer or a workspace')
+  assert.ok(/tab\.opener = null/.test(c), 'the tab it opens has no way back to DSH')
+  assert.ok(/window\.open\('', '_blank'\)/.test(c) && /tab\.location\.href = j\.url/.test(c), 'the tab is made at the click and the address put in it afterwards')
+  ok('the actions call the host only; the page never names a computer; the opened tab has no opener')
+}
+
+// 6c. the card with its two buttons gets a wider column: with equal thirds the title was cut to « Cloud ... » (seen on the sandbox)
+{
+  assert.ok(/\.kb8-nc-row\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\) minmax\(0,1\.6fr\)/.test(src), 'the third column (the Cloud Computer card) is wider than the first two')
+  ok('the Cloud Computer card has the wider column, so its title and its buttons both fit')
 }
 
 // 7. the menu row and the hiding are wired
