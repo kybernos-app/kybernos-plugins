@@ -20,7 +20,7 @@ const pluginDir = dirname(fileURLToPath(import.meta.url))
 // telle que le registre la tient, et on y repose le seul filet : le modèle de
 // résumé ÉPINGLÉ. (Sans config, `resolveConfig` laisse « » et l'engine tombe sur
 // le modèle de session — c'est là que le compactage meurt.)
-import { poserPresetKybernos, choisirPresetParDefaut, ID_PRESET_KYBERNOS, SEUIL_COMPACTAGE, activerSubagentClaude } from './preset-compaction.mjs'
+import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './preset-legacy.mjs'
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 import { wsConsoleKeyReply } from './ws-console-key.mjs'
@@ -2327,9 +2327,9 @@ function boot(ctx) {
     }
     const sandbox = ctx.get('sandboxPolicy')
     const presets = ctx.get('agentPresets')
-    // Le filet du compactage : on pose notre preset cloné — résumé épinglé ET
-    // seuil d'auto-compactage à 70 % (SEUIL_COMPACTAGE, demande du 01/10). Le
-    // boot ne doit pas en dépendre — la pose est un confort, jamais un prérequis.
+    // « Kybernos compact » is retired as a choice (DSH compacts natively in the Standard preset): its id stays registered as a
+    // plain copy because stored sessions carry it and the registry rejects an id it does not know on reload, and the default
+    // of new chats goes back to Standard when it still pointed at it. Nothing here may stop the boot.
     const poserPresetCompactage = (service) => {
       const resoudreReglages = () => new Promise((resoudre) => {
         if (settings !== undefined && settings !== null) { resoudre(settings); return }
@@ -2345,12 +2345,10 @@ function boot(ctx) {
             if (ra.etat === 'pose') console.log('[kybers] force de proposition posée dans ' + ra.chemin)
             else if (ra.etat === 'erreur') console.log('[kybers] force de proposition non posée — ' + ra.erreur)
           } catch (e) { console.log('[kybers] force de proposition — échec silencieux : ' + String(e && e.message ? e.message : e)) }
-          // The threshold goes in the 2nd argument (`options`): in the 1st (the context) it was silently
-          // ignored and the engine kept its own 80% while the gauge and the log said 70%.
-          const r = await poserPresetKybernos({ agentPresets: service }, { seuil: SEUIL_COMPACTAGE })
-          if (r.pose === true) console.log('[kybers] preset compactage posé : ' + r.id + ' (résumé ' + r.provider + '/' + r.modele + ', seuil ' + Math.round(SEUIL_COMPACTAGE * 100) + ' %); ' + r.retouches + ' feuille')
-          else if (r.deja === true) console.log('[kybers] preset compactage déjà en place')
-          else console.log('[kybers] preset compactage non posé — ' + r.raison)
+          const r = await poserPresetLegacy({ agentPresets: service })
+          if (r.pose === true) console.log('[kybers] legacy preset registered: ' + r.id + ' (a plain copy of standard)')
+          else if (r.deja === true) console.log('[kybers] legacy preset already in place')
+          else console.log('[kybers] legacy preset not registered — ' + r.raison)
           // Migration du patch moteur subagent-claude-code (04/10) : la rangée
           // `subagent_claude_code` est activée dans TOUTES les définitions du
           // registre — plus aucune écriture dans les presets du moteur.
@@ -2360,18 +2358,12 @@ function boot(ctx) {
             else if (sa.raison !== undefined) console.log('[kybers] subagent claude-code — ' + sa.raison)
             else console.log('[kybers] subagent claude-code déjà actif partout')
           } catch (e) { console.log('[kybers] subagent claude-code : échec — ' + errText(e)) }
-          if (r.pose !== true && r.deja !== true) return
-          // Le preset ne sert à rien tant qu'il n'est pas choisi : `default` de la
-          // rangée du registre reste `standard`, et la GUI peut avoir écrit un
-          // choix explicite (`selectedDefault`). On écrit donc le champ, par le
-          // service `settings`, et seulement s'il est vide.
           const reglages = await resoudreReglages()
-          const choix = await choisirPresetParDefaut({ agentPresets: service, settings: reglages }, ID_PRESET_KYBERNOS)
-          if (choix.ecrit === true) console.log('[kybers] preset compactage choisi par défaut (' + choix.ns + ')')
-          else if (choix.deja === true) console.log('[kybers] preset compactage déjà par défaut')
-          else console.log('[kybers] preset compactage laissé au choix — ' + choix.raison)
+          const repli = await replierSurStandard({ agentPresets: service, settings: reglages })
+          if (repli.ecrit === true) console.log('[kybers] default preset put back on ' + repli.id + ' (' + repli.ns + ')')
+          else console.log('[kybers] default preset left as it is — ' + repli.raison)
         })
-        .catch((e) => console.log('[kybers] preset compactage : échec — ' + errText(e)))
+        .catch((e) => console.log('[kybers] legacy preset : échec — ' + errText(e)))
     }
     if (presets !== undefined && presets !== null) poserPresetCompactage(presets)
     else {
@@ -9850,11 +9842,6 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         sendJson(res, 200, await saveShare(await readJsonBody(req)))
       } }), 'kybernos: route share')
-      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/compaction', handler: async (req, res) => {
-        // La jauge de contexte du chat lit ici le seuil RÉELLEMENT posé sur le
-        // preset (SEUIL_COMPACTAGE), jamais un chiffre recopié côté client.
-        sendJson(res, 200, { ok: true, seuil: SEUIL_COMPACTAGE, preset: ID_PRESET_KYBERNOS })
-      } }), 'kybernos: route compaction')
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/active-set', handler: async (req, res) => {
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST attendu' })
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
