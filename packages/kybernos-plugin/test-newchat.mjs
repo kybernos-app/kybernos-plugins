@@ -222,15 +222,15 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('no dictionary key is declared twice, and « Search » (the placeholder prefix) is intact')
 }
 
-// 6b. Kyby's own chat is no place to start building
+// 6b. Kaby's own chat is no place to start building
 {
-  assert.ok(/isKybySession\(sid\) === true\) return null/.test(src), 'the new-chat cards stay out of Kyby\'s own chat')
-  ok('the new-chat cards stay out of Kyby\'s own chat')
+  assert.ok(/isKybySession\(sid\) === true\) return null/.test(src), 'the new-chat cards stay out of Kaby\'s own chat')
+  ok('the new-chat cards stay out of Kaby\'s own chat')
 }
 
 // 7. the menu row and the hiding are wired
 {
-  assert.ok(/KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row is behind its own switch, and shows only with the Kyby satellite')
+  assert.ok(/KB_SHOW_CLOUD_COMPUTER_ROW === true && KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row is behind its own switch, and shows only with the Kaby satellite')
   assert.ok(/const KB_SHOW_CLOUD_COMPUTER_ROW = false\n/.test(src), 'the Cloud Computer row is hidden for now (one constant to turn back on)')
   assert.ok(/kbNcIsNativeSchedules\(kbNavKeyOf\(/.test(src), 'the hiding reads the row key with the nav helper')
   assert.ok(/id: 'kybernos-automations'|'kybernos-automations', \d+/.test(src), 'the Automations settings page is registered')

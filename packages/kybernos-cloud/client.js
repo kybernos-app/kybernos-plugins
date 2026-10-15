@@ -2155,7 +2155,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const offRowRef = React.useRef(null)
           const gearRef = React.useRef(null)
           const [upgradeOpen, setUpgradeOpen] = React.useState(false)
-          // The same dialog, for a page that has to say « this needs a paid plan » (the Kyby page): it asks, it does not own the dialog.
+          // The same dialog, for a page that has to say « this needs a paid plan » (the Kaby page): it asks, it does not own the dialog.
           React.useEffect(() => {
             try { window.__KB_UPGRADE__ = { open: () => setUpgradeOpen(true) } } catch (e) { /* no window */ }
             return () => { try { delete window.__KB_UPGRADE__ } catch (e) { /* gone */ } }

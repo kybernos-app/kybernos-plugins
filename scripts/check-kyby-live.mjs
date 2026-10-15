@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Kyby (packages/kybernos-kyber + the Kyby routes and hooks of packages/kybernos-cloud), in a real GUI.
+// Kaby (packages/kybernos-kyber + the Kaby routes and hooks of packages/kybernos-cloud), in a real GUI.
 //
 //   scripts/sandbox/setup.sh && scripts/sandbox/start.sh
 //   source scripts/sandbox/env.sh && node scripts/check-kyby-live.mjs [--shots <dir>]
 //
-// It needs the sandbox instance (docs/dev/live-testing.md): opening Kyby makes a REAL DSH chat and the host writes its pointer file, so
+// It needs the sandbox instance (docs/dev/live-testing.md): opening Kaby makes a REAL DSH chat and the host writes its pointer file, so
 // it refuses to run against the user's own :3080 (exit 3). What is real: the DSH page, its sessions service, the row, the native chat
 // it opens, the host's pointer route, the dock above the composer. What is faked, by replacing the page's `fetch` for those paths only,
 // before any script runs: the account's answers (`/kybernos-cloud/kyber`, `/server`, the Telegram pairing, the settings, the computer);
@@ -13,7 +13,7 @@
 // It plays: the row opens a native chat, once (a second click opens the same one); the strip sits above ITS composer and no other chat's;
 // a person with no Telegram on the Free plan (QR, steps, upsell, no wake button), the pairing going waiting -> scanned -> connected by
 // itself (the strip folds), the setting where a message runs, a paid plan (wake and sleep), the strip folding and remembered, a phone width,
-// and the page (what Kyby is, the way into the chat). Exit code 0 / 1 / 3 (not run).
+// and the page (what Kaby is, the way into the chat). Exit code 0 / 1 / 3 (not run).
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
@@ -39,7 +39,7 @@ const KYBER = (over) => Object.assign({
   home: { state: 'suspended', desired: 'suspended', mode: 'sleep', region: 'ams', last_active_at: '2026-10-15T09:50:00.000Z', version: 'p12', network: 'public', paused_reason: null, manual_control: false },
 }, over || {})
 
-// Installed before any script of the page: the answers the page gets for the Kyby routes. `window.__kbMock` is what the check drives.
+// Installed before any script of the page: the answers the page gets for the Kaby routes. `window.__kbMock` is what the check drives.
 const MOCK = `(() => {
   const m = window.__kbMock = { kyber: ${JSON.stringify(KYBER())}, server: ${JSON.stringify(SERVER)}, pairingState: { ok: true, state: 'waiting', reason: null, sender: '', expires_at: '' },
     calls: [], qr: ${JSON.stringify({ size: qr.size, modules: qr.modules })},
@@ -90,11 +90,11 @@ try {
   await page.send('Page.reload', { ignoreCache: true })
   await sleep(2500)
   await waitFor(page, 'document.body && document.body.innerText.length > 80', 30000)
-  console.log('Kyby — ' + host + ' (the sandbox serves this checkout; the account\'s answers are faked)')
+  console.log('Kaby — ' + host + ' (the sandbox serves this checkout; the account\'s answers are faked)')
 
   const sessionCount = () => val(`(() => { try { return String(document.querySelectorAll('[data-row-key^="session:"]').length) } catch (e) { return '0' } })()`)
   const pointer = () => val(`fetch('/kybernos-cloud/kyby/native', { credentials: 'same-origin' }).then((r) => r.json()).then((j) => j.sessionId || null)`)
-  const kybyRow = `Array.from(document.querySelectorAll('button, a, [role="button"]')).filter((x) => (x.innerText || '').trim().split('\\n')[0] === 'Kyby' && x.getClientRects().length > 0)[0]`
+  const kybyRow = `Array.from(document.querySelectorAll('button, a, [role="button"]')).filter((x) => (x.innerText || '').trim().split('\\n')[0] === 'Kaby' && x.getClientRects().length > 0)[0]`
   const rowPos = () => val(`(() => { const e = ${kybyRow}; if (!e) return null; return 'row' })()`)
   // A DOM click: the sandbox's first-run dialog can sit over the page and swallow a pointer event, which says nothing of the row.
   const clickRow = () => val(`(() => { const e = ${kybyRow}; if (!e) return false; e.click(); return true })()`)
@@ -105,19 +105,19 @@ try {
 
   console.log('── 1. the row opens a native DSH chat ──')
   const row = await poll(rowPos, 25000)
-  check('the sidebar has a Kyby row', typeof row === 'string', row)
-  if (typeof row !== 'string') throw new Error('no Kyby row')
+  check('the sidebar has a Kaby row', typeof row === 'string', row)
+  if (typeof row !== 'string') throw new Error('no Kaby row')
   check('there is no Cloud Computer row any more', (await val(`!Array.from(document.querySelectorAll('button, a, [role="button"]')).some((x) => (x.innerText || '').trim().split('\\n')[0] === 'Cloud Computer' && x.getBoundingClientRect().x < 300)`)) === true)
-  check('no Kyby chat is remembered yet', (await pointer()) === null)
+  check('no Kaby chat is remembered yet', (await pointer()) === null)
   await clickRow()
   const dock = await poll(() => has('kybernos-kyber-dock'), 20000)
   check('the strip appears above the composer of the chat the row opened', dock === true)
   const first = await pointer()
-  check('the host remembered that chat as Kyby\'s', typeof first === 'string' && first.length > 8, first)
+  check('the host remembered that chat as Kaby\'s', typeof first === 'string' && first.length > 8, first)
   check('it is DSH\'s own composer, not a box of this page', (await composerThere()) === true && (await has('kybernos-kyber-draft')) === false)
   check('a folder is already chosen: the person is not asked for one', (await val(`!/Choose workspace|Choose a workspace to start|Choisir un espace|Choisissez un espace/.test(document.body.innerText)`)) === true)
-  check('the chat\'s workspace is called Kyby, in the list', (await val(`Array.from(document.querySelectorAll('[data-row-key], [class*="workspace"]')).some((e) => (e.innerText || '').trim() === 'Kyby') || /\\bKyby\\b/.test(document.body.innerText)`)) === true)
-  check('the new-chat cards (Build, Create, Slides…) are not in Kyby\'s chat', (await has('newchat')) === false)
+  check('the chat\'s workspace is called Kaby, in the list', (await val(`Array.from(document.querySelectorAll('[data-row-key], [class*="workspace"]')).some((e) => (e.innerText || '').trim() === 'Kaby') || /\\bKyby\\b/.test(document.body.innerText)`)) === true)
+  check('the new-chat cards (Build, Create, Slides…) are not in Kaby\'s chat', (await has('newchat')) === false)
   check('the page that opened is not the one drawn by the bundle', (await has('kybernos-kyber-page')) === false)
   await shot('1-native-chat')
 
@@ -185,15 +185,15 @@ try {
   await page.send('Emulation.clearDeviceMetricsOverride', {})
 
   console.log('── 10. the strip is above no other chat ──')
-  // « New chat » starts in the workspace you are in, and Kyby's chat has its own: before its first message it is the blank that a new chat
-  // there takes back (it is still Kyby's chat), so another chat is checked by what decides the strip, not by a click.
+  // « New chat » starts in the workspace you are in, and Kaby's chat has its own: before its first message it is the blank that a new chat
+  // there takes back (it is still Kaby's chat), so another chat is checked by what decides the strip, not by a click.
   const kybySid = await pointer()
-  check('only the remembered chat is Kyby\'s: any other session id is not', (await val(`window.__KB_KYBER__.isKybySession(${JSON.stringify(kybySid)}) === true && window.__KB_KYBER__.isKybySession('session-00000000-0000-0000-0000-000000000000') === false && window.__KB_KYBER__.isKybySession('') === false`)) === true)
+  check('only the remembered chat is Kaby\'s: any other session id is not', (await val(`window.__KB_KYBER__.isKybySession(${JSON.stringify(kybySid)}) === true && window.__KB_KYBER__.isKybySession('session-00000000-0000-0000-0000-000000000000') === false && window.__KB_KYBER__.isKybySession('') === false`)) === true)
 
   console.log('── 11. the page ──')
   const opened = await val(`(async () => { try { return String(await window.__KB_OPEN__({ view: 'kyber' })) } catch (e) { return 'err' } })()`)
   check('the page opens (the new-chat card and the right tab use it)', (await poll(() => has('kybernos-kyber-page'), 12000)) === true, opened)
-  check('it says what Kyby is and offers the way into the chat', /dans votre poche|in your pocket/.test((await text('kybernos-kyber-page')) || '') && (await has('kybernos-kyber-openchat')) === true)
+  check('it says what Kaby is and offers the way into the chat', /dans votre poche|in your pocket/.test((await text('kybernos-kyber-page')) || '') && (await has('kybernos-kyber-openchat')) === true)
   await shot('6-page')
 } catch (e) {
   fail += 1

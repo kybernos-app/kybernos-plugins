@@ -1,4 +1,4 @@
-// The Kyby routes (kyby.mjs) against a fake server: what the page may rely on, what a refusal is called, and what never leaves.
+// The Kaby routes (kyby.mjs) against a fake server: what the page may rely on, what a refusal is called, and what never leaves.
 import { createKybyRoutes, codeOf, pairingOf, pairingStateOf } from './kyby.mjs'
 
 let fail = 0

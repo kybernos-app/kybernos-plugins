@@ -63,9 +63,9 @@ const ASSISTANT_KEYS = new Set(['kbui.kyber', 'kbui.kyber.off'])
 const kyberLabels = []
 for (const [k, v] of dict) for (const lang of ['en', 'kybernos']) { if (ASSISTANT_KEYS.has(k)) continue; const at = kyberLeft(v[lang]); if (at !== null) kyberLabels.push(k + ' (' + lang + '): …' + at + '…') }
 assert.deepEqual(kyberLabels, [], 'a « Kyber » label is back: it is an Agent Team')
-// The assistant's name is « Kyby » since 2026-10-15 (the key keeps its id).
-assert.equal(dict.get('kbui.kyber').en, 'Kyby')
-assert.equal(dict.get('kbui.kyber').kybernos, 'Kyby')
+// The assistant's name is « Kaby » since 2026-10-15 (the key keeps its id).
+assert.equal(dict.get('kbui.kyber').en, 'Kaby')
+assert.equal(dict.get('kbui.kyber').kybernos, 'Kaby')
 ok('no string of the dictionary calls an Agent Team a « Kyber » (only kyber.yml, the other technical words, and the name of the person\'s own assistant remain)')
 
 // 3. nor « AI Team »

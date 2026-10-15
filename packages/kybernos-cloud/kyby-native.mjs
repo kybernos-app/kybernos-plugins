@@ -1,9 +1,9 @@
-// Kyby as a NATIVE DSH conversation (ADR 0053 § 14): the person's Kyby is a real chat of DSH, with DSH's own composer and rendering,
+// Kaby as a NATIVE DSH conversation (ADR 0053 § 14): the person's Kaby is a real chat of DSH, with DSH's own composer and rendering,
 // running DSH's agent on this machine with the account's memory. What this file adds around that chat:
-//   · which session is Kyby's (a pointer file; the page opens it, creating it once),
-//   · who Kyby is for that session only (a block of the system prompt, plus the last words said on the shared thread: Telegram's),
+//   · which session is Kaby's (a pointer file; the page opens it, creating it once),
+//   · who Kaby is for that session only (a block of the system prompt, plus the last words said on the shared thread: Telegram's),
 //   · the end of each turn written on the person's thread on the server, when the server has one (`GET /v1/me/kyby`).
-// The server's Kyby (Telegram, its cloud computer) and this one are two bodies of one assistant: one memory, one thread.
+// The server's Kaby (Telegram, its cloud computer) and this one are two bodies of one assistant: one memory, one thread.
 //
 // Pure functions and a factory over injected helpers, so the hooks are tested without DSH and without a server. Nothing here throws
 // into a turn, and nothing here returns the account's token.
@@ -13,12 +13,14 @@ import { dirname } from 'node:path'
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const SESSION_ID = /^[A-Za-z0-9_.-]{8,120}$/
 const KYBER_ID = /^[A-Za-z0-9_-]{4,64}$/
+/** What the person calls their own assistant (the sidebar row's label is `kbui.kyber` in kybernos-plugin; the page has its own NAME). */
+export const ASSISTANT_NAME = 'Kaby'
 export const MAX_USER_CHARS = 100000
 export const CONTEXT_LINES = 8
 export const CONTEXT_CHARS = 240
 const IDENTITY_TTL_MS = 5 * 60 * 1000
 const CONTEXT_TTL_MS = 60 * 1000
-/** A server that has no Kyby thread (older than this page) is not asked again for this long. */
+/** A server that has no Kaby thread (older than this page) is not asked again for this long. */
 const UNSUPPORTED_MS = 10 * 60 * 1000
 /** The memory block the cloud bundle injects into a turn: removed before a turn's words are kept (same markers as index.js). */
 const MEMORY_HEAD = '[KYBERNOS MEMORY]'
@@ -70,17 +72,17 @@ export const contextLines = (rows, skip) => {
     if (r === null || typeof r !== 'object' || (r.role !== 'user' && r.role !== 'assistant') || typeof r.content !== 'string') continue
     const text = strip(r.content).replace(/\s+/g, ' ')
     if (text === '' || mine.has(text.slice(0, 120))) continue
-    out.push((r.role === 'user' ? 'Person: ' : 'Kyby: ') + (text.length > CONTEXT_CHARS ? text.slice(0, CONTEXT_CHARS - 1) + '…' : text))
+    out.push((r.role === 'user' ? 'Person: ' : ASSISTANT_NAME + ': ') + (text.length > CONTEXT_CHARS ? text.slice(0, CONTEXT_CHARS - 1) + '…' : text))
   }
   return out.slice(-CONTEXT_LINES)
 }
 
-/** The block of the system prompt, for Kyby's own chat. `lines` is what was said lately on the person's shared thread (Telegram's). */
+/** The block of the system prompt, for Kaby's own chat. `lines` is what was said lately on the person's shared thread (Telegram's). */
 export const kybyPrompt = (lines) => {
   const body = [
     KYBY_HEAD,
-    'You are Kyby, the person\'s own assistant in Kybernos. This chat is your home on the person\'s computer: you work here, with the tools of this chat, on this machine.',
-    'The same Kyby also answers the person on Telegram and works on its own cloud computer there. It is one assistant with one memory and one conversation: what you learn here you may use there.',
+    'You are ' + ASSISTANT_NAME + ', the person\'s own assistant in Kybernos. This chat is your home on the person\'s computer: you work here, with the tools of this chat, on this machine.',
+    'The same ' + ASSISTANT_NAME + ' also answers the person on Telegram and works on its own cloud computer there. It is one assistant with one memory and one conversation: what you learn here you may use there.',
     'Speak the person\'s language, plainly and warmly, and keep answers short unless asked for more. Use the person\'s memory when it helps and never invent a memory.',
     'Never claim work you did not do. If something is better done on your cloud computer (a long job, work that must go on while this machine is off), say so and suggest writing to you on Telegram.',
   ]
@@ -92,7 +94,7 @@ export const kybyPrompt = (lines) => {
   return body.join('\n')
 }
 
-// ── the pointer file: which session is Kyby's ───────────────────────────────────────────────────────
+// ── the pointer file: which session is Kaby's ───────────────────────────────────────────────────────
 
 export function readPointer (file) {
   try {
@@ -137,7 +139,7 @@ export function createKybyNative (deps) {
       return deps.isConnected(s) === true && typeof s.token === 'string' ? s.token : null
     } catch (e) { return null }
   }
-  /** `{ kyber, thread }` of the person's Kyby on the server, or null (not signed in, an older server, nothing to talk to). */
+  /** `{ kyber, thread }` of the person's Kaby on the server, or null (not signed in, an older server, nothing to talk to). */
   const thread = async (t) => {
     if (now() < unsupportedUntil) return null
     if (identity.value !== null && identity.token === t && now() - identity.at < IDENTITY_TTL_MS) return identity.value
@@ -165,21 +167,21 @@ export function createKybyNative (deps) {
   }
 
   return {
-    /** The session that is Kyby's, or null. */
+    /** The session that is Kaby's, or null. */
     sessionId,
     isKyby: (sid) => typeof sid === 'string' && sid !== '' && sid === sessionId(),
-    /** Called for each request of a turn: the identity block for Kyby's session, an empty string for every other. */
+    /** Called for each request of a turn: the identity block for Kaby's session, an empty string for every other. */
     promptFor (sid) {
       if (!this.isKyby(sid)) return ''
       return kybyPrompt(context.lines)
     },
-    /** A message of the person was taken in Kyby's session: the shared thread is read again, for the next request. */
+    /** A message of the person was taken in Kaby's session: the shared thread is read again, for the next request. */
     noteClaim (sid) {
       if (!this.isKyby(sid)) return
       if (now() - context.at > CONTEXT_TTL_MS) void refreshContext()
     },
     refreshContext,
-    /** The end of a turn of Kyby's session: its words go on the person's thread. Returns what happened, as a word (for tests). */
+    /** The end of a turn of Kaby's session: its words go on the person's thread. Returns what happened, as a word (for tests). */
     async mirrorTurn (agent, signal) {
       try {
         const sid = agent !== null && agent !== undefined && agent.session !== undefined ? agent.session.id : undefined
