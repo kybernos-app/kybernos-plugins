@@ -1,0 +1,23 @@
+{
+  "id": "panneau",
+  "v": 1,
+  "name": "Panneau",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Fond noir, ambre de panneau lumineux, icônes en points.",
+    "en": "Black ground, LED-panel amber, dot-matrix icons."
+  },
+  "settings": {
+    "mode": "dark",
+    "acc": "#f59e0b",
+    "ov": {
+      "dark:base": "#0a0b0e",
+      "dark:l1": "#111318",
+      "dark:l2": "#191c23",
+      "dark:side": "#0c0d11",
+      "dark:input": "#191c23"
+    },
+    "radius": "sharp",
+    "iconSet": "matrice"
+  }
+}

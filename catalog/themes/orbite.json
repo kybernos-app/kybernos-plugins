@@ -1,0 +1,23 @@
+{
+  "id": "orbite",
+  "v": 1,
+  "name": "Orbite",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Clair et aéré, un seul cyan, icônes en anneaux et en bandes.",
+    "en": "Light and airy, a single cyan, ring and band icons."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#0891b2",
+    "ov": {
+      "light:base": "#f4f8fa",
+      "light:l1": "#ffffff",
+      "light:l2": "#e9f1f4",
+      "light:side": "#eef4f7",
+      "light:input": "#ffffff"
+    },
+    "radius": "soft",
+    "iconSet": "anneaux"
+  }
+}

@@ -1273,7 +1273,7 @@ if (React === null) {
   const natural = render({ mode: 'dark' })
   check('natural state: the pill says no layer is posted', /DSH natif/.test(natural))
   check('themed state: the pill announces the 17-token layer', /17 jetons/.test(simple))
-  check('the eight vertical tabs are always there, Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 8 && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
+  check('the nine vertical tabs are always there (Icônes next to Animation), Essentiel pressed by default', (simple.match(/class="kbth-adv-tab[ "]/g) || []).length === 9 && />Icônes</.test(simple) && /kbth-adv-tab on" aria-pressed="true">Essentiel</.test(simple))
   check('there is no Simple / Avancé switch any more', !/>Simple</.test(simple) && !/>Avancé</.test(simple) && !/Besoin de plus de réglages/.test(simple))
   check('Essentiel carries appearance, colour, background and font', ['Apparence', 'Couleur', 'Arrière-plan', 'Police'].every((t) => simple.includes('>' + t + '<')))
   check('the wallpaper grid starts with an "Aucun" tile (a wallpaper can be removed)', /class="kbth-wp"[^>]*title="Aucun"/.test(simple))
@@ -1415,7 +1415,7 @@ if (React === null) {
     real.gal.data = real.galClean(answer()); real.gal.state = 'ready'
     const html = render({ ...real.DEF }, 'galerie')
     const n = shipped.themes.length
-    check('the Galerie tab is there, the eighth, and is the one pressed when opened', (html.match(/class="kbth-adv-tab[ "]/g) || []).length === 8 && /kbth-adv-tab on" aria-pressed="true">Galerie</.test(html))
+    check('the Galerie tab is there, the ninth, and is the one pressed when opened', (html.match(/class="kbth-adv-tab[ "]/g) || []).length === 9 && /kbth-adv-tab on" aria-pressed="true">Galerie</.test(html))
     check('a card per theme, each with a thumbnail, its name, its author and its description', (html.match(/data-kb="theme-gal-card"/g) || []).length === n && shipped.themes.every((t) => html.includes('>' + t.name.replace(/&/g, '&amp;') + '<')) && (html.match(/par Kybernos/g) || []).length === n && (html.match(/class="kbth-thumb"/g) || []).length === n && html.includes(shipped.themes[0].description.fr),
       { cards: (html.match(/data-kb="theme-gal-card"/g) || []).length, n, names: shipped.themes.filter((t) => !html.includes('>' + t.name.replace(/&/g, '&amp;') + '<')).map((t) => t.name), authors: (html.match(/par Kybernos/g) || []).length, thumbs: (html.match(/class="kbth-thumb"/g) || []).length })
     check('...the thumbnails are decoration (hidden from screen readers) and painted with the theme\'s own base colour', (html.match(/class="kbth-thumb" aria-hidden="true" style="background:#[0-9a-f]{6}/g) || []).length === n)

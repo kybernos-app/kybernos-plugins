@@ -27,8 +27,9 @@ const api = new Function('window', 'document', 'CustomEvent', BLOCK + '\nreturn 
 section('the sets')
 {
   const ids = api.ICON_SET_IDS
-  ok('twelve sets: classic, the five sober ones and the six new languages', ids.length === 12 && ids[0] === 'classic' && new Set(ids).size === 12, ids)
-  ok('the six new ones are there', ['matrice', 'mondrian', 'anneaux', 'iso', 'creatures', 'barres'].every((i) => ids.indexOf(i) >= 0), ids)
+  ok('twenty-one sets: classic, the five sober ones and fifteen with their own language', ids.length === 21 && ids[0] === 'classic' && new Set(ids).size === 21, ids)
+  ok('the fifteen new ones are there', ['matrice', 'mondrian', 'anneaux', 'iso', 'kawaii', 'barres', 'facettes', 'ombre', 'trame', 'bulles', 'alveoles', 'constellation', 'biton', 'tampon', 'nature'].every((i) => ids.indexOf(i) >= 0), ids)
+  ok('at least twenty sets to choose from, not counting the application\'s own', ids.length - 1 >= 20, ids.length)
   ok('nine menu entries, each with a hue', api.ICON_ENTRIES.length === 9 && api.ICON_ENTRIES.every((e) => /^#[0-9a-f]{6}$/.test(api.ICON_HUES[e])), api.ICON_HUES)
   ok('every set has a French and an English name and a hint', api.ICON_SETS.every((s) => s.fr && s.en && s.hint && s.hint.fr && s.hint.en), api.ICON_SETS.map((s) => s.id))
   ok('classic has no drawing: the menu keeps the application\'s own line icons', api.ICON_SETS[0].draw === undefined && api.iconSvg('classic', 'cloud', false, 16) === null)
@@ -103,7 +104,7 @@ section('the registry the menu reads')
 {
   const reg = api.iconRegistry()
   ok('it publishes itself on window and starts on classic', win.__KB_ICONSETS__ === reg && reg.current() === 'classic' && reg.v === 1)
-  ok('it lists the sets and the entries', reg.sets.length === 12 && reg.entries.length === 9 && reg.hue('cloud') === '#14b8a6' && reg.hue('x') === null)
+  ok('it lists the sets and the entries', reg.sets.length === 21 && reg.entries.length === 9 && reg.hue('cloud') === '#14b8a6' && reg.hue('x') === null)
   ok('it draws with the current set, or with the one asked for', reg.svg('cloud', false, 16) === null && typeof reg.svg('cloud', false, 16, 'matrice') === 'string')
   api.appliquerIcones({ iconSet: 'pastille' })
   ok('applying a set makes it current, writes the attribute and announces it once', reg.current() === 'pastille' && doc.documentElement.attrs['data-kb-icons'] === 'pastille' && events.length === 1 && events[0].type === 'kb-icons-change' && events[0].detail.set === 'pastille', events)

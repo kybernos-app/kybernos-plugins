@@ -1,0 +1,23 @@
+{
+  "id": "kawaii",
+  "v": 1,
+  "name": "Kawaii",
+  "author": "Kybernos",
+  "description": {
+    "fr": "Crème chaude et orange, coins doux, objets kawaii à deux yeux.",
+    "en": "Warm cream and orange, soft corners, kawaii objects with two eyes."
+  },
+  "settings": {
+    "mode": "light",
+    "acc": "#ea580c",
+    "ov": {
+      "light:base": "#fff8f1",
+      "light:l1": "#ffffff",
+      "light:l2": "#fdeee0",
+      "light:side": "#fdf1e6",
+      "light:input": "#ffffff"
+    },
+    "radius": "soft",
+    "iconSet": "kawaii"
+  }
+}

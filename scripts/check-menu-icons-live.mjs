@@ -56,7 +56,7 @@ try {
   console.log('Menu icon sets — this checkout in the real GUI')
   const rows = await ev(`document.querySelectorAll('.kb4-menu .kb4-item').length`)
   check('the sidebar menu has its rows (' + rows + ')', rows >= 4, rows)
-  check('the registry is published, on « classic », with twelve sets', await ev(`!!window.__KB_ICONSETS__ && window.__KB_ICONSETS__.current() === 'classic' && window.__KB_ICONSETS__.sets.length === 12`))
+  check('the registry is published, on « classic », with twenty-one sets', await ev(`!!window.__KB_ICONSETS__ && window.__KB_ICONSETS__.current() === 'classic' && window.__KB_ICONSETS__.sets.length === 21`))
   check('classic: the rows keep the line icons (no set drawing)', await ev(`document.querySelectorAll('.kb4-menu .kb4-isvg').length === 0 && document.querySelectorAll('.kb4-menu .kb4-ico svg').length >= 4`))
   check('the line icons are lent to the theme page', await ev(`typeof window.__KB_MENU_CLASSIC__ === 'function' && /^<svg/.test(window.__KB_MENU_CLASSIC__('cloud', 18) || '')`))
   await shot('classic', '.kb4-menu')
@@ -90,9 +90,12 @@ try {
   if (opened === true) {
     await clickText(page, 'Theme')
     await sleep(1500)
-    // The picker is in the Essentiel tab, which is the default one.
+    // Essentiel (the default tab) only names the set in use; the sets are in the « Icons » tab, next to Animation.
+    check('Essentiel has the icons summary, with a button to the tab', await ev(`!!document.querySelector('[data-kb="icons-summary"] [data-kb="icons-open"]')`))
+    const tab2 = (await clickText(page, 'Icons')) || (await clickText(page, 'Icônes'))
+    check('the Icons tab opens', tab2 === true)
     const found = await waitFor(page, `document.querySelectorAll('[data-kb="theme-icset"]').length > 0`, 12000)
-    check('the Theme page has « Menu icons » with twelve set cards', found !== null && (await ev(`document.querySelectorAll('[data-kb="theme-icset"]').length`)) === 12)
+    check('the Icons tab lists twenty-one sets (classic + twenty)', found !== null && (await ev(`document.querySelectorAll('[data-kb="theme-icset"]').length`)) === 21)
     check('every card shows nine drawings in two rows (rest, then colour)', await ev(`Array.from(document.querySelectorAll('[data-kb="theme-icset"]')).every((c) => c.querySelectorAll('.kbth-icset-i svg').length === 18)`))
     check('the current set (classic) is the pressed one', await ev(`(() => { const on = Array.from(document.querySelectorAll('[data-kb="theme-icset"]')).filter((c) => c.getAttribute('aria-checked') === 'true'); return on.length === 1 && on[0].getAttribute('data-id') === 'classic' })()`))
     await shot('theme-page', '[data-kb="theme-icons"]')
@@ -106,7 +109,7 @@ try {
       withIcons: Array.from(document.querySelectorAll('[data-kb="theme-gal-icons"]')).map((e) => e.getAttribute('data-id')),
       drawn: Array.from(document.querySelectorAll('[data-kb="theme-gal-icons"]')).every((e) => e.querySelectorAll('svg').length === 18),
     }))()`)
-    check('the gallery has the six new themes, each showing its icon set', gal.cards >= 14 && gal.withIcons.length >= 6 && ['mondrian', 'matrice', 'anneaux', 'iso', 'creatures', 'barres'].every((i) => gal.withIcons.indexOf(i) >= 0) && gal.drawn === true, gal)
+    check('the gallery has the six new themes, each showing its icon set', gal.cards >= 14 && gal.withIcons.length >= 6 && ['mondrian', 'matrice', 'anneaux', 'iso', 'kawaii', 'barres'].every((i) => gal.withIcons.indexOf(i) >= 0) && gal.drawn === true, gal)
     await shot('gallery', '[data-kb="theme-gal"]')
   }
 } finally {
