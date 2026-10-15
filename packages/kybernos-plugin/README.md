@@ -101,6 +101,13 @@ conversation starters (`kybernos-starters`, order 30), which are not touched. A 
 starter still sends). A template is offered only if the bundle it needs is installed. The Cloud Computer card and the menu row read
 `GET /kybernos-cloud/kyber` (read only) and open the Kyber page. The pure part is the `KB-NEWCHAT` block of `client.js`.
 
+Colour and visuals: each card and template has an icon tile in its own colour (`hue`, 16 % tint under the glyph), and a **strip of
+drawn previews** (slides, video, image, mini-app, website, dashboard) sits under the cards: inline SVG on a gradient (`KB_NC_ART`;
+nothing fetched, no media in git), shown only when the template's bundle is installed, a click prefills the composer. The page
+headline is changed in place by a sweep on DSH's own hero (`titleGroup` / `previewBadge`; the two strings are locale keys with no
+slot, and `locale.register` throws on duplicates): a different line from a pool of 28 (`kbnc.hero.<n>`, FR/EN) each time a new chat
+page appears, never the previous one, and the « Preview » badge says « Beta », small.
+
 ## Files, settings, env
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,

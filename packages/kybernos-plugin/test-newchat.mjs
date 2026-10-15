@@ -19,7 +19,7 @@ const src = readFileSync(join(here, 'client.js'), 'utf8')
 const a = src.indexOf('// KB-NEWCHAT-BEGIN')
 const b = src.indexOf('// KB-NEWCHAT-END')
 assert.ok(a > 0 && b > a, 'the KB-NEWCHAT block exists')
-const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREATE, kbNcTemplates, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative })')
+const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREATE, kbNcTemplates, kbNcCloud, kbNcDot, kbNcActions, kbNcRefusalKey, kbNcIsNativeSchedules, kbNcHideNative, KB_NC_HUES, kbNcTint, KB_NC_VISUALS, KB_NC_ART, KB_NC_HERO_COUNT, kbNcPickLine })')
 
 // 1. templates are offered only when the bundle they need is installed
 {
@@ -134,6 +134,72 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
 {
   assert.ok(/\.kb8-nc-row\{display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(0,1fr\) minmax\(0,1\.6fr\)/.test(src), 'the third column (the Cloud Computer card) is wider than the first two')
   ok('the Cloud Computer card has the wider column, so its title and its buttons both fit')
+}
+
+// 6d. colour and visuals (owner, 2026-10-15: « pas de couleurs, images… ce n'est pas agréable »)
+{
+  const hex = /^#[0-9a-f]{6}$/i
+  const all = api.KB_NC_BUILD.concat(api.KB_NC_CREATE)
+  for (const t of all) assert.ok(hex.test(t.hue), 'template ' + t.id + ' has a #rrggbb hue')
+  assert.equal(new Set(all.map((t) => t.hue)).size, all.length, 'every template has its own colour')
+  for (const k of ['build', 'create', 'cloud']) assert.ok(hex.test(api.KB_NC_HUES[k]), 'card ' + k + ' has a hue')
+  assert.equal(api.kbNcTint('#ff8000', 0.16), 'rgba(255,128,0,0.16)')
+  assert.equal(api.kbNcTint('nonsense', 0.16), 'rgba(140,140,140,0.16)', 'a bad colour is a neutral grey, never a throw')
+  ok('every template and every card has a colour, and the tint helper never throws')
+}
+{
+  const ids = JSON.parse(JSON.stringify(api.KB_NC_VISUALS))
+  const known = api.KB_NC_BUILD.concat(api.KB_NC_CREATE).map((t) => t.id)
+  assert.ok(ids.length >= 5, 'the strip has several visuals')
+  for (const id of ids) {
+    assert.ok(known.indexOf(id) >= 0, id + ' is a template (so a click can prefill it and it follows `needs`)')
+    const art = api.KB_NC_ART[id]
+    assert.ok(art !== undefined, id + ' has its drawing')
+    assert.match(art.from, /^#[0-9a-f]{6}$/i); assert.match(art.to, /^#[0-9a-f]{6}$/i)
+    assert.ok(art.svg.length > 200, id + ' is a real drawing, not a placeholder')
+    // inline shapes only: nothing fetched, nothing executable (no media in git, AGENTS rule 4)
+    assert.ok(!/(href|src)\s*=|https?:|url\(|<image|<script|<foreignObject|\son[a-z]+\s*=/i.test(art.svg), id + ' drawing has no external reference and no script')
+    assert.ok(/^(<(rect|circle|path)\b[^>]*\/>)+$/.test(art.svg), id + ' drawing is only rect / circle / path')
+  }
+  ok('the visual strip: every visual is a template with its own inline, self-contained drawing')
+}
+{
+  // the headline: 28 invented lines, both languages, short enough for one line, none repeated, never the previous one
+  assert.equal(api.KB_NC_HERO_COUNT, 28)
+  const en = []; const fr = []
+  for (let i = 0; i < api.KB_NC_HERO_COUNT; i += 1) {
+    const m = new RegExp("'kbnc\\.hero\\." + i + "': \\{ kybernos: '((?:[^'\\\\]|\\\\.)*)', en: '((?:[^'\\\\]|\\\\.)*)' \\}").exec(src)
+    assert.ok(m !== null, 'kbnc.hero.' + i + ' has both languages')
+    fr.push(m[1].replace(/\\'/g, "'")); en.push(m[2].replace(/\\'/g, "'"))
+  }
+  for (const [lang, list] of [['fr', fr], ['en', en]]) {
+    assert.equal(new Set(list).size, list.length, lang + ': no line twice')
+    for (const l of list) { assert.ok(l.length <= 32, lang + ': "' + l + '" fits on one line (' + l.length + ')'); assert.ok(!/kyber/i.test(l), lang + ': "' + l + '" does not name a Kyber') }
+  }
+  assert.ok(!en.includes('Into the Unknown'), 'the native line is not in the pool')
+  // the picker
+  for (const last of [-1, 0, 5, 27]) for (const r of [0, 0.0001, 0.5, 0.9999, 1, NaN, -3]) {
+    const i = api.kbNcPickLine(28, last, () => r)
+    assert.ok(Number.isInteger(i) && i >= 0 && i < 28, 'index in range for r=' + r)
+    assert.notEqual(i, last, 'never the line shown last time (last=' + last + ', r=' + r + ')')
+  }
+  assert.equal(api.kbNcPickLine(1, 0, () => 0.3), 0, 'a pool of one has no choice')
+  assert.equal(api.kbNcPickLine(28, -1, () => 0.5), 14, 'deterministic with an injected random')
+  const seen = new Set(); for (let k = 0; k < 400; k += 1) seen.add(api.kbNcPickLine(28, -1))
+  assert.ok(seen.size > 20, 'real randomness reaches most of the pool')
+  ok('the headline: 28 original lines in French and English, each short, never the previous one twice')
+}
+{
+  // the page: tinted tiles, the strip under the row, the hero swept in place with « Beta »
+  const c = src.slice(src.indexOf('const KbNewChatCards = (props)'), src.indexOf('const KbNewChatCards = (props)') + 16000)
+  assert.ok(/kbNcTint\(KB_NC_HUES\[id\], 0\.16\)/.test(c) && /kbNcTint\(KB_NC_HUES\.cloud, 0\.16\)/.test(c) && /kbNcTint\(t\.hue, 0\.16\)/.test(c), 'the three icon tiles are tinted')
+  assert.ok(/'data-kb': 'newchat-visuals'/.test(c) && /onClick: \(\) => prefill\(t\.id\)/.test(c), 'the strip prefills the composer, it never sends')
+  assert.ok(/: null\)\)\)\),\s*stripNode\)/.test(c), 'the strip sits in the same dock entry, after the row of cards')
+  assert.ok(/querySelectorAll\('\[class\*="titleGroup"\]'\)/.test(src) && /indexOf\('previewBadge'\)/.test(src), 'the hero is found by DSH\'s own class names, only when its badge is there')
+  assert.ok(/setText\(badge, 'Beta'\)/.test(src), 'the badge says Beta')
+  assert.ok(/\[class\*="previewBadge"\]\[data-kb-beta\]\{[^}]*font-size:10px/.test(src), 'and is small')
+  assert.ok(!/locale\.register\([^)]*hero\./.test(src), 'no locale override: it would throw on a duplicate key')
+  ok('tinted tiles, the strip, and the headline / Beta badge are wired without an engine patch')
 }
 
 // 7. the menu row and the hiding are wired
