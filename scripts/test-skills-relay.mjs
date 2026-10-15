@@ -6,7 +6,7 @@
 //
 //   node scripts/test-skills-relay.mjs
 import assert from 'node:assert/strict'
-import { relay, plan, requestedPath, UPSTREAM } from '../services/skills-index/relay-core.mjs'
+import { relay, plan, requestedPath, UPSTREAM, cover, coverIdOf, COVER_MAX_BYTES } from '../services/skills-index/relay-core.mjs'
 
 let pass = 0
 const ok = (label) => { pass += 1; console.log('  ✓ ' + label) }
@@ -154,5 +154,52 @@ for (const getToken of [async () => '', async () => { throw new Error('no oidc')
   assert.equal(out.headers['cache-control'], 'no-store')
 }
 ok('without a token the relay says "unavailable" and sends nothing')
+
+// ── the covers: static files, no token, no upstream ──
+{
+  assert.equal(coverIdOf('/v1/covers/pdf.webp'), 'pdf')
+  assert.equal(coverIdOf('/api/cover?file=data-visualization.webp'), 'data-visualization')
+  for (const bad of ['/v1/covers/', '/v1/covers/pdf', '/v1/covers/pdf.png', '/v1/covers/PDF.webp', '/v1/covers/../relay-core.mjs.webp', '/v1/covers/a/b.webp',
+    '/v1/covers/pdf.webp.webp', '/api/cover?file=pdf.webp&file=docx.webp', '/api/cover?file=%2e%2e%2fx.webp', '/v1/covers/' + 'a'.repeat(70) + '.webp', '/v1/covers/-x.webp']) {
+    assert.equal(coverIdOf(bad), null, bad)
+  }
+  ok('a cover is named by the skill-name pattern and nothing else: no extension but .webp, no path, no traversal, no doubled parameter')
+
+  const bytes = Buffer.from('RIFF....WEBPVP8 ')
+  const seen = []
+  const read = async (id) => { seen.push(id); return id === 'pdf' ? bytes : null }
+  const good1 = await cover({ method: 'GET', url: '/v1/covers/pdf.webp' }, { read })
+  assert.equal(good1.status, 200)
+  assert.equal(good1.headers['content-type'], 'image/webp')
+  assert.equal(good1.headers['x-content-type-options'], 'nosniff')
+  assert.match(good1.headers['cache-control'], /s-maxage=86400/)
+  assert.equal(good1.headers['content-length'], String(bytes.length))
+  assert.equal(good1.body, bytes)
+  assert.equal((await cover({ method: 'HEAD', url: '/v1/covers/pdf.webp' }, { read })).status, 200)
+  ok('a cover is served as image/webp with a long, public cache and nosniff')
+
+  const missing = await cover({ method: 'GET', url: '/v1/covers/nope.webp' }, { read })
+  assert.equal(missing.status, 404)
+  assert.equal(missing.headers['cache-control'], 'no-store')
+  const thrown = await cover({ method: 'GET', url: '/v1/covers/pdf.webp' }, { read: async () => { throw new Error('disk') } })
+  assert.equal(thrown.status, 404)
+  assert.equal(thrown.headers['cache-control'], 'no-store')
+  ok('a missing cover (or a read that fails) is a 404 that is never cached')
+
+  const before = seen.length
+  const refused = [
+    await cover({ method: 'POST', url: '/v1/covers/pdf.webp' }, { read }),
+    await cover({ method: 'GET', url: '/v1/covers/../x.webp' }, { read }),
+    await cover({ method: undefined, url: '/v1/covers/pdf.webp' }, { read })
+  ]
+  assert.deepEqual(refused.map((r) => r.status), [405, 400, 405])
+  assert.equal(seen.length, before, 'a refused request reads nothing')
+  assert.ok(refused.every((r) => r.headers['cache-control'] === 'no-store'))
+  ok('only GET and HEAD, a bad name is a 400, and a refused request reads no file')
+
+  const huge = await cover({ method: 'GET', url: '/v1/covers/pdf.webp' }, { read: async () => Buffer.alloc(COVER_MAX_BYTES + 1) })
+  assert.equal(huge.status, 502)
+  ok('a file above the size cap is not served')
+}
 
 console.log('\n' + pass + ' verifications OK')

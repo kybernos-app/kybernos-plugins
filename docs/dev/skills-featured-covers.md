@@ -63,4 +63,14 @@ The key is the one DSH holds for DeepInfra (`DEEPINFRA_API_KEY` in its credentia
   distributed.
 - `packages/kybernos-skills/generer-pochettes.mjs` is the previous, manual generator (its provider's keys were rejected with HTTP 401 on
   2026-10-15). It is kept until this pipeline is a committed script; it is not used for the picks.
-- Distribution: the covers reach other machines through the relay (not built). Until then a machine without them shows tiles.
+## Distribution
+
+The covers reach other machines through the relay (`services/skills-index`, route `GET /v1/covers/<id>.webp`).
+
+1. `node scripts/prepare-covers.mjs --write-picks` checks the 24 files, writes each SHA-256 into `featured-picks.json` (`coverSha256`) and copies
+   the pictures to `services/skills-index/covers/` (ignored by git).
+2. Deploying the relay (`vercel deploy --prod` from `services/skills-index`) publishes them: a public endpoint, done on purpose.
+3. A plugin whose covers folder lacks a pick's file fetches it once from the relay in use, checks the hash, and keeps it. A relay that does not
+   have it, is down, or serves something else leaves the tile; nothing is retried for ten minutes.
+
+Changing a picture = a new file, a new hash in the picks file, a plugin release (the hash is part of the signed archive).

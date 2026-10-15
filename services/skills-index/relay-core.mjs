@@ -30,6 +30,48 @@ export const ROUTES = [
   { name: 'audit', re: new RegExp('^skills/audit/' + SLUG + '/' + SLUG + '/' + SLUG + '$'), query: {}, ttl: 3600 }
 ]
 
+// ── Covers: the pictures of the Featured picks ───────────────────────────────────────────────────────────────
+// Static WebP files that ship WITH the deployment (covers/<id>.webp, put there by scripts/prepare-covers.mjs, never committed). They are
+// not skills.sh data: no token, no upstream. A closed id (the skill-name pattern), a fixed folder, a size cap, GET and HEAD only; a missing
+// file is a 404 that is never cached. The plugin checks every picture against the SHA-256 it ships, so what this serves is not trusted
+// further than it is useful: a relay (this one or a company's) that serves anything else leaves the plugin's tile in place.
+export const COVER_ID_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+export const COVER_MAX_BYTES = 600 * 1024
+
+/** Pure. The cover id asked for by `/v1/covers/<id>.webp` or by the rewrite `/api/cover?file=<id>.webp`, or null. */
+export function coverIdOf (url) {
+  let u
+  try { u = new URL(url, 'http://relay.invalid') } catch (e) { return null }
+  const given = u.searchParams.getAll('file')
+  if (given.length > 1) return null
+  const raw = given.length === 1 ? given[0] : u.pathname.replace(/^\/(?:api\/cover|v1\/covers)\/?/, '')
+  const m = /^(.{1,64})\.webp$/.exec(raw)
+  return m !== null && COVER_ID_RE.test(m[1]) ? m[1] : null
+}
+
+/** `{ status, headers, body }` for one cover request. `deps.read(id)` gives the file's bytes, or null when there is none. */
+export async function cover (req, deps) {
+  const method = req && typeof req.method === 'string' ? req.method : ''
+  if (method !== 'GET' && method !== 'HEAD') return refuse(405, 'GET only', { allow: 'GET, HEAD' })
+  const id = coverIdOf(req.url)
+  if (id === null) return refuse(400, 'bad cover name')
+  let bytes = null
+  try { bytes = await deps.read(id) } catch (e) { bytes = null }
+  if (bytes === null || bytes === undefined) return refuse(404, 'no such cover')
+  if (bytes.length > COVER_MAX_BYTES) return refuse(502, 'cover unavailable')
+  return {
+    status: 200,
+    headers: {
+      'content-type': 'image/webp',
+      // A picture changes rarely and a new one keeps its name: an hour in the browser, a day at the CDN.
+      'cache-control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
+      'x-content-type-options': 'nosniff',
+      'content-length': String(bytes.length)
+    },
+    body: bytes
+  }
+}
+
 const json = (status, payload, cache) => ({
   status,
   headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': cache, 'x-content-type-options': 'nosniff' },

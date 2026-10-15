@@ -56,7 +56,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "0abe9e5233f6cc6e1435e6c42ca55893db2dd9512f9c2a80019c68a47d145b83"
     },
     {
       "id": "docx",
@@ -102,7 +103,8 @@
           "pass",
           "LOW"
         ]
-      ]
+      ],
+      "coverSha256": "dc9a084a56fcc700d7d9ab48b3a1487650004dfbeb74d51847b363c54dadde5c"
     },
     {
       "id": "pptx",
@@ -148,7 +150,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "dbdd62ae73f74b6186bd1012e6e7d7202d097f562d262affca9631dba43cbc75"
     },
     {
       "id": "xlsx",
@@ -194,7 +197,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "0fedf5da11a44c33c2f281878a553279553d4556ebb8d0b00cfea34f0623f439"
     },
     {
       "id": "data-visualization",
@@ -240,7 +244,8 @@
           "pass",
           "LOW"
         ]
-      ]
+      ],
+      "coverSha256": "3e84a8e63bc0701c3b1ba9351ffeb20f41217a1e693da6fb24f3fb2454c1f346"
     },
     {
       "id": "sql-queries",
@@ -286,7 +291,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "e57fa018adc8e75831d05778fa3e0e760c3415f75aefb430dafda5b7a385dd02"
     },
     {
       "id": "frontend-design",
@@ -332,7 +338,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "556de53c412a3ae2d15c50b6c01702f250306e6bc633ffdd07bd6885726ecc96"
     },
     {
       "id": "canvas-design",
@@ -378,7 +385,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "68445e82e739555cea6d4ba8d73b9bcfe17a8166de228cc12bfa9cd9382cb0d8"
     },
     {
       "id": "design-taste-frontend",
@@ -424,7 +432,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "4a6795d1bf7513616a402ab47e64a7c04c686c3c10f79dc5f462bf7d313a7eb8"
     },
     {
       "id": "algorithmic-art",
@@ -470,7 +479,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "122f1a4d227f58716970098069421fb6760a259c8aca02334f4af3cdda90d13c"
     },
     {
       "id": "baoyu-diagram",
@@ -511,7 +521,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "ddc90f822166d75a0575c23ffcfa8560767556ddd15c8d825ba1594be2584028"
     },
     {
       "id": "slack-gif-creator",
@@ -557,7 +568,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "debfcc1706c3a69dc72421e9bb98759910cb9aa9294d172bdd3a569e8780ef20"
     },
     {
       "id": "firecrawl-deep-research",
@@ -593,7 +605,8 @@
           "warn",
           "MEDIUM"
         ]
-      ]
+      ],
+      "coverSha256": "90fcd601fdb08934a01a99bd59ba3a520c8723613b2600d2b77d5e7ba789b51e"
     },
     {
       "id": "tavily-research",
@@ -634,7 +647,8 @@
           "pass",
           "LOW"
         ]
-      ]
+      ],
+      "coverSha256": "a9b9d26f42f953a609068f36152b4fb5001f4917cf30f067d1a2d0384b2a0f4e"
     },
     {
       "id": "firecrawl-competitive-intel",
@@ -670,7 +684,8 @@
           "warn",
           "MEDIUM"
         ]
-      ]
+      ],
+      "coverSha256": "24b6d034c936ec799500c0d955e64bb244d596cf254b60793a385e044b70a416"
     },
     {
       "id": "seo-audit",
@@ -716,7 +731,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "f730db02902dc8fa337fd61ae604c2fccdcdf045bd6125fc9d563ddef94a145e"
     },
     {
       "id": "copywriting",
@@ -762,7 +778,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "8dc55f621389ea7efacff20edb41a395e3880645b86858b105372da5f75897a6"
     },
     {
       "id": "cold-email",
@@ -808,7 +825,8 @@
           "warn",
           "MEDIUM"
         ]
-      ]
+      ],
+      "coverSha256": "c3a63f3f168ed0f42581b22fa55f96591964e03899d30fa94090c9547513fac5"
     },
     {
       "id": "gws-gmail-triage",
@@ -854,7 +872,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "e80d93110f82a757659327b9cf4a00500e95aa83e36297a967215955cd21575b"
     },
     {
       "id": "gws-workflow-meeting-prep",
@@ -900,7 +919,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "e990c71180f7b10773dea546340a04f60401c23bc8318b3dea35faef64d688d1"
     },
     {
       "id": "task-management",
@@ -946,7 +966,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "ca55ffb1476c1e7276b7f534541dcb45e3c0d3af30af1016441814c252e66ad9"
     },
     {
       "id": "grill-me",
@@ -992,7 +1013,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "59a9a2b112225f6e5c56069b0f7c7407f243a351e33001276d23ee93407deec1"
     },
     {
       "id": "systematic-debugging",
@@ -1038,7 +1060,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "e973e436017f4700148636a48f3216789fb25eefe835836f06e064d43c48d56e"
     },
     {
       "id": "mcp-builder",
@@ -1084,7 +1107,8 @@
           "pass",
           "NONE"
         ]
-      ]
+      ],
+      "coverSha256": "0712514519e548e9b188b27f0aa3021374fc180177fd8890346caa8562b83172"
     }
   ]
 }
