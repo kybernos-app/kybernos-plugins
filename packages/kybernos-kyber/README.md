@@ -1,28 +1,30 @@
 # kybernos-kyber
 
-**Kyby**, the person's own assistant (ADR 0053 of kybernos-server): one conversation, the doors it answers from, and the computer it
-works on, on one page. The menu row **Kyby** opens it; the same panel is also a tab of the chat's right-hand panel.
+**Kyby**, the person's own assistant (ADR 0053 of kybernos-server): a real DSH conversation, the doors it answers from, and the computer it
+works on.
 
-- **Chat**: talk to Kyby here, on the thread every door shares (what is written on Telegram is in it too). It is a hosted turn in
-  the cloud on the person's allowance, in words only: acting on Kyby's computer needs the approvals, which today are asked in
-  Telegram, so the page says to write there for that. It is not a local DSH session: for work on the person's own machine a DSH
-  chat is the tool. The
-  transcript is drawn by this page (plain text), because DSH has no way to put a server's messages into a session's transcript.
-- **Channels strip** (collapsible; open until Telegram is connected, folded after, the person's choice wins):
+- **The conversation is DSH's own.** The menu row **Kyby** opens a normal DSH chat (DSH's composer, rendering and tools), made the first
+  time in a workspace of its own (`<DSH home>/kybernos/kyby`, so « New chat » never takes it back) and remembered by the host
+  (`<DSH home>/kybernos-kyby.json`). Its brain is DSH's agent on this machine, with the account's memory; for that chat only the host adds
+  Kyby's identity to the system prompt (`kyby-native.mjs` in kybernos-cloud). Each finished turn is also written on the person's thread on
+  the server, and the last words said there (Telegram's) are told back in the prompt: one assistant, one memory, one conversation, two
+  bodies (this machine here, its cloud computer on Telegram). A server with no Kyby thread is simply left alone.
+- **Channels strip** (collapsible; open until Telegram is connected, folded after, the person's choice wins), in the dock above that
+  chat's composer and above no other's:
   - **Telegram**: a QR code and an « Open Telegram » link. The person scans or taps, presses Start, taps « Yes, it's me » in Telegram;
-    the page follows the pairing by itself (waiting, then who Telegram says is asking, then connected). Expired, refused, « already
+    the strip follows the pairing by itself (waiting, then who Telegram says is asking, then connected). Expired, refused, « already
     another account's » and « made by the bot » are their own cards. Connected is one line, with Open and Disconnect (confirmed).
   - **WhatsApp** and **WeChat**: shown with their mark and « Soon ». Nothing is offered.
   - **Where Kyby works**: which computer answers a Telegram message that asks it to act: Kyby's cloud computer, or « ask me »
     (Telegram buttons). « My Mac » is shown greyed: DSH must report its presence to the server first (ADR 0053 § 13.4).
-- **Kyby's computer**: asleep / awake, last activity. On the Free plan the server says `manual_control: false`: the page offers no
-  wake, sleep or open, only an upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page).
-  Kyby itself wakes the computer when it has work.
+- **Kyby's computer**: asleep / awake, last activity. On the Free plan the server says `manual_control: false`: no wake, sleep or open,
+  only an upgrade button (the footer's Upgrade dialog through `window.__KB_UPGRADE__`, else the plan page). Kyby wakes it itself.
+- The same panel is a tab of the right-hand panel, and the page the new-chat card opens (what Kyby is, the way into the chat).
 
-The page **talks only to `kybernos-cloud`'s routes** (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`, `/telegram/settings`,
-`/telegram/unlink`, `/kyby`, `/kyby/send`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
+The bundle talks only to `kybernos-cloud`'s routes (`/kybernos-cloud/kyber`, `/telegram/pairing[...]`, `/telegram/settings`,
+`/telegram/unlink`, `/kyby/native[/set]`, `/computer/*`, `/console/link`), which add the account's token; the QR is computed there.
 No engine patch. The assistant's name is one constant (`NAME`) here and the label `kbui.kyber` in kybernos-plugin.
 
 Tests, without DSH: `node packages/kybernos-kyber/test-client.mjs`, `node packages/kybernos-kyber/test-host.mjs`, and the host half in
-`node packages/kybernos-cloud/test-kyby.mjs`. In the real GUI (answers faked, nothing written):
-`node scripts/check-kyby-live.mjs [--shots <dir>]`.
+`node packages/kybernos-cloud/test-kyby.mjs` and `test-kyby-native.mjs`. In a real GUI (the sandbox instance, the account's answers
+faked): `source scripts/sandbox/env.sh && node scripts/check-kyby-live.mjs [--shots <dir>]`.

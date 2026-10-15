@@ -103,27 +103,10 @@ window.__ModuleLoader__.load({
         upgrade: ['Passer à une offre payante', 'Upgrade to a paid plan'],
         approvals: ['Avant d’agir, il vous demande l’accord dans Telegram : Autoriser, Refuser, ou Autoriser pour cette tâche.', 'Before it acts, it asks you in Telegram: Allow, Refuse, or Allow for this task.'],
         manage: ['Gérer dans mon compte', 'Manage in my account'],
-        // chat
-        chatH: ['Conversation avec Kyby', 'Chat with Kyby'], chatSame: ['Même fil que Telegram', 'Same thread as Telegram'],
-        ph: ['Écrire à Kyby…', 'Write to Kyby…'], send: ['Envoyer', 'Send'],
-        greet: ['Bonjour ! Je suis Kyby. Demandez-moi ce que vous voulez ici, ou sur Telegram : c’est la même conversation.', 'Hello! I’m Kyby. Ask me anything here, or on Telegram: it is the same conversation.'],
-        sg1: ['Que sais-tu faire ?', 'What can you do?'], sg2: ['Aide-moi à rédiger un message', 'Help me write a message'], sg3: ['Fais-moi un plan pour ma semaine', 'Make me a plan for my week'],
-        chatNote: ['Ici Kyby répond avec des mots, dans le cloud, sur votre allocation. Pour qu’il agisse sur son ordinateur, écrivez-lui sur Telegram : c’est là qu’il vous demande l’accord. Pour travailler sur votre propre ordinateur, ouvrez une conversation DSH.', 'Here Kyby answers in words, in the cloud, on your allowance. To have it act on its computer, write to it on Telegram: that is where it asks for your approval. To work on your own computer, open a DSH chat.'],
-        thinking: ['Kyby répond…', 'Kyby is answering…'], viaTg: ['Reçu par Telegram', 'Received through Telegram'],
-        chatLoading: ['Lecture de la conversation…', 'Reading the conversation…'],
-        err_insufficient_quota: ['Votre allocation du moment est utilisée. Elle revient avec la prochaine fenêtre, ou passez à une offre plus large.', 'Your allowance for now is used up. It comes back with the next window, or move to a larger plan.'],
-        err_turn_pending: ['Kyby répond encore au message précédent.', 'Kyby is still answering the previous message.'],
-        err_rate_limited: ['Trop de messages d’affilée : réessayez dans une minute.', 'Too many messages in a row: try again in a minute.'],
-        err_model_required: ['Aucun modèle n’est configuré pour Kyby sur ce serveur.', 'No model is configured for Kyby on this server.'],
-        err_feature_not_in_plan: ['Les réponses hébergées ne sont pas incluses dans cette offre.', 'Hosted answers are not included in this plan.'],
-        err_hosted_runs_disabled: ['Les réponses hébergées sont arrêtées sur ce serveur.', 'Hosted answers are turned off on this server.'],
-        err_unreachable: ['Le serveur ne répond pas.', 'The server does not answer.'],
-        err_not_found: ['Ce serveur ne sait pas encore tenir la conversation de Kyby : il doit être mis à jour.', 'This server cannot hold Kyby’s conversation yet: it needs to be updated.'],
-        unsupportedH: ['Le chat de Kyby n’est pas disponible sur ce serveur', 'Kyby’s chat is not available on this server'],
-        unsupportedP: ['Le serveur auquel DSH est relié n’a pas encore cette fonction. Telegram et l’ordinateur de Kyby restent dans le bandeau ci-dessus.', 'The server this DSH talks to does not have this function yet. Telegram and Kyby’s computer stay in the strip above.'],
-        err_not_connected: ['Connectez-vous à Kybernos pour parler à Kyby.', 'Sign in to Kybernos to talk to Kyby.'],
-        err_thread_limit: ['Vous avez atteint le nombre maximal de conversations de votre offre.', 'You have reached the most conversations your plan allows.'],
-        err_refused: ['Le message n’a pas pu être envoyé.', 'The message could not be sent.'],
+        // the native conversation
+        openChat: ['Ouvrir la conversation avec Kyby', 'Open the conversation with Kyby'],
+        openChatHint: ['Une vraie conversation DSH : même composeur, même rendu, avec la mémoire de votre compte. Ce qui s’y dit va aussi sur le fil que Kyby partage avec Telegram.', 'A real DSH chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread Kyby shares with Telegram.'],
+        openChatFail: ['La conversation n’a pas pu s’ouvrir.', 'The conversation could not be opened.'],
         // states of the whole
         refresh: ['Actualiser', 'Refresh'],
         signedOut: ['Connectez-vous à Kybernos pour voir votre ' + NAME + '.', 'Sign in to Kybernos to see your ' + NAME + '.'],
@@ -186,16 +169,11 @@ window.__ModuleLoader__.load({
         if (left <= 0) return { kind: 'expired' }
         return { kind: p.state === 'scanned' ? 'scanned' : 'waiting', left, sender: String(p.sender || '') }
       }
-      /** One word the chat can say for a refusal code. */
-      const chatError = (code) => (S['err_' + code] !== undefined ? 'err_' + code : 'err_refused')
-      /** The first assistant message after `position`: the turn that was asked for is answered when there is one. */
-      const answered = (messages, position) => messages.some((m) => m.role === 'assistant' && m.position > position)
-
       // ═══ the store and its calls ═════════════════════════════════════════════════════════════════════════════════
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
         pairing: null, starting: false, autoDone: false, copied: false, confirmDisc: false, busy: '',
-        chat: { loaded: false, loading: false, messages: [], error: '', sending: false, waitingAfter: null, waitingSince: 0, thread: '', unsupported: false },
+        kybySid: null, kybyCwd: null, opening: false, openFailed: false, openError: '',
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
       const listeners = new Set()
@@ -330,68 +308,6 @@ window.__ModuleLoader__.load({
         state.stripPref = !stripIsOpen(state.stripPref, isLinked())
         try { window.localStorage.setItem('kybernos-kyber.strip', state.stripPref ? '1' : '0') } catch (e) { /* no storage */ }
         emit()
-      }
-
-      // — chat —
-      let chatTimer = null
-      const schedulePoll = (ms) => {
-        if (chatTimer !== null) clearTimeout(chatTimer)
-        chatTimer = setTimeout(chatPoll, ms)
-      }
-      const chatLoad = async () => {
-        if (state.chat.loading) return
-        state.chat.loading = true
-        const r = await readJson('/kybernos-cloud/kyby')
-        state.chat.loading = false
-        if (r !== null && r.ok === true && Array.isArray(r.messages)) {
-          const pending = state.chat.messages.filter((m) => m.position < 0)
-          state.chat.messages = r.messages.concat(pending)
-          state.chat.thread = String(r.thread_id || '')
-          state.chat.loaded = true
-          if (state.chat.error === 'err_unreachable' || state.chat.error === 'err_not_connected') state.chat.error = ''
-          if (state.chat.waitingAfter !== null && answered(r.messages, state.chat.waitingAfter)) { state.chat.waitingAfter = null; state.chat.waitingSince = 0 }
-        } else if (r !== null && r.ok === false) {
-          state.chat.loaded = true
-          if (r.error === 'not_connected') state.chat.error = 'err_not_connected'
-          // A server older than this page has no /v1/me/kyby: there is nothing to talk to, and the box says so instead of failing at each send.
-          if (r.error === 'not_found') state.chat.unsupported = true
-        } else {
-          state.chat.loaded = true
-        }
-        emit()
-      }
-      const chatPoll = async () => {
-        chatTimer = null
-        if (!live()) return
-        await chatLoad()
-        if (state.chat.waitingAfter !== null && Date.now() - state.chat.waitingSince > 180000) { state.chat.waitingAfter = null; state.chat.waitingSince = 0; emit() }
-        if (live()) schedulePoll(state.chat.waitingAfter !== null ? 2000 : (document.visibilityState === 'hidden' ? 30000 : 8000))
-      }
-      const chatSend = async (text) => {
-        const words = String(text || '').trim()
-        if (words === '' || state.chat.sending) return false
-        state.chat.sending = true
-        state.chat.error = ''
-        const mine = { position: -1, role: 'user', text: words, at: new Date().toISOString(), via: null }
-        state.chat.messages = state.chat.messages.concat([mine])
-        emit()
-        const turn = 'kyby_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)
-        const r = await postJson('/kybernos-cloud/kyby/send', { message: words, client_turn_id: turn })
-        state.chat.sending = false
-        if (r !== null && r.ok === true) {
-          state.chat.waitingAfter = Number.isInteger(r.position) ? r.position : (state.chat.messages.reduce((m, x) => Math.max(m, x.position), 0))
-          state.chat.waitingSince = Date.now()
-          state.chat.messages = state.chat.messages.filter((m) => m !== mine)
-          emit()
-          await chatLoad()
-          schedulePoll(2000)
-          return true
-        }
-        state.chat.messages = state.chat.messages.filter((m) => m !== mine)
-        if (r !== null && r.error === 'not_found') state.chat.unsupported = true
-        state.chat.error = chatError(r !== null && typeof r.error === 'string' ? r.error : 'unreachable')
-        emit()
-        return false
       }
 
       // ═══ the views ═══════════════════════════════════════════════════════════════════════════════════════════════
@@ -559,43 +475,55 @@ window.__ModuleLoader__.load({
             v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null))
       }
 
-      const Chat = (props) => {
-        const [draft, setDraft] = React.useState('')
-        const end = React.useRef(null)
-        const c = state.chat
-        const connected = props.view !== null && props.view.kind === 'ok' && props.view.telegram.state === 'linked'
-        React.useEffect(() => { try { if (end.current !== null && typeof end.current.scrollIntoView === 'function') end.current.scrollIntoView({ block: 'end' }) } catch (e) { /* no layout */ } }, [c.messages.length, c.waitingAfter])
-        const submit = async (text) => {
-          const t = String(text === undefined ? draft : text)
-          if (t.trim() === '') return
-          setDraft('')
-          const okSent = await chatSend(t)
-          if (!okSent) setDraft(t)
+      // ═══ Kyby's own chat is a native DSH conversation: its session, and how to reach it ═══════════════════════════
+      // `sessions` makes a chat (it answers the new session's id); `uiWorkspace` is DSH's own shell: it opens a chat and pins it.
+      // Asked for at the moment of use: a re-applied plugin keeps working with whatever the shell offers then.
+      const svc = (name) => { try { return CTX !== null ? CTX.get(name) : null } catch (e) { return null } }
+      const readSessionPointer = async () => {
+        const r = await readJson('/kybernos-cloud/kyby/native')
+        state.kybySid = r !== null && r.ok === true && typeof r.sessionId === 'string' ? r.sessionId : null
+        state.kybyCwd = r !== null && r.ok === true && typeof r.cwd === 'string' && r.cwd !== '' ? r.cwd : null
+        emit()
+        return state.kybySid
+      }
+      const sessionExists = (sid) => {
+        try {
+          const snap = svc('sessions').list.getSnapshot()
+          return snap !== null && snap !== undefined && snap.byId !== null && typeof snap.byId === 'object' && snap.byId[sid] !== undefined
+        } catch (e) { return false }
+      }
+      /** Opens Kyby's conversation, making it the first time (a blank DSH chat, remembered by the host, which gives it Kyby's identity). */
+      const openChat = async () => {
+        if (state.opening) return false
+        state.opening = true
+        state.openFailed = false
+        emit()
+        try {
+          const sessionsSvc = svc('sessions')
+          const uiSvc = svc('uiWorkspace')
+          if (sessionsSvc === null || sessionsSvc === undefined || typeof sessionsSvc.create !== 'function' || uiSvc === null || uiSvc === undefined || typeof uiSvc.openSession !== 'function') throw new Error('no sessions service')
+          let sid = await readSessionPointer()
+          if (sid === null || !sessionExists(sid)) {
+            // `sessions.create` answers the new session's id itself (and throws when it cannot); older shapes answer an object.
+            // In Kyby's own folder (a workspace of its own): DSH's « New chat » reuses a blank chat of the workspace it is in, never this one.
+            const made = await sessionsSvc.create(state.kybyCwd === null ? {} : { cwd: state.kybyCwd })
+            const v = made !== null && typeof made === 'object' && made.value !== null && made.value !== undefined ? made.value : made
+            sid = typeof v === 'string' ? v : (v !== null && typeof v === 'object' && typeof v.sessionId === 'string' ? v.sessionId : null)
+            if (typeof sid !== 'string' || sid === '') throw new Error('no session made')
+            const w = await postJson('/kybernos-cloud/kyby/native/set', { sessionId: sid })
+            if (w === null || w.ok !== true) throw new Error('the session could not be remembered')
+            state.kybySid = sid
+          }
+          uiSvc.openSession(sid)
+          return true
+        } catch (e) {
+          state.openFailed = true
+          state.openError = String(e && e.message ? e.message : e).slice(0, 200)
+          return false
+        } finally {
+          state.opening = false
+          emit()
         }
-        const empty = c.loaded && c.messages.length === 0 && !c.unsupported
-        if (c.unsupported) {
-          return h('section', { className: 'kbky-chat', 'data-kb': 'kybernos-kyber-chat', 'data-state': 'unsupported' },
-            h('div', { className: 'kbky-chath' }, h('b', null, L('chatH'))),
-            h('div', { className: 'kbky-msgs' }, h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, Ic('alert', 20)), h('div', null, h('h3', null, L('unsupportedH')), h('p', null, L('unsupportedP'))))))
-        }
-        const msgs = c.messages.map((m, i) => h('div', { key: m.position + ':' + i, className: 'kbky-m ' + (m.role === 'user' ? 'u' : 'k'), 'data-kb': 'kybernos-kyber-msg-' + m.role }, m.text,
-          m.via === 'telegram' ? h('span', { className: 'kbky-via' }, BRAND.telegram(12), L('viaTg')) : null))
-        return h('section', { className: 'kbky-chat', 'data-kb': 'kybernos-kyber-chat' },
-          h('div', { className: 'kbky-chath' }, h('b', null, L('chatH')), connected ? h('span', { className: 'kbky-chip' }, L('chatSame')) : null),
-          h('div', { className: 'kbky-msgs' },
-            !c.loaded ? h('p', { className: 'kbky-note' }, L('chatLoading')) : null,
-            empty ? h('div', { className: 'kbky-m k' }, L('greet')) : null,
-            msgs,
-            c.waitingAfter !== null ? h('div', { className: 'kbky-m k kbky-typing', 'data-kb': 'kybernos-kyber-typing' }, L('thinking')) : null,
-            c.error !== '' ? h('p', { className: 'kbky-err', role: 'alert', 'data-kb': 'kybernos-kyber-error' }, L(c.error)) : null,
-            h('div', { ref: end })),
-          empty ? h('div', { className: 'kbky-sugg' }, ['sg1', 'sg2', 'sg3'].map((k) => h('button', { key: k, type: 'button', className: 'kbky-chipb', onClick: () => { void submit(L(k)) } }, L(k)))) : null,
-          h('div', { className: 'kbky-comp' },
-            h('textarea', { id: 'kybernos-kyber-draft', rows: 1, value: draft, placeholder: L('ph'), 'aria-label': L('ph'), 'data-kb': 'kybernos-kyber-draft',
-              onChange: (e) => setDraft(e.target.value),
-              onKeyDown: (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void submit() } } }),
-            h('button', { type: 'button', className: 'kbky-send', 'data-kb': 'kybernos-kyber-send', 'aria-label': L('send'), disabled: c.sending || draft.trim() === '', onClick: () => { void submit() } }, Ic('up', 18, 2.4))),
-          h('div', { className: 'kbky-foot' }, L('chatNote')))
       }
 
       const useStore = () => {
@@ -604,41 +532,60 @@ window.__ModuleLoader__.load({
           const fn = () => setTick((n) => n + 1)
           listeners.add(fn)
           if (state.view === null) void load()
-          if (!state.chat.loaded && !state.chat.loading) void chatLoad()
-          schedulePoll(8000)
+          if (state.kybySid === null) void readSessionPointer()
           const poll = setInterval(() => { if (document.visibilityState !== 'hidden') void load() }, 30000)
-          return () => { listeners.delete(fn); clearInterval(poll); if (!live() && chatTimer !== null) { clearTimeout(chatTimer); chatTimer = null } }
+          return () => { listeners.delete(fn); clearInterval(poll) }
         }, [])
       }
 
-      /** The page the menu row opens. */
+      /** What the status chip says, from the view and the pairing. */
+      const statusOf = (v) => {
+        const tg = v !== null && v.kind === 'ok' ? v.telegram.state : null
+        if (tg === 'linked') return ['ok', 'stOn']
+        if (tg === null || tg === 'off') return ['', 'stNone']
+        return pairingFace(state.pairing, Date.now()).kind === 'scanned' ? ['warn', 'stWait'] : ['', 'stOff']
+      }
+
+      /** The collapsible « Channels » strip: Telegram, the other channels, where Kyby works, its computer. Open until Telegram is connected. */
+      const Strip = () => {
+        const v = state.view
+        const open = stripIsOpen(state.stripPref, v !== null && v.kind === 'ok' && v.telegram.state === 'linked')
+        const chip = statusOf(v)
+        return h('div', { className: 'kbky-strip' + (open ? ' open' : ''), 'data-kb': 'kybernos-kyber-strip' },
+          h('button', { type: 'button', className: 'kbky-striph', 'aria-expanded': String(open), 'data-kb': 'kybernos-kyber-strip-toggle', onClick: toggleStrip },
+            h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('channels')),
+            h('span', { className: 'kbky-stripc' },
+              h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, BRAND.telegram(14), L(chip[1])),
+              h('span', { className: 'kbky-chip' }, BRAND.whatsapp(14), 'WhatsApp · ' + L('soon')),
+              h('span', { className: 'kbky-chip' }, BRAND.wechat(14), 'WeChat · ' + L('soon')),
+              v !== null && v.kind === 'ok' ? h('span', { className: 'kbky-chip' }, Ic('cloud', 13), L(v.telegram.homeTarget === 'ask' ? 'wChipAsk' : 'wChip')) : null)),
+          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true })) : null)
+      }
+
+      /** The strip, above the composer of Kyby's own conversation and of no other. */
+      const KybyDock = (props) => {
+        useStore()
+        const sid = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
+        if (sid === '' || state.kybySid !== sid) return null
+        return h('div', { className: 'kbky-dock', 'data-kb': 'kybernos-kyber-dock' }, h(Strip))
+      }
+
+      /** The page the menu row used to open, and the new-chat card still opens: what Kyby is, the way into its conversation, the strip. */
       const Page = () => {
         useStore()
         const v = state.view
-        const tg = v !== null && v.kind === 'ok' ? v.telegram.state : null
-        const connected = tg === 'linked'
-        const face = pairingFace(state.pairing, Date.now())
-        const chip = connected ? ['ok', 'stOn'] : tg === 'off' || tg === null ? ['', tg === null ? 'stNone' : 'stNone'] : face.kind === 'scanned' ? ['warn', 'stWait'] : ['', 'stOff']
-        const first = !connected && state.chat.loaded && state.chat.messages.length === 0
-        const open = stripIsOpen(state.stripPref, connected)
         const three = h('div', { className: 'kbky-three' },
           [['phone', 'b1h', 'b1p'], ['cloud', 'b2h', 'b2p'], ['shield', 'b3h', 'b3p']].map((b) => h('div', { key: b[0] }, Ic(b[0], 20), h('b', null, L(b[1])), h('span', null, L(b[2])))))
+        const chip = statusOf(v)
         return h('div', { className: 'kbky-page', 'data-kb': 'kybernos-kyber-page' },
           h('div', { className: 'kbky-hero' },
-            h('div', { className: 'kbky-herot' }, h('span', { className: 'kbky-glyph' }, Ic('kyby', 22)), h('div', { className: 'kbky-row wrap' }, h('b', { className: 'kbky-name' }, L('title')), h('span', { className: 'kbky-chip ' + chip[0], 'data-kb': 'kybernos-kyber-status' }, L(chip[1])))),
-            first
-              ? [h('h1', { key: 'h' }, L('heroH')), h('p', { key: 'p', className: 'kbky-lead' }, L('heroP')), h('div', { key: 't' }, three)]
-              : [h('p', { key: 's', className: 'kbky-subline' }, L('subline')), h('details', { key: 'd', className: 'kbky-what' }, h('summary', null, L('what')), h('p', { className: 'kbky-lead' }, L('heroP')), three)]),
-          h('div', { className: 'kbky-strip' + (open ? ' open' : ''), 'data-kb': 'kybernos-kyber-strip' },
-            h('button', { type: 'button', className: 'kbky-striph', 'aria-expanded': String(open), 'data-kb': 'kybernos-kyber-strip-toggle', onClick: toggleStrip },
-              h('span', { className: 'kbky-car' }, Ic('chev', 14)), h('b', null, L('channels')),
-              h('span', { className: 'kbky-stripc' },
-                h('span', { className: 'kbky-chip ' + chip[0] }, BRAND.telegram(14), L(chip[1])),
-                h('span', { className: 'kbky-chip' }, BRAND.whatsapp(14), 'WhatsApp · ' + L('soon')),
-                h('span', { className: 'kbky-chip' }, BRAND.wechat(14), 'WeChat · ' + L('soon')),
-                v !== null && v.kind === 'ok' ? h('span', { className: 'kbky-chip' }, Ic('cloud', 13), L(v.telegram.homeTarget === 'ask' ? 'wChipAsk' : 'wChip')) : null)),
-            open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true })) : null),
-          h(Chat, { view: v }))
+            h('div', { className: 'kbky-herot' }, h('span', { className: 'kbky-glyph' }, Ic('kyby', 22)), h('div', { className: 'kbky-row wrap' }, h('b', { className: 'kbky-name' }, L('title')), h('span', { className: 'kbky-chip ' + chip[0] }, L(chip[1])))),
+            h('h1', null, L('heroH')), h('p', { className: 'kbky-lead' }, L('heroP')),
+            h('div', { className: 'kbky-actions' }, h(Btn, { primary: true, kb: 'kybernos-kyber-openchat', disabled: state.opening, onClick: () => { void openChat() } }, L('openChat'))),
+            h('p', { className: 'kbky-sub left' }, L('openChatHint')),
+            state.openFailed ? h('p', { className: 'kbky-err', role: 'alert' }, L('openChatFail')) : null,
+            three),
+          h(Strip))
       }
 
       /** The tab of the right-hand panel: the same panel, with room only for the panel. */
@@ -727,22 +674,7 @@ window.__ModuleLoader__.load({
         '.kbky-btn[disabled]{opacity:.6;cursor:default}',
         '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-striph:focus-visible,.kbky-chipb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
         '.kbky-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary,#666);text-decoration:underline;cursor:pointer;text-align:left}',
-        // the chat
-        '.kbky-chat{display:flex;flex-direction:column;flex:1;min-height:360px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.25));border-radius:14px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.06));overflow:hidden}',
-        '.kbky-chath{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
-        '.kbky-msgs{flex:1;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:16px;min-height:200px}',
-        '.kbky-m{max-width:86%;padding:9px 12px;border-radius:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px}',
-        '.kbky-m.k{align-self:flex-start;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.12));border-top-left-radius:4px}',
-        '.kbky-m.u{align-self:flex-end;background:var(--dsw-alias-button-primary-fill,#0f1115);color:var(--dsw-alias-label-primary-foreground,#fff);border-top-right-radius:4px}',
-        '.kbky-via{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:11.5px;color:var(--dsw-alias-label-tertiary,#888)}',
-        '.kbky-typing{color:var(--dsw-alias-label-secondary,#666)}',
-        '.kbky-sugg{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 12px}',
-        '.kbky-chipb{font:inherit;font-size:12.5px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));background:var(--dsw-alias-bg-base,transparent);color:inherit;border-radius:99px;padding:5px 12px;cursor:pointer}',
-        '.kbky-comp{display:flex;gap:8px;align-items:flex-end;padding:12px;border-top:1px solid var(--dsw-alias-border-l1,rgba(127,127,127,.2))}',
-        '.kbky-comp textarea{flex:1;min-width:0;resize:none;font:inherit;font-size:14px;color:inherit;background:var(--dsw-alias-bg-base,transparent);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));border-radius:10px;padding:9px 11px;min-height:40px;max-height:140px}',
-        '.kbky-send{width:40px;height:40px;border-radius:10px;border:0;display:grid;place-items:center;cursor:pointer;flex:none;background:var(--dsw-alias-button-primary-fill,#0f1115);color:var(--dsw-alias-label-primary-foreground,#fff)}',
-        '.kbky-send[disabled]{opacity:.45;cursor:default}',
-        '.kbky-foot{padding:0 16px 12px;font-size:12px;color:var(--dsw-alias-label-tertiary,#888)}',
+        '.kbky-dock{margin:0 0 8px}',
         // narrow: one column, and no QR (nobody scans their own screen: the button is the way)
         '@container (max-width:760px){.kbky-chan-grid{grid-template-columns:minmax(0,1fr)}}',
         '@media (max-width:760px){.kbky-chan-grid{grid-template-columns:minmax(0,1fr)}.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-qrcol{display:none}.kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky-page{padding:14px 12px}}',
@@ -753,18 +685,22 @@ window.__ModuleLoader__.load({
       const SLOT_PAGE = 'main.kybernos-kyber'
       const KIND = 'kybernos-kyber'
       const SLOT_PANE = 'sidebar.right.pane.tab'
+      const SLOT_DOCK = 'conversation.input.dock'
       const STYLE_ID = 'kybernos-kyber-styles'
       let CTX = null
 
       return {
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
-        inject: ['slots', 'sidebarRightTabs'],
-        __test: { S, L, kt, derive, pairingFace, chatError, answered, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME },
+        inject: ['slots', 'sidebarRightTabs', 'sessions', 'uiWorkspace'],
+        __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME },
         apply (ctx) {
           CTX = ctx
+          // The plugin is applied again when a service it asks for comes back: the new scope replaces the sheet, and the old scope's
+          // cleanup then removes only the element IT made.
           ctx.effect(() => {
-            if (document.getElementById(STYLE_ID)) return undefined
+            const old = document.getElementById(STYLE_ID)
+            if (old) old.remove()
             const el = document.createElement('style')
             el.id = STYLE_ID
             el.setAttribute('data-plugin', '@local/kybernos-kyber')
@@ -786,6 +722,11 @@ window.__ModuleLoader__.load({
           }
           // the page: the child slot the core's menu row opens
           ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, () => { try { return h(Page) } catch (e) { return null } })), 'kybernos-kyber: page')
+          // Kyby's own conversation is a native DSH chat: the strip sits in the dock above its composer, and above no other's.
+          ctx.effect(() => ctx.slots.inject(SLOT_DOCK, () => ctx.slots.register(
+            { name: SLOT_DOCK, id: 'kybernos-kyby-strip', order: 5 },
+            (props) => { try { return h(KybyDock, props) } catch (e) { return null } }
+          )), 'kybernos-kyber: strip above the composer')
           ctx.effect(() => ctx.slots.inject(SLOT_PANE, () => ctx.slots.register(
             { name: SLOT_PANE, key: TYPE_ID },
             () => { try { return h(Pane) } catch (e) { return null } }
@@ -794,7 +735,9 @@ window.__ModuleLoader__.load({
           try {
             window.__KB_KYBER__ = {
               /** What the page shows now (diagnostics, live checks). */
-              state () { return { loading: state.loading, view: state.view, at: state.at, pairing: state.pairing === null ? null : { state: state.pairing.state, error: state.pairing.error || '' }, chat: { loaded: state.chat.loaded, count: state.chat.messages.length, waiting: state.chat.waitingAfter !== null } } },
+              state () { return { loading: state.loading, view: state.view, at: state.at, pairing: state.pairing === null ? null : { state: state.pairing.state, error: state.pairing.error || '' }, kybySid: state.kybySid, openFailed: state.openFailed, openError: state.openError } },
+              /** Opens Kyby's native conversation (the sidebar row calls this). False when it could not be opened. */
+              openChat () { return openChat() },
               /** Reads the state again (live checks drive the page's answers; a person has the refresh button of the tab). */
               refresh () { return load() },
               /** Opens the tab, the same call the sidebar's « + » guide makes. False when no chat is on screen. */

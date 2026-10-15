@@ -426,8 +426,12 @@ The routes the **Kyby** page (`kybernos-kyber`) uses; the shapes and the words o
 | `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | « it is not me » |
 | `POST /kybernos-cloud/telegram/settings` `{home_target: cloud\|ask}` | where a Telegram message runs |
 | `POST /kybernos-cloud/telegram/unlink` | disconnects the account's Telegram |
-| `GET /kybernos-cloud/kyby[?after=<position>]` | the person's one conversation: the last page, or what came after a position |
-| `POST /kybernos-cloud/kyby/send` `{message, client_turn_id}` | one hosted turn on that thread, with the door's model |
+| `GET /kybernos-cloud/kyby/native` | which DSH chat is Kyby's (`sessionId`, null before the first time) and its folder (`cwd`, made here) |
+| `POST /kybernos-cloud/kyby/native/set` `{sessionId}` | remembers that chat (null forgets it) |
+
+Kyby's own chat is a native DSH conversation (`kyby-native.mjs`): the host gives that chat Kyby's identity in the system prompt
+(`kybernos:kyby`, for its session only), writes each finished turn on the person's server thread (`POST /v1/threads/{id}/messages`, the
+thread from `GET /v1/me/kyby`) and tells the prompt what was said there lately. A server with no such thread is left alone for ten minutes.
 
 `qr.mjs` is a byte-for-byte copy of `kybernos-mobile/qr.mjs` (bundles do not import each other): `node scripts/test-qr-drift.mjs`
 fails when they part. The footer publishes `window.__KB_UPGRADE__.open()` so a page can open the Upgrade dialog.
