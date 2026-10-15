@@ -6,9 +6,10 @@ agent teams. The native search of the Workspaces list (a title filter) is not to
 ## What the user sees
 
 - Three ways in: the **⌘K / Ctrl+K** shortcut, the **Search everywhere** row of the menu (kybernos-plugin calls
-  `window.__KB_SEARCH__.open()`), and an **icon next to the native search** of the Workspaces header (DSH has no slot there: a DOM
-  sweep that matches `[class*="sectionHeader"]` and `[class*="searchButton"]`; if the markup moves the icon is not there and the
-  other two remain).
+  `window.__KB_SEARCH__.open()`), and an **icon in the Workspaces header**, next to the native search (DSH has no slot there: a DOM sweep that matches
+  `[class*="sectionHeader"]` and `[class*="headerActions"]`; the native search sits in a 28 px slot that clips anything added to it
+  and the group of the other icon buttons is 60 px wide, so the icon is a child of the header itself, right before that group; if the
+  markup moves the icon is not there and the other two remain).
 - Scope chips with live counts (Chats, Skills, Memories, Lessons, Creations, Automations, Agent Teams), grouped results with the matching
   passage highlighted, a preview of the matching messages, keyboard first (↑ ↓ ↵ Esc). The scopes are remembered on this computer.
 - The first open builds the index of the chats (about ten seconds on 2,000 chats, with a progress line; results appear as they are
