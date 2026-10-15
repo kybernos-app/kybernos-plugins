@@ -74,7 +74,10 @@ window.__ModuleLoader__.load({
         taP: ['Déconnectez-le d’abord dans l’autre compte (écrivez /unlink à Kyby dans Telegram), puis revenez ici.', 'Disconnect it from the other account first (write /unlink to Kyby in Telegram), then come back here.'],
         bmH: ['Ce Telegram a déjà un compte créé par le bot', 'This Telegram already has an account made by the bot'],
         bmP: ['Rattacher ce Telegram à votre compte n’est pas encore possible. En attendant, continuez à utiliser le bot tel quel.', 'Attaching this Telegram to your account is not possible yet. Meanwhile, keep using the bot as it is.'],
-        ofH: ['Telegram n’est pas activé sur ce serveur', 'Telegram is not turned on on this server'], ofP: ['Le chat de cette page marche quand même.', 'The chat on this page still works.'],
+        ofH: ['Telegram n’est pas activé sur ce serveur', 'Telegram is not turned on on this server'],
+        ofP: ['Ce serveur n’a pas de bot Telegram : il en faut un pour connecter Telegram.', 'This server has no Telegram bot: one is needed to connect Telegram.'],
+        ofPS: ['Le serveur de ce DSH ({server}) n’a pas de bot Telegram : il en faut un pour connecter Telegram.', 'The server this DSH talks to ({server}) has no Telegram bot: one is needed to connect Telegram.'],
+        settings: ['Réglages', 'Settings'],
         pe: ['Impossible de préparer le code pour l’instant.', 'The code cannot be prepared right now.'],
         peRate: ['Trop d’essais : réessayez dans une minute.', 'Too many tries: try again in a minute.'],
         retry: ['Réessayer', 'Try again'],
@@ -155,7 +158,8 @@ window.__ModuleLoader__.load({
           manualControl: hm.manual_control !== false,
           paused: typeof hm.paused_reason === 'string' && hm.paused_reason !== '' ? (hm.paused_reason === 'hours' ? 'hours' : 'other') : '',
         }
-        return { kind: 'ok', telegram, home, accountUrl: api === '' ? '' : api + '/account' }
+        const serverId = s !== null && typeof s.id === 'string' && /^[A-Za-z0-9._-]{1,40}$/.test(s.id) ? s.id : ''
+        return { kind: 'ok', telegram, home, serverId, accountUrl: api === '' ? '' : api + '/account' }
       }
       /** What the connection card shows for a pairing (null = none yet), at `nowMs`. */
       const pairingFace = (p, nowMs) => {
@@ -368,7 +372,7 @@ window.__ModuleLoader__.load({
         const tg = v.telegram
         // The card asks for its code once, when it is on screen and there is no Telegram: expiry or a cancel does not start a loop.
         React.useEffect(() => { if (props.visible && tg.state === 'unlinked' && state.pairing === null && !state.starting && !state.autoDone) void pairStart() })
-        if (tg.state === 'off') return h('section', { className: 'kbky-card', 'data-kb': 'kybernos-kyber-telegram' }, h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, BRAND.telegram(22)), h('div', null, h('h3', null, L('ofH')), h('p', null, L('ofP')))))
+        if (tg.state === 'off') return h('section', { className: 'kbky-card', 'data-kb': 'kybernos-kyber-telegram', 'data-state': 'off' }, h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, BRAND.telegram(22)), h('div', null, h('h3', null, L('ofH')), h('p', null, v.serverId === '' ? L('ofP') : L('ofPS', { server: v.serverId })))))
         if (tg.state === 'linked') {
           return h('section', { className: 'kbky-card slim', 'data-kb': 'kybernos-kyber-telegram' },
             h('div', { className: 'kbky-kv' }, h('div', { className: 'kbky-row' }, BRAND.telegram(20), h('b', null, L('telegram'))), h('span', { className: 'kbky-badge ok sm' }, Ic('check', 14, 2.6))),
@@ -464,15 +468,25 @@ window.__ModuleLoader__.load({
           h('p', { className: 'kbky-sub left' }, L('approvals')))
       }
 
-      /** Everything about the doors and the body: one component for the strip and for the right-hand tab. */
+      /**
+       * The doors and the body. `lite` (the strip above the chat) shows what there is to DO: the Telegram card, and, once connected, the
+       * settings behind a disclosure. The tab and the page show everything.
+       */
       const Channels = (props) => {
         const v = state.view
         if (v === null) return h('p', { className: 'kbky-note' }, L('loading'))
         if (v.kind !== 'ok') return h('p', { className: 'kbky-note' }, L(v.kind))
+        const linked = v.telegram.state === 'linked'
+        const manage = v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null
+        if (props.lite === true) {
+          return h('div', { className: 'kbky-col', 'data-kb': 'kybernos-kyber-channels' },
+            h(TelegramCard, { view: v, visible: props.visible !== false }),
+            linked ? h('details', { className: 'kbky-more', 'data-kb': 'kybernos-kyber-settings' }, h('summary', null, L('settings')),
+              h('div', { className: 'kbky-chan-grid' }, h(WhereCard, { view: v }), h(ComputerCard, { view: v })), manage) : null)
+        }
         return h('div', { className: 'kbky-chan-grid', 'data-kb': 'kybernos-kyber-channels' },
           h('div', { className: 'kbky-col' }, h(TelegramCard, { view: v, visible: props.visible !== false }), h(OtherChannels)),
-          h('div', { className: 'kbky-col' }, h(WhereCard, { view: v }), h(ComputerCard, { view: v }),
-            v.accountUrl !== '' ? h('div', { className: 'kbky-actions' }, h('button', { type: 'button', className: 'kbky-link', 'data-kb': 'kybernos-kyber-account', onClick: () => { void openAccount('account') } }, L('manage'))) : null))
+          h('div', { className: 'kbky-col' }, h(WhereCard, { view: v }), h(ComputerCard, { view: v }), manage))
       }
 
       // ═══ Kyby's own chat is a native DSH conversation: its session, and how to reach it ═══════════════════════════
@@ -486,10 +500,13 @@ window.__ModuleLoader__.load({
         emit()
         return state.kybySid
       }
+      /** The chat exists AND belongs to a workspace: one made without a folder (the first build did that) asks the person to choose one. */
       const sessionExists = (sid) => {
         try {
           const snap = svc('sessions').list.getSnapshot()
-          return snap !== null && snap !== undefined && snap.byId !== null && typeof snap.byId === 'object' && snap.byId[sid] !== undefined
+          if (snap === null || snap === undefined || snap.byId === null || typeof snap.byId !== 'object' || snap.byId[sid] === undefined) return false
+          const ws = svc('uiWorkspace').workspaces.list.getSnapshot()
+          return ws !== null && ws !== undefined && Array.isArray(ws.items) && ws.items.some((i) => i !== null && Array.isArray(i.sessionIds) && i.sessionIds.includes(sid))
         } catch (e) { return false }
       }
       /** Opens Kyby's conversation, making it the first time (a blank DSH chat, remembered by the host, which gives it Kyby's identity). */
@@ -505,8 +522,16 @@ window.__ModuleLoader__.load({
           let sid = await readSessionPointer()
           if (sid === null || !sessionExists(sid)) {
             // `sessions.create` answers the new session's id itself (and throws when it cannot); older shapes answer an object.
-            // In Kyby's own folder (a workspace of its own): DSH's « New chat » reuses a blank chat of the workspace it is in, never this one.
-            const made = await sessionsSvc.create(state.kybyCwd === null ? {} : { cwd: state.kybyCwd })
+            // In Kyby's own folder, as a workspace of its own and already chosen: DSH's « New chat » reuses a blank chat of the workspace it is
+            // in, never this one, and the person is not asked for a folder.
+            let workspaceId = null
+            const wsSvc = svc('workspaces')
+            if (state.kybyCwd !== null && wsSvc !== null && wsSvc !== undefined && typeof wsSvc.create === 'function') {
+              const ws = await wsSvc.create({ path: state.kybyCwd })
+              workspaceId = ws !== null && typeof ws === 'object' && typeof ws.workspaceId === 'string' ? ws.workspaceId : null
+              try { if (workspaceId !== null && typeof wsSvc.rename === 'function') await wsSvc.rename(workspaceId, NAME) } catch (e) { /* the folder's own name stays */ }
+            }
+            const made = await sessionsSvc.create(workspaceId !== null ? { workspaceId } : (state.kybyCwd === null ? {} : { cwd: state.kybyCwd }))
             const v = made !== null && typeof made === 'object' && made.value !== null && made.value !== undefined ? made.value : made
             sid = typeof v === 'string' ? v : (v !== null && typeof v === 'object' && typeof v.sessionId === 'string' ? v.sessionId : null)
             if (typeof sid !== 'string' || sid === '') throw new Error('no session made')
@@ -559,7 +584,7 @@ window.__ModuleLoader__.load({
               h('span', { className: 'kbky-chip' }, BRAND.whatsapp(14), 'WhatsApp · ' + L('soon')),
               h('span', { className: 'kbky-chip' }, BRAND.wechat(14), 'WeChat · ' + L('soon')),
               v !== null && v.kind === 'ok' ? h('span', { className: 'kbky-chip' }, Ic('cloud', 13), L(v.telegram.homeTarget === 'ask' ? 'wChipAsk' : 'wChip')) : null)),
-          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true })) : null)
+          open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true, lite: true })) : null)
       }
 
       /** The strip, above the composer of Kyby's own conversation and of no other. */
@@ -675,6 +700,9 @@ window.__ModuleLoader__.load({
         '.kbky-btn:focus-visible,.kbky-link:focus-visible,.kbky-striph:focus-visible,.kbky-chipb:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4c6ef5);outline-offset:2px}',
         '.kbky-link{border:0;background:none;padding:0;font:inherit;font-size:13px;color:var(--dsw-alias-label-secondary,#666);text-decoration:underline;cursor:pointer;text-align:left}',
         '.kbky-dock{margin:0 0 8px}',
+        '.kbky-more{margin-top:2px}',
+        '.kbky-more summary{cursor:pointer;width:max-content;color:var(--dsw-alias-label-secondary,#666);font-size:13px;padding:2px 0}',
+        '.kbky-more[open] summary{margin-bottom:8px}',
         // narrow: one column, and no QR (nobody scans their own screen: the button is the way)
         '@container (max-width:760px){.kbky-chan-grid{grid-template-columns:minmax(0,1fr)}}',
         '@media (max-width:760px){.kbky-chan-grid{grid-template-columns:minmax(0,1fr)}.kbky-three{grid-template-columns:minmax(0,1fr)}.kbky-qrcol{display:none}.kbky-connbody{grid-template-columns:minmax(0,1fr)}.kbky-page{padding:14px 12px}}',
@@ -692,7 +720,7 @@ window.__ModuleLoader__.load({
       return {
         name: 'kybernos-kyber',
         // `sidebarRightTabs` must be declared: ui-sidebar-right provides it, and without this `apply` could run before.
-        inject: ['slots', 'sidebarRightTabs', 'sessions', 'uiWorkspace'],
+        inject: ['slots', 'sidebarRightTabs', 'sessions', 'workspaces', 'uiWorkspace'],
         __test: { S, L, kt, derive, pairingFace, clock, stripIsOpen, CSS, TYPE_ID, KIND, state, BRAND, NAME },
         apply (ctx) {
           CTX = ctx
@@ -738,6 +766,8 @@ window.__ModuleLoader__.load({
               state () { return { loading: state.loading, view: state.view, at: state.at, pairing: state.pairing === null ? null : { state: state.pairing.state, error: state.pairing.error || '' }, kybySid: state.kybySid, openFailed: state.openFailed, openError: state.openError } },
               /** Opens Kyby's native conversation (the sidebar row calls this). False when it could not be opened. */
               openChat () { return openChat() },
+              /** Whether `sid` is Kyby's own chat (the new-chat cards stay out of it). */
+              isKybySession (sid) { return typeof sid === 'string' && sid !== '' && sid === state.kybySid },
               /** Reads the state again (live checks drive the page's answers; a person has the refresh button of the tab). */
               refresh () { return load() },
               /** Opens the tab, the same call the sidebar's « + » guide makes. False when no chat is on screen. */

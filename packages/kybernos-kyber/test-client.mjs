@@ -117,7 +117,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 {
   // Kyby's chat is a native DSH conversation: the page owns no transcript and no composer, only the way in and the strip above it.
   ok('the page holds no chat of its own: no draft box, no send, no transcript', !/kybernos-kyber-draft|kybernos-kyber-send|kbky-msgs|kybernos-kyber\/kyby\/send|\/kybernos-cloud\/kyby['"]/.test(src.replace(/kyby\/native/g, '')))
-  ok('the way in is the host\'s pointer and DSH\'s own sessions service', /\/kybernos-cloud\/kyby\/native/.test(src) && /uiSvc\.openSession\(sid\)/.test(src) && /sessionsSvc\.create\(state\.kybyCwd === null/.test(src))
+  ok('the way in is the host\'s pointer and DSH\'s own sessions service', /\/kybernos-cloud\/kyby\/native/.test(src) && /uiSvc\.openSession\(sid\)/.test(src) && /wsSvc\.create\(\{ path: state\.kybyCwd \}\)/.test(src) && /sessionsSvc\.create\(workspaceId !== null \? \{ workspaceId \}/.test(src))
   ok('the strip is registered above the composer, for Kyby\'s session only', /SLOT_DOCK = 'conversation\.input\.dock'/.test(src) && /state\.kybySid !== sid\) return null/.test(src))
   ok('the diagnostics hook can open the chat', /openChat \(\) \{ return openChat\(\) \}/.test(src))
   ok('the words for the way in exist in both languages', T.S.openChat !== undefined && T.S.openChatHint !== undefined && T.S.openChatFail !== undefined)
@@ -139,6 +139,16 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   const second = plugin.apply(ctx)
   ok('applied twice, one sheet is in the page and it is the second', store.get('kybernos-kyber-styles') === made[1] && made[0].gone === true)
   globalThis.document = doc
+}
+
+{
+  // Calm: what there is to DO, not everything there is.
+  ok('Kyby\'s chat is made in a workspace of its own, already chosen, and a chat made without one is made again', /ws\.items\.some\(\(i\) => i !== null && Array\.isArray\(i\.sessionIds\) && i\.sessionIds\.includes\(sid\)\)/.test(src))
+  ok('the strip shows the Telegram card, and the settings only behind a disclosure once connected', /props\.lite === true/.test(src) && /h\('details', \{ className: 'kbky-more'/.test(src) && /Channels, \{ visible: true, lite: true \}/.test(src))
+  const srv = T.derive({ ok: true, connected: true, telegram: { configured: false, enabled: false, bot: null, linked: null }, home: null }, { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } })
+  ok('the server\'s name is known, so that « no Telegram bot » can say whose', srv.serverId === 'kybernos-local' && T.L('ofPS', { server: srv.serverId }).includes('kybernos-local'))
+  ok('an odd server id is dropped', T.derive({ ok: true, connected: true, telegram: null, home: null }, { ok: true, server: { id: '<b>', api: 'http://x' } }).serverId === '')
+  ok('the diagnostics hook tells whether a chat is Kyby\'s (the new-chat cards stay out of it)', /isKybySession \(sid\)/.test(src))
 }
 
 process.exit(fail > 0 ? 1 : 0)
