@@ -7,7 +7,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { probeHttp, probeStdio, redact, childEnv, PROBE_LIMITS } from './mcp-probe.mjs'
+import { probeHttp, probeStdio, redact, childEnv, PROBE_LIMITS, isSseAddress } from './mcp-probe.mjs'
 import { suite, fakeHttpMcp, fakeStdioScript } from './lib-test.mjs'
 
 const { ok, done } = suite()
@@ -56,6 +56,21 @@ const url = fh.url
   fh.state.mode = 'html'
   const r = await probeHttp({ url, headers: {} })
   ok('http: an HTML page is bad-response (a captive portal, a wrong address)', r.ok === false && r.code === 'bad-response', JSON.stringify(r))
+}
+{
+  // The legacy SSE transport: a POST to …/sse is refused. The probe says what to look for, only when the address ends in /sse.
+  fh.state.mode = 'method'
+  const sseUrl = url.replace(/\/[^/]*$/, '/sse')
+  let r = await probeHttp({ url: sseUrl, headers: {} })
+  ok('http: a refused POST on an /sse address is flagged as the legacy SSE transport', r.ok === false && r.code === '405' && r.hint === 'sse', JSON.stringify(r))
+  r = await probeHttp({ url: sseUrl + '/?x=1', headers: {} })
+  ok('http: a trailing slash and a query do not hide it', r.hint === 'sse', JSON.stringify(r))
+  r = await probeHttp({ url, headers: {} })
+  ok('http: the same refusal on another address is just the status', r.ok === false && r.code === '405' && r.hint === undefined, JSON.stringify(r))
+  fh.state.mode = 'down'
+  r = await probeHttp({ url: sseUrl, headers: {} })
+  ok('http: a server error on /sse is not blamed on the transport', r.code === '503' && r.hint === undefined, JSON.stringify(r))
+  ok('http: isSseAddress reads the path only', isSseAddress('https://x.example/sse') && isSseAddress('https://x.example/a/SSE/') && !isSseAddress('https://sse.example/mcp') && !isSseAddress('https://x.example/mcp?u=/sse') && !isSseAddress('not a url'))
 }
 {
   fh.state.mode = 'rpcerr'
@@ -115,7 +130,7 @@ process.env.DSH_HOME_PROBE = 'x'
 ok('redact: replaces every secret, cuts the text, ignores short ones', redact('a key-123 and key-123 and xy', ['key-123', 'xy'], 100) === 'a *** and *** and xy' && redact('abcdef', [], 3) === 'abc…')
 ok('redact: strips terminal colours', redact('\u001b[31mred\u001b[0m', [], 50) === 'red')
 ok('childEnv: drops KEY/TOKEN/SECRET/PASSWORD and DSH_*, keeps the rest, adds the explicit env', (() => { const e = childEnv({ PATH: '/bin', MY_KEY: 'x', db_password: 'p', DSH_HOME: '/h', dsh_x: '1', HOME: '/home' }, { TOKEN_EXPLICIT: 'ok' }); return e.PATH === '/bin' && e.HOME === '/home' && e.MY_KEY === undefined && e.db_password === undefined && e.DSH_HOME === undefined && e.dsh_x === undefined && e.TOKEN_EXPLICIT === 'ok' })())
-ok('limits: the budgets are the documented ones', PROBE_LIMITS.httpMs === 12000 && PROBE_LIMITS.stdioMs === 20000)
+ok('limits: the budgets are the documented ones', PROBE_LIMITS.httpMs === 20000 && PROBE_LIMITS.stdioMs === 20000)
 
 rmSync(dir, { recursive: true, force: true })
 done('Probe')

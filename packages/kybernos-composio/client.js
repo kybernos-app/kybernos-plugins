@@ -287,6 +287,7 @@ window.__ModuleLoader__.load({
       'kb.cp.terr.404': { fr: 'Adresse introuvable (404). Vérifiez l’URL.', en: 'Address not found (404). Check the URL.' },
       'kb.cp.terr.429': { fr: 'Le serveur limite le débit (429).', en: 'The server is rate limiting (429).' },
       'kb.cp.terr.oauth': { fr: 'Ce serveur demande une autorisation OAuth, que DSH ne gère pas : seul un en-tête fixe est possible.', en: 'This server asks for OAuth authorization, which DSH does not handle: only a fixed header is possible.' },
+      'kb.cp.terr.sse': { fr: 'Cette adresse est un ancien point d’accès SSE (/sse) que DSH ne lit pas. Cherchez l’adresse « HTTP streamable » du serveur : souvent la même avec /mcp à la place.', en: 'This address is an old SSE endpoint (/sse) that DSH does not read. Look for the server’s “streamable HTTP” address: often the same with /mcp instead.' },
       'kb.cp.terr.timeout': { fr: 'Pas de réponse à temps.', en: 'No answer in time.' },
       'kb.cp.terr.offline': { fr: 'Serveur injoignable.', en: 'Server unreachable.' },
       'kb.cp.terr.bad-response': { fr: 'La réponse n’est pas du MCP (une page web ? une mauvaise adresse ?).', en: 'The answer is not MCP (a web page? a wrong address?).' },
@@ -615,6 +616,7 @@ window.__ModuleLoader__.load({
     const kbCpTestErr = (r) => {
       const code = String(r !== null && r !== undefined && r.code !== undefined && r.code !== null ? r.code : '')
       if (r !== null && r !== undefined && r.hint === 'oauth') return kbt('kb.cp.terr.oauth')
+      if (r !== null && r !== undefined && r.hint === 'sse') return kbt('kb.cp.terr.sse')
       const known = ['401', '403', '404', '429', 'timeout', 'offline', 'bad-response', 'rpc-error', 'spawn', 'exited']
       if (known.indexOf(code) < 0) return kbt('kb.cp.terr.other').replace('{code}', code.length > 0 ? code : '?')
       let m = String(r.message || '')
