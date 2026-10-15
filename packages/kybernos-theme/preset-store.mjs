@@ -37,13 +37,14 @@ export const LIMITS = {
 export const MAX_BODY_BYTES = 640 * 1024
 /**
  * The settings a preset may carry. Mirrors PRESET_GROUPS in client.js (test-preset-store.mjs
- * fails when the two lists drift): colours always, then font, corners, glass and wallpaper,
+ * fails when the two lists drift): colours always, then font, corners, menu icons, glass and wallpaper,
  * accessibility.
  */
 export const SETTINGS_KEYS = Object.freeze([
   'mode', 'acc', 'ov',
   'fontText', 'ligatures',
   'radius',
+  'iconSet',
   'wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity',
   'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror',
   'contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks',

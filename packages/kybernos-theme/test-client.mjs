@@ -891,7 +891,7 @@ section('theme library: what a theme may retain')
   check('every retained key is a stored setting', T.PRESET_KEYS.every((k) => k in T.DEF), T.PRESET_KEYS.filter((k) => !(k in T.DEF)))
   const sample = {
     mode: 'light', acc: '#112233', ov: { 'light:base': '#ffffff' }, fontText: 'inter', ligatures: false, radius: 'soft',
-    wp: 'nuit', wpVis: 50, wpBlur: 5, tint: 10, glassEffect: 'liquid', glassBlur: 10, sidebarLinked: false, sidebarOpacity: 30, fieldOpacity: 30, floatOpacity: 30,
+    iconSet: 'bauhaus', wp: 'nuit', wpVis: 50, wpBlur: 5, tint: 10, glassEffect: 'liquid', glassBlur: 10, sidebarLinked: false, sidebarOpacity: 30, fieldOpacity: 30, floatOpacity: 30,
     bgBrightness: 110, bgContrast: 110, bgSaturation: 110, bgDarken: 10, bgFit: 'fill', bgMirror: true,
     contrastMode: 'plus', cbSafe: true, reduceMotion: true, focusRing: 'thick', largeTargets: true, underlineLinks: true,
   }
@@ -915,7 +915,7 @@ section('theme library: what a theme may retain')
   const copy = T.presetFromState(S, {})
   copy.ov['dark:base'] = '#ffffff'
   check('the saved overrides are a copy, not the live object', S.ov['dark:base'] === '#101010')
-  check('groupsOf says which groups a theme retains', JSON.stringify(T.groupsOf(withFont)) === JSON.stringify({ colors: true, font: true, radius: true, glass: false, a11y: false }), T.groupsOf(withFont))
+  check('groupsOf says which groups a theme retains', JSON.stringify(T.groupsOf(withFont)) === JSON.stringify({ colors: true, font: true, radius: true, icons: false, glass: false, a11y: false }), T.groupsOf(withFont))
 }
 
 section('theme library: records, names and the file')

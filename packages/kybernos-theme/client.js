@@ -341,6 +341,8 @@ window.__ModuleLoader__.load({
         // A shipped theme may also set the font and the corners; the older ones leave both alone.
         if (sk.fontText !== undefined) patch.fontText = sk.fontText
         if (sk.radius !== undefined) patch.radius = sk.radius
+        // …and the menu icon set (the id of one of the sets above)
+        if (sk.iconSet !== undefined) patch.iconSet = sk.iconSet
         return patch
       }
       // L'accent affiché d'un skin : sa valeur directe, sinon celle de sa
@@ -373,6 +375,241 @@ window.__ModuleLoader__.load({
         return patch
       }
 
+      // <icon-sets:begin>
+      // ══ MENU ICON SETS ═══════════════════════════════════════════════════
+      // Pure drawing code: no DOM, no state, no I/O. One drawing per (set, menu entry); every drawing is flat fills,
+      // no outlines. `t` is the tone kit of the state being drawn: at rest everything is the row's own text colour
+      // (`currentColor`, so it follows light and dark themes), when the page is open it takes the entry's hue.
+      const ICON_ENTRIES = ['cloud', 'kyber', 'dash', 'teams', 'ws', 'creations', 'auto', 'skills', 'plug']
+      const ICON_HUES = { cloud: '#14b8a6', kyber: '#8b5cf6', dash: '#3b82f6', teams: '#6366f1', ws: '#f59e0b', creations: '#ec4899', auto: '#f97316', skills: '#10b981', plug: '#06b6d4' }
+      const iconRgb = (hex) => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255] }
+      const iconHex = (c) => '#' + c.map((x) => Math.max(0, Math.min(255, Math.round(x))).toString(16).padStart(2, '0')).join('')
+      const iconMix = (hex, t) => iconHex(iconRgb(hex).map((v) => v + (255 - v) * t))
+      const iconShade = (hex, t) => iconHex(iconRgb(hex).map((v) => v * (1 - t)))
+      const iconN = (v) => Math.round(v * 100) / 100
+      const iconTones = (on, hue) => {
+        const g = (fill, op) => (x) => '<g fill="' + fill + '"' + (op < 1 ? ' opacity="' + op + '"' : '') + '>' + x + '</g>'
+        const INK = 'var(--dsw-alias-label-primary,#1c1f26)'
+        return on
+          ? { on, hue, m: g(hue, 1), s: g(hue, 0.4), k: g(iconShade(hue, 0.38), 1), ik: g(INK, 1), hi: g(iconMix(hue, 0.45), 1), md: g(hue, 1), lo: g(iconShade(hue, 0.3), 1), p: g('#fff', 1) }
+          : { on, hue, m: g('currentColor', 1), s: g('currentColor', 0.4), k: g('currentColor', 0.62), ik: g('currentColor', 0.45), hi: g('currentColor', 0.38), md: g('currentColor', 0.68), lo: g('currentColor', 1), p: g('#fff', 1) }
+      }
+      const iRect = (x, y, w, h, r) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (r === undefined ? 0.9 : r) + '"/>'
+      const iDot = (cx, cy, r) => '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/>'
+      const iPath = (d, extra) => '<path d="' + d + '"' + (extra || '') + '/>'
+      const iPoly = (pts) => '<polygon points="' + pts.map((p) => iconN(p[0]) + ',' + iconN(p[1])).join(' ') + '"/>'
+      const iRing = (cx, cy, R, w) => {
+        const r = R - w
+        return iPath('M' + (cx - R) + ' ' + cy + 'a' + R + ' ' + R + ' 0 1 0 ' + (2 * R) + ' 0a' + R + ' ' + R + ' 0 1 0 ' + (-2 * R) + ' 0zM' + (cx - r) + ' ' + cy + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z', ' fill-rule="evenodd"')
+      }
+      const iArc = (cx, cy, R, w, a0, a1) => {
+        const r = R - w
+        const P = (q, a) => iconN(cx + q * Math.sin((a * Math.PI) / 180)) + ' ' + iconN(cy - q * Math.cos((a * Math.PI) / 180))
+        const big = a1 - a0 > 180 ? 1 : 0
+        return iPath('M' + P(R, a0) + 'A' + R + ' ' + R + ' 0 ' + big + ' 1 ' + P(R, a1) + 'L' + P(r, a1) + 'A' + r + ' ' + r + ' 0 ' + big + ' 0 ' + P(r, a0) + 'z')
+      }
+      // An isometric cuboid: back corner (cx, ty), two top edges (ux right-down, uy left-down), height h.
+      const iCub = (t, cx, ty, ux, uy, h) => {
+        const P0 = [cx, ty], P1 = [cx + ux, ty + ux / 2], P2 = [cx + ux - uy, ty + ux / 2 + uy / 2], P3 = [cx - uy, ty + uy / 2]
+        const dn = (p) => [p[0], p[1] + h]
+        return t.hi(iPoly([P0, P1, P2, P3])) + t.md(iPoly([P3, P2, dn(P2), dn(P3)])) + t.lo(iPoly([P2, P1, dn(P1), dn(P2)]))
+      }
+      const iFade = (x) => '<g opacity=".55">' + x + '</g>'
+
+      // ── The five sober sets: solid silhouettes, a mass (p) and a detail (s) ──
+      const ICON_FILL = {
+        cloud: { p: iRect(2.5, 4, 19, 13, 3.2), s: iRect(7.5, 19, 9, 2.4, 1.2) },
+        kyber: { p: iDot(6, 6.5, 3.4) + iDot(18, 7, 3.4) + iDot(12, 18, 3.4), s: iPath('M6 6.5 18 7 12 18z') },
+        dash: { p: iRect(3, 3, 8, 10, 2.2) + iRect(13, 11, 8, 10, 2.2), s: iRect(13, 3, 8, 6, 2.2) + iRect(3, 15, 8, 6, 2.2) },
+        teams: { p: iDot(9, 8, 3.6) + iPath('M2 20a7 7 0 0 1 14 0z'), s: iDot(17.5, 9, 2.8) + iPath('M15 20a5.5 5.5 0 0 1 8.5-4.6V20z') },
+        ws: { p: iPath('M2.5 10.5h19V17a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 17z'), s: iPath('M2.5 7A2.5 2.5 0 0 1 5 4.5h3.8a2 2 0 0 1 1.6.8L11.7 7H19a2.5 2.5 0 0 1 2.5 2.5v1h-19z') },
+        creations: { p: iDot(17, 17, 4.5) + iRect(3, 13.5, 7.5, 7.5, 2), s: iPath('M7.2 3.4a1.2 1.2 0 0 1 2 0l3.9 6.6a1.2 1.2 0 0 1-1 1.8H4.3a1.2 1.2 0 0 1-1-1.8z') + iRect(13.5, 3, 7.5, 7.5, 2.2) },
+        auto: { p: iRect(2.8, 4.5, 4.6, 15, 1.5), s: '<g transform="rotate(16 11.7 13.5)">' + iRect(9.4, 6, 4.6, 15, 1.5) + '</g><g transform="rotate(34 17.9 16)">' + iRect(15.6, 9, 4.6, 14, 1.5) + '</g>' },
+        skills: { p: iRect(3, 10, 18, 10.5, 2.6), s: iRect(5.2, 5.6, 4, 4.4, 1.4) + iRect(10, 5.6, 4, 4.4, 1.4) + iRect(14.8, 5.6, 4, 4.4, 1.4) },
+        plug: { p: iPath('M4.5 9h15v2.5a7.5 7.5 0 0 1-15 0z'), s: iRect(7, 2, 3.4, 7, 1.7) + iRect(13.6, 2, 3.4, 7, 1.7) + iRect(10.8, 18.5, 2.4, 3.5, 1.2) }
+      }
+      const ICON_BAUHAUS = {
+        cloud: (t) => t.m(iRect(3, 4, 18, 12, 0)) + t.ik(iDot(17.5, 16.5, 4.5)) + t.ik(iRect(6, 19, 7, 2, 0)),
+        kyber: (t) => t.m(iDot(6.5, 7, 3.5)) + t.ik(iRect(13, 3.5, 7, 7, 0)) + t.m(iPath('M12 13l5.5 8h-11z')),
+        dash: (t) => t.m(iRect(3, 3, 8, 10, 0)) + t.ik(iRect(13, 3, 8, 6, 0)) + t.m(iRect(13, 11, 8, 10, 0)) + t.ik(iRect(3, 15, 8, 6, 0)),
+        teams: (t) => t.ik(iDot(6, 8, 2.6)) + t.m(iDot(12, 6.5, 3.2)) + t.ik(iDot(18, 8, 2.6)) + t.ik(iPath('M1.5 20a4.5 4.5 0 0 1 9 0z')) + t.m(iPath('M7.5 20a4.5 4.5 0 0 1 9 0z')) + t.ik(iPath('M13.5 20a4.5 4.5 0 0 1 9 0z')),
+        ws: (t) => t.m(iRect(2.5, 9, 19, 11, 0)) + t.ik(iPath('M2.5 9V5.5h8L12.5 9z')),
+        creations: (t) => t.m(iPath('M7 3l5 8.5H2z')) + t.ik(iRect(13, 3, 8, 8, 0)) + t.m(iDot(17, 17, 4.5)) + t.ik(iRect(3, 14, 7, 7, 0)),
+        auto: (t) => t.m(iRect(3, 4.5, 4.6, 15, 0)) + t.ik('<g transform="rotate(16 11.7 13.5)">' + iRect(9.4, 6, 4.6, 15, 0) + '</g>') + t.m('<g transform="rotate(34 17.9 16)">' + iRect(15.6, 9, 4.6, 14, 0) + '</g>'),
+        skills: (t) => t.m(iRect(3, 10.5, 18, 10, 0)) + t.ik(iDot(7.5, 7.4, 2.4)) + t.m(iDot(12, 7.4, 2.4)) + t.ik(iDot(16.5, 7.4, 2.4)),
+        plug: (t) => t.ik(iRect(7.5, 2, 3, 6, 0)) + t.ik(iRect(13.5, 2, 3, 6, 0)) + t.m(iPath('M5 8h14v3a7 7 0 0 1-14 0z')) + t.ik(iRect(11, 18, 2, 4, 0))
+      }
+      const iSober = (kind) => (e, t) => {
+        const F = ICON_FILL[e]
+        if (kind === 'aplat') return t.m(F.p + F.s)
+        if (kind === 'duotone') return t.m(F.p) + (t.on ? '<g fill="' + t.hue + '" opacity=".38">' : '<g fill="currentColor" opacity=".45">') + F.s + '</g>'
+        if (kind === 'doux') {
+          const gid = 'kbg-' + e + (t.on ? t.hue.slice(1) : 'g')
+          const stops = t.on
+            ? '<stop offset="0" stop-color="' + iconMix(t.hue, 0.4) + '"/><stop offset="1" stop-color="' + t.hue + '"/>'
+            : '<stop offset="0" stop-color="currentColor" stop-opacity=".55"/><stop offset="1" stop-color="currentColor"/>'
+          return '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="1" y2="1">' + stops + '</linearGradient></defs><g fill="url(#' + gid + ')">' + F.p + '</g><g fill="url(#' + gid + ')" opacity=".6">' + F.s + '</g>'
+        }
+        // pastille: a filled rounded square with the silhouette cut out of it
+        const tile = t.on ? '<rect x="1" y="1" width="22" height="22" rx="7" fill="' + t.hue + '"/>' : '<rect x="1" y="1" width="22" height="22" rx="7" fill="currentColor" opacity=".45"/>'
+        return tile + '<g transform="translate(6.6 6.6) scale(.45)" fill="#fff">' + F.p + '</g><g transform="translate(6.6 6.6) scale(.45)" fill="#fff" opacity=".7">' + F.s + '</g>'
+      }
+
+      // ── 1 · Matrice: 7×7 dot-matrix bitmaps (# main, + detail) ──
+      const ICON_BITMAPS = {
+        cloud: ['.......', '..##...', '.#####.', '#######', '#######', '.+++++.', '.......'],
+        kyber: ['..###..', '.#####.', '##.#.##', '#######', '#######', '#.#.#.#', '.......'],
+        dash: ['.......', '.....#.', '.....#.', '...#.#.', '.#.#.#.', '.#.#.#.', '+++++++'],
+        teams: ['.......', '.+.#.+.', '.......', '.+.#.+.', '+++#+++', '+#####+', '.......'],
+        ws: ['.......', '.##....', '#######', '#+++++#', '#+++++#', '#######', '.......'],
+        creations: ['#######', '#...+.#', '#.....#', '#..#..#', '#.###.#', '#######', '.......'],
+        auto: ['...#...', '.#.#.#.', '..###..', '###.###', '..###..', '.#.#.#.', '...#...'],
+        skills: ['.......', '.##.##.', '###.###', '.##.##.', '...#...', '...#...', '+++++++'],
+        plug: ['.#...#.', '.#...#.', '#######', '#######', '.#####.', '..###..', '...#...']
+      }
+      const iMatrix = (e, t) => {
+        let m = '', s = ''
+        ICON_BITMAPS[e].forEach((row, y) => { row.split('').forEach((c, x) => { if (c === '#') m += iDot(3 + 3 * x, 3 + 3 * y, 1.25); else if (c === '+') s += iDot(3 + 3 * x, 3 + 3 * y, 1.25) }) })
+        return t.m(m) + t.s(s)
+      }
+
+      // ── 2 · Mondrian: blocks and gutters, nothing else ──
+      const ICON_MONDRIAN = {
+        cloud: (t) => t.s(iRect(3, 3, 18, 4.2)) + t.m(iRect(3, 8.7, 12, 12.3)) + t.s(iRect(16.5, 8.7, 4.5, 5.7)) + t.m(iRect(16.5, 15.9, 4.5, 5.1)),
+        kyber: (t) => t.s(iRect(9, 9, 12, 12)) + t.m(iRect(3, 3, 12, 12)),
+        dash: (t) => t.m(iRect(3, 3, 8, 11)) + t.s(iRect(12.5, 3, 8.5, 6.5)) + t.m(iRect(12.5, 11, 8.5, 10)) + t.s(iRect(3, 15.5, 8, 5.5)),
+        teams: (t) => t.m(iRect(7.75, 3, 8.5, 8.5)) + t.s(iRect(3, 13, 8.5, 8)) + t.s(iRect(12.5, 13, 8.5, 8)),
+        ws: (t) => t.s(iRect(3, 3, 8, 4.2)) + t.m(iRect(3, 8.7, 18, 12.3)),
+        creations: (t) => t.s(iRect(3, 16, 5, 5)) + t.s(iRect(9.5, 9.5, 5, 5)) + t.m(iRect(16, 3, 5, 5)),
+        auto: (t) => t.s(iRect(2, 17.5, 3.5, 3.5)) + t.s(iRect(7, 15.5, 5.5, 5.5)) + t.m(iRect(14, 13.5, 7.5, 7.5)),
+        skills: (t) => t.s(iRect(3, 3, 6, 5.5)) + t.s(iRect(3, 9.5, 12, 5.5)) + t.m(iRect(3, 16, 18, 5)),
+        plug: (t) => t.m(iRect(3, 7.5, 6.5, 9)) + t.s(iRect(10.5, 10.7, 3, 2.6)) + t.m(iRect(14.5, 7.5, 6.5, 9)) + t.s(iRect(3, 18, 18, 3))
+      }
+
+      // ── 3 · Anneaux: rings, arcs and dots only ──
+      const ICON_RINGS = {
+        cloud: (t) => t.m(iRing(12, 12.5, 7, 2.6)) + t.s(iRing(5.8, 15.5, 4.2, 2)) + t.s(iRing(18.2, 15.5, 4.2, 2)),
+        kyber: (t) => t.s(iRing(12, 12, 8.6, 1.8)) + t.m(iDot(18.1, 5.9, 3.2)) + t.k(iDot(12, 12, 2.2)),
+        dash: (t) => t.m(iArc(12, 12, 10, 2.4, 0, 270)) + t.s(iArc(12, 12, 6.6, 2.4, 0, 200)) + t.m(iArc(12, 12, 3.2, 2.2, 0, 140)),
+        teams: (t) => t.s(iRing(8.4, 9, 5.6, 2.2)) + t.s(iRing(15.6, 9, 5.6, 2.2)) + t.m(iRing(12, 15.2, 5.6, 2.2)),
+        ws: (t) => t.m(iArc(12, 12, 9, 3.2, 40, 320)) + t.s(iDot(12, 12, 3.2)),
+        creations: (t) => t.s(iRing(8, 15, 6, 2)) + t.m(iDot(16.5, 8, 4.5)) + t.m(iRing(18, 18, 3.2, 1.6)),
+        auto: (t) => t.m(iRing(7.5, 7.5, 5.4, 2.1)) + t.m(iRing(14.5, 12.5, 4, 1.9)) + t.s(iRing(19.2, 17.8, 2.8, 1.5)),
+        skills: (t) => t.s(iRing(12, 12, 10, 1.9)) + t.m(iRing(12, 12, 6.2, 2)) + t.k(iDot(12, 12, 2)),
+        plug: (t) => t.m(iRing(8, 12, 6.2, 2.5)) + t.s(iRing(16, 12, 6.2, 2.5))
+      }
+
+      // ── 4 · Isométrique: blocks in three tones ──
+      const ICON_ISO = {
+        cloud: (t) => iCub(t, 12, 12, 8, 8, 3.2) + iCub(t, 12, 7, 8, 8, 3.2) + iCub(t, 12, 2, 8, 8, 3.2),
+        kyber: (t) => t.hi(iPoly([[12, 2], [4, 9], [12, 12]])) + t.md(iPoly([[12, 2], [20, 9], [12, 12]])) + t.md(iPoly([[4, 9], [12, 12], [12, 22]])) + t.lo(iPoly([[20, 9], [12, 12], [12, 22]])),
+        dash: (t) => iCub(t, 5.8, 13.8, 3.2, 3.2, 5) + iCub(t, 12.2, 9.8, 3.2, 3.2, 9) + iCub(t, 18.6, 5.8, 3.2, 3.2, 13),
+        teams: (t) => iFade(iCub(t, 7.2, 3.5, 4.2, 4.2, 4) + iCub(t, 16.8, 3.5, 4.2, 4.2, 4)) + iCub(t, 12, 10, 4.2, 4.2, 4),
+        ws: (t) => iCub(t, 12, 3, 9, 9, 9) + t.lo(iPoly([[12, 4.8], [17.4, 7.5], [12, 10.2], [6.6, 7.5]])),
+        creations: (t) => iCub(t, 12, 9, 7, 7, 6) + t.m(iDot(12, 8.2, 4.4)),
+        auto: (t) => iFade(iCub(t, 9, 4, 2.2, 7, 9) + iCub(t, 13.8, 6.4, 2.2, 7, 9)) + iCub(t, 18.6, 8.8, 2.2, 7, 9),
+        skills: (t) => iCub(t, 12, 9.5, 9, 9, 4.5) + iCub(t, 12, 6.25, 6.5, 6.5, 4.5) + iCub(t, 12, 3, 4, 4, 4.5),
+        plug: (t) => iCub(t, 6, 3, 4, 4, 5) + iCub(t, 11.4, 6.2, 5.6, 1.8, 1.8) + iCub(t, 18, 9, 4, 4, 5)
+      }
+
+      // ── 5 · Créatures: little blobs with two eyes ──
+      const iEyes = (t, x1, x2, y, r) => t.p(iDot(x1, y, r) + iDot(x2, y, r)) + t.k(iDot(x1 + 0.2, y, r * 0.5) + iDot(x2 + 0.2, y, r * 0.5))
+      const ICON_CREATURES = {
+        cloud: (t) => t.m(iDot(8.5, 14, 5.5) + iDot(14.5, 11.5, 6.5) + iDot(18.5, 15.5, 4.5) + iRect(4, 14, 17, 6.5, 3.2)) + iEyes(t, 10.2, 15.2, 15.2, 1.5),
+        kyber: (t) => t.m(iPath('M4 21V11a8 8 0 0 1 16 0v10l-2.67-2.2L14.67 21 12 18.8 9.33 21 6.67 18.8z')) + iEyes(t, 9.3, 14.7, 11, 1.7),
+        dash: (t) => t.k(iPath('M4.5 6.5 8.4 3.5 10 6zM19.5 6.5 15.6 3.5 14 6z')) + t.m(iRect(4, 4.5, 16, 16.5, 8)) + t.p(iDot(8.8, 11, 3.2) + iDot(15.2, 11, 3.2)) + t.k(iDot(9, 11, 1.5) + iDot(15, 11, 1.5)) + t.s(iPath('M10.6 15.2h2.8L12 17.4z')),
+        teams: (t) => t.s(iDot(5.5, 15.5, 4.5)) + t.s(iDot(18.5, 15.5, 4.5)) + t.m(iDot(12, 12.5, 6.5)) + t.p(iDot(10, 12, 1.3) + iDot(14, 12, 1.3)),
+        ws: (t) => t.s(iRect(3, 15, 19, 5.5, 2.75)) + t.s(iRect(19.2, 7, 1.5, 6, 0.7)) + t.s(iRect(21.8, 8, 1.5, 5, 0.7)) + t.m(iDot(10, 11.5, 6.8)) + t.p(iDot(10, 11.5, 2.4)) + t.p(iDot(20.2, 17, 1.2)),
+        creations: (t) => t.m(iDot(12, 9.5, 7) + iRect(5, 12, 3.2, 9) + iRect(9.2, 14, 3.2, 7.5) + iRect(13.6, 14, 3.2, 7.5) + iRect(17.8, 12, 3.2, 9)) + iEyes(t, 9.3, 14.7, 9.5, 1.7),
+        auto: (t) => t.s(iPath('M8 8.5C5 1.5 10 1 11 7.5zM16 8.5C19 1.5 14 1 13 7.5z')) + t.m(iDot(12, 14, 7.5)) + t.k(iRect(5.2, 9.5, 2, 9, 1) + iRect(16.8, 9.5, 2, 9, 1)) + iEyes(t, 9.8, 14.2, 13, 1.4),
+        skills: (t) => t.m(iRect(8.5, 10, 7, 11, 3)) + t.k(iPath('M2.5 11a9.5 8 0 0 1 19 0z')) + t.p(iDot(7.5, 8, 1.4) + iDot(13.5, 5.8, 1.1) + iDot(17, 9, 1)) + t.p(iDot(10.4, 15, 1) + iDot(13.6, 15, 1)),
+        plug: (t) => t.m(iRect(7.5, 1.5, 3.4, 10, 1.7) + iRect(13.1, 1.5, 3.4, 10, 1.7) + iDot(12, 15.2, 6.8)) + iEyes(t, 9.6, 14.4, 15, 1.5)
+      }
+
+      // ── 6 · Barres: vertical stripes, the silhouette is the pattern of their lengths ──
+      const iBars = (t, spec) => {
+        // spec: 7 entries [top, bottom] (or [top, bottom, 's'] for the light tone, or null)
+        let m = '', s = ''
+        spec.forEach((b, i) => {
+          if (b === null) return
+          const bar = iRect(iconN(2.2 + i * 3.1), b[0], 2.1, iconN(b[1] - b[0]), 1.05)
+          if (b[2] === 's') s += bar; else m += bar
+        })
+        return t.m(m) + t.s(s)
+      }
+      const ICON_BARS = {
+        cloud: (t) => iBars(t, [[12, 17.5], [8, 17.5], [10.5, 17.5], [5, 17.5], [9, 17.5], [8, 17.5, 's'], [12, 17.5, 's']]),
+        kyber: (t) => iBars(t, [[9, 15, 's'], [6, 18], [3.5, 20.5], [2, 22], [3.5, 20.5], [6, 18], [9, 15, 's']]),
+        dash: (t) => iBars(t, [[14, 21], [10, 21, 's'], [12, 21], [6, 21], [8.5, 21, 's'], [3, 21], [5, 21, 's']]),
+        teams: (t) => iBars(t, [null, [10, 21], null, [10, 21], null, [10, 21], null]) + t.s(iDot(7.3, 5.8, 2) + iDot(13.5, 5.8, 2) + iDot(19.7, 5.8, 2)),
+        ws: (t) => iBars(t, [[6, 21, 's'], [9, 21], [9, 21], [9, 21], [9, 21], [9, 21], [9, 21]]),
+        creations: (t) => iBars(t, [[17, 21, 's'], [14.5, 18.5, 's'], [12, 16], [9.5, 13.5], [7, 11], [4.5, 8.5], [2.5, 6, 's']]),
+        auto: (t) => iBars(t, [[3, 21], [9, 21, 's'], [3, 21], [9, 21, 's'], [3, 21], [9, 21, 's'], [3, 21]]),
+        skills: (t) => iBars(t, [[17, 21, 's'], [14, 21, 's'], [11, 21], [8, 21], [5, 21], [3, 21], null]),
+        plug: (t) => iBars(t, [[5, 17], [5, 17], [5, 17, 's'], [10.5, 12.5], [5, 17, 's'], [5, 17], [5, 17]])
+      }
+
+      const ICON_SETS = [
+        { id: 'classic', fr: 'Classique', en: 'Classic', hint: { fr: 'Les pictogrammes à trait de l’application.', en: 'The application’s line icons.' } },
+        { id: 'aplat', fr: 'Aplat', en: 'Flat', hint: { fr: 'La silhouette seule, d’une teinte.', en: 'The silhouette alone, one tone.' }, draw: iSober('aplat') },
+        { id: 'duotone', fr: 'Duotone', en: 'Duotone', hint: { fr: 'Une masse pleine et un détail plus léger.', en: 'A solid mass and a lighter detail.' }, draw: iSober('duotone') },
+        { id: 'bauhaus', fr: 'Bauhaus', en: 'Bauhaus', hint: { fr: 'Cercles, carrés et triangles en deux tons.', en: 'Circles, squares and triangles in two tones.' }, draw: (e, t) => ICON_BAUHAUS[e](t) },
+        { id: 'doux', fr: 'Dégradé doux', en: 'Soft gradient', hint: { fr: 'Les mêmes formes, un dégradé à peine perceptible.', en: 'The same shapes, a barely visible gradient.' }, draw: iSober('doux') },
+        { id: 'pastille', fr: 'Pastille', en: 'Tile', hint: { fr: 'Un carré arrondi plein, le pictogramme découpé dedans.', en: 'A filled rounded square with the icon cut out.' }, draw: iSober('pastille') },
+        { id: 'matrice', fr: 'Matrice', en: 'Matrix', hint: { fr: 'Des points, comme un panneau lumineux.', en: 'Dots, like an LED panel.' }, draw: iMatrix },
+        { id: 'mondrian', fr: 'Mondrian', en: 'Mondrian', hint: { fr: 'Des blocs et des gouttières, rien d’autre.', en: 'Blocks and gutters, nothing else.' }, draw: (e, t) => ICON_MONDRIAN[e](t) },
+        { id: 'anneaux', fr: 'Anneaux', en: 'Rings', hint: { fr: 'Des anneaux, des arcs et des points.', en: 'Rings, arcs and dots.' }, draw: (e, t) => ICON_RINGS[e](t) },
+        { id: 'iso', fr: 'Isométrique', en: 'Isometric', hint: { fr: 'Des volumes en trois tons.', en: 'Volumes in three tones.' }, draw: (e, t) => ICON_ISO[e](t) },
+        { id: 'creatures', fr: 'Créatures', en: 'Critters', hint: { fr: 'Des petites bêtes à deux yeux.', en: 'Little creatures with two eyes.' }, draw: (e, t) => ICON_CREATURES[e](t) },
+        { id: 'barres', fr: 'Barres', en: 'Bars', hint: { fr: 'Des rayures dont la longueur dessine la forme.', en: 'Stripes whose lengths draw the shape.' }, draw: (e, t) => ICON_BARS[e](t) }
+      ]
+      const ICON_SET_IDS = ICON_SETS.map((s) => s.id)
+      /** The inner SVG markup of one icon (24×24 box), or null for the classic set and for an unknown set or entry. */
+      const iconInner = (setId, entry, on) => {
+        const set = ICON_SETS.find((s) => s.id === setId)
+        if (set === undefined || typeof set.draw !== 'function' || ICON_HUES[entry] === undefined) return null
+        try { return set.draw(entry, iconTones(on === true, ICON_HUES[entry])) } catch (e) { return null }
+      }
+      /** A complete `<svg>` string at `size` px, or null (the caller then keeps its own icon). */
+      const iconSvg = (setId, entry, on, size) => {
+        const inner = iconInner(setId, entry, on)
+        if (inner === null) return null
+        const px = typeof size === 'number' && size > 0 ? size : 16
+        return '<svg width="' + px + '" height="' + px + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + inner + '</svg>'
+      }
+
+      // The registry the menu reads (kybernos-plugin): which set is current, and the drawing of one entry.
+      const iconRegistry = () => {
+        const w = window
+        const prev = (w.__KB_ICONSETS__ !== null && typeof w.__KB_ICONSETS__ === 'object') ? w.__KB_ICONSETS__ : null
+        const reg = {
+          v: 1,
+          entries: ICON_ENTRIES.slice(),
+          sets: ICON_SETS.map((s) => ({ id: s.id, fr: s.fr, en: s.en, hint: s.hint })),
+          cur: (prev !== null && ICON_SET_IDS.indexOf(prev.cur) >= 0) ? prev.cur : 'classic',
+          current: () => reg.cur,
+          hue: (entry) => ICON_HUES[entry] || null,
+          svg: (entry, on, size, setId) => iconSvg(setId === undefined ? reg.cur : setId, entry, on, size),
+          set: (id) => {
+            const next = ICON_SET_IDS.indexOf(id) >= 0 ? id : 'classic'
+            if (next === reg.cur) return
+            reg.cur = next
+            try { document.documentElement.setAttribute('data-kb-icons', next) } catch (e) { /* no document */ }
+            try { w.dispatchEvent(new CustomEvent('kb-icons-change', { detail: { set: next } })) } catch (e) { /* no events */ }
+          }
+        }
+        w.__KB_ICONSETS__ = reg
+        return reg
+      }
+      /** Puts the chosen menu icon set in force. Never throws: the menu keeps its own icons when this cannot run. */
+      const appliquerIcones = (S) => {
+        try {
+          const reg = (typeof window !== 'undefined' && window.__KB_ICONSETS__ && window.__KB_ICONSETS__.v === 1) ? window.__KB_ICONSETS__ : iconRegistry()
+          reg.set(S.iconSet)
+        } catch (e) { /* no window: nothing to draw */ }
+      }
+      // <icon-sets:end>
+
       // ══════════════════════════════════════════════════════════════════════
       // 3. ÉTAT + PERSISTANCE.
       //    localStorage suffit au profil web ; l'hôte prendra le relais en v2
@@ -392,10 +629,12 @@ window.__ModuleLoader__.load({
         bgBrightness: 100, bgContrast: 100, bgSaturation: 100, bgDarken: 0, bgFit: 'cover', bgMirror: false,
         // Texte et forme
         ligatures: true, radius: 'standard', showBrand: true,
+        // Menu icons: the id of a set drawn by the block above ('classic' keeps the application's line icons)
+        iconSet: 'classic',
         // Accessibilité
         reduceMotion: false, focusRing: 'accent', largeTargets: false, underlineLinks: false
       }
-      const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'] }
+      const ENUMS = { glassEffect: ['frosted', 'liquid'], bgFit: ['cover', 'fill', 'center', 'stretch'], radius: ['sharp', 'standard', 'soft'], focusRing: ['accent', 'double', 'thick'], iconSet: ICON_SET_IDS }
       const RANGES = { glassBlur: [0, 40], sidebarOpacity: [0, 100], fieldOpacity: [0, 100], floatOpacity: [0, 100], bgBrightness: [0, 200], bgContrast: [0, 200], bgSaturation: [0, 200], bgDarken: [0, 100] }
       const BOOLS = ['cbSafe', 'sidebarLinked', 'bgMirror', 'ligatures', 'showBrand', 'reduceMotion', 'largeTargets', 'underlineLinks']
       /** Les réglages à choix, à plage ou booléens d'un objet quelconque : seules les valeurs VALIDES en sortent. */
@@ -708,6 +947,7 @@ window.__ModuleLoader__.load({
 
       const appliquerTout = (themeSvc, S) => {
         appliquerMode(themeSvc, S)
+        appliquerIcones(S)
         appliquerJetons(themeSvc, S)
         appliquerFond(S)
         appliquerPolice(S)
@@ -740,6 +980,7 @@ window.__ModuleLoader__.load({
        *  recopie tout changement natif venu d'ailleurs. */
       const appliquerBoot = (themeSvc, S) => {
         posterBoot(S)
+        appliquerIcones(S)
         appliquerJetons(themeSvc, S)
         appliquerFond(S)
         appliquerPolice(S)
@@ -1177,10 +1418,11 @@ window.__ModuleLoader__.load({
         colors: ['mode', 'acc', 'ov'],
         font: ['fontText', 'ligatures'],
         radius: ['radius'],
+        icons: ['iconSet'],
         glass: ['wp', 'wpVis', 'wpBlur', 'tint', 'glassEffect', 'glassBlur', 'sidebarLinked', 'sidebarOpacity', 'fieldOpacity', 'floatOpacity', 'bgBrightness', 'bgContrast', 'bgSaturation', 'bgDarken', 'bgFit', 'bgMirror'],
         a11y: ['contrastMode', 'cbSafe', 'reduceMotion', 'focusRing', 'largeTargets', 'underlineLinks']
       }
-      const PRESET_GROUP_LABELS = { colors: 'Couleurs et accent', font: 'Police', radius: 'Coins', glass: 'Verre et fond d’écran', a11y: 'Accessibilité' }
+      const PRESET_GROUP_LABELS = { colors: 'Couleurs et accent', font: 'Police', radius: 'Coins', icons: 'Icônes du menu', glass: 'Verre et fond d’écran', a11y: 'Accessibilité' }
       const PRESET_KEYS = Object.keys(PRESET_GROUPS).reduce((all, g) => all.concat(PRESET_GROUPS[g]), [])
       const PRESET_LIMIT = 100
       const PRESET_NAME_MAX = 40
@@ -1350,7 +1592,7 @@ window.__ModuleLoader__.load({
         id: rec.id, name: rec.name,
         mode: rec.settings.mode === 'light' || rec.settings.mode === 'dark' ? rec.settings.mode : null,
         acc: rec.settings.acc === undefined ? null : rec.settings.acc, ov: rec.settings.ov || {},
-        fontText: rec.settings.fontText, radius: rec.settings.radius
+        fontText: rec.settings.fontText, radius: rec.settings.radius, iconSet: rec.settings.iconSet
       })
       const RADIUS_LABEL = { sharp: 'nets', standard: 'standard', soft: 'doux' }
       /** The groups a set of settings retains: { colors: true, font: false, ... }. */
@@ -1531,6 +1773,14 @@ body:not([data-ds-dark-theme]) { --dsw-alias-border-l1: #00000014; }
 /* Pastilles rondes : le fond du thème d'un côté, son accent de l'autre.
    Rien d'autre — ni cadre, ni méta sous chaque pastille (l'état du thème
    choisi s'affiche en une ligne, sous la rangée). */
+.kbth-icsets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.kbth-icset{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:7px;text-align:left;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary)}
+.kbth-icset:hover{border-color:var(--dsw-alias-border-l3)}
+.kbth-icset.on{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbth-icset-n{font-size:13px;font-weight:600}
+.kbth-icset-r{display:flex;gap:6px;color:var(--dsw-alias-label-tertiary)}
+.kbth-icset-i{display:inline-flex;width:18px;height:18px}
+.kbth-icset-i svg{display:block}
 .kbth-skins{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-start}
 .kbth-skin{appearance:none;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:2px;border:0;background:none;width:76px;border-radius:12px}
@@ -1860,7 +2110,7 @@ html[data-kbth-reduced] .kb-ld *{animation:none!important}
    DSH colore ses textes discrets avec label-tertiary (#81858C, 3,7:1 sur blanc) et label-caption
    (#ADB2B8, 2,1:1) : sous le seuil AA de 4,5:1. Dans CETTE page, en clair seulement, ils prennent
    label-secondary (5,7:1). Le sombre n'y gagne rien et garde sa hiérarchie. Mesuré sur la GUI réelle. */
-body:not([data-ds-dark-theme]) :is(.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
+body:not([data-ds-dark-theme]) :is(.kbth-icset-r,.kbth-a11y-hex,.kbth-adv-css,.kbth-card-a,.kbth-card-m,.kbth-src,.kbth-adv-swatch-label,.kbth-disc-s,.kbth-drop,.kbth-empty,.kbth-export-bar,.kbth-fschev,.kbth-fsempty,.kbth-fsmeta,.kbth-fsopt-name,.kbth-grp,.kbth-hex span,.kbth-hint,.kbth-lcard-meta,.kbth-ldp-bar,.kbth-ldp-step,.kbth-lds-ord,.kbth-lds-x,.kbth-lds.empty,.kbth-mx,.kbth-note,.kbth-panel2 p,.kbth-pill,.kbth-ramp-label,.kbth-sec-d,.kbth-sl-vl,.kbth-sum-m,.kbth-toggle-hint,.kbth-tok-css,.kbth-tok-hex,.kbth-trow-m,.kbth-wchip button){color:var(--dsw-alias-label-secondary)}
 /* The "in use" pill is a brand fill with its own label pair: the grey of the rule above made it 3.3:1 (1.4:1 in Neutral violet). */
 body:not([data-ds-dark-theme]) .kbth-pill.ok{color:var(--dsw-alias-label-primary-foreground,#fff)}
 /* ── Encre des notes (AAA / AA / grand texte / échec) ───────────────────────────────────────
@@ -2569,7 +2819,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const skinMeta = (sk) => (sk.mode === 'dark' ? 'Sombre' : (sk.mode === 'light' ? 'Clair' : 'Clair + sombre')) +
           (skinAccent(sk) === null ? ' · accent neutre' : ' · ' + skinAccent(sk)) +
           (sk.fontText !== undefined ? ' · police ' + (FONTS.find((f) => f.id === sk.fontText) || FONTS[0]).name : '') +
-          (sk.radius !== undefined ? ' · coins ' + RADIUS_LABEL[sk.radius] : '')
+          (sk.radius !== undefined ? ' · coins ' + RADIUS_LABEL[sk.radius] : '') +
+          (sk.iconSet !== undefined ? ' · icônes ' + ((ICON_SETS.find((x) => x.id === sk.iconSet) || ICON_SETS[0])[kbLang()]) : '')
 
         // The theme in use: one of yours, or a shipped one. « Modified » = a setting it retains has moved.
         const activeMine = lib.presets.find((x) => x.id === S.skin) || null
@@ -2584,7 +2835,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           const { mode, ...rest } = full
           setHexDraft(null); commit(rest)
         }
-        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName('Mon thème'), groups: { font: true, radius: true, glass: true, a11y: false }, error: '' }) }
+        const openSave = () => { setLibNote(null); setSaveDlg({ name: libFreeName('Mon thème'), groups: { font: true, radius: true, icons: true, glass: true, a11y: false }, error: '' }) }
         const doSave = () => {
           if (saveDlg === null) return
           const name = presetName(saveDlg.name)
@@ -2644,7 +2895,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const themeBlock = h('div', { className: 'kbth-sec', 'data-kb': 'theme-block' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, 'Thème'),
-            h('div', { className: 'kbth-sec-d' }, 'Un thème règle les couleurs ; il peut aussi retenir la police et les coins. Gérez les vôtres dans ', toSharing, '.')),
+            h('div', { className: 'kbth-sec-d' }, 'Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu. Gérez les vôtres dans ', toSharing, '.')),
           h('div', { className: 'kbth-skinblock' },
             h('div', { className: 'kbth-grp' }, 'Livrés'),
             h('div', { className: 'kbth-skins', 'data-kb': 'theme-shipped' }, SKINS.map((sk) => skinButton(sk, null)))),
@@ -2760,6 +3011,30 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           slider({ label: 'Taille du texte', min: 12, max: 17, value: S.fs, text: S.fs + ' px',
             tap: (v) => commit({ fs: v }), hint: 'La taille de la conversation — le réglage natif de DSH, en direct.' }))
 
+        // ── Simple : icônes du menu ─────────────────────────────────────────
+        // One row of the nine entries per state (grey at rest, then the colour of the open page). The classic set is drawn by the
+        // application itself, which owns its line icons: it lends the drawing through window.__KB_MENU_CLASSIC__.
+        const iconeApercu = (setId, etat) => h('div', { className: 'kbth-icset-r', style: setId === 'classic' && etat ? { color: 'var(--dsw-alias-brand-primary)' } : undefined },
+          ICON_ENTRIES.map((e) => {
+            let svg = null
+            try {
+              svg = setId === 'classic'
+                ? (typeof window.__KB_MENU_CLASSIC__ === 'function' ? window.__KB_MENU_CLASSIC__(e, 18) : null)
+                : iconSvg(setId, e, etat, 18)
+            } catch (err) { svg = null }
+            return h('span', { key: e, className: 'kbth-icset-i', dangerouslySetInnerHTML: { __html: typeof svg === 'string' ? svg : '' } })
+          }))
+        const icones = h('div', { className: 'kbth-sec', 'data-kb': 'theme-icons' },
+          h('div', { className: 'kbth-sec-h' },
+            h('div', { className: 'kbth-sec-t' }, 'Icônes du menu'),
+            h('div', { className: 'kbth-sec-d' }, 'Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un thème peut le retenir.')),
+          h('div', { className: 'kbth-icsets', role: 'radiogroup', 'aria-label': 'Icônes du menu' },
+            ICON_SETS.map((st) => h('button', {
+              key: st.id, type: 'button', role: 'radio', 'aria-checked': S.iconSet === st.id ? 'true' : 'false',
+              className: 'kbth-icset' + (S.iconSet === st.id ? ' on' : ''), 'data-kb': 'theme-icset', 'data-id': st.id,
+              title: st.hint[kbLang()], onClick: () => commit({ iconSet: st.id })
+            }, h('span', { className: 'kbth-icset-n' }, st[kbLang()]), iconeApercu(st.id, false), iconeApercu(st.id, true)))))
+
         // ── Avancé : sous-onglets ──────────────────────────────────────────
         const ADV_TABS = [
           { id: 'essentiel', label: 'Essentiel' },
@@ -2782,8 +3057,8 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const advEssentiel = h('div', { className: 'kbth-sec' },
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, 'Essentiel'),
-            h('div', { className: 'kbth-sec-d' }, 'Apparence, accent, fond et police.')),
-          apparence, couleur, ratiosAccent, fond, police,
+            h('div', { className: 'kbth-sec-d' }, 'Apparence, accent, fond, police et icônes du menu.')),
+          apparence, couleur, ratiosAccent, fond, police, icones,
           h(LdSummary, { onOpen: () => setAdvTab('animation') }))
 
         // ── Onglet Verre et fond ───────────────────────────────────────────
@@ -3235,7 +3510,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('div', { className: 'kbth-sec', style: { gap: 4 } },
               h('div', { className: 'kbth-sec-t' }, 'Ce que le thème retient'),
               h('div', { className: 'kbth-hint' }, 'Les couleurs et l’accent sont toujours retenus.'),
-              groupToggle('font'), groupToggle('radius'), groupToggle('glass'),
+              groupToggle('font'), groupToggle('radius'), groupToggle('icons'), groupToggle('glass'),
               groupToggle('a11y', 'Contraste, palette daltonien, cibles larges : ce sont vos besoins, pas un style. Décoché, un thème ne les change jamais.'))),
           h('div', { className: 'kbth-mft' },
             h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, 'Annuler'),
@@ -3295,6 +3570,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           PRESET_FORMAT, PRESET_GROUPS, PRESET_KEYS, PRESET_LIMIT, PRESET_ID, LIB_KEY, lib, libClean, libRead, libWrite, libSet, libAdd, libPatch, libRemove, libPull, libFreeName, libNameTaken,
           gal, galTheme, galClean, galLoad, galRefresh, galInstalled, galInstall, galUpdate, galOnlineText, kbLang,
           presetSettings, presetRecord, presetFromState, presetFile, presetFromFileText, settingsDirty, skinSettings, presetAsSkin, groupsOf, fileSlug, ThemeModal,
+          ICON_ENTRIES, ICON_HUES, ICON_SETS, ICON_SET_IDS, iconInner, iconSvg, iconRegistry, appliquerIcones,
         },
         apply(ctx) {
           // (01/10) Libellé selon l'état de langue courant. La langue n'est
