@@ -13,11 +13,15 @@
 //   POST /kybernos-skills/toggle  {root,name,active}
 //   POST /kybernos-skills/create  {root,name,description,whenToUse,body,modelInvocable}
 //   POST /kybernos-skills/install {source,name,root}
+//   POST /kybernos-skills/skill/read {root,name} -> { ok, text, folder, file, files, actions{reveal,edit,duplicate,delete} }   (the panel of Yours)
+//   POST /kybernos-skills/skill/reveal {root,name,target:'folder'|'file'} · /skill/duplicate {root,name} · /skill/delete {root,name}
+//   GET  /kybernos-skills/preview?source=&name= -> { ok, found, folder, description, text, url }   (the panel of Discover)
 //   Team (docs/dev/team-skills-contract.md): GET /kybernos-cloud/team/skills[?view=] · /item?id= · POST …/add · …/review · …/retire · …/delete,
 //   and on the disk side POST /kybernos-skills/team/pack {root,name} · /team/install {root,name,version,files,teamId,replace}
 //
 // Rendering faithful to docs/handoff/skills-ui/maquette.html: Yours/Discover segment, toolbar
-// (search, filters, sort, Add), Featured row, grid, pagination, detail page,
+// (search, filters, sort, Add), Featured row, grid, pagination, a panel on the right of the list
+// for the open skill (Yours: its real SKILL.md and actions; Discover: its own repository, folder and text),
 // modals. The style rules are the mockup's, VERBATIM, with two exceptions:
 // (1) they are scoped under `.kbs-root`, so that none of them can touch the
 // rest of the GUI; (2) the ones whose selector exists identically in the pivot
@@ -41,15 +45,12 @@ window.__ModuleLoader__.load({
         back: ['M19 12H5', 'm12 19-7-7 7-7'],
         pkg: ['M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z', 'M12 22V12', 'm3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7'],
         shield: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'm9 12 2 2 4-4'],
-        dl: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M7 10l5 5 5-5', 'M12 15V3'],
-        up: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M17 8l-5-5-5 5', 'M12 3v12'],
         check: ['M20 6 9 17l-5-5'],
         github: ['M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4', 'M9 18c-4.51 2-5-2-7-2'],
         wand: ['m15 4-1 1', 'm9 9-1 1', 'M4 20l10.5-10.5a2.1 2.1 0 0 0-3-3L1 17l3 3z', 'm14 7 3 3', 'M14.5 3.5 15 3', 'M19 9l.5-.5'],
         info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-4', 'M12 8h.01'],
         star: ['M11.5 2.3a.53.53 0 0 1 .95 0l2.31 4.68a2.12 2.12 0 0 0 1.6 1.16l5.16.76a.53.53 0 0 1 .3.9l-3.74 3.64a2.12 2.12 0 0 0-.61 1.88l.88 5.14a.53.53 0 0 1-.77.56l-4.62-2.43a2.12 2.12 0 0 0-1.97 0L6.4 21.01a.53.53 0 0 1-.77-.56l.88-5.14a2.12 2.12 0 0 0-.61-1.88L2.16 9.8a.53.53 0 0 1 .3-.9l5.16-.76a2.12 2.12 0 0 0 1.6-1.16z'],
         folder: ['M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 1 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z'],
-        eye: ['M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
         code: ['m16 18 6-6-6-6', 'm8 6-6 6 6 6'],
         lock: ['M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
         file: ['M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z', 'M14 3v5h5'],
@@ -92,6 +93,7 @@ window.__ModuleLoader__.load({
         'err.noroute': { fr: 'route absente (HTTP {s})', en: 'route missing (HTTP {s})' },
         'err.unexpected': { fr: 'réponse inattendue de /kybernos-skills/{r}', en: 'unexpected response from /kybernos-skills/{r}' },
         'err.unavail': { fr: 'route /kybernos-skills/{r} indisponible', en: 'route /kybernos-skills/{r} unavailable' },
+        'err.preview': { fr: 'Aperçu impossible.', en: 'Preview failed.' },
         'err.feat': { fr: 'mise en avant impossible', en: 'could not update Featured' },
         'err.index': { fr: 'index indisponible', en: 'index unavailable' },
         'err.noanswer': { fr: 'la route /kybernos-skills/ ne répond pas', en: 'the /kybernos-skills/ route is not responding' },
@@ -114,6 +116,15 @@ window.__ModuleLoader__.load({
         'he.query_too_short': { fr: 'Recherche : au moins 2 caractères.', en: 'Search: at least 2 characters.' },
         'he.invalid_source': { fr: 'Source invalide (attendu : propriétaire/dépôt).', en: 'Invalid source (expected owner/repo).' },
         'he.not_github': { fr: 'Source non GitHub ({source}) : cette route n’installe que depuis un dépôt GitHub.', en: 'Not a GitHub source ({source}): this route only installs from a GitHub repository.' },
+        'he.github_rate_limited': { fr: 'GitHub limite les lectures anonymes (HTTP {http}) : réessayez plus tard.', en: 'GitHub is limiting anonymous reads (HTTP {http}): try again later.' },
+        'he.not_found': { fr: 'Ce skill n\'est plus dans le catalogue : rechargez la liste.', en: 'That skill is no longer in the catalogue: reload the list.' },
+        'he.not_writable': { fr: 'Ce skill n\'est pas dans l\'un de vos dossiers de skills modifiables : il n\'est pas supprimé.', en: 'That skill is not in one of your writable skills folders: it is not deleted.' },
+        'he.not_a_folder': { fr: 'Ce skill n\'est pas un dossier (un simple fichier .md) : cette action ne s\'applique pas.', en: 'That skill is not a folder (a single .md file): this action does not apply.' },
+        'he.is_link': { fr: 'Ce dossier est un lien : le registre de DSH ignore les liens, et rien n\'est touché.', en: 'That folder is a link: the DSH registry ignores links, and nothing was touched.' },
+        'he.delete_failed': { fr: 'Le dossier n\'a pas pu être supprimé (droits ?).', en: 'The folder could not be deleted (permissions?).' },
+        'he.no_copy_name': { fr: 'Il y a déjà trop de copies de ce skill : supprimez-en une.', en: 'There are already too many copies of that skill: delete one.' },
+        'he.opener_unavailable': { fr: 'Aucun programme pour l\'ouvrir sur cet ordinateur.', en: 'No program to open it with on this computer.' },
+        'he.not_local': { fr: 'DSH tourne sur une autre machine : rien ne s\'ouvre ici.', en: 'DSH runs on another machine: nothing opens here.' },
         'he.already_installed': { fr: 'Un skill de ce nom est déjà installé dans ce dossier.', en: 'A skill with this name is already installed in this folder.' },
         'he.repo_not_found': { fr: 'Dépôt introuvable : {source}.', en: 'Repository not found: {source}.' },
         'he.download_failed': { fr: 'Téléchargement impossible (HTTP {http}).', en: 'Download failed (HTTP {http}).' },
@@ -259,48 +270,65 @@ window.__ModuleLoader__.load({
         'set.active': { fr: 'actifs', en: 'active' },
         'set.disabled': { fr: 'désactivés', en: 'disabled' },
         'set.featured': { fr: 'mis en avant', en: 'featured' },
-        'feat.th.when': { fr: 'MODIFIÉ', en: 'MODIFIED' },
-        'feat.sub': { fr: 'mis en avant — liste tenue à l\'étoile, dans l\'ordre du fichier', en: 'featured — list kept by star, in file order' },
         'th.result': { fr: 'RÉSULTAT', en: 'RESULT' },
         'th.state': { fr: 'ÉTAT', en: 'STATE' },
         'd.empty.search': { fr: 'Essaie un autre terme (au moins 2 caractères).', en: 'Try another term (at least 2 characters).' },
         'd.empty.page': { fr: 'Cette page est vide.', en: 'This page is empty.' },
-        'det.by': { fr: 'par {s} · {n} installations', en: 'by {s} · {n} installs' },
         'btn.install': { fr: 'Installer', en: 'Install' },
-        'det.provenance': { fr: 'Provenance', en: 'Provenance' },
         'det.unknownSrc': { fr: 'source inconnue', en: 'unknown source' },
-        'det.what': { fr: 'Ce que fait l\'installation', en: 'What installing does' },
         'det.whatBody': { fr: 'Installer télécharge l\'archive du dépôt {source} depuis GitHub, y trouve le dossier du skill « {name} » (son frontmatter porte name et description), puis le COPIE dans votre dossier de skills ({dest}). Le skill y est actif au prochain tour de vos agents. Aucun lien symbolique : le registre de DSH ignore les liens, un skill lié serait installé sans jamais apparaître. Rien d\'autre n\'est écrit.', en: 'Installing downloads the archive of the {source} repository from GitHub, finds the “{name}” skill folder inside it (its frontmatter carries name and description), then COPIES it into your skills folder ({dest}). The skill is available to your agents on their next turn. No symlinks: the DSH registry ignores links, so a linked skill would be installed without ever showing up. Nothing else is written.' },
         'det.installTip': { fr: 'Télécharge {source} depuis GitHub et copie le skill « {name} » dans votre dossier de skills ({dest}) : disponible pour vos agents au prochain tour.', en: 'Downloads {source} from GitHub and copies the “{name}” skill into your skills folder ({dest}): available to your agents on their next turn.' },
         'det.installHelp': { fr: 'Ce bouton télécharge le dépôt {source} depuis GitHub, y trouve le skill « {name} » puis le copie dans votre dossier de skills ({dest}) — disponible pour vos agents au prochain tour.', en: 'This button downloads the {source} repository from GitHub, finds the “{name}” skill inside it and copies it into your skills folder ({dest}) — available to your agents on their next turn.' },
-        'det.skillTitle': { fr: 'Ce skill', en: 'This skill' },
         'det.row.owner': { fr: 'Publié par', en: 'Published by' },
-        'det.row.id': { fr: 'Identifiant de l\'index', en: 'Index id' },
         'det.row.repo': { fr: 'Dépôt source', en: 'Source repository' },
         'det.row.type': { fr: 'Type de source', en: 'Source type' },
         'det.row.installs': { fr: 'Installations (index)', en: 'Installs (index)' },
         'det.row.page': { fr: 'Page skills.sh', en: 'skills.sh page' },
-        'det.row.noPage': { fr: 'non fournie par l\'index', en: 'not provided by the index' },
         'det.rootph': { fr: '<racine>', en: '<root>' },
-        'det.checks': { fr: 'Vérification', en: 'Checks' },
         'det.local.what': { fr: 'Ce qu\'il fait', en: 'What it does' },
         'det.local.when': { fr: 'Quand l\'utiliser', en: 'When to use it' },
-        'det.local.body': { fr: 'Le corps du SKILL.md n\'est pas inclus dans les données de ce skill.', en: 'The SKILL.md body is not included in this skill\'s data.' },
         'det.local.loading': { fr: 'Chargement du contenu réel du skill…', en: 'Loading the skill\'s real contents…' },
-        'det.declared': { fr: 'Installations déclarées par l\'index', en: 'Installs reported by the index' },
-        'det.frontmatter': { fr: 'Frontmatter relu avant copie : name et description obligatoires', en: 'Frontmatter re-read before copying: name and description required' },
-        'det.target': { fr: 'Cible : {p}', en: 'Target: {p}' },
         'det.audits': { fr: 'Audits de sécurité — skills.sh', en: 'Security audits — skills.sh' },
         'det.auditLoading': { fr: 'chargement des audits…', en: 'loading audits…' },
         'det.auditNone': { fr: 'aucun audit publié pour ce skill', en: 'no audit published for this skill' },
         'det.audited': { fr: 'audité', en: 'audited' },
         'det.unknown': { fr: 'inconnu', en: 'unknown' },
-        'det.tab.overview': { fr: 'Aperçu', en: 'Overview' },
-        'det.tab.body': { fr: 'Contenu', en: 'Contents' },
         'det.root': { fr: 'Dossier', en: 'Folder' },
         'det.modified': { fr: 'Modifié', en: 'Modified' },
         'det.unknownDate': { fr: 'date inconnue', en: 'unknown date' },
         'det.thirdParty': { fr: 'Le contenu vient d\'un dépôt tiers : DSH ne l\'audite pas ; ces verdicts sont ceux publiés par skills.sh.', en: 'The content comes from a third-party repo: DSH does not audit it; these verdicts are the ones published by skills.sh.' },
+        'panel.close': { fr: 'Fermer', en: 'Close' },
+        'panel.copyPath': { fr: 'Copier le chemin', en: 'Copy the path' },
+        'panel.truncated': { fr: 'Fichier long : seul le début est affiché.', en: 'Long file: only the start is shown.' },
+        'panel.files': { fr: '{n} fichiers dans le dossier', en: '{n} files in the folder' },
+        'act.reveal': { fr: 'Ouvrir le dossier', en: 'Open folder' },
+        'act.reveal.tip': { fr: 'Ouvre le dossier du skill sur cet ordinateur', en: 'Opens the skill\'s folder on this computer' },
+        'act.edit': { fr: 'Modifier', en: 'Edit' },
+        'act.edit.tip': { fr: 'Ouvre SKILL.md dans votre éditeur de texte', en: 'Opens SKILL.md in your text editor' },
+        'act.duplicate': { fr: 'Dupliquer', en: 'Duplicate' },
+        'act.duplicate.tip': { fr: 'Crée une copie dans votre dossier de skills, sous un nom libre', en: 'Makes a copy in your skills folder, under a free name' },
+        'act.delete': { fr: 'Supprimer', en: 'Delete' },
+        'act.delete.tip': { fr: 'Supprime le dossier du skill (après confirmation)', en: 'Deletes the skill\'s folder (after you confirm)' },
+        'act.readonly': { fr: 'Ce skill est en lecture seule : vous pouvez l\'ouvrir ou le dupliquer, pas le supprimer.', en: 'This skill is read-only: you can open or duplicate it, not delete it.' },
+        'del.title': { fr: 'Supprimer « {name} » ?', en: 'Delete “{name}”?' },
+        'del.body': { fr: 'Le dossier {path} et tout ce qu\'il contient sont supprimés pour de bon. Il n\'y a pas de corbeille : cela ne peut pas être annulé.', en: 'The folder {path} and everything in it are deleted for good. There is no trash: this cannot be undone.' },
+        'del.deleting': { fr: 'Suppression…', en: 'Deleting…' },
+        'notice.deleted': { fr: '« {name} » supprimé.', en: '“{name}” deleted.' },
+        'notice.duplicated': { fr: '« {name} » dupliqué : « {copy} » est dans votre dossier de skills.', en: '“{name}” duplicated: “{copy}” is in your skills folder.' },
+        'notice.opened': { fr: 'Ouvert sur cet ordinateur.', en: 'Opened on this computer.' },
+        'dp.folder': { fr: 'Dossier dans le dépôt', en: 'Folder in the repository' },
+        'dp.folderUnknown': { fr: 'trouvé par son frontmatter à l\'installation', en: 'found by its frontmatter when installing' },
+        'dp.root': { fr: 'racine du dépôt', en: 'repository root' },
+        'dp.loading': { fr: 'Lecture du dépôt sur GitHub…', en: 'Reading the repository on GitHub…' },
+        'dp.start': { fr: 'Début de SKILL.md', en: 'Start of SKILL.md' },
+        'dp.notfound': { fr: 'Aucun dossier « {name} » dans le dépôt : l\'installation cherche, dans toute l\'archive, le skill dont le frontmatter porte ce nom.', en: 'No “{name}” folder in the repository: the install looks, in the whole archive, for the skill whose frontmatter carries that name.' },
+        'dp.nopreview': { fr: 'Aperçu indisponible : {why}', en: 'Preview unavailable: {why}' },
+        'dp.viewgh': { fr: 'Voir sur GitHub', en: 'View on GitHub' },
+        'ic.title': { fr: 'Installer « {name} » ?', en: 'Install “{name}”?' },
+        'ic.repo': { fr: 'Dépôt', en: 'Repository' },
+        'ic.folder': { fr: 'Dossier dans l\'archive', en: 'Folder in the archive' },
+        'ic.dest': { fr: 'Copié vers', en: 'Copied to' },
+        'ic.after': { fr: 'Vous pourrez le désactiver ou le supprimer depuis « Yours ».', en: 'You can switch it off or delete it from “Yours”.' },
         'cap.detail': { fr: 'fiche du skill', en: 'skill details' },
         'cap.yours': { fr: 'installés dans ce profil · {a} actifs sur {n}', en: 'installed in this profile · {a} of {n} active' },
         'cap.search': { fr: 'index skills.sh · recherche sur nom et description', en: 'skills.sh index · search by name and description' },
@@ -795,6 +823,33 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-toast.err{border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 55%,transparent)}
 .kbs-root .kbs-copy{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-caption);border-radius:999px;padding:3px 9px;font-family:ui-monospace,monospace;font-size:11px;cursor:pointer}
 .kbs-root .kbs-copy:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l2)}
+/* The panel on the right of Yours and Discover: the list stays, the panel sits next to it and follows the scroll. Under 1100 px it goes
+   above the list instead, where it is the first thing seen. */
+.kbs-root .kbs-split.open{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:20px;align-items:start}
+.kbs-root .kbs-list{min-width:0}
+.kbs-root .kbs-panel{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;min-width:0;box-sizing:border-box;padding:16px 18px;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;background:var(--dsw-alias-bg-layer-1);max-height:calc(100vh - 32px);overflow:auto}
+.kbs-root .kbs-panel>*{flex:0 0 auto}
+.kbs-root .kbs-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.kbs-root .kbs-panel-top .kb-tool{width:30px;height:30px;border-radius:9px;flex:0 0 auto}
+.kbs-root .kbs-panel .kb-detail-head .kb8-tile.lg{width:44px;height:44px;border-radius:14px;flex:0 0 auto}
+.kbs-root .kbs-panel .kb-local-rows .row{flex-wrap:wrap;gap:6px 14px}
+.kbs-root .kbs-panel .kb-local-rows .row>span:first-child{min-width:96px}
+.kbs-root .kbs-panel .kb-local-rows .row>span:last-child{min-width:0;flex:1 1 140px}
+.kbs-root .kbs-panel .kb-local-body{max-height:300px}
+.kbs-root .kbs-panel .kbs-path{display:flex;align-items:flex-start;gap:8px;overflow-wrap:anywhere}
+.kbs-root .kbs-panel .kbs-desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbs-panel-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto;padding-top:4px}
+.kbs-root .kbs-panel-acts a.kb8-ghost{text-decoration:none}
+.kbs-root .kb8-ghost.warn{color:var(--dsw-alias-state-error-primary);border-color:color-mix(in srgb,var(--dsw-alias-state-error-primary) 45%,transparent)}
+.kbs-root .kb8-card.sel{border-color:var(--dsw-alias-brand-primary);box-shadow:0 0 0 1px var(--dsw-alias-brand-primary)}
+.kbs-root .kbs-row.sel{background:var(--dsw-alias-interactive-bg-hover);box-shadow:inset 2px 0 0 var(--dsw-alias-brand-primary)}
+/* With the panel open the ranking is narrower: the repository and the badges columns give way (they are in the panel). */
+.kbs-root .kbs-split.open .kbs-head,.kbs-root .kbs-split.open .kbs-row{grid-template-columns:36px minmax(0,1fr) 84px;gap:10px;padding:8px 14px}
+.kbs-root .kbs-split.open .kbs-head .src,.kbs-root .kbs-split.open .kbs-head .badges,.kbs-root .kbs-split.open .kbs-row .src,.kbs-root .kbs-split.open .kbs-row .badges{display:none}
+@media (max-width:1100px){
+  .kbs-root .kbs-split.open{grid-template-columns:minmax(0,1fr)}
+  .kbs-root .kbs-split.open .kbs-panel{order:-1;position:static;max-height:none}
+}
 .kbs-root .kbs-nowrap{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* — Featured: the same rows as the ranking below it (same grid, same height); the cover, when there is one, is the row's tile. */
 .kbs-root .kbs-feat{display:flex;flex-direction:column;gap:12px;margin-bottom:20px}
@@ -986,26 +1041,31 @@ window.__ModuleLoader__.load({
         const [roots, setRoots] = React.useState([])
         const [modal, setModal] = React.useState(null)                        // null | create | install
         const [detail, setDetail] = React.useState(null)
-        // A card of the Yours tab opens the skill's LOCAL sheet (UB-13/FV1); `detail` stays the Discover sheet.
+        // A card of the Yours tab opens its panel on the right (`local`, the skill); a row of Discover opens `detail` (the index entry).
+        // The list stays on screen in both cases: the panel sits next to it.
         const [local, setLocal] = React.useState(null)
-        // The sheet's active tab lives in the parent so it survives the sheet being remounted
-        // when the parent re-renders (toggle, toast, polling). Reset on open, not on render.
-        const [localTab, setLocalTab] = React.useState('overview')
-        // The skill's REAL SKILL.md body, fetched from the host (GET /kybernos-skills/skill-body) when the
-        // sheet opens — the real instructions, not a placeholder. Kept in the parent so it survives re-renders.
-        const [localBody, setLocalBody] = React.useState({ state: 'idle', text: '' })
+        // The skill's REAL SKILL.md, what the host will let the screen do with it (`actions`), its folder: asked of the host when the panel
+        // opens (POST /kybernos-skills/skill/read), kept here so that it survives the parent re-rendering.
+        const [localRead, setLocalRead] = React.useState({ state: 'idle', data: null, error: '' })
+        const localKey = local === null ? '' : skillKey(local)
         React.useEffect(() => {
-          if (local === null) { setLocalBody({ state: 'idle', text: '' }); return }
-          let alive = true
-          setLocalBody({ state: 'loading', text: '' })
-          const root = local.root !== null && local.root !== undefined ? encodeURIComponent(local.root) : ''
-          getJson('/kybernos-skills/skill-body?root=' + root + '&name=' + encodeURIComponent(local.name)).then((j) => {
-            if (!alive) return
-            if (j && j.ok === true && typeof j.body === 'string') setLocalBody({ state: 'ready', text: j.body })
-            else setLocalBody({ state: 'empty', text: '' })
-          }).catch(() => { if (alive) setLocalBody({ state: 'empty', text: '' }) })
-          return () => { alive = false }
-        }, [local])
+          if (local === null) { setLocalRead({ state: 'idle', data: null, error: '' }); return undefined }
+          let stopped = false
+          setLocalRead({ state: 'loading', data: null, error: '' })
+          postJson('/kybernos-skills/skill/read', { root: local.root, name: local.name }).then((j) => {
+            if (stopped === true || alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true && typeof j.text === 'string') setLocalRead({ state: 'ready', data: j, error: '' })
+            else setLocalRead({ state: 'error', data: null, error: why(j, t('err.unexpected', { r: 'skill' })) })
+          }).catch(() => {
+            if (stopped !== true && alive.current === true) setLocalRead({ state: 'error', data: null, error: t('err.unavail', { r: 'skill' }) })
+          })
+          return () => { stopped = true }
+        }, [localKey])
+        // What a Discover card knows beyond the index: the folder, description and start of SKILL.md of the skill in ITS repository.
+        const [preview, setPreview] = React.useState({ state: 'idle', data: null, error: '' })
+        // The two confirmations: install (a Discover entry) and delete (a skill of Yours). Nothing is written before the click inside them.
+        const [askInstall, setAskInstall] = React.useState(null)
+        const [askDelete, setAskDelete] = React.useState(null)
         // Featured: the highlighted list, controlled by the user. `items` follows the order of the
         // file; an item `found:false` (skill gone from the registry) is skipped at render, not erased.
         const [feat, setFeat] = React.useState({ phase: 'idle', items: [] })
@@ -1094,19 +1154,24 @@ window.__ModuleLoader__.load({
         // The workspace may have changed in the sidebar since the last look: read again whenever the tab is opened.
         React.useEffect(() => { if (mode === 'team') loadTeam() }, [mode])
 
+        // `curatedOwners` is { byRepo: owner/repo → publisher, ids: Set of owner/repo/name }. It used to be keyed by the skill's NAME: the first curated skill of that name gave its publisher to every other skill called the same: 250
+        // names are shared by several publishers, and `grill-me` of mattpocock/skills read « published by flutter ».
         const loadCuratedOwners = React.useCallback(() => {
           getJson('/kybernos-skills/curated').then((j) => {
             if (alive.current !== true) return
             const owners = (j !== null && typeof j === 'object' && j.ok === true && Array.isArray(j.owners)) ? j.owners : []
-            const map = {}
+            const byRepo = {}
+            const ids = new Set()
             for (const o of owners) {
               const owner = o !== null && typeof o === 'object' && typeof o.owner === 'string' ? o.owner : ''
               if (owner === '') continue
               for (const s of (Array.isArray(o.skills) ? o.skills : [])) {
-                if (s !== null && typeof s === 'object' && typeof s.name === 'string' && map[s.name] === undefined) map[s.name] = owner
+                if (s === null || typeof s !== 'object' || typeof s.source !== 'string' || typeof s.name !== 'string') continue
+                if (byRepo[s.source] === undefined) byRepo[s.source] = owner
+                ids.add(s.source + '/' + s.name)
               }
             }
-            setCuratedOwners(map)
+            setCuratedOwners({ byRepo, ids })
           }).catch(() => { /* no curated set (route or relay absent): the owner row is simply not shown */ })
         }, [])
 
@@ -1199,6 +1264,23 @@ window.__ModuleLoader__.load({
           })
           return () => { stopped = true }
         }, [detail])
+
+        // The same for the preview: asked only for the open card, only for a GitHub source (the others cannot be read this way), and a
+        // card that is closed or replaced drops its answer.
+        React.useEffect(() => {
+          if (detail === null) { setPreview({ state: 'idle', data: null, error: '' }); return undefined }
+          if (detail.installable !== true) { setPreview({ state: 'none', data: null, error: '' }); return undefined }
+          let stopped = false
+          setPreview({ state: 'loading', data: null, error: '' })
+          getJson('/kybernos-skills/preview?source=' + encodeURIComponent(detail.source) + '&name=' + encodeURIComponent(detail.name)).then((j) => {
+            if (stopped === true || alive.current !== true) return
+            if (j !== null && typeof j === 'object' && j.ok === true) setPreview({ state: j.found === true ? 'ready' : 'missing', data: j, error: '' })
+            else setPreview({ state: 'error', data: null, error: why(j, t('err.preview')) })
+          }).catch(() => {
+            if (stopped !== true && alive.current === true) setPreview({ state: 'error', data: null, error: t('err.unavail', { r: 'preview' }) })
+          })
+          return () => { stopped = true }
+        }, [detail === null ? '' : detail.source + '/' + detail.name])
 
         React.useEffect(() => {
           if (notice === null) return undefined
@@ -1516,12 +1598,13 @@ window.__ModuleLoader__.load({
           const k = skillKey(s)
           const on = s.active === true
           const err = errors[k]
-          // The card opens the local sheet (UB-13/FV1): its inner buttons stop the propagation and keep their own action.
+          // The card opens its panel on the right: its inner buttons stop the propagation and keep their own action.
+          const pick = () => { setLocal(s); setDetail(null); setModal(null) }
           return h('div', {
-            key: k, className: 'kb8-card' + appear(i), role: 'button', tabIndex: 0,
+            key: k, className: 'kb8-card' + (local !== null && skillKey(local) === k ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
             'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-card-' + k,
-            onClick: () => { setLocal(s); setLocalTab('overview'); setDetail(null); setModal(null) },
-            onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLocal(s); setLocalTab('overview'); setDetail(null); setModal(null) } }
+            onClick: pick,
+            onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick() } }
           },
             h('div', { className: 'kb-row' },
               tile(s.name, 'pkg'),
@@ -1577,11 +1660,17 @@ window.__ModuleLoader__.load({
         }
 
         // Featured rows are the SAME rows as the ranking below (same columns, same height): a card here and a row there made
-        // the page read as two lists. A click finds the skill in Yours (pre-filled filter): the Discover detail page is an
-        // INSTALL page, it has nothing to say about a local skill. The star at the left takes it off the list.
+        // the page read as two lists. A click opens the skill in Yours: the Discover panel is an INSTALL panel, it has nothing to say
+        // about a local skill. The star at the left takes it off the list.
         const featRow = (it, i) => h('div', {
           key: it.name, className: 'kbs-row feat' + appear(i), 'data-kb': 'feat-row', title: it.description !== '' ? it.description : undefined,
-          onClick: () => { setMode('yours'); setQ((m) => ({ ...m, yours: it.name })); setDetail(null) }
+          onClick: () => {
+            // The skill's own panel when it is in the catalogue; else Yours filtered on the name, as before.
+            const own = skills.find((x) => x.name === it.name)
+            setMode('yours'); setDetail(null); setModal(null)
+            if (own !== undefined) setLocal(own)
+            else setQ((m) => ({ ...m, yours: it.name }))
+          }
         },
           h('span', { className: 'rank' }, h('button', {
             type: 'button', className: 'kbs-star-btn on', title: t('feat.remove'), 'aria-label': t('feat.remove') + ' — ' + it.name,
@@ -1597,8 +1686,8 @@ window.__ModuleLoader__.load({
 
         const ligne = (x, i) => h('div', {
           key: x.source + '/' + x.name,
-          className: 'kbs-row' + (installed(x) ? ' has' : '') + appear(i),
-          onClick: () => { setDetail(x); setModal(null); setAudit(null) }
+          className: 'kbs-row' + (installed(x) ? ' has' : '') + (detail !== null && detail.source === x.source && detail.name === x.name ? ' sel' : '') + appear(i),
+          onClick: () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
         },
           h('span', { className: 'rank' }, String(discFrom + i)),
           // The TILE is what makes a row belong to the same universe as the cards of the
@@ -1722,146 +1811,66 @@ window.__ModuleLoader__.load({
             discShown.length === 0 ? null : pagerIndex())
         }
 
-        // The skill's own text, for the Contents tab. The catalogue record carries the frontmatter fields
-        // (description, whenToUse); a body is shown only when the host really has one (body/markdown/readme),
-        // never invented from the description the Overview tab already shows.
-        // A local skill's sheet: a sheet, not the Discover INSTALL page (which speaks of a repo, installs and
-        // third-party audits). Its rows use the skill's own words (description, whenToUse), not the install page's
-        // labels. The tab state is local to the sheet and resets when the card changes.
-        const LocalDetail = ({ s, onClose, tab, setTab }) => {
-          const k = skillKey(s)
-          const err = errors[k]
-          const on = s.active === true
-          return h('div', { className: 'kb-local', role: 'region', 'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-local-detail' },
-            h('div', { className: 'kb-detail-head' },
-              tile(s.name, 'pkg', 'lg'),
-              h('div', { className: 'meta' },
-                h('div', { className: 'kb-row', style: { gap: '9px' } },
-                  h('span', { className: 'kb8-h1', style: { fontSize: '22px' } }, s.name),
-                  on ? h('span', { className: 'kb8-pill ok' }, t('card.active')) : h('span', { className: 'kb8-pill warn' }, t('card.disabled'))),
-                h('span', { className: 'kb8-parent kbs-nowrap' }, (s.source || '') + ' · ' + String(s.root || ''))),
-              s.writable === true
-                ? h('button', {
-                    type: 'button', className: 'kb-sw' + (on ? ' on' : ''), title: on ? t('card.disable') : t('card.enable'),
-                    disabled: busy[k] === true, onClick: () => toggle(s)
-                  }, h('i', null))
-                : h('span', { className: 'kb8-pill' }, t('card.readonly')),
-              h('button', {
-                type: 'button', className: 'kb8-ghost', onClick: onClose, 'aria-label': t('m.cancel')
-              }, icon('back', 15), h('span', null, t('m.cancel')))),
-            h('div', { className: 'kb8-pills' },
-              on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
-              s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
-              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null),
-            h('div', { className: 'kb-local-tabs', role: 'tablist' },
-              h('button', {
-                type: 'button', role: 'tab', 'aria-selected': tab === 'overview' ? 'true' : 'false',
-                className: 'kb8-chip' + (tab === 'overview' ? ' on' : ''), onClick: () => setTab('overview')
-              }, t('det.tab.overview')),
-              h('button', {
-                type: 'button', role: 'tab', 'aria-selected': tab === 'body' ? 'true' : 'false',
-                className: 'kb8-chip' + (tab === 'body' ? ' on' : ''), onClick: () => setTab('body')
-              }, t('det.tab.body'))),
-            tab === 'overview'
-              ? h('div', { className: 'kb-local-rows' },
-                  h('div', { className: 'row' }, h('span', null, t('det.root')), h('span', { className: 'kb8-mono' }, String(s.root || ''))),
-                  h('div', { className: 'row' }, h('span', null, t('det.modified')), h('span', { className: 'kb8-mono' }, s.modifiedAt !== '' ? today(s.modifiedAt) : t('det.unknownDate'))),
-                  h('div', { className: 'row' }, h('span', null, t('det.local.what')), h('span', null, s.description !== '' ? s.description : t('card.nodesc'))),
-                  s.whenToUse !== undefined && s.whenToUse !== null && String(s.whenToUse).trim() !== ''
-                    ? h('div', { className: 'row' }, h('span', null, t('det.local.when')), h('span', null, String(s.whenToUse).trim()))
-                    : null,
-                  err ? h('div', { className: 'kbs-err' }, err) : null)
-              : h('pre', { className: 'kb-local-body' },
-                  localBody.state === 'loading' ? t('det.local.loading')
-                    : (localBody.state === 'ready' && localBody.text.trim() !== '' ? localBody.text : t('det.local.body'))))
+        // ── the right-hand panels (the list stays next to them) ───────────────────────────────────────
+        // The folder an install writes into: the user's own skills folder when it is among the writable ones the host named, else the first
+        // writable one. `roots` are the host's WRITABLE roots (GET status), never the project's read-only ones.
+        const installDest = (roots.find((r) => r.source === 'user-dsh') || roots[0] || { path: '~/.dsh/skills' }).path
+        const curatedOf = (x) => ({
+          owner: curatedOwners !== null ? curatedOwners.byRepo[x.source] : undefined,
+          curated: x.official === true || (curatedOwners !== null && curatedOwners.ids.has(x.source + '/' + x.name))
+        })
+
+        // One call for the three actions that go through the host; what comes back is announced, and the list is read again.
+        const skillAct = (kind, s) => {
+          const k = 'act:' + kind + ':' + skillKey(s)
+          if (busy[k] === true) return
+          setBusy((m) => ({ ...m, [k]: true }))
+          const target = kind === 'reveal' ? 'folder' : (kind === 'edit' ? 'file' : undefined)
+          const path = kind === 'duplicate' ? '/kybernos-skills/skill/duplicate' : (kind === 'delete' ? '/kybernos-skills/skill/delete' : '/kybernos-skills/skill/reveal')
+          const done = () => setBusy((m) => { const n = { ...m }; delete n[k]; return n })
+          postJson(path, { root: s.root, name: s.name, target }).then((j) => {
+            if (alive.current !== true) return
+            done()
+            if (j === null || typeof j !== 'object' || j.ok !== true) {
+              setAskDelete(null)
+              setNotice({ kind: 'err', text: why(j, t('err.unexpected', { r: kind })) })
+              return
+            }
+            if (kind === 'delete') {
+              setAskDelete(null); setLocal(null); loadCatalogue()
+              setNotice({ kind: 'ok', text: t('notice.deleted', { name: s.name }) })
+            } else if (kind === 'duplicate') {
+              loadCatalogue()
+              if (j.skill !== null && typeof j.skill === 'object') setLocal(j.skill)
+              setNotice({ kind: 'ok', text: t('notice.duplicated', { name: s.name, copy: j.name }) })
+            } else setNotice({ kind: 'ok', text: t('notice.opened') })
+          }).catch(() => {
+            if (alive.current !== true) return
+            done(); setAskDelete(null)
+            setNotice({ kind: 'err', text: t('err.unavail', { r: kind }) })
+          })
         }
 
-        const renderDetail = () => {
-          const x = detail
-          const already = skills.some((s) => s.name === x.name)
-          // What this SPECIFIC skill is, and what installing it will REALLY do: the values come from
-          // the skill's own record (index entry + curated set); nothing is invented when a field is
-          // absent (no version exists in the catalogue data, so none is ever shown).
-          const destRoot = roots.length > 0 ? roots[0].path : '~/.dsh/skills'
-          const owner = curatedOwners !== null ? curatedOwners[x.name] : undefined
-          const skillRows = []
-          if (owner !== undefined && owner !== '') skillRows.push(['det.row.owner', owner])
-          skillRows.push(['det.row.id', String(x.id || (x.source + '/' + x.name))])
-          skillRows.push(['det.row.repo', String(x.source || '')])
-          skillRows.push(['det.row.type', x.sourceType !== '' && x.sourceType !== undefined ? String(x.sourceType) : t('det.unknownSrc')])
-          skillRows.push(['det.row.installs', nf(x.installs)])
-          if (x.url !== '' && x.url !== undefined && x.url !== null) {
-            skillRows.push(['det.row.page', h('a', { href: String(x.url), target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-brand-primary,#4f8cff)' } }, String(x.url))])
-          } else {
-            skillRows.push(['det.row.page', t('det.row.noPage')])
+        const renderPanel = () => {
+          if (mode === 'yours' && local !== null) {
+            const s = skills.find((x) => skillKey(x) === skillKey(local)) || local
+            return h(SkillPanel, {
+              s, read: localRead, err: errors[skillKey(s)],
+              busyKind: ['reveal', 'edit', 'duplicate', 'delete'].find((kd) => busy['act:' + kd + ':' + skillKey(s)] === true) || '',
+              onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
+            })
           }
-          const skillRow = ([key, value]) => h('div', { key: key, className: 'row' }, h('span', null, t(key)), h('span', { className: 'kb8-mono', style: { textAlign: 'right', overflowWrap: 'anywhere' } }, value))
-          return h('div', null,
-            h('button', { type: 'button', className: 'kb-back', onClick: () => setDetail(null) }, icon('back', 15), ' Discover › ' + x.name),
-            h('div', { className: 'kb-detail-head' },
-              tile(x.name, 'pkg', 'lg'),
-              h('div', { className: 'meta' },
-                h('div', { className: 'kb-row', style: { gap: '9px' } },
-                  h('span', { className: 'kb8-h1', style: { fontSize: '22px' } }, x.name),
-                  x.official === true ? h('span', { className: 'kb8-pill ok' }, 'curated') : h('span', { className: 'kb8-pill' }, t('row.community'))),
-                h('span', { className: 'kb8-parent' }, t('det.by', { s: x.source, n: nf(x.installs) }))),
-              already === true
-                ? h('span', { style: { display: 'flex', gap: '8px', alignItems: 'center' } },
-                    h('span', { className: 'kb8-pill ok' }, t('row.already')),
-                    h('button', {
-                      type: 'button', className: 'kbs-star-btn' + (featNames.has(x.name) ? ' on' : ''),
-                      title: featNames.has(x.name) ? t('feat.remove') : t('feat.add'),
-                      onClick: () => toggleFeatured(x.name)
-                    }, icon('star', 14)))
-                : (x.installable === true
-                  // The button names the skill it installs, and its tooltip says PRECISELY what will
-                  // happen (download the repo archive, copy the skill into the chosen root).
-                  ? h('span', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' } },
-                      h('button', {
-                        type: 'button', className: 'kb8-primary', title: t('det.installTip', { source: x.source, name: x.name, dest: destRoot }),
-                        onClick: () => openModal('install')
-                      }, icon('plus', 15), h('span', null, t('btn.install'))),
-                      h('span', { style: { maxWidth: '330px', textAlign: 'right', fontSize: '11.5px', lineHeight: 1.45, color: 'var(--dsw-alias-label-caption)' } },
-                        t('det.installHelp', { source: x.source, name: x.name, dest: destRoot })))
-                  : h('span', { className: 'kb8-pill warn', title: x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng') }, t('row.cantInstall')))),
-            h('div', { className: 'kb-cols' },
-              h('div', { style: { display: 'flex', flexDirection: 'column', gap: '22px' } },
-                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
-                  h('span', { className: 'kb-section-label' }, t('det.skillTitle')),
-                  h('div', { className: 'kb-local-rows' }, skillRows.map(skillRow))),
-                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
-                  h('span', { className: 'kb-section-label' }, t('det.provenance')),
-                  h('div', { className: 'kb8-pills' },
-                    h('span', { className: 'kb8-pill' }, x.source),
-                    // The source type explains WHY installation is possible or not.
-                    h('span', { className: 'kb8-pill' + (x.installable === true ? '' : ' warn') }, x.sourceType !== '' && x.sourceType !== undefined ? x.sourceType : t('det.unknownSrc')),
-                    x.official === true ? h('span', { className: 'kb8-pill ok' }, 'curated') : null)),
-                h('div', { style: { display: 'flex', flexDirection: 'column', gap: '9px' } },
-                  h('span', { className: 'kb-section-label' }, t('det.what')),
-                  h('p', { className: 'kb8-sub', style: { maxWidth: 'none', fontSize: '15px' } },
-                    t('det.whatBody', { source: x.source, name: x.name, dest: destRoot })),
-                  h('pre', { style: { margin: '0', background: 'var(--dsw-alias-bg-base)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '10px', padding: '12px 14px', fontFamily: 'ui-monospace,monospace', fontSize: '12.5px', color: 'var(--dsw-alias-label-secondary)', overflow: 'auto' } },
-                    'POST /kybernos-skills/install\n{ "source": "' + x.source + '", "name": "' + x.name + '", "root": "' + t('det.rootph') + '" }'))),
-              h('div', { className: 'kb-panel' },
-                h('span', { className: 'kb-section-label', style: { textTransform: 'none', fontSize: '13px', letterSpacing: '0', color: 'var(--dsw-alias-label-secondary)' } }, t('det.checks')),
-                h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('dl', 15)),
-                  h('span', null, t('det.declared')), h('span', { style: { marginLeft: 'auto', color: 'var(--dsw-alias-label-caption)' } }, nf(x.installs))),
-                h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('shield', 15)),
-                  h('span', null, t('det.frontmatter'))),
-                h('div', { className: 'row' }, h('span', { className: 'ic' }, icon('folder', 15)),
-                  h('span', null, t('det.target', { p: destRoot }))),
-                h('div', { className: 'kbs-audit', style: { borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '11px' } },
-                  h('span', { className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
-                  audit === null || audit.phase === 'loading'
-                    ? h('span', { className: 'kb8-mono' }, t('det.auditLoading'))
-                    : (audit.phase === 'error'
-                      ? h('span', { className: 'ligne' }, audit.error)
-                      : (audit.audits.length === 0
-                        ? h('span', { className: 'kb8-mono' }, t('det.auditNone'))
-                        : audit.audits.map((a, i) => h('div', { key: 'a' + i, className: 'ligne' },
-                            h('span', { className: 'kb8-pill ' + (a.status === 'pass' ? 'ok' : 'warn') }, a.status === 'pass' ? t('det.audited') : (a.status !== '' ? a.status : t('det.unknown'))),
-                            h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : '')))))),
-                  h('span', { className: 'kb8-mono' }, t('det.thirdParty'))))))
+          if (mode === 'discover' && detail !== null) {
+            const x = detail
+            const c = curatedOf(x)
+            return h(DiscoverPanel, {
+              x, preview, audit, dest: installDest, owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
+              starred: featNames.has(x.name), onClose: () => setDetail(null),
+              onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
+              onStar: () => toggleFeatured(x.name)
+            })
+          }
+          return null
         }
 
         const renderModal = () => {
@@ -1887,6 +1896,33 @@ window.__ModuleLoader__.load({
               setErrors((m) => ({ ...m, __modal: t('err.unavail', { r: 'create' }) }))
             })
           }, error: errors.__modal })
+          if (askDelete !== null) return h(DeleteConfirm, {
+            s: askDelete, files: localRead.state === 'ready' && localRead.data !== null ? localRead.data.files : null,
+            busy: busy['act:delete:' + skillKey(askDelete)] === true,
+            onClose: () => setAskDelete(null), onConfirm: () => skillAct('delete', askDelete)
+          })
+          if (askInstall !== null) return h(InstallConfirm, {
+            x: askInstall, dest: installDest, folder: preview.state === 'ready' && preview.data !== null ? preview.data.folder : null,
+            busy: busy.__modal === true, error: errors.__modal,
+            onClose: () => setAskInstall(null),
+            onConfirm: () => {
+              const x = askInstall
+              setBusy((m) => ({ ...m, __modal: true }))
+              postJson('/kybernos-skills/install', { source: x.source, name: x.name, root: installDest }).then((j) => {
+                if (alive.current !== true) return
+                setBusy((m) => { const n = { ...m }; delete n.__modal; return n })
+                if (j !== null && typeof j === 'object' && j.ok === true) {
+                  setAskInstall(null); setDetail(null); setMode('yours'); loadCatalogue()
+                  if (j.skill !== null && typeof j.skill === 'object') setLocal(j.skill)
+                  setNotice({ kind: 'ok', text: t('notice.installed', { name: x.name }) + (j.files ? t('notice.files', { n: j.files }) : '') })
+                } else setErrors((m) => ({ ...m, __modal: why(j, t('err.install')) }))
+              }).catch(() => {
+                if (alive.current !== true) return
+                setBusy((m) => { const n = { ...m }; delete n.__modal; return n })
+                setErrors((m) => ({ ...m, __modal: t('err.unavail', { r: 'install' }) }))
+              })
+            }
+          })
           if (modal === 'install') return h(InstallModal, {
             roots, busy, preset: detail,
             onClose: () => setModal(null),
@@ -1908,25 +1944,24 @@ window.__ModuleLoader__.load({
           return null
         }
 
-        const body = local !== null
-          ? LocalDetail({ s: (skills.find((x) => skillKey(x) === skillKey(local)) || local), tab: localTab, setTab: setLocalTab, onClose: () => setLocal(null) })
-          : (detail !== null
-          ? renderDetail()
-          : h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
+        const panel = renderPanel()
+        const list = h('div', null, mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover()))
+        const body = panel === null
+          ? list
+          : h('div', { className: 'kbs-split open' }, h('div', { className: 'kbs-list' }, list), panel)
 
         // (1 Oct) Same header as "Connections": title + subtitle on the left, main action on the right, then a
         // control row (sub-tabs on the left, search / filter / sort on the right).
-        const sheetOpen = local !== null || detail !== null
-        const capTxt = sheetOpen ? t('cap.detail') : (mode === 'yours'
+        const capTxt = mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length })
-          : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank'))))
+          : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank')))
         return h('div', { className: 'kbs-root' },
           h('div', { className: 'kbs-top' },
             h('div', { className: 'kbs-top-txt' },
               h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)),
               h('h2', { className: 'kbs-h1' }, 'Skills'),
               h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
-            sheetOpen === false && mode !== 'team' ? renderAdd() : null),
+            mode !== 'team' ? renderAdd() : null),
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
@@ -1938,11 +1973,182 @@ window.__ModuleLoader__.load({
                 tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
-            mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : (sheetOpen === false ? renderToolbar() : null)),
+            mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : renderToolbar()),
           h('div', { className: 'kb8-page' }, body),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
             icon(notice.kind === 'err' ? 'info' : 'check', 15), h('span', null, notice.text)) : null)
+      }
+
+      // A skill of Yours, opened: the real SKILL.md, where it lives, and what the host will let the screen do with it. The actions are only
+      // the ones the host's answer lists (`read.data.actions`): a host that has not been restarted lists none, and none is drawn.
+      function SkillPanel(props) {
+        const s = props.s
+        const r = props.read
+        const ready = r.state === 'ready' && r.data !== null
+        const acts = ready && r.data.actions !== null && typeof r.data.actions === 'object' ? r.data.actions : {}
+        const folder = ready && typeof r.data.folder === 'string' ? r.data.folder : (typeof s.folder === 'string' ? s.folder : '')
+        const on = s.active === true
+        const busy = props.busyKind !== ''
+        const act = (kind, label, tip, cls) => acts[kind] === true
+          ? h('button', { key: kind, type: 'button', className: cls, 'data-kb': 'act-' + kind, title: tip, disabled: busy, onClick: () => props.onAct(kind) }, label)
+          : null
+        return h('aside', { className: 'kbs-panel', 'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-panel' },
+          h('div', { className: 'kbs-panel-top' },
+            h('span', { className: 'kb8-mono kbs-nowrap' }, 'Yours › ' + s.name),
+            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
+          h('div', { className: 'kb-detail-head' },
+            tile(s.name, 'pkg', 'lg'),
+            h('div', { className: 'meta' },
+              h('span', { className: 'kb8-h1', style: { fontSize: '19px', overflowWrap: 'anywhere' } }, s.name),
+              h('div', { className: 'kb8-pills' },
+                on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
+                s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
+                s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.readonly')) : null))),
+          h('div', { className: 'kb-local-rows' },
+            h('div', { className: 'row' }, h('span', null, t('det.root')),
+              h('span', { className: 'kb8-mono kbs-path', title: folder }, folder !== '' ? folder : String(s.root || ''),
+                folder !== '' ? h('button', { type: 'button', className: 'kbs-copy', title: t('panel.copyPath'), onClick: () => props.onCopy(folder) }, icon('code', 12)) : null)),
+            h('div', { className: 'row' }, h('span', null, t('det.modified')), h('span', { className: 'kb8-mono' }, s.modifiedAt !== '' ? today(s.modifiedAt) : t('det.unknownDate'))),
+            s.description !== '' ? h('div', { className: 'row' }, h('span', null, t('det.local.what')), h('span', null, s.description)) : null,
+            s.whenToUse !== undefined && s.whenToUse !== null && String(s.whenToUse).trim() !== ''
+              ? h('div', { className: 'row' }, h('span', null, t('det.local.when')), h('span', null, String(s.whenToUse).trim()))
+              : null),
+          h('span', { className: 'kb-section-label' }, 'SKILL.md'),
+          r.state === 'error'
+            ? h('div', { className: 'kbs-err', role: 'alert' }, r.error)
+            : h('pre', { className: 'kb-local-body', 'data-kb': 'skill-text' }, ready ? r.data.text : t('det.local.loading')),
+          ready && r.data.truncated === true ? h('span', { className: 'kb8-mono' }, t('panel.truncated')) : null,
+          ready && r.data.files > 0 ? h('span', { className: 'kb8-mono' }, t('panel.files', { n: r.data.files + (r.data.filesMore === true ? '+' : '') })) : null,
+          props.err ? h('div', { className: 'kbs-err' }, props.err) : null,
+          h('div', { className: 'kbs-panel-acts' },
+            act('reveal', h('span', null, t('act.reveal')), t('act.reveal.tip'), 'kb8-primary'),
+            act('edit', h('span', null, t('act.edit')), t('act.edit.tip'), 'kb8-ghost'),
+            act('duplicate', h('span', null, t('act.duplicate')), t('act.duplicate.tip'), 'kb8-ghost'),
+            act('delete', h('span', null, t('act.delete')), t('act.delete.tip'), 'kb8-ghost warn')),
+          ready && s.writable !== true ? h('span', { className: 'kb8-mono' }, t('act.readonly')) : null)
+      }
+
+      // A Discover card, opened: its own repository, folder, description and the start of its SKILL.md (read from the repository by the
+      // host), who publishes it, its audits, and Install — which asks first.
+      function DiscoverPanel(props) {
+        const x = props.x
+        const p = props.preview
+        const pv = p.state === 'ready' && p.data !== null ? p.data : null
+        const publisher = props.owner !== undefined && props.owner !== '' ? props.owner : String(x.source || '').split('/')[0]
+        const audit = props.audit
+        const ghUrl = pv !== null && typeof pv.url === 'string' && pv.url !== '' ? pv.url : 'https://github.com/' + x.source
+        const row = (label, value, key) => h('div', { key, className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
+        const folderText = pv !== null ? (pv.folder !== '' ? pv.folder : t('dp.root'))
+          : (p.state === 'loading' ? t('dp.loading') : t('dp.folderUnknown'))
+        let text = null
+        if (p.state === 'loading') text = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, t('dp.loading'))
+        else if (pv !== null) text = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, pv.text + (pv.truncated === true ? '\n…' : ''))
+        else if (p.state === 'missing') text = h('div', { className: 'kb-note', 'data-kb': 'preview-missing' }, icon('info', 14), h('span', null, t('dp.notfound', { name: x.name })))
+        else if (p.state === 'error') text = h('div', { className: 'kb-note', 'data-kb': 'preview-error' }, icon('info', 14), h('span', null, t('dp.nopreview', { why: p.error })))
+        else if (p.state === 'none') text = h('div', { className: 'kb-note', 'data-kb': 'preview-none' }, icon('info', 14), h('span', null, x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng')))
+        return h('aside', { className: 'kbs-panel', 'aria-label': x.name + ' — ' + t('cap.detail'), 'data-kb': 'disc-panel' },
+          h('div', { className: 'kbs-panel-top' },
+            h('span', { className: 'kb8-mono kbs-nowrap' }, 'Discover › ' + x.name),
+            h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('panel.close'), title: t('panel.close'), onClick: props.onClose }, '✕')),
+          h('div', { className: 'kb-detail-head' },
+            tile(x.name, 'pkg', 'lg'),
+            h('div', { className: 'meta' },
+              h('span', { className: 'kb8-h1', style: { fontSize: '19px', overflowWrap: 'anywhere' } }, x.name),
+              h('div', { className: 'kb8-pills' },
+                props.curated === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : h('span', { key: 'o', className: 'kb8-pill' }, t('row.community')),
+                props.installed === true ? h('span', { key: 'i', className: 'kb8-pill' }, t('row.already')) : null))),
+          pv !== null && pv.description !== '' ? h('p', { className: 'kbs-desc', 'data-kb': 'preview-desc' }, pv.description) : null,
+          h('div', { className: 'kb-local-rows' },
+            row(t('det.row.repo'), 'github.com/' + x.source, 'repo'),
+            row(t('dp.folder'), folderText, 'folder'),
+            row(t('det.row.owner'), publisher, 'owner'),
+            row(t('det.row.installs'), nf(x.installs), 'installs'),
+            row(t('det.row.type'), x.sourceType !== '' && x.sourceType !== undefined ? String(x.sourceType) : t('det.unknownSrc'), 'type'),
+            x.url !== '' && x.url !== undefined && x.url !== null
+              ? h('div', { key: 'page', className: 'row' }, h('span', null, t('det.row.page')),
+                  h('a', { href: String(x.url), target: '_blank', rel: 'noreferrer', className: 'kb8-mono', style: { overflowWrap: 'anywhere', color: 'var(--dsw-alias-brand-primary,#4f8cff)' } }, String(x.url)))
+              : null),
+          h('span', { className: 'kb-section-label' }, t('dp.start')),
+          text,
+          h('div', { className: 'kbs-audit', style: { borderTop: '1px solid var(--dsw-alias-border-l1)', paddingTop: '11px' } },
+            h('span', { className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
+            audit === null || audit === undefined || audit.phase === 'loading'
+              ? h('span', { className: 'kb8-mono' }, t('det.auditLoading'))
+              : (audit.phase === 'error'
+                ? h('span', { className: 'ligne' }, audit.error)
+                : (audit.audits.length === 0
+                  ? h('span', { className: 'kb8-mono' }, t('det.auditNone'))
+                  : audit.audits.map((a, i) => h('div', { key: 'a' + i, className: 'ligne' },
+                      h('span', { className: 'kb8-pill ' + (a.status === 'pass' ? 'ok' : 'warn') }, a.status === 'pass' ? t('det.audited') : (a.status !== '' ? a.status : t('det.unknown'))),
+                      h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : '')))))),
+            h('span', { className: 'kb8-mono' }, t('det.thirdParty'))),
+          h('div', { className: 'kbs-panel-acts' },
+            x.installable === true && props.installed !== true
+              ? h('button', {
+                  type: 'button', className: 'kb8-primary', 'data-kb': 'act-install',
+                  title: t('det.installTip', { source: x.source, name: x.name, dest: props.dest }), onClick: props.onInstall
+                }, icon('plus', 15), h('span', null, t('btn.install')))
+              : (x.installable === true
+                ? h('button', {
+                    type: 'button', className: 'kbs-star-btn' + (props.starred ? ' on' : ''),
+                    title: props.starred ? t('feat.remove') : t('feat.add'), onClick: props.onStar
+                  }, icon('star', 14))
+                : h('span', { className: 'kb8-pill warn', title: x.sourceType === 'well-known' ? t('row.cantInstall.wk') : t('row.cantInstall.ng') }, t('row.cantInstall'))),
+            x.installable === true
+              ? h('a', { href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh')))
+              : null))
+      }
+
+      // Escape closes a confirmation, in the capture phase so the page behind never sees it.
+      const useEscape = (onClose) => {
+        React.useEffect(() => {
+          const onKey = (e) => { if (e !== null && e.key === 'Escape') { e.stopPropagation(); onClose() } }
+          document.addEventListener('keydown', onKey, true)
+          return () => document.removeEventListener('keydown', onKey, true)
+        }, [])
+      }
+
+      // « Install ? » — before anything is downloaded or written, what the button will do, for THIS skill: its repository, the folder it
+      // sits in (when the repository's listing showed it), and the exact folder it will be copied to.
+      function InstallConfirm(props) {
+        const x = props.x
+        useEscape(props.onClose)
+        const dest = String(props.dest)
+        const sepr = dest.indexOf('\\') >= 0 && dest.indexOf('/') < 0 ? '\\' : '/'
+        const target = dest.replace(/[\\/]+$/, '') + sepr + x.name
+        const row = (label, value) => h('div', { className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
+        return h('div', { className: 'kb-overlay', onClick: props.onClose },
+          h('div', { className: 'kb-modal', role: 'dialog', 'aria-modal': 'true', 'aria-label': t('ic.title', { name: x.name }), 'data-kb': 'install-confirm', onClick: (e) => e.stopPropagation() },
+            h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('ic.title', { name: x.name })), h('span', { style: { flex: '1' } }),
+              h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('m.cancel'), onClick: props.onClose }, '✕')),
+            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('det.whatBody', { source: x.source, name: x.name, dest })),
+            h('div', { className: 'kb-local-rows' },
+              row(t('ic.repo'), 'github.com/' + x.source),
+              row(t('ic.folder'), props.folder !== null && props.folder !== undefined ? (props.folder !== '' ? props.folder : t('dp.root')) : t('dp.folderUnknown')),
+              row(t('ic.dest'), target)),
+            h('div', { className: 'kb-note' }, icon('info', 14), h('span', null, t('ic.after'))),
+            props.error ? h('div', { className: 'kbs-err', role: 'alert' }, props.error) : null,
+            h('div', { className: 'kbs-actions' },
+              h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'install-confirm-no', onClick: props.onClose }, t('m.cancel')),
+              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'install-confirm-yes', disabled: props.busy === true, onClick: props.onConfirm },
+                icon('plus', 15), props.busy === true ? t('m.downloading') : t('btn.install')))))
+      }
+
+      // « Delete ? » — a skill's folder is removed for good (no trash): said first, with the folder and how many files go with it.
+      function DeleteConfirm(props) {
+        const s = props.s
+        useEscape(props.onClose)
+        return h('div', { className: 'kb-overlay', onClick: props.onClose },
+          h('div', { className: 'kb-modal', role: 'alertdialog', 'aria-modal': 'true', 'aria-label': t('del.title', { name: s.name }), 'data-kb': 'delete-confirm', onClick: (e) => e.stopPropagation() },
+            h('div', { className: 'kb-row' }, h('span', { className: 'kb8-h2' }, t('del.title', { name: s.name })), h('span', { style: { flex: '1' } }),
+              h('button', { type: 'button', className: 'kb-tool', 'aria-label': t('m.cancel'), onClick: props.onClose }, '✕')),
+            h('p', { className: 'kb8-sub', style: { margin: '0' } }, t('del.body', { path: String(s.folder || s.root || '') })),
+            typeof props.files === 'number' && props.files > 0 ? h('span', { className: 'kb8-mono' }, t('panel.files', { n: props.files })) : null,
+            h('div', { className: 'kbs-actions' },
+              h('button', { type: 'button', className: 'kb8-ghost', 'data-kb': 'delete-confirm-no', onClick: props.onClose }, t('m.cancel')),
+              h('button', { type: 'button', className: 'kb8-ghost warn', 'data-kb': 'delete-confirm-yes', disabled: props.busy === true, onClick: props.onConfirm },
+                props.busy === true ? t('del.deleting') : t('act.delete')))))
       }
 
       // Create modal: the four fields that make up a valid SKILL.md, nothing more.
