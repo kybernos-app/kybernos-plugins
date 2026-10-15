@@ -343,16 +343,16 @@
         },
         "steps": [
           {
-            "fr": "Ouvrez « Compétences » : « Yours » liste vos skills (recherche, filtres, interrupteur). « /nom » copie l’appel à coller dans le chat.",
-            "en": "Open “Skills”: “Yours” lists your skills, with search, filters and a switch. “/name” copies the call to paste in the chat."
+            "fr": "« Yours » liste vos skills. Un clic ouvre son SKILL.md à droite, avec : ouvrir le dossier, modifier, dupliquer, supprimer.",
+            "en": "“Yours” lists your skills. A click opens its SKILL.md on the right, with: open the folder, edit, duplicate, delete."
           },
           {
             "fr": "« Créer un skill » (nom, description, contenu) ou « Importer depuis GitHub » (owner/repo et nom du skill).",
             "en": "“Create a skill” (name, description, content) or “Import from GitHub” (owner/repo and the skill’s name)."
           },
           {
-            "fr": "« Discover » classe les skills publics : ouvrez une fiche, lisez ses audits, puis « Installer ». « Source » choisit le serveur.",
-            "en": "“Discover” ranks the public skills: open one, read its audits, then “Install”. “Source” picks the server it reads from."
+            "fr": "« Discover » classe les skills publics : ouvrez une ligne (dépôt, dossier, texte, audits), puis « Installer » demande confirmation.",
+            "en": "“Discover” ranks the public skills: open a row (repository, folder, text, audits), then “Install” asks you to confirm."
           },
           {
             "fr": "« Team » : le catalogue de votre équipe. Proposez un de vos skills, un admin l’approuve, chacun l’installe. Plan Team requis.",

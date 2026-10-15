@@ -26326,10 +26326,10 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 .kbfold-save{height:34px;padding:0 14px;border:0;border-radius:9px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);font:inherit;font-weight:500;cursor:pointer}
 .kbfold-err{flex:1 0 100%;font-size:12.5px;color:var(--dsw-alias-state-error-primary,#E5484D)}
 @media (min-width:701px){
-  html[data-kb-chat-fold="1"] [data-slot="conversation.session.header.actions"] > :not(.kbfold-root):not(:has(.kbcl-hlive)){display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.session.header.actions"] > :not(.kbfold-root):not(:has([data-act="hangup-header"])){display:none!important}
   html[data-kb-chat-fold="1"] [data-slot="conversation.session.header"] > [class*="tabs"]{display:none!important}
-  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not(.kbch-wrap){display:none!important}
-  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > .kbch-wrap.kbch-ok{display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not([data-kb="changes"]){display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > [data-kb="changes"][data-state="ok"]{display:none!important}
 }
 @media (max-width:700px){.kbfold-root{display:none}}
 `), 'kybers: styles chat header toggle')
