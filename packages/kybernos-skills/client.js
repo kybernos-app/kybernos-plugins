@@ -660,7 +660,7 @@ window.__ModuleLoader__.load({
 .kbs-root .kb-filters .head .raz:hover{background:var(--dsw-alias-bg-layer-2)}
 .kbs-root .kb-filter-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .kbs-root .kb-filter-row .lbl{font-size:12px;color:var(--dsw-alias-label-caption);min-width:74px}
-.kbs-root .kb8-chip:hover{background:var(--dsw-alias-interactive-bg-hover)}
+.kbs-root .kb8-chip:not(.on):hover{background:var(--dsw-alias-interactive-bg-hover)}
 /* Ranking table: one row per skill, not a card. This is what makes an index of
    9 827 rows browsable — fifty rows on screen, and a fixed pager instead of a
    "Load more" buried under 3 380 px of cards. */

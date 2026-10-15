@@ -2614,7 +2614,7 @@ window.__ModuleLoader__.load({
           h('div', { className: natif ? natif.rowText : 'kbr-txt' },
             h('div', { className: natif ? natif.title : undefined }, 'Rename Chat session after each recap'),
             h('div', { className: natif ? natif.desc : undefined }, oui
-              ? 'On: when a chantier ends, the chat is re-titled to match what was actually done. The category icon is an SVG — no emoji is written into the title.'
+              ? 'On: when a work session ends, the chat is re-titled to match what was actually done. The category icon is an SVG — no emoji is written into the title.'
               : 'Off: the title set when the chat started is kept. The category icon is an SVG — no emoji is written into the title.')),
           h('div', { className: 'kbr-oui-non' + (natif && natif.ctrl ? ' ' + natif.ctrl : ''), role: 'group', 'aria-label': 'Rename Chat session after each recap' },
             choix('yes', 'Yes', oui),
