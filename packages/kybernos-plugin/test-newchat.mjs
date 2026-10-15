@@ -202,6 +202,14 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
   ok('tinted tiles, the strip, and the headline / Beta badge are wired without an engine patch')
 }
 
+// 6e. Search everywhere (kybernos-search): the menu row only asks the bundle to open, and only when the bundle is in the boot list
+{
+  assert.ok(/const KB_SR = .*'@local\/kybernos-search'/.test(src), 'the row follows the bundle being present')
+  assert.ok(/KB_SR === true \? row\('search', Icon\('search', 15\), kbt\('kbui\.search'\)/.test(src) && /window\.__KB_SEARCH__\.open\(\)/.test(src), 'the row opens the bundle\'s popup, guarded')
+  assert.ok(/'kbui\.search': \{ kybernos: 'Rechercher partout', en: 'Search everywhere' \}/.test(src), 'the row has both languages')
+  ok('the Search everywhere menu row is wired to the kybernos-search opener, in both languages')
+}
+
 // 7. the menu row and the hiding are wired
 {
   assert.ok(/KB_KY === true \? row\('cloudcomputer'/.test(src), 'the Cloud Computer row shows with the Kyber satellite')

@@ -148,6 +148,7 @@
     { "dir": "kybernos-multi-device", "nom": "@local/kybernos-multi-device" },
     { "dir": "kybernos-dashboards", "nom": "@local/kybernos-dashboards" },
     { "dir": "kybernos-summary", "nom": "@local/kybernos-summary" },
-    { "dir": "kybernos-kyber", "nom": "@local/kybernos-kyber" }
+    { "dir": "kybernos-kyber", "nom": "@local/kybernos-kyber" },
+    { "dir": "kybernos-search", "nom": "@local/kybernos-search" }
   ]
 }

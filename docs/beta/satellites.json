@@ -4,56 +4,454 @@
   "socle": {
     "commentaire": "Toujours livré. Pas d'option d'activation : le master déclare les slots de ces bundles, il ne peut pas s'en passer.",
     "bundles": [
-      { "dir": "kybernos-plugin", "nom": "@local/kybernos", "tier": 1, "obligatoire": true, "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_signaler_retour", "poids_ko": 8090 },
-      { "dir": "kybernos-hub", "nom": "@local/kybernos-hub", "tier": 1, "obligatoire": false, "role": "hub : suit si les démarrages mènent à une GUI utilisable, recommande le mode sans échec (reste actif en mode sans échec)", "poids_ko": 28 },
-      { "dir": "kybernos-theme", "nom": "@local/kybernos-theme", "tier": 1, "obligatoire": true, "role": "thème (mode, palettes, fond, police) — la langue et le RTL sont dans le satellite kybernos-language", "poids_ko": 230 },
-      { "dir": "kybernos-sessions", "nom": "@local/kybernos-sessions", "tier": 1, "obligatoire": true, "role": "sessions, garde des fichiers chauds, catégories", "poids_ko": 372 },
-      { "dir": "kybernos-skills", "nom": "@local/kybernos-skills", "tier": 1, "obligatoire": true, "role": "skills, marketplace — slot 'main.kybernos-skills' déclaré par le master", "poids_ko": 172 }
+      {
+        "dir": "kybernos-plugin",
+        "nom": "@local/kybernos",
+        "tier": 1,
+        "obligatoire": true,
+        "role": "master : 20 modules client, 30+ routes hôte, outil kybernos_signaler_retour",
+        "poids_ko": 8090
+      },
+      {
+        "dir": "kybernos-hub",
+        "nom": "@local/kybernos-hub",
+        "tier": 1,
+        "obligatoire": false,
+        "role": "hub : suit si les démarrages mènent à une GUI utilisable, recommande le mode sans échec (reste actif en mode sans échec)",
+        "poids_ko": 28
+      },
+      {
+        "dir": "kybernos-theme",
+        "nom": "@local/kybernos-theme",
+        "tier": 1,
+        "obligatoire": true,
+        "role": "thème (mode, palettes, fond, police) — la langue et le RTL sont dans le satellite kybernos-language",
+        "poids_ko": 230
+      },
+      {
+        "dir": "kybernos-sessions",
+        "nom": "@local/kybernos-sessions",
+        "tier": 1,
+        "obligatoire": true,
+        "role": "sessions, garde des fichiers chauds, catégories",
+        "poids_ko": 372
+      },
+      {
+        "dir": "kybernos-skills",
+        "nom": "@local/kybernos-skills",
+        "tier": 1,
+        "obligatoire": true,
+        "role": "skills, marketplace — slot 'main.kybernos-skills' déclaré par le master",
+        "poids_ko": 172
+      }
     ]
   },
   "satellites": {
     "commentaire": "Débranchables. tier 2 = indépendants, tier 3 = modules de rendu lourds (libs tierces).",
     "bundles": [
-      { "dir": "kybernos-language", "nom": "@local/kybernos-language", "tier": 2, "obligatoire": false, "role": "langue d'interface : liste ISO, traduction LLM de Kybernos et des écrans DSH, dir/lang sur <html>", "poids_ko": 80, "lib_vendor": null },
-      { "dir": "kybernos-relance", "nom": "@local/kybernos-relance", "tier": 2, "obligatoire": false, "role": "relance DSH, outil relancer_dsh", "poids_ko": 52, "lib_vendor": null },
-      { "dir": "kybernos-composio", "nom": "@local/kybernos-composio", "tier": 2, "obligatoire": false, "role": "connecteurs Composio", "poids_ko": 536, "lib_vendor": null },
-      { "dir": "kybernos-cloud", "nom": "@local/kybernos-cloud", "tier": 2, "obligatoire": false, "role": "cloud, mémoire, outils memory_search/memory_write", "poids_ko": 328, "lib_vendor": null },
-      { "dir": "kybernos-models", "nom": "@local/kybernos-models", "tier": 2, "obligatoire": false, "role": "catalogue de modèles", "poids_ko": 320, "lib_vendor": null },
-      { "dir": "kybernos-slash", "nom": "@local/kybernos-slash", "tier": 2, "obligatoire": false, "role": "commandes / (slash)", "poids_ko": 248, "lib_vendor": null },
-      { "dir": "kybernos-maintenance", "nom": "@local/kybernos-maintenance", "tier": 2, "obligatoire": false, "role": "maintenance, outil install_bundle", "poids_ko": 68, "lib_vendor": null },
-      { "dir": "kybernos-flow", "nom": "@local/kybernos-flow", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "file d'attente réordonnable (glisser), auto-continue, route /kybernos/queue-move", "poids_ko": 88, "lib_vendor": null },
-      { "dir": "kybernos-free-llms", "nom": "@local/kybernos-free-llms", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "modèles gratuits OpenCode Zen sans compte : passerelle /free-llms/v1, panneau Réglages, activation au wizard", "poids_ko": 74, "lib_vendor": null },
-      { "dir": "kybernos-auto", "nom": "@local/kybernos-auto", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "mode Auto : routage des délégations par classe, whitelist, état par session", "poids_ko": 76, "lib_vendor": null },
-      { "dir": "kybernos-bricks", "nom": "@local/kybernos-bricks", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau Briques : maquettes isométriques pilotées par le chat, outil animer_briques", "poids_ko": 108, "lib_vendor": null },
-      { "dir": "kybernos-slides", "nom": "@local/kybernos-slides", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau Slides : decks écrits en direct par le chat, outil creer_slides", "poids_ko": 776, "lib_vendor": null },
-      { "dir": "kybernos-modeleur", "nom": "@local/kybernos-modeleur", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau Modeleur : modèles 2D/3D pilotés par le chat, outil modeliser", "poids_ko": 168, "lib_vendor": null },
-      { "dir": "kybernos-motion", "nom": "@local/kybernos-motion", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau Motion : animations (titres, graphiques, compteurs, particules, 3D, personnages, son) créées par le chat, export MP4, outil creer_motion", "poids_ko": 1481, "lib_vendor": "mediabunny, three.js, lottie-web" },
-      { "dir": "kybernos-miniapps", "nom": "@local/kybernos-miniapps", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "« Install as app » : exporte un panneau de la barre droite en app native", "poids_ko": 276, "lib_vendor": null },
-      { "dir": "kybernos-computers", "nom": "@local/kybernos-computers", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "ordinateurs cloud pour les agents (E2B, clé fournie par l'utilisateur)", "poids_ko": 128, "lib_vendor": null },
-      { "dir": "dsh-subagent-maison", "nom": "@local/dsh-subagent-maison", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "Agent connectors: the DSH subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes, turned on from the Workers page", "poids_ko": 28, "lib_vendor": null },
-      { "dir": "kybernos-workers", "nom": "@local/kybernos-workers", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "Workers screen: verified state, install and exposure to the main agent for Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode", "poids_ko": 168, "lib_vendor": null },
-      { "dir": "kybernos-modeles-locaux", "nom": "@local/kybernos-modeles-locaux", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "panneau modèles locaux : détecte la machine, installe un modèle Ollama", "poids_ko": 80, "lib_vendor": null },
-      { "dir": "kybernos-refs", "nom": "@local/kybernos-refs", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "liens markdown des messages en pastilles de référence", "poids_ko": 28, "lib_vendor": null },
-      { "dir": "kybernos-mobile", "nom": "@local/kybernos-mobile", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "the phone: DSH usable on a narrow screen (sidebar as a drawer, Settings stacked, below 700 px only) and, on a paid plan, a QR code that links a phone to this computer through the Kybernos relay, end to end encrypted", "poids_ko": 60, "lib_vendor": null },
-      { "dir": "kybernos-websearch", "nom": "@local/kybernos-websearch", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain", "poids_ko": 60, "lib_vendor": null },
-      { "dir": "kybernos-memory", "nom": "@local/kybernos-memory", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "page Memory & Lessons learned (mémoire du compte + leçons par Agent Team), leçons injectées par session, interrupteurs, outils lesson_write/lesson_search", "poids_ko": 140, "lib_vendor": null },
-      { "dir": "kybernos-atlas", "nom": "@local/kybernos-atlas", "tier": 2, "obligatoire": false, "role": "Atlas: read-only map of projects, agent teams, skills, memory, automations and apps, with what is broken or unused", "poids_ko": 168, "lib_vendor": null },
-      { "dir": "kybernos-changes", "nom": "@local/kybernos-changes", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "une pastille sous le composer : où en est le travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite ; mode Simple / Développeur ; remplace les quatre pilules git de Sessions tant qu'elle est active", "poids_ko": 40, "lib_vendor": null },
-      { "dir": "kybernos-usage", "nom": "@local/kybernos-usage", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "une pastille sous le composer et une page Réglages : la fenêtre la plus chargée de votre plan (donnée par le serveur, en pourcentage) ou le coût de la session sur votre propre clé ; le détail par jour, modèle et session ; un budget qui prévient", "poids_ko": 40, "lib_vendor": null },
-      { "dir": "kybernos-multi-device", "nom": "@local/kybernos-multi-device", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "des workspaces avec ou sans dossier : Create propose un dossier privé dans Documents/Kybernos, et l'onglet Détails montre où le workspace travaille ; l'exécution et les appareils y sont un aperçu grisé des prochaines versions", "poids_ko": 48, "lib_vendor": null },
-      { "dir": "kybernos-call", "nom": "@local/kybernos-call", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "appels vocaux depuis n'importe quelle session (bouton sous le message, page Réglages › Appels, voix du membre, langues, voix clonée et visage en option) ; les boutons Appel / Vidéo des membres d'équipe n'apparaissent qu'avec lui", "poids_ko": 960, "lib_vendor": "livekit-client 2.22.3", "lib_poids_ko": 580, "chargement": "paresseux" },
-      { "dir": "dsh-mermaid", "nom": "@local/dsh-mermaid", "tier": 3, "obligatoire": false, "role": "rendu des fences ```mermaid en SVG", "poids_ko": 6042, "lib_vendor": "mermaid 11.14 + katex", "lib_poids_ko": 3072, "chargement": "paresseux" },
-      { "dir": "dsh-db-viewer", "nom": "@local/dsh-db-viewer", "tier": 3, "obligatoire": false, "role": "visualisation de bases SQLite/Postgres", "poids_ko": 2150, "lib_vendor": "echarts", "lib_poids_ko": 2048, "chargement": "paresseux" },
-      { "dir": "dsh-media-player", "nom": "@local/dsh-media-player", "tier": 3, "obligatoire": false, "role": "lecteur audio/vidéo dans la barre latérale", "poids_ko": 1126, "lib_vendor": null, "chargement": "immediat" },
-      { "dir": "kybernos-terminal", "nom": "@local/kybernos-terminal", "tier": 3, "obligatoire": false, "role": "blocs de commandes du chat habillés en terminal, avec un bouton pour les lancer", "poids_ko": 14, "lib_vendor": null, "chargement": "immediat" },
-      { "dir": "kybernos-dashboards", "nom": "@local/kybernos-dashboards", "tier": 3, "obligatoire": false, "role": "page Dashboards avant Agent Teams : des dashboards construits par chat, avec un aperçu en direct dans la barre latérale droite", "poids_ko": 185, "lib_vendor": null, "chargement": "immediat" },
-      { "dir": "kybernos-summary", "nom": "@local/kybernos-summary", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "un onglet Résumé dans le panneau de droite du chat : les agents, la liste des tâches, les compétences et outils utilisés et les fichiers écrits, lus dans le navigateur à partir de ce que le chat contient déjà", "poids_ko": 16, "lib_vendor": null },
-      { "dir": "kybernos-kyber", "nom": "@local/kybernos-kyber", "tier": 2, "obligatoire": false, "defaut": "actif", "role": "un onglet Kyber dans le panneau de droite du chat : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, lus depuis le serveur", "poids_ko": 12, "lib_vendor": null }
+      {
+        "dir": "kybernos-language",
+        "nom": "@local/kybernos-language",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "langue d'interface : liste ISO, traduction LLM de Kybernos et des écrans DSH, dir/lang sur <html>",
+        "poids_ko": 80,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-relance",
+        "nom": "@local/kybernos-relance",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "relance DSH, outil relancer_dsh",
+        "poids_ko": 52,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-composio",
+        "nom": "@local/kybernos-composio",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "connecteurs Composio",
+        "poids_ko": 536,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-cloud",
+        "nom": "@local/kybernos-cloud",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "cloud, mémoire, outils memory_search/memory_write",
+        "poids_ko": 328,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-models",
+        "nom": "@local/kybernos-models",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "catalogue de modèles",
+        "poids_ko": 320,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-slash",
+        "nom": "@local/kybernos-slash",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "commandes / (slash)",
+        "poids_ko": 248,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-maintenance",
+        "nom": "@local/kybernos-maintenance",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "maintenance, outil install_bundle",
+        "poids_ko": 68,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-flow",
+        "nom": "@local/kybernos-flow",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "file d'attente réordonnable (glisser), auto-continue, route /kybernos/queue-move",
+        "poids_ko": 88,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-free-llms",
+        "nom": "@local/kybernos-free-llms",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "modèles gratuits OpenCode Zen sans compte : passerelle /free-llms/v1, panneau Réglages, activation au wizard",
+        "poids_ko": 74,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-auto",
+        "nom": "@local/kybernos-auto",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "mode Auto : routage des délégations par classe, whitelist, état par session",
+        "poids_ko": 76,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-bricks",
+        "nom": "@local/kybernos-bricks",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "panneau Briques : maquettes isométriques pilotées par le chat, outil animer_briques",
+        "poids_ko": 108,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-slides",
+        "nom": "@local/kybernos-slides",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "panneau Slides : decks écrits en direct par le chat, outil creer_slides",
+        "poids_ko": 776,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-modeleur",
+        "nom": "@local/kybernos-modeleur",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "panneau Modeleur : modèles 2D/3D pilotés par le chat, outil modeliser",
+        "poids_ko": 168,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-motion",
+        "nom": "@local/kybernos-motion",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "panneau Motion : animations (titres, graphiques, compteurs, particules, 3D, personnages, son) créées par le chat, export MP4, outil creer_motion",
+        "poids_ko": 1481,
+        "lib_vendor": "mediabunny, three.js, lottie-web"
+      },
+      {
+        "dir": "kybernos-miniapps",
+        "nom": "@local/kybernos-miniapps",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "« Install as app » : exporte un panneau de la barre droite en app native",
+        "poids_ko": 276,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-computers",
+        "nom": "@local/kybernos-computers",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "ordinateurs cloud pour les agents (E2B, clé fournie par l'utilisateur)",
+        "poids_ko": 128,
+        "lib_vendor": null
+      },
+      {
+        "dir": "dsh-subagent-maison",
+        "nom": "@local/dsh-subagent-maison",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "Agent connectors: the DSH subagent providers for OpenCode, Gemini CLI, Qwen Code and Hermes, turned on from the Workers page",
+        "poids_ko": 28,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-workers",
+        "nom": "@local/kybernos-workers",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "Workers screen: verified state, install and exposure to the main agent for Claude Code, Codex, Gemini, OpenCode, Qwen, Hermes and ZCode",
+        "poids_ko": 168,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-modeles-locaux",
+        "nom": "@local/kybernos-modeles-locaux",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "panneau modèles locaux : détecte la machine, installe un modèle Ollama",
+        "poids_ko": 80,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-refs",
+        "nom": "@local/kybernos-refs",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "liens markdown des messages en pastilles de référence",
+        "poids_ko": 28,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-mobile",
+        "nom": "@local/kybernos-mobile",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "the phone: DSH usable on a narrow screen (sidebar as a drawer, Settings stacked, below 700 px only) and, on a paid plan, a QR code that links a phone to this computer through the Kybernos relay, end to end encrypted",
+        "poids_ko": 60,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-websearch",
+        "nom": "@local/kybernos-websearch",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "web search for the agents with or without an API key: free engines out of the box, keyed engines when you add one, one fallback chain",
+        "poids_ko": 60,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-memory",
+        "nom": "@local/kybernos-memory",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "page Memory & Lessons learned (mémoire du compte + leçons par Agent Team), leçons injectées par session, interrupteurs, outils lesson_write/lesson_search",
+        "poids_ko": 140,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-atlas",
+        "nom": "@local/kybernos-atlas",
+        "tier": 2,
+        "obligatoire": false,
+        "role": "Atlas: read-only map of projects, agent teams, skills, memory, automations and apps, with what is broken or unused",
+        "poids_ko": 168,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-changes",
+        "nom": "@local/kybernos-changes",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "une pastille sous le composer : où en est le travail (modifié, sauvegardé, sur GitHub, dans le projet) et quoi faire ensuite ; mode Simple / Développeur ; remplace les quatre pilules git de Sessions tant qu'elle est active",
+        "poids_ko": 40,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-usage",
+        "nom": "@local/kybernos-usage",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "une pastille sous le composer et une page Réglages : la fenêtre la plus chargée de votre plan (donnée par le serveur, en pourcentage) ou le coût de la session sur votre propre clé ; le détail par jour, modèle et session ; un budget qui prévient",
+        "poids_ko": 40,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-multi-device",
+        "nom": "@local/kybernos-multi-device",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "des workspaces avec ou sans dossier : Create propose un dossier privé dans Documents/Kybernos, et l'onglet Détails montre où le workspace travaille ; l'exécution et les appareils y sont un aperçu grisé des prochaines versions",
+        "poids_ko": 48,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-call",
+        "nom": "@local/kybernos-call",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "appels vocaux depuis n'importe quelle session (bouton sous le message, page Réglages › Appels, voix du membre, langues, voix clonée et visage en option) ; les boutons Appel / Vidéo des membres d'équipe n'apparaissent qu'avec lui",
+        "poids_ko": 960,
+        "lib_vendor": "livekit-client 2.22.3",
+        "lib_poids_ko": 580,
+        "chargement": "paresseux"
+      },
+      {
+        "dir": "dsh-mermaid",
+        "nom": "@local/dsh-mermaid",
+        "tier": 3,
+        "obligatoire": false,
+        "role": "rendu des fences ```mermaid en SVG",
+        "poids_ko": 6042,
+        "lib_vendor": "mermaid 11.14 + katex",
+        "lib_poids_ko": 3072,
+        "chargement": "paresseux"
+      },
+      {
+        "dir": "dsh-db-viewer",
+        "nom": "@local/dsh-db-viewer",
+        "tier": 3,
+        "obligatoire": false,
+        "role": "visualisation de bases SQLite/Postgres",
+        "poids_ko": 2150,
+        "lib_vendor": "echarts",
+        "lib_poids_ko": 2048,
+        "chargement": "paresseux"
+      },
+      {
+        "dir": "dsh-media-player",
+        "nom": "@local/dsh-media-player",
+        "tier": 3,
+        "obligatoire": false,
+        "role": "lecteur audio/vidéo dans la barre latérale",
+        "poids_ko": 1126,
+        "lib_vendor": null,
+        "chargement": "immediat"
+      },
+      {
+        "dir": "kybernos-terminal",
+        "nom": "@local/kybernos-terminal",
+        "tier": 3,
+        "obligatoire": false,
+        "role": "blocs de commandes du chat habillés en terminal, avec un bouton pour les lancer",
+        "poids_ko": 14,
+        "lib_vendor": null,
+        "chargement": "immediat"
+      },
+      {
+        "dir": "kybernos-dashboards",
+        "nom": "@local/kybernos-dashboards",
+        "tier": 3,
+        "obligatoire": false,
+        "role": "page Dashboards avant Agent Teams : des dashboards construits par chat, avec un aperçu en direct dans la barre latérale droite",
+        "poids_ko": 185,
+        "lib_vendor": null,
+        "chargement": "immediat"
+      },
+      {
+        "dir": "kybernos-summary",
+        "nom": "@local/kybernos-summary",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "un onglet Résumé dans le panneau de droite du chat : les agents, la liste des tâches, les compétences et outils utilisés et les fichiers écrits, lus dans le navigateur à partir de ce que le chat contient déjà",
+        "poids_ko": 16,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-kyber",
+        "nom": "@local/kybernos-kyber",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "un onglet Kyber dans le panneau de droite du chat : où votre assistant vous répond (Telegram) et l'ordinateur cloud sur lequel il travaille, lus depuis le serveur",
+        "poids_ko": 12,
+        "lib_vendor": null
+      },
+      {
+        "dir": "kybernos-search",
+        "nom": "@local/kybernos-search",
+        "tier": 2,
+        "obligatoire": false,
+        "defaut": "actif",
+        "role": "recherche partout : le contenu des chats, les skills, mémoires, leçons, créations, automations et équipes",
+        "poids_ko": 40,
+        "lib_vendor": null
+      }
     ]
   },
   "ordre_montage": {
     "commentaire": "Ordre de dsh.profile.bundles. Le socle d'abord, puis les satellites activés dans cet ordre. Un satellite désactivé est simplement omis de la liste.",
-    "socle": ["@local/kybernos-theme", "@local/kybernos-models", "@local/kybernos-skills", "@local/kybernos-slash", "@local/kybernos-sessions", "@local/kybernos-relance", "@local/kybernos-composio", "@local/kybernos-cloud", "@local/kybernos"],
-    "satellites": ["@local/dsh-media-player", "@local/dsh-mermaid", "@local/dsh-db-viewer", "@local/kybernos-maintenance", "@local/kybernos-language", "@local/kybernos-flow", "@local/kybernos-free-llms", "@local/kybernos-auto", "@local/kybernos-bricks", "@local/kybernos-slides", "@local/kybernos-modeleur", "@local/kybernos-motion", "@local/kybernos-miniapps", "@local/kybernos-computers", "@local/dsh-subagent-maison", "@local/kybernos-workers", "@local/kybernos-modeles-locaux", "@local/kybernos-refs", "@local/kybernos-mobile", "@local/kybernos-websearch", "@local/kybernos-memory", "@local/kybernos-atlas", "@local/kybernos-changes", "@local/kybernos-call", "@local/kybernos-terminal", "@local/kybernos-usage", "@local/kybernos-multi-device", "@local/kybernos-dashboards", "@local/kybernos-summary", "@local/kybernos-kyber"]
+    "socle": [
+      "@local/kybernos-theme",
+      "@local/kybernos-models",
+      "@local/kybernos-skills",
+      "@local/kybernos-slash",
+      "@local/kybernos-sessions",
+      "@local/kybernos-relance",
+      "@local/kybernos-composio",
+      "@local/kybernos-cloud",
+      "@local/kybernos"
+    ],
+    "satellites": [
+      "@local/dsh-media-player",
+      "@local/dsh-mermaid",
+      "@local/dsh-db-viewer",
+      "@local/kybernos-maintenance",
+      "@local/kybernos-language",
+      "@local/kybernos-flow",
+      "@local/kybernos-free-llms",
+      "@local/kybernos-auto",
+      "@local/kybernos-bricks",
+      "@local/kybernos-slides",
+      "@local/kybernos-modeleur",
+      "@local/kybernos-motion",
+      "@local/kybernos-miniapps",
+      "@local/kybernos-computers",
+      "@local/dsh-subagent-maison",
+      "@local/kybernos-workers",
+      "@local/kybernos-modeles-locaux",
+      "@local/kybernos-refs",
+      "@local/kybernos-mobile",
+      "@local/kybernos-websearch",
+      "@local/kybernos-memory",
+      "@local/kybernos-atlas",
+      "@local/kybernos-changes",
+      "@local/kybernos-call",
+      "@local/kybernos-terminal",
+      "@local/kybernos-usage",
+      "@local/kybernos-multi-device",
+      "@local/kybernos-dashboards",
+      "@local/kybernos-summary",
+      "@local/kybernos-kyber",
+      "@local/kybernos-search"
+    ]
   }
 }
