@@ -113,4 +113,9 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
   ok('every other channel says « soon » and is never offered', T.L('soon') === 'Bientôt' && /BRAND\.\w+\(22\)/.test(src) && !/whatsapp[^\n]*onClick/i.test(src))
 }
 
+{
+  ok('a server with no Kyby routes (not_found) is said in words, not as a generic failure', T.chatError('not_found') === 'err_not_found' && T.S.err_not_found !== undefined && T.S.unsupportedH !== undefined)
+  ok('the chat shows no box when the server cannot hold the conversation', /c\.unsupported/.test(src) && /data-state': 'unsupported'/.test(src))
+}
+
 process.exit(fail > 0 ? 1 : 0)
