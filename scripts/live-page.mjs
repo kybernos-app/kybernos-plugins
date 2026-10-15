@@ -69,6 +69,9 @@ export async function openLivePage(opts = {}) {
   // host: a test must never write there (a pseudo-translation would replace a real one).
   // Off in every page of the test browser, unless the test asks for it (opts.hostStore).
   if (opts.hostStore !== true) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_HOST_STORE__ = false' })
+  // The translation run belongs to the host now: a test browser keeps it in the page (where its pseudo-translating stub is),
+  // unless the test asks for the host's own run (opts.hostJob) — which would call the real model.
+  if (opts.hostJob !== true) await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__KB_I18N_HOST_JOB__ = false' })
   // The language page treats a ⟦…⟧ text as a test mark, not as a translation (it would be one a user never wants).
   // The checks that translate with the pseudo-translating stub need it to count as real: say so, unless a check
   // is about that very guard (`pseudoOk: false`, and it then sets the flag itself).

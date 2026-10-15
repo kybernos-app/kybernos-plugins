@@ -187,5 +187,23 @@ check('aucun modèle résoluble → erreur nette', await (async () => { const r 
   check('lot plafonné à ' + I18N_BATCH_MAX + ' paires', Object.keys(sent).length === I18N_BATCH_MAX, Object.keys(sent).length)
 }
 
+console.log('\n── a run the host drives can stop the call (i18n-job.mjs) ──')
+{
+  // A model that never answers: only an abort ends the call. The signal of the run is passed through to it.
+  let seen = null
+  const hang = { stream(p) { seen = p.signal; return (async function* () { await new Promise((resolve) => { if (p.signal.aborted) resolve(); else p.signal.addEventListener('abort', resolve, { once: true }) }); yield { type: 'finish', reason: { kind: 'aborted', failure: { code: 'ABORTED', message: 'x' } } } })() } }
+  const outer = new AbortController()
+  const pending = translateBatch({ lang: 'ar', batch, signal: outer.signal }, deps(hang, { timeoutMs: 60000 }))
+  await new Promise((r) => setTimeout(r, 20))
+  outer.abort()
+  const r = await Promise.race([pending, new Promise((res) => setTimeout(() => res('still waiting'), 2000))])
+  check('aborting the run ends the model call at once, not after its timeout', r !== 'still waiting' && r.ok === false && /ABORTED|interrompu/.test(r.error), r)
+  check('the model call got a signal of its own', seen !== null && typeof seen.aborted === 'boolean')
+  const already = new AbortController(); already.abort()
+  const r2 = await translateBatch({ lang: 'ar', batch, signal: already.signal }, deps(hang, { timeoutMs: 60000 }))
+  check('a run already stopped makes no call that lasts', r2.ok === false && /ABORTED|interrompu/.test(r2.error), r2)
+  check('a signal from the HTTP body is ignored (a JSON body cannot carry one)', await (async () => { const l = fakeLlm({ 'groq/llama-3.3-70b-versatile': ok({ 'tb.filters': 'x', 'tb.reset': 'y' }) }); const q = await translateBatch({ lang: 'ar', batch, signal: { aborted: true } }, deps(l)); return q.ok === true })())
+}
+
 console.log('\n' + pass + ' ✓  ' + fail + ' ✗')
 process.exit(fail === 0 ? 0 : 1)

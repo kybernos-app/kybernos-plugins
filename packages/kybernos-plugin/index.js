@@ -24,7 +24,8 @@ import { poserPresetLegacy, replierSurStandard, activerSubagentClaude } from './
 import { poserForceProposition } from './agents-proposition.mjs'
 import { translateBatch as i18nTranslateBatch, modelList as i18nModelList } from './i18n-translate.mjs'
 import { wsConsoleKeyReply } from './ws-console-key.mjs'
-import { serveI18nStore } from './i18n-store.mjs'
+import { createI18nStore, serveI18nStore } from './i18n-store.mjs'
+import { createJobRunner, serveJobs } from './i18n-job.mjs'
 // ── Le plafond de retries (29/09/2026) ──────────────────────────────────────
 // Un subagent « ne répondait plus » des heures : maxRetries 500 × backoff 30 s.
 // Le moteur donne déjà un défaut sain (5 essais) aux fournisseurs sans
@@ -4759,6 +4760,31 @@ function boot(ctx) {
       jsonBetween: kbJsonBetween,
     })
     const i18nModels = async () => i18nModelList({ catalog: readCatalog(), brainKey: (await kbBrainSettings()).brain })
+    // The translation RUN lives here, not in a tab (i18n-job.mjs): one runner per DSH home, created on first use. The page
+    // hands the texts over once and reads the state; a run the previous process left running is picked up at boot.
+    let i18nJobs = null
+    const i18nJobRunner = async () => {
+      const home = await dshHomeOrNull()
+      if (home === null) return null
+      const dir = joinPath(joinPath(home, 'kybernos'), 'i18n')
+      if (i18nJobs === null || i18nJobs.dir !== dir) {
+        i18nJobs = { dir, runner: createJobRunner({ dir, store: createI18nStore({ dir }), translate: (args) => i18nTranslate(args), log: (line) => { try { console.log('[kybers] i18n job: ' + line) } catch (e) { /* console */ } } }) }
+      }
+      return i18nJobs.runner
+    }
+    // Boot: an interrupted run goes on by itself unless the automatic resume is switched off (settings.json `i18nAutoResume: false`).
+    // Late and guarded: the model catalogue and the keys must be there, and nothing here may stop the boot.
+    const resumeI18nJobs = () => {
+      setTimeout(() => {
+        Promise.resolve().then(async () => {
+          const runner = await i18nJobRunner()
+          if (runner === null) return
+          const auto = (await kbBrainSettings()).i18nAutoResume !== false
+          const r = runner.resumeInterrupted({ auto })
+          for (const j of r) console.log('[kybers] i18n job ' + j.lang + (j.resumed ? ' resumed after a restart' : ' left paused (interrupted)'))
+        }).catch((e) => { try { console.log('[kybers] i18n job resume: ' + errText(e)) } catch (e2) { /* console */ } })
+      }, 8000)
+    }
     // Index complet (sans filtre ni limite): seules les sessions a runCount >= 1 sont gardees.
     const buildRunsIndex = async () => {
       const listing = await listIndexJournals()
@@ -10201,6 +10227,11 @@ function boot(ctx) {
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-store', handler: (req, res) => serveI18nStore(req, res, {
         home: dshHomeOrNull, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
       }) }), 'kybernos: route i18n-store')
+      // The run itself: start / pause / resume / cancel / acknowledge, and its state. See i18n-job.mjs.
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/i18n-job', handler: (req, res) => serveJobs(req, res, {
+        runner: i18nJobRunner, sameOriginStrict, sameOriginLax, readJson: readJsonBody, query: queryOf, send: sendJson,
+      }) }), 'kybernos: route i18n-job')
+      try { resumeI18nJobs() } catch (e) { /* the boot does not depend on it */ }
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/team-cap', handler: async (req, res) => {
         if (req.method !== 'GET') return sendJson(res, 405, { ok: false, error: 'GET attendu' })
         sendJson(res, 200, { ok: true, cap: readTeamCap() })
