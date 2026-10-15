@@ -463,9 +463,9 @@ console.log('── source guards ──')
   // The page reads /state; the update notice (own feature, same bundle) reads /update, asks the Suite's signed catalogue and, only
   // when the user presses "Update now", starts and follows the Suite's own update. Nothing else leaves the page.
   const appelsReseau = [...SOURCE.matchAll(/fetch\('([^']+)'/g)].map((m) => m[1].split('?')[0])
-  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
+  const attendus = ['/kybernos-hub/catalogue/refresh', '/kybernos-hub/engine', '/kybernos-hub/update', '/kybernos-hub/update/status', '/kybernos-maintenance/state', '/kybernos-maintenance/update']
   check('the module only touches the page: no engine patch, and the only network calls are the maintenance reads and the Suite\'s own routes', !/XMLHttpRequest|WebSocket|eval\(|new Function/.test(SOURCE) && appelsReseau.slice().sort().join() === attendus.join(), appelsReseau)
-  check('the two writes (refresh, update) are POSTs to the Suite, and "Update now" asks for an explicit confirm', /fetch\('\/kybernos-hub\/catalogue\/refresh', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/update', \{ method: 'POST'/.test(SOURCE) && /confirm: true/.test(SOURCE))
+  check('the writes (refresh, update, engine fix) are POSTs to the Suite, and "Update now" asks for an explicit confirm', /fetch\('\/kybernos-hub\/catalogue\/refresh', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/update', \{ method: 'POST'/.test(SOURCE) && /fetch\('\/kybernos-hub\/engine', \{ method: 'POST'/.test(SOURCE) && /confirm: true/.test(SOURCE))
   // The About page keeps ONE key (the disclosure). The update notice keeps three more: snooze and skip in localStorage
   // (its own lsGet/lsSet helpers) and the once-per-session card flag in sessionStorage; no other code reaches storage.
   const cles = [...new Set([...SOURCE.matchAll(/'(kybernos\.(?:maintenance|update)\.[a-z]+)'/g)].map((m) => m[1]))].sort()

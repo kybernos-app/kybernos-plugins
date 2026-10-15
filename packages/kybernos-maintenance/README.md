@@ -47,6 +47,20 @@ for host sentences) · `surfaces.mjs` engine audit (also used by `scripts/dsh-li
 reads `VERSION` · `test-about.mjs` tests · `cordis.patch.yml`, `package.json` bundle wiring.
 The bundle is an optional satellite (`obligatoire: false` in `docs/beta/satellites.json`).
 
+## The update dialog (no terminal)
+
+The account menu, the card at launch and the *Update available* dialog share `window.__kbUpdate`. What the dialog offers:
+
+- **A newer signed Suite release** (and this install can apply it: not a git checkout, not hosted): *Update now* → the hub downloads,
+  verifies, snapshots, installs, restarts (`POST /kybernos-hub/update`, followed on `GET /kybernos-hub/update/status`).
+- **The engine is outside the zone this plugin was tested with** (an `moteur` item with a target): *Fix automatically* →
+  `POST /kybernos-hub/engine { confirm: true, version }`. The hub accepts only a version inside the `dsh-compat.json` zone, runs the
+  lifecycle robot (`upgrade <version>`: snapshot first, boot check, automatic rollback), then the dialog restarts DSH through
+  `/kybernos-hub/relaunch`, exactly like the Suite update. The terminal command stays in a folded *For developers* section.
+- A hosted instance (server, container) is rebuilt, never patched: it keeps the instructions, no button.
+
+Tests: `test-engine-dialog.mjs` (the words and the wiring), and `packages/kybernos-hub/test-engine-route.mjs` (the route).
+
 ## Tests
 
 ```bash

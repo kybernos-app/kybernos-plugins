@@ -706,6 +706,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         '.kbup-steps{margin:14px 0 0;padding:0;list-style:none;counter-reset:s}',
         '.kbup-steps li{position:relative;margin:0 0 8px;padding-inline-start:26px;counter-increment:s}',
         '.kbup-steps li::before{content:counter(s);position:absolute;inset-inline-start:0;top:1px;width:18px;height:18px;border-radius:50%;background:var(--dsw-alias-interactive-bg-hover);font-size:11px;font-weight:650;display:flex;align-items:center;justify-content:center}',
+        '.kbup-dev{margin:12px 0 0;color:var(--dsw-alias-label-secondary);font-size:12.5px}.kbup-dev summary{cursor:pointer}',
         '.kbup-cmd{display:flex;align-items:center;gap:8px;margin-top:6px;padding:7px 8px 7px 10px;border-radius:10px;background:var(--dsw-alias-bg-base,rgba(0,0,0,.25));font-family:ui-monospace,Menlo,monospace;font-size:12px}',
         '.kbup-cmd code{flex:1 1 auto;min-width:0;overflow-x:auto;white-space:nowrap}',
         '.kbup-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}',
@@ -722,6 +723,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
     /** The words for one step of the Suite's update, from GET /kybernos-hub/update/status. */
     const motMaj = (t) => {
       if (t === null || typeof t !== 'object') return ''
+      if (t.moteur === true) {
+        const v = String(t.version || '')
+        if (t.etat === 'installation' || t.etat === 'telechargement') return kbp('Remise de DSH sur la version testée (une photo est prise avant)…', 'Putting DSH back on the tested version (a snapshot is taken first)…')
+        if (t.etat === 'relance') return '✓ ' + kbp('DSH ' + v + ' est en place. DSH redémarre : la page se recharge toute seule (sinon, rechargez-la).', 'DSH ' + v + ' is in place. DSH is restarting: the page reloads by itself (otherwise, reload it).')
+        if (t.etat === 'termine') return '✓ ' + kbp('DSH ' + v + ' est en place. Redémarrez DSH pour terminer.', 'DSH ' + v + ' is in place. Restart DSH to finish.')
+        if (t.etat === 'echec') return kbp('DSH n’a pas pu être remis sur la version testée ; rien n’a changé.', 'DSH could not be put back on the tested version; nothing changed.')
+        return ''
+      }
       if (t.etat === 'telechargement') return kbp('Téléchargement et vérification de l’archive…', 'Downloading and checking the archive…')
       if (t.etat === 'extraction') return kbp('Extraction…', 'Extracting…')
       if (t.etat === 'installation') return kbp('Installation (une photo est prise avant)…', 'Installing (a snapshot is taken first)…')
@@ -740,12 +749,15 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       } catch (e) { return false }
     }
     /** Starts the Suite's update from the dialog (the host does the work; this only asks and follows). */
-    const updRun = async (btn, statut, fin) => {
+    const updRun = async (btn, statut, fin, moteurVersion) => {
       btn.disabled = true
       statut.textContent = kbp('Démarrage…', 'Starting…')
       let r = null
       try {
-        const x = await fetch('/kybernos-hub/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: true }) })
+        // The Suite update, or (when `moteurVersion` is given) the engine put back on a version this plugin was tested with.
+        const x = typeof moteurVersion === 'string' && moteurVersion !== ''
+          ? await fetch('/kybernos-hub/engine', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: true, version: moteurVersion }) })
+          : await fetch('/kybernos-hub/update', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: true }) })
         r = { code: x.status, body: await x.json().catch(() => null) }
       } catch (e) { r = null }
       if (r === null || r.code !== 202) {
@@ -763,7 +775,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
           try { window.__kbUpdate = null; window.dispatchEvent(new Event('kybernos:update')) } catch (e) { /* no window */ }
           // The click said "install and restart": restart now. If the hub cannot (no relaunch tool on this machine) the dialog keeps
           // saying "Restart DSH to finish", as before.
-          statut.textContent = motMaj({ etat: 'relance', version: t.version })
+          statut.textContent = motMaj({ etat: 'relance', version: t.version, moteur: t.moteur === true })
           if (await updRelancer() !== true) statut.textContent = motMaj(t)
           return
         }
@@ -812,6 +824,7 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       dlg.appendChild(rows)
 
       let viaSuite = false
+      let viaMoteur = false
       let statutMaj = null
       if (p !== null) {
         if (p.kind === 'moteur' && p.note) dlg.appendChild(upEl('p', 'kbup-note', hs(p.note)))
@@ -843,11 +856,24 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
         } else if (p.kind === 'kybernos') {
           step(kbp('Dans le dépôt, récupérez la dernière version :', 'In the repository, fetch the latest version:'), 'git pull')
           step(kbp('Puis lancez la mise à jour :', 'Then run the update:'), 'node scripts/dsh-lifecycle.mjs upgrade')
+        } else if (p.kind === 'moteur' && pk.heberge !== true && typeof p.cible === 'string' && p.cible !== '') {
+          // The engine is outside what this plugin was tested with: no terminal, one click. The terminal command stays, folded, for developers.
+          viaMoteur = true
+          dlg.appendChild(upEl('p', 'kbup-note', kbp('Kybernos peut remettre DSH sur la version qu’il a testée (' + p.cible + '). Une photo de votre installation est prise avant, DSH redémarre tout seul, et en cas d’échec tout revient à l’état d’avant.',
+            'Kybernos can put DSH back on the version it was tested with (' + p.cible + '). A snapshot of your installation is taken first, DSH restarts by itself, and if anything fails everything goes back to how it was.')))
+          statutMaj = upEl('p', 'kbup-note'); statutMaj.setAttribute('role', 'status'); statutMaj.setAttribute('data-kb', 'upd-status')
+          dlg.appendChild(statutMaj)
+          const dev = upEl('details', 'kbup-dev')
+          dev.appendChild(upEl('summary', null, kbp('Pour les développeurs', 'For developers')))
+          const c = upEl('div', 'kbup-cmd'); c.appendChild(upEl('code', null, 'node scripts/dsh-lifecycle.mjs upgrade ' + p.cible))
+          const cb = upBtn(kbp('Copier', 'Copy'), 'kbup-b', () => updCopy('node scripts/dsh-lifecycle.mjs upgrade ' + p.cible, cb)); c.appendChild(cb)
+          dev.appendChild(c)
+          dlg.appendChild(dev)
         } else {
           step(kbp('Dans un terminal, depuis le dépôt :', 'In a terminal, from the repository:'), 'node scripts/dsh-lifecycle.mjs upgrade')
         }
-        if (viaSuite !== true && mode !== 'heberge') step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
-        if (viaSuite !== true) dlg.appendChild(steps)
+        if (viaSuite !== true && viaMoteur !== true && mode !== 'heberge') step(kbp('Redémarrez DSH si le robot le demande. Une photo est prise avant : en cas d’échec, tout revient à l’état d’avant.', 'Restart DSH if asked. A snapshot is taken first: if anything fails, everything goes back to how it was.'))
+        if (viaSuite !== true && viaMoteur !== true) dlg.appendChild(steps)
       } else if (info !== null && info.checkedAt) {
         let quand = ''
         try { quand = new Date(info.checkedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) } catch (e) { quand = '' }
@@ -864,13 +890,14 @@ html[dir="rtl"] .kbmz-toggle[aria-expanded="true"] .kbmz-chev{transform:scaleX(-
       const grow = upEl('span', 'grow'); foot.appendChild(grow)
       const again = upBtn(kbp('Vérifier à nouveau', 'Check again'), 'kbup-link', () => { again.textContent = kbp('Vérification…', 'Checking…'); void updCheck(true, true) })
       foot.appendChild(again)
-      if (viaSuite === true) {
+      if (viaSuite === true || viaMoteur === true) {
         // Once installed the dialog has nothing left to postpone or skip: only "Close" stays.
         const fin = () => {
           foot.querySelectorAll('.kbup-b').forEach((b) => { if (b !== go) b.remove() })
           go.textContent = kbp('Fermer', 'Close'); go.disabled = false; go.removeAttribute('data-kb'); go.onclick = close
         }
-        const go = upBtn(kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main', () => { void updRun(go, statutMaj, fin) })
+        const go = upBtn(viaMoteur === true ? kbp('Corriger automatiquement', 'Fix automatically') : kbp('Mettre à jour maintenant', 'Update now'), 'kbup-b main',
+          () => { void updRun(go, statutMaj, fin, viaMoteur === true ? p.cible : undefined) })
         go.setAttribute('data-kb', 'upd-go')
         foot.appendChild(go)
       } else if (p !== null && p.kind === 'kybernos' && info.pack && info.pack.depot) {
