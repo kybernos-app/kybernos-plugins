@@ -2853,6 +2853,108 @@ const kbNavTitles = (texts, keys) => texts.map((t, i) => {
 })
 // </kb-nav-titles>
 
+// ── DSH's Settings, opened from outside the sidebar (<kb-open-settings>) ─────────────────────────────────────
+// The sidebar's settings seat renders DSH's ACCOUNT launcher (slot `settings.launcher`) whenever the account plugin is mounted, and
+// the trigger of that launcher opens an account popover (Settings / Feedback / Sign in), not the Settings dialog. Everything that
+// clicked « the trigger of the settings area » to reach Settings therefore opened that popover instead (seen on DSH 0.2.1-alpha.4).
+// The opener of the dialog is the launcher's own `openSettings` prop (contract: SettingsLauncherOwnerProps): read it from React and
+// call it. Fallbacks, in order: the dialog trigger the shell renders when NO launcher is registered, then the launcher's own popover
+// (its first entry is Settings; it is kept invisible while that entry is picked). Nothing depends on a hashed class name: slot
+// names and ARIA are DSH's contract; React's fiber fields have been stable for years and the ladder survives their loss.
+let kbOpeningSettings = false
+const kbReactSettingsOpener = () => {
+  try {
+    const launcher = document.querySelector('[data-slot="settings.launcher"]')
+    if (launcher === null) return null
+    const nodes = [launcher].concat(Array.prototype.slice.call(launcher.querySelectorAll('*'), 0, 6))
+    for (const node of nodes) {
+      const key = Object.keys(node).find((x) => x.indexOf('__reactFiber$') === 0)
+      let fiber = key === undefined ? null : node[key]
+      for (let depth = 0; fiber !== null && fiber !== undefined && depth < 30; depth += 1, fiber = fiber.return) {
+        const p = fiber.memoizedProps
+        if (p === null || p === undefined || typeof p !== 'object') continue
+        // The launcher component itself, then (further up) the settings root that handed it the prop.
+        if (typeof p.openSettings === 'function') return p.openSettings
+        if (p.actions !== null && typeof p.actions === 'object' && typeof p.actions.open === 'function' && typeof p.renderSlot === 'function') return p.actions.open
+      }
+    }
+  } catch (e) { /* React internals moved: the fallbacks are next */ }
+  return null
+}
+/** Opens DSH's Settings dialog. `true` when something was triggered (the popover route finishes a moment later). */
+const kbOpenDshSettings = () => {
+  const opener = kbReactSettingsOpener()
+  if (opener !== null) {
+    try { opener(); return true } catch (e) { /* fall through */ }
+  }
+  try {
+    // An engine older than the account launcher draws the plain trigger: found by ARIA, then by its (hashed) class as before.
+    const dialogTrigger = document.querySelector('[data-slot="sidebar.settings"] button[aria-haspopup="dialog"]')
+    if (dialogTrigger !== null) { dialogTrigger.click(); return true }
+    const legacy = document.querySelector('[class*="settingsArea"] button[class*="trigger"]')
+    if (legacy !== null && legacy.getAttribute('aria-haspopup') !== 'menu' && legacy.closest('[data-slot="settings.launcher"]') === null) { legacy.click(); return true }
+  } catch (e) { /* fall through */ }
+  try {
+    const trigger = document.querySelector('[data-slot="settings.launcher"] button')
+    if (trigger === null) return false
+    const veil = document.createElement('style')
+    veil.textContent = '[role="menu"]{visibility:hidden !important}'
+    document.head.appendChild(veil)
+    kbOpeningSettings = true
+    try { trigger.click() } finally { kbOpeningSettings = false }
+    let tries = 0
+    const pick = () => {
+      tries += 1
+      const item = document.querySelector('[role="menu"] [role="menuitem"]')
+      if (item !== null) {
+        try { item.click() } catch (e) { /* popover gone */ }
+        veil.remove()
+        return
+      }
+      if (tries < 20) { window.setTimeout(pick, 25); return }
+      // No entry showed up: close the popover again and give up quietly.
+      veil.remove()
+      if (trigger.getAttribute('aria-expanded') === 'true') {
+        kbOpeningSettings = true
+        try { trigger.click() } finally { kbOpeningSettings = false }
+      }
+    }
+    window.setTimeout(pick, 0)
+    return true
+  } catch (e) { return false }
+}
+/**
+ * A click on DSH's account launcher never reaches its popover while the Kybernos footer is there:
+ *  - a script's click (`isTrusted` false) is a plugin reaching for Settings through the old trigger: it gets Settings;
+ *  - a real click (the shell's class names moved and the launcher showed up) lands in the footer's own menu.
+ * Without a Kybernos footer a real click is left to DSH. Capture phase on the document: it runs before React's root listener.
+ */
+const kbInstallLauncherGuard = () => {
+  const onClick = (ev) => {
+    if (kbOpeningSettings === true) return
+    const target = ev.target
+    if (target === null || target === undefined || typeof target.closest !== 'function') return
+    if (target.closest('[data-slot="settings.launcher"]') === null) return
+    if (ev.isTrusted !== true) {
+      ev.preventDefault()
+      ev.stopImmediatePropagation()
+      kbOpenDshSettings()
+      return
+    }
+    if (document.querySelector('[data-kb="foot-gear"], [data-kb="workspace-card"]') === null) return
+    ev.preventDefault()
+    ev.stopImmediatePropagation()
+    try { window.dispatchEvent(new Event('kybernos-cloud:menu')) } catch (e) { /* no Event */ }
+  }
+  document.addEventListener('click', onClick, true)
+  try { window.__kbOpenDshSettings = kbOpenDshSettings } catch (e) { /* no window */ }
+  return () => {
+    document.removeEventListener('click', onClick, true)
+    try { if (window.__kbOpenDshSettings === kbOpenDshSettings) delete window.__kbOpenDshSettings } catch (e) { /* no window */ }
+  }
+}
+// </kb-open-settings>
+
 // ── Traduction de profondeur (chantier i18n du 2026-09-21) ──────────────────
 // Les vues internes (Projets, éditeur de kyber, lecteurs quiz/cartes/résumé/fiche,
 // panneau Composio, dictée) portaient encore du français en dur : sous locale
@@ -7495,6 +7597,8 @@ return {
       kbStartChatText(text)
     }
     ctx.effect(() => styles.insert(CSS), 'kybers: styles de la sidebar')
+    // DSH's Settings from outside the sidebar + the guard on DSH's account launcher (see <kb-open-settings>).
+    ctx.effect(() => kbInstallLauncherGuard(), 'kybernos: guard on the account launcher, Settings seam')
     // Design system partagé (généré par scripts/build-shared-ui.mjs) : les
     // contrôles kbm-* de DSH, disponibles dans le plugin. Le CSS est embarqué
     // ici (le plugin tourne dans le navigateur, pas dans Node — pas de fs).
@@ -31118,14 +31222,6 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
 [class*="settingsArea"]{margin-top:0;padding-top:0}
 /* En rail, le selecteur d'espace n'a pas a se decoller : la pile est centree. */
 [class*="collapsed"] .kbf-wsrow{padding-top:0}
-/* RAIL DECALE (mesure du 25/09/2026) : la carte d'espace porte trois enfants —
-   la pastille, la BOITE DE TEXTE (sans classe, flex:1 1 auto) et les chevrons.
-   En rail le texte et les chevrons passent en display:none, mais la boite qui
-   les porte, elle, reste : sa croissance mange l'espace libre, la pastille
-   reste collee a gauche et la carte cesse d'etre centree (pastille MW a cx 23,3
-   quand l'avatar du profil est a 27,8 : le rail entier paraissait decale).
-   On retire la boite vide : la carte n'a plus qu'un enfant et se recentre. */
-[class*="collapsed"] .kbf-wscard > span:not([class]){display:none !important}
 /* L'engrenage des Réglages devient un SOUS-MENU (30/09 soir) : la carte
    d'espace descend TOUT EN BAS du pied et la ligne native « engrenage +
    Settings » disparaît de l'affichage. Le bouton reste dans le DOM —
@@ -31133,6 +31229,8 @@ video.kb6-avfull{max-height:70vh;border-radius:8px}
    par un clic programmatique, donc le panneau natif s'ouvre exactement
    comme avant, et le libellé reste le nom accessible du bouton. */
 [class*="settingsArea"]{width:0 !important;height:0;overflow:hidden;visibility:hidden;pointer-events:none;margin:0;padding:0}
+/* The same by contract name, for a shell whose hashed classes moved: DSH's account launcher is not drawn, the footer's menu replaces it. */
+[data-slot="settings.launcher"]{display:none !important}
 /* ── La pastille d'etat de connexion du shell (Connected / Reconnecting…) ──────
    Mesure du 23/09/2026, pied deploye (280 px) : la pastille native fait 28 px de
    haut sur 99 a 127 px de large. Elle vit dans la colonne 2 de la grille
@@ -35163,9 +35261,7 @@ html.wv2-actif [data-composer-seat]{display:none !important}
         // Settings is a dialog of the shell: press its button, then the cell of the page we want (by its title).
         openSettings: (names) => {
           try {
-            const trigger = document.querySelector('[class*="settingsArea"] button[class*="trigger"]') || document.querySelector('button[aria-label="Settings"]')
-            if (trigger === null) return
-            trigger.click()
+            if (kbOpenDshSettings() !== true) return
             const norm = (s) => String(s === undefined || s === null ? '' : s).toLowerCase().normalize('NFD').replace(new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g'), '').replace(/\s+/g, ' ').trim()
             let tries = 0
             const tick = () => {
