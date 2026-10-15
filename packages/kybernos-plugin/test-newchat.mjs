@@ -205,9 +205,22 @@ const api = vm.runInNewContext(src.slice(a, b) + '\n;({ KB_NC_BUILD, KB_NC_CREAT
 // 6e. Search everywhere (kybernos-search): the menu row only asks the bundle to open, and only when the bundle is in the boot list
 {
   assert.ok(/const KB_SR = .*'@local\/kybernos-search'/.test(src), 'the row follows the bundle being present')
-  assert.ok(/KB_SR === true \? row\('search', Icon\('search', 15\), kbt\('kbui\.search'\)/.test(src) && /window\.__KB_SEARCH__\.open\(\)/.test(src), 'the row opens the bundle\'s popup, guarded')
-  assert.ok(/'kbui\.search': \{ kybernos: 'Rechercher partout', en: 'Search everywhere' \}/.test(src), 'the row has both languages')
+  assert.ok(/KB_SR === true \? row\('search', Icon\('search', 15\), kbt\('kbui\.searchall'\)/.test(src) && /window\.__KB_SEARCH__\.open\(\)/.test(src), 'the row opens the bundle\'s popup, guarded')
+  assert.ok(/'kbui\.searchall': \{ kybernos: 'Rechercher partout', en: 'Search everywhere' \}/.test(src), 'the row has both languages')
   ok('the Search everywhere menu row is wired to the kybernos-search opener, in both languages')
+}
+
+// 6f. a dictionary key is declared ONCE: the later of two silently wins. (« kbui.search » was declared twice: the menu row's
+//     « Search everywhere » replaced the « Search » that prefixes every search placeholder, on the project page and in the icon picker.)
+{
+  const keys = [...src.matchAll(/^\s{6}'([A-Za-z0-9._\-]+)': \{ kybernos: /gm)].map((m) => m[1])
+  const seen = new Set()
+  const dup = []
+  for (const k of keys) { if (seen.has(k)) dup.push(k); seen.add(k) }
+  assert.ok(keys.length > 1500, 'the dictionary was scanned (' + keys.length + ' keys)')
+  assert.deepEqual(dup, [], 'keys declared more than once: ' + dup.join(', '))
+  assert.ok(/'kbui\.search': \{ kybernos: 'Rechercher ', en: 'Search ' \}/.test(src), 'the placeholder prefix is still « Search »')
+  ok('no dictionary key is declared twice, and « Search » (the placeholder prefix) is intact')
 }
 
 // 7. the menu row and the hiding are wired

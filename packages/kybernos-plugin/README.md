@@ -108,6 +108,17 @@ headline is changed in place by a sweep on DSH's own hero (`titleGroup` / `previ
 slot, and `locale.register` throws on duplicates): a different line from a pool of 28 (`kbnc.hero.<n>`, FR/EN) each time a new chat
 page appears, never the previous one, and the « Preview » badge says « Beta », small.
 
+## Workspace instructions
+
+An **Instructions** tab on the workspace page (Projects): a text sent with the prompt of that workspace's sessions, next to the account
+instructions and the selected style. Stored privately in `~/.dsh/kybernos/workspace-instructions.json` (0600, keyed by the workspace id);
+injected through `systemPrompt.context` (name `kybernos:workspace-instructions`, order 150, `interpolate: false`, a `{{` in the text is
+broken so it cannot fail the prompt assembly). The session's workspace comes from DSH's own table (`~/.dsh/storages/workspace.json`,
+`tables.workspaces[id] = { path, title, sessionIds }`), never from the request. The option « also write it to AGENTS.md » keeps a marked
+section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off or empty removes the section and nothing else). Routes:
+`GET|POST /kybernos/workspace-instructions` (strict same-origin on both). Limit 4,000 characters. Host code: loads at the next DSH start.
+`node packages/kybernos-plugin/test-workspace-instructions.mjs`.
+
 ## Files, settings, env
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,

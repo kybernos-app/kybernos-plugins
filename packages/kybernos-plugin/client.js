@@ -1243,6 +1243,22 @@ let kbLocaleRead = () => 'en'
       'kbui.hosted.same': { kybernos: 'Mêmes Agent Teams, mêmes chats, mêmes créations — déplacés hors de votre machine.', en: 'Same Agent Teams, same chats, same creations — moved off your hardware.' },
       'kbui.save.now': { kybernos: 'Enregistrer maintenant', en: 'Save now' },
       'kbui.search': { kybernos: 'Rechercher ', en: 'Search ' },
+      'kbui.instructions': { kybernos: 'Instructions', en: 'Instructions' },
+      'kbwi.head': { kybernos: 'Instructions du projet', en: 'Project instructions' },
+      'kbwi.lead': { kybernos: 'Donnez aux agents des instructions et des informations utiles pour les sessions de ce workspace. Elles s’ajoutent aux instructions de votre compte et au style choisi dans une session.', en: 'Provide the agents with relevant instructions and information for sessions within this workspace. This works alongside your account instructions and the selected style in a session.' },
+      'kbwi.order': { kybernos: 'Priorité : le compte, puis ce workspace, puis la mission de l’équipe (le plus précis passe en dernier).', en: 'Order: the account, then this workspace, then the team mission (the most specific comes last).' },
+      'kbwi.ph': { kybernos: 'Ex. : Réponds toujours en français. Les tests se lancent avec npm test.', en: 'E.g. Always answer in French. Run the tests with npm test.' },
+      'kbwi.also': { kybernos: 'Écrire aussi dans le AGENTS.md du dossier du projet', en: 'Also write it to the project folder’s AGENTS.md' },
+      'kbwi.also.sub': { kybernos: 'Partagé avec toute personne qui ouvre ce dossier (et versionné s’il est dans git). Désactivé : le texte reste privé sur cet ordinateur.', en: 'Shared with whoever opens this folder (and versioned if it is in git). Off: the text stays private on this computer.' },
+      'kbwi.save': { kybernos: 'Enregistrer', en: 'Save' },
+      'kbwi.saving': { kybernos: 'Enregistrement…', en: 'Saving…' },
+      'kbwi.saved': { kybernos: 'Enregistré', en: 'Saved' },
+      'kbwi.unsaved': { kybernos: 'Non enregistré', en: 'Unsaved' },
+      'kbwi.loading': { kybernos: 'Chargement…', en: 'Loading…' },
+      'kbwi.err.too-long': { kybernos: 'Texte trop long (4000 caractères au plus).', en: 'Text too long (4000 characters at most).' },
+      'kbwi.err.folder-missing': { kybernos: 'Le dossier du projet est introuvable : AGENTS.md ne peut pas être écrit.', en: 'The project folder was not found: AGENTS.md cannot be written.' },
+      'kbwi.err.agents-write-failed': { kybernos: 'AGENTS.md n’a pas pu être écrit (droits ?). Rien n’a changé.', en: 'AGENTS.md could not be written (permissions?). Nothing changed.' },
+      'kbwi.err.generic': { kybernos: 'Enregistrement impossible. Rien n’a changé.', en: 'Could not save. Nothing changed.' },
       'kbui.icons.suffix': { kybernos: ' icônes…', en: ' icons…' },
       'kbui.search.everywhere': { kybernos: 'Rechercher partout…', en: 'Search everywhere…' },
       'kbui.search.parser': { kybernos: 'Rechercher — parser, CRM, scraping…', en: 'Search — parser, CRM, scraping…' },
@@ -1298,7 +1314,7 @@ let kbLocaleRead = () => 'en'
       'kbui.skill.repo': { kybernos: 'Dépôt de compétences', en: 'Skill repository' },
       'kbui.skills': { kybernos: 'Compétences', en: 'Skills' },
       'kbui.dashboards': { kybernos: 'Dashboards', en: 'Dashboards' },
-      'kbui.search': { kybernos: 'Rechercher partout', en: 'Search everywhere' },
+      'kbui.searchall': { kybernos: 'Rechercher partout', en: 'Search everywhere' },
       'kbui.kyber': { kybernos: 'Kyber', en: 'Kyber' },
       'kbui.cloudcomputer': { kybernos: 'Cloud Computer', en: 'Cloud Computer' },
       'kbui.automations.set': { kybernos: 'Automatisations', en: 'Automations' },
@@ -15569,6 +15585,56 @@ return {
         return md.detailsExtras({ part: part, workspaceId: wsItem.workspaceId, title: wsItem.title, path: typeof wsItem.path === 'string' ? wsItem.path : null })
       } catch (e) { return null }
     }
+    // ── Instructions of a workspace: a text sent with the prompt of its sessions (host: workspace-instructions.mjs) ──
+    const KbWsInstructions = (p) => {
+      const ws = p.ws
+      const pair = React.useState({ loading: true, text: '', saved: '', also: false, savedAlso: false, max: 4000, folder: '', error: null, busy: false })
+      const st = pair[0]
+      const setSt = pair[1]
+      const url = kbApiBase() + '/workspace-instructions'
+      React.useEffect(() => {
+        let dead = false
+        setSt((x) => Object.assign({}, x, { loading: true, error: null }))
+        fetch(url + '?workspaceId=' + encodeURIComponent(ws.workspaceId), { cache: 'no-store' }).then((r) => r.json()).then((j) => {
+          if (dead === true) return
+          if (j !== null && j !== undefined && j.ok === true) setSt({ loading: false, text: j.text, saved: j.text, also: j.alsoAgents === true, savedAlso: j.alsoAgents === true, max: j.max || 4000, folder: j.folder || '', error: null, busy: false })
+          else setSt((x) => Object.assign({}, x, { loading: false, error: 'generic' }))
+        }).catch(() => { if (dead === false) setSt((x) => Object.assign({}, x, { loading: false, error: 'generic' })) })
+        return () => { dead = true }
+      }, [ws.workspaceId])
+      const dirty = st.text !== st.saved || st.also !== st.savedAlso
+      const save = () => {
+        if (st.busy === true) return
+        setSt((x) => Object.assign({}, x, { busy: true, error: null }))
+        fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ workspaceId: ws.workspaceId, text: st.text, alsoAgents: st.also }) })
+          .then((r) => r.json()).then((j) => {
+            if (j !== null && j !== undefined && j.ok === true) setSt((x) => Object.assign({}, x, { busy: false, saved: j.text, text: j.text, savedAlso: j.alsoAgents === true, also: j.alsoAgents === true, error: null }))
+            else setSt((x) => Object.assign({}, x, { busy: false, error: j !== null && j !== undefined && typeof j.error === 'string' ? j.error : 'generic' }))
+          }).catch(() => setSt((x) => Object.assign({}, x, { busy: false, error: 'generic' })))
+      }
+      const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '11px' }
+      const errKey = st.error === null ? null : (['too-long', 'folder-missing', 'agents-write-failed'].indexOf(st.error) >= 0 ? 'kbwi.err.' + st.error : 'kbwi.err.generic')
+      return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '14px' }, 'data-kb': 'project-instructions' },
+        h('div', { style: card },
+          h('span', { className: 'kb8-parent' }, kbt('kbwi.head').toUpperCase()),
+          h('span', { className: 'kb8-sub' }, kbt('kbwi.lead')),
+          h('textarea', {
+            value: st.text, rows: 9, maxLength: st.max, disabled: st.loading === true, 'data-kb': 'project-instructions-text',
+            'aria-label': kbt('kbwi.head'), placeholder: kbt('kbwi.ph'),
+            onChange: (e) => { const v = e.target.value; setSt((x) => Object.assign({}, x, { text: v, error: null })) },
+            style: { border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '12px 14px', fontSize: '14px', lineHeight: '1.5', color: 'var(--dsw-alias-label-primary)', resize: 'vertical', fontFamily: 'inherit', minHeight: '160px' }
+          }),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' } },
+            h('span', { className: 'kb8-sub', style: { flex: 1 } }, kbt('kbwi.order') + ' (' + String(st.text.length) + '/' + String(st.max) + ')'),
+            h('span', { style: { fontSize: '12.5px', color: errKey !== null ? 'var(--dsw-alias-state-error-primary)' : 'var(--dsw-alias-label-secondary)' }, role: errKey !== null ? 'alert' : undefined },
+              errKey !== null ? kbt(errKey) : (st.loading === true ? kbt('kbwi.loading') : (st.busy === true ? kbt('kbwi.saving') : (dirty === true ? kbt('kbwi.unsaved') : kbt('kbwi.saved'))))),
+            h('button', { type: 'button', className: 'kb8-chip', 'data-kb': 'project-instructions-save', disabled: dirty !== true || st.busy === true || st.loading === true, onClick: save }, kbt('kbwi.save')))),
+        h('label', { style: Object.assign({}, card, { flexDirection: 'row', alignItems: 'flex-start', gap: '12px', cursor: 'pointer' }) },
+          h('input', { type: 'checkbox', checked: st.also === true, disabled: st.loading === true, 'data-kb': 'project-instructions-agents', onChange: (e) => { const v = e.target.checked; setSt((x) => Object.assign({}, x, { also: v, error: null })) }, style: { marginTop: '3px' } }),
+          h('span', { style: { display: 'flex', flexDirection: 'column', gap: '3px' } },
+            h('span', { style: { fontSize: '14px' } }, kbt('kbwi.also')),
+            h('span', { className: 'kb8-sub' }, kbt('kbwi.also.sub') + (st.folder !== '' ? ' (' + st.folder + '/AGENTS.md)' : '')))))
+    }
     const ProjectDetail = (p0) => {
       const s = useStore()
       const uw = (p0 !== null && p0 !== undefined) ? p0.useWorkspaces : null
@@ -15904,11 +15970,12 @@ return {
       // Meme liste que celle des hooks : les livrables du projet, filtre de
       // recherche compris.
       const mine = delivMine
-      const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.budget'), kbt('kbui.insight')]
+      const TABS = ['Threads', kbt('kbui.details'), kbt('kbui.instructions'), kbt('kbui.documents'), kbt('kbui.objectifs'), 'Deliverables', kbt('kbui.skills'), kbt('kbui.connecteurs'), kbt('kbui.budget'), kbt('kbui.insight')]
       const rowStyle = { display: 'flex', alignItems: 'center', gap: '13px', padding: '14px 16px', borderBottom: '1px solid var(--dsw-alias-border-l1)' }
       const pillStyle = { fontFamily: 'ui-monospace,monospace', fontSize: '10px', letterSpacing: '.06em', borderRadius: '999px', padding: '4px 10px', border: '1px solid var(--dsw-alias-border-l1)', color: 'var(--dsw-alias-label-secondary)', whiteSpace: 'nowrap' }
       const pane = (() => {
         if (tab === kbt('kbui.insight')) return h(KbiProjetWsInsight, { variante: 'projet', sessionIds: (Array.isArray(ws.sessionIds) === true ? ws.sessionIds : []), kyberId: null, rootId: null, sessionId: currentSid })
+        if (tab === kbt('kbui.instructions')) return h(KbWsInstructions, { ws: ws })
         if (tab === kbt('kbui.details')) {
           const field = { height: '44px', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '12px', background: 'var(--dsw-alias-bg-layer-1)', padding: '0 14px', fontSize: '14px', color: 'var(--dsw-alias-label-primary)', outline: 'none', width: '100%', boxSizing: 'border-box' }
           const card = { background: 'var(--dsw-alias-bg-layer-1)', border: '1px solid var(--dsw-alias-border-l1)', borderRadius: '16px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '11px' }
@@ -23702,7 +23769,7 @@ function renderFit(canvas, model, cam, opts){
         (KB_KY === true ? row('kyber', Icon('waypoints', 15), kbt('kbui.kyber'), null, s.view === 'kyber', () => openPage({ view: 'kyber' })) : null),
         (KB_DB === true ? row('dashboards', Icon('layoutDashboard', 15), kbt('kbui.dashboards'), null, s.view === 'dashboards', () => openPage({ view: 'dashboards' })) : null),
         // Search everywhere (kybernos-search): the popup is its own bundle's; this row only asks it to open (also ⌘K, and an icon in the Workspaces header).
-        (KB_SR === true ? row('search', Icon('search', 15), kbt('kbui.search'), null, false, () => { try { if (window.__KB_SEARCH__ && typeof window.__KB_SEARCH__.open === 'function') window.__KB_SEARCH__.open() } catch (e) { /* the bundle is not there */ } }) : null),
+        (KB_SR === true ? row('search', Icon('search', 15), kbt('kbui.searchall'), null, false, () => { try { if (window.__KB_SEARCH__ && typeof window.__KB_SEARCH__.open === 'function') window.__KB_SEARCH__.open() } catch (e) { /* the bundle is not there */ } }) : null),
         row('aiteams', Icon(KB_DEFAULT_ICON, 15), kbt('menu.aiteams'), c.kybers, s.view === 'kybers' || s.view === 'gallery' || s.view === 'teamnew' || s.view === 'teamedit' || s.view === 'teaminfo' || s.view === 'detail' || s.view === 'marketplace' || s.view === undefined || s.view === null, () => openPage({ nav: 'kybers', view: 'gallery', detailPath: null, detailRoot: null })),
         // Runs n'est plus ici : c'est un onglet de conversation, à côté de
         // « Kybernos Crew » (cf. slot `conversation.view` id `runs`).

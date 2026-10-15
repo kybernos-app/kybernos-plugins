@@ -8,6 +8,7 @@ import { zstdDecompressSync } from 'node:zlib'
 import { fileURLToPath } from 'node:url'
 import { dirname, normalize as nodePathNormalize, isAbsolute as nodePathIsAbsolute, join as nodePathJoin } from 'node:path'
 import { dshHomeSync } from './dsh-home.mjs'
+import { createWorkspaceInstructions } from './workspace-instructions.mjs'
 import { selectAfterConnect } from './default-model.mjs'
 import { normalize as autoSettingsNormalize, publicView as autoSettingsView, apply as autoSettingsApply, isPaused as autoSettingsPaused } from './automation-settings.mjs'
 import { defaultState as onboardingDefault, publicView as onboardingView, complete as onboardingComplete, replay as onboardingReplay } from './onboarding-state.mjs'
@@ -9813,6 +9814,30 @@ function boot(ctx) {
         if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
         sendJson(res, 200, await saveWorkspaceSkills(await readJsonBody(req)))
       } }), 'kybernos: route workspace-skills')
+      // ── Instructions of a workspace: a text sent with the prompt of its sessions (private store, optional AGENTS.md section) ──
+      const wsInstructions = createWorkspaceInstructions({ home: dshHomeSync() })
+      ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/workspace-instructions', handler: async (req, res) => {
+        if (req.method === 'GET') {
+          if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+          return sendJson(res, 200, wsInstructions.get(str(queryOf(req).get('workspaceId'))))
+        }
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
+        if (sameOriginStrict(req) === false) return sendJson(res, 403, { ok: false, error: 'origine refusee' })
+        const body = await readJsonBody(req)
+        sendJson(res, 200, wsInstructions.set({ workspaceId: body !== null && typeof body === 'object' ? str(body.workspaceId) : null, text: body !== null && typeof body === 'object' ? body.text : undefined, alsoAgents: body !== null && typeof body === 'object' && body.alsoAgents === true }))
+      } }), 'kybernos: route workspace-instructions')
+      // The block itself rides the system prompt (`systemPrompt.context`: synchronous, called at each step; `interpolate: false` keeps a
+      // `{{` of the person's text literal). After the memory block and the team lessons, so it reads as the most specific.
+      ctx.inject(['systemPrompt'], (scope) => {
+        try {
+          scope.systemPrompt.context({
+            name: 'kybernos:workspace-instructions',
+            order: 150,
+            interpolate: false,
+            text: (context) => { try { return wsInstructions.promptFor(context.agent.session.id) } catch (e) { return '' } }
+          })
+        } catch (e) { console.log('[kybernos] workspace instructions not injected: ' + String(e && e.message ? e.message : e)) }
+      })
       ctx.effect(() => webServerSvc.register({ kind: 'exact', path: '/kybernos/pins', handler: async (req, res) => {
         if (req.method === 'GET') return sendJson(res, 200, { ok: true, pins: pinsPayload(await readPins(), pinnedNatives()) })
         if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'GET ou POST attendu' })
