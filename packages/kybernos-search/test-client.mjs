@@ -53,9 +53,11 @@ if (JSDOM === null) {
   console.log('  - jsdom is not importable: the DOM part is skipped (set KYBERNOS_JSDOM=<path to jsdom/lib/api.js>)')
 } else {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-  const dom = new JSDOM('<!doctype html><body><div class="x_sectionHeader"><span class="x_sectionLabel">Workspaces</span><div class="x_searchSlot"><button class="x_searchButton" aria-label="Search sessions"></button></div><div class="x_headerActions"><button class="x_iconButton x_wide" aria-label="View options"></button><button class="x_iconButton" aria-label="Add workspace"></button></div></div></body>',
+  const dom = new JSDOM('<!doctype html><body><div class="x_brandRow"><span>Kybernos</span><button class="x_collapseBtn x_wide" aria-label="Collapse sidebar"></button></div><div class="x_sectionHeader"><span class="x_sectionLabel">Workspaces</span><div class="x_searchSlot"><button class="x_searchButton" aria-label="Search sessions"></button></div><div class="x_headerActions"><button class="x_iconButton x_wide" aria-label="View options"></button><button class="x_iconButton" aria-label="Add workspace"></button></div></div></body>',
     { runScripts: 'outside-only', pretendToBeVisual: true, url: 'http://127.0.0.1:3080/' })
   const w = dom.window
+  // jsdom has no layout: the collapse button is given a place at the top of the sidebar, as the real one has
+  w.document.querySelector('.x_collapseBtn').getBoundingClientRect = () => ({ top: 28, left: 240, width: 28, height: 28, right: 268, bottom: 56 })
   const calls = []
   const reply = (body, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body })
   let hostAnswer = { ok: true, state: 'ready', terms: ['theme'], indexed: 3, tookMs: 4, counts: { chat: 1 }, results: [{ scope: 'chat', id: 'session-1', title: 'Créer un <img src=x onerror=alert(1)> thème', titleMarks: [[28, 33]], meta: { where: 'proj', when: Date.now() - 86400000 }, open: { kind: 'session', id: 'session-1' }, hits: [{ r: 'u', ts: 1, text: 'un thème <script>alert(1)</script> sombre', marks: [[3, 8]], pre: true, post: false }] }] }
@@ -80,6 +82,12 @@ if (JSDOM === null) {
   ok('the plugin registers and exposes its opener', def.id === '@local/kybernos-search' && typeof w.__KB_SEARCH__.open === 'function')
   const hdr = doc.querySelector('[data-kb="search-header"]')
   ok('the icon is a child of the header, right before its icon group (NOT in the 28 px search slot, which clips it, NOT in the 60 px group, which would push a button out)', hdr !== null && hdr.parentElement.className === 'x_sectionHeader' && hdr.nextElementSibling.className === 'x_headerActions' && hdr.closest('.x_searchSlot') === null && doc.querySelector('.x_headerActions').children.length === 2 && /x_iconButton/.test(hdr.className) && !/wide/.test(hdr.className))
+  const top = doc.querySelector('[data-kb="search-top"]')
+  ok('an icon sits at the very top of the sidebar, right before the collapse button, with its look (the « wide » modifier left out)', top !== null && top.nextElementSibling === doc.querySelector('[aria-label="Collapse sidebar"]') && /x_collapseBtn/.test(top.className) && !/x_wide/.test(top.className) && /Search everywhere|Rechercher partout/.test(top.getAttribute('aria-label')), top && [top.className, top.getAttribute('aria-label'), top.nextElementSibling && top.nextElementSibling.className])
+  ok('and only one of it, however many times the page moves', doc.querySelectorAll('[data-kb="search-top"]').length === 1)
+  top.dispatchEvent(new w.MouseEvent('click', { bubbles: true }))
+  ok('the top icon opens the dialog too', doc.querySelector('[data-kb="search-dialog"]') !== null)
+  w.__KB_SEARCH__.close()
   ok('the native search button and its slot are untouched', doc.querySelector('.x_searchButton').className === 'x_searchButton' && doc.querySelector('.x_searchSlot').children.length === 1)
   hdr.dispatchEvent(new w.MouseEvent('click', { bubbles: true }))
   ok('the icon opens the dialog', doc.querySelector('[data-kb="search-dialog"]') !== null && doc.activeElement === doc.querySelector('[data-kb="search-input"]'))
@@ -122,7 +130,7 @@ if (JSDOM === null) {
   ok('an unreachable host is said, not thrown', /did not answer|n’a pas répondu/.test(doc.querySelector('.kbsr-empty').textContent))
   w.__KB_SEARCH__.close()
   effects.forEach((c) => { try { c() } catch (e) { /* */ } })
-  ok('cleanup removes the icon, the style and the opener', doc.querySelector('[data-kb="search-header"]') === null && doc.querySelector('style[data-plugin="@local/kybernos-search"]') === null && w.__KB_SEARCH__ === undefined)
+  ok('cleanup removes the icon, the style and the opener', doc.querySelector('[data-kb="search-header"]') === null && doc.querySelector('[data-kb="search-top"]') === null && doc.querySelector('style[data-plugin="@local/kybernos-search"]') === null && w.__KB_SEARCH__ === undefined)
   w.close()
 }
 
