@@ -14,7 +14,9 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
   stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
   row per pick: a square thumbnail, the outcome, creator, count, verdicts and the same two actions, always visible); « Cover background » is
-  Tint or Plain. Both choices are kept per browser.
+  Tint or Plain. Both choices are kept per browser. *Details* opens the pick **on the width of the page** (not in a side panel): its picture and
+  title at the top as on the card, then the facts, the live audits and the start of the repository's real `SKILL.md` side by side; *Back*
+  returns to the grid or the list, and installing from there keeps the pick open (it flips to *Installed*).
   The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
 - **Yours**: skills of this profile, with search, state / source filters, sorting, an active toggle on each card (read-only rows
   when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
@@ -27,7 +29,9 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
   in, its description and the start of its `SKILL.md` (read from the repository itself), who publishes it, its audits. *Install*
   asks first: a dialog says, for that skill, which archive is downloaded, where the skill is found, and the exact folder it is
   copied to (a copy, never a link). It reads the index through Kybernos's own relay (`services/skills-index`), so it works for
-  every user with no token.
+  every user with no token. The table shows 20 rows a page by default (20 / 50 / 100 / 250 in the bar), with the pager under it only; the
+  SKILL and INSTALLATIONS headers sort the rows of the page (a second click flips the direction: the index itself is ranked by the
+  upstream, so the order applies to the rows loaded); each row says **installed** or carries an *Install* button (which asks first).
 - **Team**: a Team's private catalogue (contract: `docs/dev/team-skills-contract.md`). *Approved* skills with Install, Update (only
   over a team skill nobody edited), or "You have your own" when a skill of that name is yours; a skill opens on its files and an
   install panel. *My proposals* (with Withdraw, and the admin's note on a refusal) and a *Propose a skill* sheet that reads one of

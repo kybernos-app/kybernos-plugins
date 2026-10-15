@@ -225,13 +225,36 @@ try {
   // the list view: the same pick as a row, switched by the shared bar like Yours and Discover
   assert.match(src, /featured: j !== null && j\.featured === 'list' \? 'list' : 'cards'/, 'the choice is kept with the other two tabs')
   assert.match(src, /viewMode: views\.featured \}/, 'the bar shows the current view')
-  assert.match(src, /patch\.viewMode !== undefined\) setView\('featured', patch\.viewMode === 'list' \? 'list' : 'cards'\)/, 'and writes it back')
+  assert.match(src, /patch\.viewMode !== undefined\) \{ setView\('featured', patch\.viewMode === 'list' \? 'list' : 'cards'\); setDetail\(null\) \}/, 'and writes it back (a change of display closes an opened pick)')
   assert.match(src, /views\.featured === 'list'\s*\? h\('div', \{ className: 'kbsf-list'[\s\S]*list\.map\(pickRow\)/, 'the list view draws a row per pick')
   const row = src.slice(src.indexOf('const pickRow = '), src.indexOf('// Pager based on the SERVER'))
   assert.match(row, /pickBy\(p\), pickCnt\(p\)/, 'the row has the creator and the count')
   assert.match(row, /pickButtons\(p, x, isIn, openIt\)/, 'and the same two gestures as the card')
   assert.ok(!/'\/' \+ p\.id\)\s*\)/.test(row.replace(/copy\('\/' \+ p\.id\)/g, '')), 'no /name link in the row either')
   ok('the list view: a row per pick with the creator, the count, the verdicts and the same actions; the shared bar switches it, per browser')
+
+  // the opened pick, on the width of the page (not the side panel) -------------------------------------
+  const det = src.slice(src.indexOf('const renderPickDetail = '), src.indexOf('const renderPanel = '))
+  assert.ok(det.length > 500, 'the detail view exists')
+  assert.match(det, /className: 'kbsf-detail'[\s\S]*'data-kb': 'pick-detail'/, 'a page of its own')
+  assert.match(det, /className: 'kbsf-dpic kbsf-t', 'data-cat': p\.category \},\s*pickCover\(p\)/, 'the picture of the card, big, at the top')
+  assert.match(det, /h\('h2', \{ className: 'kbsf-dtitle' \}, title\)/, 'and the title beside it')
+  assert.match(det, /'data-kb': 'pick-back'[\s\S]*setDetail\(null\)/, 'a way back to the grid')
+  assert.match(src, /mode === 'featured' \? \(detail !== null \? renderPickDetail\(\) : renderFeatured\(\)\)/, 'in Featured the opened pick replaces the grid')
+  assert.match(src, /if \(mode === 'discover' && detail !== null\) \{/, 'the side panel is for Discover only')
+  assert.match(src, /@container \(max-width:760px\)\{\s*\.kbs-root \.kbsf-dhero\{grid-template-columns:1fr\}/, 'one column when the page is narrow')
+  assert.match(src, /if \(fromFeatured !== true\) setDetail\(null\)/, 'after an install from Featured the opened pick stays open (it flips to Installed)')
+  ok('Featured: an opened pick takes the page width, with its picture and title at the top like the card; the side panel stays for Discover')
+
+  // Discover's table ------------------------------------------------------------------------------------
+  assert.match(src, /const DISC_PER = 20/, '20 rows by default')
+  assert.ok(!/React\.useState\(50\)/.test(src), 'no 50-row default left')
+  assert.ok(!/pagerIndex\(true\)/.test(src), 'no pager above the table')
+  assert.match(src, /sortHead\(discKind === 'search' \? t\('th\.result'\) : 'SKILL', 'name', 'who'\)/, 'the skill column sorts')
+  assert.match(src, /sortHead\('INSTALLATIONS', 'installs', 'inst'\)/, 'the installs column sorts')
+  assert.match(src, /'data-kb': 'row-install'/, 'a row that is not installed offers Install')
+  assert.match(src, /kbs-instpill/, 'a row that is installed says so')
+  ok('Discover: 20 rows by default, no pager above the table, sortable columns, and each row says Installed or offers Install')
 
   console.log('\n' + pass + ' verifications OK')
 } finally {

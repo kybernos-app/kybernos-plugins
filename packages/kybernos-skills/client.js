@@ -46,6 +46,7 @@ window.__ModuleLoader__.load({
         pkg: ['M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z', 'M12 22V12', 'm3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7'],
         shield: ['M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z', 'm9 12 2 2 4-4'],
         check: ['M20 6 9 17l-5-5'],
+        dl: ['M12 15V3', 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'm7 10 5 5 5-5'],
         github: ['M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4', 'M9 18c-4.51 2-5-2-7-2'],
         wand: ['m15 4-1 1', 'm9 9-1 1', 'M4 20l10.5-10.5a2.1 2.1 0 0 0-3-3L1 17l3 3z', 'm14 7 3 3', 'M14.5 3.5 15 3', 'M19 9l.5-.5'],
         info: ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z', 'M12 16v-4', 'M12 8h.01'],
@@ -242,6 +243,9 @@ window.__ModuleLoader__.load({
         'pick.nonehint': { fr: 'Essayez une autre catégorie ou effacez la recherche.', en: 'Try another category or clear the search.' },
         'pick.asof': { fr: 'Choix et verdicts d’audit relevés le {d}.', en: 'Picks and audit verdicts read on {d}.' },
         'pick.crumb': { fr: 'Choix de Kybernos', en: 'Featured' },
+        'pick.back': { fr: 'Retour à Featured', en: 'Back to Featured' },
+        'pick.copyPrompt': { fr: 'Copier avec /nom', en: 'Copy with /name' },
+        'pick.facts': { fr: 'Le skill', en: 'The skill' },
         'feat.localskill': { fr: 'skill local', en: 'local skill' },
         'row.installed': { fr: 'installé', en: 'installed' },
         'row.offgh': { fr: 'hors GitHub', en: 'off GitHub' },
@@ -593,6 +597,8 @@ window.__ModuleLoader__.load({
         return out.replace(/\{(\w+)\}/g, (m, k) => (vars[k] === undefined ? m : String(vars[k])))
       }
       const PAGE = 6
+      // Rows of the Discover ranking per page by default (the user can ask for more in the filters).
+      const DISC_PER = 20
 
       // ── skeleton screens ──────────────────────────────────────────────────────────────────────
       // ONE helper for every list of the GUI, published by the core plugin (window.__KB_SKEL__): bones in the SAME boxes as the
@@ -742,6 +748,12 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-row .src{overflow:hidden;text-overflow:ellipsis}
 .kbs-root .kbs-row .badges{display:flex;gap:6px;flex-wrap:wrap}
 .kbs-root .kbs-row .inst{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--dsw-alias-label-secondary);text-align:right}
+.kbs-root .kbs-instpill{display:inline-flex;align-items:center;gap:5px}
+.kbs-root .kbs-rowinstall{height:28px;padding:0 10px;font-size:12px;gap:5px;border-radius:9px;display:inline-flex;align-items:center}
+.kbs-root .kbs-sorthead{border:0;background:transparent;padding:0;margin:0;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer;text-align:start;display:flex;align-items:center;gap:6px}
+.kbs-root .kbs-sorthead.inst{justify-content:flex-end}
+.kbs-root .kbs-sorthead:hover,.kbs-root .kbs-sorthead.on{color:var(--dsw-alias-label-primary)}
+.kbs-root .kbs-sorthead .arr{font-size:12px}
 /* ROW tile: row scale, same styling as .kb8-tile (38px / radius 13). */
 .kbs-root .kb8-tile.kbs-sm{width:30px;height:30px;border-radius:10px}
 /* A row is ~48 px tall: fifty fit in a tab's screen. */
@@ -753,7 +765,6 @@ window.__ModuleLoader__.load({
 .kbs-root .kbs-pager .pg:hover{background:var(--dsw-alias-interactive-bg-hover)}
 .kbs-root .kbs-pager .pg.on{background:var(--kb-switch-on,#4d7cfe);border-color:transparent;color:#fff;font-weight:600}
 .kbs-root .kbs-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
-.kbs-root .kbs-pager.haut{padding:0 0 10px}
 /* Audit banner: the data that replaces "community, not audited". */
 .kbs-root .kbs-audit{display:flex;flex-direction:column;gap:9px}
 .kbs-root .kbs-audit .ligne{display:flex;align-items:flex-start;gap:9px;font-size:12.5px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
@@ -1026,6 +1037,31 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 }
 .kbs-root .kbsf-acts .kb8-primary{height:32px;padding:0 14px;font-size:13px;border-radius:10px;gap:6px}
 .kbs-root .kbsf-acts .kb8-ghost{height:32px;padding:0 12px;font-size:13px;gap:6px}
+/* — Featured, a pick opened: the page's width, not a side panel — */
+.kbs-root .kbsf-detail{container-type:inline-size;display:flex;flex-direction:column;gap:18px}
+.kbs-root .kbsf-dback{align-self:flex-start;display:inline-flex;align-items:center;gap:4px}
+.kbs-root .kbsf-dhero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);border:1px solid var(--dsw-alias-border-l1);border-radius:22px;overflow:hidden;background:var(--dsw-alias-bg-layer-1)}
+.kbs-root .kbsf-dpic{position:relative;min-height:380px;background:linear-gradient(135deg,var(--cv-bg),var(--cv-bg2))}
+.kbs-root .kbsf-plain .kbsf-dpic{background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbsf-dpic .kbsf-cut{position:absolute;inset:7%;width:86%;height:86%;object-fit:contain;filter:drop-shadow(0 12px 16px rgba(30,18,6,.32))}
+.kbs-root .kbsf-dpic .kb8-tile{position:absolute;inset-inline-start:50%;top:50%;transform:translate(-50%,-50%);width:96px;height:96px}
+.kbs-root .kbsf-dtx{padding:30px 34px;display:flex;flex-direction:column;gap:14px;justify-content:center;min-width:0}
+.kbs-root .kbsf-dtitle{margin:0;font-size:30px;line-height:1.12;font-weight:700;letter-spacing:-.01em;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbsf-dout{margin:0;font-size:16px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbsf-dacts{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px}
+.kbs-root .kbsf-dacts .kbsf-rstar{position:static}
+.kbs-root .kbsf-try{display:flex;flex-direction:column;gap:6px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:12px 14px;background:var(--dsw-alias-bg-layer-2);margin-top:4px}
+.kbs-root .kbsf-trytxt{font-size:14px;color:var(--dsw-alias-label-primary)}
+.kbs-root .kbsf-try .kbs-link{align-self:flex-start;display:inline-flex;align-items:center;gap:4px}
+.kbs-root .kbsf-dcols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.kbs-root .kbsf-dcard .kbs-desc{margin:0;font-size:14px;line-height:1.55;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbsf-dcard{border:1px solid var(--dsw-alias-border-l1);border-radius:16px;padding:18px 20px;background:var(--dsw-alias-bg-layer-1);display:flex;flex-direction:column;gap:12px;min-width:0}
+@container (max-width:760px){
+.kbs-root .kbsf-dhero{grid-template-columns:1fr}
+.kbs-root .kbsf-dpic{min-height:240px}
+.kbs-root .kbsf-dtx{padding:22px}
+.kbs-root .kbsf-dcols{grid-template-columns:1fr}
+}
 /* — Featured, list view: the same pick as a row — */
 .kbs-root .kbsf-list{container-type:inline-size;display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden}
 .kbs-root .kbsf-row{display:grid;grid-template-columns:88px minmax(0,1.5fr) minmax(0,1fr) auto;gap:16px;align-items:center;padding:10px 14px;border-top:1px solid var(--dsw-alias-border-l1);cursor:pointer;background:var(--dsw-alias-bg-layer-1)}
@@ -1159,7 +1195,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         // 9 827 skills, we do not scroll: we page, or we search.
         const [iview, setIview] = React.useState('all-time')
         const [ipage, setIpage] = React.useState(0)
-        const [iper, setIper] = React.useState(50)
+        const [iper, setIper] = React.useState(DISC_PER)
         const [showFilters, setShowFilters] = React.useState(false)
         const [sortOpen, setSortOpen] = React.useState(false)
         const [addOpen, setAddOpen] = React.useState(false)
@@ -1650,14 +1686,14 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         ]
 
         const razoirFiltres = () => {
-          if (mode === 'discover') { setIview('all-time'); setIper(50) }
+          if (mode === 'discover') { setIview('all-time'); setIper(DISC_PER) }
           else { setStateFilter('all'); setSourceFilter('all') }
         }
         // Number of active filters: the state is read on the button (.kb-tool-lab .n), like the
         // "Filters 1" of the pivot. In Discover the view is written in plain text on the button, so only
         // the rows-per-page setting counts here.
         const filtresActifs = () => mode === 'discover'
-          ? (iper === 50 ? 0 : 1)
+          ? (iper === DISC_PER ? 0 : 1)
           : (stateFilter === 'all' ? 0 : 1) + (sourceFilter === 'all' ? 0 : 1)
         const vueLabel = () => { const v = VUES.filter((x) => x[0] === iview)[0]; return v !== undefined ? v[1] : 'All Time' }
         const sortLabel = (isYours) => {
@@ -1679,7 +1715,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                 VUES.map((v) => chip(v[1] + (v[0] === 'all-time' && discTotal > 0 && discKind === 'index' ? ' (' + discTotal + ')' : ''), iview === v[0], () => setIview(v[0]), v[0]))),
               h('div', { className: 'kb-filter-row' },
                 h('span', { className: 'lbl' }, t('flt.rows')),
-                [25, 50, 100, 250].map((n) => chip(String(n), iper === n, () => setIper(n), 'n' + n))),
+                [DISC_PER, 50, 100, 250].map((n) => chip(String(n), iper === n, () => setIper(n), 'n' + n))),
               h('div', { className: 'kb-filter-row' },
                 h('span', { className: 'lbl' }, 'Source'),
                 h('span', { className: 'kb8-mono' }, discKind === 'search'
@@ -1869,7 +1905,15 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           h('span', { className: 'kb8-parent src kbs-nowrap' }, x.source),
           h('span', { className: 'badges' },
             x.official === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : null,
-            installed(x) ? h('span', { key: 'i', className: 'kb8-pill' }, t('row.installed')) : null,
+            // The state is always said: « Installed » (a check), or the way to install it. Never an empty cell.
+            installed(x) ? h('span', { key: 'i', className: 'kb8-pill ok kbs-instpill' }, icon('check', 12), t('row.installed')) : null,
+            installed(x) !== true && x.installable === true
+              ? h('button', {
+                key: 'b', type: 'button', className: 'kb8-ghost kbs-rowinstall', 'data-kb': 'row-install',
+                title: t('det.installTip', { source: x.source, name: x.name, dest: installDest }),
+                onClick: (e) => { e.stopPropagation(); setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) }
+              }, icon('dl', 13), t('btn.install'))
+              : null,
             // 15 % of the catalogue is hosted outside GitHub (`well-known`): we SAY so here rather than
             // offering a button that will fail further on.
             x.installable !== true ? h('span', { key: 'w', className: 'kb8-pill warn' }, t('row.offgh')) : null),
@@ -2062,13 +2106,12 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 
         // Pager based on the SERVER `total`. We no longer load "a bit more" at the bottom of a growing list:
         // we go to the wanted page, and the number of pages is known in advance.
-        // `haut` (top): the same pager is rendered ABOVE the table. With fifty rows, the bottom pager
-        // can only be reached by scrolling — exactly the gesture we were trying to remove.
-        const pagerIndex = (haut) => {
+        // It sits under the table only: the table shows 20 rows by default, so the bottom is a short scroll away.
+        const pagerIndex = () => {
           const first = Math.max(0, Math.min(discPage - 2, Math.max(0, discPages - 5)))
           const around = []
           for (let p = first; p < Math.min(discPages, first + 5); p++) around.push(p)
-          return h('div', { className: 'kbs-pager' + (haut === true ? ' haut' : '') },
+          return h('div', { className: 'kbs-pager' },
             h('button', {
               type: 'button', className: 'kb8-ghost', disabled: discPage <= 0,
               onClick: () => setIpage(Math.max(0, discPage - 1))
@@ -2152,6 +2195,21 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           ? feat.items.filter((it) => it.found !== false).map(featRow) : []
         const featCards = (feat.phase === 'ready' && discKind === 'index' && dneedle === '' && discPage === 0)
           ? feat.items.filter((it) => it.found !== false).map((it, i) => featCard(it, i)) : []
+        // A column header that orders the page: the same order as the bar's (name, or installs), the same direction. A second click on the
+        // column in use flips the direction; a new column starts from its natural one (A to Z, most installed first). Only the index is
+        // ordered by the page: a search keeps its relevance and the curated set its install order.
+        const sortHead = (label, key, cls) => {
+          if (discKind !== 'index') return h('span', { className: cls }, label)
+          const on = sort.discover === key
+          return h('button', {
+            type: 'button', className: cls + ' kbs-sorthead' + (on ? ' on' : ''), 'data-kb': 'sort-' + key,
+            'aria-sort': on ? (dir.discover === -1 ? 'descending' : 'ascending') : 'none', title: t('sort.by') + sep() + label,
+            onClick: () => {
+              if (on) setDir((m) => ({ ...m, discover: -m.discover }))
+              else { setSort((m) => ({ ...m, discover: key })); setDir((m) => ({ ...m, discover: key === 'name' ? 1 : -1 })) }
+            }
+          }, label, on ? h('span', { className: 'arr', 'aria-hidden': 'true' }, dir.discover === -1 ? '↓' : '↑') : null)
+        }
         const renderDiscover = () => {
           const sourceLine = renderSourceLine()
           if (discPhase === 'loading' && disc === null) {
@@ -2159,7 +2217,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             const bones = skeletonOf('rows', 8)
             return h('div', null, sourceLine,
               bones === null ? h('div', { className: 'kb-empty' }, h('span', { className: 'kb8-mono' }, t('d.query')))
-                : [h('div', { key: 'pg', className: 'kbs-pager haut', 'aria-hidden': 'true' }, bone(112, 38, null, 11), [0, 1, 2, 3, 4].map((i) => h('span', { key: i }, bone(38, 38, null, 11))), bone(96, 38, null, 11)), h('div', { key: 'sk' }, bones)])
+                : h('div', { key: 'sk' }, bones))
           }
           if (discPhase === 'error') {
             // The failure is THIS tab's: Yours and Team do not depend on the index and are untouched. A clear sentence, a way to
@@ -2180,7 +2238,6 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           }
           return h('div', null,
             sourceLine,
-            discShown.length === 0 && featRows.length === 0 ? null : pagerIndex(true),
             views.discover === 'cards'
               ? (discShown.length === 0 && featCards.length === 0
                 ? empty(t('y.noresult'), discKind === 'search' ? t('d.empty.search') : t('d.empty.page'))
@@ -2188,10 +2245,10 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
               : h('div', { className: 'kbs-table' + (discPhase === 'loading' ? ' loading' : '') },
               h('div', { className: 'kbs-head' },
                 h('span', { className: 'rank' }, '#'),
-                h('span', { className: 'who' }, discKind === 'search' ? t('th.result') : 'SKILL'),
+                sortHead(discKind === 'search' ? t('th.result') : 'SKILL', 'name', 'who'),
                 h('span', { className: 'src' }, 'SOURCE'),
                 h('span', { className: 'badges' }, t('th.state')),
-                h('span', { className: 'inst' }, 'INSTALLATIONS')),
+                sortHead('INSTALLATIONS', 'installs', 'inst')),
               discShown.length === 0
                 ? empty(t('y.noresult'), discKind === 'search' ? t('d.empty.search') : t('d.empty.page'))
                 : featRows.concat(discShown.map(ligne))),
@@ -2238,6 +2295,75 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           })
         }
 
+        // ── Featured: a pick, opened. It uses the width of the page instead of a side panel: the picture and the title as on the card, big, then
+        // the facts, the audits and the start of SKILL.md side by side. The data is what the Discover panel already reads (the repository's
+        // real SKILL.md, the live audits); only the arrangement is new.
+        const renderPickDetail = () => {
+          const p = picks.items.find((it) => detail !== null && it.source === detail.source && it.id === detail.name)
+          if (p === undefined) return renderFeatured()
+          const x = pickAsEntry(p)
+          const isIn = installed(x)
+          const pv = preview.state === 'ready' && preview.data !== null ? preview.data : null
+          const ghUrl = pv !== null && typeof pv.url === 'string' && pv.url !== '' ? pv.url : 'https://github.com/' + p.source
+          const c = curatedOf(x)
+          const publisher = c.owner !== undefined && c.owner !== '' ? c.owner : String(p.source).split('/')[0]
+          const row = (label, value, key) => h('div', { key, className: 'row' }, h('span', null, label), h('span', { className: 'kb8-mono', style: { overflowWrap: 'anywhere' } }, value))
+          const folderText = pv !== null ? (pv.folder !== '' ? pv.folder : t('dp.root')) : (preview.state === 'loading' ? t('dp.loading') : t('dp.folderUnknown'))
+          let skillText = null
+          if (preview.state === 'loading') skillText = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, t('dp.loading'))
+          else if (pv !== null) skillText = h('pre', { className: 'kb-local-body', 'data-kb': 'preview-text' }, pv.text + (pv.truncated === true ? '\n…' : ''))
+          else if (preview.state === 'missing') skillText = h('div', { className: 'kb-note', 'data-kb': 'preview-missing' }, icon('info', 14), h('span', null, t('dp.notfound', { name: p.id })))
+          else if (preview.state === 'error') skillText = h('div', { className: 'kb-note', 'data-kb': 'preview-error' }, icon('info', 14), h('span', null, t('dp.nopreview', { why: preview.error })))
+          const auditLines = audit === null || audit === undefined || audit.phase === 'loading'
+            ? h('span', { className: 'kb8-mono' }, t('det.auditLoading'))
+            : (audit.phase === 'error'
+              ? h('span', { className: 'ligne' }, audit.error)
+              : (audit.audits.length === 0
+                ? h('span', { className: 'kb8-mono' }, t('det.auditNone'))
+                : audit.audits.map((a, i) => h('div', { key: 'a' + i, className: 'ligne' },
+                  h('span', { className: 'kb8-pill ' + (a.status === 'pass' ? 'ok' : 'warn') }, a.status === 'pass' ? t('det.audited') : (a.status !== '' ? a.status : t('det.unknown'))),
+                  h('span', null, a.provider + (a.summary !== '' ? ' — ' + a.summary : ''))))))
+          const title = pickText(p.title)
+          return h('article', { className: 'kbsf-detail' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'pick-detail', 'aria-label': title },
+            h('button', { type: 'button', className: 'kbs-link kbsf-dback', 'data-kb': 'pick-back', onClick: () => setDetail(null) }, icon('back', 14), ' ' + t('pick.back')),
+            h('div', { className: 'kbsf-dhero' },
+              h('div', { className: 'kbsf-dpic kbsf-t', 'data-cat': p.category },
+                pickCover(p),
+                h('span', { className: 'kbsf-tag' }, t('pcat.' + p.category))),
+              h('div', { className: 'kbsf-dtx' },
+                h('h2', { className: 'kbsf-dtitle' }, title),
+                h('div', { className: 'kbsf-meta' }, pickBy(p), pickCnt(p), h('span', { className: 'kb8-mono' }, '/' + p.id)),
+                h('p', { className: 'kbsf-dout' }, pickText(p.outcome)),
+                pickPills(p, isIn),
+                h('div', { className: 'kbsf-dacts' },
+                  isIn === true
+                    ? h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-use', onClick: () => copy('/' + p.id) }, icon('code', 15), h('span', null, t('pick.use')))
+                    : h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install', onClick: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) } }, icon('dl', 15), h('span', null, t('btn.install'))),
+                  h('a', { href: ghUrl, target: '_blank', rel: 'noreferrer', className: 'kb8-ghost', 'data-kb': 'act-github' }, icon('github', 15), h('span', null, t('dp.viewgh'))),
+                  pickStar(p, isIn, 'kbsf-rstar')),
+                h('div', { className: 'kbsf-try' },
+                  h('span', { className: 'kb-section-label' }, t('pick.try')),
+                  h('span', { className: 'kbsf-trytxt' }, pickText(p.prompt)),
+                  h('button', { type: 'button', className: 'kbs-link', 'data-kb': 'pick-copyprompt', onClick: () => copy('/' + p.id + ' ' + pickText(p.prompt)) }, icon('code', 13), ' ' + t('pick.copyPrompt'))))),
+            h('div', { className: 'kbsf-dcols' },
+              h('section', { className: 'kbsf-dcard' },
+                h('span', { className: 'kb-section-label' }, t('pick.facts')),
+                pv !== null && pv.description !== '' ? h('p', { className: 'kbs-desc', 'data-kb': 'preview-desc' }, pv.description) : null,
+                h('div', { className: 'kb-local-rows' },
+                  row(t('det.row.repo'), 'github.com/' + p.source, 'repo'),
+                  row(t('dp.folder'), folderText, 'folder'),
+                  row(t('det.row.owner'), publisher, 'owner'),
+                  row(t('det.row.installs'), nf(p.installs), 'installs'),
+                  row(t('det.row.type'), 'github', 'type'))),
+              h('section', { className: 'kbsf-dcard kbs-audit' },
+                h('span', { className: 'kb8-mono' }, icon('shield', 14), ' ' + t('det.audits')),
+                auditLines,
+                h('span', { className: 'kb8-mono' }, t('det.thirdParty')))),
+            h('section', { className: 'kbsf-dcard' },
+              h('span', { className: 'kb-section-label' }, t('dp.start')),
+              skillText))
+        }
+
         const renderPanel = () => {
           if (mode === 'yours' && local !== null) {
             const s = skills.find((x) => skillKey(x) === skillKey(local)) || local
@@ -2247,11 +2373,11 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
               onClose: () => setLocal(null), onAct: (kind) => { if (kind === 'delete') setAskDelete(s); else skillAct(kind, s) }, onCopy: copy
             })
           }
-          if ((mode === 'discover' || mode === 'featured') && detail !== null) {
+          if (mode === 'discover' && detail !== null) {
             const x = detail
             const c = curatedOf(x)
             return h(DiscoverPanel, {
-              x, preview, audit, dest: installDest, crumb: mode === 'featured' ? t('pick.crumb') : 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
+              x, preview, audit, dest: installDest, crumb: 'Discover', owner: c.owner, curated: c.curated, installed: skills.some((s) => s.name === x.name),
               starred: featNames.has(x.name), onClose: () => setDetail(null),
               onInstall: () => { setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) },
               onStar: () => toggleFeatured(x.name)
@@ -2301,7 +2427,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                 if (j !== null && typeof j === 'object' && j.ok === true) {
                   // From Featured we stay on Featured: the card turns to « Installed » in place. From Discover the new skill opens in Yours.
                   const fromFeatured = mode === 'featured'
-                  setAskInstall(null); setDetail(null); setMode(fromFeatured ? 'featured' : 'yours'); loadCatalogue()
+                  setAskInstall(null); if (fromFeatured !== true) setDetail(null); setMode(fromFeatured ? 'featured' : 'yours'); loadCatalogue()
                   if (fromFeatured !== true && j.skill !== null && typeof j.skill === 'object') setLocal(j.skill)
                   setNotice({ kind: 'ok', text: t('notice.installed', { name: x.name }) + (j.files ? t('notice.files', { n: j.files }) : '') })
                 } else setErrors((m) => ({ ...m, __modal: why(j, t('err.install')) }))
@@ -2334,7 +2460,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         }
 
         const panel = renderPanel()
-        const list = h('div', null, mode === 'featured' ? renderFeatured() : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
+        const list = h('div', null, mode === 'featured' ? (detail !== null ? renderPickDetail() : renderFeatured()) : (mode === 'yours' ? renderYours() : (mode === 'team' ? renderTeam() : renderDiscover())))
         const body = panel === null
           ? list
           : h('div', { className: 'kbs-split open' }, h('div', { className: 'kbs-list' }, list), panel)
@@ -2356,7 +2482,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             return { query: q.featured, sort: sort.featured, dir: dir.featured === -1 ? 'desc' : 'asc', types: pcat === 'all' ? [] : ['cat:' + pcat], period: 'all', fav: false, viewMode: views.featured }
           }
           if (mode === 'discover') {
-            return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === 50 ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: views.discover }
+            return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === DISC_PER ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: views.discover }
           }
           const types = []
           if (stateFilter !== 'all') types.push('st:' + stateFilter)
@@ -2368,8 +2494,8 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const barUpdate = (patch) => {
           if (patch === null || typeof patch !== 'object') return
           if (mode === 'featured') {
-            if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, featured: v })) }
-            if (patch.viewMode !== undefined) setView('featured', patch.viewMode === 'list' ? 'list' : 'cards')
+            if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, featured: v })); setDetail(null) }
+            if (patch.viewMode !== undefined) { setView('featured', patch.viewMode === 'list' ? 'list' : 'cards'); setDetail(null) }
             if (patch.sort !== undefined) {
               const k2 = ['editorial', 'installs', 'name'].indexOf(patch.sort) >= 0 ? patch.sort : 'editorial'
               // A new order starts from its natural direction: Most installed high to low, Name A to Z.
@@ -2379,7 +2505,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             if (patch.types !== undefined) {
               const cur = pcat === 'all' ? [] : ['cat:' + pcat]
               const added = patch.types.filter((x2) => cur.indexOf(x2) < 0)
-              setPcat(added.length > 0 ? String(added[added.length - 1]).slice(4) : 'all')
+              setPcat(added.length > 0 ? String(added[added.length - 1]).slice(4) : 'all'); setDetail(null)
             }
             return
           }
@@ -2392,10 +2518,10 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             }
             if (patch.dir !== undefined) setDir((m) => ({ ...m, discover: patch.dir === 'asc' ? 1 : -1 }))
             if (patch.types !== undefined) {
-              const cur = iper === 50 ? [] : ['rows:' + iper]
+              const cur = iper === DISC_PER ? [] : ['rows:' + iper]
               const added = patch.types.filter((x) => cur.indexOf(x) < 0)
               const pick = added.length > 0 ? String(added[added.length - 1]) : ''
-              setIper(/^rows:\d+$/.test(pick) ? Number(pick.slice(5)) : 50)
+              setIper(/^rows:\d+$/.test(pick) ? Number(pick.slice(5)) : DISC_PER)
             }
             return
           }
@@ -2422,7 +2548,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const barFacets = () => (mode === 'featured'
           ? { type: { options: PICK_CATS.filter((c) => pickCounts()[c] > 0).map((c) => ({ id: 'cat:' + c, label: t('pcat.' + c), count: pickCounts()[c] })) } }
           : mode === 'discover'
-          ? { type: { options: [25, 50, 100, 250].map((n) => ({ id: 'rows:' + n, label: t('flt.rows') + ': ' + n })) } }
+          ? { type: { options: [DISC_PER, 50, 100, 250].map((n) => ({ id: 'rows:' + n, label: t('flt.rows') + ': ' + n })) } }
           : { type: { options: [{ id: 'st:active', label: t('card.active'), count: activeCount }, { id: 'st:disabled', label: t('card.disabled'), count: skills.length - activeCount }]
             .concat(sources.map((s) => ({ id: 'src:' + s, label: s, count: skills.filter((x) => x.source === s).length }))) } })
         const teamBarShown = mode === 'team' && tsum.phase === 'ready' && teamOpen === null
