@@ -1,16 +1,16 @@
 {
   "schema": 1,
   "kind": "kybernos-local-models",
-  "publishedAt": "2026-10-15T18:06:03.169Z",
-  "seq": 2,
+  "publishedAt": "2026-10-15T20:12:09.733Z",
+  "seq": 3,
   "models": [
     {
       "id": "qwen3.5:9b",
       "famille": "q",
       "initiale": "Qw",
-      "tailleGo": 6.1,
+      "tailleGo": 6.6,
       "ramMin": 16,
-      "score": "II 32 · MMMU-Pro 69 %",
+      "score": "II 32 · MMMU-Pro 69 % · 6.6–7.6 GB",
       "input": [
         "text",
         "image"
@@ -31,9 +31,9 @@
       "id": "qwen3.5:4b",
       "famille": "q",
       "initiale": "Qw",
-      "tailleGo": 3.1,
+      "tailleGo": 3.3,
       "ramMin": 8,
-      "score": "II 27 · MMMU-Pro 65 %",
+      "score": "II 27 · MMMU-Pro 65 % · 3.3–4 GB",
       "input": [
         "text",
         "image"
@@ -53,9 +53,9 @@
       "id": "qwen3.5:2b",
       "famille": "q",
       "initiale": "Qw",
-      "tailleGo": null,
-      "ramMin": 4,
-      "score": "II 16",
+      "tailleGo": 2.7,
+      "ramMin": 8,
+      "score": "II 16 · 2.7–3.1 GB",
       "input": [
         "text",
         "image"
@@ -64,8 +64,8 @@
         "Vision"
       ],
       "desc": {
-        "fr": "Pour les petites machines — taille Q4 non mesurée.",
-        "en": "For small machines — Q4 size not measured."
+        "fr": "Pour les petites machines : le plus petit des Qwen 3.5 avec la vision.",
+        "en": "For small machines: the smallest Qwen 3.5 that does not trade away vision."
       },
       "ajoute": "2026-09-27",
       "ordre": 30
@@ -74,9 +74,9 @@
       "id": "gemma4:e4b",
       "famille": "g",
       "initiale": "Gm",
-      "tailleGo": 3.6,
-      "ramMin": 8,
-      "score": "audio natif · embarqué",
+      "tailleGo": 6.6,
+      "ramMin": 16,
+      "score": "Ollama library · 6.6–9.5 GB · 128K ctx",
       "input": [
         "text",
         "image",
@@ -97,9 +97,9 @@
       "id": "qwen3:14b",
       "famille": "q",
       "initiale": "Qw",
-      "tailleGo": 9,
+      "tailleGo": 9.3,
       "ramMin": 16,
-      "score": "tools · thinking (Q4, Ollama)",
+      "score": "Ollama library · 9.3 GB · 40K ctx",
       "input": [
         "text"
       ],
@@ -118,9 +118,9 @@
       "id": "qwen3-coder:30b",
       "famille": "q",
       "initiale": "Qw",
-      "tailleGo": 18.6,
+      "tailleGo": 19,
       "ramMin": 32,
-      "score": "MoE 30B-A3B · code (Q4, Ollama)",
+      "score": "Ollama library · 19 GB · 256K ctx",
       "input": [
         "text"
       ],
@@ -134,6 +134,417 @@
       },
       "ajoute": "2026-09-27",
       "ordre": 60
+    },
+    {
+      "id": "qwen3.8:27b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 18,
+      "ramMin": 32,
+      "score": "Ollama library · 18 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3.8 (Alibaba) : vision, outils et réflexion, contexte 256K. Pour 32 Go.",
+        "en": "Qwen 3.8 (Alibaba): vision, tools and thinking, 256K context. For 32 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 70
+    },
+    {
+      "id": "qwen3.6:27b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 18,
+      "ramMin": 32,
+      "score": "Ollama library · 18–19 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3.6 (Alibaba) : vision, outils et réflexion, contexte 256K. Pour 32 Go.",
+        "en": "Qwen 3.6 (Alibaba): vision, tools and thinking, 256K context. For 32 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 72
+    },
+    {
+      "id": "qwen3.6:35b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 23,
+      "ramMin": 32,
+      "score": "Ollama library · 23–24 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3.6, version 35B : le plus gros du catalogue qui tienne dans 32 Go, de justesse.",
+        "en": "Qwen 3.6, 35B version: the largest of the catalogue that fits 32 GB, just."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 74
+    },
+    {
+      "id": "qwen3.5:27b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 17,
+      "ramMin": 32,
+      "score": "Ollama library · 17–20 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3.5, version 27B : vision, outils et réflexion. Pour 32 Go.",
+        "en": "Qwen 3.5, 27B version: vision, tools and thinking. For 32 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 76
+    },
+    {
+      "id": "gemma4:26b",
+      "famille": "g",
+      "initiale": "Gm",
+      "tailleGo": 16,
+      "ramMin": 32,
+      "score": "Ollama library · 16–19 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Gemma 4 (Google), version 26B : vision, outils et réflexion, contexte 256K. Pour 32 Go.",
+        "en": "Gemma 4 (Google), 26B version: vision, tools and thinking, 256K context. For 32 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 78
+    },
+    {
+      "id": "gpt-oss:20b",
+      "famille": "o",
+      "initiale": "Gp",
+      "tailleGo": 14,
+      "ramMin": 32,
+      "score": "Ollama library · 14 GB · 128K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "gpt-oss (OpenAI) : outils et réflexion, contexte 128K. Pour 32 Go.",
+        "en": "gpt-oss (OpenAI): tools and thinking, 128K context. For 32 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 80
+    },
+    {
+      "id": "mistral-small3.2:24b",
+      "famille": "m",
+      "initiale": "Mi",
+      "tailleGo": 15,
+      "ramMin": 32,
+      "score": "Ollama library · 15 GB · 128K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools"
+      ],
+      "desc": {
+        "fr": "Mistral Small 3.2 : vision et outils, contexte 128K. Pour 32 Go.",
+        "en": "Mistral Small 3.2: vision and tools, 128K context. For 32 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 82
+    },
+    {
+      "id": "gemma4:12b",
+      "famille": "g",
+      "initiale": "Gm",
+      "tailleGo": 7.7,
+      "ramMin": 16,
+      "score": "Ollama library · 7.7–8 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Gemma 4 (Google), version 12B : vision, outils et réflexion, contexte 256K. Tient dans 16 Go.",
+        "en": "Gemma 4 (Google), 12B version: vision, tools and thinking, 256K context. Fits 16 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 84
+    },
+    {
+      "id": "qwen3-vl:8b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 6.1,
+      "ramMin": 16,
+      "score": "Ollama library · 6.1 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3 VL : pensé pour les images, outils et réflexion, contexte 256K.",
+        "en": "Qwen 3 VL: built for images, with tools and thinking, 256K context."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 86
+    },
+    {
+      "id": "gemma3:12b",
+      "famille": "g",
+      "initiale": "Gm",
+      "tailleGo": 8.2,
+      "ramMin": 16,
+      "score": "Ollama library · 8.2 GB · 128K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision"
+      ],
+      "desc": {
+        "fr": "Gemma 3 (Google), version 12B : vision, contexte 128K. Génération précédente.",
+        "en": "Gemma 3 (Google), 12B version: vision, 128K context. Previous generation."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 88
+    },
+    {
+      "id": "deepseek-r1:14b",
+      "famille": "d",
+      "initiale": "Ds",
+      "tailleGo": 9,
+      "ramMin": 16,
+      "score": "Ollama library · 9 GB · 128K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "DeepSeek-R1 : modèle de raisonnement, outils et réflexion. Génération précédente.",
+        "en": "DeepSeek-R1: a reasoning model with tools and thinking. Previous generation."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 90
+    },
+    {
+      "id": "deepseek-r1:8b",
+      "famille": "d",
+      "initiale": "Ds",
+      "tailleGo": 5.2,
+      "ramMin": 16,
+      "score": "Ollama library · 5.2 GB · 128K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "DeepSeek-R1, version 8B : raisonnement sur une machine de 16 Go. Génération précédente.",
+        "en": "DeepSeek-R1, 8B version: reasoning on a 16 GB machine. Previous generation."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 92
+    },
+    {
+      "id": "qwen3:8b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 5.2,
+      "ramMin": 16,
+      "score": "Ollama library · 5.2 GB · 40K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3, version 8B : outils et réflexion. Génération précédente.",
+        "en": "Qwen 3, 8B version: tools and thinking. Previous generation."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 94
+    },
+    {
+      "id": "llama3.1:8b",
+      "famille": "l",
+      "initiale": "Ll",
+      "tailleGo": 4.9,
+      "ramMin": 16,
+      "score": "Ollama library · 4.9 GB · 128K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools"
+      ],
+      "desc": {
+        "fr": "Llama 3.1 (Meta), version 8B : outils, contexte 128K. Le plus répandu, plus ancien.",
+        "en": "Llama 3.1 (Meta), 8B version: tools, 128K context. The most widespread, and older."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 96
+    },
+    {
+      "id": "qwen3-vl:4b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 3.3,
+      "ramMin": 8,
+      "score": "Ollama library · 3.3 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Qwen 3 VL, version 4B : images, outils et réflexion. Pour 8 Go.",
+        "en": "Qwen 3 VL, 4B version: images, tools and thinking. For 8 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 98
+    },
+    {
+      "id": "gemma3:4b",
+      "famille": "g",
+      "initiale": "Gm",
+      "tailleGo": 3.4,
+      "ramMin": 8,
+      "score": "Ollama library · 3.4 GB · 128K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision"
+      ],
+      "desc": {
+        "fr": "Gemma 3 (Google), version 4B : vision, contexte 128K. Pour 8 Go.",
+        "en": "Gemma 3 (Google), 4B version: vision, 128K context. For 8 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 100
+    },
+    {
+      "id": "llama3.2:3b",
+      "famille": "l",
+      "initiale": "Ll",
+      "tailleGo": 2,
+      "ramMin": 8,
+      "score": "Ollama library · 2 GB · 128K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools"
+      ],
+      "desc": {
+        "fr": "Llama 3.2 (Meta), version 3B : outils, contexte 128K. Léger.",
+        "en": "Llama 3.2 (Meta), 3B version: tools, 128K context. Light."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 102
+    },
+    {
+      "id": "qwen3.5:0.8b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 1.2,
+      "ramMin": 8,
+      "score": "Ollama library · 1.2–1.3 GB · 256K ctx",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision"
+      ],
+      "desc": {
+        "fr": "Qwen 3.5, version 0,8B : le plus petit avec la vision. Pour 8 Go.",
+        "en": "Qwen 3.5, 0.8B version: the smallest with vision. For 8 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 104
+    },
+    {
+      "id": "gemma3:1b",
+      "famille": "g",
+      "initiale": "Gm",
+      "tailleGo": 0.8,
+      "ramMin": 4,
+      "score": "Ollama library · 0.8 GB · 32K ctx",
+      "input": [
+        "text"
+      ],
+      "badges": [],
+      "desc": {
+        "fr": "Gemma 3 (Google), version 1B : texte seul, contexte 32K. Pour 4 Go.",
+        "en": "Gemma 3 (Google), 1B version: text only, 32K context. For 4 GB."
+      },
+      "ajoute": "2026-10-15",
+      "ordre": 106
     }
   ]
 }

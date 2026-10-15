@@ -1,0 +1,21 @@
+{
+  "id": "gemma3:4b",
+  "famille": "g",
+  "initiale": "Gm",
+  "tailleGo": 3.4,
+  "ramMin": 8,
+  "score": "Ollama library · 3.4 GB · 128K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision"
+  ],
+  "desc": {
+    "fr": "Gemma 3 (Google), version 4B : vision, contexte 128K. Pour 8 Go.",
+    "en": "Gemma 3 (Google), 4B version: vision, 128K context. For 8 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 100
+}

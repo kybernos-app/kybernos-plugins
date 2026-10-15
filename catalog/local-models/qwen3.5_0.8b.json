@@ -1,0 +1,21 @@
+{
+  "id": "qwen3.5:0.8b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 1.2,
+  "ramMin": 8,
+  "score": "Ollama library · 1.2–1.3 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision"
+  ],
+  "desc": {
+    "fr": "Qwen 3.5, version 0,8B : le plus petit avec la vision. Pour 8 Go.",
+    "en": "Qwen 3.5, 0.8B version: the smallest with vision. For 8 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 104
+}

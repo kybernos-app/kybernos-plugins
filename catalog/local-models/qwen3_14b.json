@@ -2,9 +2,9 @@
   "id": "qwen3:14b",
   "famille": "q",
   "initiale": "Qw",
-  "tailleGo": 9.0,
+  "tailleGo": 9.3,
   "ramMin": 16,
-  "score": "tools · thinking (Q4, Ollama)",
+  "score": "Ollama library · 9.3 GB · 40K ctx",
   "input": [
     "text"
   ],

@@ -2,9 +2,9 @@
   "id": "qwen3.5:9b",
   "famille": "q",
   "initiale": "Qw",
-  "tailleGo": 6.1,
+  "tailleGo": 6.6,
   "ramMin": 16,
-  "score": "II 32 · MMMU-Pro 69 %",
+  "score": "II 32 · MMMU-Pro 69 % · 6.6–7.6 GB",
   "input": [
     "text",
     "image"

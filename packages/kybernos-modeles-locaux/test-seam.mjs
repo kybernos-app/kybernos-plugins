@@ -25,7 +25,7 @@ ok('the recommendation is the first entry of the catalogue (ordered by preferenc
   assert.equal(mod.kbRecommend(32).id, 'qwen3.5:9b')
   assert.equal(mod.kbRecommend(16).id, 'qwen3.5:9b')
   assert.equal(mod.kbRecommend(8).id, 'qwen3.5:4b')
-  assert.equal(mod.kbRecommend(4).id, 'qwen3.5:2b')
+  assert.equal(mod.kbRecommend(4).id, 'gemma3:1b') // the 2B Qwen is 2.7 GB: it needs 8 GB; a 4 GB machine gets the 1B
 })
 
 ok('an unmeasured machine gets the first entry, and one too small for anything gets none', () => {

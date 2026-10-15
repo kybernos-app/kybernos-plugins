@@ -1,0 +1,23 @@
+{
+  "id": "qwen3.6:27b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 18,
+  "ramMin": 32,
+  "score": "Ollama library · 18–19 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Qwen 3.6 (Alibaba) : vision, outils et réflexion, contexte 256K. Pour 32 Go.",
+    "en": "Qwen 3.6 (Alibaba): vision, tools and thinking, 256K context. For 32 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 72
+}
