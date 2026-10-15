@@ -139,8 +139,8 @@ window.__ModuleLoader__.load({
       'composio.keyhelp1': { fr: 'Ouvrez dashboard.composio.dev et connectez-vous (compte gratuit).', en: 'Open dashboard.composio.dev and sign in (free account).' },
       'composio.keyhelp2': { fr: 'Menu Settings ▸ API Keys, puis Generate new key.', en: 'Menu Settings ▸ API Keys, then Generate new key.' },
       'composio.keyhelp3': { fr: 'Collez la clé (elle commence par ck_…) ci-dessus : elle est enregistrée sur votre machine.', en: 'Paste the key (it starts with ck_…) above: it is saved on your machine.' },
-      'kb.cp.title': { fr: 'Connections', en: 'Connections' },
-      'kb.cp.sub': { fr: 'Les comptes par lesquels vos Agent Teams agissent, via Composio. Plusieurs connexions par app, une par compte.', en: 'The accounts your Agent Teams act through, via Composio — several connections per app, one per account.' },
+      'kb.cp.title': { fr: 'Connecteurs', en: 'Connectors' },
+      'kb.cp.sub': { fr: 'Les apps, serveurs MCP et API par lesquels vos agents agissent. Les apps passent par Composio (votre clé) ou votre compte Kybernos : plusieurs connexions par app, une par compte.', en: 'The apps, MCP servers and APIs your agents act through. Apps go through Composio (your key) or your Kybernos account: several connections per app, one per account.' },
       'kb.cp.search': { fr: 'Chercher une app — Slack, GitHub, facturation…', en: 'Search an app — Slack, GitHub, billing…' },
       'kb.cp.chipall': { fr: 'Toutes', en: 'All' },
       'kb.cp.chipconn': { fr: 'Connectées', en: 'Connected' },
@@ -902,6 +902,14 @@ window.__ModuleLoader__.load({
    token (a fixed #fff was invisible on it). */
 .kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
 .kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:1180px}
+.kb7-list{display:flex;flex-direction:column;gap:8px;max-width:1180px}
+.kb7-discact{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-inline-start:auto}
+.kb7-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border:1px solid rgba(128,128,128,.25);border-radius:12px;background:transparent;cursor:pointer;color:inherit;font:inherit;text-align:left}
+.kb7-row:hover{border-color:rgba(128,128,128,.45)}
+.kb7-rowid{flex:0 0 190px;min-width:0}
+.kb7-rowid .kb7-name,.kb7-rowid .kb7-cat{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb7-rowdesc{flex:1 1 0;min-width:0;font-size:12.5px;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kb7-rowend{display:flex;align-items:center;gap:6px;flex:none}
 .kb7-card{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid rgba(128,128,128,.25);border-radius:14px;background:transparent;cursor:pointer;text-align:left;color:inherit;font:inherit}
 .kb7-card:hover{background:rgba(128,128,128,.07);border-color:rgba(128,128,128,.45)}
 .kb7-lr{display:flex;align-items:center;gap:10px}
@@ -1002,6 +1010,11 @@ window.__ModuleLoader__.load({
 .kbcp-menu button:hover{background:rgba(128,128,128,.16)}
 .kbcp-menu small{opacity:.6;font-size:11.5px}
 .kbcp-mlist{display:flex;flex-direction:column;gap:10px;max-width:1180px}
+.kbcp-mlist.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.kbcp-mlist.cards .kbcp-mrow{border-radius:14px}
+.kbcp-mlist.cards .kbcp-mmain{flex-direction:column;align-items:flex-start;gap:10px;padding:14px}
+.kbcp-mlist.cards .kbcp-mid{flex:none;width:100%}
+.kbcp-mlist.cards .kbcp-mtarget{white-space:normal;overflow-wrap:anywhere}
 .kbcp-mrow{border:1px solid rgba(128,128,128,.25);border-radius:12px}
 .kbcp-mrow:hover{border-color:rgba(128,128,128,.45)}
 .kbcp-mmain{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:12px 14px}
@@ -1633,7 +1646,7 @@ window.__ModuleLoader__.load({
         await kbCpHost('/openapi', 'POST', { action: 'remove', name: it.name })
         props.reload()
       }
-      return h('div', { className: 'kbcp-mlist', 'data-kb': 'api-list', style: { marginTop: 12 } }, props.items.map((it) => {
+      return h('div', { className: 'kbcp-mlist' + (props.view === 'cards' ? ' cards' : ''), 'data-kb': 'api-list', style: { marginTop: 12 } }, props.items.map((it) => {
         const t = tests[it.name]
         return h('div', { className: 'kbcp-mrow', key: it.name, 'data-kb-api': it.name },
           h('div', { className: 'kbcp-mmain' },
@@ -1746,7 +1759,7 @@ window.__ModuleLoader__.load({
         props.note !== null ? h('div', { className: 'kbcp-toast', role: 'status' }, props.note) : null,
         props.error !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, kbt('kb.cp.mcp.error').replace('{why}', props.error)) : null,
         err !== null ? h('div', { className: 'kbcp-err', role: 'alert' }, err) : null,
-        items.length === 0 ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.mcp.empty'))) : h('div', { className: 'kbcp-mlist' }, items.map(row)))
+        items.length === 0 ? (props.filtered === true ? null : h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.mcp.empty')))) : h('div', { className: 'kbcp-mlist' + (props.view === 'cards' ? ' cards' : '') }, items.map(row)))
     }
 
     // ── Kybernos connections: add window and panel ───────────────────────────────────────────────────────────
@@ -2315,7 +2328,14 @@ window.__ModuleLoader__.load({
       // Multi-choice facet on the bar side, single-chip semantics on the page side: the
       // first type ticked filters, an empty selection means "All" (same
       // convention as the Teams view, which also reads types[0]).
-      const chip = tbState === null ? chipFb : (Array.isArray(tbState.types) === true && tbState.types.length > 0 ? String(tbState.types[0]) : 'all')
+      // The type facet means a category on the apps tabs and a kind (http / stdio / api) on the MCP servers tab: each tab reads only its own
+      // values, so a choice made on one never empties the other.
+      const KB_MCP_KINDS = ['http', 'stdio', 'api']
+      const tbTypes = tbState !== null && Array.isArray(tbState.types) === true ? tbState.types.map(String) : []
+      const chip = tbState === null ? chipFb : (tbTypes.filter((t) => KB_MCP_KINDS.indexOf(t) < 0)[0] || 'all')
+      const mcpKinds = tbTypes.filter((t) => KB_MCP_KINDS.indexOf(t) >= 0)
+      // Cards or list, the same switch as the other pages (the choice is kept per page by the toolbar state).
+      const viewMode = tbState !== null && tbState.viewMode === 'list' ? 'list' : 'cards'
       const qn = q.trim().toLowerCase()
       const matchQuery = (a) => kbCpMatch(a, qn)
       let list = apps.filter((a) => {
@@ -2437,11 +2457,50 @@ window.__ModuleLoader__.load({
       const yoursDir = cpDir === 'desc' ? -1 : 1
       const yoursList = yoursPool.filter(yoursMatch).slice().sort((a, b) => String(a.n).localeCompare(String(b.n), 'fr') * yoursDir)
       const yoursFacet = yoursCats.slice(0, 14).map((c) => ({ id: c, label: c, count: yoursPool.filter(matchQuery).filter((a) => (a.c || []).indexOf(c) >= 0).length }))
-      const cxShown = cx.filter((c) => qn.length < 2 || String(c.nom).toLowerCase().indexOf(qn) >= 0)
+      const kindOfServer = (c) => (c.transport === 'streamable-http' ? 'http' : 'stdio')
+      const hay = (...parts) => parts.map((x) => String(x === null || x === undefined ? '' : x)).join(' ').toLowerCase()
+      const mcpDir = cpDir === 'desc' ? -1 : 1
+      const cxShown = cx
+        .filter((c) => qn.length === 0 || hay(c.nom, c.url, c.command).indexOf(qn) >= 0)
+        .filter((c) => mcpKinds.length === 0 || mcpKinds.indexOf(kindOfServer(c)) >= 0)
+        .slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr') * mcpDir)
+      const apisShown = apis
+        .filter((a) => qn.length === 0 || hay(a.name, a.title, a.host).indexOf(qn) >= 0)
+        .filter((a) => mcpKinds.length === 0 || mcpKinds.indexOf('api') >= 0)
+        .slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'fr') * mcpDir)
+      const mcpFacet = ['http', 'stdio', 'api'].map((k) => ({ id: k, label: k === 'api' ? kbt('kb.cp.api.tag') : k, count: k === 'api' ? apis.length : cx.filter((c) => kindOfServer(c) === k).length })).filter((o) => o.count > 0)
+      const gridCls = viewMode === 'list' ? 'kb7-list' : 'kb7-grid'
+      // One app, as a card or as a row: the same facts, the same click.
+      const appRow = (a, inPop) => {
+        const st = statusOf(a.s)
+        const accs = accOf(a.s)
+        return h('button', { type: 'button', className: 'kb7-row', key: a.s, onClick: () => setOpen(a) },
+          AppLogo(a.s, 30),
+          h('div', { className: 'kb7-rowid' }, h('div', { className: 'kb7-name' }, a.n), h('div', { className: 'kb7-cat' }, (a.c || [])[0] || 'App')),
+          h('div', { className: 'kb7-rowdesc' }, a.d || ''),
+          h('div', { className: 'kb7-rowend' },
+            st !== null ? h('span', { className: 'kb7-pill' + (st === 'ACTIVE' ? '' : ' pend') }, st === 'ACTIVE' ? kbt('kb.cp.connected') : kbt('kb.cp.pend')) : null,
+            POPULAR.indexOf(a.s) >= 0 && inPop !== true ? h('span', { className: 'kb7-pill pop' }, kbt('kb.cp.popular')) : null,
+            accs.length > 1 ? h('span', { className: 'kb7-cat' }, accs.length + ' ' + kbt('kb.cp.accounts')) : null))
+      }
+      const appItem = (a, inPop) => (viewMode === 'list' ? appRow(a, inPop) : appCard(a, inPop))
       // The mode in force: Kybernos connections only when this server offers them, else the person's own key, as before.
       const effMode = kc !== null && kc.offered === true && mode === 'kybernos' ? 'kybernos' : 'personal'
       const kcMode = effMode === 'kybernos'
 
+      // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
+      const addWrap = h('div', { className: 'kbcp-addwrap' },
+              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
+              menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
+                h('hr', null),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } },
+                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } },
+                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null)
+      // No items on the tab: no bar (the template), and the action alone keeps its place.
+      const barShown = vtab === 'mcp' ? cx.length + apis.length > 0 : (vtab === 'discover' ? apps.length > 0 : (kcMode ? kc.connections.length > 0 : yoursPool.length > 0))
       return h('div', { className: 'kb7-root' },
         // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
         // Same structure as the Kybers page: title + "?" help glued to it, subtitle
@@ -2456,17 +2515,21 @@ window.__ModuleLoader__.load({
             h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
-          h('div', { className: 'kb6-headacts' },
-            h('div', { className: 'kbcp-addwrap' },
-              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
-              menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
-                h('hr', null),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } },
-                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } },
-                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null))),
+          // The bar sits in the header row with the primary action as its trailing item (the template of Agent Teams, Creations, Automations and
+          // Workspaces); with nothing to list there is no bar and the action alone takes its place.
+          (kbTb !== null && barShown === true ? h(kbTb.KbToolbar, {
+            state: Object.assign({}, tbState, { dir: cpDir }),
+            onUpdate: onCpUpdate,
+            searchPlaceholder: kbt('kb.cp.search'),
+            sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }],
+            facets: { type: { options: vtab === 'mcp' ? mcpFacet : (vtab === 'discover' ? facetOptions : (kcMode ? [] : yoursFacet)) } },
+            total: vtab === 'mcp' ? cx.length + apis.length : (vtab === 'discover' ? apps.length : (kcMode ? kc.connections.length : yoursPool.length)),
+            shown: vtab === 'mcp' ? cxShown.length + apisShown.length : (vtab === 'discover' ? list.length : (kcMode ? kc.connections.length : yoursList.length)),
+            hideView: vtab === 'yours' && kcMode === true,
+            views: ['cards', 'list'],
+            showFav: false,
+            trailing: addWrap,
+          }) : h('div', { className: 'kb6-headacts' }, addWrap))),
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -2478,23 +2541,10 @@ window.__ModuleLoader__.load({
               kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'mcp' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'mcp' ? ' on' : ''), 'data-kb': 'subtab-mcp', onClick: () => setVtab('mcp') },
               kbt('kb.cp.tab.mcp'), cx.length + apis.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length + apis.length)) : null)),
-          // Unified bar on the RIGHT of the row (mockup): visible on
-          // "Discover" only; Refresh / Load all as trailing items.
-          (kbTb !== null && vtab !== 'mcp' ? h(kbTb.KbToolbar, {
-            state: Object.assign({}, tbState, { dir: cpDir }),
-            onUpdate: onCpUpdate,
-            searchPlaceholder: kbt('kb.cp.search'),
-            sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }],
-            facets: { type: { options: vtab === 'discover' ? facetOptions : (kcMode ? [] : yoursFacet) } },
-            total: vtab === 'discover' ? apps.length : (kcMode ? kc.connections.length : yoursPool.length),
-            shown: vtab === 'discover' ? list.length : (kcMode ? kc.connections.length : yoursList.length),
-            hideView: true,
-            showFav: false,
-            trailing: vtab === 'discover' ? [
-              h('button', { type: 'button', key: 'refresh', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
-              apps.length <= CATALOG.length ? h('button', { type: 'button', key: 'more', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null,
-            ] : [],
-          }) : null)),
+          // Refresh and « load the full catalog » belong to Discover: on the tabs' row, so the bar stays the same on every tab.
+          vtab === 'discover' && kbTb !== null ? h('div', { className: 'kb7-discact' },
+            h('button', { type: 'button', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
+            apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
         // (01/10) The status banners go UNDER the control row: their
         // appearance no longer moves the title or the row (tab parity).
         // (29/09) small "Local Connectors" help: collapsed at rest, the (i) button
@@ -2519,12 +2569,13 @@ window.__ModuleLoader__.load({
                 yoursPool.length > 0 ? null : kbCpEmptyArt(),
                 h('div', { className: 'kb7-empty' }, yoursPool.length > 0 ? kbt('kb.cp.empty') : (err !== null ? err : kbt('kb.cp.yours.empty'))),
                 yoursPool.length > 0 ? null : h('button', { type: 'button', className: 'kbcp-btn', onClick: () => setVtab('discover') }, kbt('kb.cp.yours.go'))) : (skelCards(6) || h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')))))
-            : h('div', { className: 'kb7-grid' }, yoursList.map((a) => appCard(a)))
+            : h('div', { className: gridCls }, yoursList.map((a) => appItem(a)))
         ) : null,
         // ── MCP servers ─────────────────────────────────────────────────────
         vtab === 'mcp' ? h('div', null,
-          cx.length > 0 || apis.length === 0 ? h(McpPanel, { items: cx, hostOld: hostOld, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
-          apis.length > 0 ? h(ApiList, { items: apis, reload: loadApis, toast: flash }) : null) : null,
+          cx.length > 0 || apis.length === 0 ? h(McpPanel, { items: cxShown, view: viewMode, filtered: cx.length > 0 && cxShown.length === 0, hostOld: hostOld, error: mcpErr, note: cxNote, recent: recent, touch: touch, reload: loadConnecteurs, toast: flash, edit: (c) => setCxForm({ initial: c }) }) : null,
+          apisShown.length > 0 ? h(ApiList, { items: apisShown, view: viewMode, reload: loadApis, toast: flash }) : null,
+          cx.length + apis.length > 0 && cxShown.length + apisShown.length === 0 ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.empty'))) : null) : null,
         // ── Discover ────────────────────────────────────────────────────────
         vtab === 'discover' ? h('div', { className: 'kb7-panel' },
           // The unified bar lives in the control row above;
@@ -2539,9 +2590,9 @@ window.__ModuleLoader__.load({
           (ready === false || (busy === true && Object.keys(conns).length === 0)) && shown.length === 0 && skelCards(9) !== null ? skelCards(9)
             : (ready === false || (busy === true && Object.keys(conns).length === 0) ? h('div', { className: 'kb7-empty' }, kbt('kb.cp.loading')) : null),
           popList.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-popular' }, kbt('kb.cp.popularH'), h('span', null, String(popList.length))) : null,
-          popList.length > 0 ? h('div', { className: 'kb7-grid' }, popList.map((a) => appCard(a, true))) : null,
+          popList.length > 0 ? h('div', { className: gridCls }, popList.map((a) => appItem(a, true))) : null,
           popList.length > 0 && shown.length > 0 ? h('div', { className: 'kb7-seclab', 'data-kb': 'discover-all' }, kbt('kb.cp.allapps'), h('span', null, String(mainList.length))) : null,
-          h('div', { className: 'kb7-grid' }, shown.map((a) => appCard(a))),
+          h('div', { className: gridCls }, shown.map((a) => appItem(a))),
           ready === true && list.length === 0 && busy === false ? h('div', { className: 'kb7-emptybox' }, h('div', { className: 'kb7-empty' }, kbt('kb.cp.empty'))) : null,
           pages > 1 ? h('div', { className: 'kb7-chips', style: { justifyContent: 'center' } },
             h('button', { type: 'button', className: 'kbcp-btn', disabled: cur <= 1, onClick: () => setPage(cur - 1) }, '‹'),
