@@ -1307,6 +1307,34 @@ let kbLocaleRead = () => 'en'
       'kbnc.create': { kybernos: 'Créer', en: 'Create' },
       'kbnc.create.sub': { kybernos: 'Présentations, documents, images', en: 'Slides, documents, images' },
       'kbnc.close': { kybernos: 'Fermer', en: 'Close' },
+      'kbnc.hero.0': { kybernos: 'On fabrique quoi aujourd\'hui ?', en: 'What are we making today?' },
+      'kbnc.hero.1': { kybernos: 'Partons d\'une idée brouillonne', en: 'Start with a rough idea' },
+      'kbnc.hero.2': { kybernos: 'Apportez la version brute', en: 'Bring the messy version' },
+      'kbnc.hero.3': { kybernos: 'Du neuf commence ici', en: 'Something new starts here' },
+      'kbnc.hero.4': { kybernos: 'Dites-le simplement', en: 'Say it plainly, I\'ll shape it' },
+      'kbnc.hero.5': { kybernos: 'Tirez le fil, on déroule', en: 'Pick a thread, pull on it' },
+      'kbnc.hero.6': { kybernos: 'Une phrase suffit', en: 'One sentence is enough' },
+      'kbnc.hero.7': { kybernos: 'Faisons-le, puis améliorons', en: 'Build it, then make it better' },
+      'kbnc.hero.8': { kybernos: 'Page blanche, quelques minutes', en: 'A blank page, a few minutes' },
+      'kbnc.hero.9': { kybernos: 'Quel est le projet du jour ?', en: 'Let\'s turn this into something' },
+      'kbnc.hero.10': { kybernos: 'À quoi pensez-vous ?', en: 'What\'s on your mind?' },
+      'kbnc.hero.11': { kybernos: 'D\'abord un brouillon', en: 'Draft first, polish later' },
+      'kbnc.hero.12': { kybernos: 'Les idées sont les bienvenues', en: 'Ideas welcome, finished or not' },
+      'kbnc.hero.13': { kybernos: 'Montrez-moi le problème', en: 'Show me the problem' },
+      'kbnc.hero.14': { kybernos: 'Fabriquons la suite', en: 'Make the next thing' },
+      'kbnc.hero.15': { kybernos: 'Votre idée, un peu plus près', en: 'Your idea, a little closer' },
+      'kbnc.hero.16': { kybernos: 'Petits pas, vrais résultats', en: 'Small steps, real results' },
+      'kbnc.hero.17': { kybernos: 'Décrivez, on construit', en: 'Describe it, we\'ll build it' },
+      'kbnc.hero.18': { kybernos: 'Par où commence-t-on ?', en: 'Where shall we begin?' },
+      'kbnc.hero.19': { kybernos: 'Ça commence petit', en: 'Good things start small' },
+      'kbnc.hero.20': { kybernos: 'Dites-moi le résultat voulu', en: 'Tell me the outcome you want' },
+      'kbnc.hero.21': { kybernos: 'Pensez à voix haute', en: 'Think out loud, I\'m listening' },
+      'kbnc.hero.22': { kybernos: 'Une intuition, un brouillon', en: 'Turn a hunch into a draft' },
+      'kbnc.hero.23': { kybernos: 'Posons quelque chose', en: 'Put something on the page' },
+      'kbnc.hero.24': { kybernos: 'Le projet du jour démarre', en: 'Today\'s project starts now' },
+      'kbnc.hero.25': { kybernos: 'Une question, des idées', en: 'Bring a question' },
+      'kbnc.hero.26': { kybernos: 'Esquissez-le en mots', en: 'Sketch it in words' },
+      'kbnc.hero.27': { kybernos: 'Prêt quand vous l\'êtes', en: 'Ready when you are' },
       'kbnc.t.website': { kybernos: 'Site web', en: 'Website' },
       'kbnc.t.miniapp': { kybernos: 'Mini-app', en: 'Mini-app' },
       'kbnc.t.dashboard': { kybernos: 'Tableau de bord', en: 'Dashboard' },
@@ -5281,23 +5309,54 @@ const kbBoardReason = (pending, lang) => {
 //  - `needs` is the id of the bundle a template depends on (null = the core). A template whose bundle is not in the boot
 //    list is not offered: it is never shown dead.
 //  - A Build / Create template PREFILLS the composer (the person adds the details); the starters of the team keep SENDING.
+//  - `hue` is the colour of the template's icon tile (the tile is that colour at 16 %, the glyph is the colour itself).
 const KB_NC_BUILD = [
-  { id: 'website', icon: 'globe', needs: null },
-  { id: 'miniapp', icon: 'package', needs: '@local/kybernos-miniapps' },
-  { id: 'dashboard', icon: 'layoutDashboard', needs: '@local/kybernos-dashboards' },
-  { id: 'automation', icon: 'zap', needs: null },
-  { id: 'team', icon: 'waypoints', needs: null },
-  { id: 'skill', icon: 'sparkles', needs: null },
-  { id: 'plugin', icon: 'puzzle', needs: null },
-  { id: 'model3d', icon: 'box', needs: '@local/kybernos-modeleur' },
+  { id: 'website', icon: 'globe', needs: null, hue: '#4f6bff' },
+  { id: 'miniapp', icon: 'package', needs: '@local/kybernos-miniapps', hue: '#16b894' },
+  { id: 'dashboard', icon: 'layoutDashboard', needs: '@local/kybernos-dashboards', hue: '#ff8a3d' },
+  { id: 'automation', icon: 'zap', needs: null, hue: '#f5a623' },
+  { id: 'team', icon: 'waypoints', needs: null, hue: '#6c5ce7' },
+  { id: 'skill', icon: 'sparkles', needs: null, hue: '#e84393' },
+  { id: 'plugin', icon: 'puzzle', needs: null, hue: '#00a8cc' },
+  { id: 'model3d', icon: 'box', needs: '@local/kybernos-modeleur', hue: '#9b59f6' },
 ]
 const KB_NC_CREATE = [
-  { id: 'slides', icon: 'presentation', needs: '@local/kybernos-slides' },
-  { id: 'doc', icon: 'fileText', needs: null },
-  { id: 'sheet', icon: 'grid', needs: null },
-  { id: 'image', icon: 'image', needs: null },
-  { id: 'video', icon: 'play', needs: '@local/kybernos-motion' },
+  { id: 'slides', icon: 'presentation', needs: '@local/kybernos-slides', hue: '#7c5cff' },
+  { id: 'doc', icon: 'fileText', needs: null, hue: '#3d7eff' },
+  { id: 'sheet', icon: 'grid', needs: null, hue: '#2eb872' },
+  { id: 'image', icon: 'image', needs: null, hue: '#1fa8e8' },
+  { id: 'video', icon: 'play', needs: '@local/kybernos-motion', hue: '#ff5d73' },
 ]
+/** The three cards of the row: their icon colours (the Cloud Computer's is teal, whatever its state: the dot says the state). */
+const KB_NC_HUES = { build: '#7c5cff', create: '#ff7a45', cloud: '#12b886' }
+/** A `#rrggbb` colour at an alpha, as `rgba(...)`; anything else is a neutral grey (never throws). */
+const kbNcTint = (hex, a) => {
+  const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex))
+  if (m === null) return 'rgba(140,140,140,' + String(a) + ')'
+  return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + String(a) + ')'
+}
+// The visual strip under the cards: one drawn preview per kind of thing the product makes. Drawn here as inline SVG on a
+// gradient (no image, video or font in git: AGENTS rule 4); `from`/`to` are the gradient's ends. A tile shows only when
+// its template does (same `needs` as above), and a click prefills the composer exactly like a template does.
+const KB_NC_VISUALS = ['slides', 'video', 'image', 'miniapp', 'website', 'dashboard']
+const KB_NC_ART = {
+  slides: { from: '#7c5cff', to: '#4f8cff', svg: '<rect x="38" y="26" width="92" height="52" rx="6" fill="#fff" opacity=".45"/><rect x="30" y="18" width="92" height="52" rx="6" fill="#fff"/><rect x="40" y="27" width="40" height="7" rx="3.5" fill="#7c5cff"/><rect x="40" y="40" width="54" height="4" rx="2" fill="#c9cdd6"/><rect x="40" y="48" width="44" height="4" rx="2" fill="#c9cdd6"/><rect x="92" y="46" width="7" height="16" rx="2" fill="#ffb020"/><rect x="102" y="38" width="7" height="24" rx="2" fill="#4f8cff"/><rect x="112" y="30" width="7" height="32" rx="2" fill="#7c5cff"/>' },
+  video: { from: '#ff5d73', to: '#ff9a3d', svg: '<rect x="26" y="16" width="108" height="62" rx="9" fill="#1b1d24"/><circle cx="80" cy="45" r="16" fill="#fff"/><path d="M75 37 91 45 75 53Z" fill="#ff5d73"/><rect x="36" y="68" width="88" height="4" rx="2" fill="#fff" opacity=".25"/><rect x="36" y="68" width="52" height="4" rx="2" fill="#ff9a3d"/>' },
+  image: { from: '#35b9f4', to: '#7be0a8', svg: '<rect x="26" y="14" width="108" height="72" rx="8" fill="#fff"/><rect x="31" y="19" width="98" height="62" rx="5" fill="#bfe9ff"/><circle cx="108" cy="36" r="9" fill="#ffd54a"/><path d="M31 81V62l24-18 20 16 14-9 40 24v6Z" fill="#46c37b"/><path d="M31 81V70l30-14 22 14 20-8 26 12v7Z" fill="#2e9e62"/>' },
+  miniapp: { from: '#16c79a', to: '#1fa2ff', svg: '<rect x="58" y="8" width="44" height="84" rx="9" fill="#fff"/><rect x="64" y="18" width="14" height="14" rx="4" fill="#16c79a"/><rect x="82" y="18" width="14" height="14" rx="4" fill="#ffb020"/><rect x="64" y="36" width="14" height="14" rx="4" fill="#4f8cff"/><rect x="82" y="36" width="14" height="14" rx="4" fill="#ff5d73"/><rect x="64" y="56" width="32" height="6" rx="3" fill="#c9cdd6"/><rect x="64" y="68" width="32" height="10" rx="5" fill="#16c79a"/>' },
+  website: { from: '#5b6cff', to: '#a46bff', svg: '<rect x="22" y="14" width="116" height="72" rx="8" fill="#fff"/><path d="M22 28v-6a8 8 0 0 1 8-8h100a8 8 0 0 1 8 8v6Z" fill="#e6e8ee"/><circle cx="31" cy="21" r="2.4" fill="#ff5d73"/><circle cx="39" cy="21" r="2.4" fill="#ffb020"/><circle cx="47" cy="21" r="2.4" fill="#46c37b"/><rect x="30" y="34" width="100" height="20" rx="5" fill="#a46bff" opacity=".85"/><rect x="30" y="60" width="30" height="18" rx="4" fill="#d7dbe6"/><rect x="65" y="60" width="30" height="18" rx="4" fill="#d7dbe6"/><rect x="100" y="60" width="30" height="18" rx="4" fill="#d7dbe6"/>' },
+  dashboard: { from: '#ffb020', to: '#ff5d73', svg: '<rect x="22" y="14" width="116" height="72" rx="8" fill="#fff"/><rect x="30" y="22" width="34" height="22" rx="4" fill="#ffe3c2"/><rect x="68" y="22" width="34" height="22" rx="4" fill="#ffd0d0"/><rect x="106" y="22" width="24" height="22" rx="4" fill="#d4ecff"/><rect x="30" y="50" width="12" height="28" rx="2" fill="#ff9a3d"/><rect x="46" y="58" width="12" height="20" rx="2" fill="#ffb020"/><rect x="62" y="46" width="12" height="32" rx="2" fill="#ff5d73"/><path d="M84 74 98 62l12 6 20-18" fill="none" stroke="#4f8cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' },
+}
+// The headline of the new-chat page: a different line each time a new chat page appears (KB_NC_HERO_COUNT lines per
+// language, the dictionary keys `kbnc.hero.<n>`). `last` is the index shown the previous time: never the same twice in a row.
+const KB_NC_HERO_COUNT = 28
+const kbNcPickLine = (count, last, rand) => {
+  const n = Math.max(1, Math.floor(Number(count) || 1))
+  const r = typeof rand === 'function' ? Number(rand()) : Math.random()
+  let i = Math.min(n - 1, Math.max(0, Math.floor((Number.isFinite(r) ? r : 0) * n)))
+  if (n > 1 && i === last) i = (i + 1) % n
+  return i
+}
 /** The templates of a group this install can serve. `bootIds`: the ids of the bundles of the boot list. */
 const kbNcTemplates = (group, bootIds) => group.filter((t) => t.needs === null || (Array.isArray(bootIds) === true && bootIds.indexOf(t.needs) >= 0))
 const kbNcObj = (v) => (v !== null && typeof v === 'object' && !Array.isArray(v) ? v : null)
@@ -24026,10 +24085,10 @@ function renderFit(canvas, model, cam, opts){
               h('button', { type: 'button', className: 'kb8-nc-x', 'aria-label': kbt('kbnc.close'), title: kbt('kbnc.close'), onClick: () => setOpen(null) }, Icon('x', 14))),
             h('div', { className: 'kb8-nc-tiles' }, group.map((t) =>
               h('button', { type: 'button', key: t.id, className: 'kb8-nc-tile', 'data-kb': 'newchat-template', onClick: () => prefill(t.id) },
-                h('span', { className: 'kb8-nc-ico' }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
+                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(t.hue, 0.16), color: t.hue } }, Icon(t.icon, 18)), h('span', { className: 'kb8-nc-t' }, kbt('kbnc.t.' + t.id)))))))
       }
       const card = (id, icon, title, sub, onClick, dot) => h('button', { type: 'button', key: id, className: 'kb8-nc-card', 'data-kb': 'newchat-' + id, onClick },
-        h('span', { className: 'kb8-nc-ico' }, Icon(icon, 18)),
+        h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES[id], 0.16), color: KB_NC_HUES[id] } }, Icon(icon, 18)),
         h('span', { className: 'kb8-nc-body' },
           h('span', { className: 'kb8-nc-t' }, dot === undefined || dot === '' ? null : h('i', { className: 'kb8-nc-dot ' + dot }), title),
           h('span', { className: 'kb8-nc-d' }, sub)))
@@ -24054,6 +24113,16 @@ function renderFit(canvas, model, cam, opts){
             kbNcCloudBurst()
           })
       }
+      // The visual strip: a drawn preview per kind of thing the product makes; a click prefills the composer like a template.
+      const stripTemplates = kbNcTemplates(KB_NC_CREATE.concat(KB_NC_BUILD), boot)
+      const visuals = KB_NC_VISUALS.map((id) => stripTemplates.find((t) => t.id === id)).filter((t) => t !== undefined)
+      const stripNode = visuals.length === 0 ? null : h('div', { className: 'kb8-nc-strip', 'data-kb': 'newchat-visuals', role: 'list' },
+        visuals.map((t) => {
+          const art = KB_NC_ART[t.id]
+          return h('button', { type: 'button', key: t.id, role: 'listitem', className: 'kb8-nc-vis', 'data-kb': 'newchat-visual', 'data-id': t.id, onClick: () => prefill(t.id) },
+            h('span', { className: 'kb8-nc-art', style: { background: 'linear-gradient(135deg,' + art.from + ',' + art.to + ')' }, dangerouslySetInnerHTML: { __html: '<svg viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + art.svg + '</svg>' } }),
+            h('span', { className: 'kb8-nc-vl' }, kbt('kbnc.t.' + t.id)))
+        }))
       const ccActions = kbNcActions(cloud)
       const ccSub = cloud.kind === 'awake' || cloud.kind === 'asleep' || cloud.kind === 'other'
         ? (cloud.kind === 'awake' ? kbt('kbnc.cc.sub.awake') : (cloud.lastActive !== '' ? kbt('kbnc.cc.last') + kbFmtWhen(cloud.lastActive) : kbt('kbnc.cc.' + cloud.kind)))
@@ -24065,13 +24134,14 @@ function renderFit(canvas, model, cam, opts){
           (cloud.kind === 'unknown' ? null
             : h('div', { key: 'cloud', className: 'kb8-nc-card kb8-nc-cloud', 'data-kb': 'newchat-cloud' },
               h('button', { type: 'button', className: 'kb8-nc-main', 'data-kb': 'newchat-cloud-open', onClick: openKyber },
-                h('span', { className: 'kb8-nc-ico' }, Icon('monitor', 18)),
+                h('span', { className: 'kb8-nc-ico', style: { background: kbNcTint(KB_NC_HUES.cloud, 0.16), color: KB_NC_HUES.cloud } }, Icon('monitor', 18)),
                 h('span', { className: 'kb8-nc-body' },
                   h('span', { className: 'kb8-nc-t' }, kbNcDot(cloud.kind) === '' ? null : h('i', { className: 'kb8-nc-dot ' + kbNcDot(cloud.kind) }), kbt('kbui.cloudcomputer')),
                   h('span', { className: 'kb8-nc-d', role: act.note !== null ? 'alert' : undefined, title: act.note !== null ? act.note : undefined },
                     act.note !== null ? act.note : (act.verb !== null ? kbt('kbnc.cc.act.busy') : (cloud.pausedReason === 'hours' && ccActions.length === 0 ? kbt('kbnc.cc.hours') : ccSub))))),
               (ccActions.length > 0 ? h('span', { className: 'kb8-nc-acts' }, ccActions.map((verb) =>
-                h('button', { type: 'button', key: verb, className: 'kb8-nc-act' + (verb === 'suspend' ? ' ghost' : ''), 'data-kb': 'newchat-cloud-' + verb, disabled: act.verb !== null, onClick: () => runAction(verb) }, kbt('kbnc.cc.act.' + verb)))) : null)))))
+                h('button', { type: 'button', key: verb, className: 'kb8-nc-act' + (verb === 'suspend' ? ' ghost' : ''), 'data-kb': 'newchat-cloud-' + verb, disabled: act.verb !== null, onClick: () => runAction(verb) }, kbt('kbnc.cc.act.' + verb)))) : null)))),
+        stripNode)
     }
     ctx.effect(() => slots.inject('conversation.input.dock', () => slots.register(
       { name: 'conversation.input.dock', id: 'kybernos-newchat', order: 25 }, KbNewChatCards)), 'kybers: cartes du nouveau chat');
@@ -24106,8 +24176,63 @@ function renderFit(canvas, model, cam, opts){
 .kb8-nc-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .kb8-nc-tile{display:flex;align-items:center;gap:9px;min-width:0;padding:7px 8px;border-radius:12px;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .kb8-nc-tile:hover{background:var(--dsw-alias-bg-layer-3)}
-@media (max-width:720px){.kb8-nc-row{grid-template-columns:1fr}.kb8-nc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* The visual strip: drawn previews on a gradient (inline SVG, nothing fetched). */
+.kb8-nc-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px}
+.kb8-nc-vis{display:flex;flex-direction:column;gap:6px;min-width:0;padding:0;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.kb8-nc-art{display:block;aspect-ratio:16/10;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.14);transition:transform .14s,box-shadow .14s}
+.kb8-nc-art svg{display:block;width:100%;height:100%}
+.kb8-nc-vis:hover .kb8-nc-art{transform:translateY(-2px);box-shadow:0 8px 18px rgba(0,0,0,.24)}
+.kb8-nc-vis:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px;border-radius:12px}
+.kb8-nc-vl{padding:0 2px;font-size:12.5px;font-weight:500;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kb8-nc-vis:hover .kb8-nc-vl{color:var(--dsw-alias-label-primary)}
+@media (prefers-reduced-motion:reduce){.kb8-nc-art{transition:none}.kb8-nc-vis:hover .kb8-nc-art{transform:none}}
+@media (max-width:720px){.kb8-nc-row{grid-template-columns:1fr}.kb8-nc-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.kb8-nc-strip{grid-template-columns:repeat(3,minmax(0,1fr))}}
 `), 'kybers: styles cartes du nouveau chat');
+
+    // ── The headline of the new-chat page: a different line each time, and « Beta », small ────────────────────────
+    // DSH draws « Into the Unknown » and a « Preview » badge itself (HeroShell: two locale keys; only the mark has a slot).
+    // They are changed in place, on the nodes React made: a new chat page picks a line (never the previous one), the badge
+    // says « Beta ». Only the text nodes' values change, so a re-render that keeps the key leaves ours alone, and one that
+    // changes it is put back by the next sweep. No engine patch, no locale override (register throws on duplicates).
+    ctx.effect(() => {
+      let stopped = false
+      let timer = null
+      const KEY = 'kybernos.newchat.heroLine'
+      const setText = (el, text) => {
+        if (el.textContent === text) return
+        const n = el.firstChild
+        if (n !== null && n.nodeType === 3) n.nodeValue = text
+        else el.textContent = text
+      }
+      const sweep = () => {
+        try {
+          for (const g of document.querySelectorAll('[class*="titleGroup"]')) {
+            const head = g.children[0]
+            const badge = g.children[1]
+            if (head === undefined || badge === undefined || String(badge.className).indexOf('previewBadge') < 0) continue
+            if (g.getAttribute('data-kb-hero') === null) {
+              let last = -1
+              try { last = Number(window.localStorage.getItem(KEY)) } catch (e) { last = -1 }
+              const i = kbNcPickLine(KB_NC_HERO_COUNT, Number.isFinite(last) ? last : -1)
+              try { window.localStorage.setItem(KEY, String(i)) } catch (e) { /* storage unavailable: no memory of the last one */ }
+              g.setAttribute('data-kb-hero', String(i))
+            }
+            setText(head, kbt('kbnc.hero.' + g.getAttribute('data-kb-hero')))
+            setText(badge, 'Beta')
+            if (badge.getAttribute('data-kb-beta') === null) badge.setAttribute('data-kb-beta', '1')
+          }
+        } catch (e) { /* no hero here, or its markup moved: DSH's own text stays */ }
+      }
+      const later = () => { if (timer !== null) return; timer = setTimeout(() => { timer = null; if (stopped !== true) sweep() }, 80) }
+      let obs = null
+      try { obs = new MutationObserver(later); obs.observe(document.body, { childList: true, subtree: true }) } catch (e) { obs = null }
+      sweep()
+      return () => { stopped = true; if (obs !== null) obs.disconnect(); if (timer !== null) clearTimeout(timer) }
+    }, 'kybers: titre du nouveau chat et badge Beta')
+    ctx.effect(() => styles.insert(`
+/* The badge DSH calls « Preview » says « Beta » and is small: its own look (colour, shape) is kept, its code font is not. */
+[class*="previewBadge"][data-kb-beta]{font-family:inherit;font-size:10px;font-weight:600;line-height:1;letter-spacing:.04em;padding:3px 7px}
+`), 'kybers: styles badge Beta')
 
     // ── DSH's own « Automation tasks » menu entry overlaps the Automations page: hidden, unless asked back ──────
     // The row is found by the React key DSH gives it (« schedules », the same in every language). The choice lives in
