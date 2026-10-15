@@ -936,6 +936,9 @@ let kbLocaleRead = () => 'en'
       'art.prompt.build': { kybernos: ' Crée un ', en: ' Create a ' },
       'deliv.create.prompt.any': { kybernos: 'Imagine une création à partir du contexte de cette conversation. Propose-la-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Come up with a creation from this conversation\'s context. Show me a draft before writing it to the workspace.' },
       'kbui.feedback.flash': { kybernos: 'Retours — dites-nous ce qui a cassé.', en: 'Feedback — tell us what broke.' },
+      // The brief written in the chat that « Let the agent help me create a preset » (Settings › Agent presets) opens. It is a
+      // draft, not a message: nothing is sent until the person sends it. The skill named is DSH's own for presets.
+      'kbui.preset.creator.draft': { kybernos: 'Aide-moi à créer un preset d’agent (une façon de travailler réglée pour un usage précis). Pose-moi d’abord, une question à la fois : à quoi il doit servir, quels outils il doit avoir ou ne pas avoir, quelles limites ou habitudes il doit respecter. Appuie-toi sur le skill editing-cordis-compositions, propose-moi le preset complet, et n’écris rien tant que je ne l’ai pas validé.', en: 'Help me create an agent preset (a way of working tuned for one use). Ask me first, one question at a time: what it is for, which tools it should or should not have, which limits or habits it should respect. Use the editing-cordis-compositions skill, propose the full preset, and write nothing until I have approved it.' },
       'kbui.feedback.draft': { kybernos: '/skill-signaler-retour Je veux signaler un problème ou proposer une amélioration. Commence l\'entretien par ta première question.', en: '/skill-signaler-retour I want to report a problem or suggest an improvement. Start the interview with your first question.' },
       'kbui.help.flash': { kybernos: 'Aide · raccourcis · journal des versions.', en: 'Help · shortcuts · release notes.' },
       'kbui.runs.locally': { kybernos: 'Tourne en local sur votre machine', en: 'Runs locally on your machine' },
@@ -7551,6 +7554,30 @@ return {
     // Exposé pour le bouton « Envoyer un retour » (barre d'outils de la
     // sidebar, autre composant, autre portée).
     kbOpenFeedbackChat = kbStartChatText
+    // « Let the agent help me create a preset » (Settings › Agent presets) opens a Creator-mode chat and nothing else: DSH
+    // calls `uiWorkspace.startSession(undefined, { clearPreviousDraft: false, agentPreset: 'cordis' })` with no `prompt`,
+    // although `startSession` takes one, so the person lands on an empty composer with no hint of what to say. That exact
+    // call shape is the button's; we hand it a brief to write in the composer (a draft, never sent) and let every other call
+    // through untouched. If DSH changes the call, the button simply opens the blank Creator chat it always did.
+    try {
+      const svc = uiWorkspaceSvc
+      if (svc !== null && svc !== undefined && typeof svc.startSession === 'function') {
+        const original = svc.startSession
+        const wrapped = function (workspaceId, options) {
+          let next = options
+          try {
+            if (options !== null && options !== undefined && typeof options === 'object' && options.agentPreset === 'cordis' && options.clearPreviousDraft === false && options.prompt === undefined) {
+              next = Object.assign({}, options, { prompt: kbt('kbui.preset.creator.draft') })
+            }
+          } catch (e) { next = options }
+          return original.call(this, workspaceId, next)
+        }
+        ctx.effect(() => {
+          Object.defineProperty(svc, 'startSession', { value: wrapped, configurable: true, writable: true })
+          return () => { try { Object.defineProperty(svc, 'startSession', { value: original, configurable: true, writable: true }) } catch (e) { /* frozen: nothing to give back */ } }
+        }, 'kybers: creator preset draft')
+      }
+    } catch (e) { /* the service cannot be wrapped: the blank Creator chat stays */ }
     // Pont inter-bundles : un autre bundle client (ex. kybernos-composio, bouton
     // « Connecteur personnalisé » de l'onglet Connections) ouvre un chat neuf
     // prérempli sans dépendre de ce module. Même chemin que « Envoyer un
