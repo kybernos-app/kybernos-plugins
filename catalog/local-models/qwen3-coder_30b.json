@@ -1,0 +1,21 @@
+{
+  "id": "qwen3-coder:30b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 18.6,
+  "ramMin": 32,
+  "score": "MoE 30B-A3B · code (Q4, Ollama)",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Code",
+    "Tools"
+  ],
+  "desc": {
+    "fr": "Hors budget sur cette machine — rien ne sera téléchargé.",
+    "en": "Over budget on this machine — nothing will be downloaded."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 60
+}

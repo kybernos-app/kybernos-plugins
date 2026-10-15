@@ -1075,7 +1075,10 @@ window.__ModuleLoader__.load({
       }
       // `action` ({ label, onClick }) is optional: a page that has something more to show than the text (an interactive guide) adds
       // a button at the bottom of the card. The card closes first, then the page does its thing.
-      function Help ({ id, action }) {
+      // `page` ({ id: 'kybernos-plugin', page: 'voice' }) asks for the card of one page of a bundle that owns several: the
+      // card is `aide.pages[page]`, and when it is not there (an older catalogue) nothing is drawn rather than the bundle's
+      // general help on the wrong page.
+      function Help ({ id, action, page }) {
         const [open, setOpen] = React.useState(false)
         const [mod, setMod] = React.useState(null)
         const [side, setSide] = React.useState('end') // which edge of the button the card hangs from, so it stays on screen
@@ -1103,13 +1106,17 @@ window.__ModuleLoader__.load({
           return () => { window.removeEventListener('keydown', esc, true); document.removeEventListener('mousedown', away) }
         }, [open])
         if (mod === null || mod.aide === undefined || mod.aide === null) return null
-        const a = mod.aide
-        return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id },
-          h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + id, title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
+        const card = page === undefined ? null : (mod.aide.pages != null && mod.aide.pages[page] != null ? mod.aide.pages[page] : undefined)
+        if (card === undefined) return null
+        const a = card === null ? mod.aide : card
+        const titre = card === null ? (mod.titre || id) : kt(card.title.fr, card.title.en)
+        const key = page === undefined ? id : id + '-' + page
+        return h('span', { className: 'kbhp-wrap', ref: wrap, 'data-kb': 'help', 'data-id': id, 'data-page': page },
+          h('button', { type: 'button', className: 'kbhp-btn', 'data-kb': 'help-button', 'data-id': id, 'data-page': page, 'aria-expanded': open ? 'true' : 'false', 'aria-controls': 'kbhp-' + key, title: kt('Comment ça marche', 'How it works'), onClick: () => setOpen(!open) },
             h('span', { className: 'kbhp-q', 'aria-hidden': 'true' }, '?'), kt('Comment ça marche', 'How it works')),
-          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : ''), id: 'kbhp-' + id, role: 'dialog', 'aria-label': (mod.titre || id) + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
+          open ? h('section', { className: 'kbhp-pop' + (side === 'start' ? ' start' : ''), id: 'kbhp-' + key, role: 'dialog', 'aria-label': titre + ' — ' + kt('Comment ça marche', 'How it works'), 'data-kb': 'help-panel' },
             h('button', { type: 'button', className: 'kbhp-x', 'aria-label': kt('Fermer', 'Close'), onClick: () => setOpen(false) }, '✕'),
-            h('h4', null, mod.titre || id),
+            h('h4', null, titre),
             h('p', null, kt(a.what.fr, a.what.en)),
             h('div', null, h('h5', null, kt('Comment l’utiliser', 'How to use it')), h('ol', { className: 'kbsu-steps' }, a.steps.map((st, i) => h('li', { key: i }, kt(st.fr, st.en))))),
             h('p', { className: 'kbsu-where' }, h('b', null, kt('Où le trouver : ', 'Where to find it: ')), kt(a.where.fr, a.where.en)),

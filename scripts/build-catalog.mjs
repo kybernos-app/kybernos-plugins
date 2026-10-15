@@ -176,34 +176,58 @@ const VEDETTES = {
 // What it is, how to use it in a few steps, where to find it, one thing worth knowing — in French and in English. The
 // Suite shows it on the module's page and the « ? How it works » button of any plugin page shows the same text, so it is
 // written once, here, and read from the catalogue. A bundle without a valid help.json fails the build (and CI).
-const AIDE_LIMITES = { what: 200, step: 140, good: 220, where: 120 }
+const AIDE_LIMITES = { what: 200, step: 140, good: 220, where: 120, title: 40 }
 // Words a person who is not a developer does not know: the help is for them.
 const JARGON = /\b(slot|bundle|endpoint|DOM|settings\.section|webServer)\b/i
 
-/** Pure: a help.json, checked. Throws a message that names the bundle and the field. */
-export function validerAide (dir, brut) {
+/** Pure: one help card ({ what, steps, where, good? }, plus a title for a page card), checked. */
+function validerFiche (dir, brut, champ, { titre }) {
   const faute = (m) => { throw new Error('help.json of "' + dir + '": ' + m) }
-  if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) faute('not an object')
-  const permis = ['what', 'steps', 'where', 'good']
-  for (const k of Object.keys(brut)) if (!permis.includes(k)) faute('unknown field "' + k + '" (expected ' + permis.join(', ') + ')')
-  const paire = (v, champ, max) => {
-    if (v === null || typeof v !== 'object') faute(champ + ' must be { fr, en }')
+  if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) faute(champ + ' is not an object')
+  const permis = titre ? ['title', 'what', 'steps', 'where', 'good'] : ['what', 'steps', 'where', 'good', 'pages']
+  for (const k of Object.keys(brut)) if (!permis.includes(k)) faute((champ === '' ? '' : champ + ': ') + 'unknown field "' + k + '" (expected ' + permis.join(', ') + ')')
+  const nom = (f) => (champ === '' ? f : champ + '.' + f)
+  const paire = (v, f, max) => {
+    const c = nom(f)
+    if (v === null || typeof v !== 'object') faute(c + ' must be { fr, en }')
     for (const l of ['fr', 'en']) {
       const t = v[l]
-      if (typeof t !== 'string' || t.trim() === '') faute(champ + '.' + l + ' is empty')
-      if (t.length > max) faute(champ + '.' + l + ' is ' + t.length + ' characters, the limit is ' + max)
-      if (JARGON.test(t)) faute(champ + '.' + l + ' uses a word the user does not know (' + (JARGON.exec(t) || [''])[0] + ')')
-      if (/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(t)) faute(champ + '.' + l + ' has an emoji')
+      if (typeof t !== 'string' || t.trim() === '') faute(c + '.' + l + ' is empty')
+      if (t.length > max) faute(c + '.' + l + ' is ' + t.length + ' characters, the limit is ' + max)
+      if (JARGON.test(t)) faute(c + '.' + l + ' uses a word the user does not know (' + (JARGON.exec(t) || [''])[0] + ')')
+      if (/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/u.test(t)) faute(c + '.' + l + ' has an emoji')
     }
     return { fr: v.fr.trim(), en: v.en.trim() }
   }
-  const what = paire(brut.what, 'what', AIDE_LIMITES.what)
-  if (!Array.isArray(brut.steps) || brut.steps.length < 2 || brut.steps.length > 4) faute('steps must hold 2 to 4 entries')
-  const steps = brut.steps.map((e, i) => paire(e, 'steps[' + i + ']', AIDE_LIMITES.step))
+  const out = {}
+  if (titre) out.title = paire(brut.title, 'title', AIDE_LIMITES.title)
+  out.what = paire(brut.what, 'what', AIDE_LIMITES.what)
+  if (!Array.isArray(brut.steps) || brut.steps.length < 2 || brut.steps.length > 4) faute(nom('steps') + ' must hold 2 to 4 entries')
+  out.steps = brut.steps.map((e, i) => paire(e, 'steps[' + i + ']', AIDE_LIMITES.step))
   const w = paire(brut.where, 'where', AIDE_LIMITES.where)
-  if (typeof brut.where.page !== 'boolean') faute('where.page must be true or false')
-  const out = { what, steps, where: { ...w, page: brut.where.page } }
+  if (typeof brut.where.page !== 'boolean') faute(nom('where.page') + ' must be true or false')
+  out.where = { ...w, page: brut.where.page }
   if (brut.good !== undefined) out.good = paire(brut.good, 'good', AIDE_LIMITES.good)
+  return out
+}
+
+/**
+ * Pure: a help.json, checked. Throws a message that names the bundle and the field. `pages` is optional: a bundle that owns
+ * several Settings pages gives each its own card, `{ "voice": { title, what, steps, where, good? } }`, and the page asks for
+ * it with `{ id, page }`.
+ */
+export function validerAide (dir, brut) {
+  const faute = (m) => { throw new Error('help.json of "' + dir + '": ' + m) }
+  if (brut === null || typeof brut !== 'object' || Array.isArray(brut)) faute('not an object')
+  const out = validerFiche(dir, brut, '', { titre: false })
+  if (brut.pages !== undefined) {
+    if (brut.pages === null || typeof brut.pages !== 'object' || Array.isArray(brut.pages)) faute('pages must be an object')
+    out.pages = {}
+    for (const [cle, fiche] of Object.entries(brut.pages)) {
+      if (/^[a-z][a-z0-9-]{0,31}$/.test(cle) !== true) faute('pages key "' + cle + '" must be lower-case letters, digits and dashes')
+      out.pages[cle] = validerFiche(dir, fiche, 'pages.' + cle, { titre: true })
+    }
+  }
   return out
 }
 

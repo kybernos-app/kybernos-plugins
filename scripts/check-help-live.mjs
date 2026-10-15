@@ -82,6 +82,27 @@ try {
     check(label + ' — Escape closes the card', (await val(`!document.querySelector('[data-kb="help-panel"]')`)) === true)
   }
 
+  console.log('\n── a page of a bundle that owns several pages (Voice) ──')
+  {
+    const core = helpOf('kybernos-plugin')
+    const v = core.pages.voice
+    const sel = '[data-kb="help-button"][data-id="kybernos-plugin"][data-page="voice"]'
+    const went = await goTo('Voice')
+    const there = went ? await poll(() => val(`!!document.querySelector('${sel}')`), 8000) : false
+    check('Voice — the page opens and carries its own « ? How it works » button', went === true && there === true, { went, there })
+    if (there === true) {
+      await val(`document.querySelector('${sel}').click()`)
+      await sleep(500)
+      const t = await panelText()
+      check('Voice — the card is the page’s own: what it does, every step, where, the thing worth knowing', t.includes(v.what.en) && v.steps.every((x) => t.includes(x.en)) && t.includes(v.where.en) && t.includes(v.good.en), t)
+      check('Voice — …and not the core bundle’s general help (Agent Teams)', !t.includes(core.what.en), t)
+      await shot('help-voice')
+      await key('Escape', 'Escape', 27)
+      await sleep(300)
+      check('Voice — Escape closes the card', (await val(`!document.querySelector('[data-kb="help-panel"]')`)) === true)
+    }
+  }
+
   console.log('\n── pages that already had a help ──')
   for (const [label, dir] of OWN_HELP) {
     const went = await goTo(label)

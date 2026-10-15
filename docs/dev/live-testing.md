@@ -311,6 +311,25 @@ anything that handles Escape inside it must listen in capture and stop the event
 rewrites French phrases to English on Settings pages while the document language is English (a French test must set
 `document.documentElement.lang` too, or compare without quotation marks).
 
+## The Agent presets button and the Ollama search: `check-creator-draft-live.mjs`, `check-ollama-search-live.mjs`
+
+```bash
+source scripts/sandbox/env.sh && node scripts/check-creator-draft-live.mjs [--shots /tmp/shots]
+source scripts/sandbox/env.sh && node scripts/check-ollama-search-live.mjs [--shots /tmp/shots]
+```
+
+Both need a sandbox that serves this checkout and refuse `:3080`; neither writes anything.
+
+- **`check-creator-draft-live.mjs`**: « Let the agent help me create a preset » (Settings › Agent presets) must land in a Creator-mode
+  chat with the brief already in the composer and Settings closed. DSH ships that button with no draft (`startSession` with
+  `agentPreset: 'cordis'` and no `prompt`); the client hands that exact call a prompt
+  (`packages/kybernos-plugin/test-creator-draft.mjs` pins the call shape without a browser). The draft is never sent.
+- **`check-ollama-search-live.mjs`**: « Search for new models » runs installed models → this machine → the catalogue, names the one
+  that is running, answers, and the page always says where its list comes from. The sandbox has no catalogue key, so the honest
+  answer is « not active yet »; the signed path is played against a local server by
+  `packages/kybernos-modeles-locaux/test-modeles-catalogue.mjs`. Trap: the button is in the machine tile, which is drawn only
+  once the machine is measured (a few seconds when Ollama is installed but not serving): wait for it.
+
 ## The run, the ring and the test marks: `scripts/check-language-run-live.mjs`
 
 ```bash

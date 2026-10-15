@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "kind": "kybernos-local-models",
+  "publishedAt": "2026-10-15T00:00:00.000Z",
+  "seq": 1,
+  "models": [
+    {
+      "id": "qwen3.5:9b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 6.1,
+      "ramMin": 16,
+      "score": "II 32 · MMMU-Pro 69 %",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Le meilleur sous 10B — rentre avec DSH + Chrome ouverts (16 Go).",
+        "en": "Best under 10B — fits with DSH + Chrome open (16 GB)."
+      },
+      "ajoute": "2026-09-27",
+      "ordre": 10
+    },
+    {
+      "id": "qwen3.5:4b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 3.1,
+      "ramMin": 8,
+      "score": "II 27 · MMMU-Pro 65 %",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision",
+        "Tools"
+      ],
+      "desc": {
+        "fr": "Marge maximale — le choix des machines à 8 Go.",
+        "en": "Maximum headroom — the pick for 8 GB machines."
+      },
+      "ajoute": "2026-09-27",
+      "ordre": 20
+    },
+    {
+      "id": "qwen3.5:2b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": null,
+      "ramMin": 4,
+      "score": "II 16",
+      "input": [
+        "text",
+        "image"
+      ],
+      "badges": [
+        "Vision"
+      ],
+      "desc": {
+        "fr": "Pour les petites machines — taille Q4 non mesurée.",
+        "en": "For small machines — Q4 size not measured."
+      },
+      "ajoute": "2026-09-27",
+      "ordre": 30
+    },
+    {
+      "id": "gemma4:e4b",
+      "famille": "g",
+      "initiale": "Gm",
+      "tailleGo": 3.6,
+      "ramMin": 8,
+      "score": "audio natif · embarqué",
+      "input": [
+        "text",
+        "image",
+        "audio"
+      ],
+      "badges": [
+        "Vision",
+        "Audio"
+      ],
+      "desc": {
+        "fr": "Alternative on-device si le 9B s’avère lent.",
+        "en": "On-device alternative if the 9B turns out slow."
+      },
+      "ajoute": "2026-09-27",
+      "ordre": 40
+    },
+    {
+      "id": "qwen3:14b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 9,
+      "ramMin": 16,
+      "score": "tools · thinking (Q4, Ollama)",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Tools",
+        "Thinking"
+      ],
+      "desc": {
+        "fr": "Génération précédente — au-dessus du budget avec DSH ouvert.",
+        "en": "Previous generation — over budget with DSH open."
+      },
+      "ajoute": "2026-09-27",
+      "ordre": 50
+    },
+    {
+      "id": "qwen3-coder:30b",
+      "famille": "q",
+      "initiale": "Qw",
+      "tailleGo": 18.6,
+      "ramMin": 32,
+      "score": "MoE 30B-A3B · code (Q4, Ollama)",
+      "input": [
+        "text"
+      ],
+      "badges": [
+        "Code",
+        "Tools"
+      ],
+      "desc": {
+        "fr": "Hors budget sur cette machine — rien ne sera téléchargé.",
+        "en": "Over budget on this machine — nothing will be downloaded."
+      },
+      "ajoute": "2026-09-27",
+      "ordre": 60
+    }
+  ]
+}

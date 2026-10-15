@@ -515,8 +515,8 @@ let kbLocaleRead = () => 'en'
       'kbac.appearance.more': { kybernos: 'Palette, accent, fond et police : ', en: 'Palette, accent, background and font: ' },
       'kbac.appearance.openTheme': { kybernos: 'Ouvrir Thème', en: 'Open Theme' },
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de votre appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
-      'kbac.security': { kybernos: 'Sécurité', en: 'Security' },
-      'kbac.security.sub': { kybernos: 'Accès et sessions de votre compte Kybernos Cloud.', en: 'Access and sessions for your Kybernos Cloud account.' },
+      'kbac.security': { kybernos: 'Sécurité du compte', en: 'Account security' },
+      'kbac.security.sub': { kybernos: 'Mot de passe, double authentification et sessions de votre compte Kybernos Cloud (le compte web, pas DSH).', en: 'Password, two-factor authentication and sessions of your Kybernos Cloud account (the web account, not DSH).' },
       'kbac.out.security': { kybernos: 'Le mot de passe, la double authentification et les sessions se gèrent sur votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your password, two-factor authentication and sessions are managed on your Kybernos Cloud account. You are not signed in.' },
       'kbac.out.referral': { kybernos: 'Votre code de parrainage arrive avec votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your referral code comes with your Kybernos Cloud account. You are not signed in.' },
       'kbac.out.why': { kybernos: 'Pourquoi créer un compte', en: 'Why create an account' },
@@ -538,9 +538,10 @@ let kbLocaleRead = () => 'en'
       'kbac.sec.manage': { kybernos: 'Gérer', en: 'Manage' },
       'kbac.sec.sessions': { kybernos: 'Sessions', en: 'Sessions' },
       'kbac.sec.sessions.sub': { kybernos: 'Voir et fermer vos sessions actives', en: 'Review and close your active sessions' },
-      'kbac.sec.note': { kybernos: 'Ces réglages se gèrent sur votre compte Kybernos Cloud : le bouton l\'ouvre dans votre navigateur. DSH ne saisit ni ne stocke jamais de mot de passe.', en: 'These settings are managed on your Kybernos Cloud account: the button opens it in your browser. DSH never enters or stores a password.' },
+      'kbac.sec.note': { kybernos: 'Ces réglages se gèrent sur votre compte Kybernos Cloud : chaque bouton ouvre la même page dans votre navigateur. DSH ne saisit ni ne stocke jamais de mot de passe.', en: 'These settings are managed on your Kybernos Cloud account: each button opens the same page in your browser. DSH never enters or stores a password.' },
+      'kbac.sec.at': { kybernos: 'Page ouverte :', en: 'Page opened:' },
       'kbac.support': { kybernos: 'Support & légal', en: 'Support & legal' },
-      'kbac.support.sub': { kybernos: 'Aide, conditions et état du service.', en: 'Help, terms and service status.' },
+      'kbac.support.sub': { kybernos: 'Aide, conditions d\'utilisation et envoi de retours.', en: 'Help, terms of use and feedback.' },
       'kbac.support.terms': { kybernos: 'Conditions de service', en: 'Terms of service' },
       'kbac.support.terms.sub': { kybernos: 'Crédits, quotas, remboursements, usage équitable', en: 'Credits, quotas, refunds, fair use' },
       'kbac.support.privacy': { kybernos: 'Politique de confidentialité', en: 'Privacy policy' },
@@ -935,6 +936,9 @@ let kbLocaleRead = () => 'en'
       'art.prompt.build': { kybernos: ' Crée un ', en: ' Create a ' },
       'deliv.create.prompt.any': { kybernos: 'Imagine une création à partir du contexte de cette conversation. Propose-la-moi sous forme de brouillon avant de l\'écrire dans le workspace.', en: 'Come up with a creation from this conversation\'s context. Show me a draft before writing it to the workspace.' },
       'kbui.feedback.flash': { kybernos: 'Retours — dites-nous ce qui a cassé.', en: 'Feedback — tell us what broke.' },
+      // The brief written in the chat that « Let the agent help me create a preset » (Settings › Agent presets) opens. It is a
+      // draft, not a message: nothing is sent until the person sends it. The skill named is DSH's own for presets.
+      'kbui.preset.creator.draft': { kybernos: 'Aide-moi à créer un preset d’agent (une façon de travailler réglée pour un usage précis). Pose-moi d’abord, une question à la fois : à quoi il doit servir, quels outils il doit avoir ou ne pas avoir, quelles limites ou habitudes il doit respecter. Appuie-toi sur le skill editing-cordis-compositions, propose-moi le preset complet, et n’écris rien tant que je ne l’ai pas validé.', en: 'Help me create an agent preset (a way of working tuned for one use). Ask me first, one question at a time: what it is for, which tools it should or should not have, which limits or habits it should respect. Use the editing-cordis-compositions skill, propose the full preset, and write nothing until I have approved it.' },
       'kbui.feedback.draft': { kybernos: '/skill-signaler-retour Je veux signaler un problème ou proposer une amélioration. Commence l\'entretien par ta première question.', en: '/skill-signaler-retour I want to report a problem or suggest an improvement. Start the interview with your first question.' },
       'kbui.help.flash': { kybernos: 'Aide · raccourcis · journal des versions.', en: 'Help · shortcuts · release notes.' },
       'kbui.runs.locally': { kybernos: 'Tourne en local sur votre machine', en: 'Runs locally on your machine' },
@@ -1528,7 +1532,7 @@ let kbLocaleRead = () => 'en'
       'kbui.engine.voices': { kybernos: ' voix', en: ' voices' },
       'kbui.engine.installed': { kybernos: ' · moteurs installés ', en: ' · installed engines ' },
       'kbui.tts.leaves': { kybernos: '. Les réponses lues avec lui quittent votre machine.', en: '. Replies read aloud with it leave your machine.' },
-      'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute, sur cette machine ou via un service cloud — à vous de choisir, moteur par moteur.', en: 'Read replies aloud, on this machine or through a cloud service — your choice, engine by engine.' },
+      'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute et dicte dans le champ de saisie, sur cette machine ou via un service cloud — à vous de choisir, moteur par moteur. Pour parler en direct avec l\'assistant, voir Appels.', en: 'Reads replies aloud and dictates into the message box, on this machine or through a cloud service — your choice, engine by engine. To talk live with the assistant, see Calls.' },
       'kbui.website.widget': { kybernos: 'Widget de site web', en: 'Website widget' },
       'kbui.hosted.only': { kybernos: 'Ce que vous n’obtenez qu’en hosted', en: 'What you get only when it is hosted' },
       'kbui.widget.colour': { kybernos: 'Couleur du widget', en: 'Widget colour' },
@@ -7550,6 +7554,30 @@ return {
     // Exposé pour le bouton « Envoyer un retour » (barre d'outils de la
     // sidebar, autre composant, autre portée).
     kbOpenFeedbackChat = kbStartChatText
+    // « Let the agent help me create a preset » (Settings › Agent presets) opens a Creator-mode chat and nothing else: DSH
+    // calls `uiWorkspace.startSession(undefined, { clearPreviousDraft: false, agentPreset: 'cordis' })` with no `prompt`,
+    // although `startSession` takes one, so the person lands on an empty composer with no hint of what to say. That exact
+    // call shape is the button's; we hand it a brief to write in the composer (a draft, never sent) and let every other call
+    // through untouched. If DSH changes the call, the button simply opens the blank Creator chat it always did.
+    try {
+      const svc = uiWorkspaceSvc
+      if (svc !== null && svc !== undefined && typeof svc.startSession === 'function') {
+        const original = svc.startSession
+        const wrapped = function (workspaceId, options) {
+          let next = options
+          try {
+            if (options !== null && options !== undefined && typeof options === 'object' && options.agentPreset === 'cordis' && options.clearPreviousDraft === false && options.prompt === undefined) {
+              next = Object.assign({}, options, { prompt: kbt('kbui.preset.creator.draft') })
+            }
+          } catch (e) { next = options }
+          return original.call(this, workspaceId, next)
+        }
+        ctx.effect(() => {
+          Object.defineProperty(svc, 'startSession', { value: wrapped, configurable: true, writable: true })
+          return () => { try { Object.defineProperty(svc, 'startSession', { value: original, configurable: true, writable: true }) } catch (e) { /* frozen: nothing to give back */ } }
+        }, 'kybers: creator preset draft')
+      }
+    } catch (e) { /* the service cannot be wrapped: the blank Creator chat stays */ }
     // Pont inter-bundles : un autre bundle client (ex. kybernos-composio, bouton
     // « Connecteur personnalisé » de l'onglet Connections) ouvre un chat neuf
     // prérempli sans dépendre de ce module. Même chemin que « Envoyer un
@@ -29099,6 +29127,7 @@ body:not([data-ds-dark-theme]) .kbt2-pill.warn{color:color-mix(in srgb,var(--dsw
           h('span', null, kbt('kbui.read.aloud'))),
         pied)
       return h('div', { className: 'kbt-page' },
+        h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-plugin', page: 'voice' }) : null)),
         h('div', { className: 'kbt-tete' },
           // Gabarit Réglages 29/09 : titre 26px comme Outils/Maintenance.
           h('span', { className: 'kb6-title' }, kbt('kbui.voice')),
@@ -31787,7 +31816,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           h(KbacRow, { label: kbt('kbac.sec.password'), desc: kbt('kbac.sec.password.sub'), action: kbt('kbac.sec.change'), href: href }),
           h(KbacRow, { label: kbt('kbac.sec.2fa'), desc: kbt('kbac.sec.2fa.sub'), action: kbt('kbac.sec.manage'), href: href }),
           h(KbacRow, { label: kbt('kbac.sec.sessions'), desc: kbt('kbac.sec.sessions.sub'), action: kbt('kbac.sec.manage'), href: href })),
-        h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')))
+        h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')),
+        h('p', { className: 'kbac-hint', 'data-kb': 'security-target' }, kbt('kbac.sec.at') + ' ' + href))
     }
     const KbacSupport = () => {
       // The terms and the privacy policy are where the SERVER says they are (`GET /v1/public/legal`, through the cloud host): its host serves
@@ -31931,7 +31961,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
       // `bureau`: the section that follows the « Desktop » divider.
       const GROUPES = [
-        { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'apparence', 'appearance', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal', 'serveurs', 'servers'] },
+        { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal', 'serveurs', 'servers'] },
         { titre: kbt('settings.group.kybernos'), mots: [
           'kybernos suite',
           'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
@@ -31952,6 +31982,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           'free llms',
           'voix', 'voice',
           'langue', 'language',
+          'apparence', 'appearance',
           'theme'
         ] },
         { titre: kbt('settings.group.settings'), mots: ['general', 'mon espace', 'my workspace'] },

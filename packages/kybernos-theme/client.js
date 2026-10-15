@@ -3264,19 +3264,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
                 h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-theme' }) : null)),
                 h('div', { className: 'kbth-title' }, 'Thème'),
                 h('div', { className: 'kbth-sub' },
-                  'Personnalisez l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.'),
-                // (02/10) Rappel : le MODE clair / sombre / système se règle dans Apparence (groupe Account) ;
-                // ce panneau garde palette, accent, fond, police et variables — rien n'est perdu.
-                h('div', { className: 'kbth-hint', 'data-kb': 'theme-appearance-reminder' },
-                  'Mode clair / sombre / système : réglé dans ',
-                  h('button', { type: 'button', className: 'kbth-link', 'data-kb': 'theme-open-appearance', onClick: () => {
-                    try {
-                      const norm = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()
-                      const cells = Array.prototype.slice.call(document.querySelectorAll('[role="dialog"] nav button'))
-                      for (let i = 0; i < cells.length; i++) { const n = norm(cells[i].textContent); if (n === 'appearance' || n === 'apparence') { cells[i].click(); break } }
-                    } catch (e) { /* nav indisponible */ }
-                  } }, 'Apparence'),
-                  ' (Account).')),
+                  'Personnalisez l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.')),
               h('div', null, reglages),
               h('div', { className: 'kbth-foot' },
                 h('span', { className: 'kbth-pill' }, estNaturel(S) ? 'DSH natif — aucune couche posée' : '17 jetons · {light, dark}'),

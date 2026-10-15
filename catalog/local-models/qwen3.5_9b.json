@@ -1,0 +1,23 @@
+{
+  "id": "qwen3.5:9b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 6.1,
+  "ramMin": 16,
+  "score": "II 32 · MMMU-Pro 69 %",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Le meilleur sous 10B — rentre avec DSH + Chrome ouverts (16 Go).",
+    "en": "Best under 10B — fits with DSH + Chrome open (16 GB)."
+  },
+  "ajoute": "2026-09-27",
+  "ordre": 10
+}
