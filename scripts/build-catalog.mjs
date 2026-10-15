@@ -55,7 +55,7 @@ const FICHE = {
   'kybernos-miniapps': ['create', '« Install as app » : un panneau devient une app native.', '"Install as app": a panel becomes a native app.'],
   'kybernos-refs': ['create', 'Les liens des messages deviennent des pastilles de référence.', 'Message links become reference chips.'],
   'kybernos-search': ['base', 'Une recherche partout : le contenu des chats, les skills, les mémoires, les leçons, les créations.', 'Search everywhere: the content of your chats, skills, memories, lessons and creations.'],
-  'kybernos-mobile': ['base', 'DSH sur votre téléphone : l’écran s’adapte, et avec une offre payante un code QR relie le téléphone à cet ordinateur.', 'DSH on your phone: the screen adapts, and with a paid plan a QR code links the phone to this computer.'],
+  'kybernos-mobile': ['base', 'DSH sur votre téléphone : l’écran s’adapte, et un code QR relie le téléphone à cet ordinateur, chiffré de bout en bout.', 'DSH on your phone: the screen adapts, and a QR code links the phone to this computer, end-to-end encrypted.'],
   'kybernos-websearch': ['connect', 'La recherche web des agents, avec ou sans clé : des moteurs gratuits tout de suite, des moteurs à clé quand vous en ajoutez une, et le suivant prend le relais si l’un échoue.', 'Web search for the agents, with or without a key: free engines right away, keyed engines when you add one, and the next one takes over when one fails.'],
   'dsh-mermaid': ['create', 'Diagrammes Mermaid rendus en SVG dans le chat.', 'Mermaid diagrams rendered as SVG in the chat.'],
   'dsh-db-viewer': ['data', 'Visionneuse SQLite en lecture seule, avec graphiques.', 'Read-only SQLite viewer, with charts.'],

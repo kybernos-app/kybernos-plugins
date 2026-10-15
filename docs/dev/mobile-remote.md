@@ -17,12 +17,14 @@ routes and the same relay, and the stand-in is kept in step with the server.
 | the sidebar panel and Settings › Remote Control | | |
 | a stand-in relay and server for tests | | |
 
-## Why it is paid
+## Who has it
 
 The value passes through our server: an always-on relay that holds a connection for every computer, carries the
 traffic, and has to be kept available and abuse-proof. Nothing local is taken away: DSH on the computer, and the phone
 layout, stay free. The gate is on the server (a plan that does not list `remote` gets `403 remote_not_in_plan`); the
-plugin carries no licence check, so nothing in the open code can be removed to get the service.
+plugin carries no licence check, so nothing in the open code can be removed to get the service. Which plans list
+`remote` is the owner's data: since 2026-10-15 the Free and Individual plans of the catalogue do (the owner decided the
+phone link is open to free accounts too), so the plugin's texts never say it is reserved to a paid plan.
 
 ## The server's contract
 
@@ -32,7 +34,7 @@ path outside `/v1/remote/`).
 
 | Route | Answer |
 |---|---|
-| `GET /v1/remote/devices` | `200 { configured: boolean, entitled: boolean, max_devices: number, devices: [{ device_id, label, computer_label, created_at, last_seen_at }] }` for any signed-in account (this is how the page knows, before a QR code is asked for, whether to show « included in paid plans » or « this server does not offer it ») |
+| `GET /v1/remote/devices` | `200 { configured: boolean, entitled: boolean, max_devices: number, devices: [{ device_id, label, computer_label, created_at, last_seen_at }] }` for any signed-in account (this is how the page knows, before a QR code is asked for, whether to show « not included in your plan » or « this server does not offer it ») |
 | `POST /v1/remote/pairings` `{ label }` | `201 { pairing_id, sid, phone_url, relay_ws, host_ticket, expires_at, max_devices }`; `403 { error: 'remote_not_in_plan' }`; `429 { error: 'remote_device_limit' }`; `503 { error: 'remote_disabled' }`. It withdraws the person's earlier unfinished pairing |
 | `POST /v1/remote/pairings/{pairing_id}/confirm` `{ label }` | `200 { device_id }` (the pairing's id); makes the pairing a durable device; idempotent; `409 pairing_expired`; `403`/`429` again if the plan lapsed or the limit was reached meanwhile |
 | `DELETE /v1/remote/pairings/{pairing_id}` | `200 { ok: true }`; the sid stops being accepted; idempotent |

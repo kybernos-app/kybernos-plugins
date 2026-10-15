@@ -102,6 +102,8 @@ try {
   await sleep(2500)
   // the sandbox has no model key: DSH asks for one on first load, which is not what this check is about
   await ev(D, `(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /^Configure later$/i.test(x.textContent.trim())); if (b) b.click(); return !!b })()`)
+  // ...and the « Get started » dialog of a profile with no key keeps a scrim over the whole window, which would hide what is tested below (a hit test answers to the scrim): close it by its ✕
+  await ev(D, `(() => { const d = Array.from(document.querySelectorAll('[role="dialog"]')).find((x) => /Get started/i.test(x.textContent)); if (!d) return false; const b = Array.from(d.querySelectorAll('button')).find((x) => x.textContent.trim() === '' || /close/i.test(x.getAttribute('aria-label') || '')); if (b) b.click(); return !!b })()`)
   await sleep(500)
 
   // 1. the sidebar's phone button
@@ -113,6 +115,24 @@ try {
   check('opening it shows a real QR code, not the preview', panelUp === true)
   check('the preview note is gone', (await text(D, '.kbf-qrnote')) === null)
   await shot(D, '1-panel')
+
+  // the « ? How it works » button on the panel's title row opens the card of help.json, wholly inside the window, and closing it leaves the panel
+  console.log('the panel\'s « ? How it works » card')
+  const helpButton = '[data-kb="mobile-panel"] [data-kb="help-button"][data-id="kybernos-mobile"]'
+  check('the title row carries the button', await until(D, `!!document.querySelector(${q(helpButton)})`, 15000))
+  await click(D, helpButton)
+  check('it opens the card', await until(D, `!!document.querySelector('[data-kb="mobile-panel"] [data-kb="help-panel"]')`, 5000))
+  // The words come from the catalogue the Suite shows (the signed online one wins over the shipped help.json): what they say is packages/kybernos-mobile/test-help.mjs's, here it is that the card has a body.
+  const card = await text(D, '[data-kb="mobile-panel"] [data-kb="help-panel"]')
+  check('the card has its text (what it is, the steps, where to find it)', typeof card === 'string' && card.length > 120 && (await ev(D, `document.querySelectorAll('[data-kb="mobile-panel"] [data-kb="help-panel"] ol li').length`)) >= 2, card)
+  const box = await ev(D, `(() => { const e = document.querySelector('[data-kb="mobile-panel"] [data-kb="help-panel"]'); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, w: innerWidth, h: innerHeight, scrolls: e.scrollHeight > e.clientHeight + 1 } })()`)
+  check('the card is wholly inside the window', box !== null && box.left >= 0 && box.top >= 0 && box.right <= box.w && box.bottom <= box.h, box)
+  // Inside the window is not visible: the sidebar clips what leaves it (the first version of the card was cut at the sidebar's edge, and its box was « on screen »). Three points of the card must hit the card.
+  const seen = await ev(D, `(() => { const e = document.querySelector('[data-kb="mobile-panel"] [data-kb="help-panel"]'); if (!e) return null; const r = e.getBoundingClientRect(); const at = (x, y) => { const t = document.elementFromPoint(x, y); return !!t && e.contains(t) }; return { topLeft: at(r.left + 8, r.top + 8), right: at(r.right - 8, r.top + r.height / 2), bottomRight: at(r.right - 8, r.bottom - 8) } })()`)
+  check('and none of it is cut by the sidebar (its top-left, right edge and bottom-right corner answer to it)', seen !== null && seen.topLeft === true && seen.right === true && seen.bottomRight === true, seen)
+  await shot(D, '1b-panel-help')
+  await click(D, '[data-kb="mobile-panel"] .kbhp-x')
+  check('its ✕ closes the card and the QR code stays', (await exists(D, '[data-kb="mobile-panel"] [data-kb="mobile-qr"] svg')) && !(await exists(D, '[data-kb="help-panel"]')))
 
   const decode = `(async () => {
     const svg = document.querySelector('[data-kb="mobile-qr"] svg')
