@@ -4132,6 +4132,8 @@ const kyberRoute = async () => {
         last_active_at: typeof found.last_active_at === 'string' ? found.last_active_at : null,
         version: typeof found.reported_version === 'string' ? found.reported_version : null,
         network: found.network !== null && typeof found.network === 'object' ? String(found.network.mode || '') : '',
+        // Why it does not run when it should (hours used up, a budget, a guard…): the card says it instead of offering a wake that is refused.
+        paused_reason: typeof found.paused_reason === 'string' ? found.paused_reason : null,
       }
     }
   }
@@ -4151,8 +4153,59 @@ const kyberRoute = async () => {
   }
 }
 
+// ── The Home computer's three actions: wake, put to sleep, open (ADR 0052 § 13: POST …/computers/{id}/resume | suspend | ticket) ──
+// The page never names a computer: this finds the person's own Home computer in their personal space, every time, and acts on
+// THAT. Reversible (a wake and a sleep) or read-only (a single-use link), so no confirmation body; the strict same-origin guard
+// of the turn routes still applies. The server decides who may (its own refusals are passed on as short codes, never as text).
+const COMPUTER_VERBS = { resume: 'resume', suspend: 'suspend', open: 'ticket' }
+const COMPUTER_REFUSALS = ['always_on', 'run_hours_exhausted', 'computer_deleting', 'computers_off_for_workspace', 'not_allowed_to_open', 'computer_not_ready', 'owner_left', 'rate_limited']
+const findHomeComputer = async (state) => {
+  const get = (p) => apiCall(p, { method: 'GET', token: state.token, timeoutMs: 15000 })
+  const ws = await get('/v1/workspaces')
+  const list = ws.status === 200 && ws.body !== null && Array.isArray(ws.body.workspaces) ? ws.body.workspaces : []
+  const personal = list.find((w) => w !== null && typeof w === 'object' && w.personal === true && typeof w.id === 'string')
+  if (personal === undefined) return null
+  const c = await get('/v1/workspaces/' + encodeURIComponent(personal.id) + '/computers')
+  const rows = c.status === 200 && c.body !== null && Array.isArray(c.body.computers) ? c.body.computers : []
+  const found = rows.find((r) => r !== null && typeof r === 'object' && String(r.name).toLowerCase() === 'home' && typeof r.id === 'string')
+  return found === undefined ? null : { workspaceId: personal.id, computer: found }
+}
+/** The address of the ticket: https, no credentials, and the host the server itself names for THIS computer — never another. */
+const ticketAddress = (body, computer) => {
+  const raw = body !== null && typeof body === 'object' && typeof body.url === 'string' ? body.url : ''
+  const want = typeof computer.origin_host === 'string' ? computer.origin_host.trim().toLowerCase() : ''
+  if (raw === '' || want === '') return null
+  try {
+    const u = new URL(raw)
+    if (u.protocol !== 'https:' || u.username !== '' || u.password !== '' || u.hostname.toLowerCase() !== want) return null
+    return u.toString()
+  } catch (e) { return null }
+}
+const computerAction = async (verb) => {
+  if (Object.prototype.hasOwnProperty.call(COMPUTER_VERBS, verb) !== true) return { ok: false, error: 'unknown_action' }
+  const state = readState()
+  if (!isConnected(state)) return { ok: false, error: 'not_connected' }
+  const home = await findHomeComputer(state)
+  if (home === null) return { ok: false, error: 'no_computer' }
+  const path = '/v1/workspaces/' + encodeURIComponent(home.workspaceId) + '/computers/' + encodeURIComponent(home.computer.id) + '/' + COMPUTER_VERBS[verb]
+  const res = await apiCall(path, { method: 'POST', token: state.token, body: {}, timeoutMs: 25000 })
+  if (res.status !== 200) {
+    const code = res.body !== null && typeof res.body === 'object' && typeof res.body.error === 'string' ? res.body.error : ''
+    return { ok: false, error: COMPUTER_REFUSALS.indexOf(code) >= 0 ? code : 'refused', status: res.status }
+  }
+  if (verb === 'open') {
+    const url = ticketAddress(res.body, home.computer)
+    return url === null ? { ok: false, error: 'refused' } : { ok: true, url }
+  }
+  const c = res.body !== null && typeof res.body === 'object' && res.body.computer !== null && typeof res.body.computer === 'object' ? res.body.computer : {}
+  return { ok: true, state: String(c.state || ''), desired: String(c.desired || '') }
+}
+
 const ROUTES = [
   { path: '/kybernos-cloud/kyber', method: 'GET', guarded: true, run: kyberRoute },
+  { path: '/kybernos-cloud/computer/resume', method: 'POST', guarded: true, strict: true, run: () => computerAction('resume') },
+  { path: '/kybernos-cloud/computer/suspend', method: 'POST', guarded: true, strict: true, run: () => computerAction('suspend') },
+  { path: '/kybernos-cloud/computer/open', method: 'POST', guarded: true, strict: true, run: () => computerAction('open') },
   { path: '/kybernos-cloud/start', method: 'POST', guarded: true, run: startPairing },
   { path: '/kybernos-cloud/poll', method: 'POST', guarded: true, run: pollPairing },
   { path: '/kybernos-cloud/status', method: 'GET', guarded: false, run: statusRoute },

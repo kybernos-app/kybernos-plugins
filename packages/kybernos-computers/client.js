@@ -59,6 +59,8 @@ window.__ModuleLoader__.load({
         envDesktopSub: 'Code runs on the local machine.',
         envE2bSub: 'Ephemeral cloud microVM — code runs off this machine.',
         envE2bNoKey: 'E2B key required — Settings ▸ Plugins ▸ Cloud computers.',
+        envCloud: 'Cloud Computer',
+        envCloudSub: 'Not available from a chat yet — write to your assistant on Telegram.',
       },
       fr: {
         title: 'Ordinateurs cloud',
@@ -77,6 +79,8 @@ window.__ModuleLoader__.load({
         envDesktopSub: 'Le code tourne sur la machine locale.',
         envE2bSub: 'MicroVM cloud éphémère — le code tourne hors du poste.',
         envE2bNoKey: 'Clé E2B requise — Réglages ▸ Plugins ▸ Cloud computers.',
+        envCloud: 'Cloud Computer',
+        envCloudSub: 'Pas encore disponible depuis un chat — écrivez à votre assistant sur Telegram.',
       },
     }
 
@@ -247,6 +251,8 @@ window.__ModuleLoader__.load({
             try { return window.localStorage.getItem('kybernos.computer.env') === 'e2b' ? 'e2b' : 'desktop' } catch { return 'desktop' }
           })
           const [keyPresent, setKeyPresent] = React.useState(null)
+          // The person's Cloud Computer (read from the cloud bundle): null when signed out or when it cannot be read.
+          const [cloud, setCloud] = React.useState(null)
           const boxRef = React.useRef(null)
 
           React.useEffect(() => {
@@ -254,6 +260,12 @@ window.__ModuleLoader__.load({
             const probe = async () => {
               const s = await callEnv('/status')
               if (alive === true) setKeyPresent(s !== null && s.ok === true && s.keyPresent === true)
+              // Shown, never chosen: no route runs a chat turn on that computer yet (docs/dev/cloud-computer-run-on.md).
+              try {
+                const r = await fetch('/kybernos-cloud/kyber', { cache: 'no-store', credentials: 'same-origin' })
+                const k = r.ok === true ? await r.json().catch(() => null) : null
+                if (alive === true) setCloud(k !== null && k.ok === true && k.connected === true ? { state: k.home !== null && typeof k.home === 'object' ? String(k.home.state || '') : '' } : null)
+              } catch { if (alive === true) setCloud(null) }
               const e = await callEnv('/env')
               if (alive === true && e !== null && e.ok === true) {
                 setEnv(e.env)
@@ -287,6 +299,7 @@ window.__ModuleLoader__.load({
             { id: 'desktop', name: t('envDesktop'), sub: t('envDesktopSub'), disabled: false },
             { id: 'e2b', name: 'E2B', sub: keyPresent === true ? t('envE2bSub') : t('envE2bNoKey'), disabled: keyPresent === false },
           ]
+          if (cloud !== null) options.push({ id: 'cloud', name: t('envCloud'), sub: t('envCloudSub'), disabled: true })
           return h('div', { ref: boxRef, className: 'kbenv-root', 'data-kb': 'computer-env-selector' },
             h('button', {
               className: 'kbenv-btn', 'data-kb': 'computer-env-button', 'data-on': isE2b ? 'true' : 'false',
@@ -300,7 +313,7 @@ window.__ModuleLoader__.load({
               ? h('div', { className: 'kbenv-menu', role: 'menu' },
                   options.map((opt) => h('button', {
                     key: opt.id, className: 'kbenv-opt', role: 'menuitem', 'data-kb': 'computer-env-' + opt.id,
-                    'data-on': (opt.id === 'e2b') === isE2b ? 'true' : 'false',
+                    'data-on': opt.id === (isE2b ? 'e2b' : 'desktop') ? 'true' : 'false',
                     disabled: opt.disabled === true, onClick: () => { void choose(opt.id) },
                   },
                     h('span', {}, h('span', { className: 'kbenv-name' }, opt.name), h('span', { className: 'kbenv-sub' }, opt.sub)))))
