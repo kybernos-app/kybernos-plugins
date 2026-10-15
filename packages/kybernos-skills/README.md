@@ -12,7 +12,9 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 - **Featured** (the landing tab): the 24 picks Kybernos proposes, as cards with a cover, the title, a one-line outcome, the creator and the
   install count on the right of the title, the security verdict of the five skills.sh providers, and what the skill needs (a key, a
   sign-in). *Install* and *Details* appear on hover and on focus (always on touch); *Install* opens the usual confirmation and the page
-  stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar; « Cover background » is Tint or Plain.
+  stays on Featured; *Use* copies `/name`. Categories, search and order come from the shared bar, which also switches **cards or list** (the list is one
+  row per pick: a square thumbnail, the outcome, creator, count, verdicts and the same two actions, always visible); « Cover background » is
+  Tint or Plain. Both choices are kept per browser.
   The data is `featured-picks.json` (below); with a host that does not have the route the tab is hidden and Yours is the landing tab.
 - **Yours**: skills of this profile, with search, state / source filters, sorting, an active toggle on each card (read-only rows
   when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list

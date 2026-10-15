@@ -1026,6 +1026,37 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
 }
 .kbs-root .kbsf-acts .kb8-primary{height:32px;padding:0 14px;font-size:13px;border-radius:10px;gap:6px}
 .kbs-root .kbsf-acts .kb8-ghost{height:32px;padding:0 12px;font-size:13px;gap:6px}
+/* — Featured, list view: the same pick as a row — */
+.kbs-root .kbsf-list{container-type:inline-size;display:flex;flex-direction:column;border:1px solid var(--dsw-alias-border-l1);border-radius:16px;overflow:hidden}
+.kbs-root .kbsf-row{display:grid;grid-template-columns:88px minmax(0,1.5fr) minmax(0,1fr) auto;gap:16px;align-items:center;padding:10px 14px;border-top:1px solid var(--dsw-alias-border-l1);cursor:pointer;background:var(--dsw-alias-bg-layer-1)}
+.kbs-root .kbsf-row:first-child{border-top:0}
+.kbs-root .kbsf-row:hover,.kbs-root .kbsf-row.sel{background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbsf-row:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:-2px}
+.kbs-root .kbsf-th{position:relative;width:88px;aspect-ratio:1/1;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,var(--cv-bg),var(--cv-bg2))}
+.kbs-root .kbsf-plain .kbsf-th{background:var(--dsw-alias-bg-layer-2)}
+.kbs-root .kbsf-th .kbsf-cut{position:absolute;inset:6%;width:88%;height:88%;object-fit:contain;filter:drop-shadow(0 4px 5px rgba(30,18,6,.30))}
+.kbs-root .kbsf-th .kb8-tile{position:absolute;inset-inline-start:50%;top:50%;transform:translate(-50%,-50%);width:40px;height:40px}
+.kbs-root .kbsf-mn{min-width:0;display:flex;flex-direction:column;gap:3px}
+.kbs-root .kbsf-mn .kbsf-out{-webkit-line-clamp:1;min-height:0}
+.kbs-root .kbsf-meta{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dsw-alias-label-secondary);white-space:nowrap;overflow:hidden}
+.kbs-root .kbsf-racts{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.kbs-root .kbsf-racts .kb8-primary{height:32px;padding:0 14px;font-size:13px;border-radius:10px;gap:6px}
+.kbs-root .kbsf-racts .kb8-ghost{height:32px;padding:0 12px;font-size:13px;gap:6px}
+.kbs-root .kbsf-rstar{position:static;background:transparent;color:var(--dsw-alias-label-secondary)}
+.kbs-root .kbsf-rstar:disabled{opacity:.45;cursor:default}
+.kbs-root .kbsf-rstar.on{color:#c98a00}
+.kbs-root .kbsf-rstar.on svg{fill:currentColor}
+@container (max-width:760px){
+.kbs-root .kbsf-row{grid-template-columns:72px minmax(0,1fr) auto;gap:12px}
+.kbs-root .kbsf-row .kbsf-pills{display:none}
+.kbs-root .kbsf-th{width:72px}
+}
+@container (max-width:520px){
+.kbs-root .kbsf-row{grid-template-columns:56px minmax(0,1fr)}
+.kbs-root .kbsf-th{width:56px;border-radius:11px}
+.kbs-root .kbsf-racts{grid-column:1 / -1;justify-content:flex-start}
+.kbs-root .kbsf-meta .kbsf-by .nm{display:none}
+}
 .kbs-root .kbsf-chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:2px 0 14px}
 .kbs-root .kbsf-chips .grow{flex:1}
 .kbs-root .kbsf-seg{display:inline-flex;align-items:center;gap:4px;padding:3px;border-radius:999px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2);font-size:12px}
@@ -1114,8 +1145,8 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const [views, setViews] = React.useState(() => {
           try {
             const j = JSON.parse(window.localStorage.getItem('kybernos.skills.views'))
-            return { yours: j !== null && j.yours === 'list' ? 'list' : 'cards', discover: j !== null && j.discover === 'cards' ? 'cards' : 'list' }
-          } catch (e) { return { yours: 'cards', discover: 'list' } }
+            return { yours: j !== null && j.yours === 'list' ? 'list' : 'cards', discover: j !== null && j.discover === 'cards' ? 'cards' : 'list', featured: j !== null && j.featured === 'list' ? 'list' : 'cards' }
+          } catch (e) { return { yours: 'cards', discover: 'list', featured: 'cards' } }
         })
         const setView = (m, v) => setViews((prev) => {
           const next = { ...prev, [m]: v }
@@ -1939,13 +1970,52 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           // The user's own pins (the star) come first, whatever the order.
           return a.filter((p) => featNames.has(p.id)).concat(a.filter((p) => !featNames.has(p.id)))
         }
+        // The pieces a pick shows, shared by its card and its row.
+        const pickCover = (p) => (p.cover !== null && p.cover !== undefined && p.cover !== ''
+          ? h('img', { className: 'kbsf-cut', src: p.cover, alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } } })
+          : tile(p.id, 'pkg'))
+        const pickBy = (p) => {
+          const owner = String(p.source).split('/')[0]
+          return h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
+            h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 42%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
+            h('span', { className: 'nm' }, owner))
+        }
+        const pickCnt = (p) => {
+          const full = t('pick.count', { n: p.installs.toLocaleString(isEn() ? 'en-US' : 'fr-FR') })
+          return h('span', { className: 'kbsf-cnt', title: full, 'aria-label': full }, icon('dl', 13), nf(p.installs))
+        }
+        const pickPills = (p, isIn) => {
+          const warns = p.audits.filter((a) => a[1] !== 'pass').length
+          return h('div', { className: 'kbsf-pills' },
+            isIn === true ? h('span', { key: 'in', className: 'kbsf-pill ok' }, icon('check', 12), t('pick.installed')) : null,
+            p.audits.length === 0 ? null : (warns === 0
+              ? h('span', { key: 'au', className: 'kbsf-pill ok', title: t('pick.auditTip') }, icon('shield', 12), t('pick.audited', { n: p.audits.length }))
+              : h('span', { key: 'au', className: 'kbsf-pill warn', title: t('pick.auditTip') }, icon('alert', 12), warns === 1 ? t('pick.warn1') : t('pick.warnN', { n: warns }))),
+            p.needs !== null && p.needs !== undefined ? h('span', { key: 'nd', className: 'kbsf-pill need' }, icon('info', 12), t('need.' + p.needs)) : null)
+        }
+        // Install (or Use when it is already there) and Details: the same two gestures in the card and in the row.
+        const pickButtons = (p, x, isIn, openIt) => [
+          isIn === true
+            ? h('button', { key: 'use', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-use', onClick: (e) => { e.stopPropagation(); copy('/' + p.id) } }, icon('code', 14), h('span', null, t('pick.use')))
+            : h('button', {
+              key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install',
+              onClick: (e) => { e.stopPropagation(); setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) }
+            }, icon('dl', 14), h('span', null, t('btn.install'))),
+          h('button', { key: 'det', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-details', onClick: (e) => { e.stopPropagation(); openIt() } }, h('span', null, t('pick.details')))
+        ]
+        const pickStar = (p, isIn, cls) => {
+          const pinned = featNames.has(p.id)
+          return h('button', {
+            type: 'button', className: 'kbs-star-btn ' + cls + (pinned ? ' on' : ''), disabled: isIn !== true,
+            title: isIn === true ? (pinned ? t('feat.remove') : t('feat.add')) : t('pick.pinNeedsInstall'),
+            'aria-label': (pinned ? t('feat.remove') : t('feat.add')) + ' — ' + pickText(p.title),
+            onClick: (e) => { e.stopPropagation(); toggleFeatured(p.id) }
+          }, icon('star', 14))
+        }
         const pickCard = (p, i) => {
           const x = pickAsEntry(p)
           const isIn = installed(x)
-          const pinned = featNames.has(p.id)
           const openIt = () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
-          const warns = p.audits.filter((a) => a[1] !== 'pass').length
-          const owner = String(p.source).split('/')[0]
           const title = pickText(p.title)
           return h('article', {
             key: 'pk:' + p.id, role: 'button', tabIndex: 0, 'data-kb': 'pick-card',
@@ -1955,42 +2025,39 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
             onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt() } }
           },
             h('div', { className: 'kbsf-pic kbsf-t', 'data-cat': p.category },
-              p.cover !== null && p.cover !== undefined && p.cover !== ''
-                ? h('img', { className: 'kbsf-cut', src: p.cover, alt: '', loading: 'lazy', onError: (e) => { try { e.target.style.display = 'none' } catch (e2) { /* the tint is enough */ } } })
-                : tile(p.id, 'pkg'),
+              pickCover(p),
               h('span', { className: 'kbsf-tag' }, t('pcat.' + p.category)),
-              h('button', {
-                type: 'button', className: 'kbs-star-btn kbsf-star' + (pinned ? ' on' : ''), disabled: isIn !== true,
-                title: isIn === true ? (pinned ? t('feat.remove') : t('feat.add')) : t('pick.pinNeedsInstall'),
-                'aria-label': (pinned ? t('feat.remove') : t('feat.add')) + ' — ' + title,
-                onClick: (e) => { e.stopPropagation(); toggleFeatured(p.id) }
-              }, icon('star', 14))),
+              pickStar(p, isIn, 'kbsf-star')),
             h('div', { className: 'kbsf-body' },
               h('div', { className: 'kbsf-trow' },
                 h('div', { className: 'kbsf-title' }, title),
-                h('div', { className: 'kbsf-side' },
-                  h('span', { className: 'kbsf-by', title: t('pick.by', { who: owner }) },
-                    h('span', { className: 'kbsf-av', style: { background: 'hsl(' + hue(owner) + ' 45% 42%)' }, 'aria-hidden': 'true' }, owner.charAt(0).toUpperCase()),
-                    h('span', { className: 'nm' }, owner)),
-                  h('span', { className: 'kbsf-cnt', title: t('pick.count', { n: p.installs.toLocaleString(isEn() ? 'en-US' : 'fr-FR') }), 'aria-label': t('pick.count', { n: p.installs.toLocaleString(isEn() ? 'en-US' : 'fr-FR') }) },
-                    icon('dl', 13), nf(p.installs)))),
+                h('div', { className: 'kbsf-side' }, pickBy(p), pickCnt(p))),
               h('p', { className: 'kbsf-out' }, pickText(p.outcome)),
-              h('div', { className: 'kbsf-pills' },
-                isIn === true ? h('span', { key: 'in', className: 'kbsf-pill ok' }, icon('check', 12), t('pick.installed')) : null,
-                p.audits.length === 0 ? null : (warns === 0
-                  ? h('span', { key: 'au', className: 'kbsf-pill ok', title: t('pick.auditTip') }, icon('shield', 12), t('pick.audited', { n: p.audits.length }))
-                  : h('span', { key: 'au', className: 'kbsf-pill warn', title: t('pick.auditTip') }, icon('alert', 12), warns === 1 ? t('pick.warn1') : t('pick.warnN', { n: warns }))),
-                p.needs !== null && p.needs !== undefined ? h('span', { key: 'nd', className: 'kbsf-pill need' }, icon('info', 12), t('need.' + p.needs)) : null),
+              pickPills(p, isIn),
               // The actions show on hover and on keyboard focus (always on a touch screen); their place is reserved, so the card does not jump.
-              h('div', { className: 'kbsf-acts' },
-                isIn === true
-                  ? h('button', { key: 'use', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-use', onClick: (e) => { e.stopPropagation(); copy('/' + p.id) } }, icon('code', 14), h('span', null, t('pick.use')))
-                  : h('button', {
-                    key: 'ins', type: 'button', className: 'kb8-primary', 'data-kb': 'pick-install',
-                    onClick: (e) => { e.stopPropagation(); setAskInstall(x); setErrors((m) => { const n = { ...m }; delete n.__modal; return n }) }
-                  }, icon('dl', 14), h('span', null, t('btn.install'))),
-                h('button', { key: 'det', type: 'button', className: 'kb8-ghost', 'data-kb': 'pick-details', onClick: (e) => { e.stopPropagation(); openIt() } }, h('span', null, t('pick.details')))))
-          )
+              h('div', { className: 'kbsf-acts' }, pickButtons(p, x, isIn, openIt))))
+        }
+        // The same pick as a row (the list view): a square thumbnail, the title with its outcome and its facts, the verdicts, the actions.
+        // Rows are dense and scanned: their actions are always there, not on hover.
+        const pickRow = (p, i) => {
+          const x = pickAsEntry(p)
+          const isIn = installed(x)
+          const openIt = () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) }
+          const title = pickText(p.title)
+          return h('div', {
+            key: 'pr:' + p.id, role: 'button', tabIndex: 0, 'data-kb': 'pick-row',
+            className: 'kbsf-row' + (detail !== null && detail.source === p.source && detail.name === p.id ? ' sel' : '') + appear(i),
+            title: t('pick.try') + sep() + pickText(p.prompt), 'aria-label': title + ' — ' + t('cap.detail'),
+            onClick: openIt,
+            onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt() } }
+          },
+            h('div', { className: 'kbsf-th kbsf-t', 'data-cat': p.category }, pickCover(p)),
+            h('div', { className: 'kbsf-mn' },
+              h('div', { className: 'kbsf-title' }, title),
+              h('p', { className: 'kbsf-out' }, pickText(p.outcome)),
+              h('div', { className: 'kbsf-meta' }, h('span', null, t('pcat.' + p.category)), pickBy(p), pickCnt(p))),
+            pickPills(p, isIn),
+            h('div', { className: 'kbsf-racts' }, pickStar(p, isIn, 'kbsf-rstar'), pickButtons(p, x, isIn, openIt)))
         }
 
         // Pager based on the SERVER `total`. We no longer load "a bit more" at the bottom of a growing list:
@@ -2042,7 +2109,9 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                 h('button', { type: 'button', className: coverBg === 'plain' ? 'on' : '', 'aria-pressed': coverBg === 'plain' ? 'true' : 'false', title: t('pick.bg') + sep() + t('pick.bg.plain'), 'aria-label': t('pick.bg') + sep() + t('pick.bg.plain'), 'data-kb': 'pick-bg-plain', onClick: () => setCoverBg('plain') }, h('i', { className: 'sw plain' })))),
             list.length === 0
               ? empty(t('pick.none'), t('pick.nonehint'))
-              : h('div', { className: 'kbsf-grid' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-grid' }, list.map(pickCard)),
+              : (views.featured === 'list'
+                ? h('div', { className: 'kbsf-list' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-list' }, list.map(pickRow))
+                : h('div', { className: 'kbsf-grid' + (coverBg === 'plain' ? ' kbsf-plain' : ''), 'data-kb': 'picks-grid' }, list.map(pickCard))),
             picks.asOf !== '' ? h('div', { className: 'kbsf-foot' }, t('pick.asof', { d: today(picks.asOf) })) : null)
         }
 
@@ -2284,7 +2353,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
         const KbBar = tools !== null && typeof tools.KbToolbar === 'function' ? tools.KbToolbar : null
         const barState = () => {
           if (mode === 'featured') {
-            return { query: q.featured, sort: sort.featured, dir: dir.featured === -1 ? 'desc' : 'asc', types: pcat === 'all' ? [] : ['cat:' + pcat], period: 'all', fav: false, viewMode: 'cards' }
+            return { query: q.featured, sort: sort.featured, dir: dir.featured === -1 ? 'desc' : 'asc', types: pcat === 'all' ? [] : ['cat:' + pcat], period: 'all', fav: false, viewMode: views.featured }
           }
           if (mode === 'discover') {
             return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === 50 ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: views.discover }
@@ -2300,6 +2369,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
           if (patch === null || typeof patch !== 'object') return
           if (mode === 'featured') {
             if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, featured: v })) }
+            if (patch.viewMode !== undefined) setView('featured', patch.viewMode === 'list' ? 'list' : 'cards')
             if (patch.sort !== undefined) {
               const k2 = ['editorial', 'installs', 'name'].indexOf(patch.sort) >= 0 ? patch.sort : 'editorial'
               // A new order starts from its natural direction: Most installed high to low, Name A to Z.
@@ -2376,7 +2446,7 @@ body[data-ds-dark-theme] .kbs-root .kbsf-t[data-cat=Build]{--cv-bg:#272a43;--cv-
                   facets: mode === 'team' ? {} : barFacets(),
                   total: mode === 'featured' ? picks.items.length : (mode === 'yours' ? skills.length : (mode === 'discover' ? discTotal : 0)),
                   shown: mode === 'featured' ? pickList().length : (mode === 'yours' ? filtered.length : (mode === 'discover' ? discList.length : 0)),
-                  hideView: mode === 'team' || mode === 'featured',
+                  hideView: mode === 'team',
                   views: ['cards', 'list'],
                   showFav: false,
                   trailing: headAction,
