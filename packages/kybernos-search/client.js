@@ -234,7 +234,7 @@ window.__ModuleLoader__.load({
         return r.json()
       }
 
-      /** Memories of the account (a route the page already uses; needs an account) and creations (the state the page already loads). */
+      /** Memories of the account (a route the page already uses; needs an account) and creations (the state the Creations page already loads). */
       const pageItems = async (scope) => {
         const c = pageCache[scope]
         if (Date.now() - c.at < 60000) return c.items
@@ -248,12 +248,14 @@ window.__ModuleLoader__.load({
               meta: { where: kt('Mémoire du compte', 'Account memory') + (m.kind ? ' · ' + String(m.kind) : '') }, open: null
             }))
           } else {
-            const j = await getJson('/kybernos/state')
-            const list = j !== null && typeof j === 'object' && j.data !== undefined && j.data !== null && Array.isArray(j.data.artifacts) ? j.data.artifacts : (j !== null && Array.isArray(j.artifacts) ? j.artifacts : [])
-            items = list.filter((a) => a !== null && typeof a === 'object').map((a) => {
-              const title = String(a.title || a.titre || a.name || a.id || '')
-              return { id: String(a.id || title), title, text: [title, a.kind, a.summary, a.description].filter(Boolean).map(String).join(' · '), meta: { where: kt('Créations', 'Creations') + (a.kind ? ' · ' + String(a.kind) : '') }, open: { kind: 'page', view: 'artifacts' } }
-            })
+            // The Creations page's own source: the files the agents produced, by workspace (`artifacts`: path, name, mtimeMs, workspace).
+            const j = await getJson('/kybernos/load')
+            const list = j !== null && typeof j === 'object' && Array.isArray(j.artifacts) ? j.artifacts : []
+            items = list.filter((a) => a !== null && typeof a === 'object' && typeof a.name === 'string').map((a) => ({
+              id: String(a.path || a.name), title: a.name, text: [a.name, a.workspace, a.path].filter(Boolean).map(String).join(' · '),
+              meta: { where: [kt('Créations', 'Creations'), a.workspace].filter(Boolean).join(' · '), when: typeof a.mtimeMs === 'number' ? a.mtimeMs : null },
+              open: { kind: 'page', view: 'artifacts' }
+            }))
           }
         } catch (e) { items = [] }
         pageCache[scope] = { at: Date.now(), items }

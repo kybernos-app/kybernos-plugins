@@ -13,7 +13,7 @@ agent teams. The native search of the Workspaces list (a title filter) is not to
   passage highlighted, a preview of the matching messages, keyboard first (↑ ↓ ↵ Esc). The scopes are remembered on this computer.
 - The first open builds the index of the chats (about ten seconds on 2,000 chats, with a progress line; results appear as they are
   read). After that only the chats whose journal changed are read again.
-- Memories (the account's, through `/kybernos-cloud/memory`) and creations (through `/kybernos/state`) are read by the page from routes
+- Memories (the account's, through `/kybernos-cloud/memory`) and creations (through `/kybernos/load`, the files the agents produced, by workspace) are read by the page from routes
   it already uses, so they need an account / the state load and are searched in the page.
 
 ## What it reads, and where it keeps it
