@@ -1155,6 +1155,10 @@ const RELAY_RULES = [
   // The two read-only pages of the account the console shows in DSH's frame (Account, Referral): the profile (above), the person's sessions and the referral card.
   { re: /^\/v1\/sessions$/, query: [] },
   { re: /^\/v1\/referral$/, query: [] },
+  // The account's security page (is a second factor on: status only, never a secret) and the server's legal page (terms, privacy, support addresses):
+  // the Security and Support & legal pages of the same frame. Exact paths: the writes of the second factor (`/v1/me/mfa/...`) are not named.
+  { re: /^\/v1\/me\/mfa$/, query: [] },
+  { re: /^\/v1\/public\/legal$/, query: [] },
   { re: /^\/v1\/workspaces$/, query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(members|providers|models)$', 'i'), query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(budget|models|catalog|billing)$', 'i'), query: [] },

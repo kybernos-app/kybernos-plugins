@@ -124,6 +124,8 @@ window.__ModuleLoader__.load({
 .kbth-chip{appearance:none;font:inherit;font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);cursor:pointer}
 .kbth-chip:hover:not([disabled]){border-color:var(--dsw-alias-brand-primary)}
 .kbth-chip[disabled]{opacity:.4;cursor:default}
+.kbth-chip-tag{font-size:11px;font-weight:500;color:var(--dsw-alias-state-success-primary);margin-inline-start:2px}
+body:not([data-ds-dark-theme]) .kbth-chip-tag{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
 .kbth-sec-t{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
 .kbth-iso{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px;max-height:280px;overflow:auto;padding-inline-end:4px}
 .kbth-iso-i{appearance:none;font:inherit;font-size:13px;display:flex;align-items:baseline;gap:8px;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer;text-align:start;min-width:0}
@@ -491,6 +493,20 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         jobPartial: ['{name} : {n} textes restent en anglais.', '{name}: {n} texts stay in English.'],
         jobPartialBody: ['La langue est utilisable. Réessayez les textes manquants depuis Réglages › Langue.', 'The language is usable. Retry the missing texts from Settings › Language.'],
         jobFailed: ['La traduction en {name} s’est arrêtée.', 'The translation to {name} stopped.'],
+        packInstall: ['Installer la traduction prête', 'Install the ready-made translation'],
+        packInstalling: ['Installation…', 'Installing…'],
+        packNote: ['Une traduction prête à l’emploi existe pour cette langue ({n} textes) : elle s’installe tout de suite, sans modèle ni clé. Ce qui manque est ensuite traduit par votre modèle.', 'A ready-made translation exists for this language ({n} texts): it installs at once, with no model and no key. What it lacks is then translated by your model.'],
+        packReviewed: ['relue', 'reviewed'],
+        packTag: ['prête', 'ready'],
+        packDone: ['Traduction installée : {added} textes ajoutés, {kept} déjà là.', 'Translation installed: {added} texts added, {kept} already there.'],
+        packFailed: ['La traduction prête n’a pas pu être installée ({why}).', 'The ready-made translation could not be installed ({why}).'],
+        staleSummary: ['{n} textes ont changé depuis cette traduction', '{n} texts changed since this translation'],
+        staleBody: ['Ces textes ont été modifiés dans cette version de Kybernos ou de DSH : seuls eux seront retraduits, le reste est conservé.', 'These texts were changed in this version of Kybernos or DSH: only they are translated again, the rest is kept.'],
+        staleUpdate: ['Mettre à jour la traduction', 'Update translation'],
+        doubtSummary: ['{n} textes à vérifier', '{n} texts to double-check'],
+        doubtBody: ['Ces traductions sont gardées, mais elles ressemblent à la source ou ont perdu un nom de produit. Vérifiez-les si l’écran vous paraît étrange.', 'These translations are kept, but they look like the source or lost a product name. Check them if a screen looks odd.'],
+        doubtWhy_unchanged: ['identique à la source', 'same as the source'],
+        doubtWhy_glossary: ['nom de produit disparu', 'a product name is missing'],
         errStore: ['L’espace de stockage du navigateur est plein.', 'The browser’s storage is full.'],
         kept: ['Ce qui est déjà traduit est conservé : « Reprendre » repart d’où ça s’est arrêté.', 'What’s already translated is kept: Resume starts where it stopped.'],
         confirmRemove: ['Supprimer', 'Remove'],
@@ -1042,6 +1058,53 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         }
         return { items, areas }
       }
+      // What the last host run of a language kept but doubts (a count and a few { wire, why }), and how many of its texts changed at
+      // the source since it was translated: both are read from the host, never computed here.
+      const doubtful = new Map()
+      const staleOf = new Map()
+      // Ready-made translations the project publishes, signed (kybernos-plugin/i18n-packs.mjs): which languages have one.
+      // Read from the host's disk cache; asked of the network once per load, and only by the page that can offer them.
+      const PACKS_PATH = '/kybernos/i18n-packs'
+      let packs = new Map()
+      let packsAsked = false
+      const packsListeners = new Set()
+      const packCall = async (body) => {
+        try {
+          const init = body === undefined ? { credentials: 'same-origin' }
+            : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+          const res = await fetch(PACKS_PATH, init)
+          if (res.status === 404 || res.status === 405) return { ok: false, absent: true }
+          const json = await res.json()
+          return json !== null && typeof json === 'object' ? json : { ok: false, absent: true }
+        } catch (e) { return { ok: false, absent: true } }
+      }
+      const takePacks = (r) => {
+        if (r.ok !== true || !Array.isArray(r.packs)) return false
+        packs = new Map(r.packs.filter((p) => p !== null && typeof p.lang === 'string').map((p) => [p.lang, p]))
+        for (const fn of Array.from(packsListeners)) { try { fn(packs) } catch (e) { /* a dead listener must not stop the others */ } }
+        return true
+      }
+      const loadPacks = async () => {
+        if (!hostJobOn()) return false
+        const r = await packCall()
+        const got = takePacks(r)
+        // Never asked the network (or it was unreachable): ask once; the answer is the signed index, or nothing.
+        if (!packsAsked && r.ok === true && r.online !== undefined && (r.online.state === 'never' || r.online.state === 'offline')) {
+          packsAsked = true
+          takePacks(await packCall({ op: 'refresh' }))
+        }
+        return got
+      }
+      // Fill a language from its pack, then bring what the host wrote into this browser.
+      const installPack = async (lang) => {
+        const r = await packCall({ op: 'install', lang })
+        if (r.ok !== true) return r
+        registryAdd(lang)
+        await pullDisk(lang)
+        staleOf.delete(lang)
+        takePacks(await packCall())
+        return r
+      }
       let hostLang = null // the language whose host run this page is watching
       let hostTimer = null
       let hostLost = 0
@@ -1088,6 +1151,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         }
         // Over: paused, done, partial or failed. Take the last of it, then say how it ended.
         stopWatching()
+        if (job.flagged !== undefined && job.flagged !== null) doubtful.set(lang, job.flagged)
+        staleOf.delete(lang)
         await pullDisk(lang)
         hostPulled = { at: 0, done: -1 }
         if (job.state === 'paused') { setRun(Object.assign(patch, { state: 'paused' })); return }
@@ -1107,16 +1172,44 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         if (!hostJobOn()) return { mode: 'local' }
         const plan = buildPlan(lang)
         if (plan === null) return { mode: 'local' } // the engine reports SOURCE_MISSING itself
+        // A host that speaks protocol 2 is sent the WHOLE plan, with the translation this browser holds for each text: it
+        // adopts what its disk lacks, then works out what is missing or changed at the source. An older host (it would
+        // translate every text it is sent) gets the missing ones only, as before.
+        const probe = await jobCall()
+        const full = probe.ok === true && Number(probe.v) >= 2
         const miss = missingFor(lang, plan)
-        if (miss.items.length === 0) return { mode: 'local' } // nothing to do: the engine says « done » on its own
-        const r = await jobCall({
-          op: 'start', lang, langName: langInfo(lang).english, source: 'fr', total: plan.total, areas: miss.areas, items: miss.items,
-          route: route !== null && route !== undefined && typeof route.provider === 'string' ? { provider: route.provider, model: route.model } : null,
-        })
+        let body
+        if (full) {
+          const stores = { kb: i18nRead(lang), dsh: dshRead(lang) }
+          const items = plan.items.map((it) => {
+            const have = stores[it.store][it.id]
+            const o = { wire: it.wire, text: it.text, area: it.area }
+            if (holds(have) && typeof have === 'string') o.have = have
+            return o
+          })
+          body = { op: 'start', lang, langName: langInfo(lang).english, source: 'fr', full: true, items }
+        } else {
+          if (miss.items.length === 0) return { mode: 'local' } // nothing to do: the engine says « done » on its own
+          body = { op: 'start', lang, langName: langInfo(lang).english, source: 'fr', total: plan.total, areas: miss.areas, items: miss.items }
+        }
+        body.route = route !== null && route !== undefined && typeof route.provider === 'string' ? { provider: route.provider, model: route.model } : null
+        const r = await jobCall(body)
         if (r.absent === true) return { mode: 'local' }
         if (r.ok === true) return { mode: 'host' }
         if (r.error === 'busy') return { mode: 'error', error: 'BUSY : ' + langInfo(String(r.lang || '')).native, busy: String(r.lang || '') }
         return { mode: 'local' } // a plan the host does not accept: the engine can still do it
+      }
+      // How many texts of a translated language changed at the source since it was translated. One question per language
+      // and page load (the host answers from the hash it kept of each source), cached until a run ends.
+      const checkStale = async (lang) => {
+        if (!hostJobOn() || staleOf.has(lang)) return staleOf.get(lang)
+        const plan = buildPlan(lang)
+        if (plan === null) return 0
+        staleOf.set(lang, 0)
+        const r = await jobCall({ op: 'stale', lang, items: plan.items.map((it) => ({ wire: it.wire, text: it.text })) })
+        const n = r.ok === true && Number.isInteger(r.stale) ? r.stale : 0
+        staleOf.set(lang, n)
+        return n
       }
       // A pause asked for while the page is still handing the run over (a few milliseconds) is kept and applied right after.
       let starting = false
@@ -1538,6 +1631,33 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const activate = (id) => { setActiveLang(id); activateLanguage(id) }
         // Test marks are taken out first: they would otherwise count as translated and nothing would be redone.
         const start = (id) => { setDetails(false); if (pseudoStats(id).n > 0) repairPseudo(id); startRun(id, route()) }
+        // Ready-made translations: which languages have one (signed, from the project), and the install in progress.
+        const [packBusy, setPackBusy] = React.useState(null)
+        const [packNote, setPackNote] = React.useState(null) // { id, ok, text } after an install
+        React.useEffect(() => {
+          const redraw = () => setTick((k) => k + 1)
+          packsListeners.add(redraw)
+          loadPacks().then((got) => { if (got) redraw() }).catch(() => { /* no packs: nothing to offer */ })
+          return () => { packsListeners.delete(redraw) }
+        }, [])
+        const installReady = async (id) => {
+          setPackBusy(id); setPackNote(null)
+          let r = { ok: false, error: 'unreachable' }
+          try { r = await installPack(id) } catch (e) { /* r says it */ }
+          setPackBusy(null)
+          setPackNote(r.ok === true
+            ? { id, ok: true, text: L('packDone', { added: fmtN(r.added), kept: fmtN(r.kept) }) }
+            : { id, ok: false, text: L('packFailed', { why: String(r.error || 'unreachable') }) })
+          setTick((k) => k + 1)
+        }
+        // Texts that changed at the source since a language was translated: asked of the host for the languages that are
+        // complete, once per load (the answer is cached until a run ends); the page redraws when it comes.
+        React.useEffect(() => {
+          let alive = true
+          const ids = managedIds().filter((x) => !isBuiltIn(x) && isComplete(x))
+          ;(async () => { for (const id of ids) { if (!alive) return; try { const before = staleOf.get(id); const n = await checkStale(id); if (alive && n !== before) setTick((k) => k + 1) } catch (e) { /* the host cannot say: nothing to show */ } } })()
+          return () => { alive = false }
+        }, [snap.state])
         const addLanguage = (id) => { registryAdd(id); setPickerOpen(false); setQuery(''); setTick((n) => n + 1) }
         const chooseModel = () => {
           if (advRef.current !== null) { advRef.current.open = true; try { advRef.current.scrollIntoView({ block: 'center' }) } catch (e) { /* no layout */ } }
@@ -1576,7 +1696,9 @@ html[dir="rtl"] .kbth-page{direction:rtl}
 
           // actions
           const acts = []
-          const goButton = () => h('button', { key: 'go', className: 'kbth-btn primary', type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
+          const pack = isBuiltIn(id) ? undefined : packs.get(id)
+          const offerPack = pack !== undefined && !complete && !running && packBusy !== id
+          const goButton = () => h('button', { key: 'go', className: 'kbth-btn' + (offerPack ? '' : ' primary'), type: 'button', 'data-act': 'start', disabled: snap.state === 'running' || snap.state === 'pausing' || models.length === 0, title: models.length === 0 ? L('noModels') : (st === 'partial' ? L('tipRetry') : (hasProgress || st === 'paused' || st === 'failed') ? L('tipResume') : L('tipStart')), onClick: () => start(id) },
               st === 'partial' ? L('retryMissing') : (hasProgress || st === 'paused' || st === 'failed') ? L('resume') : L('start'))
           if (inUse) {
             acts.push(h('span', { key: 'use', className: 'kbth-pill ok', 'data-act': 'in-use', title: L('tipInUse') }, L('inUse')))
@@ -1590,6 +1712,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           else {
             if (canUseNow) acts.push(h('button', { key: 'now', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseNow'), onClick: () => activate(id) }, L(st === 'partial' ? 'useAnyway' : 'useNow')))
             else if (done > 0 && pseudo.n === 0) acts.push(h('button', { key: 'any', className: 'kbth-btn', type: 'button', 'data-act': 'use-now', title: L('tipUseAnyway'), onClick: () => activate(id) }, L('useAnyway')))
+            if (offerPack) acts.push(h('button', { key: 'pack', className: 'kbth-btn primary', type: 'button', 'data-act': 'install-pack', onClick: () => installReady(id) }, L('packInstall')))
             acts.push(goButton())
           }
           if (!isBuiltIn(id) && !running) {
@@ -1658,6 +1781,30 @@ html[dir="rtl"] .kbth-page{direction:rtl}
               details ? h('code', null, String(snap.error)) : null))
           }
           if (st === 'partial') body.push(h('div', { key: 'gaps', className: 'kbth-note' }, L('gaps', { n: fmtN(snap.missing) })))
+          // A ready-made translation the project published for this language: offered above, explained here.
+          if (pack !== undefined && !complete && !running) {
+            body.push(h('div', { key: 'pack', className: 'kbth-note', 'data-note': 'pack' },
+              L('packNote', { n: fmtN(pack.counts.kb + pack.counts.dsh) }) + (pack.reviewed ? ' (' + L('packReviewed') + ')' : '')))
+          }
+          if (packBusy === id) body.push(h('div', { key: 'packbusy', className: 'kbth-note', role: 'status' }, L('packInstalling')))
+          if (packNote !== null && packNote.id === id) body.push(h('div', { key: 'packnote', className: packNote.ok ? 'kbth-note' : 'kbth-err', role: packNote.ok ? 'status' : 'alert', 'data-note': 'pack-result' }, packNote.text))
+          // Texts of a translated language whose source changed since: only those are translated again.
+          const staleN = !isBuiltIn(id) && !running && complete ? (staleOf.get(id) || 0) : 0
+          if (staleN > 0) {
+            body.push(h('details', { key: 'stale', className: 'kbth-banner warn kbth-fold', 'data-note': 'stale' },
+              h('summary', null, h('span', { className: 'kbth-chev', 'aria-hidden': true }, '▸'), L('staleSummary', { n: fmtN(staleN) })),
+              h('div', null, L('staleBody')),
+              h('div', { className: 'kbth-row', style: { gap: 8 } },
+                h('button', { className: 'kbth-btn primary', type: 'button', 'data-act': 'update', disabled: models.length === 0, title: models.length === 0 ? L('noModels') : undefined, onClick: () => start(id) }, L('staleUpdate')))))
+          }
+          // Texts the host kept but doubts (identical to the source, a product name that vanished): listed, never refused.
+          const doubt = !isBuiltIn(id) && !running ? doubtful.get(id) : undefined
+          if (doubt !== undefined && doubt.count > 0) {
+            body.push(h('details', { key: 'doubt', className: 'kbth-banner kbth-fold', 'data-note': 'doubt' },
+              h('summary', null, h('span', { className: 'kbth-chev', 'aria-hidden': true }, '▸'), L('doubtSummary', { n: fmtN(doubt.count) })),
+              h('div', null, L('doubtBody')),
+              h('div', { className: 'kbth-ex' }, doubt.examples.map((x) => h('div', { key: x.wire }, x.wire.replace(/^(kb|dsh):/, '') + ' — ' + String(x.why).split('+').map((w) => { const k = 'doubtWhy_' + w.split(':')[0]; return S[k] !== undefined ? L(k) + (w.indexOf(':') > 0 ? ' (' + w.split(':')[1] + ')' : '') : w }).join(', '))))))
+          }
           if (!isBuiltIn(id) && !complete && !running && st === null && plan !== null && !hasProgress) {
             const lines = []
             if (!plan.dshAvailable && !plan.dshNative) lines.push(L('noDsh'))
@@ -1694,12 +1841,12 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         const filtered = q === '' ? all : all.filter((i) => (i.id + ' ' + i.native + ' ' + i.english).toLocaleLowerCase().indexOf(q) >= 0)
         filtered.sort((a, b) => a.english.localeCompare(b.english))
         const isoBtn = (i) => h('button', { key: i.id, type: 'button', className: 'kbth-iso-i', 'data-iso': i.id, disabled: taken.has(i.id), title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), onClick: () => addLanguage(i.id) },
-          h('b', { lang: i.id }, i.native), i.english !== i.native ? h('small', null, i.english) : null, h('code', null, i.id))
+          h('b', { lang: i.id }, i.native), i.english !== i.native ? h('small', null, i.english) : null, packs.has(i.id) ? h('small', { className: 'kbth-chip-tag' }, L('packTag')) : null, h('code', null, i.id))
         const picker = pickerOpen
           ? h('div', { className: 'kbth-add-body' },
               h('input', { className: 'kbth-input', type: 'search', autoFocus: true, placeholder: L('search'), value: query, 'aria-label': L('search'), onChange: (e) => setQuery(e.target.value) }),
               q === '' ? h('div', { className: 'kbth-sec-t' }, L('popular')) : null,
-              q === '' ? h('div', { className: 'kbth-chips' }, POPULAR.map(langInfo).map((i) => h('button', { key: i.id, type: 'button', className: 'kbth-chip', 'data-iso': i.id, title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), disabled: taken.has(i.id), onClick: () => addLanguage(i.id) }, i.native))) : null,
+              q === '' ? h('div', { className: 'kbth-chips' }, POPULAR.map(langInfo).map((i) => h('button', { key: i.id, type: 'button', className: 'kbth-chip', 'data-iso': i.id, title: taken.has(i.id) ? L('added') : L('tipAddLang', { name: i.english, code: i.id }), disabled: taken.has(i.id), onClick: () => addLanguage(i.id) }, i.native, packs.has(i.id) ? h('small', { className: 'kbth-chip-tag' }, ' · ' + L('packTag')) : null))) : null,
               h('div', { className: 'kbth-sec-t' }, L('allLangs')),
               filtered.length > 0 ? h('div', { className: 'kbth-iso' }, filtered.map(isoBtn)) : h('div', { className: 'kbth-note' }, L('noMatch')))
           : null
@@ -1805,7 +1952,8 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           isTestMark, holds, pseudoStats, repairPseudo, intentRead, intentWrite, intentClear, shouldTakeOver, autoResume, autoResumeOn, setAutoResume,
           resetRun: () => { stopBeat(); stopWatching(); run = { state: 'idle', lang: null, done: 0, total: 0, areas: null, model: null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 } },
           startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate,
-          bootJobs, watchOnce, missingFor, stopWatching, hostStart, announceJob, JOB_LOST_AFTER,
+          bootJobs, watchOnce, missingFor, stopWatching, hostStart, announceJob, JOB_LOST_AFTER, checkStale, staleOf, doubtful,
+          loadPacks, installPack, getPacks: () => packs,
           managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage, heldBy,
           __writeJson: writeJson, setLocale: (svc) => { locSvc = svc; _dsh = null; _dshRev = null }, L, estimateMinutes, minutesLeft,
         },

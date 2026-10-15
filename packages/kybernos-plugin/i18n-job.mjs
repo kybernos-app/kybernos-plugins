@@ -13,14 +13,25 @@
 //   · the answer is a state the page (or any tab) can read: running, pausing, paused, failed, partial, done, plus
 //     `acked`: a finished run is announced until somebody acknowledges it.
 //
-// What is DONE is read from the store itself (a text that is there and is not a test mark), never from a counter, so
-// resuming after any interruption cannot double-count or re-translate. Pure node:fs, the model call and the clock are
-// injected: the whole thing is exercised without a DSH (test-i18n-job.mjs), including the failures.
+// What is DONE is read from the store itself (a text that is there, is not a test mark, and was translated from the source
+// text it still has: see `src` below), never from a counter, so resuming after any interruption cannot double-count or
+// re-translate. Pure node:fs, the model call and the clock are injected: the whole thing is exercised without a DSH
+// (test-i18n-job.mjs), including the failures.
+//
+//   · identical source texts are translated once and written to every key that has them (one answer, one wording);
+//   · a text the quality checks refuse (i18n-quality.mjs) is not kept; the next attempt, and the second pass, are told
+//     which key was refused and why; a doubtful one is kept and listed (`flagged`);
+//   · for each text it writes, the host keeps a short hash of the SOURCE it translated (`src` in the store): a source that
+//     changed in a later version is found by `stale` and only that text is translated again;
+//   · the page may send ALL the texts of its plan (`full`), with the translation it already holds (`have`): the host adopts
+//     what its disk lacks, then works out what is missing or stale. A run that has nothing to do ends without a sound.
 import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { STORE_ID } from './i18n-store.mjs'
 
-export const JOB_VERSION = 1
+export const JOB_VERSION = 2
+/** What the job route answers to a GET, so a page knows it may send the whole plan (an older host ignores `full`). */
+export const PROTOCOL = 2
 export const AREAS = ['core', 'more', 'phrases']
 export const BATCH_SIZE = 40
 export const CHAR_BUDGET = 2600
@@ -45,6 +56,14 @@ const errText = (e) => (e && e.message ? String(e.message) : String(e))
 export const isTestMark = (v) => typeof v === 'string' && v.length > 2 && v.charAt(0) === '⟦' && v.charAt(v.length - 1) === '⟧'
 export const holds = (v) => typeof v === 'string' && v !== '' && !isTestMark(v)
 export const isFatal = (error) => { const e = String(error === undefined || error === null ? '' : error); return FATAL_CODE.test(e) || FATAL_TEXT.test(e) }
+
+/** Pure. A short hash of a source text (FNV-1a, 32 bits, hex): enough to tell « the same text » from « another one ». */
+export function hashText(t) {
+  let h = 0x811c9dc5
+  const b = Buffer.from(String(t), 'utf8')
+  for (let i = 0; i < b.length; i += 1) { h ^= b[i]; h = Math.imul(h, 0x01000193) >>> 0 }
+  return h.toString(16).padStart(8, '0')
+}
 
 /** Pure. Items → batches of at most BATCH_SIZE strings and CHAR_BUDGET characters (a truncated JSON answer is lost whole). */
 export function planBatches(items, size = BATCH_SIZE, budget = CHAR_BUDGET) {
@@ -78,27 +97,33 @@ export function sanitizeStart(body) {
   if (!STORE_ID.test(lang) || RESERVED.indexOf(lang) >= 0) return { ok: false, error: 'invalid language id' }
   if (!Array.isArray(body.items) || body.items.length === 0) return { ok: false, error: 'nothing to translate' }
   if (body.items.length > LIMITS.items) return { ok: false, error: 'too many texts' }
+  const full = body.full === true
   const items = []
   const seen = new Set()
   for (const raw of body.items) {
     if (!plain(raw) || splitWire(raw.wire) === null || !text(raw.text) || raw.text.length > LIMITS.text || AREAS.indexOf(raw.area) < 0) return { ok: false, error: 'invalid item' }
     if (seen.has(raw.wire)) continue
     seen.add(raw.wire)
-    items.push({ wire: raw.wire, text: raw.text, area: raw.area })
+    const item = { wire: raw.wire, text: raw.text, area: raw.area }
+    // The translation the page already holds for it (only a full plan carries them): the host adopts it if its disk lacks it.
+    if (full && typeof raw.have === 'string' && raw.have !== '' && raw.have.length <= LIMITS.text) item.have = raw.have
+    items.push(item)
   }
-  const total = Number.isInteger(body.total) && body.total >= items.length && body.total <= LIMITS.items * 2 ? body.total : items.length
+  // A full plan IS the language: the total is its length and every area counts from nothing. A partial one (the older page,
+  // or a host asked for the missing ones only) brings its own totals.
+  const total = full ? items.length : (Number.isInteger(body.total) && body.total >= items.length && body.total <= LIMITS.items * 2 ? body.total : items.length)
   const baseAreas = {}
   for (const a of AREAS) {
     const inItems = items.filter((i) => i.area === a).length
-    const given = plain(body.areas) && plain(body.areas[a]) ? body.areas[a] : {}
+    const given = !full && plain(body.areas) && plain(body.areas[a]) ? body.areas[a] : {}
     const areaTotal = Number.isInteger(given.total) && given.total >= inItems ? given.total : inItems
     const areaDone = Number.isInteger(given.done) && given.done >= 0 && given.done <= areaTotal - inItems ? given.done : areaTotal - inItems
-    baseAreas[a] = { total: areaTotal, done: areaDone }
+    baseAreas[a] = full ? { total: inItems, done: 0 } : { total: areaTotal, done: areaDone }
   }
   let route = null
   if (plain(body.route) && text(body.route.provider) && text(body.route.model) && body.route.provider.length <= 200 && body.route.model.length <= 200) route = { provider: body.route.provider, model: body.route.model }
   const langName = typeof body.langName === 'string' ? body.langName.slice(0, LIMITS.langName) : ''
-  return { ok: true, spec: { lang, langName, source: body.source === 'auto' ? 'auto' : 'fr', route, items, total, baseAreas } }
+  return { ok: true, spec: { lang, langName, source: body.source === 'auto' ? 'auto' : 'fr', route, items, total, baseAreas, full } }
 }
 
 /**
@@ -137,6 +162,10 @@ export function createJobRunner(o) {
     areas: st.areas, model: st.model, error: st.error, startedAt: st.startedAt, updatedAt: st.updatedAt,
     // The window of THIS go (a resume starts a new one): what the page needs for « minutes left ».
     runAt: st.runAt, runFrom: st.runFrom,
+    // Texts that were kept but look doubtful (an unchanged sentence, a product name that vanished): a count and a few examples.
+    flagged: st.flagged === undefined ? { count: 0, examples: [] } : st.flagged,
+    // Nothing was translated in this go (everything was held and fresh): the page has nothing to announce.
+    idle: st.idle === true,
     finishedAt: st.finishedAt, outcome: st.outcome, acked: st.acked, interrupted: st.interrupted === true,
   })
 
@@ -153,9 +182,27 @@ export function createJobRunner(o) {
       return
     }
     try {
-      const pack = store.read(lang) || { kb: Object.create(null), dsh: Object.create(null), meta: {} }
+      const pack = store.read(lang) || { kb: Object.create(null), dsh: Object.create(null), src: Object.create(null), meta: {} }
       const items = plan.items.map((it) => Object.assign({}, it, splitWire(it.wire)))
-      const has = (it) => holds(sectionOf(pack, it.section)[it.id])
+      // A text is DONE when the store holds a real translation of it AND it was made from the source text it still has
+      // (no recorded hash: made before the host kept them, taken as current).
+      const hashes = new Map(items.map((it) => [it.wire, hashText(it.text)]))
+      const has = (it) => holds(sectionOf(pack, it.section)[it.id]) && (pack.src[it.wire] === undefined || pack.src[it.wire] === hashes.get(it.wire))
+      // What the page already holds that the disk lacks becomes the disk's (a language translated before the host did it).
+      {
+        const adopt = { kb: {}, dsh: {}, src: {} }
+        let n = 0
+        for (const it of items) {
+          if (typeof it.have !== 'string' || !holds(it.have) || holds(sectionOf(pack, it.section)[it.id])) continue
+          adopt[it.section][it.id] = it.have
+          adopt.src[it.wire] = hashes.get(it.wire)
+          n += 1
+        }
+        if (n > 0) {
+          const w = store.write(lang, adopt)
+          if (w.ok === true) for (const it of items) { if (adopt[it.section][it.id] !== undefined) { sectionOf(pack, it.section)[it.id] = adopt[it.section][it.id]; pack.src[it.wire] = adopt.src[it.wire] } }
+        }
+      }
       const recount = () => {
         const areas = {}
         for (const a of AREAS) areas[a] = { total: plan.baseAreas[a].total, done: plan.baseAreas[a].done }
@@ -166,7 +213,8 @@ export function createJobRunner(o) {
       let route = st.route
       const base = recount()
       st.state = 'running'; st.areas = base.areas; st.done = base.done; st.error = null; st.finishedAt = null; st.outcome = null; st.acked = true; st.interrupted = false
-      st.runAt = now(); st.runFrom = base.done
+      st.runAt = now(); st.runFrom = base.done; st.idle = false
+      if (st.flagged === undefined) st.flagged = { count: 0, examples: [] }
       writeState(st)
 
       let fatal = null
@@ -174,21 +222,33 @@ export function createJobRunner(o) {
       let chain = Promise.resolve()
       const removedSince = () => { try { const t = store.removed(); return typeof t[lang] === 'number' && t[lang] >= st.startedAt } catch (e) { return false } }
 
-      // One batch: attempts with backoff while the failure is a transient one.
+      // The same source text under several keys is asked ONCE: one answer, one wording, one bill.
+      const sameText = new Map()
+      for (const it of items) { const g = sameText.get(it.text); if (g === undefined) sameText.set(it.text, [it]); else g.push(it) }
+      // What the checks refused, by the key that was sent: the next attempt tells the model why.
+      const hints = new Map()
+      const flaggedWires = new Map()
+
+      // One batch: attempts with backoff while the failure is a transient one; a refusal by the checks is a failure that
+      // the next attempt is TOLD about.
       const translateBatch = async (batch) => {
         const wire = {}
         for (const it of batch) wire[it.wire] = it.text
+        let told = {}
         for (let attempt = 0; ; attempt += 1) {
           if (entry.stop !== null) return { aborted: true }
+          const given = {}
+          for (const it of batch) { const h = told[it.wire] !== undefined ? told[it.wire] : hints.get(it.wire); if (h !== undefined) given[it.wire] = h }
           const r = await translate({
             lang, langName: plan.langName, source: plan.source,
             provider: route === null ? undefined : route.provider, model: route === null ? undefined : route.model,
-            batch: wire, signal: entry.controller.signal,
+            batch: wire, hints: given, signal: entry.controller.signal,
           })
           if (r !== null && typeof r === 'object' && r.ok === true && plain(r.translations)) return r
           const error = r !== null && typeof r === 'object' && typeof r.error === 'string' ? r.error : 'unexpected answer'
           if (entry.stop !== null) return { aborted: true }
           if (isFatal(error)) return { fatal: true, error }
+          if (r !== null && typeof r === 'object' && plain(r.refused)) { told = Object.assign({}, told, r.refused); for (const [k, v] of Object.entries(r.refused)) hints.set(k, v) }
           if (attempt >= retryDelays.length) return { ok: false, error }
           const wait = retryDelays[attempt] * (0.75 + random() * 0.5)
           await sleep(wait)
@@ -196,34 +256,54 @@ export function createJobRunner(o) {
       }
 
       // The write of a landed batch: serialised (three workers, one file), and the progress it earns goes with it.
+      // `batch` holds one representative per distinct text: each answer is written to every key that has that text.
       const land = (batch, result) => {
         chain = chain.then(() => {
-          const patch = { kb: {}, dsh: {} }
+          const patch = { kb: {}, dsh: {}, src: {} }
           const fresh = []
-          for (const it of batch) {
-            const v = result.translations[it.wire]
-            if (typeof v !== 'string' || v.trim() === '' || has(it)) continue
-            patch[it.section][it.id] = v.trim()
-            fresh.push(it)
+          for (const rep of batch) {
+            const v = result.translations[rep.wire]
+            if (typeof v !== 'string' || v.trim() === '') continue
+            for (const it of sameText.get(rep.text)) {
+              if (has(it)) continue
+              patch[it.section][it.id] = v.trim()
+              patch.src[it.wire] = hashes.get(it.wire)
+              fresh.push(it)
+            }
+            hints.delete(rep.wire)
+            const soft = plain(result.flagged) ? result.flagged[rep.wire] : undefined
+            if (typeof soft === 'string' && soft !== '') flaggedWires.set(rep.wire, soft)
           }
+          // The checks refused these: remembered for the second pass.
+          if (plain(result.refused)) for (const [k, v] of Object.entries(result.refused)) hints.set(k, v)
           if (fresh.length === 0) return
           // The disk first: a text only counts once the store has it (a refused write must not read as progress).
-          const w = store.write(lang, { kb: patch.kb, dsh: patch.dsh })
+          const w = store.write(lang, { kb: patch.kb, dsh: patch.dsh, src: patch.src })
           if (w.ok !== true) { if (fatal === null) fatal = 'STORE_WRITE : ' + String(w.error); return }
-          for (const it of fresh) sectionOf(pack, it.section)[it.id] = patch[it.section][it.id]
+          for (const it of fresh) { sectionOf(pack, it.section)[it.id] = patch[it.section][it.id]; pack.src[it.wire] = patch.src[it.wire] }
           const counted = recount()
           store.write(lang, { meta: { complete: counted.done >= plan.total, total: plan.total, done: counted.done, essentials: counted.areas.core.done >= counted.areas.core.total, at: now() } })
           st.areas = counted.areas; st.done = counted.done
           st.model = typeof result.provider === 'string' && typeof result.model === 'string' ? result.provider + '/' + result.model : st.model
+          st.flagged = { count: flaggedWires.size, examples: Array.from(flaggedWires.entries()).slice(0, 20).map(([wire, why]) => ({ wire, why })) }
           writeState(st)
         }).catch((e) => { if (fatal === null) fatal = 'STORE_WRITE : ' + errText(e) })
         return chain
       }
 
       let breaker = null
+      let translatedAny = false
       for (let pass = 0; pass < PASSES && entry.stop === null && fatal === null && breaker === null; pass += 1) {
+        // Missing, in the order a run translates (core first); one representative per distinct source text.
         const missing = []
-        for (const a of AREAS) for (const it of items) if (it.area === a && !has(it)) missing.push(it)
+        const queued = new Set()
+        for (const a of AREAS) {
+          for (const it of items) {
+            if (it.area !== a || has(it) || queued.has(it.text)) continue
+            queued.add(it.text)
+            missing.push(it)
+          }
+        }
         if (missing.length === 0) break
         const queue = planBatches(missing)
         let next = 0
@@ -244,6 +324,7 @@ export function createJobRunner(o) {
               continue
             }
             failedInARow = 0
+            translatedAny = true
             if (typeof result.provider === 'string' && typeof result.model === 'string') route = { provider: result.provider, model: result.model }
             await land(queue[i], result)
           }
@@ -264,8 +345,9 @@ export function createJobRunner(o) {
       }
       if (entry.stop === 'pause') { st.state = 'paused'; st.acked = true }
       else if (fatal !== null || breaker !== null) { st.state = 'failed'; st.error = fatal !== null ? fatal : breaker; st.finishedAt = now(); st.outcome = 'failed'; st.acked = false }
-      else if (finalCount.done === plan.doneBefore && items.length > 0 && finalCount.done < plan.total) { st.state = 'failed'; st.error = lastError || 'no text was translated'; st.finishedAt = now(); st.outcome = 'failed'; st.acked = false }
+      else if (finalCount.done === base.done && items.length > 0 && finalCount.done < plan.total) { st.state = 'failed'; st.error = lastError || 'no text was translated'; st.finishedAt = now(); st.outcome = 'failed'; st.acked = false }
       else if (finalCount.done < plan.total) { st.state = 'partial'; st.finishedAt = now(); st.outcome = 'partial'; st.acked = false }
+      else if (translatedAny === false && finalCount.done >= plan.total) { st.state = 'done'; st.finishedAt = now(); st.outcome = 'done'; st.acked = true; st.idle = true }
       else { st.state = 'done'; st.finishedAt = now(); st.outcome = 'done'; st.acked = false }
       writeState(st)
       // Leave the bilan the page reads (done / total / complete) in step with the final count.
@@ -298,9 +380,10 @@ export function createJobRunner(o) {
       if (live.has(spec.lang)) return { ok: true, attached: true, job: summary(readState(spec.lang)) }
       const other = running().find((l) => l !== spec.lang)
       if (other !== undefined) return { ok: false, error: 'busy', lang: other }
-      const doneBefore = Math.max(0, spec.total - spec.items.length)
+      // A full plan counts every text itself; a partial one says how many the page already held.
+      const doneBefore = spec.full ? 0 : Math.max(0, spec.total - spec.items.length)
       try {
-        writeAtomic(planFile(spec.lang), { version: JOB_VERSION, lang: spec.lang, langName: spec.langName, source: spec.source, total: spec.total, doneBefore, baseAreas: spec.baseAreas, items: spec.items })
+        writeAtomic(planFile(spec.lang), { version: JOB_VERSION, lang: spec.lang, langName: spec.langName, source: spec.source, total: spec.total, doneBefore, baseAreas: spec.baseAreas, full: spec.full, items: spec.items })
       } catch (e) { return { ok: false, error: 'could not write the plan: ' + errText(e) } }
       const st = {
         version: JOB_VERSION, lang: spec.lang, state: 'running', total: spec.total, done: doneBefore, areas: spec.baseAreas, model: spec.route === null ? null : spec.route.provider + '/' + spec.route.model,
@@ -346,6 +429,24 @@ export function createJobRunner(o) {
       }
       try { rmSync(planFile(lang), { force: true }); rmSync(stateFile(lang), { force: true }) } catch (err) { /* nothing to clean */ }
       return { ok: true }
+    },
+    /**
+     * Which of these texts were translated from a source that has changed since (the host kept the hash of what it
+     * translated): { ok, stale, wires }. A text with no recorded hash (translated before, or by the page) is not stale.
+     */
+    stale(lang, rawItems) {
+      if (!STORE_ID.test(String(lang)) || RESERVED.indexOf(lang) >= 0) return { ok: false, error: 'invalid language id' }
+      if (!Array.isArray(rawItems) || rawItems.length > LIMITS.items) return { ok: false, error: 'invalid items' }
+      const pack = store.read(lang)
+      if (pack === null) return { ok: true, stale: 0, wires: [] }
+      const wires = []
+      let n = 0
+      for (const it of rawItems) {
+        if (!plain(it) || typeof it.wire !== 'string' || typeof it.text !== 'string') continue
+        const was = pack.src[it.wire]
+        if (was !== undefined && was !== hashText(it.text)) { n += 1; if (wires.length < 50) wires.push(it.wire) }
+      }
+      return { ok: true, stale: n, wires }
     },
     /** Somebody saw how it ended: stop announcing it. */
     ack(lang) {
@@ -403,8 +504,9 @@ export const MAX_BODY_BYTES = LIMITS.body
 /**
  * The route, with the host's helpers handed in (`io`) so it can be tested without the host:
  *   GET [?lang=ar]                         → { ok, jobs: [summary] } or { ok, job }
- *   POST { op: 'start', lang, langName?, source?, route?, items: [{ wire, text, area }], total?, areas? }
+ *   POST { op: 'start', lang, langName?, source?, route?, items: [{ wire, text, area, have? }], full?, total?, areas? }
  *   POST { op: 'pause' | 'resume' | 'cancel' | 'ack', lang }
+ *   POST { op: 'stale', lang, items: [{ wire, text }] }   → { ok, stale, wires }   (what changed at the source since)
  * io = { runner(): runner|null, sameOriginStrict(req), sameOriginLax(req), readJson(req, maxBytes), query(req), send(res, status, body) }
  */
 export async function serveJobs(req, res, io) {
@@ -419,7 +521,7 @@ export async function serveJobs(req, res, io) {
         if (!STORE_ID.test(lang)) return io.send(res, 400, { ok: false, error: 'invalid language id' })
         return io.send(res, 200, { ok: true, job: runner.status(lang) })
       }
-      return io.send(res, 200, { ok: true, jobs: runner.status() })
+      return io.send(res, 200, { ok: true, v: PROTOCOL, jobs: runner.status() })
     }
     let body = null
     try { body = await io.readJson(req, MAX_BODY_BYTES) } catch (e) { return io.send(res, 413, { ok: false, error: 'request body too large' }) }
@@ -430,6 +532,7 @@ export async function serveJobs(req, res, io) {
     if (body.op === 'pause') return io.send(res, 200, runner.pause(lang))
     if (body.op === 'resume') { const r = runner.resume(lang); return io.send(res, r.ok === true ? 200 : (r.error === 'busy' ? 409 : 404), r) }
     if (body.op === 'cancel') return io.send(res, 200, runner.cancel(lang))
+    if (body.op === 'stale') { const r = runner.stale(lang, body.items); return io.send(res, r.ok === true ? 200 : 400, r) }
     if (body.op === 'ack') return io.send(res, 200, runner.ack(lang))
     return io.send(res, 400, { ok: false, error: 'unknown op' })
   } catch (e) {

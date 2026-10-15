@@ -1,0 +1,21 @@
+{
+  "id": "deepseek-r1:14b",
+  "famille": "d",
+  "initiale": "Ds",
+  "tailleGo": 9.0,
+  "ramMin": 16,
+  "score": "Ollama library · 9 GB · 128K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "DeepSeek-R1 : modèle de raisonnement, outils et réflexion. Génération précédente.",
+    "en": "DeepSeek-R1: a reasoning model with tools and thinking. Previous generation."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 90
+}

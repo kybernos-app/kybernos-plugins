@@ -19,11 +19,12 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
-- Settings sections **Tools**, **Voice**, Referral, Appearance (shortcut to Theme), Security, Support & legal; a first-run
-  **onboarding** wizard (see « First-run onboarding » below).
+- Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
+  « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
+  Settings: they are reached from the sidebar footer menu (kybernos-cloud).
 - **The Settings menu is regrouped** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every language):
-  *Account*, then *Kybernos*, which opens with the Suite and goes on with our plugins' pages by what they bring and how much the
-  rest leans on them (AI Provider & Models, Auto Routing, Memory & Lessons, Workers, Tools, Calls, Commands, Atlas, Ollama Local
+  *Kybernos* first (the servers entry, the section of what stays on this computer, then the Suite, and on with our plugins' pages by what they bring and how much the
+  rest leans on them: AI Provider & Models, Auto Routing, Memory & Lessons, Workers, Tools, Calls, Commands, Atlas, Ollama Local
   Models, Voice, Language, Theme), then the shell's own *Settings*, *Desktop settings* and *Third Party Plugins*; About closes the
   list. To move a page, move its title inside `mots`; a page not listed falls to the tail. An always-on **language runtime** (`<kb-lang-runtime>`) keeps translated languages registered in
   DSH's locale service even when `kybernos-language` is off.
@@ -42,7 +43,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
-| Language, static | `i18n-{translate,models,store,job}` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
+| Language, static | `i18n-{translate,models,store,job,quality,packs}` `languages-pubkey.json` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
 
 ## The Automations board
 
@@ -255,8 +256,11 @@ node packages/kybernos-models/test-key-check.mjs       # the key check: where a 
 node packages/kybernos-modeles-locaux/test-seam.mjs    # the recommendation and the route profile the wizard shares with the panel
 source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs   # the wizard on the sandbox: account, key saved, model connected, hand-over (refuses :3080)
 node packages/kybernos-plugin/test-i18n-store.mjs      # 60 checks: disk translation store and its route, temp dir
-node packages/kybernos-plugin/test-i18n-translate.mjs  # 51: translate batches against a fake llm.stream, and a stopped run ends the call
-node packages/kybernos-plugin/test-i18n-job.mjs        # 61: the host-side translation run: retries, breaker, pause, kill and restart, one at a time, damaged files, the route
+node packages/kybernos-plugin/test-i18n-translate.mjs  # 57: translate batches against a fake llm.stream, the checks, the correction hints, a stopped run ends the call
+node packages/kybernos-plugin/test-i18n-quality.mjs    # 44: what a translated text must still be (variables, tags, addresses, numbers, script, length, model chatter)
+node packages/kybernos-plugin/test-i18n-job.mjs        # 80: the host-side translation run: retries, breaker, pause, kill and restart, one at a time, one answer per text, stale sources, damaged files, the route
+node packages/kybernos-plugin/test-i18n-packs.mjs       # 48: signed ready-made language packs: the index, a pack against it, what installing does, the route
+node scripts/test-language-packs.mjs                   # 13: export → index → sign → verify → a second machine installs, end to end
 node packages/kybernos-plugin/test-notify.mjs          # 19: the notification store and toast behind the footer bell
 source scripts/sandbox/env.sh && node scripts/check-language-job-live.mjs   # a host-run translation that fails for want of a key: the language, the toast, the note, once (refuses :3080)
 node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtime> block with fake locale and storage

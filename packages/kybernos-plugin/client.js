@@ -498,14 +498,11 @@ let kbLocaleRead = () => 'en'
       'menu.referral.copylink': { kybernos: 'Copier le lien', en: 'Copy link' },
       'menu.referral.copied': { kybernos: 'Copié', en: 'Copied' },
       // ── groupes du menu Réglages (maquette « Settings Menu », 30/09 soir) ──
-      'settings.group.account': { kybernos: 'Compte', en: 'Account' },
       'settings.group.kybernos': { kybernos: 'Kybernos', en: 'Kybernos' },
       'settings.group.settings': { kybernos: 'Réglages', en: 'Settings' },
       'settings.group.desktop': { kybernos: 'Réglages du poste', en: 'Desktop settings' },
       'settings.group.plugins': { kybernos: 'Plugins tiers', en: 'Third Party Plugins' },
       'settings.divider.desktop': { kybernos: 'Desktop', en: 'Desktop' },
-      'kbac.referral': { kybernos: 'Parrainage', en: 'Referral' },
-      'kbac.referral.sub': { kybernos: 'Invitez un ami : 500 crédits chacun.', en: 'Invite a friend: 500 credits each.' },
       'kbac.appearance': { kybernos: 'Apparence', en: 'Appearance' },
       'kbac.appearance.sub': { kybernos: 'Choisissez le thème de l\'interface.', en: 'Choose the interface theme.' },
       'kbac.theme.light': { kybernos: 'Clair', en: 'Light' },
@@ -515,40 +512,6 @@ let kbLocaleRead = () => 'en'
       'kbac.appearance.more': { kybernos: 'Palette, accent, fond et police : ', en: 'Palette, accent, background and font: ' },
       'kbac.appearance.openTheme': { kybernos: 'Ouvrir Thème', en: 'Open Theme' },
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de votre appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
-      'kbac.security': { kybernos: 'Sécurité du compte', en: 'Account security' },
-      'kbac.security.sub': { kybernos: 'Mot de passe, double authentification et sessions de votre compte Kybernos Cloud (le compte web, pas DSH).', en: 'Password, two-factor authentication and sessions of your Kybernos Cloud account (the web account, not DSH).' },
-      'kbac.out.security': { kybernos: 'Le mot de passe, la double authentification et les sessions se gèrent sur votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your password, two-factor authentication and sessions are managed on your Kybernos Cloud account. You are not signed in.' },
-      'kbac.out.referral': { kybernos: 'Votre code de parrainage arrive avec votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your referral code comes with your Kybernos Cloud account. You are not signed in.' },
-      'kbac.out.why': { kybernos: 'Pourquoi créer un compte', en: 'Why create an account' },
-      'kbac.out.models': { kybernos: 'Des modèles prêts à l\'emploi', en: 'Models ready to use' },
-      'kbac.out.models.sub': { kybernos: 'Les modèles de votre formule sont ajoutés automatiquement, sans clé d\'API à configurer.', en: 'The models of your plan are added automatically, with no API key to set up.' },
-      'kbac.out.memory': { kybernos: 'Une mémoire qui vous suit', en: 'A memory that follows you' },
-      'kbac.out.memory.sub': { kybernos: 'Vos souvenirs et vos leçons sont gardés sur votre compte et retrouvés sur chaque appareil.', en: 'Your memories and lessons are kept on your account and come back on every device.' },
-      'kbac.out.sync': { kybernos: 'Sessions et appareils synchronisés', en: 'Sessions and devices in sync' },
-      'kbac.out.sync.sub': { kybernos: 'Retrouvez votre travail d\'un appareil à l\'autre.', en: 'Pick your work up from one device to the next.' },
-      'kbac.out.credits': { kybernos: '500 crédits pour chaque ami invité', en: '500 credits for each friend you invite' },
-      'kbac.out.credits.sub': { kybernos: 'Vous et votre ami recevez chacun 500 crédits.', en: 'You and your friend get 500 credits each.' },
-      'kbac.out.cta': { kybernos: 'Créer un compte ou se connecter', en: 'Create an account or sign in' },
-      'kbac.out.local': { kybernos: 'DSH fonctionne aussi sans compte : le compte ajoute ce qui précède.', en: 'DSH also works without an account: the account adds what is listed above.' },
-      'kbac.sec.password': { kybernos: 'Mot de passe', en: 'Password' },
-      'kbac.sec.password.sub': { kybernos: 'Modifier votre mot de passe', en: 'Change your password' },
-      'kbac.sec.change': { kybernos: 'Changer', en: 'Change' },
-      'kbac.sec.2fa': { kybernos: 'Double authentification', en: 'Two-factor authentication' },
-      'kbac.sec.2fa.sub': { kybernos: 'Un code supplémentaire à la connexion, depuis n\'importe quelle application d\'authentification', en: 'An extra code at sign-in, from any authenticator app' },
-      'kbac.sec.manage': { kybernos: 'Gérer', en: 'Manage' },
-      'kbac.sec.sessions': { kybernos: 'Sessions', en: 'Sessions' },
-      'kbac.sec.sessions.sub': { kybernos: 'Voir et fermer vos sessions actives', en: 'Review and close your active sessions' },
-      'kbac.sec.note': { kybernos: 'Ces réglages se gèrent sur votre compte Kybernos Cloud : chaque bouton ouvre la même page dans votre navigateur. DSH ne saisit ni ne stocke jamais de mot de passe.', en: 'These settings are managed on your Kybernos Cloud account: each button opens the same page in your browser. DSH never enters or stores a password.' },
-      'kbac.sec.at': { kybernos: 'Page ouverte :', en: 'Page opened:' },
-      'kbac.support': { kybernos: 'Support & légal', en: 'Support & legal' },
-      'kbac.support.sub': { kybernos: 'Aide, conditions d\'utilisation et envoi de retours.', en: 'Help, terms of use and feedback.' },
-      'kbac.support.terms': { kybernos: 'Conditions de service', en: 'Terms of service' },
-      'kbac.support.terms.sub': { kybernos: 'Crédits, quotas, remboursements, usage équitable', en: 'Credits, quotas, refunds, fair use' },
-      'kbac.support.privacy': { kybernos: 'Politique de confidentialité', en: 'Privacy policy' },
-      'kbac.support.privacy.sub': { kybernos: 'Ce qui est stocké, ce qui ne l\'est jamais', en: 'What is stored, what is never stored' },
-      'kbac.support.help.sub': { kybernos: 'Documentation et guides Kybernos', en: 'Kybernos documentation and guides' },
-      'kbac.support.feedback.sub': { kybernos: 'Signaler un problème ou proposer une amélioration', en: 'Report a problem or suggest an improvement' },
-      'kbac.open': { kybernos: 'Ouvrir', en: 'Open' },
       'menu.referral.share': { kybernos: 'Partager', en: 'Share' },
       'menu.referral.sharetext': { kybernos: 'Rejoins-moi sur Kybernos — 500 crédits chacun.', en: 'Join me on Kybernos — 500 credits each.' },
       'menu.referral.openpage': { kybernos: 'Ouvrir la page de parrainage', en: 'Open the referral page' },
@@ -2939,17 +2902,19 @@ const kbt = (key) => {
 // The organiser below groups, orders and draws the icon of each Settings cell by its TITLE, normalised: it knows the French and English
 // titles and a few Spanish ones. Under any other translated language no title matched, so the menu lost its groups, its order and
 // its icons (« the language moves the menus »). Each cell is rendered by React with a KEY that is the id of the section it stands for
-// (« general », « kybernos-theme », « kbac-referral »…), the same in every language: that key, read from the cell's fiber, names the
+// (« general », « kybernos-theme », « kbac-appearance »…), the same in every language: that key, read from the cell's fiber, names the
 // title the organiser knows. A cell with no known key (a section added later, React internals that moved) keeps its drawn title.
 const KB_NAV_KEYS = {
   general: 'general', 'kybernos-theme': 'theme', 'kybernos-language': 'language', 'kybernos-memory': 'memory & lessons', models: 'models',
-  'kybernos-account': 'account', 'kbac-referral': 'referral', 'kybernos-data': 'data & privacy', 'kbac-appearance': 'appearance',
-  'kybernos-maintenance': 'about', 'kbac-security': 'security', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
-  'kbac-support': 'support & legal', plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
+  'kbac-appearance': 'appearance',
+  'kybernos-maintenance': 'about', 'kybernos-servers': 'servers', 'kybernos-auto-page': 'auto routing', 'kybernos-websearch-page': 'web search',
+  plugins: 'built-in plugins', 'kybernos-atlas': 'atlas', 'kybernos-models': 'ai provider & models',
   'agent-presets': 'agent presets', voice: 'voice', 'kybernos-slash': 'commands', 'kybernos-ollama': 'ollama local models',
   'kybernos-suite': 'kybernos suite', 'kybernos-tools': 'tools', 'kybernos-workers': 'workers', 'kybernos-call': 'calls',
   // The pages the Suite's bundles add (their section id is the cell's key in every language).
   'kybernos-usage': 'usage', 'kybernos-automations': 'automations', 'kybernos-skills': 'skills', 'kybernos-composio': 'connectors', 'kybernos-free-llms': 'free llms', 'kybernos-mobile': 'remote control',
+  // What stays on this computer (custom instructions, models re-import, DSH chats): kybernos-cloud's section.
+  'kybernos-local': 'kybernos',
 }
 /** The React key of a nav cell, or null (never throws: the internals are not ours). */
 const kbNavKeyOf = (el) => {
@@ -31744,15 +31709,10 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       'nav[aria-label="Global panels"] > button[aria-label="Plugins"]{display:none !important;}'),
       'kybers: masquage ligne plugins native')
 
-    // ── Réglages › groupe « Account » : Parrainage, Apparence, Sécurité, Support & légal (01/10) ──
-    // Les sections que Kybernos Cloud porte dans son onglet Compte. Même gabarit que les pages
-    // natives (titre 18/600, sous-titre 13, colonne 720, lignes 1px) ; jetons --dsw-alias-* seuls
-    // (les aperçus Clair/Sombre prennent les échelles statiques --dsw-static-neutral-*).
-    // Mot de passe, 2FA et sessions se gèrent sur le compte Kybernos Cloud : on ouvre Cloud dans
-    // le navigateur (URL configurable `kybernos.cloud.url`), DSH ne saisit ni ne stocke rien.
-    // (04/10) Default = the hosted SaaS, like the workspace console: `localhost:8081` only exists
-    // on the machine that runs the SaaS in dev (the Security / Legal notices links were dead elsewhere).
-    const kbacCloudBase = () => kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', kbServer.web).replace(/\/+$/, '')
+    // ── Settings pages of the core plugin: Appearance and Automations ──────────────────────────────────────────
+    // Same template as the native pages (title 18/600, sub-title 13, 720 px column, 1 px rows); DSH tokens only.
+    // The pages of the ACCOUNT (Account, Referral, Security, Account data, Support & legal) are not in DSH's Settings any more: they are
+    // the server's app and its embedded console (footer menu: Account, Referral).
     // Ouvre une autre section des Réglages en cliquant sa cellule du nav (le shell reste maître du DOM).
     const kbOpenSettingsSection = (noms) => {
       try {
@@ -31775,128 +31735,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
       (typeof props.href === 'string'
         ? h('a', { className: 'kbac-btn', href: props.href, target: '_blank', rel: 'noreferrer noopener' }, props.action, Icon('link', 13))
         : h('button', { type: 'button', className: 'kbac-btn', onClick: props.onClick }, props.action)))
-    // Signed out, these pages have nothing to act on: the buttons would open an account that does not exist and the referral
-    // code would be empty. They say so, and say why an account is worth creating. Only reasons the product already states
-    // elsewhere (the cloud bundle's model import and memory, the sidebar's sync line, the referral reward) are listed.
-    // 'loading' → 'connected' | 'disconnected'; when the state cannot be read (the cloud bundle is off) the page keeps
-    // its usual content ('unknown') rather than hiding it behind a sign-in that could not start.
-    const useKbCloud = () => {
-      const pair = React.useState('loading')
-      const phase = pair[0]
-      React.useEffect(() => {
-        let vivant = true
-        let dernier = 'loading'
-        const poser = (p) => { dernier = p; if (vivant === true) pair[1](p) }
-        const lire = () => fetch('/kybernos-cloud/status', { cache: 'no-store' })
-          .then((r) => r.json().catch(() => null))
-          .then((j) => { if (j !== null && typeof j === 'object' && typeof j.connected === 'boolean') poser(j.connected === true ? 'connected' : 'disconnected'); else if (dernier === 'loading') poser('unknown') })
-          .catch(() => { if (dernier === 'loading') poser('unknown') })
-        lire()
-        // Picks up an account created or connected from the card while this page stays open.
-        const voir = () => { if (dernier !== 'connected') lire() }
-        const timer = setInterval(voir, 4000)
-        window.addEventListener('focus', voir)
-        return () => { vivant = false; clearInterval(timer); window.removeEventListener('focus', voir) }
-      }, [])
-      return phase
-    }
-    const KbacSignedOut = (props) => h('div', { className: 'kbac-page', 'data-kb': 'kbac-signed-out' },
-      h(KbacHead, { title: kbt('kbac.' + props.page), sub: kbt('kbac.' + props.page + '.sub') }),
-      h('div', { className: 'kbac-out' },
-        h('p', { className: 'kbac-out-lead' }, kbt('kbac.out.' + props.page)),
-        h('h3', { className: 'kbac-out-why' }, kbt('kbac.out.why')),
-        h('ul', { className: 'kbac-out-list' }, ['models', 'memory', 'sync', 'credits'].map((k) =>
-          h('li', { key: k }, h('b', null, kbt('kbac.out.' + k)), h('span', null, kbt('kbac.out.' + k + '.sub'))))),
-        h('div', { className: 'kbac-out-acts' },
-          h('button', {
-            type: 'button', className: 'kbac-btn kbac-primary', 'data-kb': 'kbac-signed-out-cta',
-            onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* no window events here */ } },
-          }, kbt('kbac.out.cta'))),
-        h('p', { className: 'kbac-hint' }, kbt('kbac.out.local'))))
-    const KbacReferral = () => {
-      const [rel, setRel] = React.useState(kbReferralRead)
-      const [draft, setDraft] = React.useState(() => { const r = kbReferralRead(); return r.link !== '' ? r.link : r.code })
-      const [editing, setEditing] = React.useState(false)
-      const [copied, setCopied] = React.useState('')
-      const [cloud, setCloud] = React.useState(null)
-      const [motif, setMotif] = React.useState('')
-      const session = useKbCloud()
-      // Même route hôte que la carte du menu : le code du compte lié, jamais inventé.
-      React.useEffect(() => {
-        let vivant = true
-        fetch('/kybernos-cloud/referral', { headers: { accept: 'application/json' } })
-          .then((r) => r.json().catch(() => null))
-          .then((j) => {
-            if (vivant !== true || j === null || typeof j !== 'object') return
-            const code = typeof j.code === 'string' && j.code !== '' ? j.code : ''
-            if (j.ok === true && code !== '') {
-              const rendu = typeof j.share_url === 'string' && j.share_url !== '' ? j.share_url : ''
-              let origine = ''
-              try { origine = new URL(kbReferralPage()).origin } catch (e) { origine = '' }
-              setCloud({ code: code, link: rendu !== '' ? rendu : (origine !== '' ? origine + '/r/' + code : '') })
-              return
-            }
-            if (typeof j.motif === 'string' && j.motif !== '') setMotif(j.motif)
-          })
-          .catch(() => { /* route absente : collage manuel */ })
-        return () => { vivant = false }
-      }, [])
-      const duCompte = cloud !== null && cloud.code !== ''
-      const code = duCompte === true ? cloud.code : rel.code
-      const lien = (duCompte === true && cloud.link !== '') ? cloud.link : rel.link
-      const aCode = code !== ''
-      const enregistrer = () => {
-        const v = kbReferralParse(draft)
-        if (v.code === '' && v.link === '') return
-        setRel(v); kbReferralWrite(v); setEditing(false)
-      }
-      const copier = async (quoi) => {
-        const texte = quoi === 'code' ? code : (lien !== '' ? lien : kbReferralPage())
-        if (texte === '') return
-        try { await navigator.clipboard.writeText(texte); setCopied(quoi) } catch (e) { setCopied('') }
-      }
-      const partager = async () => {
-        const url = lien !== '' ? lien : kbReferralPage()
-        try {
-          if (typeof navigator.share === 'function') { await navigator.share({ title: kbt('menu.referral.title'), text: kbt('menu.referral.sharetext'), url: url }); return }
-        } catch (e) { /* refusé ou annulé : copie */ }
-        await copier('link')
-      }
-      if (session === 'loading') return h('div', { className: 'kbac-page' }, h(KbacHead, { title: kbt('kbac.referral'), sub: kbt('kbac.referral.sub') }))
-      // Signed out there is no code to show, share or copy. A code pasted by hand on this device keeps the page it set up.
-      if (session === 'disconnected' && rel.code === '' && rel.link === '') return h(KbacSignedOut, { page: 'referral' })
-      return h('div', { className: 'kbac-page' },
-        h(KbacHead, { title: kbt('kbac.referral'), sub: kbt('kbac.referral.sub') }),
-        h('div', { className: 'kbac-card' },
-          h('div', { className: 'kbac-card-h' },
-            h('span', { className: 'kbac-badge' }, Icon('gift', 16)),
-            h('div', { className: 'kbac-card-hx' },
-              h('b', null, kbt('menu.referral.title')),
-              h('span', null, kbt('menu.referral.sub')))),
-          (aCode === true && editing === false)
-            ? h('div', { className: 'kbac-code' },
-                h('span', { className: 'kbac-cap' }, kbt('menu.referral.code')),
-                h('div', { className: 'kbac-code-r' },
-                  h('code', { className: 'kbac-code-v' }, code),
-                  h('button', { type: 'button', className: 'kbac-btn', onClick: () => copier('code') }, copied === 'code' ? kbt('menu.referral.copied') : kbt('menu.referral.copycode'))),
-                (duCompte === true ? h('span', { className: 'kbac-hint' }, kbt('menu.referral.fromaccount')) : null))
-            : h('div', { className: 'kbac-code' },
-                h('label', { className: 'kbac-cap', htmlFor: 'kbac-ref-in' }, kbt('menu.referral.paste')),
-                h('div', { className: 'kbac-code-r' },
-                  h('input', {
-                    id: 'kbac-ref-in', className: 'kbac-in', type: 'text', value: draft, placeholder: kbt('menu.referral.code'),
-                    onChange: (e) => setDraft(e.target.value), onKeyDown: (e) => { if (e.key === 'Enter') enregistrer() },
-                  }),
-                  h('button', { type: 'button', className: 'kbac-btn kbac-primary', onClick: enregistrer }, kbt('menu.referral.save'))),
-                h('span', { className: 'kbac-hint' }, motif !== '' ? motif : kbt('menu.referral.local'))),
-          h('div', { className: 'kbac-acts' },
-            h('button', { type: 'button', className: 'kbac-btn kbac-primary', onClick: partager }, Icon('link', 14), kbt('menu.referral.share')),
-            h('button', { type: 'button', className: 'kbac-btn', onClick: () => copier('link') }, copied === 'link' ? kbt('menu.referral.copied') : kbt('menu.referral.copylink')),
-            (aCode === true && editing === false)
-              ? h('button', { type: 'button', className: 'kbac-btn', onClick: () => { setEditing(true); setDraft(rel.link !== '' ? rel.link : rel.code) } }, kbt('menu.referral.change'))
-              : null,
-            h('a', { className: 'kbac-link', href: kbReferralPage(), target: '_blank', rel: 'noreferrer noopener' }, kbt('menu.referral.openpage'), Icon('chevronRight', 13)))))
-    }
     const KbacAppearance = () => {
       const [pref, setPref] = React.useState('system')
       // Même service que le toggle soleil/lune du pied et que la section Thème : `theme`.
@@ -31942,43 +31780,6 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         h('p', { className: 'kbac-hint' }, kbt('kbac.appearance.more'),
           h('button', { type: 'button', className: 'kbac-link-btn', onClick: () => { kbOpenSettingsSection(['theme']) } }, kbt('kbac.appearance.openTheme'))))
     }
-    const KbacSecurity = () => {
-      const href = kbacCloudBase() + '/account'
-      const session = useKbCloud()
-      if (session === 'loading') return h('div', { className: 'kbac-page' }, h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }))
-      if (session === 'disconnected') return h(KbacSignedOut, { page: 'security' })
-      return h('div', { className: 'kbac-page' },
-        h(KbacHead, { title: kbt('kbac.security'), sub: kbt('kbac.security.sub') }),
-        h('div', { className: 'kbac-list' },
-          h(KbacRow, { label: kbt('kbac.sec.password'), desc: kbt('kbac.sec.password.sub'), action: kbt('kbac.sec.change'), href: href }),
-          h(KbacRow, { label: kbt('kbac.sec.2fa'), desc: kbt('kbac.sec.2fa.sub'), action: kbt('kbac.sec.manage'), href: href }),
-          h(KbacRow, { label: kbt('kbac.sec.sessions'), desc: kbt('kbac.sec.sessions.sub'), action: kbt('kbac.sec.manage'), href: href })),
-        h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')),
-        h('p', { className: 'kbac-hint', 'data-kb': 'security-target' }, kbt('kbac.sec.at') + ' ' + href))
-    }
-    const KbacSupport = () => {
-      // The terms and the privacy policy are where the SERVER says they are (`GET /v1/public/legal`, through the cloud host): its host serves
-      // no /legal page, and a document it does not configure has no row. There is no status page on the new server, so no row for one.
-      const legalPair = React.useState(null)
-      const legal = legalPair[0]
-      React.useEffect(() => {
-        let vivant = true
-        fetch('/kybernos-cloud/legal', { headers: { accept: 'application/json' } }).then((r) => r.json().catch(() => null))
-          .then((j) => { if (vivant === true && j !== null && j !== undefined && j.ok === true) legalPair[1]({ terms: j.terms, privacy: j.privacy }) })
-          .catch(() => { /* no legal rows */ })
-        return () => { vivant = false }
-      }, [])
-      const feedback = () => {
-        try { if (typeof kbOpenFeedbackChat === 'function') kbOpenFeedbackChat(kbt('kbui.feedback.draft')) } catch (e) { /* retour indisponible */ }
-      }
-      return h('div', { className: 'kbac-page' },
-        h(KbacHead, { title: kbt('kbac.support'), sub: kbt('kbac.support.sub') }),
-        h('div', { className: 'kbac-list' },
-          legal !== null && legal.terms !== null && legal.terms !== undefined ? h(KbacRow, { key: 'terms', label: kbt('kbac.support.terms'), desc: kbt('kbac.support.terms.sub'), action: kbt('kbac.open'), href: legal.terms.url }) : null,
-          legal !== null && legal.privacy !== null && legal.privacy !== undefined ? h(KbacRow, { key: 'privacy', label: kbt('kbac.support.privacy'), desc: kbt('kbac.support.privacy.sub'), action: kbt('kbac.open'), href: legal.privacy.url }) : null,
-          h(KbacRow, { label: kbt('kbui.helpdocs'), desc: kbt('kbac.support.help.sub'), action: kbt('kbac.open'), href: 'https://kybernos.app' }),
-          h(KbacRow, { label: kbt('kbui.send.feedback'), desc: kbt('kbac.support.feedback.sub'), action: kbt('kbui.send.feedback'), onClick: feedback })))
-    }
     // Settings > Automations: where automations live, and two switches (the rules are in automation-settings.mjs).
     const KbAutomationsSettings = () => {
       const pair = React.useState({ loaded: false, showNativeTasks: false, paused: false, error: false, unavailable: false })
@@ -32020,16 +31821,13 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
         st.unavailable === true ? h('p', { className: 'kb8-sub', role: 'status' }, kbt('kbauto.set.unavailable')) : null,
         st.error === true ? h('p', { className: 'kb8-sub', role: 'alert' }, kbt('kbauto.set.error')) : null)
     }
-    ;[['kybernos-automations', 28, 'kbui.automations.set', KbAutomationsSettings], ['kbac-referral', 11, 'kbac.referral', KbacReferral], ['kbac-appearance', 12, 'kbac.appearance', KbacAppearance],
-      ['kbac-security', 13, 'kbac.security', KbacSecurity], ['kbac-support', 14, 'kbac.support', KbacSupport]].forEach((s) => {
+    ;[['kybernos-automations', 28, 'kbui.automations.set', KbAutomationsSettings], ['kbac-appearance', 12, 'kbac.appearance', KbacAppearance]].forEach((s) => {
       ctx.effect(() => slots.inject('settings.section', () => slots.register(
         { name: 'settings.section', id: s[0], order: s[1], label: kbt(s[2]) }, s[3])), 'kybers: section reglages ' + s[0])
     })
     ctx.effect(() => styles.insert(`
 [data-slot="settings.section"]:has(.kbac-page){width:100%;max-width:none}
 .kbac-page{display:flex;flex-direction:column;gap:20px;max-width:720px;min-width:0;margin-inline:0}
-.kbac-link-btn{display:inline;padding:0;border:0;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-.kbac-link-btn:hover{color:var(--dsw-alias-brand-primary)}
 .kbac-head{display:flex;flex-direction:column;min-width:0}
 .kbac-list{display:flex;flex-direction:column}
 .kbac-row{display:flex;align-items:center;gap:16px;padding:16px 0;border-top:1px solid var(--dsw-alias-border-l1)}
@@ -32038,31 +31836,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-row-d{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
 .kbac-btn{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;text-decoration:none;cursor:pointer;white-space:nowrap}
 .kbac-btn:hover{background:var(--dsw-alias-interactive-bg-hover)}
-.kbac-btn.kbac-primary{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground)}
-.kbac-card{display:flex;flex-direction:column;gap:16px;padding:20px;border-radius:14px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-2)}
-.kbac-card-h{display:flex;align-items:center;gap:12px}
-.kbac-badge{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:10px;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.kbac-card-hx{display:flex;flex-direction:column;gap:2px;min-width:0}
-.kbac-card-hx b{font-size:14px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbac-card-hx span{font-size:13px;color:var(--dsw-alias-label-secondary)}
-.kbac-code{display:flex;flex-direction:column;gap:8px}
-.kbac-cap{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kbac-code-r{display:flex;align-items:center;gap:8px}
-.kbac-code-v{flex:1 1 auto;min-width:0;padding:8px 12px;border-radius:10px;border:1px dashed var(--dsw-alias-border-l3);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;font-weight:600;letter-spacing:.08em;overflow:hidden;text-overflow:ellipsis}
-.kbac-in{flex:1 1 auto;min-width:0;height:32px;padding:0 12px;border-radius:10px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px}
-.kbac-in:focus{outline:none;border-color:var(--dsw-alias-brand-primary)}
 .kbac-hint{margin:0;font-size:13px;line-height:1.5;color:var(--dsw-alias-label-secondary)}
-.kbac-out{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1)}
-.kbac-out-lead{margin:0;font-size:14px;line-height:1.5;color:var(--dsw-alias-label-primary)}
-.kbac-out-why{margin:2px 0 0;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-secondary)}
-.kbac-out-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
-.kbac-out-list li{display:flex;flex-direction:column;gap:2px;padding-inline-start:12px;border-inline-start:2px solid var(--dsw-alias-brand-primary)}
-.kbac-out-list b{font-size:14px;font-weight:550;color:var(--dsw-alias-label-primary)}
-.kbac-out-list span{font-size:13px;line-height:1.45;color:var(--dsw-alias-label-secondary)}
-.kbac-out-acts{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
-.kbac-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
-.kbac-link{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto;font-size:13px;color:var(--dsw-alias-label-secondary);text-decoration:none}
-.kbac-link:hover{color:var(--dsw-alias-label-primary)}
 .kbac-themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .kbac-theme{display:flex;flex-direction:column;gap:12px;padding:12px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary);font:inherit;text-align:start;cursor:pointer}
 .kbac-theme:hover{border-color:var(--dsw-alias-border-l4)}
@@ -32078,7 +31852,7 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
 .kbac-theme-n{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px;font-weight:500}
 .kbac-theme-cur{font-size:12px;font-weight:400;color:var(--dsw-alias-state-success-primary)}
 body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw-alias-state-success-primary) 55%,var(--dsw-alias-label-primary))}
-@media (max-width:560px){.kbac-themes{grid-template-columns:1fr}.kbac-row{align-items:flex-start;flex-wrap:wrap}.kbac-link{margin-inline-start:0}}
+@media (max-width:560px){.kbac-themes{grid-template-columns:1fr}.kbac-row{align-items:flex-start;flex-wrap:wrap}}
 `), 'kybers: styles sections compte')
 
     // ── Menu Réglages : GROUPES de la maquette « Settings Menu » (30/09) ──
@@ -32098,8 +31872,11 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
       // `bureau`: the section that follows the « Desktop » divider.
       const GROUPES = [
-        { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal', 'serveurs', 'servers'] },
+        // One group: the servers entry (the private Select server module), the section of what stays on this computer (kybernos-cloud's
+        // `kybernos-local`), then the Suite and our plugins' pages. The account's own pages are not in Settings (the footer menu opens them).
         { titre: kbt('settings.group.kybernos'), mots: [
+          'serveurs', 'servers',
+          'kybernos',
           'kybernos suite',
           'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
           'auto routing',
@@ -32133,17 +31910,11 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       const ICONES = {
         'compte': '<circle cx="12" cy="8" r="4" ' + trait + '/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" ' + trait + '/>',
         'account': '<circle cx="12" cy="8" r="4" ' + trait + '/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" ' + trait + '/>',
-        'parrainage': '<rect x="3" y="8" width="18" height="4" rx="1" ' + trait + '/><path d="M12 8v13" ' + trait + '/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" ' + trait + '/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" ' + trait + '/>',
-        'referral': '<rect x="3" y="8" width="18" height="4" rx="1" ' + trait + '/><path d="M12 8v13" ' + trait + '/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" ' + trait + '/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" ' + trait + '/>',
         'apparence': '<circle cx="13.5" cy="6.5" r=".5" ' + trait + '/><circle cx="17.5" cy="10.5" r=".5" ' + trait + '/><circle cx="8.5" cy="7.5" r=".5" ' + trait + '/><circle cx="6.5" cy="12.5" r=".5" ' + trait + '/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" ' + trait + '/>',
         'appearance': '<circle cx="13.5" cy="6.5" r=".5" ' + trait + '/><circle cx="17.5" cy="10.5" r=".5" ' + trait + '/><circle cx="8.5" cy="7.5" r=".5" ' + trait + '/><circle cx="6.5" cy="12.5" r=".5" ' + trait + '/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" ' + trait + '/>',
-        'securite': '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" ' + trait + '/>',
         'serveurs': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
         'servers': '<rect x="2" y="2" width="20" height="8" rx="2" ' + trait + '/><rect x="2" y="14" width="20" height="8" rx="2" ' + trait + '/><line x1="6" y1="6" x2="6.01" y2="6" ' + trait + '/><line x1="6" y1="18" x2="6.01" y2="18" ' + trait + '/>',
-        'security': '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" ' + trait + '/>',
-        'donnees & confidentialite': '<ellipse cx="12" cy="5" rx="9" ry="3" ' + trait + '/><path d="M3 5V19A9 3 0 0 0 21 19V5" ' + trait + '/><path d="M3 12A9 3 0 0 0 21 12" ' + trait + '/>',
-        'data & privacy': '<ellipse cx="12" cy="5" rx="9" ry="3" ' + trait + '/><path d="M3 5V19A9 3 0 0 0 21 19V5" ' + trait + '/><path d="M3 12A9 3 0 0 0 21 12" ' + trait + '/>',
-        'support & legal': '<circle cx="12" cy="12" r="10" ' + trait + '/><path d="m4.93 4.93 4.24 4.24" ' + trait + '/><path d="m14.83 9.17 4.24-4.24" ' + trait + '/><path d="m14.83 14.83 4.24 4.24" ' + trait + '/><path d="m9.17 14.83-4.24 4.24" ' + trait + '/><circle cx="12" cy="12" r="4" ' + trait + '/>',
+        'kybernos': '<rect x="3" y="4" width="18" height="12" rx="2" ' + trait + '/><path d="M2 20h20" ' + trait + '/>',
         'general': '<path d="M4 7h10M18 7h2M4 17h2M10 17h10" ' + trait + '/><circle cx="16" cy="7" r="2" ' + trait + '/><circle cx="8" cy="17" r="2" ' + trait + '/>',
         'commandes': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
         'commands': '<polyline points="4 17 10 11 4 5" ' + trait + '/><line x1="12" y1="19" x2="20" y2="19" ' + trait + '/>',
@@ -32189,8 +31960,8 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // variées n'étaient plus peintes (constaté en espagnol, 08/10). Chaque
       // variante pointe la clé canonique fr/en dont elle reprend groupe et tracé.
       for (const [variante, base] of Object.entries({
-        'cuenta': 'compte', 'referidos': 'parrainage', 'datos y privacidad': 'donnees & confidentialite',
-        'apariencia': 'apparence', 'seguridad': 'securite', 'soporte y legal': 'support & legal',
+        'cuenta': 'compte',
+        'apariencia': 'apparence',
         'idioma': 'langue', 'tema': 'theme', 'modelos': 'models', 'voz': 'voix',
         'herramientas': 'outils', 'preajustes de agente': 'agent presets', 'plugins integrados': 'built-in plugins',
       })) {

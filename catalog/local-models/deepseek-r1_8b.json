@@ -1,0 +1,21 @@
+{
+  "id": "deepseek-r1:8b",
+  "famille": "d",
+  "initiale": "Ds",
+  "tailleGo": 5.2,
+  "ramMin": 16,
+  "score": "Ollama library · 5.2 GB · 128K ctx",
+  "input": [
+    "text"
+  ],
+  "badges": [
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "DeepSeek-R1, version 8B : raisonnement sur une machine de 16 Go. Génération précédente.",
+    "en": "DeepSeek-R1, 8B version: reasoning on a 16 GB machine. Previous generation."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 92
+}

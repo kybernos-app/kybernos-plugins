@@ -1,0 +1,23 @@
+{
+  "id": "qwen3.5:27b",
+  "famille": "q",
+  "initiale": "Qw",
+  "tailleGo": 17,
+  "ramMin": 32,
+  "score": "Ollama library · 17–20 GB · 256K ctx",
+  "input": [
+    "text",
+    "image"
+  ],
+  "badges": [
+    "Vision",
+    "Tools",
+    "Thinking"
+  ],
+  "desc": {
+    "fr": "Qwen 3.5, version 27B : vision, outils et réflexion. Pour 32 Go.",
+    "en": "Qwen 3.5, 27B version: vision, tools and thinking. For 32 GB."
+  },
+  "ajoute": "2026-10-15",
+  "ordre": 76
+}

@@ -171,6 +171,28 @@ check('nom de langue : injection de prompt neutralisée', !/[\n"{}<>]/.test(clea
   check('toutes écartées pour variable perdue : échec explicite, pas un faux succès', r.ok === false && /variable/.test(r.error), r)
 }
 
+console.log('\n── les contrôles de qualité (i18n-quality.mjs) ──')
+{
+  const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': ok({ a: 'Lee <b>esto</b>', b: 'Lee esto', c: 'Aquí está: Guardar', d: 'Cette action est définitive.', e: 'Abrir' }) })
+  const r = await translateBatch({ lang: 'es', batch: { a: 'Lisez <b>ceci</b>', b: 'Lisez <b>ceci</b>', c: 'Enregistrer', d: 'Cette action est définitive.', e: 'Ouvrir Kybernos' } }, deps(llm))
+  check('une balise perdue est refusée avec son motif, les bonnes gardées', r.ok === true && r.refused.b === 'tags' && Object.keys(r.translations).join() === 'a,c,d,e', r)
+  check('un texte douteux est gardé et signalé (copie telle quelle, nom de produit disparu)', r.flagged.d === 'unchanged' && r.flagged.e === 'glossary:Kybernos', r.flagged)
+  check('le nombre de refus est celui des motifs', r.rejected === 1)
+}
+{
+  const llm = fakeLlm({ 'zai-coding-cn/glm-5.3-flash': ok({ a: 'Here is the translation: Guardar' }) })
+  const r = await translateBatch({ lang: 'es', batch: { a: 'Enregistrer' } }, deps(llm))
+  check('tout refusé : un échec qui nomme la cause, et les motifs par clé pour la reprise', r.ok === false && /phrase du modèle/.test(r.error) && r.refused.a === 'meta', r)
+}
+{
+  const prompts = []
+  const llm = { stream(p) { prompts.push(p.messages[0].content[0].text); return (async function* () { yield { type: 'text-delta', text: JSON.stringify({ a: 'Guardar' }) } })() } }
+  await translateBatch({ lang: 'es', batch: { a: 'Enregistrer' }, hints: { a: 'placeholder+url', zzz: 'meta', a2: '<script>' } }, deps(llm))
+  check('une reprise dit au modèle quelle clé a été refusée et pourquoi, en une phrase', /a : .*variable.*adresse/.test(prompts[0]) && !/zzz/.test(prompts[0]), prompts[0].slice(-400))
+  await translateBatch({ lang: 'es', batch: { a: 'Enregistrer' }, hints: { a: 'rm -rf /' } }, deps(llm))
+  check('un motif qui n’est pas un code connu ne passe jamais dans le prompt', !/rm -rf/.test(prompts[1]) && !/Une réponse précédente/.test(prompts[1]), prompts[1].slice(-300))
+}
+
 console.log('\n── garde-fous d’entrée ──')
 check('code de langue invalide', (await translateBatch({ lang: '../x', batch }, deps(fakeLlm({})))).ok === false)
 check('« kybernos » (langue source) refusée', (await translateBatch({ lang: 'kybernos', batch }, deps(fakeLlm({})))).ok === false)

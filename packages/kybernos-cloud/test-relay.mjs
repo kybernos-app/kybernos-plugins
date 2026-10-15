@@ -42,7 +42,7 @@ const route = mod.ROUTES.find((r) => r.path === '/kybernos-cloud/relay')
 
 console.log('what the allowlist names')
 {
-  for (const ok of ['/v1/me', '/v1/sessions', '/v1/referral', '/v1/workspaces', '/v1/workspaces/' + W1 + '/members', '/v1/workspaces/' + W1 + '/providers', '/v1/workspaces/' + W1 + '/models',
+  for (const ok of ['/v1/me', '/v1/sessions', '/v1/referral', '/v1/me/mfa', '/v1/public/legal', '/v1/workspaces', '/v1/workspaces/' + W1 + '/members', '/v1/workspaces/' + W1 + '/providers', '/v1/workspaces/' + W1 + '/models',
     '/v1/workspaces/' + W1 + '/llm/budget', '/v1/workspaces/' + W2 + '/llm/catalog', '/v1/workspaces/' + W1 + '/llm/billing', '/v1/workspaces/' + W1 + '/llm/usage',
     '/v1/workspaces/' + W1 + '/llm/usage?from=2026-09-01&to=2026-09-25', '/v1/workspaces/' + W1.toUpperCase() + '/llm/models']) {
     check('allowed: ' + ok.replace(W1, 'W1').replace(W2, 'W2'), relayCheck(ok, connected).ok === true, JSON.stringify(relayCheck(ok, connected)))
@@ -65,7 +65,14 @@ console.log('what it refuses')
   no('the sessions with a query', '/v1/sessions?limit=9')
   no('a sub-path of the sessions (revoking one is a write)', '/v1/sessions/abc')
   no('a sub-path of the referral', '/v1/referral/claim')
-  no('the account\'s second factor, next to the profile', '/v1/me/mfa')
+  no('the second factor with a query', '/v1/me/mfa?x=1')
+  no('a sub-path of the second factor (enrolling or removing one is a write)', '/v1/me/mfa/setup')
+  no('another sub-path of the second factor', '/v1/me/mfa/verify')
+  no('the legal page with a query', '/v1/public/legal?lang=fr')
+  no('a sub-path of the legal page', '/v1/public/legal/terms')
+  no('another public route', '/v1/public/plans')
+  no('the public prefix alone', '/v1/public')
+  no('the second factor with a trailing slash', '/v1/me/mfa/')
   no('the account\'s Telegram link', '/v1/me/telegram')
   no('device pairing', '/v1/device/start')
   no('the LLM keys', '/v1/workspaces/' + W1 + '/llm/keys')
@@ -121,6 +128,13 @@ console.log('the route')
   const refused = await route.run({ url: '/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/keys') })
   check('a path off the allowlist is refused with no call at all', refused.ok === false && refused.error === 'chemin refuse' && seen.length === before)
   check('no p parameter: refused with no call', (await route.run({ url: '/kybernos-cloud/relay' })).ok === false && seen.length === before)
+  // The two paths the embedded Security and Support & legal pages read: called on the main API as plain GETs, with the token as Authorization.
+  for (const p of ['/v1/me/mfa', '/v1/public/legal']) {
+    const n = seen.length
+    const r = await route.run({ url: '/kybernos-cloud/relay?p=' + encodeURIComponent(p) })
+    check(p + ' is called on the main API: GET, token in Authorization, nothing else', r.ok !== undefined && r.error !== 'chemin refuse' && seen.length === n + 1 && seen[n].method === 'GET' && seen[n].url === p && seen[n].auth === 'Bearer ' + TOKEN, JSON.stringify(seen.slice(n)))
+    check('  … and the token is nowhere in the answer', JSON.stringify(r).indexOf(TOKEN) < 0)
+  }
 }
 
 console.log('the wiring (drift tests)')

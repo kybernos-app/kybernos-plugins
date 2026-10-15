@@ -120,7 +120,7 @@ running, time advancing, steps lighting up in turn at 1 s / 6 s / 9 s), and that
 It also checks the **two surfaces and their synchronisation**: DSH's own
 General › Language row (kept — it is the only door when the plugin is off) with the
 « Manage languages and translations here » pointer under it, the choice made in either
-place showing in the other, and Settings › Account no longer carrying a Language field.
+place showing in the other.
 
 ### The Language plugin switched off
 
@@ -716,11 +716,29 @@ clicks:
   host for a console link on `section: overview` from the Account and Referral pages. Without the core plugin's `__kbOpenWsConsole` bridge Account
   falls back to the system browser through the console link. The notification bell is hidden behind `SHOW_BELL` in the cloud client and the check
   asserts it is absent.
+- **The frame's account pages** (the server's ADR 0054 rail: Overview, Security, Devices, My data, Support & legal): the scene opens each one
+  through `window.__kbOpenWsConsole(<page>)` against the stand-in server and drives the sandbox host's REAL relay route (a connected state
+  file for the stand-in server is written into `<DSH home>` and removed at the end). It asserts that the reads of Security (`/v1/me/mfa`)
+  and Support & legal (`/v1/public/legal`) and the other pages' are never answered « chemin refuse », that they reach the server as GETs
+  with the device token in `Authorization` only, and that a sub-path of the second factor is still refused. **The relay rules live in the
+  host half: restart the sandbox after editing `packages/kybernos-cloud/index.js`.** By default the stand-in page makes the reads the real
+  frame makes; `--console-file <html>` serves the server's real console page instead (render it with
+  `node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))"`).
 - **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
   Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
   read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
   `check-display-live.mjs` open the panel through this entry.
+- **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
+  Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
+  no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
+  menu's embedded ones: nothing replaces the entries in Settings.
+- **The « Kybernos » section of Settings** (kybernos-cloud's `kybernos-local`: what stays on this computer): one group header « Kybernos »
+  (no « Account » header any more) holding Servers (kept first), the section, then the Suite. Signed out the section is there, the two
+  server actions say so and are disabled, the instructions field works. Connected: the instructions are saved through the host's file
+  routes into the **sandbox's own `<DSH home>/AGENTS.md`** (read back after a reload, removed when emptied, a reserved marker refused;
+  the file is put back as it was at the end), « Import models » and « Send DSH chats » call their host routes (answered in the page) and a
+  refused re-import says so.
 - **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
   `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is
@@ -741,7 +759,7 @@ dialog is opened by that seam, never by clicking a trigger: new code should call
 A fresh instance opens DSH's « Get started » dialog (sign in to a DeepSeek account / add a key) on every load; it swallows every
 click, so the check closes it with its own close button after each reload.
 
-**Developer overrides.** `kybernos.ws.console.url`, `kybernos.ws.gateway`, `kybernos.cloud.url` (and their `window` globals) no longer
+**Developer overrides.** `kybernos.ws.console.url`, `kybernos.ws.gateway` (and their `window` globals) no longer
 win over the ACTIVE server: they apply only behind `localStorage['kybernos.dev'] === '1'` (or `window.KYBERNOS_DEV === true`). A value
 left by an old test used to send « Teams settings » to another server.
 

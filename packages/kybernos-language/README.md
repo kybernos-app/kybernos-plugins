@@ -90,7 +90,26 @@ they need a signed-in DSH, the first two switch DSH's language and restore Engli
   stops the run at once with its cause; three batches in a row that keep failing stop it too. Whatever landed is kept and a
   resume asks only for what is missing. One run at a time on the host (a second language is told « another language is
   being translated »). Pausing aborts the calls in flight; a full browser storage no longer stops a host run (the disk has it).
-- What is not checked yet: only the variables (`{x}`, `{{x}}`, `%s`, `%d`) are compared with the source. No length ratio, no
-  « the answer is in the target language » test, no glossary, no context per string: the next step of the plan.
+- Every translated text goes through the checks of `kybernos-plugin/i18n-quality.mjs` before it is kept. Refused (the text is not
+  kept, and the next attempt is told which key was refused and why): a variable that changed (`{x}`, `{{x}}`, `${x}`, `%s`,
+  `%1$s`), HTML tags that are not the source's, a URL or a markdown link address that changed, inline code that changed,
+  numbers that changed (digits in another numeral system count as the same number), a sentence of the model's own
+  (« Here is the translation: … », a code fence), a text not written in the target language's script, a length out of
+  proportion. Kept and listed under « N texts to double-check » (folded): a sentence that came back exactly as it went, a
+  product name (`Kybernos`, `DSH`, `Claude`, `Ollama`, …) that vanished. What is NOT checked: that the sense is right, that two
+  related texts use the same term, the register.
+- Identical source texts are translated once and written under every key that has them.
+- **Ready-made translations.** The project can publish a language already translated and reviewed, signed, so a machine does
+  not have to translate it again (`kybernos-plugin/i18n-packs.mjs`, `GET|POST /kybernos/i18n-packs`). A language that has one
+  shows « Install the ready-made translation » (and « ready » in the picker): it fills the disk copy at once, with no model and
+  no key, keeping every text the person already has, and the host job then translates only what the pack lacks or what changed
+  since. The pack is checked against a signed index (Ed25519, key `languages-pubkey.json`; empty until the maintainer generates
+  one, and then the network is never asked); a pack whose hash is not the index's is refused before it is parsed. Maintainer side:
+  `scripts/language-packs.mjs` (`export` from a language the job produced, `index`, `sign`, `verify`, `keygen`).
+- For each text it writes, the host keeps a hash of the source text it translated (`src` in `<DSH home>/kybernos/i18n/<lang>.json`).
+  After an update of Kybernos or DSH that changed some texts, a complete language shows « N texts changed since this
+  translation » with an « Update translation » button: only those texts are translated again. A text translated before the
+  host kept hashes is trusted as current. The page sends the host its whole plan with the translation it already holds
+  (`full`); a host from before this protocol (no `v` in `GET /kybernos/i18n-job`) is sent the missing texts only.
 - If DSH's dictionaries cannot be read, or DSH already ships the language (`zh`), only Kybernos is translated.
 - Live layer: at most 800 new texts per page load, a 5 min cool-down after 3 failures.

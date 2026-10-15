@@ -292,10 +292,6 @@ try {
 
   // ═══ 6b. one choice, two surfaces ═════════════════════════════════════════
   console.log('\n── General › Language ⇄ Settings › Language ──')
-  await openSettings(['Account'])
-  await sleep(1200)
-  const acct = String(await val(`(document.querySelector('[data-slot="settings.section"]') || { innerText: '' }).innerText`))
-  check('Settings › Account no longer has a "Language" field', !/(^|\n)Language(\n|$)/i.test(acct) && (await val(`!document.querySelector('.kbac-seg')`)) === true && !/Français\s*English|العربية/.test(acct), acct.slice(0, 160))
 
   await openSettings(['General'])
   await sleep(1500)

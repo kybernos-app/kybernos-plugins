@@ -12,7 +12,7 @@ Un bouton dans la barre du bas de la sidebar — dans le slot
 |---|---|
 | Déconnecté | « Connecter Kybernos Cloud » |
 | Appairage | le code d'appareil, « Ouvrir la page d'activation », « Copier le code », « Annuler la demande » |
-| Connecté | profil + workspaces + résumé du catalogue (N modèles · formule), « Réimporter », « Rafraîchir », « Se déconnecter » |
+| Connecté | e-mail, formule, espaces, « Se déconnecter » (le catalogue, les chats et la mémoire n'ont plus de bouton dans cette carte) |
 
 ## Catalogue de modèles importé (fonctionnalité cloud n°1)
 
@@ -39,7 +39,7 @@ GET <api>/v1/models        (Authorization: Bearer <device token>)   ← <api> = 
   `context_length` du catalogue sont repris quand LiteLLM les fournit.
 - **Déclencheurs** : au claim (connexion), au démarrage de DSH si déjà
   connecté, au refresh si rien n'a encore été importé, et à la demande
-  (POST `/kybernos-cloud/models/sync` — bouton « Réimporter »). Un import à
+  (POST `/kybernos-cloud/models/sync`, plus aucun bouton ne l'appelle). Un import à
   l'identique ne réécrit rien (pas de churn settings à chaque ouverture de
   carte).
 - **L'abonnement est appliqué par le proxy**, requête par requête (gating
@@ -66,9 +66,17 @@ Le résumé (`count`, `plan`, `imported_at`, `settings`, `credential`) voyage
 aussi dans `state` des réponses `/status`, `/poll` et `/refresh`. Les ids
 complets restent dans la route de détail.
 
-## Custom instructions (Account page)
+## Settings › Kybernos (what stays on this computer)
 
-The "Custom instructions" field of the Account page used to live in the browser only, so no agent read it.
+The one Settings section of this bundle (`kybernos-local`, `KybernosSection` in `client.js`) holds the three local functions that used to sit
+on the removed Account pages. It is shown whether connected or not; what needs a server says so when signed out (buttons disabled).
+The account's own pages (profile, security, devices, data, support) are the server's embedded pages, opened from the footer menu.
+
+- **Custom instructions**: the field and its Save, through the two host routes below (a marked section of `<DSH home>/AGENTS.md`).
+- **Models**: « Re-import » runs `POST /kybernos-cloud/models/sync` and shows what the last import did (count, plan, date).
+- **DSH chats**: « Send DSH chats » runs `POST /kybernos-cloud/chats/push` and shows the last send.
+
+The "Custom instructions" field used to live in the browser only, so no agent read it.
 It is now a marked section of `<DSH home>/AGENTS.md`, which DSH's own `dsh-agent-instructions` loader hands
 to every new chat (user-global file first, then the project's):
 
@@ -392,8 +400,8 @@ la déconnexion. Le test client rejoue le contrat
 - **Le bouton n'apparaît pas** → le bundle n'est pas chargé : vérifiez les deux
   entrées dans `package.json` du profil, `pnpm install`, et le redémarrage.
 - **« Aucun modèle importé »** → le catalogue n'a pas pu être lu
-  (`catalogue_indisponible`, `catalogue_illisible`, `reseau`) : bouton
-  « Réimporter » ; si la carte affiche l'avertissement d'import partiel, le
+  (`catalogue_indisponible`, `catalogue_illisible`, `reseau`) : se
+  déconnecter puis se reconnecter relance l'import ; si l'import est partiel, le
   service `settings` a refusé l'écriture (`settings_refuse`) — regardez le
   journal DSH.
 - **Un modèle répond 403** → l'abonnement n'inclut pas sa formule : le gating

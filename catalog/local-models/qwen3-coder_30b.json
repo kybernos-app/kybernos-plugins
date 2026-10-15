@@ -2,9 +2,9 @@
   "id": "qwen3-coder:30b",
   "famille": "q",
   "initiale": "Qw",
-  "tailleGo": 18.6,
+  "tailleGo": 19,
   "ramMin": 32,
-  "score": "MoE 30B-A3B · code (Q4, Ollama)",
+  "score": "Ollama library · 19 GB · 256K ctx",
   "input": [
     "text"
   ],

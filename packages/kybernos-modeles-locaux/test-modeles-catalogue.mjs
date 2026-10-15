@@ -89,9 +89,11 @@ try {
       check('it equals what `build` writes from catalog/local-models (run: node scripts/modeles-locaux-catalogue.mjs build)', JSON.stringify(built) === JSON.stringify(JSON.parse(readFileSync(file, 'utf8'))))
     }
     const client = readFileSync(join(HERE, 'client.js'), 'utf8')
-    const embedded = [...client.matchAll(/\{ id: '([a-z0-9._:-]+)', famille: '[a-z]', initiale: '[A-Za-z0-9]+', tailleGo: [\d.null]+, ramMin: (\d+),/g)].map((m) => m[1] + '@' + m[2])
-    const shippedIds = read.doc.models.map((m) => m.id + '@' + m.ramMin)
-    check('the list built into the page (last resort when the host is older) holds the same models as the shipped one', embedded.length > 0 && embedded.join() === shippedIds.join(), { embedded, shippedIds })
+    const embedded = [...client.matchAll(/\{ id: '([a-z0-9._:-]+)', famille: '([a-z])', initiale: '([A-Za-z0-9]+)', tailleGo: ([\d.]+|null), ramMin: (\d+),/g)].map((m) => ({ id: m[1], tailleGo: m[4] === 'null' ? null : Number(m[4]), ramMin: Number(m[5]) }))
+    const byId = new Map(read.doc.models.map((m) => [m.id, m]))
+    check('the list built into the page (last resort when the host is older) is made of entries of the shipped one', embedded.length === 7 && embedded.every((e) => byId.has(e.id)), embedded.map((e) => e.id))
+    check('…with the same size and the same RAM floor', embedded.every((e) => byId.has(e.id) && byId.get(e.id).tailleGo === e.tailleGo && byId.get(e.id).ramMin === e.ramMin), embedded.filter((e) => byId.has(e.id) && (byId.get(e.id).tailleGo !== e.tailleGo || byId.get(e.id).ramMin !== e.ramMin)))
+    check('every RAM floor follows the one rule: the smallest of 4/8/16/32/64/128 GB that holds size × 1.25 + 3 GB', read.doc.models.every((m) => m.tailleGo === null || m.ramMin === [4, 8, 16, 32, 64, 128].find((t) => m.tailleGo * 1.25 + 3 <= t)), read.doc.models.filter((m) => m.tailleGo !== null && m.ramMin !== [4, 8, 16, 32, 64, 128].find((t) => m.tailleGo * 1.25 + 3 <= t)).map((m) => m.id))
     check('the public key file exists; empty until the key is generated, and then the online catalogue is not asked', loadKeys(join(HERE, 'models-pubkey.json')).length >= 0)
   }
 
