@@ -194,6 +194,7 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Envoyer un retour',
         menuSettingsApp: 'Paramètres',
         menuTeamsSettings: 'Réglages d\'équipe',
+        menuRemote: 'Contrôle à distance',
         quotaPayment: 'Le dernier paiement de {name} a échoué : les appels IA sont suspendus jusqu\'à son règlement.',
         quotaPaymentAdmin: ' Réglez-le dans Facturation.',
         quotaPaymentMember: ' Demandez à un propriétaire ou à un admin de {name}.',
@@ -496,6 +497,7 @@ window.__ModuleLoader__.load({
         menuFeedback: 'Send feedback',
         menuSettingsApp: 'Settings',
         menuTeamsSettings: 'Team settings',
+        menuRemote: 'Remote control',
         quotaPayment: 'The last payment for {name} failed: AI calls are paused until it is settled.',
         quotaPaymentAdmin: ' Fix it in Billing.',
         quotaPaymentMember: ' Ask an owner or admin of {name}.',
@@ -2227,6 +2229,13 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         // The product's public pages, from the menus (a tab of the system browser). The help is localised: its folder is the language DSH
         // shows, among those the help is written in, else English.
         const WEBSITE_URL = 'https://kybernos.app'
+        /** The phone link's status (GET kybernos-mobile/remote/status) as the menu needs it: `{ devices }` when the entry is offered, else null. A server that does not offer
+         *  the feature (`configured: false`), a plan that does not include it (`entitled: false`), a DSH that cannot (`available: false`) or no account: no entry. */
+        const remoteOffer = (j) => {
+          if (j === null || j === undefined || typeof j !== 'object' || j.ok !== true) return null
+          if (j.available === false || j.configured === false || j.entitled === false || j.connected === false) return null
+          return { devices: Array.isArray(j.devices) ? j.devices.length : 0 }
+        }
         const HELP_LANGUAGES = ['en', 'fr', 'zh-cn', 'ar']
         const helpUrl = () => {
           let l = ''
@@ -2731,6 +2740,10 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               // Account and Referral: the server's account page (its overview holds the referral card), in the system browser.
               entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount, { ext: true }),
               entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true, ext: true }),
+              // The phone link (kybernos-mobile): present only when the server offers it and the plan includes it, with the phones already linked.
+              props.remote !== null && props.remote !== undefined
+                ? entree('remote', h(PhoneIcon, { size: 18 }), t('menuRemote'), props.onRemote, props.remote.devices > 0 ? { tail: String(props.remote.devices) } : undefined)
+                : null,
               h(AppearanceRow, null),
               // DSH's own Settings (the app's): through the core plugin's seam, never through the native account popover.
               entree('settings', h(GearIcon, { size: 18 }), t('menuSettingsApp'), ouvrirReglagesDsh)),
@@ -2862,6 +2875,22 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const [autoStart, setAutoStart] = React.useState(false)
           const [phase, setPhase] = React.useState('loading')
           const [state, setState] = React.useState({})
+          // What the phone link says about itself (kybernos-mobile's host route, the same one its panel reads): the menu offers « Remote control »
+          // only when the feature is there for this person. Unknown (not read yet, route absent, a refusal) is « not offered », never a dead entry.
+          const [remote, setRemote] = React.useState(null)
+          React.useEffect(() => {
+            if (phase !== 'connected') { setRemote(null); return undefined }
+            let on = true
+            const url = (() => { try { return new URL('kybernos-mobile/remote/status', document.baseURI).pathname } catch (e) { return '/kybernos-mobile/remote/status' } })()
+            const read = () => {
+              fetch(url, { credentials: 'same-origin', cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (on === true) setRemote(remoteOffer(j)) }).catch(() => { if (on === true) setRemote(null) })
+            }
+            read()
+            const seen = () => { if (document.visibilityState === 'visible') read() }
+            const timer = window.setInterval(read, 60000)
+            document.addEventListener('visibilitychange', seen)
+            return () => { on = false; window.clearInterval(timer); document.removeEventListener('visibilitychange', seen) }
+          }, [phase])
           const liveRef = React.useRef(true)
 
           React.useEffect(() => () => { liveRef.current = false }, [])
@@ -3019,12 +3048,20 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // la cellule (re-cliquer le déclencheur les refermerait).
             // Cellule introuvable après ~2 s : les Réglages restent sur leur
             // section par défaut, jamais d'erreur bloquante.
-            const ouvrirReglagesCompte = (libelleCible) => {
+            // The section is named by its label AND, when known, by its id (the React key of its cell: the same in every language).
+            const ouvrirReglagesCompte = (libelleCible, cleCible) => {
               const libelle = typeof libelleCible === 'string' && libelleCible !== '' ? libelleCible : t('profCompte')
+              const cleDe = (el) => {
+                try {
+                  const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
+                  const k = nom === undefined ? null : el[nom].key
+                  return typeof k === 'string' ? k : null
+                } catch (e) { return null }
+              }
               const cliquerCellule = () => {
                 try {
                   const cellules = Array.from(document.querySelectorAll('button[class*="navCell"]'))
-                  const cible = cellules.find((b) => String((b.textContent || '').trim()) === libelle)
+                  const cible = cellules.find((b) => (typeof cleCible === 'string' && cleDe(b) === cleCible) || String((b.textContent || '').trim()) === libelle)
                   if (cible !== undefined && cible !== null) { cible.click(); return true }
                 } catch (e) { /* nav pas encore rendu */ }
                 return false
@@ -3075,14 +3112,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
                   : null),
               h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))),
-              h('button', {
-                type: 'button', className: 'kbfp-ico',
-                // Tooltip carries the full explanation (web app, direct link to
-                // this machine, Mac must be on and online) — asked 13/10.
-                title: t('mobTitle') + ' — ' + t('mobHelp'), 'aria-label': t('mobTitle') + ' — ' + t('mobHelp'),
-                'aria-expanded': mobileOpen === true ? 'true' : 'false',
-                onClick: () => setMobileOpen(mobileOpen !== true),
-              }, h(PhoneIcon, { size: 19 })),
               h('span', { className: 'kbfp-bellwrap' },
                 h('button', {
                   type: 'button', className: 'kbfp-ico',
@@ -3106,6 +3135,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   },
                   onAccount: ouvrirCompteNavigateur,
                   onReferral: ouvrirCompteNavigateur,
+                  remote: remote,
+                  onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },
                   onSpace: ouvrirPageEspace,
                   onLogout: () => { void seDeconnecter() },
@@ -3115,7 +3146,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               ? h(MobilePanel, {
                 onClose: () => setMobileOpen(false),
                 web: typeof state.web_url === 'string' ? state.web_url : '',
-                onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Mobile') },
+                onManage: () => { setMobileOpen(false); ouvrirReglagesCompte('Remote Control', 'kybernos-mobile') },
               })
               : null)
           } else {

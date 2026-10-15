@@ -82,6 +82,26 @@ assert.ok(clientSource.includes("entree('space-settings'"), 'l entree « Teams s
 assert.equal((clientSource.match(/callLocal\('\/console\/link'/g) || []).length, 2, 'deux appels client a /console/link : la notice de quota et la page du compte du pied')
 assert.equal((clientSource.match(/callLocal\('\/console\/link', 'POST', [^\n]*open: true/g) || []).length, 2, 'le lien de la console est ouvert par l hote (open: true), jamais par un onglet de la page')
 assert.ok(/openAccountPage\('overview', actif\)/.test(clientSource) && /section: section, open: true/.test(clientSource), 'Account et Referral demandent la section overview')
+// « Remote control »: the phone link is ONE entry of the connected menu (right after Referral), offered only when the phone link's own status route says the
+// feature is there; the footer's separate phone button is gone. The panel is the same bridge and fallback as the old button's (MobilePanel).
+{
+  assert.ok(/entree\('referral'[^\n]*\n\s*\/\/[^\n]*\n\s*props\.remote !== null && props\.remote !== undefined\s*\? entree\('remote', h\(PhoneIcon/.test(clientSource), 'l entree Remote control vient juste apres Referral')
+  assert.ok(clientSource.includes("'kybernos-mobile/remote/status'"), 'la disponibilite se lit sur la route de kybernos-mobile')
+  assert.ok(!clientSource.includes("title: t('mobTitle') + ' — ' + t('mobHelp')"), 'le bouton telephone autonome du pied n existe plus')
+  assert.equal((clientSource.match(/h\(MobilePanel, \{/g) || []).length, 1, 'un seul panneau telephone')
+  assert.ok(/menuRemote: 'Remote control'/.test(clientSource) && /menuRemote: 'Contrôle à distance'/.test(clientSource), 'fr/en')
+  const m = clientSource.match(/const remoteOffer = \(j\) => \{[\s\S]*?\n        \}\n/)
+  assert.ok(m !== null, 'remoteOffer est la ou le test l attend')
+  const remoteOffer = new Function('return ' + m[0].replace('const remoteOffer = ', '').trim())()
+  const on = { ok: true, available: true, connected: true, configured: true, entitled: true, devices: [{ id: 'a' }, { id: 'b' }] }
+  assert.deepEqual(remoteOffer(on), { devices: 2 }, 'offered, with the phones already linked')
+  assert.deepEqual(remoteOffer(Object.assign({}, on, { devices: undefined })), { devices: 0 })
+  assert.deepEqual(remoteOffer(Object.assign({}, on, { configured: null, entitled: null, connected: null })), { devices: 2 }, 'not told it is off: offered')
+  for (const off of [{ configured: false }, { entitled: false }, { available: false }, { connected: false }, { ok: false }])
+    assert.equal(remoteOffer(Object.assign({}, on, off)), null, 'hidden: ' + JSON.stringify(off))
+  for (const odd of [null, undefined, 'x', 7, []]) assert.equal(remoteOffer(odd), null, 'an answer that is not a status offers nothing')
+  sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
+}
 // The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
 for (const [needle, why] of [["wsNew: 'New team'", 'en: New team'], ["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
   ["wsNew: 'Nouvelle équipe'", 'fr: Nouvelle équipe'], ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {

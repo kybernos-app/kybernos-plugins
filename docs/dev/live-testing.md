@@ -687,6 +687,11 @@ clicks:
 - **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, Account and Referral asking the host for a
   console link on `section: overview` (and what is said when it is refused), Team settings opening the **active server's** console, then
   the same with a stored `kybernos.ws.console.url` (ignored) and with `kybernos.dev = 1` (it wins again).
+- **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
+  Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
+  feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
+  read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
+  `check-display-live.mjs` open the panel through this entry.
 - **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
   `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is

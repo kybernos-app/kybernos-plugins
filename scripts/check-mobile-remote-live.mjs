@@ -101,11 +101,12 @@ try {
   await ev(D, `(() => { const b = Array.from(document.querySelectorAll('button')).find((x) => /^Configure later$/i.test(x.textContent.trim())); if (b) b.click(); return !!b })()`)
   await sleep(500)
 
-  // 1. the sidebar's phone button
+  // 1. the profile menu's « Remote control » entry (the footer's own phone button is gone)
   console.log('the sidebar\'s phone panel')
-  const phoneButton = `(() => { const bs = Array.from(document.querySelectorAll('button.kbfp-ico')); return bs.length ? bs[0] : null })()`
-  const opened = await ev(D, `(() => { const b = ${phoneButton}; if (!b) return false; b.click(); return true })()`)
-  check('the footer has the phone button (the account card is there: the stand-in server signed this DSH in)', opened === true)
+  const profileRow = await ev(D, `(() => { const b = document.querySelector('[data-kb="workspace-card"] .kbfp-cardmain'); if (!b) return false; b.click(); return true })()`)
+  await sleep(600)
+  const opened = profileRow === true && await ev(D, `(() => { const e = document.querySelector('[data-kb="menu-remote"]'); if (!e) return false; e.click(); return true })()`)
+  check('the profile menu has the « Remote control » entry (the account card is there: the stand-in server signed this DSH in)', opened === true)
   const panelUp = await until(D, `!!document.querySelector('[data-kb="mobile-panel"] [data-kb="mobile-qr"] svg')`, 20000)
   check('opening it shows a real QR code, not the preview', panelUp === true)
   check('the preview note is gone', (await text(D, '.kbf-qrnote')) === null)

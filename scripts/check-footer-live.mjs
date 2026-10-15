@@ -53,7 +53,10 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
     { key: 'pack', name: 'Top-up', features: [], allowances: [], prices: [price('USD', '15.00', 'month'), price('EUR', '14.00', 'month')] },
   ] },
 ] }
-const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, server: null, pairingPending: false }
+// The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
+const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
+  devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
+const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, server: null, pairingPending: false, remote: REMOTE_OFFERED }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
 const live = await openLivePage({ width: 1400, height: 860 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
@@ -100,10 +103,11 @@ const answerFor = (path, req) => {
   if (path === '/kybernos-cloud/billing/checkout' && fake.checkout !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.checkout === 'function' ? fake.checkout() : fake.checkout } }
   if (path === '/kybernos-cloud/billing/portal' && fake.portal !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.portal === 'function' ? fake.portal() : fake.portal } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
+  if (path === '/kybernos-mobile/remote/status' && fake.remote !== null) { fake.calls.push('remote-status'); return { body: fake.remote } }
   return null
 }
 const interceptor = async () => {
-  await page.send('Fetch.enable', { patterns: [{ urlPattern: '*kybernos-cloud/*' }] })
+  await page.send('Fetch.enable', { patterns: [{ urlPattern: '*kybernos-cloud/*' }, { urlPattern: '*kybernos-mobile/remote/*' }] })
   page.on('Fetch.requestPaused', (p) => {
     const path = new URL(p.request.url).pathname
     const a = answerFor(path, p.request)
@@ -156,7 +160,7 @@ try {
     check('a real click on the button opens our menu', await press('[data-kb="foot-signin"]') && (await waitFor(page, `document.querySelector('[data-kb="off-menu"]') !== null`, 4000)) !== null)
     const list = await entries('[data-kb="off-menu"]')
     check('the menu: Sign in, Create an account, Appearance, Settings, Website, Help, Send feedback — in that order', JSON.stringify(list) === JSON.stringify(['connect', 'signup', 'appearance', 'settings', 'website', 'help', 'feedback']), list)
-    check('no plan row, team, account, referral or log out', (await val(`!document.querySelector('[data-kb="off-menu"] [data-kb="menu-plan-cta"], [data-kb="off-menu"] [data-kb="menu-switch"], [data-kb="off-menu"] [data-kb="menu-account"], [data-kb="off-menu"] [data-kb="menu-referral"], [data-kb="off-menu"] [data-kb="menu-logout"], [data-kb="off-menu"] [data-kb="menu-space-settings"]')`)) === true)
+    check('no plan row, team, account, referral, remote control or log out', (await val(`!document.querySelector('[data-kb="off-menu"] [data-kb="menu-plan-cta"], [data-kb="off-menu"] [data-kb="menu-switch"], [data-kb="off-menu"] [data-kb="menu-account"], [data-kb="off-menu"] [data-kb="menu-referral"], [data-kb="off-menu"] [data-kb="menu-logout"], [data-kb="off-menu"] [data-kb="menu-space-settings"], [data-kb="off-menu"] [data-kb="menu-remote"]')`)) === true)
     const fits = await val(`(() => { const m = document.querySelector('[data-kb="off-menu"]'); const r = m.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight })()`)
     check('it fits the window and the button says it is open', fits === true && (await val(`document.querySelector('[data-kb="foot-signin"]').getAttribute('aria-expanded')`)) === 'true')
     check('no native popover (Settings ⌥⌘, / Feedback / Sign in) is on screen', (await nativeSeen()).length === 0, await nativeSeen())
@@ -268,11 +272,35 @@ try {
     await shot('6-connected-row')
     await openProfileMenu()
     const list = await entries('.kbfp-menu')
-    check('the menu keeps its skeleton: header, plan, Team settings, Account, Referral, Appearance, Settings, Website, Help, Feedback, Log out',
-      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['switch', 'plan-cta', 'space-settings', 'account', 'referral', 'appearance', 'settings', 'website', 'help', 'feedback', 'logout']), list)
+    check('the menu keeps its skeleton: header, plan, Team settings, Account, Referral, Remote control, Appearance, Settings, Website, Help, Feedback, Log out',
+      JSON.stringify(list.filter((k) => k !== 'update')) === JSON.stringify(['switch', 'plan-cta', 'space-settings', 'account', 'referral', 'remote', 'appearance', 'settings', 'website', 'help', 'feedback', 'logout']), list)
     check('the plan row shows « Free » and Upgrade', /Free/.test((await text('.kbfp-mplan')) || '') && (await exists('[data-kb="menu-plan-cta"]')))
     await sleep(300)
     await shot('7-connected-menu')
+
+    // Remote control: the phone link's own panel, from the menu — and the footer's separate phone button is gone.
+    check('the footer has no phone button of its own (the profile row and the bell only)', (await val(`document.querySelectorAll('[data-kb="workspace-card"] .kbfp-card > button, [data-kb="workspace-card"] .kbfp-card .kbfp-bellwrap > button').length`)) === 2)
+    check('the entry shows how many phones are already linked', /Remote control\s*2/.test((await text('[data-kb="menu-remote"]')) || ''), await text('[data-kb="menu-remote"]'))
+    await press('[data-kb="menu-remote"]')
+    check('Remote control opens the phone link\'s own panel (kybernos-mobile\'s), and closes the menu', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"]') !== null`, 5000)) !== null && !(await exists('.kbfp-menu')))
+    check('the panel is the bundle\'s (its « Add a phone » button), not the preview', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"] [data-kb="mobile-pair"], [data-kb="mobile-panel"] [data-kb="mobile-qr"]') !== null`, 5000)) !== null && (await text('.kbf-qrnote')) === null)
+    await shot('7b-remote-panel')
+    await key('Escape', 'Escape'); await sleep(300)
+    // Not offered: the entry is absent, not dead.
+    for (const [label, remote] of [
+      ['the server does not offer the phone link (configured: false)', Object.assign({}, REMOTE_OFFERED, { configured: false })],
+      ['the plan does not include it (entitled: false)', Object.assign({}, REMOTE_OFFERED, { entitled: false })],
+      ['this DSH cannot (available: false)', Object.assign({}, REMOTE_OFFERED, { available: false })],
+      ['the status cannot be read (a refusal)', { ok: false, error: 'network' }],
+    ]) {
+      fake.remote = remote
+      await reload()
+      await openProfileMenu()
+      check(label + ': no « Remote control » entry', !(await exists('[data-kb="menu-remote"]')) && (await exists('[data-kb="menu-account"]')), await entries('.kbfp-menu'))
+    }
+    fake.remote = REMOTE_OFFERED
+    await reload()
+    await openProfileMenu()
 
     // Account and Referral: the server's account page, in the system browser, signed in by the console link — on its overview.
     fake.bodies.length = 0
