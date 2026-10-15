@@ -60,6 +60,25 @@ switch off, delete.
   `kb-accept-text` listener, which drops anything longer).
 - A "Kybernos" pill on the engine's Plugins page that shows only `@local/kybernos-*` bundles.
 
+## Settings › Connectors, Discover, Add (2026-10-15)
+
+- **Provider choice** (Settings › Connectors): two cards, « Composio — your own key » (with the key field) and « Kybernos Cloud ». One at a time.
+  Stored in `<DSH home>/kybernos/connectors.json` (`provider`, written by `POST /kybernos/composio/provider`, `provider.mjs`).
+  Kybernos Cloud can be chosen only when the server offers it, the account is signed in and the plan includes it: all read from the
+  server's answer, nothing about plans is written in the page. `kybernos-cloud` reads the same file and stops registering its
+  `connections_*` tools while Composio is chosen. **Not done:** the Composio MCP entry itself stays connected as long as a key is saved
+  (it is read when DSH starts); the page says so. The on-page « Yours » switch writes the same choice.
+- **Discover**: twelve known apps (`POPULAR`) in their own « Popular » section above « All apps », drawn with the same cards. Any search
+  or filter shows one list, as before.
+- **Add menu**: « API from an OpenAPI spec » and « Add with AI » next to the form and the JSON paste.
+  - OpenAPI (`openapi.mjs`, routes `GET|POST /kybernos/composio/openapi`): JSON OpenAPI 3 specs only. Step 1 reads the spec anonymously
+    (the key never goes where the spec is hosted), step 2 picks operations (reads on, writes off) and the host registers one native tool
+    per operation (`api_<name>_<operationId>`) through the `tools` service. The key lives in `<DSH home>/kybernos/openapi-connectors.json`
+    (0600) and goes only to the API's own address; responses are cut at 100 KB, redirects are not followed, https only (plain http for
+    this computer). The test button only ever runs a read.
+  - Add with AI: opens a new chat through `kb-open-chat-text` with the request written (skill `connecteur-personnalise`); nothing is sent.
+- Tests: `node test-openapi.mjs`, `node test-connectors-ui.mjs`.
+
 ## What a server's row says
 
 DSH watches `cordis.patch.yml` and reloads it by itself about 2 to 3 seconds after a write (measured on DSH

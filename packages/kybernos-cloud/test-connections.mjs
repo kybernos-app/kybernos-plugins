@@ -494,6 +494,24 @@ try {
   assert.equal(registered.size, 3, 'and it registers as soon as the name is free')
   ok('the tools exist exactly while the server offers connections and the account is connected: they come and go with no restart, never twice, never a throw')
 
+  // the choice of Settings › Connectors: with Composio selected the agents are not offered these tools
+  let choice = null
+  const tcChoice = createConnections({ apiCall: apiCallLike, readState: () => state, isConnected: (s) => s !== null && typeof s.token === 'string' && s.token !== '', server: () => ({ profile }), providerChoice: () => choice, log: () => {} })
+  registered.clear()
+  state = { token: TOKEN }
+  profile = profileWith(MCP)
+  tcChoice.attach(fakeTools)
+  assert.equal(registered.size, 3, 'nothing chosen: as before')
+  choice = 'composio'
+  tcChoice.sync()
+  assert.equal(registered.size, 0, 'Composio chosen: the tools go, with no restart')
+  choice = 'kybernos'
+  tcChoice.sync()
+  assert.equal(registered.size, 3, 'Kybernos Cloud chosen: they are back')
+  tcChoice.detach()
+  registered.clear()
+  ok('the Settings › Connectors choice: Composio takes the tools away, Kybernos Cloud or nothing chosen keeps them')
+
   // mounting: the real thing, with a fake ctx
   const mounted = { injected: null, effects: [] }
   const ctx = { inject: (deps, cb) => { mounted.injected = { deps, cb } }, effect: (fn, label) => { mounted.effects.push({ fn, label }) } }

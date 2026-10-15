@@ -38,8 +38,9 @@ const explain = (error) => SAYS[error] !== undefined ? SAYS[error] : 'The call f
  * @param {object} deps what index.js owns:
  *   apiCall(path, { method, token, body, base, timeoutMs }) → { status, body } (never throws, status 0 = network)
  *   readState() → the connection state (or null), isConnected(state), server() → { profile }
+ *   providerChoice() → 'composio' | 'kybernos' | null: the Settings › Connectors choice (optional)
  */
-export const createConnections = ({ apiCall, readState, isConnected, server, log = () => {} }) => {
+export const createConnections = ({ apiCall, readState, isConnected, server, providerChoice = () => null, log = () => {} }) => {
   let rpcId = 0
 
   /** What this machine knows before any call: does this server offer connections, and is the account connected. */
@@ -208,7 +209,10 @@ export const createConnections = ({ apiCall, readState, isConnected, server, log
   const live = new Map()
   const warned = new Set()
 
-  const wanted = () => connectionsEndpoint(server().profile) !== null && isConnected(readState()) === true
+  // The person's choice in Settings › Connectors: with « composio » selected the agents are not offered these tools (nothing
+  // chosen = as before: they exist while the server offers them and the account is connected).
+  const chosenAway = () => { try { return providerChoice() === 'composio' } catch (e) { return false } }
+  const wanted = () => connectionsEndpoint(server().profile) !== null && isConnected(readState()) === true && chosenAway() !== true
 
   const dropAll = () => {
     for (const dispose of live.values()) { try { dispose() } catch (e) { /* already gone with its scope */ } }

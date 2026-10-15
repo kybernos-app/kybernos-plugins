@@ -721,22 +721,22 @@
             "en": "Open Kybernos › Connectors › “Discover”, pick an app, click “Add a connection”, then authorize it in the tab that opens."
           },
           {
-            "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Connexions Kybernos » au-dessus de la liste, puis « Connecter une app ».",
-            "en": "With your Kybernos account (if your server offers it): “Kybernos connections” above the list, then “Connect an app”."
+            "fr": "Avec votre compte Kybernos (si votre serveur le propose) : « Kybernos Cloud » dans Réglages › Connecteurs, puis « Connecter une app ».",
+            "en": "With your Kybernos account (if your server offers it): “Kybernos Cloud” in Settings › Connectors, then “Connect an app”."
           },
           {
-            "fr": "Un serveur à vous : onglet « Serveurs MCP », « Ajouter », puis un formulaire ou du JSON collé. DSH le charge en quelques secondes.",
-            "en": "A server of your own: the “MCP servers” tab, “Add”, then a form or pasted JSON. DSH loads it within seconds."
+            "fr": "Un serveur ou une API à vous : onglet « Serveurs MCP », « Ajouter » : formulaire, JSON, spec OpenAPI ou « Ajouter avec l'IA ».",
+            "en": "A server or API of your own: “MCP servers” tab, “Add”: a form, JSON, an OpenAPI spec or “Add with AI”."
           }
         ],
         "where": {
-          "fr": "Kybernos (barre latérale) › Connecteurs ; la clé : Réglages › Plugins › kybernos-composio",
-          "en": "Kybernos (sidebar) › Connectors; the key: Settings › Plugins › kybernos-composio",
+          "fr": "Kybernos (barre latérale) › Connecteurs ; le choix du service et la clé : Réglages › Connecteurs",
+          "en": "Kybernos (sidebar) › Connectors; the choice of service and the key: Settings › Connectors",
           "page": true
         },
         "good": {
-          "fr": "Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH. Avec Kybernos, vos apps suivent votre compte et une clé d'app n'est jamais gardée.",
-          "en": "Your key stays on your machine; a changed key reaches the agents only after DSH restarts. With Kybernos, your apps follow your account and an app's key is never kept."
+          "fr": "Un seul service à la fois côté agents : Kybernos Cloud ou votre clé. Votre clé reste sur votre machine ; une clé changée n'atteint les agents qu'après un redémarrage de DSH.",
+          "en": "One service at a time for the agents: Kybernos Cloud or your key. Your key stays on your machine; a changed key reaches the agents only after DSH restarts."
         }
       }
     },
