@@ -27,6 +27,8 @@ const CSS = `
 body[data-ds-dark-theme] .kbdb,[data-ds-dark-theme] .kbdb{--kbdb-s1:#3987e5;--kbdb-s2:#d95926;--kbdb-s3:#199e70;--kbdb-s4:#c98500;--kbdb-s5:#d55181;--kbdb-s6:#9085e9}
 .kbdb *,.kbdb *::before,.kbdb *::after{box-sizing:border-box}
 .kbdb button{font:inherit;color:inherit;cursor:pointer}
+/* The primary action of the gallery header is the core plugin's (kb8-primary): its colours must win over the line above. */
+.kbdb .kb8-primary{color:var(--dsw-alias-label-primary-foreground)}
 .kbdb button:focus-visible,.kbdb [tabindex]:focus-visible{outline:2px solid var(--kbdb-accent);outline-offset:2px}
 .kbdb .kbdb-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .kbdb .kbdb-mono{font-family:var(--ds-font-family-code,ui-monospace,Menlo,monospace);font-size:11.5px}
@@ -1424,12 +1426,17 @@ function DashboardsPage () {
               'r' + rv.r + ' · ' + (rv.by === 'agent' ? kt('IA', 'AI') : (rv.by === 'preset' ? 'preset' : kt('vous', 'you'))), h('span', { className: 'sub' }, rv.what || '')))) : null),
         h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': edit, 'data-act': 'edit', onClick: () => setEdit((v) => !v) }, Ic('pencil', 14), edit ? kt('Terminé', 'Done') : kt('Modifier la mise en page', 'Edit layout')),
         h('button', { type: 'button', className: 'kbdb-btn primary', 'data-act': 'improve', onClick: askImprove }, Ic('spark', 14), kt('Améliorer avec l’IA', 'Improve with AI'))))
-    : h('header', { className: 'kbdb-ph' },
-      h('div', { className: 'kbdb-ph-l' }, h('h1', { className: 'kbdb-title' }, kt('Dashboards', 'Dashboards')),
-        h('p', { className: 'kbdb-sub' }, kt('Vos dashboards sont des fichiers. Partez d’un preset, ou demandez à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
-      h('div', { className: 'kbdb-ph-r' },
+    // The gallery's header is the template of the other listing pages (title and sentence on the left, the primary action on
+    // the right at the same height and size): `kb6-*` / `kb8-primary` belong to the core plugin's stylesheet, present in the
+    // document where this page mounts. The page has no search, filter or order of its own, so the action stands where the
+    // bar's trailing action does elsewhere.
+    : h('header', { className: 'kbdb-gal-head kb6-headrow' },
+      h('div', { className: 'kb6-headcol' },
+        h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, kt('Dashboards', 'Dashboards'))),
+        h('p', { className: 'kb8-sub' }, kt('Vos dashboards sont des fichiers. Partez d’un preset, ou demandez à l’IA d’en construire un.', 'Your dashboards are files. Start from a preset, or ask the AI to build one.'))),
+      h('div', { className: 'kb6-headacts' },
         hiddenCount > 0 ? h('button', { type: 'button', className: 'kbdb-btn', 'aria-pressed': showHidden, onClick: () => setShowHidden((v) => !v) }, Ic('eyeoff', 14), kt('Masqués', 'Hidden'), h('span', { style: { color: 'var(--kbdb-t3)' } }, hiddenCount)) : null,
-        h('button', { type: 'button', className: 'kbdb-btn primary', 'data-act': 'create', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI'))))
+        h('button', { type: 'button', className: 'kb8-primary', 'data-act': 'create', onClick: askCreate }, Ic('spark', 14), kt('Créer un dashboard avec l’IA', 'Create a dashboard with AI'))))
 
   // ── gallery ──
   const card = (d, i) => h('article', { key: d.id, className: 'kbdb-gcard link' + (d.hidden ? ' dim' : ''), style: { '--i': Math.min(i, 8) }, tabIndex: 0, 'data-kb': 'dashboards-card', 'data-id': d.id,
