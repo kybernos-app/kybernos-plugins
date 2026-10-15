@@ -72,7 +72,9 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 - `~/.dsh/kybernos/skills-index.json` (0600): the relay the user named on the Discover tab (`{version, url, updatedAt}`); absent = the Kybernos relay.
 - `~/.dsh/kybernos/skills-featured.json` (0600) and `~/.dsh/kybernos/skills-featured/<name>.{png,webp,jpg,jpeg,svg}` (covers). The covers
   of the picks live there too, one transparent WebP per pick (`<id>.webp`, about 130 KB). They are **not in the repository** (AGENTS rule 4):
-  a pick without its file draws a tile. How they reach other machines (served by the relay) is not built yet.
+  a pick without its file draws a tile unless the host can fetch it: a pick ships the SHA-256 of its cover, and the cover route asks the relay
+  for `<relay>/covers/<id>.webp` once (never more often than every ten minutes after a failure), keeps the file only if its bytes are a
+  WebP of the shipped hash, and otherwise leaves the tile. `node scripts/prepare-covers.mjs --write-picks` records the hashes.
 - `featured-picks.json` (shipped with the package): the 24 picks — id, source repository, category, title / outcome / example in English
   and French, `needs`, install count and audit verdicts read from skills.sh on `asOf`. A pick is only listed if no provider's audit is in
   failure and if the host's own install route installs it (`test-picks.mjs` guards the first; the second was checked by installing all 24).

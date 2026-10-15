@@ -1,2 +1,5 @@
 # Vercel link of the relay (project id and team), local to each machine
 .vercel/
+
+# The pictures that ship with a deployment (scripts/prepare-covers.mjs puts them here): media is not committed
+covers/*.webp

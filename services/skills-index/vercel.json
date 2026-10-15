@@ -1,6 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/cover.js": {
+      "includeFiles": "covers/**"
+    }
+  },
   "rewrites": [
-    { "source": "/v1/:path*", "destination": "/api/relay?path=:path*" }
+    {
+      "source": "/v1/covers/:file",
+      "destination": "/api/cover?file=:file"
+    },
+    {
+      "source": "/v1/:path*",
+      "destination": "/api/relay?path=:path*"
+    }
   ]
 }

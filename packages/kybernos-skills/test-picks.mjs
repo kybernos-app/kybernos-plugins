@@ -9,7 +9,7 @@
  *
  *  Usage: node packages/kybernos-skills/test-picks.mjs   (exit 0 = all pass) */
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,7 +33,7 @@ try {
   const good = {
     id: 'pdf', source: 'anthropics/skills', category: 'Documents',
     title: { en: 'PDF', fr: 'PDF' }, outcome: { en: 'Read PDFs.', fr: 'Lire des PDF.' }, prompt: { en: 'Merge.', fr: 'Fusionne.' },
-    needs: null, installs: 211154, audits: [['Socket', 'pass', 'LOW'], ['Snyk', 'warn', 'MEDIUM']]
+    needs: null, coverSha256: null, installs: 211154, audits: [['Socket', 'pass', 'LOW'], ['Snyk', 'warn', 'MEDIUM']]
   }
   assert.deepEqual(pickOf(good), good)
   ok('a well-formed entry is kept as it is')
@@ -54,6 +54,11 @@ try {
   assert.equal(soft.installs, 0)
   assert.deepEqual(soft.audits, [['ok', 'pass', 'LOW'], ['p', 'fail', 'HIGH']])
   ok('a bad « needs », a negative count and a malformed audit row are cleaned, not fatal')
+
+  const SHA = 'a'.repeat(64)
+  assert.equal(pickOf({ ...good, coverSha256: SHA }).coverSha256, SHA)
+  for (const bad of ['A'.repeat(64), 'a'.repeat(63), 'a'.repeat(65), 'g'.repeat(64), 12, {}, '']) assert.equal(pickOf({ ...good, coverSha256: bad }).coverSha256, null, String(bad))
+  ok('the cover hash is a lower-case SHA-256 in hex, or nothing')
 
   const dedup = validatePicks({ asOf: '2026-10-15', items: [good, { ...good, title: { en: 'Again', fr: 'Encore' } }, null, 3] })
   assert.equal(dedup.items.length, 1)
@@ -87,6 +92,10 @@ try {
   }
   ok('every pick has its title, outcome and example in both languages, its install count and its audit verdicts')
 
+  assert.ok(picks.items.every((p) => typeof p.coverSha256 === 'string'), 'every pick ships the hash of its cover')
+  assert.equal(new Set(picks.items.map((p) => p.coverSha256)).size, 24, 'no two picks share a picture')
+  ok('every pick ships the SHA-256 of its cover, and no two covers are the same file')
+
   const failing = picks.items.filter((p) => p.audits.some((a) => a[1] === 'fail')).map((p) => p.id)
   assert.deepEqual(failing, [], 'a pick with an audit in failure is not featured: ' + failing.join(', '))
   ok('no pick has a security audit in failure (the rule that keeps skills with a failing provider out)')
@@ -107,14 +116,86 @@ try {
   assert.equal(first.code, 200)
   assert.equal(first.body.ok, true)
   assert.equal(first.body.items.length, 24)
-  assert.ok(first.body.items.every((p) => p.cover === null), 'no cover file yet, no cover URL')
-  ok('GET /kybernos-skills/picks serves the 24 picks, with no cover URL while there is no cover file')
+  assert.ok(first.body.items.every((p) => p.cover === '/kybernos-skills/cover/' + p.id), 'every pick ships its cover hash, so every pick has a cover URL (fetched on first use)')
+  ok('GET /kybernos-skills/picks serves the 24 picks, each with its cover URL')
 
-  writeFileSync(join(dsh, 'kybernos', 'skills-featured', 'pdf.webp'), Buffer.from('RIFF....WEBP'))
-  const second = await call()
-  assert.equal(second.body.items.find((p) => p.id === 'pdf').cover, '/kybernos-skills/cover/pdf')
-  assert.equal(second.body.items.filter((p) => p.cover !== null).length, 1)
-  ok('a cover URL appears for a pick exactly when its file is in the covers folder')
+  // 3b. a cover that is not in the folder is fetched from the relay ONCE, and only the picture that was shipped is kept ---------------
+  const { createHash } = await import('node:crypto')
+  const webp = (n, size = 48) => Buffer.concat([Buffer.from('RIFF'), Buffer.from([n, 0, 0, 0]), Buffer.from('WEBPVP8 '), Buffer.alloc(size, n)])
+  const sha = (b) => createHash('sha256').update(b).digest('hex')
+  const cfg = { home, dsh, cwd: home }
+  const folder = join(dsh, 'kybernos', 'skills-featured')
+  const pickWith = (id, bytes) => ({ items: [{ id, coverSha256: bytes === null ? null : sha(bytes) }] })
+  const RELAY = 'https://skills.kybernos.app/v1'
+  const calls = []
+  const realFetch = globalThis.fetch
+  const serve = (map) => {
+    globalThis.fetch = async (url, init) => {
+      calls.push({ url: String(url), init })
+      const b = map[String(url)]
+      if (b === 'throw') throw new Error('offline')
+      return b === undefined ? new Response('no', { status: 404 }) : new Response(b, { status: 200 })
+    }
+  }
+  try {
+    const picture = webp(7)
+    serve({ [RELAY + '/covers/docx.webp']: picture })
+    const file = await mod.ensureCover(cfg, 'docx', pickWith('docx', picture))
+    assert.equal(file, join(folder, 'docx.webp'))
+    assert.deepEqual(readFileSync(file), picture)
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].init.redirect, 'error', 'the relay cannot bounce the request elsewhere')
+    assert.equal(await mod.ensureCover(cfg, 'docx', pickWith('docx', picture)), file)
+    assert.equal(calls.length, 1, 'a cover that is in the folder costs no request')
+    ok('a missing cover is fetched from the relay, checked against its hash, kept, and never asked for again')
+
+    // 24 cards ask at once: one request
+    const p2 = webp(9)
+    serve({ [RELAY + '/covers/xlsx.webp']: p2 })
+    calls.length = 0
+    const both = await Promise.all([mod.ensureCover(cfg, 'xlsx', pickWith('xlsx', p2)), mod.ensureCover(cfg, 'xlsx', pickWith('xlsx', p2))])
+    assert.equal(both[0], both[1])
+    assert.equal(calls.length, 1)
+    ok('simultaneous requests for the same cover make one request')
+
+    // a picture that is not the shipped one is refused: another hash, not a WebP, too large, a failing relay
+    for (const [id, served, expect, why] of [
+      ['pptx', webp(1), pickWith('pptx', webp(2)), 'bytes that do not hash to the shipped hash'],
+      ['canvas-design', Buffer.from('<html>not a picture</html>'), pickWith('canvas-design', Buffer.from('<html>not a picture</html>')), 'bytes that are not a WebP even when the hash matches'],
+      ['sql-queries', webp(3, 700 * 1024), pickWith('sql-queries', webp(3, 700 * 1024)), 'a picture above the size cap'],
+      ['copywriting', 'throw', pickWith('copywriting', webp(4)), 'a relay that cannot be reached'],
+      ['cold-email', undefined, pickWith('cold-email', webp(5)), 'a relay with no such picture (404)']
+    ]) {
+      serve({ [RELAY + '/covers/' + id + '.webp']: served })
+      calls.length = 0
+      assert.equal(await mod.ensureCover(cfg, id, expect), null, why)
+      assert.equal(calls.length, 1, why)
+      assert.equal(existsSync(join(folder, id + '.webp')), false, why + ': nothing was written')
+      assert.equal(await mod.ensureCover(cfg, id, expect), null)
+      assert.equal(calls.length, 1, why + ': the relay is not asked again for ten minutes')
+    }
+    ok('a wrong hash, a non-WebP, an oversized picture, an unreachable relay and a 404 all keep the tile, write nothing and are not retried at once')
+
+    // nothing else starts a request
+    calls.length = 0
+    for (const [id, picks] of [['unknown-skill', { items: [] }], ['no-hash', pickWith('no-hash', null)], ['../etc/passwd', pickWith('../etc/passwd', webp(6))], ['Not-A-Name', pickWith('Not-A-Name', webp(6))]]) {
+      assert.equal(await mod.ensureCover(cfg, id, picks), null, id)
+    }
+    assert.equal(calls.length, 0)
+    ok('only an id of the shipped list that carries a hash can start a request: no unknown name, no unhashed pick, no path')
+
+    // another relay (a company's) is asked at ITS address, and its picture is still checked
+    writeFileSync(join(dsh, 'kybernos', 'skills-index.json'), JSON.stringify({ version: 1, url: 'https://relay.example.test/v1' }))
+    const p3 = webp(11)
+    serve({ 'https://relay.example.test/v1/covers/mcp-builder.webp': p3 })
+    calls.length = 0
+    assert.equal(await mod.ensureCover(cfg, 'mcp-builder', pickWith('mcp-builder', p3)), join(folder, 'mcp-builder.webp'))
+    assert.equal(calls[0].url, 'https://relay.example.test/v1/covers/mcp-builder.webp')
+    rmSync(join(dsh, 'kybernos', 'skills-index.json'))
+    ok('the relay the user named is the one asked, with the same check on what it returns')
+  } finally {
+    globalThis.fetch = realFetch
+  }
 
   // 4. the screen, at source level -------------------------------------------------------------------
   const src = readFileSync(join(here, 'client.js'), 'utf8')

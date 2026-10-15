@@ -16,10 +16,22 @@ It deploys to the Vercel project `kybernos-skills-index`. No database, no secret
 | `/v1/skills/search` | `q` 2-100 characters, `limit` 1-100 | 5 min |
 | `/v1/skills/curated` | none | 1 h |
 | `/v1/skills/audit/{owner}/{repo}/{skill}` | none | 1 h |
+| `/v1/covers/{id}.webp` | none | 1 h in the browser, 1 day at the CDN |
 
 The answers are skills.sh's own JSON, unchanged: the plugin parses them as before. A good answer is cacheable; every refusal and
 failure is `no-store`, and upstream's error text is never relayed (our token or quota being refused is reported as
 "index unavailable", 502 or 503).
+
+## Covers
+
+The Featured tab of the Skills screen shows one picture per pick. They are not skills.sh data and not in the repository (media is not
+committed): `covers/<id>.webp` ships **with the deployment**, put there by `node scripts/prepare-covers.mjs` from the folder the pictures were
+made in (`~/.dsh/kybernos/skills-featured`). `api/cover.js` reads them (`vercel.json` `includeFiles: covers/**`), `relay-core.mjs` `cover`
+holds the rules: the id is the skill-name pattern and nothing else, `GET`/`HEAD` only, 600 KB at most, a missing file is a 404 that is never cached.
+
+The plugin fetches a picture **once**, when its folder has none, and keeps it only if its bytes hash to the SHA-256 the pick ships
+(`featured-picks.json` `coverSha256`): so the relay is a convenience, not a trust: another relay, or a damaged answer, leaves the tile.
+Changing a picture means a new file, a new hash in the picks file and a plugin release.
 
 ## Limits to keep in mind
 
@@ -40,10 +52,12 @@ failure is `no-store`, and upstream's error text is never relayed (our token or 
 
 - `relay-core.mjs`: pure (route table, validation, cache policy); the network and the token are injected.
 - `api/relay.js`: the Vercel function that wires the real `fetch` and `getVercelOidcToken()`. `vercel.json` rewrites `/v1/*` to it.
-- `node scripts/test-skills-relay.mjs`: 15 checks, mutation-tested, no network.
+- `api/cover.js`: the second function (covers). `node scripts/test-skills-relay.mjs`: 20 checks, no network; `node scripts/test-covers-relay.mjs`: relay and
+  plugin over a loopback socket.
 
 ## Deploying
 
-From this folder, linked to the `kybernos-skills-index` project (`vercel link`): `vercel deploy --prod`. Publishing makes a
-public endpoint, so it is done on purpose, not by CI. After a deploy, check the four routes from outside the project and that
-production is not behind Vercel Authentication.
+From this folder, linked to the `kybernos-skills-index` project (`vercel link`): first `node scripts/prepare-covers.mjs` (from the repository
+root: it fills `covers/` and checks the 24 pictures), then `vercel deploy --prod`. Publishing makes a
+public endpoint, so it is done on purpose, not by CI. After a deploy, check the four index routes and one cover (`curl -sI https://skills.kybernos.app/v1/covers/pdf.webp`: 200, `image/webp`) from
+outside the project, and that production is not behind Vercel Authentication.

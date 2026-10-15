@@ -12,6 +12,7 @@ export const PICK_NEEDS = ['firecrawl', 'tavily', 'google']
 const SKILL_NAME_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/ // same rule as the registry and the install route
 const SOURCE_RE = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,99}\/[A-Za-z0-9][A-Za-z0-9_.-]{0,99}$/
 const AUDIT_STATUS = ['pass', 'warn', 'fail']
+const SHA256_RE = /^[0-9a-f]{64}$/
 const MAX_ITEMS = 100
 const MAX_TEXT = 400
 
@@ -46,6 +47,9 @@ export const pickOf = (raw, categories = PICK_CATEGORIES) => {
     outcome,
     prompt,
     needs: PICK_NEEDS.indexOf(raw.needs) >= 0 ? raw.needs : null,
+    // The SHA-256 of the cover picture (a WebP). A machine that does not have the file asks the relay for it and keeps it only if its bytes
+    // hash to this: the picture that was shipped with the plugin, whatever relay answers.
+    coverSha256: typeof raw.coverSha256 === 'string' && SHA256_RE.test(raw.coverSha256) ? raw.coverSha256 : null,
     installs: Number.isInteger(raw.installs) && raw.installs >= 0 ? raw.installs : 0,
     audits: auditsOf(raw.audits)
   }
