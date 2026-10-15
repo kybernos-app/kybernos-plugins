@@ -102,7 +102,10 @@ const catalog = readFileSync(new URL('./catalog.js', import.meta.url), 'utf8')
   ok('discover: the catalogue below leaves out what the section shows', /const mainList = popList\.length > 0 \? list\.filter\(\(a\) => POPULAR\.indexOf\(a\.s\) < 0\)/.test(src))
 
   // one block on every tab: search, filter, order, view
-  ok('toolbar: the same bar on the three tabs (it was missing on MCP servers)', /\(kbTb !== null \? h\(kbTb\.KbToolbar, \{/.test(src) && !/kbTb !== null && vtab !== 'mcp'/.test(src))
+  ok('toolbar: the same bar on the three tabs (it was missing on MCP servers)', /\(kbTb !== null && barShown === true \? h\(kbTb\.KbToolbar, \{/.test(src) && !/kbTb !== null && vtab !== 'mcp'/.test(src))
+  ok('toolbar: it sits in the HEADER row with the add menu as its trailing action, like Agent Teams / Creations / Automations / Workspaces', /className: 'kb6-headrow' \},[\s\S]*?trailing: addWrap,[\s\S]*?: h\('div', \{ className: 'kb6-headacts' \}, addWrap\)/.test(src) && !/h\('div', \{ className: 'kb7-ctlrow' \},[\s\S]{0,2500}KbToolbar/.test(src.slice(src.indexOf("className: 'kb7-ctlrow' }"), src.indexOf("className: 'kb7-ctlrow' }") + 2500)))
+  ok('toolbar: with nothing to list there is no bar and the add action alone keeps its place', /const barShown = vtab === 'mcp'/.test(src))
+  ok('discover: refresh and « load the full catalog » are in the panel, not in the bar', /className: 'kb7-discact'/.test(src))
   ok('toolbar: the cards / list switch is there, and only hidden for the Kybernos connections panel', /views: \['cards', 'list'\]/.test(src) && /hideView: vtab === 'yours' && kcMode === true/.test(src) && !/hideView: true,/.test(src))
   ok('toolbar: the MCP servers tab has its own filter (http / stdio / api), search and order', /const mcpFacet = /.test(src) && /options: vtab === 'mcp' \? mcpFacet/.test(src) && /mcpDir/.test(src))
   ok('toolbar: a kind chosen on the MCP tab never empties the apps tabs (and the reverse)', /KB_MCP_KINDS\.indexOf\(t\) < 0\)\[0\] \|\| 'all'/.test(src))
