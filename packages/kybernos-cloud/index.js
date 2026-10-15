@@ -1151,6 +1151,9 @@ const UUID_SRC = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 const RELAY_DATE = /^\d{4}-\d{2}-\d{2}([T ][0-9:.]{1,16}(Z|[+-]\d{2}:?\d{2})?)?$/
 const RELAY_RULES = [
   { re: /^\/v1\/me$/, query: [] },
+  // The two read-only pages of the account the console shows in DSH's frame (Account, Referral): the profile (above), the person's sessions and the referral card.
+  { re: /^\/v1\/sessions$/, query: [] },
+  { re: /^\/v1\/referral$/, query: [] },
   { re: /^\/v1\/workspaces$/, query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/(members|providers|models)$', 'i'), query: [] },
   { re: new RegExp('^/v1/workspaces/(' + UUID_SRC + ')/llm/(budget|models|catalog|billing)$', 'i'), query: [] },

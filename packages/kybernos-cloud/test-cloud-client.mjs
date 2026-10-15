@@ -152,7 +152,8 @@ for (const cle of ['wsTabPlan', 'wsTabUsage', 'wsTabPeople', 'wsTabBilling', 'ws
   assert.equal((clientSource.match(new RegExp('^ {8}' + cle + ': ', 'gm')) || []).length, 0, cle + ' belonged to the local Team page and must not stay in a dictionary')
 }
 // The ways in the « Teams settings » entry has left: the console bridge, then the rich page of an older master; nothing else.
-assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 1)
+// The console bridge has two callers now: Team settings (no page) and Account / Referral (a page of the same console).
+assert.equal((clientSource.match(/window\.__kbOpenWsConsole/g) || []).length, 2)
 assert.equal((clientSource.match(/window\.__kbOpenWorkspace/g) || []).length, 1)
 assert.equal(/\.selectPanel\('/.test(clientSource), false, 'selectPanel only ever closes the profile page (selectPanel(null)): no call opens a panel by key')
 sok('page locale de l equipe : supprimee (composant, cle de panneau, evenement, onglets, 38 chaines fr/en)')
@@ -280,7 +281,7 @@ assert.ok(inserted[0].textContent.includes('.kbf-profile'), 'le CSS de la rangee
 ok('CSS injecte via styles.insert')
 
 // The two Settings pages of the account, rendered for real in their first (reading) state: each opens with the page head.
-for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile and preferences stay on this device. Your instructions are written to the AGENTS.md of the machine running DSH.'], ['kybernos-data', 'Data &amp; privacy', 'Export your data, manage the device signed in here, or delete your account.']]) {
+for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile and preferences stay on this device. Your instructions are written to the AGENTS.md of the machine running DSH.'], ['kybernos-data', 'Account data', 'The data of your Kybernos Cloud account: export it, manage the device signed in here, or delete the account.']]) {
   const reg = registrations.filter((r) => r.options.name === 'settings.section' && r.options.id === id)[0]
   assert.ok(reg !== undefined, 'la section ' + id + ' doit etre enregistree')
   const markup = renderToStaticMarkup(React.createElement(reg.component, null))
@@ -460,8 +461,12 @@ assert.ok(htmlConnecte.includes('dev · Free'), 'sous-titre : qui · formule (pa
 assert.ok(htmlConnecte.includes('aria-haspopup="menu"') && htmlConnecte.includes('aria-expanded="false"'), 'la carte ouvre un menu, ferme au premier rendu')
 assert.equal(htmlConnecte.includes('kbfp-menu'), false, 'le menu n est pas rendu tant qu il n est pas ouvert')
 assert.equal(htmlConnecte.includes('kbf-wsgear'), false, 'aucun engrenage DANS la rangee du pied')
-assert.ok(htmlConnecte.includes('title="Notifications"'), 'la cloche est dans la carte')
-ok('carte unifiee : espace actif, qui · formule, mobile et cloche, menu ferme, aucun engrenage')
+// The bell is hidden behind ONE flag (SHOW_BELL), not deleted: with the flag off it is not drawn, with the flag on it is the card's last button.
+assert.equal(htmlConnecte.includes('title="Notifications"'), false, 'la cloche est cachee (SHOW_BELL = false)')
+assert.equal(htmlConnecte.includes('kbfp-bellwrap'), false, 'et son conteneur aussi')
+assert.ok(/const SHOW_BELL = false\n/.test(source), 'un seul drapeau : SHOW_BELL')
+assert.ok(source.includes("SHOW_BELL === true\n                ? h('span', { className: 'kbfp-bellwrap' },"), 'la cloche et son popover sont encore la, derriere le drapeau')
+ok('carte unifiee : espace actif, qui · formule, menu ferme, aucun engrenage, cloche cachee derriere SHOW_BELL')
 
 // The meter of the card: the percent of the allowance that counts in the ACTIVE team, read from the host's /quota route. Nothing is drawn while the host has nothing to
 // say (the render above got the status JSON for /quota too: no windows, no meter), and a fresh read of 82% shows a bar, the figure and the sentence as its title.

@@ -2229,6 +2229,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         // The product's public pages, from the menus (a tab of the system browser). The help is localised: its folder is the language DSH
         // shows, among those the help is written in, else English.
         const WEBSITE_URL = 'https://kybernos.app'
+        // The notification bell of the footer. It has nothing to show yet (its popover only says « nothing new »), so it is hidden, not deleted:
+        // set this to true and it is back, with the popover and the rail rules it already has.
+        const SHOW_BELL = false
         /** The phone link's status (GET kybernos-mobile/remote/status) as the menu needs it: `{ devices }` when the entry is offered, else null. A server that does not offer
          *  the feature (`configured: false`), a plan that does not include it (`entitled: false`), a DSH that cannot (`available: false`) or no account: no entry. */
         const remoteOffer = (j) => {
@@ -2737,9 +2740,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               entree('space-settings', h(BuildingIcon, { size: 18 }), t('menuTeamsSettings'), props.onSpace)),
             h('div', { className: 'kbfp-msep' }),
             h('div', { className: 'kbfp-mitems', 'data-kb': 'menu-block-account' },
-              // Account and Referral: the server's account page (its overview holds the referral card), in the system browser.
-              entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount, { ext: true }),
-              entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true, ext: true }),
+              // Account and Referral: read-only pages of the server's console, in DSH (no arrow: they stay here).
+              entree('account', h(UserIcon, { size: 18 }), t('profCompte'), props.onAccount),
+              entree('referral', h(GiftMenuIcon, { size: 18 }), t('profParrain'), props.onReferral, { amber: true }),
               // The phone link (kybernos-mobile): present only when the server offers it and the plan includes it, with the phones already linked.
               props.remote !== null && props.remote !== undefined
                 ? entree('remote', h(PhoneIcon, { size: 18 }), t('menuRemote'), props.onRemote, props.remote.devices > 0 ? { tail: String(props.remote.devices) } : undefined)
@@ -3079,11 +3082,13 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
               }
               window.setTimeout(tique, 80)
             }
-            // Account and Referral are pages of the SERVER's account app (the overview holds the referral card): opened in the system
-            // browser, already signed in, through the console link. `section` lands on `#overview` where the server knows it; one that
-            // does not lands on its plan page, which is still its account page.
-            const ouvrirCompteNavigateur = () => {
+            // Account and Referral are read-only pages of the ACTIVE server's console, in the content zone of DSH (the same frame as Team
+            // settings: `#account`, `#referral`). The « Open in browser » action of that frame goes through the console link on `overview`.
+            // Without the core plugin's bridge the old way stands: the account page in the system browser.
+            const ouvrirComptePage = (page) => () => {
               setMenuOpen(false)
+              const bridge = window.__kbOpenWsConsole
+              if (typeof bridge === 'function') { try { bridge(page); return } catch (e) { /* the browser is next */ } }
               openAccountPage('overview', actif)
             }
             const seDeconnecter = async () => {
@@ -3112,7 +3117,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
                   : null),
               h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))),
-              h('span', { className: 'kbfp-bellwrap' },
+              SHOW_BELL === true
+                ? h('span', { className: 'kbfp-bellwrap' },
                 h('button', {
                   type: 'button', className: 'kbfp-ico',
                   title: t('notifTitle'), 'aria-label': t('notifTitle'),
@@ -3123,7 +3129,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                   ? h('div', { className: 'kbf-pop kbfp-bellpop', role: 'dialog', 'aria-label': t('notifTitle') },
                       h('div', { className: 'kbf-poptitle' }, t('notifTitle')),
                       h('div', { className: 'kbc-note' }, t('notifEmpty')))
-                  : null),
+                  : null)
+                : null,
               menuOpen === true
                 ? h(UserMenu, {
                   state: state,
@@ -3133,8 +3140,8 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     setMenuOpen(false)
                     setNewOpen(true)
                   },
-                  onAccount: ouvrirCompteNavigateur,
-                  onReferral: ouvrirCompteNavigateur,
+                  onAccount: ouvrirComptePage('account'),
+                  onReferral: ouvrirComptePage('referral'),
                   remote: remote,
                   onRemote: () => { setMenuOpen(false); setNotifOpen(false); setMobileOpen(true) },
                   onUpgrade: () => { setMenuOpen(false); setUpgradeOpen(true) },

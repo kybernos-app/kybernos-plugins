@@ -19,9 +19,14 @@ const from = source.indexOf('const repondre = (fr, message) => {')
 const to = source.indexOf("window.addEventListener('message', sur)", from)
 check('the broker code is where the test expects it', from > 0 && to > from)
 const snippet = source.slice(from, to)
+// The page names the broker may carry to the link: the same definition as the page's (one slug, never a path or an address).
+const pageFrom = source.indexOf('const KB_CONSOLE_PAGE_RE = ')
+const pageTo = source.indexOf('// The console of the ACTIVE server, with the theme', pageFrom)
+check('the page-name rule is where the test expects it', pageFrom > 0 && pageTo > pageFrom)
+const pageRule = source.slice(pageFrom, pageTo)
 
 const CONSOLE_ORIGIN = 'https://console.example'
-const harness = () => {
+const harness = (page = '') => {
   const posted = []
   const fetched = []
   let keyAsked = 0
@@ -38,7 +43,7 @@ const harness = () => {
   const kbServer = { workspace: 'w-before' }
   const win = { dispatchEvent: (e) => { events.push(e.type); return true }, open: (...args) => { opened.push(args); return null } }
   class EventStub { constructor (type) { this.type = type } }
-  const sur = new Function('kbWsOrigin', 'envoyerCle', 'document', 'fetch', 'kbServer', 'window', 'Event', snippet + '\nreturn sur')(() => CONSOLE_ORIGIN, () => { keyAsked += 1 }, doc, fetchStub, kbServer, win, EventStub)
+  const sur = new Function('kbWsOrigin', 'envoyerCle', 'document', 'fetch', 'kbServer', 'window', 'Event', 'pageRef', pageRule + '\n' + snippet + '\nreturn sur')(() => CONSOLE_ORIGIN, () => { keyAsked += 1 }, doc, fetchStub, kbServer, win, EventStub, { current: page })
   return { sur, posted, fetched, iframeWindow, answers, events, opened, kbServer, get keyAsked () { return keyAsked } }
 }
 const settle = () => new Promise((r) => setTimeout(r, 5))
@@ -191,6 +196,31 @@ console.log('opening the console in the person\'s browser (the frame can only lo
     await settle()
     check(label + ' is dropped: the host is asked for the active workspace, not for that id', g.fetched.length === 1 && g.fetched[0].opts.body === JSON.stringify({ open: true }), JSON.stringify(g.fetched))
   }
+
+  // The link lands on a page of the app: the one the frame names, else the account's overview when the frame IS the Account or Referral page.
+  const acc = harness('account')
+  acc.answers.json = { ok: true, opened: true }
+  acc.sur({ source: acc.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('from the Account page the link is asked on the overview', acc.fetched.length === 1 && acc.fetched[0].opts.body === JSON.stringify({ workspace_id: 'w-1', open: true, section: 'overview' }), JSON.stringify(acc.fetched))
+  const ref = harness('referral')
+  ref.answers.json = { ok: true, opened: true }
+  ref.sur({ source: ref.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })
+  await settle()
+  check('and from the Referral page too', ref.fetched.length === 1 && JSON.parse(ref.fetched[0].opts.body).section === 'overview')
+  const named = harness('')
+  named.answers.json = { ok: true, opened: true }
+  named.sur({ source: named.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1', section: 'plan' } } })
+  await settle()
+  check('a page the frame names is carried', named.fetched.length === 1 && JSON.parse(named.fetched[0].opts.body).section === 'plan')
+  for (const bad of ['../account', 'a b', 'x'.repeat(40), 7, '/account#plan']) {
+    const g = harness('')
+    g.answers.json = { ok: true, opened: true }
+    g.sur({ source: g.iframeWindow, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1', section: bad } } })
+    await settle()
+    check('a page that is not a slug (' + JSON.stringify(bad).slice(0, 20) + ') is dropped', g.fetched.length === 1 && JSON.parse(g.fetched[0].opts.body).section === undefined, g.fetched.length === 1 ? g.fetched[0].opts.body : '')
+  }
+  check('the other pages leave the link without a page (the server\'s default)', harness('').fetched.length === 0)
 
   const f = harness()
   f.sur({ source: { other: true }, origin: CONSOLE_ORIGIN, data: { kbOpenBrowser: { id: 'w-1' } } })

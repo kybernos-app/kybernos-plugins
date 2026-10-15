@@ -14,14 +14,21 @@
 // portal calls of the Upgrade dialog (the host routes themselves are proven by packages/kybernos-cloud/test-billing-proxy.mjs), the console
 // link, and `window.open` (recorded, never followed).
 //
+// The embedded console (Team settings, Account, Referral) is checked against REAL servers: small HTTP stand-ins on loopback ports that the
+// sandbox's own registry (<DSH home>/kybernos/servers.json, put back at the end) names as the active server, so the address comes from the
+// host's route and the frame really loads. The frame's own stand-in page posts the message the real console posts (« open in browser »).
+//
 // Sandbox only: it refuses :3080 (exit 3). It presses DSH's light/dark switch of the sandbox's own profile and puts it back.
 // Exit 0 all good, 1 a check failed, 3 not run.
-import { mkdirSync } from 'node:fs'
+import { createServer } from 'node:http'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { openLivePage, waitFor } from './live-page.mjs'
 
 const host = process.env.KB_HOST || '127.0.0.1:3080'
 if (host.endsWith(':3080')) { console.error('○ not run: this check must run against the sandbox (source scripts/sandbox/env.sh), never the real DSH on :3080'); process.exit(3) }
+const DSH_HOME = process.env.DSH_HOME || ''
+if (!DSH_HOME.includes('.kybernos-sandbox')) { console.error('○ not run: DSH_HOME is not an isolated instance (' + (DSH_HOME || 'unset') + '): source scripts/sandbox/env.sh'); process.exit(3) }
 const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
 if (shotsAt !== null) mkdirSync(shotsAt, { recursive: true })
 
@@ -56,8 +63,31 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, server: null, pairingPending: false, remote: REMOTE_OFFERED }
+const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
+
+// A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts.
+const consoles = []
+const startConsole = async () => {
+  const hits = []
+  const srv = createServer((req, res) => {
+    hits.push(req.url)
+    if (req.url.startsWith('/workspace-console')) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+      res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>')
+      return
+    }
+    res.writeHead(404); res.end()
+  })
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r))
+  const c = { origin: 'http://127.0.0.1:' + srv.address().port, hits, server: srv, close: () => new Promise((r) => { try { srv.closeAllConnections() } catch (e) { /* none */ } srv.close(() => r()) }) }
+  consoles.push(c)
+  return c
+}
+const REGISTRY = join(DSH_HOME, 'kybernos', 'servers.json')
+const registryBefore = existsSync(REGISTRY) ? readFileSync(REGISTRY, 'utf8') : null
+const setRegistry = (active, list) => { mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true }); writeFileSync(REGISTRY, JSON.stringify({ active, servers: list.map((c, i) => ({ id: 'stub-' + (i + 1), name: 'Stand-in ' + (i + 1), api: c.origin })) })) }
+const restoreRegistry = () => { try { if (registryBefore === null) rmSync(REGISTRY, { force: true }); else writeFileSync(REGISTRY, registryBefore) } catch (e) { /* the sandbox is throw-away */ } }
 
 const live = await openLivePage({ width: 1400, height: 860 }).catch((e) => { console.error('○ not run: ' + e.message); process.exit(3) })
 const { page } = live
@@ -96,7 +126,6 @@ const answerFor = (path, req) => {
   }
   if (path === '/kybernos-cloud/start') { fake.calls.push('start'); return { body: PAIRING } }
   if (path === '/kybernos-cloud/poll') { fake.calls.push('poll'); return { body: { ok: true, connected: false, status: 'pending' } } }
-  if (path === '/kybernos-cloud/server' && fake.server !== null) return { body: fake.server }
   if (path === '/kybernos-cloud/console/link') { fake.bodies.push({ path, body: sent() }); return { body: fake.link || { ok: true, opened: true, expires_in: 60 } } }
   if (path === '/kybernos-cloud/plans' && fake.plans !== null) return { body: fake.plans, delay: fake.plansDelay }
   if (path === '/kybernos-cloud/plans/quote' && fake.quote !== null) { const u = new URL(req.url); fake.calls.push('quote:' + u.search); return { body: fake.quote(u.searchParams) } }
@@ -279,7 +308,7 @@ try {
     await shot('7-connected-menu')
 
     // Remote control: the phone link's own panel, from the menu — and the footer's separate phone button is gone.
-    check('the footer has no phone button of its own (the profile row and the bell only)', (await val(`document.querySelectorAll('[data-kb="workspace-card"] .kbfp-card > button, [data-kb="workspace-card"] .kbfp-card .kbfp-bellwrap > button').length`)) === 2)
+    check('the footer has no phone button and no bell: the profile row is the card\'s only button (the bell is hidden behind one flag, not deleted)', (await val(`document.querySelectorAll('[data-kb="workspace-card"] .kbfp-card > button').length`)) === 1 && !(await exists('.kbfp-bellwrap')) && !(await exists('[data-kb="workspace-card"] [title="Notifications"]')))
     check('the entry shows how many phones are already linked', /Remote control\s*2/.test((await text('[data-kb="menu-remote"]')) || ''), await text('[data-kb="menu-remote"]'))
     await press('[data-kb="menu-remote"]')
     check('Remote control opens the phone link\'s own panel (kybernos-mobile\'s), and closes the menu', (await waitFor(page, `document.querySelector('[data-kb="mobile-panel"]') !== null`, 5000)) !== null && !(await exists('.kbfp-menu')))
@@ -302,18 +331,89 @@ try {
     await reload()
     await openProfileMenu()
 
-    // Account and Referral: the server's account page, in the system browser, signed in by the console link — on its overview.
+    // Account and Referral are read-only pages of the active server's console, in DSH's content zone (`#account`, `#referral`) — the same frame as Team
+    // settings. The registry names a console stand-in as the active server, so the address really comes from the host and the frame really loads.
+    console.log('Account, Referral and Team settings — the ACTIVE server\'s console, embedded')
+    const A = await startConsole()
+    setRegistry('stub-1', [A])
+    await reload()
+    const frame = async () => val(`(() => { const f = document.querySelector('[data-kb="ws-console"]'); const a = document.querySelector('[data-kb="ws-open-browser"]'); return f ? { kind: 'iframe', url: f.src } : a ? { kind: 'link', url: a.href } : null })()`)
+    const frameUrl = async () => { const f = await frame(); return f === null ? null : new URL(f.url) }
+    const waitFrame = async () => waitFor(page, `document.querySelector('[data-kb="ws-console"], [data-kb="ws-open-browser"]') !== null`, 8000)
+    const openPage = async (entry) => { await openProfileMenu(); await press('[data-kb="menu-' + entry + '"]'); await waitFrame(); await sleep(400) }
+
+    await openPage('space-settings')
+    let u = await frameUrl()
+    check('Team settings: the frame is the active server\'s console (origin of the registry\'s server, /workspace-console)', u !== null && u.origin === A.origin && u.pathname === '/workspace-console', u && u.href)
+    check('with the workspace, the theme and the language, and no page', u !== null && u.searchParams.get('ws') === W_PERSONAL && ['light', 'dark'].indexOf(u.searchParams.get('theme')) >= 0 && u.searchParams.get('lang') === 'en' && u.hash === '', u && u.href)
+    check('and the frame really loaded it from that server', A.hits.some((h) => h.startsWith('/workspace-console')), A.hits)
+    await shot('13-team-settings-embedded')
+
+    await openPage('account')
+    u = await frameUrl()
+    check('Account: the same console, on #account, with the same parameters', u !== null && u.origin === A.origin && u.pathname === '/workspace-console' && u.hash === '#account' && u.searchParams.get('ws') === W_PERSONAL && ['light', 'dark'].indexOf(u.searchParams.get('theme')) >= 0 && u.searchParams.get('lang') === 'en', u && u.href)
+    check('nothing opened a browser', fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link').length === 0 && (await opened()).length === 0, fake.bodies)
+    // The frame's « Open in browser » (its stand-in page posts what the real one posts): the host is asked for the link on the account's overview.
     fake.bodies.length = 0
+    const box = await rect('[data-kb="ws-console"]')
+    await mouse(box.x + box.w / 2, box.y + box.h / 2); await sleep(700)
+    const link = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
+    check('its « Open in browser » asks the host for a console link on section overview, opened by the host', link.length === 1 && link[0].body.section === 'overview' && link[0].body.open === true && link[0].body.workspace_id === W_PERSONAL, link)
+    await shot('14-account-embedded')
+
+    await openPage('referral')
+    u = await frameUrl()
+    check('Referral: #referral', u !== null && u.origin === A.origin && u.hash === '#referral', u && u.href)
+    await mouse(box.x + box.w / 2, box.y + box.h / 2); await sleep(700)
+    check('and its « Open in browser » is on the overview too', fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link').length === 2 && fake.bodies[fake.bodies.length - 1].body.section === 'overview', fake.bodies)
+    await openPage('space-settings')
+    u = await frameUrl()
+    check('Team settings after Referral is the console\'s first page again', u !== null && u.hash === '' && u.origin === A.origin, u && u.href)
+    fake.bodies.length = 0
+
+    // A server that has no #account page yet shows its console, never an error: the frame is the same document, whose own code ignores the fragment.
+    // The server's address follows the registry when it changes while the page is up (no reload).
+    const B = await startConsole()
+    setRegistry('stub-2', [A, B])
+    await val(`window.dispatchEvent(new Event('focus'))`)
+    await waitFor(page, `(() => { const f = document.querySelector('[data-kb="ws-console"]'); return f !== null && f.src.indexOf(${JSON.stringify(B.origin)}) === 0 })()`, 8000)
+    u = await frameUrl()
+    check('another server selected while the page is up: the frame follows it (no reload of DSH)', u !== null && u.origin === B.origin, u && u.href)
+    check('and loaded from it', B.hits.some((h) => h.startsWith('/workspace-console')), B.hits)
+
+    // The same address is the fallback's: when the console does not answer, « Open in browser » goes to the SAME origin.
+    await B.close()
+    await reload()
+    await openPage('space-settings')
+    const down = await frame()
+    const du = down === null ? null : new URL(down.url)
+    check('a console that does not answer: the card says so and its « Open in browser » link is on the SAME origin', down !== null && down.kind === 'link' && du.origin === B.origin && du.pathname === '/workspace-console', down)
+    check('and it names that host', (await text('.kbwsif-down')) !== null && String(await text('.kbwsif-down')).indexOf(new URL(B.origin).host) >= 0, await text('.kbwsif-down'))
+    await shot('15-console-down')
+
+    // The registry back on A; a console URL left in localStorage no longer wins, but with the developer flag it does.
+    setRegistry('stub-1', [A])
+    await val(`localStorage.setItem('kybernos.ws.console.url', 'http://override.example.test/old-test')`)
+    await reload()
+    await openPage('space-settings')
+    u = await frameUrl()
+    check('a console URL left in localStorage does not win over the active server', u !== null && u.origin === A.origin, u && u.href)
+    await val(`localStorage.setItem('kybernos.dev', '1')`)
+    await reload()
+    await openPage('space-settings')
+    u = await frameUrl()
+    check('behind the developer flag the stored override wins again', u !== null && u.origin === 'http://override.example.test', u && u.href)
+    await val(`localStorage.removeItem('kybernos.dev'); localStorage.removeItem('kybernos.ws.console.url')`)
+    await reload()
+
+    // Without the core plugin's bridge (an older core) Account falls back to the account page in the system browser, through the console link.
+    await reload()
+    await val(`delete window.__kbOpenWsConsole`)
+    fake.bodies.length = 0
+    await openProfileMenu()
     await press('[data-kb="menu-account"]'); await sleep(500)
     const acc = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
-    check('Account asks the host for a console link: the active workspace, section overview, opened by the host', acc.length === 1 && acc[0].body.section === 'overview' && acc[0].body.open === true && acc[0].body.workspace_id === W_PERSONAL, acc)
-    check('and the page opens nothing itself when the host did', (await opened()).length === 0, await opened())
-    await openProfileMenu()
-    fake.bodies.length = 0
-    await press('[data-kb="menu-referral"]'); await sleep(500)
-    const ref = fake.bodies.filter((b) => b.path === '/kybernos-cloud/console/link')
-    check('Referral asks for the same link, section overview', ref.length === 1 && ref[0].body.section === 'overview' && ref[0].body.open === true, ref)
-
+    check('no bridge: Account asks the host for a console link on the overview, opened by the host', acc.length === 1 && acc[0].body.section === 'overview' && acc[0].body.open === true && acc[0].body.workspace_id === W_PERSONAL, acc)
     // A refused link says so, in a line above the footer.
     fake.link = { ok: false, status: 403, error: 'email_not_verified' }
     await openProfileMenu()
@@ -328,13 +428,16 @@ try {
     await press('[data-kb="menu-account"]'); await sleep(600)
     check('a host that could not open a browser hands the address back, and the page opens it', (await opened()).includes('https://active.example.test/api/auth/magic-link/verify?token=x'), await opened())
     fake.link = null
+    await reload()
 
+    // Website, Help and the others are unchanged.
     await openProfileMenu()
     await press('[data-kb="menu-website"]'); await sleep(200)
     await openProfileMenu()
     await press('[data-kb="menu-help"]'); await sleep(200)
     const o = await opened()
     check('Website and Help are the same links as signed out', o[o.length - 2] === 'https://kybernos.app' && o[o.length - 1] === 'https://help.kybernos.app/en/', o)
+    fake.link = null
 
     // Settings and Appearance are unchanged.
     await openProfileMenu()
@@ -342,24 +445,6 @@ try {
     await press('[data-kb="menu-settings"]')
     check('Settings opens DSH\'s Settings, with no native popover', (await settingsOpen()) && (await nativeSeen()).length === 0, await nativeSeen())
     await clean()
-
-    // Team settings: the ACTIVE server's console. A console URL left in localStorage no longer wins, but with the developer flag it does.
-    console.log('Team settings — the active server\'s console, not a stored override')
-    const consoleUrl = async () => val(`(() => { const f = document.querySelector('iframe[src*="workspace-console"], iframe[src*="override.example"]'); const a = document.querySelector('a.kb6-btn[href*="workspace-console"], a.kb6-btn[href*="override.example"]'); return f ? f.src : a ? a.href : null })()`)
-    await val(`localStorage.setItem('kybernos.ws.console.url', 'http://override.example.test/old-test')`)
-    await reload()
-    await openProfileMenu()
-    await press('[data-kb="menu-space-settings"]'); await sleep(1500)
-    const url1 = await consoleUrl()
-    check('the console is the active server\'s, whatever localStorage holds', typeof url1 === 'string' && url1.startsWith('http://active.example.test/workspace-console?') && url1.indexOf('ws=' + W_PERSONAL) > 0 && url1.indexOf('override.example') < 0, url1)
-    await val(`localStorage.setItem('kybernos.dev', '1')`)
-    await reload()
-    await openProfileMenu()
-    await press('[data-kb="menu-space-settings"]'); await sleep(1500)
-    const url2 = await consoleUrl()
-    check('behind the developer flag the stored override wins again', typeof url2 === 'string' && url2.startsWith('http://override.example.test/old-test'), url2)
-    await val(`localStorage.removeItem('kybernos.dev'); localStorage.removeItem('kybernos.ws.console.url')`)
-    await reload()
 
     // ── 8. The Upgrade dialog ─────────────────────────────────────────────────────────────────────────────────
     console.log('Upgrade — the pricing table and Subscribe')
@@ -494,6 +579,8 @@ try {
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
   }
 } finally {
+  restoreRegistry()
+  for (const c of consoles) { try { await c.close() } catch (e) { /* closed */ } }
   await live.close()
 }
 if (notRun !== null) { console.error('○ not run: ' + notRun); process.exit(3) }

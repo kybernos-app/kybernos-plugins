@@ -706,6 +706,16 @@ clicks:
 - **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, Account and Referral asking the host for a
   console link on `section: overview` (and what is said when it is refused), Team settings opening the **active server's** console, then
   the same with a stored `kybernos.ws.console.url` (ignored) and with `kybernos.dev = 1` (it wins again).
+- **The embedded console** (Team settings, Account, Referral): the frame is the ACTIVE server's `/workspace-console` with `ws`, `theme`, `lang` and,
+  for the two account pages, the fragment `#account` / `#referral` (the server's embedded shell reads it; a server that has no such page shows its
+  console's first page, never an error). The check writes small console stand-ins on loopback ports into the sandbox's own registry
+  (`<DSH home>/kybernos/servers.json`, put back at the end), so the address comes from the host's route and the frame really loads from that
+  server: it asserts the frame's origin, that the server was hit, that the frame follows a registry change while the page is up (focus event),
+  that the « Open in browser » link of a console that does not answer is on the same origin, that a stored `kybernos.ws.console.url` does not win
+  (but wins behind `kybernos.dev = 1`), and that the frame's own « Open in browser » (the stand-in page posts what the real console posts) asks the
+  host for a console link on `section: overview` from the Account and Referral pages. Without the core plugin's `__kbOpenWsConsole` bridge Account
+  falls back to the system browser through the console link. The notification bell is hidden behind `SHOW_BELL` in the cloud client and the check
+  asserts it is absent.
 - **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
   Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be

@@ -74,6 +74,27 @@ console.log('the developer overrides only win behind the explicit flag')
   check('a blocked storage is the active server, not an error', blocked.kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
 }
 
+console.log('the address of the embedded console is derived from the active server at each use')
+{
+  const a = source.indexOf('const kbDevOverrides = () =>')
+  const endMark = "+ (kbConsolePage(page) !== '' ? '#' + kbConsolePage(page) : '')"
+  const b = source.indexOf(endMark, a) + endMark.length
+  check('the address builders are where the test expects them', a > 0 && b > endMark.length && b > a)
+  const make = (server, locale) => new Function('kbServer', 'kbLocaleRead', 'window', source.slice(a, b) + '\nreturn { kbWsConsole, kbWsOrigin, kbConsoleUrl, kbConsoleLang, kbConsolePage }')(
+    server, () => locale, { localStorage: { getItem: () => null } })
+  const srv = (origin, ws = '') => ({ api: origin, web: origin, console: origin + '/workspace-console', gateway: '', workspace: ws, computer: false })
+  const A = srv('http://localhost:8791', 'w-1')
+  const f = make(A, 'en')
+  check('console, workspace, theme and language', f.kbConsoleUrl(false) === 'http://localhost:8791/workspace-console?gw=&ws=w-1&theme=light&lang=en', f.kbConsoleUrl(false))
+  check('a page is the fragment', f.kbConsoleUrl(true, 'account') === 'http://localhost:8791/workspace-console?gw=&ws=w-1&theme=dark&lang=en#account', f.kbConsoleUrl(true, 'account'))
+  for (const bad of ['../x', 'a b', '#plan', '/account', 'x'.repeat(40), '', 7, null]) check('a page that is not a slug is no fragment (' + JSON.stringify(bad) + ')', f.kbConsoleUrl(false, bad).indexOf('#') < 0)
+  // The server object is read at each call: another server later gives another address from the same functions.
+  A.console = 'https://other.example/workspace-console'
+  A.workspace = ''
+  check('the address follows the server object (each use, never captured)', f.kbConsoleUrl(false) === 'https://other.example/workspace-console?gw=&theme=light&lang=en' && f.kbWsOrigin() === 'https://other.example', f.kbConsoleUrl(false))
+  for (const [locale, want] of [['fr', 'fr'], ['zh-CN', 'zh-cn'], ['pt_BR', 'pt-br'], ['ar', 'ar'], ['', 'en'], ['not a locale', 'en'], [undefined, 'en']]) check('language ' + JSON.stringify(locale) + ' → ' + want, make(srv('http://x.example'), locale).kbConsoleLang() === want)
+}
+
 console.log('the shipped code')
 check('the loader asks the cloud plugin, same-origin', snippet.indexOf("'/kybernos-cloud/server'") > 0 && snippet.indexOf("credentials: 'same-origin'") > 0)
 check('the console URL carries `ws` only when a workspace is known', source.indexOf("(kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')") > 0)
