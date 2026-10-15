@@ -391,8 +391,8 @@ window.__ModuleLoader__.load({
         const g = (fill, op) => (x) => '<g fill="' + fill + '"' + (op < 1 ? ' opacity="' + op + '"' : '') + '>' + x + '</g>'
         const INK = 'var(--dsw-alias-label-primary,#1c1f26)'
         return on
-          ? { on, hue, m: g(hue, 1), s: g(hue, 0.4), k: g(iconShade(hue, 0.38), 1), ik: g(INK, 1), hi: g(iconMix(hue, 0.45), 1), md: g(hue, 1), lo: g(iconShade(hue, 0.3), 1), p: g('#fff', 1) }
-          : { on, hue, m: g('currentColor', 1), s: g('currentColor', 0.4), k: g('currentColor', 0.62), ik: g('currentColor', 0.45), hi: g('currentColor', 0.38), md: g('currentColor', 0.68), lo: g('currentColor', 1), p: g('#fff', 1) }
+          ? { on, hue, m: g(hue, 1), s: g(hue, 0.4), b: g(hue, 0.55), k: g(iconShade(hue, 0.38), 1), ik: g(INK, 1), hi: g(iconMix(hue, 0.45), 1), md: g(hue, 1), lo: g(iconShade(hue, 0.3), 1), p: g('#fff', 1) }
+          : { on, hue, m: g('currentColor', 1), s: g('currentColor', 0.4), b: g('currentColor', 0.5), k: g('currentColor', 0.62), ik: g('currentColor', 0.45), hi: g('currentColor', 0.38), md: g('currentColor', 0.68), lo: g('currentColor', 1), p: g('#fff', 1) }
       }
       const iRect = (x, y, w, h, r) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (r === undefined ? 0.9 : r) + '"/>'
       const iDot = (cx, cy, r) => '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '"/>'
@@ -455,98 +455,229 @@ window.__ModuleLoader__.load({
         return tile + '<g transform="translate(6.6 6.6) scale(.45)" fill="#fff">' + F.p + '</g><g transform="translate(6.6 6.6) scale(.45)" fill="#fff" opacity=".7">' + F.s + '</g>'
       }
 
-      // ── 1 · Matrice: 7×7 dot-matrix bitmaps (# main, + detail) ──
+      // ── The nine pictograms the other languages redraw: each has a visible link with its menu entry ──
+      // cloud = a cloud, kyber = a robot head, dash = a bar chart, teams = three people, ws = a folder,
+      // creations = a picture, auto = a cog, skills = an open book, plug = a plug.
+      // m = the mass, s = the lighter detail, p = paper cut-outs (eyes, holes), q = what is drawn over the paper
+      const iTooth = (a, cx, cy, r0, r1, hw) => {
+        const rad = (a * Math.PI) / 180, c = Math.cos(rad), s = Math.sin(rad)
+        return iPoly([[-hw, -r1], [hw, -r1], [hw, -r0], [-hw, -r0]].map((p) => [iconN(cx + p[0] * c - p[1] * s), iconN(cy + p[0] * s + p[1] * c)]))
+      }
+      const ICON_PICTO = {
+        cloud: { m: iDot(7.5, 14, 4.8) + iDot(13.5, 10, 6.3) + iDot(18.5, 14.5, 4.3) + iRect(3, 14, 18.5, 6, 3), s: '', p: iRect(8, 15.5, 8, 1.4, 0.7), q: '' },
+        kyber: { m: iRect(4.5, 7.5, 15, 12.5, 4), s: iRect(11, 3.2, 2, 4.5, 1) + iDot(12, 2.8, 1.8) + iRect(1.5, 11.5, 2.2, 5, 1.1) + iRect(20.3, 11.5, 2.2, 5, 1.1), p: iDot(9, 13, 1.9) + iDot(15, 13, 1.9) + iRect(9.3, 16.6, 5.4, 1.5, 0.75), q: '' },
+        dash: { m: iRect(3, 12, 4.6, 8.5, 1.2) + iRect(16.4, 2.5, 4.6, 18, 1.2), s: iRect(9.7, 7, 4.6, 13.5, 1.2) + iRect(1.5, 21.6, 21, 1.6, 0.8), p: '', q: '' },
+        teams: { m: iDot(12, 7, 3.4) + iPath('M5.5 20.5a6.5 6.5 0 0 1 13 0z'), s: iDot(4.8, 9.5, 2.6) + iPath('M1 20.5a3.8 3.8 0 0 1 7.6 0z') + iDot(19.2, 9.5, 2.6) + iPath('M15.4 20.5a3.8 3.8 0 0 1 7.6 0z'), p: '', q: '' },
+        ws: { m: iRect(2, 8.5, 20, 12.5, 2.5), s: iPath('M2 8.5V6.5A2.5 2.5 0 0 1 4.5 4h5l2.5 3h7.5A2.5 2.5 0 0 1 22 9.5v-1z'), p: '', q: '' },
+        creations: { m: iRect(2.5, 3.5, 19, 17, 2.5), s: '', p: iRect(5, 6, 14, 12, 1), q: iPoly([[6.5, 17], [11, 10.5], [14, 14.5], [16, 12], [18, 17]]) + iDot(16.5, 8.5, 1.6) },
+        auto: { m: iDot(12, 12, 7.6) + [0, 45, 90, 135, 180, 225, 270, 315].map((a) => iTooth(a, 12, 12, 6.5, 11, 2)).join(''), s: '', p: iDot(12, 12, 3.2), q: '' },
+        skills: { m: iPath('M2 5.5c4-1.8 7.5-1.6 10 1v14.5c-2.5-2.5-6-2.8-10-1z') + iPath('M22 5.5c-4-1.8-7.5-1.6-10 1v14.5c2.5-2.5 6-2.8 10-1z'), s: '', p: iRect(11.4, 6, 1.2, 15, 0.6), q: '' },
+        plug: { m: iRect(5, 9, 14, 8.5, 3.2) + iRect(10.6, 17, 2.8, 5.5, 1.4), s: iRect(8, 3, 2.6, 6.5, 1.1) + iRect(13.4, 3, 2.6, 6.5, 1.1), p: '', q: '' }
+      }
+      const iSilhouette = (P) => P.m + P.s + P.q
+      // A clip path whose id is stable for (set, entry, state): the same id always names the same shape.
+      const iClipId = (kind, e, t) => 'kb' + kind + '-' + e + (t.on ? t.hue.slice(1) : 'g')
+      // Cut-outs are real holes (a mask), not paper-coloured fills: they show the row's own background, light or dark, hover or not.
+      const iMasked = (kind, e, t, holes, body) => {
+        if (holes === '') return body
+        const id = iClipId(kind, e, t)
+        return '<defs><mask id="' + id + '" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect x="0" y="0" width="24" height="24" fill="#fff"/><g fill="#000">' + holes + '</g></mask></defs><g mask="url(#' + id + ')">' + body + '</g>'
+      }
+
+      // ── 1 · Matrice: dots of a 9×9 panel (# main, + light) ──
       const ICON_BITMAPS = {
-        cloud: ['.......', '..##...', '.#####.', '#######', '#######', '.+++++.', '.......'],
-        kyber: ['..###..', '.#####.', '##.#.##', '#######', '#######', '#.#.#.#', '.......'],
-        dash: ['.......', '.....#.', '.....#.', '...#.#.', '.#.#.#.', '.#.#.#.', '+++++++'],
-        teams: ['.......', '.+.#.+.', '.......', '.+.#.+.', '+++#+++', '+#####+', '.......'],
-        ws: ['.......', '.##....', '#######', '#+++++#', '#+++++#', '#######', '.......'],
-        creations: ['#######', '#...+.#', '#.....#', '#..#..#', '#.###.#', '#######', '.......'],
-        auto: ['...#...', '.#.#.#.', '..###..', '###.###', '..###..', '.#.#.#.', '...#...'],
-        skills: ['.......', '.##.##.', '###.###', '.##.##.', '...#...', '...#...', '+++++++'],
-        plug: ['.#...#.', '.#...#.', '#######', '#######', '.#####.', '..###..', '...#...']
+        cloud: ['.........', '....##...', '..######.', '.########', '#########', '#########', '.#######.', '..+++++..', '.........'],
+        kyber: ['....+....', '....+....', '.#######.', '##.###.##', '##.###.##', '.#######.', '.##...##.', '.#######.', '.........'],
+        dash: ['.........', '.......##', '.......##', '....##.##', '....##.##', '.##.##.##', '.##.##.##', '.##.##.##', '+++++++++'],
+        teams: ['.........', '.##...##.', '.##...##.', '.........', '####.####', '####.####', '####.####', '####.####', '.........'],
+        ws: ['.........', '.####....', '#########', '#+++++++#', '#########', '#########', '#########', '#########', '.........'],
+        creations: ['#########', '#.......#', '#....+..#', '#.......#', '#...#...#', '#..###..#', '#.#####.#', '#########', '.........'],
+        auto: ['....#....', '.#.###.#.', '.#######.', '..##.##..', '####.####', '..##.##..', '.#######.', '.#.###.#.', '....#....'],
+        skills: ['.........', '.###.###.', '####.####', '####.####', '####.####', '####.####', '.###.###.', '.........', '.........'],
+        plug: ['.........', '..#...#..', '..#...#..', '.#######.', '.#######.', '.#######.', '..#####..', '....#....', '....#....']
       }
       const iMatrix = (e, t) => {
         let m = '', s = ''
-        ICON_BITMAPS[e].forEach((row, y) => { row.split('').forEach((c, x) => { if (c === '#') m += iDot(3 + 3 * x, 3 + 3 * y, 1.25); else if (c === '+') s += iDot(3 + 3 * x, 3 + 3 * y, 1.25) }) })
+        ICON_BITMAPS[e].forEach((row, y) => { row.split('').forEach((c, x) => { if (c === '#') m += iDot(iconN(2 + 2.5 * x), iconN(2 + 2.5 * y), 1.05); else if (c === '+') s += iDot(iconN(2 + 2.5 * x), iconN(2 + 2.5 * y), 1.05) }) })
         return t.m(m) + t.s(s)
       }
 
-      // ── 2 · Mondrian: blocks and gutters, nothing else ──
+      // ── 2 · Mondrian: the same nine, built from blocks and gutters only ──
       const ICON_MONDRIAN = {
-        cloud: (t) => t.s(iRect(3, 3, 18, 4.2)) + t.m(iRect(3, 8.7, 12, 12.3)) + t.s(iRect(16.5, 8.7, 4.5, 5.7)) + t.m(iRect(16.5, 15.9, 4.5, 5.1)),
-        kyber: (t) => t.s(iRect(9, 9, 12, 12)) + t.m(iRect(3, 3, 12, 12)),
-        dash: (t) => t.m(iRect(3, 3, 8, 11)) + t.s(iRect(12.5, 3, 8.5, 6.5)) + t.m(iRect(12.5, 11, 8.5, 10)) + t.s(iRect(3, 15.5, 8, 5.5)),
-        teams: (t) => t.m(iRect(7.75, 3, 8.5, 8.5)) + t.s(iRect(3, 13, 8.5, 8)) + t.s(iRect(12.5, 13, 8.5, 8)),
-        ws: (t) => t.s(iRect(3, 3, 8, 4.2)) + t.m(iRect(3, 8.7, 18, 12.3)),
-        creations: (t) => t.s(iRect(3, 16, 5, 5)) + t.s(iRect(9.5, 9.5, 5, 5)) + t.m(iRect(16, 3, 5, 5)),
-        auto: (t) => t.s(iRect(2, 17.5, 3.5, 3.5)) + t.s(iRect(7, 15.5, 5.5, 5.5)) + t.m(iRect(14, 13.5, 7.5, 7.5)),
-        skills: (t) => t.s(iRect(3, 3, 6, 5.5)) + t.s(iRect(3, 9.5, 12, 5.5)) + t.m(iRect(3, 16, 18, 5)),
-        plug: (t) => t.m(iRect(3, 7.5, 6.5, 9)) + t.s(iRect(10.5, 10.7, 3, 2.6)) + t.m(iRect(14.5, 7.5, 6.5, 9)) + t.s(iRect(3, 18, 18, 3))
+        cloud: (t) => t.m(iRect(3, 13, 18, 7.5, 3.5) + iRect(10.5, 5, 8.5, 9, 4)) + t.s(iRect(4.5, 8.5, 7, 6, 3)),
+        kyber: (t) => t.m(iRect(4, 8, 16, 12, 1.5)) + t.s(iRect(10.5, 2.5, 3, 4.5, 0.8) + iRect(1, 11, 2, 5, 0.6) + iRect(21, 11, 2, 5, 0.6)) + t.p(iRect(7.5, 11.5, 3, 3, 0.5) + iRect(13.5, 11.5, 3, 3, 0.5) + iRect(8.5, 16.2, 7, 1.6, 0.5)),
+        dash: (t) => t.m(iRect(3, 12, 4.6, 8.5, 0.8) + iRect(16.4, 2.5, 4.6, 18, 0.8)) + t.s(iRect(9.7, 7, 4.6, 13.5, 0.8) + iRect(1.5, 21.6, 21, 1.6, 0.5)),
+        teams: (t) => t.m(iRect(10, 3.5, 4.2, 4.2, 0.6) + iRect(7, 9.5, 10.2, 11.5, 0.8)) + t.s(iRect(2, 8, 3.4, 3.4, 0.6) + iRect(1, 12.8, 5.2, 8.2, 0.8) + iRect(18.6, 8, 3.4, 3.4, 0.6) + iRect(17.8, 12.8, 5.2, 8.2, 0.8)),
+        ws: (t) => t.s(iRect(2, 4, 8.5, 4, 0.8)) + t.m(iRect(2, 9.5, 20, 11.5, 0.8)),
+        creations: (t) => iMasked('mm', 'creations', t, iRect(5, 6, 14, 12, 0.5), t.m(iRect(2.5, 3.5, 19, 17, 0.8))) + t.s(iRect(7, 13.5, 4, 4, 0.5) + iRect(12.5, 10.5, 4.5, 7, 0.5) + iRect(14.5, 7, 2.6, 2.6, 0.5)),
+        auto: (t) => t.m(iRect(7, 7, 10, 10, 0.8) + iRect(10.5, 1.5, 3, 4.5, 0.6) + iRect(10.5, 18, 3, 4.5, 0.6) + iRect(1.5, 10.5, 4.5, 3, 0.6) + iRect(18, 10.5, 4.5, 3, 0.6)) + t.s(iRect(3.5, 3.5, 3, 3, 0.5) + iRect(17.5, 3.5, 3, 3, 0.5) + iRect(3.5, 17.5, 3, 3, 0.5) + iRect(17.5, 17.5, 3, 3, 0.5)) + t.p(iRect(10.5, 10.5, 3, 3, 0.4)),
+        skills: (t) => t.m(iRect(2, 5, 9.5, 15.5, 0.8)) + t.s(iRect(12.5, 5, 9.5, 15.5, 0.8)) + t.p(iRect(4, 8.5, 5.5, 1.3, 0.4) + iRect(4, 12, 5.5, 1.3, 0.4) + iRect(14.5, 8.5, 5.5, 1.3, 0.4) + iRect(14.5, 12, 5.5, 1.3, 0.4)),
+        plug: (t) => t.m(iRect(5, 9, 14, 8, 0.8) + iRect(10.7, 17.5, 2.6, 5, 0.6)) + t.s(iRect(8, 3, 2.6, 5.5, 0.6) + iRect(13.4, 3, 2.6, 5.5, 0.6))
       }
 
-      // ── 3 · Anneaux: rings, arcs and dots only ──
+      // ── 3 · Anneaux: rings, bands and dots ──
+      const iBand = (outer, inner) => iPath(outer + inner, ' fill-rule="evenodd"')
       const ICON_RINGS = {
-        cloud: (t) => t.m(iRing(12, 12.5, 7, 2.6)) + t.s(iRing(5.8, 15.5, 4.2, 2)) + t.s(iRing(18.2, 15.5, 4.2, 2)),
-        kyber: (t) => t.s(iRing(12, 12, 8.6, 1.8)) + t.m(iDot(18.1, 5.9, 3.2)) + t.k(iDot(12, 12, 2.2)),
-        dash: (t) => t.m(iArc(12, 12, 10, 2.4, 0, 270)) + t.s(iArc(12, 12, 6.6, 2.4, 0, 200)) + t.m(iArc(12, 12, 3.2, 2.2, 0, 140)),
-        teams: (t) => t.s(iRing(8.4, 9, 5.6, 2.2)) + t.s(iRing(15.6, 9, 5.6, 2.2)) + t.m(iRing(12, 15.2, 5.6, 2.2)),
-        ws: (t) => t.m(iArc(12, 12, 9, 3.2, 40, 320)) + t.s(iDot(12, 12, 3.2)),
-        creations: (t) => t.s(iRing(8, 15, 6, 2)) + t.m(iDot(16.5, 8, 4.5)) + t.m(iRing(18, 18, 3.2, 1.6)),
-        auto: (t) => t.m(iRing(7.5, 7.5, 5.4, 2.1)) + t.m(iRing(14.5, 12.5, 4, 1.9)) + t.s(iRing(19.2, 17.8, 2.8, 1.5)),
-        skills: (t) => t.s(iRing(12, 12, 10, 1.9)) + t.m(iRing(12, 12, 6.2, 2)) + t.k(iDot(12, 12, 2)),
-        plug: (t) => t.m(iRing(8, 12, 6.2, 2.5)) + t.s(iRing(16, 12, 6.2, 2.5))
+        cloud: (t) => t.s(iRing(7.5, 14.5, 5, 2)) + t.m(iRing(13.5, 10.5, 6.5, 2.4)) + t.s(iRing(18.5, 15, 4.5, 2)),
+        kyber: (t) => t.m(iRing(12, 13.5, 8.8, 2.6)) + t.k(iDot(8.7, 13, 1.7) + iDot(15.3, 13, 1.7)) + t.s(iRect(11.2, 3, 1.6, 3.5, 0.8) + iDot(12, 2.6, 1.7)),
+        dash: (t) => t.m(iArc(12, 17.5, 10.5, 3, 270, 450)) + t.s(iArc(12, 17.5, 6, 2.4, 270, 450)) + t.k(iPoly([[11.2, 17.5], [17.5, 9], [18.8, 10.2], [12.8, 18.8]])) + t.m(iDot(12, 18, 1.8)),
+        teams: (t) => t.s(iRing(5, 9, 3, 1.4) + iRing(19, 9, 3, 1.4) + iArc(5, 21, 4.6, 1.8, 270, 450) + iArc(19, 21, 4.6, 1.8, 270, 450)) + t.m(iRing(12, 7, 3.8, 1.8) + iArc(12, 21, 6.4, 2.4, 270, 450)),
+        ws: (t) => t.m(iBand('M2 21V8.5a2.5 2.5 0 0 1 2.5-2.5h5l2.5 3h7.5a2.5 2.5 0 0 1 2.5 2.5V21z', 'M4.6 18.6V11.4H19.4v7.2z')),
+        creations: (t) => t.m(iBand('M4 3.5h16a2.5 2.5 0 0 1 2.5 2.5v12a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 18V6A2.5 2.5 0 0 1 4 3.5z', 'M4.2 6.1h15.6v11.8H4.2z')) + t.s(iPoly([[5.5, 16.5], [10, 10.5], [13, 14], [15.5, 11.5], [18.5, 16.5]])) + t.m(iRing(16.5, 8.5, 2, 1)),
+        auto: (t) => t.m(iRing(12, 12, 7.2, 2.6) + [0, 45, 90, 135, 180, 225, 270, 315].map((a) => iTooth(a, 12, 12, 6.8, 11, 1.9)).join('')) + t.s(iDot(12, 12, 2)),
+        skills: (t) => t.s(iPoly([[7, 14], [4.5, 22], [9, 20], [12, 22.5], [8.5, 14.5]]) + iPoly([[17, 14], [19.5, 22], [15, 20], [12, 22.5], [15.5, 14.5]])) + t.m(iRing(12, 9.5, 7, 2.8)) + t.k(iDot(12, 9.5, 2)),
+        plug: (t) => t.m(iRing(8, 12, 6, 2.6)) + t.s(iRing(16, 12, 6, 2.6))
       }
 
       // ── 4 · Isométrique: blocks in three tones ──
+      const iFaceQuad = (cx, ty, ux, uy, h, pts) => {
+        const P3 = [cx - uy, ty + uy / 2], P2 = [cx + ux - uy, ty + ux / 2 + uy / 2]
+        return pts.map((q) => [iconN(P3[0] + q[0] * (P2[0] - P3[0])), iconN(P3[1] + q[0] * (P2[1] - P3[1]) + q[1] * h)])
+      }
       const ICON_ISO = {
-        cloud: (t) => iCub(t, 12, 12, 8, 8, 3.2) + iCub(t, 12, 7, 8, 8, 3.2) + iCub(t, 12, 2, 8, 8, 3.2),
-        kyber: (t) => t.hi(iPoly([[12, 2], [4, 9], [12, 12]])) + t.md(iPoly([[12, 2], [20, 9], [12, 12]])) + t.md(iPoly([[4, 9], [12, 12], [12, 22]])) + t.lo(iPoly([[20, 9], [12, 12], [12, 22]])),
+        cloud: (t) => iCub(t, 12, 12, 8, 8, 3.2) + iCub(t, 12, 7, 8, 8, 3.2) + iCub(t, 12, 2, 8, 8, 3.2) + t.p(iDot(7.5, 17, 0.8) + iDot(7.5, 12, 0.8) + iDot(7.5, 7, 0.8)),
+        kyber: (t) => iCub(t, 12, 6, 8, 8, 9) + t.p(iDot(6.5, 14.25, 1.3) + iDot(9.5, 15.75, 1.3)) + t.lo(iRect(11.4, 4.5, 1.2, 5.5, 0.6)) + t.hi(iDot(12, 4, 1.7)),
         dash: (t) => iCub(t, 5.8, 13.8, 3.2, 3.2, 5) + iCub(t, 12.2, 9.8, 3.2, 3.2, 9) + iCub(t, 18.6, 5.8, 3.2, 3.2, 13),
-        teams: (t) => iFade(iCub(t, 7.2, 3.5, 4.2, 4.2, 4) + iCub(t, 16.8, 3.5, 4.2, 4.2, 4)) + iCub(t, 12, 10, 4.2, 4.2, 4),
+        teams: (t) => [[5, 10], [12, 7.5], [19, 10]].map((q) => t.lo('<ellipse cx="' + q[0] + '" cy="21.5" rx="4.2" ry="1.6"/>') + t.md(iPoly([[q[0] - 3.6, 21.5], [q[0] - 2, q[1] + 3.5], [q[0] + 2, q[1] + 3.5], [q[0] + 3.6, 21.5]])) + t.hi(iDot(q[0], q[1], 3))).join(''),
         ws: (t) => iCub(t, 12, 3, 9, 9, 9) + t.lo(iPoly([[12, 4.8], [17.4, 7.5], [12, 10.2], [6.6, 7.5]])),
-        creations: (t) => iCub(t, 12, 9, 7, 7, 6) + t.m(iDot(12, 8.2, 4.4)),
-        auto: (t) => iFade(iCub(t, 9, 4, 2.2, 7, 9) + iCub(t, 13.8, 6.4, 2.2, 7, 9)) + iCub(t, 18.6, 8.8, 2.2, 7, 9),
-        skills: (t) => iCub(t, 12, 9.5, 9, 9, 4.5) + iCub(t, 12, 6.25, 6.5, 6.5, 4.5) + iCub(t, 12, 3, 4, 4, 4.5),
+        creations: (t) => { const f = (pts) => iFaceQuad(5, 3, 14, 3.6, 12, pts); return iMasked('mi', 'creations', t, iPoly(f([[0.1, 0.12], [0.9, 0.12], [0.9, 0.88], [0.1, 0.88]])), iCub(t, 5, 3, 14, 3.6, 12)) + t.hi(iPoly(f([[0.2, 0.8], [0.42, 0.38], [0.58, 0.62], [0.7, 0.5], [0.82, 0.8]]))) },
+        auto: (t) => {
+          const star = (dy) => iPoly(Array.from({ length: 24 }, (_, k) => { const R = k % 2 === 0 ? 10.8 : 7.6, a = k * Math.PI / 12; return [iconN(12 + R * Math.sin(a)), iconN(8.5 + dy + 0.6 * R * -Math.cos(a))] }))
+          return [5, 4, 3, 2, 1].map((d) => t.md(star(d))).join('') + t.hi(star(0)) + t.lo('<ellipse cx="12" cy="8.5" rx="3" ry="1.8"/>')
+        },
+        skills: (t) => iCub(t, 12, 7, 9, 7, 4.5) + t.p(iBar([14.5, 17.4], [20.5, 14.4], 0.7) + iBar([14.5, 18.8], [20.5, 15.8], 0.7)),
         plug: (t) => iCub(t, 6, 3, 4, 4, 5) + iCub(t, 11.4, 6.2, 5.6, 1.8, 1.8) + iCub(t, 18, 9, 4, 4, 5)
       }
 
-      // ── 5 · Créatures: little blobs with two eyes ──
-      const iEyes = (t, x1, x2, y, r) => t.p(iDot(x1, y, r) + iDot(x2, y, r)) + t.k(iDot(x1 + 0.2, y, r * 0.5) + iDot(x2 + 0.2, y, r * 0.5))
-      const ICON_CREATURES = {
-        cloud: (t) => t.m(iDot(8.5, 14, 5.5) + iDot(14.5, 11.5, 6.5) + iDot(18.5, 15.5, 4.5) + iRect(4, 14, 17, 6.5, 3.2)) + iEyes(t, 10.2, 15.2, 15.2, 1.5),
-        kyber: (t) => t.m(iPath('M4 21V11a8 8 0 0 1 16 0v10l-2.67-2.2L14.67 21 12 18.8 9.33 21 6.67 18.8z')) + iEyes(t, 9.3, 14.7, 11, 1.7),
-        dash: (t) => t.k(iPath('M4.5 6.5 8.4 3.5 10 6zM19.5 6.5 15.6 3.5 14 6z')) + t.m(iRect(4, 4.5, 16, 16.5, 8)) + t.p(iDot(8.8, 11, 3.2) + iDot(15.2, 11, 3.2)) + t.k(iDot(9, 11, 1.5) + iDot(15, 11, 1.5)) + t.s(iPath('M10.6 15.2h2.8L12 17.4z')),
-        teams: (t) => t.s(iDot(5.5, 15.5, 4.5)) + t.s(iDot(18.5, 15.5, 4.5)) + t.m(iDot(12, 12.5, 6.5)) + t.p(iDot(10, 12, 1.3) + iDot(14, 12, 1.3)),
-        ws: (t) => t.s(iRect(3, 15, 19, 5.5, 2.75)) + t.s(iRect(19.2, 7, 1.5, 6, 0.7)) + t.s(iRect(21.8, 8, 1.5, 5, 0.7)) + t.m(iDot(10, 11.5, 6.8)) + t.p(iDot(10, 11.5, 2.4)) + t.p(iDot(20.2, 17, 1.2)),
-        creations: (t) => t.m(iDot(12, 9.5, 7) + iRect(5, 12, 3.2, 9) + iRect(9.2, 14, 3.2, 7.5) + iRect(13.6, 14, 3.2, 7.5) + iRect(17.8, 12, 3.2, 9)) + iEyes(t, 9.3, 14.7, 9.5, 1.7),
-        auto: (t) => t.s(iPath('M8 8.5C5 1.5 10 1 11 7.5zM16 8.5C19 1.5 14 1 13 7.5z')) + t.m(iDot(12, 14, 7.5)) + t.k(iRect(5.2, 9.5, 2, 9, 1) + iRect(16.8, 9.5, 2, 9, 1)) + iEyes(t, 9.8, 14.2, 13, 1.4),
-        skills: (t) => t.m(iRect(8.5, 10, 7, 11, 3)) + t.k(iPath('M2.5 11a9.5 8 0 0 1 19 0z')) + t.p(iDot(7.5, 8, 1.4) + iDot(13.5, 5.8, 1.1) + iDot(17, 9, 1)) + t.p(iDot(10.4, 15, 1) + iDot(13.6, 15, 1)),
-        plug: (t) => t.m(iRect(7.5, 1.5, 3.4, 10, 1.7) + iRect(13.1, 1.5, 3.4, 10, 1.7) + iDot(12, 15.2, 6.8)) + iEyes(t, 9.6, 14.4, 15, 1.5)
+      // ── 5 · Kawaii: the same nine, with two eyes ──
+      const ICON_FACES = {
+        cloud: [[9.5, 15.5, 1.5], [15.5, 15.5, 1.5]],
+        dash: [[17.5, 7, 0.9], [19.9, 7, 0.9]],
+        teams: [[10.8, 6.8, 0.8], [13.2, 6.8, 0.8]],
+        ws: [[8, 14.5, 1.6], [16, 14.5, 1.6]],
+        skills: [[7, 13, 1.5], [17, 13, 1.5]],
+        plug: [[9.5, 13, 1.5], [14.5, 13, 1.5]]
+      }
+      const iKawaii = (e, t) => {
+        const P = ICON_PICTO[e]
+        const face = ICON_FACES[e] === undefined ? '' : t.p(ICON_FACES[e].map((q) => iDot(q[0], q[1], q[2])).join('')) + t.k(ICON_FACES[e].map((q) => iDot(q[0] + 0.15, q[1], q[2] * 0.5)).join(''))
+        const hollow = e === 'creations' ? t.k(iDot(9.5, 10, 1.1) + iDot(14.5, 10, 1.1)) : (e === 'auto' ? t.k(iDot(10.4, 12, 1.1) + iDot(13.6, 12, 1.1)) : '')
+        return iMasked('mk', e, t, P.p, t.m(P.m + P.s)) + t.m(P.q) + face + hollow
       }
 
-      // ── 6 · Barres: vertical stripes, the silhouette is the pattern of their lengths ──
-      const iBars = (t, spec) => {
-        // spec: 7 entries [top, bottom] (or [top, bottom, 's'] for the light tone, or null)
-        let m = '', s = ''
-        spec.forEach((b, i) => {
-          if (b === null) return
-          const bar = iRect(iconN(2.2 + i * 3.1), b[0], 2.1, iconN(b[1] - b[0]), 1.05)
-          if (b[2] === 's') s += bar; else m += bar
-        })
-        return t.m(m) + t.s(s)
+      // ── 6 · Persiennes: each pictogram cut into vertical slats ──
+      const iBlinds = (e, t) => {
+        const P = ICON_PICTO[e], cid = iClipId('b', e, t)
+        let slats = ''
+        for (let i = 0; i < 7; i += 1) slats += iRect(iconN(1.2 + i * 3.3), 0, 2.2, 24, 0)
+        return '<defs><clipPath id="' + cid + '">' + slats + '</clipPath></defs><g clip-path="url(#' + cid + ')">' + iMasked('mb', e, t, P.p, t.m(P.m) + t.k(P.s)) + t.m(P.q) + '</g>'
       }
-      const ICON_BARS = {
-        cloud: (t) => iBars(t, [[12, 17.5], [8, 17.5], [10.5, 17.5], [5, 17.5], [9, 17.5], [8, 17.5, 's'], [12, 17.5, 's']]),
-        kyber: (t) => iBars(t, [[9, 15, 's'], [6, 18], [3.5, 20.5], [2, 22], [3.5, 20.5], [6, 18], [9, 15, 's']]),
-        dash: (t) => iBars(t, [[14, 21], [10, 21, 's'], [12, 21], [6, 21], [8.5, 21, 's'], [3, 21], [5, 21, 's']]),
-        teams: (t) => iBars(t, [null, [10, 21], null, [10, 21], null, [10, 21], null]) + t.s(iDot(7.3, 5.8, 2) + iDot(13.5, 5.8, 2) + iDot(19.7, 5.8, 2)),
-        ws: (t) => iBars(t, [[6, 21, 's'], [9, 21], [9, 21], [9, 21], [9, 21], [9, 21], [9, 21]]),
-        creations: (t) => iBars(t, [[17, 21, 's'], [14.5, 18.5, 's'], [12, 16], [9.5, 13.5], [7, 11], [4.5, 8.5], [2.5, 6, 's']]),
-        auto: (t) => iBars(t, [[3, 21], [9, 21, 's'], [3, 21], [9, 21, 's'], [3, 21], [9, 21, 's'], [3, 21]]),
-        skills: (t) => iBars(t, [[17, 21, 's'], [14, 21, 's'], [11, 21], [8, 21], [5, 21], [3, 21], null]),
-        plug: (t) => iBars(t, [[5, 17], [5, 17], [5, 17, 's'], [10.5, 12.5], [5, 17, 's'], [5, 17], [5, 17]])
+
+      // ── 7 · Facettes: low-poly triangles in four tones ──
+      const iFan = (t, o, pts, seq) => pts.map((p, i) => t[seq[i % seq.length]](iPoly([o, p, pts[(i + 1) % pts.length]]))).join('')
+      const iPolar = (cx, cy, n, r, a0) => Array.from({ length: n }, (_, k) => [iconN(cx + r * Math.sin(a0 + k * 2 * Math.PI / n)), iconN(cy - r * Math.cos(a0 + k * 2 * Math.PI / n))])
+      const ICON_FACETS = {
+        cloud: (t) => iFan(t, [12.5, 12], [[3, 17.5], [3.5, 12], [8, 9], [10, 5.5], [15, 4.5], [19, 8], [22, 10.5], [21.5, 17.5]], ['hi', 'md', 'lo']),
+        kyber: (t) => iFan(t, [12, 13], iPolar(12, 13, 8, 9.5, Math.PI / 8), ['hi', 'md', 'lo', 'md']) + t.p(iDot(8.8, 12, 1.5) + iDot(15.2, 12, 1.5)),
+        dash: (t) => [[2, 11], [9, 4], [16, 14]].map((b) => t.hi(iPoly([[b[0], b[1]], [b[0] + 6, b[1]], [b[0], 21]])) + t.md(iPoly([[b[0] + 6, b[1]], [b[0] + 6, 21], [b[0], 21]]))).join(''),
+        teams: (t) => [5, 12, 19].map((x, i) => iFan(t, [x, 18], [[x - 4, 21.5], [x - 2.5, 14.5], [x + 2.5, 14.5], [x + 4, 21.5]], ['md', 'lo']) + iFan(t, [x, 9 - (i === 1 ? 1.5 : 0)], iPolar(x, 9 - (i === 1 ? 1.5 : 0), 6, 3.2, 0), ['hi', 'md', 'lo'])).join(''),
+        ws: (t) => iFan(t, [12, 15], [[2, 8], [9, 8], [11, 10.5], [22, 10.5], [22, 20], [2, 20]], ['hi', 'md', 'lo']),
+        creations: (t) => t.hi(iPoly([[7, 14], [10, 17], [17, 4]])) + t.md(iPoly([[10, 17], [20, 7], [17, 4]])) + t.lo(iPoly([[3, 21], [7, 14], [10, 17]])) + t.s(iPoly([[17, 4], [20, 7], [22, 5], [19, 2]])),
+        auto: (t) => iFan(t, [12, 12], Array.from({ length: 16 }, (_, k) => { const R = k % 2 === 0 ? 10.5 : 7.5, a = k * Math.PI / 8; return [iconN(12 + R * Math.sin(a)), iconN(12 - R * Math.cos(a))] }), ['hi', 'md', 'lo', 'md']) + t.p(iDot(12, 12, 2.8)),
+        skills: (t) => iFan(t, [6.5, 13], [[2, 6], [11.5, 8], [11.5, 20], [2, 18]], ['hi', 'md']) + iFan(t, [17.5, 13], [[22, 6], [12.5, 8], [12.5, 20], [22, 18]], ['md', 'lo']),
+        plug: (t) => iFan(t, [5.5, 12], [[2, 7], [9, 9], [9, 15], [2, 17]], ['hi', 'lo']) + iFan(t, [18.5, 12], [[22, 7], [15, 9], [15, 15], [22, 17]], ['md', 'lo']) + t.s(iPoly([[9, 10], [13, 12], [9, 14]])) + t.s(iPoly([[15, 10], [11, 12], [15, 14]]))
+      }
+
+      // ── 8 · Ombre longue: the pictogram and its long diagonal shadow ──
+      const iLongShadow = (e, t) => {
+        const P = ICON_PICTO[e], sil = iSilhouette(P)
+        let copies = ''
+        for (let i = 1; i <= 7; i += 1) copies += '<g transform="translate(' + i + ' ' + i + ')">' + sil + '</g>'
+        return '<g transform="translate(1 1) scale(.74)">' + t.s(copies) + iMasked('ml', e, t, P.p, t.m(P.m) + t.k(P.s)) + t.m(P.q) + '</g>'
+      }
+
+      // ── 9 · Trame: the silhouette filled with comic-book halftone dots ──
+      const iHalftone = (e, t) => {
+        const P = ICON_PICTO[e], sil = iSilhouette(P), cid = iClipId('h', e, t)
+        let dots = ''
+        for (let gy = 0; gy < 8; gy += 1) {
+          for (let gx = 0; gx < 8; gx += 1) {
+            const x = 1.5 + gx * 3, y = 1.5 + gy * 3
+            dots += iDot(x, y, iconN(0.45 + 1.25 * ((x + y) / 45)))
+          }
+        }
+        return '<defs><clipPath id="' + cid + '">' + sil + '</clipPath></defs>' + iMasked('mh', e, t, P.p, t.s(sil) + '<g clip-path="url(#' + cid + ')">' + t.m(dots) + '</g>') + t.m(P.q)
+      }
+
+      // ── 10 · Bulles: translucent pieces that darken where they overlap ──
+      const iBubbles = (e, t) => {
+        const P = ICON_PICTO[e]
+        return iMasked('mu', e, t, P.p, (iSilhouette(P).match(/<[^>]*\/>/g) || []).map((x) => t.b(x)).join(''))
+      }
+
+      // ── 11 · Alvéoles: the same bitmaps, in honeycomb cells ──
+      const iHexCell = (cx, cy, r) => iPoly(Array.from({ length: 6 }, (_, k) => [iconN(cx + r * Math.sin(k * Math.PI / 3)), iconN(cy - r * Math.cos(k * Math.PI / 3))]))
+      const iHoney = (e, t) => {
+        let m = '', s = '', k = ''
+        ICON_BITMAPS[e].forEach((row, y) => row.split('').forEach((c, x) => {
+          if (c === '.') return
+          const cx = iconN(1.4 + x * 2.5 + (y % 2 === 1 ? 1.25 : 0)), cy = iconN(3.4 + y * 2.16), cell = iHexCell(cx, cy, 1.4)
+          if (c === '+') s += cell; else if ((x * 3 + y * 5) % 7 === 0) k += cell; else m += cell
+        }))
+        return t.m(m) + t.s(s) + t.k(k)
+      }
+
+      // ── 12 · Constellation: stars and the thin lines that join them ──
+      const iBar = (a, b, w) => {
+        const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = (-dy / l) * (w / 2), ny = (dx / l) * (w / 2)
+        return iPoly([[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]])
+      }
+      const iLoop = (n, off) => Array.from({ length: n }, (_, i) => [off + i, off + ((i + 1) % n)])
+      const ICON_STARS = {
+        cloud: { p: [[3, 16], [5, 11], [9, 8.5], [12, 5], [16, 7.5], [19.5, 9.5], [21.5, 13], [21, 16]], l: iLoop(8, 0), big: 3 },
+        kyber: { p: [[5, 8], [19, 8], [19, 19], [5, 19], [9.5, 12.5], [14.5, 12.5], [12, 3.5], [9.5, 16], [14.5, 16], [12, 8]], l: [[0, 1], [1, 2], [2, 3], [3, 0], [7, 8], [9, 6]], big: 6 },
+        dash: { p: [[3, 19], [8, 13], [13, 15.5], [21, 5], [2, 21.5], [22, 21.5]], l: [[0, 1], [1, 2], [2, 3], [4, 5]], big: 3 },
+        teams: { p: [[5, 8], [12, 6], [19, 8], [1.5, 19], [8.5, 19], [15.5, 19], [22.5, 19]], l: [[0, 3], [0, 4], [3, 4], [1, 4], [1, 5], [4, 5], [2, 5], [2, 6], [5, 6]], big: 1 },
+        ws: { p: [[3, 7], [10, 7], [12, 9.5], [21, 9.5], [21, 19], [3, 19]], l: iLoop(6, 0), big: 0 },
+        creations: { p: [[3, 4], [21, 4], [21, 20], [3, 20], [6, 17], [11, 11], [16, 17], [17, 8]], l: iLoop(4, 0).concat([[4, 5], [5, 6]]), big: 7 },
+        auto: { p: iPolar(12, 12, 8, 9, Math.PI / 8).concat([[12, 12]]), l: iLoop(8, 0).concat([[8, 0], [8, 2], [8, 4], [8, 6]]), big: 8 },
+        skills: { p: [[2, 6], [12, 8], [22, 6], [22, 19], [12, 21], [2, 19]], l: iLoop(6, 0).concat([[1, 4]]), big: 1 },
+        plug: { p: [[6, 10], [18, 10], [18, 17], [6, 17], [9, 4], [15, 4], [12, 22]], l: iLoop(4, 0).concat([[0, 4], [1, 5], [3, 6]]), big: 6 }
+      }
+      const iStars = (e, t) => {
+        const c = ICON_STARS[e]
+        const dust = [[1.5, 1.5], [22.5, 1.5], [1.5, 22.5], [22.5, 22.5]].map((q) => iDot(q[0], q[1], 0.6)).join('')
+        const links = c.l.map((q) => iBar(c.p[q[0]], c.p[q[1]], 0.9)).join('')
+        const dots = c.p.map((q, i) => iDot(q[0], q[1], i === c.big ? 2.2 : 1.3)).join('')
+        return t.s(dust + links) + t.m(dots)
+      }
+
+      // ── 13 · Biton: the pictogram split by a diagonal into two tones ──
+      const iTwoTone = (e, t) => {
+        const P = ICON_PICTO[e], sil = iSilhouette(P), a = iClipId('ta', e, t), b = iClipId('tb', e, t)
+        return '<defs><clipPath id="' + a + '">' + iPoly([[0, 0], [24, 0], [0, 24]]) + '</clipPath><clipPath id="' + b + '">' + iPoly([[24, 0], [24, 24], [0, 24]]) + '</clipPath></defs>' +
+          iMasked('mt', e, t, P.p, '<g clip-path="url(#' + a + ')">' + t.hi(sil) + '</g><g clip-path="url(#' + b + ')">' + t.lo(sil) + '</g>') + t.md(P.q)
+      }
+
+      // ── 14 · Tampon: ink with the speckles of a worn rubber stamp ──
+      const iStamp = (e, t) => {
+        const P = ICON_PICTO[e], sil = iSilhouette(P), cid = iClipId('s', e, t)
+        let speck = ''
+        for (let i = 0; i < 20; i += 1) speck += iDot(iconN(1.5 + ((i * 7.3) % 21)), iconN(1.5 + ((i * 11.7 + 3) % 21)), iconN(0.4 + ((i * 3) % 5) * 0.13))
+        return '<defs><clipPath id="' + cid + '">' + sil + '</clipPath></defs>' + iMasked('ms', e, t, P.p + speck, t.m(P.m) + t.k(P.s)) + t.m(P.q)
+      }
+
+      // ── 15 · Nature: a landscape ──
+      const ICON_NATURE = {
+        cloud: (t) => t.s(iDot(16, 8, 4.5)) + t.m(iDot(8.5, 16, 4) + iDot(13, 13.5, 5) + iDot(17.5, 16.5, 3.5) + iRect(4.5, 16, 16, 4, 2)),
+        kyber: (t) => t.s([0, 45, 90, 135, 180, 225, 270, 315].map((a) => iTooth(a, 12, 12, 7.5, 11, 1.4)).join('')) + t.m(iDot(12, 12, 6)) + t.k(iDot(9.8, 11, 0.9) + iDot(14.2, 11, 0.9) + iPath('M9.6 13.6q2.4 3 4.8 0q-2.4 1.4-4.8 0z')),
+        dash: (t) => t.s(iPoly([[9, 21], [17, 10], [23, 21]])) + t.m(iPoly([[1, 21], [9, 6], [17, 21]])) + t.p(iPoly([[9, 6], [11.6, 10.5], [9, 9.2], [6.4, 10.5]])),
+        teams: (t) => t.k(iRect(5.2, 16, 1.6, 5) + iRect(11.2, 15, 1.6, 6) + iRect(17.2, 16, 1.6, 5)) + t.m(iDot(6, 12, 4) + iDot(12, 9, 5.5) + iDot(18, 12, 4)),
+        ws: (t) => t.m(iRect(4, 11, 16, 10, 0)) + t.k(iPoly([[2, 12], [12, 3], [22, 12]])) + t.p(iRect(10, 15, 4, 6, 1)),
+        creations: (t) => t.m(iArc(12, 19, 11, 3, 270, 450)) + t.md(iArc(12, 19, 8, 3, 270, 450)) + t.s(iArc(12, 19, 5, 3, 270, 450)),
+        auto: (t) => t.k(iPoly([[10.2, 11], [13.8, 11], [15.5, 21.5], [8.5, 21.5]])) + t.s([20, 110, 200, 290].map((a) => iTooth(a, 12, 10, 1.5, 10, 1.3)).join('')) + t.m(iDot(12, 10, 1.9)),
+        skills: (t) => t.m(iPath('M3 20C3 9 10 3 21 3c0 11-6 17-17 17z')) + t.p(iPoly([[4, 19.5], [17, 6.5], [17.8, 7.3], [5, 20.3]])),
+        plug: (t) => t.s(iRect(1, 18, 22, 4, 2)) + t.m(iRect(1, 11, 22, 3, 1) + iRect(3, 14, 18, 6, 0)) + t.p(iPath('M5 20a3.2 3.2 0 0 1 6.4 0z') + iPath('M12.6 20a3.2 3.2 0 0 1 6.4 0z'))
       }
 
       const ICON_SETS = [
@@ -560,8 +691,17 @@ window.__ModuleLoader__.load({
         { id: 'mondrian', fr: 'Mondrian', en: 'Mondrian', hint: { fr: 'Des blocs et des gouttières, rien d’autre.', en: 'Blocks and gutters, nothing else.' }, draw: (e, t) => ICON_MONDRIAN[e](t) },
         { id: 'anneaux', fr: 'Anneaux', en: 'Rings', hint: { fr: 'Des anneaux, des arcs et des points.', en: 'Rings, arcs and dots.' }, draw: (e, t) => ICON_RINGS[e](t) },
         { id: 'iso', fr: 'Isométrique', en: 'Isometric', hint: { fr: 'Des volumes en trois tons.', en: 'Volumes in three tones.' }, draw: (e, t) => ICON_ISO[e](t) },
-        { id: 'creatures', fr: 'Créatures', en: 'Critters', hint: { fr: 'Des petites bêtes à deux yeux.', en: 'Little creatures with two eyes.' }, draw: (e, t) => ICON_CREATURES[e](t) },
-        { id: 'barres', fr: 'Barres', en: 'Bars', hint: { fr: 'Des rayures dont la longueur dessine la forme.', en: 'Stripes whose lengths draw the shape.' }, draw: (e, t) => ICON_BARS[e](t) }
+        { id: 'kawaii', fr: 'Kawaii', en: 'Kawaii', hint: { fr: 'Les mêmes objets, avec deux yeux.', en: 'The same objects, with two eyes.' }, draw: iKawaii },
+        { id: 'barres', fr: 'Persiennes', en: 'Blinds', hint: { fr: 'Chaque pictogramme découpé en lamelles verticales.', en: 'Each pictogram cut into vertical slats.' }, draw: iBlinds },
+        { id: 'facettes', fr: 'Facettes', en: 'Facets', hint: { fr: 'Des triangles de verre, taillés comme une pierre.', en: 'Glass triangles, cut like a gem.' }, draw: (e, t) => ICON_FACETS[e](t) },
+        { id: 'ombre', fr: 'Ombre longue', en: 'Long shadow', hint: { fr: 'Une forme plate et son ombre qui s’étire en diagonale.', en: 'A flat shape and its long diagonal shadow.' }, draw: iLongShadow },
+        { id: 'trame', fr: 'Trame', en: 'Halftone', hint: { fr: 'La silhouette remplie de points de trame, comme une bande dessinée.', en: 'The silhouette filled with halftone dots, comic-book style.' }, draw: iHalftone },
+        { id: 'bulles', fr: 'Bulles', en: 'Bubbles', hint: { fr: 'Des pièces translucides qui foncent où elles se recouvrent.', en: 'Translucent pieces that darken where they overlap.' }, draw: iBubbles },
+        { id: 'alveoles', fr: 'Alvéoles', en: 'Honeycomb', hint: { fr: 'Le pictogramme bâti en cellules de ruche.', en: 'The pictogram built from honeycomb cells.' }, draw: iHoney },
+        { id: 'constellation', fr: 'Constellation', en: 'Constellation', hint: { fr: 'Des étoiles reliées par de fins traits dessinent le pictogramme.', en: 'Stars joined by thin lines draw the pictogram.' }, draw: iStars },
+        { id: 'biton', fr: 'Biton', en: 'Two-tone', hint: { fr: 'Le pictogramme coupé en deux tons par une diagonale.', en: 'The pictogram split in two tones by a diagonal.' }, draw: iTwoTone },
+        { id: 'tampon', fr: 'Tampon', en: 'Stamp', hint: { fr: 'De l’encre aux petites éclaboussures d’un tampon usé.', en: 'Ink with the speckles of a worn rubber stamp.' }, draw: iStamp },
+        { id: 'nature', fr: 'Nature', en: 'Nature', hint: { fr: 'Un paysage : soleil, montagnes, arbres, moulin.', en: 'A landscape: sun, mountains, trees, windmill.' }, draw: (e, t) => ICON_NATURE[e](t) }
       ]
       const ICON_SET_IDS = ICON_SETS.map((s) => s.id)
       /** The inner SVG markup of one icon (24×24 box), or null for the classic set and for an unknown set or entry. */
@@ -3085,6 +3225,15 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
               title: st.hint[kbLang()], onClick: () => commit({ iconSet: st.id })
             }, h('span', { className: 'kbth-icset-n' }, st[kbLang()]), iconeApercu(st.id, false), iconeApercu(st.id, true)))))
 
+        // The Essentiel tab only says which set is in use; the sets themselves live in their own tab, next to Animation.
+        const iconesNom = (ICON_SETS.find((x) => x.id === S.iconSet) || ICON_SETS[0])[kbLang()]
+        const iconesResume = h('div', { className: 'kbth-sum', 'data-kb': 'icons-summary' },
+          h('div', { className: 'kbth-sum-tx' },
+            h('span', { className: 'kbth-sec-t', style: { textTransform: 'none', fontSize: 13 } }, 'Icônes du menu'),
+            h('span', { className: 'kbth-hint' }, iconesNom + ' · ' + (ICON_SETS.length - 1) + ' jeux à choisir'),
+            iconeApercu(S.iconSet, false)),
+          h('button', { type: 'button', className: 'kbth-btn', 'data-kb': 'icons-open', onClick: () => setAdvTab('icones') }, 'Régler…'))
+
         // ── Avancé : sous-onglets ──────────────────────────────────────────
         const ADV_TABS = [
           { id: 'essentiel', label: 'Essentiel' },
@@ -3092,6 +3241,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           { id: 'couleurs', label: 'Couleurs' },
           { id: 'texte', label: 'Texte et forme' },
           { id: 'animation', label: 'Animation' },
+          { id: 'icones', label: 'Icônes' },
           { id: 'accessibilite', label: 'Accessibilité' },
           { id: 'partage', label: 'Partage' },
           { id: 'galerie', label: 'Galerie' }
@@ -3108,7 +3258,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
           h('div', { className: 'kbth-sec-h' },
             h('div', { className: 'kbth-sec-t' }, 'Essentiel'),
             h('div', { className: 'kbth-sec-d' }, 'Apparence, accent, fond, police et icônes du menu.')),
-          apparence, couleur, ratiosAccent, fond, police, icones,
+          apparence, couleur, ratiosAccent, fond, police, iconesResume,
           h(LdSummary, { onOpen: () => setAdvTab('animation') }))
 
         // ── Onglet Verre et fond ───────────────────────────────────────────
@@ -3539,6 +3689,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
         const ADV_CONTENT = {
           essentiel: advEssentiel,
           animation: h(AnimationPane, { ctx: ctxRef }),
+          icones,
           verre: advVerre,
           couleurs: advCouleurs,
           texte: advTexte,
@@ -3569,7 +3720,7 @@ html[data-kbth-cb] body:not([data-ds-dark-theme]) .kbth-gr-ok{--kbth-ink:#0072B2
             h('button', { type: 'button', className: 'kbth-btn', onClick: () => setSaveDlg(null) }, 'Annuler'),
             h('button', { type: 'button', className: 'kbth-btn kbth-ldpri', 'data-kb': 'theme-save-ok', onClick: doSave }, 'Enregistrer')))
 
-        // Une seule page : les sept onglets restent toujours là, « Essentiel » s'ouvre par défaut.
+        // Une seule page : les neuf onglets restent toujours là, « Essentiel » s'ouvre par défaut.
         const reglages = h('div', { className: 'kbth-sec' },
           // Onglets empilés VERTICALEMENT à gauche, contenu à droite.
           h('div', { className: 'kbth-adv-cols' },

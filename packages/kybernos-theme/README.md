@@ -92,23 +92,31 @@ person, not a style, so a theme never changes them unless it was saved with them
 ## Menu icons
 
 The sidebar menu can be drawn by a **set** of icons: grey at rest, in the entry's own colour on the open
-page, flat fills only (no outline). Twelve sets ship: *Classic* (the application's line icons, the
-default), five sober ones (*Flat*, *Duotone*, *Bauhaus*, *Soft gradient*, *Tile*) and six with their
-own drawing language and metaphors (*Matrix* dots, *Mondrian* blocks, *Rings*, *Isometric*
-volumes, *Critters* with two eyes, *Bars* of different lengths).
+page, flat fills only (no outline). Twenty-one sets ship, chosen in Settings › Theme › **Icônes** (a tab
+next to Animation; Essentiel only names the set in use): *Classic* (the application's line icons, the
+default), five sober ones (*Flat*, *Duotone*, *Bauhaus*, *Soft gradient*, *Tile*) and fifteen with their own
+technique: *Matrix* (dots), *Mondrian* (blocks), *Rings*, *Isometric*, *Kawaii* (two eyes), *Blinds*
+(vertical slats), *Facets*, *Long shadow*, *Halftone*, *Bubbles*, *Honeycomb*, *Constellation*, *Two-tone*,
+*Stamp* and *Nature*.
 
-- **Where**: Settings › Theme › Essentiel › *Icônes du menu*. Each card previews the nine entries, at
-  rest and in colour. The choice is the `iconSet` setting: it is stored with the look, a theme can
-  retain it (its own group in *Save as theme*), and a shipped theme may carry one (`skinPatch`).
+- **A visible link with the entry**: every set draws the same nine things, so the icon says what the
+  entry is: a cloud (Cloud Computer), a robot head (Kyber), a bar chart (Dashboards), three people (Agent
+  Teams), a folder (Workspaces), a picture (Creations), a cog (Automations), an open book (Skills), a
+  plug (Connectors). A set changes how they are drawn, never what they are. `ICON_PICTO` holds the
+  shared silhouettes; a set is either a renderer over them (Kawaii, Blinds, Long shadow, Halftone, Bubbles,
+  Two-tone, Stamp), a bitmap (Matrix, Honeycomb) or hand-drawn (the others).
+- **Cut-outs are holes**: eyes, the picture's inside, the cog's hub are SVG masks, not white fills, so
+  they show whatever is behind the row (light, dark, hover, selected).
+- **Where it is stored**: the `iconSet` setting, stored with the look; a theme can retain it (its own
+  group in *Save as theme*), and a shipped theme may carry one (`skinPatch`, and the gallery themes).
 - **How**: the drawings are pure code in `client.js`, between the `icon-sets` markers (cut out and run
   as it ships by `test-icon-sets.mjs`). `appliquerIcones` publishes the choice on
   `window.__KB_ICONSETS__` (`current()`, `svg(entry, on, size)`, `sets`) and fires `kb-icons-change`;
   `kybernos-plugin`'s menu reads it at render and keeps its own line icons when there is no
   registry or the set is *Classic*. At rest nothing is coloured: the icons follow the row's text colour.
-- **Adding a set**: one drawing per entry in `client.js` (9 entries: `cloud kyber dash teams ws
-  creations auto skills plug`), a line in `ICON_SETS` with its French and English name; the tests
-  require every entry at rest and open, no stroke, inside the 24 × 24 box, and a look that no other set
-  already has.
+- **Adding a set**: one drawing per entry (9: `cloud kyber dash teams ws creations auto skills plug`), a
+  line in `ICON_SETS` with its French and English name; the tests require every entry at rest and open,
+  no stroke, inside the 24 × 24 box, and a look that no other set already has.
 - The entry colours are one table (`ICON_HUES`); the *Classic* card is drawn by the application, which
   lends its line icons through `window.__KB_MENU_CLASSIC__`.
 

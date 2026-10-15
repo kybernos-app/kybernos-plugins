@@ -27,6 +27,29 @@
       }
     },
     {
+      "id": "composition",
+      "v": 1,
+      "name": "Composition",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Blocs francs et un seul rouge, coins nets, icônes en blocs.",
+        "en": "Plain blocks and a single red, sharp corners, block icons."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#d7263d",
+        "ov": {
+          "light:base": "#f7f6f1",
+          "light:l1": "#ffffff",
+          "light:l2": "#efeee7",
+          "light:side": "#f1f0e9",
+          "light:input": "#ffffff"
+        },
+        "radius": "sharp",
+        "iconSet": "mondrian"
+      }
+    },
+    {
       "id": "console-verte",
       "v": 1,
       "name": "Console verte",
@@ -68,6 +91,29 @@
           "dark:input": "#2e2238"
         },
         "radius": "soft"
+      }
+    },
+    {
+      "id": "egaliseur",
+      "v": 1,
+      "name": "Égaliseur",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Gris très sombre et rose vif, icônes en lamelles.",
+        "en": "Very dark grey and bright rose, slatted icons."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#f43f5e",
+        "ov": {
+          "dark:base": "#101012",
+          "dark:l1": "#18181b",
+          "dark:l2": "#212126",
+          "dark:side": "#131315",
+          "dark:input": "#212126"
+        },
+        "radius": "standard",
+        "iconSet": "barres"
       }
     },
     {
@@ -116,6 +162,29 @@
       }
     },
     {
+      "id": "kawaii",
+      "v": 1,
+      "name": "Kawaii",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Crème chaude et orange, coins doux, objets kawaii à deux yeux.",
+        "en": "Warm cream and orange, soft corners, kawaii objects with two eyes."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#ea580c",
+        "ov": {
+          "light:base": "#fff8f1",
+          "light:l1": "#ffffff",
+          "light:l2": "#fdeee0",
+          "light:side": "#fdf1e6",
+          "light:input": "#ffffff"
+        },
+        "radius": "soft",
+        "iconSet": "kawaii"
+      }
+    },
+    {
       "id": "lavande-brumeuse",
       "v": 1,
       "name": "Lavande brumeuse",
@@ -136,121 +205,6 @@
         },
         "fontText": "inter",
         "radius": "soft"
-      }
-    },
-    {
-      "id": "ocean-nuit",
-      "v": 1,
-      "name": "Océan nuit",
-      "author": "Kybernos",
-      "description": {
-        "fr": "Bleu marine profond et accent ciel.",
-        "en": "Deep navy with a sky-blue accent."
-      },
-      "settings": {
-        "mode": "dark",
-        "acc": "#0ea5e9",
-        "ov": {
-          "dark:base": "#0a1622",
-          "dark:l1": "#0f1e2e",
-          "dark:l2": "#152a3f",
-          "dark:side": "#0c1a28",
-          "dark:input": "#152a3f"
-        },
-        "fontText": "inter",
-        "radius": "standard"
-      }
-    },
-    {
-      "id": "sakura",
-      "v": 1,
-      "name": "Sakura",
-      "author": "Kybernos",
-      "description": {
-        "fr": "Rose pâle, texte à empattements, coins très doux.",
-        "en": "Pale pink, serif text, very soft corners."
-      },
-      "settings": {
-        "mode": "light",
-        "acc": "#db2777",
-        "ov": {
-          "light:base": "#fff7fa",
-          "light:l1": "#ffffff",
-          "light:l2": "#fdebf2",
-          "light:side": "#fceff5",
-          "light:input": "#ffffff"
-        },
-        "fontText": "georgia",
-        "radius": "soft"
-      }
-    },
-    {
-      "id": "composition",
-      "v": 1,
-      "name": "Composition",
-      "author": "Kybernos",
-      "description": {
-        "fr": "Blocs francs et un seul rouge, coins nets, icônes en compositions de blocs.",
-        "en": "Plain blocks and a single red, sharp corners, block-composition icons."
-      },
-      "settings": {
-        "mode": "light",
-        "acc": "#d7263d",
-        "ov": {
-          "light:base": "#f7f6f1",
-          "light:l1": "#ffffff",
-          "light:l2": "#efeee7",
-          "light:side": "#f1f0e9",
-          "light:input": "#ffffff"
-        },
-        "radius": "sharp",
-        "iconSet": "mondrian"
-      }
-    },
-    {
-      "id": "panneau",
-      "v": 1,
-      "name": "Panneau",
-      "author": "Kybernos",
-      "description": {
-        "fr": "Fond noir, ambre de panneau lumineux, icônes en points.",
-        "en": "Black ground, LED-panel amber, dot-matrix icons."
-      },
-      "settings": {
-        "mode": "dark",
-        "acc": "#f59e0b",
-        "ov": {
-          "dark:base": "#0a0b0e",
-          "dark:l1": "#111318",
-          "dark:l2": "#191c23",
-          "dark:side": "#0c0d11",
-          "dark:input": "#191c23"
-        },
-        "radius": "sharp",
-        "iconSet": "matrice"
-      }
-    },
-    {
-      "id": "orbite",
-      "v": 1,
-      "name": "Orbite",
-      "author": "Kybernos",
-      "description": {
-        "fr": "Clair et aéré, un seul cyan, icônes en anneaux.",
-        "en": "Light and airy, a single cyan, ring icons."
-      },
-      "settings": {
-        "mode": "light",
-        "acc": "#0891b2",
-        "ov": {
-          "light:base": "#f4f8fa",
-          "light:l1": "#ffffff",
-          "light:l2": "#e9f1f4",
-          "light:side": "#eef4f7",
-          "light:input": "#ffffff"
-        },
-        "radius": "soft",
-        "iconSet": "anneaux"
       }
     },
     {
@@ -278,49 +232,95 @@
       }
     },
     {
-      "id": "menagerie",
+      "id": "ocean-nuit",
       "v": 1,
-      "name": "Ménagerie",
+      "name": "Océan nuit",
       "author": "Kybernos",
       "description": {
-        "fr": "Crème chaude et orange, coins doux, petites bêtes à deux yeux.",
-        "en": "Warm cream and orange, soft corners, little creatures with two eyes."
-      },
-      "settings": {
-        "mode": "light",
-        "acc": "#ea580c",
-        "ov": {
-          "light:base": "#fff8f1",
-          "light:l1": "#ffffff",
-          "light:l2": "#fdeee0",
-          "light:side": "#fdf1e6",
-          "light:input": "#ffffff"
-        },
-        "radius": "soft",
-        "iconSet": "creatures"
-      }
-    },
-    {
-      "id": "egaliseur",
-      "v": 1,
-      "name": "Égaliseur",
-      "author": "Kybernos",
-      "description": {
-        "fr": "Gris très sombre et rose vif, icônes en barres.",
-        "en": "Very dark grey and bright rose, bar icons."
+        "fr": "Bleu marine profond et accent ciel.",
+        "en": "Deep navy with a sky-blue accent."
       },
       "settings": {
         "mode": "dark",
-        "acc": "#f43f5e",
+        "acc": "#0ea5e9",
         "ov": {
-          "dark:base": "#101012",
-          "dark:l1": "#18181b",
-          "dark:l2": "#212126",
-          "dark:side": "#131315",
-          "dark:input": "#212126"
+          "dark:base": "#0a1622",
+          "dark:l1": "#0f1e2e",
+          "dark:l2": "#152a3f",
+          "dark:side": "#0c1a28",
+          "dark:input": "#152a3f"
         },
-        "radius": "standard",
-        "iconSet": "barres"
+        "fontText": "inter",
+        "radius": "standard"
+      }
+    },
+    {
+      "id": "orbite",
+      "v": 1,
+      "name": "Orbite",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Clair et aéré, un seul cyan, icônes en anneaux et en bandes.",
+        "en": "Light and airy, a single cyan, ring and band icons."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#0891b2",
+        "ov": {
+          "light:base": "#f4f8fa",
+          "light:l1": "#ffffff",
+          "light:l2": "#e9f1f4",
+          "light:side": "#eef4f7",
+          "light:input": "#ffffff"
+        },
+        "radius": "soft",
+        "iconSet": "anneaux"
+      }
+    },
+    {
+      "id": "panneau",
+      "v": 1,
+      "name": "Panneau",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Fond noir, ambre de panneau lumineux, icônes en points.",
+        "en": "Black ground, LED-panel amber, dot-matrix icons."
+      },
+      "settings": {
+        "mode": "dark",
+        "acc": "#f59e0b",
+        "ov": {
+          "dark:base": "#0a0b0e",
+          "dark:l1": "#111318",
+          "dark:l2": "#191c23",
+          "dark:side": "#0c0d11",
+          "dark:input": "#191c23"
+        },
+        "radius": "sharp",
+        "iconSet": "matrice"
+      }
+    },
+    {
+      "id": "sakura",
+      "v": 1,
+      "name": "Sakura",
+      "author": "Kybernos",
+      "description": {
+        "fr": "Rose pâle, texte à empattements, coins très doux.",
+        "en": "Pale pink, serif text, very soft corners."
+      },
+      "settings": {
+        "mode": "light",
+        "acc": "#db2777",
+        "ov": {
+          "light:base": "#fff7fa",
+          "light:l1": "#ffffff",
+          "light:l2": "#fdebf2",
+          "light:side": "#fceff5",
+          "light:input": "#ffffff"
+        },
+        "fontText": "georgia",
+        "radius": "soft"
       }
     }
   ]

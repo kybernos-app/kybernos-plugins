@@ -32345,6 +32345,9 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         'JSON stocké — ce que l’hôte garde vraiment': 'Stored JSON — what the host really keeps',
         'Rechercher une commande…': 'Search a command…', 'Rechercher une commande': 'Search a command',
         'Apparence, accent, fond et police.': 'Appearance, accent, background and font.',
+        'Apparence, accent, fond, police et icônes du menu.': 'Appearance, accent, background, font and menu icons.',
+        'Icônes': 'Icons', 'Icônes du menu': 'Menu icons',
+        'Le dessin des entrées de la barre latérale : gris au repos, en couleur sur la page ouverte. Un thème peut le retenir.': 'How the sidebar entries are drawn: grey at rest, in colour on the open page. A theme can keep it.',
         'Personnalisez l’apparence de DeepSeek Harness. Les réglages de base sont dans Essentiel.': 'Customize the look of DeepSeek Harness. The basic settings are in Essentials.',
         'Fichier non reconnu : seul un fichier .json au format de ce thème est accepté. Rien n’a été modifié.': 'File not recognized: only a .json file in this theme\'s format is accepted. Nothing was changed.',
         'Thème importé et appliqué.': 'Theme imported and applied.',
@@ -32565,6 +32568,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
         // ── Thème › Mes thèmes, Partage, Galerie ─────────────────────────────────────────────────────
         'Livrés': 'Shipped', 'Mes thèmes': 'My themes', 'Galerie': 'Gallery', 'Enregistrer': 'Save', 'Enregistrer sous…': 'Save as…', 'Annuler': 'Cancel',
         'Un thème règle les couleurs ; il peut aussi retenir la police et les coins. Gérez les vôtres dans': 'A theme sets the colors; it can also keep the font and the corners. Manage yours in',
+        'Un thème règle les couleurs ; il peut aussi retenir la police, les coins et les icônes du menu. Gérez les vôtres dans': 'A theme sets the colors; it can also keep the font, the corners and the menu icons. Manage yours in',
         'Aucun thème à vous pour l’instant. Réglez l’apparence puis « Enregistrer », importez un fichier dans': 'You have no theme of your own yet. Set the look, then “Save”, import a file in',
         ', ou installez-en un depuis la': ', or install one from the',
         'Enregistrer l’état actuel comme thème': 'Save the current look as a theme', 'Personnalisé': 'Custom', 'modifié': 'modified', 'livré': 'shipped', 'à vous': 'yours',
