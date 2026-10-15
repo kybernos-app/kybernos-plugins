@@ -6013,9 +6013,7 @@ const CSS = `
 .kb-dmore{padding:4px 8px}
 .kb6-pre{margin:0;background:var(--dsw-alias-bg-layer-1);border:1px solid var(--dsw-alias-border-l1);border-radius:12px;padding:16px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.55;color:var(--dsw-alias-label-primary);overflow:auto;max-height:560px;white-space:pre}
 .kb6-head{margin:0 0 16px}
-/* Skills page: the page title is the sidebar's; the Skills component
-   (another bundle) carries its own "Skills" right below — we hide it. */
-.kbg-root[data-kb-page=skills] .kbs-h1{display:none}
+/* Skills page: the component (another bundle) draws the page's only title in its header row, like Connectors. */
 /* (28/09, audit) margin:0 — le h1 gardait la marge UA (17,4px) que le div
    de Livrables n'a pas : 15px d'écart de hauteur de titre entre pages. */
 .kb6-title{margin:0;font-size:26px;font-weight:800;color:var(--dsw-alias-label-primary);letter-spacing:-.01em;line-height:1.25}
@@ -23360,8 +23358,9 @@ function renderFit(canvas, model, cam, opts){
       // La session de la vue descend jusqu'à l'onglet : c'est elle qui fixe le projet, donc les
       // skills de projet affichés. Sans elle l'onglet retomberait sur un agent vivant arbitraire.
       const sid = (props !== null && props !== undefined && typeof props.sessionId === 'string') ? props.sessionId : null
-      if (first !== null && first !== undefined && first.component !== null && first.component !== undefined) return h(first.component, { sessionId: sid })
-      return h(SkillsPage, { sessionId: sid })
+      const toolbar = (props !== null && props !== undefined && props.toolbar !== null && typeof props.toolbar === 'object') ? props.toolbar : null
+      if (first !== null && first !== undefined && first.component !== null && first.component !== undefined) return h(first.component, { sessionId: sid, toolbar: toolbar })
+      return h(SkillsPage, { sessionId: sid, toolbar: toolbar })
     }
 
     // ── Dashboards: the page is the satellite's (`@local/kybernos-dashboards`), mounted on the child slot
@@ -23413,7 +23412,8 @@ function renderFit(canvas, model, cam, opts){
       // session selection, so the page reloads on the right project.
       const us = (props !== null && props !== undefined) ? props.useSessions : null
       const sid = (typeof us === 'function') ? us((st) => (st.ids && st.ids.length ? st.ids[0] : null)) : null
-      return h('div', { className: 'kbg-root', 'data-kb-page': 'skills' }, kbPageHead(kbt('kbui.skills')), h(SkillsMount, { sessionId: sid }))
+      // The Skills page draws its own header (title, help, bar, primary action) like Connectors: no outer title. The bar's tools go down as props.
+      return h('div', { className: 'kbg-root', 'data-kb-page': 'skills' }, h(SkillsMount, { sessionId: sid, toolbar: { KbToolbar: KbToolbar, useToolbarState: useToolbarState } }))
     }
     // Unified bar (28/09 template): the composio bundle is a separate module that
     // cannot see KbToolbar — we pass it the tools as props.

@@ -1955,13 +1955,93 @@ window.__ModuleLoader__.load({
         const capTxt = mode === 'yours'
           ? t('cap.yours', { a: activeCount, n: skills.length })
           : (mode === 'team' ? (tsum.phase === 'ready' ? t('cap.team', { ws: tsum.workspaceName || '…' }) : t('cap.teamLocked')) : (discKind === 'search' ? t('cap.search') : t('cap.rank')))
+        // The shared bar (search, filter, order, and the primary action as its trailing item) sits in the header row, where Agent
+        // Teams, Creations, Automations, Workspaces and Connectors put it. The page receives it as props from kybernos-plugin (a
+        // bundle cannot see KbToolbar); mounted alone, it keeps its own controls on the tabs' row, as before.
+        const tools = props !== null && props !== undefined && props.toolbar !== null && typeof props.toolbar === 'object' ? props.toolbar : null
+        const KbBar = tools !== null && typeof tools.KbToolbar === 'function' ? tools.KbToolbar : null
+        const barState = () => {
+          if (mode === 'discover') {
+            return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === 50 ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: 'cards' }
+          }
+          const types = []
+          if (stateFilter !== 'all') types.push('st:' + stateFilter)
+          if (sourceFilter !== 'all') types.push('src:' + sourceFilter)
+          return { query: q[mode], sort: sort.yours, dir: dir.yours === -1 ? 'desc' : 'asc', types: mode === 'yours' ? types : [], period: 'all', fav: false, viewMode: 'cards' }
+        }
+        // The bar's changes go to the page's own setters. The two filter groups of Yours (state, source) and the rows of Discover are
+        // single choices: the one just ticked replaces the previous one of its group.
+        const barUpdate = (patch) => {
+          if (patch === null || typeof patch !== 'object') return
+          if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, [mode]: v })) }
+          if (mode === 'discover') {
+            if (patch.sort !== undefined) {
+              if (patch.sort === 'name') setSort((m) => ({ ...m, discover: 'name' }))
+              else { setSort((m) => ({ ...m, discover: 'installs' })); setIview(patch.sort === 'installs' ? 'all-time' : String(patch.sort)) }
+            }
+            if (patch.dir !== undefined) setDir((m) => ({ ...m, discover: patch.dir === 'asc' ? 1 : -1 }))
+            if (patch.types !== undefined) {
+              const cur = iper === 50 ? [] : ['rows:' + iper]
+              const added = patch.types.filter((x) => cur.indexOf(x) < 0)
+              const pick = added.length > 0 ? String(added[added.length - 1]) : ''
+              setIper(/^rows:\d+$/.test(pick) ? Number(pick.slice(5)) : 50)
+            }
+            return
+          }
+          if (patch.sort !== undefined) setSort((m) => ({ ...m, yours: String(patch.sort) }))
+          if (patch.dir !== undefined) setDir((m) => ({ ...m, yours: patch.dir === 'asc' ? 1 : -1 }))
+          if (patch.types !== undefined && mode === 'yours') {
+            const cur = barState().types
+            let st = stateFilter
+            let so = sourceFilter
+            for (const x of cur) if (patch.types.indexOf(x) < 0) { if (String(x).startsWith('st:')) st = 'all'; else so = 'all' }
+            for (const x of patch.types) {
+              if (cur.indexOf(x) >= 0) continue
+              if (String(x).startsWith('st:')) st = String(x).slice(3)
+              else if (String(x).startsWith('src:')) so = String(x).slice(4)
+            }
+            setStateFilter(st); setSourceFilter(so)
+          }
+        }
+        const barSorts = () => (mode === 'discover'
+          ? VUES.map((v) => ({ id: v[0] === 'all-time' ? 'installs' : v[0], label: v[1] })).concat([{ id: 'name', label: t('sort.name') }])
+          : [{ id: 'recent', label: t('sort.recent') }, { id: 'name', label: t('sort.name') }])
+        const barFacets = () => (mode === 'discover'
+          ? { type: { options: [25, 50, 100, 250].map((n) => ({ id: 'rows:' + n, label: t('flt.rows') + ': ' + n })) } }
+          : { type: { options: [{ id: 'st:active', label: t('card.active'), count: activeCount }, { id: 'st:disabled', label: t('card.disabled'), count: skills.length - activeCount }]
+            .concat(sources.map((s) => ({ id: 'src:' + s, label: s, count: skills.filter((x) => x.source === s).length }))) } })
+        const teamBarShown = mode === 'team' && tsum.phase === 'ready' && teamOpen === null
+        const barShown = KbBar !== null && (mode === 'discover' || (mode === 'yours' && skills.length > 0) || teamBarShown)
+        const teamAction = primary(teamRoleAdmin(tsum.role) ? t('tm.add') : t('tm.propose'), () => setTeamSheet(true), 'plus')
+        const headAction = mode === 'team' ? (teamBarShown ? teamAction : null) : renderAdd()
+        const helpBtn = (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)
         return h('div', { className: 'kbs-root' },
-          h('div', { className: 'kbs-top' },
-            h('div', { className: 'kbs-top-txt' },
-              h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-skills' }) : null)),
-              h('h2', { className: 'kbs-h1' }, 'Skills'),
-              h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
-            mode !== 'team' ? renderAdd() : null),
+          KbBar !== null
+            ? h('div', { className: 'kb6-headrow' },
+              h('div', { className: 'kb6-headcol' },
+                h('div', { className: 'kb6-titlerow' }, h('h1', { className: 'kb6-title' }, 'Skills'), helpBtn),
+                h('p', { className: 'kb8-sub', title: capTxt }, capTxt)),
+              barShown === true
+                ? h(KbBar, {
+                  state: barState(),
+                  onUpdate: barUpdate,
+                  searchPlaceholder: mode === 'team' ? t('tm.search') : (mode === 'yours' ? t('ph.yours') : t('ph.discover')),
+                  sortOptions: mode === 'team' ? [] : barSorts(),
+                  hideSort: mode === 'team',
+                  facets: mode === 'team' ? {} : barFacets(),
+                  total: mode === 'yours' ? skills.length : (mode === 'discover' ? discTotal : 0),
+                  shown: mode === 'yours' ? filtered.length : (mode === 'discover' ? discList.length : 0),
+                  hideView: true,
+                  showFav: false,
+                  trailing: headAction,
+                })
+                : h('div', { className: 'kb6-headacts' }, headAction))
+            : h('div', { className: 'kbs-top' },
+              h('div', { className: 'kbs-top-txt' },
+                h('div', { style: { display: 'flex', justifyContent: 'flex-end', width: '100%', marginBottom: 6 } }, helpBtn),
+                h('h2', { className: 'kbs-h1' }, 'Skills'),
+                h('p', { className: 'kbs-sub', title: capTxt }, capTxt)),
+              mode !== 'team' ? renderAdd() : null),
           h('div', { className: 'kbs-ctlrow' },
             h('nav', { className: 'kbsub' },
               // Same capsule as the "Connections" sub-tabs (Your connections / Discover): one single language.
@@ -1973,7 +2053,7 @@ window.__ModuleLoader__.load({
                 tsum.phase !== 'absent' ? h('button', { type: 'button', role: 'tab', 'aria-selected': mode === 'team' ? 'true' : 'false', className: 'kb-seg' + (mode === 'team' ? ' on' : ''), onClick: () => { setMode('team'); setDetail(null); setLocal(null); setTeamOpen(null) } },
                   'Team ', tsum.phase === 'ready' ? h('span', { className: 'count' }, String((tsum.counts && tsum.counts.approved) || 0)) : (tsum.phase === 'locked' ? icon('lock', 13) : h('span', { className: 'count' }, '—')),
                   tsum.phase === 'ready' && teamRoleAdmin(tsum.role) && tsum.counts && tsum.counts.pending > 0 ? h('span', { className: 'kbt-dot', title: t('tm.v.review') }) : null) : null)),
-            mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : renderToolbar()),
+            KbBar !== null ? null : (mode === 'team' ? (tsum.phase === 'ready' && teamOpen === null ? renderTeamToolbar() : null) : renderToolbar())),
           h('div', { className: 'kb8-page' }, body),
           renderModal(),
           notice !== null ? h('div', { className: 'kbs-toast' + (notice.kind === 'err' ? ' err' : '') },
