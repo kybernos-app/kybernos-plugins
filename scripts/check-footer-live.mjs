@@ -18,6 +18,12 @@
 // sandbox's own registry (<DSH home>/kybernos/servers.json, put back at the end) names as the active server, so the address comes from the
 // host's route and the frame really loads. The frame's own stand-in page posts the message the real console posts (« open in browser »).
 //
+// The account's own pages of that frame (Security, Devices, My data, Support & legal; the server's ADR 0054) read through the host's relay: the scene
+// « the frame's account pages are not refused by the relay » drives the REAL relay route of the sandbox's host (a connected state is written for the
+// stand-in server and removed at the end) and fails on any « chemin refuse ». The host half is NOT hot-reloaded: restart the sandbox after editing
+// packages/kybernos-cloud/index.js (relay rules). By default the stand-in page makes the reads the real frame makes; `--console-file <html>` serves the
+// server's real console page instead (node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))").
+//
 // Sandbox only: it refuses :3080 (exit 3). It presses DSH's light/dark switch of the sandbox's own profile and puts it back.
 // Exit 0 all good, 1 a check failed, 3 not run.
 import { createServer } from 'node:http'
@@ -30,6 +36,7 @@ if (host.endsWith(':3080')) { console.error('○ not run: this check must run ag
 const DSH_HOME = process.env.DSH_HOME || ''
 if (!DSH_HOME.includes('.kybernos-sandbox')) { console.error('○ not run: DSH_HOME is not an isolated instance (' + (DSH_HOME || 'unset') + '): source scripts/sandbox/env.sh'); process.exit(3) }
 const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
+const consoleFile = process.argv.includes('--console-file') ? process.argv[process.argv.indexOf('--console-file') + 1] : null
 if (shotsAt !== null) mkdirSync(shotsAt, { recursive: true })
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -63,28 +70,55 @@ const PLANS = { ok: true, credits_per_usd: 3680, tax_basis: 'exclusive', plans: 
 // The phone link's own status route (kybernos-mobile): offered, with two phones already linked, unless a scene says otherwise.
 const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: true, configured: true, entitled: true, relay: 'idle', pairing: null, max_devices: 5,
   devices: [{ id: 'd1', label: 'Pixel 9', online: true, state: 'serving' }, { id: 'd2', label: 'iPhone', online: false, state: 'offline' }] }
-const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED }
+const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED, sync: null, push: null }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
-// A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts.
+// The GETs the real frame makes for each page of the account group (what the server's console asks its parent for): Overview and the two entries DSH's footer
+// opens (`#account`, `#referral`), Security, Devices, My data (none), Support & legal (`#support`).
+const FRAME_READS = {
+  account: ['/v1/me', '/v1/sessions', '/v1/referral'], referral: ['/v1/me', '/v1/sessions', '/v1/referral'], overview: ['/v1/me', '/v1/sessions', '/v1/referral'],
+  security: ['/v1/me/mfa'], devices: ['/v1/sessions'], data: [], support: ['/v1/public/legal'],
+}
+// What the stand-in server answers on its API side (the host's relay calls it with the device token).
+const API_BODIES = {
+  '/v1/me': { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
+  '/v1/sessions': { sessions: [] },
+  '/v1/referral': { code: 'AB12CD', share_url: 'https://example.invalid/r/AB12CD' },
+  '/v1/me/mfa': { enabled: false, methods: [] },
+  '/v1/public/legal': { terms: null, privacy: null },
+}
+// A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts. Its page
+// also makes the reads the real frame makes for the page the address names (through the parent's relay), and its API side answers them and records the Authorization it saw.
 const consoles = []
-const startConsole = async () => {
+const startConsole = async (opts = {}) => {
   const hits = []
+  const api = []
   const srv = createServer((req, res) => {
     hits.push(req.url)
-    if (req.url.startsWith('/workspace-console')) {
+    const path = req.url.split('?')[0]
+    if (path === '/workspace-console') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>')
+      if (opts.file !== undefined && opts.file !== null) { res.end(readFileSync(opts.file, 'utf8')); return }
+      res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>'
+        + '<script>var reads=' + JSON.stringify(FRAME_READS) + ';var page=String(location.hash||"").slice(1).split("&")[0];'
+        + 'addEventListener("message",function(ev){if(ev.source===parent&&ev.data&&ev.data.kbApiReady===true)(reads[page]||[]).forEach(function(p,i){parent.postMessage({kbApi:{id:"r"+i,method:"GET",path:p}},"*")})});'
+        + 'parent.postMessage({kbConsoleReady:true},"*")</script>')
+      return
+    }
+    if (API_BODIES[path] !== undefined && req.method === 'GET') {
+      api.push({ url: req.url, auth: req.headers.authorization || null })
+      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(API_BODIES[path]))
       return
     }
     res.writeHead(404); res.end()
   })
   await new Promise((r) => srv.listen(0, '127.0.0.1', r))
-  const c = { origin: 'http://127.0.0.1:' + srv.address().port, hits, server: srv, close: () => new Promise((r) => { try { srv.closeAllConnections() } catch (e) { /* none */ } srv.close(() => r()) }) }
+  const c = { origin: 'http://127.0.0.1:' + srv.address().port, hits, api, server: srv, close: () => new Promise((r) => { try { srv.closeAllConnections() } catch (e) { /* none */ } srv.close(() => r()) }) }
   consoles.push(c)
   return c
 }
 const REGISTRY = join(DSH_HOME, 'kybernos', 'servers.json')
+const agentsBefore = existsSync(join(DSH_HOME, 'AGENTS.md')) ? readFileSync(join(DSH_HOME, 'AGENTS.md'), 'utf8') : null
 const registryBefore = existsSync(REGISTRY) ? readFileSync(REGISTRY, 'utf8') : null
 const setRegistry = (active, list) => { mkdirSync(join(DSH_HOME, 'kybernos'), { recursive: true }); writeFileSync(REGISTRY, JSON.stringify({ active, servers: list.map((c, i) => ({ id: 'stub-' + (i + 1), name: 'Stand-in ' + (i + 1), api: c.origin })) })) }
 const restoreRegistry = () => { try { if (registryBefore === null) rmSync(REGISTRY, { force: true }); else writeFileSync(REGISTRY, registryBefore) } catch (e) { /* the sandbox is throw-away */ } }
@@ -96,6 +130,8 @@ const mouse = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed'
 const key = async (k, code) => { for (const type of ['keyDown', 'keyUp']) await page.send('Input.dispatchKeyEvent', { type, key: k, code, windowsVirtualKeyCode: k === 'Escape' ? 27 : 0 }) }
 const centre = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return r.width === 0 ? null : { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
 const press = async (sel) => { const c = await centre(sel); if (c === null || c === undefined || c.err !== undefined) return false; await mouse(c.x, c.y); return true }
+// A click from the page itself (a button that may sit below the fold of a long Settings page).
+const jsClick = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (e) { e.scrollIntoView({ block: 'center' }); e.click() } })()`)
 const exists = async (sel) => (await val(`document.querySelector(${JSON.stringify(sel)}) !== null`)) === true
 const text = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); return e ? (e.innerText || '').replace(/\\s+/g, ' ').trim() : null })()`)
 const rect = async (sel) => val(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } })()`)
@@ -107,6 +143,16 @@ const WATCH = `(() => {
   window.__kbNative = []
   window.__kbOpened = []
   window.open = (u) => { window.__kbOpened.push(String(u)); return null }
+  // The calls the page's broker makes to the host's relay, with what the host answered (the relay's own verdict: « chemin refuse » for a path off its allowlist).
+  window.__kbRelay = []
+  const realFetch = window.fetch.bind(window)
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || ''
+    const p = url.indexOf('/kybernos-cloud/relay?p=') >= 0 ? decodeURIComponent(url.split('?p=')[1] || '') : null
+    const out = realFetch(input, init)
+    if (p !== null) out.then((r) => r.clone().json()).then((j) => window.__kbRelay.push({ p, ok: j && j.ok === true, status: j && typeof j.status === 'number' ? j.status : null, error: j && j.error ? String(j.error) : null })).catch(() => window.__kbRelay.push({ p, ok: false, status: null, error: 'unreadable' }))
+    return out
+  }
   const seen = () => {
     for (const m of document.querySelectorAll('[role="menu"]')) {
       if (m.matches('[data-kb="off-menu"], .kbfp-menu, .kbfp-sub')) continue
@@ -132,6 +178,8 @@ const answerFor = (path, req) => {
   if (path === '/kybernos-cloud/billing/checkout' && fake.checkout !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.checkout === 'function' ? fake.checkout() : fake.checkout } }
   if (path === '/kybernos-cloud/billing/portal' && fake.portal !== null) { fake.bodies.push({ path, body: sent() }); return { body: typeof fake.portal === 'function' ? fake.portal() : fake.portal } }
   if (path === '/kybernos-cloud/refresh') { fake.calls.push('refresh'); return { body: { ok: true } } }
+  if (path === '/kybernos-cloud/models/sync' && fake.sync !== null) { fake.calls.push('models-sync'); return { body: fake.sync } }
+  if (path === '/kybernos-cloud/chats/push' && fake.push !== null) { fake.calls.push('chats-push'); return { body: fake.push } }
   if (path === '/kybernos-mobile/remote/status' && fake.remote !== null) { fake.calls.push('remote-status'); return { body: fake.remote } }
   return null
 }
@@ -157,6 +205,8 @@ const reload = async () => {
   await sleep(300)
 }
 const settingsOpen = async () => (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 3`, 6000)) !== null
+// The cells of DSH's Settings navigation: the title drawn and the React key each cell is rendered with (the id of its section, the same in every language).
+const navCells = async () => (await val(`Array.from(document.querySelectorAll('[class*="navCell"]')).map((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); const key = n === undefined ? null : e[n].key; return { t: (e.textContent || '').trim(), key: typeof key === 'string' ? key : null } })`)) || []
 const clean = async () => { await key('Escape', 'Escape'); await sleep(200); await reload() }
 const entries = async (menuSel) => (await val(`Array.from(document.querySelectorAll(${JSON.stringify(menuSel)} + ' [data-kb^="menu-"]')).map((e) => e.getAttribute('data-kb').replace('menu-', '')).filter((k) => k.indexOf('block-') !== 0)`)) || []
 const openProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await sleep(450) }
@@ -223,6 +273,15 @@ try {
     check('and closes our menu', !(await exists('[data-kb="off-menu"]')))
     check('no native popover appeared on the way', (await nativeSeen()).length === 0, await nativeSeen())
     await shot('3-settings-from-menu')
+    // The « Kybernos » section of Settings shows whether connected or not: the instructions need no server, the two other actions say so.
+    await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === 'kybernos-local' }); if (c) c.click() })()`)
+    await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
+    await sleep(500)
+    check('signed out: the Kybernos section opens (instructions, models, chats)', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
+    check('signed out: the two actions that need a server say so, and cannot be pressed', (await val(`document.querySelectorAll('[data-kb="ky-signed-out"]').length`)) === 2
+      && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === true && document.querySelector('[data-kb="ky-chats-run"]').disabled === true`)) === true)
+    check('signed out: the instructions field is still usable (it is a file of this computer)', (await val(`document.querySelector('[data-kb="ky-instr-field"]').disabled`)) === false && /on this computer/i.test((await text('[data-kb="ky-instr-note"]')) || ''), await text('[data-kb="ky-instr-note"]'))
+    await shot('3b-kybernos-section-signed-out')
     await clean()
 
     // ── 2. What the other plugins do: click the old trigger from a script ───────────────────────────────────
@@ -371,6 +430,52 @@ try {
     check('Team settings after Referral is the console\'s first page again', u !== null && u.hash === '' && u.origin === A.origin, u && u.href)
     fake.bodies.length = 0
 
+    // ── The account's own pages of the frame read through the REAL relay route of the sandbox's host ─────────────────────────────────────────────────────────
+    // (the server's ADR 0054: Overview, Security, Devices, My data, Support & legal.) A connected state is written for the stand-in server (the sandbox host reads
+    // its state file at each call) so the relay is not « non connecte »; it is removed at the end. A page whose read the relay refuses would show an error in the
+    // frame: what is asserted is the relay's verdict (« chemin refuse » never), the path that reached the server and the token going out as Authorization only.
+    console.log('The frame\'s account pages — their reads are not refused by the relay')
+    // With `--console-file` the page is the server's REAL console (built from its source), served by a stand-in of its own that is the active server for
+    // this scene only; without it, the stand-in page makes the reads the real frame makes.
+    const S = consoleFile !== null ? await startConsole({ file: consoleFile }) : A
+    if (S !== A) { setRegistry('stub-1', [S]); await reload() }
+    const stateFile = join(DSH_HOME, 'kybernos-cloud-stub-1.json')
+    writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
+      workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }], active_workspace_id: W_PERSONAL }), { mode: 0o600 })
+    const relayAfter = async (slug, want) => {
+      await val(`window.__kbRelay = []`)
+      S.api.length = 0
+      await val(`window.__kbOpenWsConsole(${JSON.stringify(slug)})`)
+      await waitFrame()
+      await waitFor(page, `window.__kbRelay.length >= ${want}`, 6000)
+      await sleep(500)
+      return { relay: (await val('window.__kbRelay')) || [], api: S.api.slice() }
+    }
+    const notRefused = (r) => r.relay.every((x) => x.error !== 'chemin refuse' && x.error !== 'non connecte')
+    const security = await relayAfter('security', 1)
+    check('Security: the frame\'s read of the account\'s second factor (/v1/me/mfa) is not refused by the relay', security.relay.some((x) => x.p === '/v1/me/mfa') && notRefused(security), security.relay)
+    check('… and it reached the server as a GET with the device token in Authorization', security.api.some((x) => x.url === '/v1/me/mfa' && x.auth === 'Bearer kys-live-check-0123456789'), security.api)
+    const support = await relayAfter('support', 1)
+    check('Support & legal: the read of the server\'s legal page (/v1/public/legal) is not refused by the relay', support.relay.some((x) => x.p === '/v1/public/legal') && notRefused(support), support.relay)
+    check('… and it reached the server as a GET with the device token in Authorization', support.api.some((x) => x.url === '/v1/public/legal' && x.auth === 'Bearer kys-live-check-0123456789'), support.api)
+    const devices = await relayAfter('devices', 1)
+    check('Devices: the read of the sessions is not refused', devices.relay.some((x) => x.p === '/v1/sessions') && notRefused(devices), devices.relay)
+    const over = await relayAfter('overview', 3)
+    check('Overview: the profile, the sessions and the referral card are not refused', ['/v1/me', '/v1/sessions', '/v1/referral'].every((p) => over.relay.some((x) => x.p === p)) && notRefused(over), over.relay)
+    const data = await relayAfter('data', 0)
+    // The page itself reads nothing; the real frame's shell reads the profile and the teams list on every page (both are on the allowlist).
+    check('My data: nothing the relay refuses' + (consoleFile === null ? ' (and the page reads nothing at all)' : ''), notRefused(data) && (consoleFile !== null || data.relay.length === 0), data.relay)
+    console.log('    reads seen by the relay: ' + JSON.stringify({ security: security.relay.map((x) => x.p), support: support.relay.map((x) => x.p), devices: devices.relay.map((x) => x.p), overview: over.relay.map((x) => x.p), data: data.relay.map((x) => x.p) }))
+    // The writes of the second factor and anything else under /v1/me/mfa stay off the allowlist (the unit test pins the rule; here the real route).
+    const refusedLive = await val(`fetch('/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/me/mfa/setup')).then((r) => r.json())`)
+    check('a sub-path of the second factor (a write) is still refused by the real route', refusedLive !== null && refusedLive.ok === false && refusedLive.error === 'chemin refuse', refusedLive)
+    check('no token anywhere in what the page saw of the relay', JSON.stringify([security.relay, support.relay, devices.relay, over.relay]).indexOf('kys-live-check') < 0)
+    await shot('16-frame-security')
+    rmSync(stateFile, { force: true })
+    if (S !== A) { setRegistry('stub-1', [A]); await reload() }
+    await openPage('space-settings')
+    fake.bodies.length = 0
+
     // A server that has no #account page yet shows its console, never an error: the frame is the same document, whose own code ignores the fragment.
     // The server's address follows the registry when it changes while the page is up (no reload).
     const B = await startConsole()
@@ -444,6 +549,93 @@ try {
     check('Appearance is still the sun/moon segment', (await val(`document.querySelectorAll('.kbfp-menu [data-kb="menu-appearance"] .kbfp-seg button').length`)) === 2)
     await press('[data-kb="menu-settings"]')
     check('Settings opens DSH\'s Settings, with no native popover', (await settingsOpen()) && (await nativeSeen()).length === 0, await nativeSeen())
+
+    // The five account entries of ours (Account, Referral, Account security, Account data, Support & legal) are not in DSH's Settings any more: the
+    // account's pages are the footer menu's embedded ones. Matched by the React key a cell is rendered with (not by its title: DSH has an Account
+    // section of its own), and by title for the four that have no namesake in DSH.
+    console.log('DSH\'s Settings does not list the five account entries of ours')
+    const cells = await navCells()
+    const REMOVED = ['kybernos-account', 'kbac-referral', 'kbac-security', 'kybernos-data', 'kbac-support']
+    check('the navigation is drawn (more than three cells)', cells.length > 3, cells)
+    check('no cell is rendered with the key of a removed section', !cells.some((c) => REMOVED.includes(c.key)), cells.filter((c) => REMOVED.includes(c.key)))
+    check('none is titled Referral, Account security, Account data or Support & legal', !cells.some((c) => /^(referral|account security|account data|support (&|and|&amp;) legal)$/i.test(c.t)), cells.map((c) => c.t))
+    check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Remote Control)',
+      cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
+    await shot('11-settings-without-account-entries')
+    // The group header that held « Account » is « Kybernos » now, and it is the only one: the servers entry stays first under it, then the section of what
+    // stays on this computer, then the Suite. Read from the layout (the organiser orders by CSS), headers and cells together.
+    // The organiser (a debounced observer) draws the group headers a moment after the cells: wait for them.
+    await waitFor(page, `document.querySelectorAll('[data-kb="settings-group"]').length >= 3`, 6000)
+    await sleep(400)
+    const flow = (await val(`(() => { const list = Array.from(document.querySelectorAll('[class*="navList"]')).find((l) => l.querySelector('[class*="navCell"]')); return Array.from(list.children).map((c) => { const n = Object.keys(c).find((k) => k.indexOf('__reactFiber$') === 0); return { t: (c.textContent || '').trim(), key: n === undefined ? null : c[n].key, y: Math.round(c.getBoundingClientRect().top), head: c.getAttribute('data-kb') === 'settings-group' } }).filter((x) => x.y > 0 || x.head).sort((a, b) => a.y - b.y) })()`)) || []
+    const heads = flow.filter((x) => x.head).map((x) => x.t)
+    check('the group headers are Kybernos, Settings, Desktop, Plugins: no « Account » header any more, and « Kybernos » only once', heads[0] === 'Kybernos' && heads.filter((h) => h === 'Kybernos').length === 1 && !heads.includes('Account'), heads)
+    const at = flow.findIndex((x) => x.head && x.t === 'Kybernos')
+    check('under it: Servers (kept where it was), the Kybernos section, then the Suite', at >= 0 && flow[at + 1] && flow[at + 1].key === 'kybernos-servers' && flow[at + 2] && flow[at + 2].key === 'kybernos-local' && flow[at + 3] && flow[at + 3].key === 'kybernos-suite', flow.slice(at, at + 5))
+    // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
+    const openCell = async (cellKey) => {
+      await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${JSON.stringify(cellKey)} }); if (c) c.click() })()`)
+      await sleep(700)
+      return (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
+    }
+    const general = await openCell('general')
+    check('General still opens', general.length > 20, general.slice(0, 120))
+    const remote = await openCell('kybernos-mobile')
+    check('Remote Control still opens, with its own page', /remote control|phone/i.test(remote) && remote.length > 20, remote.slice(0, 160))
+    const appearance = await openCell('kbac-appearance')
+    check('Appearance still opens (the shortcut to Theme)', /theme|appearance/i.test(appearance), appearance.slice(0, 160))
+
+    // ── The « Kybernos » section: the custom instructions through the host's file routes, the model re-import, the DSH chats ─────────────────────────────────
+    console.log('The Kybernos section of Settings — what stays on this computer')
+    await openCell('kybernos-local')
+    await waitFor(page, `document.querySelector('[data-kb="ky-section"]') !== null`, 5000)
+    await sleep(500)
+    check('the section opens: instructions, models and chats are there', (await exists('[data-kb="ky-instructions"]')) && (await exists('[data-kb="ky-models"]')) && (await exists('[data-kb="ky-chats"]')))
+    const AGENTS = join(DSH_HOME, 'AGENTS.md')
+    const note = (await text('[data-kb="ky-instr-note"]')) || ''
+    check('it says the instructions are kept on this computer, and in which file (the sandbox\'s own AGENTS.md)', /on this computer/i.test(note) && note.includes(AGENTS), note)
+    const setField = (value) => val(`(() => { const t = document.querySelector('[data-kb="ky-instr-field"]'); const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set; set.call(t, ${JSON.stringify(value)}); t.dispatchEvent(new Event('input', { bubbles: true })) })()`)
+    const field = () => val(`document.querySelector('[data-kb="ky-instr-field"]').value`)
+    const INSTR = 'Answer in short sentences. Say what you checked.'
+    check('Save is not offered before anything changed', (await val(`document.querySelector('[data-kb="ky-instr-save"]').disabled`)) === true)
+    await setField(INSTR)
+    check('typing offers Save', (await val(`document.querySelector('[data-kb="ky-instr-save"]').disabled`)) === false)
+    await jsClick('[data-kb="ky-instr-save"]')
+    await waitFor(page, `document.querySelector('[data-kb="ky-instr-saved"]') !== null`, 5000)
+    check('Save: the page says Saved', await exists('[data-kb="ky-instr-saved"]'))
+    const written = existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : ''
+    check('and the host wrote the marked section of AGENTS.md (what every agent reads)', written.includes('<!-- kybernos:custom-instructions v1 -->') && written.includes(INSTR), written.slice(0, 200))
+    await reload()
+    await val(`window.__kbOpenDshSettings()`)
+    await settingsOpen()
+    await openCell('kybernos-local')
+    await waitFor(page, `document.querySelector('[data-kb="ky-instr-field"]') !== null && document.querySelector('[data-kb="ky-instr-field"]').value !== ''`, 5000)
+    check('after a reload the field reads it back from the file', (await field()) === INSTR, await field())
+    // Emptying the field and saving removes the section (the rest of the file is the person\'s).
+    await setField('')
+    await jsClick('[data-kb="ky-instr-save"]'); await sleep(700)
+    check('an emptied field removes the section from AGENTS.md', !(existsSync(AGENTS) ? readFileSync(AGENTS, 'utf8') : '').includes('kybernos:custom-instructions'))
+    // A marker typed in the field is refused with the reason, and nothing is written.
+    await setField('x <!-- kybernos:custom-instructions v1 --> y')
+    await jsClick('[data-kb="ky-instr-save"]'); await sleep(700)
+    check('a reserved marker in the text is refused, with the reason', /reserved Kybernos marker/.test((await text('[data-kb="ky-instr-error"]')) || ''), await text('[data-kb="ky-instr-error"]'))
+    await setField('')
+
+    // Models and chats: the host's routes are answered in the page; the section runs them and says what happened.
+    fake.sync = { ok: true, models: { count: 3, plan: 'free', settings: true } }
+    fake.push = { ok: true, scanned: 4, pushed: 4 }
+    fake.calls.length = 0
+    check('connected: the two server actions can be pressed and no sign-in note is shown', (await exists('[data-kb="ky-signed-out"]')) === false && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled === false && document.querySelector('[data-kb="ky-chats-run"]').disabled === false`)) === true)
+    await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
+    check('Import models asks the host to re-import the catalogue', fake.calls.includes('models-sync'), fake.calls)
+    await jsClick('[data-kb="ky-chats-run"]'); await sleep(600)
+    check('Send DSH chats asks the host to send the directory', fake.calls.includes('chats-push'), fake.calls)
+    fake.sync = { ok: false, error: 'reseau' }
+    await jsClick('[data-kb="ky-models-run"]'); await sleep(600)
+    check('a refused re-import says so (and offers to try again)', (await exists('[data-kb="ky-models-error"]')) && (await val(`document.querySelector('[data-kb="ky-models-run"]').disabled`)) === false, await text('[data-kb="ky-models"]'))
+    fake.sync = null
+    fake.push = null
+    await shot('11b-kybernos-section')
     await clean()
 
     // ── 8. The Upgrade dialog ─────────────────────────────────────────────────────────────────────────────────
@@ -579,6 +771,9 @@ try {
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
   }
 } finally {
+  // The Kybernos section writes the sandbox's own AGENTS.md: put it back as it was.
+  try { if (agentsBefore === null) rmSync(join(DSH_HOME, 'AGENTS.md'), { force: true }); else writeFileSync(join(DSH_HOME, 'AGENTS.md'), agentsBefore) } catch (e) { /* the sandbox is throw-away */ }
+  try { rmSync(join(DSH_HOME, 'kybernos-cloud-stub-1.json'), { force: true }) } catch (e) { /* none */ }
   restoreRegistry()
   for (const c of consoles) { try { await c.close() } catch (e) { /* closed */ } }
   await live.close()

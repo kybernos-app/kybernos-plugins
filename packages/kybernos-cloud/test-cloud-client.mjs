@@ -30,27 +30,24 @@ const clientSource = readFileSync(join(here, 'client.js'), 'utf8')
 let staticPass = 0
 const sok = (label) => { staticPass += 1; console.log('  ✓ ' + label) }
 
-for (const needle of [
-  "callLocal('/memory', 'GET')",
-  "callLocal('/memory/add', 'POST'",
-  "callLocal('/memory/lessons', 'POST'",
-  // Épingler/oublier/reliers passent par le même assistant `memoAct`.
-  "memoAct('/memory/update'",
-  "memoAct('/memory/delete'",
-  "memoAct('/memory/map'",
-  "t('memoTitle')",
-  'memoReport',
-  'setMemoReport',
-]) {
-  assert.ok(clientSource.includes(needle), 'cablage de la section memoire manquant: ' + needle)
+// The five pages of the account that used to sit in DSH's Settings (Account, Referral, Security, Account data, Support & legal) are gone from
+// this bundle, with what only they used: the account memory section, the model re-import and DSH chats buttons, the referral and legal
+// reads, the profile helpers, and the dictionary lines and CSS of all of that. The host routes stay (the Atlas reads `/kybernos-cloud/memory`,
+// test-cloud-host.mjs holds the contract); only the client side is pinned as removed here.
+for (const gone of ["callLocal('/memory", 'memoAct', "t('memoTitle')", 'setMemoReport', "callLocal('/referral'", "callLocal('/legal'",
+  'AccountSection', 'DataSection', 'ProfileMain', 'kybernos-cloud-profile', "id: 'kybernos-account'", "id: 'kybernos-data'", 'KB_ACC_KEY', 'kbAccRead', 'kbAccWrite',
+  'props.page === true', 'accSub', 'dataSub', 'refTitle', 'supTitle']) {
+  assert.equal(clientSource.includes(gone), false, 'removed with the account pages of Settings, must not come back: ' + gone)
 }
-sok('section memoire cablée : lecture, ajout, epinglage, oubli, lecons, correspondance')
-
-// La route d'ajout doit avoir un chemin DISTINCT de la lecture : le routeur
-// indexe par chemin, deux routes sur `/memory` se masqueraient.
-assert.ok(clientSource.includes("callLocal('/memory/add', 'POST'"), "l'ajout doit passer par /memory/add")
-assert.equal(clientSource.includes("callLocal('/memory', 'POST'"), false)
-sok('ajout sur /memory/add (jamais un POST sur /memory, qui masquerait la lecture)')
+sok('les cinq pages du compte ne sont plus dans les Reglages : ni section, ni memoire, ni parrainage, ni legal, ni profil local cote client')
+// What came back, and only that: the « Kybernos » section of what stays on THIS computer (the custom instructions through the host's two routes, the re-import
+// of the active server's models, the send of the DSH chats). It is the bundle's only Settings section and holds nothing of the account.
+assert.equal((clientSource.match(/name: 'settings\.section'/g) || []).length, 1, 'une seule section de Reglages')
+assert.ok(clientSource.includes("id: 'kybernos-local'"), 'la section s appelle kybernos-local (cle de nav connue du plugin de base)')
+for (const needle of ["callLocal('/instructions', 'GET')", "callLocal('/instructions/save', 'POST', { text: text })", "run('models', '/models/sync')", "run('chats', '/chats/push')"]) {
+  assert.ok(clientSource.includes(needle), 'cablage de la section Kybernos manquant: ' + needle)
+}
+sok('section Kybernos : instructions (lecture + enregistrement par la route hote), reimport des modeles, envoi des chats DSH')
 
 // Dictionnaires : toute clé littérale `t('…')` doit exister en fr ET en en.
 const frStart = clientSource.indexOf('      fr: {')
@@ -65,11 +62,7 @@ assert.ok(frKeys.size > 20 && enKeys.size > 20, 'dictionnaires parses trop maigr
 const used = new Set([...clientSource.matchAll(/\bt\('([A-Za-z][A-Za-z0-9_]*)'\)/g)].map((m) => m[1]))
 assert.deepEqual([...used].filter((k) => frKeys.has(k) !== true), [], 'cles fr manquantes')
 assert.deepEqual([...used].filter((k) => enKeys.has(k) !== true), [], 'cles en manquantes')
-// Les quatre clés construites dynamiquement : t('memoKind' + Capitalisé).
-for (const k of ['memoKindFact', 'memoKindPreference', 'memoKindEvent', 'memoKindPolicy']) {
-  assert.ok(frKeys.has(k) && enKeys.has(k), 'cle dynamique manquante: ' + k)
-}
-sok(String(used.size) + ' cles litterales presentes en fr ET en (+4 construites dynamiquement)')
+sok(String(used.size) + ' cles litterales presentes en fr ET en')
 // « Open the console in your browser » is gone: it asked the server for a link the old stack does not have (the tab opened, then closed with no word) and
 // it repeated « Teams settings ». The menu has ONE entry for the team console, and nothing in the client opens a tab for it.
 for (const needle of ["entree('space-browser'", "menuTeamsBrowser", "onSpaceBrowser", "ouvrirEspaceNavigateur", "window.open('', '_blank')"]) {
@@ -103,8 +96,8 @@ assert.ok(/openAccountPage\('overview', actif\)/.test(clientSource) && /section:
   sok('Remote control : une entree apres Referral, lue sur le statut du lien telephone (cachee si non offert, hors forfait, ou illisible), plus de bouton telephone')
 }
 // The words: a shared space is a Team, creating one says so (docs/vocabulary.md in the app repo: workspace = the container incl. the personal one).
-for (const [needle, why] of [["wsNew: 'New team'", 'en: New team'], ["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
-  ["wsNew: 'Nouvelle équipe'", 'fr: Nouvelle équipe'], ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
+for (const [needle, why] of [["wsNewTitle: 'Create a team'", 'en: Create a team'], ["wsNewName: 'Team name'", 'en: Team name'],
+  ["wsNewTitle: 'Créer une équipe'", 'fr: Créer une équipe'], ["wsNewName: 'Nom de l\\'équipe'", 'fr: Nom de l équipe']]) {
   assert.ok(clientSource.includes(needle), 'vocabulaire Team: ' + why)
 }
 for (const old of ["wsNew: 'New workspace'", "wsNewTitle: 'Create a workspace'", "wsNewName: 'Workspace name'", "wsNew: 'Nouvel espace'", "wsNewTitle: 'Créer un espace'"]) {
@@ -124,22 +117,11 @@ sok('vocabulaire Team : aucune chaine visible ne dit workspace / espace, l espac
 // A refused creation always says so (with the server's code), and keeps the hosted page as an extra: never a dialog that silently does nothing.
 assert.ok(clientSource.includes("setErreur(t('wsNewErr') + (res !== null && typeof res.status === 'number'"), 'la creation refusee dit pourquoi (code serveur)')
 sok('creation d une equipe refusee : une phrase avec le code, la page hebergee reste proposee')
-// Page head (harmonisation audit, gap G8): the Account and the Data & privacy pages carry the same head as every other Settings page, a title and a sub-title
-// built with the classes the core plugin's single Settings head rule styles (.kb6-title / .kb8-sub), never a one-off style of their own.
-assert.ok(/const PageHead = \(props\) => h\('div', \{ className: 'kbpg-head' \},\s*h\('h2', \{ className: 'kb6-title' \}, props\.title\),\s*h\('p', \{ className: 'kb8-sub' \}, props\.sub\)\)/.test(clientSource), 'PageHead = h2.kb6-title + p.kb8-sub')
-assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('profCompte'\), sub: t\('accSub'\) \}\)/g) || []).length, 3, 'Account: the head is shown while loading, signed out and signed in')
-assert.equal((clientSource.match(/h\(PageHead, \{ title: t\('dataNavLabel'\), sub: t\('dataSub'\) \}\)/g) || []).length, 2, 'Data & privacy: the head is shown signed out and signed in')
-assert.ok(/\.kbpg-head\{margin:0 0 6px\}/.test(clientSource), 'the head only adds the 6px that make the first card sit 20px under the sub-title')
-assert.equal(/\.kbpg-head[^{]*\{[^}]*font-size/.test(clientSource), false, 'the bundle sets no title size of its own: the shared Settings rule does')
-sok('Account and Data & privacy: same head (h2.kb6-title + p.kb8-sub) in every state, fr/en keys checked above')
-// Custom instructions: the field is written to the host's AGENTS.md (the agents read that file), the other fields stay in this browser.
-// Two paths, because the router indexes by path (a GET and a POST on one path would mask each other).
-assert.ok(/callLocal\('\/instructions'\)/.test(clientSource) && /callLocal\('\/instructions\/save', 'POST', \{ text: profil\.instructions \}\)/.test(clientSource), 'the page reads and writes the instructions through the host')
-// A failed write keeps the text unsaved (still dirty) and says why; the other fields are saved either way.
-assert.ok(/ecrit = Object\.assign\(\{\}, profil, \{ instructions: saved\.instructions \}\)/.test(clientSource) && /setFlash\(echec === ''\)/.test(clientSource), 'a failed write leaves the instructions unsaved and the page says so')
-// Without the route (an older host) the field stays browser-side and the old note is shown.
-assert.ok(/hostFile !== '' \? quotaFill\(t\('accInstrHost'\), \{ file: hostFile \}\) : t\('accLocalNote'\)/.test(clientSource), 'the note says where the text went, or that it stays on this device')
-sok('instructions : written to the host AGENTS.md, unsaved on failure with the reason, browser-side without the route')
+// The page head of the Account / Data pages, and the custom-instructions field of the Account page, left with those pages: nothing of them stays.
+for (const gone of ['PageHead', 'kbpg-head', 'kbax-', 'kbfp-avat', 'accInstr', 'accLocalNote', 'dataNavLabel']) {
+  assert.equal(clientSource.includes(gone), false, 'belonged to the Account / Data pages of Settings: ' + gone)
+}
+sok('en-tete de page, champ d instructions et styles du compte : retires avec les pages')
 // Dead-code rider: the local Team page (`SpaceMain`, key `kybernos-cloud-space`: Plan / Usage / People / Billing / Synchronisation tabs) was removed as
 // unreachable. Its only doors were the last fallback of the « Teams settings » entry (behind the two bridges the mandatory master bundle sets
 // unconditionally) and the window event `kybernos-cloud:space`, which nothing in the repos dispatched. It stays removed: the component, its panel key,
@@ -266,30 +248,23 @@ assert.equal(registered.options.id, 'kybernos-cloud')
 assert.equal(registered.options.order, 21)
 ok('bouton enregistre dans sidebar.footer.action (id=kybernos-cloud, order=21)')
 
-// The only full-frame page this bundle still puts in the `main` slot is the profile page. The old local Team page (`SpaceMain`: Plan / Usage /
-// People / Billing / Synchronisation tabs, key `kybernos-cloud-space`) was removed as unreachable (dead-code rider): its only doors were the
-// last fallback of the « Teams settings » entry, behind two bridges the mandatory master bundle sets unconditionally, and a window event nothing
-// in the repos dispatched. The team console is the server-hosted one, opened by the master.
+// The bundle puts NO full-frame page in the `main` slot any more: the old local Team page (`SpaceMain`, key `kybernos-cloud-space`) went as unreachable,
+// and the profile page (`kybernos-cloud-profile`: Account, Referral, Appearance, Security, Data, Support) went with the five account entries of DSH's
+// Settings. The account's pages are the server console's own, embedded by the master bundle (`window.__kbOpenWsConsole`).
 const mains = registrations.filter((r) => r.options.name === 'main')
-assert.deepEqual(mains.map((r) => r.options.key), ['kybernos-cloud-profile'], 'the profile page is the only `main` page of the bundle')
-assert.equal(typeof mains[0].component, 'function')
-ok('slot main : la page profil seule (la page locale de l espace n existe plus)')
+assert.deepEqual(mains.map((r) => r.options.key), [], 'no `main` page in the bundle')
+ok('slot main : plus aucune page locale (ni profil, ni espace)')
 
 assert.equal(inserted.length, 1)
 assert.ok(inserted[0].textContent.includes('.kbc-scrim'), 'le CSS de la carte doit etre injecte')
-assert.ok(inserted[0].textContent.includes('.kbf-profile'), 'le CSS de la rangee d identite doit etre injecte')
+assert.ok(inserted[0].textContent.includes('.kbf-root'), 'le CSS de la rangee d identite doit etre injecte')
 ok('CSS injecte via styles.insert')
 
-// The two Settings pages of the account, rendered for real in their first (reading) state: each opens with the page head.
-for (const [id, title, sub] of [['kybernos-account', 'Account', 'Your profile and preferences stay on this device. Your instructions are written to the AGENTS.md of the machine running DSH.'], ['kybernos-data', 'Account data', 'The data of your Kybernos Cloud account: export it, manage the device signed in here, or delete the account.']]) {
-  const reg = registrations.filter((r) => r.options.name === 'settings.section' && r.options.id === id)[0]
-  assert.ok(reg !== undefined, 'la section ' + id + ' doit etre enregistree')
-  const markup = renderToStaticMarkup(React.createElement(reg.component, null))
-  const head = '<div class="kbpg-head"><h2 class="kb6-title">' + title + '</h2><p class="kb8-sub">' + sub + '</p></div>'
-  assert.ok(markup.includes(head), id + ' : the page head is missing or changed — ' + markup.slice(0, 300))
-  assert.ok(markup.indexOf(head) < markup.indexOf('class="kbax-card') || markup.indexOf('class="kbax-card') < 0, id + ' : the head comes first')
-}
-ok('Account and Data & privacy pages open with the shared page head (title + sub-title)')
+// One Settings section of ours: « Kybernos » (what stays on this computer). Neither Account nor Account data, nor anything else of the account.
+const settingsSections = registrations.filter((r) => r.options.name === 'settings.section')
+assert.deepEqual(settingsSections.map((r) => r.options.id), ['kybernos-local'], 'this bundle registers one Settings section: Kybernos')
+assert.equal(settingsSections[0].options.label, 'Kybernos')
+ok('une seule section Settings : Kybernos (ce qui reste sur cet ordinateur)')
 
 // ── Rendu réel du composant (React) ─────────────────────────────────────────
 // L'état de connexion vient d'un effet fetch : au premier rendu la rangée est
@@ -322,29 +297,17 @@ ok('CSS des 3 etats (appairage, profil, actions) present')
 // (phrase + CTA), et le rail replié qui se réduit à l'avatar. La cloche des
 // notifications est masquée quand le compte est déconnecté : l'état est publié
 // sur <html data-kb-cloud> par CETTE rangée, pas deviné par l'autre plugin.
-for (const cls of ['.kbf-avatar', '.kbf-name', '.kbf-plan', '.kbf-dev', '.kbf-hint', '.kbf-connect']) {
+for (const cls of ['.kbf-root', '.kbf-avatar', '.kbf-off', '.kbfp-card']) {
   assert.ok(css.includes(cls), 'CSS de la rangee manquant: ' + cls)
 }
-for (const needle of ["setAttribute('data-kb-cloud'", 'phase === \'connected\' ? \'on\' : \'off\'', 'kbf-connect', 'autoStart']) {
+for (const needle of ["setAttribute('data-kb-cloud'", 'phase === \'connected\' ? \'on\' : \'off\'', 'autoStart']) {
   assert.ok(source.includes(needle), 'cablage de la rangee manquant: ' + needle)
 }
 // Les libellés de la rangée existent en fr ET en (aucun trou de traduction).
-for (const key of ['footHint', 'footConnect', 'footProfile', 'footDevice', 'footPairing', 'footPairingAction']) {
+for (const key of ['footHint', 'footConnect', 'footPairing', 'footPairingAction']) {
   assert.equal((source.match(new RegExp(key + ':', 'g')) || []).length, 2, key + ' doit exister en fr ET en')
 }
 ok('rangee du bas : les 3 formes + etat publie + libelles fr/en')
-
-// ── Repli d'affichage du nom ────────────────────────────────────────────────
-// `kybernos_users.name` est vide : la carte montre la partie locale de l'email
-// au lieu d'un « — » muet, marquee comme un repli (classe + info-bulle).
-// L'etat connecte vient d'un effet fetch, donc renderToStaticMarkup ne
-// l'atteint pas : on verifie le cablage dans la source, la classe CSS ci-dessus
-// et la parite fr/en de l'info-bulle.
-// The name (with its fallback to the e-mail's local part) is on the full page: the short card of the sidebar menu shows the e-mail, the plan and the teams only.
-for (const needle of ['kbc-v-fallback', 'email.slice(0, at)', "hint: pn.fallback ? t('nameFallback') : undefined"]) {
-  assert.ok(source.includes(needle), 'cablage du repli manquant: ' + needle)
-}
-assert.equal((source.match(/nameFallback:/g) || []).length, 2, 'nameFallback doit exister en fr ET en')
 
 // The card of the sidebar menu is basic: the e-mail, the plan, the teams and the way out. The models import, the DSH chats and the account memory are not drawn on it
 // (they are on the full page), and neither are the name, the device and the session.
@@ -358,19 +321,7 @@ assert.equal((source.match(/nameFallback:/g) || []).length, 2, 'nameFallback doi
   for (const kept of ["label: t('email')", "label: t('plan')", "t('workspaces')", "t('disconnect')"])
     assert.equal(card.includes(kept), true, 'the card must keep ' + kept)
 }
-ok('repli de nom : classe CSS + derivation partie locale + info-bulle fr/en')
-
-// ── Catalogue LiteLLM importé (fonctionnalité cloud n°1) ────────────────────
-// La carte connectée affiche le résumé (combien, quelle formule) et un bouton
-// « Réimporter » qui appelle POST /kybernos-cloud/models/sync. L'import
-// automatique, lui, est du côté host (au claim, au boot, au sync) : le client
-// ne lit QUE des résumés, jamais de jeton ni d'ids complets.
-assert.equal((source.match(/modelsNote:/g) || []).length, 2, 'modelsNote doit exister en fr ET en')
-assert.equal((source.match(/modelsWarn:/g) || []).length, 2, 'modelsWarn doit exister en fr ET en')
-for (const needle of ["callLocal('/models/sync', 'POST')", 'st.models', 'kbc-btn-ghost:disabled']) {
-  assert.ok(source.includes(needle), 'cablage du bloc modele manquant: ' + needle)
-}
-ok('bloc catalogue : resume + bouton resync + note fr/en + bouton desactive')
+ok('carte du menu : e-mail, formule, equipes, deconnexion ; rien d autre')
 
 // ── Le sélecteur d'espace et sa page (menu principal) ──────────────────────
 // La rangée du pied SÉLECTIONNE l'espace : connectée, elle montre l'espace ACTIF
@@ -501,6 +452,56 @@ assert.equal(/[$\u20ac]|token|_usd/i.test(htmlCompteur.slice(htmlCompteur.indexO
 racine2.unmount()
 ok('carte : compteur d usage en pourcentage (lu a l hote, ambre des 75 %, phrase en titre, aucun montant)')
 
+
+// ── The « Kybernos » section of Settings, rendered for real ─────────────────────────────────────────────────────────────────────────
+// Signed out: the instructions are there (read and saved through the host's own file routes, no server involved), the two actions that need a server say so and
+// are disabled. Signed in: the models line says what the last import did, the chats line what the last send did, and the buttons run their routes.
+{
+  const Section = settingsSections[0].component
+  const calls = []
+  let cloud = { ok: true, connected: false }
+  let instructions = { ok: true, present: true, text: 'Be direct.', file: '/home/dev/.dsh/AGENTS.md' }
+  const answer = (url, init) => {
+    const path = new URL(url, 'http://localhost').pathname.replace(/^.*\/kybernos-cloud/, '')
+    const method = init && init.method ? init.method : 'GET'
+    calls.push(method + ' ' + path + (init && init.body ? ' ' + init.body : ''))
+    if (path === '/status') return cloud
+    if (path === '/instructions') return instructions
+    if (path === '/instructions/save') return { ok: true, present: true, changed: true, file: instructions.file }
+    if (path === '/models/sync') return { ok: true, models: { count: 7, plan: 'free', settings: true } }
+    if (path === '/chats/push') return { ok: true, scanned: 3, pushed: 3 }
+    return { ok: false, error: 'inconnu' }
+  }
+  const realFetch = globalThis.fetch
+  globalThis.fetch = async (url, init) => ({ ok: true, status: 200, json: async () => answer(String(url), init) })
+  const root = element(doc)
+  const r = ReactClient.createRoot(root)
+  await act(async () => { r.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
+  let html = htmlDe(root)
+  assert.ok(html.includes('data-kb="ky-section"') && html.includes('data-kb="ky-instructions"') && html.includes('data-kb="ky-models"') && html.includes('data-kb="ky-chats"'), 'les trois blocs')
+  assert.ok(html.includes('Kept on this computer, in /home/dev/.dsh/AGENTS.md'), 'la page dit ou sont gardees les instructions : sur cet ordinateur')
+  assert.ok(html.includes('data-kb="ky-signed-out"'), 'deconnecte : les actions qui demandent un serveur le disent')
+  const tag = (h, k) => { const i = h.indexOf('data-kb="' + k + '"'); return i < 0 ? '' : h.slice(h.lastIndexOf('<', i), h.indexOf('>', i)) }
+  assert.ok(/disabled/.test(tag(html, 'ky-models-run')) && /disabled/.test(tag(html, 'ky-chats-run')), 'deconnecte : les boutons du serveur sont desactives')
+  assert.equal(html.includes('kybernos-account') || html.includes('Referral') || html.includes('Security'), false, 'rien du compte dans la section')
+  assert.ok(calls.includes('GET /instructions') && !calls.some((c) => c.startsWith('POST /models/sync') || c.startsWith('POST /chats/push')), 'rien n est envoye a la lecture')
+  r.unmount()
+
+  // Signed in: what the last import and the last send did.
+  cloud = { ok: true, connected: true, state: { user: { email: 'dev@example.test' }, models: { count: 5, plan: 'free', settings: true, imported_at: '2026-10-14T10:00:00Z' }, chats_last_push: { ok: true, pushed: 2, at: '2026-10-14T11:00:00Z' } } }
+  calls.length = 0
+  const root2 = element(doc)
+  const r2 = ReactClient.createRoot(root2)
+  await act(async () => { r2.render(createElement(Section, null)); await new Promise((res) => setTimeout(res, 30)) })
+  html = htmlDe(root2)
+  assert.equal(html.includes('data-kb="ky-signed-out"'), false, 'connecte : aucune note de connexion')
+  assert.ok(html.includes('5 models · plan free'), 'le nombre de modeles et la formule du dernier import')
+  assert.ok(html.includes('Last send · 2'), 'le dernier envoi des chats')
+  assert.ok(html.includes('Re-import'), 'avec des modeles, le bouton dit Re-import')
+  r2.unmount()
+  globalThis.fetch = realFetch
+}
+ok('section Kybernos : instructions lues sur l hote, deconnecte (actions serveur desactivees et dites) puis connecte (dernier import, dernier envoi)')
 
 // « Teams settings » is a NAMED entry of the account menu. It opens the console through a bridge the core plugin exposes,
 // then falls back to the rich space page of the Kybernos panel (an older master): degrade, never break. There is no third, local page.

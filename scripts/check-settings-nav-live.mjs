@@ -43,7 +43,11 @@ try {
   })()`))
   await sleep(400)
   if (shotsDir !== null) await page.shot(shotsDir + '/nav-bottom.png')
-  check('the Account section is first, the Kybernos one second', m.order.indexOf('Account') < m.order.indexOf('Kybernos Suite') && m.order.indexOf('Kybernos Suite') < m.order.indexOf('General'), m.order.slice(0, 12))
+  // One « Kybernos » section first (no « Account » of ours any more): the servers entry, the section of what stays on this computer, then the Suite.
+  // (The list holds the cells only; the shell's hidden « Models » cell sits at y 0 and is not part of the visible order.)
+  const sv = m.order.indexOf('Servers')
+  check('the Kybernos section opens the list: Servers, Kybernos, Kybernos Suite, then the shell\'s Settings; no Account section of ours',
+    sv >= 0 && m.order[sv + 1] === 'Kybernos' && m.order[sv + 2] === 'Kybernos Suite' && m.order.indexOf('Account') === -1 && m.order.indexOf('Kybernos Suite') < m.order.indexOf('General'), m.order.slice(0, 12))
   check('About is the last tab, as drawn', m.order[m.order.length - 1] === 'About', m.order.slice(-4))
   check('every other tab sits before it (plugin pages included)', m.order.indexOf('About') === m.order.length - 1 && m.order.length > 10)
   check('there is room under the last tab (24px or more)', m.gap !== null && m.gap >= 24, m.gap)

@@ -60,44 +60,17 @@ window.__ModuleLoader__.load({
         // ── l'espace : la rangée du pied devient un sélecteur, et sa page ──
         spaceTitle: 'Équipe',
         wsSwitchTitle: 'Changer d\'équipe',
-        wsSwitchSub: 'switch',
         wsPageTitle: 'Équipe',
         wsPersonal: 'Personnel',
-        wsPrev: 'Équipe précédente',
-        wsNext: 'Équipe suivante',
-        wsNew: 'Nouvelle équipe',
         wsNewTitle: 'Créer une équipe',
         wsNewName: 'Nom de l\'équipe',
         wsNewCreate: 'Créer',
         wsNewHosted: 'Créer dans Kybernos',
         wsNewErr: 'Le serveur a refusé de créer l\'équipe.',
-        profTitle: 'Profil',
         profCompte: 'Compte',
         profParrain: 'Parrainage',
         profApparence: 'Apparence',
-        profSecurite: 'Sécurité',
-        profDonnees: 'Données & confidentialité',
-        profSupport: 'Support & légal',
         profLogout: 'Se déconnecter',
-        refTitle: 'Parrainage',
-        refCode: 'Votre code',
-        refLink: 'Lien de parrainage',
-        refCopy: 'Copier le lien',
-        refCopied: 'Copié',
-        refOpen: 'Voir dans Kybernos',
-        refNone: 'Le parrainage n\'est pas disponible depuis ce poste.',
-        appTitle: 'Apparence de DSH',
-        appNote: 'Thème, accent et police se règlent dans Réglages ▸ Apparence (plugin Thème Kybernos).',
-        appPack: 'Pack actuel',
-        appFont: 'Police',
-        appNone: 'défaut',
-        secTitle: 'Sécurité',
-        secNote: 'Cet appareil tient la session ; la déconnexion révoque le jeton côté serveur.',
-        supTitle: 'Support & légal',
-        supNote: 'Ces pages vivent dans Kybernos :',
-        supSupport: 'Support',
-        supPrivacy: 'Confidentialité',
-        supTerms: 'Conditions',
         mobTitle: 'Télécharger l\'app mobile',
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
@@ -105,58 +78,11 @@ window.__ModuleLoader__.load({
         // that opens the same interface and talks to this machine through the
         // Kybernos relay, which reads nothing (end to end). Not « direct ».
         mobHelp: 'Kybernos Mobile est une web app : votre téléphone ouvre la même interface que cette application et parle à cette machine par un relais qui ne lit rien (chiffré de bout en bout). Le Mac doit être allumé et connecté à Internet.',
-        wsSettingsTitle: 'Réglages d\'équipe',
-        wsOpenHosted: 'Ouvrir dans Kybernos',
-        wsClose: 'Fermer',
-        spaceSwitch: 'Changer d\'équipe',
-        spaceActive: 'Équipe active',
-        spaceSetup: 'Réglage de la synchronisation',
-        spaceOpen: 'Ouvrir dans Kybernos',
         spaceMark: 'actif',
         spaceUnknown: 'Équipe inconnue — rien n\'a été changé.',
         models: 'Modèles',
-        modelsImport: 'Importer les modèles',
-        modelsReimport: 'Réimporter',
-        modelsImporting: 'Import…',
-        modelsUnavailable: 'Aucun modèle importé',
-        modelsNote: 'Modèles Kybernos LiteLLM (glm, deepseek…) importés automatiquement à la connexion, selon ta formule.',
-        modelsWarn: 'Import partiel : la route provider n\'a pas pu être écrite dans les réglages — « Réimporter » réessaie.',
-        modelsSyncFail: 'Resynchronisation impossible — réessaie.',
         // Chats DSH → webapp (annuaire de sessions, métadonnées seulement)
-        chatsTitle: 'Chats DSH',
-        chatsNote: 'Pousse la liste de tes sessions DSH (projet et date, jamais le contenu) vers Kybernos — la webapp affiche ensuite « Conversations DSH ».',
-        chatsPush: 'Synchroniser les chats',
-        chatsPushing: 'Envoi…',
-        chatsLast: 'Dernier envoi',
-        chatsFail: 'Envoi impossible — réessaie.',
         // Mémoire du compte (fonctionnalité cloud n°2)
-        memoTitle: 'Mémoire du compte',
-        memoNote: 'Tes souvenirs Kybernos : ils descendent du cloud à chaque tour et remontent quand tu m\'enseignes quelque chose. Rien n\'est écrit hors connexion.',
-        memoEmpty: 'Aucun souvenir pour l\'instant. Dis-moi quelque chose de durable (« j\'habite à Paris ») ou ajoute-le ici.',
-        memoLoading: 'Lecture des souvenirs…',
-        memoFail: 'Souvenirs illisibles — réessaie.',
-        memoPinned: 'épinglé',
-        memoPin: 'Épingler',
-        memoUnpin: 'Détacher',
-        memoForget: 'Oublier',
-        memoTeach: 'Ajouter un souvenir…',
-        memoKindFact: 'fait',
-        memoKindPreference: 'préférence',
-        memoKindEvent: 'événement',
-        memoKindPolicy: 'règle',
-        memoAdd: 'Ajouter',
-        memoAdded: 'Souvenir enregistré.',
-        memoKybers: 'Agent Teams locales → Agent Teams cloud',
-        memoKybersNote: 'Les leçons d\'une Agent Team locale ne montent que si elle est reliée à une Agent Team cloud. Sans lien, rien n\'est poussé.',
-        memoNoLink: 'non relié',
-        memoLessons: 'Pousser les leçons',
-        memoLessonsDry: 'Vérifier',
-        memoLessonsNote: 'Rien n\'est écrit tant que tu n\'as pas confirmé : la vérification dit ce qui monterait.',
-        memoLessonsDone: 'Leçons poussées',
-        memoLessonsNone: 'Rien à pousser.',
-        memoCapture: 'Dernière capture de fin de tour :',
-        memoCaptureNothing: 'rien à retenir',
-        memoCaptureUnknown: 'état inconnu',
         device: 'Appareil',
         session: 'Session',
         refresh: 'Rafraîchir',
@@ -177,11 +103,8 @@ window.__ModuleLoader__.load({
         close: 'Fermer',
         none: '—',
         loading: 'Chargement…',
-        nameFallback: 'Nom non renseigné chez Kybernos — partie locale de l\'email',
         footHint: 'Connectez-vous pour synchroniser vos sessions et appareils.',
         footConnect: 'Se connecter',
-        footProfile: 'Compte Kybernos Cloud — ouvrir la fiche',
-        footDevice: 'Appareil appairé',
         footPairing: 'Appairage en cours : confirmez le code dans le navigateur.',
         footPairingAction: 'Voir le code',
         // ── Refonte du pied (30/09, maquette « Menu ouvert ») ──
@@ -224,67 +147,6 @@ window.__ModuleLoader__.load({
         mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'équipe vous sera fermée.',
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
-        dataNavLabel: 'Données du compte',
-        dataSub: 'Données de votre compte Kybernos Cloud : exportez-les, gérez l\'appareil connecté ici ou supprimez le compte.',
-        dataLabel: 'Vos données',
-        dataExportTitle: 'Export complet des données',
-        dataExportSub: 'Toutes vos données (profil, conversations, transactions, artefacts) regroupées et envoyées par email sous forme de lien ZIP signé (7 jours).',
-        dataExportCta: 'Demander l’export',
-        dataExportNote: 'La demande se fait dans Kybernos : DSH ne porte pas de jeton web pour la lancer ici.',
-        dataDevicesTitle: 'Sessions et appareils',
-        dataDevicesSub: 'Sessions actuellement connectées à votre compte. Déconnectez tout appareil que vous ne reconnaissez pas.',
-        dataDevicesCurrent: 'Cet appareil',
-        dataDevicesHere: 'Connecté ici',
-        dataDevicesRefreshed: 'Rafraîchi le :',
-        dataDevicesSignOut: 'Déconnecter',
-        dataDevicesSigningOut: 'Déconnexion…',
-        dataDevicesConfirm: 'Déconnecter cet appareil ?',
-        dataDevicesConfirmBody: 'La session « {device} » sera déconnectée immédiatement. Vous pouvez vous reconnecter à tout moment.',
-        dataDevicesKeep: 'Annuler',
-        dataDevicesOthers: 'Les autres sessions se gèrent dans Kybernos.',
-        dataDeleteTitle: 'Supprimer mon compte',
-        dataDeleteSub: 'Vos groupes, Agent Teams et leur mémoire sont supprimés pour de bon. Vos dépôts personnels ne sont jamais touchés.',
-        dataDeleteCta: 'Supprimer le compte',
-        dataDeleteNote: 'La suppression demande votre mot de passe : elle se fait dans Kybernos.',
-        accAvatar: 'Avatar — initiales & couleur',
-        accNamePh: 'Votre nom',
-        accProfileTitle: 'Profil',
-        accBirth: 'Date de naissance',
-        accLocation: 'Localisation',
-        accDetect: 'Détecter',
-        accDetecting: 'Détection…',
-        accDetectErr: 'Détection impossible.',
-        accTimezone: 'Fuseau horaire',
-        accAuto: 'auto',
-        accAutoTz: 'Automatique (détecté)',
-        accPhotoUp: 'Importer une photo',
-        accPhotoDel: 'Retirer la photo',
-        accPhotoErr: 'Image illisible.',
-        accInstructions: 'Instructions personnalisées — comment toutes les Agent Teams vous traitent',
-        accInstructionsPh: 'Soyez direct. Phrases courtes…',
-        accSave: 'Enregistrer',
-        accSaved: 'Enregistré ✓',
-        accSub: 'Votre profil et vos préférences restent sur cet appareil. Vos instructions sont écrites dans le AGENTS.md de la machine qui fait tourner DSH.',
-        accAbout: 'À propos de vous',
-        accPrefs: 'Préférences',
-        accBirthPh: 'Choisir une date',
-        accClear: 'Effacer',
-        accPrevMonth: 'Mois précédent',
-        accNextMonth: 'Mois suivant',
-        accMonth: 'Mois',
-        accYear: 'Année',
-        accTzPh: 'Rechercher une ville, un pays, un fuseau…',
-        accTzNone: 'Aucun fuseau trouvé',
-        accTzUseAuto: 'Utiliser le fuseau détecté',
-        accUnsaved: 'Modifications non enregistrées',
-        accDiscard: 'Annuler',
-        accRefreshing: 'Actualisation…',
-        accLocalNote: 'Ces champs restent sur cet appareil — la page profil de la webapp les garde, elle aussi, côté navigateur : le serveur ne les sert pas.',
-        accInstrHost: 'Écrites dans {file} : tous les agents les lisent, dans les nouvelles conversations.',
-        accInstrErr: 'Enregistrées sur cet appareil, mais pas dans AGENTS.md ({why}).',
-        accInstrWhyReserved: 'le texte contient un repère réservé de Kybernos',
-        accInstrWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrigez-la ou supprimez-la à la main',
-        accInstrWhyWrite: 'le fichier n\'a pas pu être écrit',
         themeLight: 'Clair',
         themeDark: 'Sombre',
         // ── Pied à un seul bouton, menus, fenêtre « Mettre à niveau » ──
@@ -344,6 +206,39 @@ window.__ModuleLoader__.load({
         upFeatTeamMembers: 'Membres de l\'équipe',
         upFeatTeamLessons: 'Leçons partagées',
         upFeatTeamSkills: 'Compétences partagées',
+        kyNav: 'Kybernos',
+        kyTitle: 'Kybernos',
+        kySub: 'Ce que Kybernos garde sur cet ordinateur.',
+        kyInstrTitle: 'Instructions personnalisées',
+        kyInstrPh: 'Soyez direct. Phrases courtes…',
+        kyInstrNote: 'Gardées sur cet ordinateur, dans {file} : tous les agents les lisent, dans les nouvelles conversations.',
+        kyInstrNone: 'Le fichier des instructions n\'a pas pu être lu sur cet ordinateur.',
+        kyInstrErr: 'Pas enregistrées : {why}.',
+        kyWhyReserved: 'le texte contient un repère réservé de Kybernos',
+        kyWhyDamaged: 'la section Kybernos de AGENTS.md est abîmée : corrigez-la ou supprimez-la à la main',
+        kyWhyLong: 'le texte dépasse {max} caractères',
+        kyWhyUnreadable: 'le fichier n\'a pas pu être lu',
+        kyWhyWrite: 'le fichier n\'a pas pu être écrit',
+        kySave: 'Enregistrer',
+        kySaving: 'Enregistrement…',
+        kySaved: 'Enregistré ✓',
+        kyModelsTitle: 'Modèles',
+        kyModelsCount: '{n} modèles · formule {plan}',
+        kyModelsNone: 'Aucun modèle importé',
+        kyLastOn: 'dernier import le {date}',
+        kyModelsNote: 'Relit le catalogue de modèles du serveur actif et ajoute ceux que votre formule inclut dans Réglages › Models.',
+        kyModelsWarn: 'Import partiel : la route du fournisseur n\'a pas pu être écrite dans les réglages — « Réimporter » réessaie.',
+        kyModelsFail: 'Réimport impossible — réessayez.',
+        kyImport: 'Importer les modèles',
+        kyReimport: 'Réimporter',
+        kyImporting: 'Import…',
+        kyChatsTitle: 'Chats DSH',
+        kyChatsNote: 'Envoie la liste de vos sessions DSH (projet et date, jamais le contenu) à Kybernos.',
+        kyChatsSend: 'Envoyer les chats DSH',
+        kyChatsSending: 'Envoi…',
+        kyChatsLast: 'Dernier envoi',
+        kyChatsFail: 'Envoi impossible — réessayez.',
+        kyNeedServer: 'Demande un serveur Kybernos : connectez-vous d\'abord (le bouton en bas de la barre latérale).',
       },
       en: {
         menu: 'Kybernos Cloud',
@@ -366,44 +261,17 @@ window.__ModuleLoader__.load({
         kybers: 'agent teams',
         spaceTitle: 'Team',
         wsSwitchTitle: 'Switch team',
-        wsSwitchSub: 'switch',
         wsPageTitle: 'Team',
         wsPersonal: 'Personal',
-        wsPrev: 'Previous team',
-        wsNext: 'Next team',
-        wsNew: 'New team',
         wsNewTitle: 'Create a team',
         wsNewName: 'Team name',
         wsNewCreate: 'Create',
         wsNewHosted: 'Create in Kybernos',
         wsNewErr: 'The server refused to create the team.',
-        profTitle: 'Profile',
         profCompte: 'Account',
         profParrain: 'Referral',
         profApparence: 'Appearance',
-        profSecurite: 'Security',
-        profDonnees: 'Data & privacy',
-        profSupport: 'Support & legal',
         profLogout: 'Log out',
-        refTitle: 'Referral',
-        refCode: 'Your code',
-        refLink: 'Referral link',
-        refCopy: 'Copy link',
-        refCopied: 'Copied',
-        refOpen: 'See in Kybernos',
-        refNone: 'Referral is not available from this device.',
-        appTitle: 'DSH appearance',
-        appNote: 'Theme, accent and font are set in Settings ▸ Appearance (Kybernos Theme plugin).',
-        appPack: 'Current pack',
-        appFont: 'Font',
-        appNone: 'default',
-        secTitle: 'Security',
-        secNote: 'This device holds the session; logging out revokes the token server-side.',
-        supTitle: 'Support & legal',
-        supNote: 'These pages live in Kybernos:',
-        supSupport: 'Support',
-        supPrivacy: 'Privacy',
-        supTerms: 'Terms',
         mobTitle: 'Get the mobile app',
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
@@ -411,58 +279,11 @@ window.__ModuleLoader__.load({
         // that opens the same interface and talks to this machine through the
         // Kybernos relay, which reads nothing (end to end). Not « direct ».
         mobHelp: 'Kybernos Mobile is a web app: your phone opens the same interface as this application and talks to this machine through a relay that reads nothing (end-to-end encrypted). The Mac must be on and connected to the Internet.',
-        wsSettingsTitle: 'Team settings',
-        wsOpenHosted: 'Open in Kybernos',
-        wsClose: 'Close',
-        spaceSwitch: 'Switch team',
-        spaceActive: 'Active team',
-        spaceSetup: 'Sync settings',
-        spaceOpen: 'Open in Kybernos',
         spaceMark: 'active',
         spaceUnknown: 'Unknown team — nothing was changed.',
         models: 'Models',
-        modelsImport: 'Import models',
-        modelsReimport: 'Re-import',
-        modelsImporting: 'Importing…',
-        modelsUnavailable: 'No models imported',
-        modelsNote: 'Kybernos LiteLLM models (glm, deepseek…) imported automatically on connection, according to your plan.',
-        modelsWarn: 'Partial import: the provider route could not be written to settings — "Re-import" tries again.',
-        modelsSyncFail: 'Re-import failed — try again.',
         // DSH chats → webapp (session directory, metadata only)
-        chatsTitle: 'DSH chats',
-        chatsNote: 'Pushes the list of your DSH sessions (project and date, never the content) to Kybernos — the webapp then shows "DSH conversations".',
-        chatsPush: 'Sync chats',
-        chatsPushing: 'Sending…',
-        chatsLast: 'Last push',
-        chatsFail: 'Push failed — try again.',
         // Account memory (cloud feature #2)
-        memoTitle: 'Account memory',
-        memoNote: 'Your Kybernos memories: they come down from the cloud on every turn and go back up when you teach me something. Nothing is written while disconnected.',
-        memoEmpty: 'No memory yet. Tell me something durable ("I live in Paris") or add it here.',
-        memoLoading: 'Reading memories…',
-        memoFail: 'Memories unreadable — try again.',
-        memoPinned: 'pinned',
-        memoPin: 'Pin',
-        memoUnpin: 'Unpin',
-        memoForget: 'Forget',
-        memoTeach: 'Add a memory…',
-        memoKindFact: 'fact',
-        memoKindPreference: 'preference',
-        memoKindEvent: 'event',
-        memoKindPolicy: 'policy',
-        memoAdd: 'Add',
-        memoAdded: 'Memory saved.',
-        memoKybers: 'Local agent teams → cloud agent teams',
-        memoKybersNote: 'A local agent team\'s lessons only go up when it is linked to a cloud agent team. Without a link, nothing is pushed.',
-        memoNoLink: 'not linked',
-        memoLessons: 'Push lessons',
-        memoLessonsDry: 'Check',
-        memoLessonsNote: 'Nothing is written until you confirm: the check says what would go up.',
-        memoLessonsDone: 'Lessons pushed',
-        memoLessonsNone: 'Nothing to push.',
-        memoCapture: 'Last end-of-turn capture:',
-        memoCaptureNothing: 'nothing to keep',
-        memoCaptureUnknown: 'unknown state',
         device: 'Device',
         session: 'Session',
         refresh: 'Refresh',
@@ -483,11 +304,8 @@ window.__ModuleLoader__.load({
         close: 'Close',
         none: '—',
         loading: 'Loading…',
-        nameFallback: 'No name set on Kybernos — showing the email local part',
         footHint: 'Sign in to sync your sessions and devices.',
         footConnect: 'Sign in',
-        footProfile: 'Kybernos Cloud account — open details',
-        footDevice: 'Paired device',
         footPairing: 'Pairing in progress: confirm the code in your browser.',
         footPairingAction: 'Show code',
         notifTitle: 'Notifications',
@@ -527,67 +345,6 @@ window.__ModuleLoader__.load({
         mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
         mfaGraceShort: 'Second factor by {date}',
         mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the team is closed to you.',
-        dataNavLabel: 'Account data',
-        dataSub: 'The data of your Kybernos Cloud account: export it, manage the device signed in here, or delete the account.',
-        dataLabel: 'Your data',
-        dataExportTitle: 'Full data export',
-        dataExportSub: 'All your data (profile, conversations, transactions, artifacts) bundled and emailed as a signed ZIP link (7 days).',
-        dataExportCta: 'Request export',
-        dataExportNote: 'The request is made in Kybernos: DSH does not carry a web token to run it here.',
-        dataDevicesTitle: 'Sessions and devices',
-        dataDevicesSub: 'Sessions currently signed in to your account. Sign out any device you do not recognize.',
-        dataDevicesCurrent: 'This device',
-        dataDevicesHere: 'Signed in here',
-        dataDevicesRefreshed: 'Refreshed on:',
-        dataDevicesSignOut: 'Sign out',
-        dataDevicesSigningOut: 'Signing out…',
-        dataDevicesConfirm: 'Sign out this device?',
-        dataDevicesConfirmBody: 'Session “{device}” will be signed out immediately. You can sign in again at any time.',
-        dataDevicesKeep: 'Cancel',
-        dataDevicesOthers: 'Other sessions are managed in Kybernos.',
-        dataDeleteTitle: 'Delete my account',
-        dataDeleteSub: 'Your groups, Agent Teams and their memory are removed for good. Your own repos are never touched.',
-        dataDeleteCta: 'Delete account',
-        dataDeleteNote: 'Deletion asks for your password: it happens in Kybernos.',
-        accAvatar: 'Avatar — initials & color',
-        accNamePh: 'Your name',
-        accProfileTitle: 'Profile',
-        accBirth: 'Date of birth',
-        accLocation: 'Location',
-        accDetect: 'Detect',
-        accDetecting: 'Detecting…',
-        accDetectErr: 'Could not detect.',
-        accTimezone: 'Time zone',
-        accAuto: 'auto',
-        accAutoTz: 'Automatic (detected)',
-        accPhotoUp: 'Upload photo',
-        accPhotoDel: 'Remove photo',
-        accPhotoErr: 'Unreadable image.',
-        accInstructions: 'Custom instructions — how all Agent Teams treat you',
-        accInstructionsPh: 'Be direct. Short sentences…',
-        accSave: 'Save',
-        accSaved: 'Saved ✓',
-        accSub: 'Your profile and preferences stay on this device. Your instructions are written to the AGENTS.md of the machine running DSH.',
-        accAbout: 'About you',
-        accPrefs: 'Preferences',
-        accBirthPh: 'Pick a date',
-        accClear: 'Clear',
-        accPrevMonth: 'Previous month',
-        accNextMonth: 'Next month',
-        accMonth: 'Month',
-        accYear: 'Year',
-        accTzPh: 'Search a city, a country, a time zone…',
-        accTzNone: 'No time zone found',
-        accTzUseAuto: 'Use detected time zone',
-        accUnsaved: 'Unsaved changes',
-        accDiscard: 'Discard',
-        accRefreshing: 'Refreshing…',
-        accLocalNote: 'These fields stay on this device — the webapp profile page keeps them browser-side too: the server does not serve them.',
-        accInstrHost: 'Written to {file}: every agent reads them, in new chats.',
-        accInstrErr: 'Saved on this device, but not written to AGENTS.md ({why}).',
-        accInstrWhyReserved: 'the text contains a reserved Kybernos marker',
-        accInstrWhyDamaged: 'the Kybernos section of AGENTS.md is damaged: fix or delete it by hand',
-        accInstrWhyWrite: 'the file could not be written',
         themeLight: 'Light',
         themeDark: 'Dark',
         // ── One-button footer, menus, « Upgrade » dialog ──
@@ -647,6 +404,39 @@ window.__ModuleLoader__.load({
         upFeatTeamMembers: 'Team members',
         upFeatTeamLessons: 'Shared lessons',
         upFeatTeamSkills: 'Shared skills',
+        kyNav: 'Kybernos',
+        kyTitle: 'Kybernos',
+        kySub: 'What Kybernos keeps on this computer.',
+        kyInstrTitle: 'Custom instructions',
+        kyInstrPh: 'Be direct. Short sentences…',
+        kyInstrNote: 'Kept on this computer, in {file}: every agent reads them, in new chats.',
+        kyInstrNone: 'The instructions file could not be read on this computer.',
+        kyInstrErr: 'Not saved: {why}.',
+        kyWhyReserved: 'the text contains a reserved Kybernos marker',
+        kyWhyDamaged: 'the Kybernos section of AGENTS.md is damaged: fix or delete it by hand',
+        kyWhyLong: 'the text is longer than {max} characters',
+        kyWhyUnreadable: 'the file could not be read',
+        kyWhyWrite: 'the file could not be written',
+        kySave: 'Save',
+        kySaving: 'Saving…',
+        kySaved: 'Saved ✓',
+        kyModelsTitle: 'Models',
+        kyModelsCount: '{n} models · plan {plan}',
+        kyModelsNone: 'No models imported',
+        kyLastOn: 'last import on {date}',
+        kyModelsNote: 'Re-reads the active server\'s model catalogue and adds the ones your plan includes to Settings › Models.',
+        kyModelsWarn: 'Partial import: the provider route could not be written to settings — "Re-import" tries again.',
+        kyModelsFail: 'Re-import failed — try again.',
+        kyImport: 'Import models',
+        kyReimport: 'Re-import',
+        kyImporting: 'Importing…',
+        kyChatsTitle: 'DSH chats',
+        kyChatsNote: 'Sends the list of your DSH sessions (project and date, never the content) to Kybernos.',
+        kyChatsSend: 'Send DSH chats',
+        kyChatsSending: 'Sending…',
+        kyChatsLast: 'Last send',
+        kyChatsFail: 'Send failed — try again.',
+        kyNeedServer: 'Needs a Kybernos server: sign in first (the button at the bottom of the sidebar).',
       },
     }
 
@@ -676,11 +466,7 @@ window.__ModuleLoader__.load({
    (avatar d'initiales, nom, pastille de formule, appareil appairé) ; déconnecté,
    elle explique et propose « Se connecter ». Le tout ouvre la même fiche. */
 .kbf-root{display:flex;flex-direction:column;gap:6px;width:100%;min-width:0;max-width:100%;position:relative}
-.kbf-profile{display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:36px;padding:0 9px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--dsw-alias-label-primary,#e9e9ee);font:inherit;text-align:left;cursor:pointer}
-.kbf-profile:hover{border-color:var(--dsw-alias-border-l2,rgba(127,127,127,.35))}
-.kbf-profile:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
 .kbf-avatar{flex:none;width:23px;height:23px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-size:9.5px;font-weight:600;letter-spacing:.02em;background:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary-foreground,#fff)}
-.kbf-name{flex:0 1 auto;min-width:0;max-width:62%;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* Le sélecteur d'espace : la rangée du pied montre l'espace ACTIF ; sa page
    (classes kbs-*) porte la liste des espaces puis le réglage de synchronisation.
    ATTENTION : ce bloc vit DANS un template literal — jamais de backtick ici, il
@@ -694,7 +480,6 @@ window.__ModuleLoader__.load({
    grille du pied (plugin Kybernos). Le rideau transparent ferme au clic dehors. */
 .kbf-wsrow,.kbf-idrow{position:relative}
 .kbf-idrow{display:flex;align-items:center;gap:2px;width:100%;min-width:0}
-.kbf-idrow .kbf-profile{flex:1 1 auto;min-width:0}
 .kbf-pop{position:absolute;left:0;bottom:calc(100% + 8px);z-index:61;box-sizing:border-box;width:min(252px,100%);padding:8px;border-radius:13px;background:var(--dsw-alias-bg-layer-2,#191920);border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.3));box-shadow:0 12px 32px rgba(0,0,0,.4);color:var(--dsw-alias-label-primary,#e9e9ee);font-size:13px}
 .kbf-poptitle{padding:6px 10px 8px;font-size:12px;font-weight:600;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 /* Le QR factice : dessine une grille deterministe (faux modules + 3 carrés de
@@ -703,31 +488,9 @@ window.__ModuleLoader__.load({
 .kbf-qrnote{margin:8px 2px 2px;font-size:11.5px;line-height:1.45;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbf-popcenter{padding:10px 10px 12px}
 .kbf-wsgear:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-/* Full-frame page (slot main): it lives in the content area, not in an overlay.
-   Only the profile page uses it now (the local Team page was removed as unreachable). */
-.kbp-page{display:flex;flex-direction:column;height:100%;overflow:auto;padding:24px 30px 40px;color:var(--dsw-alias-label-primary,#e9e9ee)}
-.kbp-head{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
-.kbp-title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
-.kbp-sub{display:block;margin-top:3px;font-size:12.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbp-back{margin-left:auto;padding:7px 12px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer}
-.kbp-back:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbp-card{border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.22));border-radius:14px;padding:20px 22px;background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.06))}
-/* La page profil : menu de sections a gauche (comme dans Kybernos), contenu
-   a droite. Le libelle actif porte un fond discret et une barre laterale. */
-.kbp-wrap{display:flex;gap:28px;align-items:flex-start;width:100%;max-width:900px;margin-top:18px}
-.kbp-nav{display:flex;flex-direction:column;gap:2px;flex:0 0 215px;position:sticky;top:0}
-.kbp-navbtn{display:block;width:100%;padding:8px 12px;border:none;border-left:2px solid transparent;border-radius:0 9px 9px 0;background:transparent;color:var(--dsw-alias-label-secondary,#8a8a93);font:inherit;font-size:13.5px;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbp-navbtn:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-primary,#e9e9ee)}
-.kbp-navbtn[aria-current="true"]{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));border-left-color:var(--dsw-alias-brand-primary,#6a4fd8);color:var(--dsw-alias-label-primary,#e9e9ee);font-weight:600}
-.kbp-navbtn.kbp-navout{margin-top:10px;color:var(--dsw-alias-state-error-primary,#f25a5a)}
-.kbp-navbtn.kbp-navout:hover{background:rgba(242,90,90,.12);color:var(--dsw-alias-state-error-primary,#f25a5a)}
-.kbp-sec{flex:1 1 auto;min-width:0}
-
-.kbt-head{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
 .kbs-head{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
 .kbs-who{display:flex;align-items:center;gap:9px;min-width:0}
 .kbs-who b{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbs-sub{display:block;margin-top:2px;font-size:11.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbs-list{display:flex;flex-direction:column;gap:2px;margin:10px 0 0}
 .kbs-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:12.5px;text-align:left;cursor:pointer}
 .kbs-item:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
@@ -735,17 +498,9 @@ window.__ModuleLoader__.load({
 .kbs-item .kbs-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kbs-mark{flex:none;font-size:10.5px;color:var(--dsw-alias-label-tertiary,#8a8a93)}
 .kbs-sep{height:1px;margin:12px 0;background:var(--dsw-alias-border-l2,rgba(127,127,127,.22))}
-.kbs-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
-.kbs-row{display:flex;align-items:flex-start;gap:14px;padding:10px 0;border-top:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.16))}
-.kbs-note{padding:9px 11px;border-radius:8px;border-left:3px solid var(--dsw-alias-state-warn-primary,#f59e0b);background:var(--dsw-alias-bg-layer-1,rgba(127,127,127,.10));font-size:11.5px;line-height:1.5}
-.kbs-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .kbs-link{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2,rgba(127,127,127,.35));background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer;text-decoration:none}
 .kbs-link:hover{background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14))}
-.kbs-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;padding:0 6px;border-radius:999px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.18));font-size:10.5px;font-weight:600}
-.kbf-plan{flex:none;max-width:58px;padding:2px 7px;border-radius:999px;background:var(--dsw-alias-bg-layer-2,rgba(127,127,127,.14));color:var(--dsw-alias-label-secondary,#8a8a93);font-size:11px;line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kbf-dev{flex:none;margin-left:auto;display:flex;align-items:center;color:var(--dsw-alias-brand-primary,#4176e6)}
 .kbf-off{display:flex;flex-direction:column;gap:8px;width:100%;min-width:0}
-.kbf-hint{margin:0;font-size:11.5px;line-height:1.4;color:var(--dsw-alias-label-secondary,#8a8a93)}
 .kbf-maj{display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:34px;padding:0 10px;border:1px solid color-mix(in srgb,#f5a524 40%,var(--dsw-alias-border-l2));border-radius:10px;background:color-mix(in srgb,#f5a524 9%,transparent);color:var(--dsw-alias-label-primary);font:inherit;font-size:12.5px;cursor:pointer;text-align:start}
 .kbf-maj:hover{background:color-mix(in srgb,#f5a524 16%,transparent)}
 .kbf-maj-dot{flex:none;width:8px;height:8px;border-radius:50%;background:#f5a524}
@@ -753,13 +508,7 @@ window.__ModuleLoader__.load({
 .kbf-maj-v{flex:none;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums;font-size:11.5px}
 [class*="collapsed"] .kbf-maj{justify-content:center;width:32px;height:32px;padding:0}
 [class*="collapsed"] .kbf-maj-t,[class*="collapsed"] .kbf-maj-v{display:none}
-.kbf-connect{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:34px;border:none;border-radius:10px;background:var(--dsw-alias-brand-primary,#4176e6);color:var(--dsw-alias-label-primary-foreground,#fff);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-.kbf-connect:hover{filter:brightness(1.06)}
 /* Rail replié : l'identité se réduit à l'avatar, l'encart à une pastille. */
-[class*="collapsed"] .kbf-name,[class*="collapsed"] .kbf-plan,[class*="collapsed"] .kbf-dev,[class*="collapsed"] .kbf-hint{display:none}
-[class*="collapsed"] .kbf-profile{justify-content:center;padding:2px}
-[class*="collapsed"] .kbf-connect{width:32px;height:32px;padding:0}
-[class*="collapsed"] .kbf-connect span{display:none}
 .kbc-scrim{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px}
 .kbc-card{position:relative;z-index:9999;width:100%;max-width:380px;max-height:82vh;overflow:auto;border-radius:14px;padding:18px 18px 16px;background:var(--dsw-alias-bg-layer-2, #191920);color:var(--dsw-alias-label-primary, #e9e9ee);box-shadow:0 18px 48px rgba(0,0,0,.45);font-size:13px;line-height:1.45}
 .kbc-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -793,7 +542,6 @@ window.__ModuleLoader__.load({
 .kbc-input:focus-visible{outline:2px solid var(--dsw-alias-brand-primary, #4f7cff);outline-offset:1px}
 .kbc-input option{color:#111}
 .kbc-badge{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(79,124,255,.18);color:var(--dsw-alias-brand-primary, #4f7cff)}
-.kbc-ok{color:#39b46a}
 .kbc-warn{color:#e0a33e}
 .kbc-err{color:#e56a6a}
 .kbc-note{margin-top:10px;font-size:12px;color:var(--dsw-alias-label-secondary, #8a8a93)}
@@ -973,114 +721,19 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
    est redevenu un empilement simple, la carte est le dernier élément visible
    (l'engrenage natif est masqué, son panneau s'ouvre depuis le menu). */
 .kbfp-cardwrap{position:relative;width:100%;min-width:0;display:flex;justify-content:flex-start}
-/* Account tab of Settings (revamp 04/10): cards, custom fields, calendar
-   and time zone picker. All in design-system tokens, nothing hard-coded
-   except the avatar palette. */
-.kbax{display:flex;flex-direction:column;gap:14px;max-width:720px;position:relative}
-/* Page head of the Account and Data & privacy pages. The title (18/600) and the sub-title (13, 6px under it) are NOT styled here: the core plugin's
-   single Settings head rule styles every .kb6-title / .kb8-sub inside the dialog. Only the 6px below is ours: these pages stack their cards with a 14px
-   gap, and the first card has to sit 20px under the sub-title (as on the pages built with the core plugin's KbacHead). */
-.kbpg-head{margin:0 0 6px}
-.kbax-card{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
-.kbax-hero{flex-direction:row;align-items:center;gap:18px}
-.kbax-avwrap{position:relative;flex:none}
-.kbax-avatar{display:flex;align-items:center;justify-content:center;width:76px;height:76px;border-radius:22px;color:#fff;font-family:ui-monospace,monospace;font-weight:700;font-size:26px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.kbax-avcam{position:absolute;right:-6px;bottom:-6px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;border:2px solid var(--dsw-alias-bg-layer-1);background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);cursor:pointer}
-.kbax-avcam:hover{transform:scale(1.08)}
-.kbax-herotxt{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
-.kbax-heroname{display:flex;align-items:center;gap:8px;min-width:0}
-.kbax-heroname b{font-size:17px;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbax-heromail{font-size:13px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbax-swatches{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-.kbax-row{display:flex;flex-direction:column;gap:7px}
-.kbax-label{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary)}
-.kbax-anchor{position:relative;min-width:0}
-.kbax-field{display:flex;align-items:center;gap:9px;box-sizing:border-box;width:100%;min-height:38px;padding:0 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;transition:border-color .12s ease,box-shadow .12s ease}
-.kbax-field:hover{border-color:var(--dsw-alias-border-l3)}
-.kbax-field:focus-within,.kbax-fieldbtn:focus-visible,.kbax-field.open{outline:none;border-color:var(--dsw-alias-state-business-primary,#6b8cff);box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-business-primary,#6b8cff) 22%,transparent)}
-.kbax-input{padding:0 12px}
-.kbax-field svg{flex:none;color:var(--dsw-alias-label-tertiary)}
-.kbax-fieldbtn{cursor:pointer;text-align:start}
-.kbax-fieldbtn.empty .kbax-fieldtxt{color:var(--dsw-alias-label-tertiary)}
-.kbax-fieldtxt{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbax-clearx{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:22px;height:22px;border:none;border-radius:6px;background:transparent;color:var(--dsw-alias-label-tertiary);cursor:pointer}
-.kbax-clearx:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.kbax-bare,.kbax-comboinput{flex:1 1 auto;min-width:0;height:36px;padding:0;border:none;outline:none;background:transparent;color:inherit;font:inherit}
-.kbax-bare::placeholder,.kbax-comboinput::placeholder,.kbax-field input::placeholder,.kbax-area::placeholder{color:var(--dsw-alias-label-tertiary)}
-.kbax-input{height:38px;font:inherit}
-.kbax-inline{display:flex;gap:8px}
-.kbax-inline .kbax-field{flex:1 1 auto}
-.kbax-area{display:block;height:auto;min-height:104px;padding:10px 12px;resize:vertical;line-height:1.5}
-.kbax-count{align-self:flex-end;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
-.kbax-btn{flex:none;height:38px;padding:0 14px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:550;cursor:pointer}
-.kbax-btn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover)}
-.kbax-btn:disabled{opacity:.5;cursor:default}
-.kbax-primary{border-color:transparent;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base)}
-.kbax-primary:hover:not(:disabled){background:var(--dsw-alias-label-primary);opacity:.9}
-.kbax-link{border:none;background:transparent;padding:2px 4px;color:var(--dsw-alias-link,var(--dsw-alias-label-secondary));font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-.kbax-link:disabled{opacity:.4;cursor:default;text-decoration:none}
-.kbax-below{align-self:flex-start;margin-top:2px}
-.kbax-seg{display:inline-flex;gap:3px;padding:3px;border-radius:12px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);align-self:flex-start;max-width:100%;flex-wrap:wrap}
-.kbax-seg button{height:30px;padding:0 14px;border:none;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;font-size:13px;cursor:pointer}
-.kbax-seg button:hover{color:var(--dsw-alias-label-primary)}
-.kbax-seg button.on{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-weight:600}
-.kbax-savebar{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 12px 10px 16px;border-radius:14px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:0 10px 28px rgba(0,0,0,.35)}
-.kbax-savemsg{margin-inline-end:auto;font-size:13px;display:flex;align-items:center;gap:8px}
-.kbax-savemsg.dirty::before{content:"";width:8px;height:8px;border-radius:50%;background:#f5a524}
-.kbax-savemsg.ok{color:var(--dsw-alias-state-success-primary)}
-.kbax-savebar .kbax-btn{height:34px}
-.kbax-skel{border-radius:10px;background:var(--dsw-alias-bg-skeleton,rgba(127,127,127,.18));animation:kbax-pulse 1.4s ease-in-out infinite}
-.kbax-skel-head{height:76px;border-radius:18px}
-.kbax-skel-line{height:12px;width:40%}
-.kbax-skel-line.short{width:22%}
-.kbax-skel-field{height:38px;border-radius:11px}
-@keyframes kbax-pulse{0%,100%{opacity:1}50%{opacity:.5}}
-@media (prefers-reduced-motion:reduce){.kbax-skel{animation:none}}
-/* Popovers attached to <body>: calendar and time zone list. */
-.kbax-pop{z-index:2147483000;box-sizing:border-box;border-radius:16px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-2);box-shadow:0 18px 44px rgba(0,0,0,.45);color:var(--dsw-alias-label-primary);font-size:13px}
-.kbax-cal{width:296px;padding:10px}
-.kbax-cal-head{display:flex;align-items:center;gap:6px;margin-bottom:8px}
-.kbax-cal-sel{display:flex;flex:1 1 auto;gap:6px;min-width:0}
-.kbax-minisel{flex:1 1 auto;min-width:0;height:32px;padding:0 8px;border-radius:9px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;font-weight:600;text-transform:capitalize;cursor:pointer}
-.kbax-minisel:last-child{flex:0 0 76px}
-.kbax-iconbtn{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border:none;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
-.kbax-iconbtn:hover:not(:disabled){background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
-.kbax-iconbtn:disabled{opacity:.3;cursor:default}
-.kbax-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.kbax-cal-wd{display:flex;align-items:center;justify-content:center;height:26px;font-size:11px;font-weight:600;text-transform:uppercase;color:var(--dsw-alias-label-tertiary)}
-.kbax-day{display:flex;align-items:center;justify-content:center;height:34px;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-primary);font:inherit;font-size:13px;cursor:pointer}
-.kbax-day.out{color:var(--dsw-alias-label-tertiary);opacity:.55}
-.kbax-day:hover:not(:disabled):not(.sel){background:var(--dsw-alias-interactive-bg-hover)}
-.kbax-day:focus-visible{outline:2px solid var(--dsw-alias-state-business-primary,#6b8cff);outline-offset:-2px}
-.kbax-day.today{box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l3)}
-.kbax-day.sel{background:var(--dsw-alias-label-primary);color:var(--dsw-alias-bg-base);font-weight:700;opacity:1}
-.kbax-day:disabled{opacity:.25;cursor:default}
-.kbax-cal-foot{display:flex;justify-content:flex-end;margin-top:6px;padding-top:6px;border-top:1px solid var(--dsw-alias-border-l1)}
-.kbax-tzpop{padding:6px;max-width:calc(100vw - 16px)}
-.kbax-tzlist{max-height:300px;overflow-y:auto;overscroll-behavior:contain}
-.kbax-combo .kbax-comboinput{cursor:text}
-.kbax-tzbadge{flex:none;font-size:12px;color:var(--dsw-alias-label-tertiary);font-variant-numeric:tabular-nums}
-.kbax-chev{display:flex;flex:none}
-.kbax-tzgroup{position:sticky;top:0;z-index:1;padding:8px 10px 4px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary);background:var(--dsw-alias-bg-layer-2)}
-.kbax-tzrow{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;cursor:pointer}
-.kbax-tzrow.active{background:var(--dsw-alias-interactive-bg-hover)}
-.kbax-tzrow.sel b{color:var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary))}
-.kbax-tzico{display:flex;color:var(--dsw-alias-label-tertiary)}
-.kbax-tzmain{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;line-height:1.3}
-.kbax-tzmain b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbax-tzsub{font-size:11.5px;color:var(--dsw-alias-label-tertiary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.kbax-tzoff{flex:none;font-size:12px;color:var(--dsw-alias-label-secondary);font-variant-numeric:tabular-nums}
-.kbax-tick{flex:none;color:var(--dsw-alias-state-business-primary,var(--dsw-alias-label-primary));font-weight:700}
-.kbax-tzempty{padding:14px 10px;text-align:center;color:var(--dsw-alias-label-tertiary)}
-@media (max-width:560px){.kbax-hero{flex-direction:column;align-items:flex-start}}
-/* Avatar (initiales & couleur, comme la webapp) : pastille de Gabarit +
-   nuancier DATA (couleurs d'entité, pas des jetons de thème — mêmes
-   valeurs que la webapp, IDENTITY_SWATCH_COLORS). */
-.kbfp-avat{flex:none;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:ui-monospace,monospace;font-weight:700;font-size:16px}
-.kbfp-swrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.kbfp-sw{width:26px;height:26px;border:none;border-radius:8px;cursor:pointer;box-shadow:inset 0 0 0 1px var(--dsw-alias-border-l2)}
-.kbfp-sw:hover{transform:scale(1.08)}
-.kbfp-sw.on{box-shadow:0 0 0 2px var(--dsw-alias-bg-layer-2),0 0 0 4px var(--dsw-alias-label-primary)}
+.kbl-page{display:flex;flex-direction:column;gap:14px;max-width:640px}
+.kbl-head{margin:0 0 6px}
+.kbl-card{display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:16px;border:1px solid var(--dsw-alias-border-l1);background:var(--dsw-alias-bg-layer-1)}
+.kbl-sect{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dsw-alias-label-tertiary,#8a8a93)}
+.kbl-area{box-sizing:border-box;width:100%;min-height:120px;padding:10px 12px;border-radius:11px;border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-base);color:var(--dsw-alias-label-primary);font:inherit;font-size:14px;line-height:1.45;resize:vertical}
+.kbl-area:hover{border-color:var(--dsw-alias-border-l3)}
+.kbl-area:focus-visible{outline:2px solid var(--dsw-alias-brand-primary,#4f7cff);outline-offset:1px}
+.kbl-area:disabled{opacity:.6}
+.kbl-count{align-self:flex-end;font-size:11.5px;color:var(--dsw-alias-label-tertiary)}
+.kbl-line{margin:0;font-size:14px;color:var(--dsw-alias-label-primary)}
+.kbl-note{margin:0}
+.kbl-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kbl-ok{font-size:13px;color:var(--dsw-alias-label-secondary)}
 `
 
     /** Téléphone (appareil appairé) — tracé Lucide, comme le reste du pied. */
@@ -1238,29 +891,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       return body
     }
 
-    // ── Local profile (the Account tab of Settings) ─────────────────────────
-    // Birth date, location, language and colour live in THIS browser (localStorage, never the network), as the
-    // webapp's profile page does with its own. The custom instructions are the exception: the agents read them
-    // from <DSH home>/AGENTS.md, so the page also writes them there (GET /instructions, POST /instructions/save),
-    // and the browser copy is only the fallback when the host does not offer the route.
-    const KB_ACC_KEY = 'kb8.account-profile'
-    const kbAccVide = () => ({ name: '', birth: '', location: '', instructions: '', color: '', photo: '', tz: '' })
-    const kbAccRead = () => {
-      try {
-        const j = JSON.parse(window.localStorage.getItem(KB_ACC_KEY) || 'null')
-        if (j !== null && typeof j === 'object') {
-          const vide = kbAccVide()
-          const lu = {}
-          for (const k of Object.keys(vide)) lu[k] = typeof j[k] === 'string' ? j[k] : ''
-          return lu
-        }
-      } catch (e) { /* stockage indisponible : champs vides */ }
-      return kbAccVide()
-    }
-    const kbAccWrite = (valeur) => {
-      try { window.localStorage.setItem(KB_ACC_KEY, JSON.stringify(valeur)); return true } catch (e) { return false }
-    }
-
     // <quota-notice-text>
     // DSH answers every refused model call with the same fixed words (« Request quota exhausted »): a window used up, a cap an admin set, a failed payment. This says
     // what stopped the person, when it comes back and how to get more, from the server's facts for the active space. The allowance is always a PERCENTAGE of the window
@@ -1376,10 +1006,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
       inject: ['slots'],
       apply(ctx) {
         const slots = ctx.get('slots')
-        // `layout.selectPanel(key)` ouvre la zone de contenu ; la page doit être
-        // enregistrée dans le slot `main` sous la même clé. Lu par ctx.get, comme
-        // le fait le plugin Kybernos (aucune injection à déclarer).
-        const layoutSvc = ctx.get('layout')
         if (slots === undefined || slots === null) {
           console.error('[kybernos-cloud] service slots indisponible: pas d interface')
           return
@@ -1458,18 +1084,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           if (fr !== undefined) return fr
           return key
         }
-        // Statut de la capture de fin de tour : la carte affichait l'identifiant
-        // interne tel quel (« rien_a_retenir », constat de la campagne visuelle).
-        // Les valeurs connues sont nommees, le reste est humanise plutot que
-        // rendu en snake_case.
-        const memoCaptureLabel = (raw) => {
-          const k = (raw === null || raw === undefined) ? '' : String(raw)
-          const corps = (k === 'rien_a_retenir' || k === 'nothing_to_keep')
-            ? t('memoCaptureNothing')
-            : (k === '' ? t('memoCaptureUnknown') : k.replace(/_/g, ' '))
-          return t('memoCapture') + ' ' + corps
-        }
-
         const fmtDate = (iso) => {
           if (typeof iso !== 'string' || iso === '') return null
           const d = new Date(iso)
@@ -1524,43 +1138,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         const CloudCard = (props) => {
           const [view, setView] = React.useState({ phase: 'loading' })
           const [copied, setCopied] = React.useState(false)
-          const [syncing, setSyncing] = React.useState(false)
-          const [chatsBusy, setChatsBusy] = React.useState(false)
-          // Mémoire du compte : chargée à part, jamais bloquante pour la carte.
-          const [memo, setMemo] = React.useState({ phase: 'idle' })
-          const [memoBusy, setMemoBusy] = React.useState(null)
-          const [memoNote, setMemoNote] = React.useState(null)
-          const [memoReport, setMemoReport] = React.useState(null)
-          const [memoDraft, setMemoDraft] = React.useState('')
-          const [memoKind, setMemoKind] = React.useState('fact')
-          const [memoPinned, setMemoPinned] = React.useState(false)
           const liveRef = React.useRef(true)
-          // Page profil : section active du menu (Compte, Parrinage…) et
-          // parrainage chargé paresseusement, seulement en mode page.
-          const [sect, setSect] = React.useState('compte')
-          const [referral, setReferral] = React.useState({ phase: 'idle' })
-          // The terms and privacy addresses of the active server (`/kybernos-cloud/legal`): the new server hosts no /terms or /privacy page.
-          const [legal, setLegal] = React.useState(null)
-          const [refCopied, setRefCopied] = React.useState(false)
-
-          const refCharge = React.useRef(false)
-          React.useEffect(() => {
-            if (props.page !== true || view.phase !== 'connected' || refCharge.current === true) return
-            refCharge.current = true
-            setReferral({ phase: 'loading' })
-            callLocal('/referral', 'GET')
-              .then((r) => { if (liveRef.current === true) setReferral({ phase: 'ready', data: r }) })
-              .catch(() => { if (liveRef.current === true) setReferral({ phase: 'error' }) })
-            callLocal('/legal', 'GET')
-              .then((r) => { if (liveRef.current === true && r !== null && r.ok === true) setLegal({ terms: r.terms, privacy: r.privacy }) })
-              .catch(() => { /* no legal links: the section says so */ })
-          }, [props.page, view.phase])
-
-          const memoMap = () => {
-            const data = memo.phase === 'ready' ? memo.data : null
-            return data !== null && data !== undefined && data.map !== undefined && data.map !== null ? data.map : {}
-          }
-
           React.useEffect(() => () => { liveRef.current = false }, [])
 
           const settle = (next) => {
@@ -1649,115 +1227,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             settle({ phase: 'disconnected' })
           }
 
-          // Catalogue LiteLLM : resynchronisation manuelle (l'import automatique
-          // a déjà eu lieu à la connexion — bouton « Réimporter » pour rattraper
-          // un catalogue indisponible ou de nouveaux modèles côté Kybernos).
-          const resync = async () => {
-            setSyncing(true)
-            let failure = null
-            try {
-              const res = await callLocal('/models/sync', 'POST')
-              if (res.ok !== true) failure = res.error || 'reseau'
-            } catch (e) { failure = 'reseau' }
-            await load()
-            // Après le reload : un échec du sync s'affiche (le reload efface
-            // tout autre état transitoire), un succès repart propre.
-            if (failure !== null && liveRef.current === true) {
-              setView((prev) => Object.assign({}, prev, { syncError: failure }))
-            }
-            setSyncing(false)
-          }
-
           const copy = async () => {
             const code = view.pairing !== undefined && view.pairing !== null ? view.pairing.user_code : null
             if (typeof code !== 'string' || code === '') return
             try { await navigator.clipboard.writeText(code); setCopied(true) } catch (e) { /* presse-papier refuse */ }
           }
-
-          // ── Chats DSH → webapp (annuaire de sessions) ─────────────────────
-          // Un envoi explicite : la route hôte scanne ~/.dsh/sessions (id,
-          // projet, date — jamais le contenu) et pousse vers /v1/dsh/sessions.
-          const pushChats = async () => {
-            setChatsBusy(true)
-            let failure = null
-            try {
-              const res = await callLocal('/chats/push', 'POST')
-              if (res.ok !== true) failure = res.error || 'reseau'
-            } catch (e) { failure = 'reseau' }
-            await load()
-            if (liveRef.current === true) {
-              setView((prev) => Object.assign({}, prev, { chatsError: failure }))
-            }
-            setChatsBusy(false)
-          }
-
-          // ── Mémoire du compte (fonctionnalité cloud n°2) ──────────────────
-          // La carte ne lit QUE des résumés via les routes locales ; le jeton
-          // ne sort jamais du half host. Les souvenirs sont chargés à
-          // l'ouverture de la carte (jamais hors connexion).
-          const loadMemo = React.useCallback(async () => {
-            const res = await callLocal('/memory', 'GET')
-            if (liveRef.current !== true) return
-            if (res.ok !== true) return setMemo({ phase: 'error', error: res.error || 'reseau' })
-            setMemo({ phase: 'ready', data: res })
-          }, [])
-
-          React.useEffect(() => {
-            if (view.phase !== 'connected') return
-            setMemo({ phase: 'loading' })
-            void loadMemo()
-          }, [view.phase, loadMemo])
-
-          const memoAct = async (path, body, busyKey) => {
-            setMemoBusy(busyKey)
-            let failure = null
-            try {
-              const res = await callLocal(path, 'POST', body)
-              if (res.ok !== true) failure = res.error || 'refus'
-            } catch (e) { failure = 'reseau' }
-            await loadMemo()
-            if (liveRef.current === true) setMemoNote(failure === null ? null : failure)
-            setMemoBusy(null)
-          }
-
-          const memoPin = (m) => memoAct('/memory/update', { id: m.id, pinned: m.pinned !== true }, 'pin-' + String(m.id))
-          const memoForget = (m) => memoAct('/memory/delete', { id: m.id }, 'del-' + String(m.id))
-
-          const memoAdd = async () => {
-            const content = memoDraft.trim()
-            if (content === '') return
-            setMemoBusy('add')
-            let failure = null
-            try {
-              const res = await callLocal('/memory/add', 'POST', { content, kind: memoKind, scope: 'account', source: 'taught', pinned: memoPinned })
-              if (res.ok !== true) failure = res.error || 'refus'
-            } catch (e) { failure = 'reseau' }
-            if (failure === null) { setMemoDraft(''); setMemoPinned(false) }
-            await loadMemo()
-            if (liveRef.current === true) setMemoNote(failure === null ? t('memoAdded') : failure)
-            setMemoBusy(null)
-          }
-
-          // Poussée des leçons : la route est `dryRun` par défaut. On montre
-          // d'abord ce qui monterait, on n'écrit qu'au second clic.
-          const memoPush = async (dry) => {
-            setMemoBusy(dry ? 'dry' : 'push')
-            let failure = null
-            let report = null
-            try {
-              const res = await callLocal('/memory/lessons', 'POST', { dryRun: dry })
-              if (res.ok !== true) failure = res.error || 'refus'
-              else report = res.report
-            } catch (e) { failure = 'reseau' }
-            await loadMemo()
-            if (liveRef.current === true) {
-              if (failure !== null) setMemoNote(failure)
-              else { setMemoReport(report); setMemoNote(null) }
-            }
-            setMemoBusy(null)
-          }
-
-          const memoLink = (local, cloud) => memoAct('/memory/map', { map: Object.assign({}, memoMap(), { [local]: cloud }) }, 'map-' + local)
 
           const openPage = () => {
             const url = view.pairing !== undefined && view.pairing !== null ? view.pairing.activation_url : null
@@ -1822,201 +1296,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             body.push(h('div', { className: 'kbc-note', key: 'n' }, errorWords(view.error)))
             body.push(h('div', { className: 'kbc-actions', key: 'a' },
               h('button', { type: 'button', className: 'kbc-btn-primary', onClick: load }, t('retry'))))
-          }
-
-          // ── Mode PAGE (clic sur le nom dans le pied de sidebar) ──────────
-          // Page profil PLEIN CADRE avec le menu de sections de Kybernos :
-          // Compte · Parrainage · Apparence · Sécurité · Données &
-          // confidentialité · Support & légal, puis Se déconnecter. Chaque
-          // section ne rend que ce que ce poste sait VRAIMENT — rien
-          // d'inventé, les pages hébergées sont des liens explicites.
-          if (props.page === true) {
-            const st = view.phase === 'connected' && view.state !== undefined && view.state !== null ? view.state : null
-            const pu = st !== null && st.user !== undefined && st.user !== null ? st.user : {}
-            const pn = displayName(pu)
-            const identite = pn.value !== '' ? pn.value : (pu.email || t('none'))
-            const formule = typeof pu.plan === 'string' && pu.plan !== '' ? pu.plan : null
-            const web = st !== null && typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : null
-
-            let contenu = null
-            if (view.phase !== 'connected') {
-              // Hors connexion, la page garde le menu mais montre la fiche
-              // (appairage, connexion) : le parcours reste complet.
-              contenu = h('div', { className: 'kbp-card kbp-sec' }, body)
-            } else {
-              const SECTIONS = [
-                { id: 'compte', label: t('profCompte') },
-                { id: 'parrainage', label: t('profParrain') },
-                { id: 'apparence', label: t('profApparence') },
-                { id: 'securite', label: t('profSecurite') },
-                { id: 'donnees', label: t('profDonnees') },
-                { id: 'support', label: t('profSupport') },
-              ]
-              const workspaces = Array.isArray(st.workspaces) ? st.workspaces : []
-              const models = st.models !== undefined && st.models !== null ? st.models : null
-              const modelsCount = models !== null && typeof models.count === 'number' ? models.count : 0
-              // Chats DSH → webapp : le même bloc que la fiche modale, rendu
-              // dans l’onglet Compte de la page — le clic sur le nom du pied
-              // ouvre CETTE page, la modale n’est pas le chemin réel.
-              const lastPush = st.chats_last_push !== undefined && st.chats_last_push !== null ? st.chats_last_push : null
-
-              let section = null
-              if (sect === 'compte') {
-                section = h('div', { className: 'kbp-card kbp-sec' },
-                  h('div', { className: 'kbs-sect' }, t('profCompte')),
-                  h('div', { className: 'kbc-rows' },
-                    h(Row, { label: t('email'), value: pu.email || t('none') }),
-                    h(Row, {
-                      label: t('name'),
-                      value: pn.value !== '' ? pn.value : t('none'),
-                      fallback: pn.fallback,
-                      hint: pn.fallback ? t('nameFallback') : undefined,
-                    }),
-                    h(Row, { label: t('plan'), value: pu.plan || t('none') }),
-                    h(Row, { label: t('workspaces'), value: String(workspaces.length) })),
-                  h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('models')),
-                  h('div', { className: 'kbc-ws' },
-                    h('div', { className: 'kbc-ws-item' },
-                      h('span', null, modelsCount > 0 ? String(modelsCount) + ' · ' + (models.plan || t('none')) : t('modelsUnavailable')),
-                      h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: resync, disabled: syncing === true },
-                        syncing === true ? t('modelsImporting') : (modelsCount > 0 ? t('modelsReimport') : t('modelsImport'))))),
-                  h('div', { className: 'kbc-note' }, t('modelsNote')),
-                  h('div', { className: 'kbc-note', style: { marginTop: '12px' } }, t('chatsTitle')),
-                  h('div', { className: 'kbc-ws' },
-                    h('div', { className: 'kbc-ws-item' },
-                      h('span', null, lastPush !== null && lastPush.ok === true
-                        ? t('chatsLast') + ' · ' + String(lastPush.pushed === undefined ? 0 : lastPush.pushed)
-                        : (lastPush !== null && lastPush.ok === false ? t('chatsFail') : '—')),
-                      h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: pushChats, disabled: chatsBusy === true },
-                        chatsBusy === true ? t('chatsPushing') : t('chatsPush')))),
-                  h('div', { className: 'kbc-note' }, t('chatsNote')),
-                  view.chatsError !== undefined && view.chatsError !== null
-                    ? h('div', { className: 'kbc-note kbc-err' }, t('chatsFail'))
-                    : null)
-              } else if (sect === 'parrainage') {
-                const refOk = referral.phase === 'ready' && referral.data !== null && referral.data.ok === true
-                const copier = async () => {
-                  const lien = refOk === true && typeof referral.data.share_url === 'string' ? referral.data.share_url : ''
-                  if (lien === '') return
-                  try { await navigator.clipboard.writeText(lien); setRefCopied(true) } catch (e) { /* presse-papier refuse */ }
-                }
-                section = h('div', { className: 'kbp-card kbp-sec' },
-                  h('div', { className: 'kbs-sect' }, t('refTitle')),
-                  referral.phase === 'loading'
-                    ? h('div', { className: 'kbc-note' }, t('loading'))
-                    : refOk !== true
-                      ? h('div', { className: 'kbc-note kbc-warn' }, t('refNone') + (referral.phase === 'ready' && typeof referral.data.motif === 'string' ? ' — ' + referral.data.motif : ''))
-                      : h('div', { className: 'kbc-rows' },
-                        h(Row, { label: t('refCode'), value: referral.data.code || t('none') }),
-                        h(Row, { label: t('refLink'), value: referral.data.share_url || t('none') })),
-                  h('div', { className: 'kbc-actions' },
-                    refOk === true
-                      ? h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: () => { void copier() } }, refCopied === true ? t('refCopied') : t('refCopy'))
-                      : null,
-                    web !== null
-                      ? h('a', { className: 'kbs-link', href: web + '/account', target: '_blank', rel: 'noreferrer' }, t('refOpen'))
-                      : null))
-              } else if (sect === 'apparence') {
-                let pack = null
-                let police = null
-                try {
-                  const p = localStorage.getItem('kybernos.pack')
-                  const f = localStorage.getItem('kybernos.font')
-                  if (p !== null && p !== '') pack = p
-                  if (f !== null && f !== '') police = f
-                } catch (e) { /* localStorage refuse */ }
-                section = h('div', { className: 'kbp-card kbp-sec' },
-                  h('div', { className: 'kbs-sect' }, t('appTitle')),
-                  h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('appNote')),
-                  h('div', { className: 'kbc-rows' },
-                    h(Row, { label: t('appPack'), value: pack !== null ? pack : t('appNone') }),
-                    h(Row, { label: t('appFont'), value: police !== null ? police : t('appNone') })))
-              } else if (sect === 'securite') {
-                section = h('div', { className: 'kbp-card kbp-sec' },
-                  h('div', { className: 'kbs-sect' }, t('secTitle')),
-                  h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('secNote')),
-                  h('div', { className: 'kbc-rows' },
-                    h(Row, { label: t('device'), value: st.device_label || t('none') }),
-                    h(Row, { label: t('session'), value: st.expires_at !== undefined && st.expires_at !== null ? fmtDate(st.expires_at) : t('connected') })),
-                  h('div', { className: 'kbc-actions' },
-                    h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: load }, t('refresh')),
-                    h('button', { type: 'button', className: 'kbc-btn-ghost', onClick: disconnect }, t('disconnect'))))
-              } else if (sect === 'donnees') {
-                section = h('div', { className: 'kbp-card kbp-sec' },
-                  h('div', { className: 'kbs-sect' }, t('memoTitle')),
-                  memo.phase === 'loading' || memo.phase === 'idle'
-                    ? h('div', { className: 'kbc-note' }, t('memoLoading'))
-                    : memo.phase === 'error'
-                      ? h('div', { className: 'kbc-note kbc-err' }, t('memoFail'))
-                      : h('div', null,
-                        memo.data.account.length === 0
-                          ? h('div', { className: 'kbc-note' }, t('memoEmpty'))
-                          : h('div', { className: 'kbc-ws' }, memo.data.account.map((m) => h('div', { className: 'kbc-ws-item', key: 'm' + String(m.id) },
-                            h('span', null,
-                              h('span', { className: 'kbc-badge', style: { marginRight: '6px' } }, t('memoKind' + String(m.kind).charAt(0).toUpperCase() + String(m.kind).slice(1))),
-                              m.pinned === true ? h('span', { className: 'kbc-badge', style: { marginRight: '6px' } }, t('memoPinned')) : null,
-                              String(m.content)),
-                            h('span', null,
-                              h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPin(m) },
-                                m.pinned === true ? t('memoUnpin') : t('memoPin')),
-                              h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoForget(m) }, t('memoForget')))))),
-                        h('div', { className: 'kbc-actions', style: { marginTop: '8px' } },
-                          h('input', {
-                            type: 'text', className: 'kbc-input', placeholder: t('memoTeach'), value: memoDraft,
-                            onChange: (e) => setMemoDraft(e.target.value),
-                          }),
-                          h('select', {
-                            className: 'kbc-input', value: memoKind,
-                            onChange: (e) => setMemoKind(e.target.value),
-                          }, ['fact', 'preference', 'event', 'policy'].map((k) => h('option', { key: k, value: k }, t('memoKind' + k.charAt(0).toUpperCase() + k.slice(1))))),
-                          h('button', { type: 'button', className: 'kbc-btn-primary', disabled: memoBusy !== null || memoDraft.trim() === '', onClick: memoAdd }, t('memoAdd'))),
-                        h('div', { className: 'kbc-actions', style: { marginTop: '8px' } },
-                          h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPush(true) }, t('memoLessonsDry')),
-                          h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: memoBusy !== null, onClick: () => memoPush(false) }, t('memoLessons'))),
-                        memoNote !== null ? h('div', { className: 'kbc-note' }, String(memoNote)) : null,
-                        web !== null
-                          ? h('div', { className: 'kbc-note' }, h('a', { className: 'kbs-link', href: web + '/workspace-console', target: '_blank', rel: 'noreferrer' }, t('wsOpenHosted')))
-                          : null))
-              } else {
-                section = h('div', { className: 'kbp-card kbp-sec' },
-                  h('div', { className: 'kbs-sect' }, t('supTitle')),
-                  h('div', { className: 'kbc-note', style: { margin: '10px 0 4px' } }, t('supNote')),
-                  // Only what the server publishes (GET /v1/public/legal): a document it does not configure has no row; there is no support page.
-                  (legal === null || (legal.terms === null && legal.privacy === null))
-                    ? h('div', { className: 'kbc-note' }, t('none'))
-                    : h('div', { className: 'kbc-rows' },
-                      legal.privacy === null ? null : h(Row, { key: 'privacy', label: t('supPrivacy'), value: legal.privacy.url }),
-                      legal.terms === null ? null : h(Row, { key: 'terms', label: t('supTerms'), value: legal.terms.url })),
-                  h('div', { className: 'kbc-actions' },
-                    legal !== null && legal.terms !== null ? h('a', { className: 'kbs-link', href: legal.terms.url, target: '_blank', rel: 'noreferrer' }, t('supTerms')) : null,
-                    legal !== null && legal.privacy !== null ? h('a', { className: 'kbs-link', href: legal.privacy.url, target: '_blank', rel: 'noreferrer' }, t('supPrivacy')) : null))
-              }
-
-              contenu = h('div', { className: 'kbp-wrap' },
-                h('nav', { className: 'kbp-nav', 'aria-label': t('profTitle') },
-                  SECTIONS.map((s) => h('button', {
-                    type: 'button', key: s.id, className: 'kbp-navbtn',
-                    'aria-current': sect === s.id ? 'true' : 'false',
-                    onClick: () => setSect(s.id),
-                  }, s.label)),
-                  h('button', {
-                    type: 'button', className: 'kbp-navbtn kbp-navout',
-                    onClick: () => { void disconnect() },
-                  }, t('profLogout'))),
-                section)
-            }
-
-            return h('div', { className: 'kbp-page' },
-              h('div', { className: 'kbp-head' },
-                h('span', {
-                  className: 'kbf-avatar', style: { width: '42px', height: '42px', borderRadius: '10px', fontSize: '15px' },
-                  'aria-hidden': 'true',
-                }, initiales(pn.value, pu.email)),
-                h('span', null,
-                  h('h2', { className: 'kbp-title' }, identite),
-                  h('span', { className: 'kbp-sub' }, t('profTitle') + (formule !== null ? ' · ' + formule : '') + (pu.email !== undefined && pu.email !== null ? ' · ' + pu.email : ''))),
-                h('button', { type: 'button', className: 'kbp-back', onClick: props.onClose }, t('wsClose'))),
-              contenu)
           }
 
           return h('div', { className: 'kbc-scrim', onClick: (e) => { if (e.target === e.currentTarget) props.onClose() } },
@@ -3079,7 +2358,7 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
             // section par défaut, jamais d'erreur bloquante.
             // The section is named by its label AND, when known, by its id (the React key of its cell: the same in every language).
             const ouvrirReglagesCompte = (libelleCible, cleCible) => {
-              const libelle = typeof libelleCible === 'string' && libelleCible !== '' ? libelleCible : t('profCompte')
+              const libelle = typeof libelleCible === 'string' ? libelleCible : ''
               const cleDe = (el) => {
                 try {
                   const nom = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0)
@@ -3254,16 +2533,6 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         ctx.effect(() => slots.inject('sidebar.footer.action', () => slots.register(
           { name: 'sidebar.footer.action', id: 'kybernos-cloud', order: 21 }, CloudFoot)),
         'kybernos-cloud: rangee de profil dans le pied de sidebar')
-        // La page PROFIL, plein cadre elle aussi : le clic sur le nom du pied
-        // de sidebar l'ouvre (comme dans Kybernos). C'est la fiche CloudCard
-        // en gabarit page — aucune seconde implémentation.
-        const ProfileMain = () => h(CloudCard, {
-          page: true,
-          onClose: () => { try { if (layoutSvc !== undefined && layoutSvc !== null && typeof layoutSvc.selectPanel === 'function') layoutSvc.selectPanel(null) } catch (e) { /* layout indisponible */ } },
-        })
-        ctx.effect(() => slots.register(
-          { name: 'main', key: 'kybernos-cloud-profile' }, ProfileMain),
-        'kybernos-cloud: page de profil en plein cadre')
 
         // ── The quota notice ──────────────────────────────────────────────────────
         // DSH's own notice says « Request quota exhausted » for every refusal; this one (claimed through the `shell.quota-notice` chain, QUOTA only) asks the host
@@ -3305,844 +2574,164 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           { name: 'shell.quota-notice', select: (owner) => (owner !== null && owner !== undefined && owner.code === 'QUOTA' ? owner : null), inject: () => ({}) }, KbQuotaNotice)),
         'kybernos-cloud: notice de quota')
 
-        // ── Onglet « Account » des RÉGLAGES (30/09 soir) ────────────────────
-        // Mêmes infos que la page compte du serveur
-        // (<web>/account) : identité, formule, teams, espace
-        // actif, appareil, session — lues des routes locales, jamais
-        // inventées. Le lien « Ouvrir dans Kybernos » pointe la page web.
-        // ── Account page pickers (04/10) ────────────────────────────────────────
-        // Date of birth: a custom calendar (the native <input type=date> is
-        // unreadable in dark theme and forces going back month by month for a
-        // birth date). Time zone: a filterable list with autocompletion
-        // (city, region, country, abbreviation, offset) instead of a <select> of
-        // 420 lines. No network: everything comes from `Intl`.
-        const kbPad = (n) => (n < 10 ? '0' : '') + String(n)
-        const kbIso = (c) => String(c.y) + '-' + kbPad(c.m) + '-' + kbPad(c.d)
-        const kbParseIso = (v) => {
-          const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(typeof v === 'string' ? v : '')
-          if (m === null) return null
-          const y = Number(m[1]); const mo = Number(m[2]); const d = Number(m[3])
-          const dt = new Date(Date.UTC(y, mo - 1, d))
-          return (dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d) ? { y: y, m: mo, d: d } : null
-        }
-        const kbDaysIn = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate()
-        const kbDow = (c) => new Date(Date.UTC(c.y, c.m - 1, c.d)).getUTCDay()
-        const kbToday = () => { const n = new Date(); return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() } }
-        const kbCmp = (a, b) => (a.y - b.y) || (a.m - b.m) || (a.d - b.d)
-        const kbShiftDays = (c, n) => { const dt = new Date(Date.UTC(c.y, c.m - 1, c.d + n)); return { y: dt.getUTCFullYear(), m: dt.getUTCMonth() + 1, d: dt.getUTCDate() } }
-        const kbShiftMonths = (c, n) => {
-          const total = c.y * 12 + (c.m - 1) + n
-          const y = Math.floor(total / 12)
-          const m = total - y * 12 + 1
-          return { y: y, m: m, d: Math.min(c.d, kbDaysIn(y, m)) }
-        }
-        const kbClamp = (c, min, max) => (kbCmp(c, min) < 0 ? min : (kbCmp(c, max) > 0 ? max : c))
+        // ── The « Kybernos » section of DSH's Settings ────────────────────────────────────────────────────────────
+        // What stays on THIS computer: the custom instructions (a marked section of <DSH home>/AGENTS.md, read by every agent), the re-import of the active
+        // server's model catalogue and the send of the DSH chats' directory (project and date, never the content). The account's own pages (profile,
+        // security, devices, data, support) are the server's embedded pages, opened from the footer menu: nothing of them is here. The section shows whether
+        // the person is connected or not: the instructions need no server, the two other actions say so when signed out.
+        const KY_INSTR_MAX = 2000
+        const KybernosSection = () => {
+          const [conn, setConn] = React.useState('loading')
+          const [models, setModels] = React.useState(null)
+          const [lastPush, setLastPush] = React.useState(null)
+          const [text, setText] = React.useState('')
+          const [saved, setSaved] = React.useState('')
+          const [file, setFile] = React.useState('')
+          const [instr, setInstr] = React.useState('loading')
+          const [instrErr, setInstrErr] = React.useState('')
+          const [flash, setFlash] = React.useState(false)
+          const [busy, setBusy] = React.useState('')
+          const [fail, setFail] = React.useState({ models: false, chats: false })
+          const live = React.useRef(true)
+          React.useEffect(() => () => { live.current = false }, [])
 
-        /** Popover anchored to a trigger: attached to <body> (the Settings page
-         *  scrolls and would clip an absolute list), placed as fixed, flipped
-         *  upward if there is no room below, repositioned on scroll. */
-        const kbUsePopover = (anchorRef, popRef, open, close, dep) => {
-          const posPair = React.useState(null)
-          const pos = posPair[0]
-          const setPos = posPair[1]
-          React.useLayoutEffect(() => {
-            if (open !== true) { setPos(null); return undefined }
-            const place = () => {
-              const a = anchorRef.current
-              const p = popRef.current
-              if (a === null || a === undefined || p === null || p === undefined) return
-              const r = a.getBoundingClientRect()
-              const ph = p.offsetHeight
-              const pw = p.offsetWidth
-              const below = window.innerHeight - r.bottom
-              const up = below < ph + 12 && r.top > below
-              setPos({
-                left: Math.max(8, Math.min(r.left, window.innerWidth - pw - 8)),
-                top: up ? Math.max(8, r.top - ph - 6) : r.bottom + 6,
-                width: r.width,
-              })
+          const readStatus = React.useCallback(async () => {
+            let st = null
+            try { st = await callLocal('/status', 'GET') } catch (e) { st = null }
+            if (live.current !== true) return
+            if (st !== null && st.connected === true) {
+              const s = st.state !== undefined && st.state !== null ? st.state : {}
+              setConn('in')
+              setModels(s.models !== undefined ? s.models : null)
+              setLastPush(s.chats_last_push !== undefined ? s.chats_last_push : null)
+            } else {
+              setConn('out')
             }
-            place()
-            const onDown = (e) => {
-              const a = anchorRef.current
-              const p = popRef.current
-              if ((a !== null && a !== undefined && a.contains(e.target)) || (p !== null && p !== undefined && p.contains(e.target))) return
-              close()
-            }
-            const onScroll = (e) => {
-              const p = popRef.current
-              if (p !== null && p !== undefined && p.contains(e.target)) return
-              place()
-            }
-            document.addEventListener('mousedown', onDown, true)
-            window.addEventListener('resize', place)
-            window.addEventListener('scroll', onScroll, true)
-            return () => {
-              document.removeEventListener('mousedown', onDown, true)
-              window.removeEventListener('resize', place)
-              window.removeEventListener('scroll', onScroll, true)
-            }
-          }, [open, dep])
-          return pos
-        }
-        const kbPopStyle = (pos, extra) => Object.assign(
-          pos === null ? { position: 'fixed', left: 0, top: 0, visibility: 'hidden' } : { position: 'fixed', left: pos.left + 'px', top: pos.top + 'px' },
-          extra === undefined ? {} : extra)
-
-        const CalendarIcon = (props) => svgIcon(() => [
-          h('rect', { key: 'a', x: 3.5, y: 5, width: 17, height: 15, rx: 3, stroke: 'currentColor', strokeWidth: 1.7 }),
-          h('path', { key: 'b', d: 'M3.5 10h17M8 3v4M16 3v4', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }),
-        ], props)
-        const ChevronIcon = (props) => svgIcon(() => [
-          h('path', { key: 'a', d: props !== undefined && props.dir === 'left' ? 'M14.5 6l-6 6 6 6' : (props !== undefined && props.dir === 'down' ? 'M6 9.5l6 6 6-6' : 'M9.5 6l6 6-6 6'), stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }),
-        ], props)
-        const CloseXIcon = (props) => svgIcon(() => [
-          h('path', { key: 'a', d: 'M7 7l10 10M17 7L7 17', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round' }),
-        ], props)
-        const PinIcon = (props) => svgIcon(() => [
-          h('path', { key: 'a', d: 'M12 21s6.5-5.6 6.5-11a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21z', stroke: 'currentColor', strokeWidth: 1.7, strokeLinejoin: 'round' }),
-          h('circle', { key: 'b', cx: 12, cy: 10, r: 2.4, stroke: 'currentColor', strokeWidth: 1.7 }),
-        ], props)
-        const ClockIcon = (props) => svgIcon(() => [
-          h('circle', { key: 'a', cx: 12, cy: 12, r: 9, stroke: 'currentColor', strokeWidth: 1.7 }),
-          h('path', { key: 'b', d: 'M12 7v5l3 2', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }),
-        ], props)
-        const CameraIcon = (props) => svgIcon(() => [
-          h('path', { key: 'a', d: 'M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6A1.5 1.5 0 0 1 10 3.8h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z', stroke: 'currentColor', strokeWidth: 1.7, strokeLinejoin: 'round' }),
-          h('circle', { key: 'b', cx: 12, cy: 12.5, r: 3.2, stroke: 'currentColor', strokeWidth: 1.7 }),
-        ], props)
-
-        const KbDatePicker = (props) => {
-          const locale = props.locale
-          const min = props.min
-          const max = props.max
-          const value = kbParseIso(props.value)
-          const openPair = React.useState(false)
-          const open = openPair[0]
-          const setOpen = openPair[1]
-          const cursorPair = React.useState(() => value !== null ? value : kbClamp({ y: max.y - 30, m: max.m, d: 1 }, min, max))
-          const cursor = cursorPair[0]
-          const setCursor = cursorPair[1]
-          const focusRef = React.useRef(false)
-          const anchorRef = React.useRef(null)
-          const popRef = React.useRef(null)
-          const triggerRef = React.useRef(null)
-          const close = () => { setOpen(false); focusRef.current = false }
-          const pos = kbUsePopover(anchorRef, popRef, open, close)
-          const fmt = React.useMemo(() => new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }), [locale])
-          const monthNames = React.useMemo(() => {
-            const f = new Intl.DateTimeFormat(locale, { month: 'long', timeZone: 'UTC' })
-            const out = []
-            for (let i = 0; i < 12; i += 1) out.push(f.format(new Date(Date.UTC(2000, i, 1))))
-            return out
-          }, [locale])
-          const weekdays = React.useMemo(() => {
-            const f = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'UTC' })
-            const out = []
-            // 2023-01-02 is a Monday: week starting on Monday.
-            for (let i = 0; i < 7; i += 1) out.push(f.format(new Date(Date.UTC(2023, 0, 2 + i))))
-            return out
-          }, [locale])
-          const openIt = () => {
-            if (value !== null) setCursor(value)
-            focusRef.current = true
-            setOpen(true)
-          }
-          const choose = (c) => {
-            if (kbCmp(c, min) < 0 || kbCmp(c, max) > 0) return
-            props.onChange(kbIso(c))
-            close()
-            try { triggerRef.current.focus() } catch (e) { /* trigger unmounted */ }
-          }
-          const moveTo = (c) => { focusRef.current = true; setCursor(kbClamp(c, min, max)) }
-          const peek = (c) => { setCursor(kbClamp(c, min, max)) }
-          const onGridKey = (e) => {
-            const k = e.key
-            let next = null
-            if (k === 'ArrowLeft') next = kbShiftDays(cursor, -1)
-            else if (k === 'ArrowRight') next = kbShiftDays(cursor, 1)
-            else if (k === 'ArrowUp') next = kbShiftDays(cursor, -7)
-            else if (k === 'ArrowDown') next = kbShiftDays(cursor, 7)
-            else if (k === 'Home') next = kbShiftDays(cursor, -((kbDow(cursor) + 6) % 7))
-            else if (k === 'End') next = kbShiftDays(cursor, 6 - ((kbDow(cursor) + 6) % 7))
-            else if (k === 'PageUp') next = kbShiftMonths(cursor, e.shiftKey ? -12 : -1)
-            else if (k === 'PageDown') next = kbShiftMonths(cursor, e.shiftKey ? 12 : 1)
-            else if (k === 'Enter' || k === ' ') { e.preventDefault(); choose(cursor); return }
-            else return
-            e.preventDefault()
-            moveTo(next)
-          }
-          React.useEffect(() => {
-            if (open !== true) return undefined
-            const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); try { triggerRef.current.focus() } catch (e2) { /* unmounted */ } } }
-            document.addEventListener('keydown', onKey, true)
-            return () => document.removeEventListener('keydown', onKey, true)
-          }, [open])
-          // Focus only follows the keyboard (and opening): arrow keys and the
-          // header lists must not steal it from the control in use.
-          // It is set AFTER the popover is placed (invisible before: an element
-          // with `visibility:hidden` refuses focus).
-          React.useEffect(() => {
-            if (open !== true || pos === null || focusRef.current !== true || popRef.current === null) return
-            const b = popRef.current.querySelector('.kbax-day[tabindex="0"]')
-            if (b !== null) { focusRef.current = false; try { b.focus() } catch (e) { /* off screen */ } }
-          }, [open, pos === null, cursor.y, cursor.m, cursor.d])
-
-          const today = kbToday()
-          const first = { y: cursor.y, m: cursor.m, d: 1 }
-          const lead = (kbDow(first) + 6) % 7
-          const cells = []
-          for (let i = 0; i < 42; i += 1) cells.push(kbShiftDays(first, i - lead))
-          const years = []
-          for (let y = max.y; y >= min.y; y -= 1) years.push(y)
-          const same = (a, b) => b !== null && kbCmp(a, b) === 0
-          const label = value !== null ? fmt.format(new Date(Date.UTC(value.y, value.m - 1, value.d))) : null
-
-          const popover = open === true ? ReactDOM.createPortal(h('div', {
-            ref: popRef, className: 'kbax-pop kbax-cal', role: 'dialog', 'aria-label': props.label, style: kbPopStyle(pos),
-          },
-          h('div', { className: 'kbax-cal-head' },
-            h('button', {
-              type: 'button', className: 'kbax-iconbtn', 'aria-label': props.prevLabel,
-              disabled: kbCmp(kbShiftMonths({ y: cursor.y, m: cursor.m, d: 1 }, -1), { y: min.y, m: min.m, d: 1 }) < 0,
-              onClick: () => peek(kbShiftMonths(cursor, -1)),
-            }, h(ChevronIcon, { size: 16, dir: 'left' })),
-            h('span', { className: 'kbax-cal-sel' },
-              h('select', {
-                className: 'kbax-minisel', 'aria-label': props.monthLabel, value: cursor.m,
-                onChange: (e) => peek({ y: cursor.y, m: Number(e.target.value), d: Math.min(cursor.d, kbDaysIn(cursor.y, Number(e.target.value))) }),
-              }, monthNames.map((n, i) => h('option', { key: n, value: i + 1 }, n))),
-              h('select', {
-                className: 'kbax-minisel', 'aria-label': props.yearLabel, value: cursor.y,
-                onChange: (e) => peek({ y: Number(e.target.value), m: cursor.m, d: Math.min(cursor.d, kbDaysIn(Number(e.target.value), cursor.m)) }),
-              }, years.map((y) => h('option', { key: y, value: y }, y)))),
-            h('button', {
-              type: 'button', className: 'kbax-iconbtn', 'aria-label': props.nextLabel,
-              disabled: kbCmp(kbShiftMonths({ y: cursor.y, m: cursor.m, d: 1 }, 1), { y: max.y, m: max.m, d: 1 }) > 0,
-              onClick: () => peek(kbShiftMonths(cursor, 1)),
-            }, h(ChevronIcon, { size: 16, dir: 'right' }))),
-          h('div', { className: 'kbax-cal-grid', role: 'group', 'aria-label': monthNames[cursor.m - 1] + ' ' + String(cursor.y), onKeyDown: onGridKey },
-            weekdays.map((w, i) => h('span', { key: 'w' + i, className: 'kbax-cal-wd', 'aria-hidden': 'true' }, w.replace('.', '').slice(0, 2))),
-            cells.map((c) => {
-              const out = c.m !== cursor.m
-              const disabled = kbCmp(c, min) < 0 || kbCmp(c, max) > 0
-              const isCursor = same(c, cursor)
-              return h('button', {
-                key: kbIso(c), type: 'button',
-                tabIndex: isCursor ? 0 : -1, disabled: disabled,
-                'aria-pressed': same(c, value) ? 'true' : 'false',
-                'aria-current': same(c, today) ? 'date' : undefined,
-                className: 'kbax-day' + (out ? ' out' : '') + (same(c, value) ? ' sel' : '') + (same(c, today) ? ' today' : ''),
-                onClick: () => choose(c),
-              }, String(c.d))
-            })),
-          h('div', { className: 'kbax-cal-foot' },
-            h('button', { type: 'button', className: 'kbax-link', disabled: value === null, onClick: () => { props.onChange(''); close(); try { triggerRef.current.focus() } catch (e) { /* unmounted */ } } }, props.clearLabel))),
-          document.body) : null
-
-          return h('div', { className: 'kbax-anchor', ref: anchorRef },
-            h('button', {
-              type: 'button', ref: triggerRef, className: 'kbax-field kbax-fieldbtn' + (value === null ? ' empty' : ''),
-              'aria-haspopup': 'dialog', 'aria-expanded': open === true ? 'true' : 'false',
-              onClick: () => { if (open === true) close(); else openIt() },
-            },
-            h(CalendarIcon, { size: 16 }),
-            h('span', { className: 'kbax-fieldtxt' }, label !== null ? label : props.placeholder),
-            value !== null ? null : h(ChevronIcon, { size: 14, dir: 'down' })),
-            value !== null
-              ? h('button', { type: 'button', className: 'kbax-clearx', 'aria-label': props.clearLabel, title: props.clearLabel, onClick: () => props.onChange('') }, h(CloseXIcon, { size: 13 }))
-              : null,
-            popover)
-        }
-
-        // ── Time zones ───────────────────────────────────────────────────────
-        // Common countries/cities → time zone: "france" must find Europe/Paris,
-        // which the IANA name alone does not allow.
-        const KB_TZ_ALIAS = {
-          france: 'Europe/Paris', 'royaume uni': 'Europe/London', 'united kingdom': 'Europe/London', uk: 'Europe/London', angleterre: 'Europe/London', england: 'Europe/London',
-          allemagne: 'Europe/Berlin', germany: 'Europe/Berlin', espagne: 'Europe/Madrid', spain: 'Europe/Madrid', italie: 'Europe/Rome', italy: 'Europe/Rome',
-          portugal: 'Europe/Lisbon', belgique: 'Europe/Brussels', belgium: 'Europe/Brussels', suisse: 'Europe/Zurich', switzerland: 'Europe/Zurich',
-          'pays bas': 'Europe/Amsterdam', netherlands: 'Europe/Amsterdam', irlande: 'Europe/Dublin', ireland: 'Europe/Dublin', grece: 'Europe/Athens', greece: 'Europe/Athens',
-          turquie: 'Europe/Istanbul', turkey: 'Europe/Istanbul', russie: 'Europe/Moscow', russia: 'Europe/Moscow', pologne: 'Europe/Warsaw', poland: 'Europe/Warsaw',
-          maroc: 'Africa/Casablanca', morocco: 'Africa/Casablanca', algerie: 'Africa/Algiers', algeria: 'Africa/Algiers', tunisie: 'Africa/Tunis', tunisia: 'Africa/Tunis',
-          egypte: 'Africa/Cairo', egypt: 'Africa/Cairo', senegal: 'Africa/Dakar', 'cote d ivoire': 'Africa/Abidjan', 'ivory coast': 'Africa/Abidjan',
-          'afrique du sud': 'Africa/Johannesburg', 'south africa': 'Africa/Johannesburg', nigeria: 'Africa/Lagos', kenya: 'Africa/Nairobi',
-          'etats unis': 'America/New_York', usa: 'America/New_York', 'united states': 'America/New_York', canada: 'America/Toronto', bresil: 'America/Sao_Paulo', brazil: 'America/Sao_Paulo',
-          mexique: 'America/Mexico_City', mexico: 'America/Mexico_City', argentine: 'America/Argentina/Buenos_Aires', argentina: 'America/Argentina/Buenos_Aires',
-          inde: 'Asia/Kolkata', india: 'Asia/Kolkata', chine: 'Asia/Shanghai', china: 'Asia/Shanghai', japon: 'Asia/Tokyo', japan: 'Asia/Tokyo',
-          'coree du sud': 'Asia/Seoul', 'south korea': 'Asia/Seoul', 'emirats arabes unis': 'Asia/Dubai', uae: 'Asia/Dubai', 'arabie saoudite': 'Asia/Riyadh', 'saudi arabia': 'Asia/Riyadh',
-          israel: 'Asia/Jerusalem', liban: 'Asia/Beirut', lebanon: 'Asia/Beirut', singapour: 'Asia/Singapore', singapore: 'Asia/Singapore', thailande: 'Asia/Bangkok', thailand: 'Asia/Bangkok',
-          australie: 'Australia/Sydney', australia: 'Australia/Sydney', 'nouvelle zelande': 'Pacific/Auckland', 'new zealand': 'Pacific/Auckland',
-        }
-        const kbNorm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[_/'’-]+/g, ' ').replace(/\s+/g, ' ').trim()
-        const kbTzState = { list: null, abbr: {}, fmt: {} }
-        const kbTzList = () => {
-          if (kbTzState.list !== null) return kbTzState.list
-          let zones = []
-          try { zones = typeof Intl.supportedValuesOf === 'function' ? Intl.supportedValuesOf('timeZone') : [] } catch (e) { zones = [] }
-          if (zones.indexOf('UTC') < 0) zones = zones.concat(['UTC'])
-          kbTzState.list = zones.map((z) => {
-            const parts = z.split('/')
-            return {
-              z: z,
-              city: (parts.length > 1 ? parts.slice(1).join(' / ') : parts[0]).replace(/_/g, ' '),
-              region: parts.length > 1 ? parts[0].replace(/_/g, ' ') : '',
-              hay: kbNorm(z),
-            }
-          })
-          return kbTzState.list
-        }
-        /** Offset and local time of a time zone, at instant `now`. */
-        const kbTzNow = (z, now) => {
-          try {
-            if (kbTzState.fmt[z] === undefined) kbTzState.fmt[z] = new Intl.DateTimeFormat('en-US', { timeZone: z, timeZoneName: 'longOffset', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
-            const parts = kbTzState.fmt[z].formatToParts(now)
-            const get = (type) => { const p = parts.filter((x) => x.type === type)[0]; return p !== undefined ? p.value : '' }
-            let off = get('timeZoneName').replace('GMT', 'UTC')
-            if (off === 'UTC') off = 'UTC+00:00'
-            return { off: off, time: get('hour') + ':' + get('minute') }
-          } catch (e) { return { off: '', time: '' } }
-        }
-        const kbTzAbbr = (z) => {
-          if (kbTzState.abbr[z] !== undefined) return kbTzState.abbr[z]
-          let a = ''
-          try {
-            const p = new Intl.DateTimeFormat('en-US', { timeZone: z, timeZoneName: 'short' }).formatToParts(new Date()).filter((x) => x.type === 'timeZoneName')[0]
-            a = p !== undefined ? p.value.toLowerCase() : ''
-          } catch (e) { a = '' }
-          kbTzState.abbr[z] = a
-          return a
-        }
-        /** Filter + ranking: 0 city starts with · 1 word/alias/abbreviation · 2 contains · 3 offset. */
-        const kbTzSearch = (query, zones, now) => {
-          const q = kbNorm(query)
-          if (q === '') return zones.map((e) => ({ e: e, score: 0 }))
-          // "+2", "utc-5", "gmt+05:30": we search by offset, not by text.
-          const off = /^(?:utc|gmt)?([+-])(\d{1,2})(?::?(\d{2}))?$/.exec(String(query).toLowerCase().replace(/\s+/g, ''))
-          if (off !== null) {
-            const want = 'UTC' + off[1] + kbPad(Number(off[2])) + ':' + (off[3] !== undefined ? off[3] : '')
-            return zones.filter((e) => kbTzNow(e.z, now).off.indexOf(want) === 0).map((e) => ({ e: e, score: 3 })).sort((a, b) => a.e.city.localeCompare(b.e.city))
-          }
-          const aliasHit = Object.keys(KB_TZ_ALIAS).filter((k) => k.indexOf(q) === 0).map((k) => KB_TZ_ALIAS[k])
-          const out = []
-          for (const e of zones) {
-            const city = kbNorm(e.city)
-            let score = -1
-            if (aliasHit.indexOf(e.z) >= 0) score = 0
-            else if (city.indexOf(q) === 0) score = 0
-            else if (e.hay.split(' ').some((w) => w.indexOf(q) === 0)) score = 1
-            else if (kbTzAbbr(e.z) === q) score = 1
-            else if (e.hay.indexOf(q) >= 0) score = 2
-            if (score >= 0) out.push({ e: e, score: score })
-          }
-          out.sort((a, b) => (a.score - b.score) || a.e.city.localeCompare(b.e.city))
-          return out
-        }
-
-        const KbTzCombo = (props) => {
-          const zones = kbTzList()
-          const openPair = React.useState(false)
-          const open = openPair[0]
-          const setOpen = openPair[1]
-          const queryPair = React.useState('')
-          const query = queryPair[0]
-          const setQuery = queryPair[1]
-          const activePair = React.useState(0)
-          const active = activePair[0]
-          const setActive = activePair[1]
-          const anchorRef = React.useRef(null)
-          const popRef = React.useRef(null)
-          const inputRef = React.useRef(null)
-          const listRef = React.useRef(null)
-          const close = () => { setOpen(false); setQuery('') }
-          const now = React.useMemo(() => new Date(), [open])
-          const hits = React.useMemo(() => (open === true ? kbTzSearch(query, zones, now) : []), [open, query])
-          // Row 0 = "Automatic (detected)" (value ''), then the time zones.
-          const showAuto = kbNorm(query) === '' || kbNorm(props.autoLabel).indexOf(kbNorm(query)) >= 0 || kbNorm(props.detected).indexOf(kbNorm(query)) >= 0
-          const rows = (showAuto === true ? [{ auto: true }] : []).concat(hits.slice(0, 400).map((x) => ({ e: x.e })))
-          const pos = kbUsePopover(anchorRef, popRef, open, close, rows.length)
-          const current = props.value === '' ? null : zones.filter((e) => e.z === props.value)[0] || { z: props.value, city: props.value, region: '', hay: kbNorm(props.value) }
-          const pick = (row) => {
-            props.onChange(row.auto === true ? '' : row.e.z)
-            close()
-            try { inputRef.current.blur() } catch (e) { /* unmounted */ }
-          }
-          React.useEffect(() => { setActive(0) }, [query, open])
-          React.useEffect(() => {
-            if (open !== true || listRef.current === null) return
-            const el = listRef.current.querySelector('[data-active="true"]')
-            if (el !== null) el.scrollIntoView({ block: 'nearest' })
-          }, [active, open, pos === null])
-          const onKey = (e) => {
-            if (e.key === 'ArrowDown') { e.preventDefault(); if (open !== true) setOpen(true); else setActive(Math.min(rows.length - 1, active + 1)) }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(Math.max(0, active - 1)) }
-            else if (e.key === 'Home' && open === true) { e.preventDefault(); setActive(0) }
-            else if (e.key === 'End' && open === true) { e.preventDefault(); setActive(Math.max(0, rows.length - 1)) }
-            else if (e.key === 'Enter') { if (open === true && rows[active] !== undefined) { e.preventDefault(); pick(rows[active]) } }
-            else if (e.key === 'Escape') { if (open === true) { e.preventDefault(); e.stopPropagation(); close() } }
-            else if (e.key === 'Tab') close()
-          }
-          const shown = open === true ? query : (current !== null ? current.z.replace(/_/g, ' ') : props.autoLabel + (props.detected !== '' ? ' · ' + props.detected.replace(/_/g, ' ') : ''))
-          const cur = current !== null ? kbTzNow(current.z, now) : (props.detected !== '' ? kbTzNow(props.detected, now) : { off: '', time: '' })
-          const lastRegion = { v: null }
-          const listbox = open === true ? ReactDOM.createPortal(h('div', {
-            ref: popRef, className: 'kbax-pop kbax-tzpop', style: kbPopStyle(pos, { width: (anchorRef.current !== null ? anchorRef.current.offsetWidth : 360) + 'px' }),
-          },
-          h('div', { id: 'kbax-tzlist', ref: listRef, role: 'listbox', className: 'kbax-tzlist', 'aria-label': props.label },
-            rows.length === 0 ? h('div', { className: 'kbax-tzempty' }, props.noneLabel) : null,
-            rows.map((row, i) => {
-              if (row.auto === true) {
-                return h('div', {
-                  key: 'auto', id: 'kbax-tz-' + i, role: 'option', 'aria-selected': props.value === '' ? 'true' : 'false', 'data-active': i === active ? 'true' : 'false',
-                  className: 'kbax-tzrow auto' + (i === active ? ' active' : '') + (props.value === '' ? ' sel' : ''),
-                  onMouseEnter: () => setActive(i), onMouseDown: (e) => e.preventDefault(), onClick: () => pick(row),
-                }, h('span', { className: 'kbax-tzico' }, h(ClockIcon, { size: 15 })),
-                h('span', { className: 'kbax-tzmain' }, h('b', null, props.autoLabel), h('span', { className: 'kbax-tzsub' }, props.detected !== '' ? props.detected.replace(/_/g, ' ') : '')),
-                props.value === '' ? h('span', { className: 'kbax-tick' }, '✓') : null)
-              }
-              const e = row.e
-              const n = kbTzNow(e.z, now)
-              const head = (kbNorm(query) === '' && e.region !== lastRegion.v) ? (lastRegion.v = e.region, h('div', { key: 'h-' + e.region, className: 'kbax-tzgroup' }, e.region || 'UTC')) : null
-              return [head, h('div', {
-                key: e.z, id: 'kbax-tz-' + i, role: 'option', 'aria-selected': props.value === e.z ? 'true' : 'false', 'data-active': i === active ? 'true' : 'false',
-                className: 'kbax-tzrow' + (i === active ? ' active' : '') + (props.value === e.z ? ' sel' : ''),
-                onMouseEnter: () => setActive(i), onMouseDown: (ev) => ev.preventDefault(), onClick: () => pick(row),
-              },
-              h('span', { className: 'kbax-tzmain' }, h('b', null, e.city), e.region !== '' ? h('span', { className: 'kbax-tzsub' }, e.region) : null),
-              h('span', { className: 'kbax-tzoff' }, (n.off !== '' ? n.off : '') + (n.time !== '' ? ' · ' + n.time : '')))]
-            }))),
-          document.body) : null
-
-          return h('div', { className: 'kbax-anchor', ref: anchorRef },
-            h('div', { className: 'kbax-field kbax-combo' + (open === true ? ' open' : '') },
-              h(ClockIcon, { size: 16 }),
-              h('input', {
-                ref: inputRef, type: 'text', className: 'kbax-comboinput', role: 'combobox', autoComplete: 'off', spellCheck: false,
-                'aria-label': props.label, 'aria-expanded': open === true ? 'true' : 'false', 'aria-controls': 'kbax-tzlist', 'aria-autocomplete': 'list',
-                'aria-activedescendant': open === true && rows[active] !== undefined ? 'kbax-tz-' + active : undefined,
-                placeholder: open === true ? props.searchPlaceholder : undefined,
-                value: shown,
-                onFocus: (e) => { setOpen(true); try { e.target.select() } catch (e2) { /* selection */ } },
-                onClick: () => { if (open !== true) setOpen(true) },
-                onChange: (e) => { if (open !== true) setOpen(true); setQuery(e.target.value) },
-                onKeyDown: onKey,
-              }),
-              open === true ? null : h('span', { className: 'kbax-tzbadge' }, cur.off !== '' ? cur.off : ''),
-              h('span', { className: 'kbax-chev', 'aria-hidden': 'true' }, h(ChevronIcon, { size: 14, dir: 'down' }))),
-            props.value !== '' && open !== true
-              ? h('button', { type: 'button', className: 'kbax-link kbax-below', onClick: () => props.onChange('') }, props.useAutoLabel + (props.detected !== '' ? ' (' + props.detected.replace(/_/g, ' ') + ')' : ''))
-              : null,
-            listbox)
-        }
-
-        // ── Page head shared by the Account and Data & privacy pages ───────────
-        // Same markup as the core plugin's KbacHead (h2.kb6-title + p.kb8-sub): the one Settings
-        // head rule of the core plugin gives it the 18/600 title and the 13 sub-title, so these
-        // two pages cannot drift from the others. The core plugin lives in another bundle and
-        // exposes no component, hence the two class names here.
-        const PageHead = (props) => h('div', { className: 'kbpg-head' },
-          h('h2', { className: 'kb6-title' }, props.title),
-          h('p', { className: 'kb8-sub' }, props.sub))
-
-        // ── Account page ───────────────────────────────────────────────────────
-        const AccountSection = () => {
-          const vuePair = React.useState({ phase: 'loading' })
-          const vue = vuePair[0]
-          const setVue = vuePair[1]
-          const refreshPair = React.useState(false)
-          const refreshing = refreshPair[0]
-          const setRefreshing = refreshPair[1]
-          const liveRef = React.useRef(true)
-          React.useEffect(() => () => { liveRef.current = false }, [])
-          // Cache first (the page appears right away), the refresh afterwards
-          // in the background: no more "Sign in" screen while the data
-          // is read, no more emptied page on every click on Refresh.
-          const charger = React.useCallback(async () => {
-            let status = null
-            try { status = await callLocal('/status', 'GET') } catch (e) { status = null }
-            if (liveRef.current !== true) return
-            if (status !== null && status.connected === true) {
-              const cache = status.state !== undefined && status.state !== null ? status.state : {}
-              setVue({ phase: 'connected', state: cache })
-              setRefreshing(true)
-              try {
-                const fresh = await callLocal('/refresh', 'POST')
-                if (liveRef.current === true && fresh !== null && fresh.connected === true && fresh.state !== undefined) setVue({ phase: 'connected', state: fresh.state })
-              } catch (e) { /* on garde le cache */ }
-              if (liveRef.current === true) setRefreshing(false)
-              return
-            }
-            setVue({ phase: status !== null && status.status === 'pending' ? 'pairing' : 'disconnected' })
           }, [])
-          React.useEffect(() => { void charger() }, [charger])
-          const seDeconnecter = async () => {
-            try { await callLocal('/disconnect', 'POST', { confirm: true }) } catch (e) { /* déjà parti */ }
-            setVue({ phase: 'loading' })
-            void charger()
-          }
+          React.useEffect(() => { void readStatus() }, [readStatus])
+          // The page follows the card: a connection made or ended there is seen here without leaving the section.
+          React.useEffect(() => {
+            const again = () => { void readStatus() }
+            window.addEventListener('focus', again)
+            window.addEventListener('kybernos-cloud:space-changed', again)
+            return () => { window.removeEventListener('focus', again); window.removeEventListener('kybernos-cloud:space-changed', again) }
+          }, [readStatus])
 
-          // ── Profil éditable local (naissance, localisation, instructions…) ──
-          const profilPair = React.useState(kbAccRead)
-          const profil = profilPair[0]
-          const setProfil = profilPair[1]
-          const savedPair = React.useState(kbAccRead)
-          const saved = savedPair[0]
-          const setSaved = savedPair[1]
-          const flashPair = React.useState(false)
-          const flash = flashPair[0]
-          const setFlash = flashPair[1]
-          const detecPair = React.useState('')
-          const detec = detecPair[0]
-          const setDetec = detecPair[1]
-          const fichierRef = React.useRef(null)
-          const photoErrPair = React.useState(false)
-          const photoErr = photoErrPair[0]
-          const setPhotoErr = photoErrPair[1]
-          // The instructions live in the AGENTS.md of the machine running DSH (the agents read that file); the other fields stay in this browser.
-          // `hostFile` is its path, '' while unknown or when the host does not offer the route (then the field stays browser-side, as before).
-          const hostFilePair = React.useState('')
-          const hostFile = hostFilePair[0]
-          const setHostFile = hostFilePair[1]
-          const instrErrPair = React.useState('')
-          const instrErr = instrErrPair[0]
-          const setInstrErr = instrErrPair[1]
           React.useEffect(() => {
             let alive = true
-            callLocal('/instructions').then((r) => {
-              if (alive !== true || r === null || r.ok !== true || typeof r.file !== 'string' || typeof r.text !== 'string') return
-              setHostFile(r.file)
-              const local = kbAccRead().instructions
-              if (r.text !== '') {
-                // The file is what the agents read: it wins over what this browser remembers, unless the person has already typed since.
-                setProfil((p) => (p.instructions === local ? Object.assign({}, p, { instructions: r.text }) : p))
-                setSaved((s) => Object.assign({}, s, { instructions: r.text }))
-                kbAccWrite(Object.assign({}, kbAccRead(), { instructions: r.text }))
-              } else if (local !== '') {
-                // Typed here before the field reached the agents: shown as unsaved, so that one click on Save sends it.
-                setSaved((s) => Object.assign({}, s, { instructions: '' }))
+            callLocal('/instructions', 'GET').then((r) => {
+              if (alive !== true) return
+              if (r !== null && r.ok === true && typeof r.file === 'string' && typeof r.text === 'string') {
+                setFile(r.file); setText(r.text); setSaved(r.text); setInstr('ready')
+              } else {
+                setInstr(r !== null && r.error === 'markers-damaged' ? 'damaged' : 'unavailable')
               }
-            }).catch(() => { /* the field stays browser-side */ })
+            }).catch(() => { if (alive === true) setInstr('unavailable') })
             return () => { alive = false }
           }, [])
-          const dirty = JSON.stringify(profil) !== JSON.stringify(saved)
-          const maj = (patch) => { setProfil((p) => Object.assign({}, p, patch)); setFlash(false) }
-          // Photo : recadrée carré 256 px, JPEG, gardée en data URI sur l'appareil.
-          const chargerPhoto = (fichier) => {
-            if (fichier === undefined || fichier === null) return
-            setPhotoErr(false)
-            const lecteur = new FileReader()
-            lecteur.onerror = () => { setPhotoErr(true) }
-            lecteur.onload = () => {
-              const img = new Image()
-              img.onerror = () => { setPhotoErr(true) }
-              img.onload = () => {
-                try {
-                  const c = document.createElement('canvas')
-                  c.width = 256; c.height = 256
-                  const cote = Math.min(img.width, img.height)
-                  c.getContext('2d').drawImage(img, (img.width - cote) / 2, (img.height - cote) / 2, cote, cote, 0, 0, 256, 256)
-                  maj({ photo: c.toDataURL('image/jpeg', 0.85) })
-                } catch (e) { setPhotoErr(true) }
-              }
-              img.src = String(lecteur.result || '')
+
+          const dirty = instr === 'ready' && text !== saved
+          const save = async () => {
+            if (dirty !== true || busy !== '') return
+            setBusy('save'); setInstrErr(''); setFlash(false)
+            let r = null
+            try { r = await callLocal('/instructions/save', 'POST', { text: text }) } catch (e) { r = null }
+            if (live.current !== true) return
+            setBusy('')
+            if (r !== null && r.ok === true) {
+              // The host trims the text: what is kept is what the field then shows.
+              const kept = text.replace(/\r\n/g, '\n').trim()
+              setText(kept); setSaved(kept); setFlash(true)
+            } else {
+              setInstrErr(r !== null && typeof r.error === 'string' ? r.error : 'write-failed')
             }
-            lecteur.readAsDataURL(fichier)
           }
-          const enregistrer = async () => {
-            if (dirty !== true) return
-            let ecrit = profil
-            let echec = ''
-            if (hostFile !== '' && profil.instructions !== saved.instructions) {
-              const r = await callLocal('/instructions/save', 'POST', { text: profil.instructions }).catch(() => null)
-              if (r === null || r.ok !== true) {
-                // The other fields are saved; the instructions stay unsaved (still dirty), so that Save can be pressed again.
-                echec = r !== null && typeof r.error === 'string' ? r.error : 'write-failed'
-                ecrit = Object.assign({}, profil, { instructions: saved.instructions })
-              }
-            }
-            setInstrErr(echec)
-            if (kbAccWrite(ecrit) === true) { setSaved(ecrit); setFlash(echec === '') }
+          const instrWhy = (code) => {
+            if (code === 'reserved') return t('kyWhyReserved')
+            if (code === 'markers-damaged') return t('kyWhyDamaged')
+            if (code === 'too-long') return quotaFill(t('kyWhyLong'), { max: KY_INSTR_MAX })
+            if (code === 'unreadable') return t('kyWhyUnreadable')
+            return t('kyWhyWrite')
           }
-          const annuler = () => { setProfil(saved); setFlash(false) }
-          const detecter = () => {
-            if (typeof navigator === 'undefined' || navigator.geolocation === undefined || navigator.geolocation === null) { setDetec('err'); return }
-            setDetec('busy')
+
+          const run = async (which, path) => {
+            if (busy !== '' || conn !== 'in') return
+            setBusy(which)
+            setFail((f) => Object.assign({}, f, { [which]: false }))
+            let bad = false
             try {
-              navigator.geolocation.getCurrentPosition((pos) => {
-                fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude)
-                  .then((r) => r.json())
-                  .then((j) => {
-                    const a = j.address !== undefined && j.address !== null ? j.address : {}
-                    const ville = a.city || a.town || a.village || a.county || a.municipality
-                    const loc = ville ? ville + ', ' + a.country : (a.country || '')
-                    if (loc !== '') maj({ location: loc })
-                    setDetec('')
-                  })
-                  .catch(() => { setDetec('err') })
-              }, () => { setDetec('err') }, { timeout: 8000 })
-            } catch (e) { setDetec('err') }
-          }
-          React.useEffect(() => {
-            if (flash !== true) return undefined
-            const id = window.setTimeout(() => setFlash(false), 2600)
-            return () => window.clearTimeout(id)
-          }, [flash])
-          let fuseau = ''
-          try { fuseau = Intl.DateTimeFormat().resolvedOptions().timeZone || '' } catch (e) { fuseau = '' }
-          const _l = lang()
-          const locale = _l === 'en' ? 'en-GB' : _l === 'fr' ? 'fr-FR' : _l
-          const aujourdhui = kbToday()
-
-          // Not signed in: a skeleton while reading (never the "Sign in" button
-          // before we know), the button only if we really are not signed in.
-          if (vue.phase === 'loading') {
-            return h('div', { className: 'kbax', 'data-kb': 'settings-account', 'aria-busy': 'true', 'aria-label': t('loading') },
-              h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
-              h('div', { className: 'kbax-card' }, h('div', { className: 'kbax-skel kbax-skel-head' })),
-              h('div', { className: 'kbax-card' },
-                h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' }),
-                h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' }),
-                h('div', { className: 'kbax-skel kbax-skel-line short' }), h('div', { className: 'kbax-skel kbax-skel-field' })))
-          }
-          if (vue.phase !== 'connected') {
-            return h('div', { className: 'kbax', 'data-kb': 'settings-account' },
-              h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
-              h('div', { className: 'kbax-card' },
-                h('p', { className: 'kbf-hint', style: { margin: 0 } }, vue.phase === 'pairing' ? t('footPairing') : t('footHint')),
-                h('button', {
-                  type: 'button', className: 'kbf-connect', style: { marginTop: '10px' },
-                  onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event missing */ } },
-                }, h(EnterIcon, { size: 15 }), h('span', null, t('footConnect')))))
+              const r = await callLocal(path, 'POST')
+              bad = r === null || r.ok !== true
+            } catch (e) { bad = true }
+            await readStatus()
+            if (live.current !== true) return
+            setFail((f) => Object.assign({}, f, { [which]: bad }))
+            setBusy('')
           }
 
-          const st = vue.state
-          const user = st.user !== undefined && st.user !== null ? st.user : {}
-          const shownName = displayName(user)
-          const qui = shownName.value !== '' ? shownName.value : (user.email || t('none'))
-          const plan = planDeEspace(st, user).label !== null ? planDeEspace(st, user).label : t('none')
-          const web = typeof st.web_url === 'string' && st.web_url !== '' ? st.web_url : ''
-          const couleurAvatar = profil.color !== '' ? profil.color : '#4b4fe0'
-          const glyphAvatar = initiales(profil.name !== '' ? profil.name : qui, user.email)
-          const stylePhoto = profil.photo !== '' ? { backgroundImage: 'url(' + profil.photo + ')', backgroundSize: 'cover', backgroundPosition: 'center' } : {}
-          const SWATCHES = ['#4b4fe0', '#2f6f5e', '#a4553a', '#7a4a86', '#8a6b2f', '#16181c', '#9a6b3f']
-          const INSTR_MAX = 2000
-          const champ = (label, contenu, hint) => h('div', { className: 'kbax-row' },
-            h('span', { className: 'kbax-label' }, label), contenu, hint !== undefined && hint !== null ? hint : null)
-          return h('div', {
-            className: 'kbax', 'data-kb': 'settings-account',
-            onKeyDown: (e) => { if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 's') { e.preventDefault(); enregistrer() } },
-          },
-          h(PageHead, { title: t('profCompte'), sub: t('accSub') }),
-          // ── Identity ──
-          h('div', { className: 'kbax-card kbax-hero' },
-            h('div', { className: 'kbax-avwrap' },
-              h('span', { className: 'kbax-avatar', 'aria-hidden': 'true', style: Object.assign({ background: couleurAvatar }, stylePhoto) }, profil.photo !== '' ? null : glyphAvatar),
-              h('input', {
-                ref: fichierRef, type: 'file', accept: 'image/*', style: { display: 'none' },
-                onChange: (e) => { const f = e.target.files && e.target.files[0]; chargerPhoto(f); e.target.value = '' },
+          const count = models !== null && typeof models.count === 'number' ? models.count : 0
+          const when = models !== null ? fmtDate(models.imported_at) : null
+          const signedOut = conn === 'out'
+          const needSignIn = signedOut ? h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-signed-out' }, t('kyNeedServer')) : null
+
+          return h('div', { className: 'kbl-page', 'data-kb': 'ky-section' },
+            h('div', { className: 'kbl-head' },
+              h('h2', { className: 'kb6-title' }, t('kyTitle')),
+              h('p', { className: 'kb8-sub' }, t('kySub'))),
+
+            h('div', { className: 'kbl-card', 'data-kb': 'ky-instructions' },
+              h('div', { className: 'kbl-sect' }, t('kyInstrTitle')),
+              h('textarea', {
+                className: 'kbl-area', rows: 6, maxLength: KY_INSTR_MAX, value: text, placeholder: t('kyInstrPh'),
+                disabled: instr !== 'ready' || busy === 'save', 'data-kb': 'ky-instr-field',
+                onChange: (e) => { setText(e.target.value); setFlash(false) },
               }),
-              h('button', { type: 'button', className: 'kbax-avcam', title: t('accPhotoUp'), 'aria-label': t('accPhotoUp'), onClick: () => { if (fichierRef.current) fichierRef.current.click() } }, h(CameraIcon, { size: 15 }))),
-            h('div', { className: 'kbax-herotxt' },
-              h('div', { className: 'kbax-heroname' }, h('b', null, qui), h('span', { className: 'kbf-plan', style: { maxWidth: '90px' } }, plan)),
-              user.email ? h('span', { className: 'kbax-heromail' }, user.email) : null,
-              h('div', { className: 'kbax-swatches', role: 'radiogroup', 'aria-label': t('accAvatar') },
-                SWATCHES.map((c) => h('button', {
-                  type: 'button', key: c, className: 'kbfp-sw' + (profil.color === c ? ' on' : ''),
-                  role: 'radio', 'aria-checked': profil.color === c ? 'true' : 'false', 'aria-label': c, title: c, style: { background: c },
-                  onClick: () => maj({ color: profil.color === c ? '' : c }),
-                })),
-                profil.photo !== '' ? h('button', { type: 'button', className: 'kbax-link', onClick: () => maj({ photo: '' }) }, t('accPhotoDel')) : null,
-                photoErr ? h('span', { className: 'kbm-setfield-invalid' }, t('accPhotoErr')) : null))),
-          // ── About you ──
-          h('div', { className: 'kbax-card' },
-            h('div', { className: 'kbs-sect' }, t('accAbout')),
-            champ(t('name'), h('input', { type: 'text', className: 'kbax-field kbax-input', value: profil.name, placeholder: t('accNamePh'), onChange: (e) => maj({ name: e.target.value }) })),
-            champ(t('accBirth'), h(KbDatePicker, {
-              value: profil.birth, onChange: (v) => maj({ birth: v }), locale: locale,
-              min: { y: 1900, m: 1, d: 1 }, max: aujourdhui,
-              placeholder: t('accBirthPh'), label: t('accBirth'), clearLabel: t('accClear'),
-              prevLabel: t('accPrevMonth'), nextLabel: t('accNextMonth'), monthLabel: t('accMonth'), yearLabel: t('accYear'),
-            })),
-            champ(t('accLocation'), h('div', { className: 'kbax-inline' },
-              h('span', { className: 'kbax-field kbax-withicon' },
-                h(PinIcon, { size: 16 }),
-                h('input', { type: 'text', className: 'kbax-bare', value: profil.location, placeholder: 'Paris, France', onChange: (e) => maj({ location: e.target.value }) })),
-              h('button', { type: 'button', className: 'kbax-btn', disabled: detec === 'busy', onClick: detecter }, detec === 'busy' ? t('accDetecting') : t('accDetect'))),
-            detec === 'err' ? h('p', { className: 'kbm-setfield-invalid', style: { margin: '4px 0 0' } }, t('accDetectErr')) : null)),
-          // ── Preferences ──
-          h('div', { className: 'kbax-card' },
-            h('div', { className: 'kbs-sect' }, t('accPrefs')),
-            champ(t('accTimezone'), h(KbTzCombo, {
-              value: profil.tz, onChange: (v) => maj({ tz: v }), detected: fuseau,
-              label: t('accTimezone'), autoLabel: t('accAutoTz'), searchPlaceholder: t('accTzPh'), noneLabel: t('accTzNone'), useAutoLabel: t('accTzUseAuto'),
-            }))),
-          // ── Instructions ──
-          h('div', { className: 'kbax-card' },
-            h('div', { className: 'kbs-sect' }, t('accInstructions')),
-            h('textarea', {
-              className: 'kbax-field kbax-area', rows: 5, maxLength: INSTR_MAX, value: profil.instructions, placeholder: t('accInstructionsPh'),
-              onChange: (e) => maj({ instructions: e.target.value }),
-            }),
-            h('div', { className: 'kbax-count' }, String(profil.instructions.length) + ' / ' + String(INSTR_MAX)),
-            h('p', { className: 'kbm-setform-unavailable', style: { margin: '2px 0 0' } },
-              hostFile !== '' ? quotaFill(t('accInstrHost'), { file: hostFile }) : t('accLocalNote')),
-            instrErr === '' ? null : h('p', { className: 'kbm-setfield-invalid', style: { margin: '4px 0 0' } },
-              quotaFill(t('accInstrErr'), { why: t(instrErr === 'reserved' ? 'accInstrWhyReserved' : (instrErr === 'markers-damaged' ? 'accInstrWhyDamaged' : 'accInstrWhyWrite')) }))),
-          // ── Account ──
-          h('div', { className: 'kbs-actions', style: { marginTop: 0 } },
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: refreshing, onClick: () => { void charger() } }, refreshing ? t('accRefreshing') : t('refresh')),
-            // The account page of the server (`<web>/account`): profile, password, second factor, sessions, export, deletion.
-            web === '' ? null : h('a', {
-              className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { textDecoration: 'none' },
-              href: web + '/account', target: '_blank', rel: 'noreferrer',
-            }, t('wsOpenHosted')),
-            h('button', { type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', style: { color: 'var(--dsw-alias-state-error-primary)' }, onClick: () => { void seDeconnecter() } }, t('disconnect'))),
-          // ── Save bar: stuck to the bottom, visible only when there is something to keep ──
-          (dirty === true || flash === true)
-            ? h('div', { className: 'kbax-savebar', role: 'status' },
-                h('span', { className: 'kbax-savemsg' + (dirty === true ? ' dirty' : ' ok') }, dirty === true ? t('accUnsaved') : t('accSaved')),
-                dirty === true ? h('button', { type: 'button', className: 'kbax-btn', onClick: annuler }, t('accDiscard')) : null,
-                dirty === true ? h('button', { type: 'button', className: 'kbax-btn kbax-primary', onClick: enregistrer }, t('accSave')) : null)
-            : null)
-        }
-        ctx.effect(() => slots.inject('settings.section', () => slots.register(
-          { name: 'settings.section', id: 'kybernos-account', order: 11, label: t('profCompte') }, AccountSection)),
-        'kybernos-cloud: onglet Account des reglages')
-
-        // ── Onglet « Données & confidentialité » (30/09 soir) ───────────────
-        // Reprend la section data de la page compte du serveur (<web>/account) :
-        // export complet, sessions & appareils, suppression du compte.
-        // Règle d'honnêteté : DSH ne porte pas le jeton web — les gestes qui
-        // le réclament (export, suppression, autres sessions) renvoient à
-        // Kybernos ; la déconnexion de CET appareil est réelle (route locale).
-        // Tout est en jetons natifs DSH (kbm-*, kbp-card).
-        const DataSection = () => {
-          const vuePair = React.useState({ phase: 'loading' })
-          const vue = vuePair[0]
-          const setVue = vuePair[1]
-          const confirmPair = React.useState(false)
-          const confirme = confirmPair[0]
-          const setConfirme = confirmPair[1]
-          const busyPair = React.useState(false)
-          const busy = busyPair[0]
-          const setBusy = busyPair[1]
-          const liveRef = React.useRef(true)
-          React.useEffect(() => () => { liveRef.current = false }, [])
-          const charger = React.useCallback(async () => {
-            setVue({ phase: 'loading' })
-            let status = null
-            try { status = await callLocal('/status', 'GET') } catch (e) { status = null }
-            if (liveRef.current !== true) return
-            if (status !== null && status.connected === true) {
-              setVue({ phase: 'connected', state: status.state !== undefined && status.state !== null ? status.state : {} })
-              return
-            }
-            setVue({ phase: 'disconnected' })
-          }, [])
-          React.useEffect(() => { void charger() }, [charger])
-          const seDeconnecter = async () => {
-            setBusy(true)
-            try { await callLocal('/disconnect', 'POST', { confirm: true }) } catch (e) { /* déjà parti */ }
-            if (liveRef.current === true) { setBusy(false); setConfirme(false); void charger() }
-          }
-
-          const ouvrirKybernos = () => {
-            const web = (vue.phase === 'connected' && typeof vue.state.web_url === 'string' && vue.state.web_url !== '')
-              ? vue.state.web_url : ''
-            if (web === '') return
-            try { window.open(web + '/account', '_blank', 'noopener') } catch (e) { /* ouverture impossible */ }
-          }
-
-          const panneau = (label, ...enfants) => h('div', { className: 'kbp-card' },
-            h('div', { className: 'kbs-sect' }, label), ...enfants)
-
-          if (vue.phase !== 'connected') {
-            return h('div', { 'data-kb': 'settings-data', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
-              h(PageHead, { title: t('dataNavLabel'), sub: t('dataSub') }),
-              panneau(t('dataLabel'),
-                h('p', { className: 'kbf-hint', style: { margin: '10px 0 0' } }, vue.phase === 'loading' ? t('loading') : t('footHint')),
-                vue.phase === 'disconnected'
-                  ? h('button', {
-                      type: 'button', className: 'kbf-connect', style: { marginTop: '10px' },
-                      onClick: () => { try { window.dispatchEvent(new Event('kybernos-cloud:open')) } catch (e) { /* Event absent */ } },
-                    }, h(EnterIcon, { size: 15 }), h('span', null, t('footConnect')))
-                  : null))
-          }
-
-          const st = vue.state
-          const user = st.user !== undefined && st.user !== null ? st.user : {}
-          const device = typeof st.device_label === 'string' && st.device_label.trim() !== '' ? st.device_label.trim() : t('none')
-          const rafraichi = fmtDate(st.refreshed_at) !== null ? fmtDate(st.refreshed_at) : t('none')
-
-          return h('div', { 'data-kb': 'settings-data', style: { display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '720px' } },
-            h(PageHead, { title: t('dataNavLabel'), sub: t('dataSub') }),
-            // ── Export complet ──
-            panneau(t('dataExportTitle'),
-              h('p', { style: { margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, t('dataExportSub')),
-              h('div', { className: 'kbm-setform-footer' },
-                h('button', { type: 'button', className: 'kbm-setform-save', onClick: ouvrirKybernos }, t('dataExportCta'))),
-              h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, t('dataExportNote'))),
-            // ── Sessions & appareils ──
-            panneau(t('dataDevicesTitle'),
-              h('p', { style: { margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, t('dataDevicesSub')),
-              h('div', { className: 'kbm-setfield', style: { marginTop: '6px' } },
-                h('div', { className: 'kbm-setfield-head' },
-                  h('span', { className: 'kbm-setfield-label' },
-                    h('span', {
-                      style: {
-                        display: 'inline-block', marginRight: '8px', padding: '1px 7px', borderRadius: '6px',
-                        background: 'var(--dsw-alias-interactive-bg-active)', color: 'var(--dsw-alias-label-primary)',
-                        fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', verticalAlign: 'middle',
-                      },
-                    }, t('dataDevicesCurrent')),
-                    device),
-                  h('button', {
-                    type: 'button', className: 'kbm-btn kbm-btn-sm kbm-btn-outline',
-                    style: { color: 'var(--dsw-alias-state-error-primary)', flex: '0 0 auto' },
-                    onClick: () => setConfirme(true),
-                  }, t('dataDevicesSignOut'))),
-                h('span', { className: 'kbm-setfield-hint' }, t('dataDevicesHere') + ' · ' + t('dataDevicesRefreshed') + ' ' + rafraichi)),
-              h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } },
-                t('dataDevicesOthers') + ' ',
-                (typeof st.web_url === 'string' && st.web_url !== '')
-                  ? h('a', {
-                    href: st.web_url + '/account',
-                    target: '_blank', rel: 'noreferrer', style: { color: 'var(--dsw-alias-link)' },
-                  }, t('wsOpenHosted'))
-                  : null),
-            ),
-            // ── Suppression du compte ──
-            panneau(t('dataDeleteTitle'),
-              h('p', { style: { margin: '10px 0 0', fontSize: '13px', lineHeight: 1.5, color: 'var(--dsw-alias-label-secondary)' } }, t('dataDeleteSub')),
-              h('div', { className: 'kbm-setform-footer' },
+              h('div', { className: 'kbl-count' }, String(text.length) + ' / ' + String(KY_INSTR_MAX)),
+              h('p', { className: 'kbm-setform-unavailable kbl-note', 'data-kb': 'ky-instr-note' },
+                instr === 'ready' ? quotaFill(t('kyInstrNote'), { file: file })
+                  : (instr === 'damaged' ? t('kyWhyDamaged') : (instr === 'loading' ? t('loading') : t('kyInstrNone')))),
+              instrErr === '' ? null : h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-instr-error' }, quotaFill(t('kyInstrErr'), { why: instrWhy(instrErr) })),
+              h('div', { className: 'kbl-actions' },
                 h('button', {
-                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline',
-                  style: { color: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' },
-                  onClick: ouvrirKybernos,
-                }, t('dataDeleteCta'))),
-              h('p', { className: 'kbm-setform-unavailable', style: { margin: '0' } }, t('dataDeleteNote'))),
-            // ── Confirmation de déconnexion de CET appareil ──
-            confirme === true
-              ? h('div', {
-                  className: 'kbc-scrim', 'data-kb': 'data-signout-confirm',
-                  onClick: (e) => { if (e.target === e.currentTarget) setConfirme(false) },
-                },
-                h('div', { className: 'kbc-card', role: 'dialog', 'aria-label': t('dataDevicesConfirm'), style: { maxWidth: '420px' } },
-                  h('div', { className: 'kbc-title' }, t('dataDevicesConfirm')),
-                  h('div', { className: 'kbc-body' },
-                    t('dataDevicesConfirmBody').replace('{device}', device)),
-                  h('div', { className: 'kbc-actions', style: { justifyContent: 'flex-end' } },
-                    h('button', { type: 'button', className: 'kbc-btn-ghost', disabled: busy, onClick: () => setConfirme(false) }, t('dataDevicesKeep')),
-                    h('button', {
-                      type: 'button', className: 'kbc-btn-primary',
-                      style: { background: 'var(--dsw-alias-state-error-primary)', borderColor: 'var(--dsw-alias-state-error-primary)' },
-                      disabled: busy, onClick: () => { void seDeconnecter() },
-                    }, busy === true ? t('dataDevicesSigningOut') : t('dataDevicesSignOut')))))
-              : null)
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-primary', disabled: dirty !== true || busy === 'save',
+                  'data-kb': 'ky-instr-save', onClick: () => { void save() },
+                }, busy === 'save' ? t('kySaving') : t('kySave')),
+                flash === true ? h('span', { className: 'kbl-ok', 'data-kb': 'ky-instr-saved' }, t('kySaved')) : null)),
+
+            h('div', { className: 'kbl-card', 'data-kb': 'ky-models' },
+              h('div', { className: 'kbl-sect' }, t('kyModelsTitle')),
+              h('p', { className: 'kbl-line', 'data-kb': 'ky-models-state' },
+                count > 0
+                  ? quotaFill(t('kyModelsCount'), { n: count, plan: (models !== null && models.plan) || t('none') }) + (when !== null ? ' · ' + quotaFill(t('kyLastOn'), { date: when }) : '')
+                  : (signedOut ? '—' : t('kyModelsNone'))),
+              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyModelsNote')),
+              count > 0 && models.settings !== true ? h('p', { className: 'kbm-setfield-invalid kbl-note' }, t('kyModelsWarn')) : null,
+              fail.models === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-models-error' }, t('kyModelsFail')) : null,
+              needSignIn,
+              h('div', { className: 'kbl-actions' },
+                h('button', {
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-models-run',
+                  onClick: () => { void run('models', '/models/sync') },
+                }, busy === 'models' ? t('kyImporting') : (count > 0 ? t('kyReimport') : t('kyImport'))))),
+
+            h('div', { className: 'kbl-card', 'data-kb': 'ky-chats' },
+              h('div', { className: 'kbl-sect' }, t('kyChatsTitle')),
+              h('p', { className: 'kbl-line', 'data-kb': 'ky-chats-state' },
+                lastPush !== null && lastPush.ok === true
+                  ? t('kyChatsLast') + ' · ' + String(lastPush.pushed === undefined ? 0 : lastPush.pushed) + (fmtDate(lastPush.at) !== null ? ' · ' + fmtDate(lastPush.at) : '')
+                  : (lastPush !== null && lastPush.ok === false ? t('kyChatsFail') : '—')),
+              h('p', { className: 'kbm-setform-unavailable kbl-note' }, t('kyChatsNote')),
+              fail.chats === true ? h('p', { className: 'kbm-setfield-invalid kbl-note', 'data-kb': 'ky-chats-error' }, t('kyChatsFail')) : null,
+              needSignIn,
+              h('div', { className: 'kbl-actions' },
+                h('button', {
+                  type: 'button', className: 'kbm-btn kbm-btn-md kbm-btn-outline', disabled: conn !== 'in' || busy !== '', 'data-kb': 'ky-chats-run',
+                  onClick: () => { void run('chats', '/chats/push') },
+                }, busy === 'chats' ? t('kyChatsSending') : t('kyChatsSend')))))
         }
         ctx.effect(() => slots.inject('settings.section', () => slots.register(
-          { name: 'settings.section', id: 'kybernos-data', order: 11.5, label: t('dataNavLabel') }, DataSection)),
-        'kybernos-cloud: onglet Donnees & confidentialite des reglages')
+          { name: 'settings.section', id: 'kybernos-local', order: 11, label: t('kyNav') }, KybernosSection)),
+        'kybernos-cloud: section Kybernos des reglages (ce qui reste sur cet ordinateur)')
       },
     }
   },

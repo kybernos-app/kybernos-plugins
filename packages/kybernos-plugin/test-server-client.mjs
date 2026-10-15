@@ -98,7 +98,8 @@ console.log('the address of the embedded console is derived from the active serv
 console.log('the shipped code')
 check('the loader asks the cloud plugin, same-origin', snippet.indexOf("'/kybernos-cloud/server'") > 0 && snippet.indexOf("credentials: 'same-origin'") > 0)
 check('the console URL carries `ws` only when a workspace is known', source.indexOf("(kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')") > 0)
-check('the console, the cloud page and the store read the loaded server, not a literal', source.indexOf("kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)") > 0 && source.indexOf("kbWsCfg('kybernos.cloud.url', 'KYBERNOS_CLOUD_URL', kbServer.web)") > 0 && source.indexOf("kbServer.web.replace(/\\/+$/, '') + '/s/'") > 0)
+check('the console and the shared-page address read the loaded server, not a literal', source.indexOf("kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', kbServer.console)") > 0 && source.indexOf("kbServer.web.replace(/\\/+$/, '') + '/s/'") > 0)
+check('the account pages of Settings (and their `kybernos.cloud.url` base) are gone', source.indexOf('kbacCloudBase') < 0 && source.indexOf("'kybernos.cloud.url'") < 0)
 // On a cloud computer the console cannot be framed (the server's console only accepts a page of the person's own machine), so it is not probed there: the fallback card shows.
 check('opening « Teams settings » asks for the active server before probing its console', source.indexOf("kbServerLoad().then(() => { if (kbServer.computer === true) setReach('computer'); else probe() })") > 0)
 

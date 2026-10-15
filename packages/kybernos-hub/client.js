@@ -549,7 +549,7 @@ window.__ModuleLoader__.load({
     const TUILE = '<circle cx="58" cy="4" r="30" fill="#fff" opacity=".1"/><circle cx="4" cy="62" r="22" fill="#000" opacity=".08"/><rect x=".75" y=".75" width="62.5" height="62.5" rx="14.6" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="1.5"/>'
     // Where a module's own Settings page is: the id of the section it registers (`settings.section`), the same in every language.
     const REGLAGES = {
-      'kybernos-plugin': 'kybernos-tools', 'kybernos-cloud': 'kybernos-account', 'kybernos-models': 'kybernos-models', 'kybernos-auto': 'kybernos-auto-page',
+      'kybernos-plugin': 'kybernos-tools', 'kybernos-models': 'kybernos-models', 'kybernos-auto': 'kybernos-auto-page',
       'kybernos-modeles-locaux': 'kybernos-ollama', 'kybernos-memory': 'kybernos-memory', 'kybernos-theme': 'kybernos-theme', 'kybernos-language': 'kybernos-language',
       'kybernos-slash': 'kybernos-slash', 'kybernos-atlas': 'kybernos-atlas', 'kybernos-workers': 'kybernos-workers', 'kybernos-maintenance': 'kybernos-maintenance',
       'kybernos-call': 'kybernos-call',
