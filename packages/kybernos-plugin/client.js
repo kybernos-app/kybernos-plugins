@@ -23417,7 +23417,8 @@ function renderFit(canvas, model, cam, opts){
     }
     // Unified bar (28/09 template): the composio bundle is a separate module that
     // cannot see KbToolbar — we pass it the tools as props.
-    const KbConnectorsView = () => h('div', { className: 'kbg-root' }, kbPageHead(kbt('kbui.connecteurs')),
+    // The page draws its own header (title, help, add): a second title above it said « Connectors » and « Connections » in a row.
+    const KbConnectorsView = () => h('div', { className: 'kbg-root' },
       h(ComposioPage, { toolbar: { KbToolbar: KbToolbar, useToolbarState: useToolbarState } }))
     const KbDocumentsView = () => h('div', { className: 'kbg-root' }, kbPageHead(kbt('kbui.documents')), h(DocumentsPage, null))
     // ── équipes embarquées : les kybers réellement installés ────────────────
