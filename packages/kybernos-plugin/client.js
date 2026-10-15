@@ -561,6 +561,14 @@ let kbLocaleRead = () => 'en'
       'kbci.copy': { kybernos: 'Copier', en: 'Copy' },
       'kbci.copied': { kybernos: 'Copié', en: 'Copied' },
       'kbci.toast': { kybernos: 'ID copié dans le presse-papiers', en: 'Chat ID copied to clipboard' },
+      // Chat header: fold the extras (tags, call, tabs, status line), pin and rename from there.
+      'kbfold.show': { kybernos: 'Afficher les outils du chat', en: 'Show chat tools' },
+      'kbfold.hide': { kybernos: 'Masquer les outils du chat', en: 'Hide chat tools' },
+      'kbfold.pin': { kybernos: 'Épingler la conversation', en: 'Pin chat' },
+      'kbfold.unpin': { kybernos: 'Désépingler la conversation', en: 'Unpin chat' },
+      'kbfold.rename': { kybernos: 'Renommer la conversation', en: 'Rename chat' },
+      'kbfold.save': { kybernos: 'Enregistrer', en: 'Save' },
+      'kbfold.err': { kybernos: 'Le nom n’a pas pu être changé.', en: 'The name could not be changed.' },
       // Chip « Équipes » + popover (S1 maquette Crew v2, plan WP1).
       'kbtg.open': { kybernos: 'Équipes', en: 'Teams' },
       'kbtg.title': { kybernos: 'Équipes de la session', en: 'Session teams' },
@@ -3693,6 +3701,7 @@ const LUCIDE = {
   // Cercles de la maquette posés en arcs (la table ne trace que des <path>).
   'sliders-horizontal': ['M4 7h10', 'M18 7h2', 'M4 17h2', 'M10 17h10', 'M18 7a2 2 0 1 1-4 0a2 2 0 1 1 4 0z', 'M10 17a2 2 0 1 1-4 0a2 2 0 1 1 4 0z'],
   list: ['M8 6h13', 'M8 12h13', 'M8 18h13', 'M3 6h.01', 'M3 12h.01', 'M3 18h.01'],
+  cardLines: ['M6 4h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3z', 'M8 9h8', 'M8 13h8', 'M8 17h5'],
   eye: ['M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0', 'M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z'],
   lock: ['M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z', 'M7 11V7a5 5 0 0 1 10 0v4'],
   share: ['M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', 'M8.59 13.51l6.83 3.98', 'M15.41 6.51l-6.82 3.98'],
@@ -26147,6 +26156,183 @@ html[data-kb-settings-full="on"] [role="dialog"]:has([data-slot="settings.sectio
 .kbci-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;background:var(--dsw-alias-label-primary);color:var(--dsw-alias-label-primary-foreground,#0f1115);box-shadow:0 8px 24px rgba(0,0,0,.4);font-size:13.5px;font-weight:500}
 .kbci-toast svg{color:var(--dsw-alias-state-success-primary,#1F7A45)}
 `), 'kybers: styles copie id du chat')
+    // ── Chat header: one toggle folds the extras, pin and rename live next to the title ──
+    // Folded (the default): the title, pin, rename and the toggle. Unfolded: the header as DSH draws
+    // it (tags, call, Journal / Trajectory tabs, status line). The state is kept per browser. Hiding
+    // is CSS keyed on the [data-slot] hooks and only applies while a toggle is mounted, so a page
+    // without the header can never be left with hidden controls and no way back.
+    const KB_FOLD_KEY = 'kybernos.chat-tools'
+    const kbFold = { open: false, mounted: 0, listeners: new Set() }
+    try { kbFold.open = window.localStorage.getItem(KB_FOLD_KEY) === 'open' } catch (e) { /* storage blocked: stays folded */ }
+    const kbFoldApply = () => {
+      try {
+        const root = document.documentElement
+        if (kbFold.mounted > 0 && kbFold.open !== true) root.setAttribute('data-kb-chat-fold', '1')
+        else root.removeAttribute('data-kb-chat-fold')
+      } catch (e) { /* no DOM */ }
+    }
+    const kbFoldSet = (open) => {
+      kbFold.open = open === true
+      try { window.localStorage.setItem(KB_FOLD_KEY, kbFold.open === true ? 'open' : 'closed') } catch (e) { /* storage blocked */ }
+      kbFoldApply()
+      for (const fn of [...kbFold.listeners]) { try { fn() } catch (e) { /* one failing subscriber does not stop the others */ } }
+    }
+    const kbFoldBare = (id) => String(id).replace(/^session-/, '')
+    const KbChatFold = (props) => {
+      const sessionId = (props !== undefined && props !== null && typeof props.sessionId === 'string') ? props.sessionId : ''
+      const tickPair = React.useState(0)
+      const setTick = tickPair[1]
+      const renamePair = React.useState(false)
+      const renaming = renamePair[0]
+      const setRenaming = renamePair[1]
+      const draftPair = React.useState('')
+      const draft = draftPair[0]
+      const setDraft = draftPair[1]
+      const failPair = React.useState(false)
+      const failed = failPair[0]
+      const setFailed = failPair[1]
+      const racine = React.useRef(null)
+
+      React.useEffect(() => {
+        const tick = () => setTick((n) => n + 1)
+        kbFold.listeners.add(tick)
+        kbPinsListeners.add(tick)
+        kbFold.mounted += 1
+        kbFoldApply()
+        return () => {
+          kbFold.listeners.delete(tick)
+          kbPinsListeners.delete(tick)
+          kbFold.mounted = Math.max(0, kbFold.mounted - 1)
+          kbFoldApply()
+        }
+      }, [])
+
+      React.useEffect(() => {
+        if (renaming !== true) return undefined
+        const dehors = (e) => {
+          const r = racine.current
+          if (r !== null && r !== undefined && e !== null && e !== undefined && r.contains(e.target) === true) return
+          setRenaming(false)
+        }
+        const touche = (e) => { if (e !== null && e !== undefined && e.key === 'Escape') setRenaming(false) }
+        document.addEventListener('pointerdown', dehors, true)
+        document.addEventListener('keydown', touche)
+        return () => {
+          document.removeEventListener('pointerdown', dehors, true)
+          document.removeEventListener('keydown', touche)
+        }
+      }, [renaming])
+
+      if (sessionId === '') return null
+      const open = kbFold.open === true
+      const pinned = kbPinsState.sessions.some((x) => kbFoldBare(x) === kbFoldBare(sessionId))
+      const titleOf = () => {
+        const byId = kbPinsSnapshots().byId
+        const s = byId[sessionId] || byId[kbFoldBare(sessionId)] || byId['session-' + kbFoldBare(sessionId)]
+        if (s !== undefined && s !== null && typeof s.displayTitle === 'string' && s.displayTitle !== '' && s.displayTitle !== s.id) return s.displayTitle
+        try {
+          const head = racine.current.closest('[data-slot="conversation.session.header"]')
+          const crumb = head.querySelector('[class*="crumbCurrent"]')
+          return crumb !== null ? crumb.textContent.trim() : ''
+        } catch (e) { return '' }
+      }
+      const startRename = () => { setDraft(titleOf()); setFailed(false); setRenaming(true) }
+      const saveRename = () => {
+        const value = draft.trim()
+        if (value === '' || value === titleOf()) { setRenaming(false); return }
+        kbPinsRenameCall(sessionId, value).then(() => { setRenaming(false); kbPinsEmit() }, () => setFailed(true))
+      }
+      // Folding hides the Journal / Trajectory tabs: leave those views first, or the chat would
+      // be stuck on a view with no tab to leave it by.
+      const fold = () => {
+        try {
+          const head = racine.current !== null ? racine.current.closest('[data-slot="conversation.session.header"]') : null
+          const tabs = head !== null ? head.querySelectorAll('[class*="tabs"] > button') : []
+          if (tabs.length > 0 && /tabActive/.test(String(tabs[0].className)) !== true) tabs[0].click()
+        } catch (e) { /* the tabs are DSH's: best effort */ }
+        kbFoldSet(false)
+      }
+      const glyph = KB_PINS_GLYPHS.pin
+      const pinLabel = kbt(pinned === true ? 'kbfold.unpin' : 'kbfold.pin')
+      const toggleLabel = kbt(open === true ? 'kbfold.hide' : 'kbfold.show')
+      return h('div', { className: 'kbfold-root', ref: racine, 'data-kb': 'chat-fold' },
+        h('button', {
+          type: 'button',
+          className: 'kbfold-btn' + (pinned === true ? ' on' : ''),
+          'data-act': 'pin',
+          'aria-pressed': pinned === true,
+          'aria-label': pinLabel,
+          title: pinLabel,
+          onClick: () => { kbPinsToggle('session', sessionId, pinned !== true) },
+        }, h('svg', { width: 16, height: 16, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+          glyph.stroke.map((d, i) => h('path', { key: 's' + i, d, stroke: 'currentColor', strokeWidth: 1, strokeLinecap: 'round', strokeLinejoin: 'round', fill: pinned === true ? 'currentColor' : 'none' })),
+          glyph.fill.map((d, i) => h('path', { key: 'f' + i, d, fill: 'currentColor' })))),
+        h('button', {
+          type: 'button',
+          className: 'kbfold-btn' + (renaming === true ? ' on' : ''),
+          'data-act': 'rename',
+          'aria-haspopup': 'dialog',
+          'aria-expanded': renaming === true,
+          'aria-label': kbt('kbfold.rename'),
+          title: kbt('kbfold.rename'),
+          onClick: () => { if (renaming === true) setRenaming(false); else startRename() },
+        }, Icon('pencil', 15)),
+        h('button', {
+          type: 'button',
+          className: 'kbfold-btn' + (open === true ? ' on' : ''),
+          'data-act': 'toggle',
+          'aria-pressed': open === true,
+          'aria-label': toggleLabel,
+          title: toggleLabel,
+          onClick: () => { if (open === true) fold(); else kbFoldSet(true) },
+        }, Icon('cardLines', 17)),
+        renaming === true
+          ? h('form', {
+            className: 'kbfold-pop',
+            role: 'dialog',
+            'aria-label': kbt('kbfold.rename'),
+            onSubmit: (e) => { e.preventDefault(); saveRename() },
+          },
+          h('input', {
+            type: 'text',
+            className: 'kbfold-input',
+            value: draft,
+            maxLength: 200,
+            autoFocus: true,
+            'aria-label': kbt('kbfold.rename'),
+            onChange: (e) => { setDraft(e.target.value); setFailed(false) },
+          }),
+          h('button', { type: 'submit', className: 'kbfold-save' }, kbt('kbfold.save')),
+          failed === true ? h('span', { className: 'kbfold-err', role: 'alert' }, kbt('kbfold.err')) : null)
+          : null)
+    }
+    ctx.effect(() => slots.inject('conversation.session.header.actions', () => slots.register(
+      { name: 'conversation.session.header.actions', id: 'kybernos-chat-fold', order: 1 }, KbChatFold)),
+    'kybers: chat header toggle, pin and rename')
+    ctx.effect(() => styles.insert(`
+/* ── Chat header toggle (mockup variant A) ───────────────────────────────────
+   The three buttons sit first in the actions row, right after the title. Hiding
+   keys on [data-slot] hooks, never on hashed class names, and only on wide
+   screens: the phone layout parks the actions itself (kybernos-mobile). */
+.kbfold-root{position:relative;display:flex;align-items:center;gap:2px;order:-1}
+.kbfold-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;box-sizing:border-box;padding:0;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--dsw-alias-label-secondary);cursor:pointer}
+.kbfold-btn:hover{background:var(--dsw-alias-bg-layer-2);color:var(--dsw-alias-label-primary)}
+.kbfold-btn.on{color:var(--dsw-alias-brand-primary)}
+.kbfold-btn[data-act="toggle"].on{background:var(--dsw-alias-bg-layer-3,var(--dsw-alias-bg-layer-2));border-color:var(--dsw-alias-border-l2)}
+.kbfold-btn:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:2px}
+.kbfold-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:340px;max-width:80vw;padding:10px;border:1px solid var(--dsw-alias-border-l2);border-radius:12px;background:var(--dsw-alias-bg-layer-2);box-shadow:var(--dsw-elevation-prominent,0 12px 32px rgba(0,0,0,.45))}
+.kbfold-input{flex:1 1 160px;min-width:0;height:34px;box-sizing:border-box;padding:0 10px;border:1px solid var(--dsw-alias-border-l2);border-radius:9px;background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);font:inherit}
+.kbfold-input:focus-visible{outline:2px solid var(--dsw-alias-brand-primary);outline-offset:1px}
+.kbfold-save{height:34px;padding:0 14px;border:0;border-radius:9px;background:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff);font:inherit;font-weight:500;cursor:pointer}
+.kbfold-err{flex:1 0 100%;font-size:12.5px;color:var(--dsw-alias-state-error-primary,#E5484D)}
+@media (min-width:701px){
+  html[data-kb-chat-fold="1"] [data-slot="conversation.session.header.actions"] > :not(.kbfold-root):not(:has(.kbcl-hlive)){display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.session.header"] > [class*="tabs"]{display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > :not(.kbch-wrap){display:none!important}
+  html[data-kb-chat-fold="1"] [data-slot="conversation.composer.dock"] > .kbch-wrap.kbch-ok{display:none!important}
+}
+@media (max-width:700px){.kbfold-root{display:none}}
+`), 'kybers: styles chat header toggle')
     // ── Chip « Équipes » : popover S1 de la maquette Crew v2 (plan WP1) ──────
     // Source : GET /kybernos/calls (dérivation pure du journal, côté host).
     // WP5 : fraîcheur par le push natif (projection kybernos.calls, wire

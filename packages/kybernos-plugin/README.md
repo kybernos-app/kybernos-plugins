@@ -119,6 +119,20 @@ section in `<workspace folder>/AGENTS.md` (the folder is that table's too; off o
 `GET|POST /kybernos/workspace-instructions` (strict same-origin on both). Limit 4,000 characters. Host code: loads at the next DSH start.
 `node packages/kybernos-plugin/test-workspace-instructions.mjs`.
 
+## Chat header toggle
+
+A chat's header is busy: tags (Agent Team, Teams, link, ID), call and video buttons, Journal / Trajectory tabs and a
+status line under the composer. Three buttons now sit right after the title: **pin / unpin**, **rename** and a
+**toggle** that folds all of that away. Folded (the default) shows the title, those three buttons, the header menu and
+the sidebar button; unfolded is DSH's own header. The state is kept per browser (`localStorage`, key
+`kybernos.chat-tools`).
+
+- Pin and rename make the same calls as the sidebar rows (`kbPinsToggle`, `session.rename`).
+- Folding from the Journal or Trajectory tab goes back to Chat first.
+- Never hidden: a call in progress (hang-up button) and a save problem (the « not saved » chip).
+- Wide screens only: on a phone the header actions are parked by `kybernos-mobile`.
+- No engine patch: a `conversation.session.header.actions` slot entry plus CSS keyed on `[data-slot]` hooks.
+
 ## Files, settings, env
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,
