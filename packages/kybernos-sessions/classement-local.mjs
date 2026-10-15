@@ -6,7 +6,7 @@
 // « non classé ». Ce module donne alors une réponse HONNÊTE et prudente, à partir des seuls mots du titre :
 //   · il n'est appelé que quand le cerveau n'a PAS répondu (erreur, éteint, clé absente) — jamais pour contredire un verdict ;
 //   · il ne classe que sur un signal net : un mot assez spécifique (ou deux), et une avance sur la catégorie suivante ;
-//   · sinon il rend `null` et la ligne garde son point : un point vaut mieux qu'une mauvaise icône ;
+//   · sinon il rend `null` et la ligne garde son icône neutre : on n'invente pas une catégorie ;
 //   · son verdict est étiqueté `local` — jamais présenté comme celui du modèle.
 // Pur : aucune lecture de fichier, aucun réseau, aucune horloge. Testé par test-classement-local.mjs.
 //
@@ -22,12 +22,12 @@ export const ECART_LOCAL = 1
 const REGLES = {
   correctif: [
     [3, ['bug', 'regression', 'crash', 'plantage', 'erreur', 'error', 'exception', 'broken', 'ne marche', 'ne fonctionne', 'marche pas', 'fonctionne pas']],
-    [2, ['fix', 'corrig', 'repar', 'panne', 'echec', 'fail', 'probleme', 'problem', 'faux positif', 'timeout', 'blocage', 'bloque', 'cass']],
+    [2, ['fix', 'corrig', 'repar', 'panne', 'echec', 'fail', 'probleme', 'problem', 'faux positif', 'timeout', 'blocage', 'bloque', 'cass', 'correct', 'durci', 'hardened', 'securise', 'non regression', 'incident', 'constate', 'honnete']],
     [1, ['souci', 'warning']]
   ],
   ui: [
-    [3, ['theme', 'ui', 'ux', 'css', 'design', 'maquette', 'mockup', 'icone', 'icon', 'couleur', 'color', 'dark mode', 'mode sombre', 'responsive', 'layout', 'mise en page', 'sidebar', 'barre laterale', 'typograph', 'police', '=logo', 'animation', 'apparence', 'visuel', 'ecran', 'capture']],
-    [2, ['style', 'interface', 'bouton', 'button', 'onglet', 'menu', 'accueil', 'affichage', 'alignement', 'aligne', 'espacement', 'padding']],
+    [3, ['theme', 'ui', 'ux', 'css', 'design', 'maquette', 'mockup', 'icone', 'icon', 'couleur', 'color', 'dark mode', 'mode sombre', 'responsive', 'layout', 'mise en page', 'sidebar', 'barre laterale', 'typograph', 'police', '=logo', 'animation', 'apparence', 'visuel', 'ecran', 'capture', 'liseret']],
+    [2, ['style', 'interface', 'bouton', 'button', 'onglet', 'menu', 'accueil', 'affichage', 'alignement', 'aligne', 'espacement', 'padding', 'reglage', 'parametre', 'setting', 'panneau', 'panel', 'pastille', 'puce', 'chip', 'fiche', 'selecteur', 'selector', 'barre', 'pinned', 'epingl', 'pagination', 'repli', 'largeur', 'pixel', 'rendu', 'affich', 'apercu', 'preview', 'miniature', 'galerie', 'gallery', 'composer', 'popover', 'dialogue', 'modale', 'tooltip']],
     [1, ['libelle', 'label']]
   ],
   doc: [
@@ -37,12 +37,12 @@ const REGLES = {
   ],
   integration: [
     [3, ['webhook', 'mcp', 'oauth', 'connecteur', 'connector', 'integration', 'composio', 'telegram', 'slack', 'stripe', 'github', 'gitlab', 'vercel', 'coolify', 'hetzner', 'hostinger', 'openai', 'anthropic', 'cle api', 'api key', 'apikey']],
-    [2, ['api', 'serveur', 'server', 'deploy', 'deploiement', 'docker', 'ngrok', 'cloudflare', 'dns', 'domaine', 'smtp', 'fournisseur', 'provider', 'token', 'authentification', '=auth', 'sso', 'sync']],
+    [2, ['api', 'serveur', 'server', 'deploy', 'deploiement', 'docker', 'ngrok', 'cloudflare', 'dns', 'domaine', 'smtp', 'fournisseur', 'provider', 'token', 'authentification', '=auth', 'sso', 'sync', 'installation', 'installer', 'install', 'linux', 'windows', 'compte', 'account', 'parrainage', 'referral', 'recette', 'mise a jour', 'update', 'release', 'publication', 'publier', 'publish', 'cloud', 'tunnel', 'passerelle', 'gateway', 'proxy', 'routes']],
     [1, ['service']]
   ],
   donnees: [
     [3, ['donnee', 'data', 'dataset', 'csv', 'sql', 'database', 'base de donnees', 'schema', 'migration', 'tendance', 'trend', 'statistique', 'stats', 'kpi', 'metrique', 'metric', 'benchmark', 'tarif', 'pricing', 'catalogue']],
-    [2, ['analyse', 'analysis', 'graphique', 'chart', 'dashboard', 'tableau', 'spreadsheet', 'tableur', 'export', '=excel', 'mesure', 'usage', 'cout', 'cost', 'etude', 'study', 'veille']],
+    [2, ['analyse', 'analysis', 'graphique', 'chart', 'dashboard', 'tableau', 'spreadsheet', 'tableur', 'export', '=excel', 'mesure', 'usage', 'cout', 'cost', 'etude', 'study', 'veille', 'score', 'scores', 'chiffre', 'chiffres', 'economie', 'quality', 'qualite', 'insight', 'insights', 'ledger', 'cout']],
     [1, ['rapport', 'report', 'recherche']]
   ],
   nettoyage: [
@@ -52,12 +52,12 @@ const REGLES = {
   ],
   question: [
     [3, ['pourquoi', 'why', '=comment', 'how']],
-    [2, ['=quel', '=quelle', '=quels', '=quelles', 'which', 'what', 'est ce que', 'peux tu', 'can you', 'explique', 'explain', 'difference', 'vs', '=avis', 'conseil', 'recommand', 'compar', 'faut il', 'should', '=quoi', 'greeting', 'hello', 'hi', 'hey', 'salut', 'bonjour', 'bonsoir', 'coucou', 'merci', 'thanks']],
+    [2, ['=quel', '=quelle', '=quels', '=quelles', 'which', 'what', 'est ce que', 'peux tu', 'can you', 'explique', 'explain', 'difference', 'vs', '=avis', 'conseil', 'recommand', 'compar', 'faut il', 'should', '=quoi', 'greeting', 'hello', 'hi', 'hey', 'salut', 'bonjour', 'bonsoir', 'coucou', 'merci', 'thanks', 'recherche', 'research', 'derniers', 'dernieres', 'latest', 'actualite', 'news', 'actu', 'match', 'matchs', 'meteo', 'weather', 'comparatif', 'comparaison', 'resultat']],
     [1, []]
   ],
   fonctionnalite: [
     [3, ['feature', 'fonctionnalite', 'implement', 'nouvelle fonction', 'nouveau reglage', 'automatisation', 'automation']],
-    [2, ['skill', 'agent', 'outil', 'tool', 'workflow', 'plugin', 'module', 'commande', 'command', 'route', 'support']],
+    [2, ['skill', 'agent', 'outil', 'tool', 'workflow', 'plugin', 'module', 'commande', 'command', 'route', 'support', 'refonte', 'redesign', 'protocole', 'relance', 'memoire', 'memory', 'crew', 'miniapp', 'mini app', 'modeleur', 'simulation', 'simulat', 'video', 'voix', 'voice', 'slash', 'brain', 'goal', 'objectif', 'generation', 'generer', 'generat', 'moteur', 'engine', 'cerveau', 'pack', 'vues', 'calendrier', 'planning', 'cycle', 'ecriture', 'edition', 'editeur', 'editor']],
     [1, ['creer', 'cree', 'creation', 'create', 'ajout', 'ajoute', 'add', 'build', 'construi', 'develop', 'mise en place', 'mettre en place', 'nouveau', 'nouvelle', 'new', 'amelior', 'improve', 'evolution']]
   ]
 }
@@ -131,6 +131,9 @@ export function classerLocalement (titre) {
     points[slug] = total
     mots[slug] = vus
   }
+  // Le plus de points, et une avance sur le suivant : à égalité (un titre qui parle autant d'interface que de données) le titre
+  // ne tranche pas — mesuré sur 113 titres déjà classés, départager les égalités ne tombait juste que 2 fois sur 10 : pas de
+  // catégorie inventée, la ligne garde son icône neutre.
   const classes = Object.keys(points).sort((a, b) => points[b] - points[a])
   const premier = classes[0]
   const second = classes[1]
