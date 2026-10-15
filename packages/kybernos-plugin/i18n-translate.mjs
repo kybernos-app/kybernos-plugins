@@ -104,9 +104,15 @@ export const modelList = ({ catalog, brainKey }) => {
 }
 
 // One streamed call. Never throws: the outcome is `{ raw, failure }`.
-const attempt = async ({ llm, route, prompt, maxTokens, timeoutMs }) => {
+const attempt = async ({ llm, route, prompt, maxTokens, timeoutMs, outer }) => {
   const control = new AbortController()
   const timer = setTimeout(() => { try { control.abort() } catch (e) { /* already finished */ } }, timeoutMs)
+  // A run the host drives (i18n-job.mjs) can be paused: its signal stops this call too, at once.
+  let onOuter = null
+  if (outer !== null && outer !== undefined) {
+    if (outer.aborted === true) control.abort()
+    else { onOuter = () => { try { control.abort() } catch (e) { /* already finished */ } }; outer.addEventListener('abort', onOuter, { once: true }) }
+  }
   let raw = ''
   let failure = null
   let finishKind = null
@@ -130,8 +136,12 @@ const attempt = async ({ llm, route, prompt, maxTokens, timeoutMs }) => {
     }
   } catch (e) {
     failure = { code: 'THROWN', message: errText(e) }
-  } finally { clearTimeout(timer) }
-  if (control.signal.aborted) failure = { code: 'TIMEOUT', message: 'pas de reponse en ' + Math.round(timeoutMs / 1000) + ' s' }
+  } finally {
+    clearTimeout(timer)
+    if (onOuter !== null) { try { outer.removeEventListener('abort', onOuter) } catch (e) { /* gone */ } }
+  }
+  if (outer !== null && outer !== undefined && outer.aborted === true) failure = { code: 'ABORTED', message: 'interrompu' }
+  else if (control.signal.aborted) failure = { code: 'TIMEOUT', message: 'pas de reponse en ' + Math.round(timeoutMs / 1000) + ' s' }
   return { raw, failure, finishKind }
 }
 
@@ -173,7 +183,8 @@ export const translateBatch = async (args, deps) => {
   const failures = []
   for (const route of routes) {
     const label = route.provider + '/' + route.model
-    const out = await attempt({ llm, route, prompt, maxTokens, timeoutMs: deps.timeoutMs || ATTEMPT_TIMEOUT_MS })
+    const outer = typeof AbortSignal !== 'undefined' && req.signal instanceof AbortSignal ? req.signal : null
+    const out = await attempt({ llm, route, prompt, maxTokens, timeoutMs: deps.timeoutMs || ATTEMPT_TIMEOUT_MS, outer })
     if (out.failure !== null) {
       failures.push(label + ' : ' + out.failure.code + ' — ' + out.failure.message)
       if (NEXT_CANDIDATE_CODES.has(out.failure.code)) continue

@@ -14,11 +14,17 @@ Translations are saved on the user's disk (`~/.dsh/kybernos/i18n/<lang>.json`), 
 - *Advanced* picks the translation model; a line states whether translations are on disk or in this browser only.
 - *Use* switches Kybernos and DSH's own locale (DSH persists it) and reloads the page. `ar he fa ur ps sd ug yi dv`
   are right-to-left: `dir` and `lang` are set on `<html>` (and `lang` is defended against DSH's shell overwriting it).
-- A run lives **in the browser tab**. The page says so while it runs, and a ring with the percentage appears in the sidebar
-  footer (`sidebar.footer.action`, order 19) from every page; clicking it opens Settings on this page. A language that holds
-  progress but is not running shows a grey bar with its count, also after a reload. If the tab is closed mid-run, the next
-  Kybernos tab takes the run over by itself once its heartbeat is 20 s old (Advanced → « Resume an interrupted translation
-  automatically » turns this off; the page then says the run stopped with the tab).
+- A run belongs to **the host**, not to the tab. The page hands the texts that are still missing over once
+  (`POST /kybernos/i18n-job`); the host translates them in batches, retries a transient failure with backoff, writes
+  every batch to the disk as it lands and keeps the state in a file, so closing the tab changes nothing and a DSH that is
+  restarted picks the run up again (unless `i18nAutoResume: false` in `<DSH home>/kybernos/settings.json`). The page only
+  watches it (a poll every 2 s while it knows of a run), brings what landed into this browser's copy, and, when the run is
+  over, says how it ended once: a toast, and a note for the bell of the footer card, with a « Use » button. A ring with the
+  percentage appears in the sidebar footer (`sidebar.footer.action`, order 19) from every page; clicking it opens Settings
+  on this page. A host that does not know the job route yet (DSH not restarted since the update) is not a failure: the page
+  runs the same engine in the tab, as it always did (with its heartbeat: if the tab is closed mid-run, the next Kybernos tab
+  takes the run over once the heartbeat is 20 s old; Advanced → « Resume an interrupted translation automatically » turns
+  that off). A language that holds progress but is not running shows a grey bar with its count, also after a reload.
 - Texts wrapped in `⟦…⟧` are pseudo-translations written by a test run, never real ones: they are not counted as translated,
   « Use » and « Use anyway » are not offered while they are there, a banner says how many there are, and « Translate these
   texts again » removes them (browser and disk) and translates exactly those. Live checks that translate with the
@@ -33,6 +39,7 @@ The routes belong to `@local/kybernos` (`i18n-translate.mjs`, `i18n-store.mjs`):
 | Route | Role |
 | --- | --- |
 | `POST /kybernos/i18n-translate` | one batch (≤ 40 strings, ≤ 256 KiB) to a model; `{ok, translations, provider, model}`; a translation that loses `{x}`, `{{x}}`, `%s` or `%d` is dropped |
+| `GET\|POST /kybernos/i18n-job` | the run itself (`i18n-job.mjs`): `start` (the missing texts), `pause`, `resume`, `cancel`, `ack`; `GET ?lang=` or all: state, counts per area, model, cause, `acked` |
 | `GET /kybernos/i18n-models` | the configured model catalog and a default |
 | `GET\|POST /kybernos/i18n-store` | list, read, merge or remove a language on disk |
 
@@ -78,8 +85,12 @@ they need a signed-in DSH, the first two switch DSH's language and restore Engli
 
 ## Known limits
 
-- Runs use batches of ≤ 40 strings or 2,600 characters, 3 in flight, 2 passes, and stop after 3 failed batches in a row.
-  Pausing abandons the batches in flight; a full browser storage stops the run.
-- Run batches are sent with `source: 'fr'`, English DSH strings included; only the live layer sends `source: 'auto'`.
+- Runs use batches of ≤ 40 strings or 2,600 characters, 3 in flight, 2 passes. A transient failure (rate limit, timeout, garbled
+  answer) is tried up to 4 times with waits of about 2, 6 and 15 s; a failure waiting cannot fix (no key, no model, quota)
+  stops the run at once with its cause; three batches in a row that keep failing stop it too. Whatever landed is kept and a
+  resume asks only for what is missing. One run at a time on the host (a second language is told « another language is
+  being translated »). Pausing aborts the calls in flight; a full browser storage no longer stops a host run (the disk has it).
+- What is not checked yet: only the variables (`{x}`, `{{x}}`, `%s`, `%d`) are compared with the source. No length ratio, no
+  « the answer is in the target language » test, no glossary, no context per string: the next step of the plan.
 - If DSH's dictionaries cannot be read, or DSH already ships the language (`zh`), only Kybernos is translated.
 - Live layer: at most 800 new texts per page load, a 5 min cool-down after 3 failures.

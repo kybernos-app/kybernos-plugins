@@ -395,6 +395,26 @@ const boot = async (host, setup, extra) => {
   check('… and the debt is settled', JSON.parse(first.f.storage.getItem('kybernos.i18n.removing')).length === 0)
 }
 {
+  // a host-side translation job writes the disk while the page is open: `disk.pull` brings what landed into the browser
+  const host = mkHost()
+  host.store.write('ar', { kb: { 'kb.a': 'ا' }, meta: { complete: false, total: 4, done: 1, at: 5000 }, label: 'العربية' })
+  const { f, rt, pulled } = await boot(host)
+  check('(setup) the browser has what the disk had at boot', JSON.parse(f.storage.getItem('kybernos.i18n.ar'))['kb.a'] === 'ا')
+  host.store.write('ar', { kb: { 'kb.b': 'ب', 'kb.c': 'ج' }, meta: { complete: false, total: 4, done: 3, at: 6000 } })
+  const before = host.posts().length
+  const ok = await rt.disk.pull('ar')
+  const kb = JSON.parse(f.storage.getItem('kybernos.i18n.ar'))
+  check('pull merges what the job wrote since: the new texts are in the browser, the old one kept', ok === true && kb['kb.a'] === 'ا' && kb['kb.b'] === 'ب' && kb['kb.c'] === 'ج')
+  check('… with the more recent bilan', JSON.parse(f.storage.getItem('kybernos.i18n.meta.ar')).done === 3)
+  check('… and the page is told something changed', pulled.indexOf('ar') >= 0)
+  f.advance(1600); await rt.disk.idle()
+  check('what was pulled is not pushed back (it is the host’s own copy)', host.posts().length === before, host.posts().slice(before))
+  check('pulling again changes nothing and says it is fine', (await rt.disk.pull('ar')) === true)
+  check('a language the host does not hold, or not a language, is a plain false', (await rt.disk.pull('es')) === false && (await rt.disk.pull('../x')) === false)
+  const off = await boot(mkHost(), null, { fetch: async () => { throw new Error('down') } })
+  check('with the host unreachable, pull is false (and nothing throws)', (await off.rt.disk.pull('ar')) === false)
+}
+{
   // removed, then made again before the host came back: the new one stands
   const host = mkHost(); host.store.write('ar', AR)
   const f = mkEnv({ fetch: host.fetch })

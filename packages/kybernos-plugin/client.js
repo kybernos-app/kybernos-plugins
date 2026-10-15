@@ -2333,6 +2333,102 @@ const kbLangActive = () => {
   try { const l = localStorage.getItem('kybernos.theme.lang'); if (l !== null && l !== '') return String(l) } catch (e) { /* localStorage indisponible */ }
   return null
 }
+// <kb-notify>
+// The notification store behind the bell of the sidebar footer, and the toast that announces what lands while nobody looks.
+// Any plugin can publish: `window.__KB_NOTIFY__.push({ id, kind, title, body, action: { label, event, detail } })`; a plugin that
+// finds no store simply does nothing. Kept in the browser (localStorage, 30 entries): these are « this finished » notes of this
+// machine's session, not a log. An entry with the same id REPLACES the earlier one (a run that is re-announced is one note).
+// `action` names a window event: clicking the button fires it, so the plugin that published it does the work, and this store
+// never holds a function. Pure but for `env.document` (the toast); the tests give it a fake.
+const kbNotifyStart = (e) => {
+  const env = e || {}
+  const win = env.window !== undefined ? env.window : (typeof window !== 'undefined' ? window : {})
+  const store = env.storage !== undefined ? env.storage : (() => { try { return win.localStorage } catch (err) { return null } })()
+  const clock = env.now || (() => Date.now())
+  const doc = env.document !== undefined ? env.document : (typeof document !== 'undefined' ? document : null)
+  const KEY = 'kybernos.notifs.v1'
+  const MAX = 30
+  const KINDS = ['info', 'success', 'warn', 'error']
+  const subs = new Set()
+  const valid = (n) => n !== null && typeof n === 'object' && typeof n.id === 'string' && n.id !== '' && typeof n.title === 'string'
+  const load = () => {
+    try { const v = JSON.parse(store.getItem(KEY)); return Array.isArray(v) ? v.filter(valid).slice(0, MAX) : [] } catch (err) { return [] }
+  }
+  let list = load()
+  const save = () => { try { store.setItem(KEY, JSON.stringify(list)) } catch (err) { /* storage unavailable: the note lives for this page only */ } }
+  const emit = () => { for (const fn of Array.from(subs)) { try { fn(list.slice()) } catch (err) { /* one listener must not stop the others */ } } }
+  let toastEl = null
+  let toastTimer = null
+  const hideToast = () => {
+    if (toastTimer !== null) { clearTimeout(toastTimer); toastTimer = null }
+    if (toastEl !== null) { try { toastEl.remove() } catch (err) { /* gone */ } toastEl = null }
+  }
+  const run = (item) => {
+    if (item === undefined || item === null || item.action === null || item.action === undefined) return false
+    try { win.dispatchEvent(new win.CustomEvent(item.action.event, { detail: item.action.detail })) } catch (err) { return false }
+    return true
+  }
+  const toast = (item) => {
+    if (doc === null || typeof doc.createElement !== 'function' || doc.body === null || doc.body === undefined) return null
+    hideToast()
+    const el = doc.createElement('div')
+    el.className = 'kbn-toast'
+    el.setAttribute('role', item.kind === 'error' ? 'alert' : 'status')
+    el.setAttribute('data-kind', item.kind)
+    el.setAttribute('data-kb', 'notify-toast')
+    const t = doc.createElement('b')
+    t.textContent = item.title
+    el.appendChild(t)
+    if (item.body !== '') { const p = doc.createElement('span'); p.textContent = item.body; el.appendChild(p) }
+    if (item.action !== null) {
+      const b = doc.createElement('button')
+      b.type = 'button'
+      b.className = 'kbn-toast-act'
+      b.textContent = item.action.label
+      b.addEventListener('click', () => { api.markRead(item.id); run(item); hideToast() })
+      el.appendChild(b)
+    }
+    const x = doc.createElement('button')
+    x.type = 'button'
+    x.className = 'kbn-toast-x'
+    x.setAttribute('aria-label', 'Close')
+    x.textContent = '×'
+    x.addEventListener('click', hideToast)
+    el.appendChild(x)
+    doc.body.appendChild(el)
+    toastEl = el
+    toastTimer = setTimeout(hideToast, 12000)
+    return el
+  }
+  const api = {
+    /** Publish a note. `toast: false` keeps it to the bell. Returns the stored note, or null when it was not one. */
+    push(n) {
+      if (!valid(n)) return null
+      const a = n.action
+      const item = {
+        id: n.id.slice(0, 120), at: clock(), kind: KINDS.indexOf(n.kind) >= 0 ? n.kind : 'info', title: n.title.slice(0, 120),
+        body: typeof n.body === 'string' ? n.body.slice(0, 300) : '',
+        action: a !== null && typeof a === 'object' && typeof a.label === 'string' && /^[a-z][a-z0-9:.-]{2,60}$/.test(String(a.event)) ? { label: a.label.slice(0, 40), event: a.event, detail: a.detail === undefined ? null : a.detail } : null,
+        read: false,
+      }
+      list = [item].concat(list.filter((x) => x.id !== item.id)).slice(0, MAX)
+      save(); emit()
+      if (n.toast !== false) { try { toast(item) } catch (err) { /* no DOM: the bell has it */ } }
+      return item
+    },
+    list: () => list.slice(),
+    unread: () => list.filter((x) => x.read !== true).length,
+    markRead(id) { let any = false; list = list.map((x) => { if ((id === undefined || x.id === id) && x.read !== true) { any = true; return Object.assign({}, x, { read: true }) } return x }); if (any) { save(); emit() } },
+    dismiss(id) { const n = list.length; list = list.filter((x) => x.id !== id); if (list.length !== n) { save(); emit() } },
+    clear() { if (list.length > 0) { list = []; save(); emit() } },
+    run,
+    subscribe(fn) { subs.add(fn); return () => { subs.delete(fn) } },
+  }
+  try { win.__KB_NOTIFY__ = api } catch (err) { /* no window */ }
+  return api
+}
+// </kb-notify>
+
 // <kb-lang-runtime>
 // ── Language runtime: always on, in the core ─────────────────────────────────
 // The Language plugin (@local/kybernos-language) is OPTIONAL: it translates and
@@ -2573,6 +2669,28 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
     try { store.setItem(OWED_KEY, JSON.stringify(list)) } catch (err) { /* quota */ }
   }
 
+  // Merge what the host holds for `id` into this browser's copy. Shared by the boot sync and by `disk.pull` (a host-side translation
+  // job writes the disk while the page is open: the page asks for what landed). Same rule as ever: the same text on both sides, the
+  // more recent translation run wins, the disk wins a tie, and the browser keeps what the host lacks. null when the browser refused
+  // the write (quota): nothing is then treated as pulled.
+  const mergeHostPack = (id, local, pack) => {
+    // Same text on both sides: the more recent translation run wins. The disk wins on a tie.
+    const localWins = stamp(local.meta) > stamp(pack.meta)
+    const merged = { meta: localWins ? local.meta : (nonEmpty(pack.meta) ? pack.meta : local.meta), label: local.label || pack.label || '' }
+    for (const sec of SECTIONS) {
+      const hostSec = pack[sec] || {}
+      merged[sec] = {}
+      for (const k of Object.keys(hostSec)) merged[sec][k] = hostSec[k]
+      for (const k of Object.keys(local[sec])) if (localWins || merged[sec][k] === undefined) merged[sec][k] = local[sec][k]
+    }
+    const isNew = !hasContent(local)
+    const changed = SECTIONS.some((sec) => !same(merged[sec], local[sec])) || JSON.stringify(merged.meta) !== JSON.stringify(local.meta) || merged.label !== local.label
+    if (changed && !writeLocal(id, merged)) return null
+    shadow.set(id, { kb: pack.kb || {}, dsh: pack.dsh || {}, live: pack.live || {}, meta: pack.meta || {}, label: pack.label || '' })
+    if (SECTIONS.some((sec) => !same(merged[sec], pack[sec] || {})) || (localWins && JSON.stringify(merged.meta) !== JSON.stringify(pack.meta || {}))) pendingPush.add(id)
+    return { changed, isNew }
+  }
+
   const bootSync = async () => {
     if (!hostEnabled()) { setStatus({ state: 'off', error: 'disabled' }); return }
     // Removals that did not reach the host last time go first — unless the language
@@ -2597,22 +2715,9 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
       if (hasContent(local) && SECTIONS.every((sec) => Object.keys(local[sec]).length === hc[sec]) && stamp(local.meta) === stamp(hp.meta)) { shadow.set(id, local); continue }
       const got = await call(undefined, '?id=' + encodeURIComponent(id))
       if (got === null || got.ok !== true || got.pack === null || typeof got.pack !== 'object') continue
-      const pack = got.pack
-      // Same text on both sides: the more recent translation run wins. The disk wins on a tie.
-      const localWins = stamp(local.meta) > stamp(pack.meta)
-      const merged = { meta: localWins ? local.meta : (nonEmpty(pack.meta) ? pack.meta : local.meta), label: local.label || pack.label || '' }
-      for (const sec of SECTIONS) {
-        const hostSec = pack[sec] || {}
-        merged[sec] = {}
-        for (const k of Object.keys(hostSec)) merged[sec][k] = hostSec[k]
-        for (const k of Object.keys(local[sec])) if (localWins || merged[sec][k] === undefined) merged[sec][k] = local[sec][k]
-      }
-      const isNew = !hasContent(local)
-      const changed = SECTIONS.some((sec) => !same(merged[sec], local[sec])) || JSON.stringify(merged.meta) !== JSON.stringify(local.meta) || merged.label !== local.label
-      if (changed && !writeLocal(id, merged)) continue
-      shadow.set(id, { kb: pack.kb || {}, dsh: pack.dsh || {}, live: pack.live || {}, meta: pack.meta || {}, label: pack.label || '' })
-      if (SECTIONS.some((sec) => !same(merged[sec], pack[sec] || {})) || (localWins && JSON.stringify(merged.meta) !== JSON.stringify(pack.meta || {}))) pendingPush.add(id)
-      if (changed) fresh.push({ id, isNew })
+      const merged = mergeHostPack(id, readLocal(id), got.pack)
+      if (merged === null) continue
+      if (merged.changed) fresh.push({ id, isNew: merged.isNew })
     }
     for (const id of packIds()) {
       if (onHost.has(id)) continue
@@ -2710,6 +2815,19 @@ const kbLangRuntimeStart = (ctx, loc, env) => {
     watch: (fn) => { watchers.add(fn); return () => { watchers.delete(fn) } },
     touch,
     remove: removeFromDisk,
+    // Ask the host for what it holds for one language and merge it in (see mergeHostPack). true when the host answered and the
+    // browser kept it; false when the host is off, the language is not there, or the browser refused.
+    pull: async (id) => {
+      if (typeof id !== 'string' || !ID.test(id)) return false
+      await booted
+      if (!hostEnabled() || status.state !== 'on') return false
+      const got = await call(undefined, '?id=' + encodeURIComponent(id))
+      if (got === null || got.ok !== true || got.pack === null || typeof got.pack !== 'object') return false
+      const r = mergeHostPack(id, readLocal(id), got.pack)
+      if (r === null) return false
+      if (r.changed) { try { onPulled(id) } catch (err) { /* a listener must not break the pull */ } }
+      return true
+    },
     // Resolves once the boot reconciliation and the pushes scheduled so far are done.
     idle: async () => { await booted; await pushing },
   }
@@ -31499,6 +31617,14 @@ button[class*="_indicator_"][data-phase]:hover [class*="_label_"],button[class*=
    plugin cloud sur <html data-kb-cloud>). Tant que la lecture est en cours,
    l'attribut est absent — la cloche reste visible plutot que de mentir. */
 html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
+.kbn-toast{position:fixed;inset-inline-end:20px;bottom:20px;z-index:10000;display:flex;flex-direction:column;gap:6px;max-width:min(360px,calc(100vw - 40px));padding:12px 36px 12px 14px;border-radius:12px;
+  border:1px solid var(--dsw-alias-border-l2);background:var(--dsw-alias-bg-layer-1);color:var(--dsw-alias-label-primary);box-shadow:0 12px 32px rgba(0,0,0,.40);font-size:13px;line-height:18px}
+.kbn-toast b{font-weight:600}
+.kbn-toast[data-kind="error"] b{color:var(--dsw-alias-state-error-primary)}
+.kbn-toast span{color:var(--dsw-alias-label-secondary)}
+.kbn-toast-act{align-self:flex-start;appearance:none;font:inherit;font-size:12px;padding:4px 12px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbn-toast-act:hover{border-color:var(--dsw-alias-border-l4)}
+.kbn-toast-x{position:absolute;top:6px;inset-inline-end:8px;appearance:none;border:0;background:transparent;color:var(--dsw-alias-label-tertiary);font-size:18px;line-height:1;cursor:pointer}
 /* Un SEUL modele de boite pour toutes les icones du pied — boutons ET lien.
    Mesure du 24/09/2026 (feet deploye, 256 px) : le cadeau est un <a>, donc sans
    le remplissage par defaut d'un <button> (1px 6px) ni son box-sizing. A
@@ -32581,6 +32707,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
     }
     // Translated languages stay available — registered in DSH, followed from its
     // selector — even when the optional Language plugin is switched off.
+    try { kbNotifyStart() } catch (e) { /* no notification store: the bell stays empty */ }
     try { kbLangRuntimeStart(ctx, localeSvc !== undefined ? localeSvc : null, { onPulled: () => { kbI18nCache = { lang: null, dict: null } } }) } catch (e) { try { console.error('[kybernos] language runtime', e) } catch (e2) { /* */ } }
     slots.inject('tool.view.cordis', () => slots.register(
       { name: 'tool.view.cordis', key: 'self' },

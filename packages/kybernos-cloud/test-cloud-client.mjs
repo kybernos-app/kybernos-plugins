@@ -465,8 +465,12 @@ assert.equal(htmlConnecte.includes('kbf-wsgear'), false, 'aucun engrenage DANS l
 assert.equal(htmlConnecte.includes('title="Notifications"'), false, 'la cloche est cachee (SHOW_BELL = false)')
 assert.equal(htmlConnecte.includes('kbfp-bellwrap'), false, 'et son conteneur aussi')
 assert.ok(/const SHOW_BELL = false\n/.test(source), 'un seul drapeau : SHOW_BELL')
-assert.ok(source.includes("SHOW_BELL === true\n                ? h('span', { className: 'kbfp-bellwrap' },"), 'la cloche et son popover sont encore la, derriere le drapeau')
-ok('carte unifiee : espace actif, qui · formule, menu ferme, aucun engrenage, cloche cachee derriere SHOW_BELL')
+assert.ok(source.includes("SHOW_BELL === true || notes.length > 0\n                ? h('span', { className: 'kbfp-bellwrap' },"), 'la cloche et son popover sont encore la, derriere le drapeau — et reviennent seuls quand un plugin a publie une note')
+// What a plugin publishes (window.__KB_NOTIFY__, kybernos-plugin <kb-notify>) is what the bell lists: with none, it stays hidden.
+assert.ok(/window\.__KB_NOTIFY__\.list\(\)/.test(source) && /window\.__KB_NOTIFY__\.subscribe\(/.test(source), 'la cloche lit le magasin de notes et le suit')
+assert.ok(/notes\.some\(\(n\) => n\.read !== true\)/.test(source) && /window\.__KB_NOTIFY__\.markRead\(\)/.test(source), 'le point dit « nouveau », ouvrir la cloche marque lu')
+assert.ok(/window\.__KB_NOTIFY__\.run\(n\)/.test(source), 'le bouton d une note lance son action par le magasin (jamais une fonction gardee ici)')
+ok('carte unifiee : espace actif, qui · formule, menu ferme, aucun engrenage, cloche cachee derriere SHOW_BELL tant qu aucune note')
 
 // The meter of the card: the percent of the allowance that counts in the ACTIVE team, read from the host's /quota route. Nothing is drawn while the host has nothing to
 // say (the render above got the status JSON for /quota too: no windows, no meter), and a fresh read of 82% shows a bar, the figure and the sentence as its title.

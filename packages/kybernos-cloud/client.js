@@ -187,6 +187,8 @@ window.__ModuleLoader__.load({
         // ── Refonte du pied (30/09, maquette « Menu ouvert ») ──
         notifTitle: 'Notifications',
         notifEmpty: 'Rien de neuf pour l’instant.',
+        notifClear: 'Tout effacer',
+        notifDismiss: 'Écarter',
         menuPlanCta: 'Mettre à niveau',
         menuWebsite: 'Site web',
         menuHelp: 'Aide',
@@ -490,6 +492,8 @@ window.__ModuleLoader__.load({
         footPairingAction: 'Show code',
         notifTitle: 'Notifications',
         notifEmpty: 'Nothing new so far.',
+        notifClear: 'Clear all',
+        notifDismiss: 'Dismiss',
         menuPlanCta: 'Upgrade',
         menuWebsite: 'Website',
         menuHelp: 'Help',
@@ -821,6 +825,22 @@ window.__ModuleLoader__.load({
 .kbfp-ico{flex:none;width:36px;height:36px;padding:0;border:none;border-radius:10px;background:transparent;color:var(--dsw-alias-label-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
 .kbfp-ico:hover{background:var(--dsw-alias-interactive-bg-hover);color:var(--dsw-alias-label-primary)}
 .kbfp-bellwrap{display:flex}
+.kbfp-ico{position:relative}
+.kbfp-belldot{position:absolute;top:7px;inset-inline-end:8px;width:8px;height:8px;border-radius:50%;background:var(--dsw-alias-brand-primary)}
+.kbfp-belltitle{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kbfp-noteclear{appearance:none;border:0;background:transparent;color:var(--dsw-alias-label-tertiary);font:inherit;font-size:12px;font-weight:400;cursor:pointer;padding:0}
+.kbfp-noteclear:hover{color:var(--dsw-alias-label-primary)}
+.kbfp-notes{list-style:none;margin:0;padding:0 10px 8px;display:flex;flex-direction:column;gap:10px;max-height:min(50vh,320px);overflow:auto}
+.kbfp-note{display:flex;flex-direction:column;gap:4px;padding-top:8px;border-top:1px solid var(--dsw-alias-border-l1)}
+.kbfp-note:first-child{border-top:0;padding-top:0}
+.kbfp-note-t{font-size:13px;font-weight:500;color:var(--dsw-alias-label-primary);overflow-wrap:anywhere}
+.kbfp-note[data-kind="error"] .kbfp-note-t{color:var(--dsw-alias-state-error-primary)}
+.kbfp-note-b{font-size:12px;line-height:17px;color:var(--dsw-alias-label-secondary);overflow-wrap:anywhere}
+.kbfp-note-r{display:flex;align-items:center;gap:8px;margin-top:2px}
+.kbfp-note-act{appearance:none;font:inherit;font-size:12px;padding:3px 10px;border-radius:8px;border:1px solid var(--dsw-alias-border-l2);background:transparent;color:var(--dsw-alias-label-primary);cursor:pointer}
+.kbfp-note-act:hover{border-color:var(--dsw-alias-border-l4)}
+.kbfp-note-x{appearance:none;margin-inline-start:auto;border:0;background:transparent;color:var(--dsw-alias-label-tertiary);font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+.kbfp-note-x:hover{color:var(--dsw-alias-label-primary)}
 /* The bell popover matches the CARD WIDTH (like the menu): the containing
    block is .kbfp-card (the bell wrap is no longer positioned).
    Anchored to the button with a fixed width of 248 px, it overflowed the left
@@ -2229,8 +2249,9 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
         // The product's public pages, from the menus (a tab of the system browser). The help is localised: its folder is the language DSH
         // shows, among those the help is written in, else English.
         const WEBSITE_URL = 'https://kybernos.app'
-        // The notification bell of the footer. It has nothing to show yet (its popover only says « nothing new »), so it is hidden, not deleted:
-        // set this to true and it is back, with the popover and the rail rules it already has.
+        // The notification bell of the footer. With nothing to show (its popover would only say « nothing new ») it is hidden, not deleted:
+        // set this to true and it is always there; whatever a plugin publishes (window.__KB_NOTIFY__, kybernos-plugin: a translation that
+        // finished, say) brings it back by itself while there is something to read.
         const SHOW_BELL = false
         /** The phone link's status (GET kybernos-mobile/remote/status) as the menu needs it: `{ devices }` when the entry is offered, else null. A server that does not offer
          *  the feature (`configured: false`), a plan that does not include it (`entitled: false`), a DSH that cannot (`available: false`) or no account: no entry. */
@@ -2786,6 +2807,11 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
           const [open, setOpen] = React.useState(false)
           const [menuOpen, setMenuOpen] = React.useState(false)
           const [notifOpen, setNotifOpen] = React.useState(false)
+          // The notes plugins published for the bell (see the SHOW_BELL comment): read from the shared store, followed while mounted.
+          const [notes, setNotes] = React.useState(() => { try { return window.__KB_NOTIFY__.list() } catch (e) { return [] } })
+          React.useEffect(() => {
+            try { setNotes(window.__KB_NOTIFY__.list()); return window.__KB_NOTIFY__.subscribe((l) => setNotes(l)) } catch (e) { return undefined }
+          }, [])
           const [newOpen, setNewOpen] = React.useState(false)
           const [mobileOpen, setMobileOpen] = React.useState(false)
           // Update available: an amber dot on the card tile, the discreet
@@ -3117,18 +3143,33 @@ body:not([data-ds-dark-theme]) .kbfp-mamber > svg{color:color-mix(in srgb,var(--
                     h('span', { className: 'kbfp-usepct' }, meter.percent + '%'))
                   : null),
               h('span', { className: 'kbfp-chev', 'aria-hidden': 'true' }, h(SwapIcon, { size: 18 }))),
-              SHOW_BELL === true
+              SHOW_BELL === true || notes.length > 0
                 ? h('span', { className: 'kbfp-bellwrap' },
                 h('button', {
-                  type: 'button', className: 'kbfp-ico',
-                  title: t('notifTitle'), 'aria-label': t('notifTitle'),
+                  type: 'button', className: 'kbfp-ico', 'data-kb': 'bell',
+                  title: t('notifTitle') + (notes.some((n) => n.read !== true) ? ' (' + notes.filter((n) => n.read !== true).length + ')' : ''), 'aria-label': t('notifTitle'),
                   'aria-expanded': notifOpen === true ? 'true' : 'false',
-                  onClick: () => { setMobileOpen(false); setNotifOpen(notifOpen !== true) },
-                }, h(BellIcon, { size: 19 })),
+                  onClick: () => {
+                    setMobileOpen(false)
+                    const next = notifOpen !== true
+                    setNotifOpen(next)
+                    if (next) { try { window.__KB_NOTIFY__.markRead() } catch (e) { /* no store */ } }
+                  },
+                }, h(BellIcon, { size: 19 }), notes.some((n) => n.read !== true) ? h('i', { className: 'kbfp-belldot', 'data-kb': 'bell-dot', 'aria-hidden': 'true' }) : null),
                 notifOpen === true
                   ? h('div', { className: 'kbf-pop kbfp-bellpop', role: 'dialog', 'aria-label': t('notifTitle') },
-                      h('div', { className: 'kbf-poptitle' }, t('notifTitle')),
-                      h('div', { className: 'kbc-note' }, t('notifEmpty')))
+                      h('div', { className: 'kbf-poptitle kbfp-belltitle' }, t('notifTitle'),
+                        notes.length > 0 ? h('button', { type: 'button', className: 'kbfp-noteclear', onClick: () => { try { window.__KB_NOTIFY__.clear() } catch (e) { /* no store */ } } }, t('notifClear')) : null),
+                      notes.length === 0
+                        ? h('div', { className: 'kbc-note' }, t('notifEmpty'))
+                        : h('ul', { className: 'kbfp-notes', 'data-kb': 'notif-list' }, notes.map((n) => h('li', { key: n.id, className: 'kbfp-note', 'data-kind': n.kind },
+                          h('div', { className: 'kbfp-note-t' }, n.title),
+                          n.body !== '' ? h('div', { className: 'kbfp-note-b' }, n.body) : null,
+                          h('div', { className: 'kbfp-note-r' },
+                            n.action !== null && n.action !== undefined
+                              ? h('button', { type: 'button', className: 'kbfp-note-act', onClick: () => { try { window.__KB_NOTIFY__.run(n); window.__KB_NOTIFY__.dismiss(n.id) } catch (e) { /* no store */ } setNotifOpen(false) } }, n.action.label)
+                              : null,
+                            h('button', { type: 'button', className: 'kbfp-note-x', 'aria-label': t('notifDismiss'), onClick: () => { try { window.__KB_NOTIFY__.dismiss(n.id) } catch (e) { /* no store */ } } }, '×'))))))
                   : null)
                 : null,
               menuOpen === true

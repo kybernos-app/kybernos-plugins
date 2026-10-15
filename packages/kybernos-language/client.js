@@ -366,6 +366,9 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           delete labels[id]
           writeJson(I18N_LABELS_KEY, labels)
         } catch (e) { /* storage unavailable */ }
+        // A run the host has for it stops (its texts would bring the language back), and so does the page's watch.
+        if (hostLang === id) stopWatching()
+        if (hostJobOn()) jobCall({ op: 'cancel', lang: id }).catch(() => { /* the host route may be absent */ })
         // The disk copy goes too — otherwise the next boot would bring the language back.
         const d = diskRuntime()
         if (d !== null) { try { d.remove(id) } catch (e) { /* the disk copy must never break the page */ } }
@@ -482,6 +485,12 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         errSlow: ['Le modèle a mis trop de temps à répondre.', 'The model took too long to answer.'],
         errHost: ['Impossible de joindre l’hôte Kybernos. DSH est-il toujours lancé ?', 'Can’t reach the Kybernos host. Is DSH still running?'],
         errOld: ['Le plugin Kybernos principal est trop ancien pour traduire. Mettez-le à jour.', 'The main Kybernos plugin is too old to translate. Update it.'],
+        errBusy: ['Une autre langue est en cours de traduction. Attendez la fin ou mettez-la en pause.', 'Another language is being translated. Wait for it to finish or pause it.'],
+        jobReady: ['{name} est prête.', '{name} is ready.'],
+        jobReadyBody: ['{n} textes traduits. Vous pouvez passer dessus quand vous voulez.', '{n} texts translated. You can switch to it whenever you like.'],
+        jobPartial: ['{name} : {n} textes restent en anglais.', '{name}: {n} texts stay in English.'],
+        jobPartialBody: ['La langue est utilisable. Réessayez les textes manquants depuis Réglages › Langue.', 'The language is usable. Retry the missing texts from Settings › Language.'],
+        jobFailed: ['La traduction en {name} s’est arrêtée.', 'The translation to {name} stopped.'],
         errStore: ['L’espace de stockage du navigateur est plein.', 'The browser’s storage is full.'],
         kept: ['Ce qui est déjà traduit est conservé : « Reprendre » repart d’où ça s’est arrêté.', 'What’s already translated is kept: Resume starts where it stopped.'],
         confirmRemove: ['Supprimer', 'Remove'],
@@ -943,6 +952,7 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         if (/TIMEOUT/.test(e)) return 'errSlow'
         if (/UNREACHABLE/.test(e)) return 'errHost'
         if (/ROUTE_ABSENT|SOURCE_MISSING/.test(e)) return 'errOld'
+        if (/^BUSY/.test(e)) return 'errBusy'
         if (/STORAGE_FULL/.test(e)) return 'errStore'
         return 'errTitle'
       }
@@ -977,11 +987,10 @@ html[dir="rtl"] .kbth-page{direction:rtl}
       const shouldTakeOver = (it, now, auto) => it !== null && auto === true && now - Number(it.beat) >= RUN_STALE_MS
       let beatTimer = null
       const stopBeat = () => { if (beatTimer !== null) { clearInterval(beatTimer); beatTimer = null } }
-      const startRun = (lang, route) => {
-        if (run.state === 'running' || run.state === 'pausing') return false
-        registryAdd(lang)
+      // The in-tab engine: what runs when the host cannot (a host that does not know the job route yet, i.e. DSH not restarted
+      // since the update, or a plan too big for it). Same engine as before, with the heartbeat that lets a later tab take over.
+      const startLocalRun = (lang, route) => {
         runControl = new AbortController()
-        setRun({ state: 'running', lang, done: 0, total: 0, areas: null, model: route !== null && route !== undefined ? route.model : null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 })
         intentWrite(lang, route)
         stopBeat()
         beatTimer = setInterval(() => intentWrite(lang, route), RUN_BEAT_MS)
@@ -995,12 +1004,171 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           if (!result.ok) return setRun({ state: 'failed', error: result.error || 'échec inconnu', done: result.done, total: result.total })
           setRun({ state: result.missing > 0 ? 'partial' : 'done', done: result.done, total: result.total, missing: result.missing })
         }).catch((e) => { stopBeat(); intentClear(); setRun({ state: 'failed', error: String((e !== null && e !== undefined && e.message) || e) }) })
+      }
+
+      // ── The run on the HOST (packages/kybernos-plugin/i18n-job.mjs) ─────────
+      // The page hands the texts that are still missing over ONCE; the host translates them, retries what is transient, writes
+      // each batch to the disk as it lands and keeps the state in a file: closing the tab changes nothing, and a DSH that is
+      // restarted picks the run up again. The page only watches (a poll every 2 s while it knows of a run), pulls what landed
+      // into this browser's copy, and says so when it is over — a toast and a note in the bell, until someone has seen it.
+      const JOB_PATH = '/kybernos/i18n-job'
+      const JOB_POLL_MS = 2000
+      const JOB_PULL_MS = 6000
+      const JOB_LOST_AFTER = 6 // polls in a row without an answer before the page stops believing the run is going on
+      const hostJobOn = () => window.__KB_I18N_HOST_JOB__ !== false
+      // The JSON answer of the job route, or { ok:false, absent:true }: route absent (404 / HTML), host down, refused.
+      const jobCall = async (body, query) => {
+        try {
+          const init = body === undefined ? { credentials: 'same-origin' }
+            : { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }
+          const res = await fetch(JOB_PATH + (query || ''), init)
+          if (res.status === 404 || res.status === 405) return { ok: false, absent: true }
+          const json = await res.json()
+          return json !== null && typeof json === 'object' ? json : { ok: false, absent: true }
+        } catch (e) { return { ok: false, absent: true } }
+      }
+      // What the browser lacks, in the order a run translates it (core first), with the per-area bilan the host starts from.
+      const missingFor = (lang, plan) => {
+        const stores = { kb: i18nRead(lang), dsh: dshRead(lang) }
+        const items = []
+        const areas = {}
+        for (const a of AREAS) areas[a] = { total: plan.areas[a].total, done: 0 }
+        for (const a of AREAS) {
+          for (const it of plan.items) {
+            if (it.area !== a) continue
+            if (holds(stores[it.store][it.id])) areas[a].done += 1
+            else items.push({ wire: it.wire, text: it.text, area: a })
+          }
+        }
+        return { items, areas }
+      }
+      let hostLang = null // the language whose host run this page is watching
+      let hostTimer = null
+      let hostLost = 0
+      let hostPulled = { at: 0, done: -1 }
+      const stopWatching = () => { if (hostTimer !== null) { clearInterval(hostTimer); hostTimer = null } hostLang = null; hostLost = 0 }
+      const notify = (n) => { try { const api = window.__KB_NOTIFY__; if (api !== undefined && api !== null && typeof api.push === 'function') api.push(n) } catch (e) { /* no bell: the page itself says it */ } }
+      // The run is over (or stopped by itself): tell the person once, then mark it seen so no tab announces it again.
+      const announceJob = (job) => {
+        const name = langInfo(job.lang).native
+        if (job.outcome === 'done') {
+          notify({ id: 'lang:' + job.lang, kind: 'success', title: L('jobReady', { name }), body: L('jobReadyBody', { n: job.total }), action: { label: L('use'), event: 'kb-lang-use', detail: { lang: job.lang } } })
+        } else if (job.outcome === 'partial') {
+          notify({ id: 'lang:' + job.lang, kind: 'warn', title: L('jobPartial', { name, n: job.missing }), body: L('jobPartialBody'), action: { label: L('use'), event: 'kb-lang-use', detail: { lang: job.lang } } })
+        } else if (job.outcome === 'failed') {
+          notify({ id: 'lang:' + job.lang, kind: 'error', title: L('jobFailed', { name }), body: L(friendlyError(job.error)) })
+        }
+        return jobCall({ op: 'ack', lang: job.lang })
+      }
+      const pullDisk = async (lang) => { const d = diskRuntime(); if (d === null || typeof d.pull !== 'function') return false; try { return await d.pull(lang) } catch (e) { return false } }
+      // One look at the run: reflect it in `run`, bring what landed into this browser, finish when it is over.
+      const watchOnce = async () => {
+        const lang = hostLang
+        if (lang === null) return
+        const r = await jobCall(undefined, '?lang=' + encodeURIComponent(lang))
+        if (lang !== hostLang) return
+        if (r.absent === true || r.ok !== true) {
+          hostLost += 1
+          if (hostLost >= JOB_LOST_AFTER) { stopWatching(); setRun({ state: 'failed', error: 'UNREACHABLE : route hôte injoignable — la traduction continue peut-être sur l’hôte : rouvrez cette page' }) }
+          return
+        }
+        hostLost = 0
+        const job = r.job
+        if (job === null || job === undefined) { stopWatching(); if (run.state === 'running' || run.state === 'pausing') setRun({ state: 'idle' }); return }
+        const live = job.state === 'running' || job.state === 'pausing'
+        const patch = {
+          lang, done: job.done, total: job.total, areas: job.areas, model: job.model !== null && job.model !== undefined ? job.model : run.model,
+          essentials: job.areas !== null && job.areas !== undefined && job.areas.core !== undefined && job.areas.core.done >= job.areas.core.total,
+          startedWith: Number.isFinite(Number(job.runFrom)) ? Number(job.runFrom) : run.startedWith, elapsedMs: Number.isFinite(Number(job.runAt)) ? Math.max(0, Date.now() - Number(job.runAt)) : run.elapsedMs,
+        }
+        if (live) {
+          setRun(Object.assign(patch, { state: job.state }))
+          if (job.done !== hostPulled.done && Date.now() - hostPulled.at >= JOB_PULL_MS) { hostPulled = { at: Date.now(), done: job.done }; await pullDisk(lang) }
+          return
+        }
+        // Over: paused, done, partial or failed. Take the last of it, then say how it ended.
+        stopWatching()
+        await pullDisk(lang)
+        hostPulled = { at: 0, done: -1 }
+        if (job.state === 'paused') { setRun(Object.assign(patch, { state: 'paused' })); return }
+        if (job.state === 'failed') setRun(Object.assign(patch, { state: 'failed', error: job.error || 'échec inconnu' }))
+        else setRun(Object.assign(patch, { state: job.state === 'partial' ? 'partial' : 'done', missing: job.missing }))
+        if (job.acked !== true) await announceJob(job)
+      }
+      const watchJob = (lang) => {
+        stopWatching()
+        hostLang = lang
+        hostTimer = setInterval(() => { watchOnce().catch(() => { /* a poll that fails is counted by the next one */ }) }, JOB_POLL_MS)
+        watchOnce().catch(() => { /* idem */ })
+      }
+      // Hand the run to the host. Resolves { mode: 'host' } (it runs there now), { mode: 'local' } (the host cannot: the
+      // in-tab engine takes over) or { mode: 'error', error } (a refusal the person has to know about).
+      const hostStart = async (lang, route) => {
+        if (!hostJobOn()) return { mode: 'local' }
+        const plan = buildPlan(lang)
+        if (plan === null) return { mode: 'local' } // the engine reports SOURCE_MISSING itself
+        const miss = missingFor(lang, plan)
+        if (miss.items.length === 0) return { mode: 'local' } // nothing to do: the engine says « done » on its own
+        const r = await jobCall({
+          op: 'start', lang, langName: langInfo(lang).english, source: 'fr', total: plan.total, areas: miss.areas, items: miss.items,
+          route: route !== null && route !== undefined && typeof route.provider === 'string' ? { provider: route.provider, model: route.model } : null,
+        })
+        if (r.absent === true) return { mode: 'local' }
+        if (r.ok === true) return { mode: 'host' }
+        if (r.error === 'busy') return { mode: 'error', error: 'BUSY : ' + langInfo(String(r.lang || '')).native, busy: String(r.lang || '') }
+        return { mode: 'local' } // a plan the host does not accept: the engine can still do it
+      }
+      // A pause asked for while the page is still handing the run over (a few milliseconds) is kept and applied right after.
+      let starting = false
+      let pauseWanted = false
+      const applyPause = () => {
+        if (hostLang !== null) {
+          jobCall({ op: 'pause', lang: hostLang }).then(() => { watchOnce().catch(() => { /* the poll goes on */ }) })
+          return
+        }
+        if (runControl !== null) { try { runControl.abort() } catch (e) { /* already finished */ } }
+      }
+      const startRun = (lang, route) => {
+        if (run.state === 'running' || run.state === 'pausing') return false
+        registryAdd(lang)
+        setRun({ state: 'running', lang, done: 0, total: 0, areas: null, model: route !== null && route !== undefined ? route.model : null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 })
+        // A page that keeps the run in the tab (tests, live checks, a host that does not know the route) starts at once.
+        if (!hostJobOn()) { startLocalRun(lang, route); return true }
+        starting = true
+        pauseWanted = false
+        hostStart(lang, route).then((out) => {
+          starting = false
+          if (out.mode === 'host') watchJob(lang)
+          else if (out.mode === 'error') { pauseWanted = false; setRun({ state: 'failed', error: out.error }); return }
+          else startLocalRun(lang, route)
+          if (pauseWanted) { pauseWanted = false; applyPause() }
+        }).catch(() => { starting = false; startLocalRun(lang, route); if (pauseWanted) { pauseWanted = false; applyPause() } })
         return true
       }
       const pauseRun = () => {
-        if (run.state !== 'running' || runControl === null) return
+        if (run.state !== 'running') return
+        if (starting) { pauseWanted = true; setRun({ state: 'pausing' }); return }
+        if (hostLang === null && runControl === null) return
         setRun({ state: 'pausing' })
-        try { runControl.abort() } catch (e) { /* already finished */ }
+        applyPause()
+      }
+      // At load: a run the HOST has (it went on while no tab was open, or it ended and nobody has seen how): watch it, or say
+      // how it ended. Before that, a plan may not exist yet (DSH registers its dictionaries a little later): the watch itself
+      // does not need one.
+      const bootJobs = async () => {
+        if (!hostJobOn()) return false
+        const r = await jobCall()
+        if (r.ok !== true || !Array.isArray(r.jobs)) return false
+        for (const job of r.jobs) {
+          if (typeof job.lang !== 'string') continue
+          if (job.state === 'running' || job.state === 'pausing') {
+            if (run.state === 'idle') { setRun({ state: job.state, lang: job.lang, done: job.done, total: job.total, areas: job.areas, model: job.model, essentials: false, startedWith: Number(job.runFrom) || 0, elapsedMs: 0 }); watchJob(job.lang) }
+          } else if (job.acked === false && (job.outcome === 'done' || job.outcome === 'partial' || job.outcome === 'failed')) {
+            await pullDisk(job.lang)
+            await announceJob(job)
+          }
+        }
+        return true
       }
       // At load: a run the previous tab left behind goes on by itself (unless the user switched that off). The
       // plan exists only once DSH has registered its dictionaries, so look again for a while; and look again at
@@ -1635,8 +1803,9 @@ html[dir="rtl"] .kbth-page{direction:rtl}
         __test: {
           kbSources, dshSources, buildPlan, runTranslation, hostTranslate, planBatches, isComplete, metaRead, i18nRead, dshRead, liveRead,
           isTestMark, holds, pseudoStats, repairPseudo, intentRead, intentWrite, intentClear, shouldTakeOver, autoResume, autoResumeOn, setAutoResume,
-          resetRun: () => { stopBeat(); run = { state: 'idle', lang: null, done: 0, total: 0, areas: null, model: null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 } },
+          resetRun: () => { stopBeat(); stopWatching(); run = { state: 'idle', lang: null, done: 0, total: 0, areas: null, model: null, error: null, missing: 0, essentials: false, startedWith: 0, elapsedMs: 0 } },
           startRun, pauseRun, subscribeRun, getRun: () => run, friendlyError, langInfo, ISO_639_1, POPULAR, isLiveCandidate,
+          bootJobs, watchOnce, missingFor, stopWatching, hostStart, announceJob, JOB_LOST_AFTER,
           managedIds, registryAdd, registryRead, dropLanguage, registerDshPack, activateLanguage, startLiveLayer, openLanguagePage, heldBy,
           __writeJson: writeJson, setLocale: (svc) => { locSvc = svc; _dsh = null; _dshRev = null }, L, estimateMinutes, minutesLeft,
         },
@@ -1686,6 +1855,14 @@ html[dir="rtl"] .kbth-page{direction:rtl}
           }
           // A run the previous tab left behind goes on by itself, once DSH has had time to register its dictionaries.
           try { window.setTimeout(() => { autoResume().catch(() => { /* never breaks the boot */ }) }, 3000) } catch (e6) { /* no timers */ }
+          // The host's own run, if it has one: watch it or say how it ended (see bootJobs). A note in the bell offers « Use ».
+          try { window.setTimeout(() => { bootJobs().catch(() => { /* never breaks the boot */ }) }, 3500) } catch (e7) { /* no timers */ }
+          try {
+            window.addEventListener('kb-lang-use', (ev) => {
+              const id = ev !== null && ev !== undefined && ev.detail !== null && ev.detail !== undefined && typeof ev.detail.lang === 'string' ? ev.detail.lang : ''
+              if (id !== '' && managedIds().indexOf(id) >= 0) activateLanguage(id)
+            })
+          } catch (e8) { /* no window */ }
         }
       }
     } catch (kbLangBootError) {

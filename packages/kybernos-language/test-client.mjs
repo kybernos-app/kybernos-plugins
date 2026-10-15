@@ -14,7 +14,12 @@
 //  - a partial cache counted as "complete", so a half-translated language could
 //    neither be resumed nor finished;
 //  - progress the browser refused to store was still reported.
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+// The host's own run and store, the real ones: the page and the host are tested together through a fake fetch.
+import { createI18nStore, handleI18nStore } from '../kybernos-plugin/i18n-store.mjs'
+import { createJobRunner, serveJobs } from '../kybernos-plugin/i18n-job.mjs'
 
 let pass = 0
 let fail = 0
@@ -97,6 +102,8 @@ const reset = (withDsh) => {
   // The disk copy is opted out here: the fake host of these tests would answer the runtime's
   // store calls as if they were translations. Its tests: test-lang-runtime.mjs, and the section below.
   globalThis.window.__KB_I18N_HOST_STORE__ = false
+  // The host's own run is a separate subject (the « host job » section): every other section drives the in-tab engine.
+  globalThis.window.__KB_I18N_HOST_JOB__ = false
   startRuntime()
 }
 // The runtime as the main plugin starts it: no boot timers here (see test-lang-runtime.mjs).
@@ -762,6 +769,180 @@ console.log('\n── disk copy: the page tells the runtime what changed ──'
 }
 
 // ── guards on the source ──────────────────────────────────────────────────
+console.log('\n── the run on the host (i18n-job): the page hands it over, watches, pulls, announces ──')
+{
+  const hostDir = mkdtempSync(join(tmpdir(), 'kb-lang-job-'))
+  const hostStore = createI18nStore({ dir: hostDir })
+  const notes = []
+  const mkRunner = (translate) => createJobRunner({ dir: hostDir, store: hostStore, translate, sleep: async () => {}, random: () => 0.5 })
+  const okTranslate = async (a) => ({ ok: true, provider: 'p', model: 'm', translations: Object.fromEntries(Object.keys(a.batch).map((k) => [k, 'AR:' + a.batch[k]])) })
+  const io = (runner) => ({ runner: async () => runner, sameOriginStrict: () => true, sameOriginLax: () => true, readJson: async (r) => r.body, query: (r) => new URLSearchParams(r.q || ''), send: (res, status, body) => { res.out = { status, body } } })
+  const jobCalls = []
+  // The page's fetch: the job route and the store route are the real ones; the old translate route is the fallback's.
+  const installJobHost = (runner, o) => {
+    const opts = o || {}
+    const ctx = io(runner)
+    jobCalls.length = 0
+    globalThis.fetch = async (url, init) => {
+      const u = String(url)
+      const post = init && init.method === 'POST'
+      const body = post ? JSON.parse(init.body) : null
+      if (u.startsWith('/kybernos/i18n-job')) {
+        jobCalls.push(body === null ? 'GET' : body.op)
+        if (opts.absent === true) return { ok: false, status: 404, json: async () => ({}) }
+        if (opts.down === true) throw new Error('connect ECONNREFUSED')
+        const res = {}
+        await serveJobs({ method: post ? 'POST' : 'GET', body, q: u.split('?')[1] || '' }, res, ctx)
+        return { ok: res.out.status < 400, status: res.out.status, json: async () => JSON.parse(JSON.stringify(res.out.body)) }
+      }
+      if (u.startsWith('/kybernos/i18n-store')) {
+        const out = handleI18nStore(hostStore, { method: post ? 'POST' : 'GET', id: new URLSearchParams(u.split('?')[1] || '').get('id'), body })
+        return { ok: out.status < 400, status: out.status, json: async () => JSON.parse(JSON.stringify(out.body)) }
+      }
+      if (u.startsWith('/kybernos/i18n-translate')) { const out = translateAll(body); return { ok: true, status: 200, json: async () => out.json } }
+      throw new Error('unexpected request ' + u)
+    }
+  }
+  const fresh = async () => {
+    reset(); setSource()
+    for (const f of ['es', 'de', 'ar']) { try { hostStore.remove(f) } catch (e) { /* none */ } }
+    rmSync(join(hostDir, 'jobs'), { recursive: true, force: true })
+    globalThis.window.__KB_I18N_HOST_JOB__ = true
+    globalThis.window.__KB_I18N_HOST_STORE__ = true
+    notes.length = 0
+    globalThis.window.__KB_NOTIFY__ = { push: (n) => { notes.push(n) } }
+  }
+  const startAndWait = async (runner, lang) => {
+    installJobHost(runner)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    check('(setup) the page starts the run', T.startRun(lang, { provider: 'p', model: 'm' }) === true && T.getRun().state === 'running')
+    for (let i = 0; i < 200 && runner.running().length === 0 && runner.status(lang) === null; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+  }
+
+  await fresh()
+  {
+    const runner = mkRunner(okTranslate)
+    await startAndWait(runner, 'es')
+    const st = runner.status('es')
+    check('the host ran it to the end', st !== null && st.state === 'done' && st.done === st.total && st.total > 0, st)
+    check('the page followed: « done », everything counted', T.getRun().state === 'done' && T.getRun().done === T.getRun().total, T.getRun())
+    const kb = T.i18nRead('es')
+    check('what the host translated is in THIS browser (pulled from the disk copy)', Object.keys(kb).length > 100 && /^AR:/.test(Object.values(kb)[0]), Object.keys(kb).length)
+    check('the page said how it ended, once, with a button to use the language', notes.length === 1 && notes[0].kind === 'success' && notes[0].id === 'lang:es' && notes[0].action.event === 'kb-lang-use' && notes[0].action.detail.lang === 'es', notes)
+    check('…and the host knows it was announced (no other tab announces it again)', runner.status('es').acked === true)
+    check('the in-tab engine did not run: no heartbeat left behind', T.intentRead() === null)
+    const sent = jobCalls.filter((c) => c === 'start')
+    check('the texts were handed over once', sent.length === 1)
+    await T.bootJobs()
+    check('a reload finds nothing more to announce', notes.length === 1)
+  }
+
+  await fresh()
+  {
+    const runner = mkRunner(async () => ({ ok: false, error: 'p/m : MISSING_CREDENTIAL — no key for this provider' }))
+    await startAndWait(runner, 'es')
+    check('a run the host could not do ends « failed » with the cause', T.getRun().state === 'failed' && /MISSING_CREDENTIAL/.test(T.getRun().error), T.getRun())
+    check('…and the bell says so, as an error', notes.length === 1 && notes[0].kind === 'error' && /Spanish|Español/.test(notes[0].title), notes)
+    check('the cause reads as a sentence (a key to set), not a code', T.friendlyError(T.getRun().error) === 'errKey')
+  }
+
+  await fresh()
+  {
+    // the host does not know the route yet (DSH not restarted): the in-tab engine does the work, as before
+    installJobHost(mkRunner(okTranslate), { absent: true })
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    T.startRun('es', null)
+    await settle('running')
+    check('a host without the job route: the page runs it itself, to the end', T.getRun().state === 'done' && T.getRun().done === T.getRun().total && T.getRun().total > 0, T.getRun())
+    check('…and says nothing in the bell (the run was in front of the person)', notes.length === 0)
+  }
+
+  await fresh()
+  {
+    installJobHost(mkRunner(okTranslate), { down: true })
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    T.startRun('es', null)
+    await settle('running')
+    check('a host that does not answer at all falls back the same way', T.getRun().state === 'done', T.getRun())
+  }
+
+  await fresh()
+  {
+    // one run at a time on the host: a second language is told, not queued behind a model bill
+    const hang = mkRunner(() => new Promise(() => {}))
+    installJobHost(hang)
+    hang.start({ op: 'start', lang: 'de', langName: 'German', items: [{ wire: 'kb:k0', text: 'x', area: 'core' }], total: 1 })
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    T.startRun('es', null)
+    await settle('running')
+    check('another language is being translated: « failed » with a reason the person can act on', T.getRun().state === 'failed' && T.friendlyError(T.getRun().error) === 'errBusy' && /BUSY/.test(T.getRun().error), T.getRun())
+    hang.cancel('de')
+  }
+
+  await fresh()
+  {
+    // pause from the page, then the run continues from what the disk holds
+    let gate
+    const held = new Promise((r) => { gate = r })
+    let calls = 0
+    const runner = mkRunner(async (a) => { calls += 1; if (calls <= 3) await held; return okTranslate(a) })
+    installJobHost(runner)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    T.startRun('es', null)
+    for (let i = 0; i < 100 && runner.running().length === 0; i += 1) await new Promise((r) => setTimeout(r, 5))
+    T.pauseRun()
+    check('pause shows « pausing » at once', T.getRun().state === 'pausing')
+    gate()
+    for (let i = 0; i < 100 && jobCalls.indexOf('pause') < 0; i += 1) await new Promise((r) => setTimeout(r, 5))
+    await runner.idle()
+    await T.watchOnce()
+    check('the host stopped, and the page shows « paused » without announcing anything', T.getRun().state === 'paused' && notes.length === 0, T.getRun())
+    check('what had landed is already in the browser', Object.keys(T.i18nRead('es')).length >= 0 && runner.status('es').state === 'paused')
+  }
+
+  await fresh()
+  {
+    // a run that ended while no tab was open is announced at the next load
+    const runner = mkRunner(okTranslate)
+    installJobHost(runner)
+    runner.start({ op: 'start', lang: 'es', langName: 'Spanish', items: Array.from({ length: 6 }, (_, i) => ({ wire: 'kb:k' + i, text: 'Texte ' + i, area: 'core' })), total: 6 })
+    await runner.idle()
+    check('(setup) the host finished while nobody watched, and it is not acknowledged', runner.status('es').state === 'done' && runner.status('es').acked === false)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    await RT().disk.idle()
+    await T.bootJobs()
+    check('at the next load the page announces it once and acknowledges it', notes.length === 1 && notes[0].id === 'lang:es' && runner.status('es').acked === true, notes)
+    await T.bootJobs()
+    check('a second look announces nothing', notes.length === 1)
+  }
+
+  await fresh()
+  {
+    // removing a language stops its run
+    let release
+    const gate = new Promise((r) => { release = r })
+    const runner = mkRunner(async (a) => { await gate; return okTranslate(a) })
+    installJobHost(runner)
+    delete globalThis.window.__KB_LANG_RUNTIME__; startRuntime()
+    T.startRun('es', null)
+    for (let i = 0; i < 100 && runner.running().length === 0; i += 1) await new Promise((r) => setTimeout(r, 5))
+    T.dropLanguage('es')
+    for (let i = 0; i < 100 && jobCalls.indexOf('cancel') < 0; i += 1) await new Promise((r) => setTimeout(r, 5))
+    release()
+    await runner.idle()
+    check('removing the language cancels its run on the host', jobCalls.indexOf('cancel') >= 0 && runner.status('es') === null, jobCalls)
+    T.resetRun()
+  }
+  rmSync(hostDir, { recursive: true, force: true })
+  globalThis.window.__KB_I18N_HOST_JOB__ = false
+  globalThis.window.__KB_I18N_HOST_STORE__ = false
+  delete globalThis.window.__KB_NOTIFY__
+}
+
 console.log('\n── guards on the source ──')
 // ── help and tooltips ─────────────────────────────────────────────────────
 console.log('\n── help and tooltips ──')

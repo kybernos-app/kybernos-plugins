@@ -42,7 +42,7 @@ All under `/kybernos/` (plus `/kybernos-technique/{renderer,vendor/three}.js`). 
 | Tools catalog | `tools/state`, `tools/apply` (dry run, dated backup of the profile patch, restore) |
 | Voice, TTS | `voice/{config,transcribe,save}` `voice-sample*` `tts/{config,voices,speak,cache,cache-trim}` (engines: `say`, `piper`, `supertonic`, `edge`, and `models`, the speaking models of the user's own providers) `models/audio` `models/audio/{probe,speak,listen}` (the audio models of the providers set up in Models, how each is asked, and using it) `image-models` (live calls moved to `@local/kybernos-call`, which speaks through `tts/speak`) |
 | Widget, gateway | `widget.js` `widget/api/{config,conversations,message,account,history-delete,reply}` `gateway/{status,approvals,approvals/decision}` |
-| Language, static | `i18n-{translate,models,store}` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
+| Language, static | `i18n-{translate,models,store,job}` `icons` `icon` `onboarding` `vendor/{xyflow,leaflet}.*` `kb-places.js` |
 
 ## The Automations board
 
@@ -137,7 +137,7 @@ the sidebar button; unfolded is DSH's own header. The state is kept per browser 
 
 Under `$DSH_HOME` (else `~/.dsh`): `kybers/<id>/{kyber.yml,.kyber-ui.json,.kyber-avatars/,memory/,sessions/}`, `kybers/.active/`,
 `kybers/tts/{tts.json,cache/}`, `.kyber-pins.json`, `.kyber-shares.json`, `.kyber-workspaces.json`,
-`kybernos/{tasks.json (0600), tasks.json.lock (a directory, held while a writer changes the file: the scheduler and the automation-creator skill both take it),settings.json,onboarding.json,gateway-sync-state.json,seeded-skills.json,quality/*.jsonl,i18n/<lang>.json}`,
+`kybernos/{i18n/jobs/<lang>.{plan,state}.json (the host-side translation run: what to translate, and where it is; deleted when the language is removed),tasks.json (0600), tasks.json.lock (a directory, held while a writer changes the file: the scheduler and the automation-creator skill both take it),settings.json,onboarding.json,gateway-sync-state.json,seeded-skills.json,quality/*.jsonl,i18n/<lang>.json}`,
 `skills/automation-creator/SKILL.md`,
 `kybernos-widget/{configs.json,conversations/,accounts/,bridge-state.json}` (accounts hold visitor emails), `beta-reports/`,
 `profiles/<profile>/cordis.patch.yml` (+ `.bak-outils-*`, Tools tab only) and `AGENTS.md`. Reads `kybernos-cloud.json` (token, API
@@ -255,7 +255,10 @@ node packages/kybernos-models/test-key-check.mjs       # the key check: where a 
 node packages/kybernos-modeles-locaux/test-seam.mjs    # the recommendation and the route profile the wizard shares with the panel
 source scripts/sandbox/env.sh && node scripts/check-onboarding-live.mjs   # the wizard on the sandbox: account, key saved, model connected, hand-over (refuses :3080)
 node packages/kybernos-plugin/test-i18n-store.mjs      # 60 checks: disk translation store and its route, temp dir
-node packages/kybernos-plugin/test-i18n-translate.mjs  # 47: translate batches against a fake llm.stream
+node packages/kybernos-plugin/test-i18n-translate.mjs  # 51: translate batches against a fake llm.stream, and a stopped run ends the call
+node packages/kybernos-plugin/test-i18n-job.mjs        # 61: the host-side translation run: retries, breaker, pause, kill and restart, one at a time, damaged files, the route
+node packages/kybernos-plugin/test-notify.mjs          # 19: the notification store and toast behind the footer bell
+source scripts/sandbox/env.sh && node scripts/check-language-job-live.mjs   # a host-run translation that fails for want of a key: the language, the toast, the note, once (refuses :3080)
 node packages/kybernos-plugin/test-lang-runtime.mjs    # 89: the <kb-lang-runtime> block with fake locale and storage
 node scripts/test-pins-host.mjs                        # KB-PINS-CORE block of index.js
 node scripts/test-scheduled-tasks-host.mjs             # KB-TASKS-CORE block: cron, validation, store, trigger
