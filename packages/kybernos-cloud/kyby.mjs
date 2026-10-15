@@ -10,6 +10,8 @@ import { encodeQr } from './qr.mjs'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const TURN_ID = /^[A-Za-z0-9_-]{8,64}$/
+/** A kyber's id is the server's own slug (`kg766524afbe0e`), not a UUID. */
+const KYBER_ID = /^[A-Za-z0-9_-]{4,64}$/
 const BOT = /^[A-Za-z0-9_]{3,64}$/
 const START = /^https:\/\/t\.me\/([A-Za-z0-9_]{3,64})\?start=pair_[a-z0-9]{8,64}$/
 /** The page asks for a few more messages than it shows; the server caps a page at 200. */
@@ -26,7 +28,7 @@ const KNOWN = Object.freeze([
   'not_found', 'already_linked', 'not_linked', 'rate_limited', 'busy', 'turn_pending', 'model_required', 'model_not_in_plan', 'model_not_found',
   'feature_not_in_plan', 'insufficient_quota', 'payment_past_due', 'budget_not_configured', 'job_bud', 'hosted_busy', 'queue_full',
   'thread_full', 'storage_full', 'hosted_runs_disabled', 'no_runner', 'kyber_archived', 'thread_archived', 'client_turn_conflict',
-  'mfa_required_by_workspace', 'plan_required', 'computers_off_for_workspace', 'invalid_request',
+  'mfa_required_by_workspace', 'plan_required', 'computers_off_for_workspace', 'invalid_request', 'thread_limit', 'computer_unavailable',
 ])
 
 /** One word for an answer that is not a success. Never the server's text. */
@@ -100,7 +102,7 @@ export function createKybyRoutes (deps) {
     if (fresh !== true && identity.value !== null && identity.token === token && now() - identity.at < IDENTITY_TTL_MS) return { ok: true, value: identity.value }
     const res = await deps.apiCall('/v1/me/kyby', { method: 'GET', token, timeoutMs: 15000 })
     const b = res.status === 200 ? asObj(res.body) : null
-    if (b === null || typeof b.kyber_id !== 'string' || !UUID.test(b.kyber_id) || typeof b.thread_id !== 'string' || !UUID.test(b.thread_id)) {
+    if (b === null || typeof b.kyber_id !== 'string' || !KYBER_ID.test(b.kyber_id) || typeof b.thread_id !== 'string' || !UUID.test(b.thread_id)) {
       return { ok: false, error: res.status === 200 ? 'refused' : codeOf(res) }
     }
     const value = { kyber_id: b.kyber_id, thread_id: b.thread_id, model: typeof b.model === 'string' && b.model !== '' ? b.model.slice(0, 200) : null }

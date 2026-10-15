@@ -4,7 +4,8 @@ import { createKybyRoutes, codeOf, messagesOf, pairingOf, pairingStateOf } from 
 let fail = 0
 const ok = (name, cond, detail) => { console.log((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  ' + JSON.stringify(detail))); if (!cond) fail++ }
 
-const KYBER = '11111111-1111-4111-8111-111111111111'
+// The server's own kyber slug, as GET /v1/me/kyby really answers it (a UUID here hid this once).
+const KYBER = 'kg766524afbe0e'
 const THREAD = '22222222-2222-4222-8222-222222222222'
 const PAIR = '33333333-3333-4333-8333-333333333333'
 const LINK = 'https://t.me/kybernos_bot?start=pair_abcdefghij0123456789wxyz'

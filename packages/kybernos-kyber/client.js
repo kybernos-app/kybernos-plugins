@@ -108,7 +108,7 @@ window.__ModuleLoader__.load({
         ph: ['Écrire à Kyby…', 'Write to Kyby…'], send: ['Envoyer', 'Send'],
         greet: ['Bonjour ! Je suis Kyby. Demandez-moi ce que vous voulez ici, ou sur Telegram : c’est la même conversation.', 'Hello! I’m Kyby. Ask me anything here, or on Telegram: it is the same conversation.'],
         sg1: ['Que sais-tu faire ?', 'What can you do?'], sg2: ['Aide-moi à rédiger un message', 'Help me write a message'], sg3: ['Fais-moi un plan pour ma semaine', 'Make me a plan for my week'],
-        chatNote: ['Cette conversation tourne dans le cloud, avec votre allocation. Pour travailler sur votre propre ordinateur, ouvrez une conversation DSH.', 'This chat runs in the cloud, on your allowance. To work on your own computer, open a DSH chat.'],
+        chatNote: ['Ici Kyby répond avec des mots, dans le cloud, sur votre allocation. Pour qu’il agisse sur son ordinateur, écrivez-lui sur Telegram : c’est là qu’il vous demande l’accord. Pour travailler sur votre propre ordinateur, ouvrez une conversation DSH.', 'Here Kyby answers in words, in the cloud, on your allowance. To have it act on its computer, write to it on Telegram: that is where it asks for your approval. To work on your own computer, open a DSH chat.'],
         thinking: ['Kyby répond…', 'Kyby is answering…'], viaTg: ['Reçu par Telegram', 'Received through Telegram'],
         chatLoading: ['Lecture de la conversation…', 'Reading the conversation…'],
         err_insufficient_quota: ['Votre allocation du moment est utilisée. Elle revient avec la prochaine fenêtre, ou passez à une offre plus large.', 'Your allowance for now is used up. It comes back with the next window, or move to a larger plan.'],
@@ -119,6 +119,7 @@ window.__ModuleLoader__.load({
         err_hosted_runs_disabled: ['Les réponses hébergées sont arrêtées sur ce serveur.', 'Hosted answers are turned off on this server.'],
         err_unreachable: ['Le serveur ne répond pas.', 'The server does not answer.'],
         err_not_connected: ['Connectez-vous à Kybernos pour parler à Kyby.', 'Sign in to Kybernos to talk to Kyby.'],
+        err_thread_limit: ['Vous avez atteint le nombre maximal de conversations de votre offre.', 'You have reached the most conversations your plan allows.'],
         err_refused: ['Le message n’a pas pu être envoyé.', 'The message could not be sent.'],
         // states of the whole
         refresh: ['Actualiser', 'Refresh'],

@@ -4,7 +4,9 @@
 works on, on one page. The menu row **Kyby** opens it; the same panel is also a tab of the chat's right-hand panel.
 
 - **Chat**: talk to Kyby here, on the thread every door shares (what is written on Telegram is in it too). It is a hosted turn in
-  the cloud on the person's allowance, not a local DSH session: for work on the person's own machine a DSH chat is the tool. The
+  the cloud on the person's allowance, in words only: acting on Kyby's computer needs the approvals, which today are asked in
+  Telegram, so the page says to write there for that. It is not a local DSH session: for work on the person's own machine a DSH
+  chat is the tool. The
   transcript is drawn by this page (plain text), because DSH has no way to put a server's messages into a session's transcript.
 - **Channels strip** (collapsible; open until Telegram is connected, folded after, the person's choice wins):
   - **Telegram**: a QR code and an « Open Telegram » link. The person scans or taps, presses Start, taps « Yes, it's me » in Telegram;
