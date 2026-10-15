@@ -77,7 +77,7 @@ const CONNECTIONS_TTL_MS = 120 * 1000
 // How long an old answer may still be served (flagged stale) when Composio fails.
 const STALE_MAX_MS = 30 * 60 * 1000
 // Adjustable: the tests shorten them. mcpMs covers a whole exchange, headers AND body.
-export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000, testHttpMs: 12000, testStdioMs: 20000, retryDelayMs: 150 }
+export const TIMEOUTS = { mcpMs: 12000, proxyMs: 8000, slugsFailMs: 30 * 1000, testHttpMs: 20000, testStdioMs: 20000, retryDelayMs: 150 }
 // Composio's MCP gateway answers 502 for about half of the requests at times (measured 2026-10-06 on the real
 // account: 11 of 20 with one session, 12 of 20 initializes, 7 of 20 with none; any method, any toolkit). A
 // read can simply be asked again; a write is not repeated (an add could create a second pending account).

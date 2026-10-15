@@ -94,7 +94,7 @@ export async function startHost({ before, services = {} } = {}) {
 
 /**
  * A fake streamable-http MCP server on 127.0.0.1 that can misbehave in the ways real ones do.
- * `state.mode`: normal, sse, paged, auth (wants "Bearer good"), oauth, down, html, slow, rpcerr.
+ * `state.mode`: normal, sse, paged, auth (wants "Bearer good"), oauth, down, html, slow, rpcerr, method (405 on a POST).
  * `state.seen` holds every request it received. Resolves { url, state, close }.
  */
 export async function fakeHttpMcp() {
@@ -107,6 +107,7 @@ export async function fakeHttpMcp() {
       if (state.mode === 'down') { res.writeHead(503); return res.end('unavailable') }
       if (state.mode === 'auth' && req.headers.authorization !== 'Bearer good') { res.writeHead(401); return res.end('no') }
       if (state.mode === 'oauth') { res.writeHead(401, { 'www-authenticate': 'Bearer resource_metadata="https://x.example/.well-known/oauth-protected-resource"' }); return res.end('') }
+      if (state.mode === 'method') { res.writeHead(405, { allow: 'GET' }); return res.end('') }
       if (state.mode === 'html') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('<html>captive portal</html>') }
       if (state.mode === 'slow') return // never answers
       if (req.method === 'DELETE') { res.writeHead(200); return res.end('') }

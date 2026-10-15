@@ -147,7 +147,10 @@ an http server gets the same two calls with its headers. A `$NAME` token is repl
 else the `.env`, else this process's environment; a name with no value anywhere is reported, and no secret value is
 ever returned (they are redacted from every text, including what a server writes on stderr). At most 3 tests run at
 once. An OAuth challenge (`401` with a `www-authenticate` carrying `resource_metadata`) is flagged: DSH's client only
-sends fixed headers.
+sends fixed headers. The budget of an http test is 20 s (`PROBE_LIMITS.httpMs`, `TIMEOUTS.testHttpMs`): a real remote server
+(GitMCP) takes about 10 s to answer `initialize` alone. An address ending in `/sse` that refuses the POST (405, 404, 400, or an
+answer that is not a reply) is flagged `hint: 'sse'`: it is the legacy SSE transport, which an entry here does not speak;
+the page says to look for the « streamable HTTP » address, often the same with `/mcp`.
 
 ## Files, settings, environment
 

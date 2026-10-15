@@ -218,6 +218,8 @@ ok('webUrl: a non-string is refused', webUrl(undefined) === null && webUrl(null)
 
   // a failed connector test
   ok('testErr: an OAuth challenge says OAuth, not "401"', /OAuth/.test(testErr({ code: '401', hint: 'oauth' })))
+  ok('testErr: an /sse address says it is the old transport and what to look for, not « error 405 »', /SSE/.test(testErr({ code: '405', hint: 'sse' })) && /\/mcp/.test(testErr({ code: '405', hint: 'sse' })) && !/405/.test(testErr({ code: '405', hint: 'sse' })))
+  ok('testErr: without the hint a 405 is still the generic sentence', /405/.test(testErr({ code: '405' })))
   ok('testErr: 401, 403, 404 and 429 each have their own sentence', new Set(['401', '403', '404', '429'].map((c) => testErr({ code: c }))).size === 4)
   ok('testErr: a command that cannot start says why in words', /introuvable|not found/.test(testErr({ code: 'spawn', message: 'ENOENT' })) && !/ENOENT/.test(testErr({ code: 'spawn', message: 'ENOENT' })))
   ok('testErr: a program that stopped carries its exit code', /exit code 3/.test(testErr({ code: 'exited', message: 'exit code 3' })))

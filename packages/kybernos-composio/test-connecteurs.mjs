@@ -159,6 +159,13 @@ if (yaml !== null) {
     ok('test: a connector of the skill is run as DSH starts it, outside the form\'s folder rule', r.json.result.ok === true && r.json.result.tools.some((t) => t.name === 'ping'), r.text.slice(0, 200))
     ok('...its missing secret is reported (FAKE_TOKEN is in no .env)', r.json.missing.join() === 'FAKE_TOKEN', JSON.stringify(r.json.missing))
   }
+  // the legacy SSE transport: an address ending in /sse is refused on POST; the answer carries the hint the page words
+  fh.state.mode = 'method'
+  r = await post({ nom: 'ancien', transport: 'streamable-http', url: fh.url.replace(/\/mcp$/, '/sse') })
+  ok('test: an /sse address that refuses a POST comes back flagged as the legacy transport', r.code === 200 && r.json.result.ok === false && r.json.result.code === '405' && r.json.result.hint === 'sse', r.text.slice(0, 200))
+  r = await post({ nom: 'ancien', transport: 'streamable-http', url: fh.url })
+  ok('test: the same refusal on a normal address has no hint', r.json.result.code === '405' && r.json.result.hint === undefined, r.text.slice(0, 200))
+  fh.state.mode = 'normal'
   r = await post({ nom: 'inconnu' })
   ok('test: an unknown saved connector is a 404', r.code === 404)
   r = await post(Object.assign({}, draft, { transport: 'stdio', command: '/tmp/not-allowed/bin', url: undefined }))
