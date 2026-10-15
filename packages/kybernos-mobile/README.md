@@ -67,7 +67,7 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 
 - **The sidebar's phone button** opens a panel with the QR code (it used to show a preview). With no paid plan the panel
   says « Included in paid plans » and offers the plans.
-- **Settings › Mobile** lists the paired phones, shows when each was seen, and revokes one (or all).
+- **Settings › Remote Control** lists the paired phones, shows when each was seen, and revokes one (or all).
 - On the phone: scan, open the link, a 4-digit code appears; on the computer the same code and an **Allow** button.
   Nothing is served to the phone before that. From then on the phone reconnects by itself.
 - Everything the person does is a gesture on the computer: a phone can never add, approve or remove a phone.

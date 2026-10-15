@@ -38,7 +38,7 @@ const FICHE = {
   'kybernos-models': ['models', 'Catalogue de modèles : recherche, comparaison, prix.', 'Model catalogue: search, compare, prices.'],
   'kybernos-modeles-locaux': ['models', 'Modèles locaux détectés et installés depuis les Réglages.', 'Local models detected and installed from Settings.'],
   'kybernos-auto': ['models', 'Routage Auto : choisit un modèle de votre liste selon la classe de la demande.', 'Auto routing: picks a model from your list by request class.'],
-  'kybernos-free-llms': ['models', 'Modèles gratuits OpenCode Zen, sans compte ni clé API.', 'Free OpenCode Zen models, no account or API key.'],
+  'kybernos-free-llms': ['models', 'Modèles gratuits, sans compte ni clé API.', 'Free models, no account or API key.'],
   'kybernos-flow': ['teams', 'Reprise des tours coupés et file d’attente réordonnable.', 'Resume cut turns and a reorderable queue.'],
   'kybernos-call': ['base', 'Parlez à votre assistant ou à un membre de l’équipe, depuis n’importe quelle session : il répond comme dans le chat, dans votre langue, avec sa voix.', 'Talk to your assistant or a team member from any session: it answers as in the chat, in your language, in its own voice.'],
   'kybernos-usage': ['base', 'Ce que votre plan a consommé, et ce que vos propres clés coûtent : une pastille sous la saisie et une page de détail.', 'What your plan has used, and what your own keys cost: a chip under the message box and a detail page.'],
@@ -74,7 +74,7 @@ const TITRES = {
   'kybernos-sessions': 'Sessions', 'kybernos-maintenance': 'About & Maintenance', 'kybernos-skills': 'Skills', 'kybernos-slash': 'Slash commands',
   'kybernos-relance': 'Relaunch', 'kybernos-models': 'Models', 'kybernos-modeles-locaux': 'Local models', 'kybernos-auto': 'Auto routing',
   'kybernos-flow': 'Flow', 'kybernos-free-llms': 'Free LLMs', 'kybernos-slides': 'Slides', 'kybernos-bricks': 'Bricks', 'kybernos-modeleur': '3D modeller',
-  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Mobile', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
+  'kybernos-motion': 'Motion', 'kybernos-miniapps': 'Mini-apps', 'kybernos-refs': 'Reference chips', 'kybernos-mobile': 'Remote Control', 'kybernos-websearch': 'Web search', 'dsh-mermaid': 'Mermaid', 'dsh-db-viewer': 'Databases',
   'dsh-media-player': 'Media player', 'kybernos-composio': 'Connectors', 'kybernos-computers': 'Cloud computers', 'kybernos-workers': 'Workers', 'dsh-subagent-maison': 'Agent connectors',
   'kybernos-cloud': 'Kybernos Cloud', 'kybernos-memory': 'Memory & Lessons', 'kybernos-atlas': 'Atlas', 'kybernos-changes': 'Changes', 'kybernos-usage': 'Usage', 'kybernos-multi-device': 'Workspaces & devices', 'kybernos-call': 'Calls', 'kybernos-terminal': 'Terminal', 'kybernos-dashboards': 'Dashboards', 'kybernos-summary': 'Summary', 'kybernos-kyber': 'Kyber'
 }

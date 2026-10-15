@@ -323,7 +323,7 @@ try {
     { name: 'Settings › Tools', pattern: '*kybernos/tools/state*', nav: 'Tools', row: '.kbt2-card' },
     { name: 'Settings › Voice', pattern: '*kybernos/tts*', nav: 'Voice', row: '.kbt-row' },
     { name: 'Settings › Web Search', pattern: '*kybernos-websearch/state*', nav: 'Web Search', row: '.kwse-row' },
-    { name: 'Settings › Free LLMs', pattern: '*free-llms/status*', nav: 'Free LLMs (OpenCode)', row: '.kfl-mod' },
+    { name: 'Settings › Free LLMs', pattern: '*free-llms/status*', nav: 'Free LLMs', row: '.kfl-mod' },
     { name: 'Settings › Memory & Lessons', pattern: '*kybernos-cloud/memory*', nav: 'Memory & Lessons', row: '.kbmem-r', skipCompare: true },
   ]
   for (const L of others) {

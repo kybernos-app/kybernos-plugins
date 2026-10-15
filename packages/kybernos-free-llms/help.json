@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Réglages › Free LLMs (OpenCode)",
-    "en": "Settings › Free LLMs (OpenCode)",
+    "fr": "Réglages › Free LLMs",
+    "en": "Settings › Free LLMs",
     "page": true
   },
   "good": {

@@ -753,7 +753,7 @@ node scripts/check-display-live.mjs --out <dir> [--sizes desktop,narrow] [--sche
 
 A sweep, not a gate (exit 0; `--strict` makes any finding exit 1; 3 when it could not run; it **refuses `:3080`**). It walks the
 home page and its menus, the sidebar pages and their tabs, every Settings section and its tabs and help card, the account card
-(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Mobile) and the first-run wizard, with
+(menu, switcher, update reminder, the phone panel in each of its five states, Settings › Remote Control) and the first-run wizard, with
 real clicks, on a 1400 px window and at 390 px (the width `kybernos-mobile` lays out for), in DSH's dark theme, its light theme
 and the shipped *Neutral violet*. The account, the phone link and the wizard are answered **inside the page** (CDP Fetch on
 `/kybernos-cloud/status`, `/kybernos-mobile/remote/*`, `/kybernos/onboarding`): no server is called, nothing is written.
