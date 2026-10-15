@@ -1202,14 +1202,35 @@ const relayRoute = async (req) => {
 // browser: it asks the server for a single-use link (valid 60 seconds) and hands THAT to the browser. The link is a bearer capability, so it is only
 // returned when it points at the server this account is connected to (a hostile or broken answer cannot send the browser elsewhere), and the route is strict
 // (a page of another origin cannot ask DSH for it).
+/** Where a console link may land (`/account#<section>`): a short slug of the server's own page names, never a path or an address. */
+const LINK_SECTION_RE = /^[a-z][a-z0-9-]{0,31}$/
+
+/** « open: true »: this host runs on the person's machine, so it opens the SYSTEM browser with the address. Only for a caller on this machine; the address is handed back
+ *  (opened: false) when no browser could be opened, and is NOT when one was. `extra` is merged into the answer (what the call is about). */
+const openOrHandBack = async (req, body, url, deps, extra) => {
+  if (body !== null && typeof body === 'object' && body.open === true) {
+    const peer = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? String(req.socket.remoteAddress || '') : ''
+    let opened = false
+    if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].indexOf(peer) >= 0) {
+      try { opened = (await (deps.openExternal || openExternal)(url)) === true } catch (e) { opened = false }
+    }
+    return opened ? Object.assign({ ok: true, opened: true }, extra) : Object.assign({ ok: true, opened: false, url }, extra)
+  }
+  return Object.assign({ ok: true, url }, extra)
+}
+
 const consoleLink = async (req, body, deps = {}) => {
   const state = readState()
   if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
   const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id.trim().toLowerCase() : ''
+  const section = body !== null && typeof body === 'object' && typeof body.section === 'string' && LINK_SECTION_RE.test(body.section.trim()) ? body.section.trim() : ''
   const known = Array.isArray(state.workspaces) ? state.workspaces : []
   const mine = (id) => known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === id)
   if (asked !== '' && (new RegExp('^' + UUID_SRC + '$', 'i').test(asked) !== true || mine(asked) !== true)) return { ok: false, error: 'espace_inconnu' }
-  const res = await apiCall('/v1/console/link', { method: 'POST', token: state.token, body: asked === '' ? {} : { workspace_id: asked } })
+  const ask = (withSection) => apiCall('/v1/console/link', { method: 'POST', token: state.token, body: Object.assign(asked === '' ? {} : { workspace_id: asked }, withSection ? { section } : {}) })
+  let res = await ask(section !== '')
+  // A server that does not know `section` yet either ignores it (the link lands on its plan page) or refuses the body: ask again without it.
+  if (section !== '' && (res.status === 400 || res.status === 422)) res = await ask(false)
   if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return { ok: false, status: res.status, error: res.status === 0 ? 'injoignable' : 'refuse' }
   let url = null
   try {
@@ -1218,18 +1239,140 @@ const consoleLink = async (req, body, deps = {}) => {
   } catch (e) { url = null }
   if (url === null) return { ok: false, status: res.status, error: 'lien_invalide' }
   const expires = typeof res.body.expires_in === 'number' ? res.body.expires_in : 60
-  // « open: true »: this host runs on the person's machine, so it opens the SYSTEM browser with the link. The server refuses a single-use link that arrives as a navigation a
-  // page started (a tab opened by this DSH page, pointed at the link, is « cross-site » for it: the person lands on « link expired »), and accepts one the person's own OS opened
-  // (ADR 0005 § 5 of the server). Only for a caller on this machine; the address is handed back (opened: false) when no browser could be opened, and is NOT when one was.
-  if (body !== null && typeof body === 'object' && body.open === true) {
-    const peer = req !== null && req !== undefined && req.socket !== null && req.socket !== undefined ? String(req.socket.remoteAddress || '') : ''
-    let opened = false
-    if (['127.0.0.1', '::1', '::ffff:127.0.0.1'].indexOf(peer) >= 0) {
-      try { opened = (await (deps.openExternal || openExternal)(url)) === true } catch (e) { opened = false }
-    }
-    return opened ? { ok: true, opened: true, expires_in: expires } : { ok: true, opened: false, url, expires_in: expires }
+  // The server refuses a single-use link that arrives as a navigation a page started (a tab opened by this DSH page, pointed at the link, is « cross-site » for it:
+  // the person lands on « link expired »), and accepts one the person's own OS opened (ADR 0005 § 5 of the server).
+  return openOrHandBack(req, body, url, deps, { expires_in: expires })
+}
+
+// ── Plans and payment, for the upgrade popup (the pricing table and « Subscribe ») ──────────────────────────────────────────────────────────
+// The catalogue and the quotes are PUBLIC on the server; buying is the workspace's owner or admin (the server decides: a 403 comes back as such). The popup is a page of
+// DSH, so the device token stays here: it asks these routes, which add it. Every answer is reduced to what the popup shows — a status and the server's error CODE, never
+// its sentence — and the payment page is opened in the system browser, like the console link.
+const PLAN_KEY_RE = /^[a-z0-9][a-z0-9-]{0,62}$/
+const PLAN_COMPONENT_RE = /^[A-Za-z0-9:_-]{1,64}$/
+const CURRENCY_RE = /^[A-Za-z]{3}$/
+const ERROR_CODE_RE = /^[a-z][a-z0-9_]{0,48}$/
+
+/** A failed call, as the popup needs it. `status` 0 = the server did not answer. */
+const billingFailure = (res) => {
+  const code = res.body !== null && res.body !== undefined && typeof res.body === 'object' && typeof res.body.error === 'string' && ERROR_CODE_RE.test(res.body.error) ? res.body.error : null
+  return { ok: false, status: res.status, error: code !== null ? code : (res.status === 0 ? 'injoignable' : 'refuse') }
+}
+const queryOf = (req) => { try { return new URL(String(req.url), 'http://localhost').searchParams } catch (e) { return new URLSearchParams() } }
+const asPriceText = (v) => (typeof v === 'string' && v.length <= 24 ? v : null)
+
+/** GET /kybernos-cloud/plans?currency=: the plans on sale (levels, seat bands, top-up packs), from the active server. Public: no token is sent. */
+const plansRoute = async (req) => {
+  const currency = (queryOf(req).get('currency') || '').trim()
+  if (currency !== '' && CURRENCY_RE.test(currency) !== true) return { ok: false, status: 400, error: 'unknown_currency' }
+  const res = await apiCall('/v1/plans' + (currency === '' ? '' : '?currency=' + encodeURIComponent(currency.toUpperCase())))
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object' || Array.isArray(res.body.plans) !== true) return billingFailure(res)
+  return {
+    ok: true,
+    plans: res.body.plans,
+    credits_per_usd: typeof res.body.credits_per_usd === 'number' ? res.body.credits_per_usd : null,
+    tax_basis: ['inclusive', 'exclusive', 'not_stated'].indexOf(res.body.tax_basis) >= 0 ? res.body.tax_basis : 'not_stated',
   }
-  return { ok: true, url, expires_in: expires }
+}
+
+/** GET /kybernos-cloud/plans/quote?plan=&currency=&component=&quantity=&interval=: what a purchase costs. Public: no token is sent. */
+const planQuote = async (req) => {
+  const q = queryOf(req)
+  const plan = (q.get('plan') || '').trim()
+  const currency = (q.get('currency') || '').trim()
+  const component = (q.get('component') || '').trim()
+  const interval = (q.get('interval') || '').trim()
+  const quantityRaw = (q.get('quantity') || '1').trim()
+  const quantity = /^\d{1,6}$/.test(quantityRaw) ? Number(quantityRaw) : NaN
+  if (PLAN_KEY_RE.test(plan) !== true || CURRENCY_RE.test(currency) !== true || (component !== '' && PLAN_COMPONENT_RE.test(component) !== true)
+    || (interval !== '' && interval !== 'year' && interval !== 'month') || !(quantity >= 1 && quantity <= 100000)) return { ok: false, status: 400, error: 'bad_request' }
+  const query = ['currency=' + encodeURIComponent(currency.toUpperCase()), 'quantity=' + quantity]
+  if (component !== '') query.push('component=' + encodeURIComponent(component))
+  if (interval !== '') query.push('interval=' + interval)
+  const res = await apiCall('/v1/plans/' + plan + '/quote?' + query.join('&'))
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object' || asPriceText(res.body.total) === null) return billingFailure(res)
+  const b = res.body
+  return {
+    ok: true,
+    quote: {
+      currency: typeof b.currency === 'string' ? b.currency : currency.toUpperCase(),
+      interval: b.interval === 'year' || b.interval === 'month' || b.interval === 'once' ? b.interval : null,
+      total: asPriceText(b.total),
+      monthly_total: asPriceText(b.monthly_total),
+      tax_basis: ['inclusive', 'exclusive', 'not_stated'].indexOf(b.tax_basis) >= 0 ? b.tax_basis : 'not_stated',
+      lines: (Array.isArray(b.lines) ? b.lines : []).slice(0, 12).filter((l) => l !== null && typeof l === 'object').map((l) => ({
+        label: typeof l.label === 'string' ? l.label.slice(0, 80) : '', quantity: Number.isFinite(l.quantity) ? l.quantity : 1,
+        unit: asPriceText(l.unit), subtotal: asPriceText(l.subtotal),
+      })),
+    },
+  }
+}
+
+/** The workspace a billing call is for: the one asked, else the active one; it must be one of the account's. */
+const billingWorkspace = (state, body) => {
+  const asked = body !== null && typeof body === 'object' && typeof body.workspace_id === 'string' ? body.workspace_id.trim().toLowerCase() : ''
+  const known = Array.isArray(state.workspaces) ? state.workspaces : []
+  // No workspace asked: the active one, which is the first when none was chosen (the same rule as everywhere else: espaceActif).
+  const active = espaceActif(state)
+  const id = asked !== '' ? asked : (typeof active === 'string' ? active.trim().toLowerCase() : '')
+  const mine = known.some((w) => w !== null && typeof w === 'object' && String(w.id).toLowerCase() === id)
+  return id !== '' && new RegExp('^' + UUID_SRC + '$', 'i').test(id) && mine ? id : null
+}
+
+/** Where the payment page and the portal send the person back to: the server's own web app, on this workspace's plan page (its own address is a trusted one). */
+const billingBackUrl = (workspaceId, flag) => resolveWeb().replace(/\/+$/, '') + '/account?' + flag + '#plan&ws=' + workspaceId
+
+/** Both payment calls hand over a page of the payment provider: http(s) only, and in the system browser when asked (never a page of this DSH). */
+const billingPage = async (req, body, res, deps) => {
+  let url = null
+  try {
+    const u = new URL(String(res.body.url))
+    if (u.protocol === 'https:' || u.protocol === 'http:') url = u.toString()
+  } catch (e) { url = null }
+  if (url === null) return { ok: false, status: res.status, error: 'lien_invalide' }
+  return openOrHandBack(req, body, url, deps, {})
+}
+
+/** POST /kybernos-cloud/billing/checkout: { workspace_id?, plan, component?, quantity?, currency, interval?, open? } → the payment page of that purchase. */
+const billingCheckout = async (req, body, deps = {}) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  const workspaceId = billingWorkspace(state, b)
+  if (workspaceId === null) return { ok: false, error: 'espace_inconnu' }
+  const plan = typeof b.plan === 'string' ? b.plan.trim() : ''
+  const component = typeof b.component === 'string' ? b.component.trim() : ''
+  const currency = typeof b.currency === 'string' ? b.currency.trim() : ''
+  const interval = typeof b.interval === 'string' ? b.interval.trim() : ''
+  const quantity = b.quantity === undefined ? 1 : b.quantity
+  if (PLAN_KEY_RE.test(plan) !== true || CURRENCY_RE.test(currency) !== true || (component !== '' && PLAN_COMPONENT_RE.test(component) !== true)
+    || (interval !== '' && interval !== 'year' && interval !== 'month') || Number.isInteger(quantity) !== true || quantity < 1 || quantity > 100000) return { ok: false, status: 400, error: 'bad_request' }
+  const payload = { plan, quantity, currency: currency.toUpperCase() }
+  if (component !== '') payload.component = component
+  if (interval !== '') payload.interval = interval
+  const ask = (withBack) => apiCall('/v1/workspaces/' + workspaceId + '/billing/checkout', {
+    method: 'POST', token: state.token,
+    body: withBack ? Object.assign({}, payload, { success_url: billingBackUrl(workspaceId, 'paid=1'), cancel_url: billingBackUrl(workspaceId, 'paid=0') }) : payload,
+  })
+  let res = await ask(true)
+  // A server whose web app is not on its list of trusted redirects refuses the return addresses: its own default (its home page) is fine.
+  if (res.status === 422 && res.body !== null && typeof res.body === 'object' && res.body.error === 'invalid_redirect') res = await ask(false)
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return billingFailure(res)
+  return billingPage(req, b, res, deps)
+}
+
+/** POST /kybernos-cloud/billing/portal: { workspace_id?, open? } → the payment provider's customer portal (card, invoices, cancellation). */
+const billingPortal = async (req, body, deps = {}) => {
+  const state = readState()
+  if (isConnected(state) !== true) return { ok: false, connected: false, status: 'none', error: 'non connecte' }
+  const b = body !== null && typeof body === 'object' ? body : {}
+  const workspaceId = billingWorkspace(state, b)
+  if (workspaceId === null) return { ok: false, error: 'espace_inconnu' }
+  const ask = (withBack) => apiCall('/v1/workspaces/' + workspaceId + '/billing/portal', { method: 'POST', token: state.token, body: withBack ? { return_url: billingBackUrl(workspaceId, 'back=1') } : {} })
+  let res = await ask(true)
+  if (res.status === 422 && res.body !== null && typeof res.body === 'object' && res.body.error === 'invalid_redirect') res = await ask(false)
+  if (res.status !== 200 || res.body === null || typeof res.body !== 'object') return billingFailure(res)
+  return billingPage(req, b, res, deps)
 }
 
 /** Opens an http(s) address in the system browser, from the process that runs on the person's machine. True when it was handed over, false when it could not be (no desktop,
@@ -4261,6 +4404,11 @@ const ROUTES = [
   { path: '/kybernos-cloud/relay', method: 'GET', guarded: true, strict: true, run: relayRoute },
   // La console Team dans le navigateur : un lien à usage unique (60 s) demandé au serveur avec le jeton d'appareil, jamais le jeton lui-même.
   { path: '/kybernos-cloud/console/link', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: consoleLink },
+  // The upgrade popup: the plans and their quotes (public data of the server, no token sent), and the two payment calls (owner or admin of the workspace: the server decides).
+  { path: '/kybernos-cloud/plans', method: 'GET', guarded: true, strict: true, run: plansRoute },
+  { path: '/kybernos-cloud/plans/quote', method: 'GET', guarded: true, strict: true, run: planQuote },
+  { path: '/kybernos-cloud/billing/checkout', method: 'POST', guarded: true, strict: true, body: true, cap: 2048, run: billingCheckout },
+  { path: '/kybernos-cloud/billing/portal', method: 'POST', guarded: true, strict: true, body: true, cap: 1024, run: billingPortal },
   // The facts behind a refused model call (the quota notice): the active space's plan, its payment, and the windows of the person that are used up.
   { path: '/kybernos-cloud/quota', method: 'GET', guarded: true, run: quotaFacts },
   // Distinct paths: the router indexes by path, so a GET and a POST on one path would mask each other. The write is strict (a request that
@@ -4413,7 +4561,7 @@ export {
   // Relais de la console Team (exportés pour la suite dédiée).
   relayCheck, sameOriginStrict, RELAY_RULES,
   // Mémoire — exportés pour la suite host (faux serveur, aucune vraie API).
-  consoleLink, openExternal,
+  consoleLink, openExternal, plansRoute, planQuote, billingCheckout, billingPortal,
   asMemory, validateMemory, createMemory, patchMemory, deleteMemory, searchMemories,
   sanitizeMemory, sortMemories, renderMemoryChunk, renderMemoryPrompt, MEMORY_MARKER, MEMORY_OFF_MARKER, RELEVANCE_TUNING, noteUserTurn, userPromptText, pickRelevant, sessionQuery, sessionPick,
   embedTexts, putEmbedding, meaningStatus, indexMemories, findByMeaning, meaningCache, EMBED_DIM, EMBED_MODEL,

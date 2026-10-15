@@ -677,15 +677,25 @@ second request for an app that is already waiting, removing, the quota, the sign
 source scripts/sandbox/env.sh && node scripts/check-footer-live.mjs --shots /tmp/shots
 ```
 
-Sandbox only (exit 3 against `:3080`). It plays the footer on a real page: the signed-out row (« Sign in » and the gear), the gear
-opening **our** menu (Sign in, Appearance, Settings, Help, Feedback) with a real mouse click, Escape / outside click / the gear
-closing it, its Settings entry reaching DSH's dialog, the device-code card from the row and from the menu, the light/dark
-segment, then the connected card (answered in the page) with its menu, Settings and Account entries. In every scene it records any
-popover of **DSH's own account launcher** (« Settings ⌥⌘, / Feedback / Sign in ») that becomes visible, and fails if one does.
-Three scenes cover the guard: a script clicking the launcher the old way (what the language, sessions and call plugins still do),
-a real click on the launcher forced visible (a shell whose class names moved), and React's fiber fields made unreadable (the
-fallback route, which keeps the popover invisible while it picks its first entry). Run against the unmodified clients of
-2026-10-15 it fails 18 checks: that is the bug it was written for.
+Sandbox only (exit 3 against `:3080`). The footer is **one button**: « Sign in / Sign up » signed out, the profile row connected, both in
+the same place and at the same size with the same chevron, and each opens our menu. The check plays it on a real page with real mouse
+clicks:
+
+- **Signed out:** the one button, its menu (Sign in = the device-code card, Create an account, Appearance, Settings, Website, Help, Send
+  feedback), Escape / outside click / toggle, the three links (`window.open` is recorded, never followed), the Settings entry reaching DSH's
+  dialog, the pairing state, the sun/moon segment.
+- **Connected** (the status route is answered in the page): the profile row, the menu's skeleton, Account and Referral asking the host for a
+  console link on `section: overview` (and what is said when it is refused), Team settings opening the **active server's** console, then
+  the same with a stored `kybernos.ws.console.url` (ignored) and with `kybernos.dev = 1` (it wins again).
+- **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
+  `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
+  and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is
+  offered and works), 422 and 502 and an unreachable server (a retry) — a catalogue that cannot be read, a team workspace's seats priced
+  by the server's quote, top-up packs.
+- **The guard** (below): a script's click on DSH's launcher, a real click on it forced visible, React's fiber fields unreadable.
+
+In every scene it records any popover of **DSH's own account launcher** (« Settings ⌥⌘, / Feedback / Sign in ») that becomes visible,
+and fails if one does.
 
 Why: DSH's settings seat (`sidebar.settings`) renders the **account launcher** (`settings.launcher`, registered by
 `dsh-client-ui-settings-account`) and its trigger opens an account popover, not the Settings dialog. Anything that clicked
@@ -696,6 +706,16 @@ dialog is opened by that seam, never by clicking a trigger: new code should call
 
 A fresh instance opens DSH's « Get started » dialog (sign in to a DeepSeek account / add a key) on every load; it swallows every
 click, so the check closes it with its own close button after each reload.
+
+**Developer overrides.** `kybernos.ws.console.url`, `kybernos.ws.gateway`, `kybernos.cloud.url` (and their `window` globals) no longer
+win over the ACTIVE server: they apply only behind `localStorage['kybernos.dev'] === '1'` (or `window.KYBERNOS_DEV === true`). A value
+left by an old test used to send « Teams settings » to another server.
+
+**A real run against the local replica** (the Kybernos server on `http://localhost:8791`; write `{"active":"kybernos-local",…}` in the
+sandbox's `kybernos/servers.json`): press « Sign in », approve the code with `POST /v1/device/approve` (the demo account's session),
+then Account, Upgrade and Subscribe return the replica's real answers (the stand-in payment page at `/pay/cs_N`). Strip `open` from the
+payment and console-link POSTs (CDP `Fetch.continueRequest`) so that the host does not open a browser on your machine; do not press the
+stand-in's « Pay »: it changes the shared demo account's plan. « Disconnect » when done (it revokes the device on the server).
 
 ## The Automations board: `scripts/check-automations-board-live.mjs`
 

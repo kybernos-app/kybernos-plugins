@@ -57,6 +57,23 @@ console.log('what a failure leaves alone')
   }
 }
 
+console.log('the developer overrides only win behind the explicit flag')
+{
+  const a = source.indexOf('const kbDevOverrides = () =>')
+  const b = source.indexOf("// The console of the ACTIVE server, read at each use", a)
+  check('the override helpers are where the test expects them', a > 0 && b > a)
+  const make = (storage, win) => new Function('window', source.slice(a, b) + '\nreturn { kbDevOverrides, kbWsCfg }')(Object.assign({ localStorage: { getItem: (k) => (k in storage ? storage[k] : null) } }, win))
+  const DEF = 'https://active.example/workspace-console'
+  const stored = { 'kybernos.ws.console.url': 'http://localhost:8081/old-test-console' }
+  check('a console URL left in localStorage does NOT win over the active server', make(stored, {}).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
+  check('nor does a window global', make({}, { KYBERNOS_WS_CONSOLE_URL: 'http://localhost:8081/x' }).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
+  check('with kybernos.dev = 1 the stored override wins again', make(Object.assign({ 'kybernos.dev': '1' }, stored), {}).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === 'http://localhost:8081/old-test-console')
+  check('with window.KYBERNOS_DEV = true the window override wins', make({}, { KYBERNOS_DEV: true, KYBERNOS_WS_CONSOLE_URL: 'http://localhost:8081/x' }).kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === 'http://localhost:8081/x')
+  check('a flag that is not exactly 1 / true is not a flag', make({ 'kybernos.dev': 'true' }, { KYBERNOS_DEV: 'yes' }).kbDevOverrides() === false)
+  const blocked = new Function('window', source.slice(a, b) + '\nreturn { kbWsCfg }')({ get localStorage() { throw new Error('blocked') } })
+  check('a blocked storage is the active server, not an error', blocked.kbWsCfg('kybernos.ws.console.url', 'KYBERNOS_WS_CONSOLE_URL', DEF) === DEF)
+}
+
 console.log('the shipped code')
 check('the loader asks the cloud plugin, same-origin', snippet.indexOf("'/kybernos-cloud/server'") > 0 && snippet.indexOf("credentials: 'same-origin'") > 0)
 check('the console URL carries `ws` only when a workspace is known', source.indexOf("(kbServer.workspace !== '' ? '&ws=' + encodeURIComponent(kbServer.workspace) : '')") > 0)

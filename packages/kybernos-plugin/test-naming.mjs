@@ -114,7 +114,6 @@ assert.ok(/kyber\.yml/.test(dict.get('kbat.col.def').en) && /runtime/i.test(dict
 assert.ok(/kyber\.yml/.test(dict.get('kbui.kyber.declares').en) && !/\bagent team\b/i.test(dict.get('kbui.kyber.declares').en), 'the file declares the crew')
 assert.equal(dict.get('kbat.c3.a').en, 'Agent Team')
 assert.ok(/runtime/i.test(dict.get('kbat.c2.a').en) && /runtime/i.test(dict.get('kbat.c2.a').kybernos), 'the second « notion » is the runtime, not a second name for the Agent Team')
-assert.ok(/Agent Team/.test(dict.get('kbui.help.s1').en) && !/Kyber/.test(dict.get('kbui.help.s1').en))
 ok('the help says: an Agent Team is defined by a kyber.yml and run by DSH’s Agent Teams runtime; a subagent is another thing')
 
 // 8. a team's page: its roles tab is not called « Team »

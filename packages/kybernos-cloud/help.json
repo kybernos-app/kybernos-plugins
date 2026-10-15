@@ -5,8 +5,8 @@
   },
   "steps": [
     {
-      "fr": "Cliquez « Se connecter » en bas de la barre latérale, puis « Ouvrir la page d'activation » et confirmez le code dans le navigateur.",
-      "en": "Click “Sign in” at the bottom of the sidebar, then “Open activation page” and confirm the code in your browser."
+      "fr": "Cliquez « Se connecter / Créer un compte » en bas de la barre latérale, puis « Se connecter » : confirmez le code dans le navigateur.",
+      "en": "Click “Sign in / Sign up” at the bottom of the sidebar, then “Sign in”, and confirm the code in your browser."
     },
     {
       "fr": "Une fois connecté, vos modèles Kybernos s'ajoutent d'eux-mêmes dans Réglages › Models, selon votre formule.",
@@ -22,8 +22,8 @@
     }
   ],
   "where": {
-    "fr": "Barre latérale (en bas) : « Se connecter », puis votre espace ; aussi Réglages › Compte",
-    "en": "Sidebar (bottom): “Sign in”, then your workspace; also Settings › Account",
+    "fr": "Barre latérale (en bas) : « Se connecter / Créer un compte », puis votre espace ; aussi Réglages › Compte",
+    "en": "Sidebar (bottom): “Sign in / Sign up”, then your workspace; also Settings › Account",
     "page": true
   },
   "good": {
