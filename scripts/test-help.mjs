@@ -90,6 +90,7 @@ console.log('the « ? How it works » buttons')
   check('the host keeps the shipped help when the online catalogue lacks it', /aides\.get\(m\.id\)/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
   check('a page card that is not there draws nothing (never the bundle’s help on the wrong page)', /const card = page === undefined \? null/.test(hub) && /if \(card === undefined\) return null/.test(hub))
   check('the host keeps the shipped page cards when the online catalogue lacks them', /livree\.pages !== undefined && m\.aide\.pages === undefined/.test(readFileSync(join(REPO, 'packages', 'kybernos-hub', 'suite-host.mjs'), 'utf8')))
+  check('one « ? How it works » button on the Voice page: the hub pins no second one over it (it did, with a MutationObserver, and the two overlapped)', !/installerAideVoix|AIDE_VOIX|kbhp-voice/.test(hub))
   check('the Voice page asks for its own card', /Help, \{ id: 'kybernos-plugin', page: 'voice' \}/.test(readFileSync(join(REPO, 'packages', 'kybernos-plugin', 'client.js'), 'utf8')))
   const css = hub.match(/\.kbhp-[a-z]+/g) || []
   const clash = []

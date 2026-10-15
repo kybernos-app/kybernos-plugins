@@ -122,8 +122,8 @@
               "page": true
             },
             "good": {
-              "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur. edge-tts et « Vos modèles » envoient le texte lu à un service en ligne.",
-              "en": "“Local” engines send nothing off your computer. edge-tts and “Your models” send the text to an online service."
+              "fr": "Les moteurs « Local » ne font rien sortir de votre ordinateur ; edge-tts et « Vos modèles » envoient le texte à un service en ligne. Le micro est demandé à la première dictée.",
+              "en": "“Local” engines send nothing off your computer; edge-tts and “Your models” send the text to an online service. The microphone is asked for the first time you dictate."
             }
           }
         }
