@@ -903,6 +903,7 @@ window.__ModuleLoader__.load({
 .kb7-chip.on{background:var(--dsw-alias-brand-primary);border-color:var(--dsw-alias-brand-primary);color:var(--dsw-alias-label-primary-foreground,#fff)}
 .kb7-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;max-width:1180px}
 .kb7-list{display:flex;flex-direction:column;gap:8px;max-width:1180px}
+.kb7-discact{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-inline-start:auto}
 .kb7-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 14px;border:1px solid rgba(128,128,128,.25);border-radius:12px;background:transparent;cursor:pointer;color:inherit;font:inherit;text-align:left}
 .kb7-row:hover{border-color:rgba(128,128,128,.45)}
 .kb7-rowid{flex:0 0 190px;min-width:0}
@@ -2487,6 +2488,19 @@ window.__ModuleLoader__.load({
       const effMode = kc !== null && kc.offered === true && mode === 'kybernos' ? 'kybernos' : 'personal'
       const kcMode = effMode === 'kybernos'
 
+      // The add menu is the page's primary action: a value, so the header can put it where the template wants it.
+      const addWrap = h('div', { className: 'kbcp-addwrap' },
+              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
+              menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
+                h('hr', null),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } },
+                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint'))),
+                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } },
+                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null)
+      // No items on the tab: no bar (the template), and the action alone keeps its place.
+      const barShown = vtab === 'mcp' ? cx.length + apis.length > 0 : (vtab === 'discover' ? apps.length > 0 : (kcMode ? kc.connections.length > 0 : yoursPool.length > 0))
       return h('div', { className: 'kb7-root' },
         // ── Header: Agent Teams gabarit (kb6-headrow / kb6-headcol / kb6-titlerow).
         // Same structure as the Kybers page: title + "?" help glued to it, subtitle
@@ -2501,17 +2515,21 @@ window.__ModuleLoader__.load({
             h('p', { className: 'kb8-sub', title: kbt('kb.cp.sub') }, kbt('kb.cp.sub'))),
           // Same visual language as "Create with AI" on the other pages (class kb8-primary of the
           // kybernos bundle). It always adds an MCP server: with a form, or by pasting the JSON of a documentation.
-          h('div', { className: 'kb6-headacts' },
-            h('div', { className: 'kbcp-addwrap' },
-              h('button', { type: 'button', className: 'kb8-primary', 'data-kb': 'connector-create', 'aria-haspopup': 'menu', 'aria-expanded': menuOpen ? 'true' : 'false', style: { flex: 'none', height: 38, padding: '0 14px', fontSize: 13, borderRadius: 10 }, disabled: hostOld, onClick: () => setMenuOpen(!menuOpen) }, Icon('plus', 16), kbt('kb.cp.add') + ' ▾'),
-              menuOpen ? h('div', { className: 'kbcp-menu', role: 'menu' },
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-form', onClick: () => { setMenuOpen(false); setCxForm({ initial: null }) } }, kbt('kb.cp.add.form'), h('small', null, kbt('kb.cp.add.formhint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-json', onClick: () => { setMenuOpen(false); setImportOpen(true) } }, kbt('kb.cp.add.json'), h('small', null, kbt('kb.cp.add.jsonhint'))),
-                h('hr', null),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-api', onClick: () => { setMenuOpen(false); setApiOpen(true) } },
-                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.api'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.apihint'))),
-                h('button', { type: 'button', role: 'menuitem', 'data-kb': 'add-ai', onClick: () => { setMenuOpen(false); setAiOpen(true) } },
-                  h('span', { style: { display: 'flex', width: '100%', alignItems: 'center', gap: 8 } }, kbt('kb.cp.add.ai'), h('span', { className: 'kbcp-new' }, kbt('kb.cp.add.new'))), h('small', null, kbt('kb.cp.add.aihint')))) : null))),
+          // The bar sits in the header row with the primary action as its trailing item (the template of Agent Teams, Creations, Automations and
+          // Workspaces); with nothing to list there is no bar and the action alone takes its place.
+          (kbTb !== null && barShown === true ? h(kbTb.KbToolbar, {
+            state: Object.assign({}, tbState, { dir: cpDir }),
+            onUpdate: onCpUpdate,
+            searchPlaceholder: kbt('kb.cp.search'),
+            sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }],
+            facets: { type: { options: vtab === 'mcp' ? mcpFacet : (vtab === 'discover' ? facetOptions : (kcMode ? [] : yoursFacet)) } },
+            total: vtab === 'mcp' ? cx.length + apis.length : (vtab === 'discover' ? apps.length : (kcMode ? kc.connections.length : yoursPool.length)),
+            shown: vtab === 'mcp' ? cxShown.length + apisShown.length : (vtab === 'discover' ? list.length : (kcMode ? kc.connections.length : yoursList.length)),
+            hideView: vtab === 'yours' && kcMode === true,
+            views: ['cards', 'list'],
+            showFav: false,
+            trailing: addWrap,
+          }) : h('div', { className: 'kb6-headacts' }, addWrap))),
         // Control row ("Resources" mockup 29/09): pill sub-tabs on the LEFT,
         // search/filters/sort block on the RIGHT: same design
         // and same position as the other pages, the content varies by tab.
@@ -2523,24 +2541,10 @@ window.__ModuleLoader__.load({
               kbt('kb.cp.tab.discover'), apps.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(apps.length)) : null),
             h('button', { type: 'button', role: 'tab', 'aria-selected': vtab === 'mcp' ? 'true' : 'false', className: 'kb7-subtab' + (vtab === 'mcp' ? ' on' : ''), 'data-kb': 'subtab-mcp', onClick: () => setVtab('mcp') },
               kbt('kb.cp.tab.mcp'), cx.length + apis.length > 0 ? h('span', { className: 'kb7-cxcount' }, String(cx.length + apis.length)) : null)),
-          // Unified bar on the RIGHT of the row (mockup): visible on
-          // "Discover" only; Refresh / Load all as trailing items.
-          (kbTb !== null ? h(kbTb.KbToolbar, {
-            state: Object.assign({}, tbState, { dir: cpDir }),
-            onUpdate: onCpUpdate,
-            searchPlaceholder: kbt('kb.cp.search'),
-            sortOptions: [{ id: 'name', label: kbt('kbui.sort.az') }],
-            facets: { type: { options: vtab === 'mcp' ? mcpFacet : (vtab === 'discover' ? facetOptions : (kcMode ? [] : yoursFacet)) } },
-            total: vtab === 'mcp' ? cx.length + apis.length : (vtab === 'discover' ? apps.length : (kcMode ? kc.connections.length : yoursPool.length)),
-            shown: vtab === 'mcp' ? cxShown.length + apisShown.length : (vtab === 'discover' ? list.length : (kcMode ? kc.connections.length : yoursList.length)),
-            hideView: vtab === 'yours' && kcMode === true,
-            views: ['cards', 'list'],
-            showFav: false,
-            trailing: vtab === 'discover' ? [
-              h('button', { type: 'button', key: 'refresh', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
-              apps.length <= CATALOG.length ? h('button', { type: 'button', key: 'more', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null,
-            ] : [],
-          }) : null)),
+          // Refresh and « load the full catalog » belong to Discover: on the tabs' row, so the bar stays the same on every tab.
+          vtab === 'discover' && kbTb !== null ? h('div', { className: 'kb7-discact' },
+            h('button', { type: 'button', className: 'kbcp-btn', disabled: busy || loadingAll, onClick: () => refresh(apps, true), title: kbt('kb.cp.refresh') }, Icon('refresh', 13)),
+            apps.length <= CATALOG.length ? h('button', { type: 'button', className: 'kbcp-btn kb7-more', disabled: loadingAll, onClick: loadAll }, loadingAll ? kbt('kb.cp.loading') : kbt('kb.cp.loadall')) : null) : null),
         // (01/10) The status banners go UNDER the control row: their
         // appearance no longer moves the title or the row (tab parity).
         // (29/09) small "Local Connectors" help: collapsed at rest, the (i) button
