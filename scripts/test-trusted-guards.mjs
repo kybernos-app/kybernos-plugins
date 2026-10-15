@@ -66,7 +66,9 @@ const GUARDS = [
   ['kybernos-flow', 'queue-move.mjs', 'sameOriginStrict'],
   ['kybernos-flow', 'queue-move.mjs', 'sameOriginLax'],
   ['kybernos-workers', 'workers-host.mjs', 'sameOriginStrict'],
-  ['kybernos-workers', 'workers-host.mjs', 'sameOriginLax']
+  ['kybernos-workers', 'workers-host.mjs', 'sameOriginLax'],
+  ['kybernos-search', 'guard.mjs', 'sameOriginStrict'],
+  ['kybernos-search', 'guard.mjs', 'sameOriginLax']
 ]
 const declared = { value: [] }
 const ctx = { get: (name) => (name === 'webRuntime' ? { trustedHosts: declared.value } : undefined) }
