@@ -157,6 +157,8 @@ const reload = async () => {
   await sleep(300)
 }
 const settingsOpen = async () => (await waitFor(page, `document.querySelectorAll('[class*="navCell"]').length > 3`, 6000)) !== null
+// The cells of DSH's Settings navigation: the title drawn and the React key each cell is rendered with (the id of its section, the same in every language).
+const navCells = async () => (await val(`Array.from(document.querySelectorAll('[class*="navCell"]')).map((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); const key = n === undefined ? null : e[n].key; return { t: (e.textContent || '').trim(), key: typeof key === 'string' ? key : null } })`)) || []
 const clean = async () => { await key('Escape', 'Escape'); await sleep(200); await reload() }
 const entries = async (menuSel) => (await val(`Array.from(document.querySelectorAll(${JSON.stringify(menuSel)} + ' [data-kb^="menu-"]')).map((e) => e.getAttribute('data-kb').replace('menu-', '')).filter((k) => k.indexOf('block-') !== 0)`)) || []
 const openProfileMenu = async () => { await press('[data-kb="workspace-card"] .kbfp-cardmain'); await sleep(450) }
@@ -444,6 +446,31 @@ try {
     check('Appearance is still the sun/moon segment', (await val(`document.querySelectorAll('.kbfp-menu [data-kb="menu-appearance"] .kbfp-seg button').length`)) === 2)
     await press('[data-kb="menu-settings"]')
     check('Settings opens DSH\'s Settings, with no native popover', (await settingsOpen()) && (await nativeSeen()).length === 0, await nativeSeen())
+
+    // The five account entries of ours (Account, Referral, Account security, Account data, Support & legal) are not in DSH's Settings any more: the
+    // account's pages are the footer menu's embedded ones. Matched by the React key a cell is rendered with (not by its title: DSH has an Account
+    // section of its own), and by title for the four that have no namesake in DSH.
+    console.log('DSH\'s Settings does not list the five account entries of ours')
+    const cells = await navCells()
+    const REMOVED = ['kybernos-account', 'kbac-referral', 'kbac-security', 'kybernos-data', 'kbac-support']
+    check('the navigation is drawn (more than three cells)', cells.length > 3, cells)
+    check('no cell is rendered with the key of a removed section', !cells.some((c) => REMOVED.includes(c.key)), cells.filter((c) => REMOVED.includes(c.key)))
+    check('none is titled Referral, Account security, Account data or Support & legal', !cells.some((c) => /^(referral|account security|account data|support (&|and|&amp;) legal)$/i.test(c.t)), cells.map((c) => c.t))
+    check('DSH\'s own entries and the other bundles\' are still listed (General, Appearance, Remote Control)',
+      cells.some((c) => c.key === 'general') && cells.some((c) => c.key === 'kbac-appearance') && cells.some((c) => c.key === 'kybernos-mobile'), cells.map((c) => c.key))
+    await shot('11-settings-without-account-entries')
+    // Each of the remaining ones still opens: pick General and Remote Control by key and read the page that comes up.
+    const openCell = async (cellKey) => {
+      await val(`(() => { const c = Array.from(document.querySelectorAll('[class*="navCell"]')).find((e) => { const n = Object.keys(e).find((k) => k.indexOf('__reactFiber$') === 0); return n !== undefined && e[n].key === ${JSON.stringify(cellKey)} }); if (c) c.click() })()`)
+      await sleep(700)
+      return (await val(`(document.querySelector('[data-slot="settings.section"]') || document.querySelector('[class*="settingsContent"]') || { innerText: '' }).innerText`)) || ''
+    }
+    const general = await openCell('general')
+    check('General still opens', general.length > 20, general.slice(0, 120))
+    const remote = await openCell('kybernos-mobile')
+    check('Remote Control still opens, with its own page', /remote control|phone/i.test(remote) && remote.length > 20, remote.slice(0, 160))
+    const appearance = await openCell('kbac-appearance')
+    check('Appearance still opens (the shortcut to Theme)', /theme|appearance/i.test(appearance), appearance.slice(0, 160))
     await clean()
 
     // ── 8. The Upgrade dialog ─────────────────────────────────────────────────────────────────────────────────

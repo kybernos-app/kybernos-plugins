@@ -19,8 +19,9 @@ Socle = `kybernos-plugin`, `kybernos-hub`, `kybernos-theme`, `kybernos-sessions`
 - In the chat: a **Journal** tab (`conversation.view`, runs derived from session events), team-call cards,
   composer extras (token usage, starters, widget chip, voice dictation, artifact selector), read-aloud
   buttons, share / chat-id actions. Also pinned conversations, the Kybernos brand mark and sidebar footer tools.
-- Settings sections **Tools**, **Voice**, Referral, Appearance (shortcut to Theme), Security, Support & legal; a first-run
-  **onboarding** wizard (see « First-run onboarding » below).
+- Settings sections **Tools**, **Voice** and Appearance (shortcut to Theme); a first-run **onboarding** wizard (see
+  « First-run onboarding » below). The account's own pages (Account, Referral, Security, Data, Support & legal) are not in
+  Settings: they are reached from the sidebar footer menu (kybernos-cloud).
 - **The Settings menu is regrouped** (`GROUPES` in `client.js`, by the section id each cell carries, so it holds in every language):
   *Account*, then *Kybernos*, which opens with the Suite and goes on with our plugins' pages by what they bring and how much the
   rest leans on them (AI Provider & Models, Auto Routing, Memory & Lessons, Workers, Tools, Calls, Commands, Atlas, Ollama Local

@@ -12,7 +12,7 @@ Un bouton dans la barre du bas de la sidebar — dans le slot
 |---|---|
 | Déconnecté | « Connecter Kybernos Cloud » |
 | Appairage | le code d'appareil, « Ouvrir la page d'activation », « Copier le code », « Annuler la demande » |
-| Connecté | profil + workspaces + résumé du catalogue (N modèles · formule), « Réimporter », « Rafraîchir », « Se déconnecter » |
+| Connecté | e-mail, formule, espaces, « Se déconnecter » (le catalogue, les chats et la mémoire n'ont plus de bouton dans cette carte) |
 
 ## Catalogue de modèles importé (fonctionnalité cloud n°1)
 
@@ -39,7 +39,7 @@ GET <api>/v1/models        (Authorization: Bearer <device token>)   ← <api> = 
   `context_length` du catalogue sont repris quand LiteLLM les fournit.
 - **Déclencheurs** : au claim (connexion), au démarrage de DSH si déjà
   connecté, au refresh si rien n'a encore été importé, et à la demande
-  (POST `/kybernos-cloud/models/sync` — bouton « Réimporter »). Un import à
+  (POST `/kybernos-cloud/models/sync`, plus aucun bouton ne l'appelle). Un import à
   l'identique ne réécrit rien (pas de churn settings à chaque ouverture de
   carte).
 - **L'abonnement est appliqué par le proxy**, requête par requête (gating
@@ -66,7 +66,12 @@ Le résumé (`count`, `plan`, `imported_at`, `settings`, `credential`) voyage
 aussi dans `state` des réponses `/status`, `/poll` et `/refresh`. Les ids
 complets restent dans la route de détail.
 
-## Custom instructions (Account page)
+## Custom instructions (no page calls them any more)
+
+> The Account page of DSH's Settings, which held the field, was removed (the account's pages are embedded pages of the
+> server's console now). No DSH page calls `/kybernos-cloud/instructions[/save]` at the moment; the routes, `instructions.mjs`
+> and its tests are kept so the field can come back on an embedded page. Product decision pending: bring the field back or
+> drop the host half.
 
 The "Custom instructions" field of the Account page used to live in the browser only, so no agent read it.
 It is now a marked section of `<DSH home>/AGENTS.md`, which DSH's own `dsh-agent-instructions` loader hands
@@ -392,8 +397,8 @@ la déconnexion. Le test client rejoue le contrat
 - **Le bouton n'apparaît pas** → le bundle n'est pas chargé : vérifiez les deux
   entrées dans `package.json` du profil, `pnpm install`, et le redémarrage.
 - **« Aucun modèle importé »** → le catalogue n'a pas pu être lu
-  (`catalogue_indisponible`, `catalogue_illisible`, `reseau`) : bouton
-  « Réimporter » ; si la carte affiche l'avertissement d'import partiel, le
+  (`catalogue_indisponible`, `catalogue_illisible`, `reseau`) : se
+  déconnecter puis se reconnecter relance l'import ; si l'import est partiel, le
   service `settings` a refusé l'écriture (`settings_refuse`) — regardez le
   journal DSH.
 - **Un modèle répond 403** → l'abonnement n'inclut pas sa formule : le gating

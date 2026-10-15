@@ -120,7 +120,7 @@ running, time advancing, steps lighting up in turn at 1 s / 6 s / 9 s), and that
 It also checks the **two surfaces and their synchronisation**: DSH's own
 General › Language row (kept — it is the only door when the plugin is off) with the
 « Manage languages and translations here » pointer under it, the choice made in either
-place showing in the other, and Settings › Account no longer carrying a Language field.
+place showing in the other.
 
 ### The Language plugin switched off
 
@@ -721,6 +721,10 @@ clicks:
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
   read. The footer has no phone button of its own any more: `check-mobile-remote-live.mjs`, `check-mobile-remote-pages.mjs` and
   `check-display-live.mjs` open the panel through this entry.
+- **DSH's Settings** (connected scene): the navigation lists none of the five account entries that used to be ours (Account, Referral,
+  Account security, Account data, Support & legal; matched by the React key each cell is rendered with, and by title for the four that have
+  no namesake in DSH) while General, Appearance and Remote Control are still listed and still open. The account's pages are the footer
+  menu's embedded ones: nothing replaces the entries in Settings.
 - **The Upgrade dialog** (the catalogue, quote, checkout and portal are answered in the page; the host routes behind them are proven by
   `packages/kybernos-cloud/test-billing-proxy.mjs`): loading, the levels of a personal workspace, yearly/monthly and currency, Subscribe
   and what the dialog says after it, then every refusal — 501 (no payment provider), 403 (not an owner or admin), 409 (the billing portal is
@@ -741,7 +745,7 @@ dialog is opened by that seam, never by clicking a trigger: new code should call
 A fresh instance opens DSH's « Get started » dialog (sign in to a DeepSeek account / add a key) on every load; it swallows every
 click, so the check closes it with its own close button after each reload.
 
-**Developer overrides.** `kybernos.ws.console.url`, `kybernos.ws.gateway`, `kybernos.cloud.url` (and their `window` globals) no longer
+**Developer overrides.** `kybernos.ws.console.url`, `kybernos.ws.gateway` (and their `window` globals) no longer
 win over the ACTIVE server: they apply only behind `localStorage['kybernos.dev'] === '1'` (or `window.KYBERNOS_DEV === true`). A value
 left by an old test used to send « Teams settings » to another server.
 

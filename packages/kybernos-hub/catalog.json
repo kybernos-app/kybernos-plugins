@@ -814,8 +814,8 @@
           }
         ],
         "where": {
-          "fr": "Barre latérale (en bas) : « Se connecter / Créer un compte », puis votre espace ; aussi Réglages › Compte",
-          "en": "Sidebar (bottom): “Sign in / Sign up”, then your workspace; also Settings › Account",
+          "fr": "Barre latérale (en bas) : « Se connecter / Créer un compte », puis votre espace",
+          "en": "Sidebar (bottom): “Sign in / Sign up”, then your workspace",
           "page": true
         },
         "good": {
