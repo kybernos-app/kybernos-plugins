@@ -4365,14 +4365,14 @@ const computerAction = async (verb) => {
   return { ok: true, state: String(c.state || ''), desired: String(c.desired || '') }
 }
 
-// Kyby (ADR 0053): the Telegram pairing by QR code or link, where a message runs, and the person's own conversation with their Kyby.
+// Kaby (ADR 0053): the Telegram pairing by QR code or link, where a message runs, and the person's own conversation with their Kaby.
 // The pure half, and what each answer means, is kyby.mjs; the calls are made here with the account's token.
 const kyby = createKybyRoutes({ readState, isConnected, apiCall, deviceLabel })
-// Kyby's own chat is a native DSH conversation (kyby-native.mjs): which session it is, who Kyby is there, and the end of its turns written
+// Kaby's own chat is a native DSH conversation (kyby-native.mjs): which session it is, who Kaby is there, and the end of its turns written
 // on the person's thread. The hooks are mounted below (mountKybyNative); the page asks for the session through the two routes under /kyby/native.
 const kybyPointerFile = () => join(dshHome(), 'kybernos-kyby.json')
 const kybyNative = createKybyNative({ pointerFile: kybyPointerFile, readState, isConnected, apiCall })
-// Kyby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
+// Kaby's own folder: its chat lives in a workspace of its own, so that DSH's « New chat » never reuses it (a chat with no message yet is a
 // blank, and a blank is taken back by the next new chat of its workspace) and it has a home on this machine.
 const kybyFolder = () => join(dshHome(), 'kybernos', 'kyby')
 const kybySessionRoute = (req) => {
@@ -4608,7 +4608,7 @@ export function apply(ctx) {
   // tour. Chaque montage est indépendant et tolère l'absence de son service.
   try { mountTurnGate(ctx) } catch (e) { console.error('[kybernos-cloud] garde des tours: ' + String((e && e.message) || e)) }
   try { mountMemoryPrompt(ctx) } catch (e) { console.error('[kybernos-cloud] prompt mémoire: ' + String((e && e.message) || e)) }
-  try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] Kyby natif: ' + String((e && e.message) || e)) }
+  try { mountKybyNative(ctx) } catch (e) { console.error('[kybernos-cloud] Kaby natif: ' + String((e && e.message) || e)) }
   try { mountMemoryTools(ctx) } catch (e) { console.error('[kybernos-cloud] outils mémoire: ' + String((e && e.message) || e)) }
   try { connections.mount(ctx) } catch (e) { console.error('[kybernos-cloud] connexions: ' + String((e && e.message) || e)) }
   try { mountMemoryCapture(ctx) } catch (e) { console.error('[kybernos-cloud] capture mémoire: ' + String((e && e.message) || e)) }

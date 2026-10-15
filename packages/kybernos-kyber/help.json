@@ -1,29 +1,29 @@
 {
   "what": {
-    "fr": "Kyby, votre assistant : une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
-    "en": "Kyby, your assistant: a real DSH chat, Telegram to connect in one move, and the computer it works on."
+    "fr": "Kaby, votre assistant : une vraie conversation DSH, Telegram à connecter d'un geste, et l'ordinateur sur lequel il travaille.",
+    "en": "Kaby, your assistant: a real DSH chat, Telegram to connect in one move, and the computer it works on."
   },
   "steps": [
     {
-      "fr": "Ouvrez « Kyby » dans le menu : c'est une conversation DSH ordinaire, avec le bandeau « Canaux » au-dessus de la zone de saisie.",
-      "en": "Open “Kyby” in the menu: it is an ordinary DSH chat, with the “Channels” strip above the composer."
+      "fr": "Ouvrez « Kaby » dans le menu : c'est une conversation DSH ordinaire, avec le bandeau « Canaux » au-dessus de la zone de saisie.",
+      "en": "Open “Kaby” in the menu: it is an ordinary DSH chat, with the “Channels” strip above the composer."
     },
     {
       "fr": "Pour connecter Telegram, scannez le code avec votre téléphone (ou touchez « Ouvrir Telegram »), touchez Démarrer, puis « Oui, c'est moi ».",
       "en": "To connect Telegram, scan the code with your phone (or tap “Open Telegram”), tap Start, then “Yes, it's me”."
     },
     {
-      "fr": "Dans « Où Kyby travaille », choisissez l'ordinateur que Kyby utilise pour vos messages Telegram.",
-      "en": "In “Where Kyby works”, pick the computer Kyby uses for your Telegram messages."
+      "fr": "Dans « Où Kaby travaille », choisissez l'ordinateur que Kaby utilise pour vos messages Telegram.",
+      "en": "In “Where Kaby works”, pick the computer Kaby uses for your Telegram messages."
     }
   ],
   "where": {
-    "fr": "Menu › Kyby",
-    "en": "Menu › Kyby",
+    "fr": "Menu › Kaby",
+    "en": "Menu › Kaby",
     "page": true
   },
   "good": {
-    "fr": "Kyby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
-    "en": "Kyby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
+    "fr": "Kaby garde la même mémoire ici et sur Telegram. Rien n'est connecté sans votre accord dans Telegram, et avant d'agir sur son ordinateur il vous demande : Autoriser, Refuser ou Autoriser pour cette tâche.",
+    "en": "Kaby keeps the same memory here and on Telegram. Nothing is connected without your approval in Telegram, and before acting on its computer it asks you: Allow, Refuse, or Allow for this task."
   }
 }

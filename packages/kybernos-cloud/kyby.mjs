@@ -1,7 +1,7 @@
-// Kyby, the DSH side of the person's own assistant (kybernos-server ADR 0053): the Telegram pairing by QR code or link, the setting
+// Kaby, the DSH side of the person's own assistant (kybernos-server ADR 0053): the Telegram pairing by QR code or link, the setting
 // that says where a message runs, and the disconnect. This file holds what is pure: the shapes a page may rely on, what a refusal is
 // called, the QR. index.js makes the network calls with the account's token and hands this factory what it needs, so every route is
-// tested without a server. (Kyby's own chat is a native DSH conversation: kyby-native.mjs.)
+// tested without a server. (Kaby's own chat is a native DSH conversation: kyby-native.mjs.)
 //
 // Two rules run through it. The page only ever gets WORDS for a refusal (a server's own text may echo what was sent), and nothing
 // returns the token, the pairing's secret part on its own, or the server's raw answer.

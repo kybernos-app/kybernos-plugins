@@ -1,7 +1,7 @@
 {
   "name": "@local/kybernos-kyber",
   "version": "0.1.0",
-  "description": "Kyby, your assistant: a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on.",
+  "description": "Kaby, your assistant: a real DSH chat with your account's memory, Telegram connected by QR code or link, and the cloud computer it works on.",
   "private": true,
   "type": "module",
   "exports": { ".": "./index.js", "./client": "./client.js" },

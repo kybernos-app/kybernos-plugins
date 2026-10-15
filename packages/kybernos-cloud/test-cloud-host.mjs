@@ -542,7 +542,7 @@ const ctx = {
   },
   inject: (_list, cb) => cb(ctx),
   effect: (fn) => { const d = fn(); void d },
-  // Several listeners may take the same event (the memory capture and Kyby's mirror both take the end of a turn): the fake keeps them all.
+  // Several listeners may take the same event (the memory capture and Kaby's mirror both take the end of a turn): the fake keeps them all.
   on: (event, handler) => {
     const before = agentHooks.get(event)
     agentHooks.set(event, before === undefined ? handler : (...a) => { before(...a); return handler(...a) })
@@ -642,7 +642,7 @@ try {
     '/kybernos-cloud/turn', '/kybernos-cloud/turn/answer', '/kybernos-cloud/turn/continue',
     // The Kyber tab's data (ADR 0053 § 14), and the Home computer's three actions (wake, put to sleep, open).
     '/kybernos-cloud/kyber',
-    // Kyby: the Telegram pairing by QR or link, where a message runs, and the person's conversation (test-kyby.mjs holds their rules).
+    // Kaby: the Telegram pairing by QR or link, where a message runs, and the person's conversation (test-kyby.mjs holds their rules).
     '/kybernos-cloud/telegram/pairing', '/kybernos-cloud/telegram/pairing/state', '/kybernos-cloud/telegram/pairing/cancel', '/kybernos-cloud/telegram/settings', '/kybernos-cloud/telegram/unlink',
     '/kybernos-cloud/kyby/native', '/kybernos-cloud/kyby/native/set',
     '/kybernos-cloud/computer/resume', '/kybernos-cloud/computer/suspend', '/kybernos-cloud/computer/open',
@@ -3224,7 +3224,7 @@ try {
   assert.equal(existsSync(statePath), false)
   ok('API injoignable : echec explicite (reseau), aucun etat ecrit')
 
-  // 13. Kyby as a native DSH conversation (kyby-native.mjs): which session is Kyby's, who Kyby is there, and nothing of it anywhere else.
+  // 13. Kaby as a native DSH conversation (kyby-native.mjs): which session is Kaby's, who Kaby is there, and nothing of it anywhere else.
   {
     const ky_home = join(stateDir, 'kyby-home')
     mkdirSync(ky_home, { recursive: true })
@@ -3239,21 +3239,21 @@ try {
       return res
     }
     try {
-      assert.ok(promptContexts.has('kybernos:kyby'), 'the identity block of Kyby is registered next to the memory block')
+      assert.ok(promptContexts.has('kybernos:kyby'), 'the identity block of Kaby is registered next to the memory block')
       assert.ok(agentHooks.has('agent/turn-stopping') && agentHooks.has('agent/inbox/claimed'), 'the end of a turn and a claimed message are followed')
       const get0 = await hit('/kybernos-cloud/kyby/native', 'GET')
       assert.equal(get0.body.ok, true)
-      assert.equal(get0.body.sessionId, null, 'no Kyby session before the first time')
-      assert.equal(get0.body.cwd, join(ky_home, 'kybernos', 'kyby'), 'Kyby has a folder of its own, under the DSH home')
+      assert.equal(get0.body.sessionId, null, 'no Kaby session before the first time')
+      assert.equal(get0.body.cwd, join(ky_home, 'kybernos', 'kyby'), 'Kaby has a folder of its own, under the DSH home')
       assert.equal(existsSync(get0.body.cwd), true, 'and it exists')
       const kyText = (sid) => promptContexts.get('kybernos:kyby').text({ agent: { session: { id: sid } } })
-      assert.equal(kyText('session-aaaaaaaa-0000'), '', 'no identity for a chat that is not Kyby\'s')
+      assert.equal(kyText('session-aaaaaaaa-0000'), '', 'no identity for a chat that is not Kaby\'s')
       const set1 = await ky_post('/kybernos-cloud/kyby/native/set', 'http://127.0.0.1:3080', { sessionId: 'session-aaaaaaaa-0000' })
       assert.equal(set1.body.ok, true)
       assert.equal(statSync(join(ky_home, 'kybernos-kyby.json')).mode & 0o777, 0o600, 'the pointer is private')
       assert.equal((await hit('/kybernos-cloud/kyby/native', 'GET')).body.sessionId, 'session-aaaaaaaa-0000')
       await new Promise((r) => setTimeout(r, 1100))
-      assert.ok(kyText('session-aaaaaaaa-0000').startsWith('[KYBY]'), 'Kyby\'s own session gets the identity block')
+      assert.ok(kyText('session-aaaaaaaa-0000').startsWith('[KYBY]'), 'Kaby\'s own session gets the identity block')
       assert.equal(kyText('session-bbbbbbbb-1111'), '', 'and no other')
       assert.equal(kyText('session-aaaaaaaa-0000').includes('kys-'), false, 'never a token')
       assert.equal((await ky_post('/kybernos-cloud/kyby/native/set', 'http://127.0.0.1:3080', { sessionId: '../../etc/passwd' })).body.ok, false, 'an odd id is refused')
@@ -3263,7 +3263,7 @@ try {
     } finally {
       if (ky_saved === undefined) delete process.env.DSH_HOME; else process.env.DSH_HOME = ky_saved
     }
-    ok('Kyby natif : le pointeur de session, l\'identité pour cette session seule, rien ailleurs')
+    ok('Kaby natif : le pointeur de session, l\'identité pour cette session seule, rien ailleurs')
   }
 
   console.log('\n' + pass + ' verifications OK')

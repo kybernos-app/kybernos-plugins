@@ -33,7 +33,7 @@ const T = plugin.__test
   const pane = regs.find((r) => r.meta.name === 'sidebar.right.pane.tab')
   ok('the tab body is registered under the tab type id', pane !== undefined && pane.meta.key === T.TYPE_ID)
   ok('one tab type, with a guide entry', types.length === 1 && types[0].id === T.TYPE_ID && types[0].kind === T.KIND && types[0].guide.length === 1)
-  ok('the tab title is Kyby', types[0].title() === 'Kyby')
+  ok('the tab title is Kaby', types[0].title() === 'Kaby')
   ok('the pane never throws before anything was read', (() => { try { return pane.comp() !== undefined } catch (e) { return false } })())
   ok('apply tolerates a missing registry', (() => {
     try { plugin.apply({ effect: (fn) => fn(), get () { throw new Error('absent') }, slots: { inject: (n, fn) => fn(), register () {} } }); return true } catch (e) { return false }
@@ -84,7 +84,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 }
 
 
-// ── Kyby: the plan, the setting, the pairing, the strip, the chat words ──────────────────────────
+// ── Kaby: the plan, the setting, the pairing, the strip, the chat words ──────────────────────────
 {
   const k = (home, tg) => T.derive({ ok: true, connected: true, telegram: Object.assign({ configured: true, enabled: true, bot: 'kybernos_bot', linked: null }, tg || {}), home }, server)
   ok('a server that does not know manual_control keeps the buttons', k({ state: 'suspended' }).home.manualControl === true)
@@ -107,7 +107,7 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 {
   ok('the strip is open until Telegram is connected, folded after, and the person\'s choice wins', T.stripIsOpen(null, false) === true && T.stripIsOpen(null, true) === false && T.stripIsOpen(true, true) === true && T.stripIsOpen(false, false) === false)
   ok('WhatsApp and WeChat have a mark', typeof T.BRAND.whatsapp === 'function' && typeof T.BRAND.wechat === 'function' && typeof T.BRAND.telegram === 'function')
-  ok('the assistant has one name, in both languages, and no « Kyber »', T.NAME === 'Kyby' && T.S.title[0] === 'Kyby' && T.S.title[1] === 'Kyby' && !Object.values(T.S).some((p) => /\bKyber\b/.test(p[0] + ' ' + p[1])))
+  ok('the assistant has one name, said through a token, in both languages, and no « Kyber » or « Kyby » is spelt out', T.NAME === 'Kaby' && T.L('title') === 'Kaby' && T.kt('{NAME}', '{NAME}') === '{NAME}' && !Object.values(T.S).some((p) => /\b(Kyber|Kyby|Kaby)\b/.test(p[0] + ' ' + p[1])) && /\{NAME\}/.test(JSON.stringify(T.S)))
   ok('every other channel says « soon » and is never offered', T.L('soon') === 'Bientôt' && /BRAND\.\w+\(22\)/.test(src) && !/whatsapp[^\n]*onClick/i.test(src))
 }
 
@@ -115,10 +115,10 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 }
 
 {
-  // Kyby's chat is a native DSH conversation: the page owns no transcript and no composer, only the way in and the strip above it.
+  // Kaby's chat is a native DSH conversation: the page owns no transcript and no composer, only the way in and the strip above it.
   ok('the page holds no chat of its own: no draft box, no send, no transcript', !/kybernos-kyber-draft|kybernos-kyber-send|kbky-msgs|kybernos-kyber\/kyby\/send|\/kybernos-cloud\/kyby['"]/.test(src.replace(/kyby\/native/g, '')))
   ok('the way in is the host\'s pointer and DSH\'s own sessions service', /\/kybernos-cloud\/kyby\/native/.test(src) && /uiSvc\.openSession\(sid\)/.test(src) && /wsSvc\.create\(\{ path: state\.kybyCwd \}\)/.test(src) && /sessionsSvc\.create\(workspaceId !== null \? \{ workspaceId \}/.test(src))
-  ok('the strip is registered above the composer, for Kyby\'s session only', /SLOT_DOCK = 'conversation\.input\.dock'/.test(src) && /state\.kybySid !== sid\) return null/.test(src))
+  ok('the strip is registered above the composer, for Kaby\'s session only', /SLOT_DOCK = 'conversation\.input\.dock'/.test(src) && /state\.kybySid !== sid\) return null/.test(src))
   ok('the diagnostics hook can open the chat', /openChat \(\) \{ return openChat\(\) \}/.test(src))
   ok('the words for the way in exist in both languages', T.S.openChat !== undefined && T.S.openChatHint !== undefined && T.S.openChatFail !== undefined)
 }
@@ -143,12 +143,12 @@ const server = { ok: true, server: { api: 'https://server-dev-7831.up.railway.ap
 
 {
   // Calm: what there is to DO, not everything there is.
-  ok('Kyby\'s chat is made in a workspace of its own, already chosen, and a chat made without one is made again', /ws\.items\.some\(\(i\) => i !== null && Array\.isArray\(i\.sessionIds\) && i\.sessionIds\.includes\(sid\)\)/.test(src))
+  ok('Kaby\'s chat is made in a workspace of its own, already chosen, and a chat made without one is made again', /ws\.items\.some\(\(i\) => i !== null && Array\.isArray\(i\.sessionIds\) && i\.sessionIds\.includes\(sid\)\)/.test(src))
   ok('the strip shows the Telegram card, and the settings only behind a disclosure once connected', /props\.lite === true/.test(src) && /h\('details', \{ className: 'kbky-more'/.test(src) && /Channels, \{ visible: true, lite: true \}/.test(src))
   const srv = T.derive({ ok: true, connected: true, telegram: { configured: false, enabled: false, bot: null, linked: null }, home: null }, { ok: true, server: { id: 'kybernos-local', api: 'http://localhost:8791' } })
   ok('the server\'s name is known, so that « no Telegram bot » can say whose', srv.serverId === 'kybernos-local' && T.L('ofPS', { server: srv.serverId }).includes('kybernos-local'))
   ok('an odd server id is dropped', T.derive({ ok: true, connected: true, telegram: null, home: null }, { ok: true, server: { id: '<b>', api: 'http://x' } }).serverId === '')
-  ok('the diagnostics hook tells whether a chat is Kyby\'s (the new-chat cards stay out of it)', /isKybySession \(sid\)/.test(src))
+  ok('the diagnostics hook tells whether a chat is Kaby\'s (the new-chat cards stay out of it)', /isKybySession \(sid\)/.test(src))
 }
 
 process.exit(fail > 0 ? 1 : 0)

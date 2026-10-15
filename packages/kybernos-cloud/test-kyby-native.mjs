@@ -1,4 +1,4 @@
-// Kyby as a native DSH conversation (kyby-native.mjs): which session it is, who Kyby is there, and the end of a turn written on the
+// Kaby as a native DSH conversation (kyby-native.mjs): which session it is, who Kaby is there, and the end of a turn written on the
 // person's thread. A fake DSH agent and a fake server; no network, no real DSH home.
 import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -43,14 +43,14 @@ writePointer(file, SID)
     { role: 'user', content: 'Rappelle-moi le dentiste' }, { role: 'assistant', content: 'C\'est noté pour demain.' },
     { role: 'user', content: 'ce que j\'ai écrit ici' }, { role: 'system', content: 'x' }, { role: 'assistant' },
   ], new Set(['ce que j\'ai écrit ici']))
-  ok('context lines: roles named, the chat\'s own words left out, odd rows dropped', lines.length === 2 && lines[0] === 'Person: Rappelle-moi le dentiste' && lines[1] === 'Kyby: C\'est noté pour demain.', lines)
+  ok('context lines: roles named, the chat\'s own words left out, odd rows dropped', lines.length === 2 && lines[0] === 'Person: Rappelle-moi le dentiste' && lines[1] === 'Kaby: C\'est noté pour demain.', lines)
   const long = contextLines([{ role: 'user', content: 'x'.repeat(1000) }])
   ok('a long line is cut', long[0].length <= 'Person: '.length + 240)
   ok('only the last few lines are kept', contextLines(Array.from({ length: 30 }, (_, i) => ({ role: 'user', content: 'm' + i }))).length === 8)
 }
-ok('the prompt names Kyby, the shared memory and Telegram, and carries the lines', (() => {
+ok('the prompt names Kaby, the shared memory and Telegram, and carries the lines', (() => {
   const p = kybyPrompt(['Person: salut'])
-  return p.startsWith('[KYBY]') && p.endsWith('[/KYBY]') && /Kyby/.test(p) && /Telegram/.test(p) && /Person: salut/.test(p)
+  return p.startsWith('[KYBY]') && p.endsWith('[/KYBY]') && /Kaby/.test(p) && /Telegram/.test(p) && /Person: salut/.test(p)
 })())
 
 // ── the hooks ────────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ const SERVER = {
 }
 {
   const { n } = make({})
-  ok('only Kyby\'s own session gets the identity block', n.promptFor(SID).startsWith('[KYBY]') && n.promptFor(OTHER) === '' && n.promptFor(undefined) === '')
+  ok('only Kaby\'s own session gets the identity block', n.promptFor(SID).startsWith('[KYBY]') && n.promptFor(OTHER) === '' && n.promptFor(undefined) === '')
   ok('isKyby follows the pointer', n.isKyby(SID) && !n.isKyby(OTHER))
 }
 {
@@ -93,7 +93,7 @@ const SERVER = {
 }
 {
   const { n, calls, tick } = make({})
-  ok('a server with no Kyby thread (older) is said once, then left alone', (await n.mirrorTurn(agent(SID, TURN))) === 'no_thread' && (await n.mirrorTurn(agent(SID, TURN))) === 'no_thread' && calls.length === 1)
+  ok('a server with no Kaby thread (older) is said once, then left alone', (await n.mirrorTurn(agent(SID, TURN))) === 'no_thread' && (await n.mirrorTurn(agent(SID, TURN))) === 'no_thread' && calls.length === 1)
   tick(11 * 60 * 1000)
   await n.mirrorTurn(agent(SID, TURN))
   ok('and asked again after a while', calls.length === 2)
@@ -109,7 +109,7 @@ const SERVER = {
   n.noteClaim(SID)
   await new Promise((r) => setTimeout(r, 30))
   const p = n.promptFor(SID)
-  ok('after a claim the shared thread\'s last words are in the prompt', /Person: Je pars en voyage lundi/.test(p) && /Kyby: Bon voyage !/.test(p), p)
+  ok('after a claim the shared thread\'s last words are in the prompt', /Person: Je pars en voyage lundi/.test(p) && /Kaby: Bon voyage !/.test(p), p)
   ok('a message of another session does not read the thread', (n.noteClaim(OTHER), calls.length === 2))
   ok('no token ever reaches the prompt', !p.includes(TOKEN))
 }

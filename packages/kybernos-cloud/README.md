@@ -413,9 +413,9 @@ la déconnexion. Le test client rejoue le contrat
 - **« Reconnexion requise »** → la session a été révoquée (ou a expiré côté
   serveur, TTL glissant de 30 jours sans appel) : cliquez « Se reconnecter ».
 
-## Kyby (ADR 0053 of kybernos-server)
+## Kaby (ADR 0053 of kybernos-server)
 
-The routes the **Kyby** page (`kybernos-kyber`) uses; the shapes and the words of a refusal are in `kyby.mjs`, tested by
+The routes the **Kaby** page (`kybernos-kyber`) uses; the shapes and the words of a refusal are in `kyby.mjs`, tested by
 `test-kyby.mjs`. All add the account's token; every refusal is a short code word, never the server's text.
 
 | Route | Does |
@@ -426,10 +426,10 @@ The routes the **Kyby** page (`kybernos-kyber`) uses; the shapes and the words o
 | `POST /kybernos-cloud/telegram/pairing/cancel` `{id}` | « it is not me » |
 | `POST /kybernos-cloud/telegram/settings` `{home_target: cloud\|ask}` | where a Telegram message runs |
 | `POST /kybernos-cloud/telegram/unlink` | disconnects the account's Telegram |
-| `GET /kybernos-cloud/kyby/native` | which DSH chat is Kyby's (`sessionId`, null before the first time) and its folder (`cwd`, made here) |
+| `GET /kybernos-cloud/kyby/native` | which DSH chat is Kaby's (`sessionId`, null before the first time) and its folder (`cwd`, made here) |
 | `POST /kybernos-cloud/kyby/native/set` `{sessionId}` | remembers that chat (null forgets it) |
 
-Kyby's own chat is a native DSH conversation (`kyby-native.mjs`): the host gives that chat Kyby's identity in the system prompt
+Kaby's own chat is a native DSH conversation (`kyby-native.mjs`): the host gives that chat Kaby's identity in the system prompt
 (`kybernos:kyby`, for its session only), writes each finished turn on the person's server thread (`POST /v1/threads/{id}/messages`, the
 thread from `GET /v1/me/kyby`) and tells the prompt what was said there lately. A server with no such thread is left alone for ten minutes.
 

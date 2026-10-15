@@ -1,6 +1,6 @@
 // kybernos-kyber — browser half.
 //
-// Kyby, the person's own assistant: one conversation (the thread every door shares), the doors it answers from (Telegram now, WhatsApp
+// Kaby, the person's own assistant: one conversation (the thread every door shares), the doors it answers from (Telegram now, WhatsApp
 // and WeChat later) and the computer it works on. Two places show it: a page (the menu row opens it) with the chat and a collapsible
 // « Channels » strip, and a tab of the right-hand panel with the same panel. The server's routes are reached through the
 // kybernos-cloud bundle (`/kybernos-cloud/kyber`, `/telegram/pairing`, `/kyby`, ...), which adds the account's token.
@@ -30,18 +30,19 @@ window.__ModuleLoader__.load({
         } catch (e) { /* no dictionary: English */ }
         return en
       }
-      const fill = (text, p) => (p === undefined ? text : text.replace(/\{(\w+)\}/g, (m, k) => (p[k] !== undefined ? String(p[k]) : m)))
+      // `{NAME}` is the assistant's name (the one constant below): every sentence says it through the token.
+      const fill = (text, p) => text.replace(/\{(\w+)\}/g, (m, k) => (p !== undefined && p[k] !== undefined ? String(p[k]) : (k === 'NAME' ? NAME : m)))
       // What the person calls their own assistant: the one place to change it here (the sidebar row's label is `kbui.kyber` in kybernos-plugin).
-      const NAME = 'Kyby'
+      const NAME = 'Kaby'
       // [fr, en] pairs, by key, in ONE table so that a test can check both sides of every pair.
       const S = {
-        title: [NAME, NAME],
+        title: ['{NAME}', '{NAME}'],
         tabHint: ['Votre assistant : la conversation, Telegram et l’ordinateur sur lequel il travaille.', 'Your assistant: the conversation, Telegram and the computer it works on.'],
         // header and intro
         subline: ['Votre assistant : il répond ici et sur Telegram, et travaille sur son propre ordinateur.', 'Your assistant: it answers here and on Telegram, and works on its own computer.'],
-        what: ['Qu’est-ce que Kyby ?', 'What is Kyby?'],
+        what: ['Qu’est-ce que {NAME} ?', 'What is {NAME}?'],
         heroH: ['Votre assistant, dans votre poche.', 'Your assistant, in your pocket.'],
-        heroP: ['Écrivez à Kyby ici ou sur Telegram, comme à un ami. Il fait le travail sur son propre ordinateur dans le cloud, même quand le vôtre est éteint, et vous demande votre accord avant de modifier quoi que ce soit.', 'Write to Kyby here or on Telegram, the way you would to a friend. It does the work on its own computer in the cloud, even when yours is off, and asks you before it changes anything.'],
+        heroP: ['Écrivez à {NAME} ici ou sur Telegram, comme à un ami. Il fait le travail sur son propre ordinateur dans le cloud, même quand le vôtre est éteint, et vous demande votre accord avant de modifier quoi que ce soit.', 'Write to {NAME} here or on Telegram, the way you would to a friend. It does the work on its own computer in the cloud, even when yours is off, and asks you before it changes anything.'],
         b1h: ['Demandez de n’importe où', 'Ask from anywhere'], b1p: ['Ici, ou depuis votre téléphone sur Telegram. C’est la même conversation.', 'Here, or from your phone on Telegram. It is the same conversation.'],
         b2h: ['Il travaille pendant votre absence', 'It keeps working while you are away'], b2p: ['Il a son propre ordinateur, qui se réveille quand il a du travail.', 'It has its own computer, which wakes up when it has work to do.'],
         b3h: ['Vous gardez la main', 'You stay in control'], b3p: ['Avant d’agir, il demande : Autoriser, Refuser ou Autoriser pour cette tâche.', 'Before it acts, it asks: Allow, Refuse, or Allow for this task.'],
@@ -49,7 +50,7 @@ window.__ModuleLoader__.load({
         // the strip
         channels: ['Canaux', 'Channels'], collapse: ['Replier', 'Fold'], expand: ['Déplier', 'Unfold'],
         soon: ['Bientôt', 'Soon'], otherChannels: ['Autres canaux', 'Other channels'],
-        wChip: ['Ordinateur de Kyby', 'Kyby’s computer'], wChipAsk: ['Me demander', 'Ask me'],
+        wChip: ['Ordinateur de {NAME}', '{NAME}’s computer'], wChipAsk: ['Me demander', 'Ask me'],
         // telegram
         telegram: ['Telegram', 'Telegram'],
         cH: ['Connecter Telegram', 'Connect Telegram'], cSub: ['Environ une minute, sans mot de passe.', 'About a minute, no password.'],
@@ -62,7 +63,7 @@ window.__ModuleLoader__.load({
         lockNote: ['Rien n’est connecté sans votre accord dans Telegram, qui nomme le compte concerné.', 'Nothing is connected until you agree in Telegram, which names the account.'],
         preparing: ['Préparation du code…', 'Preparing the code…'],
         scH: ['Presque fini : confirmez dans Telegram', 'Almost done: confirm in Telegram'],
-        scP: ['Telegram indique : {who}. Touchez « Oui, c’est moi » dans la conversation avec Kyby.', 'Telegram says: {who}. Tap “Yes, it’s me” in the chat with Kyby.'],
+        scP: ['Telegram indique : {who}. Touchez « Oui, c’est moi » dans la conversation avec {NAME}.', 'Telegram says: {who}. Tap “Yes, it’s me” in the chat with {NAME}.'],
         scWait: ['En attente de votre tap…', 'Waiting for your tap…'], notMe: ['Ce n’est pas moi : annuler', 'Not me: cancel'],
         linked: ['Connecté : {name}', 'Connected: {name}'], since: ['depuis le {date}', 'since {date}'],
         paused: ['En pause : écrivez /resume au bot pour reprendre.', 'Paused: write /resume to the bot to resume.'],
@@ -71,7 +72,7 @@ window.__ModuleLoader__.load({
         exH: ['Ce code a expiré', 'This code has expired'], exP: ['Un code est valable 5 minutes et ne sert qu’une fois.', 'A code is good for 5 minutes and works once.'],
         deH: ['Rien n’a été connecté', 'Nothing was connected'], deP: ['Vous avez touché « Non » dans Telegram.', 'You tapped “No” in Telegram.'],
         taH: ['Ce Telegram est déjà connecté à un autre compte', 'This Telegram is already connected to another account'],
-        taP: ['Déconnectez-le d’abord dans l’autre compte (écrivez /unlink à Kyby dans Telegram), puis revenez ici.', 'Disconnect it from the other account first (write /unlink to Kyby in Telegram), then come back here.'],
+        taP: ['Déconnectez-le d’abord dans l’autre compte (écrivez /unlink à {NAME} dans Telegram), puis revenez ici.', 'Disconnect it from the other account first (write /unlink to {NAME} in Telegram), then come back here.'],
         bmH: ['Ce Telegram a déjà un compte créé par le bot', 'This Telegram already has an account made by the bot'],
         bmP: ['Rattacher ce Telegram à votre compte n’est pas encore possible. En attendant, continuez à utiliser le bot tel quel.', 'Attaching this Telegram to your account is not possible yet. Meanwhile, keep using the bot as it is.'],
         ofH: ['Telegram n’est pas activé sur ce serveur', 'Telegram is not turned on on this server'],
@@ -81,23 +82,23 @@ window.__ModuleLoader__.load({
         pe: ['Impossible de préparer le code pour l’instant.', 'The code cannot be prepared right now.'],
         peRate: ['Trop d’essais : réessayez dans une minute.', 'Too many tries: try again in a minute.'],
         retry: ['Réessayer', 'Try again'],
-        // where Kyby works
-        whereH: ['Où Kyby travaille', 'Where Kyby works'],
-        whereP: ['L’ordinateur que Kyby utilise quand un message Telegram lui demande d’agir.', 'The computer Kyby uses when a Telegram message asks it to act.'],
-        wCloud: ['Ordinateur de Kyby (cloud)', 'Kyby’s computer (cloud)'], wCloudSub: ['Il se réveille quand Kyby a du travail.', 'It wakes when Kyby has work.'],
+        // where {NAME} works
+        whereH: ['Où {NAME} travaille', 'Where {NAME} works'],
+        whereP: ['L’ordinateur que {NAME} utilise quand un message Telegram lui demande d’agir.', 'The computer {NAME} uses when a Telegram message asks it to act.'],
+        wCloud: ['Ordinateur de {NAME} (cloud)', '{NAME}’s computer (cloud)'], wCloudSub: ['Il se réveille quand {NAME} a du travail.', 'It wakes when {NAME} has work.'],
         wMac: ['Mon Mac', 'My Mac'], wMacSub: ['Seulement quand DSH est ouvert dessus. Pas encore disponible.', 'Only while DSH is open on it. Not available yet.'],
-        wAsk: ['Me demander à chaque fois', 'Ask me each time'], wAskSub: ['Kyby pose la question avec des boutons avant d’utiliser l’ordinateur.', 'Kyby asks with buttons before it uses the computer.'],
+        wAsk: ['Me demander à chaque fois', 'Ask me each time'], wAskSub: ['{NAME} pose la question avec des boutons avant d’utiliser l’ordinateur.', '{NAME} asks with buttons before it uses the computer.'],
         whereNeed: ['Disponible quand Telegram est connecté.', 'Available once Telegram is connected.'],
-        whereHint: ['Pour un seul message, écrivez « sur mon Mac » ou « sur l’ordinateur de Kyby ». Une automatisation s’exécute là où elle vit.', 'For a single message, write “on my Mac” or “on Kyby’s computer”. An automation runs where it lives.'],
+        whereHint: ['Pour un seul message, écrivez « sur mon Mac » ou « sur l’ordinateur de {NAME} ». Une automatisation s’exécute là où elle vit.', 'For a single message, write “on my Mac” or “on {NAME}’s computer”. An automation runs where it lives.'],
         // computer
-        computer: ['Ordinateur de Kyby', 'Kyby’s computer'],
-        noHome: ['Pas encore d’ordinateur : il est créé au premier message qui demande à Kyby d’agir.', 'No computer yet: it is made at the first message that asks Kyby to act.'],
+        computer: ['Ordinateur de {NAME}', '{NAME}’s computer'],
+        noHome: ['Pas encore d’ordinateur : il est créé au premier message qui demande à {NAME} d’agir.', 'No computer yet: it is made at the first message that asks {NAME} to act.'],
         st_running: ['Éveillé', 'Awake'], st_suspended: ['En veille', 'Asleep'], st_creating: ['En création', 'Being made'], st_resuming: ['Se réveille', 'Waking up'],
         st_suspending: ['S’endort', 'Going to sleep'], st_failed: ['En échec', 'Failed'], st_other: ['{state}', '{state}'],
-        txt_running: ['Éveillé : Kyby travaille dessus.', 'Awake: Kyby is working on it.'],
-        txt_suspended: ['En veille. Il se réveille tout seul quand Kyby a du travail, puis se rendort.', 'Asleep. It wakes by itself when Kyby has work, then goes back to sleep.'],
+        txt_running: ['Éveillé : {NAME} travaille dessus.', 'Awake: {NAME} is working on it.'],
+        txt_suspended: ['En veille. Il se réveille tout seul quand {NAME} a du travail, puis se rendort.', 'Asleep. It wakes by itself when {NAME} has work, then goes back to sleep.'],
         txt_creating: ['Il est en cours de création.', 'It is being made.'], txt_resuming: ['Il se réveille.', 'It is waking up.'], txt_suspending: ['Il s’endort.', 'It is going to sleep.'],
-        txt_failed: ['Il n’a pas démarré. Kyby réessaiera au prochain message.', 'It did not start. Kyby will try again at the next message.'],
+        txt_failed: ['Il n’a pas démarré. {NAME} réessaiera au prochain message.', 'It did not start. {NAME} will try again at the next message.'],
         lastActive: ['Dernière activité : {when}', 'Last active: {when}'], image: ['Image {v}', 'Image {v}'],
         net_public: ['Réseau : toutes les adresses publiques', 'Network: any public address'], net_closed: ['Réseau : seulement les serveurs Kybernos', 'Network: Kybernos servers only'], net_list: ['Réseau : une liste d’adresses', 'Network: a list of addresses'],
         pr_hours: ['Les heures d’exécution du mois sont utilisées.', 'This month’s run hours are used up.'], pr_other: ['Il est en pause.', 'It is paused.'],
@@ -107,12 +108,12 @@ window.__ModuleLoader__.load({
         approvals: ['Avant d’agir, il vous demande l’accord dans Telegram : Autoriser, Refuser, ou Autoriser pour cette tâche.', 'Before it acts, it asks you in Telegram: Allow, Refuse, or Allow for this task.'],
         manage: ['Gérer dans mon compte', 'Manage in my account'],
         // the native conversation
-        openChat: ['Ouvrir la conversation avec Kyby', 'Open the conversation with Kyby'],
-        openChatHint: ['Une vraie conversation DSH : même composeur, même rendu, avec la mémoire de votre compte. Ce qui s’y dit va aussi sur le fil que Kyby partage avec Telegram.', 'A real DSH chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread Kyby shares with Telegram.'],
+        openChat: ['Ouvrir la conversation avec {NAME}', 'Open the conversation with {NAME}'],
+        openChatHint: ['Une vraie conversation DSH : même composeur, même rendu, avec la mémoire de votre compte. Ce qui s’y dit va aussi sur le fil que {NAME} partage avec Telegram.', 'A real DSH chat: same composer, same rendering, with your account’s memory. What is said there also goes on the thread {NAME} shares with Telegram.'],
         openChatFail: ['La conversation n’a pas pu s’ouvrir.', 'The conversation could not be opened.'],
         // states of the whole
         refresh: ['Actualiser', 'Refresh'],
-        signedOut: ['Connectez-vous à Kybernos pour voir votre ' + NAME + '.', 'Sign in to Kybernos to see your ' + NAME + '.'],
+        signedOut: ['Connectez-vous à Kybernos pour voir votre {NAME}.', 'Sign in to Kybernos to see your {NAME}.'],
         failed: ['Impossible de lire l’état pour l’instant.', 'The state cannot be read right now.'],
         loading: ['Lecture…', 'Reading…'],
       }
@@ -489,7 +490,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbky-col' }, h(WhereCard, { view: v }), h(ComputerCard, { view: v }), manage))
       }
 
-      // ═══ Kyby's own chat is a native DSH conversation: its session, and how to reach it ═══════════════════════════
+      // ═══ Kaby's own chat is a native DSH conversation: its session, and how to reach it ═══════════════════════════
       // `sessions` makes a chat (it answers the new session's id); `uiWorkspace` is DSH's own shell: it opens a chat and pins it.
       // Asked for at the moment of use: a re-applied plugin keeps working with whatever the shell offers then.
       const svc = (name) => { try { return CTX !== null ? CTX.get(name) : null } catch (e) { return null } }
@@ -509,7 +510,7 @@ window.__ModuleLoader__.load({
           return ws !== null && ws !== undefined && Array.isArray(ws.items) && ws.items.some((i) => i !== null && Array.isArray(i.sessionIds) && i.sessionIds.includes(sid))
         } catch (e) { return false }
       }
-      /** Opens Kyby's conversation, making it the first time (a blank DSH chat, remembered by the host, which gives it Kyby's identity). */
+      /** Opens Kaby's conversation, making it the first time (a blank DSH chat, remembered by the host, which gives it Kaby's identity). */
       const openChat = async () => {
         if (state.opening) return false
         state.opening = true
@@ -522,7 +523,7 @@ window.__ModuleLoader__.load({
           let sid = await readSessionPointer()
           if (sid === null || !sessionExists(sid)) {
             // `sessions.create` answers the new session's id itself (and throws when it cannot); older shapes answer an object.
-            // In Kyby's own folder, as a workspace of its own and already chosen: DSH's « New chat » reuses a blank chat of the workspace it is
+            // In Kaby's own folder, as a workspace of its own and already chosen: DSH's « New chat » reuses a blank chat of the workspace it is
             // in, never this one, and the person is not asked for a folder.
             let workspaceId = null
             const wsSvc = svc('workspaces')
@@ -571,7 +572,7 @@ window.__ModuleLoader__.load({
         return pairingFace(state.pairing, Date.now()).kind === 'scanned' ? ['warn', 'stWait'] : ['', 'stOff']
       }
 
-      /** The collapsible « Channels » strip: Telegram, the other channels, where Kyby works, its computer. Open until Telegram is connected. */
+      /** The collapsible « Channels » strip: Telegram, the other channels, where Kaby works, its computer. Open until Telegram is connected. */
       const Strip = () => {
         const v = state.view
         const open = stripIsOpen(state.stripPref, v !== null && v.kind === 'ok' && v.telegram.state === 'linked')
@@ -587,7 +588,7 @@ window.__ModuleLoader__.load({
           open ? h('div', { className: 'kbky-stripb' }, h(Channels, { visible: true, lite: true })) : null)
       }
 
-      /** The strip, above the composer of Kyby's own conversation and of no other. */
+      /** The strip, above the composer of Kaby's own conversation and of no other. */
       const KybyDock = (props) => {
         useStore()
         const sid = props !== null && props !== undefined && typeof props.sessionId === 'string' ? props.sessionId : ''
@@ -595,7 +596,7 @@ window.__ModuleLoader__.load({
         return h('div', { className: 'kbky-dock', 'data-kb': 'kybernos-kyber-dock' }, h(Strip))
       }
 
-      /** The page the menu row used to open, and the new-chat card still opens: what Kyby is, the way into its conversation, the strip. */
+      /** The page the menu row used to open, and the new-chat card still opens: what Kaby is, the way into its conversation, the strip. */
       const Page = () => {
         useStore()
         const v = state.view
@@ -750,7 +751,7 @@ window.__ModuleLoader__.load({
           }
           // the page: the child slot the core's menu row opens
           ctx.effect(() => ctx.slots.inject(SLOT_PAGE, () => ctx.slots.register({ name: SLOT_PAGE }, () => { try { return h(Page) } catch (e) { return null } })), 'kybernos-kyber: page')
-          // Kyby's own conversation is a native DSH chat: the strip sits in the dock above its composer, and above no other's.
+          // Kaby's own conversation is a native DSH chat: the strip sits in the dock above its composer, and above no other's.
           ctx.effect(() => ctx.slots.inject(SLOT_DOCK, () => ctx.slots.register(
             { name: SLOT_DOCK, id: 'kybernos-kyby-strip', order: 5 },
             (props) => { try { return h(KybyDock, props) } catch (e) { return null } }
@@ -764,9 +765,9 @@ window.__ModuleLoader__.load({
             window.__KB_KYBER__ = {
               /** What the page shows now (diagnostics, live checks). */
               state () { return { loading: state.loading, view: state.view, at: state.at, pairing: state.pairing === null ? null : { state: state.pairing.state, error: state.pairing.error || '' }, kybySid: state.kybySid, openFailed: state.openFailed, openError: state.openError } },
-              /** Opens Kyby's native conversation (the sidebar row calls this). False when it could not be opened. */
+              /** Opens Kaby's native conversation (the sidebar row calls this). False when it could not be opened. */
               openChat () { return openChat() },
-              /** Whether `sid` is Kyby's own chat (the new-chat cards stay out of it). */
+              /** Whether `sid` is Kaby's own chat (the new-chat cards stay out of it). */
               isKybySession (sid) { return typeof sid === 'string' && sid !== '' && sid === state.kybySid },
               /** Reads the state again (live checks drive the page's answers; a person has the refresh button of the tab). */
               refresh () { return load() },
