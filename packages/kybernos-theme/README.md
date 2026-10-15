@@ -150,8 +150,10 @@ A draw happens once per answer: a block that comes back within 1.5 s is the same
 
 - **Rotation** of up to 4 animations, drawn at random (never the same twice in a row, optional)
   or in order.
-- **Animations**: 14 original drawings (`LD_PRESETS`), the user's own files (SVG, Lottie `.json`,
-  GIF/WebP/PNG, 200 KB max), and files written by the `loader` skill.
+- **Animations**: 34 original drawings (`LD_PRESETS`: geometric ones, then plants, objects, animals and
+  manga-flavoured ones, all 48×48 SVG animated by the `.kb-ld .a-*` classes of `client.js`), the user's own
+  files (SVG, Lottie `.json`, GIF/WebP/PNG, 200 KB max), and files written by the `loader` skill. The
+  picker's cards are small (about 105 px wide).
 - **Ambiances** (`LD_PACKS`): the DSH original and 11 trades, words in French and English, plus
   « Mon pack » (the user's own words, or those written by the `loading-text` skill).
 - **Settings** (folded): size 14/24/40 px, accent tint, speed, delay before showing, keep the
