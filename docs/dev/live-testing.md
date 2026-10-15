@@ -183,6 +183,20 @@ the interceptor). Only client code can be tested this way: host code loads when 
 Traps met while writing it: `page.send` returns the raw message (`{ id, result }`), and two interceptors on the same `Fetch`
 event must each ignore the other's requests (`Fetch.enable` replaces the patterns of an earlier call).
 
+## The Skills panels: `scripts/check-skills-detail-live.mjs`
+
+```bash
+node scripts/check-skills-detail-live.mjs --shots /tmp/shots
+```
+
+On the REAL GUI (`:3080`) and the user's real skills, read-only: this checkout's client of `kybernos-skills` is swapped into the
+page, and the two routes the running host does not have yet (`skill/read`, `preview`) are answered by this checkout's host code run
+in the script (the real folders, then GitHub anonymously). Every other non-GET request to `/kybernos-skills/*` is answered inside
+the check and recorded, so nothing the page does can write, install, delete or open anything. It checks that a Yours card opens a
+panel beside the list with the SKILL.md exactly as it is on disk, the actions the skill allows, that Delete and Install open their
+confirmations (and only ever get Cancel), that two Discover cards have their own repository, folder and text, the publisher by
+repository, and the layout at 900 px.
+
 ## A bundle the user's DSH does not list yet: a second instance (`scripts/sandbox/*.sh`)
 
 A **new** bundle, or any **host** code, cannot be tried on the user's `dsh web`: it is not in their profile and a host change

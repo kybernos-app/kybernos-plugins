@@ -9,11 +9,18 @@ It is part of the **socle** (`socle: true` in `packages/kybernos-hub/catalog.jso
 
 - The **Skills** tab of the Kybernos *Resources* page. The bundle fills the slot `main.kybernos-skills`, which
   `@local/kybernos` (core) declares and mounts; with this bundle off, the core falls back to its own skills page.
-- **Yours**: skills of this profile, with search, state / source filters, sorting, an active toggle (read-only rows when the
-  folder is not writable), a Featured row kept by a star, a detail card, and a copy of the invocation to paste in the composer.
+- **Yours**: skills of this profile, with search, state / source filters, sorting, an active toggle on each card (read-only rows
+  when the folder is not writable) and a Featured row kept by a star. A click on a card opens a **panel on the right** (the list
+  stays): the skill's real `SKILL.md` as it is on disk, its folder (copyable), and the actions the host says it can do for that
+  skill — *Open folder*, *Edit* (opens `SKILL.md` in the text editor of this machine), *Duplicate* (a copy in your own skills
+  folder under a free name, its `name:` renamed) and *Delete* (a confirmation that names the folder first; permanent, writable
+  roots only). A copy of the invocation to paste in the composer is on the card.
 - **Discover**: the skills.sh ranking (all-time / trending / hot), search, the first-party "curated" set, security audits of a
-  skill, one-click install of GitHub-hosted skills. It reads the index through Kybernos's own relay (`services/skills-index`), so
-  it works for every user with no token.
+  skill, one-click install of GitHub-hosted skills. A click on a row opens its **own panel**: its repository, the folder it sits
+  in, its description and the start of its `SKILL.md` (read from the repository itself), who publishes it, its audits. *Install*
+  asks first: a dialog says, for that skill, which archive is downloaded, where the skill is found, and the exact folder it is
+  copied to (a copy, never a link). It reads the index through Kybernos's own relay (`services/skills-index`), so it works for
+  every user with no token.
 - **Team**: a Team's private catalogue (contract: `docs/dev/team-skills-contract.md`). *Approved* skills with Install, Update (only
   over a team skill nobody edited), or "You have your own" when a skill of that name is yours; a skill opens on its files and an
   install panel. *My proposals* (with Withdraw, and the admin's note on a refusal) and a *Propose a skill* sheet that reads one of
@@ -37,7 +44,12 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 | `GET search?q=&limit=` · `GET curated` · `GET audit?source=&skill=` | search (q ≥ 2 chars, limit ≤ 100) · first-party set · audits |
 | `POST toggle {root,name,active}` | renames `SKILL.md` ⇄ `SKILL.md.disabled` |
 | `POST create {root?,name,description,whenToUse?,body?,modelInvocable?}` | writes a valid `SKILL.md` |
-| `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder |
+| `POST install {source,name,root?}` | downloads a GitHub archive, copies the skill folder (answers with the `folder` it sat in) |
+| `GET preview?source=&name=` | a Discover card's `folder`, `description` and the start of its `SKILL.md`, read from the repository (listing of its files, then the one file); `found: false` when the repository has no such folder |
+| `POST skill/read {root,name}` | the real `SKILL.md` (frontmatter included, 128 KiB cap), the folder, a file count and `actions {reveal, edit, duplicate, delete}`: what the host will accept, so the screen offers nothing it would refuse |
+| `POST skill/reveal {root,name,target}` | `target` `folder` or `file`: opens it on this machine (`open`, `open -t`, `xdg-open`, `explorer`; one argument, no shell); refused from another address |
+| `POST skill/duplicate {root,name}` | copies a listed skill (a read-only one too) into `<DSH home>/skills/<name>-copy[-n]`, renames `name:` in the frontmatter, leaves links, `.git`, `node_modules` and the Team mark behind |
+| `POST skill/delete {root,name}` | removes the folder of a skill whose real path is inside a writable root; refuses a link, a root, a folder with no `SKILL.md` |
 | `GET featured` · `POST featured/toggle` · `GET cover/<name>` | Featured list and cover images |
 | `GET index-source` · `POST index-source/set {url}` | which relay the Discover index is read from (`origin`: `default`, `setting` or `env`; `editable: false` while the variable decides), and the setting that names another one (an empty `url` puts the default back) |
 | `POST team/pack {root,name}` | reads a skill of a writable root into a Team proposal: text files only, no hidden file or symlink, secret scan, the SHA-256 version |
@@ -60,7 +72,10 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
   hard dependency; optional `agents.roots()` and `agentPresets` (`standingKeyFor`, `serviceFor(agent,'skills')`) pick the right
   project view. Not verified on the oldest DSH of `dsh-compat.json`. Client: slot `main.kybernos-skills`, services `slots` and
   `locale`; no `ctx.remote` use. `package.json` injects seven DSH client services, only those two are used.
-- Network, two fixed hosts, no caller URL followed: `https://codeload.github.com` (install; `source` must match `owner/repo`) and
+- Network, four fixed hosts, no caller URL followed: `https://codeload.github.com` (install; `source` must match `owner/repo`),
+  `https://api.github.com` and `https://raw.githubusercontent.com` (the preview of a Discover card: the listing of one repository's
+  files, then one `SKILL.md` of it; anonymous, read-only, answers kept five minutes, the 60-an-hour anonymous limit is reported
+  as such and never retried; the file path comes from that listing) and
   `https://skills.kybernos.app/v1` (index, search, curated, audits; a bare GET, no credential; good answers cached
   5 min in memory). That is Kybernos's relay of the skills.sh API (`services/skills-index`, which holds the one Vercel token and
   caches answers at the CDN). Another relay is named by the `KYBERNOS_SKILLS_INDEX_URL` variable or by the setting on the Discover
@@ -75,8 +90,11 @@ All under `/kybernos-skills/`, JSON; refusals come back as HTTP 200 `{ok:false, 
 
 ## Tests
 
-`node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the four POST routes
-mounted on a fake context. `test-index.mjs` covers the Discover routes against a local stand-in for the relay (what is asked,
+`node packages/kybernos-skills/test-origin.mjs` covers the POST same-origin guard, unit by unit and through the eleven POST routes
+mounted on a fake context. `test-skill-routes.mjs` covers the panel's host half on a throw-away home (read, open, duplicate, delete,
+the preview against a stub of the two GitHub hosts). `test-ui.mjs` renders the screen with a few lines of React and a fake host:
+the panel next to the list, the actions only when the host lists them, a delete and an install that ask first, every Discover card
+with its own detail, the publisher by repository. `test-index.mjs` covers the Discover routes against a local stand-in for the relay (what is asked,
 that no credential is sent, failures not cached, the address override and the saved setting: same validation, the variable wins, a damaged file is refused, a change drops the cache). `test-dsh-home.mjs` covers `DSH_HOME`. `test-client-strings.mjs` checks the client's words (every key in French and English, every answer word has a sentence). `test-team-skills.mjs` covers the Team skills rules (version, validation, secret scan), the disk half of `team/pack` and `team/install`, the team mark and the replace-only-if-untouched swap, on a throw-away HOME (`docs/dev/team-skills-contract.md`). The install, create
 and toggle logic is not tested; CI also syntax-checks the bundle (`node --check packages/kybernos-skills/*.js`).
 The host exports its functions "for the harness" (`catalogueOf`, `toggleSkill`, `createSkill`, `installSkill`, …) but no other
@@ -88,6 +106,12 @@ harness is in this repo.
 - DSH serves plugin routes before its own auth, so the POST guard (`sameOrigin`, same rule as `sameOriginStrict` in the core) requires
   an `Origin` (or a `Referer`) from this machine, compared with the socket's real listening address and not with the `Host` header.
   It cannot stop a local process that forges an `Origin`: only authentication would. The GET routes have no guard.
+- *Delete* is permanent (no trash) and only reaches a skill folder inside `~/.dsh/skills` or `~/.agents/skills`; *Open folder* and
+  *Edit* open a window on the machine DSH runs on, so a DSH reached from another address is not offered them. *Edit* hands
+  `SKILL.md` to the machine's text editor: there is no in-app editor (a save route would have to keep the frontmatter valid, or the
+  skill drops out of the registry).
+- The Discover preview reads GitHub anonymously: 60 requests an hour per address. A limit is said as such, and what the panel
+  cannot show (folder, description, text) is not shown; Install still searches the whole archive.
 - Install copies with `dereference: true`: a symlink inside a downloaded repo would be followed (not tested). Skill content is
   third party; DSH does not audit it, the skills.sh verdicts are shown.
 - `generer-pochettes.mjs` reads `providers.json`, which no bundle here writes.
