@@ -102,8 +102,9 @@ window.__ModuleLoader__.load({
         mobScan: 'Scannez le code pour installer Kybernos sur votre téléphone.',
         mobSoon: 'Aperçu — le vrai lien arrivera avec l\'app.',
         // Help explaining what the phone link really is (asked 13/10): a web app
-        // that opens the same interface and talks straight to this machine.
-        mobHelp: 'Kybernos Mobile est une web app : votre téléphone ouvre la même interface que cette application et se connecte directement à cette machine. Le Mac doit être allumé et connecté à Internet.',
+        // that opens the same interface and talks to this machine through the
+        // Kybernos relay, which reads nothing (end to end). Not « direct ».
+        mobHelp: 'Kybernos Mobile est une web app : votre téléphone ouvre la même interface que cette application et parle à cette machine par un relais qui ne lit rien (chiffré de bout en bout). Le Mac doit être allumé et connecté à Internet.',
         wsSettingsTitle: 'Réglages d\'équipe',
         wsOpenHosted: 'Ouvrir dans Kybernos',
         wsClose: 'Fermer',
@@ -347,8 +348,9 @@ window.__ModuleLoader__.load({
         mobScan: 'Scan the code to install Kybernos on your phone.',
         mobSoon: 'Preview — the real link will come with the app.',
         // Help explaining what the phone link really is (asked 13/10): a web app
-        // that opens the same interface and talks straight to this machine.
-        mobHelp: 'Kybernos Mobile is a web app: your phone opens the same interface as this application and connects directly to this machine. The Mac must be on and connected to the Internet.',
+        // that opens the same interface and talks to this machine through the
+        // Kybernos relay, which reads nothing (end to end). Not « direct ».
+        mobHelp: 'Kybernos Mobile is a web app: your phone opens the same interface as this application and talks to this machine through a relay that reads nothing (end-to-end encrypted). The Mac must be on and connected to the Internet.',
         wsSettingsTitle: 'Team settings',
         wsOpenHosted: 'Open in Kybernos',
         wsClose: 'Close',

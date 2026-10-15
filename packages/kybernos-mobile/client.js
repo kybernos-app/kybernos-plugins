@@ -634,8 +634,8 @@ window.__ModuleLoader__.load({
           h('div', { className: 'kbmr-lockbox', 'aria-hidden': 'true' },
             h('svg', { width: 36, height: 36, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' },
               h('rect', { x: 4, y: 11, width: 16, height: 10, rx: 2 }), h('path', { d: 'M8 11V7a4 4 0 0 1 8 0v4' }))),
-          h('div', { className: 'kbmr-h' }, kt('Inclus dans les offres payantes', 'Included in paid plans')),
-          h('div', { className: 'kbmr-sub' }, kt('Avec une offre payante, vous scannez un code et votre téléphone pilote cet ordinateur, où que vous soyez, sans rien ouvrir sur votre box ni créer de compte en plus. Votre poste reste utilisable en local, comme avant.', 'With a paid plan you scan a code and your phone drives this computer from anywhere, with nothing to open on your router and no extra account. Your computer stays usable locally, as before.')),
+          h('div', { className: 'kbmr-h' }, kt('Non inclus dans votre offre', 'Not included in your plan')),
+          h('div', { className: 'kbmr-sub' }, kt('Votre offre actuelle n’inclut pas le lien téléphone. Avec une offre qui l’inclut, vous scannez un code et votre téléphone pilote cet ordinateur, où que vous soyez, sans rien ouvrir sur votre box ni créer de compte en plus. Votre poste reste utilisable en local, comme avant.', 'Your current plan does not include the phone link. With a plan that does, you scan a code and your phone drives this computer from anywhere, with nothing to open on your router and no extra account. Your computer stays usable locally, as before.')),
           typeof props.web === 'string' && props.web !== ''
             ? h('button', { type: 'button', className: 'kbmr-btn kbmr-primary', 'data-kb': 'mobile-plans', onClick: () => { try { window.open(props.web, '_blank', 'noopener') } catch (e) { /* cannot open */ } } }, kt('Voir les offres', 'See the plans'))
             : null)
@@ -673,6 +673,26 @@ window.__ModuleLoader__.load({
               s.refused > 0 ? h('div', { className: 'kbmr-sub' }, kt(s.refused + ' demande(s) refusée(s) depuis un téléphone (réglages, identifiants, extensions).', s.refused + ' request(s) refused from a phone (settings, credentials, plugins).')) : null))
         }
 
+        // The « ? How it works » button of this bundle (the Suite publishes it; without the Suite there is none). The card it opens is
+        // help.json: the same text on the panel's title row and on the Settings page.
+        const helpButton = () => (typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null)
+
+        // The button as the panel's title row carries it: the card is fixed to the window (the sidebar clips anything wider than the
+        // popover), and the popover's box is read when the button is pressed, before the card opens.
+        const PopHelp = () => {
+          const box = React.useRef(null)
+          const anchor = () => {
+            try {
+              const pop = box.current !== null && box.current.closest ? box.current.closest('.kbf-pop') : null
+              if (pop === null || pop === undefined) return
+              const r = pop.getBoundingClientRect()
+              box.current.style.setProperty('--kbmr-x', Math.max(8, Math.round(r.left)) + 'px')
+              box.current.style.setProperty('--kbmr-b', Math.max(8, Math.round(window.innerHeight - r.bottom)) + 'px')
+            } catch (e) { /* the card keeps its default place */ }
+          }
+          return h('span', { ref: box, className: 'kbmr-helpbox', onClickCapture: anchor }, helpButton())
+        }
+
         // The sidebar's phone button opens this (kybernos-cloud renders it inside its popover).
         const Panel = (props) => {
           const r = useRemote()
@@ -687,7 +707,9 @@ window.__ModuleLoader__.load({
             if (keep.current !== true && !(p !== null && p !== undefined && p.state === 'verify')) void api('pair/cancel', {})
           }, [])
           return h('div', { className: 'kbmr-panel' },
-            h('div', { className: 'kbf-poptitle' }, kt('Connecter un téléphone', 'Connect a phone')),
+            h('div', { className: 'kbmr-pophead' },
+              h('div', { className: 'kbf-poptitle' }, kt('Connecter un téléphone', 'Connect a phone')),
+              h(PopHelp)),
             h(Body, { r, compact: true, autoPair: true, web: props.web }),
             typeof props.onManage === 'function'
               ? h('button', { type: 'button', className: 'kbmr-link', 'data-kb': 'mobile-manage', onClick: () => { keep.current = true; props.onManage() } }, kt('Gérer les téléphones', 'Manage phones') + (devices > 0 ? ' (' + devices + ')' : ''))
@@ -717,12 +739,16 @@ window.__ModuleLoader__.load({
                 h('h1', { className: 'kbmr-title' }, 'Remote Control'),
                 h('p', { className: 'kbmr-sub' }, kt('Pilotez cet ordinateur depuis votre téléphone : scannez le code, c’est tout. Rien à installer, aucun compte à créer.', 'Drive this computer from your phone: scan the code, that is all. Nothing to install, no account to create.'))),
               planChip !== null ? h('span', { className: 'kbmr-chip' }, planChip) : null,
-              typeof window !== 'undefined' && window.__KB_HELP__ && window.__KB_HELP__.Help ? h(window.__KB_HELP__.Help, { id: 'kybernos-mobile' }) : null),
+              helpButton()),
             h(Body, { r, compact: false, autoPair: false, web }))
         }
 
         const CSS = `
 .kbmr-panel{display:flex;flex-direction:column;gap:12px;min-width:240px}
+.kbmr-pophead{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.kbmr-pophead .kbf-poptitle{flex:1 1 auto;min-width:0;padding-block:0}
+/* The card of the « ? How it works » button is wider than the popover and the sidebar clips what leaves it: it is fixed to the window, its left and bottom edges are the popover's (measured when the button is pressed, see PopHelp), so it opens upward over the popover and scrolls when the window is short. */
+.kbmr-panel .kbmr-pophead [data-kb="help-panel"]{position:fixed;top:auto;right:auto;inset-inline:auto;left:var(--kbmr-x,8px);bottom:var(--kbmr-b,72px)}
 .kbmr-page{display:flex;flex-direction:column;gap:20px;padding:4px 2px;max-width:720px}
 .kbmr-head{display:flex;gap:12px;align-items:flex-start}
 .kbmr-headtxt{flex:1;min-width:0}

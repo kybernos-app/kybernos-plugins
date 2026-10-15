@@ -3,8 +3,9 @@
 DSH on a phone, in two parts that do not depend on each other:
 
 1. **The layout** (every account, every plan): the DSH shell becomes usable below 700 px.
-2. **The phone link** (paid plans): a QR code on the computer links a phone to it, through the Kybernos relay, end to end
-   encrypted. The phone then runs the computer's own DSH page.
+2. **The phone link**: a QR code on the computer links a phone to it, through the Kybernos relay, end to end encrypted.
+   The phone then runs the computer's own DSH page. Whether an account has it is the server's plan (the feature `remote`,
+   in the Free plan too since 2026-10-15); the plugin only shows what the server answers.
 
 A failure in the second part never touches the first, and neither can stop DSH from starting.
 
@@ -65,8 +66,9 @@ time changes); a change to the host half (`index.js`) still needs a restart.
 
 ### The phone link
 
-- **The sidebar's phone button** opens a panel with the QR code (it used to show a preview). With no paid plan the panel
-  says « Included in paid plans » and offers the plans.
+- **The sidebar's phone button** opens a panel with the QR code (it used to show a preview), and a « ? How it works » button
+  on its title row (the same card as on Settings › Remote Control: `help.json`). When the account's plan does not include
+  the phone link the panel says « Not included in your plan » and offers the plans.
 - **Settings › Remote Control** lists the paired phones, shows when each was seen, and revokes one (or all).
 - On the phone: scan, open the link, a 4-digit code appears; on the computer the same code and an **Allow** button.
   Nothing is served to the phone before that. From then on the phone reconnects by itself.

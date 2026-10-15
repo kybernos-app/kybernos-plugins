@@ -235,7 +235,7 @@ try {
   await sleep(300)
   await ev(D, `(() => { const b = document.querySelector('[data-kb="mobile-pair"]'); if (b) b.click(); return !!b })()`)
   const wall = await until(D, `!!document.querySelector('[data-kb="mobile-paywall"]')`, 15000)
-  check('the page says « Included in paid plans »', wall === true)
+  check('the page says « Not included in your plan »', wall === true)
   check('and no QR code is offered', !(await exists(D, '[data-kb="mobile-page"] [data-kb="mobile-qr"]')))
   await shot(D, '7-paywall')
 } catch (e) {

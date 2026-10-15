@@ -1,7 +1,7 @@
 {
   "what": {
-    "fr": "Pilotez DSH depuis votre téléphone : scannez un code QR et la page de votre ordinateur s’ouvre sur le téléphone, avec un écran adapté. Le lien est chiffré de bout en bout.",
-    "en": "Drive DSH from your phone: scan a QR code and your computer’s page opens on the phone, on a screen made for it. The link is end-to-end encrypted."
+    "fr": "Votre téléphone ouvre une application web qui parle à votre ordinateur par un relais qui ne lit rien : tout est chiffré de bout en bout.",
+    "en": "Your phone opens a web app that talks to your computer through a relay that reads nothing: everything is end-to-end encrypted."
   },
   "steps": [
     {
@@ -23,7 +23,7 @@
     "page": true
   },
   "good": {
-    "fr": "Réservé aux offres payantes : le lien passe par un relais Kybernos qui ne peut pas lire vos messages. Sans offre, DSH reste utilisable en local, et l’écran s’adapte quand même.",
-    "en": "Paid plans only: the link goes through a Kybernos relay that cannot read your messages. Without a plan, DSH stays usable locally and the screen still adapts."
+    "fr": "Gardez l’ordinateur allumé et connecté à internet : s’il s’éteint ou perd la connexion, le téléphone ne peut plus l’atteindre. Le relais Kybernos fait passer les messages sans pouvoir les lire.",
+    "en": "Keep the computer switched on and connected to the internet: if it is switched off or loses the connection, the phone can no longer reach it. The Kybernos relay only passes messages along and cannot read them."
   }
 }
