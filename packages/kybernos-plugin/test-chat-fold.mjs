@@ -63,10 +63,11 @@ const css = block.slice(cssStart + 'styles.insert(`'.length, block.lastIndexOf('
 // 5. the CSS: DSH hooks only, never a hashed class; wide screens only; a live call stays visible
 {
   assert.ok(!/[A-Za-z0-9]{5,7}_(headerActions|tabs|titleRow)/.test(css), 'no hashed class name of DSH in the hiding rules')
-  assert.match(css, /@media \(min-width:701px\)\{[\s\S]*data-kb-chat-fold="1"\][^{]*header\.actions"\] > :not\(\.kbfold-root\):not\(:has\(\.kbcl-hlive\)\)\{display:none!important\}/, 'actions hidden, our root and a live call spared')
+  assert.match(css, /@media \(min-width:701px\)\{[\s\S]*data-kb-chat-fold="1"\][^{]*header\.actions"\] > :not\(\.kbfold-root\):not\(:has\(\[data-act="hangup-header"\]\)\)\{display:none!important\}/, 'actions hidden, our root and a live call spared')
   assert.match(css, /header"\] > \[class\*="tabs"\]\{display:none!important\}/, 'tabs row hidden')
-  assert.match(css, /composer\.dock"\] > :not\(\.kbch-wrap\)\{display:none!important\}/, 'status chips hidden')
-  assert.match(css, /\.kbch-wrap\.kbch-ok\{display:none!important\}/, 'a healthy save chip hidden')
+  assert.match(css, /composer\.dock"\] > :not\(\[data-kb="changes"\]\)\{display:none!important\}/, 'status chips hidden')
+  assert.match(css, /\[data-kb="changes"\]\[data-state="ok"\]\{display:none!important\}/, 'a healthy save chip hidden')
+  assert.ok(!/\.kbch-|\.kbcl-/.test(css), 'no class of another bundle is named (the bundles share one class namespace)')
   assert.match(css, /@media \(max-width:700px\)\{\.kbfold-root\{display:none\}\}/, 'the phone keeps its own parked actions')
   ok('hiding keys on [data-slot] hooks, wide screens only, a live call and a save problem stay visible')
 }
@@ -88,7 +89,7 @@ if (JSDOM === undefined) {
           <div class="root" id="agent">Agent Team</div>
           <div class="kbfold-root" id="fold"><button>pin</button></div>
           <div class="kbtg-root" id="teams">Teams</div>
-          <div class="kbcl-hdr" id="call">${nocall ? '<button class="kbcl-hbtn">call</button>' : '<button class="kbcl-hbtn kbcl-hlive">hang up</button>'}</div>
+          <div class="kbcl-hdr" id="call">${nocall ? '<button data-act="panel-call">call</button>' : '<button data-act="hangup-header">hang up</button>'}</div>
         </div></div>
         <div class="headerUtilities" id="utils"><button>more</button></div>
       </div>
@@ -96,8 +97,8 @@ if (JSDOM === undefined) {
     </div>
     <div data-slot="conversation.composer.dock">
       <span class="anchor" id="toks">44 tok/s</span>
-      <span class="kbch-wrap kbch-ok" id="saved">saved</span>
-      <span class="kbch-wrap kbch-bad" id="unsaved">not saved</span>
+      <span class="kbch-wrap kbch-ok" data-kb="changes" data-state="ok" id="saved">saved</span>
+      <span class="kbch-wrap kbch-warn" data-kb="changes" data-state="unsaved" id="unsaved">not saved</span>
       <span class="kbs-popwrap" id="mem">memory</span>
     </div></body></html>`
   const show = (live, nocall) => {
