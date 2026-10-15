@@ -732,6 +732,14 @@ window.__ModuleLoader__.load({
 .kbs-root .kb8-pill.ok{color:var(--dsw-alias-state-success-primary);background:color-mix(in srgb,var(--dsw-alias-state-success-primary) 14%,transparent)}
 .kbs-root .kb8-pill.warn{color:var(--dsw-alias-state-warn-primary);background:color-mix(in srgb,var(--dsw-alias-state-warn-primary) 14%,transparent)}
 .kbs-root .kb8-pill.info{color:#9dbaff;background:color-mix(in srgb,var(--kb-switch-on,#4d7cfe) 20%,transparent)}
+.kbs-root .kbs-ylist{display:flex;flex-direction:column;gap:8px}
+.kbs-root .kbs-yrow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid var(--dsw-alias-border-l1);border-radius:12px;background:var(--dsw-alias-bg-layer-1);cursor:pointer;min-width:0}
+.kbs-root .kbs-yrow:hover{border-color:var(--dsw-alias-border-l2)}
+.kbs-root .kbs-yrow.sel{border-color:var(--dsw-alias-brand-primary)}
+.kbs-root .kbs-yrow .who{display:flex;flex-direction:column;gap:2px;min-width:0;flex:0 0 230px}
+.kbs-root .kbs-yrow .desc{flex:1 1 0;min-width:0;font-size:12.5px;color:var(--dsw-alias-label-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kbs-root .kbs-yrow .when{flex:none;font-size:12px;color:var(--dsw-alias-label-tertiary);white-space:nowrap}
+.kbs-root .kbs-yrow .acts{flex:none;display:flex;align-items:center;gap:8px}
 .kbs-root .kb-pager{display:flex;align-items:center;justify-content:center;gap:16px;padding:6px 0 2px}
 .kbs-root .kb-pager .t{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--dsw-alias-label-caption)}
 .kbs-root .kb-sw{width:36px;height:20px;border-radius:999px;background:var(--dsw-alias-bg-layer-3);position:relative;cursor:pointer;border:none;flex:0 0 auto;transition:background .15s}
@@ -1003,6 +1011,18 @@ window.__ModuleLoader__.load({
         const [q, setQ] = React.useState({ yours: '', discover: '', team: '' })
         const [sort, setSort] = React.useState({ yours: 'recent', discover: 'installs' })
         const [dir, setDir] = React.useState({ yours: -1, discover: -1 })
+        // Cards or list, per tab, kept in this browser: Yours is cards by default (as it was), Discover is the ranking table (as it was).
+        const [views, setViews] = React.useState(() => {
+          try {
+            const j = JSON.parse(window.localStorage.getItem('kybernos.skills.views'))
+            return { yours: j !== null && j.yours === 'list' ? 'list' : 'cards', discover: j !== null && j.discover === 'cards' ? 'cards' : 'list' }
+          } catch (e) { return { yours: 'cards', discover: 'list' } }
+        })
+        const setView = (m, v) => setViews((prev) => {
+          const next = { ...prev, [m]: v }
+          try { window.localStorage.setItem('kybernos.skills.views', JSON.stringify(next)) } catch (e) { /* a convenience only */ }
+          return next
+        })
         const [page, setPage] = React.useState({ yours: 1 })
         // The index is PAGINATED server-side: `iview` chooses the ranking, `ipage` is 0-indexed like the
         // API, `iper` the page size. This is what replaces the endless "Load more" — at
@@ -1702,6 +1722,83 @@ window.__ModuleLoader__.load({
             x.installable !== true ? h('span', { key: 'w', className: 'kb8-pill warn' }, t('row.offgh')) : null),
           h('span', { className: 'inst' }, nf(x.installs)))
 
+        // A skill of Yours as a row (the list view): the same facts and the same gestures as its card, on one line.
+        const yourRow = (s, i) => {
+          const k = skillKey(s)
+          const on = s.active === true
+          const err = errors[k]
+          const pick = () => { setLocal(s); setDetail(null); setModal(null) }
+          return h('div', {
+            key: k, className: 'kbs-yrow' + (local !== null && skillKey(local) === k ? ' sel' : '') + appear(i), role: 'button', tabIndex: 0,
+            'aria-label': s.name + ' — ' + t('cap.detail'), 'data-kb': 'skill-row-' + k,
+            onClick: pick,
+            onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick() } }
+          },
+            tile(s.name, 'pkg', 'kbs-sm'),
+            h('span', { className: 'who' }, h('span', { className: 'kb8-name' }, s.name), h('span', { className: 'kb8-parent kbs-nowrap' }, (s.source || '') + ' · ' + String(s.root || ''))),
+            h('span', { className: 'desc', title: s.description !== '' ? s.description : undefined }, s.description !== '' ? s.description : t('card.nodesc')),
+            h('span', { className: 'kb8-pills' },
+              on ? h('span', { key: 'st', className: 'kb8-pill ok' }, t('card.active')) : h('span', { key: 'st', className: 'kb8-pill warn' }, t('card.disabled')),
+              s.collision === true ? h('span', { key: 'co', className: 'kb8-pill warn' }, t('card.dup')) : null,
+              s.writable !== true ? h('span', { key: 'ro', className: 'kb8-pill' }, t('card.noedit')) : null),
+            h('span', { className: 'when' }, s.modifiedAt !== '' ? today(s.modifiedAt) : ''),
+            h('span', { className: 'acts' },
+              s.writable === true
+                ? h('button', {
+                    type: 'button', className: 'kb-sw' + (on ? ' on' : ''), title: on ? t('card.disable') : t('card.enable'),
+                    disabled: busy[k] === true, onClick: (e) => { e.stopPropagation(); toggle(s) }
+                  }, h('i', null))
+                : h('span', { className: 'kb8-pill' }, t('card.readonly')),
+              h('button', {
+                type: 'button', className: 'kbs-star-btn' + (featNames.has(s.name) ? ' on' : ''),
+                title: featNames.has(s.name) ? t('feat.remove') : t('feat.add'),
+                onClick: (e) => { e.stopPropagation(); toggleFeatured(s.name) }
+              }, icon('star', 14))),
+            err ? h('span', { className: 'kbs-err' }, err) : null)
+        }
+
+        // A ranking entry as a card (the cards view of Discover): what the row says, in a card. The click opens the same install panel.
+        const discCard = (x, i) => h('div', {
+          key: x.source + '/' + x.name, role: 'button', tabIndex: 0, 'data-kb': 'disc-card',
+          className: 'kb8-card' + (installed(x) ? ' has' : '') + (detail !== null && detail.source === x.source && detail.name === x.name ? ' sel' : '') + appear(i),
+          'aria-label': x.name + ' — ' + t('cap.detail'),
+          onClick: () => { setDetail(x); setLocal(null); setModal(null); setAudit(null) },
+          onKeyDown: (e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDetail(x); setLocal(null); setModal(null); setAudit(null) } }
+        },
+          h('div', { className: 'kb-row' },
+            tile(x.name, 'pkg'),
+            h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
+              h('span', { className: 'kb8-name' }, x.name),
+              h('span', { className: 'kb8-parent kbs-nowrap' }, x.source))),
+          h('div', { className: 'kb8-pills' },
+            x.official === true ? h('span', { key: 'o', className: 'kb8-pill ok' }, 'curated') : null,
+            installed(x) ? h('span', { key: 'i', className: 'kb8-pill' }, t('row.installed')) : null,
+            x.installable !== true ? h('span', { key: 'w', className: 'kb8-pill warn' }, t('row.offgh')) : null),
+          h('div', { className: 'foot' }, icon('pkg', 13), h('span', null, nf(x.installs)), h('span', { className: 'grow' }), h('span', { className: 'kb8-mono' }, '#' + String(discFrom + i))))
+
+        // A featured skill as a card: the same click as its row (it opens the skill in Yours).
+        const featCard = (it, i) => h('div', {
+          key: 'f:' + it.name, role: 'button', tabIndex: 0, className: 'kb8-card feat' + appear(i), 'data-kb': 'feat-card',
+          title: it.description !== '' ? it.description : undefined,
+          onClick: () => {
+            const own = skills.find((x) => x.name === it.name)
+            setMode('yours'); setDetail(null); setModal(null)
+            if (own !== undefined) setLocal(own)
+            else setQ((m) => ({ ...m, yours: it.name }))
+          }
+        },
+          h('div', { className: 'kb-row' },
+            coverArt(it),
+            h('span', { style: { display: 'flex', flexDirection: 'column', minWidth: 0, gap: '2px', flex: '1' } },
+              h('span', { className: 'kb8-name' }, it.name),
+              h('span', { className: 'kb8-parent kbs-nowrap' }, it.source || t('feat.localskill'))),
+            h('button', {
+              type: 'button', className: 'kbs-star-btn on', title: t('feat.remove'), 'aria-label': t('feat.remove') + ' — ' + it.name,
+              onClick: (e) => { e.stopPropagation(); toggleFeatured(it.name) }
+            }, icon('star', 14))),
+          h('div', { className: 'desc' }, it.description !== '' ? it.description : t('card.nodesc')),
+          h('div', { className: 'kb8-pills' }, it.active === false ? h('span', { className: 'kb8-pill warn' }, t('card.disabled')) : h('span', { className: 'kb8-pill ok' }, t('card.active'))))
+
         // Pager based on the SERVER `total`. We no longer load "a bit more" at the bottom of a growing list:
         // we go to the wanted page, and the number of pages is known in advance.
         // `haut` (top): the same pager is rendered ABOVE the table. With fifty rows, the bottom pager
@@ -1747,7 +1844,9 @@ window.__ModuleLoader__.load({
               : empty(t('y.noresult'), t('y.nofilter'))
           }
           return h('div', null,
-            h('div', { className: 'kb8-grid' }, shownYours.map(yourCard)),
+            views.yours === 'list'
+              ? h('div', { className: 'kbs-ylist', 'data-kb': 'yours-list' }, shownYours.map(yourRow))
+              : h('div', { className: 'kb8-grid' }, shownYours.map(yourCard)),
             pagerYours(shownYours.length, filtered.length))
         }
 
@@ -1769,6 +1868,8 @@ window.__ModuleLoader__.load({
         // page 1 without a search, instead of sitting in a second, separate table above it.
         const featRows = (feat.phase === 'ready' && discKind === 'index' && dneedle === '' && discPage === 0)
           ? feat.items.filter((it) => it.found !== false).map(featRow) : []
+        const featCards = (feat.phase === 'ready' && discKind === 'index' && dneedle === '' && discPage === 0)
+          ? feat.items.filter((it) => it.found !== false).map((it, i) => featCard(it, i)) : []
         const renderDiscover = () => {
           const sourceLine = renderSourceLine()
           if (discPhase === 'loading' && disc === null) {
@@ -1798,7 +1899,11 @@ window.__ModuleLoader__.load({
           return h('div', null,
             sourceLine,
             discShown.length === 0 && featRows.length === 0 ? null : pagerIndex(true),
-            h('div', { className: 'kbs-table' + (discPhase === 'loading' ? ' loading' : '') },
+            views.discover === 'cards'
+              ? (discShown.length === 0 && featCards.length === 0
+                ? empty(t('y.noresult'), discKind === 'search' ? t('d.empty.search') : t('d.empty.page'))
+                : h('div', { className: 'kb8-grid' + (discPhase === 'loading' ? ' loading' : ''), 'data-kb': 'discover-cards' }, featCards.concat(discShown.map(discCard))))
+              : h('div', { className: 'kbs-table' + (discPhase === 'loading' ? ' loading' : '') },
               h('div', { className: 'kbs-head' },
                 h('span', { className: 'rank' }, '#'),
                 h('span', { className: 'who' }, discKind === 'search' ? t('th.result') : 'SKILL'),
@@ -1962,18 +2067,19 @@ window.__ModuleLoader__.load({
         const KbBar = tools !== null && typeof tools.KbToolbar === 'function' ? tools.KbToolbar : null
         const barState = () => {
           if (mode === 'discover') {
-            return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === 50 ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: 'cards' }
+            return { query: q.discover, sort: sort.discover === 'name' ? 'name' : (iview === 'all-time' ? 'installs' : iview), dir: dir.discover === -1 ? 'desc' : 'asc', types: iper === 50 ? [] : ['rows:' + iper], period: 'all', fav: false, viewMode: views.discover }
           }
           const types = []
           if (stateFilter !== 'all') types.push('st:' + stateFilter)
           if (sourceFilter !== 'all') types.push('src:' + sourceFilter)
-          return { query: q[mode], sort: sort.yours, dir: dir.yours === -1 ? 'desc' : 'asc', types: mode === 'yours' ? types : [], period: 'all', fav: false, viewMode: 'cards' }
+          return { query: q[mode], sort: sort.yours, dir: dir.yours === -1 ? 'desc' : 'asc', types: mode === 'yours' ? types : [], period: 'all', fav: false, viewMode: views.yours }
         }
         // The bar's changes go to the page's own setters. The two filter groups of Yours (state, source) and the rows of Discover are
         // single choices: the one just ticked replaces the previous one of its group.
         const barUpdate = (patch) => {
           if (patch === null || typeof patch !== 'object') return
           if (patch.query !== undefined) { const v = String(patch.query); setQ((m) => ({ ...m, [mode]: v })) }
+          if (patch.viewMode !== undefined && (mode === 'yours' || mode === 'discover')) setView(mode, patch.viewMode === 'list' ? 'list' : 'cards')
           if (mode === 'discover') {
             if (patch.sort !== undefined) {
               if (patch.sort === 'name') setSort((m) => ({ ...m, discover: 'name' }))
@@ -2031,7 +2137,8 @@ window.__ModuleLoader__.load({
                   facets: mode === 'team' ? {} : barFacets(),
                   total: mode === 'yours' ? skills.length : (mode === 'discover' ? discTotal : 0),
                   shown: mode === 'yours' ? filtered.length : (mode === 'discover' ? discList.length : 0),
-                  hideView: true,
+                  hideView: mode === 'team',
+                  views: ['cards', 'list'],
                   showFav: false,
                   trailing: headAction,
                 })
