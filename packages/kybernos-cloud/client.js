@@ -217,8 +217,8 @@ window.__ModuleLoader__.load({
         mfaGraceLong: '{name} demande un second facteur à ses membres : activez-en un dans votre compte Kybernos (Sécurité) avant le {date}, ensuite l\'équipe vous sera fermée.',
         // ── onglet Account : champs profil éditables (comme la webapp) ──
         // ── onglet « Données & confidentialité » (30/09 soir) ──
-        dataNavLabel: 'Données & confidentialité',
-        dataSub: 'Exportez vos données, gérez l\'appareil connecté ici ou supprimez votre compte.',
+        dataNavLabel: 'Données du compte',
+        dataSub: 'Données de votre compte Kybernos Cloud : exportez-les, gérez l\'appareil connecté ici ou supprimez le compte.',
         dataLabel: 'Vos données',
         dataExportTitle: 'Export complet des données',
         dataExportSub: 'Toutes vos données (profil, conversations, transactions, artefacts) regroupées et envoyées par email sous forme de lien ZIP signé (7 jours).',
@@ -456,8 +456,8 @@ window.__ModuleLoader__.load({
         mfaBlockedLong: '{name} asks its members for a second factor and you have none: set one up in your Kybernos account (Security), then reload.',
         mfaGraceShort: 'Second factor by {date}',
         mfaGraceLong: '{name} asks its members for a second factor: set one up in your Kybernos account (Security) before {date}, after that the team is closed to you.',
-        dataNavLabel: 'Data & privacy',
-        dataSub: 'Export your data, manage the device signed in here, or delete your account.',
+        dataNavLabel: 'Account data',
+        dataSub: 'The data of your Kybernos Cloud account: export it, manage the device signed in here, or delete the account.',
         dataLabel: 'Your data',
         dataExportTitle: 'Full data export',
         dataExportSub: 'All your data (profile, conversations, transactions, artifacts) bundled and emailed as a signed ZIP link (7 days).',

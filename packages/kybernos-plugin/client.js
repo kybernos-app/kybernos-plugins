@@ -515,8 +515,8 @@ let kbLocaleRead = () => 'en'
       'kbac.appearance.more': { kybernos: 'Palette, accent, fond et police : ', en: 'Palette, accent, background and font: ' },
       'kbac.appearance.openTheme': { kybernos: 'Ouvrir Thème', en: 'Open Theme' },
       'kbac.theme.hint': { kybernos: 'S\'applique à toute l\'interface DSH. « Système » suit le réglage de votre appareil.', en: 'Applies to the whole DSH interface. “System” follows your device setting.' },
-      'kbac.security': { kybernos: 'Sécurité', en: 'Security' },
-      'kbac.security.sub': { kybernos: 'Accès et sessions de votre compte Kybernos Cloud.', en: 'Access and sessions for your Kybernos Cloud account.' },
+      'kbac.security': { kybernos: 'Sécurité du compte', en: 'Account security' },
+      'kbac.security.sub': { kybernos: 'Mot de passe, double authentification et sessions de votre compte Kybernos Cloud (le compte web, pas DSH).', en: 'Password, two-factor authentication and sessions of your Kybernos Cloud account (the web account, not DSH).' },
       'kbac.out.security': { kybernos: 'Le mot de passe, la double authentification et les sessions se gèrent sur votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your password, two-factor authentication and sessions are managed on your Kybernos Cloud account. You are not signed in.' },
       'kbac.out.referral': { kybernos: 'Votre code de parrainage arrive avec votre compte Kybernos Cloud. Vous n\'êtes pas connecté.', en: 'Your referral code comes with your Kybernos Cloud account. You are not signed in.' },
       'kbac.out.why': { kybernos: 'Pourquoi créer un compte', en: 'Why create an account' },
@@ -538,9 +538,10 @@ let kbLocaleRead = () => 'en'
       'kbac.sec.manage': { kybernos: 'Gérer', en: 'Manage' },
       'kbac.sec.sessions': { kybernos: 'Sessions', en: 'Sessions' },
       'kbac.sec.sessions.sub': { kybernos: 'Voir et fermer vos sessions actives', en: 'Review and close your active sessions' },
-      'kbac.sec.note': { kybernos: 'Ces réglages se gèrent sur votre compte Kybernos Cloud : le bouton l\'ouvre dans votre navigateur. DSH ne saisit ni ne stocke jamais de mot de passe.', en: 'These settings are managed on your Kybernos Cloud account: the button opens it in your browser. DSH never enters or stores a password.' },
+      'kbac.sec.note': { kybernos: 'Ces réglages se gèrent sur votre compte Kybernos Cloud : chaque bouton ouvre la même page dans votre navigateur. DSH ne saisit ni ne stocke jamais de mot de passe.', en: 'These settings are managed on your Kybernos Cloud account: each button opens the same page in your browser. DSH never enters or stores a password.' },
+      'kbac.sec.at': { kybernos: 'Page ouverte :', en: 'Page opened:' },
       'kbac.support': { kybernos: 'Support & légal', en: 'Support & legal' },
-      'kbac.support.sub': { kybernos: 'Aide, conditions et état du service.', en: 'Help, terms and service status.' },
+      'kbac.support.sub': { kybernos: 'Aide, conditions d\'utilisation et envoi de retours.', en: 'Help, terms of use and feedback.' },
       'kbac.support.terms': { kybernos: 'Conditions de service', en: 'Terms of service' },
       'kbac.support.terms.sub': { kybernos: 'Crédits, quotas, remboursements, usage équitable', en: 'Credits, quotas, refunds, fair use' },
       'kbac.support.privacy': { kybernos: 'Politique de confidentialité', en: 'Privacy policy' },
@@ -1398,7 +1399,7 @@ let kbLocaleRead = () => 'en'
       'kbui.engine.voices': { kybernos: ' voix', en: ' voices' },
       'kbui.engine.installed': { kybernos: ' · moteurs installés ', en: ' · installed engines ' },
       'kbui.tts.leaves': { kybernos: '. Les réponses lues avec lui quittent votre machine.', en: '. Replies read aloud with it leave your machine.' },
-      'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute, sur cette machine ou via un service cloud — à vous de choisir, moteur par moteur.', en: 'Read replies aloud, on this machine or through a cloud service — your choice, engine by engine.' },
+      'kbui.tts.sub': { kybernos: 'Lit les réponses à voix haute et dicte dans le champ de saisie, sur cette machine ou via un service cloud — à vous de choisir, moteur par moteur. Pour parler en direct avec l\'assistant, voir Appels.', en: 'Reads replies aloud and dictates into the message box, on this machine or through a cloud service — your choice, engine by engine. To talk live with the assistant, see Calls.' },
       'kbui.website.widget': { kybernos: 'Widget de site web', en: 'Website widget' },
       'kbui.hosted.only': { kybernos: 'Ce que vous n’obtenez qu’en hosted', en: 'What you get only when it is hosted' },
       'kbui.widget.colour': { kybernos: 'Couleur du widget', en: 'Widget colour' },
@@ -30826,7 +30827,8 @@ html[data-kb-cloud="off"] .kbu-btn-bell{display:none !important}
           h(KbacRow, { label: kbt('kbac.sec.password'), desc: kbt('kbac.sec.password.sub'), action: kbt('kbac.sec.change'), href: href }),
           h(KbacRow, { label: kbt('kbac.sec.2fa'), desc: kbt('kbac.sec.2fa.sub'), action: kbt('kbac.sec.manage'), href: href }),
           h(KbacRow, { label: kbt('kbac.sec.sessions'), desc: kbt('kbac.sec.sessions.sub'), action: kbt('kbac.sec.manage'), href: href })),
-        h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')))
+        h('p', { className: 'kbac-hint' }, kbt('kbac.sec.note')),
+        h('p', { className: 'kbac-hint', 'data-kb': 'security-target' }, kbt('kbac.sec.at') + ' ' + href))
     }
     const KbacSupport = () => {
       // The terms and the privacy policy are where the SERVER says they are (`GET /v1/public/legal`, through the cloud host): its host serves
@@ -30929,7 +30931,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
       // the position of the title in `mots`; a page of a plugin not listed here falls to the tail (450+), the shell's own pages keep theirs.
       // `bureau`: the section that follows the « Desktop » divider.
       const GROUPES = [
-        { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'apparence', 'appearance', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal', 'serveurs', 'servers'] },
+        { titre: kbt('settings.group.account'), mots: ['compte', 'account', 'parrainage', 'referral', 'securite', 'security', 'donnees & confidentialite', 'data & privacy', 'donnees et confidentialite', 'support & legal', 'support et legal', 'serveurs', 'servers'] },
         { titre: kbt('settings.group.kybernos'), mots: [
           'kybernos suite',
           'fournisseur ia & modeles', 'ai provider & models', 'ai providers & models',
@@ -30945,6 +30947,7 @@ body:not([data-ds-dark-theme]) .kbac-theme-cur{color:color-mix(in srgb,var(--dsw
           'ollama local models',
           'voix', 'voice',
           'langue', 'language',
+          'apparence', 'appearance',
           'theme'
         ] },
         { titre: kbt('settings.group.settings'), mots: ['general', 'mon espace', 'my workspace'] },
