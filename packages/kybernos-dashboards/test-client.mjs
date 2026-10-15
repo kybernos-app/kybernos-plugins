@@ -224,5 +224,12 @@ const finite = (s) => !/NaN|Infinity|undefined/.test(s)
   ok('help: both languages everywhere', ['what', 'where', 'good'].every((k) => help[k].fr && help[k].en) && help.steps.every((s) => s.fr && s.en))
 }
 
+{
+  // the gallery's header is the template of the other listing pages: same classes, the action keeps its hook
+  const plugin = text('./src/plugin.js')
+  ok('gallery header: the template classes of the core plugin and the primary action at the same place', /className: 'kbdb-gal-head kb6-headrow'/.test(plugin) && /className: 'kb6-headacts'/.test(plugin) && /className: 'kb8-primary', 'data-act': 'create'/.test(plugin))
+  ok('gallery header: the core plugin\'s primary button keeps its colours inside the page', /\.kbdb \.kb8-primary\{color:var\(--dsw-alias-label-primary-foreground\)\}/.test(plugin))
+}
+
 console.log(fail === 0 ? 'client: ok (' + passed + ' checks)' : fail + ' failed of ' + (passed + fail))
 process.exit(fail ? 1 : 0)
