@@ -18,6 +18,12 @@
 // sandbox's own registry (<DSH home>/kybernos/servers.json, put back at the end) names as the active server, so the address comes from the
 // host's route and the frame really loads. The frame's own stand-in page posts the message the real console posts (« open in browser »).
 //
+// The account's own pages of that frame (Security, Devices, My data, Support & legal; the server's ADR 0054) read through the host's relay: the scene
+// « the frame's account pages are not refused by the relay » drives the REAL relay route of the sandbox's host (a connected state is written for the
+// stand-in server and removed at the end) and fails on any « chemin refuse ». The host half is NOT hot-reloaded: restart the sandbox after editing
+// packages/kybernos-cloud/index.js (relay rules). By default the stand-in page makes the reads the real frame makes; `--console-file <html>` serves the
+// server's real console page instead (node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))").
+//
 // Sandbox only: it refuses :3080 (exit 3). It presses DSH's light/dark switch of the sandbox's own profile and puts it back.
 // Exit 0 all good, 1 a check failed, 3 not run.
 import { createServer } from 'node:http'
@@ -30,6 +36,7 @@ if (host.endsWith(':3080')) { console.error('○ not run: this check must run ag
 const DSH_HOME = process.env.DSH_HOME || ''
 if (!DSH_HOME.includes('.kybernos-sandbox')) { console.error('○ not run: DSH_HOME is not an isolated instance (' + (DSH_HOME || 'unset') + '): source scripts/sandbox/env.sh'); process.exit(3) }
 const shotsAt = process.argv.includes('--shots') ? process.argv[process.argv.indexOf('--shots') + 1] : null
+const consoleFile = process.argv.includes('--console-file') ? process.argv[process.argv.indexOf('--console-file') + 1] : null
 if (shotsAt !== null) mkdirSync(shotsAt, { recursive: true })
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -66,21 +73,47 @@ const REMOTE_OFFERED = { ok: true, available: true, running: true, connected: tr
 const fake = { status: null, calls: [], bodies: [], plans: null, plansDelay: 0, checkout: null, portal: null, quote: null, link: null, pairingPending: false, remote: REMOTE_OFFERED }
 const body64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64')
 
-// A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts.
+// The GETs the real frame makes for each page of the account group (what the server's console asks its parent for): Overview and the two entries DSH's footer
+// opens (`#account`, `#referral`), Security, Devices, My data (none), Support & legal (`#support`).
+const FRAME_READS = {
+  account: ['/v1/me', '/v1/sessions', '/v1/referral'], referral: ['/v1/me', '/v1/sessions', '/v1/referral'], overview: ['/v1/me', '/v1/sessions', '/v1/referral'],
+  security: ['/v1/me/mfa'], devices: ['/v1/sessions'], data: [], support: ['/v1/public/legal'],
+}
+// What the stand-in server answers on its API side (the host's relay calls it with the device token).
+const API_BODIES = {
+  '/v1/me': { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
+  '/v1/sessions': { sessions: [] },
+  '/v1/referral': { code: 'AB12CD', share_url: 'https://example.invalid/r/AB12CD' },
+  '/v1/me/mfa': { enabled: false, methods: [] },
+  '/v1/public/legal': { terms: null, privacy: null },
+}
+// A console of its own, on its own loopback port: it counts what is asked of it and, when the frame is clicked, posts the message the real console posts. Its page
+// also makes the reads the real frame makes for the page the address names (through the parent's relay), and its API side answers them and records the Authorization it saw.
 const consoles = []
-const startConsole = async () => {
+const startConsole = async (opts = {}) => {
   const hits = []
+  const api = []
   const srv = createServer((req, res) => {
     hits.push(req.url)
-    if (req.url.startsWith('/workspace-console')) {
+    const path = req.url.split('?')[0]
+    if (path === '/workspace-console') {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
-      res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>')
+      if (opts.file !== undefined && opts.file !== null) { res.end(readFileSync(opts.file, 'utf8')); return }
+      res.end('<!doctype html><title>console stand-in</title><body style="margin:0;height:100vh;background:#fff" onclick="parent.postMessage({kbOpenBrowser:{id:\'' + W_PERSONAL + '\'}},\'*\')"><p>console stand-in</p>'
+        + '<script>var reads=' + JSON.stringify(FRAME_READS) + ';var page=String(location.hash||"").slice(1).split("&")[0];'
+        + 'addEventListener("message",function(ev){if(ev.source===parent&&ev.data&&ev.data.kbApiReady===true)(reads[page]||[]).forEach(function(p,i){parent.postMessage({kbApi:{id:"r"+i,method:"GET",path:p}},"*")})});'
+        + 'parent.postMessage({kbConsoleReady:true},"*")</script>')
+      return
+    }
+    if (API_BODIES[path] !== undefined && req.method === 'GET') {
+      api.push({ url: req.url, auth: req.headers.authorization || null })
+      res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(API_BODIES[path]))
       return
     }
     res.writeHead(404); res.end()
   })
   await new Promise((r) => srv.listen(0, '127.0.0.1', r))
-  const c = { origin: 'http://127.0.0.1:' + srv.address().port, hits, server: srv, close: () => new Promise((r) => { try { srv.closeAllConnections() } catch (e) { /* none */ } srv.close(() => r()) }) }
+  const c = { origin: 'http://127.0.0.1:' + srv.address().port, hits, api, server: srv, close: () => new Promise((r) => { try { srv.closeAllConnections() } catch (e) { /* none */ } srv.close(() => r()) }) }
   consoles.push(c)
   return c
 }
@@ -107,6 +140,16 @@ const WATCH = `(() => {
   window.__kbNative = []
   window.__kbOpened = []
   window.open = (u) => { window.__kbOpened.push(String(u)); return null }
+  // The calls the page's broker makes to the host's relay, with what the host answered (the relay's own verdict: « chemin refuse » for a path off its allowlist).
+  window.__kbRelay = []
+  const realFetch = window.fetch.bind(window)
+  window.fetch = (input, init) => {
+    const url = typeof input === 'string' ? input : (input && input.url) || ''
+    const p = url.indexOf('/kybernos-cloud/relay?p=') >= 0 ? decodeURIComponent(url.split('?p=')[1] || '') : null
+    const out = realFetch(input, init)
+    if (p !== null) out.then((r) => r.clone().json()).then((j) => window.__kbRelay.push({ p, ok: j && j.ok === true, status: j && typeof j.status === 'number' ? j.status : null, error: j && j.error ? String(j.error) : null })).catch(() => window.__kbRelay.push({ p, ok: false, status: null, error: 'unreadable' }))
+    return out
+  }
   const seen = () => {
     for (const m of document.querySelectorAll('[role="menu"]')) {
       if (m.matches('[data-kb="off-menu"], .kbfp-menu, .kbfp-sub')) continue
@@ -373,6 +416,50 @@ try {
     check('Team settings after Referral is the console\'s first page again', u !== null && u.hash === '' && u.origin === A.origin, u && u.href)
     fake.bodies.length = 0
 
+    // ── The account's own pages of the frame read through the REAL relay route of the sandbox's host ─────────────────────────────────────────────────────────
+    // (the server's ADR 0054: Overview, Security, Devices, My data, Support & legal.) A connected state is written for the stand-in server (the sandbox host reads
+    // its state file at each call) so the relay is not « non connecte »; it is removed at the end. A page whose read the relay refuses would show an error in the
+    // frame: what is asserted is the relay's verdict (« chemin refuse » never), the path that reached the server and the token going out as Authorization only.
+    console.log('The frame\'s account pages — their reads are not refused by the relay')
+    // With `--console-file` the page is the server's REAL console (built from its source), served by a stand-in of its own that is the active server for
+    // this scene only; without it, the stand-in page makes the reads the real frame makes.
+    const S = consoleFile !== null ? await startConsole({ file: consoleFile }) : A
+    if (S !== A) { setRegistry('stub-1', [S]); await reload() }
+    const stateFile = join(DSH_HOME, 'kybernos-cloud-stub-1.json')
+    writeFileSync(stateFile, JSON.stringify({ token: 'kys-live-check-0123456789', api: S.origin, user: { id: 'u-1', email: 'dev@example.test', name: 'Dev Person', plan: 'free' },
+      workspaces: [{ id: W_PERSONAL, name: 'Personal', personal: true, role: 'owner' }], active_workspace_id: W_PERSONAL }), { mode: 0o600 })
+    const relayAfter = async (slug, want) => {
+      await val(`window.__kbRelay = []`)
+      S.api.length = 0
+      await val(`window.__kbOpenWsConsole(${JSON.stringify(slug)})`)
+      await waitFrame()
+      await waitFor(page, `window.__kbRelay.length >= ${want}`, 6000)
+      await sleep(500)
+      return { relay: (await val('window.__kbRelay')) || [], api: S.api.slice() }
+    }
+    const notRefused = (r) => r.relay.every((x) => x.error !== 'chemin refuse' && x.error !== 'non connecte')
+    const security = await relayAfter('security', 1)
+    check('Security: the frame\'s read of the account\'s second factor (/v1/me/mfa) is not refused by the relay', security.relay.some((x) => x.p === '/v1/me/mfa') && notRefused(security), security.relay)
+    check('… and it reached the server as a GET with the device token in Authorization', security.api.some((x) => x.url === '/v1/me/mfa' && x.auth === 'Bearer kys-live-check-0123456789'), security.api)
+    const support = await relayAfter('support', 1)
+    check('Support & legal: the read of the server\'s legal page (/v1/public/legal) is not refused by the relay', support.relay.some((x) => x.p === '/v1/public/legal') && notRefused(support), support.relay)
+    check('… and it reached the server as a GET with the device token in Authorization', support.api.some((x) => x.url === '/v1/public/legal' && x.auth === 'Bearer kys-live-check-0123456789'), support.api)
+    const devices = await relayAfter('devices', 1)
+    check('Devices: the read of the sessions is not refused', devices.relay.some((x) => x.p === '/v1/sessions') && notRefused(devices), devices.relay)
+    const over = await relayAfter('overview', 3)
+    check('Overview: the profile, the sessions and the referral card are not refused', ['/v1/me', '/v1/sessions', '/v1/referral'].every((p) => over.relay.some((x) => x.p === p)) && notRefused(over), over.relay)
+    const data = await relayAfter('data', 0)
+    check('My data: no read at all, so nothing for the relay to refuse', data.relay.length === 0, data.relay)
+    // The writes of the second factor and anything else under /v1/me/mfa stay off the allowlist (the unit test pins the rule; here the real route).
+    const refusedLive = await val(`fetch('/kybernos-cloud/relay?p=' + encodeURIComponent('/v1/me/mfa/setup')).then((r) => r.json())`)
+    check('a sub-path of the second factor (a write) is still refused by the real route', refusedLive !== null && refusedLive.ok === false && refusedLive.error === 'chemin refuse', refusedLive)
+    check('no token anywhere in what the page saw of the relay', JSON.stringify([security.relay, support.relay, devices.relay, over.relay]).indexOf('kys-live-check') < 0)
+    await shot('16-frame-security')
+    rmSync(stateFile, { force: true })
+    if (S !== A) { setRegistry('stub-1', [A]); await reload() }
+    await openPage('space-settings')
+    fake.bodies.length = 0
+
     // A server that has no #account page yet shows its console, never an error: the frame is the same document, whose own code ignores the fragment.
     // The server's address follows the registry when it changes while the page is up (no reload).
     const B = await startConsole()
@@ -606,6 +693,7 @@ try {
     check('and the scheme is put back', (await schemeNow()) === startScheme, { startScheme, now: await schemeNow() })
   }
 } finally {
+  try { rmSync(join(DSH_HOME, 'kybernos-cloud-stub-1.json'), { force: true }) } catch (e) { /* none */ }
   restoreRegistry()
   for (const c of consoles) { try { await c.close() } catch (e) { /* closed */ } }
   await live.close()

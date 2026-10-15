@@ -716,6 +716,14 @@ clicks:
   host for a console link on `section: overview` from the Account and Referral pages. Without the core plugin's `__kbOpenWsConsole` bridge Account
   falls back to the system browser through the console link. The notification bell is hidden behind `SHOW_BELL` in the cloud client and the check
   asserts it is absent.
+- **The frame's account pages** (the server's ADR 0054 rail: Overview, Security, Devices, My data, Support & legal): the scene opens each one
+  through `window.__kbOpenWsConsole(<page>)` against the stand-in server and drives the sandbox host's REAL relay route (a connected state
+  file for the stand-in server is written into `<DSH home>` and removed at the end). It asserts that the reads of Security (`/v1/me/mfa`)
+  and Support & legal (`/v1/public/legal`) and the other pages' are never answered « chemin refuse », that they reach the server as GETs
+  with the device token in `Authorization` only, and that a sub-path of the second factor is still refused. **The relay rules live in the
+  host half: restart the sandbox after editing `packages/kybernos-cloud/index.js`.** By default the stand-in page makes the reads the real
+  frame makes; `--console-file <html>` serves the server's real console page instead (render it with
+  `node -e "import('<server>/src/modules/app/pages.ts').then((m) => require('fs').writeFileSync('console.html', m.EMBEDDED_PAGE))"`).
 - **Remote control** (the phone link's status route, `kybernos-mobile/remote/status`, is answered in the page): the entry sits right after
   Referral with the number of phones already linked, opens kybernos-mobile's own panel, and is absent when the server does not offer the
   feature (`configured: false`), the plan does not include it (`entitled: false`), DSH cannot (`available: false`) or the status cannot be
