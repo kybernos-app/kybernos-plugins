@@ -59,6 +59,8 @@ const MOCK = `(() => {
     if (p === '/kybernos-cloud/telegram/pairing/cancel') { rec(); return json({ ok: true }) }
     if (p === '/kybernos-cloud/telegram/settings') { rec(); m.kyber.telegram.home_target = body.home_target; return json({ ok: true, home_target: body.home_target }) }
     if (p === '/kybernos-cloud/telegram/unlink') { rec(); m.kyber.telegram.linked = null; return json({ ok: true }) }
+    if (p === '/kybernos-cloud/kyby' && m.chatMissing) return json({ ok: false, error: 'not_found' })
+    if (p === '/kybernos-cloud/kyby/send' && m.chatMissing) return json({ ok: false, error: 'not_found' })
     if (p === '/kybernos-cloud/kyby' && method === 'GET') return json({ ok: true, thread_id: '22222222-2222-4222-8222-222222222222', model: 'glm-5.3-flash', messages: m.messages.slice(), has_older: false })
     if (p === '/kybernos-cloud/kyby/send') {
       rec()
@@ -124,7 +126,10 @@ try {
   check('the where-setting is there but locked until Telegram is connected', (await val(`Array.from(document.querySelectorAll('[data-kb^="kybernos-kyber-where-"] input')).every((i) => i.disabled)`)) === true)
   await click('kybernos-kyber-upgrade')
   await sleep(500)
-  check('« upgrade » opens the plan page (no dialog seam in this GUI: the console link is asked)', (await calls('/kybernos-cloud/console/link')).some((c) => c.body && c.body.section === 'plan'), await calls('/kybernos-cloud/console/link'))
+  // With the footer's seam (window.__KB_UPGRADE__) the Upgrade dialog opens; without it the plan page is asked through the console link.
+  const upgradeOpened = (await val(`!!document.querySelector('[class*="kbup-"], [data-kb^="upgrade-"]')`)) === true
+  check('« upgrade » opens the Upgrade dialog, or asks for the plan page', upgradeOpened || (await calls('/kybernos-cloud/console/link')).some((c) => c.body && c.body.section === 'plan'), { upgradeOpened, links: await calls('/kybernos-cloud/console/link') })
+  if (upgradeOpened) { await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }); await sleep(300) }
   await shot('1-free-unlinked')
 
   console.log('── 3. the pairing goes by itself ──')
@@ -195,6 +200,19 @@ try {
   check('the QR is hidden (nobody scans their own screen), the Telegram button stays', (await val(`(() => { const q = document.querySelector('[data-kb="kybernos-kyber-qr"]'); const o = document.querySelector('[data-kb="kybernos-kyber-open"]'); return (!q || q.getClientRects().length === 0) && !!o && o.getClientRects().length > 0 })()`)) === true)
   await shot('7-phone')
   await page.send('Emulation.clearDeviceMetricsOverride', {})
+
+  console.log('── 10. a server that has no Kyby chat yet (the one this DSH talked to when this was found) ──')
+  await page.send('Page.addScriptToEvaluateOnNewDocument', { source: 'window.__kbMock.chatMissing = true' })
+  await page.send('Page.reload', { ignoreCache: true })
+  await sleep(2500)
+  await waitFor(page, 'document.body && document.body.innerText.length > 80', 30000)
+  const row2 = await poll(() => val(`(() => { const e = Array.from(document.querySelectorAll('button, a, [role="button"]')).filter((x) => (x.innerText || '').trim().split('\\n')[0] === 'Kyby' && x.getClientRects().length > 0)[0]; if (!e) return null; const r = e.getBoundingClientRect(); return JSON.stringify({ x: r.x + r.width / 2, y: r.y + r.height / 2 }) })()`), 20000)
+  if (typeof row2 === 'string') { const q = JSON.parse(row2); await mouse(q.x, q.y) }
+  check('the page opens again', (await poll(() => has('kybernos-kyber-page'))) === true)
+  check('the chat says it is not available here, with words', (await poll(() => val(`(document.querySelector('[data-kb="kybernos-kyber-chat"]') || {}).getAttribute && document.querySelector('[data-kb="kybernos-kyber-chat"]').getAttribute('data-state') === 'unsupported'`), 10000)) === true)
+  check('there is no draft box to type in, and no send button', (await has('kybernos-kyber-draft')) === false && (await has('kybernos-kyber-send')) === false)
+  check('the strip (Telegram, computer) is still there', (await has('kybernos-kyber-strip')) === true)
+  await shot('8-unsupported')
 } catch (e) {
   fail += 1
   console.log('  ✗ the check itself failed: ' + (e && e.message ? e.message : String(e)))

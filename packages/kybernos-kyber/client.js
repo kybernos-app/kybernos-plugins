@@ -118,6 +118,9 @@ window.__ModuleLoader__.load({
         err_feature_not_in_plan: ['Les réponses hébergées ne sont pas incluses dans cette offre.', 'Hosted answers are not included in this plan.'],
         err_hosted_runs_disabled: ['Les réponses hébergées sont arrêtées sur ce serveur.', 'Hosted answers are turned off on this server.'],
         err_unreachable: ['Le serveur ne répond pas.', 'The server does not answer.'],
+        err_not_found: ['Ce serveur ne sait pas encore tenir la conversation de Kyby : il doit être mis à jour.', 'This server cannot hold Kyby’s conversation yet: it needs to be updated.'],
+        unsupportedH: ['Le chat de Kyby n’est pas disponible sur ce serveur', 'Kyby’s chat is not available on this server'],
+        unsupportedP: ['Le serveur auquel DSH est relié n’a pas encore cette fonction. Telegram et l’ordinateur de Kyby restent dans le bandeau ci-dessus.', 'The server this DSH talks to does not have this function yet. Telegram and Kyby’s computer stay in the strip above.'],
         err_not_connected: ['Connectez-vous à Kybernos pour parler à Kyby.', 'Sign in to Kybernos to talk to Kyby.'],
         err_thread_limit: ['Vous avez atteint le nombre maximal de conversations de votre offre.', 'You have reached the most conversations your plan allows.'],
         err_refused: ['Le message n’a pas pu être envoyé.', 'The message could not be sent.'],
@@ -192,7 +195,7 @@ window.__ModuleLoader__.load({
       const state = {
         loading: true, view: null, at: 0, stripPref: null,
         pairing: null, starting: false, autoDone: false, copied: false, confirmDisc: false, busy: '',
-        chat: { loaded: false, loading: false, messages: [], error: '', sending: false, waitingAfter: null, waitingSince: 0, thread: '' },
+        chat: { loaded: false, loading: false, messages: [], error: '', sending: false, waitingAfter: null, waitingSince: 0, thread: '', unsupported: false },
       }
       try { const v = window.localStorage.getItem('kybernos-kyber.strip'); if (v === '0') state.stripPref = false; else if (v === '1') state.stripPref = true } catch (e) { /* no storage */ }
       const listeners = new Set()
@@ -350,6 +353,8 @@ window.__ModuleLoader__.load({
         } else if (r !== null && r.ok === false) {
           state.chat.loaded = true
           if (r.error === 'not_connected') state.chat.error = 'err_not_connected'
+          // A server older than this page has no /v1/me/kyby: there is nothing to talk to, and the box says so instead of failing at each send.
+          if (r.error === 'not_found') state.chat.unsupported = true
         } else {
           state.chat.loaded = true
         }
@@ -383,6 +388,7 @@ window.__ModuleLoader__.load({
           return true
         }
         state.chat.messages = state.chat.messages.filter((m) => m !== mine)
+        if (r !== null && r.error === 'not_found') state.chat.unsupported = true
         state.chat.error = chatError(r !== null && typeof r.error === 'string' ? r.error : 'unreachable')
         emit()
         return false
@@ -566,7 +572,12 @@ window.__ModuleLoader__.load({
           const okSent = await chatSend(t)
           if (!okSent) setDraft(t)
         }
-        const empty = c.loaded && c.messages.length === 0
+        const empty = c.loaded && c.messages.length === 0 && !c.unsupported
+        if (c.unsupported) {
+          return h('section', { className: 'kbky-chat', 'data-kb': 'kybernos-kyber-chat', 'data-state': 'unsupported' },
+            h('div', { className: 'kbky-chath' }, h('b', null, L('chatH'))),
+            h('div', { className: 'kbky-msgs' }, h('div', { className: 'kbky-big' }, h('span', { className: 'kbky-badge info' }, Ic('alert', 20)), h('div', null, h('h3', null, L('unsupportedH')), h('p', null, L('unsupportedP'))))))
+        }
         const msgs = c.messages.map((m, i) => h('div', { key: m.position + ':' + i, className: 'kbky-m ' + (m.role === 'user' ? 'u' : 'k'), 'data-kb': 'kybernos-kyber-msg-' + m.role }, m.text,
           m.via === 'telegram' ? h('span', { className: 'kbky-via' }, BRAND.telegram(12), L('viaTg')) : null))
         return h('section', { className: 'kbky-chat', 'data-kb': 'kybernos-kyber-chat' },
